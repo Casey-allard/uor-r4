@@ -31,6 +31,7 @@ pub struct GraphCompileOptions {
     pub output: PathBuf,
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 pub fn parse_options(args: &[String]) -> Result<GraphCompileOptions, String> {
     let (default_meta, default_recs) = compiler::corpus_paths();
     let mut options = GraphCompileOptions {
@@ -91,6 +92,7 @@ pub fn parse_options(args: &[String]) -> Result<GraphCompileOptions, String> {
 }
 
 /// Run the full multiresolution graph compilation pipeline (Option 1).
+#[cfg(not(target_arch = "wasm32"))]
 pub fn compile(args: &[String]) -> Result<(), String> {
     #[cfg(debug_assertions)]
     eprintln!(
@@ -261,6 +263,7 @@ pub fn parse_observe_options(args: &[String]) -> Result<ObserveOptions, String> 
     Ok(options)
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 pub fn observe(args: &[String]) -> Result<(), String> {
     let options = parse_observe_options(args)?;
 

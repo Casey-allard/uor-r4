@@ -62,6 +62,8 @@ struct R4g1World {
     contract_report: Option<uor_r4_graph_format::inference_contract::InferenceContractAuditReport>,
     _contract_audit_res:
         Option<Result<(), uor_r4_graph_format::inference_contract::ContractValidationError>>,
+    // Performance Certificate fields (#161)
+    perf_cert: Option<uor_r4_graph_certify::performance_certificate::RuntimePerformanceCertificate>,
     // PDF Traceability Matrix fields (#137)
     pdf_matrix: Vec<uor_r4_proof_model::pdf_traceability::PdfTraceabilityRow>,
     pdf_audit_report: Option<uor_r4_proof_model::pdf_traceability::TraceabilityAuditReport>,
@@ -2093,6 +2095,41 @@ fn bdd_scoring_compare_cands(w: &mut R4g1World) {
 fn bdd_scoring_check_cand_a_wins(w: &mut R4g1World) {
     let res = w.candidate_cmp_result.expect("candidate cmp result");
     assert_eq!(res, core::cmp::Ordering::Less);
+}
+// Performance Certificate BDD Steps (#161)
+// =========================================================================
+use uor_r4_graph_certify::performance_certificate::RuntimePerformanceCertificate;
+
+#[given("a new runtime performance certificate")]
+fn bdd_perf_cert_given(w: &mut R4g1World) {
+    w.perf_cert = Some(RuntimePerformanceCertificate::new());
+}
+
+#[when("audited for evidence link integrity")]
+fn bdd_perf_cert_audit_when(_w: &mut R4g1World) {}
+
+#[then("all declared-zero fields contain non-empty evidence links and steady-state allocations are zero")]
+fn bdd_perf_cert_links_check(w: &mut R4g1World) {
+    let cert = w.perf_cert.as_ref().expect("perf cert");
+    assert!(cert.verify_evidence_links());
+}
+
+#[given("a performance certificate with CPU portability record")]
+fn bdd_perf_cert_portability_given(w: &mut R4g1World) {
+    w.perf_cert = Some(RuntimePerformanceCertificate::new());
+}
+
+#[when("checked for execution portability")]
+fn bdd_perf_cert_portability_when(_w: &mut R4g1World) {}
+
+#[then(
+    "scalar fallback is confirmed and target tier matches the current architecture scalar-portable tier"
+)]
+fn bdd_perf_cert_portability_check(w: &mut R4g1World) {
+    let cert = w.perf_cert.as_ref().expect("perf cert");
+    let expected_tier = format!("{}-scalar-portable", std::env::consts::ARCH);
+    assert!(cert.cpu_portability.scalar_fallback_confirmed);
+    assert_eq!(cert.cpu_portability.target_tier, expected_tier);
 }
 #[tokio::main]
 async fn main() {

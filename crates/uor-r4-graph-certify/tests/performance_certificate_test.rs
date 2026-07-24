@@ -1,5 +1,8 @@
 use uor_r4_core::transformerless::runtime::OpKernel;
-use uor_r4_graph_certify::performance_certificate::{PerformanceCertificate, PerformanceProfiler};
+use uor_r4_graph_certify::performance_certificate::{
+    CpuPortabilityRecord, PerformanceCertificate, PerformanceProfiler,
+    RuntimePerformanceCertificate,
+};
 
 #[test]
 fn test_performance_profiler_and_threshold_verification() {
@@ -38,4 +41,34 @@ fn test_performance_certificate_cbor_roundtrip() {
 
     assert_eq!(cert, decoded);
     assert!(decoded.verify_cid());
+}
+
+#[test]
+fn test_runtime_performance_certificate_cid_is_content_addressed() {
+    let cert = RuntimePerformanceCertificate::new();
+    assert!(cert.verify_cid());
+
+    let mut tampered = cert.clone();
+    tampered.steady_state_allocations = 1;
+    assert!(!tampered.verify_cid());
+}
+
+#[test]
+fn test_runtime_performance_certificate_requires_all_declared_zero_links() {
+    let mut cert = RuntimePerformanceCertificate::new();
+    cert.declared_zero_fields.zero_fma_link.clear();
+    cert.certificate_cid = cert.compute_cid();
+
+    assert!(!cert.verify_evidence_links());
+}
+
+#[test]
+fn test_cpu_portability_defaults_to_current_architecture_tier() {
+    let record = CpuPortabilityRecord::default();
+    assert_eq!(
+        record.target_tier,
+        format!("{}-scalar-portable", std::env::consts::ARCH)
+    );
+    assert!(!record.minimum_isa_requirements.is_empty());
+    assert!(record.scalar_fallback_confirmed);
 }

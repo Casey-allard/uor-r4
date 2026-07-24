@@ -1,6 +1,8 @@
 pub mod anti_degeneracy;
 pub mod certificate;
+#[cfg(not(target_arch = "wasm32"))]
 pub mod certify;
+#[cfg(not(target_arch = "wasm32"))]
 pub mod compare;
 pub mod fairness_provenance;
 pub mod holographic_encoding;

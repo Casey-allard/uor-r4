@@ -1748,6 +1748,7 @@ version = "0.1.0"
 dependencies = [
  "serde",
  "uor-r4-core",
+ "uor-r4-graph-certify",
  "uor-r4-graph-format",
  "uor-r4-graph-runtime",
 ]
