@@ -1,6 +1,14 @@
 /* @ts-self-types="./uor_r4_wasm_router.d.ts" */
 
 /**
+ * @enum {0 | 1}
+ */
+export const GeometryType = Object.freeze({
+    Spectral: 0, "0": "Spectral",
+    Vsa: 1, "1": "Vsa",
+});
+
+/**
  * The unified router core coordinator.
  */
 export class UorR4Router {
@@ -15,6 +23,19 @@ export class UorR4Router {
         wasm.__wbg_uorr4router_free(ptr, 0);
     }
     /**
+     * @returns {GeometryType}
+     */
+    get geometry_type() {
+        const ret = wasm.__wbg_get_uorr4router_geometry_type(this.__wbg_ptr);
+        return ret;
+    }
+    /**
+     * @param {GeometryType} arg0
+     */
+    set geometry_type(arg0) {
+        wasm.__wbg_set_uorr4router_geometry_type(this.__wbg_ptr, arg0);
+    }
+    /**
      * Computes live UOR resonance metrics for a given input text
      * @param {string} text
      * @returns {any}
@@ -24,6 +45,9 @@ export class UorR4Router {
         const len0 = WASM_VECTOR_LEN;
         const ret = wasm.uorr4router_calculate_resonance(this.__wbg_ptr, ptr0, len0);
         return ret;
+    }
+    clear_corpus() {
+        wasm.uorr4router_clear_corpus(this.__wbg_ptr);
     }
     /**
      * Compiles a raw string thought parameter down into its content-addressed math state
@@ -191,6 +215,34 @@ export class UorR4Router {
         var v2 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
         wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
         return v2;
+    }
+    /**
+     * @returns {string}
+     */
+    get_store_epoch_root() {
+        let deferred1_0;
+        let deferred1_1;
+        try {
+            const ret = wasm.uorr4router_get_store_epoch_root(this.__wbg_ptr);
+            deferred1_0 = ret[0];
+            deferred1_1 = ret[1];
+            return getStringFromWasm0(ret[0], ret[1]);
+        } finally {
+            wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
+        }
+    }
+    /**
+     * @param {string} facet
+     * @param {string} path_str
+     * @returns {any}
+     */
+    get_store_inclusion_proof(facet, path_str) {
+        const ptr0 = passStringToWasm0(facet, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passStringToWasm0(path_str, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len1 = WASM_VECTOR_LEN;
+        const ret = wasm.uorr4router_get_store_inclusion_proof(this.__wbg_ptr, ptr0, len0, ptr1, len1);
+        return ret;
     }
     /**
      * Dynamically computes the suggested token limit based on manifold routing metrics
@@ -371,6 +423,14 @@ export class UorR4Router {
         wasm.uorr4router_set_angle_y(this.__wbg_ptr, val);
     }
     /**
+     * @param {string} geom
+     */
+    set_geometry_type(geom) {
+        const ptr0 = passStringToWasm0(geom, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        wasm.uorr4router_set_geometry_type(this.__wbg_ptr, ptr0, len0);
+    }
+    /**
      * Progresses the connection drift state using delta-time ($dt$) increments.
      * Returns a log message string if a ZKP reset occurs, otherwise returns undefined.
      * @param {number} dt
@@ -389,21 +449,107 @@ export class UorR4Router {
 }
 if (Symbol.dispose) UorR4Router.prototype[Symbol.dispose] = UorR4Router.prototype.free;
 
+/**
+ * @param {string} prompt
+ * @param {number} max_tokens
+ * @returns {string | undefined}
+ */
+export function generate_r4g1_response(prompt, max_tokens) {
+    const ptr0 = passStringToWasm0(prompt, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ret = wasm.generate_r4g1_response(ptr0, len0, max_tokens);
+    let v2;
+    if (ret[0] !== 0) {
+        v2 = getStringFromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+    }
+    return v2;
+}
+
 export function init_wasm() {
     wasm.init_wasm();
+}
+
+/**
+ * @param {string} subj
+ * @param {string} act
+ * @param {string} time
+ * @param {string} loc
+ * @param {string} space
+ * @returns {Uint8Array}
+ */
+export function vsa_encode_event(subj, act, time, loc, space) {
+    const ptr0 = passStringToWasm0(subj, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ptr1 = passStringToWasm0(act, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len1 = WASM_VECTOR_LEN;
+    const ptr2 = passStringToWasm0(time, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len2 = WASM_VECTOR_LEN;
+    const ptr3 = passStringToWasm0(loc, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len3 = WASM_VECTOR_LEN;
+    const ptr4 = passStringToWasm0(space, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len4 = WASM_VECTOR_LEN;
+    const ret = wasm.vsa_encode_event(ptr0, len0, ptr1, len1, ptr2, len2, ptr3, len3, ptr4, len4);
+    var v6 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+    wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+    return v6;
+}
+
+/**
+ * @param {string} src
+ * @param {string} rel
+ * @param {string} tgt
+ * @param {string} space
+ * @returns {Uint8Array}
+ */
+export function vsa_encode_graph_edge(src, rel, tgt, space) {
+    const ptr0 = passStringToWasm0(src, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ptr1 = passStringToWasm0(rel, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len1 = WASM_VECTOR_LEN;
+    const ptr2 = passStringToWasm0(tgt, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len2 = WASM_VECTOR_LEN;
+    const ptr3 = passStringToWasm0(space, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len3 = WASM_VECTOR_LEN;
+    const ret = wasm.vsa_encode_graph_edge(ptr0, len0, ptr1, len1, ptr2, len2, ptr3, len3);
+    var v5 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+    wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+    return v5;
+}
+
+/**
+ * @param {string} subj
+ * @param {string} pred
+ * @param {string} obj
+ * @param {string} space
+ * @returns {Uint8Array}
+ */
+export function vsa_encode_statement(subj, pred, obj, space) {
+    const ptr0 = passStringToWasm0(subj, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ptr1 = passStringToWasm0(pred, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len1 = WASM_VECTOR_LEN;
+    const ptr2 = passStringToWasm0(obj, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len2 = WASM_VECTOR_LEN;
+    const ptr3 = passStringToWasm0(space, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len3 = WASM_VECTOR_LEN;
+    const ret = wasm.vsa_encode_statement(ptr0, len0, ptr1, len1, ptr2, len2, ptr3, len3);
+    var v5 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+    wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+    return v5;
 }
 function __wbg_get_imports() {
     const import0 = {
         __proto__: null,
-        __wbg_Error_9dc85fe1bc224456: function(arg0, arg1) {
+        __wbg_Error_92b29b0548f8b746: function(arg0, arg1) {
             const ret = Error(getStringFromWasm0(arg0, arg1));
             return ret;
         },
-        __wbg___wbindgen_is_string_6541b0f6ecd4e8e5: function(arg0) {
+        __wbg___wbindgen_is_string_ea5e6cc2e4141dfe: function(arg0) {
             const ret = typeof(arg0) === 'string';
             return ret;
         },
-        __wbg___wbindgen_throw_bbadd78c1bac3a77: function(arg0, arg1) {
+        __wbg___wbindgen_throw_344f42d3211c4765: function(arg0, arg1) {
             throw new Error(getStringFromWasm0(arg0, arg1));
         },
         __wbg_error_a6fa202b58aa1cd3: function(arg0, arg1) {
@@ -417,30 +563,30 @@ function __wbg_get_imports() {
                 wasm.__wbindgen_free(deferred0_0, deferred0_1, 1);
             }
         },
-        __wbg_new_0b303268aa395a38: function() {
-            const ret = new Array();
-            return ret;
-        },
-        __wbg_new_20b778a4c5c691c3: function() {
-            const ret = new Object();
-            return ret;
-        },
         __wbg_new_227d7c05414eb861: function() {
             const ret = new Error();
             return ret;
         },
-        __wbg_new_883c0db065f06efd: function() {
+        __wbg_new_32b398fb48b6d94a: function() {
+            const ret = new Array();
+            return ret;
+        },
+        __wbg_new_7796ffc7ed656783: function() {
             const ret = new Map();
             return ret;
         },
-        __wbg_set_5f806304fb633ab3: function(arg0, arg1, arg2) {
+        __wbg_new_da52cf8fe3429cb2: function() {
+            const ret = new Object();
+            return ret;
+        },
+        __wbg_set_575dd786d51585f8: function(arg0, arg1, arg2) {
             const ret = arg0.set(arg1, arg2);
             return ret;
         },
         __wbg_set_6be42768c690e380: function(arg0, arg1, arg2) {
             arg0[arg1] = arg2;
         },
-        __wbg_set_da33c120a6584674: function(arg0, arg1, arg2) {
+        __wbg_set_8a16b38e4805b298: function(arg0, arg1, arg2) {
             arg0[arg1 >>> 0] = arg2;
         },
         __wbg_stack_3b0d974bbf31e44f: function(arg0, arg1) {
@@ -455,12 +601,17 @@ function __wbg_get_imports() {
             const ret = arg0;
             return ret;
         },
-        __wbindgen_cast_0000000000000002: function(arg0, arg1) {
+        __wbindgen_cast_0000000000000002: function(arg0) {
+            // Cast intrinsic for `I64 -> Externref`.
+            const ret = arg0;
+            return ret;
+        },
+        __wbindgen_cast_0000000000000003: function(arg0, arg1) {
             // Cast intrinsic for `Ref(String) -> Externref`.
             const ret = getStringFromWasm0(arg0, arg1);
             return ret;
         },
-        __wbindgen_cast_0000000000000003: function(arg0) {
+        __wbindgen_cast_0000000000000004: function(arg0) {
             // Cast intrinsic for `U64 -> Externref`.
             const ret = BigInt.asUintN(64, arg0);
             return ret;
@@ -493,6 +644,11 @@ function getArrayF64FromWasm0(ptr, len) {
 function getArrayU32FromWasm0(ptr, len) {
     ptr = ptr >>> 0;
     return getUint32ArrayMemory0().subarray(ptr / 4, ptr / 4 + len);
+}
+
+function getArrayU8FromWasm0(ptr, len) {
+    ptr = ptr >>> 0;
+    return getUint8ArrayMemory0().subarray(ptr / 1, ptr / 1 + len);
 }
 
 let cachedDataViewMemory0 = null;

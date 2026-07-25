@@ -1,9 +1,13 @@
 /* tslint:disable */
 /* eslint-disable */
 export const memory: WebAssembly.Memory;
+export const generate_r4g1_response: (a: number, b: number, c: number) => [number, number];
+export const __wbg_get_uorr4router_geometry_type: (a: number) => number;
+export const __wbg_set_uorr4router_geometry_type: (a: number, b: number) => void;
 export const __wbg_uorr4router_free: (a: number, b: number) => void;
 export const init_wasm: () => void;
 export const uorr4router_calculate_resonance: (a: number, b: number, c: number) => any;
+export const uorr4router_clear_corpus: (a: number) => void;
 export const uorr4router_compile_thought: (a: number, b: number, c: number) => any;
 export const uorr4router_connection_drift: (a: number) => number;
 export const uorr4router_evolve_state: (a: number, b: number, c: number, d: number, e: number, f: number) => [number, number];
@@ -18,6 +22,8 @@ export const uorr4router_get_expert_counts: (a: number) => [number, number];
 export const uorr4router_get_semantic_map_points: (a: number) => any;
 export const uorr4router_get_sentence_projection_wasm: (a: number, b: number, c: number, d: number) => [number, number];
 export const uorr4router_get_state_4d_projection_wasm: (a: number, b: number, c: number) => [number, number];
+export const uorr4router_get_store_epoch_root: (a: number) => [number, number];
+export const uorr4router_get_store_inclusion_proof: (a: number, b: number, c: number, d: number, e: number) => any;
 export const uorr4router_get_suggested_token_limit: (a: number, b: number, c: number, d: number, e: number) => number;
 export const uorr4router_get_top_resonances: (a: number, b: number, c: number, d: number, e: number, f: number) => any;
 export const uorr4router_get_total_indexed_sentences: (a: number) => number;
@@ -36,7 +42,11 @@ export const uorr4router_route_query_to_manifold: (a: number, b: number, c: numb
 export const uorr4router_route_query_to_manifold_uor: (a: number, b: number, c: number, d: number, e: number) => any;
 export const uorr4router_set_angle_x: (a: number, b: number) => void;
 export const uorr4router_set_angle_y: (a: number, b: number) => void;
+export const uorr4router_set_geometry_type: (a: number, b: number, c: number) => void;
 export const uorr4router_update_drift_physics: (a: number, b: number, c: number) => [number, number];
+export const vsa_encode_event: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number) => [number, number];
+export const vsa_encode_graph_edge: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number) => [number, number];
+export const vsa_encode_statement: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number) => [number, number];
 export const __wbindgen_free: (a: number, b: number, c: number) => void;
 export const __wbindgen_malloc: (a: number, b: number) => number;
 export const __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;

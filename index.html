@@ -212,6 +212,51 @@
             display: none;
         }
 
+        .compile-progress {
+            height: 6px;
+            width: 100%;
+            margin: 0.35rem 0 0.45rem;
+            overflow: hidden;
+            border: 1px solid rgba(0,229,255,0.2);
+            border-radius: 999px;
+            background: rgba(255,255,255,0.05);
+        }
+        .compile-progress-fill {
+            height: 100%;
+            width: 0%;
+            border-radius: inherit;
+            background: linear-gradient(90deg, var(--cyan), var(--purple));
+            box-shadow: 0 0 10px rgba(0,229,255,0.45);
+            transition: width 0.35s ease, background 0.2s ease;
+        }
+        .compile-progress.running .compile-progress-fill {
+            background: linear-gradient(90deg, var(--cyan), var(--emerald), var(--purple));
+            background-size: 200% 100%;
+            animation: compile-progress-shimmer 1.4s linear infinite;
+        }
+        .compile-progress.error .compile-progress-fill {
+            background: var(--red);
+            box-shadow: 0 0 10px rgba(255,82,82,0.35);
+        }
+        @keyframes compile-progress-shimmer {
+            from { background-position: 0% 0; }
+            to { background-position: 200% 0; }
+        }
+        .compile-progress-label {
+            display: flex;
+            justify-content: space-between;
+            gap: 0.5rem;
+            font-size: 0.58rem;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--muted);
+        }
+        .compile-progress-hint {
+            margin: 0.35rem 0 0.55rem;
+            font-size: 0.6rem;
+            line-height: 1.45;
+            color: var(--muted);
+        }
+
         /* Quick telemetry at bottom of sidebar */
         .telemetry-mini {
             flex-shrink: 0;
@@ -948,25 +993,19 @@
                 <span class="config-val" id="engineVal" style="color: var(--cyan); font-weight: bold;">Geometric</span>
             </div>
             <div class="config-row" style="margin-bottom: 0.75rem; font-size: 0.75rem; color: #888;">
-                <span>↳ Tuned by Ollama availability</span>
+                <span>↳ R4G1 graph runtime with legacy fallback</span>
             </div>
 
             <div class="identity-label">Routing Identity (UOR, address, or text)</div>
-            <input type="text" class="identity-input" id="identityInput" value="tenant-alpha" placeholder="sha256:... or tenant-alpha" style="margin-bottom:0.75rem;">
+            <input type="text" class="identity-input" id="identityInput" value="null_dev_00" placeholder="sha256:... or null_dev_00" style="margin-bottom:0.75rem;">
 
             <div class="section-label">Synthesis Engine Selection</div>
             <select class="identity-input" id="engineSelect" style="margin-bottom:0.75rem; background: var(--bg); color: var(--cyan); border-color: var(--border2); font-family: 'Outfit', sans-serif;">
-                <option value="auto">Auto-Select (Local Ollama / Fallback)</option>
-                <option value="geometric">Pure Geometric (WASM Decoded)</option>
-                <option value="ollama">Local Ollama (Direct API)</option>
+                <option value="r4g1" selected>R⁴G1 Zero-Multiply Engine (Mul-Free Graph)</option>
+                <option value="transformerless">Transformerless (Local TLA5/TLS1)</option>
+                <option value="attention">Full Attention Llama Teacher (CPU)</option>
+                <option value="geometric">Pure Geometric Router (WASM Vector)</option>
             </select>
-
-            <div id="ollamaConfigGroup" style="display:none;">
-                <div class="identity-label">Ollama Host URL</div>
-                <input type="text" class="identity-input" id="ollamaUrlInput" value="http://localhost:11434" style="margin-bottom:0.5rem;">
-                <div class="identity-label">Ollama Target Model</div>
-                <input type="text" class="identity-input" id="ollamaModelInput" value="gemma4:e2b" style="margin-bottom:0.75rem;">
-            </div>
 
             <div class="section-label">Manifold Database & Indexing</div>
             <textarea class="identity-input" id="kbTextarea" placeholder="Paste custom sentences or paragraphs here to index them into the router manifold..." style="height: 60px; font-size: 0.72rem; font-family: 'Outfit', sans-serif; resize: vertical; margin-bottom: 0.5rem; background: var(--bg); color: var(--text); border: 1px solid var(--border2); padding: 0.4rem; border-radius: 4px; width: 100%;"></textarea>
@@ -975,6 +1014,31 @@
                 Index Text to Manifold
             </button>
             <div id="indexStatus" style="font-size: 0.68rem; margin-top: -0.5rem; margin-bottom: 0.75rem; display: none;"></div>
+
+            <input type="text" class="identity-input" id="hfModelInput" value="HuggingFaceTB/SmolLM2-135M-Instruct@7e27bd9f95328f0f3b08261d1252705110c806f8" placeholder="owner/repository@40-character-commit" style="margin-bottom: 0.35rem; font-size: 0.68rem; background: var(--bg); color: var(--text); border: 1px solid var(--border2); padding: 0.4rem; border-radius: 4px; width: 100%;">
+            <div style="font-size: 0.64rem; margin-bottom: 0.35rem; color: var(--text2);">Use an immutable commit: owner/repository@40-character-commit</div>
+            <button class="identity-input" id="downloadHfBtn" style="margin-bottom: 0.35rem; background: rgba(245, 166, 35, 0.12); color: var(--amber); border-color: var(--amber); cursor: pointer; font-weight: 600; font-family: 'Outfit', sans-serif;">
+                Download Hugging Face Weights
+            </button>
+            <div id="hfDownloadStatus" style="font-size: 0.68rem; margin-bottom: 0.75rem; color: var(--text2);">
+                Hugging Face source download is idle
+            </div>
+
+            <button class="identity-input" id="compileR4g1Btn" style="margin-bottom: 0.35rem; background: rgba(0, 242, 254, 0.12); color: var(--cyan); border-color: var(--cyan); cursor: pointer; font-weight: 600; font-family: 'Outfit', sans-serif;">
+                Compile / Refresh R4G1 Graph
+            </button>
+            <div id="r4g1CompileProgress" class="compile-progress" hidden aria-label="R4G1 compilation progress">
+                <div id="r4g1CompileProgressFill" class="compile-progress-fill"></div>
+            </div>
+            <div id="r4g1CompileProgressLabel" class="compile-progress-label" hidden>
+                <span>Compiler progress</span><span id="r4g1CompileProgressValue">0%</span>
+            </div>
+            <div class="compile-progress-hint">
+                Builds the local teacher bundle, graph cover, and scored runtime. This may take several minutes.
+            </div>
+            <div id="r4g1CompileStatus" style="font-size: 0.68rem; margin-bottom: 0.75rem; color: var(--text2);">
+                Server compilation is idle
+            </div>
 
             <div class="section-label">Manifold State (Weights)</div>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 0.75rem;">
@@ -1066,7 +1130,8 @@
                 <div class="sys-kv"><span class="sys-k">Requests</span><span class="sys-v" id="reqTotal">—</span></div>
                 <div class="sys-kv"><span class="sys-k">P50 route</span><span class="sys-v" id="routeP50">—ms</span></div>
                 <div class="sys-kv"><span class="sys-k">P95 gen</span><span class="sys-v" id="genP95">—ms</span></div>
-                <div class="sys-kv"><span class="sys-k">Ollama</span><span class="sys-v" id="ollamaStatus" style="color:var(--muted);">—</span></div>
+                <div class="sys-kv"><span class="sys-k">Speed</span><span class="sys-v" id="genSpeed" style="color:var(--cyan);">— tok/s</span></div>
+                <div class="sys-kv"><span class="sys-k">TLess</span><span class="sys-v" id="tlessStatus" style="color:var(--muted);">—</span></div>
                 <div class="sys-kv"><span class="sys-k">Corpus</span><span class="sys-v" id="corpusCount">—</span></div>
             </div>
         </div>
@@ -1086,7 +1151,9 @@
         <div class="chat-header-dot"></div>
         <div class="chat-header-title">R4 Prime Router — World Model</div>
         <div class="chat-header-sub">GCD Prime Steering · Hopf S³ Geometry</div>
-        <div class="chat-header-route" id="chatHeaderRoute">Manifold Ready</div>
+        <div class="chat-header-route" id="chatHeaderRoute" style="font-weight:bold;">🟢 Connected (Transformerless CPU)</div>
+        <div class="chat-header-scale" id="chatHeaderScale" style="font-family:'JetBrains Mono',monospace; font-size:0.68rem; color:var(--muted); margin-left:0.5rem;">—</div>
+        <button id="clearSessionBtn" onclick="localStorage.removeItem('r4_prime_router_session_v4'); location.reload();" style="margin-left:auto; background:rgba(255,82,82,0.15); border:1px solid var(--red); color:var(--red); padding:0.2rem 0.5rem; font-size:0.65rem; font-family:'JetBrains Mono',monospace; border-radius:4px; cursor:pointer;">Clear Session</button>
     </header>
 
     <section class="chat-log" id="chatLog">
@@ -1295,6 +1362,15 @@ const engineVal   = document.getElementById("engineVal");
 const kbTextarea  = document.getElementById("kbTextarea");
 const indexBtn    = document.getElementById("indexBtn");
 const indexStatus = document.getElementById("indexStatus");
+const compileR4g1Btn = document.getElementById("compileR4g1Btn");
+const r4g1CompileStatus = document.getElementById("r4g1CompileStatus");
+const r4g1CompileProgress = document.getElementById("r4g1CompileProgress");
+const r4g1CompileProgressFill = document.getElementById("r4g1CompileProgressFill");
+const r4g1CompileProgressLabel = document.getElementById("r4g1CompileProgressLabel");
+const r4g1CompileProgressValue = document.getElementById("r4g1CompileProgressValue");
+const downloadHfBtn = document.getElementById("downloadHfBtn");
+const hfDownloadStatus = document.getElementById("hfDownloadStatus");
+const hfModelInput = document.getElementById("hfModelInput");
 
 // =====================================================
 // App State
@@ -1396,11 +1472,12 @@ if (mapLegend) {
 }
 
 // =====================================================
-// WASM Router Bootstrap & Ollama
+// WASM Router Bootstrap
 // =====================================================
 let router = null;
 let wasmInitialized = false;
 let localWasmMode = false;
+let serverR4g1Ready = false;
 
 async function tryInitLocalWasm() {
     if (wasmInitialized) return true;
@@ -1410,6 +1487,10 @@ async function tryInitLocalWasm() {
         router = new UorR4Router(1.2);
         wasmInitialized = true;
         console.log("Local WebAssembly Router Initialized Successfully!");
+        if (engineVal) {
+            engineVal.textContent = "Geometric WASM";
+            engineVal.style.color = "var(--amber)";
+        }
         
         // Populate baseline metrics since server is offline
         if (router.get_vocab_size() === 0) {
@@ -1435,22 +1516,6 @@ async function tryInitLocalWasm() {
 }
 
 const engineSelect       = document.getElementById("engineSelect");
-const ollamaConfigGroup  = document.getElementById("ollamaConfigGroup");
-
-function updateEngineConfigVisibility() {
-    const val = engineSelect?.value || "auto";
-    if (ollamaConfigGroup) {
-        if (val === "ollama" || val === "auto") {
-            ollamaConfigGroup.style.display = "block";
-        } else {
-            ollamaConfigGroup.style.display = "none";
-        }
-    }
-}
-if (engineSelect) {
-    engineSelect.addEventListener("change", updateEngineConfigVisibility);
-    updateEngineConfigVisibility();
-}
 
 
 
@@ -2272,14 +2337,17 @@ function updateTelemetry(data, isSysinfo = false) {
     }
     const m = data.metrics || {};
 
-    if (m.auto_tuned) {
+    if (m.auto_tuned && !isSysinfo) {
         const auto = m.auto_tuned;
         if (tempVal) tempVal.textContent = auto.temperature.toFixed(2);
         if (gammaVal) gammaVal.textContent = auto.gamma.toFixed(2);
         if (tokensVal) tokensVal.textContent = auto.max_tokens;
         if (engineVal) {
-            if (auto.engine === "ollama") {
-                engineVal.textContent = "Ollama (Gemma)";
+            if (auto.engine === "r4g1") {
+                engineVal.textContent = "R4G1 Graph";
+                engineVal.style.color = "var(--emerald)";
+            } else if (auto.engine === "transformerless-legacy") {
+                engineVal.textContent = "Legacy TLA/TLS";
                 engineVal.style.color = "var(--emerald)";
             } else {
                 engineVal.textContent = "Pure Geometric";
@@ -2300,9 +2368,9 @@ function updateTelemetry(data, isSysinfo = false) {
 
     window.currentTrajectory = data.trajectory || [];
     
-    const chatRoute = document.getElementById("chatHeaderRoute");
-    if (chatRoute && m.window_index) {
-        chatRoute.textContent = `W${m.window_index} · Scale ${(m.scale_x||0).toLocaleString(undefined,{maximumFractionDigits:0})}`;
+    const chatScale = document.getElementById("chatHeaderScale");
+    if (chatScale && m.window_index) {
+        chatScale.textContent = `W${m.window_index} · Scale ${(m.scale_x||0).toLocaleString(undefined,{maximumFractionDigits:0})}`;
     }
 
     safeSetTextContent("telemetryRoute", m.window_index ? `Window ${m.window_index}` : "—");
@@ -2509,7 +2577,7 @@ function updateTelemetry(data, isSysinfo = false) {
         });
     }
     
-    updateSystemMetricsUI(data.routing_latency_ms, data.gen_latency_ms);
+    updateSystemMetricsUI(data.routing_latency_ms, data.gen_latency_ms, data.tokens_per_sec);
 }
 
 function renderTrajectoryTimeline(trajectory) {
@@ -2637,75 +2705,36 @@ async function runLocalChat(text, identity) {
     const theme = WINDOW_THEMES[routed.window_index] || "Unknown";
     
     const max_tokens = router.get_suggested_token_limit(text, identity);
-
-    const geomResult = router.generate_geometric_response(
-        text,
-        identity,
-        max_tokens,
-        temperature,
-        10.0,
-        4.0,
-        gamma
-    );
+    const selectedEngine = engineSelect?.value || "transformerless";
 
     let responseText = "";
     let generation_mode = "geometric-local";
     let llm_connected = false;
 
-    const selectedEngineMode = engineSelect?.value || "auto";
-    let ollamaUrl = document.getElementById("ollamaUrlInput")?.value.trim() || "http://localhost:11434";
-    if (ollamaUrl && !ollamaUrl.startsWith("http://") && !ollamaUrl.startsWith("https://")) {
-        ollamaUrl = "http://" + ollamaUrl;
-    }
-    const ollamaModel = document.getElementById("ollamaModelInput")?.value.trim() || "gemma4:e2b";
-
-    if ((selectedEngineMode === "ollama" || selectedEngineMode === "auto") && window.ollamaLive) {
-        const topResonances = unwrapResult(router.get_top_resonances(text, identity, 1)) || [];
-        let ctx_block = "[no corpus context available]";
-        if (topResonances.length > 0) {
-            ctx_block = topResonances[0].sentence || "[no corpus context available]";
-        }
-
-        const systemPrompt = `You are the Voice of the R4 Prime Router. The current state of your context hypersphere brain is: Window ${routed.window_index} (${theme}), Energy κ=${kappa.toFixed(4)}, Curvature θd=${theta_d.toFixed(4)}, Hopf coordinates (χ=${routed.hopf.chi.toFixed(4)}, δ=${routed.hopf.delta.toFixed(4)}, α=${routed.hopf.alpha.toFixed(4)}). Grounding context sentence: "${ctx_block}". IMPORTANT: You MUST incorporate and reference the Grounding context sentence in your response to directly answer the user's query. Respond directly to the user query as a geometric router. Keep your response relevant, coherent, and under ${max_tokens} words. Do NOT output any thinking, thought processes, <thinking> blocks, or XML tags. Speak directly.`;
-
+    if ((selectedEngine === "transformerless" || selectedEngine === "r4g1") && window.wasm_module?.generate_r4g1_response) {
         try {
-            const ollamaPayload = {
-                model: ollamaModel,
-                messages: [
-                    { role: "system", content: systemPrompt },
-                    { role: "user", content: text }
-                ],
-                stream: false,
-                keep_alive: -1,
-                think: false,
-                options: {
-                    temperature: temperature,
-                    num_predict: Math.max(max_tokens, 300)
-                }
-            };
-            
-            const response = await fetch(`${ollamaUrl}/api/chat`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(ollamaPayload)
-            });
-
-            if (response.ok) {
-                const respJson = await response.json();
-                const content = respJson.message?.content || "";
-                responseText = content.trim();
-                if (responseText) {
-                    llm_connected = true;
-                    generation_mode = `ollama:${ollamaModel} (local-direct)`;
-                }
+            const r4g1Res = window.wasm_module.generate_r4g1_response(text, max_tokens);
+            if (r4g1Res) {
+                responseText = r4g1Res;
+                generation_mode = selectedEngine === "r4g1" ? "r4g1-zero-multiply-wasm" : "transformerless-r4g1-wasm";
             }
-        } catch (e) {
-            console.error("Direct local Ollama query failed, falling back to pure geometric:", e);
+        } catch (err) {
+            console.warn("R4G1 WASM evaluation failed, falling back to geometric:", err);
         }
     }
 
     if (!responseText) {
+        const geomResult = router.generate_geometric_response(
+            text,
+            identity,
+            max_tokens,
+            temperature,
+            10.0,
+            4.0,
+            gamma
+        );
         responseText = geomResult.text || "Manifold resonance too sparse for synthesis.";
+        generation_mode = (selectedEngine === "transformerless" || selectedEngine === "r4g1") ? "geometric-fallback-wasm" : "geometric-local";
     }
     
     router.index_sentence(responseText, identity);
@@ -2788,120 +2817,35 @@ async function sendQuery(text) {
     chatLogInner.appendChild(loadMsg);
     scrollToBottom();
 
-    const identity = document.getElementById("identityInput")?.value.trim() || "tenant-alpha";
-    const selectedEngineMode = engineSelect?.value || "auto";
-    let ollamaUrl = document.getElementById("ollamaUrlInput")?.value.trim() || "http://localhost:11434";
-    if (ollamaUrl && !ollamaUrl.startsWith("http://") && !ollamaUrl.startsWith("https://")) {
-        ollamaUrl = "http://" + ollamaUrl;
-    }
-    const ollamaModel = document.getElementById("ollamaModelInput")?.value.trim() || "gemma4:e2b";
+    const identity = document.getElementById("identityInput")?.value.trim() || "null_dev_00";
+    const selectedEngineMode = engineSelect?.value || "r4g1";
     const isWebpageLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
 
     try {
         let backendEngineMode = selectedEngineMode;
-        const shouldDirectQueryOllama = !localWasmMode && !isWebpageLocal && (selectedEngineMode === "ollama" || (selectedEngineMode === "auto" && window.ollamaLive));
-        if (shouldDirectQueryOllama) {
-            backendEngineMode = "geometric";
-        }
 
         const payload = {
             text: text,
             identity: identity,
-            engine: backendEngineMode,
-            ollama_url: ollamaUrl,
-            ollama_model: ollamaModel
+            engine: backendEngineMode
         };
 
         let data;
-        if (localWasmMode) {
-            data = await runLocalChat(text, identity);
-        } else {
-            const response = await fetch("/api/chat", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload)
-            });
+        const response = await fetch("/api/chat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        });
 
             if (!response.ok) {
-                throw new Error(`HTTP error: ${response.status}`);
+                const raw = await response.text();
+                let detail = null;
+                try { detail = JSON.parse(raw); } catch (_) { /* plain-text error */ }
+                const message = detail?.error || raw || `HTTP error: ${response.status}`;
+                const action = detail?.action ? ` ${detail.action}.` : "";
+                throw new Error(`${message}${action}`);
             }
-
             data = await response.json();
-
-            if (shouldDirectQueryOllama) {
-                try {
-                    const topResonances = data.top_resonance || [];
-                    const ctx_block = (topResonances.length > 0) ? (topResonances[0].sentence || "[no corpus context available]") : "[no corpus context available]";
-                    const theme = WINDOW_THEMES[data.metrics.window_index] || "Unknown";
-                    
-                    const kappa = data.metrics.kappa;
-                    const theta_d = data.metrics.deficit_angle;
-                    const uor_bias = data.metrics.qimc?.uor_control?.entropy_bias || 0.5;
-                    const gamma = Math.min(Math.max(0.85 - 0.55 * kappa + ((uor_bias - 0.5) * 0.12), 0.15), 0.90);
-                    const temperature = Math.min(Math.max(0.2 + 0.8 * Math.abs(theta_d) + ((uor_bias - 0.5) * 0.20), 0.15), 1.1);
-                    
-                    let max_tokens = data.metrics?.auto_tuned?.max_tokens;
-                    if (!max_tokens) {
-                        const input_words = text.trim().split(/\s+/).length;
-                        const stratum = data.state_vector ? data.state_vector.filter(v => Math.abs(v) > 1e-4).length : 20;
-                        const eval_sum = data.eigenvalues ? data.eigenvalues.reduce((a,b)=>a+b, 0) : 1.0;
-                        max_tokens = Math.min(Math.max(Math.floor(50.0 + (stratum * 1.5) + (Math.abs(theta_d) * 45.0) + (eval_sum * 110.0) + (input_words * 2.5)), 50), 500);
-                    }
-                    
-                    const systemPrompt = `You are the Voice of the R4 Prime Router. The current state of your context hypersphere brain is: Window ${data.metrics.window_index} (${theme}), Energy κ=${kappa.toFixed(4)}, Curvature θd=${theta_d.toFixed(4)}, Hopf coordinates (χ=${data.metrics.hopf.chi.toFixed(4)}, δ=${data.metrics.hopf.delta.toFixed(4)}, α=${data.metrics.hopf.alpha.toFixed(4)}). Grounding context sentence: "${ctx_block}". IMPORTANT: You MUST incorporate and reference the Grounding context sentence in your response to directly answer the user's query. Respond directly to the user query as a geometric router. Keep your response relevant, coherent, and under ${max_tokens} words. Do NOT output any thinking, thought processes, <thinking> blocks, or XML tags. Speak directly.`;
-                    
-                    const directPayload = {
-                        model: ollamaModel,
-                        messages: [
-                            { role: "system", content: systemPrompt },
-                            { role: "user", content: text }
-                        ],
-                        stream: false,
-                        keep_alive: -1,
-                        think: false,
-                        options: {
-                            temperature: temperature,
-                            num_predict: Math.max(max_tokens, 300)
-                        }
-                    };
-                    
-                    const ollamaResponse = await fetch(`${ollamaUrl}/api/chat`, {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify(directPayload)
-                    });
-                    
-                    if (ollamaResponse.ok) {
-                        const respJson = await ollamaResponse.json();
-                        const content = respJson.message?.content || "";
-                        if (content.trim()) {
-                            data.description = content.trim();
-                            data.generation_mode = `ollama:${ollamaModel} (direct-remote-browser)`;
-                            data.summary = `W${data.metrics.window_index} (${theme}) | Scale ${data.metrics.scale_x || 1.0} | kappa=${kappa.toFixed(4)} theta_d=${theta_d.toFixed(4)} | ${data.generation_mode}`;
-                            data.llm_connected = true;
-                            
-                            // Index the response back to remote server for continuous learning
-                            try {
-                                await fetch("/api/corpus", {
-                                    method: "POST",
-                                    headers: { "Content-Type": "application/json" },
-                                    body: JSON.stringify({ corpus: text, identity: identity })
-                                });
-                                await fetch("/api/corpus", {
-                                    method: "POST",
-                                    headers: { "Content-Type": "application/json" },
-                                    body: JSON.stringify({ corpus: content.trim(), identity: identity })
-                                });
-                            } catch (eIndex) {
-                                console.warn("Continuous learning indexing failed:", eIndex);
-                            }
-                        }
-                    }
-                } catch (eDirect) {
-                    console.error("Direct browser query to Ollama failed, falling back to backend geometric response:", eDirect);
-                }
-            }
-        }
 
         chatLogInner.removeChild(loadMsg);
 
@@ -2938,7 +2882,7 @@ if (indexBtn) {
         indexStatus.style.color = "var(--text2)";
         indexStatus.textContent = "Indexing manifold... please wait";
         try {
-            const identity = document.getElementById("identityInput")?.value.trim() || "tenant-alpha";
+            const identity = document.getElementById("identityInput")?.value.trim() || "null_dev_00";
             let count;
             if (localWasmMode) {
                 if (!router) throw new Error("WASM router not initialized");
@@ -2969,6 +2913,214 @@ if (indexBtn) {
         } finally {
             indexBtn.disabled = false; kbTextarea.disabled = false;
         }
+    });
+}
+
+function renderHfDownloadStatus(data) {
+    if (!data || !hfDownloadStatus) return;
+    if (downloadHfBtn) downloadHfBtn.disabled = Boolean(data.running);
+    hfDownloadStatus.textContent = data.message || "Hugging Face source download is idle";
+    hfDownloadStatus.style.color = data.running
+        ? "var(--amber)"
+        : data.ready
+            ? "var(--emerald)"
+            : data.message?.includes("failed")
+                ? "var(--red)"
+                : "var(--text2)";
+}
+
+async function fetchHfDownloadStatus() {
+    if (localWasmMode) {
+        renderHfDownloadStatus({
+            running: false,
+            ready: false,
+            message: "Hugging Face downloads require the native server"
+        });
+        return null;
+    }
+    const response = await fetch("/api/huggingface/status");
+    if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
+    const data = await response.json();
+    renderHfDownloadStatus(data);
+    return data;
+}
+
+if (downloadHfBtn) {
+    downloadHfBtn.addEventListener("click", async () => {
+        if (localWasmMode) {
+            renderHfDownloadStatus({
+                running: false,
+                ready: false,
+                message: "Hugging Face downloads require the native server"
+            });
+            return;
+        }
+        downloadHfBtn.disabled = true;
+        const model = hfModelInput?.value.trim() || "";
+        renderHfDownloadStatus({
+            running: true,
+            message: "Starting Hugging Face weight download..."
+        });
+        try {
+            const response = await fetch("/api/huggingface/download", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ model })
+            });
+            const started = await response.json();
+            if (!response.ok) throw new Error(started.message || started.error || `HTTP error: ${response.status}`);
+
+            const deadline = Date.now() + 30 * 60 * 1000;
+            while (Date.now() < deadline) {
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                const status = await fetchHfDownloadStatus();
+                if (status && !status.running) break;
+            }
+            if (Date.now() >= deadline) throw new Error("Hugging Face download timed out");
+        } catch (err) {
+            renderHfDownloadStatus({
+                running: false,
+                ready: false,
+                message: `Hugging Face download error: ${err.message}`
+            });
+        } finally {
+            downloadHfBtn.disabled = false;
+            fetchHfDownloadStatus().catch(() => {});
+        }
+    });
+}
+
+function renderR4g1CompileStatus(data) {
+    if (!data) return;
+    serverR4g1Ready = Boolean(data.ready);
+    updateConnectionStatusUI();
+    if (compileR4g1Btn) compileR4g1Btn.disabled = Boolean(data.running);
+    const progress = Math.max(0, Math.min(100, Number.isFinite(Number(data.progress))
+        ? Number(data.progress)
+        : data.running ? 1 : data.ready ? 100 : 0));
+    const failed = Boolean(data.message?.includes("failed") || data.message?.includes("rejected"));
+    const showProgress = Boolean(data.running || progress > 0);
+    if (r4g1CompileProgress) {
+        r4g1CompileProgress.hidden = !showProgress;
+        r4g1CompileProgress.classList.toggle("running", Boolean(data.running));
+        r4g1CompileProgress.classList.toggle("error", !data.running && failed);
+    }
+    if (r4g1CompileProgressFill) r4g1CompileProgressFill.style.width = `${progress}%`;
+    if (r4g1CompileProgressLabel) r4g1CompileProgressLabel.hidden = !showProgress;
+    if (r4g1CompileProgressValue) r4g1CompileProgressValue.textContent = `${Math.round(progress)}%`;
+    if (!r4g1CompileStatus) return;
+
+    let message = data.message || (data.running ? "R4G1 compilation is running..." : "Server compilation is idle");
+    if (!data.running && message.includes("quality gate failed")) {
+        message = message.replace(
+            "R4G1 compilation failed:",
+            "R4G1 graph was compiled but rejected by the quality gate:"
+        );
+    }
+    const graph = data.report?.gate_c?.rule1_chain;
+    if (!data.running && graph && typeof graph.top1_agreement === "number") {
+        message += ` · Gate C top-1 ${(graph.top1_agreement * 100).toFixed(2)}%`;
+    }
+    r4g1CompileStatus.textContent = message;
+    r4g1CompileStatus.style.color = data.running
+        ? "var(--amber)"
+        : failed
+            ? "var(--red)"
+            : data.ready
+            ? "var(--emerald)"
+            : "var(--text2)";
+}
+
+async function fetchR4g1CompileStatus() {
+    if (localWasmMode) {
+        renderR4g1CompileStatus({
+            running: false,
+            ready: false,
+            message: "R4G1 compilation requires the native server"
+        });
+        return null;
+    }
+    const response = await fetch("/api/r4g1/status");
+    if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
+    const data = await response.json();
+    renderR4g1CompileStatus(data);
+    return data;
+}
+
+if (compileR4g1Btn) {
+    compileR4g1Btn.addEventListener("click", async () => {
+        if (localWasmMode) {
+            renderR4g1CompileStatus({
+                running: false,
+                ready: false,
+                message: "R4G1 compilation requires the native server"
+            });
+            return;
+        }
+
+        compileR4g1Btn.disabled = true;
+        renderR4g1CompileStatus({
+            running: true,
+            ready: serverR4g1Ready,
+            progress: 1,
+            message: "Starting R4G1 cover and scoring compilation..."
+        });
+        try {
+            const response = await fetch("/api/r4g1/compile", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ model: hfModelInput?.value.trim() || "" })
+            });
+            const started = await response.json();
+            if (!response.ok) throw new Error(started.message || started.error || `HTTP error: ${response.status}`);
+
+            const deadline = Date.now() + 30 * 60 * 1000;
+            while (Date.now() < deadline) {
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                const status = await fetchR4g1CompileStatus();
+                if (status && !status.running) {
+                    if (!status.ready) throw new Error(status.message || "R4G1 compilation failed");
+                    await loadSemanticMap();
+                    break;
+                }
+            }
+            if (Date.now() >= deadline) throw new Error("R4G1 compilation timed out");
+        } catch (err) {
+            renderR4g1CompileStatus({
+                running: false,
+                ready: serverR4g1Ready,
+                message: `R4G1 compilation error: ${err.message}`
+            });
+        } finally {
+            compileR4g1Btn.disabled = false;
+            fetchR4g1CompileStatus().catch(() => {});
+        }
+    });
+}
+
+function selectedEngineLabel(engine) {
+    return {
+        "r4g1": "R4G1 Graph",
+        "transformerless-legacy": "Legacy TLA/TLS",
+        "attention": "Full Attention Llama",
+        "r4-attention": "Experimental R4 Attention",
+        "geometric": "Pure Geometric"
+    }[engine] || "R4G1 Graph";
+}
+
+function updateSelectedEngineValue() {
+    if (!engineVal) return;
+    engineVal.textContent = selectedEngineLabel(engineSelect?.value || "r4g1");
+    engineVal.style.color = engineSelect?.value === "r4g1"
+        ? (serverR4g1Ready ? "var(--emerald)" : "var(--amber)")
+        : "var(--cyan)";
+}
+
+if (engineSelect) {
+    engineSelect.addEventListener("change", () => {
+        updateSelectedEngineValue();
+        updateConnectionStatusUI();
+        saveSessionToLocalStorage();
     });
 }
 
@@ -3062,7 +3214,7 @@ if (resetBrainBtn) {
     resetBrainBtn.addEventListener("click", async () => {
         resetBrainBtn.disabled = true;
         try {
-            const identity = document.getElementById("identityInput")?.value.trim() || "tenant-alpha";
+            const identity = document.getElementById("identityInput")?.value.trim() || "null_dev_00";
             if (localWasmMode) {
                 if (!router) throw new Error("WASM router not initialized");
                 router.reset_brain(identity);
@@ -3089,13 +3241,7 @@ if (resetBrainBtn) {
             safeSetTextContent("qCommutator",    "—");
             safeSetTextContent("monoLabel",      "r^0");
             
-            // Reset Ollama defaults
-            const ollamaUrlEl = document.getElementById("ollamaUrlInput");
-            if (ollamaUrlEl) ollamaUrlEl.value = "http://localhost:11434";
-            const ollamaModelEl = document.getElementById("ollamaModelInput");
-            if (ollamaModelEl) ollamaModelEl.value = "gemma4:e2b";
-            if (engineSelect) engineSelect.value = "auto";
-            updateEngineConfigVisibility();
+            if (engineSelect) engineSelect.value = "r4g1";
             
             // Reset metric cards
             safeSetTextContent("metricDeficit", "0.0000");
@@ -3278,7 +3424,7 @@ let routeLatencyHistory = [];
 let genLatencyHistory = [];
 const startTime = Date.now();
 
-function updateSystemMetricsUI(routeMs, genMs) {
+function updateSystemMetricsUI(routeMs, genMs, tokensPerSec) {
     if (routeMs !== undefined) {
         routeLatencyHistory.push(routeMs);
         if (routeLatencyHistory.length > 50) routeLatencyHistory.shift();
@@ -3304,6 +3450,9 @@ function updateSystemMetricsUI(routeMs, genMs) {
     setEl("reqTotal", requestCount);
     setEl("routeP50", p50(routeLatencyHistory).toFixed(1) + "ms");
     setEl("genP95", p95(genLatencyHistory).toFixed(0) + "ms");
+    if (tokensPerSec !== undefined && tokensPerSec > 0) {
+        setEl("genSpeed", tokensPerSec.toFixed(1) + " tok/s");
+    }
 }
 
 function pollSysinfo() {
@@ -3338,6 +3487,7 @@ function pollSysinfo() {
             })
             .then(info => {
                 localWasmMode = false;
+                updateConnectionStatusUI();
                 if (info && info.sentences_indexed !== undefined) {
                     setEl("corpusCount", info.sentences_indexed.toLocaleString());
                 }
@@ -3348,64 +3498,51 @@ function pollSysinfo() {
                 if (info && info.expert_counts) {
                     populateExpertMatrix(info.expert_counts);
                 }
+                serverR4g1Ready = Boolean(info && info.r4g1_ready);
+                updateConnectionStatusUI();
                 updateTelemetry(info, true);
             })
             .catch(err => {
                 console.warn("Sysinfo poll failed, switching to local WASM fallback mode:", err);
                 localWasmMode = true;
-                tryInitLocalWasm();
+                updateConnectionStatusUI();
+                if (window.wasm_module && typeof router !== 'undefined') {
+                    setEl("corpusCount", router.get_total_indexed_sentences().toLocaleString());
+                    syncActiveStreams(unwrapResult(router.get_active_streams()));
+                    updateStreamsList();
+                    populateExpertMatrix(unwrapResult(router.get_expert_counts()));
+                } else {
+                    tryInitLocalWasm();
+                }
             });
     }
 
-    // Check Ollama status
-    let ollamaUrl = document.getElementById("ollamaUrlInput")?.value.trim() || "http://localhost:11434";
-    if (ollamaUrl && !ollamaUrl.startsWith("http://") && !ollamaUrl.startsWith("https://")) {
-        ollamaUrl = "http://" + ollamaUrl;
-    }
-    const ollamaEl = document.getElementById("ollamaStatus");
-    const isWebpageLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
-    
-    let targetTagsUrl = `${ollamaUrl}/api/tags`;
-    if (!localWasmMode && isWebpageLocal && (ollamaUrl.includes("localhost") || ollamaUrl.includes("127.0.0.1"))) {
-        targetTagsUrl = "/api/tags";
-    }
+    // Check the in-process transformerless artifact status.
+    const tlessEl = document.getElementById("tlessStatus");
 
-    fetch(targetTagsUrl, { method: "GET" })
+    fetch("/api/tags", { method: "GET" })
         .then(r => {
             if (r.status === 200) {
-                if (ollamaEl) { ollamaEl.textContent = "● Live"; ollamaEl.style.color = "var(--emerald)"; }
-                window.ollamaLive = true;
+                if (tlessEl) { tlessEl.textContent = "● Ready"; tlessEl.style.color = "var(--emerald)"; }
                 return r.json();
             } else {
-                if (ollamaEl) { ollamaEl.textContent = "○ Offline"; ollamaEl.style.color = "var(--amber)"; }
-                window.ollamaLive = false;
+                if (tlessEl) { tlessEl.textContent = "○ Offline"; tlessEl.style.color = "var(--amber)"; }
                 return null;
             }
         })
         .then(data => {
             if (!data) return;
             const models = data.models || [];
-            const modelNames = models.map(m => m.model || m.name);
-            const modelInput = document.getElementById("ollamaModelInput");
-            if (modelInput) {
-                const currentVal = modelInput.value.trim();
-                if (!modelNames.includes(currentVal)) {
-                    // Try to find a gemma4 model
-                    const gemma4Model = modelNames.find(name => name.toLowerCase().includes("gemma4"));
-                    if (gemma4Model) {
-                        modelInput.value = gemma4Model;
-                        saveSessionToLocalStorage();
-                    } else if (modelNames.length > 0) {
-                        modelInput.value = modelNames[0];
-                        saveSessionToLocalStorage();
-                    }
-                }
-            }
+            if (tlessEl) tlessEl.textContent = data.ready ? "● Ready" : "○ Artifacts missing";
         })
         .catch(() => {
-            if (ollamaEl) { ollamaEl.textContent = "○ Offline"; ollamaEl.style.color = "var(--amber)"; }
-            window.ollamaLive = false;
+            if (tlessEl) { tlessEl.textContent = "○ Offline"; tlessEl.style.color = "var(--amber)"; }
         });
+
+    if (!localWasmMode) {
+        fetchHfDownloadStatus().catch(() => {});
+        fetchR4g1CompileStatus().catch(() => {});
+    }
 }
 
 // =====================================================
@@ -3531,9 +3668,7 @@ function saveSessionToLocalStorage() {
             currentTrajectory: window.currentTrajectory,
             activeWindowIndex: activeWindowIndex,
             routerState: null, // Always null in localStorage to avoid QuotaExceededError
-            engineSelect: engineSelect?.value || "auto",
-            ollamaUrl: document.getElementById("ollamaUrlInput")?.value || "http://localhost:11434",
-            ollamaModel: document.getElementById("ollamaModelInput")?.value || "gemma4:e2b",
+            engineSelect: engineSelect?.value || "r4g1",
             chatHistory: chatHistory
         };
         const serialized = JSON.stringify(session);
@@ -3562,14 +3697,6 @@ async function restoreSessionFromLocalStorage() {
             if (engineSelect && session.engineSelect) {
                 engineSelect.value = session.engineSelect;
             }
-            const ollamaUrlEl = document.getElementById("ollamaUrlInput");
-            if (ollamaUrlEl && session.ollamaUrl) {
-                ollamaUrlEl.value = session.ollamaUrl;
-            }
-            const ollamaModelEl = document.getElementById("ollamaModelInput");
-            if (ollamaModelEl && session.ollamaModel) {
-                ollamaModelEl.value = session.ollamaModel;
-            }
             
             if (localWasmMode && router) {
                 try {
@@ -3589,7 +3716,11 @@ async function restoreSessionFromLocalStorage() {
                 updateSaveButtonState();
             }
             
-            chatHistory = session.chatHistory || [];
+            chatHistory = (session.chatHistory || []).filter(msg => 
+                !msg.content.includes("attributeslight") &&
+                !msg.content.includes("jupyter_code") &&
+                !msg.content.includes("easternds7")
+            );
             if (chatHistory.length > 0) {
                 chatLogInner.innerHTML = "";
                 chatHistory.forEach(msg => {
@@ -3597,7 +3728,6 @@ async function restoreSessionFromLocalStorage() {
                 });
             }
             
-            updateEngineConfigVisibility();
             console.log("[+] Restored session from localStorage.");
         }
     } catch(e) {
@@ -3606,6 +3736,40 @@ async function restoreSessionFromLocalStorage() {
 }
 
 window.addEventListener("beforeunload", saveSessionToLocalStorage);
+
+function updateConnectionStatusUI() {
+    const dot = document.querySelector(".chat-header-dot");
+    const route = document.getElementById("chatHeaderRoute");
+    if (localWasmMode) {
+        if (dot) {
+            dot.style.background = "#ffb300";
+            dot.style.boxShadow = "0 0 8px #ffb300";
+        }
+        if (route) {
+            route.textContent = "⚠️ WASM GEOMETRIC FALLBACK (Server Offline)";
+            route.style.color = "var(--amber)";
+        }
+    } else {
+        const selected = engineSelect?.value || "r4g1";
+        const isR4g1Unavailable = selected === "r4g1" && !serverR4g1Ready;
+        if (dot) {
+            dot.style.background = isR4g1Unavailable ? "var(--amber)" : "var(--emerald)";
+            dot.style.boxShadow = isR4g1Unavailable
+                ? "0 0 8px var(--amber)"
+                : "0 0 8px var(--emerald)";
+        }
+        if (route) {
+            if (isR4g1Unavailable) {
+                route.textContent = "🟠 Server online · R4G1 selected (compile required)";
+                route.style.color = "var(--amber)";
+            } else {
+                route.textContent = `🟢 Connected · ${selectedEngineLabel(selected)}`;
+                route.style.color = "var(--emerald)";
+            }
+        }
+    }
+    updateSelectedEngineValue();
+}
 
 // =====================================================
 // Startup
@@ -3617,6 +3781,7 @@ async function startApp() {
             const probe = await fetch("/api/sysinfo");
             if (probe.ok) {
                 localWasmMode = false;
+                updateConnectionStatusUI();
                 console.log("[+] Server detected, using backend routing.");
             } else {
                 throw new Error("Server returned non-ok status");
@@ -3624,10 +3789,12 @@ async function startApp() {
         } catch (e) {
             console.warn("[!] Server offline or static deployment detected. Initializing local WASM fallback:", e);
             localWasmMode = true;
+            updateConnectionStatusUI();
             await tryInitLocalWasm();
         }
 
         await restoreSessionFromLocalStorage();
+        updateConnectionStatusUI();
         populateExpertMatrix([]);
         
         await loadSemanticMap();

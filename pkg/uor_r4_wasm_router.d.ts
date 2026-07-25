@@ -1,6 +1,11 @@
 /* tslint:disable */
 /* eslint-disable */
 
+export enum GeometryType {
+    Spectral = 0,
+    Vsa = 1,
+}
+
 /**
  * The unified router core coordinator.
  */
@@ -11,6 +16,7 @@ export class UorR4Router {
      * Computes live UOR resonance metrics for a given input text
      */
     calculate_resonance(text: string): any;
+    clear_corpus(): void;
     /**
      * Compiles a raw string thought parameter down into its content-addressed math state
      */
@@ -61,6 +67,8 @@ export class UorR4Router {
      * Projects the active brain state vector into 4D coordinates
      */
     get_state_4d_projection_wasm(state_vector: Float64Array): Float64Array;
+    get_store_epoch_root(): string;
+    get_store_inclusion_proof(facet: string, path_str: string): any;
     /**
      * Dynamically computes the suggested token limit based on manifold routing metrics
      */
@@ -124,22 +132,36 @@ export class UorR4Router {
     route_query_to_manifold_uor(text: string, identity: string): any;
     set_angle_x(val: number): void;
     set_angle_y(val: number): void;
+    set_geometry_type(geom: string): void;
     /**
      * Progresses the connection drift state using delta-time ($dt$) increments.
      * Returns a log message string if a ZKP reset occurs, otherwise returns undefined.
      */
     update_drift_physics(dt: number, drift_rate: number): string | undefined;
+    geometry_type: GeometryType;
 }
 
+export function generate_r4g1_response(prompt: string, max_tokens: number): string | undefined;
+
 export function init_wasm(): void;
+
+export function vsa_encode_event(subj: string, act: string, time: string, loc: string, space: string): Uint8Array;
+
+export function vsa_encode_graph_edge(src: string, rel: string, tgt: string, space: string): Uint8Array;
+
+export function vsa_encode_statement(subj: string, pred: string, obj: string, space: string): Uint8Array;
 
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
 
 export interface InitOutput {
     readonly memory: WebAssembly.Memory;
+    readonly generate_r4g1_response: (a: number, b: number, c: number) => [number, number];
+    readonly __wbg_get_uorr4router_geometry_type: (a: number) => number;
+    readonly __wbg_set_uorr4router_geometry_type: (a: number, b: number) => void;
     readonly __wbg_uorr4router_free: (a: number, b: number) => void;
     readonly init_wasm: () => void;
     readonly uorr4router_calculate_resonance: (a: number, b: number, c: number) => any;
+    readonly uorr4router_clear_corpus: (a: number) => void;
     readonly uorr4router_compile_thought: (a: number, b: number, c: number) => any;
     readonly uorr4router_connection_drift: (a: number) => number;
     readonly uorr4router_evolve_state: (a: number, b: number, c: number, d: number, e: number, f: number) => [number, number];
@@ -154,6 +176,8 @@ export interface InitOutput {
     readonly uorr4router_get_semantic_map_points: (a: number) => any;
     readonly uorr4router_get_sentence_projection_wasm: (a: number, b: number, c: number, d: number) => [number, number];
     readonly uorr4router_get_state_4d_projection_wasm: (a: number, b: number, c: number) => [number, number];
+    readonly uorr4router_get_store_epoch_root: (a: number) => [number, number];
+    readonly uorr4router_get_store_inclusion_proof: (a: number, b: number, c: number, d: number, e: number) => any;
     readonly uorr4router_get_suggested_token_limit: (a: number, b: number, c: number, d: number, e: number) => number;
     readonly uorr4router_get_top_resonances: (a: number, b: number, c: number, d: number, e: number, f: number) => any;
     readonly uorr4router_get_total_indexed_sentences: (a: number) => number;
@@ -172,7 +196,11 @@ export interface InitOutput {
     readonly uorr4router_route_query_to_manifold_uor: (a: number, b: number, c: number, d: number, e: number) => any;
     readonly uorr4router_set_angle_x: (a: number, b: number) => void;
     readonly uorr4router_set_angle_y: (a: number, b: number) => void;
+    readonly uorr4router_set_geometry_type: (a: number, b: number, c: number) => void;
     readonly uorr4router_update_drift_physics: (a: number, b: number, c: number) => [number, number];
+    readonly vsa_encode_event: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number) => [number, number];
+    readonly vsa_encode_graph_edge: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number) => [number, number];
+    readonly vsa_encode_statement: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number) => [number, number];
     readonly __wbindgen_free: (a: number, b: number, c: number) => void;
     readonly __wbindgen_malloc: (a: number, b: number) => number;
     readonly __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;
