@@ -573,6 +573,43 @@ impl StructuralGuaranteeVerifier {
                 .to_string(),
         })
     }
+
+    /// Verify compiler stage DAG compliance obligation (#166).
+    ///
+    /// Checks that all 28 pipeline stages are classified and that the
+    /// 6-node Sequential Canonical Finalization spine is intact. Failure
+    /// indicates that the stage inventory has been tampered with in a way that
+    /// would break D2 canonical artifact reproducibility.
+    pub fn verify_compiler_stage_dag_compliance(
+        obligation_id: impl Into<String>,
+    ) -> Result<ProofVerificationReport, ProofValidationError> {
+        use uor_r4_graph_compiler::stage_dag::{CompilerStageDag, ConcurrencyClass};
+        let obl_id = obligation_id.into();
+        let stages = CompilerStageDag::all_stages();
+        let spine = CompilerStageDag::finalization_spine();
+
+        let valid = stages.len() == 28
+            && spine.len() == 6
+            && spine
+                .iter()
+                .all(|s| s.class == ConcurrencyClass::SequentialCanonicalFinalization);
+
+        if !valid {
+            return Err(ProofValidationError::NondeterministicOutput {
+                obligation_id: obl_id,
+            });
+        }
+
+        Ok(ProofVerificationReport {
+            obligation_id: obl_id,
+            kind: StructuralObligationKind::Determinism,
+            status: ProofStatus::Verified,
+            verified: true,
+            details:
+                "Compiler Stage DAG v0.1.0 verified (28 stages classified, 6-node sequential canonical finalization spine protected)"
+                    .to_string(),
+        })
+    }
 }
 
 #[cfg(test)]

@@ -17,6 +17,7 @@ pub mod residual;
 pub mod routing;
 pub mod semantic_emission_decoupling;
 pub mod semantic_state;
+pub mod stage_dag;
 
 use std::path::PathBuf;
 use uor_r4_core::transformerless::compiler;

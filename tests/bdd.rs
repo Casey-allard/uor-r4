@@ -2241,6 +2241,70 @@ fn bdd_exec_panic_index_then(w: &mut R4g1World, expected_idx: usize) {
     );
 }
 
+// Feature: Compiler stage ownership and parallelization DAG (#166)
+// =========================================================================
+use uor_r4_graph_compiler::stage_dag::CompilerStageDag;
+
+#[given("the normative compiler stage DAG inventory")]
+fn bdd_stage_dag_inventory_given(_w: &mut R4g1World) {}
+
+#[when("evaluated for completeness")]
+fn bdd_stage_dag_completeness_when(_w: &mut R4g1World) {}
+
+#[then(
+    expr = "exactly {int} pipeline stages are fully classified across the {int} concurrency classes"
+)]
+fn bdd_stage_dag_completeness_then(
+    _w: &mut R4g1World,
+    expected_stages: usize,
+    expected_classes: usize,
+) {
+    let stages = CompilerStageDag::all_stages();
+    assert_eq!(stages.len(), expected_stages);
+
+    let mut classes = std::collections::HashSet::new();
+    for s in stages {
+        classes.insert(s.class);
+    }
+    assert_eq!(classes.len(), expected_classes);
+}
+
+#[when("the sequential canonical finalization spine is queried")]
+fn bdd_stage_dag_spine_when(_w: &mut R4g1World) {}
+
+#[then(expr = "exactly {int} stages belong to the sequential canonical finalization spine")]
+fn bdd_stage_dag_spine_count_then(_w: &mut R4g1World, expected_spine_count: usize) {
+    let spine = CompilerStageDag::finalization_spine();
+    assert_eq!(spine.len(), expected_spine_count);
+}
+
+#[then(
+    expr = "stage IDs {string}, {string}, {string}, {string}, {string}, and {string} are strictly single-threaded"
+)]
+fn bdd_stage_dag_spine_ids_then(
+    _w: &mut R4g1World,
+    id1: String,
+    id2: String,
+    id3: String,
+    id4: String,
+    id5: String,
+    id6: String,
+) {
+    let spine = CompilerStageDag::finalization_spine();
+    let spine_ids: Vec<&str> = spine.iter().map(|s| s.stage_id).collect();
+    assert_eq!(
+        spine_ids,
+        vec![
+            id1.as_str(),
+            id2.as_str(),
+            id3.as_str(),
+            id4.as_str(),
+            id5.as_str(),
+            id6.as_str()
+        ]
+    );
+}
+
 #[tokio::main]
 async fn main() {
     R4g1World::cucumber()

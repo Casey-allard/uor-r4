@@ -137,6 +137,7 @@ by wholesale rewrite.
 
 ## Changelog
 
+- **0.1.7** (2026-07-24) — Added issue-#166 compiler stage ownership and parallelization DAG definitions (`Compiler Stage DAG`, `Parallel-Safe Stage`, `Deterministic Merge Stage`, `Bounded Parallel Stage`, `Sequential Canonical Finalization Spine` in `docs/compiler_stage_dag.md` and `uor-r4-graph-compiler::stage_dag`).
 - **0.1.6** (2026-07-24) — Added issue-#165 deterministic compiler executor definitions (`Compiler Executor Abstraction`, `Sequential Reference Executor`, `Rayon Parallel Executor` in `uor-r4-graph-compiler::executor`).
 - **0.1.5** (2026-07-24) — Added issue-#161 runtime operation, allocation, and CPU portability certificate definitions (`Runtime Performance Certificate`, `Evidentiary Class Schema`, `Declared-Zero Evidence Link`, `CPU Portability Record` in `uor-r4-graph-certify::performance_certificate`).
 - **0.1.4** (2026-07-24) — Added issue-#160 machine-code, allocator, and dependency CI audit definitions (`Machine-Code Disassembly Audit`, `Counting Allocator Witness`, `Dependency Denylist Gate` in `uor-r4-proof-model::inference_audit`).

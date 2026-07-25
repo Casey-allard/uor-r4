@@ -372,6 +372,8 @@ Objective: regions must earn the name "semantic" (PDF §7).
 
 ### Phase 4 — Semantic transition and residual emission (3–5 weeks) → Gates A, C
 
+*Normative Compiler Stage DAG & Concurrency Matrix: see [compiler_stage_dag.md](file:///Users/casey.allard/uor-r4/docs/compiler_stage_dag.md).*
+
 Objective: the scoring model S(v) = B(v) + ΣΔE(n,v) + ΣΔT(m,v) + ΔX(X,v) (PDF §23).
 
 - Forward transition edges E_f (active cloud → bounded next semantic cloud) and reverse indexes
