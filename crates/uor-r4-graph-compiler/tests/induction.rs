@@ -13,7 +13,7 @@ use uor_r4_core::transformerless::compiler::{self, Corpus, D, K, SIG_BYTES, STAG
 use uor_r4_graph_compiler::induction as cover;
 use uor_r4_graph_compiler::induction::{
     Cover, CoverConfig, CoverEdge, CoverRegion, EDGE_KIND_NEIGHBOR, EDGE_KIND_REFINEMENT,
-    Observation,
+    EDGE_KIND_TRANSITION, Observation,
 };
 use uor_r4_graph_compiler::observation as observe;
 use uor_r4_graph_format::{GraphView, SectionId};
@@ -583,6 +583,117 @@ fn edges_are_canonical_bounded_and_honest() {
             *deg as usize <= 2 * cover::MAX_NEIGHBOR_EDGES,
             "node {node} degree {deg} beyond the bounded cap"
         );
+    }
+}
+
+#[test]
+fn canonical_fragment_merge_is_sorted_and_deduplicated() {
+    let fragments = vec![
+        vec![
+            CoverEdge {
+                src: 3,
+                kind: EDGE_KIND_TRANSITION,
+                dst: 8,
+            },
+            CoverEdge {
+                src: 1,
+                kind: EDGE_KIND_REFINEMENT,
+                dst: 2,
+            },
+        ],
+        vec![
+            CoverEdge {
+                src: 2,
+                kind: EDGE_KIND_NEIGHBOR,
+                dst: 5,
+            },
+            CoverEdge {
+                src: 1,
+                kind: EDGE_KIND_REFINEMENT,
+                dst: 2,
+            },
+        ],
+        vec![CoverEdge {
+            src: 2,
+            kind: EDGE_KIND_NEIGHBOR,
+            dst: 5,
+        }],
+    ];
+    let merged = cover::canonical_merge_edge_fragments(&fragments);
+    assert_eq!(
+        merged,
+        vec![
+            CoverEdge {
+                src: 1,
+                kind: EDGE_KIND_REFINEMENT,
+                dst: 2,
+            },
+            CoverEdge {
+                src: 2,
+                kind: EDGE_KIND_NEIGHBOR,
+                dst: 5,
+            },
+            CoverEdge {
+                src: 3,
+                kind: EDGE_KIND_TRANSITION,
+                dst: 8,
+            },
+        ],
+        "stable canonical sort + deterministic dedup"
+    );
+}
+
+#[test]
+fn canonical_fragment_merge_is_invariant_under_fragment_interleaving() {
+    let base = vec![
+        vec![
+            CoverEdge {
+                src: 4,
+                kind: EDGE_KIND_NEIGHBOR,
+                dst: 7,
+            },
+            CoverEdge {
+                src: 0,
+                kind: EDGE_KIND_REFINEMENT,
+                dst: 1,
+            },
+        ],
+        vec![
+            CoverEdge {
+                src: 0,
+                kind: EDGE_KIND_REFINEMENT,
+                dst: 1,
+            },
+            CoverEdge {
+                src: 5,
+                kind: EDGE_KIND_TRANSITION,
+                dst: 5,
+            },
+        ],
+        vec![CoverEdge {
+            src: 2,
+            kind: EDGE_KIND_NEIGHBOR,
+            dst: 6,
+        }],
+    ];
+    let canonical = cover::canonical_merge_edge_fragments(&base);
+    for &i in &[0usize, 1, 2] {
+        for &j in &[0usize, 1, 2] {
+            if j == i {
+                continue;
+            }
+            for &k in &[0usize, 1, 2] {
+                if k == i || k == j {
+                    continue;
+                }
+                let permuted = vec![base[i].clone(), base[j].clone(), base[k].clone()];
+                assert_eq!(
+                    cover::canonical_merge_edge_fragments(&permuted),
+                    canonical,
+                    "fragment permutation ({i},{j},{k}) changes merge output"
+                );
+            }
+        }
     }
 }
 

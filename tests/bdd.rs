@@ -10,7 +10,10 @@ use uor_r4_core::transformerless::bott_fock::BottFockContextStore;
 use uor_r4_core::transformerless::compiler::SIG_BYTES;
 use uor_r4_core::transformerless::endomorphism::EndomorphismAlgebra;
 use uor_r4_core::transformerless::lie_jordan::{universal_product_u8, LieJordanSplit};
-use uor_r4_graph_compiler::induction::Observation;
+use uor_r4_graph_compiler::induction::{
+    canonical_merge_edge_fragments, CoverEdge, Observation, EDGE_KIND_NEIGHBOR,
+    EDGE_KIND_REFINEMENT, EDGE_KIND_TRANSITION,
+};
 use uor_r4_graph_compiler::quantum_cover::{
     quantum_entropy_gain, DensityOperator, QuantumCoverConfig,
 };
@@ -2367,6 +2370,66 @@ fn bdd_reproducibility_eval_then(w: &mut R4g1World) {
     .expect("harness pass");
 
     assert!(report.is_byte_identical);
+}
+
+#[given("worker-local immutable discovery fragments for cover edge discovery")]
+fn bdd_cover_edge_fragments_given(_w: &mut R4g1World) {}
+
+#[when("fragments are merged after arbitrary completion/interleaving order")]
+fn bdd_cover_edge_fragments_when(_w: &mut R4g1World) {}
+
+#[then("canonical stable sort and dedup produce one byte-identical edge sequence")]
+fn bdd_cover_edge_fragments_then(_w: &mut R4g1World) {
+    let fragments = vec![
+        vec![
+            CoverEdge {
+                src: 4,
+                kind: EDGE_KIND_NEIGHBOR,
+                dst: 7,
+            },
+            CoverEdge {
+                src: 0,
+                kind: EDGE_KIND_REFINEMENT,
+                dst: 1,
+            },
+        ],
+        vec![
+            CoverEdge {
+                src: 0,
+                kind: EDGE_KIND_REFINEMENT,
+                dst: 1,
+            },
+            CoverEdge {
+                src: 5,
+                kind: EDGE_KIND_TRANSITION,
+                dst: 5,
+            },
+        ],
+        vec![CoverEdge {
+            src: 2,
+            kind: EDGE_KIND_NEIGHBOR,
+            dst: 6,
+        }],
+    ];
+    let canonical = canonical_merge_edge_fragments(&fragments);
+    for &i in &[0usize, 1, 2] {
+        for &j in &[0usize, 1, 2] {
+            if j == i {
+                continue;
+            }
+            for &k in &[0usize, 1, 2] {
+                if k == i || k == j {
+                    continue;
+                }
+                let permuted = vec![
+                    fragments[i].clone(),
+                    fragments[j].clone(),
+                    fragments[k].clone(),
+                ];
+                assert_eq!(canonical_merge_edge_fragments(&permuted), canonical);
+            }
+        }
+    }
 }
 
 // =========================================================================

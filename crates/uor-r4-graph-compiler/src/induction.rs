@@ -1462,6 +1462,23 @@ pub struct CoverEdge {
     pub dst: u32,
 }
 
+/// Canonical merge of worker-local immutable edge fragments.
+///
+/// Pattern (issue #171): local discovery emits immutable `CoverEdge`
+/// fragments, then a sequential spine performs stable canonical sort,
+/// deterministic deduplication, and leaves canonical edge-id assignment to
+/// the packer (array position after this merge).
+pub fn canonical_merge_edge_fragments(fragments: &[Vec<CoverEdge>]) -> Vec<CoverEdge> {
+    let total = fragments.iter().map(Vec::len).sum();
+    let mut edges = Vec::with_capacity(total);
+    for fragment in fragments {
+        edges.extend(fragment.iter().copied());
+    }
+    edges.sort_by_key(|edge| (edge.src, edge.kind, edge.dst));
+    edges.dedup();
+    edges
+}
+
 /// Artifact node id of a region: the synthetic root is node 0, regions
 /// are 1-based (`region.id + 1`).
 pub fn region_node_id(region_id: u32) -> u32 {
@@ -1486,10 +1503,10 @@ pub fn build_edges(
     observations: &[Observation],
     story_map: &[u32],
 ) -> Vec<CoverEdge> {
-    let mut edges: BTreeSet<CoverEdge> = BTreeSet::new();
+    let mut refinement_fragment = Vec::with_capacity(cover.regions.len());
     for region in &cover.regions {
         let parent = region.parent.map_or(ROOT_NODE, region_node_id);
-        edges.insert(CoverEdge {
+        refinement_fragment.push(CoverEdge {
             src: parent,
             kind: EDGE_KIND_REFINEMENT,
             dst: region_node_id(region.id),
@@ -1526,10 +1543,15 @@ pub fn build_edges(
         list.sort_by(|x, y| y.1.cmp(&x.1).then_with(|| x.0.cmp(&y.0)));
         list.truncate(MAX_NEIGHBOR_EDGES);
     }
+    let mut overlap_fragment = Vec::new();
+    let mut emitted_neighbor_pairs = BTreeSet::new();
     for (&a, list) in &peers {
         for &(b, _) in list {
             let (src, dst) = if a < b { (a, b) } else { (b, a) };
-            edges.insert(CoverEdge {
+            if !emitted_neighbor_pairs.insert((src, dst)) {
+                continue;
+            }
+            overlap_fragment.push(CoverEdge {
                 src: region_node_id(src),
                 kind: EDGE_KIND_NEIGHBOR,
                 dst: region_node_id(dst),
@@ -1564,9 +1586,10 @@ pub fn build_edges(
         list.sort_by(|x, y| y.1.cmp(&x.1).then_with(|| x.0.cmp(&y.0)));
         list.truncate(MAX_TRANSITION_EDGES);
     }
+    let mut transition_fragment = Vec::new();
     for (&a, list) in &transition_lists {
         for &(b, _) in list {
-            edges.insert(CoverEdge {
+            transition_fragment.push(CoverEdge {
                 src: region_node_id(a),
                 kind: EDGE_KIND_TRANSITION,
                 dst: region_node_id(b),
@@ -1574,7 +1597,7 @@ pub fn build_edges(
         }
     }
 
-    edges.into_iter().collect()
+    canonical_merge_edge_fragments(&[refinement_fragment, overlap_fragment, transition_fragment])
 }
 
 /// Held-out evaluation numbers (all rates over evaluated positions).
