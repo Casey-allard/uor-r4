@@ -227,7 +227,7 @@ only; it must never become a dependency of format/runtime/proof-model. Per-stage
 | Boolean synthesis (Phase 6) | per-candidate search | deterministic candidate ordering |
 | Residuals / packing / certification | per-region streaming; per-eval-point | ordered aggregation for certificate statistics |
 
-**Determinism rules (Gate E / D2).** See [reproducibility.md](file:///Users/casey.allard/uor-r4/docs/reproducibility.md) (Issue #167) for the normative parallel reproducibility specification.
+**Determinism rules (Gate E / D2).** See [compiler_concurrency_config.md](file:///Users/casey.allard/uor-r4/docs/compiler_concurrency_config.md) (Issue #168) for normative concurrency controls (`--jobs N`, `R4_COMPILER_THREADS`, `CLI > env > default` precedence) and [reproducibility.md](file:///Users/casey.allard/uor-r4/docs/reproducibility.md) (Issue #167) for normative parallel byte equality.
 
 1. Thread count is a pure performance knob: a compile at T=1 and at T=N must produce byte-identical
    κ. CI asserts this on a pinned mini-corpus (T=1 vs T=4 → identical artifact bytes).

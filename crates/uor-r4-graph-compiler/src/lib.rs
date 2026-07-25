@@ -3,6 +3,7 @@ pub mod executor;
 pub mod future_state_planner;
 pub mod graph;
 pub mod induction;
+pub mod jobs_config;
 pub mod lower_semantic_regions;
 pub mod monograph;
 pub mod observation;
@@ -31,6 +32,7 @@ pub struct GraphCompileOptions {
     pub k0: usize,
     pub regions_budget: usize,
     pub memory_budget_mb: u64,
+    pub jobs: Option<usize>,
     pub output: PathBuf,
 }
 
@@ -45,6 +47,7 @@ pub fn parse_options(args: &[String]) -> Result<GraphCompileOptions, String> {
         k0: induction::DEFAULT_K0,
         regions_budget: induction::DEFAULT_REGIONS_BUDGET,
         memory_budget_mb: induction::DEFAULT_MEMORY_BUDGET_MB,
+        jobs: None,
         output: PathBuf::from("r4g1_output"),
     };
     let mut index = 0usize;
@@ -86,6 +89,15 @@ pub fn parse_options(args: &[String]) -> Result<GraphCompileOptions, String> {
                     .parse()
                     .map_err(|_| format!("invalid --memory-budget value: {value}"))?;
             }
+            "--jobs" => {
+                let j: usize = value
+                    .parse()
+                    .map_err(|_| format!("invalid --jobs value: {value}"))?;
+                if j == 0 {
+                    return Err("--jobs must be at least 1".to_owned());
+                }
+                options.jobs = Some(j);
+            }
             "--out" => options.output = PathBuf::from(value),
             _ => return Err(format!("unknown graph-compile option: {flag}")),
         }
@@ -102,6 +114,16 @@ pub fn compile(args: &[String]) -> Result<(), String> {
         "warning: debug builds make graph compilation much slower; use `cargo run --release -- graph-compile ...`"
     );
     let options = parse_options(args)?;
+    let env_jobs = std::env::var("R4_COMPILER_THREADS").ok();
+    let jobs_config = jobs_config::CompilerJobsConfig::resolve(options.jobs, env_jobs.as_deref())
+        .map_err(|e| e.to_string())?;
+    let _pool = jobs_config
+        .build_dedicated_thread_pool()
+        .map_err(|e| e.to_string())?;
+    eprintln!(
+        "graph-compiler: initialized dedicated thread pool ({} workers, source: {:?})",
+        jobs_config.jobs, jobs_config.source
+    );
     let corpus_meta = options
         .corpus_meta
         .to_str()

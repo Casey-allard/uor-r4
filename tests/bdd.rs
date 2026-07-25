@@ -157,6 +157,15 @@ struct R4g1World {
     exec_inputs: Vec<i32>,
     exec_seq_out: Vec<i32>,
     exec_par_out: Vec<i32>,
+    // Compiler Jobs Config fields (#168)
+    jobs_cli: Option<usize>,
+    jobs_env: Option<String>,
+    jobs_config_res: Option<
+        Result<
+            uor_r4_graph_compiler::jobs_config::CompilerJobsConfig,
+            uor_r4_graph_compiler::jobs_config::JobsConfigError,
+        >,
+    >,
 }
 
 #[given("the R4G1 runtime returned the browser's repetitive hello response")]
@@ -2343,6 +2352,75 @@ fn bdd_reproducibility_eval_then(w: &mut R4g1World) {
     assert!(report.is_byte_identical);
 }
 
+// =========================================================================
+// Feature: Compiler thread-pool, jobs configuration, and oversubscription policy (#168)
+// =========================================================================
+use uor_r4_graph_compiler::jobs_config::{CompilerJobsConfig, JobsConfigError, JobsConfigSource};
+
+#[given(
+    expr = "a compiler jobs configuration request with CLI argument {int} and environment variable {string}"
+)]
+fn bdd_jobs_cli_and_env_given(w: &mut R4g1World, cli_jobs: usize, env_str: String) {
+    w.jobs_cli = Some(cli_jobs);
+    w.jobs_env = Some(env_str);
+}
+
+#[given(
+    expr = "a compiler jobs configuration request with no CLI argument and environment variable {string}"
+)]
+fn bdd_jobs_env_only_given(w: &mut R4g1World, env_str: String) {
+    w.jobs_cli = None;
+    w.jobs_env = Some(env_str);
+}
+
+#[given(expr = "a compiler jobs configuration request with CLI argument {int}")]
+fn bdd_jobs_cli_only_given(w: &mut R4g1World, cli_jobs: usize) {
+    w.jobs_cli = Some(cli_jobs);
+    w.jobs_env = None;
+}
+
+#[when("jobs precedence resolution is evaluated")]
+fn bdd_jobs_eval_when(w: &mut R4g1World) {
+    let env_ref = w.jobs_env.as_deref();
+    w.jobs_config_res = Some(CompilerJobsConfig::resolve(w.jobs_cli, env_ref));
+}
+
+#[then(expr = "the resolved thread count is {int} with source {string}")]
+fn bdd_jobs_eval_then(w: &mut R4g1World, expected_jobs: usize, expected_source: String) {
+    let res = w
+        .jobs_config_res
+        .as_ref()
+        .expect("jobs_config_res present")
+        .as_ref()
+        .expect("jobs_config resolved successfully");
+    assert_eq!(res.jobs, expected_jobs);
+    let src_str = match res.source {
+        JobsConfigSource::CliArg => "CliArg",
+        JobsConfigSource::EnvVar => "EnvVar",
+        JobsConfigSource::DefaultPolicy => "DefaultPolicy",
+    };
+    assert_eq!(src_str, expected_source);
+}
+
+#[then("resolution fails with a zero jobs forbidden error")]
+fn bdd_jobs_zero_error_then(w: &mut R4g1World) {
+    let res = w.jobs_config_res.as_ref().expect("jobs_config_res present");
+    assert_eq!(
+        res.as_ref().err(),
+        Some(&JobsConfigError::ZeroJobsForbidden)
+    );
+}
+
+#[then(expr = "resolution fails with an invalid job count error for {string}")]
+fn bdd_jobs_invalid_error_then(w: &mut R4g1World, expected_val: String) {
+    let res = w.jobs_config_res.as_ref().expect("jobs_config_res present");
+    assert_eq!(
+        res.as_ref().err(),
+        Some(&JobsConfigError::InvalidJobCount {
+            value: expected_val
+        })
+    );
+}
 #[tokio::main]
 async fn main() {
     R4g1World::cucumber()
