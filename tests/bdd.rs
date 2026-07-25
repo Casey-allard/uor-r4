@@ -153,6 +153,10 @@ struct R4g1World {
     contract_doc_text: String,
     contract_doc_version: Option<String>,
     contract_module_version: Option<String>,
+    // Compiler Executor fields (#165)
+    exec_inputs: Vec<i32>,
+    exec_seq_out: Vec<i32>,
+    exec_par_out: Vec<i32>,
 }
 
 #[given("the R4G1 runtime returned the browser's repetitive hello response")]
@@ -2131,6 +2135,112 @@ fn bdd_perf_cert_portability_check(w: &mut R4g1World) {
     assert!(cert.cpu_portability.scalar_fallback_confirmed);
     assert_eq!(cert.cpu_portability.target_tier, expected_tier);
 }
+
+// =========================================================================
+// Feature: Deterministic compiler executor abstraction (#165)
+// =========================================================================
+#[cfg(not(target_arch = "wasm32"))]
+use uor_r4_graph_compiler::executor::RayonExecutor;
+use uor_r4_graph_compiler::executor::{CompilerExecutor, SequentialExecutor};
+
+#[given(expr = "a batch of {int} integer input items")]
+fn bdd_exec_inputs_given(w: &mut R4g1World, count: usize) {
+    w.exec_inputs = (1..=count as i32).collect();
+}
+
+#[when("mapped by the sequential reference compiler executor")]
+fn bdd_exec_seq_when(w: &mut R4g1World) {
+    let exec = SequentialExecutor::new();
+    w.exec_seq_out = exec
+        .map(&w.exec_inputs, |&x| Ok(x * 2 + 1))
+        .expect("seq map");
+}
+
+#[when("mapped by the Rayon parallel multicore compiler executor")]
+fn bdd_exec_par_when(w: &mut R4g1World) {
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        let exec = RayonExecutor::new(4).expect("rayon exec");
+        w.exec_par_out = exec
+            .map(&w.exec_inputs, |&x| Ok(x * 2 + 1))
+            .expect("par map");
+    }
+    #[cfg(target_arch = "wasm32")]
+    {
+        let exec = SequentialExecutor::new();
+        w.exec_par_out = exec
+            .map(&w.exec_inputs, |&x| Ok(x * 2 + 1))
+            .expect("par map");
+    }
+}
+
+#[then("both mapped output vectors are positionally identical")]
+fn bdd_exec_vectors_identical_then(w: &mut R4g1World) {
+    assert_eq!(w.exec_seq_out, w.exec_par_out);
+}
+
+#[given(expr = "a batch of integer input items where item {int} returns a worker error")]
+fn bdd_exec_err_input_given(w: &mut R4g1World, err_item: i32) {
+    w.exec_inputs = vec![1, 2, err_item, 4, 5];
+}
+
+#[then(expr = "execution returns a worker error at input index {int}")]
+fn bdd_exec_err_index_then(w: &mut R4g1World, expected_idx: usize) {
+    #[cfg(not(target_arch = "wasm32"))]
+    let exec = RayonExecutor::new(4).expect("rayon exec");
+    #[cfg(target_arch = "wasm32")]
+    let exec = SequentialExecutor::new();
+
+    let err = exec
+        .map(&w.exec_inputs, |&x| {
+            if x == 3 {
+                Err("simulated worker error".to_string())
+            } else {
+                Ok(x)
+            }
+        })
+        .unwrap_err();
+
+    assert_eq!(
+        err,
+        uor_r4_graph_compiler::executor::CompileError::WorkerError {
+            input_index: expected_idx,
+            message: "simulated worker error".to_string()
+        }
+    );
+}
+
+#[given(expr = "a batch of integer input items where item {int} panics")]
+fn bdd_exec_panic_input_given(w: &mut R4g1World, panic_item: i32) {
+    w.exec_inputs = vec![1, 2, 3, 4, panic_item];
+}
+
+#[then(expr = "execution returns a worker panic error at input index {int}")]
+fn bdd_exec_panic_index_then(w: &mut R4g1World, expected_idx: usize) {
+    #[cfg(not(target_arch = "wasm32"))]
+    let exec = RayonExecutor::new(4).expect("rayon exec");
+    #[cfg(target_arch = "wasm32")]
+    let exec = SequentialExecutor::new();
+
+    let err = exec
+        .map(&w.exec_inputs, |&x| {
+            if x == 5 {
+                panic!("simulated panic");
+            } else {
+                Ok(x)
+            }
+        })
+        .unwrap_err();
+
+    assert_eq!(
+        err,
+        uor_r4_graph_compiler::executor::CompileError::ExecutionPanic {
+            input_index: expected_idx,
+            panic_message: "simulated panic".to_string()
+        }
+    );
+}
+
 #[tokio::main]
 async fn main() {
     R4g1World::cucumber()

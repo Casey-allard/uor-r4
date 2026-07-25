@@ -137,6 +137,7 @@ by wholesale rewrite.
 
 ## Changelog
 
+- **0.1.6** (2026-07-24) — Added issue-#165 deterministic compiler executor definitions (`Compiler Executor Abstraction`, `Sequential Reference Executor`, `Rayon Parallel Executor` in `uor-r4-graph-compiler::executor`).
 - **0.1.5** (2026-07-24) — Added issue-#161 runtime operation, allocation, and CPU portability certificate definitions (`Runtime Performance Certificate`, `Evidentiary Class Schema`, `Declared-Zero Evidence Link`, `CPU Portability Record` in `uor-r4-graph-certify::performance_certificate`).
 - **0.1.4** (2026-07-24) — Added issue-#160 machine-code, allocator, and dependency CI audit definitions (`Machine-Code Disassembly Audit`, `Counting Allocator Witness`, `Dependency Denylist Gate` in `uor-r4-proof-model::inference_audit`).
 - **0.1.3** (2026-07-24) — Added the issue-#158 normative scoring semantics definitions (`Fixed-Point Scoring Semantics`, `Residual Taxonomy`, `Overlap Residualization`, `Deterministic Tie-Breaking` in `docs/scoring_semantics.md` and `uor-r4-graph-format::scoring_semantics`).

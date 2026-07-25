@@ -9,6 +9,7 @@ uor-r4-core = { path = "../uor-r4-core" }
 uor-r4-graph-format = { path = "../uor-r4-graph-format" }
 uor-r4-graph-runtime = { path = "../uor-r4-graph-runtime" }
 uor-r4-graph-certify = { path = "../uor-r4-graph-certify" }
+uor-r4-graph-compiler = { path = "../uor-r4-graph-compiler" }
 serde = { version = "1.0", features = ["derive"] }
 
 

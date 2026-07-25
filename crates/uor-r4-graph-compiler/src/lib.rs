@@ -1,4 +1,5 @@
 pub mod behavioral_probes;
+pub mod executor;
 pub mod future_state_planner;
 pub mod graph;
 pub mod induction;
