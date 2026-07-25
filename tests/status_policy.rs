@@ -12,7 +12,9 @@
 //! - (d) adversarial repetition of the same probe is deterministic;
 //! - generation stops at the first abstention (count + status returned);
 //! - the manifest policy is data (defaults + score-report override);
-//! - the delimited policy block in `src/r4g1.rs` is integer-only by source
+//! - the delimited policy block in `crates/uor-r4-api/src/engine.rs`
+//!   (moved from `src/r4g1.rs`, which now wraps the library engine) is
+//!   integer-only by source
 //!   scan (the P-4 pattern; `score_runtime.rs` is covered whole-file by
 //!   `tests/score.rs`'s scan in the core crate).
 
@@ -409,14 +411,16 @@ fn materialize_window_fixture_bundle() {
 
 // ------------------------------------------- integer-only source scan --
 
-/// The delimited status-policy block of `src/r4g1.rs` carries no
+/// The delimited status-policy block of `crates/uor-r4-api/src/engine.rs`
+/// (moved from `src/r4g1.rs`; the root module is now a thin wrapper over
+/// the library engine) carries no
 /// `f32`/`f64`, no `*` `/` `%` value arithmetic, and no unsafe code
 /// (the P-4 scan pattern of `transformerless/mod.rs`, mirrored from
 /// `crates/uor-r4-core/tests/score.rs`; the deployed `score_step` code in
 /// `score_runtime.rs` is covered by that crate's whole-file scan).
 #[test]
 fn deployed_status_path_is_integer_only_by_source_scan() {
-    let src = include_str!("../src/r4g1.rs");
+    let src = include_str!("../crates/uor-r4-api/src/engine.rs");
     let mut block = String::new();
     let mut in_block = false;
     let mut blocks = 0u32;

@@ -21,6 +21,7 @@ the wasm dashboard are exploratory and stay out of the graph migration path.
 - `crates/uor-r4-router` — geometric router + dashboard backend (f64; untouched by the graph plan)
 - `crates/uor-r4-graph-format` — R4G1 packed artifact format, two-stage validation, borrowed `GraphView`
 - `crates/uor-r4-proof-model` — executable proof obligations + proof-status matrix
+- `crates/uor-r4-api` — typed compile + engine library façade for downstream consumers (wraps the CLI-shaped stages; see its README)
 - root package `uor-r4-wasm-router` — façade + `r4` CLI + local server/chat
 - `docs/` — plan, RFC (`transformerless/R4G1.md`), baseline, threat model, explainers
 

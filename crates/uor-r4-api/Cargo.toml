@@ -1,0 +1,15 @@
+[package]
+name = "uor-r4-api"
+version = "0.1.0"
+edition = "2021"
+description = "Typed compile and engine APIs over the uor-r4 transformerless graph stack, for library consumers"
+
+[dependencies]
+uor-r4-core = { path = "../uor-r4-core" }
+uor-r4-graph-format = { path = "../uor-r4-graph-format" }
+uor-r4-graph-compiler = { path = "../uor-r4-graph-compiler" }
+uor-r4-graph-certify = { path = "../uor-r4-graph-certify" }
+uor-r4-graph-cli = { path = "../uor-r4-graph-cli" }
+serde_json = "1.0"
+# Pinned to the workspace-wide blake3 version.
+blake3 = "=1.5.0"

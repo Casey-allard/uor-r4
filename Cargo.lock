@@ -1655,6 +1655,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "uor-r4-api"
+version = "0.1.0"
+dependencies = [
+ "blake3",
+ "serde_json",
+ "uor-r4-core",
+ "uor-r4-graph-certify",
+ "uor-r4-graph-cli",
+ "uor-r4-graph-compiler",
+ "uor-r4-graph-format",
+]
+
+[[package]]
 name = "uor-r4-core"
 version = "0.1.0"
 dependencies = [
@@ -1787,6 +1800,7 @@ dependencies = [
  "uor-foundation 0.5.2 (git+https://github.com/UOR-Foundation/UOR-Framework.git?rev=51c01382200b0179d6640b07e9c8119364ab69a1)",
  "uor-foundation-sdk 0.5.2 (git+https://github.com/UOR-Foundation/UOR-Framework.git?rev=51c01382200b0179d6640b07e9c8119364ab69a1)",
  "uor-foundation-verify",
+ "uor-r4-api",
  "uor-r4-core",
  "uor-r4-graph-certify",
  "uor-r4-graph-cli",

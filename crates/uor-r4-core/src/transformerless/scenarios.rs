@@ -190,6 +190,14 @@ impl Tokenizer {
 
         // 2. Fall back to binary tokenizer.bin format
         let bytes = std::fs::read(path_ref)?;
+        Self::from_bytes(&bytes)
+    }
+
+    /// Parse a tokenizer from in-memory bytes in the binary tokenizer.bin
+    /// format (per token: i32 little-endian length, then the token bytes).
+    /// Split from [`try_load`](Self::try_load) so library consumers can
+    /// validate a bundled tokenizer without filesystem access.
+    pub fn from_bytes(bytes: &[u8]) -> io::Result<Self> {
         let mut vocab = Vec::new();
         let mut offset = 0usize;
         while offset < bytes.len() {

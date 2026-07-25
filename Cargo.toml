@@ -8,6 +8,7 @@ members = [
     "crates/uor-r4-graph-runtime",
     "crates/uor-r4-graph-certify",
     "crates/uor-r4-graph-cli",
+    "crates/uor-r4-api",
 ]
 default-members = [
     ".",
@@ -56,6 +57,7 @@ uor-r4-model-source = { path = "crates/uor-r4-model-source" }
 uor-r4-graph-compiler = { path = "crates/uor-r4-graph-compiler" }
 uor-r4-graph-certify = { path = "crates/uor-r4-graph-certify" }
 uor-r4-graph-cli = { path = "crates/uor-r4-graph-cli" }
+uor-r4-api = { path = "crates/uor-r4-api" }
 
 [dev-dependencies]
 uor-foundation-verify = { git = "https://github.com/UOR-Foundation/UOR-Framework.git", rev = "51c01382200b0179d6640b07e9c8119364ab69a1" }
