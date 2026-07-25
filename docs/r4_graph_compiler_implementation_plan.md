@@ -227,7 +227,7 @@ only; it must never become a dependency of format/runtime/proof-model. Per-stage
 | Boolean synthesis (Phase 6) | per-candidate search | deterministic candidate ordering |
 | Residuals / packing / certification | per-region streaming; per-eval-point | ordered aggregation for certificate statistics |
 
-**Determinism and scaling rules (Gate E / D2).** See [compiler_concurrency_config.md](file:///Users/casey.allard/uor-r4/docs/compiler_concurrency_config.md) (Issue #168) for normative concurrency controls, [reproducibility.md](file:///Users/casey.allard/uor-r4/docs/reproducibility.md) (Issue #167) for normative parallel byte equality, and [compiler_scaling_certificate.md](file:///Users/casey.allard/uor-r4/docs/compiler_scaling_certificate.md) (Issue #175) for the compiler parallelism benchmark harness and empirical scaling certificate schema.
+**Determinism, sharding, and scaling rules (Gate E / D2).** See [parallel_observation_shards.md](file:///Users/casey.allard/uor-r4/docs/parallel_observation_shards.md) (Issue #170) for normative observation shard architecture, [compiler_concurrency_config.md](file:///Users/casey.allard/uor-r4/docs/compiler_concurrency_config.md) (Issue #168) for normative concurrency controls, [reproducibility.md](file:///Users/casey.allard/uor-r4/docs/reproducibility.md) (Issue #167) for normative parallel byte equality, and [compiler_scaling_certificate.md](file:///Users/casey.allard/uor-r4/docs/compiler_scaling_certificate.md) (Issue #175) for the compiler parallelism benchmark harness and empirical scaling certificate schema.
 
 1. Thread count is a pure performance knob: a compile at T=1 and at T=N must produce byte-identical
    κ. CI asserts this on a pinned mini-corpus (T=1 vs T=4 → identical artifact bytes).

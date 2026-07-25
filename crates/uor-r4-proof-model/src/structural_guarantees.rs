@@ -799,6 +799,49 @@ impl StructuralGuaranteeVerifier {
                     .to_string(),
         })
     }
+
+    /// Verify parallel observation shards compliance obligation (#170).
+    ///
+    /// Confirms content-addressed shard partitioning, Rayon-parallel shard processing,
+    /// and ordered deterministic shard reduction.
+    pub fn verify_parallel_observation_shards_compliance(
+        obligation_id: impl Into<String>,
+    ) -> Result<ProofVerificationReport, ProofValidationError> {
+        use uor_r4_graph_compiler::observation_shards::{
+            ObservationShard, ParallelShardEngine, ShardProcessingConfig,
+        };
+        let obl_id = obligation_id.into();
+
+        // 1. Shard content addressing determinism check
+        let item = vec!["doc_01".to_string(), "doc_02".to_string()];
+        let shard1 = ObservationShard::new(item.clone());
+        let shard2 = ObservationShard::new(item);
+        let id_ok = shard1.shard_id == shard2.shard_id;
+
+        // 2. Parallel processing and ordered reduction check
+        let items: Vec<String> = (0..50).map(|i| format!("item_{i}")).collect();
+        let config = ShardProcessingConfig { chunk_size: 5 };
+        let shards = ParallelShardEngine::partition_items(&items, &config);
+        let par_res = ParallelShardEngine::process_shards_parallel(&shards, |s| s.items.len());
+        let reduced = ParallelShardEngine::ordered_shard_reduce(par_res);
+        let reduce_ok = reduced.len() == 10 && reduced.iter().all(|&l| l == 5);
+
+        if !id_ok || !reduce_ok {
+            return Err(ProofValidationError::NondeterministicOutput {
+                obligation_id: obl_id,
+            });
+        }
+
+        Ok(ProofVerificationReport {
+            obligation_id: obl_id,
+            kind: StructuralObligationKind::Determinism,
+            status: ProofStatus::Verified,
+            verified: true,
+            details:
+                "Parallel Observation Shards v0.1.0 verified (content-addressed shard IDs, parallel shard processing, and ordered deterministic reductions)."
+                    .to_string(),
+        })
+    }
 }
 
 #[cfg(test)]

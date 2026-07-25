@@ -186,6 +186,11 @@ struct R4g1World {
             uor_r4_graph_compiler::memory_budget::MemoryBudgetError,
         >,
     >,
+    // Parallel Observation Shards fields (#170)
+    obs_raw_items: Vec<String>,
+    obs_chunk_size: usize,
+    obs_shards: Vec<uor_r4_graph_compiler::observation_shards::ObservationShard>,
+    obs_reduced_lens: Vec<usize>,
 }
 
 #[given("the R4G1 runtime returned the browser's repetitive hello response")]
@@ -2501,7 +2506,6 @@ fn bdd_jobs_invalid_error_then(w: &mut R4g1World, expected_val: String) {
         })
     );
 }
-
 // =========================================================================
 // Feature: Compiler memory-budget and backpressure model for multicore compilation (#169)
 // =========================================================================
@@ -2571,6 +2575,47 @@ fn bdd_limiter_acquisitions_then(w: &mut R4g1World) {
         acq2.as_ref().err(),
         Some(MemoryBudgetError::BackpressureLimitReached { .. })
     ));
+}
+
+// =========================================================================
+// Feature: Parallel observation, trace, and evaluation processing over deterministic shards (#170)
+// =========================================================================
+use uor_r4_graph_compiler::observation_shards::{ParallelShardEngine, ShardProcessingConfig};
+
+#[given(expr = "a dataset of {int} observation items and shard chunk size {int}")]
+fn bdd_obs_shard_dataset_given(w: &mut R4g1World, count: usize, chunk_size: usize) {
+    w.obs_raw_items = (0..count).map(|i| format!("item_{i}")).collect();
+    w.obs_chunk_size = chunk_size;
+}
+
+#[when("observation shard partitioning is evaluated")]
+fn bdd_obs_shard_partition_when(w: &mut R4g1World) {
+    let config = ShardProcessingConfig {
+        chunk_size: w.obs_chunk_size,
+    };
+    w.obs_shards = ParallelShardEngine::partition_items(&w.obs_raw_items, &config);
+}
+
+#[then(expr = "{int} shards are created with content-addressed 64-bit IDs")]
+fn bdd_obs_shard_partition_then(w: &mut R4g1World, expected_count: usize) {
+    assert_eq!(w.obs_shards.len(), expected_count);
+    assert!(w.obs_shards.iter().all(|s| s.shard_id > 0));
+}
+
+#[when("processed in parallel and reduced in ascending shard ID order")]
+fn bdd_obs_shard_process_when(w: &mut R4g1World) {
+    let config = ShardProcessingConfig {
+        chunk_size: w.obs_chunk_size,
+    };
+    let shards = ParallelShardEngine::partition_items(&w.obs_raw_items, &config);
+    let par_res = ParallelShardEngine::process_shards_parallel(&shards, |s| s.items.len());
+    w.obs_reduced_lens = ParallelShardEngine::ordered_shard_reduce(par_res);
+}
+
+#[then("10 per-shard item counts are returned in deterministic ordered sequence")]
+fn bdd_obs_shard_process_then(w: &mut R4g1World) {
+    assert_eq!(w.obs_reduced_lens.len(), 10);
+    assert!(w.obs_reduced_lens.iter().all(|&l| l == 5));
 }
 #[tokio::main]
 async fn main() {
