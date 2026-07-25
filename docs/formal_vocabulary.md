@@ -137,6 +137,7 @@ by wholesale rewrite.
 
 ## Changelog
 
+- **0.1.10** (2026-07-24) — Added issue-#169 compiler memory-budget and backpressure model definitions (`Concurrency-Aware Memory Formula`, `Per-Stage Memory Estimate`, `In-Flight Backpressure Limiter`, `Constrained-Memory Determinism` in `docs/compiler_memory_budget.md` and `uor-r4-graph-compiler::memory_budget`).
 - **0.1.9** (2026-07-24) — Added issue-#168 compiler thread-pool and jobs configuration definitions (`Compiler Concurrency Control`, `Jobs Precedence Resolution`, `Dedicated Thread-Pool Ownership`, `Oversubscription Policy` in `docs/compiler_concurrency_config.md` and `uor-r4-graph-compiler::jobs_config`).
 - **0.1.8** (2026-07-24) — Added issue-#167 normative reproducibility & canonical byte-equality definitions (`Normative Reproducibility Invariant`, `Parallel Reproducibility Harness`, `Thread-Count Invariance`, `Deterministic Reduction Policy` in `docs/reproducibility.md` and `uor-r4-graph-compiler::reproducibility`).
 - **0.1.7** (2026-07-24) — Added issue-#166 compiler stage ownership and parallelization DAG definitions (`Compiler Stage DAG`, `Parallel-Safe Stage`, `Deterministic Merge Stage`, `Bounded Parallel Stage`, `Sequential Canonical Finalization Spine` in `docs/compiler_stage_dag.md` and `uor-r4-graph-compiler::stage_dag`).

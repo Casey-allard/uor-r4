@@ -42,6 +42,30 @@ pub struct StageNode {
     pub boundary_owner_issue: &'static str,
 }
 
+impl StageNode {
+    /// Return per-stage memory estimate attached to this stage.
+    pub fn memory_estimate(&self) -> crate::memory_budget::StageMemoryEstimate {
+        let (base, worker, shard) = match self.class {
+            ConcurrencyClass::ParallelSafe => (8 * 1024 * 1024, 2 * 1024 * 1024, 512 * 1024),
+            ConcurrencyClass::ParallelWithDeterministicMerge => {
+                (16 * 1024 * 1024, 4 * 1024 * 1024, 1024 * 1024)
+            }
+            ConcurrencyClass::BoundedParallel => {
+                (32 * 1024 * 1024, 8 * 1024 * 1024, 2 * 1024 * 1024)
+            }
+            ConcurrencyClass::SequentialCanonicalFinalization => {
+                (16 * 1024 * 1024, 1024 * 1024, 512 * 1024)
+            }
+        };
+        crate::memory_budget::StageMemoryEstimate {
+            stage_id: self.stage_id,
+            base_overhead_bytes: base,
+            per_worker_scratch_bytes: worker,
+            per_shard_buffer_bytes: shard,
+        }
+    }
+}
+
 /// Programmatic registry of all classified compiler pipeline stages.
 pub struct CompilerStageDag;
 

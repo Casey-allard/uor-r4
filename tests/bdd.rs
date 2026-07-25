@@ -166,6 +166,23 @@ struct R4g1World {
             uor_r4_graph_compiler::jobs_config::JobsConfigError,
         >,
     >,
+    // Compiler Memory Budget fields (#169)
+    mem_req_bytes: usize,
+    mem_req_threads: usize,
+    mem_budget_res: Option<
+        Result<
+            uor_r4_graph_compiler::memory_budget::CompilerMemoryBudget,
+            uor_r4_graph_compiler::memory_budget::MemoryBudgetError,
+        >,
+    >,
+    limiter_capacity: usize,
+    limiter_guard1: Option<uor_r4_graph_compiler::memory_budget::BackpressureGuard>,
+    limiter_acq2_res: Option<
+        Result<
+            uor_r4_graph_compiler::memory_budget::BackpressureGuard,
+            uor_r4_graph_compiler::memory_budget::MemoryBudgetError,
+        >,
+    >,
 }
 
 #[given("the R4G1 runtime returned the browser's repetitive hello response")]
@@ -2420,6 +2437,77 @@ fn bdd_jobs_invalid_error_then(w: &mut R4g1World, expected_val: String) {
             value: expected_val
         })
     );
+}
+
+// =========================================================================
+// Feature: Compiler memory-budget and backpressure model for multicore compilation (#169)
+// =========================================================================
+use uor_r4_graph_compiler::memory_budget::{
+    CompilerMemoryBudget, InFlightBackpressureLimiter, MemoryBudgetError,
+};
+
+#[given(expr = "a memory budget request of {int} bytes for {int} worker threads")]
+fn bdd_memory_budget_request_given(w: &mut R4g1World, req_bytes: usize, req_threads: usize) {
+    w.mem_req_bytes = req_bytes;
+    w.mem_req_threads = req_threads;
+}
+
+#[when("memory budget derivation is evaluated")]
+fn bdd_memory_budget_eval_when(w: &mut R4g1World) {
+    w.mem_budget_res = Some(CompilerMemoryBudget::derive(
+        w.mem_req_bytes,
+        w.mem_req_threads,
+    ));
+}
+
+#[then(expr = "the derived worker thread count is {int} with per-worker scratch of {int} bytes")]
+fn bdd_memory_budget_eval_then(
+    w: &mut R4g1World,
+    expected_threads: usize,
+    expected_scratch: usize,
+) {
+    let budget = w
+        .mem_budget_res
+        .as_ref()
+        .expect("mem_budget_res present")
+        .as_ref()
+        .expect("derived successfully");
+    assert_eq!(budget.worker_threads, expected_threads);
+    assert_eq!(budget.per_worker_scratch_bytes, expected_scratch);
+}
+
+#[then("memory budget derivation fails with a budget too small error")]
+fn bdd_memory_budget_too_small_then(w: &mut R4g1World) {
+    let res = w.mem_budget_res.as_ref().expect("mem_budget_res present");
+    assert!(matches!(
+        res.as_ref().err(),
+        Some(MemoryBudgetError::BudgetTooSmall { .. })
+    ));
+}
+
+#[given(expr = "an in-flight backpressure limiter with capacity {int}")]
+fn bdd_limiter_given(w: &mut R4g1World, capacity: usize) {
+    w.limiter_capacity = capacity;
+}
+
+#[when("2 task slot acquisitions are attempted sequentially")]
+fn bdd_limiter_acquisitions_when(w: &mut R4g1World) {
+    let limiter = InFlightBackpressureLimiter::new(w.limiter_capacity);
+    let g1 = limiter.try_acquire();
+    w.limiter_guard1 = g1.ok();
+    w.limiter_acq2_res = Some(limiter.try_acquire());
+}
+
+#[then(
+    "the 1st acquisition succeeds and the 2nd acquisition fails with a backpressure limit reached error"
+)]
+fn bdd_limiter_acquisitions_then(w: &mut R4g1World) {
+    assert!(w.limiter_guard1.is_some());
+    let acq2 = w.limiter_acq2_res.as_ref().expect("acq2 present");
+    assert!(matches!(
+        acq2.as_ref().err(),
+        Some(MemoryBudgetError::BackpressureLimitReached { .. })
+    ));
 }
 #[tokio::main]
 async fn main() {

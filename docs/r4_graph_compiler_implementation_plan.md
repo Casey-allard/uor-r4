@@ -238,7 +238,7 @@ only; it must never become a dependency of format/runtime/proof-model. Per-stage
    mode is for local iteration, validated by behavioral equivalence (PDF §15).
 4. Seeds pinned; any shuffling derives from a seeded PRNG over sample IDs, never iteration order.
 
-**Memory budget.** A `--memory-budget` flag derives shard sizes from
+**Memory budget.** See [compiler_memory_budget.md](file:///Users/casey.allard/uor-r4/docs/compiler_memory_budget.md) (Issue #169) for the normative concurrency-aware memory budget and backpressure model. A `--memory-budget` flag derives shard sizes from
 `peak ≈ M_weights + T × (S_shard + M_state) + M_cluster ≤ budget`:
 
 - Weights: safetensors mmap'd. Default mode converts to f32 resident (~540 MB at 135M) for speed;

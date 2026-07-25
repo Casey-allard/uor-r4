@@ -695,6 +695,60 @@ impl StructuralGuaranteeVerifier {
                     .to_string(),
         })
     }
+
+    /// Verify compiler memory-budget and backpressure compliance obligation (#169).
+    ///
+    /// Confirms concurrency-aware memory budget derivation, typed `BudgetTooSmall` error rejection,
+    /// and backpressure limiter capacity capping.
+    pub fn verify_compiler_memory_budget_compliance(
+        obligation_id: impl Into<String>,
+    ) -> Result<ProofVerificationReport, ProofValidationError> {
+        use uor_r4_graph_compiler::memory_budget::{
+            CompilerMemoryBudget, InFlightBackpressureLimiter, MemoryBudgetError,
+        };
+        let obl_id = obligation_id.into();
+
+        // 1. Derivation check for valid budget
+        let valid_budget = CompilerMemoryBudget::derive(256 * 1024 * 1024, 4).map_err(|_| {
+            ProofValidationError::NondeterministicOutput {
+                obligation_id: obl_id.clone(),
+            }
+        })?;
+        let valid_ok = valid_budget.worker_threads == 4 && valid_budget.max_in_flight_tasks >= 1;
+
+        // 2. Rejection check for budget below minimum
+        let too_small_err = CompilerMemoryBudget::derive(10 * 1024 * 1024, 4);
+        let rejection_ok = matches!(too_small_err, Err(MemoryBudgetError::BudgetTooSmall { .. }));
+
+        // 3. Backpressure capacity check
+        let limiter = InFlightBackpressureLimiter::new(1);
+        let _g1 =
+            limiter
+                .try_acquire()
+                .map_err(|_| ProofValidationError::NondeterministicOutput {
+                    obligation_id: obl_id.clone(),
+                })?;
+        let cap_ok = matches!(
+            limiter.try_acquire(),
+            Err(MemoryBudgetError::BackpressureLimitReached { .. })
+        );
+
+        if !valid_ok || !rejection_ok || !cap_ok {
+            return Err(ProofValidationError::NondeterministicOutput {
+                obligation_id: obl_id,
+            });
+        }
+
+        Ok(ProofVerificationReport {
+            obligation_id: obl_id,
+            kind: StructuralObligationKind::Determinism,
+            status: ProofStatus::Verified,
+            verified: true,
+            details:
+                "Compiler Memory Budget v0.1.0 verified (concurrency-aware derivation, typed error rejection below minimum, and bounded in-flight backpressure capping)."
+                    .to_string(),
+        })
+    }
 }
 
 #[cfg(test)]

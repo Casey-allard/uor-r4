@@ -5,6 +5,7 @@ pub mod graph;
 pub mod induction;
 pub mod jobs_config;
 pub mod lower_semantic_regions;
+pub mod memory_budget;
 pub mod monograph;
 pub mod observation;
 pub mod observation_text;
