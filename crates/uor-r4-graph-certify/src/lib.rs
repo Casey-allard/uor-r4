@@ -4,6 +4,8 @@ pub mod certificate;
 pub mod certify;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod compare;
+#[cfg(not(target_arch = "wasm32"))]
+pub mod compiler_scaling;
 pub mod fairness_provenance;
 pub mod holographic_encoding;
 pub mod long_context;
