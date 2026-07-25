@@ -158,3 +158,125 @@ fn test_deterministic_certificate_rebuild() {
         "Certificate CBOR bytes must be byte-identical"
     );
 }
+
+#[test]
+fn test_parallel_claim_fragment_assembly_is_canonical_and_thread_invariant() {
+    let mut fragments = vec![
+        EmpiricalClaim {
+            name: "z-claim".to_string(),
+            sample_size: 10,
+            metric_value: 0.1,
+            confidence_interval_95: (0.0, 0.2),
+            slice_label: "s1".to_string(),
+            claim_kind: ClaimKind::Empirical,
+        },
+        EmpiricalClaim {
+            name: "a-claim".to_string(),
+            sample_size: 20,
+            metric_value: 0.9,
+            confidence_interval_95: (0.8, 1.0),
+            slice_label: "s2".to_string(),
+            claim_kind: ClaimKind::Structural,
+        },
+        EmpiricalClaim {
+            name: "a-claim".to_string(),
+            sample_size: 20,
+            metric_value: 0.9,
+            confidence_interval_95: (0.8, 1.0),
+            slice_label: "s2".to_string(),
+            claim_kind: ClaimKind::Structural,
+        },
+    ];
+    fragments.swap(0, 1);
+
+    let attestation = ProtocolAttestation {
+        deterministic_canonical_mode: true,
+        zero_allocation_verified: true,
+        no_multiply_verified: true,
+        theorem_7_reverse_index_verified: true,
+    };
+
+    let cert_seq = Certificate::new_from_claim_fragments(
+        "kappa:blake3:src",
+        "kappa:blake3:corpus",
+        "kappa:blake3:graph",
+        "kappa:blake3:metric",
+        "kappa:blake3:op",
+        "kappa:blake3:benchmark",
+        &fragments,
+        attestation.clone(),
+        1,
+    )
+    .unwrap();
+    let cert_par = Certificate::new_from_claim_fragments(
+        "kappa:blake3:src",
+        "kappa:blake3:corpus",
+        "kappa:blake3:graph",
+        "kappa:blake3:metric",
+        "kappa:blake3:op",
+        "kappa:blake3:benchmark",
+        &fragments,
+        attestation,
+        4,
+    )
+    .unwrap();
+
+    assert_eq!(cert_seq.claims.len(), 2);
+    assert_eq!(cert_seq, cert_par);
+    assert_eq!(cert_seq.claims[0].name, "a-claim");
+}
+
+#[test]
+fn test_parallel_claim_fragment_threads_zero_matches_sequential() {
+    let fragments = vec![
+        EmpiricalClaim {
+            name: "x".to_string(),
+            sample_size: 1,
+            metric_value: 0.1,
+            confidence_interval_95: (0.0, 0.2),
+            slice_label: "slice".to_string(),
+            claim_kind: ClaimKind::Empirical,
+        },
+        EmpiricalClaim {
+            name: "y".to_string(),
+            sample_size: 2,
+            metric_value: 0.2,
+            confidence_interval_95: (0.1, 0.3),
+            slice_label: "slice".to_string(),
+            claim_kind: ClaimKind::Structural,
+        },
+    ];
+    let attestation = ProtocolAttestation {
+        deterministic_canonical_mode: true,
+        zero_allocation_verified: true,
+        no_multiply_verified: true,
+        theorem_7_reverse_index_verified: true,
+    };
+
+    let cert_seq = Certificate::new_from_claim_fragments(
+        "kappa:blake3:src",
+        "kappa:blake3:corpus",
+        "kappa:blake3:graph",
+        "kappa:blake3:metric",
+        "kappa:blake3:op",
+        "kappa:blake3:benchmark",
+        &fragments,
+        attestation.clone(),
+        1,
+    )
+    .unwrap();
+    let cert_auto = Certificate::new_from_claim_fragments(
+        "kappa:blake3:src",
+        "kappa:blake3:corpus",
+        "kappa:blake3:graph",
+        "kappa:blake3:metric",
+        "kappa:blake3:op",
+        "kappa:blake3:benchmark",
+        &fragments,
+        attestation,
+        0,
+    )
+    .unwrap();
+
+    assert_eq!(cert_seq, cert_auto);
+}

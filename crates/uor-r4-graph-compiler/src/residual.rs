@@ -1,6 +1,10 @@
 //! Residual quantization (Phase 4).
 //! Quantizes teacher log-probs into fixed-point ScoreQ residuals.
 
+#[cfg(not(target_arch = "wasm32"))]
+use crate::executor::RayonExecutor;
+use crate::executor::{CompilerExecutor, SequentialExecutor};
+use std::collections::BTreeMap;
 use uor_r4_graph_format::ScoreQ;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -13,12 +17,36 @@ pub struct QuantizedResidual {
 pub fn quantize_logprobs(tokens: &[u32], logprobs: &[f32]) -> Vec<QuantizedResidual> {
     tokens
         .iter()
-        .zip(logprobs.iter())
-        .map(|(&token, &lp)| QuantizedResidual {
+        .copied()
+        .zip(logprobs.iter().copied())
+        .map(|(token, logprob)| QuantizedResidual {
             token,
-            score: ScoreQ::from_logprob(lp),
+            score: ScoreQ::from_logprob(logprob),
         })
         .collect()
+}
+
+/// Quantize log-probabilities with bounded parallel workers while preserving
+/// positional output determinism.
+pub fn quantize_logprobs_with_threads(
+    tokens: &[u32],
+    logprobs: &[f32],
+    threads: usize,
+) -> Result<Vec<QuantizedResidual>, String> {
+    if tokens.len() != logprobs.len() {
+        return Err(format!(
+            "token/logprob length mismatch: {} vs {}",
+            tokens.len(),
+            logprobs.len()
+        ));
+    }
+    let indices: Vec<usize> = (0..tokens.len()).collect();
+    map_with_threads(&indices, threads, |&idx| {
+        Ok(QuantizedResidual {
+            token: tokens[idx],
+            score: ScoreQ::from_logprob(logprobs[idx]),
+        })
+    })
 }
 
 /// Compute residual delta corrections between child region scores and parent region scores:
@@ -27,20 +55,69 @@ pub fn compute_residual_deltas(
     child_residuals: &[QuantizedResidual],
     parent_residuals: &[QuantizedResidual],
 ) -> Vec<QuantizedResidual> {
-    let mut deltas = Vec::new();
-    for child in child_residuals {
-        let parent_score = parent_residuals
-            .iter()
-            .find(|p| p.token == child.token)
-            .map(|p| p.score)
+    compute_residual_deltas_with_threads(child_residuals, parent_residuals, 1)
+        .expect("compute_residual_deltas with a sequential executor must not fail")
+}
+
+/// Compute residual delta corrections with canonical key ordering and bounded
+/// parallel workers for per-token subtraction.
+pub fn compute_residual_deltas_with_threads(
+    child_residuals: &[QuantizedResidual],
+    parent_residuals: &[QuantizedResidual],
+    threads: usize,
+) -> Result<Vec<QuantizedResidual>, String> {
+    let child_canonical = canonicalize_residuals(child_residuals);
+    let parent_by_token = canonicalize_residuals(parent_residuals)
+        .into_iter()
+        .map(|r| (r.token, r.score))
+        .collect::<BTreeMap<_, _>>();
+
+    map_with_threads(&child_canonical, threads, |child| {
+        let parent_score = parent_by_token
+            .get(&child.token)
+            .copied()
             .unwrap_or(ScoreQ::ZERO);
-        let delta_score = child.score.saturating_sub(parent_score);
-        deltas.push(QuantizedResidual {
+        Ok(QuantizedResidual {
             token: child.token,
-            score: delta_score,
-        });
+            score: child.score.saturating_sub(parent_score),
+        })
+    })
+}
+
+fn canonicalize_residuals(residuals: &[QuantizedResidual]) -> Vec<QuantizedResidual> {
+    let mut canonical = residuals.to_vec();
+    canonical.sort_by(|a, b| {
+        a.token
+            .cmp(&b.token)
+            .then_with(|| b.score.raw().cmp(&a.score.raw()))
+    });
+    canonical.dedup_by_key(|r| r.token);
+    canonical
+}
+
+fn map_with_threads<I, O, F>(inputs: &[I], threads: usize, map_fn: F) -> Result<Vec<O>, String>
+where
+    I: Sync,
+    O: Send,
+    F: Fn(&I) -> Result<O, String> + Sync,
+{
+    if threads == 1 {
+        return SequentialExecutor::new()
+            .map(inputs, map_fn)
+            .map_err(|e| e.to_string());
     }
-    deltas
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        RayonExecutor::new(threads)
+            .and_then(|executor| executor.map(inputs, map_fn))
+            .map_err(|e| e.to_string())
+    }
+    #[cfg(target_arch = "wasm32")]
+    {
+        SequentialExecutor::new()
+            .map(inputs, map_fn)
+            .map_err(|e| e.to_string())
+    }
 }
 
 #[cfg(test)]
@@ -61,5 +138,74 @@ mod tests {
         assert!(deltas[0].score.raw() > 0); // child was better than parent
         assert_eq!(deltas[1].score.raw(), 0); // child and parent equal
         assert!(deltas[2].score.raw() > 0); // child better than parent
+    }
+
+    #[test]
+    fn quantization_is_identical_across_thread_counts() {
+        let tokens = vec![10, 11, 12, 13, 14, 15];
+        let logprobs = vec![-0.1, -0.7, -1.3, -2.2, -0.4, -9.9];
+
+        let seq = quantize_logprobs_with_threads(&tokens, &logprobs, 1).unwrap();
+        let par2 = quantize_logprobs_with_threads(&tokens, &logprobs, 2).unwrap();
+        let par4 = quantize_logprobs_with_threads(&tokens, &logprobs, 4).unwrap();
+
+        assert_eq!(seq, par2);
+        assert_eq!(seq, par4);
+    }
+
+    #[test]
+    fn quantize_logprobs_truncates_on_length_mismatch() {
+        let tokens = vec![1, 2, 3];
+        let logprobs = vec![-0.5, -1.2];
+
+        let quantized = quantize_logprobs(&tokens, &logprobs);
+        assert_eq!(quantized.len(), 2);
+        assert_eq!(quantized[0].token, 1);
+        assert_eq!(quantized[1].token, 2);
+    }
+
+    #[test]
+    fn quantization_threads_zero_matches_sequential() {
+        let tokens = vec![10, 11, 12, 13, 14, 15];
+        let logprobs = vec![-0.1, -0.7, -1.3, -2.2, -0.4, -9.9];
+
+        let seq = quantize_logprobs_with_threads(&tokens, &logprobs, 1).unwrap();
+        let auto = quantize_logprobs_with_threads(&tokens, &logprobs, 0).unwrap();
+        assert_eq!(seq, auto);
+    }
+
+    #[test]
+    fn residual_deltas_are_canonical_and_thread_invariant() {
+        let child = vec![
+            QuantizedResidual {
+                token: 7,
+                score: ScoreQ::from_raw(100),
+            },
+            QuantizedResidual {
+                token: 5,
+                score: ScoreQ::from_raw(300),
+            },
+            QuantizedResidual {
+                token: 5,
+                score: ScoreQ::from_raw(250),
+            },
+        ];
+        let parent = vec![
+            QuantizedResidual {
+                token: 7,
+                score: ScoreQ::from_raw(80),
+            },
+            QuantizedResidual {
+                token: 5,
+                score: ScoreQ::from_raw(120),
+            },
+        ];
+
+        let seq = compute_residual_deltas_with_threads(&child, &parent, 1).unwrap();
+        let par = compute_residual_deltas_with_threads(&child, &parent, 4).unwrap();
+        assert_eq!(seq, par);
+        assert_eq!(seq.len(), 2);
+        assert_eq!(seq[0].token, 5);
+        assert_eq!(seq[1].token, 7);
     }
 }

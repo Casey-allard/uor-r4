@@ -3,6 +3,9 @@
 
 use blake3::Hasher;
 use serde::{Deserialize, Serialize};
+#[cfg(not(target_arch = "wasm32"))]
+use uor_r4_graph_compiler::executor::RayonExecutor;
+use uor_r4_graph_compiler::executor::{CompilerExecutor, SequentialExecutor};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ClaimKind {
@@ -82,6 +85,39 @@ impl Certificate {
         cert
     }
 
+    /// Canonical constructor for claims assembled from parallel shard fragments.
+    ///
+    /// Claims are copied in parallel and then canonically sorted/deduplicated by
+    /// stable content keys before CID materialization.
+    #[allow(clippy::too_many_arguments)]
+    pub fn new_from_claim_fragments(
+        source_cid: impl Into<String>,
+        corpus_cid: impl Into<String>,
+        graph_cid: impl Into<String>,
+        metric_cid: impl Into<String>,
+        op_cid: impl Into<String>,
+        benchmark_cid: impl Into<String>,
+        claim_fragments: &[EmpiricalClaim],
+        attestation: ProtocolAttestation,
+        threads: usize,
+    ) -> Result<Self, CertificateError> {
+        let mut claims = Self::claims_from_fragments_with_threads(claim_fragments, threads)
+            .map_err(|e| {
+                CertificateError::SerializationError(format!("claim-fragment assembly failed: {e}"))
+            })?;
+        Self::canonical_sort_and_dedup_claims(&mut claims);
+        Ok(Self::new(
+            source_cid,
+            corpus_cid,
+            graph_cid,
+            metric_cid,
+            op_cid,
+            benchmark_cid,
+            claims,
+            attestation,
+        ))
+    }
+
     /// Compute self-referential BLAKE3 CID (hex format) over certificate content.
     pub fn compute_cid(&self) -> String {
         let mut clone = self.clone();
@@ -94,6 +130,58 @@ impl Certificate {
         let mut hasher = Hasher::new();
         hasher.update(&bytes);
         format!("kappa:blake3:{}", hasher.finalize().to_hex())
+    }
+
+    fn claims_from_fragments_with_threads(
+        claim_fragments: &[EmpiricalClaim],
+        threads: usize,
+    ) -> Result<Vec<EmpiricalClaim>, String> {
+        let indices: Vec<usize> = (0..claim_fragments.len()).collect();
+        if threads == 1 {
+            return SequentialExecutor::new()
+                .map(&indices, |&idx| Ok(claim_fragments[idx].clone()))
+                .map_err(|e| e.to_string());
+        }
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            RayonExecutor::new(threads)
+                .and_then(|executor| {
+                    executor.map(&indices, |&idx| Ok(claim_fragments[idx].clone()))
+                })
+                .map_err(|e| e.to_string())
+        }
+        #[cfg(target_arch = "wasm32")]
+        {
+            SequentialExecutor::new()
+                .map(&indices, |&idx| Ok(claim_fragments[idx].clone()))
+                .map_err(|e| e.to_string())
+        }
+    }
+
+    fn canonical_sort_and_dedup_claims(claims: &mut Vec<EmpiricalClaim>) {
+        claims.sort_by_key(Self::claim_key);
+        claims.dedup_by_key(|c| Self::claim_key(c));
+    }
+
+    fn claim_key(claim: &EmpiricalClaim) -> (String, String, u8, u64, u64, u64, u64) {
+        (
+            claim.name.clone(),
+            claim.slice_label.clone(),
+            Self::claim_kind_order(claim.claim_kind),
+            claim.sample_size,
+            claim.metric_value.to_bits(),
+            claim.confidence_interval_95.0.to_bits(),
+            claim.confidence_interval_95.1.to_bits(),
+        )
+    }
+
+    fn claim_kind_order(kind: ClaimKind) -> u8 {
+        match kind {
+            ClaimKind::Structural => 0,
+            ClaimKind::Empirical => 1,
+            ClaimKind::Performance => 2,
+            ClaimKind::Safety => 3,
+        }
     }
 
     /// Verify self-referential BLAKE3 CID.
