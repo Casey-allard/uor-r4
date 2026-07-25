@@ -842,6 +842,60 @@ impl StructuralGuaranteeVerifier {
                     .to_string(),
         })
     }
+
+    /// Verify compiler dependency audit compliance obligation (#174).
+    ///
+    /// Confirms clean workspace lockfile auditing and negative rejection of denylisted crates.
+    pub fn verify_compiler_dependency_audit_compliance(
+        obligation_id: impl Into<String>,
+    ) -> Result<ProofVerificationReport, ProofValidationError> {
+        use uor_r4_graph_compiler::dependency_audit::{
+            CompilerDependencyAuditError, CompilerDependencyAuditor,
+        };
+        let obl_id = obligation_id.into();
+
+        // 1. Clean lockfile audit check
+        let sample_clean = r#"
+[[package]]
+name = "uor-r4-graph-compiler"
+version = "0.1.0"
+[[package]]
+name = "rayon"
+version = "1.10.0"
+"#;
+        let clean_count = CompilerDependencyAuditor::audit_lockfile_contents(sample_clean)
+            .map_err(|_| ProofValidationError::NondeterministicOutput {
+                obligation_id: obl_id.clone(),
+            })?;
+        let clean_ok = clean_count == 2;
+
+        // 2. Denylisted crate rejection check
+        let sample_cuda = r#"
+[[package]]
+name = "cust"
+version = "0.3.0"
+"#;
+        let rejection_ok = matches!(
+            CompilerDependencyAuditor::audit_lockfile_contents(sample_cuda),
+            Err(CompilerDependencyAuditError::ForbiddenCrateDetected { .. })
+        );
+
+        if !clean_ok || !rejection_ok {
+            return Err(ProofValidationError::NondeterministicOutput {
+                obligation_id: obl_id,
+            });
+        }
+
+        Ok(ProofVerificationReport {
+            obligation_id: obl_id,
+            kind: StructuralObligationKind::Determinism,
+            status: ProofStatus::Verified,
+            verified: true,
+            details:
+                "Compiler Dependency Audit v0.1.0 verified (clean lockfile auditing and denylisted GPU/accelerator crate rejection)."
+                    .to_string(),
+        })
+    }
 }
 
 #[cfg(test)]
@@ -1029,5 +1083,17 @@ mod tests {
         assert!(report
             .details
             .contains("Compiler Scaling Certificate v0.1.0 verified"));
+    }
+
+    #[test]
+    fn test_verify_compiler_dependency_audit_compliance() {
+        let report = StructuralGuaranteeVerifier::verify_compiler_dependency_audit_compliance(
+            "OBL-DEPAUD-01",
+        )
+        .unwrap();
+        assert!(report.verified);
+        assert!(report
+            .details
+            .contains("Compiler Dependency Audit v0.1.0 verified"));
     }
 }
