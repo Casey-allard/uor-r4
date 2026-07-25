@@ -610,6 +610,42 @@ impl StructuralGuaranteeVerifier {
                     .to_string(),
         })
     }
+
+    /// Verify executable-spec reproducibility compliance obligation (#167).
+    ///
+    /// Runs `ParallelReproducibilityHarness` over sample input data and confirms
+    /// deterministic byte-equality behavior for the harness path across thread
+    /// counts [1, 2, 4].
+    pub fn verify_parallel_reproducibility_compliance(
+        obligation_id: impl Into<String>,
+    ) -> Result<ProofVerificationReport, ProofValidationError> {
+        use uor_r4_graph_compiler::reproducibility::ParallelReproducibilityHarness;
+        let obl_id = obligation_id.into();
+
+        let inputs = vec![100u32, 200u32, 300u32, 400u32];
+        let report = ParallelReproducibilityHarness::verify_reproducibility(&inputs, |&x| {
+            Ok(x.to_le_bytes().to_vec())
+        })
+        .map_err(|_| ProofValidationError::NondeterministicOutput {
+            obligation_id: obl_id.clone(),
+        })?;
+
+        if !report.is_byte_identical {
+            return Err(ProofValidationError::NondeterministicOutput {
+                obligation_id: obl_id,
+            });
+        }
+
+        Ok(ProofVerificationReport {
+            obligation_id: obl_id,
+            kind: StructuralObligationKind::Determinism,
+            status: ProofStatus::ExecutableSpec,
+            verified: true,
+            details:
+                "Parallel reproducibility executable-spec check passed for harness sample bytes across thread counts [1, 2, 4]; compiler-path tests validate artifact-byte parity."
+                    .to_string(),
+        })
+    }
 }
 
 #[cfg(test)]

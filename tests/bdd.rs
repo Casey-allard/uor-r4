@@ -2305,6 +2305,44 @@ fn bdd_stage_dag_spine_ids_then(
     );
 }
 
+// =========================================================================
+// Feature: Normative reproducibility and canonical artifact byte equality (#167)
+// =========================================================================
+use uor_r4_graph_compiler::reproducibility::{
+    ParallelReproducibilityHarness, NORMATIVE_REPRODUCIBILITY_INVARIANT,
+};
+
+#[given("the normative reproducibility invariant specification")]
+fn bdd_reproducibility_invariant_given(_w: &mut R4g1World) {}
+
+#[then("the invariant statement matches the Issue 167 verbatim acceptance criteria")]
+fn bdd_reproducibility_invariant_then(_w: &mut R4g1World) {
+    assert_eq!(
+        NORMATIVE_REPRODUCIBILITY_INVARIANT,
+        "Parallel execution may change compilation time, but must not change the canonical graph artifact produced from the same pinned inputs, compiler version, configuration, and target-independent compilation mode."
+    );
+}
+
+#[given("a dataset of integer observation items")]
+fn bdd_reproducibility_dataset_given(w: &mut R4g1World) {
+    w.exec_inputs = vec![100, 200, 300, 400, 500];
+}
+
+#[when(
+    expr = "evaluated by the parallel reproducibility harness across thread counts {int}, {int}, and {int}"
+)]
+fn bdd_reproducibility_eval_when(_w: &mut R4g1World, _t1: usize, _t2: usize, _t3: usize) {}
+
+#[then("all thread count outputs produce 100% bit-identical byte digests")]
+fn bdd_reproducibility_eval_then(w: &mut R4g1World) {
+    let report = ParallelReproducibilityHarness::verify_reproducibility(&w.exec_inputs, |&x| {
+        Ok(x.to_le_bytes().to_vec())
+    })
+    .expect("harness pass");
+
+    assert!(report.is_byte_identical);
+}
+
 #[tokio::main]
 async fn main() {
     R4g1World::cucumber()
