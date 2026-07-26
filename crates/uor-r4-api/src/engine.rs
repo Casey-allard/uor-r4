@@ -150,6 +150,8 @@ pub enum LoadError {
     Scorer(String),
     /// The teacher token table exceeds the u32 token-id space.
     TeacherTooLarge,
+    /// The loaded tokenizer CID does not match the R4G1 header's tokenizer_cid.
+    TokenizerCidMismatch { expected: String, actual: String },
 }
 
 impl fmt::Display for LoadError {
@@ -166,6 +168,12 @@ impl fmt::Display for LoadError {
             LoadError::QualityGate(message) => write!(f, "{message}"),
             LoadError::Scorer(message) => write!(f, "{message}"),
             LoadError::TeacherTooLarge => write!(f, "teacher token table too large"),
+            LoadError::TokenizerCidMismatch { expected, actual } => {
+                write!(
+                    f,
+                    "tokenizer_cid mismatch: header expected {expected}, loaded {actual}"
+                )
+            }
         }
     }
 }
@@ -719,6 +727,20 @@ impl R4Engine {
         // format crate's focused error at the library boundary).
         let view = GraphView::parse(parts.graph).map_err(LoadError::InvalidGraph)?;
         view.verify_cids().map_err(LoadError::InvalidGraph)?;
+        if let Some(tokenizer_bytes) = parts.tokenizer {
+            let expected = view
+                .head()
+                .ok_or(FormatError::MissingHead)
+                .map_err(LoadError::InvalidGraph)?
+                .tokenizer_cid();
+            let actual = blake3::hash(tokenizer_bytes);
+            if expected.0 != [0u8; 32] && expected.0 != *actual.as_bytes() {
+                return Err(LoadError::TokenizerCidMismatch {
+                    expected: format!("blake3:{}", blake3::Hash::from(expected.0).to_hex()),
+                    actual: format!("blake3:{actual}"),
+                });
+            }
+        }
         let artifacts = compiler::parse_artifacts(parts.signature_artifact)
             .ok_or(LoadError::InvalidSignatureArtifact)?;
         let score_report = parts
@@ -911,5 +933,17 @@ mod tests {
         let decoded: InferenceResponse =
             serde_json::from_str(&json).expect("deserialize InferenceResponse");
         assert_eq!(res, decoded);
+    }
+
+    #[test]
+    fn test_load_error_tokenizer_cid_mismatch_display() {
+        let err = LoadError::TokenizerCidMismatch {
+            expected: "blake3:1111".to_string(),
+            actual: "blake3:2222".to_string(),
+        };
+        assert_eq!(
+            err.to_string(),
+            "tokenizer_cid mismatch: header expected blake3:1111, loaded blake3:2222"
+        );
     }
 }

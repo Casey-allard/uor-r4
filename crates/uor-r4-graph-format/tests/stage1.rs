@@ -172,6 +172,22 @@ fn verify_cids_ok() {
 }
 
 #[test]
+fn tokenizer_cid_mismatch_detected() {
+    let bytes = build_sample();
+    let view = GraphView::parse(&bytes).unwrap();
+    let dummy_tokenizer = b"dummy tokenizer binary payload for testing";
+    let actual_hash = blake3::hash(dummy_tokenizer);
+    assert_ne!(
+        view.head().unwrap().tokenizer_cid().0,
+        *actual_hash.as_bytes()
+    );
+    assert_eq!(
+        view.verify_tokenizer_cid(dummy_tokenizer),
+        Err(FormatError::TokenizerCidMismatch)
+    );
+}
+
+#[test]
 fn head_cid_tamper_detected() {
     let bytes = build_sample();
     let view = GraphView::parse(&bytes).unwrap();

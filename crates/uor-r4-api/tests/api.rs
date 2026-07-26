@@ -277,6 +277,24 @@ fn e2e_compile_then_engine_load() {
     engine
         .predict_next_into(&[1], &mut out)
         .expect("prediction runs");
-    assert!(out.status.is_some());
+    // Verify that passing a mismatched tokenizer causes TokenizerCidMismatch error:
+    let dummy_tokenizer = b"mismatched tokenizer binary bytes";
+    let mismatch_result = R4Engine::load(EngineParts {
+        graph: &model.graph,
+        signature_artifact: &model.signature_artifact,
+        tokenizer: Some(dummy_tokenizer),
+        score_report: Some(&model.score_report),
+    });
+    match mismatch_result {
+        Err(LoadError::TokenizerCidMismatch { expected, actual }) => {
+            assert!(expected.starts_with("blake3:"));
+            assert!(actual.starts_with("blake3:"));
+        }
+        other => panic!(
+            "expected TokenizerCidMismatch, got {}",
+            outcome_label(other)
+        ),
+    }
+
     let _ = std::fs::remove_dir_all(&work);
 }

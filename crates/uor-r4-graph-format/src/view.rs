@@ -348,6 +348,22 @@ impl<'a> GraphView<'a> {
         Ok(())
     }
 
+    /// Verify that the loaded tokenizer bytes match the header's `tokenizer_cid`.
+    pub fn verify_tokenizer_cid(&self, tokenizer_bytes: &[u8]) -> Result<(), FormatError> {
+        let expected = self
+            .head()
+            .ok_or(FormatError::MissingHead)?
+            .tokenizer_cid()
+            .0;
+        if expected != [0u8; 32] {
+            let actual = blake3::hash(tokenizer_bytes);
+            if expected != *actual.as_bytes() {
+                return Err(FormatError::TokenizerCidMismatch);
+            }
+        }
+        Ok(())
+    }
+
     /// Slice out a validated entry's payload. Stage 1 guarantees the
     /// range lies within `bytes`, so `get` never fails here.
     fn payload(&self, entry: &RawEntry) -> Option<&'a [u8]> {

@@ -152,6 +152,8 @@ pub enum FormatError {
     HeadCidMismatch,
     /// `artifact_cid` does not recompute to `artifact_bytes[56..]`.
     ArtifactCidMismatch,
+    /// `tokenizer_cid` does not match the loaded tokenizer BLAKE3 hash.
+    TokenizerCidMismatch,
     /// HEAD section body is shorter than the fixed 224-byte v0 prefix
     /// (RFC §4 draft-line layout).
     HeadTooShort {
@@ -474,6 +476,9 @@ impl fmt::Display for FormatError {
                     f,
                     "artifact_cid does not match artifact_bytes[56..total_len]"
                 )
+            }
+            FormatError::TokenizerCidMismatch => {
+                write!(f, "tokenizer_cid does not match loaded tokenizer.bin")
             }
             FormatError::HeadTooShort { actual } => write!(
                 f,
