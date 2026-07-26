@@ -481,6 +481,579 @@ fn write_tokenizer_cache(cid: &str, bytes: &[u8]) -> Result<PathBuf, ChatError> 
     Ok(path)
 }
 
+struct SlashCommandDef {
+    cmd: &'static str,
+    desc: &'static str,
+}
+
+const COMMAND_DEFS: &[SlashCommandDef] = &[
+    SlashCommandDef {
+        cmd: "/help",
+        desc: "Display available client slash commands",
+    },
+    SlashCommandDef {
+        cmd: "/status",
+        desc: "View R4G1 sub-millisecond 4-stage pipeline readiness",
+    },
+    SlashCommandDef {
+        cmd: "/models",
+        desc: "List supported teacher models & disk compilation status",
+    },
+    SlashCommandDef {
+        cmd: "/switch",
+        desc: "Dynamically switch active teacher model in-session",
+    },
+    SlashCommandDef {
+        cmd: "/engine",
+        desc: "Select synthesis engine (r4g1, attention, r4-attention, geometric)",
+    },
+    SlashCommandDef {
+        cmd: "/corpus",
+        desc: "Manage extra reading corpus datasets & server index",
+    },
+    SlashCommandDef {
+        cmd: "/compile",
+        desc: "Trigger full automated 4-stage graph compilation",
+    },
+    SlashCommandDef {
+        cmd: "/clear",
+        desc: "Clear terminal screen",
+    },
+    SlashCommandDef {
+        cmd: "/quit",
+        desc: "Exit client session",
+    },
+];
+#[cfg(not(target_arch = "wasm32"))]
+#[cfg(not(target_arch = "wasm32"))]
+use rustyline::completion::Completer;
+#[cfg(not(target_arch = "wasm32"))]
+use rustyline::highlight::Highlighter;
+#[cfg(not(target_arch = "wasm32"))]
+use rustyline::hint::Hinter;
+#[cfg(not(target_arch = "wasm32"))]
+use rustyline::validate::Validator;
+#[cfg(not(target_arch = "wasm32"))]
+use rustyline::Helper;
+
+#[cfg(not(target_arch = "wasm32"))]
+#[derive(Default)]
+struct SlashCommandHelper;
+
+#[cfg(not(target_arch = "wasm32"))]
+impl Completer for SlashCommandHelper {
+    type Candidate = String;
+
+    fn complete(
+        &self,
+        line: &str,
+        pos: usize,
+        _ctx: &rustyline::Context<'_>,
+    ) -> rustyline::Result<(usize, Vec<String>)> {
+        if line.starts_with('/') {
+            let candidates: Vec<String> = COMMAND_DEFS
+                .iter()
+                .filter(|d| d.cmd.starts_with(&line[..pos]))
+                .map(|d| d.cmd.to_string())
+                .collect();
+            Ok((0, candidates))
+        } else {
+            Ok((0, Vec::new()))
+        }
+    }
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+impl Hinter for SlashCommandHelper {
+    type Hint = String;
+    fn hint(&self, _line: &str, _pos: usize, _ctx: &rustyline::Context<'_>) -> Option<Self::Hint> {
+        None
+    }
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+impl Highlighter for SlashCommandHelper {}
+#[cfg(not(target_arch = "wasm32"))]
+impl Validator for SlashCommandHelper {}
+#[cfg(not(target_arch = "wasm32"))]
+impl Helper for SlashCommandHelper {}
+
+fn read_line_with_history<W: Write>(
+    prompt: &str,
+    history: &mut Vec<String>,
+    input: &mut impl BufRead,
+    output: &mut W,
+) -> Result<Option<String>, std::io::Error> {
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        if unsafe { libc::isatty(libc::STDIN_FILENO) } != 0 {
+            let config = rustyline::Config::builder()
+                .auto_add_history(true)
+                .completion_type(rustyline::CompletionType::List)
+                .build();
+            let mut rl = rustyline::Editor::<SlashCommandHelper, _>::with_config(config)
+                .map_err(std::io::Error::other)?;
+            rl.set_helper(Some(SlashCommandHelper));
+            for entry in history.iter() {
+                let _ = rl.add_history_entry(entry);
+            }
+
+            match rl.readline(prompt) {
+                Ok(line) => {
+                    let trimmed = line.trim().to_string();
+                    if !trimmed.is_empty() {
+                        history.push(trimmed.clone());
+                    }
+                    return Ok(Some(trimmed));
+                }
+                Err(rustyline::error::ReadlineError::Interrupted) => return Ok(None),
+                Err(rustyline::error::ReadlineError::Eof) => return Ok(None),
+                Err(e) => return Err(std::io::Error::other(e)),
+            }
+        }
+    }
+
+    write!(output, "{}", prompt)?;
+    output.flush()?;
+
+    let mut line_bytes = Vec::new();
+    loop {
+        let mut buf = [0u8; 1];
+        let n = input.read(&mut buf)?;
+        if n == 0 {
+            if line_bytes.is_empty() {
+                return Ok(None);
+            }
+            break;
+        }
+        let b = buf[0];
+        if b == b'\r' || b == b'\n' {
+            break;
+        }
+        line_bytes.push(b);
+    }
+
+    let line = String::from_utf8_lossy(&line_bytes);
+    let trimmed = line.trim().to_string();
+    if !trimmed.is_empty() {
+        history.push(trimmed.clone());
+    }
+    Ok(Some(trimmed))
+}
+
+fn select_menu_interactive<W: Write>(
+    title: &str,
+    options: &[(&str, &str)],
+    output: &mut W,
+) -> Result<Option<usize>, std::io::Error> {
+    writeln!(output, "\n\x1b[1m{}\x1b[0m", title)?;
+    for (idx, (item_name, item_desc)) in options.iter().enumerate() {
+        writeln!(
+            output,
+            "  \x1b[1;36m[{}]\x1b[0m \x1b[1m{:<24}\x1b[0m {}",
+            idx + 1,
+            item_name,
+            item_desc
+        )?;
+    }
+    write!(
+        output,
+        "\x1b[1;33mSelect option [1-{}]: \x1b[0m",
+        options.len()
+    )?;
+    output.flush()?;
+
+    let mut history_dummy = Vec::new();
+    let mut stdin_buf = std::io::BufReader::new(std::io::stdin());
+    let resp = read_line_with_history("", &mut history_dummy, &mut stdin_buf, output)?;
+    if let Some(line) = resp {
+        let trimmed = line.trim();
+        if let Ok(num) = trimmed.parse::<usize>() {
+            if num >= 1 && num <= options.len() {
+                return Ok(Some(num - 1));
+            }
+        }
+        for (idx, (item_name, _)) in options.iter().enumerate() {
+            if item_name
+                .trim_start_matches('/')
+                .eq_ignore_ascii_case(trimmed.trim_start_matches('/'))
+            {
+                return Ok(Some(idx));
+            }
+        }
+    }
+    Ok(None)
+}
+
+fn check_model_artifact_status(model_id: &str) -> (bool, bool) {
+    let target_key = match model_id {
+        "smollm2-135m-instruct" => "smollm2-135m",
+        "smollm2-360m-instruct" => "smollm2-360m",
+        "smollm2-1-7b-instruct" => "smollm2-1-7b",
+        other => other,
+    };
+
+    let downloaded = if let Ok(entries) = std::fs::read_dir(".uor-models/sources") {
+        entries.filter_map(|e| e.ok()).any(|entry| {
+            let name = entry.file_name().to_string_lossy().to_lowercase();
+            entry.path().is_dir() && name.contains(target_key)
+        })
+    } else {
+        false
+    };
+
+    let compiled = if let Ok(entries) = std::fs::read_dir(".uor-models/compiled") {
+        entries.filter_map(|e| e.ok()).any(|entry| {
+            let path = entry.path();
+            let name = entry.file_name().to_string_lossy().to_lowercase();
+            path.is_dir()
+                && name.contains(target_key)
+                && (path.join("tless_artifacts.bin").is_file()
+                    || path.join("graph/score.r4g1").is_file()
+                    || path.join("compiled.r4g1").is_file())
+        })
+    } else {
+        false
+    };
+
+    (downloaded, compiled)
+}
+
+fn trigger_in_client_compilation<W: Write>(
+    target_model: &str,
+    host: &str,
+    port: u16,
+    output: &mut W,
+) -> Result<bool, std::io::Error> {
+    let (repo, rev) = match target_model {
+        "smollm2-360m-instruct" => (
+            "HuggingFaceTB/SmolLM2-360M-Instruct",
+            "9d9ff7299a9a3b6d289ff100d0246a48d88c0326",
+        ),
+        "smollm2-1-7b-instruct" => ("HuggingFaceTB/SmolLM2-1.7B-Instruct", "main"),
+        _ => (
+            "HuggingFaceTB/SmolLM2-135M-Instruct",
+            "7e27bd9f95328f0f3b08261d1252705110c806f8",
+        ),
+    };
+
+    let r4_exe =
+        std::env::current_exe().unwrap_or_else(|_| std::path::PathBuf::from("./target/release/r4"));
+    let source_dir = format!(".uor-models/sources/{}", target_model);
+    let compiled_dir = format!(".uor-models/compiled/{}", target_model);
+    let graph_dir = format!("{}/graph", compiled_dir);
+    let score_file = format!("{}/score.r4g1", graph_dir);
+
+    writeln!(
+        output,
+        "\n\x1b[1;36m[*] Initiating automated 4-stage graph compilation for '{}'...\x1b[0m",
+        target_model
+    )?;
+
+    // Stage 1: Download if missing
+    if !std::path::Path::new(&source_dir).is_dir() {
+        writeln!(
+            output,
+            "[*] [Stage 1/4] Downloading HF teacher weights ({})",
+            repo
+        )?;
+        output.flush()?;
+        let status = std::process::Command::new(&r4_exe)
+            .args([
+                "download",
+                "--repository",
+                repo,
+                "--revision",
+                rev,
+                "--name",
+                target_model,
+            ])
+            .status()?;
+        if !status.success() {
+            writeln!(output, "\x1b[31m[!] Stage 1 download failed.\x1b[0m")?;
+            return Ok(false);
+        }
+    } else {
+        writeln!(
+            output,
+            "\x1b[32m[✓] [Stage 1/4] Pinned teacher source ready: {}\x1b[0m",
+            source_dir
+        )?;
+    }
+
+    // Stage 2: Compile observation corpus
+    writeln!(
+        output,
+        "[*] [Stage 2/4] Compiling zero-multiply observation corpus..."
+    )?;
+    output.flush()?;
+    std::fs::create_dir_all(&compiled_dir).ok();
+    std::fs::create_dir_all(&graph_dir).ok();
+
+    let status = std::process::Command::new(&r4_exe)
+        .args([
+            "compile",
+            "--source",
+            &source_dir,
+            "--output",
+            &compiled_dir,
+            "--seconds",
+            "300",
+            "--target",
+            "50000",
+            "--sequence-length",
+            "128",
+        ])
+        .status()?;
+    if !status.success() {
+        writeln!(
+            output,
+            "\x1b[31m[!] Stage 2 bundle compilation failed.\x1b[0m"
+        )?;
+        return Ok(false);
+    }
+    writeln!(
+        output,
+        "\x1b[32m[✓] [Stage 2/4] Transformerless bundle compiled successfully.\x1b[0m"
+    )?;
+
+    // Stage 3: Score residual graph
+    writeln!(
+        output,
+        "[*] [Stage 3/4] Inducing multiresolution cover & scoring R4G1 residual graph..."
+    )?;
+    output.flush()?;
+    let c_meta = if std::path::Path::new(&format!("{}/corpus.meta", compiled_dir)).is_file() {
+        format!("{}/corpus.meta", compiled_dir)
+    } else {
+        format!("{}/c_meta.bin", compiled_dir)
+    };
+
+    let c_recs = if std::path::Path::new(&format!("{}/corpus.records", compiled_dir)).is_file() {
+        format!("{}/corpus.records", compiled_dir)
+    } else {
+        format!("{}/c_recs.bin", compiled_dir)
+    };
+    let tless_artifacts = format!("{}/tless_artifacts.bin", compiled_dir);
+
+    let mut status = std::process::Command::new(&r4_exe)
+        .args([
+            "transformerless",
+            "score",
+            "--corpus-meta",
+            &c_meta,
+            "--corpus-recs",
+            &c_recs,
+            "--artifacts",
+            &tless_artifacts,
+            "--out",
+            &graph_dir,
+        ])
+        .status()?;
+
+    // If corpus was incomplete, re-run compile to finish remaining tokens then retry score
+    if !status.success() {
+        writeln!(
+            output,
+            "\x1b[33m[*] Finishing corpus generation to complete all required tokens...\x1b[0m"
+        )?;
+        output.flush()?;
+        let _ = std::process::Command::new(&r4_exe)
+            .args([
+                "compile",
+                "--source",
+                &source_dir,
+                "--output",
+                &compiled_dir,
+                "--seconds",
+                "600",
+                "--target",
+                "50000",
+                "--sequence-length",
+                "128",
+            ])
+            .status()?;
+        status = std::process::Command::new(&r4_exe)
+            .args([
+                "transformerless",
+                "score",
+                "--corpus-meta",
+                &c_meta,
+                "--corpus-recs",
+                &c_recs,
+                "--artifacts",
+                &tless_artifacts,
+                "--out",
+                &graph_dir,
+            ])
+            .status()?;
+    }
+
+    if !status.success() {
+        writeln!(output, "\x1b[31m[!] Stage 3 graph scoring failed.\x1b[0m")?;
+        return Ok(false);
+    }
+    writeln!(
+        output,
+        "\x1b[32m[✓] [Stage 3/4] Scored R4G1 residual graph ready: {}\x1b[0m",
+        score_file
+    )?;
+
+    // Stage 4: Reload server
+    writeln!(
+        output,
+        "[*] [Stage 4/4] Reloading server runtime with new R4G1 graph..."
+    )?;
+    output.flush()?;
+    let req_body = serde_json::json!({ "model": target_model });
+    match send_server_post_request(host, port, "/v1/reload", &req_body) {
+        Ok(res) if res["status"] == "success" => {
+            writeln!(
+                output,
+                "\x1b[1;32m[+] Compilation complete! Successfully loaded model '{}' in-session.\x1b[0m\n",
+                target_model
+            )?;
+            Ok(true)
+        }
+        _ => {
+            writeln!(
+                output,
+                "\x1b[31m[!] Server reload failed after compilation.\x1b[0m\n"
+            )?;
+            Ok(false)
+        }
+    }
+}
+
+fn handle_model_switch_with_remediation<W: Write>(
+    target_model: &str,
+    host: &str,
+    port: u16,
+    current_active_model: &mut String,
+    current_active_engine: &mut String,
+    output: &mut W,
+) -> Result<(), std::io::Error> {
+    writeln!(
+        output,
+        "\n[*] Requesting in-session server reload for model '{}'...",
+        target_model
+    )?;
+    let req_body = serde_json::json!({ "model": target_model });
+    match send_server_post_request(host, port, "/v1/reload", &req_body) {
+        Ok(res) => {
+            if res["status"] == "success" {
+                *current_active_model = target_model.to_string();
+                let _ = std::fs::write(
+                    ".uor-models/last_model_name.txt",
+                    current_active_model.as_str(),
+                );
+                writeln!(
+                    output,
+                    "\x1b[32m[+] {}\x1b[0m\n",
+                    res["message"]
+                        .as_str()
+                        .unwrap_or("Model reloaded successfully")
+                )?;
+            } else {
+                let err_msg = res["message"].as_str().unwrap_or("Failed to reload model");
+                writeln!(
+                    output,
+                    "\n\x1b[1;31m┌─────────────────────────────────────────────────────────────────────────────┐\x1b[0m"
+                )?;
+                writeln!(
+                    output,
+                    "\x1b[1;31m│ [!] MODEL RELOAD FAILURE & DIAGNOSTIC REMEDIATION:                         │\x1b[0m"
+                )?;
+                writeln!(
+                    output,
+                    "\x1b[1;31m├─────────────────────────────────────────────────────────────────────────────┤\x1b[0m"
+                )?;
+                writeln!(
+                    output,
+                    "\x1b[1;31m│\x1b[0m Target Model : \x1b[1m{:<60}\x1b[0m \x1b[1;31m│\x1b[0m",
+                    target_model
+                )?;
+                let display_err = if err_msg.len() > 60 {
+                    &err_msg[..60]
+                } else {
+                    err_msg
+                };
+                writeln!(
+                    output,
+                    "\x1b[1;31m│\x1b[0m Error        : \x1b[33m{:<60}\x1b[0m \x1b[1;31m│\x1b[0m",
+                    display_err
+                )?;
+                writeln!(
+                    output,
+                    "\x1b[1;31m└─────────────────────────────────────────────────────────────────────────────┘\x1b[0m\n"
+                )?;
+
+                let remediation_options = [
+                    (
+                        "1) Re-compile Model Graph",
+                        "Re-run 4-stage compilation in-client to fix CID mismatch / out-of-date graph",
+                    ),
+                    (
+                        "2) Switch to Oracle Mode",
+                        "Switch engine to 'attention' oracle mode (runs model without graph)",
+                    ),
+                    (
+                        "3) Keep Active Model",
+                        "Cancel reload and stay on current working model",
+                    ),
+                ];
+
+                if let Ok(Some(rem_idx)) = select_menu_interactive(
+                    "Select Remediation Action:",
+                    &remediation_options,
+                    output,
+                ) {
+                    match rem_idx {
+                        0 => {
+                            if trigger_in_client_compilation(target_model, host, port, output)
+                                .unwrap_or(false)
+                            {
+                                *current_active_model = target_model.to_string();
+                                *current_active_engine = "r4g1".to_string();
+                                let _ = std::fs::write(
+                                    ".uor-models/last_model_name.txt",
+                                    current_active_model.as_str(),
+                                );
+                                let _ = std::fs::write(
+                                    ".uor-models/last_engine.txt",
+                                    current_active_engine.as_str(),
+                                );
+                            }
+                        }
+                        1 => {
+                            *current_active_engine = "attention".to_string();
+                            let _ = std::fs::write(
+                                ".uor-models/last_engine.txt",
+                                current_active_engine.as_str(),
+                            );
+                            writeln!(
+                                output,
+                                "\x1b[32m[+] Engine switched to 'attention' oracle fallback mode.\x1b[0m\n"
+                            )?;
+                        }
+                        _ => {
+                            writeln!(
+                                output,
+                                "[*] Staying on active model: {}\n",
+                                current_active_model
+                            )?;
+                        }
+                    }
+                }
+            }
+        }
+        Err(e) => {
+            writeln!(output, "[!] Error communicating with server: {}\n", e)?;
+        }
+    }
+    Ok(())
+}
+
 /// Run an interactive client chat session against a remote local HTTP vendor endpoint.
 pub fn remote_interactive_chat(
     remote_url: &str,
@@ -489,21 +1062,99 @@ pub fn remote_interactive_chat(
     output: &mut impl Write,
 ) -> Result<(), std::io::Error> {
     let (host, port, path) = parse_remote_url(remote_url);
+
+    // Read initial active model and engine from disk if present
+    let mut current_active_model =
+        if let Ok(m) = std::fs::read_to_string(".uor-models/last_model_name.txt") {
+            let trimmed = m.trim().to_string();
+            if !trimmed.is_empty() {
+                trimmed
+            } else {
+                model.to_string()
+            }
+        } else {
+            model.to_string()
+        };
+
+    let mut current_active_engine =
+        if let Ok(e) = std::fs::read_to_string(".uor-models/last_engine.txt") {
+            let trimmed = e.trim().to_string();
+            if !trimmed.is_empty() {
+                trimmed
+            } else {
+                "r4g1".to_string()
+            }
+        } else {
+            "r4g1".to_string()
+        };
+
+    // Render Rich Intro Banner
+    writeln!(output, "\x1b[1;36m")?;
     writeln!(
         output,
-        "R⁴ Client — interactive local vendor chat (remote: http://{}:{}{})",
+        "██████╗ ██╗  ██╗     ██████╗██╗     ██╗\n\
+         ██╔══██╗██║  ██║    ██╔════╝██║     ██║\n\
+         ██████╔╝███████║    ██║     ██║     ██║\n\
+         ██╔══██╗╚════██║    ██║     ██║     ██║\n\
+         ██║  ██║     ██║    ╚██████╗███████╗██║\n\
+         ╚═╝  ╚═╝     ╚═╝     ╚═════╝╚══════╝╚═╝"
+    )?;
+    writeln!(output, "\x1b[0m")?;
+    writeln!(
+        output,
+        "\x1b[1mR⁴ Holographic Graph & Transformerless Engine v0.1.0\x1b[0m"
+    )?;
+    writeln!(
+        output,
+        "Zero-Multiply Local Intelligence Runtime • Pinned Multiplication-Free Execution\n"
+    )?;
+    writeln!(
+        output,
+        "Connected to local vendor endpoint: \x1b[36mhttp://{}:{}{}\x1b[0m",
         host, port, path
     )?;
-    writeln!(output, "type 'exit' or Ctrl-D to quit\n")?;
+    writeln!(
+        output,
+        "Active teacher model             : \x1b[32m{}\x1b[0m",
+        current_active_model
+    )?;
+    writeln!(
+        output,
+        "Active synthesis engine          : \x1b[36m{}\x1b[0m\n",
+        current_active_engine
+    )?;
+    writeln!(output, "\x1b[1mCommands & Shortcuts:\x1b[0m")?;
+    writeln!(
+        output,
+        "  • Type \x1b[33m/help\x1b[0m to view available slash commands (/status, /models, /engine, /clear, /quit)"
+    )?;
+    writeln!(
+        output,
+        "  • Type \x1b[33m/\x1b[0m for interactive slash command suggestions & autocomplete"
+    )?;
+    writeln!(
+        output,
+        "  • Type \x1b[33mexit\x1b[0m or press \x1b[33mCtrl-D\x1b[0m to quit session\n"
+    )?;
+    output.flush()?;
+
+    let mut history: Vec<String> = Vec::new();
 
     loop {
-        write!(output, "you > ")?;
-        output.flush()?;
-        let mut line = String::new();
-        if input.read_line(&mut line)? == 0 {
-            break;
-        }
-        let question = line.trim();
+        let prompt_lbl = format!(
+            "you [model: {} | engine: {}] > ",
+            current_active_model, current_active_engine
+        );
+        let line_opt = match read_line_with_history(&prompt_lbl, &mut history, input, output) {
+            Ok(Some(l)) => l,
+            Ok(None) => break,
+            Err(e) => {
+                writeln!(output, "[!] Input error: {}", e)?;
+                break;
+            }
+        };
+
+        let question = line_opt.trim();
         if matches!(question, "exit" | "quit") {
             break;
         }
@@ -511,17 +1162,428 @@ pub fn remote_interactive_chat(
             continue;
         }
 
+        if question.starts_with('/') {
+            let input_cmd = question.trim();
+            if input_cmd == "/" {
+                let menu_options = [
+                    ("/models", "Manage & switch active teacher model in-session"),
+                    (
+                        "/engine",
+                        "Manage & switch synthesis engine (r4g1, attention, etc.)",
+                    ),
+                    (
+                        "/status",
+                        "View R4G1 sub-millisecond 4-stage pipeline readiness",
+                    ),
+                    (
+                        "/corpus",
+                        "Manage extra reading corpus datasets & server index",
+                    ),
+                    (
+                        "/compile",
+                        "Trigger full automated 4-stage graph compilation",
+                    ),
+                    ("/clear", "Clear terminal screen"),
+                    ("/quit", "Exit client session"),
+                ];
+
+                if let Ok(Some(idx)) = select_menu_interactive(
+                    "R⁴ Interactive Slash Command Selector:",
+                    &menu_options,
+                    output,
+                ) {
+                    let chosen_cmd = menu_options[idx].0;
+                    match chosen_cmd {
+                        "/models" => {
+                            let model_options = [
+                                ("smollm2-135m-instruct", "Fast & Ultra-Light (~270MB)"),
+                                ("smollm2-360m-instruct", "Balanced Quality (~720MB)"),
+                                ("smollm2-1-7b-instruct", "High-Fidelity Teacher (~3.4GB)"),
+                            ];
+                            if let Ok(Some(m_idx)) = select_menu_interactive(
+                                "R⁴ Interactive Model Selector:",
+                                &model_options,
+                                output,
+                            ) {
+                                let target_model = model_options[m_idx].0;
+                                handle_model_switch_with_remediation(
+                                    target_model,
+                                    &host,
+                                    port,
+                                    &mut current_active_model,
+                                    &mut current_active_engine,
+                                    output,
+                                )?;
+                            }
+                        }
+                        "/engine" => {
+                            let engine_options = [
+                                ("r4g1", "Sub-ms Zero-Multiply Residual Graph Engine"),
+                                ("attention", "Full Attention Teacher Oracle Fallback"),
+                                ("r4-attention", "Manifold-Constrained Geometric Attention"),
+                                ("geometric", "f64 Geometric Router Engine"),
+                                ("transformerless-legacy", "Legacy Table Store Kernel"),
+                            ];
+                            if let Ok(Some(e_idx)) = select_menu_interactive(
+                                "R⁴ Interactive Synthesis Engine Manager:",
+                                &engine_options,
+                                output,
+                            ) {
+                                current_active_engine = engine_options[e_idx].0.to_string();
+                                let _ = std::fs::write(
+                                    ".uor-models/last_engine.txt",
+                                    &current_active_engine,
+                                );
+                                writeln!(
+                                    output,
+                                    "\x1b[32m[+] Active synthesis engine set to '{}'\x1b[0m",
+                                    current_active_engine
+                                )?;
+
+                                let (_downloaded, compiled) =
+                                    check_model_artifact_status(&current_active_model);
+                                if current_active_engine == "r4g1" && !compiled {
+                                    writeln!(output, "\x1b[33m[!] ALERT: Engine 'r4g1' selected, but model '{}' is not compiled yet!\x1b[0m", current_active_model)?;
+                                    writeln!(output, "\x1b[33m    The server will fall back to oracle mode until '/compile' is run.\x1b[0m\n")?;
+                                } else {
+                                    writeln!(output)?;
+                                }
+                            }
+                        }
+                        "/clear" => {
+                            write!(output, "\x1b[2J\x1b[1H")?;
+                        }
+                        "/quit" => {
+                            break;
+                        }
+                        _ => {
+                            writeln!(output, "Selected command: {}\n", chosen_cmd)?;
+                        }
+                    }
+                }
+                output.flush()?;
+                continue;
+            }
+
+            let parts: Vec<&str> = input_cmd.split_whitespace().collect();
+            let primary_token = parts[0];
+
+            let matches: Vec<&SlashCommandDef> = COMMAND_DEFS
+                .iter()
+                .filter(|def| def.cmd.starts_with(primary_token))
+                .collect();
+
+            let target_cmd = match matches.len() {
+                1 => matches[0].cmd,
+                0 => {
+                    writeln!(
+                        output,
+                        "[!] Unknown command: '{}'. Type '/help' or '/' for suggestions.\n",
+                        input_cmd
+                    )?;
+                    output.flush()?;
+                    continue;
+                }
+                _ => {
+                    writeln!(output, "\nMultiple matching commands for '{}':", input_cmd)?;
+                    for m in &matches {
+                        writeln!(output, "  \x1b[33m{:<10}\x1b[0m - {}", m.cmd, m.desc)?;
+                    }
+                    writeln!(output)?;
+                    output.flush()?;
+                    continue;
+                }
+            };
+
+            match target_cmd {
+                "/help" => {
+                    writeln!(output, "\n\x1b[1mR⁴ Interactive Slash Commands:\x1b[0m")?;
+                    for def in COMMAND_DEFS {
+                        writeln!(output, "  \x1b[33m{:<10}\x1b[0m - {}", def.cmd, def.desc)?;
+                    }
+                    writeln!(output)?;
+                    output.flush()?;
+                    continue;
+                }
+                "/models" | "/switch" => {
+                    let target_model_opt = if parts.len() > 1 {
+                        let sel = parts[1];
+                        match sel {
+                            "1" | "135m" => Some("smollm2-135m-instruct"),
+                            "2" | "360m" => Some("smollm2-360m-instruct"),
+                            "3" | "1.7b" | "1-7b" => Some("smollm2-1-7b-instruct"),
+                            other => Some(other),
+                        }
+                    } else {
+                        None
+                    };
+
+                    let target_model = match target_model_opt {
+                        Some(m) => m.to_string(),
+                        None => {
+                            let (d1, c1) = check_model_artifact_status("smollm2-135m-instruct");
+                            let (d2, c2) = check_model_artifact_status("smollm2-360m-instruct");
+                            let (d3, c3) = check_model_artifact_status("smollm2-1-7b-instruct");
+
+                            let desc1 = format!(
+                                "Fast & Light (~270MB) [DL: {} | CP: {}]",
+                                if d1 { "✓" } else { " " },
+                                if c1 { "✓" } else { " " }
+                            );
+                            let desc2 = format!(
+                                "Balanced Quality (~720MB) [DL: {} | CP: {}]",
+                                if d2 { "✓" } else { " " },
+                                if c2 { "✓" } else { " " }
+                            );
+                            let desc3 = format!(
+                                "High-Fidelity (~3.4GB) [DL: {} | CP: {}]",
+                                if d3 { "✓" } else { " " },
+                                if c3 { "✓" } else { " " }
+                            );
+
+                            let model_options = [
+                                ("smollm2-135m-instruct", desc1.as_str()),
+                                ("smollm2-360m-instruct", desc2.as_str()),
+                                ("smollm2-1-7b-instruct", desc3.as_str()),
+                            ];
+                            match select_menu_interactive(
+                                "R⁴ Interactive Model Selector & Engine Manager:",
+                                &model_options,
+                                output,
+                            )? {
+                                Some(idx) => model_options[idx].0.to_string(),
+                                None => {
+                                    output.flush()?;
+                                    continue;
+                                }
+                            }
+                        }
+                    };
+
+                    handle_model_switch_with_remediation(
+                        &target_model,
+                        &host,
+                        port,
+                        &mut current_active_model,
+                        &mut current_active_engine,
+                        output,
+                    )?;
+                    output.flush()?;
+                    continue;
+                }
+                "/engine" => {
+                    let target_engine_opt = if parts.len() > 1 {
+                        match parts[1] {
+                            "1" | "r4g1" => Some("r4g1"),
+                            "2" | "attention" => Some("attention"),
+                            "3" | "r4-attention" => Some("r4-attention"),
+                            "4" | "geometric" => Some("geometric"),
+                            "5" | "legacy" | "transformerless-legacy" => {
+                                Some("transformerless-legacy")
+                            }
+                            other => Some(other),
+                        }
+                    } else {
+                        None
+                    };
+
+                    let target_engine = match target_engine_opt {
+                        Some(eng) => eng.to_string(),
+                        None => {
+                            let engine_options = [
+                                ("r4g1", "Sub-ms Zero-Multiply Residual Graph Engine"),
+                                ("attention", "Full Attention Teacher Oracle Fallback"),
+                                ("r4-attention", "Manifold-Constrained Geometric Attention"),
+                                ("geometric", "f64 Geometric Router Engine"),
+                                ("transformerless-legacy", "Legacy Table Store Kernel"),
+                            ];
+                            match select_menu_interactive(
+                                "R⁴ Interactive Synthesis Engine Manager:",
+                                &engine_options,
+                                output,
+                            )? {
+                                Some(idx) => engine_options[idx].0.to_string(),
+                                None => {
+                                    output.flush()?;
+                                    continue;
+                                }
+                            }
+                        }
+                    };
+
+                    current_active_engine = target_engine.clone();
+                    writeln!(
+                        output,
+                        "\x1b[32m[+] Active synthesis engine set to '{}'\x1b[0m\n",
+                        current_active_engine
+                    )?;
+                    output.flush()?;
+                    continue;
+                }
+                "/corpus" => {
+                    if parts.len() > 2 && parts[1] == "add" {
+                        let file_path = parts[2];
+                        match std::fs::read_to_string(file_path) {
+                            Ok(content) => {
+                                let filename = std::path::Path::new(file_path)
+                                    .file_name()
+                                    .map(|f| f.to_string_lossy().to_string())
+                                    .unwrap_or_else(|| "custom_corpus.txt".to_string());
+
+                                let req_body = serde_json::json!({
+                                    "action": "add",
+                                    "filename": filename,
+                                    "content": content
+                                });
+
+                                match send_server_post_request(&host, port, "/v1/corpus", &req_body)
+                                {
+                                    Ok(res) => {
+                                        writeln!(
+                                            output,
+                                            "\x1b[32m[+] {}\x1b[0m\n",
+                                            res["message"].as_str().unwrap_or("Corpus added")
+                                        )?;
+                                    }
+                                    Err(e) => {
+                                        writeln!(output, "[!] Error updating corpus: {}\n", e)?;
+                                    }
+                                }
+                            }
+                            Err(e) => {
+                                writeln!(
+                                    output,
+                                    "[!] Failed to read file '{}': {}\n",
+                                    file_path, e
+                                )?;
+                            }
+                        }
+                    } else {
+                        let req_body = serde_json::json!({ "action": "list" });
+                        match send_server_post_request(&host, port, "/v1/corpus", &req_body) {
+                            Ok(res) => {
+                                writeln!(
+                                    output,
+                                    "\n\x1b[1mR⁴ Extra Reading Corpus Datasets:\x1b[0m"
+                                )?;
+                                if let Some(files) = res["files"].as_array() {
+                                    if files.is_empty() {
+                                        writeln!(
+                                            output,
+                                            "  (No extra reading corpus files indexed yet)"
+                                        )?;
+                                    } else {
+                                        for f in files {
+                                            writeln!(output, "  • {}", f.as_str().unwrap_or(""))?;
+                                        }
+                                    }
+                                }
+                                writeln!(output, "Usage: /corpus add <path/to/file.txt>\n")?;
+                            }
+                            Err(e) => {
+                                writeln!(output, "[!] Error listing corpus: {}\n", e)?;
+                            }
+                        }
+                    }
+                    output.flush()?;
+                    continue;
+                }
+                "/clear" => {
+                    write!(output, "\x1b[2J\x1b[1H")?;
+                    output.flush()?;
+                    continue;
+                }
+                "/quit" => {
+                    break;
+                }
+                "/compile" => {
+                    let model_options = [
+                        ("smollm2-135m-instruct", "Fast & Ultra-Light (~270MB)"),
+                        ("smollm2-360m-instruct", "Balanced Quality (~720MB)"),
+                        ("smollm2-1-7b-instruct", "High-Fidelity Teacher (~3.4GB)"),
+                    ];
+                    if let Ok(Some(m_idx)) = select_menu_interactive(
+                        "Select Model to Compile into R4G1 Zero-Multiply Graph:",
+                        &model_options,
+                        output,
+                    ) {
+                        let target_model = model_options[m_idx].0;
+                        if trigger_in_client_compilation(target_model, &host, port, output)
+                            .unwrap_or(false)
+                        {
+                            current_active_model = target_model.to_string();
+                            current_active_engine = "r4g1".to_string();
+                            let _ = std::fs::write(
+                                ".uor-models/last_model_name.txt",
+                                &current_active_model,
+                            );
+                            let _ = std::fs::write(
+                                ".uor-models/last_engine.txt",
+                                &current_active_engine,
+                            );
+                        }
+                    }
+                    output.flush()?;
+                    continue;
+                }
+                "/status" => {
+                    writeln!(
+                        output,
+                        "[*] Querying R4G1 sub-millisecond pipeline status..."
+                    )?;
+                    match fetch_server_status(&host, port) {
+                        Ok(st) => {
+                            let model_name =
+                                st["model_name"].as_str().unwrap_or("smollm2-135m-instruct");
+                            let s1 = st["stages"]["stage_1_download"].as_bool().unwrap_or(false);
+                            let s2 = st["stages"]["stage_2_compile"].as_bool().unwrap_or(false);
+                            let s3 = st["stages"]["stage_3_graph_score"]
+                                .as_bool()
+                                .unwrap_or(false);
+                            let s4 = st["stages"]["stage_4_r4g1_active"]
+                                .as_bool()
+                                .unwrap_or(false);
+
+                            let mark = |b| if b { "[✓]" } else { "[ ]" };
+
+                            writeln!(
+                                output,
+                                "\n\x1b[1mR⁴ Sub-Millisecond R4G1 Compilation Pipeline Status ({})\x1b[0m",
+                                model_name
+                            )?;
+                            writeln!(output, "┌───────┬───────────────────────────────────┬────────┬──────────────────────────────────────────────┐")?;
+                            writeln!(output, "│ Stage │ Description                       │ Status │ Target Artifact / Location                   │")?;
+                            writeln!(output, "├───────┼───────────────────────────────────┼────────┼──────────────────────────────────────────────┤")?;
+                            writeln!(output, "│   1   │ Pinned Teacher Source Download    │  {:^5} │ .uor-models/sources/{:<25} │", mark(s1), model_name)?;
+                            writeln!(output, "│   2   │ Transformerless Bundle Compile    │  {:^5} │ .uor-models/compiled/{:<24} │", mark(s2), model_name)?;
+                            writeln!(output, "│   3   │ Scored R4G1 Graph Cover & Score   │  {:^5} │ .../{:<35} │", mark(s3), format!("{}/graph/score.r4g1", model_name))?;
+                            writeln!(output, "│   4   │ Sub-ms Zero-Multiply Engine       │  {:^5} │ Active (R4G1 Scored Graph Runtime)           │", mark(s4))?;
+                            writeln!(output, "└───────┴───────────────────────────────────┴────────┴──────────────────────────────────────────────┘")?;
+                            writeln!(output, "Target Performance Goal: < 1.0 ms / token (Zero-Multiply Table-Native Kernel)\n")?;
+                        }
+                        Err(e) => {
+                            writeln!(output, "[!] Error fetching pipeline status: {}\n", e)?;
+                        }
+                    }
+                    output.flush()?;
+                    continue;
+                }
+                _ => {}
+            }
+        }
+
         let start_time = std::time::Instant::now();
-        let (host_c, port_c, path_c, model_c, q_c) = (
+        let (host_c, port_c, path_c, model_c, engine_c, q_c) = (
             host.clone(),
             port,
             path.clone(),
-            model.to_string(),
+            current_active_model.clone(),
+            current_active_engine.clone(),
             question.to_string(),
         );
 
         let worker_handle = std::thread::spawn(move || {
-            send_vendor_chat_completion(&host_c, port_c, &path_c, &model_c, &q_c)
+            send_vendor_chat_completion(&host_c, port_c, &path_c, &model_c, &engine_c, &q_c)
         });
 
         let frames = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
@@ -532,7 +1594,7 @@ pub fn remote_interactive_chat(
             let frame = frames[frame_idx % frames.len()];
             write!(
                 output,
-                "\rr4 > {} cooking... ({}s)\x1b[K",
+                "\rr4 > {} lifting... ({}s)\x1b[K",
                 frame, elapsed_secs
             )?;
             output.flush()?;
@@ -556,8 +1618,8 @@ pub fn remote_interactive_chat(
                 write!(output, "\rr4 > {}\x1b[K\n", answer_text)?;
                 writeln!(
                     output,
-                    "[stats: {} tokens | {:.2} ms | {:.1} tok/s | mode: {}]\n",
-                    completion_tokens, latency_ms, tok_per_sec, engine_mode
+                    "[stats: {} tokens | {:.2} ms | {:.1} tok/s | mode: {} | model: {}]\n",
+                    completion_tokens, latency_ms, tok_per_sec, engine_mode, current_active_model
                 )?;
                 output.flush()?;
             }
@@ -610,10 +1672,12 @@ fn send_vendor_chat_completion(
     port: u16,
     path: &str,
     model: &str,
+    engine: &str,
     user_message: &str,
 ) -> Result<(String, usize, String), String> {
     let payload = serde_json::json!({
         "model": model,
+        "engine": engine,
         "messages": [
             {
                 "role": "user",
@@ -694,6 +1758,99 @@ fn send_vendor_chat_completion(
         .to_string();
 
     Ok((content, completion_tokens, mode))
+}
+
+fn fetch_server_status(host: &str, port: u16) -> Result<serde_json::Value, String> {
+    let req_str = format!(
+        "GET /v1/status HTTP/1.1\r\n\
+         Host: {}:{}\r\n\
+         Connection: close\r\n\r\n",
+        host, port
+    );
+
+    let sockaddr: std::net::SocketAddr = format!("{}:{}", host, port)
+        .parse()
+        .map_err(|e| format!("Invalid socket address {}:{}: {}", host, port, e))?;
+
+    let mut stream =
+        std::net::TcpStream::connect_timeout(&sockaddr, std::time::Duration::from_secs(5))
+            .map_err(|e| format!("Failed to connect to {}:{}: {}", host, port, e))?;
+
+    stream
+        .set_read_timeout(Some(std::time::Duration::from_secs(5)))
+        .ok();
+    stream
+        .write_all(req_str.as_bytes())
+        .map_err(|e| format!("Failed to send status request: {}", e))?;
+
+    let mut response_bytes = Vec::new();
+    stream
+        .read_to_end(&mut response_bytes)
+        .map_err(|e| format!("Failed to read status response: {}", e))?;
+
+    let resp_text = String::from_utf8_lossy(&response_bytes);
+    let body_start = resp_text.find("\r\n\r\n").map(|idx| idx + 4).unwrap_or(0);
+    let json_body = &resp_text[body_start..];
+
+    serde_json::from_str(json_body).map_err(|e| format!("Invalid status response JSON: {}", e))
+}
+
+fn send_server_post_request(
+    host: &str,
+    port: u16,
+    path: &str,
+    payload: &serde_json::Value,
+) -> Result<serde_json::Value, String> {
+    let body_bytes =
+        serde_json::to_vec(payload).map_err(|e| format!("Serialization error: {}", e))?;
+    let req_str = format!(
+        "POST {} HTTP/1.1\r\n\
+         Host: {}:{}\r\n\
+         Content-Type: application/json\r\n\
+         Content-Length: {}\r\n\
+         Connection: close\r\n\r\n",
+        path,
+        host,
+        port,
+        body_bytes.len()
+    );
+
+    let sockaddr: std::net::SocketAddr = format!("{}:{}", host, port)
+        .parse()
+        .map_err(|e| format!("Invalid socket address {}:{}: {}", host, port, e))?;
+
+    let mut stream =
+        std::net::TcpStream::connect_timeout(&sockaddr, std::time::Duration::from_secs(5))
+            .map_err(|e| format!("Failed to connect to {}:{}: {}", host, port, e))?;
+
+    stream
+        .set_read_timeout(Some(std::time::Duration::from_secs(10)))
+        .ok();
+    stream
+        .set_write_timeout(Some(std::time::Duration::from_secs(10)))
+        .ok();
+
+    stream
+        .write_all(req_str.as_bytes())
+        .map_err(|e| format!("Failed to send request headers: {}", e))?;
+    stream
+        .write_all(&body_bytes)
+        .map_err(|e| format!("Failed to send request body: {}", e))?;
+    stream
+        .flush()
+        .map_err(|e| format!("Failed to flush stream: {}", e))?;
+
+    let mut response_bytes = Vec::new();
+    stream
+        .read_to_end(&mut response_bytes)
+        .map_err(|e| format!("Failed to read response: {}", e))?;
+
+    let resp_text = String::from_utf8_lossy(&response_bytes);
+    let body_start = resp_text.find("\r\n\r\n").map(|idx| idx + 4).unwrap_or(0);
+    let json_body = &resp_text[body_start..];
+
+    serde_json::from_str(json_body)
+        .map_err(|e| format!("Invalid response JSON: {} (body: {:?})", e, json_body))
 }
 
 #[cfg(test)]

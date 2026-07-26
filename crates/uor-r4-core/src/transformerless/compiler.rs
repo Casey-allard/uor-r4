@@ -91,18 +91,22 @@ pub fn load_corpus_from(mp: &str, rp: &str) -> Option<Corpus> {
     }
     let n = u64::from_le_bytes(meta[0..8].try_into().unwrap()) as usize;
     let stories = u64::from_le_bytes(meta[8..16].try_into().unwrap());
-    let rb = std::fs::read(rp).ok()?;
-    let record_size = if rb.len() == n * 88 {
+    let rb_full = std::fs::read(rp).ok()?;
+    let record_size = if rb_full.len() >= n * 88 && (n > 0 && rb_full.len() % 88 == 0) {
         88usize
-    } else if rb.len() == n * 48 {
+    } else if rb_full.len() >= n * 48 {
         48usize
-    } else if rb.len() == n * 32 {
+    } else if rb_full.len() >= n * 32 {
         32usize
-    } else if rb.len() == n * 12 {
+    } else if rb_full.len() >= n * 12 {
         12usize
     } else {
         return None;
     };
+    if rb_full.len() < n * record_size {
+        return None;
+    }
+    let rb = &rb_full[..n * record_size];
     let is_legacy = record_size == 12;
     let has_anchors = record_size == 48 || record_size == 88;
     let mut story = Vec::with_capacity(n);

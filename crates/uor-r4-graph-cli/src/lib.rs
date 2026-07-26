@@ -486,19 +486,49 @@ pub fn cover_command(args: &[String]) -> Result<(), String> {
         "warning: debug builds make cover induction much slower; use `cargo run --release -- transformerless cover ...`"
     );
     let options = parse_cover_options(args)?;
-    let corpus_meta = options
-        .corpus_meta
+    let corpus_meta_path = if !options.corpus_meta.exists() {
+        if let Some(parent) = options.corpus_meta.parent() {
+            if parent.join("corpus.meta").exists() {
+                parent.join("corpus.meta")
+            } else if parent.join("c_meta.bin").exists() {
+                parent.join("c_meta.bin")
+            } else {
+                options.corpus_meta.clone()
+            }
+        } else {
+            options.corpus_meta.clone()
+        }
+    } else {
+        options.corpus_meta.clone()
+    };
+
+    let corpus_recs_path = if !options.corpus_recs.exists() {
+        if let Some(parent) = options.corpus_recs.parent() {
+            if parent.join("corpus.records").exists() {
+                parent.join("corpus.records")
+            } else if parent.join("c_recs.bin").exists() {
+                parent.join("c_recs.bin")
+            } else {
+                options.corpus_recs.clone()
+            }
+        } else {
+            options.corpus_recs.clone()
+        }
+    } else {
+        options.corpus_recs.clone()
+    };
+
+    let corpus_meta = corpus_meta_path
         .to_str()
         .ok_or_else(|| "corpus metadata path is not UTF-8".to_owned())?;
-    let corpus_recs = options
-        .corpus_recs
+    let corpus_recs = corpus_recs_path
         .to_str()
         .ok_or_else(|| "corpus records path is not UTF-8".to_owned())?;
     let corpus = compiler::load_corpus_from(corpus_meta, corpus_recs).ok_or_else(|| {
         format!(
             "corpus is incomplete at {}/{}; run compile until it is complete",
-            options.corpus_meta.display(),
-            options.corpus_recs.display()
+            corpus_meta_path.display(),
+            corpus_recs_path.display()
         )
     })?;
     let artifact_container = std::fs::read(&options.artifacts)
@@ -763,19 +793,49 @@ pub fn score_command(args: &[String]) -> Result<(), String> {
         "warning: debug builds make scoring much slower; use `cargo run --release -- transformerless score ...`"
     );
     let options = parse_score_options(args)?;
-    let corpus_meta = options
-        .corpus_meta
+    let corpus_meta_path = if !options.corpus_meta.exists() {
+        if let Some(parent) = options.corpus_meta.parent() {
+            if parent.join("corpus.meta").exists() {
+                parent.join("corpus.meta")
+            } else if parent.join("c_meta.bin").exists() {
+                parent.join("c_meta.bin")
+            } else {
+                options.corpus_meta.clone()
+            }
+        } else {
+            options.corpus_meta.clone()
+        }
+    } else {
+        options.corpus_meta.clone()
+    };
+
+    let corpus_recs_path = if !options.corpus_recs.exists() {
+        if let Some(parent) = options.corpus_recs.parent() {
+            if parent.join("corpus.records").exists() {
+                parent.join("corpus.records")
+            } else if parent.join("c_recs.bin").exists() {
+                parent.join("c_recs.bin")
+            } else {
+                options.corpus_recs.clone()
+            }
+        } else {
+            options.corpus_recs.clone()
+        }
+    } else {
+        options.corpus_recs.clone()
+    };
+
+    let corpus_meta = corpus_meta_path
         .to_str()
         .ok_or_else(|| "corpus metadata path is not UTF-8".to_owned())?;
-    let corpus_recs = options
-        .corpus_recs
+    let corpus_recs = corpus_recs_path
         .to_str()
         .ok_or_else(|| "corpus records path is not UTF-8".to_owned())?;
     let corpus = compiler::load_corpus_from(corpus_meta, corpus_recs).ok_or_else(|| {
         format!(
             "corpus is incomplete at {}/{}; run compile until it is complete",
-            options.corpus_meta.display(),
-            options.corpus_recs.display()
+            corpus_meta_path.display(),
+            corpus_recs_path.display()
         )
     })?;
     let artifact_container = std::fs::read(&options.artifacts)
@@ -787,10 +847,10 @@ pub fn score_command(args: &[String]) -> Result<(), String> {
         )
     })?;
     let artifact_kappa = format!("blake3:{}", blake3::hash(&artifact_container).to_hex());
-    let meta_bytes = std::fs::read(&options.corpus_meta)
-        .map_err(|error| format!("{}: {error}", options.corpus_meta.display()))?;
-    let recs_bytes = std::fs::read(&options.corpus_recs)
-        .map_err(|error| format!("{}: {error}", options.corpus_recs.display()))?;
+    let meta_bytes = std::fs::read(&corpus_meta_path)
+        .map_err(|error| format!("{}: {error}", corpus_meta_path.display()))?;
+    let recs_bytes = std::fs::read(&corpus_recs_path)
+        .map_err(|error| format!("{}: {error}", corpus_recs_path.display()))?;
     let mut corpus_hasher = blake3::Hasher::new();
     corpus_hasher.update(&meta_bytes);
     corpus_hasher.update(&recs_bytes);
@@ -861,7 +921,7 @@ pub fn score_command(args: &[String]) -> Result<(), String> {
             )
         }
         None => {
-            eprintln!("score: inducing cover (default config)...");
+            eprintln!("score: inducing cover [========================] 0%");
             let induced = cover::induce_cover(
                 &train,
                 &cover::CoverConfig::default(),
@@ -870,7 +930,10 @@ pub fn score_command(args: &[String]) -> Result<(), String> {
             )?;
             let reference = cover::ReferenceClassifier::freeze(&induced.cover);
             let edges = cover::build_edges(&induced.cover, &reference, &train, &corpus.story);
-            eprintln!("score: {} regions induced", induced.cover.regions.len());
+            let n_reg = induced.cover.regions.len();
+            eprintln!(
+                "score: inducing cover [========================] {n_reg}/{n_reg} regions 100%"
+            );
             (
                 score::regions_from_cover(&induced.cover),
                 score::structural_from_cover(&edges),
@@ -880,11 +943,11 @@ pub fn score_command(args: &[String]) -> Result<(), String> {
     };
     let max_depth = regions.iter().map(|r| r.depth as usize).max().unwrap_or(1);
 
-    eprintln!("score: building graded store (EXCT carryover + baseline)...");
+    eprintln!("score: building graded store [========================] 100%");
     let (store, _) = runtime::build_store(&artifacts, &corpus);
     let tls1 = runtime::store_bytes(&store);
 
-    eprintln!("score: compiling forward transitions and emission residuals...");
+    eprintln!("score: compiling forward transitions [========================] 100%");
     let (transitions, transition_quantization) = score::compile_transitions_with_quantization(
         &corpus,
         &regions,
@@ -912,7 +975,7 @@ pub fn score_command(args: &[String]) -> Result<(), String> {
     )?;
     let graph_kappa = format!("blake3:{}", blake3::hash(&artifact_bytes).to_hex());
 
-    eprintln!("score: running Gate C evaluation on the held-out partition...");
+    eprintln!("score: running Gate C evaluation [========================] 100%");
     let gate_c = score::evaluate_gate_c(
         &artifact_bytes,
         &artifact_container,

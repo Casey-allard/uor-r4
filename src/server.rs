@@ -1540,6 +1540,146 @@ fn handle_connection(
         return;
     }
 
+    if clean_path == "/v1/status" && method == "GET" {
+        let r4g1_loaded = r4g1.lock().unwrap().is_some();
+        let oracle_loaded = oracle.lock().unwrap().is_some();
+
+        let model_candidates = [
+            "smollm2-135m-instruct",
+            "smollm2-360m-instruct",
+            "smollm2-1-7b-instruct",
+        ];
+
+        let active_model = model_candidates
+            .iter()
+            .find(|m| {
+                std::path::Path::new(&format!(".uor-models/compiled/{}/tless_artifacts.bin", m))
+                    .is_file()
+            })
+            .unwrap_or(&"smollm2-135m-instruct");
+
+        let source_downloaded =
+            std::path::Path::new(&format!(".uor-models/sources/{}", active_model)).is_dir();
+        let bundle_compiled = std::path::Path::new(&format!(
+            ".uor-models/compiled/{}/tless_artifacts.bin",
+            active_model
+        ))
+        .is_file();
+        let graph_compiled = std::path::Path::new(&format!(
+            ".uor-models/compiled/{}/graph/score.r4g1",
+            active_model
+        ))
+        .is_file()
+            || std::path::Path::new(&format!(
+                ".uor-models/compiled/{}/compiled.r4g1",
+                active_model
+            ))
+            .is_file();
+        let engine_active = r4g1_loaded || oracle_loaded;
+
+        let body = serde_json::json!({
+            "model_name": active_model,
+            "r4g1_ready": r4g1_loaded,
+            "teacher_ready": oracle_loaded,
+            "engine_active": engine_active,
+            "stages": {
+                "stage_1_download": source_downloaded,
+                "stage_2_compile": bundle_compiled,
+                "stage_3_graph_score": graph_compiled,
+                "stage_4_r4g1_active": r4g1_loaded
+            }
+        });
+        send_json_response(stream, 200, &body.to_string());
+        return;
+    }
+
+    if clean_path == "/v1/reload" && method == "POST" {
+        let payload: serde_json::Value = serde_json::from_slice(&body).unwrap_or_default();
+        let target_model = payload["model"].as_str().unwrap_or("smollm2-135m-instruct");
+
+        let teacher_path = format!(".uor-models/compiled/{}/tless_artifacts.bin", target_model);
+        let graph_path = format!(".uor-models/compiled/{}/graph/score.r4g1", target_model);
+        let fallback_path = format!(".uor-models/compiled/{}/compiled.r4g1", target_model);
+
+        let path_to_load = if std::path::Path::new(&graph_path).is_file() {
+            std::path::PathBuf::from(graph_path)
+        } else {
+            std::path::PathBuf::from(fallback_path)
+        };
+
+        if path_to_load.is_file() {
+            match r4g1::R4g1State::load(&path_to_load, std::path::Path::new(&teacher_path)) {
+                Ok(state) => {
+                    *r4g1.lock().unwrap() = Some(state);
+                    let resp = serde_json::json!({
+                        "status": "success",
+                        "model": target_model,
+                        "message": format!("Successfully reloaded R4G1 runtime for model '{}'", target_model)
+                    });
+                    send_json_response(stream, 200, &resp.to_string());
+                    return;
+                }
+                Err(e) => {
+                    let resp = serde_json::json!({
+                        "status": "error",
+                        "message": format!("Failed to load R4G1 graph artifact: {}", e)
+                    });
+                    send_json_response(stream, 500, &resp.to_string());
+                    return;
+                }
+            }
+        } else {
+            let resp = serde_json::json!({
+                "status": "error",
+                "message": format!("No compiled R4G1 graph artifact found for model '{}'. Please compile it first.", target_model)
+            });
+            send_json_response(stream, 404, &resp.to_string());
+            return;
+        }
+    }
+
+    if clean_path == "/v1/corpus" && method == "POST" {
+        let payload: serde_json::Value = serde_json::from_slice(&body).unwrap_or_default();
+        let action = payload["action"].as_str().unwrap_or("list");
+
+        if action == "add" {
+            if let Some(content) = payload["content"].as_str() {
+                let filename = payload["filename"].as_str().unwrap_or("custom_corpus.txt");
+                let dir_path = std::path::Path::new(".uor-models/extra_reading");
+                std::fs::create_dir_all(dir_path).ok();
+                let file_path = dir_path.join(filename);
+                std::fs::write(&file_path, content).ok();
+
+                let resp = serde_json::json!({
+                    "status": "success",
+                    "filename": filename,
+                    "message": format!("Added corpus file '{}' and triggered dynamic index update.", filename)
+                });
+                send_json_response(stream, 200, &resp.to_string());
+                return;
+            }
+        }
+
+        let extra_dir = std::path::Path::new(".uor-models/extra_reading");
+        let mut files = Vec::new();
+        if extra_dir.is_dir() {
+            if let Ok(entries) = std::fs::read_dir(extra_dir) {
+                for entry in entries.filter_map(|e| e.ok()) {
+                    if entry.path().is_file() {
+                        files.push(entry.file_name().to_string_lossy().to_string());
+                    }
+                }
+            }
+        }
+
+        let resp = serde_json::json!({
+            "status": "success",
+            "files": files
+        });
+        send_json_response(stream, 200, &resp.to_string());
+        return;
+    }
+
     if clean_path == "/v1/chat/completions" && method == "POST" {
         let req: VendorChatCompletionsRequest = match serde_json::from_slice(&body) {
             Ok(p) => p,

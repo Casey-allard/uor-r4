@@ -1,6 +1,6 @@
 # Minimalist R⁴ Terminal Client & Local Vendor API
 
-R⁴ includes a minimalist interactive terminal client (`r4 client`) and vendor-compatible HTTP API endpoints (`POST /v1/chat/completions`, `GET /v1/models`) served 100% locally by the multiplication-free R⁴ engine.
+R⁴ includes a minimalist interactive terminal client (`r4 client`) with a rich CLI interface, interactive slash command autocomplete, and vendor-compatible HTTP API endpoints (`POST /v1/chat/completions`, `GET /v1/models`, `GET /v1/status`) served 100% locally by the multiplication-free R⁴ engine.
 
 No external LLM providers, remote APIs, or cloud services are used.
 
@@ -15,10 +15,11 @@ The simplest way to run R⁴ interactively is with the zero-dependency `./r4-app
 ```
 
 ### What `./r4-app.sh` does automatically:
-1. **Background Server**: Launches `r4 serve` in the background on port 8000 (or `$PORT`).
-2. **Health Check & Loading Animation**: Displays a live braille spinner (`[*] ⠋ Initializing R⁴ local engine... (6s)`) while polling `GET /v1/models` for endpoint readiness.
-3. **Interactive Client**: Automatically opens the interactive client once ready.
-4. **Signal Cleanup**: Traps `EXIT`, `INT` (`Ctrl-C`), `TERM`, `HUP` (window close), and `QUIT` (`Ctrl-\`) signals to cleanly terminate the background server process and free the socket port when you exit.
+1. **Model Selection Menu**: Presents an interactive choice between `smollm2-135m-instruct`, `smollm2-360m-instruct`, and `smollm2-1-7b-instruct`.
+2. **4-Stage Pipeline Compilation & Live Progress**: Automatically runs any missing compilation stages (download, corpus compilation, R4G1 graph scoring) while displaying `claude-code`-styled live progress bars (`[█████████████░░░░░░░░] 65% (18s)`).
+3. **Background Server**: Launches `r4 serve` in the background on port 8000 (or `$PORT`).
+4. **Interactive Client**: Automatically opens the interactive client once ready.
+5. **Signal Cleanup**: Traps `EXIT`, `INT` (`Ctrl-C`), `TERM`, `HUP` (window close), and `QUIT` (`Ctrl-\`) signals to cleanly terminate the background server process.
 
 ---
 
@@ -30,20 +31,36 @@ You can also run the client against an existing local server instance:
 cargo run --release -- client --remote http://127.0.0.1:8000/v1
 ```
 
-Or using `r4 chat`:
-```bash
-cargo run --release -- chat --remote http://127.0.0.1:8000/v1
+### Rich Intro Banner & Slash Command Autocomplete
+Upon launching, `r4 client` displays an ANSI R⁴ ASCII banner and shortcuts guide:
+
+```text
+  ██████╗ ██╗  ██╗     ██████╗██╗     ██╗
+  ██╔══██╗██║  ██║    ██╔════╝██║     ██║
+  ██████╔╝███████║    ██║     ██║     ██║
+  ██╔══██╗╚════██║    ██║     ██║     ██║
+  ██║  ██║     ██║    ╚██████╗███████╗██║
+  ╚═╝  ╚═╝     ╚═╝     ╚═════╝╚══════╝╚═╝
+
+R⁴ Holographic Graph & Transformerless Engine v0.1.0
+Zero-Multiply Local Intelligence Runtime • Pinned Multiplication-Free Execution
+
+Connected to local vendor endpoint: http://127.0.0.1:8000/v1/chat/completions
+Active teacher model             : smollm2-135m-instruct
+
+Commands & Shortcuts:
+  • Type /help to view available slash commands (/status, /models, /clear, /quit)
+  • Type / for interactive slash command suggestions & autocomplete
+  • Type exit or press Ctrl-D to quit session
 ```
 
-### Features
-- **Turn Prompts**: `you >` and `r4 >`.
-- **Live Cooking Spinner**: Displays an animated braille spinner and seconds counter (`r4 > ⠋ cooking... (3s)`) while awaiting local server responses.
-- **Turn Statistics**: Displays token count, latency, generation throughput, and engine mode upon completion:
-  ```text
-  you > Tell me a joke!
-  r4 > Why did the scarecrow win an award? Because he was outstanding in his field.
-  [stats: 14 tokens | 21846.12 ms | 0.6 tok/s | mode: teacher-oracle-fallback]
-  ```
+### Interactive Slash Command Completion
+Typing `/` triggers interactive command suggestions:
+- Typing `/` $\rightarrow$ Displays available commands list.
+- Typing `/m` or `/mo` $\rightarrow$ Auto-completes and runs `/models`.
+- Typing `/s` or `/st` $\rightarrow$ Auto-completes and runs `/status`.
+- Typing `/h` $\rightarrow$ Auto-completes and runs `/help`.
+- Typing `/q` $\rightarrow$ Auto-completes and runs `/quit`.
 
 ---
 
@@ -51,59 +68,11 @@ cargo run --release -- chat --remote http://127.0.0.1:8000/v1
 
 The local R⁴ server implements OpenAI/vendor-compatible endpoints for local tools, IDE integrations, and custom frontends.
 
+### `GET /v1/status`
+Returns 4-stage pipeline readiness JSON for active teacher model.
+
 ### `GET /v1/models`
-Returns the local model availability manifest:
-```json
-{
-  "object": "list",
-  "data": [
-    {
-      "id": "uor-r4",
-      "object": "model"
-    }
-  ]
-}
-```
+Returns the local model availability manifest.
 
 ### `POST /v1/chat/completions`
-Accepts standard vendor Chat Completions requests:
-
-```bash
-curl -X POST http://127.0.0.1:8000/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -d '{
-    "model": "uor-r4",
-    "messages": [
-      {"role": "system", "content": "You are a helpful assistant."},
-      {"role": "user", "content": "Explain quantum routing."}
-    ],
-    "max_tokens": 128,
-    "temperature": 0.7
-  }'
-```
-
-**Response Format**:
-```json
-{
-  "id": "chatcmpl-uor-r4-1753531200",
-  "object": "chat.completion",
-  "created": 1753531200,
-  "model": "uor-r4",
-  "choices": [
-    {
-      "index": 0,
-      "message": {
-        "role": "assistant",
-        "content": "Quantum routing leverages multiresolution topological field state transitions..."
-      },
-      "finish_reason": "stop"
-    }
-  ],
-  "usage": {
-    "prompt_tokens": 12,
-    "completion_tokens": 32,
-    "total_tokens": 44
-  },
-  "system_fingerprint": "fp_uor_r4_local"
-}
-```
+Accepts standard vendor Chat Completions requests.
