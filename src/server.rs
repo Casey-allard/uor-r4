@@ -1614,7 +1614,13 @@ fn handle_connection(
         let (gamma, default_temp) = autotune(kappa, theta_d, uor_bias);
         let temperature = req.temperature.unwrap_or(default_temp);
 
-        router_guard.evolve_state(&identity, &prompt_text, gamma);
+        let routing_prompt = if prompt_text.len() > 512 {
+            &prompt_text[..512]
+        } else {
+            &prompt_text[..]
+        };
+
+        router_guard.evolve_state(&identity, routing_prompt, gamma);
 
         uor_r4_wasm_router::ACTIVE_ROUTER.with(|r| {
             *r.borrow_mut() = Some(router_ptr);
@@ -1629,12 +1635,10 @@ fn handle_connection(
 
         let mut final_response_text = String::new();
         let mut generation_mode = "r4g1".to_string();
-        let mut r4g1_abstained = false;
 
         match generate_r4g1_text(&r4g1, &prompt_text, max_tokens.max(32)) {
             Ok(Some(gen)) if gen.abstained => {
                 generation_mode = "r4g1-abstained".to_string();
-                r4g1_abstained = true;
             }
             Ok(Some(gen)) if is_usable_generated_text(&gen.text) => {
                 final_response_text = gen.text;
@@ -1643,7 +1647,7 @@ fn handle_connection(
             _ => {}
         }
 
-        if final_response_text.is_empty() && !r4g1_abstained {
+        if final_response_text.is_empty() {
             if let Some(text) = generate_tless_text(&tless, &prompt_text, max_tokens.max(32)) {
                 if is_usable_generated_text(&text) {
                     final_response_text = text;
@@ -1652,7 +1656,7 @@ fn handle_connection(
             }
         }
 
-        if final_response_text.is_empty() && !r4g1_abstained {
+        if final_response_text.is_empty() {
             let mut oracle_guard = oracle.lock().unwrap();
             if let Some(ref mut o) = *oracle_guard {
                 if let Some((text, _)) =
@@ -1666,7 +1670,7 @@ fn handle_connection(
             }
         }
 
-        if final_response_text.is_empty() && !r4g1_abstained {
+        if final_response_text.is_empty() {
             let geom_result = router_guard.generate_geometric_response_native(
                 &prompt_text,
                 &identity,
