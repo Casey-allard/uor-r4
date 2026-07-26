@@ -1479,7 +1479,49 @@ let wasmInitialized = false;
 let localWasmMode = false;
 let serverR4g1Ready = false;
 
+let r4Worker = null;
+let workerPendingCallbacks = new Map();
+let workerMessageId = 0;
+
+function initR4Worker() {
+    if (r4Worker) return r4Worker;
+    try {
+        r4Worker = new Worker('r4_worker.js', { type: 'module' });
+        r4Worker.onmessage = function(e) {
+            const { type, id, responseText, generationMode, indexedSentences, error } = e.data || {};
+            if (workerPendingCallbacks.has(id)) {
+                const { resolve, reject } = workerPendingCallbacks.get(id);
+                workerPendingCallbacks.delete(id);
+                if (type === 'ENGINE_ERROR' || error) {
+                    reject(new Error(error || "Worker error"));
+                } else {
+                    if (indexedSentences && typeof safeSetTextContent === 'function') {
+                        safeSetTextContent("corpusCount", indexedSentences.toLocaleString());
+                    }
+                    resolve({ responseText, generationMode, indexedSentences });
+                }
+            }
+        };
+        r4Worker.postMessage({ type: 'INIT_ENGINE', id: 'init' });
+    } catch (e) {
+        console.warn("Web Worker initialization fallback:", e);
+        r4Worker = null;
+    }
+    return r4Worker;
+}
+
+function runWorkerGeneration(payload) {
+    const worker = initR4Worker();
+    if (!worker) return Promise.resolve(null);
+    return new Promise((resolve, reject) => {
+        const id = 'gen_' + (++workerMessageId);
+        workerPendingCallbacks.set(id, { resolve, reject });
+        worker.postMessage({ type: 'GENERATE_RESPONSE', id, payload });
+    });
+}
+
 async function tryInitLocalWasm() {
+    initR4Worker();
     if (wasmInitialized) return true;
     try {
         const { default: init, UorR4Router } = await import('./pkg/uor_r4_wasm_router.js');

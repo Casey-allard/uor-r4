@@ -1311,7 +1311,16 @@ fn evaluate_report(args: &[String]) -> Result<(), String> {
     let mut bits = 0f64;
     let mut current_story = None;
     let mut story_position = 0usize;
+    let start_eval_time = std::time::Instant::now();
     for index in 0..corpus.n {
+        if index % 1000 == 0 || index + 1 == corpus.n {
+            let pct = (index as f64 / corpus.n as f64) * 100.0;
+            let elapsed = start_eval_time.elapsed().as_secs();
+            println!(
+                "progress: evaluated {}/{} positions ({:.1}%, {}s)",
+                index, corpus.n, pct, elapsed
+            );
+        }
         if current_story != Some(corpus.story[index]) {
             current_story = Some(corpus.story[index]);
             story_position = 0;
