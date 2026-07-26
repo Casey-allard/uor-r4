@@ -1880,6 +1880,7 @@ impl UorR4Router {
 
         let mut trajectory = Vec::new();
         let mut s_local = state_vector.to_vec();
+        let mut consecutive_repeat_count = 0usize;
 
         let mut accumulated_delta = 0.0;
         let mut prev_stratum = 0usize;
@@ -1981,7 +1982,15 @@ impl UorR4Router {
                             .unwrap_or_else(|| vec![0.0; 512]);
                         let sim = cosine_similarity(&c_vec, &s_local);
                         let freq = history.get(c).copied().unwrap_or(0.0);
-                        let score = p_trans.ln() + (gravity * sim) - (freq_penalty * freq);
+                        let is_consecutive_repeat =
+                            generated.last().map(|w| w == c).unwrap_or(false);
+                        let repeat_penalty = if is_consecutive_repeat {
+                            freq_penalty * 5.0 * (consecutive_repeat_count as f64 + 1.0).exp()
+                        } else {
+                            0.0
+                        };
+                        let score =
+                            p_trans.ln() + (gravity * sim) - (freq_penalty * freq) - repeat_penalty;
                         candidates.push(c.clone());
                         scores.push(score);
                     }
@@ -2029,11 +2038,49 @@ impl UorR4Router {
                 generated.push(next_word.clone());
             }
 
+            if generated.len() >= 2
+                && generated[generated.len() - 1] == generated[generated.len() - 2]
+            {
+                consecutive_repeat_count += 1;
+            } else {
+                consecutive_repeat_count = 0;
+            }
+
             *history.entry(next_word.clone()).or_insert(0.0) += 1.0;
 
             // Route metrics
             let r_data = self.route_query_to_manifold_internal("", identity, Some(&s_local));
             let routed = r_data.routed;
+
+            // Elliptic basin escape: inject orthogonal Hopf perturbation vector when \theta_d < -0.15 and repeat_count >= 3
+            if routed.metrics.deficit_angle < -0.15 && consecutive_repeat_count >= 3 {
+                let mut p_vec = vec![0.0; 512];
+                for (i, p_val) in p_vec.iter_mut().enumerate() {
+                    *p_val = (i as f64 * 0.1234 + step_idx as f64).sin();
+                }
+                let dot: f64 = p_vec.iter().zip(&s_local).map(|(p, s)| p * s).sum();
+                let mut ortho = vec![0.0; 512];
+                let mut ortho_sq = 0.0;
+                for i in 0..512 {
+                    ortho[i] = p_vec[i] - dot * s_local[i];
+                    ortho_sq += ortho[i] * ortho[i];
+                }
+                let ortho_norm = ortho_sq.sqrt();
+                if ortho_norm > 1e-9 {
+                    let perturbation_scale = 0.35;
+                    let mut s_new_sq = 0.0;
+                    for i in 0..512 {
+                        s_local[i] += perturbation_scale * (ortho[i] / ortho_norm);
+                        s_new_sq += s_local[i] * s_local[i];
+                    }
+                    let s_new_norm = s_new_sq.sqrt();
+                    if s_new_norm > 1e-9 {
+                        for val in &mut s_local {
+                            *val /= s_new_norm;
+                        }
+                    }
+                }
+            }
 
             let s_idx = routed.active_range[0] as usize;
             let e_idx = routed.active_range[1] as usize;
@@ -2964,4 +3011,45 @@ pub fn vsa_encode_graph_edge(src: &str, rel: &str, tgt: &str, space: &str) -> Ve
         bytes.extend_from_slice(&val.to_le_bytes());
     }
     bytes
+}
+
+#[cfg(test)]
+mod router_repetition_tests {
+    use super::*;
+
+    #[test]
+    fn test_elliptic_basin_escape_and_repetition_mitigation() {
+        let mut router = UorR4Router::new(0.85);
+        router.index_sentence("cut the paper cut the paper", "default");
+        router.index_sentence("cut the edge cut the edge", "default");
+
+        let (text, _trajectory, _state) = router
+            .generate_geometric_response_with_trajectory_internal(
+                "cut the paper",
+                &vec![0.1f64; 512],
+                10,
+                0.5,
+                1.0,
+                1.0,
+                "default",
+                0.8,
+            );
+
+        let words: Vec<&str> = text.split_whitespace().collect();
+        let mut max_consecutive = 1usize;
+        let mut current_run = 1usize;
+        for pair in words.windows(2) {
+            if pair[0] == pair[1] {
+                current_run += 1;
+                max_consecutive = max_consecutive.max(current_run);
+            } else {
+                current_run = 1;
+            }
+        }
+
+        assert!(
+            max_consecutive < 5,
+            "Consecutive repetition count should stay under 5 due to orthogonal Hopf perturbation escape (got {max_consecutive})"
+        );
+    }
 }

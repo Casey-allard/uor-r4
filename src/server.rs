@@ -792,14 +792,13 @@ pub fn is_usable_generated_text(text: &str) -> bool {
 /// "that is how i work" repeated over and over, so inspect word windows too.
 fn repeated_word_loop(text: &str) -> bool {
     let words: Vec<&str> = text.split_whitespace().collect();
-    if words.len() < 6 {
+    if words.len() < 4 {
         return false;
     }
 
-    // A repeated suffix is the common autoregressive failure mode. Keep the
-    // minimum at three words so ordinary repeated words are not rejected.
+    // A repeated suffix is the common autoregressive failure mode. Check widths starting at 1.
     let max_suffix_width = (words.len() / 2).min(12);
-    for width in 3..=max_suffix_width {
+    for width in 1..=max_suffix_width {
         let split = words.len() - width;
         if words[split..] == words[split - width..split] {
             return true;
@@ -1675,17 +1674,53 @@ fn handle_connection(
             }
             if final_response_text.is_empty() && !r4g1_abstained {
                 if let Some(text) = generate_tless_text(&tless, &prompt, max_tokens.max(32)) {
-                    final_response_text = text;
-                    llm_connected = true;
-                    generation_mode = if engine_mode == "r4g1" {
-                        "transformerless-fallback".to_string()
+                    if is_usable_generated_text(&text) {
+                        final_response_text = text;
+                        llm_connected = true;
+                        generation_mode = if engine_mode == "r4g1" {
+                            "transformerless-fallback".to_string()
+                        } else {
+                            "transformerless-legacy".to_string()
+                        };
+                        tokens_generated = final_response_text.split_whitespace().count();
+                        println!(
+                            "[+] Fallback engine successfully generated response via transformerless"
+                        );
                     } else {
-                        "transformerless-legacy".to_string()
-                    };
+                        println!("[-] Fallback transformerless output rejected as non-readable or pathological");
+                    }
+                }
+            }
+            if final_response_text.is_empty() && !r4g1_abstained {
+                if let Some(ref mut o) = *oracle_guard {
+                    if let Some((text, count)) =
+                        generate_attention_text(o, &prompt, max_tokens.max(128))
+                    {
+                        if is_usable_generated_text(&text) {
+                            final_response_text = text;
+                            llm_connected = true;
+                            generation_mode = "teacher-oracle-fallback".to_string();
+                            tokens_generated = count;
+                            println!("[+] Fallback engine successfully generated response via teacher oracle");
+                        }
+                    }
+                }
+            }
+            if final_response_text.is_empty() && !r4g1_abstained {
+                let geom_result = router_guard.generate_geometric_response_native(
+                    &payload.text,
+                    &identity,
+                    max_tokens,
+                    temperature,
+                    10.0,
+                    4.0,
+                    gamma,
+                );
+                if is_usable_generated_text(&geom_result.text) {
+                    final_response_text = geom_result.text;
+                    generation_mode = "geometric-decoded".to_string();
                     tokens_generated = final_response_text.split_whitespace().count();
-                    println!(
-                        "[+] Fallback engine successfully generated response via transformerless"
-                    );
+                    println!("[+] Geometric fallback successfully decoded response");
                 }
             }
         }
@@ -1739,7 +1774,7 @@ fn handle_connection(
         }
 
         // 6. Index user prompt and response back into vocabulary for continuous learning
-        if !final_response_text.is_empty() {
+        if !final_response_text.is_empty() && is_usable_generated_text(&final_response_text) {
             router_guard.index_sentence(&payload.text, &identity);
             router_guard.index_sentence(&final_response_text, &identity);
 

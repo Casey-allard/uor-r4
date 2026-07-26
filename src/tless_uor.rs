@@ -219,11 +219,30 @@ pub fn generate_r4g1_response(prompt: &str, max_tokens: usize) -> Option<String>
             for &(cand_tok, cand_score) in &cands[..num_cands] {
                 let is_eos = cand_tok == 0 || cand_tok == 2;
                 let mut new_tokens = beam.tokens.clone();
+
+                let mut repeat_count = 0i32;
+                for &t in new_tokens.iter().rev() {
+                    if t == cand_tok {
+                        repeat_count += 1;
+                    } else {
+                        break;
+                    }
+                }
+                let repeat_penalty = if repeat_count > 0 {
+                    repeat_count * 3000
+                } else {
+                    0
+                };
+
+                let adjusted_score = beam
+                    .score
+                    .saturating_add(cand_score.raw())
+                    .saturating_sub(repeat_penalty);
                 new_tokens.push(cand_tok);
 
                 all_candidates.push(BeamHypothesis {
                     tokens: new_tokens,
-                    score: beam.score.saturating_add(cand_score.raw()),
+                    score: adjusted_score,
                     terminated: is_eos,
                 });
             }
