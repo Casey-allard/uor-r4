@@ -1780,6 +1780,7 @@ dependencies = [
  "serde-wasm-bindgen",
  "serde_json",
  "sha2",
+ "tracing",
  "uor-addr",
  "uor-foundation 0.5.2 (git+https://github.com/UOR-Foundation/UOR-Framework.git?rev=51c01382200b0179d6640b07e9c8119364ab69a1)",
  "uor-foundation-sdk 0.5.2 (git+https://github.com/UOR-Foundation/UOR-Framework.git?rev=51c01382200b0179d6640b07e9c8119364ab69a1)",

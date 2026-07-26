@@ -11,7 +11,10 @@ use uor_r4_core::*;
 use wasm_bindgen::prelude::*;
 
 pub mod benchmark;
+pub mod fallback;
 pub mod geometry;
+
+pub use fallback::{EngineResponse, EngineStatus, FallbackResult, FallbackRouter};
 
 /// A content-addressed identifier derived via the 3/8 Resonance Hashing Law.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]

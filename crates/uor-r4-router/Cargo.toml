@@ -16,3 +16,4 @@ hex = "0.4.3"
 uor-addr = { git = "https://github.com/UOR-Foundation/uor-addr.git", rev = "165b51e3e2113ee5d032730cde709335d4fe9b60", default-features = false, features = ["alloc"] }
 uor-foundation = { git = "https://github.com/UOR-Foundation/UOR-Framework.git", rev = "51c01382200b0179d6640b07e9c8119364ab69a1", default-features = false, features = ["std", "serde"] }
 uor-foundation-sdk = { git = "https://github.com/UOR-Foundation/UOR-Framework.git", rev = "51c01382200b0179d6640b07e9c8119364ab69a1" }
+tracing = { version = "0.1", default-features = false, features = ["std"] }
