@@ -504,8 +504,17 @@ impl R4Engine {
     }
 
     /// Reject a window carrying a token id the teacher artifact cannot
-    /// decode (boundary check: the decode below indexes by token id).
+    /// decode. Also enforces the `WINDOW = 8` Dyadic-Recency boundary, emitting
+    /// a `tracing::warn!` log if `window.len() > 8` before sliding window truncation.
     fn check_window(&self, window: &[u32]) -> Result<(), InferenceError> {
+        if window.len() > WINDOW {
+            tracing::warn!(
+                target: "uor_r4_core::runtime",
+                window_size = WINDOW,
+                input_size = window.len(),
+                "Input context exceeds 8-token window; truncating to 8 most recent tokens"
+            );
+        }
         if window.iter().any(|&t| t >= self.token_rows) {
             return Err(InferenceError::TokenOutOfVocabulary {
                 token_rows: self.token_rows,

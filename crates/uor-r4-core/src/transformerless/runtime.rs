@@ -261,7 +261,24 @@ pub fn bundle_kernel(
 /// `bundle_plain`'s j-th history token, so a window equal to a position's
 /// in-story history produces an identical bundle. Only the WINDOW most
 /// recent tokens are read.
+///
+/// **Context Window Bound:** Chain 2 context encoding enforces `WINDOW = 8`
+/// dyadic-recency token history `[t-7..t]`. Inputs exceeding 8 tokens trigger
+/// `tracing::warn!` and are truncated to the 8 most recent tokens without
+/// heap allocation. Multi-timescale context expansion beyond 8 tokens is
+/// scheduled for Phase 8 on the roadmap.
 pub fn bundle_window_plain(art: &Compiled, rot: &[usize; WINDOW + 1], window: &[u32]) -> [i64; D] {
+    let window = if window.len() > WINDOW {
+        tracing::warn!(
+            target: "uor_r4_core::runtime",
+            window_size = WINDOW,
+            input_size = window.len(),
+            "Input context exceeds 8-token window; truncating to 8 most recent tokens"
+        );
+        &window[window.len() - WINDOW..]
+    } else {
+        window
+    };
     let mut acc = [0i64; D];
     let mut row = [0i32; D];
     for (back, &t) in window.iter().rev().take(WINDOW).enumerate() {
@@ -282,12 +299,26 @@ pub fn bundle_window_plain(art: &Compiled, rot: &[usize; WINDOW + 1], window: &[
 
 /// Kernel-counted corpus-free bundle: identical values to
 /// `bundle_window_plain`, every operation dispatched through `OpKernel`.
+///
+/// Enforces `WINDOW = 8` dyadic-recency truncation and emits `tracing::warn!`
+/// if `window.len() > 8`.
 pub fn bundle_window_kernel(
     k: &mut OpKernel,
     art: &Compiled,
     rot: &[usize; WINDOW + 1],
     window: &[u32],
 ) -> [i64; D] {
+    let window = if window.len() > WINDOW {
+        tracing::warn!(
+            target: "uor_r4_core::runtime",
+            window_size = WINDOW,
+            input_size = window.len(),
+            "Input context exceeds 8-token window; truncating to 8 most recent tokens"
+        );
+        &window[window.len() - WINDOW..]
+    } else {
+        window
+    };
     let mut acc = [0i64; D];
     let mut row = [0i32; D];
     for (back, &t) in window.iter().rev().take(WINDOW).enumerate() {
