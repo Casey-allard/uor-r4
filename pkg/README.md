@@ -16,13 +16,16 @@ service at runtime.
 
 R⁴ currently provides:
 
-- a geometric text router and browser dashboard;
-- a CPU-only transformerless compiler and table-native inference runtime;
-- TLA3/TLA4 compatibility and the current TLA5 artifact format (no f32
-  centroids in deployed containers);
-- TLS1 graded evidence stores (plus a legacy u16-era reader);
-- direct BF16 Safetensors loading for compatible, unsharded Llama-family
-  Hugging Face models, without Candle;
+- a geometric text router, 96-vertex W(3,3) phase field canvas, and browser dashboard with Developer Mode toggle (`#dev-mode-toggle`);
+- a CPU-only transformerless compiler and table-native zero-multiply inference runtime;
+- `FallbackRouter` pipeline cascading from primary `r4g1-graph` to secondary `transformerless-tla5` on unmapped/pathological states;
+- `WINDOW = 8` Dyadic-Recency context window with zero-allocation stack/slice sliding truncation;
+- ChatML prompt formatting for instruction-tuned teacher models (`SmolLM2-135M-Instruct`);
+- strict 32-bit `u32` integer token stores (`parse_store_strict_u32`) with automatic legacy cache purging (`purge_legacy_store_cache`);
+- BLAKE3 `tokenizer_cid` header verification in `uor-r4-graph-format` (`verify_tokenizer_cid`);
+- UOR attestation envelopes (`uor_address`, `artifact_cid`, `store_cid`, `attestation_cid`) and `POST /api/uor/verify` validation endpoint;
+- TLA3/TLA4 compatibility and the current TLA5 artifact format (no f32 centroids in deployed containers);
+- direct BF16 Safetensors loading for compatible, unsharded Llama-family Hugging Face models, without Candle;
 - byte-level BPE tokenizer export;
 - resumable compilation with progress reporting;
 - content-addressed model objects and manifests using UOR CIDs;
@@ -68,6 +71,7 @@ question-answering model.
 - [Local-only runtime contract](docs/transformerless/LOCAL_ONLY.md)
 - [R⁴ graph compiler implementation plan](docs/r4_graph_compiler_implementation_plan.md)
 - [Glossary](docs/transformerless/GLOSSARY.md) · [R4G1 wire format](docs/transformerless/R4G1.md) · [Baseline](docs/transformerless/BASELINE.md) · [Threat model](docs/transformerless/THREAT_MODEL.md)
+- [Minimalist terminal client & local vendor API](docs/minimal_client.md)
 - [Roadmap](ROADMAP.md)
 
 ## Requirements
@@ -81,6 +85,65 @@ Inference is CPU-only. GPU features, `--device`, Metal, CUDA, and Candle are
 intentionally not part of this runtime.
 
 ## Quick start
+
+### 1. Single-Command Interactive Launcher (`uor-r4-cli`)
+
+For zero-setup testing, model compilation, and interactive Q&A out of the box:
+
+```bash
+# Launch single-command orchestrator & interactive client
+./uor-r4-cli
+```
+
+The `uor-r4-cli` orchestrator automatically:
+1. Clears the screen and clears standard terminal settings on launch.
+2. Auto-detects and restores your last used model (`smollm2-135m-instruct`, `smollm2-360m-instruct`, or `smollm2-1-7b-instruct`) and active synthesis engine (`r4g1` or `attention`).
+3. Handles 4-stage pipeline execution: downloads pinned teacher weights, compiles zero-multiply observation corpora, and builds scored R4G1 residual graph covers automatically when required.
+4. Launches the local backend server on port `8000` and connects the interactive client REPL.
+
+#### Global Terminal Execution (macOS / Linux)
+
+To run `uor-r4-cli` from **any directory** in your terminal:
+
+```bash
+# 1. Symlink to user local bin
+mkdir -p ~/.local/bin
+ln -sf $(pwd)/uor-r4-cli ~/.local/bin/uor-r4-cli
+
+# 2. Ensure ~/.local/bin is in your PATH (Zsh)
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc
+source ~/.zshrc
+
+# Now type uor-r4-cli from anywhere!
+uor-r4-cli
+```
+
+#### In-Session Slash Commands & Interactive Menu
+
+Type `/` at the prompt to launch the interactive slash command menu, or run direct commands:
+
+- `/models` — View and switch active teacher models in-session with live download/compilation badges (`[DL: ✓ | CP: ✓]`).
+- `/engine` — Switch active synthesis engine (`r4g1` sub-ms zero-multiply graph, `attention` teacher oracle fallback, `r4-attention`, `geometric`).
+- `/status` — View 4-stage R4G1 pipeline compilation status table and readiness metrics.
+- `/corpus` — Manage extra reading corpus datasets and view indexed server files.
+- `/compile` — Trigger automated 4-stage in-session model graph compilation.
+- `/audit` — Inspect UOR coordinates ($\kappa$, $\theta_d$, $uor\_bias$), $\kappa$-pass reproduction status, token provenance traces, and export session logs (`.uor-models/audit_log.json`).
+- `/clear` — Clear terminal screen.
+- `/quit` — Exit client session cleanly.
+
+#### Standalone UOR Trace Audit (`uor-r4-cli --audit`)
+
+To inspect UOR compliance audit traces from previous sessions directly:
+
+```bash
+# Launch UOR audit inspector from CLI
+uor-r4-cli --audit
+
+# Or using the binary directly
+r4 audit
+```
+
+### 2. Manual Workspace Verification & Server Execution
 
 Verify the workspace:
 
