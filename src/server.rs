@@ -55,6 +55,56 @@ pub use uor_r4_api::{InferenceRequest, InferenceResponse};
 
 type ChatPayload = InferenceRequest;
 
+#[derive(Debug, Deserialize)]
+pub struct ChatMessage {
+    pub role: String,
+    pub content: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct VendorChatCompletionsRequest {
+    #[serde(default)]
+    pub model: Option<String>,
+    #[serde(default)]
+    pub messages: Vec<ChatMessage>,
+    #[serde(default)]
+    pub max_tokens: Option<usize>,
+    #[serde(default)]
+    pub temperature: Option<f64>,
+}
+
+#[derive(Debug, serde::Serialize)]
+pub struct VendorChatMessage {
+    pub role: String,
+    pub content: String,
+}
+
+#[derive(Debug, serde::Serialize)]
+pub struct VendorChoice {
+    pub index: usize,
+    pub message: VendorChatMessage,
+    pub finish_reason: String,
+}
+
+#[derive(Debug, serde::Serialize)]
+pub struct VendorUsage {
+    pub prompt_tokens: usize,
+    pub completion_tokens: usize,
+    pub total_tokens: usize,
+}
+
+#[derive(Debug, serde::Serialize)]
+pub struct VendorChatCompletionsResponse {
+    pub id: String,
+    pub object: String,
+    pub created: u64,
+    pub model: String,
+    pub choices: Vec<VendorChoice>,
+    pub usage: VendorUsage,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub system_fingerprint: Option<String>,
+}
+
 #[derive(Deserialize)]
 struct CorpusPayload {
     corpus: String,
@@ -1472,6 +1522,207 @@ fn handle_connection(
     let mut body = vec![0; content_length];
     if content_length > 0 && buf_reader.read_exact(&mut body).is_err() {
         send_json_response(stream, 400, "{\"error\":\"Error reading body\"}");
+        return;
+    }
+
+    // Vendor API endpoints
+    if clean_path == "/v1/models" && method == "GET" {
+        let body = serde_json::json!({
+            "object": "list",
+            "data": [
+                {
+                    "id": "uor-r4",
+                    "object": "model"
+                }
+            ]
+        });
+        send_json_response(stream, 200, &body.to_string());
+        return;
+    }
+
+    if clean_path == "/v1/chat/completions" && method == "POST" {
+        let req: VendorChatCompletionsRequest = match serde_json::from_slice(&body) {
+            Ok(p) => p,
+            Err(e) => {
+                send_json_response(
+                    stream,
+                    400,
+                    &format!("{{\"error\":\"Invalid JSON: {}\"}}", e),
+                );
+                return;
+            }
+        };
+
+        let mut prompt_parts = Vec::new();
+        for msg in &req.messages {
+            match msg.role.as_str() {
+                "system" => prompt_parts.push(format!("System: {}", msg.content)),
+                "user" => prompt_parts.push(format!("User: {}", msg.content)),
+                "assistant" => prompt_parts.push(format!("Assistant: {}", msg.content)),
+                _ => prompt_parts.push(msg.content.clone()),
+            }
+        }
+        let prompt_text = if prompt_parts.len() == 1
+            && req.messages.first().map(|m| m.role.as_str()) == Some("user")
+        {
+            req.messages[0].content.clone()
+        } else if !prompt_parts.is_empty() {
+            prompt_parts.join("\n")
+        } else {
+            String::new()
+        };
+
+        let max_tokens = req.max_tokens.unwrap_or(128);
+        let identity = "tenant-alpha".to_string();
+
+        let mut router_guard = router.lock().unwrap();
+
+        let mut buf = [0u8; 640];
+        let query_bytes = prompt_text.as_bytes();
+        let identity_bytes = identity.as_bytes();
+        let query_len = query_bytes.len().min(512);
+        let identity_len = identity_bytes.len().min(128);
+        buf[..query_len].copy_from_slice(&query_bytes[..query_len]);
+        buf[512..512 + identity_len].copy_from_slice(&identity_bytes[..identity_len]);
+
+        let input = uor_r4_wasm_router::R4RoutingInput {
+            query: &buf[..512],
+            identity: &buf[512..],
+            data: &buf,
+        };
+
+        let router_ptr = &mut *router_guard as *mut UorR4Router;
+        uor_r4_wasm_router::ACTIVE_ROUTER.with(|r| {
+            *r.borrow_mut() = Some(router_ptr);
+        });
+
+        let _grounded_dry =
+            uor_r4_wasm_router::UorR4RouterModel::forward(input).expect("Dry run routing failed");
+
+        uor_r4_wasm_router::ACTIVE_ROUTER.with(|r| {
+            *r.borrow_mut() = None;
+        });
+
+        let routing = router_guard
+            .last_routing_data()
+            .clone()
+            .expect("No routing data generated");
+        let kappa = routing.routed.metrics.kappa;
+        let theta_d = routing.routed.metrics.deficit_angle;
+        let uor_bias = routing.routed.qimc.uor_control.entropy_bias;
+
+        let (gamma, default_temp) = autotune(kappa, theta_d, uor_bias);
+        let temperature = req.temperature.unwrap_or(default_temp);
+
+        router_guard.evolve_state(&identity, &prompt_text, gamma);
+
+        uor_r4_wasm_router::ACTIVE_ROUTER.with(|r| {
+            *r.borrow_mut() = Some(router_ptr);
+        });
+
+        let _grounded =
+            uor_r4_wasm_router::UorR4RouterModel::forward(input).expect("Final routing failed");
+
+        uor_r4_wasm_router::ACTIVE_ROUTER.with(|r| {
+            *r.borrow_mut() = None;
+        });
+
+        let mut final_response_text = String::new();
+        let mut generation_mode = "r4g1".to_string();
+        let mut r4g1_abstained = false;
+
+        match generate_r4g1_text(&r4g1, &prompt_text, max_tokens.max(32)) {
+            Ok(Some(gen)) if gen.abstained => {
+                generation_mode = "r4g1-abstained".to_string();
+                r4g1_abstained = true;
+            }
+            Ok(Some(gen)) if is_usable_generated_text(&gen.text) => {
+                final_response_text = gen.text;
+                generation_mode = "r4g1".to_string();
+            }
+            _ => {}
+        }
+
+        if final_response_text.is_empty() && !r4g1_abstained {
+            if let Some(text) = generate_tless_text(&tless, &prompt_text, max_tokens.max(32)) {
+                if is_usable_generated_text(&text) {
+                    final_response_text = text;
+                    generation_mode = "transformerless-fallback".to_string();
+                }
+            }
+        }
+
+        if final_response_text.is_empty() && !r4g1_abstained {
+            let mut oracle_guard = oracle.lock().unwrap();
+            if let Some(ref mut o) = *oracle_guard {
+                if let Some((text, _)) =
+                    generate_attention_text(o, &prompt_text, max_tokens.min(64))
+                {
+                    if is_usable_generated_text(&text) {
+                        final_response_text = text;
+                        generation_mode = "teacher-oracle-fallback".to_string();
+                    }
+                }
+            }
+        }
+
+        if final_response_text.is_empty() && !r4g1_abstained {
+            let geom_result = router_guard.generate_geometric_response_native(
+                &prompt_text,
+                &identity,
+                max_tokens,
+                temperature,
+                10.0,
+                4.0,
+                gamma,
+            );
+            if is_usable_generated_text(&geom_result.text) {
+                final_response_text = geom_result.text;
+                generation_mode = "geometric-decoded".to_string();
+            }
+        }
+
+        if final_response_text.is_empty() {
+            final_response_text = "Manifold resonance too sparse for synthesis.".to_string();
+        }
+
+        router_guard.index_sentence(&prompt_text, &identity);
+        router_guard.index_sentence(&final_response_text, &identity);
+        router_guard.inject_thought_stream_native(&prompt_text);
+        router_guard.inject_thought_stream_native(&final_response_text);
+        spawn_cache_save(&cli, router_guard.export_state());
+
+        let prompt_tokens = prompt_text.split_whitespace().count().max(1);
+        let completion_tokens = final_response_text.split_whitespace().count().max(1);
+        let total_tokens = prompt_tokens + completion_tokens;
+
+        let created_ts = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs();
+
+        let resp = VendorChatCompletionsResponse {
+            id: format!("chatcmpl-uor-r4-{}", created_ts),
+            object: "chat.completion".to_string(),
+            created: created_ts,
+            model: req.model.unwrap_or_else(|| "uor-r4".to_string()),
+            choices: vec![VendorChoice {
+                index: 0,
+                message: VendorChatMessage {
+                    role: "assistant".to_string(),
+                    content: final_response_text,
+                },
+                finish_reason: "stop".to_string(),
+            }],
+            usage: VendorUsage {
+                prompt_tokens,
+                completion_tokens,
+                total_tokens,
+            },
+            system_fingerprint: Some(format!("uor-r4-{}", generation_mode)),
+        };
+
+        send_json_response(stream, 200, &serde_json::to_string(&resp).unwrap());
         return;
     }
 

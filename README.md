@@ -71,6 +71,7 @@ question-answering model.
 - [Local-only runtime contract](docs/transformerless/LOCAL_ONLY.md)
 - [R⁴ graph compiler implementation plan](docs/r4_graph_compiler_implementation_plan.md)
 - [Glossary](docs/transformerless/GLOSSARY.md) · [R4G1 wire format](docs/transformerless/R4G1.md) · [Baseline](docs/transformerless/BASELINE.md) · [Threat model](docs/transformerless/THREAT_MODEL.md)
+- [Minimalist terminal client & local vendor API](docs/minimal_client.md)
 - [Roadmap](ROADMAP.md)
 
 ## Requirements

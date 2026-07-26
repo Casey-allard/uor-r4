@@ -89,6 +89,8 @@ enum Command {
     Ask(AskArgs),
     /// Start an interactive, stateful local chat.
     Chat(ChatArgs),
+    /// Connect to a local uor-r4 server endpoint as a remote interactive client.
+    Client(ClientArgs),
     /// Compile a local or pinned Hugging Face model into an R⁴ bundle.
     Compile(CompileArgs),
     /// Download pinned open weights for offline compilation.
@@ -155,6 +157,19 @@ struct ChatArgs {
     /// CID manifest name/CID, or a locally compiled bundle name.
     #[arg(long, env = "TLESS_MODEL")]
     model: Option<String>,
+    /// Remote HTTP server URL (e.g. http://127.0.0.1:8000/v1) for client mode.
+    #[arg(long)]
+    remote: Option<String>,
+}
+
+#[derive(Args, Debug)]
+struct ClientArgs {
+    /// Remote HTTP server URL [default: http://127.0.0.1:8000/v1].
+    #[arg(long, default_value = "http://127.0.0.1:8000/v1")]
+    remote: String,
+    /// Model name to send in chat completions payload.
+    #[arg(long, default_value = "uor-r4")]
+    model: String,
 }
 
 #[derive(Args, Debug)]
@@ -504,8 +519,27 @@ fn run(cli: &Cli) -> Result<(), RunError> {
             )
         }
         Some(Command::Chat(args)) => {
-            let mut chat = build_chat_engine(args.model.as_deref())?;
-            interactive_chat(&mut chat, &mut io::stdin().lock(), &mut io::stdout().lock())?;
+            if let Some(remote) = &args.remote {
+                uor_r4_wasm_router::chat::remote_interactive_chat(
+                    remote,
+                    args.model.as_deref().unwrap_or("uor-r4"),
+                    &mut io::stdin().lock(),
+                    &mut io::stdout().lock(),
+                )?;
+                Ok(())
+            } else {
+                let mut chat = build_chat_engine(args.model.as_deref())?;
+                interactive_chat(&mut chat, &mut io::stdin().lock(), &mut io::stdout().lock())?;
+                Ok(())
+            }
+        }
+        Some(Command::Client(args)) => {
+            uor_r4_wasm_router::chat::remote_interactive_chat(
+                &args.remote,
+                &args.model,
+                &mut io::stdin().lock(),
+                &mut io::stdout().lock(),
+            )?;
             Ok(())
         }
         Some(Command::Compile(args)) => compile(args),

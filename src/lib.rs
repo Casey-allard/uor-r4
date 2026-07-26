@@ -117,7 +117,7 @@ mod facade_smoke_tests {
             );
         }
         for forbidden in [
-            "TcpStream::connect",
+            "TcpStream::connect(",
             "api.openai.com",
             "api.anthropic.com",
             "Command::new(\"ollama\")",

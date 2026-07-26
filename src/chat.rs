@@ -3,6 +3,7 @@
 //! Chat is a consumer of the core runtime, not a separate inference layer.
 
 use std::fmt;
+use std::io::{BufRead, Read, Write};
 use std::path::PathBuf;
 
 use crate::model::{default_model_reference, ModelError, ModelStore};
@@ -480,13 +481,241 @@ fn write_tokenizer_cache(cid: &str, bytes: &[u8]) -> Result<PathBuf, ChatError> 
     Ok(path)
 }
 
+/// Run an interactive client chat session against a remote local HTTP vendor endpoint.
+pub fn remote_interactive_chat(
+    remote_url: &str,
+    model: &str,
+    input: &mut impl BufRead,
+    output: &mut impl Write,
+) -> Result<(), std::io::Error> {
+    let (host, port, path) = parse_remote_url(remote_url);
+    writeln!(
+        output,
+        "R⁴ Client — interactive local vendor chat (remote: http://{}:{}{})",
+        host, port, path
+    )?;
+    writeln!(output, "type 'exit' or Ctrl-D to quit\n")?;
+
+    loop {
+        write!(output, "you > ")?;
+        output.flush()?;
+        let mut line = String::new();
+        if input.read_line(&mut line)? == 0 {
+            break;
+        }
+        let question = line.trim();
+        if matches!(question, "exit" | "quit") {
+            break;
+        }
+        if question.is_empty() {
+            continue;
+        }
+
+        let start_time = std::time::Instant::now();
+        let (host_c, port_c, path_c, model_c, q_c) = (
+            host.clone(),
+            port,
+            path.clone(),
+            model.to_string(),
+            question.to_string(),
+        );
+
+        let worker_handle = std::thread::spawn(move || {
+            send_vendor_chat_completion(&host_c, port_c, &path_c, &model_c, &q_c)
+        });
+
+        let frames = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
+        let mut frame_idx = 0;
+
+        while !worker_handle.is_finished() {
+            let elapsed_secs = start_time.elapsed().as_secs();
+            let frame = frames[frame_idx % frames.len()];
+            write!(
+                output,
+                "\rr4 > {} cooking... ({}s)\x1b[K",
+                frame, elapsed_secs
+            )?;
+            output.flush()?;
+            frame_idx += 1;
+            std::thread::sleep(std::time::Duration::from_millis(100));
+        }
+
+        let res = worker_handle
+            .join()
+            .unwrap_or_else(|_| Err("Worker thread panicked".to_string()));
+
+        match res {
+            Ok((answer_text, completion_tokens, engine_mode)) => {
+                let elapsed_secs = start_time.elapsed().as_secs_f64();
+                let latency_ms = elapsed_secs * 1000.0;
+                let tok_per_sec = if elapsed_secs > 0.0001 {
+                    (completion_tokens as f64) / elapsed_secs
+                } else {
+                    0.0
+                };
+                write!(output, "\rr4 > {}\x1b[K\n", answer_text)?;
+                writeln!(
+                    output,
+                    "[stats: {} tokens | {:.2} ms | {:.1} tok/s | mode: {}]\n",
+                    completion_tokens, latency_ms, tok_per_sec, engine_mode
+                )?;
+                output.flush()?;
+            }
+            Err(err) => {
+                write!(
+                    output,
+                    "\rr4 > [!] Error communicating with local server: {}\x1b[K\n\n",
+                    err
+                )?;
+                output.flush()?;
+            }
+        }
+    }
+    Ok(())
+}
+
+fn parse_remote_url(raw_url: &str) -> (String, u16, String) {
+    let clean = raw_url
+        .trim()
+        .strip_prefix("http://")
+        .or_else(|| raw_url.trim().strip_prefix("https://"))
+        .unwrap_or(raw_url.trim());
+
+    let (host_port, path_part) = match clean.find('/') {
+        Some(idx) => (&clean[..idx], &clean[idx..]),
+        None => (clean, ""),
+    };
+
+    let mut parts = host_port.split(':');
+    let host = parts.next().unwrap_or("127.0.0.1").trim();
+    let host_str = if host.is_empty() { "127.0.0.1" } else { host };
+    let port: u16 = parts.next().and_then(|p| p.parse().ok()).unwrap_or(8000);
+
+    let path = if path_part.contains("/chat/completions") {
+        path_part.to_string()
+    } else if path_part.ends_with("/v1") || path_part.ends_with("/v1/") {
+        let base = path_part.trim_end_matches('/');
+        format!("{}/chat/completions", base)
+    } else if path_part.is_empty() || path_part == "/" {
+        "/v1/chat/completions".to_string()
+    } else {
+        format!("{}/chat/completions", path_part.trim_end_matches('/'))
+    };
+
+    (host_str.to_string(), port, path)
+}
+
+fn send_vendor_chat_completion(
+    host: &str,
+    port: u16,
+    path: &str,
+    model: &str,
+    user_message: &str,
+) -> Result<(String, usize, String), String> {
+    let payload = serde_json::json!({
+        "model": model,
+        "messages": [
+            {
+                "role": "user",
+                "content": user_message
+            }
+        ],
+        "max_tokens": 128,
+        "temperature": 0.7
+    });
+    let body_bytes =
+        serde_json::to_vec(&payload).map_err(|e| format!("Serialization error: {}", e))?;
+
+    let req_str = format!(
+        "POST {} HTTP/1.1\r\n\
+         Host: {}:{}\r\n\
+         Content-Type: application/json\r\n\
+         Content-Length: {}\r\n\
+         Connection: close\r\n\r\n",
+        path,
+        host,
+        port,
+        body_bytes.len()
+    );
+
+    let sockaddr: std::net::SocketAddr = format!("{}:{}", host, port)
+        .parse()
+        .map_err(|e| format!("Invalid socket address {}:{}: {}", host, port, e))?;
+
+    let mut stream =
+        std::net::TcpStream::connect_timeout(&sockaddr, std::time::Duration::from_secs(5))
+            .map_err(|e| format!("Failed to connect to {}:{}: {}", host, port, e))?;
+
+    stream
+        .set_read_timeout(Some(std::time::Duration::from_secs(300)))
+        .ok();
+    stream
+        .set_write_timeout(Some(std::time::Duration::from_secs(10)))
+        .ok();
+
+    stream
+        .write_all(req_str.as_bytes())
+        .map_err(|e| format!("Failed to send request headers: {}", e))?;
+    stream
+        .write_all(&body_bytes)
+        .map_err(|e| format!("Failed to send request body: {}", e))?;
+    stream
+        .flush()
+        .map_err(|e| format!("Failed to flush stream: {}", e))?;
+
+    let mut response_bytes = Vec::new();
+    stream
+        .read_to_end(&mut response_bytes)
+        .map_err(|e| format!("Failed to read response: {}", e))?;
+
+    let resp_text = String::from_utf8_lossy(&response_bytes);
+    let body_start = resp_text.find("\r\n\r\n").map(|idx| idx + 4).unwrap_or(0);
+    let json_body = &resp_text[body_start..];
+
+    let parsed: serde_json::Value = serde_json::from_str(json_body)
+        .map_err(|e| format!("Invalid response JSON: {} (body: {:?})", e, json_body))?;
+
+    let choice = parsed["choices"]
+        .get(0)
+        .ok_or_else(|| "Missing choices in response".to_string())?;
+    let content = choice["message"]["content"]
+        .as_str()
+        .unwrap_or("")
+        .to_string();
+    let completion_tokens = parsed["usage"]["completion_tokens"]
+        .as_u64()
+        .unwrap_or_else(|| content.split_whitespace().count() as u64)
+        as usize;
+    let mode = parsed["system_fingerprint"]
+        .as_str()
+        .unwrap_or("uor-r4")
+        .strip_prefix("uor-r4-")
+        .unwrap_or_else(|| parsed["system_fingerprint"].as_str().unwrap_or("uor-r4"))
+        .to_string();
+
+    Ok((content, completion_tokens, mode))
+}
+
 #[cfg(test)]
 mod tests {
-    use super::repeated_suffix;
+    use super::{parse_remote_url, repeated_suffix};
 
     #[test]
     fn repetition_guard_detects_repeated_token_windows() {
         assert!(repeated_suffix(&[1, 2, 3, 4, 1, 2, 3, 4], 4));
         assert!(!repeated_suffix(&[1, 2, 3, 4, 1, 2, 3, 5], 4));
+    }
+
+    #[test]
+    fn parse_remote_url_parses_various_formats() {
+        let (host, port, path) = parse_remote_url("http://127.0.0.1:8000/v1");
+        assert_eq!(host, "127.0.0.1");
+        assert_eq!(port, 8000);
+        assert_eq!(path, "/v1/chat/completions");
+
+        let (host, port, path) = parse_remote_url("http://localhost:9000/v1/chat/completions");
+        assert_eq!(host, "localhost");
+        assert_eq!(port, 9000);
+        assert_eq!(path, "/v1/chat/completions");
     }
 }
