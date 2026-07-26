@@ -1659,6 +1659,7 @@ name = "uor-r4-api"
 version = "0.1.0"
 dependencies = [
  "blake3",
+ "serde",
  "serde_json",
  "uor-r4-core",
  "uor-r4-graph-certify",

@@ -10,6 +10,7 @@ uor-r4-graph-format = { path = "../uor-r4-graph-format" }
 uor-r4-graph-compiler = { path = "../uor-r4-graph-compiler" }
 uor-r4-graph-certify = { path = "../uor-r4-graph-certify" }
 uor-r4-graph-cli = { path = "../uor-r4-graph-cli" }
+serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 # Pinned to the workspace-wide blake3 version.
 blake3 = "=1.5.0"

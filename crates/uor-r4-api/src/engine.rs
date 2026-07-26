@@ -36,8 +36,47 @@
 use std::fmt;
 use std::io;
 
+use serde::{Deserialize, Serialize};
 use uor_r4_core::transformerless::compiler::{self, Compiled, SIG_BYTES, STAGES, WINDOW};
 use uor_r4_core::transformerless::runtime;
+
+/// Unified inference request payload across HTTP REST, WebSocket, and WASM interfaces.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct InferenceRequest {
+    /// Target prompt or query string.
+    pub text: String,
+    /// Tenant or session identity tag.
+    pub identity: Option<String>,
+    /// Requested synthesis engine ("r4g1", "transformerless", "geometric", "attention", "r4-attention").
+    pub engine: Option<String>,
+    /// Maximum continuation tokens to generate.
+    pub max_tokens: Option<usize>,
+    /// Temperature for geometric sampling.
+    pub temperature: Option<f64>,
+}
+
+/// Unified inference response payload across HTTP REST, WebSocket, and WASM interfaces.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct InferenceResponse {
+    /// Generated continuation or response text.
+    pub text: String,
+    /// Engine that served or processed the request.
+    pub engine: String,
+    /// Whether language generation was served.
+    pub llm_connected: bool,
+    /// Number of tokens generated in continuation.
+    pub tokens_generated: usize,
+    /// Whether D4 policy abstained.
+    pub abstained: bool,
+    /// Optional status label if abstained or policy served.
+    pub status: Option<String>,
+    /// Whether a widened search occurred.
+    pub widened: bool,
+    /// Detailed generation mode (e.g. "r4g1", "r4g1-abstained", "r4g1-fallback-transformerless").
+    pub generation_mode: String,
+    /// Optional error details if unfulfilled.
+    pub error: Option<String>,
+}
 use uor_r4_core::transformerless::scenarios::Tokenizer;
 use uor_r4_graph_certify::{
     GraphScorer, ScoreStatus, StepState, DEFAULT_EXCT_TOP_X, DEFAULT_ROOT_TOP_B, TOP_M,
@@ -834,4 +873,43 @@ pub fn validate_quality_report(report: &serde_json::Value) -> Result<(), String>
         }
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_inference_request_serde_roundtrip() {
+        let req = InferenceRequest {
+            text: "Hello, world!".to_string(),
+            identity: Some("user_123".to_string()),
+            engine: Some("r4g1".to_string()),
+            max_tokens: Some(32),
+            temperature: Some(0.7),
+        };
+        let json = serde_json::to_string(&req).expect("serialize InferenceRequest");
+        let decoded: InferenceRequest =
+            serde_json::from_str(&json).expect("deserialize InferenceRequest");
+        assert_eq!(req, decoded);
+    }
+
+    #[test]
+    fn test_inference_response_serde_roundtrip() {
+        let res = InferenceResponse {
+            text: "Response generated cleanly.".to_string(),
+            engine: "r4g1".to_string(),
+            llm_connected: true,
+            tokens_generated: 16,
+            abstained: false,
+            status: Some("exact_context".to_string()),
+            widened: false,
+            generation_mode: "r4g1-zero-multiply".to_string(),
+            error: None,
+        };
+        let json = serde_json::to_string(&res).expect("serialize InferenceResponse");
+        let decoded: InferenceResponse =
+            serde_json::from_str(&json).expect("deserialize InferenceResponse");
+        assert_eq!(res, decoded);
+    }
 }

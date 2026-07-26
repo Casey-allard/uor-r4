@@ -51,12 +51,9 @@ pub struct ServerConfig {
     pub tless_corpus_recs: Option<String>,
 }
 
-#[derive(Deserialize)]
-struct ChatPayload {
-    text: String,
-    identity: Option<String>,
-    engine: Option<String>,
-}
+pub use uor_r4_api::{InferenceRequest, InferenceResponse};
+
+type ChatPayload = InferenceRequest;
 
 #[derive(Deserialize)]
 struct CorpusPayload {
