@@ -89,6 +89,7 @@ pub fn ensure_owned_tless() {
                     if let (Ok(art_bytes), Ok(store_bytes)) =
                         (std::fs::read(art_path), std::fs::read(store_path))
                     {
+                        #[allow(deprecated)]
                         if let (Some(art), Some(store)) = (
                             uor_r4_core::transformerless::compiler::parse_artifacts(&art_bytes),
                             uor_r4_core::transformerless::runtime::parse_store(&store_bytes)

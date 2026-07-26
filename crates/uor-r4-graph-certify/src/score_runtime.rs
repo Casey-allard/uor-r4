@@ -874,6 +874,7 @@ impl GraphScorer {
                     }
                     let parsed = compiler::parse_artifacts(teacher)
                         .ok_or("teacher container is not a TLA artifact container")?;
+                    #[allow(deprecated)]
                     let store = runtime::parse_store(body)
                         .or_else(|| runtime::parse_store_legacy_u16(body))
                         .ok_or("EXCT remainder is not a TLS1 store (either era)")?;

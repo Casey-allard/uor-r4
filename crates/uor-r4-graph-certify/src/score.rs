@@ -899,6 +899,7 @@ pub fn emit_scored_r4g1(
     }
 
     // EXCT: descriptor + compile-time residualized exact-context tables.
+    #[allow(deprecated)]
     let store = runtime::parse_store(exct_tls1)
         .or_else(|| runtime::parse_store_legacy_u16(exct_tls1))
         .ok_or("EXCT input is not a TLS1 store")?;

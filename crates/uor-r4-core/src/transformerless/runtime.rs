@@ -813,10 +813,10 @@ pub fn parse_store(b: &[u8]) -> Option<Store> {
 }
 
 /// Parse the legacy pre-u32 TLS1 variant: 6-byte `(u16 token, u32 count)`
-/// evidence entries, written by pre-u32-migration compilers. The on-disk
-/// `.uor-models` store is of this era, so the R4G1 migration converter
-/// accepts both store eras; the wire layout is otherwise identical to
-/// `parse_store` (magic, per-level key lengths, exact consumption).
+/// evidence entries, written by pre-u32-migration compilers.
+#[deprecated(
+    note = "Legacy 16-bit store binaries are deprecated. Recompile store artifacts using u32 token IDs."
+)]
 pub fn parse_store_legacy_u16(b: &[u8]) -> Option<Store> {
     if b.len() < 4 || &b[0..4] != b"TLS1" {
         return None;
@@ -861,6 +861,70 @@ pub fn parse_store_legacy_u16(b: &[u8]) -> Option<Store> {
         return None;
     }
     Some(store)
+}
+
+/// Errors returned when parsing a store binary in strict u32 mode.
+#[derive(Debug, PartialEq, Eq)]
+pub enum StoreParseError {
+    InvalidFormat,
+    /// Deprecated legacy 16-bit store format detected. Recompile store artifacts using u32 token IDs.
+    LegacyStoreFormatDeprecated,
+}
+
+impl std::fmt::Display for StoreParseError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            StoreParseError::InvalidFormat => write!(f, "invalid TLS1 store binary format"),
+            StoreParseError::LegacyStoreFormatDeprecated => write!(
+                f,
+                "legacy 16-bit TLS1 store format is deprecated; recompile store artifacts using u32 token IDs"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for StoreParseError {}
+
+/// Parse a store binary enforcing strict 32-bit integer (u32) token alignment.
+/// Fails fast with `StoreParseError::LegacyStoreFormatDeprecated` if a legacy 16-bit binary is detected.
+pub fn parse_store_strict_u32(b: &[u8]) -> Result<Store, StoreParseError> {
+    if let Some(store) = parse_store(b) {
+        return Ok(store);
+    }
+    #[allow(deprecated)]
+    if parse_store_legacy_u16(b).is_some() {
+        return Err(StoreParseError::LegacyStoreFormatDeprecated);
+    }
+    Err(StoreParseError::InvalidFormat)
+}
+
+/// Scan `models_dir` (e.g. `.uor-models/`) recursively for legacy `.u16` store cache files
+/// or legacy store binaries, removing them to enforce u32 recompilation. Returns the number of files purged.
+#[cfg(not(target_arch = "wasm32"))]
+pub fn purge_legacy_store_cache(models_dir: &std::path::Path) -> std::io::Result<usize> {
+    if !models_dir.exists() {
+        return Ok(0);
+    }
+    let mut purged = 0usize;
+    let entries = std::fs::read_dir(models_dir)?;
+    for entry in entries {
+        let entry = entry?;
+        let path = entry.path();
+        if path.is_dir() {
+            purged += purge_legacy_store_cache(&path)?;
+        } else if let Some(ext) = path.extension() {
+            if ext == "u16"
+                || path
+                    .file_name()
+                    .and_then(|n| n.to_str())
+                    .is_some_and(|s| s.contains("legacy_u16"))
+            {
+                std::fs::remove_file(&path)?;
+                purged += 1;
+            }
+        }
+    }
+    Ok(purged)
 }
 
 /// κ-label of a store's TLS1 bytes.

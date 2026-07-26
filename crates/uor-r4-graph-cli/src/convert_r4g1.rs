@@ -39,6 +39,7 @@ pub fn run(args: &[String]) -> Result<(), String> {
         std::fs::read(&store_path).map_err(|error| format!("{}: {error}", store_path.display()))?;
     // Both store eras are accepted: the current 8-byte-entry TLS1 and
     // the legacy 6-byte-entry (u16 token) variant.
+    #[allow(deprecated)]
     let store = runtime::parse_store(&store_bytes)
         .or_else(|| runtime::parse_store_legacy_u16(&store_bytes))
         .ok_or_else(|| format!("{}: not a TLS1 store (either era)", store_path.display()))?;

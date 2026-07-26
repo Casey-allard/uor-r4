@@ -376,6 +376,7 @@ fn convert_real_models_pair() {
     };
     let artifacts = compiler::parse_artifacts(&artifact_bytes).expect("real artifacts parse");
     // The on-disk store is the pre-u32 TLS1 variant; accept either era.
+    #[allow(deprecated)]
     let store = runtime::parse_store(&store_bytes)
         .or_else(|| runtime::parse_store_legacy_u16(&store_bytes))
         .expect("real store parses under one TLS1 era");
@@ -393,6 +394,7 @@ fn convert_real_models_pair() {
     assert_eq!(r4g1, r4g1_second);
     // EXCT carryover round-trips through the legacy parser.
     let exct = view.section(SectionId::EXCT).unwrap();
+    #[allow(deprecated)]
     let reparsed = runtime::parse_store_legacy_u16(&exct[4..]).expect("EXCT legacy parse");
     let keys: usize = reparsed.iter().map(|level| level.len()).sum();
     let want_keys: usize = store.iter().map(|level| level.len()).sum();
