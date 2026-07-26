@@ -1025,7 +1025,7 @@ pub fn score_command(args: &[String]) -> Result<(), String> {
     println!("  report: {}", report_path.display());
     Ok(())
 }
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 struct EvaluationReport {
     schema: u32,
     distribution: EvaluationDistribution,
@@ -1034,27 +1034,27 @@ struct EvaluationReport {
     metrics: EvaluationMetrics,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 struct EvaluationReportEnvelope {
     report: EvaluationReport,
     report_cid_of_report_bytes: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 struct EvaluationDistribution {
     name: String,
     split: String,
     held_out_tokens: usize,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 struct EvaluationSource {
     directory: String,
     cid: String,
     sequence_length: usize,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 struct EvaluationArtifacts {
     directory: String,
     artifacts_cid: String,
@@ -1064,7 +1064,7 @@ struct EvaluationArtifacts {
     corpus_records_cid: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 struct EvaluationMetrics {
     top1_accuracy_pct: f64,
     teacher_argmax_agreement_pct: f64,
@@ -1298,6 +1298,14 @@ fn evaluate_report(args: &[String]) -> Result<(), String> {
             .map_err(|error| format!("failed to load Hugging Face model: {error}"))?;
     let mut teacher_logits = vec![0f32; oracle.vocab()];
     let artifacts_bytes = std::fs::read(&artifacts_path).map_err(|error| error.to_string())?;
+    let tokenizer_bytes = std::fs::read(&tokenizer_path).map_err(|error| error.to_string())?;
+
+    if let Ok(graph_view) = uor_r4_graph_format::GraphView::parse(&artifacts_bytes) {
+        graph_view
+            .verify_tokenizer_cid(&tokenizer_bytes)
+            .map_err(|e| format!("tokenizer_cid verification failed: {e}"))?;
+    }
+
     let artifacts = compiler::parse_artifacts(&artifacts_bytes)
         .ok_or_else(|| "invalid compiled artifact container".to_owned())?;
     let store_bytes = std::fs::read(&store_path).map_err(|error| error.to_string())?;
@@ -1898,6 +1906,49 @@ mod tests {
         assert_eq!(options.compiled, PathBuf::from("/tmp/compiled"));
         assert_eq!(options.report, Some(PathBuf::from("/tmp/out.json")));
         assert_eq!(options.sequence_length, 256);
+    }
+
+    #[test]
+    fn test_evaluation_report_envelope_serialization() {
+        let report = EvaluationReport {
+            schema: 1,
+            distribution: EvaluationDistribution {
+                name: "D3-held-out".to_owned(),
+                split: "compiler::train_cut 80/20 by story id".to_owned(),
+                held_out_tokens: 500,
+            },
+            source: EvaluationSource {
+                directory: ".uor-models/sources/smollm2-135m-instruct".to_owned(),
+                cid: "blake3:1111".to_owned(),
+                sequence_length: 256,
+            },
+            artifacts: EvaluationArtifacts {
+                directory: ".uor-models/compiled/smollm2-135m-instruct".to_owned(),
+                artifacts_cid: "blake3:2222".to_owned(),
+                store_cid: "blake3:3333".to_owned(),
+                tokenizer_cid: "blake3:4444".to_owned(),
+                corpus_meta_cid: "blake3:5555".to_owned(),
+                corpus_records_cid: "blake3:6666".to_owned(),
+            },
+            metrics: EvaluationMetrics {
+                top1_accuracy_pct: 35.5,
+                teacher_argmax_agreement_pct: 42.0,
+                bits_per_token: 18.2,
+                teacher_floor_bits_per_token: 14.8,
+                bits_over_teacher_floor: 3.4,
+            },
+        };
+
+        let json = serde_json::to_vec_pretty(&report).expect("serialize report");
+        let cid = format!("blake3:{}", blake3::hash(&json).to_hex());
+        let envelope = EvaluationReportEnvelope {
+            report: report.clone(),
+            report_cid_of_report_bytes: cid.clone(),
+        };
+
+        assert_eq!(envelope.report.metrics.top1_accuracy_pct, 35.5);
+        assert_eq!(envelope.report.source.sequence_length, 256);
+        assert!(envelope.report_cid_of_report_bytes.starts_with("blake3:"));
     }
 
     #[test]
