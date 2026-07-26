@@ -91,6 +91,8 @@ enum Command {
     Chat(ChatArgs),
     /// Connect to a local uor-r4 server endpoint as a remote interactive client.
     Client(ClientArgs),
+    /// View or export UOR Q&A audit traces and geometry metrics.
+    Audit(AuditArgs),
     /// Compile a local or pinned Hugging Face model into an R⁴ bundle.
     Compile(CompileArgs),
     /// Download pinned open weights for offline compilation.
@@ -198,6 +200,13 @@ struct CompileArgs {
     /// Enable experimental R4 Spin(4) softmax-free attention during compilation.
     #[arg(long, default_value_t = false)]
     r4_attention: bool,
+}
+
+#[derive(Args, Debug)]
+struct AuditArgs {
+    /// Path to the session audit log file [default: .uor-models/audit_log.json].
+    #[arg(long, default_value = ".uor-models/audit_log.json")]
+    log_file: PathBuf,
 }
 
 #[derive(Args, Debug)]
@@ -578,11 +587,73 @@ fn run(cli: &Cli) -> Result<(), RunError> {
         Some(Command::GraphObserve { args }) => {
             uor_r4_graph_compiler::observe(args).map_err(RunError::Command)
         }
+        Some(Command::Audit(args)) => audit_command(&args.log_file),
         Some(Command::Serve) | None => {
             server::run_server(Arc::new(cli.server_config()));
             Ok(())
         }
     }
+}
+
+fn audit_command(log_file: &PathBuf) -> Result<(), RunError> {
+    if !log_file.exists() {
+        println!(
+            "\x1b[33m[!] No audit log file found at {}\x1b[0m",
+            log_file.display()
+        );
+        println!(
+            "    Run the interactive client ('./uor-r4-cli' or 'r4 client') and ask questions first.\n"
+        );
+        return Ok(());
+    }
+    let content = std::fs::read_to_string(log_file)?;
+    let records: serde_json::Value = serde_json::from_str(&content)
+        .map_err(|e| RunError::Command(format!("Failed to parse audit log: {}", e)))?;
+
+    println!("\n\x1b[1;36m┌─────────────────────────────────────────────────────────────────────────────┐\x1b[0m");
+    println!("\x1b[1;36m│  R⁴ UOR Auditability & Tracing Log Inspector                                │\x1b[0m");
+    println!("\x1b[1;36m├─────────────────────────────────────────────────────────────────────────────┤\x1b[0m");
+    println!("  Audit Log Path: \x1b[1m{}\x1b[0m", log_file.display());
+
+    if let Some(arr) = records.as_array() {
+        println!("  Total Audited Turns: \x1b[32m{}\x1b[0m", arr.len());
+        for (idx, item) in arr.iter().enumerate() {
+            println!("\x1b[1;36m├─────────────────────────────────────────────────────────────────────────────┤\x1b[0m");
+            let q = item.get(0).and_then(|v| v.as_str()).unwrap_or("");
+            let a = item.get(1).and_then(|v| v.as_str()).unwrap_or("");
+            let audit = item.get(2);
+
+            let short_q = if q.len() > 60 {
+                format!("{}...", &q[..60])
+            } else {
+                q.to_string()
+            };
+            let short_a = if a.len() > 60 {
+                format!("{}...", &a[..60])
+            } else {
+                a.to_string()
+            };
+            println!("  [\x1b[1mTurn #{}\x1b[0m] Q: {}", idx + 1, short_q);
+            println!("          A: {}", short_a);
+
+            if let Some(aud) = audit.filter(|v| !v.is_null()) {
+                let uor_addr = aud["uor_address"].as_str().unwrap_or("N/A");
+                let kappa = aud["kappa"].as_f64().unwrap_or(0.0);
+                let kappa_pass = aud["kappa_pass"].as_bool().unwrap_or(false);
+                let mode = aud["generation_mode"].as_str().unwrap_or("r4g1");
+                let lat = aud["total_latency_ms"].as_f64().unwrap_or(0.0);
+                let pass_str = if kappa_pass {
+                    "\x1b[32m[✓ PASS]\x1b[0m"
+                } else {
+                    "\x1b[33m[! DRIFT]\x1b[0m"
+                };
+
+                println!("          UOR Address: \x1b[36m{}\x1b[0m | κ: {:.4} {} | mode: \x1b[32m{}\x1b[0m | latency: {:.2}ms", uor_addr, kappa, pass_str, mode, lat);
+            }
+        }
+    }
+    println!("\x1b[1;36m└─────────────────────────────────────────────────────────────────────────────┘\x1b[0m\n");
+    Ok(())
 }
 
 fn main() {

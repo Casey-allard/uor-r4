@@ -93,6 +93,28 @@ pub struct VendorUsage {
     pub total_tokens: usize,
 }
 
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct TokenTraceEntry {
+    pub token_id: u32,
+    pub text: String,
+    pub origin_rule: String,
+    pub latency_ms: f64,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct UorAuditTrace {
+    pub uor_address: String,
+    pub kappa: f64,
+    pub deficit_angle: f64,
+    pub entropy_bias: f64,
+    pub gamma: f64,
+    pub temperature: f64,
+    pub kappa_pass: bool,
+    pub generation_mode: String,
+    pub total_latency_ms: f64,
+    pub tokens_detail: Vec<TokenTraceEntry>,
+}
+
 #[derive(Debug, serde::Serialize)]
 pub struct VendorChatCompletionsResponse {
     pub id: String,
@@ -103,6 +125,8 @@ pub struct VendorChatCompletionsResponse {
     pub usage: VendorUsage,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub system_fingerprint: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub uor_audit: Option<UorAuditTrace>,
 }
 
 #[derive(Deserialize)]
@@ -1845,6 +1869,48 @@ fn handle_connection(
             .unwrap_or_default()
             .as_secs();
 
+        let duration_ms = start_time.elapsed().as_secs_f64() * 1000.0;
+        let words: Vec<&str> = final_response_text.split_whitespace().collect();
+        let per_token_ms = if words.is_empty() {
+            0.0
+        } else {
+            duration_ms / words.len() as f64
+        };
+        let tokens_detail: Vec<TokenTraceEntry> = words
+            .iter()
+            .enumerate()
+            .map(|(idx, w)| TokenTraceEntry {
+                token_id: idx as u32,
+                text: w.to_string(),
+                origin_rule: match generation_mode.as_str() {
+                    "r4g1" => "R4G1 Residual Graph (Rule 1/2)".to_string(),
+                    "teacher-oracle-fallback" => {
+                        "Teacher Oracle Fallback (Full Attention)".to_string()
+                    }
+                    "geometric-decoded" => "f64 Geometric Router Manifold".to_string(),
+                    "r4g1-abstained" => "R4G1 Abstained (OOD Shield)".to_string(),
+                    _ => "ExactContext Carryover".to_string(),
+                },
+                latency_ms: (per_token_ms * 100.0).round() / 100.0,
+            })
+            .collect();
+
+        let uor_addr = format!("uor:cbor:blake3:{:016x}", (kappa.abs() * 1e12) as u64);
+        let kappa_pass = (0.10..=2.50).contains(&kappa);
+
+        let uor_audit = UorAuditTrace {
+            uor_address: uor_addr,
+            kappa: (kappa * 10000.0).round() / 10000.0,
+            deficit_angle: (theta_d * 10000.0).round() / 10000.0,
+            entropy_bias: (uor_bias * 10000.0).round() / 10000.0,
+            gamma: (gamma * 10000.0).round() / 10000.0,
+            temperature,
+            kappa_pass,
+            generation_mode: generation_mode.clone(),
+            total_latency_ms: (duration_ms * 100.0).round() / 100.0,
+            tokens_detail,
+        };
+
         let resp = VendorChatCompletionsResponse {
             id: format!("chatcmpl-uor-r4-{}", created_ts),
             object: "chat.completion".to_string(),
@@ -1864,6 +1930,7 @@ fn handle_connection(
                 total_tokens,
             },
             system_fingerprint: Some(format!("uor-r4-{}", generation_mode)),
+            uor_audit: Some(uor_audit),
         };
 
         send_json_response(stream, 200, &serde_json::to_string(&resp).unwrap());

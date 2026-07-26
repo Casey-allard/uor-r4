@@ -86,6 +86,65 @@ intentionally not part of this runtime.
 
 ## Quick start
 
+### 1. Single-Command Interactive Launcher (`uor-r4-cli`)
+
+For zero-setup testing, model compilation, and interactive Q&A out of the box:
+
+```bash
+# Launch single-command orchestrator & interactive client
+./uor-r4-cli
+```
+
+The `uor-r4-cli` orchestrator automatically:
+1. Clears the screen and clears standard terminal settings on launch.
+2. Auto-detects and restores your last used model (`smollm2-135m-instruct`, `smollm2-360m-instruct`, or `smollm2-1-7b-instruct`) and active synthesis engine (`r4g1` or `attention`).
+3. Handles 4-stage pipeline execution: downloads pinned teacher weights, compiles zero-multiply observation corpora, and builds scored R4G1 residual graph covers automatically when required.
+4. Launches the local backend server on port `8000` and connects the interactive client REPL.
+
+#### Global Terminal Execution (macOS / Linux)
+
+To run `uor-r4-cli` from **any directory** in your terminal:
+
+```bash
+# 1. Symlink to user local bin
+mkdir -p ~/.local/bin
+ln -sf $(pwd)/uor-r4-cli ~/.local/bin/uor-r4-cli
+
+# 2. Ensure ~/.local/bin is in your PATH (Zsh)
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc
+source ~/.zshrc
+
+# Now type uor-r4-cli from anywhere!
+uor-r4-cli
+```
+
+#### In-Session Slash Commands & Interactive Menu
+
+Type `/` at the prompt to launch the interactive slash command menu, or run direct commands:
+
+- `/models` — View and switch active teacher models in-session with live download/compilation badges (`[DL: ✓ | CP: ✓]`).
+- `/engine` — Switch active synthesis engine (`r4g1` sub-ms zero-multiply graph, `attention` teacher oracle fallback, `r4-attention`, `geometric`).
+- `/status` — View 4-stage R4G1 pipeline compilation status table and readiness metrics.
+- `/corpus` — Manage extra reading corpus datasets and view indexed server files.
+- `/compile` — Trigger automated 4-stage in-session model graph compilation.
+- `/audit` — Inspect UOR coordinates ($\kappa$, $\theta_d$, $uor\_bias$), $\kappa$-pass reproduction status, token provenance traces, and export session logs (`.uor-models/audit_log.json`).
+- `/clear` — Clear terminal screen.
+- `/quit` — Exit client session cleanly.
+
+#### Standalone UOR Trace Audit (`uor-r4-cli --audit`)
+
+To inspect UOR compliance audit traces from previous sessions directly:
+
+```bash
+# Launch UOR audit inspector from CLI
+uor-r4-cli --audit
+
+# Or using the binary directly
+r4 audit
+```
+
+### 2. Manual Workspace Verification & Server Execution
+
 Verify the workspace:
 
 ```bash
