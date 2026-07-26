@@ -41,6 +41,15 @@ use uor_r4_model_source::TeacherOracle;
 
 const MAX_TOKEN_BYTES: usize = 1024;
 
+/// Format an instructional query into native ChatML / instruct template format for teacher models:
+/// `<|im_start|>system\n{system_prompt}<|im_end|>\n<|im_start|>user\n{user_prompt}<|im_end|>\n<|im_start|>assistant\n`
+pub fn format_instruct_chat_prompt(system_prompt: Option<&str>, user_prompt: &str) -> String {
+    let system = system_prompt.unwrap_or("You are a helpful AI assistant.");
+    format!(
+        "<|im_start|>system\n{system}<|im_end|>\n<|im_start|>user\n{user_prompt}<|im_end|>\n<|im_start|>assistant\n"
+    )
+}
+
 /// Convert a Hugging Face byte-level BPE vocabulary into the compact token
 /// table consumed by the allocation-free runtime tokenizer.
 #[cfg(not(target_arch = "wasm32"))]
@@ -281,6 +290,12 @@ impl Tokenizer {
             }
         }
         (self.encode(&sanitized), replaced)
+    }
+
+    /// Encode an instructional prompt wrapped in native ChatML template format.
+    pub fn encode_chat_prompt(&self, system_prompt: Option<&str>, user_prompt: &str) -> Vec<u32> {
+        let formatted = format_instruct_chat_prompt(system_prompt, user_prompt);
+        self.encode(&formatted)
     }
 
     /// Encode into caller-owned storage.
@@ -719,4 +734,25 @@ pub fn scenarios(oracle: &mut dyn TeacherOracle) {
     println!(
         "notes: prompt scenarios measure agreement along the teacher's own greedy\ntrajectory; real-text rows also score both systems against the actual next\ntoken. The store was built from the training split only — every scenario\nstream is unseen. Classical runtimes execute the source model, so their\nscenario predictions coincide with the teacher columns by definition."
     );
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_format_instruct_chat_prompt_default_system() {
+        let formatted = format_instruct_chat_prompt(None, "Why is the sky blue?");
+        assert!(formatted.contains("<|im_start|>system\nYou are a helpful AI assistant.<|im_end|>"));
+        assert!(formatted.contains("<|im_start|>user\nWhy is the sky blue?<|im_end|>"));
+        assert!(formatted.ends_with("<|im_start|>assistant\n"));
+    }
+
+    #[test]
+    fn test_format_instruct_chat_prompt_custom_system() {
+        let formatted = format_instruct_chat_prompt(Some("System directive"), "Hello!");
+        assert!(formatted.contains("<|im_start|>system\nSystem directive<|im_end|>"));
+        assert!(formatted.contains("<|im_start|>user\nHello!<|im_end|>"));
+        assert!(formatted.ends_with("<|im_start|>assistant\n"));
+    }
 }
