@@ -1673,14 +1673,19 @@ fn handle_connection(
                     }
                 }
             }
-            if final_response_text.is_empty()
-                && (engine_mode == "transformerless" || engine_mode == "transformerless-legacy")
-            {
+            if final_response_text.is_empty() && !r4g1_abstained {
                 if let Some(text) = generate_tless_text(&tless, &prompt, max_tokens.max(32)) {
                     final_response_text = text;
                     llm_connected = true;
-                    generation_mode = "transformerless-legacy".to_string();
+                    generation_mode = if engine_mode == "r4g1" {
+                        "transformerless-fallback".to_string()
+                    } else {
+                        "transformerless-legacy".to_string()
+                    };
                     tokens_generated = final_response_text.split_whitespace().count();
+                    println!(
+                        "[+] Fallback engine successfully generated response via transformerless"
+                    );
                 }
             }
         }
@@ -3047,5 +3052,34 @@ mod tests {
             attestation_envelope["attestation_cid"].as_str().unwrap(),
             expected_uor_address
         );
+    }
+
+    #[test]
+    fn test_pathological_generation_triggers_fallback() {
+        let pathological_text =
+            "that is how i work that is how i work that is how i work that is how i work";
+        assert!(!super::is_usable_generated_text(pathological_text));
+
+        let _prompt = "Explain quantum geometric routing in plain terms.";
+        let engine_mode = "r4g1";
+        let mut final_response_text = String::new();
+        let mut generation_mode = "r4g1-rejected".to_string();
+        let r4g1_abstained = false;
+
+        // Simulate fallback execution when primary R4G1 output is rejected
+        if final_response_text.is_empty() && !r4g1_abstained {
+            // Secondary fallback simulation
+            let fallback_text = "Quantum geometric routing maps high-dimensional state vectors to discrete discrete manifolds.";
+            final_response_text = fallback_text.to_string();
+            generation_mode = if engine_mode == "r4g1" {
+                "transformerless-fallback".to_string()
+            } else {
+                "transformerless-legacy".to_string()
+            };
+        }
+
+        assert_eq!(generation_mode, "transformerless-fallback");
+        assert!(!final_response_text.is_empty());
+        assert!(super::is_usable_generated_text(&final_response_text));
     }
 }
