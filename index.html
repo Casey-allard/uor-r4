@@ -1224,23 +1224,31 @@
             </div>
         </div>
 
-        <!-- Scale Window Equalizer -->
-        <div>
-            <div class="section-label">Scale Window Energy</div>
-            <div class="equalizer" id="equalizerChart"></div>
+        <!-- Developer Mode Toggle Bar -->
+        <div style="display:flex; align-items:center; gap:0.5rem; margin-top:0.4rem; padding:0.4rem 0.6rem; background:var(--panel); border:1px solid var(--border); border-radius:6px;">
+            <input type="checkbox" id="dev-mode-toggle" style="cursor:pointer;">
+            <label for="dev-mode-toggle" style="font-size:0.72rem; color:var(--text2); cursor:pointer; font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">Developer Mode (Advanced Manifold Telemetry)</label>
         </div>
 
-        <!-- Eigenvalues -->
-        <div>
-            <div class="section-label">Eigenvalue Spectrum</div>
-            <div class="eigen-list" id="eigenvalueList"></div>
-        </div>
+        <div id="advanced-telemetry-panel" style="display:none; flex-direction:column; gap:1rem;">
+            <!-- Scale Window Equalizer -->
+            <div>
+                <div class="section-label">Scale Window Energy</div>
+                <div class="equalizer" id="equalizerChart"></div>
+            </div>
 
-        <!-- Resonance Projections -->
-        <div>
-            <div class="section-label">Top Corpus Resonances</div>
-            <div class="resonance-list" id="resonanceList">
-                <div style="font-size:0.72rem;color:var(--muted);text-align:center;padding:1rem;">No resonances yet. Send a query first.</div>
+            <!-- Eigenvalues -->
+            <div>
+                <div class="section-label">Eigenvalue Spectrum</div>
+                <div class="eigen-list" id="eigenvalueList"></div>
+            </div>
+
+            <!-- Resonance Projections -->
+            <div>
+                <div class="section-label">Top Corpus Resonances</div>
+                <div class="resonance-list" id="resonanceList">
+                    <div style="font-size:0.72rem;color:var(--muted);text-align:center;padding:1rem;">No resonances yet. Send a query first.</div>
+                </div>
             </div>
         </div>
     </div>
@@ -2178,6 +2186,43 @@ function renderThoughtStreamTrace() {
     ctx.arc(center.x, center.y, 4, 0, Math.PI * 2);
     ctx.fillStyle = '#ff5252';
     ctx.fill();
+
+    // Render 96-vertex W(3,3) Phase Field Graph Vertices & Trajectories
+    const w33Count = 96;
+    const w33Radius = 90;
+    const activeExpertCount = parseInt(document.getElementById("expert-count")?.textContent || "0", 10);
+
+    ctx.lineWidth = 0.8;
+    for (let i = 0; i < w33Count; i++) {
+        const theta = (i / w33Count) * Math.PI * 2 + traceRotY;
+        const phi = ((i % 12) / 12) * Math.PI - Math.PI / 2;
+        const vx = w33Radius * Math.cos(phi) * Math.cos(theta);
+        const vz = w33Radius * Math.cos(phi) * Math.sin(theta);
+        const vy = w33Radius * Math.sin(phi);
+
+        const vp = project3D(vx, vy, vz, W, H);
+        const isActive = (i < activeExpertCount || (i % 8 === (activeExpertCount % 8)));
+
+        ctx.beginPath();
+        ctx.arc(vp.x, vp.y, isActive ? 2.5 : 1.2, 0, Math.PI * 2);
+        ctx.fillStyle = isActive ? 'rgba(0, 229, 255, 0.8)' : 'rgba(255, 255, 255, 0.12)';
+        ctx.fill();
+
+        if (isActive && i > 0 && i % 4 === 0) {
+            const prevTheta = ((i - 4) / w33Count) * Math.PI * 2 + traceRotY;
+            const prevPhi = (((i - 4) % 12) / 12) * Math.PI - Math.PI / 2;
+            const px = w33Radius * Math.cos(prevPhi) * Math.cos(prevTheta);
+            const pz = w33Radius * Math.cos(prevPhi) * Math.sin(prevTheta);
+            const py = w33Radius * Math.sin(prevPhi);
+            const pp = project3D(px, py, pz, W, H);
+
+            ctx.beginPath();
+            ctx.moveTo(pp.x, pp.y);
+            ctx.lineTo(vp.x, vp.y);
+            ctx.strokeStyle = 'rgba(191, 127, 255, 0.35)';
+            ctx.stroke();
+        }
+    }
 
     if (clientThoughtStreams.length === 0) {
         ctx.fillStyle = "rgba(255,255,255,0.2)";
@@ -3838,6 +3883,15 @@ async function startApp() {
         await restoreSessionFromLocalStorage();
         updateConnectionStatusUI();
         populateExpertMatrix([]);
+
+        const devToggle = document.getElementById("dev-mode-toggle");
+        const advPanel = document.getElementById("advanced-telemetry-panel");
+        if (devToggle && advPanel) {
+            advPanel.style.display = devToggle.checked ? "flex" : "none";
+            devToggle.addEventListener("change", () => {
+                advPanel.style.display = devToggle.checked ? "flex" : "none";
+            });
+        }
         
         await loadSemanticMap();
         
