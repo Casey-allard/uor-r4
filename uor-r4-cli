@@ -17,7 +17,7 @@ clear 2>/dev/null || true
 # Restore standard terminal settings
 stty sane 2>/dev/null || true
 
-# R⁴ Single-Command Launcher & Model Compilation Orchestrator
+# UOR-R4 Single-Command Launcher & Model Compilation Orchestrator
 # Supports model selection, live progress bars, 4-stage graph compilation, and background server teardown.
 
 PORT=${PORT:-8000}
@@ -69,7 +69,7 @@ fi
 # If no model choice established, show menu
 if [ -z "$MODEL_CHOICE" ]; then
     echo -e "\n┌─────────────────────────────────────────────────────────────────────────────┐"
-    echo -e "│  R⁴ Local Zero-Multiply Model & Audit Selection                              │"
+    echo -e "│  UOR-R4 Local Zero-Multiply Model & Audit Selection                          │"
     echo -e "├─────────────────────────────────────────────────────────────────────────────┤"
     echo -e "│  1) SmolLM2-135M-Instruct  [Fast & Ultra-Light, ~270MB]                    │"
     echo -e "│  2) SmolLM2-360M-Instruct  [Balanced Quality, ~720MB]                      │"

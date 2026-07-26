@@ -200,6 +200,9 @@ struct CompileArgs {
     /// Enable experimental R4 Spin(4) softmax-free attention during compilation.
     #[arg(long, default_value_t = false)]
     r4_attention: bool,
+    /// Force exact scalar CPU math instead of Apple Accelerate / SIMD hardware matrix acceleration.
+    #[arg(long, default_value_t = false)]
+    exact_scalar: bool,
 }
 
 #[derive(Args, Debug)]
@@ -419,6 +422,9 @@ fn compile(args: &CompileArgs) -> Result<(), RunError> {
     ]);
     if args.r4_attention {
         values.push("--r4-attention".to_owned());
+    }
+    if args.exact_scalar {
+        std::env::set_var("TLESS_EXACT_SCALAR", "1");
     }
     transformerless_command::compile_hugging_face(&values).map_err(RunError::Command)
 }

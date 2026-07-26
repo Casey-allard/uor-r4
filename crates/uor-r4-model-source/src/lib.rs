@@ -1036,8 +1036,13 @@ impl HuggingFaceLlamaOracle {
         let source_bytes = model_bytes.len();
         let model = Llama::from_flat(cfg, weights, config.tie_word_embeddings);
         let state = State::new(&model.cfg);
-        let fast_matmul = false;
-        eprintln!("teacher model ready (κ {kappa}, matmul=exact scalar (deterministic))");
+        let fast_matmul = std::env::var("TLESS_EXACT_SCALAR").is_err();
+        let backend = if fast_matmul {
+            fast_matmul_backend()
+        } else {
+            "exact scalar (deterministic)"
+        };
+        eprintln!("teacher model ready (κ {kappa}, matmul={backend})");
         Ok(Self {
             model,
             state,
