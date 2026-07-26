@@ -29,7 +29,8 @@ version gate).
   zero-padding checks.
 - **`GraphView<'a>`** (`view.rs`): constructed only after both stages pass;
   borrowed zero-copy access to sections, HEAD, nodes, edges, and the reverse
-  index. Never deserializes into heap object graphs.
+  index. Includes `verify_tokenizer_cid(&self, tokenizer_bytes)` to validate BLAKE3
+  tokenizer hashes against `R4G1Header::tokenizer_cid`. Never deserializes into heap object graphs.
 - **Canonical serializer** (`ser.rs`): `ArtifactBuilder` — deterministic
   container bytes (identical inputs ⇒ identical bytes), CID computation.
 - **Errors** (`error.rs`): one focused `FormatError` variant per invariant;

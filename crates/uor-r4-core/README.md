@@ -39,7 +39,7 @@ This crate hosts two things:
 | `fairness_provenance` | Bias amplification, rare-group erasure, provenance-deletion support |
 | `graph_patch` | Immutable content-addressed patch epochs and route translation |
 | `shortlist_evaluator` | Shortlist top‑M recall measurement vs the reference classifier |
-| `scenarios` | Byte-level BPE tokenizer export + scenario suite |
+| `scenarios` | ChatML prompt wrappers (`format_instruct_chat_prompt`, `encode_chat_prompt`), byte-level BPE tokenizer export, scenario suite |
 | `command` | `r4 transformerless …` CLI dispatch |
 
 ## Runtime contract (normative)
@@ -48,7 +48,8 @@ Per-token inference uses only XOR/AND/OR/shift/popcount/integer add/compare/
 table reads. No multiplication or division exists in the runtime kernel
 (machine-checked source scan in `transformerless/mod.rs` witnesses P-1…P-4).
 The prediction hot path is allocation-free in steady state (asserted by
-`tests/allocation_census.rs`). Compiler and certifier are offline and may use
+`tests/allocation_census.rs`). Context sliding beyond `WINDOW = 8` performs zero-allocation
+slice truncation `[t-7..t]` and emits `tracing::warn!`. Store parsing is strictly 32-bit (`parse_store_strict_u32`). Compiler and certifier are offline and may use
 floats, matmul, and allocation; the runtime may not.
 The boundary and allowed/forbidden operation classes are normatively versioned
 in `docs/transformerless/INFERENCE_OPERATION_CONTRACT.md`.

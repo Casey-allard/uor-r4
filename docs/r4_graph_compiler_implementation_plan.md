@@ -169,9 +169,9 @@ runtime. The graph compiler generalizes it from *flat quantized classes + graded
 | Overlapping multiresolution cover induction (§6 st.3) | Single-scale RVQ stages | **Build new** (compiler) |
 | Semantic transitions + residual emission scoring S(v) (§23) | Store counts + deepest-populated-class backoff | **Generalize** — root prior = level-0 backoff; ΔE/ΔT/ΔX residuals; ScoreQ fixed-point replaces f32 |
 | Boolean routing synthesis, shortlist + exact verifier (§10) | Exhaustive 1024-class scan (cheap enough today) | **Build new** — trigger-gated (D5); exact verifier stays normative |
-| Multi-timescale state (§8) | 8-token rolling window only (`compiler.rs:30` `WINDOW=8`) | **Build new** — token state exists; local/segment/session states are new |
-| Resolution status (Supported/Boundary/BackedOff/Novel/Contradictory) (§9) | Implicit backoff depth in `Prediction.depth` | **Build new** — explicit `ResolutionStatus` + manifest fallback policy (D4) |
-| Proof-carrying witness, independent replay (§24) | Per-prediction `Grounded` + op census witness | **Extend** — route/margin/edge/emission witness schema + standalone verifier |
+| Multi-timescale state (§8) | 8-token rolling window (`WINDOW = 8` Dyadic-Recency context truncation with zero-allocation slice `[t-7..t]`) | **Landed** — 8-token window bounds enforced; multi-timescale extension (local/segment/session) scheduled for Phase 8 |
+| Resolution status (Supported/Boundary/BackedOff/Novel/Contradictory) (§9) | `ResolutionStatus` + `FallbackRouter` policy (`src/fallback.rs` cascade from `r4g1-graph` to `transformerless-tla5`) | **Landed** (PR #211) — explicit `ResolutionStatus` and `FallbackRouter` pipeline active |
+| Proof-carrying witness, independent replay (§24) | Per-prediction `Grounded` + UOR attestation envelopes (`/api/uor/verify`) | **Landed** (PR #214) — UOR attestation envelopes with BLAKE3 CIDs |
 | Epochs/patches/tombstones/route translation (§13) | Online `add_evidence`/`remove_entry` with κ attestation | **Formalize** — immutable patch epochs, bounded layers, compaction |
 | Allocation-free `RuntimeState` (§16, §21) | Heap `Store`/`Compiled`; allocation-free *read* path exists and is now test-asserted; `add_evidence` allocates | **Refactor** — packed borrowed views + fixed-capacity state |
 | no_std runtime | `std` throughout; wasm32 cfg-gates exist | **Refactor** — `graph-format`/`graph-runtime` cores no_std, caller-owned-bytes-first (target-neutral, D6); std adapters isolated |

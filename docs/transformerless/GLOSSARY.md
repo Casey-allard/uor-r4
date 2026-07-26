@@ -136,3 +136,14 @@ graph term is normative for new work. See the terminology bridge in the plan (§
 - **Baseline** — the current certified transformerless artifact (TLA3/TLS1) and its measured
   fidelity: 28.9% top-1, 31.7% teacher-argmax agreement, 6.54 bits/token, 89,200 store keys
   (PROOF.md P2). Gate C compares the graph against this baseline before replacement.
+
+## Recent Architecture & Engine Additions (Epic #201)
+
+- **`tokenizer_cid`** — BLAKE3 hash of the loaded `tokenizer.bin` checked against `R4G1Header::tokenizer_cid` in `uor-r4-graph-format` (`verify_tokenizer_cid`), guaranteeing that loaded tokenizers match compiled graph artifacts and preventing silent index shifts.
+- **`parse_store_strict_u32`** — The normative 32-bit integer token ID store parser in `uor-r4-core::runtime`. Replaces deprecated `u16` legacy store loading.
+- **`FallbackRouter`** — The dynamic engine fallback router in `uor-r4-router` that wraps primary (`r4g1-graph`) and secondary (`transformerless-tla5`) engines, cleanly cascading on `UnmappedRegion` or `Pathological` statuses without dropping HTTP/WS payloads.
+- **`EngineStatus`** — Typed status enum (`Success`, `UnmappedRegion`, `Pathological`, `Failed`) classifying engine inference outcomes.
+- **`UorAttestationResult`** — Envelope wrapper for synthesis outputs containing verified BLAKE3 content-addressed CIDs (`uor_address`, `artifact_cid`, `store_cid`, `attestation_cid`), validated by `POST /api/uor/verify`.
+- **`W(3,3) Phase Field`** — The 96-vertex $S^3$ graph canvas visualization in `index.html` rendering real-time Markov trajectories from WebSocket telemetry streams.
+- **`ChatML Prompt Wrapper`** — Canonical ChatML format (`<|im_start|>system...\n<|im_start|>user...\n<|im_start|>assistant\n`) implemented in `scenarios.rs` (`encode_chat_prompt`) to format instruction-tuned teacher observations (`SmolLM2-135M-Instruct`).
+

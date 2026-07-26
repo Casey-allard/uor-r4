@@ -16,13 +16,16 @@ service at runtime.
 
 R⁴ currently provides:
 
-- a geometric text router and browser dashboard;
-- a CPU-only transformerless compiler and table-native inference runtime;
-- TLA3/TLA4 compatibility and the current TLA5 artifact format (no f32
-  centroids in deployed containers);
-- TLS1 graded evidence stores (plus a legacy u16-era reader);
-- direct BF16 Safetensors loading for compatible, unsharded Llama-family
-  Hugging Face models, without Candle;
+- a geometric text router, 96-vertex W(3,3) phase field canvas, and browser dashboard with Developer Mode toggle (`#dev-mode-toggle`);
+- a CPU-only transformerless compiler and table-native zero-multiply inference runtime;
+- `FallbackRouter` pipeline cascading from primary `r4g1-graph` to secondary `transformerless-tla5` on unmapped/pathological states;
+- `WINDOW = 8` Dyadic-Recency context window with zero-allocation stack/slice sliding truncation;
+- ChatML prompt formatting for instruction-tuned teacher models (`SmolLM2-135M-Instruct`);
+- strict 32-bit `u32` integer token stores (`parse_store_strict_u32`) with automatic legacy cache purging (`purge_legacy_store_cache`);
+- BLAKE3 `tokenizer_cid` header verification in `uor-r4-graph-format` (`verify_tokenizer_cid`);
+- UOR attestation envelopes (`uor_address`, `artifact_cid`, `store_cid`, `attestation_cid`) and `POST /api/uor/verify` validation endpoint;
+- TLA3/TLA4 compatibility and the current TLA5 artifact format (no f32 centroids in deployed containers);
+- direct BF16 Safetensors loading for compatible, unsharded Llama-family Hugging Face models, without Candle;
 - byte-level BPE tokenizer export;
 - resumable compilation with progress reporting;
 - content-addressed model objects and manifests using UOR CIDs;

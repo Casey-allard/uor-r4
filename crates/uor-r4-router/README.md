@@ -18,7 +18,7 @@ holographic graph compiler plan (`docs/r4_graph_compiler_implementation_plan.md`
 (`uor-r4-core::transformerless`) and the R4G1 graph artifacts are the path to
 the mul-free, allocation-free runtime contract, and this router's word-Markov
 generator survives only as a documented fallback for `r4 chat` when no
-compiled store is bound.
+- **FallbackRouter Pipeline**: `FallbackRouter` (`src/fallback.rs`) manages dynamic engine cascades from primary `r4g1-graph` to secondary `transformerless-tla5` fallback upon encountering `EngineStatus::UnmappedRegion` or `EngineStatus::Pathological` statuses, returning valid response streams without dropping HTTP/WS payloads.
 
 ## API surface
 
