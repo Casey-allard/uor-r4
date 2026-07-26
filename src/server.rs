@@ -232,13 +232,18 @@ pub fn run_server(cli: Arc<ServerConfig>) {
     let oracle: Arc<Mutex<Option<uor_r4_model_source::HuggingFaceLlamaOracle>>> =
         Arc::new(Mutex::new(None));
 
+    let last_model = std::fs::read_to_string(".uor-models/last_model_name.txt").unwrap_or_default();
+    let last_model_name = last_model.trim();
+
     let candidates = [
-        ".uor-models/sources/smollm2-1-7b-instruct",
-        ".uor-models/sources/smollm2-360m-instruct",
-        ".uor-models/sources/smollm2-135m-instruct",
+        format!(".uor-models/sources/{}", last_model_name),
+        ".uor-models/sources/smollm2-135m-instruct".to_string(),
+        ".uor-models/sources/smollm2-360m-instruct".to_string(),
+        ".uor-models/sources/smollm2-1-7b-instruct".to_string(),
     ];
     let source_dir = candidates
         .iter()
+        .filter(|p| !p.ends_with("/.uor-models/sources/"))
         .find(|p| std::path::Path::new(p).join("model.safetensors").exists());
     if let Some(path) = source_dir {
         println!(
@@ -702,35 +707,12 @@ fn generate_attention_text(
     prompt: &str,
     max_tokens: usize,
 ) -> Option<(String, usize)> {
-    // 1. Construct exact token seed for SmolLM2 Instruct chat template
-    let mut seed = Vec::new();
-    seed.push(1u32); // <|im_start|>
-    if let Some(mut u_toks) = tless_uor::tless_tokenize("user\n") {
-        if u_toks.first() == Some(&1) {
-            u_toks.remove(0);
-        }
-        seed.extend(u_toks);
-    }
-    if let Some(mut p_toks) = tless_uor::tless_tokenize(prompt.trim()) {
-        if p_toks.first() == Some(&1) {
-            p_toks.remove(0);
-        }
-        seed.extend(p_toks);
-    }
-    seed.push(2u32); // <|im_end|>
-    if let Some(mut nl_toks) = tless_uor::tless_tokenize("\n") {
-        if nl_toks.first() == Some(&1) {
-            nl_toks.remove(0);
-        }
-        seed.extend(nl_toks);
-    }
-    seed.push(1u32); // <|im_start|>
-    if let Some(mut a_toks) = tless_uor::tless_tokenize("assistant\n") {
-        if a_toks.first() == Some(&1) {
-            a_toks.remove(0);
-        }
-        seed.extend(a_toks);
-    }
+    // 1. Construct token seed for prompt
+    let formatted_prompt = format!("User: {}\nAssistant:", prompt.trim());
+    let seed = match tless_uor::tless_tokenize(&formatted_prompt) {
+        Some(s) if !s.is_empty() => s,
+        _ => return None,
+    };
 
     let seed_len = seed.len();
     if seed_len == 0 {
@@ -766,8 +748,8 @@ fn generate_attention_text(
             }
         }
 
-        // Stop on EOS (2) or BOS/NULL
-        if best_t == oracle.eos_token() || best_t == 2 || best_t == 0 {
+        // Stop on EOS token or NULL (0)
+        if best_t == oracle.eos_token() || (oracle.eos_token() == 0 && best_t == 2) {
             break;
         }
 
@@ -798,12 +780,13 @@ fn clean_attention_response(text: &str, prompt: &str) -> String {
         cleaned = cleaned[pos + "assistant\n".len()..].to_string();
     }
 
-    // 2. Remove template boundary markers
+    // 2. Remove template boundary markers and replacement characters
     cleaned = cleaned
         .replace("<|im_start|>", "")
         .replace("<|im_end|>", "")
         .replace("user\n", "")
-        .replace("assistant\n", "");
+        .replace("assistant\n", "")
+        .replace('\u{fffd}', "");
 
     // 3. Strip prompt echoes if the model repeated the user prompt at the beginning only when non-empty content remains
     let trimmed_prompt = prompt.trim();
@@ -827,16 +810,53 @@ fn clean_attention_response(text: &str, prompt: &str) -> String {
     }
 
     if result.is_empty() {
-        text.trim().to_string()
+        truncate_repetitive_loops(text.trim())
     } else {
-        result
+        truncate_repetitive_loops(&result)
+    }
+}
+
+fn truncate_repetitive_loops(text: &str) -> String {
+    let mut sentences = Vec::new();
+    let mut last_end = 0;
+    for (i, c) in text.char_indices() {
+        if c == '.' || c == '!' || c == '?' || c == '\n' {
+            let sentence = &text[last_end..=i];
+            sentences.push(sentence);
+            last_end = i + c.len_utf8();
+        }
+    }
+    if last_end < text.len() {
+        sentences.push(&text[last_end..]);
+    }
+
+    let mut seen = std::collections::HashSet::new();
+    let mut result = String::new();
+    for sentence in sentences {
+        let norm = sentence.trim().to_lowercase();
+        if norm.len() > 15 && !seen.insert(norm) {
+            break;
+        }
+        result.push_str(sentence);
+    }
+    if result.trim().is_empty() {
+        text.to_string()
+    } else {
+        result.trim().to_string()
     }
 }
 
 /// Validate generated text before it is returned by the HTTP chat endpoint.
 pub fn is_usable_generated_text(text: &str) -> bool {
+    if text.contains("Manifold resonance too sparse for synthesis.") {
+        return false;
+    }
     let chars: Vec<char> = text.chars().collect();
-    if chars.is_empty() || chars.iter().any(|ch| ch == &'\u{fffd}' || ch.is_control()) {
+    if chars.is_empty()
+        || chars
+            .iter()
+            .any(|ch| ch.is_control() && *ch != '\n' && *ch != '\r' && *ch != '\t')
+    {
         return false;
     }
     let non_space = chars.iter().filter(|ch| !ch.is_whitespace()).count();
@@ -865,12 +885,13 @@ pub fn is_usable_generated_text(text: &str) -> bool {
 /// geometric fallback. Character-level guards cannot catch output such as
 /// "that is how i work" repeated over and over, so inspect word windows too.
 fn repeated_word_loop(text: &str) -> bool {
-    let words: Vec<&str> = text.split_whitespace().collect();
+    let normalized = text.replace(['\n', '\r', '\t'], " ");
+    let words: Vec<&str> = normalized.split_whitespace().collect();
     if words.len() < 4 {
         return false;
     }
 
-    // A repeated suffix is the common autoregressive failure mode. Check widths starting at 1.
+    // A repeated suffix or adjacent loop is the common autoregressive failure mode. Check widths starting at 1.
     let max_suffix_width = (words.len() / 2).min(12);
     for width in 1..=max_suffix_width {
         let split = words.len() - width;
@@ -879,14 +900,14 @@ fn repeated_word_loop(text: &str) -> bool {
         }
     }
 
-    // The fallback observed in the browser can interleave a final fragment
-    // between copies of the same phrase. Three occurrences of a 3–12 word
-    // window are a strong enough signal to reject the response.
+    // Tightly-packed loops (3 occurrences of a 3-12 word phrase within a 5x window span).
+    // Distant phrase reuse across separate paragraphs in long text is valid prose.
     let max_width = words.len().min(12);
     for width in 3..=max_width {
-        for start in 0..=words.len() - width {
+        for start in 0..=words.len().saturating_sub(width * 4) {
             let candidate = &words[start..start + width];
-            let occurrences = words
+            let sub_slice = &words[start..(start + width * 5).min(words.len())];
+            let occurrences = sub_slice
                 .windows(width)
                 .filter(|window| *window == candidate)
                 .count();
@@ -1631,6 +1652,28 @@ fn handle_connection(
             std::path::PathBuf::from(fallback_path)
         };
 
+        let oracle_source = format!(".uor-models/sources/{}", target_model);
+        if std::path::Path::new(&oracle_source)
+            .join("model.safetensors")
+            .exists()
+        {
+            match uor_r4_model_source::HuggingFaceLlamaOracle::load(&oracle_source) {
+                Ok(o) => {
+                    println!(
+                        "[+] Successfully reloaded teacher oracle model for '{}'",
+                        target_model
+                    );
+                    *oracle.lock().unwrap() = Some(o);
+                }
+                Err(e) => {
+                    println!(
+                        "[-] Note: Teacher oracle reload skipped for '{}': {:?}",
+                        target_model, e
+                    );
+                }
+            }
+        }
+
         if path_to_load.is_file() {
             match r4g1::R4g1State::load(&path_to_load, std::path::Path::new(&teacher_path)) {
                 Ok(state) => {
@@ -1674,14 +1717,49 @@ fn handle_connection(
                 let file_path = dir_path.join(filename);
                 std::fs::write(&file_path, content).ok();
 
+                let mut router_guard = router.lock().unwrap();
+                let identity = "tenant-alpha";
+                let mut line_count = 0usize;
+                for sentence in content.lines() {
+                    let s = sentence.trim();
+                    if !s.is_empty() {
+                        router_guard.index_sentence(s, identity);
+                        router_guard.inject_thought_stream_native(s);
+                        line_count += 1;
+                    }
+                }
+                let state_json = router_guard.export_state();
+                spawn_cache_save(&cli, state_json);
+
                 let resp = serde_json::json!({
                     "status": "success",
                     "filename": filename,
-                    "message": format!("Added corpus file '{}' and triggered dynamic index update.", filename)
+                    "lines_indexed": line_count,
+                    "message": format!("Added corpus file '{}' and indexed {} lines into geometric manifold hashes.", filename, line_count)
                 });
                 send_json_response(stream, 200, &resp.to_string());
                 return;
             }
+        }
+
+        if action == "export" {
+            let export_dir = std::path::Path::new(".uor-models/exported");
+            std::fs::create_dir_all(export_dir).ok();
+            let export_file = export_dir.join("exported_manifold.json");
+
+            let router_guard = router.lock().unwrap();
+            let state_json = router_guard.export_state();
+            std::fs::write(&export_file, &state_json).ok();
+            std::fs::write(".uor-models/exported_manifold.json", &state_json).ok();
+
+            let resp = serde_json::json!({
+                "status": "success",
+                "path": export_file.display().to_string(),
+                "bytes": state_json.len(),
+                "message": format!("Successfully exported manifold state to {}", export_file.display())
+            });
+            send_json_response(stream, 200, &resp.to_string());
+            return;
         }
 
         let extra_dir = std::path::Path::new(".uor-models/extra_reading");
@@ -1736,7 +1814,7 @@ fn handle_connection(
             String::new()
         };
 
-        let max_tokens = req.max_tokens.unwrap_or(128);
+        let max_tokens = req.max_tokens.unwrap_or(256);
         let identity = "tenant-alpha".to_string();
 
         let mut router_guard = router.lock().unwrap();
@@ -1811,7 +1889,7 @@ fn handle_connection(
             _ => {}
         }
 
-        if final_response_text.is_empty() {
+        if final_response_text.is_empty() && tless.lock().unwrap().is_some() {
             if let Some(text) = generate_tless_text(&tless, &prompt_text, max_tokens.max(32)) {
                 if is_usable_generated_text(&text) {
                     final_response_text = text;
@@ -1823,9 +1901,7 @@ fn handle_connection(
         if final_response_text.is_empty() {
             let mut oracle_guard = oracle.lock().unwrap();
             if let Some(ref mut o) = *oracle_guard {
-                if let Some((text, _)) =
-                    generate_attention_text(o, &prompt_text, max_tokens.min(64))
-                {
+                if let Some((text, _)) = generate_attention_text(o, &prompt_text, max_tokens) {
                     if is_usable_generated_text(&text) {
                         final_response_text = text;
                         generation_mode = "teacher-oracle-fallback".to_string();
@@ -2686,10 +2762,25 @@ fn handle_connection(
         return;
     }
 
-    if clean_path == "/api/export" && method == "GET" {
+    if clean_path == "/api/export" && (method == "GET" || method == "POST") {
+        let export_dir = std::path::Path::new(".uor-models/exported");
+        std::fs::create_dir_all(export_dir).ok();
+        let export_file = export_dir.join("exported_manifold.json");
+
         let router_guard = router.lock().unwrap();
         let state_json = router_guard.export_state();
-        send_json_response(stream, 200, &state_json);
+        std::fs::write(&export_file, &state_json).ok();
+        std::fs::write(".uor-models/exported_manifold.json", &state_json).ok();
+
+        let resp = serde_json::json!({
+            "success": true,
+            "status": "success",
+            "path": export_file.display().to_string(),
+            "bytes": state_json.len(),
+            "message": format!("Exported manifold state saved to {}", export_file.display())
+        })
+        .to_string();
+        send_json_response(stream, 200, &resp);
         return;
     }
 

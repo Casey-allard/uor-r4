@@ -226,6 +226,7 @@ fi
 
 # Stage 4: Launch Backend Server & Client
 echo -e "\n[*] [Stage 4/4] Launching local R⁴ backend server on port ${PORT}..."
+lsof -ti:${PORT} | xargs kill -9 2>/dev/null || true
 "$R4_BIN" serve --port "$PORT" \
     --tless-artifacts "${COMPILED_DIR}/tless_artifacts.bin" \
     --tless-store "${COMPILED_DIR}/tless_store.bin" \

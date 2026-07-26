@@ -521,10 +521,22 @@ const COMMAND_DEFS: &[SlashCommandDef] = &[
     },
     SlashCommandDef {
         cmd: "/clear",
-        desc: "Clear terminal screen",
+        desc: "Clear terminal screen & session history",
+    },
+    SlashCommandDef {
+        cmd: "/reset",
+        desc: "Reset history, corpus & geometric manifold state back to base",
+    },
+    SlashCommandDef {
+        cmd: "/export",
+        desc: "Export manifold state & corpus to .uor-models/exported/exported_manifold.json",
     },
     SlashCommandDef {
         cmd: "/quit",
+        desc: "Exit client session",
+    },
+    SlashCommandDef {
+        cmd: "/exit",
         desc: "Exit client session",
     },
 ];
@@ -1171,7 +1183,7 @@ pub fn remote_interactive_chat(
     writeln!(output, "\x1b[1mCommands & Shortcuts:\x1b[0m")?;
     writeln!(
         output,
-        "  • Type \x1b[33m/help\x1b[0m to view available slash commands (/status, /models, /engine, /clear, /quit)"
+        "  • Type \x1b[33m/help\x1b[0m to view available slash commands (/status, /models, /engine, /corpus, /export, /reset, /clear, /quit)"
     )?;
     writeln!(
         output,
@@ -1188,7 +1200,7 @@ pub fn remote_interactive_chat(
 
     loop {
         let prompt_lbl = format!(
-            "uor-r4 [model: {} | engine: {}] > ",
+            "\x1b[1;36muor-r4\x1b[0m \x1b[33m[model: {} | engine: {}]\x1b[0m \x1b[1;32m>\x1b[0m ",
             current_active_model, current_active_engine
         );
         let line_opt = match read_line_with_history(&prompt_lbl, &mut history, input, output) {
@@ -1223,7 +1235,7 @@ pub fn remote_interactive_chat(
                     ),
                     (
                         "/corpus",
-                        "Manage extra reading corpus datasets & server index",
+                        "Manage, import & paste extra reading corpus datasets into manifold",
                     ),
                     (
                         "/compile",
@@ -1233,7 +1245,15 @@ pub fn remote_interactive_chat(
                         "/audit",
                         "Audit Q&A token trace, UOR coordinates & R4 geometry",
                     ),
-                    ("/clear", "Clear terminal screen"),
+                    (
+                        "/export",
+                        "Export manifold state & corpus to .uor-models/exported/exported_manifold.json",
+                    ),
+                    (
+                        "/reset",
+                        "Reset chat history, corpus & geometric state back to base",
+                    ),
+                    ("/clear", "Clear terminal screen & session history"),
                     ("/quit", "Exit client session"),
                 ];
 
@@ -1405,6 +1425,22 @@ pub fn remote_interactive_chat(
                     output.flush()?;
                     continue;
                 }
+                "/export" => {
+                    let req_body = serde_json::json!({ "action": "export" });
+                    match send_server_post_request(&host, port, "/v1/corpus", &req_body) {
+                        Ok(res) => {
+                            let msg = res["message"]
+                                .as_str()
+                                .unwrap_or("Exported manifold state to .uor-models/exported/exported_manifold.json");
+                            writeln!(output, "\x1b[32m[✓] {}\x1b[0m\n", msg)?;
+                        }
+                        Err(e) => {
+                            writeln!(output, "[!] Export error: {}\n", e)?;
+                        }
+                    }
+                    output.flush()?;
+                    continue;
+                }
                 "/corpus" => {
                     if parts.len() > 2 && parts[1] == "add" {
                         let file_path = parts[2];
@@ -1444,29 +1480,245 @@ pub fn remote_interactive_chat(
                             }
                         }
                     } else {
-                        let req_body = serde_json::json!({ "action": "list" });
-                        match send_server_post_request(&host, port, "/v1/corpus", &req_body) {
-                            Ok(res) => {
-                                writeln!(
-                                    output,
-                                    "\n\x1b[1mR⁴ Extra Reading Corpus Datasets:\x1b[0m"
-                                )?;
-                                if let Some(files) = res["files"].as_array() {
-                                    if files.is_empty() {
-                                        writeln!(
-                                            output,
-                                            "  (No extra reading corpus files indexed yet)"
-                                        )?;
-                                    } else {
-                                        for f in files {
-                                            writeln!(output, "  • {}", f.as_str().unwrap_or(""))?;
+                        let corpus_options = [
+                            ("1. List Indexed Files", "View reading corpus datasets indexed on server"),
+                            ("2. Import Local File", "Browse and select local text file to index into manifold"),
+                            ("3. Paste Plain Text", "Paste raw text content to index into geometric manifold hashes"),
+                            ("4. Export Manifold", "Export manifold state to .uor-models/exported/exported_manifold.json"),
+                        ];
+                        if let Ok(Some(opt_idx)) = select_menu_interactive(
+                            "R⁴ Corpus & Geometric Manifold Management:",
+                            &corpus_options,
+                            output,
+                        ) {
+                            match opt_idx {
+                                0 => {
+                                    let req_body = serde_json::json!({ "action": "list" });
+                                    match send_server_post_request(
+                                        &host,
+                                        port,
+                                        "/v1/corpus",
+                                        &req_body,
+                                    ) {
+                                        Ok(res) => {
+                                            writeln!(
+                                                output,
+                                                "\n\x1b[1mR⁴ Extra Reading Corpus Datasets:\x1b[0m"
+                                            )?;
+                                            if let Some(files) = res["files"].as_array() {
+                                                if files.is_empty() {
+                                                    writeln!(
+                                                        output,
+                                                        "  (No extra reading corpus files indexed yet)"
+                                                    )?;
+                                                } else {
+                                                    for f in files {
+                                                        writeln!(
+                                                            output,
+                                                            "  • {}",
+                                                            f.as_str().unwrap_or("")
+                                                        )?;
+                                                    }
+                                                }
+                                            }
+                                            writeln!(output)?;
+                                        }
+                                        Err(e) => {
+                                            writeln!(output, "[!] Error listing corpus: {}\n", e)?;
                                         }
                                     }
                                 }
-                                writeln!(output, "Usage: /corpus add <path/to/file.txt>\n")?;
-                            }
-                            Err(e) => {
-                                writeln!(output, "[!] Error listing corpus: {}\n", e)?;
+                                1 => {
+                                    let mut candidates = Vec::new();
+                                    if let Ok(entries) = std::fs::read_dir(".uor-models/sources") {
+                                        for entry in entries.filter_map(|e| e.ok()) {
+                                            let p = entry.path();
+                                            if p.is_file() {
+                                                candidates.push(p.to_string_lossy().to_string());
+                                            }
+                                        }
+                                    }
+                                    if let Ok(entries) = std::fs::read_dir(".") {
+                                        for entry in entries.filter_map(|e| e.ok()) {
+                                            let p = entry.path();
+                                            if p.is_file()
+                                                && (p.extension()
+                                                    == Some(std::ffi::OsStr::new("txt"))
+                                                    || p.extension()
+                                                        == Some(std::ffi::OsStr::new("md")))
+                                            {
+                                                candidates.push(p.to_string_lossy().to_string());
+                                            }
+                                        }
+                                    }
+                                    candidates.sort();
+                                    candidates.dedup();
+
+                                    let mut menu_items: Vec<(&str, &str)> = candidates
+                                        .iter()
+                                        .map(|path| (path.as_str(), "Local corpus document"))
+                                        .collect();
+                                    menu_items.push((
+                                        "Custom File Path...",
+                                        "Enter arbitrary file path manually",
+                                    ));
+
+                                    if let Ok(Some(file_idx)) = select_menu_interactive(
+                                        "Select File to Import into Geometric Manifold:",
+                                        &menu_items,
+                                        output,
+                                    ) {
+                                        let target_path = if file_idx < candidates.len() {
+                                            candidates[file_idx].clone()
+                                        } else {
+                                            writeln!(output, "Enter file path to import: ")?;
+                                            output.flush()?;
+                                            let mut path_buf = String::new();
+                                            std::io::stdin().read_line(&mut path_buf).ok();
+                                            path_buf.trim().to_string()
+                                        };
+
+                                        if !target_path.is_empty() {
+                                            match std::fs::read_to_string(&target_path) {
+                                                Ok(content) => {
+                                                    let filename =
+                                                        std::path::Path::new(&target_path)
+                                                            .file_name()
+                                                            .map(|f| {
+                                                                f.to_string_lossy().to_string()
+                                                            })
+                                                            .unwrap_or_else(|| {
+                                                                "imported_corpus.txt".to_string()
+                                                            });
+
+                                                    let req_body = serde_json::json!({
+                                                        "action": "add",
+                                                        "filename": filename,
+                                                        "content": content
+                                                    });
+
+                                                    match send_server_post_request(
+                                                        &host,
+                                                        port,
+                                                        "/v1/corpus",
+                                                        &req_body,
+                                                    ) {
+                                                        Ok(res) => {
+                                                            writeln!(
+                                                                output,
+                                                                "\x1b[32m[✓] {}\x1b[0m\n",
+                                                                res["message"]
+                                                                    .as_str()
+                                                                    .unwrap_or("Corpus imported")
+                                                            )?;
+                                                        }
+                                                        Err(e) => {
+                                                            writeln!(
+                                                                output,
+                                                                "[!] Error importing corpus: {}\n",
+                                                                e
+                                                            )?;
+                                                        }
+                                                    }
+                                                }
+                                                Err(e) => {
+                                                    writeln!(
+                                                        output,
+                                                        "[!] Failed to read '{}': {}\n",
+                                                        target_path, e
+                                                    )?;
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                2 => {
+                                    writeln!(
+                                        output,
+                                        "\x1b[1mPaste plain text content to index into R⁴ geometric manifold:\x1b[0m"
+                                    )?;
+                                    writeln!(output, "(Type 'END' or press Enter on an empty line when finished)\n")?;
+                                    output.flush()?;
+
+                                    let mut lines = Vec::new();
+                                    let stdin = std::io::stdin();
+                                    let handle = stdin.lock();
+                                    use std::io::BufRead;
+                                    for line_res in handle.lines() {
+                                        let line = match line_res {
+                                            Ok(l) => l,
+                                            Err(_) => break,
+                                        };
+                                        if line.trim() == "END" || line.trim().is_empty() {
+                                            break;
+                                        }
+                                        lines.push(line);
+                                    }
+
+                                    let content = lines.join("\n");
+                                    if !content.trim().is_empty() {
+                                        let ts = std::time::SystemTime::now()
+                                            .duration_since(std::time::UNIX_EPOCH)
+                                            .unwrap_or_default()
+                                            .as_secs();
+                                        let filename = format!("pasted_corpus_{}.txt", ts);
+
+                                        let req_body = serde_json::json!({
+                                            "action": "add",
+                                            "filename": filename,
+                                            "content": content
+                                        });
+
+                                        match send_server_post_request(
+                                            &host,
+                                            port,
+                                            "/v1/corpus",
+                                            &req_body,
+                                        ) {
+                                            Ok(res) => {
+                                                writeln!(
+                                                    output,
+                                                    "\x1b[32m[✓] {}\x1b[0m\n",
+                                                    res["message"]
+                                                        .as_str()
+                                                        .unwrap_or("Pasted corpus indexed")
+                                                )?;
+                                            }
+                                            Err(e) => {
+                                                writeln!(
+                                                    output,
+                                                    "[!] Error indexing pasted corpus: {}\n",
+                                                    e
+                                                )?;
+                                            }
+                                        }
+                                    } else {
+                                        writeln!(
+                                            output,
+                                            "[!] Empty text content submitted. Nothing indexed.\n"
+                                        )?;
+                                    }
+                                }
+                                3 => {
+                                    let req_body = serde_json::json!({ "action": "export" });
+                                    match send_server_post_request(
+                                        &host,
+                                        port,
+                                        "/v1/corpus",
+                                        &req_body,
+                                    ) {
+                                        Ok(res) => {
+                                            let msg = res["message"]
+                                                .as_str()
+                                                .unwrap_or("Exported manifold state to .uor-models/exported/exported_manifold.json");
+                                            writeln!(output, "\x1b[32m[✓] {}\x1b[0m\n", msg)?;
+                                        }
+                                        Err(e) => {
+                                            writeln!(output, "[!] Export error: {}\n", e)?;
+                                        }
+                                    }
+                                }
+                                _ => {}
                             }
                         }
                     }
@@ -1474,11 +1726,25 @@ pub fn remote_interactive_chat(
                     continue;
                 }
                 "/clear" => {
+                    history.clear();
+                    audit_history.clear();
                     write!(output, "\x1b[2J\x1b[1H")?;
                     output.flush()?;
                     continue;
                 }
-                "/quit" => {
+                "/reset" => {
+                    history.clear();
+                    audit_history.clear();
+                    let _ = send_vendor_reset(&host, port);
+                    write!(output, "\x1b[2J\x1b[1H")?;
+                    writeln!(
+                        output,
+                        "\x1b[32m[✓] Chat history, extra corpus index & geometric manifold state reset back to base defaults.\x1b[0m\n"
+                    )?;
+                    output.flush()?;
+                    continue;
+                }
+                "/quit" | "/exit" => {
                     break;
                 }
                 "/compile" => {
@@ -1668,6 +1934,7 @@ pub fn remote_interactive_chat(
             send_vendor_chat_completion(&host_c, port_c, &path_c, &model_c, &engine_c, &q_c)
         });
 
+        writeln!(output)?;
         let frames = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
         let mut frame_idx = 0;
 
@@ -1676,7 +1943,7 @@ pub fn remote_interactive_chat(
             let frame = frames[frame_idx % frames.len()];
             write!(
                 output,
-                "\rr4 > {} lifting... ({}s)\x1b[K",
+                "\r\x1b[1;32mr4\x1b[0m \x1b[1;36m>\x1b[0m {} lifting... ({}s)\x1b[K",
                 frame, elapsed_secs
             )?;
             output.flush()?;
@@ -1698,10 +1965,14 @@ pub fn remote_interactive_chat(
                 } else {
                     0.0
                 };
-                write!(output, "\rr4 > {}\x1b[K\n", answer_text)?;
+                write!(
+                    output,
+                    "\r\x1b[1;32mr4\x1b[0m \x1b[1;36m>\x1b[0m {}\x1b[K\n",
+                    answer_text
+                )?;
                 writeln!(
                     output,
-                    "[stats: {} tokens | {:.2} ms | {:.1} tok/s | mode: {} | model: {}]\n",
+                    "\x1b[90m[stats: {} tokens | {:.2} ms | {:.1} tok/s | mode: {} | model: {}]\x1b[0m\n",
                     completion_tokens, latency_ms, tok_per_sec, engine_mode, current_active_model
                 )?;
                 output.flush()?;
@@ -1709,7 +1980,7 @@ pub fn remote_interactive_chat(
             Err(err) => {
                 write!(
                     output,
-                    "\rr4 > [!] Error communicating with local server: {}\x1b[K\n\n",
+                    "\r\x1b[1;32mr4\x1b[0m \x1b[1;36m>\x1b[0m [!] Error communicating with local server: {}\x1b[K\n\n",
                     err
                 )?;
                 output.flush()?;
@@ -1767,7 +2038,7 @@ fn send_vendor_chat_completion(
                 "content": user_message
             }
         ],
-        "max_tokens": 128,
+        "max_tokens": 384,
         "temperature": 0.7
     });
     let body_bytes =
@@ -1880,6 +2151,42 @@ fn fetch_server_status(host: &str, port: u16) -> Result<serde_json::Value, Strin
     let json_body = &resp_text[body_start..];
 
     serde_json::from_str(json_body).map_err(|e| format!("Invalid status response JSON: {}", e))
+}
+
+pub fn send_vendor_reset(host: &str, port: u16) -> Result<(), String> {
+    let payload = serde_json::json!({});
+    let body_bytes =
+        serde_json::to_vec(&payload).map_err(|e| format!("Serialization error: {}", e))?;
+    let req_str = format!(
+        "POST /api/reset HTTP/1.1\r\n\
+         Host: {}:{}\r\n\
+         Content-Type: application/json\r\n\
+         Content-Length: {}\r\n\
+         Connection: close\r\n\r\n",
+        host,
+        port,
+        body_bytes.len()
+    );
+
+    let sockaddr: std::net::SocketAddr = format!("{}:{}", host, port)
+        .parse()
+        .map_err(|e| format!("Invalid socket address {}:{}: {}", host, port, e))?;
+
+    let mut stream =
+        std::net::TcpStream::connect_timeout(&sockaddr, std::time::Duration::from_secs(5))
+            .map_err(|e| format!("Failed to connect to {}:{}: {}", host, port, e))?;
+
+    stream
+        .write_all(req_str.as_bytes())
+        .map_err(|e| format!("Failed to send request: {}", e))?;
+    stream
+        .write_all(&body_bytes)
+        .map_err(|e| format!("Failed to send body: {}", e))?;
+    stream.flush().ok();
+
+    let mut resp = Vec::new();
+    stream.read_to_end(&mut resp).ok();
+    Ok(())
 }
 
 fn send_server_post_request(
