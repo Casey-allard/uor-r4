@@ -1642,21 +1642,24 @@ pub fn remote_interactive_chat(
 
                                     let mut lines = Vec::new();
                                     let stdin = std::io::stdin();
-                                    let handle = stdin.lock();
+                                    let stdin_handle = stdin.lock();
                                     use std::io::BufRead;
-                                    for line_res in handle.lines() {
+                                    for line_res in stdin_handle.lines() {
                                         let line = match line_res {
                                             Ok(l) => l,
-                                            Err(_) => break,
+                                            Err(e) => {
+                                                writeln!(output, "[!] Error reading stdin: {}", e)?;
+                                                break;
+                                            }
                                         };
-                                        if line.trim() == "END" || line.trim().is_empty() {
+                                        let trimmed = line.trim();
+                                        if trimmed == "END" || trimmed.is_empty() {
                                             break;
                                         }
                                         lines.push(line);
                                     }
-
-                                    let content = lines.join("\n");
-                                    if !content.trim().is_empty() {
+                                    if !lines.is_empty() {
+                                        let content = lines.join("\n");
                                         let ts = std::time::SystemTime::now()
                                             .duration_since(std::time::UNIX_EPOCH)
                                             .unwrap_or_default()
