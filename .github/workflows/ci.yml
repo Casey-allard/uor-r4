@@ -17,6 +17,14 @@ name: ci
 # pinned record in `scripts/check_gate_c_regression.py`. The trend JSON is
 # uploaded as a `gate-c-trend` artifact.
 
+#
+# CONTEXT SPLIT (issue #240): heavy jobs (wasm, Gate C trend, fuzz smoke) run
+# for real only where their verdict is binding — the merge queue's speculative
+# merge (merge_group) and pushes to main — and report a stub success in
+# pull_request context so the required-check names still gate queue entry.
+# cargo audit is the inverse: advisory-DB lookup on the lockfile is
+# merge-content-independent, so it runs in pull_request (and main-push)
+# context and stubs in the queue. The core gates job runs everywhere.
 on:
   push:
     branches: [main]
@@ -121,6 +129,7 @@ jobs:
 
   wasm:
     name: wasm-pack build (dashboard facade, deploy.yml parity)
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -135,6 +144,7 @@ jobs:
 
   gate-c-trend:
     name: Gate C trend alarm
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -161,6 +171,7 @@ jobs:
 
   audit:
     name: cargo audit
+    if: github.event_name != 'merge_group'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -170,6 +181,7 @@ jobs:
 
   fuzz-smoke:
     name: fuzz smoke (nightly libfuzzer)
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -195,3 +207,35 @@ jobs:
       - name: fuzz mutate_valid (60s)
         working-directory: crates/uor-r4-graph-format
         run: cargo +nightly fuzz run mutate_valid -- -max_total_time=60 -print_final_stats=1
+
+  # ---- context stubs (issue #240) -----------------------------------------
+  # Required-check names must report in every gating context or the merge
+  # queue cannot accept/merge the PR. Where the real job is deferred to the
+  # other context, these stubs report success immediately.
+  wasm-pr-stub:
+    name: wasm-pack build (dashboard facade, deploy.yml parity)
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - run: "echo 'Deferred to the merge queue (issue #240) - the real wasm-pack build runs on the speculative merge.'"
+
+  gate-c-trend-pr-stub:
+    name: Gate C trend alarm
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - run: "echo 'Deferred to the merge queue (issue #240) - the real Gate C trend check runs on the speculative merge.'"
+
+  fuzz-smoke-pr-stub:
+    name: fuzz smoke (nightly libfuzzer)
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - run: "echo 'Deferred to the merge queue (issue #240) - the real fuzz smoke runs on the speculative merge.'"
+
+  audit-mq-stub:
+    name: cargo audit
+    if: github.event_name == 'merge_group'
+    runs-on: ubuntu-latest
+    steps:
+      - run: "echo 'cargo audit already ran in pull_request context (issue #240) - the advisory-DB lookup is merge-content-independent.'"
