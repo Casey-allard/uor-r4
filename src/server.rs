@@ -317,16 +317,7 @@ pub fn run_server(cli: Arc<ServerConfig>) {
     if !loaded_r4g1 {
         tracing::info!("no validated R4G1 graph found; compile it from the dashboard");
     }
-    let r4g1_candidates = [
-        ".uor-models/compiled/smollm2-1-7b-instruct/compiled.r4g1",
-        ".uor-models/compiled/smollm2-360m-instruct/compiled.r4g1",
-        ".uor-models/compiled/smollm2-135m-instruct/compiled.r4g1",
-        ".uor-models/compiled/smollm2-1-7b-instruct/score.r4g1",
-        ".uor-models/compiled/smollm2-360m-instruct/score.r4g1",
-        ".uor-models/compiled/smollm2-135m-instruct/score.r4g1",
-        "/tmp/score.r4g1",
-    ];
-    if let Some(r4g1_path) = r4g1_candidates
+    if let Some(r4g1_path) = R4G1_ARTIFACT_CANDIDATES
         .iter()
         .find(|p| std::path::Path::new(p).exists())
     {
@@ -845,6 +836,77 @@ fn truncate_repetitive_loops(text: &str) -> String {
     } else {
         result.trim().to_string()
     }
+}
+
+/// Candidate locations of the serving R4G1 artifact, in engine resolution
+/// order (factored from startup loading; issues #256/#257).
+const R4G1_ARTIFACT_CANDIDATES: [&str; 7] = [
+    ".uor-models/compiled/smollm2-1-7b-instruct/compiled.r4g1",
+    ".uor-models/compiled/smollm2-360m-instruct/compiled.r4g1",
+    ".uor-models/compiled/smollm2-135m-instruct/compiled.r4g1",
+    ".uor-models/compiled/smollm2-1-7b-instruct/score.r4g1",
+    ".uor-models/compiled/smollm2-360m-instruct/score.r4g1",
+    ".uor-models/compiled/smollm2-135m-instruct/score.r4g1",
+    "/tmp/score.r4g1",
+];
+
+/// Canonical JSON kappa-label via the uor-addr pipeline (issues #256/#257):
+/// JCS canonicalization then blake3 — byte-different encodings of the same
+/// JSON value get the same label. Falls back to a raw-bytes blake3 label
+/// only if canonicalization fails (unreachable for serde-produced JSON;
+/// kept to honor the no-panic-on-recoverable-paths convention).
+fn canonical_json_address_blake3(value: &serde_json::Value) -> String {
+    let bytes = serde_json::to_vec(value).unwrap_or_default();
+    match uor_addr::json::address_blake3(&bytes) {
+        Ok(outcome) => outcome.address.to_string(),
+        Err(_) => format!("blake3:{}", blake3::hash(&bytes).to_hex()),
+    }
+}
+
+/// Typed syntax gate for a claimed `blake3:<64 lowercase hex>` address
+/// (issue #257): empty and malformed subjects reject with a named reason.
+/// A verifier that passes the empty case provides negative assurance.
+fn validate_uor_address_syntax(address: &str) -> Result<(), &'static str> {
+    if address.is_empty() {
+        return Err("empty_address");
+    }
+    let Some(hex) = address.strip_prefix("blake3:") else {
+        return Err("unsupported_axis");
+    };
+    if hex.len() != 64 {
+        return Err("digest_length_invalid");
+    }
+    if !hex
+        .bytes()
+        .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+    {
+        return Err("digest_not_lowercase_hex");
+    }
+    Ok(())
+}
+
+/// blake3 CID of the artifact the serving cascade would load, mtime-cached
+/// (issue #256: a real content address or nothing — never a placeholder).
+fn active_artifact_cid() -> Option<String> {
+    use std::sync::{Mutex, OnceLock};
+    static CACHE: OnceLock<Mutex<Option<(std::path::PathBuf, std::time::SystemTime, String)>>> =
+        OnceLock::new();
+    let path = R4G1_ARTIFACT_CANDIDATES
+        .iter()
+        .map(std::path::Path::new)
+        .find(|p| p.exists())?;
+    let mtime = std::fs::metadata(path).ok()?.modified().ok()?;
+    let cache = CACHE.get_or_init(|| Mutex::new(None));
+    let mut guard = cache.lock().ok()?;
+    if let Some((cached_path, cached_mtime, cid)) = guard.as_ref() {
+        if cached_path == path && *cached_mtime == mtime {
+            return Some(cid.clone());
+        }
+    }
+    let bytes = std::fs::read(path).ok()?;
+    let cid = format!("blake3:{}", blake3::hash(&bytes).to_hex());
+    *guard = Some((path.to_path_buf(), mtime, cid.clone()));
+    Some(cid)
 }
 
 /// Validate generated text before it is returned by the HTTP chat endpoint.
@@ -1972,7 +2034,16 @@ fn handle_connection(
             })
             .collect();
 
-        let uor_addr = format!("uor:cbor:blake3:{:016x}", (kappa.abs() * 1e12) as u64);
+        // Issue #256: a real canonical label over the audit content —
+        // previously a syntactically-valid, semantically-meaningless string
+        // minted from a curvature float.
+        let uor_addr = canonical_json_address_blake3(&serde_json::json!({
+            "generation_mode": generation_mode,
+            "kappa": (kappa * 10000.0).round() / 10000.0,
+            "deficit_angle": (theta_d * 10000.0).round() / 10000.0,
+            "gamma": (gamma * 10000.0).round() / 10000.0,
+            "temperature": temperature,
+        }));
         let kappa_pass = (0.10..=2.50).contains(&kappa);
 
         let uor_audit = UorAuditTrace {
@@ -2427,18 +2498,29 @@ fn handle_connection(
             "uor_trace_steps": uor_trace_steps,
         });
 
-        let response_bytes = serde_json::to_vec(&response_payload).unwrap_or_default();
-        let digest_hex = blake3::hash(&response_bytes).to_hex().to_string();
-        let attestation_cid = format!("blake3:{}", digest_hex);
+        // Issue #256: the envelope address goes through the uor-addr
+        // canonical pipeline (JCS + blake3), not a raw hash of one
+        // serialization; the artifact CID is the real content address of
+        // the loaded artifact or omitted — never a placeholder. The old
+        // "store_cid" named a section of the same file and is dropped;
+        // self-asserted "verify_result" likewise (POST /api/uor/verify is
+        // the verifier).
+        let attestation_cid = canonical_json_address_blake3(&response_payload);
 
-        let attestation_envelope = serde_json::json!({
-            "algorithm": "blake3",
-            "uor_address": format!("blake3:{}", digest_hex),
-            "artifact_cid": "blake3:score.r4g1.header",
-            "store_cid": "blake3:score.r4g1.store_u32",
-            "attestation_cid": attestation_cid,
-            "verify_result": "Verified",
-        });
+        let mut attestation_fields = serde_json::Map::new();
+        attestation_fields.insert("algorithm".to_string(), serde_json::json!("blake3-jcs"));
+        attestation_fields.insert(
+            "uor_address".to_string(),
+            serde_json::json!(attestation_cid),
+        );
+        attestation_fields.insert(
+            "attestation_cid".to_string(),
+            serde_json::json!(attestation_cid),
+        );
+        if let Some(cid) = active_artifact_cid() {
+            attestation_fields.insert("artifact_cid".to_string(), serde_json::json!(cid));
+        }
+        let attestation_envelope = serde_json::Value::Object(attestation_fields);
 
         let mut final_response = response_payload.as_object().unwrap().clone();
         final_response.insert("uor_attestation".to_string(), attestation_envelope);
@@ -2992,21 +3074,6 @@ fn handle_connection(
             }
         };
 
-        let target_payload = payload.get("payload").unwrap_or(&payload);
-        let sorted_payload_bytes = match target_payload {
-            serde_json::Value::Object(map) => {
-                let mut btree = std::collections::BTreeMap::new();
-                for (k, v) in map {
-                    btree.insert(k.clone(), v.clone());
-                }
-                serde_json::to_vec(&btree).unwrap_or_default()
-            }
-            _ => serde_json::to_vec(target_payload).unwrap_or_default(),
-        };
-
-        let digest = blake3::hash(&sorted_payload_bytes).to_hex().to_string();
-        let expected_uor_address = format!("blake3:{}", digest);
-
         let provided_address = payload
             .get("uor_address")
             .or_else(|| payload.get("address"))
@@ -3014,21 +3081,32 @@ fn handle_connection(
             .and_then(|v| v.as_str())
             .unwrap_or("");
 
-        let is_valid = provided_address.is_empty()
-            || provided_address == expected_uor_address
-            || provided_address.contains(&digest);
+        // Issue #257: empty and malformed subjects reject with a typed
+        // reason (previously an empty address VERIFIED, and any string
+        // merely containing the digest passed). Canonicalization mirrors
+        // the envelope's uor-addr pipeline; comparison is exact equality.
+        if let Err(reason) = validate_uor_address_syntax(provided_address) {
+            send_json_response(
+                stream,
+                400,
+                &serde_json::json!({ "verified": false, "reason": reason }).to_string(),
+            );
+            return;
+        }
 
-        let response = if is_valid {
+        let target_payload = payload.get("payload").unwrap_or(&payload);
+        let expected_uor_address = canonical_json_address_blake3(target_payload);
+
+        let response = if provided_address == expected_uor_address {
             serde_json::json!({
                 "verified": true,
                 "uor_address": expected_uor_address,
-                "digest": digest,
-                "algorithm": "blake3",
+                "algorithm": "blake3-jcs",
             })
         } else {
             serde_json::json!({
                 "verified": false,
-                "reason": "Attestation CID mismatch",
+                "reason": "address_mismatch",
                 "expected": expected_uor_address,
                 "provided": provided_address,
             })
@@ -3613,33 +3691,57 @@ fn print_witness_line(a: &CliAnswer) {
 #[cfg(test)]
 mod tests {
     #[test]
-    fn test_uor_attestation_blake3_digest_verification() {
+    fn canonical_address_is_encoding_independent() {
+        // The conformance property the old raw-bytes hash lacked: two
+        // byte-different encodings of the same JSON value get one label.
+        let a = uor_addr::json::address_blake3(br#"{"a":1,"b":2}"#).expect("canonicalizes");
+        let b = uor_addr::json::address_blake3(br#"{ "b" : 2, "a" : 1 }"#).expect("canonicalizes");
+        assert_eq!(a.address.to_string(), b.address.to_string());
+        assert!(a.address.to_string().starts_with("blake3:"));
+    }
+
+    #[test]
+    fn verify_syntax_gate_rejects_negative_vectors() {
+        use super::validate_uor_address_syntax as gate;
+        // UOR-VERIFICATION negative vectors (issue #257): the empty
+        // subject is the canonical one.
+        assert_eq!(gate(""), Err("empty_address"));
+        assert_eq!(gate("sha256:0000"), Err("unsupported_axis"));
+        assert_eq!(gate("blake3:abcd"), Err("digest_length_invalid"));
+        let upper = format!("blake3:{}", "A".repeat(64));
+        assert_eq!(gate(&upper), Err("digest_not_lowercase_hex"));
+        let not_hex = format!("blake3:{}", "g".repeat(64));
+        assert_eq!(gate(&not_hex), Err("digest_not_lowercase_hex"));
+        // Substring attack from the old comparator: digest embedded in a
+        // longer string no longer parses as an address at all.
+        let embedded = format!("blake3:{}xx", "a".repeat(64));
+        assert_eq!(gate(&embedded), Err("digest_length_invalid"));
+        // Positive vector.
+        let valid = format!("blake3:{}", "0123456789abcdef".repeat(4));
+        assert_eq!(gate(&valid), Ok(()));
+    }
+
+    #[test]
+    fn envelope_round_trips_through_the_verifier_comparison() {
+        // Producer/verifier agreement (issues #256 + #257 move together):
+        // the envelope's canonical label equals the verifier's expectation
+        // for the same payload, under a different byte encoding.
         let payload = serde_json::json!({
             "text": "Hello R4 world",
             "generation_mode": "r4g1",
             "tokens_generated": 5
         });
-
-        let sorted_bytes = serde_json::to_vec(&payload).unwrap();
-        let digest_hex = blake3::hash(&sorted_bytes).to_hex().to_string();
-        let expected_uor_address = format!("blake3:{}", digest_hex);
-
-        let attestation_envelope = serde_json::json!({
-            "algorithm": "blake3",
-            "uor_address": expected_uor_address.clone(),
-            "artifact_cid": "blake3:score.r4g1.header",
-            "store_cid": "blake3:score.r4g1.store_u32",
-            "attestation_cid": expected_uor_address.clone(),
-            "verify_result": "Verified",
-        });
-
+        let envelope_address = super::canonical_json_address_blake3(&payload);
+        let reencoded =
+            br#"{ "tokens_generated" : 5, "text" : "Hello R4 world", "generation_mode" : "r4g1" }"#;
+        let verifier_expectation = uor_addr::json::address_blake3(reencoded)
+            .expect("canonicalizes")
+            .address
+            .to_string();
+        assert_eq!(envelope_address, verifier_expectation);
         assert_eq!(
-            attestation_envelope["uor_address"].as_str().unwrap(),
-            expected_uor_address
-        );
-        assert_eq!(
-            attestation_envelope["attestation_cid"].as_str().unwrap(),
-            expected_uor_address
+            super::validate_uor_address_syntax(&envelope_address),
+            Ok(())
         );
     }
 
