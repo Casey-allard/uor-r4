@@ -539,6 +539,14 @@ pub fn set_tless_tokenizer(t: uor_r4_core::transformerless::scenarios::Tokenizer
     TLESS_TOKENIZER.with(|tk| *tk.borrow_mut() = Some(t));
 }
 
+// TODO(#242 follow-up): the serving-side tokenizer is still the legacy
+// greedy longest-match encoder over the exported tokenizer.bin vocabulary.
+// `generate_attention_text` (src/server.rs) tokenizes teacher prompts with
+// `tless_tokenize`, so the HF teacher fallback receives segmentations its
+// byte-level BPE never produced. Wiring `hf_bpe::HfBpeTokenizer` here needs
+// the source-snapshot tokenizer.json (only tokenizer.bin is present in the
+// compiled bundle) and a `TokenizerKind` thread-local across the public
+// tless_tokenize/detokenize surface — deferred to keep this change scoped.
 #[cfg(not(target_arch = "wasm32"))]
 fn with_tokenizer<R>(
     f: impl FnOnce(&uor_r4_core::transformerless::scenarios::Tokenizer) -> R,

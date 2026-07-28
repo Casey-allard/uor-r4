@@ -290,6 +290,7 @@ pub mod compiler;
 pub mod convert_r4g1;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod graph_patch;
+pub mod hf_bpe;
 pub mod reference_state;
 pub mod resolution_status;
 pub mod runtime;

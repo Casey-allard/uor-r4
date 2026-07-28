@@ -709,6 +709,7 @@ fn generate_attention_text(
 ) -> Option<(String, usize)> {
     // 1. Construct token seed for prompt
     let formatted_prompt = format!("User: {}\nAssistant:", prompt.trim());
+    // TODO(#242 follow-up): serving-side teacher prompting still uses tless_tokenize
     let seed = match tless_uor::tless_tokenize(&formatted_prompt) {
         Some(s) if !s.is_empty() => s,
         _ => return None,

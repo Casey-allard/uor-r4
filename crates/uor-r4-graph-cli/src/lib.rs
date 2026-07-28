@@ -37,6 +37,7 @@ use serde::Serialize;
 use std::collections::BTreeMap;
 use std::io::Read;
 use std::path::{Path, PathBuf};
+use uor_r4_core::transformerless::hf_bpe::{HfBpeTokenizer, TokenizerKind};
 use uor_r4_core::transformerless::scenarios as core_scenarios;
 use uor_r4_model_source::{BehaviorSource, HuggingFaceLlamaOracle, LlamaOracle, TeacherOracle};
 
@@ -277,23 +278,25 @@ pub fn observe_text_command(args: &[String]) -> Result<(), String> {
     let options = parse_observe_text_options(args)?;
     std::fs::create_dir_all(&options.output).map_err(|error| error.to_string())?;
     let token_byte_lengths: Vec<u32>;
-    let tokenizer: scenarios::Tokenizer;
+    let tokenizer: TokenizerKind;
     let mut oracle: Box<dyn TeacherOracle> = if let Some(checkpoint) = &options.checkpoint {
         // Legacy llama2.c checkpoint: the companion tokenizer is the
         // scoreless tokenizer.bin fetched by `setup` (overridable with
         // --tokenizer); its piece byte lengths anchor records into the
-        // article text.
+        // article text. This path is untouched by issue #242 — its κ-pinned
+        // baselines depend on the exact legacy encoding.
         let tokenizer_path = options
             .tokenizer
             .clone()
             .unwrap_or_else(|| PathBuf::from(DEFAULT_TOKENIZER));
-        tokenizer = scenarios::Tokenizer::try_load(&tokenizer_path)
+        let legacy = scenarios::Tokenizer::try_load(&tokenizer_path)
             .map_err(|error| format!("{}: {error}", tokenizer_path.display()))?;
-        token_byte_lengths = tokenizer
+        token_byte_lengths = legacy
             .vocab
             .iter()
             .map(|piece| piece.len() as u32)
             .collect();
+        tokenizer = TokenizerKind::Legacy(legacy);
         let path = checkpoint
             .to_str()
             .ok_or_else(|| "checkpoint path is not UTF-8".to_owned())?;
@@ -311,8 +314,24 @@ pub fn observe_text_command(args: &[String]) -> Result<(), String> {
                 options.output.join("tokenizer.bin"),
             )
             .map_err(|error| error.to_string())?;
-        tokenizer = scenarios::Tokenizer::try_load(options.output.join("tokenizer.bin"))
-            .map_err(|error| error.to_string())?;
+        // Issue #242: segment observation text with the teacher's REAL
+        // byte-level BPE (ordered merges from tokenizer.json), not the
+        // legacy lowest-id greedy heuristic — otherwise every record feeds
+        // the teacher a segmentation it never saw. tokenizer.bin above
+        // remains the compiled runtime artifact; tokenizer.json is
+        // authoritative for observation when present.
+        let tokenizer_json = options.source.join("tokenizer.json");
+        tokenizer = if tokenizer_json.is_file() {
+            TokenizerKind::HfBpe(Box::new(
+                HfBpeTokenizer::from_dir(&options.source)
+                    .map_err(|error| format!("{}: {error}", tokenizer_json.display()))?,
+            ))
+        } else {
+            TokenizerKind::Legacy(
+                scenarios::Tokenizer::try_load(options.output.join("tokenizer.bin"))
+                    .map_err(|error| error.to_string())?,
+            )
+        };
         Box::new(oracle)
     };
     let report = observe_text::observe_text_corpus(

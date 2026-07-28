@@ -48,7 +48,7 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::io::{self, BufRead, BufReader, Write};
 use std::path::{Path, PathBuf};
-use uor_r4_core::transformerless::scenarios::Tokenizer;
+use uor_r4_core::transformerless::hf_bpe::TokenizerKind;
 use uor_r4_model_source::TeacherOracle;
 use uor_r4_model_source::progress::Progress;
 
@@ -430,7 +430,8 @@ pub struct ObservationReport {
     pub articles_truncated: u64,
     /// Characters replaced by the lossy tokenizer fallback during this
     /// invocation (unencodable in the teacher vocab; substituted with a
-    /// space — deterministic, see [`scenarios::Tokenizer::encode_lossy`]).
+    /// space — deterministic, see the legacy `Tokenizer::encode_lossy`;
+    /// always zero on the byte-level BPE path, which encodes every input).
     pub characters_replaced: u64,
     /// Records committed so far (all invocations).
     pub records: u64,
@@ -521,7 +522,7 @@ fn build_report(
 pub fn observe_text_corpus(
     oracle: &mut dyn TeacherOracle,
     budget_s: u64,
-    tokenizer: &Tokenizer,
+    tokenizer: &TokenizerKind,
     token_byte_lengths: Option<&[u32]>,
     articles_path: &Path,
     out_dir: &Path,
@@ -772,6 +773,7 @@ mod tests {
         ObservationManifest, merge_shards, sample_id, shard_file_name, shard_of,
     };
     use std::time::{SystemTime, UNIX_EPOCH};
+    use uor_r4_core::transformerless::scenarios::Tokenizer;
     use uor_r4_model_source::{BehaviorSource, RepresentationSource};
 
     const SHARD_BITS: u8 = 2;
@@ -793,7 +795,7 @@ mod tests {
         std::env::temp_dir().join(format!("uor-r4-observe-text-{name}-{nanos}"))
     }
 
-    fn fixture_tokenizer() -> Tokenizer {
+    fn fixture_tokenizer() -> TokenizerKind {
         let path = unique_path("tokenizer.bin");
         let mut bytes = Vec::new();
         for piece in PIECES {
@@ -803,7 +805,7 @@ mod tests {
         fs::write(&path, bytes).expect("write tokenizer fixture");
         let tokenizer = Tokenizer::try_load(&path).expect("load tokenizer fixture");
         let _ = fs::remove_file(&path);
-        tokenizer
+        TokenizerKind::Legacy(tokenizer)
     }
 
     fn fixture_token_byte_lengths() -> Vec<u32> {
@@ -919,7 +921,7 @@ mod tests {
     /// cross-check that the driver emits format-identical v3 bytes.
     fn expected_shards(
         articles: &[(&str, &str)],
-        tokenizer: &Tokenizer,
+        tokenizer: &TokenizerKind,
         token_byte_lengths: Option<&[u32]>,
         up_to: usize,
     ) -> (Vec<Vec<[u8; RECORD_SIZE]>>, u64) {
@@ -967,7 +969,7 @@ mod tests {
 
     fn expected_merged(
         articles: &[(&str, &str)],
-        tokenizer: &Tokenizer,
+        tokenizer: &TokenizerKind,
         token_byte_lengths: Option<&[u32]>,
     ) -> Vec<u8> {
         let (shards, _) = expected_shards(articles, tokenizer, token_byte_lengths, articles.len());
