@@ -132,6 +132,31 @@ fn eval(
     }
 }
 
+/// Probability the corpus recorded for the observed next token, from the
+/// integer-percent quantized top-3 weights (issue #231).
+///
+/// Weights are stored as whole percents (`softmax_top3_sample`,
+/// compiler-side), so a top-3 token whose renormalized probability fell
+/// below 0.5% records weight 0 — while the corpus `next` is sampled from
+/// the full CDF and can land on exactly that token. The raw `0/100`
+/// probability would make the teacher floor `-ln(0)` = +inf, so a
+/// zero-weight collision clamps to half a quantization step (0.005) —
+/// the same clamp discipline the HF evaluate path already applies.
+/// Returns `(prob, zero_weight_collision)`.
+pub fn recorded_next_prob(top_tokens: &[u32; 8], top_weights: &[u32; 8], next: u32) -> (f64, bool) {
+    for k in 0..3 {
+        if top_tokens[k] == next {
+            let w = top_weights[k];
+            return if w == 0 {
+                (0.005, true)
+            } else {
+                (w as f64 / 100.0, false)
+            };
+        }
+    }
+    (0.01, false)
+}
+
 pub fn certify(oracle: &dyn TeacherOracle) {
     let c = compiler::load_corpus().expect("corpus incomplete: run `transformerless gen` first");
     let cut = (c.stories as f64 * 0.8) as u32;
@@ -143,28 +168,26 @@ pub fn certify(oracle: &dyn TeacherOracle) {
     );
 
     let (mut floor, mut ceil) = (0f64, 0u64);
+    let mut zero_clamped = 0usize;
     for i in 0..c.n {
         if c.story[i] < cut {
             continue;
         }
-        let prob = if c.top_tokens[i][0] == c.next[i] {
-            c.top_weights[i][0] as f64 / 100.0
-        } else if c.top_tokens[i][1] == c.next[i] {
-            c.top_weights[i][1] as f64 / 100.0
-        } else if c.top_tokens[i][2] == c.next[i] {
-            c.top_weights[i][2] as f64 / 100.0
-        } else {
-            0.01
-        };
+        let (prob, clamped) = recorded_next_prob(&c.top_tokens[i], &c.top_weights[i], c.next[i]);
+        if clamped {
+            zero_clamped += 1;
+        }
         floor += -prob.ln() / std::f64::consts::LN_2;
         if c.top_tokens[i][0] == c.next[i] {
             ceil += 1;
         }
     }
     println!(
-        "teacher floor {:.4} bits/token | teacher ceiling {:.1}%",
+        "teacher floor {:.4} bits/token | teacher ceiling {:.1}% | zero-quantized-weight collisions: {}/{}",
         floor / ntest as f64,
-        100.0 * ceil as f64 / ntest as f64
+        100.0 * ceil as f64 / ntest as f64,
+        zero_clamped,
+        ntest
     );
 
     let art = compiler::compile(oracle, &c);
