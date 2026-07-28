@@ -189,8 +189,9 @@ jobs:
 
       - name: fuzz parse_arbitrary (60s)
         working-directory: crates/uor-r4-graph-format
-        run: cargo fuzz run parse_arbitrary -- -max_total_time=60 -print_final_stats=1
+        # +nightly explicitly: rust-toolchain.toml pins stable for plain `cargo`
+        run: cargo +nightly fuzz run parse_arbitrary -- -max_total_time=60 -print_final_stats=1
 
       - name: fuzz mutate_valid (60s)
         working-directory: crates/uor-r4-graph-format
-        run: cargo fuzz run mutate_valid -- -max_total_time=60 -print_final_stats=1
+        run: cargo +nightly fuzz run mutate_valid -- -max_total_time=60 -print_final_stats=1

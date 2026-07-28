@@ -1,0 +1,10 @@
+# Pinned so the four local gates (AGENTS.md "Commands") and CI resolve the
+# identical toolchain byte-for-byte (issue #238). rustup-managed `cargo`
+# honors this file automatically. Bump deliberately, in a dedicated PR: a
+# toolchain bump can shift libm-sensitive teacher logprobs — see AGENTS.md
+# "Gate E" notes on kappa re-pinning before trusting post-bump baselines.
+# Nightly-only jobs (`cargo +nightly fuzz`) and Kani's own toolchain use
+# explicit overrides and are unaffected.
+[toolchain]
+channel = "1.97.1"
+components = ["rustfmt", "clippy"]

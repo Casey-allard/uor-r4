@@ -44,6 +44,13 @@ All four must be clean before every commit. CI (`.github/workflows/ci.yml`)
 runs the same plus `cargo nextest`, doc tests, deterministic-rebuild, cargo
 audit, and nightly fuzz smoke — keep it green.
 
+The toolchain is pinned in `rust-toolchain.toml`: rustup-managed `cargo`
+resolves the pin automatically, so the gates above run the same toolchain
+CI does. Caveat: a non-rustup Rust earlier in `PATH` (e.g. Homebrew)
+ignores the pin — verify `which cargo` resolves to `~/.cargo/bin/cargo`,
+or run gates as `rustup run stable cargo …`. Bump the pin in a dedicated
+PR (a bump can shift libm-sensitive teacher logprobs — see Gate E below).
+
 ## Normative invariants (do not weaken)
 
 - **Runtime kernel**: XOR/AND/OR/shift/rotate/popcount/int add-sub/compare/
