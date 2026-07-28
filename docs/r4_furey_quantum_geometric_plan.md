@@ -3,6 +3,31 @@
 
 ---
 
+## Implementation Status (dated deferral record — issue #249)
+
+*Added 2026-07-28. This plan reads as committed architecture; this section
+records what is actually wired into the inference path as of `main` today,
+so readers do not mistake dormant capability for load-bearing structure.
+Nothing listed here is removed — these modules are planned capability,
+kept deliberately (decision recorded on issue #249).*
+
+| Module | State on `main` | Deferral / activation condition |
+|---|---|---|
+| `cd_space.rs` (Cayley-Dickson nested embedding, Phases 1-2) | Implemented, unit-tested, **no callers in the compile/runtime/scoring path** | Deferred until a phase gate consumes `V`-substrate states; revisit after #243 settles the address space |
+| `endomorphism.rs` (`End(V) ≅ Cl(0,8)` store, Phase 2) | Implemented, unit-tested, callers only in `cd_space` tests | Same gate as `cd_space` |
+| `lie_jordan.rs` (Lie/Jordan split kernels, Phase 3) | Implemented, self-referential only | Same gate; hot-path adoption additionally requires a P-4 kernel-scan review |
+| `bott_fock.rs` (O(1) context fold, Phase 4) | Implemented, unit-tested, **unused by the runtime** — the shipped context is the hard 8-token window | **The priority candidate**: activation behind a feature flag with a measured comparison vs the 8-token baseline is the natural companion to the #234 eval-design work (long-range context is exactly what exact-context lookup cannot fake). Tracked there. |
+| `quantum_cover.rs` (Von Neumann density clustering, Phase 5) | Implemented in `uor-r4-graph-compiler`, zero callers outside its own tests; present in the stage DAG registry but not the `compile()` critical path | Deferred until Phase-5 cover induction is scheduled |
+
+**Naming disambiguation** (recorded here because it has already caused
+confusion): the live `uor-r4-graph-runtime/src/cayley_dickson.rs` used by
+`syntactic_morphism_score` is a golden-ratio hash tie-breaker and is *not*
+the Cayley-Dickson algebra of this plan (`uor-r4-core/.../cd_space.rs`,
+dormant). When this plan's phases activate, one of the two should be
+renamed.
+
+---
+
 ## Executive Summary & Strategic Vision
 
 The goal of the **UOR-R4 project** is to build a completely local, CPU-first, multiplication-free, transformerless Large Language Model (LLM) that outperforms traditional transformer architectures. 
