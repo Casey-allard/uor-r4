@@ -12,6 +12,7 @@ pub mod long_context;
 pub mod patch_lifecycle;
 pub mod performance_certificate;
 pub mod predictive_sufficiency;
+pub mod r4g1_readiness;
 pub mod score;
 pub mod score_runtime;
 pub mod shortlist_evaluator;

@@ -287,27 +287,72 @@ pub fn certify(oracle: &dyn TeacherOracle) {
     .expect("r4g1 conversion");
     let r4g1 = uor_r4_graph_runtime::R4G1Runtime::parse(&r4g1_bytes).expect("r4g1 parse");
 
-    let (mut top1, mut agree) = (0u64, 0u64);
-    for &i in &test {
-        let mut node_scores =
-            vec![uor_r4_core::transformerless::score_q::ScoreQ::MIN; r4g1.node_count() as usize];
+    // One reusable score buffer for probe + evaluation (issue #232): the
+    // previous code allocated a node_count-sized vec on every held-out
+    // position for a parameter the runtime does not read.
+    let mut node_scores =
+        vec![uor_r4_core::transformerless::score_q::ScoreQ::MIN; r4g1.node_count() as usize];
+
+    let hist_at = |i: usize| {
         let mut hist = [0u32; WINDOW + 1];
         for (idx, w) in rot.iter().enumerate().take(WINDOW) {
             hist[idx] = c.input[i.saturating_sub(*w)];
         }
-        let pred = r4g1.predict_token(&hist, None, &mut node_scores);
-        if pred == c.next[i] {
-            top1 += 1;
+        hist
+    };
+
+    // Readiness probe (issue #232): bounded and deterministic (first
+    // PROBE_POSITIONS held-out positions, in order). An untrained or
+    // unscored graph would otherwise spend hours on a full evaluation that
+    // terminates in an all-zero row — output that reads as a measured
+    // failure when it is an absent measurement.
+    let probe_hists: Vec<[u32; WINDOW + 1]> = test
+        .iter()
+        .take(crate::r4g1_readiness::PROBE_POSITIONS)
+        .map(|&i| hist_at(i))
+        .collect();
+    let readiness = crate::r4g1_readiness::r4g1_eval_readiness(
+        &r4g1,
+        probe_hists.iter().map(|h| &h[..]),
+        &mut node_scores,
+    );
+
+    match readiness {
+        crate::r4g1_readiness::R4g1EvalReadiness::Ready { scored } => {
+            let (mut top1, mut agree) = (0u64, 0u64);
+            for &i in &test {
+                node_scores.fill(uor_r4_core::transformerless::score_q::ScoreQ::MIN);
+                let hist = hist_at(i);
+                let pred = r4g1.predict_token(&hist, None, &mut node_scores);
+                if pred == c.next[i] {
+                    top1 += 1;
+                }
+                if pred == c.t_argmax[i] {
+                    agree += 1;
+                }
+            }
+            println!(
+                "C R4G1 (graph path): top1 {:.1}% | agreement {:.1}% | WB n/a (not computed on the graph path) | probe: {}/{} scored",
+                100.0 * top1 as f64 / test.len() as f64,
+                100.0 * agree as f64 / test.len() as f64,
+                scored,
+                crate::r4g1_readiness::PROBE_POSITIONS
+            );
         }
-        if pred == c.t_argmax[i] {
-            agree += 1;
+        crate::r4g1_readiness::R4g1EvalReadiness::NoScoredEmission => {
+            println!(
+                "C R4G1 (graph path): SKIPPED — no scored emission on any of {} probe positions (untrained or unscored graph). Full evaluation not run; no measurement recorded.",
+                crate::r4g1_readiness::PROBE_POSITIONS
+            );
+        }
+        crate::r4g1_readiness::R4g1EvalReadiness::ConstantPrediction { token } => {
+            println!(
+                "C R4G1 (graph path): SKIPPED — constant prediction (token {}) across all {} probe positions (untrained or unscored graph). Full evaluation not run; no measurement recorded.",
+                token,
+                crate::r4g1_readiness::PROBE_POSITIONS
+            );
         }
     }
-    println!(
-        "C R4G1 (graph path): top1 {:.1}% | agreement {:.1}% | WB 0.0000 bits/token",
-        100.0 * top1 as f64 / test.len() as f64,
-        100.0 * agree as f64 / test.len() as f64
-    );
 
     // ================= COMPRESSION (PROOF.md P5) =================
 
