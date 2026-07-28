@@ -15,6 +15,9 @@ use uor_foundation::pipeline::PrismModel;
 
 use uor_r4_graph_certify::ScoreStatus;
 use uor_r4_model_source::{BehaviorSource, TeacherOracle};
+use uor_r4_router::fallback::{
+    run_cascade, CascadeOutcome, EngineStatus, TierFn, TierOutcome, TierResult,
+};
 
 // The browser-triggered build must have enough teacher evidence and graph
 // capacity to be a meaningful quality attempt. These are still bounded,
@@ -71,6 +74,11 @@ pub struct VendorChatCompletionsRequest {
     pub max_tokens: Option<usize>,
     #[serde(default)]
     pub temperature: Option<f64>,
+    /// Optional engine pin ("r4g1", "transformerless", "attention",
+    /// "r4-attention", "geometric"); absent/"auto" runs the full cascade,
+    /// falling back to the persisted `/engine` selection (issue #248).
+    #[serde(default)]
+    pub engine: Option<String>,
 }
 
 #[derive(Debug, serde::Serialize)]
@@ -127,6 +135,9 @@ pub struct VendorChatCompletionsResponse {
     pub system_fingerprint: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub uor_audit: Option<UorAuditTrace>,
+    /// Per-tier serving-cascade trail (issue #248): every attempted tier
+    /// with its typed status and detail, in attempt order.
+    pub cascade_trail: serde_json::Value,
 }
 
 #[derive(Deserialize)]
@@ -911,7 +922,7 @@ fn active_artifact_cid() -> Option<String> {
 
 /// Validate generated text before it is returned by the HTTP chat endpoint.
 pub fn is_usable_generated_text(text: &str) -> bool {
-    if text.contains("Manifold resonance too sparse for synthesis.") {
+    if text.contains(SPARSE_RESONANCE_MESSAGE) {
         return false;
     }
     let chars: Vec<char> = text.chars().collect();
@@ -1050,6 +1061,398 @@ fn r4g1_unavailable_response_with_reason(reason: Option<&str>) -> (u16, serde_js
             "action": "Compile / Refresh the R4G1 graph, or explicitly select another engine"
         }),
     )
+}
+
+// ---------------------------------------------------------------------------
+// The single serving cascade (issue #248). Both HTTP chat endpoints route
+// through `run_serving_cascade`; the abstention policy is centralized in
+// `uor_r4_router::fallback::SERVING_ABSTAIN_POLICY`.
+// ---------------------------------------------------------------------------
+
+/// Serving-cascade tier identifiers, in full-cascade order.
+const TIER_R4G1: &str = "r4g1";
+const TIER_TRANSFORMERLESS: &str = "transformerless";
+const TIER_TEACHER_ORACLE: &str = "teacher-oracle";
+const TIER_GEOMETRIC: &str = "geometric";
+/// Pinned-only teacher tiers reachable through explicit `/engine` values.
+const TIER_ATTENTION: &str = "attention";
+const TIER_R4_ATTENTION: &str = "r4-attention";
+
+/// The geometric decoder's sparse-manifold terminal. Recognized as a typed
+/// abstention (issue #248) — never served as if it were generated prose.
+const SPARSE_RESONANCE_MESSAGE: &str = "Manifold resonance too sparse for synthesis.";
+
+/// R4G1 policy metadata surfaced alongside the cascade outcome so the
+/// legacy `r4g1` response block keeps its exact shape.
+#[derive(Debug, Default)]
+struct R4g1Signal {
+    status: Option<&'static str>,
+    widened: bool,
+    abstained: bool,
+    error: Option<String>,
+}
+
+/// The full result of one serving-cascade run: the typed outcome and
+/// per-tier trail, R4G1 policy metadata, and the geometric decode (for
+/// trajectory reporting) when that tier ran.
+struct ServingCascade {
+    outcome: CascadeOutcome,
+    r4g1: R4g1Signal,
+    geometric: Option<uor_r4_router::GeometricResponse>,
+}
+
+/// The persisted `/engine` selection written by the terminal chat client
+/// (`.uor-models/last_engine.txt`), if any.
+fn persisted_engine_preference() -> Option<String> {
+    let raw = fs::read_to_string(".uor-models/last_engine.txt").ok()?;
+    let trimmed = raw.trim();
+    if trimmed.is_empty() {
+        None
+    } else {
+        Some(trimmed.to_owned())
+    }
+}
+
+/// Resolve issue-#248 engine pinning. An engine named by the request — or,
+/// when the request is silent, by the persisted `/engine` selection — pins
+/// the cascade to that single tier, with one deliberate exception:
+/// **"r4g1" never pins.** The CLI persists "r4g1" as its default
+/// (`last_engine.txt`), so treating it as a pin would silently disable
+/// every fallback tier for default installs; and r4g1-first is already the
+/// full cascade's order, so the choice loses nothing by cascading.
+/// Explicit non-default selections (attention, geometric, transformerless,
+/// r4-attention) pin. "auto"/empty/unknown and the legacy "ollama" alias
+/// run the full cascade. `select_synthesis_engine` remains the legacy
+/// single-value resolver for existing consumers.
+fn resolve_pinned_tier(requested: Option<&str>) -> Option<&'static str> {
+    let requested = match requested.map(str::trim) {
+        Some(value) if !value.is_empty() => Some(value.to_owned()),
+        _ => persisted_engine_preference(),
+    };
+    match requested.as_deref() {
+        Some("transformerless" | "transformerless-legacy") => Some(TIER_TRANSFORMERLESS),
+        Some("attention") => Some(TIER_ATTENTION),
+        Some("r4-attention") => Some(TIER_R4_ATTENTION),
+        Some("geometric") => Some(TIER_GEOMETRIC),
+        // "r4g1" (the persisted CLI default) and "auto"/unknown: full cascade.
+        _ => None,
+    }
+}
+
+/// R4G1 tier: a D4 policy abstention is typed `Abstained` — a declared
+/// outcome recorded in the trail, which the cascade continues past under
+/// the central policy (recording, not refusing; PR #223 semantics).
+/// Unusable text is `Pathological` with the reason; an unavailable runtime
+/// or scoring error is `Failed`.
+fn r4g1_tier(
+    slot: &Arc<Mutex<Option<R4g1State>>>,
+    prompt: &str,
+    max_tokens: usize,
+    signal: &mut R4g1Signal,
+) -> TierResult {
+    match generate_r4g1_text(slot, prompt, max_tokens.max(32)) {
+        Ok(Some(gen)) if gen.abstained => {
+            signal.status = gen.status.map(r4g1::PolicyStatus::from).map(|s| s.label());
+            signal.widened = gen.widened;
+            signal.abstained = true;
+            TierResult::abstained(match signal.status {
+                Some(label) => format!("R4G1 policy abstained (status: {label})"),
+                None => "R4G1 policy abstained".to_owned(),
+            })
+        }
+        Ok(Some(gen)) if is_usable_generated_text(&gen.text) => {
+            signal.status = gen.status.map(r4g1::PolicyStatus::from).map(|s| s.label());
+            signal.widened = gen.widened;
+            TierResult::success(gen.text)
+        }
+        Ok(Some(_)) => {
+            let reason = "R4G1 generated text was rejected as non-readable or pathological";
+            signal.error = Some(reason.to_owned());
+            println!("[-] R4G1 output rejected as non-readable or pathological");
+            TierResult::pathological(reason)
+        }
+        Ok(None) => {
+            let reason = "R4G1 graph runtime is not loaded";
+            signal.error = Some(reason.to_owned());
+            TierResult::failed(reason)
+        }
+        Err(error) => {
+            println!("[-] R4G1 generation failed: {error}");
+            signal.error = Some(error.clone());
+            TierResult::failed(error)
+        }
+    }
+}
+
+/// Transformerless tier: unusable text is `Pathological`; an unavailable
+/// runtime or empty generation is `Failed`.
+fn transformerless_tier(
+    slot: &Arc<Mutex<Option<tless_uor::TlessState>>>,
+    prompt: &str,
+    max_tokens: usize,
+) -> TierResult {
+    match generate_tless_text(slot, prompt, max_tokens.max(32)) {
+        Some(text) if is_usable_generated_text(&text) => TierResult::success(text),
+        Some(_) => {
+            println!("[-] Transformerless output rejected as non-readable or pathological");
+            TierResult::pathological(
+                "transformerless output rejected as non-readable or pathological",
+            )
+        }
+        None => TierResult::failed("transformerless runtime unavailable or produced no text"),
+    }
+}
+
+/// Teacher-oracle tier (full-attention teacher): `Failed` when the oracle
+/// is not loaded or produced nothing, `Pathological` when its output fails
+/// the readability gate — pinned attention modes get the same gate as the
+/// cascade tier.
+fn attention_tier(
+    oracle: &mut Option<uor_r4_model_source::HuggingFaceLlamaOracle>,
+    prompt: &str,
+    max_tokens: usize,
+    r4_attention: bool,
+) -> TierResult {
+    let Some(o) = oracle.as_mut() else {
+        return TierResult::failed("teacher oracle is not loaded");
+    };
+    o.set_r4_attention(r4_attention);
+    let generated = generate_attention_text(o, prompt, max_tokens);
+    o.set_r4_attention(false);
+    match generated {
+        Some((text, _count)) if is_usable_generated_text(&text) => TierResult::success(text),
+        Some(_) => TierResult::pathological(
+            "teacher oracle output rejected as non-readable or pathological",
+        ),
+        None => TierResult::failed("teacher oracle produced no text"),
+    }
+}
+
+/// Geometric tier: an empty or sparse-manifold decode is a typed
+/// `Abstained` — the sparse-string terminal is never served as generated
+/// text. Unreadable decodes are `Pathological`.
+#[allow(clippy::too_many_arguments)]
+fn geometric_tier(
+    router: &mut UorR4Router,
+    out: &mut Option<uor_r4_router::GeometricResponse>,
+    prompt: &str,
+    identity: &str,
+    max_tokens: usize,
+    temperature: f64,
+    gamma: f64,
+) -> TierResult {
+    let geom = router.generate_geometric_response_native(
+        prompt,
+        identity,
+        max_tokens,
+        temperature,
+        10.0,
+        4.0,
+        gamma,
+    );
+    let text = geom.text.clone();
+    *out = Some(geom);
+    if text.trim().is_empty() || text.contains(SPARSE_RESONANCE_MESSAGE) {
+        TierResult::abstained("manifold resonance too sparse for synthesis")
+    } else if is_usable_generated_text(&text) {
+        TierResult::success(text)
+    } else {
+        TierResult::pathological("geometric output rejected as non-readable or pathological")
+    }
+}
+
+/// Build and run THE serving cascade (issue #248): r4g1 → transformerless →
+/// teacher-oracle → geometric, or the single pinned tier when `pinned`
+/// names one. First success serves; every attempted tier's typed outcome
+/// lands in the trail; a run where no tier serves returns `text: None` so
+/// the caller can answer with an honest `declined_by_all` terminal instead
+/// of serving a placeholder string as if it were generated.
+#[allow(clippy::too_many_arguments)]
+fn run_serving_cascade(
+    router: &mut UorR4Router,
+    r4g1: &Arc<Mutex<Option<R4g1State>>>,
+    tless: &Arc<Mutex<Option<tless_uor::TlessState>>>,
+    oracle: &mut Option<uor_r4_model_source::HuggingFaceLlamaOracle>,
+    prompt: &str,
+    identity: &str,
+    max_tokens: usize,
+    temperature: f64,
+    gamma: f64,
+    pinned: Option<&'static str>,
+) -> ServingCascade {
+    let mut signal = R4g1Signal::default();
+    let mut geometric: Option<uor_r4_router::GeometricResponse> = None;
+    let outcome = {
+        let signal_ref = &mut signal;
+        let geometric_ref = &mut geometric;
+        let include = |tier: &'static str| pinned.is_none() || pinned == Some(tier);
+        let mut tiers: Vec<(&'static str, TierFn<'_>)> = Vec::new();
+        if include(TIER_R4G1) {
+            tiers.push((
+                TIER_R4G1,
+                Box::new(move || r4g1_tier(r4g1, prompt, max_tokens, signal_ref)),
+            ));
+        }
+        if include(TIER_TRANSFORMERLESS) {
+            tiers.push((
+                TIER_TRANSFORMERLESS,
+                Box::new(move || transformerless_tier(tless, prompt, max_tokens)),
+            ));
+        }
+        if pinned.is_none() {
+            tiers.push((
+                TIER_TEACHER_ORACLE,
+                Box::new(move || attention_tier(oracle, prompt, max_tokens.max(128), false)),
+            ));
+        } else if pinned == Some(TIER_ATTENTION) {
+            tiers.push((
+                TIER_ATTENTION,
+                Box::new(move || attention_tier(oracle, prompt, max_tokens.max(256), false)),
+            ));
+        } else if pinned == Some(TIER_R4_ATTENTION) {
+            tiers.push((
+                TIER_R4_ATTENTION,
+                Box::new(move || attention_tier(oracle, prompt, max_tokens.max(256), true)),
+            ));
+        }
+        if include(TIER_GEOMETRIC) {
+            tiers.push((
+                TIER_GEOMETRIC,
+                Box::new(move || {
+                    geometric_tier(
+                        router,
+                        geometric_ref,
+                        prompt,
+                        identity,
+                        max_tokens,
+                        temperature,
+                        gamma,
+                    )
+                }),
+            ));
+        }
+        run_cascade(tiers)
+    };
+    ServingCascade {
+        outcome,
+        r4g1: signal,
+        geometric,
+    }
+}
+
+/// Derive the legacy `generation_mode` label from the cascade trail so
+/// existing response consumers keep the field names and values they rely
+/// on.
+fn derive_generation_mode(cascade: &ServingCascade, pinned: Option<&'static str>) -> String {
+    if let Some(served) = cascade.outcome.served_by {
+        return match served {
+            TIER_TRANSFORMERLESS => {
+                if pinned == Some(TIER_TRANSFORMERLESS) {
+                    "transformerless-legacy".to_owned()
+                } else {
+                    "transformerless-fallback".to_owned()
+                }
+            }
+            TIER_TEACHER_ORACLE => "teacher-oracle-fallback".to_owned(),
+            TIER_GEOMETRIC => "geometric-decoded".to_owned(),
+            // TIER_R4G1, TIER_ATTENTION, TIER_R4_ATTENTION serve under
+            // their own tier name.
+            other => other.to_owned(),
+        };
+    }
+    // Declined by all: keep the most specific legacy R4G1 label when that
+    // tier was attempted, else the typed terminal label.
+    let r4g1_step = cascade
+        .outcome
+        .trail
+        .iter()
+        .find(|step| step.tier == TIER_R4G1);
+    match r4g1_step.map(|step| step.status) {
+        Some(EngineStatus::Abstained) => "r4g1-abstained".to_owned(),
+        Some(EngineStatus::Pathological) => "r4g1-rejected".to_owned(),
+        Some(EngineStatus::Failed) => "r4g1-error".to_owned(),
+        _ => "declined-by-all".to_owned(),
+    }
+}
+
+/// Serialize the cascade trail for response payloads: tier, typed status
+/// (as its wire label), and optional detail, in attempt order.
+fn cascade_trail_json(trail: &[TierOutcome]) -> serde_json::Value {
+    serde_json::Value::Array(
+        trail
+            .iter()
+            .map(|step| {
+                serde_json::json!({
+                    "tier": step.tier,
+                    "status": step.status.to_string(),
+                    "detail": step.detail,
+                })
+            })
+            .collect(),
+    )
+}
+
+/// The honest terminal for a cascade where no tier served (issue #248):
+/// `outcome: "declined_by_all"`, the pinned tier when one was named, the
+/// derived legacy fields, and the full per-tier trail. A decline that
+/// includes a declared abstention is HTTP 200 (a declared outcome, not a
+/// fault); a decline where every tier hard-failed is HTTP 503.
+fn declined_by_all_response(
+    cascade: &ServingCascade,
+    pinned: Option<&'static str>,
+    generation_mode: &str,
+) -> (u16, serde_json::Value) {
+    let any_abstained = cascade
+        .outcome
+        .trail
+        .iter()
+        .any(|step| step.status == EngineStatus::Abstained);
+    let status = if any_abstained { 200 } else { 503 };
+    // A status notice for UIs that render `description` — visibly an
+    // outcome declaration, never text presented as generated prose.
+    let attempted = cascade
+        .outcome
+        .trail
+        .iter()
+        .map(|step| format!("{}: {}", step.tier, step.status))
+        .collect::<Vec<_>>()
+        .join(", ");
+    let description =
+        format!("Declined by all attempted tiers ({attempted}); no text was generated.");
+    let mut body = serde_json::json!({
+        "outcome": "declined_by_all",
+        "engine": pinned.unwrap_or("auto"),
+        "pinned_engine": pinned,
+        "text": "",
+        "description": description,
+        "llm_connected": false,
+        "generation_mode": generation_mode,
+        "abstained": cascade.r4g1.abstained,
+        "status": cascade.r4g1.status,
+        "widened": cascade.r4g1.widened,
+        "r4g1": {
+            "status": cascade.r4g1.status,
+            "widened": cascade.r4g1.widened,
+            "abstained": cascade.r4g1.abstained,
+        },
+        "cascade_trail": cascade_trail_json(&cascade.outcome.trail),
+    });
+    if status == 503 {
+        if let Some(map) = body.as_object_mut() {
+            let reason = cascade
+                .r4g1
+                .error
+                .clone()
+                .unwrap_or_else(|| "no serving tier produced usable text".to_owned());
+            map.insert(
+                "error".to_owned(),
+                serde_json::json!(format!(
+                    "Serving cascade declined: {reason}; no text was fabricated"
+                )),
+            );
+        }
+    }
+    (status, body)
 }
 
 fn same_file_bytes(left: &Path, right: &Path) -> bool {
@@ -1938,60 +2341,32 @@ fn handle_connection(
             *r.borrow_mut() = None;
         });
 
-        let mut final_response_text = String::new();
-        let mut generation_mode = "r4g1".to_string();
-
-        match generate_r4g1_text(&r4g1, &prompt_text, max_tokens.max(32)) {
-            Ok(Some(gen)) if gen.abstained => {
-                generation_mode = "r4g1-abstained".to_string();
-            }
-            Ok(Some(gen)) if is_usable_generated_text(&gen.text) => {
-                final_response_text = gen.text;
-                generation_mode = "r4g1".to_string();
-            }
-            _ => {}
-        }
-
-        if final_response_text.is_empty() && tless.lock().unwrap().is_some() {
-            if let Some(text) = generate_tless_text(&tless, &prompt_text, max_tokens.max(32)) {
-                if is_usable_generated_text(&text) {
-                    final_response_text = text;
-                    generation_mode = "transformerless-fallback".to_string();
-                }
-            }
-        }
-
-        if final_response_text.is_empty() {
+        // Issue #248: the single serving cascade, honoring an engine pin
+        // from the request or the persisted `/engine` selection.
+        let pinned = resolve_pinned_tier(req.engine.as_deref());
+        let cascade = {
             let mut oracle_guard = oracle.lock().unwrap();
-            if let Some(ref mut o) = *oracle_guard {
-                if let Some((text, _)) = generate_attention_text(o, &prompt_text, max_tokens) {
-                    if is_usable_generated_text(&text) {
-                        final_response_text = text;
-                        generation_mode = "teacher-oracle-fallback".to_string();
-                    }
-                }
-            }
-        }
-
-        if final_response_text.is_empty() {
-            let geom_result = router_guard.generate_geometric_response_native(
+            run_serving_cascade(
+                &mut router_guard,
+                &r4g1,
+                &tless,
+                &mut oracle_guard,
                 &prompt_text,
                 &identity,
                 max_tokens,
                 temperature,
-                10.0,
-                4.0,
                 gamma,
-            );
-            if is_usable_generated_text(&geom_result.text) {
-                final_response_text = geom_result.text;
-                generation_mode = "geometric-decoded".to_string();
-            }
-        }
-
-        if final_response_text.is_empty() {
-            final_response_text = "Manifold resonance too sparse for synthesis.".to_string();
-        }
+                pinned,
+            )
+        };
+        let generation_mode = derive_generation_mode(&cascade, pinned);
+        let Some(final_response_text) = cascade.outcome.text.clone() else {
+            // Declined by all: an honest terminal instead of serving the
+            // sparse-string placeholder as if it were generated.
+            let (status, body) = declined_by_all_response(&cascade, pinned, &generation_mode);
+            send_json_response(stream, status, &body.to_string());
+            return;
+        };
 
         router_guard.index_sentence(&prompt_text, &identity);
         router_guard.index_sentence(&final_response_text, &identity);
@@ -2079,6 +2454,7 @@ fn handle_connection(
             },
             system_fingerprint: Some(format!("uor-r4-{}", generation_mode)),
             uor_audit: Some(uor_audit),
+            cascade_trail: cascade_trail_json(&cascade.outcome.trail),
         };
 
         send_json_response(stream, 200, &serde_json::to_string(&resp).unwrap());
@@ -2102,9 +2478,10 @@ fn handle_connection(
         let identity = payload
             .identity
             .unwrap_or_else(|| "tenant-alpha".to_string());
-        // `ollama` remains accepted as a legacy client alias so saved browser
-        // sessions keep working, but all local synthesis is transformerless.
-        let engine_mode = select_synthesis_engine(payload.engine.as_deref());
+        // Issue #248: an engine named by the request (or the persisted
+        // `/engine` selection) pins the cascade to that single tier;
+        // "auto"/empty and the legacy `ollama` alias run the full cascade.
+        let pinned = resolve_pinned_tier(payload.engine.as_deref());
 
         let mut router_guard = router.lock().unwrap();
 
@@ -2177,208 +2554,57 @@ fn handle_connection(
             .expect("No final routing data generated");
         let route_ms = t_route.elapsed().as_secs_f64() * 1000.0;
 
-        // 5. Decode response
+        // 5. Decode response through the single serving cascade (issue
+        // #248). A D4 abstention no longer refuses fallback outright: it is
+        // RECORDED in the per-tier trail while later tiers still attempt
+        // (PR #223 semantics, centralized in `SERVING_ABSTAIN_POLICY`).
         let t_gen = Instant::now();
-        let mut geom_result = uor_r4_router::GeometricResponse {
-            text: String::new(),
-            trajectory: Vec::new(),
-        };
-        if engine_mode == "geometric" {
-            geom_result = router_guard.generate_geometric_response_native(
+        let mut cascade = {
+            let mut oracle_guard = oracle.lock().unwrap();
+            run_serving_cascade(
+                &mut router_guard,
+                &r4g1,
+                &tless,
+                &mut oracle_guard,
                 &payload.text,
                 &identity,
                 max_tokens,
                 temperature,
-                10.0,
-                4.0,
                 gamma,
-            );
-        }
-
-        let top_resonances = router_guard.get_top_resonances_native(&payload.text, &identity, 1);
-        let ctx_block = if !top_resonances.is_empty() {
-            &top_resonances[0].sentence
-        } else {
-            "[no corpus context available]"
+                pinned,
+            )
         };
 
-        let mut tokens_generated = 0usize;
-        let mut tokens_per_sec = 0.0f64;
-        let mut final_response_text = String::new();
-        let mut llm_connected = false;
-        let mut generation_mode = "geometric-decoded".to_string();
-        // R4G1 status surfacing (D4): the resolution status of the last
-        // scoring step, whether a widened re-probe ran, and whether the
-        // policy abstained. Declared in the response whenever the R4G1
-        // path ran — including when another engine then served.
-        let mut r4g1_status: Option<&'static str> = None;
-        let mut r4g1_widened = false;
-        let mut r4g1_abstained = false;
-        let mut r4g1_error: Option<String> = None;
+        // Legacy response fields, derived from the trail so consumers keep
+        // the names and values they rely on.
+        let generation_mode = derive_generation_mode(&cascade, pinned);
+        let r4g1_status = cascade.r4g1.status;
+        let r4g1_widened = cascade.r4g1.widened;
+        let r4g1_abstained = cascade.r4g1.abstained;
+        let llm_connected = cascade
+            .outcome
+            .served_by
+            .map(|tier| tier != TIER_GEOMETRIC)
+            .unwrap_or(false);
+        let cascade_trail = cascade_trail_json(&cascade.outcome.trail);
+        let geom_trajectory = cascade
+            .geometric
+            .take()
+            .map(|geom| geom.trajectory)
+            .unwrap_or_default();
 
-        let mut oracle_guard = oracle.lock().unwrap();
-        if engine_mode == "attention" || engine_mode == "r4-attention" {
-            if let Some(ref mut o) = *oracle_guard {
-                o.set_r4_attention(engine_mode == "r4-attention");
-                if let Some((text, count)) =
-                    generate_attention_text(o, &payload.text, max_tokens.max(256))
-                {
-                    final_response_text = text;
-                    llm_connected = true;
-                    generation_mode = if engine_mode == "r4-attention" {
-                        "r4-attention".to_string()
-                    } else {
-                        "attention".to_string()
-                    };
-                    tokens_generated = count;
-                }
-                o.set_r4_attention(false);
-            }
-        } else if engine_mode == "transformerless"
-            || engine_mode == "r4g1"
-            || engine_mode == "transformerless-legacy"
-        {
-            let prompt = payload.text.clone();
-            if engine_mode != "transformerless-legacy" {
-                match generate_r4g1_text(&r4g1, &prompt, max_tokens.max(32)) {
-                    Ok(Some(gen)) if gen.abstained => {
-                        // D4: the policy abstained (Novel input after the
-                        // widen-once bound, or a reserved status). This is a
-                        // declared outcome, not an engine failure — surface
-                        // the status, never guess a token, and never fall
-                        // through to another engine without declaring it.
-                        generation_mode = "r4g1-abstained".to_string();
-                        r4g1_status = gen.status.map(r4g1::PolicyStatus::from).map(|s| s.label());
-                        r4g1_widened = gen.widened;
-                        r4g1_abstained = true;
-                    }
-                    Ok(Some(gen)) if is_usable_generated_text(&gen.text) => {
-                        // The pathological-output reject guard stays the
-                        // last line of defense for SERVED (non-abstained)
-                        // output; abstentions are resolved by the policy
-                        // above before text exists.
-                        final_response_text = gen.text;
-                        llm_connected = true;
-                        generation_mode = "r4g1".to_string();
-                        r4g1_status = gen.status.map(r4g1::PolicyStatus::from).map(|s| s.label());
-                        r4g1_widened = gen.widened;
-                        tokens_generated = final_response_text.split_whitespace().count();
-                    }
-                    Ok(Some(_)) => {
-                        generation_mode = "r4g1-rejected".to_string();
-                        r4g1_error = Some(
-                            "R4G1 generated text was rejected as non-readable or pathological"
-                                .to_owned(),
-                        );
-                        println!("[-] R4G1 output rejected as non-readable or pathological");
-                    }
-                    Ok(None) => {
-                        r4g1_error = Some("R4G1 graph runtime is not loaded".to_owned());
-                    }
-                    Err(error) => {
-                        generation_mode = "r4g1-error".to_string();
-                        r4g1_error = Some(error.clone());
-                        println!("[-] R4G1 generation failed: {error}");
-                    }
-                }
-            }
-            if final_response_text.is_empty() && !r4g1_abstained {
-                if let Some(text) = generate_tless_text(&tless, &prompt, max_tokens.max(32)) {
-                    if is_usable_generated_text(&text) {
-                        final_response_text = text;
-                        llm_connected = true;
-                        generation_mode = if engine_mode == "r4g1" {
-                            "transformerless-fallback".to_string()
-                        } else {
-                            "transformerless-legacy".to_string()
-                        };
-                        tokens_generated = final_response_text.split_whitespace().count();
-                        println!(
-                            "[+] Fallback engine successfully generated response via transformerless"
-                        );
-                    } else {
-                        println!("[-] Fallback transformerless output rejected as non-readable or pathological");
-                    }
-                }
-            }
-            if final_response_text.is_empty() && !r4g1_abstained {
-                if let Some(ref mut o) = *oracle_guard {
-                    if let Some((text, count)) =
-                        generate_attention_text(o, &prompt, max_tokens.max(128))
-                    {
-                        if is_usable_generated_text(&text) {
-                            final_response_text = text;
-                            llm_connected = true;
-                            generation_mode = "teacher-oracle-fallback".to_string();
-                            tokens_generated = count;
-                            println!("[+] Fallback engine successfully generated response via teacher oracle");
-                        }
-                    }
-                }
-            }
-            if final_response_text.is_empty() && !r4g1_abstained {
-                let geom_result = router_guard.generate_geometric_response_native(
-                    &payload.text,
-                    &identity,
-                    max_tokens,
-                    temperature,
-                    10.0,
-                    4.0,
-                    gamma,
-                );
-                if is_usable_generated_text(&geom_result.text) {
-                    final_response_text = geom_result.text;
-                    generation_mode = "geometric-decoded".to_string();
-                    tokens_generated = final_response_text.split_whitespace().count();
-                    println!("[+] Geometric fallback successfully decoded response");
-                }
-            }
-        }
-
-        if final_response_text.is_empty() && engine_mode == "r4g1" {
-            if r4g1_abstained {
-                // D4 abstention is a declared outcome, not a fault: HTTP
-                // 200 with the status, no guessed text, no fallback engine.
-                let body = serde_json::json!({
-                    "engine": "r4g1",
-                    "abstained": true,
-                    "status": r4g1_status,
-                    "widened": r4g1_widened,
-                    "text": "",
-                    "llm_connected": false,
-                    "generation_mode": generation_mode,
-                });
-                send_json_response(stream, 200, &body.to_string());
-            } else {
-                let (status, body) = r4g1_unavailable_response_with_reason(r4g1_error.as_deref());
-                send_json_response(stream, status, &body.to_string());
-            }
+        let Some(final_response_text) = cascade.outcome.text.clone() else {
+            // Declined by all attempted tiers: an honest terminal naming
+            // every attempted tier, instead of the sparse-string
+            // placeholder served as if it were generated.
+            let (status, body) = declined_by_all_response(&cascade, pinned, &generation_mode);
+            send_json_response(stream, status, &body.to_string());
             return;
-        }
+        };
 
-        if final_response_text.is_empty() {
-            if geom_result.text.is_empty() {
-                geom_result = router_guard.generate_geometric_response_native(
-                    &payload.text,
-                    &identity,
-                    max_tokens,
-                    temperature,
-                    10.0,
-                    4.0,
-                    gamma,
-                );
-            }
-            final_response_text = if !geom_result.text.is_empty() {
-                geom_result.text.clone()
-            } else if ctx_block != "[no corpus context available]" {
-                generation_mode = "geometric-retrieval".to_string();
-                ctx_block.to_string()
-            } else {
-                "Manifold resonance too sparse for synthesis.".to_string()
-            };
-        }
-
+        let tokens_generated = final_response_text.split_whitespace().count();
         let gen_ms = t_gen.elapsed().as_secs_f64() * 1000.0;
+        let mut tokens_per_sec = 0.0f64;
         if tokens_generated > 0 && gen_ms > 0.0 {
             tokens_per_sec = tokens_generated as f64 / (gen_ms / 1000.0);
         }
@@ -2458,6 +2684,8 @@ fn handle_connection(
                 "widened": r4g1_widened,
                 "abstained": r4g1_abstained,
             },
+            "pinned_engine": pinned,
+            "cascade_trail": cascade_trail,
             "active_projection": {
                 "u": u,
                 "v": v,
@@ -2488,7 +2716,7 @@ fn handle_connection(
             "state_vector": routing_data.routed.state_vector,
             "all_routes": routing_data.all_routes,
             "top_resonance": top_resonances_5,
-            "trajectory": geom_result.trajectory,
+            "trajectory": geom_trajectory,
             "active_streams": router_guard.get_active_streams_native(),
             "expert_counts": router_guard.get_expert_counts(),
             "routing_latency_ms": route_ms.round(),
@@ -3474,6 +3702,7 @@ fn send_json_response(mut stream: TcpStream, status_code: u16, body: &str) {
         409 => "CONFLICT",
         500 => "INTERNAL SERVER ERROR",
         502 => "BAD GATEWAY",
+        503 => "SERVICE UNAVAILABLE",
         _ => "OK",
     };
     let response = format!(
@@ -3772,5 +4001,139 @@ mod tests {
         assert_eq!(generation_mode, "transformerless-fallback");
         assert!(!final_response_text.is_empty());
         assert!(super::is_usable_generated_text(&final_response_text));
+    }
+
+    #[test]
+    fn r4g1_default_selection_never_pins_but_explicit_engines_do() {
+        // Issue #248 amendment: the CLI persists "r4g1" as its default
+        // engine, so treating it as a pin would silently disable every
+        // fallback tier on default installs. r4g1-first is already the
+        // cascade order — "r4g1" runs the full cascade.
+        assert_eq!(super::resolve_pinned_tier(Some("r4g1")), None);
+        assert_eq!(super::resolve_pinned_tier(Some("auto")), None);
+        assert_eq!(super::resolve_pinned_tier(Some("")), None);
+        assert_eq!(super::resolve_pinned_tier(Some("ollama")), None);
+        assert_eq!(
+            super::resolve_pinned_tier(Some("geometric")),
+            Some(super::TIER_GEOMETRIC)
+        );
+        assert_eq!(
+            super::resolve_pinned_tier(Some("attention")),
+            Some(super::TIER_ATTENTION)
+        );
+        assert_eq!(
+            super::resolve_pinned_tier(Some("transformerless")),
+            Some(super::TIER_TRANSFORMERLESS)
+        );
+    }
+
+    #[test]
+    fn derive_legacy_fields_from_cascade_trail() {
+        use uor_r4_router::fallback::{CascadeOutcome, EngineStatus, TierOutcome};
+
+        // A cascaded abstention (PR #223 semantics): R4G1 abstains, the
+        // transformerless tier serves, and the legacy fields derive from
+        // the trail.
+        let served = super::ServingCascade {
+            outcome: CascadeOutcome {
+                text: Some("served text".to_owned()),
+                served_by: Some(super::TIER_TRANSFORMERLESS),
+                trail: vec![
+                    TierOutcome {
+                        tier: super::TIER_R4G1,
+                        status: EngineStatus::Abstained,
+                        detail: Some("R4G1 policy abstained (status: novel)".to_owned()),
+                    },
+                    TierOutcome {
+                        tier: super::TIER_TRANSFORMERLESS,
+                        status: EngineStatus::Success,
+                        detail: None,
+                    },
+                ],
+            },
+            r4g1: super::R4g1Signal {
+                status: Some("novel"),
+                widened: true,
+                abstained: true,
+                error: None,
+            },
+            geometric: None,
+        };
+        assert_eq!(
+            super::derive_generation_mode(&served, None),
+            "transformerless-fallback"
+        );
+        assert_eq!(
+            super::derive_generation_mode(&served, Some(super::TIER_TRANSFORMERLESS)),
+            "transformerless-legacy"
+        );
+        let trail = super::cascade_trail_json(&served.outcome.trail);
+        assert_eq!(trail[0]["tier"], "r4g1");
+        assert_eq!(trail[0]["status"], "abstained");
+        assert_eq!(trail[1]["tier"], "transformerless");
+        assert_eq!(trail[1]["status"], "success");
+
+        // A pinned tier that abstained: declined_by_all is a declared
+        // outcome (HTTP 200) naming the pinned tier, with the legacy
+        // abstention fields intact.
+        let declined = super::ServingCascade {
+            outcome: CascadeOutcome {
+                text: None,
+                served_by: None,
+                trail: vec![TierOutcome {
+                    tier: super::TIER_R4G1,
+                    status: EngineStatus::Abstained,
+                    detail: Some("R4G1 policy abstained (status: novel)".to_owned()),
+                }],
+            },
+            r4g1: super::R4g1Signal {
+                status: Some("novel"),
+                widened: false,
+                abstained: true,
+                error: None,
+            },
+            geometric: None,
+        };
+        let generation_mode = super::derive_generation_mode(&declined, Some(super::TIER_R4G1));
+        assert_eq!(generation_mode, "r4g1-abstained");
+        let (status, body) =
+            super::declined_by_all_response(&declined, Some(super::TIER_R4G1), &generation_mode);
+        assert_eq!(status, 200);
+        assert_eq!(body["outcome"], "declined_by_all");
+        assert_eq!(body["engine"], "r4g1");
+        assert_eq!(body["abstained"], true);
+        assert_eq!(body["r4g1"]["status"], "novel");
+        assert_eq!(body["cascade_trail"][0]["tier"], "r4g1");
+        assert_eq!(body["cascade_trail"][0]["status"], "abstained");
+
+        // A pinned tier that hard-failed with no declared abstention is a
+        // 503 fault carrying the recorded reason.
+        let failed = super::ServingCascade {
+            outcome: CascadeOutcome {
+                text: None,
+                served_by: None,
+                trail: vec![TierOutcome {
+                    tier: super::TIER_R4G1,
+                    status: EngineStatus::Failed,
+                    detail: Some("R4G1 graph runtime is not loaded".to_owned()),
+                }],
+            },
+            r4g1: super::R4g1Signal {
+                status: None,
+                widened: false,
+                abstained: false,
+                error: Some("R4G1 graph runtime is not loaded".to_owned()),
+            },
+            geometric: None,
+        };
+        let generation_mode = super::derive_generation_mode(&failed, Some(super::TIER_R4G1));
+        assert_eq!(generation_mode, "r4g1-error");
+        let (status, body) =
+            super::declined_by_all_response(&failed, Some(super::TIER_R4G1), &generation_mode);
+        assert_eq!(status, 503);
+        assert!(body["error"]
+            .as_str()
+            .unwrap_or_default()
+            .contains("not loaded"));
     }
 }

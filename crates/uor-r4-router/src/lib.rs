@@ -14,7 +14,11 @@ pub mod benchmark;
 pub mod fallback;
 pub mod geometry;
 
-pub use fallback::{EngineResponse, EngineStatus, FallbackResult, FallbackRouter};
+pub use fallback::{
+    run_cascade, run_cascade_with_policy, AbstainPolicy, CascadeOutcome, EngineResponse,
+    EngineStatus, FallbackResult, FallbackRouter, TierFn, TierOutcome, TierResult,
+    SERVING_ABSTAIN_POLICY,
+};
 
 /// A content-addressed identifier derived via the 3/8 Resonance Hashing Law.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
