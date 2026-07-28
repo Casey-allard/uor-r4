@@ -157,6 +157,25 @@ pub fn recorded_next_prob(top_tokens: &[u32; 8], top_weights: &[u32; 8], next: u
     (0.01, false)
 }
 
+/// Evaluation context for position `i` (issue #237): the last `WINDOW`
+/// tokens in chronological order — oldest first, ending with `input[i]` as
+/// the most recent — bounded to the position's own story, matching the
+/// compiler's observation semantics (`runtime::history_token`).
+///
+/// Replaces the defective construction that indexed the corpus with the
+/// per-slot *vector rotation offsets* (j·17 mod D) as if they were time
+/// lags — sampling stride-17 positions, in reversed order, across story
+/// boundaries, with a phantom trailing zero token.
+pub fn eval_context(c: &compiler::Corpus, i: usize) -> Vec<u32> {
+    let mut hist = Vec::with_capacity(WINDOW);
+    for j in (1..=WINDOW).rev() {
+        if let Some(t) = runtime::history_token(c, i, j) {
+            hist.push(t);
+        }
+    }
+    hist
+}
+
 pub fn certify(oracle: &dyn TeacherOracle) {
     let c = compiler::load_corpus().expect("corpus incomplete: run `transformerless gen` first");
     let cut = (c.stories as f64 * 0.8) as u32;
@@ -316,23 +335,15 @@ pub fn certify(oracle: &dyn TeacherOracle) {
     let mut node_scores =
         vec![uor_r4_core::transformerless::score_q::ScoreQ::MIN; r4g1.node_count() as usize];
 
-    let hist_at = |i: usize| {
-        let mut hist = [0u32; WINDOW + 1];
-        for (idx, w) in rot.iter().enumerate().take(WINDOW) {
-            hist[idx] = c.input[i.saturating_sub(*w)];
-        }
-        hist
-    };
-
     // Readiness probe (issue #232): bounded and deterministic (first
     // PROBE_POSITIONS held-out positions, in order). An untrained or
     // unscored graph would otherwise spend hours on a full evaluation that
     // terminates in an all-zero row — output that reads as a measured
     // failure when it is an absent measurement.
-    let probe_hists: Vec<[u32; WINDOW + 1]> = test
+    let probe_hists: Vec<Vec<u32>> = test
         .iter()
         .take(crate::r4g1_readiness::PROBE_POSITIONS)
-        .map(|&i| hist_at(i))
+        .map(|&i| eval_context(&c, i))
         .collect();
     let readiness = crate::r4g1_readiness::r4g1_eval_readiness(
         &r4g1,
@@ -345,7 +356,7 @@ pub fn certify(oracle: &dyn TeacherOracle) {
             let (mut top1, mut agree) = (0u64, 0u64);
             for &i in &test {
                 node_scores.fill(uor_r4_core::transformerless::score_q::ScoreQ::MIN);
-                let hist = hist_at(i);
+                let hist = eval_context(&c, i);
                 let pred = r4g1.predict_token(&hist, None, &mut node_scores);
                 if pred == c.next[i] {
                     top1 += 1;

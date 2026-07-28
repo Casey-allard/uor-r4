@@ -192,7 +192,12 @@ pub fn decode_row_kernel(k: &mut OpKernel, art: &Compiled, t: u32, out: &mut [i3
     }
 }
 
-fn history_token(c: &Corpus, i: usize, j: usize) -> Option<u32> {
+/// Token `j-1` positions back from `i` (j == 1 is `input[i]` itself),
+/// bounded to the same story — `None` past the story start. This is the
+/// canonical context-window semantics shared by observation (bundling) and
+/// evaluation (issue #237: evaluation must not cross story boundaries or
+/// use non-consecutive lags).
+pub fn history_token(c: &Corpus, i: usize, j: usize) -> Option<u32> {
     if j == 1 {
         return Some(c.input[i]);
     }
