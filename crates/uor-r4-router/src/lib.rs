@@ -1470,6 +1470,44 @@ impl UorR4Router {
         }
     }
 
+    /// Content-derived 512-d state for a piece of text (issue #245): the
+    /// L2-normalized sum of the zeta-seeded vocabulary vectors of its known
+    /// words — the same construction `evolve_brain_state` uses for queries.
+    /// `None` when no word of the text is in the vocabulary.
+    fn content_state_vector(&self, text: &str) -> Option<Vec<f64>> {
+        let words = tokenize(text);
+        let mut s_vec = vec![0.0; 512];
+        let mut word_count = 0usize;
+        for w in words {
+            if let Some(v) = self.vocab_vectors.get(&w) {
+                for (sum, value) in s_vec.iter_mut().zip(v) {
+                    *sum += *value;
+                }
+                word_count += 1;
+            }
+        }
+        if word_count == 0 {
+            return None;
+        }
+        let norm = s_vec.iter().map(|v| v * v).sum::<f64>().sqrt();
+        if norm > 0.0 {
+            for v in &mut s_vec {
+                *v /= norm;
+            }
+        }
+        Some(s_vec)
+    }
+
+    /// Read-only view of the indexed corpus items for an identity (test and
+    /// inspection surface for the content-bearing store, issue #245).
+    pub fn corpus_items_for(&self, identity: &str) -> Vec<&CorpusItem> {
+        let key = identity_key(identity);
+        self.corpus_index_by_identity
+            .get(&key)
+            .map(|store| store.values().flatten().collect())
+            .unwrap_or_default()
+    }
+
     fn index_sentence_internal(&mut self, sentence: &str, identity: &str) {
         let s_clean = sentence.trim();
         if s_clean.is_empty() || s_clean.len() < 10 {
@@ -1482,7 +1520,15 @@ impl UorR4Router {
             }
         }
 
-        let routing_data = self.route_query_to_manifold_internal(s_clean, identity, None);
+        // Issue #245: route the sentence through its own content-derived
+        // state, not the session brain state at index time — stored
+        // state_vectors must encode the sentence, or cosine resonance
+        // retrieval is degenerate. Falls back to session state only when no
+        // word of the sentence is in the vocabulary (words were just added
+        // above, so this is rare).
+        let content_state = self.content_state_vector(s_clean);
+        let routing_data =
+            self.route_query_to_manifold_internal(s_clean, identity, content_state.as_deref());
         let best = routing_data.routed;
         let idx_win = best.window_index;
 
