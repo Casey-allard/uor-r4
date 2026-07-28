@@ -132,6 +132,102 @@ fn eval(
     }
 }
 
+/// Merge the distributions of several candidate keys at one store level
+/// (issue #244: query-time beam expansion — the read-side equivalent of
+/// what `add_evidence_multi` materializes at write time).
+pub fn merged_beam_distribution(
+    level: &BTreeMap<Vec<u8>, BTreeMap<u32, u32>>,
+    keys: &[Vec<u8>],
+) -> BTreeMap<u32, u32> {
+    let mut merged: BTreeMap<u32, u32> = BTreeMap::new();
+    for key in keys {
+        if let Some(dist) = level.get(key) {
+            for (&tok, &count) in dist {
+                *merged.entry(tok).or_default() += count;
+            }
+        }
+    }
+    merged
+}
+
+/// Evaluate a SINGLE-KEY store with query-time beam expansion (issue #244):
+/// per position, the same multi-membership beam the shipped store-time path
+/// materializes as extra keys is instead applied at read time — candidate
+/// keys per depth from `assign_memberships_plain`, distributions merged
+/// before argmax/backoff scoring. Store size stays at single-assignment.
+fn eval_query_beam(
+    c: &compiler::Corpus,
+    store: &Store,
+    art: &compiler::Compiled,
+    rot: &[usize; WINDOW + 1],
+) -> Metrics {
+    let cut = (c.stories as f64 * 0.8) as u32;
+    let test: Vec<usize> = (0..c.n).filter(|&i| c.story[i] >= cut).collect();
+    let (mut top1, mut agree, mut bits) = (0u64, 0u64, 0f64);
+    for &i in &test {
+        let bundle = bundle_plain(art, rot, c, i);
+        let sig = runtime::sig_plain(art, &bundle);
+        let (_code, by_depth) = runtime::assign_memberships_plain(art, &sig);
+
+        let mut lams: Vec<(f64, BTreeMap<u32, u32>, u32)> = Vec::new();
+        for (d, level) in store.iter().enumerate().take(STAGES + 1) {
+            let keys: &[Vec<u8>] = by_depth.get(d).map(|k| k.as_slice()).unwrap_or(&[]);
+            let merged = merged_beam_distribution(level, keys);
+            if !merged.is_empty() {
+                let total: u32 = merged.values().sum();
+                let lam = total as f64 / (total as f64 + merged.len() as f64);
+                lams.push((lam, merged, total));
+            }
+        }
+
+        // canonical argmax on the deepest populated merged distribution
+        let pred = lams
+            .last()
+            .map(|(_, dist, _)| {
+                let mut best_t = 0u32;
+                let mut best_c = -1i64;
+                for (&t, &cnt) in dist {
+                    if (cnt as i64) > best_c {
+                        best_c = cnt as i64;
+                        best_t = t;
+                    }
+                }
+                best_t
+            })
+            .unwrap_or(0);
+        if pred == c.next[i] {
+            top1 += 1;
+        }
+        if pred == c.t_argmax[i] {
+            agree += 1;
+        }
+
+        let mut p = {
+            let mut rem = 1.0f64;
+            let mut acc = 0.0f64;
+            for li in (0..lams.len()).rev() {
+                let w = rem * lams[li].0;
+                rem *= 1.0 - lams[li].0;
+                if let Some(&cc) = lams[li].1.get(&c.next[i]) {
+                    acc += w * cc as f64 / lams[li].2 as f64;
+                }
+            }
+            acc + rem / 32000.0
+        };
+        if p <= 0.0 {
+            p = 1e-30;
+        }
+        bits += -p.log2();
+    }
+    let n = test.len() as f64;
+    Metrics {
+        top1: 100.0 * top1 as f64 / n,
+        agree: 100.0 * agree as f64 / n,
+        wb_bits: bits / n,
+        keys: store.iter().map(|l| l.len()).sum(),
+    }
+}
+
 /// Probability the corpus recorded for the observed next token, from the
 /// integer-percent quantized top-3 weights (issue #231).
 ///
@@ -313,6 +409,22 @@ pub fn certify(oracle: &dyn TeacherOracle) {
     let m = eval(&c, &store_b, bdepths, &key_b);
     println!(
         "B bit-prefix (mul-free, no codebook classes; depths 8..48 bits): top1 {:.1}% | agreement {:.1}% | WB {:.4} bits/token | {} keys",
+        m.top1, m.agree, m.wb_bits, m.keys
+    );
+
+    // ---- A-single: shipped mul-free codes, single-key store (issue #244)
+    // Same assignment as A-binary; no store-time beam materialization.
+    let store_single = build_store_generic(&c, STAGES, &|i, d| codes[i][..d].to_vec());
+    let m = eval(&c, &store_single, STAGES, &|i, d| codes[i][..d].to_vec());
+    println!(
+        "A-single (mul-free, single-key store): top1 {:.1}% | agreement {:.1}% | WB {:.4} bits/token | {} keys",
+        m.top1, m.agree, m.wb_bits, m.keys
+    );
+
+    // ---- A-single + query-beam: the same beam, applied at read time
+    let m = eval_query_beam(&c, &store_single, &art, &rot);
+    println!(
+        "A-single + query-beam (read-time expansion): top1 {:.1}% | agreement {:.1}% | WB {:.4} bits/token | {} keys",
         m.top1, m.agree, m.wb_bits, m.keys
     );
 
