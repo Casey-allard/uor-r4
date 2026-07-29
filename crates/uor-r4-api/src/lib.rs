@@ -14,12 +14,16 @@
 //!   CID-verified scored graph + teacher artifact loaded from byte
 //!   slices, the D4 manifest status policy as data, typed abstention,
 //!   and an allocation-free steady-state predict/generate step.
+//! - [`serving_eval`]: held-out evaluation of the serving surface —
+//!   the certify C row (issue #280) — measuring [`engine::R4Engine`]
+//!   with the D4 policy on a compiled bundle's own held-out split.
 //!
 //! Claim language follows `docs/formal_vocabulary.md`; nothing here
 //! strengthens or weakens the guarantees of the underlying crates.
 
 pub mod compile;
 pub mod engine;
+pub mod serving_eval;
 
 pub use compile::{
     compile, CompileError, CompileOptions, CompileOutcome, CompileProvenance, CompileRequest,

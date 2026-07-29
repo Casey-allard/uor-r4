@@ -570,6 +570,7 @@ fn run(cli: &Cli) -> Result<(), RunError> {
             let checkpoint = reference_checkpoint_path()?;
             let oracle = uor_r4_model_source::LlamaOracle::load(&checkpoint);
             uor_r4_graph_certify::certify::certify(&oracle);
+            certify_serving_row();
             Ok(())
         }
         Some(Command::Compare) => {
@@ -598,6 +599,128 @@ fn run(cli: &Cli) -> Result<(), RunError> {
             server::run_server(Arc::new(cli.server_config()));
             Ok(())
         }
+    }
+}
+
+/// The certify C row (issue #280): held-out evaluation of the serving
+/// surface — `R4Engine` + `score.r4g1` + the D4 status policy — on the
+/// first loadable compiled bundle (`R4_CERTIFY_SERVING_BUNDLE` selects
+/// one explicitly). Prints a measured row or an explicit recorded skip;
+/// never fails the certify run. The retired scaffold row's history is
+/// recorded on issue #280.
+fn certify_serving_row() {
+    use uor_r4_api::serving_eval::{
+        self, ServingBundle, ServingEvalBudgets, ServingEvalOutcome, ServingEvalSkip,
+    };
+    let bundles = match std::env::var("R4_CERTIFY_SERVING_BUNDLE") {
+        Ok(root) => match ServingBundle::discover(std::path::Path::new(&root)) {
+            Some(bundle) => vec![bundle],
+            None => {
+                println!(
+                    "C serving: SKIPPED — R4_CERTIFY_SERVING_BUNDLE={root} is not a compiled serving bundle (needs score.r4g1, tless_artifacts.bin, corpus.meta, corpus.records)"
+                );
+                return;
+            }
+        },
+        Err(_) => ServingBundle::scan(std::path::Path::new(".")),
+    };
+    if bundles.is_empty() {
+        println!(
+            "C serving: SKIPPED — no compiled serving bundle under .uor-models/compiled (run `r4 compile`, or set R4_CERTIFY_SERVING_BUNDLE). No measurement recorded."
+        );
+        return;
+    }
+    let budgets = ServingEvalBudgets::from_env();
+    println!(
+        "C serving readiness probe: {} positions with accuracy spot-check, wall-clock budgets probe {}s / eval {}s (R4_CERTIFY_R4G1_BUDGET_SECS / R4_CERTIFY_R4G1_EVAL_BUDGET_SECS override)",
+        serving_eval::PROBE_POSITIONS,
+        budgets.probe.as_secs(),
+        budgets.eval.as_secs()
+    );
+    let mut measured = false;
+    for bundle in &bundles {
+        if measured {
+            println!(
+                "C serving: bundle {} not evaluated this run (one bundle per certify; select with R4_CERTIFY_SERVING_BUNDLE)",
+                bundle.root.display()
+            );
+            continue;
+        }
+        let mut progress = |done: usize, total: usize, secs: u64| {
+            println!(
+                "progress: C serving eval {done}/{total} ({}%, {secs}s)",
+                100 * done / total
+            );
+        };
+        match serving_eval::evaluate_serving_bundle(bundle, budgets, &mut progress) {
+            Ok(ServingEvalOutcome::Row(row)) => {
+                measured = true;
+                let pct = |part: u64, whole: u64| {
+                    if whole == 0 {
+                        0.0
+                    } else {
+                        100.0 * part as f64 / whole as f64
+                    }
+                };
+                println!(
+                    "C serving (R4Engine + score.r4g1 + D4 policy, 80/20 story split, deterministic subsample n={}) bundle {}: served {} ({:.1}%; exact {}, graph {}, novel {}; {} widened) | abstained {} (exact {}, graph {}, novel {}, contradictory {}) | on served: top1 {:.1}% | agreement {:.1}% | overall top1 {:.1}% | probe: {}/{} served, {} hits",
+                    row.sample_n,
+                    row.bundle.display(),
+                    row.served,
+                    pct(row.served, row.sample_n as u64),
+                    row.served_by.exact_context,
+                    row.served_by.graph,
+                    row.served_by.novel,
+                    row.served_widened,
+                    row.abstained.total(),
+                    row.abstained.exact_context,
+                    row.abstained.graph,
+                    row.abstained.novel,
+                    row.abstained.contradictory,
+                    pct(row.top1_served, row.served),
+                    pct(row.agree_served, row.served),
+                    pct(row.top1_served, row.sample_n as u64),
+                    row.probe_served,
+                    row.probe_positions,
+                    row.probe_hits
+                );
+            }
+            Ok(ServingEvalOutcome::Skipped(skip)) => {
+                measured = true;
+                match skip {
+                    ServingEvalSkip::ProbeBudgetExceeded { probed, elapsed } => println!(
+                        "C serving: SKIPPED — readiness probe exceeded its {}s wall-clock budget after {}/{} positions ({}s elapsed). Full evaluation not run; no measurement recorded.",
+                        budgets.probe.as_secs(),
+                        probed,
+                        serving_eval::PROBE_POSITIONS,
+                        elapsed.as_secs()
+                    ),
+                    ServingEvalSkip::ProbeFunctionalCheckFailed { served, probed } => println!(
+                        "C serving: SKIPPED — probe served {served} predictions across {probed} positions with zero accuracy hits (#280 functional spot-check). Full evaluation not run; no measurement recorded.",
+                    ),
+                    ServingEvalSkip::EvalBudgetExceeded {
+                        done,
+                        sample_n,
+                        elapsed,
+                    } => println!(
+                        "C serving: SKIPPED — subsampled evaluation (n={sample_n}) exceeded its {}s wall-clock budget after {done}/{sample_n} positions ({}s elapsed; R4_CERTIFY_R4G1_EVAL_BUDGET_SECS overrides). Partial counts discarded; no measurement recorded.",
+                        budgets.eval.as_secs(),
+                        elapsed.as_secs()
+                    ),
+                }
+            }
+            Err(error) => {
+                println!(
+                    "C serving: bundle {} unusable ({error}); trying next candidate",
+                    bundle.root.display()
+                );
+            }
+        }
+    }
+    if !measured {
+        println!(
+            "C serving: SKIPPED — no loadable serving bundle produced a measurement. No measurement recorded."
+        );
     }
 }
 

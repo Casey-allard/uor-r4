@@ -25,6 +25,14 @@ impl fmt::Display for RuntimeError {
 }
 
 /// Multiplication-free zero-allocation prediction runtime wrapping an R4G1 borrowed `PatchChain`.
+///
+/// **Accuracy status (issue #280):** on `convert_r4g1`-produced
+/// artifacts this runtime has no readable per-node emission structure
+/// to walk (the converter is a container-format demo), and its readout
+/// measured 0.0% held-out top1/agreement. It is not part of the
+/// serving path (`uor-r4-api::engine::R4Engine` is) and is excluded
+/// from the certify measurement matrix; treat outputs on such
+/// artifacts as exercising format traversal, not prediction.
 #[derive(Debug, Clone)]
 pub struct R4G1Runtime<'a> {
     chain: crate::patch_chain::PatchChain<'a>,

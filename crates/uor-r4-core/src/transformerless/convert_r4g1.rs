@@ -2,6 +2,17 @@
 //! "TLA3/TLS1 → R4G1 migration converter (compiler-side tool) so existing
 //! fixtures and the κ-reproduction test keep working").
 //!
+//! **Status (issue #280): container-format demo, not a prediction
+//! path.** The converted artifact wires no per-node emission ranges and
+//! emits only `kind=0` refinement edges, so a runtime walking it has no
+//! readable emission structure — the 2026-07-29 held-out measurement
+//! recorded 0.0% top1/agreement, and the row was retired from the
+//! certify measurement matrix (the honest C row now measures the
+//! serving surface via `uor-r4-api::serving_eval`). This module remains
+//! as the format-validation and κ-migration exercise it was built as;
+//! real emission/transition wiring is future work specified against the
+//! #243/#248 architecture.
+//!
 //! The converter flattens the legacy transformerless artifact pair — a TLA
 //! container ([`compiler::parse_artifacts`]) plus a TLS1 graded store
 //! ([`runtime::parse_store`] or, for the pre-u32 era on-disk stores,

@@ -725,149 +725,15 @@ pub fn certify(oracle: &dyn TeacherOracle) {
         m.top1, m.agree, m.wb_bits, m.keys
     );
 
-    // ---- C: R4G1 Graph Runtime
-    let art_bytes = std::fs::read(compiler::ART_PATH).unwrap();
-    let store_bytes = runtime::store_bytes(&store);
-    let (r4g1_bytes, _) = uor_r4_core::transformerless::convert_r4g1::convert(
-        &art_bytes,
-        &art,
-        &store,
-        &store_bytes,
-        None,
-    )
-    .expect("r4g1 conversion");
-    let r4g1 = uor_r4_graph_runtime::R4G1Runtime::parse(&r4g1_bytes).expect("r4g1 parse");
-
-    // One reusable score buffer for probe + evaluation (issue #232): the
-    // previous code allocated a node_count-sized vec on every held-out
-    // position for a parameter the runtime does not read.
-    let mut node_scores =
-        vec![uor_r4_core::transformerless::score_q::ScoreQ::MIN; r4g1.node_count() as usize];
-
-    // Readiness probe (issue #232): bounded and deterministic (first
-    // PROBE_POSITIONS held-out positions, in order). An untrained or
-    // unscored graph would otherwise spend hours on a full evaluation that
-    // terminates in an all-zero row — output that reads as a measured
-    // failure when it is an absent measurement.
-    let probe_hists: Vec<Vec<u32>> = test
-        .iter()
-        .take(crate::r4g1_readiness::PROBE_POSITIONS)
-        .map(|&i| eval_context(&c, i))
-        .collect();
-
-    // Wall-clock budgets for the R4G1 stage (issue #278): on the current
-    // artifact size, per-position prediction cost is high enough that both
-    // the probe and the full evaluation can outlive any practical session
-    // while emitting no output. The budget turns that silent stall into an
-    // explicit, recorded skip. Checks run between positions, so a single
-    // in-flight prediction bounds the overshoot.
-    let probe_budget_secs: u64 = std::env::var("R4_CERTIFY_R4G1_BUDGET_SECS")
-        .ok()
-        .and_then(|v| v.parse().ok())
-        .unwrap_or(120);
-    let eval_budget_secs: u64 = std::env::var("R4_CERTIFY_R4G1_EVAL_BUDGET_SECS")
-        .ok()
-        .and_then(|v| v.parse().ok())
-        .unwrap_or(1800);
-    println!(
-        "C R4G1 readiness probe: {} positions, wall-clock budget {}s (R4_CERTIFY_R4G1_BUDGET_SECS overrides)",
-        crate::r4g1_readiness::PROBE_POSITIONS,
-        probe_budget_secs
-    );
-    let readiness = crate::r4g1_readiness::r4g1_eval_readiness_within(
-        &r4g1,
-        probe_hists.iter().map(|h| &h[..]),
-        &mut node_scores,
-        std::time::Duration::from_secs(probe_budget_secs),
-    );
-
-    match readiness {
-        crate::r4g1_readiness::R4g1EvalReadiness::Ready { scored } => {
-            // Deterministic stride subsample (issue #244 C-row amendment):
-            // the full held-out evaluation costs ~1.2–1.6 s/position on
-            // current artifact sizes (~13h total; #278), so the C row is
-            // measured on a fixed ~1000-position stride sample — a real,
-            // bounded, position-uniform measurement instead of a discarded
-            // partial prefix (a budget-truncated prefix samples only the
-            // earliest held-out positions and is biased by construction).
-            // The sample size is printed with the row; the #278 wall-clock
-            // budget still guards the sampled loop (default sized to fit
-            // the sample at the measured per-position rate).
-            let sample_stride = (test.len() / 1000).max(1);
-            let sample: Vec<usize> = test.iter().copied().step_by(sample_stride).collect();
-            let eval_start = std::time::Instant::now();
-            let eval_budget = std::time::Duration::from_secs(eval_budget_secs);
-            let (mut top1, mut agree) = (0u64, 0u64);
-            let mut done = 0usize;
-            let mut aborted = false;
-            for &i in &sample {
-                if eval_start.elapsed() >= eval_budget {
-                    aborted = true;
-                    break;
-                }
-                node_scores.fill(uor_r4_core::transformerless::score_q::ScoreQ::MIN);
-                let hist = eval_context(&c, i);
-                let pred = r4g1.predict_token(&hist, None, &mut node_scores);
-                if pred == c.next[i] {
-                    top1 += 1;
-                }
-                if pred == c.t_argmax[i] {
-                    agree += 1;
-                }
-                done += 1;
-                if done.is_multiple_of(256) {
-                    println!(
-                        "progress: C R4G1 eval {}/{} ({}%, {}s)",
-                        done,
-                        sample.len(),
-                        100 * done / sample.len(),
-                        eval_start.elapsed().as_secs()
-                    );
-                }
-            }
-            if aborted {
-                println!(
-                    "C R4G1 (graph path): SKIPPED — subsampled evaluation (n={}) exceeded its {}s wall-clock budget after {}/{} positions ({}s elapsed; R4_CERTIFY_R4G1_EVAL_BUDGET_SECS overrides). Partial counts discarded; no measurement recorded. Perf: issue #278.",
-                    sample.len(),
-                    eval_budget_secs,
-                    done,
-                    sample.len(),
-                    eval_start.elapsed().as_secs()
-                );
-            } else {
-                println!(
-                    "C R4G1 (graph path, deterministic subsample n={}): top1 {:.1}% | agreement {:.1}% | WB n/a (not computed on the graph path) | probe: {}/{} scored",
-                    sample.len(),
-                    100.0 * top1 as f64 / sample.len() as f64,
-                    100.0 * agree as f64 / sample.len() as f64,
-                    scored,
-                    crate::r4g1_readiness::PROBE_POSITIONS
-                );
-            }
-        }
-        crate::r4g1_readiness::R4g1EvalReadiness::NoScoredEmission => {
-            println!(
-                "C R4G1 (graph path): SKIPPED — no scored emission on any of {} probe positions (untrained or unscored graph). Full evaluation not run; no measurement recorded.",
-                crate::r4g1_readiness::PROBE_POSITIONS
-            );
-        }
-        crate::r4g1_readiness::R4g1EvalReadiness::ConstantPrediction { token } => {
-            println!(
-                "C R4G1 (graph path): SKIPPED — constant prediction (token {}) across all {} probe positions (untrained or unscored graph). Full evaluation not run; no measurement recorded.",
-                token,
-                crate::r4g1_readiness::PROBE_POSITIONS
-            );
-        }
-        crate::r4g1_readiness::R4g1EvalReadiness::BudgetExceeded { probed, elapsed } => {
-            println!(
-                "C R4G1 (graph path): SKIPPED — readiness probe exceeded its {}s wall-clock budget after {}/{} positions ({}s elapsed). Full evaluation not run; no measurement recorded. Perf: issue #278.",
-                probe_budget_secs,
-                probed,
-                crate::r4g1_readiness::PROBE_POSITIONS,
-                elapsed.as_secs()
-            );
-        }
-    }
+    // ---- C: serving surface (issue #280)
+    // The former C row here measured the `convert_r4g1` scaffold, which
+    // was never a functional prediction path (issue #280 diagnosis); its
+    // recorded 0.0% stands in the issue as the reason it left the
+    // measurement matrix. The C row now measures the configuration that
+    // actually serves — `uor-r4-api`'s `R4Engine` over a compiled
+    // bundle's `score.r4g1` with the D4 policy — and lives in
+    // `uor_r4_api::serving_eval`, driven by the `r4 certify` command
+    // (this crate sits below `uor-r4-api` in the dependency graph).
 
     // ================= COMPRESSION (PROOF.md P5) =================
 
