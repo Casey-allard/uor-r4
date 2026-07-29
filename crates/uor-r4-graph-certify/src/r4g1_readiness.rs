@@ -22,6 +22,7 @@
 //! Certifier-side code: allocation and iterators are permitted here (this is
 //! not the deployed runtime kernel).
 
+use std::time::{Duration, Instant};
 use uor_r4_graph_format::ScoreQ;
 use uor_r4_graph_runtime::R4G1Runtime;
 
@@ -42,6 +43,11 @@ pub enum R4g1EvalReadiness {
     /// Every probe position predicted the same token — the constant
     /// root-fallback shape of an untrained or unscored graph.
     ConstantPrediction { token: u32 },
+    /// The probe could not finish inside its wall-clock budget (issue
+    /// #278): per-position prediction cost on the current graph size makes
+    /// the full evaluation infeasible. `probed` counts positions completed
+    /// before the budget check tripped.
+    BudgetExceeded { probed: usize, elapsed: Duration },
 }
 
 impl R4g1EvalReadiness {
@@ -65,12 +71,36 @@ pub fn r4g1_eval_readiness<'a, I>(
 where
     I: IntoIterator<Item = &'a [u32]>,
 {
+    r4g1_eval_readiness_within(runtime, probe_contexts, node_scores, Duration::MAX)
+}
+
+/// Budgeted variant of [`r4g1_eval_readiness`] (issue #278): checks
+/// wall-clock elapsed time before each position and classifies as
+/// [`R4g1EvalReadiness::BudgetExceeded`] once `budget` is spent. The check
+/// runs between positions, so a single in-flight prediction bounds the
+/// overshoot past the budget.
+pub fn r4g1_eval_readiness_within<'a, I>(
+    runtime: &R4G1Runtime,
+    probe_contexts: I,
+    node_scores: &mut [ScoreQ],
+    budget: Duration,
+) -> R4g1EvalReadiness
+where
+    I: IntoIterator<Item = &'a [u32]>,
+{
+    let start = Instant::now();
     let mut scored = 0usize;
     let mut first_token: Option<u32> = None;
     let mut constant = true;
     let mut probed = 0usize;
 
     for ctx in probe_contexts {
+        if start.elapsed() >= budget {
+            return R4g1EvalReadiness::BudgetExceeded {
+                probed,
+                elapsed: start.elapsed(),
+            };
+        }
         probed += 1;
         node_scores.fill(ScoreQ::MIN);
         let (token, score) = runtime.predict_distribution(ctx, None, node_scores);

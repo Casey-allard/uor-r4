@@ -6,10 +6,13 @@
 //! skip-worthy.
 
 use std::collections::BTreeMap;
+use std::time::Duration;
 use uor_r4_core::transformerless::compiler::{self, STAGES};
 use uor_r4_core::transformerless::convert_r4g1;
 use uor_r4_core::transformerless::runtime::{self, Store};
-use uor_r4_graph_certify::r4g1_readiness::{r4g1_eval_readiness, R4g1EvalReadiness};
+use uor_r4_graph_certify::r4g1_readiness::{
+    r4g1_eval_readiness, r4g1_eval_readiness_within, R4g1EvalReadiness,
+};
 use uor_r4_graph_format::ScoreQ;
 use uor_r4_graph_runtime::R4G1Runtime;
 
@@ -75,6 +78,9 @@ fn varied_contexts_on_populated_store_are_ready_or_explicitly_degenerate() {
             // Acceptable classification for a tiny synthetic store — the
             // point of the guard is that this shape is *named*, not zeroed.
         }
+        R4g1EvalReadiness::BudgetExceeded { .. } => {
+            panic!("the unbudgeted probe delegates with Duration::MAX and cannot exceed it")
+        }
     }
 }
 
@@ -105,4 +111,54 @@ fn empty_probe_is_not_ready() {
 
     let readiness = r4g1_eval_readiness(&rt, std::iter::empty::<&[u32]>(), &mut node_scores);
     assert_eq!(readiness, R4g1EvalReadiness::NoScoredEmission);
+}
+
+#[test]
+fn zero_budget_classifies_as_budget_exceeded_before_any_position() {
+    // Issue #278: a probe that cannot finish inside its wall-clock budget
+    // must say so explicitly rather than run unbounded. Zero budget trips
+    // the check before the first prediction.
+    let bytes = build_runtime_bytes(&synthetic_store());
+    let rt = R4G1Runtime::parse(&bytes).expect("parse");
+    let mut node_scores = vec![ScoreQ::MIN; rt.node_count() as usize];
+
+    let contexts: Vec<Vec<u32>> = vec![vec![1, 2, 3], vec![3, 1, 4]];
+    let readiness = r4g1_eval_readiness_within(
+        &rt,
+        contexts.iter().map(|c| c.as_slice()),
+        &mut node_scores,
+        Duration::ZERO,
+    );
+
+    assert!(
+        !readiness.is_ready(),
+        "budget-exceeded probe must not classify as Ready"
+    );
+    match readiness {
+        R4g1EvalReadiness::BudgetExceeded { probed, .. } => {
+            assert_eq!(probed, 0, "zero budget trips before the first position");
+        }
+        other => panic!("zero budget must classify as BudgetExceeded, got {other:?}"),
+    }
+}
+
+#[test]
+fn generous_budget_matches_unbudgeted_classification() {
+    // The budgeted probe with a budget it cannot plausibly exhaust must
+    // classify identically to the unbudgeted wrapper (which delegates with
+    // Duration::MAX).
+    let bytes = build_runtime_bytes(&synthetic_store());
+    let rt = R4G1Runtime::parse(&bytes).expect("parse");
+    let mut node_scores = vec![ScoreQ::MIN; rt.node_count() as usize];
+
+    let contexts: Vec<Vec<u32>> = vec![vec![1, 2, 3], vec![3, 1, 4], vec![3, 5, 9], vec![7, 5, 8]];
+    let unbudgeted =
+        r4g1_eval_readiness(&rt, contexts.iter().map(|c| c.as_slice()), &mut node_scores);
+    let budgeted = r4g1_eval_readiness_within(
+        &rt,
+        contexts.iter().map(|c| c.as_slice()),
+        &mut node_scores,
+        Duration::from_secs(3600),
+    );
+    assert_eq!(unbudgeted, budgeted);
 }

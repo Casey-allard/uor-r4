@@ -457,16 +457,45 @@ pub fn certify(oracle: &dyn TeacherOracle) {
         .take(crate::r4g1_readiness::PROBE_POSITIONS)
         .map(|&i| eval_context(&c, i))
         .collect();
-    let readiness = crate::r4g1_readiness::r4g1_eval_readiness(
+
+    // Wall-clock budgets for the R4G1 stage (issue #278): on the current
+    // artifact size, per-position prediction cost is high enough that both
+    // the probe and the full evaluation can outlive any practical session
+    // while emitting no output. The budget turns that silent stall into an
+    // explicit, recorded skip. Checks run between positions, so a single
+    // in-flight prediction bounds the overshoot.
+    let probe_budget_secs: u64 = std::env::var("R4_CERTIFY_R4G1_BUDGET_SECS")
+        .ok()
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(120);
+    let eval_budget_secs: u64 = std::env::var("R4_CERTIFY_R4G1_EVAL_BUDGET_SECS")
+        .ok()
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(600);
+    println!(
+        "C R4G1 readiness probe: {} positions, wall-clock budget {}s (R4_CERTIFY_R4G1_BUDGET_SECS overrides)",
+        crate::r4g1_readiness::PROBE_POSITIONS,
+        probe_budget_secs
+    );
+    let readiness = crate::r4g1_readiness::r4g1_eval_readiness_within(
         &r4g1,
         probe_hists.iter().map(|h| &h[..]),
         &mut node_scores,
+        std::time::Duration::from_secs(probe_budget_secs),
     );
 
     match readiness {
         crate::r4g1_readiness::R4g1EvalReadiness::Ready { scored } => {
+            let eval_start = std::time::Instant::now();
+            let eval_budget = std::time::Duration::from_secs(eval_budget_secs);
             let (mut top1, mut agree) = (0u64, 0u64);
+            let mut done = 0usize;
+            let mut aborted = false;
             for &i in &test {
+                if eval_start.elapsed() >= eval_budget {
+                    aborted = true;
+                    break;
+                }
                 node_scores.fill(uor_r4_core::transformerless::score_q::ScoreQ::MIN);
                 let hist = eval_context(&c, i);
                 let pred = r4g1.predict_token(&hist, None, &mut node_scores);
@@ -476,14 +505,34 @@ pub fn certify(oracle: &dyn TeacherOracle) {
                 if pred == c.t_argmax[i] {
                     agree += 1;
                 }
+                done += 1;
+                if done.is_multiple_of(256) {
+                    println!(
+                        "progress: C R4G1 eval {}/{} ({}%, {}s)",
+                        done,
+                        test.len(),
+                        100 * done / test.len(),
+                        eval_start.elapsed().as_secs()
+                    );
+                }
             }
-            println!(
-                "C R4G1 (graph path): top1 {:.1}% | agreement {:.1}% | WB n/a (not computed on the graph path) | probe: {}/{} scored",
-                100.0 * top1 as f64 / test.len() as f64,
-                100.0 * agree as f64 / test.len() as f64,
-                scored,
-                crate::r4g1_readiness::PROBE_POSITIONS
-            );
+            if aborted {
+                println!(
+                    "C R4G1 (graph path): SKIPPED — evaluation exceeded its {}s wall-clock budget after {}/{} positions ({}s elapsed; R4_CERTIFY_R4G1_EVAL_BUDGET_SECS overrides). Partial counts discarded; no measurement recorded. Perf: issue #278.",
+                    eval_budget_secs,
+                    done,
+                    test.len(),
+                    eval_start.elapsed().as_secs()
+                );
+            } else {
+                println!(
+                    "C R4G1 (graph path): top1 {:.1}% | agreement {:.1}% | WB n/a (not computed on the graph path) | probe: {}/{} scored",
+                    100.0 * top1 as f64 / test.len() as f64,
+                    100.0 * agree as f64 / test.len() as f64,
+                    scored,
+                    crate::r4g1_readiness::PROBE_POSITIONS
+                );
+            }
         }
         crate::r4g1_readiness::R4g1EvalReadiness::NoScoredEmission => {
             println!(
@@ -496,6 +545,15 @@ pub fn certify(oracle: &dyn TeacherOracle) {
                 "C R4G1 (graph path): SKIPPED — constant prediction (token {}) across all {} probe positions (untrained or unscored graph). Full evaluation not run; no measurement recorded.",
                 token,
                 crate::r4g1_readiness::PROBE_POSITIONS
+            );
+        }
+        crate::r4g1_readiness::R4g1EvalReadiness::BudgetExceeded { probed, elapsed } => {
+            println!(
+                "C R4G1 (graph path): SKIPPED — readiness probe exceeded its {}s wall-clock budget after {}/{} positions ({}s elapsed). Full evaluation not run; no measurement recorded. Perf: issue #278.",
+                probe_budget_secs,
+                probed,
+                crate::r4g1_readiness::PROBE_POSITIONS,
+                elapsed.as_secs()
             );
         }
     }
