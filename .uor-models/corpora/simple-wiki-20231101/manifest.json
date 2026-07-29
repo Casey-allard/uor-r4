@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "name": "simple-wiki-20231101-sample",
-  "role": "D3 natural partition (docs/transformerless/BASELINE.md \u00a72)",
+  "role": "D3 natural partition (docs/transformerless/BASELINE.md §2)",
   "source": {
     "dataset": "wikimedia/wikipedia",
     "config": "20231101.simple",
@@ -15,10 +15,16 @@
     "url": "https://creativecommons.org/licenses/by-sa/4.0/"
   },
   "article_count": 3000,
-  "text_bytes": 11972624,
   "corpus_cid": "blake3:194db0eebf2d49823ece01ee935447a0cc9edeaf018454ceea480ce7590132cf",
   "split_rule": "held-out partition = articles where blake3(id as utf-8)[0] % 5 == 0 (deterministic, content-addressed, ~20%); remainder is construction",
   "files": [
     "articles.jsonl (one JSON object per article: id, url, title, text)"
-  ]
+  ],
+  "text_chars": 11972624,
+  "text_utf8_bytes": 12038579,
+  "accounting_note": "text_chars is len(text) in Unicode characters (the value historically stored as text_bytes); the 2026-07-29 issue #267 investigation confirmed the 2026-07-28 refetch reproduces corpus_cid bit-for-bit — no upstream drift occurred",
+  "retrieval": {
+    "primary": "GitHub release tag d3-corpus-simple-wiki-20231101, asset articles.jsonl (12539119 file bytes, blake3 = corpus_cid)",
+    "fallback": "scripts/fetch_d3_corpus.py (re-fetches from datasets-server and verifies against this manifest)"
+  }
 }

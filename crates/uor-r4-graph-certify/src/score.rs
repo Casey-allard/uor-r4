@@ -1568,7 +1568,10 @@ pub fn evaluate_gate_c(
 /// variants were zero-information (bit-identical to `rule12_precedence`
 /// on every measured corpus, where ExactContext precedence dominates); 7 =
 /// explicit quality-gate profile for distribution-aware validation; 8 =
-/// per-residual-kind compile-time quantization error rows.
+/// per-residual-kind compile-time quantization error rows; 9 =
+/// issue-#234 `distribution` declaration (EXCT-miss rate as a fixed
+/// property of the evaluation distribution, with the Gate C validity
+/// verdict).
 #[derive(Debug, Clone, Serialize)]
 pub struct ScoreReport {
     pub schema: u32,
@@ -1578,6 +1581,34 @@ pub struct ScoreReport {
     pub gate_c: GateCOutcome,
     pub quantization: ScoreReportQuantization,
     pub determinism: ScoreReportDeterminism,
+    pub distribution: DistributionDeclaration,
+}
+
+/// Minimum EXCT-miss rate below which a distribution cannot serve as a
+/// Gate C corpus (issue #234): with (almost) every held-out probe
+/// answered by exact-context lookup, the routing/residual machinery is
+/// never exercised and Gate C restates the baseline by construction.
+pub const MIN_EXCT_MISS_RATE_FOR_GATE_C: f64 = 0.05;
+
+/// The issue-#234 evaluation-distribution declaration, fixed at scoring
+/// time as a property of the corpus/split pair: how much of the
+/// held-out set escapes exact-context resolution under the Rule 1+2
+/// scorer. Reported in every score report so the failure mode is
+/// visible in the artifact of record rather than discoverable only by
+/// reading the risk register.
+#[derive(Debug, Clone, Serialize)]
+pub struct DistributionDeclaration {
+    /// Held-out positions the Gate C evaluation scored.
+    pub held_out_positions: usize,
+    /// Positions the Rule 1+2 scorer resolved as ExactContext.
+    pub exct_resolved_positions: usize,
+    /// `1 - exct_resolved/held_out` — the declared miss rate.
+    pub exct_miss_rate: f64,
+    /// The [`MIN_EXCT_MISS_RATE_FOR_GATE_C`] threshold in force.
+    pub min_miss_rate_for_gate_c: f64,
+    /// Whether Gate C on this distribution measures anything beyond
+    /// exact-context recall.
+    pub can_measure_generalization: bool,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -1667,8 +1698,22 @@ pub fn build_score_report_with_quality_profile(
     quality_profile: &str,
 ) -> ScoreReport {
     let graph_kappa = inputs.graph_kappa.clone();
+    let held_out_positions = gate_c.rule12_precedence.positions;
+    let exct_resolved_positions = gate_c.rule12_status_counts.exact_context;
+    let exct_miss_rate = if held_out_positions == 0 {
+        0.0
+    } else {
+        1.0 - exct_resolved_positions as f64 / held_out_positions as f64
+    };
+    let distribution = DistributionDeclaration {
+        held_out_positions,
+        exct_resolved_positions,
+        exct_miss_rate,
+        min_miss_rate_for_gate_c: MIN_EXCT_MISS_RATE_FOR_GATE_C,
+        can_measure_generalization: exct_miss_rate >= MIN_EXCT_MISS_RATE_FOR_GATE_C,
+    };
     ScoreReport {
-        schema: 8,
+        schema: 9,
         inputs,
         config: ScoreReportConfig {
             transition_out_degree: config.transition_out_degree,
@@ -1696,6 +1741,7 @@ pub fn build_score_report_with_quality_profile(
             baseline_repetition_rate: gate_c.repetition_rate_baseline,
         },
         gate_c,
+        distribution,
         quantization: ScoreReportQuantization {
             format: "ScoreQ Q16.16 in i32; EMIT storage descriptor {width: i32, shift: 0, \
                      zero_point: 0}; edge weights and residuals via ScoreQ::from_logprob"

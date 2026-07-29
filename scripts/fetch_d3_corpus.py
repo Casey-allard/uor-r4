@@ -44,7 +44,14 @@ def main() -> int:
 
     manifest = json.loads(Path(args.manifest).read_text())
     want_count = manifest["article_count"]
-    want_bytes = manifest["text_bytes"]
+    # Issue #267 postscript: the pinned total is a CHARACTER count
+    # (len(text)), not a utf-8 byte count — the "0.5% drift" reported in
+    # the issue was this accounting mismatch, not upstream drift; the
+    # refetched file reproduces the pinned corpus_cid bit-for-bit.
+    # `text_chars` is authoritative going forward; the legacy
+    # `text_bytes` name is honored for manifests that predate the fix.
+    want_chars = manifest.get("text_chars", manifest.get("text_bytes"))
+    want_cid = manifest.get("corpus_cid")
 
     rows = []
     for offset in range(0, want_count, 100):
@@ -66,7 +73,7 @@ def main() -> int:
         print(f"expected {want_count} rows, got {len(rows)}", file=sys.stderr)
         return 2
 
-    text_bytes = 0
+    text_chars = 0
     out_path = Path(args.out)
     out_path.parent.mkdir(parents=True, exist_ok=True)
     with out_path.open("w", encoding="utf-8") as handle:
@@ -78,15 +85,25 @@ def main() -> int:
                 "title": row["title"],
                 "text": row["text"],
             }
-            text_bytes += len(row["text"].encode("utf-8"))
+            text_chars += len(row["text"])
             handle.write(json.dumps(record, ensure_ascii=False) + "\n")
 
     print(
-        f"wrote {len(rows)} articles, text_bytes={text_bytes} "
-        f"(manifest pins {want_count} / {want_bytes})"
+        f"wrote {len(rows)} articles, text_chars={text_chars} "
+        f"(manifest pins {want_count} / {want_chars})"
     )
-    if text_bytes == want_bytes:
-        print("MATCH: totals reproduce the manifest")
+    cid_line = ""
+    try:  # strong check when the blake3 module is present (pip install blake3)
+        import blake3  # type: ignore
+
+        cid_line = "blake3:" + blake3.blake3(out_path.read_bytes()).hexdigest()
+        print(f"corpus_cid computed {cid_line} (manifest pins {want_cid})")
+    except ImportError:
+        print("blake3 module unavailable — CID not verified (character totals only)")
+    if (cid_line and want_cid and cid_line == want_cid) or (
+        not cid_line and text_chars == want_chars
+    ):
+        print("MATCH: fetch reproduces the pinned corpus")
         return 0
     print(
         "DRIFT: upstream content differs from the pinned corpus "

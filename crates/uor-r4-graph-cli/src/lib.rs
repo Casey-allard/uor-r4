@@ -1019,6 +1019,17 @@ pub fn score_command(args: &[String]) -> Result<(), String> {
         &options.quality_profile,
     );
 
+    println!(
+        "distribution declaration (#234): EXCT-miss rate {:.1}% ({}/{} held-out positions escape exact-context) — {}",
+        100.0 * report.distribution.exct_miss_rate,
+        report.distribution.held_out_positions - report.distribution.exct_resolved_positions,
+        report.distribution.held_out_positions,
+        if report.distribution.can_measure_generalization {
+            "Gate C measures generalization here"
+        } else {
+            "Gate C CANNOT measure generalization on this distribution (issue #234): the row restates exact-context recall"
+        }
+    );
     std::fs::create_dir_all(&options.output).map_err(|error| error.to_string())?;
     let artifact_path = options.output.join("score.r4g1");
     std::fs::write(&artifact_path, &artifact_bytes)
@@ -1115,6 +1126,7 @@ struct EvaluationReport {
     source: EvaluationSource,
     artifacts: EvaluationArtifacts,
     metrics: EvaluationMetrics,
+    floor_decomposition: FloorDecomposition,
 }
 
 #[derive(Debug, Serialize, Clone)]
@@ -1154,6 +1166,26 @@ struct EvaluationMetrics {
     bits_per_token: f64,
     teacher_floor_bits_per_token: f64,
     bits_over_teacher_floor: f64,
+}
+
+/// One slice of the #268 teacher-floor decomposition: which subset,
+/// how many held-out tokens it covers, and the mean floor there.
+#[derive(Debug, Serialize, Clone)]
+struct FloorSlice {
+    label: String,
+    tokens: usize,
+    floor_bits_per_token: f64,
+}
+
+/// Teacher-floor decomposition (issue #268): the ~13.4-bit D3 floor
+/// sliced by position-in-story, next-token class, and worst articles,
+/// so the dominant observation/eval confounder can be named instead of
+/// guessed. Slices are reported with every evaluation run.
+#[derive(Debug, Serialize, Clone)]
+struct FloorDecomposition {
+    by_position_in_story: Vec<FloorSlice>,
+    by_next_token_class: Vec<FloorSlice>,
+    worst_articles: Vec<FloorSlice>,
 }
 
 fn parse_compile_options(args: &[String]) -> Result<CompileOptions, String> {
@@ -1402,6 +1434,54 @@ fn evaluate_report(args: &[String]) -> Result<(), String> {
     let mut bits = 0f64;
     let mut current_story = None;
     let mut story_position = 0usize;
+
+    // ---- #268 floor decomposition accumulators ------------------------
+    // Position bands are powers-of-two ranges around the observation
+    // window (--sequence-length, default 128): a floor concentrated in
+    // the low bands is the short-effective-context signature (candidate
+    // 1); a floor exploding at 128+ is the context-reset/replay mismatch
+    // (candidate 2); a digit-heavy floor is candidate 4.
+    const POSITION_BANDS: [(usize, usize, &str); 6] = [
+        (0, 8, "0-7"),
+        (8, 16, "8-15"),
+        (16, 32, "16-31"),
+        (32, 64, "32-63"),
+        (64, 128, "64-127"),
+        (128, usize::MAX, "128+"),
+    ];
+    const TOKEN_CLASSES: [&str; 4] = ["digit", "alpha", "other", "unclassified"];
+    let mut floor_by_band = [(0usize, 0f64); POSITION_BANDS.len()];
+    let mut floor_by_class = [(0usize, 0f64); TOKEN_CLASSES.len()];
+    let mut floor_by_story: std::collections::BTreeMap<u32, (usize, f64)> =
+        std::collections::BTreeMap::new();
+    // Next-token class through the HF byte-level BPE (the corpus id
+    // space post-#242); tokenizer absence degrades to "unclassified"
+    // rather than failing the evaluation.
+    let bpe = HfBpeTokenizer::from_dir(&options.source).ok();
+    let mut class_cache: std::collections::BTreeMap<u32, usize> = std::collections::BTreeMap::new();
+    let mut classify = |token: u32| -> usize {
+        if let Some(&class) = class_cache.get(&token) {
+            return class;
+        }
+        let class = match &bpe {
+            None => 3,
+            Some(tokenizer) => {
+                let text = tokenizer.decode(&[token]);
+                let trimmed = text.trim();
+                if trimmed.is_empty() {
+                    2
+                } else if trimmed.chars().all(|ch| ch.is_ascii_digit()) {
+                    0
+                } else if trimmed.chars().all(char::is_alphabetic) {
+                    1
+                } else {
+                    2
+                }
+            }
+        };
+        class_cache.insert(token, class);
+        class
+    };
     let start_eval_time = std::time::Instant::now();
     for index in 0..corpus.n {
         if index % 1000 == 0 || index + 1 == corpus.n {
@@ -1461,7 +1541,23 @@ fn evaluate_report(args: &[String]) -> Result<(), String> {
         }
         let next_probability =
             ((teacher_logits[next_token] - max_logit) as f64).exp() / denominator.max(1e-30);
-        teacher_floor_bits_total += -next_probability.max(1e-30).log2();
+        let floor_bits = -next_probability.max(1e-30).log2();
+        teacher_floor_bits_total += floor_bits;
+        let position_in_story = story_position - 1;
+        let band = POSITION_BANDS
+            .iter()
+            .position(|(lo, hi, _)| position_in_story >= *lo && position_in_story < *hi)
+            .unwrap_or(POSITION_BANDS.len() - 1);
+        floor_by_band[band].0 += 1;
+        floor_by_band[band].1 += floor_bits;
+        let class = classify(corpus.next[index]);
+        floor_by_class[class].0 += 1;
+        floor_by_class[class].1 += floor_bits;
+        let story_entry = floor_by_story
+            .entry(corpus.story[index])
+            .or_insert((0, 0.0));
+        story_entry.0 += 1;
+        story_entry.1 += floor_bits;
         bits += -score::witten_bell_probability(&store, &code, corpus.next[index]).log2();
     }
     if held_out_tokens == 0 {
@@ -1473,8 +1569,74 @@ fn evaluate_report(args: &[String]) -> Result<(), String> {
     let teacher_floor_bits_per_token = teacher_floor_bits_total / held_out_tokens as f64;
     let bits_over_teacher_floor = bits_per_token - teacher_floor_bits_per_token;
 
+    let slice = |label: &str, tokens: usize, total: f64| FloorSlice {
+        label: label.to_owned(),
+        tokens,
+        floor_bits_per_token: if tokens == 0 {
+            0.0
+        } else {
+            total / tokens as f64
+        },
+    };
+    let by_position_in_story: Vec<FloorSlice> = POSITION_BANDS
+        .iter()
+        .zip(floor_by_band.iter())
+        .filter(|(_, (tokens, _))| *tokens > 0)
+        .map(|((_, _, label), (tokens, total))| slice(label, *tokens, *total))
+        .collect();
+    let by_next_token_class: Vec<FloorSlice> = TOKEN_CLASSES
+        .iter()
+        .zip(floor_by_class.iter())
+        .filter(|(_, (tokens, _))| *tokens > 0)
+        .map(|(label, (tokens, total))| slice(label, *tokens, *total))
+        .collect();
+    // Worst articles by mean floor, ties broken by story id for
+    // deterministic report bytes; 20-token minimum keeps stubs out.
+    let mut article_rows: Vec<(u32, usize, f64)> = floor_by_story
+        .iter()
+        .filter(|(_, (tokens, _))| *tokens >= 20)
+        .map(|(story, (tokens, total))| (*story, *tokens, total / *tokens as f64))
+        .collect();
+    article_rows.sort_by(|a, b| b.2.total_cmp(&a.2).then(a.0.cmp(&b.0)));
+    let worst_articles: Vec<FloorSlice> = article_rows
+        .iter()
+        .take(10)
+        .map(|(story, tokens, mean)| {
+            slice(&format!("story {story}"), *tokens, mean * *tokens as f64)
+        })
+        .collect();
+    let floor_decomposition = FloorDecomposition {
+        by_position_in_story,
+        by_next_token_class,
+        worst_articles,
+    };
+    println!("teacher-floor decomposition (#268):");
+    for group in [
+        (
+            "position-in-story",
+            &floor_decomposition.by_position_in_story,
+        ),
+        ("next-token class", &floor_decomposition.by_next_token_class),
+        (
+            "worst articles (>=20 tokens)",
+            &floor_decomposition.worst_articles,
+        ),
+    ] {
+        let rows: Vec<String> = group
+            .1
+            .iter()
+            .map(|row| {
+                format!(
+                    "{} {:.3} bits/token (n={})",
+                    row.label, row.floor_bits_per_token, row.tokens
+                )
+            })
+            .collect();
+        println!("  by {}: {}", group.0, rows.join(" | "));
+    }
+
     let report = EvaluationReport {
-        schema: 1,
+        schema: 2,
         distribution: EvaluationDistribution {
             name: "D3-held-out".to_owned(),
             split: "compiler::train_cut 80/20 by story id".to_owned(),
@@ -1500,6 +1662,7 @@ fn evaluate_report(args: &[String]) -> Result<(), String> {
             teacher_floor_bits_per_token,
             bits_over_teacher_floor,
         },
+        floor_decomposition,
     };
     if let Some(parent) = report_path.parent() {
         std::fs::create_dir_all(parent).map_err(|error| error.to_string())?;
@@ -2019,6 +2182,19 @@ mod tests {
                 bits_per_token: 18.2,
                 teacher_floor_bits_per_token: 14.8,
                 bits_over_teacher_floor: 3.4,
+            },
+            floor_decomposition: FloorDecomposition {
+                by_position_in_story: vec![FloorSlice {
+                    label: "0-7".to_owned(),
+                    tokens: 100,
+                    floor_bits_per_token: 15.1,
+                }],
+                by_next_token_class: vec![FloorSlice {
+                    label: "digit".to_owned(),
+                    tokens: 40,
+                    floor_bits_per_token: 16.9,
+                }],
+                worst_articles: Vec::new(),
             },
         };
 
