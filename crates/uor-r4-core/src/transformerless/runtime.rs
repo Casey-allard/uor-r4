@@ -538,6 +538,57 @@ pub fn predict_plain(store: &Store, code: &[u8; STAGES]) -> u32 {
     predict_witness_plain(store, code).token
 }
 
+/// Merge the token→count evidence under a set of membership keys at one
+/// store level (issue #281 read-time beam; reference semantics from the
+/// certifier's #244 measurement, commit 1f5088b). `None` when no key hits.
+pub fn merged_beam_distribution(
+    level: &BTreeMap<Vec<u8>, BTreeMap<u32, u32>>,
+    keys: &[Vec<u8>],
+) -> Option<BTreeMap<u32, u32>> {
+    let mut merged: BTreeMap<u32, u32> = BTreeMap::new();
+    let mut hit = false;
+    for key in keys {
+        if let Some(dist) = level.get(key) {
+            hit = true;
+            for (&t, &cnt) in dist {
+                *merged.entry(t).or_default() += cnt;
+            }
+        }
+    }
+    if hit {
+        Some(merged)
+    } else {
+        None
+    }
+}
+
+/// Plain-form beam prediction against the single-key store: deepest level
+/// where any membership prefix has evidence; canonical argmax over the
+/// merged distribution (highest count, ties to smallest token id).
+pub fn predict_witness_plain_beam(store: &Store, by_depth: &[Vec<Vec<u8>>]) -> Prediction {
+    for d in (0..=STAGES).rev() {
+        let keys: &[Vec<u8>] = by_depth.get(d).map(|k| k.as_slice()).unwrap_or(&[]);
+        if let Some(dist) = merged_beam_distribution(&store[d], keys) {
+            let mut best_t = 0u32;
+            let mut best_c = -1i64;
+            let mut best_n = 0u32;
+            for (&t, &cnt) in &dist {
+                if (cnt as i64) > best_c {
+                    best_c = cnt as i64;
+                    best_t = t;
+                    best_n = cnt;
+                }
+            }
+            return Prediction {
+                token: best_t,
+                depth: d as u8,
+                count: best_n,
+            };
+        }
+    }
+    fallback_prediction(store)
+}
+
 /// Kernel-counted full path.
 pub struct Runtime<'a> {
     pub art: &'a Compiled,
@@ -572,6 +623,25 @@ impl<'a> Runtime<'a> {
         let b = bundle_window_kernel(&mut self.kernel, self.art, &rot, window);
         let sig = sign_signature(&mut self.kernel, &b, &self.art.thresholds);
         self.code_from_sig(&sig)
+    }
+
+    /// Corpus-free kernel path with membership beam (issue #281): the
+    /// kernel-counted signature, primary code, and the per-depth
+    /// membership prefixes used by the read-time beam. Membership
+    /// derivation is the one plain-path rule shared with `build_store`'s
+    /// codes; the signature it reads is the kernel-counted one, whose
+    /// kernel==plain identity the certifier witnesses.
+    #[allow(clippy::type_complexity)]
+    pub fn assign_window_memberships(
+        &mut self,
+        window: &[u32],
+    ) -> ([u8; STAGES], Vec<Vec<Vec<u8>>>) {
+        let rot = self.rot;
+        let b = bundle_window_kernel(&mut self.kernel, self.art, &rot, window);
+        let sig = sign_signature(&mut self.kernel, &b, &self.art.thresholds);
+        let code = self.code_from_sig(&sig);
+        let (_, by_depth) = assign_memberships_plain(self.art, &sig);
+        (code, by_depth)
     }
 
     /// Graded class assignment from a bit signature: Hamming to each
@@ -634,6 +704,113 @@ impl<'a> Runtime<'a> {
                     count: best_n,
                 };
             }
+        }
+        let fallback = fallback_prediction(store);
+        self.state.record_token(fallback.token);
+        fallback
+    }
+
+    /// Kernel-counted beam prediction (issue #281): deepest level where
+    /// any membership prefix has evidence; merged-distribution argmax with
+    /// the same repetition-penalty state as `predict_witness`. Merging is
+    /// table reads and adds — no new operation classes.
+    pub fn predict_witness_beam(&mut self, store: &Store, by_depth: &[Vec<Vec<u8>>]) -> Prediction {
+        for d in (0..=STAGES).rev() {
+            let keys: &[Vec<u8>] = by_depth.get(d).map(|k| k.as_slice()).unwrap_or(&[]);
+            let mut merged: BTreeMap<u32, i64> = BTreeMap::new();
+            let mut hit = false;
+            for key in keys {
+                if let Some(dist) = store[d].get(key) {
+                    hit = true;
+                    for (&t, &cnt) in dist {
+                        let acc = merged.entry(t).or_insert(0);
+                        *acc = self.kernel.add(*acc, cnt as i64);
+                    }
+                }
+            }
+            if !hit {
+                continue;
+            }
+            let mut best_t = 0u32;
+            let mut best_c = -1000000i64;
+            let mut best_n = 0u32;
+            for (&t, &cnt) in &merged {
+                self.kernel.candidate_scan();
+                let mut score = cnt;
+                let occurrences = self.state.token_occurrences(t);
+                if occurrences > 0 {
+                    let val = occurrences as i64;
+                    score -= (val << 10) - (val << 4) - (val << 3);
+                }
+                if self.kernel.lt(best_c, score) {
+                    best_c = score;
+                    best_t = t;
+                    best_n = cnt as u32;
+                }
+            }
+            self.state.record_token(best_t);
+            return Prediction {
+                token: best_t,
+                depth: d as u8,
+                count: best_n,
+            };
+        }
+        let fallback = fallback_prediction(store);
+        self.state.record_token(fallback.token);
+        fallback
+    }
+
+    /// Kernel-counted beam prediction with semantic context priors
+    /// (issue #281): merged-distribution variant of
+    /// `predict_witness_with_priors`.
+    pub fn predict_witness_with_priors_beam(
+        &mut self,
+        store: &Store,
+        by_depth: &[Vec<Vec<u8>>],
+        priors: &std::collections::HashMap<u32, u32>,
+    ) -> Prediction {
+        for d in (0..=STAGES).rev() {
+            let keys: &[Vec<u8>] = by_depth.get(d).map(|k| k.as_slice()).unwrap_or(&[]);
+            let mut merged: BTreeMap<u32, i64> = BTreeMap::new();
+            let mut hit = false;
+            for key in keys {
+                if let Some(dist) = store[d].get(key) {
+                    hit = true;
+                    for (&t, &cnt) in dist {
+                        let acc = merged.entry(t).or_insert(0);
+                        *acc = self.kernel.add(*acc, cnt as i64);
+                    }
+                }
+            }
+            if !hit {
+                continue;
+            }
+            let mut best_t = 0u32;
+            let mut best_c = -1000000i64;
+            let mut best_n = 0u32;
+            for (&t, &cnt) in &merged {
+                self.kernel.candidate_scan();
+                let prior = priors.get(&t).cloned().unwrap_or(0);
+                let p_i = prior as i64;
+                let bias = (p_i << 6) + (p_i << 5) + (p_i << 2);
+                let mut score = cnt + bias;
+                let occurrences = self.state.token_occurrences(t);
+                if occurrences > 0 {
+                    let val = occurrences as i64;
+                    score -= (val << 10) - (val << 4) - (val << 3);
+                }
+                if self.kernel.lt(best_c, score) {
+                    best_c = score;
+                    best_t = t;
+                    best_n = cnt as u32;
+                }
+            }
+            self.state.record_token(best_t);
+            return Prediction {
+                token: best_t,
+                depth: d as u8,
+                count: best_n,
+            };
         }
         let fallback = fallback_prediction(store);
         self.state.record_token(fallback.token);
@@ -754,7 +931,37 @@ pub fn add_evidence_multi(
 
 /// The store, built by the runtime's own plain path — key identity between
 /// construction and query is by construction, not by sampling.
+///
+/// Issue #281 (the #244 decision): evidence is written under the primary
+/// code prefix only. The membership fan-out moved from write time to read
+/// time (`predict_witness_plain_beam` and the kernel beam variants), which
+/// the #244 matrix measured as accuracy-identical at 2.56× fewer keys.
 pub fn build_store(art: &Compiled, c: &Corpus) -> (Store, Vec<[u8; STAGES]>) {
+    let rot = derive_rotations();
+    let cut = train_cut(c);
+    let mut store: Store = (0..=STAGES).map(|_| BTreeMap::new()).collect();
+    let mut codes: Vec<[u8; STAGES]> = Vec::with_capacity(c.n);
+    for i in 0..c.n {
+        let b = bundle_plain(art, &rot, c, i);
+        let code = assign_plain(art, &sig_plain(art, &b));
+        codes.push(code);
+        if c.story[i] >= cut {
+            continue;
+        }
+        for k_idx in 0..c.top_tokens[i].len() {
+            let tok = c.top_tokens[i][k_idx];
+            let weight = c.top_weights[i][k_idx];
+            if weight > 0 {
+                add_evidence(&mut store, &codes[i], tok, weight);
+            }
+        }
+    }
+    (store, codes)
+}
+
+/// The pre-#281 write-time fan-out store (multi-membership writes).
+/// Retained for the certifier's ablation row only — not a shipped path.
+pub fn build_store_multi(art: &Compiled, c: &Corpus) -> (Store, Vec<[u8; STAGES]>) {
     let rot = derive_rotations();
     let cut = train_cut(c);
     let mut store: Store = (0..=STAGES).map(|_| BTreeMap::new()).collect();

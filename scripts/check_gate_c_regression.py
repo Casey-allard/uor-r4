@@ -2,14 +2,21 @@
 import sys
 import json
 
-# Pinned previous record (Gate C Rule 1+2 on the small corpus test fixture)
-# Determined from trend_output/score_report.json on main.
-PINNED_TOP1_AGREEMENT = 0.317  # ~31.7%
-PINNED_BITS_PER_TOKEN = 9.86   # 9.86 bits/token
-
-# Regression Thresholds
-MAX_TOP1_DROP = 0.02           # fail if top-1 drops > 2 points (0.02)
-MAX_BPT_WORSEN = 0.1           # fail if bits/token worsens (increases) > 0.1
+# Single source of truth for the pinned record and thresholds:
+# docs/transformerless/gate_c_pinned.json — shared with the trend-alarm
+# job (scripts/gate_c_trend.sh). Re-pins happen in that one file, with an
+# era note (#281 established the discipline after a dual-pin miss).
+import os
+_PIN_PATH = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+    "docs", "transformerless", "gate_c_pinned.json",
+)
+with open(_PIN_PATH) as _f:
+    _PIN = json.load(_f)
+PINNED_TOP1_AGREEMENT = _PIN["rule12_top1_agreement"]
+PINNED_BITS_PER_TOKEN = _PIN["rule12_bits_per_token"]
+MAX_TOP1_DROP = _PIN["alarm"]["top1_drop_abs"]
+MAX_BPT_WORSEN = _PIN["alarm"]["bits_regress_abs"]
 
 def main():
     if len(sys.argv) < 2:

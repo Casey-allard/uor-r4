@@ -1,12 +1,12 @@
 {
   "schema": 1,
   "purpose": "Pinned Gate C quality record for the CI trend alarm (issue #77). The alarm fails when a run regresses beyond the thresholds below vs THIS record. Bump deliberately, maintainer-only, like the kappa baseline.",
-  "pinned_at": "2026-07-22",
-  "pinned_from": "Rule 1+2 chain-telescoped + EXCT precedence, add-one smoothing, fixture corpus",
-  "rule12_top1_agreement": 0.317086,
-  "rule12_bits_per_token": 9.8612,
-  "baseline_top1_agreement": 0.317086,
-  "baseline_bits_per_token": 11.8781,
+  "pinned_at": "2026-07-29",
+  "pinned_from": "Rule 1+2 chain-telescoped + EXCT precedence, add-one smoothing, fixture corpus. Era note (#281): re-pinned for single-key store + read-time query-beam (the #244 decision); fixture price top-1 -1.7pp, rule12 +0.375 bits, tla3-baseline +0.478 bits; D3 price +-0.0pp / +0.087 bits at 2.56x fewer keys (PR #283 disclosure). Thresholds unchanged.",
+  "rule12_top1_agreement": 0.30024,
+  "rule12_bits_per_token": 10.23571,
+  "baseline_top1_agreement": 0.30024,
+  "baseline_bits_per_token": 12.356403,
   "alarm": {
     "top1_drop_abs": 0.02,
     "bits_regress_abs": 0.1

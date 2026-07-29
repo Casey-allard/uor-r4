@@ -692,7 +692,7 @@ impl TlessAxis for TlessAxisImpl {
         }
         with_tless_state(|st| {
             let mut rt = runtime::Runtime::new(&st.art);
-            let code = rt.assign_window(&window);
+            let (code, by_depth) = rt.assign_window_memberships(&window);
 
             let mut priors = std::collections::HashMap::new();
             let mut query_text = String::new();
@@ -729,9 +729,9 @@ impl TlessAxis for TlessAxisImpl {
             });
 
             let p = if priors.is_empty() {
-                rt.predict_witness(&st.store, &code)
+                rt.predict_witness_beam(&st.store, &by_depth)
             } else {
-                rt.predict_witness_with_priors(&st.store, &code, &priors)
+                rt.predict_witness_with_priors_beam(&st.store, &by_depth, &priors)
             };
 
             let k = &rt.kernel;

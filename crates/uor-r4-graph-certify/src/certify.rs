@@ -19,7 +19,7 @@
 use std::collections::BTreeMap;
 use uor_r4_core::transformerless::compiler::{self, D, K, STAGES, V, WINDOW};
 use uor_r4_core::transformerless::runtime::{
-    self, build_store, bundle_kernel, bundle_plain, code_plain, predict_plain, Runtime, Store,
+    self, build_store, bundle_kernel, bundle_plain, code_plain, Runtime, Store,
 };
 use uor_r4_model_source::TeacherOracle;
 
@@ -326,10 +326,14 @@ pub fn certify(oracle: &dyn TeacherOracle) {
         assert_eq!(ck, cp, "code kernel/plain divergence at {}", i);
 
         rt.state.clear_token_state();
+        let (_, by_depth_k) =
+            runtime::assign_memberships_plain(&art, &runtime::sig_plain(&art, &bk));
+        let (_, by_depth_p) =
+            runtime::assign_memberships_plain(&art, &runtime::sig_plain(&art, &bp));
         assert_eq!(
-            rt.predict(&store, &ck),
-            predict_plain(&store, &cp),
-            "prediction kernel/plain divergence at {}",
+            rt.predict_witness_beam(&store, &by_depth_k).token,
+            runtime::predict_witness_plain_beam(&store, &by_depth_p).token,
+            "beam prediction kernel/plain divergence at {}",
             i
         );
     }
@@ -348,12 +352,23 @@ pub fn certify(oracle: &dyn TeacherOracle) {
         k.table_reads as f64 / sample_n as f64
     );
 
-    // ---- A-binary: the shipped runtime
-    let m = eval(&c, &store, STAGES, &|i, d| codes[i][..d].to_vec());
+    // ---- A: the shipped runtime (issue #281 — the #244 decision):
+    // single-key store, read-time query-beam.
+    let m = eval_query_beam(&c, &store, &art, &rot);
     println!(
-        "A-binary (mul-free runtime): top1 {:.1}% | agreement {:.1}% | WB {:.4} bits/token | {} keys",
+        "A (shipped: single-key store + query-beam): top1 {:.1}% | agreement {:.1}% | WB {:.4} bits/token | {} keys",
         m.top1, m.agree, m.wb_bits, m.keys
     );
+
+    // ---- A-multi ablation: the pre-#281 write-time fan-out (kept for
+    // matrix continuity with the recorded #244 rows).
+    let (store_multi, _) = runtime::build_store_multi(&art, &c);
+    let m = eval(&c, &store_multi, STAGES, &|i, d| codes[i][..d].to_vec());
+    println!(
+        "A-multi (ablation, write-time fan-out): top1 {:.1}% | agreement {:.1}% | WB {:.4} bits/token | {} keys",
+        m.top1, m.agree, m.wb_bits, m.keys
+    );
+    drop(store_multi);
 
     // ---- A-f32 ablation: nearest-centroid assignment (certifier-side)
     let bundles: Vec<[i64; D]> = (0..c.n).map(|i| bundle_plain(&art, &rot, &c, i)).collect();
@@ -412,19 +427,12 @@ pub fn certify(oracle: &dyn TeacherOracle) {
         m.top1, m.agree, m.wb_bits, m.keys
     );
 
-    // ---- A-single: shipped mul-free codes, single-key store (issue #244)
-    // Same assignment as A-binary; no store-time beam materialization.
-    let store_single = build_store_generic(&c, STAGES, &|i, d| codes[i][..d].to_vec());
-    let m = eval(&c, &store_single, STAGES, &|i, d| codes[i][..d].to_vec());
+    // ---- A-single ablation: primary-key queries against the shipped
+    // single-key store (no read-time beam) — measures what the beam buys.
+    // The former standalone query-beam row is now the shipped A row above.
+    let m = eval(&c, &store, STAGES, &|i, d| codes[i][..d].to_vec());
     println!(
-        "A-single (mul-free, single-key store): top1 {:.1}% | agreement {:.1}% | WB {:.4} bits/token | {} keys",
-        m.top1, m.agree, m.wb_bits, m.keys
-    );
-
-    // ---- A-single + query-beam: the same beam, applied at read time
-    let m = eval_query_beam(&c, &store_single, &art, &rot);
-    println!(
-        "A-single + query-beam (read-time expansion): top1 {:.1}% | agreement {:.1}% | WB {:.4} bits/token | {} keys",
+        "A-single (ablation, no query beam): top1 {:.1}% | agreement {:.1}% | WB {:.4} bits/token | {} keys",
         m.top1, m.agree, m.wb_bits, m.keys
     );
 
