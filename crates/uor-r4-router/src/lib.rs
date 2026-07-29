@@ -1512,7 +1512,24 @@ impl UorR4Router {
             .unwrap_or_default()
     }
 
-    fn index_sentence_internal(&mut self, sentence: &str, identity: &str) {
+    /// Content-free indexing (issue #255, arm 1): reconstructs the
+    /// pre-#245 stub exactly — the sentence routes with no content-derived
+    /// state vector, so the stored vector is whatever the session state
+    /// happened to be. Test/harness surface only; production indexing is
+    /// `index_sentence`.
+    pub fn index_sentence_content_free(&mut self, sentence: &str, identity: &str) {
+        self.index_sentence_with_state_override(sentence, identity, true)
+    }
+
+    /// Shared body for issue #255's arms: identical to
+    /// `index_sentence_internal` except `content_free` forces the pre-#245
+    /// `None` routing state.
+    fn index_sentence_with_state_override(
+        &mut self,
+        sentence: &str,
+        identity: &str,
+        content_free: bool,
+    ) {
         let s_clean = sentence.trim();
         if s_clean.is_empty() || s_clean.len() < 10 {
             return;
@@ -1523,20 +1540,36 @@ impl UorR4Router {
                 self.add_word_to_vocabulary(w);
             }
         }
+        let content_state = if content_free {
+            None
+        } else {
+            self.content_state_vector(s_clean)
+        };
+        self.index_sentence_routed(s_clean, identity, &words, content_state.as_deref());
+    }
 
+    fn index_sentence_internal(&mut self, sentence: &str, identity: &str) {
+        self.index_sentence_with_state_override(sentence, identity, false)
+    }
+
+    fn index_sentence_routed(
+        &mut self,
+        s_clean: &str,
+        identity: &str,
+        words: &[String],
+        state: Option<&[f64]>,
+    ) {
         // Issue #245: route the sentence through its own content-derived
         // state, not the session brain state at index time — stored
         // state_vectors must encode the sentence, or cosine resonance
         // retrieval is degenerate. Falls back to session state only when no
         // word of the sentence is in the vocabulary (words were just added
         // above, so this is rare).
-        let content_state = self.content_state_vector(s_clean);
-        let routing_data =
-            self.route_query_to_manifold_internal(s_clean, identity, content_state.as_deref());
+        let routing_data = self.route_query_to_manifold_internal(s_clean, identity, state);
         let best = routing_data.routed;
         let idx_win = best.window_index;
 
-        let prime_product = self.get_sentence_prime_product(&words);
+        let prime_product = self.get_sentence_prime_product(words);
 
         let mut state_vector = vec![0.0; 512];
         let s_idx = best.active_range[0] as usize;
@@ -1580,7 +1613,7 @@ impl UorR4Router {
             kappa: best.metrics.kappa,
             deficit_angle: best.metrics.deficit_angle,
             prime_product: prime_product.to_string(),
-            words,
+            words: words.to_vec(),
             u,
             v,
             v_4d,

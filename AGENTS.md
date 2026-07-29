@@ -119,6 +119,19 @@ PR (a bump can shift libm-sensitive teacher logprobs — see Gate E below).
   with compiler-side f32 conversions). Consolidation onto the format crate is
   a scheduled pre-Phase-5 cleanup — don't add a third.
 
+## Batch flow for small issues (process amendment, 2026-07-29)
+
+Small, low-risk issues (docs, help text, certifier-side rows, test
+harnesses, telemetry) are worked on ONE integration branch (`batch-N`)
+with one commit per issue (message refs `#N`), and the four local gates +
+merge queue run ONCE per batch of 3-6 issues — not per issue. Authoring
+feedback during a batch is `cargo check` on a warm shared target
+(`CARGO_TARGET_DIR`); the full workspace suite still gates every merge in
+CI, so rigor is unchanged — it just stops running serially per issue.
+Runtime-kernel and serving-semantics changes still get individual PRs.
+Measurement runs are background science with scheduled harvests; they
+never sit between two pieces of code work.
+
 ## Things that bite
 
 - `/tmp/ref/out/model.bin` disappears on reboot/periodic /tmp cleanup — κ tests
