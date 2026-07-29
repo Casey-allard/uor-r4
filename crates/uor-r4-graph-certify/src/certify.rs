@@ -414,6 +414,295 @@ pub fn certify(oracle: &dyn TeacherOracle) {
         m.top1, m.agree, m.wb_bits, m.keys
     );
 
+    // ============ Phase A decomposition rows (issue #243) ============
+    // Certifier-side instrumentation ONLY (f32 permitted here, never in
+    // the kernel): attribute the A-f32 ceiling's gap among the three
+    // losses — normalization (#3), magnitude (#2), residuals (#1) —
+    // before committing to a design. docs/graded_signature_address_design.md.
+
+    let centered: Vec<[f32; D]> = bundles
+        .iter()
+        .map(|b| {
+            let mut w = [0f32; D];
+            for d in 0..D {
+                w[d] = (b[d] - art.thresholds[d]) as f32;
+            }
+            w
+        })
+        .collect();
+    let norms: Vec<f32> = centered
+        .iter()
+        .map(|w| w.iter().map(|x| x * x).sum::<f32>().sqrt().max(1e-9))
+        .collect();
+    let nearest = |work: &[f32], cb: &[f32]| -> usize {
+        let (mut bd, mut bk) = (f32::MAX, 0usize);
+        for kk in 0..K {
+            let cent = &cb[kk * D..(kk + 1) * D];
+            let mut d2 = 0f32;
+            for j in 0..D {
+                let t = work[j] - cent[j];
+                d2 += t * t;
+            }
+            if d2 < bd {
+                bd = d2;
+                bk = kk;
+            }
+        }
+        bk
+    };
+
+    // ---- A-norm-only: "normalize → sign-bits, no residuals". Signs are
+    // scale-invariant, so per-vector normalization survives only through
+    // the assignment geometry: the sign-unit vector (±1/√D) is assigned
+    // by Euclidean distance against the f32 codebook, per stage, with no
+    // residual update. vs A-single this attributes the assignment
+    // metric/codebook at sign-only information; vs A-f32 it leaves
+    // magnitude+residual jointly unrecovered.
+    let sign_scale = 1.0f32 / (D as f32).sqrt();
+    let codes_norm: Vec<[u8; STAGES]> = (0..c.n)
+        .map(|i| {
+            let mut q = [0f32; D];
+            for d in 0..D {
+                q[d] = if centered[i][d] >= 0.0 {
+                    sign_scale
+                } else {
+                    -sign_scale
+                };
+            }
+            let mut code = [0u8; STAGES];
+            for (st, cb) in art.ctx_cb.iter().enumerate() {
+                code[st] = nearest(&q, cb) as u8;
+            }
+            code
+        })
+        .collect();
+    let st_row = build_store_generic(&c, STAGES, &|i, d| codes_norm[i][..d].to_vec());
+    let m = eval(&c, &st_row, STAGES, &|i, d| codes_norm[i][..d].to_vec());
+    println!(
+        "A-norm-only (#243 instrumentation, f32: sign-unit Euclidean assignment, no residuals): top1 {:.1}% | agreement {:.1}% | WB {:.4} bits/token | {} keys",
+        m.top1, m.agree, m.wb_bits, m.keys
+    );
+
+    // ---- A-resid-only: residual VQ in RAW centered space — no
+    // per-vector normalization anywhere. Isolates the value of residual
+    // refinement (loss #1) without loss #3's fix.
+    let codes_resid: Vec<[u8; STAGES]> = (0..c.n)
+        .map(|i| {
+            let mut work = centered[i];
+            let mut code = [0u8; STAGES];
+            for (st, cb) in art.ctx_cb.iter().enumerate() {
+                let bk = nearest(&work, cb);
+                code[st] = bk as u8;
+                for j in 0..D {
+                    work[j] -= cb[bk * D + j];
+                }
+            }
+            code
+        })
+        .collect();
+    let st_row = build_store_generic(&c, STAGES, &|i, d| codes_resid[i][..d].to_vec());
+    let m = eval(&c, &st_row, STAGES, &|i, d| codes_resid[i][..d].to_vec());
+    println!(
+        "A-resid-only (#243 instrumentation, f32: raw-space residual VQ, no normalization): top1 {:.1}% | agreement {:.1}% | WB {:.4} bits/token | {} keys",
+        m.top1, m.agree, m.wb_bits, m.keys
+    );
+
+    // ---- A-G(b): thermometer-graded assignment, no residuals. Ladders
+    // are per-dimension quantiles of the NORMALIZED centered values
+    // (deterministic stride-8 corpus sample) — normalization folds into
+    // the ladder per the design doc. Prototypes are the f32 centroids
+    // graded through the same ladder; stage>0 centroids are
+    // residual-space objects graded in original-space ladders, so these
+    // rows LOWER-BOUND Design G (Phase B retrains prototypes in graded
+    // space). Hamming on thermometer codes equals L1 on bucket indices;
+    // L1 is computed directly.
+    for bq in [2usize, 3, 4] {
+        let ladder: Vec<Vec<f32>> = (0..D)
+            .map(|d| {
+                let mut vals: Vec<f32> = (0..c.n)
+                    .step_by(8)
+                    .map(|i| centered[i][d] / norms[i])
+                    .collect();
+                vals.sort_by(|a, b| a.partial_cmp(b).unwrap());
+                (1..=bq).map(|j| vals[j * vals.len() / (bq + 1)]).collect()
+            })
+            .collect();
+        let grade_val =
+            |v: f32, lad: &[f32]| -> i32 { lad.iter().filter(|&&t| v > t).count() as i32 };
+        let proto: Vec<Vec<i32>> = art
+            .ctx_cb
+            .iter()
+            .map(|cb| {
+                let mut g = vec![0i32; K * D];
+                for kk in 0..K {
+                    for d in 0..D {
+                        g[kk * D + d] = grade_val(cb[kk * D + d], &ladder[d]);
+                    }
+                }
+                g
+            })
+            .collect();
+        let codes_g: Vec<[u8; STAGES]> = (0..c.n)
+            .map(|i| {
+                let g: Vec<i32> = (0..D)
+                    .map(|d| grade_val(centered[i][d] / norms[i], &ladder[d]))
+                    .collect();
+                let mut code = [0u8; STAGES];
+                for (st, pr) in proto.iter().enumerate() {
+                    let (mut bd, mut bk) = (i64::MAX, 0usize);
+                    for kk in 0..K {
+                        let mut l1 = 0i64;
+                        for d in 0..D {
+                            l1 += (g[d] - pr[kk * D + d]).abs() as i64;
+                        }
+                        if l1 < bd {
+                            bd = l1;
+                            bk = kk;
+                        }
+                    }
+                    code[st] = bk as u8;
+                }
+                code
+            })
+            .collect();
+        let st_row = build_store_generic(&c, STAGES, &|i, d| codes_g[i][..d].to_vec());
+        let m = eval(&c, &st_row, STAGES, &|i, d| codes_g[i][..d].to_vec());
+        println!(
+            "A-G({bq}) (#243 instrumentation: thermometer-graded assignment [normalized-space ladder], no residuals): top1 {:.1}% | agreement {:.1}% | WB {:.4} bits/token | {} keys",
+            m.top1, m.agree, m.wb_bits, m.keys
+        );
+    }
+
+    // ---- A-R: Design R as buildable today — integer centroid copies
+    // scaled ONCE by the corpus-mean norm (a compile-time constant, so
+    // the query loop is add/sub + sign re-threshold + Hamming only), and
+    // per-stage class_sigs as trained (NOT retrained in residual space —
+    // the doc's recorded risk, measured as-is). Re-signing reuses
+    // sig_plain via a re-centered bundle so bit packing is canonical.
+    let mean_norm = norms.iter().sum::<f32>() / norms.len() as f32;
+    let cent_int: Vec<Vec<i64>> = art
+        .ctx_cb
+        .iter()
+        .map(|cb| cb.iter().map(|&x| (x * mean_norm).round() as i64).collect())
+        .collect();
+    let hamming =
+        |a: &[u8], b: &[u8]| -> u32 { a.iter().zip(b).map(|(x, y)| (x ^ y).count_ones()).sum() };
+    let assign_r = |i: usize| -> [u8; STAGES] {
+        let mut r: [i64; D] = std::array::from_fn(|d| bundles[i][d] - art.thresholds[d]);
+        let mut code = [0u8; STAGES];
+        for st in 0..STAGES {
+            let mut fake = [0i64; D];
+            for d in 0..D {
+                fake[d] = r[d] + art.thresholds[d];
+            }
+            let sig = runtime::sig_plain(&art, &fake);
+            let sigs_st = &art.class_sigs[st];
+            let (mut bd, mut bk) = (u32::MAX, 0usize);
+            for kk in 0..K {
+                let cs = &sigs_st[kk * runtime::SIG_BYTES..(kk + 1) * runtime::SIG_BYTES];
+                let h = hamming(&sig, cs);
+                if h < bd {
+                    bd = h;
+                    bk = kk;
+                }
+            }
+            code[st] = bk as u8;
+            for d in 0..D {
+                r[d] -= cent_int[st][bk * D + d];
+            }
+        }
+        code
+    };
+    let codes_r: Vec<[u8; STAGES]> = (0..c.n).map(assign_r).collect();
+    let st_row = build_store_generic(&c, STAGES, &|i, d| codes_r[i][..d].to_vec());
+    let m = eval(&c, &st_row, STAGES, &|i, d| codes_r[i][..d].to_vec());
+    println!(
+        "A-R (#243 buildable shape: constant-scaled integer centroids + sign re-threshold, class_sigs unretrained): top1 {:.1}% | agreement {:.1}% | WB {:.4} bits/token | {} keys",
+        m.top1, m.agree, m.wb_bits, m.keys
+    );
+
+    // ---- A-R∘G(b): graded signature OF the residual. Per-stage ladders
+    // from the R-loop's residual distributions (deterministic stride-8
+    // sample); prototypes are the integer centroid copies graded through
+    // the SAME stage ladder. Same lower-bound caveat as A-G: prototypes
+    // are not retrained in graded space.
+    for bq in [2usize, 3, 4] {
+        let mut stage_vals: Vec<Vec<Vec<f32>>> = vec![vec![Vec::new(); D]; STAGES];
+        for i in (0..c.n).step_by(8) {
+            let mut r: [i64; D] = std::array::from_fn(|d| bundles[i][d] - art.thresholds[d]);
+            for st in 0..STAGES {
+                for d in 0..D {
+                    stage_vals[st][d].push(r[d] as f32);
+                }
+                let code = codes_r[i][st] as usize;
+                for d in 0..D {
+                    r[d] -= cent_int[st][code * D + d];
+                }
+            }
+        }
+        let ladders: Vec<Vec<Vec<f32>>> = stage_vals
+            .iter()
+            .map(|per_dim| {
+                per_dim
+                    .iter()
+                    .map(|vals| {
+                        let mut v = vals.clone();
+                        v.sort_by(|a, b| a.partial_cmp(b).unwrap());
+                        (1..=bq).map(|j| v[j * v.len() / (bq + 1)]).collect()
+                    })
+                    .collect()
+            })
+            .collect();
+        let grade_val =
+            |v: f32, lad: &[f32]| -> i32 { lad.iter().filter(|&&t| v > t).count() as i32 };
+        let proto: Vec<Vec<i32>> = (0..STAGES)
+            .map(|st| {
+                let mut g = vec![0i32; K * D];
+                for kk in 0..K {
+                    for d in 0..D {
+                        g[kk * D + d] = grade_val(cent_int[st][kk * D + d] as f32, &ladders[st][d]);
+                    }
+                }
+                g
+            })
+            .collect();
+        let codes_rg: Vec<[u8; STAGES]> = (0..c.n)
+            .map(|i| {
+                let mut r: [i64; D] = std::array::from_fn(|d| bundles[i][d] - art.thresholds[d]);
+                let mut code = [0u8; STAGES];
+                for st in 0..STAGES {
+                    let g: Vec<i32> = (0..D)
+                        .map(|d| grade_val(r[d] as f32, &ladders[st][d]))
+                        .collect();
+                    let pr = &proto[st];
+                    let (mut bd, mut bk) = (i64::MAX, 0usize);
+                    for kk in 0..K {
+                        let mut l1 = 0i64;
+                        for d in 0..D {
+                            l1 += (g[d] - pr[kk * D + d]).abs() as i64;
+                        }
+                        if l1 < bd {
+                            bd = l1;
+                            bk = kk;
+                        }
+                    }
+                    code[st] = bk as u8;
+                    for d in 0..D {
+                        r[d] -= cent_int[st][bk * D + d];
+                    }
+                }
+                code
+            })
+            .collect();
+        let st_row = build_store_generic(&c, STAGES, &|i, d| codes_rg[i][..d].to_vec());
+        let m = eval(&c, &st_row, STAGES, &|i, d| codes_rg[i][..d].to_vec());
+        println!(
+            "A-R∘G({bq}) (#243 buildable shape: graded residual assignment [residual-space ladders], prototypes unretrained): top1 {:.1}% | agreement {:.1}% | WB {:.4} bits/token | {} keys",
+            m.top1, m.agree, m.wb_bits, m.keys
+        );
+    }
+    // ============ end Phase A decomposition rows (issue #243) ============
+
     // ---- B: bit-prefix coordinate — signature bytes, no classes
     let sigs: Vec<[u8; runtime::SIG_BYTES]> = (0..c.n)
         .map(|i| runtime::sig_plain(&art, &bundles[i]))
