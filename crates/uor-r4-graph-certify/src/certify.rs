@@ -471,7 +471,7 @@ pub fn certify(oracle: &dyn TeacherOracle) {
     let eval_budget_secs: u64 = std::env::var("R4_CERTIFY_R4G1_EVAL_BUDGET_SECS")
         .ok()
         .and_then(|v| v.parse().ok())
-        .unwrap_or(600);
+        .unwrap_or(1800);
     println!(
         "C R4G1 readiness probe: {} positions, wall-clock budget {}s (R4_CERTIFY_R4G1_BUDGET_SECS overrides)",
         crate::r4g1_readiness::PROBE_POSITIONS,
@@ -486,12 +486,24 @@ pub fn certify(oracle: &dyn TeacherOracle) {
 
     match readiness {
         crate::r4g1_readiness::R4g1EvalReadiness::Ready { scored } => {
+            // Deterministic stride subsample (issue #244 C-row amendment):
+            // the full held-out evaluation costs ~1.2–1.6 s/position on
+            // current artifact sizes (~13h total; #278), so the C row is
+            // measured on a fixed ~1000-position stride sample — a real,
+            // bounded, position-uniform measurement instead of a discarded
+            // partial prefix (a budget-truncated prefix samples only the
+            // earliest held-out positions and is biased by construction).
+            // The sample size is printed with the row; the #278 wall-clock
+            // budget still guards the sampled loop (default sized to fit
+            // the sample at the measured per-position rate).
+            let sample_stride = (test.len() / 1000).max(1);
+            let sample: Vec<usize> = test.iter().copied().step_by(sample_stride).collect();
             let eval_start = std::time::Instant::now();
             let eval_budget = std::time::Duration::from_secs(eval_budget_secs);
             let (mut top1, mut agree) = (0u64, 0u64);
             let mut done = 0usize;
             let mut aborted = false;
-            for &i in &test {
+            for &i in &sample {
                 if eval_start.elapsed() >= eval_budget {
                     aborted = true;
                     break;
@@ -510,25 +522,27 @@ pub fn certify(oracle: &dyn TeacherOracle) {
                     println!(
                         "progress: C R4G1 eval {}/{} ({}%, {}s)",
                         done,
-                        test.len(),
-                        100 * done / test.len(),
+                        sample.len(),
+                        100 * done / sample.len(),
                         eval_start.elapsed().as_secs()
                     );
                 }
             }
             if aborted {
                 println!(
-                    "C R4G1 (graph path): SKIPPED — evaluation exceeded its {}s wall-clock budget after {}/{} positions ({}s elapsed; R4_CERTIFY_R4G1_EVAL_BUDGET_SECS overrides). Partial counts discarded; no measurement recorded. Perf: issue #278.",
+                    "C R4G1 (graph path): SKIPPED — subsampled evaluation (n={}) exceeded its {}s wall-clock budget after {}/{} positions ({}s elapsed; R4_CERTIFY_R4G1_EVAL_BUDGET_SECS overrides). Partial counts discarded; no measurement recorded. Perf: issue #278.",
+                    sample.len(),
                     eval_budget_secs,
                     done,
-                    test.len(),
+                    sample.len(),
                     eval_start.elapsed().as_secs()
                 );
             } else {
                 println!(
-                    "C R4G1 (graph path): top1 {:.1}% | agreement {:.1}% | WB n/a (not computed on the graph path) | probe: {}/{} scored",
-                    100.0 * top1 as f64 / test.len() as f64,
-                    100.0 * agree as f64 / test.len() as f64,
+                    "C R4G1 (graph path, deterministic subsample n={}): top1 {:.1}% | agreement {:.1}% | WB n/a (not computed on the graph path) | probe: {}/{} scored",
+                    sample.len(),
+                    100.0 * top1 as f64 / sample.len() as f64,
+                    100.0 * agree as f64 / sample.len() as f64,
                     scored,
                     crate::r4g1_readiness::PROBE_POSITIONS
                 );
