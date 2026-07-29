@@ -267,6 +267,7 @@ pub fn run_server(cli: Arc<ServerConfig>) {
                     "[+] Successfully loaded full Llama teacher model ({})!",
                     path
                 );
+                load_serving_hf_tokenizer(std::path::Path::new(path));
                 *oracle.lock().unwrap() = Some(o);
             }
             Err(e) => {
@@ -704,6 +705,35 @@ fn generate_r4g1_text(
     }))
 }
 
+/// Serving-side HF BPE tokenizer, loaded from the teacher oracle's source
+/// dir (tokenizer.json) whenever an HF oracle loads (issue #254, the #253
+/// lineage: seed/decode must live in the teacher's own id space). `None`
+/// means a local-llama oracle: the legacy tless pair applies.
+static SERVING_HF_TOKENIZER: std::sync::Mutex<
+    Option<uor_r4_core::transformerless::hf_bpe::HfBpeTokenizer>,
+> = std::sync::Mutex::new(None);
+
+fn load_serving_hf_tokenizer(dir: &std::path::Path) {
+    match uor_r4_core::transformerless::hf_bpe::HfBpeTokenizer::from_dir(dir) {
+        Ok(t) => {
+            println!(
+                "[+] Serving HF BPE tokenizer loaded ({}), address {}",
+                dir.display(),
+                t.address()
+            );
+            *SERVING_HF_TOKENIZER.lock().unwrap() = Some(t);
+        }
+        Err(e) => {
+            println!(
+                "[-] No HF BPE tokenizer for serving ({}): {} — legacy tless pair stays active",
+                dir.display(),
+                e
+            );
+            *SERVING_HF_TOKENIZER.lock().unwrap() = None;
+        }
+    }
+}
+
 fn generate_attention_text(
     oracle: &mut uor_r4_model_source::HuggingFaceLlamaOracle,
     prompt: &str,
@@ -712,9 +742,19 @@ fn generate_attention_text(
     // 1. Construct token seed for prompt
     let formatted_prompt = format!("User: {}\nAssistant:", prompt.trim());
     // TODO(#242 follow-up): serving-side teacher prompting still uses tless_tokenize
-    let seed = match tless_uor::tless_tokenize(&formatted_prompt) {
-        Some(s) if !s.is_empty() => s,
-        _ => return None,
+    let hf_tok = SERVING_HF_TOKENIZER.lock().unwrap();
+    let seed = match hf_tok.as_ref() {
+        Some(t) => {
+            let ids = t.encode(&formatted_prompt);
+            if ids.is_empty() {
+                return None;
+            }
+            ids
+        }
+        None => match tless_uor::tless_tokenize(&formatted_prompt) {
+            Some(s) if !s.is_empty() => s,
+            _ => return None,
+        },
     };
 
     let seed_len = seed.len();
@@ -762,11 +802,15 @@ fn generate_attention_text(
         oracle.step(best_t, pos, &mut logits);
     }
 
-    // 5. Detokenize back to String
-    let mut bytes = [0u8; 16 * 1024];
-    let byte_count = tless_uor::tless_detokenize_into(&generated, &mut bytes)?;
-
-    let decoded = String::from_utf8_lossy(&bytes[..byte_count]).into_owned();
+    // 5. Detokenize back to String — same id space as the seed (#254).
+    let decoded = match hf_tok.as_ref() {
+        Some(t) => t.decode(&generated),
+        None => {
+            let mut bytes = [0u8; 16 * 1024];
+            let byte_count = tless_uor::tless_detokenize_into(&generated, &mut bytes)?;
+            String::from_utf8_lossy(&bytes[..byte_count]).into_owned()
+        }
+    };
     println!("[+] generate_attention_text: raw decoded: {:?}", decoded);
     let cleaned = clean_attention_response(&decoded, prompt);
     println!("[+] generate_attention_text: cleaned: {:?}", cleaned);
@@ -2129,6 +2173,7 @@ fn handle_connection(
                         "[+] Successfully reloaded teacher oracle model for '{}'",
                         target_model
                     );
+                    load_serving_hf_tokenizer(std::path::Path::new(&oracle_source));
                     *oracle.lock().unwrap() = Some(o);
                 }
                 Err(e) => {
