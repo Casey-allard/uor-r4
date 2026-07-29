@@ -10,7 +10,8 @@
 //!   gen [secs] [target]   generate/extend the teacher-labeled corpus
 //!                         (resumable; whole-story chunking keeps the
 //!                         stream deterministic under any chunking)
-//!   certify          compile the source, build the store, and print the
+//!   certify          (root command: `r4 certify`) compile the source,
+//!                    build the store, and print the
 //!                    full equivalence certificate and op census
 //!
 //! # The claim, precisely
@@ -1545,7 +1546,7 @@ curl -sL https://raw.githubusercontent.com/karpathy/char-rnn/master/data/tinysha
 
 pipeline:
   transformerless gen 1500 150000    # repeat until 'done=1'
-  transformerless certify            # compile + store + certificate + census
+  r4 certify                         # compile + store + certificate + census (root command)
   transformerless compare            # runtime comparison (docs/COMPARISON.md)
   transformerless compare-report     # print the certified llama.cpp comparison (no artifacts needed)
   transformerless scenarios          # scenario suite (needs tokenizer + corpus.txt)"
@@ -1823,7 +1824,7 @@ pub fn run(args: &[String]) -> Result<(), String> {
         _ => {
             println!(
                 "R4 transformerless — cross-compile a transformer into a mul-free table artifact\n\
-                 commands: setup | gen [secs] [target] | compile [--model REPO --revision SHA | --source DIR] [--output DIR] [--seconds N] [--target N] [--sequence-length N] | store | certify | compare | compare-report | scenarios | teacher-kappa | convert-r4g1 --artifacts <TLA> --store <TLS1> [--calibration <hamming_calibration.json>] --out <R4G1>\n\
+                 commands: setup | gen [secs] [target] | compile [--model REPO --revision SHA | --source DIR] [--output DIR] [--seconds N] [--target N] [--sequence-length N] | store | compare | compare-report | scenarios | teacher-kappa | convert-r4g1 --artifacts <TLA> --store <TLS1> [--calibration <hamming_calibration.json>] --out <R4G1>\n\
                  observation pipeline: observe [--source DIR | --checkpoint BIN] [--seconds N] [--target N] [--shards N] [--out DIR] [--sequence-length N]\n\
                  text observations (D3): observe-text [--input PATH] [--out DIR] [--shards N] [--seconds N] [--source DIR | --checkpoint BIN] [--tokenizer PATH] [--sequence-length N]\n\
                  quantum operations: cd-compile | quantum-eval\n\
