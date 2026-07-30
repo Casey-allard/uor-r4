@@ -691,6 +691,42 @@ pub struct Compiled {
     /// (the stages themselves quantize into `stage_books`; the labels are
     /// witness metadata and are not serialized into the container).
     pub token_stage_kappas: Vec<String>,
+    /// Shift-add dot-assignment tables (issue #243 Phase B): per stage,
+    /// K × D packed u16 entries encoding each context-centroid value as
+    /// a signed two-term power-of-two sum, so the runtime scores
+    /// `dot(work, centroid)` with shifts and integer adds only. Filled
+    /// at compile time from `ctx_cb`; serialized only by the TLA6
+    /// container (see `artifact_bytes`); empty on TLA3/4/5 loads, which
+    /// keeps loaded legacy artifacts on the sign-Hamming path.
+    pub dot_cb: Vec<Vec<u16>>,
+}
+
+/// Pack one f32 centroid value as two power-of-two terms in a u16
+/// (issue #243 Phase B). Per byte term: bit7 = negative sign, bit6 =
+/// nonzero flag, bits 5..0 = biased exponent (e + 32, e ∈ [-32, 31]).
+/// High byte is the first (larger) term. The decode side lives in
+/// `runtime::dot_term_apply`, integer shifts only.
+pub fn pack_dot_entry(value: f32) -> u16 {
+    let mut packed = [0u8; 2];
+    let mut rem = value;
+    for slot in packed.iter_mut() {
+        if rem == 0.0 || !rem.is_finite() {
+            break;
+        }
+        let e = rem.abs().log2().round().clamp(-32.0, 31.0);
+        let term = rem.signum() * e.exp2();
+        *slot = 0x40 | ((e as i32 + 32) as u8 & 0x3F) | if rem < 0.0 { 0x80 } else { 0 };
+        rem -= term;
+    }
+    u16::from_le_bytes([packed[1], packed[0]])
+}
+
+/// Quantize the full per-stage context codebooks into dot tables.
+pub fn quantize_dot_tables(ctx_cb: &[Vec<f32>]) -> Vec<Vec<u16>> {
+    ctx_cb
+        .iter()
+        .map(|cb| cb.iter().map(|&c| pack_dot_entry(c)).collect())
+        .collect()
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Clone, Debug, PartialEq, Eq)]
@@ -1110,6 +1146,7 @@ pub fn compile(oracle: &dyn TeacherOracle, corpus: &Corpus) -> Compiled {
         class_sigs: Vec::new(),
         ctx_cb: Vec::new(),
         token_stage_kappas: emb_stage_kappas,
+        dot_cb: Vec::new(),
     };
     let rot = derive_rotations();
 
@@ -1187,6 +1224,10 @@ pub fn compile(oracle: &dyn TeacherOracle, corpus: &Corpus) -> Compiled {
         art.class_sigs.push(sigs);
     }
     art.ctx_cb = ctx_cb;
+    // #243 Phase B: the shift-add dot tables are derived from the same
+    // centroids, deterministically, at compile time. In-memory always;
+    // on disk only under TLA6 (era note in `artifact_bytes`).
+    art.dot_cb = quantize_dot_tables(&art.ctx_cb);
     art
 }
 
@@ -1196,9 +1237,26 @@ pub fn compile(oracle: &dyn TeacherOracle, corpus: &Corpus) -> Compiled {
 /// re-derivable from the bytes; the store is rebuilt from the corpus).
 ///
 /// Format TLA5: always includes a u32 vocab prefix; ctx_cb is not serialized.
+///
+/// Format TLA6 (issue #243 Phase B) = the TLA5 payload + the packed
+/// shift-add dot tables (STAGES × K × D u16, little-endian). Emission
+/// is opt-in via `R4_TLESS_TLA6=1` until the Phase C adoption decision:
+/// a TLA6 container has different bytes and therefore a different κ —
+/// flipping the default is a maintainer re-pin (era note), not a code
+/// change. Loaded TLA5 artifacts keep the sign-Hamming query path;
+/// loaded TLA6 artifacts (and fresh in-memory compiles) take the
+/// shift-add dot path.
 pub fn artifact_bytes(a: &Compiled) -> Vec<u8> {
+    let emit_tla6 = !a.dot_cb.is_empty()
+        && std::env::var("R4_TLESS_TLA6")
+            .map(|v| v == "1")
+            .unwrap_or(false);
     let vocab = a.token_codes.len() / STAGES;
-    let mut b: Vec<u8> = b"TLA5".to_vec();
+    let mut b: Vec<u8> = if emit_tla6 {
+        b"TLA6".to_vec()
+    } else {
+        b"TLA5".to_vec()
+    };
     b.extend_from_slice(&(vocab as u32).to_le_bytes());
     b.extend_from_slice(&a.stage_shifts);
     b.extend_from_slice(&a.token_codes);
@@ -1210,6 +1268,13 @@ pub fn artifact_bytes(a: &Compiled) -> Vec<u8> {
     }
     for s in &a.class_sigs {
         b.extend_from_slice(s);
+    }
+    if emit_tla6 {
+        for table in &a.dot_cb {
+            for entry in table {
+                b.extend_from_slice(&entry.to_le_bytes());
+            }
+        }
     }
     b
 }
@@ -1245,23 +1310,32 @@ pub fn load_artifacts_from(path: &str) -> Option<Compiled> {
     Some(art)
 }
 
-/// Parse a TLA3, TLA4, or TLA5 container from bytes.
+/// Parse a TLA3, TLA4, TLA5, or TLA6 container from bytes.
 ///
 /// TLA3/TLA4 are legacy formats that include f32 ctx_cb bytes; these are
 /// silently discarded on load (ctx_cb is not part of the deployed artifact).
-/// TLA5 is the current format: always includes a u32 vocab prefix, no ctx_cb.
+/// TLA5 is the current default format: u32 vocab prefix, no ctx_cb.
+/// TLA6 appends the packed shift-add dot tables (issue #243 Phase B).
 pub fn parse_artifacts(b: &[u8]) -> Option<Compiled> {
-    let (vocab, mut o, has_ctx_cb) = match b.get(..4)? {
-        b"TLA3" => (V, 4usize, true),
+    let (vocab, mut o, has_ctx_cb, has_dot_cb) = match b.get(..4)? {
+        b"TLA3" => (V, 4usize, true, false),
         b"TLA4" => (
             u32::from_le_bytes(b.get(4..8)?.try_into().ok()?) as usize,
             8usize,
             true,
+            false,
         ),
         b"TLA5" => (
             u32::from_le_bytes(b.get(4..8)?.try_into().ok()?) as usize,
             8usize,
             false,
+            false,
+        ),
+        b"TLA6" => (
+            u32::from_le_bytes(b.get(4..8)?.try_into().ok()?) as usize,
+            8usize,
+            false,
+            true,
         ),
         _ => return None,
     };
@@ -1270,7 +1344,8 @@ pub fn parse_artifacts(b: &[u8]) -> Option<Compiled> {
     let th = D * 8;
     let cs = STAGES * K * D / 8;
     let cc = if has_ctx_cb { STAGES * K * D * 4 } else { 0 };
-    if b.len() != o + STAGES + tc + bk + th + cs + cc {
+    let dc = if has_dot_cb { STAGES * K * D * 2 } else { 0 };
+    if b.len() != o + STAGES + tc + bk + th + cs + cc + dc {
         return None;
     }
     let stage_shifts = b[o..o + STAGES].to_vec();
@@ -1298,9 +1373,20 @@ pub fn parse_artifacts(b: &[u8]) -> Option<Compiled> {
         o += K * D / 8;
     }
     // Legacy TLA3/TLA4 containers include f32 ctx_cb bytes; advance past them
-    // without reading. TLA5 containers do not include ctx_cb at all.
+    // without reading. TLA5/TLA6 containers do not include ctx_cb at all.
     if has_ctx_cb {
         o += STAGES * K * D * 4;
+    }
+    let mut dot_cb = Vec::new();
+    if has_dot_cb {
+        for _ in 0..STAGES {
+            let mut table = Vec::with_capacity(K * D);
+            for _ in 0..K * D {
+                table.push(u16::from_le_bytes(b[o..o + 2].try_into().unwrap()));
+                o += 2;
+            }
+            dot_cb.push(table);
+        }
     }
     let _ = o; // all bytes consumed
     Some(Compiled {
@@ -1311,6 +1397,7 @@ pub fn parse_artifacts(b: &[u8]) -> Option<Compiled> {
         class_sigs,
         ctx_cb: Vec::new(),
         token_stage_kappas: Vec::new(),
+        dot_cb,
     })
 }
 

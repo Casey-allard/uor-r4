@@ -50,6 +50,7 @@ pub fn synthetic_compiled() -> compiler::Compiled {
         class_sigs: (0..STAGES).map(|_| rand_bytes(K * SIG_BYTES)).collect(),
         ctx_cb: Vec::new(),
         token_stage_kappas: Vec::new(),
+        dot_cb: Vec::new(),
     }
 }
 

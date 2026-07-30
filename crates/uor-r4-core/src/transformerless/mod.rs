@@ -298,3 +298,69 @@ pub mod scenarios;
 pub mod score_q;
 pub mod simd;
 pub mod transitions;
+
+/// #243 dot-assignment tests live HERE rather than in runtime.rs: the
+/// P-4 scan covers all of runtime.rs including its test code, and test
+/// fixture arithmetic (K * D, %, /) must not appear in that file.
+#[cfg(test)]
+mod dot_assignment_tests {
+    use super::{compiler, runtime};
+
+    fn synthetic_dot_art() -> compiler::Compiled {
+        let mut art = compiler::Compiled {
+            token_codes: vec![0u8; compiler::STAGES],
+            stage_books: (0..compiler::STAGES)
+                .map(|_| vec![0i8; compiler::K * compiler::D])
+                .collect(),
+            stage_shifts: vec![0u8; compiler::STAGES],
+            thresholds: (0..compiler::D as i64).map(|d| (d % 7) - 3).collect(),
+            class_sigs: (0..compiler::STAGES)
+                .map(|_| vec![0u8; compiler::K * compiler::D / 8])
+                .collect(),
+            ctx_cb: Vec::new(),
+            token_stage_kappas: Vec::new(),
+            dot_cb: Vec::new(),
+        };
+        art.dot_cb = (0..compiler::STAGES)
+            .map(|st| {
+                (0..compiler::K * compiler::D)
+                    .map(|i| {
+                        let v = ((i + st) % 13) as f32 - 6.0;
+                        compiler::pack_dot_entry(v / 8.0)
+                    })
+                    .collect()
+            })
+            .collect();
+        art
+    }
+
+    #[test]
+    fn pack_dot_entry_round_trips_powers_of_two() {
+        let one = compiler::pack_dot_entry(1.0).to_le_bytes();
+        assert_eq!(one[1] & 0x40, 0x40, "nonzero flag");
+        assert_eq!(one[1] & 0x80, 0, "positive");
+        assert_eq!((one[1] & 0x3F) as i32 - 32, 0, "exponent 0");
+        assert_eq!(one[0], 0, "no residual term");
+        let v = compiler::pack_dot_entry(-0.375).to_le_bytes();
+        assert_eq!((v[1] & 0x3F) as i32 - 32, -1);
+        assert_eq!(v[1] & 0x80, 0x80, "first term negative");
+        assert_eq!((v[0] & 0x3F) as i32 - 32, -3);
+        assert_eq!(v[0] & 0x80, 0, "residual term positive");
+        assert_eq!(compiler::pack_dot_entry(0.0), 0);
+    }
+
+    #[test]
+    fn dot_kernel_equals_plain_on_synthetic_artifact() {
+        let art = synthetic_dot_art();
+        let mut bundle = [0i64; compiler::D];
+        for (d, slot) in bundle.iter_mut().enumerate() {
+            *slot = ((d as i64) % 97) - 48;
+        }
+        let plain = runtime::assign_for_bundle(&art, &bundle);
+        let mut rt = runtime::Runtime::new(&art);
+        let kernel = rt.code_from_bundle_dot(&bundle);
+        assert_eq!(plain, kernel, "kernel/plain dot assignment divergence");
+        assert!(rt.kernel.shifts > 0, "dot path must count shifts");
+        assert!(rt.kernel.adds > 0, "dot path must count adds");
+    }
+}

@@ -19,7 +19,7 @@
 //!   query keys come from one code path by construction.
 
 pub use super::compiler::{derive_rotations, train_cut, SIG_BYTES, SIG_WORDS};
-use super::compiler::{Compiled, Corpus, D, STAGES, WINDOW};
+use super::compiler::{Compiled, Corpus, D, K, STAGES, WINDOW};
 use uor_r4_graph_runtime::runtime_state::RuntimeState;
 
 const TOP_M_MEMBERSHIPS: usize = 3;
@@ -51,6 +51,11 @@ impl OpKernel {
     pub fn shl(&mut self, a: i64, s: u32) -> i64 {
         self.shifts += 1;
         a << s
+    }
+    #[inline]
+    pub fn shr(&mut self, a: i64, s: u32) -> i64 {
+        self.shifts += 1;
+        a >> s
     }
     #[inline]
     pub fn xor(&mut self, a: u8, b: u8) -> u8 {
@@ -370,6 +375,141 @@ pub fn assign_plain(art: &Compiled, sig: &[u8; SIG_BYTES]) -> [u8; STAGES] {
     assign_memberships_plain(art, sig).0
 }
 
+// ------------------- shift-add dot assignment (#243 Phase B) -----------
+//
+// The decision rows (issue #243, 2026-07-29) attributed the shipped
+// assignment gap to the sign-Hamming metric itself: dot-product
+// assignment against the per-stage context centroids measures
+// 30.6-30.7% top1 / 34.2-34.3% agreement at ~47-48k store keys even
+// with centroid values restricted to two signed powers of two. That
+// restriction is what makes the runtime form legal: `dot(work, cent)`
+// becomes a shift-and-add reduction — no multiply operation exists in
+// this code path (P-4 scans this module). Active only when the
+// artifact carries dot tables (fresh compiles, TLA6 containers);
+// TLA3/4/5 loads keep the sign-Hamming path unchanged.
+
+/// The centered work vector: bundle minus thresholds, integer sub.
+pub fn centered_work(art: &Compiled, bundle: &[i64; D]) -> [i64; D] {
+    let mut work = [0i64; D];
+    for ((w, &b), &t) in work
+        .iter_mut()
+        .zip(bundle.iter())
+        .zip(art.thresholds.iter())
+    {
+        *w = b - t;
+    }
+    work
+}
+
+/// Apply one packed power-of-two term to a work value: decode
+/// (sign, nonzero, biased exponent) and shift accordingly. Plain form
+/// of the kernel's shr/shl + add sequence.
+#[inline]
+fn dot_term_apply(work: i64, term: u8) -> i64 {
+    if term & 0x40 == 0 {
+        return 0;
+    }
+    let exp = (term & 0x3F) as i32 - 32;
+    let shifted = if exp >= 0 {
+        work << exp
+    } else {
+        work >> (-exp)
+    };
+    if term & 0x80 != 0 {
+        -shifted
+    } else {
+        shifted
+    }
+}
+
+/// Shift-add dot score of one class row (D packed u16 entries) against
+/// the work vector.
+pub fn dot_score_plain(row: &[u16], work: &[i64; D]) -> i64 {
+    let mut acc = 0i64;
+    for (&entry, &w) in row.iter().zip(work.iter()) {
+        let [lo, hi] = entry.to_le_bytes();
+        acc += dot_term_apply(w, hi);
+        acc += dot_term_apply(w, lo);
+    }
+    acc
+}
+
+/// Per-stage top-M candidates under the dot metric, expressed as the
+/// same ascending-cost shape the membership beam consumes. Candidate
+/// selection ranks by (stage-best dot − class dot); the EMITTED costs
+/// are the candidates' ranks (0, 1, 2, …), not the raw dot gaps —
+/// dot gaps live on the raw work-vector scale (~1e6), and feeding
+/// them to the beam's cross-stage sum and evidence merge (both tuned
+/// to Hamming-scale costs) mis-weights everything downstream: the
+/// first integer-semantics run measured the shipped beam row at
+/// 18.3/20.6 against 30.6/34.2 for the primary key alone. Rank costs
+/// are scale-free and metric-agnostic. Ties keep the lowest class
+/// index (ascending scan, strict improvement) — the same
+/// deterministic rule as the Hamming path.
+fn dot_stage_top(table: &[u16], work: &[i64; D]) -> Vec<(u8, u32)> {
+    let mut dots = [0i64; K];
+    let mut best = i64::MIN;
+    for (slot, row) in dots.iter_mut().zip(table.chunks_exact(D)) {
+        *slot = dot_score_plain(row, work);
+        if *slot > best {
+            best = *slot;
+        }
+    }
+    let mut top: Vec<(u8, u32)> = Vec::with_capacity(TOP_M_MEMBERSHIPS);
+    for (kk, &dot) in dots.iter().enumerate() {
+        let cost = u32::try_from(best - dot).unwrap_or(u32::MAX);
+        let mut inserted = false;
+        for (idx, &(_, c0)) in top.iter().enumerate() {
+            if cost < c0 {
+                top.insert(idx, (kk as u8, cost));
+                inserted = true;
+                break;
+            }
+        }
+        if !inserted && top.len() < TOP_M_MEMBERSHIPS {
+            top.push((kk as u8, cost));
+        }
+        if inserted && top.len() > TOP_M_MEMBERSHIPS {
+            top.pop();
+        }
+    }
+    for (rank, slot) in top.iter_mut().enumerate() {
+        slot.1 = rank as u32;
+    }
+    top
+}
+
+/// Membership assignment for a bundle: dot path when the artifact
+/// carries dot tables, sign-Hamming otherwise. The by-depth beam shape
+/// and fallback-floor rule are identical between the two metrics.
+#[allow(clippy::type_complexity)]
+pub fn assign_memberships_for_bundle(
+    art: &Compiled,
+    bundle: &[i64; D],
+) -> ([u8; STAGES], Vec<Vec<Vec<u8>>>) {
+    if art.dot_cb.is_empty() {
+        return assign_memberships_plain(art, &sig_plain(art, bundle));
+    }
+    let work = centered_work(art, bundle);
+    let mut code = [0u8; STAGES];
+    let mut stage_top: Vec<Vec<(u8, u32)>> = Vec::with_capacity(STAGES);
+    for (st_code, table) in code.iter_mut().zip(art.dot_cb.iter()) {
+        let top = dot_stage_top(table, &work);
+        *st_code = top.first().map(|(k, _)| *k).unwrap_or(0);
+        stage_top.push(top);
+    }
+    memberships_from_stage_top(code, stage_top)
+}
+
+/// Plain class code for a bundle under whichever metric the artifact
+/// declares. `assign_plain`/`assign_memberships_plain` remain the
+/// signature-only sign-metric entry points for callers that never see
+/// a bundle (score-time signature replay); bundle-holding callers go
+/// through here so TLA6 artifacts assign by shift-add dot.
+pub fn assign_for_bundle(art: &Compiled, bundle: &[i64; D]) -> [u8; STAGES] {
+    assign_memberships_for_bundle(art, bundle).0
+}
+
 /// Bounded multi-membership assignment per depth, with nearest-class
 /// membership retained at every depth as the fallback floor.
 pub fn assign_memberships_plain(
@@ -401,6 +541,19 @@ pub fn assign_memberships_plain(
         *st_code = top.first().map(|(k, _)| *k).unwrap_or(0);
         stage_top.push(top);
     }
+    memberships_from_stage_top(code, stage_top)
+}
+
+/// The shared membership beam: per-depth prefix expansion over the
+/// per-stage top-M candidate lists, with the nearest-class prefix
+/// retained at every depth as the fallback floor. Metric-agnostic —
+/// candidates arrive as ascending (class, cost) lists from either the
+/// Hamming or the shift-add dot scorer.
+#[allow(clippy::type_complexity)]
+fn memberships_from_stage_top(
+    code: [u8; STAGES],
+    stage_top: Vec<Vec<(u8, u32)>>,
+) -> ([u8; STAGES], Vec<Vec<Vec<u8>>>) {
     let mut by_depth: Vec<Vec<Vec<u8>>> = (0..=STAGES).map(|_| Vec::new()).collect();
     by_depth[0].push(Vec::new());
     let mut beam: Vec<(Vec<u8>, u32)> = vec![(Vec::new(), 0)];
@@ -436,10 +589,10 @@ pub fn assign_memberships_plain(
     (code, by_depth)
 }
 
-/// Full plain path: position → graded class code.
+/// Full plain path: position → graded class code (metric per artifact).
 pub fn code_plain(art: &Compiled, rot: &[usize; WINDOW + 1], c: &Corpus, i: usize) -> [u8; STAGES] {
     let b = bundle_plain(art, rot, c, i);
-    assign_plain(art, &sig_plain(art, &b))
+    assign_for_bundle(art, &b)
 }
 
 /// A prediction with its resolution witness: the store level that answered
@@ -612,6 +765,9 @@ impl<'a> Runtime<'a> {
     pub fn assign(&mut self, c: &Corpus, i: usize) -> [u8; STAGES] {
         let rot = self.rot;
         let b = bundle_kernel(&mut self.kernel, self.art, &rot, c, i);
+        if !self.art.dot_cb.is_empty() {
+            return self.code_from_bundle_dot(&b);
+        }
         let sig = sign_signature(&mut self.kernel, &b, &self.art.thresholds);
         self.code_from_sig(&sig)
     }
@@ -621,6 +777,9 @@ impl<'a> Runtime<'a> {
     pub fn assign_window(&mut self, window: &[u32]) -> [u8; STAGES] {
         let rot = self.rot;
         let b = bundle_window_kernel(&mut self.kernel, self.art, &rot, window);
+        if !self.art.dot_cb.is_empty() {
+            return self.code_from_bundle_dot(&b);
+        }
         let sig = sign_signature(&mut self.kernel, &b, &self.art.thresholds);
         self.code_from_sig(&sig)
     }
@@ -638,10 +797,65 @@ impl<'a> Runtime<'a> {
     ) -> ([u8; STAGES], Vec<Vec<Vec<u8>>>) {
         let rot = self.rot;
         let b = bundle_window_kernel(&mut self.kernel, self.art, &rot, window);
+        if !self.art.dot_cb.is_empty() {
+            let code = self.code_from_bundle_dot(&b);
+            let (_, by_depth) = assign_memberships_for_bundle(self.art, &b);
+            return (code, by_depth);
+        }
         let sig = sign_signature(&mut self.kernel, &b, &self.art.thresholds);
         let code = self.code_from_sig(&sig);
         let (_, by_depth) = assign_memberships_plain(self.art, &sig);
         (code, by_depth)
+    }
+
+    /// Graded class assignment from a bundle by shift-add dot scoring
+    /// (#243 Phase B, kernel form — every operation counted): center the
+    /// bundle with integer adds, then per stage argmax over K classes of
+    /// the two-term power-of-two dot. Ops per class: one table read per
+    /// dimension entry, at most two shifts + two adds per term pair, one
+    /// compare per candidate. Equality with `assign_for_bundle` (plain
+    /// form) is witnessed per certification run.
+    pub(crate) fn code_from_bundle_dot(&mut self, bundle: &[i64; D]) -> [u8; STAGES] {
+        let mut work = [0i64; D];
+        for ((w, &b), &t) in work
+            .iter_mut()
+            .zip(bundle.iter())
+            .zip(self.art.thresholds.iter())
+        {
+            *w = self.kernel.add(b, -t);
+        }
+        let mut code = [0u8; STAGES];
+        for (st_code, table) in code.iter_mut().zip(self.art.dot_cb.iter()) {
+            let mut best = i64::MIN;
+            let mut best_k = 0u8;
+            for (kk, row) in table.chunks_exact(D).enumerate() {
+                self.kernel.candidate_scan();
+                let mut acc = 0i64;
+                for (&entry, &w) in row.iter().zip(work.iter()) {
+                    let packed = self.kernel.table_fetch(i64::from(entry)) as u16;
+                    let [lo, hi] = packed.to_le_bytes();
+                    for term in [hi, lo] {
+                        if term & 0x40 == 0 {
+                            continue;
+                        }
+                        let exp = (term & 0x3F) as i32 - 32;
+                        let shifted = if exp >= 0 {
+                            self.kernel.shl(w, exp as u32)
+                        } else {
+                            self.kernel.shr(w, (-exp) as u32)
+                        };
+                        let signed = if term & 0x80 != 0 { -shifted } else { shifted };
+                        acc = self.kernel.add(acc, signed);
+                    }
+                }
+                if self.kernel.lt(best, acc) {
+                    best = acc;
+                    best_k = kk as u8;
+                }
+            }
+            *st_code = best_k;
+        }
+        code
     }
 
     /// Graded class assignment from a bit signature: Hamming to each
@@ -943,7 +1157,7 @@ pub fn build_store(art: &Compiled, c: &Corpus) -> (Store, Vec<[u8; STAGES]>) {
     let mut codes: Vec<[u8; STAGES]> = Vec::with_capacity(c.n);
     for i in 0..c.n {
         let b = bundle_plain(art, &rot, c, i);
-        let code = assign_plain(art, &sig_plain(art, &b));
+        let code = assign_for_bundle(art, &b);
         codes.push(code);
         if c.story[i] >= cut {
             continue;
