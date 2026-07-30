@@ -167,8 +167,14 @@ expanded form never ships; compression is on the inference path, not a
 storage option.
 
 **(a) Container, witnessed.** save → load → save is byte-identical and
-κ-stable (1,641,736 bytes, `blake3:be366bd6…`), asserted every
-certification run.
+κ-stable, asserted every certification run. Era note (#243 Phase C,
+maintainer decision 2026-07-29): the default emission is the 1-term
+TLA6 container — current witness 1,051,916 bytes,
+`blake3:cf64fe74…` (2026-07-30 run). The dot tables change
+serialization only; every non-container κ pin is byte-identical to the
+TLA5 era, and prior-era containers (TLA5 462,092 `blake3:81db4406…`;
+the original TLA3 1,641,736 `blake3:be366bd6…`) remain valid addresses
+of their own bytes.
 
 **(b) Representation rate–distortion, measured.** The exact bytes and
 shifts the runtime reads, truncated at each prefix depth, against the

@@ -693,7 +693,8 @@ pub struct Compiled {
     pub token_stage_kappas: Vec<String>,
     /// Shift-add dot-assignment tables (issue #243 Phase B): per stage,
     /// K × D packed u16 entries encoding each context-centroid value as
-    /// a signed two-term power-of-two sum, so the runtime scores
+    /// a signed power-of-two sum (`DOT_TERMS` terms; one since the
+    /// Phase C decision, two-term slots still decode), so the runtime scores
     /// `dot(work, centroid)` with shifts and integer adds only. Filled
     /// at compile time from `ctx_cb`; serialized only by the TLA6
     /// container (see `artifact_bytes`); empty on TLA3/4/5 loads, which
@@ -701,15 +702,29 @@ pub struct Compiled {
     pub dot_cb: Vec<Vec<u16>>,
 }
 
-/// Pack one f32 centroid value as two power-of-two terms in a u16
-/// (issue #243 Phase B). Per byte term: bit7 = negative sign, bit6 =
+/// Number of power-of-two terms emitted per dot-table entry.
+///
+/// Phase B shipped two-term packing and recorded a ⚑ 13× per-token
+/// shift/add budget on the dot scan (PR #291); one-term tables measured
+/// equal accuracy in f32 emulation on that record. The Phase C
+/// maintainer decision (issue #243, 2026-07-29) adopts ONE term as the
+/// default emission — halving the counted shift/add budget — decided
+/// before the κ re-pin so the term count is pinned once. The u16
+/// container slot is unchanged (second byte zero); the decode side
+/// (`runtime::dot_term_apply` and the kernel scan) skips zero-flag
+/// terms, so legacy two-term artifacts keep decoding bit-exactly.
+pub const DOT_TERMS: usize = 1;
+
+/// Pack one f32 centroid value as up to `DOT_TERMS` power-of-two terms
+/// in a u16 (issue #243 Phase B; term count pinned by the Phase C
+/// decision above). Per byte term: bit7 = negative sign, bit6 =
 /// nonzero flag, bits 5..0 = biased exponent (e + 32, e ∈ [-32, 31]).
 /// High byte is the first (larger) term. The decode side lives in
 /// `runtime::dot_term_apply`, integer shifts only.
 pub fn pack_dot_entry(value: f32) -> u16 {
     let mut packed = [0u8; 2];
     let mut rem = value;
-    for slot in packed.iter_mut() {
+    for slot in packed.iter_mut().take(DOT_TERMS) {
         if rem == 0.0 || !rem.is_finite() {
             break;
         }
@@ -1239,18 +1254,23 @@ pub fn compile(oracle: &dyn TeacherOracle, corpus: &Corpus) -> Compiled {
 /// Format TLA5: always includes a u32 vocab prefix; ctx_cb is not serialized.
 ///
 /// Format TLA6 (issue #243 Phase B) = the TLA5 payload + the packed
-/// shift-add dot tables (STAGES × K × D u16, little-endian). Emission
-/// is opt-in via `R4_TLESS_TLA6=1` until the Phase C adoption decision:
-/// a TLA6 container has different bytes and therefore a different κ —
-/// flipping the default is a maintainer re-pin (era note), not a code
-/// change. Loaded TLA5 artifacts keep the sign-Hamming query path;
-/// loaded TLA6 artifacts (and fresh in-memory compiles) take the
-/// shift-add dot path.
+/// shift-add dot tables (STAGES × K × D u16, little-endian).
+///
+/// TLA6 is the DEFAULT emission since the Phase C adoption decision
+/// (issue #243, maintainer decision 2026-07-29): fresh compiles emit
+/// TLA6 with 1-term dot tables (`DOT_TERMS`), and the κ re-pin that
+/// this implies is recorded as an era note in the migration baseline
+/// (tests/fixtures/baseline_kappa.json) and docs/transformerless —
+/// TLA5-era pins remain valid addresses for TLA5-era bytes.
+/// `R4_TLESS_TLA6=0` opts a compile back out to TLA5 emission for
+/// era-comparison runs. Loaded TLA5 artifacts keep the sign-Hamming
+/// query path; loaded TLA6 artifacts (and fresh in-memory compiles)
+/// take the shift-add dot path.
 pub fn artifact_bytes(a: &Compiled) -> Vec<u8> {
     let emit_tla6 = !a.dot_cb.is_empty()
         && std::env::var("R4_TLESS_TLA6")
-            .map(|v| v == "1")
-            .unwrap_or(false);
+            .map(|v| v != "0")
+            .unwrap_or(true);
     let vocab = a.token_codes.len() / STAGES;
     let mut b: Vec<u8> = if emit_tla6 {
         b"TLA6".to_vec()

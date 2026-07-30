@@ -1,5 +1,5 @@
 {
-  "description": "Migration oracle for the transformerless -> uor-tless port. RE-PINNED 2026-07-21 (second time) to the hierarchical-compiler-era pipeline (5baa7c0 phase-10 redesign + bbdd596 hash-index RVQ + 3a7e8bc TLA5 container) on macOS arm64, against corpus fixtures c_meta.bin/c_recs.bin (150000 tokens, 754 stories). Supersedes the b142c93-era mixed pin (pre-redesign token/bundle values + a Linux-bot container pin) which could not reproduce on any single platform. Compiler determinism verified by double-compile (identical 27-kappa sets); investigation traced the drift to the deliberate redesigns, not nondeterminism. Token-side pins derive only from the embedding table; bundle-derived pins AND the container pin are macOS-pinned (libm-sensitive teacher logprobs). certificate_macos and documented_linux_reference are HISTORICAL (b142c93-era), retained for reference only.",
+  "description": "Migration oracle for the transformerless -> uor-tless port. RE-PINNED 2026-07-30 (third time) for #243 Phase C (maintainer decision, Casey, 2026-07-29): default emission = 1-term TLA6 (DOT_TERMS=1, shift-add dot tables serialized; container grows 462,092 -> 1,051,916 bytes). ONLY the container pin moves: token-side, stage-book, threshold, context-codebook and class-signature kappas are byte-identical to the 2026-07-21 TLA5-era pin, because the dot tables derive deterministically from ctx_cb and change serialization only. Decision row on the fresh binary: A 30.5/34.0, WB 9.0107, 48,321 keys (2-term era: 30.7/34.3, 9.0242, 47,476); op census halved to add 317,850 / shift 317,502 (2-term: 612,766/612,414) \u2014 the PR #291 op-budget flag resolves. TLA5-era container pin (462,092, blake3:81db4406...) remains the valid address of TLA5-era bytes; era chain: TLA5 pin 2026-07-21 (second re-pin, hierarchical-compiler era) -> this. certificate_macos and documented_linux_reference are HISTORICAL (b142c93-era), retained for reference only.",
   "source": {
     "bytes": 60816028,
     "kappa": "blake3:0ae7339518cb124bb9a8fcef88e5dfb615d9e56c55a118e55817dd077c77455d"
@@ -37,8 +37,8 @@
       "blake3:531cd76f7894db68dc1d4a8ae711f370dc771afa865cf5134f8e1b97d4c2772e"
     ],
     "container": {
-      "bytes": 462092,
-      "kappa": "blake3:81db44067e4000672d657b9bb9c09a36c41f79f9a2d2e71d9429f3d6d819587f"
+      "bytes": 1051916,
+      "kappa": "blake3:cf64fe7493d0e366e322154853955246d14bd1c9de59595a3e780e28ad4ca20d"
     },
     "context_codebook_stages": [
       "blake3:3f743d98d42d107021cc4c44a00187f78132671c57dded9fc73ee31e4f8c2747",

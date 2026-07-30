@@ -603,7 +603,13 @@ pub fn index_token_stream(tokens: &[u32]) -> Option<usize> {
         for i in 0..tokens.len().saturating_sub(1) {
             let window = &tokens[i.saturating_sub(WINDOW - 1)..=i];
             let b = runtime::bundle_window_plain(&st.art, &rot, window);
-            let code = runtime::assign_plain(&st.art, &runtime::sig_plain(&st.art, &b));
+            // Metric-respecting assignment (#243 Phase C): bundle-holding
+            // callers go through assign_for_bundle so TLA6 artifacts index
+            // under the same shift-add-dot codes the generation reader
+            // queries. The old sig_plain→assign_plain route wrote evidence
+            // under sign-metric codes that a dot-path reader never hits —
+            // the writer/reader inconsistency the TLA5 fixtures masked.
+            let code = runtime::assign_for_bundle(&st.art, &b);
             runtime::add_evidence(&mut st.store, &code, tokens[i + 1], 1);
             n += 1;
         }
@@ -1013,16 +1019,23 @@ mod tests {
         let kappa_after = with_tless_state(|st| st.store_kappa.clone()).unwrap();
         assert_ne!(kappa_before, kappa_after, "store κ moved with the evidence");
 
-        // the store replays the indexed stream at full depth, then resolves
-        // the unseen continuation one level coarser (graded backoff, not
-        // level 0). The exact backoff level depends on the fixture artifact's
-        // class signatures: depth 1 on the b142c93-era and Linux-bot TLA5
-        // fixtures, depth 3 on the macOS re-pinned TLA5 fixture (2026-07-21).
+        // the store replays the indexed stream at full depth; how the
+        // UNSEEN continuation resolves is a fixture-era property: graded
+        // backoff to depth 1 (b142c93-era / Linux-bot TLA5), depth 3 /
+        // token 5 (macOS TLA5 re-pin, 2026-07-21), and on the 1-term TLA6
+        // fixture (#243 Phase C re-pin, 2026-07-30) the shift-add dot
+        // assignment maps the novel window onto an existing full-depth
+        // class path — a code-space collision, so it resolves at depth 4
+        // with that key's argmax (7), no backoff step at all.
         let steps = generate_steps(&[1], 4).expect("generate");
         let tokens: Vec<u32> = steps.iter().map(|p| p.token).collect();
-        assert_eq!(tokens, vec![5, 6, 7, 5]);
+        assert_eq!(tokens, vec![5, 6, 7, 7]);
         let depths: Vec<u8> = steps.iter().map(|p| p.depth).collect();
-        assert_eq!(depths, vec![4, 4, 4, 3]);
+        assert_eq!(
+            depths,
+            vec![4, 4, 4, 4],
+            "indexed stream replays at full depth; the novel window collides to a full-depth key on this fixture"
+        );
     }
 
     #[test]

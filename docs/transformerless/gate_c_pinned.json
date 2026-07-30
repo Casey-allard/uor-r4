@@ -2,11 +2,11 @@
   "schema": 1,
   "purpose": "Pinned Gate C quality record for the CI trend alarm (issue #77). The alarm fails when a run regresses beyond the thresholds below vs THIS record. Bump deliberately, maintainer-only, like the kappa baseline.",
   "pinned_at": "2026-07-30",
-  "pinned_from": "Rule 1+2 chain-telescoped + EXCT precedence (FULL CODE ONLY), add-one smoothing, fixture corpus. Era note (#234): re-pinned for the Rule 2 full-code-only maintainer decision (Casey, 2026-07-29) — sub-full-depth EXCT resolutions are prefix backoff and no longer preempt the graph. The honest row prices the change at rule12 -8.97pp / +2.2946 bits vs the #281-era tie: status split ExactContext 14,919 / Graph 15,080 / Novel 37 (per-status: exact 41.1%/8.55, graph 1.23%/16.47). Deliberate and accepted on the #234 record: Gate C now measures the graph path instead of restating exact-context recall, and the graph row is the number to improve. TLA3 baseline unchanged. Prior era (#281): single-key store + read-time query-beam re-pin, PR #283 disclosure. Thresholds unchanged.",
-  "rule12_top1_agreement": 0.21055,
-  "rule12_bits_per_token": 12.53034,
-  "baseline_top1_agreement": 0.30024,
-  "baseline_bits_per_token": 12.356403,
+  "pinned_from": "Rule 1+2 chain-telescoped + EXCT precedence (FULL CODE ONLY, #234), 1-term TLA6 fixture artifact (#243 Phase C), add-one smoothing, fixture corpus. Era note (#243 Phase C): the TLA6 fixture assigns via the shift-add dot path; its finer code space (48,321 single-write keys) drops strict full-code EXCT coverage to 0.97% (ExactContext 291 / Graph 29,725 / Novel 20) and the honest row collapses to rule12 1.11%/15.9742 (graph per-status 0.84%/16.03). Deliberate composition of the two maintainer decisions, flagged on #243 pre-merge (queue simulation): the graph path is now unambiguously the load-bearing number to improve (#277/#246 retrieval work). TLA3-baseline row on the dot-path store: 22.98%/9.5092 (bits improve 12.36->9.51). Prior eras: #234 full-code-only re-pin (21.05/12.5303, sign-path fixture); #281 single-key re-pin. Thresholds unchanged.",
+  "rule12_top1_agreement": 0.01109,
+  "rule12_bits_per_token": 15.97416,
+  "baseline_top1_agreement": 0.22983,
+  "baseline_bits_per_token": 9.509162,
   "alarm": {
     "top1_drop_abs": 0.02,
     "bits_regress_abs": 0.1

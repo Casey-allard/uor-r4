@@ -344,8 +344,11 @@ mod dot_assignment_tests {
         let v = compiler::pack_dot_entry(-0.375).to_le_bytes();
         assert_eq!((v[1] & 0x3F) as i32 - 32, -1);
         assert_eq!(v[1] & 0x80, 0x80, "first term negative");
-        assert_eq!((v[0] & 0x3F) as i32 - 32, -3);
-        assert_eq!(v[0] & 0x80, 0, "residual term positive");
+        // Phase C decision (issue #243): DOT_TERMS = 1 — no residual
+        // term is emitted. Two-term slots from Phase B era artifacts
+        // still decode (dot_term_apply skips nothing it shouldn't).
+        assert_eq!(compiler::DOT_TERMS, 1, "Phase C pins 1-term emission");
+        assert_eq!(v[0], 0, "no residual term under 1-term emission");
         assert_eq!(compiler::pack_dot_entry(0.0), 0);
     }
 
