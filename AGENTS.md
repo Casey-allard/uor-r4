@@ -91,6 +91,41 @@ PR (a bump can shift libm-sensitive teacher logprobs — see Gate E below).
 
 ## Process conventions
 
+- **Preflight before EVERY push (2026-07-30, after a night that lost ~an hour
+  per miss): `./scripts/preflight.sh`** runs the exact
+  `fmt / clippy / tests / no_std / κ` CI gate locally — including
+  `cargo fmt --check`, clippy with `--all-targets --all-features` (plain
+  `--workspace` clippy passes things CI rejects), the full test ladder, and
+  the Gate C trend harness. A push without a green preflight is how PRs die
+  in the merge queue 5 minutes after you stop watching. `PREFLIGHT_FAST=1`
+  exists for the inner loop; never push on a fast-only pass.
+- **Build isolation: one target dir per worktree.** Preflight enforces this
+  (worktree-local `target/`). Sharing one warm `CARGO_TARGET_DIR` across
+  worktrees caused three stale-binary incidents in one night — cargo can
+  link a sibling worktree's rlib (fields missing at compile time, or worse,
+  an evidence binary printing the other branch's strings). First build per
+  worktree is cold; after that it's warm and uncontaminable. If you must
+  share a target for a one-off, `touch` the changed crate's sources and
+  verify the produced binary by a string only the new code prints.
+- **Enqueue is not merged.** `gh pr merge N --squash` prints "merge strategy
+  set by queue" even when the PR is failing head CI and never entered the
+  queue. After every enqueue: `gh pr checks N`, and arm a watch (the merge
+  queue's own `merge_group` runs do NOT appear on head-SHA checks). A
+  force-push or amend clears the queue entry — re-check and re-enqueue after
+  every push.
+- **Measured-row pins (gate_c_pinned.json): re-pin IN the PR that changes
+  the row.** The trend check is two-mode (see
+  scripts/check_gate_c_regression.py): pin unchanged vs base → regression
+  alarm; pin changed → the new pin must match the PR's own measured row
+  (self-consistency, both directions). Era note in `pinned_from` always.
+  This makes re-pins merge-order-independent; do NOT sequence PRs around
+  the pin file by hand.
+- **Science/measurement runs: pin the binary, assert freshness.** Every
+  background run script copies its binary to a run-stamped name at build
+  time and asserts a marker only the new code can produce (an op-census
+  value, a new stdout string) before results count. A run whose census
+  matches the previous era measured the previous era.
+
 - **Merge workflow (since 2026-07-22): NO direct pushes to `main`.** A ruleset
   ("main: required checks", id 19597522) protects `main`: all changes land via
   PR, and the five CI checks (`fmt / clippy / tests / no_std / κ`,
