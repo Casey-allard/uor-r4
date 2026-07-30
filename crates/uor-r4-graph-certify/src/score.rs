@@ -1217,12 +1217,15 @@ fn generate_greedy_repetition_rate(
     for _ in 0..tokens_to_generate {
         let bundle = runtime::bundle_window_plain(artifacts, rotations, &window[..w_len]);
         let sig = runtime::sig_plain(artifacts, &bundle);
+        // #243 Phase C option A: attest the metric-respecting code.
+        let code = runtime::assign_for_bundle(artifacts, &bundle);
 
         let recent_len = recent_tokens.len();
         for (i, &t) in recent_tokens.iter().enumerate() {
             recent_array[i] = t;
         }
-        let outcome = scorer.score_candidates(&sig, &recent_array[..recent_len])?;
+        let outcome =
+            scorer.score_candidates_coded(&sig, Some(&code), &recent_array[..recent_len])?;
         let token = outcome.selected;
 
         if recent_tokens.contains(&token) {
@@ -1268,8 +1271,9 @@ fn baseline_greedy_repetition_rate(
 
     for _ in 0..tokens_to_generate {
         let bundle = runtime::bundle_window_plain(artifacts, rotations, &window[..w_len]);
-        let sig = runtime::sig_plain(artifacts, &bundle);
-        let code = runtime::assign_plain(artifacts, &sig);
+        // #243 Phase C: the store is keyed under the artifact's declared
+        // metric — query it the same way (assign_for_bundle).
+        let code = runtime::assign_for_bundle(artifacts, &bundle);
         let p = runtime::predict_witness_plain(store, &code);
         let token = p.token;
 
@@ -1395,19 +1399,28 @@ pub fn evaluate_gate_c(
     let mut recall_rule1_top3 = 0u64;
     let mut recall_rule12_top1 = 0u64;
     let mut recall_rule12_top3 = 0u64;
+    let gate_rotations = compiler::derive_rotations();
     for (index, observation) in held_out.iter().enumerate() {
         let position = observation.position as usize;
         let teacher_argmax = corpus.t_argmax[position];
         let next = corpus.next[position];
-        let code = runtime::assign_plain(artifacts, &observation.sig);
+        // #243 Phase C option A: one metric-respecting code per position
+        // (corpus bundle → assign_for_bundle), consumed consistently by
+        // the WB/store baseline and attested to every coded scorer call.
+        // The legacy Σ-over-cloud row intentionally keeps its own old
+        // semantics for comparison.
+        let code = runtime::code_plain(artifacts, &gate_rotations, corpus, position);
 
         let legacy = scorer_with_exct.score_candidates_legacy(&observation.sig)?;
-        let rule1 = scorer_no_exct.score_candidates(&observation.sig, &[])?;
-        let rule12 = scorer_with_exct.score_candidates(&observation.sig, &[])?;
-        let rule1_no_f = scorer_no_exct_no_f.score_candidates(&observation.sig, &[])?;
-        let rule12_no_f = scorer_with_exct_no_f.score_candidates(&observation.sig, &[])?;
-        let normalized = scorer_normalized.score_candidates(&observation.sig, &[])?;
-        let margin = scorer_margin.score_candidates(&observation.sig, &[])?;
+        let rule1 = scorer_no_exct.score_candidates_coded(&observation.sig, Some(&code), &[])?;
+        let rule12 = scorer_with_exct.score_candidates_coded(&observation.sig, Some(&code), &[])?;
+        let rule1_no_f =
+            scorer_no_exct_no_f.score_candidates_coded(&observation.sig, Some(&code), &[])?;
+        let rule12_no_f =
+            scorer_with_exct_no_f.score_candidates_coded(&observation.sig, Some(&code), &[])?;
+        let normalized =
+            scorer_normalized.score_candidates_coded(&observation.sig, Some(&code), &[])?;
+        let margin = scorer_margin.score_candidates_coded(&observation.sig, Some(&code), &[])?;
         let baseline = runtime::predict_witness_plain(store, &code);
 
         let legacy_hit = legacy.selected == teacher_argmax;

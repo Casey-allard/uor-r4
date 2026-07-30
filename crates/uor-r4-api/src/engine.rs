@@ -497,10 +497,20 @@ impl R4Engine {
         self.counters
     }
 
-    /// Derive the packed input signature of a token window.
-    fn derive_sig(&self, window: &[u32]) -> [u8; SIG_BYTES] {
+    /// Derive the packed input signature AND the graded code of a token
+    /// window (#243 Phase C option A): the code is assigned under the
+    /// artifact's declared metric (`assign_for_bundle` — shift-add dot
+    /// on TLA6, sign-Hamming otherwise) and attested into the witness;
+    /// the sig keys the cover memberships either way.
+    fn derive_sig_code(&self, window: &[u32]) -> ([u8; SIG_BYTES], [u8; compiler::STAGES]) {
         let bundle = runtime::bundle_window_plain(&self.artifacts, &self.rotations, window);
-        runtime::sig_plain(&self.artifacts, &bundle)
+        let sig = runtime::sig_plain(&self.artifacts, &bundle);
+        // Allocation-free variant: steady-state serving is censused
+        // (tests/status_policy_census.rs) — the membership-beam
+        // materializing assign_for_bundle allocates and must not be
+        // called per prediction.
+        let code = runtime::assign_code_for_bundle(&self.artifacts, &bundle);
+        (sig, code)
     }
 
     /// Reject a window carrying a token id the teacher artifact cannot
@@ -530,13 +540,14 @@ impl R4Engine {
     fn score_sig(
         &mut self,
         sig: &[u8; SIG_BYTES],
+        input_code: Option<&[u8; compiler::STAGES]>,
         top_m: usize,
         recent_tokens: &[u32],
     ) -> Result<ScoredProbe, InferenceError> {
         if self.step_supported {
             let outcome = self
                 .scorer
-                .score_step_with_recent(sig, top_m, &mut self.step, recent_tokens)
+                .score_step_coded_with_recent(sig, input_code, top_m, &mut self.step, recent_tokens)
                 .map_err(InferenceError::Scorer)?;
             Ok(ScoredProbe {
                 token: outcome.selected,
@@ -545,7 +556,7 @@ impl R4Engine {
         } else {
             let outcome = self
                 .scorer
-                .score_candidates(sig, recent_tokens)
+                .score_candidates_coded(sig, input_code, recent_tokens)
                 .map_err(InferenceError::Scorer)?;
             Ok(ScoredProbe {
                 token: outcome.selected,
@@ -563,16 +574,17 @@ impl R4Engine {
         &mut self,
         sig: &[u8; SIG_BYTES],
     ) -> Result<PredictDecision, InferenceError> {
-        self.predict_signature_status_with_recent(sig, &[])
+        self.predict_signature_status_with_recent(sig, None, &[])
     }
 
     fn predict_signature_status_with_recent(
         &mut self,
         sig: &[u8; SIG_BYTES],
+        input_code: Option<&[u8; compiler::STAGES]>,
         recent_tokens: &[u32],
     ) -> Result<PredictDecision, InferenceError> {
         self.counters.predicts += 1;
-        let first = self.score_sig(sig, TOP_M, recent_tokens)?;
+        let first = self.score_sig(sig, input_code, TOP_M, recent_tokens)?;
         match self.policy.action(first.status.into()) {
             StatusAction::Serve => {
                 self.counters.serves += 1;
@@ -608,7 +620,7 @@ impl R4Engine {
                     }));
                 }
                 self.counters.widen_attempts += 1;
-                let second = self.score_sig(sig, WIDENED_TOP_M, recent_tokens)?;
+                let second = self.score_sig(sig, input_code, WIDENED_TOP_M, recent_tokens)?;
                 if second.status == ScoreStatus::Novel {
                     self.novel_seen.insert(sig);
                 }
@@ -635,7 +647,8 @@ impl R4Engine {
     /// no guessed token is emitted.
     pub fn predict_decision(&mut self, window: &[u32]) -> Result<PredictDecision, InferenceError> {
         self.check_window(window)?;
-        self.predict_signature_status_with_recent(&self.derive_sig(window), window)
+        let (sig, code) = self.derive_sig_code(window);
+        self.predict_signature_status_with_recent(&sig, Some(&code), window)
     }
 
     /// Score one token window into a caller-owned output slot. Mirrors

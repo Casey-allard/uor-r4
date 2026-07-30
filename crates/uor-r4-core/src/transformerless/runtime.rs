@@ -510,6 +510,51 @@ pub fn assign_for_bundle(art: &Compiled, bundle: &[i64; D]) -> [u8; STAGES] {
     assign_memberships_for_bundle(art, bundle).0
 }
 
+/// Allocation-free plain code assignment for a bundle under the
+/// artifact's declared metric (#243 Phase C): per-stage argmax only —
+/// no membership-beam materialization, so the steady-state serving
+/// path (`R4Engine::derive_sig_code`, allocation-censused by
+/// tests/status_policy_census.rs) stays allocation-free. Tie rule
+/// matches `dot_stage_top` (strict improvement, lowest class index),
+/// so the code equals `assign_for_bundle`'s primary code.
+pub fn assign_code_for_bundle(art: &Compiled, bundle: &[i64; D]) -> [u8; STAGES] {
+    if art.dot_cb.is_empty() {
+        // Sign metric, argmax only — assign_plain delegates to the
+        // membership-beam builder and allocates; this path must not.
+        let sig = sig_plain(art, bundle);
+        let mut code = [0u8; STAGES];
+        for (st_code, sigs) in code.iter_mut().zip(art.class_sigs.iter()) {
+            let mut best = u32::MAX;
+            let mut best_class = 0u8;
+            for (class, cs) in sigs.chunks_exact(SIG_BYTES).enumerate() {
+                let dist =
+                    crate::transformerless::simd::hamming_distance_36(&sig, cs.try_into().unwrap());
+                if dist < best {
+                    best = dist;
+                    best_class = class as u8;
+                }
+            }
+            *st_code = best_class;
+        }
+        return code;
+    }
+    let work = centered_work(art, bundle);
+    let mut code = [0u8; STAGES];
+    for (st_code, table) in code.iter_mut().zip(art.dot_cb.iter()) {
+        let mut best = i64::MIN;
+        let mut best_class = 0u8;
+        for (class, row) in table.chunks_exact(D).enumerate() {
+            let score = dot_score_plain(row, &work);
+            if score > best {
+                best = score;
+                best_class = class as u8;
+            }
+        }
+        *st_code = best_class;
+    }
+    code
+}
+
 /// Bounded multi-membership assignment per depth, with nearest-class
 /// membership retained at every depth as the fallback floor.
 pub fn assign_memberships_plain(

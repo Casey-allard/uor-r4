@@ -2,11 +2,11 @@
   "schema": 1,
   "purpose": "Pinned Gate C quality record for the CI trend alarm (issue #77). The alarm fails when a run regresses beyond the thresholds below vs THIS record. Bump deliberately, maintainer-only, like the kappa baseline.",
   "pinned_at": "2026-07-30",
-  "pinned_from": "Rule 1+2 chain-telescoped + EXCT precedence (FULL CODE ONLY, #234), 1-term TLA6 fixture artifact (#243 Phase C), add-one smoothing, fixture corpus. Era note (#243 Phase C): the TLA6 fixture assigns via the shift-add dot path; its finer code space (48,321 single-write keys) drops strict full-code EXCT coverage to 0.97% (ExactContext 291 / Graph 29,725 / Novel 20) and the honest row collapses to rule12 1.11%/15.9742 (graph per-status 0.84%/16.03). Deliberate composition of the two maintainer decisions, flagged on #243 pre-merge (queue simulation): the graph path is now unambiguously the load-bearing number to improve (#277/#246 retrieval work). TLA3-baseline row on the dot-path store: 22.98%/9.5092 (bits improve 12.36->9.51). Prior eras: #234 full-code-only re-pin (21.05/12.5303, sign-path fixture); #281 single-key re-pin. Thresholds unchanged.",
-  "rule12_top1_agreement": 0.01109,
-  "rule12_bits_per_token": 15.97416,
-  "baseline_top1_agreement": 0.22983,
-  "baseline_bits_per_token": 9.509162,
+  "pinned_from": "Rule 1+2 chain-telescoped + EXCT precedence (FULL CODE ONLY, #234), 1-term TLA6 fixture, METRIC-CONSISTENT probes (#243 Phase C part 2, option A: witness-attested graded codes). Era note: the prior 1.11%/15.9742 pin measured sign-code probes against the dot-keyed store \u2014 the writer/reader mismatch part 2 removes \u2014 not the true strict-EXCT x dot-code row. Consistent probes: rule12 31.63%/9.1181 (best recorded fixture row; prior sign-era tie 30.02/10.2357), status ExactContext 25,853 / Graph 4,182 / Novel 1, strict miss 13.93% (Gate C valid, graph path exercised on real probes; per-status exact 36.65%/7.95). Baseline (dot store, dot codes) 33.83%/11.9515. Prior eras: #296 mismatch row; #234 full-code-only; #281 single-key. Thresholds unchanged.",
+  "rule12_top1_agreement": 0.31629,
+  "rule12_bits_per_token": 9.1181,
+  "baseline_top1_agreement": 0.33829,
+  "baseline_bits_per_token": 11.951519,
   "alarm": {
     "top1_drop_abs": 0.02,
     "bits_regress_abs": 0.1

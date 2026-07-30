@@ -582,6 +582,15 @@ pub struct ScoreWitness {
     pub graph_cid: [u8; 32],
     /// H(x): the context's sign-bit signature.
     pub input_sig: [u8; SIG_BYTES],
+    /// The graded code the EXCT probe consumed (#243 Phase C, option A —
+    /// maintainer decision 2026-07-30). Attested by the producer and
+    /// verified-as-consumed on replay: under a sign-metric (TLA3/4/5)
+    /// artifact it is re-derivable from `input_sig`; under TLA6 it
+    /// derives from the integer bundle, which the witness does not
+    /// carry — code DERIVATION is proven at certify time by the
+    /// kernel==plain equality witnesses, and replay proves consistent
+    /// CONSUMPTION. `None` when no artifact/EXCT surface is wired.
+    pub input_code: Option<[u8; STAGES]>,
     /// Which rule fired (module docs).
     pub status: ScoreStatus,
     /// Active cloud A (ascending region id) with margins; empty under
@@ -947,6 +956,40 @@ impl GraphScorer {
         sig: &[u8; SIG_BYTES],
         recent_tokens: &[u32],
     ) -> Result<ScoreOutcome, String> {
+        self.score_candidates_coded(sig, None, recent_tokens)
+    }
+
+    /// Resolve the graded code the EXCT probe consumes (#243 Phase C,
+    /// option A): an attested caller code wins; a sign-metric artifact
+    /// derives it from the sig (that IS its declared metric); a TLA6
+    /// artifact without a caller code is a contract error — the sig
+    /// cannot reconstruct a dot-metric code.
+    fn probe_code(
+        art: &Compiled,
+        sig: &[u8; SIG_BYTES],
+        input_code: Option<&[u8; STAGES]>,
+    ) -> Result<[u8; STAGES], String> {
+        match input_code {
+            Some(code) => Ok(*code),
+            None if art.dot_cb.is_empty() => Ok(runtime::assign_plain(art, sig)),
+            None => Err(
+                "TLA6 artifact: the EXCT probe requires the assigned graded code \
+                 (witness contract, #243 Phase C option A)"
+                    .to_owned(),
+            ),
+        }
+    }
+
+    /// [`GraphScorer::score_candidates`] with an explicitly attested
+    /// graded code (#243 Phase C option A): bundle-holding callers
+    /// (serving, harness) assign under the artifact's declared metric
+    /// and pass the code through; replay passes the witnessed code.
+    pub fn score_candidates_coded(
+        &self,
+        sig: &[u8; SIG_BYTES],
+        input_code: Option<&[u8; STAGES]>,
+        recent_tokens: &[u32],
+    ) -> Result<ScoreOutcome, String> {
         let recent_tokens = if recent_tokens.len() > 32 {
             &recent_tokens[recent_tokens.len() - 32..]
         } else {
@@ -1117,9 +1160,11 @@ impl GraphScorer {
         // prefix) over the exact-context store; ΔX(X,v) = quantized
         // probe log-prob minus the stored root prior (integer sub).
         let mut exct_probe: Option<ExctProbe> = None;
+        let mut witness_code: Option<[u8; STAGES]> = None;
         let mut exact_residuals: Vec<(u32, ScoreQ)> = Vec::new();
         if let Some(art) = &self.artifacts {
-            let code = runtime::assign_plain(art, sig);
+            let code = Self::probe_code(art, sig, input_code)?;
+            witness_code = Some(code);
             if let Some(residual_exct) = &self.residual_exct {
                 for level in (0..=STAGES).rev() {
                     if let Some(context) = residual_exct[level].get(&code[..level]) {
@@ -1262,6 +1307,7 @@ impl GraphScorer {
         let witness = ScoreWitness {
             graph_cid: self.graph_cid,
             input_sig: *sig,
+            input_code: witness_code,
             status: if exact_context {
                 ScoreStatus::ExactContext
             } else if selected_chain.is_empty() {
@@ -1791,6 +1837,22 @@ impl GraphScorer {
         state: &mut StepState,
         recent_tokens: &[u32],
     ) -> Result<StepOutcome, String> {
+        self.score_step_coded_with_recent(sig, None, top_m, state, recent_tokens)
+    }
+
+    /// [`GraphScorer::score_step_with_recent`] with an explicitly
+    /// attested graded code (#243 Phase C option A) — the serving
+    /// surface assigns under the artifact's declared metric from the
+    /// live bundle and passes the code through; sign-metric artifacts
+    /// may omit it (derived from the sig, which IS their metric).
+    pub fn score_step_coded_with_recent(
+        &self,
+        sig: &[u8; SIG_BYTES],
+        input_code: Option<&[u8; STAGES]>,
+        top_m: usize,
+        state: &mut StepState,
+        recent_tokens: &[u32],
+    ) -> Result<StepOutcome, String> {
         if top_m == 0 || top_m > state.max_top_m {
             return Err(format!(
                 "membership width {top_m} outside the step state bound {}",
@@ -1906,7 +1968,17 @@ impl GraphScorer {
         // only the admitted local entries.
         let mut exact_context = false;
         if let (Some(art), Some(residual_exct)) = (&self.artifacts, &self.residual_exct) {
-            let code = assign_code_plain(art, sig);
+            let code = match input_code {
+                Some(code) => *code,
+                None if art.dot_cb.is_empty() => assign_code_plain(art, sig),
+                None => {
+                    return Err(
+                        "TLA6 artifact: the EXCT probe requires the assigned graded code \
+                         (witness contract, #243 Phase C option A)"
+                            .to_owned(),
+                    );
+                }
+            };
             for level in (0..=STAGES).rev() {
                 if let Some(context) = residual_exct[level].get(&code[..level]) {
                     // #234 maintainer decision: Rule 2 fires at FULL
@@ -2113,10 +2185,15 @@ pub fn verify_witness_replay(
         return Err(ReplayError::GraphCidMismatch);
     }
     let outcome = scorer
-        .score_candidates(&witness.input_sig, &[])
+        .score_candidates_coded(&witness.input_sig, witness.input_code.as_ref(), &[])
         .map_err(ReplayError::Artifact)?;
     let recomputed = &outcome.witness;
 
+    if recomputed.input_code != witness.input_code {
+        return Err(ReplayError::Artifact(
+            "input_code mismatch on replay (witness contract, #243 Phase C)".to_owned(),
+        ));
+    }
     if recomputed.active != witness.active {
         return Err(ReplayError::ActiveMismatch);
     }
