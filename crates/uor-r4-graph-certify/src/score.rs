@@ -1171,6 +1171,19 @@ pub struct GateCOutcome {
     pub tla3_baseline: GateCMetrics,
     pub rule12_status_counts: StatusCounts,
     pub rule12_per_status: Rule12PerStatus,
+    /// #234 item 2 instrumentation: histogram of the Rule 2 probe's
+    /// RESOLUTION level per held-out position (index = graded-prefix
+    /// length, 0 = root … STAGES = full code). The probe stops at the
+    /// deepest populated prefix and level 0 is populated on any
+    /// non-empty train split, so the status-based miss rate cannot move;
+    /// this histogram (and the strict full-depth count below) is what a
+    /// D3 construction can actually change.
+    pub rule12_exct_probe_levels: Vec<usize>,
+    /// Held-out positions where no EXCT probe was consulted at all.
+    pub rule12_exct_probe_absent: usize,
+    /// Positions resolved at the FULL graded code with support — exact
+    /// context in the strict sense.
+    pub rule12_exct_full_depth_supported: usize,
     pub win_loss: WinLossReport,
     pub candidate_recall: CandidateRecall,
     pub repetition_rate_rule12: f64,
@@ -1367,6 +1380,17 @@ pub fn evaluate_gate_c(
     let mut status_positions = [0usize; 3];
     let mut status_hits = [0u64; 3];
     let mut status_bits = [0f64; 3];
+    // #234 item 2 instrumentation: WHERE the Rule 2 probe resolved. The
+    // probe stops at the deepest POPULATED graded prefix, and the level-0
+    // (root) prefix is populated by construction on any non-empty train
+    // split with total ≥ EXCT_SUPPORT_MIN — so ScoreStatus::ExactContext
+    // alone cannot miss on any corpus, and the status-based miss rate is
+    // structurally ~0. The per-level histogram is the quantity a D3
+    // construction can actually move; "strict" exact-context = resolved
+    // at the FULL graded code with support.
+    let mut exct_level_positions = vec![0usize; STAGES + 1];
+    let mut exct_probe_absent = 0usize;
+    let mut exct_full_depth_supported = 0usize;
     let mut recall_rule1_top1 = 0u64;
     let mut recall_rule1_top3 = 0u64;
     let mut recall_rule12_top1 = 0u64;
@@ -1426,6 +1450,17 @@ pub fn evaluate_gate_c(
         status_positions[status_index] += 1;
         status_hits[status_index] += u64::from(rule12_hit);
         status_bits[status_index] += rule12_bits;
+        match &rule12.witness.exct {
+            Some(probe) => {
+                exct_level_positions[probe.level as usize] += 1;
+                if probe.level as usize == STAGES
+                    && rule12.witness.status == ScoreStatus::ExactContext
+                {
+                    exct_full_depth_supported += 1;
+                }
+            }
+            None => exct_probe_absent += 1,
+        }
 
         let contains = |candidates: &[(u32, ScoreQ)], token: u32| {
             candidates.iter().any(|&(candidate, _)| candidate == token)
@@ -1494,6 +1529,9 @@ pub fn evaluate_gate_c(
         graph: status_positions[1],
         novel: status_positions[2],
     };
+    outcome.rule12_exct_probe_levels = exct_level_positions;
+    outcome.rule12_exct_probe_absent = exct_probe_absent;
+    outcome.rule12_exct_full_depth_supported = exct_full_depth_supported;
     let per_status = |index: usize| {
         let positions = status_positions[index];
         if positions == 0 {
@@ -1571,7 +1609,11 @@ pub fn evaluate_gate_c(
 /// per-residual-kind compile-time quantization error rows; 9 =
 /// issue-#234 `distribution` declaration (EXCT-miss rate as a fixed
 /// property of the evaluation distribution, with the Gate C validity
-/// verdict).
+/// verdict); 10 = issue-#234 item 2: the status-based miss rate is
+/// structurally ~0 (the probe backs off to populated prefixes, root
+/// included), so the declaration adds the probe-level histogram and
+/// the STRICT full-code miss rate, and the Gate C validity verdict is
+/// judged on the strict basis.
 #[derive(Debug, Clone, Serialize)]
 pub struct ScoreReport {
     pub schema: u32,
@@ -1602,12 +1644,30 @@ pub struct DistributionDeclaration {
     pub held_out_positions: usize,
     /// Positions the Rule 1+2 scorer resolved as ExactContext.
     pub exct_resolved_positions: usize,
-    /// `1 - exct_resolved/held_out` — the declared miss rate.
+    /// `1 - exct_resolved/held_out` — the status-based miss rate.
+    /// STRUCTURALLY ~0 on every corpus: the Rule 2 probe stops at the
+    /// deepest POPULATED graded prefix and the level-0 (root) prefix is
+    /// always populated with support, so ExactContext status cannot
+    /// miss. Kept for schema continuity; the strict fields below are
+    /// the #234 item 2 construction target.
     pub exct_miss_rate: f64,
+    /// Positions the probe resolved at the FULL graded code with
+    /// support — exact context in the strict sense.
+    pub strict_exct_resolved_positions: usize,
+    /// `1 - strict_resolved/held_out` — the miss rate under strict
+    /// full-code exact-context semantics. This is the declared quantity
+    /// a D3 construction must move (issue #234 item 2); sub-full-depth
+    /// probe resolutions are prefix backoff wearing the EXCT badge, not
+    /// exact-context recall.
+    pub strict_exct_miss_rate: f64,
+    /// Histogram of probe resolution levels (index = prefix length,
+    /// 0 = root … STAGES = full code), fixed at declaration time.
+    pub exct_probe_level_histogram: Vec<usize>,
     /// The [`MIN_EXCT_MISS_RATE_FOR_GATE_C`] threshold in force.
     pub min_miss_rate_for_gate_c: f64,
     /// Whether Gate C on this distribution measures anything beyond
-    /// exact-context recall.
+    /// exact-context recall — judged on the STRICT miss rate (the
+    /// status-based rate is structurally uninformative, see above).
     pub can_measure_generalization: bool,
 }
 
@@ -1705,15 +1765,24 @@ pub fn build_score_report_with_quality_profile(
     } else {
         1.0 - exct_resolved_positions as f64 / held_out_positions as f64
     };
+    let strict_exct_resolved_positions = gate_c.rule12_exct_full_depth_supported;
+    let strict_exct_miss_rate = if held_out_positions == 0 {
+        0.0
+    } else {
+        1.0 - strict_exct_resolved_positions as f64 / held_out_positions as f64
+    };
     let distribution = DistributionDeclaration {
         held_out_positions,
         exct_resolved_positions,
         exct_miss_rate,
+        strict_exct_resolved_positions,
+        strict_exct_miss_rate,
+        exct_probe_level_histogram: gate_c.rule12_exct_probe_levels.clone(),
         min_miss_rate_for_gate_c: MIN_EXCT_MISS_RATE_FOR_GATE_C,
-        can_measure_generalization: exct_miss_rate >= MIN_EXCT_MISS_RATE_FOR_GATE_C,
+        can_measure_generalization: strict_exct_miss_rate >= MIN_EXCT_MISS_RATE_FOR_GATE_C,
     };
     ScoreReport {
-        schema: 9,
+        schema: 10,
         inputs,
         config: ScoreReportConfig {
             transition_out_degree: config.transition_out_degree,

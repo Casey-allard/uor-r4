@@ -1020,16 +1020,37 @@ pub fn score_command(args: &[String]) -> Result<(), String> {
     );
 
     println!(
-        "distribution declaration (#234): EXCT-miss rate {:.1}% ({}/{} held-out positions escape exact-context) — {}",
+        "distribution declaration (#234): status-based EXCT-miss rate {:.1}% ({}/{} — structurally ~0: the probe backs off to populated prefixes, root included) | STRICT full-code EXCT-miss rate {:.1}% ({}/{} held-out positions escape full-code exact-context) — {}",
         100.0 * report.distribution.exct_miss_rate,
         report.distribution.held_out_positions - report.distribution.exct_resolved_positions,
         report.distribution.held_out_positions,
+        100.0 * report.distribution.strict_exct_miss_rate,
+        report.distribution.held_out_positions - report.distribution.strict_exct_resolved_positions,
+        report.distribution.held_out_positions,
         if report.distribution.can_measure_generalization {
-            "Gate C measures generalization here"
+            "Gate C measures generalization here (strict basis)"
         } else {
             "Gate C CANNOT measure generalization on this distribution (issue #234): the row restates exact-context recall"
         }
     );
+    {
+        let histogram: Vec<String> = report
+            .distribution
+            .exct_probe_level_histogram
+            .iter()
+            .enumerate()
+            .map(|(level, count)| format!("L{level}:{count}"))
+            .collect();
+        println!(
+            "EXCT probe resolution levels (0=root … {}=full code): {}",
+            report
+                .distribution
+                .exct_probe_level_histogram
+                .len()
+                .saturating_sub(1),
+            histogram.join(" ")
+        );
+    }
     std::fs::create_dir_all(&options.output).map_err(|error| error.to_string())?;
     let artifact_path = options.output.join("score.r4g1");
     std::fs::write(&artifact_path, &artifact_bytes)
