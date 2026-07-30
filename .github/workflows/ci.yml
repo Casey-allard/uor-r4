@@ -118,17 +118,7 @@ jobs:
             --corpus-recs crates/uor-r4-core/tests/fixtures/c_recs.bin \
             --artifacts crates/uor-r4-core/tests/fixtures/tless_artifacts.bin \
             --out trend_output
-          # Base pin for the two-mode check (regression vs re-pin
-          # self-consistency; see scripts/check_gate_c_regression.py):
-          # a PR that re-pins with an era note is validated against its
-          # OWN measured row, so re-pins travel in the PR that prices
-          # them and merge order stops mattering.
-          git fetch --depth=1 origin main
-          if git show FETCH_HEAD:docs/transformerless/gate_c_pinned.json > /tmp/base_pin.json 2>/dev/null; then
-            ./scripts/check_gate_c_regression.py trend_output/score_report.json --base-pin /tmp/base_pin.json
-          else
-            ./scripts/check_gate_c_regression.py trend_output/score_report.json
-          fi
+          ./scripts/check_gate_c_regression.py trend_output/score_report.json
 
       - name: Upload Gate C trend JSON
         uses: actions/upload-artifact@v4
