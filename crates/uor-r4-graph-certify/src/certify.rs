@@ -889,6 +889,19 @@ pub fn certify(oracle: &dyn TeacherOracle) {
         m.top1, m.agree, m.wb_bits, m.keys
     );
 
+    // ---- R4_CERTIFY_ROWS_ONLY: fast measurement iteration. Everything
+    // above is the decision-row matrix (equality witnesses, op census,
+    // A/B rows and their ablations); everything below is the P5
+    // compression witness suite and the long-context certification,
+    // which do not move when a row experiment changes. The skip is
+    // recorded, never silent — a rows-only log is not a certificate.
+    if std::env::var("R4_CERTIFY_ROWS_ONLY").is_ok_and(|value| value != "0") {
+        println!(
+            "R4_CERTIFY_ROWS_ONLY set: compression witnesses (P5) and long-context certification SKIPPED — rows-only run, not a full certificate. No measurement recorded for the skipped sections."
+        );
+        return;
+    }
+
     // ---- C: serving surface (issue #280)
     // The former C row here measured the `convert_r4g1` scaffold, which
     // was never a functional prediction path (issue #280 diagnosis); its

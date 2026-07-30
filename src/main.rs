@@ -570,7 +570,13 @@ fn run(cli: &Cli) -> Result<(), RunError> {
             let checkpoint = reference_checkpoint_path()?;
             let oracle = uor_r4_model_source::LlamaOracle::load(&checkpoint);
             uor_r4_graph_certify::certify::certify(&oracle);
-            certify_serving_row();
+            if std::env::var("R4_CERTIFY_ROWS_ONLY").is_ok_and(|value| value != "0") {
+                println!(
+                    "R4_CERTIFY_ROWS_ONLY set: C serving row SKIPPED — rows-only run, not a full certificate. No measurement recorded."
+                );
+            } else {
+                certify_serving_row();
+            }
             Ok(())
         }
         Some(Command::Compare) => {

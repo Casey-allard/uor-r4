@@ -68,6 +68,14 @@ struct EvaluateReportOptions {
     compiled: PathBuf,
     report: Option<PathBuf>,
     sequence_length: usize,
+    /// #268 candidate 3 (prompt framing): prepend the source tokenizer's
+    /// BOS token at every held-out story boundary before teacher-forcing.
+    bos: bool,
+    /// Smoke-run cap: evaluate only the first N held-out stories. The
+    /// report is stamped as a SMOKE run and its numbers are not quotable;
+    /// this exists so a change can be verified to sit in the measured
+    /// path before a full run is spent on it.
+    max_held_out_stories: Option<u32>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -1168,6 +1176,9 @@ struct EvaluationSource {
     directory: String,
     cid: String,
     sequence_length: usize,
+    /// #268 candidate 3: whether a BOS token was prepended at every
+    /// held-out story boundary during teacher-forcing (schema 3).
+    bos_prefix: bool,
 }
 
 #[derive(Debug, Serialize, Clone)]
@@ -1299,10 +1310,17 @@ fn parse_evaluate_report_options(args: &[String]) -> Result<EvaluateReportOption
         compiled: PathBuf::from(DEFAULT_HF_COMPILED_PATH),
         report: None,
         sequence_length: 128,
+        bos: false,
+        max_held_out_stories: None,
     };
     let mut index = 0usize;
     while index < args.len() {
         let flag = &args[index];
+        if flag == "--bos" {
+            options.bos = true;
+            index += 1;
+            continue;
+        }
         let value = args
             .get(index + 1)
             .ok_or_else(|| format!("missing value for {flag}"))?;
@@ -1317,6 +1335,15 @@ fn parse_evaluate_report_options(args: &[String]) -> Result<EvaluateReportOption
                 if options.sequence_length == 0 {
                     return Err("--sequence-length must be greater than zero".to_owned());
                 }
+            }
+            "--max-held-out-stories" => {
+                let limit: u32 = value
+                    .parse()
+                    .map_err(|_| format!("invalid --max-held-out-stories value: {value}"))?;
+                if limit == 0 {
+                    return Err("--max-held-out-stories must be greater than zero".to_owned());
+                }
+                options.max_held_out_stories = Some(limit);
             }
             _ => return Err(format!("unknown evaluate-report option: {flag}")),
         }
@@ -1429,8 +1456,14 @@ fn evaluate_report(args: &[String]) -> Result<(), String> {
         )
     })?;
     let held_out_cut = compiler::train_cut(&corpus);
+    // --bos occupies one oracle position per story, so a full
+    // `sequence_length`-token story needs one extra cache slot. The
+    // extra slot is buffer capacity only (RoPE is absolute, attention is
+    // causal over cached positions); it does not change the arithmetic
+    // of the no-BOS arms.
+    let oracle_sequence_length = options.sequence_length + usize::from(options.bos);
     let mut oracle =
-        HuggingFaceLlamaOracle::load_with_sequence_length(&options.source, options.sequence_length)
+        HuggingFaceLlamaOracle::load_with_sequence_length(&options.source, oracle_sequence_length)
             .map_err(|error| format!("failed to load Hugging Face model: {error}"))?;
     let mut teacher_logits = vec![0f32; oracle.vocab()];
     let artifacts_bytes = std::fs::read(&artifacts_path).map_err(|error| error.to_string())?;
@@ -1504,28 +1537,59 @@ fn evaluate_report(args: &[String]) -> Result<(), String> {
         class
     };
     let start_eval_time = std::time::Instant::now();
-    for index in 0..corpus.n {
-        if index % 1000 == 0 || index + 1 == corpus.n {
-            let pct = (index as f64 / corpus.n as f64) * 100.0;
+    // #268 fix: story-contiguous replay. The record stream interleaves
+    // stories in short runs (measured mean run length 9.2 tokens on the
+    // D3 bundle), so replaying in stream order cold-started the oracle
+    // every few tokens — ~4.6-token mean effective context, which is
+    // what the 13.4-bit "teacher floor" was actually measuring. Group
+    // positions by story (stable sort keeps in-story stream order) and
+    // reset only at true story boundaries. The position-in-story
+    // decomposition slices double as verification: bands beyond 8-15
+    // populate iff grouping reconstructed real contexts.
+    let mut replay_order: Vec<usize> = (0..corpus.n).collect();
+    replay_order.sort_by_key(|&position| corpus.story[position]);
+    // #268 candidate 3 (prompt framing): optionally prepend BOS at every
+    // held-out story boundary. `oracle_position` is the oracle's RoPE
+    // position (includes the BOS step when enabled); `story_position`
+    // keeps counting evaluated corpus tokens only, so the
+    // position-in-story decomposition bands stay comparable across arms.
+    let bos_token = oracle.bos_token();
+    let mut oracle_position = 0usize;
+    for (done, &index) in replay_order.iter().enumerate() {
+        if done % 1000 == 0 || done + 1 == corpus.n {
+            let pct = (done as f64 / corpus.n as f64) * 100.0;
             let elapsed = start_eval_time.elapsed().as_secs();
             println!(
                 "progress: evaluated {}/{} positions ({:.1}%, {}s)",
-                index, corpus.n, pct, elapsed
+                done, corpus.n, pct, elapsed
             );
+        }
+        if let Some(limit) = options.max_held_out_stories {
+            // Replay order is story-sorted, so the first story past the
+            // cap ends the smoke run.
+            if corpus.story[index] >= held_out_cut.saturating_add(limit) {
+                break;
+            }
         }
         if current_story != Some(corpus.story[index]) {
             current_story = Some(corpus.story[index]);
             story_position = 0;
+            oracle_position = 0;
             oracle.reset();
+            if options.bos && corpus.story[index] >= held_out_cut {
+                oracle.step(bos_token, oracle_position, &mut teacher_logits);
+                oracle_position += 1;
+            }
         }
         if corpus.story[index] < held_out_cut {
             continue;
         }
         oracle.step(
             corpus.input[index] as usize,
-            story_position,
+            oracle_position,
             &mut teacher_logits,
         );
+        oracle_position += 1;
         story_position += 1;
         held_out_tokens += 1;
         let code = runtime::code_plain(&artifacts, &rotations, &corpus, index);
@@ -1656,10 +1720,16 @@ fn evaluate_report(args: &[String]) -> Result<(), String> {
         println!("  by {}: {}", group.0, rows.join(" | "));
     }
 
+    let distribution_name = match options.max_held_out_stories {
+        None => "D3-held-out".to_owned(),
+        Some(limit) => format!(
+            "D3-held-out SMOKE (first {limit} held-out stories; path-verification only, numbers not quotable)"
+        ),
+    };
     let report = EvaluationReport {
-        schema: 2,
+        schema: 3,
         distribution: EvaluationDistribution {
-            name: "D3-held-out".to_owned(),
+            name: distribution_name,
             split: "compiler::train_cut 80/20 by story id".to_owned(),
             held_out_tokens,
         },
@@ -1667,6 +1737,7 @@ fn evaluate_report(args: &[String]) -> Result<(), String> {
             directory: options.source.display().to_string(),
             cid: source_cid,
             sequence_length: options.sequence_length,
+            bos_prefix: options.bos,
         },
         artifacts: EvaluationArtifacts {
             directory: options.compiled.display().to_string(),
@@ -1702,6 +1773,14 @@ fn evaluate_report(args: &[String]) -> Result<(), String> {
         "evaluation report written: {} ({})",
         report_path.display(),
         report_cid
+    );
+    println!(
+        "arm: source={} | bos_prefix={} | held-out stories={}",
+        options.source.display(),
+        options.bos,
+        options
+            .max_held_out_stories
+            .map_or("all".to_owned(), |limit| format!("first {limit} (SMOKE)"))
     );
     println!(
         "held-out D3 metrics: top1 {:.1}% | agreement {:.1}% | WB {:.4} bits/token (teacher floor {:.4}, +{:.4})",
@@ -2012,7 +2091,7 @@ pub fn run(args: &[String]) -> Result<(), String> {
                  observation pipeline: observe [--source DIR | --checkpoint BIN] [--seconds N] [--target N] [--shards N] [--out DIR] [--sequence-length N]\n\
                  text observations (D3): observe-text [--input PATH] [--out DIR] [--shards N] [--seconds N] [--source DIR | --checkpoint BIN] [--tokenizer PATH] [--sequence-length N]\n\
                  quantum operations: cd-compile | quantum-eval\n\
-                 hf evaluation: evaluate-report [--source DIR] [--compiled DIR] [--report PATH] [--sequence-length N]\n\
+                 hf evaluation: evaluate-report [--source DIR] [--compiled DIR] [--report PATH] [--sequence-length N] [--bos] [--max-held-out-stories N]\n\
                  docs: docs/TRANSFORMERLESS.md (extrapolation), docs/PROOF.md (proof + certificate)"
             );
         }
@@ -2153,6 +2232,8 @@ mod tests {
         assert_eq!(options.compiled, PathBuf::from(DEFAULT_HF_COMPILED_PATH));
         assert_eq!(options.sequence_length, 128);
         assert_eq!(options.report, None);
+        assert!(!options.bos);
+        assert_eq!(options.max_held_out_stories, None);
     }
 
     #[test]
@@ -2166,6 +2247,9 @@ mod tests {
             "/tmp/out.json",
             "--sequence-length",
             "256",
+            "--bos",
+            "--max-held-out-stories",
+            "5",
         ]
         .map(str::to_owned);
         let options = parse_evaluate_report_options(&args).expect("valid options");
@@ -2173,6 +2257,8 @@ mod tests {
         assert_eq!(options.compiled, PathBuf::from("/tmp/compiled"));
         assert_eq!(options.report, Some(PathBuf::from("/tmp/out.json")));
         assert_eq!(options.sequence_length, 256);
+        assert!(options.bos);
+        assert_eq!(options.max_held_out_stories, Some(5));
     }
 
     #[test]
@@ -2188,6 +2274,7 @@ mod tests {
                 directory: ".uor-models/sources/smollm2-135m-instruct".to_owned(),
                 cid: "blake3:1111".to_owned(),
                 sequence_length: 256,
+                bos_prefix: false,
             },
             artifacts: EvaluationArtifacts {
                 directory: ".uor-models/compiled/smollm2-135m-instruct".to_owned(),
