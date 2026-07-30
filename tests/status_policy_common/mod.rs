@@ -169,8 +169,9 @@ fn hand_emissions() -> EmissionTables {
 
 /// The signature-level fixture: two depth-1 regions at the all-zeros and
 /// all-ones extremes (radius 4), exact-context evidence attached to the
-/// covered signature's class prefix only, so one fixture exercises all
-/// three resolution statuses deterministically:
+/// covered signature's FULL graded code only (#234: Rule 2 fires at full
+/// code only), so one fixture exercises all three resolution statuses
+/// deterministically:
 /// - `covered_sig` ([0x00; _]) → ExactContext (support ≥ EXCT_SUPPORT_MIN),
 /// - `graph_sig` ([0xFF; _]) → Graph,
 /// - `ood_sig` (144 of 288 bits set) → Novel (distance 144 from both
@@ -184,20 +185,19 @@ pub fn signature_fixture(status_policy_override: Option<serde_json::Value>) -> P
         *byte = 0xFF;
     }
 
-    // Exact-context evidence: one populated prefix for the covered
-    // signature only, with total ≥ EXCT_SUPPORT_MIN. Choose the shallowest
-    // level whose prefix distinguishes the covered probe from the other two.
+    // Exact-context evidence: the covered signature's FULL graded code
+    // only, with total ≥ EXCT_SUPPORT_MIN. Rule 2 fires at full code
+    // only (#234, maintainer decision 2026-07-29) — a shallower prefix
+    // would be recorded as backoff and resolve Graph, not ExactContext.
     let codes =
         [covered_sig, graph_sig, ood_sig].map(|sig| runtime::assign_plain(&artifacts, &sig));
-    let level = (1..=STAGES)
-        .find(|&level| {
-            let covered = &codes[0][..level];
-            covered != &codes[1][..level] && covered != &codes[2][..level]
-        })
-        .expect("a distinguishing EXCT level exists");
+    assert!(
+        codes[0] != codes[1] && codes[0] != codes[2],
+        "the covered probe's full code must distinguish it from the graph/ood probes"
+    );
     let mut store: Store = (0..=STAGES).map(|_| BTreeMap::new()).collect();
-    store[level].insert(
-        codes[0][..level].to_vec(),
+    store[STAGES].insert(
+        codes[0].to_vec(),
         [(10u32, EXCT_SUPPORT_MIN + 1)].into_iter().collect(),
     );
 

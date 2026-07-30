@@ -1,10 +1,10 @@
 {
   "schema": 1,
   "purpose": "Pinned Gate C quality record for the CI trend alarm (issue #77). The alarm fails when a run regresses beyond the thresholds below vs THIS record. Bump deliberately, maintainer-only, like the kappa baseline.",
-  "pinned_at": "2026-07-29",
-  "pinned_from": "Rule 1+2 chain-telescoped + EXCT precedence, add-one smoothing, fixture corpus. Era note (#281): re-pinned for single-key store + read-time query-beam (the #244 decision); fixture price top-1 -1.7pp, rule12 +0.375 bits, tla3-baseline +0.478 bits; D3 price +-0.0pp / +0.087 bits at 2.56x fewer keys (PR #283 disclosure). Thresholds unchanged.",
-  "rule12_top1_agreement": 0.30024,
-  "rule12_bits_per_token": 10.23571,
+  "pinned_at": "2026-07-30",
+  "pinned_from": "Rule 1+2 chain-telescoped + EXCT precedence (FULL CODE ONLY), add-one smoothing, fixture corpus. Era note (#234): re-pinned for the Rule 2 full-code-only maintainer decision (Casey, 2026-07-29) — sub-full-depth EXCT resolutions are prefix backoff and no longer preempt the graph. The honest row prices the change at rule12 -8.97pp / +2.2946 bits vs the #281-era tie: status split ExactContext 14,919 / Graph 15,080 / Novel 37 (per-status: exact 41.1%/8.55, graph 1.23%/16.47). Deliberate and accepted on the #234 record: Gate C now measures the graph path instead of restating exact-context recall, and the graph row is the number to improve. TLA3 baseline unchanged. Prior era (#281): single-key store + read-time query-beam re-pin, PR #283 disclosure. Thresholds unchanged.",
+  "rule12_top1_agreement": 0.21055,
+  "rule12_bits_per_token": 12.53034,
   "baseline_top1_agreement": 0.30024,
   "baseline_bits_per_token": 12.356403,
   "alarm": {

@@ -5,9 +5,13 @@
 //!
 //! ```text
 //! Rule 2 (D4 EXCT precedence): S(v) = B(v) + ΔX(X,v)
-//!     when the deepest-populated-prefix EXCT probe resolves with total
-//!     evidence ≥ EXCT_SUPPORT_MIN — exact-context evidence dominates and
-//!     graph residuals are skipped entirely (status ExactContext).
+//!     when the EXCT probe resolves at the FULL graded code (level ==
+//!     STAGES) with total evidence ≥ EXCT_SUPPORT_MIN — strict
+//!     exact-context evidence dominates and graph residuals are skipped
+//!     entirely (status ExactContext). A probe that resolves below full
+//!     depth is prefix backoff, not exact context (#234, maintainer
+//!     decision 2026-07-29): it is recorded in the witness but admits
+//!     nothing, and the position falls through to Rule 1.
 //! Rule 1 (chain-telescoped):   S_graph(v) = T_selected(v) + ΔT-offset
 //!     with T_r(v) = B(v) + Σ_{n ∈ chain(r)} ΔE(n,v) over the covered
 //!     refinement chain of the selected active region (status Graph, or
@@ -152,11 +156,12 @@ pub const TOP_M: usize = 3;
 pub const RESIDUAL_EXCT_MAGIC: [u8; 4] = *b"RX1\0";
 
 /// Rule 2 (D4 EXCT precedence) support gate: the exact-context evidence
-/// dominates the graph residuals only when the probed deepest-populated
-/// prefix's total evidence count reaches this bound; below it the probe
-/// is recorded (admitted 0) and the chain-telescoped Rule 1 score
-/// decides. The value 5 matches the baseline's confident-prefix regime:
-/// a prefix with fewer observations is too thin to outrank compressed
+/// dominates the graph residuals only when the probe resolves at the
+/// FULL graded code (#234 maintainer decision, 2026-07-29) AND its
+/// total evidence count reaches this bound; otherwise the probe is
+/// recorded (admitted 0) and the chain-telescoped Rule 1 score decides.
+/// The value 5 matches the baseline's confident-prefix regime: a
+/// context with fewer observations is too thin to outrank compressed
 /// graph residuals (issue #64; the gate is witness-recorded, so the
 /// threshold is part of the replayed semantics).
 pub const EXCT_SUPPORT_MIN: u32 = 5;
@@ -553,9 +558,9 @@ pub struct ExctProbe {
 /// consumes this status per decision D4). Recorded in every witness.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ScoreStatus {
-    /// Rule 2 fired: the EXCT probe resolved with total evidence ≥
-    /// [`EXCT_SUPPORT_MIN`]; `S(v) = B(v) + ΔX(X,v)`, graph residuals
-    /// skipped entirely.
+    /// Rule 2 fired: the EXCT probe resolved at the FULL graded code
+    /// (#234) with total evidence ≥ [`EXCT_SUPPORT_MIN`];
+    /// `S(v) = B(v) + ΔX(X,v)`, graph residuals skipped entirely.
     ExactContext,
     /// Rule 1 fired with a non-empty selected covered chain:
     /// `S(v) = B(v) + Σ_{chain} ΔE + ΔT-offset`.
@@ -1118,7 +1123,12 @@ impl GraphScorer {
             if let Some(residual_exct) = &self.residual_exct {
                 for level in (0..=STAGES).rev() {
                     if let Some(context) = residual_exct[level].get(&code[..level]) {
-                        let supported = context.total >= EXCT_SUPPORT_MIN;
+                        // #234 maintainer decision (2026-07-29): Rule 2
+                        // fires at FULL CODE ONLY. A probe that resolves
+                        // below level STAGES is prefix backoff, not exact
+                        // context; it is recorded in the witness but never
+                        // admits evidence or preempts the graph.
+                        let supported = level == STAGES && context.total >= EXCT_SUPPORT_MIN;
                         let admitted = if supported {
                             context.entries.len().min(self.exct_top_x) as u32
                         } else {
@@ -1150,7 +1160,8 @@ impl GraphScorer {
                         let mut ranked: Vec<(u32, u32)> =
                             dist.iter().map(|(&t, &c)| (t, c)).collect();
                         ranked.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.cmp(&b.0)));
-                        let supported = total >= EXCT_SUPPORT_MIN;
+                        // #234: full code only (see the RX1 branch above).
+                        let supported = level == STAGES && total >= EXCT_SUPPORT_MIN;
                         let mut admitted = 0u32;
                         if supported {
                             for &(token, count) in ranked.iter().take(self.exct_top_x) {
@@ -1898,7 +1909,9 @@ impl GraphScorer {
             let code = assign_code_plain(art, sig);
             for level in (0..=STAGES).rev() {
                 if let Some(context) = residual_exct[level].get(&code[..level]) {
-                    let supported = context.total >= EXCT_SUPPORT_MIN;
+                    // #234 maintainer decision: Rule 2 fires at FULL
+                    // CODE ONLY (reference parity with score_candidates).
+                    let supported = level == STAGES && context.total >= EXCT_SUPPORT_MIN;
                     let admitted = if supported {
                         context.entries.len().min(self.exct_top_x)
                     } else {
