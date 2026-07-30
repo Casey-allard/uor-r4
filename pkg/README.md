@@ -445,12 +445,21 @@ and same-machine performance comparison.
 cargo run --release -- setup
 cargo run --release -- gen 300 150000
 # repeat gen until it reports done=1
-cargo run --release -- compile
-cargo run --release -- store
 cargo run --release -- certify
 cargo run --release -- compare
+cargo run --release -- compare-report
 cargo run --release -- scenarios
 ```
+
+`certify` performs the compile, store, certificate, and census steps
+internally. The bare `compile` and `store` subcommands belong to the HF
+graph-compiler path — `compile` requires `--model` or `--source`, and `store`
+depends on a prior graph compile — and are not part of the legacy chain.
+
+`gen` output is not byte-reproducible across machines or eras: story and
+held-out counts can differ slightly from the certified stream (e.g. 754
+stories / 30,036 held-out against the certified 757 / 30,192), which bounds
+how exactly downstream figures reproduce.
 
 Its default files are:
 
