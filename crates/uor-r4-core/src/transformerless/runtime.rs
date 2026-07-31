@@ -1218,6 +1218,70 @@ pub fn build_store(art: &Compiled, c: &Corpus) -> (Store, Vec<[u8; STAGES]>) {
     (store, codes)
 }
 
+/// Parallel code-generation front-end for [`build_store`]. The expensive
+/// bundle/code derivation is independent per corpus position; evidence is
+/// then inserted through the same canonical serial path as `build_store` so
+/// BTreeMap ordering and artifact bytes remain unchanged.
+#[cfg(not(target_arch = "wasm32"))]
+pub fn build_store_with_threads(
+    art: &Compiled,
+    c: &Corpus,
+    threads: usize,
+) -> Result<(Store, Vec<[u8; STAGES]>), String> {
+    if threads <= 1 || c.n < 2 {
+        return Ok(build_store(art, c));
+    }
+    let worker_count = threads.min(c.n);
+    let chunk_size = c.n.div_ceil(worker_count);
+    let mut chunks = Vec::with_capacity(worker_count);
+    std::thread::scope(|scope| -> Result<(), String> {
+        let mut handles = Vec::with_capacity(worker_count);
+        for (chunk_id, start) in (0..c.n).step_by(chunk_size).enumerate() {
+            let end = (start + chunk_size).min(c.n);
+            handles.push((
+                chunk_id,
+                scope.spawn(move || {
+                    let rot = derive_rotations();
+                    (start..end)
+                        .map(|i| {
+                            let bundle = bundle_plain(art, &rot, c, i);
+                            assign_for_bundle(art, &bundle)
+                        })
+                        .collect::<Vec<_>>()
+                }),
+            ));
+        }
+        for (chunk_id, handle) in handles {
+            let codes = handle
+                .join()
+                .map_err(|_| format!("store code worker {chunk_id} panicked"))?;
+            chunks.push((chunk_id, codes));
+        }
+        Ok(())
+    })?;
+    chunks.sort_by_key(|(chunk_id, _)| *chunk_id);
+    let mut codes = Vec::with_capacity(c.n);
+    for (_, chunk) in chunks {
+        codes.extend(chunk);
+    }
+
+    let cut = train_cut(c);
+    let mut store: Store = (0..=STAGES).map(|_| BTreeMap::new()).collect();
+    for (i, code) in codes.iter().enumerate() {
+        if c.story[i] >= cut {
+            continue;
+        }
+        for k_idx in 0..c.top_tokens[i].len() {
+            let tok = c.top_tokens[i][k_idx];
+            let weight = c.top_weights[i][k_idx];
+            if weight > 0 {
+                add_evidence(&mut store, code, tok, weight);
+            }
+        }
+    }
+    Ok((store, codes))
+}
+
 /// The pre-#281 write-time fan-out store (multi-membership writes).
 /// Retained for the certifier's ablation row only — not a shipped path.
 pub fn build_store_multi(art: &Compiled, c: &Corpus) -> (Store, Vec<[u8; STAGES]>) {

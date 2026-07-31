@@ -925,8 +925,13 @@ pub fn score_command(args: &[String]) -> Result<(), String> {
         }
         None => cover::split_positions(&corpus),
     };
-    let train = cover::build_observations(&artifacts, &corpus, &train_positions);
-    let held_out = cover::build_observations(&artifacts, &corpus, &held_out_positions);
+    let threads = std::thread::available_parallelism()
+        .map(|count| count.get().min(8))
+        .unwrap_or(1);
+    let train =
+        cover::build_observations_with_threads(&artifacts, &corpus, &train_positions, threads)?;
+    let held_out =
+        cover::build_observations_with_threads(&artifacts, &corpus, &held_out_positions, threads)?;
 
     // Region parameters + structural edges: recovered from a previously
     // emitted cover artifact (--cover) or re-induced with the default
@@ -972,7 +977,7 @@ pub fn score_command(args: &[String]) -> Result<(), String> {
     let max_depth = regions.iter().map(|r| r.depth as usize).max().unwrap_or(1);
 
     eprintln!("score: building graded store [========================] 100%");
-    let (store, _) = runtime::build_store(&artifacts, &corpus);
+    let (store, _) = runtime::build_store_with_threads(&artifacts, &corpus, threads)?;
     let tls1 = runtime::store_bytes(&store);
 
     eprintln!("score: compiling forward transitions [========================] 100%");

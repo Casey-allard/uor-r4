@@ -101,6 +101,7 @@
 //! `verify_cids` before it is returned (fail closed). EXCT is optional
 //! per the slice scope and is omitted in v1.
 
+use rayon::prelude::*;
 use serde::Serialize;
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Write as _;
@@ -600,17 +601,30 @@ pub fn spherical_kmeans(
         let mut batch_start = 0usize;
         while batch_start < n {
             let batch_end = (batch_start + batch_size).min(n);
-            for (i, point) in points[batch_start..batch_end].iter().enumerate() {
-                let i = batch_start + i;
-                let mut best_k = 0u32;
-                let mut best_dot = f32::MIN;
-                for (k, centroid) in centroids.iter().enumerate() {
-                    let d = dot(point, centroid);
-                    if d > best_dot {
-                        best_dot = d;
-                        best_k = k as u32;
+            let assignments: Vec<u32> = points[batch_start..batch_end]
+                .par_iter()
+                .map(|point| {
+                    let mut best_k = 0u32;
+                    let mut best_dot = f32::MIN;
+                    for (k, centroid) in centroids.iter().enumerate() {
+                        let d = dot(point, centroid);
+                        if d > best_dot {
+                            best_dot = d;
+                            best_k = k as u32;
+                        }
                     }
-                }
+                    best_k
+                })
+                .collect();
+            // Keep the canonical f64 accumulation order: parallelism is
+            // used for independent distance work, while reduction remains
+            // in ascending observation order for byte-identical centroids.
+            for (offset, (point, &best_k)) in points[batch_start..batch_end]
+                .iter()
+                .zip(assignments.iter())
+                .enumerate()
+            {
+                let i = batch_start + offset;
                 assignment[i] = best_k;
                 counts[best_k as usize] += 1;
                 let sum = &mut sums[best_k as usize];
@@ -679,16 +693,22 @@ pub fn spherical_kmeans(
     // clusters (relabel assignments into ascending cluster-id order).
     let mut final_assignment = vec![0u32; n];
     let mut counts = vec![0u64; k_eff];
-    for (i, point) in points.iter().enumerate() {
-        let mut best_k = 0u32;
-        let mut best_dot = f32::MIN;
-        for (k, centroid) in centroids.iter().enumerate() {
-            let d = dot(point, centroid);
-            if d > best_dot {
-                best_dot = d;
-                best_k = k as u32;
+    let assignments: Vec<u32> = points
+        .par_iter()
+        .map(|point| {
+            let mut best_k = 0u32;
+            let mut best_dot = f32::MIN;
+            for (k, centroid) in centroids.iter().enumerate() {
+                let d = dot(point, centroid);
+                if d > best_dot {
+                    best_dot = d;
+                    best_k = k as u32;
+                }
             }
-        }
+            best_k
+        })
+        .collect();
+    for (i, &best_k) in assignments.iter().enumerate() {
         final_assignment[i] = best_k;
         counts[best_k as usize] += 1;
     }
@@ -1516,15 +1536,33 @@ pub fn build_edges(
     // Co-activation counts over the train observations' top-M
     // memberships per depth (unordered pairs, canonicalized).
     let mut coactive: BTreeMap<(u32, u32), u64> = BTreeMap::new();
-    for observation in observations {
-        for depth in 1..=cover.max_depth {
-            let mut memberships = reference.binary_memberships(depth, &observation.sig);
-            memberships.sort_unstable();
-            memberships.dedup();
-            for (a_idx, &a) in memberships.iter().enumerate() {
-                for &b in &memberships[a_idx + 1..] {
-                    *coactive.entry((a, b)).or_insert(0) += 1;
+    if !observations.is_empty() {
+        let chunk_size = observations
+            .len()
+            .div_ceil(rayon::current_num_threads().max(1));
+        let partials: Vec<BTreeMap<(u32, u32), u64>> = observations
+            .par_chunks(chunk_size)
+            .map(|chunk| {
+                let mut local = BTreeMap::new();
+                for observation in chunk {
+                    for depth in 1..=cover.max_depth {
+                        let mut memberships = reference.binary_memberships(depth, &observation.sig);
+                        memberships.sort_unstable();
+                        memberships.dedup();
+                        for (a_idx, &a) in memberships.iter().enumerate() {
+                            for &b in &memberships[a_idx + 1..] {
+                                *local.entry((a, b)).or_insert(0) += 1;
+                            }
+                        }
+                    }
                 }
+                local
+            })
+            .collect();
+        // Ordered merge keeps the original observation-order reduction.
+        for partial in partials {
+            for (pair, count) in partial {
+                *coactive.entry(pair).or_insert(0) += count;
             }
         }
     }

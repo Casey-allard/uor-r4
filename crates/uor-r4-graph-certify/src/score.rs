@@ -92,6 +92,7 @@
 //! per-status (ExactContext/Graph/Novel) and per-rule win/loss
 //! instrumentation. This is the M.V.G. checkpoint's fidelity input.
 
+use rayon::prelude::*;
 use serde::Serialize;
 use std::collections::BTreeMap;
 
@@ -340,34 +341,40 @@ pub fn compile_transitions_with_quantization(
     out_degree: usize,
 ) -> (Vec<TransitionEdge>, QuantizationErrorStats) {
     let pop = runtime::derive_popcount_table();
-    let mut k = runtime::OpKernel::default();
     // Canonical observation order (content-addressed positions, §4.1):
     // the caller's slice order never reaches the counts, so a shuffled
     // observation/shard order compiles to identical edges.
     let mut ordered: Vec<&Observation> = train.iter().collect();
     ordered.sort_by_key(|o| o.position);
-    // memberships[depth] of the previous adjacent position, carried.
-    let mut previous: Option<(u32, Vec<Vec<u32>>)> = None;
+    // Memberships are independent per observation. Compute them in parallel,
+    // then consume the resulting vector in corpus order so adjacent-position
+    // semantics and BTreeMap reduction order are unchanged.
+    let memberships: Vec<Vec<Vec<u32>>> = ordered
+        .par_iter()
+        .map(|observation| {
+            let mut k = runtime::OpKernel::default();
+            (1..=max_depth)
+                .map(|depth| {
+                    binary_memberships(&mut k, &pop, regions, depth, &observation.sig)
+                        .into_iter()
+                        .map(|(region, _)| region)
+                        .collect()
+                })
+                .collect()
+        })
+        .collect();
+    let mut previous: Option<(u32, &Vec<Vec<u32>>)> = None;
     let mut counts: BTreeMap<(u32, u32), u64> = BTreeMap::new();
     let mut src_totals: BTreeMap<u32, u64> = BTreeMap::new();
-    for observation in ordered {
+    for (observation, current_memberships) in ordered.into_iter().zip(memberships.iter()) {
         let position = observation.position;
-        let mut memberships: Vec<Vec<u32>> = Vec::with_capacity(max_depth);
-        for depth in 1..=max_depth {
-            let at_depth: Vec<u32> =
-                binary_memberships(&mut k, &pop, regions, depth, &observation.sig)
-                    .into_iter()
-                    .map(|(region, _)| region)
-                    .collect();
-            memberships.push(at_depth);
-        }
-        if let Some((prev_position, prev_memberships)) = previous {
+        if let Some((prev_position, prev_memberships)) = previous.take() {
             let adjacent = position == prev_position + 1
                 && corpus.story[position as usize] == corpus.story[prev_position as usize];
             if adjacent {
                 for depth in 0..max_depth {
                     for &src in &prev_memberships[depth] {
-                        for &dst in &memberships[depth] {
+                        for &dst in &current_memberships[depth] {
                             let edge = (src + 1, dst + 1); // region -> node id
                             *counts.entry(edge).or_insert(0) += 1;
                             *src_totals.entry(edge.0).or_insert(0) += 1;
@@ -376,7 +383,7 @@ pub fn compile_transitions_with_quantization(
                 }
             }
         }
-        previous = Some((position, memberships));
+        previous = Some((position, current_memberships));
     }
 
     // Per source: canonical order (weight desc, then dst asc), bounded.
@@ -465,26 +472,45 @@ pub fn compile_emissions(
     config: &ScoreConfig,
 ) -> EmissionTables {
     let pop = runtime::derive_popcount_table();
-    let mut k = runtime::OpKernel::default();
     let smoothing = config.smoothing;
     // Weighted evidence per region: the covered binary top-1 membership
     // at each depth (within the calibrated radius — the backoff floor is
     // a routing behavior, never region content; see `binary_top1_covered`).
     let mut evidence: Vec<BTreeMap<u32, u64>> = vec![BTreeMap::new(); regions.len()];
-    for observation in train {
-        let i = observation.position as usize;
-        for depth in 1..=max_depth {
-            let Some((top1, _)) =
-                binary_top1_covered(&mut k, &pop, regions, depth, &observation.sig)
-            else {
-                continue;
-            };
-            let dist = &mut evidence[top1 as usize];
-            for k_idx in 0..corpus.top_tokens[i].len() {
-                let token = corpus.top_tokens[i][k_idx];
-                let weight = corpus.top_weights[i][k_idx];
-                if weight > 0 {
-                    *dist.entry(token).or_insert(0) += u64::from(weight);
+    if !train.is_empty() {
+        let chunk_size = train.len().div_ceil(rayon::current_num_threads().max(1));
+        let partials: Vec<Vec<BTreeMap<u32, u64>>> = train
+            .par_chunks(chunk_size)
+            .map(|chunk| {
+                let mut k = runtime::OpKernel::default();
+                let mut local = vec![BTreeMap::new(); regions.len()];
+                for observation in chunk {
+                    let i = observation.position as usize;
+                    for depth in 1..=max_depth {
+                        let Some((top1, _)) =
+                            binary_top1_covered(&mut k, &pop, regions, depth, &observation.sig)
+                        else {
+                            continue;
+                        };
+                        let dist = &mut local[top1 as usize];
+                        for k_idx in 0..corpus.top_tokens[i].len() {
+                            let token = corpus.top_tokens[i][k_idx];
+                            let weight = corpus.top_weights[i][k_idx];
+                            if weight > 0 {
+                                *dist.entry(token).or_insert(0) += u64::from(weight);
+                            }
+                        }
+                    }
+                }
+                local
+            })
+            .collect();
+        // Merge chunks in input order, preserving the serial BTreeMap
+        // reduction order and therefore artifact determinism.
+        for partial in partials {
+            for (region, local_dist) in partial.into_iter().enumerate() {
+                for (token, weight) in local_dist {
+                    *evidence[region].entry(token).or_insert(0) += weight;
                 }
             }
         }
@@ -512,43 +538,58 @@ pub fn compile_emissions(
         })
         .collect();
 
+    let region_results: Vec<(Vec<(u32, ScoreQ)>, QuantizationErrorStats)> = regions
+        .par_iter()
+        .enumerate()
+        .map(|(region_id, region)| {
+            let mut emission_quantization = QuantizationErrorStats::default();
+            let dist = &evidence[region_id];
+            let total: u64 = dist.values().sum();
+            let types = dist.len();
+            // Parent distribution: the parent region's evidence, or the
+            // level-0 root distribution at depth 1.
+            let (parent_dist, parent_total): (&BTreeMap<u32, u64>, u64) = match region.parent {
+                Some(parent) => {
+                    let parent_dist = &evidence[parent as usize];
+                    (parent_dist, parent_dist.values().sum())
+                }
+                None => (&root_dist, root_total),
+            };
+            let parent_types = parent_dist.len();
+            let mut residuals: Vec<(u32, ScoreQ)> = dist
+                .iter()
+                .map(|(&token, &count)| {
+                    let lp_n = smoothing.ln_prob(count, total, vocab, types);
+                    let lp_p = smoothing.ln_prob(
+                        parent_dist.get(&token).copied().unwrap_or(0),
+                        parent_total,
+                        vocab,
+                        parent_types,
+                    );
+                    let ln = lp_n - lp_p;
+                    let score = ScoreQ::from_logprob(ln);
+                    emission_quantization.record_ln_quantization(ln, score);
+                    (token, score)
+                })
+                .collect();
+            // Top-E by residual score (score desc, token asc), stored
+            // ascending token.
+            residuals.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.cmp(&b.0)));
+            residuals.truncate(config.emission_entries);
+            residuals.sort_by_key(|&(token, _)| token);
+            (residuals, emission_quantization)
+        })
+        .collect();
     let mut region_lists = Vec::with_capacity(regions.len());
     let mut emission_quantization = QuantizationErrorStats::default();
-    for (region_id, region) in regions.iter().enumerate() {
-        let dist = &evidence[region_id];
-        let total: u64 = dist.values().sum();
-        let types = dist.len();
-        // Parent distribution: the parent region's evidence, or the
-        // level-0 root distribution at depth 1.
-        let (parent_dist, parent_total): (&BTreeMap<u32, u64>, u64) = match region.parent {
-            Some(parent) => {
-                let parent_dist = &evidence[parent as usize];
-                (parent_dist, parent_dist.values().sum())
-            }
-            None => (&root_dist, root_total),
-        };
-        let parent_types = parent_dist.len();
-        let mut residuals: Vec<(u32, ScoreQ)> = dist
-            .iter()
-            .map(|(&token, &count)| {
-                let lp_n = smoothing.ln_prob(count, total, vocab, types);
-                let lp_p = smoothing.ln_prob(
-                    parent_dist.get(&token).copied().unwrap_or(0),
-                    parent_total,
-                    vocab,
-                    parent_types,
-                );
-                let ln = lp_n - lp_p;
-                let score = ScoreQ::from_logprob(ln);
-                emission_quantization.record_ln_quantization(ln, score);
-                (token, score)
-            })
-            .collect();
-        // Top-E by residual score (score desc, token asc), stored
-        // ascending token.
-        residuals.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.cmp(&b.0)));
-        residuals.truncate(config.emission_entries);
-        residuals.sort_by_key(|&(token, _)| token);
+    for (residuals, stats) in region_results {
+        emission_quantization.sample_count += stats.sample_count;
+        emission_quantization.sum_abs_error_nano = emission_quantization
+            .sum_abs_error_nano
+            .saturating_add(stats.sum_abs_error_nano);
+        emission_quantization.max_abs_error_nano = emission_quantization
+            .max_abs_error_nano
+            .max(stats.max_abs_error_nano);
         region_lists.push(residuals);
     }
 
@@ -1400,124 +1441,76 @@ pub fn evaluate_gate_c(
     let mut recall_rule12_top1 = 0u64;
     let mut recall_rule12_top3 = 0u64;
     let gate_rotations = compiler::derive_rotations();
-    for (index, observation) in held_out.iter().enumerate() {
-        let position = observation.position as usize;
-        let teacher_argmax = corpus.t_argmax[position];
-        let next = corpus.next[position];
-        // #243 Phase C option A: one metric-respecting code per position
-        // (corpus bundle → assign_for_bundle), consumed consistently by
-        // the WB/store baseline and attested to every coded scorer call.
-        // The legacy Σ-over-cloud row intentionally keeps its own old
-        // semantics for comparison.
-        let code = runtime::code_plain(artifacts, &gate_rotations, corpus, position);
-
-        let legacy = scorer_with_exct.score_candidates_legacy(&observation.sig)?;
-        let rule1 = scorer_no_exct.score_candidates_coded(&observation.sig, Some(&code), &[])?;
-        let rule12 = scorer_with_exct.score_candidates_coded(&observation.sig, Some(&code), &[])?;
-        let rule1_no_f =
-            scorer_no_exct_no_f.score_candidates_coded(&observation.sig, Some(&code), &[])?;
-        let rule12_no_f =
-            scorer_with_exct_no_f.score_candidates_coded(&observation.sig, Some(&code), &[])?;
-        let normalized =
-            scorer_normalized.score_candidates_coded(&observation.sig, Some(&code), &[])?;
-        let margin = scorer_margin.score_candidates_coded(&observation.sig, Some(&code), &[])?;
-        let baseline = runtime::predict_witness_plain(store, &code);
-
-        let legacy_hit = legacy.selected == teacher_argmax;
-        let rule1_hit = rule1.selected == teacher_argmax;
-        let rule12_hit = rule12.selected == teacher_argmax;
-        let rule1_no_f_hit = rule1_no_f.selected == teacher_argmax;
-        let rule12_no_f_hit = rule12_no_f.selected == teacher_argmax;
-        let normalized_hit = normalized.selected == teacher_argmax;
-        let margin_hit = margin.selected == teacher_argmax;
-        let baseline_hit = baseline.token == teacher_argmax;
-        hits_legacy += u64::from(legacy_hit);
-        hits_rule1 += u64::from(rule1_hit);
-        hits_rule12 += u64::from(rule12_hit);
-        hits_rule1_no_f += u64::from(rule1_no_f_hit);
-        hits_rule12_no_f += u64::from(rule12_no_f_hit);
-        hits_normalized += u64::from(normalized_hit);
-        hits_margin += u64::from(margin_hit);
-        hits_baseline += u64::from(baseline_hit);
-        let legacy_bits = outcome_bits(&scorer_with_exct, &legacy.candidates, next);
-        let rule1_bits = outcome_bits(&scorer_no_exct, &rule1.candidates, next);
-        let rule12_bits = outcome_bits(&scorer_with_exct, &rule12.candidates, next);
-        let rule1_no_f_bits = outcome_bits(&scorer_no_exct_no_f, &rule1_no_f.candidates, next);
-        let rule12_no_f_bits = outcome_bits(&scorer_with_exct_no_f, &rule12_no_f.candidates, next);
-        let normalized_bits = outcome_bits(&scorer_normalized, &normalized.candidates, next);
-        let margin_bits = outcome_bits(&scorer_margin, &margin.candidates, next);
-        bits_legacy += legacy_bits;
-        bits_rule1 += rule1_bits;
-        bits_rule12 += rule12_bits;
-        bits_rule1_no_f += rule1_no_f_bits;
-        bits_rule12_no_f += rule12_no_f_bits;
-        bits_normalized += normalized_bits;
-        bits_margin += margin_bits;
-        bits_baseline += -witten_bell_probability(store, &code, next).log2();
-
-        let status_index = match rule12.witness.status {
-            ScoreStatus::ExactContext => 0,
-            ScoreStatus::Graph => 1,
-            ScoreStatus::Novel => 2,
-        };
-        status_positions[status_index] += 1;
-        status_hits[status_index] += u64::from(rule12_hit);
-        status_bits[status_index] += rule12_bits;
-        match &rule12.witness.exct {
-            Some(probe) => {
-                exct_level_positions[probe.level as usize] += 1;
-                if probe.level as usize == STAGES
-                    && rule12.witness.status == ScoreStatus::ExactContext
-                {
-                    exct_full_depth_supported += 1;
-                }
-            }
-            None => exct_probe_absent += 1,
+    let context = GateCContext {
+        artifacts,
+        corpus,
+        store,
+        gate_rotations: &gate_rotations,
+        scorer_no_exct: &scorer_no_exct,
+        scorer_with_exct: &scorer_with_exct,
+        scorer_no_exct_no_f: &scorer_no_exct_no_f,
+        scorer_with_exct_no_f: &scorer_with_exct_no_f,
+        scorer_normalized: &scorer_normalized,
+        scorer_margin: &scorer_margin,
+        r4g1,
+        artifact_container,
+        config,
+    };
+    // Each held-out position is independent. Collect compact rows in Rayon;
+    // reduce them in input order below so floating-point totals and all
+    // report bytes retain the serial implementation's determinism.
+    let rows: Vec<GateCRow> = held_out
+        .par_iter()
+        .enumerate()
+        .map(|(index, observation)| evaluate_gate_c_row(index, observation, &context))
+        .collect::<Result<Vec<_>, _>>()?;
+    for row in rows {
+        hits_legacy += u64::from(row.hits[0]);
+        hits_rule1 += u64::from(row.hits[1]);
+        hits_rule12 += u64::from(row.hits[2]);
+        hits_rule1_no_f += u64::from(row.hits[3]);
+        hits_rule12_no_f += u64::from(row.hits[4]);
+        hits_normalized += u64::from(row.hits[5]);
+        hits_margin += u64::from(row.hits[6]);
+        hits_baseline += u64::from(row.hits[7]);
+        bits_legacy += row.bits[0];
+        bits_rule1 += row.bits[1];
+        bits_rule12 += row.bits[2];
+        bits_rule1_no_f += row.bits[3];
+        bits_rule12_no_f += row.bits[4];
+        bits_normalized += row.bits[5];
+        bits_margin += row.bits[6];
+        bits_baseline += row.bits[7];
+        status_positions[row.status_index] += 1;
+        status_hits[row.status_index] += u64::from(row.status_hit);
+        status_bits[row.status_index] += row.status_bits;
+        if let Some(level) = row.exct_level {
+            exct_level_positions[level] += 1;
+        } else {
+            exct_probe_absent += 1;
         }
-
-        let contains = |candidates: &[(u32, ScoreQ)], token: u32| {
-            candidates.iter().any(|&(candidate, _)| candidate == token)
-        };
-        if contains(&rule1.candidates, teacher_argmax) {
-            recall_rule1_top1 += 1;
-        }
-        if contains(&rule12.candidates, teacher_argmax) {
-            recall_rule12_top1 += 1;
-        }
-        if corpus.top_tokens[position]
-            .iter()
-            .any(|&token| contains(&rule1.candidates, token))
-        {
-            recall_rule1_top3 += 1;
-        }
-        if corpus.top_tokens[position]
-            .iter()
-            .any(|&token| contains(&rule12.candidates, token))
-        {
-            recall_rule12_top3 += 1;
-        }
-
-        {
-            let win_loss = &mut outcome.win_loss;
-            accumulate_win_loss(&mut win_loss.rule12_vs_baseline, rule12_hit, baseline_hit);
-            accumulate_win_loss(&mut win_loss.rule12_vs_legacy, rule12_hit, legacy_hit);
-            accumulate_win_loss(&mut win_loss.rule1_vs_baseline, rule1_hit, baseline_hit);
-        }
-
-        if index < config.witness_sample {
-            outcome.witness_replays += 1;
-            if verify_witness_replay(
-                r4g1,
-                Some(artifact_container),
-                &rule12.witness,
-                config.root_top_b,
-                config.exct_top_x,
-            )
-            .is_err()
-            {
-                outcome.witness_replay_failures += 1;
-            }
-        }
+        exct_full_depth_supported += usize::from(row.exct_full_depth_supported);
+        recall_rule1_top1 += u64::from(row.candidate_recall[0]);
+        recall_rule1_top3 += u64::from(row.candidate_recall[1]);
+        recall_rule12_top1 += u64::from(row.candidate_recall[2]);
+        recall_rule12_top3 += u64::from(row.candidate_recall[3]);
+        accumulate_win_loss(
+            &mut outcome.win_loss.rule12_vs_baseline,
+            row.hits[2],
+            row.hits[7],
+        );
+        accumulate_win_loss(
+            &mut outcome.win_loss.rule12_vs_legacy,
+            row.hits[2],
+            row.hits[0],
+        );
+        accumulate_win_loss(
+            &mut outcome.win_loss.rule1_vs_baseline,
+            row.hits[1],
+            row.hits[7],
+        );
+        outcome.witness_replays += usize::from(row.witness_replayed);
+        outcome.witness_replay_failures += usize::from(row.witness_replay_failed);
     }
     let n = held_out.len();
     if n == 0 {
@@ -1606,6 +1599,148 @@ pub fn evaluate_gate_c(
 }
 
 /// The `score_report.json` document. Schema history: 1 = the three-set
+#[derive(Debug, Clone)]
+struct GateCRow {
+    hits: [bool; 8],
+    bits: [f64; 8],
+    status_index: usize,
+    status_hit: bool,
+    status_bits: f64,
+    exct_level: Option<usize>,
+    exct_full_depth_supported: bool,
+    candidate_recall: [bool; 4],
+    witness_replayed: bool,
+    witness_replay_failed: bool,
+}
+
+struct GateCContext<'a> {
+    artifacts: &'a compiler::Compiled,
+    corpus: &'a Corpus,
+    store: &'a Store,
+    gate_rotations: &'a [usize; compiler::WINDOW + 1],
+    scorer_no_exct: &'a GraphScorer,
+    scorer_with_exct: &'a GraphScorer,
+    scorer_no_exct_no_f: &'a GraphScorer,
+    scorer_with_exct_no_f: &'a GraphScorer,
+    scorer_normalized: &'a GraphScorer,
+    scorer_margin: &'a GraphScorer,
+    r4g1: &'a [u8],
+    artifact_container: &'a [u8],
+    config: &'a ScoreConfig,
+}
+
+fn evaluate_gate_c_row(
+    index: usize,
+    observation: &Observation,
+    context: &GateCContext<'_>,
+) -> Result<GateCRow, String> {
+    let position = observation.position as usize;
+    let teacher_argmax = context.corpus.t_argmax[position];
+    let next = context.corpus.next[position];
+    let code = runtime::code_plain(
+        context.artifacts,
+        context.gate_rotations,
+        context.corpus,
+        position,
+    );
+
+    let legacy = context
+        .scorer_with_exct
+        .score_candidates_legacy(&observation.sig)?;
+    let rule1 =
+        context
+            .scorer_no_exct
+            .score_candidates_coded(&observation.sig, Some(&code), &[])?;
+    let rule12 =
+        context
+            .scorer_with_exct
+            .score_candidates_coded(&observation.sig, Some(&code), &[])?;
+    let rule1_no_f =
+        context
+            .scorer_no_exct_no_f
+            .score_candidates_coded(&observation.sig, Some(&code), &[])?;
+    let rule12_no_f =
+        context
+            .scorer_with_exct_no_f
+            .score_candidates_coded(&observation.sig, Some(&code), &[])?;
+    let normalized =
+        context
+            .scorer_normalized
+            .score_candidates_coded(&observation.sig, Some(&code), &[])?;
+    let margin =
+        context
+            .scorer_margin
+            .score_candidates_coded(&observation.sig, Some(&code), &[])?;
+    let baseline = runtime::predict_witness_plain(context.store, &code);
+
+    let hits = [
+        legacy.selected == teacher_argmax,
+        rule1.selected == teacher_argmax,
+        rule12.selected == teacher_argmax,
+        rule1_no_f.selected == teacher_argmax,
+        rule12_no_f.selected == teacher_argmax,
+        normalized.selected == teacher_argmax,
+        margin.selected == teacher_argmax,
+        baseline.token == teacher_argmax,
+    ];
+    let bits = [
+        outcome_bits(context.scorer_with_exct, &legacy.candidates, next),
+        outcome_bits(context.scorer_no_exct, &rule1.candidates, next),
+        outcome_bits(context.scorer_with_exct, &rule12.candidates, next),
+        outcome_bits(context.scorer_no_exct_no_f, &rule1_no_f.candidates, next),
+        outcome_bits(context.scorer_with_exct_no_f, &rule12_no_f.candidates, next),
+        outcome_bits(context.scorer_normalized, &normalized.candidates, next),
+        outcome_bits(context.scorer_margin, &margin.candidates, next),
+        -witten_bell_probability(context.store, &code, next).log2(),
+    ];
+    let status_index = match rule12.witness.status {
+        ScoreStatus::ExactContext => 0,
+        ScoreStatus::Graph => 1,
+        ScoreStatus::Novel => 2,
+    };
+    let contains = |candidates: &[(u32, ScoreQ)], token: u32| {
+        candidates.iter().any(|&(candidate, _)| candidate == token)
+    };
+    let candidate_recall = [
+        contains(&rule1.candidates, teacher_argmax),
+        context.corpus.top_tokens[position]
+            .iter()
+            .any(|&token| contains(&rule1.candidates, token)),
+        contains(&rule12.candidates, teacher_argmax),
+        context.corpus.top_tokens[position]
+            .iter()
+            .any(|&token| contains(&rule12.candidates, token)),
+    ];
+    let exct_level = rule12
+        .witness
+        .exct
+        .as_ref()
+        .map(|probe| probe.level as usize);
+    let witness_replay_failed = index < context.config.witness_sample
+        && verify_witness_replay(
+            context.r4g1,
+            Some(context.artifact_container),
+            &rule12.witness,
+            context.config.root_top_b,
+            context.config.exct_top_x,
+        )
+        .is_err();
+
+    Ok(GateCRow {
+        hits,
+        bits,
+        status_index,
+        status_hit: hits[2],
+        status_bits: bits[2],
+        exct_level,
+        exct_full_depth_supported: exct_level == Some(STAGES)
+            && rule12.witness.status == ScoreStatus::ExactContext,
+        candidate_recall,
+        witness_replayed: index < context.config.witness_sample,
+        witness_replay_failed,
+    })
+}
+
 /// Gate C table (graph_no_exct/graph_with_exct/tla3_baseline); 2 = the
 /// issue-#64 four-set table (legacy_sum / rule1_chain /
 /// rule12_precedence / tla3_baseline) with status counts, per-status
