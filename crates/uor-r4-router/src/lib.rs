@@ -6,6 +6,8 @@ use crate::geometry::SemanticGeometry;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::f64::consts::PI;
+use std::fmt;
+use std::sync::OnceLock;
 use uor_r4_core::semantic::WeightedRoute;
 use uor_r4_core::*;
 use wasm_bindgen::prelude::*;
@@ -147,6 +149,97 @@ pub struct CorpusItem {
     pub v: f64,
     #[serde(default)]
     pub v_4d: Vec<f64>,
+    #[serde(default)]
+    pub provenance: Option<CoordinateProvenance>,
+}
+
+/// UOR-addressed evidence for the text and transforms that produced one
+/// stored geometric coordinate. Empty/absent provenance is retained for
+/// backwards-compatible imports of pre-#259 router state.
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
+pub struct CoordinateProvenance {
+    pub source_kappa: String,
+    pub projection_kappa: String,
+    pub vocabulary_kappa: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ProvenanceError {
+    Missing {
+        sentence: String,
+    },
+    Mismatch {
+        sentence: String,
+        axis: &'static str,
+    },
+}
+
+impl fmt::Display for ProvenanceError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Missing { sentence } => {
+                write!(formatter, "missing coordinate provenance for {sentence:?}")
+            }
+            Self::Mismatch { sentence, axis } => {
+                write!(formatter, "{axis} provenance mismatch for {sentence:?}")
+            }
+        }
+    }
+}
+
+impl std::error::Error for ProvenanceError {}
+
+fn uor_json_address(value: &serde_json::Value) -> String {
+    let bytes = match serde_json::to_vec(value) {
+        Ok(bytes) => bytes,
+        Err(_) => return "uor-addr:error:serialization".to_string(),
+    };
+    match uor_addr::json::address(&bytes) {
+        Ok(outcome) => outcome.address.to_string(),
+        Err(_) => match uor_addr::json::address_blake3(&bytes) {
+            Ok(outcome) => outcome.address.to_string(),
+            Err(_) => "uor-addr:error:address".to_string(),
+        },
+    }
+}
+
+fn source_provenance(sentence: &str) -> String {
+    uor_json_address(&serde_json::json!({
+        "axis": "uor-r4-router-source-v1",
+        "sentence": sentence,
+    }))
+}
+
+fn projection_provenance() -> &'static str {
+    static PROJECTION_KAPPA: OnceLock<String> = OnceLock::new();
+    PROJECTION_KAPPA.get_or_init(|| {
+        uor_json_address(&serde_json::json!({
+            "axis": "uor-r4-spectral-projection-v1",
+            "channels": 512,
+            "windows": 16,
+            "samples": 257,
+            "subwindows": 6,
+            "x_min": 1.0e4,
+            "x_max": 1.0e6,
+            "rho": 4.0,
+            "sparse_radius": 0.3,
+            "window_bias": "none",
+            "query_state_blend": [0.25, 0.75],
+            "zeta_zero_set": "uor-r4-core::zeta_zeros:v1",
+        }))
+    })
+}
+
+fn vocabulary_provenance(word_primes: &HashMap<String, u64>, words: &[String]) -> String {
+    let mut entries: Vec<(String, u64)> = words
+        .iter()
+        .filter_map(|word| word_primes.get(word).map(|prime| (word.clone(), *prime)))
+        .collect();
+    entries.sort_by(|left, right| left.0.cmp(&right.0));
+    uor_json_address(&serde_json::json!({
+        "axis": "uor-r4-vocabulary-state-v1",
+        "entries": entries,
+    }))
 }
 
 /// Serde helper: `HashMap<Vec<u32>, Vec<u64>>` cannot serialize as a JSON
@@ -1660,6 +1753,11 @@ impl UorR4Router {
 
         let (u, v) = self.get_sentence_projection(&state_vector, idx_win as usize);
         let v_4d = self.get_state_4d_projection(&state_vector);
+        let provenance = CoordinateProvenance {
+            source_kappa: source_provenance(s_clean),
+            projection_kappa: projection_provenance().to_string(),
+            vocabulary_kappa: vocabulary_provenance(&self.word_primes, words),
+        };
 
         let key = identity_key(identity);
         let target_index = self.corpus_index_by_identity.entry(key).or_default();
@@ -1699,6 +1797,7 @@ impl UorR4Router {
             u,
             v,
             v_4d,
+            provenance: Some(provenance),
         };
 
         win_items.push(item.clone());
@@ -1719,6 +1818,41 @@ impl UorR4Router {
                 self.index_semantic_object(item_id, &coords);
             }
         }
+    }
+
+    /// Recompute and verify provenance for every indexed sentence in one
+    /// identity scope. This is deliberately outside the prediction kernel;
+    /// callers may use it as an integrity check before serving a retrieval.
+    pub fn verify_corpus_provenance(&self, identity: &str) -> Result<usize, ProvenanceError> {
+        let items = self.corpus_items_for(identity);
+        for item in &items {
+            let provenance = item
+                .provenance
+                .as_ref()
+                .ok_or_else(|| ProvenanceError::Missing {
+                    sentence: item.sentence.clone(),
+                })?;
+            if provenance.source_kappa != source_provenance(&item.sentence) {
+                return Err(ProvenanceError::Mismatch {
+                    sentence: item.sentence.clone(),
+                    axis: "source",
+                });
+            }
+            if provenance.projection_kappa != projection_provenance() {
+                return Err(ProvenanceError::Mismatch {
+                    sentence: item.sentence.clone(),
+                    axis: "projection",
+                });
+            }
+            if provenance.vocabulary_kappa != vocabulary_provenance(&self.word_primes, &item.words)
+            {
+                return Err(ProvenanceError::Mismatch {
+                    sentence: item.sentence.clone(),
+                    axis: "vocabulary",
+                });
+            }
+        }
+        Ok(items.len())
     }
 
     fn retrieve_geometric_resonance(
@@ -1811,6 +1945,7 @@ impl UorR4Router {
                     window_index: win_idx,
                     kappa: item.kappa,
                     deficit_angle: item.deficit_angle,
+                    provenance: item.provenance.clone(),
                 });
             }
         }
@@ -1918,6 +2053,7 @@ impl UorR4Router {
                         window_index: id % 16 + 1,
                         kappa: item.kappa,
                         deficit_angle: item.deficit_angle,
+                        provenance: item.provenance.clone(),
                     });
                 }
             }
@@ -2498,6 +2634,8 @@ pub struct ResonanceResult {
     pub window_index: u64,
     pub kappa: f64,
     pub deficit_angle: f64,
+    #[serde(default)]
+    pub provenance: Option<CoordinateProvenance>,
 }
 
 #[derive(Serialize, Deserialize)]
