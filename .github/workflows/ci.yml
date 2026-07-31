@@ -111,7 +111,27 @@ jobs:
         run: TLESS_CHECKPOINT=/tmp/ref/out/model.bin cargo test -p uor-r4-core --release --test kappa_reproduction -- --ignored
         continue-on-error: true
 
+      - name: Decide whether the Gate C trend harness applies (wait diet, 2026-07-30)
+        id: trend_paths
+        run: |
+          # The trend harness (~5 min: release build + full fixture score)
+          # only measures changes that can move the scored-graph row. Run
+          # it ONLY when those surfaces changed; docs, process, serving-api
+          # or unrelated-crate changes skip it. Merge-group and main-push
+          # runs keep it unconditionally (the merged result is the record).
+          git fetch --depth=1 origin main
+          if [ "${{ github.event_name }}" != "pull_request" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          elif git diff --name-only FETCH_HEAD...HEAD | grep -qE \
+            '^(crates/uor-r4-graph-certify/|crates/uor-r4-graph-compiler/|crates/uor-r4-core/src/transformerless/|crates/uor-r4-core/tests/fixtures/|crates/uor-r4-graph-format/|docs/transformerless/gate_c_pinned\.json|crates/uor-r4-graph-cli/)'; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "trend harness skipped: no scored-graph surface in the diff"
+          fi
+
       - name: Gate C trend tracking (Issue #77)
+        if: steps.trend_paths.outputs.run == 'true'
         run: |
           cargo run --release --bin r4 -- transformerless score \
             --corpus-meta crates/uor-r4-core/tests/fixtures/c_meta.bin \
@@ -122,7 +142,7 @@ jobs:
 
       - name: Upload Gate C trend JSON
         uses: actions/upload-artifact@v4
-        if: always()
+        if: steps.trend_paths.outputs.run == 'true'
         with:
           name: gate-c-trend
           path: trend_output/score_report.json
