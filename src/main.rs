@@ -567,6 +567,13 @@ fn run(cli: &Cli) -> Result<(), RunError> {
         }
         Some(Command::Store) => run_core("store", &[]),
         Some(Command::Certify) => {
+            if std::env::var("R4_CERTIFY_C_ONLY").is_ok_and(|value| value != "0") {
+                println!(
+                    "R4_CERTIFY_C_ONLY set: running only the C serving row; full certificate skipped."
+                );
+                certify_serving_row();
+                return Ok(());
+            }
             let checkpoint = reference_checkpoint_path()?;
             let oracle = uor_r4_model_source::LlamaOracle::load(&checkpoint);
             uor_r4_graph_certify::certify::certify(&oracle);
@@ -611,7 +618,9 @@ fn run(cli: &Cli) -> Result<(), RunError> {
 /// The certify C row (issue #280): held-out evaluation of the serving
 /// surface — `R4Engine` + `score.r4g1` + the D4 status policy — on the
 /// first loadable compiled bundle (`R4_CERTIFY_SERVING_BUNDLE` selects
-/// one explicitly). Prints a measured row or an explicit recorded skip;
+/// one explicitly). `R4_CERTIFY_C_ONLY=1` invokes this path without loading
+/// the reference teacher or running the unrelated full certificate. Prints
+/// a measured row or an explicit recorded skip;
 /// never fails the certify run. The retired scaffold row's history is
 /// recorded on issue #280.
 fn certify_serving_row() {
