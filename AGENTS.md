@@ -89,6 +89,29 @@ PR (a bump can shift libm-sensitive teacher logprobs — see Gate E below).
   legitimately change κs; drift from nondeterminism never does — investigate
   first (double-compile determinism check), then re-pin.
 
+## Teacher parity BDD suite
+
+`features/suites/teacher_parity_benchmarks.feature` (steps in `tests/bdd.rs`)
+runs the live SmolLM2-135M teacher against both compiled runtimes (legacy TLS
+store and R4G1 graph) on teacher-forced accuracy (top-1 / top-8 recall /
+Δbits), generation speed, and kernel invariants (zero-multiply op census,
+zero-alloc hot path, witness self-consistency), κ-pinning every input. A
+corpus-replay scenario (S6) additionally measures in-distribution top-1
+against the recorded teacher labels in the bundle's `corpus.meta` /
+`corpus.records` through the deployed paths — no live teacher — reporting
+next to Gate C's anchors (Gate C scores a held-out partition with the
+compiler-side plain baseline; S6 replays recorded positions, so its ~0.43
+figures sit above the 0.181 anchor by construction). It runs
+in the default `cargo test --test bdd` when `.uor-models/sources/
+smollm2-135m-instruct` and the compiled bundle are present, and vacuously
+skips otherwise (κ-test convention — check the fixture before trusting green).
+Budgets: `R4_PARITY_POSITIONS` (256), `R4_PARITY_GEN_TOKENS` (128),
+`R4_PARITY_RUNS` (3), `R4_PARITY_CORPUS_POSITIONS` (1000). Thresholds are
+pinned empirical floors with ~20%
+margin; the ~1% top-1 figures are out-of-distribution honesty, not a bug —
+the suite's 8 prompts are novel text, unlike Gate C's same-corpus replay
+(see the comment above the constants in `tests/bdd.rs`).
+
 ## Process conventions
 
 - **Merge workflow (since 2026-07-22): NO direct pushes to `main`.** A ruleset
