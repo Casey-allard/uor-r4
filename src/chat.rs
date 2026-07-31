@@ -284,6 +284,7 @@ fn hologram_answer(
         &question_tokens[1..question_count]
     };
     append_history(history, history_len, question_tokens);
+    let session_signature = uor_r4_router::session_signature_from_tokens(&history[..*history_len]);
 
     if let Some(bytes) = r4g1_bytes {
         if let Ok(r4g1) = uor_r4_graph_runtime::R4G1Runtime::parse(bytes) {
@@ -330,9 +331,10 @@ fn hologram_answer(
 
                     let mut cands =
                         [(0u32, uor_r4_core::transformerless::score_q::ScoreQ::ZERO); 8];
-                    let num_cands = r4g1.predict_candidates(
+                    let num_cands = r4g1.predict_candidates_with_signature_lanes(
                         &beam_history,
                         Some(&sig),
+                        Some(&session_signature),
                         &mut node_scores,
                         &mut cands,
                     );
@@ -2362,6 +2364,7 @@ fn render_audit_trace_record(
 #[cfg(test)]
 mod tests {
     use super::{parse_remote_url, repeated_suffix};
+    use uor_r4_router::session_signature_from_tokens;
 
     #[test]
     fn repetition_guard_detects_repeated_token_windows() {
@@ -2380,5 +2383,23 @@ mod tests {
         assert_eq!(host, "localhost");
         assert_eq!(port, 9000);
         assert_eq!(path, "/v1/chat/completions");
+    }
+
+    #[test]
+    fn session_lane_sees_history_beyond_the_shared_eight_token_context() {
+        let shared_context = [10, 11, 12, 13, 14, 15, 16, 17];
+        let mut first_history = vec![1, 2, 3, 4];
+        first_history.extend_from_slice(&shared_context);
+        let mut second_history = vec![91, 92, 93, 94];
+        second_history.extend_from_slice(&shared_context);
+
+        assert_eq!(
+            &first_history[first_history.len() - 8..],
+            &second_history[second_history.len() - 8..]
+        );
+        assert_ne!(
+            session_signature_from_tokens(&first_history),
+            session_signature_from_tokens(&second_history)
+        );
     }
 }

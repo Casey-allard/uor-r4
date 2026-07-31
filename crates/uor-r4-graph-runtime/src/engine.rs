@@ -38,6 +38,18 @@ pub struct R4G1Runtime<'a> {
     chain: crate::patch_chain::PatchChain<'a>,
 }
 
+fn signature_affinity_bonus(prototype: &[u8], mask: &[u8], signature: &[u8]) -> i32 {
+    let mut distance = 0u32;
+    for ((&prototype_byte, &mask_byte), &signature_byte) in
+        prototype.iter().zip(mask).zip(signature)
+    {
+        distance += ((signature_byte ^ prototype_byte) & mask_byte).count_ones();
+    }
+    let x = 288i32.saturating_sub(distance as i32);
+    // x * 10 == (x << 3) + (x << 1), preserving the integer-only kernel.
+    (x << 3).saturating_add(x << 1)
+}
+
 impl<'a> R4G1Runtime<'a> {
     /// Create a new R4G1 runtime by running two-stage validation over `bytes`.
     pub fn parse(bytes: &'a [u8]) -> Result<Self, FormatError> {
@@ -479,6 +491,29 @@ impl<'a> R4G1Runtime<'a> {
         signature: Option<&[u8]>,
         _node_scores: &mut [ScoreQ],
     ) -> (u32, ScoreQ) {
+        self.predict_distribution_with_signature_lanes(
+            context_tokens,
+            signature,
+            None,
+            _node_scores,
+        )
+    }
+
+    /// Predict with separate context and session signatures.
+    ///
+    /// The context signature remains the only input to ROUT fallback, so
+    /// enabling the session lane starts as a bias-only experiment. The
+    /// optional session signature participates in the existing emission
+    /// affinity bonus below; callers can later opt it into ROUT after an
+    /// evaluation establishes that the fallback prototypes are calibrated
+    /// for session-space inputs.
+    pub fn predict_distribution_with_signature_lanes(
+        &self,
+        context_tokens: &[u32],
+        context_signature: Option<&[u8]>,
+        session_signature: Option<&[u8]>,
+        _node_scores: &mut [ScoreQ],
+    ) -> (u32, ScoreQ) {
         let num_nodes = self.node_count();
         if num_nodes == 0 || context_tokens.is_empty() {
             return (0, ScoreQ::ZERO);
@@ -577,7 +612,7 @@ impl<'a> R4G1Runtime<'a> {
         // If the suffix DFA fell off the manifold, use the continuous 288-bit VSA signature
         // to find the top-M semantic regions N_best (N_best <= 8) to jump back onto the graph!
         if (active_len == 0 || (active_len == 1 && active_nodes[0] == 0))
-            && let Some(sig) = signature
+            && let Some(sig) = context_signature
         {
             let mut best_node = 0;
             let mut best_dist = u32::MAX;
@@ -719,25 +754,18 @@ impl<'a> R4G1Runtime<'a> {
                             ScoreQ::from_raw(1)
                         };
 
-                        let sig_bonus = if let Some(sig) = signature {
+                        let sig_bonus = if let Some(sig) = session_signature.or(context_signature) {
                             let rout_bytes = base_graph.section(SectionId::ROUT).unwrap_or(&[]);
                             let proto_offset = (target_node.prototype_word_start as usize) << 3;
                             let mask_offset = (target_node.mask_word_start as usize) << 3;
                             if proto_offset + sig.len() <= rout_bytes.len()
                                 && mask_offset + sig.len() <= rout_bytes.len()
                             {
-                                let mut dist = 0u32;
-                                for k in 0..sig.len() {
-                                    let p = rout_bytes[proto_offset + k];
-                                    let m = rout_bytes[mask_offset + k];
-                                    let s = sig[k];
-                                    dist += ((s ^ p) & m).count_ones();
-                                }
-                                {
-                                    // x * 10 == (x << 3) + (x << 1) (shift/add only).
-                                    let x = 288i32.saturating_sub(dist as i32);
-                                    (x << 3).saturating_add(x << 1)
-                                }
+                                signature_affinity_bonus(
+                                    &rout_bytes[proto_offset..proto_offset + sig.len()],
+                                    &rout_bytes[mask_offset..mask_offset + sig.len()],
+                                    sig,
+                                )
                             } else {
                                 0
                             }
@@ -829,6 +857,25 @@ impl<'a> R4G1Runtime<'a> {
         node_scores: &mut [ScoreQ],
         out_candidates: &mut [(u32, ScoreQ); 8],
     ) -> usize {
+        self.predict_candidates_with_signature_lanes(
+            context_tokens,
+            signature,
+            None,
+            node_scores,
+            out_candidates,
+        )
+    }
+
+    /// Top-k counterpart of
+    /// [`Self::predict_distribution_with_signature_lanes`].
+    pub fn predict_candidates_with_signature_lanes(
+        &self,
+        context_tokens: &[u32],
+        context_signature: Option<&[u8]>,
+        session_signature: Option<&[u8]>,
+        node_scores: &mut [ScoreQ],
+        out_candidates: &mut [(u32, ScoreQ); 8],
+    ) -> usize {
         let prev_token = context_tokens.last().copied().unwrap_or(0);
         let mut tokens_since_period = 0usize;
         for &tok in context_tokens.iter().rev() {
@@ -838,8 +885,12 @@ impl<'a> R4G1Runtime<'a> {
             tokens_since_period += 1;
         }
 
-        let (top_tok, top_score) =
-            self.predict_distribution(context_tokens, signature, node_scores);
+        let (top_tok, top_score) = self.predict_distribution_with_signature_lanes(
+            context_tokens,
+            context_signature,
+            session_signature,
+            node_scores,
+        );
 
         let mut count = 0usize;
         if top_tok != 0 {
@@ -904,5 +955,22 @@ impl<'a> R4G1Runtime<'a> {
         }
         out_candidates[..count].sort_by_key(|b| core::cmp::Reverse(b.1.raw()));
         count
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::signature_affinity_bonus;
+
+    #[test]
+    fn session_lane_bonus_is_integer_hamming_affinity() {
+        let prototype = [0u8; 36];
+        let mask = [0xffu8; 36];
+        let near = [0u8; 36];
+        let far = [0xffu8; 36];
+        assert!(
+            signature_affinity_bonus(&prototype, &mask, &near)
+                > signature_affinity_bonus(&prototype, &mask, &far)
+        );
     }
 }

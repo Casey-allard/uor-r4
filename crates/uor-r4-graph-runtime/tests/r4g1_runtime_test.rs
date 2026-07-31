@@ -69,3 +69,38 @@ fn r4g1_runtime_enforces_no_float_in_prediction_path() {
     assert!(score >= ScoreQ::MIN);
     assert!(score <= ScoreQ::MAX);
 }
+
+#[test]
+fn session_signature_is_bias_only_until_routing_is_calibrated() {
+    let (art_bytes, artifacts) = fixture_artifacts();
+    let store = synthetic_store();
+    let store_bytes = runtime::store_bytes(&store);
+    let (r4g1_bytes, _) =
+        convert_r4g1::convert(&art_bytes, &artifacts, &store, &store_bytes, None).unwrap();
+    let runtime = R4G1Runtime::parse(&r4g1_bytes).unwrap();
+    let context_signature = [0x55u8; 36];
+    let zero_session = [0u8; 36];
+    let full_session = [0xffu8; 36];
+
+    let mut zero_scores = vec![ScoreQ::MIN; runtime.node_count() as usize];
+    let mut full_scores = vec![ScoreQ::MIN; runtime.node_count() as usize];
+    let zero = runtime.predict_distribution_with_signature_lanes(
+        &[3, 1, 4],
+        Some(&context_signature),
+        Some(&zero_session),
+        &mut zero_scores,
+    );
+    let full = runtime.predict_distribution_with_signature_lanes(
+        &[3, 1, 4],
+        Some(&context_signature),
+        Some(&full_session),
+        &mut full_scores,
+    );
+
+    assert_eq!(
+        zero.0, full.0,
+        "session lane must not change ROUT fallback yet"
+    );
+    assert!(zero.1 >= ScoreQ::MIN);
+    assert!(full.1 >= ScoreQ::MIN);
+}

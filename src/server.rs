@@ -576,8 +576,13 @@ fn generate_tless_text(
     slot: &Arc<Mutex<Option<tless_uor::TlessState>>>,
     prompt: &str,
     max_tokens: usize,
+    session_signature: Option<&[u8]>,
 ) -> Option<String> {
-    if let Some(r4g1_text) = tless_uor::generate_r4g1_response(prompt, max_tokens) {
+    if let Some(r4g1_text) = tless_uor::generate_r4g1_response_with_session_signature(
+        prompt,
+        max_tokens,
+        session_signature,
+    ) {
         return Some(r4g1_text);
     }
     const MAX_SERVER_TOKENS: usize = 256;
@@ -1234,8 +1239,9 @@ fn transformerless_tier(
     slot: &Arc<Mutex<Option<tless_uor::TlessState>>>,
     prompt: &str,
     max_tokens: usize,
+    session_signature: Option<&[u8]>,
 ) -> TierResult {
-    match generate_tless_text(slot, prompt, max_tokens.max(32)) {
+    match generate_tless_text(slot, prompt, max_tokens.max(32), session_signature) {
         Some(text) if is_usable_generated_text(&text) => TierResult::success(text),
         Some(_) => {
             println!("[-] Transformerless output rejected as non-readable or pathological");
@@ -1322,6 +1328,7 @@ fn run_serving_cascade(
     max_tokens: usize,
     temperature: f64,
     gamma: f64,
+    session_signature: Option<&[u8]>,
     pinned: Option<&'static str>,
 ) -> ServingCascade {
     let mut signal = R4g1Signal::default();
@@ -1340,7 +1347,9 @@ fn run_serving_cascade(
         if include(TIER_TRANSFORMERLESS) {
             tiers.push((
                 TIER_TRANSFORMERLESS,
-                Box::new(move || transformerless_tier(tless, prompt, max_tokens)),
+                Box::new(move || {
+                    transformerless_tier(tless, prompt, max_tokens, session_signature)
+                }),
             ));
         }
         if pinned.is_none() {
@@ -2374,6 +2383,9 @@ fn handle_connection(
         };
 
         router_guard.evolve_state(&identity, routing_prompt, gamma);
+        let session_signature = uor_r4_router::session_signature_from_state(
+            &router_guard.get_brain_state_native(&identity),
+        );
 
         uor_r4_wasm_router::ACTIVE_ROUTER.with(|r| {
             *r.borrow_mut() = Some(router_ptr);
@@ -2401,6 +2413,7 @@ fn handle_connection(
                 max_tokens,
                 temperature,
                 gamma,
+                Some(&session_signature),
                 pinned,
             )
         };
@@ -2576,6 +2589,9 @@ fn handle_connection(
 
         // 3. Evolve the brain state
         router_guard.evolve_state(&identity, &payload.text, gamma);
+        let session_signature = uor_r4_router::session_signature_from_state(
+            &router_guard.get_brain_state_native(&identity),
+        );
 
         // 4. Run final routing on evolved state via UOR pipeline
         let t_route = Instant::now();
@@ -2616,6 +2632,7 @@ fn handle_connection(
                 max_tokens,
                 temperature,
                 gamma,
+                Some(&session_signature),
                 pinned,
             )
         };
@@ -3889,6 +3906,8 @@ fn answer_question(
     let (gamma, temperature) = autotune(kappa, theta_d, uor_bias);
 
     router.evolve_state(identity, text, gamma);
+    let session_signature =
+        uor_r4_router::session_signature_from_state(&router.get_brain_state_native(identity));
 
     uor_r4_wasm_router::ACTIVE_ROUTER.with(|r| *r.borrow_mut() = Some(router_ptr));
     let grounded = uor_r4_wasm_router::UorR4RouterModel::forward(input).expect("final route");
@@ -3911,10 +3930,11 @@ fn answer_question(
     } else {
         text.to_string()
     };
-    let (mut answer_text, mode) = match generate_tless_text(tless, &prompt, max_tokens.max(24)) {
-        Some(generated) => (generated, "transformerless".to_string()),
-        None => (geom.text.clone(), "geometric-decoded".to_string()),
-    };
+    let (mut answer_text, mode) =
+        match generate_tless_text(tless, &prompt, max_tokens.max(24), Some(&session_signature)) {
+            Some(generated) => (generated, "transformerless".to_string()),
+            None => (geom.text.clone(), "geometric-decoded".to_string()),
+        };
     if answer_text.is_empty() {
         answer_text = "Manifold resonance too sparse for synthesis.".to_string();
     }

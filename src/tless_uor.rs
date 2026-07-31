@@ -122,6 +122,17 @@ pub fn ensure_owned_tless() {
 pub fn ensure_owned_tless() {}
 
 pub fn generate_r4g1_response(prompt: &str, max_tokens: usize) -> Option<String> {
+    generate_r4g1_response_with_session_signature(prompt, max_tokens, None)
+}
+
+/// Generate through the graph runtime with an optional server-side session
+/// signature. The context signature remains the ROUT input; the session lane
+/// is consumed by the existing emission-affinity bonus.
+pub fn generate_r4g1_response_with_session_signature(
+    prompt: &str,
+    max_tokens: usize,
+    session_signature: Option<&[u8]>,
+) -> Option<String> {
     let guard = match OWNED_R4G1.read() {
         Ok(g) => g,
         Err(_) => {
@@ -209,9 +220,10 @@ pub fn generate_r4g1_response(prompt: &str, max_tokens: usize) -> Option<String>
             });
 
             let mut cands = [(0u32, uor_r4_core::transformerless::score_q::ScoreQ::ZERO); 8];
-            let num_cands = runtime.predict_candidates(
+            let num_cands = runtime.predict_candidates_with_signature_lanes(
                 &beam_tokens,
                 sig.as_ref().map(|s| &s[..]),
+                session_signature,
                 &mut node_scores,
                 &mut cands,
             );

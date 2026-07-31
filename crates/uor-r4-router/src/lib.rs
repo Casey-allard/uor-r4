@@ -13,6 +13,11 @@ use wasm_bindgen::prelude::*;
 pub mod benchmark;
 pub mod fallback;
 pub mod geometry;
+pub mod session_signature;
+
+pub use session_signature::{
+    from_state as session_signature_from_state, from_tokens as session_signature_from_tokens,
+};
 
 pub use fallback::{
     run_cascade, run_cascade_with_policy, AbstainPolicy, CascadeOutcome, EngineResponse,
