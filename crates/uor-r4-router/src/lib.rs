@@ -344,6 +344,10 @@ pub struct GeometricResponse {
     pub trajectory: Vec<TrajectoryStep>,
 }
 
+fn hopf_probe_value(digest: &blake3::Hash, index: usize) -> f64 {
+    (digest.as_bytes()[index % digest.as_bytes().len()] as f64 / 255.0) - 0.5
+}
+
 impl UorR4Router {
     pub fn index_semantic_object(&mut self, id: usize, coords: &geometry::FacetCoordinates) {
         let id = id as u64;
@@ -1190,32 +1194,47 @@ impl UorR4Router {
         (u, v)
     }
 
-    fn get_state_4d_projection(&self, state_vector: &[f64]) -> Vec<f64> {
-        let mut w_act = 0.0;
-        let mut w_obj = 0.0;
-        let mut w_temp = 0.0;
-        let mut w_shared = 0.0;
-        for i in 0..128 {
-            w_act += state_vector[i] * state_vector[i];
-            w_obj += state_vector[i + 128] * state_vector[i + 128];
-            w_temp += state_vector[i + 256] * state_vector[i + 256];
-            w_shared += state_vector[i + 384] * state_vector[i + 384];
-        }
-        w_act = w_act.sqrt();
-        w_obj = w_obj.sqrt();
-        w_temp = w_temp.sqrt();
-        w_shared = w_shared.sqrt();
+    /// Project each 128-dimensional block onto a fixed signed direction.
+    ///
+    /// The previous projection retained only four block L2 norms. Those are
+    /// non-negative and, for the evolved session states, nearly constant, so
+    /// most of the directional information never reached the Hopf address.
+    /// The probe is deterministic and content-independent: its 128 entries
+    /// are derived from a domain-separated Blake3 digest and normalized once
+    /// per block. Compiler-side floating point is intentional here; this is
+    /// the exploratory router, not the deployed integer kernel.
+    fn hopf_signed_projection_component(&self, state_vector: &[f64], block: usize) -> f64 {
+        let mut hasher = blake3::Hasher::new();
+        hasher.update(b"uor-r4 issue-306 signed-hopf-projection");
+        hasher.update(&(block as u64).to_le_bytes());
+        let digest = hasher.finalize();
 
-        let denom = (w_act * w_act + w_obj * w_obj + w_temp * w_temp + w_shared * w_shared).sqrt();
+        let norm_sq = (0..128)
+            .map(|i| hopf_probe_value(&digest, i) * hopf_probe_value(&digest, i))
+            .sum::<f64>();
+        let norm = norm_sq.sqrt();
+        let offset = block * 128;
+        (0..128)
+            .map(|i| state_vector[offset + i] * hopf_probe_value(&digest, i) / norm)
+            .sum()
+    }
+
+    fn get_state_4d_projection(&self, state_vector: &[f64]) -> Vec<f64> {
+        let components = [
+            self.hopf_signed_projection_component(state_vector, 0),
+            self.hopf_signed_projection_component(state_vector, 1),
+            self.hopf_signed_projection_component(state_vector, 2),
+            self.hopf_signed_projection_component(state_vector, 3),
+        ];
+        let denom = components
+            .iter()
+            .map(|value| value * value)
+            .sum::<f64>()
+            .sqrt();
         if denom < 1e-12 {
             vec![0.5, 0.5, 0.5, 0.5]
         } else {
-            vec![
-                w_act / denom,
-                w_obj / denom,
-                w_temp / denom,
-                w_shared / denom,
-            ]
+            components.iter().map(|value| value / denom).collect()
         }
     }
 
@@ -3135,6 +3154,31 @@ pub fn vsa_encode_graph_edge(src: &str, rel: &str, tgt: &str, space: &str) -> Ve
 #[cfg(test)]
 mod router_repetition_tests {
     use super::*;
+
+    #[test]
+    fn hopf_projection_preserves_signed_block_direction() {
+        let router = UorR4Router::new(0.85);
+        let mut state = vec![0.0; 512];
+        let mut hasher = blake3::Hasher::new();
+        hasher.update(b"uor-r4 issue-306 signed-hopf-projection");
+        hasher.update(&0u64.to_le_bytes());
+        let digest = hasher.finalize();
+        for (i, value) in state.iter_mut().enumerate().take(128) {
+            *value = hopf_probe_value(&digest, i);
+        }
+
+        let positive = router.get_state_4d_projection_native(&state);
+        assert!(
+            positive[0] > 0.99,
+            "signed direction should survive projection"
+        );
+
+        for value in &mut state[..128] {
+            *value = -*value;
+        }
+        let negative = router.get_state_4d_projection_native(&state);
+        assert!(negative[0] < -0.99, "projection must retain direction sign");
+    }
 
     #[test]
     fn test_elliptic_basin_escape_and_repetition_mitigation() {
