@@ -1379,14 +1379,44 @@ impl UorR4Router {
             .map(|r| r.axis as usize)
             .unwrap_or(1);
 
+        let routed_path = routes
+            .iter()
+            .find(|route| route.axis as usize == routed_idx)
+            .map(|route| route.path.as_slice());
+
         let active_state_refined: Vec<f64> = grounded.vsa_vector[..512]
             .iter()
             .map(|&x| x as f64)
             .collect();
-        let active_range = [(routed_idx - 1) * 32, routed_idx * 32];
-        let routed_slice = &active_state_refined[active_range[0]..active_range[1]];
+        let active_range = routed_path
+            .filter(|path| path.len() >= 3)
+            .map(|path| [path[1] as usize, path[2] as usize])
+            .filter(|range| range[0] < range[1] && range[1] <= active_state_refined.len())
+            .unwrap_or([(routed_idx - 1) * 32, routed_idx * 32]);
+        let routed_projection = coords
+            .coordinates
+            .get("projected_state")
+            .map(|values| {
+                values
+                    .iter()
+                    .map(|bits| f32::from_bits(*bits) as f64)
+                    .collect::<Vec<_>>()
+            })
+            .unwrap_or_else(|| active_state_refined.clone());
+        let routed_slice = &routed_projection[active_range[0]..active_range[1]];
         let (sigma_q, sigma_kl, lambda_val, kappa, deficit_angle) =
             state_metrics_from_weights(routed_slice);
+
+        let eigenvalues = coords
+            .coordinates
+            .get("eigenvalues")
+            .map(|values| {
+                values
+                    .iter()
+                    .map(|bits| f32::from_bits(*bits) as f64)
+                    .collect::<Vec<_>>()
+            })
+            .unwrap_or_else(|| vec![0.0; 8]);
 
         let v_4d = self.get_state_4d_projection(&active_state_refined);
         let (sector_id, bins, hopf_components) = assign_sector_hopf_transport_scalar(
@@ -1422,7 +1452,7 @@ impl UorR4Router {
                 kappa,
                 deficit_angle,
             },
-            eigenvalues: vec![0.05, 0.03, 0.01, 0.005, 0.002, 0.0, 0.0, 0.0],
+            eigenvalues,
             active_range: vec![active_range[0] as u64, active_range[1] as u64],
             state_vector: routed_slice.to_vec(),
             qimc: QimcResult {
@@ -1480,7 +1510,18 @@ impl UorR4Router {
 
         let mut routes_output = Vec::new();
         for r in &routes {
-            let slice = &active_state_refined[(r.axis as usize - 1) * 32..r.axis as usize * 32];
+            let range = r
+                .path
+                .get(1..3)
+                .map(|path| [path[0] as usize, path[1] as usize])
+                .filter(|range| range[0] < range[1] && range[1] <= active_state_refined.len())
+                .unwrap_or([(r.axis as usize - 1) * 32, r.axis as usize * 32]);
+            let source_state = if r.axis as usize == routed_idx {
+                &routed_projection
+            } else {
+                &active_state_refined
+            };
+            let slice = &source_state[range[0]..range[1]];
             let (_s_q, _s_kl, _l_v, k_v, d_a) = state_metrics_from_weights(slice);
             routes_output.push(RouteInfo {
                 window_index: r.axis as u64,
@@ -1497,10 +1538,7 @@ impl UorR4Router {
                     std::f64::consts::PI
                 },
                 state_vector: slice.to_vec(),
-                active_range: vec![
-                    ((r.axis as usize - 1) * 32) as u64,
-                    (r.axis as usize * 32) as u64,
-                ],
+                active_range: vec![range[0] as u64, range[1] as u64],
             });
         }
 
@@ -1708,12 +1746,14 @@ impl UorR4Router {
             .unwrap_or(&empty_index);
 
         let mut query_projections = HashMap::new();
+        let mut query_ranges = HashMap::new();
         for r in &routing_data.all_routes {
             let mut full_state = vec![0.0; 512];
             let start = r.active_range[0] as usize;
             let end = r.active_range[1] as usize;
             full_state[start..end].copy_from_slice(&r.state_vector[..end - start]);
             query_projections.insert(r.window_index, full_state);
+            query_ranges.insert(r.window_index, (start, end));
         }
 
         let all_windows: std::collections::HashSet<u64> = scoped_index
@@ -1726,8 +1766,10 @@ impl UorR4Router {
             let shared_items = shared_index.get(&win_idx);
             let scoped_items = scoped_index.get(&win_idx);
 
-            let s_idx = (win_idx as usize - 1) * 32;
-            let e_idx = win_idx as usize * 32;
+            let (s_idx, e_idx) = query_ranges
+                .get(&win_idx)
+                .copied()
+                .unwrap_or(((win_idx as usize - 1) * 32, win_idx as usize * 32));
             let sum_sq = state_vector[s_idx..e_idx]
                 .iter()
                 .map(|value| value * value)

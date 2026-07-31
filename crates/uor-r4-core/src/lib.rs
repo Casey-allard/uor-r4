@@ -10,6 +10,7 @@ use std::f64::consts::PI;
 pub mod cayley_dickson;
 pub mod semantic;
 pub mod transformerless;
+pub mod zeta_projection;
 pub mod zeta_zeros;
 
 pub const ALPHA_4: f64 = 1.0 / (2.0 * PI); // 1 / 2π

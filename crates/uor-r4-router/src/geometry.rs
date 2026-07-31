@@ -1,7 +1,8 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use uor_r4_core::semantic::{expand_atom, KappaLabel, WeightedRoute};
-use uor_r4_core::{derive_uor_control_plane, identity_to_qimc_prime};
+use uor_r4_core::zeta_projection::{project_state, window_ranges, NUM_WINDOWS};
+use uor_r4_core::{get_word_vector, identity_to_qimc_prime};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct TypedObject {
@@ -69,6 +70,37 @@ impl<'a> SemanticGeometry for SpectralGeometry<'a> {
         let mut v = vec![0.0; 1024];
         if let Some(state) = self.active_state {
             v[..512].copy_from_slice(state);
+
+            // Keep the session state as context, but make the spectral query
+            // itself observable. This is the content-reconnection path: two
+            // queries with an identical session state get distinct,
+            // deterministic zeta signals before QR window selection.
+            let mut query_signal = vec![0.0; 512];
+            let mut known_words = 0usize;
+            for word in object.content.split_whitespace() {
+                let normalized = word
+                    .trim_matches(|character: char| !character.is_alphanumeric())
+                    .to_lowercase();
+                if normalized.is_empty() {
+                    continue;
+                }
+                let (prime, _, _) = identity_to_qimc_prime(&normalized);
+                let word_vector = get_word_vector(prime);
+                for (target, source) in query_signal.iter_mut().zip(word_vector) {
+                    *target += source;
+                }
+                known_words += 1;
+            }
+            let query_norm = query_signal
+                .iter()
+                .map(|value| value * value)
+                .sum::<f64>()
+                .sqrt();
+            if known_words > 0 && query_norm > 1.0e-12 {
+                for (target, source) in v[..512].iter_mut().zip(query_signal) {
+                    *target = 0.25 * *target + 0.75 * source / query_norm;
+                }
+            }
         } else {
             v[..512].copy_from_slice(&vec![1.0 / (512.0f64).sqrt(); 512]);
         }
@@ -83,46 +115,45 @@ impl<'a> SemanticGeometry for SpectralGeometry<'a> {
             .iter()
             .map(|&x| x as f64)
             .collect();
-        let identity = self.identity.unwrap_or("");
-        let (_qimc_prime, _qimc_index, identity_meta) = identity_to_qimc_prime(identity);
-        let uor_control = derive_uor_control_plane(&identity_meta);
-
-        let mut routed_idx = 0;
-        let mut best_score = -1.0;
-        let mut window_scores = Vec::with_capacity(16);
-
-        for win_idx in 1..=16 {
-            let s_idx = (win_idx - 1) * 32;
-            let e_idx = win_idx * 32;
-            let slice = &active_state[s_idx..e_idx];
-
-            let mut sum_sq = 0.0;
-            for &val in slice {
-                sum_sq += val * val;
-            }
-            let norm = sum_sq.sqrt();
-            let bias = uor_control
-                .window_biases
-                .get(&win_idx)
-                .copied()
-                .unwrap_or(0.0);
-            let score = norm * (1.0 + bias);
-
-            if score > best_score {
-                best_score = score;
-                routed_idx = win_idx;
-            }
-            window_scores.push(score);
-        }
+        // Window choice is a property of the query signal, not the identity
+        // control plane. Keeping these biases at zero prevents a near-tie
+        // from moving identical content to a different sparse range when the
+        // same sentence is indexed under another identity.
+        let biases = vec![0.0; NUM_WINDOWS];
+        let projection = project_state(&active_state, &biases);
+        let routed_idx = projection.window_index;
 
         let mut coords = HashMap::new();
         coords.insert("window".to_string(), vec![routed_idx as u32]);
 
-        let mut score_bits = Vec::with_capacity(16);
-        for &score in &window_scores {
+        let mut score_bits = Vec::with_capacity(NUM_WINDOWS);
+        for &score in &projection.scores {
             score_bits.push((score as f32).to_bits());
         }
         coords.insert("scores".to_string(), score_bits);
+        coords.insert(
+            "ranges".to_string(),
+            window_ranges()
+                .into_iter()
+                .flat_map(|(start, end)| [start as u32, end as u32])
+                .collect(),
+        );
+        coords.insert(
+            "eigenvalues".to_string(),
+            projection
+                .eigenvalues
+                .iter()
+                .map(|value| (*value as f32).to_bits())
+                .collect(),
+        );
+        coords.insert(
+            "projected_state".to_string(),
+            projection
+                .projected_state
+                .iter()
+                .map(|value| (*value as f32).to_bits())
+                .collect(),
+        );
 
         Ok(FacetCoordinates {
             coordinates: coords,
@@ -143,11 +174,19 @@ impl<'a> SemanticGeometry for SpectralGeometry<'a> {
 
         let mut routes = Vec::new();
         if let Some(scores) = coordinates.coordinates.get("scores") {
+            let ranges = coordinates.coordinates.get("ranges");
             for (idx, &bits) in scores.iter().enumerate() {
                 let score = f32::from_bits(bits);
+                let path = ranges
+                    .and_then(|ranges| {
+                        let start = ranges.get(idx * 2)?;
+                        let end = ranges.get(idx * 2 + 1)?;
+                        Some(vec![(idx + 1) as u32, *start, *end])
+                    })
+                    .unwrap_or_else(|| vec![(idx + 1) as u32]);
                 routes.push(WeightedRoute {
                     axis: (idx + 1) as u32,
-                    path: vec![(idx + 1) as u32],
+                    path,
                     score,
                 });
             }
@@ -254,5 +293,46 @@ impl SemanticGeometry for VsaGeometry {
         } else {
             Err(GeometryError::OperatorMismatch)
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn identical_session_state_can_select_different_query_windows() {
+        let state = vec![1.0 / (512.0_f64).sqrt(); 512];
+        let geometry = SpectralGeometry {
+            space_cid: "blake3:spectral_space".to_string(),
+            active_state: Some(&state),
+            identity: Some("test-session"),
+        };
+        let first = geometry
+            .encode(
+                &geometry
+                    .ground(&TypedObject {
+                        object_type: "query".to_string(),
+                        content: "prime factorization and zeta spectrum".to_string(),
+                    })
+                    .expect("first query grounds"),
+            )
+            .expect("first query encodes");
+        let second = geometry
+            .encode(
+                &geometry
+                    .ground(&TypedObject {
+                        object_type: "query".to_string(),
+                        content: "oceanic climate satellites and rainfall".to_string(),
+                    })
+                    .expect("second query grounds"),
+            )
+            .expect("second query encodes");
+
+        assert_ne!(
+            first.coordinates.get("window"),
+            second.coordinates.get("window"),
+            "query content must affect window selection with a fixed session state"
+        );
     }
 }
