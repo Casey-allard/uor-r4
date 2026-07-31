@@ -1892,6 +1892,7 @@ dependencies = [
 name = "uor-r4-router"
 version = "0.1.0"
 dependencies = [
+ "blake3",
  "console_error_panic_hook",
  "hex",
  "serde",

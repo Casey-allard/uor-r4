@@ -1273,6 +1273,20 @@ impl UorR4Router {
         identity: &str,
         state_vector: Option<&[f64]>,
     ) -> RoutingData {
+        self.route_query_to_manifold_internal_with_hopf_input(text, identity, state_vector)
+            .0
+    }
+
+    /// As `route_query_to_manifold_internal`, additionally returning the
+    /// 512-d vector that `get_state_4d_projection` reduces to the Hopf map
+    /// input (the grounded VSA vector, or the session state on ground
+    /// failure). Measurement surface for issue #303.
+    fn route_query_to_manifold_internal_with_hopf_input(
+        &self,
+        text: &str,
+        identity: &str,
+        state_vector: Option<&[f64]>,
+    ) -> (RoutingData, Vec<f64>) {
         let active_state = match state_vector {
             Some(v) => v.to_vec(),
             None => {
@@ -1308,7 +1322,7 @@ impl UorR4Router {
         text: &str,
         identity: &str,
         active_state: &[f64],
-    ) -> RoutingData {
+    ) -> (RoutingData, Vec<f64>) {
         let (qimc_prime, qimc_index, identity_meta) = identity_to_qimc_prime(identity);
         let uor_control = derive_uor_control_plane(&identity_meta);
 
@@ -1356,7 +1370,7 @@ impl UorR4Router {
             state_metrics_from_weights(routed_slice);
 
         let v_4d = self.get_state_4d_projection(&active_state_refined);
-        let (sector_id, _bins, hopf_components) = assign_sector_hopf_transport_scalar(
+        let (sector_id, bins, hopf_components) = assign_sector_hopf_transport_scalar(
             &v_4d,
             512,
             uor_control.phase_transport_lambda,
@@ -1415,6 +1429,9 @@ impl UorR4Router {
                 phase_transport_lambda: uor_control.phase_transport_lambda,
                 hopf_chi_bins: uor_control.hopf_chi_bins as u64,
                 sector_id: sector_id as u64,
+                chi_bin: bins["chi_bin"] as u64,
+                delta_bin: bins["delta_bin"] as u64,
+                alpha_bin: bins["alpha_bin"] as u64,
                 subspace_norms: SubspaceNorms {
                     act: active_state_refined[0..128]
                         .iter()
@@ -1468,10 +1485,13 @@ impl UorR4Router {
             });
         }
 
-        RoutingData {
-            routed,
-            all_routes: routes_output,
-        }
+        (
+            RoutingData {
+                routed,
+                all_routes: routes_output,
+            },
+            active_state_refined,
+        )
     }
 
     /// Content-derived 512-d state for a piece of text (issue #245): the
@@ -2380,6 +2400,9 @@ pub struct HopfResult {
     pub phase_transport_lambda: f64,
     pub hopf_chi_bins: u64,
     pub sector_id: u64,
+    pub chi_bin: u64,
+    pub delta_bin: u64,
+    pub alpha_bin: u64,
     pub subspace_norms: SubspaceNorms,
 }
 
@@ -2489,6 +2512,19 @@ impl UorR4Router {
     }
 
     pub fn route_query_to_manifold_native(&mut self, text: &str, identity: &str) -> RoutingData {
+        self.route_query_to_manifold_native_with_hopf_input(text, identity)
+            .0
+    }
+
+    /// As `route_query_to_manifold_native`, additionally returning the 512-d
+    /// vector that `get_state_4d_projection` reduces to the Hopf map input
+    /// (the grounded VSA vector, or the session state on ground failure).
+    /// Measurement surface for issue #303.
+    pub fn route_query_to_manifold_native_with_hopf_input(
+        &mut self,
+        text: &str,
+        identity: &str,
+    ) -> (RoutingData, Vec<f64>) {
         let key = identity_key(identity);
         let active_state = self
             .session_brain_states
@@ -2496,7 +2532,7 @@ impl UorR4Router {
             .or_insert_with(|| vec![1.0 / (512.0f64).sqrt(); 512])
             .clone();
 
-        self.route_query_to_manifold_internal(text, identity, Some(&active_state))
+        self.route_query_to_manifold_internal_with_hopf_input(text, identity, Some(&active_state))
     }
 
     pub fn get_top_resonances_native(
