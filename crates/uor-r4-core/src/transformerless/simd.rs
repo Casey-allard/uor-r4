@@ -1,4 +1,4 @@
-use super::compiler::SIG_BYTES;
+use super::compiler::{D, K, SIG_BYTES};
 
 #[inline(always)]
 pub fn hamming_distance_36_scalar(a: &[u8; SIG_BYTES], b: &[u8; SIG_BYTES]) -> u32 {
@@ -102,6 +102,255 @@ pub fn hamming_distance_36(a: &[u8; SIG_BYTES], b: &[u8; SIG_BYTES]) -> u32 {
     {
         hamming_distance_36_scalar(a, b)
     }
+}
+
+const DOT_LANES: usize = 4;
+const DOT_GROUPS: usize = K / DOT_LANES;
+
+/// One dimension's decoded shift/add terms for four adjacent classes.
+///
+/// This is a load-time expansion of the packed u16 table. It keeps the
+/// deployed artifact unchanged while giving SIMD adapters contiguous shift
+/// and sign metadata. `active` and `negative` use all-zero/all-one i64 masks.
+#[derive(Clone, Copy)]
+pub(crate) struct DotTermVector {
+    shifts: [i64; DOT_LANES],
+    active: [i64; DOT_LANES],
+    negative: [i64; DOT_LANES],
+}
+
+#[derive(Clone, Copy)]
+pub(crate) struct DotVector {
+    /// Terms are ordered high byte then low byte, matching the scalar path.
+    terms: [DotTermVector; 2],
+}
+
+pub(crate) struct DotStage {
+    /// Dimension-major: D vectors, each containing K/4 class groups.
+    pub(crate) vectors: Vec<DotVector>,
+}
+
+pub(crate) struct DotTables {
+    pub(crate) stages: Vec<DotStage>,
+}
+
+fn decode_dot_term(term: u8) -> (i64, i64, i64) {
+    if term & 0x40 == 0 {
+        return (0, 0, 0);
+    }
+    let exponent = i64::from(term & 0x3F) - 32;
+    let negative = if term & 0x80 != 0 { -1 } else { 0 };
+    (exponent, -1, negative)
+}
+
+impl DotTables {
+    pub(crate) fn from_packed(packed: &[Vec<u16>]) -> Option<Self> {
+        if packed.is_empty() {
+            return None;
+        }
+        let mut stages = Vec::with_capacity(packed.len());
+        for table in packed {
+            if table.len() != D * K {
+                return None;
+            }
+            let mut vectors = Vec::with_capacity(D * DOT_GROUPS);
+            for dimension in 0..D {
+                for group in 0..DOT_GROUPS {
+                    let mut terms = [DotTermVector {
+                        shifts: [0; DOT_LANES],
+                        active: [0; DOT_LANES],
+                        negative: [0; DOT_LANES],
+                    }; 2];
+                    for lane in 0..DOT_LANES {
+                        let class = group * DOT_LANES + lane;
+                        let entry = table[class * D + dimension].to_le_bytes();
+                        let (hi_shift, hi_active, hi_negative) = decode_dot_term(entry[1]);
+                        let (lo_shift, lo_active, lo_negative) = decode_dot_term(entry[0]);
+                        terms[0].shifts[lane] = hi_shift;
+                        terms[0].active[lane] = hi_active;
+                        terms[0].negative[lane] = hi_negative;
+                        terms[1].shifts[lane] = lo_shift;
+                        terms[1].active[lane] = lo_active;
+                        terms[1].negative[lane] = lo_negative;
+                    }
+                    vectors.push(DotVector { terms });
+                }
+            }
+            stages.push(DotStage { vectors });
+        }
+        Some(Self { stages })
+    }
+}
+
+#[cfg(not(target_arch = "aarch64"))]
+#[inline]
+fn dot_term_scalar(work: i64, term: &DotTermVector, lane: usize) -> i64 {
+    if term.active[lane] == 0 {
+        return 0;
+    }
+    let shift = term.shifts[lane];
+    let shifted = if shift >= 0 {
+        work << shift
+    } else {
+        work >> -shift
+    };
+    if term.negative[lane] != 0 {
+        -shifted
+    } else {
+        shifted
+    }
+}
+
+#[cfg(not(target_arch = "aarch64"))]
+pub(crate) fn dot_argmax_scalar(stage: &DotStage, work: &[i64; D]) -> u8 {
+    let mut scores = [0i64; K];
+    for (dimension, groups) in stage.vectors.chunks_exact(DOT_GROUPS).enumerate() {
+        for (group, vector) in groups.iter().enumerate() {
+            for lane in 0..DOT_LANES {
+                let class = group * DOT_LANES + lane;
+                scores[class] += dot_term_scalar(work[dimension], &vector.terms[0], lane);
+                scores[class] += dot_term_scalar(work[dimension], &vector.terms[1], lane);
+            }
+        }
+    }
+    let mut best_class = 0u8;
+    let mut best_score = i64::MIN;
+    for (class, &score) in scores.iter().enumerate() {
+        if score > best_score {
+            best_score = score;
+            best_class = class as u8;
+        }
+    }
+    best_class
+}
+
+#[cfg(target_arch = "x86_64")]
+#[target_feature(enable = "avx2")]
+unsafe fn dot_argmax_avx2(stage: &DotStage, work: &[i64; D]) -> u8 {
+    use std::arch::x86_64::*;
+
+    let zero = _mm256_setzero_si256();
+    let all_ones = _mm256_set1_epi64x(-1);
+    let sixty_four = _mm256_set1_epi64x(64);
+    let mut accumulators = [zero; DOT_GROUPS];
+    for (dimension, groups) in stage.vectors.chunks_exact(DOT_GROUPS).enumerate() {
+        let work_vector = _mm256_set1_epi64x(work[dimension]);
+        for (group, vector) in groups.iter().enumerate() {
+            for term in &vector.terms {
+                let shifts = _mm256_loadu_si256(term.shifts.as_ptr() as *const __m256i);
+                let active = _mm256_loadu_si256(term.active.as_ptr() as *const __m256i);
+                let negative = _mm256_loadu_si256(term.negative.as_ptr() as *const __m256i);
+                let is_right = _mm256_cmpgt_epi64(zero, shifts);
+                let absolute_shift = _mm256_sub_epi64(zero, shifts);
+                let left = _mm256_sllv_epi64(work_vector, shifts);
+                let logical_right = _mm256_srlv_epi64(work_vector, absolute_shift);
+                let sign = _mm256_cmpgt_epi64(zero, work_vector);
+                let fill_shift = _mm256_sub_epi64(sixty_four, absolute_shift);
+                let fill = _mm256_sllv_epi64(all_ones, fill_shift);
+                let arithmetic_right = _mm256_or_si256(logical_right, _mm256_and_si256(sign, fill));
+                let shifted = _mm256_blendv_epi8(left, arithmetic_right, is_right);
+                let negated = _mm256_sub_epi64(zero, shifted);
+                let signed = _mm256_blendv_epi8(shifted, negated, negative);
+                let active_value = _mm256_blendv_epi8(zero, signed, active);
+                accumulators[group] = _mm256_add_epi64(accumulators[group], active_value);
+            }
+        }
+    }
+
+    let mut scores = [0i64; K];
+    for (group, accumulator) in accumulators.iter().enumerate() {
+        let mut lanes = [0i64; DOT_LANES];
+        _mm256_storeu_si256(lanes.as_mut_ptr() as *mut __m256i, *accumulator);
+        for (lane, &score) in lanes.iter().enumerate() {
+            scores[group * DOT_LANES + lane] = score;
+        }
+    }
+    let mut best_class = 0u8;
+    let mut best_score = i64::MIN;
+    for (class, &score) in scores.iter().enumerate() {
+        if score > best_score {
+            best_score = score;
+            best_class = class as u8;
+        }
+    }
+    best_class
+}
+
+#[cfg(target_arch = "aarch64")]
+unsafe fn dot_argmax_neon(stage: &DotStage, work: &[i64; D]) -> u8 {
+    use std::arch::aarch64::*;
+
+    let zero = vdupq_n_s64(0);
+    let mut accumulators_a = [zero; DOT_GROUPS];
+    let mut accumulators_b = [zero; DOT_GROUPS];
+    for (dimension, groups) in stage.vectors.chunks_exact(DOT_GROUPS).enumerate() {
+        let work_vector = vdupq_n_s64(work[dimension]);
+        for (group, vector) in groups.iter().enumerate() {
+            for term in &vector.terms {
+                let shifts_a = vld1q_s64(term.shifts.as_ptr());
+                let shifts_b = vld1q_s64(term.shifts.as_ptr().add(2));
+                let active_a = vld1q_s64(term.active.as_ptr());
+                let active_b = vld1q_s64(term.active.as_ptr().add(2));
+                let negative_a = vld1q_s64(term.negative.as_ptr());
+                let negative_b = vld1q_s64(term.negative.as_ptr().add(2));
+                let shifted_a = vshlq_s64(work_vector, shifts_a);
+                let shifted_b = vshlq_s64(work_vector, shifts_b);
+                let signed_a = vbslq_s64(
+                    vreinterpretq_u64_s64(negative_a),
+                    vnegq_s64(shifted_a),
+                    shifted_a,
+                );
+                let signed_b = vbslq_s64(
+                    vreinterpretq_u64_s64(negative_b),
+                    vnegq_s64(shifted_b),
+                    shifted_b,
+                );
+                accumulators_a[group] = vaddq_s64(
+                    accumulators_a[group],
+                    vbslq_s64(vreinterpretq_u64_s64(active_a), signed_a, zero),
+                );
+                accumulators_b[group] = vaddq_s64(
+                    accumulators_b[group],
+                    vbslq_s64(vreinterpretq_u64_s64(active_b), signed_b, zero),
+                );
+            }
+        }
+    }
+
+    let mut scores = [0i64; K];
+    for group in 0..DOT_GROUPS {
+        scores[group * DOT_LANES] = vget_lane_s64(vget_low_s64(accumulators_a[group]), 0);
+        scores[group * DOT_LANES + 1] = vget_lane_s64(vget_high_s64(accumulators_a[group]), 0);
+        scores[group * DOT_LANES + 2] = vget_lane_s64(vget_low_s64(accumulators_b[group]), 0);
+        scores[group * DOT_LANES + 3] = vget_lane_s64(vget_high_s64(accumulators_b[group]), 0);
+    }
+    let mut best_class = 0u8;
+    let mut best_score = i64::MIN;
+    for (class, &score) in scores.iter().enumerate() {
+        if score > best_score {
+            best_score = score;
+            best_class = class as u8;
+        }
+    }
+    best_class
+}
+
+#[cfg(target_arch = "x86_64")]
+pub(crate) fn dot_argmax(stage: &DotStage, work: &[i64; D]) -> u8 {
+    if std::arch::is_x86_feature_detected!("avx2") {
+        return unsafe { dot_argmax_avx2(stage, work) };
+    }
+    dot_argmax_scalar(stage, work)
+}
+
+#[cfg(target_arch = "aarch64")]
+pub(crate) fn dot_argmax(stage: &DotStage, work: &[i64; D]) -> u8 {
+    unsafe { dot_argmax_neon(stage, work) }
+}
+
+#[cfg(not(any(target_arch = "x86_64", target_arch = "aarch64")))]
+pub(crate) fn dot_argmax(stage: &DotStage, work: &[i64; D]) -> u8 {
+    dot_argmax_scalar(stage, work)
 }
 
 #[cfg(test)]

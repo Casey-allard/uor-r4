@@ -84,6 +84,17 @@ impl OpKernel {
         self.table_reads += 1;
         v
     }
+    /// Records one four-lane, two-term SIMD dot vector. The counts are
+    /// logical vector operations, not scalar lane expansions; the lane
+    /// width is fixed by the adapter and the scalar semantics remain the
+    /// equality oracle.
+    #[inline]
+    pub fn simd_dot_vector(&mut self) {
+        self.adds += 2;
+        self.shifts += 2;
+        self.compares += 1;
+        self.table_reads += 2;
+    }
 
     pub fn report(&self) -> String {
         format!(
@@ -915,6 +926,7 @@ pub struct Runtime<'a> {
     pub pop: [u8; 256],
     pub kernel: OpKernel,
     pub state: RuntimeState,
+    dot_tables: Option<super::simd::DotTables>,
 }
 
 impl<'a> Runtime<'a> {
@@ -925,6 +937,7 @@ impl<'a> Runtime<'a> {
             pop: derive_popcount_table(),
             kernel: OpKernel::default(),
             state: RuntimeState::default(),
+            dot_tables: super::simd::DotTables::from_packed(&art.dot_cb),
         }
     }
 
@@ -1006,8 +1019,8 @@ impl<'a> Runtime<'a> {
             *w = self.kernel.add(b, -t);
         }
         let mut code = [0u8; STAGES];
-        for (st_code, table) in code.iter_mut().zip(self.art.dot_cb.iter()) {
-            *st_code = self.dot_argmax(table, &work);
+        for (stage, (st_code, table)) in code.iter_mut().zip(self.art.dot_cb.iter()).enumerate() {
+            *st_code = self.dot_argmax(stage, table, &work);
         }
         code
     }
@@ -1015,7 +1028,18 @@ impl<'a> Runtime<'a> {
     /// Per-stage dot argmax through the kernel: one candidate scan per
     /// class, one table read per dimension entry, at most two shifts +
     /// two adds per term pair, one compare per candidate.
-    fn dot_argmax(&mut self, table: &[u16], work: &[i64; D]) -> u8 {
+    fn dot_argmax(&mut self, stage: usize, table: &[u16], work: &[i64; D]) -> u8 {
+        if let Some(dot_tables) = self.dot_tables.as_ref() {
+            let dot_stage = &dot_tables.stages[stage];
+            let class = super::simd::dot_argmax(dot_stage, work);
+            for _ in 0..K {
+                self.kernel.candidate_scan();
+            }
+            for _ in 0..dot_stage.vectors.len() {
+                self.kernel.simd_dot_vector();
+            }
+            return class;
+        }
         let mut best = i64::MIN;
         let mut best_k = 0u8;
         for (kk, row) in table.chunks_exact(D).enumerate() {
@@ -1089,13 +1113,18 @@ impl<'a> Runtime<'a> {
             }
         }
         let mut code = [0u8; STAGES];
-        for ((st_code, table), (copies, &shift)) in code.iter_mut().zip(self.art.dot_cb.iter()).zip(
-            self.art
-                .resid_cb
-                .iter()
-                .zip(self.art.resid_scale_shifts.iter()),
-        ) {
-            *st_code = self.dot_argmax(table, &work);
+        for (stage, ((st_code, table), (copies, &shift))) in code
+            .iter_mut()
+            .zip(self.art.dot_cb.iter())
+            .zip(
+                self.art
+                    .resid_cb
+                    .iter()
+                    .zip(self.art.resid_scale_shifts.iter()),
+            )
+            .enumerate()
+        {
+            *st_code = self.dot_argmax(stage, table, &work);
             if let Some(copy_row) = copies.chunks_exact(D).nth(usize::from(*st_code)) {
                 for (w, &c) in work.iter_mut().zip(copy_row.iter()) {
                     let v = self.kernel.table_fetch(i64::from(c));
