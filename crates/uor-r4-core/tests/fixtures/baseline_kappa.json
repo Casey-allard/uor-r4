@@ -1,5 +1,5 @@
 {
-  "description": "Migration oracle for the transformerless -> uor-tless port. RE-PINNED 2026-07-30 (third time) for #243 Phase C (maintainer decision, Casey, 2026-07-29): default emission = 1-term TLA6 (DOT_TERMS=1, shift-add dot tables serialized; container grows 462,092 -> 1,051,916 bytes). ONLY the container pin moves: token-side, stage-book, threshold, context-codebook and class-signature kappas are byte-identical to the 2026-07-21 TLA5-era pin, because the dot tables derive deterministically from ctx_cb and change serialization only. Decision row on the fresh binary: A 30.5/34.0, WB 9.0107, 48,321 keys (2-term era: 30.7/34.3, 9.0242, 47,476); op census halved to add 317,850 / shift 317,502 (2-term: 612,766/612,414) \u2014 the PR #291 op-budget flag resolves. TLA5-era container pin (462,092, blake3:81db4406...) remains the valid address of TLA5-era bytes; era chain: TLA5 pin 2026-07-21 (second re-pin, hierarchical-compiler era) -> this. certificate_macos and documented_linux_reference are HISTORICAL (b142c93-era), retained for reference only.",
+  "description": "Migration oracle for the transformerless -> uor-tless port. RE-PINNED 2026-08-01 (fourth time) for #327 (maintainer decision): teacher corpus scaled 150,000 -> 500,000 tokens (2,507 stories) and the #318 Phase B residual wiring landed, so the default emission is the TLA7 container (1,051,916 -> 1,346,836 bytes, kappa blake3:ef6a20f3...). The threshold, context-codebook, class-signature and container kappas move with the new corpus; the token-side pins (codebook stages, stage books, token codes, shifts/exponents) are byte-identical to the prior era by construction (they derive from the source embedding table only). Era chain: TLA5 pin 2026-07-21 -> 1-term TLA6 pin 2026-07-30 (#243 Phase C) -> this. Prior-era containers (TLA6 1,051,916 blake3:cf64fe74...; TLA5 462,092 blake3:81db4406...) remain valid addresses of their own bytes. documented_linux_reference is HISTORICAL (b142c93-era), retained for reference only.",
   "source": {
     "bytes": 60816028,
     "kappa": "blake3:0ae7339518cb124bb9a8fcef88e5dfb615d9e56c55a118e55817dd077c77455d"
@@ -31,63 +31,63 @@
   "token_codes": "blake3:c8ffa0f853f6257234ff789fa52248ed85a62b30b3a3cd7fee521644e6f8fd13",
   "bundle_derived_macos": {
     "class_signatures": [
-      "blake3:adb0a2b2fef15ee390fab045011a2cacfb1a6ea4380a80b06f8b5a1268012426",
-      "blake3:c83dfe235aa16896f0d5d9e40d40a13d30dc908064fc3053f37640c67728ce8c",
-      "blake3:5a7e759f0026fb6ad861511174f1fe10adb4d61f49fe9c34f76d306d9bb2845e",
-      "blake3:531cd76f7894db68dc1d4a8ae711f370dc771afa865cf5134f8e1b97d4c2772e"
+      "blake3:c4852b5615b625000500565cb8fd697ec3a77fffcd97517834e46094dea48853",
+      "blake3:ec5f8dad5b33b9c5c6f3308062b554058b2e887269fe87a50079e446c8d9e44c",
+      "blake3:15a58eda414f728fd9a31f5bd0b0cbb281ab65506973371de3d3dcc0a9d7f4b3",
+      "blake3:d1813d337e73a9c7ae18c8309c6497d19218e3356e26348ce635cb95802fc1ba"
     ],
     "container": {
-      "bytes": 1051916,
-      "kappa": "blake3:cf64fe7493d0e366e322154853955246d14bd1c9de59595a3e780e28ad4ca20d"
+      "bytes": 1346836,
+      "kappa": "blake3:ef6a20f385b9d1c78d3789cf5645f6a2ff5634056b1df4b53e52fc3034821fad"
     },
     "context_codebook_stages": [
-      "blake3:3f743d98d42d107021cc4c44a00187f78132671c57dded9fc73ee31e4f8c2747",
-      "blake3:6184546e32b453c48fd3558dd9d7493009863b2e50f78c5cffc78c76220974e0",
-      "blake3:39098e5ab7d96fdf487778241ec3d7851842c5f46c9bf0c7e04c3e22e40079ce",
-      "blake3:fc84a7681ed0341d1e4953039ece0bfdb97e18508f706b81a1ac57e4f8cb7ff8"
+      "blake3:93171cb8bf20dca7e36df94aaafa9d76bbed25837c300ec1b1e3a9e8fc82974b",
+      "blake3:346ef1b2e9eb6c3d7c45f0e2a2573fcd9746b3e203a73dde3574f59437acdf94",
+      "blake3:588c4ad4f6c2d5d9f4fc63ff17d4c9a857c6f45ef45885f9d5f1bdd5b9e46ed3",
+      "blake3:d1813650d87467f911a63a0d43d7d0f3f80d25f2dd3dac9dd6babeda650c29a0"
     ],
-    "threshold_vector": "blake3:d20da0ed7bde72b3b62d363403bebfe39214bd53d68633f762ef0b9b41bc0c35"
+    "threshold_vector": "blake3:379df25b0922a60018dd55d32a8fbf2c6b23a8082a4ba3255e3d000f46710ac1"
   },
   "certificate_macos": {
     "corpus": {
-      "tokens": 150000,
-      "stories": 754,
-      "held_out": 30036
+      "tokens": 500000,
+      "stories": 2507,
+      "held_out": 100306
     },
-    "teacher_floor_bits_per_token": 1.6548,
-    "teacher_ceiling_agreement_pct": 69.5,
+    "teacher_floor_bits_per_token": 1.426,
+    "teacher_ceiling_agreement_pct": 70.5,
     "rows": [
       {
         "design": "A-binary",
         "mul_free": true,
-        "top1_pct": 28.3,
-        "agreement_pct": 31.5,
-        "wb_bits_per_token": 6.5634,
-        "store_keys": 92464
+        "top1_pct": 34.7,
+        "agreement_pct": 39.0,
+        "wb_bits_per_token": 8.0249,
+        "store_keys": 179068
       },
       {
         "design": "A-f32",
         "mul_free": false,
-        "top1_pct": 30.7,
-        "agreement_pct": 34.4,
-        "wb_bits_per_token": 6.3663,
-        "store_keys": 91442
+        "top1_pct": 35.7,
+        "agreement_pct": 40.3,
+        "wb_bits_per_token": 8.1063,
+        "store_keys": 187644
       },
       {
         "design": "B-bit-prefix",
         "mul_free": true,
-        "top1_pct": 24.8,
-        "agreement_pct": 27.5,
-        "wb_bits_per_token": 7.8262,
-        "store_keys": 324128
+        "top1_pct": 27.1,
+        "agreement_pct": 30.6,
+        "wb_bits_per_token": 11.0356,
+        "store_keys": 1150027
       }
     ],
     "census_per_token": {
-      "add": 59598,
-      "xor": 36864,
-      "shift": 22734,
-      "compare": 1322,
-      "table_read": 54999,
+      "add": 319253,
+      "xor": 0,
+      "shift": 318932,
+      "compare": 1360,
+      "table_read": 314176,
       "multiply": 0
     },
     "compression_representation": [
@@ -95,33 +95,34 @@
         "depth": 1,
         "bytes": 105728,
         "ratio_vs_source": 348.7,
-        "mean_cosine": 0.958
+        "mean_cosine": 0.9565
       },
       {
         "depth": 2,
         "bytes": 211456,
         "ratio_vs_source": 174.3,
-        "mean_cosine": 0.9636
+        "mean_cosine": 0.9613
       },
       {
         "depth": 3,
         "bytes": 317184,
         "ratio_vs_source": 116.2,
-        "mean_cosine": 0.9666
+        "mean_cosine": 0.9647
       },
       {
         "depth": 4,
         "bytes": 422912,
         "ratio_vs_source": 87.2,
-        "mean_cosine": 0.9692
+        "mean_cosine": 0.9676
       }
     ],
     "compression_artifact": {
       "runtime_tables_bytes": 462080,
-      "store_bytes": 1724733,
-      "total_bytes": 2186813,
-      "ratio_vs_source": 27.8
-    }
+      "store_bytes": 8342205,
+      "total_bytes": 8804285,
+      "ratio_vs_source": 6.9
+    },
+    "era_note": "500k-corpus TLA7 era (#327 re-pin, 2026-08-01; full certify log /tmp/certify_500k_full.log). Prior 150k TLA6-era record: corpus 150000/754/30036, floor 1.6548, ceiling 69.5, A-binary 28.3/31.5/6.5634/92464."
   },
   "documented_linux_reference": {
     "threshold_vector_prefix": "blake3:0fdc1a2c",

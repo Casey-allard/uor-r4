@@ -45,6 +45,13 @@ no census field to increment. The claim is hardened at three levels:
        add 59,571 | xor 36,864 | shift 22,707 | compare 1,323 | table-read 54,976
        multiply: 0 — no such operation exists in the kernel
 
+(Era note, 2026-08-01 #327 re-pin: the tabulated census is the
+TLA5-era record. With the shift-add dot assignment (TLA6) and the TLA7
+residual wiring, the 500k-era certificate measures add 319,253 | xor 0 |
+shift 318,932 | compare 1,360 | table-read 314,176 | multiply 0 per token
+— the xor Hamming loop became shift-add table arithmetic; the multiply
+count is unchanged because no such operation exists.)
+
 Against the source transformer's ≈30 MFLOP per token, the runtime performs
 ≈1.8 × 10^5 integer operations per token — none of them multiplications,
 memory-bound on table reads.
@@ -134,6 +141,21 @@ and asserted bit-identically by the κ-reproduction test
 (`cargo test -p uor-r4-core --release --test kappa_reproduction -- --ignored`),
 which is the migration's acceptance proof.
 
+**Era note (2026-08-01, #327 re-pin, maintainer decision).** The
+evaluation stream is now **500,000 teacher-labeled tokens, 2,507 stories,
+100,306 held-out** (scaled 150k → 500k), and the artifact carries the
+#318 Phase B residual wiring (TLA7 container, 1,346,836 bytes, κ
+`blake3:ef6a20f3…`; the token-side pins are byte-identical to the prior
+era by construction). Fresh full-certificate record on macOS arm64:
+teacher floor 1.4260 bits/token, teacher ceiling 70.5%; **A (shipped,
+single-key store + query-beam): top-1 34.7%, agreement 39.0%, WB 8.0249
+bits/token, 179,068 keys**; A-f32 ablation 35.7% / 40.3% / 8.1063 /
+187,644 keys; B bit-prefix 27.1% / 30.6% / 11.0356 / 1,150,027 keys; op
+census per token add 319,253 / xor 0 / shift 318,932 / compare 1,360 /
+table-read 314,176 / multiply 0. The new pins are the
+`baseline_kappa.json` record; the 150k-era figures above are retained as
+the historical record of the original certificate.
+
 Library witnesses (cargo test): P-1 the popcount table matches its
 definition on all 256 bytes and carries the stratum partition C(8,k);
 P-2 kernel Hamming equals the direct definition with exact op counts;
@@ -167,12 +189,14 @@ expanded form never ships; compression is on the inference path, not a
 storage option.
 
 **(a) Container, witnessed.** save → load → save is byte-identical and
-κ-stable, asserted every certification run. Era note (#243 Phase C,
-maintainer decision 2026-07-29): the default emission is the 1-term
-TLA6 container — current witness 1,051,916 bytes,
-`blake3:cf64fe74…` (2026-07-30 run). The dot tables change
-serialization only; every non-container κ pin is byte-identical to the
-TLA5 era, and prior-era containers (TLA5 462,092 `blake3:81db4406…`;
+κ-stable, asserted every certification run. Era note (#327, maintainer
+decision 2026-08-01): the default emission is the TLA7 container (#318
+Phase B integer residual sections; 500k-corpus era) — current witness
+1,346,836 bytes, `blake3:ef6a20f3…` (2026-08-01 full-certify run). The
+residual sections and the new corpus change the serialization and the
+bundle-derived κs; the token-side κ pins are byte-identical to the TLA5
+era by construction, and prior-era containers (1-term TLA6 1,051,916
+`blake3:cf64fe74…`, 2026-07-30 run; TLA5 462,092 `blake3:81db4406…`;
 the original TLA3 1,641,736 `blake3:be366bd6…`) remain valid addresses
 of their own bytes.
 
@@ -196,13 +220,22 @@ codes under mismatched scales and produced a DECREASING curve
 fixed point (per-stage power-of-two exponents, decode by `<< shift`),
 which is kernel-legal and restored the monotonicity the construction
 claims. The implementation was hardened to meet the prose; the prose was
-not weakened to meet the implementation.
+not weakened to meet the implementation. (Era note, 2026-08-01 #327
+re-pin: the byte/ratio columns are unchanged — the token codebooks are
+byte-identical pins — while the fresh 500k-era certificate measures mean
+cosines 0.9565 / 0.9613 / 0.9647 / 0.9676 at depths 1–4, monotone as
+claimed; the tabulated values are the original Linux-certificate record.)
 
 **(c) End-to-end artifact, measured.** Runtime tables 462,080 bytes +
 store ≈ 1,704,201 bytes = 2,166,281 bytes against the 60,816,028-byte
 source checkpoint: **28.1× smaller**, at the behavioral residual certified
 in P2. This is compression of a behavior, priced by its certificate — the
-number and the residual travel together or not at all.
+number and the residual travel together or not at all. (Era note,
+2026-08-01 #327 re-pin: with the 500k corpus the graded store grows to
+≈8,342,205 bytes, so the 500k-era figure is 462,080 + 8,342,205 =
+8,804,285 bytes, **6.9× smaller** than the source, at the improved
+residual in the P2 era note — the store size is the scaling knob the P2
+context paragraph describes; 28.1× is the 150k-era record.)
 
 ## Delimitations
 

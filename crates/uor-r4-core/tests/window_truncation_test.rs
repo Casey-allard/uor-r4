@@ -4,7 +4,7 @@ use uor_r4_core::transformerless::runtime::{self, bundle_window_plain, derive_ro
 fn fixture_art() -> compiler::Compiled {
     let dir = env!("CARGO_MANIFEST_DIR");
     let bytes = std::fs::read(format!("{dir}/tests/fixtures/tless_artifacts.bin")).unwrap();
-    compiler::parse_artifacts(&bytes).expect("fixture TLA5 parses")
+    compiler::parse_artifacts(&bytes).expect("fixture container parses")
 }
 
 #[test]

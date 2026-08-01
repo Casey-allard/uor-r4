@@ -107,7 +107,7 @@ fn kappa_reproduction() {
     let sigs: Vec<String> = art.class_sigs.iter().map(|s| kappa_of(s)).collect();
     assert_eq!(sigs, strings(bd, "class_signatures"), "class signature κs");
 
-    // Container (TLA5) — byte length and κ.
+    // Container (TLA7 since the #327 re-pin, 2026-08-01) — byte length and κ.
     let container = compiler::artifact_bytes(&art);
     assert_eq!(
         container.len() as u64,

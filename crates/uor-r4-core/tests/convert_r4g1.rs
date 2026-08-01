@@ -1,11 +1,13 @@
 //! Migration-converter tests: TLA3/TLA4/TLA5 + TLS1 → R4G1
 //! (`transformerless::convert_r4g1`, plan §5 Phase 1).
 //!
-//! Fixture path: the repo TLA5 fixture artifacts plus a deterministic
-//! synthetic store built in-test via `runtime::add_evidence`, so the
-//! expected edge set is computable by hand. The manual end-to-end test
-//! over the real `.uor-models` pair (TLA4 + legacy-u16 TLS1) is
-//! `#[ignore]`d and skips silently when the files are absent.
+//! Fixture path: the repo fixture artifacts (TLA7 container since the
+//! #327 re-pin, 2026-08-01; parsed through the era-generic
+//! `parse_artifacts`) plus a deterministic synthetic store built in-test
+//! via `runtime::add_evidence`, so the expected edge set is computable by
+//! hand. The manual end-to-end test over the real `.uor-models` pair
+//! (TLA4 + legacy-u16 TLS1) is `#[ignore]`d and skips silently when the
+//! files are absent.
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -115,7 +117,7 @@ fn head_carries_the_migration_geometry() {
     assert_eq!(head.signature_bytes(), 36);
     assert_eq!(head.depth_count(), 5);
     assert_eq!(head.node_count(), NODE_COUNT);
-    assert_eq!(head.vocab_size(), 32000); // fixture TLA5 vocab
+    assert_eq!(head.vocab_size(), 32000); // fixture vocab (era-independent: source embedding rows)
     assert_eq!(head.max_frontier_width(), 32);
     assert_eq!(head.max_candidates(), 16);
     assert_eq!(head.shortlist_size(), 8);

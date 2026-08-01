@@ -1,7 +1,7 @@
 //! Fast integration witnesses for the migration seams: the corpus-free
 //! window path (kernel and plain forms identical to the corpus path), the
-//! TLA5 container roundtrip (PROOF.md P5(a) as a unit test), and the TLS1
-//! store container.
+//! artifact container roundtrip (PROOF.md P5(a) as a unit test; TLA7
+//! since the #327 re-pin, 2026-08-01), and the TLS1 store container.
 
 use uor_r4_core::transformerless::compiler::{self, Corpus, SIG_BYTES, STAGES, WINDOW};
 use uor_r4_core::transformerless::runtime::{self, OpKernel, Store};
@@ -9,7 +9,7 @@ use uor_r4_core::transformerless::runtime::{self, OpKernel, Store};
 fn fixture() -> (compiler::Compiled, Corpus) {
     let dir = env!("CARGO_MANIFEST_DIR");
     let bytes = std::fs::read(format!("{dir}/tests/fixtures/tless_artifacts.bin")).unwrap();
-    let art = compiler::parse_artifacts(&bytes).expect("fixture TLA5 parses");
+    let art = compiler::parse_artifacts(&bytes).expect("fixture container parses");
     let c = compiler::load_corpus_from(
         &format!("{dir}/tests/fixtures/c_meta.bin"),
         &format!("{dir}/tests/fixtures/c_recs.bin"),

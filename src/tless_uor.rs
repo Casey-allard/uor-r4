@@ -2,7 +2,7 @@
 //!
 //! Three bindings, mirroring the R4Axis pattern in this crate:
 //!
-//! - **Addressing**: the TLA5 artifact container and individual store
+//! - **Addressing**: the TLA artifact container (TLA7 era since the #327 re-pin, 2026-08-01) and individual store
 //!   entries become uor-addr content (CBOR realization, blake3 axis). The
 //!   proof pins stay raw-blake3 of the container bytes; the uor-addr κ-label
 //!   addresses the CBOR canonical form — two labels, one artifact, both
@@ -37,7 +37,7 @@ use uor_r4_router::{R4HostBounds, R4_FP_MAX, R4_INLINE_BYTES};
 pub struct TlessState {
     pub art: Compiled,
     pub store: Store,
-    /// raw blake3 κ of the TLA5 container (the PROOF.md pin)
+    /// raw blake3 κ of the TLA container (the PROOF.md pin)
     pub artifact_kappa: String,
     /// uor-addr κ-label of the container (CBOR realization, blake3 axis)
     pub artifact_address: String,
@@ -487,7 +487,7 @@ fn cbor_byte_string(bytes: &[u8]) -> Vec<u8> {
     out
 }
 
-/// Content-address a TLA5 artifact container: the container as a CBOR byte
+/// Content-address a TLA artifact container: the container as a CBOR byte
 /// string, addressed on the blake3 axis → "blake3:<hex>" κ-label.
 pub fn address_container(tla5: &[u8]) -> Result<String, String> {
     uor_addr::cbor::address_blake3(&cbor_byte_string(tla5))
@@ -968,7 +968,7 @@ mod tests {
             "/crates/uor-r4-core/tests/fixtures"
         );
         let bytes = std::fs::read(format!("{dir}/tless_artifacts.bin")).unwrap();
-        let art = compiler::parse_artifacts(&bytes).expect("fixture TLA5 parses");
+        let art = compiler::parse_artifacts(&bytes).expect("fixture container parses");
         let mut store: Store = (0..=STAGES).map(|_| Default::default()).collect();
         store[0].entry(vec![]).or_default().insert(1, 10);
         set_tless_state(art, store);
@@ -1034,19 +1034,20 @@ mod tests {
         // the store replays the indexed stream at full depth; how the
         // UNSEEN continuation resolves is a fixture-era property: graded
         // backoff to depth 1 (b142c93-era / Linux-bot TLA5), depth 3 /
-        // token 5 (macOS TLA5 re-pin, 2026-07-21), and on the 1-term TLA6
-        // fixture (#243 Phase C re-pin, 2026-07-30) the shift-add dot
-        // assignment maps the novel window onto an existing full-depth
-        // class path — a code-space collision, so it resolves at depth 4
-        // with that key's argmax (7), no backoff step at all.
+        // token 5 (macOS TLA5 re-pin, 2026-07-21), full-depth code-space
+        // collision to the key's argmax 7 (1-term TLA6 fixture, #243
+        // Phase C re-pin, 2026-07-30), and on the TLA7 residual-wired
+        // 500k-corpus fixture (#327 re-pin, 2026-08-01) graded backoff to
+        // depth 1 answering token 5 — the residual-wired assignment no
+        // longer maps the novel window onto an existing full-depth path.
         let steps = generate_steps(&[1], 4).expect("generate");
         let tokens: Vec<u32> = steps.iter().map(|p| p.token).collect();
-        assert_eq!(tokens, vec![5, 6, 7, 7]);
         let depths: Vec<u8> = steps.iter().map(|p| p.depth).collect();
+        assert_eq!(tokens, vec![5, 6, 7, 5]);
         assert_eq!(
             depths,
-            vec![4, 4, 4, 4],
-            "indexed stream replays at full depth; the novel window collides to a full-depth key on this fixture"
+            vec![4, 4, 4, 1],
+            "indexed stream replays at full depth; the novel window backs off to depth 1 on this fixture"
         );
     }
 
@@ -1057,7 +1058,7 @@ mod tests {
             "/crates/uor-r4-core/tests/fixtures"
         );
         let bytes = std::fs::read(format!("{dir}/tless_artifacts.bin")).unwrap();
-        let art = compiler::parse_artifacts(&bytes).expect("fixture TLA5 parses");
+        let art = compiler::parse_artifacts(&bytes).expect("fixture container parses");
         let mut store: Store = (0..=STAGES).map(|_| Default::default()).collect();
         store[0].entry(vec![]).or_default().insert(1, 10);
         store[1].entry(vec![9]).or_default().insert(2, 5);

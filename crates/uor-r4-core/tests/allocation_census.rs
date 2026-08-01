@@ -325,10 +325,12 @@ fn allocation_census() {
         "steady-state prediction and generation must be allocation-free"
     );
 
-    // Phase 3b — #318 Phase B residual path: the census fixtures are
-    // pre-TLA7, so the residual-wired assign path is censused on a
-    // synthetic TLA7 artifact. Plain and kernel forms must agree and
-    // allocate nothing.
+    // Phase 3b — #318 Phase B residual path: the residual-wired assign
+    // path is censused on a synthetic TLA7 artifact (a fixed small
+    // container keeps this census independent of fixture-era re-pins;
+    // the current fixture is itself TLA7 since the #327 re-pin,
+    // 2026-08-01). Plain and kernel forms must agree and allocate
+    // nothing.
     let resid_art = {
         let vocab = 4usize;
         Compiled {

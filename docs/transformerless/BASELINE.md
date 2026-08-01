@@ -51,10 +51,14 @@ formally committed. Full text: plan §2.
 
 | Metric | Value | Status | Source |
 |---|---|---|---|
-| top-1 accuracy | 28.9% | cited | PROOF.md P2 (legacy stories15M teacher, ~10⁵ store keys) |
-| teacher-argmax agreement | 31.7% | cited | PROOF.md P2 |
-| bits/token (WB) | 6.54 (teacher floor 1.5960, ceiling 70.4%) | cited | PROOF.md P2 |
-| store keys | 89,200 | cited | PROOF.md P2 |
+| top-1 accuracy | 28.9% | cited (150k era) | PROOF.md P2 (legacy stories15M teacher, ~10⁵ store keys) |
+| teacher-argmax agreement | 31.7% | cited (150k era) | PROOF.md P2 |
+| bits/token (WB) | 6.54 (teacher floor 1.5960, ceiling 70.4%) | cited (150k era) | PROOF.md P2 |
+| store keys | 89,200 | cited (150k era) | PROOF.md P2 |
+| **top-1 accuracy (500k era)** | **34.7%** | fresh, 2026-08-01 | #327 re-pin full certify; PROOF.md P2 era note (500,000 tokens, 2,507 stories, 100,306 held-out, TLA7 artifact κ `blake3:ef6a20f3…`) |
+| **teacher-argmax agreement (500k era)** | **39.0%** | fresh, 2026-08-01 | same |
+| **bits/token WB (500k era)** | **8.0249** (teacher floor 1.4260, ceiling 70.5%) | fresh, 2026-08-01 | same |
+| **store keys (500k era)** | **179,068** | fresh, 2026-08-01 | same |
 | HF-path evaluation tooling | exists | landed | PR #41 (`evaluate-report`); issue #34 closed |
 | **Gate C harness (Phase 4)** | TLA3 store baseline 31.7% / 11.88 bits-token | fresh, 2026-07-22 | `r4 transformerless score`, fixture corpus, 30,036 held-out positions — reproduces the P2 agreement anchor; bits/token is the canonical cross-entropy definition (GLOSSARY.md), scorer+ds named |
 | **Gate C: graph formula v1 (Σ-over-cloud)** | **0.3% / 70.47 bits-token** | fresh, unfavorable | correlated sibling-subtree residual stacking (issue #64, redesign in flight) |
@@ -207,6 +211,15 @@ artifacts (deterministic across runs; debug profile).
   `tests/kappa_reproduction.rs`. Lesson recorded for Gate E: an unversioned baseline plus a
   redesigned compiler = a broken reproduction gate; R4G1's HEAD records compiler identity for
   exactly this reason.
+- **Baseline anchor moved 2026-08-01** (maintainer decision, issue #327): the teacher corpus was
+  scaled 150,000 → 500,000 tokens (2,507 stories, 100,306 held-out) and the #318 Phase B residual
+  wiring (TLA7 container) landed in the same pin. Investigation before re-pinning: compile ran
+  twice (`transformerless compile` then the full `certify` recompile) with byte-identical
+  containers — κ `blake3:ef6a20f3…`, 1,346,836 bytes — so the pin drift is the intended corpus +
+  artifact-era change, not nondeterminism. Token-side pins unchanged by construction; threshold,
+  context-codebook, class-signature and container κs moved with the corpus. Fixture
+  `c_recs.bin` grew 1.8 MB → 24 MB (12-byte legacy records → 48-byte records with anchors/top-8).
+  Full-certificate record: PROOF.md P2 era note; pins: `baseline_kappa.json`.
 
 ## 4. M.V.G. checkpoint targets (D1) — CONFIRMED
 

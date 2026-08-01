@@ -2,7 +2,8 @@
 //! multiresolution recovery on a planted synthetic corpus, entropy-gated
 //! splitting, calibrated radii, reference-classifier agreement,
 //! T-invariance/determinism, memory-budget behavior, and R4G1 output
-//! validation. The end-to-end fixture-corpus run (150k observations) is a
+//! validation. The end-to-end fixture-corpus run (500k observations since
+//! the #327 re-pin, 2026-08-01; 150k before) is a
 //! release-only workload and is `#[ignore]`d by default, mirroring the
 //! κ-reproduction convention: run it with
 //! `cargo test -p uor-r4-core --release --offline --test cover -- --ignored`.
@@ -989,7 +990,8 @@ fn split_positions_applies_the_80_20_story_cut() {
 
 // ------------------------------------------------- fixture end-to-end --
 
-/// Full pipeline on the pinned fixture corpus (150k legacy records):
+/// Full pipeline on the pinned fixture corpus (500k records since the
+/// #327 re-pin, 2026-08-01; 150k before):
 /// observation lane, induction, reference freeze, held-out recall vs the
 /// incumbent 4×256 class cover, R4G1 emission. Release-only workload —
 /// run with `cargo test -p uor-r4-core --release --offline --test cover
@@ -1001,7 +1003,7 @@ fn fixture_corpus_end_to_end() {
     let artifact_container = std::fs::read(format!(
         "{dir}/../uor-r4-core/tests/fixtures/tless_artifacts.bin"
     ))
-    .expect("fixture TLA5");
+    .expect("fixture container");
     let artifacts = compiler::parse_artifacts(&artifact_container).expect("fixture parses");
     let meta_bytes =
         std::fs::read(format!("{dir}/../uor-r4-core/tests/fixtures/c_meta.bin")).expect("meta");
