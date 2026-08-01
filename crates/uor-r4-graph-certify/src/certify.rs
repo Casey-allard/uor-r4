@@ -737,7 +737,11 @@ pub fn certify(oracle: &dyn TeacherOracle) {
         let s = x.abs().log2().round();
         x.signum() * s.exp2()
     };
-    for (label, terms) in [("A-dot-po2", 1usize), ("A-dot-po2x2", 2usize)] {
+    for (label, terms) in [
+        ("A-dot-po2", 1usize),
+        ("A-dot-po2x2", 2usize),
+        ("A-dot-po2x3", 3usize),
+    ] {
         let quantized: Vec<Vec<f32>> = art
             .ctx_cb
             .iter()
@@ -781,6 +785,101 @@ pub fn certify(oracle: &dyn TeacherOracle) {
         let m = eval(&c, &st_row, STAGES, &|i, d| codes_q[i][..d].to_vec());
         println!(
             "{label} (#243 buildability: shift-add dot, {terms}-term power-of-two centroids): top1 {:.1}% | agreement {:.1}% | WB {:.4} bits/token | {} keys",
+            m.top1, m.agree, m.wb_bits, m.keys
+        );
+    }
+
+    // ---- A-dot-resid / A-dot-po2-resid(1/2) (#318 rows, #243 follow-up):
+    // the missing composition cell — dot assignment WITH residual updates
+    // at unit scale. The f32 ceiling normalizes, assigns norm-aware, and
+    // subtracts; the po2 dot rows above measured quantization WITHOUT
+    // subtraction, and the round-2 note records raw-scale subtraction as
+    // negligible — at unit scale it is not. A-dot-resid isolates the
+    // residual effect under the dot metric (f32 centroid values); the
+    // po2-resid rows run assignment AND subtraction from the same
+    // quantized tables — the form a kernel Phase B could actually build
+    // (per-stage integer centroid copies, add/sub only, contract §2).
+    let codes_dr: Vec<[u8; STAGES]> = (0..c.n)
+        .map(|i| {
+            let mut work: Vec<f32> = (0..D).map(|d| centered[i][d] / norms[i]).collect();
+            let mut code = [0u8; STAGES];
+            for (st, cb) in art.ctx_cb.iter().enumerate() {
+                let (mut best, mut bk) = (f32::NEG_INFINITY, 0usize);
+                for kk in 0..K {
+                    let cent = &cb[kk * D..(kk + 1) * D];
+                    let mut dp = 0f32;
+                    for j in 0..D {
+                        dp += work[j] * cent[j];
+                    }
+                    if dp > best {
+                        best = dp;
+                        bk = kk;
+                    }
+                }
+                code[st] = bk as u8;
+                for j in 0..D {
+                    work[j] -= cb[bk * D + j];
+                }
+            }
+            code
+        })
+        .collect();
+    let st_row = build_store_generic(&c, STAGES, &|i, d| codes_dr[i][..d].to_vec());
+    let m = eval(&c, &st_row, STAGES, &|i, d| codes_dr[i][..d].to_vec());
+    println!(
+        "A-dot-resid (#318 instrumentation, f32: dot assignment on normalized work + per-stage centroid subtraction): top1 {:.1}% | agreement {:.1}% | WB {:.4} bits/token | {} keys",
+        m.top1, m.agree, m.wb_bits, m.keys
+    );
+    let quantize = |terms: usize| -> Vec<Vec<f32>> {
+        art.ctx_cb
+            .iter()
+            .map(|cb| {
+                cb.iter()
+                    .map(|&cv| {
+                        let mut acc = 0.0f32;
+                        let mut rem = cv;
+                        for _ in 0..terms {
+                            let q = po2(rem);
+                            acc += q;
+                            rem -= q;
+                        }
+                        acc
+                    })
+                    .collect()
+            })
+            .collect()
+    };
+    for (label, terms) in [("A-dot-po2-resid", 1usize), ("A-dot-po2x2-resid", 2usize)] {
+        let quantized = quantize(terms);
+        let codes_qr: Vec<[u8; STAGES]> = (0..c.n)
+            .map(|i| {
+                let mut work: Vec<f32> = (0..D).map(|d| centered[i][d] / norms[i]).collect();
+                let mut code = [0u8; STAGES];
+                for (st, cb) in quantized.iter().enumerate() {
+                    let (mut best, mut bk) = (f32::NEG_INFINITY, 0usize);
+                    for kk in 0..K {
+                        let cent = &cb[kk * D..(kk + 1) * D];
+                        let mut dp = 0f32;
+                        for j in 0..D {
+                            dp += work[j] * cent[j];
+                        }
+                        if dp > best {
+                            best = dp;
+                            bk = kk;
+                        }
+                    }
+                    code[st] = bk as u8;
+                    for j in 0..D {
+                        work[j] -= cb[bk * D + j];
+                    }
+                }
+                code
+            })
+            .collect();
+        let st_row = build_store_generic(&c, STAGES, &|i, d| codes_qr[i][..d].to_vec());
+        let m = eval(&c, &st_row, STAGES, &|i, d| codes_qr[i][..d].to_vec());
+        println!(
+            "{label} (#318 buildability: shift-add dot, {terms}-term po2 tables, normalized work + quantized residual subtraction): top1 {:.1}% | agreement {:.1}% | WB {:.4} bits/token | {} keys",
             m.top1, m.agree, m.wb_bits, m.keys
         );
     }
