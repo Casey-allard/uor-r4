@@ -21,3 +21,7 @@ libm = "0.2"
 [dev-dependencies]
 serde_json = "1.0"
 proptest = "1.4.0"
+
+[[bench]]
+name = "transformerless_dot"
+harness = false

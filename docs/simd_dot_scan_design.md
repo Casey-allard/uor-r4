@@ -72,7 +72,11 @@ the negative result.
 
 - **Phase 0 (prerequisite)**: serving wall-clock harness (ns/token,
   no new deps) with the TLA6 and TLA7 paths as its first two data
-  points — lands independently of this design.
+  points — implemented as `cargo bench -p uor-r4-core
+  --bench transformerless_dot -- <ARTIFACT> <ITERATIONS>` (the default
+  artifact is `tests/fixtures/tless_artifacts.bin`).
+  The harness reports the scalar dot scan and complete runtime assignment,
+  and prints checksums that an adapter must preserve.
 - **Phase 1**: transposed layout + AVX2 adapter + proptest witness +
   microbenchmark; numbers posted to this issue.
 - **Phase 2**: NEON adapter (after the ⚑ rounding semantics are
