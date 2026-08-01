@@ -8,3 +8,7 @@ uor-r4-graph-format = { path = "../uor-r4-graph-format", default-features = fals
 
 [dev-dependencies]
 uor-r4-core = { path = "../uor-r4-core" }
+
+[[bench]]
+name = "vp_tree"
+harness = false

@@ -1,6 +1,7 @@
 use crate::runtime_state::RuntimeState;
 use crate::runtime_state::SemanticStateSlot;
 use crate::status::ResolutionStatus;
+use crate::vp_tree::VpTree;
 use core::fmt;
 use uor_r4_graph_format::ScoreQ;
 use uor_r4_graph_format::{CODE_OP_HALT, OP_CLEAR_SLOT, OP_SHIFT_SLOTS, OP_UPDATE_SLOT};
@@ -36,6 +37,7 @@ impl fmt::Display for RuntimeError {
 #[derive(Debug, Clone)]
 pub struct R4G1Runtime<'a> {
     chain: crate::patch_chain::PatchChain<'a>,
+    route_index: Option<VpTree>,
 }
 
 fn signature_affinity_bonus(prototype: &[u8], mask: &[u8], signature: &[u8]) -> i32 {
@@ -56,6 +58,7 @@ impl<'a> R4G1Runtime<'a> {
         let view = GraphView::parse(bytes)?;
         Ok(Self {
             chain: crate::patch_chain::PatchChain::new(view),
+            route_index: VpTree::from_graph(&view),
         })
     }
 
@@ -614,44 +617,52 @@ impl<'a> R4G1Runtime<'a> {
         if (active_len == 0 || (active_len == 1 && active_nodes[0] == 0))
             && let Some(sig) = context_signature
         {
-            let mut best_node = 0;
-            let mut best_dist = u32::MAX;
-            let mut active_count = 0usize;
-            let rout_bytes = base_graph.section(SectionId::ROUT).unwrap_or(&[]);
+            let (best_node, active_count) = if let Some(index) = self.route_index.as_ref() {
+                let mut matched_nodes = [0u32; 8];
+                let (best_node, _best_dist, active_count) = index.query(sig, &mut matched_nodes);
+                active_nodes[..active_count].copy_from_slice(&matched_nodes[..active_count]);
+                (best_node, active_count)
+            } else {
+                let mut best_node = 0;
+                let mut best_dist = u32::MAX;
+                let mut active_count = 0usize;
+                let rout_bytes = base_graph.section(SectionId::ROUT).unwrap_or(&[]);
 
-            for n in 1..num_nodes {
-                if let Some(node) = base_graph.node(n) {
-                    let proto_offset = (node.prototype_word_start as usize) << 3;
-                    let mask_offset = (node.mask_word_start as usize) << 3;
+                for n in 1..num_nodes {
+                    if let Some(node) = base_graph.node(n) {
+                        let proto_offset = (node.prototype_word_start as usize) << 3;
+                        let mask_offset = (node.mask_word_start as usize) << 3;
 
-                    if proto_offset + sig.len() <= rout_bytes.len()
-                        && mask_offset + sig.len() <= rout_bytes.len()
-                    {
-                        let mut dist = 0u32;
-                        for i in 0..sig.len() {
-                            let p = rout_bytes[proto_offset + i];
-                            let m = rout_bytes[mask_offset + i];
-                            let s = sig[i];
-                            dist += ((s ^ p) & m).count_ones();
-                        }
-
-                        if dist < best_dist {
-                            best_dist = dist;
-                            best_node = n;
-                        }
-
-                        // Collect Quantum MoE ensemble nodes matching distance threshold
-                        let rad = u32::from(node.radius.0).max(120);
-                        if dist <= rad
-                            && active_count < 8
-                            && !active_nodes[..active_count].contains(&n)
+                        if proto_offset + sig.len() <= rout_bytes.len()
+                            && mask_offset + sig.len() <= rout_bytes.len()
                         {
-                            active_nodes[active_count] = n;
-                            active_count += 1;
+                            let mut dist = 0u32;
+                            for i in 0..sig.len() {
+                                let p = rout_bytes[proto_offset + i];
+                                let m = rout_bytes[mask_offset + i];
+                                let s = sig[i];
+                                dist += ((s ^ p) & m).count_ones();
+                            }
+
+                            if dist < best_dist {
+                                best_dist = dist;
+                                best_node = n;
+                            }
+
+                            // Collect Quantum MoE ensemble nodes matching distance threshold
+                            let rad = u32::from(node.radius.0).max(120);
+                            if dist <= rad
+                                && active_count < 8
+                                && !active_nodes[..active_count].contains(&n)
+                            {
+                                active_nodes[active_count] = n;
+                                active_count += 1;
+                            }
                         }
                     }
                 }
-            }
+                (best_node, active_count)
+            };
 
             if active_count > 0 {
                 active_len = active_count;

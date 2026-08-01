@@ -12,5 +12,7 @@ pub mod runtime_state;
 pub mod scoring;
 pub mod status;
 
+mod vp_tree;
+
 pub use engine::{R4G1Runtime, RuntimeError};
 pub use status::ResolutionStatus;
