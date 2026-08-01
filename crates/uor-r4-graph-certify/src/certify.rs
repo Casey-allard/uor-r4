@@ -884,6 +884,123 @@ pub fn certify(oracle: &dyn TeacherOracle) {
         );
     }
 
+    // ---- Phase A.5 rows (#318, docs/dot_residual_phase_b_design.md):
+    // validate the two kernel-form candidates before any runtime work.
+    //
+    // (a) po2 norm fold — the measurement rows above normalize by true
+    // division, which the kernel cannot do. The candidate kernel form
+    // folds a power of two: work' = work >> s with s = bit_length(L1) -
+    // CONST (L1 norm: abs+add only; CONST a compile-time constant).
+    // CONST here: the train-split median of round(log2(L1/L2)) over the
+    // deterministic stride-8 subsample (no held-out leakage). f32
+    // emulation scales by the exact power of two; the kernel's i64
+    // arithmetic shift additionally truncates toward -inf — a ≤1-LSB
+    // difference at i64 scale, covered by the Phase B equality witness.
+    let mut ratios: Vec<f32> = (0..c.n)
+        .step_by(8)
+        .filter(|&i| c.story[i] < cut)
+        .map(|i| {
+            let l1: f32 = centered[i].iter().map(|x| x.abs()).sum();
+            (l1 / norms[i]).log2()
+        })
+        .collect();
+    ratios.sort_by(|a, b| a.partial_cmp(b).unwrap());
+    let norm_const = ratios[ratios.len() / 2].round();
+    let norm_fold = |i: usize| -> Vec<f32> {
+        let l1: f32 = centered[i].iter().map(|x| x.abs()).sum();
+        // bit_length(x) = floor(log2(x)) + 1
+        let s = l1.log2().floor() + 1.0 - norm_const;
+        let scale = (-s).exp2();
+        (0..D).map(|d| centered[i][d] * scale).collect()
+    };
+    {
+        let quantized = quantize(1);
+        let codes_nf: Vec<[u8; STAGES]> = (0..c.n)
+            .map(|i| {
+                let mut work = norm_fold(i);
+                let mut code = [0u8; STAGES];
+                for (st, cb) in quantized.iter().enumerate() {
+                    let (mut best, mut bk) = (f32::NEG_INFINITY, 0usize);
+                    for kk in 0..K {
+                        let cent = &cb[kk * D..(kk + 1) * D];
+                        let mut dp = 0f32;
+                        for j in 0..D {
+                            dp += work[j] * cent[j];
+                        }
+                        if dp > best {
+                            best = dp;
+                            bk = kk;
+                        }
+                    }
+                    code[st] = bk as u8;
+                    for j in 0..D {
+                        work[j] -= cb[bk * D + j];
+                    }
+                }
+                code
+            })
+            .collect();
+        let st_row = build_store_generic(&c, STAGES, &|i, d| codes_nf[i][..d].to_vec());
+        let m = eval(&c, &st_row, STAGES, &|i, d| codes_nf[i][..d].to_vec());
+        println!(
+            "A-dot-po2-nf-resid (#318 Phase A.5: po2 norm fold [L1 bit-length, CONST {norm_const}], 1-term tables): top1 {:.1}% | agreement {:.1}% | WB {:.4} bits/token | {} keys",
+            m.top1, m.agree, m.wb_bits, m.keys
+        );
+    }
+    // (b) integer centroid-copy widths — assignment against 1-term po2
+    // tables (shipped), residual subtraction with DEQUANTIZED per-stage
+    // integer copies at a power-of-two stage scale (token stage-book
+    // precedent: max-abs → IEEE-exponent scale, libm-free). i8 vs i16
+    // settles the artifact-width decision point.
+    let quantized = quantize(1);
+    for (label, max_q) in [("cpy8", 127.0f32), ("cpy16", 32767.0f32)] {
+        let copies: Vec<Vec<f32>> = art
+            .ctx_cb
+            .iter()
+            .map(|cb| {
+                let m_abs = cb.iter().fold(0f32, |a, &x| a.max(x.abs())).max(1e-9);
+                let r = max_q / m_abs;
+                let e = ((r.to_bits() >> 23) as i32) - 127;
+                let scale = (2.0f32).powi(e);
+                cb.iter()
+                    .map(|&x| (x * scale).round().clamp(-max_q, max_q) / scale)
+                    .collect()
+            })
+            .collect();
+        let codes_cp: Vec<[u8; STAGES]> = (0..c.n)
+            .map(|i| {
+                let mut work: Vec<f32> = (0..D).map(|d| centered[i][d] / norms[i]).collect();
+                let mut code = [0u8; STAGES];
+                for (st, cb) in quantized.iter().enumerate() {
+                    let (mut best, mut bk) = (f32::NEG_INFINITY, 0usize);
+                    for kk in 0..K {
+                        let cent = &cb[kk * D..(kk + 1) * D];
+                        let mut dp = 0f32;
+                        for j in 0..D {
+                            dp += work[j] * cent[j];
+                        }
+                        if dp > best {
+                            best = dp;
+                            bk = kk;
+                        }
+                    }
+                    code[st] = bk as u8;
+                    let cpy = &copies[st];
+                    for j in 0..D {
+                        work[j] -= cpy[bk * D + j];
+                    }
+                }
+                code
+            })
+            .collect();
+        let st_row = build_store_generic(&c, STAGES, &|i, d| codes_cp[i][..d].to_vec());
+        let m = eval(&c, &st_row, STAGES, &|i, d| codes_cp[i][..d].to_vec());
+        println!(
+            "A-dot-po2-resid-{label} (#318 Phase A.5: 1-term po2 assignment + {label} integer-copy residuals [true-norm]): top1 {:.1}% | agreement {:.1}% | WB {:.4} bits/token | {} keys",
+            m.top1, m.agree, m.wb_bits, m.keys
+        );
+    }
+
     // ---- A-R∘G(b): graded signature OF the residual. Per-stage ladders
     // from the R-loop's residual distributions (deterministic stride-8
     // sample); prototypes are the integer centroid copies graded through

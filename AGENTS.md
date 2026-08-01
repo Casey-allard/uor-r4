@@ -115,13 +115,16 @@ the suite's 8 prompts are novel text, unlike Gate C's same-corpus replay
 ## Process conventions
 
 - **Merge workflow (since 2026-07-22): NO direct pushes to `main`.** A ruleset
-  ("main: required checks", id 19597522) protects `main`: all changes land via
-  PR, and the five CI checks (`fmt / clippy / tests / no_std / κ`,
+  ("main: required checks + merge queue", id 19597522) protects `main`: all
+  changes land via PR, and the five CI checks (`fmt / clippy / tests / no_std / κ`,
   `cargo audit`, `fuzz smoke`, `wasm-pack build`, `Gate C trend alarm`) must
-  pass with the branch up to date (strict policy). GitHub's merge-queue rule
-  type was unavailable via the API when this was set up — if the Settings UI
-  toggle gets enabled later, PRs go through the merge queue instead of plain
-  merge; the workflow below is identical either way.
+  pass with the branch up to date (strict policy). **The merge queue is
+  ENABLED (since 2026-07-31)**: PRs merge through the queue, and a queued
+  PR's head branch is LOCKED — pushes are rejected ("branches that are
+  queued for merging cannot be updated") until the PR merges or is
+  dequeued. Follow-up work for a queued PR goes on a fresh branch off
+  `main` after it lands (the #323 lesson), not as extra commits on the
+  queued branch.
 - **Per issue**: assign yourself (WIP signal) → branch `issue-<n>-<slug>` →
   work + verify the four gates locally → open PR → merge when checks are
   green → close the issue with the DoD evidence and the merge commit
