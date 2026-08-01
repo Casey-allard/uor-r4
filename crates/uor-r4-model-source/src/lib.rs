@@ -129,6 +129,13 @@ fn softmax(x: &mut [f32]) {
 /// reduction order for certificate reproduction. Hugging Face compilation
 /// may select the optimized CPU path because those source logits are teacher
 /// data rather than part of the pinned legacy proof.
+///
+/// Note: a row-parallel (rayon fork-join) variant of this exact path was
+/// measured 2026-07-31 and REVERTED — per-matmul fork-join costs ~1.5 ms of
+/// worker-scheduling latency on a load-average->100 development machine,
+/// ~10× slower end-to-end than the serial loop below (recorded negative
+/// result, issue #310). Parallelism in corpus generation must be
+/// story-level (a new corpus era) or not at all.
 fn matmul(xout: &mut [f32], x: &[f32], w: &[f32], n: usize, fast: bool) {
     if fast {
         return matmul_fast(xout, x, w, n);

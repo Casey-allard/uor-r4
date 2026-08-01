@@ -865,7 +865,85 @@ pub fn certify(oracle: &dyn TeacherOracle) {
             m.top1, m.agree, m.wb_bits, m.keys
         );
     }
-    // ============ end Phase A decomposition rows (issue #243) ============
+    // ---- A-W(b): learned per-dimension importance weighting on the
+    // shipped sign-Hamming assignment (issue #310;
+    // docs/learned_signature_weighting_design.md). Signal: threshold-margin
+    // reliability — per dimension, the median of |bundle − threshold| over
+    // a deterministic stride-8 TRAIN-split subsample (no held-out leakage).
+    // Dimensions are ranked by median margin and bucketed into b quantile
+    // classes carrying power-of-two weights 2^e (e = class index; the
+    // noisiest class keeps weight 1 — downweighting is relative, b = 1
+    // reproduces A-binary's metric exactly). Distance is
+    // Σ_j popcount((s XOR p) AND m_j) << e_j — xor/and/popcount/shift/add
+    // only. Certifier-side instrumentation: the f32 margin ranking never
+    // leaves this function; prototypes are NOT retrained (same lower-bound
+    // caveat as A-G/A-R∘G).
+    let margin_rank: Vec<usize> = {
+        let mut med = [0f32; D];
+        for (d, slot) in med.iter_mut().enumerate() {
+            let mut vals: Vec<f32> = (0..c.n)
+                .step_by(8)
+                .filter(|&i| c.story[i] < cut)
+                .map(|i| centered[i][d].abs())
+                .collect();
+            vals.sort_by(|a, b| a.partial_cmp(b).unwrap());
+            *slot = vals[vals.len() / 2];
+        }
+        // Stable sort: margin ties keep ascending dimension order.
+        let mut order: Vec<usize> = (0..D).collect();
+        order.sort_by(|&x, &y| med[x].partial_cmp(&med[y]).unwrap());
+        order
+    };
+    for bq in [2usize, 4] {
+        // Ascending-margin rank -> class (noisiest = class 0, weight 2^0).
+        let mut masks = vec![[0u8; runtime::SIG_BYTES]; bq];
+        for (rank, &d) in margin_rank.iter().enumerate() {
+            let class = rank * bq / D;
+            masks[class][d / 8] |= 1 << (d % 8);
+        }
+        let weighted_hamming = |a: &[u8], p: &[u8]| -> u32 {
+            let mut acc = 0u32;
+            for (e, m) in masks.iter().enumerate() {
+                let pc: u32 = a
+                    .iter()
+                    .zip(p)
+                    .zip(m)
+                    .map(|((x, y), mm)| ((x ^ y) & mm).count_ones())
+                    .sum();
+                acc += pc << e;
+            }
+            acc
+        };
+        // Same single-signature, no-residual shape as the shipped path —
+        // the row isolates the weighting, nothing else.
+        let codes_w: Vec<[u8; STAGES]> = (0..c.n)
+            .map(|i| {
+                let sig = runtime::sig_plain(&art, &bundles[i]);
+                let mut code = [0u8; STAGES];
+                for (st, code_st) in code.iter_mut().enumerate() {
+                    let sigs_st = &art.class_sigs[st];
+                    let (mut bd, mut bk) = (u32::MAX, 0usize);
+                    for kk in 0..K {
+                        let cs = &sigs_st[kk * runtime::SIG_BYTES..(kk + 1) * runtime::SIG_BYTES];
+                        let h = weighted_hamming(&sig, cs);
+                        if h < bd {
+                            bd = h;
+                            bk = kk;
+                        }
+                    }
+                    *code_st = bk as u8;
+                }
+                code
+            })
+            .collect();
+        let st_row = build_store_generic(&c, STAGES, &|i, d| codes_w[i][..d].to_vec());
+        let m = eval(&c, &st_row, STAGES, &|i, d| codes_w[i][..d].to_vec());
+        println!(
+            "A-W({bq}) (#310 instrumentation: margin-reliability weighted Hamming [{bq} quantile classes, power-of-two weights], no residuals, prototypes unretrained): top1 {:.1}% | agreement {:.1}% | WB {:.4} bits/token | {} keys",
+            m.top1, m.agree, m.wb_bits, m.keys
+        );
+    }
+    // ============ end Phase A decomposition rows (issues #243, #310) ============
 
     // ---- B: bit-prefix coordinate — signature bytes, no classes
     let sigs: Vec<[u8; runtime::SIG_BYTES]> = (0..c.n)

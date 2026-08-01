@@ -257,6 +257,25 @@ pub fn load_corpus_from(mp: &str, rp: &str) -> Option<Corpus> {
 /// observation pipeline (`super::observe`) so both emit byte-identical v3
 /// records for the same teacher stream; the arithmetic below is the
 /// κ-pinned record semantics and must not change.
+/// Top-N indices by descending probability, ties to the lowest index —
+/// identical output to a stable descending full sort (the previous
+/// implementation) at O(vocab·N) with no allocation. Strict `>` keeps an
+/// earlier equal-probability token ahead, matching stable-sort order.
+fn top_n_desc_stable<const N: usize>(probs: &[f32]) -> [(u32, f32); N] {
+    let mut top = [(0u32, f32::NEG_INFINITY); N];
+    for (i, &p) in probs.iter().enumerate() {
+        if p > top[N - 1].1 {
+            let mut pos = N - 1;
+            while pos > 0 && p > top[pos - 1].1 {
+                top[pos] = top[pos - 1];
+                pos -= 1;
+            }
+            top[pos] = (i as u32, p);
+        }
+    }
+    top
+}
+
 pub fn softmax_top3_sample(logits: &mut [f32], rng: &mut u64) -> (usize, [u32; 3], [u32; 3]) {
     let mut mx = logits[0];
     for &v in &logits[1..] {
@@ -274,9 +293,7 @@ pub fn softmax_top3_sample(logits: &mut [f32], rng: &mut u64) -> (usize, [u32; 3
     }
 
     // Find top-3 tokens and their normalized weights
-    let mut top_candidates: Vec<(usize, f32)> =
-        logits.iter().enumerate().map(|(i, &p)| (i, p)).collect();
-    top_candidates.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
+    let top_candidates = top_n_desc_stable::<3>(logits);
 
     let mut top_tokens_idx = [0u32; 3];
     let mut top_weights_val = [0u32; 3];
@@ -291,7 +308,7 @@ pub fn softmax_top3_sample(logits: &mut [f32], rng: &mut u64) -> (usize, [u32; 3
         let mut accumulated = 0;
         for i in 0..3 {
             if i < top_candidates.len() {
-                top_tokens_idx[i] = top_candidates[i].0 as u32;
+                top_tokens_idx[i] = top_candidates[i].0;
                 let w = ((top_candidates[i].1 / sum_top3) * 100.0).round() as u32;
                 top_weights_val[i] = w;
                 accumulated += w;
@@ -338,9 +355,7 @@ pub fn softmax_top8_sample(logits: &mut [f32], rng: &mut u64) -> (usize, [u32; 8
         *p /= sum;
     }
 
-    let mut top_candidates: Vec<(usize, f32)> =
-        logits.iter().enumerate().map(|(i, &p)| (i, p)).collect();
-    top_candidates.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
+    let top_candidates = top_n_desc_stable::<8>(logits);
 
     let mut top_tokens_idx = [0u32; 8];
     let mut top_weights_val = [0u32; 8];
@@ -355,7 +370,7 @@ pub fn softmax_top8_sample(logits: &mut [f32], rng: &mut u64) -> (usize, [u32; 8
         let mut accumulated = 0;
         for i in 0..8 {
             if i < top_candidates.len() {
-                top_tokens_idx[i] = top_candidates[i].0 as u32;
+                top_tokens_idx[i] = top_candidates[i].0;
                 let w = ((top_candidates[i].1 / sum_top8) * 100.0).round() as u32;
                 top_weights_val[i] = w;
                 accumulated += w;
