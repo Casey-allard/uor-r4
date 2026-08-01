@@ -25,6 +25,7 @@ pub mod bott_fock;
 pub mod cd_space;
 pub mod endomorphism;
 pub mod lie_jordan;
+pub mod region_store;
 
 pub use reference_state::{ActiveFrontier, ActiveFrontierEntry, PackedEdgeRanges};
 pub use runtime::{derive_popcount_table, hamming, sign_signature, OpKernel};

@@ -1800,6 +1800,7 @@ dependencies = [
  "serde_json",
  "sha2",
  "tracing",
+ "uor-addr",
  "uor-r4-graph-format",
  "uor-r4-graph-runtime",
  "uor-r4-model-source",

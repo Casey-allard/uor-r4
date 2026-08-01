@@ -84,6 +84,7 @@ pub enum ModelError {
     Io(std::io::Error),
     Json(serde_json::Error),
     InvalidCid(String),
+    InvalidRegionObject(String),
     SizeMismatch {
         cid: String,
         expected: u64,
@@ -114,6 +115,9 @@ impl fmt::Display for ModelError {
             Self::Json(error) => write!(formatter, "invalid model manifest: {error}"),
             Self::InvalidCid(cid) => {
                 write!(formatter, "model object failed CID verification: {cid}")
+            }
+            Self::InvalidRegionObject(error) => {
+                write!(formatter, "region object failed canonical verification: {error}")
             }
             Self::SizeMismatch {
                 cid,
@@ -235,6 +239,76 @@ impl ModelStore {
         Ok(bytes)
     }
 
+    /// Store one canonical region object under its UOR κ-label.
+    pub fn put_region_object(
+        &self,
+        object: &uor_r4_core::transformerless::region_store::RegionObject,
+    ) -> Result<ModelObject, ModelError> {
+        let bytes = uor_r4_core::transformerless::region_store::canonical_region_bytes(object)
+            .map_err(|error| ModelError::InvalidRegionObject(error.to_string()))?;
+        let cid = uor_r4_core::transformerless::region_store::region_kappa(object)
+            .map_err(|error| ModelError::InvalidRegionObject(error.to_string()))?;
+        self.put_addressed_bytes(&cid, &bytes)
+    }
+
+    /// Load and verify one region object from the local CAS. A missing object
+    /// is a normal resolver miss; malformed or tampered bytes are errors.
+    pub fn get_region_object(
+        &self,
+        kappa: &str,
+    ) -> Result<Option<uor_r4_core::transformerless::region_store::RegionObject>, ModelError> {
+        let path = self.object_path(kappa)?;
+        let bytes = match std::fs::read(path) {
+            Ok(bytes) => bytes,
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+            Err(error) => return Err(ModelError::Io(error)),
+        };
+        let object = uor_r4_core::transformerless::region_store::decode_region_bytes(&bytes)
+            .map_err(|error| ModelError::InvalidRegionObject(error.to_string()))?;
+        let actual = uor_r4_core::transformerless::region_store::region_kappa(&object)
+            .map_err(|error| ModelError::InvalidRegionObject(error.to_string()))?;
+        if actual != kappa {
+            return Err(ModelError::InvalidCid(kappa.to_owned()));
+        }
+        Ok(Some(object))
+    }
+
+    /// Store a canonical region manifest under its manifest κ-label.
+    pub fn put_region_manifest(
+        &self,
+        manifest: &uor_r4_core::transformerless::region_store::RegionManifest,
+    ) -> Result<ModelObject, ModelError> {
+        let expected =
+            uor_r4_core::transformerless::region_store::manifest_kappa_for(&manifest.regions)
+                .map_err(|error| ModelError::InvalidRegionObject(error.to_string()))?;
+        if expected != manifest.manifest_kappa {
+            return Err(ModelError::InvalidCid(manifest.manifest_kappa.clone()));
+        }
+        let bytes = uor_r4_core::transformerless::region_store::canonical_manifest_bytes(manifest)
+            .map_err(|error| ModelError::InvalidRegionObject(error.to_string()))?;
+        self.put_addressed_bytes(&manifest.manifest_kappa, &bytes)
+    }
+
+    /// Load and verify a region manifest from the local CAS.
+    pub fn get_region_manifest(
+        &self,
+        kappa: &str,
+    ) -> Result<Option<uor_r4_core::transformerless::region_store::RegionManifest>, ModelError>
+    {
+        let path = self.object_path(kappa)?;
+        let bytes = match std::fs::read(path) {
+            Ok(bytes) => bytes,
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+            Err(error) => return Err(ModelError::Io(error)),
+        };
+        let manifest = uor_r4_core::transformerless::region_store::decode_manifest_bytes(&bytes)
+            .map_err(|error| ModelError::InvalidRegionObject(error.to_string()))?;
+        if manifest.manifest_kappa != kappa {
+            return Err(ModelError::InvalidCid(kappa.to_owned()));
+        }
+        Ok(Some(manifest))
+    }
+
     pub fn write_manifest(&self, manifest: &ModelManifest) -> Result<String, ModelError> {
         let bytes = serde_json::to_vec_pretty(manifest)?;
         let object = self.put(&bytes)?;
@@ -296,6 +370,36 @@ impl ModelStore {
             return Err(ModelError::InvalidCid(cid.to_owned()));
         }
         Ok(self.root.join("objects").join("blake3").join(hash))
+    }
+
+    fn put_addressed_bytes(&self, cid: &str, bytes: &[u8]) -> Result<ModelObject, ModelError> {
+        let path = self.object_path(cid)?;
+        if !path.exists() {
+            if let Some(parent) = path.parent() {
+                std::fs::create_dir_all(parent)?;
+            }
+            std::fs::write(&path, bytes)?;
+        }
+        Ok(ModelObject {
+            cid: cid.to_owned(),
+            bytes: bytes.len() as u64,
+        })
+    }
+}
+
+impl uor_r4_core::transformerless::region_store::RegionResolver for ModelStore {
+    fn resolve(
+        &self,
+        kappa: &str,
+    ) -> Result<
+        Option<uor_r4_core::transformerless::region_store::RegionObject>,
+        uor_r4_core::transformerless::region_store::RegionResolveError,
+    > {
+        self.get_region_object(kappa).map_err(|error| {
+            uor_r4_core::transformerless::region_store::RegionResolveError::Backend(
+                error.to_string(),
+            )
+        })
     }
 }
 
@@ -668,6 +772,49 @@ mod tests {
             .read_manifest("compiled-model")
             .unwrap_err();
         assert!(matches!(error, ModelError::CompiledNotImported(path) if path == compiled));
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn model_store_resolves_region_objects_from_manifest_only() {
+        use std::collections::BTreeMap;
+        use uor_r4_core::transformerless::region_store::{
+            export_store, predict_witness_with_resolver, RegionResolver,
+        };
+        use uor_r4_core::transformerless::runtime::{predict_witness_plain, Store};
+
+        let root =
+            std::env::temp_dir().join(format!("uor-r4-region-store-test-{}", std::process::id()));
+        let mut store: Store = (0..=4).map(|_| BTreeMap::new()).collect();
+        store[0].insert(vec![], BTreeMap::from([(7, 2), (9, 1)]));
+        store[1].insert(vec![1], BTreeMap::from([(11, 4), (12, 3)]));
+        store[2].insert(vec![1, 2], BTreeMap::from([(21, 5)]));
+
+        let export = export_store(&store).expect("region export");
+        let model_store = ModelStore::new(&root);
+        for object in &export.objects {
+            model_store
+                .put_region_object(object)
+                .expect("region object write");
+        }
+        model_store
+            .put_region_manifest(&export.manifest)
+            .expect("manifest write");
+
+        let manifest = model_store
+            .get_region_manifest(&export.manifest.manifest_kappa)
+            .expect("manifest read")
+            .expect("manifest exists");
+        let code = [1, 2, 3, 4];
+        let expected = predict_witness_plain(&store, &code);
+        let actual = predict_witness_with_resolver(&model_store, &manifest, &code)
+            .expect("resolver prediction");
+        assert_eq!(actual, expected);
+        assert!(
+            <ModelStore as RegionResolver>::resolve(&model_store, &manifest.regions[0].kappa)
+                .expect("resolver read")
+                .is_some()
+        );
         std::fs::remove_dir_all(root).unwrap();
     }
 }

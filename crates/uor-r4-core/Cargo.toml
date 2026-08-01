@@ -14,6 +14,7 @@ hex = "0.4.3"
 blake3 = "=1.5.0"
 ciborium = "0.2"
 uor-r4-graph-runtime = { path = "../uor-r4-graph-runtime" }
+uor-addr = { git = "https://github.com/UOR-Foundation/uor-addr.git", rev = "165b51e3e2113ee5d032730cde709335d4fe9b60", default-features = false, features = ["alloc"] }
 tracing = { version = "0.1", default-features = false, features = ["std"] }
 libm = "0.2"
 
