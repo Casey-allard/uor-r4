@@ -1006,7 +1006,8 @@ pub fn score_command(args: &[String]) -> Result<(), String> {
             exct_top_x: config.exct_top_x,
         },
     )?;
-    let graph_kappa = format!("blake3:{}", blake3::hash(&artifact_bytes).to_hex());
+    let graph_kappa = uor_r4_graph_format::r4g1::artifact_kappa(&artifact_bytes)
+        .map_err(|error| format!("cannot address emitted R4G1 artifact: {error}"))?;
 
     eprintln!("score: running Gate C evaluation [========================] 100%");
     let gate_c = score::evaluate_gate_c(

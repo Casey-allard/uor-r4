@@ -69,6 +69,8 @@ mod head;
 mod header;
 pub mod inference_contract;
 pub mod invariant_ownership;
+#[cfg(feature = "alloc")]
+pub mod r4g1;
 pub mod records;
 mod rout;
 pub mod scoring_semantics;

@@ -945,8 +945,10 @@ fn validate_uor_address_syntax(address: &str) -> Result<(), &'static str> {
     Ok(())
 }
 
-/// blake3 CID of the artifact the serving cascade would load, mtime-cached
-/// (issue #256: a real content address or nothing — never a placeholder).
+/// Representation-level UOR κ-label of the artifact the serving cascade
+/// would load, mtime-cached. The R4G1 wire CIDs remain internal integrity
+/// checks; external attestations use the canonical section-addressable
+/// realization from issue #264.
 fn active_artifact_cid() -> Option<String> {
     use std::sync::{Mutex, OnceLock};
     static CACHE: OnceLock<Mutex<Option<(std::path::PathBuf, std::time::SystemTime, String)>>> =
@@ -964,7 +966,7 @@ fn active_artifact_cid() -> Option<String> {
         }
     }
     let bytes = std::fs::read(path).ok()?;
-    let cid = format!("blake3:{}", blake3::hash(&bytes).to_hex());
+    let cid = uor_r4_graph_format::r4g1::artifact_kappa(&bytes).ok()?;
     *guard = Some((path.to_path_buf(), mtime, cid.clone()));
     Some(cid)
 }

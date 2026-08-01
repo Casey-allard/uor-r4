@@ -7,7 +7,7 @@ description = "R4G1 packed graph artifact container: no_std-compatible fixed-wid
 [features]
 default = ["std"]
 std = ["alloc"]
-alloc = []
+alloc = ["dep:uor-addr"]
 
 [dependencies]
 # Pinned to the workspace-wide blake3 version. `default-features = false`
@@ -17,3 +17,4 @@ blake3 = { version = "=1.5.0", default-features = false }
 # Serde on the wire newtypes (ScoreQ and peers flow into certificates and
 # manifests); no_std-compatible via derive-only, no std/alloc requirement.
 serde = { version = "1.0", default-features = false, features = ["derive"] }
+uor-addr = { git = "https://github.com/UOR-Foundation/uor-addr.git", rev = "165b51e3e2113ee5d032730cde709335d4fe9b60", default-features = false, features = ["alloc"], optional = true }
