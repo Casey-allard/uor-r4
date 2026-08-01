@@ -59,6 +59,8 @@ formally committed. Full text: plan §2.
 | **teacher-argmax agreement (500k era)** | **39.0%** | fresh, 2026-08-01 | same |
 | **bits/token WB (500k era)** | **8.0249** (teacher floor 1.4260, ceiling 70.5%) | fresh, 2026-08-01 | same |
 | **store keys (500k era)** | **179,068** | fresh, 2026-08-01 | same |
+| **TLA7 cpy8 residual row (500k era)** | **35.3% / 39.6% / 8.5247 WB / 195,650 keys** | fresh, 2026-08-01 | #335 Phase C rows; certifier log |
+| **TLA7 mantissa-fold candidate (500k era)** | **34.6% / 38.9% / 8.3097 WB / 162,119 keys** | fresh, not adopted | #335 Phase C rows; no top-1 gain |
 | HF-path evaluation tooling | exists | landed | PR #41 (`evaluate-report`); issue #34 closed |
 | **Gate C harness (Phase 4)** | TLA3 store baseline 31.7% / 11.88 bits-token | fresh, 2026-07-22 | `r4 transformerless score`, fixture corpus, 30,036 held-out positions — reproduces the P2 agreement anchor; bits/token is the canonical cross-entropy definition (GLOSSARY.md), scorer+ds named |
 | **Gate C: graph formula v1 (Σ-over-cloud)** | **0.3% / 70.47 bits-token** | fresh, unfavorable | correlated sibling-subtree residual stacking (issue #64, redesign in flight) |
@@ -220,6 +222,15 @@ artifacts (deterministic across runs; debug profile).
   context-codebook, class-signature and container κs moved with the corpus. Fixture
   `c_recs.bin` grew 1.8 MB → 24 MB (12-byte legacy records → 48-byte records with anchors/top-8).
   Full-certificate record: PROOF.md P2 era note; pins: `baseline_kappa.json`.
+
+- **Phase C adoption evidence recorded 2026-08-01** (issue #335): the
+  single-key/query-beam shape remains selected over write-time fan-out
+  (34.7% / 39.0% / 8.0249 WB / 179,068 keys versus 20.3% / 22.7% / 8.1473 /
+  817,683). i8 and i16 residual-copy rows are tied at reported precision;
+  i8 is retained for the smaller artifact. The 1.5× mantissa-bit norm-fold
+  candidate improves WB and key count but does not improve top-1, so it is
+  recorded rather than enabled. The certifier also replays the persisted
+  TLA7 container witness on 512/512 sampled positions.
 
 ## 4. M.V.G. checkpoint targets (D1) — CONFIRMED
 

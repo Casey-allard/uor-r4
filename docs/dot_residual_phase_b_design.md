@@ -73,6 +73,36 @@ harness (the same discipline that settled A-single vs A-multi):
   recorded result and the ceiling is declared reached for this
   architecture (teacher upgrade, issue #320, remains).
 
+### Phase C adoption evidence — 500k/TLA7 era (2026-08-01)
+
+The full certifier matrix was rerun against the pinned 500,000-token corpus
+(100,306 held-out positions, TLA7 container κ `blake3:ef6a20f3…`). The
+single-key store with query-time beam remains the selected shape:
+
+| Shape | top-1 | agreement | WB bits/token | keys |
+|---|---:|---:|---:|---:|
+| shipped single-key + query-beam | 34.7% | 39.0% | 8.0249 | 179,068 |
+| write-time fan-out (A-multi) | 20.3% | 22.7% | 8.1473 | 817,683 |
+| i8 residual copies (cpy8) | 35.3% | 39.6% | 8.5247 | 195,650 |
+| i16 residual copies (cpy16) | 35.3% | 39.5% | 8.5205 | 196,220 |
+
+The i8 and i16 rows are fidelity-equivalent at this precision; i8 is the
+adopted width because it is smaller and already witnessed in TLA7. A-multi is
+rejected: it adds 4.6× as many keys while losing 14.4 percentage points of
+top-1 accuracy.
+
+The Phase C mantissa-bit candidate was also run with the train-derived
+constant (CONST 4, excluding the 20-bit fixed-point fraction):
+
+| Norm fold | top-1 | agreement | WB bits/token | keys |
+|---|---:|---:|---:|---:|
+| coarse power-of-two | 34.6% | 38.8% | 8.4241 | 167,799 |
+| + one 1.5× mantissa bit | 34.6% | 38.9% | 8.3097 | 162,119 |
+
+This is a useful WB/key-shape improvement but no top-1 improvement, so the
+mantissa refinement is recorded as an empirical candidate and is not enabled
+in the deployed runtime.
+
 ## Reproduction requirement (before any kernel code)
 
 Per repo discipline (#244 precedent): the #318 rows must reproduce
@@ -88,7 +118,40 @@ before Phase B implementation is authorized. One run is on record.
   the format-era bump; P-4 scan extension; equality-witness against the
   plain form; op-census budget ⚑ ≤ 2× current dot-path counts.
 - **Phase C (adoption):** store-shape decision on the #244 harness;
-  κ re-pin with era notes (maintainer decision); BASELINE.md update.
+  κ re-pin with era notes (maintainer decision); BASELINE.md update; record
+  the mantissa-bit row and the TLA7 persisted witness.
+
+## Phase C result (500k/TLA7 era)
+
+Measured 2026-08-01 on the pinned 500,000-token corpus (2,507 stories;
+100,306 held-out positions), with the TLA7 artifact from the #327 re-pin
+(`blake3:ef6a20f3…`, 1,346,836 bytes). The shipped row is the comparison
+point:
+
+| Row | top-1 | agreement | WB bits | keys |
+|---|---:|---:|---:|---:|
+| A, shipped single-key + query-beam | 34.7% | 39.0% | 8.0249 | 179,068 |
+| A-dot-po2-resid | 35.1% | 39.4% | 8.4462 | 178,997 |
+| A-dot-po2-resid-cpy8 | 35.3% | 39.6% | 8.5247 | 195,650 |
+| A-dot-po2-resid-cpy16 | 35.3% | 39.5% | 8.5205 | 196,220 |
+| A-dot-po2-nf-resid | 34.6% | 38.8% | 8.4241 | 167,799 |
+| A-dot-po2-mf-resid | 34.6% | 38.9% | 8.3097 | 162,119 |
+
+The cpy8 row retains the residual quality gain, but its +0.4998 WB
+regression exceeds the Phase B bound of +0.3 bits/token. The mantissa-bit
+fold lowers the coarse norm-fold regression to +0.2848 bits/token and slightly
+improves agreement over the coarse fold, but it does not retain the shipped
+row's quality, so it does not clear the adoption criterion either. cpy16 is
+not preferred: it is larger, has one more key, and is fractionally worse on
+agreement than cpy8.
+
+**Decision:** keep the shipped single-key/query-beam store shape and record
+the residual rows as a measured quality-versus-dispersion trade-off. Do not
+change the membership beam or widen centroid copies on this era. The TLA7
+runtime path remains witnessed and deployed; this decision concerns the
+certifier-side store shape only. The narrow rerun command is
+`R4_CERTIFY_PHASE_C_ONLY=1` with `R4_CORPUS_META`/`R4_CORPUS_RECS` set to the
+preserved 500k corpus paths.
 
 ## Explicit non-goals
 

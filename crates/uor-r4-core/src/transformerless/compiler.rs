@@ -122,8 +122,15 @@ pub fn corpus_paths() -> (&'static str, &'static str) {
 
 #[cfg(not(target_arch = "wasm32"))]
 pub fn load_corpus() -> Option<Corpus> {
-    let (mp, rp) = corpus_paths();
-    load_corpus_from(mp, rp)
+    // Keep the historical defaults for normal certification, but allow
+    // re-pin measurements to point at an explicitly preserved corpus. This
+    // avoids replacing the checked-in era fixtures before their κ set has
+    // been reviewed. The override is compiler/test tooling only; deployed
+    // runtime code never loads a corpus.
+    let (default_meta, default_recs) = corpus_paths();
+    let meta = std::env::var("R4_CORPUS_META").unwrap_or_else(|_| default_meta.to_owned());
+    let recs = std::env::var("R4_CORPUS_RECS").unwrap_or_else(|_| default_recs.to_owned());
+    load_corpus_from(&meta, &recs)
 }
 
 /// Load a corpus record stream from explicit paths (fixtures, mirrors).

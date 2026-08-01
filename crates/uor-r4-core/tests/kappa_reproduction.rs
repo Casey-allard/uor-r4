@@ -125,11 +125,13 @@ fn kappa_reproduction() {
 /// baseline JSON (asserted fields) on stdout. Use when the compiler is
 /// intentionally redesigned and the pins must move:
 ///
+///   R4_CORPUS_META=/path/c_meta.bin R4_CORPUS_RECS=/path/c_recs.bin \
 ///   cargo test -p uor-r4-core --release --test kappa_reproduction -- \
 ///     --ignored --nocapture dump_baseline_kappa > /tmp/new_baseline.json
 ///
-/// then review the diff against tests/fixtures/baseline_kappa.json before
-/// adopting (a maintainer decision, never automatic).
+/// The corpus variables are optional and default to /tmp/c_meta.bin and
+/// /tmp/c_recs.bin. Review the diff against tests/fixtures/baseline_kappa.json
+/// before adopting (a maintainer decision, never automatic).
 #[test]
 #[ignore]
 fn dump_baseline_kappa() {

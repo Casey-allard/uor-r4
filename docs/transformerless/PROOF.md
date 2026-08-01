@@ -159,7 +159,22 @@ the historical record of the original certificate.
 Library witnesses (cargo test): P-1 the popcount table matches its
 definition on all 256 bytes and carries the stratum partition C(8,k);
 P-2 kernel Hamming equals the direct definition with exact op counts;
-P-3 sign signatures agree with the direct definition bit for bit.
+P-3 sign signatures agree with the direct definition bit for bit. The TLA7
+residual-wired path adds a persisted-container witness: after save/parse,
+bundle and code outputs agree between kernel and plain paths on 512/512
+sampled positions; the same witness is independently replayed by
+`kappa_reproduction::tla7_resid_kernel_plain_witness` when the checkpoint is
+present.
+
+**Phase C adoption record (2026-08-01, #335).** On the 500k/TLA7 corpus,
+write-time fan-out measured 20.3% top-1 / 22.7% teacher agreement / 8.1473
+WB bits/token / 817,683 keys versus the selected single-key/query-beam shape
+at 34.7% / 39.0% / 8.0249 / 179,068. The cpy8 and cpy16 rows were 35.3% /
+39.6% / 8.5247 / 195,650 and 35.3% / 39.5% / 8.5205 / 196,220,
+respectively; cpy8 is retained. The one-bit 1.5× mantissa refinement was
+34.6% / 38.9% / 8.3097 / 162,119 against the coarse fold's 34.6% / 38.8% /
+8.4241 / 167,799. It improves distribution shape but not top-1, so it is
+not enabled in the runtime.
 
 ## P4 — The compilation is architecture-generic. (By construction,
 ## type-enforced; instantiated for one family.)

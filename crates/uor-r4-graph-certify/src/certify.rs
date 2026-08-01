@@ -312,6 +312,27 @@ pub fn certify(oracle: &dyn TeacherOracle) {
     let art = compiler::compile(oracle, &c);
     compiler::save_artifacts(&art);
 
+    if std::env::var("R4_CERTIFY_PHASE_C_ONLY").is_ok_and(|value| value != "0") {
+        let bundles = build_bundles_parallel(&art, &compiler::derive_rotations(), &c);
+        let centered: Vec<[f32; D]> = bundles
+            .iter()
+            .map(|b| std::array::from_fn(|d| (b[d] - art.thresholds[d]) as f32))
+            .collect();
+        let mut ratios: Vec<f32> = (0..c.n)
+            .step_by(8)
+            .filter(|&i| c.story[i] < (c.stories as f64 * 0.8) as u32)
+            .map(|i| {
+                let l1: f32 = centered[i].iter().map(|x| x.abs()).sum();
+                let l2: f32 = centered[i].iter().map(|x| x * x).sum::<f32>().sqrt();
+                (l1 / l2.max(1e-9)).log2()
+            })
+            .collect();
+        ratios.sort_by(|a, b| a.partial_cmp(b).expect("finite norm-fold ratio"));
+        let norm_const = ratios[ratios.len() / 2].round();
+        certify_phase_c_norm_fold_rows(&c, &art, &centered, norm_const);
+        return;
+    }
+
     // ---- store, by the runtime's own path (key identity by construction)
     let (store, codes) = build_store(&art, &c);
     println!(
@@ -351,6 +372,39 @@ pub fn certify(oracle: &dyn TeacherOracle) {
         "equality witness: bundles, codes, predictions — kernel path == plain path on {}/{} sampled positions",
         sample_n, sample_n
     );
+
+    // TLA7 is the persisted form of the residual-wired path. Repeat the
+    // bundle/code witness after serialization so the certificate covers the
+    // actual era-tagged bytes, not only the in-memory compiler result.
+    let container = compiler::artifact_bytes(&art);
+    if container.starts_with(b"TLA7") {
+        let parsed = compiler::parse_artifacts(&container).expect("TLA7 container round-trips");
+        assert!(!parsed.resid_cb.is_empty(), "TLA7 carries residual copies");
+        assert_eq!(parsed.resid_cb, art.resid_cb);
+        assert_eq!(parsed.resid_scale_shifts, art.resid_scale_shifts);
+        assert_eq!(parsed.norm_fold_const, art.norm_fold_const);
+        let mut parsed_rt = Runtime::new(&parsed);
+        let parsed_rot = parsed_rt.rot;
+        for s in 0..sample_n {
+            let i = s * stride;
+            let bundle_kernel_value =
+                bundle_kernel(&mut parsed_rt.kernel, &parsed, &parsed_rot, &c, i);
+            let bundle_plain_value = bundle_plain(&parsed, &parsed_rot, &c, i);
+            assert_eq!(
+                bundle_kernel_value, bundle_plain_value,
+                "TLA7 bundle kernel/plain divergence at {i}"
+            );
+            assert_eq!(
+                parsed_rt.assign(&c, i),
+                code_plain(&parsed, &parsed_rot, &c, i),
+                "TLA7 code kernel/plain divergence at {i}"
+            );
+        }
+        println!(
+            "TLA7 persisted witness: container {} bytes, bundle/code equality on {}/{} sampled positions",
+            container.len(), sample_n, sample_n
+        );
+    }
     let k = &rt.kernel;
     println!(
         "per-token op census (kernel path, n={}): add {:.0} | xor {:.0} | shift {:.0} | compare {:.0} | table-read {:.0} | multiply 0 (no such operation exists in the kernel)",
@@ -913,11 +967,13 @@ pub fn certify(oracle: &dyn TeacherOracle) {
         let scale = (-s).exp2();
         (0..D).map(|d| centered[i][d] * scale).collect()
     };
-    {
+    let measure_norm_fold_row = |label: &str,
+                                 description: &str,
+                                 fold: &dyn Fn(usize) -> Vec<f32>| {
         let quantized = quantize(1);
         let codes_nf: Vec<[u8; STAGES]> = (0..c.n)
             .map(|i| {
-                let mut work = norm_fold(i);
+                let mut work = fold(i);
                 let mut code = [0u8; STAGES];
                 for (st, cb) in quantized.iter().enumerate() {
                     let (mut best, mut bk) = (f32::NEG_INFINITY, 0usize);
@@ -943,10 +999,38 @@ pub fn certify(oracle: &dyn TeacherOracle) {
         let st_row = build_store_generic(&c, STAGES, &|i, d| codes_nf[i][..d].to_vec());
         let m = eval(&c, &st_row, STAGES, &|i, d| codes_nf[i][..d].to_vec());
         println!(
-            "A-dot-po2-nf-resid (#318 Phase A.5: po2 norm fold [L1 bit-length, CONST {norm_const}], 1-term tables): top1 {:.1}% | agreement {:.1}% | WB {:.4} bits/token | {} keys",
-            m.top1, m.agree, m.wb_bits, m.keys
-        );
-    }
+                "{label} ({description}): top1 {:.1}% | agreement {:.1}% | WB {:.4} bits/token | {} keys",
+                m.top1, m.agree, m.wb_bits, m.keys
+            );
+    };
+    measure_norm_fold_row(
+        "A-dot-po2-nf-resid",
+        &format!(
+            "#318 Phase A.5: po2 norm fold [L1 bit-length, CONST {norm_const}], 1-term tables"
+        ),
+        &norm_fold,
+    );
+
+    // Phase C candidate: retain one extra L1 mantissa bit by applying the
+    // legal 1.5x shift-add scale when the normalized mantissa is >= 1.5.
+    // This is certifier-side f32 emulation of the integer rule; the runtime
+    // implementation, if adopted, would use shifts/adds only.
+    let mantissa_fold = |i: usize| {
+        let l1: f32 = centered[i].iter().map(|x| x.abs()).sum::<f32>().max(1e-9);
+        let exponent = l1.log2().floor();
+        let coarse_s = exponent + 1.0 - norm_const;
+        let mantissa = l1 / exponent.exp2();
+        let mantissa_scale = if mantissa >= 1.5 { 1.5 } else { 1.0 };
+        let scale = mantissa_scale * (-coarse_s).exp2();
+        (0..D).map(|d| centered[i][d] * scale).collect()
+    };
+    measure_norm_fold_row(
+        "A-dot-po2-mf-resid",
+        &format!(
+            "#335 Phase C: po2 norm fold + one mantissa bit [1.5x threshold, CONST {norm_const}], 1-term tables"
+        ),
+        &mantissa_fold,
+    );
     // (b) integer centroid-copy widths — assignment against 1-term po2
     // tables (shipped), residual subtraction with DEQUANTIZED per-stage
     // integer copies at a power-of-two stage scale (token stage-book
@@ -1289,6 +1373,112 @@ pub fn certify(oracle: &dyn TeacherOracle) {
     );
 
     crate::long_context::certify_long_context();
+}
+
+/// Narrow Phase C measurement mode for #335. It keeps the historical full
+/// matrix untouched while making the mantissa-fold experiment cheap enough to
+/// rerun at the 500k pinned corpus scale.
+fn build_bundles_parallel(
+    art: &compiler::Compiled,
+    rot: &[usize; WINDOW + 1],
+    c: &compiler::Corpus,
+) -> Vec<[i64; D]> {
+    let threads = std::thread::available_parallelism()
+        .map(|count| count.get().min(8))
+        .unwrap_or(1);
+    let chunk = c.n.div_ceil(threads.max(1));
+    std::thread::scope(|scope| {
+        let handles: Vec<_> = (0..c.n)
+            .step_by(chunk.max(1))
+            .map(|start| {
+                let end = (start + chunk).min(c.n);
+                scope.spawn(move || {
+                    (start..end)
+                        .map(|i| bundle_plain(art, rot, c, i))
+                        .collect::<Vec<_>>()
+                })
+            })
+            .collect();
+        handles
+            .into_iter()
+            .flat_map(|handle| handle.join().expect("bundle worker completed"))
+            .collect()
+    })
+}
+
+fn certify_phase_c_norm_fold_rows(
+    c: &compiler::Corpus,
+    art: &compiler::Compiled,
+    centered: &[[f32; D]],
+    norm_const: f32,
+) {
+    let po2 = |x: f32| -> f32 {
+        if x == 0.0 || !x.is_finite() {
+            return 0.0;
+        }
+        let s = x.abs().log2().round();
+        x.signum() * s.exp2()
+    };
+    let quantized: Vec<Vec<f32>> = art
+        .ctx_cb
+        .iter()
+        .map(|cb| cb.iter().map(|&cv| po2(cv)).collect())
+        .collect();
+
+    for (label, mantissa_refinement) in
+        [("A-dot-po2-nf-resid", false), ("A-dot-po2-mf-resid", true)]
+    {
+        let codes: Vec<[u8; STAGES]> = (0..c.n)
+            .map(|i| {
+                let l1: f32 = centered[i].iter().map(|x| x.abs()).sum::<f32>().max(1e-9);
+                let exponent = l1.log2().floor();
+                let coarse_s = exponent + 1.0 - norm_const;
+                let mantissa = l1 / exponent.exp2();
+                let factor = if mantissa_refinement && mantissa >= 1.5 {
+                    1.5
+                } else {
+                    1.0
+                };
+                let scale = factor * (-coarse_s).exp2();
+                let mut work: Vec<f32> = centered[i].iter().map(|&x| x * scale).collect();
+                let mut code = [0u8; STAGES];
+                for (st, cb) in quantized.iter().enumerate() {
+                    let (mut best, mut bk) = (f32::NEG_INFINITY, 0usize);
+                    for kk in 0..K {
+                        let cent = &cb[kk * D..(kk + 1) * D];
+                        let mut dp = 0f32;
+                        for j in 0..D {
+                            dp += work[j] * cent[j];
+                        }
+                        if dp > best {
+                            best = dp;
+                            bk = kk;
+                        }
+                    }
+                    code[st] = bk as u8;
+                    for j in 0..D {
+                        work[j] -= cb[bk * D + j];
+                    }
+                }
+                code
+            })
+            .collect();
+        let store = build_store_generic(c, STAGES, &|i, d| codes[i][..d].to_vec());
+        let metrics = eval(c, &store, STAGES, &|i, d| codes[i][..d].to_vec());
+        let description = if mantissa_refinement {
+            format!(
+                "#335 Phase C: po2 norm fold + one mantissa bit [1.5x threshold, CONST {norm_const}], 1-term tables"
+            )
+        } else {
+            format!(
+                "#318 Phase A.5: po2 norm fold [L1 bit-length, CONST {norm_const}], 1-term tables"
+            )
+        };
+        println!(
+            "{label} ({description}): top1 {:.1}% | agreement {:.1}% | WB {:.4} bits/token | {} keys",
+            metrics.top1, metrics.agree, metrics.wb_bits, metrics.keys
+        );
+    }
 }
 
 fn build_store_generic(
