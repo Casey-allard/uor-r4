@@ -32,9 +32,9 @@ pub use compile::{
 };
 pub use engine::{
     validate_quality_report, AbiVersion, AbstainOutcome, EngineParts, GenerateStatus,
-    InferenceError, InferenceRequest, InferenceResponse, LoadError, PolicyCounters, PolicyStatus,
-    PredictDecision, PredictOutcome, PredictOutput, R4Engine, ResolutionStatus, StatusAction,
-    StatusPolicy,
+    InferenceError, InferenceRequest, InferenceResponse, InferenceWitness, LoadError,
+    PolicyCounters, PolicyStatus, PredictDecision, PredictOutcome, PredictOutput, R4Engine,
+    ResolutionStatus, StatusAction, StatusPolicy, WitnessVerificationError,
 };
 
 // The bytes-based tokenizer the engine's text helpers use

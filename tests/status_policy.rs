@@ -22,6 +22,7 @@ mod status_policy_common;
 
 use status_policy_common as fixture;
 
+use uor_r4_api::engine::WitnessVerificationError;
 use uor_r4_graph_certify::{ScoreStatus, TOP_M, WIDENED_TOP_M};
 use uor_r4_wasm_router::r4g1::{
     AbstainOutcome, PolicyStatus, PredictDecision, PredictOutcome, StatusAction, StatusPolicy,
@@ -92,6 +93,37 @@ fn covered_probes_serve_with_exact_context_and_graph_status() {
     assert_eq!(counters.serves, 2);
     assert_eq!(counters.abstains, 0);
     assert_eq!(counters.widen_attempts, 0);
+}
+
+#[test]
+fn proof_witness_roundtrips_and_rejects_tampering() {
+    let fixture = fixture::window_fixture();
+    let state = fixture.load();
+    let seed = [5u32];
+    let mut generated = [0u32; 1];
+    let mut witnesses = Vec::new();
+    let status = state
+        .generate_into_status_with_witness(&seed, &mut generated, &mut witnesses)
+        .expect("witness generation");
+    assert_eq!(status.count, 1);
+    assert_eq!(witnesses.len(), 1);
+    state
+        .verify_witnesses(&seed, &generated[..status.count], &witnesses)
+        .expect("valid witness replays");
+
+    let mut wrong_depth = witnesses.clone();
+    wrong_depth[0].depth = wrong_depth[0].depth.saturating_add(1);
+    assert_eq!(
+        state.verify_witnesses(&seed, &generated[..status.count], &wrong_depth),
+        Err(WitnessVerificationError::DepthMismatch)
+    );
+
+    let mut wrong_region = witnesses;
+    wrong_region[0].region_kappa = Some("kappa:blake3:tampered".to_owned());
+    assert_eq!(
+        state.verify_witnesses(&seed, &generated[..status.count], &wrong_region),
+        Err(WitnessVerificationError::RegionMismatch)
+    );
 }
 
 /// The deployed allocation-free step (`score_step`) matches the

@@ -39,6 +39,7 @@ use std::io;
 use serde::{Deserialize, Serialize};
 use uor_r4_core::transformerless::compiler::{self, Compiled, SIG_BYTES, STAGES, WINDOW};
 use uor_r4_core::transformerless::runtime;
+use uor_r4_graph_format::{r4g1, SectionId};
 
 /// Unified inference request payload across HTTP REST, WebSocket, and WASM interfaces.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -53,6 +54,36 @@ pub struct InferenceRequest {
     pub max_tokens: Option<usize>,
     /// Temperature for geometric sampling.
     pub temperature: Option<f64>,
+    /// Ask a serving endpoint to include a replayable proof summary.
+    /// Witness assembly is opt-in and remains outside the default hot path.
+    #[serde(default)]
+    pub include_witness: bool,
+}
+
+/// Compact, per-token proof summary for opt-in serving responses.
+///
+/// The full scorer witness remains an internal verification artifact. This
+/// envelope carries the claims clients need to audit a response while the
+/// verifier recomputes the selected token and traversal from the held graph.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct InferenceWitness {
+    /// Content address of the region identity that supplied the answer.
+    /// `None` means exact-context evidence or a novel/abstaining probe did
+    /// not select a covered graph region.
+    pub region_kappa: Option<String>,
+    /// Zero-based region id within the NODE section, when a graph region
+    /// answered the probe.
+    pub region_id: Option<u32>,
+    /// Number of covered graph regions in the selected traversal.
+    pub depth: u8,
+    /// `exact_context`, `graph`, or `novel`.
+    pub resolution_status: String,
+    /// Serving engine that produced the witness.
+    pub engine: String,
+    /// Token bound to this witness claim.
+    pub token: u32,
+    /// Whether the policy had to use its widened membership pass.
+    pub widened: bool,
 }
 
 /// Unified inference response payload across HTTP REST, WebSocket, and WASM interfaces.
@@ -76,6 +107,9 @@ pub struct InferenceResponse {
     pub generation_mode: String,
     /// Optional error details if unfulfilled.
     pub error: Option<String>,
+    /// Optional per-token proof claims, populated only when requested.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub witness: Option<Vec<InferenceWitness>>,
 }
 use uor_r4_core::transformerless::scenarios::Tokenizer;
 use uor_r4_graph_certify::{
@@ -213,6 +247,42 @@ impl fmt::Display for InferenceError {
 }
 
 impl std::error::Error for InferenceError {}
+
+/// Typed rejection reasons for an opt-in response witness.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum WitnessVerificationError {
+    /// The response and witness arrays do not describe the same span.
+    LengthMismatch,
+    /// The claimed token differs from the artifact replay.
+    TokenMismatch,
+    /// The claimed region identity differs from the artifact replay.
+    RegionMismatch,
+    /// The claimed traversal depth differs from the artifact replay.
+    DepthMismatch,
+    /// The claimed resolution status differs from the artifact replay.
+    StatusMismatch,
+    /// The claimed serving engine is not the engine being verified.
+    EngineMismatch,
+    /// The claimed widening flag differs from the replay.
+    WidenedMismatch,
+}
+
+impl fmt::Display for WitnessVerificationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let reason = match self {
+            Self::LengthMismatch => "witness_length_mismatch",
+            Self::TokenMismatch => "witness_token_mismatch",
+            Self::RegionMismatch => "witness_region_mismatch",
+            Self::DepthMismatch => "witness_depth_mismatch",
+            Self::StatusMismatch => "witness_status_mismatch",
+            Self::EngineMismatch => "witness_engine_mismatch",
+            Self::WidenedMismatch => "witness_widened_mismatch",
+        };
+        f.write_str(reason)
+    }
+}
+
+impl std::error::Error for WitnessVerificationError {}
 
 // BEGIN DEPLOYED STATUS POLICY (INTEGER-ONLY) -------------------------
 // The D4 manifest policy and the status-aware prediction path below are
@@ -483,6 +553,12 @@ pub struct R4Engine {
     step_supported: bool,
     counters: PolicyCounters,
     novel_seen: NovelSeen,
+    /// Representation-level artifact address used to derive stable region
+    /// identities for opt-in witnesses. Computed once at load time.
+    artifact_kappa: String,
+    /// Address of the NODE section, the canonical region-object namespace
+    /// until standalone region manifests land.
+    node_section_kappa: Option<String>,
 }
 
 impl R4Engine {
@@ -511,6 +587,38 @@ impl R4Engine {
         // called per prediction.
         let code = runtime::assign_code_for_bundle(&self.artifacts, &bundle);
         (sig, code)
+    }
+
+    /// Derive the stable κ-label for a region identity. The identity is
+    /// anchored to the canonical NODE section address and node id, so a
+    /// changed graph section or node changes the witness claim. This keeps
+    /// witness verification honest while the standalone region-object
+    /// manifest/resolver work in #263 is completed.
+    fn region_kappa(&self, node_id: u32) -> Option<String> {
+        let section = self.node_section_kappa.as_deref()?;
+        let mut hasher = blake3::Hasher::new();
+        hasher.update(b"uor-r4-region-witness-v1\0");
+        hasher.update(self.artifact_kappa.as_bytes());
+        hasher.update(section.as_bytes());
+        hasher.update(&node_id.to_le_bytes());
+        Some(format!("kappa:blake3:{}", hasher.finalize().to_hex()))
+    }
+
+    fn compact_witness(
+        &self,
+        witness: &uor_r4_graph_certify::ScoreWitness,
+        widened: bool,
+    ) -> InferenceWitness {
+        let node_id = witness.chain.last().copied();
+        InferenceWitness {
+            region_kappa: node_id.and_then(|node| self.region_kappa(node)),
+            region_id: node_id.map(|node| node.saturating_sub(1)),
+            depth: witness.chain.len().min(u8::MAX as usize) as u8,
+            resolution_status: PolicyStatus::from(witness.status).label().to_owned(),
+            engine: "r4g1".to_owned(),
+            token: witness.selected,
+            widened,
+        }
     }
 
     /// Reject a window carrying a token id the teacher artifact cannot
@@ -563,6 +671,25 @@ impl R4Engine {
                 status: outcome.witness.status,
             })
         }
+    }
+
+    /// Reference scorer used only by the opt-in witness path. The normal
+    /// serving path continues to use the allocation-free step scorer.
+    fn score_sig_witness(
+        &mut self,
+        sig: &[u8; SIG_BYTES],
+        input_code: Option<&[u8; compiler::STAGES]>,
+        top_m: usize,
+        recent_tokens: &[u32],
+    ) -> Result<uor_r4_graph_certify::ScoreOutcome, InferenceError> {
+        // The reference scorer has a fixed membership width today; keeping
+        // the parameter at the call site makes the witness contract explicit
+        // and avoids silently claiming widening when the artifact cannot
+        // support it.
+        let _ = top_m;
+        self.scorer
+            .score_candidates_coded(sig, input_code, recent_tokens)
+            .map_err(InferenceError::Scorer)
     }
 
     /// The D4 policy decision for one input signature: score at the
@@ -651,6 +778,82 @@ impl R4Engine {
         self.predict_signature_status_with_recent(&sig, Some(&code), window)
     }
 
+    /// Predict one window and retain the compact proof claim for the
+    /// selected result. This is deliberately separate from
+    /// [`Self::predict_decision`]: witness assembly uses the allocating
+    /// reference scorer and is never paid by ordinary inference.
+    pub fn predict_decision_with_witness(
+        &mut self,
+        window: &[u32],
+    ) -> Result<(PredictDecision, InferenceWitness), InferenceError> {
+        self.check_window(window)?;
+        let (sig, code) = self.derive_sig_code(window);
+        self.counters.predicts += 1;
+        let first = self.score_sig_witness(&sig, Some(&code), TOP_M, window)?;
+        let first_witness = self.compact_witness(&first.witness, false);
+        match self.policy.action(first.witness.status.into()) {
+            StatusAction::Serve => {
+                self.counters.serves += 1;
+                Ok((
+                    PredictDecision::Serve(PredictOutcome {
+                        token: first.selected,
+                        status: first.witness.status,
+                        widened: false,
+                    }),
+                    first_witness,
+                ))
+            }
+            StatusAction::Abstain => {
+                self.counters.abstains += 1;
+                Ok((
+                    PredictDecision::Abstain(AbstainOutcome {
+                        status: first.witness.status,
+                        widened: false,
+                    }),
+                    first_witness,
+                ))
+            }
+            StatusAction::WidenOnce => {
+                if !self.step_supported || self.novel_seen.contains(&sig) {
+                    self.counters.abstains += 1;
+                    return Ok((
+                        PredictDecision::Abstain(AbstainOutcome {
+                            status: first.witness.status,
+                            widened: false,
+                        }),
+                        first_witness,
+                    ));
+                }
+                self.counters.widen_attempts += 1;
+                let second = self.score_sig_witness(&sig, Some(&code), WIDENED_TOP_M, window)?;
+                let second_witness = self.compact_witness(&second.witness, true);
+                if second.witness.status == ScoreStatus::Novel {
+                    self.novel_seen.insert(&sig);
+                }
+                if self.policy.action(second.witness.status.into()) == StatusAction::Serve {
+                    self.counters.serves += 1;
+                    Ok((
+                        PredictDecision::Serve(PredictOutcome {
+                            token: second.selected,
+                            status: second.witness.status,
+                            widened: true,
+                        }),
+                        second_witness,
+                    ))
+                } else {
+                    self.counters.abstains += 1;
+                    Ok((
+                        PredictDecision::Abstain(AbstainOutcome {
+                            status: second.witness.status,
+                            widened: true,
+                        }),
+                        second_witness,
+                    ))
+                }
+            }
+        }
+    }
+
     /// Score one token window into a caller-owned output slot. Mirrors
     /// [`PredictDecision`] semantics: on a policy abstention
     /// `out.abstained` is set and `out.token` carries no meaning.
@@ -732,6 +935,125 @@ impl R4Engine {
             abstained: false,
         })
     }
+
+    /// Witness-enabled generation. The caller owns the witness vector so
+    /// response assembly can choose its allocation and serialization policy.
+    pub fn generate_into_with_witness(
+        &mut self,
+        seed: &[u32],
+        out: &mut [u32],
+        witnesses: &mut Vec<InferenceWitness>,
+    ) -> Result<GenerateStatus, InferenceError> {
+        self.check_window(seed)?;
+        witnesses.clear();
+        let mut window = [0u32; WINDOW];
+        let seed = &seed[seed.len().saturating_sub(WINDOW)..];
+        let mut window_len = seed.len();
+        window[..window_len].copy_from_slice(seed);
+        let mut last_status = None;
+        let mut widened = false;
+        for (generated, token) in out.iter_mut().enumerate() {
+            let (decision, witness) = self.predict_decision_with_witness(&window[..window_len])?;
+            match decision {
+                PredictDecision::Serve(outcome) => {
+                    let next = outcome.token;
+                    last_status = Some(outcome.status);
+                    widened = widened || outcome.widened;
+                    if next == 1 || next == 2 {
+                        return Ok(GenerateStatus {
+                            count: generated,
+                            status: last_status,
+                            widened,
+                            abstained: false,
+                        });
+                    }
+                    *token = next;
+                    witnesses.push(witness);
+                    if window_len < WINDOW {
+                        window[window_len] = next;
+                        window_len += 1;
+                    } else {
+                        window.copy_within(1.., 0);
+                        window[WINDOW - 1] = next;
+                    }
+                }
+                PredictDecision::Abstain(outcome) => {
+                    return Ok(GenerateStatus {
+                        count: generated,
+                        status: Some(outcome.status),
+                        widened: widened || outcome.widened,
+                        abstained: true,
+                    });
+                }
+            }
+        }
+        Ok(GenerateStatus {
+            count: out.len(),
+            status: last_status,
+            widened,
+            abstained: false,
+        })
+    }
+
+    /// Independently replay compact witnesses against this loaded artifact.
+    /// This is server-side verification only; it does not mutate the normal
+    /// allocation-free step scratch or status counters.
+    pub fn verify_witnesses(
+        &mut self,
+        seed: &[u32],
+        generated: &[u32],
+        witnesses: &[InferenceWitness],
+    ) -> Result<(), WitnessVerificationError> {
+        if generated.len() != witnesses.len() {
+            return Err(WitnessVerificationError::LengthMismatch);
+        }
+        self.check_window(seed)
+            .map_err(|_| WitnessVerificationError::LengthMismatch)?;
+        let mut window = [0u32; WINDOW];
+        let seed = &seed[seed.len().saturating_sub(WINDOW)..];
+        let mut window_len = seed.len();
+        window[..window_len].copy_from_slice(seed);
+        for (&token, claimed) in generated.iter().zip(witnesses) {
+            let (sig, code) = self.derive_sig_code(&window[..window_len]);
+            let top_m = if claimed.widened {
+                WIDENED_TOP_M
+            } else {
+                TOP_M
+            };
+            let outcome = self
+                .score_sig_witness(&sig, Some(&code), top_m, &window[..window_len])
+                .map_err(|_| WitnessVerificationError::StatusMismatch)?;
+            let expected = self.compact_witness(&outcome.witness, claimed.widened);
+            if claimed.engine != "r4g1" {
+                return Err(WitnessVerificationError::EngineMismatch);
+            }
+            if claimed.token != token || claimed.token != expected.token {
+                return Err(WitnessVerificationError::TokenMismatch);
+            }
+            if claimed.region_kappa != expected.region_kappa
+                || claimed.region_id != expected.region_id
+            {
+                return Err(WitnessVerificationError::RegionMismatch);
+            }
+            if claimed.depth != expected.depth {
+                return Err(WitnessVerificationError::DepthMismatch);
+            }
+            if claimed.resolution_status != expected.resolution_status {
+                return Err(WitnessVerificationError::StatusMismatch);
+            }
+            if claimed.widened != expected.widened {
+                return Err(WitnessVerificationError::WidenedMismatch);
+            }
+            if window_len < WINDOW {
+                window[window_len] = token;
+                window_len += 1;
+            } else {
+                window.copy_within(1.., 0);
+                window[WINDOW - 1] = token;
+            }
+        }
+        Ok(())
+    }
 }
 
 // END DEPLOYED STATUS POLICY (INTEGER-ONLY) ---------------------------
@@ -811,6 +1133,10 @@ impl R4Engine {
             .map_err(LoadError::Scorer)?;
         let token_rows = u32::try_from(artifacts.token_codes.len() / STAGES)
             .map_err(|_| LoadError::TeacherTooLarge)?;
+        let artifact_kappa = r4g1::artifact_kappa(parts.graph)
+            .map_err(|error| LoadError::Scorer(error.to_string()))?;
+        let node_section_kappa = r4g1::section_kappa(parts.graph, SectionId::NODE)
+            .map_err(|error| LoadError::Scorer(error.to_string()))?;
 
         Ok(Self {
             artifacts,
@@ -823,6 +1149,8 @@ impl R4Engine {
             step_supported,
             counters: PolicyCounters::default(),
             novel_seen: NovelSeen::new(NOVEL_SEEN_CAPACITY),
+            artifact_kappa,
+            node_section_kappa,
         })
     }
 
@@ -931,6 +1259,7 @@ mod tests {
             engine: Some("r4g1".to_string()),
             max_tokens: Some(32),
             temperature: Some(0.7),
+            include_witness: false,
         };
         let json = serde_json::to_string(&req).expect("serialize InferenceRequest");
         let decoded: InferenceRequest =
@@ -950,6 +1279,7 @@ mod tests {
             widened: false,
             generation_mode: "r4g1-zero-multiply".to_string(),
             error: None,
+            witness: None,
         };
         let json = serde_json::to_string(&res).expect("serialize InferenceResponse");
         let decoded: InferenceResponse =

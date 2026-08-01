@@ -33,7 +33,9 @@
 use std::cell::RefCell;
 use std::path::{Path, PathBuf};
 
-use uor_r4_api::engine::{EngineParts, LoadError, R4Engine};
+use uor_r4_api::engine::{
+    EngineParts, InferenceWitness, LoadError, R4Engine, WitnessVerificationError,
+};
 use uor_r4_core::transformerless::compiler::SIG_BYTES;
 use uor_r4_core::transformerless::scenarios::Tokenizer;
 
@@ -99,6 +101,32 @@ impl R4g1State {
             .borrow_mut()
             .generate_into(seed, out)
             .map_err(|error| error.to_string())
+    }
+
+    /// Witness-enabled generation for the opt-in proof-carrying response
+    /// envelope. The ordinary generation method remains allocation-free.
+    pub fn generate_into_status_with_witness(
+        &self,
+        seed: &[u32],
+        out: &mut [u32],
+        witnesses: &mut Vec<InferenceWitness>,
+    ) -> Result<GenerateStatus, String> {
+        self.engine
+            .borrow_mut()
+            .generate_into_with_witness(seed, out, witnesses)
+            .map_err(|error| error.to_string())
+    }
+
+    /// Replay a compact response witness against the loaded artifact.
+    pub fn verify_witnesses(
+        &self,
+        seed: &[u32],
+        generated: &[u32],
+        witnesses: &[InferenceWitness],
+    ) -> Result<(), WitnessVerificationError> {
+        self.engine
+            .borrow_mut()
+            .verify_witnesses(seed, generated, witnesses)
     }
 
     /// Load and validate a scored graph. The teacher artifact supplies the

@@ -54,7 +54,7 @@ pub struct ServerConfig {
     pub tless_corpus_recs: Option<String>,
 }
 
-pub use uor_r4_api::{InferenceRequest, InferenceResponse};
+pub use uor_r4_api::{InferenceRequest, InferenceResponse, InferenceWitness};
 
 type ChatPayload = InferenceRequest;
 
@@ -3283,6 +3283,11 @@ fn handle_connection(
             .and_then(|m| m.as_u64())
             .unwrap_or(24)
             .clamp(1, 256) as usize;
+        let include_witness = payload
+            .get("include_witness")
+            .or_else(|| payload.get("witness"))
+            .and_then(|value| value.as_bool())
+            .unwrap_or(false);
         let guard = r4g1.lock().unwrap();
         let Some(state) = guard.as_ref() else {
             let (status, body) = r4g1_unavailable_response();
@@ -3317,7 +3322,13 @@ fn handle_connection(
             return;
         }
         let mut out = [0u32; 256];
-        match state.generate_into_status(&seed, &mut out[..max_tokens]) {
+        let mut witnesses = Vec::new();
+        let generation = if include_witness {
+            state.generate_into_status_with_witness(&seed, &mut out[..max_tokens], &mut witnesses)
+        } else {
+            state.generate_into_status(&seed, &mut out[..max_tokens])
+        };
+        match generation {
             Ok(gen) => {
                 let tokens = &out[..gen.count];
                 let mut text_bytes = [0u8; 16 * 1024];
@@ -3330,7 +3341,7 @@ fn handle_connection(
                         .unwrap_or(0)
                 };
                 let text = String::from_utf8_lossy(&text_bytes[..text_len]).into_owned();
-                let body = serde_json::json!({
+                let mut body = serde_json::json!({
                     "seed": seed,
                     "tokens": tokens,
                     "count": gen.count,
@@ -3342,6 +3353,9 @@ fn handle_connection(
                         .map(|s| s.label()),
                     "widened": gen.widened,
                 });
+                if include_witness {
+                    body["witness"] = serde_json::to_value(&witnesses).unwrap_or_default();
+                }
                 send_json_response(stream, 200, &body.to_string());
             }
             Err(error) => send_json_response(
@@ -3365,6 +3379,72 @@ fn handle_connection(
                 return;
             }
         };
+
+        // Issue #266: compact proof-carrying inference witnesses are
+        // verified against the loaded R4G1 artifact, independently of the
+        // legacy JSON-address attestation below.
+        if payload.get("witness").is_some() {
+            let seed = payload
+                .get("seed")
+                .and_then(|value| value.as_array())
+                .map(|values| {
+                    values
+                        .iter()
+                        .filter_map(|value| value.as_u64().map(|token| token as u32))
+                        .collect::<Vec<_>>()
+                });
+            let tokens = payload
+                .get("tokens")
+                .and_then(|value| value.as_array())
+                .map(|values| {
+                    values
+                        .iter()
+                        .filter_map(|value| value.as_u64().map(|token| token as u32))
+                        .collect::<Vec<_>>()
+                });
+            let witnesses = payload
+                .get("witness")
+                .cloned()
+                .and_then(|value| serde_json::from_value::<Vec<InferenceWitness>>(value).ok());
+            let (Some(seed), Some(tokens), Some(witnesses)) = (seed, tokens, witnesses) else {
+                send_json_response(
+                    stream,
+                    400,
+                    &serde_json::json!({
+                        "verified": false,
+                        "reason": "witness_payload_invalid"
+                    })
+                    .to_string(),
+                );
+                return;
+            };
+            let guard = r4g1.lock().unwrap();
+            let Some(state) = guard.as_ref() else {
+                send_json_response(
+                    stream,
+                    503,
+                    &serde_json::json!({
+                        "verified": false,
+                        "reason": "r4g1_artifact_unavailable"
+                    })
+                    .to_string(),
+                );
+                return;
+            };
+            let response = match state.verify_witnesses(&seed, &tokens, &witnesses) {
+                Ok(()) => serde_json::json!({
+                    "verified": true,
+                    "engine": "r4g1",
+                    "witness_count": witnesses.len(),
+                }),
+                Err(reason) => serde_json::json!({
+                    "verified": false,
+                    "reason": reason.to_string(),
+                }),
+            };
+            send_json_response(stream, 200, &response.to_string());
+            return;
+        }
 
         let provided_address = payload
             .get("uor_address")
