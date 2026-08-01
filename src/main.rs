@@ -203,6 +203,9 @@ struct CompileArgs {
     /// Force exact scalar CPU math instead of Apple Accelerate / SIMD hardware matrix acceleration.
     #[arg(long, default_value_t = false)]
     exact_scalar: bool,
+    /// Use the portable libm teacher path and scalar reductions for certificate-bearing builds.
+    #[arg(long, default_value_t = false)]
+    canonical_deterministic: bool,
 }
 
 #[derive(Args, Debug)]
@@ -425,6 +428,9 @@ fn compile(args: &CompileArgs) -> Result<(), RunError> {
     }
     if args.exact_scalar {
         std::env::set_var("TLESS_EXACT_SCALAR", "1");
+    }
+    if args.canonical_deterministic {
+        std::env::set_var("TLESS_CANONICAL_DETERMINISTIC", "1");
     }
     transformerless_command::compile_hugging_face(&values).map_err(RunError::Command)
 }

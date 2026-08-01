@@ -111,6 +111,32 @@ use uor_r4_core::transformerless::compiler::{
 };
 use uor_r4_core::transformerless::runtime;
 
+#[inline]
+fn canonical_math_enabled() -> bool {
+    static ENABLED: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+    *ENABLED.get_or_init(|| {
+        std::env::var("TLESS_CANONICAL_DETERMINISTIC").is_ok_and(|value| value != "0")
+    })
+}
+
+#[inline]
+fn canonical_sqrtf(value: f32) -> f32 {
+    if canonical_math_enabled() {
+        libm::sqrtf(value)
+    } else {
+        value.sqrt()
+    }
+}
+
+#[inline]
+fn canonical_log2(value: f64) -> f64 {
+    if canonical_math_enabled() {
+        libm::log2(value)
+    } else {
+        value.log2()
+    }
+}
+
 /// Default multiresolution depth cap (root at depth 0; regions at 1..=3).
 pub const DEFAULT_DEPTHS: usize = 3;
 /// Default number of regions of the broad depth-1 cover.
@@ -420,7 +446,7 @@ fn build_observations_serial(
             }
         }
 
-        let nn = nn.sqrt().max(1e-9);
+        let nn = canonical_sqrtf(nn).max(1e-9);
         for x in vector.iter_mut() {
             *x /= nn;
         }
@@ -523,7 +549,7 @@ fn normalize(v: &mut [f32]) {
     for &x in v.iter() {
         nn += x * x;
     }
-    let nn = nn.sqrt().max(1e-9);
+    let nn = canonical_sqrtf(nn).max(1e-9);
     for x in v.iter_mut() {
         *x /= nn;
     }
@@ -750,7 +776,7 @@ fn entropy_bits<K: Ord>(counts: &BTreeMap<K, u64>) -> f64 {
     let mut h = 0.0f64;
     for &count in counts.values() {
         let p = count as f64 / total as f64;
-        h -= p * p.log2();
+        h -= p * canonical_log2(p);
     }
     h
 }

@@ -1794,6 +1794,7 @@ dependencies = [
  "blake3",
  "ciborium",
  "hex",
+ "libm",
  "proptest",
  "serde",
  "serde_json",
@@ -1840,6 +1841,7 @@ version = "0.1.0"
 dependencies = [
  "blake3",
  "env_logger",
+ "libm",
  "log",
  "rayon",
  "serde",
@@ -1872,6 +1874,7 @@ version = "0.1.0"
 dependencies = [
  "blake3",
  "hex",
+ "libm",
  "safetensors",
  "serde",
  "serde_json",

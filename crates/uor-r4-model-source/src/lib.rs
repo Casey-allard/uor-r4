@@ -37,6 +37,8 @@ pub struct Llama {
     w3: usize,
     rms_final: usize,
     wcls: usize,
+    /// Use the portable pure-Rust math path required by D2 canonical mode.
+    canonical_math: bool,
 }
 
 pub struct State {
@@ -84,12 +86,57 @@ impl State {
     }
 }
 
-fn rmsnorm(o: &mut [f32], x: &[f32], weight: &[f32]) {
+#[inline]
+fn sqrtf(value: f32, canonical: bool) -> f32 {
+    if canonical {
+        libm::sqrtf(value)
+    } else {
+        value.sqrt()
+    }
+}
+
+#[inline]
+fn expf(value: f32, canonical: bool) -> f32 {
+    if canonical {
+        libm::expf(value)
+    } else {
+        value.exp()
+    }
+}
+
+#[inline]
+fn powf(base: f32, exponent: f32, canonical: bool) -> f32 {
+    if canonical {
+        libm::powf(base, exponent)
+    } else {
+        base.powf(exponent)
+    }
+}
+
+#[inline]
+fn sinf(value: f32, canonical: bool) -> f32 {
+    if canonical {
+        libm::sinf(value)
+    } else {
+        value.sin()
+    }
+}
+
+#[inline]
+fn cosf(value: f32, canonical: bool) -> f32 {
+    if canonical {
+        libm::cosf(value)
+    } else {
+        value.cos()
+    }
+}
+
+fn rmsnorm_with_mode(o: &mut [f32], x: &[f32], weight: &[f32], canonical: bool) {
     let size = x.len();
     let mut ss = x.iter().map(|value| value * value).sum::<f32>();
     ss /= size as f32;
     ss += 1e-5f32;
-    ss = 1.0f32 / ss.sqrt();
+    ss = 1.0f32 / sqrtf(ss, canonical);
     for ((output, value), weight) in o.iter_mut().zip(x).zip(weight) {
         *output = *weight * (ss * *value);
     }
@@ -97,18 +144,18 @@ fn rmsnorm(o: &mut [f32], x: &[f32], weight: &[f32]) {
 
 /// In-place variant matching C's rmsnorm(x, x, w): C computes ss from x
 /// first, then writes; identical here.
-fn rmsnorm_inplace(x: &mut [f32], weight: &[f32]) {
+fn rmsnorm_inplace_with_mode(x: &mut [f32], weight: &[f32], canonical: bool) {
     let size = x.len();
     let mut ss = x.iter().map(|value| value * value).sum::<f32>();
     ss /= size as f32;
     ss += 1e-5f32;
-    ss = 1.0f32 / ss.sqrt();
+    ss = 1.0f32 / sqrtf(ss, canonical);
     for (value, weight) in x.iter_mut().zip(weight) {
         *value = *weight * (ss * *value);
     }
 }
 
-fn softmax(x: &mut [f32]) {
+fn softmax_with_mode(x: &mut [f32], canonical: bool) {
     let mut max_val = x[0];
     for &value in x.iter().skip(1) {
         if value > max_val {
@@ -117,7 +164,7 @@ fn softmax(x: &mut [f32]) {
     }
     let mut sum = 0.0f32;
     for value in x.iter_mut() {
-        *value = (*value - max_val).exp();
+        *value = expf(*value - max_val, canonical);
         sum += *value;
     }
     for value in x.iter_mut() {
@@ -446,6 +493,7 @@ impl Llama {
             w3,
             rms_final,
             wcls,
+            canonical_math: false,
         }
     }
 
@@ -492,6 +540,7 @@ impl Llama {
             w3,
             rms_final,
             wcls,
+            canonical_math: false,
         }
     }
 
@@ -508,10 +557,11 @@ impl Llama {
         st.x.copy_from_slice(&w[self.emb + token * dim..self.emb + (token + 1) * dim]);
 
         for l in 0..c.n_layers {
-            rmsnorm(
+            rmsnorm_with_mode(
                 &mut st.xb,
                 &st.x,
                 &w[self.rms_att + l * dim..self.rms_att + (l + 1) * dim],
+                self.canonical_math,
             );
 
             let loff = l * c.seq_len * kv_dim;
@@ -550,10 +600,15 @@ impl Llama {
                 let mut i = 0usize;
                 while i < dim {
                     let head_dim = i % head_size;
-                    let freq = 1.0f32 / c.rope_theta.powf(head_dim as f32 / head_size as f32);
+                    let freq = 1.0f32
+                        / powf(
+                            c.rope_theta,
+                            head_dim as f32 / head_size as f32,
+                            self.canonical_math,
+                        );
                     let val = pos as f32 * freq;
-                    let fcr = val.cos();
-                    let fci = val.sin();
+                    let fcr = cosf(val, self.canonical_math);
+                    let fci = sinf(val, self.canonical_math);
                     let rotn = if i < kv_dim { 2 } else { 1 };
                     for v in 0..rotn {
                         let vec: &mut [f32] = if v == 0 { &mut st.q } else { &mut *k };
@@ -570,10 +625,17 @@ impl Llama {
                     for head in vector.chunks_exact_mut(head_size) {
                         let half = head_size / 2;
                         for i in 0..half {
-                            let freq =
-                                1.0f32 / c.rope_theta.powf((2 * i) as f32 / head_size as f32);
+                            let freq = 1.0f32
+                                / powf(
+                                    c.rope_theta,
+                                    (2 * i) as f32 / head_size as f32,
+                                    self.canonical_math,
+                                );
                             let angle = pos as f32 * freq;
-                            let (cos, sin) = (angle.cos(), angle.sin());
+                            let (cos, sin) = (
+                                cosf(angle, self.canonical_math),
+                                sinf(angle, self.canonical_math),
+                            );
                             let first = head[i];
                             let second = head[i + half];
                             head[i] = first * cos - second * sin;
@@ -606,10 +668,10 @@ impl Llama {
                                 + q_chunk[3] * k_chunk[3];
                             head_score += dot_4d;
                         }
-                        head_score /= (head_size as f32).sqrt();
+                        head_score /= sqrtf(head_size as f32, self.canonical_math);
                         *attention = head_score;
                     }
-                    softmax(att);
+                    softmax_with_mode(att, self.canonical_math);
                 } else {
                     // Standard Llama scaled dot-product attention
                     for (t, attention) in att.iter_mut().enumerate() {
@@ -619,10 +681,10 @@ impl Llama {
                         for i in 0..head_size {
                             score += q[i] * k[i];
                         }
-                        score /= (head_size as f32).sqrt();
+                        score /= sqrtf(head_size as f32, self.canonical_math);
                         *attention = score;
                     }
-                    softmax(att);
+                    softmax_with_mode(att, self.canonical_math);
                 }
 
                 let xb = &mut st.xb[h * head_size..(h + 1) * head_size];
@@ -648,10 +710,11 @@ impl Llama {
                 st.x[i] += st.xb2[i];
             }
 
-            rmsnorm(
+            rmsnorm_with_mode(
                 &mut st.xb,
                 &st.x,
                 &w[self.rms_ffn + l * dim..self.rms_ffn + (l + 1) * dim],
+                self.canonical_math,
             );
             matmul(
                 &mut st.hb,
@@ -669,7 +732,7 @@ impl Llama {
             );
             for i in 0..hid {
                 let mut val = st.hb[i];
-                val *= 1.0f32 / (1.0f32 + (-val).exp());
+                val *= 1.0f32 / (1.0f32 + expf(-val, self.canonical_math));
                 val *= st.hb2[i];
                 st.hb[i] = val;
             }
@@ -689,7 +752,7 @@ impl Llama {
         // C: rmsnorm(x, x, w) — in-place with pre-read ss.
         {
             let (wslice, x) = (&w[rf..rf + dim], &mut st.x);
-            rmsnorm_inplace(x, wslice);
+            rmsnorm_inplace_with_mode(x, wslice, self.canonical_math);
         }
         matmul(&mut st.logits, &st.x, &w[self.wcls..], dim, fast_matmul);
     }
@@ -759,7 +822,12 @@ pub trait TeacherOracle: RepresentationSource + BehaviorSource {
 /// `State` retains after `step`. Softmax is computed in the same f32
 /// max-subtracted form the corpus generator uses; ordering is canonical
 /// (probability descending, token id ascending on ties).
-fn top_k_from_logits(logits: &[f32], k: usize, out: &mut [(u32, f32)]) -> usize {
+fn top_k_from_logits(
+    logits: &[f32],
+    k: usize,
+    out: &mut [(u32, f32)],
+    canonical_math: bool,
+) -> usize {
     let count = k.min(out.len()).min(logits.len());
     if count == 0 {
         return 0;
@@ -773,7 +841,7 @@ fn top_k_from_logits(logits: &[f32], k: usize, out: &mut [(u32, f32)]) -> usize 
     let mut sum = 0.0f32;
     let mut probs = vec![0.0f32; logits.len()];
     for (prob, &logit) in probs.iter_mut().zip(logits.iter()) {
-        *prob = (logit - max).exp();
+        *prob = expf(logit - max, canonical_math);
         sum += *prob;
     }
     for prob in probs.iter_mut() {
@@ -879,7 +947,7 @@ impl TeacherOracle for LlamaOracle {
         Some(&self.state.x)
     }
     fn top_k(&self, k: usize, out: &mut [(u32, f32)]) -> usize {
-        top_k_from_logits(&self.state.logits, k, out)
+        top_k_from_logits(&self.state.logits, k, out, self.model.canonical_math)
     }
 }
 
@@ -1041,10 +1109,15 @@ impl HuggingFaceLlamaOracle {
         }
         let kappa = format!("blake3:{}", blake3::hash(&model_bytes).to_hex());
         let source_bytes = model_bytes.len();
-        let model = Llama::from_flat(cfg, weights, config.tie_word_embeddings);
+        let canonical_math =
+            std::env::var("TLESS_CANONICAL_DETERMINISTIC").is_ok_and(|value| value != "0");
+        let mut model = Llama::from_flat(cfg, weights, config.tie_word_embeddings);
+        model.canonical_math = canonical_math;
         let state = State::new(&model.cfg);
-        let fast_matmul = std::env::var("TLESS_EXACT_SCALAR").is_err();
-        let backend = if fast_matmul {
+        let fast_matmul = !canonical_math && std::env::var("TLESS_EXACT_SCALAR").is_err();
+        let backend = if canonical_math {
+            "canonical libm scalar (D2)"
+        } else if fast_matmul {
             fast_matmul_backend()
         } else {
             "exact scalar (deterministic)"
@@ -1171,7 +1244,7 @@ impl TeacherOracle for HuggingFaceLlamaOracle {
         Some(&self.state.x)
     }
     fn top_k(&self, k: usize, out: &mut [(u32, f32)]) -> usize {
-        top_k_from_logits(&self.state.logits, k, out)
+        top_k_from_logits(&self.state.logits, k, out, self.model.canonical_math)
     }
 }
 
@@ -1181,6 +1254,35 @@ pub type SmolLm2Oracle = HuggingFaceLlamaOracle;
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn canonical_math_delegates_to_portable_libm() {
+        let values = [-7.25f32, -1.0, 0.125, 1.0, 7.25];
+        for &value in &values {
+            assert_eq!(
+                sqrtf(value.abs() + 0.5, true).to_bits(),
+                libm::sqrtf(value.abs() + 0.5).to_bits()
+            );
+            assert_eq!(expf(value, true).to_bits(), libm::expf(value).to_bits());
+            assert_eq!(sinf(value, true).to_bits(), libm::sinf(value).to_bits());
+            assert_eq!(cosf(value, true).to_bits(), libm::cosf(value).to_bits());
+            assert_eq!(
+                powf(10_000.0, value / 8.0, true).to_bits(),
+                libm::powf(10_000.0, value / 8.0).to_bits()
+            );
+        }
+    }
+
+    #[test]
+    fn canonical_softmax_is_repeatable() {
+        let input = [3.0f32, -1.0, 0.25, 7.0];
+        let mut first = input;
+        let mut second = input;
+        softmax_with_mode(&mut first, true);
+        softmax_with_mode(&mut second, true);
+        assert_eq!(first, second);
+        assert!((first.iter().sum::<f32>() - 1.0).abs() < 1e-6);
+    }
 
     #[cfg(target_arch = "aarch64")]
     #[test]

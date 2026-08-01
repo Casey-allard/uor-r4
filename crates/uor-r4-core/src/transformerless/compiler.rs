@@ -25,6 +25,50 @@ use std::collections::HashMap;
 use std::io::Write;
 use uor_r4_model_source::TeacherOracle;
 
+#[inline]
+fn canonical_math_enabled() -> bool {
+    static ENABLED: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+    *ENABLED.get_or_init(|| {
+        std::env::var("TLESS_CANONICAL_DETERMINISTIC").is_ok_and(|value| value != "0")
+    })
+}
+
+#[inline]
+fn canonical_expf(value: f32) -> f32 {
+    if canonical_math_enabled() {
+        libm::expf(value)
+    } else {
+        value.exp()
+    }
+}
+
+#[inline]
+fn canonical_log2f(value: f32) -> f32 {
+    if canonical_math_enabled() {
+        libm::log2f(value)
+    } else {
+        value.log2()
+    }
+}
+
+#[inline]
+fn canonical_exp2f(value: f32) -> f32 {
+    if canonical_math_enabled() {
+        libm::exp2f(value)
+    } else {
+        value.exp2()
+    }
+}
+
+#[inline]
+fn canonical_sqrtf(value: f32) -> f32 {
+    if canonical_math_enabled() {
+        libm::sqrtf(value)
+    } else {
+        value.sqrt()
+    }
+}
+
 pub const STAGES: usize = 4;
 pub const K: usize = 256;
 pub const D: usize = 288;
@@ -130,7 +174,7 @@ pub fn load_corpus_from(mp: &str, rp: &str) -> Option<Corpus> {
             let argmax = u16::from_le_bytes(rb[o + 6..o + 8].try_into().unwrap()) as u32;
             t_argmax.push(argmax);
             let lp = f32::from_le_bytes(rb[o + 8..o + 12].try_into().unwrap());
-            let next_prob = (lp.exp() * 100.0).clamp(0.0, 100.0) as u32;
+            let next_prob = (canonical_expf(lp) * 100.0).clamp(0.0, 100.0) as u32;
 
             let mut tokens_val = [0u32; 8];
             let mut weights_val = [0u32; 8];
@@ -285,7 +329,7 @@ pub fn softmax_top3_sample(logits: &mut [f32], rng: &mut u64) -> (usize, [u32; 3
     }
     let mut sum = 0.0f32;
     for p in logits.iter_mut() {
-        *p = (*p - mx).exp();
+        *p = canonical_expf(*p - mx);
         sum += *p;
     }
     for p in logits.iter_mut() {
@@ -348,7 +392,7 @@ pub fn softmax_top8_sample(logits: &mut [f32], rng: &mut u64) -> (usize, [u32; 8
     }
     let mut sum = 0.0f32;
     for p in logits.iter_mut() {
-        *p = (*p - mx).exp();
+        *p = canonical_expf(*p - mx);
         sum += *p;
     }
     for p in logits.iter_mut() {
@@ -743,8 +787,8 @@ pub fn pack_dot_entry(value: f32) -> u16 {
         if rem == 0.0 || !rem.is_finite() {
             break;
         }
-        let e = rem.abs().log2().round().clamp(-32.0, 31.0);
-        let term = rem.signum() * e.exp2();
+        let e = canonical_log2f(rem.abs()).round().clamp(-32.0, 31.0);
+        let term = rem.signum() * canonical_exp2f(e);
         *slot = 0x40 | ((e as i32 + 32) as u8 & 0x3F) | if rem < 0.0 { 0x80 } else { 0 };
         rem -= term;
     }
@@ -955,12 +999,7 @@ pub fn deterministic_project(
                 projected_row[target] += sign * centered_val;
             }
 
-            let n = projected_row
-                .iter()
-                .map(|x| x * x)
-                .sum::<f32>()
-                .sqrt()
-                .max(1e-9);
+            let n = canonical_sqrtf(projected_row.iter().map(|x| x * x).sum::<f32>()).max(1e-9);
             for x in projected_row.iter_mut() {
                 *x /= n;
             }
@@ -1229,7 +1268,7 @@ pub fn compile(oracle: &dyn TeacherOracle, corpus: &Corpus) -> Compiled {
             row[d] = x;
             nn += x * x;
         }
-        let nn = nn.sqrt().max(1e-9);
+        let nn = canonical_sqrtf(nn).max(1e-9);
         for d in 0..D {
             samp[v * D + d] = row[d] / nn;
         }
