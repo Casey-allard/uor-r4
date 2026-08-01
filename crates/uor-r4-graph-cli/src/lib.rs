@@ -33,6 +33,7 @@ use uor_r4_graph_compiler::induction as cover;
 use uor_r4_graph_compiler::observation as observe;
 use uor_r4_graph_compiler::observation_text as observe_text;
 mod convert_r4g1;
+mod runtime_corpus;
 mod scenarios;
 use serde::Serialize;
 use std::collections::BTreeMap;
@@ -2086,6 +2087,7 @@ pub fn run(args: &[String]) -> Result<(), String> {
             Err(_) => println!("source checkpoint not found; see `setup`"),
         },
         Some("convert-r4g1") => convert_r4g1::run(&args[1..])?,
+        Some("runtime-corpus") => runtime_corpus::run(&args[1..])?,
         Some("cover") => cover_command(&args[1..])?,
         Some("score") => score_command(&args[1..])?,
         Some("cd-compile") => cd_compile_command(&args[1..])?,
@@ -2094,6 +2096,7 @@ pub fn run(args: &[String]) -> Result<(), String> {
             println!(
                 "R4 transformerless — cross-compile a transformer into a mul-free table artifact\n\
                  commands: setup | gen [secs] [target] | compile [--model REPO --revision SHA | --source DIR] [--output DIR] [--seconds N] [--target N] [--sequence-length N] | store | compare | compare-report | scenarios | teacher-kappa | convert-r4g1 --artifacts <TLA> --store <TLS1> [--calibration <hamming_calibration.json>] --out <R4G1>\n\
+                 transformer-free refresh: runtime-corpus --artifacts <TLA> --store <TLS1> --seed-meta <META> --seed-recs <RECS> --out <DIR> --target N [--threads N]\n\
                  observation pipeline: observe [--source DIR | --checkpoint BIN] [--seconds N] [--target N] [--shards N] [--out DIR] [--sequence-length N]\n\
                  text observations (D3): observe-text [--input PATH] [--out DIR] [--shards N] [--seconds N] [--source DIR | --checkpoint BIN] [--tokenizer PATH] [--sequence-length N]\n\
                  quantum operations: cd-compile | quantum-eval\n\
