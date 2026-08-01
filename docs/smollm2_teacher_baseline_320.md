@@ -48,3 +48,63 @@ This is a pipeline smoke/rehearsal, not a quotable quality baseline: the
 1,000-token corpus is not the D3 held-out distribution and no comparison with
 the stories15M teacher floor was made. P2 should run the declared row matrix
 on a complete corpus before any migration decision.
+
+## P2 — complete 135M rehearsal and graph row
+
+The resumable compile was continued with the same pinned source and a
+20,000-token target. It completed with 20,000 records across 199 stories
+(19,000 new records in 148 seconds; 128.4 tokens/s), preserving the teacher
+κ above. The resulting TLA5/TLS1 bundle was measured against the compiler's
+80/20 story split and the retained corpus was used to induce and score the
+R4G1 graph.
+
+Commands:
+
+\`\`\`bash
+cargo run --release --offline --bin r4 -- compile \
+  --source .uor-models/sources/smollm2-135m-instruct \
+  --output .uor-models/compiled/smollm2-135m-instruct \
+  --seconds 300 --target 20000 --sequence-length 128
+
+cargo run --release --offline --bin r4 -- transformerless cover \
+  --corpus-meta .uor-models/compiled/smollm2-135m-instruct/corpus.meta \
+  --corpus-recs .uor-models/compiled/smollm2-135m-instruct/corpus.records \
+  --artifacts .uor-models/compiled/smollm2-135m-instruct/tless_artifacts.bin \
+  --out .uor-models/compiled/smollm2-135m-instruct/graph-cover
+
+cargo run --release --offline --bin r4 -- transformerless score \
+  --corpus-meta .uor-models/compiled/smollm2-135m-instruct/corpus.meta \
+  --corpus-recs .uor-models/compiled/smollm2-135m-instruct/corpus.records \
+  --artifacts .uor-models/compiled/smollm2-135m-instruct/tless_artifacts.bin \
+  --cover .uor-models/compiled/smollm2-135m-instruct/graph-cover/cover.r4g1 \
+  --quality-profile relative_tla \
+  --out .uor-models/compiled/smollm2-135m-instruct/graph
+
+cargo run --release --offline --bin r4 -- evaluate-report \
+  --source .uor-models/sources/smollm2-135m-instruct \
+  --compiled .uor-models/compiled/smollm2-135m-instruct \
+  --report .uor-models/compiled/smollm2-135m-instruct/instruction-eval.json \
+  --sequence-length 128
+\`\`\`
+
+The teacher-floor report covered 4,419 held-out positions. The table-native
+bundle reached 7.6% top-1 accuracy and 13.0% teacher-argmax agreement at
+20.6962 Witten–Bell bits/token, against a 4.9482-bit teacher floor. The scored
+graph's Rule 1+2 row reached 5.6% top-1 agreement and 48.1532 bits/token;
+cloud-size-normalized and margin-weighted variants reached 9.3% / 13.5412
+bits/token and 9.1% / 13.5709 bits/token respectively. The same-corpus TLA
+baseline was 13.0% / 20.6962 bits/token. Status counts were 1,190 exact
+context, 3,170 graph, and 59 novel positions; witness replay was 64/64.
+
+For scale, the existing stories15M fixture reference is 31.7% teacher-argmax
+agreement and 9.86 bits/token on 30,036 held-out positions (see
+\`docs/transformerless/BASELINE.md\`). Those figures are retained as historical
+reference only: the checkpoints, corpora, and teacher floors differ, so this
+P2 row is not a cross-teacher quality comparison.
+
+This is a valid P2 pipeline and row measurement, but it is not a migration
+candidate: the generated 20k-token rehearsal corpus has a weak teacher ceiling
+and the graph does not improve on the same-corpus TLA baseline. The declared
+next step remains P3 only as a maintainer decision after a larger/stronger
+teacher corpus or the 360M rehearsal; the pinned stories15M fixtures remain
+unchanged.
