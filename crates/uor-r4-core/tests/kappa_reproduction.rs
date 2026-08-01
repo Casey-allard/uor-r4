@@ -190,3 +190,77 @@ fn dump_baseline_kappa() {
         eprintln!("wrote {} bytes to {fixture}", container.len());
     }
 }
+
+/// #318 Phase B witness on a REAL compile: the TLA7 residual-wired
+/// assignment must agree across every form of the path — kernel
+/// (`Runtime::assign`), the plain bundle entry points (`code_plain`,
+/// `assign_for_bundle`, membership primary), and the allocation-free
+/// serving form (`assign_code_for_bundle`) — over hundreds of corpus
+/// positions, on both the in-memory compile and the serialized → parsed
+/// TLA7 container. Regression test for the kernel-residual vs
+/// plain-non-residual routing divergence the first Phase B quality run
+/// hit (certify.rs "code kernel/plain divergence"). Same harness and
+/// skip convention as the κ-reproduction test above.
+#[test]
+#[ignore]
+fn tla7_resid_kernel_plain_witness() {
+    use uor_r4_core::transformerless::runtime;
+
+    let dir = env!("CARGO_MANIFEST_DIR");
+    let ckpt =
+        std::env::var("TLESS_CHECKPOINT").unwrap_or_else(|_| "/tmp/ref/out/model.bin".to_string());
+    if std::fs::metadata(&ckpt).is_err() {
+        eprintln!("skipping: source checkpoint not found at {ckpt} (see `transformerless setup`)");
+        return;
+    }
+    let corpus = compiler::load_corpus_from(
+        &format!("{dir}/tests/fixtures/c_meta.bin"),
+        &format!("{dir}/tests/fixtures/c_recs.bin"),
+    )
+    .expect("corpus fixtures load");
+    let oracle = LlamaOracle::load(&ckpt);
+    let art = compiler::compile(&oracle, &corpus);
+    assert!(
+        !art.resid_cb.is_empty(),
+        "fresh compile carries the TLA7 residual sections"
+    );
+    let parsed = compiler::parse_artifacts(&compiler::artifact_bytes(&art))
+        .expect("TLA7 container round-trips");
+    assert_eq!(parsed.resid_cb, art.resid_cb);
+    assert_eq!(parsed.resid_scale_shifts, art.resid_scale_shifts);
+    assert_eq!(parsed.norm_fold_const, art.norm_fold_const);
+
+    let rot = compiler::derive_rotations();
+    for (label, a) in [("in-memory", &art), ("parsed-tla7", &parsed)] {
+        let mut rt = runtime::Runtime::new(a);
+        let sample_n = 512usize;
+        let stride = corpus.n / sample_n;
+        for s in 0..sample_n {
+            let i = s * stride;
+            let bk = runtime::bundle_kernel(&mut rt.kernel, a, &rot, &corpus, i);
+            let bp = runtime::bundle_plain(a, &rot, &corpus, i);
+            assert_eq!(bk, bp, "[{label}] bundle kernel/plain divergence at {i}");
+            let ck = rt.assign(&corpus, i);
+            let cp = runtime::code_plain(a, &rot, &corpus, i);
+            assert_eq!(ck, cp, "[{label}] code kernel/plain divergence at {i}");
+            assert_eq!(
+                runtime::assign_for_bundle(a, &bp),
+                cp,
+                "[{label}] assign_for_bundle divergence at {i}"
+            );
+            assert_eq!(
+                runtime::assign_code_for_bundle(a, &bp),
+                cp,
+                "[{label}] serving-form divergence at {i}"
+            );
+            let (primary, _) = runtime::assign_memberships_for_bundle(a, &bp);
+            assert_eq!(
+                primary, cp,
+                "[{label}] membership primary divergence at {i}"
+            );
+        }
+        println!(
+            "[{label}] TLA7 residual witness: {sample_n}/{sample_n} positions, all forms agree"
+        );
+    }
+}

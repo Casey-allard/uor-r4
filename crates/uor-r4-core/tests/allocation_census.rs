@@ -325,6 +325,70 @@ fn allocation_census() {
         "steady-state prediction and generation must be allocation-free"
     );
 
+    // Phase 3b — #318 Phase B residual path: the census fixtures are
+    // pre-TLA7, so the residual-wired assign path is censused on a
+    // synthetic TLA7 artifact. Plain and kernel forms must agree and
+    // allocate nothing.
+    let resid_art = {
+        let vocab = 4usize;
+        Compiled {
+            token_codes: (0..vocab * STAGES).map(|i| (i % 256) as u8).collect(),
+            stage_books: (0..STAGES)
+                .map(|st| {
+                    (0..compiler::K * compiler::D)
+                        .map(|i| (((i + st) % 5) as i8) - 2)
+                        .collect()
+                })
+                .collect(),
+            stage_shifts: vec![0; STAGES],
+            thresholds: (0..compiler::D as i64).map(|d| (d % 11) - 5).collect(),
+            class_sigs: (0..STAGES)
+                .map(|_| vec![0u8; compiler::K * compiler::D / 8])
+                .collect(),
+            ctx_cb: Vec::new(),
+            token_stage_kappas: Vec::new(),
+            dot_cb: (0..STAGES)
+                .map(|st| {
+                    (0..compiler::K * compiler::D)
+                        .map(|i| compiler::pack_dot_entry((((i + st) % 13) as f32 - 6.0) / 8.0))
+                        .collect()
+                })
+                .collect(),
+            resid_cb: (0..STAGES)
+                .map(|st| {
+                    (0..compiler::K * compiler::D)
+                        .map(|i| (((i + st) % 13) as i8) - 6)
+                        .collect()
+                })
+                .collect(),
+            resid_scale_shifts: vec![4; STAGES],
+            norm_fold_const: 10,
+        }
+    };
+    let rot = compiler::derive_rotations();
+    let resid_window = [1u32, 2];
+    let resid_bundle = runtime::bundle_window_plain(&resid_art, &rot, &resid_window);
+    let mut resid_rt = runtime::Runtime::new(&resid_art);
+    let ((resid_plain, resid_kernel), resid_cen) = measure(|| {
+        (
+            runtime::assign_code_for_bundle(&resid_art, &resid_bundle),
+            resid_rt.assign_window(&resid_window),
+        )
+    });
+    assert_eq!(
+        resid_plain, resid_kernel,
+        "residual kernel/plain assignment agree"
+    );
+    assert_eq!(
+        resid_cen, ZERO,
+        "residual-wired assign path must be allocation-free"
+    );
+    println!(
+        "[runtime] #318 residual assign (plain + kernel, synthetic TLA7) \
+         → {} allocations, {} bytes",
+        resid_cen.allocations, resid_cen.bytes
+    );
+
     // Phase 4 — per-token op census from the Runtime's public OpKernel.
     let t = GEN_TOKENS as f64;
     println!(

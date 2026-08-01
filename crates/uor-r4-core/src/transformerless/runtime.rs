@@ -386,7 +386,11 @@ pub fn assign_plain(art: &Compiled, sig: &[u8; SIG_BYTES]) -> [u8; STAGES] {
 // becomes a shift-and-add reduction — no multiply operation exists in
 // this code path (P-4 scans this module). Active only when the
 // artifact carries dot tables (fresh compiles, TLA6 containers);
-// TLA3/4/5 loads keep the sign-Hamming path unchanged.
+// TLA3/4/5 loads keep the sign-Hamming path unchanged. TLA7 containers
+// (issue #318 Phase B) additionally carry the integer residual
+// sections and take the residual-wired path below: same dot argmax per
+// stage, preceded by a power-of-two norm fold and followed by the
+// winning centroid's integer-copy subtraction.
 
 /// The centered work vector: bundle minus thresholds, integer sub.
 pub fn centered_work(art: &Compiled, bundle: &[i64; D]) -> [i64; D] {
@@ -479,9 +483,10 @@ fn dot_stage_top(table: &[u16], work: &[i64; D]) -> Vec<(u8, u32)> {
     top
 }
 
-/// Membership assignment for a bundle: dot path when the artifact
-/// carries dot tables, sign-Hamming otherwise. The by-depth beam shape
-/// and fallback-floor rule are identical between the two metrics.
+/// Membership assignment for a bundle: residual-wired dot path when the
+/// artifact carries residual copies (TLA7), dot path when it carries dot
+/// tables (TLA6), sign-Hamming otherwise. The by-depth beam shape and
+/// fallback-floor rule are identical between the metrics.
 #[allow(clippy::type_complexity)]
 pub fn assign_memberships_for_bundle(
     art: &Compiled,
@@ -489,6 +494,28 @@ pub fn assign_memberships_for_bundle(
 ) -> ([u8; STAGES], Vec<Vec<Vec<u8>>>) {
     if art.dot_cb.is_empty() {
         return assign_memberships_plain(art, &sig_plain(art, bundle));
+    }
+    if !art.resid_cb.is_empty() {
+        // #318 Phase B: the beam's per-stage candidate lists come from
+        // the SAME residual-evolving work vector the kernel form and the
+        // allocation-free serving form use — candidate selection per
+        // stage is `dot_stage_top` on the folded work, then the winning
+        // centroid's integer copy is subtracted before the next stage.
+        let mut work = centered_work(art, bundle);
+        norm_fold_plain(&mut work, art.norm_fold_const);
+        let mut code = [0u8; STAGES];
+        let mut stage_top: Vec<Vec<(u8, u32)>> = Vec::with_capacity(STAGES);
+        for ((st_code, table), (copies, &shift)) in code
+            .iter_mut()
+            .zip(art.dot_cb.iter())
+            .zip(art.resid_cb.iter().zip(art.resid_scale_shifts.iter()))
+        {
+            let top = dot_stage_top(table, &work);
+            *st_code = top.first().map(|(k, _)| *k).unwrap_or(0);
+            resid_subtract_plain(&mut work, copies, shift, *st_code);
+            stage_top.push(top);
+        }
+        return memberships_from_stage_top(code, stage_top);
     }
     let work = centered_work(art, bundle);
     let mut code = [0u8; STAGES];
@@ -518,6 +545,9 @@ pub fn assign_for_bundle(art: &Compiled, bundle: &[i64; D]) -> [u8; STAGES] {
 /// matches `dot_stage_top` (strict improvement, lowest class index),
 /// so the code equals `assign_for_bundle`'s primary code.
 pub fn assign_code_for_bundle(art: &Compiled, bundle: &[i64; D]) -> [u8; STAGES] {
+    if !art.resid_cb.is_empty() {
+        return assign_code_for_bundle_resid(art, bundle);
+    }
     if art.dot_cb.is_empty() {
         // Sign metric, argmax only — assign_plain delegates to the
         // membership-beam builder and allocates; this path must not.
@@ -551,6 +581,97 @@ pub fn assign_code_for_bundle(art: &Compiled, bundle: &[i64; D]) -> [u8; STAGES]
             }
         }
         *st_code = best_class;
+    }
+    code
+}
+
+// ------------- integer residual wiring (#318 Phase B, TLA7) ------------
+//
+// The kernel form of the certifier's Phase A.5 rows
+// (docs/dot_residual_phase_b_design.md): the po2 norm fold replaces f32
+// division (row a), and per-stage i8 centroid copies carry the residual
+// subtraction (row b). Everything below is add/sub, shifts, compares,
+// and table reads — the P-4 scan covers this module.
+
+/// L1 norm of the work vector (Σ|w_d|): compare, negate, add only.
+fn work_l1(work: &[i64; D]) -> i64 {
+    let mut l1 = 0i64;
+    for &w in work.iter() {
+        l1 += if w < 0 { -w } else { w };
+    }
+    l1
+}
+
+/// Bit length of a positive value — the position of its highest set
+/// bit, floor(log2(v)) + 1 — by shift and compare only. 0 for v = 0.
+fn bit_length(v: i64) -> i32 {
+    let mut v = v;
+    let mut n = 0i32;
+    while v > 0 {
+        v >>= 1;
+        n += 1;
+    }
+    n
+}
+
+/// Power-of-two norm fold, plain form: `work >>= s` (arithmetic) with
+/// `s = bit_length(L1) − CONST`; s < 0 shifts left, and L1 = 0 leaves
+/// the (all-zero) vector untouched. The kernel must never see a shift
+/// amount outside the word width, so s is clamped to the i64 range.
+fn norm_fold_plain(work: &mut [i64; D], norm_const: i32) {
+    let l1 = work_l1(work);
+    if l1 == 0 {
+        return;
+    }
+    let s = (i64::from(bit_length(l1)) - i64::from(norm_const)).clamp(-63, 63);
+    for w in work.iter_mut() {
+        *w = if s >= 0 { *w >> s } else { *w << (-s) };
+    }
+}
+
+/// Subtract one stage's winning integer centroid copy from the work
+/// vector (plain form): per dimension, one shift and one subtract.
+/// Plain form of the kernel's table-fetch + shl + add sequence.
+fn resid_subtract_plain(work: &mut [i64; D], copies: &[i8], shift: u8, class: u8) {
+    if let Some(copy_row) = copies.chunks_exact(D).nth(usize::from(class)) {
+        for (w, &c) in work.iter_mut().zip(copy_row.iter()) {
+            *w -= i64::from(c) << shift;
+        }
+    }
+}
+
+/// Residual-wired shift-add dot assignment (#318 Phase B), allocation-
+/// free plain form: center the bundle, apply the po2 norm fold, then
+/// per stage argmax `dot_score_plain` over the stage's po2 table and
+/// subtract the winning centroid's integer copy (`<<` the stage's
+/// decode shift) from the work vector — add/sub and shifts only. The
+/// per-sample scale error of the crude fold lands in the exponent,
+/// which the dot tables absorb (assignment is argmax, scale-invariant);
+/// the copies ride the same folded scale by construction
+/// (`RESID_WORK_FRACTION − e_st`). Active only for TLA7 artifacts
+/// (`resid_cb` populated); pre-TLA7 artifacts keep the non-residual
+/// dot path. Tie rule matches `assign_code_for_bundle` (strict
+/// improvement, lowest class index).
+pub fn assign_code_for_bundle_resid(art: &Compiled, bundle: &[i64; D]) -> [u8; STAGES] {
+    let mut work = centered_work(art, bundle);
+    norm_fold_plain(&mut work, art.norm_fold_const);
+    let mut code = [0u8; STAGES];
+    for ((st_code, table), (copies, &shift)) in code
+        .iter_mut()
+        .zip(art.dot_cb.iter())
+        .zip(art.resid_cb.iter().zip(art.resid_scale_shifts.iter()))
+    {
+        let mut best = i64::MIN;
+        let mut best_class = 0u8;
+        for (class, row) in table.chunks_exact(D).enumerate() {
+            let score = dot_score_plain(row, &work);
+            if score > best {
+                best = score;
+                best_class = class as u8;
+            }
+        }
+        *st_code = best_class;
+        resid_subtract_plain(&mut work, copies, shift, best_class);
     }
     code
 }
@@ -810,6 +931,9 @@ impl<'a> Runtime<'a> {
     pub fn assign(&mut self, c: &Corpus, i: usize) -> [u8; STAGES] {
         let rot = self.rot;
         let b = bundle_kernel(&mut self.kernel, self.art, &rot, c, i);
+        if !self.art.resid_cb.is_empty() {
+            return self.code_from_bundle_resid(&b);
+        }
         if !self.art.dot_cb.is_empty() {
             return self.code_from_bundle_dot(&b);
         }
@@ -822,6 +946,9 @@ impl<'a> Runtime<'a> {
     pub fn assign_window(&mut self, window: &[u32]) -> [u8; STAGES] {
         let rot = self.rot;
         let b = bundle_window_kernel(&mut self.kernel, self.art, &rot, window);
+        if !self.art.resid_cb.is_empty() {
+            return self.code_from_bundle_resid(&b);
+        }
         if !self.art.dot_cb.is_empty() {
             return self.code_from_bundle_dot(&b);
         }
@@ -842,6 +969,15 @@ impl<'a> Runtime<'a> {
     ) -> ([u8; STAGES], Vec<Vec<Vec<u8>>>) {
         let rot = self.rot;
         let b = bundle_window_kernel(&mut self.kernel, self.art, &rot, window);
+        if !self.art.resid_cb.is_empty() {
+            // #318 Phase B: primary code and membership beam are both
+            // residual-wired (`assign_memberships_for_bundle` derives
+            // its candidate lists from the same folded, residual-
+            // evolving work vector), so the pair stays consistent.
+            let code = self.code_from_bundle_resid(&b);
+            let (_, by_depth) = assign_memberships_for_bundle(self.art, &b);
+            return (code, by_depth);
+        }
         if !self.art.dot_cb.is_empty() {
             let code = self.code_from_bundle_dot(&b);
             let (_, by_depth) = assign_memberships_for_bundle(self.art, &b);
@@ -871,34 +1007,102 @@ impl<'a> Runtime<'a> {
         }
         let mut code = [0u8; STAGES];
         for (st_code, table) in code.iter_mut().zip(self.art.dot_cb.iter()) {
-            let mut best = i64::MIN;
-            let mut best_k = 0u8;
-            for (kk, row) in table.chunks_exact(D).enumerate() {
-                self.kernel.candidate_scan();
-                let mut acc = 0i64;
-                for (&entry, &w) in row.iter().zip(work.iter()) {
-                    let packed = self.kernel.table_fetch(i64::from(entry)) as u16;
-                    let [lo, hi] = packed.to_le_bytes();
-                    for term in [hi, lo] {
-                        if term & 0x40 == 0 {
-                            continue;
-                        }
-                        let exp = (term & 0x3F) as i32 - 32;
-                        let shifted = if exp >= 0 {
-                            self.kernel.shl(w, exp as u32)
-                        } else {
-                            self.kernel.shr(w, (-exp) as u32)
-                        };
-                        let signed = if term & 0x80 != 0 { -shifted } else { shifted };
-                        acc = self.kernel.add(acc, signed);
+            *st_code = self.dot_argmax(table, &work);
+        }
+        code
+    }
+
+    /// Per-stage dot argmax through the kernel: one candidate scan per
+    /// class, one table read per dimension entry, at most two shifts +
+    /// two adds per term pair, one compare per candidate.
+    fn dot_argmax(&mut self, table: &[u16], work: &[i64; D]) -> u8 {
+        let mut best = i64::MIN;
+        let mut best_k = 0u8;
+        for (kk, row) in table.chunks_exact(D).enumerate() {
+            self.kernel.candidate_scan();
+            let mut acc = 0i64;
+            for (&entry, &w) in row.iter().zip(work.iter()) {
+                let packed = self.kernel.table_fetch(i64::from(entry)) as u16;
+                let [lo, hi] = packed.to_le_bytes();
+                for term in [hi, lo] {
+                    if term & 0x40 == 0 {
+                        continue;
                     }
-                }
-                if self.kernel.lt(best, acc) {
-                    best = acc;
-                    best_k = kk as u8;
+                    let exp = (term & 0x3F) as i32 - 32;
+                    let shifted = if exp >= 0 {
+                        self.kernel.shl(w, exp as u32)
+                    } else {
+                        self.kernel.shr(w, (-exp) as u32)
+                    };
+                    let signed = if term & 0x80 != 0 { -shifted } else { shifted };
+                    acc = self.kernel.add(acc, signed);
                 }
             }
-            *st_code = best_k;
+            if self.kernel.lt(best, acc) {
+                best = acc;
+                best_k = kk as u8;
+            }
+        }
+        best_k
+    }
+
+    /// Residual-wired shift-add dot assignment (#318 Phase B, kernel
+    /// form — every operation counted): identical values to
+    /// `assign_code_for_bundle_resid` (plain form), with the po2 norm
+    /// fold and the per-stage integer centroid-copy subtraction
+    /// dispatched through `OpKernel`. Added ops over the non-residual
+    /// form: the fold (D compare+add for the L1 norm, ≤ 63 shift+add
+    /// for the bit length, D shifts for the fold itself) and per stage
+    /// D table reads + shifts + adds for the copy subtraction — a
+    /// ~1/(2K) fraction of the dot scan, far inside the design note's
+    /// ⚑ 2× op-census budget.
+    pub(crate) fn code_from_bundle_resid(&mut self, bundle: &[i64; D]) -> [u8; STAGES] {
+        let mut work = [0i64; D];
+        for ((w, &b), &t) in work
+            .iter_mut()
+            .zip(bundle.iter())
+            .zip(self.art.thresholds.iter())
+        {
+            *w = self.kernel.add(b, -t);
+        }
+        // po2 norm fold: L1 = Σ|w_d| by compare + add; bit length by
+        // shift + compare; then one shift per dimension.
+        let mut l1 = 0i64;
+        for &w in work.iter() {
+            let mag = if self.kernel.lt(w, 0) { -w } else { w };
+            l1 = self.kernel.add(l1, mag);
+        }
+        if l1 != 0 {
+            let mut bits = 0i64;
+            let mut v = l1;
+            while self.kernel.lt(0, v) {
+                v = self.kernel.shr(v, 1);
+                bits = self.kernel.add(bits, 1);
+            }
+            let s = (bits - i64::from(self.art.norm_fold_const)).clamp(-63, 63);
+            for w in work.iter_mut() {
+                *w = if s >= 0 {
+                    self.kernel.shr(*w, s as u32)
+                } else {
+                    self.kernel.shl(*w, (-s) as u32)
+                };
+            }
+        }
+        let mut code = [0u8; STAGES];
+        for ((st_code, table), (copies, &shift)) in code.iter_mut().zip(self.art.dot_cb.iter()).zip(
+            self.art
+                .resid_cb
+                .iter()
+                .zip(self.art.resid_scale_shifts.iter()),
+        ) {
+            *st_code = self.dot_argmax(table, &work);
+            if let Some(copy_row) = copies.chunks_exact(D).nth(usize::from(*st_code)) {
+                for (w, &c) in work.iter_mut().zip(copy_row.iter()) {
+                    let v = self.kernel.table_fetch(i64::from(c));
+                    let shifted = self.kernel.shl(v, u32::from(shift));
+                    *w = self.kernel.add(*w, -shifted);
+                }
+            }
         }
         code
     }

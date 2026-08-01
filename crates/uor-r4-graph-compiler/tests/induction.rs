@@ -165,6 +165,9 @@ fn synthetic_compiled() -> compiler::Compiled {
         ctx_cb: Vec::new(),
         token_stage_kappas: Vec::new(),
         dot_cb: Vec::new(),
+        resid_cb: Vec::new(),
+        resid_scale_shifts: Vec::new(),
+        norm_fold_const: 0,
     }
 }
 

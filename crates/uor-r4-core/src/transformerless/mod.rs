@@ -321,6 +321,9 @@ mod dot_assignment_tests {
             ctx_cb: Vec::new(),
             token_stage_kappas: Vec::new(),
             dot_cb: Vec::new(),
+            resid_cb: Vec::new(),
+            resid_scale_shifts: Vec::new(),
+            norm_fold_const: 0,
         };
         art.dot_cb = (0..compiler::STAGES)
             .map(|st| {
@@ -332,6 +335,24 @@ mod dot_assignment_tests {
                     .collect()
             })
             .collect();
+        art
+    }
+
+    /// The synthetic dot artifact plus the #318 Phase B residual
+    /// sections: i8 centroid copies and decode shifts shaped like the
+    /// compiler's `quantize_resid_copies` output, and a norm-fold CONST
+    /// exercising the right-shift branch on the ramp bundle below.
+    fn synthetic_resid_art() -> compiler::Compiled {
+        let mut art = synthetic_dot_art();
+        art.resid_cb = (0..compiler::STAGES)
+            .map(|st| {
+                (0..compiler::K * compiler::D)
+                    .map(|i| (((i + st) % 13) as i8) - 6)
+                    .collect()
+            })
+            .collect();
+        art.resid_scale_shifts = vec![4u8; compiler::STAGES];
+        art.norm_fold_const = 10;
         art
     }
 
@@ -366,5 +387,153 @@ mod dot_assignment_tests {
         assert_eq!(plain, kernel, "kernel/plain dot assignment divergence");
         assert!(rt.kernel.shifts > 0, "dot path must count shifts");
         assert!(rt.kernel.adds > 0, "dot path must count adds");
+    }
+
+    /// #318 Phase B equality witness: the residual-wired kernel form
+    /// (`code_from_bundle_resid`) computes the plain form's
+    /// (`assign_code_for_bundle_resid`) code exactly, across bundles
+    /// exercising every norm-fold branch (s ≥ 0, s < 0, L1 = 0) and the
+    /// per-stage copy subtraction.
+    #[test]
+    fn resid_kernel_equals_plain_on_synthetic_artifact() {
+        let art = synthetic_resid_art();
+        let bundles: Vec<[i64; compiler::D]> = vec![
+            // ramp: large L1, fold shifts right (s > 0)
+            std::array::from_fn(|d| ((d as i64 * 97) % 193) - 96),
+            // tiny: L1 below the CONST scale, fold shifts left (s < 0)
+            std::array::from_fn(|d| ((d as i64) % 3) - 1),
+            // centered exactly: L1 = 0, fold leaves the zero vector
+            std::array::from_fn(|d| (d as i64 % 7) - 3),
+            // negative-heavy ramp
+            std::array::from_fn(|d| -((d as i64 % 89) + 1)),
+        ];
+        let mut rt = runtime::Runtime::new(&art);
+        for bundle in &bundles {
+            let plain = runtime::assign_code_for_bundle_resid(&art, bundle);
+            assert_eq!(
+                plain,
+                runtime::assign_code_for_bundle(&art, bundle),
+                "assign_code_for_bundle routes TLA7 artifacts to the residual path"
+            );
+            let kernel = rt.code_from_bundle_resid(bundle);
+            assert_eq!(
+                plain, kernel,
+                "kernel/plain residual divergence on {bundle:?}"
+            );
+        }
+        assert!(rt.kernel.shifts > 0, "residual path must count shifts");
+        assert!(rt.kernel.adds > 0, "residual path must count adds");
+        assert!(rt.kernel.compares > 0, "residual path must count compares");
+        assert!(
+            rt.kernel.table_reads > 0,
+            "residual path must count table reads"
+        );
+    }
+
+    /// #318 Phase B routing witness: the corpus-free kernel entry point
+    /// takes the residual path for TLA7 artifacts, identical to the
+    /// plain window path.
+    #[test]
+    fn resid_assign_window_matches_plain_window_path() {
+        let art = synthetic_resid_art();
+        let rot = compiler::derive_rotations();
+        let window = [0u32];
+        let plain = {
+            let b = runtime::bundle_window_plain(&art, &rot, &window);
+            runtime::assign_code_for_bundle(&art, &b)
+        };
+        let mut rt = runtime::Runtime::new(&art);
+        assert_eq!(rt.assign_window(&window), plain);
+    }
+
+    /// #318 Phase B routing consistency: EVERY bundle-holding entry
+    /// point takes the residual path for TLA7 artifacts — plain beam
+    /// form, plain allocation-free serving form, membership primary,
+    /// and kernel form must all agree. Regression test for the first
+    /// quality run's divergence: `assign_for_bundle` kept the
+    /// non-residual dot path while the kernel took the residual path,
+    /// and the resid-vs-resid synthetic witness could not see it.
+    #[test]
+    fn resid_routing_consistent_across_all_entry_points() {
+        let art = synthetic_resid_art();
+        let mut art6 = synthetic_resid_art();
+        art6.resid_cb = Vec::new(); // non-residual reference (TLA6 shape)
+        let mut rt = runtime::Runtime::new(&art);
+        let mut saw_residual_effect = false;
+        for seed in 0..8usize {
+            let bundle: [i64; compiler::D] =
+                std::array::from_fn(|d| (((d * 31 + seed * 17) % 211) as i64) - 105);
+            let resid = runtime::assign_code_for_bundle_resid(&art, &bundle);
+            assert_eq!(
+                runtime::assign_for_bundle(&art, &bundle),
+                resid,
+                "beam form must route to the residual path"
+            );
+            assert_eq!(
+                runtime::assign_code_for_bundle(&art, &bundle),
+                resid,
+                "serving form must route to the residual path"
+            );
+            assert_eq!(
+                runtime::assign_memberships_for_bundle(&art, &bundle).0,
+                resid,
+                "membership primary must route to the residual path"
+            );
+            assert_eq!(
+                rt.code_from_bundle_resid(&bundle),
+                resid,
+                "kernel form agrees with all plain forms"
+            );
+            if runtime::assign_for_bundle(&art6, &bundle) != resid {
+                saw_residual_effect = true;
+            }
+        }
+        assert!(
+            saw_residual_effect,
+            "the synthetic fixture must make the residual update change at least one code, \
+             or this consistency check passes vacuously"
+        );
+    }
+
+    /// #318 Phase B container eras: TLA7 round-trips the residual
+    /// sections byte-identically; a dot-only artifact still emits TLA6
+    /// with no residual sections (pre-TLA7 loads unchanged).
+    #[test]
+    fn tla7_container_roundtrip() {
+        let art = synthetic_resid_art();
+        let bytes = compiler::artifact_bytes(&art);
+        assert!(bytes.starts_with(b"TLA7"), "residual artifact emits TLA7");
+        let parsed = compiler::parse_artifacts(&bytes).expect("TLA7 parses");
+        assert_eq!(parsed.resid_cb, art.resid_cb, "centroid copies round-trip");
+        assert_eq!(
+            parsed.resid_scale_shifts, art.resid_scale_shifts,
+            "decode shifts round-trip"
+        );
+        assert_eq!(
+            parsed.norm_fold_const, art.norm_fold_const,
+            "norm-fold CONST round-trips"
+        );
+        assert_eq!(parsed.dot_cb, art.dot_cb, "dot tables round-trip");
+        assert_eq!(
+            compiler::artifact_bytes(&parsed),
+            bytes,
+            "TLA7 parse → serialize is byte-identical"
+        );
+        assert!(
+            compiler::parse_artifacts(&bytes[..bytes.len() - 1]).is_none(),
+            "truncated TLA7 container rejected"
+        );
+
+        let dot_only = synthetic_dot_art();
+        let tla6 = compiler::artifact_bytes(&dot_only);
+        assert!(tla6.starts_with(b"TLA6"), "dot-only artifact emits TLA6");
+        let parsed6 = compiler::parse_artifacts(&tla6).expect("TLA6 parses");
+        assert!(parsed6.resid_cb.is_empty(), "TLA6 loads carry no residual");
+        assert_eq!(parsed6.norm_fold_const, 0);
+        assert_eq!(
+            compiler::artifact_bytes(&parsed6),
+            tla6,
+            "TLA6 parse → serialize is byte-identical"
+        );
     }
 }
