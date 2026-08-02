@@ -7,10 +7,9 @@ name: ci
 # Dependencies on the UOR standards (uor-addr, UOR-Framework) are pinned git
 # dependencies in Cargo.toml (rev-locked), so a plain checkout of this repo
 # builds; no extra repository checkouts are needed.
-# NOTE: κ-reproduction is macOS-pinned per decision D2 (libm-sensitive teacher
-# logprobs); on Linux it is expected to skip (checkpoint download is best-effort)
-# or fail on platform drift — the canonical deterministic compile mode (Phase 2)
-# is what makes it a true cross-platform gate.
+# NOTE: legacy accelerated teacher builds remain platform-sensitive. Gate E now
+# runs the canonical deterministic compiler mode, so the κ reproduction is a
+# cross-platform gate when the cached checkpoint is available.
 #
 # GATE C REGRESSION: The Gate C trend is tracked per commit on a small corpus
 # slice. It fails if top-1 drops > 2 points or bits/token worsens > 0.1 vs the
@@ -107,9 +106,8 @@ jobs:
           fi
           ls -la /tmp/ref/out/model.bin
 
-      - name: κ-reproduction (macOS-pinned baseline; informational on Linux)
-        run: TLESS_CHECKPOINT=/tmp/ref/out/model.bin cargo test -p uor-r4-core --release --test kappa_reproduction -- --ignored
-        continue-on-error: true
+      - name: κ-reproduction (canonical D2 baseline)
+        run: TLESS_CANONICAL_DETERMINISTIC=1 TLESS_CHECKPOINT=/tmp/ref/out/model.bin cargo test -p uor-r4-core --release --test kappa_reproduction -- --ignored
 
       - name: Decide whether the Gate C trend harness applies (wait diet, 2026-07-30)
         id: trend_paths

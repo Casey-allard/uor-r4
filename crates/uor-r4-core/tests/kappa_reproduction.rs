@@ -1,8 +1,8 @@
 //! κ-reproduction acceptance test for the transformerless → R4 integration
-//! migration: the ported pipeline must reproduce every artifact κ of the
-//! pre-migration baseline (tests/fixtures/baseline_kappa.json), bit
-//! identically, on this platform. This is the migration proof (PROOF.md P3):
-//! the port is behaviorally identical iff all pins match.
+//! migration: the canonical pipeline must reproduce every artifact κ of the
+//! baseline (tests/fixtures/baseline_kappa.json), bit identically. This is the
+//! migration proof (PROOF.md P3): the port is behaviorally identical iff all
+//! pins match.
 //!
 //! Ignored by default: it needs the source checkpoint (60 MB, see
 //! `transformerless setup`) and a release build for sane runtime. Run explicitly:
@@ -31,6 +31,11 @@ fn strings(v: &serde_json::Value, key: &str) -> Vec<String> {
 #[ignore]
 fn kappa_reproduction() {
     let dir = env!("CARGO_MANIFEST_DIR");
+    assert_eq!(
+        std::env::var("TLESS_CANONICAL_DETERMINISTIC").as_deref(),
+        Ok("1"),
+        "Gate E requires TLESS_CANONICAL_DETERMINISTIC=1"
+    );
     let ckpt =
         std::env::var("TLESS_CHECKPOINT").unwrap_or_else(|_| "/tmp/ref/out/model.bin".to_string());
     if std::fs::metadata(&ckpt).is_err() {
@@ -169,6 +174,11 @@ fn dump_baseline_kappa() {
     let container = compiler::artifact_bytes(&art);
 
     let out = serde_json::json!({
+        "compiler_mode": if std::env::var("TLESS_CANONICAL_DETERMINISTIC").as_deref() == Ok("1") {
+            "canonical_deterministic"
+        } else {
+            "legacy_platform_accelerated"
+        },
         "source": { "kappa": oracle.kappa(), "bytes": oracle.source_bytes() },
         "token_codebook_stages": art.token_stage_kappas,
         "stage_books": books,

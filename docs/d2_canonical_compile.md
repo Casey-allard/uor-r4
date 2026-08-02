@@ -31,7 +31,9 @@ bundle file; the compare job requires the manifests to match exactly. This
 proves the canonical compiler path is byte-stable for the exercised target
 and corpus size, without changing the shipped fixture.
 
-The remaining maintainer work is to review that evidence, record the mode in
-the artifact certificate, re-pin the canonical fixture under the mode, and
-then decide whether the historical kappa-reproduction check can stop being
-informational on Linux.
+The 500k/TLA7 fixture was re-run under `TLESS_CANONICAL_DETERMINISTIC=1` on
+2026-08-02. It produced the existing 1,346,836-byte container and every
+recorded κ unchanged, so the re-pin is an explicit canonical-mode adoption
+with no artifact-byte delta. Gate E now invokes that mode and is required on
+Linux as well as macOS; accelerated legacy teacher builds remain a separate,
+non-canonical local-iteration path.

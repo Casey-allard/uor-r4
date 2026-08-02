@@ -199,10 +199,10 @@ artifacts (deterministic across runs; debug profile).
 
 ### 3.4 Reproducibility
 
-- κ-reproduction (byte-identical recompile) holds on macOS for the legacy path, fixtures in
+- κ-reproduction (byte-identical recompile) holds for the canonical deterministic path, fixtures in
   `crates/uor-r4-core/tests/fixtures/baseline_kappa.json` (`--release --test kappa_reproduction
-  -- --ignored`). Cross-platform byte equality is **not** claimed today (platform SIMD FP in the
-  compiler) — this is exactly what D2 addresses.
+  -- --ignored` with `TLESS_CANONICAL_DETERMINISTIC=1`). Legacy accelerated teacher builds remain
+  platform-sensitive and are not used for the cross-platform claim.
 - **Baseline anchor moved 2026-07-21** (maintainer decision): the pin was stale from
   `b142c93`-era after two deliberate compiler redesigns — `5baa7c0` (phase-10: u32 token IDs, new
   corpus record layout with top-3 tokens/weights, oracle separation) and `bbdd596` (hash-index
@@ -222,6 +222,13 @@ artifacts (deterministic across runs; debug profile).
   context-codebook, class-signature and container κs moved with the corpus. Fixture
   `c_recs.bin` grew 1.8 MB → 24 MB (12-byte legacy records → 48-byte records with anchors/top-8).
   Full-certificate record: PROOF.md P2 era note; pins: `baseline_kappa.json`.
+
+- **D2 canonical re-pin verified 2026-08-02** (issue #265): the 500k/TLA7
+  fixture was compiled with `TLESS_CANONICAL_DETERMINISTIC=1`; all token-side,
+  bundle-derived, and container κs matched the existing pin exactly (container
+  1,346,836 bytes, κ `blake3:ef6a20f3…`). The fixture bytes therefore required
+  no replacement; the mode is recorded as the certificate reproducibility
+  policy and CI Gate E now runs it on Linux and macOS.
 
 - **Phase C adoption evidence recorded 2026-08-01** (issue #335): the
   single-key/query-beam shape remains selected over write-time fan-out

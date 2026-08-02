@@ -77,12 +77,13 @@ PR (a bump can shift libm-sensitive teacher logprobs — see Gate E below).
 - Setup (once per machine): `curl -sL -o /tmp/run.com
   https://github.com/trholding/llama2.c/releases/download/experimental/run.com
   && cd /tmp && unzip -o run.com out/model.bin -d ref`
-- Run: `cargo test -p uor-r4-core --release --offline --test kappa_reproduction
-  -- --ignored` (skips vacuously if the checkpoint is absent — check
+- Run: `TLESS_CANONICAL_DETERMINISTIC=1 cargo test -p uor-r4-core --release
+  --offline --test kappa_reproduction -- --ignored` (the canonical mode is
+  required for the cross-platform Gate E claim; check
   /tmp/ref/out/model.bin exists before trusting a green result).
-- The baseline is **macOS-pinned** (libm-sensitive teacher logprobs); the
-  container and bundle-derived pins are not expected to reproduce on Linux
-  until the D2 canonical deterministic compile mode lands.
+- The certificate fixture is re-pinned under the portable canonical math path.
+  Legacy accelerated teacher builds remain platform-sensitive and are not the
+  cross-platform reproducibility claim.
 - Re-pinning is a **maintainer decision**, done via
   `dump_baseline_kappa` (`--nocapture`) → review diff → adopt →
   `TLESS_REPIN_WRITE=1` regenerates the fixture container. Compiler redesigns
