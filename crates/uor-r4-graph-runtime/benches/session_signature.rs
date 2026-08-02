@@ -12,7 +12,12 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use uor_r4_core::transformerless::{compiler, runtime};
-use uor_r4_graph_compiler::induction;
+use uor_r4_graph_compiler::{
+    induction, observation,
+    probability_calibration::{
+        EntropyBucket, entropy_bucket, entropy_quartiles, sampled_teacher_bits_per_token,
+    },
+};
 use uor_r4_graph_format::ScoreQ;
 use uor_r4_graph_runtime::R4G1Runtime;
 use uor_r4_router::session_signature_from_tokens;
@@ -20,6 +25,28 @@ use uor_r4_router::session_signature_from_tokens;
 const DEFAULT_ROOT: &str = ".uor-models/compiled/smollm2-135m-instruct";
 const DEFAULT_SAMPLE: usize = 256;
 const WINDOW: usize = compiler::WINDOW;
+
+fn load_probability_metadata(
+    probability_dir: Option<&Path>,
+    expected_records: usize,
+) -> Result<Option<Vec<observation::ProbabilityMetadata>>, String> {
+    let Some(dir) = probability_dir else {
+        return Ok(None);
+    };
+    let metadata = observation::merge_probability_metadata(dir).map_err(|error| {
+        format!(
+            "cannot read probability metadata {}: {error}",
+            dir.display()
+        )
+    })?;
+    if metadata.len() != expected_records {
+        return Err(format!(
+            "probability metadata has {} rows but corpus has {expected_records} records",
+            metadata.len()
+        ));
+    }
+    Ok(Some(metadata))
+}
 
 fn resolve(path: &Path) -> Result<(PathBuf, Vec<u8>), String> {
     let candidates = if path.is_absolute() {
@@ -66,8 +93,17 @@ fn main() -> Result<(), String> {
         .map(|value| value.parse::<usize>().map_err(|_| "invalid sample size"))
         .transpose()?
         .unwrap_or(DEFAULT_SAMPLE);
+    let probability_dir = match args.next() {
+        None => None,
+        Some(flag) if flag == "--probability-dir" => {
+            Some(PathBuf::from(args.next().ok_or_else(|| {
+                "missing value for --probability-dir".to_owned()
+            })?))
+        }
+        Some(path) => Some(PathBuf::from(path)),
+    };
     if sample_target == 0 || args.next().is_some() {
-        return Err("usage: session_signature [BUNDLE_ROOT] [SAMPLE]".to_owned());
+        return Err("usage: session_signature [BUNDLE_ROOT] [SAMPLE] [PROBABILITY_DIR]".to_owned());
     }
 
     let graph = root.join("graph").join("score.r4g1");
@@ -98,6 +134,9 @@ fn main() -> Result<(), String> {
 
     let stride = (held_out.len() / sample_target).max(1);
     let positions: Vec<usize> = held_out.iter().copied().step_by(stride).collect();
+    let probability_metadata = load_probability_metadata(probability_dir.as_deref(), corpus.n)?;
+    let entropy_quartiles = entropy_quartiles(&positions, probability_metadata.as_deref());
+    let mut entropy_buckets = [EntropyBucket::default(); 4];
     let rotations = compiler::derive_rotations();
     let mut node_scores = vec![ScoreQ::MIN; runtime.node_count() as usize];
 
@@ -144,6 +183,19 @@ fn main() -> Result<(), String> {
         session_token_changes += u64::from(session_token != context_token);
         alternate_token_changes += u64::from(alternate_token != session_token);
         score_changes += u64::from(session_score != context_score);
+
+        if let (Some(metadata), Some(quartiles)) =
+            (probability_metadata.as_ref(), entropy_quartiles.as_ref())
+        {
+            let bucket = entropy_bucket(metadata[position].entropy_bits, quartiles);
+            entropy_buckets[bucket].record(
+                metadata[position].entropy_bits,
+                context_token,
+                session_token,
+                corpus.next[position],
+                corpus.t_argmax[position],
+            );
+        }
     }
 
     let count = positions.len() as f64;
@@ -192,5 +244,51 @@ fn main() -> Result<(), String> {
         positions.len(),
         score_changes as f64 / count
     );
+    match (probability_metadata.as_ref(), entropy_quartiles) {
+        (Some(metadata), Some(quartiles)) => {
+            println!("probability_metadata=available");
+            println!(
+                "teacher_bits_per_token_all={:.6}",
+                observation::message_bits_per_token(metadata).ok_or_else(|| {
+                    "probability metadata contains invalid log probabilities".to_owned()
+                })?
+            );
+            println!(
+                "teacher_bits_per_token_sample={:.6}",
+                sampled_teacher_bits_per_token(&positions, metadata).ok_or_else(|| {
+                    "sampled probability metadata contains invalid log probabilities".to_owned()
+                })?
+            );
+            println!(
+                "entropy_quartiles_bits={:.6},{:.6},{:.6}",
+                quartiles[0], quartiles[1], quartiles[2]
+            );
+            for (index, bucket) in entropy_buckets.iter().enumerate() {
+                println!(
+                    "entropy_bucket_{index}=samples:{} mean_entropy_bits:{:.6} context_top1:{}/{} session_top1:{}/{} context_teacher_argmax:{}/{} session_teacher_argmax:{}/{} session_token_changes:{}/{} session_corrections:{}/{} session_regressions:{}/{}",
+                    bucket.samples,
+                    bucket.mean_entropy_bits(),
+                    bucket.context_hits,
+                    bucket.samples,
+                    bucket.session_hits,
+                    bucket.samples,
+                    bucket.context_teacher_hits,
+                    bucket.samples,
+                    bucket.session_teacher_hits,
+                    bucket.samples,
+                    bucket.session_token_changes,
+                    bucket.samples,
+                    bucket.session_corrections,
+                    bucket.samples,
+                    bucket.session_regressions,
+                    bucket.samples,
+                );
+            }
+        }
+        (None, _) => println!(
+            "probability_metadata=unavailable (pass an observation directory containing manifest.json and *.prob sidecars)"
+        ),
+        (Some(_), None) => unreachable!("non-empty samples produce entropy quartiles"),
+    }
     Ok(())
 }

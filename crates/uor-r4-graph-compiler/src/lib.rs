@@ -14,6 +14,7 @@ pub mod observation_text;
 pub mod pack;
 pub mod patch_induction;
 pub mod perturbation;
+pub mod probability_calibration;
 pub mod quantum_cover;
 pub mod rate_distortion_compression;
 pub mod reference_compiler_ir;

@@ -50,3 +50,26 @@ prefix is used as a second deterministic A/B session history. The harness
 does not opt session state into ROUT fallback and does not assert an
 improvement threshold; those remain calibration decisions requiring a pinned
 multi-turn quality target.
+
+When the observation corpus was produced by the probability-aware text
+observer, pass its observation directory as a third argument:
+
+```bash
+cargo bench -p uor-r4-graph-runtime --bench session_signature -- \
+  .uor-models/compiled/smollm2-135m-instruct 256 \
+  .uor-models/observations/smollm2-135m-instruct
+```
+
+The directory must contain `manifest.json` and the aligned `*.prob` shard
+sidecars. The harness verifies that the merged sidecar row count equals the
+corpus record count, then reports teacher-forced bits/token for the full
+corpus and sampled held-out positions. It also reports four deterministic
+teacher-entropy buckets. Each bucket separates session corrections (the
+session lane fixes a context error) from regressions (the session lane breaks
+a context hit), alongside top-1, teacher-argmax agreement, and the rate of
+changed predictions. This makes the quality decision conditional on the
+teacher's uncertainty instead of treating every changed score as evidence of
+improvement.
+
+Probability metadata is evaluation-only. No entropy, logarithm, division, or
+floating-point operation is added to the graph runtime or serving path.
