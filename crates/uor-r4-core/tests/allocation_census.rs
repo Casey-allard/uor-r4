@@ -13,10 +13,21 @@
 //! the numbers. Fixed seed, no wall-clock assertions: the census is
 //! deterministic for a given artifact set.
 //!
+//! The gate is THREAD-LOCAL, not process-wide. A single `#[test]` keeps other
+//! measured tests from interleaving, but libtest's own runner thread keeps
+//! allocating while this test runs: once a test passes 60 seconds,
+//! `test::run_tests::get_timed_out_tests` grows a `Vec<TestDesc>` (512 + 82 =
+//! 594 bytes) and a process-wide gate charges that to whichever measured
+//! section happens to be open. That produced a spurious
+//! "kernels must be allocation-free" failure whose attribution wandered
+//! between entry points from run to run (#353). Gating per-thread counts only
+//! the thread inside `measure`, so foreign bookkeeping cannot land in the
+//! census.
+//!
 //! Run with: `cargo test -p uor-r4-core --test allocation_census -- --nocapture`
 
 use std::alloc::{GlobalAlloc, Layout, System};
-use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+use std::cell::Cell;
 
 use uor_r4_core::transformerless::compiler::{self, Compiled, STAGES, WINDOW};
 use uor_r4_core::transformerless::runtime::{self, OpKernel, Prediction, Store};
@@ -31,16 +42,26 @@ use uor_r4_core::transformerless::runtime::{self, OpKernel, Prediction, Store};
 /// measured section ask for", not "what was live at the end".
 struct CountingAlloc;
 
-static GATE: AtomicBool = AtomicBool::new(false);
-static ALLOCATIONS: AtomicUsize = AtomicUsize::new(0);
-static BYTES: AtomicUsize = AtomicUsize::new(0);
+thread_local! {
+    /// Open only on the thread currently inside `measure`, so allocations made
+    /// by libtest's runner thread are never counted. See the module docs.
+    static GATE: Cell<bool> = const { Cell::new(false) };
+    static ALLOCATIONS: Cell<usize> = const { Cell::new(0) };
+    static BYTES: Cell<usize> = const { Cell::new(0) };
+}
 
 unsafe impl GlobalAlloc for CountingAlloc {
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
         let ptr = unsafe { System.alloc(layout) };
-        if !ptr.is_null() && GATE.load(Ordering::SeqCst) {
-            ALLOCATIONS.fetch_add(1, Ordering::Relaxed);
-            BYTES.fetch_add(layout.size(), Ordering::Relaxed);
+        if !ptr.is_null() {
+            // `try_with`: during thread teardown the TLS may already be
+            // destroyed, and allocating then must not panic.
+            let _ = GATE.try_with(|gate| {
+                if gate.get() {
+                    let _ = ALLOCATIONS.try_with(|c| c.set(c.get() + 1));
+                    let _ = BYTES.try_with(|c| c.set(c.get() + layout.size()));
+                }
+            });
         }
         ptr
     }
@@ -65,19 +86,19 @@ const ZERO: Census = Census {
 
 fn census() -> Census {
     Census {
-        allocations: ALLOCATIONS.load(Ordering::Relaxed),
-        bytes: BYTES.load(Ordering::Relaxed),
+        allocations: ALLOCATIONS.with(Cell::get),
+        bytes: BYTES.with(Cell::get),
     }
 }
 
 /// Run `f` with the counting gate open; return its output and the census of
 /// what it allocated.
 fn measure<T>(f: impl FnOnce() -> T) -> (T, Census) {
-    ALLOCATIONS.store(0, Ordering::Relaxed);
-    BYTES.store(0, Ordering::Relaxed);
-    GATE.store(true, Ordering::SeqCst);
+    ALLOCATIONS.with(|c| c.set(0));
+    BYTES.with(|c| c.set(0));
+    GATE.with(|g| g.set(true));
     let out = f();
-    GATE.store(false, Ordering::SeqCst);
+    GATE.with(|g| g.set(false));
     (out, census())
 }
 
@@ -253,6 +274,47 @@ fn parse_store_measured() -> (Store, String) {
 
 #[test]
 fn allocation_census() {
+    // #353 regression guard. The gate must be thread-local: libtest's runner
+    // thread allocates while this test runs (`get_timed_out_tests` grows a
+    // Vec<TestDesc> once the test passes 60s), and a process-wide gate charged
+    // those 594 bytes to whichever measured section was open — a spurious
+    // failure whose attribution moved between entry points run to run.
+    // This check costs microseconds; the real thing took 100s to surface.
+    //
+    // The helper thread is spawned OUTSIDE the measured window: `thread::spawn`
+    // allocates on the spawning thread (boxed closure, JoinHandle, thread
+    // name), and those allocations are genuinely the measured thread's.
+    // Coordination is atomic-only, which does not allocate.
+    {
+        use std::sync::atomic::{AtomicBool, Ordering as AtomicOrdering};
+        use std::sync::Arc;
+
+        let go = Arc::new(AtomicBool::new(false));
+        let done = Arc::new(AtomicBool::new(false));
+        let (go_t, done_t) = (Arc::clone(&go), Arc::clone(&done));
+        let helper = std::thread::spawn(move || {
+            while !go_t.load(AtomicOrdering::SeqCst) {
+                std::hint::spin_loop();
+            }
+            let buffer: Vec<u8> = Vec::with_capacity(4096);
+            std::hint::black_box(&buffer);
+            done_t.store(true, AtomicOrdering::SeqCst);
+        });
+
+        let (_, foreign) = measure(|| {
+            go.store(true, AtomicOrdering::SeqCst);
+            while !done.load(AtomicOrdering::SeqCst) {
+                std::hint::spin_loop();
+            }
+        });
+        helper.join().expect("helper thread joins");
+
+        assert_eq!(
+            foreign, ZERO,
+            "allocations on other threads must not enter the census"
+        );
+    }
+
     println!("=== allocation census: uor-r4-core transformerless runtime (Phase-0 baseline) ===");
 
     // Phase 1 — container parsing (expected > 0; reported, not asserted).
