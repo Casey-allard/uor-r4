@@ -11,6 +11,11 @@ use uor_r4_graph_format::{GraphView, SectionId};
 
 const NONE: u32 = u32::MAX;
 
+/// The checked-in 363-node graph is faster with the compact linear scan.
+/// Keep the exact tree for larger graphs, but avoid its measured small-graph
+/// regression. This is a serving heuristic, not a universal crossover claim.
+pub(crate) const MIN_ROUTE_INDEX_NODES: u32 = 512;
+
 #[derive(Debug, Clone)]
 struct Point {
     node_id: u32,

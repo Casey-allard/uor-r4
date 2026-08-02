@@ -1,7 +1,7 @@
 use crate::runtime_state::RuntimeState;
 use crate::runtime_state::SemanticStateSlot;
 use crate::status::ResolutionStatus;
-use crate::vp_tree::VpTree;
+use crate::vp_tree::{MIN_ROUTE_INDEX_NODES, VpTree};
 use core::fmt;
 use uor_r4_graph_format::ScoreQ;
 use uor_r4_graph_format::{CODE_OP_HALT, OP_CLEAR_SLOT, OP_SHIFT_SLOTS, OP_UPDATE_SLOT};
@@ -56,9 +56,12 @@ impl<'a> R4G1Runtime<'a> {
     /// Create a new R4G1 runtime by running two-stage validation over `bytes`.
     pub fn parse(bytes: &'a [u8]) -> Result<Self, FormatError> {
         let view = GraphView::parse(bytes)?;
+        let route_index = (view.node_count().unwrap_or(0) >= MIN_ROUTE_INDEX_NODES)
+            .then(|| VpTree::from_graph(&view))
+            .flatten();
         Ok(Self {
             chain: crate::patch_chain::PatchChain::new(view),
-            route_index: VpTree::from_graph(&view),
+            route_index,
         })
     }
 

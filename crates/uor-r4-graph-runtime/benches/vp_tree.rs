@@ -157,6 +157,10 @@ fn main() -> Result<(), String> {
     println!("nodes={}", view.node_count().unwrap_or(0));
     println!("queries={}", queries.len());
     println!("iterations={iterations}");
+    println!(
+        "runtime_tree_cutoff_nodes={}",
+        vp_tree::MIN_ROUTE_INDEX_NODES
+    );
     println!("linear_ns_per_query={linear_ns:.1}");
     println!("vptree_ns_per_query={tree_ns:.1}");
     println!("speedup={:.3}", linear_ns / tree_ns);
