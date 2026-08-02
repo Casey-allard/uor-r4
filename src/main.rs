@@ -93,7 +93,7 @@ enum Command {
     Client(ClientArgs),
     /// View or export UOR Q&A audit traces and geometry metrics.
     Audit(AuditArgs),
-    /// Compile a local or pinned Hugging Face model into an R⁴ bundle.
+    /// Compile a recorded corpus or a local/pinned Hugging Face model into an R⁴ bundle.
     Compile(CompileArgs),
     /// Download pinned open weights for offline compilation.
     Download(DownloadArgs),
@@ -182,6 +182,15 @@ struct CompileArgs {
     /// Hugging Face owner/repository to download and compile.
     #[arg(long, conflicts_with = "source")]
     model: Option<String>,
+    /// Completed corpus metadata for a transformer-free recorded compile.
+    #[arg(long, requires = "corpus_recs", requires = "vocab_size")]
+    corpus_meta: Option<PathBuf>,
+    /// Completed corpus records for a transformer-free recorded compile.
+    #[arg(long, requires = "corpus_meta", requires = "vocab_size")]
+    corpus_recs: Option<PathBuf>,
+    /// Vocabulary width for a transformer-free recorded compile.
+    #[arg(long, requires = "corpus_meta", requires = "corpus_recs")]
+    vocab_size: Option<usize>,
     /// Immutable 40-character Hugging Face commit SHA.
     #[arg(long, requires = "model")]
     revision: Option<String>,
@@ -403,6 +412,31 @@ fn compile(args: &CompileArgs) -> Result<(), RunError> {
         return Err(RunError::Command(
             "--sequence-length must be greater than zero".to_owned(),
         ));
+    }
+    if let (Some(corpus_meta), Some(corpus_recs), Some(vocab_size)) =
+        (&args.corpus_meta, &args.corpus_recs, args.vocab_size)
+    {
+        if args.source.is_some() || args.model.is_some() || args.revision.is_some() {
+            return Err(RunError::Command(
+                "--corpus-meta/--corpus-recs cannot be combined with a teacher source".to_owned(),
+            ));
+        }
+        let output = args
+            .output
+            .clone()
+            .unwrap_or_else(|| PathBuf::from(".uor-models/compiled/recorded"));
+        let values = vec![
+            "compile-recorded".to_owned(),
+            "--corpus-meta".to_owned(),
+            corpus_meta.display().to_string(),
+            "--corpus-recs".to_owned(),
+            corpus_recs.display().to_string(),
+            "--vocab-size".to_owned(),
+            vocab_size.to_string(),
+            "--out".to_owned(),
+            output.display().to_string(),
+        ];
+        return transformerless_command::run(&values).map_err(RunError::Command);
     }
     let mut values = Vec::new();
     if let Some(source) = &args.source {

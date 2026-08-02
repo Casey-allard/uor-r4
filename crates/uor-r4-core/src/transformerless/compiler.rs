@@ -23,7 +23,7 @@
 use std::collections::{BTreeMap, HashMap};
 #[cfg(not(target_arch = "wasm32"))]
 use std::io::Write;
-use uor_r4_model_source::TeacherOracle;
+use uor_r4_model_source::{RepresentationSource, TeacherOracle};
 
 #[inline]
 fn canonical_math_enabled() -> bool {
@@ -113,6 +113,167 @@ pub struct Corpus {
     pub byte_start: Vec<u32>,
     pub byte_end: Vec<u32>,
     pub hidden: Option<Vec<Vec<f32>>>,
+}
+
+/// A representation source reconstructed from a recorded corpus.
+///
+/// This is the compiler-side counterpart to the reference project's
+/// observation-first boundary: the corpus compiler consumes recorded top-k
+/// next-token observations and never loads a teacher model. Rows that were not observed are
+/// filled with a deterministic token-id row so the resulting artifact still
+/// has the caller-requested vocabulary width; those rows are not evidence of
+/// teacher semantics and are reported through the source κ.
+pub struct RecordedRepresentation {
+    rows: Vec<f32>,
+    vocab: usize,
+    kappa: String,
+}
+
+impl RecordedRepresentation {
+    /// Build a representation from recorded next-token observations. An
+    /// optional `<records>.hidden` sidecar may exist, but is deliberately not
+    /// read: the production compiler's input contract is the portable corpus
+    /// record stream itself.
+    pub fn from_corpus(corpus: &Corpus, vocab: usize) -> Result<Self, String> {
+        if vocab == 0 {
+            return Err("recorded compile requires a non-zero vocabulary size".to_owned());
+        }
+        if vocab > u32::MAX as usize {
+            return Err("recorded compile vocabulary exceeds u32 token ids".to_owned());
+        }
+        if corpus.input.len() != corpus.n
+            || corpus.top_tokens.len() != corpus.n
+            || corpus.top_weights.len() != corpus.n
+        {
+            return Err("recorded corpus arrays do not match the record count".to_owned());
+        }
+        let mut sums = vec![0.0f64; vocab * D];
+        let mut counts = vec![0u64; vocab];
+        for index in 0..corpus.n {
+            let token = corpus.input[index] as usize;
+            if token >= vocab {
+                continue;
+            }
+            counts[token] += 1;
+            let base = token * D;
+            for (&target, &weight) in corpus.top_tokens[index]
+                .iter()
+                .zip(corpus.top_weights[index].iter())
+            {
+                if weight == 0 {
+                    continue;
+                }
+                let mut feature_hasher = blake3::Hasher::new();
+                feature_hasher.update(b"uor-r4-recorded-feature-v1");
+                feature_hasher.update(&target.to_le_bytes());
+                let digest = feature_hasher.finalize();
+                for dimension in 0..D {
+                    let byte = digest.as_bytes()[dimension % 32];
+                    let sign = if byte & (1 << (dimension % 8)) == 0 {
+                        -1.0
+                    } else {
+                        1.0
+                    };
+                    sums[base + dimension] += sign * f64::from(weight);
+                }
+            }
+        }
+
+        let mut rows = vec![0.0f32; vocab * D];
+        for (token, &count_value) in counts.iter().enumerate() {
+            let base = token * D;
+            if count_value != 0 {
+                let count = count_value as f64;
+                for dimension in 0..D {
+                    rows[base + dimension] = (sums[base + dimension] / count) as f32;
+                }
+            } else {
+                // Deterministic, non-semantic fallback for vocabulary rows
+                // absent from the captured corpus. The compiler remains
+                // total without pretending that these rows were observed.
+                let mut hasher = blake3::Hasher::new();
+                hasher.update(b"uor-r4-recorded-row-v1");
+                hasher.update(&(token as u64).to_le_bytes());
+                let digest = hasher.finalize();
+                for dimension in 0..D {
+                    let byte = digest.as_bytes()[dimension % 32];
+                    rows[base + dimension] = if byte & (1 << (dimension % 8)) == 0 {
+                        -1.0
+                    } else {
+                        1.0
+                    };
+                }
+            }
+        }
+
+        let mut hasher = blake3::Hasher::new();
+        hasher.update(b"uor-r4-recorded-representation-v1");
+        hasher.update(&(vocab as u64).to_le_bytes());
+        for value in &rows {
+            hasher.update(&value.to_le_bytes());
+        }
+        Ok(Self {
+            rows,
+            vocab,
+            kappa: format!("blake3:{}", hasher.finalize().to_hex()),
+        })
+    }
+
+    pub fn kappa(&self) -> &str {
+        &self.kappa
+    }
+}
+
+impl RepresentationSource for RecordedRepresentation {
+    fn vocab_size(&self) -> usize {
+        self.vocab
+    }
+
+    fn source_dimension(&self) -> usize {
+        D
+    }
+
+    fn tokenizer_address(&self) -> &str {
+        "recorded-corpus-tokenizer-v1"
+    }
+
+    fn read_embedding_rows(
+        &self,
+        range: std::ops::Range<usize>,
+        output: &mut [f32],
+    ) -> Result<(), String> {
+        if range.start > range.end || range.end > self.vocab {
+            return Err("recorded representation row range is out of bounds".to_owned());
+        }
+        let count = range.end - range.start;
+        let width = count * D;
+        if output.len() < width {
+            return Err("recorded representation output buffer too small".to_owned());
+        }
+        output[..width].copy_from_slice(&self.rows[range.start * D..range.end * D]);
+        Ok(())
+    }
+}
+
+/// Compile directly from a completed recorded corpus without loading a
+/// teacher or invoking any model forward path.
+pub fn compile_recorded(corpus: &Corpus, vocab: usize) -> Result<Compiled, String> {
+    if corpus.n == 0 || corpus.stories == 0 {
+        return Err("recorded compile requires a non-empty corpus".to_owned());
+    }
+    if corpus.input.len() != corpus.n {
+        return Err("corpus input/record count mismatch".to_owned());
+    }
+    let source = RecordedRepresentation::from_corpus(corpus, vocab)?;
+    let source_kappa = source.kappa().to_owned();
+    let source_bytes = source.rows.len() * std::mem::size_of::<f32>();
+    Ok(compile_from_representation(
+        &source,
+        &source_kappa,
+        source_bytes,
+        source.tokenizer_address(),
+        corpus,
+    ))
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -947,12 +1108,10 @@ pub fn quantile_radius(histogram: &[u32], numerator: u32, denominator: u32) -> u
     histogram.len().saturating_sub(1) as u16
 }
 
-pub fn calibrate_hamming_regions_from_signatures(
+fn signature_histograms(
     class_sigs: &[Vec<u8>],
     signatures: &[[u8; SIG_BYTES]],
-) -> HammingCalibrationReport {
-    const NUMERATOR: u32 = 95;
-    const DENOMINATOR: u32 = 100;
+) -> Vec<Vec<Vec<u32>>> {
     let mut histograms = vec![vec![vec![0u32; D + 1]; K]; STAGES];
     for sig in signatures {
         let mut words = [0u64; SIG_WORDS];
@@ -987,6 +1146,12 @@ pub fn calibrate_hamming_regions_from_signatures(
             }
         }
     }
+    histograms
+}
+
+fn calibration_from_histograms(histograms: Vec<Vec<Vec<u32>>>) -> HammingCalibrationReport {
+    const NUMERATOR: u32 = 95;
+    const DENOMINATOR: u32 = 100;
     let mut regions = Vec::with_capacity(STAGES * K);
     for (stage, stage_histograms) in histograms.iter().enumerate() {
         for (class, histogram) in stage_histograms.iter().enumerate() {
@@ -1007,6 +1172,48 @@ pub fn calibrate_hamming_regions_from_signatures(
         quantile_denominator: DENOMINATOR as u16,
         regions,
     }
+}
+
+/// Deterministically calibrate the Hamming regions. Each worker owns a
+/// private integer histogram, and the ordered reduction makes the result
+/// independent of worker count while removing the serial class-distance scan
+/// from the recorded-corpus compile path.
+pub fn calibrate_hamming_regions_from_signatures(
+    class_sigs: &[Vec<u8>],
+    signatures: &[[u8; SIG_BYTES]],
+) -> HammingCalibrationReport {
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        let threads = std::thread::available_parallelism()
+            .map(|count| count.get().min(8))
+            .unwrap_or(1);
+        if threads > 1 && signatures.len() >= threads * 2 {
+            let chunk_size = signatures.len().div_ceil(threads);
+            let mut partials = Vec::new();
+            std::thread::scope(|scope| {
+                let mut handles = Vec::new();
+                for chunk in signatures.chunks(chunk_size) {
+                    handles.push(scope.spawn(move || signature_histograms(class_sigs, chunk)));
+                }
+                for handle in handles {
+                    partials.push(handle.join().expect("hamming calibration worker"));
+                }
+            });
+            let mut merged = vec![vec![vec![0u32; D + 1]; K]; STAGES];
+            for partial in partials {
+                for stage in 0..STAGES {
+                    for class in 0..K {
+                        for distance in 0..=D {
+                            merged[stage][class][distance] = merged[stage][class][distance]
+                                .saturating_add(partial[stage][class][distance]);
+                        }
+                    }
+                }
+            }
+            return calibration_from_histograms(merged);
+        }
+    }
+    calibration_from_histograms(signature_histograms(class_sigs, signatures))
 }
 
 pub fn calibrate_hamming_regions(art: &Compiled, corpus: &Corpus) -> HammingCalibrationReport {
@@ -1053,7 +1260,7 @@ pub fn deterministic_project(
     vocab: usize,
     source_dim: usize,
     target_dim: usize,
-    oracle: &dyn TeacherOracle,
+    source: &dyn RepresentationSource,
 ) -> Vec<f32> {
     let mut projected_vecs = vec![0f32; vocab * target_dim];
     let chunk_size = 1000;
@@ -1063,7 +1270,7 @@ pub fn deterministic_project(
     for chunk_start in (0..vocab).step_by(chunk_size) {
         let chunk_end = (chunk_start + chunk_size).min(vocab);
         let count = chunk_end - chunk_start;
-        oracle
+        source
             .read_embedding_rows(chunk_start..chunk_end, &mut raw_chunk[..count * source_dim])
             .unwrap();
         for i in 0..count {
@@ -1081,7 +1288,7 @@ pub fn deterministic_project(
     for chunk_start in (0..vocab).step_by(chunk_size) {
         let chunk_end = (chunk_start + chunk_size).min(vocab);
         let count = chunk_end - chunk_start;
-        oracle
+        source
             .read_embedding_rows(chunk_start..chunk_end, &mut raw_chunk[..count * source_dim])
             .unwrap();
 
@@ -1235,28 +1442,45 @@ pub fn kappa_of_f32s(v: &[f32]) -> String {
 }
 
 pub fn compile(oracle: &dyn TeacherOracle, corpus: &Corpus) -> Compiled {
-    let vocab = oracle.vocab_size();
+    let source_kappa = oracle.kappa();
+    let tokenizer_address = oracle.tokenizer_address().to_owned();
+    compile_from_representation(
+        oracle,
+        &source_kappa,
+        oracle.source_bytes(),
+        &tokenizer_address,
+        corpus,
+    )
+}
+
+/// Compile an artifact from a representation source and explicit provenance.
+///
+/// Keeping this surface independent from [`TeacherOracle`] is what allows a
+/// recorded-corpus build to avoid constructing a transformer at all. The
+/// legacy [`compile`] wrapper remains for source-capture and κ reproduction.
+pub fn compile_from_representation(
+    source: &dyn RepresentationSource,
+    source_kappa: &str,
+    source_bytes: usize,
+    tokenizer_address: &str,
+    corpus: &Corpus,
+) -> Compiled {
+    let vocab = source.vocab_size();
     assert!(
         vocab <= u32::MAX as usize,
         "source vocabulary exceeds u32 token ids"
     );
-    println!(
-        "source κ: {} ({} bytes)",
-        oracle.kappa(),
-        oracle.source_bytes()
-    );
+    println!("source κ: {} ({} bytes)", source_kappa, source_bytes);
 
     let seed_string = format!(
         "{}{}{}",
-        oracle.kappa(),
-        oracle.tokenizer_address(),
-        "r4-geometric-projection-v1"
+        source_kappa, tokenizer_address, "r4-geometric-projection-v1"
     );
     let seed_hash = blake3::hash(seed_string.as_bytes());
     let seed_bytes = seed_hash.as_bytes();
 
-    let source_dim = oracle.source_dimension();
-    let vecs = deterministic_project(seed_bytes, vocab, source_dim, D, oracle);
+    let source_dim = source.source_dimension();
+    let vecs = deterministic_project(seed_bytes, vocab, source_dim, D, source);
 
     let (emb_cb, emb_codes) = sampled_kmeans_rvq(&vecs, vocab, STAGES, K, EMB_ITERS, seed_bytes);
     let emb_stage_kappas: Vec<String> = emb_cb.iter().map(|cb| kappa_of_f32s(cb)).collect();

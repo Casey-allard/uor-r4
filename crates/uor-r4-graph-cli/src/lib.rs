@@ -64,6 +64,50 @@ struct CompileOptions {
 }
 
 #[derive(Debug, PartialEq, Eq)]
+struct RecordedCompileOptions {
+    corpus_meta: PathBuf,
+    corpus_recs: PathBuf,
+    vocab_size: usize,
+    output: PathBuf,
+}
+
+fn parse_recorded_compile_options(args: &[String]) -> Result<RecordedCompileOptions, String> {
+    let mut corpus_meta = None;
+    let mut corpus_recs = None;
+    let mut vocab_size = None;
+    let mut output = None;
+    let mut index = 0usize;
+    while index < args.len() {
+        let flag = &args[index];
+        let value = args
+            .get(index + 1)
+            .ok_or_else(|| format!("missing value for {flag}"))?;
+        match flag.as_str() {
+            "--corpus-meta" => corpus_meta = Some(PathBuf::from(value)),
+            "--corpus-recs" => corpus_recs = Some(PathBuf::from(value)),
+            "--vocab-size" => {
+                let parsed = value
+                    .parse()
+                    .map_err(|_| format!("invalid --vocab-size value: {value}"))?;
+                if parsed == 0 {
+                    return Err("--vocab-size must be greater than zero".to_owned());
+                }
+                vocab_size = Some(parsed);
+            }
+            "--out" | "--output" => output = Some(PathBuf::from(value)),
+            _ => return Err(format!("unknown compile-recorded option: {flag}")),
+        }
+        index += 2;
+    }
+    Ok(RecordedCompileOptions {
+        corpus_meta: corpus_meta.ok_or_else(|| "--corpus-meta is required".to_owned())?,
+        corpus_recs: corpus_recs.ok_or_else(|| "--corpus-recs is required".to_owned())?,
+        vocab_size: vocab_size.ok_or_else(|| "--vocab-size is required".to_owned())?,
+        output: output.ok_or_else(|| "--out is required".to_owned())?,
+    })
+}
+
+#[derive(Debug, PartialEq, Eq)]
 struct EvaluateReportOptions {
     source: PathBuf,
     compiled: PathBuf,
@@ -2036,6 +2080,77 @@ where
     Ok(())
 }
 
+/// Compile a completed recorded corpus without loading or executing a
+/// transformer. This is the observation-first production path; teacher
+/// capture remains available through `observe`/`compile` as an explicitly
+/// separate offline step.
+pub fn compile_recorded_corpus(args: &[String]) -> Result<(), String> {
+    let options = parse_recorded_compile_options(args)?;
+    let meta = options
+        .corpus_meta
+        .to_str()
+        .ok_or_else(|| "corpus metadata path is not UTF-8".to_owned())?;
+    let records = options
+        .corpus_recs
+        .to_str()
+        .ok_or_else(|| "corpus records path is not UTF-8".to_owned())?;
+    let corpus = compiler::load_corpus_from(meta, records).ok_or_else(|| {
+        format!(
+            "recorded corpus is incomplete or invalid at {}/{}",
+            options.corpus_meta.display(),
+            options.corpus_recs.display()
+        )
+    })?;
+    eprintln!(
+        "recorded compile: {} records, {} stories, vocabulary {} (no teacher loaded)",
+        corpus.n, corpus.stories, options.vocab_size
+    );
+    let artifacts = compiler::compile_recorded(&corpus, options.vocab_size)?;
+    let calibration = compiler::calibrate_hamming_regions(&artifacts, &corpus);
+    let hierarchical =
+        compiler::induce_hierarchical_codes(&artifacts.token_codes, options.vocab_size, &corpus);
+    let threads = std::thread::available_parallelism()
+        .map(|count| count.get().min(8))
+        .unwrap_or(1);
+    let (store, _) = runtime::build_store_with_threads(&artifacts, &corpus, threads)
+        .map_err(|error| format!("parallel recorded store build failed: {error}"))?;
+
+    std::fs::create_dir_all(&options.output).map_err(|error| error.to_string())?;
+    std::fs::write(
+        options.output.join("tless_artifacts.bin"),
+        compiler::artifact_bytes(&artifacts),
+    )
+    .map_err(|error| error.to_string())?;
+    std::fs::write(
+        options.output.join("tless_store.bin"),
+        runtime::store_bytes(&store),
+    )
+    .map_err(|error| error.to_string())?;
+    std::fs::write(
+        options.output.join("hamming_calibration.json"),
+        serde_json::to_string_pretty(&calibration).map_err(|error| error.to_string())?,
+    )
+    .map_err(|error| error.to_string())?;
+    std::fs::write(
+        options.output.join("hierarchical_codes.json"),
+        serde_json::to_string_pretty(&hierarchical).map_err(|error| error.to_string())?,
+    )
+    .map_err(|error| error.to_string())?;
+    std::fs::copy(&options.corpus_meta, options.output.join("corpus.meta"))
+        .map_err(|error| error.to_string())?;
+    std::fs::copy(&options.corpus_recs, options.output.join("corpus.records"))
+        .map_err(|error| error.to_string())?;
+
+    let artifact_bytes = compiler::artifact_bytes(&artifacts);
+    println!(
+        "recorded compile complete: {} ({} corpus records, artifact κ blake3:{})",
+        options.output.display(),
+        corpus.n,
+        blake3::hash(&artifact_bytes).to_hex()
+    );
+    Ok(())
+}
+
 pub fn run(args: &[String]) -> Result<(), String> {
     match args.first().map(|s| s.as_str()) {
         Some("setup") => setup(),
@@ -2056,6 +2171,7 @@ pub fn run(args: &[String]) -> Result<(), String> {
                 compile_hugging_face(&args[1..])?;
             }
         }
+        Some("compile-recorded") => compile_recorded_corpus(&args[1..])?,
         Some("store") => {
             let c = compiler::load_corpus()
                 .expect("corpus incomplete: run `transformerless gen` first");
@@ -2094,8 +2210,9 @@ pub fn run(args: &[String]) -> Result<(), String> {
         Some("quantum-eval") => quantum_eval_command(&args[1..])?,
         _ => {
             println!(
-                "R4 transformerless — cross-compile a transformer into a mul-free table artifact\n\
+                "R4 transformerless — compile a mul-free table artifact\n\
                  commands: setup | gen [secs] [target] | compile [--model REPO --revision SHA | --source DIR] [--output DIR] [--seconds N] [--target N] [--sequence-length N] | store | compare | compare-report | scenarios | teacher-kappa | convert-r4g1 --artifacts <TLA> --store <TLS1> [--calibration <hamming_calibration.json>] --out <R4G1>\n\
+                 recorded compile (no transformer): compile-recorded --corpus-meta <META> --corpus-recs <RECS> --vocab-size <N> --out <DIR>\n\
                  transformer-free refresh: runtime-corpus --artifacts <TLA> --store <TLS1> --seed-meta <META> --seed-recs <RECS> --out <DIR> --target N [--threads N]\n\
                  observation pipeline: observe [--source DIR | --checkpoint BIN] [--seconds N] [--target N] [--shards N] [--out DIR] [--sequence-length N]\n\
                  text observations (D3): observe-text [--input PATH] [--out DIR] [--shards N] [--seconds N] [--source DIR | --checkpoint BIN] [--tokenizer PATH] [--sequence-length N]\n\
@@ -2360,6 +2477,30 @@ mod tests {
         assert_eq!(options.target, 64);
         assert_eq!(options.shards, 3);
         assert_eq!(options.output, PathBuf::from("/tmp/obs"));
+    }
+
+    #[test]
+    fn recorded_compile_requires_explicit_corpus_and_vocab() {
+        let args = [
+            "--corpus-meta",
+            "/tmp/corpus.meta",
+            "--corpus-recs",
+            "/tmp/corpus.records",
+            "--vocab-size",
+            "49152",
+            "--out",
+            "/tmp/recorded",
+        ]
+        .map(str::to_owned);
+        let options = parse_recorded_compile_options(&args).expect("valid recorded options");
+        assert_eq!(options.corpus_meta, PathBuf::from("/tmp/corpus.meta"));
+        assert_eq!(options.corpus_recs, PathBuf::from("/tmp/corpus.records"));
+        assert_eq!(options.vocab_size, 49_152);
+        assert_eq!(options.output, PathBuf::from("/tmp/recorded"));
+
+        assert!(
+            parse_recorded_compile_options(&["--out", "/tmp/recorded"].map(str::to_owned)).is_err()
+        );
     }
 
     #[test]
