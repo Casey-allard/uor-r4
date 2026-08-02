@@ -228,6 +228,96 @@ jobs:
         working-directory: crates/uor-r4-graph-format
         run: cargo +nightly fuzz run mutate_valid -- -max_total_time=60 -print_final_stats=1
 
+  # D2 acceptance evidence (issue #265): compile one immutable HF source with
+  # the portable teacher/math path on Linux and macOS, then compare every
+  # source and emitted-bundle byte. This is separate from the historical
+  # macOS-pinned kappa reproduction and does not repin a shipped fixture.
+  d2-differential:
+    name: D2 canonical differential (${{ matrix.os }})
+    if: github.event_name != 'pull_request'
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-14]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust (stable)
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: d2-${{ runner.os }}-${{ hashFiles('Cargo.lock') }}
+          restore-keys: d2-${{ runner.os }}-
+
+      - name: Run canonical differential compile
+        env:
+          D2_SOURCE_DIR: ${{ runner.temp }}/d2-source
+          D2_OUTPUT_DIR: ${{ runner.temp }}/d2-output
+          D2_MANIFEST: ${{ runner.temp }}/d2-manifest.json
+          D2_TARGET: '1000'
+        run: bash scripts/d2_differential_compile.sh
+
+      - name: Upload D2 manifest
+        uses: actions/upload-artifact@v4
+        with:
+          name: d2-manifest-${{ matrix.os }}
+          path: ${{ runner.temp }}/d2-manifest.json
+          retention-days: 30
+
+  d2-differential-compare:
+    name: D2 differential equality
+    if: github.event_name != 'pull_request'
+    needs: d2-differential
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Download D2 manifests
+        uses: actions/download-artifact@v4
+        with:
+          pattern: d2-manifest-*
+          path: ${{ runner.temp }}/d2-manifests
+
+      - name: Compare source and output bytes
+        run: |
+          python3 - "${RUNNER_TEMP}/d2-manifests" <<'PY'
+          import json
+          import pathlib
+          import sys
+
+          manifests = sorted(pathlib.Path(sys.argv[1]).glob("*/d2-manifest.json"))
+          if len(manifests) != 2:
+              raise SystemExit(f"expected two D2 manifests, found {len(manifests)}")
+
+          payloads = [json.loads(path.read_text()) for path in manifests]
+          if payloads[0]["revision"] != payloads[1]["revision"]:
+              raise SystemExit("D2 manifests use different source revisions")
+          for key in ("source", "output"):
+              if payloads[0][key] != payloads[1][key]:
+                  raise SystemExit(f"D2 {key} bytes differ across platforms")
+
+          print(
+              "D2 canonical compile matched on "
+              f"{payloads[0]['architecture']} and {payloads[1]['architecture']}: "
+              f"{len(payloads[0]['output'])} emitted files"
+          )
+          PY
+
   # ---- context stubs (issue #240) -----------------------------------------
   # Required-check names must report in every gating context or the merge
   # queue cannot accept/merge the PR. Where the real job is deferred to the
