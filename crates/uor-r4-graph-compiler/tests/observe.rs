@@ -6,8 +6,9 @@
 use std::collections::BTreeSet;
 use std::time::{SystemTime, UNIX_EPOCH};
 use uor_r4_graph_compiler::observation::{
-    ObservationManifest, ObservationShardWriter, RECORD_SIZE, merge_shards, sample_id,
-    shard_file_name, shard_of,
+    ObservationManifest, ObservationShardWriter, ProbabilityMetadata, RECORD_SIZE,
+    merge_probability_metadata, merge_shards, message_bits_per_token, sample_id, shard_file_name,
+    shard_of,
 };
 use uor_r4_model_source::{BehaviorSource, LlamaOracle, RepresentationSource, TeacherOracle};
 
@@ -233,6 +234,53 @@ fn shard_spill_manifest_resume_and_merge() {
     for dir in [&dir_a, &dir_b, &dir_c] {
         let _ = std::fs::remove_dir_all(dir);
     }
+}
+
+#[test]
+fn probability_sidecar_is_aligned_and_reports_message_bits() {
+    let dir = unique_path("observe-probability");
+    let records = synth_records();
+    let mut writer = ObservationShardWriter::open(&dir, SHARD_BITS).expect("open");
+    for (i, record) in records.iter().take(4).enumerate() {
+        assert!(
+            writer
+                .write_record_with_probability(
+                    record,
+                    ProbabilityMetadata {
+                        target_logprob_nats: -0.5 - i as f32,
+                        entropy_bits: 2.0 + i as f32,
+                        top8_mass: 0.75,
+                        target_rank: i as u16,
+                    },
+                    record_shard(i),
+                )
+                .expect("write probability")
+        );
+    }
+    writer.finalize_all().expect("finalize");
+    let metadata = merge_probability_metadata(&dir).expect("merge probability metadata");
+    assert_eq!(metadata.len(), 4);
+    assert!(metadata.iter().all(|row| row.top8_mass == 0.75));
+    let mut ranks: Vec<u16> = metadata.iter().map(|row| row.target_rank).collect();
+    ranks.sort_unstable();
+    assert_eq!(ranks, vec![0, 1, 2, 3]);
+    let bits = message_bits_per_token(&metadata).expect("non-empty message");
+    let expected = (0.5f64 + 1.5 + 2.5 + 3.5) / std::f64::consts::LN_2 / 4.0;
+    assert!(
+        (bits - expected).abs() < 1e-6,
+        "bits/token={bits}, expected={expected}"
+    );
+    let manifest = ObservationManifest::load(&dir)
+        .expect("load manifest")
+        .expect("manifest");
+    assert!(
+        manifest
+            .completed
+            .values()
+            .filter(|entry| entry.records != 0)
+            .all(|entry| entry.probability_kappa.is_some())
+    );
+    let _ = std::fs::remove_dir_all(dir);
 }
 
 // -------------------------------------------------------- trace surface --

@@ -4,7 +4,9 @@
 //! (descending probability, ties to the lowest token index). The corpus
 //! era depends on these bytes.
 
-use uor_r4_core::transformerless::compiler::{softmax_top3_sample, softmax_top8_sample};
+use uor_r4_core::transformerless::compiler::{
+    softmax_top3_sample, softmax_top8_sample, softmax_top8_sample_with_stats,
+};
 
 /// Reference: the previous implementation's selection — a stable
 /// descending full sort of (index, probability) after the same softmax.
@@ -72,4 +74,35 @@ fn streaming_top_n_matches_stable_sort_selection() {
         assert_eq!(t8.as_slice(), rt8.as_slice(), "top8 tokens, case {case}");
         assert_eq!(w8.as_slice(), rw8.as_slice(), "top8 weights, case {case}");
     }
+}
+
+#[test]
+fn probability_stats_use_full_distribution_not_top8_renormalization() {
+    let mut logits = vec![0.0f32; 16];
+    logits[0] = 4.0;
+    let mut rng = 0x5EEDu64;
+    let (_sampled, tokens, weights, stats) = softmax_top8_sample_with_stats(&mut logits, &mut rng);
+    assert_eq!(weights.iter().sum::<u32>(), 100);
+    assert!(stats.top8_mass < 1.0);
+    assert!(stats.top8_mass > 0.8);
+    let expected_entropy: f32 = logits
+        .iter()
+        .copied()
+        .filter(|&p| p > 0.0)
+        .map(|p| -p * p.ln() / std::f32::consts::LN_2)
+        .sum();
+    assert!((stats.entropy_bits - expected_entropy).abs() < 1e-5);
+    let target = tokens[0] as usize;
+    let mut target_stats =
+        uor_r4_core::transformerless::compiler::TokenProbabilityStats::from_normalized(
+            &logits,
+            target,
+            &tokens,
+            stats.top8_mass,
+        );
+    assert_eq!(target_stats.target_rank, 0);
+    assert!((target_stats.target_logprob_nats - logits[target].ln()).abs() < 1e-6);
+    assert!(target_stats.target_bits() > 0.0);
+    target_stats.top8_mass = 0.0;
+    assert_eq!(target_stats.top8_mass, 0.0);
 }

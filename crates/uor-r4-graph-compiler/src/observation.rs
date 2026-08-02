@@ -37,6 +37,66 @@ use uor_r4_model_source::progress::Progress;
 /// [`compiler::encode_v4_record`].
 pub const RECORD_SIZE: usize = 88;
 
+/// Width of one probability sidecar row. The row is aligned with the
+/// corresponding record in each shard, but is kept separate so the existing
+/// 88-byte observation ABI and old fixtures remain readable.
+pub const PROBABILITY_METADATA_SIZE: usize = 16;
+
+/// Compiler-side probability metadata for one observation row.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct ProbabilityMetadata {
+    pub target_logprob_nats: f32,
+    pub entropy_bits: f32,
+    pub top8_mass: f32,
+    pub target_rank: u16,
+}
+
+impl ProbabilityMetadata {
+    pub fn encode(self) -> [u8; PROBABILITY_METADATA_SIZE] {
+        let mut bytes = [0u8; PROBABILITY_METADATA_SIZE];
+        bytes[0..4].copy_from_slice(&self.target_logprob_nats.to_le_bytes());
+        bytes[4..8].copy_from_slice(&self.entropy_bits.to_le_bytes());
+        bytes[8..12].copy_from_slice(&self.top8_mass.to_le_bytes());
+        bytes[12..14].copy_from_slice(&self.target_rank.to_le_bytes());
+        bytes
+    }
+
+    pub fn decode(bytes: &[u8]) -> Option<Self> {
+        if bytes.len() != PROBABILITY_METADATA_SIZE {
+            return None;
+        }
+        Some(Self {
+            target_logprob_nats: f32::from_le_bytes(bytes[0..4].try_into().ok()?),
+            entropy_bits: f32::from_le_bytes(bytes[4..8].try_into().ok()?),
+            top8_mass: f32::from_le_bytes(bytes[8..12].try_into().ok()?),
+            target_rank: u16::from_le_bytes(bytes[12..14].try_into().ok()?),
+        })
+    }
+}
+
+/// Return the information content of a message in bits without multiplying
+/// tiny probabilities. A message probability is the product of its
+/// conditional token probabilities, so its log-domain information is their
+/// additive sum.
+pub fn message_information_bits(metadata: &[ProbabilityMetadata]) -> f64 {
+    metadata
+        .iter()
+        .map(|row| -f64::from(row.target_logprob_nats) / f64::from(std::f32::consts::LN_2))
+        .sum()
+}
+
+/// Return average message information in bits per recorded token.
+pub fn message_bits_per_token(metadata: &[ProbabilityMetadata]) -> Option<f64> {
+    if metadata.is_empty()
+        || metadata
+            .iter()
+            .any(|row| !row.target_logprob_nats.is_finite())
+    {
+        return None;
+    }
+    Some(message_information_bits(metadata) / metadata.len() as f64)
+}
+
 /// Maximum shard fan-out accepted by [`ObservationShardWriter`]: shard
 /// files are held open during a pass, so the writer caps the fan-out at
 /// 2^8. [`shard_of`] itself is defined for up to 32 bits.
@@ -143,7 +203,7 @@ impl PartitionCounts {
 /// One completed shard's entry in the observation manifest.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ShardEntry {
-    /// Number of 48-byte records in the shard file.
+    /// Number of observation records in the shard file.
     pub records: u64,
     /// Content κ of the shard file bytes.
     pub kappa: String,
@@ -152,6 +212,10 @@ pub struct ShardEntry {
     /// path, so its manifest bytes are unchanged).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub partitions: Option<PartitionCounts>,
+    /// Content κ of the aligned probability sidecar, when probability
+    /// metadata was captured for this shard.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub probability_kappa: Option<String>,
 }
 
 /// Manifest of an observation shard directory: the fan-out, the completed
@@ -220,6 +284,7 @@ impl ObservationManifest {
 
 struct ShardHandle {
     file: BufWriter<fs::File>,
+    probability: Option<BufWriter<fs::File>>,
 }
 
 /// Spills observation records into per-shard files with a κ-pinned
@@ -360,6 +425,7 @@ impl ObservationShardWriter {
             }
             self.handles[index] = Some(ShardHandle {
                 file: BufWriter::new(file),
+                probability: None,
             });
         }
         let handle = self.handles[index]
@@ -387,12 +453,78 @@ impl ObservationShardWriter {
         Ok(written)
     }
 
+    /// Append an observation record and its aligned probability metadata.
+    /// Finalization validates that every non-empty shard has a complete,
+    /// aligned sidecar rather than silently publishing partial metadata.
+    pub fn write_record_with_probability(
+        &mut self,
+        record: &[u8; RECORD_SIZE],
+        probability: ProbabilityMetadata,
+        shard: u32,
+    ) -> io::Result<bool> {
+        if self.is_complete(shard) {
+            return Ok(false);
+        }
+        let written = self.write_record(record, shard)?;
+        if !written {
+            return Ok(false);
+        }
+        let index = shard as usize;
+        let path = self.dir.join(format!(
+            "{}.prob",
+            shard_file_name(self.manifest.shard_bits, shard)
+        ));
+        let handle = self.handles[index]
+            .as_mut()
+            .ok_or_else(|| invalid_data(format!("shard {shard} handle was not opened")))?;
+        if handle.probability.is_none() {
+            let file = fs::OpenOptions::new()
+                .create(true)
+                .append(true)
+                .open(&path)?;
+            let existing = file.metadata()?.len();
+            if existing % PROBABILITY_METADATA_SIZE as u64 != 0 {
+                return Err(invalid_data(format!(
+                    "probability sidecar {} has a torn metadata row",
+                    path.display()
+                )));
+            }
+            handle.probability = Some(BufWriter::new(file));
+        }
+        handle
+            .probability
+            .as_mut()
+            .expect("probability handle opened above")
+            .write_all(&probability.encode())?;
+        Ok(true)
+    }
+
+    /// Probability-sidecar variant of
+    /// [`ObservationShardWriter::write_record_in_partition`].
+    pub fn write_record_with_probability_in_partition(
+        &mut self,
+        record: &[u8; RECORD_SIZE],
+        probability: ProbabilityMetadata,
+        shard: u32,
+        partition: RecordPartition,
+    ) -> io::Result<bool> {
+        let written = self.write_record_with_probability(record, probability, shard)?;
+        if written {
+            self.partition_counts[shard as usize].add(partition);
+            self.partitions_active = true;
+        }
+        Ok(written)
+    }
+
     /// Flush every open shard handle. Called at whole-story checkpoints so
     /// the on-disk shard bytes always cover exactly the completed stories
     /// of the deterministic stream.
     pub fn flush(&mut self) -> io::Result<()> {
         for handle in self.handles.iter_mut().flatten() {
             handle.file.flush()?;
+            if let Some(probability) = handle.probability.as_mut() {
+                probability.flush()?;
+            }
         }
         Ok(())
     }
@@ -412,6 +544,9 @@ impl ObservationShardWriter {
         }
         if let Some(handle) = self.handles[shard as usize].as_mut() {
             handle.file.flush()?;
+            if let Some(probability) = handle.probability.as_mut() {
+                probability.flush()?;
+            }
         }
         let path = self.shard_path(shard);
         if !path.exists() {
@@ -425,12 +560,32 @@ impl ObservationShardWriter {
                 length
             )));
         }
+        let probability_path = self.dir.join(format!(
+            "{}.prob",
+            shard_file_name(self.manifest.shard_bits, shard)
+        ));
+        let probability_kappa = if probability_path.exists() {
+            let probability_length = fs::metadata(&probability_path)?.len();
+            let records = length / RECORD_SIZE as u64;
+            if probability_length != records * PROBABILITY_METADATA_SIZE as u64 {
+                return Err(invalid_data(format!(
+                    "probability sidecar {} has {} bytes for {} records",
+                    probability_path.display(),
+                    probability_length,
+                    records
+                )));
+            }
+            Some(file_kappa(&probability_path)?)
+        } else {
+            None
+        };
         let entry = ShardEntry {
             records: length / RECORD_SIZE as u64,
             kappa: file_kappa(&path)?,
             partitions: self
                 .partitions_active
                 .then_some(self.partition_counts[shard as usize]),
+            probability_kappa,
         };
         self.manifest.total_records = self.manifest.total_records.saturating_add(entry.records);
         self.manifest.completed.insert(shard, entry);
@@ -479,6 +634,134 @@ pub fn merge_shards(dir: impl AsRef<Path>) -> io::Result<Vec<u8>> {
     Ok(merged)
 }
 
+/// Merge aligned probability sidecars in the same deterministic shard order
+/// as [`merge_shards`].
+pub fn merge_probability_metadata(dir: impl AsRef<Path>) -> io::Result<Vec<ProbabilityMetadata>> {
+    let dir = dir.as_ref();
+    let manifest = ObservationManifest::load(dir)?
+        .ok_or_else(|| invalid_data(format!("no observation manifest in {}", dir.display())))?;
+    let mut metadata = Vec::new();
+    for shard in 0..manifest.shard_count() {
+        let Some(entry) = manifest.completed.get(&shard) else {
+            continue;
+        };
+        if entry.probability_kappa.is_none() {
+            if entry.records == 0 {
+                continue;
+            }
+            return Err(invalid_data(format!(
+                "shard {shard} has no probability metadata sidecar"
+            )));
+        }
+        let path = dir.join(format!(
+            "{}.prob",
+            shard_file_name(manifest.shard_bits, shard)
+        ));
+        let bytes = fs::read(&path)?;
+        if bytes.len() != entry.records as usize * PROBABILITY_METADATA_SIZE {
+            return Err(invalid_data(format!(
+                "probability sidecar {} is not aligned",
+                path.display()
+            )));
+        }
+        for row in bytes.chunks_exact(PROBABILITY_METADATA_SIZE) {
+            metadata.push(ProbabilityMetadata::decode(row).ok_or_else(|| {
+                invalid_data(format!(
+                    "invalid probability metadata in {}",
+                    path.display()
+                ))
+            })?);
+        }
+    }
+    Ok(metadata)
+}
+
+/// Reconcile a probability sidecar to the committed observation prefix after
+/// an interrupted producer pass.
+pub fn reconcile_probability_shard(
+    dir: impl AsRef<Path>,
+    shard_bits: u8,
+    shard: u32,
+    committed_record_bytes: u64,
+) -> io::Result<()> {
+    let path = dir
+        .as_ref()
+        .join(format!("{}.prob", shard_file_name(shard_bits, shard)));
+    let expected = committed_record_bytes / RECORD_SIZE as u64 * PROBABILITY_METADATA_SIZE as u64;
+    let length = match fs::metadata(&path) {
+        Ok(metadata) => metadata.len(),
+        Err(error) if error.kind() == io::ErrorKind::NotFound => {
+            if expected == 0 {
+                return Ok(());
+            }
+            return Err(invalid_data(format!(
+                "{} is missing but the checkpoint commits probability metadata",
+                path.display()
+            )));
+        }
+        Err(error) => return Err(error),
+    };
+    if length % PROBABILITY_METADATA_SIZE as u64 != 0 || length < expected {
+        return Err(invalid_data(format!(
+            "probability sidecar {} is shorter than the committed prefix",
+            path.display()
+        )));
+    }
+    if length > expected {
+        let file = fs::OpenOptions::new().write(true).open(&path)?;
+        file.set_len(expected)?;
+    }
+    Ok(())
+}
+
+/// Reconcile a generation-path record/sidecar pair after a crash between the
+/// two buffered writes. This path checkpoints only at whole-story boundaries,
+/// so the common prefix of the two files is the recoverable prefix.
+pub fn reconcile_probability_pair(
+    dir: impl AsRef<Path>,
+    shard_bits: u8,
+    shard: u32,
+) -> io::Result<()> {
+    let dir = dir.as_ref();
+    let record_path = dir.join(shard_file_name(shard_bits, shard));
+    let probability_path = dir.join(format!("{}.prob", shard_file_name(shard_bits, shard)));
+    let probability_length = match fs::metadata(&probability_path) {
+        Ok(metadata) => metadata.len(),
+        Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(()),
+        Err(error) => return Err(error),
+    };
+    if probability_length % PROBABILITY_METADATA_SIZE as u64 != 0 {
+        return Err(invalid_data(format!(
+            "probability sidecar {} has a torn metadata row",
+            probability_path.display()
+        )));
+    }
+    let record_length = fs::metadata(&record_path)?.len();
+    if record_length % RECORD_SIZE as u64 != 0 {
+        return Err(invalid_data(format!(
+            "observation shard {} has a torn record",
+            record_path.display()
+        )));
+    }
+    let records = (record_length / RECORD_SIZE as u64)
+        .min(probability_length / PROBABILITY_METADATA_SIZE as u64);
+    let expected_record_length = records * RECORD_SIZE as u64;
+    let expected_probability_length = records * PROBABILITY_METADATA_SIZE as u64;
+    if record_length > expected_record_length {
+        fs::OpenOptions::new()
+            .write(true)
+            .open(&record_path)?
+            .set_len(expected_record_length)?;
+    }
+    if probability_length > expected_probability_length {
+        fs::OpenOptions::new()
+            .write(true)
+            .open(&probability_path)?
+            .set_len(expected_probability_length)?;
+    }
+    Ok(())
+}
+
 /// Outcome of one [`observe_sharded`] invocation.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ObserveSummary {
@@ -496,7 +779,8 @@ pub struct ObserveSummary {
 }
 
 /// Run the teacher generation of `compile_hugging_face`'s corpus step,
-/// spilling v3 records into content-addressed shards instead of one
+/// spilling v4 records plus aligned probability metadata into content-addressed
+/// shards instead of one
 /// append-only corpus file. The teacher stream is the same deterministic
 /// stream (seed 0x5EED, whole-story checkpointing); each record is routed
 /// to `shard_of(sample_id(context_window), shard_bits)`, where the context
@@ -513,6 +797,9 @@ pub fn observe_sharded(
 ) -> Result<ObserveSummary, String> {
     let mut writer =
         ObservationShardWriter::open(out, shard_bits).map_err(|error| error.to_string())?;
+    for shard in 0..writer.manifest().shard_count() {
+        reconcile_probability_pair(out, shard_bits, shard).map_err(|error| error.to_string())?;
+    }
     let state_path = out.join(STATE_FILE);
     let (mut n, mut stories, mut rng, mut done) = match fs::read(&state_path) {
         Ok(bytes) if bytes.len() == 25 => (
@@ -557,8 +844,8 @@ pub fn observe_sharded(
         for pos in 0..seq_len {
             progress.set(n as usize);
             oracle.step(token, pos, &mut logits);
-            let (next, top_tokens, top_weights) =
-                compiler::softmax_top8_sample(&mut logits, &mut rng);
+            let (next, top_tokens, top_weights, stats) =
+                compiler::softmax_top8_sample_with_stats(&mut logits, &mut rng);
             window.push(token as u32);
             if window.len() > compiler::WINDOW {
                 window.remove(0);
@@ -578,7 +865,16 @@ pub fn observe_sharded(
                 (byte_start, byte_end),
             );
             if writer
-                .write_record(&record, shard)
+                .write_record_with_probability(
+                    &record,
+                    ProbabilityMetadata {
+                        target_logprob_nats: stats.target_logprob_nats,
+                        entropy_bits: stats.entropy_bits,
+                        top8_mass: stats.top8_mass,
+                        target_rank: stats.target_rank,
+                    },
+                    shard,
+                )
                 .map_err(|error| error.to_string())?
             {
                 written += 1;

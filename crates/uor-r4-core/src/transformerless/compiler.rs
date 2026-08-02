@@ -91,6 +91,76 @@ fn teacher_exp_sum(logits: &mut [f32], max_logit: f32) -> f32 {
 }
 
 #[inline]
+fn canonical_logf(value: f32) -> f32 {
+    if canonical_math_enabled() {
+        libm::logf(value)
+    } else {
+        value.ln()
+    }
+}
+
+/// Compiler-side information about one normalized next-token distribution.
+///
+/// The deployed runtime does not carry this floating-point structure. It is
+/// captured while the teacher logits are still available so message
+/// likelihood and uncertainty can be measured without reconstructing a
+/// distribution from top-k evidence later.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct TokenProbabilityStats {
+    /// Natural-log probability of the observed target token.
+    pub target_logprob_nats: f32,
+    /// Shannon entropy of the complete vocabulary distribution, in bits.
+    pub entropy_bits: f32,
+    /// Probability mass covered by the retained top-8 tokens.
+    pub top8_mass: f32,
+    /// Zero-based rank of the target in the full distribution, or `u16::MAX`
+    /// when it is outside the retained top-8 list.
+    pub target_rank: u16,
+}
+
+impl TokenProbabilityStats {
+    /// Calculate target likelihood and full-distribution entropy from a
+    /// normalized vocabulary distribution. `top8_mass` is calculated from
+    /// the unrenormalized top-8 probabilities before they are stored as
+    /// teacher evidence.
+    pub fn from_normalized(
+        probabilities: &[f32],
+        target: usize,
+        top_tokens: &[u32; 8],
+        top8_mass: f32,
+    ) -> Self {
+        let target_probability = probabilities.get(target).copied().unwrap_or(0.0);
+        let target_logprob_nats = if target_probability > 0.0 {
+            canonical_logf(target_probability)
+        } else {
+            f32::NEG_INFINITY
+        };
+        let entropy_bits = probabilities
+            .iter()
+            .copied()
+            .filter(|&probability| probability > 0.0)
+            .map(|probability| -probability * canonical_log2f(probability))
+            .sum();
+        let target_rank = top_tokens
+            .iter()
+            .position(|&token| token == target as u32)
+            .map(|rank| rank as u16)
+            .unwrap_or(u16::MAX);
+        Self {
+            target_logprob_nats,
+            entropy_bits,
+            top8_mass: top8_mass.clamp(0.0, 1.0),
+            target_rank,
+        }
+    }
+
+    /// Information content of the target token in bits.
+    pub fn target_bits(self) -> f32 {
+        -self.target_logprob_nats / std::f32::consts::LN_2
+    }
+}
+
+#[inline]
 fn canonical_log2f(value: f32) -> f32 {
     if canonical_math_enabled() {
         libm::log2f(value)
@@ -595,7 +665,13 @@ pub fn softmax_top3_sample(logits: &mut [f32], rng: &mut u64) -> (usize, [u32; 3
     (next, top_tokens_idx, top_weights_val)
 }
 
-pub fn softmax_top8_sample(logits: &mut [f32], rng: &mut u64) -> (usize, [u32; 8], [u32; 8]) {
+/// Normalize logits, retain the top-8 evidence, and sample from the full
+/// vocabulary distribution. The returned statistics describe the sampled
+/// target and the original (not top-8-renormalized) distribution.
+pub fn softmax_top8_sample_with_stats(
+    logits: &mut [f32],
+    rng: &mut u64,
+) -> (usize, [u32; 8], [u32; 8], TokenProbabilityStats) {
     let mut mx = f32::NEG_INFINITY;
     for &p in logits.iter() {
         if p > mx {
@@ -608,6 +684,11 @@ pub fn softmax_top8_sample(logits: &mut [f32], rng: &mut u64) -> (usize, [u32; 8
     }
 
     let top_candidates = top_n_desc_stable::<8>(logits);
+    let top8_mass = top_candidates
+        .iter()
+        .map(|(_, probability)| *probability)
+        .filter(|probability| probability.is_finite() && *probability > 0.0)
+        .sum::<f32>();
 
     let mut top_tokens_idx = [0u32; 8];
     let mut top_weights_val = [0u32; 8];
@@ -644,7 +725,16 @@ pub fn softmax_top8_sample(logits: &mut [f32], rng: &mut u64) -> (usize, [u32; 8
             break;
         }
     }
-    (next, top_tokens_idx, top_weights_val)
+    let stats = TokenProbabilityStats::from_normalized(logits, next, &top_tokens_idx, top8_mass);
+    (next, top_tokens_idx, top_weights_val, stats)
+}
+
+/// Compatibility wrapper for callers that only need the sampled top-8
+/// evidence. New observation producers should use
+/// [`softmax_top8_sample_with_stats`] so probability metadata is preserved.
+pub fn softmax_top8_sample(logits: &mut [f32], rng: &mut u64) -> (usize, [u32; 8], [u32; 8]) {
+    let (next, top_tokens, top_weights, _) = softmax_top8_sample_with_stats(logits, rng);
+    (next, top_tokens, top_weights)
 }
 
 /// Tokenizer-neutral byte anchors of one sampled token within its story.

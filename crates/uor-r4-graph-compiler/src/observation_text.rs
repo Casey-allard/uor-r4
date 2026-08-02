@@ -7,12 +7,14 @@
 //! Record semantics are the generation path's, teacher-forced:
 //!
 //! - per article, the text is tokenized BOS-prefixed and the oracle steps
-//!   over the stream; at each position the v3 48-byte record for
+//!   over the stream; at each position the v4 88-byte record for
 //!   (8-token context window → next text token) is emitted through the
-//!   SHARED [`compiler::encode_v3_record`] / [`compiler::softmax_top3_sample`]
-//!   / [`compiler::byte_anchors`] helpers, so bytes are format-identical to
-//!   the autoregressive path (the sampled token is discarded; the record's
-//!   `next` is the actual next text token);
+//!   shared [`compiler::encode_v4_record`] /
+//!   [`compiler::softmax_top8_sample_with_stats`] /
+//!   [`compiler::byte_anchors`] helpers, with aligned probability metadata
+//!   preserving the full-distribution target likelihood and entropy. The
+//!   sampled token is discarded; the record's `next` is the actual next text
+//!   token;
 //! - sharding is the generation path's scheme: [`observe::sample_id`] over
 //!   the context window → [`observe::shard_of`] — content-addressed, so
 //!   shard bytes are independent of article completion order (T-invariance);
@@ -419,7 +421,7 @@ fn append_story(path: &Path, entry: &StoryEntry) -> Result<(), String> {
 }
 
 /// Outcome of one [`observe_text_corpus`] invocation.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct ObservationReport {
     /// Articles in the input file.
     pub articles_total: u64,
@@ -451,6 +453,10 @@ pub struct ObservationReport {
     pub shard_count: u32,
     /// κ of the merged shard bytes, once the corpus is complete.
     pub merged_kappa: Option<String>,
+    /// Teacher-forced cross-entropy of the observed message stream, in
+    /// bits/token. This is computed from the probability sidecar rather than
+    /// from top-k-renormalized evidence.
+    pub teacher_bits_per_token: Option<f64>,
     /// Path of the story → article mapping file.
     pub stories_file: PathBuf,
     /// Whether every article is committed and every shard is κ-pinned.
@@ -487,6 +493,13 @@ fn build_report(
     } else {
         None
     };
+    let teacher_bits_per_token = if checkpoint.done {
+        observe::merge_probability_metadata(out_dir)
+            .ok()
+            .and_then(|metadata| observe::message_bits_per_token(&metadata))
+    } else {
+        None
+    };
     Ok(ObservationReport {
         articles_total,
         articles_completed: checkpoint.stories,
@@ -501,13 +514,14 @@ fn build_report(
         shards_completed: writer.manifest().completed.len() as u32,
         shard_count: writer.manifest().shard_count(),
         merged_kappa,
+        teacher_bits_per_token,
         stories_file: stories_path,
         done: checkpoint.done,
     })
 }
 
 /// Run the from-text observation pass over `articles_path` (one JSON
-/// object per line: id, url, title, text), spilling v3 records into
+/// object per line: id, url, title, text), spilling v4 records into
 /// content-addressed shards under `out_dir`.
 ///
 /// The teacher stream is teacher-forced: per article the BOS-prefixed
@@ -589,6 +603,13 @@ pub fn observe_text_corpus(
             shard,
             checkpoint.shards[shard as usize].bytes,
         )?;
+        observe::reconcile_probability_shard(
+            out_dir,
+            shard_bits,
+            shard,
+            checkpoint.shards[shard as usize].bytes,
+        )
+        .map_err(|error| error.to_string())?;
     }
     reconcile_stories(&stories_path, checkpoint.stories)?;
     let counts: Vec<PartitionCounts> = checkpoint
@@ -669,16 +690,23 @@ pub fn observe_text_corpus(
         // Teacher-forced record stream for this article, buffered until
         // the per-article checkpoint so an interrupted article leaves no
         // partial records behind.
-        let mut records: Vec<(u32, [u8; RECORD_SIZE])> = Vec::with_capacity(positions);
+        let mut records: Vec<(u32, [u8; RECORD_SIZE], observe::ProbabilityMetadata)> =
+            Vec::with_capacity(positions);
         oracle.reset();
         window.clear();
         let mut story_byte_offset = 0u32;
         for pos in 0..positions {
             let token = tokens[pos];
             oracle.step(token as usize, pos, &mut logits);
-            let (_sampled, top_tokens, top_weights) =
-                compiler::softmax_top8_sample(&mut logits, &mut checkpoint.rng);
+            let (_sampled, top_tokens, top_weights, sampled_stats) =
+                compiler::softmax_top8_sample_with_stats(&mut logits, &mut checkpoint.rng);
             let next = tokens[pos + 1];
+            let stats = compiler::TokenProbabilityStats::from_normalized(
+                &logits,
+                next as usize,
+                &top_tokens,
+                sampled_stats.top8_mass,
+            );
             window.push(token);
             if window.len() > compiler::WINDOW {
                 window.remove(0);
@@ -697,7 +725,16 @@ pub fn observe_text_corpus(
                 (span_start, span_end),
                 (byte_start, byte_end),
             );
-            records.push((shard, record));
+            records.push((
+                shard,
+                record,
+                observe::ProbabilityMetadata {
+                    target_logprob_nats: stats.target_logprob_nats,
+                    entropy_bits: stats.entropy_bits,
+                    top8_mass: stats.top8_mass,
+                    target_rank: stats.target_rank,
+                },
+            ));
             if token_byte_lengths.is_some() {
                 story_byte_offset = byte_end;
             }
@@ -706,9 +743,9 @@ pub fn observe_text_corpus(
         // Per-article checkpoint: shard bytes first (flush), then the
         // story mapping line, then the atomic committed checkpoint and its
         // state.bin mirror.
-        for (shard, record) in &records {
+        for (shard, record, probability) in &records {
             if writer
-                .write_record_in_partition(record, *shard, partition)
+                .write_record_with_probability_in_partition(record, *probability, *shard, partition)
                 .map_err(|error| error.to_string())?
             {
                 written += 1;
@@ -754,13 +791,14 @@ pub fn observe_text_corpus(
         written,
     )?;
     println!(
-        "text observations: {} / {} articles, {} records ({} written), {}/{} shards complete, done={}",
+        "text observations: {} / {} articles, {} records ({} written), {}/{} shards complete, bits/token={:?}, done={}",
         report.articles_completed,
         report.articles_total,
         report.records,
         report.written,
         report.shards_completed,
         report.shard_count,
+        report.teacher_bits_per_token,
         report.done
     );
     Ok(report)
@@ -1140,6 +1178,7 @@ mod tests {
         assert_eq!(report.shards_completed, SHARD_COUNT);
         assert_eq!(report.written, report.records);
         assert!(report.merged_kappa.is_some());
+        assert!(report.teacher_bits_per_token.is_some());
         assert_eq!(
             report.construction_records + report.held_out_records,
             report.records
@@ -1362,6 +1401,11 @@ mod tests {
             bytes.extend_from_slice(&tail.concat());
             fs::write(dir_b.join(shard_file_name(SHARD_BITS, shard)), bytes)
                 .expect("craft shard bytes");
+            fs::copy(
+                dir_a.join(format!("{}.prob", shard_file_name(SHARD_BITS, shard))),
+                dir_b.join(format!("{}.prob", shard_file_name(SHARD_BITS, shard))),
+            )
+            .expect("craft probability sidecar");
         }
         let mut committed =
             Checkpoint::fresh(SHARD_COUNT, input_kappa(&input).expect("input kappa"));
