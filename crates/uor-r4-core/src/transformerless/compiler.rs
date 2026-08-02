@@ -20,7 +20,7 @@
 //! architecture-generic (llama / qwen / phi differ only in the teacher
 //! adapter). This crate instantiates the llama-family adapter.
 
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 #[cfg(not(target_arch = "wasm32"))]
 use std::io::Write;
 use uor_r4_model_source::TeacherOracle;
@@ -1657,7 +1657,10 @@ pub fn parse_artifacts(b: &[u8]) -> Option<Compiled> {
 
 #[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
 pub struct HierarchicalCodes {
-    pub token_type_prefixes: HashMap<String, Vec<u8>>,
+    /// BTreeMap is required here: this JSON is part of the emitted bundle,
+    /// so HashMap iteration order would make canonical artifacts platform- or
+    /// run-dependent even when the compiled codes are identical.
+    pub token_type_prefixes: BTreeMap<String, Vec<u8>>,
     pub relational_prefixes: Vec<Vec<u32>>,
 }
 
@@ -1666,7 +1669,7 @@ pub fn induce_hierarchical_codes(
     vocab: usize,
     corpus: &Corpus,
 ) -> HierarchicalCodes {
-    let mut token_type_prefixes = HashMap::new();
+    let mut token_type_prefixes = BTreeMap::new();
     for token_id in 0..vocab {
         let offset = token_id * STAGES;
         if offset + STAGES <= token_codes.len() {

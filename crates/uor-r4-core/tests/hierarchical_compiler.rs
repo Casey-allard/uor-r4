@@ -44,6 +44,10 @@ fn test_induce_hierarchical_codes() {
 
     let hc = induce_hierarchical_codes(&token_codes, vocab, &corpus);
 
+    let first_json = serde_json::to_vec(&hc).expect("hierarchical codes serialize");
+    let second_json = serde_json::to_vec(&hc).expect("hierarchical codes serialize");
+    assert_eq!(first_json, second_json, "hierarchical JSON is canonical");
+
     // Verify stable type prefixes
     assert_eq!(hc.token_type_prefixes.get("10"), Some(&vec![1, 2, 3, 4]));
 
