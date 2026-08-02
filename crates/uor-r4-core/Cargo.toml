@@ -18,6 +18,12 @@ uor-addr = { git = "https://github.com/UOR-Foundation/uor-addr.git", rev = "165b
 tracing = { version = "0.1", default-features = false, features = ["std"] }
 libm = "0.2"
 
+[features]
+# Measurement-only surface for the #330 isolated dot-scan microbenchmark.
+# Off by default: it exposes no deployed prediction-path behavior, only a
+# read-only handle onto the already-built SIMD dot tables.
+bench-internals = []
+
 [dev-dependencies]
 serde_json = "1.0"
 proptest = "1.4.0"

@@ -174,8 +174,85 @@ fn decode_dot_term(term: u8) -> (i64, i64, i64) {
     (exponent, -1, negative)
 }
 
+/// True when no entry activates both packed bytes, i.e. the compiler emitted
+/// at most one active term per dot entry (every current Phase C artifact).
+fn is_single_term(table: &[u16]) -> bool {
+    table.iter().all(|entry| {
+        let [lo, hi] = entry.to_le_bytes();
+        !(lo & 0x40 != 0 && hi & 0x40 != 0)
+    })
+}
+
+fn build_single_term(table: &[u16]) -> Vec<DotSingleVector> {
+    let mut vectors = Vec::with_capacity(D * DOT_GROUPS);
+    for dimension in 0..D {
+        for group in 0..DOT_GROUPS {
+            let mut shifts = [0; DOT_LANES];
+            let mut negative = [0; DOT_LANES];
+            for lane in 0..DOT_LANES {
+                let class = group * DOT_LANES + lane;
+                let entry = table[class * D + dimension].to_le_bytes();
+                let term = if entry[1] & 0x40 != 0 {
+                    entry[1]
+                } else {
+                    entry[0]
+                };
+                let (shift, _, sign) = decode_dot_term(term);
+                shifts[lane] = shift;
+                negative[lane] = sign;
+            }
+            vectors.push(DotSingleVector { shifts, negative });
+        }
+    }
+    vectors
+}
+
+fn build_two_term(table: &[u16]) -> Vec<DotVector> {
+    let mut vectors = Vec::with_capacity(D * DOT_GROUPS);
+    for dimension in 0..D {
+        for group in 0..DOT_GROUPS {
+            let mut terms = [DotTermVector {
+                shifts: [0; DOT_LANES],
+                active: [0; DOT_LANES],
+                negative: [0; DOT_LANES],
+            }; 2];
+            for lane in 0..DOT_LANES {
+                let class = group * DOT_LANES + lane;
+                let entry = table[class * D + dimension].to_le_bytes();
+                let (hi_shift, hi_active, hi_negative) = decode_dot_term(entry[1]);
+                let (lo_shift, lo_active, lo_negative) = decode_dot_term(entry[0]);
+                terms[0].shifts[lane] = hi_shift;
+                terms[0].active[lane] = hi_active;
+                terms[0].negative[lane] = hi_negative;
+                terms[1].shifts[lane] = lo_shift;
+                terms[1].active[lane] = lo_active;
+                terms[1].negative[lane] = lo_negative;
+            }
+            vectors.push(DotVector { terms });
+        }
+    }
+    vectors
+}
+
 impl DotTables {
     pub(crate) fn from_packed(packed: &[Vec<u16>]) -> Option<Self> {
+        Self::build(packed, false)
+    }
+
+    /// Build every stage in the legacy two-term representation regardless of
+    /// what the artifact would select, so the #330 benchmark can compare both
+    /// layouts in one process under one protocol instead of across two
+    /// commits — and so the tests can witness that the two representations
+    /// decode the same packed ABI to the same class.
+    ///
+    /// Not reachable from the deployed path: `from_packed` is what the runtime
+    /// calls, and this is gated to tests and the measurement feature.
+    #[cfg(any(test, feature = "bench-internals"))]
+    pub(crate) fn from_packed_forced_two_term(packed: &[Vec<u16>]) -> Option<Self> {
+        Self::build(packed, true)
+    }
+
+    fn build(packed: &[Vec<u16>], force_two_term: bool) -> Option<Self> {
         if packed.is_empty() {
             return None;
         }
@@ -184,62 +261,12 @@ impl DotTables {
             if table.len() != D * K {
                 return None;
             }
-            let single_term = table.iter().all(|entry| {
-                let [lo, hi] = entry.to_le_bytes();
-                !(lo & 0x40 != 0 && hi & 0x40 != 0)
-            });
-            if single_term {
-                let mut vectors = Vec::with_capacity(D * DOT_GROUPS);
-                for dimension in 0..D {
-                    for group in 0..DOT_GROUPS {
-                        let mut shifts = [0; DOT_LANES];
-                        let mut negative = [0; DOT_LANES];
-                        for lane in 0..DOT_LANES {
-                            let class = group * DOT_LANES + lane;
-                            let entry = table[class * D + dimension].to_le_bytes();
-                            let term = if entry[1] & 0x40 != 0 {
-                                entry[1]
-                            } else {
-                                entry[0]
-                            };
-                            let (shift, _, sign) = decode_dot_term(term);
-                            shifts[lane] = shift;
-                            negative[lane] = sign;
-                        }
-                        vectors.push(DotSingleVector { shifts, negative });
-                    }
-                }
-                stages.push(DotStage {
-                    data: DotStageData::Single(vectors),
-                });
+            let data = if !force_two_term && is_single_term(table) {
+                DotStageData::Single(build_single_term(table))
             } else {
-                let mut vectors = Vec::with_capacity(D * DOT_GROUPS);
-                for dimension in 0..D {
-                    for group in 0..DOT_GROUPS {
-                        let mut terms = [DotTermVector {
-                            shifts: [0; DOT_LANES],
-                            active: [0; DOT_LANES],
-                            negative: [0; DOT_LANES],
-                        }; 2];
-                        for lane in 0..DOT_LANES {
-                            let class = group * DOT_LANES + lane;
-                            let entry = table[class * D + dimension].to_le_bytes();
-                            let (hi_shift, hi_active, hi_negative) = decode_dot_term(entry[1]);
-                            let (lo_shift, lo_active, lo_negative) = decode_dot_term(entry[0]);
-                            terms[0].shifts[lane] = hi_shift;
-                            terms[0].active[lane] = hi_active;
-                            terms[0].negative[lane] = hi_negative;
-                            terms[1].shifts[lane] = lo_shift;
-                            terms[1].active[lane] = lo_active;
-                            terms[1].negative[lane] = lo_negative;
-                        }
-                        vectors.push(DotVector { terms });
-                    }
-                }
-                stages.push(DotStage {
-                    data: DotStageData::Two(vectors),
-                });
-            }
+                DotStageData::Two(build_two_term(table))
+            };
+            stages.push(DotStage { data });
         }
         Some(Self { stages })
     }
@@ -548,6 +575,62 @@ pub(crate) fn dot_argmax(stage: &DotStage, work: &[i64; D]) -> u8 {
     dot_argmax_scalar(stage, work)
 }
 
+/// Measurement-only handle onto the built dot tables (#330).
+///
+/// The isolated microbenchmark criterion needs to time `dot_argmax` without
+/// the surrounding bundle/threshold work, and the scalar fallback inside
+/// `Runtime::dot_argmax` is not a usable wall-clock baseline (it routes every
+/// table entry through the op-census kernel). This module exposes the scan
+/// itself plus the layout actually selected at load time, so the benchmark can
+/// witness which representation it measured rather than assuming.
+///
+/// Nothing here participates in the deployed prediction path.
+#[cfg(feature = "bench-internals")]
+pub mod bench {
+    use super::{dot_argmax, DotStageData, DotTables, D};
+
+    /// Which load-time representation `from_packed` selected.
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    pub enum DotLayout {
+        /// Compact 64-byte one-term vectors (current TLA6/TLA7 artifacts).
+        Compact,
+        /// Legacy 192-byte two-term vectors.
+        TwoTerm,
+    }
+
+    pub struct DotScan(DotTables);
+
+    impl DotScan {
+        pub fn from_packed(packed: &[Vec<u16>]) -> Option<Self> {
+            DotTables::from_packed(packed).map(Self)
+        }
+
+        /// Force the legacy two-term layout for a same-process,
+        /// same-protocol comparison against the compact one.
+        pub fn from_packed_forced_two_term(packed: &[Vec<u16>]) -> Option<Self> {
+            DotTables::from_packed_forced_two_term(packed).map(Self)
+        }
+
+        pub fn stage_count(&self) -> usize {
+            self.0.stages.len()
+        }
+
+        /// The representation chosen for `stage`, so a benchmark can assert it
+        /// exercised the compact path instead of silently timing the legacy one.
+        pub fn layout(&self, stage: usize) -> DotLayout {
+            match &self.0.stages[stage].data {
+                DotStageData::Single(_) => DotLayout::Compact,
+                DotStageData::Two(_) => DotLayout::TwoTerm,
+            }
+        }
+
+        #[inline]
+        pub fn argmax(&self, stage: usize, work: &[i64; D]) -> u8 {
+            dot_argmax(&self.0.stages[stage], work)
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -578,6 +661,40 @@ mod tests {
     }
 
     proptest! {
+        /// The compact one-term layout is only a valid substitution if it
+        /// decodes the same packed ABI to the same argmax as the legacy
+        /// two-term layout. #330 swaps representations on the hot path, so
+        /// this equality is the load-layout counterpart to the existing
+        /// scalar/SIMD output witnesses.
+        #[test]
+        fn compact_and_legacy_layouts_agree(
+            weights in proptest::collection::vec(-1.0f32..1.0, K),
+            work_seed in proptest::collection::vec(-4096i64..4096, D),
+        ) {
+            let mut table = vec![0u16; D * K];
+            for class in 0..K {
+                for dimension in 0..D {
+                    table[class * D + dimension] =
+                        compiler::pack_dot_entry(weights[class] * ((dimension % 7) as f32 - 3.0));
+                }
+            }
+            let packed = vec![table];
+
+            let compact = DotTables::from_packed(&packed).expect("valid dot table");
+            let legacy =
+                DotTables::from_packed_forced_two_term(&packed).expect("valid dot table");
+            prop_assert!(matches!(&compact.stages[0].data, DotStageData::Single(_)));
+            prop_assert!(matches!(&legacy.stages[0].data, DotStageData::Two(_)));
+
+            let mut work = [0i64; D];
+            work.copy_from_slice(&work_seed);
+
+            prop_assert_eq!(
+                dot_argmax(&compact.stages[0], &work),
+                dot_argmax(&legacy.stages[0], &work)
+            );
+        }
+
         #[test]
         fn test_simd_hamming_equivalence(
             a in proptest::collection::vec(any::<u8>(), SIG_BYTES).prop_map(|v| {

@@ -127,6 +127,78 @@ fn main() -> Result<(), String> {
     }
     let scalar_elapsed = scalar_start.elapsed();
 
+    // Isolated SIMD scan (#330 ≥3× criterion). Timed against the same total
+    // work as the scalar loop above: one full K×D scan per stage. The scalar
+    // reference is `dot_score_plain` — deliberately NOT the scalar fallback in
+    // `Runtime::dot_argmax`, which routes every table entry through the
+    // op-census kernel and would inflate the baseline. The SIMD side also
+    // performs the argmax compare that the scalar loop omits, so the reported
+    // ratio is conservative.
+    #[cfg(feature = "bench-internals")]
+    let simd_scan_report = {
+        use uor_r4_core::transformerless::simd::bench::{DotLayout, DotScan};
+
+        let scan = DotScan::from_packed(&artifact.dot_cb)
+            .ok_or_else(|| "cannot build SIMD dot tables from artifact".to_owned())?;
+        let layout = if (0..scan.stage_count()).all(|s| scan.layout(s) == DotLayout::Compact) {
+            "compact"
+        } else if (0..scan.stage_count()).all(|s| scan.layout(s) == DotLayout::TwoTerm) {
+            "two_term"
+        } else {
+            "mixed"
+        };
+
+        let legacy = DotScan::from_packed_forced_two_term(&artifact.dot_cb)
+            .ok_or_else(|| "cannot build legacy dot tables from artifact".to_owned())?;
+
+        // Both representations decode the same packed ABI, so they must agree
+        // class-for-class. Checked before timing: a layout that disagreed
+        // would make the speedup meaningless.
+        for stage in 0..scan.stage_count() {
+            let compact_class = scan.argmax(stage, &work);
+            let legacy_class = legacy.argmax(stage, &work);
+            if compact_class != legacy_class {
+                return Err(format!(
+                    "layout disagreement at stage {stage}: \
+                     compact={compact_class} legacy={legacy_class}"
+                ));
+            }
+        }
+
+        let mut simd_checksum = 0u64;
+        for _ in 0..10 {
+            for stage in 0..scan.stage_count() {
+                simd_checksum = simd_checksum.wrapping_add(u64::from(scan.argmax(stage, &work)));
+            }
+        }
+        let simd_start = Instant::now();
+        for _ in 0..iterations {
+            for stage in 0..scan.stage_count() {
+                simd_checksum =
+                    simd_checksum.wrapping_add(u64::from(scan.argmax(stage, black_box(&work))));
+            }
+        }
+        let simd_elapsed = simd_start.elapsed();
+
+        let mut legacy_checksum = 0u64;
+        for _ in 0..10 {
+            for stage in 0..legacy.stage_count() {
+                legacy_checksum =
+                    legacy_checksum.wrapping_add(u64::from(legacy.argmax(stage, &work)));
+            }
+        }
+        let legacy_start = Instant::now();
+        for _ in 0..iterations {
+            for stage in 0..legacy.stage_count() {
+                legacy_checksum =
+                    legacy_checksum.wrapping_add(u64::from(legacy.argmax(stage, black_box(&work))));
+            }
+        }
+        let legacy_elapsed = legacy_start.elapsed();
+
+        (layout, simd_elapsed, simd_checksum, legacy_elapsed)
+    };
+
     let mut runtime = Runtime::new(&artifact);
     let mut runtime_checksum = [0u8; STAGES];
     for _ in 0..10 {
@@ -158,6 +230,25 @@ fn main() -> Result<(), String> {
         "runtime_assign_tokens_per_second={:.1}",
         iterations as f64 / runtime_elapsed.as_secs_f64()
     );
+    #[cfg(feature = "bench-internals")]
+    {
+        let (layout, simd_elapsed, simd_checksum, legacy_elapsed) = simd_scan_report;
+        let simd_ns = nanos_per_operation(simd_elapsed, iterations);
+        let legacy_ns = nanos_per_operation(legacy_elapsed, iterations);
+        println!("simd_dot_layout={layout}");
+        println!("simd_dot_ns_per_scan={simd_ns:.1}");
+        println!(
+            "simd_dot_ns_per_row={:.1}",
+            nanos_per_operation(simd_elapsed, iterations * rows_per_scan)
+        );
+        println!("legacy_two_term_ns_per_scan={legacy_ns:.1}");
+        println!(
+            "isolated_speedup={:.2}",
+            nanos_per_operation(scalar_elapsed, iterations) / simd_ns
+        );
+        println!("layout_speedup={:.2}", legacy_ns / simd_ns);
+        println!("simd_checksum={simd_checksum}");
+    }
     println!("scalar_checksum={scalar_checksum}");
     println!("runtime_checksum={runtime_checksum:?}");
     Ok(())
