@@ -8,7 +8,13 @@ uor-r4-graph-format = { path = "../uor-r4-graph-format", default-features = fals
 
 [dev-dependencies]
 uor-r4-core = { path = "../uor-r4-core" }
+uor-r4-graph-compiler = { path = "../uor-r4-graph-compiler" }
+uor-r4-router = { path = "../uor-r4-router" }
 
 [[bench]]
 name = "vp_tree"
+harness = false
+
+[[bench]]
+name = "session_signature"
 harness = false

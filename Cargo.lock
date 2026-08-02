@@ -1866,7 +1866,9 @@ name = "uor-r4-graph-runtime"
 version = "0.1.0"
 dependencies = [
  "uor-r4-core",
+ "uor-r4-graph-compiler",
  "uor-r4-graph-format",
+ "uor-r4-router",
 ]
 
 [[package]]
