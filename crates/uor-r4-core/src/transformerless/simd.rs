@@ -125,13 +125,36 @@ pub(crate) struct DotVector {
     terms: [DotTermVector; 2],
 }
 
+/// Compact one-term representation used by current TLA6/TLA7 artifacts.
+///
+/// The packed ABI still reserves two terms per entry, but the Phase C
+/// emission contains only one active term. Keeping the inactive term and
+/// its masks in the load-time working set tripled the bytes fetched by the
+/// hot scan. This representation preserves the same decoded shifts/signs
+/// while making the common path cache-line dense.
+#[derive(Clone, Copy)]
+pub(crate) struct DotSingleVector {
+    shifts: [i64; DOT_LANES],
+    negative: [i64; DOT_LANES],
+}
+
+pub(crate) enum DotStageData {
+    Single(Vec<DotSingleVector>),
+    Two(Vec<DotVector>),
+}
+
 pub(crate) struct DotStage {
     /// Dimension-major: D vectors, each containing K/4 class groups.
-    pub(crate) vectors: Vec<DotVector>,
-    /// The current TLA6 compiler emits one term in the packed u16 slot. Keep
-    /// the two-term representation for legacy artifacts, but let the hot
-    /// path skip the permanently inactive second term for current artifacts.
-    pub(crate) single_term: bool,
+    pub(crate) data: DotStageData,
+}
+
+impl DotStage {
+    pub(crate) fn vector_count(&self) -> usize {
+        match &self.data {
+            DotStageData::Single(vectors) => vectors.len(),
+            DotStageData::Two(vectors) => vectors.len(),
+        }
+    }
 }
 
 pub(crate) struct DotTables {
@@ -161,39 +184,82 @@ impl DotTables {
             if table.len() != D * K {
                 return None;
             }
-            let mut vectors = Vec::with_capacity(D * DOT_GROUPS);
-            let mut single_term = true;
-            for dimension in 0..D {
-                for group in 0..DOT_GROUPS {
-                    let mut terms = [DotTermVector {
-                        shifts: [0; DOT_LANES],
-                        active: [0; DOT_LANES],
-                        negative: [0; DOT_LANES],
-                    }; 2];
-                    for lane in 0..DOT_LANES {
-                        let class = group * DOT_LANES + lane;
-                        let entry = table[class * D + dimension].to_le_bytes();
-                        if entry[1] & 0x40 != 0 {
-                            single_term = false;
-                        }
-                        let (hi_shift, hi_active, hi_negative) = decode_dot_term(entry[1]);
-                        let (lo_shift, lo_active, lo_negative) = decode_dot_term(entry[0]);
-                        terms[0].shifts[lane] = hi_shift;
-                        terms[0].active[lane] = hi_active;
-                        terms[0].negative[lane] = hi_negative;
-                        terms[1].shifts[lane] = lo_shift;
-                        terms[1].active[lane] = lo_active;
-                        terms[1].negative[lane] = lo_negative;
-                    }
-                    vectors.push(DotVector { terms });
-                }
-            }
-            stages.push(DotStage {
-                vectors,
-                single_term,
+            let single_term = table.iter().all(|entry| {
+                let [lo, hi] = entry.to_le_bytes();
+                !(lo & 0x40 != 0 && hi & 0x40 != 0)
             });
+            if single_term {
+                let mut vectors = Vec::with_capacity(D * DOT_GROUPS);
+                for dimension in 0..D {
+                    for group in 0..DOT_GROUPS {
+                        let mut shifts = [0; DOT_LANES];
+                        let mut negative = [0; DOT_LANES];
+                        for lane in 0..DOT_LANES {
+                            let class = group * DOT_LANES + lane;
+                            let entry = table[class * D + dimension].to_le_bytes();
+                            let term = if entry[1] & 0x40 != 0 {
+                                entry[1]
+                            } else {
+                                entry[0]
+                            };
+                            let (shift, _, sign) = decode_dot_term(term);
+                            shifts[lane] = shift;
+                            negative[lane] = sign;
+                        }
+                        vectors.push(DotSingleVector { shifts, negative });
+                    }
+                }
+                stages.push(DotStage {
+                    data: DotStageData::Single(vectors),
+                });
+            } else {
+                let mut vectors = Vec::with_capacity(D * DOT_GROUPS);
+                for dimension in 0..D {
+                    for group in 0..DOT_GROUPS {
+                        let mut terms = [DotTermVector {
+                            shifts: [0; DOT_LANES],
+                            active: [0; DOT_LANES],
+                            negative: [0; DOT_LANES],
+                        }; 2];
+                        for lane in 0..DOT_LANES {
+                            let class = group * DOT_LANES + lane;
+                            let entry = table[class * D + dimension].to_le_bytes();
+                            let (hi_shift, hi_active, hi_negative) = decode_dot_term(entry[1]);
+                            let (lo_shift, lo_active, lo_negative) = decode_dot_term(entry[0]);
+                            terms[0].shifts[lane] = hi_shift;
+                            terms[0].active[lane] = hi_active;
+                            terms[0].negative[lane] = hi_negative;
+                            terms[1].shifts[lane] = lo_shift;
+                            terms[1].active[lane] = lo_active;
+                            terms[1].negative[lane] = lo_negative;
+                        }
+                        vectors.push(DotVector { terms });
+                    }
+                }
+                stages.push(DotStage {
+                    data: DotStageData::Two(vectors),
+                });
+            }
         }
         Some(Self { stages })
+    }
+}
+
+#[cfg(not(target_arch = "aarch64"))]
+#[inline]
+fn dot_term_scalar_decoded(work: i64, shift: i64, negative: i64) -> i64 {
+    if shift == 64 {
+        return 0;
+    }
+    let shifted = if shift >= 0 {
+        work << shift
+    } else {
+        work >> -shift
+    };
+    if negative != 0 {
+        -shifted
+    } else {
+        shifted
     }
 }
 
@@ -203,30 +269,36 @@ fn dot_term_scalar(work: i64, term: &DotTermVector, lane: usize) -> i64 {
     if term.active[lane] == 0 {
         return 0;
     }
-    let shift = term.shifts[lane];
-    let shifted = if shift >= 0 {
-        work << shift
-    } else {
-        work >> -shift
-    };
-    if term.negative[lane] != 0 {
-        -shifted
-    } else {
-        shifted
-    }
+    dot_term_scalar_decoded(work, term.shifts[lane], term.negative[lane])
 }
 
 #[cfg(not(target_arch = "aarch64"))]
 pub(crate) fn dot_argmax_scalar(stage: &DotStage, work: &[i64; D]) -> u8 {
     let mut scores = [0i64; K];
-    for (dimension, groups) in stage.vectors.chunks_exact(DOT_GROUPS).enumerate() {
-        for (group, vector) in groups.iter().enumerate() {
-            for lane in 0..DOT_LANES {
-                let class = group * DOT_LANES + lane;
-                if !stage.single_term {
-                    scores[class] += dot_term_scalar(work[dimension], &vector.terms[0], lane);
+    match &stage.data {
+        DotStageData::Single(vectors) => {
+            for (dimension, groups) in vectors.chunks_exact(DOT_GROUPS).enumerate() {
+                for (group, vector) in groups.iter().enumerate() {
+                    for lane in 0..DOT_LANES {
+                        let class = group * DOT_LANES + lane;
+                        scores[class] += dot_term_scalar_decoded(
+                            work[dimension],
+                            vector.shifts[lane],
+                            vector.negative[lane],
+                        );
+                    }
                 }
-                scores[class] += dot_term_scalar(work[dimension], &vector.terms[1], lane);
+            }
+        }
+        DotStageData::Two(vectors) => {
+            for (dimension, groups) in vectors.chunks_exact(DOT_GROUPS).enumerate() {
+                for (group, vector) in groups.iter().enumerate() {
+                    for lane in 0..DOT_LANES {
+                        let class = group * DOT_LANES + lane;
+                        scores[class] += dot_term_scalar(work[dimension], &vector.terms[0], lane);
+                        scores[class] += dot_term_scalar(work[dimension], &vector.terms[1], lane);
+                    }
+                }
             }
         }
     }
@@ -243,14 +315,14 @@ pub(crate) fn dot_argmax_scalar(stage: &DotStage, work: &[i64; D]) -> u8 {
 
 #[cfg(target_arch = "x86_64")]
 #[target_feature(enable = "avx2")]
-unsafe fn dot_argmax_avx2_terms(stage: &DotStage, work: &[i64; D]) -> u8 {
+unsafe fn dot_argmax_avx2_terms(vectors: &[DotVector], work: &[i64; D]) -> u8 {
     use std::arch::x86_64::*;
 
     let zero = _mm256_setzero_si256();
     let all_ones = _mm256_set1_epi64x(-1);
     let sixty_four = _mm256_set1_epi64x(64);
     let mut accumulators = [zero; DOT_GROUPS];
-    for (dimension, groups) in stage.vectors.chunks_exact(DOT_GROUPS).enumerate() {
+    for (dimension, groups) in vectors.chunks_exact(DOT_GROUPS).enumerate() {
         let work_vector = _mm256_set1_epi64x(work[dimension]);
         for (group, vector) in groups.iter().enumerate() {
             for term in &vector.terms {
@@ -295,19 +367,18 @@ unsafe fn dot_argmax_avx2_terms(stage: &DotStage, work: &[i64; D]) -> u8 {
 
 #[cfg(target_arch = "x86_64")]
 #[target_feature(enable = "avx2")]
-unsafe fn dot_argmax_avx2_single_term(stage: &DotStage, work: &[i64; D]) -> u8 {
+unsafe fn dot_argmax_avx2_single_term(vectors: &[DotSingleVector], work: &[i64; D]) -> u8 {
     use std::arch::x86_64::*;
 
     let zero = _mm256_setzero_si256();
     let all_ones = _mm256_set1_epi64x(-1);
     let sixty_four = _mm256_set1_epi64x(64);
     let mut accumulators = [zero; DOT_GROUPS];
-    for (dimension, groups) in stage.vectors.chunks_exact(DOT_GROUPS).enumerate() {
+    for (dimension, groups) in vectors.chunks_exact(DOT_GROUPS).enumerate() {
         let work_vector = _mm256_set1_epi64x(work[dimension]);
         for (group, vector) in groups.iter().enumerate() {
-            let term = &vector.terms[1];
-            let shifts = _mm256_loadu_si256(term.shifts.as_ptr() as *const __m256i);
-            let negative = _mm256_loadu_si256(term.negative.as_ptr() as *const __m256i);
+            let shifts = _mm256_loadu_si256(vector.shifts.as_ptr() as *const __m256i);
+            let negative = _mm256_loadu_si256(vector.negative.as_ptr() as *const __m256i);
             let is_right = _mm256_cmpgt_epi64(zero, shifts);
             let absolute_shift = _mm256_sub_epi64(zero, shifts);
             let left = _mm256_sllv_epi64(work_vector, shifts);
@@ -340,13 +411,13 @@ unsafe fn dot_argmax_avx2_single_term(stage: &DotStage, work: &[i64; D]) -> u8 {
 }
 
 #[cfg(target_arch = "aarch64")]
-unsafe fn dot_argmax_neon_terms(stage: &DotStage, work: &[i64; D]) -> u8 {
+unsafe fn dot_argmax_neon_terms(vectors: &[DotVector], work: &[i64; D]) -> u8 {
     use std::arch::aarch64::*;
 
     let zero = vdupq_n_s64(0);
     let mut accumulators_a = [zero; DOT_GROUPS];
     let mut accumulators_b = [zero; DOT_GROUPS];
-    for (dimension, groups) in stage.vectors.chunks_exact(DOT_GROUPS).enumerate() {
+    for (dimension, groups) in vectors.chunks_exact(DOT_GROUPS).enumerate() {
         let work_vector = vdupq_n_s64(work[dimension]);
         for (group, vector) in groups.iter().enumerate() {
             for term in &vector.terms {
@@ -399,20 +470,19 @@ unsafe fn dot_argmax_neon_terms(stage: &DotStage, work: &[i64; D]) -> u8 {
 }
 
 #[cfg(target_arch = "aarch64")]
-unsafe fn dot_argmax_neon_single_term(stage: &DotStage, work: &[i64; D]) -> u8 {
+unsafe fn dot_argmax_neon_single_term(vectors: &[DotSingleVector], work: &[i64; D]) -> u8 {
     use std::arch::aarch64::*;
 
     let zero = vdupq_n_s64(0);
     let mut accumulators_a = [zero; DOT_GROUPS];
     let mut accumulators_b = [zero; DOT_GROUPS];
-    for (dimension, groups) in stage.vectors.chunks_exact(DOT_GROUPS).enumerate() {
+    for (dimension, groups) in vectors.chunks_exact(DOT_GROUPS).enumerate() {
         let work_vector = vdupq_n_s64(work[dimension]);
         for (group, vector) in groups.iter().enumerate() {
-            let term = &vector.terms[1];
-            let shifts_a = vld1q_s64(term.shifts.as_ptr());
-            let shifts_b = vld1q_s64(term.shifts.as_ptr().add(2));
-            let negative_a = vld1q_s64(term.negative.as_ptr());
-            let negative_b = vld1q_s64(term.negative.as_ptr().add(2));
+            let shifts_a = vld1q_s64(vector.shifts.as_ptr());
+            let shifts_b = vld1q_s64(vector.shifts.as_ptr().add(2));
+            let negative_a = vld1q_s64(vector.negative.as_ptr());
+            let negative_b = vld1q_s64(vector.negative.as_ptr().add(2));
             let shifted_a = vshlq_s64(work_vector, shifts_a);
             let shifted_b = vshlq_s64(work_vector, shifts_b);
             let signed_a = vbslq_s64(
@@ -454,10 +524,9 @@ unsafe fn dot_argmax_neon_single_term(stage: &DotStage, work: &[i64; D]) -> u8 {
 pub(crate) fn dot_argmax(stage: &DotStage, work: &[i64; D]) -> u8 {
     if std::arch::is_x86_feature_detected!("avx2") {
         return unsafe {
-            if stage.single_term {
-                dot_argmax_avx2_single_term(stage, work)
-            } else {
-                dot_argmax_avx2_terms(stage, work)
+            match &stage.data {
+                DotStageData::Single(vectors) => dot_argmax_avx2_single_term(vectors, work),
+                DotStageData::Two(vectors) => dot_argmax_avx2_terms(vectors, work),
             }
         };
     }
@@ -467,10 +536,9 @@ pub(crate) fn dot_argmax(stage: &DotStage, work: &[i64; D]) -> u8 {
 #[cfg(target_arch = "aarch64")]
 pub(crate) fn dot_argmax(stage: &DotStage, work: &[i64; D]) -> u8 {
     unsafe {
-        if stage.single_term {
-            dot_argmax_neon_single_term(stage, work)
-        } else {
-            dot_argmax_neon_terms(stage, work)
+        match &stage.data {
+            DotStageData::Single(vectors) => dot_argmax_neon_single_term(vectors, work),
+            DotStageData::Two(vectors) => dot_argmax_neon_terms(vectors, work),
         }
     }
 }
@@ -483,7 +551,31 @@ pub(crate) fn dot_argmax(stage: &DotStage, work: &[i64; D]) -> u8 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::transformerless::compiler;
     use proptest::prelude::*;
+
+    #[test]
+    fn one_term_tables_use_compact_load_layout() {
+        let table = vec![compiler::pack_dot_entry(0.5); D * K];
+        let packed = vec![table];
+        let tables = DotTables::from_packed(&packed).expect("valid dot table");
+        assert!(matches!(&tables.stages[0].data, DotStageData::Single(_)));
+        assert_eq!(tables.stages[0].vector_count(), D * DOT_GROUPS);
+        assert_eq!(std::mem::size_of::<DotSingleVector>(), 64);
+        assert_eq!(std::mem::size_of::<DotVector>(), 192);
+    }
+
+    #[test]
+    fn two_term_tables_keep_legacy_load_layout() {
+        let high = compiler::pack_dot_entry(0.5).to_le_bytes()[1];
+        let low = compiler::pack_dot_entry(0.25).to_le_bytes()[1];
+        let entry = u16::from_le_bytes([low, high]);
+        let table = vec![entry; D * K];
+        let packed = vec![table];
+        let tables = DotTables::from_packed(&packed).expect("valid dot table");
+        assert!(matches!(&tables.stages[0].data, DotStageData::Two(_)));
+        assert_eq!(tables.stages[0].vector_count(), D * DOT_GROUPS);
+    }
 
     proptest! {
         #[test]

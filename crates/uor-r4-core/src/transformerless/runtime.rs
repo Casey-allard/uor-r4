@@ -1035,7 +1035,7 @@ impl<'a> Runtime<'a> {
             for _ in 0..K {
                 self.kernel.candidate_scan();
             }
-            for _ in 0..dot_stage.vectors.len() {
+            for _ in 0..dot_stage.vector_count() {
                 self.kernel.simd_dot_vector();
             }
             return class;
