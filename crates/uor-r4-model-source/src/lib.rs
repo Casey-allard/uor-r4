@@ -24,6 +24,10 @@ pub struct Config {
 pub struct Llama {
     pub cfg: Config,
     w: Vec<f32>,
+    // RoPE angles depend only on the position and head dimension.  Keeping
+    // them here avoids recomputing pow/cos/sin once per layer and token.
+    rope_cos: Vec<f32>,
+    rope_sin: Vec<f32>,
     // float offsets into w
     emb: usize,
     rms_att: usize,
@@ -425,6 +429,31 @@ fn fast_matmul_backend() -> &'static str {
 }
 
 impl Llama {
+    fn build_rope_cache(cfg: &Config, canonical_math: bool) -> (Vec<f32>, Vec<f32>) {
+        let head_size = cfg.dim / cfg.n_heads;
+        let half = head_size / 2;
+        let mut cos = Vec::with_capacity(cfg.seq_len * half);
+        let mut sin = Vec::with_capacity(cfg.seq_len * half);
+        for pos in 0..cfg.seq_len {
+            for i in 0..half {
+                let freq = 1.0f32
+                    / powf(
+                        cfg.rope_theta,
+                        (2 * i) as f32 / head_size as f32,
+                        canonical_math,
+                    );
+                let angle = pos as f32 * freq;
+                cos.push(cosf(angle, canonical_math));
+                sin.push(sinf(angle, canonical_math));
+            }
+        }
+        (cos, sin)
+    }
+
+    fn rebuild_rope_cache(&mut self) {
+        (self.rope_cos, self.rope_sin) = Self::build_rope_cache(&self.cfg, self.canonical_math);
+    }
+
     #[cfg(not(target_arch = "wasm32"))]
     pub fn load(path: &str) -> Llama {
         let raw = std::fs::read(path).expect("checkpoint");
@@ -478,9 +507,11 @@ impl Llama {
         p += cfg.seq_len * hs / 2; // skip legacy freq_cis_real
         p += cfg.seq_len * hs / 2; // skip legacy freq_cis_imag
         let wcls = if shared { emb } else { p };
-        Llama {
+        let mut model = Llama {
             cfg,
             w,
+            rope_cos: Vec::new(),
+            rope_sin: Vec::new(),
             emb,
             rms_att,
             wq,
@@ -494,7 +525,9 @@ impl Llama {
             rms_final,
             wcls,
             canonical_math: false,
-        }
+        };
+        model.rebuild_rope_cache();
+        model
     }
 
     fn from_flat(cfg: Config, w: Vec<f32>, shared: bool) -> Self {
@@ -525,9 +558,11 @@ impl Llama {
         p += dim;
         let wcls = if shared { emb } else { p };
         assert_eq!(w.len(), if shared { p } else { p + cfg.vocab * dim });
-        Self {
+        let mut model = Self {
             cfg,
             w,
+            rope_cos: Vec::new(),
+            rope_sin: Vec::new(),
             emb,
             rms_att,
             wq,
@@ -541,7 +576,9 @@ impl Llama {
             rms_final,
             wcls,
             canonical_math: false,
-        }
+        };
+        model.rebuild_rope_cache();
+        model
     }
 
     /// One forward step. After return, st.x holds the post-final-rmsnorm
@@ -597,18 +634,12 @@ impl Llama {
             // Hugging Face Safetensors rotate the two head halves.
             if c.rope_interleaved {
                 let k = &mut st.key_cache[loff + pos * kv_dim..loff + (pos + 1) * kv_dim];
+                let rope_offset = pos * (head_size / 2);
                 let mut i = 0usize;
                 while i < dim {
-                    let head_dim = i % head_size;
-                    let freq = 1.0f32
-                        / powf(
-                            c.rope_theta,
-                            head_dim as f32 / head_size as f32,
-                            self.canonical_math,
-                        );
-                    let val = pos as f32 * freq;
-                    let fcr = cosf(val, self.canonical_math);
-                    let fci = sinf(val, self.canonical_math);
+                    let angle_index = rope_offset + (i % head_size) / 2;
+                    let fcr = self.rope_cos[angle_index];
+                    let fci = self.rope_sin[angle_index];
                     let rotn = if i < kv_dim { 2 } else { 1 };
                     for v in 0..rotn {
                         let vec: &mut [f32] = if v == 0 { &mut st.q } else { &mut *k };
@@ -625,17 +656,9 @@ impl Llama {
                     for head in vector.chunks_exact_mut(head_size) {
                         let half = head_size / 2;
                         for i in 0..half {
-                            let freq = 1.0f32
-                                / powf(
-                                    c.rope_theta,
-                                    (2 * i) as f32 / head_size as f32,
-                                    self.canonical_math,
-                                );
-                            let angle = pos as f32 * freq;
-                            let (cos, sin) = (
-                                cosf(angle, self.canonical_math),
-                                sinf(angle, self.canonical_math),
-                            );
+                            let angle_index = pos * half + i;
+                            let cos = self.rope_cos[angle_index];
+                            let sin = self.rope_sin[angle_index];
                             let first = head[i];
                             let second = head[i + half];
                             head[i] = first * cos - second * sin;
@@ -1113,6 +1136,12 @@ impl HuggingFaceLlamaOracle {
             std::env::var("TLESS_CANONICAL_DETERMINISTIC").is_ok_and(|value| value != "0");
         let mut model = Llama::from_flat(cfg, weights, config.tie_word_embeddings);
         model.canonical_math = canonical_math;
+        // `from_flat` builds the fast native-math cache first; rebuild it if
+        // D2 canonical math was requested so the cache uses the same libm
+        // implementation as the rest of the forward pass.
+        if canonical_math {
+            model.rebuild_rope_cache();
+        }
         let state = State::new(&model.cfg);
         let fast_matmul = !canonical_math && std::env::var("TLESS_EXACT_SCALAR").is_err();
         let backend = if canonical_math {
@@ -1270,6 +1299,33 @@ mod tests {
                 powf(10_000.0, value / 8.0, true).to_bits(),
                 libm::powf(10_000.0, value / 8.0).to_bits()
             );
+        }
+    }
+
+    #[test]
+    fn rope_cache_preserves_angle_bits() {
+        let cfg = Config {
+            dim: 12,
+            hidden: 16,
+            n_layers: 1,
+            n_heads: 3,
+            n_kv_heads: 1,
+            vocab: 8,
+            seq_len: 5,
+            rope_theta: 10_000.0,
+            rms_norm_eps: 1e-5,
+            rope_interleaved: false,
+            r4_attention: false,
+        };
+        let (cos, sin) = Llama::build_rope_cache(&cfg, false);
+        let half = cfg.dim / cfg.n_heads / 2;
+        for pos in 0..cfg.seq_len {
+            for i in 0..half {
+                let freq = 1.0f32 / cfg.rope_theta.powf((2 * i) as f32 / (2 * half) as f32);
+                let angle = pos as f32 * freq;
+                assert_eq!(cos[pos * half + i].to_bits(), angle.cos().to_bits());
+                assert_eq!(sin[pos * half + i].to_bits(), angle.sin().to_bits());
+            }
         }
     }
 

@@ -42,6 +42,54 @@ fn canonical_expf(value: f32) -> f32 {
     }
 }
 
+#[cfg(target_os = "macos")]
+#[inline]
+fn teacher_vector_exp_enabled() -> bool {
+    static ENABLED: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+    *ENABLED.get_or_init(|| {
+        // Accelerate's vForce implementation is CPU vector math.  Use it by
+        // default on macOS for the noncanonical teacher path; the explicit
+        // zero value remains an escape hatch for scalar comparisons.
+        let requested = std::env::var("TLESS_TEACHER_VFORCE_EXP")
+            .map_or(cfg!(target_os = "macos"), |value| value != "0");
+        !canonical_math_enabled() && requested
+    })
+}
+
+#[cfg(target_os = "macos")]
+#[link(name = "Accelerate", kind = "framework")]
+unsafe extern "C" {
+    fn vvexpf(output: *mut f32, input: *const f32, count: *const i32);
+}
+
+/// Exponentiate a vocabulary-sized logit vector and return its sum.
+///
+/// The macOS path uses Accelerate's CPU vForce implementation in place. It is
+/// disabled for canonical math and can be disabled with
+/// `TLESS_TEACHER_VFORCE_EXP=0`; it is a teacher-side backend, not part of the
+/// κ-pinned deterministic mode.
+#[inline]
+fn teacher_exp_sum(logits: &mut [f32], max_logit: f32) -> f32 {
+    #[cfg(target_os = "macos")]
+    if teacher_vector_exp_enabled() {
+        for logit in logits.iter_mut() {
+            *logit -= max_logit;
+        }
+        let count = logits.len().min(i32::MAX as usize) as i32;
+        // SAFETY: output and input point to the same initialized contiguous
+        // slice, which vForce supports for its unary vector functions.
+        unsafe { vvexpf(logits.as_mut_ptr(), logits.as_ptr(), &count) };
+        return logits.iter().copied().sum();
+    }
+
+    let mut sum = 0.0f32;
+    for logit in logits.iter_mut() {
+        *logit = canonical_expf(*logit - max_logit);
+        sum += *logit;
+    }
+    sum
+}
+
 #[inline]
 fn canonical_log2f(value: f32) -> f32 {
     if canonical_math_enabled() {
@@ -495,11 +543,7 @@ pub fn softmax_top3_sample(logits: &mut [f32], rng: &mut u64) -> (usize, [u32; 3
             mx = v;
         }
     }
-    let mut sum = 0.0f32;
-    for p in logits.iter_mut() {
-        *p = canonical_expf(*p - mx);
-        sum += *p;
-    }
+    let sum = teacher_exp_sum(logits, mx);
     for p in logits.iter_mut() {
         *p /= sum;
     }
@@ -558,11 +602,7 @@ pub fn softmax_top8_sample(logits: &mut [f32], rng: &mut u64) -> (usize, [u32; 8
             mx = p;
         }
     }
-    let mut sum = 0.0f32;
-    for p in logits.iter_mut() {
-        *p = canonical_expf(*p - mx);
-        sum += *p;
-    }
+    let sum = teacher_exp_sum(logits, mx);
     for p in logits.iter_mut() {
         *p /= sum;
     }

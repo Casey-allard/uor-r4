@@ -108,3 +108,23 @@ and the graph does not improve on the same-corpus TLA baseline. The declared
 next step remains P3 only as a maintainer decision after a larger/stronger
 teacher corpus or the 360M rehearsal; the pinned stories15M fixtures remain
 unchanged.
+
+## CPU teacher path — issue #320 follow-up
+
+The Hugging Face teacher compiler remains CPU-only. The native macOS path uses
+Accelerate's CPU matrix-vector and vForce math kernels; it does not select
+CUDA, Metal, OpenCL, or any GPU backend. The deployed transformerless runtime
+is unaffected and remains multiplication-free.
+
+Two CPU-side costs were reduced:
+
+- RoPE `powf`/`sin`/`cos` values are precomputed once per position and head
+  dimension instead of once per layer and token.
+- macOS vocabulary exponentiation uses CPU vForce by default in noncanonical
+  mode. Set `TLESS_TEACHER_VFORCE_EXP=0` for the scalar comparison path;
+  `TLESS_CANONICAL_DETERMINISTIC=1` always disables the fast math backend.
+
+On the local 360M source, a fresh 5,000-token compile measured 74.5 tokens/s
+with both changes enabled, versus 54.5 tokens/s in the earlier scalar-exp /
+uncached-RoPE run. This is a throughput measurement, not a quality or
+determinism claim; canonical mode remains the reproducibility path.
