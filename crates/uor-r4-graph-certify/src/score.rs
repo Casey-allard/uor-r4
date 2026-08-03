@@ -1245,6 +1245,12 @@ pub struct ResidualInfluence {
     /// `bits_per_token`: a lower top-1 with unchanged bits means the argmax
     /// moved without the distribution improving.
     pub bits_per_token_root_only: f64,
+    /// Mean share of candidates whose residual is exactly zero (off-chain).
+    pub mean_zero_residual_share: f64,
+    /// Fraction of positions where the teacher token is a chain token.
+    pub teacher_on_chain: f64,
+    /// Fraction of positions where an off-chain (zero-residual) token won.
+    pub selected_off_chain: f64,
 }
 
 /// Residual-influence measurement split by resolution status.
@@ -1576,6 +1582,9 @@ pub fn evaluate_gate_c(
     let mut status_resid_spreads: [Vec<i64>; 3] = [Vec::new(), Vec::new(), Vec::new()];
     let mut status_alpha_hits = [[0u64; ALPHA_SWEEP.len()]; 3];
     let mut status_bits_root_only = [0f64; 3];
+    let mut status_zero_share = [0f64; 3];
+    let mut status_teacher_on_chain = [0u64; 3];
+    let mut status_selected_off_chain = [0u64; 3];
     let mut status_ranks: [Vec<u32>; 3] = [Vec::new(), Vec::new(), Vec::new()];
     let gate_rotations = compiler::derive_rotations();
     let context = GateCContext {
@@ -1622,6 +1631,9 @@ pub fn evaluate_gate_c(
         status_hits[row.status_index] += u64::from(row.status_hit);
         status_bits[row.status_index] += row.status_bits;
         status_bits_root_only[row.status_index] += row.bits_root_only;
+        status_zero_share[row.status_index] += row.zero_resid_share;
+        status_teacher_on_chain[row.status_index] += u64::from(row.teacher_on_chain);
+        status_selected_off_chain[row.status_index] += u64::from(row.selected_off_chain);
         if let Some(level) = row.exct_level {
             exct_level_positions[level] += 1;
         } else {
@@ -1785,6 +1797,9 @@ pub fn evaluate_gate_c(
             median_root_spread: median_of(&mut status_root_spreads[index]),
             median_residual_spread: median_of(&mut status_resid_spreads[index]),
             bits_per_token_root_only: status_bits_root_only[index] / denom,
+            mean_zero_residual_share: status_zero_share[index] / denom,
+            teacher_on_chain: status_teacher_on_chain[index] as f64 / denom,
+            selected_off_chain: status_selected_off_chain[index] as f64 / denom,
         };
         match index {
             0 => influence.exact_context = value,
@@ -1884,6 +1899,12 @@ struct GateCRow {
     alpha_hits: [bool; ALPHA_SWEEP.len()],
     /// bits/token under root + penalty only (alpha = 0).
     bits_root_only: f64,
+    /// Share of candidates whose residual is exactly zero (off-chain tokens).
+    zero_resid_share: f64,
+    /// The teacher token carries a non-zero residual (it is a chain token).
+    teacher_on_chain: bool,
+    /// The selected token carries a zero residual (an off-chain token won).
+    selected_off_chain: bool,
     witness_replayed: bool,
     witness_replay_failed: bool,
 }
@@ -2018,6 +2039,28 @@ fn evaluate_gate_c_row(
         .collect();
     let bits_root_only = outcome_bits(context.scorer_with_exct, &root_only_candidates, next);
 
+    // Residual accrues only on selected-chain nodes; tokens emitted by active
+    // or predicted nodes keep residual exactly ZERO. Since residuals are
+    // log-prob-like and negative, chain tokens carry a summed penalty while
+    // off-chain tokens sit at zero, and both are ranked by root + residual.
+    // Measure whether that is what decides graph-slice selections.
+    let total_candidates = rule12.candidate_components.len().max(1) as f64;
+    let zeros = rule12
+        .candidate_components
+        .iter()
+        .filter(|&&(_, _, resid, _)| resid == 0)
+        .count();
+    let zero_resid_share = zeros as f64 / total_candidates;
+    let resid_of = |want: u32| {
+        rule12
+            .candidate_components
+            .iter()
+            .find(|&&(token, _, _, _)| token == want)
+            .map(|&(_, _, resid, _)| resid)
+    };
+    let teacher_on_chain = resid_of(teacher_argmax).is_some_and(|r| r != 0);
+    let selected_off_chain = resid_of(rule12.selected) == Some(0);
+
     let mut alpha_hits = [false; ALPHA_SWEEP.len()];
     for (slot, &(num, den)) in alpha_hits.iter_mut().zip(ALPHA_SWEEP.iter()) {
         let mut best_token = u32::MAX;
@@ -2095,6 +2138,9 @@ fn evaluate_gate_c_row(
         residual_spread,
         alpha_hits,
         bits_root_only,
+        zero_resid_share,
+        teacher_on_chain,
+        selected_off_chain,
         witness_replayed: index < context.config.witness_sample,
         witness_replay_failed,
     })
