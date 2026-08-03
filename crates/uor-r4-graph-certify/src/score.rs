@@ -120,6 +120,29 @@ pub const DEFAULT_EMISSION_ENTRIES: usize = 64;
 /// region's actual next-token mass the emitted list covers. Low values on both
 /// mean regions emit distinctive-but-unlikely tokens and score the likely ones
 /// at the bare prior.
+/// How the per-region emission list is chosen before truncation (#364).
+///
+/// The shipped rule ranks by log-ratio against the parent, which keeps the most
+/// DISTINCTIVE tokens. Measured on the fixture artifact, that list overlaps a
+/// top-E-by-probability selection by 0.78% and covers 1.57% of the region's
+/// actual next-token mass — so 98.4% of what really happens next carries
+/// residual 0 and is scored at the bare global prior.
+///
+/// `Probability` ranks by the region's own next-token counts instead, still
+/// storing the log-ratio as the value, so `root_score + log-ratio =
+/// log P_region` continues to hold for the tokens that actually occur.
+///
+/// Default is `Ratio`: it reproduces the shipped artifact byte-exactly. Changing
+/// selection changes artifact bytes and kappa, so the alternative stays opt-in
+/// until measured.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum EmissionSelection {
+    /// Top-E by log-ratio against the parent (shipped behavior).
+    #[default]
+    Ratio,
+    /// Top-E by the region's own next-token probability.
+    Probability,
+}
 /// One region's emission list plus the statistics gathered while building it.
 type RegionEmissionResult = (
     Vec<(u32, ScoreQ)>,
@@ -302,6 +325,8 @@ pub struct ScoreConfig {
     pub smoothing: Smoothing,
     /// Candidate scoring variant (issue #80).
     pub scoring_variant: ScoringVariant,
+    /// Emission list selection rule (issue #364).
+    pub emission_selection: EmissionSelection,
 }
 
 impl Default for ScoreConfig {
@@ -314,6 +339,7 @@ impl Default for ScoreConfig {
             witness_sample: DEFAULT_WITNESS_SAMPLE,
             smoothing: Smoothing::AddOne,
             scoring_variant: ScoringVariant::ChainTelescoped,
+            emission_selection: EmissionSelection::default(),
         }
     }
 }
@@ -693,7 +719,22 @@ pub fn compile_emissions(
                 .collect();
             // Top-E by residual score (score desc, token asc), stored
             // ascending token.
-            residuals.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.cmp(&b.0)));
+            match config.emission_selection {
+                EmissionSelection::Ratio => {
+                    residuals.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.cmp(&b.0)));
+                }
+                EmissionSelection::Probability => {
+                    // Rank by the region's own next-token count (probability),
+                    // ties to the lower token id for determinism. The stored
+                    // value stays the log-ratio, so the scoring identity is
+                    // unchanged -- only WHICH tokens get a correction moves.
+                    residuals.sort_by(|a, b| {
+                        let ca = dist.get(&a.0).copied().unwrap_or(0);
+                        let cb = dist.get(&b.0).copied().unwrap_or(0);
+                        cb.cmp(&ca).then_with(|| a.0.cmp(&b.0))
+                    });
+                }
+            }
             residuals.truncate(config.emission_entries);
             residuals.sort_by_key(|&(token, _)| token);
 
