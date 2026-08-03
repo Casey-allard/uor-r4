@@ -188,6 +188,22 @@ pub enum FormatError {
         /// Actual EDGE section length in bytes.
         section_len: u64,
     },
+    /// NGRAM has no complete fixed header.
+    NgramTooShort,
+    /// NGRAM magic is not `NGR1`.
+    NgramBadMagic,
+    /// NGRAM version is not supported.
+    NgramUnsupportedVersion,
+    /// NGRAM reserved bytes are non-zero.
+    NgramNonZeroReserved,
+    /// NGRAM row or entry offset arithmetic is invalid.
+    NgramBounds,
+    /// NGRAM row keys are not in canonical order.
+    NgramRowsNotSorted,
+    /// NGRAM entry tokens are not in canonical order.
+    NgramEntriesNotSorted,
+    /// NGRAM row metadata is invalid.
+    NgramInvalidRow,
     /// A packed-node range field does not resolve within its target
     /// section under checked arithmetic (RFC §6 item 4). For
     /// `Prototype`/`Mask` the full W-word extent from the word start
@@ -537,6 +553,16 @@ impl fmt::Display for FormatError {
                 f,
                 "EDGE section holds {section_len} bytes, not edge_count {declared} x 20"
             ),
+            FormatError::NgramTooShort => write!(f, "NGRAM section is shorter than its header"),
+            FormatError::NgramBadMagic => write!(f, "NGRAM magic is not NGR1"),
+            FormatError::NgramUnsupportedVersion => write!(f, "NGRAM version is unsupported"),
+            FormatError::NgramNonZeroReserved => write!(f, "NGRAM reserved bytes are non-zero"),
+            FormatError::NgramBounds => write!(f, "NGRAM row or entry range is out of bounds"),
+            FormatError::NgramRowsNotSorted => write!(f, "NGRAM rows are not canonically sorted"),
+            FormatError::NgramEntriesNotSorted => {
+                write!(f, "NGRAM entries are not canonically sorted")
+            }
+            FormatError::NgramInvalidRow => write!(f, "NGRAM row metadata is invalid"),
             FormatError::RangeOutOfBounds { node, field } => write!(
                 f,
                 "node {node}: {field} range does not resolve within its target section"

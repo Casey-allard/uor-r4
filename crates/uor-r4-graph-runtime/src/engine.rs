@@ -54,6 +54,47 @@ fn signature_affinity_bonus(prototype: &[u8], mask: &[u8], signature: &[u8]) -> 
     (x << 3).saturating_add(x << 1)
 }
 
+/// Resolve the explicit lexical context rows before geometric graph scoring.
+/// The first non-empty row wins: trigram, then bigram, then the EMIT
+/// unigram path (represented by `None`).
+fn context_backoff(view: &GraphView<'_>, context_tokens: &[u32]) -> Option<(u32, ScoreQ)> {
+    let table = view.ngram_table().ok().flatten()?;
+    let tokens = if context_tokens.first().is_some_and(|&token| token <= 1) {
+        &context_tokens[1..]
+    } else {
+        context_tokens
+    };
+    let mut best = None;
+    if tokens.len() >= 2
+        && let Some(row) = table.find(2, tokens[tokens.len() - 2], tokens[tokens.len() - 1])
+    {
+        best = best_context_entry(row.entries());
+    }
+    if best.is_none()
+        && let Some(&previous) = tokens.last()
+        && let Some(row) = table.find(1, previous, 0)
+    {
+        best = best_context_entry(row.entries());
+    }
+    best
+}
+
+fn best_context_entry(
+    entries: impl Iterator<Item = uor_r4_graph_format::NgramEntry>,
+) -> Option<(u32, ScoreQ)> {
+    let mut best = None;
+    for entry in entries {
+        let candidate = (entry.token, entry.score_q);
+        if best.is_none_or(|(token, score): (u32, ScoreQ)| {
+            candidate.1.raw() > score.raw()
+                || (candidate.1.raw() == score.raw() && candidate.0 < token)
+        }) {
+            best = Some(candidate);
+        }
+    }
+    best
+}
+
 impl<'a> R4G1Runtime<'a> {
     /// Create a new R4G1 runtime by running two-stage validation over `bytes`.
     pub fn parse(bytes: &'a [u8]) -> Result<Self, FormatError> {
@@ -525,6 +566,10 @@ impl<'a> R4G1Runtime<'a> {
         let num_nodes = self.node_count();
         if num_nodes == 0 || context_tokens.is_empty() {
             return (0, ScoreQ::ZERO);
+        }
+
+        if let Some(prediction) = context_backoff(self.chain.base_graph(), context_tokens) {
+            return prediction;
         }
 
         let base_graph = self.chain.base_graph();

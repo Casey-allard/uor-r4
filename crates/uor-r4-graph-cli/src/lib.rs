@@ -1035,6 +1035,7 @@ pub fn score_command(args: &[String]) -> Result<(), String> {
     );
     let vocab = u32::try_from(artifacts.token_codes.len() / compiler::STAGES)
         .map_err(|_| "vocabulary exceeds u32 token ids".to_owned())?;
+    let context_rows = score::compile_context_rows(&corpus, &train, vocab, config.smoothing);
     let emissions =
         score::compile_emissions(&corpus, &store, &regions, &train, max_depth, vocab, &config);
     let fmm_section = score::compile_fmm_section(&regions, &emissions, vocab)?;
@@ -1048,6 +1049,7 @@ pub fn score_command(args: &[String]) -> Result<(), String> {
             transitions: &transitions,
             transition_quantization,
             emissions: &emissions,
+            context_rows: &context_rows,
             exct_tls1: &tls1,
             exct_top_x: config.exct_top_x,
             fmm_section: Some(&fmm_section),
@@ -1122,7 +1124,7 @@ pub fn score_command(args: &[String]) -> Result<(), String> {
         .map_err(|error| format!("{}: {error}", report_path.display()))?;
 
     println!(
-        "score complete: {} nodes, {} edges ({} refinement + {} neighbor + {} forward), {} emission entries, EXCT {} bytes, FMM {} bytes (rank {}, {} candidates)",
+        "score complete: {} nodes, {} edges ({} refinement + {} neighbor + {} forward), {} emission entries, EXCT {} bytes, NGRAM {} rows/{} entries ({} bytes), FMM {} bytes (rank {}, {} candidates)",
         info.node_count,
         info.edge_count,
         info.refinement_edges,
@@ -1130,6 +1132,9 @@ pub fn score_command(args: &[String]) -> Result<(), String> {
         info.forward_edges,
         info.emission_list_entries,
         info.exct_bytes,
+        info.context_row_count,
+        info.context_entry_count,
+        info.context_bytes,
         info.fmm_bytes,
         info.fmm_rank,
         info.fmm_candidate_count

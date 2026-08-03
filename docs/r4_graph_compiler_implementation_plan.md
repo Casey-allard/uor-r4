@@ -149,6 +149,7 @@ runtime. The graph compiler generalizes it from *flat quantized classes + graded
 | Boolean context codes (36-byte sign-bit signatures) | `compiler.rs:248` (`SIG_BYTES`), `runtime.rs:108` (`sign_signature`) | The seed of the PDF's "compiled Boolean semantic code" H(x) |
 | Hamming class assignment | `runtime.rs:95` (`hamming`), `:330` (`assign_plain`) | Exhaustive over 4×256 classes today; graph verifier will be masked-Hamming over shortlisted regions |
 | Graded evidence store (code-prefix → next-token counts) | `runtime.rs:130` (`Store`), `:539` (`build_store`), TLS1 container `:559/:578` | Becomes the EXCT exact-context residual store + root priors |
+| Hierarchical lexical context rows (unigram/bigram/trigram) | Root priors plus a compiler-side bigram weighting heuristic; no explicit trigram rows or lexical backoff | **Build new** (issue #362): packed context rows with trigram → bigram → unigram precedence |
 | Mul-free integer kernel with op census | `runtime.rs:28` (`OpKernel`) | No multiply method exists; source-scan witness P-4 enforces this in CI (`transformerless/mod.rs:75-121`) |
 | Allocation-free generation loop | `runtime.rs:497` (`generate_greedy_into`), `scenarios.rs:179/247` (`encode_into`/`decode_into`) | Caller-owned buffers; pattern to extend to `step()`; zero-alloc now machine-asserted by `tests/allocation_census.rs` |
 | Packed containers | TLA3/TLA4 (`compiler.rs:585`, parse `:642`), TLS1 (`runtime.rs:559`) | Fixed-width LE; R4G1 succeeds them |
@@ -382,6 +383,13 @@ Objective: the scoring model S(v) = B(v) + ΣΔE(n,v) + ΣΔT(m,v) + ΔX(X,v) (P
   base priors B(v) (generalizes the level-0 backoff counts in today's store); children store
   corrections relative to parents; overlap nodes store interaction residuals only (Theorem 10
   non-duplication); exact-context store (EXCT, generalizes TLS1) captures remaining local evidence.
+- Hierarchical lexical context evidence is compiled alongside the residual tables: unigram/root
+  rows carry the context-free prior, bigram rows are keyed by the immediately preceding token,
+  and trigram rows by the preceding two tokens. A prediction consults the most specific
+  supported row first (trigram, then bigram, then unigram); sparse rows must fall back rather
+  than contribute a misleading partial boost. Rows are story-boundary-safe, canonically sorted,
+  and quantized into the same ScoreQ language as the root prior. This is a
+  context-conditioned emission layer, not a replacement for masked-Hamming region similarity.
 - Replace f32 semantic route scores in deployed paths with ScoreQ fixed point; remove `ctx_cb`
   f32 tables from deployed artifacts (certifier-only data moves to PROV/CERT or side files).
 - Fixed-capacity top-K candidate structure with canonical tie-breaking (highest score, then
@@ -404,6 +412,10 @@ Objective: `uor-r4-graph-runtime` implementing the PDF §16/§21 step contract.
 - Rolling context code updated incrementally (shift/XOR/add recurrence from prior state + entering
   + expiring token — generalizes the current window bundle, `runtime.rs:261-306`); never
   reconstruct the full context representation.
+- Borrowed context-table lookup over the packed unigram/bigram/trigram rows, with fixed-capacity
+  candidate output and exact trigram → bigram → unigram fallback. The deployed lookup uses only
+  integer comparisons, table reads, and saturating add/sub; no allocation, multiplication,
+  division, or float is permitted.
 - Normative scalar kernel: extend the `OpKernel` discipline — complete operation set
   {xor,and,or,shl,shr,rot,popcount,add,sub,cmp,table read}, saturating where declared, **no
   multiply/divide/float**, census retained; source-scan witness test ported (P-4 pattern).
@@ -603,16 +615,18 @@ The table is the source content.
 14. Predictive-sufficiency + rate-distortion reports by depth → Phase 3 (#24).
 15. Explicit `ResolutionStatus` + manifest fallback policy → Phase 5 (#25, policy per D4).
 16. Shortlist top-M recall + fallback measurement vs. reference classifier → Phase 6 (#26).
-17. Bytes-read / cache-miss / branch-miss counters in performance certificates → Phase 7 (#27).
-18. Multi-timescale fixed-capacity `RuntimeState` design (local/segment/session) → Phase 5 skeleton, Phase 8 full (#28).
-19. Tokenizer-neutral span and byte anchors in observation schema → Phase 2 (#29).
-20. Immutable graph patch + route-translation RFC → Phase 9 (#30).
-21. Source-bias amplification, rare-group erasure, provenance-deletion tests → Phase 3/9 (#31).
-22. Threat model: semantic collisions, frontier exhaustion, candidate explosion, integer saturation → Phase 0 doc (#32; `docs/transformerless/THREAT_MODEL.md`), suites in 5/6/9 (Gate I).
-23. Behavioral graph-equivalence + confidence-bounded empirical claims spec →
+17. Explicit unigram/bigram/trigram context rows with deterministic most-specific backoff →
+    Phase 4/5 (#362).
+18. Bytes-read / cache-miss / branch-miss counters in performance certificates → Phase 7 (#27).
+19. Multi-timescale fixed-capacity `RuntimeState` design (local/segment/session) → Phase 5 skeleton, Phase 8 full (#28).
+20. Tokenizer-neutral span and byte anchors in observation schema → Phase 2 (#29).
+21. Immutable graph patch + route-translation RFC → Phase 9 (#30).
+22. Source-bias amplification, rare-group erasure, provenance-deletion tests → Phase 3/9 (#31).
+23. Threat model: semantic collisions, frontier exhaustion, candidate explosion, integer saturation → Phase 0 doc (#32; `docs/transformerless/THREAT_MODEL.md`), suites in 5/6/9 (Gate I).
+24. Behavioral graph-equivalence + confidence-bounded empirical claims spec →
    `docs/transformerless/EQUIVALENCE_AND_EMPIRICAL_PROTOCOL.md` (Phase 0/3, #33, feeds D2).
-24. Evaluation-report tooling for HF-compiled (SmolLM2) models → Phase 0/2 (#34; blocks Gate C harness).
-25. Compiler-folded FMM translation table with allocation-free packed evaluation → Phase 4/5 (#359; accuracy and cost decision remains under #290).
+25. Evaluation-report tooling for HF-compiled (SmolLM2) models → Phase 0/2 (#34; blocks Gate C harness).
+26. Compiler-folded FMM translation table with allocation-free packed evaluation → Phase 4/5 (#359; accuracy and cost decision remains under #290).
 
 ---
 

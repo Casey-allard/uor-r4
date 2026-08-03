@@ -3,7 +3,7 @@
 //! R4G1 is the versioned packed artifact container for the R⁴ holographic
 //! graph compiler: a single little-endian, fixed-width, explicitly-aligned
 //! binary format that carries a compiled semantic-region graph (sections
-//! HEAD/CODE/NODE/EDGE/ROUT/EMIT plus optional EXCT/PROV/CERT/PTCH/SECT)
+//! HEAD/CODE/NODE/EDGE/ROUT/EMIT plus optional EXCT/NGRAM/PROV/CERT/PTCH/SECT)
 //! from the offline compiler to the deployed runtime. It succeeds the
 //! ad-hoc TLA3/TLA4/TLS1 containers.
 //!
@@ -70,6 +70,7 @@ mod head;
 mod header;
 pub mod inference_contract;
 pub mod invariant_ownership;
+mod ngram;
 #[cfg(feature = "alloc")]
 pub mod r4g1;
 pub mod records;
@@ -105,6 +106,10 @@ pub use invariant_ownership::{
     GraphInvariantId, GraphInvariantOwnershipMatrix, InvariantOwner, InvariantOwnershipEntry,
     InvariantOwnershipRow, InvariantValidationError, INVARIANT_OWNERSHIP_ROWS, MATRIX_VERSION,
     OPERATION_SET_CONFORMANCE_ROW,
+};
+pub use ngram::{
+    NgramEntries, NgramEntry, NgramRow, NgramRows, NgramTable, NGRAM_ENTRY_LEN, NGRAM_HEADER_LEN,
+    NGRAM_MAGIC, NGRAM_ROW_LEN, NGRAM_VERSION,
 };
 pub use records::{
     EdgeKind, PackedEdge, PackedNode, StorageDescriptor, EDGE_KIND_OPTIONAL_BIT, PACKED_EDGE_LEN,

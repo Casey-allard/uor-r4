@@ -38,6 +38,14 @@ unsafe impl GlobalAlloc for CountingAllocator {
 #[global_allocator]
 static ALLOCATOR: CountingAllocator = CountingAllocator;
 
+fn counted_allocations(f: impl FnOnce()) -> usize {
+    ALLOCATIONS.with(|count| count.set(0));
+    COUNT_ALLOCATIONS.with(|gate| gate.set(true));
+    f();
+    COUNT_ALLOCATIONS.with(|gate| gate.set(false));
+    ALLOCATIONS.with(Cell::get)
+}
+
 fn fixture_artifacts() -> (Vec<u8>, compiler::Compiled) {
     let dir = env!("CARGO_MANIFEST_DIR");
     let bytes = std::fs::read(format!(
@@ -64,6 +72,49 @@ fn synthetic_store() -> Store {
     store
 }
 
+fn base_r4g1_artifact() -> Vec<u8> {
+    let (art_bytes, artifacts) = fixture_artifacts();
+    let store = synthetic_store();
+    let store_bytes = runtime::store_bytes(&store);
+    convert_r4g1::convert(&art_bytes, &artifacts, &store, &store_bytes, None)
+        .expect("convert to R4G1 succeeds")
+        .0
+}
+
+fn ngram_payload(include_trigram: bool) -> Vec<u8> {
+    let row_count = if include_trigram { 2usize } else { 1usize };
+    let entries_start =
+        uor_r4_graph_format::NGRAM_HEADER_LEN + row_count * uor_r4_graph_format::NGRAM_ROW_LEN;
+    let mut bytes = vec![0u8; entries_start];
+    bytes[..4].copy_from_slice(&uor_r4_graph_format::NGRAM_MAGIC);
+    bytes[4..6].copy_from_slice(&uor_r4_graph_format::NGRAM_VERSION.to_le_bytes());
+    bytes[8..12].copy_from_slice(&(row_count as u32).to_le_bytes());
+    bytes[12..14].copy_from_slice(&2u16.to_le_bytes());
+
+    let mut entry_offset = entries_start;
+    let mut add_row =
+        |index: usize, context_len: u8, key0: u32, key1: u32, entries: &[(u32, i32)]| {
+            let header =
+                uor_r4_graph_format::NGRAM_HEADER_LEN + index * uor_r4_graph_format::NGRAM_ROW_LEN;
+            bytes[header] = context_len;
+            bytes[header + 2..header + 4].copy_from_slice(&(entries.len() as u16).to_le_bytes());
+            bytes[header + 4..header + 8].copy_from_slice(&key0.to_le_bytes());
+            bytes[header + 8..header + 12].copy_from_slice(&key1.to_le_bytes());
+            bytes[header + 12..header + 16].copy_from_slice(&(entry_offset as u32).to_le_bytes());
+            for &(token, score) in entries {
+                bytes.extend_from_slice(&token.to_le_bytes());
+                bytes.extend_from_slice(&score.to_le_bytes());
+            }
+            entry_offset = bytes.len();
+        };
+
+    add_row(0, 1, 20, 0, &[(7, 100)]);
+    if include_trigram {
+        add_row(1, 2, 10, 20, &[(8, 200), (9, 200)]);
+    }
+    bytes
+}
+
 fn fmm_section_fixture() -> Vec<u8> {
     let dimension = 288u16;
     let rank = 1u16;
@@ -86,6 +137,17 @@ fn fmm_section_fixture() -> Vec<u8> {
         bytes.extend_from_slice(&(if coordinate == 0 { 10i32 } else { 0 }).to_le_bytes());
     }
     bytes
+}
+
+fn artifact_with_ngram(include_trigram: bool) -> Vec<u8> {
+    let base = base_r4g1_artifact();
+    let view = GraphView::parse(&base).expect("base artifact parses");
+    let mut builder = ArtifactBuilder::new(view.header().alignment_log2);
+    for section in view.sections() {
+        builder.add_section(section.id, section.flags, section.payload);
+    }
+    builder.add_section(SectionId::NGRAM, 0, &ngram_payload(include_trigram));
+    builder.build().expect("artifact with NGRAM builds")
 }
 
 fn add_fmm_to_artifact(base: &[u8], fmm: &[u8]) -> Vec<u8> {
@@ -186,6 +248,56 @@ fn session_signature_is_bias_only_until_routing_is_calibrated() {
 }
 
 #[test]
+fn ngram_runtime_prefers_trigram_then_bigram_without_allocations() {
+    let trigram_bytes = artifact_with_ngram(true);
+    let trigram_runtime = R4G1Runtime::parse(&trigram_bytes).expect("trigram artifact parses");
+    let mut scores = vec![ScoreQ::MIN; trigram_runtime.node_count() as usize];
+    let trigram = trigram_runtime.predict_distribution(&[1, 10, 20], None, &mut scores);
+    assert_eq!(trigram, (8, ScoreQ::from_raw(200)));
+
+    let allocations = counted_allocations(|| {
+        for _ in 0..64 {
+            assert_eq!(
+                trigram_runtime.predict_distribution(&[1, 10, 20], None, &mut scores),
+                trigram
+            );
+        }
+    });
+    assert_eq!(allocations, 0, "NGRAM lookup must be allocation-free");
+
+    let bigram_bytes = artifact_with_ngram(false);
+    let bigram_runtime = R4G1Runtime::parse(&bigram_bytes).expect("bigram artifact parses");
+    let mut bigram_scores = vec![ScoreQ::MIN; bigram_runtime.node_count() as usize];
+    assert_eq!(
+        bigram_runtime.predict_distribution(&[1, 10, 20], None, &mut bigram_scores),
+        (7, ScoreQ::from_raw(100))
+    );
+}
+
+#[test]
+fn ngram_lookup_kernel_is_integer_only_by_source_scan() {
+    let source = include_str!("../src/engine.rs");
+    let start = source
+        .find("fn context_backoff")
+        .expect("context lookup source exists");
+    let end = source
+        .find("impl<'a> R4G1Runtime")
+        .expect("runtime implementation follows lookup helpers");
+    let kernel = &source[start..end];
+    for forbidden in ["*", "/", "f32", "f64"] {
+        assert!(
+            !kernel.contains(forbidden),
+            "NGRAM lookup kernel contains forbidden operation/type {forbidden:?}"
+        );
+    }
+}
+
+#[test]
+fn ngram_artifact_bytes_are_deterministic() {
+    assert_eq!(artifact_with_ngram(true), artifact_with_ngram(true));
+}
+
+#[test]
 fn packed_fmm_runtime_matches_folded_integer_table_without_allocations() {
     let (art_bytes, artifacts) = fixture_artifacts();
     let store = synthetic_store();
@@ -217,17 +329,15 @@ fn packed_fmm_runtime_matches_folded_integer_table_without_allocations() {
         .expect("FMM table returns a candidate");
     assert_eq!(selected, (9, ScoreQ::from_raw(110)));
 
-    ALLOCATIONS.with(|count| count.set(0));
-    COUNT_ALLOCATIONS.with(|gate| gate.set(true));
-    for _ in 0..64 {
-        let mut scores = [(0u32, ScoreQ::ZERO); 2];
-        let result = evaluate_fmm_translation_table(&view, &signature, &[], &mut scores)
-            .expect("steady-state FMM evaluation succeeds")
-            .expect("steady-state FMM table returns a candidate");
-        assert_eq!(result.0, 9);
-    }
-    COUNT_ALLOCATIONS.with(|gate| gate.set(false));
-    let allocations = ALLOCATIONS.with(Cell::get);
+    let allocations = counted_allocations(|| {
+        for _ in 0..64 {
+            let mut scores = [(0u32, ScoreQ::ZERO); 2];
+            let result = evaluate_fmm_translation_table(&view, &signature, &[], &mut scores)
+                .expect("steady-state FMM evaluation succeeds")
+                .expect("steady-state FMM table returns a candidate");
+            assert_eq!(result.0, 9);
+        }
+    });
     assert_eq!(allocations, 0);
 
     let recent = [9u32];

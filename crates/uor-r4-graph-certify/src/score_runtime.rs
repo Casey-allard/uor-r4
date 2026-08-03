@@ -4,11 +4,13 @@
 //! Two rules, both scored per context:
 //!
 //! ```text
-//! Rule 2 (D4 EXCT precedence): S(v) = B(v) + ΔX(X,v)
+//! Rule 2 (D4 exact-context precedence): S(v) = B(v) + ΔX(X,v)
 //!     when the EXCT probe resolves at the FULL graded code (level ==
 //!     STAGES) with total evidence ≥ EXCT_SUPPORT_MIN — strict
 //!     exact-context evidence dominates and graph residuals are skipped
-//!     entirely (status ExactContext). A probe that resolves below full
+//!     entirely (status ExactContext). An explicit supported NGRAM row
+//!     takes the same most-specific precedence before the EXCT probe. A
+//!     probe that resolves below full
 //!     depth is prefix backoff, not exact context (#234, maintainer
 //!     decision 2026-07-29): it is recorded in the witness but admits
 //!     nothing, and the position falls through to Rule 1.
@@ -558,8 +560,9 @@ pub struct ExctProbe {
 /// consumes this status per decision D4). Recorded in every witness.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ScoreStatus {
-    /// Rule 2 fired: the EXCT probe resolved at the FULL graded code
-    /// (#234) with total evidence ≥ [`EXCT_SUPPORT_MIN`];
+    /// Rule 2 fired: an explicit NGRAM row matched, or the EXCT probe
+    /// resolved at the FULL graded code (#234) with total evidence ≥
+    /// [`EXCT_SUPPORT_MIN`];
     /// `S(v) = B(v) + ΔX(X,v)`, graph residuals skipped entirely.
     ExactContext,
     /// Rule 1 fired with a non-empty selected covered chain:
@@ -591,6 +594,9 @@ pub struct ScoreWitness {
     /// kernel==plain equality witnesses, and replay proves consistent
     /// CONSUMPTION. `None` when no artifact/EXCT surface is wired.
     pub input_code: Option<[u8; STAGES]>,
+    /// Recent lexical tokens used by the explicit NGRAM backoff, retained so
+    /// independent replay can reproduce the same context decision.
+    pub context_tokens: Vec<u32>,
     /// Which rule fired (module docs).
     pub status: ScoreStatus,
     /// Active cloud A (ascending region id) with margins; empty under
@@ -726,6 +732,9 @@ pub struct GraphScorer {
     root_top: Vec<u32>,
     /// Per-region emission maps (index = region id), token → ΔE.
     emissions: Vec<BTreeMap<u32, ScoreQ>>,
+    /// Explicit bigram/trigram rows. The root prior remains the unigram
+    /// fallback in EMIT.
+    context_rows: BTreeMap<(u8, u32, u32), Vec<(u32, ScoreQ)>>,
     residual_exct: Option<Vec<BTreeMap<Vec<u8>, ResidualExctContext>>>,
     store: Option<Store>,
     artifacts: Option<Compiled>,
@@ -879,6 +888,23 @@ impl GraphScorer {
             node_index += 1;
         }
 
+        let mut context_rows = BTreeMap::new();
+        if let Some(table) = view
+            .ngram_table()
+            .map_err(|e| format!("invalid NGRAM section: {e}"))?
+        {
+            for row in table.rows() {
+                let entries: Vec<(u32, ScoreQ)> = row
+                    .entries()
+                    .map(|entry| (entry.token, entry.score_q))
+                    .collect();
+                if !entries.is_empty() {
+                    let key = (row.context_len(), row.key().0, row.key().1);
+                    context_rows.insert(key, entries);
+                }
+            }
+        }
+
         // EXCT: prefer compile-time residual tables. They can be used by
         // the deployed integer-only runtime; raw TLS1 remains accepted for
         // legacy Gate C/converter artifacts and uses the old certifier-side
@@ -930,6 +956,7 @@ impl GraphScorer {
             root_floor,
             root_top,
             emissions,
+            context_rows,
             residual_exct,
             store,
             artifacts,
@@ -978,6 +1005,43 @@ impl GraphScorer {
             .get(&token)
             .copied()
             .unwrap_or(self.root_floor)
+    }
+
+    /// Apply the explicit lexical backoff rule. A row is supported only when
+    /// it has at least one candidate; empty rows fall through to the next
+    /// context order and finally to the normal root/graph scorer.
+    fn context_prediction(&self, recent_tokens: &[u32]) -> Option<(u32, ScoreQ)> {
+        let tokens = if recent_tokens.first().is_some_and(|&token| token <= 1) {
+            &recent_tokens[1..]
+        } else {
+            recent_tokens
+        };
+        let keys = if tokens.len() >= 2 {
+            [
+                Some((2, tokens[tokens.len() - 2], tokens[tokens.len() - 1])),
+                tokens.last().copied().map(|token| (1, token, 0)),
+            ]
+        } else {
+            [None, tokens.last().copied().map(|token| (1, token, 0))]
+        };
+        for key in keys.into_iter().flatten() {
+            let Some(entries) = self.context_rows.get(&key) else {
+                continue;
+            };
+            let mut best = None;
+            for &(token, score) in entries {
+                if best.is_none_or(|(best_token, best_score): (u32, ScoreQ)| {
+                    score.raw() > best_score.raw()
+                        || (score.raw() == best_score.raw() && token < best_token)
+                }) {
+                    best = Some((token, score));
+                }
+            }
+            if best.is_some() {
+                return best;
+            }
+        }
+        None
     }
 
     /// Score one context signature: compute the active cloud A, the
@@ -1030,6 +1094,39 @@ impl GraphScorer {
         } else {
             recent_tokens
         };
+        if let Some((selected, selected_score)) = self.context_prediction(recent_tokens) {
+            let census = OpKernel {
+                table_reads: 1,
+                ..Default::default()
+            };
+            let context_tokens = recent_tokens.to_vec();
+            let witness = ScoreWitness {
+                graph_cid: self.graph_cid,
+                input_sig: *sig,
+                input_code: input_code.copied(),
+                context_tokens,
+                status: ScoreStatus::ExactContext,
+                active: Vec::new(),
+                chain: Vec::new(),
+                predicted: Vec::new(),
+                edges_applied: Vec::new(),
+                transition_offset: ScoreQ::ZERO,
+                f_emissions: self.f_emissions,
+                exct: None,
+                selected,
+                selected_score,
+                selected_contributions: Vec::new(),
+                candidate_count: 1,
+                census,
+            };
+            return Ok(ScoreOutcome {
+                selected,
+                selected_score,
+                candidates: vec![(selected, selected_score)],
+                candidate_components: vec![(selected, selected_score.raw(), 0, false)],
+                witness,
+            });
+        }
         let mut k = OpKernel::default();
 
         // Active cloud A: top-M memberships at each depth — exactly the
@@ -1350,6 +1447,7 @@ impl GraphScorer {
             graph_cid: self.graph_cid,
             input_sig: *sig,
             input_code: witness_code,
+            context_tokens: recent_tokens.to_vec(),
             status: if exact_context {
                 ScoreStatus::ExactContext
             } else if selected_chain.is_empty() {
@@ -1917,6 +2015,19 @@ impl GraphScorer {
         if state.residuals.len() != self.vocab as usize {
             return Err("step state does not match this scorer".to_owned());
         }
+        if let Some((selected, selected_score)) = self.context_prediction(recent_tokens) {
+            let census = OpKernel {
+                table_reads: 1,
+                ..Default::default()
+            };
+            return Ok(StepOutcome {
+                selected,
+                selected_score,
+                status: ScoreStatus::ExactContext,
+                candidate_count: 1,
+                census,
+            });
+        }
         let mut k = OpKernel::default();
         // Fresh epoch: stale stamps compare older and are overwritten on
         // first touch, so no vocabulary-sized buffer is re-zeroed.
@@ -2228,13 +2339,22 @@ pub fn verify_witness_replay(
         return Err(ReplayError::GraphCidMismatch);
     }
     let outcome = scorer
-        .score_candidates_coded(&witness.input_sig, witness.input_code.as_ref(), &[])
+        .score_candidates_coded(
+            &witness.input_sig,
+            witness.input_code.as_ref(),
+            &witness.context_tokens,
+        )
         .map_err(ReplayError::Artifact)?;
     let recomputed = &outcome.witness;
 
     if recomputed.input_code != witness.input_code {
         return Err(ReplayError::Artifact(
             "input_code mismatch on replay (witness contract, #243 Phase C)".to_owned(),
+        ));
+    }
+    if recomputed.context_tokens != witness.context_tokens {
+        return Err(ReplayError::Artifact(
+            "context_tokens mismatch on replay".to_owned(),
         ));
     }
     if recomputed.active != witness.active {
@@ -2335,5 +2455,54 @@ mod shift_arithmetic_tests {
         assert_eq!(shift_div_i128(42, 0), 0);
         assert_eq!(shift_div_i128(-42, 0), 0);
         assert_eq!(shift_div_i128(0, 0), 0);
+    }
+}
+
+#[cfg(test)]
+mod ngram_tests {
+    use super::*;
+
+    fn scorer(rows: BTreeMap<(u8, u32, u32), Vec<(u32, ScoreQ)>>) -> GraphScorer {
+        GraphScorer {
+            graph_cid: [0; 32],
+            regions: Vec::new(),
+            max_depth: 0,
+            forward_by_src: BTreeMap::new(),
+            root_prior: BTreeMap::new(),
+            root_floor: ScoreQ::ZERO,
+            root_top: Vec::new(),
+            emissions: Vec::new(),
+            context_rows: rows,
+            residual_exct: None,
+            store: None,
+            artifacts: None,
+            vocab: 32,
+            exct_top_x: 0,
+            pop: [0; 256],
+            f_emissions: false,
+            scoring_variant: ScoringVariant::ChainTelescoped,
+            fallback_policy: Default::default(),
+        }
+    }
+
+    #[test]
+    fn context_backoff_prefers_trigram_then_bigram() {
+        let mut rows = BTreeMap::new();
+        rows.insert((1, 20, 0), vec![(6, ScoreQ::from_raw(100))]);
+        rows.insert(
+            (2, 10, 20),
+            vec![(4, ScoreQ::from_raw(10)), (5, ScoreQ::from_raw(20))],
+        );
+        let mut scorer = scorer(rows);
+        assert_eq!(
+            scorer.context_prediction(&[10, 20]),
+            Some((5, ScoreQ::from_raw(20)))
+        );
+        scorer.context_rows.remove(&(2, 10, 20));
+        assert_eq!(
+            scorer.context_prediction(&[10, 20]),
+            Some((6, ScoreQ::from_raw(100)))
+        );
+        assert_eq!(scorer.context_prediction(&[30]), None);
     }
 }
