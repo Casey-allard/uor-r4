@@ -97,6 +97,19 @@ struct ZetaWindow {
 
 static WINDOWS: OnceLock<Vec<ZetaWindow>> = OnceLock::new();
 
+/// The 16 window-center frequencies of the design matrix (#313): one
+/// representative gamma per log-spaced window, computed with the same
+/// center rule `windows()` uses. Design P (#276) consumes these as its
+/// primary frequency set.
+pub fn window_center_gammas() -> [f64; NUM_WINDOWS] {
+    std::array::from_fn(|index| {
+        let ratio = index as f64 / (NUM_WINDOWS - 1) as f64;
+        let x_center = (X_MIN.ln() + ratio * (X_MAX.ln() - X_MIN.ln())).exp();
+        let center_idx = ((x_center.ln() / X_MAX.ln()) * TOTAL_CHANNELS as f64) as usize;
+        ZETA_ZEROS[center_idx.min(TOTAL_CHANNELS - 1)]
+    })
+}
+
 fn windows() -> &'static [ZetaWindow] {
     WINDOWS
         .get_or_init(|| {

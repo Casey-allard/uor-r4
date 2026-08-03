@@ -1243,6 +1243,131 @@ pub fn certify(oracle: &dyn TeacherOracle) {
             m.top1, m.agree, m.wb_bits, m.keys
         );
     }
+    // ============ Design P rows (issue #276; flags resolved 2026-08-03) ============
+    // Lane (b): transport-composed phase-clock addressing — cyclic graded
+    // codes on the zeta torus (docs/phase_clock_address_design.md).
+    // Certifier-side instrumentation ONLY (floats permitted here): the
+    // analytic completion stores (cos, sin) per frequency — the imaginary
+    // half the shipped sign signature discards — and the context phasor is
+    // the resultant over the same story-bounded window the bundles use.
+    // Digits quantize the resultant phase into b buckets; the store key at
+    // depth d is the first 4·d digits (4 frequencies per stage, matching
+    // the 4-stage A-row family). Runtime realization (cyclic thermometer =
+    // Design G popcount machinery) lands only if a row clears the standing
+    // criterion; rows first, kernel later, per the #276 batch-flow rule.
+    {
+        // Token → prime by first appearance (the router lineage's
+        // assignment rule, replayed deterministically on corpus token ids).
+        let mut prime_of: std::collections::BTreeMap<u32, f64> = std::collections::BTreeMap::new();
+        {
+            let mut next_candidate = 2u32;
+            let mut assign_order: Vec<u32> = Vec::new();
+            for i in 0..c.n {
+                let t = c.input[i];
+                if let std::collections::btree_map::Entry::Vacant(entry) = prime_of.entry(t) {
+                    assign_order.push(t);
+                    entry.insert(0.0);
+                }
+            }
+            for token in assign_order {
+                // Next prime by trial division (candidates ~ vocab·ln —
+                // compile-side, run once).
+                loop {
+                    let mut is_prime = next_candidate >= 2;
+                    let mut factor = 2u32;
+                    while factor.saturating_mul(factor) <= next_candidate {
+                        if next_candidate.is_multiple_of(factor) {
+                            is_prime = false;
+                            break;
+                        }
+                        factor += 1;
+                    }
+                    if is_prime {
+                        prime_of.insert(token, f64::from(next_candidate).ln());
+                        next_candidate += 1;
+                        break;
+                    }
+                    next_candidate += 1;
+                }
+            }
+        }
+        let gammas16 = uor_r4_core::zeta_projection::window_center_gammas();
+        // Context digits per position: resultant phasor per frequency over
+        // the story-bounded window ending at i (same WINDOW length the
+        // bundle path consumes).
+        let digits_for = |freqs: &[f64], b: u32| -> Vec<Vec<u8>> {
+            (0..c.n)
+                .map(|i| {
+                    let story = c.story[i];
+                    let mut start = i;
+                    while start > 0
+                        && i - start < compiler::WINDOW - 1
+                        && c.story[start - 1] == story
+                    {
+                        start -= 1;
+                    }
+                    freqs
+                        .iter()
+                        .map(|&gamma| {
+                            let (mut re, mut im) = (0f64, 0f64);
+                            for t in start..=i {
+                                let ln_p = prime_of.get(&c.input[t]).copied().unwrap_or(0.0);
+                                let theta = ln_p * gamma;
+                                re += theta.cos();
+                                im += theta.sin();
+                            }
+                            let phase = im.atan2(re); // (-pi, pi]
+                            let unit =
+                                (phase + std::f64::consts::PI) / (2.0 * std::f64::consts::PI);
+                            ((unit * f64::from(b)) as u32 % b) as u8
+                        })
+                        .collect()
+                })
+                .collect()
+        };
+        let stride8: Vec<f64> = gammas16.iter().copied().step_by(2).collect();
+        for (label, freqs, b) in [
+            ("P(12)", &gammas16[..], 12u32),
+            ("P(8)", &gammas16[..], 8u32),
+            ("P(12,F8)", &stride8[..], 12u32),
+        ] {
+            let digits = digits_for(freqs, b);
+            let per_stage = freqs.len() / STAGES;
+            let key_p = |i: usize, d: usize| -> Vec<u8> { digits[i][..per_stage * d].to_vec() };
+            let st_p = build_store_generic(&c, STAGES, &key_p);
+            let m = eval(&c, &st_p, STAGES, &key_p);
+            println!(
+                "A-{label} (#276 lane b: transport-composed phase clocks, b buckets, {} freqs [{per_stage}/stage], analytic completion): top1 {:.1}% | agreement {:.1}% | WB {:.4} bits/token | {} keys",
+                freqs.len(),
+                m.top1, m.agree, m.wb_bits, m.keys
+            );
+        }
+        // P∘G composition row: shipped stage code concatenated with the
+        // stage's 4 phase digits (separate scans at runtime; concatenated
+        // key here measures the joint address capacity).
+        let digits12 = digits_for(&gammas16[..], 12);
+        let gate_rotations = compiler::derive_rotations();
+        let codes_shipped: Vec<[u8; STAGES]> = (0..c.n)
+            .map(|i| runtime::code_plain(&art, &gate_rotations, &c, i))
+            .collect();
+        let per_stage = gammas16.len() / STAGES;
+        let key_pg = |i: usize, d: usize| -> Vec<u8> {
+            let mut key = Vec::with_capacity(d * (1 + per_stage));
+            for s in 0..d {
+                key.push(codes_shipped[i][s]);
+                key.extend_from_slice(&digits12[i][s * per_stage..(s + 1) * per_stage]);
+            }
+            key
+        };
+        let st_pg = build_store_generic(&c, STAGES, &key_pg);
+        let m = eval(&c, &st_pg, STAGES, &key_pg);
+        println!(
+            "A-P∘G(12) (#276 composition: shipped graded code + 4 phase digits per stage): top1 {:.1}% | agreement {:.1}% | WB {:.4} bits/token | {} keys",
+            m.top1, m.agree, m.wb_bits, m.keys
+        );
+    }
+    // ============ end Design P rows (issue #276) ============
+
     // ============ end Phase A decomposition rows (issues #243, #310) ============
 
     // ---- B: bit-prefix coordinate — signature bytes, no classes
