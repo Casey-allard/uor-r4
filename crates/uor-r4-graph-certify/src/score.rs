@@ -143,6 +143,21 @@ pub enum EmissionShrinkage {
     None,
     /// Scale by n / (n + T) per region.
     WittenBell,
+    /// Scale by the region's measured CONTRAST against the global prior.
+    ///
+    /// The cover's regions are densely estimated (3.1M observations each) and
+    /// genuinely predictive (own region emits the teacher 1.41x more often than
+    /// an unrelated one), but their emission lists are largely the same
+    /// globally-common tokens -- an unrelated region's top-E contains the
+    /// teacher 42.7% of the time. Specialization is thin, and the scorer applies
+    /// that thin margin as though it were a full correction.
+    ///
+    /// This weights each region's residual by how far its own top-E departs from
+    /// the global prior's top-E: a region indistinguishable from the prior
+    /// contributes nothing, a genuinely distinctive one contributes fully.
+    /// Evidence count is not the binding constraint (WittenBell measured
+    /// lambda = 0.9992 and changed nothing); contrast is.
+    Contrast,
 }
 
 /// How the per-region emission list is chosen before truncation (#364).
@@ -181,6 +196,14 @@ pub struct EmissionSelectionStats {
     /// Witten-Bell lambda = n / (n + T) per region; near 1 means the estimator
     /// barely shrinks and cannot test the sparsity hypothesis.
     pub mean_lambda_witten_bell: f64,
+    /// Distribution of per-region contrast against the global prior. Spread
+    /// says whether region construction has headroom: uniformly mid-range
+    /// contrast means the cover is generic everywhere, while high variance
+    /// means some regions are genuinely distinctive and granularity is the
+    /// lever.
+    pub mean_contrast: f64,
+    pub min_contrast: f64,
+    pub max_contrast: f64,
     pub mean_region_count: f64,
     pub mean_region_types: f64,
     pub overlap_with_top_count: f64,
@@ -730,6 +753,16 @@ pub fn compile_emissions(
         })
         .collect();
 
+    // The global prior's own top-E, used as the contrast reference: a region
+    // whose most-likely tokens are the prior's most-likely tokens is not
+    // conditioning on anything.
+    let root_top_set: std::collections::BTreeSet<u32> = {
+        let mut top: Vec<(u32, u64)> = root_dist.iter().map(|(&t, &c)| (t, c)).collect();
+        top.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.cmp(&b.0)));
+        top.truncate(config.emission_entries);
+        top.into_iter().map(|(t, _)| t).collect()
+    };
+
     let region_results: Vec<RegionEmissionResult> = regions
         .par_iter()
         .enumerate()
@@ -748,6 +781,22 @@ pub fn compile_emissions(
                 None => (&root_dist, root_total),
             };
             let parent_types = parent_dist.len();
+            // Contrast: how far this region's own most-likely tokens depart from
+            // the global prior's. Overlap 1.0 means the region looks exactly
+            // like the prior and its "correction" is noise; overlap 0 means it
+            // is fully distinctive. Computed on counts, independent of which
+            // selection rule is in force.
+            let contrast = {
+                let mut region_top: Vec<(u32, u64)> = dist.iter().map(|(&t, &c)| (t, c)).collect();
+                region_top.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.cmp(&b.0)));
+                region_top.truncate(config.emission_entries);
+                let shared = region_top
+                    .iter()
+                    .filter(|(token, _)| root_top_set.contains(token))
+                    .count();
+                let denom = region_top.len().max(1) as f64;
+                1.0 - (shared as f64 / denom)
+            };
             let mut residuals: Vec<(u32, ScoreQ)> = dist
                 .iter()
                 .map(|(&token, &count)| {
@@ -767,8 +816,10 @@ pub fn compile_emissions(
                     let ln = match config.emission_shrinkage {
                         EmissionShrinkage::None => ln,
                         EmissionShrinkage::WittenBell => {
-                            (f64::from(ln) * witten_bell_lambda(total, types)) as f32
+                            let lambda = witten_bell_lambda(total, types);
+                            (f64::from(ln) * lambda) as f32
                         }
+                        EmissionShrinkage::Contrast => (f64::from(ln) * contrast) as f32,
                     };
                     let score = ScoreQ::from_logprob(ln);
                     emission_quantization.record_ln_quantization(ln, score);
@@ -820,6 +871,9 @@ pub fn compile_emissions(
             let selection = EmissionSelectionStats {
                 regions: 1,
                 mean_lambda_witten_bell: lambda_wb,
+                mean_contrast: contrast,
+                min_contrast: contrast,
+                max_contrast: contrast,
                 mean_region_count: total as f64,
                 mean_region_types: types as f64,
                 overlap_with_top_count: overlap as f64 / by_count.len().max(1) as f64,
@@ -840,6 +894,14 @@ pub fn compile_emissions(
         selection_stats.overlap_with_top_count += selection.overlap_with_top_count;
         selection_stats.probability_mass_kept += selection.probability_mass_kept;
         selection_stats.mean_lambda_witten_bell += selection.mean_lambda_witten_bell;
+        selection_stats.mean_contrast += selection.mean_contrast;
+        if selection_stats.regions == 1 {
+            selection_stats.min_contrast = selection.min_contrast;
+            selection_stats.max_contrast = selection.max_contrast;
+        } else {
+            selection_stats.min_contrast = selection_stats.min_contrast.min(selection.min_contrast);
+            selection_stats.max_contrast = selection_stats.max_contrast.max(selection.max_contrast);
+        }
         selection_stats.mean_region_count += selection.mean_region_count;
         selection_stats.mean_region_types += selection.mean_region_types;
         emission_quantization.sample_count += stats.sample_count;
@@ -856,13 +918,16 @@ pub fn compile_emissions(
         eprintln!(
             "[emission-selection] regions={} mean_overlap_with_top_count={:.4} \
              mean_probability_mass_kept={:.4} mean_lambda_wb={:.4} \
-             mean_n={:.0} mean_types={:.0} (E={})",
+             mean_n={:.0} mean_types={:.0} contrast mean={:.4} min={:.4} max={:.4} (E={})",
             selection_stats.regions,
             selection_stats.overlap_with_top_count / n,
             selection_stats.probability_mass_kept / n,
             selection_stats.mean_lambda_witten_bell / n,
             selection_stats.mean_region_count / n,
             selection_stats.mean_region_types / n,
+            selection_stats.mean_contrast / n,
+            selection_stats.min_contrast,
+            selection_stats.max_contrast,
             config.emission_entries,
         );
     }

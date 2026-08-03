@@ -799,10 +799,11 @@ fn parse_score_options(args: &[String]) -> Result<ScoreOptions, String> {
                 options.emission_shrinkage = match value.as_str() {
                     "none" => score::EmissionShrinkage::None,
                     "witten-bell" => score::EmissionShrinkage::WittenBell,
+                    "contrast" => score::EmissionShrinkage::Contrast,
                     other => {
                         return Err(format!(
                             "invalid --emission-shrinkage value: {other} \
-                             (expected none|witten-bell)"
+                             (expected none|witten-bell|contrast)"
                         ));
                     }
                 };
