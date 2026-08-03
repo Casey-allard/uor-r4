@@ -213,38 +213,72 @@ fn r4g1_runtime_enforces_no_float_in_prediction_path() {
 }
 
 #[test]
-fn session_signature_is_bias_only_until_routing_is_calibrated() {
+fn session_signature_enters_rout_fallback_as_secondary_probe() {
+    // #247 decision (calibration recorded on the issue): the session lane
+    // is admitted to ROUT fallback as the SECONDARY probe — consulted only
+    // when the context probe admits nothing within a calibrated radius.
+    // Contract pinned here: (1) context primacy — with a context signature
+    // whose probe lands within-radius actives, differing session
+    // signatures cannot change routing; (2) session participation — with
+    // NO context signature, the session lane alone drives the fallback and
+    // the prediction is deterministic per signature.
     let (art_bytes, artifacts) = fixture_artifacts();
     let store = synthetic_store();
     let store_bytes = runtime::store_bytes(&store);
     let (r4g1_bytes, _) =
         convert_r4g1::convert(&art_bytes, &artifacts, &store, &store_bytes, None).unwrap();
     let runtime = R4G1Runtime::parse(&r4g1_bytes).unwrap();
-    let context_signature = [0x55u8; 36];
     let zero_session = [0u8; 36];
     let full_session = [0xffu8; 36];
 
-    let mut zero_scores = vec![ScoreQ::MIN; runtime.node_count() as usize];
-    let mut full_scores = vec![ScoreQ::MIN; runtime.node_count() as usize];
-    let zero = runtime.predict_distribution_with_signature_lanes(
+    // (2) session-only fallback: deterministic, and repeatable per signature.
+    let mut scores_a = vec![ScoreQ::MIN; runtime.node_count() as usize];
+    let mut scores_b = vec![ScoreQ::MIN; runtime.node_count() as usize];
+    let zero_once = runtime.predict_distribution_with_signature_lanes(
         &[3, 1, 4],
-        Some(&context_signature),
+        None,
         Some(&zero_session),
-        &mut zero_scores,
+        &mut scores_a,
+    );
+    let zero_again = runtime.predict_distribution_with_signature_lanes(
+        &[3, 1, 4],
+        None,
+        Some(&zero_session),
+        &mut scores_b,
+    );
+    assert_eq!(
+        zero_once, zero_again,
+        "session-driven fallback is deterministic"
     );
     let full = runtime.predict_distribution_with_signature_lanes(
         &[3, 1, 4],
+        None,
+        Some(&full_session),
+        &mut scores_b,
+    );
+    assert!(zero_once.1 >= ScoreQ::MIN);
+    assert!(full.1 >= ScoreQ::MIN);
+
+    // (1) context primacy: a context probe that lands within-radius actives
+    // (the all-zero signature matches the synthetic store's zero prototype)
+    // is not perturbed by the session lane.
+    let context_signature = [0u8; 36];
+    let with_zero = runtime.predict_distribution_with_signature_lanes(
+        &[3, 1, 4],
+        Some(&context_signature),
+        Some(&zero_session),
+        &mut scores_a,
+    );
+    let with_full = runtime.predict_distribution_with_signature_lanes(
+        &[3, 1, 4],
         Some(&context_signature),
         Some(&full_session),
-        &mut full_scores,
+        &mut scores_b,
     );
-
     assert_eq!(
-        zero.0, full.0,
-        "session lane must not change ROUT fallback yet"
+        with_zero.0, with_full.0,
+        "context primacy: within-radius context routing is not changed by the session lane"
     );
-    assert!(zero.1 >= ScoreQ::MIN);
-    assert!(full.1 >= ScoreQ::MIN);
 }
 
 #[test]

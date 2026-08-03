@@ -116,6 +116,65 @@ impl<'a> R4G1Runtime<'a> {
             .map_err(|e| RuntimeError::Patch(alloc::borrow::Cow::Borrowed(e)))
     }
 
+    /// One ROUT probe: query `sig` against the per-node prototypes/masks
+    /// (VP-tree when built, linear scan otherwise), filling `active_nodes`
+    /// with the within-radius matches (<= 8) and returning
+    /// `(nearest_node, within_radius_count)`. Extracted from the fallback
+    /// block so the #247 session-lane admission reuses the identical scan.
+    fn rout_probe(
+        &self,
+        base_graph: &uor_r4_graph_format::GraphView<'_>,
+        sig: &[u8],
+        active_nodes: &mut [u32],
+    ) -> (u32, usize) {
+        if let Some(index) = self.route_index.as_ref() {
+            let mut matched_nodes = [0u32; 8];
+            let (best_node, _best_dist, active_count) = index.query(sig, &mut matched_nodes);
+            active_nodes[..active_count].copy_from_slice(&matched_nodes[..active_count]);
+            (best_node, active_count)
+        } else {
+            let num_nodes = base_graph.node_count().unwrap_or(0);
+            let mut best_node = 0;
+            let mut best_dist = u32::MAX;
+            let mut active_count = 0usize;
+            let rout_bytes = base_graph.section(SectionId::ROUT).unwrap_or(&[]);
+
+            for n in 1..num_nodes {
+                if let Some(node) = base_graph.node(n) {
+                    let proto_offset = (node.prototype_word_start as usize) << 3;
+                    let mask_offset = (node.mask_word_start as usize) << 3;
+
+                    if proto_offset + sig.len() <= rout_bytes.len()
+                        && mask_offset + sig.len() <= rout_bytes.len()
+                    {
+                        let mut dist = 0u32;
+                        for (i, &s) in sig.iter().enumerate() {
+                            let p = rout_bytes[proto_offset + i];
+                            let m = rout_bytes[mask_offset + i];
+                            dist += ((s ^ p) & m).count_ones();
+                        }
+
+                        if dist < best_dist {
+                            best_dist = dist;
+                            best_node = n;
+                        }
+
+                        // Collect Quantum MoE ensemble nodes matching distance threshold
+                        let rad = u32::from(node.radius.0).max(120);
+                        if dist <= rad
+                            && active_count < 8
+                            && !active_nodes[..active_count].contains(&n)
+                        {
+                            active_nodes[active_count] = n;
+                            active_count += 1;
+                        }
+                    }
+                }
+            }
+            (best_node, active_count)
+        }
+    }
+
     pub fn view(&self) -> &GraphView<'a> {
         self.chain.base_graph()
     }
@@ -550,12 +609,14 @@ impl<'a> R4G1Runtime<'a> {
 
     /// Predict with separate context and session signatures.
     ///
-    /// The context signature remains the only input to ROUT fallback, so
-    /// enabling the session lane starts as a bias-only experiment. The
-    /// optional session signature participates in the existing emission
-    /// affinity bonus below; callers can later opt it into ROUT after an
-    /// evaluation establishes that the fallback prototypes are calibrated
-    /// for session-space inputs.
+    /// The context signature keeps primacy in ROUT fallback. Since the
+    /// #247 calibration (recorded on the issue: pinned multi-turn fixture
+    /// signatures through the shipped quantizer land 24/24 within ROUT
+    /// radii; declared admission criterion met), the session signature is
+    /// consulted as the SECONDARY fallback probe — only when the context
+    /// probe admits nothing within any calibrated radius. The session
+    /// signature also participates in the emission affinity bonus below,
+    /// unchanged.
     pub fn predict_distribution_with_signature_lanes(
         &self,
         context_tokens: &[u32],
@@ -664,55 +725,35 @@ impl<'a> R4G1Runtime<'a> {
         // Geometric Routing Fallback (Phase 6 & 8)
         // If the suffix DFA fell off the manifold, use the continuous 288-bit VSA signature
         // to find the top-M semantic regions N_best (N_best <= 8) to jump back onto the graph!
-        if (active_len == 0 || (active_len == 1 && active_nodes[0] == 0))
-            && let Some(sig) = context_signature
-        {
-            let (best_node, active_count) = if let Some(index) = self.route_index.as_ref() {
-                let mut matched_nodes = [0u32; 8];
-                let (best_node, _best_dist, active_count) = index.query(sig, &mut matched_nodes);
-                active_nodes[..active_count].copy_from_slice(&matched_nodes[..active_count]);
-                (best_node, active_count)
-            } else {
-                let mut best_node = 0;
-                let mut best_dist = u32::MAX;
-                let mut active_count = 0usize;
-                let rout_bytes = base_graph.section(SectionId::ROUT).unwrap_or(&[]);
-
-                for n in 1..num_nodes {
-                    if let Some(node) = base_graph.node(n) {
-                        let proto_offset = (node.prototype_word_start as usize) << 3;
-                        let mask_offset = (node.mask_word_start as usize) << 3;
-
-                        if proto_offset + sig.len() <= rout_bytes.len()
-                            && mask_offset + sig.len() <= rout_bytes.len()
-                        {
-                            let mut dist = 0u32;
-                            for i in 0..sig.len() {
-                                let p = rout_bytes[proto_offset + i];
-                                let m = rout_bytes[mask_offset + i];
-                                let s = sig[i];
-                                dist += ((s ^ p) & m).count_ones();
-                            }
-
-                            if dist < best_dist {
-                                best_dist = dist;
-                                best_node = n;
-                            }
-
-                            // Collect Quantum MoE ensemble nodes matching distance threshold
-                            let rad = u32::from(node.radius.0).max(120);
-                            if dist <= rad
-                                && active_count < 8
-                                && !active_nodes[..active_count].contains(&n)
-                            {
-                                active_nodes[active_count] = n;
-                                active_count += 1;
-                            }
-                        }
-                    }
+        //
+        // #247 admission (calibration recorded on the issue: fixture session
+        // signatures land 24/24 within ROUT radii through the shipped
+        // quantizer): the context signature keeps primacy, and the SESSION
+        // signature is consulted as the secondary probe only when the context
+        // probe admits nothing within any calibrated radius (previously such
+        // positions routed via the nearest out-of-radius prototype or fell
+        // through to Novel). Within-radius session routing beats
+        // outside-radius context routing by the radius rule's own semantics.
+        if active_len == 0 || (active_len == 1 && active_nodes[0] == 0) {
+            let mut best_node = 0u32;
+            let mut active_count = 0usize;
+            if let Some(sig) = context_signature {
+                (best_node, active_count) = self.rout_probe(base_graph, sig, &mut active_nodes);
+            }
+            if active_count == 0
+                && let Some(sig) = session_signature
+            {
+                let mut session_nodes = [0u32; 64];
+                let (session_best, session_count) =
+                    self.rout_probe(base_graph, sig, &mut session_nodes);
+                if session_count > 0 {
+                    active_nodes[..session_count].copy_from_slice(&session_nodes[..session_count]);
+                    best_node = session_best;
+                    active_count = session_count;
+                } else if best_node == 0 {
+                    best_node = session_best;
                 }
-                (best_node, active_count)
-            };
+            }
 
             if active_count > 0 {
                 active_len = active_count;

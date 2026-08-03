@@ -19,12 +19,60 @@ use uor_r4_graph_compiler::{
     },
 };
 use uor_r4_graph_format::ScoreQ;
+use uor_r4_graph_format::SectionId;
 use uor_r4_graph_runtime::R4G1Runtime;
-use uor_r4_router::session_signature_from_tokens;
+use uor_r4_router::{fixture_session_signatures, session_signature_from_tokens};
 
 const DEFAULT_ROOT: &str = ".uor-models/compiled/smollm2-135m-instruct";
 const DEFAULT_SAMPLE: usize = 256;
 const WINDOW: usize = compiler::WINDOW;
+
+/// Minimum masked-Hamming distance of `sig` against every node's ROUT
+/// prototype, plus whether any node admits it within the engine's radius
+/// rule (`max(radius, 120)` — the same floor the ROUT fallback applies).
+/// Mirrors the fallback scan in `engine.rs` byte for byte.
+fn rout_distance(runtime: &R4G1Runtime, sig: &[u8]) -> (u32, bool, f64) {
+    let view = runtime.view();
+    let rout_bytes = view.section(SectionId::ROUT).unwrap_or(&[]);
+    let num_nodes = runtime.node_count();
+    let mut best = u32::MAX;
+    let mut within = false;
+    let mut best_ratio = f64::INFINITY;
+    for n in 1..num_nodes {
+        if let Some(node) = view.node(n) {
+            let proto_offset = (node.prototype_word_start as usize) << 3;
+            let mask_offset = (node.mask_word_start as usize) << 3;
+            if proto_offset + sig.len() <= rout_bytes.len()
+                && mask_offset + sig.len() <= rout_bytes.len()
+            {
+                let mut dist = 0u32;
+                for (i, &s) in sig.iter().enumerate() {
+                    let p = rout_bytes[proto_offset + i];
+                    let m = rout_bytes[mask_offset + i];
+                    dist += ((s ^ p) & m).count_ones();
+                }
+                let rad = u32::from(node.radius.0).max(120);
+                if dist <= rad {
+                    within = true;
+                }
+                let ratio = dist as f64 / rad as f64;
+                if ratio < best_ratio {
+                    best_ratio = ratio;
+                }
+                best = best.min(dist);
+            }
+        }
+    }
+    (best, within, best_ratio)
+}
+
+fn median(values: &mut [f64]) -> f64 {
+    if values.is_empty() {
+        return f64::NAN;
+    }
+    values.sort_by(|a, b| a.partial_cmp(b).expect("finite ratios"));
+    values[values.len() / 2]
+}
 
 fn load_probability_metadata(
     probability_dir: Option<&Path>,
@@ -86,7 +134,10 @@ fn alternate_history(history: &[u32]) -> Vec<u32> {
 }
 
 fn main() -> Result<(), String> {
-    let mut args = env::args().skip(1).filter(|arg| arg != "--bench");
+    let rout_calibration = env::args().any(|arg| arg == "--rout-calibration");
+    let mut args = env::args()
+        .skip(1)
+        .filter(|arg| arg != "--bench" && arg != "--rout-calibration");
     let root = PathBuf::from(args.next().unwrap_or_else(|| DEFAULT_ROOT.to_owned()));
     let sample_target = args
         .next()
@@ -140,6 +191,8 @@ fn main() -> Result<(), String> {
     let rotations = compiler::derive_rotations();
     let mut node_scores = vec![ScoreQ::MIN; runtime.node_count() as usize];
 
+    let mut context_within = 0u64;
+    let mut context_ratios: Vec<f64> = Vec::new();
     let mut context_hits = 0u64;
     let mut session_hits = 0u64;
     let mut context_teacher_hits = 0u64;
@@ -154,6 +207,11 @@ fn main() -> Result<(), String> {
         let alternate = alternate_history(&history);
         let bundle = runtime::bundle_window_plain(&artifacts, &rotations, &context);
         let context_signature = runtime::sig_plain(&artifacts, &bundle);
+        if rout_calibration {
+            let (_, within, ratio) = rout_distance(&runtime, &context_signature);
+            context_within += u64::from(within);
+            context_ratios.push(ratio);
+        }
         let session_signature = session_signature_from_tokens(&history);
         let alternate_signature = session_signature_from_tokens(&alternate);
 
@@ -289,6 +347,59 @@ fn main() -> Result<(), String> {
             "probability_metadata=unavailable (pass an observation directory containing manifest.json and *.prob sidecars)"
         ),
         (Some(_), None) => unreachable!("non-empty samples produce entropy quartiles"),
+    }
+
+    if rout_calibration {
+        // #247 decision measurement: are the ROUT fallback prototypes
+        // calibrated for session-space inputs? Session signatures come from
+        // the pinned multi-turn fixture through the SHIPPED path
+        // (index_corpus -> evolve_state -> session_signature_from_state);
+        // the reference population is the context signatures of the same
+        // held-out sample. Declared criterion (issue #247, posted before
+        // this run): the session lane may enter ROUT fallback only if the
+        // session within-radius fraction reaches at least half the context
+        // fraction AND the session lane's teacher agreement above is not
+        // below the context lane's.
+        let session_sigs = fixture_session_signatures();
+        let mut session_within = 0u64;
+        let mut session_ratios: Vec<f64> = Vec::new();
+        for sig in &session_sigs {
+            let (_, within, ratio) = rout_distance(&runtime, sig);
+            session_within += u64::from(within);
+            session_ratios.push(ratio);
+        }
+        let context_fraction = context_within as f64 / count;
+        let session_fraction = session_within as f64 / session_sigs.len() as f64;
+        println!(
+            "rout_calibration_context_within_radius={context_within}/{}",
+            positions.len()
+        );
+        println!(
+            "rout_calibration_session_within_radius={session_within}/{}",
+            session_sigs.len()
+        );
+        println!(
+            "rout_calibration_context_median_dist_over_radius={:.4}",
+            median(&mut context_ratios)
+        );
+        println!(
+            "rout_calibration_session_median_dist_over_radius={:.4}",
+            median(&mut session_ratios)
+        );
+        let admit = session_fraction >= 0.5 * context_fraction
+            && session_teacher_hits >= context_teacher_hits;
+        println!(
+            "rout_calibration_verdict={} (session_fraction {:.4} vs 0.5*context_fraction {:.4}; session_teacher {} vs context_teacher {})",
+            if admit {
+                "ADMIT-CANDIDATE"
+            } else {
+                "KEEP-BIAS-ONLY"
+            },
+            session_fraction,
+            0.5 * context_fraction,
+            session_teacher_hits,
+            context_teacher_hits,
+        );
     }
     Ok(())
 }
