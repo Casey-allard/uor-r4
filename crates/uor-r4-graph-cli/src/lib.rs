@@ -749,6 +749,7 @@ struct ScoreOptions {
     emission_shrinkage: score::EmissionShrinkage,
     context_order: u8,
     context_entries: usize,
+    gate_c_context_window: bool,
     root_top_b: usize,
     exct_top_x: usize,
     witness_sample: usize,
@@ -772,6 +773,7 @@ fn parse_score_options(args: &[String]) -> Result<ScoreOptions, String> {
         emission_shrinkage: score::EmissionShrinkage::default(),
         context_order: score::DEFAULT_CONTEXT_ORDER,
         context_entries: score::DEFAULT_CONTEXT_ENTRIES,
+        gate_c_context_window: false,
         root_top_b: score::DEFAULT_ROOT_TOP_B,
         exct_top_x: score::DEFAULT_EXCT_TOP_X,
         witness_sample: score::DEFAULT_WITNESS_SAMPLE,
@@ -851,6 +853,17 @@ fn parse_score_options(args: &[String]) -> Result<ScoreOptions, String> {
                 if options.context_entries == 0 {
                     return Err("--context-entries must be at least 1".to_owned());
                 }
+            }
+            "--gate-c-context-window" => {
+                options.gate_c_context_window = match value.as_str() {
+                    "on" | "true" => true,
+                    "off" | "false" => false,
+                    other => {
+                        return Err(format!(
+                            "invalid --gate-c-context-window value: {other} (expected on|off)"
+                        ));
+                    }
+                };
             }
             "--root-top-b" => {
                 options.root_top_b = value
@@ -994,6 +1007,7 @@ pub fn score_command(args: &[String]) -> Result<(), String> {
         emission_shrinkage: options.emission_shrinkage,
         context_order: options.context_order,
         context_entries: options.context_entries,
+        gate_c_context_window: options.gate_c_context_window,
     };
     let (train_positions, held_out_positions) = match &options.stories {
         // D3 natural partition (issue #72): the observation pass records
@@ -2659,6 +2673,7 @@ mod tests {
         assert_eq!(options.emission_shrinkage, score::EmissionShrinkage::None);
         assert_eq!(options.context_order, score::DEFAULT_CONTEXT_ORDER);
         assert_eq!(options.context_entries, score::DEFAULT_CONTEXT_ENTRIES);
+        assert!(!options.gate_c_context_window);
         assert_eq!(options.root_top_b, score::DEFAULT_ROOT_TOP_B);
         assert_eq!(options.exct_top_x, score::DEFAULT_EXCT_TOP_X);
         assert_eq!(options.witness_sample, score::DEFAULT_WITNESS_SAMPLE);

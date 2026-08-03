@@ -432,6 +432,15 @@ pub struct ScoreConfig {
     pub emission_selection: EmissionSelection,
     /// Per-region residual shrinkage (issue #364).
     pub emission_shrinkage: EmissionShrinkage,
+    /// Opt-in #375: Gate C rows evaluate with a real story-bounded
+    /// recent-token window (up to the scorer's 32-token cap) instead of
+    /// the historical empty window. With the window on, NGRAM context
+    /// rows (#362) can fire (attributed via the #371 ngram/probe split)
+    /// AND the repetition penalty engages — both are serving-path
+    /// semantics, so window-on rows are closer to what serving does,
+    /// but they are NOT comparable with window-off (historical) rows.
+    /// Default off reproduces the historical rows byte-exactly.
+    pub gate_c_context_window: bool,
     /// Highest explicit lexical context order compiled into NGRAM rows:
     /// 0 = no rows (geometric path serves everywhere), 1 = bigram only,
     /// 2 = bigram + trigram (shipped default). The #364/#362 A/B knob:
@@ -458,6 +467,7 @@ impl Default for ScoreConfig {
             emission_shrinkage: EmissionShrinkage::default(),
             context_order: DEFAULT_CONTEXT_ORDER,
             context_entries: DEFAULT_CONTEXT_ENTRIES,
+            gate_c_context_window: false,
         }
     }
 }
@@ -2568,6 +2578,22 @@ struct GateCContext<'a> {
     config: &'a ScoreConfig,
 }
 
+/// The story-bounded recent-token window ending at `position`'s input
+/// token (#375): up to `max_len` tokens of `corpus.input`, never
+/// crossing a story boundary — the same boundary rule
+/// [`compile_context_rows`] applies when building trigram keys, so a
+/// window-mode probe sees exactly the keys the compiler could have
+/// built for that position.
+pub fn story_bounded_window(corpus: &Corpus, position: usize, max_len: usize) -> &[u32] {
+    let story = corpus.story[position];
+    let lo = position.saturating_sub(max_len.saturating_sub(1));
+    let mut start = position;
+    while start > lo && corpus.story[start - 1] == story {
+        start -= 1;
+    }
+    &corpus.input[start..=position]
+}
+
 fn evaluate_gate_c_row(
     index: usize,
     observation: &Observation,
@@ -2576,6 +2602,11 @@ fn evaluate_gate_c_row(
     let position = observation.position as usize;
     let teacher_argmax = context.corpus.t_argmax[position];
     let next = context.corpus.next[position];
+    let window: &[u32] = if context.config.gate_c_context_window {
+        story_bounded_window(context.corpus, position, 32)
+    } else {
+        &[]
+    };
     let code = runtime::code_plain(
         context.artifacts,
         context.gate_rotations,
@@ -2589,27 +2620,29 @@ fn evaluate_gate_c_row(
     let rule1 =
         context
             .scorer_no_exct
-            .score_candidates_coded(&observation.sig, Some(&code), &[])?;
+            .score_candidates_coded(&observation.sig, Some(&code), window)?;
     let rule12 =
         context
             .scorer_with_exct
-            .score_candidates_coded(&observation.sig, Some(&code), &[])?;
-    let rule1_no_f =
-        context
-            .scorer_no_exct_no_f
-            .score_candidates_coded(&observation.sig, Some(&code), &[])?;
-    let rule12_no_f =
-        context
-            .scorer_with_exct_no_f
-            .score_candidates_coded(&observation.sig, Some(&code), &[])?;
+            .score_candidates_coded(&observation.sig, Some(&code), window)?;
+    let rule1_no_f = context.scorer_no_exct_no_f.score_candidates_coded(
+        &observation.sig,
+        Some(&code),
+        window,
+    )?;
+    let rule12_no_f = context.scorer_with_exct_no_f.score_candidates_coded(
+        &observation.sig,
+        Some(&code),
+        window,
+    )?;
     let normalized =
         context
             .scorer_normalized
-            .score_candidates_coded(&observation.sig, Some(&code), &[])?;
+            .score_candidates_coded(&observation.sig, Some(&code), window)?;
     let margin =
         context
             .scorer_margin
-            .score_candidates_coded(&observation.sig, Some(&code), &[])?;
+            .score_candidates_coded(&observation.sig, Some(&code), window)?;
     let baseline = runtime::predict_witness_plain(context.store, &code);
 
     let hits = [
@@ -2923,7 +2956,9 @@ fn evaluate_gate_c_row(
 /// probe) so post-#362 rows remain comparable with pre-#362 ones;
 /// 14 = context-row compile knobs (`config.context_order` /
 /// `config.context_entries`) recorded so NGRAM A/B bundles are
-/// attributable.
+/// attributable; 15 = #375 opt-in Gate C window mode recorded
+/// (`config.gate_c_context_window`) — window-on rows are a different
+/// measurement population from every schema-≤14 row.
 #[derive(Debug, Clone, Serialize)]
 pub struct ScoreReport {
     pub schema: u32,
@@ -3015,6 +3050,11 @@ pub struct ScoreReportConfig {
     pub context_order: u8,
     /// Per-context candidate bound for the compiled NGRAM rows.
     pub context_entries: usize,
+    /// Whether Gate C rows evaluated with the story-bounded recent-token
+    /// window (#375; schema 15). Window-on rows are NOT comparable with
+    /// window-off rows — NGRAM rows fire and the repetition penalty
+    /// engages.
+    pub gate_c_context_window: bool,
     /// Quality-gate basis for this distribution. `pinned` applies the
     /// historical Gate C absolute floor; `relative_tla` only compares the
     /// graph with the TLA baseline measured on the same corpus.
@@ -3111,7 +3151,7 @@ pub fn build_score_report_with_quality_profile(
         can_measure_generalization: strict_exct_miss_rate >= MIN_EXCT_MISS_RATE_FOR_GATE_C,
     };
     ScoreReport {
-        schema: 14,
+        schema: 15,
         inputs,
         config: ScoreReportConfig {
             transition_out_degree: config.transition_out_degree,
@@ -3126,6 +3166,7 @@ pub fn build_score_report_with_quality_profile(
             emission_shrinkage: config.emission_shrinkage.label(),
             context_order: config.context_order,
             context_entries: config.context_entries,
+            gate_c_context_window: config.gate_c_context_window,
             quality_profile: quality_profile.to_owned(),
         },
         graph: ScoreReportGraph {
@@ -3333,6 +3374,20 @@ mod context_rows_tests {
         };
         let rows = compile_context_rows(&corpus, &observations, 100, &bounded);
         assert!(rows.iter().all(|row| row.entries.len() <= 1));
+    }
+
+    /// #375: the Gate C window is story-bounded and capped, matching the
+    /// boundary rule the compiler applies to trigram keys.
+    #[test]
+    fn story_bounded_window_respects_boundaries_and_cap() {
+        let corpus = corpus(); // story: [0, 0, 1, 1, 1], input: [10, 20, 30, 40, 50]
+        assert_eq!(super::story_bounded_window(&corpus, 1, 32), &[10, 20]);
+        // Position 2 opens story 1: the window must not reach back into story 0.
+        assert_eq!(super::story_bounded_window(&corpus, 2, 32), &[30]);
+        assert_eq!(super::story_bounded_window(&corpus, 4, 32), &[30, 40, 50]);
+        // The cap bounds the window even inside one story.
+        assert_eq!(super::story_bounded_window(&corpus, 4, 2), &[40, 50]);
+        assert_eq!(super::story_bounded_window(&corpus, 4, 1), &[50]);
     }
 }
 
