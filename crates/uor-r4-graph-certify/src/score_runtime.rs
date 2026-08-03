@@ -155,6 +155,12 @@ pub const EDGE_KIND_FORWARD: u8 = 2;
 /// runtime's top-M).
 pub const TOP_M: usize = 3;
 
+/// The shipped repetition-suppression penalty in raw ScoreQ units
+/// (~-30.5 nats). Issue #381 made the magnitude sweepable at the
+/// certifier level after the windowed Gate C measurement showed it costs
+/// ~10pp top-1 on the fixture distribution.
+pub const DEFAULT_REPETITION_PENALTY_RAW: i32 = -2_000_000;
+
 /// EXCT section body marker for compile-time integer residual tables.
 /// The four-byte storage descriptor still prefixes this body on disk.
 pub const RESIDUAL_EXCT_MAGIC: [u8; 4] = *b"RX1\0";
@@ -770,6 +776,7 @@ pub struct GraphScorer {
     /// F-invariant. Re-enable only with a measured per-token ΔT design.
     f_emissions: bool,
     scoring_variant: ScoringVariant,
+    repetition_penalty_raw: i32,
     fallback_policy: uor_r4_core::transformerless::resolution_status::FallbackPolicy,
 }
 
@@ -800,6 +807,16 @@ impl GraphScorer {
     /// Set the candidate scoring variant (issue #80).
     pub fn set_scoring_variant(&mut self, variant: ScoringVariant) {
         self.scoring_variant = variant;
+    }
+
+    /// Set the repetition-penalty magnitude (issue #381; raw ScoreQ units,
+    /// must be <= 0). The shipped default is
+    /// [`DEFAULT_REPETITION_PENALTY_RAW`]; the knob exists so the penalty's
+    /// measured ~10pp top-1 cost on windowed evaluation can be swept rather
+    /// than assumed. Serving keeps the default unless a maintainer decision
+    /// changes it.
+    pub fn set_repetition_penalty_raw(&mut self, raw: i32) {
+        self.repetition_penalty_raw = raw.min(0);
     }
 
     /// The active candidate scoring variant.
@@ -986,6 +1003,7 @@ impl GraphScorer {
             pop: runtime::derive_popcount_table(),
             f_emissions: false,
             scoring_variant: ScoringVariant::ChainTelescoped,
+            repetition_penalty_raw: DEFAULT_REPETITION_PENALTY_RAW,
             fallback_policy,
         })
     }
@@ -1452,8 +1470,8 @@ impl GraphScorer {
             let mut score = base.saturating_add(with_offset);
             k.adds += 1;
             if recent_tokens.contains(&token) {
-                // ~-30 nats suppression penalty for repetition control
-                score = score.saturating_add(ScoreQ::from_raw(-2_000_000));
+                // Suppression penalty for repetition control (#381 knob).
+                score = score.saturating_add(ScoreQ::from_raw(self.repetition_penalty_raw));
                 k.adds += 1;
             }
             contributions.sort_by_key(|c| c.id);
@@ -2236,7 +2254,7 @@ impl GraphScorer {
             .saturating_add(ScoreQ::from_raw(state.residuals[best as usize]));
         k.adds += 1;
         if recent_tokens.contains(&best) {
-            best_score = best_score.saturating_add(ScoreQ::from_raw(-2_000_000));
+            best_score = best_score.saturating_add(ScoreQ::from_raw(self.repetition_penalty_raw));
             k.adds += 1;
         }
         for &token in state.touched.iter().skip(1) {
@@ -2247,7 +2265,7 @@ impl GraphScorer {
                 .saturating_add(ScoreQ::from_raw(state.residuals[token as usize]));
             k.adds += 1;
             if recent_tokens.contains(&token) {
-                score = score.saturating_add(ScoreQ::from_raw(-2_000_000));
+                score = score.saturating_add(ScoreQ::from_raw(self.repetition_penalty_raw));
                 k.adds += 1;
             }
             if score > best_score || (score == best_score && token < best) {
@@ -2532,6 +2550,7 @@ mod ngram_tests {
             pop: [0; 256],
             f_emissions: false,
             scoring_variant: ScoringVariant::ChainTelescoped,
+            repetition_penalty_raw: DEFAULT_REPETITION_PENALTY_RAW,
             fallback_policy: Default::default(),
         }
     }

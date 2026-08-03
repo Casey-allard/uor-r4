@@ -432,6 +432,13 @@ pub struct ScoreConfig {
     pub emission_selection: EmissionSelection,
     /// Per-region residual shrinkage (issue #364).
     pub emission_shrinkage: EmissionShrinkage,
+    /// Repetition-suppression penalty magnitude in raw ScoreQ units
+    /// (#381; <= 0). Applied by the scorer when a candidate token appears
+    /// in the recent-token window — which, on Gate C, only happens under
+    /// the #375 window mode. Default is the shipped constant; the knob
+    /// exists to SWEEP the measured ~10pp windowed top-1 cost, not to
+    /// change serving (serving keeps the scorer default).
+    pub repetition_penalty_raw: i32,
     /// Opt-in #375: Gate C rows evaluate with a real story-bounded
     /// recent-token window (up to the scorer's 32-token cap) instead of
     /// the historical empty window. With the window on, NGRAM context
@@ -468,6 +475,7 @@ impl Default for ScoreConfig {
             context_order: DEFAULT_CONTEXT_ORDER,
             context_entries: DEFAULT_CONTEXT_ENTRIES,
             gate_c_context_window: false,
+            repetition_penalty_raw: super::score_runtime::DEFAULT_REPETITION_PENALTY_RAW,
         }
     }
 }
@@ -2058,6 +2066,7 @@ pub fn evaluate_gate_c(
         GraphScorer::from_artifact(r4g1, None, config.root_top_b, config.exct_top_x)?;
     scorer_no_exct.set_f_emissions(true);
     scorer_no_exct.set_scoring_variant(config.scoring_variant);
+    scorer_no_exct.set_repetition_penalty_raw(config.repetition_penalty_raw);
     let mut scorer_with_exct = GraphScorer::from_artifact(
         r4g1,
         Some(artifact_container),
@@ -2066,11 +2075,13 @@ pub fn evaluate_gate_c(
     )?;
     scorer_with_exct.set_f_emissions(true);
     scorer_with_exct.set_scoring_variant(config.scoring_variant);
+    scorer_with_exct.set_repetition_penalty_raw(config.repetition_penalty_raw);
     // Ablation scorers (issue #66): identical configs with ΔT emissions off
     // (the deployed default since the ablation decision).
     let mut scorer_no_exct_no_f =
         GraphScorer::from_artifact(r4g1, None, config.root_top_b, config.exct_top_x)?;
     scorer_no_exct_no_f.set_scoring_variant(config.scoring_variant);
+    scorer_no_exct_no_f.set_repetition_penalty_raw(config.repetition_penalty_raw);
     let mut scorer_with_exct_no_f = GraphScorer::from_artifact(
         r4g1,
         Some(artifact_container),
@@ -2078,6 +2089,7 @@ pub fn evaluate_gate_c(
         config.exct_top_x,
     )?;
     scorer_with_exct_no_f.set_scoring_variant(config.scoring_variant);
+    scorer_with_exct_no_f.set_repetition_penalty_raw(config.repetition_penalty_raw);
     let mut scorer_normalized = GraphScorer::from_artifact(
         r4g1,
         Some(artifact_container),
@@ -2085,6 +2097,7 @@ pub fn evaluate_gate_c(
         config.exct_top_x,
     )?;
     scorer_normalized.set_scoring_variant(ScoringVariant::CloudSizeNormalized);
+    scorer_normalized.set_repetition_penalty_raw(config.repetition_penalty_raw);
     let mut scorer_margin = GraphScorer::from_artifact(
         r4g1,
         Some(artifact_container),
@@ -2092,6 +2105,7 @@ pub fn evaluate_gate_c(
         config.exct_top_x,
     )?;
     scorer_margin.set_scoring_variant(ScoringVariant::MarginWeighted);
+    scorer_margin.set_repetition_penalty_raw(config.repetition_penalty_raw);
 
     let mut outcome = GateCOutcome::default();
     let mut bits_legacy = 0f64;
@@ -2690,7 +2704,8 @@ fn evaluate_gate_c_row(
     let (mut root_lo, mut root_hi) = (i64::MAX, i64::MIN);
     let (mut resid_lo, mut resid_hi) = (i64::MAX, i64::MIN);
     for &(token, root_raw, resid_raw, penalized) in &rule12.candidate_components {
-        let root_term = i64::from(root_raw) + if penalized { -2_000_000 } else { 0 };
+        let penalty = i64::from(context.config.repetition_penalty_raw);
+        let root_term = i64::from(root_raw) + if penalized { penalty } else { 0 };
         if root_term > root_best_score {
             root_best_score = root_term;
             root_best = token;
@@ -2709,7 +2724,12 @@ fn evaluate_gate_c_row(
         .candidate_components
         .iter()
         .map(|&(token, root_raw, _, penalized)| {
-            let raw = root_raw + if penalized { -2_000_000 } else { 0 };
+            let raw = root_raw
+                + if penalized {
+                    context.config.repetition_penalty_raw
+                } else {
+                    0
+                };
             (token, ScoreQ::from_raw(raw))
         })
         .collect();
@@ -2831,7 +2851,13 @@ fn evaluate_gate_c_row(
         let mut best_score = i64::MIN;
         for &(token, root_raw, resid_raw, penalized) in &rule12.candidate_components {
             let scaled = i64::from(resid_raw) * num / den;
-            let score = i64::from(root_raw) + scaled + if penalized { -2_000_000 } else { 0 };
+            let score = i64::from(root_raw)
+                + scaled
+                + if penalized {
+                    i64::from(context.config.repetition_penalty_raw)
+                } else {
+                    0
+                };
             if score > best_score {
                 best_score = score;
                 best_token = token;
@@ -2958,7 +2984,9 @@ fn evaluate_gate_c_row(
 /// `config.context_entries`) recorded so NGRAM A/B bundles are
 /// attributable; 15 = #375 opt-in Gate C window mode recorded
 /// (`config.gate_c_context_window`) — window-on rows are a different
-/// measurement population from every schema-≤14 row.
+/// measurement population from every schema-≤14 row; 16 = #381
+/// sweepable repetition penalty recorded
+/// (`config.repetition_penalty_raw`).
 #[derive(Debug, Clone, Serialize)]
 pub struct ScoreReport {
     pub schema: u32,
@@ -3055,6 +3083,9 @@ pub struct ScoreReportConfig {
     /// window-off rows — NGRAM rows fire and the repetition penalty
     /// engages.
     pub gate_c_context_window: bool,
+    /// The repetition-penalty magnitude the scorers applied (#381;
+    /// schema 16; raw ScoreQ units, shipped default -2,000,000).
+    pub repetition_penalty_raw: i32,
     /// Quality-gate basis for this distribution. `pinned` applies the
     /// historical Gate C absolute floor; `relative_tla` only compares the
     /// graph with the TLA baseline measured on the same corpus.
@@ -3151,7 +3182,7 @@ pub fn build_score_report_with_quality_profile(
         can_measure_generalization: strict_exct_miss_rate >= MIN_EXCT_MISS_RATE_FOR_GATE_C,
     };
     ScoreReport {
-        schema: 15,
+        schema: 16,
         inputs,
         config: ScoreReportConfig {
             transition_out_degree: config.transition_out_degree,
@@ -3167,6 +3198,7 @@ pub fn build_score_report_with_quality_profile(
             context_order: config.context_order,
             context_entries: config.context_entries,
             gate_c_context_window: config.gate_c_context_window,
+            repetition_penalty_raw: config.repetition_penalty_raw,
             quality_profile: quality_profile.to_owned(),
         },
         graph: ScoreReportGraph {

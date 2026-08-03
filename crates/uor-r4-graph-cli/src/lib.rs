@@ -750,6 +750,7 @@ struct ScoreOptions {
     context_order: u8,
     context_entries: usize,
     gate_c_context_window: bool,
+    repetition_penalty_raw: i32,
     root_top_b: usize,
     exct_top_x: usize,
     witness_sample: usize,
@@ -774,6 +775,7 @@ fn parse_score_options(args: &[String]) -> Result<ScoreOptions, String> {
         context_order: score::DEFAULT_CONTEXT_ORDER,
         context_entries: score::DEFAULT_CONTEXT_ENTRIES,
         gate_c_context_window: false,
+        repetition_penalty_raw: score::DEFAULT_REPETITION_PENALTY_RAW,
         root_top_b: score::DEFAULT_ROOT_TOP_B,
         exct_top_x: score::DEFAULT_EXCT_TOP_X,
         witness_sample: score::DEFAULT_WITNESS_SAMPLE,
@@ -852,6 +854,16 @@ fn parse_score_options(args: &[String]) -> Result<ScoreOptions, String> {
                     .map_err(|_| format!("invalid --context-entries value: {value}"))?;
                 if options.context_entries == 0 {
                     return Err("--context-entries must be at least 1".to_owned());
+                }
+            }
+            "--repetition-penalty-raw" => {
+                options.repetition_penalty_raw = value
+                    .parse()
+                    .map_err(|_| format!("invalid --repetition-penalty-raw value: {value}"))?;
+                if options.repetition_penalty_raw > 0 {
+                    return Err(
+                        "--repetition-penalty-raw must be <= 0 (raw ScoreQ units)".to_owned()
+                    );
                 }
             }
             "--gate-c-context-window" => {
@@ -1008,6 +1020,7 @@ pub fn score_command(args: &[String]) -> Result<(), String> {
         context_order: options.context_order,
         context_entries: options.context_entries,
         gate_c_context_window: options.gate_c_context_window,
+        repetition_penalty_raw: options.repetition_penalty_raw,
     };
     let (train_positions, held_out_positions) = match &options.stories {
         // D3 natural partition (issue #72): the observation pass records
@@ -2674,6 +2687,10 @@ mod tests {
         assert_eq!(options.context_order, score::DEFAULT_CONTEXT_ORDER);
         assert_eq!(options.context_entries, score::DEFAULT_CONTEXT_ENTRIES);
         assert!(!options.gate_c_context_window);
+        assert_eq!(
+            options.repetition_penalty_raw,
+            score::DEFAULT_REPETITION_PENALTY_RAW
+        );
         assert_eq!(options.root_top_b, score::DEFAULT_ROOT_TOP_B);
         assert_eq!(options.exct_top_x, score::DEFAULT_EXCT_TOP_X);
         assert_eq!(options.witness_sample, score::DEFAULT_WITNESS_SAMPLE);
