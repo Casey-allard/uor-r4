@@ -630,6 +630,11 @@ pub struct ScoreOutcome {
     pub selected_score: ScoreQ,
     /// Every candidate `(token, score)` in ascending token order.
     pub candidates: Vec<(u32, ScoreQ)>,
+    /// Per-candidate score decomposition, ascending token order:
+    /// `(token, root_raw, residual_with_offset_raw, repetition_penalized)`.
+    /// Measurement only — lets the certifier ask whether the graph residual
+    /// changes any decision, or whether ranking is carried by the root prior.
+    pub candidate_components: Vec<(u32, i32, i32, bool)>,
     pub witness: ScoreWitness,
 }
 
@@ -1284,6 +1289,7 @@ impl GraphScorer {
         // Also apply bounded integer repetition control via recent_tokens.
         let mut ranked_candidates: Vec<(u32, ScoreQ, Vec<Contribution>)> =
             Vec::with_capacity(candidates.len());
+        let mut components: Vec<(u32, i32, i32, bool)> = Vec::with_capacity(candidates.len());
         for (token, (residual, mut contributions)) in candidates {
             let with_offset = residual.saturating_add(transition_offset);
             k.adds += 1;
@@ -1296,6 +1302,12 @@ impl GraphScorer {
                 k.adds += 1;
             }
             contributions.sort_by_key(|c| c.id);
+            components.push((
+                token,
+                base.raw(),
+                with_offset.raw(),
+                recent_tokens.contains(&token),
+            ));
             ranked_candidates.push((token, score, contributions));
         }
         if ranked_candidates.is_empty() {
@@ -1348,6 +1360,7 @@ impl GraphScorer {
             selected,
             selected_score,
             candidates: candidates_out,
+            candidate_components: components,
             witness,
         })
     }

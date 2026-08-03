@@ -1186,6 +1186,125 @@ pub struct CandidateRecall {
     pub rule12_top3: f64,
 }
 
+/// Top-1 agreement under `root + alpha * residual`, swept over alpha.
+///
+/// The residual measured net-destructive on the graph slice. Sweeping alpha
+/// separates the two explanations that finding leaves open: an optimum at
+/// alpha < 0 implicates the accumulation DIRECTION (a sign error in how
+/// chain-telescoped residuals combine), while an optimum at 0 < alpha < 1
+/// implicates SCALE (the evidence points the right way but is weighted far too
+/// heavily). An optimum at alpha = 0 means the graph evidence carries no usable
+/// signal on this path at all, which is a compiler-side question rather than a
+/// scorer one.
+///
+/// alpha = 1 is the shipped behavior; alpha = 0 is the root prior alone.
+#[derive(Debug, Clone, Default, Serialize)]
+pub struct ResidualAlphaSweep {
+    pub positions: usize,
+    /// `(alpha, top1_agreement)` in the order swept.
+    pub points: Vec<(f64, f64)>,
+}
+
+/// Alpha sweep split by resolution status.
+#[derive(Debug, Clone, Default, Serialize)]
+pub struct Rule12PerStatusAlphaSweep {
+    pub exact_context: ResidualAlphaSweep,
+    pub graph: ResidualAlphaSweep,
+    pub novel: ResidualAlphaSweep,
+}
+
+/// Rational alpha multipliers, kept exact in i64 so the sweep introduces no
+/// float rounding of its own.
+const ALPHA_SWEEP: [(i64, i64); 7] = [(-1, 1), (-1, 2), (-1, 4), (0, 1), (1, 4), (1, 2), (1, 1)];
+
+/// Does the graph residual change any decision, or is ranking carried by the
+/// root prior alone?
+///
+/// Scores are assembled as `root_score(token) + residual + transition_offset`,
+/// minus a repetition penalty. `transition_offset` is added to every candidate,
+/// so it cannot affect ordering; only the residual varies per token. This
+/// compares the real argmax against the argmax of `root + penalty` alone, using
+/// the identical ascending-token / strict-`>` tie-break, so a difference means
+/// the residual genuinely moved the selection.
+///
+/// `root_only_agrees` near 1.0 on the graph slice would mean the residual is
+/// inert: the traversal picks a region and the scorer then ranks by global token
+/// frequency regardless.
+#[derive(Debug, Clone, Default, Serialize)]
+pub struct ResidualInfluence {
+    pub positions: usize,
+    /// Fraction where argmax(root + penalty) == argmax(full score).
+    pub root_only_agrees: f64,
+    /// Fraction where argmax(root + penalty) is the teacher token.
+    pub root_only_top1_agreement: f64,
+    /// Median spread (max - min) of the root term across candidates, Q16.16.
+    pub median_root_spread: f64,
+    /// Median spread (max - min) of the residual term across candidates, Q16.16.
+    pub median_residual_spread: f64,
+    /// bits/token with the residual suppressed. Compare against the slice's
+    /// `bits_per_token`: a lower top-1 with unchanged bits means the argmax
+    /// moved without the distribution improving.
+    pub bits_per_token_root_only: f64,
+}
+
+/// Residual-influence measurement split by resolution status.
+#[derive(Debug, Clone, Default, Serialize)]
+pub struct Rule12PerStatusResidualInfluence {
+    pub exact_context: ResidualInfluence,
+    pub graph: ResidualInfluence,
+    pub novel: ResidualInfluence,
+}
+
+/// Where the teacher's argmax lands in the Rule 1+2 candidate list, for
+/// positions whose candidate set actually contains it.
+///
+/// Recall tells us the token was retrieved; agreement tells us it was not
+/// selected. This says HOW BADLY it was ranked, which separates two diagnoses
+/// with different fixes: a teacher token sitting at rank 2-3 is a calibration
+/// or tie-breaking problem, while one scattered deep in the list means the
+/// scoring signal carries little information on that path.
+///
+/// Buckets are 1-based rank: [1, 2, 3, 4-8, 9-16, 17-32, 33-64, 65-128, 129+].
+#[derive(Debug, Clone, Default, Serialize)]
+pub struct TeacherRankHistogram {
+    /// Positions where the teacher argmax was present in the candidate list.
+    pub retrieved_positions: usize,
+    pub buckets: [usize; 9],
+    /// Median 1-based rank over `retrieved_positions`.
+    pub median_rank: f64,
+}
+
+/// Teacher-rank histograms split by resolution status.
+#[derive(Debug, Clone, Default, Serialize)]
+pub struct Rule12PerStatusTeacherRank {
+    pub exact_context: TeacherRankHistogram,
+    pub graph: TeacherRankHistogram,
+    pub novel: TeacherRankHistogram,
+}
+
+/// Candidate recall for one resolution status.
+///
+/// `CandidateRecall` above is divided by ALL scored positions, so it cannot
+/// attribute retrieval success to a status. That matters for the graph path
+/// specifically: its top-1 agreement is ~0.6-1.2% while blended recall is
+/// ~72%, and without this split there is no way to tell whether the graph
+/// path fails to RETRIEVE the teacher token or retrieves it and fails to RANK
+/// it first. Those have disjoint fixes.
+#[derive(Debug, Clone, Default, Serialize)]
+pub struct StatusCandidateRecall {
+    pub positions: usize,
+    pub top1: f64,
+    pub top3: f64,
+}
+
+/// Rule 1+2 candidate recall, split by resolution status.
+#[derive(Debug, Clone, Default, Serialize)]
+pub struct Rule12PerStatusRecall {
+    pub exact_context: StatusCandidateRecall,
+    pub graph: StatusCandidateRecall,
+    pub novel: StatusCandidateRecall,
+}
+
 /// The Gate C outcome: the four number sets (old formula, Rule 1,
 /// Rule 1+2, baseline), the status and win/loss instrumentation,
 /// candidate recall, and the witness-replay sample result.
@@ -1212,6 +1331,14 @@ pub struct GateCOutcome {
     pub tla3_baseline: GateCMetrics,
     pub rule12_status_counts: StatusCounts,
     pub rule12_per_status: Rule12PerStatus,
+    /// Candidate recall split by status (retrieval vs ranking).
+    pub rule12_candidate_recall_per_status: Rule12PerStatusRecall,
+    /// Teacher-argmax rank within the candidate list, per status.
+    pub rule12_teacher_rank_per_status: Rule12PerStatusTeacherRank,
+    /// Whether the graph residual changes decisions, per status.
+    pub rule12_residual_influence_per_status: Rule12PerStatusResidualInfluence,
+    /// Top-1 under root + alpha*residual, swept, per status.
+    pub rule12_residual_alpha_sweep: Rule12PerStatusAlphaSweep,
     /// #234 item 2 instrumentation: histogram of the Rule 2 probe's
     /// RESOLUTION level per held-out position (index = graded-prefix
     /// length, 0 = root … STAGES = full code). The probe stops at the
@@ -1440,6 +1567,16 @@ pub fn evaluate_gate_c(
     let mut recall_rule1_top3 = 0u64;
     let mut recall_rule12_top1 = 0u64;
     let mut recall_rule12_top3 = 0u64;
+    let mut status_recall_top1 = [0u64; 3];
+    let mut status_recall_top3 = [0u64; 3];
+    let mut status_rank_buckets = [[0usize; 9]; 3];
+    let mut status_root_agrees = [0u64; 3];
+    let mut status_root_hits = [0u64; 3];
+    let mut status_root_spreads: [Vec<i64>; 3] = [Vec::new(), Vec::new(), Vec::new()];
+    let mut status_resid_spreads: [Vec<i64>; 3] = [Vec::new(), Vec::new(), Vec::new()];
+    let mut status_alpha_hits = [[0u64; ALPHA_SWEEP.len()]; 3];
+    let mut status_bits_root_only = [0f64; 3];
+    let mut status_ranks: [Vec<u32>; 3] = [Vec::new(), Vec::new(), Vec::new()];
     let gate_rotations = compiler::derive_rotations();
     let context = GateCContext {
         artifacts,
@@ -1484,6 +1621,7 @@ pub fn evaluate_gate_c(
         status_positions[row.status_index] += 1;
         status_hits[row.status_index] += u64::from(row.status_hit);
         status_bits[row.status_index] += row.status_bits;
+        status_bits_root_only[row.status_index] += row.bits_root_only;
         if let Some(level) = row.exct_level {
             exct_level_positions[level] += 1;
         } else {
@@ -1494,6 +1632,33 @@ pub fn evaluate_gate_c(
         recall_rule1_top3 += u64::from(row.candidate_recall[1]);
         recall_rule12_top1 += u64::from(row.candidate_recall[2]);
         recall_rule12_top3 += u64::from(row.candidate_recall[3]);
+        status_recall_top1[row.status_index] += u64::from(row.candidate_recall[2]);
+        status_recall_top3[row.status_index] += u64::from(row.candidate_recall[3]);
+        status_root_agrees[row.status_index] += u64::from(row.root_only_agrees);
+        status_root_hits[row.status_index] += u64::from(row.root_only_hit);
+        status_root_spreads[row.status_index].push(row.root_spread);
+        status_resid_spreads[row.status_index].push(row.residual_spread);
+        for (slot, hit) in status_alpha_hits[row.status_index]
+            .iter_mut()
+            .zip(row.alpha_hits.iter())
+        {
+            *slot += u64::from(*hit);
+        }
+        if let Some(rank) = row.teacher_rank {
+            let bucket = match rank {
+                1 => 0,
+                2 => 1,
+                3 => 2,
+                4..=8 => 3,
+                9..=16 => 4,
+                17..=32 => 5,
+                33..=64 => 6,
+                65..=128 => 7,
+                _ => 8,
+            };
+            status_rank_buckets[row.status_index][bucket] += 1;
+            status_ranks[row.status_index].push(rank);
+        }
         accumulate_win_loss(
             &mut outcome.win_loss.rule12_vs_baseline,
             row.hits[2],
@@ -1555,6 +1720,103 @@ pub fn evaluate_gate_c(
         graph: per_status(1),
         novel: per_status(2),
     };
+    let per_status_recall = |index: usize| {
+        let positions = status_positions[index];
+        if positions == 0 {
+            return StatusCandidateRecall::default();
+        }
+        let denom = positions as f64;
+        StatusCandidateRecall {
+            positions,
+            top1: status_recall_top1[index] as f64 / denom,
+            top3: status_recall_top3[index] as f64 / denom,
+        }
+    };
+    outcome.rule12_candidate_recall_per_status = Rule12PerStatusRecall {
+        exact_context: per_status_recall(0),
+        graph: per_status_recall(1),
+        novel: per_status_recall(2),
+    };
+    let median_of = |v: &mut Vec<i64>| -> f64 {
+        if v.is_empty() {
+            return 0.0;
+        }
+        v.sort_unstable();
+        let mid = v.len() / 2;
+        if v.len().is_multiple_of(2) {
+            (v[mid - 1] as f64 + v[mid] as f64) / 2.0
+        } else {
+            v[mid] as f64
+        }
+    };
+    let mut sweep = Rule12PerStatusAlphaSweep::default();
+    for index in 0..3 {
+        let positions = status_positions[index];
+        if positions == 0 {
+            continue;
+        }
+        let denom = positions as f64;
+        let value = ResidualAlphaSweep {
+            positions,
+            points: ALPHA_SWEEP
+                .iter()
+                .zip(status_alpha_hits[index].iter())
+                .map(|(&(num, den), &hits)| (num as f64 / den as f64, hits as f64 / denom))
+                .collect(),
+        };
+        match index {
+            0 => sweep.exact_context = value,
+            1 => sweep.graph = value,
+            _ => sweep.novel = value,
+        }
+    }
+    outcome.rule12_residual_alpha_sweep = sweep;
+    let mut influence = Rule12PerStatusResidualInfluence::default();
+    for index in 0..3 {
+        let positions = status_positions[index];
+        if positions == 0 {
+            continue;
+        }
+        let denom = positions as f64;
+        let value = ResidualInfluence {
+            positions,
+            root_only_agrees: status_root_agrees[index] as f64 / denom,
+            root_only_top1_agreement: status_root_hits[index] as f64 / denom,
+            median_root_spread: median_of(&mut status_root_spreads[index]),
+            median_residual_spread: median_of(&mut status_resid_spreads[index]),
+            bits_per_token_root_only: status_bits_root_only[index] / denom,
+        };
+        match index {
+            0 => influence.exact_context = value,
+            1 => influence.graph = value,
+            _ => influence.novel = value,
+        }
+    }
+    outcome.rule12_residual_influence_per_status = influence;
+    let per_status_rank = |index: usize| {
+        let ranks = &status_ranks[index];
+        if ranks.is_empty() {
+            return TeacherRankHistogram::default();
+        }
+        let mut sorted = ranks.clone();
+        sorted.sort_unstable();
+        let mid = sorted.len() / 2;
+        let median = if sorted.len().is_multiple_of(2) {
+            (f64::from(sorted[mid - 1]) + f64::from(sorted[mid])) / 2.0
+        } else {
+            f64::from(sorted[mid])
+        };
+        TeacherRankHistogram {
+            retrieved_positions: sorted.len(),
+            buckets: status_rank_buckets[index],
+            median_rank: median,
+        }
+    };
+    outcome.rule12_teacher_rank_per_status = Rule12PerStatusTeacherRank {
+        exact_context: per_status_rank(0),
+        graph: per_status_rank(1),
+        novel: per_status_rank(2),
+    };
     outcome.candidate_recall = CandidateRecall {
         rule1_top1: recall_rule1_top1 as f64 / nf,
         rule1_top3: recall_rule1_top3 as f64 / nf,
@@ -1609,6 +1871,19 @@ struct GateCRow {
     exct_level: Option<usize>,
     exct_full_depth_supported: bool,
     candidate_recall: [bool; 4],
+    /// 1-based rank of the teacher argmax in rule12 candidates, if present.
+    teacher_rank: Option<u32>,
+    /// argmax(root + penalty) agrees with the full-score argmax.
+    root_only_agrees: bool,
+    /// argmax(root + penalty) is the teacher token.
+    root_only_hit: bool,
+    /// Spread (max - min) of the root and residual terms across candidates.
+    root_spread: i64,
+    residual_spread: i64,
+    /// Per-alpha: argmax(root + alpha*residual + penalty) == teacher.
+    alpha_hits: [bool; ALPHA_SWEEP.len()],
+    /// bits/token under root + penalty only (alpha = 0).
+    bits_root_only: f64,
     witness_replayed: bool,
     witness_replay_failed: bool,
 }
@@ -1711,6 +1986,83 @@ fn evaluate_gate_c_row(
             .iter()
             .any(|&token| contains(&rule12.candidates, token)),
     ];
+    // Decompose the score. `transition_offset` is common to all candidates and
+    // cannot affect ordering, so the question is whether the per-token residual
+    // moves the argmax away from what the root prior alone would choose.
+    let (mut root_best, mut root_best_score) = (u32::MAX, i64::MIN);
+    let (mut root_lo, mut root_hi) = (i64::MAX, i64::MIN);
+    let (mut resid_lo, mut resid_hi) = (i64::MAX, i64::MIN);
+    for &(token, root_raw, resid_raw, penalized) in &rule12.candidate_components {
+        let root_term = i64::from(root_raw) + if penalized { -2_000_000 } else { 0 };
+        if root_term > root_best_score {
+            root_best_score = root_term;
+            root_best = token;
+        }
+        root_lo = root_lo.min(i64::from(root_raw));
+        root_hi = root_hi.max(i64::from(root_raw));
+        resid_lo = resid_lo.min(i64::from(resid_raw));
+        resid_hi = resid_hi.max(i64::from(resid_raw));
+    }
+    // bits/token with the residual suppressed. Top-1 and bits are different
+    // questions: a change can correct the argmax and leave the distribution as
+    // wrong as before, and coherence against the teacher is distributional.
+    // Same softmax and same uncovered-vocab floor as the shipped path, only the
+    // scores differ.
+    let root_only_candidates: Vec<(u32, ScoreQ)> = rule12
+        .candidate_components
+        .iter()
+        .map(|&(token, root_raw, _, penalized)| {
+            let raw = root_raw + if penalized { -2_000_000 } else { 0 };
+            (token, ScoreQ::from_raw(raw))
+        })
+        .collect();
+    let bits_root_only = outcome_bits(context.scorer_with_exct, &root_only_candidates, next);
+
+    let mut alpha_hits = [false; ALPHA_SWEEP.len()];
+    for (slot, &(num, den)) in alpha_hits.iter_mut().zip(ALPHA_SWEEP.iter()) {
+        let mut best_token = u32::MAX;
+        let mut best_score = i64::MIN;
+        for &(token, root_raw, resid_raw, penalized) in &rule12.candidate_components {
+            let scaled = i64::from(resid_raw) * num / den;
+            let score = i64::from(root_raw) + scaled + if penalized { -2_000_000 } else { 0 };
+            if score > best_score {
+                best_score = score;
+                best_token = token;
+            }
+        }
+        *slot = best_token == teacher_argmax;
+    }
+    let root_only_agrees = root_best == rule12.selected;
+    let root_only_hit = root_best == teacher_argmax;
+    let root_spread = if root_hi >= root_lo {
+        root_hi - root_lo
+    } else {
+        0
+    };
+    let residual_spread = if resid_hi >= resid_lo {
+        resid_hi - resid_lo
+    } else {
+        0
+    };
+
+    // Rank the teacher argmax exactly as selection does: score descending,
+    // ties to the lower token id. `rule12.candidates` already carries the
+    // final scores (root + transition offset + residual + repetition
+    // penalty), so this ordering reproduces the argmax.
+    let teacher_rank = rule12
+        .candidates
+        .iter()
+        .find(|&&(token, _)| token == teacher_argmax)
+        .map(|&(_, teacher_score)| {
+            let ahead = rule12
+                .candidates
+                .iter()
+                .filter(|&&(token, score)| {
+                    score > teacher_score || (score == teacher_score && token < teacher_argmax)
+                })
+                .count();
+            (ahead + 1) as u32
+        });
     let exct_level = rule12
         .witness
         .exct
@@ -1736,6 +2088,13 @@ fn evaluate_gate_c_row(
         exct_full_depth_supported: exct_level == Some(STAGES)
             && rule12.witness.status == ScoreStatus::ExactContext,
         candidate_recall,
+        teacher_rank,
+        root_only_agrees,
+        root_only_hit,
+        root_spread,
+        residual_spread,
+        alpha_hits,
+        bits_root_only,
         witness_replayed: index < context.config.witness_sample,
         witness_replay_failed,
     })
@@ -1930,7 +2289,7 @@ pub fn build_score_report_with_quality_profile(
         can_measure_generalization: strict_exct_miss_rate >= MIN_EXCT_MISS_RATE_FOR_GATE_C,
     };
     ScoreReport {
-        schema: 10,
+        schema: 11,
         inputs,
         config: ScoreReportConfig {
             transition_out_degree: config.transition_out_degree,
