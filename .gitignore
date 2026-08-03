@@ -4,6 +4,14 @@
 node_modules/
 dist/
 manifold_cache_rust.json
+# Local demo probes and generated response captures.
+/run_test.rs
+/test_tokenize.rs
+/test_response*.json
+# Generated local R4G1 bundles and scratch work.
+/r4g1_output/
+/r4g1_compiled/
+/scratch/
 # Local model/corpus store; keep only the CID-pinned corpus manifests
 # tracked (issue #72: the D3 natural partition's provenance is versioned,
 # the bulk data stays local).
