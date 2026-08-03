@@ -54,15 +54,26 @@
 //!    maintainer decision; this module only writes the recommendation
 //!    into the report.
 //!
-//! # Report schema (`cover_sweep.json`, `schema = 1`)
+//! # Report schema (`cover_sweep.json`, `schema = 2`)
+//!
+//! Schema 2 (#364): the scorer block records `emission_selection`,
+//! `emission_shrinkage`, `context_order`, and `context_entries`, and the
+//! command accepts `--emission-selection` / `--emission-shrinkage` so the
+//! granularity grid can be swept under the contrast-weighted scorer —
+//! the previously unmeasured axis behind the #364 cover-ceiling verdict.
+//! Everything else in the sweep is unchanged; the default invocation
+//! reproduces schema-1 rows exactly (modulo the added config fields).
 //!
 //! ```text
-//! schema:          1
+//! schema:          2
 //! inputs:          {artifact_kappa, corpus_kappa,
 //!                   train_observations, held_out_observations}
 //! scorer:          {transition_out_degree, emission_entries, root_top_b,
-//!                   exct_top_x, witness_sample, smoothing}
-//!                   — the fixed #64 scorer (with the #67 smoothing knob)
+//!                   exct_top_x, witness_sample, smoothing,
+//!                   emission_selection, emission_shrinkage,
+//!                   context_order, context_entries}
+//!                   — the fixed #64 scorer (with the #67 smoothing knob
+//!                   and the #364/#362 emission/context axes)
 //! tla3_baseline:   {positions, top1_agreement, bits_per_token}
 //!                   (cover-independent store baseline, recorded once)
 //! recommendation:  {label, bytes, agreement, slope_floor, frontier,
@@ -84,7 +95,9 @@
 //! Every consumed compiler is deterministic by construction
 //! (content-addressed seeds, ordered reductions, canonical sorts), so any
 //! single point run twice produces byte-identical scored artifacts and
-//! identical metrics — asserted in `tests/cover_sweep.rs`. The f64
+//! identical metrics (a property of the consumed compilers; the
+//! historical `tests/cover_sweep.rs` reference predates the crate
+//! restructuring — a dedicated sweep double-run test is future work). The f64
 //! entropy/`ln` sites inherit the macOS-pinned, libm-sensitive status of
 //! the cover and score compilers (their module docs); same-machine
 //! double-runs are byte-exact, cross-platform byte equality awaits the D2
@@ -94,13 +107,13 @@ use serde::Serialize;
 use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
 
-use super::compiler::{self, Corpus};
-use super::cover::{self, Observation};
-use super::runtime::{self, Store};
-use super::score::{self, GateCMetrics, ScoreConfig};
+use uor_r4_core::transformerless::compiler::{self, Corpus};
+use uor_r4_core::transformerless::runtime::{self, Store};
+use uor_r4_graph_certify::{self as score, GateCMetrics, ScoreConfig};
+use uor_r4_graph_compiler::induction::{self as cover, Observation};
 
 /// The `cover_sweep.json` schema version (module docs).
-pub const SWEEP_REPORT_SCHEMA: u32 = 1;
+pub const SWEEP_REPORT_SCHEMA: u32 = 2;
 
 /// Grid axis: the broad depth-1 region counts under test.
 pub const SWEEP_K0: [usize; 2] = [8, 16];
@@ -340,6 +353,16 @@ pub struct SweepReportScorer {
     /// Emission smoothing rule label (`score::Smoothing::label`; the
     /// #67 knob — add-one, byte-exact with the pre-#67 compiler).
     pub smoothing: String,
+    /// Emission list selection rule label (#364; schema 2).
+    pub emission_selection: String,
+    /// Per-region residual shrinkage label (#364; schema 2). The sweep
+    /// had only ever run under the default scorer, so granularity ×
+    /// contrast-shrinkage was unmeasured — the #364 ceiling question.
+    pub emission_shrinkage: String,
+    /// Highest compiled lexical context order (#362 knob; schema 2).
+    pub context_order: u8,
+    /// Per-context candidate bound for NGRAM rows (schema 2).
+    pub context_entries: usize,
 }
 
 /// The shared-input provenance of the sweep.
@@ -392,7 +415,12 @@ pub fn run_point(
         &inputs.train,
         &inputs.held_out,
     );
-    let edges = cover::build_edges(&induced.cover, &reference, &inputs.train);
+    let edges = cover::build_edges(
+        &induced.cover,
+        &reference,
+        &inputs.train,
+        &inputs.corpus.story,
+    );
     let regions = score::regions_from_cover(&induced.cover);
     let structural = score::structural_from_cover(&edges);
     let max_depth = induced.cover.max_depth;
@@ -642,6 +670,10 @@ pub fn run_sweep(inputs: &SweepInputs, score_config: &ScoreConfig) -> Result<Swe
             exct_top_x: score_config.exct_top_x,
             witness_sample: score_config.witness_sample,
             smoothing: score_config.smoothing.label(),
+            emission_selection: score_config.emission_selection.label(),
+            emission_shrinkage: score_config.emission_shrinkage.label(),
+            context_order: score_config.context_order,
+            context_entries: score_config.context_entries,
         },
         tla3_baseline,
         recommendation,
@@ -649,7 +681,7 @@ pub fn run_sweep(inputs: &SweepInputs, score_config: &ScoreConfig) -> Result<Swe
         determinism: "every consumed compiler is deterministic by construction (content-\
                       addressed seeds, ordered reductions, canonical sorts): any single point \
                       run twice produces byte-identical scored artifacts and identical metrics \
-                      (asserted in tests/cover_sweep.rs); f64 entropy/ln sites are macOS-pinned \
+                      (a property of the consumed compilers); f64 entropy/ln sites are macOS-pinned \
                       and libm-sensitive cross-platform, the inherited status of the cover and \
                       score compilers (D2 resolves cross-platform byte equality later)"
             .to_owned(),
@@ -731,6 +763,8 @@ struct CoverSweepOptions {
     corpus_recs: PathBuf,
     artifacts: PathBuf,
     output: PathBuf,
+    emission_selection: score::EmissionSelection,
+    emission_shrinkage: score::EmissionShrinkage,
 }
 
 fn parse_cover_sweep_options(args: &[String]) -> Result<CoverSweepOptions, String> {
@@ -740,6 +774,8 @@ fn parse_cover_sweep_options(args: &[String]) -> Result<CoverSweepOptions, Strin
         corpus_recs: PathBuf::from(default_recs),
         artifacts: PathBuf::from(compiler::ART_PATH),
         output: PathBuf::from("cover_sweep"),
+        emission_selection: score::EmissionSelection::default(),
+        emission_shrinkage: score::EmissionShrinkage::default(),
     };
     let mut index = 0usize;
     while index < args.len() {
@@ -752,6 +788,31 @@ fn parse_cover_sweep_options(args: &[String]) -> Result<CoverSweepOptions, Strin
             "--corpus-recs" => options.corpus_recs = PathBuf::from(value),
             "--artifacts" => options.artifacts = PathBuf::from(value),
             "--out" => options.output = PathBuf::from(value),
+            "--emission-selection" => {
+                options.emission_selection = match value.as_str() {
+                    "ratio" => score::EmissionSelection::Ratio,
+                    "probability" => score::EmissionSelection::Probability,
+                    other => {
+                        return Err(format!(
+                            "invalid --emission-selection value: {other} \
+                             (expected ratio|probability)"
+                        ));
+                    }
+                };
+            }
+            "--emission-shrinkage" => {
+                options.emission_shrinkage = match value.as_str() {
+                    "none" => score::EmissionShrinkage::None,
+                    "witten-bell" => score::EmissionShrinkage::WittenBell,
+                    "contrast" => score::EmissionShrinkage::Contrast,
+                    other => {
+                        return Err(format!(
+                            "invalid --emission-shrinkage value: {other} \
+                             (expected none|witten-bell|contrast)"
+                        ));
+                    }
+                };
+            }
             _ => return Err(format!("unknown cover-sweep option: {flag}")),
         }
         index += 2;
@@ -774,12 +835,20 @@ pub fn cover_sweep_command(args: &[String]) -> Result<(), String> {
         &options.corpus_recs,
         &options.artifacts,
     )?;
+    let score_config = ScoreConfig {
+        emission_selection: options.emission_selection,
+        emission_shrinkage: options.emission_shrinkage,
+        ..ScoreConfig::default()
+    };
     eprintln!(
-        "cover-sweep: {} train / {} held-out observations; running the 9-point grid (fixed scorer)...",
+        "cover-sweep: {} train / {} held-out observations; running the 9-point grid (fixed scorer, \
+         emission {}/{})...",
         inputs.train.len(),
-        inputs.held_out.len()
+        inputs.held_out.len(),
+        score_config.emission_selection.label(),
+        score_config.emission_shrinkage.label()
     );
-    let report = run_sweep(&inputs, &ScoreConfig::default())?;
+    let report = run_sweep(&inputs, &score_config)?;
 
     std::fs::create_dir_all(&options.output).map_err(|error| error.to_string())?;
     let report_json = serde_json::to_string_pretty(&report).map_err(|error| error.to_string())?;
@@ -804,6 +873,14 @@ mod tests {
         assert_eq!(options.corpus_recs, PathBuf::from(default_recs));
         assert_eq!(options.artifacts, PathBuf::from(compiler::ART_PATH));
         assert_eq!(options.output, PathBuf::from("cover_sweep"));
+        assert_eq!(
+            options.emission_selection,
+            score::EmissionSelection::default()
+        );
+        assert_eq!(
+            options.emission_shrinkage,
+            score::EmissionShrinkage::default()
+        );
 
         let args = [
             "--corpus-meta",
@@ -814,6 +891,10 @@ mod tests {
             "/tmp/a.bin",
             "--out",
             "/tmp/sweep",
+            "--emission-selection",
+            "probability",
+            "--emission-shrinkage",
+            "contrast",
         ]
         .map(str::to_owned);
         let options = parse_cover_sweep_options(&args).expect("valid options");
@@ -821,6 +902,17 @@ mod tests {
         assert_eq!(options.corpus_recs, PathBuf::from("/tmp/r.bin"));
         assert_eq!(options.artifacts, PathBuf::from("/tmp/a.bin"));
         assert_eq!(options.output, PathBuf::from("/tmp/sweep"));
+        assert_eq!(
+            options.emission_selection,
+            score::EmissionSelection::Probability
+        );
+        assert_eq!(
+            options.emission_shrinkage,
+            score::EmissionShrinkage::Contrast
+        );
+
+        let bad_shrinkage = ["--emission-shrinkage", "sideways"].map(str::to_owned);
+        assert!(parse_cover_sweep_options(&bad_shrinkage).is_err());
 
         let bad = ["--k0", "16"].map(str::to_owned);
         assert!(parse_cover_sweep_options(&bad).is_err());

@@ -33,6 +33,7 @@ use uor_r4_graph_compiler::induction as cover;
 use uor_r4_graph_compiler::observation as observe;
 use uor_r4_graph_compiler::observation_text as observe_text;
 mod convert_r4g1;
+pub mod cover_sweep;
 mod runtime_corpus;
 mod scenarios;
 use serde::Serialize;
@@ -2271,6 +2272,7 @@ pub fn run(args: &[String]) -> Result<(), String> {
         Some("convert-r4g1") => convert_r4g1::run(&args[1..])?,
         Some("runtime-corpus") => runtime_corpus::run(&args[1..])?,
         Some("cover") => cover_command(&args[1..])?,
+        Some("cover-sweep") => cover_sweep::cover_sweep_command(&args[1..])?,
         Some("score") => score_command(&args[1..])?,
         Some("cd-compile") => cd_compile_command(&args[1..])?,
         Some("quantum-eval") => quantum_eval_command(&args[1..])?,
