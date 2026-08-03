@@ -120,6 +120,31 @@ pub const DEFAULT_EMISSION_ENTRIES: usize = 64;
 /// region's actual next-token mass the emitted list covers. Low values on both
 /// mean regions emit distinctive-but-unlikely tokens and score the likely ones
 /// at the bare prior.
+/// Per-region shrinkage applied to the emission residual (#364).
+///
+/// Measured on the fixture corpus, `log P_region` is a WORSE next-token
+/// predictor than the global unigram prior on graph-status positions: applying
+/// the residual at full strength costs top-1 (2.90% vs 8.76%) and bits (+1.32)
+/// even where the telescoping chain is complete and the correction is
+/// mathematically right. That is the signature of sparse conditional estimates
+/// -- roughly 2,600 positions per region against a 32,000-token vocabulary --
+/// rather than of a defect in the arithmetic. The alpha sweep peaks near 0.25,
+/// the shape of a shrinkage coefficient.
+///
+/// `WittenBell` scales each region's residual by `n / (n + T)`, where `n` is the
+/// region's total next-token count and `T` its distinct-type count, so
+/// sparsely-supported regions fall back toward the parent and well-supported
+/// ones contribute fully. The scaling is applied at COMPILE time to the stored
+/// value, so the runtime, kernel and artifact ABI are untouched.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum EmissionShrinkage {
+    /// Apply the residual at full strength (shipped behavior).
+    #[default]
+    None,
+    /// Scale by n / (n + T) per region.
+    WittenBell,
+}
+
 /// How the per-region emission list is chosen before truncation (#364).
 ///
 /// The shipped rule ranks by log-ratio against the parent, which keeps the most
@@ -153,6 +178,11 @@ type RegionEmissionResult = (
 #[derive(Debug, Clone, Default)]
 pub struct EmissionSelectionStats {
     pub regions: usize,
+    /// Witten-Bell lambda = n / (n + T) per region; near 1 means the estimator
+    /// barely shrinks and cannot test the sparsity hypothesis.
+    pub mean_lambda_witten_bell: f64,
+    pub mean_region_count: f64,
+    pub mean_region_types: f64,
     pub overlap_with_top_count: f64,
     pub probability_mass_kept: f64,
 }
@@ -327,6 +357,8 @@ pub struct ScoreConfig {
     pub scoring_variant: ScoringVariant,
     /// Emission list selection rule (issue #364).
     pub emission_selection: EmissionSelection,
+    /// Per-region residual shrinkage (issue #364).
+    pub emission_shrinkage: EmissionShrinkage,
 }
 
 impl Default for ScoreConfig {
@@ -340,6 +372,7 @@ impl Default for ScoreConfig {
             smoothing: Smoothing::AddOne,
             scoring_variant: ScoringVariant::ChainTelescoped,
             emission_selection: EmissionSelection::default(),
+            emission_shrinkage: EmissionShrinkage::default(),
         }
     }
 }
@@ -602,6 +635,20 @@ fn smoothed_ln(count: u64, total: u64, vocab: u32) -> f32 {
     ((count as f64 + 1.0) / (total as f64 + f64::from(vocab))).ln() as f32
 }
 
+/// Witten-Bell's evidence weight for a region-conditioned estimate.
+///
+/// A region with many observations per distinct type gets a weight near one;
+/// a sparse region is pulled toward its parent. The zero-evidence case is
+/// defined as zero so the compiler never emits a non-finite weight.
+fn witten_bell_lambda(total: u64, types: usize) -> f64 {
+    let denominator = total as f64 + types as f64;
+    if denominator > 0.0 {
+        total as f64 / denominator
+    } else {
+        0.0
+    }
+}
+
 /// Compile the root prior and per-region emission residuals (module
 /// docs). The evidence model matches the store's exactly (top-3
 /// teacher-weighted counts over train positions); the root distribution
@@ -712,6 +759,17 @@ pub fn compile_emissions(
                         parent_types,
                     );
                     let ln = lp_n - lp_p;
+                    // Shrink sparse regions toward the parent. n / (n + T)
+                    // approaches 1 when a region has many observations per
+                    // distinct type and approaches 0 when its distribution is
+                    // mostly singletons -- exactly the regime where the
+                    // conditional estimate is noise.
+                    let ln = match config.emission_shrinkage {
+                        EmissionShrinkage::None => ln,
+                        EmissionShrinkage::WittenBell => {
+                            (f64::from(ln) * witten_bell_lambda(total, types)) as f32
+                        }
+                    };
                     let score = ScoreQ::from_logprob(ln);
                     emission_quantization.record_ln_quantization(ln, score);
                     (token, score)
@@ -758,8 +816,12 @@ pub fn compile_emissions(
                 .filter(|(t, _)| kept.contains(t))
                 .map(|(_, &c)| c)
                 .sum();
+            let lambda_wb = witten_bell_lambda(total, types);
             let selection = EmissionSelectionStats {
                 regions: 1,
+                mean_lambda_witten_bell: lambda_wb,
+                mean_region_count: total as f64,
+                mean_region_types: types as f64,
                 overlap_with_top_count: overlap as f64 / by_count.len().max(1) as f64,
                 probability_mass_kept: if total == 0 {
                     0.0
@@ -777,6 +839,9 @@ pub fn compile_emissions(
         selection_stats.regions += selection.regions;
         selection_stats.overlap_with_top_count += selection.overlap_with_top_count;
         selection_stats.probability_mass_kept += selection.probability_mass_kept;
+        selection_stats.mean_lambda_witten_bell += selection.mean_lambda_witten_bell;
+        selection_stats.mean_region_count += selection.mean_region_count;
+        selection_stats.mean_region_types += selection.mean_region_types;
         emission_quantization.sample_count += stats.sample_count;
         emission_quantization.sum_abs_error_nano = emission_quantization
             .sum_abs_error_nano
@@ -790,10 +855,14 @@ pub fn compile_emissions(
         let n = selection_stats.regions as f64;
         eprintln!(
             "[emission-selection] regions={} mean_overlap_with_top_count={:.4} \
-             mean_probability_mass_kept={:.4} (E={})",
+             mean_probability_mass_kept={:.4} mean_lambda_wb={:.4} \
+             mean_n={:.0} mean_types={:.0} (E={})",
             selection_stats.regions,
             selection_stats.overlap_with_top_count / n,
             selection_stats.probability_mass_kept / n,
+            selection_stats.mean_lambda_witten_bell / n,
+            selection_stats.mean_region_count / n,
+            selection_stats.mean_region_types / n,
             config.emission_entries,
         );
     }
@@ -3002,5 +3071,18 @@ mod context_rows_tests {
         assert!(!rows
             .iter()
             .any(|row| { row.context_len == 2 && row.key0 == 20 && row.key1 == 30 }));
+    }
+}
+
+#[cfg(test)]
+mod emission_shrinkage_tests {
+    use super::witten_bell_lambda;
+
+    #[test]
+    fn witten_bell_weight_is_bounded_and_evidence_sensitive() {
+        assert_eq!(witten_bell_lambda(0, 0), 0.0);
+        assert!((witten_bell_lambda(100, 10) - 100.0 / 110.0).abs() < 1e-12);
+        assert!(witten_bell_lambda(100, 10) > witten_bell_lambda(10, 100));
+        assert!(witten_bell_lambda(100, 10) < 1.0);
     }
 }
