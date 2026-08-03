@@ -589,6 +589,14 @@ impl R4Engine {
         (sig, code)
     }
 
+    /// Derive the sign signature for a token window for certifier-side
+    /// experiments. This exposes no deployed scoring semantics; callers still
+    /// receive the same artifact-derived signature used by the graph path.
+    pub fn signature_for_window(&self, window: &[u32]) -> Result<[u8; SIG_BYTES], InferenceError> {
+        self.check_window(window)?;
+        Ok(self.derive_sig_code(window).0)
+    }
+
     /// Derive the stable κ-label for a region identity. The identity is
     /// anchored to the canonical NODE section address and node id, so a
     /// changed graph section or node changes the witness claim. This keeps

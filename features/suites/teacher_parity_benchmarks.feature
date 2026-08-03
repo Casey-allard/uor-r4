@@ -43,3 +43,8 @@ Feature: Teacher parity and benchmarks for the compiled transformerless runtimes
     Given the pinned SmolLM2 teacher and compiled transformerless bundle are present
     When the corpus records are replayed against the recorded teacher labels
     Then the in-distribution parity metrics meet the pinned empirical criteria
+
+  Scenario: S7 certifier FMM candidate on novel contexts
+    Given the pinned SmolLM2 teacher and compiled transformerless bundle are present
+    When the certifier FMM candidate is replayed against the teacher on pinned prompts
+    Then the FMM candidate produces a reproducible novel-context measurement

@@ -739,6 +739,22 @@ pub struct GraphScorer {
 }
 
 impl GraphScorer {
+    /// Build the certifier-side low-rank far-field candidate for this graph.
+    /// This deliberately does not alter deployed scoring semantics.
+    pub fn fmm_candidate(
+        &self,
+        config: crate::fmm::FmmConfig,
+    ) -> Result<crate::fmm::FmmCandidateScorer, String> {
+        crate::fmm::FmmCandidateScorer::from_graph_parts(
+            &self.regions,
+            &self.emissions,
+            &self.root_prior,
+            self.root_floor,
+            self.vocab,
+            config,
+        )
+    }
+
     /// Enable or disable predicted-cloud (F / ΔT) emissions. Default
     /// disabled since the #66 ablation decision; re-enabling requires a
     /// measured per-token ΔT design (the folded offset is argmax-neutral).

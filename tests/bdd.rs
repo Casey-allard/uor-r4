@@ -10,6 +10,7 @@ use uor_r4_core::transformerless::bott_fock::BottFockContextStore;
 use uor_r4_core::transformerless::compiler::SIG_BYTES;
 use uor_r4_core::transformerless::endomorphism::EndomorphismAlgebra;
 use uor_r4_core::transformerless::lie_jordan::{universal_product_u8, LieJordanSplit};
+use uor_r4_graph_certify::{FmmCandidateScorer, FmmConfig, GraphScorer};
 use uor_r4_graph_compiler::induction::{
     canonical_merge_edge_fragments, CoverEdge, Observation, EDGE_KIND_NEIGHBOR,
     EDGE_KIND_REFINEMENT, EDGE_KIND_TRANSITION,
@@ -202,6 +203,8 @@ struct R4g1World {
     parity_witness_consistent: Option<bool>,
     parity_corpus_legacy: Option<ParityMetrics>,
     parity_corpus_graph: Option<ParityMetrics>,
+    parity_fmm_metrics: Option<ParityMetrics>,
+    parity_fmm_fixed_metrics: Option<ParityMetrics>,
 }
 
 #[given("the R4G1 runtime returned the browser's repetitive hello response")]
@@ -2719,6 +2722,7 @@ struct ParityMetrics {
     top1_agreement: f64,
     top8_recall: f64,
     mean_delta_bits: f64,
+    teacher_bits_per_token: f64,
 }
 
 /// Median free-running generation rates (tokens/second) and compiled/teacher
@@ -2742,6 +2746,8 @@ struct ParityFixtures {
     tokenizer: Tokenizer,
     r4g1: Option<R4g1State>,
     corpus: Option<Corpus>,
+    fmm: Option<FmmCandidateScorer>,
+    fmm_fixed: Option<uor_r4_graph_certify::FmmFixedCandidateScorer>,
 }
 
 thread_local! {
@@ -2799,6 +2805,10 @@ fn load_parity_fixtures() -> Option<ParityFixtures> {
     let tokenizer = Tokenizer::try_load(bundle.join("tokenizer.bin")).ok()?;
     let r4g1 = load_r4g1(&bundle, &artifact_bytes);
     let corpus = load_parity_corpus(&bundle);
+    let fmm = load_fmm_candidate(&bundle, &artifact_bytes);
+    let fmm_fixed = fmm
+        .as_ref()
+        .and_then(|candidate| candidate.fixed_point().ok());
     Some(ParityFixtures {
         teacher,
         artifacts,
@@ -2806,7 +2816,34 @@ fn load_parity_fixtures() -> Option<ParityFixtures> {
         tokenizer,
         r4g1,
         corpus,
+        fmm,
+        fmm_fixed,
     })
+}
+
+/// Build the exploratory FMM candidate from the same validated graph bytes
+/// used by the incumbent parity path. It is deliberately optional: fixtures
+/// without a certifier-readable graph continue to use the existing vacuous
+/// parity convention.
+fn load_fmm_candidate(bundle: &Path, artifact_bytes: &[u8]) -> Option<FmmCandidateScorer> {
+    let graph_path = bundle.join("graph/score.r4g1");
+    let graph = std::fs::read(&graph_path).ok()?;
+    let scorer = GraphScorer::from_artifact(&graph, Some(artifact_bytes), 64, 64).ok()?;
+    let defaults = FmmConfig::default();
+    let max_rank = std::env::var("R4_FMM_RANK")
+        .ok()
+        .and_then(|value| value.parse().ok())
+        .unwrap_or(defaults.max_rank);
+    let relative_singular_tolerance = std::env::var("R4_FMM_TOLERANCE")
+        .ok()
+        .and_then(|value| value.parse().ok())
+        .unwrap_or(defaults.relative_singular_tolerance);
+    scorer
+        .fmm_candidate(FmmConfig {
+            max_rank,
+            relative_singular_tolerance,
+        })
+        .ok()
 }
 
 /// Load the bundle's corpus record stream for the S6 in-distribution
@@ -2875,6 +2912,7 @@ fn teacher_forced_eval(fx: &mut ParityFixtures, graph: bool, budget: usize) -> P
     let mut top1_hits = 0usize;
     let mut top8_hits = 0usize;
     let mut delta_bits_sum = 0.0f64;
+    let mut teacher_bits_sum = 0.0f64;
     let mut scored = 0usize;
     let mut logits = vec![0.0f32; fx.teacher.vocab()];
     let mut top8 = [(0u32, 0.0f32); 8];
@@ -2919,6 +2957,7 @@ fn teacher_forced_eval(fx: &mut ParityFixtures, graph: bool, budget: usize) -> P
             if top8[..k].iter().any(|&(t, _)| t == pick) {
                 top8_hits += 1;
             }
+            teacher_bits_sum += teacher_bits_for_token(&logits, pick);
             let gap_nats = logits[teacher_argmax as usize] - logits[pick as usize];
             delta_bits_sum += f64::from(gap_nats.max(0.0)) / std::f64::consts::LN_2;
             scored += 1;
@@ -2931,7 +2970,133 @@ fn teacher_forced_eval(fx: &mut ParityFixtures, graph: bool, budget: usize) -> P
         top1_agreement: top1_hits as f64 / denom,
         top8_recall: top8_hits as f64 / denom,
         mean_delta_bits: delta_bits_sum / scored.max(1) as f64,
+        teacher_bits_per_token: teacher_bits_sum / scored.max(1) as f64,
     }
+}
+
+/// Cross-entropy of a runtime-selected token under the live teacher,
+/// expressed in bits/token. This is the §5.2 local decision metric.
+fn teacher_bits_for_token(logits: &[f32], token: u32) -> f64 {
+    let index = token as usize;
+    if index >= logits.len() || logits.is_empty() {
+        return f64::INFINITY;
+    }
+    let max = logits.iter().copied().fold(f32::NEG_INFINITY, f32::max) as f64;
+    let log_sum_exp = logits
+        .iter()
+        .map(|&logit| (f64::from(logit) - max).exp())
+        .sum::<f64>()
+        .ln()
+        + max;
+    -(f64::from(logits[index]) - log_sum_exp) / std::f64::consts::LN_2
+}
+
+/// Teacher-forced evaluation of the certifier-side FMM candidate. The
+/// candidate receives the same artifact-derived signature and true history as
+/// the incumbent, but it does not participate in serving status policy.
+fn fmm_teacher_forced_eval(fx: &mut ParityFixtures, budget: usize) -> Option<ParityMetrics> {
+    let fmm = fx.fmm.as_ref()?.clone();
+    let r4g1 = fx.r4g1.as_ref()?;
+    let mut positions = 0usize;
+    let mut top1_hits = 0usize;
+    let mut top8_hits = 0usize;
+    let mut teacher_bits_sum = 0.0f64;
+    let mut remaining = budget;
+    let mut logits = vec![0.0f32; fx.teacher.vocab()];
+    let mut top8 = [(0u32, 0.0f32); 8];
+    'prompts: for prompt in PARITY_PROMPTS {
+        let tokens = fx.tokenizer.encode(prompt);
+        if tokens.len() < 2 {
+            continue;
+        }
+        fx.teacher.reset();
+        for i in 0..tokens.len() - 1 {
+            if remaining == 0 {
+                break 'prompts;
+            }
+            remaining -= 1;
+            fx.teacher.step(tokens[i] as usize, i, &mut logits);
+            let k = fx.teacher.top_k(8, &mut top8);
+            let teacher_argmax = top8[0].0;
+            let window = &tokens[(i + 1).saturating_sub(WINDOW)..=i];
+            let sig = r4g1.signature_for_window(window).ok()?;
+            let outcome = fmm.score(&sig, &[]).ok()?;
+            positions += 1;
+            if outcome.selected == teacher_argmax {
+                top1_hits += 1;
+            }
+            if top8[..k]
+                .iter()
+                .any(|&(token, _)| token == outcome.selected)
+            {
+                top8_hits += 1;
+            }
+            teacher_bits_sum += teacher_bits_for_token(&logits, outcome.selected);
+        }
+    }
+    let denom = positions.max(1) as f64;
+    Some(ParityMetrics {
+        positions,
+        abstains: 0,
+        top1_agreement: top1_hits as f64 / denom,
+        top8_recall: top8_hits as f64 / denom,
+        mean_delta_bits: 0.0,
+        teacher_bits_per_token: teacher_bits_sum / denom,
+    })
+}
+
+/// The same teacher-forced replay through the quantized translation-table
+/// candidate. This measures fixed-point selection drift separately from the
+/// float candidate so quantization loss is visible.
+fn fmm_fixed_teacher_forced_eval(fx: &mut ParityFixtures, budget: usize) -> Option<ParityMetrics> {
+    let fmm = fx.fmm_fixed.as_ref()?.clone();
+    let r4g1 = fx.r4g1.as_ref()?;
+    let mut positions = 0usize;
+    let mut top1_hits = 0usize;
+    let mut top8_hits = 0usize;
+    let mut teacher_bits_sum = 0.0f64;
+    let mut remaining = budget;
+    let mut logits = vec![0.0f32; fx.teacher.vocab()];
+    let mut top8 = [(0u32, 0.0f32); 8];
+    'prompts: for prompt in PARITY_PROMPTS {
+        let tokens = fx.tokenizer.encode(prompt);
+        if tokens.len() < 2 {
+            continue;
+        }
+        fx.teacher.reset();
+        for i in 0..tokens.len() - 1 {
+            if remaining == 0 {
+                break 'prompts;
+            }
+            remaining -= 1;
+            fx.teacher.step(tokens[i] as usize, i, &mut logits);
+            let k = fx.teacher.top_k(8, &mut top8);
+            let teacher_argmax = top8[0].0;
+            let window = &tokens[(i + 1).saturating_sub(WINDOW)..=i];
+            let sig = r4g1.signature_for_window(window).ok()?;
+            let outcome = fmm.score(&sig, &[]).ok()?;
+            positions += 1;
+            if outcome.selected == teacher_argmax {
+                top1_hits += 1;
+            }
+            if top8[..k]
+                .iter()
+                .any(|&(token, _)| token == outcome.selected)
+            {
+                top8_hits += 1;
+            }
+            teacher_bits_sum += teacher_bits_for_token(&logits, outcome.selected);
+        }
+    }
+    let denom = positions.max(1) as f64;
+    Some(ParityMetrics {
+        positions,
+        abstains: 0,
+        top1_agreement: top1_hits as f64 / denom,
+        top8_recall: top8_hits as f64 / denom,
+        mean_delta_bits: 0.0,
+        teacher_bits_per_token: teacher_bits_sum / denom,
+    })
 }
 
 fn teacher_argmax(logits: &[f32]) -> usize {
@@ -3090,6 +3255,7 @@ fn parity_legacy_checked(w: &mut R4g1World) {
         "top1_agreement": m.top1_agreement,
         "top8_recall": m.top8_recall,
         "mean_delta_bits": m.mean_delta_bits,
+        "teacher_bits_per_token": m.teacher_bits_per_token,
         "floors": {"top1": LEGACY_TOP1_FLOOR, "top8": LEGACY_TOP8_FLOOR, "delta_bits_ceil": LEGACY_DELTA_BITS_CEIL},
     });
     println!(
@@ -3145,6 +3311,7 @@ fn parity_graph_checked(w: &mut R4g1World) {
         "top1_agreement": m.top1_agreement,
         "top8_recall": m.top8_recall,
         "mean_delta_bits": m.mean_delta_bits,
+        "teacher_bits_per_token": m.teacher_bits_per_token,
         "floors": {"top1": GRAPH_TOP1_FLOOR, "top8": GRAPH_TOP8_FLOOR, "delta_bits_ceil": GRAPH_DELTA_BITS_CEIL},
     });
     println!(
@@ -3183,6 +3350,92 @@ fn parity_graph_abstains_checked(w: &mut R4g1World) {
         "graph abstentions {} above pinned bound {GRAPH_ABSTAIN_BOUND}",
         m.abstains
     );
+}
+
+#[when("the certifier FMM candidate is replayed against the teacher on pinned prompts")]
+fn parity_replay_fmm(w: &mut R4g1World) {
+    if parity_skip(w, "S7") {
+        return;
+    }
+    let has_fmm =
+        with_parity_fixtures(|fx| fx.fmm.is_some() && fx.fmm_fixed.is_some() && fx.r4g1.is_some())
+            .unwrap_or(false);
+    if !has_fmm {
+        eprintln!("[parity] S7: FMM candidate unavailable — vacuous pass");
+        return;
+    }
+    let budget = parity_budget("R4_FMM_POSITIONS", 256);
+    w.parity_fmm_metrics = with_parity_fixtures(|fx| fmm_teacher_forced_eval(fx, budget)).flatten();
+    w.parity_fmm_fixed_metrics =
+        with_parity_fixtures(|fx| fmm_fixed_teacher_forced_eval(fx, budget)).flatten();
+    if let Some(metrics) = w.parity_fmm_metrics {
+        let (rank, retained_energy, float_storage, fixed_storage, factor_bits) =
+            with_parity_fixtures(|fx| {
+                fx.fmm
+                    .as_ref()
+                    .zip(fx.fmm_fixed.as_ref())
+                    .map(|(fmm, fixed)| {
+                        (
+                            fmm.rank(),
+                            fmm.retained_energy(),
+                            fmm.storage_bytes(),
+                            fixed.storage_bytes(),
+                            fixed.factor_fraction_bits(),
+                        )
+                    })
+            })
+            .flatten()
+            .unwrap_or((0, 0.0, 0, 0, 0));
+        let fixed = w.parity_fmm_fixed_metrics.expect("fixed FMM measured");
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&serde_json::json!({
+                "suite": "teacher_parity_benchmarks",
+                "scenario": "S7 accuracy certifier FMM candidate",
+                "positions": metrics.positions,
+                "abstains": metrics.abstains,
+                "top1_agreement": metrics.top1_agreement,
+                "top8_recall": metrics.top8_recall,
+                "teacher_bits_per_token": metrics.teacher_bits_per_token,
+                "fixed_point": {
+                    "top1_agreement": fixed.top1_agreement,
+                    "top8_recall": fixed.top8_recall,
+                    "teacher_bits_per_token": fixed.teacher_bits_per_token,
+                    "storage_bytes": fixed_storage,
+                },
+                "rank": rank,
+                "retained_energy": retained_energy,
+                "float_storage_bytes": float_storage,
+                "factor_fraction_bits": factor_bits,
+                "max_rank": with_parity_fixtures(|fx| fx.fmm.as_ref().map(|fmm| fmm.config().max_rank)).flatten(),
+                "relative_singular_tolerance": with_parity_fixtures(|fx| fx.fmm.as_ref().map(|fmm| fmm.config().relative_singular_tolerance)).flatten(),
+                "budget": budget,
+                "decision_rule": "measurement_only; compare against S3 before considering promotion"
+            }))
+            .expect("json")
+        );
+    }
+}
+
+#[then("the FMM candidate produces a reproducible novel-context measurement")]
+fn parity_fmm_checked(w: &mut R4g1World) {
+    if parity_skip(w, "S7") {
+        return;
+    }
+    let Some(metrics) = w.parity_fmm_metrics else {
+        eprintln!("[parity] S7: FMM candidate unavailable — vacuous pass");
+        return;
+    };
+    assert!(
+        metrics.positions > 0,
+        "FMM replay covered at least one position"
+    );
+    assert!(metrics.teacher_bits_per_token.is_finite());
+    let fixed = w
+        .parity_fmm_fixed_metrics
+        .expect("fixed FMM replay measured");
+    assert!(fixed.positions > 0);
+    assert!(fixed.teacher_bits_per_token.is_finite());
 }
 
 #[when("free-running generation is timed for the teacher and both compiled runtimes")]
@@ -3419,6 +3672,8 @@ fn corpus_replay(fx: &mut ParityFixtures, graph: bool, budget: usize) -> Option<
         top8_recall: top8_hits as f64 / denom,
         // Recorded labels carry no logprobs — Δbits is not defined here.
         mean_delta_bits: 0.0,
+        // Recorded labels carry no live teacher logprobs either.
+        teacher_bits_per_token: 0.0,
     })
 }
 

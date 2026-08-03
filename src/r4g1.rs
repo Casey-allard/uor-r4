@@ -89,6 +89,17 @@ impl R4g1State {
             .map_err(|error| error.to_string())
     }
 
+    /// Derive the artifact-backed sign signature for a token window. This is
+    /// exposed for certifier-side research candidates such as issue #290's
+    /// low-rank far-field scorer; serving continues through the normal policy
+    /// path above.
+    pub fn signature_for_window(&self, window: &[u32]) -> Result<[u8; SIG_BYTES], String> {
+        self.engine
+            .borrow()
+            .signature_for_window(window)
+            .map_err(|error| error.to_string())
+    }
+
     /// Generate a greedy continuation with per-step policy decisions:
     /// stops at the first abstention (returning the count so far and
     /// the abstaining status) and never emits a guessed token.

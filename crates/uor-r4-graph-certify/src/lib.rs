@@ -7,6 +7,7 @@ pub mod compare;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod compiler_scaling;
 pub mod fairness_provenance;
+pub mod fmm;
 pub mod holographic_encoding;
 pub mod long_context;
 pub mod patch_lifecycle;
@@ -16,5 +17,6 @@ pub mod score;
 pub mod score_runtime;
 pub mod shortlist_evaluator;
 
+pub use fmm::*;
 pub use score::*;
 pub use score_runtime::*;
