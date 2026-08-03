@@ -63,6 +63,9 @@
 //! the previously unmeasured axis behind the #364 cover-ceiling verdict.
 //! Everything else in the sweep is unchanged; the default invocation
 //! reproduces schema-1 rows exactly (modulo the added config fields).
+//! The optional `--distinctiveness-weight` applies the induction objective's
+//! between-region distinctiveness reward to every cover point; its default is
+//! zero, preserving the byte-exact default cover.
 //!
 //! ```text
 //! schema:          2
@@ -295,6 +298,8 @@ pub struct SweepRowConfig {
     pub regions_budget: usize,
     pub min_support: usize,
     pub memory_budget_bytes: u64,
+    /// Induction-time reward weight against the global next-token prior.
+    pub distinctiveness_weight: f64,
 }
 
 /// One rate–distortion table row: one sweep point's regions × bytes ×
@@ -492,6 +497,11 @@ pub fn run_point(
             regions_budget: point.config.regions_budget,
             min_support: point.config.min_support,
             memory_budget_bytes: point.config.memory_budget_bytes,
+            distinctiveness_weight: point
+                .config
+                .objective
+                .weights
+                .between_region_distinctiveness,
         },
         regions: SweepRegions {
             total: cover.regions.len(),
@@ -631,18 +641,28 @@ pub fn recommend(rows: &[SweepRow]) -> Option<Recommendation> {
 
 /// Run the full 9-point sweep over the shared inputs with the fixed
 /// scorer and assemble the report.
-pub fn run_sweep(inputs: &SweepInputs, score_config: &ScoreConfig) -> Result<SweepReport, String> {
+pub fn run_sweep(
+    inputs: &SweepInputs,
+    score_config: &ScoreConfig,
+    distinctiveness_weight: f64,
+) -> Result<SweepReport, String> {
     let points = sweep_grid();
     let mut rows = Vec::with_capacity(points.len());
     let mut tla3_baseline: Option<GateCMetrics> = None;
     for (index, point) in points.iter().enumerate() {
+        let mut point = point.clone();
+        point
+            .config
+            .objective
+            .weights
+            .between_region_distinctiveness = distinctiveness_weight;
         eprintln!(
             "cover-sweep: point {}/{} ({})...",
             index + 1,
             points.len(),
             point.label
         );
-        let (row, baseline_metrics, _bytes) = run_point(inputs, point, score_config)?;
+        let (row, baseline_metrics, _bytes) = run_point(inputs, &point, score_config)?;
         eprintln!(
             "cover-sweep: {} regions, {} bytes, Rule 1+2 top-1 {:.4}, {:.4} bits/token",
             row.regions.total,
@@ -757,7 +777,7 @@ pub fn render_table(report: &SweepReport) -> String {
 
 // ------------------------------------------------------------ CLI --------
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq)]
 struct CoverSweepOptions {
     corpus_meta: PathBuf,
     corpus_recs: PathBuf,
@@ -765,6 +785,7 @@ struct CoverSweepOptions {
     output: PathBuf,
     emission_selection: score::EmissionSelection,
     emission_shrinkage: score::EmissionShrinkage,
+    distinctiveness_weight: f64,
 }
 
 fn parse_cover_sweep_options(args: &[String]) -> Result<CoverSweepOptions, String> {
@@ -776,6 +797,7 @@ fn parse_cover_sweep_options(args: &[String]) -> Result<CoverSweepOptions, Strin
         output: PathBuf::from("cover_sweep"),
         emission_selection: score::EmissionSelection::default(),
         emission_shrinkage: score::EmissionShrinkage::default(),
+        distinctiveness_weight: 0.0,
     };
     let mut index = 0usize;
     while index < args.len() {
@@ -813,6 +835,17 @@ fn parse_cover_sweep_options(args: &[String]) -> Result<CoverSweepOptions, Strin
                     }
                 };
             }
+            "--distinctiveness-weight" => {
+                let weight = value.parse::<f64>().map_err(|error| {
+                    format!("invalid --distinctiveness-weight value {value}: {error}")
+                })?;
+                if !weight.is_finite() || weight < 0.0 {
+                    return Err(format!(
+                        "invalid --distinctiveness-weight value {value} (expected finite non-negative number)"
+                    ));
+                }
+                options.distinctiveness_weight = weight;
+            }
             _ => return Err(format!("unknown cover-sweep option: {flag}")),
         }
         index += 2;
@@ -822,8 +855,9 @@ fn parse_cover_sweep_options(args: &[String]) -> Result<CoverSweepOptions, Strin
 
 /// Cover fineness sweep (issue #70, module docs): run the 9-point
 /// rate–distortion grid under the fixed scorer and write
-/// `cover_sweep.json` plus the console table. Release-mode workload on
-/// the fixture corpus.
+/// `cover_sweep.json` plus the console table. `--distinctiveness-weight`
+/// sets the optional induction-time between-region contrast reward.
+/// Release-mode workload on the fixture corpus.
 pub fn cover_sweep_command(args: &[String]) -> Result<(), String> {
     #[cfg(debug_assertions)]
     eprintln!(
@@ -842,13 +876,14 @@ pub fn cover_sweep_command(args: &[String]) -> Result<(), String> {
     };
     eprintln!(
         "cover-sweep: {} train / {} held-out observations; running the 9-point grid (fixed scorer, \
-         emission {}/{})...",
+         emission {}/{}, cover distinctiveness {})...",
         inputs.train.len(),
         inputs.held_out.len(),
         score_config.emission_selection.label(),
-        score_config.emission_shrinkage.label()
+        score_config.emission_shrinkage.label(),
+        options.distinctiveness_weight
     );
-    let report = run_sweep(&inputs, &score_config)?;
+    let report = run_sweep(&inputs, &score_config, options.distinctiveness_weight)?;
 
     std::fs::create_dir_all(&options.output).map_err(|error| error.to_string())?;
     let report_json = serde_json::to_string_pretty(&report).map_err(|error| error.to_string())?;
@@ -881,6 +916,7 @@ mod tests {
             options.emission_shrinkage,
             score::EmissionShrinkage::default()
         );
+        assert_eq!(options.distinctiveness_weight, 0.0);
 
         let args = [
             "--corpus-meta",
@@ -895,6 +931,8 @@ mod tests {
             "probability",
             "--emission-shrinkage",
             "contrast",
+            "--distinctiveness-weight",
+            "1.5",
         ]
         .map(str::to_owned);
         let options = parse_cover_sweep_options(&args).expect("valid options");
@@ -910,9 +948,12 @@ mod tests {
             options.emission_shrinkage,
             score::EmissionShrinkage::Contrast
         );
+        assert_eq!(options.distinctiveness_weight, 1.5);
 
         let bad_shrinkage = ["--emission-shrinkage", "sideways"].map(str::to_owned);
         assert!(parse_cover_sweep_options(&bad_shrinkage).is_err());
+        let bad_distinctiveness = ["--distinctiveness-weight", "-1"].map(str::to_owned);
+        assert!(parse_cover_sweep_options(&bad_distinctiveness).is_err());
 
         let bad = ["--k0", "16"].map(str::to_owned);
         assert!(parse_cover_sweep_options(&bad).is_err());

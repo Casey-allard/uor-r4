@@ -61,12 +61,14 @@
 //!   same-machine determinism is pinned by the T-invariance tests, and
 //!   cross-platform byte equality awaits the D2 canonical deterministic
 //!   compile mode, exactly as for `compile()`'s macOS-pinned κ baseline.)
-//! - **Objective scoring (schema 1)**: each eligible split records
+//! - **Objective scoring (schema 2)**: each eligible split records
 //!   `H(A|R)` and `H(S_future|R)` proxies, an information-bottleneck term
 //!   `I(Z;X) - beta·I(Z;Y_future)`, and runtime/artifact/bytes/structure
-//!   cost proxies; weighted objective ties deterministically resolve to
-//!   "keep". Fitting uses train observations only; reports emit both train
-//!   and held-out decompositions so regressions are visible per component.
+//!   cost proxies plus a bounded top-E distinctiveness reward against the
+//!   global next-token prior; weighted objective ties deterministically
+//!   resolve to "keep". Fitting uses train observations only; reports emit
+//!   both train and held-out decompositions so regressions are visible per
+//!   component. The new reward defaults to zero for byte-exact compatibility.
 //!
 //! # Regions, membership, reference classifier
 //!
@@ -157,8 +159,10 @@ pub fn sample_id(tokens: &[u32]) -> [u8; 32] {
 pub const DEFAULT_MIN_SUPPORT: usize = 64;
 /// Default entropy-reduction floor for accepting a split, in bits/token.
 pub const DEFAULT_SPLIT_ENTROPY_GAIN_BITS: f64 = 0.25;
+/// Top-token bound used by the induction-time distinctiveness objective.
+pub const DISTINCTIVENESS_TOP_E: usize = 64;
 /// Objective configuration schema version carried in compile reports.
-pub const OBJECTIVE_CONFIG_SCHEMA: u32 = 1;
+pub const OBJECTIVE_CONFIG_SCHEMA: u32 = 2;
 /// Bounded multi-membership per depth (matches the runtime's top-M).
 pub const TOP_M: usize = 3;
 /// Radius calibration quantile: the 95th percentile of member distances.
@@ -249,6 +253,10 @@ pub struct ObjectiveWeights {
     pub bytes_read: f64,
     pub structural_complexity: f64,
     pub ib_term: f64,
+    /// Reward candidate partitions whose child distributions depart from the
+    /// global next-token prior. Lower weighted objective scores are better, so
+    /// this component is subtracted when its weight is positive.
+    pub between_region_distinctiveness: f64,
 }
 
 /// Metadata describing approximations used by objective estimators.
@@ -262,6 +270,7 @@ pub struct ObjectiveEstimatorMetadata {
     pub bytes_read: String,
     pub structural_complexity: String,
     pub ib_term: String,
+    pub between_region_distinctiveness: String,
     pub fit_partition: String,
     pub report_partitions: String,
 }
@@ -289,6 +298,7 @@ impl Default for ObjectiveConfig {
                 bytes_read: 0.0,
                 structural_complexity: 0.0,
                 ib_term: 0.25,
+                between_region_distinctiveness: 0.0,
             },
             estimators: ObjectiveEstimatorMetadata {
                 predictive_entropy: "H(A|R) from empirical next-token frequencies".to_owned(),
@@ -302,6 +312,10 @@ impl Default for ObjectiveConfig {
                 structural_complexity: "regions+edges proxy".to_owned(),
                 ib_term: "I(Z;X)-beta*I(Z;Y_future), X via deterministic assignment proxy"
                     .to_owned(),
+                between_region_distinctiveness: format!(
+                    "weighted mean of 1 - top-{} child/prior token overlap over next-token counts",
+                    DISTINCTIVENESS_TOP_E
+                ),
                 fit_partition: "train".to_owned(),
                 report_partitions: "train,held_out".to_owned(),
             },
@@ -766,6 +780,48 @@ fn next_token_counts(observations: &[Observation], members: &[usize]) -> BTreeMa
     counts
 }
 
+fn all_next_token_counts(observations: &[Observation]) -> BTreeMap<u32, u64> {
+    let members: Vec<usize> = (0..observations.len()).collect();
+    next_token_counts(observations, &members)
+}
+
+/// Distinctiveness of a child distribution against the global prior.
+///
+/// This is the serving-side `1 - overlap` analogue: compare the top-E token
+/// sets by count, with token-id ordering breaking equal-count ties. The
+/// denominator is the child set, so a child with a unique top token receives
+/// full credit even when the prior has fewer than E entries.
+fn top_token_distinctiveness(
+    child_counts: &BTreeMap<u32, u64>,
+    prior_counts: &BTreeMap<u32, u64>,
+) -> f64 {
+    if child_counts.is_empty() || prior_counts.is_empty() {
+        return 0.0;
+    }
+    let mut child: Vec<(u32, u64)> = child_counts
+        .iter()
+        .map(|(&token, &count)| (token, count))
+        .collect();
+    let mut prior: Vec<(u32, u64)> = prior_counts
+        .iter()
+        .map(|(&token, &count)| (token, count))
+        .collect();
+    let by_count_then_token = |left: &(u32, u64), right: &(u32, u64)| {
+        right.1.cmp(&left.1).then_with(|| left.0.cmp(&right.0))
+    };
+    child.sort_by(by_count_then_token);
+    prior.sort_by(by_count_then_token);
+    child.truncate(DISTINCTIVENESS_TOP_E);
+    prior.truncate(DISTINCTIVENESS_TOP_E);
+    let prior_tokens: std::collections::BTreeSet<u32> =
+        prior.into_iter().map(|(token, _)| token).collect();
+    let shared = child
+        .iter()
+        .filter(|(token, _)| prior_tokens.contains(token))
+        .count();
+    1.0 - shared as f64 / child.len() as f64
+}
+
 /// Shannon entropy of a token distribution in bits (f64, tokens in
 /// ascending order; libm-sensitive cross-platform — see module docs).
 fn entropy_bits<K: Ord>(counts: &BTreeMap<K, u64>) -> f64 {
@@ -863,6 +919,7 @@ pub struct ObjectiveComponents {
     pub artifact_size_bytes: f64,
     pub bytes_read: f64,
     pub structural_complexity: f64,
+    pub between_region_distinctiveness: f64,
     pub ib_i_zx_bits: f64,
     pub ib_i_zy_future_bits: f64,
     pub ib_objective_bits: f64,
@@ -881,6 +938,8 @@ impl ObjectiveComponents {
             + w.bytes_read * values.bytes_read
             + w.structural_complexity * values.structural_complexity
             + w.ib_term * ib_objective;
+        let weighted_score = weighted_score
+            - w.between_region_distinctiveness * values.between_region_distinctiveness;
         Self {
             predictive_entropy_bits: values.predictive_entropy_bits,
             future_state_entropy_bits: values.future_state_entropy_bits,
@@ -889,6 +948,7 @@ impl ObjectiveComponents {
             artifact_size_bytes: values.artifact_size_bytes,
             bytes_read: values.bytes_read,
             structural_complexity: values.structural_complexity,
+            between_region_distinctiveness: values.between_region_distinctiveness,
             ib_i_zx_bits: values.ib_i_zx_bits,
             ib_i_zy_future_bits: values.ib_i_zy_future_bits,
             ib_objective_bits: ib_objective,
@@ -906,6 +966,7 @@ struct ObjectiveRawValues {
     artifact_size_bytes: f64,
     bytes_read: f64,
     structural_complexity: f64,
+    between_region_distinctiveness: f64,
     ib_i_zx_bits: f64,
     ib_i_zy_future_bits: f64,
 }
@@ -951,6 +1012,7 @@ fn objective_for_partition(
                 artifact_size_bytes: costs.artifact_size_bytes,
                 bytes_read: costs.bytes_read,
                 structural_complexity: costs.structural_complexity,
+                between_region_distinctiveness: 0.0,
                 ib_i_zx_bits: 0.0,
                 ib_i_zy_future_bits: 0.0,
             },
@@ -965,6 +1027,21 @@ fn objective_for_partition(
     let teacher_loss_bits = predictive_entropy_bits;
     let ib_i_zx_bits = assignment_entropy(assignments);
     let ib_i_zy_future_bits = (next_entropy(observations) - predictive_entropy_bits).max(0.0);
+    let prior_counts = all_next_token_counts(observations);
+    let mut region_distinctiveness = 0.0;
+    let mut region_counts: BTreeMap<u32, BTreeMap<u32, u64>> = BTreeMap::new();
+    for (observation, &region) in observations.iter().zip(assignments.iter()) {
+        *region_counts
+            .entry(region)
+            .or_default()
+            .entry(observation.next)
+            .or_insert(0) += 1;
+    }
+    for counts in region_counts.values() {
+        let support: u64 = counts.values().sum();
+        region_distinctiveness +=
+            support as f64 / count as f64 * top_token_distinctiveness(counts, &prior_counts);
+    }
     ObjectiveComponents::weighted(
         config,
         ObjectiveRawValues {
@@ -975,6 +1052,7 @@ fn objective_for_partition(
             artifact_size_bytes: costs.artifact_size_bytes,
             bytes_read: costs.bytes_read,
             structural_complexity: costs.structural_complexity,
+            between_region_distinctiveness: region_distinctiveness,
             ib_i_zx_bits,
             ib_i_zy_future_bits,
         },
@@ -986,6 +1064,7 @@ fn objective_for_member_partition(
     observations: &[Observation],
     members: &[usize],
     assignments: &[u32],
+    prior_counts: &BTreeMap<u32, u64>,
     costs: ObjectiveCostTerms,
 ) -> ObjectiveComponents {
     let count = members.len().min(assignments.len());
@@ -1000,6 +1079,7 @@ fn objective_for_member_partition(
                 artifact_size_bytes: costs.artifact_size_bytes,
                 bytes_read: costs.bytes_read,
                 structural_complexity: costs.structural_complexity,
+                between_region_distinctiveness: 0.0,
                 ib_i_zx_bits: 0.0,
                 ib_i_zy_future_bits: 0.0,
             },
@@ -1040,6 +1120,16 @@ fn objective_for_member_partition(
     let teacher_loss_bits = predictive_entropy_bits;
     let ib_i_zx_bits = assignment_entropy(&assignments[..count]);
     let ib_i_zy_future_bits = (entropy_bits(&next_counts) - predictive_entropy_bits).max(0.0);
+    let mut region_distinctiveness = 0.0;
+    for counts in region_next_counts.values() {
+        let support: u64 = counts.values().sum();
+        let token_counts: BTreeMap<u32, u64> = counts
+            .iter()
+            .map(|(&token, &count)| (token as u32, count))
+            .collect();
+        region_distinctiveness +=
+            support as f64 / count as f64 * top_token_distinctiveness(&token_counts, prior_counts);
+    }
     ObjectiveComponents::weighted(
         config,
         ObjectiveRawValues {
@@ -1050,6 +1140,7 @@ fn objective_for_member_partition(
             artifact_size_bytes: costs.artifact_size_bytes,
             bytes_read: costs.bytes_read,
             structural_complexity: costs.structural_complexity,
+            between_region_distinctiveness: region_distinctiveness,
             ib_i_zx_bits,
             ib_i_zy_future_bits,
         },
@@ -1308,6 +1399,7 @@ pub fn induce_cover(
     );
     let n = observations.len();
     let points: Vec<&[f32]> = observations.iter().map(|o| o.vector.as_slice()).collect();
+    let global_prior_counts = all_next_token_counts(observations);
 
     let mut regions: Vec<CoverRegion> = Vec::new();
     let mut members_of: Vec<Vec<usize>> = Vec::new();
@@ -1395,6 +1487,7 @@ pub fn induce_cover(
             observations,
             &parent_members,
             &keep_assignments,
+            &global_prior_counts,
             ObjectiveCostTerms {
                 runtime_cost_units: 0.0,
                 artifact_size_bytes: 0.0,
@@ -1407,6 +1500,7 @@ pub fn induce_cover(
             observations,
             &parent_members,
             &split_assignments,
+            &global_prior_counts,
             ObjectiveCostTerms {
                 runtime_cost_units: SPLIT_CHILDREN as f64,
                 artifact_size_bytes: (SPLIT_CHILDREN.saturating_sub(1)) as f64
@@ -2160,6 +2254,7 @@ pub struct ObjectiveTradeoffDelta {
     pub artifact_size_bytes: f64,
     pub bytes_read: f64,
     pub structural_complexity: f64,
+    pub between_region_distinctiveness: f64,
     pub ib_objective_bits: f64,
     pub weighted_score: f64,
 }
@@ -2317,7 +2412,7 @@ pub fn build_report(config: &CoverConfig, induced: &InducedCover, data: ReportDa
         config.threads
     );
     CoverReport {
-        schema: 1,
+        schema: 2,
         config: CoverReportConfig {
             depths: config.depths,
             k0: config.k0,
@@ -2360,6 +2455,8 @@ pub fn build_report(config: &CoverConfig, induced: &InducedCover, data: ReportDa
                 bytes_read: objective_held_out.bytes_read - objective_train.bytes_read,
                 structural_complexity: objective_held_out.structural_complexity
                     - objective_train.structural_complexity,
+                between_region_distinctiveness: objective_held_out.between_region_distinctiveness
+                    - objective_train.between_region_distinctiveness,
                 ib_objective_bits: objective_held_out.ib_objective_bits
                     - objective_train.ib_objective_bits,
                 weighted_score: objective_held_out.weighted_score - objective_train.weighted_score,
@@ -2410,6 +2507,10 @@ pub fn build_report(config: &CoverConfig, induced: &InducedCover, data: ReportDa
 
 #[cfg(test)]
 mod compiler_invariant_tests {
+    use std::collections::BTreeMap;
+
+    use super::*;
+
     use uor_r4_graph_format::invariant_ownership::{
         GraphInvariantId, GraphInvariantOwnershipMatrix, InvariantOwner,
     };
@@ -2427,5 +2528,39 @@ mod compiler_invariant_tests {
             InvariantOwner::CompilerConstruction
         );
         assert_eq!(stage4_entry.validation_stage, "Compiler Stage 4");
+    }
+
+    #[test]
+    fn distinctiveness_is_bounded_deterministic_and_rewarded() {
+        let mut child = BTreeMap::new();
+        child.insert(7, 10);
+        child.insert(8, 9);
+        let mut prior = BTreeMap::new();
+        prior.insert(1, 100);
+        prior.insert(2, 90);
+        assert_eq!(top_token_distinctiveness(&child, &prior), 1.0);
+
+        prior.insert(7, 110);
+        assert_eq!(top_token_distinctiveness(&child, &prior), 0.5);
+
+        let mut config = ObjectiveConfig::default();
+        config.weights.between_region_distinctiveness = 2.0;
+        let components = ObjectiveComponents::weighted(
+            &config,
+            ObjectiveRawValues {
+                predictive_entropy_bits: 0.0,
+                future_state_entropy_bits: 0.0,
+                teacher_loss_bits: 0.0,
+                runtime_cost_units: 0.0,
+                artifact_size_bytes: 0.0,
+                bytes_read: 0.0,
+                structural_complexity: 0.0,
+                between_region_distinctiveness: 0.5,
+                ib_i_zx_bits: 0.0,
+                ib_i_zy_future_bits: 0.0,
+            },
+        );
+        assert_eq!(components.between_region_distinctiveness, 0.5);
+        assert_eq!(components.weighted_score, -1.0);
     }
 }
