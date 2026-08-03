@@ -9,7 +9,9 @@
 //!     STAGES) with total evidence ≥ EXCT_SUPPORT_MIN — strict
 //!     exact-context evidence dominates and graph residuals are skipped
 //!     entirely (status ExactContext). An explicit supported NGRAM row
-//!     takes the same most-specific precedence before the EXCT probe. A
+//!     takes the same most-specific precedence before the EXCT probe;
+//!     since #380 the row hit carries the whole bounded row as the
+//!     emission distribution (canonical argmax selection unchanged). A
 //!     probe that resolves below full
 //!     depth is prefix backoff, not exact context (#234, maintainer
 //!     decision 2026-07-29): it is recorded in the witness but admits
@@ -1031,10 +1033,14 @@ impl GraphScorer {
             .unwrap_or(self.root_floor)
     }
 
-    /// Apply the explicit lexical backoff rule. A row is supported only when
-    /// it has at least one candidate; empty rows fall through to the next
-    /// context order and finally to the normal root/graph scorer.
-    fn context_prediction(&self, recent_tokens: &[u32]) -> Option<(u32, ScoreQ)> {
+    /// Apply the explicit lexical backoff rule and return the winning row's
+    /// full entry list (ascending token order, as compiled). A row is
+    /// supported only when it has at least one candidate; empty rows fall
+    /// through to the next context order and finally to the normal
+    /// root/graph scorer. Since #380 the whole bounded row is the emission
+    /// distribution on a hit — the argmax alone made row hits
+    /// single-candidate and collapsed bits/token on the exact-context slice.
+    fn context_row(&self, recent_tokens: &[u32]) -> Option<&[(u32, ScoreQ)]> {
         let tokens = if recent_tokens.first().is_some_and(|&token| token <= 1) {
             &recent_tokens[1..]
         } else {
@@ -1049,23 +1055,26 @@ impl GraphScorer {
             [None, tokens.last().copied().map(|token| (1, token, 0))]
         };
         for key in keys.into_iter().flatten() {
-            let Some(entries) = self.context_rows.get(&key) else {
-                continue;
-            };
-            let mut best = None;
-            for &(token, score) in entries {
-                if best.is_none_or(|(best_token, best_score): (u32, ScoreQ)| {
-                    score.raw() > best_score.raw()
-                        || (score.raw() == best_score.raw() && token < best_token)
-                }) {
-                    best = Some((token, score));
+            if let Some(entries) = self.context_rows.get(&key) {
+                if !entries.is_empty() {
+                    return Some(entries);
                 }
-            }
-            if best.is_some() {
-                return best;
             }
         }
         None
+    }
+
+    /// The canonical row argmax: highest score, then lowest token id —
+    /// byte-identical to the pre-#380 selection, so served tokens are
+    /// unchanged by the distribution change.
+    fn context_row_argmax(entries: &[(u32, ScoreQ)]) -> (u32, ScoreQ) {
+        let mut best = entries[0];
+        for &(token, score) in &entries[1..] {
+            if score.raw() > best.1.raw() || (score.raw() == best.1.raw() && token < best.0) {
+                best = (token, score);
+            }
+        }
+        best
     }
 
     /// Score one context signature: compute the active cloud A, the
@@ -1118,7 +1127,17 @@ impl GraphScorer {
         } else {
             recent_tokens
         };
-        if let Some((selected, selected_score)) = self.context_prediction(recent_tokens) {
+        if let Some(entries) = self.context_row(recent_tokens) {
+            // #380: the whole bounded row is the emission distribution; the
+            // selection stays the canonical argmax, so served tokens are
+            // byte-identical to the pre-#380 behavior — only the
+            // distribution (bits/token, downstream sampling) changes.
+            let (selected, selected_score) = Self::context_row_argmax(entries);
+            let candidates: Vec<(u32, ScoreQ)> = entries.to_vec();
+            let candidate_components: Vec<(u32, i32, i32, bool)> = entries
+                .iter()
+                .map(|&(token, score)| (token, score.raw(), 0, false))
+                .collect();
             let census = OpKernel {
                 table_reads: 1,
                 ..Default::default()
@@ -1140,14 +1159,14 @@ impl GraphScorer {
                 selected,
                 selected_score,
                 selected_contributions: Vec::new(),
-                candidate_count: 1,
+                candidate_count: candidates.len() as u32,
                 census,
             };
             return Ok(ScoreOutcome {
                 selected,
                 selected_score,
-                candidates: vec![(selected, selected_score)],
-                candidate_components: vec![(selected, selected_score.raw(), 0, false)],
+                candidates,
+                candidate_components,
                 witness,
                 exact_context_source: Some(ExactContextSource::NgramRow),
             });
@@ -2044,7 +2063,8 @@ impl GraphScorer {
         if state.residuals.len() != self.vocab as usize {
             return Err("step state does not match this scorer".to_owned());
         }
-        if let Some((selected, selected_score)) = self.context_prediction(recent_tokens) {
+        if let Some(entries) = self.context_row(recent_tokens) {
+            let (selected, selected_score) = Self::context_row_argmax(entries);
             let census = OpKernel {
                 table_reads: 1,
                 ..Default::default()
@@ -2053,7 +2073,7 @@ impl GraphScorer {
                 selected,
                 selected_score,
                 status: ScoreStatus::ExactContext,
-                candidate_count: 1,
+                candidate_count: entries.len() as u32,
                 census,
                 exact_context_source: Some(ExactContextSource::NgramRow),
             });
@@ -2525,16 +2545,21 @@ mod ngram_tests {
             vec![(4, ScoreQ::from_raw(10)), (5, ScoreQ::from_raw(20))],
         );
         let mut scorer = scorer(rows);
+        let row_argmax = |scorer: &GraphScorer, tokens: &[u32]| {
+            scorer
+                .context_row(tokens)
+                .map(GraphScorer::context_row_argmax)
+        };
         assert_eq!(
-            scorer.context_prediction(&[10, 20]),
+            row_argmax(&scorer, &[10, 20]),
             Some((5, ScoreQ::from_raw(20)))
         );
         scorer.context_rows.remove(&(2, 10, 20));
         assert_eq!(
-            scorer.context_prediction(&[10, 20]),
+            row_argmax(&scorer, &[10, 20]),
             Some((6, ScoreQ::from_raw(100)))
         );
-        assert_eq!(scorer.context_prediction(&[30]), None);
+        assert_eq!(row_argmax(&scorer, &[30]), None);
     }
 
     /// #362 attribution: an NGRAM-row selection reports `NgramRow`
@@ -2555,5 +2580,30 @@ mod ngram_tests {
             Some(ExactContextSource::NgramRow)
         );
         assert!(outcome.witness.exct.is_none());
+    }
+
+    /// #380: a row hit carries the whole bounded row as the emission
+    /// distribution, while the selection stays the canonical argmax — so
+    /// served tokens are unchanged and only the distribution widens.
+    #[test]
+    fn context_row_hit_yields_the_full_bounded_distribution() {
+        let mut rows = BTreeMap::new();
+        rows.insert(
+            (1, 20, 0),
+            vec![(4, ScoreQ::from_raw(10)), (6, ScoreQ::from_raw(100))],
+        );
+        let scorer = scorer(rows);
+        let sig = [0u8; SIG_BYTES];
+        let outcome = scorer
+            .score_candidates_coded(&sig, None, &[10, 20])
+            .expect("ngram row scores");
+        assert_eq!(outcome.selected, 6, "argmax selection is unchanged");
+        assert_eq!(
+            outcome.candidates,
+            vec![(4, ScoreQ::from_raw(10)), (6, ScoreQ::from_raw(100))],
+            "the full row is the distribution, ascending token order"
+        );
+        assert_eq!(outcome.witness.candidate_count, 2);
+        assert_eq!(outcome.candidate_components.len(), 2);
     }
 }
