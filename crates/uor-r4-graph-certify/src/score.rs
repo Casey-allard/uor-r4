@@ -1567,6 +1567,14 @@ pub struct ResidualInfluence {
     /// Teacher retrieved, but ONLY by the context-free root prior — no graph
     /// region and no predicted transition supplied it.
     pub teacher_only_root_top: f64,
+    /// Mean chain length, and mean number of chain levels carrying a term for
+    /// the teacher token. A gap means the telescoping sum is incomplete.
+    pub mean_chain_levels: f64,
+    pub mean_chain_levels_emitting_teacher: f64,
+    /// Share of positions where the teacher's chain terms are complete, and
+    /// where they are present at some levels but missing at others.
+    pub teacher_chain_complete: f64,
+    pub teacher_chain_partial: f64,
 }
 
 /// Residual-influence measurement split by resolution status.
@@ -1910,6 +1918,10 @@ pub fn evaluate_gate_c(
     let mut status_src_predicted = [0u64; 3];
     let mut status_src_root_top = [0u64; 3];
     let mut status_src_only_root = [0u64; 3];
+    let mut status_chain_levels = [0u64; 3];
+    let mut status_chain_emit_levels = [0u64; 3];
+    let mut status_chain_complete = [0u64; 3];
+    let mut status_chain_partial = [0u64; 3];
     let mut status_ranks: [Vec<u32>; 3] = [Vec::new(), Vec::new(), Vec::new()];
     let gate_rotations = compiler::derive_rotations();
     let context = GateCContext {
@@ -1967,6 +1979,10 @@ pub fn evaluate_gate_c(
         status_src_predicted[row.status_index] += u64::from(row.teacher_from_predicted);
         status_src_root_top[row.status_index] += u64::from(row.teacher_from_root_top);
         status_src_only_root[row.status_index] += u64::from(row.teacher_only_root_top);
+        status_chain_levels[row.status_index] += u64::from(row.chain_levels);
+        status_chain_emit_levels[row.status_index] += u64::from(row.chain_levels_emitting_teacher);
+        status_chain_complete[row.status_index] += u64::from(row.teacher_chain_complete);
+        status_chain_partial[row.status_index] += u64::from(row.teacher_chain_partial);
         if row.teacher_emitted_off_chain {
             status_emitter_depth[row.status_index] += u64::from(row.teacher_emitter_depth);
             status_emitter_rows[row.status_index] += 1;
@@ -2149,6 +2165,10 @@ pub fn evaluate_gate_c(
             teacher_from_predicted: status_src_predicted[index] as f64 / denom,
             teacher_from_root_top: status_src_root_top[index] as f64 / denom,
             teacher_only_root_top: status_src_only_root[index] as f64 / denom,
+            mean_chain_levels: status_chain_levels[index] as f64 / denom,
+            mean_chain_levels_emitting_teacher: status_chain_emit_levels[index] as f64 / denom,
+            teacher_chain_complete: status_chain_complete[index] as f64 / denom,
+            teacher_chain_partial: status_chain_partial[index] as f64 / denom,
         };
         match index {
             0 => influence.exact_context = value,
@@ -2267,6 +2287,19 @@ struct GateCRow {
     teacher_from_root_top: bool,
     /// Teacher present, but ONLY from the context-free root prior.
     teacher_only_root_top: bool,
+    /// Chain length, and how many of its levels emit the teacher token.
+    /// The residual is a TELESCOPING sum: each level stores
+    /// log P_level - log P_parent, so summing a complete root-to-leaf chain
+    /// gives log P_leaf - log P_root. Truncation is per level, so a token kept
+    /// at a descendant need not be kept at its ancestors; a missing level
+    /// contributes 0 instead of its real correction and the sum is no longer
+    /// log P_leaf. Count the levels that actually contribute.
+    chain_levels: u32,
+    chain_levels_emitting_teacher: u32,
+    /// The teacher is emitted by the full chain (telescoping intact).
+    teacher_chain_complete: bool,
+    /// The teacher is emitted by some but not all chain levels (broken).
+    teacher_chain_partial: bool,
     witness_replayed: bool,
     witness_replay_failed: bool,
 }
@@ -2447,6 +2480,19 @@ fn evaluate_gate_c_row(
     // teacher only ~4.3% of the time. Attribute the rest: the candidate set is
     // active + predicted + root_top, and which source supplies the teacher
     // decides whether the graph contributes anything to finding the answer.
+    // Telescoping integrity: how much of the selected chain actually carries a
+    // term for the teacher token.
+    let chain_levels = rule12.witness.chain.len() as u32;
+    let chain_levels_emitting_teacher = rule12
+        .witness
+        .chain
+        .iter()
+        .filter(|&&node| context.scorer_with_exct.node_emits(node, teacher_argmax))
+        .count() as u32;
+    let teacher_chain_complete = chain_levels > 0 && chain_levels_emitting_teacher == chain_levels;
+    let teacher_chain_partial =
+        chain_levels_emitting_teacher > 0 && chain_levels_emitting_teacher < chain_levels;
+
     let teacher_present = rule12
         .candidate_components
         .iter()
@@ -2570,6 +2616,10 @@ fn evaluate_gate_c_row(
         teacher_from_predicted,
         teacher_from_root_top,
         teacher_only_root_top,
+        chain_levels,
+        chain_levels_emitting_teacher,
+        teacher_chain_complete,
+        teacher_chain_partial,
         witness_replayed: index < context.config.witness_sample,
         witness_replay_failed,
     })
