@@ -1633,8 +1633,30 @@ pub fn witten_bell_probability(store: &Store, code: &[u8; STAGES], next: u32) ->
 /// non-candidate tokens held at the baked root smoothing floor (f64,
 /// deterministic same-platform; computed max-shifted in the natural-log
 /// domain so extreme residuals cannot underflow the accumulator).
-fn outcome_bits(scorer: &GraphScorer, candidates: &[(u32, ScoreQ)], next: u32) -> f64 {
-    let floor = scorer.root_floor().raw();
+/// bits/token of `next` under the candidate distribution.
+///
+/// `transition_offset` is added to every candidate score by the scorer. It is
+/// rank-neutral by construction, so it changes no decision — but the
+/// uncovered-vocabulary floor is a root-prior-scale quantity that does NOT
+/// carry it. Pricing candidates and the floor on different scales inflates
+/// bits/token by roughly the offset (#387): with an offset of −118 nats the
+/// graph slice reported 115 bits/token, and bits were HIGHER when the teacher
+/// was retrieved (143.7) than when it was absent (46.8), because being a
+/// candidate priced a token below one never observed.
+///
+/// Shifting the floor by the same offset puts both on one scale. Softmax is
+/// shift-invariant, so this is equivalent to removing the offset from the
+/// candidates and changes nothing where the offset is zero.
+fn outcome_bits(
+    scorer: &GraphScorer,
+    candidates: &[(u32, ScoreQ)],
+    next: u32,
+    transition_offset: ScoreQ,
+) -> f64 {
+    let floor = scorer
+        .root_floor()
+        .raw()
+        .saturating_add(transition_offset.raw());
     let max_s = candidates
         .iter()
         .map(|&(_, s)| s.raw())
@@ -1781,6 +1803,15 @@ pub struct ResidualInfluence {
     /// `bits_per_token`: a lower top-1 with unchanged bits means the argmax
     /// moved without the distribution improving.
     pub bits_per_token_root_only: f64,
+    /// bits/token split by whether the teacher was in the candidate set, plus
+    /// the mean rank-neutral offset applied. If `bits_teacher_absent` dominates
+    /// and scales with the offset, the slice's bits figure is an accounting
+    /// artifact rather than model error.
+    pub bits_teacher_present: f64,
+    pub bits_teacher_absent: f64,
+    pub positions_teacher_present: usize,
+    pub positions_teacher_absent: usize,
+    pub mean_transition_offset_nats: f64,
     /// Mean share of candidates whose residual is exactly zero (off-chain).
     pub mean_zero_residual_share: f64,
     /// Fraction of positions where the teacher token is a chain token.
@@ -2152,6 +2183,11 @@ pub fn evaluate_gate_c(
     let mut status_resid_spreads: [Vec<i64>; 3] = [Vec::new(), Vec::new(), Vec::new()];
     let mut status_alpha_hits = [[0u64; ALPHA_SWEEP.len()]; 3];
     let mut status_bits_root_only = [0f64; 3];
+    let mut status_bits_present = [0f64; 3];
+    let mut status_bits_absent = [0f64; 3];
+    let mut status_n_present = [0u64; 3];
+    let mut status_n_absent = [0u64; 3];
+    let mut status_offset_sum = [0i128; 3];
     let mut status_zero_share = [0f64; 3];
     let mut status_teacher_on_chain = [0u64; 3];
     let mut status_selected_off_chain = [0u64; 3];
@@ -2218,6 +2254,14 @@ pub fn evaluate_gate_c(
         status_hits[row.status_index] += u64::from(row.status_hit);
         status_bits[row.status_index] += row.status_bits;
         status_bits_root_only[row.status_index] += row.bits_root_only;
+        if row.teacher_in_candidates {
+            status_bits_present[row.status_index] += row.status_bits;
+            status_n_present[row.status_index] += 1;
+        } else {
+            status_bits_absent[row.status_index] += row.status_bits;
+            status_n_absent[row.status_index] += 1;
+        }
+        status_offset_sum[row.status_index] += i128::from(row.transition_offset_raw);
         status_zero_share[row.status_index] += row.zero_resid_share;
         status_teacher_on_chain[row.status_index] += u64::from(row.teacher_on_chain);
         status_selected_off_chain[row.status_index] += u64::from(row.selected_off_chain);
@@ -2409,6 +2453,19 @@ pub fn evaluate_gate_c(
             median_root_spread: median_of(&mut status_root_spreads[index]),
             median_residual_spread: median_of(&mut status_resid_spreads[index]),
             bits_per_token_root_only: status_bits_root_only[index] / denom,
+            bits_teacher_present: if status_n_present[index] == 0 {
+                0.0
+            } else {
+                status_bits_present[index] / status_n_present[index] as f64
+            },
+            bits_teacher_absent: if status_n_absent[index] == 0 {
+                0.0
+            } else {
+                status_bits_absent[index] / status_n_absent[index] as f64
+            },
+            positions_teacher_present: status_n_present[index] as usize,
+            positions_teacher_absent: status_n_absent[index] as usize,
+            mean_transition_offset_nats: (status_offset_sum[index] as f64 / denom) / 65536.0,
             mean_zero_residual_share: status_zero_share[index] / denom,
             teacher_on_chain: status_teacher_on_chain[index] as f64 / denom,
             selected_off_chain: status_selected_off_chain[index] as f64 / denom,
@@ -2527,6 +2584,20 @@ struct GateCRow {
     residual_spread: i64,
     /// Per-alpha: argmax(root + alpha*residual + penalty) == teacher.
     alpha_hits: [bool; ALPHA_SWEEP.len()],
+    /// Is the teacher token present in the candidate set at all?
+    ///
+    /// `outcome_bits` charges uncovered vocabulary at `w_floor =
+    /// weight(root_floor)` while `max_s` is taken over CANDIDATE scores, and
+    /// candidate scores include `transition_offset` -- added to every candidate,
+    /// hence rank-neutral and invisible to every argmax measurement, but the
+    /// floor is not shifted with them. A positive offset therefore collapses the
+    /// uncovered-mass weight and charges an enormous penalty exactly on the
+    /// positions where the teacher is ABSENT from candidates. Split the bits by
+    /// that condition to test whether the graph slice's ~127 bits/token is a
+    /// model error or this accounting artifact.
+    teacher_in_candidates: bool,
+    /// Raw `transition_offset` applied to every candidate this position.
+    transition_offset_raw: i64,
     /// bits/token under root + penalty only (alpha = 0).
     bits_root_only: f64,
     /// Share of candidates whose residual is exactly zero (off-chain tokens).
@@ -2670,13 +2741,48 @@ fn evaluate_gate_c_row(
         baseline.token == teacher_argmax,
     ];
     let bits = [
-        outcome_bits(context.scorer_with_exct, &legacy.candidates, next),
-        outcome_bits(context.scorer_no_exct, &rule1.candidates, next),
-        outcome_bits(context.scorer_with_exct, &rule12.candidates, next),
-        outcome_bits(context.scorer_no_exct_no_f, &rule1_no_f.candidates, next),
-        outcome_bits(context.scorer_with_exct_no_f, &rule12_no_f.candidates, next),
-        outcome_bits(context.scorer_normalized, &normalized.candidates, next),
-        outcome_bits(context.scorer_margin, &margin.candidates, next),
+        outcome_bits(
+            context.scorer_with_exct,
+            &legacy.candidates,
+            next,
+            ScoreQ::ZERO,
+        ),
+        outcome_bits(
+            context.scorer_no_exct,
+            &rule1.candidates,
+            next,
+            rule1.witness.transition_offset,
+        ),
+        outcome_bits(
+            context.scorer_with_exct,
+            &rule12.candidates,
+            next,
+            rule12.witness.transition_offset,
+        ),
+        outcome_bits(
+            context.scorer_no_exct_no_f,
+            &rule1_no_f.candidates,
+            next,
+            rule1_no_f.witness.transition_offset,
+        ),
+        outcome_bits(
+            context.scorer_with_exct_no_f,
+            &rule12_no_f.candidates,
+            next,
+            rule12_no_f.witness.transition_offset,
+        ),
+        outcome_bits(
+            context.scorer_normalized,
+            &normalized.candidates,
+            next,
+            normalized.witness.transition_offset,
+        ),
+        outcome_bits(
+            context.scorer_margin,
+            &margin.candidates,
+            next,
+            margin.witness.transition_offset,
+        ),
         -witten_bell_probability(context.store, &code, next).log2(),
     ];
     let status_index = match rule12.witness.status {
@@ -2733,7 +2839,12 @@ fn evaluate_gate_c_row(
             (token, ScoreQ::from_raw(raw))
         })
         .collect();
-    let bits_root_only = outcome_bits(context.scorer_with_exct, &root_only_candidates, next);
+    let bits_root_only = outcome_bits(
+        context.scorer_with_exct,
+        &root_only_candidates,
+        next,
+        ScoreQ::ZERO,
+    );
 
     // Residual accrues only on selected-chain nodes; tokens emitted by active
     // or predicted nodes keep residual exactly ZERO. Since residuals are
@@ -2928,6 +3039,8 @@ fn evaluate_gate_c_row(
         residual_spread,
         alpha_hits,
         bits_root_only,
+        teacher_in_candidates: teacher_present,
+        transition_offset_raw: i64::from(rule12.witness.transition_offset.raw()),
         zero_resid_share,
         teacher_on_chain,
         selected_off_chain,
