@@ -110,6 +110,29 @@ use uor_r4_graph_format::ScoreQ;
 pub const DEFAULT_TRANSITION_OUT_DEGREE: usize = 8;
 /// Default per-region emission list bound (top-E by residual score).
 pub const DEFAULT_EMISSION_ENTRIES: usize = 64;
+
+/// How much the top-E-by-log-ratio emission selection differs from a
+/// top-E-by-probability one.
+///
+/// Emissions keep the tokens most over-represented against the parent, not the
+/// most likely next tokens. `overlap_with_top_count` near 0 means the two
+/// selections are nearly disjoint; `probability_mass_kept` says how much of the
+/// region's actual next-token mass the emitted list covers. Low values on both
+/// mean regions emit distinctive-but-unlikely tokens and score the likely ones
+/// at the bare prior.
+/// One region's emission list plus the statistics gathered while building it.
+type RegionEmissionResult = (
+    Vec<(u32, ScoreQ)>,
+    QuantizationErrorStats,
+    EmissionSelectionStats,
+);
+
+#[derive(Debug, Clone, Default)]
+pub struct EmissionSelectionStats {
+    pub regions: usize,
+    pub overlap_with_top_count: f64,
+    pub probability_mass_kept: f64,
+}
 /// Default root-prior candidate count.
 pub const DEFAULT_ROOT_TOP_B: usize = 64;
 /// Default EXCT candidate count.
@@ -563,7 +586,7 @@ pub fn compile_emissions(
         })
         .collect();
 
-    let region_results: Vec<(Vec<(u32, ScoreQ)>, QuantizationErrorStats)> = regions
+    let region_results: Vec<RegionEmissionResult> = regions
         .par_iter()
         .enumerate()
         .map(|(region_id, region)| {
@@ -602,12 +625,46 @@ pub fn compile_emissions(
             residuals.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.cmp(&b.0)));
             residuals.truncate(config.emission_entries);
             residuals.sort_by_key(|&(token, _)| token);
-            (residuals, emission_quantization)
+
+            // Selection is by log-RATIO against the parent, which keeps the
+            // most DISTINCTIVE tokens rather than the most LIKELY ones. A rare
+            // token heavily over-represented in this region outranks the
+            // region's actual most-probable next token, whose ratio is near
+            // zero because it is common everywhere. Measure the overlap with a
+            // top-E-by-count selection to see how far apart those two are.
+            let kept: std::collections::BTreeSet<u32> =
+                residuals.iter().map(|&(token, _)| token).collect();
+            let mut by_count: Vec<(u32, u64)> = dist.iter().map(|(&t, &c)| (t, c)).collect();
+            by_count.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.cmp(&b.0)));
+            by_count.truncate(config.emission_entries);
+            let overlap = by_count
+                .iter()
+                .filter(|(token, _)| kept.contains(token))
+                .count();
+            let mass_kept: u64 = dist
+                .iter()
+                .filter(|(t, _)| kept.contains(t))
+                .map(|(_, &c)| c)
+                .sum();
+            let selection = EmissionSelectionStats {
+                regions: 1,
+                overlap_with_top_count: overlap as f64 / by_count.len().max(1) as f64,
+                probability_mass_kept: if total == 0 {
+                    0.0
+                } else {
+                    mass_kept as f64 / total as f64
+                },
+            };
+            (residuals, emission_quantization, selection)
         })
         .collect();
     let mut region_lists = Vec::with_capacity(regions.len());
     let mut emission_quantization = QuantizationErrorStats::default();
-    for (residuals, stats) in region_results {
+    let mut selection_stats = EmissionSelectionStats::default();
+    for (residuals, stats, selection) in region_results {
+        selection_stats.regions += selection.regions;
+        selection_stats.overlap_with_top_count += selection.overlap_with_top_count;
+        selection_stats.probability_mass_kept += selection.probability_mass_kept;
         emission_quantization.sample_count += stats.sample_count;
         emission_quantization.sum_abs_error_nano = emission_quantization
             .sum_abs_error_nano
@@ -616,6 +673,17 @@ pub fn compile_emissions(
             .max_abs_error_nano
             .max(stats.max_abs_error_nano);
         region_lists.push(residuals);
+    }
+    if selection_stats.regions > 0 {
+        let n = selection_stats.regions as f64;
+        eprintln!(
+            "[emission-selection] regions={} mean_overlap_with_top_count={:.4} \
+             mean_probability_mass_kept={:.4} (E={})",
+            selection_stats.regions,
+            selection_stats.overlap_with_top_count / n,
+            selection_stats.probability_mass_kept / n,
+            config.emission_entries,
+        );
     }
 
     EmissionTables {
