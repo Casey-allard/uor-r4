@@ -1906,6 +1906,39 @@ pub struct Rule12PerStatusRecall {
     pub novel: StatusCandidateRecall,
 }
 
+/// Analytic unigram-null baselines (#390). Computed from the TRAIN
+/// next-token distribution (add-one smoothed over the compiled
+/// vocabulary, the repo's standing convention) and evaluated on the
+/// held-out slice. Residuals are only interpretable as GAPS against a
+/// null at matched granularity: a finer partition mechanically shifts
+/// what an address-free predictor achieves, so raw values compared
+/// across covers of different region counts are not the same quantity
+/// (the #374 sweep tables are the standing example). The granularity
+/// context (region count, artifact footprint) lives in
+/// `ScoreReportGraph`; readers comparing across covers must recompute
+/// nulls at matched atom counts.
+#[derive(Debug, Clone, Copy, Default, Serialize)]
+pub struct GateCNulls {
+    /// The train-majority next token (the unigram argmax).
+    pub unigram_train_argmax: u32,
+    /// Frequency of the train-majority token on the FULL held-out slice
+    /// — the top-1 an address-free constant predictor achieves.
+    pub unigram_null_top1_all: f64,
+    /// Train-unigram cross-entropy (bits/token) on the full held-out
+    /// slice.
+    pub unigram_null_bits_all: f64,
+    /// The same null restricted to the rule12 GENERALIZATION slice
+    /// (graph + novel — the population exact-context lookup cannot
+    /// answer). `rule12_generalization` must beat THIS, not the blended
+    /// baseline.
+    pub unigram_null_top1_generalization: f64,
+    /// Train-unigram cross-entropy on the generalization slice.
+    pub unigram_null_bits_generalization: f64,
+    /// Train / held-out position counts the null was computed from.
+    pub train_positions: usize,
+    pub held_out_positions: usize,
+}
+
 /// The Gate C outcome: the four number sets (old formula, Rule 1,
 /// Rule 1+2, baseline), the status and win/loss instrumentation,
 /// candidate recall, and the witness-replay sample result.
@@ -1930,6 +1963,12 @@ pub struct GateCOutcome {
     pub rule12_margin_weighted: GateCMetrics,
     /// TLA3 store baseline (`runtime::predict_witness_plain`).
     pub tla3_baseline: GateCMetrics,
+    /// The EXCT-free headline (#390): rule12 restricted to the graph +
+    /// novel population — the generalization number, promoted from
+    /// per-status footnote to first-class row.
+    pub rule12_generalization: GateCMetrics,
+    /// Analytic unigram-null baselines (#390).
+    pub nulls: GateCNulls,
     pub rule12_status_counts: StatusCounts,
     pub rule12_per_status: Rule12PerStatus,
     /// Candidate recall split by status (retrieval vs ranking).
@@ -2225,6 +2264,42 @@ pub fn evaluate_gate_c(
         artifact_container,
         config,
     };
+    // #390 analytic unigram null: the TRAIN next-token distribution
+    // (all corpus positions outside the held-out set), add-one smoothed
+    // over the compiled vocabulary.
+    let vocab = (artifacts.token_codes.len() / compiler::STAGES) as u64;
+    let mut is_held_out = vec![false; corpus.n];
+    for observation in held_out {
+        let position = observation.position as usize;
+        if position < corpus.n {
+            is_held_out[position] = true;
+        }
+    }
+    let mut unigram_counts: BTreeMap<u32, u64> = BTreeMap::new();
+    let mut train_positions = 0usize;
+    for (position, held) in is_held_out.iter().enumerate().take(corpus.n) {
+        if !held {
+            *unigram_counts.entry(corpus.next[position]).or_insert(0) += 1;
+            train_positions += 1;
+        }
+    }
+    let unigram_total: u64 = unigram_counts.values().sum();
+    let unigram_train_argmax = unigram_counts
+        .iter()
+        .max_by(|a, b| a.1.cmp(b.1).then_with(|| b.0.cmp(a.0)))
+        .map(|(&token, _)| token)
+        .unwrap_or(0);
+    let unigram_bits = |token: u32| -> f64 {
+        let count = unigram_counts.get(&token).copied().unwrap_or(0);
+        let p = (count as f64 + 1.0) / (unigram_total as f64 + vocab as f64);
+        -p.log2()
+    };
+    let mut null_hits_all = 0u64;
+    let mut null_bits_all = 0f64;
+    let mut null_hits_generalization = 0u64;
+    let mut null_bits_generalization = 0f64;
+    let mut generalization_positions = 0u64;
+
     // Each held-out position is independent. Collect compact rows in Rayon;
     // reduce them in input order below so floating-point totals and all
     // report bytes retain the serial implementation's determinism.
@@ -2283,6 +2358,15 @@ pub fn evaluate_gate_c(
             Some(ExactContextSource::NgramRow) => status_exact_ngram += 1,
             Some(ExactContextSource::ExctProbe) => status_exact_probe += 1,
             None => {}
+        }
+        let null_hit = u64::from(row.next == unigram_train_argmax);
+        let null_bits = unigram_bits(row.next);
+        null_hits_all += null_hit;
+        null_bits_all += null_bits;
+        if row.status_index != 0 {
+            generalization_positions += 1;
+            null_hits_generalization += null_hit;
+            null_bits_generalization += null_bits;
         }
         if row.teacher_emitted_off_chain {
             status_emitter_depth[row.status_index] += u64::from(row.teacher_emitter_depth);
@@ -2367,6 +2451,28 @@ pub fn evaluate_gate_c(
         novel: status_positions[2],
         exact_context_ngram: status_exact_ngram,
         exact_context_probe: status_exact_probe,
+    };
+    outcome.rule12_generalization = {
+        let positions = status_positions[1] + status_positions[2];
+        let hits = status_hits[1] + status_hits[2];
+        let bits = status_bits[1] + status_bits[2];
+        let nf = (positions as f64).max(1.0);
+        GateCMetrics {
+            positions,
+            top1_agreement: hits as f64 / nf,
+            bits_per_token: bits / nf,
+        }
+    };
+    outcome.nulls = GateCNulls {
+        unigram_train_argmax,
+        unigram_null_top1_all: null_hits_all as f64 / (held_out.len() as f64).max(1.0),
+        unigram_null_bits_all: null_bits_all / (held_out.len() as f64).max(1.0),
+        unigram_null_top1_generalization: null_hits_generalization as f64
+            / (generalization_positions as f64).max(1.0),
+        unigram_null_bits_generalization: null_bits_generalization
+            / (generalization_positions as f64).max(1.0),
+        train_positions,
+        held_out_positions: held_out.len(),
     };
     outcome.rule12_exct_probe_levels = exct_level_positions;
     outcome.rule12_exct_probe_absent = exct_probe_absent;
@@ -2645,6 +2751,8 @@ struct GateCRow {
     /// Which mechanism resolved the rule12 selection when its status is
     /// ExactContext (#362 attribution; `None` otherwise).
     exact_context_source: Option<ExactContextSource>,
+    /// The recorded next token at this position (#390 null accounting).
+    next: u32,
 }
 
 struct GateCContext<'a> {
@@ -3061,6 +3169,7 @@ fn evaluate_gate_c_row(
         witness_replayed: index < context.config.witness_sample,
         witness_replay_failed,
         exact_context_source: rule12.exact_context_source,
+        next,
     })
 }
 
@@ -3295,7 +3404,7 @@ pub fn build_score_report_with_quality_profile(
         can_measure_generalization: strict_exct_miss_rate >= MIN_EXCT_MISS_RATE_FOR_GATE_C,
     };
     ScoreReport {
-        schema: 16,
+        schema: 17,
         inputs,
         config: ScoreReportConfig {
             transition_out_degree: config.transition_out_degree,
