@@ -98,8 +98,9 @@ use std::collections::BTreeMap;
 
 use super::score_runtime::{
     binary_memberships, binary_top1_covered, regions_from_view, structural_edges_from_view,
-    verify_witness_replay, GraphScorer, RegionParams, ScoreStatus, ScoringVariant, StructuralEdge,
-    EDGE_KIND_FORWARD, EDGE_KIND_NEIGHBOR, EDGE_KIND_REFINEMENT, RESIDUAL_EXCT_MAGIC,
+    verify_witness_replay, ExactContextSource, GraphScorer, RegionParams, ScoreStatus,
+    ScoringVariant, StructuralEdge, EDGE_KIND_FORWARD, EDGE_KIND_NEIGHBOR, EDGE_KIND_REFINEMENT,
+    RESIDUAL_EXCT_MAGIC,
 };
 use uor_r4_core::transformerless::compiler::{self, Corpus, SIG_BYTES, SIG_WORDS, STAGES};
 use uor_r4_core::transformerless::runtime::{self, Store};
@@ -183,6 +184,29 @@ pub enum EmissionSelection {
     /// Top-E by the region's own next-token probability.
     Probability,
 }
+
+impl EmissionShrinkage {
+    /// Report label; matches the CLI's `--emission-shrinkage` strings.
+    pub fn label(self) -> String {
+        match self {
+            EmissionShrinkage::None => "none",
+            EmissionShrinkage::WittenBell => "witten-bell",
+            EmissionShrinkage::Contrast => "contrast",
+        }
+        .to_owned()
+    }
+}
+
+impl EmissionSelection {
+    /// Report label; matches the CLI's `--emission-selection` strings.
+    pub fn label(self) -> String {
+        match self {
+            EmissionSelection::Ratio => "ratio",
+            EmissionSelection::Probability => "probability",
+        }
+        .to_owned()
+    }
+}
 /// One region's emission list plus the statistics gathered while building it.
 type RegionEmissionResult = (
     Vec<(u32, ScoreQ)>,
@@ -190,7 +214,7 @@ type RegionEmissionResult = (
     EmissionSelectionStats,
 );
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Serialize)]
 pub struct EmissionSelectionStats {
     pub regions: usize,
     /// Witten-Bell lambda = n / (n + T) per region; near 1 means the estimator
@@ -208,6 +232,30 @@ pub struct EmissionSelectionStats {
     pub mean_region_types: f64,
     pub overlap_with_top_count: f64,
     pub probability_mass_kept: f64,
+}
+
+impl EmissionSelectionStats {
+    /// Per-region means from the accumulated per-region sums — the same
+    /// normalization the stderr `[emission-selection]` line applies.
+    /// `min_contrast`/`max_contrast` pass through; identity when
+    /// `regions == 0`.
+    pub fn normalized(&self) -> EmissionSelectionStats {
+        if self.regions == 0 {
+            return *self;
+        }
+        let n = self.regions as f64;
+        EmissionSelectionStats {
+            regions: self.regions,
+            mean_lambda_witten_bell: self.mean_lambda_witten_bell / n,
+            mean_contrast: self.mean_contrast / n,
+            min_contrast: self.min_contrast,
+            max_contrast: self.max_contrast,
+            mean_region_count: self.mean_region_count / n,
+            mean_region_types: self.mean_region_types / n,
+            overlap_with_top_count: self.overlap_with_top_count / n,
+            probability_mass_kept: self.probability_mass_kept / n,
+        }
+    }
 }
 /// Default root-prior candidate count.
 pub const DEFAULT_ROOT_TOP_B: usize = 64;
@@ -555,6 +603,10 @@ pub struct EmissionTables {
     pub root_prior_quantization: QuantizationErrorStats,
     /// Emission-residual quantization errors.
     pub emission_quantization: QuantizationErrorStats,
+    /// Per-region selection/contrast statistics gathered while building
+    /// the emission lists (normalized per-region means; previously
+    /// stderr-only, promoted so reports can attribute #364-era A/Bs).
+    pub selection_stats: EmissionSelectionStats,
 }
 
 /// One canonical context-conditioned lexical row. The root prior in
@@ -940,6 +992,7 @@ pub fn compile_emissions(
         smoothing,
         root_prior_quantization,
         emission_quantization,
+        selection_stats: selection_stats.normalized(),
     }
 }
 
@@ -1004,7 +1057,9 @@ pub fn verify_theorem_7_wired(
 }
 
 /// What an [`emit_scored_r4g1`] call produced, for the report and tests.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// (`Eq` dropped at schema 13: the promoted emission-selection statistics
+/// are f64 means; comparisons remain exact via `PartialEq`.)
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct ScoredGraphInfo {
     pub node_count: u32,
     pub edge_count: u32,
@@ -1028,6 +1083,9 @@ pub struct ScoredGraphInfo {
     pub root_prior_quantization: QuantizationErrorStats,
     pub emission_quantization: QuantizationErrorStats,
     pub exact_context_quantization: QuantizationErrorStats,
+    /// Per-region emission selection/contrast statistics (normalized
+    /// means), carried from [`EmissionTables::selection_stats`].
+    pub emission_selection_stats: EmissionSelectionStats,
 }
 
 /// Data bundle for [`emit_scored_r4g1`] (keeps the argument list
@@ -1459,6 +1517,7 @@ pub fn emit_scored_r4g1(
             root_prior_quantization: emissions.root_prior_quantization,
             emission_quantization: emissions.emission_quantization,
             exact_context_quantization,
+            emission_selection_stats: emissions.selection_stats,
         },
     ))
 }
@@ -1578,6 +1637,12 @@ pub struct StatusCounts {
     pub exact_context: usize,
     pub graph: usize,
     pub novel: usize,
+    /// Exact-context positions resolved by an explicit NGRAM context row
+    /// (#362 attribution; schema 13). Zero on distributions whose probes
+    /// carry no recent-token window.
+    pub exact_context_ngram: usize,
+    /// Exact-context positions resolved by the EXCT full-depth probe.
+    pub exact_context_probe: usize,
 }
 
 /// Rule 1+2 metrics split by the status that fired. A bucket with zero
@@ -2063,6 +2128,8 @@ pub fn evaluate_gate_c(
     let mut status_chain_partial = [0u64; 3];
     let mut status_own_emits = [0u64; 3];
     let mut status_rand_emits = [0u64; 3];
+    let mut status_exact_ngram = 0usize;
+    let mut status_exact_probe = 0usize;
     let mut status_ranks: [Vec<u32>; 3] = [Vec::new(), Vec::new(), Vec::new()];
     let gate_rotations = compiler::derive_rotations();
     let context = GateCContext {
@@ -2126,6 +2193,11 @@ pub fn evaluate_gate_c(
         status_chain_partial[row.status_index] += u64::from(row.teacher_chain_partial);
         status_own_emits[row.status_index] += u64::from(row.own_region_emits_teacher);
         status_rand_emits[row.status_index] += u64::from(row.random_region_emits_teacher);
+        match row.exact_context_source {
+            Some(ExactContextSource::NgramRow) => status_exact_ngram += 1,
+            Some(ExactContextSource::ExctProbe) => status_exact_probe += 1,
+            None => {}
+        }
         if row.teacher_emitted_off_chain {
             status_emitter_depth[row.status_index] += u64::from(row.teacher_emitter_depth);
             status_emitter_rows[row.status_index] += 1;
@@ -2207,6 +2279,8 @@ pub fn evaluate_gate_c(
         exact_context: status_positions[0],
         graph: status_positions[1],
         novel: status_positions[2],
+        exact_context_ngram: status_exact_ngram,
+        exact_context_probe: status_exact_probe,
     };
     outcome.rule12_exct_probe_levels = exct_level_positions;
     outcome.rule12_exct_probe_absent = exct_probe_absent;
@@ -2455,6 +2529,9 @@ struct GateCRow {
     random_region_emits_teacher: bool,
     witness_replayed: bool,
     witness_replay_failed: bool,
+    /// Which mechanism resolved the rule12 selection when its status is
+    /// ExactContext (#362 attribution; `None` otherwise).
+    exact_context_source: Option<ExactContextSource>,
 }
 
 struct GateCContext<'a> {
@@ -2793,6 +2870,7 @@ fn evaluate_gate_c_row(
         random_region_emits_teacher,
         witness_replayed: index < context.config.witness_sample,
         witness_replay_failed,
+        exact_context_source: rule12.exact_context_source,
     })
 }
 
@@ -2818,7 +2896,13 @@ fn evaluate_gate_c_row(
 /// the STRICT full-code miss rate, and the Gate C validity verdict is
 /// judged on the strict basis.
 /// 11 = graph footprint and quality-profile fields; 12 = packed FMM
-/// footprint, rank, and candidate-count fields.
+/// footprint, rank, and candidate-count fields; 13 = #364 attribution:
+/// `config.emission_selection`/`config.emission_shrinkage` record the
+/// compiled emission mode, `emission_selection_stats` promotes the
+/// per-region contrast/selection statistics (previously stderr-only)
+/// into the report, and `gate_c.rule12_status_counts` splits the
+/// exact-context bucket by resolving mechanism (NGRAM row vs EXCT
+/// probe) so post-#362 rows remain comparable with pre-#362 ones.
 #[derive(Debug, Clone, Serialize)]
 pub struct ScoreReport {
     pub schema: u32,
@@ -2829,6 +2913,9 @@ pub struct ScoreReport {
     pub quantization: ScoreReportQuantization,
     pub determinism: ScoreReportDeterminism,
     pub distribution: DistributionDeclaration,
+    /// Per-region emission selection/contrast statistics (normalized
+    /// means over regions; schema 13).
+    pub emission_selection_stats: EmissionSelectionStats,
 }
 
 /// Minimum EXCT-miss rate below which a distribution cannot serve as a
@@ -2897,6 +2984,12 @@ pub struct ScoreReportConfig {
     /// The calibrated emission smoothing rule (issue #67;
     /// [`Smoothing::label`]).
     pub smoothing: String,
+    /// How the per-region emission list was chosen (#364;
+    /// [`EmissionSelection::label`]).
+    pub emission_selection: String,
+    /// The per-region residual shrinkage applied (#364;
+    /// [`EmissionShrinkage::label`]).
+    pub emission_shrinkage: String,
     /// Quality-gate basis for this distribution. `pinned` applies the
     /// historical Gate C absolute floor; `relative_tla` only compares the
     /// graph with the TLA baseline measured on the same corpus.
@@ -2993,7 +3086,7 @@ pub fn build_score_report_with_quality_profile(
         can_measure_generalization: strict_exct_miss_rate >= MIN_EXCT_MISS_RATE_FOR_GATE_C,
     };
     ScoreReport {
-        schema: 12,
+        schema: 13,
         inputs,
         config: ScoreReportConfig {
             transition_out_degree: config.transition_out_degree,
@@ -3004,6 +3097,8 @@ pub fn build_score_report_with_quality_profile(
             top_m: super::score_runtime::TOP_M,
             exct_support_min: super::score_runtime::EXCT_SUPPORT_MIN,
             smoothing: config.smoothing.label(),
+            emission_selection: config.emission_selection.label(),
+            emission_shrinkage: config.emission_shrinkage.label(),
             quality_profile: quality_profile.to_owned(),
         },
         graph: ScoreReportGraph {
@@ -3091,6 +3186,7 @@ pub fn build_score_report_with_quality_profile(
                    artifacts and reports"
                 .to_owned(),
         },
+        emission_selection_stats: info.emission_selection_stats,
     }
 }
 

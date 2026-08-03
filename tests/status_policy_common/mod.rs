@@ -171,6 +171,7 @@ fn hand_emissions() -> EmissionTables {
         smoothing: Smoothing::AddOne,
         root_prior_quantization: score::QuantizationErrorStats::default(),
         emission_quantization: score::QuantizationErrorStats::default(),
+        selection_stats: score::EmissionSelectionStats::default(),
     }
 }
 

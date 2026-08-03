@@ -718,12 +718,13 @@ fn certify_serving_row() {
                     }
                 };
                 println!(
-                    "C serving (R4Engine + score.r4g1 + D4 policy, 80/20 story split, deterministic subsample n={}) bundle {}: served {} ({:.1}%; exact {}, graph {}, novel {}; {} widened) | abstained {} (exact {}, graph {}, novel {}, contradictory {}) | on served: top1 {:.1}% | agreement {:.1}% | overall top1 {:.1}% | probe: {}/{} served, {} hits",
+                    "C serving (R4Engine + score.r4g1 + D4 policy, 80/20 story split, deterministic subsample n={}) bundle {}: served {} ({:.1}%; exact {} ({} ngram), graph {}, novel {}; {} widened) | abstained {} (exact {}, graph {}, novel {}, contradictory {}) | on served: top1 {:.1}% | agreement {:.1}% | overall top1 {:.1}% | probe: {}/{} served, {} hits",
                     row.sample_n,
                     row.bundle.display(),
                     row.served,
                     pct(row.served, row.sample_n as u64),
                     row.served_by.exact_context,
+                    row.served_by.exact_context_ngram,
                     row.served_by.graph,
                     row.served_by.novel,
                     row.served_widened,

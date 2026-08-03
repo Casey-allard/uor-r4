@@ -627,6 +627,21 @@ pub struct ScoreWitness {
     pub census: OpKernel,
 }
 
+/// Which mechanism resolved an `ExactContext` selection (#362/#364
+/// attribution). Since the NGRAM context rows landed, an explicit
+/// bigram/trigram row hit and an EXCT full-depth probe resolution both
+/// report [`ScoreStatus::ExactContext`]; measurements that compare the
+/// exact-context slice across eras need to know which mechanism answered.
+/// `None` on outcomes whose status is not `ExactContext`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ExactContextSource {
+    /// An explicit NGRAM (bigram/trigram) context row supplied the token.
+    NgramRow,
+    /// The EXCT probe resolved at the full graded code with sufficient
+    /// support.
+    ExctProbe,
+}
+
 /// The outcome of [`GraphScorer::score_candidates`]: the selection plus
 /// every candidate's final score (ascending token order) — the certifier
 /// reads the distribution for bits/token; the witness stands alone.
@@ -642,6 +657,10 @@ pub struct ScoreOutcome {
     /// changes any decision, or whether ranking is carried by the root prior.
     pub candidate_components: Vec<(u32, i32, i32, bool)>,
     pub witness: ScoreWitness,
+    /// Attribution for `ExactContext` selections (`None` otherwise). Not
+    /// part of the replayable witness: provenance is measurement metadata,
+    /// so the witness bytes and kappa are untouched.
+    pub exact_context_source: Option<ExactContextSource>,
 }
 
 /// The outcome of [`GraphScorer::score_candidates_legacy`]: the
@@ -1130,6 +1149,7 @@ impl GraphScorer {
                 candidates: vec![(selected, selected_score)],
                 candidate_components: vec![(selected, selected_score.raw(), 0, false)],
                 witness,
+                exact_context_source: Some(ExactContextSource::NgramRow),
             });
         }
         let mut k = OpKernel::default();
@@ -1479,6 +1499,7 @@ impl GraphScorer {
             candidates: candidates_out,
             candidate_components: components,
             witness,
+            exact_context_source: exact_context.then_some(ExactContextSource::ExctProbe),
         })
     }
 
@@ -1697,6 +1718,9 @@ pub struct StepOutcome {
     pub candidate_count: u32,
     /// The op census of this step.
     pub census: OpKernel,
+    /// Attribution for `ExactContext` selections (`None` otherwise);
+    /// see [`ExactContextSource`].
+    pub exact_context_source: Option<ExactContextSource>,
 }
 
 /// Advance the step state's epoch, re-zeroing the stamp buffers on the
@@ -2031,6 +2055,7 @@ impl GraphScorer {
                 status: ScoreStatus::ExactContext,
                 candidate_count: 1,
                 census,
+                exact_context_source: Some(ExactContextSource::NgramRow),
             });
         }
         let mut k = OpKernel::default();
@@ -2224,6 +2249,7 @@ impl GraphScorer {
             status,
             candidate_count: state.touched.len() as u32,
             census: k,
+            exact_context_source: exact_context.then_some(ExactContextSource::ExctProbe),
         })
     }
 }
@@ -2509,5 +2535,25 @@ mod ngram_tests {
             Some((6, ScoreQ::from_raw(100)))
         );
         assert_eq!(scorer.context_prediction(&[30]), None);
+    }
+
+    /// #362 attribution: an NGRAM-row selection reports `NgramRow`
+    /// provenance, and a probe-free non-exact selection reports `None` —
+    /// the exact-context bucket stays attributable after context rows.
+    #[test]
+    fn exact_context_source_attributes_ngram_hits() {
+        let mut rows = BTreeMap::new();
+        rows.insert((1, 20, 0), vec![(6, ScoreQ::from_raw(100))]);
+        let scorer = scorer(rows);
+        let sig = [0u8; SIG_BYTES];
+        let outcome = scorer
+            .score_candidates_coded(&sig, None, &[10, 20])
+            .expect("ngram row scores");
+        assert_eq!(outcome.witness.status, ScoreStatus::ExactContext);
+        assert_eq!(
+            outcome.exact_context_source,
+            Some(ExactContextSource::NgramRow)
+        );
+        assert!(outcome.witness.exct.is_none());
     }
 }

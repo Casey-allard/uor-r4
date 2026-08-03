@@ -42,6 +42,7 @@ fn ood_probe_widens_once_then_abstains_with_status_recorded() {
         PredictDecision::Abstain(AbstainOutcome {
             status: ScoreStatus::Novel,
             widened: true,
+            ngram_hit: false,
         }),
         "OOD input resolves Novel, widens once, then abstains"
     );
@@ -72,6 +73,7 @@ fn covered_probes_serve_with_exact_context_and_graph_status() {
             token: 10,
             status: ScoreStatus::ExactContext,
             widened: false,
+            ngram_hit: false,
         })
     );
 
@@ -86,6 +88,7 @@ fn covered_probes_serve_with_exact_context_and_graph_status() {
             token: 20,
             status: ScoreStatus::Graph,
             widened: false,
+            ngram_hit: false,
         })
     );
 
@@ -185,6 +188,7 @@ fn widen_once_bound_holds_for_repeated_novel_probes() {
         PredictDecision::Abstain(AbstainOutcome {
             status: ScoreStatus::Novel,
             widened: true,
+            ngram_hit: false,
         })
     );
     // A second identical Novel input does NOT widen again: the bounded
@@ -197,6 +201,7 @@ fn widen_once_bound_holds_for_repeated_novel_probes() {
         PredictDecision::Abstain(AbstainOutcome {
             status: ScoreStatus::Novel,
             widened: false,
+            ngram_hit: false,
         })
     );
     let counters = state.policy_counters();
@@ -257,6 +262,7 @@ fn adversarial_repetition_is_deterministic() {
                 token: 10,
                 status: ScoreStatus::ExactContext,
                 widened: false,
+                ngram_hit: false,
             })
         );
     }
@@ -400,6 +406,7 @@ fn override_abstain_on_novel_skips_widening() {
         PredictDecision::Abstain(AbstainOutcome {
             status: ScoreStatus::Novel,
             widened: false,
+            ngram_hit: false,
         })
     );
     assert_eq!(state.policy_counters().widen_attempts, 0);

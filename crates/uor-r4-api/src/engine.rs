@@ -446,6 +446,9 @@ pub struct PredictOutcome {
     pub token: u32,
     pub status: ScoreStatus,
     pub widened: bool,
+    /// The served token came from an explicit NGRAM context row (#362
+    /// attribution; only possible when `status` is `ExactContext`).
+    pub ngram_hit: bool,
 }
 
 /// A typed abstention: no token was emitted and none is guessed.
@@ -453,6 +456,8 @@ pub struct PredictOutcome {
 pub struct AbstainOutcome {
     pub status: ScoreStatus,
     pub widened: bool,
+    /// The abstained status resolved via an explicit NGRAM context row.
+    pub ngram_hit: bool,
 }
 
 /// The status-aware prediction result of the deployed adapter: either
@@ -531,6 +536,9 @@ impl NovelSeen {
 struct ScoredProbe {
     token: u32,
     status: ScoreStatus,
+    /// The selection came from an explicit NGRAM context row (#362
+    /// attribution; only possible when `status` is `ExactContext`).
+    ngram_hit: bool,
 }
 
 /// A loaded, CID-verified scored graph and the teacher artifact needed to
@@ -668,6 +676,8 @@ impl R4Engine {
             Ok(ScoredProbe {
                 token: outcome.selected,
                 status: outcome.status,
+                ngram_hit: outcome.exact_context_source
+                    == Some(uor_r4_graph_certify::ExactContextSource::NgramRow),
             })
         } else {
             let outcome = self
@@ -677,6 +687,8 @@ impl R4Engine {
             Ok(ScoredProbe {
                 token: outcome.selected,
                 status: outcome.witness.status,
+                ngram_hit: outcome.exact_context_source
+                    == Some(uor_r4_graph_certify::ExactContextSource::NgramRow),
             })
         }
     }
@@ -727,6 +739,7 @@ impl R4Engine {
                     token: first.token,
                     status: first.status,
                     widened: false,
+                    ngram_hit: first.ngram_hit,
                 }))
             }
             StatusAction::Abstain => {
@@ -734,6 +747,7 @@ impl R4Engine {
                 Ok(PredictDecision::Abstain(AbstainOutcome {
                     status: first.status,
                     widened: false,
+                    ngram_hit: first.ngram_hit,
                 }))
             }
             StatusAction::WidenOnce => {
@@ -744,6 +758,7 @@ impl R4Engine {
                     return Ok(PredictDecision::Abstain(AbstainOutcome {
                         status: first.status,
                         widened: false,
+                        ngram_hit: first.ngram_hit,
                     }));
                 }
                 if self.novel_seen.contains(sig) {
@@ -752,6 +767,7 @@ impl R4Engine {
                     return Ok(PredictDecision::Abstain(AbstainOutcome {
                         status: first.status,
                         widened: false,
+                        ngram_hit: first.ngram_hit,
                     }));
                 }
                 self.counters.widen_attempts += 1;
@@ -765,12 +781,14 @@ impl R4Engine {
                         token: second.token,
                         status: second.status,
                         widened: true,
+                        ngram_hit: second.ngram_hit,
                     }))
                 } else {
                     self.counters.abstains += 1;
                     Ok(PredictDecision::Abstain(AbstainOutcome {
                         status: second.status,
                         widened: true,
+                        ngram_hit: second.ngram_hit,
                     }))
                 }
             }
@@ -807,6 +825,8 @@ impl R4Engine {
                         token: first.selected,
                         status: first.witness.status,
                         widened: false,
+                        ngram_hit: first.exact_context_source
+                            == Some(uor_r4_graph_certify::ExactContextSource::NgramRow),
                     }),
                     first_witness,
                 ))
@@ -817,6 +837,8 @@ impl R4Engine {
                     PredictDecision::Abstain(AbstainOutcome {
                         status: first.witness.status,
                         widened: false,
+                        ngram_hit: first.exact_context_source
+                            == Some(uor_r4_graph_certify::ExactContextSource::NgramRow),
                     }),
                     first_witness,
                 ))
@@ -828,6 +850,8 @@ impl R4Engine {
                         PredictDecision::Abstain(AbstainOutcome {
                             status: first.witness.status,
                             widened: false,
+                            ngram_hit: first.exact_context_source
+                                == Some(uor_r4_graph_certify::ExactContextSource::NgramRow),
                         }),
                         first_witness,
                     ));
@@ -845,6 +869,8 @@ impl R4Engine {
                             token: second.selected,
                             status: second.witness.status,
                             widened: true,
+                            ngram_hit: second.exact_context_source
+                                == Some(uor_r4_graph_certify::ExactContextSource::NgramRow),
                         }),
                         second_witness,
                     ))
@@ -854,6 +880,8 @@ impl R4Engine {
                         PredictDecision::Abstain(AbstainOutcome {
                             status: second.witness.status,
                             widened: true,
+                            ngram_hit: second.exact_context_source
+                                == Some(uor_r4_graph_certify::ExactContextSource::NgramRow),
                         }),
                         second_witness,
                     ))
