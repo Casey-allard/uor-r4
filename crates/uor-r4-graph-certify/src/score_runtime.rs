@@ -986,6 +986,11 @@ impl GraphScorer {
 
     /// The stored root prior B(v), or the smoothing floor for tokens
     /// absent from the root block.
+    /// Number of emission nodes (regions + 1 offset). Measurement-only.
+    pub fn emission_node_count(&self) -> usize {
+        self.emissions.len()
+    }
+
     /// Is `token` in the global root prior's top-B list? Measurement-only.
     pub fn root_top_contains(&self, token: u32) -> bool {
         self.root_top.contains(&token)

@@ -1644,6 +1644,11 @@ pub struct ResidualInfluence {
     /// where they are present at some levels but missing at others.
     pub teacher_chain_complete: f64,
     pub teacher_chain_partial: f64,
+    /// Control for whether the cover groups by next-token structure: rate at
+    /// which the context's own region emits the teacher, versus an unrelated
+    /// region. Equal rates mean routing carries no predictive information.
+    pub own_region_emits_teacher: f64,
+    pub random_region_emits_teacher: f64,
 }
 
 /// Residual-influence measurement split by resolution status.
@@ -1991,6 +1996,8 @@ pub fn evaluate_gate_c(
     let mut status_chain_emit_levels = [0u64; 3];
     let mut status_chain_complete = [0u64; 3];
     let mut status_chain_partial = [0u64; 3];
+    let mut status_own_emits = [0u64; 3];
+    let mut status_rand_emits = [0u64; 3];
     let mut status_ranks: [Vec<u32>; 3] = [Vec::new(), Vec::new(), Vec::new()];
     let gate_rotations = compiler::derive_rotations();
     let context = GateCContext {
@@ -2052,6 +2059,8 @@ pub fn evaluate_gate_c(
         status_chain_emit_levels[row.status_index] += u64::from(row.chain_levels_emitting_teacher);
         status_chain_complete[row.status_index] += u64::from(row.teacher_chain_complete);
         status_chain_partial[row.status_index] += u64::from(row.teacher_chain_partial);
+        status_own_emits[row.status_index] += u64::from(row.own_region_emits_teacher);
+        status_rand_emits[row.status_index] += u64::from(row.random_region_emits_teacher);
         if row.teacher_emitted_off_chain {
             status_emitter_depth[row.status_index] += u64::from(row.teacher_emitter_depth);
             status_emitter_rows[row.status_index] += 1;
@@ -2238,6 +2247,8 @@ pub fn evaluate_gate_c(
             mean_chain_levels_emitting_teacher: status_chain_emit_levels[index] as f64 / denom,
             teacher_chain_complete: status_chain_complete[index] as f64 / denom,
             teacher_chain_partial: status_chain_partial[index] as f64 / denom,
+            own_region_emits_teacher: status_own_emits[index] as f64 / denom,
+            random_region_emits_teacher: status_rand_emits[index] as f64 / denom,
         };
         match index {
             0 => influence.exact_context = value,
@@ -2369,6 +2380,14 @@ struct GateCRow {
     teacher_chain_complete: bool,
     /// The teacher is emitted by some but not all chain levels (broken).
     teacher_chain_partial: bool,
+    /// Control: does the context's OWN region emit the teacher, versus a
+    /// deterministically chosen UNRELATED region? If the two rates match, the
+    /// cover is not grouping contexts by next-token structure -- every region's
+    /// emission list is essentially the same globally-common set, and routing
+    /// carries no predictive information no matter how well each region is
+    /// estimated.
+    own_region_emits_teacher: bool,
+    random_region_emits_teacher: bool,
     witness_replayed: bool,
     witness_replay_failed: bool,
 }
@@ -2549,6 +2568,22 @@ fn evaluate_gate_c_row(
     // teacher only ~4.3% of the time. Attribute the rest: the candidate set is
     // active + predicted + root_top, and which source supplies the teacher
     // decides whether the graph contributes anything to finding the answer.
+    // Own-region versus unrelated-region control. The unrelated node is chosen
+    // by a fixed integer hash of the position index -- deterministic, no RNG,
+    // and independent of the context's geometry.
+    let node_count = context.scorer_with_exct.emission_node_count();
+    let own_region_emits_teacher = rule12
+        .witness
+        .chain
+        .last()
+        .is_some_and(|&node| context.scorer_with_exct.node_emits(node, teacher_argmax));
+    let random_region_emits_teacher = if node_count == 0 {
+        false
+    } else {
+        let mixed = (position as u64).wrapping_mul(2_654_435_761) >> 16;
+        let node = (mixed % node_count as u64) as u32 + 1;
+        context.scorer_with_exct.node_emits(node, teacher_argmax)
+    };
     // Telescoping integrity: how much of the selected chain actually carries a
     // term for the teacher token.
     let chain_levels = rule12.witness.chain.len() as u32;
@@ -2689,6 +2724,8 @@ fn evaluate_gate_c_row(
         chain_levels_emitting_teacher,
         teacher_chain_complete,
         teacher_chain_partial,
+        own_region_emits_teacher,
+        random_region_emits_teacher,
         witness_replayed: index < context.config.witness_sample,
         witness_replay_failed,
     })
