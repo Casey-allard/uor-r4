@@ -263,6 +263,8 @@ pub const DEFAULT_ROOT_TOP_B: usize = 64;
 pub const DEFAULT_EXCT_TOP_X: usize = 64;
 /// Default per-context candidate bound for packed bigram/trigram rows.
 pub const DEFAULT_CONTEXT_ENTRIES: usize = 64;
+/// Default highest compiled lexical context order (bigram + trigram).
+pub const DEFAULT_CONTEXT_ORDER: u8 = 2;
 /// Default held-out position count whose witnesses are replayed in Gate C.
 pub const DEFAULT_WITNESS_SAMPLE: usize = 64;
 
@@ -430,6 +432,16 @@ pub struct ScoreConfig {
     pub emission_selection: EmissionSelection,
     /// Per-region residual shrinkage (issue #364).
     pub emission_shrinkage: EmissionShrinkage,
+    /// Highest explicit lexical context order compiled into NGRAM rows:
+    /// 0 = no rows (geometric path serves everywhere), 1 = bigram only,
+    /// 2 = bigram + trigram (shipped default). The #364/#362 A/B knob:
+    /// rows take most-specific precedence over the geometric path at
+    /// serving, so "trigram rows as the replacement for emission
+    /// conditioning" vs "geometric everywhere" is a compile-time choice.
+    /// Non-default values change artifact bytes and kappa by design.
+    pub context_order: u8,
+    /// Per-context candidate bound for packed bigram/trigram rows.
+    pub context_entries: usize,
 }
 
 impl Default for ScoreConfig {
@@ -444,6 +456,8 @@ impl Default for ScoreConfig {
             scoring_variant: ScoringVariant::ChainTelescoped,
             emission_selection: EmissionSelection::default(),
             emission_shrinkage: EmissionShrinkage::default(),
+            context_order: DEFAULT_CONTEXT_ORDER,
+            context_entries: DEFAULT_CONTEXT_ENTRIES,
         }
     }
 }
@@ -629,8 +643,12 @@ pub fn compile_context_rows(
     corpus: &Corpus,
     train: &[Observation],
     vocab: u32,
-    smoothing: Smoothing,
+    config: &ScoreConfig,
 ) -> Vec<ContextRow> {
+    let smoothing = config.smoothing;
+    if config.context_order == 0 {
+        return Vec::new();
+    }
     let mut counts: BTreeMap<(u8, u32, u32), BTreeMap<u32, u64>> = BTreeMap::new();
     for observation in train {
         let i = observation.position as usize;
@@ -643,7 +661,7 @@ pub fn compile_context_rows(
             .or_default()
             .entry(corpus.next[i])
             .or_insert(0) += 1;
-        if i > 0 && corpus.story[i - 1] == corpus.story[i] {
+        if config.context_order >= 2 && i > 0 && corpus.story[i - 1] == corpus.story[i] {
             let trigram = (2, corpus.input[i - 1], corpus.input[i]);
             *counts
                 .entry(trigram)
@@ -666,7 +684,7 @@ pub fn compile_context_rows(
                 })
                 .collect();
             ranked.sort_by(|a, b| b.1.raw().cmp(&a.1.raw()).then_with(|| a.0.cmp(&b.0)));
-            ranked.truncate(DEFAULT_CONTEXT_ENTRIES);
+            ranked.truncate(config.context_entries);
             ranked.sort_by_key(|&(token, _)| token);
             ContextRow {
                 context_len,
@@ -2902,7 +2920,10 @@ fn evaluate_gate_c_row(
 /// per-region contrast/selection statistics (previously stderr-only)
 /// into the report, and `gate_c.rule12_status_counts` splits the
 /// exact-context bucket by resolving mechanism (NGRAM row vs EXCT
-/// probe) so post-#362 rows remain comparable with pre-#362 ones.
+/// probe) so post-#362 rows remain comparable with pre-#362 ones;
+/// 14 = context-row compile knobs (`config.context_order` /
+/// `config.context_entries`) recorded so NGRAM A/B bundles are
+/// attributable.
 #[derive(Debug, Clone, Serialize)]
 pub struct ScoreReport {
     pub schema: u32,
@@ -2990,6 +3011,10 @@ pub struct ScoreReportConfig {
     /// The per-region residual shrinkage applied (#364;
     /// [`EmissionShrinkage::label`]).
     pub emission_shrinkage: String,
+    /// Highest compiled lexical context order (0 = no NGRAM rows).
+    pub context_order: u8,
+    /// Per-context candidate bound for the compiled NGRAM rows.
+    pub context_entries: usize,
     /// Quality-gate basis for this distribution. `pinned` applies the
     /// historical Gate C absolute floor; `relative_tla` only compares the
     /// graph with the TLA baseline measured on the same corpus.
@@ -3086,7 +3111,7 @@ pub fn build_score_report_with_quality_profile(
         can_measure_generalization: strict_exct_miss_rate >= MIN_EXCT_MISS_RATE_FOR_GATE_C,
     };
     ScoreReport {
-        schema: 13,
+        schema: 14,
         inputs,
         config: ScoreReportConfig {
             transition_out_degree: config.transition_out_degree,
@@ -3099,6 +3124,8 @@ pub fn build_score_report_with_quality_profile(
             smoothing: config.smoothing.label(),
             emission_selection: config.emission_selection.label(),
             emission_shrinkage: config.emission_shrinkage.label(),
+            context_order: config.context_order,
+            context_entries: config.context_entries,
             quality_profile: quality_profile.to_owned(),
         },
         graph: ScoreReportGraph {
@@ -3224,7 +3251,7 @@ fn smoothing_description(smoothing: Smoothing) -> String {
 
 #[cfg(test)]
 mod context_rows_tests {
-    use super::{compile_context_rows, Smoothing};
+    use super::{compile_context_rows, ScoreConfig};
     use uor_r4_core::transformerless::compiler::{Corpus, SIG_BYTES};
     use uor_r4_graph_compiler::induction::Observation;
 
@@ -3259,7 +3286,7 @@ mod context_rows_tests {
                 next: corpus.next[position],
             })
             .collect();
-        let rows = compile_context_rows(&corpus, &observations, 100, Smoothing::AddOne);
+        let rows = compile_context_rows(&corpus, &observations, 100, &ScoreConfig::default());
         assert!(rows
             .iter()
             .any(|row| { row.context_len == 2 && row.key0 == 10 && row.key1 == 20 }));
@@ -3269,6 +3296,43 @@ mod context_rows_tests {
         assert!(!rows
             .iter()
             .any(|row| { row.context_len == 2 && row.key0 == 20 && row.key1 == 30 }));
+    }
+
+    /// The #362 A/B knob: order 0 compiles no rows, order 1 compiles
+    /// bigram rows only, and the entries bound truncates per row.
+    #[test]
+    fn context_order_gates_row_compilation() {
+        let corpus = corpus();
+        let observations: Vec<Observation> = (0..corpus.n)
+            .map(|position| Observation {
+                position: position as u32,
+                sample: [0; 32],
+                vector: Vec::new(),
+                sig: [0; SIG_BYTES],
+                prev: corpus.input[position],
+                next: corpus.next[position],
+            })
+            .collect();
+        let off = ScoreConfig {
+            context_order: 0,
+            ..ScoreConfig::default()
+        };
+        assert!(compile_context_rows(&corpus, &observations, 100, &off).is_empty());
+
+        let bigram_only = ScoreConfig {
+            context_order: 1,
+            ..ScoreConfig::default()
+        };
+        let rows = compile_context_rows(&corpus, &observations, 100, &bigram_only);
+        assert!(!rows.is_empty());
+        assert!(rows.iter().all(|row| row.context_len == 1));
+
+        let bounded = ScoreConfig {
+            context_entries: 1,
+            ..ScoreConfig::default()
+        };
+        let rows = compile_context_rows(&corpus, &observations, 100, &bounded);
+        assert!(rows.iter().all(|row| row.entries.len() <= 1));
     }
 }
 

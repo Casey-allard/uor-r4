@@ -746,6 +746,8 @@ struct ScoreOptions {
     emission_entries: usize,
     emission_selection: score::EmissionSelection,
     emission_shrinkage: score::EmissionShrinkage,
+    context_order: u8,
+    context_entries: usize,
     root_top_b: usize,
     exct_top_x: usize,
     witness_sample: usize,
@@ -767,6 +769,8 @@ fn parse_score_options(args: &[String]) -> Result<ScoreOptions, String> {
         emission_entries: score::DEFAULT_EMISSION_ENTRIES,
         emission_selection: score::EmissionSelection::default(),
         emission_shrinkage: score::EmissionShrinkage::default(),
+        context_order: score::DEFAULT_CONTEXT_ORDER,
+        context_entries: score::DEFAULT_CONTEXT_ENTRIES,
         root_top_b: score::DEFAULT_ROOT_TOP_B,
         exct_top_x: score::DEFAULT_EXCT_TOP_X,
         witness_sample: score::DEFAULT_WITNESS_SAMPLE,
@@ -826,6 +830,25 @@ fn parse_score_options(args: &[String]) -> Result<ScoreOptions, String> {
                     .map_err(|_| format!("invalid --emission-entries value: {value}"))?;
                 if options.emission_entries == 0 {
                     return Err("--emission-entries must be at least 1".to_owned());
+                }
+            }
+            "--context-order" => {
+                options.context_order = value
+                    .parse()
+                    .map_err(|_| format!("invalid --context-order value: {value}"))?;
+                if options.context_order > 2 {
+                    return Err(
+                        "--context-order must be 0 (no NGRAM rows), 1 (bigram), or 2                          (bigram + trigram, default)"
+                            .to_owned(),
+                    );
+                }
+            }
+            "--context-entries" => {
+                options.context_entries = value
+                    .parse()
+                    .map_err(|_| format!("invalid --context-entries value: {value}"))?;
+                if options.context_entries == 0 {
+                    return Err("--context-entries must be at least 1".to_owned());
                 }
             }
             "--root-top-b" => {
@@ -968,6 +991,8 @@ pub fn score_command(args: &[String]) -> Result<(), String> {
         scoring_variant: options.scoring_variant,
         emission_selection: options.emission_selection,
         emission_shrinkage: options.emission_shrinkage,
+        context_order: options.context_order,
+        context_entries: options.context_entries,
     };
     let (train_positions, held_out_positions) = match &options.stories {
         // D3 natural partition (issue #72): the observation pass records
@@ -1066,7 +1091,7 @@ pub fn score_command(args: &[String]) -> Result<(), String> {
     );
     let vocab = u32::try_from(artifacts.token_codes.len() / compiler::STAGES)
         .map_err(|_| "vocabulary exceeds u32 token ids".to_owned())?;
-    let context_rows = score::compile_context_rows(&corpus, &train, vocab, config.smoothing);
+    let context_rows = score::compile_context_rows(&corpus, &train, vocab, &config);
     let emissions =
         score::compile_emissions(&corpus, &store, &regions, &train, max_depth, vocab, &config);
     let fmm_section = score::compile_fmm_section(&regions, &emissions, vocab)?;
@@ -2630,6 +2655,8 @@ mod tests {
         assert_eq!(options.emission_entries, score::DEFAULT_EMISSION_ENTRIES);
         assert_eq!(options.emission_selection, score::EmissionSelection::Ratio);
         assert_eq!(options.emission_shrinkage, score::EmissionShrinkage::None);
+        assert_eq!(options.context_order, score::DEFAULT_CONTEXT_ORDER);
+        assert_eq!(options.context_entries, score::DEFAULT_CONTEXT_ENTRIES);
         assert_eq!(options.root_top_b, score::DEFAULT_ROOT_TOP_B);
         assert_eq!(options.exct_top_x, score::DEFAULT_EXCT_TOP_X);
         assert_eq!(options.witness_sample, score::DEFAULT_WITNESS_SAMPLE);

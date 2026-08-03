@@ -405,12 +405,8 @@ pub fn run_point(
     );
     let vocab = u32::try_from(inputs.artifacts.token_codes.len() / compiler::STAGES)
         .map_err(|_| "vocabulary exceeds u32 token ids".to_owned())?;
-    let context_rows = score::compile_context_rows(
-        &inputs.corpus,
-        &inputs.train,
-        vocab,
-        score_config.smoothing,
-    );
+    let context_rows =
+        score::compile_context_rows(&inputs.corpus, &inputs.train, vocab, score_config);
     let emissions = score::compile_emissions(
         &inputs.corpus,
         &inputs.store,
