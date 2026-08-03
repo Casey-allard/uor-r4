@@ -391,6 +391,35 @@ pub enum FormatError {
         /// Actual length
         actual_len: u64,
     },
+    /// FMM section is shorter than its fixed header.
+    FmmSectionTooShort {
+        /// Actual length.
+        actual: u64,
+    },
+    /// FMM section does not begin with `FMM1`.
+    FmmSectionBadMagic,
+    /// FMM section version is not supported by this reader.
+    FmmSectionUnsupportedVersion(u16),
+    /// FMM dimensions or scale descriptor are invalid.
+    FmmSectionInvalidDimensions {
+        /// Signature-bit coordinate count.
+        dimension: u16,
+        /// Compiler rank metadata.
+        rank: u16,
+        /// Candidate-token count.
+        token_count: u32,
+        /// Compiler factor fractional-bit count.
+        factor_fraction_bits: u8,
+    },
+    /// FMM section length arithmetic overflowed.
+    FmmSectionLengthOverflow,
+    /// FMM section length does not match its dimensions.
+    FmmSectionLengthMismatch {
+        /// Expected length from the header dimensions.
+        expected: u64,
+        /// Actual section length.
+        actual: u64,
+    },
     /// Loader invariant validation failure
     InvariantViolation(crate::invariant_ownership::InvariantValidationError),
     /// A node's actual degree — derived from the edge list, never from a
@@ -633,6 +662,27 @@ impl fmt::Display for FormatError {
             FormatError::RouteTranslationSectionMisaligned { actual_len } => write!(
                 f,
                 "RTNX section holds {actual_len} bytes, not a multiple of 12"
+            ),
+            FormatError::FmmSectionTooShort { actual } => {
+                write!(f, "FMM section is {actual} bytes, shorter than its 20-byte header")
+            }
+            FormatError::FmmSectionBadMagic => write!(f, "FMM section has bad magic"),
+            FormatError::FmmSectionUnsupportedVersion(version) => {
+                write!(f, "unsupported FMM section version {version}")
+            }
+            FormatError::FmmSectionInvalidDimensions {
+                dimension,
+                rank,
+                token_count,
+                factor_fraction_bits,
+            } => write!(
+                f,
+                "invalid FMM dimensions: dimension={dimension}, rank={rank}, tokens={token_count}, factor_fraction_bits={factor_fraction_bits}"
+            ),
+            FormatError::FmmSectionLengthOverflow => write!(f, "FMM section length overflow"),
+            FormatError::FmmSectionLengthMismatch { expected, actual } => write!(
+                f,
+                "FMM section length mismatch: expected {expected}, got {actual}"
             ),
             FormatError::InvariantViolation(err) => write!(f, "graph invariant violation: {err}"),
             FormatError::NodeDegreeExceeded { node, degree, limit } => write!(

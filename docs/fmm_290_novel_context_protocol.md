@@ -1,7 +1,8 @@
 # Issue #290 §5.2 — novel-context accuracy protocol
 
-Status: protocol and incumbent baseline recorded; the FMM candidate is not yet
-implemented, so this issue is not closed by this document.
+Status: protocol and incumbent baseline recorded; the compiler-folded fixed-point
+translation table and allocation-free runtime kernel are implemented in #361.
+The novel-context accuracy and cost decision for #290 remains open.
 
 ## Purpose
 
@@ -87,7 +88,9 @@ The first certifier-side candidate is implemented in
 from the validated graph, diagonalizes the deterministic symmetric Gram matrix
 `PᵀP`, retains a bounded basis, and scores the same artifact-derived query
 signature through that basis. It uses floating point and is explicitly not a
-serving or integer-kernel implementation.
+serving implementation by itself. The compiler folds its fixed-point factors
+into the optional FMM1 section on the normal scored-artifact path; the deployed
+reader uses only sign-selected table reads and saturating integer add/sub.
 
 Run it through the S7 parity scenario with:
 
@@ -114,15 +117,19 @@ it selected the same token at every position and produced identical metrics:
 | fixed-point factors | 164,056 B | 0.0104 | 0.2604 | 10.5879 |
 
 The fixed-point scorer also exposes a caller-buffered selection method with no
-per-call allocation. Its current certifier implementation still uses widened
-integer arithmetic, including products, for feasibility measurement; it is not
-yet the deployed multiplication-free kernel.
+per-call allocation. The packed runtime adapter is covered by an end-to-end
+R4G1 fixture, including deterministic tie-breaking, recent-token penalties,
+and a steady-state zero-allocation census. Compiler-side factor products remain
+outside the deployed kernel.
 
 Against the incumbent R4G1 graph, top-1 is unchanged, top-8 improves by
 20.83 percentage points, and teacher cross-entropy improves by 3.3670
-bits/token. This is an exploratory result, not a deployment claim: the
-candidate currently has no integer translation table, allocation-free serving
-path, or §5.4 cost certificate.
+bits/token. The packed table is now an implementation result, not an accuracy
+claim: artifact reports expose its byte footprint, rank, and candidate count,
+while the runtime fixture measures the fixed work shape (`dimension ×
+candidate_count` sign/add updates per query). A pinned §5.4 comparison on the
+full teacher fixture is still required before choosing it as the default serving
+route.
 
 The candidate must expose the same teacher-forced prediction contract as the
 incumbent. First compare it at the same 96-position snapshot, then rerun at
@@ -145,9 +152,8 @@ incumbent on the same fixture.
 
 ## Remaining work
 
-The certifier candidate now exists and is measured, but issue #290 is not yet
-closed. The remaining decision is whether the accuracy gain justifies a
-bounded implementation for the deployed contract. That requires a fixed-point
-translation representation, an allocation-free adapter, and the §5.4 cost
-comparison against R4G1. Until those are implemented and certified, the FMM
-candidate remains a research measurement path only.
+The certifier candidate and bounded fixed-point adapter now exist, but issue
+#290 is not yet closed. The remaining decision is whether the measured accuracy
+gain justifies enabling the FMM route in serving. That requires the full
+teacher-forced replay plus the §5.4 cost comparison against R4G1, with the
+artifact and runtime evidence linked to the result.

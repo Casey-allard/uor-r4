@@ -65,6 +65,7 @@ extern crate alloc;
 
 mod code;
 mod error;
+mod fmm;
 mod head;
 mod header;
 pub mod inference_contract;
@@ -82,6 +83,10 @@ mod view;
 
 pub use code::{OP_CLEAR_SLOT, OP_HALT as CODE_OP_HALT, OP_SHIFT_SLOTS, OP_UPDATE_SLOT};
 pub use error::{BoundKind, EdgePayloadField, FormatError, RangeField};
+pub use fmm::{
+    FmmCoefficientRow, FmmRows, FmmScoreIter, FmmTokenIter, FmmTranslationTable, FMM_HEADER_LEN,
+    FMM_MAGIC, FMM_VERSION,
+};
 pub use head::{
     Head, FALLBACK_POLICY_COUNT, FEATURE_EDGE_ALGEBRA_V1, HEAD_PAYLOAD_LEN,
     KNOWN_FEATURE_BITS_REQUIRED,

@@ -387,6 +387,10 @@ Objective: the scoring model S(v) = B(v) + ΣΔE(n,v) + ΣΔT(m,v) + ΔX(X,v) (P
 - Fixed-capacity top-K candidate structure with canonical tie-breaking (highest score, then
   lowest token ID — matches current `predict` tie rule).
 - Emission blocks shared across regions where profiling shows duplication.
+- Optional FMM1 translation rows: compiler-side low-rank factors are folded into
+  a canonical fixed-point table; the borrowed runtime reader performs only
+  sign-selected table reads and saturating add/sub, with artifact footprint and
+  zero-allocation coverage recorded for the #290/#359 cost decision.
 - Exit: witness replays S(v) exactly; graph prediction fixtures match reference runtime; Gate C
   measurement on declared held-out sets vs. 31.7%-agreement baseline.
 
@@ -608,6 +612,7 @@ The table is the source content.
 23. Behavioral graph-equivalence + confidence-bounded empirical claims spec →
    `docs/transformerless/EQUIVALENCE_AND_EMPIRICAL_PROTOCOL.md` (Phase 0/3, #33, feeds D2).
 24. Evaluation-report tooling for HF-compiled (SmolLM2) models → Phase 0/2 (#34; blocks Gate C harness).
+25. Compiler-folded FMM translation table with allocation-free packed evaluation → Phase 4/5 (#359; accuracy and cost decision remains under #290).
 
 ---
 

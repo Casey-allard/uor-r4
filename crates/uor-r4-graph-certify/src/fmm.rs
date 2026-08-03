@@ -17,7 +17,7 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use uor_r4_graph_format::ScoreQ;
+use uor_r4_graph_format::{ScoreQ, FMM_HEADER_LEN, FMM_MAGIC, FMM_VERSION};
 
 use crate::score_runtime::RegionParams;
 
@@ -353,6 +353,79 @@ impl FmmFixedCandidateScorer {
             + self.root_prior.len() * (std::mem::size_of::<u32>() + std::mem::size_of::<i32>())
     }
 
+    /// Emit the compiler-folded FMM section consumed by
+    /// [`uor_r4_graph_format::GraphView::fmm_translation_table`]. The
+    /// rank-factor products are evaluated here, offline; the resulting
+    /// runtime table needs only signed additions and table reads.
+    pub fn to_packed_section(&self) -> Result<Vec<u8>, String> {
+        let dimension = u16::try_from(self.dimension)
+            .map_err(|_| "FMM dimension exceeds the packed u16 width".to_owned())?;
+        let rank = u16::try_from(self.rank)
+            .map_err(|_| "FMM rank exceeds the packed u16 width".to_owned())?;
+        let token_count = u32::try_from(self.candidate_tokens.len())
+            .map_err(|_| "FMM candidate count exceeds the packed u32 width".to_owned())?;
+        if self.dimension == 0 || self.rank == 0 || self.candidate_tokens.is_empty() {
+            return Err(
+                "FMM packed table cannot have an empty dimension, rank, or candidate set"
+                    .to_owned(),
+            );
+        }
+        let expected_factors = self
+            .rank
+            .checked_mul(self.candidate_tokens.len())
+            .ok_or_else(|| "FMM factor dimensions overflow".to_owned())?;
+        if self.token_factors_q.len() != expected_factors
+            || self.basis_q15.len() != self.dimension * self.rank
+        {
+            return Err("FMM fixed-point factor dimensions are inconsistent".to_owned());
+        }
+
+        let mut bytes = Vec::with_capacity(
+            FMM_HEADER_LEN
+                + self.candidate_tokens.len() * 8
+                + self.dimension * self.candidate_tokens.len() * 4,
+        );
+        bytes.extend_from_slice(&FMM_MAGIC);
+        bytes.extend_from_slice(&FMM_VERSION.to_le_bytes());
+        bytes.extend_from_slice(&dimension.to_le_bytes());
+        bytes.extend_from_slice(&rank.to_le_bytes());
+        bytes.extend_from_slice(&0u16.to_le_bytes());
+        bytes.extend_from_slice(&token_count.to_le_bytes());
+        bytes.push(self.factor_fraction_bits);
+        bytes.extend_from_slice(&[0u8; 3]);
+
+        for &token in &self.candidate_tokens {
+            bytes.extend_from_slice(&token.to_le_bytes());
+        }
+        for &token in &self.candidate_tokens {
+            let score = self
+                .root_prior
+                .get(&token)
+                .copied()
+                .unwrap_or(self.root_floor);
+            bytes.extend_from_slice(&score.raw().to_le_bytes());
+        }
+
+        let shift = self.factor_fraction_bits.saturating_sub(1);
+        for coordinate in 0..self.dimension {
+            for token_index in 0..self.candidate_tokens.len() {
+                let mut unscaled = 0i128;
+                for component in 0..self.rank {
+                    let basis = i128::from(self.basis_q15[coordinate * self.rank + component]);
+                    let factor = i128::from(
+                        self.token_factors_q[component * self.candidate_tokens.len() + token_index],
+                    );
+                    unscaled = unscaled.saturating_add(basis.saturating_mul(factor));
+                }
+                let coefficient = round_shift_signed(unscaled, shift);
+                let coefficient = i32::try_from(coefficient)
+                    .map_err(|_| "FMM packed coefficient exceeds i32".to_owned())?;
+                bytes.extend_from_slice(&coefficient.to_le_bytes());
+            }
+        }
+        Ok(bytes)
+    }
+
     /// Select the best token without allocating. The caller owns the
     /// rank-sized projection scratch; this is the adapter shape a future
     /// fixed-capacity runtime can embed in its step state.
@@ -633,6 +706,13 @@ mod tests {
         );
         assert!(scorer.retained_energy() > 0.0);
         let fixed = scorer.fixed_point().expect("fixed candidate builds");
+        let packed = fixed.to_packed_section().expect("packed table builds");
+        let table =
+            uor_r4_graph_format::FmmTranslationTable::parse(&packed).expect("packed table parses");
+        assert_eq!(table.dimension(), SIG_BYTES as u16 * 8);
+        assert_eq!(table.rank(), 1);
+        assert_eq!(table.token_count(), 2);
+        assert_eq!(table.token(0), Some(uor_r4_graph_format::TokenId(7)));
         assert_eq!(fixed.score(&left_sig, &[]).unwrap().selected, left.selected);
         let mut projected = [0i64; 1];
         assert_eq!(

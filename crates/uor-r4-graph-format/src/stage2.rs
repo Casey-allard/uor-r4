@@ -413,6 +413,12 @@ pub(crate) fn validate(view: &GraphView) -> Result<Option<Head>, FormatError> {
         }
     }
 
+    // FMM is optional and compiler-folded. Validate its fixed-width table
+    // before exposing the borrowed accessor to runtime callers.
+    if let Some(bytes) = view.section(SectionId::FMM) {
+        crate::fmm::FmmTranslationTable::parse(bytes)?;
+    }
+
     // Invariant Ownership Matrix loader validation (Issue #135)
     let node_count = head.node_count() as usize;
     let max_node_degree = head.max_frontier_width() as usize;

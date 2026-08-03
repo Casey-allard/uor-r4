@@ -8,6 +8,7 @@
 //! when a HEAD section is present (see [`GraphView::parse`]).
 
 use crate::error::FormatError;
+use crate::fmm::FmmTranslationTable;
 use crate::head::Head;
 use crate::header::{self, Header, HEADER_LEN, SECTION_ENTRY_LEN};
 use crate::records::{
@@ -324,6 +325,13 @@ impl<'a> GraphView<'a> {
             next: 0,
             remaining,
         }
+    }
+
+    /// Borrow the optional compiler-folded FMM translation table.
+    pub fn fmm_translation_table(&self) -> Result<Option<FmmTranslationTable<'a>>, FormatError> {
+        self.section(SectionId::FMM)
+            .map(FmmTranslationTable::parse)
+            .transpose()
     }
 
     /// Recompute both integrity CIDs against the bytes and compare with

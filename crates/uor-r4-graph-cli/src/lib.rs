@@ -1037,6 +1037,7 @@ pub fn score_command(args: &[String]) -> Result<(), String> {
         .map_err(|_| "vocabulary exceeds u32 token ids".to_owned())?;
     let emissions =
         score::compile_emissions(&corpus, &store, &regions, &train, max_depth, vocab, &config);
+    let fmm_section = score::compile_fmm_section(&regions, &emissions, vocab)?;
     let (artifact_bytes, info) = score::emit_scored_r4g1(
         &artifact_container,
         (&meta_bytes, &recs_bytes),
@@ -1049,6 +1050,7 @@ pub fn score_command(args: &[String]) -> Result<(), String> {
             emissions: &emissions,
             exct_tls1: &tls1,
             exct_top_x: config.exct_top_x,
+            fmm_section: Some(&fmm_section),
         },
     )?;
     let graph_kappa = uor_r4_graph_format::r4g1::artifact_kappa(&artifact_bytes)
@@ -1120,14 +1122,17 @@ pub fn score_command(args: &[String]) -> Result<(), String> {
         .map_err(|error| format!("{}: {error}", report_path.display()))?;
 
     println!(
-        "score complete: {} nodes, {} edges ({} refinement + {} neighbor + {} forward), {} emission entries, EXCT {} bytes",
+        "score complete: {} nodes, {} edges ({} refinement + {} neighbor + {} forward), {} emission entries, EXCT {} bytes, FMM {} bytes (rank {}, {} candidates)",
         info.node_count,
         info.edge_count,
         info.refinement_edges,
         info.neighbor_edges,
         info.forward_edges,
         info.emission_list_entries,
-        info.exct_bytes
+        info.exct_bytes,
+        info.fmm_bytes,
+        info.fmm_rank,
+        info.fmm_candidate_count
     );
     println!(
         "gate C — held-out D3 metrics ({} positions):",

@@ -264,6 +264,70 @@ pub fn evaluate_no_alloc_predict_step<const N: usize, const C: usize, const K: u
     Ok(output.predictions[0].0)
 }
 
+/// Evaluate the optional compiler-folded FMM table without multiplication,
+/// division, allocation, or floating-point conversion.
+///
+/// `scores` is caller-owned scratch with one slot per FMM candidate token.
+/// The table stores one precomputed coefficient row per signature bit, so
+/// each row update is only a sign choice and a saturating integer add/sub.
+pub fn evaluate_fmm_translation_table(
+    view: &GraphView<'_>,
+    signature: &[u8],
+    recent_tokens: &[u32],
+    scores: &mut [(u32, ScoreQ)],
+) -> Result<Option<(u32, ScoreQ)>, RuntimeError> {
+    let Some(table) = view.fmm_translation_table().map_err(RuntimeError::Format)? else {
+        return Ok(None);
+    };
+    let expected_bytes = (usize::from(table.dimension()).saturating_add(7)) >> 3;
+    if signature.len() != expected_bytes {
+        return Err(RuntimeError::InvalidNode);
+    }
+
+    let token_count = table.token_count() as usize;
+    if scores.len() < token_count {
+        return Err(RuntimeError::FmmBufferTooSmall);
+    }
+
+    let mut count = 0usize;
+    for (slot, (token, root)) in scores
+        .iter_mut()
+        .zip(table.tokens().zip(table.root_scores()))
+    {
+        if count == token_count {
+            break;
+        }
+        *slot = (token.0, root);
+        count += 1;
+    }
+
+    for (coordinate, row) in table.coefficient_rows().enumerate() {
+        let bit_set = signature[coordinate >> 3] & (1 << (coordinate & 7)) != 0;
+        for (slot, coefficient) in scores[..count].iter_mut().zip(row.values()) {
+            slot.1 = if bit_set {
+                slot.1.saturating_add(coefficient)
+            } else {
+                slot.1.saturating_sub(coefficient)
+            };
+        }
+    }
+
+    for slot in &mut scores[..count] {
+        if recent_tokens.contains(&slot.0) {
+            slot.1 = slot.1.saturating_sub(ScoreQ::from_raw(2_000_000));
+        }
+    }
+
+    Ok(scores[..count].iter().copied().max_by(
+        |(left_token, left_score), (right_token, right_score)| {
+            left_score
+                .raw()
+                .cmp(&right_score.raw())
+                .then_with(|| right_token.cmp(left_token))
+        },
+    ))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

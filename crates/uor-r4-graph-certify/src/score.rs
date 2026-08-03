@@ -450,6 +450,31 @@ pub struct EmissionTables {
     pub emission_quantization: QuantizationErrorStats,
 }
 
+/// Compile the optional FMM section from the same regions and emission tables
+/// that feed the normal scored-artifact path. All floating-point work remains
+/// in the certifier; the returned bytes contain only the folded integer table
+/// consumed by the runtime kernel.
+pub fn compile_fmm_section(
+    regions: &[RegionParams],
+    emissions: &EmissionTables,
+    vocab: u32,
+) -> Result<Vec<u8>, String> {
+    let emission_maps: Vec<BTreeMap<u32, ScoreQ>> = emissions
+        .region_lists
+        .iter()
+        .map(|entries| entries.iter().copied().collect())
+        .collect();
+    let scorer = crate::fmm::FmmCandidateScorer::from_graph_parts(
+        regions,
+        &emission_maps,
+        &emissions.root_prior,
+        emissions.root_floor,
+        vocab,
+        crate::fmm::FmmConfig::default(),
+    )?;
+    scorer.fixed_point()?.to_packed_section()
+}
+
 /// ln of an add-one-smoothed probability (compiler-side f64; module
 /// docs for the platform pinning). This is the [`Smoothing::AddOne`]
 /// arm; the other rules live in [`Smoothing::ln_prob`].
@@ -678,6 +703,9 @@ pub struct ScoredGraphInfo {
     pub root_prior_entries: u32,
     pub emission_list_entries: u32,
     pub exct_bytes: u32,
+    pub fmm_bytes: u32,
+    pub fmm_rank: u16,
+    pub fmm_candidate_count: u32,
     pub artifact_bytes: usize,
     pub transition_quantization: QuantizationErrorStats,
     pub root_prior_quantization: QuantizationErrorStats,
@@ -703,6 +731,8 @@ pub struct ScoredGraphSections<'a> {
     pub exct_tls1: &'a [u8],
     /// Number of exact-context residual entries retained per prefix.
     pub exct_top_x: usize,
+    /// Optional compiler-folded FMM translation table.
+    pub fmm_section: Option<&'a [u8]>,
 }
 
 /// Encode the exact-context store as compile-time ScoreQ residuals. The
@@ -782,6 +812,7 @@ pub fn emit_scored_r4g1(
         emissions,
         exct_tls1,
         exct_top_x,
+        fmm_section,
     } = *sections;
     if regions.len() != emissions.region_lists.len() {
         return Err("emission lists do not match the region count".to_owned());
@@ -956,6 +987,11 @@ pub fn emit_scored_r4g1(
     exct.extend_from_slice(&[2, 0, 0, 0]);
     exct.extend_from_slice(&exct_body);
 
+    let fmm_table = fmm_section
+        .map(uor_r4_graph_format::FmmTranslationTable::parse)
+        .transpose()
+        .map_err(|error| format!("invalid FMM section: {error}"))?;
+
     // HEAD: the fixed 224-byte v0 prefix (convert_r4g1 conventions).
     let (meta, recs) = corpus_cid_material;
     let mut corpus_hasher = blake3::Hasher::new();
@@ -993,6 +1029,9 @@ pub fn emit_scored_r4g1(
     builder.add_section(uor_r4_graph_format::SectionId::ROUT, 0, &rout);
     builder.add_section(uor_r4_graph_format::SectionId::EMIT, 0, &emit);
     builder.add_section(uor_r4_graph_format::SectionId::EXCT, 0, &exct);
+    if let Some(fmm_section) = fmm_section {
+        builder.add_section(uor_r4_graph_format::SectionId::FMM, 0, fmm_section);
+    }
     let bytes = builder
         .build()
         .map_err(|error| format!("R4G1 serialization failed: {error}"))?;
@@ -1019,6 +1058,9 @@ pub fn emit_scored_r4g1(
             root_prior_entries: root_entry_count,
             emission_list_entries,
             exct_bytes: exct.len() as u32,
+            fmm_bytes: fmm_section.map_or(0, |bytes| bytes.len() as u32),
+            fmm_rank: fmm_table.map_or(0, |table| table.rank()),
+            fmm_candidate_count: fmm_table.map_or(0, |table| table.token_count()),
             artifact_bytes,
             transition_quantization,
             root_prior_quantization: emissions.root_prior_quantization,
@@ -2295,6 +2337,8 @@ fn evaluate_gate_c_row(
 /// included), so the declaration adds the probe-level histogram and
 /// the STRICT full-code miss rate, and the Gate C validity verdict is
 /// judged on the strict basis.
+/// 11 = graph footprint and quality-profile fields; 12 = packed FMM
+/// footprint, rank, and candidate-count fields.
 #[derive(Debug, Clone, Serialize)]
 pub struct ScoreReport {
     pub schema: u32,
@@ -2390,6 +2434,9 @@ pub struct ScoreReportGraph {
     pub root_prior_entries: u32,
     pub emission_list_entries: u32,
     pub exct_bytes: u32,
+    pub fmm_bytes: u32,
+    pub fmm_rank: u16,
+    pub fmm_candidate_count: u32,
     pub artifact_bytes: usize,
     pub graph_repetition_rate: f64,
     pub baseline_repetition_rate: f64,
@@ -2463,7 +2510,7 @@ pub fn build_score_report_with_quality_profile(
         can_measure_generalization: strict_exct_miss_rate >= MIN_EXCT_MISS_RATE_FOR_GATE_C,
     };
     ScoreReport {
-        schema: 11,
+        schema: 12,
         inputs,
         config: ScoreReportConfig {
             transition_out_degree: config.transition_out_degree,
@@ -2486,6 +2533,9 @@ pub fn build_score_report_with_quality_profile(
             root_prior_entries: info.root_prior_entries,
             emission_list_entries: info.emission_list_entries,
             exct_bytes: info.exct_bytes,
+            fmm_bytes: info.fmm_bytes,
+            fmm_rank: info.fmm_rank,
+            fmm_candidate_count: info.fmm_candidate_count,
             artifact_bytes: info.artifact_bytes,
             graph_repetition_rate: gate_c.repetition_rate_rule12,
             baseline_repetition_rate: gate_c.repetition_rate_baseline,
