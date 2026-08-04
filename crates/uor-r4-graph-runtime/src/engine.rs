@@ -406,129 +406,6 @@ fn check_node_emits(
     (false, ScoreQ::ZERO)
 }
 
-fn syntactic_morphism_score(prev_token: u32, cand_token: u32, tokens_since_period: usize) -> i32 {
-    let mut score = 0i32;
-
-    let endo_op =
-        crate::cayley_dickson::EndomorphismOperator::from_token_transition(prev_token, cand_token);
-    let state = crate::cayley_dickson::CayleyDicksonVector::from_u32(cand_token);
-    // x * 5 == (x << 2) + x (shift/add only, no multiply on the hot path).
-    let cs = endo_op.centralizer_score(&state);
-    let cd_score = (cs << 2).saturating_add(cs);
-    score += cd_score;
-
-    let is_cand_period = cand_token == 29889 || cand_token == 13 || cand_token == 2;
-    let is_cand_comma = cand_token == 29892 || cand_token == 11;
-    let is_prev_period = prev_token == 29889 || prev_token == 13 || prev_token == 2;
-    let is_prev_comma = prev_token == 29892 || prev_token == 11;
-
-    let is_prev_prep = matches!(
-        prev_token,
-        304 | 311 | 310 | 315 | 297 | 393 | 449 | 322 | 323 | 363 | 368 | 378 | 527 | 550
-    );
-    let is_cand_prep = matches!(
-        cand_token,
-        304 | 311 | 310 | 315 | 297 | 393 | 449 | 322 | 323 | 363 | 368 | 378 | 527 | 550
-    );
-
-    let is_prev_det = matches!(
-        prev_token,
-        278 | 262
-            | 263
-            | 257
-            | 385
-            | 459
-            | 1357
-            | 856
-            | 860
-            | 1079
-            | 1072
-            | 1189
-            | 415
-            | 264
-            | 407
-            | 450
-            | 414
-            | 1722
-    );
-    let is_cand_det = matches!(
-        cand_token,
-        278 | 262
-            | 263
-            | 257
-            | 385
-            | 459
-            | 1357
-            | 856
-            | 860
-            | 1079
-            | 1072
-            | 1189
-            | 415
-            | 264
-            | 407
-            | 450
-            | 414
-            | 1722
-    );
-
-    let is_prev_noun = matches!(prev_token, 638 | 3108 | 7695 | 1211);
-
-    if is_prev_noun {
-        if is_cand_period || is_cand_comma {
-            score -= 1200;
-        } else if cand_token == 7695 || cand_token == 471 || cand_token == 18012 {
-            score += 600;
-        }
-    }
-
-    if is_prev_period {
-        if is_cand_period || is_cand_comma || is_cand_prep {
-            score -= 1000;
-        } else if is_cand_det || cand_token == 7695 || cand_token == 1211 || cand_token == 3108 {
-            score += 400;
-        }
-    }
-
-    if is_prev_comma {
-        if is_cand_period || is_cand_comma || is_cand_prep {
-            score -= 900;
-        } else if is_cand_det || cand_token == 7695 || cand_token == 1211 {
-            score += 350;
-        } else {
-            score += 100;
-        }
-    }
-
-    if is_prev_prep {
-        if is_cand_prep || is_cand_period || is_cand_comma {
-            score -= 800;
-        } else if is_cand_det {
-            score += 300;
-        }
-    }
-
-    if is_prev_det {
-        if is_cand_period || is_cand_comma || is_cand_prep || is_cand_det {
-            score -= 800;
-        } else {
-            score += 200;
-        }
-    }
-
-    if tokens_since_period < 8 {
-        if is_cand_period {
-            score -= 2500;
-        } else if is_cand_comma && tokens_since_period < 4 {
-            score -= 1500;
-        }
-    } else if (8..=20).contains(&tokens_since_period) && is_cand_period {
-        score += 350;
-    }
-
-    score
-}
-
 fn collect_target_leaf_nodes<'a>(
     base_graph: &GraphView<'a>,
     start_id: u32,
@@ -892,27 +769,14 @@ impl<'a> R4G1Runtime<'a> {
                             }
                         }
 
-                        // Category-Theoretic Morphism & Sentence Completion Scoring
-                        let prev_token = context_tokens.last().copied().unwrap_or(0);
-                        let mut tokens_since_period = 0usize;
-                        for &tok in context_tokens.iter().rev() {
-                            if tok == 29889 || tok == 13 || tok == 2 {
-                                break;
-                            }
-                            tokens_since_period += 1;
-                        }
-                        let morphism_score =
-                            syntactic_morphism_score(prev_token, cand, tokens_since_period);
-
-                        let is_punct = cand == 29889 || cand == 29892 || cand == 11 || cand == 13;
-                        if is_punct && tokens_since_period < 8 {
-                            continue;
-                        }
-
+                        // #400: the Cayley-Dickson morphism term and its
+                        // punctuation gating were removed as measured-dead
+                        // code — this node-candidate path executes only when
+                        // context_backoff misses, which was 0/1998 sampled
+                        // positions on a rows-on bundle (issue #400 record).
                         let final_score = emit_score
                             .raw()
                             .saturating_add(sig_bonus)
-                            .saturating_add(morphism_score)
                             .saturating_sub(penalty);
                         emit_score = ScoreQ::from_raw(final_score);
 
@@ -978,15 +842,6 @@ impl<'a> R4G1Runtime<'a> {
         node_scores: &mut [ScoreQ],
         out_candidates: &mut [(u32, ScoreQ); 8],
     ) -> usize {
-        let prev_token = context_tokens.last().copied().unwrap_or(0);
-        let mut tokens_since_period = 0usize;
-        for &tok in context_tokens.iter().rev() {
-            if tok == 29889 || tok == 13 || tok == 2 {
-                break;
-            }
-            tokens_since_period += 1;
-        }
-
         let (top_tok, top_score) = self.predict_distribution_with_signature_lanes(
             context_tokens,
             context_signature,
@@ -1037,17 +892,11 @@ impl<'a> R4G1Runtime<'a> {
                                 sl[offset + 7],
                             ]);
 
-                            let is_punct =
-                                cand == 29889 || cand == 29892 || cand == 11 || cand == 13;
                             if cand > 2
                                 && cand < 49152
-                                && !(is_punct && tokens_since_period < 8)
                                 && !out_candidates[..count].iter().any(|(c, _)| *c == cand)
                             {
-                                let m_score =
-                                    syntactic_morphism_score(prev_token, cand, tokens_since_period);
-                                let final_score = raw.saturating_add(m_score);
-                                out_candidates[count] = (cand, ScoreQ::from_raw(final_score));
+                                out_candidates[count] = (cand, ScoreQ::from_raw(raw));
                                 count += 1;
                             }
                         }
