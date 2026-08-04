@@ -1249,13 +1249,38 @@ pub fn score_command(args: &[String]) -> Result<(), String> {
     );
     row("TLA3 store baseline", &gate_c.tla3_baseline);
     row("1+2 × fwd-anchor (#399 M2)", &gate_c.rule12_fwd_fused);
+    row("1+2 × fwd SELF-anchor (B′)", &gate_c.rule12_fwd_self_fused);
+    row("1+2 × fwd GATED self (B′)", &gate_c.rule12_fwd_gated_fused);
+    let live_line = |name: &str, fused: &score::GateCMetrics, base: &score::GateCMetrics| {
+        println!(
+            "  {name} live slice ({} positions): fused {:.1}% vs rule 1+2 {:.1}% | bits {:.4} vs {:.4}",
+            fused.positions,
+            100.0 * fused.top1_agreement,
+            100.0 * base.top1_agreement,
+            fused.bits_per_token,
+            base.bits_per_token,
+        );
+    };
+    live_line(
+        "fwd-anchor",
+        &gate_c.rule12_fwd_fused_live,
+        &gate_c.rule12_on_fwd_live,
+    );
+    live_line(
+        "self-anchor",
+        &gate_c.rule12_fwd_self_fused_live,
+        &gate_c.rule12_on_fwd_self_live,
+    );
+    live_line(
+        "gated-self ",
+        &gate_c.rule12_fwd_gated_fused_live,
+        &gate_c.rule12_on_fwd_gated_live,
+    );
     println!(
-        "  fwd-anchor live slice ({} positions): fused {:.1}% vs rule 1+2 {:.1}% | bits {:.4} vs {:.4}",
-        gate_c.rule12_fwd_fused_live.positions,
-        100.0 * gate_c.rule12_fwd_fused_live.top1_agreement,
-        100.0 * gate_c.rule12_on_fwd_live.top1_agreement,
-        gate_c.rule12_fwd_fused_live.bits_per_token,
-        gate_c.rule12_on_fwd_live.bits_per_token,
+        "  predicted-anchor accuracy: {:.1}% ({}/{})",
+        100.0 * gate_c.anchor_hat_accuracy,
+        gate_c.anchor_hat_correct,
+        gate_c.anchor_hat_population,
     );
     println!(
         "  rule 1+2 status: ExactContext {}, Graph {}, Novel {}",
@@ -1284,6 +1309,14 @@ pub fn score_command(args: &[String]) -> Result<(), String> {
     win_loss_row(
         "win/loss fwd vs 1+2 live",
         &gate_c.win_loss.fwd_vs_rule12_live,
+    );
+    win_loss_row(
+        "win/loss self vs 1+2 live",
+        &gate_c.win_loss.fwd_self_vs_rule12_live,
+    );
+    win_loss_row(
+        "win/loss gated vs 1+2 live",
+        &gate_c.win_loss.fwd_gated_vs_rule12_live,
     );
     println!(
         "  witness replay: {}/{} ok",
