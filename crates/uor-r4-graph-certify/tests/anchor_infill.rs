@@ -94,6 +94,60 @@ impl Arm {
     }
 }
 
+/// Granularity direction (#393): grade predictions by REGION of token —
+/// prefix equality of the compiled token codes at depth 2 and 3 — instead
+/// of exact identity. Measures semantic-neighborhood routing that
+/// token-exact scoring cannot see.
+struct RegionScore {
+    name: &'static str,
+    hit1: u64,
+    hit2: u64,
+    hit3: u64,
+    total: u64,
+}
+
+impl RegionScore {
+    fn new(name: &'static str) -> Self {
+        RegionScore {
+            name,
+            hit1: 0,
+            hit2: 0,
+            hit3: 0,
+            total: 0,
+        }
+    }
+    fn score(&mut self, art: &compiler::Compiled, pred: Option<u32>, truth: u32) {
+        self.total += 1;
+        let (Some(p), Some(pt), Some(tt)) = (
+            pred,
+            pred.and_then(|p| token_code(art, p)),
+            token_code(art, truth),
+        ) else {
+            return;
+        };
+        let _ = p;
+        if pt[0] == tt[0] {
+            self.hit1 += 1;
+        }
+        if pt[..2] == tt[..2] {
+            self.hit2 += 1;
+        }
+        if pt[..3] == tt[..3] {
+            self.hit3 += 1;
+        }
+    }
+    fn report(&self) {
+        println!(
+            "region-match {:<20} d1 {:>5.1}% | d2 {:>5.1}% | d3 {:>5.1}% (n={})",
+            self.name,
+            100.0 * self.hit1 as f64 / self.total.max(1) as f64,
+            100.0 * self.hit2 as f64 / self.total.max(1) as f64,
+            100.0 * self.hit3 as f64 / self.total.max(1) as f64,
+            self.total
+        );
+    }
+}
+
 fn argmax(dist: &BTreeMap<u32, u64>) -> Option<u32> {
     dist.iter()
         .max_by(|a, b| a.1.cmp(b.1).then(b.0.cmp(a.0)))
@@ -266,10 +320,13 @@ fn token_code(art: &compiler::Compiled, t: u32) -> Option<&[u8]> {
 #[test]
 #[ignore = "Day-0 measurement harness; run explicitly with --ignored"]
 fn anchor_infill_day0() {
-    let c = compiler::load_corpus_from(&fixture("c_meta.bin"), &fixture("c_recs.bin"))
-        .expect("checked-in fixture corpus");
-    let art = compiler::load_artifacts_from(&fixture("tless_artifacts.bin"))
-        .expect("checked-in fixture artifacts");
+    let meta_path = std::env::var("R4_CORPUS_META").unwrap_or_else(|_| fixture("c_meta.bin"));
+    let recs_path = std::env::var("R4_CORPUS_RECS").unwrap_or_else(|_| fixture("c_recs.bin"));
+    let c = compiler::load_corpus_from(&meta_path, &recs_path).expect("corpus");
+    println!("corpus: {meta_path} + {recs_path}");
+    let art_path = std::env::var("R4_ARTIFACTS").unwrap_or_else(|_| fixture("tless_artifacts.bin"));
+    let art = compiler::load_artifacts_from(&art_path).expect("artifacts");
+    println!("artifacts: {art_path}");
     let cut = (c.stories as f64 * 0.8) as u32;
     let positions = story_positions(&c);
     let stride: usize = std::env::var("R4_INFILL_STRIDE")
@@ -346,9 +403,68 @@ fn anchor_infill_day0() {
 
     // ---- shipped store on the construction partition ----
     let (store, codes) = runtime::build_store(&art, &c);
+    // Observed-evidence variant: SAME codes, but evidence = actual corpus
+    // continuations (c.next counts) instead of teacher top-k. On natural
+    // text the teacher is off-distribution and teacher-k evidence collapses
+    // the store; this arm isolates evidence source from addressing geometry.
+    let mut store_obs: runtime::Store = (0..=compiler::STAGES).map(|_| BTreeMap::new()).collect();
+    #[allow(clippy::needless_range_loop)] // parallel corpus arrays
+    for i2 in 0..c.n {
+        if c.story[i2] >= cut {
+            continue;
+        }
+        for (d, level) in store_obs.iter_mut().enumerate() {
+            *level
+                .entry(codes[i2][..d].to_vec())
+                .or_default()
+                .entry(c.next[i2])
+                .or_default() += 1;
+        }
+    }
+
+    // ---- #399 M0: region-mediated forward channel (E_b-composed, distance-tagged) ----
+    // emit_index: token -> (context-region prefix P) -> count, construction only.
+    // walk table: (distance, emitting-region prefix) -> target-token counts.
+    const M0_P: usize = 3;
+    const M0_TOPR: usize = 8;
+    let mut emit_index: BTreeMap<u32, BTreeMap<Vec<u8>, u32>> = BTreeMap::new();
+    let mut m0_walk: BTreeMap<(usize, Vec<u8>), BTreeMap<u32, u64>> = BTreeMap::new();
+    #[allow(clippy::needless_range_loop)] // parallel corpus arrays
+    for j in 0..c.n {
+        if c.story[j] >= cut {
+            continue;
+        }
+        let rj = codes[j][..M0_P].to_vec();
+        *emit_index
+            .entry(c.next[j])
+            .or_default()
+            .entry(rj.clone())
+            .or_default() += 1;
+        // j emits token next[j]; if that token sits at an anchor stream position,
+        // record the targets at distances 1..stride before it.
+        let emit_pos = positions[j] + 1;
+        if emit_pos.is_multiple_of(stride) {
+            for d in 1..stride {
+                if j >= d && c.story[j - d] == c.story[j] {
+                    *m0_walk
+                        .entry((d, rj.clone()))
+                        .or_default()
+                        .entry(c.next[j - d])
+                        .or_default() += 1;
+                }
+            }
+        }
+    }
 
     // ---- grade all arms on held-out free targets ----
     let mut store_arm = Arm::new("shipped-store", stride);
+    let mut store_obs_arm = Arm::new("store-observed-ev", stride);
+    let mut obs_fuse_arm = Arm::new("fuse:obs*tri*m0", stride);
+    let mut rg_unigram = RegionScore::new("null:unigram");
+    let mut rg_trigram = RegionScore::new("null:trigram");
+    let mut rg_obs = RegionScore::new("store-observed-ev");
+    let mut rg_m0 = RegionScore::new("m0:region-walk");
+    let mut rg_obs_fuse = RegionScore::new("fuse:obs*tri*m0");
     let mut unigram_arm = Arm::new("null:unigram", stride);
     let mut bigram_arm = Arm::new("null:bigram", stride);
     let mut prev_anchor_arm = Arm::new("null:prev-anchor-copy", stride);
@@ -373,6 +489,8 @@ fn anchor_infill_day0() {
     let mut rows_proxy_arm = Arm::new("rows-proxy:tri>store", stride);
     let mut prod_tri_arm = Arm::new("fuse:store*tri", stride);
     let mut prod_tri_fwd_arm = Arm::new("fuse:store*tri*fwd", stride);
+    let mut m0_arm = Arm::new("m0:region-walk", stride);
+    let mut m0_fuse_arm = Arm::new("fuse:store*tri*m0", stride);
     let uni_total: u64 = unigram.values().sum();
     let mut token_key_missing = 0u64;
     let mut region3_key_missing = 0u64;
@@ -480,6 +598,76 @@ fn anchor_infill_day0() {
         }
         prod_tri_fwd_arm.score(offset, fuse_product_multi(&channels).or(store_pred), truth);
 
+        // ---- observed-evidence store arms ----
+        let obs_dist = store_dist(&store_obs, &codes[i]);
+        let obs_u64: Option<BTreeMap<u32, u64>> =
+            obs_dist.map(|d| d.iter().map(|(&t, &cn)| (t, cn as u64)).collect());
+        let obs_pred_cache = obs_dist
+            .and_then(|d| {
+                d.iter()
+                    .max_by(|a, b| a.1.cmp(b.1).then(b.0.cmp(a.0)))
+                    .map(|(&t, _)| t)
+            })
+            .or(unigram_pred);
+        store_obs_arm.score(offset, obs_pred_cache, truth);
+
+        // ---- #399 M0 eval: anchor token -> top emitting regions -> walk mixture ----
+        let m0_dist: Option<BTreeMap<u32, u64>> = if j < c.n && c.story[j] == c.story[i] {
+            emit_index.get(&c.next[j]).map(|regions| {
+                let mut top: Vec<(&Vec<u8>, &u32)> = regions.iter().collect();
+                top.sort_by_key(|(_, &cnt)| std::cmp::Reverse(cnt));
+                let mut mix: BTreeMap<u32, u64> = BTreeMap::new();
+                for (region, &rcnt) in top.into_iter().take(M0_TOPR) {
+                    if let Some(dist) = m0_walk.get(&(lookahead, region.clone())) {
+                        let total: u64 = dist.values().sum();
+                        for (&t, &cnt) in dist {
+                            // weight each region's contribution by its emit count,
+                            // normalized per-region (integer-scaled mixture)
+                            *mix.entry(t).or_default() += (cnt * rcnt as u64 * 1000) / total.max(1);
+                        }
+                    }
+                }
+                mix
+            })
+        } else {
+            None
+        };
+        let m0_ref = m0_dist.as_ref().filter(|m| !m.is_empty());
+        m0_arm.score(offset, m0_ref.and_then(argmax).or(unigram_pred), truth);
+        let mut m0_channels: Vec<(&BTreeMap<u32, u64>, u64)> = Vec::new();
+        if let Some(sd) = &store_u64 {
+            m0_channels.push((sd, sd.values().sum()));
+        }
+        if let Some(td) = tri_dist {
+            m0_channels.push((td, td.values().sum()));
+        }
+        if let Some(md) = m0_ref {
+            m0_channels.push((md, md.values().sum()));
+        }
+        m0_fuse_arm.score(
+            offset,
+            fuse_product_multi(&m0_channels).or(store_pred),
+            truth,
+        );
+        let mut obs_channels: Vec<(&BTreeMap<u32, u64>, u64)> = Vec::new();
+        if let Some(od) = &obs_u64 {
+            obs_channels.push((od, od.values().sum()));
+        }
+        if let Some(td) = tri_dist {
+            obs_channels.push((td, td.values().sum()));
+        }
+        if let Some(md) = m0_ref {
+            obs_channels.push((md, md.values().sum()));
+        }
+        let obs_fuse_pred = fuse_product_multi(&obs_channels).or(unigram_pred);
+        obs_fuse_arm.score(offset, obs_fuse_pred, truth);
+        // granularity direction: region-match grading of the key arms
+        rg_unigram.score(&art, unigram_pred, truth);
+        rg_trigram.score(&art, tri_dist.and_then(argmax).or(unigram_pred), truth);
+        rg_obs.score(&art, obs_pred_cache, truth);
+        rg_m0.score(&art, m0_ref.and_then(argmax).or(unigram_pred), truth);
+        rg_obs_fuse.score(&art, obs_fuse_pred, truth);
+
         // ---- #394 bits ladder ----
         bits_n += 1;
         bits_store += -store_prob(&store, &codes[i], truth).log2();
@@ -546,6 +734,15 @@ fn anchor_infill_day0() {
     rows_proxy_arm.report();
     prod_tri_arm.report();
     prod_tri_fwd_arm.report();
+    m0_arm.report();
+    m0_fuse_arm.report();
+    store_obs_arm.report();
+    obs_fuse_arm.report();
+    rg_unigram.report();
+    rg_trigram.report();
+    rg_obs.report();
+    rg_m0.report();
+    rg_obs_fuse.report();
     println!(
         "bits ladder (free targets, n={bits_n}): unigram {:.3} | store {:.3} | fwd-table {:.3} | product {:.3}",
         bits_uni / bits_n as f64,
