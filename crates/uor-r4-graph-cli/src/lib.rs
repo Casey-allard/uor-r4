@@ -1248,6 +1248,15 @@ pub fn score_command(args: &[String]) -> Result<(), String> {
         &gate_c.rule12_precedence_no_f,
     );
     row("TLA3 store baseline", &gate_c.tla3_baseline);
+    row("1+2 × fwd-anchor (#399 M2)", &gate_c.rule12_fwd_fused);
+    println!(
+        "  fwd-anchor live slice ({} positions): fused {:.1}% vs rule 1+2 {:.1}% | bits {:.4} vs {:.4}",
+        gate_c.rule12_fwd_fused_live.positions,
+        100.0 * gate_c.rule12_fwd_fused_live.top1_agreement,
+        100.0 * gate_c.rule12_on_fwd_live.top1_agreement,
+        gate_c.rule12_fwd_fused_live.bits_per_token,
+        gate_c.rule12_on_fwd_live.bits_per_token,
+    );
     println!(
         "  rule 1+2 status: ExactContext {}, Graph {}, Novel {}",
         gate_c.rule12_status_counts.exact_context,
@@ -1271,6 +1280,10 @@ pub fn score_command(args: &[String]) -> Result<(), String> {
     win_loss_row(
         "win/loss R1 vs baseline ",
         &gate_c.win_loss.rule1_vs_baseline,
+    );
+    win_loss_row(
+        "win/loss fwd vs 1+2 live",
+        &gate_c.win_loss.fwd_vs_rule12_live,
     );
     println!(
         "  witness replay: {}/{} ok",

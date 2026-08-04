@@ -1730,6 +1730,13 @@ pub struct WinLossReport {
     pub rule12_vs_baseline: WinLoss,
     pub rule12_vs_legacy: WinLoss,
     pub rule1_vs_baseline: WinLoss,
+    /// #399 M2: fused (Rule 1+2 × forward-anchor) vs Rule 1+2, all
+    /// held-out positions (inert positions tie by construction).
+    pub fwd_vs_rule12: WinLoss,
+    /// #399 M2: the same cross-tab restricted to LIVE positions (free
+    /// target with an in-story next anchor and a populated forward row)
+    /// — the only positions where the channel can change a decision.
+    pub fwd_vs_rule12_live: WinLoss,
 }
 
 /// Candidate-set recall, reported separately from selected-token
@@ -1963,6 +1970,17 @@ pub struct GateCOutcome {
     pub rule12_margin_weighted: GateCMetrics,
     /// TLA3 store baseline (`runtime::predict_witness_plain`).
     pub tla3_baseline: GateCMetrics,
+    /// #399 M2 instrumentation: Rule 1+2 fused with the forward-anchor
+    /// channel by the measured product law (harness record on #394/#399),
+    /// over ALL held-out positions; where the channel is inert the fused
+    /// selection IS the Rule 1+2 selection, so this row can only differ
+    /// from `rule12_precedence` through live positions.
+    pub rule12_fwd_fused: GateCMetrics,
+    /// #399 M2: the fused scorer on the LIVE slice only.
+    pub rule12_fwd_fused_live: GateCMetrics,
+    /// #399 M2: Rule 1+2 on the same live slice — the honest comparator
+    /// for `rule12_fwd_fused_live` (identical population).
+    pub rule12_on_fwd_live: GateCMetrics,
     /// The EXCT-free headline (#390): rule12 restricted to the graph +
     /// novel population — the generalization number, promoted from
     /// per-status footnote to first-class row.
@@ -2123,6 +2141,13 @@ fn accumulate_win_loss(win_loss: &mut WinLoss, scorer_hit: bool, other_hit: bool
 /// rebuilt from the emitted artifact bytes (the artifact is the scoring
 /// authority); a bounded sample of Rule 1+2 witnesses is independently
 /// replayed (Theorem 6).
+/// #399 M2 / #394 infill protocol: anchor stride. Every position whose
+/// emitted token lands on a story-position multiple of this stride is an
+/// anchor; the forward-anchor channel conditions the free positions
+/// between anchors on the NEXT anchor's token. Mirrors the original
+/// hybrid's every-4th-token injection and the measured harness law.
+const M2_STRIDE: usize = 4;
+
 pub fn evaluate_gate_c(
     r4g1: &[u8],
     artifact_container: &[u8],
@@ -2194,6 +2219,14 @@ pub fn evaluate_gate_c(
     let mut hits_normalized = 0u64;
     let mut hits_margin = 0u64;
     let mut hits_baseline = 0u64;
+    // #399 M2 fused-scorer accumulators (all positions + live slice).
+    let mut hits_fwd = 0u64;
+    let mut bits_fwd = 0f64;
+    let mut fwd_live_positions = 0usize;
+    let mut fwd_live_hits = 0u64;
+    let mut fwd_live_bits = 0f64;
+    let mut rule12_live_hits = 0u64;
+    let mut rule12_live_bits = 0f64;
     // Per-status Rule 1+2 accumulators: [ExactContext, Graph, Novel].
     let mut status_positions = [0usize; 3];
     let mut status_hits = [0u64; 3];
@@ -2249,6 +2282,54 @@ pub fn evaluate_gate_c(
     let mut status_exact_probe = 0usize;
     let mut status_ranks: [Vec<u32>; 3] = [Vec::new(), Vec::new(), Vec::new()];
     let gate_rotations = compiler::derive_rotations();
+    // Held-out mask: shared by the #399 M2 forward-table build below and
+    // the #390 analytic null further down.
+    let mut is_held_out = vec![false; corpus.n];
+    for observation in held_out {
+        let position = observation.position as usize;
+        if position < corpus.n {
+            is_held_out[position] = true;
+        }
+    }
+
+    // #399 M2: story-relative positions, and the forward-anchor channel
+    // table built from the construction split (positions outside the
+    // held-out set) under the #394 infill protocol — an anchor is a
+    // position whose EMITTED token lands on a story position that is a
+    // multiple of the stride; each anchor contributes its train-split
+    // predecessors at every lookahead distance.
+    let mut story_pos = Vec::with_capacity(corpus.n);
+    {
+        let (mut current_story, mut position_in_story) = (u32::MAX, 0u32);
+        for &story in corpus.story.iter().take(corpus.n) {
+            if story != current_story {
+                current_story = story;
+                position_in_story = 0;
+            } else {
+                position_in_story += 1;
+            }
+            story_pos.push(position_in_story);
+        }
+    }
+    let mut fwd_table: BTreeMap<(usize, u32), BTreeMap<u32, u32>> = BTreeMap::new();
+    for j in 0..corpus.n {
+        if is_held_out[j] || !(story_pos[j] as usize + 1).is_multiple_of(M2_STRIDE) {
+            continue;
+        }
+        for distance in 1..M2_STRIDE {
+            if j >= distance
+                && corpus.story[j - distance] == corpus.story[j]
+                && !is_held_out[j - distance]
+            {
+                *fwd_table
+                    .entry((distance, corpus.next[j]))
+                    .or_default()
+                    .entry(corpus.next[j - distance])
+                    .or_default() += 1;
+            }
+        }
+    }
+
     let context = GateCContext {
         artifacts,
         corpus,
@@ -2263,18 +2344,13 @@ pub fn evaluate_gate_c(
         r4g1,
         artifact_container,
         config,
+        fwd_table: &fwd_table,
+        story_pos: &story_pos,
     };
     // #390 analytic unigram null: the TRAIN next-token distribution
     // (all corpus positions outside the held-out set), add-one smoothed
     // over the compiled vocabulary.
     let vocab = (artifacts.token_codes.len() / compiler::STAGES) as u64;
-    let mut is_held_out = vec![false; corpus.n];
-    for observation in held_out {
-        let position = observation.position as usize;
-        if position < corpus.n {
-            is_held_out[position] = true;
-        }
-    }
     let mut unigram_counts: BTreeMap<u32, u64> = BTreeMap::new();
     let mut train_positions = 0usize;
     for (position, held) in is_held_out.iter().enumerate().take(corpus.n) {
@@ -2424,6 +2500,25 @@ pub fn evaluate_gate_c(
             row.hits[1],
             row.hits[7],
         );
+        hits_fwd += u64::from(row.hit_fwd);
+        bits_fwd += row.bits_fwd;
+        accumulate_win_loss(
+            &mut outcome.win_loss.fwd_vs_rule12,
+            row.hit_fwd,
+            row.hits[2],
+        );
+        if row.fwd_live {
+            fwd_live_positions += 1;
+            fwd_live_hits += u64::from(row.hit_fwd);
+            fwd_live_bits += row.bits_fwd;
+            rule12_live_hits += u64::from(row.hits[2]);
+            rule12_live_bits += row.bits[2];
+            accumulate_win_loss(
+                &mut outcome.win_loss.fwd_vs_rule12_live,
+                row.hit_fwd,
+                row.hits[2],
+            );
+        }
         outcome.witness_replays += usize::from(row.witness_replayed);
         outcome.witness_replay_failures += usize::from(row.witness_replay_failed);
     }
@@ -2445,6 +2540,22 @@ pub fn evaluate_gate_c(
     outcome.rule12_cloud_size_normalized = metrics(hits_normalized, bits_normalized);
     outcome.rule12_margin_weighted = metrics(hits_margin, bits_margin);
     outcome.tla3_baseline = metrics(hits_baseline, bits_baseline);
+    outcome.rule12_fwd_fused = metrics(hits_fwd, bits_fwd);
+    let live_metrics = |hits: u64, bits: f64| GateCMetrics {
+        positions: fwd_live_positions,
+        top1_agreement: if fwd_live_positions == 0 {
+            0.0
+        } else {
+            hits as f64 / fwd_live_positions as f64
+        },
+        bits_per_token: if fwd_live_positions == 0 {
+            0.0
+        } else {
+            bits / fwd_live_positions as f64
+        },
+    };
+    outcome.rule12_fwd_fused_live = live_metrics(fwd_live_hits, fwd_live_bits);
+    outcome.rule12_on_fwd_live = live_metrics(rule12_live_hits, rule12_live_bits);
     outcome.rule12_status_counts = StatusCounts {
         exact_context: status_positions[0],
         graph: status_positions[1],
@@ -2753,6 +2864,13 @@ struct GateCRow {
     exact_context_source: Option<ExactContextSource>,
     /// The recorded next token at this position (#390 null accounting).
     next: u32,
+    /// #399 M2: fused (Rule 1+2 × forward-anchor) selection hit.
+    hit_fwd: bool,
+    /// #399 M2: bits/token under the fused distribution (= `bits[2]`
+    /// where the channel is inert).
+    bits_fwd: f64,
+    /// #399 M2: the channel was live at this position.
+    fwd_live: bool,
 }
 
 struct GateCContext<'a> {
@@ -2769,6 +2887,12 @@ struct GateCContext<'a> {
     r4g1: &'a [u8],
     artifact_container: &'a [u8],
     config: &'a ScoreConfig,
+    /// #399 M2: (lookahead distance, next-anchor token) → counts of the
+    /// token emitted `distance` positions before that anchor, built from
+    /// the construction split under the #394 infill protocol.
+    fwd_table: &'a BTreeMap<(usize, u32), BTreeMap<u32, u32>>,
+    /// Story-relative position of every corpus record (0-based).
+    story_pos: &'a [u32],
 }
 
 /// The story-bounded recent-token window ending at `position`'s input
@@ -3120,6 +3244,79 @@ fn evaluate_gate_c_row(
         .exct
         .as_ref()
         .map(|probe| probe.level as usize);
+    // ---- #399 M2: forward-anchor channel (instrumentation only) ----
+    // Where live (free target under the infill protocol, in-story next
+    // anchor, populated forward row): fuse Rule 1+2 with the forward row
+    // by the measured product law, expressed in the scorer's own units
+    // (ScoreQ carries ln × 2⁻¹⁶); tokens absent from the Rule 1+2
+    // candidate set enter at the offset-shifted root floor, tokens
+    // absent from the forward row at its smoothing floor. The argmax
+    // tie-break (lowest token id) matches the canonical selection.
+    let target_pos = context.story_pos[position] as usize + 1;
+    let mut fwd_live = false;
+    let mut fwd_selected = rule12.selected;
+    let mut bits_fwd = bits[2];
+    if !target_pos.is_multiple_of(M2_STRIDE) {
+        let lookahead = target_pos.next_multiple_of(M2_STRIDE) - target_pos;
+        let anchor_position = position + lookahead;
+        if anchor_position < context.corpus.n
+            && context.corpus.story[anchor_position] == context.corpus.story[position]
+        {
+            let anchor = context.corpus.next[anchor_position];
+            if let Some(fwd_row) = context.fwd_table.get(&(lookahead, anchor)) {
+                fwd_live = true;
+                let vocab_f = f64::from(context.scorer_with_exct.vocab());
+                let total: f64 = fwd_row.values().map(|&count| f64::from(count)).sum();
+                let smooth = total + vocab_f * 0.5;
+                let ln_fwd = |token: u32| -> f64 {
+                    ((f64::from(fwd_row.get(&token).copied().unwrap_or(0)) + 0.5) / smooth).ln()
+                };
+                let floor_raw = context
+                    .scorer_with_exct
+                    .root_floor()
+                    .raw()
+                    .saturating_add(rule12.witness.transition_offset.raw());
+                let ln12_floor = f64::from(floor_raw) / 65536.0;
+                let mut fused: BTreeMap<u32, f64> = BTreeMap::new();
+                for &(token, score) in &rule12.candidates {
+                    fused.insert(token, f64::from(score.raw()) / 65536.0 + ln_fwd(token));
+                }
+                for &token in fwd_row.keys() {
+                    fused.entry(token).or_insert(ln12_floor + ln_fwd(token));
+                }
+                let (mut best_token, mut best_score) = (u32::MAX, f64::NEG_INFINITY);
+                for (&token, &score) in &fused {
+                    if score > best_score {
+                        best_token = token;
+                        best_score = score;
+                    }
+                }
+                fwd_selected = best_token;
+                // Fused bits/token: softmax over the union, uncovered
+                // vocabulary at the product of the two floors (the same
+                // one-scale rule `outcome_bits` documents for #387).
+                let ln_floor_absent = ln12_floor + (0.5 / smooth).ln();
+                let max_score = best_score.max(ln_floor_absent);
+                let mut weight_sum = 0f64;
+                let mut weight_next = None;
+                for (&token, &score) in &fused {
+                    let weight = (score - max_score).exp();
+                    weight_sum += weight;
+                    if token == next {
+                        weight_next = Some(weight);
+                    }
+                }
+                let weight_floor = (ln_floor_absent - max_score).exp();
+                let uncovered =
+                    (context.scorer_with_exct.vocab() as usize).saturating_sub(fused.len());
+                weight_sum += uncovered as f64 * weight_floor;
+                let weight = weight_next.unwrap_or(weight_floor).max(1e-300);
+                bits_fwd = (weight_sum / weight).ln() / std::f64::consts::LN_2;
+            }
+        }
+    }
+    let hit_fwd = fwd_selected == teacher_argmax;
+
     let witness_replay_failed = index < context.config.witness_sample
         && verify_witness_replay(
             context.r4g1,
@@ -3170,6 +3367,9 @@ fn evaluate_gate_c_row(
         witness_replay_failed,
         exact_context_source: rule12.exact_context_source,
         next,
+        hit_fwd,
+        bits_fwd,
+        fwd_live,
     })
 }
 
@@ -3208,7 +3408,10 @@ fn evaluate_gate_c_row(
 /// (`config.gate_c_context_window`) — window-on rows are a different
 /// measurement population from every schema-≤14 row; 16 = #381
 /// sweepable repetition penalty recorded
-/// (`config.repetition_penalty_raw`).
+/// (`config.repetition_penalty_raw`); 17 = #393 substrate-resolution
+/// era; 18 = #399 M2 forward-anchor instrumentation rows in `gate_c`
+/// (`rule12_fwd_fused`, the live-slice pair, and the fused win/loss
+/// cross-tabs) — certifier-side only, the serving scorer is untouched.
 #[derive(Debug, Clone, Serialize)]
 pub struct ScoreReport {
     pub schema: u32,
@@ -3404,7 +3607,7 @@ pub fn build_score_report_with_quality_profile(
         can_measure_generalization: strict_exct_miss_rate >= MIN_EXCT_MISS_RATE_FOR_GATE_C,
     };
     ScoreReport {
-        schema: 17,
+        schema: 18,
         inputs,
         config: ScoreReportConfig {
             transition_out_degree: config.transition_out_degree,
