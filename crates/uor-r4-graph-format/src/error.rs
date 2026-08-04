@@ -204,6 +204,22 @@ pub enum FormatError {
     NgramEntriesNotSorted,
     /// NGRAM row metadata is invalid.
     NgramInvalidRow,
+    /// FWDA has no complete fixed header.
+    FwdaTooShort,
+    /// FWDA magic is not `FWA1`.
+    FwdaBadMagic,
+    /// FWDA version is not supported.
+    FwdaUnsupportedVersion,
+    /// FWDA reserved bytes are non-zero.
+    FwdaNonZeroReserved,
+    /// FWDA row or entry offset arithmetic is invalid.
+    FwdaBounds,
+    /// FWDA row keys are not in canonical order.
+    FwdaRowsNotSorted,
+    /// FWDA entry tokens are not in canonical order.
+    FwdaEntriesNotSorted,
+    /// FWDA row metadata is invalid.
+    FwdaInvalidRow,
     /// A packed-node range field does not resolve within its target
     /// section under checked arithmetic (RFC §6 item 4). For
     /// `Prototype`/`Mask` the full W-word extent from the word start
@@ -563,6 +579,16 @@ impl fmt::Display for FormatError {
                 write!(f, "NGRAM entries are not canonically sorted")
             }
             FormatError::NgramInvalidRow => write!(f, "NGRAM row metadata is invalid"),
+            FormatError::FwdaTooShort => write!(f, "FWDA section is shorter than its header"),
+            FormatError::FwdaBadMagic => write!(f, "FWDA magic is not FWA1"),
+            FormatError::FwdaUnsupportedVersion => write!(f, "FWDA version is unsupported"),
+            FormatError::FwdaNonZeroReserved => write!(f, "FWDA reserved bytes are non-zero"),
+            FormatError::FwdaBounds => write!(f, "FWDA row or entry range is out of bounds"),
+            FormatError::FwdaRowsNotSorted => write!(f, "FWDA rows are not canonically sorted"),
+            FormatError::FwdaEntriesNotSorted => {
+                write!(f, "FWDA entries are not canonically sorted")
+            }
+            FormatError::FwdaInvalidRow => write!(f, "FWDA row metadata is invalid"),
             FormatError::RangeOutOfBounds { node, field } => write!(
                 f,
                 "node {node}: {field} range does not resolve within its target section"

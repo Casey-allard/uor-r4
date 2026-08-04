@@ -1120,6 +1120,7 @@ pub fn score_command(args: &[String]) -> Result<(), String> {
     let vocab = u32::try_from(artifacts.token_codes.len() / compiler::STAGES)
         .map_err(|_| "vocabulary exceeds u32 token ids".to_owned())?;
     let context_rows = score::compile_context_rows(&corpus, &train, vocab, &config);
+    let fwd_rows = score::compile_forward_anchor_rows(&corpus, &train);
     let emissions =
         score::compile_emissions(&corpus, &store, &regions, &train, max_depth, vocab, &config);
     let fmm_section = score::compile_fmm_section(&regions, &emissions, vocab)?;
@@ -1137,6 +1138,7 @@ pub fn score_command(args: &[String]) -> Result<(), String> {
             exct_tls1: &tls1,
             exct_top_x: config.exct_top_x,
             fmm_section: Some(&fmm_section),
+            fwd_rows: &fwd_rows,
         },
     )?;
     let graph_kappa = uor_r4_graph_format::r4g1::artifact_kappa(&artifact_bytes)

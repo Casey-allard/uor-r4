@@ -9,6 +9,7 @@
 
 use crate::error::FormatError;
 use crate::fmm::FmmTranslationTable;
+use crate::fwda::FwdaTable;
 use crate::head::Head;
 use crate::header::{self, Header, HEADER_LEN, SECTION_ENTRY_LEN};
 use crate::ngram::NgramTable;
@@ -332,6 +333,13 @@ impl<'a> GraphView<'a> {
     pub fn ngram_table(&self) -> Result<Option<NgramTable<'a>>, FormatError> {
         self.section(SectionId::NGRAM)
             .map(NgramTable::parse)
+            .transpose()
+    }
+
+    /// Parse the optional packed forward-anchor table (issue #399).
+    pub fn fwda_table(&self) -> Result<Option<FwdaTable<'a>>, FormatError> {
+        self.section(SectionId::FWDA)
+            .map(FwdaTable::parse)
             .transpose()
     }
 

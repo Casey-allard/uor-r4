@@ -440,6 +440,7 @@ pub fn run_point(
         .map_err(|_| "vocabulary exceeds u32 token ids".to_owned())?;
     let context_rows =
         score::compile_context_rows(&inputs.corpus, &inputs.train, vocab, score_config);
+    let fwd_rows = score::compile_forward_anchor_rows(&inputs.corpus, &inputs.train);
     let emissions = score::compile_emissions(
         &inputs.corpus,
         &inputs.store,
@@ -464,6 +465,7 @@ pub fn run_point(
             exct_tls1: &inputs.tls1,
             exct_top_x: score_config.exct_top_x,
             fmm_section: Some(&fmm_section),
+            fwd_rows: &fwd_rows,
         },
     )?;
     let gate_c = score::evaluate_gate_c(

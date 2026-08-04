@@ -3,7 +3,8 @@
 //! R4G1 is the versioned packed artifact container for the R⁴ holographic
 //! graph compiler: a single little-endian, fixed-width, explicitly-aligned
 //! binary format that carries a compiled semantic-region graph (sections
-//! HEAD/CODE/NODE/EDGE/ROUT/EMIT plus optional EXCT/NGRAM/PROV/CERT/PTCH/SECT)
+//! HEAD/CODE/NODE/EDGE/ROUT/EMIT plus optional
+//! EXCT/NGRAM/FWDA/PROV/CERT/PTCH/SECT)
 //! from the offline compiler to the deployed runtime. It succeeds the
 //! ad-hoc TLA3/TLA4/TLS1 containers.
 //!
@@ -66,6 +67,7 @@ extern crate alloc;
 mod code;
 mod error;
 mod fmm;
+mod fwda;
 mod head;
 mod header;
 pub mod inference_contract;
@@ -87,6 +89,10 @@ pub use error::{BoundKind, EdgePayloadField, FormatError, RangeField};
 pub use fmm::{
     FmmCoefficientRow, FmmRows, FmmScoreIter, FmmTokenIter, FmmTranslationTable, FMM_HEADER_LEN,
     FMM_MAGIC, FMM_VERSION,
+};
+pub use fwda::{
+    FwdaEntries, FwdaEntry, FwdaRow, FwdaRows, FwdaTable, FWDA_ENTRY_LEN, FWDA_HEADER_LEN,
+    FWDA_MAGIC, FWDA_MAX_DISTANCE, FWDA_ROW_LEN, FWDA_VERSION,
 };
 pub use head::{
     Head, FALLBACK_POLICY_COUNT, FEATURE_EDGE_ALGEBRA_V1, HEAD_PAYLOAD_LEN,

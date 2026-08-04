@@ -82,6 +82,9 @@ pub(crate) fn validate(view: &GraphView) -> Result<Option<Head>, FormatError> {
     if let Some(bytes) = view.section(SectionId::NGRAM) {
         crate::ngram::NgramTable::parse(bytes)?;
     }
+    if let Some(bytes) = view.section(SectionId::FWDA) {
+        crate::fwda::FwdaTable::parse(bytes)?;
+    }
 
     // ROUT section-internal bytecode validation (RFC §6 item 6) runs
     // before the per-node cross-references into the section, mirroring

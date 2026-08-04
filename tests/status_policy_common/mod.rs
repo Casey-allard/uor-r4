@@ -133,6 +133,7 @@ fn emit_and_persist(
             transition_quantization: score::QuantizationErrorStats::default(),
             emissions,
             context_rows: &[],
+            fwd_rows: &[],
             exct_tls1: &tls1,
             exct_top_x: score::ScoreConfig::default().exct_top_x,
             fmm_section: Some(&fmm_section),

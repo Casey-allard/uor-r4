@@ -435,6 +435,18 @@ fn quantize_exct(count: u32, total: u32, vocab: u32) -> ScoreQ {
     ScoreQ::from_logprob(p.ln() as f32)
 }
 
+/// FWDA load-time quantization (issue #399): the forward-anchor section
+/// stores raw counts plus the row total, and the residual
+/// `ln((count + 0.5) / (total + vocab * 0.5))` is baked into ScoreQ once
+/// at scorer construction — the measured Gate C fusion law's smoothing
+/// (`fuse_forward_arm` in `score.rs`). Like [`quantize_exct`] this
+/// helper is kept out of every accumulation function; the per-token
+/// serving path reads only the pre-quantized integers.
+fn quantize_fwda(count: u32, total: u32, vocab: u32) -> ScoreQ {
+    let p = (f64::from(count) + 0.5) / (f64::from(total) + f64::from(vocab) * 0.5);
+    ScoreQ::from_logprob(p.ln() as f32)
+}
+
 // END COMPILER-SIDE FLOAT QUANTIZATION -----------------------------------
 
 /// Integer multiply for the `#80` candidate scoring variants, built only
@@ -748,6 +760,19 @@ pub enum ScoringVariant {
     MarginWeighted,
 }
 
+/// One loaded forward-anchor row (issue #399): pre-quantized ScoreQ
+/// residuals under the measured product-fusion law, plus the row's
+/// absent-token floor residual (the zero-count smoothing value under the
+/// same denominator). Both are derived once at load time from the FWDA
+/// section's raw counts; the serving path is integer-only.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ForwardAnchorServingRow {
+    /// Residual applied to tokens absent from the row's entries.
+    pub absent_floor: ScoreQ,
+    /// Bounded `(token, residual)` entries, ascending token order.
+    pub entries: Vec<(u32, ScoreQ)>,
+}
+
 pub struct GraphScorer {
     graph_cid: [u8; 32],
     regions: Vec<RegionParams>,
@@ -762,6 +787,9 @@ pub struct GraphScorer {
     /// Explicit bigram/trigram rows. The root prior remains the unigram
     /// fallback in EMIT.
     context_rows: BTreeMap<(u8, u32, u32), Vec<(u32, ScoreQ)>>,
+    /// Forward-anchor rows keyed `(lookahead distance, anchor token)`,
+    /// loaded from the optional FWDA section (empty when absent).
+    fwd_rows: BTreeMap<(u8, u32), ForwardAnchorServingRow>,
     residual_exct: Option<Vec<BTreeMap<Vec<u8>, ResidualExctContext>>>,
     store: Option<Store>,
     artifacts: Option<Compiled>,
@@ -943,6 +971,31 @@ impl GraphScorer {
             }
         }
 
+        // FWDA (issue #399): the optional forward-anchor section stores
+        // raw counts plus each row's full total; residuals are quantized
+        // here, once, so the per-token infill fusion stays integer-only.
+        let mut fwd_rows = BTreeMap::new();
+        if let Some(table) = view
+            .fwda_table()
+            .map_err(|e| format!("invalid FWDA section: {e}"))?
+        {
+            let vocab = head.vocab_size();
+            for row in table.rows() {
+                let total = row.total();
+                let entries: Vec<(u32, ScoreQ)> = row
+                    .entries()
+                    .map(|entry| (entry.token, quantize_fwda(entry.count, total, vocab)))
+                    .collect();
+                fwd_rows.insert(
+                    (row.distance(), row.anchor()),
+                    ForwardAnchorServingRow {
+                        absent_floor: quantize_fwda(0, total, vocab),
+                        entries,
+                    },
+                );
+            }
+        }
+
         // EXCT: prefer compile-time residual tables. They can be used by
         // the deployed integer-only runtime; raw TLS1 remains accepted for
         // legacy Gate C/converter artifacts and uses the old certifier-side
@@ -995,6 +1048,7 @@ impl GraphScorer {
             root_top,
             emissions,
             context_rows,
+            fwd_rows,
             residual_exct,
             store,
             artifacts,
@@ -1538,6 +1592,93 @@ impl GraphScorer {
             witness,
             exact_context_source: exact_context.then_some(ExactContextSource::ExctProbe),
         })
+    }
+
+    /// The loaded forward-anchor row for `(distance, anchor)`, when the
+    /// artifact carries a FWDA section with that key. Measurement and
+    /// test accessor; serving goes through
+    /// [`GraphScorer::score_candidates_infill`].
+    pub fn forward_anchor_row(
+        &self,
+        distance: u8,
+        anchor: u32,
+    ) -> Option<&ForwardAnchorServingRow> {
+        self.fwd_rows.get(&(distance, anchor))
+    }
+
+    /// Number of loaded forward-anchor rows (zero when the FWDA section
+    /// is absent).
+    pub fn forward_anchor_row_count(&self) -> usize {
+        self.fwd_rows.len()
+    }
+
+    /// Infill serving entry point (issue #399): score the position with
+    /// [`GraphScorer::score_candidates_coded`], then — when the caller
+    /// knows the NEXT anchor token and its lookahead distance, and the
+    /// artifact carries a forward-anchor row for that key — fuse the
+    /// forward-anchor channel by the measured product law in the
+    /// log domain: every candidate's ScoreQ gets a saturating add of its
+    /// row residual (or the row's absent floor), and row tokens outside
+    /// the base candidate set enter at the offset-shifted root floor
+    /// (`root_floor + transition_offset`, the same accounting rule the
+    /// Gate C `fuse_forward_arm` instrumentation measured) plus their
+    /// residual. Selection is re-run under the canonical rule (highest
+    /// score, ties to the lowest token). The fusion itself is
+    /// integer-only; the residuals were quantized once at load time.
+    ///
+    /// A `None` anchor, a missing row, or an artifact without a FWDA
+    /// section returns the base outcome unchanged — byte-identical to
+    /// `score_candidates_coded`.
+    ///
+    /// Witness semantics: infill fusion is post-witness serving-side
+    /// re-ranking. The returned witness (and `candidate_components`)
+    /// keep the BASE outcome's contents, so independent replay covers
+    /// the base prediction; only `selected`, `selected_score`, and
+    /// `candidates` reflect the fused distribution.
+    pub fn score_candidates_infill(
+        &self,
+        sig: &[u8; SIG_BYTES],
+        input_code: Option<&[u8; STAGES]>,
+        recent_tokens: &[u32],
+        next_anchor: Option<(u32, u8)>,
+    ) -> Result<ScoreOutcome, String> {
+        let base = self.score_candidates_coded(sig, input_code, recent_tokens)?;
+        let Some((anchor, distance)) = next_anchor else {
+            return Ok(base);
+        };
+        let Some(row) = self.fwd_rows.get(&(distance, anchor)) else {
+            return Ok(base);
+        };
+        let floor_base = self
+            .root_floor
+            .saturating_add(base.witness.transition_offset);
+        let mut fused: BTreeMap<u32, ScoreQ> = BTreeMap::new();
+        for &(token, score) in &base.candidates {
+            let residual = match row.entries.binary_search_by_key(&token, |&(t, _)| t) {
+                Ok(index) => row.entries[index].1,
+                Err(_) => row.absent_floor,
+            };
+            fused.insert(token, score.saturating_add(residual));
+        }
+        for &(token, residual) in &row.entries {
+            fused
+                .entry(token)
+                .or_insert_with(|| floor_base.saturating_add(residual));
+        }
+        let mut best: Option<(u32, ScoreQ)> = None;
+        for (&token, &score) in &fused {
+            if best.is_none_or(|(_, current)| score.raw() > current.raw()) {
+                best = Some((token, score));
+            }
+        }
+        let Some((selected, selected_score)) = best else {
+            return Ok(base);
+        };
+        let mut outcome = base;
+        outcome.selected = selected;
+        outcome.selected_score = selected_score;
+        outcome.candidates = fused.into_iter().collect();
+        Ok(outcome)
     }
 
     /// The pre-#64 Σ-over-cloud formula `S(v) = B(v) + Σ_{n∈A} ΔE(n,v) +
@@ -2542,6 +2683,7 @@ mod ngram_tests {
             root_top: Vec::new(),
             emissions: Vec::new(),
             context_rows: rows,
+            fwd_rows: BTreeMap::new(),
             residual_exct: None,
             store: None,
             artifacts: None,

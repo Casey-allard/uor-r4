@@ -714,6 +714,107 @@ pub fn compile_context_rows(
         .collect()
 }
 
+/// Per-row entry cap for the FWDA forward-anchor section: keep the
+/// highest-count entries (canonical tie: lowest token) so a hot anchor
+/// cannot blow up the section.
+pub const FWDA_ENTRY_CAP: usize = 64;
+/// Rows with less total evidence than this are not emitted (size bound;
+/// a one-observation row carries no measurable signal).
+pub const FWDA_MIN_TOTAL: u32 = 2;
+
+/// One compiled forward-anchor row (issue #399): the raw count
+/// distribution over the token emitted `distance` positions before an
+/// anchor whose token is `anchor`. Counts stay raw on the wire — the
+/// serving loader derives smoothed ScoreQ residuals from `total`, which
+/// is the FULL pre-truncation evidence total (see the format crate's
+/// `fwda` module docs).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ForwardAnchorRow {
+    /// Lookahead distance to the anchor (one through `M2_STRIDE` minus one).
+    pub distance: u8,
+    /// The anchor's emitted token.
+    pub anchor: u32,
+    /// Full evidence total before the entry cap was applied.
+    pub total: u32,
+    /// Bounded `(token, raw count)` entries, ascending token order.
+    pub entries: Vec<(u32, u32)>,
+}
+
+/// Compile forward-anchor rows from the construction split — the same
+/// loop the Gate C instrumentation uses to build its `fwd_table`
+/// (issue #399 M2, the #394 infill protocol), run over the `train`
+/// observations that also feed the store and the NGRAM context rows: a
+/// position is an anchor when its EMITTED token lands on a
+/// story-relative position that is a multiple of the stride, and each
+/// anchor contributes its same-story construction-split predecessors at
+/// every lookahead distance. Rows are canonical (ascending
+/// `(distance, anchor)`, entries ascending token), capped at
+/// [`FWDA_ENTRY_CAP`] entries keeping the highest counts (ties to the
+/// lowest token), and dropped below [`FWDA_MIN_TOTAL`] total evidence.
+pub fn compile_forward_anchor_rows(
+    corpus: &Corpus,
+    train: &[Observation],
+) -> Vec<ForwardAnchorRow> {
+    let mut in_train = vec![false; corpus.n];
+    for observation in train {
+        let i = observation.position as usize;
+        if i < corpus.n && corpus.next[i] == observation.next {
+            in_train[i] = true;
+        }
+    }
+    let mut story_pos = Vec::with_capacity(corpus.n);
+    {
+        let (mut current_story, mut position_in_story) = (u32::MAX, 0u32);
+        for &story in corpus.story.iter().take(corpus.n) {
+            if story != current_story {
+                current_story = story;
+                position_in_story = 0;
+            } else {
+                position_in_story += 1;
+            }
+            story_pos.push(position_in_story);
+        }
+    }
+    let mut counts: BTreeMap<(u8, u32), BTreeMap<u32, u32>> = BTreeMap::new();
+    for j in 0..corpus.n {
+        if !in_train[j] || !(story_pos[j] as usize + 1).is_multiple_of(M2_STRIDE) {
+            continue;
+        }
+        for distance in 1..M2_STRIDE {
+            if j >= distance
+                && corpus.story[j - distance] == corpus.story[j]
+                && in_train[j - distance]
+            {
+                *counts
+                    .entry((distance as u8, corpus.next[j]))
+                    .or_default()
+                    .entry(corpus.next[j - distance])
+                    .or_default() += 1;
+            }
+        }
+    }
+    counts
+        .into_iter()
+        .filter_map(|((distance, anchor), distribution)| {
+            let total: u64 = distribution.values().map(|&count| u64::from(count)).sum();
+            let total = u32::try_from(total).unwrap_or(u32::MAX);
+            if total < FWDA_MIN_TOTAL {
+                return None;
+            }
+            let mut ranked: Vec<(u32, u32)> = distribution.into_iter().collect();
+            ranked.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.cmp(&b.0)));
+            ranked.truncate(FWDA_ENTRY_CAP);
+            ranked.sort_by_key(|&(token, _)| token);
+            Some(ForwardAnchorRow {
+                distance,
+                anchor,
+                total,
+                entries: ranked,
+            })
+        })
+        .collect()
+}
+
 /// Compile the optional FMM section from the same regions and emission tables
 /// that feed the normal scored-artifact path. All floating-point work remains
 /// in the certifier; the returned bytes contain only the folded integer table
@@ -1111,6 +1212,8 @@ pub struct ScoredGraphInfo {
     pub context_row_count: u32,
     pub context_entry_count: u32,
     pub context_bytes: u32,
+    pub fwda_row_count: u32,
+    pub fwda_bytes: u32,
     pub fmm_bytes: u32,
     pub fmm_rank: u16,
     pub fmm_candidate_count: u32,
@@ -1146,6 +1249,10 @@ pub struct ScoredGraphSections<'a> {
     pub exct_top_x: usize,
     /// Optional compiler-folded FMM translation table.
     pub fmm_section: Option<&'a [u8]>,
+    /// Forward-anchor rows for the optional FWDA section (issue #399);
+    /// empty means the section is not emitted and infill serving runs
+    /// without the channel.
+    pub fwd_rows: &'a [ForwardAnchorRow],
 }
 
 fn encode_context_rows(rows: &[ContextRow]) -> Result<Vec<u8>, String> {
@@ -1202,6 +1309,71 @@ fn encode_context_rows(rows: &[ContextRow]) -> Result<Vec<u8>, String> {
             previous_token = Some(token);
             bytes.extend_from_slice(&token.to_le_bytes());
             bytes.extend_from_slice(&score.raw().to_le_bytes());
+        }
+        entry_offset = bytes.len();
+    }
+    Ok(bytes)
+}
+
+/// Encode compiled forward-anchor rows as the FWDA section body (same
+/// canonical header/row/entry layout as NGRAM; raw counts on the wire,
+/// the row total in the second key slot — format crate `fwda` docs).
+fn encode_forward_anchor_rows(rows: &[ForwardAnchorRow]) -> Result<Vec<u8>, String> {
+    let row_count =
+        u32::try_from(rows.len()).map_err(|_| "FWDA row count exceeds u32".to_owned())?;
+    let header_len = uor_r4_graph_format::FWDA_HEADER_LEN;
+    let row_len = uor_r4_graph_format::FWDA_ROW_LEN;
+    let entries_start = header_len
+        .checked_add(
+            row_len
+                .checked_mul(rows.len())
+                .ok_or("FWDA row bytes overflow")?,
+        )
+        .ok_or("FWDA header bytes overflow")?;
+    let mut bytes = Vec::with_capacity(entries_start);
+    bytes.extend_from_slice(&uor_r4_graph_format::FWDA_MAGIC);
+    bytes.extend_from_slice(&uor_r4_graph_format::FWDA_VERSION.to_le_bytes());
+    bytes.extend_from_slice(&[0u8; 2]);
+    bytes.extend_from_slice(&row_count.to_le_bytes());
+    let max_entries = rows.iter().map(|row| row.entries.len()).max().unwrap_or(0);
+    bytes.extend_from_slice(
+        &u16::try_from(max_entries)
+            .map_err(|_| "FWDA row entry count exceeds u16".to_owned())?
+            .to_le_bytes(),
+    );
+    bytes.extend_from_slice(&[0u8; 2]);
+    bytes.resize(entries_start, 0);
+    let mut entry_offset = entries_start;
+    let mut previous = None;
+    for (index, row) in rows.iter().enumerate() {
+        if !(1..=uor_r4_graph_format::FWDA_MAX_DISTANCE).contains(&row.distance)
+            || row.total < FWDA_MIN_TOTAL
+        {
+            return Err("FWDA row has an invalid distance or total".to_owned());
+        }
+        let key = (row.distance, row.anchor);
+        if previous.is_some_and(|last| last >= key) {
+            return Err("FWDA rows are not canonically sorted".to_owned());
+        }
+        previous = Some(key);
+        let entry_count = u16::try_from(row.entries.len())
+            .map_err(|_| "FWDA row entry count exceeds u16".to_owned())?;
+        let header = header_len + index * row_len;
+        bytes[header] = row.distance;
+        bytes[header + 2..header + 4].copy_from_slice(&entry_count.to_le_bytes());
+        bytes[header + 4..header + 8].copy_from_slice(&row.anchor.to_le_bytes());
+        bytes[header + 8..header + 12].copy_from_slice(&row.total.to_le_bytes());
+        let entry_offset_u32 =
+            u32::try_from(entry_offset).map_err(|_| "FWDA entry offset exceeds u32".to_owned())?;
+        bytes[header + 12..header + 16].copy_from_slice(&entry_offset_u32.to_le_bytes());
+        let mut previous_token = None;
+        for &(token, count) in &row.entries {
+            if previous_token.is_some_and(|last| last >= token) {
+                return Err("FWDA entries are not canonically sorted".to_owned());
+            }
+            previous_token = Some(token);
+            bytes.extend_from_slice(&token.to_le_bytes());
+            bytes.extend_from_slice(&count.to_le_bytes());
         }
         entry_offset = bytes.len();
     }
@@ -1287,6 +1459,7 @@ pub fn emit_scored_r4g1(
         exct_tls1,
         exct_top_x,
         fmm_section,
+        fwd_rows,
     } = *sections;
     if regions.len() != emissions.region_lists.len() {
         return Err("emission lists do not match the region count".to_owned());
@@ -1505,6 +1678,13 @@ pub fn emit_scored_r4g1(
     builder.add_section(uor_r4_graph_format::SectionId::EMIT, 0, &emit);
     builder.add_section(uor_r4_graph_format::SectionId::EXCT, 0, &exct);
     builder.add_section(uor_r4_graph_format::SectionId::NGRAM, 0, &ngram);
+    let fwda = if fwd_rows.is_empty() {
+        Vec::new()
+    } else {
+        let fwda = encode_forward_anchor_rows(fwd_rows)?;
+        builder.add_section(uor_r4_graph_format::SectionId::FWDA, 0, &fwda);
+        fwda
+    };
     if let Some(fmm_section) = fmm_section {
         builder.add_section(uor_r4_graph_format::SectionId::FMM, 0, fmm_section);
     }
@@ -1545,6 +1725,10 @@ pub fn emit_scored_r4g1(
             .map_err(|_| "NGRAM entry count exceeds u32".to_owned())?,
             context_bytes: u32::try_from(ngram.len())
                 .map_err(|_| "NGRAM section exceeds u32".to_owned())?,
+            fwda_row_count: u32::try_from(fwd_rows.len())
+                .map_err(|_| "FWDA row count exceeds u32".to_owned())?,
+            fwda_bytes: u32::try_from(fwda.len())
+                .map_err(|_| "FWDA section exceeds u32".to_owned())?,
             fmm_bytes: fmm_section.map_or(0, |bytes| bytes.len() as u32),
             fmm_rank: fmm_table.map_or(0, |table| table.rank()),
             fmm_candidate_count: fmm_table.map_or(0, |table| table.token_count()),
