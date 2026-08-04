@@ -12,6 +12,10 @@
 //! No serving-path changes; certifier-side instrumentation only (f32 and
 //! allocation permitted here, never in the kernel).
 //!
+//! #399 extension: fusion headroom probes (offset-route, count-confidence,
+//! product-of-experts) — instrumentation upper bounds on what a mechanism
+//! that consumes forward anchors can add over the causal store.
+//!
 //! Run:
 //!   cargo test -p uor-r4-graph-certify --test anchor_infill -- --ignored --nocapture
 
@@ -98,6 +102,53 @@ fn argmax(dist: &BTreeMap<u32, u64>) -> Option<u32> {
         .map(|(&tok, _)| tok)
 }
 
+/// Deepest populated store distribution for a code (the distribution behind
+/// `predict_witness_plain`'s argmax).
+fn store_dist<'a>(
+    store: &'a runtime::Store,
+    code: &[u8; compiler::STAGES],
+) -> Option<&'a BTreeMap<u32, u32>> {
+    for d in (0..=compiler::STAGES).rev() {
+        if let Some(dist) = store[d].get(&code[..d]) {
+            return Some(dist);
+        }
+    }
+    None
+}
+
+/// Smoothed log-probability of `t` under a count distribution.
+fn smoothed_ln(dist: &BTreeMap<u32, u64>, total: u64, t: u32) -> f64 {
+    let c = dist.get(&t).copied().unwrap_or(0) as f64;
+    ((c + 0.5) / (total as f64 + 16_000.0)).ln()
+}
+
+/// #399 headroom probe, product-of-experts fusion: argmax over the union of
+/// the two distributions' supports of the sum of smoothed log-probabilities.
+fn fuse_product(
+    store: Option<&BTreeMap<u32, u32>>,
+    fwd: Option<&BTreeMap<u32, u64>>,
+) -> Option<u32> {
+    let s64: Option<BTreeMap<u32, u64>> =
+        store.map(|d| d.iter().map(|(&t, &c)| (t, c as u64)).collect());
+    match (&s64, fwd) {
+        (None, None) => None,
+        (Some(s), None) => argmax(s),
+        (None, Some(f)) => argmax(f),
+        (Some(s), Some(f)) => {
+            let st: u64 = s.values().sum();
+            let ft: u64 = f.values().sum();
+            s.keys()
+                .chain(f.keys())
+                .map(|&t| {
+                    let score = smoothed_ln(s, st, t) + smoothed_ln(f, ft, t);
+                    (t, score)
+                })
+                .max_by(|a, b| a.1.partial_cmp(&b.1).unwrap().then(b.0.cmp(&a.0)))
+                .map(|(t, _)| t)
+        }
+    }
+}
+
 #[test]
 #[ignore = "Day-0 measurement harness; run explicitly with --ignored"]
 fn anchor_infill_day0() {
@@ -158,6 +209,11 @@ fn anchor_infill_day0() {
     let mut bigram_arm = Arm::new("null:bigram");
     let mut prev_anchor_arm = Arm::new("null:prev-anchor-copy");
     let mut fwd_anchor_arm = Arm::new("null:fwd-anchor-table");
+    // #399 headroom probes: cheapest possible consumers of forward context,
+    // fused with the causal store. Instrumentation upper bounds only.
+    let mut route_arm = Arm::new("fuse:offset-route");
+    let mut conf_arm = Arm::new("fuse:count-confidence");
+    let mut product_arm = Arm::new("fuse:product");
 
     for i in 0..c.n {
         if c.story[i] < cut {
@@ -197,15 +253,50 @@ fn anchor_infill_day0() {
         let next_anchor_pos = target_pos.next_multiple_of(ANCHOR_STRIDE);
         let lookahead = next_anchor_pos - target_pos;
         let j = i + lookahead;
-        let fwd_pred = if j < c.n && c.story[j] == c.story[i] {
-            fwd_anchor
-                .get(&(lookahead, c.next[j]))
-                .and_then(argmax)
-                .or(unigram_pred)
+        let fwd_dist = if j < c.n && c.story[j] == c.story[i] {
+            fwd_anchor.get(&(lookahead, c.next[j]))
         } else {
-            unigram_pred
+            None
         };
-        fwd_anchor_arm.score(offset, fwd_pred, truth);
+        let fwd_pred_raw = fwd_dist.and_then(argmax);
+        fwd_anchor_arm.score(offset, fwd_pred_raw.or(unigram_pred), truth);
+
+        // ---- #399 fusion probes ----
+        let store_witness = runtime::predict_witness_plain(&store, &codes[i]);
+        let store_pred = Some(store_witness.token);
+
+        // (a) route by offset: forward table owns the pre-anchor position.
+        let route_pred = if offset == ANCHOR_STRIDE - 1 {
+            fwd_pred_raw.or(store_pred)
+        } else {
+            store_pred
+        };
+        route_arm.score(offset, route_pred, truth);
+
+        // (b) normalized-confidence pick between the two argmaxes.
+        let conf_pred = match fwd_dist {
+            Some(f) => {
+                let f_total: u64 = f.values().sum();
+                let f_max = f.values().copied().max().unwrap_or(0);
+                let f_conf = f_max as f64 / (f_total as f64 + 8.0);
+                let s_dist = store_dist(&store, &codes[i]);
+                let s_total: u64 = s_dist
+                    .map(|d| d.values().map(|&c| c as u64).sum())
+                    .unwrap_or(0);
+                let s_conf = store_witness.count as f64 / (s_total as f64 + 8.0);
+                if f_conf > s_conf {
+                    fwd_pred_raw.or(store_pred)
+                } else {
+                    store_pred
+                }
+            }
+            None => store_pred,
+        };
+        conf_arm.score(offset, conf_pred, truth);
+
+        // (c) product-of-experts over the union support.
+        let product_pred = fuse_product(store_dist(&store, &codes[i]), fwd_dist).or(store_pred);
+        product_arm.score(offset, product_pred, truth);
     }
 
     for arm in [
@@ -214,6 +305,9 @@ fn anchor_infill_day0() {
         &bigram_arm,
         &prev_anchor_arm,
         &fwd_anchor_arm,
+        &route_arm,
+        &conf_arm,
+        &product_arm,
     ] {
         arm.report();
     }
