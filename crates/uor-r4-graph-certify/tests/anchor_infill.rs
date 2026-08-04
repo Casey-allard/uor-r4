@@ -147,6 +147,114 @@ fn fuse_product(
     }
 }
 
+/// λ-smoothed backoff-mixture probability of `truth` under the store —
+/// the same rule the certify `eval` WB metric uses.
+fn store_prob(store: &runtime::Store, code: &[u8; compiler::STAGES], truth: u32) -> f64 {
+    let mut lams: Vec<(f64, f64)> = Vec::new(); // (lambda, p(truth) at level)
+    for d in 0..=compiler::STAGES {
+        if let Some(dist) = store[d].get(&code[..d]) {
+            let total: u32 = dist.values().sum();
+            let lam = total as f64 / (total as f64 + dist.len() as f64);
+            let pt = dist.get(&truth).copied().unwrap_or(0) as f64 / total as f64;
+            lams.push((lam, pt));
+        }
+    }
+    let mut rem = 1.0f64;
+    let mut acc = 0.0f64;
+    for li in (0..lams.len()).rev() {
+        let w = rem * lams[li].0;
+        rem *= 1.0 - lams[li].0;
+        acc += w * lams[li].1;
+    }
+    (acc + rem / 32_000.0).max(1e-30)
+}
+
+/// Smoothed probability of `truth` under a count table (add-half, 16k floor).
+fn table_prob(dist: Option<&BTreeMap<u32, u64>>, truth: u32) -> f64 {
+    match dist {
+        None => 1.0 / 32_000.0,
+        Some(d) => {
+            let total: u64 = d.values().sum();
+            let c = d.get(&truth).copied().unwrap_or(0) as f64;
+            ((c + 0.5) / (total as f64 + 16_000.0)).max(1e-30)
+        }
+    }
+}
+
+/// Normalized product-of-experts probability of `truth`: renormalize the
+/// product of the two smoothed channels over the union support plus a
+/// uniform out-of-support remainder.
+fn product_prob(
+    store: &runtime::Store,
+    code: &[u8; compiler::STAGES],
+    fwd: Option<&BTreeMap<u32, u64>>,
+    truth: u32,
+) -> f64 {
+    let sd = store_dist(store, code);
+    let (Some(s), Some(f)) = (sd, fwd) else {
+        // single-channel fallback
+        return match (sd, fwd) {
+            (Some(_), None) => store_prob(store, code, truth),
+            (None, Some(f)) => table_prob(Some(f), truth),
+            _ => 1.0 / 32_000.0,
+        };
+    };
+    let st: u64 = s.values().map(|&c| c as u64).sum();
+    let ft: u64 = f.values().sum();
+    let sp = |t: u32| {
+        let c = s.get(&t).copied().unwrap_or(0) as f64;
+        (c + 0.5) / (st as f64 + 16_000.0)
+    };
+    let fp = |t: u32| {
+        let c = f.get(&t).copied().unwrap_or(0) as f64;
+        (c + 0.5) / (ft as f64 + 16_000.0)
+    };
+    let mut z = 0.0f64;
+    let mut in_support = false;
+    let mut pt = 0.0f64;
+    for &t in s.keys().chain(f.keys()) {
+        let p = sp(t) * fp(t);
+        z += p;
+        if t == truth {
+            in_support = true;
+            pt = p;
+        }
+    }
+    // out-of-support floor: both channels at their smoothing floor
+    let floor = (0.5 / (st as f64 + 16_000.0)) * (0.5 / (ft as f64 + 16_000.0));
+    let z_full = z + floor * 32_000.0;
+    if in_support {
+        (pt / z_full).max(1e-30)
+    } else {
+        (floor / z_full).max(1e-30)
+    }
+}
+
+/// Product-of-experts over any number of smoothed count channels: argmax
+/// over the union support of the sum of smoothed log-probabilities.
+fn fuse_product_multi(channels: &[(&BTreeMap<u32, u64>, u64)]) -> Option<u32> {
+    if channels.is_empty() {
+        return None;
+    }
+    let mut support: Vec<u32> = Vec::new();
+    for (d, _) in channels {
+        support.extend(d.keys().copied());
+    }
+    support.sort_unstable();
+    support.dedup();
+    support
+        .into_iter()
+        .map(|t| {
+            let score: f64 = channels
+                .iter()
+                .map(|(d, total)| smoothed_ln(d, *total, t))
+                .sum();
+            (t, score)
+        })
+        .max_by(|a, b| a.1.partial_cmp(&b.1).unwrap().then(b.0.cmp(&a.0)))
+        .map(|(t, _)| t)
+}
+
 /// The compiled graded code of a token — its geometric address in the
 /// artifact's token codebook ([V × STAGES] bytes).
 fn token_code(art: &compiler::Compiled, t: u32) -> Option<&[u8]> {
@@ -187,6 +295,10 @@ fn anchor_infill_day0() {
     // across geometrically similar anchors; the held-out comparison against
     // the token-identity table is the "does geometry carry syntax" test.
     let mut fwd_region: BTreeMap<(usize, usize, Vec<u8>), BTreeMap<u32, u64>> = BTreeMap::new();
+    // Ari's question (#399/#394 thread): the rows-inclusive causal baseline.
+    // Certifier-side proxy for the NGRAM trigram rows: exact-context
+    // (prev2, prev1) -> next counts from the construction partition.
+    let mut trigram: BTreeMap<(u32, u32), BTreeMap<u32, u64>> = BTreeMap::new();
     #[allow(clippy::needless_range_loop)] // index i addresses four parallel corpus arrays
     for i in 0..c.n {
         if c.story[i] >= cut {
@@ -198,6 +310,13 @@ fn anchor_infill_day0() {
             .or_default()
             .entry(c.next[i])
             .or_default() += 1;
+        if let Some(p2) = runtime::history_token(&c, i, 2) {
+            *trigram
+                .entry((p2, c.input[i]))
+                .or_default()
+                .entry(c.next[i])
+                .or_default() += 1;
+        }
         // target stream index of this record's prediction:
         let target_pos = positions[i] + 1;
         if !target_pos.is_multiple_of(stride) {
@@ -247,6 +366,14 @@ fn anchor_infill_day0() {
         Arm::new("null:fwd-region-d4", stride),
     ];
     let mut product_region_arm = Arm::new("fuse:product-region", stride);
+    // #394 bits ladder on free targets
+    let (mut bits_store, mut bits_fwd, mut bits_prod, mut bits_uni, mut bits_n) =
+        (0f64, 0f64, 0f64, 0f64, 0u64);
+    let mut tri_arm = Arm::new("null:trigram", stride);
+    let mut rows_proxy_arm = Arm::new("rows-proxy:tri>store", stride);
+    let mut prod_tri_arm = Arm::new("fuse:store*tri", stride);
+    let mut prod_tri_fwd_arm = Arm::new("fuse:store*tri*fwd", stride);
+    let uni_total: u64 = unigram.values().sum();
     let mut token_key_missing = 0u64;
     let mut region3_key_missing = 0u64;
 
@@ -333,6 +460,34 @@ fn anchor_infill_day0() {
         let product_pred = fuse_product(store_dist(&store, &codes[i]), fwd_dist).or(store_pred);
         product_arm.score(offset, product_pred, truth);
 
+        // ---- rows-inclusive causal baseline + decisive fusion ----
+        let tri_dist =
+            runtime::history_token(&c, i, 2).and_then(|p2| trigram.get(&(p2, c.input[i])));
+        tri_arm.score(offset, tri_dist.and_then(argmax).or(unigram_pred), truth);
+        rows_proxy_arm.score(offset, tri_dist.and_then(argmax).or(store_pred), truth);
+        let store_u64: Option<BTreeMap<u32, u64>> = store_dist(&store, &codes[i])
+            .map(|d| d.iter().map(|(&t, &cn)| (t, cn as u64)).collect());
+        let mut channels: Vec<(&BTreeMap<u32, u64>, u64)> = Vec::new();
+        if let Some(sd) = &store_u64 {
+            channels.push((sd, sd.values().sum()));
+        }
+        if let Some(td) = tri_dist {
+            channels.push((td, td.values().sum()));
+        }
+        prod_tri_arm.score(offset, fuse_product_multi(&channels).or(store_pred), truth);
+        if let Some(fd) = fwd_dist {
+            channels.push((fd, fd.values().sum()));
+        }
+        prod_tri_fwd_arm.score(offset, fuse_product_multi(&channels).or(store_pred), truth);
+
+        // ---- #394 bits ladder ----
+        bits_n += 1;
+        bits_store += -store_prob(&store, &codes[i], truth).log2();
+        bits_fwd += -table_prob(fwd_dist, truth).log2();
+        bits_prod += -product_prob(&store, &codes[i], fwd_dist, truth).log2();
+        let uc = unigram.get(&truth).copied().unwrap_or(0) as f64;
+        bits_uni += -(((uc + 0.5) / (uni_total as f64 + 16_000.0)).max(1e-30)).log2();
+
         // ---- #399 step 2: region-conditioned forward tables ----
         let anchor_code = if j < c.n && c.story[j] == c.story[i] {
             token_code(&art, c.next[j])
@@ -387,6 +542,17 @@ fn anchor_infill_day0() {
         arm.report();
     }
     product_region_arm.report();
+    tri_arm.report();
+    rows_proxy_arm.report();
+    prod_tri_arm.report();
+    prod_tri_fwd_arm.report();
+    println!(
+        "bits ladder (free targets, n={bits_n}): unigram {:.3} | store {:.3} | fwd-table {:.3} | product {:.3}",
+        bits_uni / bits_n as f64,
+        bits_store / bits_n as f64,
+        bits_fwd / bits_n as f64,
+        bits_prod / bits_n as f64
+    );
     println!(
         "backoff diagnostics: token-table key missing {token_key_missing} | region-d3 key missing {region3_key_missing}"
     );
