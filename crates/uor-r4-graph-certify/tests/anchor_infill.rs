@@ -328,6 +328,37 @@ fn anchor_infill_day0() {
     let art = compiler::load_artifacts_from(&art_path).expect("artifacts");
     println!("artifacts: {art_path}");
     let cut = (c.stories as f64 * 0.8) as u32;
+    // Partition override (#393 substrate): R4_STORIES points at the obs
+    // pass's stories.jsonl; when set, use the D3 article-hash partition it
+    // records instead of the sequential story cut. This is the split the
+    // score pipeline evaluates under — the 32pp EXCT reconciliation test.
+    let constr: Vec<bool> = match std::env::var("R4_STORIES") {
+        Ok(path) => {
+            let text = std::fs::read_to_string(&path).expect("stories.jsonl");
+            let mut v = vec![true; c.stories as usize];
+            for line in text.lines() {
+                let Some(story_pos) = line.find("\"story\":") else {
+                    continue;
+                };
+                let story: usize = line[story_pos + 8..]
+                    .split(',')
+                    .next()
+                    .and_then(|x| x.trim().parse().ok())
+                    .expect("story id");
+                if story < v.len() {
+                    v[story] = !line.contains("\"partition\":\"HeldOut\"");
+                }
+            }
+            println!(
+                "partition: D3 hash split from {path} ({} construction / {} held-out stories)",
+                v.iter().filter(|&&b| b).count(),
+                v.iter().filter(|&&b| !b).count()
+            );
+            v
+        }
+        Err(_) => (0..c.stories).map(|sid| sid < u64::from(cut)).collect(),
+    };
+    let is_constr = |sid: u32| constr[sid as usize];
     let positions = story_positions(&c);
     let stride: usize = std::env::var("R4_INFILL_STRIDE")
         .ok()
@@ -356,9 +387,15 @@ fn anchor_infill_day0() {
     // Certifier-side proxy for the NGRAM trigram rows: exact-context
     // (prev2, prev1) -> next counts from the construction partition.
     let mut trigram: BTreeMap<(u32, u32), BTreeMap<u32, u64>> = BTreeMap::new();
+    // SUBSTRATE direction (#393): EXCT proxy — longest-suffix-match chain,
+    // orders 3 and 4 (order 2 = trigram table above). A held-out position is
+    // "EXCT-hit" when a construction suffix of order >= 3 matches; the MISS
+    // slice is the generalization tail EXCT leaves for geometry to serve.
+    let mut suffix3: BTreeMap<(u32, u32, u32), BTreeMap<u32, u64>> = BTreeMap::new();
+    let mut suffix4: BTreeMap<(u32, u32, u32, u32), BTreeMap<u32, u64>> = BTreeMap::new();
     #[allow(clippy::needless_range_loop)] // index i addresses four parallel corpus arrays
     for i in 0..c.n {
-        if c.story[i] >= cut {
+        if !is_constr(c.story[i]) {
             continue;
         }
         *unigram.entry(c.next[i]).or_default() += 1;
@@ -373,6 +410,20 @@ fn anchor_infill_day0() {
                 .or_default()
                 .entry(c.next[i])
                 .or_default() += 1;
+            if let Some(p3) = runtime::history_token(&c, i, 3) {
+                *suffix3
+                    .entry((p3, p2, c.input[i]))
+                    .or_default()
+                    .entry(c.next[i])
+                    .or_default() += 1;
+                if let Some(p4) = runtime::history_token(&c, i, 4) {
+                    *suffix4
+                        .entry((p4, p3, p2, c.input[i]))
+                        .or_default()
+                        .entry(c.next[i])
+                        .or_default() += 1;
+                }
+            }
         }
         // target stream index of this record's prediction:
         let target_pos = positions[i] + 1;
@@ -410,7 +461,7 @@ fn anchor_infill_day0() {
     let mut store_obs: runtime::Store = (0..=compiler::STAGES).map(|_| BTreeMap::new()).collect();
     #[allow(clippy::needless_range_loop)] // parallel corpus arrays
     for i2 in 0..c.n {
-        if c.story[i2] >= cut {
+        if !is_constr(c.story[i2]) {
             continue;
         }
         for (d, level) in store_obs.iter_mut().enumerate() {
@@ -431,7 +482,7 @@ fn anchor_infill_day0() {
     let mut m0_walk: BTreeMap<(usize, Vec<u8>), BTreeMap<u32, u64>> = BTreeMap::new();
     #[allow(clippy::needless_range_loop)] // parallel corpus arrays
     for j in 0..c.n {
-        if c.story[j] >= cut {
+        if !is_constr(c.story[j]) {
             continue;
         }
         let rj = codes[j][..M0_P].to_vec();
@@ -460,6 +511,14 @@ fn anchor_infill_day0() {
     let mut store_arm = Arm::new("shipped-store", stride);
     let mut store_obs_arm = Arm::new("store-observed-ev", stride);
     let mut obs_fuse_arm = Arm::new("fuse:obs*tri*m0", stride);
+    // substrate slices: [exct-hit(order>=3), exct-miss]
+    let mut slice_n = [0u64; 2];
+    let mut slice_exct_hits = 0u64; // EXCT-proxy top1 on its hit slice
+    let mut slice_uni = [0u64; 2];
+    let mut slice_obs = [0u64; 2];
+    let mut slice_m0 = [0u64; 2];
+    let mut slice_tri = [0u64; 2];
+    let mut slice_fuse = [0u64; 2];
     let mut rg_unigram = RegionScore::new("null:unigram");
     let mut rg_trigram = RegionScore::new("null:trigram");
     let mut rg_obs = RegionScore::new("store-observed-ev");
@@ -496,7 +555,7 @@ fn anchor_infill_day0() {
     let mut region3_key_missing = 0u64;
 
     for i in 0..c.n {
-        if c.story[i] < cut {
+        if is_constr(c.story[i]) {
             continue;
         }
         let target_pos = positions[i] + 1;
@@ -661,6 +720,29 @@ fn anchor_infill_day0() {
         }
         let obs_fuse_pred = fuse_product_multi(&obs_channels).or(unigram_pred);
         obs_fuse_arm.score(offset, obs_fuse_pred, truth);
+        // ---- substrate slicing: EXCT-proxy hit vs miss ----
+        let s4 = runtime::history_token(&c, i, 4).and_then(|p4| {
+            runtime::history_token(&c, i, 3).and_then(|p3| {
+                runtime::history_token(&c, i, 2)
+                    .and_then(|p2| suffix4.get(&(p4, p3, p2, c.input[i])))
+            })
+        });
+        let s3 = runtime::history_token(&c, i, 3).and_then(|p3| {
+            runtime::history_token(&c, i, 2).and_then(|p2| suffix3.get(&(p3, p2, c.input[i])))
+        });
+        let exct_dist = s4.or(s3);
+        let slice = if exct_dist.is_some() { 0usize } else { 1usize };
+        slice_n[slice] += 1;
+        if slice == 0 && exct_dist.and_then(argmax) == Some(truth) {
+            slice_exct_hits += 1;
+        }
+        let hit = |p: Option<u32>| u64::from(p == Some(truth));
+        slice_uni[slice] += hit(unigram_pred);
+        slice_obs[slice] += hit(obs_pred_cache);
+        slice_m0[slice] += hit(m0_ref.and_then(argmax).or(unigram_pred));
+        slice_tri[slice] += hit(tri_dist.and_then(argmax).or(unigram_pred));
+        slice_fuse[slice] += hit(obs_fuse_pred);
+
         // granularity direction: region-match grading of the key arms
         rg_unigram.score(&art, unigram_pred, truth);
         rg_trigram.score(&art, tri_dist.and_then(argmax).or(unigram_pred), truth);
@@ -743,6 +825,31 @@ fn anchor_infill_day0() {
     rg_obs.report();
     rg_m0.report();
     rg_obs_fuse.report();
+    let pct = |h: u64, t: u64| 100.0 * h as f64 / t.max(1) as f64;
+    println!(
+        "substrate slices: exct-hit {} ({:.1}% of free) | exct-miss {} ({:.1}%)",
+        slice_n[0],
+        pct(slice_n[0], slice_n[0] + slice_n[1]),
+        slice_n[1],
+        pct(slice_n[1], slice_n[0] + slice_n[1])
+    );
+    println!(
+        "  exct-proxy top1 on hits: {:.1}%",
+        pct(slice_exct_hits, slice_n[0])
+    );
+    for (name, arr) in [
+        ("null:unigram", &slice_uni),
+        ("null:trigram", &slice_tri),
+        ("store-observed-ev", &slice_obs),
+        ("m0:region-walk", &slice_m0),
+        ("fuse:obs*tri*m0", &slice_fuse),
+    ] {
+        println!(
+            "  {name:<20} hit-slice {:.1}% | MISS-slice {:.1}%",
+            pct(arr[0], slice_n[0]),
+            pct(arr[1], slice_n[1])
+        );
+    }
     println!(
         "bits ladder (free targets, n={bits_n}): unigram {:.3} | store {:.3} | fwd-table {:.3} | product {:.3}",
         bits_uni / bits_n as f64,

@@ -55,6 +55,10 @@ fn r4g1_cd_ab() {
     let mut cands = [(0u32, uor_r4_core::transformerless::score_q::ScoreQ::ZERO); 8];
 
     let (mut n, mut top1, mut agree, mut served) = (0u64, 0u64, 0u64, 0u64);
+    // #400 root-cause slicing: count>1 means the graph/node path ran (the
+    // context_backoff short-circuit yields exactly one candidate). The CD
+    // term can only influence the multi-candidate slice.
+    let (mut n_multi, mut top1_multi, mut agree_multi) = (0u64, 0u64, 0u64);
     for i in (0..c.n).step_by(sample_every) {
         if c.story[i] < cut {
             continue;
@@ -98,11 +102,26 @@ fn r4g1_cd_ab() {
         if pred == c.t_argmax[i] {
             agree += 1;
         }
+        if count > 1 {
+            n_multi += 1;
+            if pred == c.next[i] {
+                top1_multi += 1;
+            }
+            if pred == c.t_argmax[i] {
+                agree_multi += 1;
+            }
+        }
     }
     println!(
         "cd-ab[{label}] sample-every {sample_every} | positions {n} | served {served} ({:.1}%) | top1 {:.2}% | teacher-agree {:.2}%",
         100.0 * served as f64 / n as f64,
         100.0 * top1 as f64 / n as f64,
         100.0 * agree as f64 / n as f64
+    );
+    println!(
+        "cd-ab[{label}] MULTI-candidate slice (graph path ran): {n_multi} ({:.1}% of served) | top1 {:.2}% | agree {:.2}%",
+        100.0 * n_multi as f64 / served.max(1) as f64,
+        100.0 * top1_multi as f64 / n_multi.max(1) as f64,
+        100.0 * agree_multi as f64 / n_multi.max(1) as f64
     );
 }
