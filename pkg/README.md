@@ -301,9 +301,11 @@ versioned objective block (`objective.config.schema`) with separate train and
 held-out components for predictive entropy (`H(A|R)`), future-state entropy
 proxies (`H(S_future|R)`), teacher-loss proxy, runtime/artifact/bytes/structure
 costs, and information-bottleneck proxy terms (`I(Z;X) - βI(Z;Y_future)`),
-plus auditable split decisions. Objective versions migrate by appending new
-fields under `objective` while keeping Gate C and predictive-sufficiency
-reports as separate reproducible artifacts. Then compile semantic
+plus a bounded top-64 between-region distinctiveness term against the global
+next-token prior (default weight `0`, preserving the default cover), and
+auditable split decisions. Objective versions migrate by appending new fields
+under `objective` while keeping Gate C and predictive-sufficiency reports as
+separate reproducible artifacts. Then compile semantic
 transitions, fixed-point emission residuals, and exact-evidence carryover:
 
 ```bash
