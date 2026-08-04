@@ -194,7 +194,7 @@ pub const V: usize = 32000;
 pub const WINDOW: usize = 8;
 pub const ROT: usize = 17;
 const EMB_ITERS: usize = 10;
-const CTX_SAMPLE: usize = 6_000;
+const CTX_SAMPLE: usize = 50_000;
 const CTX_ITERS: usize = 6;
 
 pub fn xorshift(s: &mut u64) -> u64 {

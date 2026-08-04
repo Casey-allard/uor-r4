@@ -1,21 +1,33 @@
 {
-  "description": "Migration oracle for the transformerless -> uor-tless port. RE-PINNED 2026-08-01 (fourth time) for #327 (maintainer decision): teacher corpus scaled 150,000 -> 500,000 tokens (2,507 stories) and the #318 Phase B residual wiring landed, so the default emission is the TLA7 container (1,051,916 -> 1,346,836 bytes, kappa blake3:ef6a20f3...). RE-VERIFIED 2026-08-02 under D2 canonical deterministic math (#265): all pins and fixture bytes were unchanged. The threshold, context-codebook, class-signature and container kappas move with the new corpus; the token-side pins (codebook stages, stage books, token codes, shifts/exponents) are byte-identical to the prior era by construction (they derive from the source embedding table only). Era chain: TLA5 pin 2026-07-21 -> 1-term TLA6 pin 2026-07-30 (#243 Phase C) -> this. Prior-era containers (TLA6 1,051,916 blake3:cf64fe74...; TLA5 462,092 blake3:81db4406...) remain valid addresses of their own bytes. documented_linux_reference is HISTORICAL (b142c93-era), retained for reference only.",
+  "bundle_derived_macos": {
+    "class_signatures": [
+      "blake3:8ce39cad0558cbe7ff2b791257e6e1727719d696ad285ff73e56d7b0de2c0568",
+      "blake3:bcf54b0f438dc901e754cba5388052a45ef6be89d84dfb4c9250d8bb4cfc6afa",
+      "blake3:f04bb62acbb18ea401358c9e1f85df157e451d2c1c22c80e19d45dc3c8f982cc",
+      "blake3:91af8a8929079ae640c5d7150136cff2d5f32d10d668a590764b920e73911de0"
+    ],
+    "container": {
+      "bytes": 1346836,
+      "kappa": "blake3:8fbf3f68b71a0615deacac9b9ab6e6b51de0765689f27c59abb44565881054d9"
+    },
+    "context_codebook_stages": [
+      "blake3:49f35e6a495541b4a6047cf3b428fbb62233458d144b1e3e56597452c25c0850",
+      "blake3:523e0fa437b76cc591a93f48fc37e7b58c798153cad3dfb69812d9b5bee8664c",
+      "blake3:e1879326bbc6426f3fc303cb351ba1d7e737f0cc2262f42ee7e02de73d777edc",
+      "blake3:124decb81ee046d69c575bd8980df2698cf9f89e36eb8d8d3c1b66e5805ec197"
+    ],
+    "threshold_vector": "blake3:379df25b0922a60018dd55d32a8fbf2c6b23a8082a4ba3255e3d000f46710ac1"
+  },
   "compiler_mode": "canonical_deterministic",
   "source": {
     "bytes": 60816028,
     "kappa": "blake3:0ae7339518cb124bb9a8fcef88e5dfb615d9e56c55a118e55817dd077c77455d"
   },
-  "token_codebook_stages": [
-    "blake3:c08159e635c67da7d41d4e0bcd567140a54209e7ed81556dedcbae6f7ed8dff1",
-    "blake3:799015669b685e6f1601f3e7b92e6cb25e49f6892758ceba4d5a9c80f982419b",
-    "blake3:1a9e7da42d27f0d6797d160b94d2684f13934ff30705ad6f230e779f441650db",
-    "blake3:06a9e46cba5956358039f582cffd99d2fb22fd18a8699985197df7000fcbdc51"
-  ],
-  "stage_exponents": [
-    7,
-    8,
-    9,
-    9
+  "stage_books": [
+    "blake3:6e6ff8c83b429b42eaec1f9ae488a2a2900e8ff7f0e6690c45b5eee79356ad62",
+    "blake3:c3dda1e2bd3732b836bc6ded7369596f92059a98855bf88a125735de80475a40",
+    "blake3:f7b62a6da4b9f6daac0a75aa45d90b875a36f9a986b3e918468cc20e583d56c7",
+    "blake3:a0c970893f1c68cbb3fc0eb4ccb2cc68ed451b549c829680f162984f82c17d20"
   ],
   "stage_shifts": [
     2,
@@ -23,32 +35,13 @@
     0,
     0
   ],
-  "stage_books": [
-    "blake3:6e6ff8c83b429b42eaec1f9ae488a2a2900e8ff7f0e6690c45b5eee79356ad62",
-    "blake3:c3dda1e2bd3732b836bc6ded7369596f92059a98855bf88a125735de80475a40",
-    "blake3:f7b62a6da4b9f6daac0a75aa45d90b875a36f9a986b3e918468cc20e583d56c7",
-    "blake3:a0c970893f1c68cbb3fc0eb4ccb2cc68ed451b549c829680f162984f82c17d20"
+  "token_codebook_stages": [
+    "blake3:c08159e635c67da7d41d4e0bcd567140a54209e7ed81556dedcbae6f7ed8dff1",
+    "blake3:799015669b685e6f1601f3e7b92e6cb25e49f6892758ceba4d5a9c80f982419b",
+    "blake3:1a9e7da42d27f0d6797d160b94d2684f13934ff30705ad6f230e779f441650db",
+    "blake3:06a9e46cba5956358039f582cffd99d2fb22fd18a8699985197df7000fcbdc51"
   ],
   "token_codes": "blake3:c8ffa0f853f6257234ff789fa52248ed85a62b30b3a3cd7fee521644e6f8fd13",
-  "bundle_derived_macos": {
-    "class_signatures": [
-      "blake3:c4852b5615b625000500565cb8fd697ec3a77fffcd97517834e46094dea48853",
-      "blake3:ec5f8dad5b33b9c5c6f3308062b554058b2e887269fe87a50079e446c8d9e44c",
-      "blake3:15a58eda414f728fd9a31f5bd0b0cbb281ab65506973371de3d3dcc0a9d7f4b3",
-      "blake3:d1813d337e73a9c7ae18c8309c6497d19218e3356e26348ce635cb95802fc1ba"
-    ],
-    "container": {
-      "bytes": 1346836,
-      "kappa": "blake3:ef6a20f385b9d1c78d3789cf5645f6a2ff5634056b1df4b53e52fc3034821fad"
-    },
-    "context_codebook_stages": [
-      "blake3:93171cb8bf20dca7e36df94aaafa9d76bbed25837c300ec1b1e3a9e8fc82974b",
-      "blake3:346ef1b2e9eb6c3d7c45f0e2a2573fcd9746b3e203a73dde3574f59437acdf94",
-      "blake3:588c4ad4f6c2d5d9f4fc63ff17d4c9a857c6f45ef45885f9d5f1bdd5b9e46ed3",
-      "blake3:d1813650d87467f911a63a0d43d7d0f3f80d25f2dd3dac9dd6babeda650c29a0"
-    ],
-    "threshold_vector": "blake3:379df25b0922a60018dd55d32a8fbf2c6b23a8082a4ba3255e3d000f46710ac1"
-  },
   "certificate_macos": {
     "corpus": {
       "tokens": 500000,
@@ -153,5 +146,12 @@
       "wb_bits_per_token": 6.5427,
       "store_keys": 89200
     }
-  }
+  },
+  "stage_exponents": [
+    7,
+    8,
+    9,
+    9
+  ],
+  "description": "Migration oracle for the transformerless -> uor-tless port. RE-PINNED 2026-08-01 (fourth time) for #327 (maintainer decision): teacher corpus scaled 150,000 -> 500,000 tokens (2,507 stories) and the #318 Phase B residual wiring landed, so the default emission is the TLA7 container (1,051,916 -> 1,346,836 bytes, kappa blake3:ef6a20f3...). RE-VERIFIED 2026-08-02 under D2 canonical deterministic math (#265): all pins and fixture bytes were unchanged. The threshold, context-codebook, class-signature and container kappas move with the new corpus; the token-side pins (codebook stages, stage books, token codes, shifts/exponents) are byte-identical to the prior era by construction (they derive from the source embedding table only). Era chain: TLA5 pin 2026-07-21 -> 1-term TLA6 pin 2026-07-30 (#243 Phase C) -> this. Prior-era containers (TLA6 1,051,916 blake3:cf64fe74...; TLA5 462,092 blake3:81db4406...) remain valid addresses of their own bytes. documented_linux_reference is HISTORICAL (b142c93-era), retained for reference only. RE-PINNED 2026-08-04 (fifth time) for #407 (maintainer decision, Casey sign-off): CTX_SAMPLE 6_000 -> 50_000 and era recompile against the current fixture corpus, motivated by the attribution sweep (PR #411: era self-consistency +1.4pp, sample-size +0.5-0.7pp; expected ~36.9%/7.95 WB vs prior 34.8%/8.4461 on the certifier store row). Compiled under canonical deterministic math (TLESS_CANONICAL_DETERMINISTIC=1); container kappa moved blake3:ef6a20f3... -> blake3:8fbf3f68... (1,346,836 bytes, size unchanged). Token-side pins (codebook stages, stage books, token codes, shifts/exponents) and the threshold vector are byte-identical to the prior era by construction; only the context codebooks, class signatures and container moved. Container kappa verified identical between canonical and platform-accelerated compiles on the build host (mode-invariant on linux/x86_64)."
 }
