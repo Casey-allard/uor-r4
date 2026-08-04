@@ -1925,6 +1925,8 @@ pub struct WinLossReport {
     pub fwd_self_vs_rule12_live: WinLoss,
     /// #399 B′: confidence-gated self-anchor arm on its live slice.
     pub fwd_gated_vs_rule12_live: WinLoss,
+    /// #399 falsifier 1: DRAFT-anchor gated arm on its live slice.
+    pub fwd_draft_vs_rule12_live: WinLoss,
 }
 
 /// Candidate-set recall, reported separately from selected-token
@@ -2180,6 +2182,15 @@ pub struct GateCOutcome {
     pub rule12_fwd_gated_fused: GateCMetrics,
     pub rule12_fwd_gated_fused_live: GateCMetrics,
     pub rule12_on_fwd_gated_live: GateCMetrics,
+    /// #399 falsifier 1: the DRAFT-anchor gated scorer — same gate and
+    /// fusion law as the gated arm, but the anchor is predicted from the
+    /// engine's own greedy DRAFT (pass-1 token here plus drafted
+    /// continuations) instead of teacher-forced corpus context; the
+    /// spread against the gated arm is the draft-drift cost of a real
+    /// two-pass generation.
+    pub rule12_fwd_draft_fused: GateCMetrics,
+    pub rule12_fwd_draft_fused_live: GateCMetrics,
+    pub rule12_on_fwd_draft_live: GateCMetrics,
     /// #399 B′: predicted-anchor accuracy on the anchor-reachable
     /// population (numerator/denominator + rate).
     pub anchor_hat_population: usize,
@@ -2448,6 +2459,14 @@ pub fn evaluate_gate_c(
     let mut rule12_gated_live_bits = 0f64;
     let mut anchor_hat_population = 0usize;
     let mut anchor_hat_correct_count = 0u64;
+    // #399 falsifier 1: DRAFT-anchor gated-arm accumulators.
+    let mut hits_fwd_draft = 0u64;
+    let mut bits_fwd_draft = 0f64;
+    let mut draft_live_positions = 0usize;
+    let mut draft_live_hits = 0u64;
+    let mut draft_live_bits = 0f64;
+    let mut rule12_draft_live_hits = 0u64;
+    let mut rule12_draft_live_bits = 0f64;
     // Per-status Rule 1+2 accumulators: [ExactContext, Graph, Novel].
     let mut status_positions = [0usize; 3];
     let mut status_hits = [0u64; 3];
@@ -2768,6 +2787,20 @@ pub fn evaluate_gate_c(
                 row.hits[2],
             );
         }
+        hits_fwd_draft += u64::from(row.hit_fwd_draft);
+        bits_fwd_draft += row.bits_fwd_draft;
+        if row.fwd_draft_live {
+            draft_live_positions += 1;
+            draft_live_hits += u64::from(row.hit_fwd_draft);
+            draft_live_bits += row.bits_fwd_draft;
+            rule12_draft_live_hits += u64::from(row.hits[2]);
+            rule12_draft_live_bits += row.bits[2];
+            accumulate_win_loss(
+                &mut outcome.win_loss.fwd_draft_vs_rule12_live,
+                row.hit_fwd_draft,
+                row.hits[2],
+            );
+        }
         if let Some(correct) = row.anchor_hat_correct {
             anchor_hat_population += 1;
             anchor_hat_correct_count += u64::from(correct);
@@ -2796,6 +2829,7 @@ pub fn evaluate_gate_c(
     outcome.rule12_fwd_fused = metrics(hits_fwd, bits_fwd);
     outcome.rule12_fwd_self_fused = metrics(hits_fwd_self, bits_fwd_self);
     outcome.rule12_fwd_gated_fused = metrics(hits_fwd_gated, bits_fwd_gated);
+    outcome.rule12_fwd_draft_fused = metrics(hits_fwd_draft, bits_fwd_draft);
     let live_metrics = |hits: u64, bits: f64, live_n: usize| GateCMetrics {
         positions: live_n,
         top1_agreement: if live_n == 0 {
@@ -2825,6 +2859,13 @@ pub fn evaluate_gate_c(
         rule12_gated_live_hits,
         rule12_gated_live_bits,
         gated_live_positions,
+    );
+    outcome.rule12_fwd_draft_fused_live =
+        live_metrics(draft_live_hits, draft_live_bits, draft_live_positions);
+    outcome.rule12_on_fwd_draft_live = live_metrics(
+        rule12_draft_live_hits,
+        rule12_draft_live_bits,
+        draft_live_positions,
     );
     outcome.anchor_hat_population = anchor_hat_population;
     outcome.anchor_hat_correct = anchor_hat_correct_count as usize;
@@ -3161,6 +3202,14 @@ struct GateCRow {
     /// #399 B′: whether the predicted anchor equals the true anchor
     /// (`None` off the anchor-reachable population).
     anchor_hat_correct: Option<bool>,
+    /// #399 falsifier 1: the DRAFT-anchor gated arm — the anchor is
+    /// predicted from the engine's own greedy draft (its pass-1 token at
+    /// this position plus drafted continuations), not from teacher-forced
+    /// corpus context, and is trusted only where the draft's final step
+    /// resolved as ExactContext.
+    hit_fwd_draft: bool,
+    bits_fwd_draft: f64,
+    fwd_draft_live: bool,
 }
 
 struct GateCContext<'a> {
@@ -3257,6 +3306,35 @@ fn fuse_forward_arm(
         best_token,
         (weight_sum / weight).ln() / std::f64::consts::LN_2,
     )
+}
+
+/// Slide one token into the fixed draft window / recent-token buffers of
+/// the #399 falsifier-1 draft loop (mirrors the
+/// `generate_greedy_repetition_rate` sliding rule, with the short-seed
+/// window growing; no allocation).
+fn draft_push(
+    window: &mut [u32; compiler::WINDOW],
+    w_len: &mut usize,
+    recent: &mut [u32; 32],
+    recent_len: &mut usize,
+    track_recent: bool,
+    token: u32,
+) {
+    if *w_len < compiler::WINDOW {
+        window[*w_len] = token;
+        *w_len += 1;
+    } else {
+        window.copy_within(1.., 0);
+        window[compiler::WINDOW - 1] = token;
+    }
+    if track_recent {
+        if *recent_len == 32 {
+            recent.copy_within(1.., 0);
+            *recent_len = 31;
+        }
+        recent[*recent_len] = token;
+        *recent_len += 1;
+    }
 }
 
 fn evaluate_gate_c_row(
@@ -3610,6 +3688,9 @@ fn evaluate_gate_c_row(
     let mut fwd_gated_selected = rule12.selected;
     let mut bits_fwd_gated = bits[2];
     let mut anchor_hat_correct = None;
+    let mut fwd_draft_live = false;
+    let mut fwd_draft_selected = rule12.selected;
+    let mut bits_fwd_draft = bits[2];
     if !target_pos.is_multiple_of(M2_STRIDE) {
         let lookahead = target_pos.next_multiple_of(M2_STRIDE) - target_pos;
         let anchor_position = position + lookahead;
@@ -3659,11 +3740,74 @@ fn evaluate_gate_c_row(
                     bits_fwd_gated = fused_bits;
                 }
             }
+            // Falsifier 1 (draft drift): the gated arm above predicts
+            // the anchor from TEACHER-FORCED context (true corpus tokens
+            // up to the anchor position). A real two-pass generation
+            // only has its own pass-1 DRAFT: seed the window with the
+            // corpus tokens up to this position, append the engine's own
+            // Rule 1+2 token here, then greedily draft `lookahead`
+            // steps with `score_candidates_coded` — the final step's
+            // token is the draft anchor and its witness status is the
+            // gate. Fusion law and comparator population are identical
+            // to the gated arm, so any spread between the two arms is
+            // pure draft-context drift.
+            let mut draft_window = [0u32; compiler::WINDOW];
+            let window_seed = story_bounded_window(context.corpus, position, compiler::WINDOW);
+            let mut draft_w_len = window_seed.len();
+            draft_window[..draft_w_len].copy_from_slice(window_seed);
+            let mut draft_recent = [0u32; 32];
+            let mut draft_recent_len = 0usize;
+            let track_recent = context.config.gate_c_context_window;
+            if track_recent {
+                let recent_seed = story_bounded_window(context.corpus, position, 32);
+                draft_recent_len = recent_seed.len();
+                draft_recent[..draft_recent_len].copy_from_slice(recent_seed);
+            }
+            // The draft's token for THIS position is the engine's own
+            // pass-1 selection.
+            let mut pending = rule12.selected;
+            let mut draft_anchor = pending;
+            let mut draft_gate = false;
+            for _ in 0..lookahead {
+                draft_push(
+                    &mut draft_window,
+                    &mut draft_w_len,
+                    &mut draft_recent,
+                    &mut draft_recent_len,
+                    track_recent,
+                    pending,
+                );
+                let draft_bundle = runtime::bundle_window_plain(
+                    context.artifacts,
+                    context.gate_rotations,
+                    &draft_window[..draft_w_len],
+                );
+                let draft_sig = runtime::sig_plain(context.artifacts, &draft_bundle);
+                let draft_code = runtime::assign_for_bundle(context.artifacts, &draft_bundle);
+                let draft_outcome = context.scorer_with_exct.score_candidates_coded(
+                    &draft_sig,
+                    Some(&draft_code),
+                    &draft_recent[..draft_recent_len],
+                )?;
+                pending = draft_outcome.selected;
+                draft_anchor = pending;
+                draft_gate = draft_outcome.witness.status == ScoreStatus::ExactContext;
+            }
+            if draft_gate {
+                if let Some(fwd_row) = context.fwd_table.get(&(lookahead, draft_anchor)) {
+                    fwd_draft_live = true;
+                    let (selected, fused_bits) =
+                        fuse_forward_arm(context.scorer_with_exct, &rule12, fwd_row, next);
+                    fwd_draft_selected = selected;
+                    bits_fwd_draft = fused_bits;
+                }
+            }
         }
     }
     let hit_fwd = fwd_selected == teacher_argmax;
     let hit_fwd_self = fwd_self_selected == teacher_argmax;
     let hit_fwd_gated = fwd_gated_selected == teacher_argmax;
+    let hit_fwd_draft = fwd_draft_selected == teacher_argmax;
 
     let witness_replay_failed = index < context.config.witness_sample
         && verify_witness_replay(
@@ -3725,6 +3869,9 @@ fn evaluate_gate_c_row(
         bits_fwd_gated,
         fwd_gated_live,
         anchor_hat_correct,
+        hit_fwd_draft,
+        bits_fwd_draft,
+        fwd_draft_live,
     })
 }
 
@@ -3768,7 +3915,11 @@ fn evaluate_gate_c_row(
 /// (`rule12_fwd_fused`, the live-slice pair, and the fused win/loss
 /// cross-tabs) — certifier-side only, the serving scorer is untouched;
 /// 19 = #399 B′ self-anchor and confidence-gated arms (the two-pass
-/// serving question) plus predicted-anchor accuracy.
+/// serving question) plus predicted-anchor accuracy; schema twenty is
+/// the #399 falsifier-1 DRAFT-anchor gated arm (the
+/// `rule12_fwd_draft_fused` rows and the draft win/loss cross-tab),
+/// where the anchor is predicted from the engine's own greedy draft
+/// rather than teacher-forced context.
 #[derive(Debug, Clone, Serialize)]
 pub struct ScoreReport {
     pub schema: u32,
@@ -3964,7 +4115,7 @@ pub fn build_score_report_with_quality_profile(
         can_measure_generalization: strict_exct_miss_rate >= MIN_EXCT_MISS_RATE_FOR_GATE_C,
     };
     ScoreReport {
-        schema: 19,
+        schema: 20,
         inputs,
         config: ScoreReportConfig {
             transition_out_degree: config.transition_out_degree,

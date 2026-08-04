@@ -3,17 +3,19 @@
 //! law, rows survive the artifact byte format exactly, and
 //! `score_candidates_infill` reproduces the measured f64 product-fusion
 //! reference on a hand-computed example while staying byte-identical to
-//! `score_candidates_coded` whenever the channel is off.
+//! `score_candidates_coded` whenever the channel is off. The two-pass
+//! tests cover `two_pass_infill_generate`: the stride-four anchor grid,
+//! the B′ confidence gate (fails closed), and the pass-2 pure re-rank.
 
 use std::collections::BTreeMap;
 
-use uor_r4_core::transformerless::compiler::{Corpus, SIG_BYTES, STAGES};
+use uor_r4_core::transformerless::compiler::{self, Corpus, SIG_BYTES, STAGES};
 use uor_r4_core::transformerless::runtime;
 use uor_r4_graph_certify::score::{
     compile_forward_anchor_rows, emit_scored_r4g1, ContextRow, EmissionTables, ForwardAnchorRow,
     QuantizationErrorStats, ScoredGraphSections, Smoothing,
 };
-use uor_r4_graph_certify::score_runtime::{GraphScorer, RegionParams};
+use uor_r4_graph_certify::score_runtime::{two_pass_infill_generate, GraphScorer, RegionParams};
 use uor_r4_graph_compiler::induction::Observation;
 use uor_r4_graph_format::{GraphView, ScoreQ};
 
@@ -121,10 +123,12 @@ fn emissions() -> EmissionTables {
     }
 }
 
-/// A minimal but fully valid scored artifact: one region, no edges, one
-/// explicit bigram context row (the deterministic base distribution for
-/// the fusion tests), an empty exact-context store, and the given
-/// forward-anchor rows.
+/// A minimal but fully valid scored artifact: one region, no edges, two
+/// explicit unigram context rows (the deterministic base distributions
+/// for the fusion and two-pass tests; the key-6 row makes greedy
+/// generation alternate 6 ↔ 20 with every step an NGRAM ExactContext
+/// hit), an empty exact-context store, and the given forward-anchor
+/// rows.
 fn tiny_artifact(fwd_rows: &[ForwardAnchorRow]) -> Vec<u8> {
     let regions = vec![RegionParams {
         node: 1,
@@ -133,16 +137,27 @@ fn tiny_artifact(fwd_rows: &[ForwardAnchorRow]) -> Vec<u8> {
         sig: [0; SIG_BYTES],
         parent: None,
     }];
-    let context_rows = vec![ContextRow {
-        context_len: 1,
-        key0: 20,
-        key1: 0,
-        entries: vec![
-            (4, ScoreQ::from_raw(-100_000)),
-            (5, ScoreQ::from_raw(-120_000)),
-            (6, ScoreQ::from_raw(-80_000)),
-        ],
-    }];
+    let context_rows = vec![
+        ContextRow {
+            context_len: 1,
+            key0: 6,
+            key1: 0,
+            entries: vec![
+                (7, ScoreQ::from_raw(-100_000)),
+                (20, ScoreQ::from_raw(-80_000)),
+            ],
+        },
+        ContextRow {
+            context_len: 1,
+            key0: 20,
+            key1: 0,
+            entries: vec![
+                (4, ScoreQ::from_raw(-100_000)),
+                (5, ScoreQ::from_raw(-120_000)),
+                (6, ScoreQ::from_raw(-80_000)),
+            ],
+        },
+    ];
     let store: runtime::Store = vec![BTreeMap::new(); STAGES + 1];
     let tls1 = runtime::store_bytes(&store);
     let emissions = emissions();
@@ -332,4 +347,125 @@ fn infill_off_paths_match_coded_exactly() {
     assert_eq!(fused.selected, base.selected);
     assert_eq!(fused.candidates, base.candidates);
     assert_eq!(fused.witness, base.witness);
+}
+
+/// A minimal `Compiled` for the two-pass generation tests: empty token
+/// codes decode to all-zero rows, so every window bundles to zero, the
+/// sig is all-zero (matching the tiny artifact's region signature), and
+/// the graded code is all-zero. Token selection in these tests is
+/// carried entirely by the artifact's NGRAM context rows through the
+/// recent-token deque, which is exactly the surface the two-pass gate
+/// depends on.
+fn tiny_compiled() -> compiler::Compiled {
+    compiler::Compiled {
+        token_codes: Vec::new(),
+        stage_books: Vec::new(),
+        stage_shifts: Vec::new(),
+        thresholds: vec![0i64; compiler::D],
+        class_sigs: Vec::new(),
+        ctx_cb: Vec::new(),
+        token_stage_kappas: Vec::new(),
+        dot_cb: Vec::new(),
+        resid_cb: Vec::new(),
+        resid_scale_shifts: Vec::new(),
+        norm_fold_const: 0,
+    }
+}
+
+/// Gated two-pass generation on the synthetic artifact: seed `[20]`
+/// alternates the draft 6 ↔ 20 through the two NGRAM rows (every step
+/// ExactContext), so the stride-four anchor grid and the B′ gate are
+/// both fully live. With a `(distance 2, anchor 6)` forward row present,
+/// exactly the two gated free positions at lookahead two get re-ranked
+/// to token 5; every other position — anchors included — keeps its
+/// pass-1 token.
+#[test]
+fn two_pass_reranks_gated_positions_only() {
+    let row = ForwardAnchorRow {
+        distance: 2,
+        anchor: 6,
+        total: 50,
+        entries: vec![(5, 50)],
+    };
+    let bytes = tiny_artifact(std::slice::from_ref(&row));
+    let scorer = GraphScorer::from_artifact(&bytes, None, 3, 3).expect("scorer loads");
+    let artifacts = tiny_compiled();
+    let rotations = runtime::derive_rotations();
+    let seed = [20u32];
+
+    let two_pass =
+        two_pass_infill_generate(&scorer, &artifacts, &rotations, &seed, 8).expect("two-pass runs");
+
+    // Pass 1: the NGRAM rows alternate deterministically.
+    assert_eq!(two_pass.draft, vec![6, 20, 6, 20, 6, 20, 6, 20]);
+    // Anchor grid with seed_len = 1: generated index i is an anchor when
+    // (1 + i + 1) is a multiple of four — indices 2 and 6.
+    assert_eq!(two_pass.anchor_positions, 2);
+    // Gated free positions: indices 0, 1, 3, 4, 5 have an in-stream next
+    // anchor whose draft resolved ExactContext; index 7's next anchor
+    // (index 10) falls beyond the stream.
+    assert_eq!(two_pass.gated_positions, 5);
+    // Only the lookahead-two positions (0 and 4) have a matching forward
+    // row; the anchor evidence flips both to token 5.
+    assert_eq!(two_pass.changed_positions, 2);
+    assert_eq!(two_pass.final_tokens, vec![5, 20, 6, 20, 5, 20, 6, 20]);
+    assert!(two_pass.changed_positions <= two_pass.gated_positions);
+    // Anchors are kept verbatim from the draft.
+    for index in [2usize, 6] {
+        assert_eq!(two_pass.final_tokens[index], two_pass.draft[index]);
+    }
+}
+
+/// Without a FWDA section pass 2 is inert: the gate still opens (every
+/// draft anchor resolves ExactContext) but no forward row exists, so the
+/// re-rank is the identity and the final stream equals the draft.
+#[test]
+fn two_pass_empty_fwda_final_equals_draft() {
+    let bytes = tiny_artifact(&[]);
+    let scorer = GraphScorer::from_artifact(&bytes, None, 3, 3).expect("scorer loads");
+    let artifacts = tiny_compiled();
+    let rotations = runtime::derive_rotations();
+    let seed = [20u32];
+
+    let two_pass =
+        two_pass_infill_generate(&scorer, &artifacts, &rotations, &seed, 8).expect("two-pass runs");
+    assert_eq!(two_pass.draft, vec![6, 20, 6, 20, 6, 20, 6, 20]);
+    assert_eq!(two_pass.final_tokens, two_pass.draft);
+    assert_eq!(two_pass.changed_positions, 0);
+    assert_eq!(two_pass.gated_positions, 5);
+    assert_eq!(two_pass.anchor_positions, 2);
+}
+
+/// The confidence gate fails closed: seeded off the NGRAM rows the draft
+/// resolves every position through the graph path (status Graph, token
+/// one from the root prior), so no anchor is ExactContext and pass 2
+/// changes nothing — even though a forward row keyed to the drafted
+/// anchor carries evidence strong enough to flip the argmax if the gate
+/// were ignored.
+#[test]
+fn two_pass_gate_fails_closed_without_exact_context_anchor() {
+    // ln(2 * 1000 + 1) ≈ 7.6 nats of residual spread over the absent
+    // floor — enough to overcome the root-floor entry gap (≈ 6.87
+    // nats), so an open gate WOULD flip gated positions to token 5.
+    let row = ForwardAnchorRow {
+        distance: 2,
+        anchor: 1,
+        total: 1000,
+        entries: vec![(5, 1000)],
+    };
+    let bytes = tiny_artifact(std::slice::from_ref(&row));
+    let scorer = GraphScorer::from_artifact(&bytes, None, 3, 3).expect("scorer loads");
+    let artifacts = tiny_compiled();
+    let rotations = runtime::derive_rotations();
+    // Token 30 hits no NGRAM row, so every draft step selects the root
+    // prior's token one with status Graph — never ExactContext.
+    let seed = [30u32];
+
+    let two_pass =
+        two_pass_infill_generate(&scorer, &artifacts, &rotations, &seed, 8).expect("two-pass runs");
+    assert_eq!(two_pass.draft, vec![1; 8]);
+    assert_eq!(two_pass.anchor_positions, 2);
+    assert_eq!(two_pass.gated_positions, 0);
+    assert_eq!(two_pass.changed_positions, 0);
+    assert_eq!(two_pass.final_tokens, two_pass.draft);
 }

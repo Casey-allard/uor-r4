@@ -2433,6 +2433,176 @@ impl GraphScorer {
     }
 }
 
+/// Anchor stride of the gated two-pass generation path (issue #399):
+/// the same stride-four grid the #394 infill protocol and the Gate C
+/// forward-anchor instrumentation use. A generated position is on the
+/// anchor grid when its emitted token lands on a story position that is
+/// a multiple of this stride (see [`two_pass_infill_generate`] for the
+/// grid definition in generated-stream coordinates).
+pub const INFILL_STRIDE: usize = 4;
+
+/// Result of one gated two-pass generation run
+/// ([`two_pass_infill_generate`]).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TwoPassGeneration {
+    /// The pass-1 greedy draft, one token per generated position.
+    pub draft: Vec<u32>,
+    /// The pass-2 output: gated free positions re-ranked under the
+    /// forward-anchor channel, every other position identical to the
+    /// draft.
+    pub final_tokens: Vec<u32>,
+    /// Positions where the pass-2 re-rank changed the token.
+    pub changed_positions: usize,
+    /// Free positions that passed the confidence gate (an in-stream
+    /// next anchor whose pass-1 selection resolved as `ExactContext`)
+    /// and were therefore re-scored. `changed_positions` is bounded by
+    /// this count.
+    pub gated_positions: usize,
+    /// Positions on the anchor grid (kept verbatim from the draft).
+    pub anchor_positions: usize,
+}
+
+/// Everything pass 2 needs to re-rank a pass-1 position without
+/// re-generating: the exact context inputs pass 1 scored with, plus the
+/// selected token and its confidence status.
+struct Pass1Record {
+    token: u32,
+    exact_context: bool,
+    sig: [u8; SIG_BYTES],
+    code: [u8; STAGES],
+    recent: Vec<u32>,
+}
+
+/// Gated two-pass generation (issue #399, serving step 2): pass 1 runs
+/// the ordinary greedy loop (window bundle → sig → attested code →
+/// [`GraphScorer::score_candidates_coded`], sliding eight-token window
+/// and 32-token recent deque — the `generate_greedy_repetition_rate`
+/// pattern), recording for every generated position the selected token,
+/// whether it resolved as [`ScoreStatus::ExactContext`], and the exact
+/// context inputs (sig, code, recent tokens) it was scored with. Pass 2
+/// then re-ranks each free position through
+/// [`GraphScorer::score_candidates_infill`] with the DRAFT token at the
+/// next anchor position as the forward anchor — but only where that
+/// anchor's pass-1 selection resolved as `ExactContext` (the measured
+/// B′ confidence gate, the strongest teacher-forced arm: live slice
+/// 45.0% vs 39.4%).
+///
+/// Anchor grid: generated position `i` occupies story position
+/// `seed_len + i` (the seed occupies story positions zero through
+/// `seed_len - 1`), and it is an anchor when `(seed_len + i + 1)` is a
+/// multiple of [`INFILL_STRIDE`] — the emitted token lands on a
+/// stride-multiple story slot, mirroring the corpus-side law
+/// (`(story_pos + 1) % stride == 0`) of the #394 infill protocol and
+/// `compile_forward_anchor_rows`. The lookahead distance from a free
+/// position to its next anchor is the position difference, matching the
+/// FWDA row key `(distance, anchor)`.
+///
+/// Pass 2 is a PURE RE-RANK: every re-score consumes the stored pass-1
+/// context (sig, code, recent tokens), so a changed token never feeds
+/// back into later positions' context. A full iterative re-draft — where
+/// pass-2 corrections propagate into subsequent windows — is future
+/// work; this shape isolates the falsifier question (how much of the
+/// gated lift survives draft-anchor context) from compounding effects.
+///
+/// One deliberate divergence from `generate_greedy_repetition_rate`:
+/// when the seed is shorter than the bundle window, the window here
+/// GROWS as tokens are generated (that probe's seeds always fill the
+/// window, so its non-growing short-seed branch is never exercised).
+pub fn two_pass_infill_generate(
+    scorer: &GraphScorer,
+    artifacts: &Compiled,
+    rotations: &[usize; compiler::WINDOW + 1],
+    seed: &[u32],
+    tokens_to_generate: usize,
+) -> Result<TwoPassGeneration, String> {
+    let seed_len = seed.len();
+
+    // ---- Pass 1: greedy draft, recording per-position context. ----
+    let mut window = [0u32; compiler::WINDOW];
+    let mut w_len = seed_len.min(compiler::WINDOW);
+    window[..w_len].copy_from_slice(&seed[seed_len - w_len..]);
+    let mut recent_tokens = std::collections::VecDeque::with_capacity(32);
+    let r_len = seed_len.min(32);
+    for &t in &seed[seed_len - r_len..] {
+        recent_tokens.push_back(t);
+    }
+
+    let mut records: Vec<Pass1Record> = Vec::with_capacity(tokens_to_generate);
+    for _ in 0..tokens_to_generate {
+        let bundle = runtime::bundle_window_plain(artifacts, rotations, &window[..w_len]);
+        let sig = runtime::sig_plain(artifacts, &bundle);
+        // #243 Phase C option A: attest the metric-respecting code.
+        let code = runtime::assign_for_bundle(artifacts, &bundle);
+        let recent: Vec<u32> = recent_tokens.iter().copied().collect();
+        let outcome = scorer.score_candidates_coded(&sig, Some(&code), &recent)?;
+        let token = outcome.selected;
+        records.push(Pass1Record {
+            token,
+            exact_context: outcome.witness.status == ScoreStatus::ExactContext,
+            sig,
+            code,
+            recent,
+        });
+
+        if w_len < compiler::WINDOW {
+            window[w_len] = token;
+            w_len += 1;
+        } else {
+            window.copy_within(1.., 0);
+            window[compiler::WINDOW - 1] = token;
+        }
+        if recent_tokens.len() == 32 {
+            recent_tokens.pop_front();
+        }
+        recent_tokens.push_back(token);
+    }
+
+    // ---- Pass 2: gated re-rank against the drafted next anchor. ----
+    let draft: Vec<u32> = records.iter().map(|record| record.token).collect();
+    let mut final_tokens = draft.clone();
+    let mut changed_positions = 0usize;
+    let mut gated_positions = 0usize;
+    let mut anchor_positions = 0usize;
+    for (i, record) in records.iter().enumerate() {
+        // Story slot of the token this position emits.
+        let emitted_slot = seed_len + i + 1;
+        if emitted_slot.is_multiple_of(INFILL_STRIDE) {
+            anchor_positions += 1;
+            continue;
+        }
+        let distance = emitted_slot.next_multiple_of(INFILL_STRIDE) - emitted_slot;
+        let anchor_index = i + distance;
+        let Some(anchor_record) = records.get(anchor_index) else {
+            // The next anchor falls beyond the generated stream.
+            continue;
+        };
+        if !anchor_record.exact_context {
+            // B′ confidence gate: the draft anchor is trusted only where
+            // pass 1 resolved it as exact context.
+            continue;
+        }
+        gated_positions += 1;
+        let outcome = scorer.score_candidates_infill(
+            &record.sig,
+            Some(&record.code),
+            &record.recent,
+            Some((anchor_record.token, distance as u8)),
+        )?;
+        if outcome.selected != record.token {
+            final_tokens[i] = outcome.selected;
+            changed_positions += 1;
+        }
+    }
+
+    Ok(TwoPassGeneration {
+        draft,
+        final_tokens,
+        changed_positions,
+        gated_positions,
+        anchor_positions,
+    })
+}
+
 /// Rejection reasons of the independent witness-replay verifier
 /// (Theorems 6 and 10). Each variant names exactly one inconsistency
 /// between the witness's claims and the recomputation from the
