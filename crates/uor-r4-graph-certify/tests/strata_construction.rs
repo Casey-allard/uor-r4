@@ -56,6 +56,37 @@
 //!
 //!   Both arms consume only construction-derived stores plus held-out
 //!   input keys — no centroids, no held-out labels.
+//! * MIXTURE arms (routing v3): soft interpolation instead of hard
+//!   selection. V2 showed hard evidence routing LOSES to flat — hard
+//!   selection discards the cross-strata counts that flat aggregates —
+//!   while the oracle's wins (with only ~38% evidence-hit) are
+//!   DISTRIBUTION FLIPS on shared keys. V3 predicts the argmax of a
+//!   weighted mixture over strata of each stratum's NORMALIZED
+//!   continuation distribution for the position's key, with per-key
+//!   stratum weights:
+//!   - `mixture-count`: weight_s proportional to stratum s's count mass
+//!     for the key (the soft version of v2). NOTE: with weights exactly
+//!     proportional to mass, the mass cancels the per-stratum
+//!     normalization and the mixture reduces algebraically to FLAT
+//!     (the strata partition the construction positions); the arm is
+//!     retained as the mixture-machinery control — matching FLAT
+//!     certifies the pass, and any v3 signal must come from the
+//!     affinity weighting.
+//!   - `mixture-affinity`: weight_s proportional to count mass times
+//!     story affinity, where affinity = cosine(held-out story's unigram
+//!     signature, stratum centroid) from the v1 machinery — content
+//!     routing blended INTO the mixture instead of hard-selecting.
+//!     All-zero affinities with the key present fall back to the count
+//!     weighting.
+//!
+//!   Argmax over the mixed distribution, ties to the lowest token; a
+//!   key absent from every stratum falls back to unigram (such a key is
+//!   absent from FLAT too, so no flat backoff exists for it). Content
+//!   strata at every K; modulo control at K = STRATA_KS[0] only, with
+//!   modulo centroids = mean member signature (the k-means analog).
+//!   Diagnostic: on positions where the per-story ORACLE stratum beats
+//!   FLAT, the fraction each mixture arm also gets right
+//!   (oracle-recovery).
 //!
 //! Reported per arm: top-1 on held-out positions, and evidence-hit rate
 //! (fraction of held-out positions whose key is present in the consulted
@@ -69,6 +100,10 @@
 //! PRE-DECLARED RULE (routing v2): v2 wins iff an EVIDENCE-ROUTED arm
 //! beats FLAT top-1 by at least two percentage points. Each evidence
 //! arm is also reported against the oracle ceiling for context.
+//!
+//! PRE-DECLARED RULE (routing v3): v3 wins iff a MIXTURE arm beats FLAT
+//! top-1 by at least two percentage points. Each mixture arm is also
+//! reported against the oracle ceiling for context.
 //!
 //! Run (fixture smoke):
 //!   cargo test --release -p uor-r4-graph-certify --test strata_construction -- --ignored --nocapture
@@ -118,6 +153,19 @@ fn argmax(dist: &Dist) -> Option<u32> {
 
 fn pct(h: u64, t: u64) -> f64 {
     100.0 * h as f64 / t.max(1) as f64
+}
+
+/// Argmax over a mixed (f64-weighted) distribution. Ascending key order
+/// plus strictly-greater comparison resolves exact ties to the lowest
+/// token, matching the integer `argmax` tie rule.
+fn argmax_f64(dist: &BTreeMap<u32, f64>) -> Option<u32> {
+    let mut best: Option<(u32, f64)> = None;
+    for (&t, &w) in dist {
+        if best.is_none_or(|(_, bw)| w > bw) {
+            best = Some((t, w));
+        }
+    }
+    best.map(|(t, _)| t)
 }
 
 struct Arm {
@@ -259,7 +307,9 @@ fn build_stratum_stores(
 /// backoff, and the per-story oracle ceiling (all with the same backoff
 /// rule). `assign` maps EVERY story (construction and held-out) to a
 /// stratum; construction assignments were used to build `stores`.
-/// Returns (routed-backoff top-1 %, oracle top-1 %).
+/// Returns (routed-backoff top-1 %, oracle top-1 %, per-story oracle
+/// stratum) — the oracle assignment feeds the v3 oracle-recovery
+/// diagnostic.
 fn eval_strata(
     label: &str,
     eval: &[EvalPos],
@@ -267,7 +317,7 @@ fn eval_strata(
     assign: &[usize],
     flat: &TriStore,
     unigram_pred: Option<u32>,
-) -> (f64, f64) {
+) -> (f64, f64, HashMap<u32, usize>) {
     let k = stores.len();
     let mut routed_strict = Arm::new(format!("{label}-routed-strict"));
     let mut routed_backoff = Arm::new(format!("{label}-routed-backoff"));
@@ -301,11 +351,13 @@ fn eval_strata(
         }
     }
     let mut oracle = Arm::new(format!("{label}-oracle"));
-    for (hits, evs, n) in per_story.values() {
+    let mut oracle_best: HashMap<u32, usize> = HashMap::new();
+    for (&story, (hits, evs, n)) in per_story.iter() {
         // best stratum by top-1 hits, ties to the lowest stratum id
         let best = (0..k)
             .max_by_key(|&j| (hits[j], std::cmp::Reverse(j)))
             .unwrap_or(0);
+        oracle_best.insert(story, best);
         oracle.top1 += u64::from(hits[best]);
         oracle.ev_hits += u64::from(evs[best]);
         oracle.total += u64::from(*n);
@@ -313,7 +365,7 @@ fn eval_strata(
     routed_strict.report();
     routed_backoff.report();
     oracle.report();
-    (routed_backoff.top1_pct(), oracle.top1_pct())
+    (routed_backoff.top1_pct(), oracle.top1_pct(), oracle_best)
 }
 
 /// Evidence-routed arms (routing v2, issue #435): route by the strata's
@@ -390,6 +442,172 @@ fn eval_evidence_routed(
     }
     per_story.report();
     (per_pos.top1_pct(), per_story.top1_pct())
+}
+
+/// Mean signature per stratum (dense `k * TOP_N`), averaged over the
+/// CONSTRUCTION member stories — the modulo-control analog of the
+/// k-means centroids so the affinity weighting is defined for a
+/// partition that never ran k-means. An empty stratum keeps a zero row
+/// (affinity 0 to every story).
+fn mean_centroids(sigs: &[Signature], constr: &[bool], assign: &[usize], k: usize) -> Vec<f32> {
+    let mut sums = vec![0f64; k * TOP_N];
+    let mut counts = vec![0u64; k];
+    for (sid, sig) in sigs.iter().enumerate() {
+        if !constr[sid] {
+            continue;
+        }
+        let j = assign[sid];
+        counts[j] += 1;
+        for &(slot, w) in sig {
+            sums[j * TOP_N + slot as usize] += f64::from(w);
+        }
+    }
+    let mut centroids = vec![0f32; k * TOP_N];
+    for j in 0..k {
+        if counts[j] == 0 {
+            continue;
+        }
+        let row = &mut centroids[j * TOP_N..(j + 1) * TOP_N];
+        for (t, v) in row.iter_mut().enumerate() {
+            *v = (sums[j * TOP_N + t] / counts[j] as f64) as f32;
+        }
+    }
+    centroids
+}
+
+/// Cosine affinity of every story's unigram signature to every stratum
+/// centroid, indexed `[story][stratum]`. Signatures are unit-norm, so
+/// cosine = dot / ||centroid||; an empty signature or zero centroid
+/// yields affinity 0. Nonnegative by construction (unigram weights and
+/// centroid entries are both nonnegative).
+fn story_affinities(sigs: &[Signature], centroids: &[f32], k: usize) -> Vec<Vec<f64>> {
+    let norms: Vec<f64> = (0..k)
+        .map(|j| {
+            centroids[j * TOP_N..(j + 1) * TOP_N]
+                .iter()
+                .map(|&v| f64::from(v) * f64::from(v))
+                .sum::<f64>()
+                .sqrt()
+        })
+        .collect();
+    sigs.iter()
+        .map(|sig| {
+            (0..k)
+                .map(|j| {
+                    if norms[j] == 0.0 {
+                        return 0.0;
+                    }
+                    let row = &centroids[j * TOP_N..(j + 1) * TOP_N];
+                    let dot: f64 = sig
+                        .iter()
+                        .map(|&(slot, w)| f64::from(w) * f64::from(row[slot as usize]))
+                        .sum();
+                    dot / norms[j]
+                })
+                .collect()
+        })
+        .collect()
+}
+
+/// Soft stratum-mixture arms (routing v3, issue #435): each held-out
+/// position is scored under a weighted MIXTURE over strata of each
+/// stratum's mass-normalized continuation distribution for the
+/// position's key — soft interpolation recovers the oracle's
+/// distribution flips without discarding the cross-strata counts that
+/// hard selection (v2) loses. Both weightings share one pass:
+/// * `mixture-count`: weight_s = key mass of stratum s (soft v2; the
+///   mass cancels the normalization, so this arm algebraically equals
+///   FLAT — the mixture-machinery control).
+/// * `mixture-affinity`: weight_s = key mass × cosine affinity of the
+///   held-out story's signature to stratum s's centroid (v1's content
+///   signal blended INTO the mixture). All-zero affinity weight with
+///   the key present falls back to the count weighting.
+///
+/// Argmax over the mixed distribution, ties to the lowest token; key
+/// absent from every stratum -> unigram. Also reports the
+/// oracle-recovery diagnostic: on positions where the per-story ORACLE
+/// stratum (with FLAT-then-unigram backoff) is right and FLAT (with
+/// unigram backoff) is wrong, the fraction each mixture arm also gets
+/// right. Returns (mixture-count top-1 %, mixture-affinity top-1 %).
+fn eval_mixture(
+    label: &str,
+    eval: &[EvalPos],
+    stores: &[TriStore],
+    flat: &TriStore,
+    unigram_pred: Option<u32>,
+    affinity: &[Vec<f64>],
+    oracle_best: &HashMap<u32, usize>,
+) -> (f64, f64) {
+    let mut count_arm = Arm::new(format!("{label}-mixture-count"));
+    let mut aff_arm = Arm::new(format!("{label}-mixture-affinity"));
+    // oracle-recovery diagnostic counters
+    let (mut oracle_wins, mut rec_count, mut rec_aff) = (0u64, 0u64, 0u64);
+    for p in eval {
+        let mut mix_count: BTreeMap<u32, f64> = BTreeMap::new();
+        let mut mix_aff: BTreeMap<u32, f64> = BTreeMap::new();
+        let aff = &affinity[p.story as usize];
+        let mut aff_weight = 0f64;
+        let mut hit = false;
+        for (j, store) in stores.iter().enumerate() {
+            let Some(dist) = p.key.and_then(|key| store.get(&key)) else {
+                continue;
+            };
+            hit = true;
+            let mass: u64 = dist.values().map(|&n| u64::from(n)).sum();
+            let w_count = mass as f64;
+            let w_aff = w_count * aff[j];
+            aff_weight += w_aff;
+            for (&t, &n) in dist {
+                let p_t = f64::from(n) / mass as f64;
+                *mix_count.entry(t).or_default() += w_count * p_t;
+                *mix_aff.entry(t).or_default() += w_aff * p_t;
+            }
+        }
+        let pred_count = if hit {
+            argmax_f64(&mix_count)
+        } else {
+            unigram_pred
+        };
+        let pred_aff = if !hit {
+            unigram_pred
+        } else if aff_weight > 0.0 {
+            argmax_f64(&mix_aff)
+        } else {
+            pred_count
+        };
+        count_arm.score(pred_count, hit, p.truth);
+        aff_arm.score(pred_aff, hit, p.truth);
+        // oracle-recovery: same backoff chain as the oracle arm above
+        let flat_pred = p
+            .key
+            .and_then(|key| flat.get(&key))
+            .and_then(argmax)
+            .or(unigram_pred);
+        let j = oracle_best.get(&p.story).copied().unwrap_or(0);
+        let opred = p
+            .key
+            .and_then(|key| stores[j].get(&key))
+            .and_then(argmax)
+            .or(flat_pred);
+        if opred == Some(p.truth) && flat_pred != Some(p.truth) {
+            oracle_wins += 1;
+            if pred_count == Some(p.truth) {
+                rec_count += 1;
+            }
+            if pred_aff == Some(p.truth) {
+                rec_aff += 1;
+            }
+        }
+    }
+    count_arm.report();
+    aff_arm.report();
+    println!(
+        "{label} oracle-recovery: {oracle_wins} oracle-beats-flat positions | \
+         mixture-count recovers {:.1}% | mixture-affinity recovers {:.1}%",
+        pct(rec_count, oracle_wins),
+        pct(rec_aff, oracle_wins)
+    );
+    (count_arm.top1_pct(), aff_arm.top1_pct())
 }
 
 #[test]
@@ -528,7 +746,7 @@ fn strata_construction() {
         }
         println!("content stratum sizes (construction stories): {sizes:?}");
         let stores = build_stratum_stores(&c, &constr, &assign, k);
-        let (routed_top1, oracle_top1) = eval_strata(
+        let (routed_top1, oracle_top1, oracle_best) = eval_strata(
             &format!("content-K{k}"),
             &eval,
             &stores,
@@ -544,11 +762,23 @@ fn strata_construction() {
             &flat,
             unigram_pred,
         );
+        // routing v3: soft mixture arms over the SAME content stores,
+        // affinities from the SAME k-means centroids as the v1 routing
+        let affinities = story_affinities(&sigs, &centroids, k);
+        let (mix_count, mix_aff) = eval_mixture(
+            &format!("content-K{k}"),
+            &eval,
+            &stores,
+            &flat,
+            unigram_pred,
+            &affinities,
+            &oracle_best,
+        );
         drop(stores);
         // modulo control: topic-agnostic partition of the same size
         let mod_assign: Vec<usize> = (0..c.stories as usize).map(|sid| sid % k).collect();
         let mod_stores = build_stratum_stores(&c, &constr, &mod_assign, k);
-        eval_strata(
+        let (_, _, mod_oracle_best) = eval_strata(
             &format!("modulo-K{k}"),
             &eval,
             &mod_stores,
@@ -565,6 +795,22 @@ fn strata_construction() {
             &flat,
             unigram_pred,
         );
+        // control: mixture over topic-agnostic strata at the smallest K
+        // only — shows how much of any v3 gain needs the CONTENT
+        // partition specifically
+        if k == STRATA_KS[0] {
+            let mod_centroids = mean_centroids(&sigs, &constr, &mod_assign, k);
+            let mod_affinities = story_affinities(&sigs, &mod_centroids, k);
+            eval_mixture(
+                &format!("modulo-K{k}"),
+                &eval,
+                &mod_stores,
+                &flat,
+                unigram_pred,
+                &mod_affinities,
+                &mod_oracle_best,
+            );
+        }
         let delta = routed_top1 - flat_top1;
         println!(
             "K={k}: routed-backoff {:.1}% vs flat {:.1}% (delta {:+.1}pp) -> {}",
@@ -590,6 +836,19 @@ fn strata_construction() {
                     "ROUTING V2 WINS (pre-declared rule: evidence-routed >= flat + 2pp)"
                 } else {
                     "no v2 win under the pre-declared rule (evidence-routed >= flat + 2pp)"
+                }
+            );
+        }
+        for (arm, top1) in [("mixture-count", mix_count), ("mixture-affinity", mix_aff)] {
+            let d_flat = top1 - flat_top1;
+            let d_oracle = top1 - oracle_top1;
+            println!(
+                "K={k}: {arm} {top1:.1}% vs flat {flat_top1:.1}% (delta {d_flat:+.1}pp) \
+                 vs oracle {oracle_top1:.1}% ({d_oracle:+.1}pp) -> {}",
+                if d_flat >= WIN_MARGIN_PP {
+                    "ROUTING V3 WINS (pre-declared rule: mixture >= flat + 2pp)"
+                } else {
+                    "no v3 win under the pre-declared rule (mixture >= flat + 2pp)"
                 }
             );
         }
