@@ -146,15 +146,83 @@
 //! the goal is beating arm B on MRR while occupying substantially
 //! more than arm B's sectors.
 //!
+//! # Supervised candidates (issue #422 phase 3, same flag)
+//!
+//! The phase-2 diagnosis: UNSUPERVISED content variance orthogonal to
+//! the block mean carries no retrieval-aligned signal (data-PCA spread
+//! 448/512 at MRR 0.0176; the mean direction retrieved at 0.0749 but
+//! collapsed to 53 sectors). Supervision is the next honest lever:
+//! learn the per-block direction FROM the retrieval target structure
+//! itself, on the CONSTRUCTION split only. Both arms run under the
+//! same `R4_HOPF_REDESIGN=1` flag, the same shim pattern, the same
+//! metrics, and the same per-candidate pre-declared rule as phase 2.
+//!
+//! - ARM H — retrieval-supervised (Fisher) direction: per 128-d block,
+//!   `w = argmax (wT S_between w) / (wT S_within w)` over the stored
+//!   construction windows' Hopf inputs, where the scatters are sums of
+//!   difference outer products `(x_i - x_j)(x_i - x_j)T` over the
+//!   block slices of deterministic pair lists. WITHIN pairs are
+//!   stored windows that SHARE their next-token continuation — the
+//!   token immediately following the eight-token window in its story
+//!   stream (windows deduplicate to first occurrence, so the first
+//!   occurrence's continuation is the one recorded; a stream-final
+//!   window has none and joins no group); sharing a continuation is
+//!   exactly the retrieval target structure the sector filter needs
+//!   to preserve, so `S_within` is the spread a good direction must
+//!   NOT separate. BETWEEN pairs are deterministic non-sharing pairs:
+//!   the fixed half-length-offset pairs `(i, i + n/2)` for ascending
+//!   `i`, skipping the pairs whose two windows share a continuation
+//!   token.
+//!   Pair construction is fully deterministic and bounded, no RNG:
+//!   within pairs chain consecutive members (ascending window index)
+//!   of each continuation group, groups visited in ascending token
+//!   order (`BTreeMap`); each pair class is independently capped at
+//!   `R4_HOPF_FISHER_PAIRS` (default ten thousand) by stride sampling
+//!   — `stride = ceil(len / cap)`, keep every stride-th pair in list
+//!   order — and both counts plus the cap print in the report (no
+//!   silent truncation). Scatter accumulation is sequential in pair
+//!   order. `S_within` is ALWAYS regularized to `S_within + eps*I`
+//!   with the fixed rule `eps = 1e-6 * (trace(S_within)/128)` floored
+//!   at `1e-12`, so the solve is defined even when `S_within` is
+//!   singular (documented; applying it unconditionally keeps one code
+//!   path). Solve: Cholesky factorization of the regularized
+//!   `S_within` (deterministic arithmetic, no pivot search; the
+//!   regularized matrix is positive definite by construction —
+//!   asserted), then generalized-eigen power iteration on
+//!   `(S_within + eps*I)^-1 S_between` from the uniform all-ones unit
+//!   start vector for a fixed 64 iterations (convergence is not
+//!   asserted — determinism, not optimality, is the requirement; a
+//!   degenerate `< 1e-12` iterate keeps the previous vector), sign
+//!   canonicalized exactly as arm E: the largest-magnitude coordinate
+//!   (lowest index on exact ties, via strict `>`) is made positive.
+//!   Component = signed dot of the raw block with `w` (the arm E
+//!   form), 4-vector normalized as shipped. Probe queries reuse the
+//!   construction-estimated directions — no held-out leakage (query
+//!   inputs never enter pair construction or the scatters).
+//! - ARM H2 — supervised sign on magnitude: the arm F pattern with a
+//!   LEARNED instead of hashed direction — component = the pre-#306
+//!   block L2 norm (arm B's quantity) SIGNED by the block's dot with
+//!   arm H's Fisher direction (a zero dot counts positive), 4-vector
+//!   normalized as shipped. Keeps the magnitude information arm B
+//!   retrieves with and adds one supervised sign bit per block for
+//!   spread.
+//!
 //! Run (natural stack):
 //!   R4_CORPUS_META=/tmp/c_meta.bin R4_CORPUS_RECS=/tmp/c_recs.bin \
 //!   R4_STORIES=/tmp/wiki-obs/stories.jsonl \
 //!   cargo test --release -p uor-r4-router --test hopf_retrieval_quality -- \
 //!   --ignored --nocapture
-//! Add R4_HOPF_REDESIGN=1 for the phase-2 candidate arms.
+//! Add R4_HOPF_REDESIGN=1 for the phase-2/phase-3 candidate arms
+//! (E, F, G, H, H2).
 
 /// A candidate block-projection shim: 512-d Hopf input to a 4-vector.
 type ProjectionFn = Box<dyn Fn(&[f64]) -> Vec<f64>>;
+
+/// A (window index, window index) supervision pair (arm H).
+type Pair = (usize, usize);
+
+/// One per-block unit direction for each of the four 128-d blocks.
+type BlockDirs = [[f64; 128]; 4];
 
 use std::collections::{BTreeMap, HashMap, HashSet};
 
@@ -388,6 +456,170 @@ fn construction_block_directions(inputs: &[Vec<f64>]) -> ([[f64; 128]; 4], [[f64
         }
     }
     (mean_dirs, pc_dirs)
+}
+
+/// Deterministic stride cap for a supervision pair list (module docs):
+/// keep every `ceil(len / cap)`-th pair in list order. Documented, no
+/// RNG, no silent bias — the caller prints the resulting counts.
+fn cap_pairs(pairs: Vec<Pair>, cap: usize) -> Vec<Pair> {
+    if pairs.len() <= cap {
+        return pairs;
+    }
+    let stride = pairs.len().div_ceil(cap);
+    pairs.into_iter().step_by(stride).collect()
+}
+
+/// ARM H supervision pairs (module docs): WITHIN pairs chain
+/// consecutive members (ascending window index) of each shared
+/// next-token-continuation group, groups visited in ascending token
+/// order; BETWEEN pairs are the fixed half-length-offset pairs
+/// `(i, i + n/2)` in ascending `i`, skipping continuation-sharing
+/// pairs. Both lists are stride-capped at `cap` pairs. Fully
+/// deterministic — no RNG anywhere.
+fn fisher_pairs(continuations: &[Option<u32>], cap: usize) -> (Vec<Pair>, Vec<Pair>) {
+    let mut groups: BTreeMap<u32, Vec<usize>> = BTreeMap::new();
+    for (index, continuation) in continuations.iter().enumerate() {
+        if let Some(token) = continuation {
+            groups.entry(*token).or_default().push(index);
+        }
+    }
+    let mut within: Vec<Pair> = Vec::new();
+    for members in groups.values() {
+        for pair in members.windows(2) {
+            within.push((pair[0], pair[1]));
+        }
+    }
+    let n = continuations.len();
+    let half = n / 2;
+    let mut between: Vec<Pair> = Vec::new();
+    for (i, continuation) in continuations.iter().enumerate().take(n - half) {
+        let j = i + half;
+        let sharing = matches!((continuation, &continuations[j]), (Some(a), Some(b)) if a == b);
+        if !sharing {
+            between.push((i, j));
+        }
+    }
+    (cap_pairs(within, cap), cap_pairs(between, cap))
+}
+
+/// Difference-scatter matrix over one 128-d block: the sum of
+/// `(x_i - x_j)(x_i - x_j)T` over `pairs`, accumulated sequentially in
+/// pair-list order (deterministic; module docs).
+fn fisher_scatter(inputs: &[Vec<f64>], pairs: &[Pair], offset: usize) -> Vec<[f64; 128]> {
+    let mut scatter = vec![[0.0f64; 128]; 128];
+    let mut diff = [0.0f64; 128];
+    for &(i, j) in pairs {
+        let block_i = &inputs[i][offset..offset + 128];
+        let block_j = &inputs[j][offset..offset + 128];
+        for (d, (x, y)) in diff.iter_mut().zip(block_i.iter().zip(block_j)) {
+            *d = x - y;
+        }
+        for (row, &di) in scatter.iter_mut().zip(&diff) {
+            for (entry, &dj) in row.iter_mut().zip(&diff) {
+                *entry += di * dj;
+            }
+        }
+    }
+    scatter
+}
+
+/// In-place lower Cholesky factorization of a symmetric positive
+/// definite 128x128 matrix. Deterministic arithmetic, no pivot search;
+/// positive definiteness of the (regularized) input is asserted. Only
+/// the lower triangle of the result is meaningful and only the lower
+/// triangle is read by `cholesky_solve`.
+fn cholesky(mut a: Vec<[f64; 128]>) -> Vec<[f64; 128]> {
+    for i in 0..128 {
+        let (head, tail) = a.split_at_mut(i);
+        let row_i = &mut tail[0];
+        for (j, row_j) in head.iter().enumerate() {
+            let dot: f64 = row_i[..j].iter().zip(&row_j[..j]).map(|(x, y)| x * y).sum();
+            row_i[j] = (row_i[j] - dot) / row_j[j];
+        }
+        let dot: f64 = row_i[..i].iter().map(|x| x * x).sum();
+        let pivot = row_i[i] - dot;
+        assert!(
+            pivot > 0.0,
+            "regularized S_within must be positive definite (block pivot {pivot:e})"
+        );
+        row_i[i] = pivot.sqrt();
+    }
+    a
+}
+
+/// Solve `L L^T x = b` given the lower Cholesky factor `L` (forward
+/// then back substitution; deterministic).
+fn cholesky_solve(l: &[[f64; 128]], b: &[f64; 128]) -> [f64; 128] {
+    let mut y = [0.0f64; 128];
+    for (i, row) in l.iter().enumerate() {
+        let dot: f64 = row[..i].iter().zip(&y[..i]).map(|(x, z)| x * z).sum();
+        y[i] = (b[i] - dot) / row[i];
+    }
+    let mut x = y;
+    for i in (0..128).rev() {
+        let dot: f64 = l
+            .iter()
+            .zip(&x)
+            .skip(i + 1)
+            .map(|(row, &xk)| row[i] * xk)
+            .sum();
+        x[i] = (x[i] - dot) / l[i][i];
+    }
+    x
+}
+
+/// ARM H direction estimation (module docs): per 128-d block the
+/// Fisher-style generalized eigenvector maximizing
+/// `(wT S_between w) / (wT S_within w)` over the construction windows'
+/// Hopf inputs. `S_within` is always regularized by `eps * I` with
+/// `eps = 1e-6 * (trace / 128)` floored at `1e-12`; the solve is
+/// Cholesky plus power iteration on `(S_within + eps I)^-1 S_between`
+/// from the uniform all-ones unit start for a fixed 64 iterations (a
+/// `< 1e-12` iterate keeps the previous vector), sign canonicalized
+/// exactly as arm E. Fully deterministic — no RNG.
+fn fisher_block_directions(inputs: &[Vec<f64>], within: &[Pair], between: &[Pair]) -> BlockDirs {
+    let mut dirs = [[0.0f64; 128]; 4];
+    for (block, slot) in dirs.iter_mut().enumerate() {
+        let offset = block * 128;
+        let s_within = fisher_scatter(inputs, within, offset);
+        let s_between = fisher_scatter(inputs, between, offset);
+        let trace: f64 = s_within.iter().enumerate().map(|(d, row)| row[d]).sum();
+        let eps = (1e-6 * trace / 128.0).max(1e-12);
+        let mut regularized = s_within;
+        for (d, row) in regularized.iter_mut().enumerate() {
+            row[d] += eps;
+        }
+        let factor = cholesky(regularized);
+        // Deterministic generalized-eigen power iteration (module docs).
+        let mut v = [1.0 / (128.0f64).sqrt(); 128];
+        for _ in 0..64 {
+            let mut y = [0.0f64; 128];
+            for (yi, row) in y.iter_mut().zip(&s_between) {
+                *yi = row.iter().zip(&v).map(|(c, x)| c * x).sum();
+            }
+            let w = cholesky_solve(&factor, &y);
+            let nrm = w.iter().map(|x| x * x).sum::<f64>().sqrt();
+            if nrm < 1e-12 {
+                break; // degenerate block: keep the previous iterate
+            }
+            for (vi, wi) in v.iter_mut().zip(&w) {
+                *vi = wi / nrm;
+            }
+        }
+        let mut lead = 0usize;
+        for (index, value) in v.iter().enumerate().skip(1) {
+            if value.abs() > v[lead].abs() {
+                lead = index;
+            }
+        }
+        if v[lead] < 0.0 {
+            for value in v.iter_mut() {
+                *value = -*value;
+            }
+        }
+        *slot = v;
+    }
+    dirs
 }
 
 /// One Hopf sector cell: the flat sector id plus its lattice bins.
@@ -641,16 +873,22 @@ fn hopf_retrieval_quality_three_arms() {
         probe_cap
     );
 
-    // ---- eight-token windows, deduplicated to first occurrence ----
+    // ---- eight-token windows, deduplicated to first occurrence; each
+    // window also records its next-token continuation — the token
+    // immediately following the window in its story stream (arm H
+    // supervision; a stream-final window has none, and dedup keeps the
+    // first occurrence's continuation) ----
     let mut windows: Vec<String> = Vec::new();
     let mut window_tokens: Vec<Vec<u32>> = Vec::new();
+    let mut continuations: Vec<Option<u32>> = Vec::new();
     let mut seen: HashSet<String> = HashSet::new();
     for (_, stream) in &capped {
-        for chunk in stream.chunks_exact(compiler::WINDOW) {
+        for (chunk_index, chunk) in stream.chunks_exact(compiler::WINDOW).enumerate() {
             let sentence = render_window(chunk);
             if seen.insert(sentence.clone()) {
                 windows.push(sentence);
                 window_tokens.push(chunk.to_vec());
+                continuations.push(stream.get((chunk_index + 1) * compiler::WINDOW).copied());
             }
         }
     }
@@ -691,7 +929,7 @@ fn hopf_retrieval_quality_three_arms() {
     // unchanged.
     let redesign = std::env::var("R4_HOPF_REDESIGN").is_ok_and(|value| value == "1");
     if redesign {
-        println!("redesign candidates ENABLED (R4_HOPF_REDESIGN=1): arms E, F, G");
+        println!("redesign candidates ENABLED (R4_HOPF_REDESIGN=1): arms E, F, G, H, H2");
     }
     let mut window_inputs: Vec<Vec<f64>> = Vec::new();
     let mut query_inputs: Vec<Vec<f64>> = Vec::new();
@@ -754,6 +992,28 @@ fn hopf_retrieval_quality_three_arms() {
             blake3_direction(3),
         ];
         let (mean_dirs, pc_dirs) = construction_block_directions(&window_inputs);
+        // Arm H / H2 supervision (module docs): deterministic pair
+        // lists from the construction windows' shared next-token
+        // continuations, capped and printed, then the Fisher
+        // directions. Query inputs never enter estimation.
+        let pair_cap = env_usize("R4_HOPF_FISHER_PAIRS", 10_000).max(1);
+        let (within_pairs, between_pairs) = fisher_pairs(&continuations, pair_cap);
+        assert!(
+            !within_pairs.is_empty(),
+            "supervision premise: at least one shared-continuation pair"
+        );
+        assert!(
+            !between_pairs.is_empty(),
+            "supervision premise: at least one non-sharing between pair"
+        );
+        println!(
+            "fisher supervision (arms H/H2): {} within pairs (shared continuation) / {} between \
+             pairs (half-offset non-sharing), cap {pair_cap} per class (R4_HOPF_FISHER_PAIRS)",
+            within_pairs.len(),
+            between_pairs.len()
+        );
+        let fisher_dirs = fisher_block_directions(&window_inputs, &within_pairs, &between_pairs);
+        let fisher_dirs_h2 = fisher_dirs;
         let projections: Vec<(&str, ProjectionFn)> = vec![
             (
                 "E data-PCA",
@@ -766,6 +1026,14 @@ fn hopf_retrieval_quality_three_arms() {
             (
                 "G mean-dir",
                 Box::new(move |input: &[f64]| directional_projection(input, &mean_dirs)),
+            ),
+            (
+                "H fisher-dir",
+                Box::new(move |input: &[f64]| directional_projection(input, &fisher_dirs)),
+            ),
+            (
+                "H2 mag+fisher",
+                Box::new(move |input: &[f64]| magnitude_sign_projection(input, &fisher_dirs_h2)),
             ),
         ];
         for (name, project) in projections {
