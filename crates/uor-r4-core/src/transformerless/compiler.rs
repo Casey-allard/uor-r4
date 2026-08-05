@@ -196,6 +196,51 @@ pub const ROT: usize = 17;
 const EMB_ITERS: usize = 10;
 const CTX_SAMPLE: usize = 50_000;
 const CTX_ITERS: usize = 6;
+/// Per-run k-means training subsample cap of [`sampled_kmeans_rvq`]. (The
+/// compile log's "RVQ assignment …100000" progress total is
+/// `EMB_ITERS × RVQ_SAMPLE_CAP` = 10 × 10 000 — the cap itself is 10k.)
+const RVQ_SAMPLE_CAP: usize = 10_000;
+
+/// Capacity-override environment variable (#399/#393 M-C2, usize knobs).
+///
+/// Unset returns `default`, so every pinned code path is byte-identical
+/// (κ-neutral) unless a measurement explicitly opts in. A set-but-invalid
+/// or zero value panics: a capacity measurement must never silently fall
+/// back to the constant it was trying to change. Underscore separators
+/// are accepted (`R4_CTX_SAMPLE=211_000`).
+pub fn capacity_override_usize(name: &str, default: usize) -> usize {
+    match std::env::var(name) {
+        Ok(value) => {
+            let parsed = value
+                .trim()
+                .replace('_', "")
+                .parse::<usize>()
+                .unwrap_or_else(|_| panic!("{name} must be a positive integer, got {value:?}"));
+            assert!(parsed >= 1, "{name} must be >= 1, got {value:?}");
+            parsed
+        }
+        Err(_) => default,
+    }
+}
+
+/// Capacity-override environment variable (#399/#393 M-C2, f64 knobs).
+/// Same contract as [`capacity_override_usize`]: unset is κ-neutral,
+/// invalid panics. Non-negative finite values only.
+pub fn capacity_override_f64(name: &str, default: f64) -> f64 {
+    match std::env::var(name) {
+        Ok(value) => {
+            let parsed = value.trim().parse::<f64>().unwrap_or_else(|_| {
+                panic!("{name} must be a floating-point number, got {value:?}")
+            });
+            assert!(
+                parsed.is_finite() && parsed >= 0.0,
+                "{name} must be finite and >= 0, got {value:?}"
+            );
+            parsed
+        }
+        Err(_) => default,
+    }
+}
 
 pub fn xorshift(s: &mut u64) -> u64 {
     let mut x = *s;
@@ -1465,7 +1510,9 @@ fn sampled_kmeans_rvq(
         indices.swap(i, j);
     }
 
-    let sample_size = nvec.min(10000);
+    // #399/#393 M-C2: the training-subsample cap is env-overridable for
+    // capacity measurements; unset keeps the pinned 10k constant.
+    let sample_size = nvec.min(capacity_override_usize("R4_RVQ_SAMPLE_CAP", RVQ_SAMPLE_CAP));
     let mut sample_vecs = vec![0f32; sample_size * D];
     for i in 0..sample_size {
         let src_idx = indices[i];
@@ -1708,11 +1755,14 @@ pub fn compile_from_representation(
     // 4: context RVQ on (centered, normalized) runtime bundles; binarize
     // centroids to sign bits for Hamming assignment.
     let train_idx: Vec<usize> = (0..corpus.n).filter(|&i| corpus.story[i] < cut).collect();
+    // #399/#393 M-C2: the context-RVQ sample count is env-overridable for
+    // capacity measurements; unset keeps the pinned 50k constant.
+    let ctx_sample = capacity_override_usize("R4_CTX_SAMPLE", CTX_SAMPLE);
     let mut s = 0x5A3B1Eu64;
-    let mut samp = vec![0f32; CTX_SAMPLE * D];
+    let mut samp = vec![0f32; ctx_sample * D];
     let mut context_progress =
-        uor_r4_model_source::progress::Progress::new("context samples", CTX_SAMPLE);
-    for v in 0..CTX_SAMPLE {
+        uor_r4_model_source::progress::Progress::new("context samples", ctx_sample);
+    for v in 0..ctx_sample {
         context_progress.set(v);
         let i = train_idx[(xorshift(&mut s) as usize) % train_idx.len()];
         let b = super::runtime::bundle_plain(&art, &rot, corpus, i);
@@ -1729,7 +1779,7 @@ pub fn compile_from_representation(
         }
     }
     context_progress.finish();
-    let (ctx_cb, _) = sampled_kmeans_rvq(&samp, CTX_SAMPLE, STAGES, K, CTX_ITERS, seed_bytes);
+    let (ctx_cb, _) = sampled_kmeans_rvq(&samp, ctx_sample, STAGES, K, CTX_ITERS, seed_bytes);
     for (st, cb) in ctx_cb.iter().enumerate() {
         println!("context codebook stage {} κ: {}", st, kappa_of_f32s(cb));
         let mut sigs = vec![0u8; K * D / 8];
@@ -2066,5 +2116,42 @@ pub fn induce_hierarchical_codes(
     HierarchicalCodes {
         token_type_prefixes,
         relational_prefixes,
+    }
+}
+
+#[cfg(test)]
+mod capacity_override_tests {
+    use super::{capacity_override_f64, capacity_override_usize};
+
+    #[test]
+    fn unset_returns_pinned_default() {
+        // κ-neutrality contract (#399/#393 M-C2): an unset override is the
+        // pinned constant, bit for bit.
+        assert_eq!(capacity_override_usize("R4_TEST_CAP_UNSET", 50_000), 50_000);
+        assert_eq!(capacity_override_f64("R4_TEST_CAP_F64_UNSET", 0.25), 0.25);
+    }
+
+    #[test]
+    fn set_value_overrides_with_separators() {
+        std::env::set_var("R4_TEST_CAP_SET", "211_000");
+        assert_eq!(capacity_override_usize("R4_TEST_CAP_SET", 50_000), 211_000);
+        std::env::remove_var("R4_TEST_CAP_SET");
+        std::env::set_var("R4_TEST_CAP_F64_SET", "0.05");
+        assert_eq!(capacity_override_f64("R4_TEST_CAP_F64_SET", 0.25), 0.05);
+        std::env::remove_var("R4_TEST_CAP_F64_SET");
+    }
+
+    #[test]
+    #[should_panic(expected = "must be a positive integer")]
+    fn invalid_value_fails_loudly() {
+        std::env::set_var("R4_TEST_CAP_BAD", "lots");
+        let _ = capacity_override_usize("R4_TEST_CAP_BAD", 50_000);
+    }
+
+    #[test]
+    #[should_panic(expected = "must be >= 1")]
+    fn zero_fails_loudly() {
+        std::env::set_var("R4_TEST_CAP_ZERO", "0");
+        let _ = capacity_override_usize("R4_TEST_CAP_ZERO", 50_000);
     }
 }

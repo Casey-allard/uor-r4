@@ -324,15 +324,35 @@ impl Default for ObjectiveConfig {
 }
 
 impl Default for CoverConfig {
+    /// The pinned defaults, each overridable by an `R4_COVER_*`
+    /// environment variable for capacity measurements (#399/#393 M-C2).
+    /// Every override falls back to the pinned constant when unset, so
+    /// default-config behavior is byte-identical (κ-neutral) unless a
+    /// measurement explicitly opts in; a set-but-invalid value panics
+    /// (see [`compiler::capacity_override_usize`]).
     fn default() -> Self {
         Self {
-            depths: DEFAULT_DEPTHS,
-            k0: DEFAULT_K0,
-            regions_budget: DEFAULT_REGIONS_BUDGET,
-            memory_budget_bytes: DEFAULT_MEMORY_BUDGET_MB * 1024 * 1024,
+            depths: compiler::capacity_override_usize("R4_COVER_DEPTHS", DEFAULT_DEPTHS),
+            k0: compiler::capacity_override_usize("R4_COVER_K0", DEFAULT_K0),
+            regions_budget: compiler::capacity_override_usize(
+                "R4_COVER_REGIONS_BUDGET",
+                DEFAULT_REGIONS_BUDGET,
+            ),
+            memory_budget_bytes: compiler::capacity_override_usize(
+                "R4_COVER_MEMORY_BUDGET_MB",
+                DEFAULT_MEMORY_BUDGET_MB as usize,
+            ) as u64
+                * 1024
+                * 1024,
             threads: 1,
-            min_support: DEFAULT_MIN_SUPPORT,
-            entropy_gain_bits: DEFAULT_SPLIT_ENTROPY_GAIN_BITS,
+            min_support: compiler::capacity_override_usize(
+                "R4_COVER_MIN_SUPPORT",
+                DEFAULT_MIN_SUPPORT,
+            ),
+            entropy_gain_bits: compiler::capacity_override_f64(
+                "R4_COVER_ENTROPY_GAIN_BITS",
+                DEFAULT_SPLIT_ENTROPY_GAIN_BITS,
+            ),
             radius_quantile_numerator: RADIUS_QUANTILE_NUMERATOR,
             radius_quantile_denominator: RADIUS_QUANTILE_DENOMINATOR,
             objective: ObjectiveConfig::default(),

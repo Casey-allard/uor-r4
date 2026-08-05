@@ -461,19 +461,34 @@ pub struct ScoreConfig {
 }
 
 impl Default for ScoreConfig {
+    /// The pinned defaults, with the capacity knobs each overridable by an
+    /// `R4_*` environment variable for capacity measurements (#399/#393
+    /// M-C2). Every override falls back to the pinned constant when unset,
+    /// so default-config behavior is byte-identical (κ-neutral) unless a
+    /// measurement explicitly opts in; a set-but-invalid value panics
+    /// (see [`compiler::capacity_override_usize`]).
     fn default() -> Self {
         Self {
-            transition_out_degree: DEFAULT_TRANSITION_OUT_DEGREE,
-            emission_entries: DEFAULT_EMISSION_ENTRIES,
-            root_top_b: DEFAULT_ROOT_TOP_B,
-            exct_top_x: DEFAULT_EXCT_TOP_X,
+            transition_out_degree: compiler::capacity_override_usize(
+                "R4_TRANSITION_OUT_DEGREE",
+                DEFAULT_TRANSITION_OUT_DEGREE,
+            ),
+            emission_entries: compiler::capacity_override_usize(
+                "R4_EMISSION_ENTRIES",
+                DEFAULT_EMISSION_ENTRIES,
+            ),
+            root_top_b: compiler::capacity_override_usize("R4_ROOT_TOP_B", DEFAULT_ROOT_TOP_B),
+            exct_top_x: compiler::capacity_override_usize("R4_EXCT_TOP_X", DEFAULT_EXCT_TOP_X),
             witness_sample: DEFAULT_WITNESS_SAMPLE,
             smoothing: Smoothing::AddOne,
             scoring_variant: ScoringVariant::ChainTelescoped,
             emission_selection: EmissionSelection::default(),
             emission_shrinkage: EmissionShrinkage::default(),
             context_order: DEFAULT_CONTEXT_ORDER,
-            context_entries: DEFAULT_CONTEXT_ENTRIES,
+            context_entries: compiler::capacity_override_usize(
+                "R4_CONTEXT_ENTRIES",
+                DEFAULT_CONTEXT_ENTRIES,
+            ),
             gate_c_context_window: false,
             repetition_penalty_raw: super::score_runtime::DEFAULT_REPETITION_PENALTY_RAW,
         }
@@ -793,6 +808,9 @@ pub fn compile_forward_anchor_rows(
             }
         }
     }
+    // #399/#393 M-C2: the per-row entry cap is env-overridable for capacity
+    // measurements; unset keeps the pinned constant (κ-neutral).
+    let entry_cap = compiler::capacity_override_usize("R4_FWDA_ENTRY_CAP", FWDA_ENTRY_CAP);
     counts
         .into_iter()
         .filter_map(|((distance, anchor), distribution)| {
@@ -803,7 +821,7 @@ pub fn compile_forward_anchor_rows(
             }
             let mut ranked: Vec<(u32, u32)> = distribution.into_iter().collect();
             ranked.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.cmp(&b.0)));
-            ranked.truncate(FWDA_ENTRY_CAP);
+            ranked.truncate(entry_cap);
             ranked.sort_by_key(|&(token, _)| token);
             Some(ForwardAnchorRow {
                 distance,
