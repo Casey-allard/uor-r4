@@ -20,6 +20,10 @@
 //! - ARM B2 (router, draft context): identical to ARM B except the
 //!   router's query context is DRAFT tokens, not true tokens — the
 //!   non-oracle arm (details below).
+//! - ARM BF (router, full-width): identical to ARM B except retrieval
+//!   uses FULL-WIDTH content vectors instead of the router's banded
+//!   stored vectors — the issue-434 de-banding payoff arm (section
+//!   below).
 //! - ARM C (null): the construction-split unigram-argmax token.
 //! - ARM D (null): ARM B's tokens rotated to wrong positions by a
 //!   fixed half-length rotation within each story — the issue-273
@@ -91,6 +95,40 @@
 //! continuation, fallbacks) is byte-identical to ARM B. When a draft
 //! context happens to equal the oracle context the query is shared,
 //! and the report prints how often that happened.
+//!
+//! # ARM BF: full-width retrieval (issue #434, de-banding payoff)
+//!
+//! The issue-434 band-matched controls
+//! (`uor-r4-router/tests/zeta_state_retrieval.rs`) showed the router's
+//! stored content vectors keep only one sixteenth of the width — the
+//! storage surface routes each sentence through the spectral zeta QR
+//! projection and stores coefficients only inside the winning window's
+//! `active_range`, zeros elsewhere — and that this banding costs most
+//! of the content-retrieval quality (same-run banded MRR 0.2348 versus
+//! full-width 0.8948 at the full caps). ARM BF asks whether that
+//! retrieval headroom converts into better ANCHOR SUPPLY. It is
+//! identical to ARM B — same store sentences, same side table, same
+//! majority-continuation law, same oracle query contexts, same
+//! short-context fallbacks, same cosine-argmax retrieval — except
+//! every retrieval vector (stored and query alike) is the FULL-WIDTH
+//! normalized zeta word-sum, constructed through the surface the #434
+//! controls proved band-free (arm CF there): `evolve_state(fresh
+//! identity, text, gamma 0.0)` sets the fresh identity's session state
+//! to exactly the normalized zeta word-sum of the text — no band
+//! slicing, no QR coefficient transform. Determinism, per the #434
+//! analysis: gamma-zero evolution is prior-state independent by closed
+//! form (`h = normalize(0 * state + 1 * content)`), and the vocabulary
+//! (word-prime order, hence every zeta word vector) is fully fixed
+//! before any BF vector is built — `index_corpus` assigns every
+//! construction-context word and the phase-one `index_sentence` query
+//! calls assign every held-out context word — so the BF phase runs
+//! strictly after both and leaves ARM B byte-identical.
+//!
+//! PRE-DECLARED RULE (#434): de-banding PAYS if and only if ARM BF's
+//! free-position top-one (i) is at least two percentage points above
+//! ARM C, (ii) exceeds ARM D, and (iii) exceeds ARM B's same-run free
+//! top-one (reference 7.6 at the default caps). The anchor-accuracy
+//! delta (BF minus B) is reported regardless of direction.
 //!
 //! # CAPS (documented, no silent truncation)
 //!
@@ -176,10 +214,13 @@ fn norm(v: &[f64]) -> f64 {
 /// identity, the issue-255 pattern): returns the query-vector id, or
 /// the fallback token when the router stored nothing for the text.
 /// Shared by ARM B (oracle context) and ARM B2 (draft context) so the
-/// two arms differ ONLY in the context tokens.
+/// two arms differ ONLY in the context tokens. The query text is
+/// recorded per id so ARM BF can later rebuild the SAME query as a
+/// full-width vector (module docs).
 fn issue_query(
     router: &mut UorR4Router,
     query_vectors: &mut Vec<Vec<f64>>,
+    query_texts: &mut Vec<String>,
     text: &str,
     fallback_token: u32,
     fallback_count: &mut u64,
@@ -190,6 +231,7 @@ fn issue_query(
         Some(item) => {
             let id = query_vectors.len();
             query_vectors.push(item.state_vector.clone());
+            query_texts.push(text.to_string());
             Err(id)
         }
         None => {
@@ -197,6 +239,28 @@ fn issue_query(
             Ok(fallback_token)
         }
     }
+}
+
+/// The FULL-WIDTH content vector for one text (ARM BF, module docs):
+/// `evolve_state` at gamma zero on a fresh identity sets the session
+/// state to exactly the normalized zeta word-sum — the surface the
+/// issue-434 band-matched controls proved band-free (arm CF in
+/// `zeta_state_retrieval.rs`). Prior-state independent at gamma zero,
+/// so determinism needs only the fixed vocabulary; the off-default
+/// assertion catches a text with no vocabulary word, which would leave
+/// the state at the uniform start (a content-free vector).
+fn full_width_content(router: &mut UorR4Router, identity: &str, text: &str) -> Vec<f64> {
+    let state = router.evolve_state(identity, text, 0.0);
+    assert_eq!(state.len(), 512, "full-width content vector is 512-dim");
+    let default_component = 1.0 / (512.0f64).sqrt();
+    assert!(
+        state
+            .iter()
+            .any(|&value| (value - default_component).abs() > 1e-12),
+        "gamma-zero state must move off the default start: \
+         no word of {text:?} is in vocabulary"
+    );
+    state
 }
 
 /// Per-arm grading: anchor accuracy plus free-position top-one by
@@ -242,6 +306,9 @@ impl Arm {
         let hits: u64 = self.free_hits.iter().sum();
         let total: u64 = self.free_total.iter().sum();
         100.0 * hits as f64 / total.max(1) as f64
+    }
+    fn anchor_acc(&self) -> f64 {
+        100.0 * self.anchor_hits as f64 / self.anchor_total.max(1) as f64
     }
     fn report(&self) {
         let pct = |h: u64, t: u64| 100.0 * h as f64 / t.max(1) as f64;
@@ -419,6 +486,7 @@ fn router_reconnect_m_r1() {
     // ARM B queries with the true (oracle) context, ARM B2 with the
     // draft context; identical draft contexts share the oracle query.
     let mut query_vectors: Vec<Vec<f64>> = Vec::new();
+    let mut query_texts: Vec<String> = Vec::new();
     let mut query_slots: Vec<Vec<Result<u32, usize>>> = Vec::new();
     let mut query_slots_b2: Vec<Vec<Result<u32, usize>>> = Vec::new();
     let mut fallback_short_context = 0u64;
@@ -434,6 +502,7 @@ fn router_reconnect_m_r1() {
                 let oracle_slot = issue_query(
                     &mut router,
                     &mut query_vectors,
+                    &mut query_texts,
                     &oracle_ctx,
                     unigram_pred,
                     &mut fallback_short_context,
@@ -447,6 +516,7 @@ fn router_reconnect_m_r1() {
                     slots_b2.push(issue_query(
                         &mut router,
                         &mut query_vectors,
+                        &mut query_texts,
                         &draft_ctx,
                         unigram_pred,
                         &mut fallback_short_context,
@@ -514,10 +584,67 @@ fn router_reconnect_m_r1() {
         routed_tokens.len()
     );
 
+    // ---- ARM BF: full-width retrieval (module docs, #434) ----
+    // Same sentences and majority side table as ARM B's entries (store
+    // items with a side-table row, in the same sentence-sorted order),
+    // but every vector — stored and query — is the full-width
+    // normalized zeta word-sum via evolve_state at gamma zero. Runs
+    // strictly after phase one, so the vocabulary (word-prime order)
+    // is fully fixed and ARM B is untouched.
+    let bf_store_texts: Vec<(String, u32)> = items
+        .iter()
+        .filter_map(|(sentence, _)| {
+            side_table
+                .get(*sentence)
+                .and_then(majority)
+                .map(|token| ((*sentence).to_string(), token))
+        })
+        .collect();
+    let bf_entries: Vec<(f64, Vec<f64>, u32)> = bf_store_texts
+        .iter()
+        .enumerate()
+        .map(|(index, (text, token))| {
+            let vector = full_width_content(&mut router, &format!("user:bfw{index}"), text);
+            (norm(&vector), vector, *token)
+        })
+        .collect();
+    let bf_query_vectors: Vec<Vec<f64>> = query_texts
+        .iter()
+        .enumerate()
+        .map(|(index, text)| full_width_content(&mut router, &format!("user:bfq{index}"), text))
+        .collect();
+    let mut weak_retrievals_bf = 0u64;
+    let routed_full: Vec<u32> = bf_query_vectors
+        .iter()
+        .map(|q| {
+            let qn = norm(q);
+            let mut best_sim = f64::NEG_INFINITY;
+            let mut best_token = unigram_pred;
+            for (vn, vector, token) in &bf_entries {
+                let sim = cosine(q, vector, qn, *vn);
+                if sim > best_sim {
+                    best_sim = sim;
+                    best_token = *token;
+                }
+            }
+            if best_sim <= 0.0 {
+                weak_retrievals_bf += 1;
+            }
+            best_token
+        })
+        .collect();
+    println!(
+        "ARM BF store: {} full-width entries (same sentences and side table as ARM B), \
+         {} full-width queries, {weak_retrievals_bf} zero-cosine retrievals",
+        bf_entries.len(),
+        routed_full.len()
+    );
+
     // ---- fill and grade the arms ----
     let mut arm_true = Arm::new("ARM A true-anchor");
     let mut arm_router = Arm::new("ARM B router-anchor");
     let mut arm_router_draft = Arm::new("ARM B2 router-draft");
+    let mut arm_router_full = Arm::new("ARM BF full-width");
     let mut arm_unigram = Arm::new("ARM C unigram-anchor");
     let mut arm_shuffled = Arm::new("ARM D shuffled-router");
     let mut single_anchor_stories = 0u64;
@@ -525,12 +652,19 @@ fn router_reconnect_m_r1() {
         Ok(token) => *token,
         Err(query) => routed_tokens[*query],
     };
+    // ARM BF resolves the SAME oracle slots as ARM B (identical
+    // short-context fallbacks), only through the full-width retrieval.
+    let resolve_full = |slot: &Result<u32, usize>| match slot {
+        Ok(token) => *token,
+        Err(query) => routed_full[*query],
+    };
     for (((_, stream), slots), slots_b2) in
         held_streams.iter().zip(&query_slots).zip(&query_slots_b2)
     {
         let truth = stream.as_slice();
         let anchors_b: Vec<u32> = slots.iter().map(resolve).collect();
         let anchors_b2: Vec<u32> = slots_b2.iter().map(resolve).collect();
+        let anchors_bf: Vec<u32> = slots.iter().map(resolve_full).collect();
         // Fixed half-length rotation (the issue-273 falsifier control);
         // identity on stories with fewer than two anchors (counted).
         let m = anchors_b.len();
@@ -557,12 +691,14 @@ fn router_reconnect_m_r1() {
         let sk_a = skeleton_for(&|_, index| truth[index]);
         let sk_b = skeleton_for(&|slot, _| anchors_b[slot]);
         let sk_b2 = skeleton_for(&|slot, _| anchors_b2[slot]);
+        let sk_bf = skeleton_for(&|slot, _| anchors_bf[slot]);
         let sk_c = skeleton_for(&|_, _| unigram_pred);
         let sk_d = skeleton_for(&|slot, _| anchors_d[slot]);
         for (arm, skeleton) in [
             (&mut arm_true, &sk_a),
             (&mut arm_router, &sk_b),
             (&mut arm_router_draft, &sk_b2),
+            (&mut arm_router_full, &sk_bf),
             (&mut arm_unigram, &sk_c),
             (&mut arm_shuffled, &sk_d),
         ] {
@@ -580,6 +716,7 @@ fn router_reconnect_m_r1() {
         &arm_true,
         &arm_router,
         &arm_router_draft,
+        &arm_router_full,
         &arm_unigram,
         &arm_shuffled,
     ] {
@@ -604,4 +741,29 @@ fn router_reconnect_m_r1() {
             }
         );
     }
+
+    // ---- pre-declared de-banding rule (module docs, #434) ----
+    let b = arm_router.free_top1();
+    let bf = arm_router_full.free_top1();
+    let pays = bf >= c_null + 2.0 && bf > d && bf > b;
+    println!(
+        "de-banding rule (#434) ARM BF: free top1 {bf:.2}% vs ARM C {c_null:.2}% ({:+.2}pp, \
+         need at least two) and vs ARM D {d:.2}% ({:+.2}pp, need positive) and vs ARM B \
+         {b:.2}% ({:+.2}pp, need positive; ref 7.6) -> {}",
+        bf - c_null,
+        bf - d,
+        bf - b,
+        if pays {
+            "de-banding PAYS (full-width retrieval converts to better anchor supply)"
+        } else {
+            "recorded NEGATIVE (full-width retrieval does not convert at this bar)"
+        }
+    );
+    println!(
+        "de-banding anchor-accuracy delta (#434): ARM BF {:.2}% vs ARM B {:.2}% ({:+.2}pp; \
+         reported regardless of direction)",
+        arm_router_full.anchor_acc(),
+        arm_router.anchor_acc(),
+        arm_router_full.anchor_acc() - arm_router.anchor_acc()
+    );
 }
