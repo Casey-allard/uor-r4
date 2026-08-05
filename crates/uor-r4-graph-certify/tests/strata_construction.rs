@@ -39,6 +39,23 @@
 //!   purpose: under the hash split, held-out stories are disjoint from
 //!   construction stories, so identity strata carry no evidence for any
 //!   held-out story.
+//! * EVIDENCE-ROUTED arms (routing v2): the first measurement showed the
+//!   stratum signal exists (oracle > flat) but unigram-signature routing
+//!   loses it. V2 routes by the strata's OWN evidence instead of by
+//!   centroid distance: for a held-out position's last-2-token key, each
+//!   stratum store is scored by its count mass for that key (total
+//!   next-token count under the key), and the position routes to the
+//!   argmax-mass stratum (ties to the lowest stratum id; key absent in
+//!   every stratum -> FLAT backoff, then unigram).
+//!   - `evrouted-pos`: each position routes independently.
+//!   - `evrouted-story`: each held-out story routes ONCE by summed
+//!     key-mass votes over all its positions, then every position is
+//!     scored under that stratum store with FLAT backoff on key miss.
+//!     Honest at serving time: votes consume only input keys (the
+//!     story's own contexts), never the next tokens being predicted.
+//!
+//!   Both arms consume only construction-derived stores plus held-out
+//!   input keys — no centroids, no held-out labels.
 //!
 //! Reported per arm: top-1 on held-out positions, and evidence-hit rate
 //! (fraction of held-out positions whose key is present in the consulted
@@ -48,6 +65,10 @@
 //! FLAT top-1 by at least two percentage points on the broad corpus
 //! (wiki10k / mc1). The ORACLE arm reports the ceiling only and never
 //! decides the claim.
+//!
+//! PRE-DECLARED RULE (routing v2): v2 wins iff an EVIDENCE-ROUTED arm
+//! beats FLAT top-1 by at least two percentage points. Each evidence
+//! arm is also reported against the oracle ceiling for context.
 //!
 //! Run (fixture smoke):
 //!   cargo test --release -p uor-r4-graph-certify --test strata_construction -- --ignored --nocapture
@@ -238,6 +259,7 @@ fn build_stratum_stores(
 /// backoff, and the per-story oracle ceiling (all with the same backoff
 /// rule). `assign` maps EVERY story (construction and held-out) to a
 /// stratum; construction assignments were used to build `stores`.
+/// Returns (routed-backoff top-1 %, oracle top-1 %).
 fn eval_strata(
     label: &str,
     eval: &[EvalPos],
@@ -245,7 +267,7 @@ fn eval_strata(
     assign: &[usize],
     flat: &TriStore,
     unigram_pred: Option<u32>,
-) -> f64 {
+) -> (f64, f64) {
     let k = stores.len();
     let mut routed_strict = Arm::new(format!("{label}-routed-strict"));
     let mut routed_backoff = Arm::new(format!("{label}-routed-backoff"));
@@ -291,7 +313,83 @@ fn eval_strata(
     routed_strict.report();
     routed_backoff.report();
     oracle.report();
-    routed_backoff.top1_pct()
+    (routed_backoff.top1_pct(), oracle.top1_pct())
+}
+
+/// Evidence-routed arms (routing v2, issue #435): route by the strata's
+/// own evidence for the position's key rather than by signature
+/// centroids. A stratum's vote for a key is its count MASS (total
+/// next-token count stored under the key); routing is argmax mass, ties
+/// to the lowest stratum id, and a key absent from every stratum backs
+/// off to FLAT (then unigram). Per-position routes each position
+/// independently; per-story routes each held-out story once by its
+/// summed key-mass votes (input keys only — honest at serving time) and
+/// then scores every position under that stratum with FLAT backoff on
+/// key miss. Returns (per-position top-1 %, per-story top-1 %).
+fn eval_evidence_routed(
+    label: &str,
+    eval: &[EvalPos],
+    stores: &[TriStore],
+    flat: &TriStore,
+    unigram_pred: Option<u32>,
+) -> (f64, f64) {
+    let k = stores.len();
+    let mut per_pos = Arm::new(format!("{label}-evrouted-pos"));
+    // per held-out story: summed key-mass votes under every stratum
+    let mut votes: HashMap<u32, Vec<u64>> = HashMap::new();
+    for p in eval {
+        let flat_pred = p.key.and_then(|key| flat.get(&key)).and_then(argmax);
+        let story_votes = votes.entry(p.story).or_insert_with(|| vec![0u64; k]);
+        // strictly-greater keeps the first (lowest) stratum id on ties
+        let mut best: Option<(usize, u64)> = None;
+        for (j, store) in stores.iter().enumerate() {
+            let mass: u64 = p
+                .key
+                .and_then(|key| store.get(&key))
+                .map(|d| d.values().map(|&n| u64::from(n)).sum())
+                .unwrap_or(0);
+            story_votes[j] += mass;
+            if mass > 0 && best.is_none_or(|(_, m)| mass > m) {
+                best = Some((j, mass));
+            }
+        }
+        match best {
+            Some((j, _)) => {
+                let pred = p.key.and_then(|key| stores[j].get(&key)).and_then(argmax);
+                per_pos.score(pred, true, p.truth);
+            }
+            None => per_pos.score(flat_pred.or(unigram_pred), false, p.truth),
+        }
+    }
+    per_pos.report();
+    // per-story route: argmax summed mass, ties to the lowest stratum id;
+    // a story whose keys are absent from every stratum stays on FLAT
+    let route_of: HashMap<u32, Option<usize>> = votes
+        .iter()
+        .map(|(&story, v)| {
+            let best = (0..k)
+                .max_by_key(|&j| (v[j], std::cmp::Reverse(j)))
+                .unwrap_or(0);
+            (story, (v[best] > 0).then_some(best))
+        })
+        .collect();
+    let mut per_story = Arm::new(format!("{label}-evrouted-story"));
+    for p in eval {
+        let flat_pred = p.key.and_then(|key| flat.get(&key)).and_then(argmax);
+        match route_of[&p.story] {
+            Some(j) => {
+                let dist = p.key.and_then(|key| stores[j].get(&key));
+                per_story.score(
+                    dist.and_then(argmax).or(flat_pred).or(unigram_pred),
+                    dist.is_some(),
+                    p.truth,
+                );
+            }
+            None => per_story.score(flat_pred.or(unigram_pred), false, p.truth),
+        }
+    }
+    per_story.report();
+    (per_pos.top1_pct(), per_story.top1_pct())
 }
 
 #[test]
@@ -430,11 +528,19 @@ fn strata_construction() {
         }
         println!("content stratum sizes (construction stories): {sizes:?}");
         let stores = build_stratum_stores(&c, &constr, &assign, k);
-        let routed_top1 = eval_strata(
+        let (routed_top1, oracle_top1) = eval_strata(
             &format!("content-K{k}"),
             &eval,
             &stores,
             &assign,
+            &flat,
+            unigram_pred,
+        );
+        // routing v2: evidence-routed arms over the SAME content stores
+        let (ev_pos, ev_story) = eval_evidence_routed(
+            &format!("content-K{k}"),
+            &eval,
+            &stores,
             &flat,
             unigram_pred,
         );
@@ -450,6 +556,15 @@ fn strata_construction() {
             &flat,
             unigram_pred,
         );
+        // control: evidence routing over topic-agnostic strata — shows how
+        // much of any v2 gain needs the CONTENT partition specifically
+        eval_evidence_routed(
+            &format!("modulo-K{k}"),
+            &eval,
+            &mod_stores,
+            &flat,
+            unigram_pred,
+        );
         let delta = routed_top1 - flat_top1;
         println!(
             "K={k}: routed-backoff {:.1}% vs flat {:.1}% (delta {:+.1}pp) -> {}",
@@ -462,5 +577,21 @@ fn strata_construction() {
                 "no win under the pre-declared rule (routed >= flat + 2pp)"
             }
         );
+        for (arm, top1) in [
+            ("evidence-routed-per-position", ev_pos),
+            ("evidence-routed-per-story", ev_story),
+        ] {
+            let d_flat = top1 - flat_top1;
+            let d_oracle = top1 - oracle_top1;
+            println!(
+                "K={k}: {arm} {top1:.1}% vs flat {flat_top1:.1}% (delta {d_flat:+.1}pp) \
+                 vs oracle {oracle_top1:.1}% ({d_oracle:+.1}pp) -> {}",
+                if d_flat >= WIN_MARGIN_PP {
+                    "ROUTING V2 WINS (pre-declared rule: evidence-routed >= flat + 2pp)"
+                } else {
+                    "no v2 win under the pre-declared rule (evidence-routed >= flat + 2pp)"
+                }
+            );
+        }
     }
 }
