@@ -156,6 +156,15 @@ table-read 314,176 / multiply 0. The new pins are the
 `baseline_kappa.json` record; the 150k-era figures above are retained as
 the historical record of the original certificate.
 
+**Era note (2026-08-04, #407 fifth re-pin, maintainer decision).** The
+context-codebook sample size `CTX_SAMPLE` moved 6,000 → 50,000 (attribution
+sweep PR #411), and the era artifact was re-pinned under canonical
+deterministic mode (`TLESS_CANONICAL_DETERMINISTIC=1`, the #265 D2 policy):
+container κ moved `blake3:ef6a20f3…` → `blake3:8fbf3f68…` (1,346,836 bytes,
+size unchanged). Token-side pins and the threshold vector are byte-identical
+to the prior era by construction; the pins are the current
+`baseline_kappa.json` record.
+
 Library witnesses (cargo test): P-1 the popcount table matches its
 definition on all 256 bytes and carries the stratum partition C(8,k);
 P-2 kernel Hamming equals the direct definition with exact op counts;
@@ -206,8 +215,10 @@ storage option.
 **(a) Container, witnessed.** save → load → save is byte-identical and
 κ-stable, asserted every certification run. Era note (#327, maintainer
 decision 2026-08-01): the default emission is the TLA7 container (#318
-Phase B integer residual sections; 500k-corpus era) — current witness
-1,346,836 bytes, `blake3:ef6a20f3…` (2026-08-01 full-certify run). The
+Phase B integer residual sections; 500k-corpus era) — witness
+1,346,836 bytes, `blake3:ef6a20f3…` (2026-08-01 full-certify run; since the
+2026-08-04 #407 fifth re-pin the current container κ is `blake3:8fbf3f68…`,
+same byte length — see the P3 era note). The
 residual sections and the new corpus change the serialization and the
 bundle-derived κs; the token-side κ pins are byte-identical to the TLA5
 era by construction, and prior-era containers (1-term TLA6 1,051,916

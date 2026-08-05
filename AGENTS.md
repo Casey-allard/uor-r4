@@ -20,6 +20,11 @@ the wasm dashboard are exploratory and stay out of the graph migration path.
 - `crates/uor-r4-core` — R⁴ math + transformerless compiler/runtime (see its README)
 - `crates/uor-r4-router` — geometric router + dashboard backend (f64; untouched by the graph plan)
 - `crates/uor-r4-graph-format` — R4G1 packed artifact format, two-stage validation, borrowed `GraphView`
+- `crates/uor-r4-graph-compiler` — offline graph-compiler stages (observation, cover induction, packing)
+- `crates/uor-r4-graph-certify` — offline certification/measurement (Gate C `score` harness, `score_runtime` reference scorer, certificates)
+- `crates/uor-r4-graph-runtime` — `no_std` allocation-free R4G1 graph runtime (engine, routing, patch chains)
+- `crates/uor-r4-graph-cli` — `r4 transformerless …` CLI stage dispatch (convert-r4g1, scenarios, corpus tools)
+- `crates/uor-r4-model-source` — teacher forward-pass port + pinned Safetensors adapter
 - `crates/uor-r4-proof-model` — executable proof obligations + proof-status matrix
 - `crates/uor-r4-api` — typed compile + engine library façade for downstream consumers (wraps the CLI-shaped stages; see its README)
 - root package `uor-r4-wasm-router` — façade + `r4` CLI + local server/chat

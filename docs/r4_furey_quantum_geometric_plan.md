@@ -24,7 +24,9 @@ confusion): the live `uor-r4-graph-runtime/src/cayley_dickson.rs` used by
 `syntactic_morphism_score` is a golden-ratio hash tie-breaker and is *not*
 the Cayley-Dickson algebra of this plan (`uor-r4-core/.../cd_space.rs`,
 dormant). When this plan's phases activate, one of the two should be
-renamed.
+renamed. *(Addendum 2026-08-05: `syntactic_morphism_score` was measured dead
+and removed in PR #410 — #400 A/B, 0/1,998 executions; the graph-runtime
+`cayley_dickson.rs` module remains, now without serving callers.)*
 
 ---
 

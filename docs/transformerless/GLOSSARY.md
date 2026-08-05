@@ -63,9 +63,13 @@ graph term is normative for new work. See the terminology bridge in the plan (§
   (chain-telescoped): `S_graph(v) = B(v) + Σ_{n∈chain} ΔE(n,v) + ΔT-offset`, where `chain` is
   the covered refinement chain (root → deepest covered ancestor) of the active region with the
   deepest covered chain — emission corrections compose along one ancestry path instead of
-  stacking across sibling subtrees. Rule 2 (D4 EXCT precedence): when the deepest-populated
-  exact-context prefix carries enough evidence (total ≥ `EXCT_SUPPORT_MIN` = 5),
-  `S(v) = B(v) + ΔX(X,v)` and graph residuals are skipped entirely. Each table is sparse; no
+  stacking across sibling subtrees. Rule 2 (D4 EXCT precedence): when the exact-context probe
+  resolves at the FULL graded code with enough evidence (total ≥ `EXCT_SUPPORT_MIN` = 5),
+  `S(v) = B(v) + ΔX(X,v)` and graph residuals are skipped entirely; a probe that resolves below
+  full depth is prefix backoff, admits nothing, and falls through to Rule 1 (#234, maintainer
+  decision 2026-07-29). An explicit supported NGRAM context row (trigram → bigram backoff, #380)
+  takes the same most-specific precedence before the EXCT probe; the root prior `B(v)` remains
+  the unigram backoff. Each table is sparse; no
   contribution is counted twice (Theorem 10). Supersedes the literal Σ-over-cloud form
   (`B + ΣΔE + ΣΔT + ΔX`), which double-counted correlated sibling residuals (Gate C: 0.3%
   vs 31.7% baseline).
@@ -91,8 +95,9 @@ graph term is normative for new work. See the terminology bridge in the plan (§
 
 ## Artifacts and identity
 
-- **R4G1** — the versioned packed artifact container (sections HEAD/CODE/NODE/EDGE/ROUT/EMIT/
-  EXCT/PROV/CERT). Succeeds TLA3/TLA4/TLS1. See `docs/transformerless/R4G1.md`.
+- **R4G1** — the versioned packed artifact container (mandatory sections HEAD/CODE/NODE/EDGE/
+  ROUT/EMIT/PROV plus optional EXCT/CERT/PTCH/SECT/RTNX/FMM/NGRAM/FWDA). Succeeds
+  TLA3/TLA4/TLS1. See `docs/transformerless/R4G1.md`.
 - **κ (kappa) / content CID** — content address (blake3 label or UOR CID) preserving identity and
   provenance of bytes. CIDs are **not** semantic hashes and are never used as routing codes.
 - **Semantic route code** — a compiled, versioned, intentionally locality-preserving code used for
@@ -133,9 +138,11 @@ graph term is normative for new work. See the terminology bridge in the plan (§
 - **M.V.G. checkpoint** — the minimum-viable-graph go/no-go review at the end of Phase 5
   (decision D1), comparing the graph against pre-agreed targets recorded in
   `docs/transformerless/BASELINE.md`.
-- **Baseline** — the current certified transformerless artifact (TLA3/TLS1) and its measured
-  fidelity: 28.9% top-1, 31.7% teacher-argmax agreement, 6.54 bits/token, 89,200 store keys
-  (PROOF.md P2). Gate C compares the graph against this baseline before replacement.
+- **Baseline** — the certified transformerless artifact and its measured fidelity. The figures
+  here are the original 150k-era record (TLA3/TLS1: 28.9% top-1, 31.7% teacher-argmax agreement,
+  6.54 bits/token, 89,200 store keys — PROOF.md P2); the current-era pins live in the PROOF.md
+  P2/P3 era notes and `baseline_kappa.json`. Gate C compares the graph against this baseline
+  before replacement.
 
 ## Recent Architecture & Engine Additions (Epic #201)
 

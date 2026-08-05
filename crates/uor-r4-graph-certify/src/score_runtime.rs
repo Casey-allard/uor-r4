@@ -82,10 +82,12 @@
 //!   store argmax. Every scored candidate receives one root-prior contribution
 //!   before its residual, with the baked smoothing floor for absent tokens.
 //! - **EXCT precedence (Rule 2)**: the existing prefix probe from
-//!   `runtime::predict_witness_plain` (deepest populated prefix). Total
+//!   `runtime::predict_witness_plain` (deepest populated prefix). A
+//!   resolution at the FULL graded code (level == STAGES, #234) with total
 //!   evidence ≥ [`EXCT_SUPPORT_MIN`] ⇒ `S(v) = B(v) + ΔX(X,v)` over the
-//!   admitted local entries, graph candidate generation skipped; below the
-//!   gate the probe is recorded (admitted 0) and Rule 1 decides.
+//!   admitted local entries, graph candidate generation skipped; a
+//!   below-full-depth resolution or a total below the gate is recorded
+//!   (admitted 0) and Rule 1 decides.
 //! - **Status**: every prediction reports exactly one [`ScoreStatus`] —
 //!   `ExactContext` (Rule 2 fired), `Graph` (Rule 1 with a non-empty
 //!   selected chain), `Novel` (Rule 1 with no covered chain — Phase 5

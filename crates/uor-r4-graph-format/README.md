@@ -13,8 +13,14 @@ version gate).
 
 - **Newtypes** (`types.rs`): `NodeId`, `SectionOffset`, `TokenId`, `ScoreQ`
   (Q16.16 carrier), `Depth`, `Radius`, `ArtifactCid`, `SectionId` with the
-  section inventory (HEAD/CODE/NODE/EDGE/ROUT/EMIT/EXCT/PROV/CERT/PTCH/SECT)
-  and mandatory/optional classification.
+  section inventory (HEAD/CODE/NODE/EDGE/ROUT/EMIT/EXCT/PROV/CERT/PTCH/SECT/
+  RTNX plus the optional-bit extensions FMM/NGRAM/FWDA) and
+  mandatory/optional classification.
+- **Optional context/anchor rows** (`ngram.rs`, `fwda.rs`): borrowed packed
+  NGRAM context rows (bigram/trigram keys; the root prior stays the unigram
+  row in EMIT) and the FWDA forward-anchor rows for infill serving
+  (issue #399; keyed by lookahead distance + next-anchor token, entries are
+  raw counts quantized at load time).
 - **Stage-1 structural validation** (`header.rs`, `view.rs`): magic, version,
   endianness marker, alignment, `total_len`, sorted non-overlapping
   section table, checked offset arithmetic, unknown-mandatory-section and

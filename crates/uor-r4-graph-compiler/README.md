@@ -8,7 +8,8 @@ This crate implements the offline compilation stages that cross-compile pinned H
 
 ## Key Components
 
-- **Observation Pipeline**: Content-addressed observation extraction with ChatML prompt formatting (`scenarios.rs` / `encode_chat_prompt`).
-- **Cover Induction**: Spherical K-means clustering over teacher representation spaces with calibrated overlapping region radii.
-- **Score & Residual Accumulation**: Pre-quantized fixed-point `ScoreQ` residual computation across resolution depths.
-- **Evaluation Harness**: Produces `instruction-eval.json` evaluation report envelopes carrying BLAKE3 CIDs (`tokenizer_cid`, `artifacts_cid`, `store_cid`) for Gate C certification.
+- **Observation Pipeline** (`observation.rs`, `observation_shards.rs`): Content-addressed observation extraction with deterministic shard spill/resume (ChatML prompt formatting lives in `uor-r4-graph-cli::scenarios`).
+- **Cover Induction** (`induction.rs`): Spherical K-means clustering over teacher representation spaces with calibrated overlapping region radii.
+- **Score & Residual Accumulation** (`residual.rs`, `pack.rs`): Pre-quantized fixed-point `ScoreQ` residual computation across resolution depths and R4G1 packing.
+
+The Gate C scoring harness and the `instruction-eval.json` evaluation report envelope are emitted by `uor-r4-graph-certify::score` and the root `evaluate-report` command, not by this crate.

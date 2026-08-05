@@ -121,6 +121,11 @@ score has meaning) or measured and removed. Its hard-coded token-id lists
 (determiners/prepositions) are the only explicit syntax mechanism in the
 system and should be superseded by §5.
 
+*Addendum 2026-08-05: resolved by measurement — the #400 A/B recorded the
+term as dead (0/1,998 executions on the surface that calls it) and it was
+removed in PR #410; `cayley_dickson.rs` remains in the crate without serving
+callers.*
+
 ## 8. Program and gates
 
 | track | issue | gate |
@@ -134,6 +139,13 @@ system and should be superseded by §5.
 
 Scoring-term additions to the serving stack are a measured dead end and are
 out of scope for this program.
+
+*Addendum 2026-08-05 (issue records are authoritative): the CD-term-hygiene
+gate closed as removal (#400/#410). The forward-anchor track landed as #399
+(PRs #414–#418): the optional FWDA section plus `score_candidates_infill`,
+with anchors-as-inputs (A-mode) measured positive on the live slice and the
+standalone two-pass B-mode refuted by two falsifiers (Gate C arms for
+true/self/gated/draft/strict anchors, report schema 21).*
 
 ## 9. Governance
 

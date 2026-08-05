@@ -40,8 +40,10 @@ landed: the R4G1 packed artifact format with two-stage validation
 observation pipeline (content-addressed sample IDs, deterministic shard
 spill/resume), multiresolution cover induction (spherical k-means with
 calibrated overlapping memberships), semantic transitions + reverse indexes,
-ScoreQ fixed-point residuals, and the executable proof model
-(`crates/uor-r4-proof-model`). CI runs fmt/clippy/tests/no_std/deterministic-
+ScoreQ fixed-point residuals, packed NGRAM context rows (trigram → bigram
+backoff) plus the optional FWDA forward-anchor section with
+anchor-conditioned infill scoring (`score_candidates_infill`, issue #399),
+and the executable proof model (`crates/uor-r4-proof-model`). CI runs fmt/clippy/tests/no_std/deterministic-
 rebuild/audit/fuzz/wasm gates on every push (`.github/workflows/ci.yml`).
 
 There is an important boundary in the current workflow: compiling a Hugging
@@ -541,7 +543,7 @@ flowchart LR
     Runtime --> Apps["r4 ask / r4 chat / HTTP API"]
 ```
 
-The workspace has one public package and four internal implementation crates:
+The workspace has one public package and ten internal implementation crates:
 
 | Package | Responsibility |
 |---|---|
@@ -549,6 +551,12 @@ The workspace has one public package and four internal implementation crates:
 | [`uor-r4-core`](crates/uor-r4-core) | Core R⁴ mathematics and transformerless compiler/runtime/tokenizer/certifier |
 | [`uor-r4-router`](crates/uor-r4-router) | Manifold state, indexing, geometric routing, and router witnesses |
 | [`uor-r4-graph-format`](crates/uor-r4-graph-format) | Canonical R4G1 serialization, two-stage validation, and borrowed graph views |
+| [`uor-r4-graph-compiler`](crates/uor-r4-graph-compiler) | Offline graph-compiler stages: observation pipeline, cover induction, routing/residual packing |
+| [`uor-r4-graph-certify`](crates/uor-r4-graph-certify) | Offline certification and measurement: Gate C scoring harness (`score`), reference scorer (`score_runtime`), certificates, comparison |
+| [`uor-r4-graph-runtime`](crates/uor-r4-graph-runtime) | `no_std` allocation-free R4G1 graph runtime (engine, routing programs, packed kernels, patch chains) |
+| [`uor-r4-graph-cli`](crates/uor-r4-graph-cli) | `r4 transformerless …` CLI stage dispatch (convert-r4g1, scenarios, corpus tools) |
+| [`uor-r4-api`](crates/uor-r4-api) | Typed compile + engine library facade for downstream library consumers |
+| [`uor-r4-model-source`](crates/uor-r4-model-source) | Teacher forward-pass port (llama2.c-exact) and pinned Safetensors adapter |
 | [`uor-r4-proof-model`](crates/uor-r4-proof-model) | Executable graph-compiler proof obligations and proof-status matrix |
 
 The public [`tless_uor`](src/tless_uor.rs) module provides `TlessAxis`,

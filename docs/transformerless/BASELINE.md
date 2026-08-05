@@ -230,6 +230,15 @@ artifacts (deterministic across runs; debug profile).
   no replacement; the mode is recorded as the certificate reproducibility
   policy and CI Gate E now runs it on Linux and macOS.
 
+- **Baseline anchor moved 2026-08-04, fifth re-pin** (maintainer decision, issue #407,
+  PR #413): `CTX_SAMPLE` raised 6,000 → 50,000 after the #411 attribution sweep (era
+  self-consistency +1.4pp, sample size +0.5–0.7pp; `CTX_ITERS` unchanged at 6). Compiled
+  under canonical deterministic mode (`TLESS_CANONICAL_DETERMINISTIC=1`, the #265 D2 policy,
+  now required for re-pins); container κ moved `blake3:ef6a20f3…` → `blake3:8fbf3f68…`
+  (1,346,836 bytes, size unchanged). Token-side pins and the threshold vector are
+  byte-identical to the prior era by construction; only the context codebooks, class
+  signatures, and container moved. Pins: `baseline_kappa.json`.
+
 - **Phase C adoption evidence recorded 2026-08-01** (issue #335): the
   single-key/query-beam shape remains selected over write-time fan-out
   (34.7% / 39.0% / 8.0249 WB / 179,068 keys versus 20.3% / 22.7% / 8.1473 /

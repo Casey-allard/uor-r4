@@ -19,28 +19,26 @@ This crate hosts two things:
 
 | Module | Role |
 |---|---|
-| `teacher` | `TeacherOracle` two-surface trait (embedding + next-token oracle); llama-family safetensors adapter, optional trace surface |
 | `compiler` | Corpus pipeline, deterministic projection + sampled RVQ codebooks, thresholds, class signatures, TLA container emit/parse, span/byte-anchored observation records |
 | `runtime` | Mul-free integer kernel (`OpKernel` with op census, no multiply method), sign signatures, Hamming assignment, graded evidence store (TLS1), bounded top‑M membership, allocation-free generation |
-| `runtime_state` | Fixed-capacity multi-timescale state: live token state + reserved local/segment/session levels with Phase-8 update hooks |
 | `reference_state` | Reference `ActiveFrontier` + checked packed edge-range resolvers |
 | `transitions` | Forward semantic transitions + reverse indexes (Theorem 7 consistency) |
 | `convert_r4g1` | Migration converter: TLA/TLS1 artifacts → canonical R4G1 containers |
-| `observe` | Observation pipeline v2: content-addressed sample IDs, deterministic shard spill/resume, `observe` CLI |
-| `cover` | Multiresolution cover induction: spherical k-means, entropy-justified splits, calibrated radii, refinement/neighbor edges, R4G1 emission |
-| `score` | Phase-4 compiler: E_f transitions + reverse indexes, root priors + parent-relative emission residuals, scored R4G1 emission, Gate C harness |
-| `score_runtime` | Integer-only reference scorer (ScoreQ accumulation, no float/mul), bounded witness records + independent replay verifier; portable to wasm32 |
-| `certify` / `compare` | Teacher-fidelity certification and runtime comparison |
-| `certificate` / `performance_certificate` | Certificate schema (CIDs, claims, attestation) and bytes-read/cache/branch performance certificates |
 | `score_q` | `ScoreQ` Q16.16 fixed-point log-domain scores (mul-free add/sub) |
 | `resolution_status` | Supported / Boundary / BackedOff / Novel / Contradictory status |
-| `anti_degeneracy` | Semantic anti-degeneracy transformations and evaluation harness |
-| `predictive_sufficiency` | Rate-distortion / predictive-sufficiency reports by graph depth |
-| `fairness_provenance` | Bias amplification, rare-group erasure, provenance-deletion support |
 | `graph_patch` | Immutable content-addressed patch epochs and route translation |
-| `shortlist_evaluator` | Shortlist top‑M recall measurement vs the reference classifier |
 | `scenarios` | ChatML prompt wrappers (`format_instruct_chat_prompt`, `encode_chat_prompt`), byte-level BPE tokenizer export, scenario suite |
-| `command` | `r4 transformerless …` CLI dispatch |
+| `cd_space` / `endomorphism` / `lie_jordan` / `bott_fock` | Dormant Furey-plan substrate modules (see `docs/r4_furey_quantum_geometric_plan.md`, dated deferral record) |
+
+Modules that started here and moved out in the crate split:
+
+| Former module | Current home |
+|---|---|
+| `teacher` (`TeacherOracle`, llama-family adapters) | `uor-r4-model-source` |
+| `runtime_state` (fixed-capacity multi-timescale state) | `uor-r4-graph-runtime::runtime_state` |
+| `observe` / `cover` (observation pipeline, cover induction) | `uor-r4-graph-compiler` (`observation`, `induction`) |
+| `score` (Phase-4 compiler + Gate C harness), `score_runtime` (integer-only reference scorer), `certify` / `compare`, `certificate` / `performance_certificate`, `anti_degeneracy`, `predictive_sufficiency`, `fairness_provenance`, `shortlist_evaluator` | `uor-r4-graph-certify` |
+| `command` (`r4 transformerless …` CLI dispatch) | `uor-r4-graph-cli` |
 
 ## Runtime contract (normative)
 
@@ -62,8 +60,9 @@ in `docs/transformerless/INFERENCE_OPERATION_CONTRACT.md`.
   default; needs the stories15M checkpoint; re-pin helper `dump_baseline_kappa`)
 - `tests/allocation_census.rs` — allocation + op census on real artifacts
 - `tests/deterministic_rebuild_test.rs` — Gate E deterministic rebuild slice
-- `tests/convert_r4g1.rs`, `tests/observation_anchors.rs`, `tests/observe.rs`,
-  `tests/transitions_test.rs`, … — feature suites
+- `tests/convert_r4g1.rs`, `tests/graph_patch_test.rs`,
+  `tests/transitions_test.rs`, … — feature suites (the observation-pipeline
+  suites moved to `uor-r4-graph-compiler` with the crate split)
 
 ## Layout notes
 
