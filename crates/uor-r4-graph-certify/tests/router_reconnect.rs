@@ -17,6 +17,9 @@
 //!
 //! - ARM A (ceiling): the true corpus token.
 //! - ARM B (router): the ROUTER-selected token (mapping below).
+//! - ARM B2 (router, draft context): identical to ARM B except the
+//!   router's query context is DRAFT tokens, not true tokens — the
+//!   non-oracle arm (details below).
 //! - ARM C (null): the construction-split unigram-argmax token.
 //! - ARM D (null): ARM B's tokens rotated to wrong positions by a
 //!   fixed half-length rotation within each story — the issue-273
@@ -33,7 +36,10 @@
 //! ARM B is a POSITIVE signal if and only if its free-position top-one
 //! exceeds ARM C by at least two percentage points AND exceeds ARM D
 //! (routed beats shuffled — the issue-273 claim). Anything less is a
-//! recorded negative.
+//! recorded negative. The SAME rule is applied independently to ARM B2
+//! (against the same ARM C and ARM D): B2 positive means the router
+//! supplies useful anchors under the context a real generation would
+//! actually have.
 //!
 //! # Router-to-token mapping (the design under measurement)
 //!
@@ -61,14 +67,30 @@
 //! issue-255 memory-lift methodology), the stored construction context
 //! with the highest cosine is retrieved, and the router-selected token
 //! is that context's majority anchor continuation (ties to the lowest
-//! token id). Limitations, stated up front: (a) the query context is
-//! oracle (true held-out tokens, including free positions the engine
-//! must later fill) — ARM B is therefore an upper bound on pure-
-//! generation router anchor supply; (b) retrieval is cosine over the
+//! token id). Limitations, stated up front: (a) ARM B's query context
+//! is oracle (true held-out tokens, including free positions the
+//! engine must later fill) — ARM B is therefore an upper bound on
+//! pure-generation router anchor supply, and ARM B2 exists precisely
+//! to measure without that oracle; (b) retrieval is cosine over the
 //! stored content-derived state vectors (the #255 A/B methodology)
 //! rather than `get_top_resonances_native`, whose per-item allocation
 //! makes it infeasible at this scale — cosine over the same stored
 //! vectors is the content-bearing core of that path.
+//!
+//! # ARM B2: draft query context (the non-oracle arm)
+//!
+//! In the deployable pipeline no true held-out tokens exist at query
+//! time, and the anchors themselves do not exist until the router
+//! supplies them. ARM B2 therefore builds each story's query context
+//! the way a real generation would have it: a DRAFT stream produced by
+//! one base-scorer pass — `infill_fill` on a skeleton whose only given
+//! is the seed token (no anchors, so the forward channel is inert and
+//! the pass is plain greedy base scoring). At each anchor position the
+//! router is queried with the draft's preceding CTX tokens instead of
+//! the true ones; everything else (rendering, retrieval, majority
+//! continuation, fallbacks) is byte-identical to ARM B. When a draft
+//! context happens to equal the oracle context the query is shared,
+//! and the report prints how often that happened.
 //!
 //! # CAPS (documented, no silent truncation)
 //!
@@ -148,6 +170,33 @@ fn cosine(a: &[f64], b: &[f64], norm_a: f64, norm_b: f64) -> f64 {
 
 fn norm(v: &[f64]) -> f64 {
     v.iter().map(|x| x * x).sum::<f64>().sqrt()
+}
+
+/// One anchor query through the router's own indexing surface (scratch
+/// identity, the issue-255 pattern): returns the query-vector id, or
+/// the fallback token when the router stored nothing for the text.
+/// Shared by ARM B (oracle context) and ARM B2 (draft context) so the
+/// two arms differ ONLY in the context tokens.
+fn issue_query(
+    router: &mut UorR4Router,
+    query_vectors: &mut Vec<Vec<f64>>,
+    text: &str,
+    fallback_token: u32,
+    fallback_count: &mut u64,
+) -> Result<u32, usize> {
+    let scratch = format!("user:q{}", query_vectors.len());
+    router.index_sentence(text, &scratch);
+    match router.corpus_items_for(&scratch).first() {
+        Some(item) => {
+            let id = query_vectors.len();
+            query_vectors.push(item.state_vector.clone());
+            Err(id)
+        }
+        None => {
+            *fallback_count += 1;
+            Ok(fallback_token)
+        }
+    }
 }
 
 /// Per-arm grading: anchor accuracy plus free-position top-one by
@@ -349,37 +398,72 @@ fn router_reconnect_m_r1() {
         indexed
     );
 
-    // ---- held-out anchor queries (oracle context, module docs) ----
+    // ---- ARM B2 draft streams: one base-scorer pass per story ----
+    // Only the seed is given, so every skeleton slot past it is free,
+    // no anchor is within the FWDA lookahead range anywhere, and the
+    // fill is plain greedy base scoring — exactly the tokens a real
+    // generation would hold before any anchors exist (module docs).
+    let drafts: Vec<Vec<u32>> = held_streams
+        .iter()
+        .map(|(_, stream)| {
+            let mut skeleton: Vec<Option<u32>> = vec![None; stream.len()];
+            skeleton[0] = Some(stream[0]);
+            infill_fill(&scorer, &artifacts, &rotations, &skeleton).expect("draft fill")
+        })
+        .collect();
+
+    // ---- held-out anchor queries ----
     // Phase one: content-derived query vectors through the router's own
     // indexing surface (scratch identities, the issue-255 pattern).
-    // query_slots[story][anchor] = Ok(token) fallback or Err(query id).
+    // query_slots*[story][anchor] = Ok(token) fallback or Err(query id).
+    // ARM B queries with the true (oracle) context, ARM B2 with the
+    // draft context; identical draft contexts share the oracle query.
     let mut query_vectors: Vec<Vec<f64>> = Vec::new();
     let mut query_slots: Vec<Vec<Result<u32, usize>>> = Vec::new();
+    let mut query_slots_b2: Vec<Vec<Result<u32, usize>>> = Vec::new();
     let mut fallback_short_context = 0u64;
-    for (_, stream) in &held_streams {
+    let mut draft_ctx_total = 0u64;
+    let mut draft_ctx_equal_oracle = 0u64;
+    for ((_, stream), draft) in held_streams.iter().zip(&drafts) {
         let mut slots = Vec::new();
+        let mut slots_b2 = Vec::new();
         for t in (STRIDE..stream.len()).step_by(STRIDE) {
             if t >= CTX {
-                let scratch = format!("user:q{}", query_vectors.len());
-                router.index_sentence(&render_context(&stream[t - CTX..t]), &scratch);
-                let items = router.corpus_items_for(&scratch);
-                match items.first() {
-                    Some(item) => {
-                        slots.push(Err(query_vectors.len()));
-                        query_vectors.push(item.state_vector.clone());
-                    }
-                    None => {
-                        fallback_short_context += 1;
-                        slots.push(Ok(unigram_pred));
-                    }
+                let oracle_ctx = render_context(&stream[t - CTX..t]);
+                let draft_ctx = render_context(&draft[t - CTX..t]);
+                let oracle_slot = issue_query(
+                    &mut router,
+                    &mut query_vectors,
+                    &oracle_ctx,
+                    unigram_pred,
+                    &mut fallback_short_context,
+                );
+                slots.push(oracle_slot);
+                draft_ctx_total += 1;
+                if draft_ctx == oracle_ctx {
+                    draft_ctx_equal_oracle += 1;
+                    slots_b2.push(oracle_slot);
+                } else {
+                    slots_b2.push(issue_query(
+                        &mut router,
+                        &mut query_vectors,
+                        &draft_ctx,
+                        unigram_pred,
+                        &mut fallback_short_context,
+                    ));
                 }
             } else {
-                fallback_short_context += 1;
+                fallback_short_context += 2;
                 slots.push(Ok(unigram_pred));
+                slots_b2.push(Ok(unigram_pred));
             }
         }
         query_slots.push(slots);
+        query_slots_b2.push(slots_b2);
     }
+    println!(
+        "draft contexts: {draft_ctx_equal_oracle} of {draft_ctx_total} equal the oracle context"
+    );
 
     // Phase two: cosine retrieval over the stored construction vectors,
     // deterministic (items sorted by sentence; strict-greater keeps the
@@ -430,21 +514,23 @@ fn router_reconnect_m_r1() {
         routed_tokens.len()
     );
 
-    // ---- fill and grade the four arms ----
+    // ---- fill and grade the arms ----
     let mut arm_true = Arm::new("ARM A true-anchor");
     let mut arm_router = Arm::new("ARM B router-anchor");
+    let mut arm_router_draft = Arm::new("ARM B2 router-draft");
     let mut arm_unigram = Arm::new("ARM C unigram-anchor");
     let mut arm_shuffled = Arm::new("ARM D shuffled-router");
     let mut single_anchor_stories = 0u64;
-    for ((_, stream), slots) in held_streams.iter().zip(&query_slots) {
+    let resolve = |slot: &Result<u32, usize>| match slot {
+        Ok(token) => *token,
+        Err(query) => routed_tokens[*query],
+    };
+    for (((_, stream), slots), slots_b2) in
+        held_streams.iter().zip(&query_slots).zip(&query_slots_b2)
+    {
         let truth = stream.as_slice();
-        let anchors_b: Vec<u32> = slots
-            .iter()
-            .map(|slot| match slot {
-                Ok(token) => *token,
-                Err(query) => routed_tokens[*query],
-            })
-            .collect();
+        let anchors_b: Vec<u32> = slots.iter().map(resolve).collect();
+        let anchors_b2: Vec<u32> = slots_b2.iter().map(resolve).collect();
         // Fixed half-length rotation (the issue-273 falsifier control);
         // identity on stories with fewer than two anchors (counted).
         let m = anchors_b.len();
@@ -470,11 +556,13 @@ fn router_reconnect_m_r1() {
         };
         let sk_a = skeleton_for(&|_, index| truth[index]);
         let sk_b = skeleton_for(&|slot, _| anchors_b[slot]);
+        let sk_b2 = skeleton_for(&|slot, _| anchors_b2[slot]);
         let sk_c = skeleton_for(&|_, _| unigram_pred);
         let sk_d = skeleton_for(&|slot, _| anchors_d[slot]);
         for (arm, skeleton) in [
             (&mut arm_true, &sk_a),
             (&mut arm_router, &sk_b),
+            (&mut arm_router_draft, &sk_b2),
             (&mut arm_unigram, &sk_c),
             (&mut arm_shuffled, &sk_d),
         ] {
@@ -488,24 +576,32 @@ fn router_reconnect_m_r1() {
         "router-reconnect M-R1 (#421): stride {STRIDE}, context {CTX} tokens, \
          {single_anchor_stories} stories with fewer than two anchors (shuffle = identity there)"
     );
-    for arm in [&arm_true, &arm_router, &arm_unigram, &arm_shuffled] {
+    for arm in [
+        &arm_true,
+        &arm_router,
+        &arm_router_draft,
+        &arm_unigram,
+        &arm_shuffled,
+    ] {
         arm.report();
     }
 
-    // ---- pre-declared exit rule (module docs) ----
-    let b = arm_router.free_top1();
+    // ---- pre-declared exit rule (module docs), per router arm ----
     let c_null = arm_unigram.free_top1();
     let d = arm_shuffled.free_top1();
-    let positive = b >= c_null + 2.0 && b > d;
-    println!(
-        "exit rule (#421 M-R1): ARM B {b:.2}% vs ARM C {c_null:.2}% ({:+.2}pp, need at least \
-         two) and vs ARM D {d:.2}% ({:+.2}pp, need positive) -> {}",
-        b - c_null,
-        b - d,
-        if positive {
-            "POSITIVE signal"
-        } else {
-            "recorded NEGATIVE"
-        }
-    );
+    for (label, arm) in [("ARM B", &arm_router), ("ARM B2", &arm_router_draft)] {
+        let b = arm.free_top1();
+        let positive = b >= c_null + 2.0 && b > d;
+        println!(
+            "exit rule (#421 M-R1) {label}: {b:.2}% vs ARM C {c_null:.2}% ({:+.2}pp, need at \
+             least two) and vs ARM D {d:.2}% ({:+.2}pp, need positive) -> {}",
+            b - c_null,
+            b - d,
+            if positive {
+                "POSITIVE signal"
+            } else {
+                "recorded NEGATIVE"
+            }
+        );
+    }
 }
