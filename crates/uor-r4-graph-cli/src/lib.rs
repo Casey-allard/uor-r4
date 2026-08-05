@@ -1254,6 +1254,10 @@ pub fn score_command(args: &[String]) -> Result<(), String> {
     row("1+2 × fwd SELF-anchor (B′)", &gate_c.rule12_fwd_self_fused);
     row("1+2 × fwd GATED self (B′)", &gate_c.rule12_fwd_gated_fused);
     row("1+2 × fwd DRAFT-gated (2p)", &gate_c.rule12_fwd_draft_fused);
+    row(
+        "1+2 × fwd STRICT-gated (2p)",
+        &gate_c.rule12_fwd_strict_fused,
+    );
     let live_line = |name: &str, fused: &score::GateCMetrics, base: &score::GateCMetrics| {
         println!(
             "  {name} live slice ({} positions): fused {:.1}% vs rule 1+2 {:.1}% | bits {:.4} vs {:.4}",
@@ -1283,6 +1287,11 @@ pub fn score_command(args: &[String]) -> Result<(), String> {
         "draft-gated",
         &gate_c.rule12_fwd_draft_fused_live,
         &gate_c.rule12_on_fwd_draft_live,
+    );
+    live_line(
+        "strict-gated",
+        &gate_c.rule12_fwd_strict_fused_live,
+        &gate_c.rule12_on_fwd_strict_live,
     );
     println!(
         "  predicted-anchor accuracy: {:.1}% ({}/{})",
@@ -1329,6 +1338,10 @@ pub fn score_command(args: &[String]) -> Result<(), String> {
     win_loss_row(
         "win/loss draft vs 1+2 live",
         &gate_c.win_loss.fwd_draft_vs_rule12_live,
+    );
+    win_loss_row(
+        "win/loss strict vs 1+2 live",
+        &gate_c.win_loss.fwd_strict_vs_rule12_live,
     );
     println!(
         "  witness replay: {}/{} ok",

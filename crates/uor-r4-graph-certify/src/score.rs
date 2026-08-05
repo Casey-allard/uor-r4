@@ -1927,6 +1927,9 @@ pub struct WinLossReport {
     pub fwd_gated_vs_rule12_live: WinLoss,
     /// #399 falsifier 1: DRAFT-anchor gated arm on its live slice.
     pub fwd_draft_vs_rule12_live: WinLoss,
+    /// #399 rescue variant: STRICT-gated draft arm on its live slice
+    /// (every draft step ExactContext, not just the final one).
+    pub fwd_strict_vs_rule12_live: WinLoss,
 }
 
 /// Candidate-set recall, reported separately from selected-token
@@ -2191,6 +2194,16 @@ pub struct GateCOutcome {
     pub rule12_fwd_draft_fused: GateCMetrics,
     pub rule12_fwd_draft_fused_live: GateCMetrics,
     pub rule12_on_fwd_draft_live: GateCMetrics,
+    /// #399 rescue variant (responding to the falsifier-1 negative:
+    /// draft-gated live 40.4% vs 41.3% while the teacher-forced gated
+    /// arm measured 45.0% vs 39.4%): the STRICT-gated draft scorer —
+    /// identical draft, anchor, and fusion, but trusted only where EVERY
+    /// intermediate greedy step resolved as ExactContext (drift enters
+    /// through uncertain intermediate steps). Its live slice is a subset
+    /// of the draft arm's.
+    pub rule12_fwd_strict_fused: GateCMetrics,
+    pub rule12_fwd_strict_fused_live: GateCMetrics,
+    pub rule12_on_fwd_strict_live: GateCMetrics,
     /// #399 B′: predicted-anchor accuracy on the anchor-reachable
     /// population (numerator/denominator + rate).
     pub anchor_hat_population: usize,
@@ -2467,6 +2480,14 @@ pub fn evaluate_gate_c(
     let mut draft_live_bits = 0f64;
     let mut rule12_draft_live_hits = 0u64;
     let mut rule12_draft_live_bits = 0f64;
+    // #399 rescue variant: STRICT-gated draft-arm accumulators.
+    let mut hits_fwd_strict = 0u64;
+    let mut bits_fwd_strict = 0f64;
+    let mut strict_live_positions = 0usize;
+    let mut strict_live_hits = 0u64;
+    let mut strict_live_bits = 0f64;
+    let mut rule12_strict_live_hits = 0u64;
+    let mut rule12_strict_live_bits = 0f64;
     // Per-status Rule 1+2 accumulators: [ExactContext, Graph, Novel].
     let mut status_positions = [0usize; 3];
     let mut status_hits = [0u64; 3];
@@ -2801,6 +2822,20 @@ pub fn evaluate_gate_c(
                 row.hits[2],
             );
         }
+        hits_fwd_strict += u64::from(row.hit_fwd_strict);
+        bits_fwd_strict += row.bits_fwd_strict;
+        if row.fwd_strict_live {
+            strict_live_positions += 1;
+            strict_live_hits += u64::from(row.hit_fwd_strict);
+            strict_live_bits += row.bits_fwd_strict;
+            rule12_strict_live_hits += u64::from(row.hits[2]);
+            rule12_strict_live_bits += row.bits[2];
+            accumulate_win_loss(
+                &mut outcome.win_loss.fwd_strict_vs_rule12_live,
+                row.hit_fwd_strict,
+                row.hits[2],
+            );
+        }
         if let Some(correct) = row.anchor_hat_correct {
             anchor_hat_population += 1;
             anchor_hat_correct_count += u64::from(correct);
@@ -2830,6 +2865,7 @@ pub fn evaluate_gate_c(
     outcome.rule12_fwd_self_fused = metrics(hits_fwd_self, bits_fwd_self);
     outcome.rule12_fwd_gated_fused = metrics(hits_fwd_gated, bits_fwd_gated);
     outcome.rule12_fwd_draft_fused = metrics(hits_fwd_draft, bits_fwd_draft);
+    outcome.rule12_fwd_strict_fused = metrics(hits_fwd_strict, bits_fwd_strict);
     let live_metrics = |hits: u64, bits: f64, live_n: usize| GateCMetrics {
         positions: live_n,
         top1_agreement: if live_n == 0 {
@@ -2866,6 +2902,13 @@ pub fn evaluate_gate_c(
         rule12_draft_live_hits,
         rule12_draft_live_bits,
         draft_live_positions,
+    );
+    outcome.rule12_fwd_strict_fused_live =
+        live_metrics(strict_live_hits, strict_live_bits, strict_live_positions);
+    outcome.rule12_on_fwd_strict_live = live_metrics(
+        rule12_strict_live_hits,
+        rule12_strict_live_bits,
+        strict_live_positions,
     );
     outcome.anchor_hat_population = anchor_hat_population;
     outcome.anchor_hat_correct = anchor_hat_correct_count as usize;
@@ -3210,6 +3253,13 @@ struct GateCRow {
     hit_fwd_draft: bool,
     bits_fwd_draft: f64,
     fwd_draft_live: bool,
+    /// #399 rescue variant: the STRICT-gated draft arm — same draft
+    /// loop, anchor, and fusion as the draft arm, but the gate requires
+    /// EVERY intermediate greedy step (final anchor step included) to
+    /// have resolved as ExactContext, not just the final one.
+    hit_fwd_strict: bool,
+    bits_fwd_strict: f64,
+    fwd_strict_live: bool,
 }
 
 struct GateCContext<'a> {
@@ -3691,6 +3741,9 @@ fn evaluate_gate_c_row(
     let mut fwd_draft_live = false;
     let mut fwd_draft_selected = rule12.selected;
     let mut bits_fwd_draft = bits[2];
+    let mut fwd_strict_live = false;
+    let mut fwd_strict_selected = rule12.selected;
+    let mut bits_fwd_strict = bits[2];
     if !target_pos.is_multiple_of(M2_STRIDE) {
         let lookahead = target_pos.next_multiple_of(M2_STRIDE) - target_pos;
         let anchor_position = position + lookahead;
@@ -3768,6 +3821,12 @@ fn evaluate_gate_c_row(
             let mut pending = rule12.selected;
             let mut draft_anchor = pending;
             let mut draft_gate = false;
+            // Rescue variant (falsifier-1 negative: draft-gated live
+            // 40.4% vs 41.3% — drift kills the lift): drift enters
+            // through UNCERTAIN intermediate steps, so the STRICT gate
+            // additionally requires every draft step — not just the
+            // final anchor step — to resolve as ExactContext.
+            let mut draft_all_exact = true;
             for _ in 0..lookahead {
                 draft_push(
                     &mut draft_window,
@@ -3792,6 +3851,7 @@ fn evaluate_gate_c_row(
                 pending = draft_outcome.selected;
                 draft_anchor = pending;
                 draft_gate = draft_outcome.witness.status == ScoreStatus::ExactContext;
+                draft_all_exact &= draft_gate;
             }
             if draft_gate {
                 if let Some(fwd_row) = context.fwd_table.get(&(lookahead, draft_anchor)) {
@@ -3800,6 +3860,15 @@ fn evaluate_gate_c_row(
                         fuse_forward_arm(context.scorer_with_exct, &rule12, fwd_row, next);
                     fwd_draft_selected = selected;
                     bits_fwd_draft = fused_bits;
+                    // The strict slice is a subset of the draft slice
+                    // (the all-steps gate implies the final-step gate),
+                    // and the fused selection is identical there — same
+                    // draft anchor, same row, same base.
+                    if draft_all_exact {
+                        fwd_strict_live = true;
+                        fwd_strict_selected = selected;
+                        bits_fwd_strict = fused_bits;
+                    }
                 }
             }
         }
@@ -3808,6 +3877,7 @@ fn evaluate_gate_c_row(
     let hit_fwd_self = fwd_self_selected == teacher_argmax;
     let hit_fwd_gated = fwd_gated_selected == teacher_argmax;
     let hit_fwd_draft = fwd_draft_selected == teacher_argmax;
+    let hit_fwd_strict = fwd_strict_selected == teacher_argmax;
 
     let witness_replay_failed = index < context.config.witness_sample
         && verify_witness_replay(
@@ -3872,6 +3942,9 @@ fn evaluate_gate_c_row(
         hit_fwd_draft,
         bits_fwd_draft,
         fwd_draft_live,
+        hit_fwd_strict,
+        bits_fwd_strict,
+        fwd_strict_live,
     })
 }
 
@@ -3919,7 +3992,11 @@ fn evaluate_gate_c_row(
 /// the #399 falsifier-1 DRAFT-anchor gated arm (the
 /// `rule12_fwd_draft_fused` rows and the draft win/loss cross-tab),
 /// where the anchor is predicted from the engine's own greedy draft
-/// rather than teacher-forced context.
+/// rather than teacher-forced context; schema twenty-one is the #399
+/// rescue variant, the STRICT-gated draft arm (the
+/// `rule12_fwd_strict_fused` rows and the strict win/loss cross-tab):
+/// the same draft, trusted only where every intermediate greedy step
+/// resolved as ExactContext.
 #[derive(Debug, Clone, Serialize)]
 pub struct ScoreReport {
     pub schema: u32,
@@ -4115,7 +4192,7 @@ pub fn build_score_report_with_quality_profile(
         can_measure_generalization: strict_exct_miss_rate >= MIN_EXCT_MISS_RATE_FOR_GATE_C,
     };
     ScoreReport {
-        schema: 20,
+        schema: 21,
         inputs,
         config: ScoreReportConfig {
             transition_out_degree: config.transition_out_degree,
