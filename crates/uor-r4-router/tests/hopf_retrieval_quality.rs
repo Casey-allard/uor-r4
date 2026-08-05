@@ -98,11 +98,63 @@
 //! exit outcome. Structural invariants gate; direction prints (the
 //! \#423 convention).
 //!
+//! # Redesign candidates (issue #422 phase 2, `R4_HOPF_REDESIGN=1`)
+//!
+//! The phase-1 run recorded the pre-declared NEGATIVE: the shipped
+//! signed projection is content-BLIND (a fixed Blake3 direction per
+//! block), so sectors spread (456/512) but carry no retrieval
+//! structure (filtered MRR 0.0045), while the sign-lossy magnitude
+//! shim collapses occupancy (16/512) yet retrieves better (0.0743)
+//! because block norms weakly correlate with content. Setting
+//! `R4_HOPF_REDESIGN=1` additionally measures CONTENT-ALIGNED
+//! candidates — can a projection get both spread and retrieval value?
+//! With the flag unset the original three-arm measurement is
+//! unchanged. Every candidate is a test-local shim (the arm B
+//! pattern) fed the identical 512-d Hopf inputs and binned through
+//! the same production `assign_sector_hopf_transport_scalar`; same
+//! metrics, same caps.
+//!
+//! - ARM E — data-PCA: per 128-d block the direction is the top
+//!   principal component of that block across the CONSTRUCTION-split
+//!   stored windows' Hopf inputs (mean-centered covariance).
+//!   Deterministic, no RNG: sequential accumulation in window order,
+//!   power iteration from the uniform all-ones start vector for a
+//!   fixed 64 iterations (convergence is not asserted — determinism,
+//!   not optimality, is the requirement; a degenerate `< 1e-12`
+//!   iterate keeps the previous vector), sign canonicalized so the
+//!   largest-magnitude coordinate (lowest index on exact ties, via
+//!   strict `>`) is positive. Component = signed dot of the raw block
+//!   with the PC direction; the 4-vector is normalized exactly as the
+//!   shipped code (same `denom < 1e-12` fallback). Probe queries
+//!   reuse the construction-estimated directions — no held-out
+//!   leakage.
+//! - ARM F — magnitude+sign hybrid: component = the pre-#306 block
+//!   L2 norm (arm B's quantity) SIGNED by the block's dot with the
+//!   \#306 Blake3 direction (arm A's quantity; a zero dot counts
+//!   positive), 4-vector normalized as shipped. Keeps the magnitude
+//!   information arm B retrieves with and adds one content-derived
+//!   sign bit per block for spread.
+//! - ARM G — mean-direction: component = dot of the raw block with
+//!   the L2-normalized construction mean of that block (a `< 1e-12`
+//!   mean norm falls back to a zero component), 4-vector normalized
+//!   as shipped.
+//!
+//! Per-candidate pre-declared rule (same margins as phase 1): the
+//! candidate is CONFIRMED iff its sector-filtered MRR is at least arm
+//! B's plus 0.020 AND exceeds arm C's (shuffled), both measured in
+//! the same run at the same caps. Occupancy is reported alongside —
+//! the goal is beating arm B on MRR while occupying substantially
+//! more than arm B's sectors.
+//!
 //! Run (natural stack):
 //!   R4_CORPUS_META=/tmp/c_meta.bin R4_CORPUS_RECS=/tmp/c_recs.bin \
 //!   R4_STORIES=/tmp/wiki-obs/stories.jsonl \
 //!   cargo test --release -p uor-r4-router --test hopf_retrieval_quality -- \
 //!   --ignored --nocapture
+//! Add R4_HOPF_REDESIGN=1 for the phase-2 candidate arms.
+
+/// A candidate block-projection shim: 512-d Hopf input to a 4-vector.
+type ProjectionFn = Box<dyn Fn(&[f64]) -> Vec<f64>>;
 
 use std::collections::{BTreeMap, HashMap, HashSet};
 
@@ -192,6 +244,150 @@ fn magnitude_only_projection(state_vector: &[f64]) -> Vec<f64> {
     } else {
         w.iter().map(|value| value / denom).collect()
     }
+}
+
+/// The shipped 4-vector normalization, shared by the redesign
+/// candidates: L2-normalize the four components with the same
+/// `denom < 1e-12` fallback `get_state_4d_projection` uses.
+fn normalize4(components: [f64; 4]) -> Vec<f64> {
+    let denom = components
+        .iter()
+        .map(|value| value * value)
+        .sum::<f64>()
+        .sqrt();
+    if denom < 1e-12 {
+        vec![0.5, 0.5, 0.5, 0.5]
+    } else {
+        components.iter().map(|value| value / denom).collect()
+    }
+}
+
+/// Test-local reproduction of the #306 Blake3 probe direction for one
+/// 128-d block (`hopf_signed_projection_component`'s unit direction):
+/// byte `index % 32` of the domain-separated digest mapped to
+/// `[-0.5, 0.5]`, L2-normalized. Exact by construction — same domain
+/// string, same little-endian block tag, same probe map.
+fn blake3_direction(block: usize) -> [f64; 128] {
+    let mut hasher = blake3::Hasher::new();
+    hasher.update(b"uor-r4 issue-306 signed-hopf-projection");
+    hasher.update(&(block as u64).to_le_bytes());
+    let digest = hasher.finalize();
+    let bytes = digest.as_bytes();
+    let mut probe = [0.0f64; 128];
+    for (index, value) in probe.iter_mut().enumerate() {
+        *value = (bytes[index % bytes.len()] as f64 / 255.0) - 0.5;
+    }
+    let norm = probe.iter().map(|x| x * x).sum::<f64>().sqrt();
+    for value in probe.iter_mut() {
+        *value /= norm;
+    }
+    probe
+}
+
+/// ARM F shim (module docs): per block, the pre-#306 L2 magnitude
+/// signed by the block's dot with the #306 Blake3 direction; a zero
+/// dot counts positive (deterministic tie rule). Normalized as
+/// shipped.
+fn magnitude_sign_projection(state_vector: &[f64], dirs: &[[f64; 128]; 4]) -> Vec<f64> {
+    let mut components = [0.0f64; 4];
+    for (block, (component, dir)) in components.iter_mut().zip(dirs).enumerate() {
+        let slice = &state_vector[block * 128..(block + 1) * 128];
+        let magnitude = slice.iter().map(|x| x * x).sum::<f64>().sqrt();
+        let dot: f64 = slice.iter().zip(dir).map(|(x, d)| x * d).sum();
+        *component = if dot < 0.0 { -magnitude } else { magnitude };
+    }
+    normalize4(components)
+}
+
+/// ARM E / ARM G shim (module docs): per block, the signed dot of the
+/// raw block with a per-block unit direction. Normalized as shipped.
+fn directional_projection(state_vector: &[f64], dirs: &[[f64; 128]; 4]) -> Vec<f64> {
+    let mut components = [0.0f64; 4];
+    for (block, (component, dir)) in components.iter_mut().zip(dirs).enumerate() {
+        let slice = &state_vector[block * 128..(block + 1) * 128];
+        *component = slice.iter().zip(dir).map(|(x, d)| x * d).sum();
+    }
+    normalize4(components)
+}
+
+/// Per-block construction statistics for arms G and E: the
+/// L2-normalized mean direction and the top principal component of
+/// the mean-centered covariance, estimated from the construction
+/// windows' Hopf inputs only. Fully deterministic (module docs): all
+/// sums accumulate sequentially in window order, the power iteration
+/// starts from the uniform all-ones unit vector and runs a fixed 64
+/// iterations, and the eigenvector sign is canonicalized on the
+/// largest-magnitude coordinate (strict `>`, so the lowest index wins
+/// exact ties). No RNG anywhere. Returns `(mean_dirs, pc_dirs)`.
+#[allow(clippy::type_complexity)]
+fn construction_block_directions(inputs: &[Vec<f64>]) -> ([[f64; 128]; 4], [[f64; 128]; 4]) {
+    let n = inputs.len();
+    assert!(n > 1, "PCA premise: at least two construction vectors");
+    let mut mean_dirs = [[0.0f64; 128]; 4];
+    let mut pc_dirs = [[0.0f64; 128]; 4];
+    for (block, (mean_slot, pc_slot)) in mean_dirs.iter_mut().zip(pc_dirs.iter_mut()).enumerate() {
+        let offset = block * 128;
+        let mut mu = [0.0f64; 128];
+        for input in inputs {
+            for (m, x) in mu.iter_mut().zip(&input[offset..offset + 128]) {
+                *m += x;
+            }
+        }
+        for m in mu.iter_mut() {
+            *m /= n as f64;
+        }
+        // Mean-centered second-moment sums (the covariance up to the
+        // 1/N scale, which is irrelevant to the eigenvector).
+        let mut cov = vec![[0.0f64; 128]; 128];
+        let mut centered = [0.0f64; 128];
+        for input in inputs {
+            for (d, (x, m)) in centered
+                .iter_mut()
+                .zip(input[offset..offset + 128].iter().zip(&mu))
+            {
+                *d = x - m;
+            }
+            for (row, &di) in cov.iter_mut().zip(&centered) {
+                for (entry, &dj) in row.iter_mut().zip(&centered) {
+                    *entry += di * dj;
+                }
+            }
+        }
+        // Deterministic power iteration (module docs).
+        let mut v = [1.0 / (128.0f64).sqrt(); 128];
+        for _ in 0..64 {
+            let mut w = [0.0f64; 128];
+            for (wi, row) in w.iter_mut().zip(&cov) {
+                *wi = row.iter().zip(&v).map(|(c, x)| c * x).sum();
+            }
+            let nrm = w.iter().map(|x| x * x).sum::<f64>().sqrt();
+            if nrm < 1e-12 {
+                break; // degenerate block: keep the previous iterate
+            }
+            for (vi, wi) in v.iter_mut().zip(&w) {
+                *vi = wi / nrm;
+            }
+        }
+        let mut lead = 0usize;
+        for (index, value) in v.iter().enumerate().skip(1) {
+            if value.abs() > v[lead].abs() {
+                lead = index;
+            }
+        }
+        if v[lead] < 0.0 {
+            for value in v.iter_mut() {
+                *value = -*value;
+            }
+        }
+        *pc_slot = v;
+        let mu_norm = mu.iter().map(|x| x * x).sum::<f64>().sqrt();
+        if mu_norm >= 1e-12 {
+            for (d, m) in mean_slot.iter_mut().zip(&mu) {
+                *d = m / mu_norm;
+            }
+        }
+    }
+    (mean_dirs, pc_dirs)
 }
 
 /// One Hopf sector cell: the flat sector id plus its lattice bins.
@@ -354,9 +550,12 @@ fn aligned_vectors<'a>(router: &'a UorR4Router, windows: &[String]) -> Vec<&'a [
 }
 
 /// Route `text` under the store identity and return its arm A and arm B
-/// cells plus the shared lattice dims and control-plane parameters.
+/// cells plus the shared lattice dims, control-plane parameters, and
+/// the routed 512-d Hopf input (the vector every arm re-projects; the
+/// redesign candidates consume it after direction estimation).
 /// Asserts arm A's recomputed sector equals the production `sector_id`.
-fn address(router: &mut UorR4Router, text: &str) -> (Cell, Cell, Dims, f64, usize) {
+#[allow(clippy::type_complexity)]
+fn address(router: &mut UorR4Router, text: &str) -> (Cell, Cell, Dims, f64, usize, Vec<f64>) {
     let (routing, hopf_input) = router.route_query_to_manifold_native_with_hopf_input(text, ID);
     let hopf = &routing.routed.hopf;
     let lambda = hopf.phase_transport_lambda;
@@ -373,7 +572,7 @@ fn address(router: &mut UorR4Router, text: &str) -> (Cell, Cell, Dims, f64, usiz
     let (cell_b, dims_b) = assign_cell(&v4_ablated, lambda, chi_bins);
     assert_eq!(dims_a, dims_b, "arms share one bin lattice");
 
-    (cell_a, cell_b, dims_a, lambda, chi_bins)
+    (cell_a, cell_b, dims_a, lambda, chi_bins, hopf_input)
 }
 
 #[test]
@@ -486,6 +685,16 @@ fn hopf_retrieval_quality_three_arms() {
 
     // ---- sector addressing: every stored window and every query
     // through the production routing surface (module docs) ----
+    // Phase-2 flag (module docs): stash the routed Hopf inputs so the
+    // redesign candidates re-project the identical vectors. With the
+    // flag unset the stashes stay empty and the phase-1 measurement is
+    // unchanged.
+    let redesign = std::env::var("R4_HOPF_REDESIGN").is_ok_and(|value| value == "1");
+    if redesign {
+        println!("redesign candidates ENABLED (R4_HOPF_REDESIGN=1): arms E, F, G");
+    }
+    let mut window_inputs: Vec<Vec<f64>> = Vec::new();
+    let mut query_inputs: Vec<Vec<f64>> = Vec::new();
     let mut store_a: Vec<Cell> = Vec::with_capacity(windows.len());
     let mut store_b: Vec<Cell> = Vec::with_capacity(windows.len());
     let mut dims: Option<Dims> = None;
@@ -504,20 +713,74 @@ fn hopf_retrieval_quality_three_arms() {
         store_b.push(cell_b);
     };
     for w in &windows {
-        let cells = address(&mut router, w);
-        check(cells, &mut store_a, &mut store_b);
+        let (cell_a, cell_b, d, lambda, chi_bins, hopf_input) = address(&mut router, w);
+        check(
+            (cell_a, cell_b, d, lambda, chi_bins),
+            &mut store_a,
+            &mut store_b,
+        );
+        if redesign {
+            window_inputs.push(hopf_input);
+        }
     }
     let mut query_a: Vec<Cell> = Vec::with_capacity(queries.len());
     let mut query_b: Vec<Cell> = Vec::with_capacity(queries.len());
     for q in &queries {
-        let cells = address(&mut router, q);
-        check(cells, &mut query_a, &mut query_b);
+        let (cell_a, cell_b, d, lambda, chi_bins, hopf_input) = address(&mut router, q);
+        check(
+            (cell_a, cell_b, d, lambda, chi_bins),
+            &mut query_a,
+            &mut query_b,
+        );
+        if redesign {
+            query_inputs.push(hopf_input);
+        }
     }
     let dims = dims.expect("at least one sample");
     let (lambda, chi_bins) = control.expect("at least one sample");
     println!(
         "control plane: lambda {lambda:.4}, chi_bins {chi_bins}; lattice {dims:?}; K {SECTOR_CAP}"
     );
+
+    // ---- redesign candidates (module docs): estimate directions from
+    // the construction stores only, then re-project every stashed Hopf
+    // input through the same production binning ----
+    let mut candidates: Vec<(&str, Vec<Cell>, Vec<Cell>)> = Vec::new();
+    if redesign {
+        let blake3_dirs = [
+            blake3_direction(0),
+            blake3_direction(1),
+            blake3_direction(2),
+            blake3_direction(3),
+        ];
+        let (mean_dirs, pc_dirs) = construction_block_directions(&window_inputs);
+        let projections: Vec<(&str, ProjectionFn)> = vec![
+            (
+                "E data-PCA",
+                Box::new(move |input: &[f64]| directional_projection(input, &pc_dirs)),
+            ),
+            (
+                "F mag+sign",
+                Box::new(move |input: &[f64]| magnitude_sign_projection(input, &blake3_dirs)),
+            ),
+            (
+                "G mean-dir",
+                Box::new(move |input: &[f64]| directional_projection(input, &mean_dirs)),
+            ),
+        ];
+        for (name, project) in projections {
+            let assign = |input: &Vec<f64>| {
+                let (cell, d) = assign_cell(&project(input), lambda, chi_bins);
+                assert_eq!(d, dims, "candidate {name} shares the run's bin lattice");
+                cell
+            };
+            let store: Vec<Cell> = window_inputs.iter().map(&assign).collect();
+            let query: Vec<Cell> = query_inputs.iter().map(&assign).collect();
+            candidates.push((name, store, query));
+        }
+    }
+    drop(window_inputs);
+    drop(query_inputs);
 
     // ---- arm C: fixed half-length rotation of arm A's store labels ----
     let rotation = windows.len() / 2;
@@ -534,6 +797,14 @@ fn hopf_retrieval_quality_three_arms() {
     let mut agree_a: Vec<bool> = Vec::with_capacity(targets.len());
     let mut agree_b: Vec<bool> = Vec::with_capacity(targets.len());
     let mut agree_c: Vec<bool> = Vec::with_capacity(targets.len());
+    let mut ranks_x: Vec<Vec<Option<usize>>> = candidates
+        .iter()
+        .map(|_| Vec::with_capacity(targets.len()))
+        .collect();
+    let mut agree_x: Vec<Vec<bool>> = candidates
+        .iter()
+        .map(|_| Vec::with_capacity(targets.len()))
+        .collect();
     for (probe, (&t, q)) in targets.iter().zip(&qv).enumerate() {
         let qn = norm(q);
         let sims: Vec<f64> = vectors
@@ -550,6 +821,14 @@ fn hopf_retrieval_quality_three_arms() {
         agree_a.push(store_a[t].sector == query_a[probe].sector);
         agree_b.push(store_b[t].sector == query_b[probe].sector);
         agree_c.push(sector_c(t) == query_a[probe].sector);
+        for ((_, store, query), (ranks, agree)) in candidates
+            .iter()
+            .zip(ranks_x.iter_mut().zip(agree_x.iter_mut()))
+        {
+            let sec = |position: usize| store[position].sector;
+            ranks.push(filtered_rank(&sims, t, query[probe].sector, &sec));
+            agree.push(store[t].sector == query[probe].sector);
+        }
     }
 
     let base_mrr = base_rr.iter().sum::<f64>() / base_rr.len() as f64;
@@ -645,4 +924,45 @@ fn hopf_retrieval_quality_three_arms() {
             "recorded NEGATIVE (occupancy spread without retrieval value)"
         }
     );
+
+    // ---- phase-2 candidate report + per-candidate pre-declared rule
+    // (module docs; runs only under R4_HOPF_REDESIGN=1) ----
+    for ((name, store, _), (ranks, agree)) in candidates.iter().zip(ranks_x.iter().zip(&agree_x)) {
+        let (top1, mrr) = filtered_metrics(ranks);
+        let (n_on, on_mrr, off_mrr) = slice(agree);
+        let (occ, same, near_rate, max_load) = collision_report(store, dims);
+        println!("  arm {name}: top1 {top1:.3} | filtered MRR {mrr:.4}");
+        println!(
+            "  agreement slice {name}: {n_on}/{} agree | base MRR agree {on_mrr:.4} vs \
+             disagree {off_mrr:.4}",
+            targets.len()
+        );
+        println!(
+            "  collisions {name}: {occ}/{SECTOR_CAP} sectors occupied | same-cell {same:.4} | \
+             near-cell {near_rate:.4} | max load {max_load}"
+        );
+        assert!(
+            (0.0..=1.0).contains(&mrr),
+            "arm {name} MRR out of range: {mrr:.4}"
+        );
+        for (which, rate) in [("same", same), ("near", near_rate)] {
+            assert!(
+                (0.0..=1.0).contains(&rate),
+                "collision rate {name} {which} out of range: {rate:.4}"
+            );
+        }
+        let candidate_confirmed = mrr >= mrr_b + 0.020 && mrr > mrr_c;
+        println!(
+            "  exit rule (#422 phase 2) arm {name}: filtered MRR {mrr:.4} vs arm B {mrr_b:.4} \
+             ({:+.4}, need at least plus 0.020) and vs arm C {mrr_c:.4} ({:+.4}, need positive) \
+             -> {}; occupancy {occ}/{SECTOR_CAP} vs arm B {occ_b}/{SECTOR_CAP}",
+            mrr - mrr_b,
+            mrr - mrr_c,
+            if candidate_confirmed {
+                "CONFIRMED (content-aligned spread with retrieval value)"
+            } else {
+                "recorded NEGATIVE"
+            }
+        );
+    }
 }
