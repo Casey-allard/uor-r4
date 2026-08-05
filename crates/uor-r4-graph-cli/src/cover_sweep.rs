@@ -450,7 +450,6 @@ pub fn run_point(
         vocab,
         score_config,
     );
-    let fmm_section = score::compile_fmm_section(&regions, &emissions, vocab)?;
     let (artifact_bytes, _info) = score::emit_scored_r4g1(
         &inputs.artifact_container,
         (&inputs.meta_bytes, &inputs.recs_bytes),
@@ -464,7 +463,6 @@ pub fn run_point(
             context_rows: &context_rows,
             exct_tls1: &inputs.tls1,
             exct_top_x: score_config.exct_top_x,
-            fmm_section: Some(&fmm_section),
             fwd_rows: &fwd_rows,
         },
     )?;

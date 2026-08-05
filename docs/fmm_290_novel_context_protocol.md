@@ -4,6 +4,17 @@ Status: protocol and incumbent baseline recorded; the compiler-folded fixed-poin
 translation table and allocation-free runtime kernel are implemented in #361.
 The novel-context accuracy and cost decision for #290 remains open.
 
+*Addendum 2026-08-05: the decision is no longer open — issue #290 recorded a
+negative (`research/290-fmm/RESULT-52.md`): the far-field operator cannot reach
+usable precision (Eckart–Young bound; rank 20 carries ~6% operator error), and
+the interaction kernel is exactly rank ≤ 288 by construction, so there is no
+O(n²) for an FMM to remove. The uncalled FMM section emission and the runtime
+packed-kernel evaluation path were removed under #425; the format-crate parser
+(`fmm.rs`, `SectionId::FMM`) is retained so old artifacts still validate, and
+the certifier-side `FmmCandidateScorer` remains as the exploratory BDD S7
+measurement harness. Disposition details:
+`docs/deferral_record_2026_08_05.md`.*
+
 ## Purpose
 
 Issue #290 proposes a far-field/FMM approximation for long-range semantic

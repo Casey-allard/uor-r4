@@ -12,7 +12,6 @@ use uor_r4_graph_format::{FormatError, GraphView, SectionId};
 pub enum RuntimeError {
     Format(FormatError),
     InvalidNode,
-    FmmBufferTooSmall,
     Patch(alloc::borrow::Cow<'static, str>),
 }
 
@@ -21,7 +20,6 @@ impl fmt::Display for RuntimeError {
         match self {
             Self::Format(e) => write!(f, "Format error: {:?}", e),
             Self::InvalidNode => write!(f, "Invalid node reference in graph"),
-            Self::FmmBufferTooSmall => write!(f, "FMM candidate buffer is too small"),
             Self::Patch(msg) => write!(f, "Patch error: {}", msg),
         }
     }

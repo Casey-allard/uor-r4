@@ -250,10 +250,6 @@ mod witnesses {
                 "status.rs",
                 include_str!("../../../uor-r4-graph-runtime/src/status.rs"),
             ),
-            (
-                "cayley_dickson.rs",
-                include_str!("../../../uor-r4-graph-runtime/src/cayley_dickson.rs"),
-            ),
         ];
         let mut all = Vec::new();
         for (name, src) in modules {

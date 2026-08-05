@@ -815,31 +815,6 @@ pub fn compile_forward_anchor_rows(
         .collect()
 }
 
-/// Compile the optional FMM section from the same regions and emission tables
-/// that feed the normal scored-artifact path. All floating-point work remains
-/// in the certifier; the returned bytes contain only the folded integer table
-/// consumed by the runtime kernel.
-pub fn compile_fmm_section(
-    regions: &[RegionParams],
-    emissions: &EmissionTables,
-    vocab: u32,
-) -> Result<Vec<u8>, String> {
-    let emission_maps: Vec<BTreeMap<u32, ScoreQ>> = emissions
-        .region_lists
-        .iter()
-        .map(|entries| entries.iter().copied().collect())
-        .collect();
-    let scorer = crate::fmm::FmmCandidateScorer::from_graph_parts(
-        regions,
-        &emission_maps,
-        &emissions.root_prior,
-        emissions.root_floor,
-        vocab,
-        crate::fmm::FmmConfig::default(),
-    )?;
-    scorer.fixed_point()?.to_packed_section()
-}
-
 /// ln of an add-one-smoothed probability (compiler-side f64; module
 /// docs for the platform pinning). This is the [`Smoothing::AddOne`]
 /// arm; the other rules live in [`Smoothing::ln_prob`].
@@ -1214,9 +1189,6 @@ pub struct ScoredGraphInfo {
     pub context_bytes: u32,
     pub fwda_row_count: u32,
     pub fwda_bytes: u32,
-    pub fmm_bytes: u32,
-    pub fmm_rank: u16,
-    pub fmm_candidate_count: u32,
     pub artifact_bytes: usize,
     pub transition_quantization: QuantizationErrorStats,
     pub root_prior_quantization: QuantizationErrorStats,
@@ -1247,8 +1219,6 @@ pub struct ScoredGraphSections<'a> {
     pub exct_tls1: &'a [u8],
     /// Number of exact-context residual entries retained per prefix.
     pub exct_top_x: usize,
-    /// Optional compiler-folded FMM translation table.
-    pub fmm_section: Option<&'a [u8]>,
     /// Forward-anchor rows for the optional FWDA section (issue #399);
     /// empty means the section is not emitted and infill serving runs
     /// without the channel.
@@ -1458,7 +1428,6 @@ pub fn emit_scored_r4g1(
         context_rows,
         exct_tls1,
         exct_top_x,
-        fmm_section,
         fwd_rows,
     } = *sections;
     if regions.len() != emissions.region_lists.len() {
@@ -1635,11 +1604,6 @@ pub fn emit_scored_r4g1(
     exct.extend_from_slice(&exct_body);
     let ngram = encode_context_rows(context_rows)?;
 
-    let fmm_table = fmm_section
-        .map(uor_r4_graph_format::FmmTranslationTable::parse)
-        .transpose()
-        .map_err(|error| format!("invalid FMM section: {error}"))?;
-
     // HEAD: the fixed 224-byte v0 prefix (convert_r4g1 conventions).
     let (meta, recs) = corpus_cid_material;
     let mut corpus_hasher = blake3::Hasher::new();
@@ -1685,9 +1649,6 @@ pub fn emit_scored_r4g1(
         builder.add_section(uor_r4_graph_format::SectionId::FWDA, 0, &fwda);
         fwda
     };
-    if let Some(fmm_section) = fmm_section {
-        builder.add_section(uor_r4_graph_format::SectionId::FMM, 0, fmm_section);
-    }
     let bytes = builder
         .build()
         .map_err(|error| format!("R4G1 serialization failed: {error}"))?;
@@ -1729,9 +1690,6 @@ pub fn emit_scored_r4g1(
                 .map_err(|_| "FWDA row count exceeds u32".to_owned())?,
             fwda_bytes: u32::try_from(fwda.len())
                 .map_err(|_| "FWDA section exceeds u32".to_owned())?,
-            fmm_bytes: fmm_section.map_or(0, |bytes| bytes.len() as u32),
-            fmm_rank: fmm_table.map_or(0, |table| table.rank()),
-            fmm_candidate_count: fmm_table.map_or(0, |table| table.token_count()),
             artifact_bytes,
             transition_quantization,
             root_prior_quantization: emissions.root_prior_quantization,
@@ -3996,7 +3954,11 @@ fn evaluate_gate_c_row(
 /// rescue variant, the STRICT-gated draft arm (the
 /// `rule12_fwd_strict_fused` rows and the strict win/loss cross-tab):
 /// the same draft, trusted only where every intermediate greedy step
-/// resolved as ExactContext.
+/// resolved as ExactContext; schema twenty-two removes the packed-FMM
+/// footprint fields (`fmm_bytes`/`fmm_rank`/`fmm_candidate_count`) and the
+/// FMM section emission itself — issue #290 recorded the far-field family
+/// as measured dead (research/290-fmm/RESULT-52.md), and #425 removed the
+/// uncalled emission and runtime paths.
 #[derive(Debug, Clone, Serialize)]
 pub struct ScoreReport {
     pub schema: u32,
@@ -4116,9 +4078,6 @@ pub struct ScoreReportGraph {
     pub context_row_count: u32,
     pub context_entry_count: u32,
     pub context_bytes: u32,
-    pub fmm_bytes: u32,
-    pub fmm_rank: u16,
-    pub fmm_candidate_count: u32,
     pub artifact_bytes: usize,
     pub graph_repetition_rate: f64,
     pub baseline_repetition_rate: f64,
@@ -4192,7 +4151,7 @@ pub fn build_score_report_with_quality_profile(
         can_measure_generalization: strict_exct_miss_rate >= MIN_EXCT_MISS_RATE_FOR_GATE_C,
     };
     ScoreReport {
-        schema: 21,
+        schema: 22,
         inputs,
         config: ScoreReportConfig {
             transition_out_degree: config.transition_out_degree,
@@ -4224,9 +4183,6 @@ pub fn build_score_report_with_quality_profile(
             context_row_count: info.context_row_count,
             context_entry_count: info.context_entry_count,
             context_bytes: info.context_bytes,
-            fmm_bytes: info.fmm_bytes,
-            fmm_rank: info.fmm_rank,
-            fmm_candidate_count: info.fmm_candidate_count,
             artifact_bytes: info.artifact_bytes,
             graph_repetition_rate: gate_c.repetition_rate_rule12,
             baseline_repetition_rate: gate_c.repetition_rate_baseline,

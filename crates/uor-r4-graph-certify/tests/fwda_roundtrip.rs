@@ -180,7 +180,6 @@ fn tiny_artifact(fwd_rows: &[ForwardAnchorRow]) -> Vec<u8> {
             context_rows: &context_rows,
             exct_tls1: &tls1,
             exct_top_x: 3,
-            fmm_section: None,
             fwd_rows,
         },
     )

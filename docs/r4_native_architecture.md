@@ -152,3 +152,29 @@ true/self/gated/draft/strict anchors, report schema 21).*
 Measurement pins and results are data and live on their issues. Whether any
 of this changes certify's *gating* policy remains with Alex & Ari; this
 document proposes criteria and mechanisms, not gates.
+
+## Addendum 2026-08-05 — closure verdicts (issue #425 hygiene pass)
+
+The program issues this document opened are now closed with records; the
+issue records are authoritative and this addendum only pastes the verdicts.
+
+Closures: the #374 measurement campaign, the #394 anchor-infill criterion,
+and the #395 E8/icosian store track are closed with recorded results. #394's
+harness, stride sweep, and bits-ladder rows landed (#396, #402, #405, and
+the rows-inclusive baseline); the criterion itself is superseded in serving
+by the #399 A-mode infill surface recorded in the section-8 addendum above.
+
+The #395 record fixes a design law. The v0 construction experiment — an E8
+spatial-group store that flattened lattice codes into the store's *keys* —
+recorded NEGATIVE for that keying, with the mechanism diagnosed (commit
+`88a9b9d`, PR #403). The v1 residual-E8 experiment moved the lattice to the
+comparison side — snapping residuals during scoring, retraining-controlled —
+and recorded that lattice snapping is FREE at 0.5 rms (commit `558d8cd`,
+PR #404). The law, stated once so it is not relearned: the E8 lattice
+belongs on the COMPARISON side of the store, never flattened into keys.
+Keying by lattice code destroys the neighborhood structure the store routes
+by; snapping on the comparison side keeps it and costs nothing measurable.
+
+Related dispositions from the same pass (FMM removal per the #290 negative,
+the Spin(4) attention deferral, and the bott_fock re-pointing to #424) are
+recorded in `docs/deferral_record_2026_08_05.md`.

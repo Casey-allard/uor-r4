@@ -3,7 +3,6 @@
 
 extern crate alloc;
 
-pub mod cayley_dickson;
 pub mod engine;
 pub mod packed_kernels;
 pub mod patch_chain;

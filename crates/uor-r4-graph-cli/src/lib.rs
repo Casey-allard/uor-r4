@@ -1123,7 +1123,6 @@ pub fn score_command(args: &[String]) -> Result<(), String> {
     let fwd_rows = score::compile_forward_anchor_rows(&corpus, &train);
     let emissions =
         score::compile_emissions(&corpus, &store, &regions, &train, max_depth, vocab, &config);
-    let fmm_section = score::compile_fmm_section(&regions, &emissions, vocab)?;
     let (artifact_bytes, info) = score::emit_scored_r4g1(
         &artifact_container,
         (&meta_bytes, &recs_bytes),
@@ -1137,7 +1136,6 @@ pub fn score_command(args: &[String]) -> Result<(), String> {
             context_rows: &context_rows,
             exct_tls1: &tls1,
             exct_top_x: config.exct_top_x,
-            fmm_section: Some(&fmm_section),
             fwd_rows: &fwd_rows,
         },
     )?;
@@ -1210,7 +1208,7 @@ pub fn score_command(args: &[String]) -> Result<(), String> {
         .map_err(|error| format!("{}: {error}", report_path.display()))?;
 
     println!(
-        "score complete: {} nodes, {} edges ({} refinement + {} neighbor + {} forward), {} emission entries, EXCT {} bytes, NGRAM {} rows/{} entries ({} bytes), FMM {} bytes (rank {}, {} candidates)",
+        "score complete: {} nodes, {} edges ({} refinement + {} neighbor + {} forward), {} emission entries, EXCT {} bytes, NGRAM {} rows/{} entries ({} bytes)",
         info.node_count,
         info.edge_count,
         info.refinement_edges,
@@ -1220,10 +1218,7 @@ pub fn score_command(args: &[String]) -> Result<(), String> {
         info.exct_bytes,
         info.context_row_count,
         info.context_entry_count,
-        info.context_bytes,
-        info.fmm_bytes,
-        info.fmm_rank,
-        info.fmm_candidate_count
+        info.context_bytes
     );
     println!(
         "gate C — held-out D3 metrics ({} positions):",
