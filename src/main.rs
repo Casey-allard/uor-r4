@@ -130,6 +130,13 @@ enum Command {
         #[arg(required = true, num_args = 1.., trailing_var_arg = true, allow_hyphen_values = true)]
         args: Vec<String>,
     },
+    /// A-mode graph serving commands, e.g. `r4 graph infill --artifact
+    /// graph/score.r4g1 --skeleton 12,_,_,_,99,_,_,_,7`.
+    Graph {
+        /// Subcommand and arguments forwarded verbatim.
+        #[arg(required = true, num_args = 1.., trailing_var_arg = true, allow_hyphen_values = true)]
+        args: Vec<String>,
+    },
     /// Run the new R4G1 multiresolution graph compiler pipeline.
     GraphCompile {
         /// Subcommand and arguments forwarded verbatim.
@@ -640,6 +647,11 @@ fn run(cli: &Cli) -> Result<(), RunError> {
         Some(Command::TeacherKappa) => run_core("teacher-kappa", &[]),
         Some(Command::Transformerless { args }) => {
             transformerless_command::run(args).map_err(RunError::Command)
+        }
+        Some(Command::Graph { args }) => {
+            let mut values = vec!["graph".to_owned()];
+            values.extend_from_slice(args);
+            transformerless_command::run(&values).map_err(RunError::Command)
         }
         Some(Command::GraphCompile { args }) => {
             uor_r4_graph_compiler::compile(args).map_err(RunError::Command)

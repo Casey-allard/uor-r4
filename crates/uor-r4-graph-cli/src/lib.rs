@@ -2316,6 +2316,130 @@ pub fn compile_recorded_corpus(args: &[String]) -> Result<(), String> {
     Ok(())
 }
 
+/// Parse a `--skeleton` spec: comma-separated token ids with `_` at
+/// free positions, e.g. `12,_,_,_,99,_,_,_,7`.
+fn parse_skeleton(spec: &str) -> Result<Vec<Option<u32>>, String> {
+    spec.split(',')
+        .map(|slot| {
+            let slot = slot.trim();
+            if slot == "_" {
+                Ok(None)
+            } else {
+                slot.parse::<u32>().map(Some).map_err(|_| {
+                    format!("invalid skeleton slot: {slot:?} (expected a token id or _)")
+                })
+            }
+        })
+        .collect()
+}
+
+/// A `Compiled` with no token codes: every window bundles to zero rows,
+/// so scoring is carried by the artifact's own tables (root prior,
+/// NGRAM context rows through the recent-token deque, FWDA rows). Used
+/// when no `--teacher` TLA container is supplied.
+fn empty_compiled() -> compiler::Compiled {
+    compiler::Compiled {
+        token_codes: Vec::new(),
+        stage_books: Vec::new(),
+        stage_shifts: Vec::new(),
+        thresholds: vec![0i64; compiler::D],
+        class_sigs: Vec::new(),
+        ctx_cb: Vec::new(),
+        token_stage_kappas: Vec::new(),
+        dot_cb: Vec::new(),
+        resid_cb: Vec::new(),
+        resid_scale_shifts: Vec::new(),
+        norm_fold_const: 0,
+    }
+}
+
+/// A-mode infill serving (issue #399): anchors are GIVEN inputs and the
+/// engine fills the free positions between them through the validated
+/// forward-anchor channel (`GraphScorer::score_candidates_infill`).
+/// Token-id level only — no tokenizer involved.
+pub fn graph_infill_command(args: &[String]) -> Result<(), String> {
+    let mut artifact_path: Option<PathBuf> = None;
+    let mut skeleton_spec: Option<String> = None;
+    let mut teacher_path: Option<PathBuf> = None;
+    let mut index = 0usize;
+    while index < args.len() {
+        let flag = &args[index];
+        let value = args
+            .get(index + 1)
+            .ok_or_else(|| format!("missing value for {flag}"))?;
+        match flag.as_str() {
+            "--artifact" => artifact_path = Some(PathBuf::from(value)),
+            "--skeleton" => skeleton_spec = Some(value.clone()),
+            "--teacher" => teacher_path = Some(PathBuf::from(value)),
+            _ => return Err(format!("unknown graph infill option: {flag}")),
+        }
+        index += 2;
+    }
+    let artifact_path = artifact_path.ok_or("pass --artifact <scored R4G1 path>")?;
+    let skeleton_spec =
+        skeleton_spec.ok_or("pass --skeleton <comma-separated token ids, _ for free positions>")?;
+    let skeleton = parse_skeleton(&skeleton_spec)?;
+
+    let r4g1 = std::fs::read(&artifact_path)
+        .map_err(|error| format!("{}: {error}", artifact_path.display()))?;
+    let teacher_bytes = teacher_path
+        .as_ref()
+        .map(|path| std::fs::read(path).map_err(|error| format!("{}: {error}", path.display())))
+        .transpose()?;
+    let artifacts = match &teacher_bytes {
+        Some(bytes) => compiler::parse_artifacts(bytes).ok_or_else(|| {
+            format!(
+                "{}: not a TLA3/TLA4/TLA5 artifact container",
+                teacher_path
+                    .expect("teacher bytes imply a teacher path")
+                    .display()
+            )
+        })?,
+        None => empty_compiled(),
+    };
+    let scorer = score_runtime::GraphScorer::from_artifact(
+        &r4g1,
+        teacher_bytes.as_deref(),
+        score::DEFAULT_ROOT_TOP_B,
+        score::DEFAULT_EXCT_TOP_X,
+    )?;
+    let rotations = runtime::derive_rotations();
+
+    let filled = score_runtime::infill_fill(&scorer, &artifacts, &rotations, &skeleton)?;
+
+    let free_positions = skeleton.iter().filter(|slot| slot.is_none()).count();
+    let live_fwd_positions = skeleton
+        .iter()
+        .enumerate()
+        .filter(|(index, slot)| {
+            slot.is_none()
+                && score_runtime::next_skeleton_anchor(&skeleton, *index).is_some_and(
+                    |(anchor, distance)| scorer.forward_anchor_row(distance, anchor).is_some(),
+                )
+        })
+        .count();
+
+    let rendered: Vec<String> = filled.iter().map(u32::to_string).collect();
+    println!("{}", rendered.join(","));
+    println!(
+        "infill: filled {free_positions} free positions ({live_fwd_positions} with live fwd rows) across {} slots; {} fwd rows loaded",
+        skeleton.len(),
+        scorer.forward_anchor_row_count()
+    );
+    Ok(())
+}
+
+/// Dispatch of the `graph` command family (A-mode serving surfaces).
+pub fn graph_command(args: &[String]) -> Result<(), String> {
+    match args.first().map(|s| s.as_str()) {
+        Some("infill") => graph_infill_command(&args[1..]),
+        _ => Err(
+            "graph commands: infill --artifact <scored R4G1> --skeleton <token ids, _ for free> [--teacher <TLA container>]"
+                .to_owned(),
+        ),
+    }
+}
+
 pub fn run(args: &[String]) -> Result<(), String> {
     match args.first().map(|s| s.as_str()) {
         Some("setup") => setup(),
@@ -2372,6 +2496,7 @@ pub fn run(args: &[String]) -> Result<(), String> {
         Some("cover") => cover_command(&args[1..])?,
         Some("cover-sweep") => cover_sweep::cover_sweep_command(&args[1..])?,
         Some("score") => score_command(&args[1..])?,
+        Some("graph") => graph_command(&args[1..])?,
         Some("cd-compile") => cd_compile_command(&args[1..])?,
         Some("quantum-eval") => quantum_eval_command(&args[1..])?,
         _ => {
@@ -2382,6 +2507,7 @@ pub fn run(args: &[String]) -> Result<(), String> {
                  transformer-free refresh: runtime-corpus --artifacts <TLA> --store <TLS1> --seed-meta <META> --seed-recs <RECS> --out <DIR> --target N [--threads N]\n\
                  observation pipeline: observe [--source DIR | --checkpoint BIN] [--seconds N] [--target N] [--shards N] [--out DIR] [--sequence-length N]\n\
                  text observations (D3): observe-text [--input PATH] [--out DIR] [--shards N] [--seconds N] [--source DIR | --checkpoint BIN] [--tokenizer PATH] [--sequence-length N]\n\
+                 A-mode infill serving: graph infill --artifact <scored R4G1> --skeleton <token ids, _ for free> [--teacher <TLA container>]\n\
                  quantum operations: cd-compile | quantum-eval\n\
                  hf evaluation: evaluate-report [--source DIR] [--compiled DIR] [--report PATH] [--sequence-length N] [--bos] [--max-held-out-stories N]\n\
                  docs: docs/TRANSFORMERLESS.md (extrapolation), docs/PROOF.md (proof + certificate)"

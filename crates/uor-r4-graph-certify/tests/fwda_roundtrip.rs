@@ -6,6 +6,10 @@
 //! `score_candidates_coded` whenever the channel is off. The two-pass
 //! tests cover `two_pass_infill_generate`: the stride-four anchor grid,
 //! the B′ confidence gate (fails closed), and the pass-2 pure re-rank.
+//! The A-mode tests cover `infill_fill`: givens consumed verbatim, free
+//! positions filled with the nearest in-range given as the forward
+//! anchor, base-scoring fallback when the channel is off or the next
+//! given is beyond the FWDA lookahead range.
 
 use std::collections::BTreeMap;
 
@@ -15,7 +19,9 @@ use uor_r4_graph_certify::score::{
     compile_forward_anchor_rows, emit_scored_r4g1, ContextRow, EmissionTables, ForwardAnchorRow,
     QuantizationErrorStats, ScoredGraphSections, Smoothing,
 };
-use uor_r4_graph_certify::score_runtime::{two_pass_infill_generate, GraphScorer, RegionParams};
+use uor_r4_graph_certify::score_runtime::{
+    infill_fill, next_skeleton_anchor, two_pass_infill_generate, GraphScorer, RegionParams,
+};
 use uor_r4_graph_compiler::induction::Observation;
 use uor_r4_graph_format::{GraphView, ScoreQ};
 
@@ -468,4 +474,124 @@ fn two_pass_gate_fails_closed_without_exact_context_anchor() {
     assert_eq!(two_pass.gated_positions, 0);
     assert_eq!(two_pass.changed_positions, 0);
     assert_eq!(two_pass.final_tokens, two_pass.draft);
+}
+
+/// A-mode skeleton fill: given tokens are consumed verbatim, free
+/// positions get filled, and a free position whose nearest in-range
+/// given carries a live forward row is re-ranked by the anchor evidence
+/// (the same `(distance 2, anchor 6)` flip the two-pass test measures),
+/// while a free position whose anchor has no row at its distance stays
+/// on the base selection. A fully given skeleton — tokens with no
+/// scoring rows at all — comes back byte-identical.
+#[test]
+fn infill_fill_respects_givens_and_reranks_free() {
+    let row = ForwardAnchorRow {
+        distance: 2,
+        anchor: 6,
+        total: 50,
+        entries: vec![(5, 50)],
+    };
+    let bytes = tiny_artifact(std::slice::from_ref(&row));
+    let scorer = GraphScorer::from_artifact(&bytes, None, 3, 3).expect("scorer loads");
+    let artifacts = tiny_compiled();
+    let rotations = runtime::derive_rotations();
+
+    // Position one is free with the given anchor 6 at distance two (the
+    // live row: base pick 6 flips to 5); position two is free with the
+    // anchor at distance one (no row there: base pick, the root prior's
+    // token one, survives).
+    let skeleton = [Some(20), None, None, Some(6)];
+    let filled = infill_fill(&scorer, &artifacts, &rotations, &skeleton).expect("fill runs");
+    assert_eq!(filled, vec![20, 5, 1, 6]);
+    assert_eq!(filled[0], 20, "given consumed verbatim");
+    assert_eq!(filled[3], 6, "given consumed verbatim");
+
+    // The anchor-selection rule the fill used, checked directly.
+    assert_eq!(next_skeleton_anchor(&skeleton, 1), Some((6, 2)));
+    assert_eq!(next_skeleton_anchor(&skeleton, 2), Some((6, 1)));
+    assert_eq!(next_skeleton_anchor(&skeleton, 3), None, "nothing follows");
+
+    // A fully given skeleton is returned verbatim even for tokens the
+    // artifact carries no rows for.
+    let all_given = [Some(9), Some(8), Some(7)];
+    let verbatim = infill_fill(&scorer, &artifacts, &rotations, &all_given).expect("fill runs");
+    assert_eq!(verbatim, vec![9, 8, 7]);
+}
+
+/// Without a FWDA section the fill IS base scoring: every free position
+/// matches a manual greedy loop over `score_candidates_coded` that
+/// consumes the same givens with the same window and recent-token
+/// handling — even though the skeleton offers in-range anchors at three
+/// free positions.
+#[test]
+fn infill_fill_absent_fwda_matches_base_scoring() {
+    let bytes = tiny_artifact(&[]);
+    let scorer = GraphScorer::from_artifact(&bytes, None, 3, 3).expect("scorer loads");
+    assert_eq!(scorer.forward_anchor_row_count(), 0);
+    let artifacts = tiny_compiled();
+    let rotations = runtime::derive_rotations();
+
+    let skeleton = [Some(20), None, None, None, None, Some(6)];
+    let filled = infill_fill(&scorer, &artifacts, &rotations, &skeleton).expect("fill runs");
+
+    // Manual base-scoring reference with identical context handling.
+    let mut window = [0u32; compiler::WINDOW];
+    let mut recent: Vec<u32> = Vec::new();
+    let mut reference = Vec::new();
+    for (w_len, slot) in skeleton.iter().enumerate() {
+        let token = match slot {
+            Some(given) => *given,
+            None => {
+                let bundle = runtime::bundle_window_plain(&artifacts, &rotations, &window[..w_len]);
+                let sig = runtime::sig_plain(&artifacts, &bundle);
+                let code = runtime::assign_for_bundle(&artifacts, &bundle);
+                scorer
+                    .score_candidates_coded(&sig, Some(&code), &recent)
+                    .expect("base outcome")
+                    .selected
+            }
+        };
+        reference.push(token);
+        window[w_len] = token;
+        recent.push(token);
+    }
+    assert_eq!(filled, reference);
+    // The base dynamics are the two-pass draft's alternation, so the
+    // comparison is not vacuous.
+    assert_eq!(filled, vec![20, 6, 20, 6, 20, 6]);
+}
+
+/// A next given farther than the FWDA lookahead range yields no anchor
+/// and the position falls back to base scoring — position one keeps its
+/// base pick although the `(distance 2, anchor 6)` row is loaded and a
+/// given 6 sits at distance four, while position three (the same row at
+/// its measured distance) demonstrably flips in the same run.
+#[test]
+fn infill_fill_far_anchor_falls_back_to_base() {
+    let row = ForwardAnchorRow {
+        distance: 2,
+        anchor: 6,
+        total: 50,
+        entries: vec![(5, 50)],
+    };
+    let bytes = tiny_artifact(std::slice::from_ref(&row));
+    let scorer = GraphScorer::from_artifact(&bytes, None, 3, 3).expect("scorer loads");
+    let artifacts = tiny_compiled();
+    let rotations = runtime::derive_rotations();
+
+    let skeleton = [Some(20), None, None, None, None, Some(6)];
+    // Position one sees only free slots within the lookahead range; the
+    // nearest given is four positions ahead.
+    assert_eq!(next_skeleton_anchor(&skeleton, 1), None);
+    assert_eq!(next_skeleton_anchor(&skeleton, 2), Some((6, 3)));
+    assert_eq!(next_skeleton_anchor(&skeleton, 3), Some((6, 2)));
+    assert_eq!(next_skeleton_anchor(&skeleton, 4), Some((6, 1)));
+
+    let filled = infill_fill(&scorer, &artifacts, &rotations, &skeleton).expect("fill runs");
+    // Position one: no anchor in range, base pick 6 (identical to the
+    // absent-FWDA fill at that position). Position two: anchor at
+    // distance three has no row, base pick 20. Position three: anchor at
+    // distance two hits the live row and flips to 5. Position four:
+    // anchor at distance one has no row, base pick (root prior token).
+    assert_eq!(filled, vec![20, 6, 20, 5, 1, 6]);
 }

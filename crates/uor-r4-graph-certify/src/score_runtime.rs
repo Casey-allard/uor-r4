@@ -2603,6 +2603,92 @@ pub fn two_pass_infill_generate(
     })
 }
 
+/// The nearest GIVEN skeleton slot strictly after `index`, within the
+/// FWDA lookahead range: `Some((token, distance))` when a `Some` slot
+/// exists at `index + d` for the smallest `d` in one through
+/// [`uor_r4_graph_format::FWDA_MAX_DISTANCE`], `None` when every slot
+/// in that range is free or past the end. This is the anchor-selection
+/// rule of [`infill_fill`], exposed so callers (the CLI summary line)
+/// can reproduce the per-position anchor choice without re-running the
+/// fill.
+pub fn next_skeleton_anchor(skeleton: &[Option<u32>], index: usize) -> Option<(u32, u8)> {
+    for distance in 1..=usize::from(uor_r4_graph_format::FWDA_MAX_DISTANCE) {
+        match skeleton.get(index + distance) {
+            None => return None,
+            Some(&Some(token)) => return Some((token, distance as u8)),
+            Some(&None) => {}
+        }
+    }
+    None
+}
+
+/// A-mode infill serving (issue #399): fill the free positions of a
+/// GIVEN anchor skeleton left to right. This is the measured, validated
+/// serving mode — anchors are inputs, not drafts, so the channel is
+/// immune to draft-anchor drift by construction (the falsifier the
+/// two-pass probe quantified).
+///
+/// `skeleton` is the anchor grid: `Some(token)` at given positions
+/// (any pattern of givens is accepted — the stride-four grid is the
+/// typical shape, not a requirement), `None` at free positions. At a
+/// given position the given token is consumed verbatim. At a free
+/// position the ordinary context pipeline runs (window bundle → sig →
+/// attested code → [`GraphScorer::score_candidates_infill`]) with
+/// `next_anchor` chosen by [`next_skeleton_anchor`]: the nearest
+/// following given within the FWDA lookahead range, or `None` when the
+/// next given is farther than [`uor_r4_graph_format::FWDA_MAX_DISTANCE`]
+/// or absent — in which case the fusion entry point degrades to base
+/// scoring byte-identically.
+///
+/// Window and recent-token handling mirror [`two_pass_infill_generate`]:
+/// the sliding [`compiler::WINDOW`]-token bundle window grows until
+/// full, and the bounded recent deque feeds repetition control. Both
+/// consume given and filled tokens alike, so every position is scored
+/// with the exact context the emitted stream implies.
+pub fn infill_fill(
+    scorer: &GraphScorer,
+    artifacts: &Compiled,
+    rotations: &[usize; compiler::WINDOW + 1],
+    skeleton: &[Option<u32>],
+) -> Result<Vec<u32>, String> {
+    let mut window = [0u32; compiler::WINDOW];
+    let mut w_len = 0usize;
+    let mut recent_tokens = std::collections::VecDeque::with_capacity(32);
+    let mut filled: Vec<u32> = Vec::with_capacity(skeleton.len());
+    for (index, slot) in skeleton.iter().enumerate() {
+        let token = match slot {
+            Some(given) => *given,
+            None => {
+                let bundle = runtime::bundle_window_plain(artifacts, rotations, &window[..w_len]);
+                let sig = runtime::sig_plain(artifacts, &bundle);
+                // #243 Phase C option A: attest the metric-respecting code.
+                let code = runtime::assign_for_bundle(artifacts, &bundle);
+                let recent: Vec<u32> = recent_tokens.iter().copied().collect();
+                let outcome = scorer.score_candidates_infill(
+                    &sig,
+                    Some(&code),
+                    &recent,
+                    next_skeleton_anchor(skeleton, index),
+                )?;
+                outcome.selected
+            }
+        };
+        filled.push(token);
+        if w_len < compiler::WINDOW {
+            window[w_len] = token;
+            w_len += 1;
+        } else {
+            window.copy_within(1.., 0);
+            window[compiler::WINDOW - 1] = token;
+        }
+        if recent_tokens.len() == 32 {
+            recent_tokens.pop_front();
+        }
+        recent_tokens.push_back(token);
+    }
+    Ok(filled)
+}
+
 /// Rejection reasons of the independent witness-replay verifier
 /// (Theorems 6 and 10). Each variant names exactly one inconsistency
 /// between the witness's claims and the recomputation from the
