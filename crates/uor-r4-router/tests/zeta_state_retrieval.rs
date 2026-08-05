@@ -88,6 +88,48 @@
 //! the content-vector baseline MRR measured in the same run. The result
 //! is reported regardless of direction.
 //!
+//! # Band-matched controls (issue #434 follow-up; the caveat-killer)
+//!
+//! The full-cap arm Z result (MRR of 0.8932 against the content
+//! baseline's 0.2348) has a confound: the stored content vectors the
+//! baseline ranks over are NOT full-width. The storage surface
+//! (`index_sentence_routed`, the #245 path) routes each sentence
+//! through the spectral zeta QR projection and stores only the winning
+//! window's coefficient magnitudes inside that window's channel range
+//! (`active_range`), zeros elsewhere — so the baseline compares
+//! band-sparse vectors while arm Z compares full 512-d states. Two
+//! arms make the comparison like-for-like:
+//!
+//! - ARM ZB — Z-banded: each zeta-grid state zeroed outside the SAME
+//!   `active_range` its text's stored content vector received, then
+//!   renormalized. The band is recovered through the public surface:
+//!   `evolve_state(fresh identity, text, gamma 0.0)` sets the session
+//!   state to exactly the normalized zeta word-sum — the very content
+//!   vector the #245 override supplies at index time — so routing
+//!   under that identity reproduces the index-time window choice.
+//!   Parity with the storage surface is asserted per text: the derived
+//!   band is one of the sixteen zeta window channel ranges, the stored
+//!   vector's support lies inside it, and the re-routed in-band
+//!   coefficients match the stored ones. Note the stored baseline
+//!   vectors additionally carry the QR coefficient transform inside
+//!   the band; arm ZB matches band SUPPORT — the sparsity confound
+//!   under test — not the transform (arm CF covers the other
+//!   direction).
+//! - ARM CF — content-full: the content-derived vector WITHOUT band
+//!   slicing, for stores and queries alike, constructed through the
+//!   same public surface (`evolve_state` at gamma zero IS the
+//!   full-width normalized zeta word-sum). If CF matches arm Z, the
+//!   arm-Z-versus-baseline gap was vector fullness, not anything the
+//!   gamma-contracted state adds.
+//!
+//! Every arm (baseline included) reports its own shuffled control —
+//! that arm's stored set under the fixed half-length rotation, queries
+//! unrotated. Pre-declared band-matched rule: the zeta claim SURVIVES
+//! iff arm ZB's MRR is at least HALF of arm Z's same-run MRR (at the
+//! merged full-cap reference, half of 0.8932 is 0.4466) AND still
+//! exceeds the content baseline's same-run MRR; otherwise the arm Z
+//! win is re-attributed to banding. Reported regardless.
+//!
 //! Gate: the measurement runs only under `R4_ZETA_ARM=1` (else the test
 //! skips vacuously with a printed notice, the `R4_HOPF_REDESIGN`
 //! pattern). Run (natural stack):
@@ -100,6 +142,7 @@
 use std::collections::{HashMap, HashSet};
 
 use uor_r4_core::transformerless::compiler;
+use uor_r4_core::zeta_projection::window_ranges;
 use uor_r4_router::UorR4Router;
 
 /// Identity scope of the corpus store (the #422 harness convention).
@@ -250,6 +293,100 @@ fn zeta_state(router: &mut UorR4Router, identity: &str, text: &str) -> Vec<f64> 
     state
 }
 
+/// A text's storage band: the channel range (start, end) of the zeta
+/// window its stored content vector occupies.
+type Band = (usize, usize);
+
+/// The full-width content vector and storage band for one text (module
+/// docs, band-matched controls). `evolve_state` at gamma zero sets the
+/// fresh identity's session state to exactly the normalized zeta
+/// word-sum — the content vector the #245 override supplies at index
+/// time — so routing under that identity reproduces the index-time
+/// window choice, and `active_range` is the band the stored vector
+/// received. Parity with the storage surface is asserted: the band is
+/// one of the sixteen zeta window channel ranges, the stored vector is
+/// zero outside it, and the re-routed in-band coefficients match the
+/// stored ones (loose float tolerance: the index-time content vector
+/// and the gamma-zero evolved state differ only by a second
+/// renormalization, and grounding casts through f32 either way).
+fn content_full_and_band(
+    router: &mut UorR4Router,
+    identity: &str,
+    text: &str,
+    stored: &[f64],
+) -> (Vec<f64>, Band) {
+    let content_full = router.evolve_state(identity, text, 0.0);
+    assert_eq!(content_full.len(), 512, "content vector is 512-dimensional");
+    let routing = router.route_query_to_manifold_native(text, identity);
+    let start = routing.routed.active_range[0] as usize;
+    let end = routing.routed.active_range[1] as usize;
+    assert!(start < end && end <= 512, "well-formed active_range");
+    assert!(
+        window_ranges().contains(&(start, end)),
+        "active_range must be one of the sixteen zeta window channel ranges"
+    );
+    for (index, &value) in stored.iter().enumerate() {
+        assert!(
+            (start..end).contains(&index) || value == 0.0,
+            "stored content vector must be zero outside its band \
+             (index {index}, band {start}..{end})"
+        );
+    }
+    let in_band = &routing.routed.state_vector;
+    assert_eq!(in_band.len(), end - start, "routed slice spans the band");
+    for (routed_value, stored_value) in in_band.iter().zip(&stored[start..end]) {
+        assert!(
+            (routed_value - stored_value).abs() < 1e-5,
+            "re-routed banded coefficients match the storage surface \
+             ({routed_value} vs {stored_value})"
+        );
+    }
+    (content_full, (start, end))
+}
+
+/// Arm ZB law (module docs): zero the state outside the band, then
+/// renormalize.
+fn banded(state: &[f64], band: Band) -> Vec<f64> {
+    let (start, end) = band;
+    let mut v = vec![0.0; state.len()];
+    v[start..end].copy_from_slice(&state[start..end]);
+    let band_norm = norm(&v);
+    assert!(
+        band_norm > 1e-12,
+        "banded state must be nonzero inside its band"
+    );
+    for value in &mut v[start..end] {
+        *value /= band_norm;
+    }
+    v
+}
+
+/// Base and shuffled-control ranks for one arm: cosine of each probe
+/// query vector against the ordered store (base) and against the store
+/// rotated across window positions by `rotation` (the #423/#422
+/// control construction; queries unrotated).
+fn arm_ranks(
+    query_vecs: &[Vec<f64>],
+    store: &[Vec<f64>],
+    targets: &[usize],
+    rotation: usize,
+) -> (Vec<usize>, Vec<usize>) {
+    let n = store.len();
+    let store_refs: Vec<&[f64]> = store.iter().map(|v| v.as_slice()).collect();
+    let norms: Vec<f64> = store_refs.iter().map(|v| norm(v)).collect();
+    let rotated: Vec<&[f64]> = (0..n).map(|p| store_refs[(p + rotation) % n]).collect();
+    let rotated_norms: Vec<f64> = (0..n).map(|p| norms[(p + rotation) % n]).collect();
+    let mut base = Vec::with_capacity(targets.len());
+    let mut ctrl = Vec::with_capacity(targets.len());
+    for (probe, &t) in targets.iter().enumerate() {
+        let sims = sims_against(&query_vecs[probe], &store_refs, &norms);
+        base.push(base_rank(&sims, t));
+        let sims_ctrl = sims_against(&query_vecs[probe], &rotated, &rotated_norms);
+        ctrl.push(base_rank(&sims_ctrl, t));
+    }
+    (base, ctrl)
+}
+
 #[test]
 #[ignore = "issue #434 measurement harness; run explicitly with --ignored"]
 fn zeta_grid_state_as_retrieval_vector() {
@@ -381,39 +518,59 @@ fn zeta_grid_state_as_retrieval_vector() {
         .map(|(qi, q)| zeta_state(&mut router, &format!("user:zqz{qi}"), q))
         .collect();
 
-    // ---- stores in window order + norms ----
-    let content_store = aligned_vectors(&router, &windows);
-    let content_norms: Vec<f64> = content_store.iter().map(|v| norm(v)).collect();
-    let zeta_store: Vec<&[f64]> = store_z.iter().map(|v| v.as_slice()).collect();
-    let zeta_norms: Vec<f64> = zeta_store.iter().map(|v| norm(v)).collect();
+    // ---- stored content vectors in window order (owned: the band
+    // derivation below needs the router mutably) ----
+    let content_store: Vec<Vec<f64>> = aligned_vectors(&router, &windows)
+        .iter()
+        .map(|v| v.to_vec())
+        .collect();
 
-    // ---- CONTROL: arm Z's stored states rotated across window
-    // positions by the fixed half-length rotation (the #423/#422
-    // control construction); query states unrotated ----
+    // ---- band-matched arms (module docs): storage band + full-width
+    // content vector per stored window and per probe query ----
+    println!(
+        "band-matched arms: band = active_range of the stored content vector \
+         (parity-asserted); content-full = evolve_state(fresh identity, text, gamma 0.0)"
+    );
+    let (store_cf, store_band): (Vec<Vec<f64>>, Vec<Band>) = windows
+        .iter()
+        .enumerate()
+        .map(|(wi, w)| {
+            content_full_and_band(&mut router, &format!("user:zcw{wi}"), w, &content_store[wi])
+        })
+        .unzip();
+    let (query_cf, query_band): (Vec<Vec<f64>>, Vec<Band>) = queries
+        .iter()
+        .enumerate()
+        .map(|(qi, q)| content_full_and_band(&mut router, &format!("user:zcq{qi}"), q, &qv[qi]))
+        .unzip();
+    let store_zb: Vec<Vec<f64>> = store_z
+        .iter()
+        .zip(&store_band)
+        .map(|(state, &band)| banded(state, band))
+        .collect();
+    let query_zb: Vec<Vec<f64>> = query_z
+        .iter()
+        .zip(&query_band)
+        .map(|(state, &band)| banded(state, band))
+        .collect();
+
+    // ---- retrieval: identical ranking law per arm; each arm's
+    // shuffled control is its own stored set under the fixed
+    // half-length rotation, queries unrotated (module docs) ----
     let rotation = windows.len() / 2;
-    let shuffled_store: Vec<&[f64]> = (0..windows.len())
-        .map(|position| zeta_store[(position + rotation) % windows.len()])
-        .collect();
-    let shuffled_norms: Vec<f64> = (0..windows.len())
-        .map(|position| zeta_norms[(position + rotation) % windows.len()])
-        .collect();
-
-    // ---- retrieval: identical ranking law per arm (module docs) ----
-    let mut ranks_base: Vec<usize> = Vec::with_capacity(targets.len());
-    let mut ranks_z: Vec<usize> = Vec::with_capacity(targets.len());
-    let mut ranks_ctrl: Vec<usize> = Vec::with_capacity(targets.len());
-    for (probe, &t) in targets.iter().enumerate() {
-        let sims_base = sims_against(&qv[probe], &content_store, &content_norms);
-        ranks_base.push(base_rank(&sims_base, t));
-        let sims_z = sims_against(&query_z[probe], &zeta_store, &zeta_norms);
-        ranks_z.push(base_rank(&sims_z, t));
-        let sims_ctrl = sims_against(&query_z[probe], &shuffled_store, &shuffled_norms);
-        ranks_ctrl.push(base_rank(&sims_ctrl, t));
-    }
+    let (ranks_base, ranks_base_ctrl) = arm_ranks(&qv, &content_store, &targets, rotation);
+    let (ranks_z, ranks_ctrl) = arm_ranks(&query_z, &store_z, &targets, rotation);
+    let (ranks_zb, ranks_zb_ctrl) = arm_ranks(&query_zb, &store_zb, &targets, rotation);
+    let (ranks_cf, ranks_cf_ctrl) = arm_ranks(&query_cf, &store_cf, &targets, rotation);
 
     let (top1_base, mrr_base) = rank_metrics(&ranks_base);
+    let (_, mrr_base_ctrl) = rank_metrics(&ranks_base_ctrl);
     let (top1_z, mrr_z) = rank_metrics(&ranks_z);
     let (top1_ctrl, mrr_ctrl) = rank_metrics(&ranks_ctrl);
+    let (top1_zb, mrr_zb) = rank_metrics(&ranks_zb);
+    let (_, mrr_zb_ctrl) = rank_metrics(&ranks_zb_ctrl);
+    let (top1_cf, mrr_cf) = rank_metrics(&ranks_cf);
+    let (_, mrr_cf_ctrl) = rank_metrics(&ranks_cf_ctrl);
 
     println!(
         "zeta-grid state retrieval (issue #434): {} windows, {} probes",
@@ -422,7 +579,7 @@ fn zeta_grid_state_as_retrieval_vector() {
     );
     println!(
         "  baseline content vectors (#423 law, ref MRR 0.2348): top1 {top1_base:.3} | \
-         MRR {mrr_base:.4}"
+         MRR {mrr_base:.4} | ctrl MRR {mrr_base_ctrl:.4}"
     );
     println!(
         "  arm Z zeta-grid state:                               top1 {top1_z:.3} | MRR {mrr_z:.4}"
@@ -431,12 +588,25 @@ fn zeta_grid_state_as_retrieval_vector() {
         "  control shuffled zeta store (half-length rotation):  top1 {top1_ctrl:.3} | \
          MRR {mrr_ctrl:.4}"
     );
+    println!(
+        "  arm ZB zeta-grid state, band-matched:                top1 {top1_zb:.3} | \
+         MRR {mrr_zb:.4} | ctrl MRR {mrr_zb_ctrl:.4}"
+    );
+    println!(
+        "  arm CF content vectors, full-width:                  top1 {top1_cf:.3} | \
+         MRR {mrr_cf:.4} | ctrl MRR {mrr_cf_ctrl:.4}"
+    );
 
     // Structural invariants gate; direction prints (module docs).
     for (name, m) in [
         ("baseline", mrr_base),
+        ("baseline control", mrr_base_ctrl),
         ("arm Z", mrr_z),
         ("control", mrr_ctrl),
+        ("arm ZB", mrr_zb),
+        ("arm ZB control", mrr_zb_ctrl),
+        ("arm CF", mrr_cf),
+        ("arm CF control", mrr_cf_ctrl),
     ] {
         assert!((0.0..=1.0).contains(&m), "{name} MRR out of range: {m:.4}");
     }
@@ -457,6 +627,22 @@ fn zeta_grid_state_as_retrieval_vector() {
             "CONFIRMED (zeta-grid state carries retrieval-relevant structure)"
         } else {
             "recorded NEGATIVE (state does not function as a retrieval key at this bar)"
+        }
+    );
+
+    // ---- pre-declared band-matched rule (module docs) ----
+    let survives = mrr_zb >= 0.5 * mrr_z && mrr_zb > mrr_base;
+    println!(
+        "band-matched rule (#434 follow-up): arm ZB MRR {mrr_zb:.4} vs half arm Z {:.4} \
+         ({:+.4}, need at least zero) and vs content baseline {mrr_base:.4} ({:+.4}, need \
+         positive) -> {}",
+        0.5 * mrr_z,
+        mrr_zb - 0.5 * mrr_z,
+        mrr_zb - mrr_base,
+        if survives {
+            "SURVIVES (the win is the zeta-state geometry, not vector fullness)"
+        } else {
+            "re-attributed to BANDING (arm Z's advantage does not survive band matching)"
         }
     );
 }
