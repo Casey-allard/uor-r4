@@ -54,7 +54,17 @@
 //!    maintainer decision; this module only writes the recommendation
 //!    into the report.
 //!
-//! # Report schema (`cover_sweep.json`, `schema = 2`)
+//! # Report schema (`cover_sweep.json`, `schema = 3`)
+//!
+//! Schema 3 (#456): every sweep row additionally records `reconstruction`
+//! — the EXCT-disabled reconstruction metric (held-out top-1 agreement
+//! and bits/token of the graph-only Rule 1 chain,
+//! [`score::evaluate_gate_c`]'s `rule1_chain`) — alongside the existing
+//! with-EXCT `gate_c_rule12` agreement block, promoting the
+//! graph-only reconstructability of the cover from a post-hoc Gate C
+//! observation to a per-frontier-point report column. The recommendation
+//! block records the recommended point's reconstruction bits/token; the
+//! knee rule itself still runs on with-EXCT agreement (reporting only).
 //!
 //! Schema 2 (#364): the scorer block records `emission_selection`,
 //! `emission_shrinkage`, `context_order`, and `context_entries`, and the
@@ -68,7 +78,7 @@
 //! zero, preserving the byte-exact default cover.
 //!
 //! ```text
-//! schema:          2
+//! schema:          3
 //! inputs:          {artifact_kappa, corpus_kappa,
 //!                   train_observations, held_out_observations}
 //! scorer:          {transition_out_degree, emission_entries, root_top_b,
@@ -81,7 +91,7 @@
 //!                   (cover-independent store baseline, recorded once)
 //! recommendation:  {label, bytes, agreement, slope_floor, frontier,
 //!                   delta_bytes_vs_baseline, delta_agreement_vs_baseline,
-//!                   rationale} | null
+//!                   reconstruction_bits_per_token, rationale} | null
 //! points:          per point, grid order then the baseline row:
 //!   {label, baseline, config: {k0, depths, entropy_gain_bits,
 //!     regions_budget, min_support, memory_budget_bytes},
@@ -89,7 +99,9 @@
 //!    recall: per depth {depth, evaluated, reference_top1, reference_topm,
 //!      frontier_mean, frontier_max},
 //!    artifact_bytes, graph_kappa,
-//!    gate_c_rule12: {positions, top1_agreement, bits_per_token}}
+//!    gate_c_rule12: {positions, top1_agreement, bits_per_token},
+//!    reconstruction: {positions, top1_agreement, bits_per_token}}
+//!                   — #456: EXCT-disabled graph-only held-out score
 //! determinism:     note string
 //! ```
 //!
@@ -117,7 +129,7 @@ use uor_r4_graph_compiler::induction::{self as cover, Observation};
 use uor_r4_graph_compiler::reproducibility as repro;
 
 /// The `cover_sweep.json` schema version (module docs).
-pub const SWEEP_REPORT_SCHEMA: u32 = 2;
+pub const SWEEP_REPORT_SCHEMA: u32 = 3;
 
 /// Grid axis: the broad depth-1 region counts under test.
 pub const SWEEP_K0: [usize; 2] = [8, 16];
@@ -324,6 +336,10 @@ pub struct SweepRow {
     /// Gate C Rule 1+2 (chain + D4 EXCT precedence) on held-out — the
     /// distortion axis.
     pub gate_c_rule12: GateCMetrics,
+    /// Issue #456: Gate C Rule 1 chain (EXCT disabled) on held-out — the
+    /// graph-only reconstruction score of this cover point, recorded
+    /// alongside the with-EXCT agreement.
+    pub reconstruction: GateCMetrics,
 }
 
 /// The recorded operating-point recommendation (module docs for the
@@ -344,6 +360,9 @@ pub struct Recommendation {
     pub delta_bytes_vs_baseline: Option<i64>,
     /// `recommended − baseline` Rule 1+2 top-1 agreement.
     pub delta_agreement_vs_baseline: Option<f64>,
+    /// The recommended point's EXCT-disabled reconstruction bits/token
+    /// (#456; reporting only — the knee rule still runs on agreement).
+    pub reconstruction_bits_per_token: f64,
     /// The written justification (numbers + the rule's application).
     pub rationale: String,
 }
@@ -524,6 +543,7 @@ pub fn run_point(
         artifact_bytes: artifact_bytes.len(),
         graph_kappa,
         gate_c_rule12: gate_c.rule12_precedence.clone(),
+        reconstruction: gate_c.rule1_chain.clone(),
     };
     Ok((row, gate_c.tla3_baseline.clone(), artifact_bytes))
 }
@@ -636,6 +656,7 @@ pub fn recommend(rows: &[SweepRow]) -> Option<Recommendation> {
         frontier: frontier.iter().map(|r| r.label.clone()).collect(),
         delta_bytes_vs_baseline: delta_bytes,
         delta_agreement_vs_baseline: delta_agreement,
+        reconstruction_bits_per_token: chosen.reconstruction.bits_per_token,
         rationale,
     })
 }
@@ -960,5 +981,60 @@ mod tests {
         assert!(parse_cover_sweep_options(&bad).is_err());
         let missing = ["--out"].map(str::to_owned);
         assert!(parse_cover_sweep_options(&missing).is_err());
+    }
+
+    #[test]
+    fn sweep_row_serializes_reconstruction_block() {
+        let metrics = |bits_per_token: f64| GateCMetrics {
+            positions: 10,
+            top1_agreement: 0.5,
+            bits_per_token,
+        };
+        let row = SweepRow {
+            label: "k0=8/gain=0.25/budget=128".to_owned(),
+            baseline: false,
+            config: SweepRowConfig {
+                k0: 8,
+                depths: 3,
+                entropy_gain_bits: 0.25,
+                regions_budget: 128,
+                min_support: 4,
+                memory_budget_bytes: 64 * 1024 * 1024,
+                distinctiveness_weight: 0.0,
+            },
+            regions: SweepRegions {
+                total: 1,
+                per_depth: vec![1],
+                splits: 0,
+                max_depth: 1,
+            },
+            recall: Vec::new(),
+            artifact_bytes: 1024,
+            graph_kappa: "blake3:test".to_owned(),
+            gate_c_rule12: metrics(1.0),
+            reconstruction: metrics(16.03),
+        };
+        let json = serde_json::to_value(&row).expect("row serializes");
+        assert_eq!(json["gate_c_rule12"]["positions"], 10);
+        assert_eq!(json["gate_c_rule12"]["bits_per_token"], 1.0);
+        let reconstruction = &json["reconstruction"];
+        assert_eq!(reconstruction["positions"], 10);
+        assert_eq!(reconstruction["top1_agreement"], 0.5);
+        assert_eq!(reconstruction["bits_per_token"], 16.03);
+
+        let recommendation = Recommendation {
+            label: row.label.clone(),
+            bytes: row.artifact_bytes,
+            agreement: 0.5,
+            slope_floor: KNEE_SLOPE_FLOOR,
+            frontier: vec![row.label.clone()],
+            delta_bytes_vs_baseline: Some(0),
+            delta_agreement_vs_baseline: Some(0.0),
+            reconstruction_bits_per_token: 16.03,
+            rationale: "test".to_owned(),
+        };
+        let json = serde_json::to_value(&recommendation).expect("recommendation serializes");
+        assert_eq!(json["reconstruction_bits_per_token"], 16.03);
+        assert_eq!(SWEEP_REPORT_SCHEMA, 3);
     }
 }
