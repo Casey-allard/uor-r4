@@ -1911,12 +1911,101 @@ fn outcome_bits(
 }
 
 /// One metric set of the Gate C table.
+///
+/// `positions` is the denominator every rate in the row is divided by.
+/// `positions_sampled` and `standard_error` (#467) exist so a sampled
+/// number can never be quoted as a census: the first says whether the run
+/// scored the whole held-out split or a subsample of it, the second says
+/// how much of the printed rate is measurement noise.
 #[derive(Debug, Clone, Default, Serialize)]
 pub struct GateCMetrics {
     pub positions: usize,
     /// P(selected token == recorded teacher argmax).
     pub top1_agreement: f64,
     pub bits_per_token: f64,
+    /// Sample size of the sampled decision run backing this row (#467), or
+    /// `0` when the run was a full pass — a census over the whole held-out
+    /// split, which is the default and the only mode before schema 25.
+    /// Nonzero means every rate in this row is an ESTIMATE.
+    pub positions_sampled: usize,
+    /// Binomial standard error of `top1_agreement`, `sqrt(p(1-p)/n)` with
+    /// `n = positions`. Reported for full passes too, where it is the
+    /// sampling error the held-out split itself carries as a draw from the
+    /// position population. Not defined for `bits_per_token`.
+    pub standard_error: f64,
+}
+
+/// Binomial standard error of a rate `p` measured over `n` positions:
+/// sqrt of p(1-p)/n, and zero for an empty population.
+fn binomial_standard_error(p: f64, n: usize) -> f64 {
+    if n == 0 {
+        return 0.0;
+    }
+    (p * (1.0 - p) / n as f64).sqrt()
+}
+
+/// Environment override selecting the #467 sampled Gate C decision mode.
+/// UNSET is the full pass, bit-identical to the pre-#467 evaluation.
+pub const GATE_C_SAMPLE_ENV: &str = "R4_GATE_C_SAMPLE";
+
+/// Deterministic stratified subsample of the held-out evaluation list.
+///
+/// Motivation. The long runs buy precision nobody uses. At 402,802
+/// held-out positions with top-1 near 26 percent the standard error of the
+/// rate is 0.07pp, while every pre-declared exit rule in this repository is
+/// written at plus or minus 2pp — about 30x finer than any decision needs,
+/// bought with hours of wall clock. A 10,000-position decision run has
+/// standard error 0.44pp, still comfortably inside a 2pp rule, and costs
+/// about 40x less. Sampling is therefore a decision-speed knob, never a
+/// precision claim: the sample size and the standard error travel with
+/// every rate so a sampled number cannot be mistaken for a census.
+///
+/// Contract, in the [`compiler::capacity_override_usize`] style: UNSET is
+/// behaviour-identical to the full pass (every held-out position scored, in
+/// input order, with bit-identical floating-point reductions). Set to `n`,
+/// the evaluation scores a stride-selected subsample of size
+/// `min(n, population)`.
+///
+/// Selection is a stride, not an RNG: position `k` of the sample is
+/// held-out entry `k * population / n`. That is deterministic (the same
+/// corpus and the same `n` always select the same positions, so a sampled
+/// run is reproducible and diffable), it preserves input order (so the
+/// reduction stays order-deterministic), and it is stratified — the
+/// held-out list is in corpus order, so an even stride spreads the sample
+/// across every story and every region of the corpus instead of
+/// concentrating it in one contiguous block.
+///
+/// What sampling does NOT change: the construction/held-out split itself.
+/// The held-out MASK, and therefore every table built from the
+/// construction split (forward-anchor, two-sided, latent, unigram null),
+/// is derived from the FULL held-out list. Only the set of positions
+/// SCORED shrinks. A sampled run measures the same model as a full run.
+fn gate_c_sample(held_out: &[Observation]) -> (Vec<&Observation>, usize) {
+    let population = held_out.len();
+    let requested = match std::env::var(GATE_C_SAMPLE_ENV) {
+        Ok(value) => {
+            let parsed = value
+                .trim()
+                .replace('_', "")
+                .parse::<usize>()
+                .unwrap_or_else(|_| {
+                    panic!("{GATE_C_SAMPLE_ENV} must be a positive integer, got {value:?}")
+                });
+            assert!(
+                parsed >= 1,
+                "{GATE_C_SAMPLE_ENV} must be >= 1, got {value:?}"
+            );
+            parsed
+        }
+        Err(_) => return (held_out.iter().collect(), 0),
+    };
+    if requested >= population {
+        return (held_out.iter().collect(), 0);
+    }
+    let scored = (0..requested)
+        .map(|k| &held_out[k * population / requested])
+        .collect();
+    (scored, requested)
 }
 
 /// Per-status position counts of the Rule 1+2 scorer (D4 precedence).
@@ -2199,6 +2288,14 @@ pub struct GateCNulls {
 /// candidate recall, and the witness-replay sample result.
 #[derive(Debug, Clone, Default, Serialize)]
 pub struct GateCOutcome {
+    /// Size of the held-out split the evaluation was handed (#467). Equal
+    /// to the number of positions scored on a full pass.
+    pub held_out_population: usize,
+    /// Number of held-out positions actually scored when the #467 sampled
+    /// decision mode is active, or `0` on a full pass (a census). Nonzero
+    /// means every rate in this outcome is an ESTIMATE whose noise is the
+    /// `standard_error` of its own row.
+    pub positions_sampled: usize,
     /// OLD Σ-over-cloud formula (with EXCT evidence wired), kept for
     /// comparison — the confirmed double counting lives there.
     pub legacy_sum: GateCMetrics,
@@ -3274,7 +3371,12 @@ pub fn evaluate_gate_c(
         &right_codes,
         latent_class_depth,
     );
-    let held_positions: Vec<usize> = held_out
+    // #467: the positions actually SCORED. Full pass unless
+    // `R4_GATE_C_SAMPLE` is set; the held-out mask above (and every table
+    // built from it) always sees the complete held-out list, so sampling
+    // narrows the measurement, never the split.
+    let (scored, sample_size) = gate_c_sample(held_out);
+    let held_positions: Vec<usize> = scored
         .iter()
         .map(|observation| observation.position as usize)
         .collect();
@@ -3335,7 +3437,7 @@ pub fn evaluate_gate_c(
     // Each held-out position is independent. Collect compact rows in Rayon;
     // reduce them in input order below so floating-point totals and all
     // report bytes retain the serial implementation's determinism.
-    let rows: Vec<GateCRow> = held_out
+    let rows: Vec<GateCRow> = scored
         .par_iter()
         .enumerate()
         .map(|(index, observation)| evaluate_gate_c_row(index, observation, &context))
@@ -3593,15 +3695,20 @@ pub fn evaluate_gate_c(
         outcome.witness_replays += usize::from(row.witness_replayed);
         outcome.witness_replay_failures += usize::from(row.witness_replay_failed);
     }
-    let n = held_out.len();
+    let n = scored.len();
     if n == 0 {
         return Err("held-out split is empty; cannot evaluate".to_owned());
     }
     let nf = n as f64;
-    let metrics = |hits: u64, bits: f64| GateCMetrics {
-        positions: n,
-        top1_agreement: hits as f64 / nf,
-        bits_per_token: bits / nf,
+    let metrics = |hits: u64, bits: f64| {
+        let top1 = hits as f64 / nf;
+        GateCMetrics {
+            positions: n,
+            top1_agreement: top1,
+            bits_per_token: bits / nf,
+            positions_sampled: sample_size,
+            standard_error: binomial_standard_error(top1, n),
+        }
     };
     outcome.legacy_sum = metrics(hits_legacy, bits_legacy);
     outcome.rule1_chain = metrics(hits_rule1, bits_rule1);
@@ -3616,18 +3723,23 @@ pub fn evaluate_gate_c(
     outcome.rule12_fwd_gated_fused = metrics(hits_fwd_gated, bits_fwd_gated);
     outcome.rule12_fwd_draft_fused = metrics(hits_fwd_draft, bits_fwd_draft);
     outcome.rule12_fwd_strict_fused = metrics(hits_fwd_strict, bits_fwd_strict);
-    let live_metrics = |hits: u64, bits: f64, live_n: usize| GateCMetrics {
-        positions: live_n,
-        top1_agreement: if live_n == 0 {
+    let live_metrics = |hits: u64, bits: f64, live_n: usize| {
+        let top1 = if live_n == 0 {
             0.0
         } else {
             hits as f64 / live_n as f64
-        },
-        bits_per_token: if live_n == 0 {
-            0.0
-        } else {
-            bits / live_n as f64
-        },
+        };
+        GateCMetrics {
+            positions: live_n,
+            top1_agreement: top1,
+            bits_per_token: if live_n == 0 {
+                0.0
+            } else {
+                bits / live_n as f64
+            },
+            positions_sampled: sample_size,
+            standard_error: binomial_standard_error(top1, live_n),
+        }
     };
     outcome.rule12_fwd_fused_live = live_metrics(fwd_live_hits, fwd_live_bits, fwd_live_positions);
     outcome.rule12_on_fwd_live =
@@ -3751,23 +3863,29 @@ pub fn evaluate_gate_c(
         let hits = status_hits[1] + status_hits[2];
         let bits = status_bits[1] + status_bits[2];
         let nf = (positions as f64).max(1.0);
+        let top1 = hits as f64 / nf;
         GateCMetrics {
             positions,
-            top1_agreement: hits as f64 / nf,
+            top1_agreement: top1,
             bits_per_token: bits / nf,
+            positions_sampled: sample_size,
+            standard_error: binomial_standard_error(top1, positions),
         }
     };
     outcome.nulls = GateCNulls {
         unigram_train_argmax,
-        unigram_null_top1_all: null_hits_all as f64 / (held_out.len() as f64).max(1.0),
-        unigram_null_bits_all: null_bits_all / (held_out.len() as f64).max(1.0),
+        unigram_null_top1_all: null_hits_all as f64 / nf,
+        unigram_null_bits_all: null_bits_all / nf,
         unigram_null_top1_generalization: null_hits_generalization as f64
             / (generalization_positions as f64).max(1.0),
         unigram_null_bits_generalization: null_bits_generalization
             / (generalization_positions as f64).max(1.0),
         train_positions,
-        held_out_positions: held_out.len(),
+        held_out_positions: n,
     };
+    // #467: the sampling provenance of the whole table.
+    outcome.held_out_population = held_out.len();
+    outcome.positions_sampled = sample_size;
     outcome.rule12_exct_probe_levels = exct_level_positions;
     outcome.rule12_exct_probe_absent = exct_probe_absent;
     outcome.rule12_exct_full_depth_supported = exct_full_depth_supported;
@@ -3777,10 +3895,13 @@ pub fn evaluate_gate_c(
             return GateCMetrics::default();
         }
         let denom = positions as f64;
+        let top1 = status_hits[index] as f64 / denom;
         GateCMetrics {
             positions,
-            top1_agreement: status_hits[index] as f64 / denom,
+            top1_agreement: top1,
             bits_per_token: status_bits[index] / denom,
+            positions_sampled: sample_size,
+            standard_error: binomial_standard_error(top1, positions),
         }
     };
     outcome.rule12_per_status = Rule12PerStatus {
@@ -3931,7 +4052,7 @@ pub fn evaluate_gate_c(
     let mut baseline_rep_sum = 0.0;
     let mut probe_count = 0;
 
-    for obs in held_out.iter() {
+    for obs in scored.iter() {
         let pos = obs.position as usize;
         if pos >= 32 && corpus.story[pos] == corpus.story[pos - 32] {
             let seed = &corpus.input[pos - 32..pos];
@@ -5012,6 +5133,29 @@ fn evaluate_gate_c_row(
 /// generation number; the oracle row is an upper bound and remains not
 /// causal. Nothing here changes the artifact format, the serving
 /// scorer's default path, the witness or the replay contract.
+/// Schema twenty-five is the #467 sampled Gate C decision mode: every
+/// [`GateCMetrics`] row gains `positions_sampled` and `standard_error`,
+/// and `gate_c` gains `held_out_population` and `positions_sampled`. The
+/// motivation is arithmetic, not engineering taste. A full pass over
+/// 402,802 held-out positions at a top-1 rate near 26 percent has a
+/// standard error of 0.07pp, while every pre-declared exit rule in this
+/// repository is written at plus or minus 2pp — roughly 30x more
+/// precision than any decision consumes, bought with hours of wall
+/// clock. A 10,000-position decision run has a standard error of 0.44pp,
+/// still well inside a 2pp rule, at about 40x less cost. The mode is
+/// opt-in through the `R4_GATE_C_SAMPLE` environment override; UNSET is
+/// the full pass and is behaviour-identical (bit-identical rates and
+/// bits) to schema twenty-four, where `positions_sampled` is `0` on
+/// every row and `standard_error` is the sampling error the full
+/// held-out split itself carries. When the override is set, the
+/// evaluation scores a deterministic stride-selected, order-preserving
+/// subsample of the held-out list; the held-out MASK and therefore every
+/// construction-split table (forward-anchor, two-sided, latent, unigram
+/// null) is still built from the FULL held-out list, so a sampled run
+/// measures the same model as a full run and differs only in how many
+/// positions the measurement averages over. A row whose
+/// `positions_sampled` is nonzero is an ESTIMATE and must be quoted with
+/// its `standard_error`, never as a census.
 #[derive(Debug, Clone, Serialize)]
 pub struct ScoreReport {
     pub schema: u32,
@@ -5204,7 +5348,7 @@ pub fn build_score_report_with_quality_profile(
         can_measure_generalization: strict_exct_miss_rate >= MIN_EXCT_MISS_RATE_FOR_GATE_C,
     };
     ScoreReport {
-        schema: 24,
+        schema: 25,
         inputs,
         config: ScoreReportConfig {
             transition_out_degree: config.transition_out_degree,

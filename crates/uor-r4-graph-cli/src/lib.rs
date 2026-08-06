@@ -1249,17 +1249,48 @@ pub fn score_command(args: &[String]) -> Result<(), String> {
         "gate C — held-out D3 metrics ({} positions):",
         gate_c.rule12_precedence.positions
     );
-    println!(
-        "  {:<26} {:>16} {:>12}",
-        "scorer", "top-1 agree", "bits/token"
-    );
-    let row = |name: &str, m: &score::GateCMetrics| {
+    // #467: a sampled decision run prints its sample size and the standard
+    // error of every rate, so a sampled number cannot be read as a census.
+    let sampled = gate_c.positions_sampled > 0;
+    if sampled {
         println!(
-            "  {:<26} {:>15.1}% {:>12.4}",
-            name,
-            100.0 * m.top1_agreement,
-            m.bits_per_token
+            "  SAMPLED DECISION RUN (R4_GATE_C_SAMPLE): n={} of {} held-out positions \
+             ({:.4} of the split); every rate below is an ESTIMATE, +/- is the binomial \
+             standard error sqrt(p(1-p)/n)",
+            gate_c.positions_sampled,
+            gate_c.held_out_population,
+            gate_c.positions_sampled as f64 / (gate_c.held_out_population as f64).max(1.0)
         );
+    }
+    if sampled {
+        println!(
+            "  {:<26} {:>16} {:>12} {:>10} {:>9}",
+            "scorer", "top-1 agree", "bits/token", "+/- (SE)", "n"
+        );
+    } else {
+        println!(
+            "  {:<26} {:>16} {:>12}",
+            "scorer", "top-1 agree", "bits/token"
+        );
+    }
+    let row = |name: &str, m: &score::GateCMetrics| {
+        if sampled {
+            println!(
+                "  {:<26} {:>15.1}% {:>12.4} {:>9.2}% {:>9}",
+                name,
+                100.0 * m.top1_agreement,
+                m.bits_per_token,
+                100.0 * m.standard_error,
+                m.positions
+            );
+        } else {
+            println!(
+                "  {:<26} {:>15.1}% {:>12.4}",
+                name,
+                100.0 * m.top1_agreement,
+                m.bits_per_token
+            );
+        }
     };
     row("graph Σ-cloud (old)", &gate_c.legacy_sum);
     row("graph chain (Rule 1)", &gate_c.rule1_chain);

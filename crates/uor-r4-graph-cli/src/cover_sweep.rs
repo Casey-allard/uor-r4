@@ -989,6 +989,7 @@ mod tests {
             positions: 10,
             top1_agreement: 0.5,
             bits_per_token,
+            ..GateCMetrics::default()
         };
         let row = SweepRow {
             label: "k0=8/gain=0.25/budget=128".to_owned(),
