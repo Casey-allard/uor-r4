@@ -61,6 +61,20 @@
 //!   same-machine determinism is pinned by the T-invariance tests, and
 //!   cross-platform byte equality awaits the D2 canonical deterministic
 //!   compile mode, exactly as for `compile()`'s macOS-pinned κ baseline.)
+//! - **Split criterion (issue #435)**: the floor above is *absolute*, so
+//!   it tightens as the corpus grows — a bigger corpus spreads a region's
+//!   next-token mass over more types, every single split removes a
+//!   smaller absolute share of the entropy, and the constant bar rejects
+//!   it (measured: 38 regions / contrast 0.5012 at 500k records, 14
+//!   regions / contrast 0.0915 at 2 110 111 records of the same domain —
+//!   more data, coarser geometry). [`SplitCriterion`] adds corpus-relative
+//!   tests (`relative`: a fraction of `H(parent)`; `mdl`: a BIC-style
+//!   description-length trade whose per-token bar *loosens* with support)
+//!   and [`CoverConfig::scale_k0`]/[`CoverConfig::scale_regions_budget`]
+//!   grow the cover's capacity as `(n/n_ref)^alpha` with `alpha = 0.45`
+//!   from the measured class-growth law. All of it is **off by default**:
+//!   an unconfigured compile takes the absolute floor and the fixed `k0`,
+//!   so shipped artifacts and κs are unchanged.
 //! - **Objective scoring (schema 2)**: each eligible split records
 //!   `H(A|R)` and `H(S_future|R)` proxies, an information-bottleneck term
 //!   `I(Z;X) - beta·I(Z;Y_future)`, and runtime/artifact/bytes/structure
@@ -139,6 +153,15 @@ fn canonical_log2(value: f64) -> f64 {
     }
 }
 
+#[inline]
+fn canonical_powf(base: f64, exponent: f64) -> f64 {
+    if canonical_math_enabled() {
+        libm::pow(base, exponent)
+    } else {
+        base.powf(exponent)
+    }
+}
+
 /// Default multiresolution depth cap (root at depth 0; regions at 1..=3).
 pub const DEFAULT_DEPTHS: usize = 3;
 /// Default number of regions of the broad depth-1 cover.
@@ -159,6 +182,101 @@ pub fn sample_id(tokens: &[u32]) -> [u8; 32] {
 pub const DEFAULT_MIN_SUPPORT: usize = 64;
 /// Default entropy-reduction floor for accepting a split, in bits/token.
 pub const DEFAULT_SPLIT_ENTROPY_GAIN_BITS: f64 = 0.25;
+/// Default relative entropy-gain floor: the accepted split must remove
+/// this fraction of the parent's next-token entropy (issue #435). See
+/// [`SplitCriterion::RelativeGain`] for the calibration of the value.
+pub const DEFAULT_RELATIVE_GAIN_THETA: f64 = 0.0384;
+/// Default MDL/BIC penalty in bits per added model parameter (issue
+/// #435). `0.5` is the BIC constant: one parameter costs `½·log₂ n` bits.
+pub const DEFAULT_MDL_PENALTY_BITS: f64 = 0.5;
+/// Default exponent of the corpus-relative capacity law (issue #435).
+/// Measured on nested prefixes of the natural corpus over a 17× data
+/// range: distinct left-context keys grow as `n^0.44` and distinct
+/// next-token-distribution signature classes as `n^0.46`; `0.45` is the
+/// midpoint and is only applied when capacity scaling is switched on.
+pub const DEFAULT_CAPACITY_ALPHA: f64 = 0.45;
+/// Reference train-observation count of the capacity law: the train
+/// partition of the 500k-record natural corpus (~4.0e5 positions, the
+/// 100% row of the measured class-growth table, 401 655 positions over
+/// 2 012 stories). At `n = n_ref` every scaled knob equals its base
+/// value, so the 500k reference cover is unchanged by scaling.
+pub const DEFAULT_CAPACITY_REF_N: usize = 400_000;
+/// Upper clamp of a scaled region budget (bytes discipline: ~96 B per
+/// added region, so 65 536 regions is ~6 MB of cover nodes).
+pub const MAX_SCALED_REGIONS_BUDGET: usize = 65_536;
+
+/// Which structural-stratification test gates a candidate split.
+///
+/// Issue #435: the shipped test is an **absolute** entropy floor. As the
+/// corpus grows a region's next-token distribution spreads over more
+/// types, so any single binary split removes a smaller absolute share of
+/// the entropy and the fixed floor becomes a *stricter* filter at larger
+/// `n` — measured: 38 regions at 500k records, 14 regions at 2 110 111
+/// records on the same domain. The alternatives below make the bar
+/// track the data. [`SplitCriterion::Absolute`] is the default so that
+/// unconfigured compiles are byte-identical to today's artifacts.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum SplitCriterion {
+    /// Shipped behaviour: accept iff `gain > entropy_gain_bits`.
+    #[default]
+    Absolute,
+    /// Corpus-relative: accept iff `gain / H(parent) > theta`.
+    ///
+    /// The bar is a *fraction* of what there is to explain, so it does
+    /// not tighten when `H(parent)` grows with the corpus. The default
+    /// `theta = 0.0325` is calibrated at the 500k reference, where the
+    /// mean next-token entropy of a split-eligible region is ~7.7 bits:
+    /// `0.25 / 7.7 = 0.0325`, i.e. the relative bar reproduces the
+    /// absolute bar at the reference scale and only diverges away from
+    /// it.
+    RelativeGain,
+    /// MDL/BIC: accept iff
+    /// `gain_bits · support > penalty_bits · added_params · log₂(n)`,
+    /// with `added_params = (SPLIT_CHILDREN − 1) · parent_types`
+    /// (the extra multinomial cells a child model introduces) and `n`
+    /// the train-observation count.
+    ///
+    /// The left side is the total number of bits the split saves on the
+    /// data it explains and grows **linearly** in support; the right
+    /// side is the code length of the extra parameters and grows only
+    /// as `types · log n` (~`n^0.46 · log n` by the measured class-growth
+    /// law). The effective per-token bar therefore *loosens* as support
+    /// grows, which is the opposite of the shipped absolute floor.
+    Mdl,
+}
+
+impl SplitCriterion {
+    /// Canonical lowercase label (also the accepted env-var spelling).
+    pub fn label(self) -> &'static str {
+        match self {
+            SplitCriterion::Absolute => "absolute",
+            SplitCriterion::RelativeGain => "relative",
+            SplitCriterion::Mdl => "mdl",
+        }
+    }
+
+    /// Parse a criterion label; `None` when unrecognized.
+    pub fn parse(value: &str) -> Option<Self> {
+        match value.trim() {
+            "absolute" => Some(SplitCriterion::Absolute),
+            "relative" | "relative_gain" => Some(SplitCriterion::RelativeGain),
+            "mdl" | "bic" => Some(SplitCriterion::Mdl),
+            _ => None,
+        }
+    }
+}
+
+impl std::fmt::Display for SplitCriterion {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.label())
+    }
+}
+
+impl Serialize for SplitCriterion {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.label())
+    }
+}
 /// Top-token bound used by the induction-time distinctiveness objective.
 pub const DISTINCTIVENESS_TOP_E: usize = 64;
 /// Objective configuration schema version carried in compile reports.
@@ -234,6 +352,25 @@ pub struct CoverConfig {
     pub min_support: usize,
     /// Entropy-reduction floor for accepting a split, in bits/token.
     pub entropy_gain_bits: f64,
+    /// Which split test gates the recursion (issue #435). Defaults to
+    /// [`SplitCriterion::Absolute`], the shipped behaviour.
+    pub split_criterion: SplitCriterion,
+    /// Fraction-of-parent-entropy floor of [`SplitCriterion::RelativeGain`].
+    /// Ignored by the other criteria.
+    pub relative_gain_theta: f64,
+    /// Bits charged per added model parameter by [`SplitCriterion::Mdl`].
+    /// Ignored by the other criteria.
+    pub mdl_penalty_bits: f64,
+    /// Scale `k0` with the corpus size (issue #435). Off by default.
+    pub scale_k0: bool,
+    /// Scale `regions_budget` with the corpus size. Off by default.
+    pub scale_regions_budget: bool,
+    /// Exponent of the capacity law `(n / n_ref)^alpha` used by the two
+    /// scaling switches above; unused when both are off.
+    pub capacity_alpha: f64,
+    /// Reference train-observation count at which the scaled knobs equal
+    /// their base values.
+    pub capacity_ref_n: usize,
     /// Percentile numerator used to calibrate region acceptance radii.
     pub radius_quantile_numerator: u32,
     /// Percentile denominator used to calibrate region acceptance radii.
@@ -353,9 +490,133 @@ impl Default for CoverConfig {
                 "R4_COVER_ENTROPY_GAIN_BITS",
                 DEFAULT_SPLIT_ENTROPY_GAIN_BITS,
             ),
+            split_criterion: split_criterion_override("R4_COVER_SPLIT_CRITERION"),
+            relative_gain_theta: compiler::capacity_override_f64(
+                "R4_COVER_RELATIVE_THETA",
+                DEFAULT_RELATIVE_GAIN_THETA,
+            ),
+            mdl_penalty_bits: compiler::capacity_override_f64(
+                "R4_COVER_MDL_PENALTY_BITS",
+                DEFAULT_MDL_PENALTY_BITS,
+            ),
+            scale_k0: flag_override("R4_COVER_SCALE_K0"),
+            scale_regions_budget: flag_override("R4_COVER_SCALE_REGIONS_BUDGET"),
+            capacity_alpha: compiler::capacity_override_f64(
+                "R4_COVER_CAPACITY_ALPHA",
+                DEFAULT_CAPACITY_ALPHA,
+            ),
+            capacity_ref_n: compiler::capacity_override_usize(
+                "R4_COVER_CAPACITY_REF_N",
+                DEFAULT_CAPACITY_REF_N,
+            ),
             radius_quantile_numerator: RADIUS_QUANTILE_NUMERATOR,
             radius_quantile_denominator: RADIUS_QUANTILE_DENOMINATOR,
             objective: ObjectiveConfig::default(),
+        }
+    }
+}
+
+/// Split-criterion environment override (#435). Unset is κ-neutral
+/// ([`SplitCriterion::Absolute`]); a set-but-unrecognized value panics,
+/// matching [`compiler::capacity_override_usize`]'s fail-loud contract.
+fn split_criterion_override(name: &str) -> SplitCriterion {
+    match std::env::var(name) {
+        Ok(value) => SplitCriterion::parse(&value).unwrap_or_else(|| {
+            panic!("{name} must be one of absolute|relative|mdl, got {value:?}")
+        }),
+        Err(_) => SplitCriterion::default(),
+    }
+}
+
+/// Boolean environment override (#435): unset or `0` is off, `1` is on;
+/// anything else panics rather than silently defaulting.
+fn flag_override(name: &str) -> bool {
+    match std::env::var(name) {
+        Ok(value) => match value.trim() {
+            "0" | "false" => false,
+            "1" | "true" => true,
+            other => panic!("{name} must be 0|1, got {other:?}"),
+        },
+        Err(_) => false,
+    }
+}
+
+impl CoverConfig {
+    /// The capacity-law factor `(n / n_ref)^alpha` (issue #435), `1.0`
+    /// when `n == n_ref`. Deterministic: a single `powf` on two exactly
+    /// representable ratios, canonicalized under
+    /// `TLESS_CANONICAL_DETERMINISTIC` like the module's other math.
+    pub fn capacity_factor(&self, n_observations: usize) -> f64 {
+        let reference = self.capacity_ref_n.max(1) as f64;
+        let ratio = n_observations.max(1) as f64 / reference;
+        canonical_powf(ratio, self.capacity_alpha)
+    }
+
+    /// Depth-1 cover width actually used: `k0` unless [`Self::scale_k0`]
+    /// is on, in which case `clamp(round(k0 · (n/n_ref)^alpha), 2, budget)`.
+    pub fn effective_k0(&self, n_observations: usize) -> usize {
+        if !self.scale_k0 {
+            return self.k0;
+        }
+        let scaled = (self.k0 as f64 * self.capacity_factor(n_observations)).round();
+        let scaled = if scaled.is_finite() {
+            scaled.max(0.0).min(MAX_SCALED_REGIONS_BUDGET as f64) as usize
+        } else {
+            self.k0
+        };
+        scaled
+            .max(SPLIT_CHILDREN)
+            .min(self.effective_regions_budget(n_observations))
+    }
+
+    /// Region budget actually used: `regions_budget` unless
+    /// [`Self::scale_regions_budget`] is on, in which case
+    /// `clamp(round(budget · (n/n_ref)^alpha), 2, MAX_SCALED_REGIONS_BUDGET)`.
+    pub fn effective_regions_budget(&self, n_observations: usize) -> usize {
+        if !self.scale_regions_budget {
+            return self.regions_budget;
+        }
+        let scaled = (self.regions_budget as f64 * self.capacity_factor(n_observations)).round();
+        let scaled = if scaled.is_finite() {
+            scaled.max(0.0).min(MAX_SCALED_REGIONS_BUDGET as f64) as usize
+        } else {
+            self.regions_budget
+        };
+        scaled.clamp(SPLIT_CHILDREN, MAX_SCALED_REGIONS_BUDGET)
+    }
+
+    /// The structural-stratification test of one candidate split
+    /// (issue #435). `parent_types` is only read by
+    /// [`SplitCriterion::Mdl`] and may be `0` otherwise.
+    ///
+    /// - `absolute`: `gain > entropy_gain_bits`
+    /// - `relative`: `gain > theta · H(parent)` (written multiplicatively
+    ///   so a zero-entropy parent rejects instead of dividing by zero)
+    /// - `mdl`: `gain · support > penalty_bits · added_params · log₂(n)`
+    ///   with `added_params = (SPLIT_CHILDREN − 1) · max(1, parent_types)`
+    pub fn split_accepted(
+        &self,
+        gain_bits: f64,
+        parent_entropy_bits: f64,
+        support: usize,
+        parent_types: usize,
+        n_observations: usize,
+    ) -> bool {
+        match self.split_criterion {
+            SplitCriterion::Absolute => gain_bits > self.entropy_gain_bits,
+            SplitCriterion::RelativeGain => {
+                // Multiplicative form: no division, and a parent with no
+                // next-token entropy left to remove is never split.
+                parent_entropy_bits > 0.0
+                    && gain_bits > self.relative_gain_theta * parent_entropy_bits
+            }
+            SplitCriterion::Mdl => {
+                let added_params = (SPLIT_CHILDREN.saturating_sub(1) * parent_types.max(1)) as f64;
+                let code_length = self.mdl_penalty_bits
+                    * added_params
+                    * canonical_log2(n_observations.max(2) as f64);
+                gain_bits * support as f64 > code_length
+            }
         }
     }
 }
@@ -1412,12 +1673,13 @@ pub fn induce_cover(
     if observations.is_empty() {
         return Err("cover induction needs at least one train observation".to_owned());
     }
+    let n = observations.len();
+    let regions_budget = config.effective_regions_budget(n);
     let batch_size = derive_batch_size(
         config.memory_budget_bytes,
-        config.regions_budget,
+        regions_budget,
         observations.len(),
     );
-    let n = observations.len();
     let points: Vec<&[f32]> = observations.iter().map(|o| o.vector.as_slice()).collect();
     let global_prior_counts = all_next_token_counts(observations);
 
@@ -1427,7 +1689,7 @@ pub fn induce_cover(
     let mut decision_trace = Vec::new();
 
     // Depth 1: the broad cover.
-    let k0 = config.k0.min(n).max(1);
+    let k0 = config.effective_k0(n).min(n).max(1);
     let seed = run_seed(artifact_kappa, corpus_kappa, "r4-cover-v1/depth-1");
     let clustering = spherical_kmeans(&points, k0, &seed, batch_size);
     for (cluster, centroid) in clustering.centroids.iter().enumerate() {
@@ -1471,7 +1733,7 @@ pub fn induce_cover(
         if support < config.min_support.max(SPLIT_CHILDREN) {
             continue;
         }
-        if regions.len() + SPLIT_CHILDREN - 1 > config.regions_budget {
+        if regions.len() + SPLIT_CHILDREN - 1 > regions_budget {
             continue;
         }
         let parent_members = members_of[region_id as usize].clone();
@@ -1529,7 +1791,19 @@ pub fn induce_cover(
                 structural_complexity: SPLIT_CHILDREN as f64,
             },
         );
-        let entropy_allows_split = gain > config.entropy_gain_bits;
+        // Structural-stratification test (#435). `entropy_bits` of the
+        // parent region is the same `H(parent)` term `entropy_reduction`
+        // subtracts from, and the type count is only materialized for the
+        // MDL criterion, so the default (absolute) path does no extra work
+        // and is bit-for-bit the shipped test.
+        let parent_entropy = regions[region_id as usize].entropy_bits;
+        let parent_types = if config.split_criterion == SplitCriterion::Mdl {
+            next_token_counts(observations, &parent_members).len()
+        } else {
+            0
+        };
+        let entropy_allows_split =
+            config.split_accepted(gain, parent_entropy, support, parent_types, n);
         let objective_allows_split = compare_region_decision(&keep_components, &split_components);
         let decision = if !entropy_allows_split {
             "keep:entropy_floor"

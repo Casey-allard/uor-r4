@@ -636,6 +636,9 @@ pub fn cover_command(args: &[String]) -> Result<(), String> {
         radius_quantile_numerator: options.radius_quantile,
         radius_quantile_denominator: 100,
         objective: cover::ObjectiveConfig::default(),
+        // #435 split-criterion / capacity-scaling knobs: defaults (absolute
+        // floor, unscaled k0 and budget) preserve the shipped behaviour.
+        ..cover::CoverConfig::default()
     };
     eprintln!(
         "cover: inducing (depths {}, k0 {}, regions budget {}, memory budget {} MiB)...",

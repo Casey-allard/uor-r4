@@ -1086,3 +1086,169 @@ fn fixture_corpus_end_to_end() {
         .expect("fixture induction");
     assert_eq!(induced.cover.kappa(), induced2.cover.kappa());
 }
+
+// ------------------------------------------- #435 default-config identity --
+
+/// Pinned κ of the default-config cover over the planted synthetic corpus.
+///
+/// Computed on `origin/main` (67325f2) *before* the #435 split-criterion
+/// work and asserted unchanged after it: the corpus-relative criteria and
+/// the capacity-scaling switches are all off in [`CoverConfig::default`],
+/// so an unconfigured compile must reproduce this exact cover — same
+/// region count, same prototypes, same radii, same κ.
+const DEFAULT_COVER_KAPPA_PIN: &str =
+    "blake3:b27e8c7223254b0bdb51f7089d41e1c7903b1bdc514b8134e623cdba214e35bc";
+/// Region count of that same pinned default-config cover.
+const DEFAULT_COVER_REGIONS_PIN: usize = 8;
+/// Pinned κ and region count of the splitting `synthetic_config()` cover
+/// (k0 = 4), same provenance: measured on `origin/main` before #435.
+const SPLIT_COVER_KAPPA_PIN: &str =
+    "blake3:7ce48b995e033778c8e9567d21937f712249401a2c40741af7bcf535f59d0151";
+const SPLIT_COVER_REGIONS_PIN: usize = 6;
+
+/// #435 guard: default-config cover induction is byte-identical to the
+/// pre-change baseline. If this fails, a "default-off" knob leaked into
+/// the shipped geometry and every downstream κ/artifact moved with it.
+#[test]
+fn default_config_cover_matches_pinned_baseline() {
+    let (observations, _) = synthetic_observations();
+    let config = CoverConfig::default();
+    let induced = induce_synthetic(&observations, &config);
+    println!(
+        "default-config cover: {} regions, kappa {}",
+        induced.cover.regions.len(),
+        induced.cover.kappa()
+    );
+    assert_eq!(
+        induced.cover.regions.len(),
+        DEFAULT_COVER_REGIONS_PIN,
+        "default-config region count moved"
+    );
+    assert_eq!(
+        induced.cover.kappa(),
+        DEFAULT_COVER_KAPPA_PIN,
+        "default-config cover kappa moved"
+    );
+
+    // The default cover above never splits (k0 = 8 already isolates the
+    // planted groups), so also pin the splitting config used by the rest
+    // of this file: it exercises the entropy floor on real candidates.
+    let split_config = synthetic_config();
+    let split_induced = induce_synthetic(&observations, &split_config);
+    println!(
+        "synthetic-config cover: {} regions, {} split decisions, kappa {}",
+        split_induced.cover.regions.len(),
+        split_induced.decision_trace.len(),
+        split_induced.cover.kappa()
+    );
+    assert_eq!(
+        split_induced.cover.regions.len(),
+        SPLIT_COVER_REGIONS_PIN,
+        "splitting-config region count moved"
+    );
+    assert_eq!(
+        split_induced.cover.kappa(),
+        SPLIT_COVER_KAPPA_PIN,
+        "splitting-config cover kappa moved"
+    );
+}
+
+/// #435 semantics: the alternatives are off by default, and each one has
+/// the documented scaling behaviour — the absolute floor is blind to how
+/// much data stands behind a split, the relative floor tracks the parent's
+/// entropy, and the MDL bar loosens as support grows.
+#[test]
+fn corpus_relative_split_criteria_scale_with_data() {
+    use uor_r4_graph_compiler::induction::SplitCriterion;
+
+    let base = CoverConfig::default();
+    assert_eq!(base.split_criterion, SplitCriterion::Absolute);
+    assert!(!base.scale_k0 && !base.scale_regions_budget);
+    assert_eq!(
+        base.effective_k0(40_000_000),
+        base.k0,
+        "k0 unscaled by default"
+    );
+    assert_eq!(
+        base.effective_regions_budget(40_000_000),
+        base.regions_budget,
+        "budget unscaled by default"
+    );
+
+    // Absolute: a 0.20-bit gain is rejected no matter how much data or how
+    // much entropy stands behind it. This is the measured #435 pathology.
+    assert!(!base.split_accepted(0.20, 4.0, 10_000_000, 1_000, 10_000_000));
+    assert!(base.split_accepted(0.26, 4.0, 64, 1_000, 400_000));
+
+    // Relative: the bar is 0.0325 * H(parent), so the same 0.20-bit gain is
+    // accepted under a 4-bit parent and rejected under a 12-bit one.
+    let relative = CoverConfig {
+        split_criterion: SplitCriterion::RelativeGain,
+        ..CoverConfig::default()
+    };
+    assert!(relative.split_accepted(0.20, 4.0, 10_000_000, 0, 10_000_000));
+    assert!(!relative.split_accepted(0.20, 12.0, 10_000_000, 0, 10_000_000));
+    assert!(
+        !relative.split_accepted(0.20, 0.0, 10_000_000, 0, 10_000_000),
+        "a zero-entropy parent never splits (no division by zero)"
+    );
+
+    // MDL: gain * support versus penalty * params * log2(n). Same gain,
+    // same parameter count, more support -> accepted.
+    let mdl = CoverConfig {
+        split_criterion: SplitCriterion::Mdl,
+        ..CoverConfig::default()
+    };
+    assert!(!mdl.split_accepted(0.20, 8.0, 10_000, 1_000, 10_000_000));
+    assert!(mdl.split_accepted(0.20, 8.0, 1_000_000, 1_000, 10_000_000));
+
+    // Capacity law: k0 and the budget grow as (n / n_ref)^0.45 when enabled,
+    // and are exactly the base values at the reference size.
+    let scaled = CoverConfig {
+        scale_k0: true,
+        scale_regions_budget: true,
+        ..CoverConfig::default()
+    };
+    assert_eq!(scaled.effective_k0(scaled.capacity_ref_n), scaled.k0);
+    assert_eq!(
+        scaled.effective_regions_budget(scaled.capacity_ref_n),
+        scaled.regions_budget
+    );
+    let ten_x = scaled.effective_k0(scaled.capacity_ref_n * 10);
+    assert!(
+        (22..=24).contains(&ten_x),
+        "10x data multiplies k0 by 10^0.45 ~= 2.8: got {ten_x}"
+    );
+    assert!(scaled.effective_k0(1) >= 2, "clamped to a splittable width");
+    assert!(scaled.effective_regions_budget(scaled.capacity_ref_n * 10) > scaled.regions_budget);
+}
+
+/// #435 end-to-end: switching the criterion changes the induced cover, and
+/// the switch is the only thing that changes it.
+#[test]
+fn relative_criterion_admits_splits_the_absolute_floor_rejects() {
+    use uor_r4_graph_compiler::induction::SplitCriterion;
+
+    let (observations, _) = synthetic_observations();
+    // A high absolute floor rejects the planted 1.0-bit G2 split.
+    let strict = CoverConfig {
+        entropy_gain_bits: 1.5,
+        ..synthetic_config()
+    };
+    let strict_cover = induce_synthetic(&observations, &strict);
+    // The same run under a relative floor of 0.0325 * H(parent) keeps it.
+    let relative = CoverConfig {
+        split_criterion: SplitCriterion::RelativeGain,
+        ..strict.clone()
+    };
+    let relative_cover = induce_synthetic(&observations, &relative);
+    assert!(
+        relative_cover.cover.regions.len() > strict_cover.cover.regions.len(),
+        "relative {} vs absolute {} regions",
+        relative_cover.cover.regions.len(),
+        strict_cover.cover.regions.len()
+    );
+    // Determinism: same config, same cover.
+    let repeat = induce_synthetic(&observations, &relative);
+    assert_eq!(relative_cover.cover.kappa(), repeat.cover.kappa());
+}
