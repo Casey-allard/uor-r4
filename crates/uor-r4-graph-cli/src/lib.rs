@@ -1280,6 +1280,9 @@ pub fn score_command(args: &[String]) -> Result<(), String> {
     );
     row("1+2 + TWO-SIDED (#446 M1)", &gate_c.rule12_twosided);
     row("1+2 + two-sided SHUFFLED", &gate_c.rule12_twosided_shuffled);
+    row("1+2 + LATENT-MIX (#446 M2)", &gate_c.rule12_latent_mix);
+    row("1+2 + latent ORACLE-RIGHT", &gate_c.rule12_latent_oracle);
+    row("1+2 + latent SHUF-CLASS", &gate_c.rule12_latent_shuffled);
     let live_line = |name: &str, fused: &score::GateCMetrics, base: &score::GateCMetrics| {
         println!(
             "  {name} live slice ({} positions): fused {:.1}% vs rule 1+2 {:.1}% | bits {:.4} vs {:.4}",
@@ -1325,6 +1328,11 @@ pub fn score_command(args: &[String]) -> Result<(), String> {
         &gate_c.rule12_twosided_shuffled_live,
         &gate_c.rule12_on_twosided_shuffled_live,
     );
+    live_line(
+        "latent-mix ",
+        &gate_c.rule12_latent_mix_live,
+        &gate_c.rule12_on_latent_mix_live,
+    );
     println!(
         "  two-sided pair-resolution depth: {}",
         gate_c
@@ -1360,6 +1368,34 @@ pub fn score_command(args: &[String]) -> Result<(), String> {
          generation — it is an infill/analysis (A-mode) measurement, or \
          prospectively a construction-time signal. Never quote it as a \
          generation number."
+    );
+    println!(
+        "  latent class structure (construction, full left depth): class depth {} byte(s), {:.3} classes per full left code ({} class cells / {} left cells); oracle live {}, shuffled-class live {}",
+        gate_c.latent_class_depth,
+        gate_c.latent_classes_per_full_left,
+        gate_c.latent_full_class_cells,
+        gate_c.latent_full_left_cells,
+        gate_c.latent_oracle_live_positions,
+        gate_c.latent_shuffled_live_positions,
+    );
+    println!(
+        "  latent headroom: baseline {:.1}% -> latent-mix {:.1}% -> oracle-right {:.1}% = {:.1}% of available top-1 headroom | EXIT RULE (>= 2.0pp over baseline AND beats shuffled-class): {}",
+        100.0 * gate_c.rule12_precedence.top1_agreement,
+        100.0 * gate_c.rule12_latent_mix.top1_agreement,
+        100.0 * gate_c.rule12_latent_oracle.top1_agreement,
+        100.0 * gate_c.latent_headroom_fraction,
+        if gate_c.latent_exit_rule_met {
+            "MET (positive)"
+        } else {
+            "NOT MET (negative)"
+        },
+    );
+    println!(
+        "  NOTE (#446 M2): the LATENT-MIX row reads the LEFT key only at \
+         serving — the right context is observed during construction and \
+         marginalized away — so it IS causally legitimate and quotable as a \
+         generation number. ORACLE-RIGHT supplies the true right class at \
+         evaluation time and is an upper bound only, NOT causal."
     );
     println!(
         "  predicted-anchor accuracy: {:.1}% ({}/{})",
