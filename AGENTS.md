@@ -151,6 +151,54 @@ the suite's 8 prompts are novel text, unlike Gate C's same-corpus replay
   with compiler-side f32 conversions). Consolidation onto the format crate is
   a scheduled pre-Phase-5 cleanup — don't add a third.
 
+## Long-run discipline (process amendment, 2026-08-06)
+
+Compiles and Gate C runs at corpus scale cost hours. The waste is never the
+run itself; it is launching one whose result could not have changed what we
+do next. Three gates, in order, before any run measured in hours:
+
+**One — reachability arithmetic.** From numbers already in hand, compute the
+ceiling on the metric the run intends to move, and write it in the run
+contract. Worked example (#460, 2026-08-06): the record showed 97.9% of
+held-out positions resolving as ExactContext, so at most 2.1% ever touch the
+graph path, so ANY cover-side change is capped at about 2.1pp of headline
+movement. That is a five-minute calculation and it invalidates a four-hour
+run. If the ceiling is below the effect you are hoping for, do not launch.
+
+**Two — the cheap instrument is a hard gate.** Where an instrument exists
+that reports the structural precondition, it runs FIRST and its verdict is
+binding. `cargo test -p uor-r4-graph-certify --test capacity_scaling --
+--ignored` takes about twelve minutes and prints a SATURATION verdict per
+structure. If it reports SATURATED on the structure the experiment intends to
+move, the long run does not launch. On 2026-08-06 that instrument reported
+`records_per_full_key: 36.02 SATURATED` and `exct.supported_record_fraction:
+0.9882 SATURATED` before a multi-hour Gate C run that then confirmed exactly
+what those two lines already implied.
+
+**Three — pre-declare the decision, not just the exit rule.** Exit rules
+("positive if at least 2pp") say how to read the number. A run contract also
+says what each outcome CAUSES. If the positive and the negative branch lead
+to the same next action, the run has no decision value; drop it or redesign
+it until they differ.
+
+**Run contract** — paste into the issue before launching, and post the
+outcome against it afterwards:
+
+    metric to move:      <name, current value>
+    reachability ceiling: <arithmetic, with the numbers it came from>
+    instrument + verdict: <which cheap test, what it must report to proceed>
+    exit rule:           <threshold, pre-declared>
+    if positive:         <the next action>
+    if negative:         <the next action, and it must differ>
+    cost estimate:       <wall-clock, and what else it blocks>
+
+**Issue hygiene that goes with it.** Every issue filed mid-run gets an owner
+and a named next action, or it gets closed with its record. Assignment means
+actively-working-now; unassign when a track parks so the board reads true for
+everyone. A PR that ships only part of an issue's scope says "References #N",
+never "Closes #N" — GitHub will auto-close the issue on merge and the
+unfinished half loses its home.
+
 ## Batch flow for small issues (process amendment, 2026-07-29)
 
 Small, low-risk issues (docs, help text, certifier-side rows, test
