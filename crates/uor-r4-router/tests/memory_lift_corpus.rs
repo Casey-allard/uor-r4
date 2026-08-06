@@ -316,6 +316,13 @@ fn three_arm_memory_lift_corpus_scale() {
     // ---- arm one: content-free (pre-#245 stub reconstruction) ----
     let (h1, m1) = {
         let mut r1 = UorR4Router::new(0.5);
+        // Issue #434: arm one reconstructs the PRE-#245 stub, whose stored
+        // vectors are banded slices of the session state. Its probe
+        // queries come from the same router through `index_sentence`, so
+        // the arm is only self-consistent when query and store share a
+        // shape — hold this router in the banded mode. Arm two (the
+        // production arm) uses the post-#434 full-width default.
+        r1.set_banded_storage(true);
         for w in &windows {
             r1.index_sentence_content_free(w, ID);
         }

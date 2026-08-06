@@ -494,6 +494,13 @@ fn zeta_grid_state_as_retrieval_vector() {
     // vocabulary (word-prime order, zeta word vectors) is fixed HERE,
     // before any state evolution (determinism, module docs) ----
     let mut router = UorR4Router::new(0.5);
+    // Issue #434: this harness is the BAND-MATCHED control set — its arms
+    // are defined relative to the banded stored shape (arm ZB re-bands,
+    // and `content_full_and_band` asserts the store is zero outside the
+    // band). Full-width storage is the default since #434, so the banded
+    // shape is requested explicitly here to keep these controls measuring
+    // what they were declared to measure.
+    router.set_banded_storage(true);
     let corpus_text: String = windows.join(" ");
     let indexed = router.index_corpus(&corpus_text, ID);
     assert_eq!(

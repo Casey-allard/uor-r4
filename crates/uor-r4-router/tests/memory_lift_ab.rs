@@ -69,6 +69,10 @@ fn retrieval_metrics(router: &mut UorR4Router, vectors: &[Vec<f64>]) -> (f64, f6
 fn three_arm_memory_lift_table() {
     // Arm 1: content-free (pre-#245 stub reconstruction).
     let mut r1 = UorR4Router::new(0.5);
+    // Issue #434: arm one is the pre-#245 banded stub and its queries are
+    // built through the same router, so query and store must share a
+    // shape (see the corpus-scale harness note).
+    r1.set_banded_storage(true);
     for s in CORPUS {
         r1.index_sentence_content_free(s, ID);
     }

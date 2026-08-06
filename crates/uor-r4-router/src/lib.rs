@@ -435,6 +435,16 @@ pub struct UorR4Router {
     pub facet_store: MultiFacetStore,
     #[serde(default = "default_geometry_type")]
     pub geometry_type: GeometryType,
+    /// Issue #434 (adopted de-banding): when true the content-bearing
+    /// store keeps only the routed window band of the content vector
+    /// (the pre-#434 behavior, one sixteenth of the width, zeros
+    /// elsewhere); when false — the DEFAULT since #434 — the store keeps
+    /// the full-width content vector. Retained as a flag so the
+    /// measurement harnesses can A/B and so rollback is a one-line
+    /// setter. Serialized so an exported store records which shape its
+    /// vectors have.
+    #[serde(default)]
+    banded_storage: bool,
 }
 
 #[derive(Serialize)]
@@ -547,6 +557,7 @@ impl UorR4Router {
             last_routing_data: None,
             facet_store: MultiFacetStore::default(),
             geometry_type: default_geometry_type(),
+            banded_storage: false,
         };
 
         // Initialize default corpus
@@ -969,6 +980,20 @@ impl UorR4Router {
             trajectory,
         };
         serde_wasm_bindgen::to_value(&geom_res).unwrap_or(JsValue::NULL)
+    }
+
+    /// Whether the content-bearing store bands its stored vectors
+    /// (issue #434). False — full-width storage — is the default.
+    pub fn banded_storage(&self) -> bool {
+        self.banded_storage
+    }
+
+    /// Selects the storage shape for subsequently indexed sentences
+    /// (issue #434). `true` restores the pre-#434 banded storage; the
+    /// default `false` keeps the full-width content vector. Already
+    /// indexed items are not rewritten, so flip this before ingestion.
+    pub fn set_banded_storage(&mut self, banded: bool) {
+        self.banded_storage = banded;
     }
 
     /// Exports the full router system database to JSON string
@@ -1747,10 +1772,25 @@ impl UorR4Router {
 
         let prime_product = self.get_sentence_prime_product(words);
 
-        let mut state_vector = vec![0.0; 512];
+        // Issue #434 (adopted de-banding): the stored vector is the
+        // FULL-WIDTH content vector by default. The pre-#434 shape kept
+        // only `active_range` — thirty-two of five hundred twelve
+        // coefficients, one sixteenth of the width — which PR #442
+        // measured as the dominant cost of retrieval quality. Banding is
+        // retained behind `banded_storage` for A/B and rollback. The
+        // content-free path (issue #255 arm one) supplies no content
+        // vector and keeps the banded shape either way, so that arm's
+        // pre-#245 reconstruction stays byte-identical.
         let s_idx = best.active_range[0] as usize;
         let e_idx = best.active_range[1] as usize;
-        state_vector[s_idx..e_idx].copy_from_slice(&best.state_vector[..e_idx - s_idx]);
+        let state_vector = match state {
+            Some(full) if !self.banded_storage && full.len() == 512 => full.to_vec(),
+            _ => {
+                let mut banded = vec![0.0; 512];
+                banded[s_idx..e_idx].copy_from_slice(&best.state_vector[..e_idx - s_idx]);
+                banded
+            }
+        };
 
         let (u, v) = self.get_sentence_projection(&state_vector, idx_win as usize);
         let v_4d = self.get_state_4d_projection(&state_vector);
