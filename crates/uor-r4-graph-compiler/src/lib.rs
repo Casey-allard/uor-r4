@@ -136,13 +136,7 @@ pub fn compile(args: &[String]) -> Result<(), String> {
         .corpus_recs
         .to_str()
         .ok_or_else(|| "corpus records path is not UTF-8".to_owned())?;
-    let corpus = compiler::load_corpus_from(corpus_meta, corpus_recs).ok_or_else(|| {
-        format!(
-            "corpus is incomplete at {}/{}; run compile until it is complete",
-            options.corpus_meta.display(),
-            options.corpus_recs.display()
-        )
-    })?;
+    // #450: announce the resolved containers before the long work.
     let artifact_container = std::fs::read(&options.artifacts)
         .map_err(|error| format!("{}: {error}", options.artifacts.display()))?;
     let artifacts = compiler::parse_artifacts(&artifact_container).ok_or_else(|| {
@@ -151,15 +145,21 @@ pub fn compile(args: &[String]) -> Result<(), String> {
             options.artifacts.display()
         )
     })?;
-    let artifact_kappa = format!("blake3:{}", blake3::hash(&artifact_container).to_hex());
+    let artifact_kappa = reproducibility::container_kappa(&artifact_container);
+    reproducibility::announce_teacher_container(&options.artifacts, &artifact_kappa);
     let meta_bytes = std::fs::read(&options.corpus_meta)
         .map_err(|error| format!("{}: {error}", options.corpus_meta.display()))?;
     let recs_bytes = std::fs::read(&options.corpus_recs)
         .map_err(|error| format!("{}: {error}", options.corpus_recs.display()))?;
-    let mut corpus_hasher = blake3::Hasher::new();
-    corpus_hasher.update(&meta_bytes);
-    corpus_hasher.update(&recs_bytes);
-    let corpus_kappa = format!("blake3:{}", corpus_hasher.finalize().to_hex());
+    let corpus_kappa = reproducibility::corpus_stream_kappa(&meta_bytes, &recs_bytes);
+    reproducibility::announce_corpus(&options.corpus_meta, &options.corpus_recs, &corpus_kappa);
+    let corpus = compiler::load_corpus_from(corpus_meta, corpus_recs).ok_or_else(|| {
+        format!(
+            "corpus is incomplete at {}/{}; run compile until it is complete",
+            options.corpus_meta.display(),
+            options.corpus_recs.display()
+        )
+    })?;
 
     let config = induction::CoverConfig {
         depths: options.depths,

@@ -114,6 +114,7 @@ use uor_r4_core::transformerless::compiler::{self, Corpus};
 use uor_r4_core::transformerless::runtime::{self, Store};
 use uor_r4_graph_certify::{self as score, GateCMetrics, ScoreConfig};
 use uor_r4_graph_compiler::induction::{self as cover, Observation};
+use uor_r4_graph_compiler::reproducibility as repro;
 
 /// The `cover_sweep.json` schema version (module docs).
 pub const SWEEP_REPORT_SCHEMA: u32 = 2;
@@ -213,13 +214,7 @@ pub fn load_inputs(
     let recs_str = corpus_recs
         .to_str()
         .ok_or_else(|| "corpus records path is not UTF-8".to_owned())?;
-    let corpus = compiler::load_corpus_from(meta_str, recs_str).ok_or_else(|| {
-        format!(
-            "corpus is incomplete at {}/{}; run compile until it is complete",
-            corpus_meta.display(),
-            corpus_recs.display()
-        )
-    })?;
+    // #450: announce the resolved containers before the sweep's long work.
     let artifact_container = std::fs::read(artifacts_path)
         .map_err(|error| format!("{}: {error}", artifacts_path.display()))?;
     let artifacts = compiler::parse_artifacts(&artifact_container).ok_or_else(|| {
@@ -228,15 +223,21 @@ pub fn load_inputs(
             artifacts_path.display()
         )
     })?;
-    let artifact_kappa = format!("blake3:{}", blake3::hash(&artifact_container).to_hex());
+    let artifact_kappa = repro::container_kappa(&artifact_container);
+    repro::announce_teacher_container(artifacts_path, &artifact_kappa);
     let meta_bytes = std::fs::read(corpus_meta)
         .map_err(|error| format!("{}: {error}", corpus_meta.display()))?;
     let recs_bytes = std::fs::read(corpus_recs)
         .map_err(|error| format!("{}: {error}", corpus_recs.display()))?;
-    let mut corpus_hasher = blake3::Hasher::new();
-    corpus_hasher.update(&meta_bytes);
-    corpus_hasher.update(&recs_bytes);
-    let corpus_kappa = format!("blake3:{}", corpus_hasher.finalize().to_hex());
+    let corpus_kappa = repro::corpus_stream_kappa(&meta_bytes, &recs_bytes);
+    repro::announce_corpus(corpus_meta, corpus_recs, &corpus_kappa);
+    let corpus = compiler::load_corpus_from(meta_str, recs_str).ok_or_else(|| {
+        format!(
+            "corpus is incomplete at {}/{}; run compile until it is complete",
+            corpus_meta.display(),
+            corpus_recs.display()
+        )
+    })?;
     let (train_positions, held_out_positions) = cover::split_positions(&corpus);
     let train = cover::build_observations(&artifacts, &corpus, &train_positions);
     let held_out = cover::build_observations(&artifacts, &corpus, &held_out_positions);

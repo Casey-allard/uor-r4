@@ -113,9 +113,68 @@ impl ParallelReproducibilityHarness {
     }
 }
 
+/// κ-label of a container read from disk (`blake3:<hex>` over the raw
+/// bytes) — the single spelling of the teacher/artifact container address
+/// used by every CLI entry point that loads one (#450).
+pub fn container_kappa(bytes: &[u8]) -> String {
+    format!("blake3:{}", blake3::hash(bytes).to_hex())
+}
+
+/// κ-label of a corpus stream: meta bytes then record bytes (#450).
+pub fn corpus_stream_kappa(meta_bytes: &[u8], recs_bytes: &[u8]) -> String {
+    let mut hasher = blake3::Hasher::new();
+    hasher.update(meta_bytes);
+    hasher.update(recs_bytes);
+    format!("blake3:{}", hasher.finalize().to_hex())
+}
+
+/// Announce the resolved teacher/artifact container on stderr, before the
+/// long work starts (#450).
+///
+/// The `--artifacts` default is a shared, mutable path, and several helper
+/// scripts stage different teacher containers into it. Without this line a
+/// concurrent run can silently read a different teacher and produce a
+/// materially different table with nothing in the output to say so. One
+/// greppable line, emitted early, makes every run self-diagnosing.
+#[cfg(not(target_arch = "wasm32"))]
+pub fn announce_teacher_container(path: &std::path::Path, kappa: &str) {
+    eprintln!("teacher container: {} (κ {kappa})", path.display());
+}
+
+/// Announce the resolved corpus streams on stderr alongside the teacher
+/// container (#450). Same motivation: pin what was actually read.
+#[cfg(not(target_arch = "wasm32"))]
+pub fn announce_corpus(meta: &std::path::Path, recs: &std::path::Path, kappa: &str) {
+    eprintln!(
+        "corpus streams: {} + {} (κ {kappa})",
+        meta.display(),
+        recs.display()
+    );
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn container_kappa_matches_the_inline_spelling() {
+        let bytes = b"teacher-container-bytes";
+        assert_eq!(
+            container_kappa(bytes),
+            format!("blake3:{}", blake3::hash(bytes).to_hex())
+        );
+    }
+
+    #[test]
+    fn corpus_stream_kappa_hashes_meta_then_recs() {
+        let mut hasher = blake3::Hasher::new();
+        hasher.update(b"meta");
+        hasher.update(b"recs");
+        assert_eq!(
+            corpus_stream_kappa(b"meta", b"recs"),
+            format!("blake3:{}", hasher.finalize().to_hex())
+        );
+    }
 
     #[test]
     fn test_normative_invariant_verbatim_statement() {

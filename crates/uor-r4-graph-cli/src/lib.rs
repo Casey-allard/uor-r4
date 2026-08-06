@@ -32,6 +32,7 @@ use uor_r4_graph_certify as score_runtime;
 use uor_r4_graph_compiler::induction as cover;
 use uor_r4_graph_compiler::observation as observe;
 use uor_r4_graph_compiler::observation_text as observe_text;
+use uor_r4_graph_compiler::reproducibility as repro;
 mod convert_r4g1;
 pub mod cover_sweep;
 mod runtime_corpus;
@@ -598,13 +599,9 @@ pub fn cover_command(args: &[String]) -> Result<(), String> {
     let corpus_recs = corpus_recs_path
         .to_str()
         .ok_or_else(|| "corpus records path is not UTF-8".to_owned())?;
-    let corpus = compiler::load_corpus_from(corpus_meta, corpus_recs).ok_or_else(|| {
-        format!(
-            "corpus is incomplete at {}/{}; run compile until it is complete",
-            corpus_meta_path.display(),
-            corpus_recs_path.display()
-        )
-    })?;
+    // #450: resolve and announce the inputs *before* the long work, so the
+    // run says which teacher container it actually read. `--artifacts`
+    // defaults to a shared mutable path that helper scripts overwrite.
     let artifact_container = std::fs::read(&options.artifacts)
         .map_err(|error| format!("{}: {error}", options.artifacts.display()))?;
     let artifacts = compiler::parse_artifacts(&artifact_container).ok_or_else(|| {
@@ -613,15 +610,31 @@ pub fn cover_command(args: &[String]) -> Result<(), String> {
             options.artifacts.display()
         )
     })?;
-    let artifact_kappa = format!("blake3:{}", blake3::hash(&artifact_container).to_hex());
+    let artifact_kappa = repro::container_kappa(&artifact_container);
+    repro::announce_teacher_container(&options.artifacts, &artifact_kappa);
     let meta_bytes = std::fs::read(&options.corpus_meta)
         .map_err(|error| format!("{}: {error}", options.corpus_meta.display()))?;
     let recs_bytes = std::fs::read(&options.corpus_recs)
         .map_err(|error| format!("{}: {error}", options.corpus_recs.display()))?;
-    let mut corpus_hasher = blake3::Hasher::new();
-    corpus_hasher.update(&meta_bytes);
-    corpus_hasher.update(&recs_bytes);
-    let corpus_kappa = format!("blake3:{}", corpus_hasher.finalize().to_hex());
+    let corpus_kappa = repro::corpus_stream_kappa(&meta_bytes, &recs_bytes);
+    repro::announce_corpus(&options.corpus_meta, &options.corpus_recs, &corpus_kappa);
+    if options.corpus_meta != corpus_meta_path || options.corpus_recs != corpus_recs_path {
+        // The κ above addresses the requested paths; the corpus itself is
+        // loaded from the fallback-resolved ones. Say so rather than let a
+        // reader assume the printed κ covers the loaded records.
+        eprintln!(
+            "corpus streams (loaded, after fallback resolution): {} + {}",
+            corpus_meta_path.display(),
+            corpus_recs_path.display()
+        );
+    }
+    let corpus = compiler::load_corpus_from(corpus_meta, corpus_recs).ok_or_else(|| {
+        format!(
+            "corpus is incomplete at {}/{}; run compile until it is complete",
+            corpus_meta_path.display(),
+            corpus_recs_path.display()
+        )
+    })?;
 
     let config = cover::CoverConfig {
         depths: options.depths,
@@ -985,13 +998,9 @@ pub fn score_command(args: &[String]) -> Result<(), String> {
     let corpus_recs = corpus_recs_path
         .to_str()
         .ok_or_else(|| "corpus records path is not UTF-8".to_owned())?;
-    let corpus = compiler::load_corpus_from(corpus_meta, corpus_recs).ok_or_else(|| {
-        format!(
-            "corpus is incomplete at {}/{}; run compile until it is complete",
-            corpus_meta_path.display(),
-            corpus_recs_path.display()
-        )
-    })?;
+    // #450: resolve and announce the inputs *before* the long work, so the
+    // run says which teacher container it actually read. `--artifacts`
+    // defaults to a shared mutable path that helper scripts overwrite.
     let artifact_container = std::fs::read(&options.artifacts)
         .map_err(|error| format!("{}: {error}", options.artifacts.display()))?;
     let artifacts = compiler::parse_artifacts(&artifact_container).ok_or_else(|| {
@@ -1000,15 +1009,21 @@ pub fn score_command(args: &[String]) -> Result<(), String> {
             options.artifacts.display()
         )
     })?;
-    let artifact_kappa = format!("blake3:{}", blake3::hash(&artifact_container).to_hex());
+    let artifact_kappa = repro::container_kappa(&artifact_container);
+    repro::announce_teacher_container(&options.artifacts, &artifact_kappa);
     let meta_bytes = std::fs::read(&corpus_meta_path)
         .map_err(|error| format!("{}: {error}", corpus_meta_path.display()))?;
     let recs_bytes = std::fs::read(&corpus_recs_path)
         .map_err(|error| format!("{}: {error}", corpus_recs_path.display()))?;
-    let mut corpus_hasher = blake3::Hasher::new();
-    corpus_hasher.update(&meta_bytes);
-    corpus_hasher.update(&recs_bytes);
-    let corpus_kappa = format!("blake3:{}", corpus_hasher.finalize().to_hex());
+    let corpus_kappa = repro::corpus_stream_kappa(&meta_bytes, &recs_bytes);
+    repro::announce_corpus(&corpus_meta_path, &corpus_recs_path, &corpus_kappa);
+    let corpus = compiler::load_corpus_from(corpus_meta, corpus_recs).ok_or_else(|| {
+        format!(
+            "corpus is incomplete at {}/{}; run compile until it is complete",
+            corpus_meta_path.display(),
+            corpus_recs_path.display()
+        )
+    })?;
 
     let config = score::ScoreConfig {
         transition_out_degree: options.transition_out_degree,
@@ -1073,6 +1088,13 @@ pub fn score_command(args: &[String]) -> Result<(), String> {
         Some(path) => {
             let bytes =
                 std::fs::read(path).map_err(|error| format!("{}: {error}", path.display()))?;
+            // #450: the cached cover is the second container this command
+            // consumes; address it in the log too.
+            eprintln!(
+                "cover container: {} (κ {})",
+                path.display(),
+                repro::container_kappa(&bytes)
+            );
             let (regions, structural) = score::recover_from_artifact(&bytes)?;
             eprintln!(
                 "score: recovered {} regions from {}",
