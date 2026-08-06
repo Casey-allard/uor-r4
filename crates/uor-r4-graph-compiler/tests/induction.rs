@@ -352,6 +352,120 @@ fn t_invariance_and_double_run_identity() {
     assert_eq!(bytes_t1, bytes_again, "double-run byte identity");
 }
 
+/// Issue #448 regression: the score pipeline's cover is run-to-run and
+/// worker-count invariant.
+///
+/// #448 reported that two `transformerless score` runs over one corpus
+/// produced different Gate C tables, with the cover-induction line
+/// disagreeing on the region count (10 vs 8). That report was confounded
+/// (different `--artifacts` inputs — see the issue thread), but the
+/// invariant it assumed is the one the score CLI actually relies on:
+/// `score_command` derives its worker count from
+/// `std::thread::available_parallelism()` and feeds it to
+/// `build_observations_with_threads`, then induces the cover from the
+/// result. If either step let the worker count reach the observation
+/// stream, the region count and cover κ would drift with machine load.
+///
+/// This pins both halves of that chain:
+///   1. observation extraction is byte-identical for any worker count, and
+///   2. induction over those observations reproduces the same region count
+///      and the same cover κ on repeat and at every worker count.
+#[test]
+fn cover_induction_is_deterministic_across_repeats_and_worker_counts() {
+    // (1) Observation extraction never sees the worker count. The shard
+    // width is `positions.len().div_ceil(worker_count)`, so these counts
+    // straddle even splits, ragged splits, and more workers than
+    // positions.
+    let artifacts = synthetic_compiled();
+    let n = 37usize;
+    let corpus = Corpus {
+        n,
+        stories: 2,
+        story: (0..n).map(|i| u32::from(i >= 20)).collect(),
+        input: (0..n as u32).map(|t| t % 64).collect(),
+        next: (0..n as u32).map(|t| (t + 1) % 64).collect(),
+        t_argmax: vec![0; n],
+        top_tokens: vec![[0; 8]; n],
+        top_weights: vec![[0; 8]; n],
+        span_start: vec![0; n],
+        span_end: vec![0; n],
+        byte_start: vec![0; n],
+        byte_end: vec![0; n],
+        hidden: None,
+    };
+    let positions: Vec<usize> = (0..n).collect();
+    let serial = cover::build_observations(&artifacts, &corpus, &positions);
+    for threads in [1usize, 2, 3, 5, 8, 64] {
+        let parallel =
+            cover::build_observations_with_threads(&artifacts, &corpus, &positions, threads)
+                .expect("observation workers succeed");
+        assert_eq!(
+            parallel.len(),
+            serial.len(),
+            "T={threads} observation count matches the serial lane"
+        );
+        for (i, (got, want)) in parallel.iter().zip(serial.iter()).enumerate() {
+            assert_eq!(
+                got.sample, want.sample,
+                "T={threads} observation {i} sample"
+            );
+            assert_eq!(got.sig, want.sig, "T={threads} observation {i} signature");
+            assert_eq!(
+                got.vector, want.vector,
+                "T={threads} observation {i} vector"
+            );
+            assert_eq!(
+                got.next, want.next,
+                "T={threads} observation {i} next token"
+            );
+            assert_eq!(
+                got.prev, want.prev,
+                "T={threads} observation {i} prev token"
+            );
+        }
+    }
+
+    // (2) Induction over a fixed observation stream is reproducible.
+    let (observations, _) = synthetic_observations();
+    let baseline = induce_synthetic(&observations, &synthetic_config());
+    let baseline_regions = baseline.cover.regions.len();
+    let baseline_kappa = baseline.cover.kappa();
+    assert!(
+        baseline_regions > 1,
+        "the fixture must actually split, else determinism is vacuous"
+    );
+
+    for repeat in 1..=3 {
+        let again = induce_synthetic(&observations, &synthetic_config());
+        assert_eq!(
+            again.cover.regions.len(),
+            baseline_regions,
+            "repeat {repeat} reproduces the region count"
+        );
+        assert_eq!(
+            again.cover.kappa(),
+            baseline_kappa,
+            "repeat {repeat} reproduces the cover κ"
+        );
+    }
+
+    for threads in [1u32, 2, 3, 5, 8, 64] {
+        let mut config = synthetic_config();
+        config.threads = threads;
+        let induced = induce_synthetic(&observations, &config);
+        assert_eq!(
+            induced.cover.regions.len(),
+            baseline_regions,
+            "T={threads} reproduces the region count"
+        );
+        assert_eq!(
+            induced.cover.kappa(),
+            baseline_kappa,
+            "T={threads} reproduces the cover κ"
+        );
+    }
+}
+
 /// Shard completion order never reaches the merged observation stream:
 /// observations partitioned by `observe::shard_of` and completed in a
 /// shuffled order merge (ascending shard-id order) into one canonical
