@@ -1256,6 +1256,8 @@ pub fn score_command(args: &[String]) -> Result<(), String> {
         "1+2 × fwd STRICT-gated (2p)",
         &gate_c.rule12_fwd_strict_fused,
     );
+    row("1+2 + TWO-SIDED (#446 M1)", &gate_c.rule12_twosided);
+    row("1+2 + two-sided SHUFFLED", &gate_c.rule12_twosided_shuffled);
     let live_line = |name: &str, fused: &score::GateCMetrics, base: &score::GateCMetrics| {
         println!(
             "  {name} live slice ({} positions): fused {:.1}% vs rule 1+2 {:.1}% | bits {:.4} vs {:.4}",
@@ -1290,6 +1292,52 @@ pub fn score_command(args: &[String]) -> Result<(), String> {
         "strict-gated",
         &gate_c.rule12_fwd_strict_fused_live,
         &gate_c.rule12_on_fwd_strict_live,
+    );
+    live_line(
+        "two-sided  ",
+        &gate_c.rule12_twosided_live,
+        &gate_c.rule12_on_twosided_live,
+    );
+    live_line(
+        "two-sided SHUF",
+        &gate_c.rule12_twosided_shuffled_live,
+        &gate_c.rule12_on_twosided_shuffled_live,
+    );
+    println!(
+        "  two-sided pair-resolution depth: {}",
+        gate_c
+            .rule12_twosided_depths
+            .iter()
+            .enumerate()
+            .map(|(depth, count)| if depth == 0 {
+                format!("inert {count}")
+            } else {
+                format!("d{depth} {count}")
+            })
+            .collect::<Vec<_>>()
+            .join(" ")
+    );
+    println!(
+        "  two-sided DILUTION slice — ExactContext positions ({}): two-sided {:.1}% vs rule 1+2 {:.1}% | bits {:.4} vs {:.4} | arm live {}",
+        gate_c.rule12_twosided_exct_slice.positions,
+        gate_c.rule12_twosided_exct_slice.top1_agreement * 100.0,
+        gate_c.rule12_on_twosided_exct_slice.top1_agreement * 100.0,
+        gate_c.rule12_twosided_exct_slice.bits_per_token,
+        gate_c.rule12_on_twosided_exct_slice.bits_per_token,
+        gate_c.rule12_twosided_exct_slice_live,
+    );
+    println!(
+        "  two-sided cell subdivision (construction, full graded depth): {:.3} two-sided keys per full left code ({} pair keys / {} left cells)",
+        gate_c.twosided_keys_per_full_left,
+        gate_c.twosided_full_pair_keys,
+        gate_c.twosided_full_left_cells,
+    );
+    println!(
+        "  NOTE (#446 M1): the two-sided rows key on tokens AFTER the target. \
+         Two-sided conditioning is NOT causally available to left-to-right \
+         generation — it is an infill/analysis (A-mode) measurement, or \
+         prospectively a construction-time signal. Never quote it as a \
+         generation number."
     );
     println!(
         "  predicted-anchor accuracy: {:.1}% ({}/{})",
@@ -1340,6 +1388,14 @@ pub fn score_command(args: &[String]) -> Result<(), String> {
     win_loss_row(
         "win/loss strict vs 1+2 live",
         &gate_c.win_loss.fwd_strict_vs_rule12_live,
+    );
+    win_loss_row(
+        "win/loss two-sided vs 1+2 live",
+        &gate_c.win_loss.twosided_vs_rule12_live,
+    );
+    win_loss_row(
+        "win/loss ts-SHUF vs 1+2 live",
+        &gate_c.win_loss.twosided_shuffled_vs_rule12_live,
     );
     println!(
         "  witness replay: {}/{} ok",

@@ -91,6 +91,37 @@
 //! same positions, Witten-Bell bits as in `evaluate-report`), plus
 //! per-status (ExactContext/Graph/Novel) and per-rule win/loss
 //! instrumentation. This is the M.V.G. checkpoint's fidelity input.
+//!
+//! # Two-sided context arms (#446 M1) — NOT a generation number
+//!
+//! Gate C also carries `rule12_twosided`, an instrumentation arm that
+//! keys evidence on the PAIR of the left graded code prefix and a right
+//! graded code prefix built from the tokens AFTER the target, and lets
+//! that table take D4-style precedence wherever it resolves with
+//! support. Its falsifier `rule12_twosided_shuffled` runs the identical
+//! machinery with a right key taken from a foreign held-out position, so
+//! any gain that survives it is right-context INFORMATION rather than
+//! key cardinality.
+//!
+//! The arms exist to attack graded-code DILUTION. The graded code space
+//! is fixed at `STAGES` x 256, so as the corpus grows an ever larger
+//! share of held-out positions resolves at the FULL graded code, every
+//! full-code cell absorbs more records, its next-token distribution
+//! dilutes, and top-1 falls even though key resolution is nominally
+//! maximal. The right key multiplies key resolution and splits those
+//! over-diluted cells. `rule12_twosided_exct_slice` reports the two arms
+//! restricted to the positions Rule 1+2 resolved as ExactContext, and
+//! `twosided_keys_per_full_left` reports how many distinct two-sided
+//! keys the right context carves each full left code into.
+//!
+//! Two-sided conditioning is NOT causally available to left-to-right
+//! generation: at generation time the tokens after the target do not
+//! exist. These rows are an INFILL / ANALYSIS measurement (the A-mode
+//! regime) or, prospectively, a CONSTRUCTION-time signal. They must
+//! never be quoted as a generation number. The table is built inside
+//! [`evaluate_gate_c`] from the construction split alone; the artifact
+//! format, the serving scorer's default path, the witness and the replay
+//! contract are all untouched.
 
 use rayon::prelude::*;
 use serde::Serialize;
@@ -100,7 +131,7 @@ use super::score_runtime::{
     binary_memberships, binary_top1_covered, regions_from_view, structural_edges_from_view,
     verify_witness_replay, ExactContextSource, GraphScorer, RegionParams, ScoreOutcome,
     ScoreStatus, ScoringVariant, StructuralEdge, EDGE_KIND_FORWARD, EDGE_KIND_NEIGHBOR,
-    EDGE_KIND_REFINEMENT, RESIDUAL_EXCT_MAGIC,
+    EDGE_KIND_REFINEMENT, EXCT_SUPPORT_MIN, RESIDUAL_EXCT_MAGIC,
 };
 use uor_r4_core::transformerless::compiler::{self, Corpus, SIG_BYTES, SIG_WORDS, STAGES};
 use uor_r4_core::transformerless::runtime::{self, Store};
@@ -1906,6 +1937,15 @@ pub struct WinLossReport {
     /// #399 rescue variant: STRICT-gated draft arm on its live slice
     /// (every draft step ExactContext, not just the final one).
     pub fwd_strict_vs_rule12_live: WinLoss,
+    /// #446 M1: two-sided (left, right) keyed arm vs Rule 1+2 on the
+    /// two-sided live slice — the positions where the pair table
+    /// resolved with support and could change a decision. NOT causal:
+    /// the right key reads tokens after the target, so this cross-tab is
+    /// an infill/analysis measurement, never a generation number.
+    pub twosided_vs_rule12_live: WinLoss,
+    /// #446 M1 falsifier: the foreign-right-key arm against Rule 1+2 on
+    /// its own live slice.
+    pub twosided_shuffled_vs_rule12_live: WinLoss,
 }
 
 /// Candidate-set recall, reported separately from selected-token
@@ -2180,6 +2220,61 @@ pub struct GateCOutcome {
     pub rule12_fwd_strict_fused: GateCMetrics,
     pub rule12_fwd_strict_fused_live: GateCMetrics,
     pub rule12_on_fwd_strict_live: GateCMetrics,
+    /// #446 M1: Rule 1+2 with the TWO-SIDED (left graded prefix, right
+    /// graded prefix) table taking D4-style precedence wherever it
+    /// resolves with support, over ALL held-out positions. Where the
+    /// table is inert the selection IS the Rule 1+2 selection, so this
+    /// row can only differ from `rule12_precedence` through live
+    /// positions.
+    ///
+    /// NOT CAUSAL. The right key is built from the tokens AFTER the
+    /// target; this is an infill/analysis (A-mode) measurement, or
+    /// prospectively a construction-time signal. It must never be quoted
+    /// as a generation number.
+    pub rule12_twosided: GateCMetrics,
+    /// #446 M1: the two-sided arm on its LIVE slice only.
+    pub rule12_twosided_live: GateCMetrics,
+    /// #446 M1: Rule 1+2 on the same live slice — the honest comparator
+    /// for `rule12_twosided_live` (identical population).
+    pub rule12_on_twosided_live: GateCMetrics,
+    /// #446 M1 falsifier: the identical two-sided machinery with the
+    /// right key taken from a FOREIGN held-out position (fixed
+    /// half-length rotation over the held-out list). Key cardinality,
+    /// backoff shape, support gate and smoothing are unchanged, so a
+    /// `rule12_twosided` gain that survives this row is right-context
+    /// information rather than a larger key space. Without this row the
+    /// two-sided row is not interpretable.
+    pub rule12_twosided_shuffled: GateCMetrics,
+    pub rule12_twosided_shuffled_live: GateCMetrics,
+    pub rule12_on_twosided_shuffled_live: GateCMetrics,
+    /// #446 M1: how deep the two-sided pair resolved, indexed by
+    /// graded-prefix depth (index 0 counts positions where no supported
+    /// pair existed and the arm fell through to Rule 1+2).
+    pub rule12_twosided_depths: Vec<usize>,
+    /// #446 M1 DILUTION SLICE. The graded code space is fixed at
+    /// `STAGES` x 256, so as the corpus grows the held-out population
+    /// concentrates into full-code exact-context cells and each cell's
+    /// next-token distribution dilutes — top-1 falls even though key
+    /// resolution is nominally maximal. These rows ask whether the right
+    /// key splits that population usefully.
+    ///
+    /// Restricted to held-out positions whose Rule 1+2 status was
+    /// ExactContext: the two-sided arm's metrics and, on the identical
+    /// population, Rule 1+2's own.
+    ///
+    /// NOT CAUSAL — infill/analysis only, like every two-sided row.
+    pub rule12_twosided_exct_slice: GateCMetrics,
+    pub rule12_on_twosided_exct_slice: GateCMetrics,
+    /// Positions in that slice where the two-sided pair actually
+    /// resolved with support (the arm was live rather than inert).
+    pub rule12_twosided_exct_slice_live: usize,
+    /// Subdivision of the diluted cells, measured on the construction
+    /// split at FULL graded depth: distinct left codes, distinct
+    /// two-sided keys, and their ratio — the mean number of two-sided
+    /// keys the right context carves each full left code into.
+    pub twosided_full_left_cells: usize,
+    pub twosided_full_pair_keys: usize,
+    pub twosided_keys_per_full_left: f64,
     /// #399 B′: predicted-anchor accuracy on the anchor-reachable
     /// population (numerator/denominator + rate).
     pub anchor_hat_population: usize,
@@ -2352,6 +2447,273 @@ fn accumulate_win_loss(win_loss: &mut WinLoss, scorer_hit: bool, other_hit: bool
 /// hybrid's every-4th-token injection and the measured harness law.
 const M2_STRIDE: usize = 4;
 
+/// #446 M1: how many tokens after the target position form the RIGHT
+/// context window of the two-sided key. Matches the certifier harness
+/// default (`R4_TS_RIGHT_R`) whose numbers this in-pipeline arm tests.
+const TWO_SIDED_RIGHT_R: usize = 4;
+
+/// One packed two-sided key: the left graded-code prefix in the high
+/// word, the right graded-code prefix in the low word. The depth is
+/// carried by the level index, so no depth tag lives inside the word.
+type TwoSidedKey = u64;
+
+/// A read view of one two-sided cell: the key's token counts (token
+/// ascending) and its evidence total.
+#[derive(Clone, Copy)]
+struct TwoSidedCell<'a> {
+    entries: &'a [(u32, u32)],
+    total: u32,
+}
+
+impl TwoSidedCell<'_> {
+    /// Canonical argmax: highest count, ties to the lowest token id —
+    /// the same tie-break every other Gate C selection uses.
+    fn argmax(&self) -> Option<u32> {
+        self.entries
+            .iter()
+            .copied()
+            .max_by(|a, b| a.1.cmp(&b.1).then_with(|| b.0.cmp(&a.0)))
+            .map(|(token, _)| token)
+    }
+    fn count(&self, token: u32) -> u32 {
+        self.entries
+            .binary_search_by_key(&token, |&(t, _)| t)
+            .map(|index| self.entries[index].1)
+            .unwrap_or(0)
+    }
+}
+
+/// One two-sided level in compact sorted form. A per-key `BTreeMap` of
+/// counts would cost several hundred bytes per key and there are on the
+/// order of one key per construction position at full depth, so the
+/// level is stored as parallel arrays: `keys` sorted and unique,
+/// `spans[k]..spans[k + 1]` indexing `entries` for `keys[k]`, and
+/// `totals[k]` that key's evidence total. Lookup is a binary search.
+#[derive(Default)]
+struct TwoSidedLevel {
+    keys: Vec<TwoSidedKey>,
+    spans: Vec<u32>,
+    entries: Vec<(u32, u32)>,
+    totals: Vec<u32>,
+}
+
+impl TwoSidedLevel {
+    /// Compact a `(key, observed next token)` bag into the sorted form.
+    fn from_pairs(mut pairs: Vec<(TwoSidedKey, u32)>) -> Self {
+        pairs.sort_unstable();
+        let mut level = TwoSidedLevel {
+            spans: vec![0],
+            ..TwoSidedLevel::default()
+        };
+        let mut index = 0usize;
+        while index < pairs.len() {
+            let key = pairs[index].0;
+            let mut total = 0u32;
+            let start = index;
+            while index < pairs.len() && pairs[index].0 == key {
+                let token = pairs[index].1;
+                let mut count = 0u32;
+                while index < pairs.len() && pairs[index].0 == key && pairs[index].1 == token {
+                    count += 1;
+                    index += 1;
+                }
+                level.entries.push((token, count));
+                total += count;
+            }
+            debug_assert!(index > start);
+            level.keys.push(key);
+            level.totals.push(total);
+            level.spans.push(level.entries.len() as u32);
+        }
+        level
+    }
+
+    fn get(&self, key: TwoSidedKey) -> Option<TwoSidedCell<'_>> {
+        let index = self.keys.binary_search(&key).ok()?;
+        let lo = self.spans[index] as usize;
+        let hi = self.spans[index + 1] as usize;
+        Some(TwoSidedCell {
+            entries: &self.entries[lo..hi],
+            total: self.totals[index],
+        })
+    }
+}
+
+/// The #446 M1 two-sided context table: one level per graded-prefix
+/// depth one through `STAGES`, built from the CONSTRUCTION split only.
+///
+/// NOT CAUSAL. The right key is drawn from tokens AFTER the target, so
+/// this table can only be read in an infill/analysis (A-mode) regime or,
+/// prospectively, at CONSTRUCTION time. Nothing here touches the serving
+/// scorer, the witness, or the replay contract.
+struct TwoSidedTable {
+    levels: Vec<TwoSidedLevel>,
+}
+
+/// Pack a graded-code prefix of length `depth` into one word.
+fn pack_prefix(code: &[u8; STAGES], depth: usize) -> u32 {
+    let mut packed = 0u32;
+    for &byte in &code[..depth] {
+        packed = (packed << 8) | u32::from(byte);
+    }
+    packed
+}
+
+fn pack_two_sided(left: u32, right: u32) -> TwoSidedKey {
+    (TwoSidedKey::from(left) << 32) | TwoSidedKey::from(right)
+}
+
+impl TwoSidedTable {
+    /// Build every depth from the construction positions that carry an
+    /// in-story right window.
+    fn build(
+        corpus: &Corpus,
+        is_held_out: &[bool],
+        left_codes: &[[u8; STAGES]],
+        right_codes: &[([u8; STAGES], bool)],
+    ) -> Self {
+        let mut levels = Vec::with_capacity(STAGES + 1);
+        levels.push(TwoSidedLevel::default());
+        for depth in 1..=STAGES {
+            let mut pairs: Vec<(TwoSidedKey, u32)> = Vec::new();
+            for position in 0..corpus.n {
+                if is_held_out[position] || !right_codes[position].1 {
+                    continue;
+                }
+                let key = pack_two_sided(
+                    pack_prefix(&left_codes[position], depth),
+                    pack_prefix(&right_codes[position].0, depth),
+                );
+                pairs.push((key, corpus.next[position]));
+            }
+            levels.push(TwoSidedLevel::from_pairs(pairs));
+        }
+        TwoSidedTable { levels }
+    }
+
+    /// #446 M1 dilution statistic: at FULL graded depth, how many
+    /// distinct two-sided keys share each distinct left code.
+    ///
+    /// Returns `(distinct full left codes, distinct full two-sided
+    /// keys)`. Their ratio is the mean subdivision factor — the number
+    /// of cells the right key splits an over-diluted full-left-code cell
+    /// into. This is the direct measurement of the dilution attack: the
+    /// graded code space is fixed at `STAGES` x 256, so as the corpus
+    /// grows every full-code cell absorbs more records and its
+    /// next-token distribution dilutes; a subdivision factor above one
+    /// means the right key is buying key resolution the left code
+    /// cannot.
+    fn full_depth_subdivision(&self) -> (usize, usize) {
+        let keys = &self.levels[STAGES].keys;
+        // `keys` is sorted and unique, and the left code occupies the
+        // high word, so distinct left codes are the runs of the high
+        // word — one linear scan, no allocation.
+        let mut left_cells = 0usize;
+        let mut previous: Option<u32> = None;
+        for &key in keys {
+            let left = (key >> 32) as u32;
+            if previous != Some(left) {
+                left_cells += 1;
+                previous = Some(left);
+            }
+        }
+        (left_cells, keys.len())
+    }
+
+    /// The DEEPEST populated `(left[..d], right[..d])` pair whose
+    /// evidence total clears the D4 EXCT support gate
+    /// ([`score_runtime::EXCT_SUPPORT_MIN`]) — the harness's
+    /// deepest-populated-pair backoff with the EXCT probe's support
+    /// discipline. `None` means the arm is inert at this position and
+    /// falls through to the Rule 1+2 selection.
+    fn resolve(
+        &self,
+        left: &[u8; STAGES],
+        right: &([u8; STAGES], bool),
+    ) -> Option<(usize, TwoSidedCell<'_>)> {
+        if !right.1 {
+            return None;
+        }
+        for depth in (1..=STAGES).rev() {
+            let key = pack_two_sided(pack_prefix(left, depth), pack_prefix(&right.0, depth));
+            if let Some(cell) = self.levels[depth].get(key) {
+                if cell.total >= EXCT_SUPPORT_MIN {
+                    return Some((depth, cell));
+                }
+            }
+        }
+        None
+    }
+}
+
+/// #446 M1: the right graded code of every corpus position, at MATCHED
+/// granularity with the left code. The next [`TWO_SIDED_RIGHT_R`]
+/// emitted tokens after the target are laid out REVERSE-ORDERED —
+/// farthest first, so the token immediately after the target lands in
+/// the most-recent dyadic slot — and pushed through the same
+/// `bundle_window_plain` + `assign_for_bundle` machinery that produces
+/// the left code, so the pair at depth d is a genuinely matched object.
+/// The flag is false where no in-story right token exists (story end).
+fn derive_right_codes(
+    artifacts: &compiler::Compiled,
+    rotations: &[usize; compiler::WINDOW + 1],
+    corpus: &Corpus,
+) -> Vec<([u8; STAGES], bool)> {
+    (0..corpus.n)
+        .into_par_iter()
+        .map(|position| {
+            let mut window: Vec<u32> = Vec::with_capacity(TWO_SIDED_RIGHT_R);
+            for ahead in (1..=TWO_SIDED_RIGHT_R).rev() {
+                let source = position + ahead;
+                if source < corpus.n && corpus.story[source] == corpus.story[position] {
+                    window.push(corpus.next[source]);
+                }
+            }
+            if window.is_empty() {
+                return ([0u8; STAGES], false);
+            }
+            let bundle = runtime::bundle_window_plain(artifacts, rotations, &window);
+            (runtime::assign_for_bundle(artifacts, &bundle), true)
+        })
+        .collect()
+}
+
+/// #446 M1: apply the two-sided table with D4-style precedence over one
+/// Rule 1+2 outcome.
+///
+/// Selection: where the table resolves with support the two-sided
+/// evidence PREEMPTS (its canonical argmax is the selection), exactly as
+/// supported exact-context evidence preempts the graph under Rule 2.
+/// Bits: a Witten-Bell mixture of the resolved cell over the Rule 1+2
+/// distribution, `lambda = total / (total + types)`. The Rule 1+2
+/// channel is already normalized over the vocabulary and `rule12_bits`
+/// is its code length for `next`, so the mixture is a proper code length
+/// on the same scale as every other Gate C row.
+///
+/// NOT CAUSAL: the key reads tokens after the target. Infill/analysis
+/// only.
+fn apply_two_sided_arm(
+    resolved: Option<(usize, TwoSidedCell<'_>)>,
+    rule12_selected: u32,
+    rule12_bits: f64,
+    next: u32,
+) -> (u32, f64, bool) {
+    let Some((_, cell)) = resolved else {
+        return (rule12_selected, rule12_bits, false);
+    };
+    let total = f64::from(cell.total);
+    let types = cell.entries.len() as f64;
+    let lambda = total / (total + types);
+    let pair_probability = f64::from(cell.count(next)) / total;
+    let rule12_probability = (-rule12_bits).exp2();
+    let mixed = lambda * pair_probability + (1.0 - lambda) * rule12_probability;
+    (
+        cell.argmax().unwrap_or(rule12_selected),
+        -mixed.max(1e-300).log2(),
+        true,
+    )
+}
+
 pub fn evaluate_gate_c(
     r4g1: &[u8],
     artifact_container: &[u8],
@@ -2464,6 +2826,30 @@ pub fn evaluate_gate_c(
     let mut strict_live_bits = 0f64;
     let mut rule12_strict_live_hits = 0u64;
     let mut rule12_strict_live_bits = 0f64;
+    // #446 M1 two-sided arm accumulators (all positions + live slice),
+    // and the foreign-right-key falsifier. NOT causal — infill/analysis.
+    let mut hits_twosided = 0u64;
+    let mut bits_twosided = 0f64;
+    let mut twosided_live_positions = 0usize;
+    let mut twosided_live_hits = 0u64;
+    let mut twosided_live_bits = 0f64;
+    let mut rule12_twosided_live_hits = 0u64;
+    let mut rule12_twosided_live_bits = 0f64;
+    let mut twosided_depths = vec![0usize; STAGES + 1];
+    // #446 M1 dilution slice: the ExactContext-status subpopulation.
+    let mut twosided_exct_positions = 0usize;
+    let mut twosided_exct_hits = 0u64;
+    let mut twosided_exct_bits = 0f64;
+    let mut rule12_exct_slice_hits = 0u64;
+    let mut rule12_exct_slice_bits = 0f64;
+    let mut twosided_exct_live = 0usize;
+    let mut hits_twosided_shuffled = 0u64;
+    let mut bits_twosided_shuffled = 0f64;
+    let mut shuffled_live_positions = 0usize;
+    let mut shuffled_live_hits = 0u64;
+    let mut shuffled_live_bits = 0f64;
+    let mut rule12_shuffled_live_hits = 0u64;
+    let mut rule12_shuffled_live_bits = 0f64;
     // Per-status Rule 1+2 accumulators: [ExactContext, Graph, Novel].
     let mut status_positions = [0usize; 3];
     let mut status_hits = [0u64; 3];
@@ -2567,6 +2953,25 @@ pub fn evaluate_gate_c(
         }
     }
 
+    // #446 M1: the two-sided (left graded prefix, right graded prefix)
+    // table, built from the CONSTRUCTION split only (positions outside
+    // the held-out set) under the same infill protocol as the forward
+    // table above. NOT causal — the right key reads tokens after the
+    // target, so this is an infill/analysis (A-mode) measurement or a
+    // prospective construction-time signal, never a generation number.
+    let right_codes = derive_right_codes(artifacts, &gate_rotations, corpus);
+    let left_codes: Vec<[u8; STAGES]> = (0..corpus.n)
+        .into_par_iter()
+        .map(|position| runtime::code_plain(artifacts, &gate_rotations, corpus, position))
+        .collect();
+    let two_sided = TwoSidedTable::build(corpus, &is_held_out, &left_codes, &right_codes);
+    drop(left_codes);
+    let held_positions: Vec<usize> = held_out
+        .iter()
+        .map(|observation| observation.position as usize)
+        .collect();
+    let shuffle_rotation = held_positions.len() / 2;
+
     let context = GateCContext {
         artifacts,
         corpus,
@@ -2583,6 +2988,10 @@ pub fn evaluate_gate_c(
         config,
         fwd_table: &fwd_table,
         story_pos: &story_pos,
+        two_sided: &two_sided,
+        right_codes: &right_codes,
+        held_positions: &held_positions,
+        shuffle_rotation,
     };
     // #390 analytic unigram null: the TRAIN next-token distribution
     // (all corpus positions outside the held-out set), add-one smoothed
@@ -2812,6 +3221,46 @@ pub fn evaluate_gate_c(
                 row.hits[2],
             );
         }
+        hits_twosided += u64::from(row.hit_twosided);
+        bits_twosided += row.bits_twosided;
+        twosided_depths[row.twosided_depth] += 1;
+        // Dilution slice: status index 0 is ExactContext.
+        if row.status_index == 0 {
+            twosided_exct_positions += 1;
+            twosided_exct_hits += u64::from(row.hit_twosided);
+            twosided_exct_bits += row.bits_twosided;
+            rule12_exct_slice_hits += u64::from(row.hits[2]);
+            rule12_exct_slice_bits += row.bits[2];
+            if row.twosided_live {
+                twosided_exct_live += 1;
+            }
+        }
+        if row.twosided_live {
+            twosided_live_positions += 1;
+            twosided_live_hits += u64::from(row.hit_twosided);
+            twosided_live_bits += row.bits_twosided;
+            rule12_twosided_live_hits += u64::from(row.hits[2]);
+            rule12_twosided_live_bits += row.bits[2];
+            accumulate_win_loss(
+                &mut outcome.win_loss.twosided_vs_rule12_live,
+                row.hit_twosided,
+                row.hits[2],
+            );
+        }
+        hits_twosided_shuffled += u64::from(row.hit_twosided_shuffled);
+        bits_twosided_shuffled += row.bits_twosided_shuffled;
+        if row.twosided_shuffled_live {
+            shuffled_live_positions += 1;
+            shuffled_live_hits += u64::from(row.hit_twosided_shuffled);
+            shuffled_live_bits += row.bits_twosided_shuffled;
+            rule12_shuffled_live_hits += u64::from(row.hits[2]);
+            rule12_shuffled_live_bits += row.bits[2];
+            accumulate_win_loss(
+                &mut outcome.win_loss.twosided_shuffled_vs_rule12_live,
+                row.hit_twosided_shuffled,
+                row.hits[2],
+            );
+        }
         if let Some(correct) = row.anchor_hat_correct {
             anchor_hat_population += 1;
             anchor_hat_correct_count += u64::from(correct);
@@ -2886,6 +3335,48 @@ pub fn evaluate_gate_c(
         rule12_strict_live_bits,
         strict_live_positions,
     );
+    outcome.rule12_twosided = metrics(hits_twosided, bits_twosided);
+    outcome.rule12_twosided_live = live_metrics(
+        twosided_live_hits,
+        twosided_live_bits,
+        twosided_live_positions,
+    );
+    outcome.rule12_on_twosided_live = live_metrics(
+        rule12_twosided_live_hits,
+        rule12_twosided_live_bits,
+        twosided_live_positions,
+    );
+    outcome.rule12_twosided_shuffled = metrics(hits_twosided_shuffled, bits_twosided_shuffled);
+    outcome.rule12_twosided_shuffled_live = live_metrics(
+        shuffled_live_hits,
+        shuffled_live_bits,
+        shuffled_live_positions,
+    );
+    outcome.rule12_on_twosided_shuffled_live = live_metrics(
+        rule12_shuffled_live_hits,
+        rule12_shuffled_live_bits,
+        shuffled_live_positions,
+    );
+    outcome.rule12_twosided_depths = twosided_depths;
+    outcome.rule12_twosided_exct_slice = live_metrics(
+        twosided_exct_hits,
+        twosided_exct_bits,
+        twosided_exct_positions,
+    );
+    outcome.rule12_on_twosided_exct_slice = live_metrics(
+        rule12_exct_slice_hits,
+        rule12_exct_slice_bits,
+        twosided_exct_positions,
+    );
+    outcome.rule12_twosided_exct_slice_live = twosided_exct_live;
+    let (full_left_cells, full_pair_keys) = two_sided.full_depth_subdivision();
+    outcome.twosided_full_left_cells = full_left_cells;
+    outcome.twosided_full_pair_keys = full_pair_keys;
+    outcome.twosided_keys_per_full_left = if full_left_cells == 0 {
+        0.0
+    } else {
+        full_pair_keys as f64 / full_left_cells as f64
+    };
     outcome.anchor_hat_population = anchor_hat_population;
     outcome.anchor_hat_correct = anchor_hat_correct_count as usize;
     outcome.anchor_hat_accuracy = if anchor_hat_population == 0 {
@@ -3236,6 +3727,17 @@ struct GateCRow {
     hit_fwd_strict: bool,
     bits_fwd_strict: f64,
     fwd_strict_live: bool,
+    /// #446 M1: the two-sided arm's triplet, plus the depth its pair
+    /// resolved at (0 = inert, fell through to Rule 1+2). NOT causal —
+    /// infill/analysis only.
+    hit_twosided: bool,
+    bits_twosided: f64,
+    twosided_live: bool,
+    twosided_depth: usize,
+    /// #446 M1 falsifier: the same triplet with a foreign right key.
+    hit_twosided_shuffled: bool,
+    bits_twosided_shuffled: f64,
+    twosided_shuffled_live: bool,
 }
 
 struct GateCContext<'a> {
@@ -3258,6 +3760,16 @@ struct GateCContext<'a> {
     fwd_table: &'a BTreeMap<(usize, u32), BTreeMap<u32, u32>>,
     /// Story-relative position of every corpus record (0-based).
     story_pos: &'a [u32],
+    /// #446 M1: the two-sided (left prefix, right prefix) evidence table
+    /// built from the construction split. NOT causal — infill/analysis.
+    two_sided: &'a TwoSidedTable,
+    /// #446 M1: the right graded code of every corpus position, with a
+    /// flag for "an in-story right window existed here".
+    right_codes: &'a [([u8; STAGES], bool)],
+    /// #446 M1 falsifier: held-out corpus positions in evaluation order,
+    /// and the fixed rotation applied to pick a FOREIGN right key.
+    held_positions: &'a [usize],
+    shuffle_rotation: usize,
 }
 
 /// The story-bounded recent-token window ending at `position`'s input
@@ -3849,6 +4361,36 @@ fn evaluate_gate_c_row(
             }
         }
     }
+    // ---- #446 M1: two-sided arm (instrumentation only) ----
+    // The pair table takes D4-style precedence wherever it resolves with
+    // support; elsewhere the arm IS Rule 1+2. The falsifier repeats the
+    // whole construction with a right key lifted from a foreign held-out
+    // position under a fixed half-length rotation, so key cardinality,
+    // backoff shape, support gate and smoothing are held constant.
+    //
+    // NOT CAUSAL: the right key is built from tokens AFTER the target.
+    // Infill/analysis (A-mode) regime only — never a generation number.
+    let resolved_two_sided = context
+        .two_sided
+        .resolve(&code, &context.right_codes[position]);
+    let twosided_depth = resolved_two_sided.map_or(0, |(depth, _)| depth);
+    let (twosided_selected, bits_twosided, twosided_live) =
+        apply_two_sided_arm(resolved_two_sided, rule12.selected, bits[2], next);
+    let shuffled_source = if context.held_positions.is_empty() {
+        position
+    } else {
+        context.held_positions[(index + context.shuffle_rotation) % context.held_positions.len()]
+    };
+    let resolved_shuffled = if shuffled_source < context.corpus.n {
+        context
+            .two_sided
+            .resolve(&code, &context.right_codes[shuffled_source])
+    } else {
+        None
+    };
+    let (shuffled_selected, bits_twosided_shuffled, twosided_shuffled_live) =
+        apply_two_sided_arm(resolved_shuffled, rule12.selected, bits[2], next);
+
     let hit_fwd = fwd_selected == teacher_argmax;
     let hit_fwd_self = fwd_self_selected == teacher_argmax;
     let hit_fwd_gated = fwd_gated_selected == teacher_argmax;
@@ -3921,6 +4463,13 @@ fn evaluate_gate_c_row(
         hit_fwd_strict,
         bits_fwd_strict,
         fwd_strict_live,
+        hit_twosided: twosided_selected == teacher_argmax,
+        bits_twosided,
+        twosided_live,
+        twosided_depth,
+        hit_twosided_shuffled: shuffled_selected == teacher_argmax,
+        bits_twosided_shuffled,
+        twosided_shuffled_live,
     })
 }
 
@@ -3976,7 +4525,24 @@ fn evaluate_gate_c_row(
 /// footprint fields (`fmm_bytes`/`fmm_rank`/`fmm_candidate_count`) and the
 /// FMM section emission itself — issue #290 recorded the far-field family
 /// as measured dead (research/290-fmm/RESULT-52.md), and #425 removed the
-/// uncalled emission and runtime paths.
+/// uncalled emission and runtime paths; schema twenty-three is the #446 M1
+/// TWO-SIDED context arms in `gate_c` (`rule12_twosided`, its live-slice
+/// pair, the pair-resolution depth histogram, the
+/// `rule12_twosided_shuffled` foreign-right-key falsifier and the two
+/// win/loss cross-tabs) together with the dilution slice they exist to
+/// answer (`rule12_twosided_exct_slice` and `rule12_on_twosided_exct_slice`,
+/// the two arms restricted to the positions Rule 1+2 resolved as
+/// ExactContext, plus `twosided_keys_per_full_left` and its two counts —
+/// how many distinct two-sided keys the right context carves each full
+/// left graded code into). Evidence is keyed on the pair of the left
+/// graded code prefix and a right graded code prefix and takes D4-style
+/// precedence wherever it resolves with support. Those rows are NOT
+/// causally available to left-to-right generation — the right key reads
+/// tokens after the target — so they are an infill/analysis (A-mode)
+/// measurement, or prospectively a construction-time signal, and must
+/// never be quoted as a generation number; the table is built inside the
+/// Gate C evaluation from the construction split alone, so the artifact
+/// format, the serving scorer and the replay contract are untouched.
 #[derive(Debug, Clone, Serialize)]
 pub struct ScoreReport {
     pub schema: u32,
@@ -4169,7 +4735,7 @@ pub fn build_score_report_with_quality_profile(
         can_measure_generalization: strict_exct_miss_rate >= MIN_EXCT_MISS_RATE_FOR_GATE_C,
     };
     ScoreReport {
-        schema: 22,
+        schema: 23,
         inputs,
         config: ScoreReportConfig {
             transition_out_degree: config.transition_out_degree,
