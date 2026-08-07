@@ -62,6 +62,120 @@ question-answering model.
 | Compile a compatible Hugging Face source | After downloading the source | Pinned model revision |
 | `ask` and interactive chat | No | Compiled, evaluated, imported `instruction-chat` manifest |
 
+## Research direction: what is measured, what is open
+
+R⁴ is a research programme as much as an engine, and the engine's direction is
+set by measurements rather than by intent. This section records where that
+programme actually stands, so anyone picking up work can see which paths are
+closed, which are load-bearing, and which are still open. Every claim below
+traces to a merged measurement with a pre-declared exit rule; the issue
+numbers are the durable references.
+
+### Measurement discipline
+
+Every substantive claim in this repo is expected to arrive with a pre-declared
+exit rule, a null baseline, and a falsifier. Negative results are recorded and
+kept, not discarded — several of the entries below are negatives that redirected
+the programme, and they are more valuable than the positives they replaced.
+Long runs additionally follow the run-contract discipline in `AGENTS.md`:
+compute the reachability ceiling before spending hours, gate on the cheap
+instrument first, and pre-declare what each outcome causes. That discipline
+exists because we lost days to runs whose result could not have changed the
+next action.
+
+### What works and is load-bearing
+
+The serving stack consults, in order: packed NGRAM context rows (trigram with
+bigram backoff), then the graph chain with D4 exact-context precedence, then
+the root prior. On natural text the induced-cover store with observed
+continuation evidence is the geometry that carries the result; the legacy
+teacher-hash store with teacher evidence measured 0.1% off-distribution
+against it.
+
+Two changes improved results by improving *evidence quality per key*, and both
+are shipped: full-width content-bearing storage (#434, PR #465) — the storage
+path had been discarding fifteen sixteenths of an already-full-width content
+vector, and de-banding moved retrieval MRR from 0.2348 to 0.8948 and router
+anchor accuracy from 9.3% to 11.4%; and the two-sided calibration gain (#446),
+which is causally legitimate, sits at top-1 parity, and grows large at scale in
+bits (latent-mix 15.4778 vs 22.2078).
+
+A-mode infill serving is validated and shipped: the FWDA forward-anchor
+artifact section plus `score_candidates_infill`, `infill_fill`, and the
+`r4 graph infill --skeleton` CLI (#399, PRs #416/#419). Anchors are inputs, so
+the mode is immune to the drift that killed the standalone variant.
+
+### What is closed, and why
+
+**Standalone two-pass generation (#399).** Refuted twice. With anchors supplied
+externally the channel gives +4.2pp on its live slice; with the engine
+supplying its own anchors from a drafted context it goes negative (40.4% vs
+41.3%), and a strict per-step confidence gate does not rescue it (42.0% vs
+43.0%). Drift is diffuse rather than concentrated in low-confidence steps, so
+no gate over the draft can filter it. At 2.11M records the inversion reproduces
+on a non-degenerate configuration (16.4% vs 26.5%, predicted-anchor accuracy
+0.0%), so it is not a capacity artifact.
+
+**Code-space subdivision as a capacity lever (#460).** Measured negative in its
+strongest possible form. Raising STAGES from 4 to 5 bought exactly the
+subdivision the hypothesis asked for — occupied full-code keys 47,403 to
+90,824, records per key 36.02 to 18.80, clearing the instrument gate — and
+Rule 1+2 top-1 came in at 25.6% ± 0.44pp against a 26.5% baseline, *below* it.
+The store baseline fell alongside (26.4 to 25.4), which is the signature of
+thinner per-key evidence rather than sharper context. Exact-context dominance
+barely responded (98.8% to 97.1%).
+
+**Construction-time stratification (#435).** Three routing designs plus an
+identity argument, all against pre-declared rules; v3 mass-linear mixing
+reduces algebraically to flat. The oracle-stratum edge (36.3 vs 35.2) stands as
+recorded unrecovered signal, but no routing design reached it.
+
+**Hopf sector transport as a router-quality lever (#422/#306).** The #306
+remediation's occupancy gain (16 to 456 of 512 sectors) does not translate into
+retrieval value: sector-filtered MRR 0.0045 against the pre-remediation
+projection's 0.0743. Three content-aligned redesign candidates then mapped a
+clean spread-versus-retrieval frontier without crossing it.
+
+**Cayley–Dickson syntactic morphism (#400), FMM far-field (#290), granularity
+(#393), E8 group-keying (#395).** Each measured dead with a scoped record; the
+CD term executed 0 times out of 1,998 before removal.
+
+### The pattern these results draw
+
+Every lever that added *key resolution* failed — a better-fitted codebook, more
+cover regions, a finer code space. The only two changes that helped improved
+*evidence quality per key*. That is the clearest signal the programme has, and
+it is why the open work below concentrates on evidence and estimation rather
+than on subdivision.
+
+### Open, with defined work
+
+| Issue | Question | State |
+|---|---|---|
+| #460 | Cover split criterion and codebook fit | Two implemented-but-dark levers: `SplitCriterion::{RelativeGain,Mdl}` with scaled k0 (default-off, harness `cover_scaling.rs` unrun) and `RVQ_SAMPLE_CAP` capping codebook training at 0.59% of the split |
+| #424 | Bott-Fock O(1) context fold | Module exists and is cost-tested; no accuracy number anywhere. The long-context gap it targets currently has no live carrier at all |
+| #434 | VSA / spectral geometry | Item 1 (zeta-grid at scale) done and shipped; item 2 never measured beyond a synthetic smoke test |
+| #469 | Vectorize the assign path | The vectorized kernel already exists (`simd::dot_argmax`) and is simply not wired into `assign_for_bundle`; κ-pinned, so bit-identity must be proven |
+| #471 | Sampled runs still pay full-corpus table builds | `derive_right_codes` and the two-sided/latent table builds ignore the sample knob |
+| #456–#459 | Reconstructability, block search, IPF reconstruction, estimation ladder | Active track |
+| #320 | Teacher upgrade (SmolLM2) | P1/P2 rehearsal recorded; migration decision open |
+| #273 | Template rebase / claim register | On-hold; no implementation |
+
+### Measurement infrastructure
+
+Two pieces of tooling exist so the results above stay cheap to reproduce and
+hard to fake. Sampled decision runs (`R4_GATE_C_SAMPLE`) cut Gate C evaluation
+from 597s to 60s and report the sample size and standard error beside every
+rate, because at 402,802 positions the standard error is 0.07pp while every
+exit rule we write is ±2pp — thirty times finer than any decision needs. The
+κ-keyed per-record code sidecar (`R4_CODES_PATH`) cut the instrument from 625s
+to 39s by caching a deterministic computation that every consumer had been
+recomputing; it loads only when eight fields and a blake3 digest all agree, and
+refuses itself entirely in biased-sampling mode so a partial vector can never
+poison a later run. The `capacity_scaling` instrument prints a saturation
+verdict per structure and is meant to be run *before* trusting any measurement
+taken on a given configuration.
+
 ## Documentation
 
 - [AGENTS.md](AGENTS.md) — contributor/agent operating manual: gates, invariants, κ re-pin procedure
