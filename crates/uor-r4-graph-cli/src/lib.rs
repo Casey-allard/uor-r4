@@ -1312,11 +1312,38 @@ pub fn score_command(args: &[String]) -> Result<(), String> {
         "1+2 × fwd STRICT-gated (2p)",
         &gate_c.rule12_fwd_strict_fused,
     );
-    row("1+2 + TWO-SIDED (#446 M1)", &gate_c.rule12_twosided);
-    row("1+2 + two-sided SHUFFLED", &gate_c.rule12_twosided_shuffled);
-    row("1+2 + LATENT-MIX (#446 M2)", &gate_c.rule12_latent_mix);
-    row("1+2 + latent ORACLE-RIGHT", &gate_c.rule12_latent_oracle);
-    row("1+2 + latent SHUF-CLASS", &gate_c.rule12_latent_shuffled);
+    // #471: the right-context arm group prints its five rows, or says in
+    // each row's own place that it was not evaluated. A blank line or a
+    // zeroed rate here would be read as a measurement — these arms exist to
+    // be compared against `graph chain+EXCT (1+2)` above, and a reader
+    // scanning the column would take 0.0% as a catastrophic arm rather than
+    // an absent one.
+    let skipped_row = |name: &str| {
+        if sampled {
+            println!(
+                "  {:<26} {:>16} {:>12} {:>10} {:>9}",
+                name, "SKIPPED", "SKIPPED", "-", "-"
+            );
+        } else {
+            println!("  {:<26} {:>16} {:>12}", name, "SKIPPED", "SKIPPED");
+        }
+    };
+    match &gate_c.right_context_arms {
+        Some(arms) => {
+            row("1+2 + TWO-SIDED (#446 M1)", &arms.rule12_twosided);
+            row("1+2 + two-sided SHUFFLED", &arms.rule12_twosided_shuffled);
+            row("1+2 + LATENT-MIX (#446 M2)", &arms.rule12_latent_mix);
+            row("1+2 + latent ORACLE-RIGHT", &arms.rule12_latent_oracle);
+            row("1+2 + latent SHUF-CLASS", &arms.rule12_latent_shuffled);
+        }
+        None => {
+            skipped_row("1+2 + TWO-SIDED (#446 M1)");
+            skipped_row("1+2 + two-sided SHUFFLED");
+            skipped_row("1+2 + LATENT-MIX (#446 M2)");
+            skipped_row("1+2 + latent ORACLE-RIGHT");
+            skipped_row("1+2 + latent SHUF-CLASS");
+        }
+    }
     let live_line = |name: &str, fused: &score::GateCMetrics, base: &score::GateCMetrics| {
         println!(
             "  {name} live slice ({} positions): fused {:.1}% vs rule 1+2 {:.1}% | bits {:.4} vs {:.4}",
@@ -1352,85 +1379,103 @@ pub fn score_command(args: &[String]) -> Result<(), String> {
         &gate_c.rule12_fwd_strict_fused_live,
         &gate_c.rule12_on_fwd_strict_live,
     );
-    live_line(
-        "two-sided  ",
-        &gate_c.rule12_twosided_live,
-        &gate_c.rule12_on_twosided_live,
-    );
-    live_line(
-        "two-sided SHUF",
-        &gate_c.rule12_twosided_shuffled_live,
-        &gate_c.rule12_on_twosided_shuffled_live,
-    );
-    live_line(
-        "latent-mix ",
-        &gate_c.rule12_latent_mix_live,
-        &gate_c.rule12_on_latent_mix_live,
-    );
-    println!(
-        "  two-sided pair-resolution depth: {}",
-        gate_c
-            .rule12_twosided_depths
-            .iter()
-            .enumerate()
-            .map(|(depth, count)| if depth == 0 {
-                format!("inert {count}")
-            } else {
-                format!("d{depth} {count}")
-            })
-            .collect::<Vec<_>>()
-            .join(" ")
-    );
-    println!(
-        "  two-sided DILUTION slice — ExactContext positions ({}): two-sided {:.1}% vs rule 1+2 {:.1}% | bits {:.4} vs {:.4} | arm live {}",
-        gate_c.rule12_twosided_exct_slice.positions,
-        gate_c.rule12_twosided_exct_slice.top1_agreement * 100.0,
-        gate_c.rule12_on_twosided_exct_slice.top1_agreement * 100.0,
-        gate_c.rule12_twosided_exct_slice.bits_per_token,
-        gate_c.rule12_on_twosided_exct_slice.bits_per_token,
-        gate_c.rule12_twosided_exct_slice_live,
-    );
-    println!(
-        "  two-sided cell subdivision (construction, full graded depth): {:.3} two-sided keys per full left code ({} pair keys / {} left cells)",
-        gate_c.twosided_keys_per_full_left,
-        gate_c.twosided_full_pair_keys,
-        gate_c.twosided_full_left_cells,
-    );
-    println!(
-        "  NOTE (#446 M1): the two-sided rows key on tokens AFTER the target. \
-         Two-sided conditioning is NOT causally available to left-to-right \
-         generation — it is an infill/analysis (A-mode) measurement, or \
-         prospectively a construction-time signal. Never quote it as a \
-         generation number."
-    );
-    println!(
-        "  latent class structure (construction, full left depth): class depth {} byte(s), {:.3} classes per full left code ({} class cells / {} left cells); oracle live {}, shuffled-class live {}",
-        gate_c.latent_class_depth,
-        gate_c.latent_classes_per_full_left,
-        gate_c.latent_full_class_cells,
-        gate_c.latent_full_left_cells,
-        gate_c.latent_oracle_live_positions,
-        gate_c.latent_shuffled_live_positions,
-    );
-    println!(
-        "  latent headroom: baseline {:.1}% -> latent-mix {:.1}% -> oracle-right {:.1}% = {:.1}% of available top-1 headroom | EXIT RULE (>= 2.0pp over baseline AND beats shuffled-class): {}",
-        100.0 * gate_c.rule12_precedence.top1_agreement,
-        100.0 * gate_c.rule12_latent_mix.top1_agreement,
-        100.0 * gate_c.rule12_latent_oracle.top1_agreement,
-        100.0 * gate_c.latent_headroom_fraction,
-        if gate_c.latent_exit_rule_met {
-            "MET (positive)"
-        } else {
-            "NOT MET (negative)"
-        },
-    );
-    println!(
-        "  NOTE (#446 M2): the LATENT-MIX row reads the LEFT key only at \
-         serving — the right context is observed during construction and \
-         marginalized away — so it IS causally legitimate and quotable as a \
-         generation number. ORACLE-RIGHT supplies the true right class at \
-         evaluation time and is an upper bound only, NOT causal."
-    );
+    match &gate_c.right_context_arms {
+        Some(arms) => {
+            live_line(
+                "two-sided  ",
+                &arms.rule12_twosided_live,
+                &arms.rule12_on_twosided_live,
+            );
+            live_line(
+                "two-sided SHUF",
+                &arms.rule12_twosided_shuffled_live,
+                &arms.rule12_on_twosided_shuffled_live,
+            );
+            live_line(
+                "latent-mix ",
+                &arms.rule12_latent_mix_live,
+                &arms.rule12_on_latent_mix_live,
+            );
+            println!(
+                "  two-sided pair-resolution depth: {}",
+                arms.rule12_twosided_depths
+                    .iter()
+                    .enumerate()
+                    .map(|(depth, count)| if depth == 0 {
+                        format!("inert {count}")
+                    } else {
+                        format!("d{depth} {count}")
+                    })
+                    .collect::<Vec<_>>()
+                    .join(" ")
+            );
+            println!(
+                "  two-sided DILUTION slice — ExactContext positions ({}): two-sided {:.1}% vs rule 1+2 {:.1}% | bits {:.4} vs {:.4} | arm live {}",
+                arms.rule12_twosided_exct_slice.positions,
+                arms.rule12_twosided_exct_slice.top1_agreement * 100.0,
+                arms.rule12_on_twosided_exct_slice.top1_agreement * 100.0,
+                arms.rule12_twosided_exct_slice.bits_per_token,
+                arms.rule12_on_twosided_exct_slice.bits_per_token,
+                arms.rule12_twosided_exct_slice_live,
+            );
+            println!(
+                "  two-sided cell subdivision (construction, full graded depth): {:.3} two-sided keys per full left code ({} pair keys / {} left cells)",
+                arms.twosided_keys_per_full_left,
+                arms.twosided_full_pair_keys,
+                arms.twosided_full_left_cells,
+            );
+            println!(
+                "  NOTE (#446 M1): the two-sided rows key on tokens AFTER the target. \
+                 Two-sided conditioning is NOT causally available to left-to-right \
+                 generation — it is an infill/analysis (A-mode) measurement, or \
+                 prospectively a construction-time signal. Never quote it as a \
+                 generation number."
+            );
+            println!(
+                "  latent class structure (construction, full left depth): class depth {} byte(s), {:.3} classes per full left code ({} class cells / {} left cells); oracle live {}, shuffled-class live {}",
+                arms.latent_class_depth,
+                arms.latent_classes_per_full_left,
+                arms.latent_full_class_cells,
+                arms.latent_full_left_cells,
+                arms.latent_oracle_live_positions,
+                arms.latent_shuffled_live_positions,
+            );
+            println!(
+                "  latent headroom: baseline {:.1}% -> latent-mix {:.1}% -> oracle-right {:.1}% = {:.1}% of available top-1 headroom | EXIT RULE (>= 2.0pp over baseline AND beats shuffled-class): {}",
+                100.0 * gate_c.rule12_precedence.top1_agreement,
+                100.0 * arms.rule12_latent_mix.top1_agreement,
+                100.0 * arms.rule12_latent_oracle.top1_agreement,
+                100.0 * arms.latent_headroom_fraction,
+                if arms.latent_exit_rule_met {
+                    "MET (positive)"
+                } else {
+                    "NOT MET (negative)"
+                },
+            );
+            println!(
+                "  NOTE (#446 M2): the LATENT-MIX row reads the LEFT key only at \
+                 serving — the right context is observed during construction and \
+                 marginalized away — so it IS causally legitimate and quotable as a \
+                 generation number. ORACLE-RIGHT supplies the true right class at \
+                 evaluation time and is an upper bound only, NOT causal."
+            );
+        }
+        // #471. Everything above depends on the whole-corpus right-context
+        // code pass, so a run that skipped it has no two-sided or latent
+        // numbers at all — including the #446 M2 exit-rule verdict, which is
+        // the line most dangerous to fake. NOT MET and never-ran read the
+        // same to a skimming eye, so the verdict is not printed at all.
+        None => {
+            println!(
+                "  RIGHT-CONTEXT ARMS NOT EVALUATED ({}={}). The #446 M1 two-sided and \
+                 #446 M2 latent rows, the dilution and class-structure statistics, and \
+                 the M2 exit-rule verdict are ABSENT from this run — not zero, and not \
+                 NOT MET. Re-run without the override to measure them.",
+                score::GATE_C_SKIP_ARMS_ENV,
+                gate_c.skipped_arm_groups.join(","),
+            );
+        }
+    }
     println!(
         "  predicted-anchor accuracy: {:.1}% ({}/{})",
         100.0 * gate_c.anchor_hat_accuracy,
@@ -1481,14 +1526,19 @@ pub fn score_command(args: &[String]) -> Result<(), String> {
         "win/loss strict vs 1+2 live",
         &gate_c.win_loss.fwd_strict_vs_rule12_live,
     );
-    win_loss_row(
-        "win/loss two-sided vs 1+2 live",
-        &gate_c.win_loss.twosided_vs_rule12_live,
-    );
-    win_loss_row(
-        "win/loss ts-SHUF vs 1+2 live",
-        &gate_c.win_loss.twosided_shuffled_vs_rule12_live,
-    );
+    // #471: two more rows in the right-context group's closure. An all-zero
+    // cross-tab printed among populated ones reads as "the arm never won",
+    // which is a measurement; on a skipped run it is an absence.
+    if let Some(arms) = &gate_c.right_context_arms {
+        win_loss_row(
+            "win/loss two-sided vs 1+2 live",
+            &arms.twosided_vs_rule12_live,
+        );
+        win_loss_row(
+            "win/loss ts-SHUF vs 1+2 live",
+            &arms.twosided_shuffled_vs_rule12_live,
+        );
+    }
     println!(
         "  witness replay: {}/{} ok",
         gate_c.witness_replays - gate_c.witness_replay_failures,

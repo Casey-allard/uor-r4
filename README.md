@@ -206,7 +206,7 @@ predicts at all, and not past it.
 | #424 | Bott-Fock O(1) context fold | Ceiling measured, A/B not reachable. Long-range signal on this corpus is worth +1.02pp of top-1 (two thirds of it order-carried); the shipped decay constant `>> 2` retains 16% of that, so the lossless upper bound on the fold as shipped is +0.16pp — one standard error. Retuning the decay to `>> 7` would recover the ceiling. `docs/context_horizon_424.md` |
 | #434 | VSA / spectral geometry | Both items done. Item 1 (zeta-grid at scale) shipped as full-width storage. Item 2 measured (`docs/geometry_ablation_434.md`): Spectral **0.7179 MRR / 0.972 recall@20**, VSA **0.0000** — not a quality gap but a wiring one, since `index_corpus` populates the corpus index Spectral reads and never the `facet_store` VSA reads. A caller who sets `geometry_type = Vsa` after `index_corpus` silently loses retrieval |
 | #469 | Vectorize the assign path | Done. Lever A (κ-keyed code sidecar) 625s → 39s; lever B routes the corpus code passes through the existing `simd::dot_argmax` using tables decoded once per artifact — **1.60x** on the pinned TLA7 artifact. Bit-identity is proven, not argued: `tests/assign_prepared.rs` checks prepared == scalar over 1,024 real corpus positions on the committed artifact fixture, and the κ witness carries it on a fresh compile. Per-call decoding would have been a ~4x regression, which is why the batch API exists |
-| #471 | Sampled runs still pay full-corpus table builds | `derive_right_codes` and the two-sided/latent table builds ignore the sample knob |
+| #471 | Sampled runs still pay full-corpus table builds | Knob shipped, cause **only partly explained**. Gate C now prints a per-phase wall clock, and it revised the diagnosis: the two table builds are 0.8% of a sampled run, while the whole-corpus right-context code pass is 59%. `R4_GATE_C_SKIP_ARMS=right_context` drops that pass and the five #446 arms that depend on it — **62.9% off the Gate C phase** at 500k, with all 45 remaining `gate_c` keys identical. But 102 µs/record extrapolates to ~4 minutes at 2.11M, not the 85 that opened the issue, and peak RSS differs by only 5.6%, so the residual is unexplained and filed. `docs/gate_c_arm_skip_471.md` |
 | #456–#459 | Reconstructability, block search, IPF reconstruction, estimation ladder | Active track |
 | #320 | Teacher upgrade (SmolLM2) | P1/P2 rehearsal recorded; migration decision open |
 | #273 | Template rebase / claim register | On-hold; no implementation |
@@ -224,7 +224,14 @@ recomputing; it loads only when eight fields and a blake3 digest all agree, and
 refuses itself entirely in biased-sampling mode so a partial vector can never
 poison a later run. The `capacity_scaling` instrument prints a saturation
 verdict per structure and is meant to be run *before* trusting any measurement
-taken on a given configuration.
+taken on a given configuration. Gate C also prints a **per-phase wall clock**
+(#471) — it exists because "the Gate C phase took eighty-five minutes" was an
+unattributable number that two different proposals blamed on two different
+passes, and neither had been measured; a harness whose cost is invisible gets
+optimized by argument. `R4_GATE_C_SKIP_ARMS=right_context` then drops the
+whole-corpus pass that profile blamed, and the arms that depend on it are
+reported **absent** rather than zeroed, because a skipped row that prints
+`0.0%` is the vacuous-instrument pattern this repository keeps rediscovering.
 
 ## Documentation
 

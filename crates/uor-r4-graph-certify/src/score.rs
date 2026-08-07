@@ -1949,6 +1949,142 @@ fn binomial_standard_error(p: f64, n: usize) -> f64 {
 /// UNSET is the full pass, bit-identical to the pre-#467 evaluation.
 pub const GATE_C_SAMPLE_ENV: &str = "R4_GATE_C_SAMPLE";
 
+/// Environment override naming Gate C ARM GROUPS this run must not build
+/// (#471). Comma-separated group names; UNSET evaluates every arm and is
+/// behaviour-identical to the pre-#471 evaluation.
+///
+/// Why a group name and not a boolean. The thing worth skipping is never one
+/// row; it is the closure of one expensive pass — every row that depends on
+/// it. Naming the *cost* rather than the issue number keeps the knob from
+/// degenerating into a list of ad-hoc flags as arms accumulate, and it makes
+/// the skipped set nameable in the output, which is what stops a skipped row
+/// from reading as a measured one.
+///
+/// Why an unknown name PANICS. A typo that silently evaluated everything
+/// would hand back an 85-minute run when the caller asked for a 30-second
+/// one, and — worse in the other direction — a typo that silently skipped
+/// nothing looks exactly like a knob that does not work. Both failures are
+/// invisible; the panic is not.
+pub const GATE_C_SKIP_ARMS_ENV: &str = "R4_GATE_C_SKIP_ARMS";
+
+/// The `right_context` arm group: the #446 M1 two-sided family and the #446
+/// M2 latent family together.
+///
+/// They are one group because they are exactly the closure of
+/// [`derive_right_codes`] — the whole-corpus right-context code pass that
+/// #471 measured at 60% of a sampled Gate C run's wall clock on the 500k
+/// fixture, and a larger share as the corpus grows (the pass scales with
+/// `n`; the scored sample does not). Nothing else in the evaluation reads a
+/// right-context code, so skipping this group and skipping that pass are the
+/// same act.
+pub const ARM_GROUP_RIGHT_CONTEXT: &str = "right_context";
+
+/// Which arm groups a run was told to skip. `Default` is "skip nothing",
+/// which is the unset contract.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct SkippedArms {
+    /// [`ARM_GROUP_RIGHT_CONTEXT`].
+    pub right_context: bool,
+}
+
+impl SkippedArms {
+    /// The group names this run skipped, in a stable order, for the report
+    /// and the printed banner.
+    pub fn names(&self) -> Vec<String> {
+        let mut names = Vec::new();
+        if self.right_context {
+            names.push(ARM_GROUP_RIGHT_CONTEXT.to_owned());
+        }
+        names
+    }
+
+    pub fn any(&self) -> bool {
+        self.right_context
+    }
+}
+
+/// Parse a [`GATE_C_SKIP_ARMS_ENV`] value. Pure, so the contract is unit
+/// testable without mutating process environment from a test thread.
+///
+/// Empty and whitespace-only values mean "skip nothing", matching UNSET —
+/// `R4_GATE_C_SKIP_ARMS=` in a shell script should not be a different mode
+/// from not writing the line at all. Names are trimmed and matched exactly;
+/// an unrecognised one panics rather than being dropped.
+pub fn parse_skip_arms(value: Option<&str>) -> SkippedArms {
+    let mut skipped = SkippedArms::default();
+    let Some(value) = value else {
+        return skipped;
+    };
+    for name in value.split(',') {
+        let name = name.trim();
+        if name.is_empty() {
+            continue;
+        }
+        match name {
+            ARM_GROUP_RIGHT_CONTEXT => skipped.right_context = true,
+            other => panic!(
+                "{GATE_C_SKIP_ARMS_ENV}: unknown arm group {other:?}; \
+                 known groups: {ARM_GROUP_RIGHT_CONTEXT}"
+            ),
+        }
+    }
+    skipped
+}
+
+fn gate_c_skip_arms() -> SkippedArms {
+    parse_skip_arms(std::env::var(GATE_C_SKIP_ARMS_ENV).ok().as_deref())
+}
+
+/// Wall-clock accounting for the passes [`evaluate_gate_c`] runs, printed to
+/// stderr as the evaluation proceeds (#471).
+///
+/// Why this exists. "The Gate C phase took eighty-five minutes" was, until
+/// #471, an unattributable number: the evaluation runs four whole-corpus
+/// passes before `gate_c_sample` narrows anything, and nothing said which of
+/// them owned the wall clock. Attributing it took a code read, and the first
+/// two proposals for fixing it named different passes. A harness whose cost
+/// is invisible gets optimized by argument rather than by measurement.
+///
+/// Why stderr and not the report. A duration is machine- and load-dependent,
+/// so putting one in `score_report.json` would make the document differ
+/// between two runs of identical pinned inputs — exactly what the
+/// deterministic-rebuild gate exists to catch. These lines are diagnostics
+/// beside the existing `score: …` progress prints, never report content.
+struct PhaseLog {
+    start: std::time::Instant,
+    last: std::time::Instant,
+}
+
+impl PhaseLog {
+    fn new() -> Self {
+        let now = std::time::Instant::now();
+        PhaseLog {
+            start: now,
+            last: now,
+        }
+    }
+
+    /// Close the phase that ended here, naming it and its duration.
+    fn mark(&mut self, phase: &str) {
+        let now = std::time::Instant::now();
+        eprintln!(
+            "gate c phase: {phase} {:.2}s (cumulative {:.2}s)",
+            now.duration_since(self.last).as_secs_f64(),
+            now.duration_since(self.start).as_secs_f64()
+        );
+        self.last = now;
+    }
+
+    /// Close the whole evaluation. Measured from `now`, not from the last
+    /// mark, so any unmarked tail shows up in the total instead of vanishing.
+    fn total(&self) {
+        eprintln!(
+            "gate c phase: TOTAL {:.2}s",
+            self.start.elapsed().as_secs_f64()
+        );
+    }
+}
+
 /// Deterministic stratified subsample of the held-out evaluation list.
 ///
 /// Motivation. The long runs buy precision nobody uses. At 402,802
@@ -2066,15 +2202,6 @@ pub struct WinLossReport {
     /// #399 rescue variant: STRICT-gated draft arm on its live slice
     /// (every draft step ExactContext, not just the final one).
     pub fwd_strict_vs_rule12_live: WinLoss,
-    /// #446 M1: two-sided (left, right) keyed arm vs Rule 1+2 on the
-    /// two-sided live slice — the positions where the pair table
-    /// resolved with support and could change a decision. NOT causal:
-    /// the right key reads tokens after the target, so this cross-tab is
-    /// an infill/analysis measurement, never a generation number.
-    pub twosided_vs_rule12_live: WinLoss,
-    /// #446 M1 falsifier: the foreign-right-key arm against Rule 1+2 on
-    /// its own live slice.
-    pub twosided_shuffled_vs_rule12_live: WinLoss,
 }
 
 /// Candidate-set recall, reported separately from selected-token
@@ -2284,79 +2411,16 @@ pub struct GateCNulls {
     pub held_out_positions: usize,
 }
 
-/// The Gate C outcome: the four number sets (old formula, Rule 1,
-/// Rule 1+2, baseline), the status and win/loss instrumentation,
-/// candidate recall, and the witness-replay sample result.
+/// The #446 right-context arm group: the M1 two-sided family and the M2
+/// latent right-context family, which share the whole-corpus
+/// [`derive_right_codes`] pass and are therefore built, skipped and
+/// reported together.
+///
+/// Carried behind an `Option` on [`GateCOutcome`] so that "not evaluated"
+/// is a different value from "evaluated and zero" — see
+/// [`GateCOutcome::right_context_arms`].
 #[derive(Debug, Clone, Default, Serialize)]
-pub struct GateCOutcome {
-    /// Size of the held-out split the evaluation was handed (#467). Equal
-    /// to the number of positions scored on a full pass.
-    pub held_out_population: usize,
-    /// Number of held-out positions actually scored when the #467 sampled
-    /// decision mode is active, or `0` on a full pass (a census). Nonzero
-    /// means every rate in this outcome is an ESTIMATE whose noise is the
-    /// `standard_error` of its own row.
-    pub positions_sampled: usize,
-    /// OLD Σ-over-cloud formula (with EXCT evidence wired), kept for
-    /// comparison — the confirmed double counting lives there.
-    pub legacy_sum: GateCMetrics,
-    /// NEW Rule 1 (chain-telescoped residuals, no EXCT).
-    pub rule1_chain: GateCMetrics,
-    /// NEW Rule 1+2 (chain-telescoped + D4 EXCT precedence).
-    pub rule12_precedence: GateCMetrics,
-    /// Ablation (issue #66): Rule 1 with predicted-cloud (ΔT) emissions
-    /// disabled — the no-EXCT measure of ΔT's contribution.
-    pub rule1_chain_no_f: GateCMetrics,
-    /// Ablation (issue #66): Rule 1+2 with ΔT emissions disabled — the
-    /// precedence path's measure of ΔT's contribution.
-    pub rule12_precedence_no_f: GateCMetrics,
-    /// Candidate variant (issue #80): Cloud-size normalized scoring.
-    pub rule12_cloud_size_normalized: GateCMetrics,
-    /// Candidate variant (issue #80): Margin-weighted residual scoring.
-    pub rule12_margin_weighted: GateCMetrics,
-    /// TLA3 store baseline (`runtime::predict_witness_plain`).
-    pub tla3_baseline: GateCMetrics,
-    /// #399 M2 instrumentation: Rule 1+2 fused with the forward-anchor
-    /// channel by the measured product law (harness record on #394/#399),
-    /// over ALL held-out positions; where the channel is inert the fused
-    /// selection IS the Rule 1+2 selection, so this row can only differ
-    /// from `rule12_precedence` through live positions.
-    pub rule12_fwd_fused: GateCMetrics,
-    /// #399 M2: the fused scorer on the LIVE slice only.
-    pub rule12_fwd_fused_live: GateCMetrics,
-    /// #399 M2: Rule 1+2 on the same live slice — the honest comparator
-    /// for `rule12_fwd_fused_live` (identical population).
-    pub rule12_on_fwd_live: GateCMetrics,
-    /// #399 B′: the SELF-anchor fused scorer (all positions; live pair
-    /// below) — the two-pass serving question, anchor supplied by the
-    /// engine's own Rule 1+2 prediction at the anchor position.
-    pub rule12_fwd_self_fused: GateCMetrics,
-    pub rule12_fwd_self_fused_live: GateCMetrics,
-    pub rule12_on_fwd_self_live: GateCMetrics,
-    /// #399 B′: the confidence-gated self-anchor scorer (prediction
-    /// trusted only where it resolved as ExactContext).
-    pub rule12_fwd_gated_fused: GateCMetrics,
-    pub rule12_fwd_gated_fused_live: GateCMetrics,
-    pub rule12_on_fwd_gated_live: GateCMetrics,
-    /// #399 falsifier 1: the DRAFT-anchor gated scorer — same gate and
-    /// fusion law as the gated arm, but the anchor is predicted from the
-    /// engine's own greedy DRAFT (pass-1 token here plus drafted
-    /// continuations) instead of teacher-forced corpus context; the
-    /// spread against the gated arm is the draft-drift cost of a real
-    /// two-pass generation.
-    pub rule12_fwd_draft_fused: GateCMetrics,
-    pub rule12_fwd_draft_fused_live: GateCMetrics,
-    pub rule12_on_fwd_draft_live: GateCMetrics,
-    /// #399 rescue variant (responding to the falsifier-1 negative:
-    /// draft-gated live 40.4% vs 41.3% while the teacher-forced gated
-    /// arm measured 45.0% vs 39.4%): the STRICT-gated draft scorer —
-    /// identical draft, anchor, and fusion, but trusted only where EVERY
-    /// intermediate greedy step resolved as ExactContext (drift enters
-    /// through uncertain intermediate steps). Its live slice is a subset
-    /// of the draft arm's.
-    pub rule12_fwd_strict_fused: GateCMetrics,
-    pub rule12_fwd_strict_fused_live: GateCMetrics,
-    pub rule12_on_fwd_strict_live: GateCMetrics,
+pub struct RightContextArms {
     /// #446 M1: Rule 1+2 with the TWO-SIDED (left graded prefix, right
     /// graded prefix) table taking D4-style precedence wherever it
     /// resolves with support, over ALL held-out positions. Where the
@@ -2451,6 +2515,117 @@ pub struct GateCOutcome {
     /// [`LATENT_EXIT_MARGIN`] of top-1 agreement on the same population
     /// AND beat the shuffled-class falsifier.
     pub latent_exit_rule_met: bool,
+    /// #446 M1: two-sided (left, right) keyed arm vs Rule 1+2 on the
+    /// two-sided live slice — the positions where the pair table
+    /// resolved with support and could change a decision. NOT causal:
+    /// the right key reads tokens after the target, so this cross-tab is
+    /// an infill/analysis measurement, never a generation number.
+    ///
+    /// Lives here rather than in `win_loss` (where it sat before schema
+    /// twenty-six) because it is in the closure of the right-context code
+    /// pass: on a skipped run it has no value, and an all-zero cross-tab
+    /// sitting among populated ones is precisely the reading this group's
+    /// `Option` exists to prevent. The #471 equivalence test caught it
+    /// there.
+    pub twosided_vs_rule12_live: WinLoss,
+    /// #446 M1 falsifier: the foreign-right-key arm against Rule 1+2 on
+    /// its own live slice.
+    pub twosided_shuffled_vs_rule12_live: WinLoss,
+}
+
+/// The Gate C outcome: the four number sets (old formula, Rule 1,
+/// Rule 1+2, baseline), the status and win/loss instrumentation,
+/// candidate recall, and the witness-replay sample result.
+#[derive(Debug, Clone, Default, Serialize)]
+pub struct GateCOutcome {
+    /// Size of the held-out split the evaluation was handed (#467). Equal
+    /// to the number of positions scored on a full pass.
+    pub held_out_population: usize,
+    /// Number of held-out positions actually scored when the #467 sampled
+    /// decision mode is active, or `0` on a full pass (a census). Nonzero
+    /// means every rate in this outcome is an ESTIMATE whose noise is the
+    /// `standard_error` of its own row.
+    pub positions_sampled: usize,
+    /// OLD Σ-over-cloud formula (with EXCT evidence wired), kept for
+    /// comparison — the confirmed double counting lives there.
+    pub legacy_sum: GateCMetrics,
+    /// NEW Rule 1 (chain-telescoped residuals, no EXCT).
+    pub rule1_chain: GateCMetrics,
+    /// NEW Rule 1+2 (chain-telescoped + D4 EXCT precedence).
+    pub rule12_precedence: GateCMetrics,
+    /// Ablation (issue #66): Rule 1 with predicted-cloud (ΔT) emissions
+    /// disabled — the no-EXCT measure of ΔT's contribution.
+    pub rule1_chain_no_f: GateCMetrics,
+    /// Ablation (issue #66): Rule 1+2 with ΔT emissions disabled — the
+    /// precedence path's measure of ΔT's contribution.
+    pub rule12_precedence_no_f: GateCMetrics,
+    /// Candidate variant (issue #80): Cloud-size normalized scoring.
+    pub rule12_cloud_size_normalized: GateCMetrics,
+    /// Candidate variant (issue #80): Margin-weighted residual scoring.
+    pub rule12_margin_weighted: GateCMetrics,
+    /// TLA3 store baseline (`runtime::predict_witness_plain`).
+    pub tla3_baseline: GateCMetrics,
+    /// #399 M2 instrumentation: Rule 1+2 fused with the forward-anchor
+    /// channel by the measured product law (harness record on #394/#399),
+    /// over ALL held-out positions; where the channel is inert the fused
+    /// selection IS the Rule 1+2 selection, so this row can only differ
+    /// from `rule12_precedence` through live positions.
+    pub rule12_fwd_fused: GateCMetrics,
+    /// #399 M2: the fused scorer on the LIVE slice only.
+    pub rule12_fwd_fused_live: GateCMetrics,
+    /// #399 M2: Rule 1+2 on the same live slice — the honest comparator
+    /// for `rule12_fwd_fused_live` (identical population).
+    pub rule12_on_fwd_live: GateCMetrics,
+    /// #399 B′: the SELF-anchor fused scorer (all positions; live pair
+    /// below) — the two-pass serving question, anchor supplied by the
+    /// engine's own Rule 1+2 prediction at the anchor position.
+    pub rule12_fwd_self_fused: GateCMetrics,
+    pub rule12_fwd_self_fused_live: GateCMetrics,
+    pub rule12_on_fwd_self_live: GateCMetrics,
+    /// #399 B′: the confidence-gated self-anchor scorer (prediction
+    /// trusted only where it resolved as ExactContext).
+    pub rule12_fwd_gated_fused: GateCMetrics,
+    pub rule12_fwd_gated_fused_live: GateCMetrics,
+    pub rule12_on_fwd_gated_live: GateCMetrics,
+    /// #399 falsifier 1: the DRAFT-anchor gated scorer — same gate and
+    /// fusion law as the gated arm, but the anchor is predicted from the
+    /// engine's own greedy DRAFT (pass-1 token here plus drafted
+    /// continuations) instead of teacher-forced corpus context; the
+    /// spread against the gated arm is the draft-drift cost of a real
+    /// two-pass generation.
+    pub rule12_fwd_draft_fused: GateCMetrics,
+    pub rule12_fwd_draft_fused_live: GateCMetrics,
+    pub rule12_on_fwd_draft_live: GateCMetrics,
+    /// #399 rescue variant (responding to the falsifier-1 negative:
+    /// draft-gated live 40.4% vs 41.3% while the teacher-forced gated
+    /// arm measured 45.0% vs 39.4%): the STRICT-gated draft scorer —
+    /// identical draft, anchor, and fusion, but trusted only where EVERY
+    /// intermediate greedy step resolved as ExactContext (drift enters
+    /// through uncertain intermediate steps). Its live slice is a subset
+    /// of the draft arm's.
+    pub rule12_fwd_strict_fused: GateCMetrics,
+    pub rule12_fwd_strict_fused_live: GateCMetrics,
+    pub rule12_on_fwd_strict_live: GateCMetrics,
+    /// #446 M1 + M2, THE RIGHT-CONTEXT ARM GROUP (`right_context`).
+    ///
+    /// `None` means these arms were NOT EVALUATED on this run — the
+    /// whole-corpus right-context code pass they all depend on was skipped
+    /// via [`GATE_C_SKIP_ARMS_ENV`] (#471). It does not mean they measured
+    /// zero, and `latent_exit_rule_met` being absent does not mean the exit
+    /// rule failed.
+    ///
+    /// The `Option` is the point. These twenty-four numbers used to sit flat
+    /// on this struct, so a skipped run would have serialised
+    /// `rule12_latent_mix.top1_agreement: 0.0` and
+    /// `latent_exit_rule_met: false` — an all-zero arm set, which this
+    /// repository has learned to read as a harness bug, and a pre-declared
+    /// exit rule reported as failed when it was never run. Absence and a
+    /// measured zero must not share a representation, so they do not.
+    pub right_context_arms: Option<RightContextArms>,
+    /// Arm groups this run was told not to build, by name (#471), so the
+    /// report says what is missing rather than leaving a reader to infer it
+    /// from a null. Empty on an ordinary run.
+    pub skipped_arm_groups: Vec<String>,
     /// #399 B′: predicted-anchor accuracy on the anchor-reachable
     /// population (numerator/denominator + rate).
     pub anchor_hat_population: usize,
@@ -2740,6 +2915,21 @@ fn pack_two_sided(left: u32, right: u32) -> TwoSidedKey {
 }
 
 impl TwoSidedTable {
+    /// The table a run that skipped [`ARM_GROUP_RIGHT_CONTEXT`] carries:
+    /// every level empty, so [`TwoSidedTable::resolve`] is inert at every
+    /// position and the arm falls through to Rule 1+2 exactly as it does
+    /// where no supported pair exists.
+    ///
+    /// The rows this then produces are Rule 1+2 passthrough values and are
+    /// NOT two-sided measurements. They never reach the report:
+    /// [`GateCOutcome::right_context_arms`] is `None` on a skipped run, and
+    /// the type is what keeps them from being published as arm numbers.
+    fn empty() -> Self {
+        TwoSidedTable {
+            levels: (0..=STAGES).map(|_| TwoSidedLevel::default()).collect(),
+        }
+    }
+
     /// Build every depth from the construction positions that carry an
     /// in-story right window.
     fn build(
@@ -2946,6 +3136,18 @@ struct LatentRightTable {
 }
 
 impl LatentRightTable {
+    /// The counterpart of [`TwoSidedTable::empty`] for a run that skipped
+    /// [`ARM_GROUP_RIGHT_CONTEXT`]: every emission and posterior level
+    /// empty, so `resolve_left` finds no supported prefix and the mixture
+    /// arm is inert at every position.
+    fn empty(class_depth: usize) -> Self {
+        LatentRightTable {
+            class_depth,
+            emission: (0..=STAGES).map(|_| TwoSidedLevel::default()).collect(),
+            posterior: (0..=STAGES).map(|_| TwoSidedLevel::default()).collect(),
+        }
+    }
+
     fn build(
         corpus: &Corpus,
         is_held_out: &[bool],
@@ -3108,6 +3310,18 @@ pub fn evaluate_gate_c(
     held_out: &[Observation],
     config: &ScoreConfig,
 ) -> Result<GateCOutcome, String> {
+    // #471: every whole-corpus pass below announces its own cost, and the
+    // arm groups this run was told not to build are resolved up front so the
+    // skip is one decision read in one place.
+    let skipped_arms = gate_c_skip_arms();
+    let mut phases = PhaseLog::new();
+    if skipped_arms.any() {
+        eprintln!(
+            "score: {GATE_C_SKIP_ARMS_ENV}={} — those arm groups are NOT EVALUATED on this run; \
+             their rows are absent from the report, not zero",
+            skipped_arms.names().join(",")
+        );
+    }
     let mut scorer_no_exct =
         GraphScorer::from_artifact(r4g1, None, config.root_top_b, config.exct_top_x)?;
     scorer_no_exct.set_f_emissions(true);
@@ -3152,6 +3366,8 @@ pub fn evaluate_gate_c(
     )?;
     scorer_margin.set_scoring_variant(ScoringVariant::MarginWeighted);
     scorer_margin.set_repetition_penalty_raw(config.repetition_penalty_raw);
+
+    phases.mark("scorer construction");
 
     let mut outcome = GateCOutcome::default();
     let mut bits_legacy = 0f64;
@@ -3213,6 +3429,11 @@ pub fn evaluate_gate_c(
     let mut rule12_strict_live_bits = 0f64;
     // #446 M1 two-sided arm accumulators (all positions + live slice),
     // and the foreign-right-key falsifier. NOT causal — infill/analysis.
+    // #446 M1 cross-tabs. Local rather than written straight onto
+    // `outcome.win_loss`, because they belong to the right-context arm group
+    // and must be absent, not zero, when that group is skipped (#471).
+    let mut twosided_win_loss = WinLoss::default();
+    let mut twosided_shuffled_win_loss = WinLoss::default();
     let mut hits_twosided = 0u64;
     let mut bits_twosided = 0f64;
     let mut twosided_live_positions = 0usize;
@@ -3354,13 +3575,31 @@ pub fn evaluate_gate_c(
         }
     }
 
+    phases.mark("forward-anchor table (#399 M2)");
+
     // #446 M1: the two-sided (left graded prefix, right graded prefix)
     // table, built from the CONSTRUCTION split only (positions outside
     // the held-out set) under the same infill protocol as the forward
     // table above. NOT causal — the right key reads tokens after the
     // target, so this is an infill/analysis (A-mode) measurement or a
     // prospective construction-time signal, never a generation number.
-    let right_codes = derive_right_codes(artifacts, &gate_rotations, corpus);
+    //
+    // #471: this is the pass the arm-skip knob exists for. It is a whole
+    // corpus `bundle_window_plain` + assign, it is NOT sidecar-cached (the
+    // #469 lever-A sidecar keys the LEFT codes), and it scales with `n`
+    // while a sampled evaluation's scored population does not — so its share
+    // of a decision run's wall clock grows with the corpus. Measured at 60%
+    // of a 10,000-position run on the 500k fixture.
+    let right_codes = if skipped_arms.right_context {
+        // The sentinel the two arms already treat as inert: no in-story
+        // right window anywhere. `resolve` and `resolve_left` short-circuit
+        // on it, so no row-level branch is needed and the scored rows take
+        // the same code path they take at a story end today.
+        vec![([0u8; STAGES], false); corpus.n]
+    } else {
+        derive_right_codes(artifacts, &gate_rotations, corpus)
+    };
+    phases.mark("right-context code pass (#446)");
     // #469 lever A: the left (causal) code of every record is the same
     // `code_plain` pass every other consumer runs. Serve it from the
     // κ-keyed sidecar when one verifies against BOTH the artifact κ and the
@@ -3378,7 +3617,13 @@ pub fn evaluate_gate_c(
                 })
                 .collect()
         });
-    let two_sided = TwoSidedTable::build(corpus, &is_held_out, &left_codes, &right_codes);
+    phases.mark("left code pass (sidecar or derive, #469 lever A)");
+    let two_sided = if skipped_arms.right_context {
+        TwoSidedTable::empty()
+    } else {
+        TwoSidedTable::build(corpus, &is_held_out, &left_codes, &right_codes)
+    };
+    phases.mark("two-sided table build (#446 M1)");
     // #446 M2: the latent right-context mixture tables, built from the
     // same construction split. CAUSALLY LEGITIMATE at serving: the right
     // context is observed here, during construction, and marginalized
@@ -3388,13 +3633,18 @@ pub fn evaluate_gate_c(
         .and_then(|value| value.trim().parse::<usize>().ok())
         .filter(|depth| (1..=STAGES).contains(depth))
         .unwrap_or(LATENT_CLASS_DEPTH_DEFAULT);
-    let latent = LatentRightTable::build(
-        corpus,
-        &is_held_out,
-        &left_codes,
-        &right_codes,
-        latent_class_depth,
-    );
+    let latent = if skipped_arms.right_context {
+        LatentRightTable::empty(latent_class_depth)
+    } else {
+        LatentRightTable::build(
+            corpus,
+            &is_held_out,
+            &left_codes,
+            &right_codes,
+            latent_class_depth,
+        )
+    };
+    phases.mark("latent right-context tables (#446 M2)");
     // #467: the positions actually SCORED. Full pass unless
     // `R4_GATE_C_SAMPLE` is set; the held-out mask above (and every table
     // built from it) always sees the complete held-out list, so sampling
@@ -3458,6 +3708,8 @@ pub fn evaluate_gate_c(
     let mut null_bits_generalization = 0f64;
     let mut generalization_positions = 0u64;
 
+    phases.mark("unigram null over the construction split (#390)");
+
     // Each held-out position is independent. Collect compact rows in Rayon;
     // reduce them in input order below so floating-point totals and all
     // report bytes retain the serial implementation's determinism.
@@ -3466,6 +3718,7 @@ pub fn evaluate_gate_c(
         .enumerate()
         .map(|(index, observation)| evaluate_gate_c_row(index, observation, &context))
         .collect::<Result<Vec<_>, _>>()?;
+    phases.mark(&format!("scoring {} positions", scored.len()));
     for row in rows {
         hits_legacy += u64::from(row.hits[0]);
         hits_rule1 += u64::from(row.hits[1]);
@@ -3677,11 +3930,7 @@ pub fn evaluate_gate_c(
             twosided_live_bits += row.bits_twosided;
             rule12_twosided_live_hits += u64::from(row.hits[2]);
             rule12_twosided_live_bits += row.bits[2];
-            accumulate_win_loss(
-                &mut outcome.win_loss.twosided_vs_rule12_live,
-                row.hit_twosided,
-                row.hits[2],
-            );
+            accumulate_win_loss(&mut twosided_win_loss, row.hit_twosided, row.hits[2]);
         }
         hits_twosided_shuffled += u64::from(row.hit_twosided_shuffled);
         bits_twosided_shuffled += row.bits_twosided_shuffled;
@@ -3692,7 +3941,7 @@ pub fn evaluate_gate_c(
             rule12_shuffled_live_hits += u64::from(row.hits[2]);
             rule12_shuffled_live_bits += row.bits[2];
             accumulate_win_loss(
-                &mut outcome.win_loss.twosided_shuffled_vs_rule12_live,
+                &mut twosided_shuffled_win_loss,
                 row.hit_twosided_shuffled,
                 row.hits[2],
             );
@@ -3796,77 +4045,94 @@ pub fn evaluate_gate_c(
         rule12_strict_live_bits,
         strict_live_positions,
     );
-    outcome.rule12_twosided = metrics(hits_twosided, bits_twosided);
-    outcome.rule12_twosided_live = live_metrics(
-        twosided_live_hits,
-        twosided_live_bits,
-        twosided_live_positions,
-    );
-    outcome.rule12_on_twosided_live = live_metrics(
-        rule12_twosided_live_hits,
-        rule12_twosided_live_bits,
-        twosided_live_positions,
-    );
-    outcome.rule12_twosided_shuffled = metrics(hits_twosided_shuffled, bits_twosided_shuffled);
-    outcome.rule12_twosided_shuffled_live = live_metrics(
-        shuffled_live_hits,
-        shuffled_live_bits,
-        shuffled_live_positions,
-    );
-    outcome.rule12_on_twosided_shuffled_live = live_metrics(
-        rule12_shuffled_live_hits,
-        rule12_shuffled_live_bits,
-        shuffled_live_positions,
-    );
-    outcome.rule12_twosided_depths = twosided_depths;
-    outcome.rule12_twosided_exct_slice = live_metrics(
-        twosided_exct_hits,
-        twosided_exct_bits,
-        twosided_exct_positions,
-    );
-    outcome.rule12_on_twosided_exct_slice = live_metrics(
-        rule12_exct_slice_hits,
-        rule12_exct_slice_bits,
-        twosided_exct_positions,
-    );
-    outcome.rule12_twosided_exct_slice_live = twosided_exct_live;
-    // #446 M2: the latent mixture rows, plus the pre-declared exit rule.
-    outcome.rule12_latent_mix = metrics(hits_latent, bits_latent_total);
-    outcome.rule12_latent_mix_live =
-        live_metrics(latent_live_hits, latent_live_bits, latent_live_positions);
-    outcome.rule12_on_latent_mix_live = live_metrics(
-        rule12_latent_live_hits,
-        rule12_latent_live_bits,
-        latent_live_positions,
-    );
-    outcome.rule12_latent_oracle = metrics(hits_latent_oracle, bits_latent_oracle_total);
-    outcome.rule12_latent_shuffled = metrics(hits_latent_shuffled, bits_latent_shuffled_total);
-    outcome.latent_oracle_live_positions = latent_oracle_live_positions;
-    outcome.latent_shuffled_live_positions = latent_shuffled_live_positions;
-    outcome.latent_class_depth = latent_class_depth;
-    let (latent_left_cells, latent_class_cells, latent_ratio) = latent.classes_per_full_left();
-    outcome.latent_full_left_cells = latent_left_cells;
-    outcome.latent_full_class_cells = latent_class_cells;
-    outcome.latent_classes_per_full_left = latent_ratio;
-    {
-        let baseline = outcome.rule12_precedence.top1_agreement;
-        let mix = outcome.rule12_latent_mix.top1_agreement;
-        let oracle = outcome.rule12_latent_oracle.top1_agreement;
-        outcome.latent_headroom_fraction = if oracle > baseline {
-            (mix - baseline) / (oracle - baseline)
-        } else {
-            0.0
-        };
-        outcome.latent_exit_rule_met = mix - baseline >= LATENT_EXIT_MARGIN
-            && mix > outcome.rule12_latent_shuffled.top1_agreement;
-    }
-    let (full_left_cells, full_pair_keys) = two_sided.full_depth_subdivision();
-    outcome.twosided_full_left_cells = full_left_cells;
-    outcome.twosided_full_pair_keys = full_pair_keys;
-    outcome.twosided_keys_per_full_left = if full_left_cells == 0 {
-        0.0
+    // #446 M1 + M2: the right-context arm group. Assembled as a whole and
+    // attached as a whole, so a skipped run leaves `None` rather than a
+    // half-populated set of arms nobody can tell apart from measured zeros.
+    outcome.skipped_arm_groups = skipped_arms.names();
+    outcome.right_context_arms = if skipped_arms.right_context {
+        None
     } else {
-        full_pair_keys as f64 / full_left_cells as f64
+        let mut arms = RightContextArms {
+            rule12_twosided: metrics(hits_twosided, bits_twosided),
+            rule12_twosided_live: live_metrics(
+                twosided_live_hits,
+                twosided_live_bits,
+                twosided_live_positions,
+            ),
+            rule12_on_twosided_live: live_metrics(
+                rule12_twosided_live_hits,
+                rule12_twosided_live_bits,
+                twosided_live_positions,
+            ),
+            rule12_twosided_shuffled: metrics(hits_twosided_shuffled, bits_twosided_shuffled),
+            rule12_twosided_shuffled_live: live_metrics(
+                shuffled_live_hits,
+                shuffled_live_bits,
+                shuffled_live_positions,
+            ),
+            rule12_on_twosided_shuffled_live: live_metrics(
+                rule12_shuffled_live_hits,
+                rule12_shuffled_live_bits,
+                shuffled_live_positions,
+            ),
+            rule12_twosided_depths: twosided_depths,
+            rule12_twosided_exct_slice: live_metrics(
+                twosided_exct_hits,
+                twosided_exct_bits,
+                twosided_exct_positions,
+            ),
+            rule12_on_twosided_exct_slice: live_metrics(
+                rule12_exct_slice_hits,
+                rule12_exct_slice_bits,
+                twosided_exct_positions,
+            ),
+            rule12_twosided_exct_slice_live: twosided_exct_live,
+            // #446 M2: the latent mixture rows, plus the pre-declared exit rule.
+            rule12_latent_mix: metrics(hits_latent, bits_latent_total),
+            rule12_latent_mix_live: live_metrics(
+                latent_live_hits,
+                latent_live_bits,
+                latent_live_positions,
+            ),
+            rule12_on_latent_mix_live: live_metrics(
+                rule12_latent_live_hits,
+                rule12_latent_live_bits,
+                latent_live_positions,
+            ),
+            rule12_latent_oracle: metrics(hits_latent_oracle, bits_latent_oracle_total),
+            rule12_latent_shuffled: metrics(hits_latent_shuffled, bits_latent_shuffled_total),
+            latent_oracle_live_positions,
+            latent_shuffled_live_positions,
+            latent_class_depth,
+            twosided_vs_rule12_live: twosided_win_loss,
+            twosided_shuffled_vs_rule12_live: twosided_shuffled_win_loss,
+            ..RightContextArms::default()
+        };
+        let (latent_left_cells, latent_class_cells, latent_ratio) = latent.classes_per_full_left();
+        arms.latent_full_left_cells = latent_left_cells;
+        arms.latent_full_class_cells = latent_class_cells;
+        arms.latent_classes_per_full_left = latent_ratio;
+        {
+            let baseline = outcome.rule12_precedence.top1_agreement;
+            let mix = arms.rule12_latent_mix.top1_agreement;
+            let oracle = arms.rule12_latent_oracle.top1_agreement;
+            arms.latent_headroom_fraction = if oracle > baseline {
+                (mix - baseline) / (oracle - baseline)
+            } else {
+                0.0
+            };
+            arms.latent_exit_rule_met = mix - baseline >= LATENT_EXIT_MARGIN
+                && mix > arms.rule12_latent_shuffled.top1_agreement;
+        }
+        let (full_left_cells, full_pair_keys) = two_sided.full_depth_subdivision();
+        arms.twosided_full_left_cells = full_left_cells;
+        arms.twosided_full_pair_keys = full_pair_keys;
+        arms.twosided_keys_per_full_left = if full_left_cells == 0 {
+            0.0
+        } else {
+            full_pair_keys as f64 / full_left_cells as f64
+        };
+        Some(arms)
     };
     outcome.anchor_hat_population = anchor_hat_population;
     outcome.anchor_hat_correct = anchor_hat_correct_count as usize;
@@ -4104,6 +4370,8 @@ pub fn evaluate_gate_c(
         outcome.repetition_rate_baseline = 0.0;
     }
 
+    phases.mark("reduction, per-status rollups and replay probes");
+    phases.total();
     Ok(outcome)
 }
 
@@ -5187,6 +5455,18 @@ fn evaluate_gate_c_row(
 /// positions the measurement averages over. A row whose
 /// `positions_sampled` is nonzero is an ESTIMATE and must be quoted with
 /// its `standard_error`, never as a census.
+///
+/// Schema twenty-six is the #471 arm-skip knob. The twenty-four #446 M1 and
+/// M2 rows move from the top level of `gate_c` into
+/// `gate_c.right_context_arms`, which is `null` when
+/// `R4_GATE_C_SKIP_ARMS=right_context` told the run not to build the
+/// whole-corpus right-context code pass those arms depend on;
+/// `gate_c.skipped_arm_groups` names what was skipped. This is a MOVE, not a
+/// redefinition: on a run with the override unset every one of those rows
+/// holds the value schema twenty-five gave it, one level deeper. The nesting
+/// exists so that "not evaluated" and "evaluated and zero" stop sharing a
+/// representation — a flat skipped run would have published a full set of
+/// zeroed arms and a pre-declared exit rule reported as unmet.
 #[derive(Debug, Clone, Serialize)]
 pub struct ScoreReport {
     pub schema: u32,
@@ -5379,7 +5659,7 @@ pub fn build_score_report_with_quality_profile(
         can_measure_generalization: strict_exct_miss_rate >= MIN_EXCT_MISS_RATE_FOR_GATE_C,
     };
     ScoreReport {
-        schema: 25,
+        schema: 26,
         inputs,
         config: ScoreReportConfig {
             transition_out_degree: config.transition_out_degree,
@@ -5627,5 +5907,60 @@ mod emission_shrinkage_tests {
         assert!((witten_bell_lambda(100, 10) - 100.0 / 110.0).abs() < 1e-12);
         assert!(witten_bell_lambda(100, 10) > witten_bell_lambda(10, 100));
         assert!(witten_bell_lambda(100, 10) < 1.0);
+    }
+}
+
+#[cfg(test)]
+mod arm_skip_tests {
+    use super::{parse_skip_arms, SkippedArms, ARM_GROUP_RIGHT_CONTEXT};
+
+    /// The unset contract (#471, mirroring #467's): no value means every arm
+    /// is evaluated. This is the branch every existing caller takes, so it is
+    /// the one whose regression would be silent.
+    #[test]
+    fn unset_skips_nothing() {
+        assert_eq!(parse_skip_arms(None), SkippedArms::default());
+        assert!(!parse_skip_arms(None).any());
+        assert!(parse_skip_arms(None).names().is_empty());
+    }
+
+    /// `R4_GATE_C_SKIP_ARMS=` written by a shell script that computed an
+    /// empty list must mean the same thing as not writing the line, and a
+    /// list with stray separators or padding must not become a typo.
+    #[test]
+    fn empty_and_padded_values_skip_nothing_extra() {
+        assert_eq!(parse_skip_arms(Some("")), SkippedArms::default());
+        assert_eq!(parse_skip_arms(Some("   ")), SkippedArms::default());
+        assert_eq!(parse_skip_arms(Some(",,")), SkippedArms::default());
+        let padded = parse_skip_arms(Some("  right_context , "));
+        assert!(padded.right_context);
+        assert_eq!(padded.names(), vec![ARM_GROUP_RIGHT_CONTEXT.to_owned()]);
+    }
+
+    #[test]
+    fn the_right_context_group_is_recognised_and_named_back() {
+        let skipped = parse_skip_arms(Some(ARM_GROUP_RIGHT_CONTEXT));
+        assert!(skipped.right_context);
+        assert!(skipped.any());
+        assert_eq!(skipped.names(), vec![ARM_GROUP_RIGHT_CONTEXT.to_owned()]);
+    }
+
+    /// The failure mode this panic exists to prevent: a caller who meant to
+    /// buy a thirty-second decision run gets an eighty-five-minute one, with
+    /// nothing in the output saying the knob did not take. Silently ignoring
+    /// an unknown name is the one behaviour that cannot be noticed.
+    #[test]
+    #[should_panic(expected = "unknown arm group")]
+    fn an_unknown_group_panics_rather_than_being_ignored() {
+        let _ = parse_skip_arms(Some("right-context"));
+    }
+
+    /// Case is not normalised on purpose: the group name is an identifier in
+    /// a run record, and accepting several spellings of it would make two
+    /// records of the same run disagree on what was skipped.
+    #[test]
+    #[should_panic(expected = "unknown arm group")]
+    fn case_variants_are_not_silently_accepted() {
+        let _ = parse_skip_arms(Some("RIGHT_CONTEXT"));
     }
 }
