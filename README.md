@@ -96,10 +96,12 @@ Two changes improved results by improving *evidence quality per key*, and both
 are shipped: full-width content-bearing storage (#434, PR #465) — the storage
 path had been discarding fifteen sixteenths of an already-full-width content
 vector, and de-banding moved retrieval MRR from 0.2348 to 0.8948 and router
-anchor accuracy from 9.3% to 11.4% (that 0.8948 is a **cosine-ranked** figure
-and, per #484, does not describe `get_top_resonances_native`, whose ordering
-is word overlap — see `docs/lexical_weight_484.md` before quoting it as a
-serving number); and the two-sided calibration gain (#446),
+anchor accuracy from 9.3% to 11.4% (that 0.8948 is a **cosine-ranked** figure;
+per #484 it did not describe `get_top_resonances_native` ordering, and per #486 the
+reason is that the serving path compared a routing vector against the stored
+content vector — fixing that comparison reaches 0.8763 MRR on the serving
+path, so the number was real all along and simply unreachable there. See
+`docs/geometry_selfmatch_486.md`); and the two-sided calibration gain (#446),
 which is causally legitimate, sits at top-1 parity, and grows large at scale in
 bits (latent-mix 15.4778 vs 22.2078).
 
@@ -211,6 +213,7 @@ predicts at all, and not past it.
 | #469 | Vectorize the assign path | Done. Lever A (κ-keyed code sidecar) 625s → 39s; lever B routes the corpus code passes through the existing `simd::dot_argmax` using tables decoded once per artifact — **1.60x** on the pinned TLA7 artifact. Bit-identity is proven, not argued: `tests/assign_prepared.rs` checks prepared == scalar over 1,024 real corpus positions on the committed artifact fixture, and the κ witness carries it on a fresh compile. Per-call decoding would have been a ~4x regression, which is why the batch API exists |
 | #471, #483 | Sampled runs still pay full-corpus table builds | Both closed. Gate C now prints a per-phase wall clock, and it revised the diagnosis twice. First: the two table builds are 0.8% of a sampled run while the whole-corpus right-context code pass is 59%, so `R4_GATE_C_SKIP_ARMS=right_context` drops it — **62.9% off the Gate C phase** at 500k, all 45 remaining `gate_c` keys identical. Then the 2.11M run settled the rest: Gate C there is **51.94s**, not 85 minutes, and per-record cost *falls* with scale (204 µs → 152 µs core-time). The 85 minutes was never Gate C; nothing at the time could separate it from the compile stages around it. `docs/gate_c_arm_skip_471.md` |
 | #484 | Is the `shared_count * 100` lexical weight right? | Closed NEGATIVE, and the answer is bigger than the weight. Every weight from 1 to 100,000 gives bit-identical retrieval, because the geometric term's dynamic range is ~0.37 — the shipped 100 sits on a plateau starting below 1. The reason: ranking by bare cosine puts the target at median rank **21,082 of 46,342** (random is 23,171) *even when the probe is the exact stored sentence*. The geometry does not identify a sentence from itself on this path, so there was never a signal for the lexical term to suppress. `docs/lexical_weight_484.md` |
+| #486 | Why doesn't the cosine identify a sentence from itself? | **Answered, and it was a category error.** `retrieve_geometric_resonance` built its query vector from the ROUTING path while `index_sentence_internal` stores a CONTENT vector — different objects, so their cosine is chance by construction (self-similarity at the 0.4938 percentile; 0.5 is chance). Not saturated vectors and not the band projection: both ruled out by measurement. Building the query with the same `content_state_vector` construction the stored side uses takes retrieval from **0.7179 to 0.8542 MRR** with the weight unchanged, and **0.8763** with the lexical term dropped — recall rises too (0.9720 → 0.9900). That is where #442's 0.8948 went. `set_content_query_vector` ships default OFF; adoption is gated on `router_reconnect` and the pinned #421 rows. `docs/geometry_selfmatch_486.md` |
 | #456–#459 | Reconstructability, block search, IPF reconstruction, estimation ladder | Active track |
 | #320 | Teacher upgrade (SmolLM2) | P1/P2 rehearsal recorded; migration decision open |
 | #273 | Template rebase / claim register | On-hold; no implementation |

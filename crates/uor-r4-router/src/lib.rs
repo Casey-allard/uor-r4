@@ -501,6 +501,28 @@ pub struct UorR4Router {
     /// are not.
     #[serde(skip)]
     unscaled_geometric_term: bool,
+    /// Measurement knob for issue #486: build the retrieval query vector from
+    /// the query text's own CONTENT state, the same construction
+    /// `index_sentence_internal` stores, instead of from the routing state.
+    /// Default OFF — deployed retrieval ordering is unchanged.
+    ///
+    /// Why it exists. #486 measured that the deployed query projection has no
+    /// relationship to the stored vector: querying with the exact text of a
+    /// stored sentence, `cosine(query, that sentence's stored vector)` sits at
+    /// the 0.4938 percentile of all candidates — chance — with the cross
+    /// distribution carrying real spread (0.045 sd), so the stored vectors are
+    /// fine and it is the comparison that is wrong. The query side reads a
+    /// ROUTING state; the stored side is a CONTENT vector. They are different
+    /// objects and their cosine is noise by construction.
+    ///
+    /// The harnesses that measured cosine retrieval working on this stack
+    /// (#442, MRR 0.8948) sidestepped this by indexing the query text as a
+    /// corpus item and reading its stored vector back — the same encode path
+    /// on both sides. This knob does that directly and without mutating state.
+    ///
+    /// Not serialized: a measurement configuration, not a stored property.
+    #[serde(skip)]
+    content_query_vector: bool,
 }
 
 #[derive(Serialize)]
@@ -617,6 +639,7 @@ impl UorR4Router {
             full_width_query: false,
             lexical_weight: None,
             unscaled_geometric_term: false,
+            content_query_vector: false,
         };
 
         // Initialize default corpus
@@ -1099,6 +1122,17 @@ impl UorR4Router {
     /// scale rather than by similarity.
     pub fn set_unscaled_geometric_term(&mut self, unscaled: bool) {
         self.unscaled_geometric_term = unscaled;
+    }
+
+    /// Build the retrieval query vector from the query text's own content
+    /// state rather than from the routing state (issue #486). Default off.
+    ///
+    /// This is the arm that makes the query and the stored vector the same
+    /// KIND of object. Falls back to the deployed projection for any text
+    /// with no vocabulary word, so the knob can never leave a query without a
+    /// vector.
+    pub fn set_content_query_vector(&mut self, content: bool) {
+        self.content_query_vector = content;
     }
 
     /// Exports the full router system database to JSON string
@@ -2057,17 +2091,29 @@ impl UorR4Router {
         // one call is ranked under one weight and one geometric scaling.
         let lexical_weight = self.lexical_weight();
         let unscaled_geometric_term = self.unscaled_geometric_term;
+        // #486: the query text's own content vector, built by the SAME
+        // construction that produced every stored vector. `None` here means
+        // the text has no vocabulary word at all, in which case the deployed
+        // projection is used unchanged rather than leaving the query with no
+        // vector.
+        let content_query = if self.content_query_vector {
+            self.content_state_vector(text)
+        } else {
+            None
+        };
         let mut query_projections = HashMap::new();
         let mut query_ranges = HashMap::new();
         for r in &routing_data.all_routes {
             let start = r.active_range[0] as usize;
             let end = r.active_range[1] as usize;
-            let projection = if full_width_query {
-                state_vector.to_vec()
-            } else {
-                let mut banded = vec![0.0; 512];
-                banded[start..end].copy_from_slice(&r.state_vector[..end - start]);
-                banded
+            let projection = match &content_query {
+                Some(content) => content.clone(),
+                None if full_width_query => state_vector.to_vec(),
+                None => {
+                    let mut banded = vec![0.0; 512];
+                    banded[start..end].copy_from_slice(&r.state_vector[..end - start]);
+                    banded
+                }
             };
             query_projections.insert(r.window_index, projection);
             query_ranges.insert(r.window_index, (start, end));

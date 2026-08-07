@@ -108,6 +108,20 @@ fn fixture(name: &str) -> String {
     )
 }
 
+/// #486: re-run the whole sweep with the query vector built from the query
+/// text's CONTENT state instead of the routing state. Off by default, so the
+/// pinned reproduction check below still guards the deployed configuration.
+///
+/// This exists because #484's flat sweep was measured with a cosine that
+/// #486 then showed to be noise. "The weight does not matter" is CONDITIONAL
+/// on that: with a working geometric term the balance between the two terms
+/// is a live question again, and the same sweep answers it.
+fn content_query_mode() -> bool {
+    std::env::var("R4_LEXW_CONTENT_QUERY")
+        .map(|v| v.trim() == "1")
+        .unwrap_or(false)
+}
+
 fn env_usize(name: &str, default: usize) -> usize {
     std::env::var(name)
         .ok()
@@ -343,6 +357,7 @@ fn lexical_weight_sweep() {
         let mut router = UorR4Router::new(0.5);
         router.set_lexical_weight(weight);
         router.set_unscaled_geometric_term(unscaled);
+        router.set_content_query_vector(content_query_mode());
         let corpus_text: String = windows.join(" ");
         let indexed = router.index_corpus(&corpus_text, ID);
         assert_eq!(indexed, windows.len(), "[{label}] indexed every window");
@@ -397,6 +412,7 @@ fn lexical_weight_sweep() {
         let mut router = UorR4Router::new(0.5);
         router.set_lexical_weight(weight);
         router.set_unscaled_geometric_term(unscaled);
+        router.set_content_query_vector(content_query_mode());
         let corpus_text: String = windows.join(" ");
         let indexed = router.index_corpus(&corpus_text, ID);
         assert_eq!(indexed, windows.len(), "[W={weight}] indexed every window");
@@ -461,11 +477,18 @@ fn lexical_weight_sweep() {
          top-1 {s_top1:.4} vs {SHIPPED_TOP1:.4}, MRR {s_mrr:.4} vs {SHIPPED_MRR:.4}, \
          recall {s_recall:.4} vs {SHIPPED_RECALL:.4}"
     );
+    // The pinned reproduction binds only in the DEPLOYED configuration. In
+    // #486 content-query mode the W=100 arm is deliberately a different
+    // ranking, so asserting #480's row against it would be asserting that the
+    // fix does nothing.
     for (label, got, want) in [
         ("top-1", s_top1, SHIPPED_TOP1),
         ("MRR", s_mrr, SHIPPED_MRR),
         ("recall@20", s_recall, SHIPPED_RECALL),
-    ] {
+    ]
+    .into_iter()
+    .filter(|_| !content_query_mode())
+    {
         assert!(
             (got - want).abs() <= REPRODUCTION_TOLERANCE,
             "W={DEFAULT_LEXICAL_WEIGHT:.0} must reproduce #480's shipped {label} \

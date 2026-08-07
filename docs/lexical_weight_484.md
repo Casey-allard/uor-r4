@@ -134,6 +134,32 @@ itself.** All measured retrieval quality is word overlap.
   artifact — the gate #480 recorded. Nothing here asks to move it: the sweep
   is flat, so there is no ordering change worth gating.
 
+## SUPERSEDED IN PART by #486 — read this before quoting the flat sweep
+
+The sweep above is flat because the geometric term it competes with is noise,
+and #486 then found out why: `retrieve_geometric_resonance` builds its query
+vector from the ROUTING path while `index_sentence_internal` stores a CONTENT
+vector. Different objects; their cosine is chance by construction.
+
+With the query vector built by the same construction as the stored vector
+(`set_content_query_vector(true)`, #486), this same sweep is **not flat**:
+
+| ranking | top-1 | MRR | recall@20 |
+|---|---:|---:|---:|
+| deployed (routing query, W=100) | 0.6240 | 0.7179 | 0.9720 |
+| content query, W=100 | 0.7840 | 0.8542 | 0.9900 |
+| content query, W=0 | **0.8160** | **0.8763** | **0.9900** |
+
+So the conclusion "the ranking is insensitive to a weight spanning decades"
+holds only *of a ranking whose geometric term is inert*. The plateau for
+`W >= 1` survives, but it sits at 0.8542 instead of 0.7179, and the optimum is
+`W = 0` — the opposite end from the shipped value.
+
+What does NOT change: the measurement of the geometric term's dynamic range,
+the full-list and identity-probe diagnostics, and the finding that the shipped
+`100.0` was never a tuning parameter under the deployed configuration. See
+`docs/geometry_selfmatch_486.md`.
+
 ## Follow-up worth an owner
 
 **Why does the cosine not identify a sentence from itself?** That is now a
