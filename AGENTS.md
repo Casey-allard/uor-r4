@@ -192,6 +192,20 @@ outcome against it afterwards:
     if negative:         <the next action, and it must differ>
     cost estimate:       <wall-clock, and what else it blocks>
 
+**Two gates the local checks do not cover.** `cargo clippy --workspace
+--all-targets` does NOT build other targets: the merge queue builds wasm, so
+any change under `uor-r4-core` needs `cargo check --target
+wasm32-unknown-unknown -p uor-r4-wasm-router --lib` before shipping. A
+filesystem-touching helper gated `#[cfg(not(target_arch = "wasm32"))]` needs a
+wasm counterpart, or every caller has to become cfg-aware; prefer the
+counterpart. This was found the expensive way on PR #470, where PR checks were
+green and the queue build failed.
+
+**`gh pr merge` returning nothing usually means queued, not failed.** Verify
+with `git ls-remote origin 'refs/heads/gh-readonly-queue/*'` or by re-reading
+the PR state before concluding anything is wrong, and never reach for
+`--admin` on a shared repo.
+
 **Issue hygiene that goes with it.** Every issue filed mid-run gets an owner
 and a named next action, or it gets closed with its record. Assignment means
 actively-working-now; unassign when a track parks so the board reads true for
