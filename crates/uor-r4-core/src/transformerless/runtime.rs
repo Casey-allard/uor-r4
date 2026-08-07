@@ -772,6 +772,130 @@ pub fn code_plain(art: &Compiled, rot: &[usize; WINDOW + 1], c: &Corpus, i: usiz
     assign_for_bundle(art, &b)
 }
 
+// ---------------- prepared assignment tables (#469 lever B) ----------------
+//
+// The per-stage dot scan is `K` classes x `D` dimensions of packed u16
+// entries — the dominant cost of every corpus-scale code pass. A vectorized
+// scan of exactly that shape already exists (`simd::dot_argmax`), but it
+// consumes a *decoded* table: `simd::DotTables::from_packed` expands the
+// packed u16s into contiguous shift/sign lanes once, at load time.
+//
+// That expansion is why the free-function assign path could not simply call
+// the kernel. Measured on the synthetic TLA6 fixture, building the tables
+// costs ~1690 us against ~466 us for one whole scalar assignment: wiring the
+// kernel per call would be a ~4x REGRESSION, not a speedup. The kernel is
+// only a win when the decode is amortized across many bundles.
+//
+// So the batch consumers — the corpus code passes, which are exactly the
+// callers that matter — build [`AssignTables`] once and reuse it. Single-shot
+// callers keep the existing scalar entry points unchanged.
+
+/// Dot tables decoded once for repeated assignment against one artifact.
+///
+/// Build with [`AssignTables::new`] outside a loop over bundles, then call
+/// [`assign_code_for_bundle_with`]. Sharing one instance across rayon workers
+/// is intended: it is immutable after construction.
+pub struct AssignTables {
+    dot: Option<crate::transformerless::simd::DotTables>,
+}
+
+impl AssignTables {
+    /// Decode `art`'s packed dot tables. Artifacts with no dot tables (the
+    /// sign metric) decode to `None`, and every entry point falls back to the
+    /// scalar path — the same fallback-or-nothing discipline the code sidecar
+    /// uses. There is no third outcome.
+    pub fn new(art: &Compiled) -> Self {
+        Self {
+            dot: crate::transformerless::simd::DotTables::from_packed(&art.dot_cb),
+        }
+    }
+
+    /// Whether the vectorized scan is available for this artifact. Reported by
+    /// callers so a run records which path it measured rather than assuming.
+    pub fn is_vectorized(&self) -> bool {
+        self.dot.is_some()
+    }
+}
+
+/// [`assign_code_for_bundle`] against prepared tables.
+///
+/// **Bit-identical by obligation, not by intention.** This path is κ-pinned:
+/// an assignment that is faster and merely *almost* identical silently
+/// invalidates every pinned measurement. Equality rests on three facts, each
+/// of which is machine-checked by `assign_prepared_matches_scalar` and by
+/// `tests/kappa_reproduction.rs`:
+///
+/// 1. **Same addends.** Scores are exact `i64` sums of the same decoded
+///    power-of-two terms. The scalar path sums `hi + lo` per dimension; the
+///    compact kernel layout drops terms the packed ABI marks inactive, which
+///    contribute exactly zero. Integer addition is associative and
+///    commutative — including on overflow, where two's-complement wrapping is
+///    also associative — so the differing accumulation order cannot change a
+///    sum.
+/// 2. **Same tie rule.** Both scan classes in ascending index order and take
+///    strict improvement (`>`), so ties keep the lowest class index.
+/// 3. **Same stage arity.** `DotTables::from_packed` emits one stage per
+///    packed table, so the stage zip below terminates exactly where the
+///    scalar zip does; a short `dot_cb` leaves the same trailing zeros.
+///
+/// Any artifact whose tables did not decode falls back to the scalar path.
+pub fn assign_code_for_bundle_with(
+    tables: &AssignTables,
+    art: &Compiled,
+    bundle: &[i64; D],
+) -> [u8; STAGES] {
+    let Some(dot) = tables.dot.as_ref() else {
+        return assign_code_for_bundle(art, bundle);
+    };
+    debug_assert_eq!(dot.stages.len(), art.dot_cb.len());
+    if !art.resid_cb.is_empty() {
+        // TLA7: the work vector evolves between stages, so the kernel is
+        // called per stage on the CURRENT work — the same quantity the
+        // scalar scan reads. Mirrors `assign_code_for_bundle_resid`.
+        let mut work = centered_work(art, bundle);
+        norm_fold_plain(&mut work, art.norm_fold_const);
+        let mut code = [0u8; STAGES];
+        for ((stage, st_code), (copies, &shift)) in code
+            .iter_mut()
+            .enumerate()
+            .zip(art.resid_cb.iter().zip(art.resid_scale_shifts.iter()))
+        {
+            let Some(dot_stage) = dot.stages.get(stage) else {
+                break;
+            };
+            let best_class = crate::transformerless::simd::dot_argmax(dot_stage, &work);
+            *st_code = best_class;
+            resid_subtract_plain(&mut work, copies, shift, best_class);
+        }
+        return code;
+    }
+    let work = centered_work(art, bundle);
+    let mut code = [0u8; STAGES];
+    for (st_code, dot_stage) in code.iter_mut().zip(dot.stages.iter()) {
+        *st_code = crate::transformerless::simd::dot_argmax(dot_stage, &work);
+    }
+    code
+}
+
+/// [`code_plain`] against prepared tables — the corpus code pass.
+///
+/// `code_plain` routes through `assign_for_bundle` (the membership-beam
+/// form). Its primary code equals `assign_code_for_bundle`'s argmax by the
+/// documented tie rule, and the equality is asserted per record in
+/// `tests/kappa_reproduction.rs`, so consuming the cheaper form here does not
+/// change a code. The beam itself is not the cost: dropping it measured
+/// 0.95x, i.e. nothing. The scan is the cost.
+pub fn code_plain_with(
+    tables: &AssignTables,
+    art: &Compiled,
+    rot: &[usize; WINDOW + 1],
+    c: &Corpus,
+    i: usize,
+) -> [u8; STAGES] {
+    let b = bundle_plain(art, rot, c, i);
+    assign_code_for_bundle_with(tables, art, &b)
+}
+
 /// A prediction with its resolution witness: the store level that answered
 /// (deepest populated class) and the winning entry's evidence count.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]

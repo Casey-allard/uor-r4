@@ -2835,6 +2835,13 @@ fn derive_right_codes(
     rotations: &[usize; compiler::WINDOW + 1],
     corpus: &Corpus,
 ) -> Vec<([u8; STAGES], bool)> {
+    // #469 lever B: decode the dot tables ONCE and share them across the
+    // workers. Per-call decoding would cost more than the scan it replaces
+    // (~1690us vs ~466us on the synthetic fixture), which is why the kernel
+    // could not simply be called from `assign_for_bundle`. Codes are
+    // unchanged — `tests/assign_prepared.rs` and `kappa_reproduction.rs`
+    // carry that obligation.
+    let tables = runtime::AssignTables::new(artifacts);
     (0..corpus.n)
         .into_par_iter()
         .map(|position| {
@@ -2849,7 +2856,10 @@ fn derive_right_codes(
                 return ([0u8; STAGES], false);
             }
             let bundle = runtime::bundle_window_plain(artifacts, rotations, &window);
-            (runtime::assign_for_bundle(artifacts, &bundle), true)
+            (
+                runtime::assign_code_for_bundle_with(&tables, artifacts, &bundle),
+                true,
+            )
         })
         .collect()
 }
@@ -3358,9 +3368,14 @@ pub fn evaluate_gate_c(
     // back. Cache only — the codes are unchanged either way.
     let left_codes: Vec<[u8; STAGES]> =
         code_sidecar::corpus_codes_cached(artifacts, corpus, || {
+            // #469 lever B: same pass, prepared tables. This runs only on a
+            // sidecar miss, which is exactly the cold run worth speeding up.
+            let tables = runtime::AssignTables::new(artifacts);
             (0..corpus.n)
                 .into_par_iter()
-                .map(|position| runtime::code_plain(artifacts, &gate_rotations, corpus, position))
+                .map(|position| {
+                    runtime::code_plain_with(&tables, artifacts, &gate_rotations, corpus, position)
+                })
                 .collect()
         });
     let two_sided = TwoSidedTable::build(corpus, &is_held_out, &left_codes, &right_codes);

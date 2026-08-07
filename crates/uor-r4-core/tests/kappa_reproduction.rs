@@ -245,6 +245,14 @@ fn tla7_resid_kernel_plain_witness() {
     let rot = compiler::derive_rotations();
     for (label, a) in [("in-memory", &art), ("parsed-tla7", &parsed)] {
         let mut rt = runtime::Runtime::new(a);
+        // #469 lever B: the prepared/vectorized assignment path is κ-pinned
+        // like every form above it, so it is witnessed on the same fresh
+        // compile rather than only against the checked-in fixture.
+        let tables = runtime::AssignTables::new(a);
+        assert!(
+            tables.is_vectorized(),
+            "[{label}] a fresh TLA7 compile must decode to prepared dot tables"
+        );
         let sample_n = 512usize;
         let stride = corpus.n / sample_n;
         for s in 0..sample_n {
@@ -269,6 +277,16 @@ fn tla7_resid_kernel_plain_witness() {
             assert_eq!(
                 primary, cp,
                 "[{label}] membership primary divergence at {i}"
+            );
+            assert_eq!(
+                runtime::assign_code_for_bundle_with(&tables, a, &bp),
+                cp,
+                "[{label}] prepared-tables divergence at {i}"
+            );
+            assert_eq!(
+                runtime::code_plain_with(&tables, a, &rot, &corpus, i),
+                cp,
+                "[{label}] prepared code_plain divergence at {i}"
             );
         }
         println!(

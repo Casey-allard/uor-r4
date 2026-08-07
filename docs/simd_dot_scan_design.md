@@ -95,3 +95,47 @@ TLA7 residual subtraction vectorization is out of scope (<2% of cost).
 
 ⚑ decisions: NEON rounding pin · artifact-vs-load-time transpose ·
 op-count budget for the adapter
+
+## Outcome: the assign path (issue #469 lever B, 2026-08-07)
+
+Phases 1 and 2 landed the adapters; this records where they are now
+consumed, because the answer was not "everywhere" and the gap was not
+obvious from the code.
+
+`Runtime::dot_argmax` had a cached `DotTables` and used the adapter. The
+free-function assign path — `assign_for_bundle` / `assign_code_for_bundle`,
+which is what every corpus-scale code pass actually calls — did not, and
+could not: `DotTables::from_packed` is a **load-time** expansion of the
+packed u16 tables, and a free function has nowhere to cache it. Measured on
+the pinned TLA7 artifact, that expansion costs 2,337 us against ~487 us for
+one whole scalar assignment. Calling the adapter per bundle would therefore
+have been roughly a **4x regression**, not a speedup — the adapter is only a
+win once the decode is amortized.
+
+`runtime::AssignTables` closes that gap by making the amortization explicit:
+build once per artifact, share across rayon workers, call
+`assign_code_for_bundle_with` / `code_plain_with` per bundle. On the pinned
+TLA7 artifact the corpus pass measures **310.6 us/call against 496.3 us/call
+(1.60x)**, and the one-time table build pays for itself after 7.5 calls
+against the 500,000 in a corpus pass. Consumers wired: the Gate C left-code
+pass (on a sidecar miss) and `derive_right_codes` (uncached, so every scored
+run).
+
+Two results worth keeping because they redirected the work:
+
+- **The membership beam is not the cost.** `assign_for_bundle` builds the
+  full top-M beam and discards everything but the primary code, which looked
+  like an obvious waste. Removing it measured **0.95x** — nothing. The
+  `K x D` scan dominates so completely that the beam is inside the noise. The
+  hypothesis was cheap to test and would have been an expensive assumption.
+- **The non-goal above still holds.** TLA7 residual subtraction remains
+  unvectorized; the residual path gains here because its per-stage *scan* now
+  uses the adapter, not because the subtraction changed.
+
+The equality obligation is discharged in `tests/assign_prepared.rs`
+(prepared == scalar over both artifact shapes, the sign-metric fallback, the
+short-table stage arity, and 1,024 real corpus positions on the committed
+artifact fixture) and in `tests/kappa_reproduction.rs` on a fresh compile.
+The fixture-based test fails rather than skips when its inputs are missing,
+because the κ test skips wherever the pinned checkpoint is absent and a
+κ-pinned change cannot rest on a gate that silently does not run (issue #354).
