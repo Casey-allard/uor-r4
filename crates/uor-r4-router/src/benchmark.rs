@@ -1,14 +1,31 @@
 use crate::geometry::{SemanticGeometry, SpectralGeometry, TypedObject, VsaGeometry};
 use crate::UorR4Router;
-use std::time::Instant;
 
+/// Result of one geometry's soft-routing ablation.
+///
+/// Issue #434 item 2 trimmed this to the quantities that are actually
+/// computed. It previously also carried `hits_at_3`, which was
+/// `recall_at_3` under a second name (both incremented in the same branch
+/// and divided by the same count); `unlearning_time_ns`, which timed
+/// `ground()` under a comment claiming it measured route deletion; and
+/// `migration_agreement`, a hard-coded `0.98` that the only test then
+/// asserted equal to `0.98`. Reporting a literal as a measurement is worse
+/// than reporting nothing, because it survives review.
+///
+/// This type answers one question: **for how many queries does the
+/// geometry's `soft_route` place the ground-truth axis in its top-`k`?**
+/// It is a wiring check on synthetic inputs, NOT a retrieval-quality
+/// measurement — for that see `tests/geometry_ablation.rs`, which runs the
+/// production retrieval surface over a real corpus with ground truth and a
+/// deranged-key null.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq)]
 pub struct BenchmarkResult {
     pub geometry_name: String,
+    /// Fraction of queries whose ground-truth axis appears in the routes.
     pub recall_at_3: f32,
-    pub hits_at_3: f32,
-    pub unlearning_time_ns: u64,
-    pub migration_agreement: f32,
+    /// Queries scored — so a zero recall over zero queries cannot be read
+    /// as a measured zero.
+    pub queries: usize,
 }
 
 pub fn run_ablation_benchmark(
@@ -50,7 +67,6 @@ fn evaluate_geometry<G: SemanticGeometry>(
     _router: &UorR4Router,
     queries: &[(TypedObject, usize)],
 ) -> BenchmarkResult {
-    let mut hits = 0;
     let mut recall_sum = 0.0;
 
     for (obj, gt_id) in queries {
@@ -66,7 +82,6 @@ fn evaluate_geometry<G: SemanticGeometry>(
                         }
                     }
                     if matched {
-                        hits += 1;
                         recall_sum += 1.0;
                     }
                 }
@@ -76,24 +91,10 @@ fn evaluate_geometry<G: SemanticGeometry>(
 
     let q_len = queries.len() as f32;
     let recall = if q_len > 0.0 { recall_sum / q_len } else { 0.0 };
-    let hits_at_3 = if q_len > 0.0 {
-        hits as f32 / q_len
-    } else {
-        0.0
-    };
-
-    // Measure unlearning latency (deleting a route)
-    let start = Instant::now();
-    let _dummy = queries.first().map(|(obj, _)| {
-        let _ = geometry.ground(obj);
-    });
-    let elapsed = start.elapsed().as_nanos() as u64;
 
     BenchmarkResult {
         geometry_name: name.to_string(),
         recall_at_3: recall,
-        hits_at_3,
-        unlearning_time_ns: elapsed,
-        migration_agreement: 0.98, // high consistency score
+        queries: queries.len(),
     }
 }
