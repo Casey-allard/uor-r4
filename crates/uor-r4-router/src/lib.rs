@@ -445,6 +445,14 @@ pub struct UorR4Router {
     /// vectors have.
     #[serde(default)]
     banded_storage: bool,
+    /// Measurement knob for issue #480: build the QUERY projection
+    /// full-width instead of band-only. Default OFF, so deployed retrieval
+    /// ordering is unchanged.
+    ///
+    /// Not serialized: it selects a measurement configuration, not a
+    /// property of a stored vector, so an exported store must not carry it.
+    #[serde(skip)]
+    full_width_query: bool,
 }
 
 #[derive(Serialize)]
@@ -558,6 +566,7 @@ impl UorR4Router {
             facet_store: MultiFacetStore::default(),
             geometry_type: default_geometry_type(),
             banded_storage: false,
+            full_width_query: false,
         };
 
         // Initialize default corpus
@@ -994,6 +1003,13 @@ impl UorR4Router {
     /// indexed items are not rewritten, so flip this before ingestion.
     pub fn set_banded_storage(&mut self, banded: bool) {
         self.banded_storage = banded;
+    }
+
+    /// Build the query projection full-width rather than band-only
+    /// (issue #480). Default off — see `docs/query_projection_480.md` for
+    /// why the symmetric shape was measured and NOT adopted.
+    pub fn set_full_width_query(&mut self, full_width: bool) {
+        self.full_width_query = full_width;
     }
 
     /// Exports the full router system database to JSON string
@@ -1925,14 +1941,42 @@ impl UorR4Router {
             .get("shared:shared")
             .unwrap_or(&empty_index);
 
+        // Issue #480: the query projection is band-only while STORAGE is
+        // full-width by default (#434, PR #465). That asymmetry is real —
+        // zeroed query coordinates contribute nothing to a dot product, so
+        // the cosine only ever sees the band however wide the stored vector
+        // is — and it is **deliberately retained**. Do not "fix" it without
+        // reading `docs/query_projection_480.md` first.
+        //
+        // Measured at 46,342 windows / 500 probes: making the shapes
+        // symmetric is worth +0.006 MRR and +0.008 top-1 while costing
+        // ~0.018 of recall@20, against a pre-declared +0.05 MRR bar. The
+        // reason it cannot pay here is the relevance form below —
+        //     relevance = shared_count * 100 + sim * slice_norm + scope_boost
+        // — where the lexical term is 100x the cosine, so the vector shape
+        // only reorders candidates already tied on word overlap. The 0.8948
+        // de-banding figure came from a harness that ranked by cosine ALONE.
+        //
+        // The symmetric shape stays reachable through `set_full_width_query`
+        // so the measurement reproduces, and because it becomes the right
+        // default the moment the lexical term stops dominating.
+        //
+        // `slice_norm` below is intentionally left on the band slice: it is a
+        // scale factor on the cosine term, not part of the vector shape.
+        let full_width_query = self.full_width_query && state_vector.len() == 512;
         let mut query_projections = HashMap::new();
         let mut query_ranges = HashMap::new();
         for r in &routing_data.all_routes {
-            let mut full_state = vec![0.0; 512];
             let start = r.active_range[0] as usize;
             let end = r.active_range[1] as usize;
-            full_state[start..end].copy_from_slice(&r.state_vector[..end - start]);
-            query_projections.insert(r.window_index, full_state);
+            let projection = if full_width_query {
+                state_vector.to_vec()
+            } else {
+                let mut banded = vec![0.0; 512];
+                banded[start..end].copy_from_slice(&r.state_vector[..end - start]);
+                banded
+            };
+            query_projections.insert(r.window_index, projection);
             query_ranges.insert(r.window_index, (start, end));
         }
 

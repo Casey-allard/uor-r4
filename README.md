@@ -154,6 +154,19 @@ retrieval value: sector-filtered MRR 0.0045 against the pre-remediation
 projection's 0.0743. Three content-aligned redesign candidates then mapped a
 clean spread-versus-retrieval frontier without crossing it.
 
+**Query-projection banding as a retrieval lever (#480).** The query side of
+`retrieve_geometric_resonance` is band-only while storage has been full-width
+since #465 — a real asymmetry, and the suspicion was that it stranded the
+adopted de-banding gain (MRR 0.2348 → 0.8948) before serving. Measured: making
+the shapes symmetric is worth +0.0059 MRR and +0.0080 top-1 while costing
+0.0180 of recall@20, against a +0.05 bar. The reason is that this path ranks by
+`shared_count * 100 + sim * slice_norm`, so the lexical term is a hundred times
+the cosine and the vector shape only reorders candidates already tied on word
+overlap. The #442 figure came from a harness that ranked by cosine alone. Not
+adopted; the symmetric shape sits behind `set_full_width_query`, default off,
+and the asymmetry is documented as deliberate. The live question it leaves is
+the `* 100` weight itself, which has never been measured against alternatives.
+
 **Cayley–Dickson syntactic morphism (#400), FMM far-field (#290), granularity
 (#393), E8 group-keying (#395).** Each measured dead with a scoped record; the
 CD term executed 0 times out of 1,998 before removal.
