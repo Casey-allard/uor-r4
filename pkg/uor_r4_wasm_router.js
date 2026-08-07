@@ -36,6 +36,15 @@ export class UorR4Router {
         wasm.__wbg_set_uorr4router_geometry_type(this.__wbg_ptr, arg0);
     }
     /**
+     * Whether the content-bearing store bands its stored vectors
+     * (issue #434). False — full-width storage — is the default.
+     * @returns {boolean}
+     */
+    banded_storage() {
+        const ret = wasm.uorr4router_banded_storage(this.__wbg_ptr);
+        return ret !== 0;
+    }
+    /**
      * Computes live UOR resonance metrics for a given input text
      * @param {string} text
      * @returns {any}
@@ -358,6 +367,15 @@ export class UorR4Router {
         return ret;
     }
     /**
+     * The weight one shared query prime carries in retrieval relevance
+     * (issue #484). [`DEFAULT_LEXICAL_WEIGHT`] unless overridden.
+     * @returns {number}
+     */
+    lexical_weight() {
+        const ret = wasm.uorr4router_lexical_weight(this.__wbg_ptr);
+        return ret;
+    }
+    /**
      * Instantiates the R4 Router with perfect, error-free default states
      * @param {number} threshold
      */
@@ -423,12 +441,64 @@ export class UorR4Router {
         wasm.uorr4router_set_angle_y(this.__wbg_ptr, val);
     }
     /**
+     * Selects the storage shape for subsequently indexed sentences
+     * (issue #434). `true` restores the pre-#434 banded storage; the
+     * default `false` keeps the full-width content vector. Already
+     * indexed items are not rewritten, so flip this before ingestion.
+     * @param {boolean} banded
+     */
+    set_banded_storage(banded) {
+        wasm.uorr4router_set_banded_storage(this.__wbg_ptr, banded);
+    }
+    /**
+     * Build the query projection full-width rather than band-only
+     * (issue #480). Default off — see `docs/query_projection_480.md` for
+     * why the symmetric shape was measured and NOT adopted.
+     * @param {boolean} full_width
+     */
+    set_full_width_query(full_width) {
+        wasm.uorr4router_set_full_width_query(this.__wbg_ptr, full_width);
+    }
+    /**
      * @param {string} geom
      */
     set_geometry_type(geom) {
         const ptr0 = passStringToWasm0(geom, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len0 = WASM_VECTOR_LEN;
         wasm.uorr4router_set_geometry_type(this.__wbg_ptr, ptr0, len0);
+    }
+    /**
+     * Override the lexical weight for measurement (issue #484).
+     *
+     * The parameter is a continuum, not a flag: at `0.0` the ranking is
+     * pure cosine, at [`DEFAULT_LEXICAL_WEIGHT`] it is the shipped form,
+     * and as it grows it approaches strict lexicographic order with the
+     * cosine as a tie-break. The shipped value is one point on that
+     * continuum and the others had never been looked at.
+     *
+     * Deployed behaviour is unchanged while this is unset. A negative or
+     * non-finite weight is REJECTED rather than clamped — silently
+     * substituting a different weight than the caller asked for would make
+     * a sweep report the wrong arm's number under the right arm's label,
+     * which is worse than a panic in a measurement harness.
+     * @param {number} weight
+     */
+    set_lexical_weight(weight) {
+        wasm.uorr4router_set_lexical_weight(this.__wbg_ptr, weight);
+    }
+    /**
+     * Rank by the bare cosine instead of `sim * slice_norm` (issue #484).
+     * Default off; deployed behaviour is the scaled form.
+     *
+     * Pair this with `set_lexical_weight(0.0)` to get an actually
+     * cosine-ranked arm. Setting the weight to zero on its own does not:
+     * `slice_norm` is a per-window-bucket scalar, so the scaled term is not
+     * comparable across buckets and the resulting order is driven by bucket
+     * scale rather than by similarity.
+     * @param {boolean} unscaled
+     */
+    set_unscaled_geometric_term(unscaled) {
+        wasm.uorr4router_set_unscaled_geometric_term(this.__wbg_ptr, unscaled);
     }
     /**
      * Progresses the connection drift state using delta-time ($dt$) increments.

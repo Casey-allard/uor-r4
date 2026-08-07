@@ -13,6 +13,11 @@ export class UorR4Router {
     free(): void;
     [Symbol.dispose](): void;
     /**
+     * Whether the content-bearing store bands its stored vectors
+     * (issue #434). False — full-width storage — is the default.
+     */
+    banded_storage(): boolean;
+    /**
      * Computes live UOR resonance metrics for a given input text
      */
     calculate_resonance(text: string): any;
@@ -111,6 +116,11 @@ export class UorR4Router {
      */
     kill_switch_threshold(): number;
     /**
+     * The weight one shared query prime carries in retrieval relevance
+     * (issue #484). [`DEFAULT_LEXICAL_WEIGHT`] unless overridden.
+     */
+    lexical_weight(): number;
+    /**
      * Instantiates the R4 Router with perfect, error-free default states
      */
     constructor(threshold: number);
@@ -132,7 +142,47 @@ export class UorR4Router {
     route_query_to_manifold_uor(text: string, identity: string): any;
     set_angle_x(val: number): void;
     set_angle_y(val: number): void;
+    /**
+     * Selects the storage shape for subsequently indexed sentences
+     * (issue #434). `true` restores the pre-#434 banded storage; the
+     * default `false` keeps the full-width content vector. Already
+     * indexed items are not rewritten, so flip this before ingestion.
+     */
+    set_banded_storage(banded: boolean): void;
+    /**
+     * Build the query projection full-width rather than band-only
+     * (issue #480). Default off — see `docs/query_projection_480.md` for
+     * why the symmetric shape was measured and NOT adopted.
+     */
+    set_full_width_query(full_width: boolean): void;
     set_geometry_type(geom: string): void;
+    /**
+     * Override the lexical weight for measurement (issue #484).
+     *
+     * The parameter is a continuum, not a flag: at `0.0` the ranking is
+     * pure cosine, at [`DEFAULT_LEXICAL_WEIGHT`] it is the shipped form,
+     * and as it grows it approaches strict lexicographic order with the
+     * cosine as a tie-break. The shipped value is one point on that
+     * continuum and the others had never been looked at.
+     *
+     * Deployed behaviour is unchanged while this is unset. A negative or
+     * non-finite weight is REJECTED rather than clamped — silently
+     * substituting a different weight than the caller asked for would make
+     * a sweep report the wrong arm's number under the right arm's label,
+     * which is worse than a panic in a measurement harness.
+     */
+    set_lexical_weight(weight: number): void;
+    /**
+     * Rank by the bare cosine instead of `sim * slice_norm` (issue #484).
+     * Default off; deployed behaviour is the scaled form.
+     *
+     * Pair this with `set_lexical_weight(0.0)` to get an actually
+     * cosine-ranked arm. Setting the weight to zero on its own does not:
+     * `slice_norm` is a per-window-bucket scalar, so the scaled term is not
+     * comparable across buckets and the resulting order is driven by bucket
+     * scale rather than by similarity.
+     */
+    set_unscaled_geometric_term(unscaled: boolean): void;
     /**
      * Progresses the connection drift state using delta-time ($dt$) increments.
      * Returns a log message string if a ZKP reset occurs, otherwise returns undefined.
@@ -160,6 +210,7 @@ export interface InitOutput {
     readonly __wbg_set_uorr4router_geometry_type: (a: number, b: number) => void;
     readonly __wbg_uorr4router_free: (a: number, b: number) => void;
     readonly init_wasm: () => void;
+    readonly uorr4router_banded_storage: (a: number) => number;
     readonly uorr4router_calculate_resonance: (a: number, b: number, c: number) => any;
     readonly uorr4router_clear_corpus: (a: number) => void;
     readonly uorr4router_compile_thought: (a: number, b: number, c: number) => any;
@@ -189,6 +240,7 @@ export interface InitOutput {
     readonly uorr4router_inject_thought_stream: (a: number, b: number, c: number) => any;
     readonly uorr4router_is_aligned: (a: number) => number;
     readonly uorr4router_kill_switch_threshold: (a: number) => number;
+    readonly uorr4router_lexical_weight: (a: number) => number;
     readonly uorr4router_new: (a: number) => number;
     readonly uorr4router_reset_brain: (a: number, b: number, c: number) => void;
     readonly uorr4router_reset_to_defaults: (a: number) => void;
@@ -196,7 +248,11 @@ export interface InitOutput {
     readonly uorr4router_route_query_to_manifold_uor: (a: number, b: number, c: number, d: number, e: number) => any;
     readonly uorr4router_set_angle_x: (a: number, b: number) => void;
     readonly uorr4router_set_angle_y: (a: number, b: number) => void;
+    readonly uorr4router_set_banded_storage: (a: number, b: number) => void;
+    readonly uorr4router_set_full_width_query: (a: number, b: number) => void;
     readonly uorr4router_set_geometry_type: (a: number, b: number, c: number) => void;
+    readonly uorr4router_set_lexical_weight: (a: number, b: number) => void;
+    readonly uorr4router_set_unscaled_geometric_term: (a: number, b: number) => void;
     readonly uorr4router_update_drift_physics: (a: number, b: number, c: number) => [number, number];
     readonly vsa_encode_event: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number) => [number, number];
     readonly vsa_encode_graph_edge: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number) => [number, number];

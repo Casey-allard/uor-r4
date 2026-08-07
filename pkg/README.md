@@ -40,8 +40,10 @@ landed: the R4G1 packed artifact format with two-stage validation
 observation pipeline (content-addressed sample IDs, deterministic shard
 spill/resume), multiresolution cover induction (spherical k-means with
 calibrated overlapping memberships), semantic transitions + reverse indexes,
-ScoreQ fixed-point residuals, and the executable proof model
-(`crates/uor-r4-proof-model`). CI runs fmt/clippy/tests/no_std/deterministic-
+ScoreQ fixed-point residuals, packed NGRAM context rows (trigram → bigram
+backoff) plus the optional FWDA forward-anchor section with
+anchor-conditioned infill scoring (`score_candidates_infill`, issue #399),
+and the executable proof model (`crates/uor-r4-proof-model`). CI runs fmt/clippy/tests/no_std/deterministic-
 rebuild/audit/fuzz/wasm gates on every push (`.github/workflows/ci.yml`).
 
 There is an important boundary in the current workflow: compiling a Hugging
@@ -59,6 +61,181 @@ question-answering model.
 | Legacy TinyStories certification/benchmark | After `setup` and corpus generation | Pinned llama2.c checkpoint |
 | Compile a compatible Hugging Face source | After downloading the source | Pinned model revision |
 | `ask` and interactive chat | No | Compiled, evaluated, imported `instruction-chat` manifest |
+
+## Research direction: what is measured, what is open
+
+R⁴ is a research programme as much as an engine, and the engine's direction is
+set by measurements rather than by intent. This section records where that
+programme actually stands, so anyone picking up work can see which paths are
+closed, which are load-bearing, and which are still open. Every claim below
+traces to a merged measurement with a pre-declared exit rule; the issue
+numbers are the durable references.
+
+### Measurement discipline
+
+Every substantive claim in this repo is expected to arrive with a pre-declared
+exit rule, a null baseline, and a falsifier. Negative results are recorded and
+kept, not discarded — several of the entries below are negatives that redirected
+the programme, and they are more valuable than the positives they replaced.
+Long runs additionally follow the run-contract discipline in `AGENTS.md`:
+compute the reachability ceiling before spending hours, gate on the cheap
+instrument first, and pre-declare what each outcome causes. That discipline
+exists because we lost days to runs whose result could not have changed the
+next action.
+
+### What works and is load-bearing
+
+The serving stack consults, in order: packed NGRAM context rows (trigram with
+bigram backoff), then the graph chain with D4 exact-context precedence, then
+the root prior. On natural text the induced-cover store with observed
+continuation evidence is the geometry that carries the result; the legacy
+teacher-hash store with teacher evidence measured 0.1% off-distribution
+against it.
+
+Two changes improved results by improving *evidence quality per key*, and both
+are shipped: full-width content-bearing storage (#434, PR #465) — the storage
+path had been discarding fifteen sixteenths of an already-full-width content
+vector, and de-banding moved retrieval MRR from 0.2348 to 0.8948 and router
+anchor accuracy from 9.3% to 11.4% (that 0.8948 is a **cosine-ranked** figure
+and, per #484, does not describe `get_top_resonances_native`, whose ordering
+is word overlap — see `docs/lexical_weight_484.md` before quoting it as a
+serving number); and the two-sided calibration gain (#446),
+which is causally legitimate, sits at top-1 parity, and grows large at scale in
+bits (latent-mix 15.4778 vs 22.2078).
+
+A-mode infill serving is validated and shipped: the FWDA forward-anchor
+artifact section plus `score_candidates_infill`, `infill_fill`, and the
+`r4 graph infill --skeleton` CLI (#399, PRs #416/#419). Anchors are inputs, so
+the mode is immune to the drift that killed the standalone variant.
+
+### What is closed, and why
+
+**Standalone two-pass generation (#399).** Refuted twice. With anchors supplied
+externally the channel gives +4.2pp on its live slice; with the engine
+supplying its own anchors from a drafted context it goes negative (40.4% vs
+41.3%), and a strict per-step confidence gate does not rescue it (42.0% vs
+43.0%). Drift is diffuse rather than concentrated in low-confidence steps, so
+no gate over the draft can filter it. At 2.11M records the inversion reproduces
+on a non-degenerate configuration (16.4% vs 26.5%, predicted-anchor accuracy
+0.0%), so it is not a capacity artifact.
+
+**Code-space subdivision as a capacity lever (#460).** Measured negative in its
+strongest possible form. Raising STAGES from 4 to 5 bought exactly the
+subdivision the hypothesis asked for — occupied full-code keys 47,403 to
+90,824, records per key 36.02 to 18.80, clearing the instrument gate — and
+Rule 1+2 top-1 came in at 25.6% ± 0.44pp against a 26.5% baseline, *below* it.
+The store baseline fell alongside (26.4 to 25.4). Exact-context dominance
+barely responded (98.8% to 97.1%).
+
+That fall was originally read as thinner per-key evidence, full stop. The
+codebook-fit measurement narrows it: raising the codebook's training set also
+lowers records-per-key (5.04 to 4.68) and top-1 *rises* (+0.44pp,
+`docs/codebook_fit_460.md`). So records-per-key is a **symptom, not the
+binding quantity** — thinning is harmful when it comes from added key
+*resolution*, which splits evidence that belonged together, and harmless or
+better when it comes from improved *fit*, which moves evidence onto the key
+that represents it. The subdivision negative stands; only its causal reading
+narrows, to resolution specifically.
+
+**Construction-time stratification (#435).** Three routing designs plus an
+identity argument, all against pre-declared rules; v3 mass-linear mixing
+reduces algebraically to flat. The oracle-stratum edge (36.3 vs 35.2) stands as
+recorded unrecovered signal, but no routing design reached it.
+
+One reading that came out of this track has since been revised. The cover's
+non-participation — "the absolute entropy floor rejects every split at this
+scale", 8 to 22 regions at mass-kept 0.0006 — was recorded as a property of the
+geometry. It is a property of the shipped *configuration*: turning on the
+already-implemented scaled capacity takes regions 48 to 110 on the 500k fixture
+and lifts region-path held-out top-1 by 5.0pp (#460 lever 1,
+`docs/cover_scaling_460.md`). The cover can be made to participate. What that
+is worth is separately capped — see the #460 row below.
+
+**Hopf sector transport as a router-quality lever (#422/#306).** The #306
+remediation's occupancy gain (16 to 456 of 512 sectors) does not translate into
+retrieval value: sector-filtered MRR 0.0045 against the pre-remediation
+projection's 0.0743. Three content-aligned redesign candidates then mapped a
+clean spread-versus-retrieval frontier without crossing it.
+
+**Query-projection banding as a retrieval lever (#480).** The query side of
+`retrieve_geometric_resonance` is band-only while storage has been full-width
+since #465 — a real asymmetry, and the suspicion was that it stranded the
+adopted de-banding gain (MRR 0.2348 → 0.8948) before serving. Measured: making
+the shapes symmetric is worth +0.0059 MRR and +0.0080 top-1 while costing
+0.0180 of recall@20, against a +0.05 bar. The reason is that this path ranks by
+`shared_count * 100 + sim * slice_norm`, so the lexical term is a hundred times
+the cosine and the vector shape only reorders candidates already tied on word
+overlap. The #442 figure came from a harness that ranked by cosine alone. Not
+adopted; the symmetric shape sits behind `set_full_width_query`, default off,
+and the asymmetry is documented as deliberate. The live question it leaves is
+the `* 100` weight itself, which has never been measured against alternatives.
+
+**Cayley–Dickson syntactic morphism (#400), FMM far-field (#290), granularity
+(#393), E8 group-keying (#395).** Each measured dead with a scoped record; the
+CD term executed 0 times out of 1,998 before removal.
+
+### The pattern these results draw
+
+Every lever that added *key resolution* failed — more cover regions, a finer
+code space, more stages. The changes that helped improved *evidence quality per
+key*. That is the clearest signal the programme has, and it is why the open
+work below concentrates on evidence and estimation rather than on subdivision.
+
+An earlier statement of this pattern listed "a better-fitted codebook" among
+the failures. That was a misclassification on both counts: codebook fit is not
+a key-resolution lever — it changes which key evidence lands on, at fixed `K`,
+fixed `STAGES` and a fixed nominal key space — and when finally measured in
+isolation it came out **positive**, at +0.44pp (#460 lever 2,
+`docs/codebook_fit_460.md`). It is a small lever, but it is on the side the
+pattern predicts, and it is the first confirmation of that pattern on something
+that touches the graded code itself rather than storage or calibration. The
+distinction to carry forward is *which key evidence lands on* (fit — helps)
+versus *how many keys there are* (resolution — has never helped).
+
+One boundary on that, from #460 lever 1. Added resolution *does* help when a
+structure is not merely coarse but barely partitioned at all: the induced cover
+sits at 48 regions for 400,006 records, so each region's emission is close to
+the global prior, and scaling its capacity to 110 regions lifts region-path
+held-out top-1 by 5.0pp. This is not a counterexample — the resolution levers
+that failed all subdivided structures already resolved enough to be predictive.
+The refinement is that resolution pays up to the point where a structure
+predicts at all, and not past it.
+
+### Open, with defined work
+
+| Issue | Question | State |
+|---|---|---|
+| #460 | Cover split criterion and codebook fit | Both levers measured. **Codebook fit** (`docs/codebook_fit_460.md`): +0.44pp, saturates near `N/10`, below the exit rule; showed records-per-key is a *symptom*, not the binding quantity. **Cover split criterion** (`docs/cover_scaling_460.md`): the shipped absolute floor does not scale (regions 50→48→46→48 over an 8× data range), and scaled capacity fixes it — regions 48→110, region-path held-out top-1 **+5.0pp**, contrast maintained. Serving impact is capped near 0.15pp because the graph path answers ~1–3% of positions, so this arms the broad-corpus directions rather than paying today |
+| #424 | Bott-Fock O(1) context fold | Ceiling measured, A/B not reachable. Long-range signal on this corpus is worth +1.02pp of top-1 (two thirds of it order-carried); the shipped decay constant `>> 2` retains 16% of that, so the lossless upper bound on the fold as shipped is +0.16pp — one standard error. Retuning the decay to `>> 7` would recover the ceiling. `docs/context_horizon_424.md` |
+| #434 | VSA / spectral geometry | Both items done. Item 1 (zeta-grid at scale) shipped as full-width storage. Item 2 measured (`docs/geometry_ablation_434.md`): Spectral **0.7179 MRR / 0.972 recall@20**, VSA **0.0000** — not a quality gap but a wiring one, since `index_corpus` populates the corpus index Spectral reads and never the `facet_store` VSA reads. A caller who sets `geometry_type = Vsa` after `index_corpus` silently loses retrieval |
+| #469 | Vectorize the assign path | Done. Lever A (κ-keyed code sidecar) 625s → 39s; lever B routes the corpus code passes through the existing `simd::dot_argmax` using tables decoded once per artifact — **1.60x** on the pinned TLA7 artifact. Bit-identity is proven, not argued: `tests/assign_prepared.rs` checks prepared == scalar over 1,024 real corpus positions on the committed artifact fixture, and the κ witness carries it on a fresh compile. Per-call decoding would have been a ~4x regression, which is why the batch API exists |
+| #471, #483 | Sampled runs still pay full-corpus table builds | Both closed. Gate C now prints a per-phase wall clock, and it revised the diagnosis twice. First: the two table builds are 0.8% of a sampled run while the whole-corpus right-context code pass is 59%, so `R4_GATE_C_SKIP_ARMS=right_context` drops it — **62.9% off the Gate C phase** at 500k, all 45 remaining `gate_c` keys identical. Then the 2.11M run settled the rest: Gate C there is **51.94s**, not 85 minutes, and per-record cost *falls* with scale (204 µs → 152 µs core-time). The 85 minutes was never Gate C; nothing at the time could separate it from the compile stages around it. `docs/gate_c_arm_skip_471.md` |
+| #484 | Is the `shared_count * 100` lexical weight right? | Closed NEGATIVE, and the answer is bigger than the weight. Every weight from 1 to 100,000 gives bit-identical retrieval, because the geometric term's dynamic range is ~0.37 — the shipped 100 sits on a plateau starting below 1. The reason: ranking by bare cosine puts the target at median rank **21,082 of 46,342** (random is 23,171) *even when the probe is the exact stored sentence*. The geometry does not identify a sentence from itself on this path, so there was never a signal for the lexical term to suppress. `docs/lexical_weight_484.md` |
+| #456–#459 | Reconstructability, block search, IPF reconstruction, estimation ladder | Active track |
+| #320 | Teacher upgrade (SmolLM2) | P1/P2 rehearsal recorded; migration decision open |
+| #273 | Template rebase / claim register | On-hold; no implementation |
+
+### Measurement infrastructure
+
+Two pieces of tooling exist so the results above stay cheap to reproduce and
+hard to fake. Sampled decision runs (`R4_GATE_C_SAMPLE`) cut Gate C evaluation
+from 597s to 60s and report the sample size and standard error beside every
+rate, because at 402,802 positions the standard error is 0.07pp while every
+exit rule we write is ±2pp — thirty times finer than any decision needs. The
+κ-keyed per-record code sidecar (`R4_CODES_PATH`) cut the instrument from 625s
+to 39s by caching a deterministic computation that every consumer had been
+recomputing; it loads only when eight fields and a blake3 digest all agree, and
+refuses itself entirely in biased-sampling mode so a partial vector can never
+poison a later run. The `capacity_scaling` instrument prints a saturation
+verdict per structure and is meant to be run *before* trusting any measurement
+taken on a given configuration. Gate C also prints a **per-phase wall clock**
+(#471) — it exists because "the Gate C phase took eighty-five minutes" was an
+unattributable number that two different proposals blamed on two different
+passes, and neither had been measured; a harness whose cost is invisible gets
+optimized by argument. `R4_GATE_C_SKIP_ARMS=right_context` then drops the
+whole-corpus pass that profile blamed, and the arms that depend on it are
+reported **absent** rather than zeroed, because a skipped row that prints
+`0.0%` is the vacuous-instrument pattern this repository keeps rediscovering.
 
 ## Documentation
 
@@ -541,7 +718,7 @@ flowchart LR
     Runtime --> Apps["r4 ask / r4 chat / HTTP API"]
 ```
 
-The workspace has one public package and four internal implementation crates:
+The workspace has one public package and ten internal implementation crates:
 
 | Package | Responsibility |
 |---|---|
@@ -549,6 +726,12 @@ The workspace has one public package and four internal implementation crates:
 | [`uor-r4-core`](crates/uor-r4-core) | Core R⁴ mathematics and transformerless compiler/runtime/tokenizer/certifier |
 | [`uor-r4-router`](crates/uor-r4-router) | Manifold state, indexing, geometric routing, and router witnesses |
 | [`uor-r4-graph-format`](crates/uor-r4-graph-format) | Canonical R4G1 serialization, two-stage validation, and borrowed graph views |
+| [`uor-r4-graph-compiler`](crates/uor-r4-graph-compiler) | Offline graph-compiler stages: observation pipeline, cover induction, routing/residual packing |
+| [`uor-r4-graph-certify`](crates/uor-r4-graph-certify) | Offline certification and measurement: Gate C scoring harness (`score`), reference scorer (`score_runtime`), certificates, comparison |
+| [`uor-r4-graph-runtime`](crates/uor-r4-graph-runtime) | `no_std` allocation-free R4G1 graph runtime (engine, routing programs, packed kernels, patch chains) |
+| [`uor-r4-graph-cli`](crates/uor-r4-graph-cli) | `r4 transformerless …` CLI stage dispatch (convert-r4g1, scenarios, corpus tools) |
+| [`uor-r4-api`](crates/uor-r4-api) | Typed compile + engine library facade for downstream library consumers |
+| [`uor-r4-model-source`](crates/uor-r4-model-source) | Teacher forward-pass port (llama2.c-exact) and pinned Safetensors adapter |
 | [`uor-r4-proof-model`](crates/uor-r4-proof-model) | Executable graph-compiler proof obligations and proof-status matrix |
 
 The public [`tless_uor`](src/tless_uor.rs) module provides `TlessAxis`,
