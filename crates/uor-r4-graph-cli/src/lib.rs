@@ -26,7 +26,7 @@
 //! table + next-token oracle); this crate ships the llama-family adapter,
 //! and qwen/phi-class sources differ only in that adapter.
 
-use uor_r4_core::transformerless::{compiler, runtime};
+use uor_r4_core::transformerless::{code_sidecar, compiler, runtime};
 use uor_r4_graph_certify as score;
 use uor_r4_graph_certify as score_runtime;
 use uor_r4_graph_compiler::induction as cover;
@@ -1131,7 +1131,10 @@ pub fn score_command(args: &[String]) -> Result<(), String> {
     let max_depth = regions.iter().map(|r| r.depth as usize).max().unwrap_or(1);
 
     eprintln!("score: building graded store [========================] 100%");
-    let (store, _) = runtime::build_store_with_threads(&artifacts, &corpus, threads)?;
+    // #469 lever A: per-record codes come from the κ-keyed sidecar when one
+    // verifies against this artifact κ and corpus κ, and are written back
+    // when it does not. Store bytes are identical on both branches.
+    let (store, _) = code_sidecar::build_store_cached(&artifacts, &corpus, threads)?;
     let tls1 = runtime::store_bytes(&store);
 
     eprintln!("score: compiling forward transitions [========================] 100%");

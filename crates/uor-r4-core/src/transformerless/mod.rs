@@ -282,6 +282,7 @@ mod witnesses {
 
 // Portable items are available on all targets; fs-dependent functions
 // (corpus load/generate, artifact save/load) are cfg-gated per item.
+pub mod code_sidecar;
 pub mod compiler;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod convert_r4g1;

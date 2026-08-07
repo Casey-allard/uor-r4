@@ -57,7 +57,7 @@
 //! - [`ROW_TRUNCATION_FRACTION_MAX`] — share of FWDA / NGRAM rows clipped by
 //!   their entry cap. Above it, the cap (not the evidence) sets the row width.
 //!
-//! # Cost, sampling, and what is EXACT versus ESTIMATED (#467)
+//! # Cost, sampling, the code sidecar, and what is EXACT versus ESTIMATED (#467, #469)
 //!
 //! The 2.11M-record run of this instrument cost about twelve minutes, and
 //! 585 of those 713 seconds were one thing: the per-record graded-code
@@ -67,7 +67,7 @@
 //! noise, so this section says exactly what was done to it and what the
 //! result is allowed to claim.
 //!
-//! Three stacking changes, none of which move a reported number:
+//! Four stacking changes, none of which move a reported number:
 //!
 //! - The code pass runs under rayon over corpus positions (mirroring
 //!   `evaluate_gate_c`), and its reduction is an ordered `collect`, so the
@@ -82,9 +82,14 @@
 //!   recovered exactly from the sorted construction-split code vector,
 //!   which costs one parallel sort instead of roughly five hundred
 //!   `BTreeMap` insertions per record.
+//! - The code pass itself is served from the κ-keyed per-record code
+//!   sidecar (#469 lever A, `code_sidecar`), so a corpus whose codes have
+//!   already been assigned once — by this instrument or by any other
+//!   consumer of the transformerless pipeline — pays nothing for them
+//!   again. See "The code sidecar" below.
 //!
-//! Measured on the 2.11M corpus, those three changes plus the held-out
-//! sample take the run from 713s to 613s. The residual is almost entirely
+//! Measured on the 2.11M corpus, those three in-instrument changes plus the
+//! held-out sample take the run from 713s to 613s. The residual is almost entirely
 //! the exact construction-split code pass: 468s to assign 1,707,309
 //! records, which is 4 stages x 256 classes x 288 dimensions of branchy
 //! shift-add per record, about 5e11 term applications, already saturating
@@ -164,6 +169,65 @@
 //!   supported-record fraction, and only that. It is reported with its
 //!   sample size and standard error, and the log labels it ESTIMATE.
 //!
+//! # The code sidecar (#469 lever A), and how it composes with sampling
+//!
+//! The sidecar is a CACHE, not a statistic and not an estimator. It is a
+//! κ-keyed file (`R4_CODES_PATH`, default `/tmp/tless_codes.bin`) holding
+//! the per-record graded code of every corpus record, keyed by artifact κ
+//! and by a content κ of the corpus. A load succeeds only when both κs, the
+//! record count, the stage count, the container length and a blake3 digest
+//! of the code block all agree; anything else is a MISS and the codes are
+//! computed exactly as before. There is no third outcome, so the sidecar
+//! cannot change a reported number — it can only decide whether the code
+//! pass is paid for again. Every run prints one provenance line, `LOADED`,
+//! `MISS` or `WROTE`, naming the path and both κs.
+//!
+//! It exists because the code pass is a CENSUS quantity that this
+//! instrument cannot legitimately shrink. The section above establishes
+//! that: occupied keys, records per key and the occupancy histogram are all
+//! functions of the complete construction-split key set, so the honest way
+//! to make the pass cheap is not to sample it but to stop repeating it.
+//!
+//! The two mechanisms therefore act on different axes and do not interact:
+//!
+//! - The sidecar decides HOW THE CODES ARE OBTAINED — recomputed, or read
+//!   back from a verified cache of the identical computation. It covers the
+//!   whole corpus, so it serves the construction split and the held-out
+//!   records alike.
+//! - `R4_CAPACITY_SAMPLE` decides HOW MANY HELD-OUT RECORDS ARE SCORED
+//!   against the construction key set, and only that. It is a sample of
+//!   records to look up, never a sample of records the key set is built
+//!   from, so it cannot bypass or shrink the sidecar's census: switching
+//!   sampling on and off changes the reported sample size and standard
+//!   error of one rate, and changes nothing about the codes or the cache.
+//!
+//! The one mode where they would collide is `R4_CAPACITY_TRAIN_SAMPLE`, the
+//! opt-in biased fast look, whose code pass deliberately covers only a
+//! subsample of the construction split. A sidecar written from that pass
+//! would be a partial code vector sitting at the default path, and every
+//! later run — this instrument, the store build, any scoring harness —
+//! would be measuring a corpus fragment while believing it had a census.
+//! That is silent corruption of future measurements, which is worse than
+//! any speedup is worth, so the biased mode does not touch the sidecar in
+//! EITHER direction:
+//!
+//! - It never WRITES one, because a partial pass is not the artifact the
+//!   container claims to be.
+//! - It never READS one either. A read would be sound in isolation, but it
+//!   would make the mode's output depend on whether a cache happened to
+//!   exist — a run with a hit would quietly become a census and would not
+//!   reproduce the bias figures quoted above, which were measured with no
+//!   cache present. A diagnostic whose numbers depend on cache state is not
+//!   a diagnostic.
+//!
+//! This is enforced structurally rather than by convention: the only call
+//! into `code_sidecar` is `census_codes`, which builds its own positions
+//! from `0..corpus.n` — a sample cannot be passed to it — and asserts that
+//! the vector it returns is `corpus.n` long. `report_code_and_exct` calls
+//! it only on the census branch, and the biased branch assigns its own
+//! subsample codes locally and drops them. The run says which branch it
+//! took on the construction-split code-pass line.
+//!
 //! # Running
 //!
 //! On the 500k reference corpus:
@@ -185,13 +249,16 @@
 //! (held-out records drawn for the sampled resolution rate, default
 //! 100,000, `0` = census over the whole held-out split),
 //! `R4_CAPACITY_TRAIN_SAMPLE` (construction records drawn for the code
-//! pass, default `0` = census; nonzero is the biased fast look).
+//! pass, default `0` = census; nonzero is the biased fast look, which also
+//! disables the sidecar in both directions), `R4_CODES_PATH` (per-record
+//! code sidecar, issue #469 lever A; defaults to `/tmp/tless_codes.bin`).
 
 use std::collections::BTreeMap;
 use std::time::Instant;
 
 use rayon::prelude::*;
 
+use uor_r4_core::transformerless::code_sidecar;
 use uor_r4_core::transformerless::compiler::{self, Corpus, K, STAGES};
 use uor_r4_core::transformerless::runtime;
 use uor_r4_graph_certify::score::{
@@ -476,6 +543,32 @@ fn assign_codes(
         .collect()
 }
 
+/// Whole-corpus per-record codes, served from the κ-keyed sidecar when one
+/// verifies and written back when it does not (#469 lever A). The codes are
+/// identical either way: the sidecar caches an existing deterministic
+/// computation and rejects anything it cannot prove is that computation.
+///
+/// This is a separate function because it carries the sidecar's safety
+/// property. The sidecar is a WHOLE-CORPUS artifact — its header stores the
+/// record count and a digest over exactly that many codes — so the only
+/// vector allowed to reach it is the census over `0..corpus.n`. Those
+/// positions are built here, from the corpus alone; no sample of any kind
+/// can cross this boundary, and the assertion below fails loudly rather than
+/// letting a short vector be written. Callers running the biased
+/// `R4_CAPACITY_TRAIN_SAMPLE` mode must not call this at all.
+fn census_codes(corpus: &Corpus, artifacts: &compiler::Compiled) -> Vec<[u8; STAGES]> {
+    let codes = code_sidecar::corpus_codes_cached(artifacts, corpus, || {
+        let all: Vec<usize> = (0..corpus.n).collect();
+        assign_codes(artifacts, corpus, &all)
+    });
+    assert_eq!(
+        codes.len(),
+        corpus.n,
+        "the code sidecar must serve a whole-corpus census"
+    );
+    codes
+}
+
 /// One occupied full-code key of the construction split: the number of
 /// construction records that landed on it and the teacher weight those
 /// records carry. Recovered exactly from the sorted code vector, which is
@@ -548,12 +641,35 @@ fn report_code_and_exct(corpus: &Corpus, artifacts: &compiler::Compiled) {
         "exact"
     };
 
+    // #469 lever A composed with the #467 sampling above. The sidecar is a
+    // WHOLE-CORPUS κ-keyed cache of exactly this pass, so it is consulted
+    // precisely where the pass is a census — the default mode — and there it
+    // serves the construction split AND the held-out records the sampled
+    // rate scores, so sampling never bypasses it. In the biased
+    // `R4_CAPACITY_TRAIN_SAMPLE` mode the pass covers a subsample, there is
+    // no census vector to cache, and the sidecar is skipped in BOTH
+    // directions: writing a partial pass would poison every later run, and
+    // reading one would silently turn the mode into the census it exists to
+    // be measured against. See the module docs.
     let started = Instant::now();
-    let train_codes = assign_codes(artifacts, corpus, &train_sample);
+    let corpus_codes = if train_sampled {
+        None
+    } else {
+        Some(census_codes(corpus, artifacts))
+    };
+    let train_codes: Vec<[u8; STAGES]> = match &corpus_codes {
+        Some(codes) => train_sample.iter().map(|&i| codes[i]).collect(),
+        None => assign_codes(artifacts, corpus, &train_sample),
+    };
     println!(
-        "  construction-split code pass: {} record(s) in {:.1}s ({label}, rayon)",
+        "  construction-split code pass: {} record(s) in {:.1}s ({label}, rayon, {})",
         train_codes.len(),
-        started.elapsed().as_secs_f64()
+        started.elapsed().as_secs_f64(),
+        if corpus_codes.is_some() {
+            "code sidecar consulted"
+        } else {
+            "code sidecar SKIPPED: biased mode neither reads nor writes it"
+        }
     );
     let started = Instant::now();
     let coded: Vec<([u8; STAGES], u64)> = train_codes
@@ -690,12 +806,22 @@ fn report_code_and_exct(corpus: &Corpus, artifacts: &compiler::Compiled) {
     // This is the instrument's one SAMPLED statistic. It is the mean of a
     // per-record indicator, so a stride subsample of the held-out list
     // estimates it without bias; the key set the indicator probes is the
-    // exact one built above, which is what keeps that true.
+    // `keys` built above, which is the census key set in every mode but the
+    // biased one, and that is what keeps the estimate unbiased. Sampling
+    // never reaches the construction split, and the sample drawn here is a
+    // sample of RECORDS TO SCORE — it selects which codes are looked up in
+    // the key set, never which records the key set was built from.
     let requested = env_usize(CAPACITY_SAMPLE_ENV, CAPACITY_SAMPLE_DEFAULT);
     let held_sample = stride_sample(&held_positions, requested);
     let sampled = held_sample.len() < held_positions.len();
     let started = Instant::now();
-    let held_codes = assign_codes(artifacts, corpus, &held_sample);
+    // Served from the same whole-corpus sidecar vector when there is one, so
+    // no held-out code is ever assigned twice and the sidecar is not
+    // bypassed by having sampling switched on.
+    let held_codes: Vec<[u8; STAGES]> = match &corpus_codes {
+        Some(codes) => held_sample.iter().map(|&i| codes[i]).collect(),
+        None => assign_codes(artifacts, corpus, &held_sample),
+    };
     let held_total = held_codes.len() as u64;
     let held_resolved = held_codes
         .par_iter()
@@ -708,13 +834,18 @@ fn report_code_and_exct(corpus: &Corpus, artifacts: &compiler::Compiled) {
     let supported_fraction = ratio(held_resolved, held_total);
     let error = standard_error(supported_fraction, held_total);
     println!(
-        "  held-out records: {} total in the split; {held_total} scored in {:.1}s ({})",
+        "  held-out records: {} total in the split; {held_total} scored in {:.1}s ({}, {})",
         held_positions.len(),
         started.elapsed().as_secs_f64(),
         if sampled {
             format!("SAMPLED, {CAPACITY_SAMPLE_ENV}={requested}")
         } else {
             "census".to_owned()
+        },
+        if corpus_codes.is_some() {
+            "codes from the sidecar pass"
+        } else {
+            "codes assigned here, sidecar skipped"
         }
     );
     println!(

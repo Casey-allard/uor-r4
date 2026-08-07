@@ -1430,13 +1430,24 @@ pub fn add_evidence_multi(
 /// the #244 matrix measured as accuracy-identical at 2.56× fewer keys.
 pub fn build_store(art: &Compiled, c: &Corpus) -> (Store, Vec<[u8; STAGES]>) {
     let rot = derive_rotations();
-    let cut = train_cut(c);
-    let mut store: Store = (0..=STAGES).map(|_| BTreeMap::new()).collect();
     let mut codes: Vec<[u8; STAGES]> = Vec::with_capacity(c.n);
     for i in 0..c.n {
         let b = bundle_plain(art, &rot, c, i);
-        let code = assign_for_bundle(art, &b);
-        codes.push(code);
+        codes.push(assign_for_bundle(art, &b));
+    }
+    let store = store_from_codes(c, &codes);
+    (store, codes)
+}
+
+/// The store-insertion half of [`build_store`], factored out so a caller
+/// that already holds the per-record codes (issue #469 lever A: the
+/// κ-keyed code sidecar) inserts evidence through exactly this path.
+/// Insertion order is ascending record index in both callers, so the
+/// resulting B-tree — and therefore `store_bytes` — is identical.
+pub fn store_from_codes(c: &Corpus, codes: &[[u8; STAGES]]) -> Store {
+    let cut = train_cut(c);
+    let mut store: Store = (0..=STAGES).map(|_| BTreeMap::new()).collect();
+    for (i, code) in codes.iter().enumerate() {
         if c.story[i] >= cut {
             continue;
         }
@@ -1444,25 +1455,32 @@ pub fn build_store(art: &Compiled, c: &Corpus) -> (Store, Vec<[u8; STAGES]>) {
             let tok = c.top_tokens[i][k_idx];
             let weight = c.top_weights[i][k_idx];
             if weight > 0 {
-                add_evidence(&mut store, &codes[i], tok, weight);
+                add_evidence(&mut store, code, tok, weight);
             }
         }
     }
-    (store, codes)
+    store
 }
 
-/// Parallel code-generation front-end for [`build_store`]. The expensive
-/// bundle/code derivation is independent per corpus position; evidence is
-/// then inserted through the same canonical serial path as `build_store` so
-/// BTreeMap ordering and artifact bytes remain unchanged.
+/// Parallel per-record code derivation — the code half of
+/// [`build_store_with_threads`], factored out so the sidecar
+/// (issue #469 lever A) caches exactly the bytes this returns.
+/// Chunks are joined in chunk-id order, so the result is the serial
+/// `code_plain` sequence regardless of `threads`.
 #[cfg(not(target_arch = "wasm32"))]
-pub fn build_store_with_threads(
+pub fn codes_with_threads(
     art: &Compiled,
     c: &Corpus,
     threads: usize,
-) -> Result<(Store, Vec<[u8; STAGES]>), String> {
+) -> Result<Vec<[u8; STAGES]>, String> {
     if threads <= 1 || c.n < 2 {
-        return Ok(build_store(art, c));
+        let rot = derive_rotations();
+        return Ok((0..c.n)
+            .map(|i| {
+                let bundle = bundle_plain(art, &rot, c, i);
+                assign_for_bundle(art, &bundle)
+            })
+            .collect());
     }
     let worker_count = threads.min(c.n);
     let chunk_size = c.n.div_ceil(worker_count);
@@ -1497,21 +1515,24 @@ pub fn build_store_with_threads(
     for (_, chunk) in chunks {
         codes.extend(chunk);
     }
+    Ok(codes)
+}
 
-    let cut = train_cut(c);
-    let mut store: Store = (0..=STAGES).map(|_| BTreeMap::new()).collect();
-    for (i, code) in codes.iter().enumerate() {
-        if c.story[i] >= cut {
-            continue;
-        }
-        for k_idx in 0..c.top_tokens[i].len() {
-            let tok = c.top_tokens[i][k_idx];
-            let weight = c.top_weights[i][k_idx];
-            if weight > 0 {
-                add_evidence(&mut store, code, tok, weight);
-            }
-        }
+/// Parallel code-generation front-end for [`build_store`]. The expensive
+/// bundle/code derivation is independent per corpus position; evidence is
+/// then inserted through the same canonical serial path as `build_store` so
+/// BTreeMap ordering and artifact bytes remain unchanged.
+#[cfg(not(target_arch = "wasm32"))]
+pub fn build_store_with_threads(
+    art: &Compiled,
+    c: &Corpus,
+    threads: usize,
+) -> Result<(Store, Vec<[u8; STAGES]>), String> {
+    if threads <= 1 || c.n < 2 {
+        return Ok(build_store(art, c));
     }
+    let codes = codes_with_threads(art, c, threads)?;
+    let store = store_from_codes(c, &codes);
     Ok((store, codes))
 }
 

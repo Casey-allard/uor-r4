@@ -172,6 +172,7 @@ use super::score_runtime::{
     ScoreStatus, ScoringVariant, StructuralEdge, EDGE_KIND_FORWARD, EDGE_KIND_NEIGHBOR,
     EDGE_KIND_REFINEMENT, EXCT_SUPPORT_MIN, RESIDUAL_EXCT_MAGIC,
 };
+use uor_r4_core::transformerless::code_sidecar;
 use uor_r4_core::transformerless::compiler::{self, Corpus, SIG_BYTES, SIG_WORDS, STAGES};
 use uor_r4_core::transformerless::runtime::{self, Store};
 use uor_r4_graph_compiler::induction::{self as cover, Observation};
@@ -3350,10 +3351,18 @@ pub fn evaluate_gate_c(
     // target, so this is an infill/analysis (A-mode) measurement or a
     // prospective construction-time signal, never a generation number.
     let right_codes = derive_right_codes(artifacts, &gate_rotations, corpus);
-    let left_codes: Vec<[u8; STAGES]> = (0..corpus.n)
-        .into_par_iter()
-        .map(|position| runtime::code_plain(artifacts, &gate_rotations, corpus, position))
-        .collect();
+    // #469 lever A: the left (causal) code of every record is the same
+    // `code_plain` pass every other consumer runs. Serve it from the
+    // κ-keyed sidecar when one verifies against BOTH the artifact κ and the
+    // corpus κ; otherwise run exactly the derivation below and write it
+    // back. Cache only — the codes are unchanged either way.
+    let left_codes: Vec<[u8; STAGES]> =
+        code_sidecar::corpus_codes_cached(artifacts, corpus, || {
+            (0..corpus.n)
+                .into_par_iter()
+                .map(|position| runtime::code_plain(artifacts, &gate_rotations, corpus, position))
+                .collect()
+        });
     let two_sided = TwoSidedTable::build(corpus, &is_held_out, &left_codes, &right_codes);
     // #446 M2: the latent right-context mixture tables, built from the
     // same construction split. CAUSALLY LEGITIMATE at serving: the right
@@ -4386,12 +4395,19 @@ fn evaluate_gate_c_row(
     } else {
         &[]
     };
-    let code = runtime::code_plain(
-        context.artifacts,
-        context.gate_rotations,
-        context.corpus,
-        position,
-    );
+    // #469 lever A: `left_codes[position]` IS `code_plain` at this
+    // position — the same whole-corpus pass, already materialized (and now
+    // sidecar-served) by the caller. Read it instead of recomputing; the
+    // fallback keeps the old derivation for an out-of-range position.
+    let code = match context.left_codes.get(position) {
+        Some(code) => *code,
+        None => runtime::code_plain(
+            context.artifacts,
+            context.gate_rotations,
+            context.corpus,
+            position,
+        ),
+    };
 
     let legacy = context
         .scorer_with_exct
