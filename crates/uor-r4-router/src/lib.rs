@@ -389,6 +389,23 @@ fn default_geometry_type() -> GeometryType {
     GeometryType::Spectral
 }
 
+/// The shipped weight one shared query prime carries in retrieval relevance
+/// (issue #484).
+///
+/// `relevance = shared_count * WEIGHT + sim * slice_norm + scope_boost`, so
+/// this constant sets how much word overlap outranks geometry. It was a bare
+/// `100.0` literal in `retrieve_geometric_resonance` until #484 named it: at
+/// that magnitude, against a cosine bounded by one and a `scope_boost` of 15,
+/// the ranking is lexical and the geometry is a tie-break within
+/// equal-overlap groups. That is the measured reason #480's query-shape fix
+/// could not pay, and it bounds every geometry lever on this path.
+///
+/// Changing this value changes retrieval ORDERING, which moves the pinned
+/// #421 anchor-accuracy rows — see `docs/query_projection_480.md` before
+/// touching it, and use [`UorR4Router::set_lexical_weight`] for measurement
+/// rather than editing the constant.
+pub const DEFAULT_LEXICAL_WEIGHT: f64 = 100.0;
+
 /// The unified router core coordinator.
 #[wasm_bindgen]
 #[derive(Serialize, Deserialize)]
@@ -453,6 +470,37 @@ pub struct UorR4Router {
     /// property of a stored vector, so an exported store must not carry it.
     #[serde(skip)]
     full_width_query: bool,
+    /// Measurement knob for issue #484: the weight the retrieval relevance
+    /// gives one shared query prime, against the cosine term it is added to.
+    /// `None` is the shipped [`DEFAULT_LEXICAL_WEIGHT`].
+    ///
+    /// This exists because the shipped value is a hard-coded literal that
+    /// had never been measured against any alternative, while sitting two
+    /// orders of magnitude above the geometry it is summed with — which is
+    /// what made #480's vector-shape fix unable to pay. Making it settable
+    /// turns "the ranking is lexical" from a property of the source into a
+    /// measurable axis.
+    ///
+    /// Not serialized, for the same reason `full_width_query` is not: it
+    /// selects a measurement configuration, not a property of a stored
+    /// vector.
+    #[serde(skip)]
+    lexical_weight: Option<f64>,
+    /// Measurement knob for issue #484: drop the `slice_norm` factor from the
+    /// geometric term, ranking by the bare cosine. Default OFF (the shipped
+    /// form multiplies by `slice_norm`).
+    ///
+    /// This exists because `slice_norm` is a PER-WINDOW-BUCKET scalar, so
+    /// `sim * slice_norm` is not comparable across buckets. Turning the
+    /// lexical weight to zero therefore does NOT give a cosine ranking — it
+    /// gives a ranking dominated by which bucket has the largest slice norm.
+    /// Without this knob, the "no lexical term" arm measures the wrong thing
+    /// and would be reported as if it measured cosine retrieval.
+    ///
+    /// Not serialized, for the same reason the other two measurement knobs
+    /// are not.
+    #[serde(skip)]
+    unscaled_geometric_term: bool,
 }
 
 #[derive(Serialize)]
@@ -567,6 +615,8 @@ impl UorR4Router {
             geometry_type: default_geometry_type(),
             banded_storage: false,
             full_width_query: false,
+            lexical_weight: None,
+            unscaled_geometric_term: false,
         };
 
         // Initialize default corpus
@@ -1010,6 +1060,45 @@ impl UorR4Router {
     /// why the symmetric shape was measured and NOT adopted.
     pub fn set_full_width_query(&mut self, full_width: bool) {
         self.full_width_query = full_width;
+    }
+
+    /// The weight one shared query prime carries in retrieval relevance
+    /// (issue #484). [`DEFAULT_LEXICAL_WEIGHT`] unless overridden.
+    pub fn lexical_weight(&self) -> f64 {
+        self.lexical_weight.unwrap_or(DEFAULT_LEXICAL_WEIGHT)
+    }
+
+    /// Override the lexical weight for measurement (issue #484).
+    ///
+    /// The parameter is a continuum, not a flag: at `0.0` the ranking is
+    /// pure cosine, at [`DEFAULT_LEXICAL_WEIGHT`] it is the shipped form,
+    /// and as it grows it approaches strict lexicographic order with the
+    /// cosine as a tie-break. The shipped value is one point on that
+    /// continuum and the others had never been looked at.
+    ///
+    /// Deployed behaviour is unchanged while this is unset. A negative or
+    /// non-finite weight is REJECTED rather than clamped — silently
+    /// substituting a different weight than the caller asked for would make
+    /// a sweep report the wrong arm's number under the right arm's label,
+    /// which is worse than a panic in a measurement harness.
+    pub fn set_lexical_weight(&mut self, weight: f64) {
+        assert!(
+            weight.is_finite() && weight >= 0.0,
+            "lexical weight must be finite and non-negative, got {weight}"
+        );
+        self.lexical_weight = Some(weight);
+    }
+
+    /// Rank by the bare cosine instead of `sim * slice_norm` (issue #484).
+    /// Default off; deployed behaviour is the scaled form.
+    ///
+    /// Pair this with `set_lexical_weight(0.0)` to get an actually
+    /// cosine-ranked arm. Setting the weight to zero on its own does not:
+    /// `slice_norm` is a per-window-bucket scalar, so the scaled term is not
+    /// comparable across buckets and the resulting order is driven by bucket
+    /// scale rather than by similarity.
+    pub fn set_unscaled_geometric_term(&mut self, unscaled: bool) {
+        self.unscaled_geometric_term = unscaled;
     }
 
     /// Exports the full router system database to JSON string
@@ -1964,6 +2053,10 @@ impl UorR4Router {
         // `slice_norm` below is intentionally left on the band slice: it is a
         // scale factor on the cosine term, not part of the vector shape.
         let full_width_query = self.full_width_query && state_vector.len() == 512;
+        // #484: read once, outside the scoring loop, so every candidate in
+        // one call is ranked under one weight and one geometric scaling.
+        let lexical_weight = self.lexical_weight();
+        let unscaled_geometric_term = self.unscaled_geometric_term;
         let mut query_projections = HashMap::new();
         let mut query_ranges = HashMap::new();
         for r in &routing_data.all_routes {
@@ -2022,7 +2115,12 @@ impl UorR4Router {
                 }
 
                 let sim = cosine_similarity(q_vec, &item.state_vector);
-                let relevance = (shared_count as f64) * 100.0 + (sim * slice_norm) + scope_boost;
+                let geometric = if unscaled_geometric_term {
+                    sim
+                } else {
+                    sim * slice_norm
+                };
+                let relevance = (shared_count as f64) * lexical_weight + geometric + scope_boost;
 
                 scored.push(ResonanceResult {
                     sentence: item.sentence.clone(),

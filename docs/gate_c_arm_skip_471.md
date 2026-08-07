@@ -215,6 +215,58 @@ one thing: the right-context code pass is 59% of a sampled Gate C run at
 500k, it is linear in `n`, and skipping it is free of any effect on the rows
 that remain.
 
+## RESOLVED, same day (issue #483): the 85 minutes was not Gate C
+
+The 2.11M run above happened. Phase timing on, `R4_GATE_C_SAMPLE=10000`,
+STAGES=4, 8 cores:
+
+| phase | seconds |
+|---|---:|
+| scorer construction | 0.59 |
+| forward-anchor table (#399 M2) | 0.12 |
+| **right-context code pass (#446)** | **40.07** |
+| left code pass (#469 lever A) | 0.50 |
+| two-sided table build (#446 M1) | 0.19 |
+| latent right-context tables (#446 M2) | 0.36 |
+| unigram null (#390) | 0.05 |
+| scoring 10,000 positions | 9.74 |
+| reduction, rollups, replay probes | 0.32 |
+| **Gate C total** | **51.94** |
+
+**Fifty-two seconds.** The whole `score` pipeline was about 5m52s.
+
+Candidate 2 — "per-record cost may simply not be 102 µs at 2.11M" — is dead.
+In core-time per record the pass costs 204 µs at 500k on two cores and 152 µs
+at 2.11M on eight. It got *cheaper* per record at 4.2× the corpus. **There is
+no scale cliff in this pass**, and the linear model in the table above
+transfers.
+
+So the 85 minutes was not the Gate C evaluation, and candidate 1 stands by
+elimination: at the time nothing could separate `evaluate_gate_c` from the
+cover induction, store build, transition and emission stages around it, and
+the number was attributed to the phase that had a name. That reframes #471
+itself, honestly: the arm-skip knob removes a real 59% of a sampled Gate C
+run, and it was never the fix for the reported 85 minutes.
+
+**Scope limit, and it is a real one.** The 2.11M corpus here is the 500k
+fixture replicated 4.22× with renumbered story ids, because the original
+wiki10k observation set no longer exists on disk. That corpus is degenerate
+for quality — 44 regions, every scored position ExactContext, candidate recall
+99.8% — so the **scoring** and **cover induction** costs it reports are
+unrepresentative of a real corpus at that size. The right-context code pass is
+not affected: it is a fixed amount of work per record (`bundle_window_plain` +
+assign) with no dependence on corpus content, which is exactly why a
+replicated corpus is a valid probe for the one quantity this run was launched
+to settle. STAGES was 4, not the 5 of the original run — worth 1.25× on stage
+count at most, which does not close a 100× gap.
+
+**What this hands to the next person.** The phase timing covers Gate C only,
+and Gate C is now measured not to be where the time goes at scale. The useful
+next move is to extend the same treatment to the stages around it — cover
+induction, store build, transitions, emissions — because that is where a real
+2.11M run's hours actually live, and right now nobody can attribute them
+either.
+
 ## Follow-ups worth an owner
 
 - **Attribute the 2.11M residual.** Run the phase timing on a real 2.11M
