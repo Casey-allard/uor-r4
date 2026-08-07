@@ -153,7 +153,7 @@ than on subdivision.
 | Issue | Question | State |
 |---|---|---|
 | #460 | Cover split criterion and codebook fit | Two implemented-but-dark levers: `SplitCriterion::{RelativeGain,Mdl}` with scaled k0 (default-off, harness `cover_scaling.rs` unrun) and `RVQ_SAMPLE_CAP` capping codebook training at 0.59% of the split |
-| #424 | Bott-Fock O(1) context fold | Module exists and is cost-tested; no accuracy number anywhere. The long-context gap it targets currently has no live carrier at all |
+| #424 | Bott-Fock O(1) context fold | Ceiling measured, A/B not reachable. Long-range signal on this corpus is worth +1.02pp of top-1 (two thirds of it order-carried); the shipped decay constant `>> 2` retains 16% of that, so the lossless upper bound on the fold as shipped is +0.16pp — one standard error. Retuning the decay to `>> 7` would recover the ceiling. `docs/context_horizon_424.md` |
 | #434 | VSA / spectral geometry | Item 1 (zeta-grid at scale) done and shipped; item 2 never measured beyond a synthetic smoke test |
 | #469 | Vectorize the assign path | The vectorized kernel already exists (`simd::dot_argmax`) and is simply not wired into `assign_for_bundle`; κ-pinned, so bit-identity must be proven |
 | #471 | Sampled runs still pay full-corpus table builds | `derive_right_codes` and the two-sided/latent table builds ignore the sample knob |

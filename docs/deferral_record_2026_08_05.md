@@ -46,6 +46,21 @@ context is the hard 8-token window), awaiting a measured comparison under
 the long-range-context motivation that #290's negative explicitly left
 alive.
 
+**Resolved 2026-08-07 (#424, `docs/context_horizon_424.md`).** The comparison
+this record was waiting for is not reachable and was not run. The fold's decay
+constant (`cell <- cell - (cell >> 2)`, ratio 3/4) gives it an influence
+horizon of 63 tokens with ~90% of its representational mass inside the eight
+most recent — the window the runtime already has. Replaying the fold's
+inductive bias losslessly bounds it at **+0.16pp** of top-1 at that constant,
+one standard error, against a measured long-range ceiling of **+1.02pp** for
+any carrier on this corpus. The mechanism is sound (the gain rises
+monotonically with the horizon and two thirds of it is order-carried, which an
+order-free cache cannot collect); the constant is not. `bott_fock.rs` therefore
+stays implemented, unit-tested, and unused, but no longer "awaiting a
+comparison" — the comparison is recorded, and the named next move if the
+long-context question reopens is retuning the decay to `>> 7` before any
+flagged A/B.
+
 ## FMM far-field family — disposition note (resolves the C1 contradiction)
 
 The contradiction: `docs/fmm_290_novel_context_protocol.md` stated that "the
