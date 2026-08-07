@@ -139,6 +139,15 @@ identity argument, all against pre-declared rules; v3 mass-linear mixing
 reduces algebraically to flat. The oracle-stratum edge (36.3 vs 35.2) stands as
 recorded unrecovered signal, but no routing design reached it.
 
+One reading that came out of this track has since been revised. The cover's
+non-participation — "the absolute entropy floor rejects every split at this
+scale", 8 to 22 regions at mass-kept 0.0006 — was recorded as a property of the
+geometry. It is a property of the shipped *configuration*: turning on the
+already-implemented scaled capacity takes regions 48 to 110 on the 500k fixture
+and lifts region-path held-out top-1 by 5.0pp (#460 lever 1,
+`docs/cover_scaling_460.md`). The cover can be made to participate. What that
+is worth is separately capped — see the #460 row below.
+
 **Hopf sector transport as a router-quality lever (#422/#306).** The #306
 remediation's occupancy gain (16 to 456 of 512 sectors) does not translate into
 retrieval value: sector-filtered MRR 0.0045 against the pre-remediation
@@ -167,11 +176,20 @@ that touches the graded code itself rather than storage or calibration. The
 distinction to carry forward is *which key evidence lands on* (fit — helps)
 versus *how many keys there are* (resolution — has never helped).
 
+One boundary on that, from #460 lever 1. Added resolution *does* help when a
+structure is not merely coarse but barely partitioned at all: the induced cover
+sits at 48 regions for 400,006 records, so each region's emission is close to
+the global prior, and scaling its capacity to 110 regions lifts region-path
+held-out top-1 by 5.0pp. This is not a counterexample — the resolution levers
+that failed all subdivided structures already resolved enough to be predictive.
+The refinement is that resolution pays up to the point where a structure
+predicts at all, and not past it.
+
 ### Open, with defined work
 
 | Issue | Question | State |
 |---|---|---|
-| #460 | Cover split criterion and codebook fit | Codebook fit measured (`docs/codebook_fit_460.md`): raising the k-means training set is worth **+0.44pp** and saturates near `N/10`; below the +1.0pp exit rule, κ-affecting, so it belongs in the next re-pin rather than triggering one. It also showed records-per-key is a *symptom*, not the binding quantity — it fell here while top-1 rose. Still dark: `SplitCriterion::{RelativeGain,Mdl}` with scaled k0 (`cover_scaling.rs` unrun) |
+| #460 | Cover split criterion and codebook fit | Both levers measured. **Codebook fit** (`docs/codebook_fit_460.md`): +0.44pp, saturates near `N/10`, below the exit rule; showed records-per-key is a *symptom*, not the binding quantity. **Cover split criterion** (`docs/cover_scaling_460.md`): the shipped absolute floor does not scale (regions 50→48→46→48 over an 8× data range), and scaled capacity fixes it — regions 48→110, region-path held-out top-1 **+5.0pp**, contrast maintained. Serving impact is capped near 0.15pp because the graph path answers ~1–3% of positions, so this arms the broad-corpus directions rather than paying today |
 | #424 | Bott-Fock O(1) context fold | Ceiling measured, A/B not reachable. Long-range signal on this corpus is worth +1.02pp of top-1 (two thirds of it order-carried); the shipped decay constant `>> 2` retains 16% of that, so the lossless upper bound on the fold as shipped is +0.16pp — one standard error. Retuning the decay to `>> 7` would recover the ceiling. `docs/context_horizon_424.md` |
 | #434 | VSA / spectral geometry | Item 1 (zeta-grid at scale) done and shipped; item 2 never measured beyond a synthetic smoke test |
 | #469 | Vectorize the assign path | Done. Lever A (κ-keyed code sidecar) 625s → 39s; lever B routes the corpus code passes through the existing `simd::dot_argmax` using tables decoded once per artifact — **1.60x** on the pinned TLA7 artifact. Bit-identity is proven, not argued: `tests/assign_prepared.rs` checks prepared == scalar over 1,024 real corpus positions on the committed artifact fixture, and the κ witness carries it on a fresh compile. Per-call decoding would have been a ~4x regression, which is why the batch API exists |

@@ -52,6 +52,29 @@
 //! Every criterion is reported regardless of verdict; a negative result is a
 //! valid result and is reported as such.
 //!
+//! # Two traps this harness had, both fixed 2026-08-07 (#460 lever 1)
+//!
+//! **The fallback partition was not prefix-compatible.** Nested prefixes need
+//! every corpus-size prefix to contain both partitions. The `R4_STORIES` path
+//! satisfies that (`blake3(article id) % 5` interleaves held-out stories); the
+//! fallback was a contiguous tail split, so on the committed fixture every
+//! prefix below 80% had an empty held-out set and was skipped. The four-size
+//! curve silently became one point — and the verdict block then printed
+//! `PASS ... monotone_regions=true`, because `windows(2).all(..)` is vacuously
+//! true over one row. The fallback is now an interleaved 80/20 (`sid % 5 != 0`)
+//! and an arm with fewer than two sizes reports INCONCLUSIVE, never PASS.
+//!
+//! **The scaling anchor coincides with the fixture's full size.** The capacity
+//! law is `(n / capacity_ref_n)^alpha` with `DEFAULT_CAPACITY_REF_N = 400_000`,
+//! and the committed 500k fixture yields 400,006 train observations. At the
+//! anchor every scaled knob equals its base value, so `scaled-k0` reduces
+//! *exactly* to `absolute` at the largest size — identical regions, contrast
+//! and top-1 — and condition 3 compares the arm with itself. It passes, and
+//! the pass means nothing. The `@ref50k` arms lower the anchor to 50,000 so
+//! the fixture's largest size sits 8x above it and the law is exercised where
+//! the verdict is read. **Read `scaled-k0` on this corpus as a control, not a
+//! result; read `scaled-k0@ref50k` as the measurement.**
+//!
 //! # Runtime caps (printed at start, never silent)
 //!
 //! - `R4_SCALING_FRACS` (default `13,25,50,100`) — story-prefix percentages.
@@ -183,6 +206,29 @@ fn arm_config(arm: &str) -> CoverConfig {
             split_criterion: SplitCriterion::RelativeGain,
             scale_k0: true,
             scale_regions_budget: true,
+            ..base
+        },
+        // Anchor-shifted controls. The capacity law is `(n / capacity_ref_n)^alpha`
+        // and `DEFAULT_CAPACITY_REF_N = 400_000`, which is — to within six
+        // observations — the full-size train count of the committed 500k
+        // fixture. At that size every scaled knob equals its base value, so
+        // `scaled-k0` reduces *exactly* to `absolute` there and the exit
+        // rule's largest-size comparison is the arm against itself.
+        //
+        // Lowering the anchor to 50 000 puts the fixture's largest size 8x
+        // above it, so the scaling law is actually exercised where the verdict
+        // is read. This tests the law rather than the coincidence.
+        "scaled-k0@ref50k" => CoverConfig {
+            scale_k0: true,
+            scale_regions_budget: true,
+            capacity_ref_n: 50_000,
+            ..base
+        },
+        "relative+scaled@ref50k" => CoverConfig {
+            split_criterion: SplitCriterion::RelativeGain,
+            scale_k0: true,
+            scale_regions_budget: true,
+            capacity_ref_n: 50_000,
             ..base
         },
         other => panic!("unknown arm {other:?}"),
@@ -361,9 +407,28 @@ fn cover_scaling() {
             }
             flags
         }
-        Err(_) => (0..corpus.stories)
-            .map(|sid| sid < u64::from(cut))
-            .collect(),
+        // Fallback partition: INTERLEAVED 80/20, not a contiguous tail.
+        //
+        // This measurement is built on nested corpus-size prefixes, so every
+        // prefix must contain both partitions. A tail split (`sid < cut`) puts
+        // all held-out stories above the 80% mark, so every prefix below 80%
+        // has an empty held-out set and is skipped — on the committed 500k
+        // fixture that silently reduced a four-size scaling curve to a single
+        // point, and the verdict block below then reported `monotone_regions`
+        // PASS over one row. The `R4_STORIES` path never had this problem
+        // because `stories.jsonl` partitions by `blake3(article id) % 5`,
+        // which is already interleaved.
+        //
+        // `sid % 5 != 0` keeps the 80/20 ratio and the document-level
+        // boundary (no position from an evaluated story trains the cover)
+        // while making every prefix usable. It does change which stories are
+        // held out relative to a tail split, so absolute numbers from this
+        // fallback are not comparable with runs that supplied `R4_STORIES`;
+        // arm-to-arm and size-to-size comparisons within one run are.
+        Err(_) => {
+            let _ = cut;
+            (0..corpus.stories).map(|sid| sid % 5 != 0).collect()
+        }
     };
     // Nested prefixes require the position lists to be grouped by story:
     // observations are built in the given position order and each size is a
@@ -517,6 +582,13 @@ fn cover_scaling() {
         if arm_rows.is_empty() {
             continue;
         }
+        // Condition 1 is a statement about how region count moves WITH corpus
+        // size. One row cannot support it, and `windows(2).all(..)` is
+        // vacuously true over one row — which is how a degenerate run printed
+        // PASS. Fewer than two sizes means the condition is unevaluable, and
+        // an unevaluable condition is not a satisfied one.
+        let sizes = arm_rows.len();
+        let monotone_evaluable = sizes >= 2;
         let monotone = arm_rows
             .windows(2)
             .all(|pair| pair[1].regions >= pair[0].regions);
@@ -525,13 +597,23 @@ fn cover_scaling() {
             .all(|row| row.contrast_mean >= contrast_floor);
         let largest = arm_rows.iter().max_by_key(|row| row.train).unwrap();
         let predictive_ok = baseline_largest.is_none_or(|baseline| largest.held_top1 >= baseline);
-        let verdict = if monotone && contrast_ok && predictive_ok {
+        let verdict = if !monotone_evaluable {
+            "INCONCLUSIVE"
+        } else if monotone && contrast_ok && predictive_ok {
             "PASS"
         } else {
             "FAIL"
         };
+        if !monotone_evaluable {
+            println!(
+                "INCONCLUSIVE {arm:<16} only {sizes} corpus size produced a row; condition 1 \
+                 (monotone regions) is UNEVALUABLE. Raise R4_SCALING_FRACS coverage or supply \
+                 a corpus whose partition survives prefixing — do not read the remaining \
+                 columns as a verdict."
+            );
+        }
         println!(
-            "{verdict} {arm:<16} monotone_regions={monotone} contrast_ok={contrast_ok} \
+            "{verdict} {arm:<16} sizes={sizes} monotone_regions={monotone} contrast_ok={contrast_ok} \
              (min mean {:.4} vs floor {contrast_floor:.4}) predictive_ok={predictive_ok} \
              (top1 {:.4} vs baseline {:.4})",
             arm_rows
