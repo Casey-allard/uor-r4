@@ -131,6 +131,25 @@ the suite's 8 prompts are novel text, unlike Gate C's same-corpus replay
   dequeued. Follow-up work for a queued PR goes on a fresh branch off
   `main` after it lands (the #323 lesson), not as extra commits on the
   queued branch.
+- **CI split: expensive verification runs ONCE, in the queue (2026-08-07).**
+  `.github/workflows/ci.yml` reports the same five required check names in
+  both contexts, but the work differs. On `pull_request`: claim wording, fmt,
+  clippy (job `gates-pr`) + `cargo audit`; the other three required names are
+  reported by trivial stub jobs. On `merge_group` (and pushes to `main`):
+  the full ladder — tests, no_std, deterministic rebuild, κ-reproduction,
+  Gate C trend, wasm, fuzz — on the speculative merge, which is the verdict
+  that binds. **Do not add a slow step to the PR-side job.** If a check takes
+  minutes, it belongs in `gates` (queue-side); the PR trigger exists for fast
+  author feedback, not for the binding verdict. Any new required check name
+  must be reported in BOTH contexts (real job in one, same-`name:` stub in
+  the other) or PRs hang forever waiting on a check that never runs.
+- **Docs-only PRs take a fast path.** If a PR's whole diff is `*.md` or
+  `docs/**/*.pdf` — excluding `docs/hologram_r4_formal_monograph.md` and
+  `docs/transformerless/INFERENCE_OPERATION_CONTRACT.md`, which are
+  `include_str!`d into Rust — `gates-pr` runs only the claim-wording gate.
+  The guard fails closed (any other path, an empty diff, or an
+  uncomputable diff runs everything) and applies only to `pull_request`;
+  the queue always re-verifies the merged content in full.
 - **Per issue**: assign yourself (WIP signal) → branch `issue-<n>-<slug>` →
   work + verify the four gates locally → open PR → merge when checks are
   green → close the issue with the DoD evidence and the merge commit

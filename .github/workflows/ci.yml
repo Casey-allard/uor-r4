@@ -17,13 +17,40 @@ name: ci
 # uploaded as a `gate-c-trend` artifact.
 
 #
-# CONTEXT SPLIT (issue #240): heavy jobs (wasm, Gate C trend, fuzz smoke) run
-# for real only where their verdict is binding — the merge queue's speculative
-# merge (merge_group) and pushes to main — and report a stub success in
-# pull_request context so the required-check names still gate queue entry.
-# cargo audit is the inverse: advisory-DB lookup on the lockfile is
-# merge-content-independent, so it runs in pull_request (and main-push)
-# context and stubs in the queue. The core gates job runs everywhere.
+# CONTEXT SPLIT (issue #240, extended 2026-08-07): heavy jobs (wasm, Gate C
+# trend, fuzz smoke) run for real only where their verdict is binding — the
+# merge queue's speculative merge (merge_group) and pushes to main — and
+# report a stub success in pull_request context so the required-check names
+# still gate queue entry. cargo audit is the inverse: advisory-DB lookup on
+# the lockfile is merge-content-independent, so it runs in pull_request (and
+# main-push) context and stubs in the queue.
+#
+# The core gates job used to run everywhere, which meant every change paid
+# for it twice: ~15 min on the PR, then ~15 min again on the queue's
+# speculative merge. It is now split the same way:
+#
+#   `gates-pr`  (pull_request only)  — fmt, clippy, claim wording. Fast
+#                                      author feedback; nothing here is the
+#                                      binding verdict.
+#   `gates`     (everything else)    — the full ladder: claim wording,
+#                                      inference-contract audit, fmt,
+#                                      clippy, nextest + BDD + doctests,
+#                                      no_std ladder, deterministic rebuild,
+#                                      κ-reproduction, Gate C trend.
+#
+# Both jobs carry the SAME `name:` (`fmt / clippy / tests / no_std / κ`), so
+# the required check reports in both contexts and the queue is never left
+# waiting on a check that cannot run. The expensive verification happens
+# exactly once per change, on the merged content, where its verdict binds.
+#
+# DOCS-ONLY FAST PATH (2026-08-07): a pull_request whose whole diff is
+# documentation skips the compile work in `gates-pr` and runs only the
+# claim-wording gate — seconds instead of ~15 min for a README edit. The
+# guard FAILS CLOSED: any path outside the documentation set, an empty diff,
+# or a diff that cannot be computed all fall back to running everything. It
+# applies ONLY to the pull_request trigger; merge_group, main pushes and
+# workflow_dispatch always run the full ladder unconditionally, so the
+# queue's own verification can never be skipped by a path guard.
 on:
   push:
     branches: [main]
@@ -39,8 +66,13 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
+  # The full ladder. Runs on merge_group (the binding verdict, on the
+  # speculative merge), on pushes to main, and on workflow_dispatch. It does
+  # NOT run on pull_request — `gates-pr` below reports the same check name
+  # there with the fast subset. See CONTEXT SPLIT in the header.
   gates:
     name: fmt / clippy / tests / no_std / κ
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -109,27 +141,13 @@ jobs:
       - name: κ-reproduction (canonical D2 baseline)
         run: TLESS_CANONICAL_DETERMINISTIC=1 TLESS_CHECKPOINT=/tmp/ref/out/model.bin cargo test -p uor-r4-core --release --test kappa_reproduction -- --ignored
 
-      - name: Decide whether the Gate C trend harness applies (wait diet, 2026-07-30)
-        id: trend_paths
-        run: |
-          # The trend harness (~5 min: release build + full fixture score)
-          # only measures changes that can move the scored-graph row. Run
-          # it ONLY when those surfaces changed; docs, process, serving-api
-          # or unrelated-crate changes skip it. Merge-group and main-push
-          # runs keep it unconditionally (the merged result is the record).
-          git fetch --depth=1 origin main
-          if [ "${{ github.event_name }}" != "pull_request" ]; then
-            echo "run=true" >> "$GITHUB_OUTPUT"
-          elif git diff --name-only FETCH_HEAD...HEAD | grep -qE \
-            '^(crates/uor-r4-graph-certify/|crates/uor-r4-graph-compiler/|crates/uor-r4-core/src/transformerless/|crates/uor-r4-core/tests/fixtures/|crates/uor-r4-graph-format/|docs/transformerless/gate_c_pinned\.json|crates/uor-r4-graph-cli/)'; then
-            echo "run=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "run=false" >> "$GITHUB_OUTPUT"
-            echo "trend harness skipped: no scored-graph surface in the diff"
-          fi
+      # The `trend_paths` path guard (wait diet, 2026-07-30) lived here to keep
+      # the ~5 min trend harness off pull_request runs that could not move the
+      # scored-graph row. It always evaluated to run=true off pull_request, and
+      # this job no longer runs on pull_request at all, so the guard is gone:
+      # the merged result is the record, so the harness runs unconditionally.
 
       - name: Gate C trend tracking (Issue #77)
-        if: steps.trend_paths.outputs.run == 'true'
         run: |
           cargo run --release --bin r4 -- transformerless score \
             --corpus-meta crates/uor-r4-core/tests/fixtures/c_meta.bin \
@@ -140,10 +158,97 @@ jobs:
 
       - name: Upload Gate C trend JSON
         uses: actions/upload-artifact@v4
-        if: steps.trend_paths.outputs.run == 'true'
         with:
           name: gate-c-trend
           path: trend_output/score_report.json
+
+  # PR-context companion to `gates` (wait diet, 2026-08-07). Same `name:`, so
+  # the required check `fmt / clippy / tests / no_std / κ` reports here on
+  # pull_request while the real ladder runs once, in the queue. What stays
+  # here is only what is fast enough to be worth an author's wait: the
+  # claim-wording gate (pure python, seconds) and fmt + clippy (one workspace
+  # build, and clippy is where most PR-time defects actually surface). The
+  # test suite, no_std ladder, deterministic rebuild, κ-reproduction and the
+  # Gate C trend are NOT here on purpose — they run on the merged content in
+  # merge_group, which is the verdict that binds. Do not re-add them here;
+  # that is how the 30-minute double-run came back last time.
+  gates-pr:
+    name: fmt / clippy / tests / no_std / κ
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Decide whether the docs-only fast path applies (wait diet, 2026-08-07)
+        id: docs_only
+        run: |
+          # DOCUMENTATION SET: a changed path counts as documentation iff it
+          # ends in `.md`, or it is a rendered document under `docs/`
+          # (`docs/**/*.pdf`). Deliberately NOT `docs/**`: that directory also
+          # holds `docs/transformerless/gate_c_pinned.json`, a load-bearing
+          # pinned record. Two markdown files are excluded because they are
+          # compiled into Rust with include_str! and asserted on by the BDD
+          # suite — editing them can genuinely break the build:
+          #   docs/hologram_r4_formal_monograph.md
+          #   docs/transformerless/INFERENCE_OPERATION_CONTRACT.md
+          #
+          # FAILS CLOSED. Anything we are not certain about — a path outside
+          # the set, an empty diff, or a diff we could not compute at all —
+          # yields fast=false and the full PR subset runs. And this guard only
+          # ever narrows the pull_request run; merge_group re-verifies the
+          # merged content unconditionally, so a wrong "fast" verdict here can
+          # delay a failure but can never let one merge.
+          git fetch --depth=1 origin main
+          CHANGED="$(git diff --name-only FETCH_HEAD...HEAD || true)"
+          if [ -z "$CHANGED" ]; then
+            echo "fast=false" >> "$GITHUB_OUTPUT"
+            echo "no computable diff vs main -> running everything (fail closed)"
+            exit 0
+          fi
+          echo "changed paths:"
+          printf '%s\n' "$CHANGED"
+          NON_DOC="$(printf '%s\n' "$CHANGED" | grep -vE '(\.md$|^docs/.+\.pdf$)' || true)"
+          EMBEDDED="$(printf '%s\n' "$CHANGED" | grep -xE 'docs/hologram_r4_formal_monograph\.md|docs/transformerless/INFERENCE_OPERATION_CONTRACT\.md' || true)"
+          if [ -n "$NON_DOC" ] || [ -n "$EMBEDDED" ]; then
+            echo "fast=false" >> "$GITHUB_OUTPUT"
+            echo "non-documentation paths in the diff -> running the full PR subset:"
+            printf '%s\n' "$NON_DOC" "$EMBEDDED" | grep -v '^$' || true
+          else
+            echo "fast=true" >> "$GITHUB_OUTPUT"
+            echo "docs-only diff -> claim-wording gate only; the queue still runs the full ladder"
+          fi
+
+      # Always runs: it is the doc-relevant gate, and it costs seconds.
+      - name: Claim-wording gate (docs/formal_vocabulary.md §2.1, issue #123)
+        run: python3 scripts/check_claim_wording.py
+
+      - name: Install Rust (stable)
+        if: steps.docs_only.outputs.fast != 'true'
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Cache cargo
+        if: steps.docs_only.outputs.fast != 'true'
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: cargo-${{ runner.os }}-${{ hashFiles('Cargo.lock') }}
+          restore-keys: cargo-${{ runner.os }}-
+
+      - name: cargo fmt --check
+        if: steps.docs_only.outputs.fast != 'true'
+        run: cargo fmt --check
+
+      - name: cargo clippy (-D warnings)
+        if: steps.docs_only.outputs.fast != 'true'
+        run: cargo clippy --workspace --all-targets --all-features -- -D warnings
+
+      - name: Note what was deferred
+        run: "echo 'Tests, no_std ladder, deterministic rebuild, κ-reproduction and the Gate C trend run once on the speculative merge (merge_group).'"
 
   wasm:
     name: wasm-pack build (dashboard facade, deploy.yml parity)
