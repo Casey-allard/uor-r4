@@ -431,6 +431,36 @@ Measurement: at fixed corpus, sweep `R4_RVQ_SAMPLE_CAP` over
 occupied key, and held-out top-1. If the codebook is under-fit, occupancy rises
 and records-per-key falls monotonically with the cap.
 
+**RUN 2026-08-07 (#460 lever 2) — see `docs/codebook_fit_460.md`. This section
+stands in shape and is over-stated in value; narrow it before adopting.**
+
+The sweep above was run as specified, plus a control sweep that moves the pool
+alone. Held-out top-1 against the SHIPPED configuration: **+0.44pp at a 50,000
+training set (2.1 SE), and +0.37pp at 200,000** — the lever is real, it is
+small, and it **saturates**. `N/10` at this corpus is 39,969, essentially the
+measured saturation point, so the formula's *shape* is confirmed; what is not
+confirmed is any benefit from the 500,000 ceiling, which measurably buys
+nothing here. Adoption is kappa-affecting and worth about 0.44pp, so it belongs
+in the next re-pin that happens for another reason rather than triggering one.
+
+Occupancy did **not** rise monotonically (77,799 -> 85,496 -> 79,933), so the
+proposed instrument reading — "occupancy rises and records-per-key falls
+monotonically with the cap" — is not a reliable signature of relieved
+under-fit and should not be used as a gate.
+
+Two corrections this run forces on the text above:
+
+- **§3.1 is one step too strong.** It states that #407's `CTX_SAMPLE`
+  6,000 -> 50,000 raise "did not change the codebook's training-set size at
+  all". The training set is `min(CTX_SAMPLE, RVQ_SAMPLE_CAP)`, and at
+  `CTX_SAMPLE = 6_000` the 10,000 cap does not bind — so that raise moved the
+  training set 6,000 -> 10,000 and #407's attributed starvation share was real.
+  What is dead is raising `CTX_SAMPLE` further while the cap stands: over a 20x
+  pool range above the cap, top-1 moves 0.21pp, inside noise.
+- **The §6 calibration worry is now bounded.** "The 500k measurements
+  everything else is calibrated against were themselves taken on an under-fit
+  codebook" is true, and the under-fit is worth 0.44pp.
+
 ### 5.4 Scale emission width by region mass
 
 ```

@@ -121,9 +121,18 @@ strongest possible form. Raising STAGES from 4 to 5 bought exactly the
 subdivision the hypothesis asked for — occupied full-code keys 47,403 to
 90,824, records per key 36.02 to 18.80, clearing the instrument gate — and
 Rule 1+2 top-1 came in at 25.6% ± 0.44pp against a 26.5% baseline, *below* it.
-The store baseline fell alongside (26.4 to 25.4), which is the signature of
-thinner per-key evidence rather than sharper context. Exact-context dominance
+The store baseline fell alongside (26.4 to 25.4). Exact-context dominance
 barely responded (98.8% to 97.1%).
+
+That fall was originally read as thinner per-key evidence, full stop. The
+codebook-fit measurement narrows it: raising the codebook's training set also
+lowers records-per-key (5.04 to 4.68) and top-1 *rises* (+0.44pp,
+`docs/codebook_fit_460.md`). So records-per-key is a **symptom, not the
+binding quantity** — thinning is harmful when it comes from added key
+*resolution*, which splits evidence that belonged together, and harmless or
+better when it comes from improved *fit*, which moves evidence onto the key
+that represents it. The subdivision negative stands; only its causal reading
+narrows, to resolution specifically.
 
 **Construction-time stratification (#435).** Three routing designs plus an
 identity argument, all against pre-declared rules; v3 mass-linear mixing
@@ -142,17 +151,27 @@ CD term executed 0 times out of 1,998 before removal.
 
 ### The pattern these results draw
 
-Every lever that added *key resolution* failed — a better-fitted codebook, more
-cover regions, a finer code space. The only two changes that helped improved
-*evidence quality per key*. That is the clearest signal the programme has, and
-it is why the open work below concentrates on evidence and estimation rather
-than on subdivision.
+Every lever that added *key resolution* failed — more cover regions, a finer
+code space, more stages. The changes that helped improved *evidence quality per
+key*. That is the clearest signal the programme has, and it is why the open
+work below concentrates on evidence and estimation rather than on subdivision.
+
+An earlier statement of this pattern listed "a better-fitted codebook" among
+the failures. That was a misclassification on both counts: codebook fit is not
+a key-resolution lever — it changes which key evidence lands on, at fixed `K`,
+fixed `STAGES` and a fixed nominal key space — and when finally measured in
+isolation it came out **positive**, at +0.44pp (#460 lever 2,
+`docs/codebook_fit_460.md`). It is a small lever, but it is on the side the
+pattern predicts, and it is the first confirmation of that pattern on something
+that touches the graded code itself rather than storage or calibration. The
+distinction to carry forward is *which key evidence lands on* (fit — helps)
+versus *how many keys there are* (resolution — has never helped).
 
 ### Open, with defined work
 
 | Issue | Question | State |
 |---|---|---|
-| #460 | Cover split criterion and codebook fit | Two implemented-but-dark levers: `SplitCriterion::{RelativeGain,Mdl}` with scaled k0 (default-off, harness `cover_scaling.rs` unrun) and `RVQ_SAMPLE_CAP` capping codebook training at 0.59% of the split |
+| #460 | Cover split criterion and codebook fit | Codebook fit measured (`docs/codebook_fit_460.md`): raising the k-means training set is worth **+0.44pp** and saturates near `N/10`; below the +1.0pp exit rule, κ-affecting, so it belongs in the next re-pin rather than triggering one. It also showed records-per-key is a *symptom*, not the binding quantity — it fell here while top-1 rose. Still dark: `SplitCriterion::{RelativeGain,Mdl}` with scaled k0 (`cover_scaling.rs` unrun) |
 | #424 | Bott-Fock O(1) context fold | Ceiling measured, A/B not reachable. Long-range signal on this corpus is worth +1.02pp of top-1 (two thirds of it order-carried); the shipped decay constant `>> 2` retains 16% of that, so the lossless upper bound on the fold as shipped is +0.16pp — one standard error. Retuning the decay to `>> 7` would recover the ceiling. `docs/context_horizon_424.md` |
 | #434 | VSA / spectral geometry | Item 1 (zeta-grid at scale) done and shipped; item 2 never measured beyond a synthetic smoke test |
 | #469 | Vectorize the assign path | Done. Lever A (κ-keyed code sidecar) 625s → 39s; lever B routes the corpus code passes through the existing `simd::dot_argmax` using tables decoded once per artifact — **1.60x** on the pinned TLA7 artifact. Bit-identity is proven, not argued: `tests/assign_prepared.rs` checks prepared == scalar over 1,024 real corpus positions on the committed artifact fixture, and the κ witness carries it on a fresh compile. Per-call decoding would have been a ~4x regression, which is why the batch API exists |
