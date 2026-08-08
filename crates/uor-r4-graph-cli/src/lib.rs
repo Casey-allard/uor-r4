@@ -35,6 +35,7 @@ use uor_r4_graph_compiler::observation_text as observe_text;
 use uor_r4_graph_compiler::reproducibility as repro;
 mod convert_r4g1;
 pub mod cover_sweep;
+pub mod recommend_scale;
 mod runtime_corpus;
 mod scenarios;
 use serde::Serialize;
@@ -2715,6 +2716,7 @@ pub fn run(args: &[String]) -> Result<(), String> {
         Some("runtime-corpus") => runtime_corpus::run(&args[1..])?,
         Some("cover") => cover_command(&args[1..])?,
         Some("cover-sweep") => cover_sweep::cover_sweep_command(&args[1..])?,
+        Some("recommend-scale") => recommend_scale::run(&args[1..])?,
         Some("score") => score_command(&args[1..])?,
         Some("graph") => graph_command(&args[1..])?,
         Some("cd-compile") => cd_compile_command(&args[1..])?,
@@ -2730,6 +2732,7 @@ pub fn run(args: &[String]) -> Result<(), String> {
                  A-mode infill serving: graph infill --artifact <scored R4G1> --skeleton <token ids, _ for free> [--teacher <TLA container>]\n\
                  quantum operations: cd-compile | quantum-eval\n\
                  hf evaluation: evaluate-report [--source DIR] [--compiled DIR] [--report PATH] [--sequence-length N] [--bos] [--max-held-out-stories N]\n\
+                 scale sizing (#514): recommend-scale (--config <hf dir> | --d-model N --n-layers N --vocab N) [--corpus wiki|stories] [--beta B]\n\
                  docs: docs/transformerless/TRANSFORMERLESS.md (extrapolation), docs/transformerless/PROOF.md (proof + certificate)"
             );
         }
