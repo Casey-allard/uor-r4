@@ -410,6 +410,26 @@ fn default_geometry_type() -> GeometryType {
 /// measurement rather than editing the constant.
 pub const DEFAULT_LEXICAL_WEIGHT: f64 = 100.0;
 
+/// #496: how many salient content dimensions the VSA facet-index keys each item
+/// on — the top-magnitude components of its 512-d content signal.
+const VSA_SALIENT_DIMS: usize = 16;
+
+/// The indices of the top-`m` largest-magnitude components of a content signal,
+/// returned sorted ascending. Similar content shares its salient dimensions, so
+/// a query and its true target land in overlapping VSA facet buckets — the
+/// high-recall, content-addressed basis of the #496 facet-index.
+fn salient_content_dims(content: &[f32], m: usize) -> Vec<u32> {
+    let mut idx: Vec<u32> = (0..content.len() as u32).collect();
+    idx.sort_by(|&a, &b| {
+        content[b as usize]
+            .abs()
+            .total_cmp(&content[a as usize].abs())
+    });
+    idx.truncate(m);
+    idx.sort_unstable();
+    idx
+}
+
 /// Deployed default for `content_query_vector` (issue #490, adopting #486).
 ///
 /// The retrieval query vector is built from the query text's own CONTENT
@@ -469,6 +489,18 @@ pub struct UorR4Router {
     #[serde(default)]
     #[wasm_bindgen(skip)]
     pub facet_store: MultiFacetStore,
+    /// #496 real facet-index: each indexed item's VSA hypervector, stored at
+    /// index time so retrieval scores against precomputed vectors instead of
+    /// re-grounding every candidate (the O(candidates) cost of the first cut).
+    #[serde(default)]
+    vsa_vectors: HashMap<u64, Vec<f32>>,
+    /// #496 real facet-index: a salient-content-dimension inverted index (top
+    /// magnitude dims of each item's content signal -> item ids). Retrieval
+    /// UNIONs the query's salient dims for a high-recall, content-addressed
+    /// candidate set — replacing the coarse `type = sum % 100` / `entity =
+    /// [100,200]` facets that dropped ~47% of targets (#496 ablation).
+    #[serde(default)]
+    vsa_dim_index: HashMap<u32, Vec<u64>>,
     #[serde(default = "default_geometry_type")]
     pub geometry_type: GeometryType,
     /// Issue #434 (adopted de-banding): when true the content-bearing
@@ -678,6 +710,8 @@ impl UorR4Router {
             angle_y: 0.5,
             last_routing_data: None,
             facet_store: MultiFacetStore::default(),
+            vsa_vectors: HashMap::new(),
+            vsa_dim_index: HashMap::new(),
             geometry_type: default_geometry_type(),
             banded_storage: false,
             full_width_query: false,
@@ -898,6 +932,10 @@ impl UorR4Router {
         self.corpus_index.clear();
         self.corpus_index_by_identity.clear();
         self.facet_store = MultiFacetStore::default();
+        // #496: item ids restart at 0 after a clear, so the VSA index and stored
+        // vectors must be cleared too or reused ids would collide with stale rows.
+        self.vsa_vectors.clear();
+        self.vsa_dim_index.clear();
     }
 
     /// Resets the entire router system back to factory defaults
@@ -913,6 +951,9 @@ impl UorR4Router {
         self.transitions_2nd.clear();
         self.corpus_index.clear();
         self.corpus_index_by_identity.clear();
+        self.facet_store = MultiFacetStore::default();
+        self.vsa_vectors.clear();
+        self.vsa_dim_index.clear();
         self.session_brain_states.clear();
         self.angle_x = 0.5;
         self.angle_y = 0.5;
@@ -2078,6 +2119,19 @@ impl UorR4Router {
             if let Ok(coords) = geom.encode(&grounded) {
                 self.index_semantic_object(item_id, &coords);
             }
+            // #496 real facet-index: store the item's VSA hypervector for
+            // precomputed scoring, and index it under its salient content
+            // dimensions (the high-recall, content-addressed candidate set).
+            let content_len = 512.min(grounded.vsa_vector.len());
+            let dims = salient_content_dims(&grounded.vsa_vector[..content_len], VSA_SALIENT_DIMS);
+            let id = item_id as u64;
+            for d in dims {
+                let list = self.vsa_dim_index.entry(d).or_default();
+                if list.last() != Some(&id) {
+                    list.push(id);
+                }
+            }
+            self.vsa_vectors.insert(id, grounded.vsa_vector);
         }
     }
 
@@ -2278,14 +2332,91 @@ impl UorR4Router {
             Ok(g) => g,
             Err(_) => return Vec::new(),
         };
-        let coords = match geom.encode(&grounded) {
+        let query_vsa: Vec<f64> = grounded.vsa_vector.iter().map(|&x| x as f64).collect();
+
+        // #496 real facet-index: gather candidates by UNION over the query's
+        // salient content dimensions — a high-recall, content-addressed set that
+        // replaces the coarse type/entity intersection (which dropped ~47% of
+        // targets in the #496 ablation). Falls back to the legacy facet
+        // intersection only for router state serialized before this index.
+        let candidate_ids: Vec<u64> = if self.vsa_dim_index.is_empty() {
+            self.legacy_vsa_facet_candidates(&geom, &grounded)
+        } else {
+            let content_len = 512.min(grounded.vsa_vector.len());
+            let dims = salient_content_dims(&grounded.vsa_vector[..content_len], VSA_SALIENT_DIMS);
+            let mut set: std::collections::HashSet<u64> = std::collections::HashSet::new();
+            for d in dims {
+                if let Some(list) = self.vsa_dim_index.get(&d) {
+                    set.extend(list.iter().copied());
+                }
+            }
+            let mut ids: Vec<u64> = set.into_iter().collect();
+            ids.sort_unstable();
+            ids
+        };
+
+        let mut scored = Vec::new();
+        for &id in &candidate_ids {
+            let Some(items) = self.corpus_index.get(&id) else {
+                continue;
+            };
+            // #496: score against the PRECOMPUTED stored VSA vector (fast);
+            // re-ground the sentence only for router state serialized before
+            // `vsa_vectors` existed.
+            let sim = if let Some(v) = self.vsa_vectors.get(&id) {
+                let cand: Vec<f64> = v.iter().map(|&x| x as f64).collect();
+                cosine_similarity(&query_vsa, &cand)
+            } else {
+                items
+                    .first()
+                    .and_then(|item| {
+                        geom.ground(&geometry::TypedObject {
+                            object_type: "query".to_string(),
+                            content: item.sentence.clone(),
+                        })
+                        .ok()
+                    })
+                    .map(|c| {
+                        let cand: Vec<f64> = c.vsa_vector.iter().map(|&x| x as f64).collect();
+                        cosine_similarity(&query_vsa, &cand)
+                    })
+                    .unwrap_or(0.0)
+            };
+            for item in items {
+                scored.push(ResonanceResult {
+                    sentence: item.sentence.clone(),
+                    relevance: sim * 100.0,
+                    window_index: id % 16 + 1,
+                    kappa: item.kappa,
+                    deficit_angle: item.deficit_angle,
+                    provenance: item.provenance.clone(),
+                });
+            }
+        }
+
+        scored.sort_by(|a, b| {
+            b.relevance
+                .partial_cmp(&a.relevance)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
+        scored.truncate(top_n);
+        scored
+    }
+
+    /// Legacy VSA candidate gathering (facet type/entity intersection with
+    /// selective backoff), retained only for router state serialized before the
+    /// #496 salient-dimension index existed (`vsa_dim_index` empty).
+    fn legacy_vsa_facet_candidates(
+        &self,
+        geom: &geometry::VsaGeometry,
+        grounded: &geometry::GroundedSemantics,
+    ) -> Vec<u64> {
+        let coords = match geom.encode(grounded) {
             Ok(c) => c,
             Err(_) => return Vec::new(),
         };
-
         let mut working_coords = coords.clone();
         let mut candidate_ids = Vec::new();
-
         loop {
             let mut lists = Vec::new();
             for (facet, path) in &working_coords.coordinates {
@@ -2298,29 +2429,19 @@ impl UorR4Router {
                     "provenance" => self.facet_store.provenance_index.get(path),
                     _ => None,
                 };
-                if let Some(l) = list {
-                    lists.push(l.clone());
-                } else {
-                    lists.push(Vec::new());
-                }
+                lists.push(list.cloned().unwrap_or_default());
             }
-
             if lists.is_empty() {
                 break;
             }
-
             let mut intersection = lists[0].clone();
             for next_list in lists.iter().skip(1) {
                 intersection.retain(|x| next_list.contains(x));
             }
-
             if !intersection.is_empty() {
                 candidate_ids = intersection;
                 break;
             }
-
-            // Selective backoff on the facet with the longest path.
-            // Tie-breaker: choose lexicographically larger facet name first (e.g. type > entity)
             let mut longest_facet: Option<String> = None;
             let mut max_len = 0;
             for (facet, path) in &working_coords.coordinates {
@@ -2335,7 +2456,6 @@ impl UorR4Router {
                     }
                 }
             }
-
             if let Some(facet_to_backoff) = longest_facet {
                 let path = working_coords
                     .coordinates
@@ -2349,51 +2469,7 @@ impl UorR4Router {
                 break;
             }
         }
-
-        let mut scored = Vec::new();
-        // #496: commensurable VSA-vs-VSA scoring. Ground the query once, then
-        // re-ground each candidate's own sentence through the same semantic
-        // encoder and cosine the two 1024-dim hypervectors — instead of cosining
-        // the 1024-dim query against the stored 512-dim SPECTRAL vector, which
-        // mismatched to exactly 0.0 (#493's dead ranking). (Re-grounding at query
-        // time is O(candidates); the #496 follow-up is to store each item's VSA
-        // vector at index time — see the ablation note in the issue.)
-        let query_vsa: Vec<f64> = grounded.vsa_vector.iter().map(|&x| x as f64).collect();
-        for &id in &candidate_ids {
-            if let Some(items) = self.corpus_index.get(&id) {
-                for item in items {
-                    let cand_obj = geometry::TypedObject {
-                        object_type: "query".to_string(),
-                        content: item.sentence.clone(),
-                    };
-                    let sim = match geom.ground(&cand_obj) {
-                        Ok(cand) => {
-                            let cand_vsa: Vec<f64> =
-                                cand.vsa_vector.iter().map(|&x| x as f64).collect();
-                            cosine_similarity(&query_vsa, &cand_vsa)
-                        }
-                        Err(_) => 0.0,
-                    };
-
-                    scored.push(ResonanceResult {
-                        sentence: item.sentence.clone(),
-                        relevance: sim * 100.0,
-                        window_index: id % 16 + 1,
-                        kappa: item.kappa,
-                        deficit_angle: item.deficit_angle,
-                        provenance: item.provenance.clone(),
-                    });
-                }
-            }
-        }
-
-        scored.sort_by(|a, b| {
-            b.relevance
-                .partial_cmp(&a.relevance)
-                .unwrap_or(std::cmp::Ordering::Equal)
-        });
-        scored.truncate(top_n);
-        scored
+        candidate_ids
     }
 
     fn rebuild_transitions(&mut self) {
