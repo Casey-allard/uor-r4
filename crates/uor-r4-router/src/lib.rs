@@ -2351,11 +2351,29 @@ impl UorR4Router {
         }
 
         let mut scored = Vec::new();
+        // #496: commensurable VSA-vs-VSA scoring. Ground the query once, then
+        // re-ground each candidate's own sentence through the same semantic
+        // encoder and cosine the two 1024-dim hypervectors — instead of cosining
+        // the 1024-dim query against the stored 512-dim SPECTRAL vector, which
+        // mismatched to exactly 0.0 (#493's dead ranking). (Re-grounding at query
+        // time is O(candidates); the #496 follow-up is to store each item's VSA
+        // vector at index time — see the ablation note in the issue.)
+        let query_vsa: Vec<f64> = grounded.vsa_vector.iter().map(|&x| x as f64).collect();
         for &id in &candidate_ids {
             if let Some(items) = self.corpus_index.get(&id) {
                 for item in items {
-                    let g_f64: Vec<f64> = grounded.vsa_vector.iter().map(|&x| x as f64).collect();
-                    let sim = cosine_similarity(&g_f64, &item.state_vector);
+                    let cand_obj = geometry::TypedObject {
+                        object_type: "query".to_string(),
+                        content: item.sentence.clone(),
+                    };
+                    let sim = match geom.ground(&cand_obj) {
+                        Ok(cand) => {
+                            let cand_vsa: Vec<f64> =
+                                cand.vsa_vector.iter().map(|&x| x as f64).collect();
+                            cosine_similarity(&query_vsa, &cand_vsa)
+                        }
+                        Err(_) => 0.0,
+                    };
 
                     scored.push(ResonanceResult {
                         sentence: item.sentence.clone(),

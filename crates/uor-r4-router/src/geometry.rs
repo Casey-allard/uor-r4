@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use uor_r4_core::semantic::{expand_atom, KappaLabel, WeightedRoute};
+use uor_r4_core::semantic::{KappaLabel, WeightedRoute};
 use uor_r4_core::zeta_projection::{project_state, window_ranges, NUM_WINDOWS};
 use uor_r4_core::{get_word_vector, identity_to_qimc_prime};
 
@@ -227,18 +227,48 @@ impl SemanticGeometry for VsaGeometry {
         if object.content.is_empty() {
             return Err(GeometryError::InvalidObject);
         }
-        // Expand atom deterministically from content hash
-        let hv = expand_atom(&object.object_type, &object.content, &self.space_cid);
-        let mut float_vec = Vec::with_capacity(1024);
-        for i in 0..16 {
-            let val = hv.0[i];
-            for bit in 0..64 {
-                let bit_val = if (val & (1u64 << bit)) != 0 {
-                    1.0
-                } else {
-                    -1.0
-                };
-                float_vec.push(bit_val);
+        // #496: ground the VSA hypervector from the zeta word-sum CONTENT signal
+        // (the same multiplication-free construction `SpectralGeometry::ground`
+        // uses, no transformer/GPU), instead of `expand_atom`'s content HASH.
+        // The hash gave related sentences unrelated random ±1 vectors, so even a
+        // commensurable comparison ranked at chance (#493). Summing each word's
+        // seeded zeta vector makes the base semantic: related content → similar
+        // vectors, and the facet multi-index (`encode`) rides on top unchanged.
+        let mut content = vec![0.0f64; 512];
+        let mut known_words = 0usize;
+        for word in object.content.split_whitespace() {
+            let normalized = word
+                .trim_matches(|character: char| !character.is_alphanumeric())
+                .to_lowercase();
+            if normalized.is_empty() {
+                continue;
+            }
+            let (prime, _, _) = identity_to_qimc_prime(&normalized);
+            let word_vector = get_word_vector(prime);
+            for (target, source) in content.iter_mut().zip(word_vector) {
+                *target += source;
+            }
+            known_words += 1;
+        }
+        let norm = content
+            .iter()
+            .map(|value| value * value)
+            .sum::<f64>()
+            .sqrt();
+        let mut float_vec = vec![0.0f32; 1024];
+        if known_words > 0 && norm > 1.0e-12 {
+            // Normalized content signal in the first 512 dims; the second half is
+            // held at zero so the cosine of two grounded vectors IS their content
+            // cosine (both queries and stored candidates ground identically).
+            for (target, source) in float_vec[..512].iter_mut().zip(content.iter()) {
+                *target = (source / norm) as f32;
+            }
+        } else {
+            // No vocabulary word at all: a content-free uniform base. It cannot
+            // rank by content, but it is never a random hash of the string.
+            let uniform = (1.0 / (512.0f64).sqrt()) as f32;
+            for target in float_vec[..512].iter_mut() {
+                *target = uniform;
             }
         }
         Ok(GroundedSemantics {

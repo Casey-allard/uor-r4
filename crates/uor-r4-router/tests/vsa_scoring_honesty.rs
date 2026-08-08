@@ -11,10 +11,14 @@
 //! vector, and `cosine_similarity` returns exactly 0.0 on a length mismatch, so
 //! every candidate scores 0.0 and the ranking is dead.
 //!
-//! This test pins both facts so the record cannot silently drift back, and so a
-//! future change to VSA scoring is forced to update it (and confront that even a
-//! commensurable comparison ranks at chance — the grounding is content-hash
-//! derived, not semantic; see #493 and `docs/geometry_ablation_434.md`).
+//! #496 then gave VSA a real encoder: `VsaGeometry::ground` now builds the
+//! hypervector from the zeta word-sum content signal (the multiplication-free
+//! construction Spectral uses), and the scorer cosines query-VSA against
+//! re-grounded candidate-VSA (1024-vs-1024). So this test now pins the FIXED
+//! facts — facet store populated, relevances non-zero, and content-ranked
+//! retrieval (the fox query returns the fox sentence first, which the
+//! content-hash grounding ranked last). See #493/#496 and
+//! `docs/geometry_ablation_434.md`.
 
 use uor_r4_router::UorR4Router;
 
@@ -25,7 +29,7 @@ Glaciers carve deep valleys as they advance slowly over many centuries. \
 The chef seasoned the tomato soup with fresh basil and cracked pepper.";
 
 #[test]
-fn vsa_after_index_corpus_populates_facets_but_scores_degenerate() {
+fn vsa_after_index_corpus_populates_facets_and_ranks_by_content() {
     let mut router = UorR4Router::new(0.5);
     router.clear_corpus();
     router.set_geometry_type("vsa");
@@ -46,21 +50,28 @@ fn vsa_after_index_corpus_populates_facets_but_scores_degenerate() {
          — the #434 'never touches facet_store' claim is what this guards against"
     );
 
-    // Corrected fact #2: retrieval returns the candidate SET, but every
-    // relevance is exactly 0.0 — the 1024-vs-512 length mismatch in the scorer.
-    // This is the honest signature of the dead ranking. A change that makes the
-    // scoring commensurable will break this assertion ON PURPOSE: update it only
-    // together with the disposition (a real VSA encoder), because a re-grounded
-    // hypervector cosine still ranks at chance (grounding is content-hash based).
+    // Fact #2, UPDATED for #496 (the real encoder): VSA scoring is now
+    // commensurable and semantic. `VsaGeometry::ground` builds the hypervector
+    // from the zeta word-sum content signal (not a content hash), and the scorer
+    // cosines query-VSA against re-grounded candidate-VSA (1024-vs-1024). So the
+    // relevances are non-zero AND the ranking is by content: the "fox" query
+    // must retrieve the fox sentence first, which the content-hash grounding
+    // could not do (#493 measured it ranking the fox sentence LAST).
     let res = router.get_top_resonances_native("fox jumps over the lazy dog", "shared", 5);
     assert!(
         !res.is_empty(),
         "facet intersection should still return the candidate set"
     );
     assert!(
-        res.iter().all(|r| r.relevance == 0.0),
-        "VSA scoring is degenerate on a spectral store (every relevance must be exactly 0.0); \
-         got {:?} — if this changed, see #493 before updating",
+        res.iter().any(|r| r.relevance != 0.0),
+        "VSA scoring must no longer be degenerate after #496 (every relevance was 0.0); \
+         got {:?}",
         res.iter().map(|r| r.relevance).collect::<Vec<_>>()
+    );
+    assert!(
+        res[0].sentence.contains("fox"),
+        "the content-grounded VSA encoder must rank the fox sentence first for a fox query \
+         (got {:?}) — this is the #496 realization the content-hash grounding could not reach",
+        res[0].sentence
     );
 }
