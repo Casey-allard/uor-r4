@@ -548,6 +548,157 @@ pub fn run_point(
     Ok((row, gate_c.tla3_baseline.clone(), artifact_bytes))
 }
 
+/// #456 null arm (K-2 mutation discipline). The EXCT-disabled reconstruction
+/// metric ([`SweepRow::reconstruction`]) is trusted to reflect a cover's actual
+/// residual STRUCTURE, not merely its shape or byte budget. This re-scores one
+/// point twice on the SAME held-out slice — once with the compiled emission
+/// tables, once with the per-region ΔE lists DERANGED (every region reads a
+/// different region's residuals; the root prior is untouched) — and reports both
+/// against the unigram floor. A certificate that still beats the floor on the
+/// deranged tables would be measuring an artifact, not reconstructability.
+///
+/// `held_cap` truncates the held-out slice so the two Gate C passes stay cheap
+/// (this is a validity check, not a precision measurement); pass `usize::MAX`
+/// for the full split. Deterministic given `seed`.
+pub struct ReconstructionNull {
+    /// The sweep point measured.
+    pub label: String,
+    /// Held-out positions scored in each arm (after `held_cap`).
+    pub held_out_scored: usize,
+    /// EXCT-disabled reconstruction with the real emission tables.
+    pub real: GateCMetrics,
+    /// EXCT-disabled reconstruction with the deranged emission tables.
+    pub null: GateCMetrics,
+    /// Train-unigram null top-1 on the same held-out slice (the floor).
+    pub unigram_top1: f64,
+    /// Train-unigram null bits/token on the same held-out slice (the floor).
+    pub unigram_bits: f64,
+}
+
+pub fn reconstruction_null(
+    inputs: &SweepInputs,
+    point: &SweepPoint,
+    score_config: &ScoreConfig,
+    held_cap: usize,
+    seed: u64,
+) -> Result<ReconstructionNull, String> {
+    let induced = cover::induce_cover(
+        &inputs.train,
+        &point.config,
+        &inputs.artifact_kappa,
+        &inputs.corpus_kappa,
+    )?;
+    let reference = cover::ReferenceClassifier::freeze(&induced.cover);
+    let edges = cover::build_edges(
+        &induced.cover,
+        &reference,
+        &inputs.train,
+        &inputs.corpus.story,
+    );
+    let regions = score::regions_from_cover(&induced.cover);
+    let structural = score::structural_from_cover(&edges);
+    let max_depth = induced.cover.max_depth;
+    let (transitions, transition_quantization) = score::compile_transitions_with_quantization(
+        &inputs.corpus,
+        &regions,
+        &inputs.train,
+        max_depth,
+        score_config.transition_out_degree,
+    );
+    let vocab = u32::try_from(inputs.artifacts.token_codes.len() / compiler::STAGES)
+        .map_err(|_| "vocabulary exceeds u32 token ids".to_owned())?;
+    let context_rows =
+        score::compile_context_rows(&inputs.corpus, &inputs.train, vocab, score_config);
+    let fwd_rows = score::compile_forward_anchor_rows(&inputs.corpus, &inputs.train);
+    let emissions = score::compile_emissions(
+        &inputs.corpus,
+        &inputs.store,
+        &regions,
+        &inputs.train,
+        max_depth,
+        vocab,
+        score_config,
+    );
+
+    let held_len = held_cap.min(inputs.held_out.len());
+    let held = &inputs.held_out[..held_len];
+
+    let score_with = |tables: &score::EmissionTables| -> Result<score::GateCOutcome, String> {
+        let (artifact_bytes, _info) = score::emit_scored_r4g1(
+            &inputs.artifact_container,
+            (&inputs.meta_bytes, &inputs.recs_bytes),
+            vocab,
+            &score::ScoredGraphSections {
+                regions: &regions,
+                structural: &structural,
+                transitions: &transitions,
+                transition_quantization,
+                emissions: tables,
+                context_rows: &context_rows,
+                exct_tls1: &inputs.tls1,
+                exct_top_x: score_config.exct_top_x,
+                fwd_rows: &fwd_rows,
+            },
+        )?;
+        score::evaluate_gate_c(
+            &artifact_bytes,
+            &inputs.artifact_container,
+            &inputs.artifacts,
+            &inputs.store,
+            &inputs.corpus,
+            held,
+            score_config,
+        )
+    };
+
+    let real_gate = score_with(&emissions)?;
+    let mut shuffled = emissions.clone();
+    derange_region_lists(&mut shuffled.region_lists, seed);
+    let null_gate = score_with(&shuffled)?;
+
+    Ok(ReconstructionNull {
+        label: point.label.clone(),
+        held_out_scored: held_len,
+        real: real_gate.rule1_chain.clone(),
+        null: null_gate.rule1_chain.clone(),
+        unigram_top1: real_gate.nulls.unigram_null_top1_all,
+        unigram_bits: real_gate.nulls.unigram_null_bits_all,
+    })
+}
+
+/// Seeded derangement of the per-region ΔE lists (no region keeps its own list,
+/// so the mutation is fair). xorshift64* — no `rand`, deterministic per `seed`,
+/// so the null arm is reproducible.
+fn derange_region_lists<T: Clone>(lists: &mut [Vec<T>], seed: u64) {
+    let n = lists.len();
+    if n < 2 {
+        return;
+    }
+    let mut state = seed | 1;
+    let mut next = || {
+        state ^= state >> 12;
+        state ^= state << 25;
+        state ^= state >> 27;
+        state.wrapping_mul(0x2545_F491_4F6C_DD1D)
+    };
+    let mut perm: Vec<usize> = (0..n).collect();
+    for i in (1..n).rev() {
+        let j = (next() % (i as u64 + 1)) as usize;
+        perm.swap(i, j);
+    }
+    // Eliminate any fixed points so every region genuinely reads another's list.
+    for i in 0..n {
+        if perm[i] == i {
+            let swap_with = (i + 1) % n;
+            perm.swap(i, swap_with);
+        }
+    }
+    let old = lists.to_vec();
+    for (i, slot) in lists.iter_mut().enumerate() {
+        *slot = old[perm[i]].clone();
+    }
+}
+
 /// The agreement-per-byte knee rule (module docs). Deterministic: the
 /// sort keys are total, so equal (bytes, agreement) rows resolve by
 /// label. `None` on an empty grid.
