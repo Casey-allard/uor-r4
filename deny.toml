@@ -1,0 +1,39 @@
+[graph]
+all-features = true
+
+[advisories]
+version = 2
+yanked = "deny"
+# No ignores. An ignore outlives the dependency that needed it, and then it is an
+# advisory nobody will re-examine; each one added here should name the crate it
+# excuses and the reason there is no upgrade, so the next reader can tell whether
+# it still applies.
+ignore = []
+
+[licenses]
+version = 2
+# Exactly the licences the graph carries, and no more. An allowance nothing uses
+# is reported as `license-not-encountered` on every run --- a standing warning
+# that makes the list a wish rather than a description, and that trains a reader
+# to skip past the place a real warning would appear. `cargo deny list` says
+# which these are, and the list moves with the dependency graph: adding a
+# dependency under a fourth licence means adding it here, deliberately.
+#
+# A dependency arriving under a licence not below fails this gate. That is the
+# point: it is a decision a reviewer makes at the time, not one a pre-granted
+# allowance made for them in advance.
+allow = ["Apache-2.0", "MIT", "Unicode-3.0"]
+confidence-threshold = 0.93
+
+[bans]
+multiple-versions = "warn"
+wildcards = "deny"
+
+# Nothing is banned outright. A crate that must not reach a shipped crate is
+# named here when there is one.
+deny = []
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]

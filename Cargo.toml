@@ -9,6 +9,9 @@ members = [
     "crates/uor-r4-graph-certify",
     "crates/uor-r4-graph-cli",
     "crates/uor-r4-api",
+    "crates/repo-model",
+    "crates/repo-conformance",
+    "xtask",
 ]
 default-members = [
     ".",

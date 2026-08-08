@@ -1,0 +1,17 @@
+# model/authorities.toml --- what this repository cites rather than proves.
+#
+# A `some-true` claim is reproduced from an authority and is not established
+# here. This file is where the authority is named well enough for a third party
+# to find it, with a checksum over the committed artifact when there is one and
+# a stated reason when there is not.
+#
+# `realized_by` lists the conformance IDs that are *evidence* this repository
+# realizes the cited fact. Evidence is not proof, and the meta-gate fails the
+# build if any document blurs the two registers.
+#
+# Empty. The first authority this repository cites goes here, before any claim
+# is allowed to say `some-true`.
+
+spec = "template/1"
+
+authority = []

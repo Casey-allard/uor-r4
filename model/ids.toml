@@ -1,0 +1,184 @@
+# model/ids.toml --- the conformance ID register (R1).
+#
+# #273 migration: uor-r4's Gherkin feature suites brought under the register.
+# One conformance ID per feature-capability; every scenario in the suite is
+# tagged with it and its honesty level, and a marker test in repo-conformance
+# ends in the ID slug. CONFORMANCE.md is generated from this file (never edit
+# it by hand). Level `build`: constructed here and validated against its suite.
+
+spec = "uor-r4/273"
+
+[[id]]
+id = "RF-01"
+level = "build"
+suite = "behavioral_probes"
+statement = "Unsupervised intervention and counterfactual behavioral probes"
+
+[[id]]
+id = "RF-02"
+level = "build"
+suite = "compiler_executor"
+statement = "Deterministic compiler executor abstraction"
+
+[[id]]
+id = "RF-03"
+level = "build"
+suite = "compiler_jobs_config"
+statement = "Compiler thread-pool, jobs configuration, and oversubscription policy"
+
+[[id]]
+id = "RF-04"
+level = "build"
+suite = "compiler_memory_budget"
+statement = "Compiler memory-budget and backpressure model for multicore compilation"
+
+[[id]]
+id = "RF-05"
+level = "build"
+suite = "compiler_stage_dag"
+statement = "Compiler stage ownership and parallelization DAG"
+
+[[id]]
+id = "RF-06"
+level = "build"
+suite = "expand_proof_model"
+statement = "Expand proof model for structural graph and planner guarantees"
+
+[[id]]
+id = "RF-07"
+level = "build"
+suite = "formal_monograph"
+statement = "Hologram/R4 Formal Monograph and Specification Completeness"
+
+[[id]]
+id = "RF-08"
+level = "build"
+suite = "future_state_planner"
+statement = "Bounded future-state optimization and planning over graph transitions"
+
+[[id]]
+id = "RF-09"
+level = "build"
+suite = "graph_invariant_ownership"
+statement = "Make graph invariant ownership and loader validation explicit"
+
+[[id]]
+id = "RF-10"
+level = "build"
+suite = "inference_contract"
+statement = "Normative CPU-only, multiplication-free, zero-allocation inference contract"
+
+[[id]]
+id = "RF-11"
+level = "build"
+suite = "inference_operation_contract"
+statement = "Inference operation contract"
+
+[[id]]
+id = "RF-12"
+level = "build"
+suite = "lower_semantic_regions"
+statement = "Lowering reference semantic regions into Boolean, mask, popcount, and fixed-point programs"
+
+[[id]]
+id = "RF-13"
+level = "build"
+suite = "packed_kernels"
+statement = "Packed zero-allocation CPU inference kernels over immutable graph arrays"
+
+[[id]]
+id = "RF-14"
+level = "build"
+suite = "parallel_observation_shards"
+statement = "Parallel observation, trace, and evaluation processing over deterministic shards"
+
+[[id]]
+id = "RF-15"
+level = "build"
+suite = "parallel_reproducibility"
+statement = "Normative reproducibility and canonical artifact byte equality under compiler parallelism"
+
+[[id]]
+id = "RF-16"
+level = "build"
+suite = "pdf_traceability_matrix"
+statement = "Maintain a PDF-to-implementation traceability matrix for the formal direction"
+
+[[id]]
+id = "RF-17"
+level = "build"
+suite = "performance_certificate"
+statement = "Runtime operation, allocation, and CPU portability certificates"
+
+[[id]]
+id = "RF-18"
+level = "build"
+suite = "quantum_cover"
+statement = "Von Neumann quantum density operator and cover induction"
+
+[[id]]
+id = "RF-19"
+level = "build"
+suite = "quantum_facade_benchmarks"
+statement = "Quantum Geometric Transformerless Wasm Façade & Context Scaling Benchmarks"
+
+[[id]]
+id = "RF-20"
+level = "build"
+suite = "quantum_lie_jordan"
+statement = "Quantum Geometric Lie-Jordan Splitting & Universal Product Kernel"
+
+[[id]]
+id = "RF-21"
+level = "build"
+suite = "r4g1_compile_quality"
+statement = "R4G1 compilation quality gates"
+
+[[id]]
+id = "RF-22"
+level = "build"
+suite = "r4g1_quality"
+statement = "R4G1 generated-response quality"
+
+[[id]]
+id = "RF-23"
+level = "build"
+suite = "r4g1_runtime"
+statement = "R4G1 runtime selection and fallback policy"
+
+[[id]]
+id = "RF-24"
+level = "build"
+suite = "rate_distortion_compression"
+statement = "Formalize compilation as semantic compression with rate-distortion tradeoffs"
+
+[[id]]
+id = "RF-25"
+level = "build"
+suite = "reference_compiler_ir"
+statement = "Reference floating-point semantic compiler and intermediate representation (IR)"
+
+[[id]]
+id = "RF-26"
+level = "build"
+suite = "scoring_semantics"
+statement = "Specify fixed-point scoring semantics and deterministic tie-breaking"
+
+[[id]]
+id = "RF-27"
+level = "build"
+suite = "semantic_state_space"
+statement = "Semantic state space and typed transition dynamics"
+
+[[id]]
+id = "RF-28"
+level = "build"
+suite = "separate_semantic_emission"
+statement = "Separate semantic reasoning and state transitions from language emission"
+
+[[id]]
+id = "RF-29"
+level = "build"
+suite = "teacher_parity_benchmarks"
+statement = "Teacher parity and benchmarks for the compiled transformerless runtimes"
+

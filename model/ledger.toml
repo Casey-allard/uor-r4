@@ -1,0 +1,32 @@
+# model/ledger.toml --- the honesty ledger for claims that are not conformance
+# IDs (R2).
+#
+# uor-r4 #273 Phase 1 seeds this with the four DORMANT modules as `open` claims:
+# the scoped R4 carve-out the Phase-0 analysis recommended. Each is a capability
+# measured and kept with a pre-declared activation gate, registered here rather
+# than deleted (R4 "nothing deferred" is satisfied by registration, not by
+# removal) or asserted (they are `open` — measured and reported, never proven).
+# Conformance IDs and their levels live in `model/ids.toml`; this file is the
+# non-ID honesty register only.
+
+spec = "uor-r4/273-phase-1"
+
+[[claim]]
+id = "cd-space-dormant"
+level = "open"
+statement = "The Cayley-Dickson syntactic-morphism substrate (crates/uor-r4-core/src/transformerless/cd_space.rs) is retained dormant. Measured negative in the scoring path (#400: the CD term executed 0 of 1998 positions before removal from scoring); kept for a future re-grounding whose activation gate is a positive syntactic-morphism contribution over a pre-declared null."
+
+[[claim]]
+id = "lie-jordan-dormant"
+level = "open"
+statement = "The Lie-Jordan quantum-cover algebra (crates/uor-r4-core/src/transformerless/lie_jordan.rs) is retained dormant behind its activation gate; measured and reported, never asserted."
+
+[[claim]]
+id = "bott-fock-dormant"
+level = "open"
+statement = "The Bott-Fock O(1) context-fold operator (crates/uor-r4-core/src/transformerless/bott_fock.rs) is retained dormant. #424 measured its lossless upper bound as shipped at +0.16pp (one standard error); retuning the decay could recover the ceiling. Its activation gate is a measured lift clearing the pre-declared bar."
+
+[[claim]]
+id = "quantum-cover-dormant"
+level = "open"
+statement = "The quantum-cover induction path (crates/uor-r4-graph-compiler/src/quantum_cover.rs) is retained dormant behind its activation gate; measured and reported, never asserted."

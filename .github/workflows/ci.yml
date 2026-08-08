@@ -452,3 +452,27 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: "echo 'cargo audit already ran in pull_request context (issue #240) - the advisory-DB lookup is merge-content-independent.'"
+
+  # #273 template adoption, Phase 1: the register conformance gate (R1/R2/R3).
+  # Advisory (not in the required set) until the register migration (Phase 2)
+  # and the R4/R5/R6 wiring land. Runs in every context; it is cheap.
+  register-conformance:
+    name: register conformance (R1/R2/R3, #273 phase 1)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust (stable)
+        uses: dtolnay/rust-toolchain@stable
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: cargo-${{ runner.os }}-${{ hashFiles('Cargo.lock') }}
+          restore-keys: cargo-${{ runner.os }}-
+      - name: R1 check-model + R2/R3 register BDD
+        run: |
+          cargo run -q -p xtask -- check-model
+          cargo test -q -p repo-conformance

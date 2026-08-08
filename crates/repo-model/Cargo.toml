@@ -1,0 +1,10 @@
+[package]
+name = "repo-model"
+description = "Typed registries parsed from model/*.toml: uor-r4's single source of every registered conformance claim (R1). Build/CI only, never a dependency of a shipped crate."
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+toml = "0.8"

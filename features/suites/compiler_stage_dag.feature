@@ -1,10 +1,12 @@
 Feature: Compiler stage ownership and parallelization DAG
 
+  @RF-05 @build
   Scenario: Verify 28-stage compiler inventory classification
     Given the normative compiler stage DAG inventory
     When evaluated for completeness
     Then exactly 28 pipeline stages are fully classified across the 4 concurrency classes
 
+  @RF-05 @build
   Scenario: Protect the sequential canonical finalization spine
     Given the normative compiler stage DAG inventory
     When the sequential canonical finalization spine is queried
