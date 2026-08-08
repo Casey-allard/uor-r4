@@ -1,9 +1,10 @@
 [package]
 name = "xtask"
+license = "MIT"
 description = "uor-r4 repository gates: R1 register conformance (#273 template adoption). cargo xtask <task>."
 version = "0.1.0"
 edition = "2021"
 publish = false
 
 [dependencies]
-repo-model = { path = "../crates/repo-model" }
+repo-model = { version = "0.1.0", path = "../crates/repo-model" }

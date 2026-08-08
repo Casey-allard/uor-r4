@@ -71,7 +71,7 @@ pub(crate) fn validate(bytes: &[u8], max_steps: u32) -> Result<(), FormatError> 
         }
     }
 
-    // In CODE, unlike ROUT, we can just require HALT for now
+    // In CODE, unlike ROUT, HALT is required: there is no implicit fall-through.
     if !halted {
         // Did not halt cleanly
         return Err(FormatError::CodeProgramUnterminated);

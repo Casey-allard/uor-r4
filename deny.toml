@@ -22,12 +22,24 @@ version = 2
 # A dependency arriving under a licence not below fails this gate. That is the
 # point: it is a decision a reviewer makes at the time, not one a pre-granted
 # allowance made for them in advance.
-allow = ["Apache-2.0", "MIT", "Unicode-3.0"]
+# MIT: this workspace's own crates, and most of the graph.
+# Apache-2.0 / Unicode-3.0: the SmolLM/tokenizer-adjacent and unicode tables.
+# BSD-2-Clause: arrayref, zerocopy, zerocopy-derive.
+# BSL-1.0: clipboard-win, error-code, ryu (all permissive, no attribution burden
+#   beyond the notice). Added deliberately because the graph carries them today;
+#   remove the entry when the last crate under it leaves.
+allow = ["Apache-2.0", "MIT", "Unicode-3.0", "BSD-2-Clause", "BSL-1.0"]
 confidence-threshold = 0.93
 
 [bans]
 multiple-versions = "warn"
 wildcards = "deny"
+# The workspace's own crates depend on each other by path, which carries no
+# version and so reads as a wildcard. That is a property of an unpublished
+# monorepo, not a third-party crate pinned to `*`; the wildcard ban is aimed at
+# the latter. Path wildcards inside the workspace are allowed; a registry
+# dependency written as `*` still fails.
+allow-wildcard-paths = true
 
 # Nothing is banned outright. A crate that must not reach a shipped crate is
 # named here when there is one.
@@ -37,3 +49,13 @@ deny = []
 unknown-registry = "deny"
 unknown-git = "deny"
 allow-registry = ["https://github.com/rust-lang/crates.io-index"]
+# The two UOR standards are consumed as pinned git dependencies (AGENTS.md), not
+# from a registry: `uor-addr` and the `UOR-Framework` (uor-foundation*, and the
+# dev-only uor-foundation-verify). Each is pinned to an exact `rev` in the
+# workspace manifests, so allow-listing the source repository is not a blanket
+# trust of the org --- the revision is what is trusted, and it is reviewed where
+# it is bumped. `unknown-git = "deny"` keeps any other git source failing.
+allow-git = [
+    "https://github.com/UOR-Foundation/uor-addr",
+    "https://github.com/UOR-Foundation/UOR-Framework",
+]

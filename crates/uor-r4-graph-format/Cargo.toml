@@ -1,5 +1,6 @@
 [package]
 name = "uor-r4-graph-format"
+license = "MIT"
 version = "0.1.0"
 edition = "2021"
 description = "R4G1 packed graph artifact container: no_std-compatible fixed-width types, two-stage (structural + semantic) validation, canonical serializer, and borrowed GraphView"
@@ -17,4 +18,4 @@ blake3 = { version = "=1.5.0", default-features = false }
 # Serde on the wire newtypes (ScoreQ and peers flow into certificates and
 # manifests); no_std-compatible via derive-only, no std/alloc requirement.
 serde = { version = "1.0", default-features = false, features = ["derive"] }
-uor-addr = { git = "https://github.com/UOR-Foundation/uor-addr.git", rev = "165b51e3e2113ee5d032730cde709335d4fe9b60", default-features = false, features = ["alloc"], optional = true }
+uor-addr = { version = "0.2.0", git = "https://github.com/UOR-Foundation/uor-addr.git", rev = "165b51e3e2113ee5d032730cde709335d4fe9b60", default-features = false, features = ["alloc"], optional = true }

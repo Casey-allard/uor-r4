@@ -1,9 +1,10 @@
 [package]
 name = "repo-conformance"
+license = "MIT"
 description = "The BDD runner and the honesty meta-gate (R2/R3). Dev and CI only; never a dependency of a shipped crate."
 version = "0.1.0"
 edition = "2021"
 publish = false
 
 [dependencies]
-repo-model = { path = "../repo-model" }
+repo-model = { version = "0.1.0", path = "../repo-model" }

@@ -1,14 +1,15 @@
 [package]
 name = "uor-r4-graph-cli"
+license = "MIT"
 version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-uor-r4-core = { path = "../uor-r4-core" }
-uor-r4-graph-compiler = { path = "../uor-r4-graph-compiler" }
-uor-r4-graph-certify = { path = "../uor-r4-graph-certify" }
-uor-r4-graph-runtime = { path = "../uor-r4-graph-runtime" }
-uor-r4-model-source = { path = "../uor-r4-model-source" }
+uor-r4-core = { version = "0.1.0", path = "../uor-r4-core" }
+uor-r4-graph-compiler = { version = "0.1.0", path = "../uor-r4-graph-compiler" }
+uor-r4-graph-certify = { version = "0.1.0", path = "../uor-r4-graph-certify" }
+uor-r4-graph-runtime = { version = "0.1.0", path = "../uor-r4-graph-runtime" }
+uor-r4-model-source = { version = "0.1.0", path = "../uor-r4-model-source" }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 blake3 = "1.5.0"

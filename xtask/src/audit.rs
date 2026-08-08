@@ -172,6 +172,27 @@ pub fn audit_deferral(root: &Path) -> Result<(), Fail> {
         concat!("for ", "now"),
         concat!("later ", "version"),
     ];
+
+    // The carve-out (uor-r4 #510): a deferral is a violation only if it is
+    // *unregistered*. A capability kept dormant behind a pre-declared activation
+    // gate is registered in `model/ledger.toml` as an `open` claim --- measured
+    // and reported, never asserted (R2) --- and a marker on a line that cites
+    // that claim's id is the honest form of "this is deferred, and here is where
+    // it is declared". A marker with no such citation is a deferral nobody
+    // agreed to, which is exactly what R4 exists to catch. The set is read from
+    // the ledger, not listed here, so a claim retired from the ledger re-arms
+    // the gate on the lines that cited it.
+    let open_ids: Vec<String> = repo_model::Model::load(&root.join("model"))
+        .map(|m| {
+            m.ledger
+                .claim
+                .iter()
+                .filter(|c| c.level == repo_model::Level::Open)
+                .map(|c| c.id.clone())
+                .collect()
+        })
+        .unwrap_or_default();
+
     let mut violations = Vec::new();
 
     // Every crate, not only the shipped ones, and `xtask` with them: R4 is a
@@ -210,18 +231,27 @@ pub fn audit_deferral(root: &Path) -> Result<(), Fail> {
                 // A backticked marker is a *mention*, not a use: the
                 // documentation has to be able to name what the gate catches
                 // without tripping it. Anything outside code spans is real.
-                if outside_code_spans(line, marker) {
-                    violations.push(format!("{rel}:{}: {}", i + 1, line.trim()));
+                if !outside_code_spans(line, marker) {
+                    continue;
                 }
+                // The carve-out: a real marker is sanctioned when its line cites
+                // an `open` ledger claim, i.e. the deferral is registered.
+                if open_ids.iter().any(|id| line.contains(id.as_str())) {
+                    continue;
+                }
+                violations.push(format!("{rel}:{}: {}", i + 1, line.trim()));
             }
         }
     }
 
     if !violations.is_empty() {
         return Err(format!(
-            "R4: nothing is deferred. None of {} may appear, and no stub, no \
-             placeholder section, and no capability behind a flag that turns it \
-             off. Every capability ships in the one release.\n\n{}",
+            "R4: nothing is deferred *and unregistered*. None of {} may appear \
+             unless the line cites an `open` claim in model/ledger.toml (a \
+             capability kept dormant behind a pre-declared activation gate). \
+             Otherwise: no stub, no placeholder section, no capability behind a \
+             flag that turns it off. Register the deferral as `open`, or remove \
+             it.\n\n{}",
             markers.join(", "),
             violations.join("\n")
         )

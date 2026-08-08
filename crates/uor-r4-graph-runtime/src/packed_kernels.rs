@@ -90,10 +90,11 @@ impl<const TOP_K: usize> StepOutput<TOP_K> {
 
 /// Kernel 1: Evaluate ROUT bytecode program over borrowed `GraphView`.
 ///
-/// # TODO
-/// Stub — ROUT bytecode interpretation over the graph's routing section is not yet
-/// implemented (tracked by Issue #159 Phase 2).  Currently validates `max_steps` and
-/// returns 0 as the route-target placeholder.
+/// # TODO(open: packed-routing-dormant)
+/// Declared placeholder — ROUT bytecode interpretation over the graph's routing
+/// section is not yet wired; registered `open` in model/ledger.toml behind its
+/// activation gate (#159 Phase 2). Validates `max_steps` and returns 0 as the
+/// pre-declared route-target placeholder; unreferenced by the serving path.
 pub fn evaluate_routing_program(
     _view: &GraphView<'_>,
     _start_pc: usize,
@@ -102,7 +103,7 @@ pub fn evaluate_routing_program(
     if max_steps == 0 {
         return Err(RuntimeError::InvalidNode);
     }
-    // TODO(#159-phase2): walk view.routing_section() / ROUT opcodes up to max_steps.
+    // TODO(open: packed-routing-dormant, #159 Phase 2): walk view.routing_section() / ROUT opcodes up to max_steps.
     Ok(0)
 }
 
@@ -165,16 +166,17 @@ pub fn accumulate_candidate_shortlist<const C: usize>(
 
 /// Kernel 4: Typed semantic transition evaluator.
 ///
-/// # TODO
-/// Stub — graph-edge traversal using the `action_mask` is not yet implemented
-/// (tracked by Issue #159 Phase 2).  Currently returns `src_node + 1` as a
-/// placeholder successor.
+/// # TODO(open: packed-routing-dormant)
+/// Declared placeholder — graph-edge traversal using the `action_mask` is not
+/// yet wired; registered `open` in model/ledger.toml behind its activation gate
+/// (#159 Phase 2). Returns `src_node + 1` as the pre-declared placeholder
+/// successor; unreferenced by the serving path.
 pub fn evaluate_typed_transition(
     _view: &GraphView<'_>,
     src_node: u32,
     _action_mask: u64,
 ) -> Result<u32, RuntimeError> {
-    // TODO(#159-phase2): look up outgoing edges from src_node filtered by action_mask.
+    // TODO(open: packed-routing-dormant, #159 Phase 2): look up outgoing edges from src_node filtered by action_mask.
     Ok(src_node.saturating_add(1))
 }
 

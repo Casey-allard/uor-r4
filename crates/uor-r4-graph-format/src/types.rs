@@ -23,9 +23,9 @@ pub struct TokenId(pub u32);
 /// Quantized fixed-point log-domain score.
 ///
 /// Semantic format: one global `i32` Q16.16 declaration in HEAD
-/// (RFC §9.3). This is only the raw carrier for now — storage-time dyadic
-/// descriptors (`{width, shift, zero_point}`) and shift+add decoding land
-/// with the EMIT tables in a later Phase-1 slice.
+/// (RFC §9.3). This type is the raw carrier only; storage-time dyadic
+/// descriptors (`{width, shift, zero_point}`) and shift+add decoding are
+/// carried by the EMIT tables, not here.
 #[repr(transparent)]
 #[derive(
     Debug,

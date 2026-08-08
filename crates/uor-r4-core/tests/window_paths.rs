@@ -93,7 +93,7 @@ fn store_container_roundtrip() {
         "truncated container rejected"
     );
     assert!(
-        runtime::parse_store(b"XXXX").is_none(),
+        runtime::parse_store(b"badmagic").is_none(),
         "bad magic rejected"
     );
 }

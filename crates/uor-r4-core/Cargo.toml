@@ -1,20 +1,21 @@
 [package]
 name = "uor-r4-core"
+license = "MIT"
 version = "0.1.0"
 edition = "2021"
 description = "Core R4 engine: geometric routing mathematics and integrated transformerless local inference"
 
 [dependencies]
-uor-r4-graph-format = { path = "../uor-r4-graph-format" }
-uor-r4-model-source = { path = "../uor-r4-model-source" }
+uor-r4-graph-format = { version = "0.1.0", path = "../uor-r4-graph-format" }
+uor-r4-model-source = { version = "0.1.0", path = "../uor-r4-model-source" }
 sha2 = "0.10.8"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 hex = "0.4.3"
 blake3 = "=1.5.0"
 ciborium = "0.2"
-uor-r4-graph-runtime = { path = "../uor-r4-graph-runtime" }
-uor-addr = { git = "https://github.com/UOR-Foundation/uor-addr.git", rev = "165b51e3e2113ee5d032730cde709335d4fe9b60", default-features = false, features = ["alloc"] }
+uor-r4-graph-runtime = { version = "0.1.0", path = "../uor-r4-graph-runtime" }
+uor-addr = { version = "0.2.0", git = "https://github.com/UOR-Foundation/uor-addr.git", rev = "165b51e3e2113ee5d032730cde709335d4fe9b60", default-features = false, features = ["alloc"] }
 tracing = { version = "0.1", default-features = false, features = ["std"] }
 libm = "0.2"
 

@@ -1,5 +1,6 @@
 [package]
 name = "uor-r4-model-source"
+license = "MIT"
 version = "0.1.0"
 edition = "2021"
 

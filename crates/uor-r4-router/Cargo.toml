@@ -1,11 +1,12 @@
 [package]
 name = "uor-r4-router"
+license = "MIT"
 version = "0.1.0"
 edition = "2021"
 description = "The R4 Tangent Space Router engine: UorR4Router state, manifold indexing, geometric Markov generation, thought streams (wasm-bindgen surface included)"
 
 [dependencies]
-uor-r4-core = { path = "../uor-r4-core" }
+uor-r4-core = { version = "0.1.0", path = "../uor-r4-core" }
 wasm-bindgen = "0.2.92"
 serde = { version = "1.0", features = ["derive"] }
 serde-wasm-bindgen = "0.6.5"
@@ -14,9 +15,9 @@ serde_json = "1.0"
 sha2 = "0.10.8"
 hex = "0.4.3"
 blake3 = "1.5.0"
-uor-addr = { git = "https://github.com/UOR-Foundation/uor-addr.git", rev = "165b51e3e2113ee5d032730cde709335d4fe9b60", default-features = false, features = ["alloc"] }
-uor-foundation = { git = "https://github.com/UOR-Foundation/UOR-Framework.git", rev = "51c01382200b0179d6640b07e9c8119364ab69a1", default-features = false, features = ["std", "serde"] }
-uor-foundation-sdk = { git = "https://github.com/UOR-Foundation/UOR-Framework.git", rev = "51c01382200b0179d6640b07e9c8119364ab69a1" }
+uor-addr = { version = "0.2.0", git = "https://github.com/UOR-Foundation/uor-addr.git", rev = "165b51e3e2113ee5d032730cde709335d4fe9b60", default-features = false, features = ["alloc"] }
+uor-foundation = { version = "0.5.2", git = "https://github.com/UOR-Foundation/UOR-Framework.git", rev = "51c01382200b0179d6640b07e9c8119364ab69a1", default-features = false, features = ["std", "serde"] }
+uor-foundation-sdk = { version = "0.5.2", git = "https://github.com/UOR-Foundation/UOR-Framework.git", rev = "51c01382200b0179d6640b07e9c8119364ab69a1" }
 tracing = { version = "0.1", default-features = false, features = ["std"] }
 
 [dev-dependencies]
