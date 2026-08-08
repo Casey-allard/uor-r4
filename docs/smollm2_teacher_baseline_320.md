@@ -128,3 +128,53 @@ On the local 360M source, a fresh 5,000-token compile measured 74.5 tokens/s
 with both changes enabled, versus 54.5 tokens/s in the earlier scalar-exp /
 uncached-RoPE run. This is a throughput measurement, not a quality or
 determinism claim; canonical mode remains the reproducibility path.
+
+## P2 — SmolLM2-360M baseline (cloud, 2026-08-08)
+
+The full P2 pipeline was run on the 360M source: observe to a 20,000-record
+corpus, cover, score (`relative_tla`), teacher-floor report. Same commands as
+the 135M P2 above with the source and output paths swapped to
+`smollm2-360m-instruct`.
+
+### Provenance
+
+The descriptor's pinned revision `2366112999e525164f9f74a3fbf50ec19b48b940`
+returns 404 on Hugging Face (upstream rewrote it). The run used current `main`,
+revision `a10cc1512eabd3dde888204e902eca88bddb4951`; its `model.safetensors` is
+byte-identical (723,674,912 bytes) to the copy pinned on the measurement machine
+in July, so the weights are the same SmolLM2-360M-Instruct release — the changed
+revision is a metadata commit. κ on record: source
+`blake3:27ec272b02c2d41c805d8e2e143a9bd43a1c4b8cdee46653ab944f91c5132aa5`,
+teacher (compiler layout)
+`blake3:eb23c3e8527110b83c091f8660aba676ec4993c9212a9e147503878d6087191f`,
+artifacts
+`blake3:910b1112537d3b5038cf0e6d7c111391b5e2deab6a0fdda3c8a0ce7d289e4505`. P3's
+re-pin is a maintainer step regardless, so measuring the current release is valid
+for P2.
+
+### Result (Gate C, 4,098 held-out D3 positions; EXCT-miss 73.1%)
+
+The teacher floor is **3.7908 bits/token**. The TLA table-native bundle reached
+5.54% top-1 and 8.61% teacher-argmax agreement at 21.1834 Witten–Bell
+bits/token, so the artifact sits **+17.39 bits over the floor** — compiler-bound
+on this corpus, not teacher-bound. The scored graph's Rule 1+2 row reached 5.0%
+top-1 at 14.78 bits/token; the #399 A-mode forward-anchor row replicated in
+direction at 5.7%; the same-corpus TLA3 store baseline was 8.6% / 21.18.
+
+### The migration signal
+
+The 360M teacher floor (3.79 bits) is lower than the 135M cloud floor (4.20) and
+the original 135M doc floor (4.95): a measurably more competent teacher with a
+higher ceiling. Floors are on different corpora so they are not a direct quality
+comparison, but the trend is the point. The artifact top-1 (5.5%) is lower than
+the 135M doc's 7.6% — compiler- and corpus-draw dependent, not the ceiling: a
+sharper teacher is harder for the lossy TLA compilation to match at 20k
+rehearsal scale. The headroom that matters is the 17.4 bits over a 3.79-bit
+floor, which is the substrate's to close with more data.
+
+So P2 confirms 360M as a viable, more-competent teacher and sharpens the trade
+the 135M P2 recorded — strong-narrow (stories15M, 1.43-bit home floor) versus
+competent-broad (SmolLM2-360M, 3.79-bit instruction floor). The ceiling lift is
+real but only cashable at broad-corpus scale. **P3 (the baseline re-pin) remains
+a maintainer decision** per AGENTS.md, best taken together with committing to the
+broad-corpus program; the pinned stories15M fixtures are unchanged.
