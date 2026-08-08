@@ -116,3 +116,45 @@ cannot fail is indistinguishable from one that passes.
   (MRR 0.2348 → 0.8948, router anchor accuracy 9.3% → 11.4%) is not reaching
   the production retrieval surface. Flagged in the #465 scope note, confirmed
   here, and filed separately — it is a larger prize than this issue was.
+
+## Correction (appended 2026-08-08, #487) — the Spectral row is lexical, not geometry
+
+The figures above stand as measured; the *interpretation* of the Spectral row
+does not. This block is appended rather than rewritten so the record shows what
+was believed and when.
+
+**What the 0.7179 actually measures.** `retrieve_geometric_resonance` ranks by
+`shared_count * 100 + sim * slice_norm + scope_boost`. #484 and #486
+subsequently established, on this same corpus, the same caps (2,000 construction
+stories, 500 probes, `TOP_N = 20`), the same probe form, and through this same
+function, that the cosine term `sim` is **at chance** on this path — the target
+sits at median rank 21,082 of 46,342 even when the probe is the exact stored
+sentence, against a random median of 23,171. #486 traced the cause: the query
+vector is built from the *routing* path while stored vectors are the *content*
+vector, so the two sides are different objects and their cosine is noise by
+construction. With the lexical `shared_count` term dominating by a factor of
+100, the Spectral arm's 0.7179 is **word overlap, not spectral geometry.**
+
+**So this ablation compared (lexical ranking + a dead cosine) against (an empty
+index).** It isolated the `set_geometry_type` switch correctly — that part is
+sound — but it told us nothing about either geometry's retrieval quality,
+because neither geometry's cosine was contributing. The VSA arm's `0.0000` is
+still a real wiring fact (`index_corpus` never populates `facet_store`); the
+Spectral arm's non-zero score is the lexical term both arms would have shared
+had VSA's index not been empty.
+
+**The tell we missed.** #484 and #480 each re-derived the identical triple
+`0.6240 / 0.7179 / 0.9720` under their own framings without anyone noticing it
+was one measurement three times. Identical metric triples across supposedly
+different arms are a signal, not a coincidence; the cheap guard is to pin a
+known reference row and assert against it, as #484's harness now does.
+
+**Consequence for the disposition above.** Choosing between Spectral and VSA
+(the "What should follow" section) is premature: the deployed geometry's own
+cosine term is at chance, so there is no geometry-quality signal to compare yet.
+The `set_content_query_vector` fix from #486 (adoption gated as #490) is the
+prerequisite — once the cosine is comparing like objects, this ablation is
+worth re-running. The VSA-wiring disposition is re-opened with this corrected
+framing as a follow-up issue.
+See [geometry_selfmatch_486.md](geometry_selfmatch_486.md) and
+[lexical_weight_484.md](lexical_weight_484.md).

@@ -57,8 +57,14 @@
 //! - Otherwise the switch is MEASURED INDIFFERENT, and that is the result:
 //!   recorded with numbers so the choice is not re-litigated from intuition.
 //!
-//! Reference points on this stack, for scale: content-full-width 0.8948 MRR,
-//! banded 0.2348, shuffled control 0.0001 (#440).
+//! Reference points on this stack, for scale — but NOT commensurable with this
+//! harness's numbers: content-full-width 0.8948 MRR, banded 0.2348, shuffled
+//! control 0.0001 (#440). Those are COSINE-ranked. This harness's Spectral row
+//! ranks by `shared_count * 100 + sim * slice_norm`, and #484/#486 measured the
+//! cosine term (`sim`) at chance on this path (the query vector is the routing
+//! vector, not the content vector). So this arm's score is word overlap, not
+//! spectral geometry, and it cannot be read on the same scale as 0.8948. See
+//! `docs/geometry_ablation_434.md` (correction block) and #487.
 //!
 //! # Two harness traps, recorded because both look exactly like a finding
 //!
