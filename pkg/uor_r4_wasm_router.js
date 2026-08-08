@@ -368,7 +368,9 @@ export class UorR4Router {
     }
     /**
      * The weight one shared query prime carries in retrieval relevance
-     * (issue #484). [`DEFAULT_LEXICAL_WEIGHT`] unless overridden.
+     * (issues #484 / #502). The deployed default depends on the query path
+     * (see [`UorR4Router::default_lexical_weight`]) unless overridden with
+     * [`set_lexical_weight`](UorR4Router::set_lexical_weight).
      * @returns {number}
      */
     lexical_weight() {
@@ -449,6 +451,21 @@ export class UorR4Router {
      */
     set_banded_storage(banded) {
         wasm.uorr4router_set_banded_storage(this.__wbg_ptr, banded);
+    }
+    /**
+     * Build the retrieval query vector from the query text's own content
+     * state rather than from the routing state (issue #486). **Default ON
+     * since #490**; pass `false` to reproduce the pre-#490 routing-query
+     * ordering for measurement.
+     *
+     * This is the arm that makes the query and the stored vector the same
+     * KIND of object. Falls back to the deployed projection for any text
+     * with no vocabulary word, so the knob can never leave a query without a
+     * vector.
+     * @param {boolean} content
+     */
+    set_content_query_vector(content) {
+        wasm.uorr4router_set_content_query_vector(this.__wbg_ptr, content);
     }
     /**
      * Build the query projection full-width rather than band-only

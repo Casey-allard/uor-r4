@@ -45,6 +45,7 @@ export const uorr4router_route_query_to_manifold_uor: (a: number, b: number, c: 
 export const uorr4router_set_angle_x: (a: number, b: number) => void;
 export const uorr4router_set_angle_y: (a: number, b: number) => void;
 export const uorr4router_set_banded_storage: (a: number, b: number) => void;
+export const uorr4router_set_content_query_vector: (a: number, b: number) => void;
 export const uorr4router_set_full_width_query: (a: number, b: number) => void;
 export const uorr4router_set_geometry_type: (a: number, b: number, c: number) => void;
 export const uorr4router_set_lexical_weight: (a: number, b: number) => void;

@@ -117,7 +117,9 @@ export class UorR4Router {
     kill_switch_threshold(): number;
     /**
      * The weight one shared query prime carries in retrieval relevance
-     * (issue #484). [`DEFAULT_LEXICAL_WEIGHT`] unless overridden.
+     * (issues #484 / #502). The deployed default depends on the query path
+     * (see [`UorR4Router::default_lexical_weight`]) unless overridden with
+     * [`set_lexical_weight`](UorR4Router::set_lexical_weight).
      */
     lexical_weight(): number;
     /**
@@ -149,6 +151,18 @@ export class UorR4Router {
      * indexed items are not rewritten, so flip this before ingestion.
      */
     set_banded_storage(banded: boolean): void;
+    /**
+     * Build the retrieval query vector from the query text's own content
+     * state rather than from the routing state (issue #486). **Default ON
+     * since #490**; pass `false` to reproduce the pre-#490 routing-query
+     * ordering for measurement.
+     *
+     * This is the arm that makes the query and the stored vector the same
+     * KIND of object. Falls back to the deployed projection for any text
+     * with no vocabulary word, so the knob can never leave a query without a
+     * vector.
+     */
+    set_content_query_vector(content: boolean): void;
     /**
      * Build the query projection full-width rather than band-only
      * (issue #480). Default off — see `docs/query_projection_480.md` for
@@ -249,6 +263,7 @@ export interface InitOutput {
     readonly uorr4router_set_angle_x: (a: number, b: number) => void;
     readonly uorr4router_set_angle_y: (a: number, b: number) => void;
     readonly uorr4router_set_banded_storage: (a: number, b: number) => void;
+    readonly uorr4router_set_content_query_vector: (a: number, b: number) => void;
     readonly uorr4router_set_full_width_query: (a: number, b: number) => void;
     readonly uorr4router_set_geometry_type: (a: number, b: number, c: number) => void;
     readonly uorr4router_set_lexical_weight: (a: number, b: number) => void;
