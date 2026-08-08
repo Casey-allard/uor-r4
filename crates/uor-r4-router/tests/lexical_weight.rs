@@ -30,11 +30,31 @@
 //! ONE corpus is the whole point. Quoting the cross-harness gap as if it
 //! were a measured delta would repeat the error #480 was filed on.
 //!
+//! # Two baselines since #490
+//!
+//! When #484 was first run, the deployed default was the routing-path query and
+//! the cosine was at chance (#486). "The weight is inert" was measured there:
+//! with no geometric signal for `W` to trade against, any `W > ~0.4` gives the
+//! same lexicographic order. #490 then made the deployed query the CONTENT
+//! vector, so the cosine now carries signal — and the inertness claim has to be
+//! reassessed on that path. This harness runs in two modes:
+//!
+//! - **default (`content_query = false`)** — reproduces the PRE-#490 lexical
+//!   baseline. Retained as the regression tell: the 0.6240 / 0.7179 / 0.9720
+//!   triple is the dead-cosine measurement that #434, #480 and #484 each
+//!   re-derived without noticing it was one number three times, so it is pinned
+//!   and asserted. This is NOT what ships any more.
+//! - **deployed (`R4_LEXW_CONTENT_QUERY=1`, `content_query = true`)** — the path
+//!   that ships since #490. Here the weight is NOT inert: dropping the lexical
+//!   term (`W = 0`, bare cosine) is worth about +0.022 MRR and lifts recall
+//!   0.9720 -> 0.9900. Pinned against `CONTENT_*` below.
+//!
 //! # Arms
 //!
 //! `W` in {0, 1, 10, 100 (shipped), 1000, 100000 (effectively strict
-//! lexicographic)}. Storage and query shapes are held at the deployed
-//! default in every arm, so `W` is the only thing that moves.
+//! lexicographic)}. Storage and query shapes are held fixed within a mode, so
+//! `W` is the only thing that moves; the query KIND (routing vs content) is the
+//! mode switch above.
 //!
 //! # Corpus, probes, null — identical to `query_projection.rs`
 //!
@@ -49,10 +69,15 @@
 //!
 //! # Validity checks, both binding
 //!
-//! 1. **The `W = 100` arm must reproduce #480's shipped row** (0.6240 top-1
-//!    / 0.7179 MRR / 0.9720 recall@20). If it does not, this harness is
-//!    wrong and its sweep says nothing about the weight. Checked against
-//!    pinned constants below, not by eye.
+//! 1. **The `W = 100` arm must reproduce the mode's pinned row.** In default
+//!    mode that is #480's PRE-#490 dead-cosine row (0.6240 top-1 / 0.7179 MRR
+//!    / 0.9720 recall@20, `SHIPPED_*`); in content-query mode it is the
+//!    post-#490 deployed row (`CONTENT_*`). If the `W = 100` arm does not
+//!    reproduce its mode's pin, the corpus or probes moved and the sweep says
+//!    nothing about the weight. Checked against pinned constants, not by eye.
+//!    The two pins also guard the DISTINCTNESS of the baselines: the deployed
+//!    content row must sit well above the dead-cosine 0.7179, or #490 has
+//!    regressed.
 //! 2. **The deranged-key null must be near zero in EVERY arm.** A weight
 //!    that lifts the null is not measuring retrieval quality. This matters
 //!    more here than in #480: `W = 0` is a genuinely different ranking, and
@@ -92,14 +117,27 @@ const WIN_MARGIN: f64 = 0.05;
 /// How much recall@20 a winning arm may give up.
 const RECALL_GIVEBACK: f64 = 0.02;
 
-/// #480's shipped row on this corpus and these caps, and the tolerance the
-/// reproduction is checked at. These are the harness's own validity anchor:
-/// the `W = 100` arm IS that configuration, so anything else means the
-/// corpus, the probes or the ranking changed under us and the sweep is void.
+/// #480's PRE-#490 row on this corpus and these caps — the dead-cosine
+/// baseline, back when the deployed query was the routing path. Pinned in
+/// DEFAULT mode (`content_query = false`): the `W = 100` arm IS that
+/// configuration, so anything else means the corpus, the probes or the ranking
+/// changed under us and the sweep is void. This is the triple #434/#480/#484
+/// each re-derived without noticing it was one measurement three times, so it
+/// earns a tight pin as the canonical dead-cosine tell.
 const SHIPPED_TOP1: f64 = 0.6240;
 const SHIPPED_MRR: f64 = 0.7179;
 const SHIPPED_RECALL: f64 = 0.9720;
 const REPRODUCTION_TOLERANCE: f64 = 0.0005;
+
+/// The post-#490 DEPLOYED row (content-query path), pinned in content-query
+/// mode. The deployed default is `content_query = true` since #490, so THIS is
+/// what ships. Wider tolerance than the dead-cosine pin above: this anchor is
+/// here to catch the 0.7179 baseline reappearing on the wrong path, not to
+/// freeze a fourth decimal across recompiles. `CONTENT_MRR` is re-confirmed on
+/// current main in the #500 PR.
+const CONTENT_MRR: f64 = 0.8542;
+const CONTENT_RECALL_MIN: f64 = 0.97;
+const CONTENT_TOLERANCE: f64 = 0.02;
 
 fn fixture(name: &str) -> String {
     format!(
@@ -108,9 +146,11 @@ fn fixture(name: &str) -> String {
     )
 }
 
-/// #486: re-run the whole sweep with the query vector built from the query
-/// text's CONTENT state instead of the routing state. Off by default, so the
-/// pinned reproduction check below still guards the deployed configuration.
+/// #486/#490: run the sweep with the query vector built from the query text's
+/// CONTENT state instead of the routing state — which is the DEPLOYED path
+/// since #490. Off by default here only so the default run keeps reproducing
+/// the pre-#490 dead-cosine row (`SHIPPED_*`) as the regression tell; the
+/// deployed row (`CONTENT_*`) is measured with `R4_LEXW_CONTENT_QUERY=1`.
 ///
 /// This exists because #484's flat sweep was measured with a cosine that
 /// #486 then showed to be noise. "The weight does not matter" is CONDITIONAL
@@ -470,32 +510,51 @@ fn lexical_weight_sweep() {
          null is not measuring retrieval quality"
     );
 
-    // 2. The shipped arm must BE the shipped configuration.
+    // 2. The W=100 arm must BE its mode's pinned configuration, AND the two
+    //    baselines must stay distinct — the whole point of #490 is that the
+    //    deployed content row sits well above the dead-cosine 0.7179.
     let (s_top1, s_mrr, s_recall, _) = summary[&DEFAULT_LEXICAL_WEIGHT.to_bits()];
-    println!(
-        "W={DEFAULT_LEXICAL_WEIGHT:.0} reproduces #480's shipped row: \
-         top-1 {s_top1:.4} vs {SHIPPED_TOP1:.4}, MRR {s_mrr:.4} vs {SHIPPED_MRR:.4}, \
-         recall {s_recall:.4} vs {SHIPPED_RECALL:.4}"
-    );
-    // The pinned reproduction binds only in the DEPLOYED configuration. In
-    // #486 content-query mode the W=100 arm is deliberately a different
-    // ranking, so asserting #480's row against it would be asserting that the
-    // fix does nothing.
-    for (label, got, want) in [
-        ("top-1", s_top1, SHIPPED_TOP1),
-        ("MRR", s_mrr, SHIPPED_MRR),
-        ("recall@20", s_recall, SHIPPED_RECALL),
-    ]
-    .into_iter()
-    .filter(|_| !content_query_mode())
-    {
-        assert!(
-            (got - want).abs() <= REPRODUCTION_TOLERANCE,
-            "W={DEFAULT_LEXICAL_WEIGHT:.0} must reproduce #480's shipped {label} \
-             ({want:.4}), got {got:.4}. The knob was supposed to leave deployed \
-             behaviour untouched at its default, so either it does not, or the corpus \
-             or probes moved — either way this sweep says nothing about the weight."
+    if content_query_mode() {
+        println!(
+            "W={DEFAULT_LEXICAL_WEIGHT:.0} on the DEPLOYED content-query path: \
+             top-1 {s_top1:.4}, MRR {s_mrr:.4} vs pinned {CONTENT_MRR:.4}, \
+             recall {s_recall:.4} (>= {CONTENT_RECALL_MIN:.4}); dead-cosine baseline is \
+             {SHIPPED_MRR:.4}"
         );
+        assert!(
+            (s_mrr - CONTENT_MRR).abs() <= CONTENT_TOLERANCE,
+            "W={DEFAULT_LEXICAL_WEIGHT:.0} on the content path must reproduce the deployed \
+             MRR {CONTENT_MRR:.4} +/- {CONTENT_TOLERANCE:.2}, got {s_mrr:.4}. Either #490 \
+             regressed or the corpus/probes moved — either way this sweep says nothing."
+        );
+        assert!(
+            s_recall >= CONTENT_RECALL_MIN,
+            "deployed content-path recall must be >= {CONTENT_RECALL_MIN:.4}, got {s_recall:.4}"
+        );
+        assert!(
+            s_mrr >= SHIPPED_MRR + 0.05,
+            "the deployed content row ({s_mrr:.4}) must sit clearly above the dead-cosine \
+             baseline ({SHIPPED_MRR:.4}); if it does not, the content-vector query has \
+             stopped paying and #490 has regressed"
+        );
+    } else {
+        println!(
+            "W={DEFAULT_LEXICAL_WEIGHT:.0} reproduces #480's PRE-#490 dead-cosine row: \
+             top-1 {s_top1:.4} vs {SHIPPED_TOP1:.4}, MRR {s_mrr:.4} vs {SHIPPED_MRR:.4}, \
+             recall {s_recall:.4} vs {SHIPPED_RECALL:.4}"
+        );
+        for (label, got, want) in [
+            ("top-1", s_top1, SHIPPED_TOP1),
+            ("MRR", s_mrr, SHIPPED_MRR),
+            ("recall@20", s_recall, SHIPPED_RECALL),
+        ] {
+            assert!(
+                (got - want).abs() <= REPRODUCTION_TOLERANCE,
+                "W={DEFAULT_LEXICAL_WEIGHT:.0} must reproduce #480's pre-#490 {label} \
+                 ({want:.4}), got {got:.4}. Either the routing-path default moved or the \
+                 corpus/probes moved — either way this sweep says nothing about the weight."
+            );
+        }
     }
 
     // 3. The cosine-only comparator, reported before the verdict because it is

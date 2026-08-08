@@ -38,12 +38,37 @@
 //!
 //! # Arms
 //!
+//! The projection lever this issue is about — band-only vs full-width QUERY —
+//! only exists on the `content_query = false` path. Since #490, `new()` defaults
+//! `content_query = true`, which builds the query from the content vector and
+//! makes `set_full_width_query` a no-op. The first three arms therefore set
+//! `content_query = false` explicitly; without that they would all collapse to
+//! the content-vector query and the shipped-vs-symmetric verdict would be a
+//! vacuous `+0.0000`.
+//!
 //! - `banded` — `set_banded_storage(true)`: banded store, banded query. The
 //!   pre-#465 world.
-//! - `shipped` — the deployed default: full store, band-only query. This is
-//!   the asymmetry the issue is about.
+//! - `shipped` — full store, band-only query. The PRE-#490 deployed default,
+//!   and the asymmetry the issue was originally about.
 //! - `symmetric` — full store, full-width query via
-//!   `set_full_width_query(true)`: the proposed fix.
+//!   `set_full_width_query(true)`: #480's proposed fix.
+//! - `content (deployed)` — `content_query = true`: what actually ships since
+//!   #490. The query is the content vector, full-width by construction and the
+//!   same KIND of object as the stored vector (which the projected query never
+//!   was, #486). The other three are read against this one.
+//!
+//! # What #490 did to this question
+//!
+//! #480's original verdict was NEGATIVE: making the shapes symmetric was worth
+//! only +0.0059 MRR against a +0.05 bar. #486 then showed why — the cosine was
+//! at chance because the query (routing path) and the stored vector (content)
+//! were different objects, so no query SHAPE could pay. #490 fixed the object by
+//! building the query from the content vector, which is full-width by
+//! construction. That is the shape #480 was reaching for, and it pays about
+//! +0.136 MRR over the band-only query. So "shape does not pay" is SUPERSEDED:
+//! the lever was real; it was mis-measured because the query was the wrong kind
+//! of object, not the wrong shape. This harness now shows both the flat
+//! projection arms and the deployed content arm side by side.
 //!
 //! # Corpus, probes, null
 //!
@@ -211,16 +236,32 @@ fn query_projection_shape() {
         .map(|i| targets[(i + 1) % targets.len()])
         .collect();
 
-    println!("\narm\t\tstore/query\ttop-1\tMRR\trecall@{TOP_N}\ttie-mass\tnull MRR");
+    println!("\narm\t\t\tstore/query\ttop-1\tMRR\trecall@{TOP_N}\ttie-mass\tnull MRR");
     let mut summary: HashMap<&str, (f64, f64, f64, f64, f64)> = HashMap::new();
-    for (arm, banded, full_query) in [
-        ("banded", true, false),
-        ("shipped", false, false),
-        ("symmetric", false, true),
+    // The #480 projection lever — band-only vs full-width QUERY — lives only on
+    // the `content_query = false` path. Since #490, `new()` defaults
+    // `content_query = true`, which builds the query from the content vector and
+    // makes `set_full_width_query` a no-op; without setting the flag here all
+    // three projection arms would collapse to one measurement and the
+    // shipped-vs-symmetric verdict would be a vacuous +0.0000. It is set
+    // explicitly so each arm means what its name says.
+    //
+    // The `content (deployed)` arm is what actually ships after #490: the query
+    // is the content vector, full-width by construction AND the same KIND of
+    // object as the stored vector (which the projected query never was, #486).
+    // The other three should be read against it — it is the realized answer to
+    // the asymmetry this issue was about, reached by a better route than
+    // reshaping a query that was never comparable in the first place.
+    for (arm, banded, full_query, content) in [
+        ("banded", true, false, false),
+        ("shipped", false, false, false),
+        ("symmetric", false, true, false),
+        ("content (deployed)", false, false, true),
     ] {
         let mut router = UorR4Router::new(0.5);
         router.set_banded_storage(banded);
         router.set_full_width_query(full_query);
+        router.set_content_query_vector(content);
         let corpus_text: String = windows.join(" ");
         let indexed = router.index_corpus(&corpus_text, ID);
         assert_eq!(indexed, windows.len(), "[{arm}] indexed every window");
@@ -241,11 +282,12 @@ fn query_projection_shape() {
         let (_, null_mrr, _) = metrics(&null_ranks);
         let ties = tie_mass(&per_probe);
         println!(
-            "{arm:<11}{}\t{top1:.4}\t{mrr:.4}\t{recall:.4}\t\t{ties:.4}\t\t{null_mrr:.4}",
-            match (banded, full_query) {
-                (true, _) => "banded/banded",
-                (false, false) => "full/banded  ",
-                (false, true) => "full/full    ",
+            "{arm:<19}{}\t{top1:.4}\t{mrr:.4}\t{recall:.4}\t\t{ties:.4}\t\t{null_mrr:.4}",
+            match (banded, full_query, content) {
+                (_, _, true) => "full/content ",
+                (true, _, false) => "banded/banded",
+                (false, false, false) => "full/banded  ",
+                (false, true, false) => "full/full    ",
             }
         );
         summary.insert(arm, (top1, mrr, recall, ties, null_mrr));
@@ -253,11 +295,14 @@ fn query_projection_shape() {
 
     let (b_top1, b_mrr, b_recall, b_ties, b_null) = summary["shipped"];
     let (f_top1, f_mrr, f_recall, _, f_null) = summary["symmetric"];
+    let (c_top1, c_mrr, c_recall, _, c_null) = summary["content (deployed)"];
 
     println!("\n==== validity ====");
-    let null_dead = b_null < NULL_MRR_CEILING && f_null < NULL_MRR_CEILING;
+    let null_dead =
+        b_null < NULL_MRR_CEILING && f_null < NULL_MRR_CEILING && c_null < NULL_MRR_CEILING;
     println!(
-        "deranged-key MRR: banded {b_null:.4}, full {f_null:.4} (ceiling {NULL_MRR_CEILING}) — {}",
+        "deranged-key MRR: banded-query {b_null:.4}, full-query {f_null:.4}, \
+         content-query {c_null:.4} (ceiling {NULL_MRR_CEILING}) — {}",
         if null_dead { "PASS" } else { "VOID" }
     );
     assert!(null_dead, "deranged-key control must be near zero");
@@ -297,4 +342,37 @@ fn query_projection_shape() {
              but because this ranking is lexical, not geometric."
         );
     }
+
+    // The reconciliation the projection arms cannot show on their own. The #480
+    // question — "does matching the query shape to the storage shape pay?" — was
+    // answered NO above, but only on the path where the cosine is at chance
+    // (#486): reshaping a query vector that is not the same KIND of object as the
+    // stored vector cannot pay at any shape. #490 fixed the object, not the
+    // shape, by building the query from the content vector. That query is
+    // full-width by construction — the shape #480 was reaching for — and it is
+    // what ships. This arm is the realized answer.
+    let content_gain_mrr = c_mrr - b_mrr;
+    let content_gain_recall = c_recall - b_recall;
+    println!("\n==== reconciliation: the deployed content-vector query (#490) ====");
+    println!(
+        "shipped band-query {b_mrr:.4} MRR, {b_top1:.4} top-1, {b_recall:.4} recall  ->  \
+         content query (deployed) {c_mrr:.4} MRR, {c_top1:.4} top-1, {c_recall:.4} recall  =  \
+         {content_gain_mrr:+.4} MRR, {content_gain_recall:+.4} recall"
+    );
+    println!(
+        "The full-width query DID pay — as the content vector via #490, not via \
+         `set_full_width_query`. #480's 'shape does not pay' verdict is SUPERSEDED: the \
+         lever was real and was mis-measured because the query was the wrong kind of \
+         object, not the wrong shape. The band-vs-full projection arms remain flat \
+         ({delta_mrr:+.4} MRR) because on the content-query path they are all overridden \
+         by the content vector; they are retained here as the pre-#490 diagnostic that \
+         localised the problem to the object, not the shape.",
+        delta_mrr = f_mrr - b_mrr
+    );
+    assert!(
+        content_gain_mrr >= WIN_MARGIN,
+        "the deployed content-vector query must beat the band-query shipped arm by at least \
+         the {WIN_MARGIN:.2} MRR exit margin (it measured about +0.136 at #490); if it does \
+         not, #490 has regressed or this corpus has moved"
+    );
 }

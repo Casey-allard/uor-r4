@@ -107,21 +107,37 @@ retrieval value: sector-filtered MRR 0.0045 against the pre-remediation
 projection's 0.0743. Three content-aligned redesign candidates then mapped a
 clean spread-versus-retrieval frontier without crossing it.
 
-**Query-projection banding as a retrieval lever (#480).** The query side of
-`retrieve_geometric_resonance` was band-only while storage has been full-width
-since #465 — a real asymmetry, and the suspicion was that it stranded the adopted
-de-banding gain before serving. Measured: making the shapes symmetric is worth
-+0.0059 MRR and +0.0080 top-1 while costing 0.0180 of recall@20, against a +0.05
-bar. Not adopted; the symmetric shape sits behind `set_full_width_query`, default
-off. **#486 later explained this mechanistically**: reshaping a query vector that
-was never comparable to the stored vector could not have paid at any shape.
+**Query-projection banding as a retrieval lever (#480 — SUPERSEDED by #490).**
+The query side of `retrieve_geometric_resonance` was band-only while storage has
+been full-width since #465 — a real asymmetry, and the suspicion was that it
+stranded the adopted de-banding gain before serving. Measured at the time:
+making the shapes symmetric is worth +0.0059 MRR and +0.0080 top-1 while costing
+0.0180 of recall@20, against a +0.05 bar — recorded NEGATIVE, symmetric shape
+left behind `set_full_width_query`. **That verdict is now superseded.** #486
+showed the cosine was at chance because the query (routing path) and the stored
+vector (content) were different objects, so no query SHAPE could pay. #490 fixed
+the object by building the query from the content vector — which is full-width by
+construction, the shape #480 was reaching for — and it pays ~+0.136 MRR over the
+band-only query (0.7179 → 0.8542). The lever was real; it was mis-measured
+because the query was the wrong KIND of object, not the wrong shape. The #500
+reassessment re-baselines `query_projection.rs` on this path (its three
+projection arms had gone vacuous under #490's default, all collapsing to the
+content-vector query).
 
-**The lexical ranking weight (#484).** The `shared_count * 100` term was
-hypothesised to be suppressing a geometric signal. Swept over five decades:
-`W = 1 … 100,000` give bit-identical retrieval, because the geometric term's
-dynamic range is ~0.37, so any weight above ~0.4 already yields strict
-lexicographic order. NEGATIVE against the +0.05 bar. The deeper finding — that
-the cosine was at chance — sent the work to #486.
+**The lexical ranking weight (#484 — SUPERSEDED by #490).** The
+`shared_count * 100` term was hypothesised to be suppressing a geometric signal.
+Swept over five decades on the routing path: `W = 1 … 100,000` gave bit-identical
+retrieval, because with the cosine at chance any weight above ~0.4 already yields
+strict lexicographic order — recorded NEGATIVE against the +0.05 bar. **That
+"inert" verdict was conditional on the dead cosine, and #490 removed the
+condition.** On the deployed content-query path the cosine carries signal, so the
+weight is no longer inert: dropping the lexical term (`W = 0`, bare cosine) is
+worth ~+0.022 MRR (0.8542 → 0.8763) and lifts recall 0.9720 → 0.9900. The weight
+was inert only because the thing it traded against was noise. Dropping it is a
+serving-path simplification (it removes the 100× term that masked the dead cosine
+for months); because flipping `DEFAULT_LEXICAL_WEIGHT` has blast radius on the
+non-content path, it is filed as an adoption gate (#502, the same discipline
+that turned #486 → #490) rather than flipped silently. See #500.
 [lexical_weight_484.md](lexical_weight_484.md)
 
 **The serving path compared the wrong objects (#486).** A category error, not a
