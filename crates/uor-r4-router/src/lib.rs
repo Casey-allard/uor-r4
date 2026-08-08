@@ -406,6 +406,21 @@ fn default_geometry_type() -> GeometryType {
 /// rather than editing the constant.
 pub const DEFAULT_LEXICAL_WEIGHT: f64 = 100.0;
 
+/// Deployed default for `content_query_vector` (issue #490, adopting #486).
+///
+/// The retrieval query vector is built from the query text's own CONTENT
+/// state — the same construction every stored vector uses — rather than from
+/// the routing state, which #486 measured to be at chance against the stored
+/// vectors. `true` since #490 (minimal variant: query vector only,
+/// `DEFAULT_LEXICAL_WEIGHT` unchanged). This is a named function rather than
+/// `Default::default()` so the DESERIALIZED router (the server restores router
+/// state through `import_state`) carries the deployed default too — a plain
+/// `#[serde(skip)]` bool would reset to `false` on load and silently disable
+/// the fix on the one surface it is meant to improve.
+fn content_query_vector_default() -> bool {
+    true
+}
+
 /// The unified router core coordinator.
 #[wasm_bindgen]
 #[derive(Serialize, Deserialize)]
@@ -504,7 +519,9 @@ pub struct UorR4Router {
     /// Measurement knob for issue #486: build the retrieval query vector from
     /// the query text's own CONTENT state, the same construction
     /// `index_sentence_internal` stores, instead of from the routing state.
-    /// Default OFF — deployed retrieval ordering is unchanged.
+    /// Default ON since #490 (see [`content_query_vector_default`]); set it
+    /// OFF with [`UorR4Router::set_content_query_vector`] to reproduce the
+    /// pre-#490 deployed ordering for measurement.
     ///
     /// Why it exists. #486 measured that the deployed query projection has no
     /// relationship to the stored vector: querying with the exact text of a
@@ -520,8 +537,9 @@ pub struct UorR4Router {
     /// corpus item and reading its stored vector back — the same encode path
     /// on both sides. This knob does that directly and without mutating state.
     ///
-    /// Not serialized: a measurement configuration, not a stored property.
-    #[serde(skip)]
+    /// Not serialized: retrieval configuration, not stored corpus state. The
+    /// `default` keeps the deployed value on the deserialize path (#490).
+    #[serde(skip, default = "content_query_vector_default")]
     content_query_vector: bool,
 }
 
@@ -639,7 +657,7 @@ impl UorR4Router {
             full_width_query: false,
             lexical_weight: None,
             unscaled_geometric_term: false,
-            content_query_vector: false,
+            content_query_vector: content_query_vector_default(),
         };
 
         // Initialize default corpus
@@ -1125,7 +1143,9 @@ impl UorR4Router {
     }
 
     /// Build the retrieval query vector from the query text's own content
-    /// state rather than from the routing state (issue #486). Default off.
+    /// state rather than from the routing state (issue #486). **Default ON
+    /// since #490**; pass `false` to reproduce the pre-#490 routing-query
+    /// ordering for measurement.
     ///
     /// This is the arm that makes the query and the stored vector the same
     /// KIND of object. Falls back to the deployed projection for any text
