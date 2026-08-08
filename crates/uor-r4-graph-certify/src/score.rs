@@ -2035,8 +2035,14 @@ fn gate_c_skip_arms() -> SkippedArms {
     parse_skip_arms(std::env::var(GATE_C_SKIP_ARMS_ENV).ok().as_deref())
 }
 
-/// Wall-clock accounting for the passes [`evaluate_gate_c`] runs, printed to
-/// stderr as the evaluation proceeds (#471).
+/// Wall-clock accounting for the passes of a scoring stage, printed to stderr
+/// as the stage proceeds (#471, generalized in #488). Each instance carries a
+/// `prefix` so the same instrument reads as one log across two levels:
+/// `evaluate_gate_c` runs it with `"gate c phase"`, and the `score` pipeline
+/// (`graph-cli::score_command`) runs it with `"score phase"` around the stages
+/// BEFORE Gate C — cover induction, store build, transition and row
+/// compilation, emission, artifact emission — where a real corpus's hours
+/// actually live (#488).
 ///
 /// Why this exists. "The Gate C phase took eighty-five minutes" was, until
 /// #471, an unattributable number: the evaluation runs four whole-corpus
@@ -2050,36 +2056,44 @@ fn gate_c_skip_arms() -> SkippedArms {
 /// between two runs of identical pinned inputs — exactly what the
 /// deterministic-rebuild gate exists to catch. These lines are diagnostics
 /// beside the existing `score: …` progress prints, never report content.
-struct PhaseLog {
+pub struct PhaseLog {
+    prefix: &'static str,
     start: std::time::Instant,
     last: std::time::Instant,
 }
 
 impl PhaseLog {
-    fn new() -> Self {
+    /// `prefix` is the log label (e.g. `"gate c phase"` or `"score phase"`);
+    /// every line this instance prints begins with it, so lines from nested
+    /// instances stay distinguishable while reading as one stream.
+    pub fn new(prefix: &'static str) -> Self {
         let now = std::time::Instant::now();
         PhaseLog {
+            prefix,
             start: now,
             last: now,
         }
     }
 
     /// Close the phase that ended here, naming it and its duration.
-    fn mark(&mut self, phase: &str) {
+    pub fn mark(&mut self, phase: &str) {
         let now = std::time::Instant::now();
         eprintln!(
-            "gate c phase: {phase} {:.2}s (cumulative {:.2}s)",
+            "{}: {phase} {:.2}s (cumulative {:.2}s)",
+            self.prefix,
             now.duration_since(self.last).as_secs_f64(),
             now.duration_since(self.start).as_secs_f64()
         );
         self.last = now;
     }
 
-    /// Close the whole evaluation. Measured from `now`, not from the last
-    /// mark, so any unmarked tail shows up in the total instead of vanishing.
-    fn total(&self) {
+    /// Close the whole stage. Measured from `now`, not from the last mark, so
+    /// any unmarked tail shows up in the total instead of vanishing — the
+    /// remainder is the check that no stage went unnamed (#488).
+    pub fn total(&self) {
         eprintln!(
-            "gate c phase: TOTAL {:.2}s",
+            "{}: TOTAL {:.2}s",
+            self.prefix,
             self.start.elapsed().as_secs_f64()
         );
     }
@@ -3314,7 +3328,7 @@ pub fn evaluate_gate_c(
     // arm groups this run was told not to build are resolved up front so the
     // skip is one decision read in one place.
     let skipped_arms = gate_c_skip_arms();
-    let mut phases = PhaseLog::new();
+    let mut phases = PhaseLog::new("gate c phase");
     if skipped_arms.any() {
         eprintln!(
             "score: {GATE_C_SKIP_ARMS_ENV}={} — those arm groups are NOT EVALUATED on this run; \

@@ -960,6 +960,12 @@ pub fn score_command(args: &[String]) -> Result<(), String> {
         "warning: debug builds make scoring much slower; use `cargo run --release -- transformerless score ...`"
     );
     let options = parse_score_options(args)?;
+    // #488: account for where a real corpus's hours go across the WHOLE score
+    // pipeline, not just Gate C. Same instrument, same conventions as #471
+    // (stderr only — a duration in `score_report.json` would break the
+    // deterministic-rebuild gate); the "score phase:" lines bracket the
+    // "gate c phase:" lines so the two read as one log.
+    let mut phases = score::PhaseLog::new("score phase");
     let corpus_meta_path = if !options.corpus_meta.exists() {
         if let Some(parent) = options.corpus_meta.parent() {
             if parent.join("corpus.meta").exists() {
@@ -1079,6 +1085,7 @@ pub fn score_command(args: &[String]) -> Result<(), String> {
         cover::build_observations_with_threads(&artifacts, &corpus, &train_positions, threads)?;
     let held_out =
         cover::build_observations_with_threads(&artifacts, &corpus, &held_out_positions, threads)?;
+    phases.mark("inputs + observations (load, split, observe)");
 
     // Region parameters + structural edges: recovered from a previously
     // emitted cover artifact (--cover) or re-induced with the default
@@ -1129,6 +1136,7 @@ pub fn score_command(args: &[String]) -> Result<(), String> {
         }
     };
     let max_depth = regions.iter().map(|r| r.depth as usize).max().unwrap_or(1);
+    phases.mark("cover induction");
 
     eprintln!("score: building graded store [========================] 100%");
     // #469 lever A: per-record codes come from the κ-keyed sidecar when one
@@ -1136,6 +1144,10 @@ pub fn score_command(args: &[String]) -> Result<(), String> {
     // when it does not. Store bytes are identical on both branches.
     let (store, _) = code_sidecar::build_store_cached(&artifacts, &corpus, threads)?;
     let tls1 = runtime::store_bytes(&store);
+    // The "code sidecar: HIT/MISS/WROTE/LOADED" line above is inside this
+    // phase: a cold miss recomputes every record code (#469 lever A), which is
+    // the difference between this phase costing seconds and costing minutes.
+    phases.mark("graded store build (+ code sidecar)");
 
     eprintln!("score: compiling forward transitions [========================] 100%");
     let (transitions, transition_quantization) = score::compile_transitions_with_quantization(
@@ -1145,12 +1157,15 @@ pub fn score_command(args: &[String]) -> Result<(), String> {
         max_depth,
         config.transition_out_degree,
     );
+    phases.mark("forward transitions");
     let vocab = u32::try_from(artifacts.token_codes.len() / compiler::STAGES)
         .map_err(|_| "vocabulary exceeds u32 token ids".to_owned())?;
     let context_rows = score::compile_context_rows(&corpus, &train, vocab, &config);
     let fwd_rows = score::compile_forward_anchor_rows(&corpus, &train);
+    phases.mark("context + forward-anchor rows");
     let emissions =
         score::compile_emissions(&corpus, &store, &regions, &train, max_depth, vocab, &config);
+    phases.mark("emission compilation");
     let (artifact_bytes, info) = score::emit_scored_r4g1(
         &artifact_container,
         (&meta_bytes, &recs_bytes),
@@ -1169,6 +1184,7 @@ pub fn score_command(args: &[String]) -> Result<(), String> {
     )?;
     let graph_kappa = uor_r4_graph_format::r4g1::artifact_kappa(&artifact_bytes)
         .map_err(|error| format!("cannot address emitted R4G1 artifact: {error}"))?;
+    phases.mark("R4G1 artifact emission");
 
     eprintln!("score: running Gate C evaluation [========================] 100%");
     let gate_c = score::evaluate_gate_c(
@@ -1180,6 +1196,9 @@ pub fn score_command(args: &[String]) -> Result<(), String> {
         &held_out,
         &config,
     )?;
+    // The "gate c phase:" lines above break this phase down further (#471);
+    // here it is one line so the score-level total stays complete.
+    phases.mark("gate c evaluation");
 
     let report = score::build_score_report_with_quality_profile(
         &config,
@@ -1234,6 +1253,10 @@ pub fn score_command(args: &[String]) -> Result<(), String> {
     let report_path = options.output.join("score_report.json");
     std::fs::write(&report_path, &report_json)
         .map_err(|error| format!("{}: {error}", report_path.display()))?;
+    // #488: report build (from the gate-c mark) + both artifact writes. The
+    // trailing stdout summary below is negligible and shows up as the total's
+    // remainder — which is the check that no stage went unnamed.
+    phases.mark("report build + artifact write");
 
     println!(
         "score complete: {} nodes, {} edges ({} refinement + {} neighbor + {} forward), {} emission entries, EXCT {} bytes, NGRAM {} rows/{} entries ({} bytes)",
@@ -1558,6 +1581,7 @@ pub fn score_command(args: &[String]) -> Result<(), String> {
         graph_kappa
     );
     println!("  report: {}", report_path.display());
+    phases.total();
     Ok(())
 }
 #[derive(Debug, Serialize, Clone)]
