@@ -246,9 +246,11 @@ fn query_projection_shape() {
     // shipped-vs-symmetric verdict would be a vacuous +0.0000. It is set
     // explicitly so each arm means what its name says.
     //
-    // The `content (deployed)` arm is what actually ships after #490: the query
-    // is the content vector, full-width by construction AND the same KIND of
-    // object as the stored vector (which the projected query never was, #486).
+    // The `content (deployed)` arm is what actually ships after #490 (and, since
+    // #502, at the content-path default weight W=0 — it sets no explicit weight,
+    // so it tracks `default_lexical_weight`): the query is the content vector,
+    // full-width by construction AND the same KIND of object as the stored
+    // vector (which the projected query never was, #486).
     // The other three should be read against it — it is the realized answer to
     // the asymmetry this issue was about, reached by a better route than
     // reshaping a query that was never comparable in the first place.

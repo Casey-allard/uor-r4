@@ -400,10 +400,14 @@ fn default_geometry_type() -> GeometryType {
 /// equal-overlap groups. That is the measured reason #480's query-shape fix
 /// could not pay, and it bounds every geometry lever on this path.
 ///
-/// Changing this value changes retrieval ORDERING, which moves the pinned
-/// #421 anchor-accuracy rows — see `docs/query_projection_480.md` before
-/// touching it, and use [`UorR4Router::set_lexical_weight`] for measurement
-/// rather than editing the constant.
+/// This is the ROUTING-path default only. Since #502 the deployed
+/// CONTENT-query path defaults to `W = 0` (pure geometry) — see
+/// [`UorR4Router::default_lexical_weight`]. Changing this value reorders
+/// `get_top_resonances_native`, its one and only consumer; it does NOT move
+/// the pinned #421 anchor-accuracy rows, which rank by bare cosine over the
+/// stored vectors in `router_reconnect` and never read this weight (#490/#502
+/// re-verified the blast radius). Use [`UorR4Router::set_lexical_weight`] for
+/// measurement rather than editing the constant.
 pub const DEFAULT_LEXICAL_WEIGHT: f64 = 100.0;
 
 /// Deployed default for `content_query_vector` (issue #490, adopting #486).
@@ -1126,9 +1130,44 @@ impl UorR4Router {
     }
 
     /// The weight one shared query prime carries in retrieval relevance
-    /// (issue #484). [`DEFAULT_LEXICAL_WEIGHT`] unless overridden.
+    /// (issues #484 / #502). The deployed default depends on the query path
+    /// (see [`UorR4Router::default_lexical_weight`]) unless overridden with
+    /// [`set_lexical_weight`](UorR4Router::set_lexical_weight).
     pub fn lexical_weight(&self) -> f64 {
-        self.lexical_weight.unwrap_or(DEFAULT_LEXICAL_WEIGHT)
+        self.lexical_weight
+            .unwrap_or_else(|| self.default_lexical_weight())
+    }
+
+    /// The deployed default lexical weight, which depends on the query path
+    /// (issue #502).
+    ///
+    /// On the CONTENT-query path (deployed since #490) the lexical term is
+    /// dropped (`W = 0`, pure geometry): #500 measured on this path that
+    /// dropping it is worth +0.022 MRR and +0.032 top-1 at equal recall@20
+    /// (0.99), and it removes the `shared_count * 100` term that masked the
+    /// dead cosine (#486) for months — a simplification, not only a tune.
+    ///
+    /// On the ROUTING path (`content_query_vector = false`) the term is kept
+    /// at [`DEFAULT_LEXICAL_WEIGHT`]: there the `W = 0` arm is confounded by
+    /// `slice_norm` (a per-window-bucket scalar, #484), and that path is not
+    /// deployed anyway — it exists only to reproduce the pre-#490 ordering
+    /// for measurement.
+    ///
+    /// Blast radius of this default (established by #490 and re-verified for
+    /// #502): the lexical weight is read at exactly one site, inside
+    /// `retrieve_geometric_resonance`, reachable only through
+    /// `get_top_resonances_native`. The `router_reconnect` (#421) anchor
+    /// rows rank by bare cosine over the stored vectors and the score
+    /// pipeline never calls this path, so they are INVARIANT under the
+    /// weight — the "an ordering change moves the pinned #421 rows" gate the
+    /// original #484 doc recorded is backwards for this knob, the same way it
+    /// was for the #490 content-query flip.
+    fn default_lexical_weight(&self) -> f64 {
+        if self.content_query_vector {
+            0.0
+        } else {
+            DEFAULT_LEXICAL_WEIGHT
+        }
     }
 
     /// Override the lexical weight for measurement (issue #484).
@@ -3179,6 +3218,36 @@ mod tests {
             results[0].sentence.contains("quantum gravity"),
             "The top resonant result should contain the target keywords"
         );
+    }
+
+    #[test]
+    fn lexical_weight_default_is_content_path_conditional() {
+        // #502: the deployed content-query path (default since #490) drops the
+        // lexical term (W = 0, pure geometry); the routing path keeps
+        // DEFAULT_LEXICAL_WEIGHT. This pins the default LOGIC so a future edit
+        // to `default_lexical_weight` cannot silently change the serving
+        // ranking — the anti-vacuity guard for the #502 flip.
+        let mut router = UorR4Router::new(0.5);
+        // new() defaults content_query_vector on (#490) -> deployed path -> W=0.
+        assert_eq!(
+            router.lexical_weight(),
+            0.0,
+            "deployed content-query path must default to W=0 (#502)"
+        );
+        // routing path (measurement only) keeps the historical weight.
+        router.set_content_query_vector(false);
+        assert_eq!(
+            router.lexical_weight(),
+            DEFAULT_LEXICAL_WEIGHT,
+            "routing path must keep DEFAULT_LEXICAL_WEIGHT"
+        );
+        router.set_content_query_vector(true);
+        assert_eq!(router.lexical_weight(), 0.0);
+        // an explicit override wins on either path.
+        router.set_lexical_weight(42.0);
+        assert_eq!(router.lexical_weight(), 42.0);
+        router.set_content_query_vector(false);
+        assert_eq!(router.lexical_weight(), 42.0);
     }
 
     #[test]

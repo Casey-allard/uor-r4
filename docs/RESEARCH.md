@@ -132,13 +132,21 @@ strict lexicographic order — recorded NEGATIVE against the +0.05 bar. **That
 "inert" verdict was conditional on the dead cosine, and #490 removed the
 condition.** On the deployed content-query path the cosine carries signal, so the
 weight is no longer inert: dropping the lexical term (`W = 0`, bare cosine) is
-worth ~+0.022 MRR (0.8542 → 0.8763) and lifts recall 0.9720 → 0.9900. The weight
-was inert only because the thing it traded against was noise. Dropping it is a
-serving-path simplification (it removes the 100× term that masked the dead cosine
-for months); because flipping `DEFAULT_LEXICAL_WEIGHT` has blast radius on the
-non-content path, it is filed as an adoption gate (#502, the same discipline
-that turned #486 → #490) rather than flipped silently. See #500.
-[lexical_weight_484.md](lexical_weight_484.md)
+worth ~+0.022 MRR (0.8542 → 0.8763), +0.032 top-1, and lifts recall 0.9720 →
+0.9900. The weight was inert only because the thing it traded against was noise.
+Dropping it is a serving-path simplification (it removes the 100× term that masked
+the dead cosine for months). **ADOPTED (#502).** The default is now path-scoped
+(`UorR4Router::default_lexical_weight`): the deployed content-query path defaults
+to `W = 0`, the routing path keeps `DEFAULT_LEXICAL_WEIGHT = 100` (its `W = 0` arm
+is confounded by `slice_norm`, #484, and it is not deployed anyway). The
+"flipping the weight moves the pinned #421 rows" gate #480/#484 recorded was
+BACKWARDS for this knob — the same way #490's was: the weight is read at exactly
+one site (`retrieve_geometric_resonance`, reachable only via
+`get_top_resonances_native`), while `router_reconnect` ranks by bare cosine and
+the score pipeline never reads it, so the #421 anchor rows are invariant. The
++0.022 MRR sits below #484's pre-registered +0.05 retune bar; adoption rests on
+the simplification plus the strict top-1/recall dominance, not on the MRR margin,
+and is recorded as such. See #500. [lexical_weight_484.md](lexical_weight_484.md)
 
 **The serving path compared the wrong objects (#486).** A category error, not a
 tuning or shape problem. `retrieve_geometric_resonance` built its query vector

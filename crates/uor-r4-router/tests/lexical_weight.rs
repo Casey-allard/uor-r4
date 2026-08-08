@@ -46,8 +46,11 @@
 //!   and asserted. This is NOT what ships any more.
 //! - **deployed (`R4_LEXW_CONTENT_QUERY=1`, `content_query = true`)** — the path
 //!   that ships since #490. Here the weight is NOT inert: dropping the lexical
-//!   term (`W = 0`, bare cosine) is worth about +0.022 MRR and lifts recall
-//!   0.9720 -> 0.9900. Pinned against `CONTENT_*` below.
+//!   term (`W = 0`, pure `sim * slice_norm` geometry) is worth about +0.022 MRR
+//!   and lifts recall 0.9720 -> 0.9900. Since #502 that `W = 0` row IS the
+//!   deployed default on this path (`UorR4Router::default_lexical_weight`); the
+//!   `W = 100` arm is retained as a reproducibility anchor. Both are pinned
+//!   below (`CONTENT_W0_*` deployed, `CONTENT_*` the retired W=100 row).
 //!
 //! # Arms
 //!
@@ -129,15 +132,25 @@ const SHIPPED_MRR: f64 = 0.7179;
 const SHIPPED_RECALL: f64 = 0.9720;
 const REPRODUCTION_TOLERANCE: f64 = 0.0005;
 
-/// The post-#490 DEPLOYED row (content-query path), pinned in content-query
-/// mode. The deployed default is `content_query = true` since #490, so THIS is
-/// what ships. Wider tolerance than the dead-cosine pin above: this anchor is
-/// here to catch the 0.7179 baseline reappearing on the wrong path, not to
-/// freeze a fourth decimal across recompiles. `CONTENT_MRR` is re-confirmed on
-/// current main in the #500 PR.
+/// The post-#490 content-query row at the EXPLICIT `W = 100` weight, pinned in
+/// content-query mode as a reproducibility anchor. Since #502 this is no longer
+/// the deployed default (the deployed default dropped to `W = 0`, `CONTENT_W0_*`
+/// below); the `W = 100` arm sets the weight explicitly, so this pin still
+/// reproduces and guards against the 0.7179 dead-cosine baseline reappearing on
+/// the wrong path. Wider tolerance than the dead-cosine pin: this anchor catches
+/// a path regression, not a fourth decimal. Re-confirmed on current main in #500.
 const CONTENT_MRR: f64 = 0.8542;
 const CONTENT_RECALL_MIN: f64 = 0.97;
 const CONTENT_TOLERANCE: f64 = 0.02;
+
+/// The DEPLOYED content-query row since #502: dropping the lexical term
+/// (`W = 0`, pure `sim * slice_norm` geometry) is worth +0.022 MRR / +0.032
+/// top-1 over the `W = 100` row at equal recall@20 (0.99). This is what
+/// `get_top_resonances_native` now ranks by at the default weight on the
+/// content path (`UorR4Router::default_lexical_weight`). Pinned so a regression
+/// in the deployed serving order is caught here, not in production.
+const CONTENT_W0_MRR: f64 = 0.8763;
+const CONTENT_W0_TOP1: f64 = 0.8160;
 
 fn fixture(name: &str) -> String {
     format!(
@@ -533,9 +546,33 @@ fn lexical_weight_sweep() {
         );
         assert!(
             s_mrr >= SHIPPED_MRR + 0.05,
-            "the deployed content row ({s_mrr:.4}) must sit clearly above the dead-cosine \
+            "the content row ({s_mrr:.4}) must sit clearly above the dead-cosine \
              baseline ({SHIPPED_MRR:.4}); if it does not, the content-vector query has \
              stopped paying and #490 has regressed"
+        );
+        // #502: the DEPLOYED default on this path is now W=0, not W=100. Pin
+        // the row it actually ships (`default_lexical_weight` returns 0 here),
+        // and hold it distinct from — and above — the W=100 row it replaced.
+        let (w0_top1, w0_mrr, w0_recall, _) = summary[&0.0f64.to_bits()];
+        println!(
+            "W=0 (DEPLOYED default since #502): top-1 {w0_top1:.4}, MRR {w0_mrr:.4}, \
+             recall {w0_recall:.4} vs pinned {CONTENT_W0_MRR:.4}/{CONTENT_W0_TOP1:.4}; \
+             W=100 was {s_mrr:.4} MRR ({:+.4})",
+            w0_mrr - s_mrr
+        );
+        assert!(
+            (w0_mrr - CONTENT_W0_MRR).abs() <= CONTENT_TOLERANCE,
+            "the deployed W=0 content row must reproduce MRR {CONTENT_W0_MRR:.4} +/- \
+             {CONTENT_TOLERANCE:.2}, got {w0_mrr:.4}; the #502 serving order regressed"
+        );
+        assert!(
+            w0_mrr >= s_mrr,
+            "dropping the lexical term (W=0, #502) must not rank BELOW W=100 on the \
+             content path: W=0 {w0_mrr:.4} vs W=100 {s_mrr:.4}"
+        );
+        assert!(
+            w0_recall >= CONTENT_RECALL_MIN,
+            "deployed W=0 recall must be >= {CONTENT_RECALL_MIN:.4}, got {w0_recall:.4}"
         );
     } else {
         println!(
