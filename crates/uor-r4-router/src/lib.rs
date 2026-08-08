@@ -607,6 +607,28 @@ impl UorR4Router {
             "vsa" | "Vsa" | "VSA" => GeometryType::Vsa,
             _ => GeometryType::Spectral,
         };
+        // #493 (disposition of #434): fail loud on the knob rather than let
+        // VSA retrieval look like a working semantic path. Measured: after
+        // `index_corpus`/`index_sentence` the facet store IS populated (so the
+        // candidate SET is real), but `retrieve_vsa_multi_facet_resonance`
+        // scores each candidate with `cosine_similarity(query 1024-dim VSA
+        // hypervector, stored 512-dim SPECTRAL content vector)` — a length
+        // mismatch that returns exactly 0.0 for every candidate, so the ranking
+        // is dead. Making the comparison commensurable does not rescue it: the
+        // VSA hypervector is content-hash-derived (`expand_atom`), not a
+        // semantic embedding, so re-grounded scoring ranks at chance (a "fox"
+        // query ranks the fox sentence last). Until VSA has a real encoder,
+        // Spectral is the semantic retrieval path. See
+        // `docs/geometry_ablation_434.md` and #493.
+        if self.geometry_type == GeometryType::Vsa {
+            eprintln!(
+                "warning: geometry_type=Vsa — VSA retrieval does NOT rank by content \
+                 similarity on this store (grounding is content-hash-derived, and the \
+                 scorer compares a VSA hypervector to a spectral content vector); \
+                 relevances are not meaningful. Use Spectral geometry for content \
+                 retrieval. See #493."
+            );
+        }
     }
 
     #[wasm_bindgen]

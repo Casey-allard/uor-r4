@@ -158,3 +158,48 @@ worth re-running. The VSA-wiring disposition is re-opened with this corrected
 framing as a follow-up issue.
 See [geometry_selfmatch_486.md](geometry_selfmatch_486.md) and
 [lexical_weight_484.md](lexical_weight_484.md).
+
+## Correction (appended 2026-08-08, #493) — the VSA zero is a scoring mismatch, not an empty store
+
+The "wiring fact" repeated above — *`index_corpus` never populates `facet_store`* —
+is **wrong on current code**, and #493 measured it directly. Both the original
+#434 record and the #487 correction block restated it; this block supersedes
+that claim. The figures still stand; the *cause* of the VSA `0.0000` was
+misattributed.
+
+**`index_corpus` DOES populate the facet store.** It calls
+`index_sentence_internal` → `index_sentence_routed`, which grounds every
+sentence through `VsaGeometry` and calls `index_semantic_object`
+(`crates/uor-r4-router/src/lib.rs`). Probed on a five-sentence corpus in VSA
+mode: `facet_store.type_index` has five keys, `entity_index` two — populated, not
+empty. So VSA retrieval returns the correct candidate **set** from the facet
+intersection.
+
+**The zero comes from the scorer, not the store.** `retrieve_vsa_multi_facet_resonance`
+ranks each candidate with `cosine_similarity(query, stored)` where the query is
+the **1024-dim VSA hypervector** and `stored` is the item's **512-dim spectral
+content vector**. `cosine_similarity` returns exactly `0.0` on a length mismatch
+(`crates/uor-r4-core/src/lib.rs`), so **every candidate scores `0.0`** and the
+ranking is dead — the same category error as #486 (comparing two different kinds
+of object), here guaranteed exactly zero by a dimension check rather than left
+at chance.
+
+**And a commensurable comparison does not rescue it.** Re-grounding each
+candidate's text to its own 1024-dim hypervector and comparing like with like
+makes the relevances non-zero — but the ranking is still at chance: a query of
+*"the quick brown fox jumps over the lazy dog"* ranked the fox sentence **last**.
+`VsaGeometry::ground` builds the hypervector by hashing the exact content string
+(`expand_atom`), so two related sentences get unrelated random ±1 vectors — the
+grounding is a **content-hash placeholder, not a semantic encoder**. There is
+nothing semantic to rank by.
+
+**Disposition (#493).** Option (a) from "What should follow" — connect the store
+and re-run — is already half-done (the store is connected) and the remaining
+half does not pay: VSA has no semantic encoder, so its retrieval cannot rank
+regardless of the scoring wiring. Option (b) — make the switch honest — is the
+right call and is the cheap one: `set_geometry_type("vsa")` now warns loudly that
+VSA retrieval does not rank by content similarity, and
+`tests/vsa_scoring_honesty.rs` pins both corrected facts (facets populated,
+scoring degenerate). Whether VSA should get a real encoder or be deprecated is an
+engine-design decision, filed as #496 for the engine owners. Until then,
+Spectral (now with the #490 content-vector query) is the semantic retrieval path.
