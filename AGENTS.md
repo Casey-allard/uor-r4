@@ -28,7 +28,21 @@ the wasm dashboard are exploratory and stay out of the graph migration path.
 - `crates/uor-r4-proof-model` — executable proof obligations + proof-status matrix
 - `crates/uor-r4-api` — typed compile + engine library façade for downstream consumers (wraps the CLI-shaped stages; see its README)
 - root package `uor-r4-wasm-router` — façade + `r4` CLI + local server/chat
-- `docs/` — plan, RFC (`transformerless/R4G1.md`), baseline, threat model, explainers
+- `docs/` — plan, RFC (`transformerless/R4G1.md`), baseline, threat model, explainers,
+  and the per-issue measurement records (`docs/<topic>_<issue>.md`)
+
+Documentation entry points, in the order a newcomer should read them:
+`README.md` (what it is, quickstart, CLI/HTTP/config reference) →
+`CONTRIBUTING.md` (the short form of this file) → this file (the full operating
+manual) → `docs/RESEARCH.md` (what is measured, closed and open) →
+`docs/MODEL_LIFECYCLE.md` (the multi-hour compile chain) →
+`docs/CONFIGURATION.md` (every environment knob).
+
+**Keep them true.** When a measurement revises a claim, correct it where it is
+asserted — README, `docs/RESEARCH.md`, and the record itself — rather than
+letting a superseded number survive because it lives in three places. Records in
+`docs/` are appended to, not rewritten: the history of what was believed and when
+is part of the evidence.
 
 UOR standards (`uor-addr`, `UOR-Framework`) are **pinned git dependencies** in
 `Cargo.toml` — a fresh clone builds with no extra checkouts. The

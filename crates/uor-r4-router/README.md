@@ -9,6 +9,42 @@ resonance, and generates with geometric Markov chains (bigram/trigram
 transitions). It ships thought-stream physics for the browser dashboard
 (`index.html`, `geometric_prime_router_webapp.html` at the repo root).
 
+## ⚠ Retrieval ranking: read this before touching `retrieve_geometric_resonance`
+
+**As deployed, retrieval on this path ranks by word overlap, not geometry.**
+Relevance is `shared_count * DEFAULT_LEXICAL_WEIGHT + sim * slice_norm +
+scope_boost`, and the geometric term's measured dynamic range is ~0.37 — so any
+lexical weight above ~0.4 already yields strict lexicographic order with the
+cosine as a within-bucket tie-break (#484).
+
+The cosine contributed nothing at all until #486, which found the cause: the
+query vector was built from the **routing** path while `index_sentence_internal`
+stores a **content** vector. Different objects; their cosine was at chance
+(self-similarity at the 0.4938 percentile, where 0.5 is chance — measured by
+querying with the *exact stored sentence*).
+
+`set_content_query_vector(true)` builds the query with the same
+`content_state_vector` construction the stored side uses, which takes retrieval
+from 0.7179 to **0.8542** MRR with the weight unchanged (0.8763 at weight zero),
+recall 0.9720 → 0.9900. **It ships default OFF**: changing it changes retrieval
+ordering, which moves the pinned #421 anchor-accuracy rows, so adoption is gated
+(issue #490).
+
+Measurement knobs, all default-off and non-serialized:
+`set_lexical_weight`, `set_unscaled_geometric_term`, `set_content_query_vector`,
+`set_full_width_query`, `set_banded_storage`.
+
+Records: [`docs/geometry_selfmatch_486.md`](../../docs/geometry_selfmatch_486.md),
+[`docs/lexical_weight_484.md`](../../docs/lexical_weight_484.md),
+[`docs/query_projection_480.md`](../../docs/query_projection_480.md).
+
+**Gotchas that have cost real measurements.** Retrieval is *identity-scoped* —
+query under the same identity `index_corpus` used, or the index is empty and
+every arm scores zero. `ResonanceResult::window_index` is a routing-window id
+shared by several stored sentences, **not** a store index; match ground truth on
+the stored sentence. `slice_norm` is per-window-bucket, so zeroing the lexical
+weight alone does *not* give a cosine ranking.
+
 ## Status and relationship to the graph compiler
 
 This crate is **f64, floating-point, and allocates freely by design** — it is

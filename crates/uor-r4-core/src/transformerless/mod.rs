@@ -17,7 +17,7 @@
 //!   intersection of regions; prefix depth is resolution.
 //!
 //! Multiplication is confined to the COMPILER (offline, once, κ-pinned
-//! outputs) and to the CERTIFIER (instrumentation). See docs/PROOF.md.
+//! outputs) and to the CERTIFIER (instrumentation). See docs/transformerless/PROOF.md.
 
 // teacher/compiler are portable (math, types, containers); only their
 // fs-dependent functions are cfg-gated per item (see those files).

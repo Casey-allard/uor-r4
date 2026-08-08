@@ -1,701 +1,183 @@
-# R⁴ Local Transformerless AI
+# R⁴ — Local Transformerless AI
 
-R⁴ is a local, CPU-first AI and geometric routing system aligned with the
+[![CI](https://github.com/UOR-Foundation/uor-r4/actions/workflows/ci.yml/badge.svg)](https://github.com/UOR-Foundation/uor-r4/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Rust 1.97.1](https://img.shields.io/badge/rust-1.97.1-orange.svg)](rust-toolchain.toml)
+
+R⁴ cross-compiles a pinned Hugging Face model into a **table-native artifact that
+runs inference with no multiplication, no floating point, and no allocation in
+the hot path** — on a CPU, locally, with a content-addressed witness for every
+prediction. It also contains a geometric text router and a browser dashboard.
+
+No Ollama, llama.cpp, OpenAI, or Anthropic at runtime. Nothing leaves the
+machine.
+
+R⁴ is aligned with the
 [Universal Object Reference Framework](https://github.com/UOR-Foundation/UOR-Framework),
-[Prism](https://github.com/UOR-Foundation/prism), and
+[Prism](https://github.com/UOR-Foundation/prism) and
 [uor-addr](https://github.com/UOR-Foundation/uor-addr).
 
-Transformerless inference is core R⁴ functionality. It is not an external
-provider adapter or a separate product: the compiler, runtime, tokenizer,
-graded store, witnesses, and model-source adapters live under
-[`uor_r4_core::transformerless`](crates/uor-r4-core/src/transformerless).
-R⁴ does not require Ollama, llama.cpp, OpenAI, Anthropic, or another inference
-service at runtime.
+> **Status: research project, v0.1.0.** The compiler, runtime, artifact format
+> and measurement harnesses work and are exercised by CI. Generation quality is
+> *not* competitive with the teacher models it compiles — see
+> [What actually works](#what-actually-works) for honest numbers. This repository
+> is run as a measured research programme; [docs/RESEARCH.md](docs/RESEARCH.md)
+> records what has been established and what has been refuted.
 
-## Current status
+---
 
-R⁴ currently provides:
+## Contents
 
-- a geometric text router, 96-vertex W(3,3) phase field canvas, and browser dashboard with Developer Mode toggle (`#dev-mode-toggle`);
-- a CPU-only transformerless compiler and table-native zero-multiply inference runtime;
-- `FallbackRouter` pipeline cascading from primary `r4g1-graph` to secondary `transformerless-tla5` on unmapped/pathological states;
-- `WINDOW = 8` Dyadic-Recency context window with zero-allocation stack/slice sliding truncation;
-- ChatML prompt formatting for instruction-tuned teacher models (`SmolLM2-135M-Instruct`);
-- strict 32-bit `u32` integer token stores (`parse_store_strict_u32`) with automatic legacy cache purging (`purge_legacy_store_cache`);
-- BLAKE3 `tokenizer_cid` header verification in `uor-r4-graph-format` (`verify_tokenizer_cid`);
-- UOR attestation envelopes (`uor_address`, `artifact_cid`, `store_cid`, `attestation_cid`) and `POST /api/uor/verify` validation endpoint;
-- TLA3/TLA4 compatibility and the current TLA5 artifact format (no f32 centroids in deployed containers);
-- direct BF16 Safetensors loading for compatible, unsharded Llama-family Hugging Face models, without Candle;
-- byte-level BPE tokenizer export;
-- resumable compilation with progress reporting;
-- content-addressed model objects and manifests using UOR CIDs;
-- witnessed prediction, indexing, and generation APIs;
-- one-shot and interactive chat as application examples of the core runtime.
+- [Quick start](#quick-start) · [Requirements](#requirements) · [What actually works](#what-actually-works)
+- [Project layout](#project-layout) · [Architecture](#architecture)
+- [CLI reference](#cli-reference) · [HTTP API](#http-api) · [Configuration](#configuration)
+- [Testing and quality gates](#testing-and-quality-gates) · [Troubleshooting](#troubleshooting)
+- [Documentation map](#documentation-map) · [Contributing](#contributing) · [License](#license)
 
-The **R⁴ holographic graph compiler** program (multiresolution, overlapping
-semantic graphs with an allocation-free integer runtime) is underway on top of
-this engine — see `docs/r4_graph_compiler_implementation_plan.md`. Already
-landed: the R4G1 packed artifact format with two-stage validation
-(`crates/uor-r4-graph-format`), the TLA/TLS1 → R4G1 migration converter, the
-observation pipeline (content-addressed sample IDs, deterministic shard
-spill/resume), multiresolution cover induction (spherical k-means with
-calibrated overlapping memberships), semantic transitions + reverse indexes,
-ScoreQ fixed-point residuals, packed NGRAM context rows (trigram → bigram
-backoff) plus the optional FWDA forward-anchor section with
-anchor-conditioned infill scoring (`score_candidates_infill`, issue #399),
-and the executable proof model (`crates/uor-r4-proof-model`). CI runs fmt/clippy/tests/no_std/deterministic-
-rebuild/audit/fuzz/wasm gates on every push (`.github/workflows/ci.yml`).
-
-There is an important boundary in the current workflow: compiling a Hugging
-Face model produces continuation evidence and runtime artifacts, but it does
-not automatically prove instruction-following quality. `ask` accepts only an
-imported `instruction-chat` manifest with a CID-addressed passing evaluation
-report produced by `evaluate-report`. This guard prevents a fast but
-low-quality continuation artifact from being presented as an accurate
-question-answering model.
-
-| Operation | Works from a fresh checkout? | Additional state |
-|---|---:|---|
-| Build and test the workspace | Yes (UOR standards are pinned git deps) | None |
-| Geometric router and dashboard | Yes | None |
-| Legacy TinyStories certification/benchmark | After `setup` and corpus generation | Pinned llama2.c checkpoint |
-| Compile a compatible Hugging Face source | After downloading the source | Pinned model revision |
-| `ask` and interactive chat | No | Compiled, evaluated, imported `instruction-chat` manifest |
-
-## Research direction: what is measured, what is open
-
-R⁴ is a research programme as much as an engine, and the engine's direction is
-set by measurements rather than by intent. This section records where that
-programme actually stands, so anyone picking up work can see which paths are
-closed, which are load-bearing, and which are still open. Every claim below
-traces to a merged measurement with a pre-declared exit rule; the issue
-numbers are the durable references.
-
-### Measurement discipline
-
-Every substantive claim in this repo is expected to arrive with a pre-declared
-exit rule, a null baseline, and a falsifier. Negative results are recorded and
-kept, not discarded — several of the entries below are negatives that redirected
-the programme, and they are more valuable than the positives they replaced.
-Long runs additionally follow the run-contract discipline in `AGENTS.md`:
-compute the reachability ceiling before spending hours, gate on the cheap
-instrument first, and pre-declare what each outcome causes. That discipline
-exists because we lost days to runs whose result could not have changed the
-next action.
-
-### What works and is load-bearing
-
-The serving stack consults, in order: packed NGRAM context rows (trigram with
-bigram backoff), then the graph chain with D4 exact-context precedence, then
-the root prior. On natural text the induced-cover store with observed
-continuation evidence is the geometry that carries the result; the legacy
-teacher-hash store with teacher evidence measured 0.1% off-distribution
-against it.
-
-Two changes improved results by improving *evidence quality per key*, and both
-are shipped: full-width content-bearing storage (#434, PR #465) — the storage
-path had been discarding fifteen sixteenths of an already-full-width content
-vector, and de-banding moved retrieval MRR from 0.2348 to 0.8948 and router
-anchor accuracy from 9.3% to 11.4% (that 0.8948 is a **cosine-ranked** figure;
-per #484 it did not describe `get_top_resonances_native` ordering, and per #486 the
-reason is that the serving path compared a routing vector against the stored
-content vector — fixing that comparison reaches 0.8763 MRR on the serving
-path, so the number was real all along and simply unreachable there. See
-`docs/geometry_selfmatch_486.md`); and the two-sided calibration gain (#446),
-which is causally legitimate, sits at top-1 parity, and grows large at scale in
-bits (latent-mix 15.4778 vs 22.2078).
-
-A-mode infill serving is validated and shipped: the FWDA forward-anchor
-artifact section plus `score_candidates_infill`, `infill_fill`, and the
-`r4 graph infill --skeleton` CLI (#399, PRs #416/#419). Anchors are inputs, so
-the mode is immune to the drift that killed the standalone variant.
-
-### What is closed, and why
-
-**Standalone two-pass generation (#399).** Refuted twice. With anchors supplied
-externally the channel gives +4.2pp on its live slice; with the engine
-supplying its own anchors from a drafted context it goes negative (40.4% vs
-41.3%), and a strict per-step confidence gate does not rescue it (42.0% vs
-43.0%). Drift is diffuse rather than concentrated in low-confidence steps, so
-no gate over the draft can filter it. At 2.11M records the inversion reproduces
-on a non-degenerate configuration (16.4% vs 26.5%, predicted-anchor accuracy
-0.0%), so it is not a capacity artifact.
-
-**Code-space subdivision as a capacity lever (#460).** Measured negative in its
-strongest possible form. Raising STAGES from 4 to 5 bought exactly the
-subdivision the hypothesis asked for — occupied full-code keys 47,403 to
-90,824, records per key 36.02 to 18.80, clearing the instrument gate — and
-Rule 1+2 top-1 came in at 25.6% ± 0.44pp against a 26.5% baseline, *below* it.
-The store baseline fell alongside (26.4 to 25.4). Exact-context dominance
-barely responded (98.8% to 97.1%).
-
-That fall was originally read as thinner per-key evidence, full stop. The
-codebook-fit measurement narrows it: raising the codebook's training set also
-lowers records-per-key (5.04 to 4.68) and top-1 *rises* (+0.44pp,
-`docs/codebook_fit_460.md`). So records-per-key is a **symptom, not the
-binding quantity** — thinning is harmful when it comes from added key
-*resolution*, which splits evidence that belonged together, and harmless or
-better when it comes from improved *fit*, which moves evidence onto the key
-that represents it. The subdivision negative stands; only its causal reading
-narrows, to resolution specifically.
-
-**Construction-time stratification (#435).** Three routing designs plus an
-identity argument, all against pre-declared rules; v3 mass-linear mixing
-reduces algebraically to flat. The oracle-stratum edge (36.3 vs 35.2) stands as
-recorded unrecovered signal, but no routing design reached it.
-
-One reading that came out of this track has since been revised. The cover's
-non-participation — "the absolute entropy floor rejects every split at this
-scale", 8 to 22 regions at mass-kept 0.0006 — was recorded as a property of the
-geometry. It is a property of the shipped *configuration*: turning on the
-already-implemented scaled capacity takes regions 48 to 110 on the 500k fixture
-and lifts region-path held-out top-1 by 5.0pp (#460 lever 1,
-`docs/cover_scaling_460.md`). The cover can be made to participate. What that
-is worth is separately capped — see the #460 row below.
-
-**Hopf sector transport as a router-quality lever (#422/#306).** The #306
-remediation's occupancy gain (16 to 456 of 512 sectors) does not translate into
-retrieval value: sector-filtered MRR 0.0045 against the pre-remediation
-projection's 0.0743. Three content-aligned redesign candidates then mapped a
-clean spread-versus-retrieval frontier without crossing it.
-
-**Query-projection banding as a retrieval lever (#480).** The query side of
-`retrieve_geometric_resonance` is band-only while storage has been full-width
-since #465 — a real asymmetry, and the suspicion was that it stranded the
-adopted de-banding gain (MRR 0.2348 → 0.8948) before serving. Measured: making
-the shapes symmetric is worth +0.0059 MRR and +0.0080 top-1 while costing
-0.0180 of recall@20, against a +0.05 bar. The reason is that this path ranks by
-`shared_count * 100 + sim * slice_norm`, so the lexical term is a hundred times
-the cosine and the vector shape only reorders candidates already tied on word
-overlap. The #442 figure came from a harness that ranked by cosine alone. Not
-adopted; the symmetric shape sits behind `set_full_width_query`, default off,
-and the asymmetry is documented as deliberate. The live question it leaves is
-the `* 100` weight itself, which has never been measured against alternatives.
-
-**Cayley–Dickson syntactic morphism (#400), FMM far-field (#290), granularity
-(#393), E8 group-keying (#395).** Each measured dead with a scoped record; the
-CD term executed 0 times out of 1,998 before removal.
-
-### The pattern these results draw
-
-Every lever that added *key resolution* failed — more cover regions, a finer
-code space, more stages. The changes that helped improved *evidence quality per
-key*. That is the clearest signal the programme has, and it is why the open
-work below concentrates on evidence and estimation rather than on subdivision.
-
-An earlier statement of this pattern listed "a better-fitted codebook" among
-the failures. That was a misclassification on both counts: codebook fit is not
-a key-resolution lever — it changes which key evidence lands on, at fixed `K`,
-fixed `STAGES` and a fixed nominal key space — and when finally measured in
-isolation it came out **positive**, at +0.44pp (#460 lever 2,
-`docs/codebook_fit_460.md`). It is a small lever, but it is on the side the
-pattern predicts, and it is the first confirmation of that pattern on something
-that touches the graded code itself rather than storage or calibration. The
-distinction to carry forward is *which key evidence lands on* (fit — helps)
-versus *how many keys there are* (resolution — has never helped).
-
-One boundary on that, from #460 lever 1. Added resolution *does* help when a
-structure is not merely coarse but barely partitioned at all: the induced cover
-sits at 48 regions for 400,006 records, so each region's emission is close to
-the global prior, and scaling its capacity to 110 regions lifts region-path
-held-out top-1 by 5.0pp. This is not a counterexample — the resolution levers
-that failed all subdivided structures already resolved enough to be predictive.
-The refinement is that resolution pays up to the point where a structure
-predicts at all, and not past it.
-
-### Open, with defined work
-
-| Issue | Question | State |
-|---|---|---|
-| #460 | Cover split criterion and codebook fit | Both levers measured. **Codebook fit** (`docs/codebook_fit_460.md`): +0.44pp, saturates near `N/10`, below the exit rule; showed records-per-key is a *symptom*, not the binding quantity. **Cover split criterion** (`docs/cover_scaling_460.md`): the shipped absolute floor does not scale (regions 50→48→46→48 over an 8× data range), and scaled capacity fixes it — regions 48→110, region-path held-out top-1 **+5.0pp**, contrast maintained. Serving impact is capped near 0.15pp because the graph path answers ~1–3% of positions, so this arms the broad-corpus directions rather than paying today |
-| #424 | Bott-Fock O(1) context fold | Ceiling measured, A/B not reachable. Long-range signal on this corpus is worth +1.02pp of top-1 (two thirds of it order-carried); the shipped decay constant `>> 2` retains 16% of that, so the lossless upper bound on the fold as shipped is +0.16pp — one standard error. Retuning the decay to `>> 7` would recover the ceiling. `docs/context_horizon_424.md` |
-| #434 | VSA / spectral geometry | Both items done. Item 1 (zeta-grid at scale) shipped as full-width storage. Item 2 measured (`docs/geometry_ablation_434.md`): Spectral **0.7179 MRR / 0.972 recall@20**, VSA **0.0000** — not a quality gap but a wiring one, since `index_corpus` populates the corpus index Spectral reads and never the `facet_store` VSA reads. A caller who sets `geometry_type = Vsa` after `index_corpus` silently loses retrieval |
-| #469 | Vectorize the assign path | Done. Lever A (κ-keyed code sidecar) 625s → 39s; lever B routes the corpus code passes through the existing `simd::dot_argmax` using tables decoded once per artifact — **1.60x** on the pinned TLA7 artifact. Bit-identity is proven, not argued: `tests/assign_prepared.rs` checks prepared == scalar over 1,024 real corpus positions on the committed artifact fixture, and the κ witness carries it on a fresh compile. Per-call decoding would have been a ~4x regression, which is why the batch API exists |
-| #471, #483 | Sampled runs still pay full-corpus table builds | Both closed. Gate C now prints a per-phase wall clock, and it revised the diagnosis twice. First: the two table builds are 0.8% of a sampled run while the whole-corpus right-context code pass is 59%, so `R4_GATE_C_SKIP_ARMS=right_context` drops it — **62.9% off the Gate C phase** at 500k, all 45 remaining `gate_c` keys identical. Then the 2.11M run settled the rest: Gate C there is **51.94s**, not 85 minutes, and per-record cost *falls* with scale (204 µs → 152 µs core-time). The 85 minutes was never Gate C; nothing at the time could separate it from the compile stages around it. `docs/gate_c_arm_skip_471.md` |
-| #484 | Is the `shared_count * 100` lexical weight right? | Closed NEGATIVE, and the answer is bigger than the weight. Every weight from 1 to 100,000 gives bit-identical retrieval, because the geometric term's dynamic range is ~0.37 — the shipped 100 sits on a plateau starting below 1. The reason: ranking by bare cosine puts the target at median rank **21,082 of 46,342** (random is 23,171) *even when the probe is the exact stored sentence*. The geometry does not identify a sentence from itself on this path, so there was never a signal for the lexical term to suppress. `docs/lexical_weight_484.md` |
-| #486 | Why doesn't the cosine identify a sentence from itself? | **Answered, and it was a category error.** `retrieve_geometric_resonance` built its query vector from the ROUTING path while `index_sentence_internal` stores a CONTENT vector — different objects, so their cosine is chance by construction (self-similarity at the 0.4938 percentile; 0.5 is chance). Not saturated vectors and not the band projection: both ruled out by measurement. Building the query with the same `content_state_vector` construction the stored side uses takes retrieval from **0.7179 to 0.8542 MRR** with the weight unchanged, and **0.8763** with the lexical term dropped — recall rises too (0.9720 → 0.9900). That is where #442's 0.8948 went. `set_content_query_vector` ships default OFF; adoption is gated on `router_reconnect` and the pinned #421 rows. `docs/geometry_selfmatch_486.md` |
-| #456–#459 | Reconstructability, block search, IPF reconstruction, estimation ladder | Active track |
-| #320 | Teacher upgrade (SmolLM2) | P1/P2 rehearsal recorded; migration decision open |
-| #273 | Template rebase / claim register | On-hold; no implementation |
-
-### Measurement infrastructure
-
-Two pieces of tooling exist so the results above stay cheap to reproduce and
-hard to fake. Sampled decision runs (`R4_GATE_C_SAMPLE`) cut Gate C evaluation
-from 597s to 60s and report the sample size and standard error beside every
-rate, because at 402,802 positions the standard error is 0.07pp while every
-exit rule we write is ±2pp — thirty times finer than any decision needs. The
-κ-keyed per-record code sidecar (`R4_CODES_PATH`) cut the instrument from 625s
-to 39s by caching a deterministic computation that every consumer had been
-recomputing; it loads only when eight fields and a blake3 digest all agree, and
-refuses itself entirely in biased-sampling mode so a partial vector can never
-poison a later run. The `capacity_scaling` instrument prints a saturation
-verdict per structure and is meant to be run *before* trusting any measurement
-taken on a given configuration. Gate C also prints a **per-phase wall clock**
-(#471) — it exists because "the Gate C phase took eighty-five minutes" was an
-unattributable number that two different proposals blamed on two different
-passes, and neither had been measured; a harness whose cost is invisible gets
-optimized by argument. `R4_GATE_C_SKIP_ARMS=right_context` then drops the
-whole-corpus pass that profile blamed, and the arms that depend on it are
-reported **absent** rather than zeroed, because a skipped row that prints
-`0.0%` is the vacuous-instrument pattern this repository keeps rediscovering.
-
-## Documentation
-
-- [AGENTS.md](AGENTS.md) — contributor/agent operating manual: gates, invariants, κ re-pin procedure
-- [ELI5 explainer](docs/explainers/ELI5.md)
-- [Undergraduate explainer](docs/explainers/UNDERGRADUATE.md)
-- [Transformerless design](docs/transformerless/TRANSFORMERLESS.md)
-- [Proof and certificate](docs/transformerless/PROOF.md)
-- [Performance comparison](docs/transformerless/COMPARISON.md)
-- [Local-only runtime contract](docs/transformerless/LOCAL_ONLY.md)
-- [R⁴ graph compiler implementation plan](docs/r4_graph_compiler_implementation_plan.md)
-- [Glossary](docs/transformerless/GLOSSARY.md) · [R4G1 wire format](docs/transformerless/R4G1.md) · [Baseline](docs/transformerless/BASELINE.md) · [Threat model](docs/transformerless/THREAT_MODEL.md)
-- [Minimalist terminal client & local vendor API](docs/minimal_client.md)
-- [Roadmap](ROADMAP.md)
-
-## Requirements
-
-- Current stable Rust and Cargo.
-- `hf` from the Hugging Face CLI for `model download` or
-  `cargo run --release -- compile --model`.
-- `curl` and `unzip` only for the legacy TinyStories setup workflow.
-
-Inference is CPU-only. GPU features, `--device`, Metal, CUDA, and Candle are
-intentionally not part of this runtime.
+---
 
 ## Quick start
 
-### 1. Single-Command Interactive Launcher (`uor-r4-cli`)
-
-For zero-setup testing, model compilation, and interactive Q&A out of the box:
+### 60 seconds — router and dashboard, no model required
 
 ```bash
-# Launch single-command orchestrator & interactive client
-./uor-r4-cli
+git clone https://github.com/UOR-Foundation/uor-r4.git
+cd uor-r4
+cargo run --release          # starts the server on 127.0.0.1:8000
 ```
 
-The `uor-r4-cli` orchestrator automatically:
-1. Clears the screen and clears standard terminal settings on launch.
-2. Auto-detects and restores your last used model (`smollm2-135m-instruct`, `smollm2-360m-instruct`, or `smollm2-1-7b-instruct`) and active synthesis engine (`r4g1` or `attention`).
-3. Handles 4-stage pipeline execution: downloads pinned teacher weights, compiles zero-multiply observation corpora, and builds scored R4G1 residual graph covers automatically when required.
-4. Launches the local backend server on port `8000` and connects the interactive client REPL.
+Open <http://127.0.0.1:8000>. The geometric router, the 96-vertex W(3,3)
+phase-field canvas and the semantic map all work with no model, no download and
+no compile. This is the fastest way to confirm the repository builds and runs on
+your machine.
 
-#### Global Terminal Execution (macOS / Linux)
+### 5 minutes — run the measurement pipeline on the committed fixtures
 
-To run `uor-r4-cli` from **any directory** in your terminal:
+The Gate C scoring harness runs end to end on fixtures checked into the
+repository — no teacher, no checkpoint, no network:
 
 ```bash
-# 1. Symlink to user local bin
-mkdir -p ~/.local/bin
-ln -sf $(pwd)/uor-r4-cli ~/.local/bin/uor-r4-cli
-
-# 2. Ensure ~/.local/bin is in your PATH (Zsh)
-echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc
-source ~/.zshrc
-
-# Now type uor-r4-cli from anywhere!
-uor-r4-cli
+cargo run --release --bin r4 -- transformerless score \
+  --corpus-meta crates/uor-r4-core/tests/fixtures/c_meta.bin \
+  --corpus-recs crates/uor-r4-core/tests/fixtures/c_recs.bin \
+  --artifacts   crates/uor-r4-core/tests/fixtures/tless_artifacts.bin \
+  --out /tmp/score-demo
 ```
 
-#### In-Session Slash Commands & Interactive Menu
+It writes `/tmp/score-demo/score_report.json` (schema 26) and prints a per-phase
+wall clock. This is the same command CI runs as its Gate C trend alarm, so a
+clean run here means your build agrees with ours.
 
-Type `/` at the prompt to launch the interactive slash command menu, or run direct commands:
+### Hours — compile your own model
 
-- `/models` — View and switch active teacher models in-session with live download/compilation badges (`[DL: ✓ | CP: ✓]`).
-- `/engine` — Switch active synthesis engine (`r4g1` sub-ms zero-multiply graph, `attention` teacher oracle fallback, `r4-attention`, `geometric`).
-- `/status` — View 4-stage R4G1 pipeline compilation status table and readiness metrics.
-- `/corpus` — Manage extra reading corpus datasets and view indexed server files.
-- `/compile` — Trigger automated 4-stage in-session model graph compilation.
-- `/audit` — Inspect UOR coordinates ($\kappa$, $\theta_d$, $uor\_bias$), $\kappa$-pass reproduction status, token provenance traces, and export session logs (`.uor-models/audit_log.json`).
-- `/clear` — Clear terminal screen.
-- `/quit` — Exit client session cleanly.
+Downloading, compiling, scoring, evaluating and importing a real teacher is a
+multi-hour CPU pipeline with its own guide:
+**[docs/MODEL_LIFECYCLE.md](docs/MODEL_LIFECYCLE.md)**.
 
-#### Standalone UOR Trace Audit (`uor-r4-cli --audit`)
-
-To inspect UOR compliance audit traces from previous sessions directly:
+The single-command orchestrator runs the whole chain and drops you into a chat
+client at the end:
 
 ```bash
-# Launch UOR audit inspector from CLI
-uor-r4-cli --audit
-
-# Or using the binary directly
-r4 audit
+./uor-r4-cli          # menu: SmolLM2 135M / 360M / 1.7B, or audit
 ```
 
-### 2. Manual Workspace Verification & Server Execution
+---
 
-Verify the workspace:
+## Requirements
 
-```bash
-cargo check --workspace
-cargo test --workspace
+| | |
+|---|---|
+| **Rust** | Pinned to **1.97.1** by `rust-toolchain.toml`. rustup resolves it automatically. |
+| **Python 3** | For `scripts/*.py` — two of them are CI gates. |
+| **`hf`** (Hugging Face CLI) | Only for downloading teacher models. |
+| **`wasm-pack`** | Only to rebuild the browser WASM bundle. |
+| **`cargo-nextest`** | Only to mirror CI's test runner locally. |
+| **Nightly Rust** | Only for `cargo fuzz`. |
+| **Disk / RAM** | Building the workspace needs a few GB. A 500k-record scoring run peaks near 1.4 GB RSS; corpus-scale compiles run for hours. |
+
+> **Toolchain trap.** A non-rustup Rust earlier in `PATH` (Homebrew, system
+> packages) silently ignores the pin. Verify `which cargo` resolves to
+> `~/.cargo/bin/cargo`, or run gates as `rustup run stable cargo …`.
+
+UOR standards (`uor-addr`, `UOR-Framework`) are **pinned git dependencies** — a
+fresh clone builds with no extra checkouts. The `uor_standards/` directory is
+gitignored legacy material and is not required to build.
+
+---
+
+## What actually works
+
+Being precise here matters more than being impressive, because this repository's
+whole method is measurement.
+
+**Solid, exercised by CI:**
+
+- The **transformerless compiler and runtime**. A pinned Hugging Face model
+  cross-compiles to a TLA artifact plus a graded store, and the prediction kernel
+  uses only XOR/AND/OR/shift/rotate/popcount/integer add-sub/compare and table
+  reads — no multiply, no divide, no float, enforced by a machine-checked source
+  scan. The hot path is allocation-free in steady state, asserted by a test.
+- **Determinism.** Identical pinned inputs produce identical artifact bytes, and
+  a κ-reproduction gate (Gate E) checks that against a committed fixture.
+- The **R4G1 packed graph format** with two-stage validation, a `no_std`
+  allocation-free graph runtime, and a TLA/TLS1 → R4G1 migration converter.
+- **A-mode infill serving** — filling gaps between supplied anchors — is
+  validated and shipped (`r4 graph infill`). Anchors are inputs, so the mode is
+  immune to the drift that killed the standalone variant.
+- **UOR attestation**: content-addressed model objects and manifests, witnessed
+  prediction, and a `POST /api/uor/verify` validation endpoint.
+- The **geometric router**, browser dashboard and OpenAI-compatible server.
+- A **measurement apparatus**: 34 harnesses with pre-declared exit rules, null
+  baselines and falsifiers, plus a Gate C trend alarm that fails CI on
+  regression.
+
+**Real limitations, stated plainly:**
+
+- **Generation quality is weak.** On out-of-distribution prompts the compiled
+  runtimes score around 1% top-1 against the teacher. On in-distribution corpus
+  replay Gate C measures ~36% top-1 on the 500k fixture. This is a research
+  engine, not a chat model.
+- **Instruction following is gated, not solved.** `r4 ask` accepts only an
+  imported `instruction-chat` manifest carrying a CID-addressed passing
+  evaluation report, precisely so a fast continuation artifact cannot be
+  presented as a question-answering model.
+- **Standalone two-pass generation is refuted**, twice, and is not coming back.
+- **The geometric router's retrieval was measured broken**, and the fix sits
+  behind a default-off knob. Until issue #490 clears its gate, the deployed
+  retrieval ranking is word overlap, not geometry.
+
+Every claim above traces to a merged measurement — see
+[docs/RESEARCH.md](docs/RESEARCH.md).
+
+---
+
+## Project layout
+
+```
+crates/
+  uor-r4-core            R⁴ math + transformerless compiler/runtime/tokenizer/certifier
+  uor-r4-router          geometric router, dashboard backend (f64; outside the graph plan)
+  uor-r4-graph-format    R4G1 packed artifact format, two-stage validation, no_std
+  uor-r4-graph-compiler  offline graph-compiler stages (observation, cover induction, packing)
+  uor-r4-graph-certify   offline certification and measurement (Gate C `score` harness)
+  uor-r4-graph-runtime   no_std, allocation-free R4G1 runtime (engine, routing, patch chains)
+  uor-r4-graph-cli       `r4 transformerless …` stage dispatch
+  uor-r4-model-source    teacher forward-pass port + pinned Safetensors adapter
+  uor-r4-proof-model     executable proof obligations + proof-status matrix
+  uor-r4-api             typed compile + engine library facade for downstream consumers
+src/                     root package: the `r4` binary, HTTP server, chat, WASM facade
+docs/                    research records, design docs, explainers, formal material
+features/                Cucumber BDD suites (teacher parity, FMM)
+scripts/                 CI gates and corpus tooling
+research/                exploratory notes (290-fmm, 395-e8)
+models/                  pinned model descriptors
+tests/                   root-package integration tests and BDD steps
+index.html, index.css    browser dashboard
+r4_worker.js             dashboard WASM worker
+uor-r4-cli, r4-app.sh    single-command orchestrator
 ```
 
-The project exposes one executable, `r4`. With no subcommand it runs the HTTP
-server:
-
-```bash
-cargo run
-# equivalent after a release build: ./target/release/r4
-```
-
-Open <http://127.0.0.1:8000>. The geometric router and dashboard work without a
-chat model. Use another listener when needed:
-
-```bash
-cargo run -- --host 0.0.0.0 --port 9000
-```
-
-Build the browser package with:
-
-```bash
-wasm-pack build --target web
-```
-
-Static deployments use geometric synthesis in WebAssembly. Transformerless
-artifact loading and synthesis run through the native server.
-
-## Model lifecycle
-
-The local lifecycle has two artifact lanes:
-
-```text
-pinned source -> resumable teacher observation -> TLA5 + TLS1 bundle
-                                             |       |
-                                             |       +-> local ask/evaluate/import
-                                             +-> multiresolution cover
-                                                 -> scored R4G1 graph + Gate C report
-```
-
-Downloading and compiling are explicit offline operations. Neither `ask` nor
-the HTTP server downloads a model or contacts an inference provider.
-
-The top-level `compile` command builds the deployable transformerless bundle
-and retains its observation corpus. The graph compiler then consumes those
-outputs through `transformerless cover` and `transformerless score`. This
-separation makes expensive stages reusable and keeps the deployed runtime
-independent of the Hugging Face teacher.
-
-### 1. Download pinned compiler input
-
-```bash
-cargo run -- download \
-  --repository HuggingFaceTB/SmolLM2-135M-Instruct \
-  --revision 7e27bd9f95328f0f3b08261d1252705110c806f8 \
-  --name smollm2-135m-instruct
-```
-
-The default destination is
-`.uor-models/sources/smollm2-135m-instruct`. Override it with `--output`:
-
-```bash
-cargo run -- download \
-  --repository HuggingFaceTB/SmolLM2-135M-Instruct \
-  --revision 7e27bd9f95328f0f3b08261d1252705110c806f8 \
-  --name smollm2-135m-instruct \
-  --output /path/to/model-sources/smollm2-135m-instruct
-```
-
-The downloader prints the repository and destination immediately, streams the
-`hf` process, and emits a heartbeat every two seconds with file count, bytes,
-and elapsed time.
-
-### 2. Compile the source
-
-Compile an already downloaded directory:
-
-```bash
-cargo run --release -- compile \
-  --source .uor-models/sources/smollm2-135m-instruct \
-  --output .uor-models/compiled/smollm2-135m-instruct \
-  --seconds 300 \
-  --target 20000 \
-  --sequence-length 128
-```
-
-Or let the compiler download an immutable revision through `hf`:
-
-```bash
-cargo run --release -- compile \
-  --model HuggingFaceTB/SmolLM2-135M-Instruct \
-  --revision 7e27bd9f95328f0f3b08261d1252705110c806f8 \
-  --seconds 300 \
-  --target 20000 \
-  --sequence-length 128 \
-  --r4-attention
-```
-
-`--revision` must be a full 40-character commit hash. `--seconds` limits the
-teacher-generation work performed by one invocation, while `--target` is the
-teacher-token goal. `--r4-attention` enables the experimental 4D softmax-free
-Spin(4) attention geometry during teacher generation (omitting this flag runs
-standard scaled dot-product attention). Hugging Face compilation defaults to
-20,000 tokens and 128-token teacher stories. The bounded story length keeps
-attention cost and KV memory proportional to the eight-token deployed runtime
-window; increase `--target` or `--sequence-length` explicitly for quality
-experiments. Repeat the same command to resume an incomplete corpus.
-
-On macOS, offline Hugging Face teacher execution uses Apple Accelerate's
-SIMD-optimized CPU BLAS. Linux and Windows use explicit NEON on AArch64 or
-runtime-detected AVX2/FMA on x86-64, with a dependency-free scalar fallback.
-These compiler accelerators do not add a runtime dependency or change the
-allocation-free table-native inference path. Set `TLESS_TEACHER_EXACT=1` to
-force the slower, reduction-order-preserving scalar path for diagnostic
-comparisons. The pinned legacy proof workflow always uses that exact path.
-
-When compilation completes, the output directory contains:
-
-```text
-tless_artifacts.bin       # TLA5 teacher projection and class tables
-tless_store.bin           # TLS1 graded continuation evidence
-tokenizer.bin
-corpus.meta               # observation-corpus metadata
-corpus.records            # deterministic observation records
-hamming_calibration.json
-hierarchical_codes.json
-space_manifest.json
-```
-
-Interactive terminals show progress bars. Redirected output receives periodic
-`progress:` lines suitable for build logs. Source loading and compilation may
-allocate; the allocation-free guarantee applies to the deployed prediction hot
-path, which uses fixed and caller-owned buffers.
-
-### 3. Compile the holographic graph
-
-The graph compiler turns the retained observation corpus and TLA5 artifact
-into a multiresolution, overlapping semantic graph. First induce and measure
-the cover:
-
-```bash
-cargo run --release -- transformerless cover \
-  --corpus-meta .uor-models/compiled/smollm2-135m-instruct/corpus.meta \
-  --corpus-recs .uor-models/compiled/smollm2-135m-instruct/corpus.records \
-  --artifacts .uor-models/compiled/smollm2-135m-instruct/tless_artifacts.bin \
-  --out .uor-models/compiled/smollm2-135m-instruct/graph-cover
-```
-
-This writes `cover.r4g1` and `cover_report.json`. The cover report now emits a
-versioned objective block (`objective.config.schema`) with separate train and
-held-out components for predictive entropy (`H(A|R)`), future-state entropy
-proxies (`H(S_future|R)`), teacher-loss proxy, runtime/artifact/bytes/structure
-costs, and information-bottleneck proxy terms (`I(Z;X) - βI(Z;Y_future)`),
-plus a bounded top-64 between-region distinctiveness term against the global
-next-token prior (default weight `0`, preserving the default cover), and
-auditable split decisions. Objective versions migrate by appending new fields
-under `objective` while keeping Gate C and predictive-sufficiency reports as
-separate reproducible artifacts. Then compile semantic
-transitions, fixed-point emission residuals, and exact-evidence carryover:
-
-```bash
-cargo run --release -- transformerless score \
-  --corpus-meta .uor-models/compiled/smollm2-135m-instruct/corpus.meta \
-  --corpus-recs .uor-models/compiled/smollm2-135m-instruct/corpus.records \
-  --artifacts .uor-models/compiled/smollm2-135m-instruct/tless_artifacts.bin \
-  --cover .uor-models/compiled/smollm2-135m-instruct/graph-cover/cover.r4g1 \
-  --out .uor-models/compiled/smollm2-135m-instruct/graph
-```
-
-The result is `graph/score.r4g1`, a stage-validated packed graph containing
-regions, refinement/neighbor/forward edges, ScoreQ emission tables, and the
-EXCT evidence section. `graph/score_report.json` records artifact and corpus
-kappas plus held-out Gate C top-1 agreement, bits/token, and witness replay.
-
-Passing `--cover` reuses the measured cover. It may be omitted to re-induce
-the default cover deterministically during scoring. For experiments, `cover`
-also accepts `--depths`, `--k0`, `--regions-budget`, and `--memory-budget`.
-
-The public `ask` and `chat` library paths still load the TLA5/TLS1 files from
-step 2. The native HTTP server auto-loads `graph/score.r4g1` beside
-`tless_artifacts.bin` when present (or accepts `--r4g1-artifact`), validates it,
-and uses it for the `transformerless` engine before falling back to TLA5/TLS1.
-When the dashboard is served by that native process, its **Compile / Refresh
-R4G1 Graph** button runs the same cover → score pipeline against the bundle's
-`corpus.meta` and `corpus.records`, validates the new graph, and hot-swaps it
-into the running server. Static WASM deployments cannot run this compiler.
-Static deployments still use the geometric WASM fallback because they have no
-native filesystem-backed graph loader yet.
-
-The native dashboard also exposes **Download Hugging Face Weights**. Its input
-defaults to the pinned `owner/repository@commit` from
-`models/smollm2-135m-instruct.json`, but accepts any repository paired with a
-full 40-character commit. Downloads go into `.uor-models/sources/`; nothing is
-downloaded until the button is pressed. Afterward, run the bundle compiler and
-then the R4G1 graph compiler. If the downloaded source is present and the
-compiled bundle is not, the native **Compile / Refresh R4G1 Graph** action now
-runs the bundle compiler first, then cover and score compilation, as one server
-job.
-
-### 4. Ask locally
-
-Compilation produces a directly loadable local bundle. On first use, R⁴
-content-addresses the artifact, store, and tokenizer in `.uor-models/objects`:
-
-```bash
-cargo run --release -- ask "why is the sky blue?"
-```
-
-This direct path verifies container integrity but does not claim that the
-compiled approximation has passed an instruction-quality evaluation. The CLI
-logs that distinction. Compilation success and answer quality are separate
-properties.
-
-### 5. Evaluate instruction quality
-
-Run held-out instruction and grounding evaluation against the compiled bundle
-and retain a machine-readable report:
-
-```bash
-cargo run --release -- evaluate-report \
-  --source .uor-models/sources/smollm2-135m-instruct \
-  --compiled .uor-models/compiled/smollm2-135m-instruct \
-  --report .uor-models/compiled/smollm2-135m-instruct/instruction-eval.json
-```
-
-The report file stores an envelope with the held-out D3 metrics (top-1
-accuracy, teacher-argmax agreement, Witten–Bell bits/token vs the teacher
-floor), source/artifact/store/tokenizer/corpus CIDs, and
-`report_cid_of_report_bytes` for the inner metrics payload. Do not mark an
-artifact as passing merely to bypass the chat quality gate.
-
-### 6. Import the evaluated bundle
-
-```bash
-cargo run -- import \
-  --name my-chat-model \
-  --source-model HuggingFaceTB/SmolLM2-135M-Instruct@7e27bd9f95328f0f3b08261d1252705110c806f8 \
-  --capability instruction-chat \
-  --artifacts .uor-models/compiled/smollm2-135m-instruct/tless_artifacts.bin \
-  --store .uor-models/compiled/smollm2-135m-instruct/tless_store.bin \
-  --tokenizer .uor-models/compiled/smollm2-135m-instruct/tokenizer.bin \
-  --evaluation-report /path/to/instruction-eval.json \
-  --instruction-eval-passed \
-  --grounded-answer-rate 0.80 \
-  --repetition-rate 0.01
-```
-
-The model store defaults to `.uor-models`; set `UOR_MODEL_STORE` to relocate
-it. Objects are stored once under `objects/blake3/<digest>`. Reads verify both
-the declared byte length and UOR CID. The import command prints the manifest
-CID.
-
-Continuation-only bundles may be imported for certification and benchmarking,
-but `ask` refuses to load them.
-
-### 7. Ask or chat with an imported manifest
-
-One-shot `ask` calls the R⁴ library directly without a server or network hop:
-
-```bash
-cargo run --release -- ask \
-  --model my-chat-model \
-  "why is the sky blue?"
-```
-
-Interactive chat retains turn history:
-
-```bash
-cargo run --release -- chat --model my-chat-model
-```
-
-`--model` is optional. Selection order is `TLESS_MODEL`, the newest JSON
-descriptor in `models/`, then `smollm2-135m-instruct`. A descriptor selects a
-name; R⁴ first uses an imported manifest and otherwise falls back to a complete
-local bundle under `.uor-models/compiled/<name>`.
-
-Library consumers can use the chat example directly:
-
-```rust,no_run
-use uor_r4_wasm_router::chat::ChatEngine;
-
-let mut chat = ChatEngine::builder().model("my-chat-model").build()?;
-let answer = chat.ask("why is the sky blue?")?;
-println!("{}", answer.text);
-# Ok::<(), Box<dyn std::error::Error>>(())
-```
-
-Chat is an application of transformerless R⁴, not a separate crate or
-inference layer.
-
-## Legacy benchmark and certification workflow
-
-The pinned llama2.c TinyStories path remains available for proof reproduction
-and same-machine performance comparison.
-
-```bash
-cargo run --release -- setup
-cargo run --release -- gen 300 150000
-# repeat gen until it reports done=1
-cargo run --release -- certify
-cargo run --release -- compare
-cargo run --release -- compare-report
-cargo run --release -- scenarios
-```
-
-`certify` performs the compile, store, certificate, and census steps
-internally. The bare `compile` and `store` subcommands belong to the HF
-graph-compiler path — `compile` requires `--model` or `--source`, and `store`
-depends on a prior graph compile — and are not part of the legacy chain.
-
-`gen` output is not byte-reproducible across machines or eras: story and
-held-out counts can differ slightly from the certified stream (e.g. 754
-stories / 30,036 held-out against the certified 757 / 30,192), which bounds
-how exactly downstream figures reproduce.
-
-Its default files are:
-
-```text
-/tmp/tless_artifacts.bin
-/tmp/tless_store.bin
-/tmp/ref/tokenizer.bin
-```
-
-This is a TinyStories continuation artifact, not an instruction-chat model.
-Use `compare-report` for the recorded certificate without loading the source
-checkpoint:
-
-```bash
-cargo run --release -- compare-report
-```
-
-See [COMPARISON.md](docs/transformerless/COMPARISON.md) for the measured quality
-and throughput evidence.
-
-## CLI reference
-
-Build once and invoke `r4` directly, or use the equivalent Cargo commands:
-
-```bash
-cargo build --release
-./target/release/r4 --help
-./target/release/r4 ask "why is the sky blue?"
-
-cargo run -- --help
-cargo run -- ask --help
-cargo run -- compile --help
-cargo run -- download --help
-cargo run -- import --help
-cargo run -- transformerless cover
-cargo run -- transformerless score
-```
-
-All subcommands support `-v`, `-vv`, and `-vvv` for info, debug, and trace
-logging. Tracing uses a dependency-light subscriber.
-
-The server defaults are:
-
-| Option | Environment | Default |
-|---|---|---|
-| `--host` | `UOR_R4_HOST` | `127.0.0.1` |
-| `--port` | `UOR_R4_PORT` | `8000` |
-| `--manifold-cache` | `UOR_R4_MANIFOLD_CACHE` | `manifold_cache_rust.json` |
-| `--tless-artifacts` | `TLESS_ARTIFACTS` | `/tmp/tless_artifacts.bin` |
-| `--tless-store` | `TLESS_STORE` | `/tmp/tless_store.bin` |
-| `--tless-tokenizer` | `TLESS_TOKENIZER` | `/tmp/ref/tokenizer.bin` |
-| `--r4g1-artifact` | `R4G1_ARTIFACT` | `<compiled>/graph/score.r4g1` when present |
-| `--tless-corpus-meta` | `TLESS_CORPUS_META` | Beside the configured artifact when present |
-| `--tless-corpus-recs` | `TLESS_CORPUS_RECS` | Beside the configured artifact when present |
+---
 
 ## Architecture
 
@@ -703,7 +185,7 @@ The server defaults are:
 flowchart LR
     Source["Pinned local model source"] --> Compiler["R⁴ transformerless compiler"]
     Compiler --> Corpus["Deterministic observation corpus"]
-    Compiler --> Artifact["TLA5 artifact"]
+    Compiler --> Artifact["TLA artifact (TLA7 default)"]
     Compiler --> Store["TLS1 graded store"]
     Compiler --> Tokenizer["Tokenizer"]
     Corpus --> Cover["Multiresolution cover induction"]
@@ -717,44 +199,132 @@ flowchart LR
     Tokenizer --> Runtime
     Prompt["Prompt"] --> Router["R⁴ geometric router"]
     Router --> Runtime
-    Runtime --> Witness["UOR CID + Grounded witness"]
+    Runtime --> Witness["UOR CID + grounded witness"]
     Runtime --> Apps["r4 ask / r4 chat / HTTP API"]
 ```
 
-The workspace has one public package and ten internal implementation crates:
+**Serving order.** The stack consults packed NGRAM context rows (trigram with
+bigram backoff), then the graph chain with D4 exact-context precedence, then the
+root prior. A `FallbackRouter` cascades from primary `r4g1-graph` to secondary
+`transformerless-tla5` on unmapped or pathological states.
 
-| Package | Responsibility |
-|---|---|
-| `uor-r4-wasm-router` | Public facade, UOR witness integration, HTTP server, WASM surface, and the single `r4` executable |
-| [`uor-r4-core`](crates/uor-r4-core) | Core R⁴ mathematics and transformerless compiler/runtime/tokenizer/certifier |
-| [`uor-r4-router`](crates/uor-r4-router) | Manifold state, indexing, geometric routing, and router witnesses |
-| [`uor-r4-graph-format`](crates/uor-r4-graph-format) | Canonical R4G1 serialization, two-stage validation, and borrowed graph views |
-| [`uor-r4-graph-compiler`](crates/uor-r4-graph-compiler) | Offline graph-compiler stages: observation pipeline, cover induction, routing/residual packing |
-| [`uor-r4-graph-certify`](crates/uor-r4-graph-certify) | Offline certification and measurement: Gate C scoring harness (`score`), reference scorer (`score_runtime`), certificates, comparison |
-| [`uor-r4-graph-runtime`](crates/uor-r4-graph-runtime) | `no_std` allocation-free R4G1 graph runtime (engine, routing programs, packed kernels, patch chains) |
-| [`uor-r4-graph-cli`](crates/uor-r4-graph-cli) | `r4 transformerless …` CLI stage dispatch (convert-r4g1, scenarios, corpus tools) |
-| [`uor-r4-api`](crates/uor-r4-api) | Typed compile + engine library facade for downstream library consumers |
-| [`uor-r4-model-source`](crates/uor-r4-model-source) | Teacher forward-pass port (llama2.c-exact) and pinned Safetensors adapter |
-| [`uor-r4-proof-model`](crates/uor-r4-proof-model) | Executable graph-compiler proof obligations and proof-status matrix |
+**Artifact format eras.** Deployed compiles emit **TLA7** by default (per-stage
+i8 centroid copies, a norm-fold constant, per-stage decode shifts). TLA6 (packed
+shift-add dot tables) is the fallback, and TLA3/TLA4/TLA5 remain readable through
+the era-generic parser. `R4_TLESS_TLA7=0` and `R4_TLESS_TLA6=0` opt a compile
+back out. The committed fixture is TLA7.
 
-The public [`tless_uor`](src/tless_uor.rs) module provides `TlessAxis`,
-`UorTlessModel`, CID addressing, and per-prediction `Grounded` certificates.
-The root [`chat`](src/chat.rs) and [`model`](src/model.rs) modules are
-application-level consumers of the core runtime.
+**Context window.** `WINDOW = 8` dyadic-recency, with zero-allocation stack/slice
+sliding truncation. Token stores are strict 32-bit (`parse_store_strict_u32`);
+legacy u16 stores are readable but want a recompile.
+
+---
+
+## CLI reference
+
+Everything below supports `--help`. Global flags (`--host`, `--port`,
+`--tless-artifacts`, `--tless-store`, `--tless-tokenizer`, `--r4g1-artifact`,
+`--manifold-cache`, `-v`) are accepted before or after any subcommand. `r4` with
+no subcommand is `r4 serve`.
+
+**Serving and interaction**
+
+```bash
+r4 serve                                    # HTTP server + dashboard
+r4 ask [--model NAME|CID] <question...>     # one-shot; prints only the answer
+r4 chat [--model NAME|CID] [--remote URL]   # REPL, local or against a remote /v1
+r4 client [--remote http://127.0.0.1:8000/v1]
+r4 audit [--log-file .uor-models/audit_log.json]
+```
+
+**Model lifecycle** — full guide in [docs/MODEL_LIFECYCLE.md](docs/MODEL_LIFECYCLE.md)
+
+```bash
+r4 download --repository OWNER/REPO --revision <40-char SHA> --name NAME
+r4 compile --source DIR [--output DIR] [--seconds N] [--target N] [--sequence-length N]
+r4 compile --corpus-meta META --corpus-recs RECS --vocab-size N     # teacher-free
+r4 evaluate-report [--source DIR] [--compiled DIR] [--report PATH]
+r4 import --name N --source-model M --capability continuation|instruction-chat \
+          --artifacts F --store F --tokenizer F [--evaluation-report F]
+```
+
+**Graph pipeline**
+
+```bash
+r4 transformerless observe      [--source DIR] [--out obs] [--shards 4]
+r4 transformerless observe-text [--input PATH] [--out obs-text]
+r4 transformerless cover        [--corpus-meta M] [--corpus-recs R] [--artifacts A] [--out cover]
+r4 transformerless cover-sweep  [...]
+r4 transformerless score        [--corpus-meta M] [--corpus-recs R] [--artifacts A] [--out DIR]
+r4 transformerless convert-r4g1 --artifacts TLA --store TLS1 --out R4G1
+r4 transformerless compile-recorded --corpus-meta M --corpus-recs R --vocab-size N --out DIR
+r4 graph infill --artifact score.r4g1 --skeleton 12,_,_,_,99,_,_,_,7
+```
+
+**Certification and comparison** (need the llama2.c checkpoint — see
+[Troubleshooting](#troubleshooting))
+
+```bash
+r4 certify          # full certificate + zero-multiply op census + serving row
+r4 compare          # against the reference implementation
+r4 compare-report   # prints the recorded certificate; needs no artifacts
+r4 setup            # prints the prerequisite commands
+```
+
+> `r4 transformerless compare` and `compare-report` appear in the subcommand
+> help but are not implemented there. The working spellings are the root
+> `r4 compare` and `r4 compare-report`.
+
+---
 
 ## HTTP API
 
-### `POST /api/chat`
+`r4 serve` exposes an OpenAI-compatible surface and a dashboard surface. JSON
+responses carry permissive CORS.
 
-Routes and synthesizes a prompt. The `engine` parameter selects the generation mechanism:
+**OpenAI-compatible** — this is what `r4 client` and `r4 chat --remote` speak:
 
-- `"transformerless"`: Run allocation-free table-native codebook retrieval (sub-millisecond latency on CPU).
-- `"r4g1"`: Run the validated R4G1 graph scorer when a `score.r4g1` artifact is loaded.
-- `"attention"`: Run standard scaled dot-product attention on the loaded teacher model (generates up to 256 tokens).
-- `"r4-attention"`: Run experimental 4D Spin(4) softmax-free attention on the loaded teacher model (generates up to 256 tokens, yielding ~25% computation speedup on CPU by bypassing standard softmax exponents).
-- `"geometric"`: Route purely geometrically and decode directly from the manifold resonance.
+| Endpoint | Purpose |
+|---|---|
+| `POST /v1/chat/completions` | Chat completion |
+| `GET /v1/models` | List available models |
+| `GET /v1/status` | Engine and artifact status |
+| `POST /v1/reload` | Reload the R4G1 graph and teacher from a path |
+| `POST /v1/corpus` | Load corpus text |
 
-Example request payload:
+**Dashboard:**
+
+| Endpoint | Purpose |
+|---|---|
+| `POST /api/chat` | Route and synthesize; `engine` selects the mechanism (below) |
+| `POST /api/tless/predict` · `/index` · `/generate` | Transformerless runtime |
+| `POST /api/r4g1/predict` · `/generate` · `/compile`, `GET /api/r4g1/status` | R4G1 graph runtime and background compile |
+| `POST /api/corpus` · `/api/reset` · `/api/import`, `GET\|POST /api/export` | Corpus and state management |
+| `POST /api/uor/verify` | Validate a UOR attestation envelope |
+| `GET /api/huggingface/status`, `POST /api/huggingface/download` | Background teacher download |
+| `GET /api/tags` | Ollama-style tag list |
+| `GET /api/sysinfo` · `GET /api/map` | Host info; semantic map points |
+
+Anything else is served as a static file from the working directory; `/` serves
+`index.html`.
+
+**`engine` values for `POST /api/chat`**
+
+| Value | Mechanism |
+|---|---|
+| `transformerless` | Allocation-free table-native codebook retrieval, sub-millisecond on CPU |
+| `r4g1` | The validated R4G1 graph scorer; needs a loaded `score.r4g1` |
+| `attention` | Standard scaled dot-product attention on the loaded teacher (up to 256 tokens) |
+| `r4-attention` | Experimental 4D Spin(4) softmax-free attention (~25% faster on CPU by bypassing softmax exponents) |
+| `geometric` | Route purely geometrically and decode from manifold resonance |
+
+Omitting `engine` runs the **full cascade, r4g1-first** — it does *not* mean
+`transformerless`. The dashboard's engine selector sets this, and
+`.uor-models/last_engine.txt` persists the preference across requests that omit
+it. The dashboard also shows a tokens/sec **Speed** metric that persists after
+generation, for profiling across the attention and transformerless paths.
+
+Example:
 
 ```json
 {
@@ -764,102 +334,157 @@ Example request payload:
 }
 ```
 
-The browser dashboard (<http://127.0.0.1:8000>) includes an engine selector dropdown to easily swap between these modes. The dashboard displays a **Speed** metric (in tokens/sec) under the telemetry card that persists after generation completes, allowing for easy execution speed profiling and audit comparison across the attention and transformerless pathways.
+---
 
-### `GET /api/sysinfo`
+## Configuration
 
-Returns initialization metrics, uptime, and UOR validation state.
+Environment knobs, grouped by purpose. The full inventory with defaults and
+owning modules is in [docs/CONFIGURATION.md](docs/CONFIGURATION.md).
 
-### `POST /api/r4g1/compile` and `GET /api/r4g1/status`
+**Paths and inputs** — `TLESS_CHECKPOINT`, `TLESS_ARTIFACTS`, `TLESS_STORE`,
+`TLESS_TOKENIZER`, `TLESS_MODEL`, `R4G1_ARTIFACT`, `R4_CORPUS_META`,
+`R4_CORPUS_RECS`, `R4_ARTIFACTS`, `R4_CODES_PATH`, `UOR_MODEL_STORE`,
+`UOR_R4_HOST`, `UOR_R4_PORT`.
 
-Starts and monitors the native server's cover → score compilation job. The
-resulting graph is loaded only after validation succeeds; the status response
-also includes the generated `score_report.json` when available.
+**Determinism and teacher math** — `TLESS_CANONICAL_DETERMINISTIC` (required for
+the cross-platform Gate E claim), `TLESS_EXACT_SCALAR`, `R4_TLESS_TLA6`,
+`R4_TLESS_TLA7`, `TLESS_REPIN_WRITE` (maintainer-only).
 
-### `POST /api/huggingface/download` and `GET /api/huggingface/status`
+**Measurement** — `R4_GATE_C_SAMPLE` (deterministic stride subsample; the sample
+size and standard error travel with every rate, so a sampled number cannot be
+read as a census), `R4_GATE_C_SKIP_ARMS=right_context` (skips the whole-corpus
+right-context code pass — about 60% of a sampled run's wall clock), plus
+per-harness caps.
 
-Starts and monitors an explicit download. The optional JSON body is
-`{"model":"owner/repository@<40-character-commit>"}`; omitting it uses the
-pinned source defined by `models/smollm2-135m-instruct.json`. The server
-requires the `hf` CLI and rejects unpinned revisions.
+**Capacity overrides** — the `R4_COVER_*` and `R4_*_SAMPLE` family share one
+contract: **unset is κ-neutral; set-but-invalid or zero panics.** A knob that
+silently did nothing would be indistinguishable from a knob that does not work.
 
-### `POST /api/corpus`
-
-Indexes text into the geometric manifold:
-
-```json
-{
-  "corpus": "Text to index into the manifold.",
-  "identity": "tenant-alpha"
-}
-```
-
-### `GET /api/export` and `POST /api/import`
-
-Export or restore router vocabulary, prime products, and sentence manifolds.
-
-### `POST /api/tless/predict`
-
-Runs one witnessed token prediction:
-
-```json
-{ "window": [1, 298, 263, 221, 437, 238, 15, 1979] }
-```
-
-Only the eight most recent token IDs are read. The response includes the token,
-resolution depth, graded code, evidence count, operation census, artifact and
-store kappas, UOR address, and `Grounded` witness metrics.
-
-### `POST /api/tless/index`
-
-Adds tokenized text to the graded store:
-
-```json
-{ "text": "Once upon a time, there was a little dog named Rex." }
-```
-
-The response includes token count, evidence positions written, and the updated
-store kappa.
-
-### `POST /api/tless/generate`
-
-Runs attributable greedy generation:
-
-```json
-{ "text": "Once upon a time, there was a little", "max_tokens": 24 }
-```
-
-The response includes generated text and tokens plus each step's resolution
-depth and evidence count.
+---
 
 ## Testing and quality gates
 
-```bash
-cargo fmt --all -- --check
-cargo check --workspace --all-targets --offline
-cargo test --workspace --all-targets --offline
-cargo clippy --workspace --all-targets --offline -- -D warnings
-```
-
-Reproduce the transformerless proof witnesses with:
+Local gates, all clean before every commit:
 
 ```bash
-cargo test -p uor-r4-core
-cargo test -p uor-r4-core --release --test kappa_reproduction -- --ignored
+cargo test --workspace --offline
+cargo clippy --workspace --all-targets --all-features --offline -- -D warnings
+cargo fmt --check
+cargo check -p uor-r4-graph-format --no-default-features
+cargo check -p uor-r4-graph-format --no-default-features --features alloc
 ```
 
-The ignored reproduction and real-SmolLM2 adapter tests require their external
-model fixtures.
+Any change under `uor-r4-core` or `uor-r4-router` additionally needs the wasm
+target, because clippy does not build it and the merge queue does:
 
-## Common errors
+```bash
+cargo check --target wasm32-unknown-unknown -p uor-r4-wasm-router --lib
+```
 
-- **Downloaded source data is not a compiled chat bundle:** run the exact
-  `compile --source ...` command printed by `ask`.
-- **Compiled bundle has no quality attestation:** local `ask` can still run it
-  and content-addresses its files. Evaluate and `import` it before presenting
-  its output as instruction-quality validated.
-- **Manifest not found:** select an imported manifest name/CID or set
-  `TLESS_MODEL`.
-- **Tokenizer or transformerless state unavailable:** build the legacy files or
-  pass the three `TLESS_*` paths explicitly.
-- **No `metal` feature or `--device`:** expected; inference is CPU-only.
+Other suites: `cargo test --test bdd` (or `just bdd`) runs the Cucumber
+teacher-parity suite — it **vacuously skips** without a compiled bundle, so check
+the fixture before trusting green. `cargo test --doc --workspace` runs doc tests.
+`cargo +nightly fuzz run parse_arbitrary` fuzzes the format parser.
+
+**CI** reports five required checks. On `pull_request` they are fast — claim
+wording, fmt, clippy, `cargo audit`. On `merge_group` the full ladder runs
+against the speculative merge: tests, no_std, deterministic rebuild,
+κ-reproduction, Gate C trend, wasm, fuzz smoke. A **docs-only fast path**
+short-circuits Markdown-only PRs. Any new required check name must be reported in
+*both* contexts, or PRs hang forever waiting on a check that never runs.
+Separate workflows cover Kani formal verification and GitHub Pages deployment.
+
+**Measurement harnesses** are `#[ignore]`d and run explicitly. The cheap gate
+that must precede any long run:
+
+```bash
+cargo test -p uor-r4-graph-certify --test capacity_scaling -- --ignored   # ~12 min
+```
+
+It prints a saturation verdict per structure. If it reports SATURATED on the
+structure your experiment intends to move, the long run does not launch. The full
+harness inventory is in [docs/RESEARCH.md](docs/RESEARCH.md).
+
+---
+
+## Troubleshooting
+
+| Symptom | Cause and fix |
+|---|---|
+| κ tests pass suspiciously fast | `/tmp/ref/out/model.bin` is missing, so they **skip silently and report vacuous green**. `/tmp` cleanup deletes it. Re-fetch (below) and confirm the file exists before trusting a pass. |
+| fmt/clippy disagree with CI | A non-rustup Rust earlier in `PATH` ignores the toolchain pin. Check `which cargo`. |
+| clippy passes locally, fails in CI | You omitted `--all-features`. Use the exact invocation above. |
+| `r4 ask` refuses to run | The bundle has no CID-addressed passing evaluation report. Run `r4 evaluate-report`, then `r4 import`. |
+| Port 8000 already in use | Use `--port` / `UOR_R4_PORT`, or `PORT=9000 ./uor-r4-cli`. |
+| Compiled bundle behaves oddly after an upgrade | The on-disk store in `.uor-models/` may predate the u32 token migration. A full recompile refreshes it. |
+| `--revision` rejected | It must be a full 40-character commit hash; the server refuses unpinned revisions. |
+| Measurement harness prints `SKIP` | Its corpus fixtures or `R4_*` inputs are absent. Check the harness header for what it needs. |
+
+Fetch the reference checkpoint:
+
+```bash
+curl -sL -o /tmp/run.com \
+  https://github.com/trholding/llama2.c/releases/download/experimental/run.com
+cd /tmp && unzip -o run.com out/model.bin tokenizer.bin -d ref
+```
+
+---
+
+## Documentation map
+
+**Start here**
+
+- [docs/RESEARCH.md](docs/RESEARCH.md) — what is measured, what is closed, what is open.
+- [docs/MODEL_LIFECYCLE.md](docs/MODEL_LIFECYCLE.md) — download → compile → cover → score → evaluate → import → serve.
+- [AGENTS.md](AGENTS.md) — contributor manual: gates, normative invariants, κ re-pin, long-run discipline.
+- [CONTRIBUTING.md](CONTRIBUTING.md) — how to open a PR here.
+- [docs/CONFIGURATION.md](docs/CONFIGURATION.md) — every environment knob.
+
+**Explainers** — [ELI5](docs/explainers/ELI5.md) ·
+[Undergraduate](docs/explainers/UNDERGRADUATE.md) ·
+[Glossary](docs/transformerless/GLOSSARY.md)
+
+**Design and contract** — [Transformerless design](docs/transformerless/TRANSFORMERLESS.md) ·
+[Proof and certificate](docs/transformerless/PROOF.md) ·
+[R4G1 wire format](docs/transformerless/R4G1.md) ·
+[Baseline](docs/transformerless/BASELINE.md) ·
+[Threat model](docs/transformerless/THREAT_MODEL.md) ·
+[Local-only runtime contract](docs/transformerless/LOCAL_ONLY.md) ·
+[Inference contract](docs/inference_contract.md) ·
+[Scoring semantics](docs/scoring_semantics.md) ·
+[Formal vocabulary](docs/formal_vocabulary.md) (normative for claim wording) ·
+[Reproducibility](docs/reproducibility.md) ·
+[Performance comparison](docs/transformerless/COMPARISON.md)
+
+**Plan** — [R⁴ graph compiler implementation plan](docs/r4_graph_compiler_implementation_plan.md) ·
+[ROADMAP.md](ROADMAP.md) · [Minimal client](docs/minimal_client.md)
+
+---
+
+## Contributing
+
+Read [AGENTS.md](AGENTS.md) first — it is the operating manual, not a formality.
+[CONTRIBUTING.md](CONTRIBUTING.md) has the short version:
+
+1. **Assign yourself the issue**, work on `issue-<n>-<slug>`, open a PR, merge
+   through the queue, close the issue with the evidence.
+2. **Every substantive claim arrives with a pre-declared exit rule, a null
+   baseline and a falsifier.** Negative results are recorded and kept — several
+   of the most valuable entries in [docs/RESEARCH.md](docs/RESEARCH.md) are
+   refutations that redirected the programme.
+3. **Do not weaken the normative invariants**: no multiply/divide/float in the
+   deployed kernel, allocation-free hot path, deterministic artifacts, no
+   `unwrap`/`expect` on recoverable paths, no `unsafe` in the portable runtime or
+   the format crate.
+4. **Claim language is machine-checked.** `python3 scripts/check_claim_wording.py`
+   blocks exact-equivalence wording that has no linked proof artifact.
+5. **Before any run measured in hours**, compute the reachability ceiling, run
+   the cheap instrument first and treat its verdict as binding, and pre-declare
+   what each outcome causes. Paste the run contract into the issue.
+
+Security-relevant design is documented in
+[docs/transformerless/THREAT_MODEL.md](docs/transformerless/THREAT_MODEL.md).
+
+## License
+
+MIT — see [LICENSE](LICENSE). © 2026 UOR Foundation.

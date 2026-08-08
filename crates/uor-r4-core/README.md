@@ -10,7 +10,7 @@ This crate hosts two things:
    the geometric router (`uor-r4-router`).
 2. **The transformerless engine** (`src/transformerless/`): cross-compiles a
    pinned Hugging Face teacher into a multiplication-free, table-native
-   inference artifact (TLA3/TLA4/TLA5 containers), plus the integer-only
+   inference artifact (TLA3-TLA7 containers; TLA7 is the default emission), plus the integer-only
    runtime that serves it. This is the system the graph compiler
    (`uor-r4-graph-format` and friends) generalizes — see
    `docs/r4_graph_compiler_implementation_plan.md`.

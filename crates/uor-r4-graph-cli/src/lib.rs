@@ -1,7 +1,7 @@
 //! transformerless — cross-compilation of a transformer LM into a
 //! multiplication-free, table-native, certifiable inference artifact.
 //!
-//! Read docs/TRANSFORMERLESS.md (the extrapolation) and docs/PROOF.md (the
+//! Read docs/transformerless/TRANSFORMERLESS.md (the extrapolation) and docs/transformerless/PROOF.md (the
 //! proof structure and the measured certificate) alongside this code.
 //!
 //! # Commands
@@ -2706,7 +2706,7 @@ pub fn run(args: &[String]) -> Result<(), String> {
                  A-mode infill serving: graph infill --artifact <scored R4G1> --skeleton <token ids, _ for free> [--teacher <TLA container>]\n\
                  quantum operations: cd-compile | quantum-eval\n\
                  hf evaluation: evaluate-report [--source DIR] [--compiled DIR] [--report PATH] [--sequence-length N] [--bos] [--max-held-out-stories N]\n\
-                 docs: docs/TRANSFORMERLESS.md (extrapolation), docs/PROOF.md (proof + certificate)"
+                 docs: docs/transformerless/TRANSFORMERLESS.md (extrapolation), docs/transformerless/PROOF.md (proof + certificate)"
             );
         }
     }
