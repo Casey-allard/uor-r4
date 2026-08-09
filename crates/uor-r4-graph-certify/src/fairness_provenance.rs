@@ -88,19 +88,27 @@ impl FairnessAndProvenanceCertificate {
         self.certificate_cid == self.compute_cid()
     }
 
-    pub fn to_cbor_bytes(&self) -> Result<Vec<u8>, String> {
+    /// Serialize to CBOR. Infallible: ciborium serialization of this
+    /// derive-Serialize certificate into an in-memory buffer cannot fail — a
+    /// failure would be a serialization defect, not a property of the data
+    /// (R5 — self-produced bytes are an invariant, not a reported condition).
+    pub fn to_cbor_bytes(&self) -> Vec<u8> {
         let mut buf = Vec::new();
-        ciborium::into_writer(self, &mut buf).map_err(|e| e.to_string())?;
-        Ok(buf)
+        ciborium::into_writer(self, &mut buf)
+            .expect("FairnessAndProvenanceCertificate CBOR serialization is infallible");
+        buf
     }
 
-    pub fn from_cbor_bytes(bytes: &[u8]) -> Result<Self, String> {
-        let cert: FairnessAndProvenanceCertificate =
-            ciborium::from_reader(bytes).map_err(|e| e.to_string())?;
+    /// Parse from CBOR and check the certificate's self-CID. `None` when the
+    /// bytes are not a valid CBOR encoding, or when the recomputed CID does not
+    /// match the embedded one: in either case the bytes are not a valid,
+    /// self-consistent certificate — the absence of a product (R5).
+    pub fn from_cbor_bytes(bytes: &[u8]) -> Option<Self> {
+        let cert: FairnessAndProvenanceCertificate = ciborium::from_reader(bytes).ok()?;
         if !cert.verify_cid() {
-            return Err("FairnessAndProvenanceCertificate CID verification failed".to_string());
+            return None;
         }
-        Ok(cert)
+        Some(cert)
     }
 }
 
@@ -167,31 +175,24 @@ impl FairnessEvaluator {
     }
 
     /// Verify that every provenance edge attributed to `deleted_slice_id` has
-    /// been tombstoned in `graph` (weight forced to 0), returning a witness on
-    /// success or an error describing the first integrity violation.
+    /// been tombstoned in `graph` (weight forced to 0). `Some(witness)` when the
+    /// deletion holds; `None` when it does not — a tombstoned edge id is out of
+    /// bounds, or a referenced edge still carries a non-zero weight. The
+    /// deletion is verified or it is not; an unverified deletion yields no
+    /// witness rather than a raised error (R5).
     pub fn verify_provenance_deletion(
         deleted_slice_id: &str,
         graph: &TransitionGraph,
         tombstoned_edge_ids: &[usize],
-    ) -> Result<ProvenanceDeletionWitness, String> {
+    ) -> Option<ProvenanceDeletionWitness> {
         for &edge_id in tombstoned_edge_ids {
-            let edge = graph.edges.get(edge_id).ok_or_else(|| {
-                format!(
-                    "provenance deletion for slice '{deleted_slice_id}' references edge {edge_id} \
-                     out of bounds (graph has {} edges)",
-                    graph.edges.len()
-                )
-            })?;
+            let edge = graph.edges.get(edge_id)?;
             if edge.weight != 0 {
-                return Err(format!(
-                    "provenance deletion for slice '{deleted_slice_id}' failed: edge {edge_id} \
-                     still has non-zero weight {}",
-                    edge.weight
-                ));
+                return None;
             }
         }
 
-        Ok(ProvenanceDeletionWitness {
+        Some(ProvenanceDeletionWitness {
             deleted_slice_id: deleted_slice_id.to_string(),
             tombstoned_provenance_nodes: tombstoned_edge_ids.len(),
             graph_integrity_verified: true,

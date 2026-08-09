@@ -36,7 +36,7 @@ fn test_performance_certificate_cbor_roundtrip() {
     let ops = OpKernel::default();
     let cert = PerformanceProfiler::profile(1024, 2, ops, 2048);
 
-    let cbor_bytes = cert.to_cbor_bytes().expect("serialize CBOR");
+    let cbor_bytes = cert.to_cbor_bytes();
     let decoded = PerformanceCertificate::from_cbor_bytes(&cbor_bytes).expect("deserialize CBOR");
 
     assert_eq!(cert, decoded);

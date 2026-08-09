@@ -87,7 +87,7 @@ fn test_fairness_certificate_cbor_roundtrip() {
 
     let cert = FairnessAndProvenanceCertificate::new(vec![], vec![], witness);
 
-    let cbor_bytes = cert.to_cbor_bytes().expect("serialize CBOR");
+    let cbor_bytes = cert.to_cbor_bytes();
     let decoded =
         FairnessAndProvenanceCertificate::from_cbor_bytes(&cbor_bytes).expect("deserialize CBOR");
 
@@ -99,11 +99,13 @@ fn test_fairness_certificate_cbor_roundtrip() {
 fn test_verify_provenance_deletion_detects_untombstoned_edge() {
     let graph = graph_with_tombstoned_edges(&[0, 7]);
 
-    let err = FairnessEvaluator::verify_provenance_deletion("doc_777", &graph, &[0, 1])
-        .expect_err("edge 1 still has non-zero weight");
-    assert!(err.contains("edge 1"), "unexpected error: {err}");
+    assert!(
+        FairnessEvaluator::verify_provenance_deletion("doc_777", &graph, &[0, 1]).is_none(),
+        "edge 1 still has non-zero weight, so no deletion witness is produced"
+    );
 
-    let err = FairnessEvaluator::verify_provenance_deletion("doc_777", &graph, &[5])
-        .expect_err("edge 5 is out of bounds");
-    assert!(err.contains("out of bounds"), "unexpected error: {err}");
+    assert!(
+        FairnessEvaluator::verify_provenance_deletion("doc_777", &graph, &[5]).is_none(),
+        "edge 5 is out of bounds, so no deletion witness is produced"
+    );
 }

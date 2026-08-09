@@ -75,19 +75,27 @@ impl PerformanceCertificate {
         self.certificate_cid == self.compute_cid()
     }
 
-    pub fn to_cbor_bytes(&self) -> Result<Vec<u8>, String> {
+    /// Serialize to CBOR. Infallible: ciborium serialization of this
+    /// derive-Serialize certificate into an in-memory buffer cannot fail — a
+    /// failure would be a serialization defect, not a property of the data
+    /// (R5 — self-produced bytes are an invariant, not a reported condition).
+    pub fn to_cbor_bytes(&self) -> Vec<u8> {
         let mut buf = Vec::new();
-        ciborium::into_writer(self, &mut buf).map_err(|e| e.to_string())?;
-        Ok(buf)
+        ciborium::into_writer(self, &mut buf)
+            .expect("PerformanceCertificate CBOR serialization is infallible");
+        buf
     }
 
-    pub fn from_cbor_bytes(bytes: &[u8]) -> Result<Self, String> {
-        let cert: PerformanceCertificate =
-            ciborium::from_reader(bytes).map_err(|e| e.to_string())?;
+    /// Parse from CBOR and check the certificate's self-CID. `None` when the
+    /// bytes are not a valid CBOR encoding, or when the recomputed CID does not
+    /// match the embedded one: in either case the bytes are not a valid,
+    /// self-consistent certificate — the absence of a product (R5).
+    pub fn from_cbor_bytes(bytes: &[u8]) -> Option<Self> {
+        let cert: PerformanceCertificate = ciborium::from_reader(bytes).ok()?;
         if !cert.verify_cid() {
-            return Err("PerformanceCertificate CID verification failed".to_string());
+            return None;
         }
-        Ok(cert)
+        Some(cert)
     }
 }
 
