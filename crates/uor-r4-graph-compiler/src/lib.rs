@@ -27,7 +27,10 @@ pub mod semantic_state;
 pub mod stage_dag;
 
 use std::path::PathBuf;
+#[cfg(not(target_arch = "wasm32"))]
 use uor_r4_core::transformerless::compiler;
+#[cfg(not(target_arch = "wasm32"))]
+use uor_r4_model_source::SourceUnavailable;
 
 pub struct GraphCompileOptions {
     pub corpus_meta: PathBuf,
@@ -41,8 +44,12 @@ pub struct GraphCompileOptions {
     pub output: PathBuf,
 }
 
+/// Parse graph-compile CLI arguments. `None` when the arguments do not name a
+/// valid option set: a flag with no value, an unparseable or zero numeric
+/// value, or an unknown flag. The requested options are not a product of those
+/// arguments (R5 — the absence of a product rather than a raised error).
 #[cfg(not(target_arch = "wasm32"))]
-pub fn parse_options(args: &[String]) -> Result<GraphCompileOptions, String> {
+pub fn parse_options(args: &[String]) -> Option<GraphCompileOptions> {
     let (default_meta, default_recs) = compiler::corpus_paths();
     let mut options = GraphCompileOptions {
         corpus_meta: PathBuf::from(default_meta),
@@ -58,72 +65,63 @@ pub fn parse_options(args: &[String]) -> Result<GraphCompileOptions, String> {
     let mut index = 0usize;
     while index < args.len() {
         let flag = &args[index];
-        let value = args
-            .get(index + 1)
-            .ok_or_else(|| format!("missing value for {flag}"))?;
+        let value = args.get(index + 1)?;
         match flag.as_str() {
             "--corpus-meta" => options.corpus_meta = PathBuf::from(value),
             "--corpus-recs" => options.corpus_recs = PathBuf::from(value),
             "--artifacts" => options.artifacts = PathBuf::from(value),
             "--depths" => {
-                options.depths = value
-                    .parse()
-                    .map_err(|_| format!("invalid --depths value: {value}"))?;
+                options.depths = value.parse().ok()?;
                 if options.depths == 0 {
-                    return Err("--depths must be at least 1".to_owned());
+                    return None;
                 }
             }
             "--k0" => {
-                options.k0 = value
-                    .parse()
-                    .map_err(|_| format!("invalid --k0 value: {value}"))?;
+                options.k0 = value.parse().ok()?;
                 if options.k0 == 0 {
-                    return Err("--k0 must be at least 1".to_owned());
+                    return None;
                 }
             }
             "--regions-budget" => {
-                options.regions_budget = value
-                    .parse()
-                    .map_err(|_| format!("invalid --regions-budget value: {value}"))?;
+                options.regions_budget = value.parse().ok()?;
                 if options.regions_budget == 0 {
-                    return Err("--regions-budget must be at least 1".to_owned());
+                    return None;
                 }
             }
             "--memory-budget" => {
-                options.memory_budget_mb = value
-                    .parse()
-                    .map_err(|_| format!("invalid --memory-budget value: {value}"))?;
+                options.memory_budget_mb = value.parse().ok()?;
             }
             "--jobs" => {
-                let j: usize = value
-                    .parse()
-                    .map_err(|_| format!("invalid --jobs value: {value}"))?;
+                let j: usize = value.parse().ok()?;
                 if j == 0 {
-                    return Err("--jobs must be at least 1".to_owned());
+                    return None;
                 }
                 options.jobs = Some(j);
             }
             "--out" => options.output = PathBuf::from(value),
-            _ => return Err(format!("unknown graph-compile option: {flag}")),
+            _ => return None,
         }
         index += 2;
     }
-    Ok(options)
+    Some(options)
 }
 
 /// Run the full multiresolution graph compilation pipeline (Option 1).
 #[cfg(not(target_arch = "wasm32"))]
-pub fn compile(args: &[String]) -> Result<(), String> {
+pub fn compile(args: &[String]) -> Result<(), SourceUnavailable> {
     #[cfg(debug_assertions)]
     eprintln!(
         "warning: debug builds make graph compilation much slower; use `cargo run --release -- graph-compile ...`"
     );
-    let options = parse_options(args)?;
+    let options = parse_options(args).ok_or_else(|| {
+        SourceUnavailable::new("could not parse graph-compile options from the provided arguments")
+    })?;
     let env_jobs = std::env::var("R4_COMPILER_THREADS").ok();
     let jobs_config = jobs_config::CompilerJobsConfig::resolve(options.jobs, env_jobs.as_deref())
         .ok_or_else(|| {
-        "invalid worker thread count (--jobs / R4_COMPILER_THREADS must be a positive integer)"
-            .to_owned()
+        SourceUnavailable::new(
+            "invalid worker thread count (--jobs / R4_COMPILER_THREADS must be a positive integer)",
+        )
     })?;
     let _pool = jobs_config.build_dedicated_thread_pool();
     eprintln!(
@@ -133,34 +131,37 @@ pub fn compile(args: &[String]) -> Result<(), String> {
     let corpus_meta = options
         .corpus_meta
         .to_str()
-        .ok_or_else(|| "corpus metadata path is not UTF-8".to_owned())?;
+        .ok_or_else(|| SourceUnavailable::new("corpus metadata path is not UTF-8"))?;
     let corpus_recs = options
         .corpus_recs
         .to_str()
-        .ok_or_else(|| "corpus records path is not UTF-8".to_owned())?;
+        .ok_or_else(|| SourceUnavailable::new("corpus records path is not UTF-8"))?;
     // #450: announce the resolved containers before the long work.
-    let artifact_container = std::fs::read(&options.artifacts)
-        .map_err(|error| format!("{}: {error}", options.artifacts.display()))?;
+    let artifact_container = std::fs::read(&options.artifacts).map_err(|error| {
+        SourceUnavailable::new(format!("{}: {error}", options.artifacts.display()))
+    })?;
     let artifacts = compiler::parse_artifacts(&artifact_container).ok_or_else(|| {
-        format!(
+        SourceUnavailable::new(format!(
             "{}: not a TLA3/TLA4/TLA5 artifact container",
             options.artifacts.display()
-        )
+        ))
     })?;
     let artifact_kappa = reproducibility::container_kappa(&artifact_container);
     reproducibility::announce_teacher_container(&options.artifacts, &artifact_kappa);
-    let meta_bytes = std::fs::read(&options.corpus_meta)
-        .map_err(|error| format!("{}: {error}", options.corpus_meta.display()))?;
-    let recs_bytes = std::fs::read(&options.corpus_recs)
-        .map_err(|error| format!("{}: {error}", options.corpus_recs.display()))?;
+    let meta_bytes = std::fs::read(&options.corpus_meta).map_err(|error| {
+        SourceUnavailable::new(format!("{}: {error}", options.corpus_meta.display()))
+    })?;
+    let recs_bytes = std::fs::read(&options.corpus_recs).map_err(|error| {
+        SourceUnavailable::new(format!("{}: {error}", options.corpus_recs.display()))
+    })?;
     let corpus_kappa = reproducibility::corpus_stream_kappa(&meta_bytes, &recs_bytes);
     reproducibility::announce_corpus(&options.corpus_meta, &options.corpus_recs, &corpus_kappa);
     let corpus = compiler::load_corpus_from(corpus_meta, corpus_recs).ok_or_else(|| {
-        format!(
+        SourceUnavailable::new(format!(
             "corpus is incomplete at {}/{}; run compile until it is complete",
             options.corpus_meta.display(),
             options.corpus_recs.display()
-        )
+        ))
     })?;
 
     let config = induction::CoverConfig {
@@ -178,7 +179,9 @@ pub fn compile(args: &[String]) -> Result<(), String> {
     let train = induction::build_observations(&artifacts, &corpus, &train_positions);
     let held_out = induction::build_observations(&artifacts, &corpus, &held_out_positions);
     let induced = induction::induce_cover(&train, &config, &artifact_kappa, &corpus_kappa)
-        .ok_or_else(|| "cover induction needs at least one train observation".to_owned())?;
+        .ok_or_else(|| {
+            SourceUnavailable::new("cover induction needs at least one train observation")
+        })?;
     let reference = induction::ReferenceClassifier::freeze(&induced.cover);
     eprintln!(
         "graph-compiler: {} regions across {} depth(s); evaluating held-out routing recall...",
@@ -190,7 +193,7 @@ pub fn compile(args: &[String]) -> Result<(), String> {
     let edges = induction::build_edges(&induced.cover, &reference, &train, &corpus.story);
     let prior = induction::root_prior(&train);
     let vocab = u32::try_from(artifacts.token_codes.len() / compiler::STAGES)
-        .map_err(|_| "vocabulary exceeds u32 token ids".to_owned())?;
+        .map_err(|_| SourceUnavailable::new("vocabulary exceeds u32 token ids"))?;
     let (artifact_bytes, info) = induction::emit_r4g1(
         &artifact_container,
         (&meta_bytes, &recs_bytes),
@@ -200,7 +203,11 @@ pub fn compile(args: &[String]) -> Result<(), String> {
         &prior,
         &train,
     )
-    .map_err(|bound| format!("a token or count exceeded the i32 R4G1 wire bound: {bound}"))?;
+    .map_err(|bound| {
+        SourceUnavailable::new(format!(
+            "a token or count exceeded the i32 R4G1 wire bound: {bound}"
+        ))
+    })?;
     let report = induction::build_report(
         &config,
         &induced,
@@ -214,14 +221,14 @@ pub fn compile(args: &[String]) -> Result<(), String> {
         },
     );
 
-    std::fs::create_dir_all(&options.output).map_err(|error| error.to_string())?;
+    std::fs::create_dir_all(&options.output)?;
     let artifact_path = options.output.join("compiled.r4g1");
     std::fs::write(&artifact_path, &artifact_bytes)
-        .map_err(|error| format!("{}: {error}", artifact_path.display()))?;
-    let report_json = serde_json::to_string_pretty(&report).map_err(|error| error.to_string())?;
+        .map_err(|error| SourceUnavailable::new(format!("{}: {error}", artifact_path.display())))?;
+    let report_json = serde_json::to_string_pretty(&report)?;
     let report_path = options.output.join("compile_report.json");
     std::fs::write(&report_path, &report_json)
-        .map_err(|error| format!("{}: {error}", report_path.display()))?;
+        .map_err(|error| SourceUnavailable::new(format!("{}: {error}", report_path.display())))?;
 
     println!(
         "graph-compiler complete: {} regions ({} splits), {} edges ({} refinement + {} neighbor), depths 1..={}",
@@ -246,7 +253,11 @@ pub struct ObserveOptions {
     pub sequence_length: usize,
 }
 
-pub fn parse_observe_options(args: &[String]) -> Result<ObserveOptions, String> {
+/// Parse observe CLI arguments. `None` when the arguments do not name a valid
+/// option set: a flag with no value, an unparseable numeric value, an unknown
+/// flag, or neither `--source` nor `--checkpoint` (R5 — the absence of a
+/// product rather than a raised error).
+pub fn parse_observe_options(args: &[String]) -> Option<ObserveOptions> {
     let mut options = ObserveOptions {
         source: None,
         checkpoint: None,
@@ -259,46 +270,38 @@ pub fn parse_observe_options(args: &[String]) -> Result<ObserveOptions, String> 
     let mut index = 0usize;
     while index < args.len() {
         let flag = &args[index];
-        let value = args
-            .get(index + 1)
-            .ok_or_else(|| format!("missing value for {flag}"))?;
+        let value = args.get(index + 1)?;
         match flag.as_str() {
             "--source" => options.source = Some(std::path::PathBuf::from(value)),
             "--checkpoint" => options.checkpoint = Some(std::path::PathBuf::from(value)),
             "--out" => options.output = std::path::PathBuf::from(value),
             "--seconds" => {
-                options.seconds = value
-                    .parse()
-                    .map_err(|_| format!("invalid --seconds value: {value}"))?;
+                options.seconds = value.parse().ok()?;
             }
             "--target" => {
-                options.target = value
-                    .parse()
-                    .map_err(|_| format!("invalid --target value: {value}"))?;
+                options.target = value.parse().ok()?;
             }
             "--shards" => {
-                options.shards = value
-                    .parse()
-                    .map_err(|_| format!("invalid --shards value: {value}"))?;
+                options.shards = value.parse().ok()?;
             }
             "--sequence-length" => {
-                options.sequence_length = value
-                    .parse()
-                    .map_err(|_| format!("invalid --sequence-length value: {value}"))?;
+                options.sequence_length = value.parse().ok()?;
             }
-            _ => return Err(format!("unknown observe option: {flag}")),
+            _ => return None,
         }
         index += 2;
     }
     if options.source.is_none() && options.checkpoint.is_none() {
-        return Err("must provide either --source or --checkpoint".to_owned());
+        return None;
     }
-    Ok(options)
+    Some(options)
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-pub fn observe(args: &[String]) -> Result<(), String> {
-    let options = parse_observe_options(args)?;
+pub fn observe(args: &[String]) -> Result<(), SourceUnavailable> {
+    let options = parse_observe_options(args).ok_or_else(|| {
+        SourceUnavailable::new("could not parse observe options from the provided arguments")
+    })?;
 
     let mut oracle: Box<dyn uor_r4_model_source::TeacherOracle> =
         if let Some(ref ckpt) = options.checkpoint {
@@ -308,8 +311,7 @@ pub fn observe(args: &[String]) -> Result<(), String> {
             let o = uor_r4_model_source::HuggingFaceLlamaOracle::load_with_sequence_length(
                 options.source.as_ref().unwrap(),
                 options.sequence_length,
-            )
-            .map_err(|e| format!("failed to load HF model: {e}"))?;
+            )?;
             Box::new(o)
         };
 
@@ -320,7 +322,6 @@ pub fn observe(args: &[String]) -> Result<(), String> {
         options.shards,
         &options.output,
         None,
-    )
-    .map_err(|error| error.to_string())?;
+    )?;
     Ok(())
 }

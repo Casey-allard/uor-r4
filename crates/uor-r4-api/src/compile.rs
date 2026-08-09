@@ -344,10 +344,10 @@ pub fn compile(
         percent: 0,
         label: "Inducing multiresolution cover...",
     });
-    uor_r4_graph_compiler::compile(&stage_b_flags(request, &cover_out)).map_err(|message| {
+    uor_r4_graph_compiler::compile(&stage_b_flags(request, &cover_out)).map_err(|error| {
         CompileError::Stage {
             stage: Stage::GraphCover,
-            message,
+            message: error.to_string(),
         }
     })?;
     progress(ProgressEvent {

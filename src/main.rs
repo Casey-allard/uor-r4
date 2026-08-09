@@ -653,12 +653,10 @@ fn run(cli: &Cli) -> Result<(), RunError> {
             values.extend_from_slice(args);
             transformerless_command::run(&values).map_err(RunError::Command)
         }
-        Some(Command::GraphCompile { args }) => {
-            uor_r4_graph_compiler::compile(args).map_err(RunError::Command)
-        }
-        Some(Command::GraphObserve { args }) => {
-            uor_r4_graph_compiler::observe(args).map_err(RunError::Command)
-        }
+        Some(Command::GraphCompile { args }) => uor_r4_graph_compiler::compile(args)
+            .map_err(|error| RunError::Command(error.to_string())),
+        Some(Command::GraphObserve { args }) => uor_r4_graph_compiler::observe(args)
+            .map_err(|error| RunError::Command(error.to_string())),
         Some(Command::Audit(args)) => audit_command(&args.log_file),
         Some(Command::Serve) | None => {
             server::run_server(Arc::new(cli.server_config()));
