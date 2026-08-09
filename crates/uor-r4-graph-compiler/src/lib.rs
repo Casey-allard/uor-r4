@@ -10,6 +10,7 @@ pub mod memory_budget;
 pub mod monograph;
 pub mod observation;
 pub mod observation_shards;
+#[cfg(not(target_arch = "wasm32"))]
 pub mod observation_text;
 pub mod pack;
 pub mod patch_induction;

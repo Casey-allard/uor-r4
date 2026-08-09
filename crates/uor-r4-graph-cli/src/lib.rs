@@ -400,7 +400,8 @@ pub fn observe_text_command(args: &[String]) -> Result<(), String> {
         &options.output,
         options.shards,
         true,
-    )?;
+    )
+    .map_err(|error| error.to_string())?;
     println!(
         "observe-text: {} records across {}/{} shards ({} written this run)",
         report.records, report.shards_completed, report.shard_count, report.written
@@ -1054,7 +1055,8 @@ pub fn score_command(args: &[String]) -> Result<(), String> {
         // the construction/held-out decision per story (article) in the
         // stories index; honor it instead of the ordinal train cut.
         Some(path) => {
-            let index = observe_text::StoryIndex::load(path)?
+            let index = observe_text::StoryIndex::load(path)
+                .map_err(|error| error.to_string())?
                 .ok_or_else(|| format!("stories index not found at {}", path.display()))?;
             let mut train = Vec::new();
             let mut held_out = Vec::new();

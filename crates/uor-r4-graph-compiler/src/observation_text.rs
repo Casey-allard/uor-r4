@@ -51,6 +51,7 @@ use std::fs;
 use std::io::{self, BufRead, BufReader, Write};
 use std::path::{Path, PathBuf};
 use uor_r4_core::transformerless::hf_bpe::TokenizerKind;
+use uor_r4_model_source::SourceUnavailable;
 use uor_r4_model_source::TeacherOracle;
 use uor_r4_model_source::progress::Progress;
 
@@ -120,11 +121,16 @@ pub struct StoryIndex {
 impl StoryIndex {
     /// Load `stories.jsonl`, validating dense ordinals (line i must map
     /// story i). Returns `Ok(None)` when the file does not exist.
-    pub fn load(path: &Path) -> Result<Option<Self>, String> {
+    pub fn load(path: &Path) -> Result<Option<Self>, SourceUnavailable> {
         let bytes = match fs::read(path) {
             Ok(bytes) => bytes,
             Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(None),
-            Err(error) => return Err(format!("{}: {error}", path.display())),
+            Err(error) => {
+                return Err(SourceUnavailable::new(format!(
+                    "{}: {error}",
+                    path.display()
+                )));
+            }
         };
         let mut entries = Vec::new();
         for (index, line) in bytes.split(|&byte| byte == b'\n').enumerate() {
@@ -132,20 +138,20 @@ impl StoryIndex {
                 continue;
             }
             let entry: StoryEntry = serde_json::from_slice(line).map_err(|error| {
-                format!(
+                SourceUnavailable::new(format!(
                     "{} line {}: invalid story entry: {error}",
                     path.display(),
                     index + 1
-                )
+                ))
             })?;
             if entry.story as usize != entries.len() {
-                return Err(format!(
+                return Err(SourceUnavailable::new(format!(
                     "{} line {}: story ordinals are not dense (got {}, expected {})",
                     path.display(),
                     index + 1,
                     entry.story,
                     entries.len()
-                ));
+                )));
             }
             entries.push(entry);
         }
@@ -240,13 +246,13 @@ impl Checkpoint {
         header
     }
 
-    fn decode(bytes: &[u8], shard_count: u32) -> Result<Self, String> {
+    fn decode(bytes: &[u8], shard_count: u32) -> Result<Self, SourceUnavailable> {
         let expected = HEADER_SIZE + INPUT_KAPPA_SIZE + shard_count as usize * SHARD_ROW_SIZE;
         if bytes.len() != expected {
-            return Err(format!(
+            return Err(SourceUnavailable::new(format!(
                 "committed checkpoint has {} bytes, expected {expected}",
                 bytes.len()
-            ));
+            )));
         }
         let at = |offset: usize| {
             u64::from_le_bytes(bytes[offset..offset + 8].try_into().expect("8-byte slice"))
@@ -262,7 +268,9 @@ impl Checkpoint {
                 },
             };
             if !shard.bytes.is_multiple_of(RECORD_SIZE as u64) {
-                return Err("committed checkpoint has a torn shard length".to_owned());
+                return Err(SourceUnavailable::new(
+                    "committed checkpoint has a torn shard length",
+                ));
             }
             shards.push(shard);
             offset += SHARD_ROW_SIZE;
@@ -283,41 +291,44 @@ impl Checkpoint {
             .map(|shard| shard.bytes / RECORD_SIZE as u64)
             .sum();
         if checkpoint.n != committed_records {
-            return Err(format!(
+            return Err(SourceUnavailable::new(format!(
                 "committed checkpoint records {} do not match the shard lengths {committed_records}",
                 checkpoint.n
-            ));
+            )));
         }
         Ok(checkpoint)
     }
 }
 
-fn input_kappa(path: &Path) -> Result<[u8; INPUT_KAPPA_SIZE], String> {
-    let bytes = fs::read(path).map_err(|error| format!("{}: {error}", path.display()))?;
+fn input_kappa(path: &Path) -> Result<[u8; INPUT_KAPPA_SIZE], SourceUnavailable> {
+    let bytes = fs::read(path)
+        .map_err(|error| SourceUnavailable::new(format!("{}: {error}", path.display())))?;
     Ok(*blake3::hash(&bytes).as_bytes())
 }
 
-fn read_checkpoint(dir: &Path, shard_count: u32) -> Result<Option<Checkpoint>, String> {
+fn read_checkpoint(dir: &Path, shard_count: u32) -> Result<Option<Checkpoint>, SourceUnavailable> {
     let path = dir.join(COMMITTED_FILE);
     match fs::read(&path) {
-        Ok(bytes) => Checkpoint::decode(&bytes, shard_count)
-            .map(Some)
-            .map_err(|error| format!("{}: {error}", path.display())),
+        Ok(bytes) => Checkpoint::decode(&bytes, shard_count).map(Some),
         Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(None),
-        Err(error) => Err(format!("{}: {error}", path.display())),
+        Err(error) => Err(SourceUnavailable::new(format!(
+            "{}: {error}",
+            path.display()
+        ))),
     }
 }
 
 /// Persist the checkpoint: `committed.bin` atomically (write-then-rename),
 /// then the `state.bin` mirror in the 25-byte corpus-meta layout.
-fn write_checkpoint(dir: &Path, checkpoint: &Checkpoint) -> Result<(), String> {
+fn write_checkpoint(dir: &Path, checkpoint: &Checkpoint) -> Result<(), SourceUnavailable> {
     let tmp = dir.join(".committed.bin.tmp");
-    fs::write(&tmp, checkpoint.encode()).map_err(|error| format!("{}: {error}", tmp.display()))?;
+    fs::write(&tmp, checkpoint.encode())
+        .map_err(|error| SourceUnavailable::new(format!("{}: {error}", tmp.display())))?;
     fs::rename(&tmp, dir.join(COMMITTED_FILE))
-        .map_err(|error| format!("committed checkpoint rename: {error}"))?;
+        .map_err(|error| SourceUnavailable::new(format!("committed checkpoint rename: {error}")))?;
     let state_path = dir.join(observe::STATE_FILE);
     fs::write(&state_path, checkpoint.header())
-        .map_err(|error| format!("{}: {error}", state_path.display()))?;
+        .map_err(|error| SourceUnavailable::new(format!("{}: {error}", state_path.display())))?;
     Ok(())
 }
 
@@ -325,7 +336,12 @@ fn write_checkpoint(dir: &Path, checkpoint: &Checkpoint) -> Result<(), String> {
 /// restarted article never duplicates its records. A file longer than the
 /// checkpoint holds the content-stable tail of an interrupted article and
 /// is truncated; a file shorter than the checkpoint means data loss.
-fn reconcile_shard(dir: &Path, shard_bits: u8, shard: u32, committed: u64) -> Result<(), String> {
+fn reconcile_shard(
+    dir: &Path,
+    shard_bits: u8,
+    shard: u32,
+    committed: u64,
+) -> Result<(), SourceUnavailable> {
     let path = dir.join(observe::shard_file_name(shard_bits, shard));
     let length = match fs::metadata(&path) {
         Ok(metadata) => metadata.len(),
@@ -333,62 +349,72 @@ fn reconcile_shard(dir: &Path, shard_bits: u8, shard: u32, committed: u64) -> Re
             if committed == 0 {
                 return Ok(());
             }
-            return Err(format!(
+            return Err(SourceUnavailable::new(format!(
                 "{} is missing but the checkpoint commits {committed} bytes; delete the observation directory and rerun",
                 path.display()
-            ));
+            )));
         }
-        Err(error) => return Err(format!("{}: {error}", path.display())),
+        Err(error) => {
+            return Err(SourceUnavailable::new(format!(
+                "{}: {error}",
+                path.display()
+            )));
+        }
     };
     if length % RECORD_SIZE as u64 != 0 {
-        return Err(format!(
+        return Err(SourceUnavailable::new(format!(
             "shard file {} has a torn record ({length} bytes); delete it and rerun",
             path.display()
-        ));
+        )));
     }
     if length < committed {
-        return Err(format!(
+        return Err(SourceUnavailable::new(format!(
             "{} is shorter ({length} bytes) than the committed checkpoint ({committed} bytes); delete the observation directory and rerun",
             path.display()
-        ));
+        )));
     }
     if length > committed {
         let file = fs::OpenOptions::new()
             .write(true)
             .open(&path)
-            .map_err(|error| format!("{}: {error}", path.display()))?;
+            .map_err(|error| SourceUnavailable::new(format!("{}: {error}", path.display())))?;
         file.set_len(committed)
-            .map_err(|error| format!("{}: {error}", path.display()))?;
+            .map_err(|error| SourceUnavailable::new(format!("{}: {error}", path.display())))?;
     }
     Ok(())
 }
 
 /// Trim `stories.jsonl` back to the committed story count (crash window:
 /// a story line appended just before the checkpoint rename failed).
-fn reconcile_stories(path: &Path, stories: u64) -> Result<(), String> {
+fn reconcile_stories(path: &Path, stories: u64) -> Result<(), SourceUnavailable> {
     let bytes = match fs::read(path) {
         Ok(bytes) => bytes,
         Err(error) if error.kind() == io::ErrorKind::NotFound => {
             if stories == 0 {
                 return Ok(());
             }
-            return Err(format!(
+            return Err(SourceUnavailable::new(format!(
                 "{} is missing but the checkpoint commits {stories} stories; delete the observation directory and rerun",
                 path.display()
-            ));
+            )));
         }
-        Err(error) => return Err(format!("{}: {error}", path.display())),
+        Err(error) => {
+            return Err(SourceUnavailable::new(format!(
+                "{}: {error}",
+                path.display()
+            )));
+        }
     };
     let mut lines: Vec<&[u8]> = bytes.split(|&byte| byte == b'\n').collect();
     if lines.last() == Some(&b"".as_slice()) {
         lines.pop();
     }
     if (lines.len() as u64) < stories {
-        return Err(format!(
+        return Err(SourceUnavailable::new(format!(
             "{} has {} story lines but the checkpoint commits {stories}; delete the observation directory and rerun",
             path.display(),
             lines.len()
-        ));
+        )));
     }
     if lines.len() as u64 == stories {
         return Ok(());
@@ -399,24 +425,26 @@ fn reconcile_stories(path: &Path, stories: u64) -> Result<(), String> {
         trimmed.push(b'\n');
     }
     let tmp = path.with_extension("tmp");
-    fs::write(&tmp, &trimmed).map_err(|error| format!("{}: {error}", tmp.display()))?;
-    fs::rename(&tmp, path)
-        .map_err(|error| format!("{}: story mapping rename: {error}", path.display()))?;
+    fs::write(&tmp, &trimmed)
+        .map_err(|error| SourceUnavailable::new(format!("{}: {error}", tmp.display())))?;
+    fs::rename(&tmp, path).map_err(|error| {
+        SourceUnavailable::new(format!("{}: story mapping rename: {error}", path.display()))
+    })?;
     Ok(())
 }
 
 /// Append one story mapping line to `stories.jsonl`.
-fn append_story(path: &Path, entry: &StoryEntry) -> Result<(), String> {
-    let mut line = serde_json::to_vec(entry).map_err(|error| error.to_string())?;
+fn append_story(path: &Path, entry: &StoryEntry) -> Result<(), SourceUnavailable> {
+    let mut line = serde_json::to_vec(entry)?;
     line.push(b'\n');
     let mut file = fs::OpenOptions::new()
         .create(true)
         .append(true)
         .open(path)
-        .map_err(|error| format!("{}: {error}", path.display()))?;
+        .map_err(|error| SourceUnavailable::new(format!("{}: {error}", path.display())))?;
     file.write_all(&line)
         .and_then(|()| file.flush())
-        .map_err(|error| format!("{}: {error}", path.display()))?;
+        .map_err(|error| SourceUnavailable::new(format!("{}: {error}", path.display())))?;
     Ok(())
 }
 
@@ -471,7 +499,7 @@ fn build_report(
     articles_truncated: u64,
     characters_replaced: u64,
     written: u64,
-) -> Result<ObservationReport, String> {
+) -> Result<ObservationReport, SourceUnavailable> {
     let stories_path = out_dir.join(STORIES_FILE);
     let (construction_articles, held_out_articles) = match StoryIndex::load(&stories_path)? {
         Some(index) => index.partition_counts(),
@@ -488,7 +516,7 @@ fn build_report(
                 )
             });
     let merged_kappa = if checkpoint.done {
-        let merged = observe::merge_shards(out_dir).map_err(|error| error.to_string())?;
+        let merged = observe::merge_shards(out_dir)?;
         Some(format!("blake3:{}", blake3::hash(&merged).to_hex()))
     } else {
         None
@@ -542,10 +570,9 @@ pub fn observe_text_corpus(
     out_dir: &Path,
     shard_bits: u8,
     resume: bool,
-) -> Result<ObservationReport, String> {
+) -> Result<ObservationReport, SourceUnavailable> {
     let kappa = input_kappa(articles_path)?;
-    let mut writer =
-        ObservationShardWriter::open(out_dir, shard_bits).map_err(|error| error.to_string())?;
+    let mut writer = ObservationShardWriter::open(out_dir, shard_bits)?;
     let shard_count = writer.manifest().shard_count();
     let stories_path = out_dir.join(STORIES_FILE);
     let has_prior_state = out_dir.join(COMMITTED_FILE).exists()
@@ -558,37 +585,33 @@ pub fn observe_text_corpus(
                 .exists()
         });
     if !resume && has_prior_state {
-        return Err(format!(
+        return Err(SourceUnavailable::new(format!(
             "{} already contains an observation corpus; pass resume to continue it",
             out_dir.display()
-        ));
+        )));
     }
-    writer
-        .set_partition_rule(PARTITION_RULE)
-        .map_err(|error| error.to_string())?;
+    writer.set_partition_rule(PARTITION_RULE)?;
     // The PROV link from produced artifacts back to the sealed corpus
     // (issue #72): the input κ is the corpus CID of the D3 manifest.
-    writer
-        .set_input_cid(&format!("blake3:{}", blake3::Hash::from(kappa).to_hex()))
-        .map_err(|error| error.to_string())?;
+    writer.set_input_cid(&format!("blake3:{}", blake3::Hash::from(kappa).to_hex()))?;
 
     let mut checkpoint = match read_checkpoint(out_dir, shard_count)? {
         Some(checkpoint) => {
             if checkpoint.input_kappa != kappa {
-                return Err(format!(
+                return Err(SourceUnavailable::new(format!(
                     "{} does not match the observation checkpoint's input; pass the same articles file or a fresh output directory",
                     articles_path.display()
-                ));
+                )));
             }
             checkpoint
         }
         None => Checkpoint::fresh(shard_count, kappa),
     };
     if !checkpoint.done && !writer.manifest().completed.is_empty() {
-        return Err(format!(
+        return Err(SourceUnavailable::new(format!(
             "{} has finalized shards but an unfinished checkpoint; delete the observation directory and rerun",
             out_dir.display()
-        ));
+        )));
     }
     // Reconcile on-disk bytes to the committed checkpoint before writing:
     // interrupted articles leave content-stable tails that are trimmed, so
@@ -608,8 +631,7 @@ pub fn observe_text_corpus(
             shard_bits,
             shard,
             checkpoint.shards[shard as usize].bytes,
-        )
-        .map_err(|error| error.to_string())?;
+        )?;
     }
     reconcile_stories(&stories_path, checkpoint.stories)?;
     let counts: Vec<PartitionCounts> = checkpoint
@@ -617,19 +639,20 @@ pub fn observe_text_corpus(
         .iter()
         .map(|shard| shard.partitions)
         .collect();
-    writer
-        .restore_partition_counts(&counts)
-        .map_err(|error| error.to_string())?;
+    writer.restore_partition_counts(&counts)?;
 
     // The article stream is processed in jsonl order; count it up front
     // for progress and the report.
     let articles_total = {
-        let file = fs::File::open(articles_path)
-            .map_err(|error| format!("{}: {error}", articles_path.display()))?;
+        let file = fs::File::open(articles_path).map_err(|error| {
+            SourceUnavailable::new(format!("{}: {error}", articles_path.display()))
+        })?;
         let mut lines = BufReader::new(file).lines();
         let mut total = 0u64;
         for line in &mut lines {
-            line.map_err(|error| format!("{}: {error}", articles_path.display()))?;
+            line.map_err(|error| {
+                SourceUnavailable::new(format!("{}: {error}", articles_path.display()))
+            })?;
             total += 1;
         }
         total
@@ -639,7 +662,7 @@ pub fn observe_text_corpus(
         // A crash between the done checkpoint and finalization can leave
         // shards unpinned; finalize (idempotent) and stop without touching
         // completed shard files.
-        writer.finalize_all().map_err(|error| error.to_string())?;
+        writer.finalize_all()?;
         println!(
             "text observation corpus already complete: {} records",
             checkpoint.n
@@ -659,10 +682,12 @@ pub fn observe_text_corpus(
     let t0 = std::time::Instant::now();
 
     let file = fs::File::open(articles_path)
-        .map_err(|error| format!("{}: {error}", articles_path.display()))?;
+        .map_err(|error| SourceUnavailable::new(format!("{}: {error}", articles_path.display())))?;
     let mut ordinal = 0u64;
     for line in BufReader::new(file).lines() {
-        let line = line.map_err(|error| format!("{}: {error}", articles_path.display()))?;
+        let line = line.map_err(|error| {
+            SourceUnavailable::new(format!("{}: {error}", articles_path.display()))
+        })?;
         if ordinal < checkpoint.stories {
             // Completed article: skip without re-deriving its records.
             ordinal += 1;
@@ -672,14 +697,14 @@ pub fn observe_text_corpus(
             break;
         }
         let article: Article = serde_json::from_str(&line).map_err(|error| {
-            format!(
+            SourceUnavailable::new(format!(
                 "{} line {}: invalid article: {error}",
                 articles_path.display(),
                 ordinal + 1
-            )
+            ))
         })?;
         let story = u32::try_from(ordinal)
-            .map_err(|_| "article ordinal exceeds the u32 story field".to_owned())?;
+            .map_err(|_| SourceUnavailable::new("article ordinal exceeds the u32 story field"))?;
         let partition = partition_of(&article.id);
         let (tokens, article_replaced) = tokenizer.encode_lossy(&article.text);
         replaced += article_replaced;
@@ -744,15 +769,17 @@ pub fn observe_text_corpus(
         // story mapping line, then the atomic committed checkpoint and its
         // state.bin mirror.
         for (shard, record, probability) in &records {
-            if writer
-                .write_record_with_probability_in_partition(record, *probability, *shard, partition)
-                .map_err(|error| error.to_string())?
-            {
+            if writer.write_record_with_probability_in_partition(
+                record,
+                *probability,
+                *shard,
+                partition,
+            )? {
                 written += 1;
                 checkpoint.shards[*shard as usize].bytes += RECORD_SIZE as u64;
             }
         }
-        writer.flush().map_err(|error| error.to_string())?;
+        writer.flush()?;
         for (slot, shard_checkpoint) in checkpoint.shards.iter_mut().enumerate() {
             shard_checkpoint.partitions = writer.partition_counts(slot as u32).unwrap_or_default();
         }
@@ -778,7 +805,7 @@ pub fn observe_text_corpus(
         write_checkpoint(out_dir, &checkpoint)?;
     }
     if checkpoint.done {
-        writer.finalize_all().map_err(|error| error.to_string())?;
+        writer.finalize_all()?;
         progress.finish();
     }
     let report = build_report(
