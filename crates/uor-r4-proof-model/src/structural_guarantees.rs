@@ -432,12 +432,12 @@ impl StructuralGuaranteeVerifier {
         obligation_id: &str,
     ) -> Result<ProofVerificationReport, ProofValidationError> {
         use uor_r4_graph_format::scoring_semantics::ScoringSemanticsVerifier;
-        ScoringSemanticsVerifier::audit_scoring_compliance().map_err(|err| {
-            ProofValidationError::ScoringSemanticsViolation {
+        if let Some(detail) = ScoringSemanticsVerifier::audit_scoring_compliance() {
+            return Err(ProofValidationError::ScoringSemanticsViolation {
                 obligation_id: obligation_id.to_string(),
-                detail: err.to_string(),
-            }
-        })?;
+                detail: detail.to_string(),
+            });
+        }
 
         Ok(ProofVerificationReport {
             obligation_id: obligation_id.to_string(),

@@ -61,36 +61,6 @@ pub struct ResidualContribution {
     pub raw_value: i32,
 }
 
-/// Non-panicking error enum for scoring semantics.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ScoringError {
-    /// Tracked evidence set capacity exceeded.
-    EvidenceCapacityExceeded,
-    /// Invalid storage descriptor shift or zero point.
-    InvalidStorageDescriptor,
-    /// Audit-only invariant failure within the machine-readable verifier.
-    AuditInvariantFailed(&'static str),
-}
-
-impl fmt::Display for ScoringError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::EvidenceCapacityExceeded => {
-                write!(f, "Fixed-capacity evidence tracking set limit exceeded")
-            }
-            Self::InvalidStorageDescriptor => {
-                write!(
-                    f,
-                    "Invalid storage descriptor shift or zero point parameters"
-                )
-            }
-            Self::AuditInvariantFailed(detail) => {
-                write!(f, "Scoring semantics audit invariant failed: {detail}")
-            }
-        }
-    }
-}
-
 /// Stack-allocated fixed-capacity score accumulator.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ScoreAccumulator<const MAX_EVIDENCE: usize = 32> {
@@ -141,14 +111,17 @@ impl<const MAX_EVIDENCE: usize> ScoreAccumulator<MAX_EVIDENCE> {
     pub fn accumulate(
         &mut self,
         contribution: &ResidualContribution,
-    ) -> Result<bool, ScoringError> {
+    ) -> Result<bool, crate::ObservedBound> {
         // Enforce no-double-counting rule
         if self.contains_evidence(contribution.contribution_id) {
             return Ok(false); // Ignored duplicate contribution
         }
 
         if self.evidence_count >= MAX_EVIDENCE {
-            return Err(ScoringError::EvidenceCapacityExceeded);
+            return Err(crate::ObservedBound {
+                observed: self.evidence_count as i64,
+                bound: MAX_EVIDENCE as i64,
+            });
         }
 
         // Apply every pre-quantized residual as an already-signed ScoreQ contribution.
@@ -180,84 +153,117 @@ impl ScoringSemanticsVerifier {
     }
 
     /// Audit accumulator compliance and deterministic tie-breaking logic.
-    pub fn audit_scoring_compliance() -> Result<(), ScoringError> {
+    ///
+    /// A total audit (R5): it *observes* whether every scoring invariant holds
+    /// and never returns an error. `None` means all held; `Some(reason)` names
+    /// the first that did not.
+    pub fn audit_scoring_compliance() -> Option<&'static str> {
+        const CAP: &str = "evidence-capacity bound hit inside the audit fixture";
         let mut acc = ScoreAccumulator::<16>::new();
-        acc.accumulate(&ResidualContribution {
-            kind: ResidualContributionKind::RootPrior,
-            contribution_id: 1,
-            raw_value: 100,
-        })?;
-        acc.accumulate(&ResidualContribution {
-            kind: ResidualContributionKind::ConstraintPenalty,
-            contribution_id: 2,
-            raw_value: -25,
-        })?;
-        acc.accumulate(&ResidualContribution {
-            kind: ResidualContributionKind::UncertaintyPenalty,
-            contribution_id: 3,
-            raw_value: -10,
-        })?;
+        if acc
+            .accumulate(&ResidualContribution {
+                kind: ResidualContributionKind::RootPrior,
+                contribution_id: 1,
+                raw_value: 100,
+            })
+            .is_err()
+        {
+            return Some(CAP);
+        }
+        if acc
+            .accumulate(&ResidualContribution {
+                kind: ResidualContributionKind::ConstraintPenalty,
+                contribution_id: 2,
+                raw_value: -25,
+            })
+            .is_err()
+        {
+            return Some(CAP);
+        }
+        if acc
+            .accumulate(&ResidualContribution {
+                kind: ResidualContributionKind::UncertaintyPenalty,
+                contribution_id: 3,
+                raw_value: -10,
+            })
+            .is_err()
+        {
+            return Some(CAP);
+        }
         if acc.score() != 65 {
-            return Err(ScoringError::AuditInvariantFailed(
-                "signed penalty residuals must lower the accumulated score",
-            ));
+            return Some("signed penalty residuals must lower the accumulated score");
         }
 
         // Test overlap residualization (duplicate ignored)
-        let added = acc.accumulate(&ResidualContribution {
+        let added = match acc.accumulate(&ResidualContribution {
             kind: ResidualContributionKind::RootPrior,
             contribution_id: 1,
             raw_value: 100,
-        })?;
+        }) {
+            Ok(added) => added,
+            Err(_) => return Some(CAP),
+        };
         if added {
-            return Err(ScoringError::AuditInvariantFailed(
-                "duplicate contribution ID was not ignored as required",
-            ));
+            return Some("duplicate contribution ID was not ignored as required");
         }
 
         let mut saturating_high = ScoreAccumulator::<4>::new();
-        saturating_high.accumulate(&ResidualContribution {
-            kind: ResidualContributionKind::GoalReward,
-            contribution_id: 11,
-            raw_value: i32::MAX - 5,
-        })?;
-        saturating_high.accumulate(&ResidualContribution {
-            kind: ResidualContributionKind::TokenEmission,
-            contribution_id: 12,
-            raw_value: 10,
-        })?;
+        if saturating_high
+            .accumulate(&ResidualContribution {
+                kind: ResidualContributionKind::GoalReward,
+                contribution_id: 11,
+                raw_value: i32::MAX - 5,
+            })
+            .is_err()
+        {
+            return Some(CAP);
+        }
+        if saturating_high
+            .accumulate(&ResidualContribution {
+                kind: ResidualContributionKind::TokenEmission,
+                contribution_id: 12,
+                raw_value: 10,
+            })
+            .is_err()
+        {
+            return Some(CAP);
+        }
         if saturating_high.score() != i32::MAX {
-            return Err(ScoringError::AuditInvariantFailed(
-                "positive overflow must clamp to i32::MAX",
-            ));
+            return Some("positive overflow must clamp to i32::MAX");
         }
 
         let mut saturating_low = ScoreAccumulator::<4>::new();
-        saturating_low.accumulate(&ResidualContribution {
-            kind: ResidualContributionKind::InteractionResidual,
-            contribution_id: 21,
-            raw_value: i32::MIN + 5,
-        })?;
-        saturating_low.accumulate(&ResidualContribution {
-            kind: ResidualContributionKind::ConstraintPenalty,
-            contribution_id: 22,
-            raw_value: -10,
-        })?;
+        if saturating_low
+            .accumulate(&ResidualContribution {
+                kind: ResidualContributionKind::InteractionResidual,
+                contribution_id: 21,
+                raw_value: i32::MIN + 5,
+            })
+            .is_err()
+        {
+            return Some(CAP);
+        }
+        if saturating_low
+            .accumulate(&ResidualContribution {
+                kind: ResidualContributionKind::ConstraintPenalty,
+                contribution_id: 22,
+                raw_value: -10,
+            })
+            .is_err()
+        {
+            return Some(CAP);
+        }
         if saturating_low.score() != i32::MIN {
-            return Err(ScoringError::AuditInvariantFailed(
-                "negative overflow must clamp to i32::MIN",
-            ));
+            return Some("negative overflow must clamp to i32::MIN");
         }
 
         // Test deterministic tie-breaking (equal scores => lower ID wins)
         let ord = ScoreAccumulator::<16>::compare_candidates(500, 10, 500, 20);
         if ord != Ordering::Less {
-            return Err(ScoringError::AuditInvariantFailed(
-                "equal scores did not prefer the lower candidate ID",
-            ));
+            return Some("equal scores did not prefer the lower candidate ID");
         }
 
-        Ok(())
+        None
     }
 }
 
