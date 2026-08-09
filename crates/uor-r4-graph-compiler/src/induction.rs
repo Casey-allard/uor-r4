@@ -2249,7 +2249,7 @@ pub fn emit_r4g1(
     edges: &[CoverEdge],
     prior: &BTreeMap<u32, u32>,
     observations: &[Observation],
-) -> Result<(Vec<u8>, CoverArtifactInfo), String> {
+) -> Result<(Vec<u8>, CoverArtifactInfo), uor_r4_graph_format::ObservedBound> {
     let node_count = 1 + cover.regions.len() as u32;
     let depth_count = (cover.max_depth + 1) as u8;
     let edge_count = edges.len() as u32;
@@ -2319,10 +2319,17 @@ pub fn emit_r4g1(
     let mut emit = vec![2u8, 0, 0, 0]; // {width: i32, shift: 0, zero_point: 0}
     let mut root_prior_entries = 0u32;
     for (&token, &count) in prior {
-        let token =
-            i32::try_from(token).map_err(|_| format!("root prior token {token} exceeds i32"))?;
-        let count =
-            i32::try_from(count).map_err(|_| format!("root prior count {count} exceeds i32"))?;
+        // The wire encodes root-prior tokens and counts as i32. A value past
+        // that is a property of the caller's chosen corpus/vocab, not a
+        // limitation of the emitter, so it is reported as the observed bound.
+        let token = i32::try_from(token).map_err(|_| uor_r4_graph_format::ObservedBound {
+            observed: token as i64,
+            bound: i32::MAX as i64,
+        })?;
+        let count = i32::try_from(count).map_err(|_| uor_r4_graph_format::ObservedBound {
+            observed: count as i64,
+            bound: i32::MAX as i64,
+        })?;
         emit.extend_from_slice(&token.to_le_bytes());
         emit.extend_from_slice(&count.to_le_bytes());
         root_prior_entries += 1;
@@ -2362,8 +2369,15 @@ pub fn emit_r4g1(
         let start_in_remainder = (emit.len() - 4) as u32;
         let mut entry_bytes = 0u16;
         for (token, count) in sorted {
-            let token = i32::try_from(token).unwrap();
-            let count = i32::try_from(count).unwrap();
+            // Same i32 wire bound as the root prior above (reported, not refused).
+            let token = i32::try_from(token).map_err(|_| uor_r4_graph_format::ObservedBound {
+                observed: token as i64,
+                bound: i32::MAX as i64,
+            })?;
+            let count = i32::try_from(count).map_err(|_| uor_r4_graph_format::ObservedBound {
+                observed: count as i64,
+                bound: i32::MAX as i64,
+            })?;
             emit.extend_from_slice(&token.to_le_bytes());
             emit.extend_from_slice(&count.to_le_bytes());
             entry_bytes += 8;
@@ -2465,16 +2479,21 @@ pub fn emit_r4g1(
     builder.add_section(uor_r4_graph_format::SectionId::EDGE, 0, &edge_section);
     builder.add_section(uor_r4_graph_format::SectionId::ROUT, 0, &rout);
     builder.add_section(uor_r4_graph_format::SectionId::EMIT, 0, &emit);
+    // These bytes were just serialized from the compiler's own cover; a
+    // serialization or re-validation failure is a defect in this emitter or the
+    // format layer, never a property of the caller's input, so it is an
+    // infallible-construction invariant that panics rather than a reported
+    // condition. Fail closed: never emit an artifact the two-stage validator or
+    // the integrity CIDs reject.
     let bytes = builder
         .build()
-        .map_err(|error| format!("R4G1 serialization failed: {error}"))?;
-
-    // Fail closed: never emit an artifact the two-stage validator or the
-    // integrity CIDs reject.
-    let view = uor_r4_graph_format::GraphView::parse(&bytes)
-        .map_err(|error| format!("cover emitted an invalid R4G1 artifact: {error}"))?;
-    view.verify_cids()
-        .map_err(|error| format!("cover emitted an artifact with bad CIDs: {error}"))?;
+        .unwrap_or_else(|error| panic!("R4G1 serialization of the emitted cover failed: {error}"));
+    let view = uor_r4_graph_format::GraphView::parse(&bytes).unwrap_or_else(|error| {
+        panic!("the emitter produced bytes that are not a valid R4G1 artifact: {error}")
+    });
+    view.verify_cids().unwrap_or_else(|error| {
+        panic!("the emitter produced an artifact whose integrity CIDs do not reproduce: {error}")
+    });
 
     let artifact_len = bytes.len();
     Ok((

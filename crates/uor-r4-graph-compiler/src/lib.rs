@@ -198,7 +198,8 @@ pub fn compile(args: &[String]) -> Result<(), String> {
         &edges,
         &prior,
         &train,
-    )?;
+    )
+    .map_err(|bound| format!("a token or count exceeded the i32 R4G1 wire bound: {bound}"))?;
     let report = induction::build_report(
         &config,
         &induced,

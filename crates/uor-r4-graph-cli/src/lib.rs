@@ -693,7 +693,8 @@ pub fn cover_command(args: &[String]) -> Result<(), String> {
         &edges,
         &prior,
         &train,
-    )?;
+    )
+    .map_err(|bound| format!("a token or count exceeded the i32 R4G1 wire bound: {bound}"))?;
     let report = cover::build_report(
         &config,
         &induced,
