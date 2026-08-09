@@ -1,5 +1,5 @@
 use uor_r4_graph_certify::holographic_encoding::{
-    AblationProtocol, DegeneracyError, DivergenceMetric, HolographicEncodingCertificate,
+    AblationProtocol, DivergenceMetric, HolographicEncodingCertificate,
     HolographicEncodingEvaluator, HolographicProbeReport, Projection, ProjectionMetadata,
 };
 
@@ -37,7 +37,10 @@ fn test_holographic_fixture_partial_recovery_and_progressive_fidelity() {
     let teacher = vec![0.70, 0.20, 0.10];
     let projections = deterministic_fixture_projections();
 
-    HolographicEncodingEvaluator::validate_projection_family(&projections).expect("valid fixture");
+    assert!(
+        HolographicEncodingEvaluator::validate_projection_family(&projections).is_none(),
+        "valid fixture must have no degeneracy"
+    );
     let partial = HolographicEncodingEvaluator::partial_recovery(
         &projections,
         &teacher,
@@ -169,7 +172,7 @@ fn test_holographic_certificate_schema_and_cid() {
 #[test]
 fn test_holographic_degenerate_encodings_rejected() {
     let empty = HolographicEncodingEvaluator::validate_projection_family(&[]);
-    assert!(matches!(empty, Err(DegeneracyError::EmptyProjectionSet)));
+    assert!(empty.is_some_and(|reason| reason.contains("empty")));
 
     let single_node = vec![Projection {
         metadata: ProjectionMetadata {
@@ -179,10 +182,10 @@ fn test_holographic_degenerate_encodings_rejected() {
         },
         recovered_distribution: vec![1.0, 0.0],
     }];
-    assert!(matches!(
-        HolographicEncodingEvaluator::validate_projection_family(&single_node),
-        Err(DegeneracyError::SingleNodeMemorization { .. })
-    ));
+    assert!(
+        HolographicEncodingEvaluator::validate_projection_family(&single_node)
+            .is_some_and(|reason| reason.contains("single-node memorization"))
+    );
 
     let duplicate = vec![
         Projection {
@@ -202,10 +205,10 @@ fn test_holographic_degenerate_encodings_rejected() {
             recovered_distribution: vec![0.5, 0.5],
         },
     ];
-    assert!(matches!(
-        HolographicEncodingEvaluator::validate_projection_family(&duplicate),
-        Err(DegeneracyError::DuplicateProjection { .. })
-    ));
+    assert!(
+        HolographicEncodingEvaluator::validate_projection_family(&duplicate)
+            .is_some_and(|reason| reason.contains("duplicate projection '"))
+    );
 
     let duplicate_ids = vec![
         Projection {
@@ -225,10 +228,10 @@ fn test_holographic_degenerate_encodings_rejected() {
             recovered_distribution: vec![0.7, 0.3],
         },
     ];
-    assert!(matches!(
-        HolographicEncodingEvaluator::validate_projection_family(&duplicate_ids),
-        Err(DegeneracyError::DuplicateProjectionId { .. })
-    ));
+    assert!(
+        HolographicEncodingEvaluator::validate_projection_family(&duplicate_ids)
+            .is_some_and(|reason| reason.contains("duplicate projection id"))
+    );
 
     let inconsistent = vec![
         Projection {
@@ -248,10 +251,10 @@ fn test_holographic_degenerate_encodings_rejected() {
             recovered_distribution: vec![0.6, 0.3, 0.1],
         },
     ];
-    assert!(matches!(
-        HolographicEncodingEvaluator::validate_projection_family(&inconsistent),
-        Err(DegeneracyError::InconsistentDistributionLength { .. })
-    ));
+    assert!(
+        HolographicEncodingEvaluator::validate_projection_family(&inconsistent)
+            .is_some_and(|reason| reason.contains("does not match expected"))
+    );
 }
 
 #[test]
@@ -264,14 +267,16 @@ fn test_ablation_curve_rejects_unknown_ablation_id() {
         semantics: "invalid ablation id".to_string(),
     };
 
-    let err = HolographicEncodingEvaluator::ablation_curve(
-        &projections,
-        &teacher,
-        DivergenceMetric::KLDivergence,
-        &protocol,
-    )
-    .expect_err("unknown ablation id must fail");
-    assert!(matches!(err, DegeneracyError::UnknownProjectionId { .. }));
+    assert!(
+        HolographicEncodingEvaluator::ablation_curve(
+            &projections,
+            &teacher,
+            DivergenceMetric::KLDivergence,
+            &protocol,
+        )
+        .is_none(),
+        "unknown ablation id yields no curve"
+    );
 }
 
 #[test]
@@ -296,14 +301,13 @@ fn test_progressive_fidelity_propagates_recovery_errors() {
         },
     ];
 
-    let err = HolographicEncodingEvaluator::progressive_fidelity(
-        &projections,
-        &teacher,
-        DivergenceMetric::KLDivergence,
-    )
-    .expect_err("length mismatch should propagate");
-    assert!(matches!(
-        err,
-        DegeneracyError::InconsistentDistributionLength { .. }
-    ));
+    assert!(
+        HolographicEncodingEvaluator::progressive_fidelity(
+            &projections,
+            &teacher,
+            DivergenceMetric::KLDivergence,
+        )
+        .is_none(),
+        "length mismatch yields no fidelity curve"
+    );
 }
