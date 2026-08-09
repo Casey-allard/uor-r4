@@ -4,7 +4,6 @@
 //! typed error validation, and dedicated custom Rayon thread pool construction.
 
 use serde::{Deserialize, Serialize};
-use std::fmt;
 
 /// Precedence source of resolved compiler jobs configuration.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -16,37 +15,6 @@ pub enum JobsConfigSource {
     /// Default policy (`min(logical_cpus, 8)`).
     DefaultPolicy,
 }
-
-/// Errors returned when parsing or validating jobs configuration.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum JobsConfigError {
-    /// Passing 0 worker threads is forbidden.
-    ZeroJobsForbidden,
-    /// Thread count string failed decimal integer parsing.
-    InvalidJobCount { value: String },
-    /// Custom thread pool construction failed.
-    ThreadPoolBuildFailed { reason: String },
-}
-
-impl fmt::Display for JobsConfigError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            JobsConfigError::ZeroJobsForbidden => {
-                write!(f, "Jobs configuration error: thread count 0 is forbidden")
-            }
-            JobsConfigError::InvalidJobCount { value } => write!(
-                f,
-                "Jobs configuration error: invalid thread count '{value}'"
-            ),
-            JobsConfigError::ThreadPoolBuildFailed { reason } => write!(
-                f,
-                "Jobs configuration error: failed to build dedicated thread pool: {reason}"
-            ),
-        }
-    }
-}
-
-impl std::error::Error for JobsConfigError {}
 
 /// Compiler jobs and thread-pool configuration.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -79,17 +47,18 @@ impl CompilerJobsConfig {
         cpus.min(8)
     }
 
-    /// Resolve configuration following precedence: CLI (`--jobs`) > Env (`R4_COMPILER_THREADS`) > Default.
-    pub fn resolve(
-        cli_jobs: Option<usize>,
-        env_val: Option<&str>,
-    ) -> Result<Self, JobsConfigError> {
+    /// Resolve configuration following precedence: CLI (`--jobs`) > Env
+    /// (`R4_COMPILER_THREADS`) > Default. `None` when the requested count is not
+    /// a valid configuration — a CLI/env value of 0, or an env string that is
+    /// not a decimal integer (R5 — the absence of a valid config, not a raised
+    /// error). An empty/absent env value falls through to the default policy.
+    pub fn resolve(cli_jobs: Option<usize>, env_val: Option<&str>) -> Option<Self> {
         // Tier 1: CLI argument
         if let Some(jobs) = cli_jobs {
             if jobs == 0 {
-                return Err(JobsConfigError::ZeroJobsForbidden);
+                return None;
             }
-            return Ok(CompilerJobsConfig {
+            return Some(CompilerJobsConfig {
                 jobs,
                 thread_name_prefix: "r4-compile".to_string(),
                 source: JobsConfigSource::CliArg,
@@ -100,16 +69,11 @@ impl CompilerJobsConfig {
         if let Some(env_str) = env_val {
             let trimmed = env_str.trim();
             if !trimmed.is_empty() {
-                let parsed: usize =
-                    trimmed
-                        .parse()
-                        .map_err(|_| JobsConfigError::InvalidJobCount {
-                            value: trimmed.to_string(),
-                        })?;
+                let parsed: usize = trimmed.parse().ok()?;
                 if parsed == 0 {
-                    return Err(JobsConfigError::ZeroJobsForbidden);
+                    return None;
                 }
-                return Ok(CompilerJobsConfig {
+                return Some(CompilerJobsConfig {
                     jobs: parsed,
                     thread_name_prefix: "r4-compile".to_string(),
                     source: JobsConfigSource::EnvVar,
@@ -118,20 +82,21 @@ impl CompilerJobsConfig {
         }
 
         // Tier 3: Default policy
-        Ok(CompilerJobsConfig::default())
+        Some(CompilerJobsConfig::default())
     }
 
     /// Build a dedicated named Rayon thread pool owned by the compiler context.
+    /// Total: a thread pool that will not build is a host defect (cannot spawn
+    /// threads), so it propagates as a panic rather than a sanctioned condition
+    /// (R5), matching [`crate::executor::RayonExecutor::new`].
     #[cfg(not(target_arch = "wasm32"))]
-    pub fn build_dedicated_thread_pool(&self) -> Result<rayon::ThreadPool, JobsConfigError> {
+    pub fn build_dedicated_thread_pool(&self) -> rayon::ThreadPool {
         let prefix = self.thread_name_prefix.clone();
         rayon::ThreadPoolBuilder::new()
             .num_threads(self.jobs)
             .thread_name(move |idx| format!("{prefix}-{idx}"))
             .build()
-            .map_err(|e| JobsConfigError::ThreadPoolBuildFailed {
-                reason: format!("{e:?}"),
-            })
+            .unwrap_or_else(|e| panic!("compiler dedicated thread pool construction failed: {e:?}"))
     }
 }
 
@@ -162,20 +127,9 @@ mod tests {
 
     #[test]
     fn test_jobs_config_rejects_zero_and_invalid() {
-        assert_eq!(
-            CompilerJobsConfig::resolve(Some(0), None),
-            Err(JobsConfigError::ZeroJobsForbidden)
-        );
-        assert_eq!(
-            CompilerJobsConfig::resolve(None, Some("0")),
-            Err(JobsConfigError::ZeroJobsForbidden)
-        );
-        assert_eq!(
-            CompilerJobsConfig::resolve(None, Some("invalid_num")),
-            Err(JobsConfigError::InvalidJobCount {
-                value: "invalid_num".to_string()
-            })
-        );
+        assert_eq!(CompilerJobsConfig::resolve(Some(0), None), None);
+        assert_eq!(CompilerJobsConfig::resolve(None, Some("0")), None);
+        assert_eq!(CompilerJobsConfig::resolve(None, Some("invalid_num")), None);
     }
 
     #[test]
@@ -186,7 +140,7 @@ mod tests {
             thread_name_prefix: "test-compile".to_string(),
             source: JobsConfigSource::CliArg,
         };
-        let pool = config.build_dedicated_thread_pool().unwrap();
+        let pool = config.build_dedicated_thread_pool();
         assert_eq!(pool.current_num_threads(), 2);
     }
 }

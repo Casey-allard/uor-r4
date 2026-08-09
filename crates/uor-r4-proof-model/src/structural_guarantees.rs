@@ -550,40 +550,31 @@ impl StructuralGuaranteeVerifier {
     pub fn verify_compiler_jobs_config_compliance(
         obligation_id: impl Into<String>,
     ) -> ProofVerificationReport {
-        use uor_r4_graph_compiler::jobs_config::{
-            CompilerJobsConfig, JobsConfigError, JobsConfigSource,
-        };
+        use uor_r4_graph_compiler::jobs_config::{CompilerJobsConfig, JobsConfigSource};
         let obl_id = obligation_id.into();
 
         // 1. Check CLI precedence over Env and Default
-        let cli_res = match CompilerJobsConfig::resolve(Some(4), Some("16")) {
-            Ok(cli_res) => cli_res,
-            Err(_) => {
-                return ProofVerificationReport::unverified(
-                    obl_id,
-                    StructuralObligationKind::Determinism,
-                    "compiler jobs config: CLI-precedence resolution failed",
-                );
-            }
+        let Some(cli_res) = CompilerJobsConfig::resolve(Some(4), Some("16")) else {
+            return ProofVerificationReport::unverified(
+                obl_id,
+                StructuralObligationKind::Determinism,
+                "compiler jobs config: CLI-precedence resolution failed",
+            );
         };
         let prec_ok = cli_res.jobs == 4 && cli_res.source == JobsConfigSource::CliArg;
 
         // 2. Check Env precedence over Default
-        let env_res = match CompilerJobsConfig::resolve(None, Some("6")) {
-            Ok(env_res) => env_res,
-            Err(_) => {
-                return ProofVerificationReport::unverified(
-                    obl_id,
-                    StructuralObligationKind::Determinism,
-                    "compiler jobs config: env-precedence resolution failed",
-                );
-            }
+        let Some(env_res) = CompilerJobsConfig::resolve(None, Some("6")) else {
+            return ProofVerificationReport::unverified(
+                obl_id,
+                StructuralObligationKind::Determinism,
+                "compiler jobs config: env-precedence resolution failed",
+            );
         };
         let env_ok = env_res.jobs == 6 && env_res.source == JobsConfigSource::EnvVar;
 
-        // 3. Check invalid rejection (0 jobs)
-        let zero_rejected =
-            CompilerJobsConfig::resolve(Some(0), None) == Err(JobsConfigError::ZeroJobsForbidden);
+        // 3. Check invalid rejection (0 jobs): resolve reports no valid config.
+        let zero_rejected = CompilerJobsConfig::resolve(Some(0), None).is_none();
 
         if !prec_ok || !env_ok || !zero_rejected {
             return ProofVerificationReport::unverified(
@@ -612,43 +603,34 @@ impl StructuralGuaranteeVerifier {
         obligation_id: impl Into<String>,
     ) -> ProofVerificationReport {
         use uor_r4_graph_compiler::memory_budget::{
-            CompilerMemoryBudget, InFlightBackpressureLimiter, MemoryBudgetError,
+            CompilerMemoryBudget, InFlightBackpressureLimiter,
         };
         let obl_id = obligation_id.into();
 
         // 1. Derivation check for valid budget
-        let valid_budget = match CompilerMemoryBudget::derive(256 * 1024 * 1024, 4) {
-            Ok(valid_budget) => valid_budget,
-            Err(_) => {
-                return ProofVerificationReport::unverified(
-                    obl_id,
-                    StructuralObligationKind::Determinism,
-                    "compiler memory budget: valid-budget derivation failed",
-                );
-            }
+        let Some(valid_budget) = CompilerMemoryBudget::derive(256 * 1024 * 1024, 4) else {
+            return ProofVerificationReport::unverified(
+                obl_id,
+                StructuralObligationKind::Determinism,
+                "compiler memory budget: valid-budget derivation failed",
+            );
         };
         let valid_ok = valid_budget.worker_threads == 4 && valid_budget.max_in_flight_tasks >= 1;
 
-        // 2. Rejection check for budget below minimum
-        let too_small_err = CompilerMemoryBudget::derive(10 * 1024 * 1024, 4);
-        let rejection_ok = matches!(too_small_err, Err(MemoryBudgetError::BudgetTooSmall { .. }));
+        // 2. Rejection check for budget below minimum: derivation reports no
+        //    valid budget.
+        let rejection_ok = CompilerMemoryBudget::derive(10 * 1024 * 1024, 4).is_none();
 
         // 3. Backpressure capacity check
         let limiter = InFlightBackpressureLimiter::new(1);
-        let _g1 = match limiter.try_acquire() {
-            Ok(guard) => guard,
-            Err(_) => {
-                return ProofVerificationReport::unverified(
-                    obl_id,
-                    StructuralObligationKind::Determinism,
-                    "compiler memory budget: initial backpressure acquire failed",
-                );
-            }
+        let Some(_g1) = limiter.try_acquire() else {
+            return ProofVerificationReport::unverified(
+                obl_id,
+                StructuralObligationKind::Determinism,
+                "compiler memory budget: initial backpressure acquire failed",
+            );
         };
-        let cap_ok = matches!(
-            limiter.try_acquire(),
-            Err(MemoryBudgetError::BackpressureLimitReached { .. })
-        );
+        let cap_ok = limiter.try_acquire().is_none();
 
         if !valid_ok || !rejection_ok || !cap_ok {
             return ProofVerificationReport::unverified(
@@ -772,9 +754,7 @@ impl StructuralGuaranteeVerifier {
     pub fn verify_compiler_dependency_audit_compliance(
         obligation_id: impl Into<String>,
     ) -> ProofVerificationReport {
-        use uor_r4_graph_compiler::dependency_audit::{
-            CompilerDependencyAuditError, CompilerDependencyAuditor,
-        };
+        use uor_r4_graph_compiler::dependency_audit::CompilerDependencyAuditor;
         let obl_id = obligation_id.into();
 
         // 1. Clean lockfile audit check
@@ -786,28 +766,24 @@ version = "0.1.0"
 name = "rayon"
 version = "1.10.0"
 "#;
-        let clean_count = match CompilerDependencyAuditor::audit_lockfile_contents(sample_clean) {
-            Ok(clean_count) => clean_count,
-            Err(_) => {
-                return ProofVerificationReport::unverified(
-                    obl_id,
-                    StructuralObligationKind::Determinism,
-                    "compiler dependency audit: clean lockfile failed to audit",
-                );
-            }
+        let Some(clean_count) = CompilerDependencyAuditor::audit_lockfile_contents(sample_clean)
+        else {
+            return ProofVerificationReport::unverified(
+                obl_id,
+                StructuralObligationKind::Determinism,
+                "compiler dependency audit: clean lockfile failed to audit",
+            );
         };
         let clean_ok = clean_count == 2;
 
-        // 2. Denylisted crate rejection check
+        // 2. Denylisted crate rejection check: the audit reports no clean count.
         let sample_cuda = r#"
 [[package]]
 name = "cust"
 version = "0.3.0"
 "#;
-        let rejection_ok = matches!(
-            CompilerDependencyAuditor::audit_lockfile_contents(sample_cuda),
-            Err(CompilerDependencyAuditError::ForbiddenCrateDetected { .. })
-        );
+        let rejection_ok =
+            CompilerDependencyAuditor::audit_lockfile_contents(sample_cuda).is_none();
 
         if !clean_ok || !rejection_ok {
             return ProofVerificationReport::unverified(

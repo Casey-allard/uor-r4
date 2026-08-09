@@ -163,29 +163,14 @@ struct R4g1World {
     // Compiler Jobs Config fields (#168)
     jobs_cli: Option<usize>,
     jobs_env: Option<String>,
-    jobs_config_res: Option<
-        Result<
-            uor_r4_graph_compiler::jobs_config::CompilerJobsConfig,
-            uor_r4_graph_compiler::jobs_config::JobsConfigError,
-        >,
-    >,
+    jobs_config_res: Option<Option<uor_r4_graph_compiler::jobs_config::CompilerJobsConfig>>,
     // Compiler Memory Budget fields (#169)
     mem_req_bytes: usize,
     mem_req_threads: usize,
-    mem_budget_res: Option<
-        Result<
-            uor_r4_graph_compiler::memory_budget::CompilerMemoryBudget,
-            uor_r4_graph_compiler::memory_budget::MemoryBudgetError,
-        >,
-    >,
+    mem_budget_res: Option<Option<uor_r4_graph_compiler::memory_budget::CompilerMemoryBudget>>,
     limiter_capacity: usize,
     limiter_guard1: Option<uor_r4_graph_compiler::memory_budget::BackpressureGuard>,
-    limiter_acq2_res: Option<
-        Result<
-            uor_r4_graph_compiler::memory_budget::BackpressureGuard,
-            uor_r4_graph_compiler::memory_budget::MemoryBudgetError,
-        >,
-    >,
+    limiter_acq2_res: Option<Option<uor_r4_graph_compiler::memory_budget::BackpressureGuard>>,
     // Parallel Observation Shards fields (#170)
     obs_raw_items: Vec<String>,
     obs_chunk_size: usize,
@@ -2388,7 +2373,7 @@ fn bdd_cover_edge_fragments_then(_w: &mut R4g1World) {
 // =========================================================================
 // Feature: Compiler thread-pool, jobs configuration, and oversubscription policy (#168)
 // =========================================================================
-use uor_r4_graph_compiler::jobs_config::{CompilerJobsConfig, JobsConfigError, JobsConfigSource};
+use uor_r4_graph_compiler::jobs_config::{CompilerJobsConfig, JobsConfigSource};
 
 #[given(
     expr = "a compiler jobs configuration request with CLI argument {int} and environment variable {string}"
@@ -2437,29 +2422,21 @@ fn bdd_jobs_eval_then(w: &mut R4g1World, expected_jobs: usize, expected_source: 
 
 #[then("resolution fails with a zero jobs forbidden error")]
 fn bdd_jobs_zero_error_then(w: &mut R4g1World) {
+    // Total resolution: a 0-jobs request has no valid config (`None`).
     let res = w.jobs_config_res.as_ref().expect("jobs_config_res present");
-    assert_eq!(
-        res.as_ref().err(),
-        Some(&JobsConfigError::ZeroJobsForbidden)
-    );
+    assert!(res.is_none(), "0 jobs must not resolve to a config");
 }
 
 #[then(expr = "resolution fails with an invalid job count error for {string}")]
-fn bdd_jobs_invalid_error_then(w: &mut R4g1World, expected_val: String) {
+fn bdd_jobs_invalid_error_then(w: &mut R4g1World, _expected_val: String) {
+    // Total resolution: an unparseable job count has no valid config (`None`).
     let res = w.jobs_config_res.as_ref().expect("jobs_config_res present");
-    assert_eq!(
-        res.as_ref().err(),
-        Some(&JobsConfigError::InvalidJobCount {
-            value: expected_val
-        })
-    );
+    assert!(res.is_none(), "an invalid job count must not resolve");
 }
 // =========================================================================
 // Feature: Compiler memory-budget and backpressure model for multicore compilation (#169)
 // =========================================================================
-use uor_r4_graph_compiler::memory_budget::{
-    CompilerMemoryBudget, InFlightBackpressureLimiter, MemoryBudgetError,
-};
+use uor_r4_graph_compiler::memory_budget::{CompilerMemoryBudget, InFlightBackpressureLimiter};
 
 #[given(expr = "a memory budget request of {int} bytes for {int} worker threads")]
 fn bdd_memory_budget_request_given(w: &mut R4g1World, req_bytes: usize, req_threads: usize) {
@@ -2493,11 +2470,9 @@ fn bdd_memory_budget_eval_then(
 
 #[then("memory budget derivation fails with a budget too small error")]
 fn bdd_memory_budget_too_small_then(w: &mut R4g1World) {
+    // Total derivation: a below-minimum budget has no valid config (`None`).
     let res = w.mem_budget_res.as_ref().expect("mem_budget_res present");
-    assert!(matches!(
-        res.as_ref().err(),
-        Some(MemoryBudgetError::BudgetTooSmall { .. })
-    ));
+    assert!(res.is_none(), "a below-minimum budget must not derive");
 }
 
 #[given(expr = "an in-flight backpressure limiter with capacity {int}")]
@@ -2508,8 +2483,7 @@ fn bdd_limiter_given(w: &mut R4g1World, capacity: usize) {
 #[when("2 task slot acquisitions are attempted sequentially")]
 fn bdd_limiter_acquisitions_when(w: &mut R4g1World) {
     let limiter = InFlightBackpressureLimiter::new(w.limiter_capacity);
-    let g1 = limiter.try_acquire();
-    w.limiter_guard1 = g1.ok();
+    w.limiter_guard1 = limiter.try_acquire();
     w.limiter_acq2_res = Some(limiter.try_acquire());
 }
 
@@ -2518,11 +2492,9 @@ fn bdd_limiter_acquisitions_when(w: &mut R4g1World) {
 )]
 fn bdd_limiter_acquisitions_then(w: &mut R4g1World) {
     assert!(w.limiter_guard1.is_some());
+    // Total try_acquire: at capacity the second acquisition yields `None`.
     let acq2 = w.limiter_acq2_res.as_ref().expect("acq2 present");
-    assert!(matches!(
-        acq2.as_ref().err(),
-        Some(MemoryBudgetError::BackpressureLimitReached { .. })
-    ));
+    assert!(acq2.is_none(), "the 2nd acquisition must fail at capacity");
 }
 
 // =========================================================================

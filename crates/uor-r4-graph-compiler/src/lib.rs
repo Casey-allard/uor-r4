@@ -120,10 +120,11 @@ pub fn compile(args: &[String]) -> Result<(), String> {
     let options = parse_options(args)?;
     let env_jobs = std::env::var("R4_COMPILER_THREADS").ok();
     let jobs_config = jobs_config::CompilerJobsConfig::resolve(options.jobs, env_jobs.as_deref())
-        .map_err(|e| e.to_string())?;
-    let _pool = jobs_config
-        .build_dedicated_thread_pool()
-        .map_err(|e| e.to_string())?;
+        .ok_or_else(|| {
+        "invalid worker thread count (--jobs / R4_COMPILER_THREADS must be a positive integer)"
+            .to_owned()
+    })?;
+    let _pool = jobs_config.build_dedicated_thread_pool();
     eprintln!(
         "graph-compiler: initialized dedicated thread pool ({} workers, source: {:?})",
         jobs_config.jobs, jobs_config.source

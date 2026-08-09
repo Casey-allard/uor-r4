@@ -5,40 +5,6 @@
 //! Audits workspace lockfiles, crate manifests, and default feature flags to verify
 //! that no GPU, tensor, or BLAS accelerator dependencies enter the compiler tree.
 
-use core::fmt;
-
-/// Errors emitted during compiler dependency auditing.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum CompilerDependencyAuditError {
-    /// Forbidden GPU or accelerator crate detected in dependency tree.
-    ForbiddenCrateDetected {
-        crate_name: String,
-        matched_pattern: String,
-    },
-    /// Default GPU feature flag detected in workspace manifest.
-    DefaultGpuFeatureDetected { feature_name: String },
-}
-
-impl fmt::Display for CompilerDependencyAuditError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::ForbiddenCrateDetected {
-                crate_name,
-                matched_pattern,
-            } => write!(
-                f,
-                "Forbidden crate '{crate_name}' detected matching denylist pattern '{matched_pattern}'"
-            ),
-            Self::DefaultGpuFeatureDetected { feature_name } => write!(
-                f,
-                "Forbidden default GPU feature '{feature_name}' detected in workspace manifest"
-            ),
-        }
-    }
-}
-
-impl std::error::Error for CompilerDependencyAuditError {}
-
 /// Audit report produced by `CompilerDependencyAuditor`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CompilerDependencyAuditReport {
@@ -99,10 +65,11 @@ impl CompilerDependencyAuditor {
         None
     }
 
-    /// Audit a Cargo.lock string for forbidden GPU/tensor/BLAS crates.
-    pub fn audit_lockfile_contents(
-        lockfile_str: &str,
-    ) -> Result<usize, CompilerDependencyAuditError> {
+    /// Audit a Cargo.lock string for forbidden GPU/tensor/BLAS crates. `Some`
+    /// with the count of audited packages when the tree is clean, `None` when a
+    /// forbidden crate is present (R5 — a failed audit is the absence of a clean
+    /// count, a measured report rather than a raised error).
+    pub fn audit_lockfile_contents(lockfile_str: &str) -> Option<usize> {
         let mut audited_count = 0;
         for line in lockfile_str.lines() {
             let trimmed = line.trim();
@@ -113,21 +80,18 @@ impl CompilerDependencyAuditor {
                     .trim_matches('"')
                     .to_lowercase();
 
-                if let Some(matched_pattern) = Self::matches_forbidden_rule(&crate_name) {
-                    return Err(CompilerDependencyAuditError::ForbiddenCrateDetected {
-                        crate_name,
-                        matched_pattern: matched_pattern.to_string(),
-                    });
+                if Self::matches_forbidden_rule(&crate_name).is_some() {
+                    return None;
                 }
             }
         }
-        Ok(audited_count)
+        Some(audited_count)
     }
 
-    /// Audit a Cargo.toml string for forbidden default features.
-    pub fn audit_workspace_features(
-        manifest_str: &str,
-    ) -> Result<usize, CompilerDependencyAuditError> {
+    /// Audit a Cargo.toml string for forbidden default features. `Some` with the
+    /// count of audited default-feature lines when clean, `None` when a
+    /// forbidden default feature is present (R5).
+    pub fn audit_workspace_features(manifest_str: &str) -> Option<usize> {
         let mut audited_count = 0;
         let mut in_default_features = false;
 
@@ -146,14 +110,12 @@ impl CompilerDependencyAuditor {
                 let lower = trimmed.to_lowercase();
                 for &pattern in Self::FORBIDDEN_FEATURE_PATTERNS {
                     if lower.contains(pattern) {
-                        return Err(CompilerDependencyAuditError::DefaultGpuFeatureDetected {
-                            feature_name: pattern.to_string(),
-                        });
+                        return None;
                     }
                 }
             }
         }
-        Ok(audited_count)
+        Some(audited_count)
     }
 }
 
@@ -195,11 +157,7 @@ version = "0.1.0"
 name = "cust"
 version = "0.3.0"
 "#;
-        let err = CompilerDependencyAuditor::audit_lockfile_contents(sample_lockfile).unwrap_err();
-        assert!(matches!(
-            err,
-            CompilerDependencyAuditError::ForbiddenCrateDetected { .. }
-        ));
+        assert!(CompilerDependencyAuditor::audit_lockfile_contents(sample_lockfile).is_none());
     }
 
     #[test]
@@ -209,11 +167,7 @@ version = "0.3.0"
 name = "tch"
 version = "0.14.0"
 "#;
-        let err = CompilerDependencyAuditor::audit_lockfile_contents(sample_lockfile).unwrap_err();
-        assert!(matches!(
-            err,
-            CompilerDependencyAuditError::ForbiddenCrateDetected { .. }
-        ));
+        assert!(CompilerDependencyAuditor::audit_lockfile_contents(sample_lockfile).is_none());
     }
 
     #[test]
@@ -233,10 +187,6 @@ gpu-experimental = []
 [features]
 default = ["gpu", "alloc"]
 "#;
-        let err = CompilerDependencyAuditor::audit_workspace_features(manifest).unwrap_err();
-        assert!(matches!(
-            err,
-            CompilerDependencyAuditError::DefaultGpuFeatureDetected { .. }
-        ));
+        assert!(CompilerDependencyAuditor::audit_workspace_features(manifest).is_none());
     }
 }
