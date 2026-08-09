@@ -297,18 +297,18 @@ impl RecordedRepresentation {
     /// optional `<records>.hidden` sidecar may exist, but is deliberately not
     /// read: the production compiler's input contract is the portable corpus
     /// record stream itself.
-    pub fn from_corpus(corpus: &Corpus, vocab: usize) -> Result<Self, String> {
+    pub fn from_corpus(corpus: &Corpus, vocab: usize) -> Option<Self> {
         if vocab == 0 {
-            return Err("recorded compile requires a non-zero vocabulary size".to_owned());
+            return None;
         }
         if vocab > u32::MAX as usize {
-            return Err("recorded compile vocabulary exceeds u32 token ids".to_owned());
+            return None;
         }
         if corpus.input.len() != corpus.n
             || corpus.top_tokens.len() != corpus.n
             || corpus.top_weights.len() != corpus.n
         {
-            return Err("recorded corpus arrays do not match the record count".to_owned());
+            return None;
         }
         let mut sums = vec![0.0f64; vocab * D];
         let mut counts = vec![0u64; vocab];
@@ -375,7 +375,7 @@ impl RecordedRepresentation {
         for value in &rows {
             hasher.update(&value.to_le_bytes());
         }
-        Ok(Self {
+        Some(Self {
             rows,
             vocab,
             kappa: format!("blake3:{}", hasher.finalize().to_hex()),
@@ -418,17 +418,17 @@ impl RepresentationSource for RecordedRepresentation {
 
 /// Compile directly from a completed recorded corpus without loading a
 /// teacher or invoking any model forward path.
-pub fn compile_recorded(corpus: &Corpus, vocab: usize) -> Result<Compiled, String> {
+pub fn compile_recorded(corpus: &Corpus, vocab: usize) -> Option<Compiled> {
     if corpus.n == 0 || corpus.stories == 0 {
-        return Err("recorded compile requires a non-empty corpus".to_owned());
+        return None;
     }
     if corpus.input.len() != corpus.n {
-        return Err("corpus input/record count mismatch".to_owned());
+        return None;
     }
     let source = RecordedRepresentation::from_corpus(corpus, vocab)?;
     let source_kappa = source.kappa().to_owned();
     let source_bytes = source.rows.len() * std::mem::size_of::<f32>();
-    Ok(compile_from_representation(
+    Some(compile_from_representation(
         &source,
         &source_kappa,
         source_bytes,

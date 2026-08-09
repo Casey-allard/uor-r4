@@ -183,23 +183,20 @@ pub fn convert(
     store: &Store,
     store_container: &[u8],
     calibration: Option<&HammingCalibrationReport>,
-) -> Result<(Vec<u8>, ConversionReport), String> {
+) -> Option<(Vec<u8>, ConversionReport)> {
     // Input shape honesty: the artifact must carry the 4 × 256 × 36-byte
     // class signature books the ROUT section is built from.
     if !artifacts.token_codes.len().is_multiple_of(STAGES) {
-        return Err("token code table is not a whole number of stages".to_owned());
+        return None;
     }
-    let vocab = u32::try_from(artifacts.token_codes.len() / STAGES)
-        .map_err(|_| "vocabulary exceeds u32 token ids".to_owned())?;
+    let vocab = u32::try_from(artifacts.token_codes.len() / STAGES).ok()?;
     if artifacts.class_sigs.len() != STAGES
         || artifacts
             .class_sigs
             .iter()
             .any(|sigs| sigs.len() != K * SIG_BYTES)
     {
-        return Err(format!(
-            "class signature books must be {STAGES} × {K} × {SIG_BYTES} bytes"
-        ));
+        return None;
     }
 
     // Radii: calibration where present, the 288 default elsewhere.
@@ -294,10 +291,8 @@ pub fn convert(
     let mut root_prior_entries = 0u32;
     if let Some(dist) = store.first().and_then(|level| level.get(&[][..])) {
         for (&token, &count) in dist {
-            let token = i32::try_from(token)
-                .map_err(|_| format!("root prior token {token} exceeds i32 storage"))?;
-            let count = i32::try_from(count)
-                .map_err(|_| format!("root prior count {count} exceeds i32 storage"))?;
+            let token = i32::try_from(token).ok()?;
+            let count = i32::try_from(count).ok()?;
             emit.extend_from_slice(&token.to_le_bytes());
             emit.extend_from_slice(&count.to_le_bytes());
             root_prior_entries += 1;
@@ -401,9 +396,7 @@ pub fn convert(
     builder.add_section(SectionId::ROUT, 0, &rout);
     builder.add_section(SectionId::EMIT, 0, &emit);
     builder.add_section(SectionId::EXCT, 0, &exct);
-    let bytes = builder
-        .build()
-        .map_err(|error| format!("R4G1 serialization failed: {error}"))?;
+    let bytes = builder.build().ok()?;
 
     let report = ConversionReport {
         node_count: NODE_COUNT,
@@ -417,7 +410,7 @@ pub fn convert(
         max_emission_entries: DEFAULT_MAX_EMISSION_ENTRIES,
         artifact_bytes: bytes.len(),
     };
-    Ok((bytes, report))
+    Some((bytes, report))
 }
 
 /// Serialize the fixed 224-byte HEAD prefix (v0 draft line, RFC §4.1).

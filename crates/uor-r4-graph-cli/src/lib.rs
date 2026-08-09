@@ -2491,7 +2491,8 @@ pub fn compile_recorded_corpus(args: &[String]) -> Result<(), String> {
         "recorded compile: {} records, {} stories, vocabulary {} (no teacher loaded)",
         corpus.n, corpus.stories, options.vocab_size
     );
-    let artifacts = compiler::compile_recorded(&corpus, options.vocab_size)?;
+    let artifacts = compiler::compile_recorded(&corpus, options.vocab_size)
+        .ok_or_else(|| "recorded compile failed: empty corpus or invalid vocabulary".to_string())?;
     let calibration = compiler::calibrate_hamming_regions(&artifacts, &corpus);
     let hierarchical =
         compiler::induce_hierarchical_codes(&artifacts.token_codes, options.vocab_size, &corpus);

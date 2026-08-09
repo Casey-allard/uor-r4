@@ -60,7 +60,11 @@ pub fn run(args: &[String]) -> Result<(), String> {
         &store,
         &store_bytes,
         calibration.as_ref(),
-    )?;
+    )
+    .ok_or_else(|| {
+        "R4G1 conversion failed: token codes, vocabulary, or class-signature books are malformed"
+            .to_string()
+    })?;
 
     // Fail closed: the converter must never emit an artifact its own
     // two-stage validator or the integrity CIDs reject.
