@@ -1188,7 +1188,7 @@ pub fn score_command(args: &[String]) -> Result<(), String> {
             exct_top_x: config.exct_top_x,
             fwd_rows: &fwd_rows,
         },
-    )?;
+    );
     let graph_kappa = uor_r4_graph_format::r4g1::artifact_kappa(&artifact_bytes)
         .ok_or_else(|| "cannot address emitted R4G1 artifact".to_string())?;
     phases.mark("R4G1 artifact emission");

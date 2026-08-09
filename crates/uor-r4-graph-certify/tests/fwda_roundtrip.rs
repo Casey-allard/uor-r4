@@ -182,8 +182,7 @@ fn tiny_artifact(fwd_rows: &[ForwardAnchorRow]) -> Vec<u8> {
             exct_top_x: 3,
             fwd_rows,
         },
-    )
-    .expect("tiny scored artifact");
+    );
     assert_eq!(info.fwda_row_count as usize, fwd_rows.len());
     bytes
 }

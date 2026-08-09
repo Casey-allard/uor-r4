@@ -1210,35 +1210,40 @@ pub struct WireEdge {
 /// approximation): the reverse index is a permutation of the canonical
 /// edge IDs, sorted by `(dst, src, kind)`; per-dst runs are contiguous
 /// and exactly match the PackedNode forward ranges.
+///
+/// Total verifier: `None` means the wiring holds; `Some(reason)` names the
+/// first violation. The reverse index and forward ranges are built by
+/// [`emit_scored_r4g1`] from its own edge array, so a `Some` here is a
+/// self-produced-bytes defect the caller turns into a panic.
 pub fn verify_theorem_7_wired(
     edges: &[WireEdge],
     reverse: &[u32],
     forward_start: &[u32],
     forward_len: &[u16],
-) -> Result<(), String> {
+) -> Option<String> {
     if reverse.len() != edges.len() {
-        return Err("Theorem 7 violation: reverse index does not cover all edges".to_owned());
+        return Some("Theorem 7 violation: reverse index does not cover all edges".to_owned());
     }
     let mut seen = vec![false; edges.len()];
     for &id in reverse {
         let Some(slot) = seen.get_mut(id as usize) else {
-            return Err(
+            return Some(
                 "Theorem 7 violation: invalid canonical edge ID in reverse index".to_owned(),
             );
         };
         if *slot {
-            return Err("Theorem 7 violation: duplicate edge ID in reverse index".to_owned());
+            return Some("Theorem 7 violation: duplicate edge ID in reverse index".to_owned());
         }
         *slot = true;
     }
     if seen.iter().any(|s| !s) {
-        return Err("Theorem 7 violation: reverse index is not a permutation".to_owned());
+        return Some("Theorem 7 violation: reverse index is not a permutation".to_owned());
     }
     for pair in reverse.windows(2) {
         let a = edges[pair[0] as usize];
         let b = edges[pair[1] as usize];
         if (a.dst, a.src, a.kind) > (b.dst, b.src, b.kind) {
-            return Err(
+            return Some(
                 "Theorem 7 violation: reverse index not sorted by (dst, src, kind)".to_owned(),
             );
         }
@@ -1246,15 +1251,17 @@ pub fn verify_theorem_7_wired(
     for (node, (&start, &len)) in forward_start.iter().zip(forward_len.iter()).enumerate() {
         let end = start as usize + len as usize;
         if end > reverse.len() {
-            return Err("Theorem 7 violation: forward range out of bounds".to_owned());
+            return Some("Theorem 7 violation: forward range out of bounds".to_owned());
         }
         for &id in &reverse[start as usize..end] {
             if edges[id as usize].dst != node as u32 {
-                return Err("Theorem 7 violation: reverse range target mismatched node".to_owned());
+                return Some(
+                    "Theorem 7 violation: reverse range target mismatched node".to_owned(),
+                );
             }
         }
     }
-    Ok(())
+    None
 }
 
 /// What an [`emit_scored_r4g1`] call produced, for the report and tests.
@@ -1314,18 +1321,23 @@ pub struct ScoredGraphSections<'a> {
     pub fwd_rows: &'a [ForwardAnchorRow],
 }
 
-fn encode_context_rows(rows: &[ContextRow]) -> Result<Vec<u8>, String> {
-    let row_count =
-        u32::try_from(rows.len()).map_err(|_| "NGRAM row count exceeds u32".to_owned())?;
+/// Encode compiled context (bigram/trigram) rows as the NGRAM section body.
+///
+/// Every failure branch is an invariant on rows this compiler produced —
+/// size ceilings no real vocabulary reaches and canonical-sort/key
+/// invariants the row builder upholds — so a violation is a self-produced
+/// defect and this panics rather than surfacing a `Result` (R5, #510).
+fn encode_context_rows(rows: &[ContextRow]) -> Vec<u8> {
+    let row_count = u32::try_from(rows.len()).expect("NGRAM row count exceeds u32");
     let header_len = uor_r4_graph_format::NGRAM_HEADER_LEN;
     let row_len = uor_r4_graph_format::NGRAM_ROW_LEN;
     let entries_start = header_len
         .checked_add(
             row_len
                 .checked_mul(rows.len())
-                .ok_or("NGRAM row bytes overflow")?,
+                .expect("NGRAM row bytes overflow"),
         )
-        .ok_or("NGRAM header bytes overflow")?;
+        .expect("NGRAM header bytes overflow");
     let mut bytes = Vec::with_capacity(entries_start);
     bytes.extend_from_slice(&uor_r4_graph_format::NGRAM_MAGIC);
     bytes.extend_from_slice(&uor_r4_graph_format::NGRAM_VERSION.to_le_bytes());
@@ -1334,7 +1346,7 @@ fn encode_context_rows(rows: &[ContextRow]) -> Result<Vec<u8>, String> {
     let max_entries = rows.iter().map(|row| row.entries.len()).max().unwrap_or(0);
     bytes.extend_from_slice(
         &u16::try_from(max_entries)
-            .map_err(|_| "NGRAM row entry count exceeds u16".to_owned())?
+            .expect("NGRAM row entry count exceeds u16")
             .to_le_bytes(),
     );
     bytes.extend_from_slice(&[0u8; 2]);
@@ -1342,53 +1354,54 @@ fn encode_context_rows(rows: &[ContextRow]) -> Result<Vec<u8>, String> {
     let mut entry_offset = entries_start;
     let mut previous = None;
     for (index, row) in rows.iter().enumerate() {
-        if !(1..=2).contains(&row.context_len) || (row.context_len == 1 && row.key1 != 0) {
-            return Err("NGRAM row has an invalid context key".to_owned());
-        }
+        assert!(
+            (1..=2).contains(&row.context_len) && !(row.context_len == 1 && row.key1 != 0),
+            "NGRAM row has an invalid context key"
+        );
         let key = (row.context_len, row.key0, row.key1);
-        if previous.is_some_and(|last| last >= key) {
-            return Err("NGRAM rows are not canonically sorted".to_owned());
-        }
+        assert!(
+            !previous.is_some_and(|last| last >= key),
+            "NGRAM rows are not canonically sorted"
+        );
         previous = Some(key);
-        let entry_count = u16::try_from(row.entries.len())
-            .map_err(|_| "NGRAM row entry count exceeds u16".to_owned())?;
+        let entry_count =
+            u16::try_from(row.entries.len()).expect("NGRAM row entry count exceeds u16");
         let header = header_len + index * row_len;
         bytes[header] = row.context_len;
         bytes[header + 2..header + 4].copy_from_slice(&entry_count.to_le_bytes());
         bytes[header + 4..header + 8].copy_from_slice(&row.key0.to_le_bytes());
         bytes[header + 8..header + 12].copy_from_slice(&row.key1.to_le_bytes());
-        let entry_offset_u32 =
-            u32::try_from(entry_offset).map_err(|_| "NGRAM entry offset exceeds u32".to_owned())?;
+        let entry_offset_u32 = u32::try_from(entry_offset).expect("NGRAM entry offset exceeds u32");
         bytes[header + 12..header + 16].copy_from_slice(&entry_offset_u32.to_le_bytes());
         let mut previous_token = None;
         for &(token, score) in &row.entries {
-            if previous_token.is_some_and(|last| last >= token) {
-                return Err("NGRAM entries are not canonically sorted".to_owned());
-            }
+            assert!(
+                !previous_token.is_some_and(|last| last >= token),
+                "NGRAM entries are not canonically sorted"
+            );
             previous_token = Some(token);
             bytes.extend_from_slice(&token.to_le_bytes());
             bytes.extend_from_slice(&score.raw().to_le_bytes());
         }
         entry_offset = bytes.len();
     }
-    Ok(bytes)
+    bytes
 }
 
 /// Encode compiled forward-anchor rows as the FWDA section body (same
 /// canonical header/row/entry layout as NGRAM; raw counts on the wire,
 /// the row total in the second key slot — format crate `fwda` docs).
-fn encode_forward_anchor_rows(rows: &[ForwardAnchorRow]) -> Result<Vec<u8>, String> {
-    let row_count =
-        u32::try_from(rows.len()).map_err(|_| "FWDA row count exceeds u32".to_owned())?;
+fn encode_forward_anchor_rows(rows: &[ForwardAnchorRow]) -> Vec<u8> {
+    let row_count = u32::try_from(rows.len()).expect("FWDA row count exceeds u32");
     let header_len = uor_r4_graph_format::FWDA_HEADER_LEN;
     let row_len = uor_r4_graph_format::FWDA_ROW_LEN;
     let entries_start = header_len
         .checked_add(
             row_len
                 .checked_mul(rows.len())
-                .ok_or("FWDA row bytes overflow")?,
+                .expect("FWDA row bytes overflow"),
         )
-        .ok_or("FWDA header bytes overflow")?;
+        .expect("FWDA header bytes overflow");
     let mut bytes = Vec::with_capacity(entries_start);
     bytes.extend_from_slice(&uor_r4_graph_format::FWDA_MAGIC);
     bytes.extend_from_slice(&uor_r4_graph_format::FWDA_VERSION.to_le_bytes());
@@ -1397,7 +1410,7 @@ fn encode_forward_anchor_rows(rows: &[ForwardAnchorRow]) -> Result<Vec<u8>, Stri
     let max_entries = rows.iter().map(|row| row.entries.len()).max().unwrap_or(0);
     bytes.extend_from_slice(
         &u16::try_from(max_entries)
-            .map_err(|_| "FWDA row entry count exceeds u16".to_owned())?
+            .expect("FWDA row entry count exceeds u16")
             .to_le_bytes(),
     );
     bytes.extend_from_slice(&[0u8; 2]);
@@ -1405,38 +1418,39 @@ fn encode_forward_anchor_rows(rows: &[ForwardAnchorRow]) -> Result<Vec<u8>, Stri
     let mut entry_offset = entries_start;
     let mut previous = None;
     for (index, row) in rows.iter().enumerate() {
-        if !(1..=uor_r4_graph_format::FWDA_MAX_DISTANCE).contains(&row.distance)
-            || row.total < FWDA_MIN_TOTAL
-        {
-            return Err("FWDA row has an invalid distance or total".to_owned());
-        }
+        assert!(
+            (1..=uor_r4_graph_format::FWDA_MAX_DISTANCE).contains(&row.distance)
+                && row.total >= FWDA_MIN_TOTAL,
+            "FWDA row has an invalid distance or total"
+        );
         let key = (row.distance, row.anchor);
-        if previous.is_some_and(|last| last >= key) {
-            return Err("FWDA rows are not canonically sorted".to_owned());
-        }
+        assert!(
+            !previous.is_some_and(|last| last >= key),
+            "FWDA rows are not canonically sorted"
+        );
         previous = Some(key);
-        let entry_count = u16::try_from(row.entries.len())
-            .map_err(|_| "FWDA row entry count exceeds u16".to_owned())?;
+        let entry_count =
+            u16::try_from(row.entries.len()).expect("FWDA row entry count exceeds u16");
         let header = header_len + index * row_len;
         bytes[header] = row.distance;
         bytes[header + 2..header + 4].copy_from_slice(&entry_count.to_le_bytes());
         bytes[header + 4..header + 8].copy_from_slice(&row.anchor.to_le_bytes());
         bytes[header + 8..header + 12].copy_from_slice(&row.total.to_le_bytes());
-        let entry_offset_u32 =
-            u32::try_from(entry_offset).map_err(|_| "FWDA entry offset exceeds u32".to_owned())?;
+        let entry_offset_u32 = u32::try_from(entry_offset).expect("FWDA entry offset exceeds u32");
         bytes[header + 12..header + 16].copy_from_slice(&entry_offset_u32.to_le_bytes());
         let mut previous_token = None;
         for &(token, count) in &row.entries {
-            if previous_token.is_some_and(|last| last >= token) {
-                return Err("FWDA entries are not canonically sorted".to_owned());
-            }
+            assert!(
+                !previous_token.is_some_and(|last| last >= token),
+                "FWDA entries are not canonically sorted"
+            );
             previous_token = Some(token);
             bytes.extend_from_slice(&token.to_le_bytes());
             bytes.extend_from_slice(&count.to_le_bytes());
         }
         entry_offset = bytes.len();
     }
-    Ok(bytes)
+    bytes
 }
 
 /// Encode the exact-context store as compile-time ScoreQ residuals. The
@@ -1450,19 +1464,19 @@ fn emit_residual_exct(
     vocab: u32,
     top_x: usize,
     smoothing: Smoothing,
-) -> Result<(Vec<u8>, QuantizationErrorStats), String> {
+) -> (Vec<u8>, QuantizationErrorStats) {
     let mut bytes = Vec::new();
     let mut quantization = QuantizationErrorStats::default();
     bytes.extend_from_slice(&RESIDUAL_EXCT_MAGIC);
-    bytes.push(u8::try_from(store.len()).map_err(|_| "EXCT level count exceeds u8".to_owned())?);
+    bytes.push(u8::try_from(store.len()).expect("EXCT level count exceeds u8"));
     bytes.extend_from_slice(&[0u8; 3]);
     for (level, contexts) in store.iter().enumerate() {
         let key_count = u32::try_from(contexts.len())
-            .map_err(|_| format!("EXCT level {level} has too many contexts"))?;
+            .unwrap_or_else(|_| panic!("EXCT level {level} has too many contexts"));
         bytes.extend_from_slice(&key_count.to_le_bytes());
         for (key, distribution) in contexts {
             let key_len = u8::try_from(key.len())
-                .map_err(|_| format!("EXCT key at level {level} is too long"))?;
+                .unwrap_or_else(|_| panic!("EXCT key at level {level} is too long"));
             bytes.push(key_len);
             bytes.extend_from_slice(key);
             let total: u64 = distribution.values().map(|&count| u64::from(count)).sum();
@@ -1473,8 +1487,8 @@ fn emit_residual_exct(
                 .collect();
             ranked.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.cmp(&b.0)));
             ranked.truncate(top_x);
-            let entry_count = u32::try_from(ranked.len())
-                .map_err(|_| "EXCT residual entry count exceeds u32".to_owned())?;
+            let entry_count =
+                u32::try_from(ranked.len()).expect("EXCT residual entry count exceeds u32");
             bytes.extend_from_slice(&total.to_le_bytes());
             bytes.extend_from_slice(&entry_count.to_le_bytes());
             for (token, count) in ranked {
@@ -1493,21 +1507,23 @@ fn emit_residual_exct(
             }
         }
     }
-    Ok((bytes, quantization))
+    (bytes, quantization)
 }
 
 /// Emit the scored graph as an R4G1 container: the cover's HEAD/NODE/
 /// ROUT conventions with E_f merged into EDGE (kind tags distinguish
 /// E_r/E_o/E_f), the EMIT residual tables with per-node ranges wired,
-/// and the residualized RX1 EXCT table. Fails closed: Theorem 7 is verified
-/// before serialization, and the bytes are re-validated with
-/// `GraphView::parse` + `verify_cids` before they are returned.
+/// and the residualized RX1 EXCT table. Panics closed: every input is
+/// compiler-produced, so Theorem 7 wiring, the section size ceilings, and
+/// the `GraphView::parse` + `verify_cids` re-validation of the just-emitted
+/// bytes are self-produced invariants — a violation is a defect and aborts
+/// rather than surfacing a `Result` (R5, #510).
 pub fn emit_scored_r4g1(
     artifact_container: &[u8],
     corpus_cid_material: (&[u8], &[u8]),
     vocab_size: u32,
     sections: &ScoredGraphSections,
-) -> Result<(Vec<u8>, ScoredGraphInfo), String> {
+) -> (Vec<u8>, ScoredGraphInfo) {
     let ScoredGraphSections {
         regions,
         structural,
@@ -1519,9 +1535,11 @@ pub fn emit_scored_r4g1(
         exct_top_x,
         fwd_rows,
     } = *sections;
-    if regions.len() != emissions.region_lists.len() {
-        return Err("emission lists do not match the region count".to_owned());
-    }
+    assert_eq!(
+        regions.len(),
+        emissions.region_lists.len(),
+        "emission lists do not match the region count"
+    );
     let node_count = 1 + regions.len() as u32;
     let max_depth = regions.iter().map(|r| r.depth as usize).max().unwrap_or(1);
     let depth_count = (max_depth + 1) as u8;
@@ -1588,13 +1606,16 @@ pub fn emit_scored_r4g1(
         }
         forward_len[dst] += 1;
     }
-    verify_theorem_7_wired(&edges, &reverse, &forward_start, &forward_len)?;
+    if let Some(violation) = verify_theorem_7_wired(&edges, &reverse, &forward_start, &forward_len)
+    {
+        panic!("{violation}");
+    }
 
     // EMIT: descriptor + root prior block + per-region lists; wire the
     // per-node ranges as we lay the lists down.
     let mut emit = vec![2u8, 0, 0, 0]; // {width: i32, shift: 0, zero_point: 0}
-    let root_entry_count = u32::try_from(emissions.root_prior.len())
-        .map_err(|_| "root prior exceeds u32 entries".to_owned())?;
+    let root_entry_count =
+        u32::try_from(emissions.root_prior.len()).expect("root prior exceeds u32 entries");
     emit.extend_from_slice(&root_entry_count.to_le_bytes());
     let root_total = emissions.root_total.min(u32::MAX as u64) as u32;
     emit.extend_from_slice(&root_total.to_le_bytes());
@@ -1602,7 +1623,7 @@ pub fn emit_scored_r4g1(
     emit.extend_from_slice(&0u32.to_le_bytes()); // reserved
     for (&token, &value) in &emissions.root_prior {
         let token =
-            i32::try_from(token).map_err(|_| format!("root prior token {token} exceeds i32"))?;
+            i32::try_from(token).unwrap_or_else(|_| panic!("root prior token {token} exceeds i32"));
         emit.extend_from_slice(&token.to_le_bytes());
         emit.extend_from_slice(&value.raw().to_le_bytes());
     }
@@ -1612,11 +1633,10 @@ pub fn emit_scored_r4g1(
     for (region_id, list) in emissions.region_lists.iter().enumerate() {
         let node = 1 + region_id;
         emission_start[node] = (emit.len() - 4) as u32; // remainder-relative
-        emission_len[node] = u16::try_from(list.len())
-            .map_err(|_| "emission list exceeds u16 entries".to_owned())?;
+        emission_len[node] = u16::try_from(list.len()).expect("emission list exceeds u16 entries");
         for &(token, value) in list {
-            let token =
-                i32::try_from(token).map_err(|_| format!("emission token {token} exceeds i32"))?;
+            let token = i32::try_from(token)
+                .unwrap_or_else(|_| panic!("emission token {token} exceeds i32"));
             emit.extend_from_slice(&token.to_le_bytes());
             emit.extend_from_slice(&value.raw().to_le_bytes());
         }
@@ -1679,7 +1699,7 @@ pub fn emit_scored_r4g1(
     #[allow(deprecated)]
     let store = runtime::parse_store(exct_tls1)
         .or_else(|| runtime::parse_store_legacy_u16(exct_tls1))
-        .ok_or("EXCT input is not a TLS1 store")?;
+        .expect("EXCT input is not a TLS1 store");
     let (exct_body, exact_context_quantization) = emit_residual_exct(
         &store,
         &emissions.root_prior,
@@ -1687,11 +1707,11 @@ pub fn emit_scored_r4g1(
         vocab_size,
         exct_top_x,
         emissions.smoothing,
-    )?;
+    );
     let mut exct = Vec::with_capacity(4 + exct_body.len());
     exct.extend_from_slice(&[2, 0, 0, 0]);
     exct.extend_from_slice(&exct_body);
-    let ngram = encode_context_rows(context_rows)?;
+    let ngram = encode_context_rows(context_rows);
 
     // HEAD: the fixed 224-byte v0 prefix (convert_r4g1 conventions).
     let (meta, recs) = corpus_cid_material;
@@ -1734,23 +1754,25 @@ pub fn emit_scored_r4g1(
     let fwda = if fwd_rows.is_empty() {
         Vec::new()
     } else {
-        let fwda = encode_forward_anchor_rows(fwd_rows)?;
+        let fwda = encode_forward_anchor_rows(fwd_rows);
         builder.add_section(uor_r4_graph_format::SectionId::FWDA, 0, &fwda);
         fwda
     };
     let bytes = builder
         .build()
-        .map_err(|error| format!("R4G1 serialization failed: {error}"))?;
+        .unwrap_or_else(|error| panic!("R4G1 serialization failed: {error}"));
 
-    // Fail closed: never emit an artifact the two-stage validator or the
-    // integrity CIDs reject.
+    // Panic closed: never emit an artifact the two-stage validator or the
+    // integrity CIDs reject — these bytes are self-produced, so rejection
+    // is a compiler defect.
     let view = uor_r4_graph_format::GraphView::parse(&bytes)
-        .map_err(|error| format!("score emitted an invalid R4G1 artifact: {error}"))?;
-    view.verify_cids()
-        .map_err(|error| format!("score emitted an artifact with bad CIDs: {error}"))?;
+        .unwrap_or_else(|error| panic!("score emitted an invalid R4G1 artifact: {error}"));
+    if let Err(error) = view.verify_cids() {
+        panic!("score emitted an artifact with bad CIDs: {error}");
+    }
 
     let artifact_bytes = bytes.len();
-    Ok((
+    (
         bytes,
         ScoredGraphInfo {
             node_count,
@@ -1765,20 +1787,17 @@ pub fn emit_scored_r4g1(
             emission_list_entries,
             exct_bytes: exct.len() as u32,
             context_row_count: u32::try_from(context_rows.len())
-                .map_err(|_| "NGRAM row count exceeds u32".to_owned())?,
+                .expect("NGRAM row count exceeds u32"),
             context_entry_count: u32::try_from(
                 context_rows
                     .iter()
                     .map(|row| row.entries.len())
                     .sum::<usize>(),
             )
-            .map_err(|_| "NGRAM entry count exceeds u32".to_owned())?,
-            context_bytes: u32::try_from(ngram.len())
-                .map_err(|_| "NGRAM section exceeds u32".to_owned())?,
-            fwda_row_count: u32::try_from(fwd_rows.len())
-                .map_err(|_| "FWDA row count exceeds u32".to_owned())?,
-            fwda_bytes: u32::try_from(fwda.len())
-                .map_err(|_| "FWDA section exceeds u32".to_owned())?,
+            .expect("NGRAM entry count exceeds u32"),
+            context_bytes: u32::try_from(ngram.len()).expect("NGRAM section exceeds u32"),
+            fwda_row_count: u32::try_from(fwd_rows.len()).expect("FWDA row count exceeds u32"),
+            fwda_bytes: u32::try_from(fwda.len()).expect("FWDA section exceeds u32"),
             artifact_bytes,
             transition_quantization,
             root_prior_quantization: emissions.root_prior_quantization,
@@ -1786,7 +1805,7 @@ pub fn emit_scored_r4g1(
             exact_context_quantization,
             emission_selection_stats: emissions.selection_stats,
         },
-    ))
+    )
 }
 
 /// Recover the scoring inputs of a previously emitted cover or scored

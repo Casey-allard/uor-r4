@@ -135,8 +135,7 @@ fn emit_and_persist(
             exct_tls1: &tls1,
             exct_top_x: score::ScoreConfig::default().exct_top_x,
         },
-    )
-    .expect("fixture emit succeeds");
+    );
 
     let seq = FIXTURE_SEQ.fetch_add(1, Ordering::Relaxed);
     let dir = std::env::temp_dir().join(format!("r4g1-status-policy-{}-{seq}", std::process::id()));

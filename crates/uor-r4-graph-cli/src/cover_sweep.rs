@@ -486,7 +486,7 @@ pub fn run_point(
             exct_top_x: score_config.exct_top_x,
             fwd_rows: &fwd_rows,
         },
-    )?;
+    );
     let gate_c = score::evaluate_gate_c(
         &artifact_bytes,
         &inputs.artifact_container,
@@ -641,7 +641,7 @@ pub fn reconstruction_null(
                 exct_top_x: score_config.exct_top_x,
                 fwd_rows: &fwd_rows,
             },
-        )?;
+        );
         score::evaluate_gate_c(
             &artifact_bytes,
             &inputs.artifact_container,

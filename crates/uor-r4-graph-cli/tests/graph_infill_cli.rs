@@ -83,8 +83,7 @@ fn tiny_artifact_bytes() -> Vec<u8> {
             exct_top_x: 3,
             fwd_rows: &fwd_rows,
         },
-    )
-    .expect("tiny scored artifact");
+    );
     assert_eq!(info.fwda_row_count, 1);
     bytes
 }
