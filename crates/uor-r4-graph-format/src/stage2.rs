@@ -453,7 +453,7 @@ pub(crate) fn validate(view: &GraphView) -> Result<Option<Head>, crate::NotAProd
     let node_count = head.node_count() as usize;
     let max_node_degree = head.max_frontier_width() as usize;
     let degree_limit = head.max_frontier_width() as usize;
-    if let Err(inv_err) =
+    if let Some(inv_err) =
         crate::invariant_ownership::GraphInvariantOwnershipMatrix::validate_graph_structure(
             node_count,
             max_node_degree,

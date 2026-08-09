@@ -238,10 +238,10 @@ impl GraphInvariantOwnershipMatrix {
         degree_limit: usize,
         edges: &[(u32, u32)], // (src, dst)
         evidence_ids: &[u32],
-    ) -> Result<usize, InvariantValidationError> {
+    ) -> Option<InvariantValidationError> {
         // 1. Check degree limit
         if max_node_degree > degree_limit {
-            return Err(InvariantValidationError::DegreeLimitExceeded {
+            return Some(InvariantValidationError::DegreeLimitExceeded {
                 node_id: 0,
                 degree: max_node_degree,
                 limit: degree_limit,
@@ -251,20 +251,20 @@ impl GraphInvariantOwnershipMatrix {
         // 2. Check dangling references with checked bounds
         for (i, &(src, dst)) in edges.iter().enumerate() {
             if (src as usize) >= node_count {
-                return Err(InvariantValidationError::DanglingReference {
+                return Some(InvariantValidationError::DanglingReference {
                     edge_index: i,
                     target_node_id: src,
                 });
             }
             if (dst as usize) >= node_count {
-                return Err(InvariantValidationError::DanglingReference {
+                return Some(InvariantValidationError::DanglingReference {
                     edge_index: i,
                     target_node_id: dst,
                 });
             }
             // Check for self-refinement cycle
             if src == dst {
-                return Err(InvariantValidationError::RefinementCycleDetected {
+                return Some(InvariantValidationError::RefinementCycleDetected {
                     cycle_node_id: src,
                 });
             }
@@ -274,22 +274,23 @@ impl GraphInvariantOwnershipMatrix {
         for i in 0..evidence_ids.len() {
             for j in (i + 1)..evidence_ids.len() {
                 if evidence_ids[i] == evidence_ids[j] {
-                    return Err(InvariantValidationError::DuplicateEvidence {
+                    return Some(InvariantValidationError::DuplicateEvidence {
                         evidence_id: evidence_ids[i],
                     });
                 }
             }
         }
 
-        Ok(node_count)
+        None
     }
 
     /// Helper method to validate score fixed-point overflow boundary.
-    pub fn validate_score_fixed_point(raw_score: i32) -> Result<i16, InvariantValidationError> {
+    pub fn validate_score_fixed_point(raw_score: i32) -> Option<i16> {
+        // Total: `None` is an observed out-of-range score, not a limitation.
         if raw_score < (i16::MIN as i32) || raw_score > (i16::MAX as i32) {
-            Err(InvariantValidationError::FixedArithmeticOverflow { raw_score })
+            None
         } else {
-            Ok(raw_score as i16)
+            Some(raw_score as i16)
         }
     }
 }
@@ -312,7 +313,7 @@ mod tests {
     #[test]
     fn test_boundary_fixture_1_empty_graph() {
         let res = GraphInvariantOwnershipMatrix::validate_graph_structure(0, 0, 10, &[], &[]);
-        assert_eq!(res.unwrap(), 0);
+        assert!(res.is_none());
     }
 
     #[test]
@@ -320,13 +321,13 @@ mod tests {
         // Equal to degree limit -> clean
         let res_clean =
             GraphInvariantOwnershipMatrix::validate_graph_structure(5, 10, 10, &[(0, 1)], &[1, 2]);
-        assert_eq!(res_clean.unwrap(), 5);
+        assert!(res_clean.is_none());
 
         // Exceeds limit -> error
         let res_err =
             GraphInvariantOwnershipMatrix::validate_graph_structure(5, 11, 10, &[(0, 1)], &[1, 2]);
         assert!(matches!(
-            res_err.unwrap_err(),
+            res_err.unwrap(),
             InvariantValidationError::DegreeLimitExceeded { .. }
         ));
     }
@@ -341,7 +342,7 @@ mod tests {
             &[101, 101],
         );
         assert!(matches!(
-            res.unwrap_err(),
+            res.unwrap(),
             InvariantValidationError::DuplicateEvidence { evidence_id: 101 }
         ));
     }
@@ -351,18 +352,15 @@ mod tests {
         let res =
             GraphInvariantOwnershipMatrix::validate_graph_structure(5, 2, 10, &[(2, 2)], &[101]);
         assert!(matches!(
-            res.unwrap_err(),
+            res.unwrap(),
             InvariantValidationError::RefinementCycleDetected { cycle_node_id: 2 }
         ));
     }
 
     #[test]
     fn test_boundary_fixture_5_fixed_arithmetic_overflow() {
-        assert!(GraphInvariantOwnershipMatrix::validate_score_fixed_point(32767).is_ok());
-        assert!(matches!(
-            GraphInvariantOwnershipMatrix::validate_score_fixed_point(32768).unwrap_err(),
-            InvariantValidationError::FixedArithmeticOverflow { raw_score: 32768 }
-        ));
+        assert!(GraphInvariantOwnershipMatrix::validate_score_fixed_point(32767).is_some());
+        assert!(GraphInvariantOwnershipMatrix::validate_score_fixed_point(32768).is_none());
     }
 
     #[test]
@@ -370,7 +368,7 @@ mod tests {
         let res =
             GraphInvariantOwnershipMatrix::validate_graph_structure(5, 2, 10, &[(0, 99)], &[101]);
         assert!(matches!(
-            res.unwrap_err(),
+            res.unwrap(),
             InvariantValidationError::DanglingReference {
                 target_node_id: 99,
                 ..
