@@ -99,8 +99,7 @@ struct R4g1World {
         Option<uor_r4_graph_compiler::semantic_emission_decoupling::LanguageEmissionResult>,
     decouple_cert:
         Option<uor_r4_graph_compiler::semantic_emission_decoupling::DecoupledCertificationReport>,
-    decouple_error:
-        Option<uor_r4_graph_compiler::semantic_emission_decoupling::SemanticEmissionError>,
+    decouple_rejected: bool,
     // Formal Monograph fields (#133)
     monograph_text: String,
     monograph_report: Option<uor_r4_graph_compiler::monograph::MonographValidationReport>,
@@ -879,7 +878,7 @@ fn bdd_inv_duplicate_evidence_error_check(w: &mut R4g1World) {
 // Separate Semantic Emission BDD Steps (#134)
 // =========================================================================
 use uor_r4_graph_compiler::semantic_emission_decoupling::{
-    LanguageEmissionAdapter, SemanticEmissionError, SemanticReasoningEngine, SemanticStatus,
+    LanguageEmissionAdapter, SemanticReasoningEngine, SemanticStatus,
 };
 
 #[given("an initial state \"s0\" and a valid 2-step transition sequence to \"s2\"")]
@@ -892,10 +891,9 @@ fn bdd_decouple_valid_sequence(w: &mut R4g1World) {
 
 #[when("pure semantic reasoning is executed by the reasoning engine")]
 fn bdd_decouple_execute_reasoning(w: &mut R4g1World) {
-    let res = SemanticReasoningEngine::execute_pure_reasoning("s0", &w.decouple_transitions);
-    match res {
-        Ok(tr) => w.decouple_trace = Some(tr),
-        Err(err) => w.decouple_error = Some(err),
+    match SemanticReasoningEngine::execute_pure_reasoning("s0", &w.decouple_transitions) {
+        Some(tr) => w.decouple_trace = Some(tr),
+        None => w.decouple_rejected = true,
     }
 }
 
@@ -957,11 +955,10 @@ fn bdd_decouple_contradictory_given(w: &mut R4g1World) {
 
 #[then("execution fails with a contradictory state error before token emission")]
 fn bdd_decouple_contradictory_error_check(w: &mut R4g1World) {
-    let err = w.decouple_error.as_ref().expect("error");
-    assert!(matches!(
-        err,
-        SemanticEmissionError::ContradictoryState { .. }
-    ));
+    assert!(
+        w.decouple_rejected,
+        "reasoning should have rejected the contradictory-state sequence (returned None) before any emission"
+    );
 }
 
 // =========================================================================

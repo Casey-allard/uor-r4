@@ -16,70 +16,12 @@
 use crate::future_state_planner::PlanTrajectory;
 use crate::semantic_state::SemanticState;
 use std::collections::BTreeMap;
-use std::fmt;
 
 /// Default minimum confidence threshold required for state transitions.
 pub const DEFAULT_CONFIDENCE_THRESHOLD: f32 = 0.5;
 
 /// Default certification threshold required for multi-dimensional certification.
 pub const DEFAULT_CERTIFICATION_THRESHOLD: f32 = 0.8;
-
-/// Errors arising during semantic state transition evaluation or language emission adaptation.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum SemanticEmissionError {
-    /// Semantic state is contradictory or violates constraints.
-    ContradictoryState { state_id: String },
-    /// Semantic state has low belief confidence.
-    UncertainState {
-        state_id: String,
-        confidence_bits: u32,
-    },
-    /// Semantic state is novel / unindexed.
-    NovelState { state_id: String },
-    /// Search space or state graph trajectory exhausted.
-    ExhaustedState { state_id: String },
-    /// A transition's source state does not match the current state in the sequence.
-    NonSequentialTransition { expected: String, found: String },
-    /// Language emission adapter failure.
-    EmissionAdapterFailed { reason: String },
-}
-
-impl fmt::Display for SemanticEmissionError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::ContradictoryState { state_id } => {
-                write!(
-                    f,
-                    "Semantic state '{state_id}' contains contradictory constraints"
-                )
-            }
-            Self::UncertainState {
-                state_id,
-                confidence_bits,
-            } => write!(
-                f,
-                "Semantic state '{state_id}' is uncertain (confidence bits = {confidence_bits})"
-            ),
-            Self::NovelState { state_id } => {
-                write!(f, "Semantic state '{state_id}' is novel and unindexed")
-            }
-            Self::ExhaustedState { state_id } => {
-                write!(f, "Semantic transition path from '{state_id}' is exhausted")
-            }
-            Self::NonSequentialTransition { expected, found } => {
-                write!(
-                    f,
-                    "Non-sequential transition: expected src '{expected}', found '{found}'"
-                )
-            }
-            Self::EmissionAdapterFailed { reason } => {
-                write!(f, "Language emission adapter failed: {reason}")
-            }
-        }
-    }
-}
-
-impl std::error::Error for SemanticEmissionError {}
 
 /// Explicit pre-emission status of a semantic state transition.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -137,11 +79,16 @@ pub struct DecoupledCertificationReport {
 pub struct SemanticReasoningEngine;
 
 impl SemanticReasoningEngine {
-    /// Execute pure semantic state transitions without invoking language generation.
+    /// Execute pure semantic state transitions without invoking language
+    /// generation. `None` when the transitions do not form a coherent trace: a
+    /// non-sequential source, or a state whose pre-emission status is
+    /// Contradictory, Exhausted, Novel, or Uncertain below the confidence
+    /// threshold. Reporting the rejection before any token emission is the whole
+    /// point of the decoupling — a non-coherent trace is not a product (R5).
     pub fn execute_pure_reasoning(
         initial_state_id: &str,
         transitions: &[(&str, &str, &str, f32, SemanticStatus)], // (src, action, dst, confidence, status)
-    ) -> Result<SemanticStateTrace, SemanticEmissionError> {
+    ) -> Option<SemanticStateTrace> {
         let mut steps = Vec::new();
         let mut curr_state = initial_state_id.to_string();
         let mut total_confidence = 0.0f32;
@@ -149,31 +96,19 @@ impl SemanticReasoningEngine {
 
         for &(src, action, dst, conf, status) in transitions {
             if src != curr_state {
-                return Err(SemanticEmissionError::NonSequentialTransition {
-                    expected: curr_state,
-                    found: src.to_string(),
-                });
+                return None;
             }
             if status == SemanticStatus::Contradictory {
-                return Err(SemanticEmissionError::ContradictoryState {
-                    state_id: dst.to_string(),
-                });
+                return None;
             }
             if status == SemanticStatus::Exhausted {
-                return Err(SemanticEmissionError::ExhaustedState {
-                    state_id: dst.to_string(),
-                });
+                return None;
             }
             if status == SemanticStatus::Novel {
-                return Err(SemanticEmissionError::NovelState {
-                    state_id: dst.to_string(),
-                });
+                return None;
             }
             if status == SemanticStatus::Uncertain && conf < DEFAULT_CONFIDENCE_THRESHOLD {
-                return Err(SemanticEmissionError::UncertainState {
-                    state_id: dst.to_string(),
-                    confidence_bits: (conf * 100.0) as u32,
-                });
+                return None;
             }
 
             let evidence_ids = vec![format!("ev_{src}_{dst}")];
@@ -206,7 +141,7 @@ impl SemanticReasoningEngine {
             1.0f32
         };
 
-        Ok(SemanticStateTrace {
+        Some(SemanticStateTrace {
             trace_id: format!("trace_{initial_state_id}_{curr_state}"),
             initial_state_id: initial_state_id.to_string(),
             final_state_id: curr_state,
@@ -217,11 +152,13 @@ impl SemanticReasoningEngine {
         })
     }
 
-    /// Build a semantic trace directly from a real BoundedGraphPlanner trajectory.
+    /// Build a semantic trace directly from a real BoundedGraphPlanner
+    /// trajectory. Total: every planner trajectory maps to a coherent trace, so
+    /// there is no failure to report.
     pub fn trace_from_plan(
         plan: &PlanTrajectory,
         initial_state: &SemanticState,
-    ) -> Result<SemanticStateTrace, SemanticEmissionError> {
+    ) -> SemanticStateTrace {
         let mut steps = Vec::new();
         let mut total_conf = 0.0f32;
 
@@ -256,7 +193,7 @@ impl SemanticReasoningEngine {
             1.0
         };
 
-        Ok(SemanticStateTrace {
+        SemanticStateTrace {
             trace_id: format!("trace_plan_{}", plan.witness.plan_cid),
             initial_state_id: initial_state.id.clone(),
             final_state_id: plan
@@ -268,7 +205,7 @@ impl SemanticReasoningEngine {
             overall_status: SemanticStatus::Coherent,
             state_coherence_score: coherence,
             evidence_support_score: 1.0,
-        })
+        }
     }
 }
 
@@ -276,17 +213,14 @@ impl SemanticReasoningEngine {
 pub struct LanguageEmissionAdapter;
 
 impl LanguageEmissionAdapter {
-    /// Emit text response and deterministic token probabilities from a verified semantic trace.
-    pub fn emit_language(
-        trace: &SemanticStateTrace,
-    ) -> Result<LanguageEmissionResult, SemanticEmissionError> {
+    /// Emit text response and deterministic token probabilities from a verified
+    /// semantic trace. `None` when the trace is not Coherent: language must not
+    /// be emitted for a non-coherent trace, so no emission is a product of it
+    /// (R5 — the decoupling exists so a non-coherent internal state cannot be
+    /// masked by fabricated text).
+    pub fn emit_language(trace: &SemanticStateTrace) -> Option<LanguageEmissionResult> {
         if trace.overall_status != SemanticStatus::Coherent {
-            return Err(SemanticEmissionError::EmissionAdapterFailed {
-                reason: format!(
-                    "Cannot emit language for non-coherent trace status {:?}",
-                    trace.overall_status
-                ),
-            });
+            return None;
         }
 
         // BTreeMap guarantees strictly deterministic serialization order
@@ -307,7 +241,7 @@ impl LanguageEmissionAdapter {
         let language_fidelity = top_prob;
         let residual = 1.0 - language_fidelity;
 
-        Ok(LanguageEmissionResult {
+        Some(LanguageEmissionResult {
             emitted_text,
             token_probabilities: token_probs,
             language_fidelity_score: language_fidelity,
@@ -374,18 +308,15 @@ mod tests {
             ("s1", "act2", "s_err", 0.1, SemanticStatus::Contradictory),
         ];
 
-        let err = SemanticReasoningEngine::execute_pure_reasoning("s0", &transitions).unwrap_err();
-        assert!(matches!(
-            err,
-            SemanticEmissionError::ContradictoryState { .. }
-        ));
+        let trace = SemanticReasoningEngine::execute_pure_reasoning("s0", &transitions);
+        assert!(trace.is_none());
     }
 
     #[test]
     fn test_novel_state_rejection() {
         let transitions = vec![("s0", "act1", "s_novel", 0.8, SemanticStatus::Novel)];
 
-        let err = SemanticReasoningEngine::execute_pure_reasoning("s0", &transitions).unwrap_err();
-        assert!(matches!(err, SemanticEmissionError::NovelState { .. }));
+        let trace = SemanticReasoningEngine::execute_pure_reasoning("s0", &transitions);
+        assert!(trace.is_none());
     }
 }
