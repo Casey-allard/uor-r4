@@ -2498,8 +2498,7 @@ pub fn compile_recorded_corpus(args: &[String]) -> Result<(), String> {
     let threads = std::thread::available_parallelism()
         .map(|count| count.get().min(8))
         .unwrap_or(1);
-    let (store, _) = runtime::build_store_with_threads(&artifacts, &corpus, threads)
-        .map_err(|error| format!("parallel recorded store build failed: {error}"))?;
+    let (store, _) = runtime::build_store_with_threads(&artifacts, &corpus, threads);
 
     std::fs::create_dir_all(&options.output).map_err(|error| error.to_string())?;
     std::fs::write(

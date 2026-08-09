@@ -402,7 +402,7 @@ pub fn build_store_cached(
     let codes = match load_codes(&artifact_kappa, &corpus_kappa, c.n) {
         Some(codes) => codes,
         None => {
-            let codes = runtime::codes_with_threads(art, c, threads)?;
+            let codes = runtime::codes_with_threads(art, c, threads);
             save_codes(&artifact_kappa, &corpus_kappa, &codes);
             codes
         }

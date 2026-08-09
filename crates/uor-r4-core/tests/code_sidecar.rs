@@ -89,7 +89,7 @@ fn sidecar_round_trip_matches_fresh_codes() {
     let mut computed = 0usize;
     let cold = code_sidecar::corpus_codes_cached(&art, &corpus, || {
         computed += 1;
-        runtime::codes_with_threads(&art, &corpus, 2).expect("codes")
+        runtime::codes_with_threads(&art, &corpus, 2)
     });
     assert_eq!(computed, 1, "cold run must compute");
     assert_eq!(cold, expected, "computed codes match code_plain");
@@ -107,8 +107,7 @@ fn sidecar_round_trip_matches_fresh_codes() {
 
     // The store built from read-back codes is byte-identical to the store
     // built by the uncached path.
-    let (reference_store, reference_codes) =
-        runtime::build_store_with_threads(&art, &corpus, 2).expect("reference store");
+    let (reference_store, reference_codes) = runtime::build_store_with_threads(&art, &corpus, 2);
     assert_eq!(reference_codes, expected);
     let (cached_store, cached_codes) =
         code_sidecar::build_store_cached(&art, &corpus, 2).expect("cached store");

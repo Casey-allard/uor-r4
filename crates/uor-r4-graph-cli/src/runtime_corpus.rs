@@ -241,7 +241,7 @@ pub fn run(args: &[String]) -> Result<(), String> {
     )
     .ok_or_else(|| "runtime corpus failed its own round-trip validation".to_owned())?;
     let threads = options.threads.min(final_corpus.n.max(1));
-    let (rebuilt_store, _) = runtime::build_store_with_threads(&art, &final_corpus, threads)?;
+    let (rebuilt_store, _) = runtime::build_store_with_threads(&art, &final_corpus, threads);
     let rebuilt_store_bytes = runtime::store_bytes(&rebuilt_store);
     fs::write(options.output.join("tless_artifacts.bin"), &artifact_bytes)
         .map_err(|error| error.to_string())?;

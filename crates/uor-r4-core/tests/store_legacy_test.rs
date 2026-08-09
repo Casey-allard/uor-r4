@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 use std::fs;
 use uor_r4_core::transformerless::compiler::STAGES;
 use uor_r4_core::transformerless::runtime::{
-    parse_store_strict_u32, purge_legacy_store_cache, store_bytes, Store, StoreParseError,
+    parse_store_strict_u32, purge_legacy_store_cache, store_bytes, Store,
 };
 
 #[allow(deprecated)]
@@ -31,10 +31,7 @@ fn build_legacy_u16_store_bytes() -> Vec<u8> {
 #[test]
 fn test_parse_store_strict_u32_rejects_legacy_u16_binary() {
     let legacy_bytes = build_legacy_u16_store_bytes();
-    assert_eq!(
-        parse_store_strict_u32(&legacy_bytes),
-        Err(StoreParseError::LegacyStoreFormatDeprecated)
-    );
+    assert!(parse_store_strict_u32(&legacy_bytes).is_none());
 }
 
 #[test]
@@ -65,7 +62,7 @@ fn test_purge_legacy_store_cache() {
     assert!(legacy_file.exists());
     assert!(valid_file.exists());
 
-    let purged = purge_legacy_store_cache(&tmp_dir).expect("purge legacy store cache");
+    let purged = purge_legacy_store_cache(&tmp_dir);
     assert_eq!(purged, 1);
     assert!(!legacy_file.exists());
     assert!(valid_file.exists());

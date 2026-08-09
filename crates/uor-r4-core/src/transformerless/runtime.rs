@@ -1591,25 +1591,25 @@ pub fn store_from_codes(c: &Corpus, codes: &[[u8; STAGES]]) -> Store {
 /// (issue #469 lever A) caches exactly the bytes this returns.
 /// Chunks are joined in chunk-id order, so the result is the serial
 /// `code_plain` sequence regardless of `threads`.
+///
+/// Total: a worker thread panicking is a bug, not a data condition, so the
+/// panic is propagated (there is no partial code sequence to report); every
+/// well-formed input yields the full serial code sequence.
 #[cfg(not(target_arch = "wasm32"))]
-pub fn codes_with_threads(
-    art: &Compiled,
-    c: &Corpus,
-    threads: usize,
-) -> Result<Vec<[u8; STAGES]>, String> {
+pub fn codes_with_threads(art: &Compiled, c: &Corpus, threads: usize) -> Vec<[u8; STAGES]> {
     if threads <= 1 || c.n < 2 {
         let rot = derive_rotations();
-        return Ok((0..c.n)
+        return (0..c.n)
             .map(|i| {
                 let bundle = bundle_plain(art, &rot, c, i);
                 assign_for_bundle(art, &bundle)
             })
-            .collect());
+            .collect();
     }
     let worker_count = threads.min(c.n);
     let chunk_size = c.n.div_ceil(worker_count);
     let mut chunks = Vec::with_capacity(worker_count);
-    std::thread::scope(|scope| -> Result<(), String> {
+    std::thread::scope(|scope| {
         let mut handles = Vec::with_capacity(worker_count);
         for (chunk_id, start) in (0..c.n).step_by(chunk_size).enumerate() {
             let end = (start + chunk_size).min(c.n);
@@ -1629,17 +1629,16 @@ pub fn codes_with_threads(
         for (chunk_id, handle) in handles {
             let codes = handle
                 .join()
-                .map_err(|_| format!("store code worker {chunk_id} panicked"))?;
+                .unwrap_or_else(|_| panic!("store code worker {chunk_id} panicked"));
             chunks.push((chunk_id, codes));
         }
-        Ok(())
-    })?;
+    });
     chunks.sort_by_key(|(chunk_id, _)| *chunk_id);
     let mut codes = Vec::with_capacity(c.n);
     for (_, chunk) in chunks {
         codes.extend(chunk);
     }
-    Ok(codes)
+    codes
 }
 
 /// Parallel code-generation front-end for [`build_store`]. The expensive
@@ -1651,13 +1650,13 @@ pub fn build_store_with_threads(
     art: &Compiled,
     c: &Corpus,
     threads: usize,
-) -> Result<(Store, Vec<[u8; STAGES]>), String> {
+) -> (Store, Vec<[u8; STAGES]>) {
     if threads <= 1 || c.n < 2 {
-        return Ok(build_store(art, c));
+        return build_store(art, c);
     }
-    let codes = codes_with_threads(art, c, threads)?;
+    let codes = codes_with_threads(art, c, threads);
     let store = store_from_codes(c, &codes);
-    Ok((store, codes))
+    (store, codes)
 }
 
 /// The pre-#281 write-time fan-out store (multi-membership writes).
@@ -1807,68 +1806,50 @@ pub fn parse_store_legacy_u16(b: &[u8]) -> Option<Store> {
     Some(store)
 }
 
-/// Errors returned when parsing a store binary in strict u32 mode.
-#[derive(Debug, PartialEq, Eq)]
-pub enum StoreParseError {
-    InvalidFormat,
-    /// Deprecated legacy 16-bit store format detected. Recompile store artifacts using u32 token IDs.
-    LegacyStoreFormatDeprecated,
-}
-
-impl std::fmt::Display for StoreParseError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            StoreParseError::InvalidFormat => write!(f, "invalid TLS1 store binary format"),
-            StoreParseError::LegacyStoreFormatDeprecated => write!(
-                f,
-                "legacy 16-bit TLS1 store format is deprecated; recompile store artifacts using u32 token IDs"
-            ),
-        }
-    }
-}
-
-impl std::error::Error for StoreParseError {}
-
 /// Parse a store binary enforcing strict 32-bit integer (u32) token alignment.
-/// Fails fast with `StoreParseError::LegacyStoreFormatDeprecated` if a legacy 16-bit binary is detected.
-pub fn parse_store_strict_u32(b: &[u8]) -> Result<Store, StoreParseError> {
-    if let Some(store) = parse_store(b) {
-        return Ok(store);
-    }
-    #[allow(deprecated)]
-    if parse_store_legacy_u16(b).is_some() {
-        return Err(StoreParseError::LegacyStoreFormatDeprecated);
-    }
-    Err(StoreParseError::InvalidFormat)
+///
+/// Total: `Some(store)` for a valid u32 TLS1 binary, `None` otherwise — a
+/// binary that is not a valid u32 store is not a product, whether it is
+/// malformed or a deprecated legacy 16-bit encoding. The legacy detector
+/// [`parse_store_legacy_u16`] is retained for callers that want to
+/// distinguish the migration case.
+pub fn parse_store_strict_u32(b: &[u8]) -> Option<Store> {
+    parse_store(b)
 }
 
 /// Scan `models_dir` (e.g. `.uor-models/`) recursively for legacy `.u16` store cache files
 /// or legacy store binaries, removing them to enforce u32 recompilation. Returns the number of files purged.
+///
+/// Total, best-effort: returns the number of legacy files actually removed.
+/// A directory that cannot be enumerated contributes zero, and a file that
+/// cannot be removed is skipped rather than counted — the count is a property
+/// of what the filesystem let the purge do, not a limitation the caller must
+/// handle.
 #[cfg(not(target_arch = "wasm32"))]
-pub fn purge_legacy_store_cache(models_dir: &std::path::Path) -> std::io::Result<usize> {
+pub fn purge_legacy_store_cache(models_dir: &std::path::Path) -> usize {
     if !models_dir.exists() {
-        return Ok(0);
+        return 0;
     }
+    let Ok(entries) = std::fs::read_dir(models_dir) else {
+        return 0;
+    };
     let mut purged = 0usize;
-    let entries = std::fs::read_dir(models_dir)?;
-    for entry in entries {
-        let entry = entry?;
+    for entry in entries.flatten() {
         let path = entry.path();
         if path.is_dir() {
-            purged += purge_legacy_store_cache(&path)?;
-        } else if let Some(ext) = path.extension() {
-            if ext == "u16"
-                || path
-                    .file_name()
-                    .and_then(|n| n.to_str())
-                    .is_some_and(|s| s.contains("legacy_u16"))
-            {
-                std::fs::remove_file(&path)?;
-                purged += 1;
-            }
+            purged += purge_legacy_store_cache(&path);
+            continue;
+        }
+        let is_legacy = path.extension().is_some_and(|ext| ext == "u16")
+            || path
+                .file_name()
+                .and_then(|n| n.to_str())
+                .is_some_and(|s| s.contains("legacy_u16"));
+        if is_legacy && std::fs::remove_file(&path).is_ok() {
+            purged += 1;
         }
     }
-    Ok(purged)
+    purged
 }
 
 /// κ-label of a store's TLS1 bytes.
