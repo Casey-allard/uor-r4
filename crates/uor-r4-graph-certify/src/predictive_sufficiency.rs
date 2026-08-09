@@ -54,14 +54,21 @@ impl RateDistortionReport {
             .collect()
     }
 
-    pub fn to_cbor_bytes(&self) -> Result<Vec<u8>, String> {
+    /// Serialize to CBOR. Infallible: the report's fields are plain scalars,
+    /// so ciborium serialization into an in-memory buffer cannot fail — a
+    /// failure would be a serialization defect, not a property of the data
+    /// (R5 — self-produced bytes are an invariant, not a reported condition).
+    pub fn to_cbor_bytes(&self) -> Vec<u8> {
         let mut buf = Vec::new();
-        ciborium::into_writer(self, &mut buf).map_err(|e| e.to_string())?;
-        Ok(buf)
+        ciborium::into_writer(self, &mut buf)
+            .expect("RateDistortionReport CBOR serialization is infallible for its scalar fields");
+        buf
     }
 
-    pub fn from_cbor_bytes(bytes: &[u8]) -> Result<Self, String> {
-        ciborium::from_reader(bytes).map_err(|e| e.to_string())
+    /// Parse from CBOR. `None` when the bytes are not a valid CBOR encoding of
+    /// this report (R5 — the absence of a product rather than a raised error).
+    pub fn from_cbor_bytes(bytes: &[u8]) -> Option<Self> {
+        ciborium::from_reader(bytes).ok()
     }
 }
 

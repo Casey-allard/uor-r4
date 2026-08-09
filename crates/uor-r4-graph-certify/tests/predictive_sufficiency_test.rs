@@ -106,7 +106,7 @@ fn test_rate_distortion_report_cbor_roundtrip() {
     assert_eq!(curve[0].1, 1.25);
     assert_eq!(curve[1].1, 0.05);
 
-    let cbor_bytes = report.to_cbor_bytes().expect("serialize CBOR");
+    let cbor_bytes = report.to_cbor_bytes();
     let decoded = RateDistortionReport::from_cbor_bytes(&cbor_bytes).expect("deserialize CBOR");
     assert_eq!(report, decoded);
 }

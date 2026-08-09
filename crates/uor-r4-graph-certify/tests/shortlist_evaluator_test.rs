@@ -63,7 +63,7 @@ fn test_shortlist_recall_report_cbor_roundtrip() {
     let references = vec![1];
     let report = ShortlistEvaluator::evaluate(&shortlists, &references, &[10], &[10], 0.95);
 
-    let cbor_bytes = report.to_cbor_bytes().expect("serialize CBOR");
+    let cbor_bytes = report.to_cbor_bytes();
     let decoded = ShortlistRecallReport::from_cbor_bytes(&cbor_bytes).expect("deserialize CBOR");
     assert_eq!(report, decoded);
 }
