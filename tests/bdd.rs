@@ -104,7 +104,6 @@ struct R4g1World {
     // Formal Monograph fields (#133)
     monograph_text: String,
     monograph_report: Option<uor_r4_graph_compiler::monograph::MonographValidationReport>,
-    monograph_error: Option<uor_r4_graph_compiler::monograph::MonographValidationError>,
     // Expand Proof Model fields (#132)
     proof_report: Option<uor_r4_proof_model::structural_guarantees::ProofVerificationReport>,
     proof_nodes: Vec<u32>,
@@ -987,7 +986,7 @@ fn bdd_decouple_contradictory_error_check(w: &mut R4g1World) {
 // =========================================================================
 // Formal Monograph BDD Steps (#133)
 // =========================================================================
-use uor_r4_graph_compiler::monograph::{MonographTraceabilityVerifier, MonographValidationError};
+use uor_r4_graph_compiler::monograph::MonographTraceabilityVerifier;
 
 #[given("the living formal monograph document")]
 fn bdd_given_monograph_doc(w: &mut R4g1World) {
@@ -996,11 +995,11 @@ fn bdd_given_monograph_doc(w: &mut R4g1World) {
 
 #[when("audited by the monograph traceability verifier")]
 fn bdd_validate_monograph_step(w: &mut R4g1World) {
-    let res = MonographTraceabilityVerifier::validate_monograph_text(&w.monograph_text);
-    match res {
-        Ok(rep) => w.monograph_report = Some(rep),
-        Err(err) => w.monograph_error = Some(err),
-    }
+    // Total validation: always produces a report; `verified` and the count
+    // fields carry the finding.
+    w.monograph_report = Some(MonographTraceabilityVerifier::validate_monograph_text(
+        &w.monograph_text,
+    ));
 }
 
 #[then("all 19 monograph sections are verified present")]
@@ -1033,11 +1032,11 @@ fn bdd_given_missing_section(w: &mut R4g1World) {
 
 #[then("validation fails with a missing section error")]
 fn bdd_missing_section_error_check(w: &mut R4g1World) {
-    let err = w.monograph_error.as_ref().expect("monograph error");
-    assert!(matches!(
-        err,
-        MonographValidationError::MissingSection { .. }
-    ));
+    // Total validation: a missing section is reported as not-verified with a
+    // section count below the required 19, not a raised error.
+    let rep = w.monograph_report.as_ref().expect("monograph report");
+    assert!(!rep.verified);
+    assert!(rep.total_sections_verified < 19);
 }
 
 #[given("a monograph draft missing non-goal \"No Human-Level Reasoning Claim\"")]
@@ -1048,11 +1047,11 @@ fn bdd_given_missing_non_goal(w: &mut R4g1World) {
 
 #[then("validation fails with a missing non-goal error")]
 fn bdd_missing_non_goal_error_check(w: &mut R4g1World) {
-    let err = w.monograph_error.as_ref().expect("monograph error");
-    assert!(matches!(
-        err,
-        MonographValidationError::MissingNonGoalDisavowal { .. }
-    ));
+    // Total validation: a missing non-goal disavowal is reported as
+    // not-verified with fewer than the 3 required disavowals present.
+    let rep = w.monograph_report.as_ref().expect("monograph report");
+    assert!(!rep.verified);
+    assert!(rep.non_goals_disavowed < 3);
 }
 
 // =========================================================================

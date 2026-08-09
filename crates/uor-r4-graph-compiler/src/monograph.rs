@@ -8,43 +8,10 @@
 //! - Traceability link validation connecting implementation modules to proof matrix entries.
 //! - Verification of explicit non-goals and claim-wording boundaries.
 
-use std::fmt;
-
-/// Errors arising during monograph validation.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum MonographValidationError {
-    /// Required section missing from formal monograph.
-    MissingSection { section_title: String },
-    /// Implementation module traceability link broken or unreferenced.
-    MissingTraceabilityLink { module_name: String },
-    /// Non-goal disavowal missing from problem statement section.
-    MissingNonGoalDisavowal { non_goal: String },
-}
-
-impl fmt::Display for MonographValidationError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::MissingSection { section_title } => {
-                write!(
-                    f,
-                    "Formal monograph missing required section: '{section_title}'"
-                )
-            }
-            Self::MissingTraceabilityLink { module_name } => write!(
-                f,
-                "Traceability link missing for implementation module: '{module_name}'"
-            ),
-            Self::MissingNonGoalDisavowal { non_goal } => write!(
-                f,
-                "Monograph missing explicit non-goal disavowal for: '{non_goal}'"
-            ),
-        }
-    }
-}
-
-impl std::error::Error for MonographValidationError {}
-
-/// Monograph validation report metrics.
+/// Monograph validation report metrics. `verified` is `true` only when every
+/// required section, module traceability link, and non-goal disavowal is
+/// present; otherwise the count fields report how many of each were found (R5 —
+/// a failed validation is a measured report, not a raised error).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MonographValidationReport {
     pub total_sections_verified: usize,
@@ -57,10 +24,10 @@ pub struct MonographValidationReport {
 pub struct MonographTraceabilityVerifier;
 
 impl MonographTraceabilityVerifier {
-    /// Validate full formal monograph markdown text.
-    pub fn validate_monograph_text(
-        content: &str,
-    ) -> Result<MonographValidationReport, MonographValidationError> {
+    /// Validate full formal monograph markdown text. Total: always produces a
+    /// [`MonographValidationReport`]; `verified` is `true` only when every
+    /// required section, module link, and non-goal disavowal is present.
+    pub fn validate_monograph_text(content: &str) -> MonographValidationReport {
         let required_sections = [
             "Section 1: Problem Statement and Non-Goals",
             "Section 2: Semantic State Spaces and Holographic Projections",
@@ -104,42 +71,29 @@ impl MonographTraceabilityVerifier {
             "No Floating-Point Runtime Hot Path",
         ];
 
-        let mut sections_count = 0;
-        for sec in &required_sections {
-            if !content.contains(sec) {
-                return Err(MonographValidationError::MissingSection {
-                    section_title: sec.to_string(),
-                });
-            }
-            sections_count += 1;
-        }
+        let sections_count = required_sections
+            .iter()
+            .filter(|sec| content.contains(**sec))
+            .count();
+        let modules_count = required_modules
+            .iter()
+            .filter(|mod_name| content.contains(**mod_name))
+            .count();
+        let non_goals_count = required_non_goals
+            .iter()
+            .filter(|ng| content.contains(**ng))
+            .count();
 
-        let mut modules_count = 0;
-        for mod_name in &required_modules {
-            if !content.contains(mod_name) {
-                return Err(MonographValidationError::MissingTraceabilityLink {
-                    module_name: mod_name.to_string(),
-                });
-            }
-            modules_count += 1;
-        }
+        let verified = sections_count == required_sections.len()
+            && modules_count == required_modules.len()
+            && non_goals_count == required_non_goals.len();
 
-        let mut non_goals_count = 0;
-        for ng in &required_non_goals {
-            if !content.contains(ng) {
-                return Err(MonographValidationError::MissingNonGoalDisavowal {
-                    non_goal: ng.to_string(),
-                });
-            }
-            non_goals_count += 1;
-        }
-
-        Ok(MonographValidationReport {
+        MonographValidationReport {
             total_sections_verified: sections_count,
             total_modules_linked: modules_count,
             non_goals_disavowed: non_goals_count,
-            verified: true,
-        })
+            verified,
+        }
     }
 }
 
@@ -150,7 +104,7 @@ mod tests {
     #[test]
     fn test_monograph_validation_passes() {
         let content = include_str!("../../../docs/hologram_r4_formal_monograph.md");
-        let report = MonographTraceabilityVerifier::validate_monograph_text(content).unwrap();
+        let report = MonographTraceabilityVerifier::validate_monograph_text(content);
 
         assert_eq!(report.total_sections_verified, 19);
         assert_eq!(report.total_modules_linked, 12);
