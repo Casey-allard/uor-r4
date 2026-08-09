@@ -75,7 +75,7 @@ struct R4g1World {
     rd_corpus_id: String,
     rd_tiers: Vec<usize>,
     rd_report: Option<uor_r4_graph_compiler::rate_distortion_compression::RateDistortionReport>,
-    rd_error: Option<uor_r4_graph_compiler::rate_distortion_compression::CompressionAnalysisError>,
+    rd_rejected: bool,
     // Graph Invariant Ownership fields (#135)
     inv_matrix: Vec<uor_r4_graph_format::invariant_ownership::InvariantOwnershipEntry>,
     inv_nodes: usize,
@@ -699,9 +699,7 @@ fn bdd_pdf_invalid_claim_error_check(w: &mut R4g1World) {
 // =========================================================================
 // Rate-Distortion Compression BDD Steps (#136)
 // =========================================================================
-use uor_r4_graph_compiler::rate_distortion_compression::{
-    CompressionAnalysisError, SemanticCompressionAnalyzer,
-};
+use uor_r4_graph_compiler::rate_distortion_compression::SemanticCompressionAnalyzer;
 
 #[given("a pinned mini-corpus \"pinned_mini_corpus_01\" and depth tiers [1, 2, 4, 8]")]
 fn bdd_rd_mini_corpus_given(w: &mut R4g1World) {
@@ -713,8 +711,8 @@ fn bdd_rd_mini_corpus_given(w: &mut R4g1World) {
 fn bdd_rd_execute_analysis(w: &mut R4g1World) {
     let res = SemanticCompressionAnalyzer::analyze_rate_distortion(&w.rd_corpus_id, &w.rd_tiers);
     match res {
-        Ok(rep) => w.rd_report = Some(rep),
-        Err(err) => w.rd_error = Some(err),
+        Some(rep) => w.rd_report = Some(rep),
+        None => w.rd_rejected = true,
     }
 }
 
@@ -770,11 +768,10 @@ fn bdd_rd_invalid_tier_given(w: &mut R4g1World) {
 
 #[then("analysis fails with an invalid depth tier error")]
 fn bdd_rd_invalid_tier_error_check(w: &mut R4g1World) {
-    let err = w.rd_error.as_ref().expect("rd error");
-    assert!(matches!(
-        err,
-        CompressionAnalysisError::InvalidDepthTier { .. }
-    ));
+    assert!(
+        w.rd_rejected,
+        "analysis should have rejected the invalid depth tier array (returned None)"
+    );
 }
 
 // =========================================================================

@@ -9,53 +9,6 @@
 //! - Rate-Distortion Trade-off Curves: Evaluated depth-wise across progressive projection tiers ($k$).
 //! - Content-Addressed Reproducible Reporting: Generates deterministic rate-distortion reports.
 
-use std::fmt;
-
-/// Errors arising during rate-distortion evaluation or report generation.
-#[derive(Debug, Clone, PartialEq)]
-pub enum CompressionAnalysisError {
-    /// Rate budget exceeded declared limit.
-    RateBudgetExceeded {
-        metric: String,
-        actual: usize,
-        limit: usize,
-    },
-    /// Distortion exceeds acceptable quality threshold.
-    DistortionThresholdExceeded {
-        metric: String,
-        actual: f32,
-        limit: f32,
-    },
-    /// Invalid depth tier configuration.
-    InvalidDepthTier { depth: usize },
-}
-
-impl fmt::Display for CompressionAnalysisError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::RateBudgetExceeded {
-                metric,
-                actual,
-                limit,
-            } => write!(
-                f,
-                "Rate budget exceeded for '{metric}': actual {actual} > limit {limit}"
-            ),
-            Self::DistortionThresholdExceeded {
-                metric,
-                actual,
-                limit,
-            } => write!(
-                f,
-                "Distortion threshold exceeded for '{metric}': actual {actual:.4} > limit {limit:.4}"
-            ),
-            Self::InvalidDepthTier { depth } => write!(f, "Invalid projection depth tier: {depth}"),
-        }
-    }
-}
-
-impl std::error::Error for CompressionAnalysisError {}
-
 /// Rate terms ($R$) measuring resource footprint.
 #[derive(Debug, Clone, PartialEq)]
 pub struct RateMetrics {
@@ -96,35 +49,35 @@ pub struct RateDistortionReport {
 }
 
 impl RateDistortionReport {
-    /// Enforce rate budget limit on maximum artifact size across evaluated points.
-    pub fn validate_rate_budget(&self, max_bytes: usize) -> Result<(), CompressionAnalysisError> {
+    /// Check the rate budget against the maximum artifact size across evaluated
+    /// points. `None` when every point is within `max_bytes`; `Some(reason)`
+    /// naming the first point that exceeds it (R5 — a validator is total, the
+    /// held property is the absence of a violation rather than a raised error).
+    pub fn validate_rate_budget(&self, max_bytes: usize) -> Option<String> {
         for pt in &self.points {
             if pt.rate.artifact_size_bytes > max_bytes {
-                return Err(CompressionAnalysisError::RateBudgetExceeded {
-                    metric: "artifact_size_bytes".to_string(),
-                    actual: pt.rate.artifact_size_bytes,
-                    limit: max_bytes,
-                });
+                return Some(format!(
+                    "rate budget exceeded for 'artifact_size_bytes': actual {} > limit {max_bytes}",
+                    pt.rate.artifact_size_bytes
+                ));
             }
         }
-        Ok(())
+        None
     }
 
-    /// Enforce distortion threshold limit on maximum teacher KL divergence across evaluated points.
-    pub fn validate_distortion_threshold(
-        &self,
-        max_kl: f32,
-    ) -> Result<(), CompressionAnalysisError> {
+    /// Check the distortion threshold against the maximum teacher KL divergence
+    /// across evaluated points. `None` when every point is within `max_kl`;
+    /// `Some(reason)` naming the first point that exceeds it (R5 — total).
+    pub fn validate_distortion_threshold(&self, max_kl: f32) -> Option<String> {
         for pt in &self.points {
             if pt.distortion.teacher_kl_divergence > max_kl {
-                return Err(CompressionAnalysisError::DistortionThresholdExceeded {
-                    metric: "teacher_kl_divergence".to_string(),
-                    actual: pt.distortion.teacher_kl_divergence,
-                    limit: max_kl,
-                });
+                return Some(format!(
+                    "distortion threshold exceeded for 'teacher_kl_divergence': actual {:.4} > limit {max_kl:.4}",
+                    pt.distortion.teacher_kl_divergence
+                ));
             }
         }
-        Ok(())
+        None
     }
 }
 
@@ -135,12 +88,16 @@ impl SemanticCompressionAnalyzer {
     /// Compute rate-distortion metrics across progressive depth tiers $k \in \{1, 2, 4, 8\}$.
     ///
     /// Evaluates rate-distortion tradeoffs measured against corpus parameters and teacher loss.
+    ///
+    /// `None` when `depth_tiers` is empty or contains a zero tier: no report is
+    /// a product of those tiers (R5 — the absence of a product rather than a
+    /// raised error).
     pub fn analyze_rate_distortion(
         corpus_id: &str,
         depth_tiers: &[usize],
-    ) -> Result<RateDistortionReport, CompressionAnalysisError> {
+    ) -> Option<RateDistortionReport> {
         if depth_tiers.is_empty() {
-            return Err(CompressionAnalysisError::InvalidDepthTier { depth: 0 });
+            return None;
         }
 
         let mut points = Vec::new();
@@ -150,7 +107,7 @@ impl SemanticCompressionAnalyzer {
 
         for &k in depth_tiers {
             if k == 0 {
-                return Err(CompressionAnalysisError::InvalidDepthTier { depth: k });
+                return None;
             }
 
             // Rate terms ($R$) scale with depth tier $k$ and corpus observation count
@@ -234,7 +191,7 @@ impl SemanticCompressionAnalyzer {
         }
         let report_id = format!("rd_cid_fnv1a_{fnv_hash:016x}");
 
-        Ok(RateDistortionReport {
+        Some(RateDistortionReport {
             report_id,
             corpus_id: corpus_id.to_string(),
             points,
@@ -281,11 +238,8 @@ mod tests {
         let report =
             SemanticCompressionAnalyzer::analyze_rate_distortion("mini_corpus", &[1, 2, 4, 8])
                 .unwrap();
-        assert!(report.validate_rate_budget(10_000_000).is_ok());
-        assert!(report.validate_distortion_threshold(2.0).is_ok());
-        assert!(matches!(
-            report.validate_rate_budget(100).unwrap_err(),
-            CompressionAnalysisError::RateBudgetExceeded { .. }
-        ));
+        assert!(report.validate_rate_budget(10_000_000).is_none());
+        assert!(report.validate_distortion_threshold(2.0).is_none());
+        assert!(report.validate_rate_budget(100).is_some());
     }
 }
