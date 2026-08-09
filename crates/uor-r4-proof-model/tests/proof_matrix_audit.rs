@@ -15,39 +15,34 @@ fn test_ci_audit_proof_matrix_entries() {
         &matrix,
         "Allocation Freedom",
         ProofStatus::Verified,
-    )
-    .expect("Allocation Freedom audit failed");
+    );
     assert!(report_alloc.verified);
 
     let report_bounded = StructuralGuaranteeVerifier::audit_proof_matrix_entry(
         &matrix,
         "Bounded Ranges",
         ProofStatus::Verified,
-    )
-    .expect("Bounded Ranges audit failed");
+    );
     assert!(report_bounded.verified);
 
     let report_topk = StructuralGuaranteeVerifier::audit_proof_matrix_entry(
         &matrix,
         "Deterministic Top-K",
         ProofStatus::Verified,
-    )
-    .expect("Deterministic Top-K audit failed");
+    );
     assert!(report_topk.verified);
 
     let report_rev = StructuralGuaranteeVerifier::audit_proof_matrix_entry(
         &matrix,
         "Reverse Index Consistency",
         ProofStatus::Verified,
-    )
-    .expect("Reverse Index Consistency audit failed");
+    );
     assert!(report_rev.verified);
 
     let report_ops = StructuralGuaranteeVerifier::audit_proof_matrix_entry(
         &matrix,
         "Operation-Set Conformance",
         ProofStatus::Verified,
-    )
-    .expect("Operation-Set Conformance audit failed");
+    );
     assert!(report_ops.verified);
 }

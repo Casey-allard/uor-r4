@@ -12,13 +12,13 @@ use uor_r4_proof_model::{
 #[test]
 fn test_proof_matrix_all_verified() {
     let matrix = ProofStatusMatrix::new();
-    assert!(matrix.verify_all().is_ok());
+    assert!(matrix.verify_all().is_none());
 }
 
 #[test]
 fn test_range_bounds_proof_valid_and_invalid() {
-    assert!(range_bounds_proof::verify_range_bounds(0, 10, 100, "test_valid").is_ok());
-    assert!(range_bounds_proof::verify_range_bounds(95, 10, 100, "test_invalid").is_err());
+    assert!(range_bounds_proof::verify_range_bounds(0, 10, 100, "test_valid").is_none());
+    assert!(range_bounds_proof::verify_range_bounds(95, 10, 100, "test_invalid").is_some());
 }
 
 #[test]
@@ -44,7 +44,7 @@ fn test_deterministic_topk_canonical_sorting() {
     assert_eq!(candidates[1].token, 10); // Tied score 100, lower token 10
     assert_eq!(candidates[2].token, 20); // Tied score 100, higher token 20
 
-    assert!(deterministic_topk_proof::verify_canonical_order(&candidates).is_ok());
+    assert!(deterministic_topk_proof::verify_canonical_order(&candidates).is_none());
 }
 
 #[test]
@@ -54,7 +54,7 @@ fn test_theorem7_proof_verification() {
     graph.add_edge(3, 2, 15, EdgeKind::Forward);
     assert!(graph.build_reverse_index().is_none(), "build reverse index");
 
-    assert!(theorem7_proof::verify_theorem_7_proof(&graph).is_ok());
+    assert!(theorem7_proof::verify_theorem_7_proof(&graph).is_none());
 }
 
 #[test]
@@ -66,7 +66,7 @@ fn test_zero_allocation_proof_harness() {
         a + b
     });
 
-    assert_eq!(res.unwrap(), 30);
+    assert_eq!(res, Some(30));
 
     // Heap allocation should be detected by the harness
     let alloc_res = allocation_proof::verify_zero_allocation(|| {
@@ -74,5 +74,5 @@ fn test_zero_allocation_proof_harness() {
         let v = vec![1u8];
         v.len()
     });
-    assert!(alloc_res.is_err());
+    assert!(alloc_res.is_none());
 }

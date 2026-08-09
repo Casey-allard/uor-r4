@@ -71,7 +71,6 @@ struct R4g1World {
     // PDF Traceability Matrix fields (#137)
     pdf_matrix: Vec<uor_r4_proof_model::pdf_traceability::PdfTraceabilityRow>,
     pdf_audit_report: Option<uor_r4_proof_model::pdf_traceability::TraceabilityAuditReport>,
-    pdf_audit_error: Option<uor_r4_proof_model::pdf_traceability::TraceabilityValidationError>,
     // Rate-Distortion Compression fields (#136)
     rd_corpus_id: String,
     rd_tiers: Vec<usize>,
@@ -660,9 +659,7 @@ fn contract_versions_agree(w: &mut R4g1World) {
 // =========================================================================
 // PDF Traceability Matrix BDD Steps (#137)
 // =========================================================================
-use uor_r4_proof_model::pdf_traceability::{
-    PdfTraceabilityRow, PdfTraceabilityVerifier, TraceabilityValidationError,
-};
+use uor_r4_proof_model::pdf_traceability::{PdfTraceabilityRow, PdfTraceabilityVerifier};
 use uor_r4_proof_model::proof_matrix::ProofStatus;
 
 #[given("the living PDF traceability matrix")]
@@ -672,11 +669,10 @@ fn bdd_pdf_matrix_given(w: &mut R4g1World) {
 
 #[when("audited by the PDF traceability verifier")]
 fn bdd_pdf_audit_matrix(w: &mut R4g1World) {
-    let res = PdfTraceabilityVerifier::audit_traceability_matrix(&w.pdf_matrix);
-    match res {
-        Ok(rep) => w.pdf_audit_report = Some(rep),
-        Err(err) => w.pdf_audit_error = Some(err),
-    }
+    // Total audit: always produces a report; `is_certified` carries the finding.
+    w.pdf_audit_report = Some(PdfTraceabilityVerifier::audit_traceability_matrix(
+        &w.pdf_matrix,
+    ));
 }
 
 #[then("all 17 sections are mapped to valid code locations and evidence artifacts")]
@@ -708,11 +704,12 @@ fn bdd_pdf_invalid_claim_given(w: &mut R4g1World) {
 
 #[then("validation fails with an invalid claim class error")]
 fn bdd_pdf_invalid_claim_error_check(w: &mut R4g1World) {
-    let err = w.pdf_audit_error.as_ref().expect("pdf audit error");
-    assert!(matches!(
-        err,
-        TraceabilityValidationError::InvalidClaimClass { .. }
-    ));
+    // The audit is total: an invalid claim class yields a report that is not
+    // certified (the offending row is not counted among the verified rows),
+    // rather than a raised error.
+    let rep = w.pdf_audit_report.as_ref().expect("pdf audit report");
+    assert!(!rep.is_certified);
+    assert!(rep.verified_rows_with_evidence < w.pdf_matrix.len().max(1));
 }
 
 // =========================================================================
@@ -1062,9 +1059,7 @@ fn bdd_missing_non_goal_error_check(w: &mut R4g1World) {
 // Expand Proof Model BDD Steps (#132)
 // =========================================================================
 use uor_r4_proof_model::proof_matrix::ProofStatusMatrix;
-use uor_r4_proof_model::structural_guarantees::{
-    ProofValidationError, StructuralGuaranteeVerifier,
-};
+use uor_r4_proof_model::structural_guarantees::StructuralGuaranteeVerifier;
 
 #[given("a graph planner calculation closure")]
 fn bdd_deterministic_closure(_w: &mut R4g1World) {}
@@ -1099,8 +1094,7 @@ fn bdd_verify_determinism_step(w: &mut R4g1World) {
         }];
         let config = PlannerConfig::default_v1();
         BoundedGraphPlanner::plan("s0", &nodes, &edges, &config)
-    })
-    .unwrap();
+    });
 
     w.proof_report = Some(report);
 }
@@ -1120,8 +1114,7 @@ fn bdd_canonical_nodes_given(w: &mut R4g1World) {
 #[when("verified against canonical serialization obligations")]
 fn bdd_verify_canonical_step(w: &mut R4g1World) {
     let report =
-        StructuralGuaranteeVerifier::verify_canonical_serialization("OBL-CAN-01", &w.proof_nodes)
-            .unwrap();
+        StructuralGuaranteeVerifier::verify_canonical_serialization("OBL-CAN-01", &w.proof_nodes);
     w.proof_report = Some(report);
 }
 
@@ -1133,13 +1126,9 @@ fn bdd_canonical_ordering_passes(w: &mut R4g1World) {
 
 #[then("unsorted node IDs [30, 20, 10] fail with a canonical ordering violation error")]
 fn bdd_canonical_ordering_fails(_w: &mut R4g1World) {
-    let err =
-        StructuralGuaranteeVerifier::verify_canonical_serialization("OBL-CAN-01", &[30, 20, 10])
-            .unwrap_err();
-    assert!(matches!(
-        err,
-        ProofValidationError::CanonicalOrderingViolated { .. }
-    ));
+    let report =
+        StructuralGuaranteeVerifier::verify_canonical_serialization("OBL-CAN-01", &[30, 20, 10]);
+    assert!(!report.verified);
 }
 
 #[given("actual memory usage 512 bytes and limit 1024 bytes")]
@@ -1155,8 +1144,7 @@ fn bdd_verify_resource_step(w: &mut R4g1World) {
         "memory_bytes",
         w.proof_actual_mem,
         w.proof_limit_mem,
-    )
-    .unwrap();
+    );
     w.proof_report = Some(report);
 }
 
@@ -1168,17 +1156,13 @@ fn bdd_resource_bound_passes(w: &mut R4g1World) {
 
 #[then("actual memory usage 2048 bytes against limit 1024 bytes fails with a resource bound error")]
 fn bdd_resource_bound_fails(_w: &mut R4g1World) {
-    let err = StructuralGuaranteeVerifier::verify_resource_bound(
+    let report = StructuralGuaranteeVerifier::verify_resource_bound(
         "OBL-MEM-BDD",
         "memory_bytes",
         2048,
         1024,
-    )
-    .unwrap_err();
-    assert!(matches!(
-        err,
-        ProofValidationError::ResourceBoundExceeded { .. }
-    ));
+    );
+    assert!(!report.verified);
 }
 
 #[given("a state trajectory [\"s0\", \"s1\", \"s2\"] and forbidden region [\"hazard_0\"]")]
@@ -1195,8 +1179,7 @@ fn bdd_verify_constraint_safety_step(w: &mut R4g1World) {
         "OBL-SAFE-BDD",
         &traj_refs,
         &forb_refs,
-    )
-    .unwrap();
+    );
     w.proof_report = Some(report);
 }
 
@@ -1208,16 +1191,12 @@ fn bdd_constraint_safety_passes(w: &mut R4g1World) {
 
 #[then("entering \"hazard_0\" fails with a constraint safety violation error")]
 fn bdd_constraint_safety_fails(_w: &mut R4g1World) {
-    let err = StructuralGuaranteeVerifier::verify_constraint_safety(
+    let report = StructuralGuaranteeVerifier::verify_constraint_safety(
         "OBL-SAFE-BDD",
         &["s0", "hazard_0", "s2"],
         &["hazard_0"],
-    )
-    .unwrap_err();
-    assert!(matches!(
-        err,
-        ProofValidationError::ConstraintSafetyViolated { .. }
-    ));
+    );
+    assert!(!report.verified);
 }
 
 #[given("a planner path length 5 and horizon limit 10")]
@@ -1232,8 +1211,7 @@ fn bdd_verify_planner_termination_step(w: &mut R4g1World) {
         "OBL-TERM-BDD",
         w.proof_path_len,
         w.proof_max_horizon,
-    )
-    .unwrap();
+    );
     w.proof_report = Some(report);
 }
 
@@ -1245,12 +1223,8 @@ fn bdd_planner_termination_passes(w: &mut R4g1World) {
 
 #[then("path length 15 against horizon limit 10 fails with a planner termination error")]
 fn bdd_planner_termination_fails(_w: &mut R4g1World) {
-    let err = StructuralGuaranteeVerifier::verify_planner_termination("OBL-TERM-BDD", 15, 10)
-        .unwrap_err();
-    assert!(matches!(
-        err,
-        ProofValidationError::PlannerTerminationFailed { .. }
-    ));
+    let report = StructuralGuaranteeVerifier::verify_planner_termination("OBL-TERM-BDD", 15, 10);
+    assert!(!report.verified);
 }
 
 #[given("a list of evidence IDs [\"ev_1\", \"ev_2\", \"ev_3\"]")]
@@ -1261,8 +1235,7 @@ fn bdd_evidence_ids_given(w: &mut R4g1World) {
 #[when("verified against evidence traceability obligations")]
 fn bdd_verify_evidence_traceability_step(w: &mut R4g1World) {
     let refs: Vec<&str> = w.proof_evidence_ids.iter().map(|s| s.as_str()).collect();
-    let report =
-        StructuralGuaranteeVerifier::verify_evidence_traceability("OBL-EVID-BDD", &refs).unwrap();
+    let report = StructuralGuaranteeVerifier::verify_evidence_traceability("OBL-EVID-BDD", &refs);
     w.proof_report = Some(report);
 }
 
@@ -1274,15 +1247,11 @@ fn bdd_evidence_traceability_passes(w: &mut R4g1World) {
 
 #[then("duplicate evidence IDs [\"ev_1\", \"ev_1\", \"ev_3\"] fail with an evidence traceability error")]
 fn bdd_evidence_traceability_fails(_w: &mut R4g1World) {
-    let err = StructuralGuaranteeVerifier::verify_evidence_traceability(
+    let report = StructuralGuaranteeVerifier::verify_evidence_traceability(
         "OBL-EVID-BDD",
         &["ev_1", "ev_1", "ev_3"],
-    )
-    .unwrap_err();
-    assert!(matches!(
-        err,
-        ProofValidationError::EvidenceTraceabilityFailed { .. }
-    ));
+    );
+    assert!(!report.verified);
 }
 
 #[given("actual witness hash \"hash_abc123\" and expected witness hash \"hash_abc123\"")]
@@ -1297,8 +1266,7 @@ fn bdd_verify_replay_witness_step(w: &mut R4g1World) {
         "OBL-WIT-BDD",
         &w.proof_witness_actual,
         &w.proof_witness_expected,
-    )
-    .unwrap();
+    );
     w.proof_report = Some(report);
 }
 
@@ -1310,16 +1278,12 @@ fn bdd_replay_witness_passes(w: &mut R4g1World) {
 
 #[then("actual witness hash \"hash_abc123\" against expected hash \"hash_xyz999\" fails with a witness mismatch error")]
 fn bdd_replay_witness_fails(_w: &mut R4g1World) {
-    let err = StructuralGuaranteeVerifier::verify_replay_witness_integrity(
+    let report = StructuralGuaranteeVerifier::verify_replay_witness_integrity(
         "OBL-WIT-BDD",
         "hash_abc123",
         "hash_xyz999",
-    )
-    .unwrap_err();
-    assert!(matches!(
-        err,
-        ProofValidationError::ReplayWitnessMismatch { .. }
-    ));
+    );
+    assert!(!report.verified);
 }
 
 #[given("a raw score 2048")]
@@ -1332,8 +1296,7 @@ fn bdd_verify_fixed_arithmetic_step(w: &mut R4g1World) {
     let report = StructuralGuaranteeVerifier::verify_fixed_arithmetic_safety(
         "OBL-MATH-BDD",
         w.proof_raw_score,
-    )
-    .unwrap();
+    );
     w.proof_report = Some(report);
 }
 
@@ -1345,12 +1308,8 @@ fn bdd_fixed_arithmetic_passes(w: &mut R4g1World) {
 
 #[then("raw score 70000 fails with a fixed arithmetic overflow error")]
 fn bdd_fixed_arithmetic_fails(_w: &mut R4g1World) {
-    let err = StructuralGuaranteeVerifier::verify_fixed_arithmetic_safety("OBL-MATH-BDD", 70000)
-        .unwrap_err();
-    assert!(matches!(
-        err,
-        ProofValidationError::FixedArithmeticOverflow { .. }
-    ));
+    let report = StructuralGuaranteeVerifier::verify_fixed_arithmetic_safety("OBL-MATH-BDD", 70000);
+    assert!(!report.verified);
 }
 
 #[given("the default proof matrix")]
@@ -1363,8 +1322,7 @@ fn bdd_audit_p1_step(w: &mut R4g1World) {
         &matrix,
         "Allocation Freedom",
         ProofStatus::Verified,
-    )
-    .unwrap();
+    );
     w.proof_report = Some(report);
 }
 

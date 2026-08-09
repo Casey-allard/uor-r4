@@ -16,120 +16,6 @@
 use crate::proof_matrix::{ProofStatus, ProofStatusMatrix};
 use std::fmt;
 
-/// Non-panicking errors arising during structural proof obligation verification.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum ProofValidationError {
-    /// Graph or planner output violates determinism obligation.
-    NondeterministicOutput { obligation_id: String },
-    /// Canonical ordering of nodes/edges is violated.
-    CanonicalOrderingViolated {
-        obligation_id: String,
-        item_index: usize,
-    },
-    /// Resource usage exceeds declared bound limit.
-    ResourceBoundExceeded {
-        obligation_id: String,
-        metric: String,
-        actual: usize,
-        limit: usize,
-    },
-    /// State sequence violates forbidden constraint.
-    ConstraintSafetyViolated {
-        obligation_id: String,
-        state_id: String,
-        region_id: String,
-    },
-    /// Planner horizon bound exceeded or search loop terminated without reaching goal.
-    PlannerTerminationFailed {
-        obligation_id: String,
-        horizon_exceeded: usize,
-    },
-    /// Evidence ID is duplicated or lacks deletion traceability.
-    EvidenceTraceabilityFailed {
-        obligation_id: String,
-        evidence_id: String,
-    },
-    /// Replay witness digest hash or trajectory mismatches expected reference.
-    ReplayWitnessMismatch {
-        obligation_id: String,
-        expected_hash: String,
-        actual_hash: String,
-    },
-    /// Fixed-point Q8.8 score calculation resulted in arithmetic overflow.
-    FixedArithmeticOverflow {
-        obligation_id: String,
-        raw_score: i64,
-    },
-    /// Machine-readable scoring semantics audit failed.
-    ScoringSemanticsViolation {
-        obligation_id: String,
-        detail: String,
-    },
-    /// Proof matrix status drift detected.
-    StatusDrift {
-        obligation_id: String,
-        expected: String,
-        actual: String,
-    },
-}
-
-impl fmt::Display for ProofValidationError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::NondeterministicOutput { obligation_id } => {
-                write!(f, "Determinism obligation '{obligation_id}' failed: outputs differ")
-            }
-            Self::CanonicalOrderingViolated { obligation_id, item_index } => write!(
-                f,
-                "Canonical ordering obligation '{obligation_id}' failed at item index {item_index}"
-            ),
-            Self::ResourceBoundExceeded {
-                obligation_id,
-                metric,
-                actual,
-                limit,
-            } => write!(
-                f,
-                "Resource bound obligation '{obligation_id}' exceeded for '{metric}': actual {actual} > limit {limit}"
-            ),
-            Self::ConstraintSafetyViolated {
-                obligation_id,
-                state_id,
-                region_id,
-            } => write!(
-                f,
-                "Constraint safety obligation '{obligation_id}' violated: state '{state_id}' entered forbidden region '{region_id}'"
-            ),
-            Self::PlannerTerminationFailed { obligation_id, horizon_exceeded } => write!(
-                f,
-                "Planner termination obligation '{obligation_id}' failed: horizon exceeded {horizon_exceeded}"
-            ),
-            Self::EvidenceTraceabilityFailed { obligation_id, evidence_id } => write!(
-                f,
-                "Evidence traceability obligation '{obligation_id}' failed for evidence '{evidence_id}'"
-            ),
-            Self::ReplayWitnessMismatch { obligation_id, expected_hash, actual_hash } => write!(
-                f,
-                "Replay witness obligation '{obligation_id}' failed: expected hash '{expected_hash}', found '{actual_hash}'"
-            ),
-            Self::FixedArithmeticOverflow { obligation_id, raw_score } => write!(
-                f,
-                "Fixed-point arithmetic obligation '{obligation_id}' failed: score {raw_score} out of Q8.8 i16 range"
-            ),
-            Self::ScoringSemanticsViolation { obligation_id, detail } => write!(
-                f,
-                "Scoring semantics obligation '{obligation_id}' failed: {detail}"
-            ),
-            Self::StatusDrift { obligation_id, expected, actual } => write!(
-                f,
-                "Proof matrix status drift for '{obligation_id}': expected '{expected}', found '{actual}'"
-            ),
-        }
-    }
-}
-
-impl std::error::Error for ProofValidationError {}
-
 /// Category of structural proof obligation.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum StructuralObligationKind {
@@ -153,6 +39,27 @@ pub struct ProofVerificationReport {
     pub details: String,
 }
 
+impl ProofVerificationReport {
+    /// Construct a failed (unverified) report for an obligation, folding the
+    /// failure reason into `details`. Under R5 a structural obligation that does
+    /// not hold is a measured report with `verified == false` and
+    /// `status == ProofStatus::Unverified`, never a raised error: the verifiers
+    /// are total and always return a report.
+    fn unverified(
+        obligation_id: impl Into<String>,
+        kind: StructuralObligationKind,
+        details: impl Into<String>,
+    ) -> Self {
+        Self {
+            obligation_id: obligation_id.into(),
+            kind,
+            status: ProofStatus::Unverified,
+            verified: false,
+            details: details.into(),
+        }
+    }
+}
+
 /// Executable verifier for structural graph and planner guarantees.
 pub struct StructuralGuaranteeVerifier;
 
@@ -165,7 +72,7 @@ impl StructuralGuaranteeVerifier {
     pub fn verify_determinism<F, T>(
         obligation_id: impl Into<String>,
         run_fn: F,
-    ) -> Result<ProofVerificationReport, ProofValidationError>
+    ) -> ProofVerificationReport
     where
         F: Fn() -> T,
         T: PartialEq + fmt::Debug,
@@ -175,42 +82,45 @@ impl StructuralGuaranteeVerifier {
         let run2 = run_fn();
 
         if run1 != run2 {
-            return Err(ProofValidationError::NondeterministicOutput {
-                obligation_id: obl_id,
-            });
+            return ProofVerificationReport::unverified(
+                obl_id,
+                StructuralObligationKind::Determinism,
+                "outputs differ across independent runs",
+            );
         }
 
-        Ok(ProofVerificationReport {
+        ProofVerificationReport {
             obligation_id: obl_id,
             kind: StructuralObligationKind::Determinism,
             status: ProofStatus::Verified,
             verified: true,
             details: "Output determinism verified across independent runs".to_string(),
-        })
+        }
     }
 
     /// Verify canonical ordering serialization obligation (nodes/edges sorted strictly by key).
     pub fn verify_canonical_serialization<T: Ord>(
         obligation_id: impl Into<String>,
         items: &[T],
-    ) -> Result<ProofVerificationReport, ProofValidationError> {
+    ) -> ProofVerificationReport {
         let obl_id = obligation_id.into();
         for i in 1..items.len() {
             if items[i - 1] >= items[i] {
-                return Err(ProofValidationError::CanonicalOrderingViolated {
-                    obligation_id: obl_id,
-                    item_index: i,
-                });
+                return ProofVerificationReport::unverified(
+                    obl_id,
+                    StructuralObligationKind::CanonicalSerialization,
+                    format!("canonical ordering violated at item index {i}"),
+                );
             }
         }
 
-        Ok(ProofVerificationReport {
+        ProofVerificationReport {
             obligation_id: obl_id,
             kind: StructuralObligationKind::CanonicalSerialization,
             status: ProofStatus::Verified,
             verified: true,
             details: "Canonical sorted serialization ordering verified".to_string(),
-        })
+        }
     }
 
     /// Verify resource bound obligation for memory, latency, frontier size, or node degree limits.
@@ -219,24 +129,23 @@ impl StructuralGuaranteeVerifier {
         metric: &str,
         actual_val: usize,
         limit_val: usize,
-    ) -> Result<ProofVerificationReport, ProofValidationError> {
+    ) -> ProofVerificationReport {
         let obl_id = obligation_id.into();
         if actual_val > limit_val {
-            return Err(ProofValidationError::ResourceBoundExceeded {
-                obligation_id: obl_id,
-                metric: metric.to_string(),
-                actual: actual_val,
-                limit: limit_val,
-            });
+            return ProofVerificationReport::unverified(
+                obl_id,
+                StructuralObligationKind::BoundedResource,
+                format!("resource '{metric}' actual {actual_val} exceeds limit {limit_val}"),
+            );
         }
 
-        Ok(ProofVerificationReport {
+        ProofVerificationReport {
             obligation_id: obl_id,
             kind: StructuralObligationKind::BoundedResource,
             status: ProofStatus::Verified,
             verified: true,
             details: format!("Metric '{metric}' ({actual_val}) within bound limit ({limit_val})"),
-        })
+        }
     }
 
     /// Verify constraint preservation obligation for state trajectories ($s_i \notin C$).
@@ -244,25 +153,25 @@ impl StructuralGuaranteeVerifier {
         obligation_id: impl Into<String>,
         state_sequence: &[&str],
         forbidden_states: &[&str],
-    ) -> Result<ProofVerificationReport, ProofValidationError> {
+    ) -> ProofVerificationReport {
         let obl_id = obligation_id.into();
         for &s in state_sequence {
             if forbidden_states.contains(&s) {
-                return Err(ProofValidationError::ConstraintSafetyViolated {
-                    obligation_id: obl_id,
-                    state_id: s.to_string(),
-                    region_id: s.to_string(),
-                });
+                return ProofVerificationReport::unverified(
+                    obl_id,
+                    StructuralObligationKind::ConstraintSafety,
+                    format!("state '{s}' entered forbidden region '{s}'"),
+                );
             }
         }
 
-        Ok(ProofVerificationReport {
+        ProofVerificationReport {
             obligation_id: obl_id,
             kind: StructuralObligationKind::ConstraintSafety,
             status: ProofStatus::Verified,
             verified: true,
             details: "No forbidden states entered across trajectory".to_string(),
-        })
+        }
     }
 
     /// Verify planner termination and horizon bounds ($H \le H_{\max}$).
@@ -270,16 +179,17 @@ impl StructuralGuaranteeVerifier {
         obligation_id: impl Into<String>,
         path_length: usize,
         max_horizon: usize,
-    ) -> Result<ProofVerificationReport, ProofValidationError> {
+    ) -> ProofVerificationReport {
         let obl_id = obligation_id.into();
         if path_length > max_horizon {
-            return Err(ProofValidationError::PlannerTerminationFailed {
-                obligation_id: obl_id,
-                horizon_exceeded: path_length,
-            });
+            return ProofVerificationReport::unverified(
+                obl_id,
+                StructuralObligationKind::PlannerTermination,
+                format!("planner horizon exceeded: path length {path_length} > max {max_horizon}"),
+            );
         }
 
-        Ok(ProofVerificationReport {
+        ProofVerificationReport {
             obligation_id: obl_id,
             kind: StructuralObligationKind::PlannerTermination,
             status: ProofStatus::Verified,
@@ -287,33 +197,34 @@ impl StructuralGuaranteeVerifier {
             details: format!(
                 "Planner path length ({path_length}) bounded by horizon limit ({max_horizon})"
             ),
-        })
+        }
     }
 
     /// Verify evidence non-duplication and deletion traceability.
     pub fn verify_evidence_traceability(
         obligation_id: impl Into<String>,
         evidence_ids: &[&str],
-    ) -> Result<ProofVerificationReport, ProofValidationError> {
+    ) -> ProofVerificationReport {
         let obl_id = obligation_id.into();
         let mut seen = std::collections::HashSet::new();
 
         for &ev_id in evidence_ids {
             if !seen.insert(ev_id) {
-                return Err(ProofValidationError::EvidenceTraceabilityFailed {
-                    obligation_id: obl_id,
-                    evidence_id: ev_id.to_string(),
-                });
+                return ProofVerificationReport::unverified(
+                    obl_id,
+                    StructuralObligationKind::EvidenceIntegrity,
+                    format!("evidence '{ev_id}' duplicated or lacks deletion traceability"),
+                );
             }
         }
 
-        Ok(ProofVerificationReport {
+        ProofVerificationReport {
             obligation_id: obl_id,
             kind: StructuralObligationKind::EvidenceIntegrity,
             status: ProofStatus::Verified,
             verified: true,
             details: "Evidence non-duplication and traceability verified".to_string(),
-        })
+        }
     }
 
     /// Verify replay witness digest hash integrity against reference witness.
@@ -321,45 +232,48 @@ impl StructuralGuaranteeVerifier {
         obligation_id: impl Into<String>,
         actual_hash: &str,
         expected_hash: &str,
-    ) -> Result<ProofVerificationReport, ProofValidationError> {
+    ) -> ProofVerificationReport {
         let obl_id = obligation_id.into();
         if actual_hash != expected_hash {
-            return Err(ProofValidationError::ReplayWitnessMismatch {
-                obligation_id: obl_id,
-                expected_hash: expected_hash.to_string(),
-                actual_hash: actual_hash.to_string(),
-            });
+            return ProofVerificationReport::unverified(
+                obl_id,
+                StructuralObligationKind::ReplayWitness,
+                format!(
+                    "replay witness mismatch: expected '{expected_hash}', found '{actual_hash}'"
+                ),
+            );
         }
 
-        Ok(ProofVerificationReport {
+        ProofVerificationReport {
             obligation_id: obl_id,
             kind: StructuralObligationKind::ReplayWitness,
             status: ProofStatus::Verified,
             verified: true,
             details: "Replay witness digest hash matched expected reference".to_string(),
-        })
+        }
     }
 
     /// Verify fixed-point Q8.8 score safety (fits within i16 range [-32768, 32767]).
     pub fn verify_fixed_arithmetic_safety(
         obligation_id: impl Into<String>,
         raw_score: i64,
-    ) -> Result<ProofVerificationReport, ProofValidationError> {
+    ) -> ProofVerificationReport {
         let obl_id = obligation_id.into();
         if !(i16::MIN as i64..=i16::MAX as i64).contains(&raw_score) {
-            return Err(ProofValidationError::FixedArithmeticOverflow {
-                obligation_id: obl_id,
-                raw_score,
-            });
+            return ProofVerificationReport::unverified(
+                obl_id,
+                StructuralObligationKind::SafeArithmetic,
+                format!("fixed-point score {raw_score} out of Q8.8 i16 range"),
+            );
         }
 
-        Ok(ProofVerificationReport {
+        ProofVerificationReport {
             obligation_id: obl_id,
             kind: StructuralObligationKind::SafeArithmetic,
             status: ProofStatus::Verified,
             verified: true,
             details: format!("Score {raw_score} safely fits within Q8.8 i16 range"),
-        })
+        }
     }
 
     /// Audit proof matrix status against expected status.
@@ -367,26 +281,27 @@ impl StructuralGuaranteeVerifier {
         matrix: &ProofStatusMatrix,
         theorem_name: &str,
         expected_status: ProofStatus,
-    ) -> Result<ProofVerificationReport, ProofValidationError> {
-        let entry = matrix
-            .entries
-            .iter()
-            .find(|e| e.name == theorem_name)
-            .ok_or_else(|| ProofValidationError::StatusDrift {
-                obligation_id: theorem_name.to_string(),
-                expected: format!("{expected_status:?}"),
-                actual: "MissingEntry".to_string(),
-            })?;
+    ) -> ProofVerificationReport {
+        let Some(entry) = matrix.entries.iter().find(|e| e.name == theorem_name) else {
+            return ProofVerificationReport::unverified(
+                theorem_name,
+                StructuralObligationKind::EvidenceIntegrity,
+                format!("proof matrix status drift: expected '{expected_status:?}', found 'MissingEntry'"),
+            );
+        };
 
         if entry.status != expected_status {
-            return Err(ProofValidationError::StatusDrift {
-                obligation_id: theorem_name.to_string(),
-                expected: format!("{expected_status:?}"),
-                actual: format!("{:?}", entry.status),
-            });
+            return ProofVerificationReport::unverified(
+                theorem_name,
+                StructuralObligationKind::EvidenceIntegrity,
+                format!(
+                    "proof matrix status drift: expected '{expected_status:?}', found '{:?}'",
+                    entry.status
+                ),
+            );
         }
 
-        Ok(ProofVerificationReport {
+        ProofVerificationReport {
             obligation_id: theorem_name.to_string(),
             kind: StructuralObligationKind::EvidenceIntegrity,
             status: entry.status,
@@ -395,18 +310,16 @@ impl StructuralGuaranteeVerifier {
                 "Proof matrix entry '{theorem_name}' matches status {:?}",
                 entry.status
             ),
-        })
+        }
     }
 
     /// Verify inference contract compliance obligation.
-    pub fn verify_inference_contract_compliance(
-        obligation_id: &str,
-    ) -> Result<ProofVerificationReport, ProofValidationError> {
+    pub fn verify_inference_contract_compliance(obligation_id: &str) -> ProofVerificationReport {
         use uor_r4_graph_format::inference_contract::InferenceContractVerifier;
         // Total audit: the compliance report is always produced.
         let contract_report = InferenceContractVerifier::audit_contract_compliance();
 
-        Ok(ProofVerificationReport {
+        ProofVerificationReport {
             obligation_id: obligation_id.to_string(),
             kind: StructuralObligationKind::BoundedResource,
             status: ProofStatus::Verified,
@@ -417,22 +330,21 @@ impl StructuralGuaranteeVerifier {
                 contract_report.is_zero_allocation_guaranteed,
                 contract_report.is_cpu_only_target
             ),
-        })
+        }
     }
 
     /// Verify scoring semantics compliance obligation.
-    pub fn verify_scoring_semantics_compliance(
-        obligation_id: &str,
-    ) -> Result<ProofVerificationReport, ProofValidationError> {
+    pub fn verify_scoring_semantics_compliance(obligation_id: &str) -> ProofVerificationReport {
         use uor_r4_graph_format::scoring_semantics::ScoringSemanticsVerifier;
         if let Some(detail) = ScoringSemanticsVerifier::audit_scoring_compliance() {
-            return Err(ProofValidationError::ScoringSemanticsViolation {
-                obligation_id: obligation_id.to_string(),
-                detail: detail.to_string(),
-            });
+            return ProofVerificationReport::unverified(
+                obligation_id,
+                StructuralObligationKind::SafeArithmetic,
+                format!("scoring semantics violation: {detail}"),
+            );
         }
 
-        Ok(ProofVerificationReport {
+        ProofVerificationReport {
             obligation_id: obligation_id.to_string(),
             kind: StructuralObligationKind::SafeArithmetic,
             status: ProofStatus::Verified,
@@ -441,14 +353,12 @@ impl StructuralGuaranteeVerifier {
                 "Scoring semantics v{} verified (signed saturating accumulation, saturation bounds, no-double-counting, tie-breaking)",
                 ScoringSemanticsVerifier::version()
             ),
-        })
+        }
     }
 
     /// Verify packed CPU inference kernels compliance obligation (#159).
-    pub fn verify_packed_kernels_compliance(
-        obligation_id: &str,
-    ) -> Result<ProofVerificationReport, ProofValidationError> {
-        Ok(ProofVerificationReport {
+    pub fn verify_packed_kernels_compliance(obligation_id: &str) -> ProofVerificationReport {
+        ProofVerificationReport {
             obligation_id: obligation_id.to_string(),
             kind: StructuralObligationKind::BoundedResource,
             status: ProofStatus::Verified,
@@ -456,21 +366,14 @@ impl StructuralGuaranteeVerifier {
             details:
                 "Packed CPU inference kernels v1.0.0 verified (9 kernels, 0-alloc, stack-resident)"
                     .to_string(),
-        })
+        }
     }
     /// Verify machine-code, allocator, and dependency CI audit compliance (#160).
-    pub fn verify_inference_audit_compliance(
-        obligation_id: &str,
-    ) -> Result<ProofVerificationReport, ProofValidationError> {
+    pub fn verify_inference_audit_compliance(obligation_id: &str) -> ProofVerificationReport {
         use crate::inference_audit::InferenceAuditVerifier;
-        let report = InferenceAuditVerifier::audit_all().map_err(|_| {
-            ProofValidationError::ResourceBoundExceeded {
-                obligation_id: obligation_id.to_string(),
-                metric: "inference_audit".to_string(),
-                actual: 1,
-                limit: 0,
-            }
-        })?;
+        // `audit_all` is total: it always produces a report whose verdict/
+        // is_certified carry the finding (R5).
+        let report = InferenceAuditVerifier::audit_all();
 
         let status = if report.is_certified {
             ProofStatus::Verified
@@ -478,7 +381,7 @@ impl StructuralGuaranteeVerifier {
             ProofStatus::Unverified
         };
 
-        Ok(ProofVerificationReport {
+        ProofVerificationReport {
             obligation_id: obligation_id.to_string(),
             kind: StructuralObligationKind::BoundedResource,
             status,
@@ -487,13 +390,13 @@ impl StructuralGuaranteeVerifier {
                 "Inference audit verified (verdict: {}, scanned_inst: {}, scanned_deps: {})",
                 report.verdict, report.instructions_scanned, report.dependencies_scanned
             ),
-        })
+        }
     }
 
     /// Verify performance certificate compliance obligation (#161).
     pub fn verify_performance_certificate_compliance(
         obligation_id: &str,
-    ) -> Result<ProofVerificationReport, ProofValidationError> {
+    ) -> ProofVerificationReport {
         use uor_r4_graph_certify::performance_certificate::RuntimePerformanceCertificate;
         let cert = RuntimePerformanceCertificate::new();
         let valid = cert.verify_evidence_links();
@@ -503,7 +406,7 @@ impl StructuralGuaranteeVerifier {
             ProofStatus::Unverified
         };
 
-        Ok(ProofVerificationReport {
+        ProofVerificationReport {
             obligation_id: obligation_id.to_string(),
             kind: StructuralObligationKind::BoundedResource,
             status,
@@ -515,7 +418,7 @@ impl StructuralGuaranteeVerifier {
                 cert.steady_state_allocations,
                 cert.steady_state_deallocations
             ),
-        })
+        }
     }
 
     /// Verify compiler executor compliance obligation (#165).
@@ -523,39 +426,43 @@ impl StructuralGuaranteeVerifier {
     /// Confirms that `SequentialExecutor` produces correctly ordered outputs and,
     /// on non-wasm32 targets, that `RayonExecutor` produces bit-identical results
     /// (positional equivalence guarantee).
-    pub fn verify_compiler_executor_compliance(
-        obligation_id: &str,
-    ) -> Result<ProofVerificationReport, ProofValidationError> {
+    pub fn verify_compiler_executor_compliance(obligation_id: &str) -> ProofVerificationReport {
         use uor_r4_graph_compiler::executor::{CompilerExecutor, SequentialExecutor};
 
-        let make_err = |metric: &str| ProofValidationError::ResourceBoundExceeded {
-            obligation_id: obligation_id.to_string(),
-            metric: metric.to_string(),
-            actual: 1,
-            limit: 0,
+        let make_report = |metric: &str| {
+            ProofVerificationReport::unverified(
+                obligation_id,
+                StructuralObligationKind::Determinism,
+                format!("compiler executor obligation failed: {metric}"),
+            )
         };
 
         let inputs = vec![1u32, 2u32, 3u32];
-        let seq_res = SequentialExecutor::new()
-            .map(&inputs, |&x| Ok(x * 2))
-            .map_err(|_| make_err("sequential_executor_error"))?;
+        let seq_res = match SequentialExecutor::new().map(&inputs, |&x| Ok(x * 2)) {
+            Ok(v) => v,
+            Err(_) => return make_report("sequential_executor_error"),
+        };
         if seq_res != vec![2, 4, 6] {
-            return Err(make_err("sequential_positional_order"));
+            return make_report("sequential_positional_order");
         }
 
         #[cfg(not(target_arch = "wasm32"))]
         {
             use uor_r4_graph_compiler::executor::RayonExecutor;
-            let par_res = RayonExecutor::new(2)
-                .map_err(|_| make_err("rayon_executor_init"))?
-                .map(&inputs, |&x| Ok(x * 2))
-                .map_err(|_| make_err("rayon_executor_error"))?;
+            let rayon = match RayonExecutor::new(2) {
+                Ok(r) => r,
+                Err(_) => return make_report("rayon_executor_init"),
+            };
+            let par_res = match rayon.map(&inputs, |&x| Ok(x * 2)) {
+                Ok(v) => v,
+                Err(_) => return make_report("rayon_executor_error"),
+            };
             if par_res != seq_res {
-                return Err(make_err("sequential_rayon_equivalence"));
+                return make_report("sequential_rayon_equivalence");
             }
         }
 
-        Ok(ProofVerificationReport {
+        ProofVerificationReport {
             obligation_id: obligation_id.to_string(),
             kind: StructuralObligationKind::Determinism,
             status: ProofStatus::Verified,
@@ -564,7 +471,7 @@ impl StructuralGuaranteeVerifier {
                       RayonExecutor output is bit-identical to SequentialExecutor (non-wasm32); \
                       panic containment and deterministic error aggregation covered by unit + BDD suites."
                 .to_string(),
-        })
+        }
     }
 
     /// Verify compiler stage DAG compliance obligation (#166).
@@ -575,7 +482,7 @@ impl StructuralGuaranteeVerifier {
     /// would break D2 canonical artifact reproducibility.
     pub fn verify_compiler_stage_dag_compliance(
         obligation_id: impl Into<String>,
-    ) -> Result<ProofVerificationReport, ProofValidationError> {
+    ) -> ProofVerificationReport {
         use uor_r4_graph_compiler::stage_dag::{CompilerStageDag, ConcurrencyClass};
         let obl_id = obligation_id.into();
         let stages = CompilerStageDag::all_stages();
@@ -588,12 +495,14 @@ impl StructuralGuaranteeVerifier {
                 .all(|s| s.class == ConcurrencyClass::SequentialCanonicalFinalization);
 
         if !valid {
-            return Err(ProofValidationError::NondeterministicOutput {
-                obligation_id: obl_id,
-            });
+            return ProofVerificationReport::unverified(
+                obl_id,
+                StructuralObligationKind::Determinism,
+                "compiler stage DAG tampered: expected 28 classified stages and a 6-node sequential canonical finalization spine",
+            );
         }
 
-        Ok(ProofVerificationReport {
+        ProofVerificationReport {
             obligation_id: obl_id,
             kind: StructuralObligationKind::Determinism,
             status: ProofStatus::Verified,
@@ -601,7 +510,7 @@ impl StructuralGuaranteeVerifier {
             details:
                 "Compiler Stage DAG v0.1.0 verified (28 stages classified, 6-node sequential canonical finalization spine protected)"
                     .to_string(),
-        })
+        }
     }
 
     /// Verify executable-spec reproducibility compliance obligation (#167).
@@ -611,25 +520,33 @@ impl StructuralGuaranteeVerifier {
     /// counts [1, 2, 4].
     pub fn verify_parallel_reproducibility_compliance(
         obligation_id: impl Into<String>,
-    ) -> Result<ProofVerificationReport, ProofValidationError> {
+    ) -> ProofVerificationReport {
         use uor_r4_graph_compiler::reproducibility::ParallelReproducibilityHarness;
         let obl_id = obligation_id.into();
 
         let inputs = vec![100u32, 200u32, 300u32, 400u32];
-        let report = ParallelReproducibilityHarness::verify_reproducibility(&inputs, |&x| {
+        let report = match ParallelReproducibilityHarness::verify_reproducibility(&inputs, |&x| {
             Ok(x.to_le_bytes().to_vec())
-        })
-        .map_err(|_| ProofValidationError::NondeterministicOutput {
-            obligation_id: obl_id.clone(),
-        })?;
+        }) {
+            Ok(report) => report,
+            Err(_) => {
+                return ProofVerificationReport::unverified(
+                    obl_id,
+                    StructuralObligationKind::Determinism,
+                    "parallel reproducibility harness failed to run",
+                );
+            }
+        };
 
         if !report.is_byte_identical {
-            return Err(ProofValidationError::NondeterministicOutput {
-                obligation_id: obl_id,
-            });
+            return ProofVerificationReport::unverified(
+                obl_id,
+                StructuralObligationKind::Determinism,
+                "parallel reproducibility output not byte-identical across thread counts [1, 2, 4]",
+            );
         }
 
-        Ok(ProofVerificationReport {
+        ProofVerificationReport {
             obligation_id: obl_id,
             kind: StructuralObligationKind::Determinism,
             status: ProofStatus::ExecutableSpec,
@@ -637,7 +554,7 @@ impl StructuralGuaranteeVerifier {
             details:
                 "Parallel reproducibility executable-spec check passed for harness sample bytes across thread counts [1, 2, 4]; compiler-path tests validate artifact-byte parity."
                     .to_string(),
-        })
+        }
     }
 
     /// Verify compiler jobs configuration compliance obligation (#168).
@@ -646,26 +563,36 @@ impl StructuralGuaranteeVerifier {
     /// rejection, and dedicated named thread-pool construction.
     pub fn verify_compiler_jobs_config_compliance(
         obligation_id: impl Into<String>,
-    ) -> Result<ProofVerificationReport, ProofValidationError> {
+    ) -> ProofVerificationReport {
         use uor_r4_graph_compiler::jobs_config::{
             CompilerJobsConfig, JobsConfigError, JobsConfigSource,
         };
         let obl_id = obligation_id.into();
 
         // 1. Check CLI precedence over Env and Default
-        let cli_res = CompilerJobsConfig::resolve(Some(4), Some("16")).map_err(|_| {
-            ProofValidationError::NondeterministicOutput {
-                obligation_id: obl_id.clone(),
+        let cli_res = match CompilerJobsConfig::resolve(Some(4), Some("16")) {
+            Ok(cli_res) => cli_res,
+            Err(_) => {
+                return ProofVerificationReport::unverified(
+                    obl_id,
+                    StructuralObligationKind::Determinism,
+                    "compiler jobs config: CLI-precedence resolution failed",
+                );
             }
-        })?;
+        };
         let prec_ok = cli_res.jobs == 4 && cli_res.source == JobsConfigSource::CliArg;
 
         // 2. Check Env precedence over Default
-        let env_res = CompilerJobsConfig::resolve(None, Some("6")).map_err(|_| {
-            ProofValidationError::NondeterministicOutput {
-                obligation_id: obl_id.clone(),
+        let env_res = match CompilerJobsConfig::resolve(None, Some("6")) {
+            Ok(env_res) => env_res,
+            Err(_) => {
+                return ProofVerificationReport::unverified(
+                    obl_id,
+                    StructuralObligationKind::Determinism,
+                    "compiler jobs config: env-precedence resolution failed",
+                );
             }
-        })?;
+        };
         let env_ok = env_res.jobs == 6 && env_res.source == JobsConfigSource::EnvVar;
 
         // 3. Check invalid rejection (0 jobs)
@@ -673,12 +600,14 @@ impl StructuralGuaranteeVerifier {
             CompilerJobsConfig::resolve(Some(0), None) == Err(JobsConfigError::ZeroJobsForbidden);
 
         if !prec_ok || !env_ok || !zero_rejected {
-            return Err(ProofValidationError::NondeterministicOutput {
-                obligation_id: obl_id,
-            });
+            return ProofVerificationReport::unverified(
+                obl_id,
+                StructuralObligationKind::Determinism,
+                "compiler jobs config: precedence (CLI > env > default) or zero-jobs rejection invariant violated",
+            );
         }
 
-        Ok(ProofVerificationReport {
+        ProofVerificationReport {
             obligation_id: obl_id,
             kind: StructuralObligationKind::Determinism,
             status: ProofStatus::Verified,
@@ -686,7 +615,7 @@ impl StructuralGuaranteeVerifier {
             details:
                 "Compiler Jobs Configuration v0.1.0 verified (precedence CLI > env > default, typed error validation, and thread-pool naming compliance)."
                     .to_string(),
-        })
+        }
     }
 
     /// Verify compiler memory-budget and backpressure compliance obligation (#169).
@@ -695,18 +624,23 @@ impl StructuralGuaranteeVerifier {
     /// and backpressure limiter capacity capping.
     pub fn verify_compiler_memory_budget_compliance(
         obligation_id: impl Into<String>,
-    ) -> Result<ProofVerificationReport, ProofValidationError> {
+    ) -> ProofVerificationReport {
         use uor_r4_graph_compiler::memory_budget::{
             CompilerMemoryBudget, InFlightBackpressureLimiter, MemoryBudgetError,
         };
         let obl_id = obligation_id.into();
 
         // 1. Derivation check for valid budget
-        let valid_budget = CompilerMemoryBudget::derive(256 * 1024 * 1024, 4).map_err(|_| {
-            ProofValidationError::NondeterministicOutput {
-                obligation_id: obl_id.clone(),
+        let valid_budget = match CompilerMemoryBudget::derive(256 * 1024 * 1024, 4) {
+            Ok(valid_budget) => valid_budget,
+            Err(_) => {
+                return ProofVerificationReport::unverified(
+                    obl_id,
+                    StructuralObligationKind::Determinism,
+                    "compiler memory budget: valid-budget derivation failed",
+                );
             }
-        })?;
+        };
         let valid_ok = valid_budget.worker_threads == 4 && valid_budget.max_in_flight_tasks >= 1;
 
         // 2. Rejection check for budget below minimum
@@ -715,24 +649,30 @@ impl StructuralGuaranteeVerifier {
 
         // 3. Backpressure capacity check
         let limiter = InFlightBackpressureLimiter::new(1);
-        let _g1 =
-            limiter
-                .try_acquire()
-                .map_err(|_| ProofValidationError::NondeterministicOutput {
-                    obligation_id: obl_id.clone(),
-                })?;
+        let _g1 = match limiter.try_acquire() {
+            Ok(guard) => guard,
+            Err(_) => {
+                return ProofVerificationReport::unverified(
+                    obl_id,
+                    StructuralObligationKind::Determinism,
+                    "compiler memory budget: initial backpressure acquire failed",
+                );
+            }
+        };
         let cap_ok = matches!(
             limiter.try_acquire(),
             Err(MemoryBudgetError::BackpressureLimitReached { .. })
         );
 
         if !valid_ok || !rejection_ok || !cap_ok {
-            return Err(ProofValidationError::NondeterministicOutput {
-                obligation_id: obl_id,
-            });
+            return ProofVerificationReport::unverified(
+                obl_id,
+                StructuralObligationKind::Determinism,
+                "compiler memory budget: derivation, below-minimum rejection, or backpressure-cap invariant violated",
+            );
         }
 
-        Ok(ProofVerificationReport {
+        ProofVerificationReport {
             obligation_id: obl_id,
             kind: StructuralObligationKind::Determinism,
             status: ProofStatus::Verified,
@@ -740,7 +680,7 @@ impl StructuralGuaranteeVerifier {
             details:
                 "Compiler Memory Budget v0.1.0 verified (concurrency-aware derivation, typed error rejection below minimum, and bounded in-flight backpressure capping)."
                     .to_string(),
-        })
+        }
     }
 
     /// Verify compiler scaling certificate compliance obligation (#175).
@@ -749,7 +689,7 @@ impl StructuralGuaranteeVerifier {
     #[cfg(not(target_arch = "wasm32"))]
     pub fn verify_compiler_scaling_certificate_compliance(
         obligation_id: impl Into<String>,
-    ) -> Result<ProofVerificationReport, ProofValidationError> {
+    ) -> ProofVerificationReport {
         use uor_r4_graph_certify::compiler_scaling::{
             CompilerScalingEngine, HardwareMetadata, StageScalingClassification,
         };
@@ -777,12 +717,14 @@ impl StructuralGuaranteeVerifier {
         let cert_ok = hardware.is_gpu_free;
 
         if !math_ok || !class_ok || !cert_ok {
-            return Err(ProofValidationError::NondeterministicOutput {
-                obligation_id: obl_id,
-            });
+            return ProofVerificationReport::unverified(
+                obl_id,
+                StructuralObligationKind::Determinism,
+                "compiler scaling certificate: speedup/efficiency math, bottleneck classification, or GPU-free certification invariant violated",
+            );
         }
 
-        Ok(ProofVerificationReport {
+        ProofVerificationReport {
             obligation_id: obl_id,
             kind: StructuralObligationKind::Determinism,
             status: ProofStatus::Verified,
@@ -790,7 +732,7 @@ impl StructuralGuaranteeVerifier {
             details:
                 "Compiler Scaling Certificate v0.1.0 verified (empirical speedup/efficiency math, 5-way bottleneck classification, and CPU-only certification)."
                     .to_string(),
-        })
+        }
     }
 
     /// Verify parallel observation shards compliance obligation (#170).
@@ -799,7 +741,7 @@ impl StructuralGuaranteeVerifier {
     /// and ordered deterministic shard reduction.
     pub fn verify_parallel_observation_shards_compliance(
         obligation_id: impl Into<String>,
-    ) -> Result<ProofVerificationReport, ProofValidationError> {
+    ) -> ProofVerificationReport {
         use uor_r4_graph_compiler::observation_shards::{
             ObservationShard, ParallelShardEngine, ShardProcessingConfig,
         };
@@ -820,12 +762,14 @@ impl StructuralGuaranteeVerifier {
         let reduce_ok = reduced.len() == 10 && reduced.iter().all(|&l| l == 5);
 
         if !id_ok || !reduce_ok {
-            return Err(ProofValidationError::NondeterministicOutput {
-                obligation_id: obl_id,
-            });
+            return ProofVerificationReport::unverified(
+                obl_id,
+                StructuralObligationKind::Determinism,
+                "parallel observation shards: content-addressed shard IDs or ordered deterministic reduction invariant violated",
+            );
         }
 
-        Ok(ProofVerificationReport {
+        ProofVerificationReport {
             obligation_id: obl_id,
             kind: StructuralObligationKind::Determinism,
             status: ProofStatus::Verified,
@@ -833,7 +777,7 @@ impl StructuralGuaranteeVerifier {
             details:
                 "Parallel Observation Shards v0.1.0 verified (content-addressed shard IDs, parallel shard processing, and ordered deterministic reductions)."
                     .to_string(),
-        })
+        }
     }
 
     /// Verify compiler dependency audit compliance obligation (#174).
@@ -841,7 +785,7 @@ impl StructuralGuaranteeVerifier {
     /// Confirms clean workspace lockfile auditing and negative rejection of denylisted crates.
     pub fn verify_compiler_dependency_audit_compliance(
         obligation_id: impl Into<String>,
-    ) -> Result<ProofVerificationReport, ProofValidationError> {
+    ) -> ProofVerificationReport {
         use uor_r4_graph_compiler::dependency_audit::{
             CompilerDependencyAuditError, CompilerDependencyAuditor,
         };
@@ -856,10 +800,16 @@ version = "0.1.0"
 name = "rayon"
 version = "1.10.0"
 "#;
-        let clean_count = CompilerDependencyAuditor::audit_lockfile_contents(sample_clean)
-            .map_err(|_| ProofValidationError::NondeterministicOutput {
-                obligation_id: obl_id.clone(),
-            })?;
+        let clean_count = match CompilerDependencyAuditor::audit_lockfile_contents(sample_clean) {
+            Ok(clean_count) => clean_count,
+            Err(_) => {
+                return ProofVerificationReport::unverified(
+                    obl_id,
+                    StructuralObligationKind::Determinism,
+                    "compiler dependency audit: clean lockfile failed to audit",
+                );
+            }
+        };
         let clean_ok = clean_count == 2;
 
         // 2. Denylisted crate rejection check
@@ -874,12 +824,14 @@ version = "0.3.0"
         );
 
         if !clean_ok || !rejection_ok {
-            return Err(ProofValidationError::NondeterministicOutput {
-                obligation_id: obl_id,
-            });
+            return ProofVerificationReport::unverified(
+                obl_id,
+                StructuralObligationKind::Determinism,
+                "compiler dependency audit: clean-count or denylisted-crate rejection invariant violated",
+            );
         }
 
-        Ok(ProofVerificationReport {
+        ProofVerificationReport {
             obligation_id: obl_id,
             kind: StructuralObligationKind::Determinism,
             status: ProofStatus::Verified,
@@ -887,7 +839,7 @@ version = "0.3.0"
             details:
                 "Compiler Dependency Audit v0.1.0 verified (clean lockfile auditing and denylisted GPU/accelerator crate rejection)."
                     .to_string(),
-        })
+        }
     }
 }
 
@@ -898,25 +850,20 @@ mod tests {
     #[test]
     fn test_verify_determinism_success_and_failure() {
         let report =
-            StructuralGuaranteeVerifier::verify_determinism("OBL-DET-01", || vec![1, 2, 3, 4])
-                .unwrap();
+            StructuralGuaranteeVerifier::verify_determinism("OBL-DET-01", || vec![1, 2, 3, 4]);
         assert!(report.verified);
         assert_eq!(report.status, ProofStatus::Verified);
 
         // Counter cell to simulate nondeterminism
         use std::cell::Cell;
         let counter = Cell::new(0);
-        let err = StructuralGuaranteeVerifier::verify_determinism("OBL-DET-FAIL", || {
+        let report = StructuralGuaranteeVerifier::verify_determinism("OBL-DET-FAIL", || {
             let val = counter.get();
             counter.set(val + 1);
             val
-        })
-        .unwrap_err();
+        });
 
-        assert!(matches!(
-            err,
-            ProofValidationError::NondeterministicOutput { .. }
-        ));
+        assert!(!report.verified);
     }
 
     #[test]
@@ -924,19 +871,14 @@ mod tests {
         let ok_report = StructuralGuaranteeVerifier::verify_canonical_serialization(
             "OBL-CAN-01",
             &[10, 20, 30],
-        )
-        .unwrap();
+        );
         assert!(ok_report.verified);
 
-        let err = StructuralGuaranteeVerifier::verify_canonical_serialization(
+        let report = StructuralGuaranteeVerifier::verify_canonical_serialization(
             "OBL-CAN-01",
             &[30, 20, 10],
-        )
-        .unwrap_err();
-        assert!(matches!(
-            err,
-            ProofValidationError::CanonicalOrderingViolated { .. }
-        ));
+        );
+        assert!(!report.verified);
     }
 
     #[test]
@@ -946,21 +888,16 @@ mod tests {
             "memory_bytes",
             512,
             1024,
-        )
-        .unwrap();
+        );
         assert!(ok_report.verified);
 
-        let err = StructuralGuaranteeVerifier::verify_resource_bound(
+        let report = StructuralGuaranteeVerifier::verify_resource_bound(
             "OBL-MEM-01",
             "memory_bytes",
             2048,
             1024,
-        )
-        .unwrap_err();
-        assert!(matches!(
-            err,
-            ProofValidationError::ResourceBoundExceeded { .. }
-        ));
+        );
+        assert!(!report.verified);
     }
 
     #[test]
@@ -969,34 +906,24 @@ mod tests {
             "OBL-SAFE-01",
             &["s0", "s1", "s2"],
             &["hazard_0"],
-        )
-        .unwrap();
+        );
         assert!(report.verified);
 
-        let err = StructuralGuaranteeVerifier::verify_constraint_safety(
+        let report = StructuralGuaranteeVerifier::verify_constraint_safety(
             "OBL-SAFE-01",
             &["s0", "hazard_0", "s2"],
             &["hazard_0"],
-        )
-        .unwrap_err();
-        assert!(matches!(
-            err,
-            ProofValidationError::ConstraintSafetyViolated { .. }
-        ));
+        );
+        assert!(!report.verified);
     }
 
     #[test]
     fn test_verify_planner_termination() {
-        let report =
-            StructuralGuaranteeVerifier::verify_planner_termination("OBL-TERM-01", 5, 10).unwrap();
+        let report = StructuralGuaranteeVerifier::verify_planner_termination("OBL-TERM-01", 5, 10);
         assert!(report.verified);
 
-        let err = StructuralGuaranteeVerifier::verify_planner_termination("OBL-TERM-01", 15, 10)
-            .unwrap_err();
-        assert!(matches!(
-            err,
-            ProofValidationError::PlannerTerminationFailed { .. }
-        ));
+        let report = StructuralGuaranteeVerifier::verify_planner_termination("OBL-TERM-01", 15, 10);
+        assert!(!report.verified);
     }
 
     #[test]
@@ -1004,19 +931,14 @@ mod tests {
         let report = StructuralGuaranteeVerifier::verify_evidence_traceability(
             "OBL-EVID-01",
             &["ev_1", "ev_2", "ev_3"],
-        )
-        .unwrap();
+        );
         assert!(report.verified);
 
-        let err = StructuralGuaranteeVerifier::verify_evidence_traceability(
+        let report = StructuralGuaranteeVerifier::verify_evidence_traceability(
             "OBL-EVID-01",
             &["ev_1", "ev_1", "ev_3"],
-        )
-        .unwrap_err();
-        assert!(matches!(
-            err,
-            ProofValidationError::EvidenceTraceabilityFailed { .. }
-        ));
+        );
+        assert!(!report.verified);
     }
 
     #[test]
@@ -1025,42 +947,32 @@ mod tests {
             "OBL-WIT-01",
             "hash_abc123",
             "hash_abc123",
-        )
-        .unwrap();
+        );
         assert!(report.verified);
 
-        let err = StructuralGuaranteeVerifier::verify_replay_witness_integrity(
+        let report = StructuralGuaranteeVerifier::verify_replay_witness_integrity(
             "OBL-WIT-01",
             "hash_abc123",
             "hash_xyz999",
-        )
-        .unwrap_err();
-        assert!(matches!(
-            err,
-            ProofValidationError::ReplayWitnessMismatch { .. }
-        ));
+        );
+        assert!(!report.verified);
     }
 
     #[test]
     fn test_verify_fixed_arithmetic_safety() {
         let report =
-            StructuralGuaranteeVerifier::verify_fixed_arithmetic_safety("OBL-MATH-01", 2048)
-                .unwrap();
+            StructuralGuaranteeVerifier::verify_fixed_arithmetic_safety("OBL-MATH-01", 2048);
         assert!(report.verified);
 
-        let err = StructuralGuaranteeVerifier::verify_fixed_arithmetic_safety("OBL-MATH-01", 70000)
-            .unwrap_err();
-        assert!(matches!(
-            err,
-            ProofValidationError::FixedArithmeticOverflow { .. }
-        ));
+        let report =
+            StructuralGuaranteeVerifier::verify_fixed_arithmetic_safety("OBL-MATH-01", 70000);
+        assert!(!report.verified);
     }
 
     #[test]
     fn test_verify_scoring_semantics_compliance() {
         let report =
-            StructuralGuaranteeVerifier::verify_scoring_semantics_compliance("OBL-SCORE-01")
-                .unwrap();
+            StructuralGuaranteeVerifier::verify_scoring_semantics_compliance("OBL-SCORE-01");
         assert!(report.verified);
         assert!(report.details.contains("signed saturating accumulation"));
     }
@@ -1070,8 +982,7 @@ mod tests {
     fn test_verify_compiler_scaling_certificate_compliance() {
         let report = StructuralGuaranteeVerifier::verify_compiler_scaling_certificate_compliance(
             "OBL-SCALE-01",
-        )
-        .unwrap();
+        );
         assert!(report.verified);
         assert!(report
             .details
@@ -1082,8 +993,7 @@ mod tests {
     fn test_verify_compiler_dependency_audit_compliance() {
         let report = StructuralGuaranteeVerifier::verify_compiler_dependency_audit_compliance(
             "OBL-DEPAUD-01",
-        )
-        .unwrap();
+        );
         assert!(report.verified);
         assert!(report
             .details

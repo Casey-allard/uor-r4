@@ -9,48 +9,7 @@
 //! - Verifies claim classification and proof status compliance against `docs/formal_vocabulary.md`.
 
 use crate::proof_matrix::ProofStatus;
-use std::fmt;
 use std::path::Path;
-
-/// Non-panicking error enum for PDF traceability verification.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum TraceabilityValidationError {
-    /// Required PDF section is unmapped in matrix.
-    UnmappedPdfSection { section_id: String },
-    /// Entry specifies a non-existent or empty evidence artifact path.
-    MissingEvidenceArtifact { issue_id: String, path: String },
-    /// Claim class is invalid or unclassified.
-    InvalidClaimClass {
-        issue_id: String,
-        claim_class: String,
-    },
-}
-
-impl fmt::Display for TraceabilityValidationError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::UnmappedPdfSection { section_id } => {
-                write!(
-                    f,
-                    "PDF section '{section_id}' is unmapped in traceability matrix"
-                )
-            }
-            Self::MissingEvidenceArtifact { issue_id, path } => write!(
-                f,
-                "Traceability row for issue '{issue_id}' specifies missing evidence artifact path: '{path}'"
-            ),
-            Self::InvalidClaimClass {
-                issue_id,
-                claim_class,
-            } => write!(
-                f,
-                "Issue '{issue_id}' has invalid claim class: '{claim_class}'"
-            ),
-        }
-    }
-}
-
-impl std::error::Error for TraceabilityValidationError {}
 
 /// Single entry row in the PDF traceability matrix.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -255,10 +214,15 @@ impl PdfTraceabilityVerifier {
         ]
     }
 
-    /// Audit matrix entries for 100% section coverage (§1–§17), valid claim classes, and disk artifact existence.
-    pub fn audit_traceability_matrix(
-        matrix: &[PdfTraceabilityRow],
-    ) -> Result<TraceabilityAuditReport, TraceabilityValidationError> {
+    /// Audit matrix entries for 100% section coverage (§1–§17), valid claim
+    /// classes, and disk artifact existence. Total: always produces a
+    /// [`TraceabilityAuditReport`]; `is_certified` is `true` only when every row
+    /// carries a valid claim class and an existing evidence artifact, all 17
+    /// canonical sections are mapped, and the matrix is complete. A failing
+    /// audit is a report with `is_certified == false` and a
+    /// `verified_rows_with_evidence` below the row count (R5 — the audit reports
+    /// its finding, it never raises).
+    pub fn audit_traceability_matrix(matrix: &[PdfTraceabilityRow]) -> TraceabilityAuditReport {
         let valid_claim_classes = [
             "Definition",
             "Objective",
@@ -269,64 +233,42 @@ impl PdfTraceabilityVerifier {
 
         let mut verified_count = 0;
         for row in matrix {
-            // 1. Validate claim class compliance
-            if !valid_claim_classes.contains(&row.claim_class) {
-                return Err(TraceabilityValidationError::InvalidClaimClass {
-                    issue_id: row.issue_id.to_string(),
-                    claim_class: row.claim_class.to_string(),
-                });
+            // 1. Claim class compliance.
+            let claim_class_ok = valid_claim_classes.contains(&row.claim_class);
+
+            // 2. Evidence artifact existence: non-empty, and present on disk
+            //    (dummy test paths are treated as present).
+            let artifact_present = !row.evidence_artifact.is_empty();
+            let exists_on_disk = row.evidence_artifact == "dummy"
+                || Path::new(row.evidence_artifact).exists()
+                || Path::new(&format!("../../{}", row.evidence_artifact)).exists()
+                || Path::new(&format!(
+                    "{}/../../{}",
+                    env!("CARGO_MANIFEST_DIR"),
+                    row.evidence_artifact
+                ))
+                .exists();
+
+            if claim_class_ok && artifact_present && exists_on_disk {
+                verified_count += 1;
             }
-
-            // 2. Validate evidence artifact existence
-            if row.evidence_artifact.is_empty() {
-                return Err(TraceabilityValidationError::MissingEvidenceArtifact {
-                    issue_id: row.issue_id.to_string(),
-                    path: row.evidence_artifact.to_string(),
-                });
-            }
-
-            // If path checking is enabled (non-dummy test paths), verify file existence on disk
-            let exists_local = Path::new(row.evidence_artifact).exists();
-            let exists_repo_root = Path::new(&format!("../../{}", row.evidence_artifact)).exists();
-            let exists_manifest = Path::new(&format!(
-                "{}/../../{}",
-                env!("CARGO_MANIFEST_DIR"),
-                row.evidence_artifact
-            ))
-            .exists();
-
-            if row.evidence_artifact != "dummy"
-                && !exists_local
-                && !exists_repo_root
-                && !exists_manifest
-            {
-                return Err(TraceabilityValidationError::MissingEvidenceArtifact {
-                    issue_id: row.issue_id.to_string(),
-                    path: row.evidence_artifact.to_string(),
-                });
-            }
-
-            verified_count += 1;
         }
 
-        // 3. Verify coverage of all 17 canonical PDF sections (§1 through §17)
-        for section_num in 1..=17 {
+        // 3. Coverage of all 17 canonical PDF sections (§1 through §17).
+        let all_sections_mapped = (1..=17).all(|section_num| {
             let section_str = format!("§{section_num}");
-            if !matrix.iter().any(|r| r.pdf_section == section_str) {
-                return Err(TraceabilityValidationError::UnmappedPdfSection {
-                    section_id: section_str,
-                });
-            }
-        }
+            matrix.iter().any(|r| r.pdf_section == section_str)
+        });
 
-        let is_certified = matrix.len() >= 17 && verified_count == matrix.len();
+        let is_certified =
+            all_sections_mapped && matrix.len() >= 17 && verified_count == matrix.len();
 
-        Ok(TraceabilityAuditReport {
+        TraceabilityAuditReport {
             total_sections_verified: matrix.len(),
             total_issues_mapped: matrix.len(),
             verified_rows_with_evidence: verified_count,
             is_certified,
-        })
+        }
     }
 }
 
@@ -339,7 +281,7 @@ mod tests {
         let matrix = PdfTraceabilityVerifier::get_matrix();
         assert_eq!(matrix.len(), 17);
 
-        let report = PdfTraceabilityVerifier::audit_traceability_matrix(&matrix).unwrap();
+        let report = PdfTraceabilityVerifier::audit_traceability_matrix(&matrix);
         assert_eq!(report.total_sections_verified, 17);
         assert_eq!(report.verified_rows_with_evidence, 17);
         assert!(report.is_certified);
@@ -358,10 +300,9 @@ mod tests {
             owner: "Casey Allard",
         }];
 
-        let res = PdfTraceabilityVerifier::audit_traceability_matrix(&partial_matrix);
-        assert!(matches!(
-            res.unwrap_err(),
-            TraceabilityValidationError::UnmappedPdfSection { .. }
-        ));
+        let report = PdfTraceabilityVerifier::audit_traceability_matrix(&partial_matrix);
+        // A single-section matrix cannot cover §1–§17, so the audit reports
+        // not-certified rather than raising.
+        assert!(!report.is_certified);
     }
 }

@@ -91,51 +91,76 @@ impl InferenceAuditVerifier {
         "cublas",
     ];
 
-    /// Audit a disassembly snippet for forbidden instruction mnemonics.
-    pub fn audit_disassembly(disassembly: &str) -> Result<usize, AuditVerdict> {
+    /// Audit a disassembly snippet for forbidden instruction mnemonics. Total:
+    /// returns `Some(count)` of scanned instructions when clean, or `None` when
+    /// a forbidden mnemonic is present (R5 — a failed audit is a measured
+    /// report; the single reportable condition is
+    /// [`AuditVerdict::ForbiddenInstructionDetected`], surfaced by `audit_all`).
+    pub fn audit_disassembly(disassembly: &str) -> Option<usize> {
         let mut count = 0;
         for line in disassembly.lines() {
             count += 1;
             let lower = line.to_lowercase();
             for forbidden in Self::FORBIDDEN_MNEMONICS {
                 if lower.contains(forbidden) {
-                    return Err(AuditVerdict::ForbiddenInstructionDetected);
+                    return None;
                 }
             }
         }
-        Ok(count)
+        Some(count)
     }
 
-    /// Audit a Cargo manifest dependency list for forbidden GPU/tensor/BLAS dependencies.
-    pub fn audit_dependencies(dependencies: &[&str]) -> Result<usize, AuditVerdict> {
+    /// Audit a Cargo manifest dependency list for forbidden GPU/tensor/BLAS
+    /// dependencies. Total: `Some(count)` when clean, `None` when a forbidden
+    /// dependency is present (R5).
+    pub fn audit_dependencies(dependencies: &[&str]) -> Option<usize> {
         let mut count = 0;
         for dep in dependencies {
             count += 1;
             let lower = dep.to_lowercase();
             for forbidden in Self::FORBIDDEN_DEPENDENCIES {
                 if lower.contains(forbidden) {
-                    return Err(AuditVerdict::ForbiddenDependencyDetected);
+                    return None;
                 }
             }
         }
-        Ok(count)
+        Some(count)
     }
 
-    /// Execute complete machine-code, dependency, and allocator audit.
-    pub fn audit_all() -> Result<InferenceAuditReport, AuditVerdict> {
+    /// Execute complete machine-code, dependency, and allocator audit. Total:
+    /// always produces an [`InferenceAuditReport`]; its `verdict` and
+    /// `is_certified` carry whether every sub-audit held (R5 — the audit reports
+    /// its finding, it never raises).
+    pub fn audit_all() -> InferenceAuditReport {
         let sample_disassembly = "mov eax, [rsp+8]\nadd eax, ebx\nxor ecx, ecx\nret";
-        let instructions_scanned = Self::audit_disassembly(sample_disassembly)?;
+        let Some(instructions_scanned) = Self::audit_disassembly(sample_disassembly) else {
+            return InferenceAuditReport {
+                verdict: AuditVerdict::ForbiddenInstructionDetected,
+                instructions_scanned: 0,
+                dependencies_scanned: 0,
+                steady_state_allocations: 0,
+                is_certified: false,
+            };
+        };
 
         let sample_dependencies = &["uor-r4-graph-format", "uor-r4-graph-runtime", "core"];
-        let dependencies_scanned = Self::audit_dependencies(sample_dependencies)?;
+        let Some(dependencies_scanned) = Self::audit_dependencies(sample_dependencies) else {
+            return InferenceAuditReport {
+                verdict: AuditVerdict::ForbiddenDependencyDetected,
+                instructions_scanned,
+                dependencies_scanned: 0,
+                steady_state_allocations: 0,
+                is_certified: false,
+            };
+        };
 
-        Ok(InferenceAuditReport {
+        InferenceAuditReport {
             verdict: AuditVerdict::Compliant,
             instructions_scanned,
             dependencies_scanned,
             steady_state_allocations: 0,
             is_certified: true,
-        })
+        }
     }
 }
 
@@ -146,33 +171,24 @@ mod tests {
     #[test]
     fn test_disassembly_audit_passes_clean_code() {
         let clean = "mov eax, [rsp+8]\nadd eax, ebx\nxor ecx, ecx\npopcnt edx, eax\nret";
-        assert!(InferenceAuditVerifier::audit_disassembly(clean).is_ok());
+        assert!(InferenceAuditVerifier::audit_disassembly(clean).is_some());
     }
 
     #[test]
     fn test_disassembly_audit_rejects_floating_point() {
         let bad = "vaddss xmm0, xmm1, xmm2";
-        assert_eq!(
-            InferenceAuditVerifier::audit_disassembly(bad),
-            Err(AuditVerdict::ForbiddenInstructionDetected)
-        );
+        assert!(InferenceAuditVerifier::audit_disassembly(bad).is_none());
     }
 
     #[test]
     fn test_disassembly_audit_rejects_multiplication() {
         let bad = "imul eax, ebx";
-        assert_eq!(
-            InferenceAuditVerifier::audit_disassembly(bad),
-            Err(AuditVerdict::ForbiddenInstructionDetected)
-        );
+        assert!(InferenceAuditVerifier::audit_disassembly(bad).is_none());
     }
 
     #[test]
     fn test_dependency_audit_rejects_gpu_deps() {
         let bad_deps = &["uor-r4-graph-runtime", "cuda-sys"];
-        assert_eq!(
-            InferenceAuditVerifier::audit_dependencies(bad_deps),
-            Err(AuditVerdict::ForbiddenDependencyDetected)
-        );
+        assert!(InferenceAuditVerifier::audit_dependencies(bad_deps).is_none());
     }
 }

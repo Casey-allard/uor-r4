@@ -92,13 +92,16 @@ impl ProofStatusMatrix {
         Self::default()
     }
 
-    pub fn verify_all(&self) -> Result<(), String> {
+    /// Total: returns `None` when every theorem entry is verified, or
+    /// `Some(reason)` naming the first unverified theorem (R5 — a measured
+    /// report of matrix state, not a raised error).
+    pub fn verify_all(&self) -> Option<String> {
         for entry in &self.entries {
             if entry.status == ProofStatus::Unverified {
-                return Err(format!("Unverified theorem found: {}", entry.theorem_id));
+                return Some(format!("Unverified theorem found: {}", entry.theorem_id));
             }
         }
-        Ok(())
+        None
     }
 }
 
@@ -109,6 +112,6 @@ mod tests {
     #[test]
     fn test_proof_matrix_all_verified() {
         let matrix = ProofStatusMatrix::new();
-        assert!(matrix.verify_all().is_ok());
+        assert!(matrix.verify_all().is_none());
     }
 }
