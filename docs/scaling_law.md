@@ -66,35 +66,32 @@ the record stream and re-run the cheap downstream (cover → score) at each size
 the point where held-out top-1 and EXCT-miss flatten is that teacher's knee.
 Three teachers → three knees → β by least-squares on `log N_knee vs log S`.
 
-Runbook (one observe already in hand at `$OBS` → `corpus.meta`/`corpus.records`):
+Runbook (one observe already in hand → its `state.bin`/`merged.bin`, or a
+`corpus.meta`/`corpus.records` pair). The sweep is one script:
 
 ```bash
-# Sub-sample the record stream to a target N (records are fixed-width; take a
-# uniform stride so the construction/held-out split is preserved in proportion).
-for N in 50000 200000 800000 2000000; do
-  r4 transformerless subsample-corpus --in $OBS --out /tmp/sweep-$N --records $N   # (harness, #514)
-  r4 transformerless compile-recorded --corpus-meta /tmp/sweep-$N/corpus.meta \
-     --corpus-recs /tmp/sweep-$N/corpus.records --vocab-size 49152 --out /tmp/sweep-$N
-  r4 transformerless cover --corpus-meta /tmp/sweep-$N/corpus.meta \
-     --corpus-recs /tmp/sweep-$N/corpus.records --artifacts /tmp/sweep-$N/tless_artifacts.bin \
-     --out /tmp/sweep-$N/graph-cover
-  r4 transformerless score --corpus-meta /tmp/sweep-$N/corpus.meta \
-     --corpus-recs /tmp/sweep-$N/corpus.records --artifacts /tmp/sweep-$N/tless_artifacts.bin \
-     --cover /tmp/sweep-$N/graph-cover/cover.r4g1 --quality-profile relative_tla \
-     --out /tmp/sweep-$N/graph
-  # record top-1 and EXCT-miss from graph/score_report.json
-done
-# The knee is the smallest N past which top-1 and EXCT-miss stop moving.
+# <src-meta> <src-recs> <vocab-size> [record sizes...]
+scripts/scale_sweep.sh obs/state.bin obs/merged.bin 49152 \
+    50000 200000 800000 2000000
 ```
 
-The `subsample-corpus` harness is the remaining code piece; the compile/cover/
-score legs already exist and are what #509 used. Until β is calibrated, treat
-the calculator as an order-of-magnitude guide, not a promise.
+It sub-samples with `scripts/mc1_subsample_corpus.py` (truncating to the last
+complete story-run boundary at or before the target, so the 80/20 `train_cut`
+split stays on the same story-id partition), then runs compile-recorded → cover
+→ score at each size and prints `records | held_out | top1_rule12 | exct_miss_%`.
+The knee is the smallest N past which top-1 and EXCT-miss stop moving.
+
+The harness is in place (`scale_sweep.sh` + the existing `mc1_subsample_corpus.py`);
+the compile/cover/score legs are the same ones #509 used. Until β is calibrated
+from real knees, treat the calculator as an order-of-magnitude guide, not a
+promise.
 
 ## Status
 
-- `recommend-scale` estimator: **shipped** (this change).
-- `subsample-corpus` sweep harness: pending.
-- β calibration: pending the 360M/135M/15M observes (dev hardware; a 2M-record
-  observe is a multi-day teacher run — the #509 observe managed 176/3000 articles
-  in this sandbox before it was interrupted).
+- `recommend-scale` estimator: **shipped** (#517).
+- Saturation-sweep harness: **shipped** — `scripts/scale_sweep.sh` over the
+  existing `scripts/mc1_subsample_corpus.py`.
+- β calibration: pending the 360M/135M/15M observes. The 360M observe is running
+  on dev hardware (#516) at ~5.5s/article; once it lands, `scale_sweep.sh` over
+  its corpus produces the first real knee. (A 2M-record observe is a multi-hour
+  to multi-day teacher run; the sandbox managed only 176/3000 articles for #509.)
