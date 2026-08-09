@@ -11,79 +11,6 @@
 
 use std::cmp::Ordering;
 use std::collections::{BinaryHeap, HashMap, HashSet};
-use std::fmt;
-
-/// Errors arising during trajectory planning or constraint evaluation.
-#[derive(Debug, Clone, PartialEq)]
-pub enum PlannerError {
-    /// Initial state violates forbidden region constraint.
-    InitialStateForbidden { state_id: String },
-    /// The requested state does not exist in the state graph.
-    UnknownState { state_id: String },
-    /// No valid plan reaches the goal region within the horizon bound.
-    HorizonExceeded { max_horizon: usize },
-    /// Search frontier exhausted without finding goal region.
-    FrontierExhausted {
-        nodes_expanded: usize,
-        forbidden_states_entered: usize,
-    },
-    /// Transition confidence below uncertainty threshold.
-    UncertainTransition {
-        src_id: String,
-        action: String,
-        confidence: f32,
-    },
-    /// Transition enters forbidden constraint region.
-    ForbiddenStateViolation { state_id: String, region_id: String },
-}
-
-impl fmt::Display for PlannerError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::InitialStateForbidden { state_id } => {
-                write!(
-                    f,
-                    "Initial state '{state_id}' is inside a forbidden constraint region"
-                )
-            }
-            Self::UnknownState { state_id } => {
-                write!(f, "State '{state_id}' does not exist in the state graph")
-            }
-            Self::HorizonExceeded { max_horizon } => {
-                write!(
-                    f,
-                    "Goal not reached within maximum planning horizon of {max_horizon} steps"
-                )
-            }
-            Self::FrontierExhausted {
-                nodes_expanded,
-                forbidden_states_entered,
-            } => {
-                write!(
-                    f,
-                    "Search frontier exhausted after expanding {nodes_expanded} nodes ({forbidden_states_entered} forbidden states entered)"
-                )
-            }
-            Self::UncertainTransition {
-                src_id,
-                action,
-                confidence,
-            } => write!(
-                f,
-                "Uncertain transition from '{src_id}' under action '{action}' (confidence = {confidence:.2})"
-            ),
-            Self::ForbiddenStateViolation {
-                state_id,
-                region_id,
-            } => write!(
-                f,
-                "State '{state_id}' violates forbidden constraint region '{region_id}'"
-            ),
-        }
-    }
-}
-
-impl std::error::Error for PlannerError {}
 
 /// Graph state node for graph transitions.
 #[derive(Debug, Clone, PartialEq)]
@@ -185,38 +112,31 @@ impl PartialOrd for SearchNode {
 pub struct BoundedGraphPlanner;
 
 impl BoundedGraphPlanner {
-    /// Plan finite action trajectory from start state to goal region avoiding forbidden states.
+    /// Plan finite action trajectory from start state to goal region avoiding
+    /// forbidden states. `None` when no trajectory is a product of these inputs:
+    /// the start state is unknown or forbidden, or no plan reaches the goal
+    /// region within the horizon and frontier bounds (R5 — the absence of a
+    /// product rather than a raised error; the search either yields a plan or
+    /// there is none).
     pub fn plan(
         start_state_id: &str,
         nodes: &[PlannerStateNode],
         edges: &[PlannerEdgeTransition],
         config: &PlannerConfig,
-    ) -> Result<PlanTrajectory, PlannerError> {
+    ) -> Option<PlanTrajectory> {
         let node_map: HashMap<&str, &PlannerStateNode> =
             nodes.iter().map(|n| (n.id.as_str(), n)).collect();
 
-        let start_node =
-            node_map
-                .get(start_state_id)
-                .ok_or_else(|| PlannerError::UnknownState {
-                    state_id: start_state_id.to_string(),
-                })?;
+        let start_node = node_map.get(start_state_id)?;
 
         if start_node.is_forbidden {
-            return Err(PlannerError::InitialStateForbidden {
-                state_id: start_state_id.to_string(),
-            });
+            return None;
         }
 
         let mut open_set = BinaryHeap::new();
         let mut visited = HashSet::new();
         let mut rejected_count = 0;
         let mut nodes_expanded = 0;
-        let mut forbidden_states_entered = 0;
-        // Set when any node's expansion is dropped for hitting `max_horizon`; used to
-        // report `HorizonExceeded` rather than a misleading `FrontierExhausted` when the
-        // search would otherwise have continued past the bound.
-        let mut horizon_capped = false;
 
         open_set.push(SearchNode {
             state_id: start_state_id.to_string(),
@@ -235,7 +155,6 @@ impl BoundedGraphPlanner {
                 None => continue,
             };
             if curr_node.is_forbidden {
-                forbidden_states_entered += 1;
                 continue;
             }
             if curr_node.is_goal {
@@ -252,7 +171,7 @@ impl BoundedGraphPlanner {
                     "blake3:plan_{}",
                     blake3::hash(current.state_path.join("->").as_bytes()).to_hex()
                 );
-                return Ok(PlanTrajectory {
+                return Some(PlanTrajectory {
                     state_sequence: current.state_path,
                     action_sequence: current.action_path,
                     total_cost: current.g_cost,
@@ -267,7 +186,6 @@ impl BoundedGraphPlanner {
             }
 
             if current.depth >= config.max_horizon {
-                horizon_capped = true;
                 continue;
             }
 
@@ -321,23 +239,11 @@ impl BoundedGraphPlanner {
             }
 
             if open_set.len() > config.max_frontier_size {
-                return Err(PlannerError::FrontierExhausted {
-                    nodes_expanded,
-                    forbidden_states_entered,
-                });
+                return None;
             }
         }
 
-        if horizon_capped {
-            return Err(PlannerError::HorizonExceeded {
-                max_horizon: config.max_horizon,
-            });
-        }
-
-        Err(PlannerError::FrontierExhausted {
-            nodes_expanded,
-            forbidden_states_entered,
-        })
+        None
     }
 }
 
@@ -424,13 +330,9 @@ mod tests {
         }];
 
         let config = PlannerConfig::default_v1();
-        let err = BoundedGraphPlanner::plan("s0", &nodes, &edges, &config).unwrap_err();
-        match err {
-            PlannerError::FrontierExhausted {
-                forbidden_states_entered,
-                ..
-            } => assert_eq!(forbidden_states_entered, 0),
-            other => panic!("expected FrontierExhausted, got {other:?}"),
-        }
+        // The only path runs through the forbidden intermediate state, so no
+        // trajectory reaches the goal: the planner yields no plan.
+        let plan = BoundedGraphPlanner::plan("s0", &nodes, &edges, &config);
+        assert!(plan.is_none());
     }
 }

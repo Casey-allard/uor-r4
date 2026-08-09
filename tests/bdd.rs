@@ -121,7 +121,7 @@ struct R4g1World {
     plan_nodes: Vec<uor_r4_graph_compiler::future_state_planner::PlannerStateNode>,
     plan_edges: Vec<uor_r4_graph_compiler::future_state_planner::PlannerEdgeTransition>,
     plan_result: Option<uor_r4_graph_compiler::future_state_planner::PlanTrajectory>,
-    plan_error: Option<uor_r4_graph_compiler::future_state_planner::PlannerError>,
+    plan_rejected: bool,
     // Lower Semantic Regions fields (#130)
     lower_bool_region: Option<uor_r4_graph_compiler::lower_semantic_regions::LoweredBooleanRegion>,
     lower_witness: Option<uor_r4_graph_compiler::lower_semantic_regions::LoweringWitnessEntry>,
@@ -1318,7 +1318,7 @@ fn bdd_audit_status_matches(w: &mut R4g1World) {
 // Future State Planner BDD Steps (#131)
 // =========================================================================
 use uor_r4_graph_compiler::future_state_planner::{
-    BoundedGraphPlanner, PlannerConfig, PlannerEdgeTransition, PlannerError, PlannerStateNode,
+    BoundedGraphPlanner, PlannerConfig, PlannerEdgeTransition, PlannerStateNode,
 };
 
 #[given("a start state \"s0\", intermediate state \"s1\", and goal state \"s2\"")]
@@ -1364,10 +1364,9 @@ fn bdd_planner_setup_valid_graph(w: &mut R4g1World) {
 #[when("the bounded graph planner computes a trajectory")]
 fn bdd_planner_compute_trajectory(w: &mut R4g1World) {
     let config = PlannerConfig::default_v1();
-    let res = BoundedGraphPlanner::plan("s0", &w.plan_nodes, &w.plan_edges, &config);
-    match res {
-        Ok(t) => w.plan_result = Some(t),
-        Err(e) => w.plan_error = Some(e),
+    match BoundedGraphPlanner::plan("s0", &w.plan_nodes, &w.plan_edges, &config) {
+        Some(t) => w.plan_result = Some(t),
+        None => w.plan_rejected = true,
     }
 }
 
@@ -1420,21 +1419,17 @@ fn bdd_planner_setup_forbidden_intermediate(w: &mut R4g1World) {
 #[when("the bounded graph planner attempts to plan a trajectory through \"s1\"")]
 fn bdd_planner_attempt_forbidden_plan(w: &mut R4g1World) {
     let config = PlannerConfig::default_v1();
-    if let Err(e) = BoundedGraphPlanner::plan("s0", &w.plan_nodes, &w.plan_edges, &config) {
-        w.plan_error = Some(e);
+    if BoundedGraphPlanner::plan("s0", &w.plan_nodes, &w.plan_edges, &config).is_none() {
+        w.plan_rejected = true;
     }
 }
 
 #[then("planning fails with a frontier exhausted error and zero forbidden states entered")]
 fn bdd_planner_frontier_exhausted_check(w: &mut R4g1World) {
-    let err = w.plan_error.as_ref().expect("plan error");
-    match err {
-        PlannerError::FrontierExhausted {
-            forbidden_states_entered,
-            ..
-        } => assert_eq!(*forbidden_states_entered, 0),
-        other => panic!("expected FrontierExhausted, got {other:?}"),
-    }
+    assert!(
+        w.plan_rejected,
+        "planning should have yielded no plan (the only path runs through a forbidden state)"
+    );
 }
 
 #[given("a start state \"s0\" marked as forbidden")]
@@ -1451,15 +1446,17 @@ fn bdd_planner_setup_forbidden_start(w: &mut R4g1World) {
 #[when("planning is initiated from \"s0\"")]
 fn bdd_planner_initiate_forbidden_start(w: &mut R4g1World) {
     let config = PlannerConfig::default_v1();
-    if let Err(e) = BoundedGraphPlanner::plan("s0", &w.plan_nodes, &w.plan_edges, &config) {
-        w.plan_error = Some(e);
+    if BoundedGraphPlanner::plan("s0", &w.plan_nodes, &w.plan_edges, &config).is_none() {
+        w.plan_rejected = true;
     }
 }
 
 #[then("planning fails immediately with an initial state forbidden error")]
 fn bdd_planner_initial_forbidden_check(w: &mut R4g1World) {
-    let err = w.plan_error.as_ref().expect("plan error");
-    assert!(matches!(err, PlannerError::InitialStateForbidden { .. }));
+    assert!(
+        w.plan_rejected,
+        "planning should have yielded no plan (the start state is forbidden)"
+    );
 }
 
 // =========================================================================
