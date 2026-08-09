@@ -10,41 +10,6 @@
 //! - Emitting traceable `LoweringWitness` linking runtime binary layout to reference IR CIDs.
 //! - Enforcing runtime transformerless invariants (XOR/AND/OR/shift/rotate/popcount/add/sub only).
 
-use std::fmt;
-
-/// Errors arising during semantic region lowering or fixed-point quantization.
-#[derive(Debug, Clone, PartialEq)]
-pub enum LoweringError {
-    /// Reference region center/boundary exceeds bounded integer representation.
-    UnrepresentableRegion { region_id: String, reason: String },
-    /// Score quantization overflow or invalid range.
-    QuantizationOverflow { score: f32 },
-    /// Reference IR state missing during lowering.
-    MissingReferenceState { state_id: String },
-}
-
-impl fmt::Display for LoweringError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::UnrepresentableRegion { region_id, reason } => write!(
-                f,
-                "Reference region '{region_id}' unrepresentable in integer runtime: {reason}"
-            ),
-            Self::QuantizationOverflow { score } => {
-                write!(
-                    f,
-                    "Fixed-point score quantization overflow for value: {score:.4}"
-                )
-            }
-            Self::MissingReferenceState { state_id } => {
-                write!(f, "Missing reference state during lowering: {state_id}")
-            }
-        }
-    }
-}
-
-impl std::error::Error for LoweringError {}
-
 /// Lowered Boolean region predicate evaluated via bitwise XOR and POPCOUNT.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LoweredBooleanRegion {
@@ -75,24 +40,27 @@ pub struct LoweredFixedPointScore {
 }
 
 impl LoweredFixedPointScore {
-    /// Quantize f32 float into Q8.8 i16 with explicit saturation.
-    pub fn quantize_q88(val: f32) -> Result<Self, LoweringError> {
+    /// Quantize f32 float into Q8.8 i16 with explicit saturation. Values beyond
+    /// the Q8.8 range saturate (they are representable, flagged `saturated`);
+    /// only a NaN has no fixed-point image, so it yields `None` (R5 — the
+    /// absence of a product rather than a raised error).
+    pub fn quantize_q88(val: f32) -> Option<Self> {
         if val.is_nan() {
-            return Err(LoweringError::QuantizationOverflow { score: val });
+            return None;
         }
         let scaled = (val * 256.0).round();
         if scaled > i16::MAX as f32 {
-            Ok(Self {
+            Some(Self {
                 q88_value: i16::MAX,
                 saturated: true,
             })
         } else if scaled < i16::MIN as f32 {
-            Ok(Self {
+            Some(Self {
                 q88_value: i16::MIN,
                 saturated: true,
             })
         } else {
-            Ok(Self {
+            Some(Self {
                 q88_value: scaled as i16,
                 saturated: false,
             })
@@ -128,6 +96,13 @@ pub struct BooleanLoweringCompiler;
 
 impl BooleanLoweringCompiler {
     /// Lower a set of boolean signatures and radiuses into `LoweredBooleanRegion` predicates.
+    ///
+    /// `None` when the region is unrepresentable in the integer runtime: a
+    /// signature longer than the 64-bit mask, or a radius outside the Hamming
+    /// bound `[0, signature length]`. Both are properties of the caller's
+    /// requested region, so no lowered region is a product of them (R5 — the
+    /// absence of a product rather than a raised error; the mixed integer/float
+    /// conditions unify as `None` rather than a single sanctioned bound type).
     pub fn lower_region(
         region_id: impl Into<String>,
         signature_bits: &[bool],
@@ -135,26 +110,14 @@ impl BooleanLoweringCompiler {
         ref_cid: &str,
         reference_contribution_id: u32,
         runtime_table_index: u32,
-    ) -> Result<(LoweredBooleanRegion, LoweringWitnessEntry), LoweringError> {
+    ) -> Option<(LoweredBooleanRegion, LoweringWitnessEntry)> {
         let r_id = region_id.into();
         if signature_bits.len() > 64 {
-            return Err(LoweringError::UnrepresentableRegion {
-                region_id: r_id,
-                reason: format!(
-                    "Signature length {} exceeds 64-bit mask limit",
-                    signature_bits.len()
-                ),
-            });
+            return None;
         }
         let max_radius = signature_bits.len() as f32;
         if !(0.0..=max_radius).contains(&radius_float) {
-            return Err(LoweringError::UnrepresentableRegion {
-                region_id: r_id,
-                reason: format!(
-                    "Radius {radius_float:.2} outside valid Hamming bound [0..{max_radius}] for signature length {}",
-                    signature_bits.len()
-                ),
-            });
+            return None;
         }
 
         let mut sig_u64 = 0u64;
@@ -184,7 +147,7 @@ impl BooleanLoweringCompiler {
             quantization_delta: (radius_float - max_dist as f32).abs(),
         };
 
-        Ok((region, witness))
+        Some((region, witness))
     }
 }
 
@@ -234,27 +197,25 @@ mod tests {
     #[test]
     fn test_unrepresentable_region_rejection() {
         let long_sig = vec![true; 100];
-        let err = BooleanLoweringCompiler::lower_region(
+        let result = BooleanLoweringCompiler::lower_region(
             "reg_overflow",
             &long_sig,
             1.0,
             "cid_err",
             101,
             0,
-        )
-        .unwrap_err();
+        );
 
-        assert!(matches!(err, LoweringError::UnrepresentableRegion { .. }));
+        assert!(result.is_none());
     }
 
     #[test]
     fn test_radius_exceeding_signature_width_rejected() {
         let sig = vec![true, false, true, true]; // 4-bit signature
-        let err =
-            BooleanLoweringCompiler::lower_region("reg_wide_radius", &sig, 5.0, "cid_err", 101, 0)
-                .unwrap_err();
+        let result =
+            BooleanLoweringCompiler::lower_region("reg_wide_radius", &sig, 5.0, "cid_err", 101, 0);
 
-        assert!(matches!(err, LoweringError::UnrepresentableRegion { .. }));
+        assert!(result.is_none());
     }
 
     #[test]

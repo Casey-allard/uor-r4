@@ -128,7 +128,7 @@ struct R4g1World {
     lower_q_normal: Option<uor_r4_graph_compiler::lower_semantic_regions::LoweredFixedPointScore>,
     lower_q_max: Option<uor_r4_graph_compiler::lower_semantic_regions::LoweredFixedPointScore>,
     lower_q_min: Option<uor_r4_graph_compiler::lower_semantic_regions::LoweredFixedPointScore>,
-    lower_error: Option<uor_r4_graph_compiler::lower_semantic_regions::LoweringError>,
+    lower_rejected: bool,
     // Reference Compiler IR fields (#129)
     ref_corpus: Vec<String>,
     ref_ir: Option<uor_r4_graph_compiler::reference_compiler_ir::ReferenceGraphIr>,
@@ -1466,7 +1466,7 @@ fn bdd_planner_initial_forbidden_check(w: &mut R4g1World) {
 // Lower Semantic Regions BDD Steps (#130)
 // =========================================================================
 use uor_r4_graph_compiler::lower_semantic_regions::{
-    BooleanLoweringCompiler, LoweredFixedPointScore, LoweringError,
+    BooleanLoweringCompiler, LoweredFixedPointScore,
 };
 
 #[given(
@@ -1545,17 +1545,19 @@ fn bdd_given_100bit_sig(_w: &mut R4g1World) {}
 #[when("region lowering is attempted")]
 fn bdd_attempt_100bit_lowering(w: &mut R4g1World) {
     let long_sig = vec![true; 100];
-    if let Err(e) =
-        BooleanLoweringCompiler::lower_region("reg_overflow", &long_sig, 1.0, "cid_err", 101, 0)
+    if BooleanLoweringCompiler::lower_region("reg_overflow", &long_sig, 1.0, "cid_err", 101, 0)
+        .is_none()
     {
-        w.lower_error = Some(e);
+        w.lower_rejected = true;
     }
 }
 
 #[then("lowering fails with an unrepresentable region error")]
 fn bdd_unrepresentable_error_check(w: &mut R4g1World) {
-    let err = w.lower_error.as_ref().expect("lower error");
-    assert!(matches!(err, LoweringError::UnrepresentableRegion { .. }));
+    assert!(
+        w.lower_rejected,
+        "lowering should have rejected the unrepresentable region (returned None)"
+    );
 }
 
 // =========================================================================
