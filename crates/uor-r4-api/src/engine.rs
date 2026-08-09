@@ -34,7 +34,6 @@
 //! defaults.
 
 use std::fmt;
-use std::io;
 
 use serde::{Deserialize, Serialize};
 use uor_r4_core::transformerless::compiler::{self, Compiled, SIG_BYTES, STAGES, WINDOW};
@@ -176,7 +175,7 @@ pub enum LoadError {
     /// The score report bytes are not well-formed JSON.
     InvalidScoreReport(String),
     /// The tokenizer bytes are not a well-formed binary tokenizer.
-    InvalidTokenizer(io::Error),
+    InvalidTokenizer,
     /// The graph's Rule 1+2 quality digresses from the declared quality
     /// basis (see [`validate_quality_report`]).
     QualityGate(String),
@@ -198,7 +197,7 @@ impl fmt::Display for LoadError {
             LoadError::InvalidScoreReport(message) => {
                 write!(f, "invalid score report: {message}")
             }
-            LoadError::InvalidTokenizer(error) => write!(f, "invalid tokenizer bytes: {error}"),
+            LoadError::InvalidTokenizer => write!(f, "invalid tokenizer bytes"),
             LoadError::QualityGate(message) => write!(f, "{message}"),
             LoadError::Scorer(message) => write!(f, "{message}"),
             LoadError::TeacherTooLarge => write!(f, "teacher token table too large"),
@@ -216,7 +215,6 @@ impl std::error::Error for LoadError {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
             LoadError::InvalidGraph(error) => Some(error),
-            LoadError::InvalidTokenizer(error) => Some(error),
             _ => None,
         }
     }
@@ -1160,7 +1158,7 @@ impl R4Engine {
         }
         let tokenizer = parts
             .tokenizer
-            .map(|bytes| Tokenizer::from_bytes(bytes).map_err(LoadError::InvalidTokenizer))
+            .map(|bytes| Tokenizer::from_bytes(bytes).ok_or(LoadError::InvalidTokenizer))
             .transpose()?;
 
         let policy = StatusPolicy::from_report(score_report.as_ref());

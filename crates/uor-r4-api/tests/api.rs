@@ -54,18 +54,18 @@ fn tokenizer_from_bytes_rejects_truncated() {
         .into_iter()
         .chain(*b"a")
         .collect::<Vec<_>>();
-    let error = match Tokenizer::from_bytes(&bytes) {
-        Err(error) => error,
-        Ok(_) => panic!("truncated token must fail"),
-    };
-    assert_eq!(error.kind(), std::io::ErrorKind::InvalidData);
+    // from_bytes is total: a truncated token yields None.
+    assert!(
+        Tokenizer::from_bytes(&bytes).is_none(),
+        "truncated token must fail"
+    );
 
     // Negative length.
     let bytes = (-1i32).to_le_bytes().to_vec();
-    assert!(Tokenizer::from_bytes(&bytes).is_err());
+    assert!(Tokenizer::from_bytes(&bytes).is_none());
 
     // Trailing partial length field.
-    assert!(Tokenizer::from_bytes(&[0u8, 1]).is_err());
+    assert!(Tokenizer::from_bytes(&[0u8, 1]).is_none());
 }
 
 // ---------------------------------------------------------- abi version --

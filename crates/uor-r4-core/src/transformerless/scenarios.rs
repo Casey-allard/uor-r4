@@ -56,7 +56,7 @@ pub fn format_instruct_chat_prompt(system_prompt: Option<&str>, user_prompt: &st
 pub fn export_hf_bytelevel_tokenizer(
     source: impl AsRef<Path>,
     destination: impl AsRef<Path>,
-) -> io::Result<()> {
+) -> Result<(), uor_r4_model_source::SourceUnavailable> {
     export_hf_bytelevel_tokenizer_with_lengths(source, destination).map(|_| ())
 }
 
@@ -66,15 +66,15 @@ pub fn export_hf_bytelevel_tokenizer(
 pub fn export_hf_bytelevel_tokenizer_with_lengths(
     source: impl AsRef<Path>,
     destination: impl AsRef<Path>,
-) -> io::Result<Vec<u32>> {
+) -> Result<Vec<u32>, uor_r4_model_source::SourceUnavailable> {
     let tokens = hf_bytelevel_tokens(source)?;
     let lengths = tokens
         .iter()
         .map(|token| {
             u32::try_from(token.len())
-                .map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "token too long"))
+                .map_err(|_| uor_r4_model_source::SourceUnavailable::new("token too long"))
         })
-        .collect::<io::Result<Vec<_>>>()?;
+        .collect::<Result<Vec<_>, uor_r4_model_source::SourceUnavailable>>()?;
     let mut bytes = Vec::new();
     for token in tokens {
         let length = i32::try_from(token.len())
@@ -86,23 +86,25 @@ pub fn export_hf_bytelevel_tokenizer_with_lengths(
     Ok(lengths)
 }
 
-fn hf_bytelevel_tokens(source: impl AsRef<Path>) -> io::Result<Vec<Vec<u8>>> {
-    let value: serde_json::Value = serde_json::from_slice(&std::fs::read(source)?)
-        .map_err(|error| io::Error::new(io::ErrorKind::InvalidData, error))?;
+#[cfg(not(target_arch = "wasm32"))]
+fn hf_bytelevel_tokens(
+    source: impl AsRef<Path>,
+) -> Result<Vec<Vec<u8>>, uor_r4_model_source::SourceUnavailable> {
+    let value: serde_json::Value = serde_json::from_slice(&std::fs::read(source)?)?;
     let vocab = value
         .pointer("/model/vocab")
         .and_then(serde_json::Value::as_object)
-        .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "missing BPE vocabulary"))?;
+        .ok_or_else(|| uor_r4_model_source::SourceUnavailable::new("missing BPE vocabulary"))?;
     let mut tokens = vec![Vec::new(); vocab.len()];
     let byte_map = bytelevel_inverse();
     for (piece, id) in vocab {
         let id = id
             .as_u64()
             .and_then(|value| usize::try_from(value).ok())
-            .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "invalid token id"))?;
+            .ok_or_else(|| uor_r4_model_source::SourceUnavailable::new("invalid token id"))?;
         let output = tokens
             .get_mut(id)
-            .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "sparse token ids"))?;
+            .ok_or_else(|| uor_r4_model_source::SourceUnavailable::new("sparse token ids"))?;
         for ch in piece.chars() {
             if let Some(byte) = byte_map.get(&ch) {
                 output.push(*byte);
@@ -115,6 +117,7 @@ fn hf_bytelevel_tokens(source: impl AsRef<Path>) -> io::Result<Vec<Vec<u8>>> {
     Ok(tokens)
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 fn bytelevel_inverse() -> BTreeMap<char, u8> {
     let mut bytes: Vec<u8> = (b'!'..=b'~')
         .chain(0xA1..=0xAC)
@@ -159,7 +162,9 @@ pub struct Tokenizer {
 impl Tokenizer {
     /// Load and validate a tokenizer without panicking on malformed input.
     #[cfg(not(target_arch = "wasm32"))]
-    pub fn try_load(path: impl AsRef<Path>) -> io::Result<Self> {
+    pub fn try_load(
+        path: impl AsRef<Path>,
+    ) -> Result<Self, uor_r4_model_source::SourceUnavailable> {
         let path_ref = path.as_ref();
 
         // 1. Try loading vocab.json if present in the target or parent directories
@@ -199,36 +204,30 @@ impl Tokenizer {
 
         // 2. Fall back to binary tokenizer.bin format
         let bytes = std::fs::read(path_ref)?;
-        Self::from_bytes(&bytes)
+        Self::from_bytes(&bytes).ok_or_else(|| {
+            uor_r4_model_source::SourceUnavailable::new(format!(
+                "{}: not a valid tokenizer.bin",
+                path_ref.display()
+            ))
+        })
     }
 
     /// Parse a tokenizer from in-memory bytes in the binary tokenizer.bin
     /// format (per token: i32 little-endian length, then the token bytes).
     /// Split from [`try_load`](Self::try_load) so library consumers can
     /// validate a bundled tokenizer without filesystem access.
-    pub fn from_bytes(bytes: &[u8]) -> io::Result<Self> {
+    pub fn from_bytes(bytes: &[u8]) -> Option<Self> {
         let mut vocab = Vec::new();
         let mut offset = 0usize;
         while offset < bytes.len() {
-            let length_bytes = bytes.get(offset..offset + 4).ok_or_else(|| {
-                io::Error::new(io::ErrorKind::InvalidData, "truncated tokenizer length")
-            })?;
-            let length = i32::from_le_bytes(
-                length_bytes
-                    .try_into()
-                    .map_err(|error| io::Error::new(io::ErrorKind::InvalidData, error))?,
-            );
+            let length_bytes = bytes.get(offset..offset + 4)?;
+            let length = i32::from_le_bytes(length_bytes.try_into().ok()?);
             offset += 4;
             if length < 0 {
-                return Err(io::Error::new(
-                    io::ErrorKind::InvalidData,
-                    "negative token length",
-                ));
+                return None;
             }
             let length = length as usize;
-            let token = bytes.get(offset..offset + length).ok_or_else(|| {
-                io::Error::new(io::ErrorKind::InvalidData, "truncated tokenizer token")
-            })?;
+            let token = bytes.get(offset..offset + length)?;
             vocab.push(token.to_vec());
             offset += length;
         }
@@ -237,7 +236,7 @@ impl Tokenizer {
             let id = index as u32;
             map.entry(token.clone()).or_insert(id);
         }
-        Ok(Tokenizer { vocab, map })
+        Some(Tokenizer { vocab, map })
     }
 
     #[cfg(not(target_arch = "wasm32"))]

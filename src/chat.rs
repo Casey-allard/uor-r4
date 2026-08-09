@@ -160,7 +160,8 @@ impl ChatEngineBuilder {
                 model_store.get(&manifest.tokenizer)?
             };
         let tokenizer_path = write_tokenizer_cache(&manifest.tokenizer.cid, &tokenizer_bytes)?;
-        let tokenizer = Tokenizer::try_load(&tokenizer_path)?;
+        let tokenizer = Tokenizer::try_load(&tokenizer_path)
+            .map_err(|error| ChatError::Io(std::io::Error::other(error.reason)))?;
         tracing::info!(
             model = %manifest.name,
             source_model = %manifest.source_model,
@@ -211,7 +212,8 @@ fn build_local_compiled_engine(
     let store_object = model_store.put(&store_bytes)?;
     let tokenizer_object = model_store.put(&tokenizer_bytes)?;
     let tokenizer_path = write_tokenizer_cache(&tokenizer_object.cid, &tokenizer_bytes)?;
-    let tokenizer = Tokenizer::try_load(&tokenizer_path)?;
+    let tokenizer = Tokenizer::try_load(&tokenizer_path)
+        .map_err(|error| ChatError::Io(std::io::Error::other(error.reason)))?;
     tracing::warn!(
         model = reference,
         directory = %directory.display(),
