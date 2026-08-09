@@ -138,8 +138,7 @@ struct R4g1World {
     // Behavioral Probe fields (#128)
     probe_baseline_obs: String,
     probe_suite_report: Option<uor_r4_graph_compiler::behavioral_probes::BehavioralProbeReport>,
-    probe_suite_error: Option<uor_r4_graph_compiler::behavioral_probes::BehavioralProbeError>,
-    probe_record_error: Option<uor_r4_graph_compiler::behavioral_probes::BehavioralProbeError>,
+    probe_record_rejected: bool,
     // Semantic State Space fields (#124)
     state_s0: Option<uor_r4_graph_compiler::semantic_state::SemanticState>,
     state_eval_res: Option<
@@ -1644,8 +1643,7 @@ fn bdd_diff_comparison_passes(w: &mut R4g1World) {
 // Behavioral Probes BDD Steps (#128)
 // =========================================================================
 use uor_r4_graph_compiler::behavioral_probes::{
-    BehavioralProbeError, BehavioralProbeHarness, ExpectedRelation, InterventionKind,
-    InterventionRecord,
+    BehavioralProbeHarness, ExpectedRelation, InterventionKind, InterventionRecord,
 };
 
 #[given("a baseline observation \"Context text sample\"")]
@@ -1676,7 +1674,7 @@ fn bdd_evaluate_probes(w: &mut R4g1World) {
     )
     .unwrap();
 
-    let report = BehavioralProbeHarness::evaluate_suite(&[p_inv, p_sens], 0.05, 0.5).unwrap();
+    let report = BehavioralProbeHarness::evaluate_suite(&[p_inv, p_sens], 0.05, 0.5);
     w.probe_suite_report = Some(report);
 }
 
@@ -1705,9 +1703,7 @@ fn bdd_zero_divergence_sensitive_probe(w: &mut R4g1World) {
     )
     .unwrap();
 
-    if let Err(e) = BehavioralProbeHarness::evaluate_suite(&[p_mem], 0.05, 0.5) {
-        w.probe_suite_error = Some(e);
-    }
+    w.probe_suite_report = Some(BehavioralProbeHarness::evaluate_suite(&[p_mem], 0.05, 0.5));
 }
 
 #[when("the probe suite is evaluated by the behavioral harness")]
@@ -1715,11 +1711,11 @@ fn bdd_harness_eval_step(_w: &mut R4g1World) {}
 
 #[then("evaluation fails with a memorization detected error")]
 fn bdd_memorization_error_check(w: &mut R4g1World) {
-    let err = w.probe_suite_error.as_ref().expect("suite error");
-    assert!(matches!(
-        err,
-        BehavioralProbeError::MemorizationDetected { .. }
-    ));
+    let report = w.probe_suite_report.as_ref().expect("report");
+    assert!(
+        !report.memorization_check_passed,
+        "the anti-memorization guard should have failed (memorization_check_passed = false)"
+    );
 }
 
 #[given("an observation of length 15")]
@@ -1727,22 +1723,26 @@ fn bdd_observation_len_15(_w: &mut R4g1World) {}
 
 #[when("an intervention record is created with span [0..20]")]
 fn bdd_create_out_of_bounds_span(w: &mut R4g1World) {
-    if let Err(e) = InterventionRecord::new(
+    if InterventionRecord::new(
         "Short 15 char!!",
         InterventionKind::ContextAblation,
         (0, 20),
         ExpectedRelation::Invariant,
         vec![1.0],
         vec![1.0],
-    ) {
-        w.probe_record_error = Some(e);
+    )
+    .is_none()
+    {
+        w.probe_record_rejected = true;
     }
 }
 
 #[then("record creation fails with a span out of bounds error")]
 fn bdd_span_out_of_bounds_check(w: &mut R4g1World) {
-    let err = w.probe_record_error.as_ref().expect("record error");
-    assert!(matches!(err, BehavioralProbeError::SpanOutOfBounds { .. }));
+    assert!(
+        w.probe_record_rejected,
+        "record creation should have rejected the out-of-bounds span (returned None)"
+    );
 }
 
 // =========================================================================

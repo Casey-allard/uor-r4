@@ -13,65 +13,6 @@
 //! - Probe harness evaluating sensitivity and invariance scores with anti-memorization guards.
 
 use serde::{Deserialize, Serialize};
-use std::fmt;
-
-/// Errors arising during behavioral probe creation or evaluation.
-#[derive(Debug, Clone, PartialEq)]
-pub enum BehavioralProbeError {
-    /// Affected span range is out of bounds for the source observation string.
-    SpanOutOfBounds {
-        start: usize,
-        end: usize,
-        len: usize,
-    },
-    /// Invalid probe outputs (empty or dimension mismatch).
-    InvalidOutputDimensions {
-        baseline_len: usize,
-        intervention_len: usize,
-    },
-    /// Surface memorization guard detected non-generalizing table lookup.
-    MemorizationDetected { probe_id: String },
-    /// Probe execution failed expected relation assertion.
-    AssertionFailed {
-        probe_id: String,
-        expected: String,
-        actual: String,
-    },
-}
-
-impl fmt::Display for BehavioralProbeError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::SpanOutOfBounds { start, end, len } => {
-                write!(
-                    f,
-                    "Probe span [{start}..{end}] out of bounds for observation length {len}"
-                )
-            }
-            Self::InvalidOutputDimensions {
-                baseline_len,
-                intervention_len,
-            } => write!(
-                f,
-                "Output dimension mismatch: baseline {baseline_len}, intervention {intervention_len}"
-            ),
-            Self::MemorizationDetected { probe_id } => write!(
-                f,
-                "Anti-memorization guard failed for probe '{probe_id}': surface lookup detected"
-            ),
-            Self::AssertionFailed {
-                probe_id,
-                expected,
-                actual,
-            } => write!(
-                f,
-                "Probe '{probe_id}' assertion failed: expected {expected}, actual {actual}"
-            ),
-        }
-    }
-}
-
-impl std::error::Error for BehavioralProbeError {}
 
 /// Controlled intervention kind applied to observation context $x$.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -119,7 +60,11 @@ pub struct InterventionRecord {
 }
 
 impl InterventionRecord {
-    /// Create and validate a new intervention record.
+    /// Create and validate a new intervention record. `None` when the record is
+    /// not a product of these inputs: the affected span is out of bounds for the
+    /// observation, or the baseline/intervention outputs are empty or of
+    /// mismatched dimension (R5 — the absence of a product rather than a raised
+    /// error).
     pub fn new(
         source_observation: impl Into<String>,
         kind: InterventionKind,
@@ -127,21 +72,14 @@ impl InterventionRecord {
         expected_relation: ExpectedRelation,
         baseline_output: Vec<f32>,
         intervention_output: Vec<f32>,
-    ) -> Result<Self, BehavioralProbeError> {
+    ) -> Option<Self> {
         let obs = source_observation.into();
         let (start, end) = affected_span;
         if start > end || end > obs.len() {
-            return Err(BehavioralProbeError::SpanOutOfBounds {
-                start,
-                end,
-                len: obs.len(),
-            });
+            return None;
         }
         if baseline_output.len() != intervention_output.len() || baseline_output.is_empty() {
-            return Err(BehavioralProbeError::InvalidOutputDimensions {
-                baseline_len: baseline_output.len(),
-                intervention_len: intervention_output.len(),
-            });
+            return None;
         }
 
         // Content-addressed ID: blake3 over the observation, intervention
@@ -161,7 +99,7 @@ impl InterventionRecord {
         }
         let id = format!("probe_blake3:{}", hasher.finalize().to_hex());
 
-        Ok(Self {
+        Some(Self {
             id,
             source_observation: obs,
             kind,
@@ -198,20 +136,24 @@ pub struct BehavioralProbeHarness;
 
 impl BehavioralProbeHarness {
     /// Evaluate a set of intervention records against expectation relations.
+    /// Total: the anti-memorization guard's verdict is carried in the report's
+    /// `memorization_check_passed` field rather than raised as an error (R5 — a
+    /// validator reports the held property; a tripped guard is `false`, not a
+    /// failure to produce a report).
     pub fn evaluate_suite(
         probes: &[InterventionRecord],
         invariance_tolerance: f32,
         sensitivity_threshold: f32,
-    ) -> Result<BehavioralProbeReport, BehavioralProbeError> {
+    ) -> BehavioralProbeReport {
         if probes.is_empty() {
-            return Ok(BehavioralProbeReport {
+            return BehavioralProbeReport {
                 total_probes: 0,
                 invariant_passed: 0,
                 sensitive_passed: 0,
                 invariance_score: 1.0,
                 sensitivity_score: 1.0,
                 memorization_check_passed: true,
-            });
+            };
         }
 
         let mut inv_count = 0;
@@ -253,27 +195,23 @@ impl BehavioralProbeHarness {
         // Anti-memorization guard check: any Sensitive GoalChange/ContextAblation probe
         // whose divergence falls below the sensitivity threshold indicates the model is
         // memorizing surface form without understanding state dynamics.
-        if let Some(probe) = probes.iter().find(|probe| {
+        let memorization_check_passed = !probes.iter().any(|probe| {
             probe.expected_relation == ExpectedRelation::Sensitive
                 && matches!(
                     probe.kind,
                     InterventionKind::GoalChange | InterventionKind::ContextAblation
                 )
                 && probe.output_divergence() < sensitivity_threshold
-        }) {
-            return Err(BehavioralProbeError::MemorizationDetected {
-                probe_id: probe.id.clone(),
-            });
-        }
+        });
 
-        Ok(BehavioralProbeReport {
+        BehavioralProbeReport {
             total_probes: probes.len(),
             invariant_passed: inv_passed,
             sensitive_passed: sens_passed,
             invariance_score,
             sensitivity_score,
-            memorization_check_passed: true,
-        })
+            memorization_check_passed,
+        }
     }
 }
 
@@ -319,7 +257,7 @@ mod tests {
         )
         .unwrap();
 
-        let report = BehavioralProbeHarness::evaluate_suite(&[p_inv, p_sens], 0.05, 0.5).unwrap();
+        let report = BehavioralProbeHarness::evaluate_suite(&[p_inv, p_sens], 0.05, 0.5);
 
         assert_eq!(report.total_probes, 2);
         assert_eq!(report.invariance_score, 1.0);
@@ -340,10 +278,7 @@ mod tests {
         )
         .unwrap();
 
-        let err = BehavioralProbeHarness::evaluate_suite(&[p_mem], 0.05, 0.5).unwrap_err();
-        assert!(matches!(
-            err,
-            BehavioralProbeError::MemorizationDetected { .. }
-        ));
+        let report = BehavioralProbeHarness::evaluate_suite(&[p_mem], 0.05, 0.5);
+        assert!(!report.memorization_check_passed);
     }
 }
