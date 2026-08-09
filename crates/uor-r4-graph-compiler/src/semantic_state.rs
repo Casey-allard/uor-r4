@@ -14,48 +14,6 @@
 use std::collections::HashMap;
 use std::fmt;
 
-/// Errors arising during semantic state manipulation or transition evaluation.
-#[derive(Debug, Clone, PartialEq)]
-pub enum SemanticStateError {
-    /// Precondition for action $A$ failed on state $S$.
-    PreconditionFailed { action: String, reason: String },
-    /// Transition produced or encountered a forbidden state violating constraints.
-    ForbiddenState { action: String, reason: String },
-    /// Trajectory execution exceeded maximum step limit.
-    MaxStepsExceeded { limit: usize },
-    /// Action is unknown or missing in transition system.
-    UnknownAction { action: String },
-    /// State dimensions or vector representations are incompatible.
-    DimensionMismatch { expected: usize, actual: usize },
-    /// Invalid state parameter or value.
-    InvalidState { reason: String },
-}
-
-impl fmt::Display for SemanticStateError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::PreconditionFailed { action, reason } => {
-                write!(f, "Precondition for action '{action}' failed: {reason}")
-            }
-            Self::ForbiddenState { action, reason } => {
-                write!(f, "Action '{action}' produced forbidden state: {reason}")
-            }
-            Self::MaxStepsExceeded { limit } => {
-                write!(f, "Trajectory step limit of {limit} exceeded")
-            }
-            Self::UnknownAction { action } => {
-                write!(f, "Unknown action: '{action}'")
-            }
-            Self::DimensionMismatch { expected, actual } => {
-                write!(f, "Dimension mismatch: expected {expected}, found {actual}")
-            }
-            Self::InvalidState { reason } => write!(f, "Invalid state: {reason}"),
-        }
-    }
-}
-
-impl std::error::Error for SemanticStateError {}
-
 /// Classification of state fields into compiler-only vs lowered runtime fields.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FieldLoweringTier {
@@ -103,13 +61,13 @@ impl SemanticState {
         self
     }
 
-    /// Compute Euclidean distance to another state vector.
-    pub fn distance_to(&self, other: &Self) -> Result<f32, SemanticStateError> {
+    /// Compute Euclidean distance to another state vector. `None` when the two
+    /// vectors have different dimensions: no distance is a product of
+    /// incomparable states (R5 — the absence of a product rather than a raised
+    /// error).
+    pub fn distance_to(&self, other: &Self) -> Option<f32> {
         if self.vector.len() != other.vector.len() {
-            return Err(SemanticStateError::DimensionMismatch {
-                expected: self.vector.len(),
-                actual: other.vector.len(),
-            });
+            return None;
         }
         let sum_sq: f32 = self
             .vector
@@ -117,16 +75,14 @@ impl SemanticState {
             .zip(other.vector.iter())
             .map(|(a, b)| (a - b).powi(2))
             .sum();
-        Ok(sum_sq.sqrt())
+        Some(sum_sq.sqrt())
     }
 
-    /// Compute Hamming distance between bit signatures.
-    pub fn hamming_distance(&self, other: &Self) -> Result<u32, SemanticStateError> {
+    /// Compute Hamming distance between bit signatures. `None` when the two
+    /// signatures have different lengths (incomparable states — R5).
+    pub fn hamming_distance(&self, other: &Self) -> Option<u32> {
         if self.boolean_signature.len() != other.boolean_signature.len() {
-            return Err(SemanticStateError::DimensionMismatch {
-                expected: self.boolean_signature.len(),
-                actual: other.boolean_signature.len(),
-            });
+            return None;
         }
         let dist: u32 = self
             .boolean_signature
@@ -134,7 +90,7 @@ impl SemanticState {
             .zip(other.boolean_signature.iter())
             .map(|(a, b)| (a ^ b).count_ones())
             .sum();
-        Ok(dist)
+        Some(dist)
     }
 
     /// Record lowering tier specifications for state fields.
@@ -350,35 +306,25 @@ impl TransitionEvaluator {
         self.constraints.push(constraint);
     }
 
-    /// Evaluate transition $T(s, a) \to S$ with precondition and constraint enforcement.
-    pub fn apply(
-        &self,
-        state: &SemanticState,
-        action: &Action,
-    ) -> Result<SemanticState, SemanticStateError> {
+    /// Evaluate transition $T(s, a) \to S$ with precondition and constraint
+    /// enforcement. `None` when the transition produces no next state: the
+    /// precondition fails, the action's dimensions do not match the state, the
+    /// result violates a constraint (forbidden state), or the postcondition
+    /// fails. All are properties of the requested (state, action) pair, so no
+    /// next state is a product of them (R5 — the absence of a product rather
+    /// than a raised error).
+    pub fn apply(&self, state: &SemanticState, action: &Action) -> Option<SemanticState> {
         // 1. Check Preconditions
         if matches!(action.precondition.as_ref(), Some(prec) if !prec(state)) {
-            return Err(SemanticStateError::PreconditionFailed {
-                action: action.name.clone(),
-                reason: format!(
-                    "Precondition predicate evaluated false for state '{}'",
-                    state.id
-                ),
-            });
+            return None;
         }
 
         // 2. Compute Target Vector & Bit Signature
         if state.vector.len() != action.delta_vector.len() {
-            return Err(SemanticStateError::DimensionMismatch {
-                expected: state.vector.len(),
-                actual: action.delta_vector.len(),
-            });
+            return None;
         }
         if state.boolean_signature.len() != action.mask_flip.len() {
-            return Err(SemanticStateError::DimensionMismatch {
-                expected: state.boolean_signature.len(),
-                actual: action.mask_flip.len(),
-            });
+            return None;
         }
         let new_vector: Vec<f32> = state
             .vector
@@ -402,27 +348,16 @@ impl TransitionEvaluator {
         // 3. Check Constraints (Forbidden States)
         for constraint in &self.constraints {
             if constraint.is_violated_by(&next_state) {
-                return Err(SemanticStateError::ForbiddenState {
-                    action: action.name.clone(),
-                    reason: format!(
-                        "Transition produced state violating constraint '{}'",
-                        constraint.name
-                    ),
-                });
+                return None;
             }
         }
 
         // 4. Check Postconditions
         if matches!(action.postcondition.as_ref(), Some(postc) if !postc(&next_state)) {
-            return Err(SemanticStateError::InvalidState {
-                reason: format!(
-                    "Postcondition predicate failed for action '{}' on next state",
-                    action.name
-                ),
-            });
+            return None;
         }
 
-        Ok(next_state)
+        Some(next_state)
     }
 }
 
@@ -459,36 +394,38 @@ impl Trajectory {
             .expect("trajectory must have initial state")
     }
 
-    /// Step trajectory forward using an action and transition evaluator.
+    /// Step trajectory forward using an action and transition evaluator. `None`
+    /// when the trajectory cannot advance: the step limit is reached, or the
+    /// transition produces no next state (R5 — the absence of a product rather
+    /// than a raised error).
     pub fn step(
         &mut self,
         action: &Action,
         evaluator: &TransitionEvaluator,
-    ) -> Result<&SemanticState, SemanticStateError> {
+    ) -> Option<&SemanticState> {
         if self.actions.len() >= self.max_steps {
-            return Err(SemanticStateError::MaxStepsExceeded {
-                limit: self.max_steps,
-            });
+            return None;
         }
         let current = self.current_state();
         let next_state = evaluator.apply(current, action)?;
         self.actions.push(action.name.clone());
         self.states.push(next_state);
-        Ok(self.current_state())
+        Some(self.current_state())
     }
 
-    /// Deterministic trajectory replay from initial state across actions.
+    /// Deterministic trajectory replay from initial state across actions. `None`
+    /// when any step cannot advance (R5).
     pub fn replay(
         initial_state: SemanticState,
         actions: &[Action],
         evaluator: &TransitionEvaluator,
         max_steps: usize,
-    ) -> Result<Self, SemanticStateError> {
+    ) -> Option<Self> {
         let mut traj = Self::new(initial_state, max_steps);
         for action in actions {
             traj.step(action, evaluator)?;
         }
-        Ok(traj)
+        Some(traj)
     }
 }
 
@@ -522,8 +459,7 @@ mod tests {
 
         // Test precondition failure
         let invalid_s = SemanticState::new("invalid", vec![0.0, -1.0], vec![0b00], 1.0);
-        let err = evaluator.apply(&invalid_s, &action_ok).unwrap_err();
-        assert!(matches!(err, SemanticStateError::PreconditionFailed { .. }));
+        assert!(evaluator.apply(&invalid_s, &action_ok).is_none());
     }
 
     #[test]
@@ -537,8 +473,7 @@ mod tests {
         let mut evaluator = TransitionEvaluator::new();
         evaluator.add_constraint(constraint);
 
-        let err = evaluator.apply(&s0, &action).unwrap_err();
-        assert!(matches!(err, SemanticStateError::ForbiddenState { .. }));
+        assert!(evaluator.apply(&s0, &action).is_none());
     }
 
     #[test]
@@ -563,14 +498,10 @@ mod tests {
         let evaluator = TransitionEvaluator::new();
 
         let mut traj = Trajectory::new(s0, 2);
-        assert!(traj.step(&step_action, &evaluator).is_ok());
-        assert!(traj.step(&step_action, &evaluator).is_ok());
+        assert!(traj.step(&step_action, &evaluator).is_some());
+        assert!(traj.step(&step_action, &evaluator).is_some());
 
         // 3rd step should exceed max_steps = 2
-        let err = traj.step(&step_action, &evaluator).unwrap_err();
-        assert!(matches!(
-            err,
-            SemanticStateError::MaxStepsExceeded { limit: 2 }
-        ));
+        assert!(traj.step(&step_action, &evaluator).is_none());
     }
 }

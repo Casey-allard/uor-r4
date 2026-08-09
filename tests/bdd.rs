@@ -140,17 +140,12 @@ struct R4g1World {
     probe_record_rejected: bool,
     // Semantic State Space fields (#124)
     state_s0: Option<uor_r4_graph_compiler::semantic_state::SemanticState>,
-    state_eval_res: Option<
-        Result<
-            uor_r4_graph_compiler::semantic_state::SemanticState,
-            uor_r4_graph_compiler::semantic_state::SemanticStateError,
-        >,
-    >,
+    state_eval_res: Option<Option<uor_r4_graph_compiler::semantic_state::SemanticState>>,
     hazard_evaluator: Option<uor_r4_graph_compiler::semantic_state::TransitionEvaluator>,
     goal_satisfied: Option<bool>,
     belief_in: Option<f32>,
     belief_out: Option<f32>,
-    trajectory_error: Option<uor_r4_graph_compiler::semantic_state::SemanticStateError>,
+    trajectory_step_rejected: bool,
     contract_doc_text: String,
     contract_doc_version: Option<String>,
     contract_module_version: Option<String>,
@@ -1747,8 +1742,8 @@ fn bdd_span_out_of_bounds_check(w: &mut R4g1World) {
 // =========================================================================
 use uor_r4_graph_compiler::semantic_state::{
     Action as SemAction, Belief as SemBelief, Constraint as SemConstraint, Goal as SemGoal,
-    Region as SemRegion, SemanticState as SemState, SemanticStateError as SemError,
-    Trajectory as SemTrajectory, TransitionEvaluator as SemEvaluator,
+    Region as SemRegion, SemanticState as SemState, Trajectory as SemTrajectory,
+    TransitionEvaluator as SemEvaluator,
 };
 
 #[given("an initial semantic state \"s0\" with vector [0.0, 0.0] and signature [0]")]
@@ -1769,7 +1764,7 @@ fn bdd_apply_move_right(w: &mut R4g1World) {
 #[then("the transition succeeds with target state \"s0_move_right\"")]
 fn bdd_transition_succeeds(w: &mut R4g1World) {
     let res = w.state_eval_res.as_ref().expect("transition result");
-    assert!(res.is_ok());
+    assert!(res.is_some());
     assert_eq!(res.as_ref().unwrap().id, "s0_move_right");
 }
 
@@ -1797,7 +1792,10 @@ fn bdd_apply_action_with_precondition(w: &mut R4g1World) {
 #[then("the transition fails with a precondition error")]
 fn bdd_transition_fails_precondition(w: &mut R4g1World) {
     let res = w.state_eval_res.as_ref().expect("res");
-    assert!(matches!(res, Err(SemError::PreconditionFailed { .. })));
+    assert!(
+        res.is_none(),
+        "the transition should have produced no next state (precondition failed)"
+    );
 }
 
 #[given("a hazard constraint centered at [5.0, 5.0] with radius 1.0")]
@@ -1825,7 +1823,10 @@ fn bdd_step_into_hazard(w: &mut R4g1World) {
 #[then("the transition fails with a forbidden state error")]
 fn bdd_transition_fails_forbidden(w: &mut R4g1World) {
     let res = w.state_eval_res.as_ref().expect("res");
-    assert!(matches!(res, Err(SemError::ForbiddenState { .. })));
+    assert!(
+        res.is_none(),
+        "the transition should have produced no next state (forbidden state)"
+    );
 }
 
 #[given("a goal target region centered at [10.0, 10.0] with radius 2.0 and minimum confidence 0.8")]
@@ -1871,17 +1872,18 @@ fn bdd_apply_3_steps(w: &mut R4g1World) {
 
     let _ = traj.step(&action, &evaluator);
     let _ = traj.step(&action, &evaluator);
-    let res = traj.step(&action, &evaluator);
 
-    if let Err(e) = res {
-        w.trajectory_error = Some(e);
+    if traj.step(&action, &evaluator).is_none() {
+        w.trajectory_step_rejected = true;
     }
 }
 
 #[then("the 3rd step fails with a maximum steps exceeded error")]
 fn bdd_max_steps_error_check(w: &mut R4g1World) {
-    let err = w.trajectory_error.as_ref().expect("trajectory error");
-    assert!(matches!(err, SemError::MaxStepsExceeded { limit: 2 }));
+    assert!(
+        w.trajectory_step_rejected,
+        "the 3rd step should have been rejected (max steps = 2 reached, returned None)"
+    );
 }
 
 // =========================================================================
