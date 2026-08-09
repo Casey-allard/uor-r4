@@ -33,6 +33,35 @@ The coverage knee is ~1–2M records; past ~2M coverage plateaus. The cover
 `regions ≈ (N / ref_n)^0.45` grew regions 50→104 and held-out top-1 **+5.0pp**
 at 400k (#460). That 0.45 is the measured sub-linear exponent the law inherits.
 
+### Measured saturation sweep — SmolLM2-360M broad corpus (#514)
+
+The first end-to-end run of `scale_sweep.sh` over the pinned #516 broad corpus
+(360,924 records, SmolLM2-360M teacher on Simple-Wiki) sub-samples that one
+corpus and re-runs compile → cover → score at each size:
+
+| records | held-out | top-1 (Rule 1+2) | EXCT-miss |
+|---:|---:|---:|---:|
+| 25,000 | 5,008 | 15.83% | 56.65% |
+| 50,000 | 10,127 | 14.85% | 48.65% |
+| 100,000 | 18,373 | 18.54% | 38.13% |
+| 200,000 | 40,149 | 19.66% | 33.53% |
+| 360,000 | 72,195 | 23.91% | 26.77% |
+
+Two reads:
+
+- **The curve densifies and confirms the anchors.** The 25k point (56.65% miss)
+  sits right on the 21,235→62.5% anchor, and the monotone decay through 360k is
+  continuous with the 500,000→14.6% anchor above it. Same coverage law, more
+  points.
+- **No knee at 360k — this corpus is coverage-limited, not saturated.** Both
+  top-1 (still climbing, +4.3pp from 200k→360k) and EXCT-miss (still falling,
+  −6.8pp) are moving at the full corpus size. The 360M teacher's 360k-record
+  corpus is well below the ~1–2M coverage knee, so it yields **no** `N_knee`
+  point to fit β against. This is exactly why the calculator's headroom rule
+  recommends ~2–3M records for the 360M baseline (#516): the measured sweep
+  shows the substrate is still paying for data at the largest corpus we can
+  observe on dev hardware.
+
 Config-only capacity proxy `S = d_model · n_layers · log2(vocab)`:
 
 | teacher | d_model | layers | vocab | S | S / S(360M) |
@@ -89,9 +118,18 @@ promise.
 ## Status
 
 - `recommend-scale` estimator: **shipped** (#517).
-- Saturation-sweep harness: **shipped** — `scripts/scale_sweep.sh` over the
-  existing `scripts/mc1_subsample_corpus.py`.
-- β calibration: pending the 360M/135M/15M observes. The 360M observe is running
-  on dev hardware (#516) at ~5.5s/article; once it lands, `scale_sweep.sh` over
-  its corpus produces the first real knee. (A 2M-record observe is a multi-hour
-  to multi-day teacher run; the sandbox managed only 176/3000 articles for #509.)
+- Saturation-sweep harness: **shipped and verified end-to-end** —
+  `scripts/scale_sweep.sh` over `scripts/mc1_subsample_corpus.py`. The first run
+  surfaced a latent bug: `compile-recorded --out $D` re-emits
+  `corpus.meta`/`corpus.records` into `$D`, clobbering the sub-sampled inputs
+  when they share those names. Fixed by writing the sub-sample under
+  `sub.meta`/`sub.records` (the #516 pipeline had dodged it only because
+  `obs_bundle_to_corpus.py` uses `.bin` names).
+- β calibration: the 360M observe landed (#516) and its sweep is recorded above.
+  It yields **no knee** — the largest corpus we can observe on dev hardware
+  (360k records) is still on the rising part of the coverage curve, below the
+  ~1–2M knee — so it cannot pin β on its own. β therefore stays **provisional
+  0.5, bounded `[0.45, 1.0]`**; pinning it needs at least one teacher observed
+  *past* its knee (a 2M-record observe is a multi-hour-to-multi-day teacher run).
+  The law, the calculator, and the harness are complete and mutually consistent;
+  what remains is compute, not tooling.

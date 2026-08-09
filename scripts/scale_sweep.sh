@@ -33,21 +33,25 @@ fi
 mkdir -p "$WORK"
 printf '%-12s %-10s %-12s %-12s\n' records held_out top1_rule12 exct_miss_%
 
+# NOTE: `compile-recorded --out "$D"` re-emits `corpus.meta`/`corpus.records`
+# into "$D", so the sub-sampled corpus is written under DISTINCT names
+# (`sub.meta`/`sub.records`) that compile cannot clobber; cover and score read
+# those, never compile's emitted `corpus.*`.
 for N in "${SIZES[@]}"; do
     D="$WORK/n-$N"
     mkdir -p "$D"
     python3 scripts/mc1_subsample_corpus.py \
         --src-meta "$SRC_META" --src-recs "$SRC_RECS" \
-        --out-meta "$D/corpus.meta" --out-recs "$D/corpus.records" \
+        --out-meta "$D/sub.meta" --out-recs "$D/sub.records" \
         --records "$N" >/dev/null
     "$R4" transformerless compile-recorded \
-        --corpus-meta "$D/corpus.meta" --corpus-recs "$D/corpus.records" \
+        --corpus-meta "$D/sub.meta" --corpus-recs "$D/sub.records" \
         --vocab-size "$VOCAB" --out "$D" >/dev/null 2>&1
     "$R4" transformerless cover \
-        --corpus-meta "$D/corpus.meta" --corpus-recs "$D/corpus.records" \
+        --corpus-meta "$D/sub.meta" --corpus-recs "$D/sub.records" \
         --artifacts "$D/tless_artifacts.bin" --out "$D/graph-cover" >/dev/null 2>&1
     "$R4" transformerless score \
-        --corpus-meta "$D/corpus.meta" --corpus-recs "$D/corpus.records" \
+        --corpus-meta "$D/sub.meta" --corpus-recs "$D/sub.records" \
         --artifacts "$D/tless_artifacts.bin" --cover "$D/graph-cover/cover.r4g1" \
         --quality-profile relative_tla --out "$D/graph" >/dev/null 2>&1
     python3 - "$D/graph/score_report.json" "$N" <<'PY'
