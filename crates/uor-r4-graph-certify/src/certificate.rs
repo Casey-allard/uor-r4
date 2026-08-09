@@ -136,26 +136,24 @@ impl Certificate {
         claim_fragments: &[EmpiricalClaim],
         threads: usize,
     ) -> Result<Vec<EmpiricalClaim>, String> {
+        // The compiler executor is now total (infallible worker closure; a
+        // worker panic propagates). Fragment cloning cannot fail, so this
+        // helper never reports an error — it keeps its `Result` surface until
+        // graph-certify's own R5 conversion.
         let indices: Vec<usize> = (0..claim_fragments.len()).collect();
-        if threads == 1 {
-            return SequentialExecutor::new()
-                .map(&indices, |&idx| Ok(claim_fragments[idx].clone()))
-                .map_err(|e| e.to_string());
-        }
-        #[cfg(not(target_arch = "wasm32"))]
-        {
-            RayonExecutor::new(threads)
-                .and_then(|executor| {
-                    executor.map(&indices, |&idx| Ok(claim_fragments[idx].clone()))
-                })
-                .map_err(|e| e.to_string())
-        }
-        #[cfg(target_arch = "wasm32")]
-        {
-            SequentialExecutor::new()
-                .map(&indices, |&idx| Ok(claim_fragments[idx].clone()))
-                .map_err(|e| e.to_string())
-        }
+        let claims = if threads == 1 {
+            SequentialExecutor::new().map(&indices, |&idx| claim_fragments[idx].clone())
+        } else {
+            #[cfg(not(target_arch = "wasm32"))]
+            {
+                RayonExecutor::new(threads).map(&indices, |&idx| claim_fragments[idx].clone())
+            }
+            #[cfg(target_arch = "wasm32")]
+            {
+                SequentialExecutor::new().map(&indices, |&idx| claim_fragments[idx].clone())
+            }
+        };
+        Ok(claims)
     }
 
     fn canonical_sort_and_dedup_claims(claims: &mut Vec<EmpiricalClaim>) {

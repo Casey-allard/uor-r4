@@ -2174,26 +2174,20 @@ fn bdd_exec_inputs_given(w: &mut R4g1World, count: usize) {
 #[when("mapped by the sequential reference compiler executor")]
 fn bdd_exec_seq_when(w: &mut R4g1World) {
     let exec = SequentialExecutor::new();
-    w.exec_seq_out = exec
-        .map(&w.exec_inputs, |&x| Ok(x * 2 + 1))
-        .expect("seq map");
+    w.exec_seq_out = exec.map(&w.exec_inputs, |&x| x * 2 + 1);
 }
 
 #[when("mapped by the Rayon parallel multicore compiler executor")]
 fn bdd_exec_par_when(w: &mut R4g1World) {
     #[cfg(not(target_arch = "wasm32"))]
     {
-        let exec = RayonExecutor::new(4).expect("rayon exec");
-        w.exec_par_out = exec
-            .map(&w.exec_inputs, |&x| Ok(x * 2 + 1))
-            .expect("par map");
+        let exec = RayonExecutor::new(4);
+        w.exec_par_out = exec.map(&w.exec_inputs, |&x| x * 2 + 1);
     }
     #[cfg(target_arch = "wasm32")]
     {
         let exec = SequentialExecutor::new();
-        w.exec_par_out = exec
-            .map(&w.exec_inputs, |&x| Ok(x * 2 + 1))
-            .expect("par map");
+        w.exec_par_out = exec.map(&w.exec_inputs, |&x| x * 2 + 1);
     }
 }
 
@@ -2202,65 +2196,31 @@ fn bdd_exec_vectors_identical_then(w: &mut R4g1World) {
     assert_eq!(w.exec_seq_out, w.exec_par_out);
 }
 
-#[given(expr = "a batch of integer input items where item {int} returns a worker error")]
-fn bdd_exec_err_input_given(w: &mut R4g1World, err_item: i32) {
-    w.exec_inputs = vec![1, 2, err_item, 4, 5];
-}
-
-#[then(expr = "execution returns a worker error at input index {int}")]
-fn bdd_exec_err_index_then(w: &mut R4g1World, expected_idx: usize) {
-    #[cfg(not(target_arch = "wasm32"))]
-    let exec = RayonExecutor::new(4).expect("rayon exec");
-    #[cfg(target_arch = "wasm32")]
-    let exec = SequentialExecutor::new();
-
-    let err = exec
-        .map(&w.exec_inputs, |&x| {
-            if x == 3 {
-                Err("simulated worker error".to_string())
-            } else {
-                Ok(x)
-            }
-        })
-        .unwrap_err();
-
-    assert_eq!(
-        err,
-        uor_r4_graph_compiler::executor::CompileError::WorkerError {
-            input_index: expected_idx,
-            message: "simulated worker error".to_string()
-        }
-    );
-}
-
 #[given(expr = "a batch of integer input items where item {int} panics")]
 fn bdd_exec_panic_input_given(w: &mut R4g1World, panic_item: i32) {
     w.exec_inputs = vec![1, 2, 3, 4, panic_item];
 }
 
-#[then(expr = "execution returns a worker panic error at input index {int}")]
-fn bdd_exec_panic_index_then(w: &mut R4g1World, expected_idx: usize) {
+#[then("mapping the batch propagates the worker panic")]
+fn bdd_exec_panic_propagates_then(w: &mut R4g1World) {
+    // The compiler executor is total over an infallible worker closure; a
+    // worker panic is a defect that propagates to the caller (re-raised in this
+    // thread) rather than being folded into a reported error (R5).
     #[cfg(not(target_arch = "wasm32"))]
-    let exec = RayonExecutor::new(4).expect("rayon exec");
+    let exec = RayonExecutor::new(4);
     #[cfg(target_arch = "wasm32")]
     let exec = SequentialExecutor::new();
 
-    let err = exec
-        .map(&w.exec_inputs, |&x| {
-            if x == 5 {
-                panic!("simulated panic");
-            } else {
-                Ok(x)
-            }
-        })
-        .unwrap_err();
-
-    assert_eq!(
-        err,
-        uor_r4_graph_compiler::executor::CompileError::ExecutionPanic {
-            input_index: expected_idx,
-            panic_message: "simulated panic".to_string()
-        }
+    let inputs = w.exec_inputs.clone();
+    let panicked = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        exec.map(
+            &inputs,
+            |&x| if x == 5 { panic!("simulated panic") } else { x },
+        )
+    }));
+    assert!(
+        panicked.is_err(),
+        "a worker panic must propagate to the caller"
     );
 }
 
@@ -2359,9 +2319,8 @@ fn bdd_reproducibility_eval_when(_w: &mut R4g1World, _t1: usize, _t2: usize, _t3
 #[then("all thread count outputs produce 100% bit-identical byte digests")]
 fn bdd_reproducibility_eval_then(w: &mut R4g1World) {
     let report = ParallelReproducibilityHarness::verify_reproducibility(&w.exec_inputs, |&x| {
-        Ok(x.to_le_bytes().to_vec())
-    })
-    .expect("harness pass");
+        x.to_le_bytes().to_vec()
+    });
 
     assert!(report.is_byte_identical);
 }

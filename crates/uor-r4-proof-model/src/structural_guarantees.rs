@@ -437,11 +437,10 @@ impl StructuralGuaranteeVerifier {
             )
         };
 
+        // The compiler executor is total (infallible worker closure; a worker
+        // panic propagates), so `map` returns the mapped values directly.
         let inputs = vec![1u32, 2u32, 3u32];
-        let seq_res = match SequentialExecutor::new().map(&inputs, |&x| Ok(x * 2)) {
-            Ok(v) => v,
-            Err(_) => return make_report("sequential_executor_error"),
-        };
+        let seq_res = SequentialExecutor::new().map(&inputs, |&x| x * 2);
         if seq_res != vec![2, 4, 6] {
             return make_report("sequential_positional_order");
         }
@@ -449,14 +448,7 @@ impl StructuralGuaranteeVerifier {
         #[cfg(not(target_arch = "wasm32"))]
         {
             use uor_r4_graph_compiler::executor::RayonExecutor;
-            let rayon = match RayonExecutor::new(2) {
-                Ok(r) => r,
-                Err(_) => return make_report("rayon_executor_init"),
-            };
-            let par_res = match rayon.map(&inputs, |&x| Ok(x * 2)) {
-                Ok(v) => v,
-                Err(_) => return make_report("rayon_executor_error"),
-            };
+            let par_res = RayonExecutor::new(2).map(&inputs, |&x| x * 2);
             if par_res != seq_res {
                 return make_report("sequential_rayon_equivalence");
             }
@@ -469,7 +461,8 @@ impl StructuralGuaranteeVerifier {
             verified: true,
             details: "Compiler executor verified: SequentialExecutor positional order correct; \
                       RayonExecutor output is bit-identical to SequentialExecutor (non-wasm32); \
-                      panic containment and deterministic error aggregation covered by unit + BDD suites."
+                      the executor is total over an infallible worker closure and propagates a \
+                      worker panic (covered by unit + BDD suites)."
                 .to_string(),
         }
     }
@@ -524,19 +517,12 @@ impl StructuralGuaranteeVerifier {
         use uor_r4_graph_compiler::reproducibility::ParallelReproducibilityHarness;
         let obl_id = obligation_id.into();
 
+        // The harness is total: it always produces a report whose
+        // `is_byte_identical` carries the finding.
         let inputs = vec![100u32, 200u32, 300u32, 400u32];
-        let report = match ParallelReproducibilityHarness::verify_reproducibility(&inputs, |&x| {
-            Ok(x.to_le_bytes().to_vec())
-        }) {
-            Ok(report) => report,
-            Err(_) => {
-                return ProofVerificationReport::unverified(
-                    obl_id,
-                    StructuralObligationKind::Determinism,
-                    "parallel reproducibility harness failed to run",
-                );
-            }
-        };
+        let report = ParallelReproducibilityHarness::verify_reproducibility(&inputs, |&x| {
+            x.to_le_bytes().to_vec()
+        });
 
         if !report.is_byte_identical {
             return ProofVerificationReport::unverified(

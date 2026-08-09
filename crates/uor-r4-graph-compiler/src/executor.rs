@@ -6,56 +6,22 @@
 //!
 //! Enforces:
 //! - Positional output mapping (`map` result index matches input index).
-//! - Deterministic error aggregation (returns the error from the lowest input index).
-//! - Worker panic containment (`std::panic::catch_unwind` converted to `CompileError::ExecutionPanic`).
-
-use std::any::Any;
-use std::fmt;
-
-/// Typed compilation error taxonomy for compiler executors.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum CompileError {
-    /// Worker closure returned an explicit error message.
-    WorkerError { input_index: usize, message: String },
-    /// Worker closure panicked during execution.
-    ExecutionPanic {
-        input_index: usize,
-        panic_message: String,
-    },
-    /// Executor configuration error.
-    InvalidConfiguration(String),
-}
-
-impl fmt::Display for CompileError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::WorkerError {
-                input_index,
-                message,
-            } => {
-                write!(f, "Worker error at index {input_index}: {message}")
-            }
-            Self::ExecutionPanic {
-                input_index,
-                panic_message,
-            } => {
-                write!(f, "Worker panic at index {input_index}: {panic_message}")
-            }
-            Self::InvalidConfiguration(msg) => write!(f, "Executor configuration error: {msg}"),
-        }
-    }
-}
-
-impl std::error::Error for CompileError {}
+//! - Worker panic propagation: `map` is total over an infallible worker
+//!   closure, so the only way a worker can fail is to panic, and a panic is a
+//!   defect that propagates (re-raised in the calling thread), never a
+//!   sanctioned reportable condition (R5). There is no error surface to
+//!   aggregate.
 
 /// Abstract compiler task executor.
 pub trait CompilerExecutor: Send + Sync {
-    /// Execute function `f` over each item in `inputs`, returning mapped outputs in positional order.
-    fn map<I, O, F>(&self, inputs: &[I], f: F) -> Result<Vec<O>, CompileError>
+    /// Execute function `f` over each item in `inputs`, returning mapped outputs
+    /// in positional order. Total: `f` is infallible and the mapping cannot
+    /// report an error; a worker panic propagates.
+    fn map<I, O, F>(&self, inputs: &[I], f: F) -> Vec<O>
     where
         I: Sync,
         O: Send,
-        F: Fn(&I) -> Result<O, String> + Sync;
+        F: Fn(&I) -> O + Sync;
 }
 
 /// Normative sequential reference executor (zero concurrency).
@@ -69,33 +35,13 @@ impl SequentialExecutor {
 }
 
 impl CompilerExecutor for SequentialExecutor {
-    fn map<I, O, F>(&self, inputs: &[I], f: F) -> Result<Vec<O>, CompileError>
+    fn map<I, O, F>(&self, inputs: &[I], f: F) -> Vec<O>
     where
         I: Sync,
         O: Send,
-        F: Fn(&I) -> Result<O, String> + Sync,
+        F: Fn(&I) -> O + Sync,
     {
-        let mut results = Vec::with_capacity(inputs.len());
-        for (idx, item) in inputs.iter().enumerate() {
-            let res = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| f(item)));
-            match res {
-                Ok(Ok(out)) => results.push(out),
-                Ok(Err(msg)) => {
-                    return Err(CompileError::WorkerError {
-                        input_index: idx,
-                        message: msg,
-                    });
-                }
-                Err(panic_err) => {
-                    let msg = extract_panic_message(&*panic_err);
-                    return Err(CompileError::ExecutionPanic {
-                        input_index: idx,
-                        panic_message: msg,
-                    });
-                }
-            }
-        }
-        Ok(results)
+        inputs.iter().map(&f).collect()
     }
 }
 
@@ -108,7 +54,11 @@ pub struct RayonExecutor {
 
 #[cfg(not(target_arch = "wasm32"))]
 impl RayonExecutor {
-    pub fn new(num_threads: usize) -> Result<Self, CompileError> {
+    /// Build an executor over a dedicated `ThreadPool` of `num_threads`
+    /// (0 = the host's available parallelism). Total: a thread-pool that will
+    /// not build is a host defect (cannot spawn threads), so it propagates as a
+    /// panic rather than a sanctioned condition (R5).
+    pub fn new(num_threads: usize) -> Self {
         let threads = if num_threads == 0 {
             std::thread::available_parallelism()
                 .map(|n| n.get())
@@ -120,11 +70,11 @@ impl RayonExecutor {
             .num_threads(threads)
             .thread_name(|i| format!("uor-r4-compiler-{i}"))
             .build()
-            .map_err(|e| CompileError::InvalidConfiguration(e.to_string()))?;
-        Ok(Self {
+            .unwrap_or_else(|e| panic!("uor-r4 compiler thread pool construction failed: {e}"));
+        Self {
             pool,
             num_threads: threads,
-        })
+        }
     }
 
     pub fn num_threads(&self) -> usize {
@@ -134,56 +84,22 @@ impl RayonExecutor {
 
 #[cfg(not(target_arch = "wasm32"))]
 impl CompilerExecutor for RayonExecutor {
-    fn map<I, O, F>(&self, inputs: &[I], f: F) -> Result<Vec<O>, CompileError>
+    fn map<I, O, F>(&self, inputs: &[I], f: F) -> Vec<O>
     where
         I: Sync,
         O: Send,
-        F: Fn(&I) -> Result<O, String> + Sync,
+        F: Fn(&I) -> O + Sync,
     {
         if inputs.is_empty() {
-            return Ok(Vec::new());
+            return Vec::new();
         }
-
-        let raw_results: Vec<Result<Result<O, String>, Box<dyn Any + Send>>> =
-            self.pool.install(|| {
-                use rayon::prelude::*;
-                inputs
-                    .par_iter()
-                    .map(|item| std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| f(item))))
-                    .collect()
-            });
-
-        let mut outputs = Vec::with_capacity(inputs.len());
-        for (idx, res) in raw_results.into_iter().enumerate() {
-            match res {
-                Ok(Ok(val)) => outputs.push(val),
-                Ok(Err(msg)) => {
-                    return Err(CompileError::WorkerError {
-                        input_index: idx,
-                        message: msg,
-                    });
-                }
-                Err(panic_err) => {
-                    let msg = extract_panic_message(&*panic_err);
-                    return Err(CompileError::ExecutionPanic {
-                        input_index: idx,
-                        panic_message: msg,
-                    });
-                }
-            }
-        }
-
-        Ok(outputs)
-    }
-}
-
-fn extract_panic_message(err: &(dyn Any + Send)) -> String {
-    if let Some(s) = err.downcast_ref::<&'static str>() {
-        s.to_string()
-    } else if let Some(s) = err.downcast_ref::<String>() {
-        s.clone()
-    } else {
-        "unknown worker panic".to_string()
+        // `par_iter().map(..).collect()` preserves positional order, and rayon
+        // re-raises a worker panic in this thread on `collect` — the total
+        // panic-propagation contract above.
+        self.pool.install(|| {
+            use rayon::prelude::*;
+            inputs.par_iter().map(&f).collect()
+        })
     }
 }
 
@@ -192,74 +108,44 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_sequential_executor_mapping_and_panic_containment() {
+    fn test_sequential_executor_mapping_and_panic_propagation() {
         let exec = SequentialExecutor::new();
         let inputs = vec![1, 2, 3, 4, 5];
-        let res = exec.map(&inputs, |&x| Ok(x * 10)).unwrap();
+        let res = exec.map(&inputs, |&x| x * 10);
         assert_eq!(res, vec![10, 20, 30, 40, 50]);
 
-        let err = exec
-            .map(&inputs, |&x| {
-                if x == 3 {
-                    Err("x is 3".to_string())
-                } else {
-                    Ok(x)
-                }
-            })
-            .unwrap_err();
-        assert_eq!(
-            err,
-            CompileError::WorkerError {
-                input_index: 2,
-                message: "x is 3".to_string()
-            }
-        );
-
-        let panic_err = exec
-            .map(&inputs, |&x| {
-                if x == 2 {
-                    panic!("simulated panic");
-                } else {
-                    Ok(x)
-                }
-            })
-            .unwrap_err();
-        assert_eq!(
-            panic_err,
-            CompileError::ExecutionPanic {
-                input_index: 1,
-                panic_message: "simulated panic".to_string()
-            }
-        );
+        // A worker panic propagates (total map): catch it to assert it aborts
+        // the whole mapping rather than being folded into a reported error.
+        let panicked = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            exec.map(
+                &inputs,
+                |&x| if x == 2 { panic!("simulated panic") } else { x },
+            )
+        }));
+        assert!(panicked.is_err());
     }
 
     #[cfg(not(target_arch = "wasm32"))]
     #[test]
-    fn test_rayon_executor_mapping_equivalence_and_panic_containment() {
+    fn test_rayon_executor_mapping_equivalence_and_panic_propagation() {
         let seq_exec = SequentialExecutor::new();
-        let par_exec = RayonExecutor::new(4).unwrap();
+        let par_exec = RayonExecutor::new(4);
         assert_eq!(par_exec.num_threads(), 4);
 
         let inputs: Vec<u32> = (1..=100).collect();
-        let seq_out = seq_exec.map(&inputs, |&x| Ok(x * x + 7)).unwrap();
-        let par_out = par_exec.map(&inputs, |&x| Ok(x * x + 7)).unwrap();
+        let seq_out = seq_exec.map(&inputs, |&x| x * x + 7);
+        let par_out = par_exec.map(&inputs, |&x| x * x + 7);
         assert_eq!(seq_out, par_out);
 
-        let panic_err = par_exec
-            .map(&inputs, |&x| {
+        let panicked = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            par_exec.map(&inputs, |&x| {
                 if x == 42 {
-                    panic!("rayon worker panic");
+                    panic!("rayon worker panic")
                 } else {
-                    Ok(x)
+                    x
                 }
             })
-            .unwrap_err();
-        assert_eq!(
-            panic_err,
-            CompileError::ExecutionPanic {
-                input_index: 41,
-                panic_message: "rayon worker panic".to_string()
-            }
-        );
+        }));
+        assert!(panicked.is_err());
     }
 }

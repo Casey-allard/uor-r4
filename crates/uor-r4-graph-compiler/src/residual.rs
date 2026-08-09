@@ -32,20 +32,15 @@ pub fn quantize_logprobs_with_threads(
     tokens: &[u32],
     logprobs: &[f32],
     threads: usize,
-) -> Result<Vec<QuantizedResidual>, String> {
-    if tokens.len() != logprobs.len() {
-        return Err(format!(
-            "token/logprob length mismatch: {} vs {}",
-            tokens.len(),
-            logprobs.len()
-        ));
-    }
-    let indices: Vec<usize> = (0..tokens.len()).collect();
-    map_with_threads(&indices, threads, |&idx| {
-        Ok(QuantizedResidual {
-            token: tokens[idx],
-            score: ScoreQ::from_logprob(logprobs[idx]),
-        })
+) -> Vec<QuantizedResidual> {
+    // Total: quantize over the common prefix, truncating on any length mismatch
+    // exactly as the single-threaded `quantize_logprobs` does (a mismatch is a
+    // property of the caller's inputs, not a sanctioned condition).
+    let n = tokens.len().min(logprobs.len());
+    let indices: Vec<usize> = (0..n).collect();
+    map_with_threads(&indices, threads, |&idx| QuantizedResidual {
+        token: tokens[idx],
+        score: ScoreQ::from_logprob(logprobs[idx]),
     })
 }
 
@@ -56,7 +51,6 @@ pub fn compute_residual_deltas(
     parent_residuals: &[QuantizedResidual],
 ) -> Vec<QuantizedResidual> {
     compute_residual_deltas_with_threads(child_residuals, parent_residuals, 1)
-        .expect("compute_residual_deltas with a sequential executor must not fail")
 }
 
 /// Compute residual delta corrections with canonical key ordering and bounded
@@ -65,7 +59,7 @@ pub fn compute_residual_deltas_with_threads(
     child_residuals: &[QuantizedResidual],
     parent_residuals: &[QuantizedResidual],
     threads: usize,
-) -> Result<Vec<QuantizedResidual>, String> {
+) -> Vec<QuantizedResidual> {
     let child_canonical = canonicalize_residuals(child_residuals);
     let parent_by_token = canonicalize_residuals(parent_residuals)
         .into_iter()
@@ -77,10 +71,10 @@ pub fn compute_residual_deltas_with_threads(
             .get(&child.token)
             .copied()
             .unwrap_or(ScoreQ::ZERO);
-        Ok(QuantizedResidual {
+        QuantizedResidual {
             token: child.token,
             score: child.score.saturating_sub(parent_score),
-        })
+        }
     })
 }
 
@@ -95,28 +89,22 @@ fn canonicalize_residuals(residuals: &[QuantizedResidual]) -> Vec<QuantizedResid
     canonical
 }
 
-fn map_with_threads<I, O, F>(inputs: &[I], threads: usize, map_fn: F) -> Result<Vec<O>, String>
+fn map_with_threads<I, O, F>(inputs: &[I], threads: usize, map_fn: F) -> Vec<O>
 where
     I: Sync,
     O: Send,
-    F: Fn(&I) -> Result<O, String> + Sync,
+    F: Fn(&I) -> O + Sync,
 {
     if threads == 1 {
-        return SequentialExecutor::new()
-            .map(inputs, map_fn)
-            .map_err(|e| e.to_string());
+        return SequentialExecutor::new().map(inputs, map_fn);
     }
     #[cfg(not(target_arch = "wasm32"))]
     {
-        RayonExecutor::new(threads)
-            .and_then(|executor| executor.map(inputs, map_fn))
-            .map_err(|e| e.to_string())
+        RayonExecutor::new(threads).map(inputs, map_fn)
     }
     #[cfg(target_arch = "wasm32")]
     {
-        SequentialExecutor::new()
-            .map(inputs, map_fn)
-            .map_err(|e| e.to_string())
+        SequentialExecutor::new().map(inputs, map_fn)
     }
 }
 
@@ -145,9 +133,9 @@ mod tests {
         let tokens = vec![10, 11, 12, 13, 14, 15];
         let logprobs = vec![-0.1, -0.7, -1.3, -2.2, -0.4, -9.9];
 
-        let seq = quantize_logprobs_with_threads(&tokens, &logprobs, 1).unwrap();
-        let par2 = quantize_logprobs_with_threads(&tokens, &logprobs, 2).unwrap();
-        let par4 = quantize_logprobs_with_threads(&tokens, &logprobs, 4).unwrap();
+        let seq = quantize_logprobs_with_threads(&tokens, &logprobs, 1);
+        let par2 = quantize_logprobs_with_threads(&tokens, &logprobs, 2);
+        let par4 = quantize_logprobs_with_threads(&tokens, &logprobs, 4);
 
         assert_eq!(seq, par2);
         assert_eq!(seq, par4);
@@ -169,8 +157,8 @@ mod tests {
         let tokens = vec![10, 11, 12, 13, 14, 15];
         let logprobs = vec![-0.1, -0.7, -1.3, -2.2, -0.4, -9.9];
 
-        let seq = quantize_logprobs_with_threads(&tokens, &logprobs, 1).unwrap();
-        let auto = quantize_logprobs_with_threads(&tokens, &logprobs, 0).unwrap();
+        let seq = quantize_logprobs_with_threads(&tokens, &logprobs, 1);
+        let auto = quantize_logprobs_with_threads(&tokens, &logprobs, 0);
         assert_eq!(seq, auto);
     }
 
@@ -201,8 +189,8 @@ mod tests {
             },
         ];
 
-        let seq = compute_residual_deltas_with_threads(&child, &parent, 1).unwrap();
-        let par = compute_residual_deltas_with_threads(&child, &parent, 4).unwrap();
+        let seq = compute_residual_deltas_with_threads(&child, &parent, 1);
+        let par = compute_residual_deltas_with_threads(&child, &parent, 4);
         assert_eq!(seq, par);
         assert_eq!(seq.len(), 2);
         assert_eq!(seq[0].token, 5);

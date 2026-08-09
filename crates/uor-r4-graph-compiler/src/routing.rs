@@ -207,18 +207,16 @@ fn evaluate_batched<E: CompilerExecutor>(
     candidates: &[RoutingCandidate],
     observations: &[Observation],
     batch_size: usize,
-) -> Result<Vec<CandidateEvaluation>, String> {
+) -> Vec<CandidateEvaluation> {
     let mut out = Vec::with_capacity(candidates.len());
     let chunk = batch_size.max(1);
     for batch in candidates.chunks(chunk) {
-        let mut evaluated = executor
-            .map(batch, |candidate| {
-                Ok(evaluate_candidate(candidate, observations))
-            })
-            .map_err(|e| format!("routing candidate evaluation failed: {e}"))?;
+        let mut evaluated = executor.map(batch, |candidate| {
+            evaluate_candidate(candidate, observations)
+        });
         out.append(&mut evaluated);
     }
-    Ok(out)
+    out
 }
 
 fn derive_candidates(cover: &Cover, observations: &[Observation]) -> Vec<RoutingCandidate> {
@@ -284,10 +282,10 @@ fn choose_best_for_threads(
     cover: &Cover,
     observations: &[Observation],
     threads: usize,
-) -> Result<CandidateEvaluation, String> {
+) -> CandidateEvaluation {
     let candidates = derive_candidates(cover, observations);
     if candidates.is_empty() {
-        return Ok(CandidateEvaluation {
+        return CandidateEvaluation {
             key: CandidateKey {
                 tap_set: vec![],
                 polynomial_id: 0,
@@ -305,43 +303,42 @@ fn choose_best_for_threads(
                 cache_cost: 0,
             },
             bytecode: vec![OP_HALT],
-        });
+        };
     }
 
     let worker_threads = threads.max(1);
     let total_budget_bytes = 512usize * 1024 * 1024;
-    let budget = CompilerMemoryBudget::derive(total_budget_bytes, worker_threads).map_err(|e| {
-        format!("failed to derive routing memory budget for {worker_threads} threads: {e}")
-    })?;
+    // A fixed 512 MiB budget over >=1 worker is always above the compiler
+    // minimum, so this derivation cannot fail here.
+    let budget = CompilerMemoryBudget::derive(total_budget_bytes, worker_threads)
+        .expect("routing memory budget: 512 MiB over >=1 worker is above the compiler minimum");
     let batch_size = budget.max_in_flight_tasks.clamp(1, candidates.len());
 
     let evaluations = if worker_threads == 1 {
         let seq = SequentialExecutor::new();
-        evaluate_batched(&seq, &candidates, observations, batch_size)?
+        evaluate_batched(&seq, &candidates, observations, batch_size)
     } else {
         #[cfg(not(target_arch = "wasm32"))]
         {
-            let par = RayonExecutor::new(worker_threads)
-                .map_err(|e| format!("failed to create routing executor: {e}"))?;
-            evaluate_batched(&par, &candidates, observations, batch_size)?
+            let par = RayonExecutor::new(worker_threads);
+            evaluate_batched(&par, &candidates, observations, batch_size)
         }
         #[cfg(target_arch = "wasm32")]
         {
             let seq = SequentialExecutor::new();
-            evaluate_batched(&seq, &candidates, observations, batch_size)?
+            evaluate_batched(&seq, &candidates, observations, batch_size)
         }
     };
-    reduce_best(evaluations.into_iter()).ok_or_else(|| "routing candidate set was empty".to_owned())
+    // `candidates` is non-empty here (the early return above handles the empty
+    // case), so the reduction always yields a best candidate.
+    reduce_best(evaluations.into_iter()).expect("non-empty candidate set yields a best candidate")
 }
 
-pub fn synthesize_routing_program(
-    cover: &Cover,
-    observations: &[Observation],
-) -> Result<Vec<u8>, String> {
+pub fn synthesize_routing_program(cover: &Cover, observations: &[Observation]) -> Vec<u8> {
     let threads = std::thread::available_parallelism()
         .map(|n| n.get().min(4))
         .unwrap_or(1);
-    choose_best_for_threads(cover, observations, threads).map(|best| best.bytecode)
+    choose_best_for_threads(cover, observations, threads).bytecode
 }
 
 pub fn benchmark_candidate_scaling(
@@ -490,9 +487,9 @@ mod tests {
     fn winner_is_identical_across_thread_counts() {
         let cover = synthetic_cover();
         let observations = synthetic_observations();
-        let one = choose_best_for_threads(&cover, &observations, 1).expect("best");
-        let two = choose_best_for_threads(&cover, &observations, 2).expect("best");
-        let four = choose_best_for_threads(&cover, &observations, 4).expect("best");
+        let one = choose_best_for_threads(&cover, &observations, 1);
+        let two = choose_best_for_threads(&cover, &observations, 2);
+        let four = choose_best_for_threads(&cover, &observations, 4);
         assert_eq!(one.key, two.key);
         assert_eq!(two.key, four.key);
         assert_eq!(one.bytecode, four.bytecode);

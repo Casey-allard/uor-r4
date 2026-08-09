@@ -2292,7 +2292,7 @@ pub fn emit_r4g1(
         forward_len[dst] += 1;
     }
 
-    let mut rout = crate::routing::synthesize_routing_program(cover, observations)?;
+    let mut rout = crate::routing::synthesize_routing_program(cover, observations);
     while !rout.len().is_multiple_of(8) {
         rout.push(0x00);
     }

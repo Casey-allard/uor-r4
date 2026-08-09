@@ -8,13 +8,6 @@ Feature: Deterministic compiler executor abstraction
     Then both mapped output vectors are positionally identical
 
   @RF-02 @build
-  Scenario: Aggregate errors deterministically by lowest input index
-    Given a batch of integer input items where item 3 returns a worker error
-    When mapped by the Rayon parallel multicore compiler executor
-    Then execution returns a worker error at input index 2
-
-  @RF-02 @build
-  Scenario: Contain worker panics without aborting the host process
+  Scenario: A worker panic propagates to the caller
     Given a batch of integer input items where item 5 panics
-    When mapped by the Rayon parallel multicore compiler executor
-    Then execution returns a worker panic error at input index 4
+    Then mapping the batch propagates the worker panic

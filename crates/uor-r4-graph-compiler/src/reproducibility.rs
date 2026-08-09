@@ -23,19 +23,6 @@ pub struct ReproducibilityReport {
     pub parallel_hashes: Vec<(usize, String)>,
 }
 
-/// Errors returned when reproducibility verification fails.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum ReproducibilityError {
-    /// Parallel output at a specific thread count differed from sequential output.
-    ByteMismatch {
-        thread_count: usize,
-        expected_hash: String,
-        actual_hash: String,
-    },
-    /// Compiler execution failed during reproducibility sweep.
-    ExecutionFailed(String),
-}
-
 /// Harness for verifying canonical artifact byte equality under compiler parallelism.
 pub struct ParallelReproducibilityHarness;
 
@@ -45,21 +32,24 @@ impl ParallelReproducibilityHarness {
         blake3::hash(bytes).to_hex().to_string()
     }
 
-    /// Execute reproducibility verification across a thread count sweep.
-    pub fn verify_reproducibility<I, F>(
-        inputs: &[I],
-        map_fn: F,
-    ) -> Result<ReproducibilityReport, ReproducibilityError>
+    /// Execute reproducibility verification across a thread count sweep. Total:
+    /// always produces a [`ReproducibilityReport`]; `is_byte_identical` is
+    /// `false` when any tested thread count's output diverges from the
+    /// sequential reference (R5 — a measured byte mismatch is a report, not a
+    /// raised error). The mapping closure is infallible; a worker panic
+    /// propagates.
+    pub fn verify_reproducibility<I, F>(inputs: &[I], map_fn: F) -> ReproducibilityReport
     where
         I: Sync + Send,
-        F: Fn(&I) -> Result<Vec<u8>, String> + Sync + Send,
+        F: Fn(&I) -> Vec<u8> + Sync + Send,
     {
         // 1. Sequential reference run
         let seq_exec = SequentialExecutor::new();
-        let seq_chunks = seq_exec
+        let seq_bytes: Vec<u8> = seq_exec
             .map(inputs, &map_fn)
-            .map_err(|e| ReproducibilityError::ExecutionFailed(format!("{e:?}")))?;
-        let seq_bytes: Vec<u8> = seq_chunks.into_iter().flatten().collect();
+            .into_iter()
+            .flatten()
+            .collect();
         let seq_hash = Self::compute_digest(&seq_bytes);
 
         #[cfg(target_arch = "wasm32")]
@@ -69,23 +59,23 @@ impl ParallelReproducibilityHarness {
         let thread_counts = vec![1, 2, 4];
 
         let mut parallel_hashes = Vec::new();
+        let mut is_byte_identical = true;
 
         for &threads in &thread_counts {
             let par_bytes: Vec<u8> = if threads == 1 {
-                let exec = SequentialExecutor::new();
-                let chunks = exec
+                SequentialExecutor::new()
                     .map(inputs, &map_fn)
-                    .map_err(|e| ReproducibilityError::ExecutionFailed(format!("{e:?}")))?;
-                chunks.into_iter().flatten().collect()
+                    .into_iter()
+                    .flatten()
+                    .collect()
             } else {
                 #[cfg(not(target_arch = "wasm32"))]
                 {
-                    let exec = RayonExecutor::new(threads)
-                        .map_err(|e| ReproducibilityError::ExecutionFailed(format!("{e:?}")))?;
-                    let chunks = exec
+                    RayonExecutor::new(threads)
                         .map(inputs, &map_fn)
-                        .map_err(|e| ReproducibilityError::ExecutionFailed(format!("{e:?}")))?;
-                    chunks.into_iter().flatten().collect()
+                        .into_iter()
+                        .flatten()
+                        .collect()
                 }
                 #[cfg(target_arch = "wasm32")]
                 {
@@ -94,22 +84,19 @@ impl ParallelReproducibilityHarness {
             };
 
             let par_hash = Self::compute_digest(&par_bytes);
+            parallel_hashes.push((threads, par_hash.clone()));
             if par_hash != seq_hash {
-                return Err(ReproducibilityError::ByteMismatch {
-                    thread_count: threads,
-                    expected_hash: seq_hash,
-                    actual_hash: par_hash,
-                });
+                is_byte_identical = false;
+                break;
             }
-            parallel_hashes.push((threads, par_hash));
         }
 
-        Ok(ReproducibilityReport {
-            is_byte_identical: true,
+        ReproducibilityReport {
+            is_byte_identical,
             thread_counts_tested: thread_counts,
             sequential_hash: seq_hash,
             parallel_hashes,
-        })
+        }
     }
 }
 
@@ -188,9 +175,8 @@ mod tests {
     fn test_reproducibility_harness_positive_sweep() {
         let inputs = vec![10u32, 20u32, 30u32, 40u32];
         let report = ParallelReproducibilityHarness::verify_reproducibility(&inputs, |&x| {
-            Ok(x.to_le_bytes().to_vec())
-        })
-        .unwrap();
+            x.to_le_bytes().to_vec()
+        });
 
         assert!(report.is_byte_identical);
         assert!(!report.thread_counts_tested.is_empty());
@@ -206,13 +192,13 @@ mod tests {
         // Intentionally non-deterministic reduction function that depends on call order
         let result = ParallelReproducibilityHarness::verify_reproducibility(&inputs, |_| {
             let c = CALL_COUNT.fetch_add(1, Ordering::SeqCst);
-            Ok(vec![c as u8])
+            vec![c as u8]
         });
 
-        // The harness must detect nondeterminism (or report byte mismatch)
+        // The harness must detect nondeterminism by reporting a byte mismatch
         // when outputs differ across runs.
         assert!(
-            result.is_err() || !result.as_ref().unwrap().is_byte_identical,
+            !result.is_byte_identical,
             "Harness failed to detect non-deterministic reduction"
         );
     }

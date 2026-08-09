@@ -35,7 +35,6 @@ struct EmissionFragment {
 /// and align emission blocks to 64-byte cache lines.
 pub fn pack_emission_tables(region_emissions: &[Vec<u8>]) -> PackedEmissionTable {
     pack_emission_tables_with_threads(region_emissions, 1)
-        .expect("pack_emission_tables with a sequential executor must not fail")
 }
 
 /// Deduplicate emission tables with bounded parallel fragment preparation and
@@ -43,14 +42,12 @@ pub fn pack_emission_tables(region_emissions: &[Vec<u8>]) -> PackedEmissionTable
 pub fn pack_emission_tables_with_threads(
     region_emissions: &[Vec<u8>],
     threads: usize,
-) -> Result<PackedEmissionTable, String> {
+) -> PackedEmissionTable {
     let indices: Vec<usize> = (0..region_emissions.len()).collect();
-    let mut fragments = map_with_threads(&indices, threads, |&idx| {
-        Ok(EmissionFragment {
-            region_index: idx,
-            table: region_emissions[idx].clone(),
-        })
-    })?;
+    let mut fragments = map_with_threads(&indices, threads, |&idx| EmissionFragment {
+        region_index: idx,
+        table: region_emissions[idx].clone(),
+    });
     fragments.sort_by_key(|fragment| fragment.region_index);
 
     let mut packed_bytes = Vec::new();
@@ -82,34 +79,28 @@ pub fn pack_emission_tables_with_threads(
 
     pad_to_cache_line(&mut packed_bytes);
 
-    Ok(PackedEmissionTable {
+    PackedEmissionTable {
         bytes: packed_bytes,
         ranges,
-    })
+    }
 }
 
-fn map_with_threads<I, O, F>(inputs: &[I], threads: usize, map_fn: F) -> Result<Vec<O>, String>
+fn map_with_threads<I, O, F>(inputs: &[I], threads: usize, map_fn: F) -> Vec<O>
 where
     I: Sync,
     O: Send,
-    F: Fn(&I) -> Result<O, String> + Sync,
+    F: Fn(&I) -> O + Sync,
 {
     if threads == 1 {
-        return SequentialExecutor::new()
-            .map(inputs, map_fn)
-            .map_err(|e| e.to_string());
+        return SequentialExecutor::new().map(inputs, map_fn);
     }
     #[cfg(not(target_arch = "wasm32"))]
     {
-        RayonExecutor::new(threads)
-            .and_then(|executor| executor.map(inputs, map_fn))
-            .map_err(|e| e.to_string())
+        RayonExecutor::new(threads).map(inputs, map_fn)
     }
     #[cfg(target_arch = "wasm32")]
     {
-        SequentialExecutor::new()
-            .map(inputs, map_fn)
-            .map_err(|e| e.to_string())
+        SequentialExecutor::new().map(inputs, map_fn)
     }
 }
 
@@ -147,9 +138,9 @@ mod tests {
             vec![9, 8, 7, 6],
             vec![0, 0, 1, 1, 2, 2, 3, 3],
         ];
-        let seq = pack_emission_tables_with_threads(&tables, 1).unwrap();
-        let par2 = pack_emission_tables_with_threads(&tables, 2).unwrap();
-        let par4 = pack_emission_tables_with_threads(&tables, 4).unwrap();
+        let seq = pack_emission_tables_with_threads(&tables, 1);
+        let par2 = pack_emission_tables_with_threads(&tables, 2);
+        let par4 = pack_emission_tables_with_threads(&tables, 4);
         assert_eq!(seq, par2);
         assert_eq!(seq, par4);
     }
@@ -157,8 +148,8 @@ mod tests {
     #[test]
     fn test_pack_emission_tables_threads_zero_matches_sequential() {
         let tables = vec![vec![1, 2, 3], vec![4, 5], vec![1, 2, 3], vec![]];
-        let seq = pack_emission_tables_with_threads(&tables, 1).unwrap();
-        let auto = pack_emission_tables_with_threads(&tables, 0).unwrap();
+        let seq = pack_emission_tables_with_threads(&tables, 1);
+        let auto = pack_emission_tables_with_threads(&tables, 0);
         assert_eq!(seq, auto);
     }
 }
