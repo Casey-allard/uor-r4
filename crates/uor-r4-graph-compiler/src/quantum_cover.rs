@@ -13,36 +13,7 @@
 
 use crate::induction::{DEFAULT_SPLIT_ENTROPY_GAIN_BITS, Observation};
 use std::collections::BTreeMap;
-use std::fmt;
 use uor_r4_graph_format::ScoreQ;
-
-/// Errors from density-operator construction (library boundary: no
-/// panics on recoverable inputs).
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum QuantumCoverError {
-    /// A density operator needs at least one dimension.
-    EmptyDistribution,
-    /// Weights must be finite, non-negative, and sum above zero.
-    NonPositiveWeightSum,
-}
-
-impl fmt::Display for QuantumCoverError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            QuantumCoverError::EmptyDistribution => {
-                write!(f, "density operator requires at least one dimension")
-            }
-            QuantumCoverError::NonPositiveWeightSum => {
-                write!(
-                    f,
-                    "weights must be finite, non-negative, and sum above zero"
-                )
-            }
-        }
-    }
-}
-
-impl std::error::Error for QuantumCoverError {}
 
 /// Diagonal density operator ρ: eigenvalues are a normalized
 /// distribution (trace 1). The maximum-entropy operator (1/n)I is the
@@ -54,41 +25,45 @@ pub struct DensityOperator {
 
 impl DensityOperator {
     /// The maximum-entropy operator ρ = (1/n)I_{n×n} in `dimension`
-    /// dimensions.
-    pub fn max_entropy(dimension: usize) -> Result<Self, QuantumCoverError> {
+    /// dimensions. `None` when `dimension` is zero: an empty distribution is
+    /// not a density operator (R5 — the absence of a product, not an error).
+    pub fn max_entropy(dimension: usize) -> Option<Self> {
         if dimension == 0 {
-            return Err(QuantumCoverError::EmptyDistribution);
+            return None;
         }
         let p = 1.0 / dimension as f32;
-        Ok(Self {
+        Some(Self {
             eigenvalues: vec![p; dimension],
         })
     }
 
-    /// ρ from finite non-negative weights, normalized to trace 1.
-    pub fn from_weights(weights: &[f32]) -> Result<Self, QuantumCoverError> {
+    /// ρ from finite non-negative weights, normalized to trace 1. `None` when
+    /// the weights are empty or do not sum to a finite positive value (no
+    /// density operator exists for them).
+    pub fn from_weights(weights: &[f32]) -> Option<Self> {
         if weights.is_empty() {
-            return Err(QuantumCoverError::EmptyDistribution);
+            return None;
         }
         let sum: f32 = weights.iter().sum();
         if !sum.is_finite() || sum <= 0.0 {
-            return Err(QuantumCoverError::NonPositiveWeightSum);
+            return None;
         }
-        Ok(Self {
+        Some(Self {
             eigenvalues: weights.iter().map(|&w| w / sum).collect(),
         })
     }
 
-    /// ρ from integer occurrence counts, normalized to trace 1.
-    pub fn from_counts(counts: &[u64]) -> Result<Self, QuantumCoverError> {
+    /// ρ from integer occurrence counts, normalized to trace 1. `None` when the
+    /// counts are empty or sum to zero.
+    pub fn from_counts(counts: &[u64]) -> Option<Self> {
         if counts.is_empty() {
-            return Err(QuantumCoverError::EmptyDistribution);
+            return None;
         }
         let sum: u64 = counts.iter().sum();
         if sum == 0 {
-            return Err(QuantumCoverError::NonPositiveWeightSum);
+            return None;
         }
-        Ok(Self {
+        Some(Self {
             eigenvalues: counts.iter().map(|&c| c as f32 / sum as f32).collect(),
         })
     }
@@ -147,8 +122,8 @@ fn member_entropy_nats(observations: &[Observation], members: &[usize]) -> f64 {
     let counts = next_token_counts(observations, members);
     let eigenvalues: Vec<u64> = counts.values().copied().collect();
     match DensityOperator::from_counts(&eigenvalues) {
-        Ok(rho) => f64::from(rho.von_neumann_entropy()),
-        Err(_) => 0.0,
+        Some(rho) => f64::from(rho.von_neumann_entropy()),
+        None => 0.0,
     }
 }
 
@@ -248,23 +223,11 @@ mod tests {
     }
 
     #[test]
-    fn invalid_distributions_are_errors_not_panics() {
-        assert_eq!(
-            DensityOperator::max_entropy(0).unwrap_err(),
-            QuantumCoverError::EmptyDistribution
-        );
-        assert_eq!(
-            DensityOperator::from_weights(&[]).unwrap_err(),
-            QuantumCoverError::EmptyDistribution
-        );
-        assert_eq!(
-            DensityOperator::from_weights(&[0.0, 0.0]).unwrap_err(),
-            QuantumCoverError::NonPositiveWeightSum
-        );
-        assert_eq!(
-            DensityOperator::from_counts(&[0, 0]).unwrap_err(),
-            QuantumCoverError::NonPositiveWeightSum
-        );
+    fn invalid_distributions_are_none_not_panics() {
+        assert!(DensityOperator::max_entropy(0).is_none());
+        assert!(DensityOperator::from_weights(&[]).is_none());
+        assert!(DensityOperator::from_weights(&[0.0, 0.0]).is_none());
+        assert!(DensityOperator::from_counts(&[0, 0]).is_none());
     }
 
     #[test]

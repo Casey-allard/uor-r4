@@ -14,39 +14,6 @@
 //! - Standalone inference engine capable of answering transitions and emissions directly.
 
 use std::collections::HashMap;
-use std::fmt;
-
-/// Errors arising during reference compilation or IR evaluation.
-#[derive(Debug, Clone, PartialEq)]
-pub enum ReferenceCompilerError {
-    /// Empty corpus provided to compiler.
-    EmptyCorpus,
-    /// Invalid state or region identifier.
-    InvalidIdentifier { id: String },
-    /// State transition failure or missing transition edge.
-    TransitionNotFound { src_id: String, action: String },
-    /// Differential comparison divergence above tolerance.
-    DifferentialDivergence { metric: String, delta: f32 },
-}
-
-impl fmt::Display for ReferenceCompilerError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::EmptyCorpus => write!(f, "Cannot compile empty observation corpus"),
-            Self::InvalidIdentifier { id } => write!(f, "Invalid compiler IR identifier: {id}"),
-            Self::TransitionNotFound { src_id, action } => write!(
-                f,
-                "No transition found in reference IR for state '{src_id}' under action '{action}'"
-            ),
-            Self::DifferentialDivergence { metric, delta } => write!(
-                f,
-                "Differential comparison divergence in metric '{metric}': delta = {delta:.4}"
-            ),
-        }
-    }
-}
-
-impl std::error::Error for ReferenceCompilerError {}
 
 /// Configuration parameters for the reference compiler objective.
 #[derive(Debug, Clone, PartialEq)]
@@ -175,12 +142,11 @@ pub struct ReferenceCompilerPipeline;
 
 impl ReferenceCompilerPipeline {
     /// Execute full 5-stage compilation over input text observations.
-    pub fn compile(
-        corpus: &[&str],
-        config: &ReferenceCompilerConfig,
-    ) -> Result<ReferenceGraphIr, ReferenceCompilerError> {
+    /// `None` when the corpus is empty: there is no graph to compile from no
+    /// observations (R5 — the absence of a product, not a raised error).
+    pub fn compile(corpus: &[&str], config: &ReferenceCompilerConfig) -> Option<ReferenceGraphIr> {
         if corpus.is_empty() {
-            return Err(ReferenceCompilerError::EmptyCorpus);
+            return None;
         }
 
         // Stage 1: Teacher Probing & Observation Digest
@@ -259,7 +225,7 @@ impl ReferenceCompilerPipeline {
             compilation_timestamp_epoch: 1774350000,
         };
 
-        Ok(ReferenceGraphIr {
+        Some(ReferenceGraphIr {
             provenance,
             observations,
             states,
@@ -275,19 +241,21 @@ impl ReferenceCompilerPipeline {
 pub struct DifferentialCompilerHarness;
 
 impl DifferentialCompilerHarness {
+    /// Compare the reference graph's teacher loss against a baseline. Returns
+    /// `Some(delta)` when the absolute divergence is within `tolerance`, or
+    /// `None` when it diverges past the tolerance (R5 — a measured bound
+    /// crossed is reported as the absence of an in-tolerance result, not a
+    /// raised error).
     pub fn compare(
         ref_graph: &ReferenceGraphIr,
         baseline_teacher_loss: f32,
         tolerance: f32,
-    ) -> Result<f32, ReferenceCompilerError> {
+    ) -> Option<f32> {
         let delta = (ref_graph.objective_report.teacher_loss - baseline_teacher_loss).abs();
         if delta > tolerance {
-            return Err(ReferenceCompilerError::DifferentialDivergence {
-                metric: "teacher_loss".to_string(),
-                delta,
-            });
+            return None;
         }
-        Ok(delta)
+        Some(delta)
     }
 }
 
