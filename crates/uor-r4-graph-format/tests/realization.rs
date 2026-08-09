@@ -62,18 +62,13 @@ fn payload_changes_change_the_section_and_artifact_addresses() {
 
 #[test]
 fn malformed_or_tampered_artifacts_are_rejected() {
-    assert!(matches!(
-        r4g1::address(b"not an R4G1 artifact"),
-        Err(r4g1::RealizationError::InvalidArtifact(_))
-    ));
+    // Not a valid artifact -> not addressable.
+    assert!(r4g1::address(b"not an R4G1 artifact").is_none());
 
     let mut tampered = sample(3, false);
     let last = tampered.len() - 1;
     tampered[last] ^= 1;
     // Flipping a content byte leaves the structure valid but breaks the
-    // artifact CID, so the failure is now the sanctioned kappa condition.
-    assert!(matches!(
-        r4g1::address(&tampered),
-        Err(r4g1::RealizationError::CidMismatch(_))
-    ));
+    // artifact CID, so it is likewise not addressable.
+    assert!(r4g1::address(&tampered).is_none());
 }

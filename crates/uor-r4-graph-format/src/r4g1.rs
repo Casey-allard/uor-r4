@@ -24,30 +24,6 @@ pub const REALIZATION_VERSION: u64 = 1;
 /// Stable realization discriminator included in every skeleton.
 pub const REALIZATION_NAME: &str = "r4g1";
 
-/// Failure while validating or addressing an R4G1 artifact.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum RealizationError {
-    /// The container is not a valid R4G1 artifact.
-    InvalidArtifact(crate::NotAProduct),
-    /// A CID did not reproduce.
-    CidMismatch(crate::KappaError),
-    /// The generated skeleton was not accepted by the CBOR realization.
-    AddressingFailed,
-}
-
-impl core::fmt::Display for RealizationError {
-    fn fmt(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        match self {
-            Self::InvalidArtifact(error) => write!(formatter, "invalid R4G1 artifact: {error}"),
-            Self::CidMismatch(error) => write!(formatter, "R4G1 CID mismatch: {error}"),
-            Self::AddressingFailed => write!(formatter, "uor-addr rejected the R4G1 skeleton"),
-        }
-    }
-}
-
-#[cfg(feature = "std")]
-impl std::error::Error for RealizationError {}
-
 /// A section's representation-level address.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SectionAddress {
@@ -71,9 +47,14 @@ pub struct R4G1Address {
 }
 
 /// Address a validated R4G1 container using its canonical section skeleton.
-pub fn address(bytes: &[u8]) -> Result<R4G1Address, RealizationError> {
-    let view = GraphView::parse(bytes).map_err(RealizationError::InvalidArtifact)?;
-    view.verify_cids().map_err(RealizationError::CidMismatch)?;
+///
+/// Total (R5): `None` means the bytes do not yield an address — they are not a
+/// valid R4G1 artifact, their CIDs do not reproduce, or the CBOR realization
+/// rejected the skeleton. The specific reason is recoverable by calling
+/// [`GraphView::parse`] and [`GraphView::verify_cids`] directly.
+pub fn address(bytes: &[u8]) -> Option<R4G1Address> {
+    let view = GraphView::parse(bytes).ok()?;
+    view.verify_cids().ok()?;
 
     let mut sections = Vec::with_capacity(view.sections().len());
     for section in view.sections() {
@@ -88,31 +69,32 @@ pub fn address(bytes: &[u8]) -> Result<R4G1Address, RealizationError> {
 
     let skeleton = artifact_skeleton(&sections);
     let artifact_kappa = address_cbor(&skeleton)?;
-    Ok(R4G1Address {
+    Some(R4G1Address {
         artifact_kappa,
         sections,
         skeleton,
     })
 }
 
-/// Return only the representation-level artifact κ-label.
-pub fn artifact_kappa(bytes: &[u8]) -> Result<String, RealizationError> {
-    Ok(address(bytes)?.artifact_kappa)
+/// Return only the representation-level κ-label; `None` if not addressable.
+pub fn artifact_kappa(bytes: &[u8]) -> Option<String> {
+    Some(address(bytes)?.artifact_kappa)
 }
 
-/// Return the representation-level κ-label for one section.
-pub fn section_kappa(bytes: &[u8], id: SectionId) -> Result<Option<String>, RealizationError> {
-    Ok(address(bytes)?
+/// Return the representation-level κ-label for one section; `None` if the
+/// artifact is not addressable or the section is absent.
+pub fn section_kappa(bytes: &[u8], id: SectionId) -> Option<String> {
+    address(bytes)?
         .sections
         .into_iter()
         .find(|section| section.id == id)
-        .map(|section| section.kappa))
+        .map(|section| section.kappa)
 }
 
-fn address_cbor(skeleton: &[u8]) -> Result<String, RealizationError> {
+fn address_cbor(skeleton: &[u8]) -> Option<String> {
     uor_addr::cbor::address_blake3(skeleton)
         .map(|outcome| outcome.address.to_string())
-        .map_err(|_| RealizationError::AddressingFailed)
+        .ok()
 }
 
 fn section_skeleton(id: SectionId, flags: u32, payload: &[u8]) -> Vec<u8> {

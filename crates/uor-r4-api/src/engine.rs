@@ -1171,9 +1171,10 @@ impl R4Engine {
         let token_rows = u32::try_from(artifacts.token_codes.len() / STAGES)
             .map_err(|_| LoadError::TeacherTooLarge)?;
         let artifact_kappa = r4g1::artifact_kappa(parts.graph)
-            .map_err(|error| LoadError::Scorer(error.to_string()))?;
-        let node_section_kappa = r4g1::section_kappa(parts.graph, SectionId::NODE)
-            .map_err(|error| LoadError::Scorer(error.to_string()))?;
+            .ok_or_else(|| LoadError::Scorer("R4G1 artifact is not addressable".to_string()))?;
+        // The graph is known addressable here (artifact_kappa succeeded), so a
+        // `None` is a genuinely absent NODE section, kept as such.
+        let node_section_kappa = r4g1::section_kappa(parts.graph, SectionId::NODE);
 
         Ok(Self {
             artifacts,

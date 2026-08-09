@@ -1184,7 +1184,7 @@ pub fn score_command(args: &[String]) -> Result<(), String> {
         },
     )?;
     let graph_kappa = uor_r4_graph_format::r4g1::artifact_kappa(&artifact_bytes)
-        .map_err(|error| format!("cannot address emitted R4G1 artifact: {error}"))?;
+        .ok_or_else(|| "cannot address emitted R4G1 artifact".to_string())?;
     phases.mark("R4G1 artifact emission");
 
     eprintln!("score: running Gate C evaluation [========================] 100%");

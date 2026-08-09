@@ -966,7 +966,7 @@ fn active_artifact_cid() -> Option<String> {
         }
     }
     let bytes = std::fs::read(path).ok()?;
-    let cid = uor_r4_graph_format::r4g1::artifact_kappa(&bytes).ok()?;
+    let cid = uor_r4_graph_format::r4g1::artifact_kappa(&bytes)?;
     *guard = Some((path.to_path_buf(), mtime, cid.clone()));
     Some(cid)
 }
