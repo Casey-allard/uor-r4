@@ -289,3 +289,73 @@ ceiling argument.
 
 Compiled bundle at `.uor-models/compiled/wiki-360m/` (untracked, regenerable
 from the commands above).
+
+# #516 — Full-scale broad-corpus baseline (PINNED)
+
+The P3 pass above observed the 3,000 Simple-Wiki articles thinly (21,235
+records, one short window per position sample). #516 re-runs the same corpus at
+serving depth — `--sequence-length 128`, every in-story position teacher-forced
+— which is a **17× denser** observation of the identical article set, and pins
+the result as the working baseline. The teacher, corpus source, and D3 split are
+unchanged from P3; only the observation density and the record count grow.
+
+## What was run
+
+`r4 transformerless observe-text` over Simple-Wiki `0..2999`
+(`HuggingFaceTB/SmolLM2-360M-Instruct`, seq-len 128) → `obs_bundle_to_corpus.py`
+→ `r4 transformerless {compile-recorded (--vocab-size 49152), cover, score
+(--quality-profile relative_tla)}`. All native CPU (no GPU); the teacher loader
+uses the Apple-Accelerate matmul path on the pinned Mac.
+
+**Corpus hygiene.** The observe ran overnight through the resume daemon; a brief
+concurrent-loop overlap left a 0.15% artifact that was removed before compile:
+213 byte-identical duplicate `(story, position)` records, then 6 stories
+(`769, 771–775`) whose position runs were left non-contiguous by the overlap.
+The pinned corpus is **360,924 records over 2,994 contiguous stories** — the
+2,994/3,000 articles whose streams are clean.
+
+## Result (Gate C, 72,864 held-out D3 positions; EXCT-miss 25.7%)
+
+| row (causal serving) | top-1 | bits/token |
+|---|---|---|
+| **Rule 1+2 precedence** (canonical) | **24.30%** | 11.94 |
+| best live arm (`rule12_on_fwd_strict_live`) | **31.48%** | 10.43 |
+| TLA-3 baseline | 28.21% | 13.62 |
+| Rule 1 chain | 1.78% | 15.68 |
+| anchor-hat accuracy | 17.69% | — |
+
+- **EXCT-miss 25.7%** (strict 25.7%), down from **62.5%** at the P3 thin scale:
+  the 17× denser corpus more than halves the fraction of held-out positions the
+  graph cannot resolve, and the Rule 1+2 causal row more than doubles
+  (`10.2% → 24.3%`). Coverage and accuracy both scale with observation density,
+  exactly as the corpus-scale law (`docs/scaling_law.md`) predicts.
+- Rule 1+2 standard error `0.0016` on 72,864 positions; **64 witness replays,
+  0 failures** — the scored graph is bit-deterministic under replay.
+- The teacher floor for this teacher on broad text is **3.6015 bits** (P3,
+  above). The graph ceiling (best arm `10.43` bits) remains well above the
+  floor: the substrate is compiler- and data-bound, not saturated. The number
+  licenses the pin; it does not claim teacher parity.
+
+## Decision — re-pin to 360M-broad, keep stories15M
+
+Adopt **SmolLM2-360M-Instruct observed on the broad D3 corpus at serving depth**
+as the pinned working baseline for broad-text substrate accuracy. The prior
+`stories15M` baseline is **retained alongside** (not removed): it remains the
+reference for the narrow home distribution, where it is strong, and the
+documented contrast (`stories15M` is near-degenerate on broad text — 6.4%
+next==argmax) is what makes the 360M-broad pin meaningful. Two baselines, two
+distributions; the pin names which one is canonical for broad-text claims.
+
+## Provenance (κ)
+
+Compiled bundle at `.uor-models/compiled/smollm2-360m-broad/` (untracked,
+regenerable from the commands above).
+
+| artifact | blake3 | bytes |
+|---|---|---|
+| teacher `model.safetensors` | `eb23c3e8527110b83c091f86` | 723,674,912 |
+| corpus (`corpus_recs.bin`, κ) | `41ae5ed7a3bba05342859cf2` | 31,761,312 |
+| `tless_artifacts.bin` (κ) | `0b85c43dc6f0f4683d26979d` | 1,415,444 |
+| `tless_store.bin` | — | 30,260,259 |
+| `graph/score.r4g1` (κ) | `56e1d6b0c299b91c93caa6d2` | 29,161,316 |
+| `graph-cover/cover.r4g1` | — | 204,988 |
