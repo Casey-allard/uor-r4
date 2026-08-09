@@ -25,11 +25,19 @@
 
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
+#[cfg(not(target_arch = "wasm32"))]
 use std::fs;
+#[cfg(not(target_arch = "wasm32"))]
 use std::io::{self, BufWriter, Read, Write};
+#[cfg(not(target_arch = "wasm32"))]
 use std::path::{Path, PathBuf};
+#[cfg(not(target_arch = "wasm32"))]
 use uor_r4_core::transformerless::compiler;
+#[cfg(not(target_arch = "wasm32"))]
+use uor_r4_model_source::SourceUnavailable;
+#[cfg(not(target_arch = "wasm32"))]
 use uor_r4_model_source::TeacherOracle;
+#[cfg(not(target_arch = "wasm32"))]
 use uor_r4_model_source::progress::Progress;
 
 /// Observation record width: the v4 corpus record layout (story, next,
@@ -147,15 +155,21 @@ pub fn shard_file_name(shard_bits: u8, shard: u32) -> String {
     format!("shard-{shard:0width$}.bin")
 }
 
-fn invalid_input(message: String) -> io::Error {
-    io::Error::new(io::ErrorKind::InvalidInput, message)
+/// R5: the host-ingestion boundary reports exactly one condition — a declared
+/// external source or sink could not be ingested or persisted. These helpers
+/// keep the observed malformation as the reason.
+#[cfg(not(target_arch = "wasm32"))]
+fn invalid_input(message: String) -> SourceUnavailable {
+    SourceUnavailable::new(message)
 }
 
-fn invalid_data(message: String) -> io::Error {
-    io::Error::new(io::ErrorKind::InvalidData, message)
+#[cfg(not(target_arch = "wasm32"))]
+fn invalid_data(message: String) -> SourceUnavailable {
+    SourceUnavailable::new(message)
 }
 
-fn file_kappa(path: &Path) -> io::Result<String> {
+#[cfg(not(target_arch = "wasm32"))]
+fn file_kappa(path: &Path) -> Result<String, SourceUnavailable> {
     let mut file = fs::File::open(path)?;
     let mut hasher = blake3::Hasher::new();
     let mut buffer = [0u8; 8192];
@@ -187,6 +201,7 @@ pub struct PartitionCounts {
 }
 
 impl PartitionCounts {
+    #[cfg(not(target_arch = "wasm32"))]
     fn add(&mut self, partition: RecordPartition) {
         match partition {
             RecordPartition::Construction => self.construction += 1,
@@ -258,13 +273,14 @@ impl ObservationManifest {
     }
 
     /// Load the manifest of an observation directory, if present.
-    pub fn load(dir: &Path) -> io::Result<Option<Self>> {
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn load(dir: &Path) -> Result<Option<Self>, SourceUnavailable> {
         match fs::read(dir.join(MANIFEST_FILE)) {
             Ok(bytes) => serde_json::from_slice(&bytes)
                 .map(Some)
                 .map_err(|error| invalid_data(format!("invalid observation manifest: {error}"))),
             Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(None),
-            Err(error) => Err(error),
+            Err(error) => Err(error.into()),
         }
     }
 
@@ -272,7 +288,8 @@ impl ObservationManifest {
     /// are always flushed before this runs, so a crash loses at most the
     /// manifest update; the affected shard is then regenerated on the
     /// next run.
-    fn store(&self, dir: &Path) -> io::Result<()> {
+    #[cfg(not(target_arch = "wasm32"))]
+    fn store(&self, dir: &Path) -> Result<(), SourceUnavailable> {
         let bytes = serde_json::to_vec_pretty(self)
             .map_err(|error| invalid_data(format!("manifest serialization: {error}")))?;
         let tmp = dir.join(".manifest.json.tmp");
@@ -282,6 +299,7 @@ impl ObservationManifest {
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 struct ShardHandle {
     file: BufWriter<fs::File>,
     probability: Option<BufWriter<fs::File>>,
@@ -292,6 +310,7 @@ struct ShardHandle {
 /// [`shard_of`]); each incomplete shard is appended to, so an interrupted
 /// pass resumes from the bytes already on disk. Completed shards are
 /// never rewritten: writes routed to them are skipped.
+#[cfg(not(target_arch = "wasm32"))]
 pub struct ObservationShardWriter {
     dir: PathBuf,
     manifest: ObservationManifest,
@@ -300,11 +319,12 @@ pub struct ObservationShardWriter {
     partitions_active: bool,
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 impl ObservationShardWriter {
     /// Open (or create) an observation shard directory. An existing
     /// manifest pins the fan-out; requesting a different `shard_bits` for
     /// the same directory is an error.
-    pub fn open(dir: impl AsRef<Path>, shard_bits: u8) -> io::Result<Self> {
+    pub fn open(dir: impl AsRef<Path>, shard_bits: u8) -> Result<Self, SourceUnavailable> {
         if shard_bits > MAX_SHARD_BITS {
             return Err(invalid_input(format!(
                 "shard_bits {shard_bits} exceeds the writer maximum {MAX_SHARD_BITS}"
@@ -348,7 +368,7 @@ impl ObservationShardWriter {
     /// Record the document-level partition rule in the manifest (persisted
     /// atomically). Idempotent: storing the already-recorded rule is a
     /// no-op and does not rewrite the manifest.
-    pub fn set_partition_rule(&mut self, rule: &str) -> io::Result<()> {
+    pub fn set_partition_rule(&mut self, rule: &str) -> Result<(), SourceUnavailable> {
         if self.manifest.partition_rule.as_deref() != Some(rule) {
             self.manifest.partition_rule = Some(rule.to_owned());
             self.manifest.store(&self.dir)?;
@@ -357,7 +377,7 @@ impl ObservationShardWriter {
     }
 
     /// Record the input CID in the manifest (idempotent, atomic store).
-    pub fn set_input_cid(&mut self, cid: &str) -> io::Result<()> {
+    pub fn set_input_cid(&mut self, cid: &str) -> Result<(), SourceUnavailable> {
         if self.manifest.input_cid.as_deref() != Some(cid) {
             self.manifest.input_cid = Some(cid.to_owned());
             self.manifest.store(&self.dir)?;
@@ -375,7 +395,10 @@ impl ObservationShardWriter {
     /// Restore per-shard partition counts from an earlier pass's
     /// checkpoint, so counts accumulated across a resume cover the whole
     /// shard rather than only this invocation's writes.
-    pub fn restore_partition_counts(&mut self, counts: &[PartitionCounts]) -> io::Result<()> {
+    pub fn restore_partition_counts(
+        &mut self,
+        counts: &[PartitionCounts],
+    ) -> Result<(), SourceUnavailable> {
         if counts.len() != self.partition_counts.len() {
             return Err(invalid_input(format!(
                 "partition count table has {} shards, expected {}",
@@ -396,7 +419,11 @@ impl ObservationShardWriter {
     /// Append one record to `shard`. Returns `Ok(false)` — skipping the
     /// write — when the shard is already complete; `Ok(true)` when the
     /// record was written.
-    pub fn write_record(&mut self, record: &[u8; RECORD_SIZE], shard: u32) -> io::Result<bool> {
+    pub fn write_record(
+        &mut self,
+        record: &[u8; RECORD_SIZE],
+        shard: u32,
+    ) -> Result<bool, SourceUnavailable> {
         if self.is_complete(shard) {
             return Ok(false);
         }
@@ -444,7 +471,7 @@ impl ObservationShardWriter {
         record: &[u8; RECORD_SIZE],
         shard: u32,
         partition: RecordPartition,
-    ) -> io::Result<bool> {
+    ) -> Result<bool, SourceUnavailable> {
         let written = self.write_record(record, shard)?;
         if written {
             self.partition_counts[shard as usize].add(partition);
@@ -461,7 +488,7 @@ impl ObservationShardWriter {
         record: &[u8; RECORD_SIZE],
         probability: ProbabilityMetadata,
         shard: u32,
-    ) -> io::Result<bool> {
+    ) -> Result<bool, SourceUnavailable> {
         if self.is_complete(shard) {
             return Ok(false);
         }
@@ -507,7 +534,7 @@ impl ObservationShardWriter {
         probability: ProbabilityMetadata,
         shard: u32,
         partition: RecordPartition,
-    ) -> io::Result<bool> {
+    ) -> Result<bool, SourceUnavailable> {
         let written = self.write_record_with_probability(record, probability, shard)?;
         if written {
             self.partition_counts[shard as usize].add(partition);
@@ -519,7 +546,7 @@ impl ObservationShardWriter {
     /// Flush every open shard handle. Called at whole-story checkpoints so
     /// the on-disk shard bytes always cover exactly the completed stories
     /// of the deterministic stream.
-    pub fn flush(&mut self) -> io::Result<()> {
+    pub fn flush(&mut self) -> Result<(), SourceUnavailable> {
         for handle in self.handles.iter_mut().flatten() {
             handle.file.flush()?;
             if let Some(probability) = handle.probability.as_mut() {
@@ -532,7 +559,7 @@ impl ObservationShardWriter {
     /// Finalize one shard: flush, κ-pin its file, and record it in the
     /// manifest (persisted atomically). Idempotent; an untouched shard
     /// finalizes as an empty file.
-    pub fn finish_shard(&mut self, shard: u32) -> io::Result<()> {
+    pub fn finish_shard(&mut self, shard: u32) -> Result<(), SourceUnavailable> {
         if self.is_complete(shard) {
             return Ok(());
         }
@@ -594,7 +621,7 @@ impl ObservationShardWriter {
     }
 
     /// Finalize every shard in the fan-out (ascending shard-id order).
-    pub fn finalize_all(&mut self) -> io::Result<()> {
+    pub fn finalize_all(&mut self) -> Result<(), SourceUnavailable> {
         for shard in 0..self.manifest.shard_count() {
             self.finish_shard(shard)?;
         }
@@ -605,7 +632,8 @@ impl ObservationShardWriter {
 /// Merge an observation directory into one record stream by reading the
 /// completed shards in ascending shard-id order. The result depends only
 /// on shard contents — never on the order shards were completed in.
-pub fn merge_shards(dir: impl AsRef<Path>) -> io::Result<Vec<u8>> {
+#[cfg(not(target_arch = "wasm32"))]
+pub fn merge_shards(dir: impl AsRef<Path>) -> Result<Vec<u8>, SourceUnavailable> {
     let dir = dir.as_ref();
     let manifest = ObservationManifest::load(dir)?
         .ok_or_else(|| invalid_data(format!("no observation manifest in {}", dir.display())))?;
@@ -636,7 +664,10 @@ pub fn merge_shards(dir: impl AsRef<Path>) -> io::Result<Vec<u8>> {
 
 /// Merge aligned probability sidecars in the same deterministic shard order
 /// as [`merge_shards`].
-pub fn merge_probability_metadata(dir: impl AsRef<Path>) -> io::Result<Vec<ProbabilityMetadata>> {
+#[cfg(not(target_arch = "wasm32"))]
+pub fn merge_probability_metadata(
+    dir: impl AsRef<Path>,
+) -> Result<Vec<ProbabilityMetadata>, SourceUnavailable> {
     let dir = dir.as_ref();
     let manifest = ObservationManifest::load(dir)?
         .ok_or_else(|| invalid_data(format!("no observation manifest in {}", dir.display())))?;
@@ -678,12 +709,13 @@ pub fn merge_probability_metadata(dir: impl AsRef<Path>) -> io::Result<Vec<Proba
 
 /// Reconcile a probability sidecar to the committed observation prefix after
 /// an interrupted producer pass.
+#[cfg(not(target_arch = "wasm32"))]
 pub fn reconcile_probability_shard(
     dir: impl AsRef<Path>,
     shard_bits: u8,
     shard: u32,
     committed_record_bytes: u64,
-) -> io::Result<()> {
+) -> Result<(), SourceUnavailable> {
     let path = dir
         .as_ref()
         .join(format!("{}.prob", shard_file_name(shard_bits, shard)));
@@ -699,7 +731,7 @@ pub fn reconcile_probability_shard(
                 path.display()
             )));
         }
-        Err(error) => return Err(error),
+        Err(error) => return Err(error.into()),
     };
     if length % PROBABILITY_METADATA_SIZE as u64 != 0 || length < expected {
         return Err(invalid_data(format!(
@@ -717,18 +749,19 @@ pub fn reconcile_probability_shard(
 /// Reconcile a generation-path record/sidecar pair after a crash between the
 /// two buffered writes. This path checkpoints only at whole-story boundaries,
 /// so the common prefix of the two files is the recoverable prefix.
+#[cfg(not(target_arch = "wasm32"))]
 pub fn reconcile_probability_pair(
     dir: impl AsRef<Path>,
     shard_bits: u8,
     shard: u32,
-) -> io::Result<()> {
+) -> Result<(), SourceUnavailable> {
     let dir = dir.as_ref();
     let record_path = dir.join(shard_file_name(shard_bits, shard));
     let probability_path = dir.join(format!("{}.prob", shard_file_name(shard_bits, shard)));
     let probability_length = match fs::metadata(&probability_path) {
         Ok(metadata) => metadata.len(),
         Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(()),
-        Err(error) => return Err(error),
+        Err(error) => return Err(error.into()),
     };
     if probability_length % PROBABILITY_METADATA_SIZE as u64 != 0 {
         return Err(invalid_data(format!(
@@ -763,6 +796,7 @@ pub fn reconcile_probability_pair(
 }
 
 /// Outcome of one [`observe_sharded`] invocation.
+#[cfg(not(target_arch = "wasm32"))]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ObserveSummary {
     /// Tokens generated so far by the underlying teacher stream.
@@ -787,6 +821,7 @@ pub struct ObserveSummary {
 /// window is the existing 8-token window of fed tokens. Resume: a rerun
 /// continues the stream from `state.bin`, skips shards the manifest marks
 /// complete, and appends to the incomplete ones.
+#[cfg(not(target_arch = "wasm32"))]
 pub fn observe_sharded(
     oracle: &mut dyn TeacherOracle,
     budget_s: u64,
@@ -794,11 +829,10 @@ pub fn observe_sharded(
     shard_bits: u8,
     out: &Path,
     token_byte_lengths: Option<&[u32]>,
-) -> Result<ObserveSummary, String> {
-    let mut writer =
-        ObservationShardWriter::open(out, shard_bits).map_err(|error| error.to_string())?;
+) -> Result<ObserveSummary, SourceUnavailable> {
+    let mut writer = ObservationShardWriter::open(out, shard_bits)?;
     for shard in 0..writer.manifest().shard_count() {
-        reconcile_probability_pair(out, shard_bits, shard).map_err(|error| error.to_string())?;
+        reconcile_probability_pair(out, shard_bits, shard)?;
     }
     let state_path = out.join(STATE_FILE);
     let (mut n, mut stories, mut rng, mut done) = match fs::read(&state_path) {
@@ -817,7 +851,7 @@ pub fn observe_sharded(
         // The stream already reached its target; make sure a crash between
         // the last checkpoint and finalization did not leave shards
         // unpinned, then stop without touching completed shard files.
-        writer.finalize_all().map_err(|error| error.to_string())?;
+        writer.finalize_all()?;
         println!("observation corpus already complete: {n} tokens");
         return Ok(ObserveSummary {
             records: n,
@@ -864,19 +898,16 @@ pub fn observe_sharded(
                 (span_start, span_end),
                 (byte_start, byte_end),
             );
-            if writer
-                .write_record_with_probability(
-                    &record,
-                    ProbabilityMetadata {
-                        target_logprob_nats: stats.target_logprob_nats,
-                        entropy_bits: stats.entropy_bits,
-                        top8_mass: stats.top8_mass,
-                        target_rank: stats.target_rank,
-                    },
-                    shard,
-                )
-                .map_err(|error| error.to_string())?
-            {
+            if writer.write_record_with_probability(
+                &record,
+                ProbabilityMetadata {
+                    target_logprob_nats: stats.target_logprob_nats,
+                    entropy_bits: stats.entropy_bits,
+                    top8_mass: stats.top8_mass,
+                    target_rank: stats.target_rank,
+                },
+                shard,
+            )? {
                 written += 1;
             } else {
                 skipped += 1;
@@ -899,16 +930,16 @@ pub fn observe_sharded(
         // Whole-story checkpoint: flush shard bytes first so they cover
         // exactly the completed stories, then pin the stream position
         // (identical 25-byte layout to the corpus meta).
-        writer.flush().map_err(|error| error.to_string())?;
+        writer.flush()?;
         let mut state = [0u8; 25];
         state[0..8].copy_from_slice(&n.to_le_bytes());
         state[8..16].copy_from_slice(&stories.to_le_bytes());
         state[16..24].copy_from_slice(&rng.to_le_bytes());
         state[24] = done;
-        fs::write(&state_path, state).map_err(|error| error.to_string())?;
+        fs::write(&state_path, state)?;
     }
     if done == 1 {
-        writer.finalize_all().map_err(|error| error.to_string())?;
+        writer.finalize_all()?;
         progress.finish();
     }
     println!(

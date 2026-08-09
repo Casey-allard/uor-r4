@@ -235,7 +235,8 @@ pub fn observe_command(args: &[String]) -> Result<(), String> {
         options.shards,
         &options.output,
         token_byte_lengths.as_deref(),
-    )?;
+    )
+    .map_err(|error| error.to_string())?;
     if summary.done {
         // Persist the merged record stream so Gate C can consume it as
         // --corpus-recs with state.bin as --corpus-meta (same convention

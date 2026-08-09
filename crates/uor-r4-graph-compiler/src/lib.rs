@@ -320,6 +320,7 @@ pub fn observe(args: &[String]) -> Result<(), String> {
         options.shards,
         &options.output,
         None,
-    )?;
+    )
+    .map_err(|error| error.to_string())?;
     Ok(())
 }
