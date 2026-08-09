@@ -300,15 +300,11 @@ impl RepresentationSource for FakeOracle {
     fn tokenizer_address(&self) -> &str {
         "fake-tokenizer"
     }
-    fn read_embedding_rows(
-        &self,
-        range: std::ops::Range<usize>,
-        output: &mut [f32],
-    ) -> Result<(), String> {
+    fn read_embedding_rows(&self, range: std::ops::Range<usize>, output: &mut [f32]) -> Option<()> {
         for (i, value) in output.iter_mut().enumerate() {
             *value = (range.start + i) as f32;
         }
-        Ok(())
+        Some(())
     }
 }
 

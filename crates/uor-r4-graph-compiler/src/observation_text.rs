@@ -916,9 +916,9 @@ mod tests {
             &self,
             _range: std::ops::Range<usize>,
             output: &mut [f32],
-        ) -> Result<(), String> {
+        ) -> Option<()> {
             output.fill(0.0);
-            Ok(())
+            Some(())
         }
     }
 

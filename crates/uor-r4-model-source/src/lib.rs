@@ -785,11 +785,11 @@ pub trait RepresentationSource {
     fn vocab_size(&self) -> usize;
     fn source_dimension(&self) -> usize;
     fn tokenizer_address(&self) -> &str;
-    fn read_embedding_rows(
-        &self,
-        range: std::ops::Range<usize>,
-        output: &mut [f32],
-    ) -> Result<(), String>;
+    /// Copy the embedding rows in `range` into `output`. Total: returns
+    /// `None` when the caller's `output` buffer cannot hold the requested
+    /// rows (a property of the caller's chosen instantiation), `Some(())`
+    /// once the rows are written.
+    fn read_embedding_rows(&self, range: std::ops::Range<usize>, output: &mut [f32]) -> Option<()>;
 }
 
 pub trait BehaviorSource {
@@ -917,20 +917,16 @@ impl RepresentationSource for LlamaOracle {
     fn tokenizer_address(&self) -> &str {
         "local-llama-tokenizer"
     }
-    fn read_embedding_rows(
-        &self,
-        range: std::ops::Range<usize>,
-        output: &mut [f32],
-    ) -> Result<(), String> {
+    fn read_embedding_rows(&self, range: std::ops::Range<usize>, output: &mut [f32]) -> Option<()> {
         let d = self.model.cfg.dim;
         let count = range.end - range.start;
         if output.len() < count * d {
-            return Err("output buffer too small".to_string());
+            return None;
         }
         let start_offset = self.model.emb + range.start * d;
         let end_offset = self.model.emb + range.end * d;
         output[..count * d].copy_from_slice(&self.model.w[start_offset..end_offset]);
-        Ok(())
+        Some(())
     }
 }
 
@@ -1023,9 +1019,66 @@ pub struct HuggingFaceLlamaOracle {
     fast_matmul: bool,
 }
 
+/// The sanctioned host-ingestion boundary error (R5).
+///
+/// A declared external source artifact — a teacher directory, its
+/// `model.safetensors`, `config.json`, or a named tensor within — could not be
+/// ingested into a valid teacher at construction. This is the host-side
+/// analogue of graph-format's `NotAProduct`: the only reportable condition is
+/// that the requested object does not exist as a valid product, reported at
+/// construction. It carries the operator-facing diagnostic (which file, which
+/// tensor, what dtype) rather than discarding it.
+#[cfg(not(target_arch = "wasm32"))]
+#[derive(Debug, Clone)]
+pub struct SourceUnavailable {
+    /// Human-facing description of why the source could not be ingested.
+    pub reason: String,
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+impl SourceUnavailable {
+    /// Construct from any displayable reason.
+    pub fn new(reason: impl std::fmt::Display) -> Self {
+        Self {
+            reason: reason.to_string(),
+        }
+    }
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+impl std::fmt::Display for SourceUnavailable {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "source unavailable: {}", self.reason)
+    }
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+impl std::error::Error for SourceUnavailable {}
+
+#[cfg(not(target_arch = "wasm32"))]
+impl From<std::io::Error> for SourceUnavailable {
+    fn from(error: std::io::Error) -> Self {
+        Self::new(error)
+    }
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+impl From<serde_json::Error> for SourceUnavailable {
+    fn from(error: serde_json::Error) -> Self {
+        Self::new(error)
+    }
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+impl From<safetensors::SafeTensorError> for SourceUnavailable {
+    fn from(error: safetensors::SafeTensorError) -> Self {
+        Self::new(error)
+    }
+}
+
 impl HuggingFaceLlamaOracle {
     #[cfg(not(target_arch = "wasm32"))]
-    pub fn load(source: impl AsRef<std::path::Path>) -> Result<Self, Box<dyn std::error::Error>> {
+    pub fn load(source: impl AsRef<std::path::Path>) -> Result<Self, SourceUnavailable> {
         Self::load_inner(source, None)
     }
 
@@ -1037,9 +1090,11 @@ impl HuggingFaceLlamaOracle {
     pub fn load_with_sequence_length(
         source: impl AsRef<std::path::Path>,
         sequence_length: usize,
-    ) -> Result<Self, Box<dyn std::error::Error>> {
+    ) -> Result<Self, SourceUnavailable> {
         if sequence_length == 0 {
-            return Err("teacher sequence length must be greater than zero".into());
+            return Err(SourceUnavailable::new(
+                "teacher sequence length must be greater than zero",
+            ));
         }
         Self::load_inner(source, Some(sequence_length))
     }
@@ -1058,7 +1113,7 @@ impl HuggingFaceLlamaOracle {
     fn load_inner(
         source: impl AsRef<std::path::Path>,
         sequence_length: Option<usize>,
-    ) -> Result<Self, Box<dyn std::error::Error>> {
+    ) -> Result<Self, SourceUnavailable> {
         let source = source.as_ref();
         let config: HuggingFaceConfig =
             serde_json::from_slice(&std::fs::read(source.join("config.json"))?)?;
@@ -1170,7 +1225,7 @@ fn append_layers(
     layers: usize,
     suffix: &str,
     out: &mut Vec<f32>,
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> Result<(), SourceUnavailable> {
     for layer in 0..layers {
         append_tensor(tensors, &format!("model.layers.{layer}.{suffix}"), out)?;
     }
@@ -1182,10 +1237,13 @@ fn append_tensor(
     tensors: &safetensors::SafeTensors<'_>,
     name: &str,
     out: &mut Vec<f32>,
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> Result<(), SourceUnavailable> {
     let tensor = tensors.tensor(name)?;
     if tensor.dtype() != safetensors::Dtype::BF16 {
-        return Err(format!("tensor {name} is {:?}, expected BF16", tensor.dtype()).into());
+        return Err(SourceUnavailable::new(format!(
+            "tensor {name} is {:?}, expected BF16",
+            tensor.dtype()
+        )));
     }
     for bytes in tensor.data().chunks_exact(2) {
         let bits = u16::from_le_bytes([bytes[0], bytes[1]]);
@@ -1204,20 +1262,16 @@ impl RepresentationSource for HuggingFaceLlamaOracle {
     fn tokenizer_address(&self) -> &str {
         "huggingface-tokenizer"
     }
-    fn read_embedding_rows(
-        &self,
-        range: std::ops::Range<usize>,
-        output: &mut [f32],
-    ) -> Result<(), String> {
+    fn read_embedding_rows(&self, range: std::ops::Range<usize>, output: &mut [f32]) -> Option<()> {
         let d = self.model.cfg.dim;
         let count = range.end - range.start;
         if output.len() < count * d {
-            return Err("output buffer too small".to_string());
+            return None;
         }
         let start_offset = self.model.emb + range.start * d;
         let end_offset = self.model.emb + range.end * d;
         output[..count * d].copy_from_slice(&self.model.w[start_offset..end_offset]);
-        Ok(())
+        Some(())
     }
 }
 

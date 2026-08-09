@@ -400,21 +400,19 @@ impl RepresentationSource for RecordedRepresentation {
         "recorded-corpus-tokenizer-v1"
     }
 
-    fn read_embedding_rows(
-        &self,
-        range: std::ops::Range<usize>,
-        output: &mut [f32],
-    ) -> Result<(), String> {
+    fn read_embedding_rows(&self, range: std::ops::Range<usize>, output: &mut [f32]) -> Option<()> {
+        // Total: `None` when the caller's range or buffer cannot be served
+        // (both are properties of the caller's chosen instantiation).
         if range.start > range.end || range.end > self.vocab {
-            return Err("recorded representation row range is out of bounds".to_owned());
+            return None;
         }
         let count = range.end - range.start;
         let width = count * D;
         if output.len() < width {
-            return Err("recorded representation output buffer too small".to_owned());
+            return None;
         }
         output[..width].copy_from_slice(&self.rows[range.start * D..range.end * D]);
-        Ok(())
+        Some(())
     }
 }
 

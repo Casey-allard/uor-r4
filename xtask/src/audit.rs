@@ -123,7 +123,19 @@ pub fn audit_limits(root: &Path) -> Result<(), Fail> {
     let sources = shipped_sources(root)?;
     // The only error type a shipped crate may name, plus the declaration check at
     // a declared boundary, which is not the operation failing.
-    let sanctioned = ["NotAProduct", "ObservedBound", "KappaError"];
+    //
+    // `SourceUnavailable` is the host-ingestion analogue: the teacher-loading
+    // boundary (uor-r4 #510) reports exactly one condition — a declared external
+    // source artifact (model directory, safetensors, config, or a named tensor)
+    // could not be ingested into a valid teacher at construction. It is the
+    // host-side counterpart of `NotAProduct`, not a runtime limitation, so it is
+    // sanctioned here alongside the graph substrate's three.
+    let sanctioned = [
+        "NotAProduct",
+        "ObservedBound",
+        "KappaError",
+        "SourceUnavailable",
+    ];
 
     let mut violations = Vec::new();
     for src in &sources {
