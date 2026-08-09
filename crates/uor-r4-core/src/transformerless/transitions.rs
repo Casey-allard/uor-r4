@@ -72,7 +72,10 @@ impl TransitionGraph {
     }
 
     /// Build and sort the reverse edge index $E_b$, validating Theorem 7 consistency.
-    pub fn build_reverse_index(&mut self) -> Result<(), &'static str> {
+    ///
+    /// Total: builds the index, then returns the Theorem 7 verdict — `None`
+    /// when consistent, `Some(reason)` when the rebuilt index violates it.
+    pub fn build_reverse_index(&mut self) -> Option<&'static str> {
         let mut edge_ids: Vec<u32> = (0..self.edges.len() as u32).collect();
         // Sort edge IDs by (dst, src, kind, id)
         edge_ids.sort_by_key(|&id| {
@@ -102,42 +105,45 @@ impl TransitionGraph {
     /// Verify Theorem 7 consistency:
     /// For every dst node, all reverse index entries in its slice MUST refer to
     /// valid canonical edge IDs whose destination equals dst.
-    pub fn verify_theorem_7(&self) -> Result<(), &'static str> {
+    ///
+    /// Total: `None` when the reverse index is consistent, `Some(reason)`
+    /// naming the first violation found.
+    pub fn verify_theorem_7(&self) -> Option<&'static str> {
         if self.edges.is_empty() {
-            return Ok(());
+            return None;
         }
         if self.reverse_index.len() != self.edges.len() {
-            return Err("Theorem 7 violation: reverse index does not cover all edges");
+            return Some("Theorem 7 violation: reverse index does not cover all edges");
         }
         let total_count: usize = self.reverse_offsets.values().map(|&(_, c)| c).sum();
         if total_count != self.reverse_index.len() {
-            return Err("Theorem 7 violation: reverse offsets do not cover reverse index");
+            return Some("Theorem 7 violation: reverse offsets do not cover reverse index");
         }
         for &edge_id in &self.reverse_index {
             if edge_id as usize >= self.edges.len() {
-                return Err("Theorem 7 violation: invalid canonical edge ID in reverse index");
+                return Some("Theorem 7 violation: invalid canonical edge ID in reverse index");
             }
         }
         for i in 1..self.reverse_index.len() {
             let prev_dst = self.edges[self.reverse_index[i - 1] as usize].dst;
             let cur_dst = self.edges[self.reverse_index[i] as usize].dst;
             if prev_dst > cur_dst {
-                return Err("Theorem 7 violation: reverse index not sorted by dst");
+                return Some("Theorem 7 violation: reverse index not sorted by dst");
             }
         }
         for (&dst, &(start, count)) in &self.reverse_offsets {
             if start + count > self.reverse_index.len() {
-                return Err("Theorem 7 violation: reverse index range out of bounds");
+                return Some("Theorem 7 violation: reverse index range out of bounds");
             }
             for i in start..start + count {
                 let edge_id = self.reverse_index[i];
                 let edge = &self.edges[edge_id as usize];
                 if edge.dst != dst {
-                    return Err("Theorem 7 violation: reverse index target mismatched edge dst");
+                    return Some("Theorem 7 violation: reverse index target mismatched edge dst");
                 }
             }
         }
-        Ok(())
+        None
     }
 }
 
@@ -150,7 +156,7 @@ pub fn compile_transitions_from_corpus<F>(
     corpus: &Corpus,
     region_assigner: F,
     max_transitions_per_node: usize,
-) -> Result<TransitionGraph, &'static str>
+) -> Option<TransitionGraph>
 where
     F: Fn(u32) -> u32,
 {
@@ -159,7 +165,7 @@ where
     // Iterate over sequential positions in the corpus
     let n = corpus.n;
     if corpus.story.len() < n || corpus.input.len() < n || corpus.next.len() < n {
-        return Err("corpus vectors shorter than corpus.n");
+        return None;
     }
     if n > 1 {
         for i in 0..(n - 1) {
@@ -194,7 +200,10 @@ where
         }
     }
 
-    // Build and verify Theorem 7 reverse index
-    graph.build_reverse_index()?;
-    Ok(graph)
+    // Build and verify Theorem 7 reverse index; a violation means the corpus
+    // did not yield a consistent graph.
+    if graph.build_reverse_index().is_some() {
+        return None;
+    }
+    Some(graph)
 }

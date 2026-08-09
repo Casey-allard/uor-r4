@@ -9,9 +9,10 @@ fn test_graph_patch_application_and_theorem_11() {
     let mut base_graph = TransitionGraph::new();
     base_graph.add_edge_with_score(10, 20, 5, ScoreQ::from_raw(100), EdgeKind::Forward);
     base_graph.add_edge_with_score(30, 20, 8, ScoreQ::from_raw(200), EdgeKind::Forward);
-    base_graph
-        .build_reverse_index()
-        .expect("build base reverse index");
+    assert!(
+        base_graph.build_reverse_index().is_none(),
+        "build base reverse index"
+    );
 
     let new_edge = Edge {
         id: 2,
@@ -39,13 +40,15 @@ fn test_graph_patch_application_and_theorem_11() {
     assert!(patch.verify_cid());
 
     let mut patched_graph = base_graph.clone();
-    assert!(patch.apply(&mut patched_graph).is_ok());
+    assert!(patch.apply(&mut patched_graph).is_none());
 
     assert_eq!(patched_graph.edges.len(), 3);
     assert_eq!(patched_graph.edges[2].dst, 40);
 
     // Verify Theorem 11
-    assert!(Theorem11Verifier::verify_theorem_11(&base_graph, &patched_graph, &route_map).is_ok());
+    assert!(
+        Theorem11Verifier::verify_theorem_11(&base_graph, &patched_graph, &route_map).is_none()
+    );
 }
 
 #[test]

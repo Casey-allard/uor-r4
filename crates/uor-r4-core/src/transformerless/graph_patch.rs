@@ -95,12 +95,16 @@ impl GraphPatch {
     }
 
     /// Apply patch to a transition graph in-place.
-    pub fn apply(&self, graph: &mut TransitionGraph) -> Result<(), String> {
+    ///
+    /// Total: `None` on success, `Some(reason)` when an index is out of
+    /// bounds, an added-edge id disagrees, or the post-patch graph violates
+    /// Theorem 7.
+    pub fn apply(&self, graph: &mut TransitionGraph) -> Option<String> {
         // Update ScoreQ residuals
         for &(edge_idx, ref score) in &self.residual_updates {
             let edge_idx = edge_idx as usize;
             if edge_idx >= graph.edges.len() {
-                return Err(format!(
+                return Some(format!(
                     "Residual update edge index {} out of bounds",
                     edge_idx
                 ));
@@ -113,7 +117,7 @@ impl GraphPatch {
             let new_id =
                 graph.add_edge_with_score(edge.src, edge.dst, edge.weight, edge.score, edge.kind);
             if new_id != edge.id {
-                return Err(format!(
+                return Some(format!(
                     "Added edge ID mismatch: patch has {}, graph assigned {}",
                     edge.id, new_id
                 ));
@@ -124,7 +128,7 @@ impl GraphPatch {
         for &tombstone_idx in &self.tombstone_edge_ids {
             let tombstone_idx = tombstone_idx as usize;
             if tombstone_idx >= graph.edges.len() {
-                return Err(format!(
+                return Some(format!(
                     "Tombstone edge index {} out of bounds",
                     tombstone_idx
                 ));
@@ -133,28 +137,30 @@ impl GraphPatch {
         }
 
         // Rebuild reverse index and verify Theorem 7
-        graph
-            .build_reverse_index()
-            .map_err(|e| format!("Post-patch reverse index rebuild failed: {}", e))?;
-        graph
-            .verify_theorem_7()
-            .map_err(|e| format!("Post-patch Theorem 7 verification failed: {}", e))?;
-
-        Ok(())
-    }
-
-    pub fn to_cbor_bytes(&self) -> Result<Vec<u8>, String> {
-        let mut buf = Vec::new();
-        ciborium::into_writer(self, &mut buf).map_err(|e| e.to_string())?;
-        Ok(buf)
-    }
-
-    pub fn from_cbor_bytes(bytes: &[u8]) -> Result<Self, String> {
-        let patch: GraphPatch = ciborium::from_reader(bytes).map_err(|e| e.to_string())?;
-        if !patch.verify_cid() {
-            return Err("GraphPatch CID verification failed".to_string());
+        if let Some(reason) = graph.build_reverse_index() {
+            return Some(format!("Post-patch reverse index rebuild failed: {reason}"));
         }
-        Ok(patch)
+        if let Some(reason) = graph.verify_theorem_7() {
+            return Some(format!(
+                "Post-patch Theorem 7 verification failed: {reason}"
+            ));
+        }
+
+        None
+    }
+
+    pub fn to_cbor_bytes(&self) -> Option<Vec<u8>> {
+        let mut buf = Vec::new();
+        ciborium::into_writer(self, &mut buf).ok()?;
+        Some(buf)
+    }
+
+    pub fn from_cbor_bytes(bytes: &[u8]) -> Option<Self> {
+        let patch: GraphPatch = ciborium::from_reader(bytes).ok()?;
+        if !patch.verify_cid() {
+            return None;
+        }
+        Some(patch)
     }
 }
 
@@ -162,31 +168,32 @@ pub struct Theorem11Verifier;
 
 impl Theorem11Verifier {
     /// Verify Theorem 11 for retained routes: parent and patched scores must match.
+    ///
+    /// Total: `None` when Theorem 11 holds for every retained route,
+    /// `Some(reason)` naming the first failure.
     pub fn verify_theorem_11(
         parent: &TransitionGraph,
         patched: &TransitionGraph,
         map: &RouteTranslationMap,
-    ) -> Result<(), String> {
-        parent
-            .verify_theorem_7()
-            .map_err(|e| format!("Parent graph Theorem 7 failed: {}", e))?;
-        patched
-            .verify_theorem_7()
-            .map_err(|e| format!("Patched graph Theorem 7 failed: {}", e))?;
+    ) -> Option<String> {
+        if let Some(reason) = parent.verify_theorem_7() {
+            return Some(format!("Parent graph Theorem 7 failed: {reason}"));
+        }
+        if let Some(reason) = patched.verify_theorem_7() {
+            return Some(format!("Patched graph Theorem 7 failed: {reason}"));
+        }
 
         for (&parent_route_id, mapping) in &map.mappings {
             if let RouteMapping::Retained(patched_id) = mapping {
-                let parent_edge = parent
-                    .edges
-                    .get(parent_route_id as usize)
-                    .ok_or_else(|| format!("Parent route ID {} missing", parent_route_id))?;
-                let patched_edge = patched
-                    .edges
-                    .get(*patched_id as usize)
-                    .ok_or_else(|| format!("Patched route ID {} missing", patched_id))?;
+                let Some(parent_edge) = parent.edges.get(parent_route_id as usize) else {
+                    return Some(format!("Parent route ID {} missing", parent_route_id));
+                };
+                let Some(patched_edge) = patched.edges.get(*patched_id as usize) else {
+                    return Some(format!("Patched route ID {} missing", patched_id));
+                };
 
                 if parent_edge.score != patched_edge.score {
-                    return Err(format!(
+                    return Some(format!(
                         "Theorem 11 score mismatch for route {}: parent {:?} != patched {:?}",
                         parent_route_id, parent_edge.score, patched_edge.score
                     ));
@@ -194,6 +201,6 @@ impl Theorem11Verifier {
             }
         }
 
-        Ok(())
+        None
     }
 }

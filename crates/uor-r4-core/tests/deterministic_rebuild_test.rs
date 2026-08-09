@@ -98,6 +98,6 @@ fn test_deterministic_transition_graph_rebuild() {
         g1.reverse_offsets, g2.reverse_offsets,
         "Reverse offset maps must match"
     );
-    assert!(g1.verify_theorem_7().is_ok());
-    assert!(g2.verify_theorem_7().is_ok());
+    assert!(g1.verify_theorem_7().is_none());
+    assert!(g2.verify_theorem_7().is_none());
 }

@@ -14,10 +14,10 @@ fn test_transition_graph_manual_edges_and_theorem_7() {
     assert_eq!(e1, 1);
     assert_eq!(e2, 2);
 
-    graph.build_reverse_index().expect("build reverse index");
+    assert!(graph.build_reverse_index().is_none(), "build reverse index");
 
     // Theorem 7 verification
-    assert!(graph.verify_theorem_7().is_ok());
+    assert!(graph.verify_theorem_7().is_none());
 
     // Verify reverse index for dst = 20
     let &(start, count) = graph
@@ -56,7 +56,7 @@ fn test_compile_transitions_from_synthetic_corpus() {
         compile_transitions_from_corpus(&corpus, region_assigner, 10).expect("compile transitions");
 
     // Verify Theorem 7
-    assert!(graph.verify_theorem_7().is_ok());
+    assert!(graph.verify_theorem_7().is_none());
 
     // Check transition counts
     // 100 -> 200 appears twice => region 10 -> region 20 weight 2
@@ -102,5 +102,5 @@ fn test_bounded_transitions_per_node() {
         2,
         "bounded to max 2 transitions per node"
     );
-    assert!(graph.verify_theorem_7().is_ok());
+    assert!(graph.verify_theorem_7().is_none());
 }

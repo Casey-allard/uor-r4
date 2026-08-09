@@ -52,7 +52,7 @@ fn test_theorem7_proof_verification() {
     let mut graph = TransitionGraph::new();
     graph.add_edge(1, 2, 10, EdgeKind::Forward);
     graph.add_edge(3, 2, 15, EdgeKind::Forward);
-    graph.build_reverse_index().expect("build reverse index");
+    assert!(graph.build_reverse_index().is_none(), "build reverse index");
 
     assert!(theorem7_proof::verify_theorem_7_proof(&graph).is_ok());
 }
