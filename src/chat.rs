@@ -34,7 +34,8 @@ pub enum ChatError {
     InvalidArtifacts,
     /// The graded store container was invalid.
     InvalidStore,
-    /// Generation produced no tokens or could not be decoded.
+    /// Generation produced no tokens, or the question/answer could not be
+    /// tokenized or decoded into its caller-owned buffer.
     EmptyGeneration,
     /// Generation entered a repeated-token loop and was rejected.
     RepetitiveGeneration,
@@ -277,7 +278,9 @@ fn hologram_answer(
     max_tokens: usize,
 ) -> Result<ChatAnswer, ChatError> {
     let mut question_tokens = [0u32; MAX_CHAT_HISTORY];
-    let question_count = tokenizer.encode_into(question, &mut question_tokens)?;
+    let question_count = tokenizer
+        .encode_into(question, &mut question_tokens)
+        .ok_or(ChatError::EmptyGeneration)?;
     let question_tokens = if *history_len == 0 {
         &question_tokens[..question_count]
     } else {
@@ -396,7 +399,9 @@ fn hologram_answer(
                 return Err(ChatError::EmptyGeneration);
             }
             let mut answer_bytes = [0u8; MAX_ANSWER_BYTES];
-            let answer_len = tokenizer.decode_into(generated, &mut answer_bytes)?;
+            let answer_len = tokenizer
+                .decode_into(generated, &mut answer_bytes)
+                .ok_or(ChatError::EmptyGeneration)?;
             let text = String::from_utf8_lossy(&answer_bytes[..answer_len])
                 .trim()
                 .to_owned();
@@ -436,7 +441,9 @@ fn hologram_answer(
         return Err(ChatError::EmptyGeneration);
     }
     let mut answer_bytes = [0u8; MAX_ANSWER_BYTES];
-    let answer_len = tokenizer.decode_into(generated, &mut answer_bytes)?;
+    let answer_len = tokenizer
+        .decode_into(generated, &mut answer_bytes)
+        .ok_or(ChatError::EmptyGeneration)?;
     let text = String::from_utf8_lossy(&answer_bytes[..answer_len])
         .trim()
         .to_owned();

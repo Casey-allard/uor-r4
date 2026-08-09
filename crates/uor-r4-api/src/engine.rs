@@ -1214,13 +1214,13 @@ impl R4Engine {
     /// available. (The tokenizer's BPE path allocates an intermediate
     /// `String`; text helpers sit outside the allocation-free step path.)
     pub fn encode_text_into(&self, text: &str, out: &mut [u32]) -> Option<usize> {
-        self.tokenizer.as_ref()?.encode_into(text, out).ok()
+        self.tokenizer.as_ref()?.encode_into(text, out)
     }
 
     /// Decode tokens with the bundle-matched tokenizer when one is
     /// available.
     pub fn decode_tokens_into(&self, tokens: &[u32], out: &mut [u8]) -> Option<usize> {
-        self.tokenizer.as_ref()?.decode_into(tokens, out).ok()
+        self.tokenizer.as_ref()?.decode_into(tokens, out)
     }
 }
 

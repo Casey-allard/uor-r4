@@ -302,12 +302,14 @@ impl Tokenizer {
     ///
     /// Note: the BPE path allocates an intermediate `String` for byte-level
     /// remapping, so this is not fully allocation-free.
-    pub fn encode_into(&self, text: &str, out: &mut [u32]) -> io::Result<usize> {
-        let capacity_error = || io::Error::new(io::ErrorKind::InvalidInput, "token buffer full");
+    /// Total: `Some(count)` of tokens written, `None` when `out` cannot hold
+    /// the encoding (a property of the caller's buffer) or the text needs a
+    /// byte fallback the tokenizer lacks.
+    pub fn encode_into(&self, text: &str, out: &mut [u32]) -> Option<usize> {
         let is_llama_bos = self.vocab.get(1).is_some_and(|v| v == b"<s>");
         let mut len = 0usize;
         if is_llama_bos {
-            *out.get_mut(len).ok_or_else(capacity_error)? = 1;
+            *out.get_mut(len)? = 1;
             len += 1;
         }
 
@@ -346,19 +348,19 @@ impl Tokenizer {
                 }
 
                 if let Some(id) = matched_id {
-                    *out.get_mut(len).ok_or_else(capacity_error)? = id;
+                    *out.get_mut(len)? = id;
                     len += 1;
                     i += matched_len;
                 } else {
                     let b = bytes[i];
                     if let Some(&id) = self.map.get(&[b][..]) {
-                        *out.get_mut(len).ok_or_else(capacity_error)? = id;
+                        *out.get_mut(len)? = id;
                         len += 1;
                     }
                     i += 1;
                 }
             }
-            return Ok(len);
+            return Some(len);
         }
 
         for ch in std::iter::once(' ').chain(text.chars()) {
@@ -368,19 +370,14 @@ impl Tokenizer {
                 Some(&id) => id,
                 None => {
                     for byte in bytes {
-                        let id = self.map.get(&[*byte][..]).copied().ok_or_else(|| {
-                            io::Error::new(
-                                io::ErrorKind::InvalidInput,
-                                "tokenizer has no byte fallback",
-                            )
-                        })?;
-                        *out.get_mut(len).ok_or_else(capacity_error)? = id;
+                        let id = self.map.get(&[*byte][..]).copied()?;
+                        *out.get_mut(len)? = id;
                         len += 1;
                     }
                     continue;
                 }
             };
-            *out.get_mut(len).ok_or_else(capacity_error)? = token;
+            *out.get_mut(len)? = token;
             len += 1;
         }
         loop {
@@ -411,7 +408,7 @@ impl Tokenizer {
                 None => break,
             }
         }
-        Ok(len)
+        Some(len)
     }
 
     pub fn decode(&self, toks: &[u32]) -> String {
@@ -436,17 +433,16 @@ impl Tokenizer {
     ///
     /// Note: this delegates to `decode`, which allocates an intermediate
     /// `Vec`/`String`, so this is not allocation-free.
-    pub fn decode_into(&self, toks: &[u32], out: &mut [u8]) -> io::Result<usize> {
+    /// Total: `Some(count)` of bytes written, `None` when `out` cannot hold
+    /// the decoded text.
+    pub fn decode_into(&self, toks: &[u32], out: &mut [u8]) -> Option<usize> {
         let decoded = self.decode(toks);
         let bytes = decoded.as_bytes();
         if bytes.len() > out.len() {
-            return Err(io::Error::new(
-                io::ErrorKind::InvalidInput,
-                "decoded output buffer full",
-            ));
+            return None;
         }
         out[..bytes.len()].copy_from_slice(bytes);
-        Ok(bytes.len())
+        Some(bytes.len())
     }
 }
 

@@ -184,12 +184,12 @@ impl R4g1State {
 
     /// Encode with the bundle-matched tokenizer when one is available.
     pub fn encode_into(&self, text: &str, out: &mut [u32]) -> Option<usize> {
-        self.tokenizer.as_ref()?.encode_into(text, out).ok()
+        self.tokenizer.as_ref()?.encode_into(text, out)
     }
 
     /// Decode with the bundle-matched tokenizer when one is available.
     pub fn decode_into(&self, tokens: &[u32], out: &mut [u8]) -> Option<usize> {
-        self.tokenizer.as_ref()?.decode_into(tokens, out).ok()
+        self.tokenizer.as_ref()?.decode_into(tokens, out)
     }
 
     /// Score one token window using the validated graph artifact.

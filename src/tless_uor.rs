@@ -591,7 +591,7 @@ pub fn tless_tokenize(text: &str) -> Option<Vec<u32>> {
 
 /// Tokenize into caller-owned storage without allocating.
 pub fn tless_tokenize_into(text: &str, out: &mut [u32]) -> Option<usize> {
-    with_tokenizer(|tokenizer| tokenizer.encode_into(text, out).ok()).flatten()
+    with_tokenizer(|tokenizer| tokenizer.encode_into(text, out)).flatten()
 }
 
 /// Detokenize token ids with the bound tokenizer.
@@ -601,7 +601,7 @@ pub fn tless_detokenize(tokens: &[u32]) -> Option<String> {
 
 /// Detokenize into caller-owned byte storage without allocating.
 pub fn tless_detokenize_into(tokens: &[u32], out: &mut [u8]) -> Option<usize> {
-    with_tokenizer(|tokenizer| tokenizer.decode_into(tokens, out).ok()).flatten()
+    with_tokenizer(|tokenizer| tokenizer.decode_into(tokens, out)).flatten()
 }
 
 /// Index a token stream into the bound graded store as additional evidence
