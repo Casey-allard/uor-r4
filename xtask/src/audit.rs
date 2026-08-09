@@ -120,6 +120,27 @@ fn angle_delta(s: &str) -> i32 {
     s.matches('<').count() as i32 - s.matches('>').count() as i32
 }
 
+/// Byte index of the first `Result<` in `line` that begins the `Result` type
+/// itself, rather than the tail of a longer identifier. A struct named
+/// `...Result` (e.g. `ShardReductionResult<R>`) is not `std::result::Result`
+/// and carries no error surface, so `Result<` preceded by an identifier
+/// character is skipped --- this is the type, not a name that ends in it.
+fn find_result_type(line: &str) -> Option<usize> {
+    let mut from = 0;
+    while let Some(rel) = line[from..].find("Result<") {
+        let pos = from + rel;
+        let preceded_by_ident = line[..pos]
+            .chars()
+            .next_back()
+            .is_some_and(|c| c.is_alphanumeric() || c == '_');
+        if !preceded_by_ident {
+            return Some(pos);
+        }
+        from = pos + "Result".len();
+    }
+    None
+}
+
 /// R5: no arbitrary limitation. Every bound is a property of the caller's
 /// chosen instantiation, never of the code.
 ///
@@ -148,7 +169,7 @@ pub fn audit_limits(root: &Path) -> Result<(), Fail> {
     for src in &sources {
         let lines = effective_lines(&src.text);
         for (idx, &(line_no, line)) in lines.iter().enumerate() {
-            let Some(pos) = line.find("Result<") else {
+            let Some(pos) = find_result_type(line) else {
                 continue;
             };
             // The return type may wrap across lines: rustfmt puts a long
