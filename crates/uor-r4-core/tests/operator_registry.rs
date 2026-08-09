@@ -127,7 +127,7 @@ fn test_reasoning_plan_execution_and_budget_enforcement() {
         ..plan.clone()
     };
     let err_op = plan_limited_op.execute(&registry, &start);
-    assert!(err_op.is_err());
+    assert!(err_op.is_none());
 
     // 3. Probing budget limit failure
     let plan_limited_probe = ReasoningPlanV1 {
@@ -139,7 +139,7 @@ fn test_reasoning_plan_execution_and_budget_enforcement() {
         ..plan
     };
     let err_probe = plan_limited_probe.execute(&registry, &start);
-    assert!(err_probe.is_err());
+    assert!(err_probe.is_none());
 }
 
 #[test]
@@ -212,10 +212,8 @@ fn test_proof_carrying_clause_validation() {
         ..plan_ok.clone()
     };
     let err_unsat_req = plan_unsatisfied_required.execute(&registry, &start);
-    assert!(err_unsat_req.is_err());
-    assert!(err_unsat_req
-        .unwrap_err()
-        .contains("Plan validation failed"));
+    // execute is total: a required-clause failure yields None (no witness).
+    assert!(err_unsat_req.is_none());
 
     // C. Optional constraint clause unsatisfied (recorded as contradiction)
     let plan_optional_unsat = ReasoningPlanV1 {

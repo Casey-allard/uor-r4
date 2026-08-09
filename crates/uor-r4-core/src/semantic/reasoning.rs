@@ -84,10 +84,14 @@ impl ReasoningPlanV1 {
         &self,
         registry: &OperatorRegistry,
         start_route: &WeightedRoute,
-    ) -> Result<SemanticInferenceWitnessV1, String> {
+    ) -> Option<SemanticInferenceWitnessV1> {
+        // Total: `None` when the plan yields no valid witness — an exhausted
+        // operator/probe budget, a missing operator, or an unsatisfied required
+        // clause / evidence floor (all properties of the plan + registry the
+        // caller supplied).
         // 1. Budget Enforcement
         if self.deterministic_limits.max_operators == 0 {
-            return Err("Zero operator budget limit".to_string());
+            return None;
         }
 
         let mut current_routes = vec![start_route.clone()];
@@ -99,13 +103,13 @@ impl ReasoningPlanV1 {
 
         for op_cid in &self.operators {
             if op_steps >= self.deterministic_limits.max_operators as u64 {
-                return Err("Operator execution budget exceeded".to_string());
+                return None;
             }
 
             let mut next_routes = Vec::new();
             for route in &current_routes {
                 if probe_count >= self.deterministic_limits.max_probes as u64 {
-                    return Err("Probing budget exceeded".to_string());
+                    return None;
                 }
 
                 probed_regions.push(RegionProbe {
@@ -154,10 +158,7 @@ impl ReasoningPlanV1 {
                 evidence_cids.push(proof_cid);
             } else {
                 if clause.required {
-                    return Err(format!(
-                        "Plan validation failed: required clause for facet '{}' path {:?} not satisfied",
-                        clause.facet, clause.path
-                    ));
+                    return None;
                 } else {
                     contradiction_cids.push(proof_cid);
                 }
@@ -165,11 +166,7 @@ impl ReasoningPlanV1 {
         }
 
         if evidence_cids.len() < self.required_evidence.min_evidence_count as usize {
-            return Err(format!(
-                "Evidence validation failed: found {} satisfied clauses, required at least {}",
-                evidence_cids.len(),
-                self.required_evidence.min_evidence_count
-            ));
+            return None;
         }
 
         // Compute deterministic plan CID by hashing its fields
@@ -196,7 +193,7 @@ impl ReasoningPlanV1 {
             })
             .collect();
 
-        Ok(SemanticInferenceWitnessV1 {
+        Some(SemanticInferenceWitnessV1 {
             query_cid: self.query_cid.clone(),
             plan_cid,
             semantic_space_cid: self.semantic_space_cid.clone(),
@@ -276,11 +273,11 @@ impl OperatorRegistry {
         &self,
         op_cid: &str,
         input_route: &WeightedRoute,
-    ) -> Result<Vec<WeightedRoute>, String> {
-        let op = self
-            .operators
-            .get(op_cid)
-            .ok_or_else(|| format!("Operator {} not found in registry", op_cid))?;
+    ) -> Option<Vec<WeightedRoute>> {
+        // Total: `None` only when the named operator is absent from the
+        // registry; a present operator with no matching transition yields an
+        // empty route set, not an error.
+        let op = self.operators.get(op_cid)?;
 
         match op.op_type {
             OperatorType::RelationTraversal => {
@@ -293,9 +290,9 @@ impl OperatorRegistry {
                             score: input_route.score * 0.95,
                         });
                     }
-                    Ok(results)
+                    Some(results)
                 } else {
-                    Ok(vec![])
+                    Some(vec![])
                 }
             }
             OperatorType::Conjunction => {
@@ -308,9 +305,9 @@ impl OperatorRegistry {
                             score: input_route.score * 0.90, // Conjunction decay
                         });
                     }
-                    Ok(results)
+                    Some(results)
                 } else {
-                    Ok(vec![])
+                    Some(vec![])
                 }
             }
             OperatorType::Disjunction => {
@@ -323,9 +320,9 @@ impl OperatorRegistry {
                             score: input_route.score * 0.85, // Disjunction decay
                         });
                     }
-                    Ok(results)
+                    Some(results)
                 } else {
-                    Ok(vec![])
+                    Some(vec![])
                 }
             }
             OperatorType::Negation => {
@@ -338,9 +335,9 @@ impl OperatorRegistry {
                             score: -input_route.score, // Negation exclusion
                         });
                     }
-                    Ok(results)
+                    Some(results)
                 } else {
-                    Ok(vec![])
+                    Some(vec![])
                 }
             }
             OperatorType::Projection => {
@@ -353,15 +350,15 @@ impl OperatorRegistry {
                             score: input_route.score * 0.98,
                         });
                     }
-                    Ok(results)
+                    Some(results)
                 } else if input_route.path.len() > 1 {
-                    Ok(vec![WeightedRoute {
+                    Some(vec![WeightedRoute {
                         axis: input_route.axis,
                         path: vec![input_route.path[0]],
                         score: input_route.score * 0.90,
                     }])
                 } else {
-                    Ok(vec![])
+                    Some(vec![])
                 }
             }
             OperatorType::TemporalOrdering => {
@@ -374,11 +371,11 @@ impl OperatorRegistry {
                             score: input_route.score * 0.92,
                         });
                     }
-                    Ok(results)
+                    Some(results)
                 } else {
                     let mut timed_path = input_route.path.clone();
                     timed_path.push(999);
-                    Ok(vec![WeightedRoute {
+                    Some(vec![WeightedRoute {
                         axis: input_route.axis,
                         path: timed_path,
                         score: input_route.score * 0.95,
@@ -395,17 +392,17 @@ impl OperatorRegistry {
                             score: input_route.score * 0.8,
                         });
                     }
-                    Ok(results)
+                    Some(results)
                 } else if input_route.path.len() > 1 {
                     let mut backed_off = input_route.path.clone();
                     backed_off.pop();
-                    Ok(vec![WeightedRoute {
+                    Some(vec![WeightedRoute {
                         axis: input_route.axis,
                         path: backed_off,
                         score: input_route.score * 0.8,
                     }])
                 } else {
-                    Ok(vec![])
+                    Some(vec![])
                 }
             }
         }
