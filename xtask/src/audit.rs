@@ -147,6 +147,17 @@ pub fn audit_limits(root: &Path) -> Result<(), Fail> {
             if sanctioned.iter().any(|s| tail.contains(s)) {
                 continue;
             }
+            // serde's `Serialize`/`Deserialize` contract is not the model's
+            // error surface: a `Serializer::serialize_*`-shaped helper returns
+            // `Result<S::Ok, S::Error>` and a `Deserialize::deserialize`-shaped
+            // helper returns `Result<T, D::Error>`, where the error is the
+            // *data format's* (the caller's serde impl), not a limitation this
+            // model reports. These associated-type signatures are fixed by the
+            // trait and cannot name a sanctioned type, so they are carved out
+            // exactly like a sanctioned return.
+            if tail.contains("S::Ok") || tail.contains("S::Error") || tail.contains("D::Error") {
+                continue;
+            }
             violations.push(format!("{}:{line_no}:{}", src.rel, line.trim()));
         }
     }
