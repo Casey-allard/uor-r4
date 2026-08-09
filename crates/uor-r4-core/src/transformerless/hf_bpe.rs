@@ -93,29 +93,22 @@ pub struct HfBpeTokenizer {
 }
 
 impl HfBpeTokenizer {
-    /// Parse a tokenizer from raw `tokenizer.json` bytes.
-    pub fn from_tokenizer_json_bytes(bytes: &[u8]) -> Result<Self, String> {
-        let value: serde_json::Value =
-            serde_json::from_slice(bytes).map_err(|error| format!("tokenizer.json: {error}"))?;
-        let model = value
-            .get("model")
-            .ok_or_else(|| "tokenizer.json: missing model".to_owned())?;
+    /// Parse a tokenizer from raw `tokenizer.json` bytes. Total: `Some` for a
+    /// valid byte-level BPE tokenizer, `None` when the JSON is malformed or not
+    /// the byte-level BPE shape this module requires.
+    pub fn from_tokenizer_json_bytes(bytes: &[u8]) -> Option<Self> {
+        let value: serde_json::Value = serde_json::from_slice(bytes).ok()?;
+        let model = value.get("model")?;
         if let Some(kind) = model.get("type").and_then(serde_json::Value::as_str) {
             if kind != "BPE" {
-                return Err(format!("tokenizer.json: unsupported model type {kind:?}"));
+                return None;
             }
         }
-        let vocab_map = model
-            .get("vocab")
-            .and_then(serde_json::Value::as_object)
-            .ok_or_else(|| "tokenizer.json: missing model.vocab".to_owned())?;
+        let vocab_map = model.get("vocab").and_then(serde_json::Value::as_object)?;
         let mut token_to_id: HashMap<String, u32> = HashMap::with_capacity(vocab_map.len());
         let mut max_id = 0u32;
         for (piece, id) in vocab_map {
-            let id = id
-                .as_u64()
-                .and_then(|id| u32::try_from(id).ok())
-                .ok_or_else(|| format!("tokenizer.json: invalid id for token {piece:?}"))?;
+            let id = id.as_u64().and_then(|id| u32::try_from(id).ok())?;
             max_id = max_id.max(id);
             token_to_id.insert(piece.clone(), id);
         }
@@ -126,17 +119,11 @@ impl HfBpeTokenizer {
             .and_then(serde_json::Value::as_array)
         {
             for entry in entries {
-                let content = entry
-                    .get("content")
-                    .and_then(serde_json::Value::as_str)
-                    .ok_or_else(|| "tokenizer.json: added token without content".to_owned())?;
+                let content = entry.get("content").and_then(serde_json::Value::as_str)?;
                 let id = entry
                     .get("id")
                     .and_then(serde_json::Value::as_u64)
-                    .and_then(|id| u32::try_from(id).ok())
-                    .ok_or_else(|| {
-                        format!("tokenizer.json: invalid id for added token {content:?}")
-                    })?;
+                    .and_then(|id| u32::try_from(id).ok())?;
                 max_id = max_id.max(id);
                 added_tokens.push((content.to_owned(), id));
             }
@@ -156,16 +143,13 @@ impl HfBpeTokenizer {
         // Longest content first: leftmost-longest atomic matching.
         added_tokens.sort_by(|a, b| b.0.len().cmp(&a.0.len()).then_with(|| a.0.cmp(&b.0)));
 
-        let merges = model
-            .get("merges")
-            .and_then(serde_json::Value::as_array)
-            .ok_or_else(|| "tokenizer.json: missing model.merges".to_owned())?;
+        let merges = model.get("merges").and_then(serde_json::Value::as_array)?;
         let mut merge_ranks: HashMap<String, u32> = HashMap::with_capacity(merges.len());
         for (rank, entry) in merges.iter().enumerate() {
             let key = match entry {
                 serde_json::Value::String(pair) => {
                     if pair.split(' ').count() != 2 {
-                        return Err(format!("tokenizer.json: malformed merge entry {pair:?}"));
+                        return None;
                     }
                     pair.clone()
                 }
@@ -176,19 +160,14 @@ impl HfBpeTokenizer {
                 ) {
                     (Some(left), Some(right), 2) => format!("{left} {right}"),
                     _ => {
-                        return Err(format!(
-                            "tokenizer.json: malformed merge entry at rank {rank}"
-                        ));
+                        return None;
                     }
                 },
                 _ => {
-                    return Err(format!(
-                        "tokenizer.json: malformed merge entry at rank {rank}"
-                    ));
+                    return None;
                 }
             };
-            let rank = u32::try_from(rank)
-                .map_err(|_| "tokenizer.json: merge list exceeds u32 ranks".to_owned())?;
+            let rank = u32::try_from(rank).ok()?;
             merge_ranks.entry(key).or_insert(rank);
         }
 
@@ -200,7 +179,7 @@ impl HfBpeTokenizer {
             byte_decoder.insert(*mapped, byte as u8);
         }
 
-        Ok(Self {
+        Some(Self {
             vocab,
             token_to_id,
             merge_ranks,
@@ -216,11 +195,21 @@ impl HfBpeTokenizer {
     }
 
     /// Load `tokenizer.json` from a Hugging Face model snapshot directory.
+    ///
+    /// Host-ingestion boundary: a missing file or a `tokenizer.json` that is not
+    /// a valid byte-level BPE tokenizer both report the sanctioned
+    /// [`uor_r4_model_source::SourceUnavailable`] — the tokenizer source could
+    /// not be ingested — carrying the path/diagnostic.
     #[cfg(not(target_arch = "wasm32"))]
-    pub fn from_dir(dir: &std::path::Path) -> Result<Self, String> {
+    pub fn from_dir(dir: &std::path::Path) -> Result<Self, uor_r4_model_source::SourceUnavailable> {
         let path = dir.join("tokenizer.json");
-        let bytes = std::fs::read(&path).map_err(|error| format!("{}: {error}", path.display()))?;
-        Self::from_tokenizer_json_bytes(&bytes)
+        let bytes = std::fs::read(&path)?;
+        Self::from_tokenizer_json_bytes(&bytes).ok_or_else(|| {
+            uor_r4_model_source::SourceUnavailable::new(format!(
+                "{}: not a valid byte-level BPE tokenizer",
+                path.display()
+            ))
+        })
     }
 
     /// Encode text to token ids: added tokens atomically, then the optional
@@ -460,18 +449,15 @@ struct PreTokenizerConfig {
 /// `Digits` step in a `Sequence`. Any other configuration is rejected —
 /// approximating an unknown pre-tokenizer would reintroduce exactly the
 /// wrong-segmentation bug this module fixes.
-fn parse_pre_tokenizer(pre: Option<&serde_json::Value>) -> Result<PreTokenizerConfig, String> {
-    let Some(pre) = pre.filter(|value| !value.is_null()) else {
-        return Err("tokenizer.json: missing pre_tokenizer (byte-level BPE required)".to_owned());
-    };
+fn parse_pre_tokenizer(pre: Option<&serde_json::Value>) -> Option<PreTokenizerConfig> {
+    let pre = pre.filter(|value| !value.is_null())?;
     let steps: Vec<&serde_json::Value> = match pre.get("type").and_then(serde_json::Value::as_str) {
         Some("Sequence") => pre
             .get("pretokenizers")
             .and_then(serde_json::Value::as_array)
-            .map(|steps| steps.iter().collect())
-            .ok_or_else(|| "tokenizer.json: pre-tokenizer sequence without steps".to_owned())?,
+            .map(|steps| steps.iter().collect())?,
         Some(_) => vec![pre],
-        None => return Err("tokenizer.json: pre_tokenizer without a type".to_owned()),
+        None => return None,
     };
     let mut config: Option<PreTokenizerConfig> = None;
     let mut digits_individual = None;
@@ -493,14 +479,10 @@ fn parse_pre_tokenizer(pre: Option<&serde_json::Value>) -> Result<PreTokenizerCo
                         .unwrap_or(false),
                 );
             }
-            other => {
-                return Err(format!(
-                    "tokenizer.json: unsupported pre-tokenizer step {other:?}"
-                ));
-            }
+            _ => return None,
         }
     }
-    config.ok_or_else(|| "tokenizer.json: no ByteLevel pre-tokenizer step".to_owned())
+    config
 }
 
 /// The `Digits` pre-tokenizer: split into numeric and non-numeric runs

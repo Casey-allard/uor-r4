@@ -177,10 +177,10 @@ fn surface_metadata() {
 
 #[test]
 fn malformed_json_is_a_recoverable_error() {
-    assert!(HfBpeTokenizer::from_tokenizer_json_bytes(b"not json").is_err());
-    assert!(HfBpeTokenizer::from_tokenizer_json_bytes(b"{}").is_err());
+    assert!(HfBpeTokenizer::from_tokenizer_json_bytes(b"not json").is_none());
+    assert!(HfBpeTokenizer::from_tokenizer_json_bytes(b"{}").is_none());
     // A non-byte-level pre-tokenizer is rejected (the caller falls back to
     // the legacy tokenizer instead of mis-encoding).
     let json = tokenizer_json(false).replace("\"ByteLevel\"", "\"Whitespace\"");
-    assert!(HfBpeTokenizer::from_tokenizer_json_bytes(json.as_bytes()).is_err());
+    assert!(HfBpeTokenizer::from_tokenizer_json_bytes(json.as_bytes()).is_none());
 }
