@@ -37,7 +37,7 @@ fn test_certificate_cid_computation_and_verification() {
         "Certificate CID must carry kappa scheme prefix"
     );
     assert!(
-        cert.verify_attestation().is_ok(),
+        cert.verify_attestation().is_none(),
         "Structural attestation checks must pass"
     );
 }
@@ -71,7 +71,7 @@ fn test_certificate_cbor_roundtrip() {
         attestation,
     );
 
-    let cbor_bytes = cert.to_cbor_bytes().expect("serialize CBOR");
+    let cbor_bytes = cert.to_cbor_bytes();
     assert!(!cbor_bytes.is_empty());
 
     let decoded = Certificate::from_cbor_bytes(&cbor_bytes).expect("deserialize CBOR");
@@ -98,7 +98,7 @@ fn test_certificate_attestation_failure() {
     );
 
     assert!(
-        cert.verify_attestation().is_err(),
+        cert.verify_attestation().is_some(),
         "Attestation check must fail when zero_allocation_verified is false"
     );
 }
@@ -153,8 +153,8 @@ fn test_deterministic_certificate_rebuild() {
         "Certificate CIDs must match"
     );
     assert_eq!(
-        cert1.to_cbor_bytes().unwrap(),
-        cert2.to_cbor_bytes().unwrap(),
+        cert1.to_cbor_bytes(),
+        cert2.to_cbor_bytes(),
         "Certificate CBOR bytes must be byte-identical"
     );
 }
@@ -206,8 +206,7 @@ fn test_parallel_claim_fragment_assembly_is_canonical_and_thread_invariant() {
         &fragments,
         attestation.clone(),
         1,
-    )
-    .unwrap();
+    );
     let cert_par = Certificate::new_from_claim_fragments(
         "kappa:blake3:src",
         "kappa:blake3:corpus",
@@ -218,8 +217,7 @@ fn test_parallel_claim_fragment_assembly_is_canonical_and_thread_invariant() {
         &fragments,
         attestation,
         4,
-    )
-    .unwrap();
+    );
 
     assert_eq!(cert_seq.claims.len(), 2);
     assert_eq!(cert_seq, cert_par);
@@ -263,8 +261,7 @@ fn test_parallel_claim_fragment_threads_zero_matches_sequential() {
         &fragments,
         attestation.clone(),
         1,
-    )
-    .unwrap();
+    );
     let cert_auto = Certificate::new_from_claim_fragments(
         "kappa:blake3:src",
         "kappa:blake3:corpus",
@@ -275,8 +272,7 @@ fn test_parallel_claim_fragment_threads_zero_matches_sequential() {
         &fragments,
         attestation,
         0,
-    )
-    .unwrap();
+    );
 
     assert_eq!(cert_seq, cert_auto);
 }

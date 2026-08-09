@@ -47,14 +47,6 @@ pub struct Certificate {
     pub attestation: ProtocolAttestation,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum CertificateError {
-    SerializationError(String),
-    DeserializationError(String),
-    CidMismatch { expected: String, actual: String },
-    AttestationFailed(String),
-}
-
 impl Certificate {
     // Args mirror the schema's CID fields one-to-one (issue #20); a params
     // struct can replace them if the schema grows further.
@@ -100,13 +92,10 @@ impl Certificate {
         claim_fragments: &[EmpiricalClaim],
         attestation: ProtocolAttestation,
         threads: usize,
-    ) -> Result<Self, CertificateError> {
-        let mut claims = Self::claims_from_fragments_with_threads(claim_fragments, threads)
-            .map_err(|e| {
-                CertificateError::SerializationError(format!("claim-fragment assembly failed: {e}"))
-            })?;
+    ) -> Self {
+        let mut claims = Self::claims_from_fragments_with_threads(claim_fragments, threads);
         Self::canonical_sort_and_dedup_claims(&mut claims);
-        Ok(Self::new(
+        Self::new(
             source_cid,
             corpus_cid,
             graph_cid,
@@ -115,7 +104,7 @@ impl Certificate {
             benchmark_cid,
             claims,
             attestation,
-        ))
+        )
     }
 
     /// Compute self-referential BLAKE3 CID (hex format) over certificate content.
@@ -132,16 +121,16 @@ impl Certificate {
         format!("kappa:blake3:{}", hasher.finalize().to_hex())
     }
 
+    /// Assemble claims from fragments across `threads` workers. Total: the
+    /// compiler executor is infallible (the worker closure only clones a
+    /// fragment; a worker panic propagates), so this never reports an error
+    /// (R5 — graph-compiler's scorer/executor dependency is already total).
     fn claims_from_fragments_with_threads(
         claim_fragments: &[EmpiricalClaim],
         threads: usize,
-    ) -> Result<Vec<EmpiricalClaim>, String> {
-        // The compiler executor is now total (infallible worker closure; a
-        // worker panic propagates). Fragment cloning cannot fail, so this
-        // helper never reports an error — it keeps its `Result` surface until
-        // graph-certify's own R5 conversion.
+    ) -> Vec<EmpiricalClaim> {
         let indices: Vec<usize> = (0..claim_fragments.len()).collect();
-        let claims = if threads == 1 {
+        if threads == 1 {
             SequentialExecutor::new().map(&indices, |&idx| claim_fragments[idx].clone())
         } else {
             #[cfg(not(target_arch = "wasm32"))]
@@ -152,8 +141,7 @@ impl Certificate {
             {
                 SequentialExecutor::new().map(&indices, |&idx| claim_fragments[idx].clone())
             }
-        };
-        Ok(claims)
+        }
     }
 
     fn canonical_sort_and_dedup_claims(claims: &mut Vec<EmpiricalClaim>) {
@@ -188,55 +176,54 @@ impl Certificate {
         self.certificate_cid == computed
     }
 
-    /// Validate structural attestation requirements (Gate K).
-    pub fn verify_attestation(&self) -> Result<(), CertificateError> {
+    /// Validate structural attestation requirements (Gate K). `None` when the
+    /// attestation holds; `Some(reason)` naming the first failure — a self-CID
+    /// mismatch or an unverified attestation flag. A validator is total; the
+    /// held property is the absence of a failure rather than a raised error
+    /// (R5).
+    pub fn verify_attestation(&self) -> Option<String> {
         if !self.verify_cid() {
-            return Err(CertificateError::CidMismatch {
-                expected: self.compute_cid(),
-                actual: self.certificate_cid.clone(),
-            });
+            return Some(format!(
+                "certificate CID mismatch: expected {}, found {}",
+                self.compute_cid(),
+                self.certificate_cid
+            ));
         }
         if !self.attestation.deterministic_canonical_mode {
-            return Err(CertificateError::AttestationFailed(
-                "deterministic canonical mode not verified".to_string(),
-            ));
+            return Some("deterministic canonical mode not verified".to_string());
         }
         if !self.attestation.zero_allocation_verified {
-            return Err(CertificateError::AttestationFailed(
-                "zero allocation check failed".to_string(),
-            ));
+            return Some("zero allocation check failed".to_string());
         }
         if !self.attestation.no_multiply_verified {
-            return Err(CertificateError::AttestationFailed(
-                "no multiply check failed".to_string(),
-            ));
+            return Some("no multiply check failed".to_string());
         }
         if !self.attestation.theorem_7_reverse_index_verified {
-            return Err(CertificateError::AttestationFailed(
-                "Theorem 7 reverse index check failed".to_string(),
-            ));
+            return Some("Theorem 7 reverse index check failed".to_string());
         }
-        Ok(())
+        None
     }
 
-    /// Serialize certificate to CBOR bytes.
-    pub fn to_cbor_bytes(&self) -> Result<Vec<u8>, CertificateError> {
+    /// Serialize certificate to CBOR bytes. Infallible: ciborium serialization
+    /// of this derive-Serialize certificate into an in-memory buffer cannot
+    /// fail — a failure would be a serialization defect, not a property of the
+    /// data (R5 — self-produced bytes are an invariant).
+    pub fn to_cbor_bytes(&self) -> Vec<u8> {
         let mut buf = Vec::new();
         ciborium::into_writer(self, &mut buf)
-            .map_err(|e| CertificateError::SerializationError(e.to_string()))?;
-        Ok(buf)
+            .expect("Certificate CBOR serialization is infallible");
+        buf
     }
 
-    /// Deserialize certificate from CBOR bytes.
-    pub fn from_cbor_bytes(bytes: &[u8]) -> Result<Self, CertificateError> {
-        let cert: Certificate = ciborium::from_reader(bytes)
-            .map_err(|e| CertificateError::DeserializationError(e.to_string()))?;
+    /// Deserialize certificate from CBOR bytes and check its self-CID. `None`
+    /// when the bytes are not a valid CBOR encoding, or when the recomputed CID
+    /// does not match: in either case the bytes are not a valid, self-consistent
+    /// certificate — the absence of a product (R5).
+    pub fn from_cbor_bytes(bytes: &[u8]) -> Option<Self> {
+        let cert: Certificate = ciborium::from_reader(bytes).ok()?;
         if !cert.verify_cid() {
-            return Err(CertificateError::CidMismatch {
-                expected: cert.compute_cid(),
-                actual: cert.certificate_cid,
-            });
+            return None;
         }
-        Ok(cert)
+        Some(cert)
     }
 }
