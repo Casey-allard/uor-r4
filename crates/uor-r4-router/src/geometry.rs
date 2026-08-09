@@ -27,28 +27,26 @@ pub struct Operator {
     pub space_cid: KappaLabel,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub enum GeometryError {
-    InvalidObject,
-    EncodingFailed,
-    RouteResolutionFailed,
-    OperatorMismatch,
-}
-
 pub trait SemanticGeometry {
     fn space_manifest(&self) -> KappaLabel;
-    fn ground(&self, object: &TypedObject) -> Result<GroundedSemantics, GeometryError>;
-    fn encode(&self, grounded: &GroundedSemantics) -> Result<FacetCoordinates, GeometryError>;
-    fn soft_route(
-        &self,
-        coordinates: &FacetCoordinates,
-        max_routes: usize,
-    ) -> Result<Vec<WeightedRoute>, GeometryError>;
+    /// Ground a typed object into semantics. `None` when the object carries no
+    /// content to ground: not a limitation of the geometry, but the absence of
+    /// an object to place (R5 — the only reportable condition is "no product").
+    fn ground(&self, object: &TypedObject) -> Option<GroundedSemantics>;
+    /// Encode grounded semantics into facet coordinates. Total: every grounded
+    /// vector has coordinates.
+    fn encode(&self, grounded: &GroundedSemantics) -> FacetCoordinates;
+    /// Soft-route coordinates to weighted routes. Total: the empty coordinate
+    /// set routes to the empty (or single fallback) route list, never an error.
+    fn soft_route(&self, coordinates: &FacetCoordinates, max_routes: usize) -> Vec<WeightedRoute>;
+    /// Apply an operator to a route. `None` when this geometry does not carry
+    /// the requested operator — the (route, operator) product does not exist
+    /// here, not a fault.
     fn apply_operator(
         &self,
         route: &WeightedRoute,
         operator: &Operator,
-    ) -> Result<Vec<WeightedRoute>, GeometryError>;
+    ) -> Option<Vec<WeightedRoute>>;
 }
 
 // 1. Spectral Geometry (Heuristic Baseline)
@@ -63,9 +61,9 @@ impl<'a> SemanticGeometry for SpectralGeometry<'a> {
         self.space_cid.clone()
     }
 
-    fn ground(&self, object: &TypedObject) -> Result<GroundedSemantics, GeometryError> {
+    fn ground(&self, object: &TypedObject) -> Option<GroundedSemantics> {
         if object.content.is_empty() {
-            return Err(GeometryError::InvalidObject);
+            return None;
         }
         let mut v = vec![0.0; 1024];
         if let Some(state) = self.active_state {
@@ -104,13 +102,13 @@ impl<'a> SemanticGeometry for SpectralGeometry<'a> {
         } else {
             v[..512].copy_from_slice(&vec![1.0 / (512.0f64).sqrt(); 512]);
         }
-        Ok(GroundedSemantics {
+        Some(GroundedSemantics {
             vsa_vector: v.iter().map(|&x| x as f32).collect(),
             roles: vec!["spectral-role".to_string()],
         })
     }
 
-    fn encode(&self, grounded: &GroundedSemantics) -> Result<FacetCoordinates, GeometryError> {
+    fn encode(&self, grounded: &GroundedSemantics) -> FacetCoordinates {
         let active_state: Vec<f64> = grounded.vsa_vector[..512]
             .iter()
             .map(|&x| x as f64)
@@ -155,16 +153,12 @@ impl<'a> SemanticGeometry for SpectralGeometry<'a> {
                 .collect(),
         );
 
-        Ok(FacetCoordinates {
+        FacetCoordinates {
             coordinates: coords,
-        })
+        }
     }
 
-    fn soft_route(
-        &self,
-        coordinates: &FacetCoordinates,
-        _max_routes: usize,
-    ) -> Result<Vec<WeightedRoute>, GeometryError> {
+    fn soft_route(&self, coordinates: &FacetCoordinates, _max_routes: usize) -> Vec<WeightedRoute> {
         let window_idx = coordinates
             .coordinates
             .get("window")
@@ -197,18 +191,18 @@ impl<'a> SemanticGeometry for SpectralGeometry<'a> {
                 score: 1.0,
             });
         }
-        Ok(routes)
+        routes
     }
 
     fn apply_operator(
         &self,
         route: &WeightedRoute,
         operator: &Operator,
-    ) -> Result<Vec<WeightedRoute>, GeometryError> {
+    ) -> Option<Vec<WeightedRoute>> {
         if operator.name == "identity" {
-            Ok(vec![route.clone()])
+            Some(vec![route.clone()])
         } else {
-            Err(GeometryError::OperatorMismatch)
+            None
         }
     }
 }
@@ -223,9 +217,9 @@ impl SemanticGeometry for VsaGeometry {
         self.space_cid.clone()
     }
 
-    fn ground(&self, object: &TypedObject) -> Result<GroundedSemantics, GeometryError> {
+    fn ground(&self, object: &TypedObject) -> Option<GroundedSemantics> {
         if object.content.is_empty() {
-            return Err(GeometryError::InvalidObject);
+            return None;
         }
         // #496: ground the VSA hypervector from the zeta word-sum CONTENT signal
         // (the same multiplication-free construction `SpectralGeometry::ground`
@@ -271,13 +265,13 @@ impl SemanticGeometry for VsaGeometry {
                 *target = uniform;
             }
         }
-        Ok(GroundedSemantics {
+        Some(GroundedSemantics {
             vsa_vector: float_vec,
             roles: vec!["grounded-vsa-role".to_string()],
         })
     }
 
-    fn encode(&self, grounded: &GroundedSemantics) -> Result<FacetCoordinates, GeometryError> {
+    fn encode(&self, grounded: &GroundedSemantics) -> FacetCoordinates {
         let mut coords = HashMap::new();
         // Induce simple path codes by binning the grounded VSA dimensions
         let mut type_path = Vec::new();
@@ -287,16 +281,12 @@ impl SemanticGeometry for VsaGeometry {
         }
         coords.insert("type".to_string(), type_path);
         coords.insert("entity".to_string(), vec![100, 200]);
-        Ok(FacetCoordinates {
+        FacetCoordinates {
             coordinates: coords,
-        })
+        }
     }
 
-    fn soft_route(
-        &self,
-        coordinates: &FacetCoordinates,
-        max_routes: usize,
-    ) -> Result<Vec<WeightedRoute>, GeometryError> {
+    fn soft_route(&self, coordinates: &FacetCoordinates, max_routes: usize) -> Vec<WeightedRoute> {
         let mut routes = Vec::new();
         for (facet, path) in &coordinates.coordinates {
             let axis = match facet.as_str() {
@@ -310,18 +300,18 @@ impl SemanticGeometry for VsaGeometry {
                 score: 0.95,
             });
         }
-        Ok(routes.into_iter().take(max_routes).collect())
+        routes.into_iter().take(max_routes).collect()
     }
 
     fn apply_operator(
         &self,
         route: &WeightedRoute,
         operator: &Operator,
-    ) -> Result<Vec<WeightedRoute>, GeometryError> {
+    ) -> Option<Vec<WeightedRoute>> {
         if operator.name == "vsa-identity" {
-            Ok(vec![route.clone()])
+            Some(vec![route.clone()])
         } else {
-            Err(GeometryError::OperatorMismatch)
+            None
         }
     }
 }
@@ -338,26 +328,22 @@ mod tests {
             active_state: Some(&state),
             identity: Some("test-session"),
         };
-        let first = geometry
-            .encode(
-                &geometry
-                    .ground(&TypedObject {
-                        object_type: "query".to_string(),
-                        content: "prime factorization and zeta spectrum".to_string(),
-                    })
-                    .expect("first query grounds"),
-            )
-            .expect("first query encodes");
-        let second = geometry
-            .encode(
-                &geometry
-                    .ground(&TypedObject {
-                        object_type: "query".to_string(),
-                        content: "oceanic climate satellites and rainfall".to_string(),
-                    })
-                    .expect("second query grounds"),
-            )
-            .expect("second query encodes");
+        let first = geometry.encode(
+            &geometry
+                .ground(&TypedObject {
+                    object_type: "query".to_string(),
+                    content: "prime factorization and zeta spectrum".to_string(),
+                })
+                .expect("first query grounds"),
+        );
+        let second = geometry.encode(
+            &geometry
+                .ground(&TypedObject {
+                    object_type: "query".to_string(),
+                    content: "oceanic climate satellites and rainfall".to_string(),
+                })
+                .expect("second query grounds"),
+        );
 
         assert_ne!(
             first.coordinates.get("window"),

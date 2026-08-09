@@ -20,7 +20,7 @@ fn indexed_coordinates_are_populated_and_verifiable() {
     assert!(provenance.source_kappa.starts_with("sha256:"));
     assert!(provenance.projection_kappa.starts_with("sha256:"));
     assert!(provenance.vocabulary_kappa.starts_with("sha256:"));
-    assert_eq!(router.verify_corpus_provenance(ID), Ok(1));
+    assert_eq!(router.verify_corpus_provenance(ID), Some(1));
 
     let retrieved = router.get_top_resonances_native("distant stars", ID, 1);
     assert_eq!(retrieved.len(), 1);
@@ -36,5 +36,5 @@ fn content_free_measurement_arm_still_records_provenance() {
     // Content-free indexing is still an intentionally supported measurement
     // arm, but it now records provenance as well; verification must not be
     // silently skipped for that path.
-    assert_eq!(router.verify_corpus_provenance(ID), Ok(1));
+    assert_eq!(router.verify_corpus_provenance(ID), Some(1));
 }

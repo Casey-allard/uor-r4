@@ -6,9 +6,7 @@ use crate::geometry::SemanticGeometry;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::f64::consts::PI;
-use std::fmt;
 use std::sync::OnceLock;
-use uor_r4_core::semantic::WeightedRoute;
 use uor_r4_core::*;
 use wasm_bindgen::prelude::*;
 
@@ -163,32 +161,6 @@ pub struct CoordinateProvenance {
     pub projection_kappa: String,
     pub vocabulary_kappa: String,
 }
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum ProvenanceError {
-    Missing {
-        sentence: String,
-    },
-    Mismatch {
-        sentence: String,
-        axis: &'static str,
-    },
-}
-
-impl fmt::Display for ProvenanceError {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Missing { sentence } => {
-                write!(formatter, "missing coordinate provenance for {sentence:?}")
-            }
-            Self::Mismatch { sentence, axis } => {
-                write!(formatter, "{axis} provenance mismatch for {sentence:?}")
-            }
-        }
-    }
-}
-
-impl std::error::Error for ProvenanceError {}
 
 fn uor_json_address(value: &serde_json::Value) -> String {
     let bytes = match serde_json::to_vec(value) {
@@ -1262,8 +1234,12 @@ impl UorR4Router {
         serde_json::to_string(self).unwrap_or_default()
     }
 
-    /// Imports a JSON string and restores the router system database
-    pub fn import_state(&mut self, json_str: &str) -> Result<(), JsValue> {
+    /// Imports a JSON string and restores the router system database. Returns
+    /// `true` when the string is a valid serialized router state and was
+    /// applied, `false` when it could not be parsed. Import is total: a
+    /// malformed input is the absence of a state to restore, reported as
+    /// `false`, not a thrown JS error (R5).
+    pub fn import_state(&mut self, json_str: &str) -> bool {
         match serde_json::from_str::<Self>(json_str) {
             Ok(mut imported) => {
                 for (word, &prime) in &imported.word_primes {
@@ -1274,12 +1250,9 @@ impl UorR4Router {
                 // Rebuild transitions dynamically
                 imported.rebuild_transitions();
                 *self = imported;
-                Ok(())
+                true
             }
-            Err(e) => Err(JsValue::from_str(&format!(
-                "Failed to parse router state JSON: {}",
-                e
-            ))),
+            Err(_) => false,
         }
     }
 
@@ -1735,7 +1708,7 @@ impl UorR4Router {
             content: text.to_string(),
         };
 
-        let grounded = geometry.ground(&obj).unwrap_or_else(|_| {
+        let grounded = geometry.ground(&obj).unwrap_or_else(|| {
             let mut v = vec![0.0; 1024];
             v[..512].copy_from_slice(active_state);
             geometry::GroundedSemantics {
@@ -1744,19 +1717,9 @@ impl UorR4Router {
             }
         });
 
-        let coords = geometry.encode(&grounded).unwrap_or_else(|_| {
-            let mut h = HashMap::new();
-            h.insert("window".to_string(), vec![1]);
-            geometry::FacetCoordinates { coordinates: h }
-        });
+        let coords = geometry.encode(&grounded);
 
-        let routes = geometry.soft_route(&coords, 16).unwrap_or_else(|_| {
-            vec![WeightedRoute {
-                axis: 1,
-                path: vec![1],
-                score: 1.0,
-            }]
-        });
+        let routes = geometry.soft_route(&coords, 16);
 
         let routed_idx = routes
             .iter()
@@ -2115,10 +2078,9 @@ impl UorR4Router {
             object_type: "sentence".to_string(),
             content: s_clean.to_string(),
         };
-        if let Ok(grounded) = geom.ground(&obj) {
-            if let Ok(coords) = geom.encode(&grounded) {
-                self.index_semantic_object(item_id, &coords);
-            }
+        if let Some(grounded) = geom.ground(&obj) {
+            let coords = geom.encode(&grounded);
+            self.index_semantic_object(item_id, &coords);
             // #496 real facet-index: store the item's VSA hypervector for
             // precomputed scoring, and index it under its salient content
             // dimensions (the high-recall, content-addressed candidate set).
@@ -2138,36 +2100,26 @@ impl UorR4Router {
     /// Recompute and verify provenance for every indexed sentence in one
     /// identity scope. This is deliberately outside the prediction kernel;
     /// callers may use it as an integrity check before serving a retrieval.
-    pub fn verify_corpus_provenance(&self, identity: &str) -> Result<usize, ProvenanceError> {
+    /// Returns the count of verified items, or `None` if any indexed sentence
+    /// is missing provenance or its recorded κ disagrees with the recomputed
+    /// source/projection/vocabulary provenance (R5 — a failed integrity check
+    /// is the absence of a verified count, not a reported error class).
+    pub fn verify_corpus_provenance(&self, identity: &str) -> Option<usize> {
         let items = self.corpus_items_for(identity);
         for item in &items {
-            let provenance = item
-                .provenance
-                .as_ref()
-                .ok_or_else(|| ProvenanceError::Missing {
-                    sentence: item.sentence.clone(),
-                })?;
+            let provenance = item.provenance.as_ref()?;
             if provenance.source_kappa != source_provenance(&item.sentence) {
-                return Err(ProvenanceError::Mismatch {
-                    sentence: item.sentence.clone(),
-                    axis: "source",
-                });
+                return None;
             }
             if provenance.projection_kappa != projection_provenance() {
-                return Err(ProvenanceError::Mismatch {
-                    sentence: item.sentence.clone(),
-                    axis: "projection",
-                });
+                return None;
             }
             if provenance.vocabulary_kappa != vocabulary_provenance(&self.word_primes, &item.words)
             {
-                return Err(ProvenanceError::Mismatch {
-                    sentence: item.sentence.clone(),
-                    axis: "vocabulary",
-                });
+                return None;
             }
         }
-        Ok(items.len())
+        Some(items.len())
     }
 
     fn retrieve_geometric_resonance(
@@ -2328,9 +2280,8 @@ impl UorR4Router {
             content: text.to_string(),
         };
 
-        let grounded = match geom.ground(&obj) {
-            Ok(g) => g,
-            Err(_) => return Vec::new(),
+        let Some(grounded) = geom.ground(&obj) else {
+            return Vec::new();
         };
         let query_vsa: Vec<f64> = grounded.vsa_vector.iter().map(|&x| x as f64).collect();
 
@@ -2374,7 +2325,6 @@ impl UorR4Router {
                             object_type: "query".to_string(),
                             content: item.sentence.clone(),
                         })
-                        .ok()
                     })
                     .map(|c| {
                         let cand: Vec<f64> = c.vsa_vector.iter().map(|&x| x as f64).collect();
@@ -2411,10 +2361,7 @@ impl UorR4Router {
         geom: &geometry::VsaGeometry,
         grounded: &geometry::GroundedSemantics,
     ) -> Vec<u64> {
-        let coords = match geom.encode(grounded) {
-            Ok(c) => c,
-            Err(_) => return Vec::new(),
-        };
+        let coords = geom.encode(grounded);
         let mut working_coords = coords.clone();
         let mut candidate_ids = Vec::new();
         loop {
@@ -3089,9 +3036,8 @@ pub struct DihedralInfo {
 }
 
 #[wasm_bindgen(start)]
-pub fn init_wasm() -> Result<(), JsValue> {
+pub fn init_wasm() {
     console_error_panic_hook::set_once();
-    Ok(())
 }
 
 impl UorR4Router {
@@ -3250,8 +3196,14 @@ impl UorR4Router {
         })
     }
 
-    pub fn import_state_native(&mut self, json_str: &str) -> Result<(), serde_json::Error> {
-        let mut imported: Self = serde_json::from_str(json_str)?;
+    /// Native counterpart of [`Self::import_state`]. Returns `true` when the
+    /// JSON is a valid serialized router state and was applied, `false` when it
+    /// could not be parsed (R5 — total import surface).
+    pub fn import_state_native(&mut self, json_str: &str) -> bool {
+        let mut imported: Self = match serde_json::from_str(json_str) {
+            Ok(value) => value,
+            Err(_) => return false,
+        };
         for (word, &prime) in &imported.word_primes {
             let vec = get_word_vector(prime as usize);
             imported.vocab_vectors.insert(word.clone(), vec);
@@ -3259,7 +3211,7 @@ impl UorR4Router {
         imported.max_prime = imported.word_primes.values().max().copied().unwrap_or(0);
         imported.rebuild_transitions();
         *self = imported;
-        Ok(())
+        true
     }
 
     pub fn inject_thought_stream_native(&mut self, content: &str) -> ThoughtStream {
@@ -3438,9 +3390,10 @@ mod tests {
         assert!(!exported.is_empty(), "export_state must produce JSON");
 
         let mut restored = UorR4Router::new(0.5);
-        restored
-            .import_state_native(&exported)
-            .expect("exported state must re-import cleanly");
+        assert!(
+            restored.import_state_native(&exported),
+            "exported state must re-import cleanly"
+        );
         assert_eq!(
             restored.get_vocab_size(),
             router.get_vocab_size(),

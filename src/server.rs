@@ -366,14 +366,14 @@ pub fn run_server(cli: Arc<ServerConfig>) {
     {
         let mut r = router.lock().unwrap();
         if let Ok(cache_data) = std::fs::read_to_string(&cli.manifold_cache) {
-            if let Err(e) = r.import_state_native(&cache_data) {
-                tracing::warn!(error = %e, path = %cli.manifold_cache, "failed to load manifold cache");
-            } else {
+            if r.import_state_native(&cache_data) {
                 let total = r.get_total_indexed_sentences();
                 println!(
                     "[+] Successfully loaded manifold cache from {}. Sentences indexed: {}",
                     cli.manifold_cache, total
                 );
+            } else {
+                tracing::warn!(path = %cli.manifold_cache, "failed to load manifold cache: not a valid serialized router state");
             }
         } else {
             tracing::info!(path = %cli.manifold_cache, "no manifold cache found; initializing a new manifold");
@@ -3168,11 +3168,11 @@ fn handle_connection(
                 return;
             }
         };
-        if let Err(e) = router_guard.import_state_native(&state_str) {
+        if !router_guard.import_state_native(&state_str) {
             send_json_response(
                 stream,
                 400,
-                &format!("{{\"error\":\"Import failed: {}\"}}", e),
+                "{\"error\":\"Import failed: not a valid serialized router state\"}",
             );
             return;
         }
@@ -3933,8 +3933,11 @@ struct CliAnswer {
 fn load_cli_router(cli: &ServerConfig) -> UorR4Router {
     let mut router = UorR4Router::new(0.85);
     if let Ok(cache_data) = std::fs::read_to_string(&cli.manifold_cache) {
-        if let Err(e) = router.import_state_native(&cache_data) {
-            eprintln!("[!] failed to load {}: {}", cli.manifold_cache, e);
+        if !router.import_state_native(&cache_data) {
+            eprintln!(
+                "[!] failed to load {}: not a valid serialized router state",
+                cli.manifold_cache
+            );
         }
     }
     // The geometric router needs at least one vocabulary manifold. A fresh CLI

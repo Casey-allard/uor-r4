@@ -70,21 +70,19 @@ fn evaluate_geometry<G: SemanticGeometry>(
     let mut recall_sum = 0.0;
 
     for (obj, gt_id) in queries {
-        if let Ok(grounded) = geometry.ground(obj) {
-            if let Ok(coords) = geometry.encode(&grounded) {
-                if let Ok(routes) = geometry.soft_route(&coords, 3) {
-                    // Check if ground truth maps to axis in routes
-                    let mut matched = false;
-                    for route in &routes {
-                        if route.axis as usize == *gt_id {
-                            matched = true;
-                            break;
-                        }
-                    }
-                    if matched {
-                        recall_sum += 1.0;
-                    }
+        if let Some(grounded) = geometry.ground(obj) {
+            let coords = geometry.encode(&grounded);
+            let routes = geometry.soft_route(&coords, 3);
+            // Check if ground truth maps to axis in routes
+            let mut matched = false;
+            for route in &routes {
+                if route.axis as usize == *gt_id {
+                    matched = true;
+                    break;
                 }
+            }
+            if matched {
+                recall_sum += 1.0;
             }
         }
     }

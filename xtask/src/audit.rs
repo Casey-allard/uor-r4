@@ -113,6 +113,13 @@ fn effective_lines(text: &str) -> Vec<(usize, &str)> {
     out
 }
 
+/// Net angle-bracket depth change of `s`: `<` opens a generic, `>` closes one.
+/// Used to rejoin a `Result<...>` return type that rustfmt wrapped across
+/// several lines, so the whole error type is visible to the sanctioned checks.
+fn angle_delta(s: &str) -> i32 {
+    s.matches('<').count() as i32 - s.matches('>').count() as i32
+}
+
 /// R5: no arbitrary limitation. Every bound is a property of the caller's
 /// chosen instantiation, never of the code.
 ///
@@ -139,11 +146,30 @@ pub fn audit_limits(root: &Path) -> Result<(), Fail> {
 
     let mut violations = Vec::new();
     for src in &sources {
-        for (line_no, line) in effective_lines(&src.text) {
+        let lines = effective_lines(&src.text);
+        for (idx, &(line_no, line)) in lines.iter().enumerate() {
             let Some(pos) = line.find("Result<") else {
                 continue;
             };
-            let tail = &line[pos..];
+            // The return type may wrap across lines: rustfmt puts a long
+            // associated type on its own lines and leaves `-> Result<` with the
+            // error type below it (an external-trait `forward` impl does this).
+            // Join continuation lines until the `Result<...>` generic closes, so
+            // a sanctioned or external-contract error type on a following line is
+            // seen by the checks below instead of read as a bare `Result<` with
+            // no sanctioned type --- a false positive the single-line scan cannot
+            // avoid.
+            let mut tail = line[pos..].to_string();
+            let mut depth = angle_delta(&line[pos + "Result".len()..]);
+            let mut j = idx + 1;
+            while depth > 0 && j < lines.len() && j < idx + 16 {
+                let cont = lines[j].1;
+                tail.push(' ');
+                tail.push_str(cont);
+                depth += angle_delta(cont);
+                j += 1;
+            }
+            let tail = tail.as_str();
             if sanctioned.iter().any(|s| tail.contains(s)) {
                 continue;
             }
@@ -156,6 +182,18 @@ pub fn audit_limits(root: &Path) -> Result<(), Fail> {
             // trait and cannot name a sanctioned type, so they are carved out
             // exactly like a sanctioned return.
             if tail.contains("S::Ok") || tail.contains("S::Error") || tail.contains("D::Error") {
+                continue;
+            }
+            // The uor_foundation SDK's enforcement and pipeline traits fix their
+            // own error surfaces the same way serde does. An `axis!`-declared
+            // `route_query` must return `Result<usize, ShapeViolation>`, and a
+            // `PrismModel::forward` impl must return
+            // `Result<Grounded<..>, PipelineFailure>`. Both error types are the
+            // framework's shape-conformance reports at a declared host boundary
+            // --- the caller's external contract, not a limitation this model
+            // imposes --- and neither signature can name a sanctioned type, so
+            // they are carved out exactly like the serde associated types.
+            if tail.contains("ShapeViolation") || tail.contains("PipelineFailure") {
                 continue;
             }
             violations.push(format!("{}:{line_no}:{}", src.rel, line.trim()));

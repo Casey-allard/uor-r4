@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use uor_r4_core::semantic::{KappaLabel, WeightedRoute};
 use uor_r4_router::geometry::{
-    FacetCoordinates, GeometryError, GroundedSemantics, Operator, SemanticGeometry, TypedObject,
+    FacetCoordinates, GroundedSemantics, Operator, SemanticGeometry, TypedObject,
 };
 
 pub struct MockGeometry {
@@ -13,29 +13,25 @@ impl SemanticGeometry for MockGeometry {
         self.space_cid.clone()
     }
 
-    fn ground(&self, object: &TypedObject) -> Result<GroundedSemantics, GeometryError> {
+    fn ground(&self, object: &TypedObject) -> Option<GroundedSemantics> {
         if object.content.is_empty() {
-            return Err(GeometryError::InvalidObject);
+            return None;
         }
-        Ok(GroundedSemantics {
+        Some(GroundedSemantics {
             vsa_vector: vec![0.5; 1024],
             roles: vec!["subject".to_string()],
         })
     }
 
-    fn encode(&self, _grounded: &GroundedSemantics) -> Result<FacetCoordinates, GeometryError> {
+    fn encode(&self, _grounded: &GroundedSemantics) -> FacetCoordinates {
         let mut coordinates = HashMap::new();
         coordinates.insert("type".to_string(), vec![1, 2, 3]);
         coordinates.insert("entity".to_string(), vec![10, 20, 30, 40]);
         coordinates.insert("relation".to_string(), vec![5, 6]);
-        Ok(FacetCoordinates { coordinates })
+        FacetCoordinates { coordinates }
     }
 
-    fn soft_route(
-        &self,
-        coordinates: &FacetCoordinates,
-        max_routes: usize,
-    ) -> Result<Vec<WeightedRoute>, GeometryError> {
+    fn soft_route(&self, coordinates: &FacetCoordinates, max_routes: usize) -> Vec<WeightedRoute> {
         let mut routes = Vec::new();
         if let Some(path) = coordinates.coordinates.get("type") {
             routes.push(WeightedRoute {
@@ -51,18 +47,18 @@ impl SemanticGeometry for MockGeometry {
                 score: 0.8,
             });
         }
-        Ok(routes.into_iter().take(max_routes).collect())
+        routes.into_iter().take(max_routes).collect()
     }
 
     fn apply_operator(
         &self,
         route: &WeightedRoute,
         operator: &Operator,
-    ) -> Result<Vec<WeightedRoute>, GeometryError> {
+    ) -> Option<Vec<WeightedRoute>> {
         if operator.name == "identity" {
-            Ok(vec![route.clone()])
+            Some(vec![route.clone()])
         } else {
-            Err(GeometryError::OperatorMismatch)
+            None
         }
     }
 }
@@ -81,14 +77,14 @@ fn test_mock_geometry_grounding_and_routing() {
     let grounded = geom.ground(&obj).unwrap();
     assert_eq!(grounded.roles, vec!["subject"]);
 
-    let coords = geom.encode(&grounded).unwrap();
+    let coords = geom.encode(&grounded);
     assert_eq!(coords.coordinates.get("type").unwrap(), &vec![1, 2, 3]);
     assert_eq!(
         coords.coordinates.get("entity").unwrap(),
         &vec![10, 20, 30, 40]
     );
 
-    let routes = geom.soft_route(&coords, 5).unwrap();
+    let routes = geom.soft_route(&coords, 5);
     assert_eq!(routes.len(), 2);
     assert_eq!(routes[0].axis, 1);
     assert_eq!(routes[0].path, vec![1, 2, 3]);

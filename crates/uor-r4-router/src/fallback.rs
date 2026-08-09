@@ -251,76 +251,50 @@ impl FallbackRouter {
 
     /// Execute inference generation with automatic fallback cascading.
     ///
-    /// Evaluates `primary_fn`. If `primary_fn` returns `EngineStatus::Success`, returns the result directly.
-    /// If `primary_fn` returns `UnmappedRegion` or `Pathological`, logs a `tracing::info!` fallback event
-    /// and invokes `secondary_fn`, returning a clean `FallbackResult`.
+    /// Evaluates `primary_fn`. If it returns [`EngineStatus::Success`], returns
+    /// that result directly. For any other status (`UnmappedRegion`,
+    /// `Pathological`, `Failed`, `Abstained`) it logs a `tracing::info!`
+    /// fallback event and invokes `secondary_fn`, returning a clean
+    /// [`FallbackResult`].
+    ///
+    /// Each engine closure returns an [`EngineResponse`] directly: the outcome
+    /// — success or otherwise — is carried in the response's own
+    /// [`EngineStatus`], not a separate error channel. A failed engine reports
+    /// `EngineStatus::Failed` with its explanatory text, so there is no bound
+    /// on how an engine may report (R5 — the closures are total).
     pub fn execute<FPrimary, FSecondary>(
         &self,
         mut primary_fn: FPrimary,
         mut secondary_fn: FSecondary,
     ) -> FallbackResult
     where
-        FPrimary: FnMut() -> Result<EngineResponse, String>,
-        FSecondary: FnMut() -> Result<EngineResponse, String>,
+        FPrimary: FnMut() -> EngineResponse,
+        FSecondary: FnMut() -> EngineResponse,
     {
-        match primary_fn() {
-            Ok(res) if res.status == EngineStatus::Success => FallbackResult {
-                text: res.text,
+        let primary_res = primary_fn();
+        if primary_res.status == EngineStatus::Success {
+            return FallbackResult {
+                text: primary_res.text,
                 primary_status: EngineStatus::Success,
                 fallback_triggered: false,
-                active_engine: res.engine,
-                tokens_generated: res.tokens_generated,
-            },
-            Ok(primary_res) => {
-                tracing::info!(
-                    target: "uor_r4_router::fallback",
-                    primary = %self.primary_name,
-                    secondary = %self.secondary_name,
-                    primary_status = %primary_res.status,
-                    "Primary engine status requiring fallback; cascading to secondary engine"
-                );
-                match secondary_fn() {
-                    Ok(sec_res) => FallbackResult {
-                        text: sec_res.text,
-                        primary_status: primary_res.status,
-                        fallback_triggered: true,
-                        active_engine: sec_res.engine,
-                        tokens_generated: sec_res.tokens_generated,
-                    },
-                    Err(err) => FallbackResult {
-                        text: format!("Fallback engine error: {err}"),
-                        primary_status: primary_res.status,
-                        fallback_triggered: true,
-                        active_engine: self.secondary_name.clone(),
-                        tokens_generated: 0,
-                    },
-                }
-            }
-            Err(err) => {
-                tracing::info!(
-                    target: "uor_r4_router::fallback",
-                    primary = %self.primary_name,
-                    secondary = %self.secondary_name,
-                    error = %err,
-                    "Primary engine returned error; cascading to secondary fallback engine"
-                );
-                match secondary_fn() {
-                    Ok(sec_res) => FallbackResult {
-                        text: sec_res.text,
-                        primary_status: EngineStatus::Failed,
-                        fallback_triggered: true,
-                        active_engine: sec_res.engine,
-                        tokens_generated: sec_res.tokens_generated,
-                    },
-                    Err(sec_err) => FallbackResult {
-                        text: format!("Primary error: {err}; Secondary error: {sec_err}"),
-                        primary_status: EngineStatus::Failed,
-                        fallback_triggered: true,
-                        active_engine: self.secondary_name.clone(),
-                        tokens_generated: 0,
-                    },
-                }
-            }
+                active_engine: primary_res.engine,
+                tokens_generated: primary_res.tokens_generated,
+            };
+        }
+        tracing::info!(
+            target: "uor_r4_router::fallback",
+            primary = %self.primary_name,
+            secondary = %self.secondary_name,
+            primary_status = %primary_res.status,
+            "Primary engine status requiring fallback; cascading to secondary engine"
+        );
+        let sec_res = secondary_fn();
+        FallbackResult {
+            text: sec_res.text,
+            primary_status: primary_res.status,
+            fallback_triggered: true,
+            active_engine: sec_res.engine,
+            tokens_generated: sec_res.tokens_generated,
         }
     }
 }
@@ -333,13 +307,11 @@ mod tests {
     fn test_fallback_router_primary_success() {
         let router = FallbackRouter::default();
         let res = router.execute(
-            || {
-                Ok(EngineResponse {
-                    text: "Primary clean output".to_string(),
-                    status: EngineStatus::Success,
-                    engine: "r4g1-graph".to_string(),
-                    tokens_generated: 10,
-                })
+            || EngineResponse {
+                text: "Primary clean output".to_string(),
+                status: EngineStatus::Success,
+                engine: "r4g1-graph".to_string(),
+                tokens_generated: 10,
             },
             || panic!("secondary should not be called"),
         );
@@ -354,21 +326,17 @@ mod tests {
     fn test_fallback_router_unmapped_region_triggers_fallback() {
         let router = FallbackRouter::default();
         let res = router.execute(
-            || {
-                Ok(EngineResponse {
-                    text: "".to_string(),
-                    status: EngineStatus::UnmappedRegion,
-                    engine: "r4g1-graph".to_string(),
-                    tokens_generated: 0,
-                })
+            || EngineResponse {
+                text: "".to_string(),
+                status: EngineStatus::UnmappedRegion,
+                engine: "r4g1-graph".to_string(),
+                tokens_generated: 0,
             },
-            || {
-                Ok(EngineResponse {
-                    text: "Secondary fallback output".to_string(),
-                    status: EngineStatus::Success,
-                    engine: "transformerless-tla5".to_string(),
-                    tokens_generated: 8,
-                })
+            || EngineResponse {
+                text: "Secondary fallback output".to_string(),
+                status: EngineStatus::Success,
+                engine: "transformerless-tla5".to_string(),
+                tokens_generated: 8,
             },
         );
 
@@ -382,21 +350,17 @@ mod tests {
     fn test_fallback_router_pathological_loop_triggers_fallback() {
         let router = FallbackRouter::default();
         let res = router.execute(
-            || {
-                Ok(EngineResponse {
-                    text: "Loop detected".to_string(),
-                    status: EngineStatus::Pathological,
-                    engine: "r4g1-graph".to_string(),
-                    tokens_generated: 2,
-                })
+            || EngineResponse {
+                text: "Loop detected".to_string(),
+                status: EngineStatus::Pathological,
+                engine: "r4g1-graph".to_string(),
+                tokens_generated: 2,
             },
-            || {
-                Ok(EngineResponse {
-                    text: "Secondary fallback recovery".to_string(),
-                    status: EngineStatus::Success,
-                    engine: "transformerless-tla5".to_string(),
-                    tokens_generated: 12,
-                })
+            || EngineResponse {
+                text: "Secondary fallback recovery".to_string(),
+                status: EngineStatus::Success,
+                engine: "transformerless-tla5".to_string(),
+                tokens_generated: 12,
             },
         );
 
