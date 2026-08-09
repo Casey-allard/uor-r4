@@ -58,52 +58,16 @@ pub struct RegionExport {
     pub objects: Vec<RegionObject>,
 }
 
-/// Errors from canonical region serialization or address derivation.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum RegionObjectError {
-    InvalidSchema,
-    InvalidKeyDepth,
-    DuplicateToken,
-    Malformed,
-    AddressingFailed,
-}
+// R5 (#510): region serialization, addressing, and resolution are total.
+// A canonical region object or manifest either decodes/addresses into a valid
+// product or it does not; the sole reportable condition — "not a valid product"
+// — is carried by `None`, so the former `RegionObjectError` / `RegionResolveError`
+// enums are removed and every operation below returns `Option`.
 
-impl core::fmt::Display for RegionObjectError {
-    fn fmt(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        let message = match self {
-            Self::InvalidSchema => "unsupported region-object schema",
-            Self::InvalidKeyDepth => "region key length does not match depth",
-            Self::DuplicateToken => "region object contains a duplicate token",
-            Self::Malformed => "malformed region object or manifest",
-            Self::AddressingFailed => "uor-addr rejected the region skeleton",
-        };
-        formatter.write_str(message)
-    }
-}
-
-impl std::error::Error for RegionObjectError {}
-
-/// Resolver errors are separate from a cache miss (`Ok(None)`).
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum RegionResolveError {
-    InvalidObject(RegionObjectError),
-    Backend(String),
-}
-
-impl core::fmt::Display for RegionResolveError {
-    fn fmt(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        match self {
-            Self::InvalidObject(error) => write!(formatter, "invalid region object: {error}"),
-            Self::Backend(error) => write!(formatter, "region resolver backend failed: {error}"),
-        }
-    }
-}
-
-impl std::error::Error for RegionResolveError {}
-
-/// Fetch a region object by its manifest κ-label.
+/// Fetch a region object by its manifest κ-label. Total: `None` is a miss
+/// (or an unavailable backend); a present object is `Some`.
 pub trait RegionResolver {
-    fn resolve(&self, kappa: &str) -> Result<Option<RegionObject>, RegionResolveError>;
+    fn resolve(&self, kappa: &str) -> Option<RegionObject>;
 }
 
 /// In-memory resolver useful for tests, local caches, and composition.
@@ -113,36 +77,36 @@ pub struct MemoryRegionResolver {
 }
 
 impl MemoryRegionResolver {
-    pub fn from_export(export: &RegionExport) -> Result<Self, RegionObjectError> {
+    pub fn from_export(export: &RegionExport) -> Option<Self> {
         let mut resolver = Self::default();
         for object in &export.objects {
             resolver.insert(object.clone())?;
         }
-        Ok(resolver)
+        Some(resolver)
     }
 
-    pub fn insert(&mut self, object: RegionObject) -> Result<String, RegionObjectError> {
+    pub fn insert(&mut self, object: RegionObject) -> Option<String> {
         let kappa = region_kappa(&object)?;
         self.objects.insert(kappa.clone(), object);
-        Ok(kappa)
+        Some(kappa)
     }
 }
 
 impl RegionResolver for MemoryRegionResolver {
-    fn resolve(&self, kappa: &str) -> Result<Option<RegionObject>, RegionResolveError> {
-        Ok(self.objects.get(kappa).cloned())
+    fn resolve(&self, kappa: &str) -> Option<RegionObject> {
+        self.objects.get(kappa).cloned()
     }
 }
 
 /// Convert every TLS1 entry into one canonical region object.
-pub fn export_store(store: &Store) -> Result<RegionExport, RegionObjectError> {
+pub fn export_store(store: &Store) -> Option<RegionExport> {
     let mut objects = Vec::new();
     let mut regions = Vec::new();
     for (depth, level) in store.iter().enumerate() {
-        let depth = u8::try_from(depth).map_err(|_| RegionObjectError::InvalidKeyDepth)?;
+        let depth = u8::try_from(depth).ok()?;
         for (key, distribution) in level {
             if key.len() != usize::from(depth) {
-                return Err(RegionObjectError::InvalidKeyDepth);
+                return None;
             }
             let object = RegionObject {
                 depth,
@@ -161,7 +125,7 @@ pub fn export_store(store: &Store) -> Result<RegionExport, RegionObjectError> {
         }
     }
     let manifest_kappa = manifest_kappa_for(&regions)?;
-    Ok(RegionExport {
+    Some(RegionExport {
         manifest: RegionManifest {
             schema: REGION_MANIFEST_SCHEMA,
             manifest_kappa,
@@ -172,7 +136,7 @@ pub fn export_store(store: &Store) -> Result<RegionExport, RegionObjectError> {
 }
 
 /// Canonical CBOR bytes for one region object.
-pub fn canonical_region_bytes(object: &RegionObject) -> Result<Vec<u8>, RegionObjectError> {
+pub fn canonical_region_bytes(object: &RegionObject) -> Option<Vec<u8>> {
     validate_object(object)?;
     let mut out = Vec::new();
     cbor_array(&mut out, 4);
@@ -185,24 +149,24 @@ pub fn canonical_region_bytes(object: &RegionObject) -> Result<Vec<u8>, RegionOb
         cbor_uint(&mut out, u64::from(token));
         cbor_uint(&mut out, u64::from(count));
     }
-    Ok(out)
+    Some(out)
 }
 
 #[derive(serde::Deserialize)]
 struct RegionWire(u64, u8, Vec<u8>, Vec<(u32, u32)>);
 
 /// Decode and validate one canonical region object.
-pub fn decode_region_bytes(bytes: &[u8]) -> Result<RegionObject, RegionObjectError> {
+pub fn decode_region_bytes(bytes: &[u8]) -> Option<RegionObject> {
     let mut cursor = std::io::Cursor::new(bytes);
     let RegionWire(schema, depth, key, entries): RegionWire =
-        ciborium::de::from_reader(&mut cursor).map_err(|_| RegionObjectError::Malformed)?;
+        ciborium::de::from_reader(&mut cursor).ok()?;
     if cursor.position() != bytes.len() as u64 || schema != REGION_OBJECT_SCHEMA {
-        return Err(RegionObjectError::Malformed);
+        return None;
     }
     let mut distribution = BTreeMap::new();
     for (token, count) in entries {
         if distribution.insert(token, count).is_some() {
-            return Err(RegionObjectError::DuplicateToken);
+            return None;
         }
     }
     let object = RegionObject {
@@ -211,17 +175,17 @@ pub fn decode_region_bytes(bytes: &[u8]) -> Result<RegionObject, RegionObjectErr
         distribution,
     };
     if canonical_region_bytes(&object)?.as_slice() != bytes {
-        return Err(RegionObjectError::Malformed);
+        return None;
     }
-    Ok(object)
+    Some(object)
 }
 
 /// Address one canonical region object through the pinned UOR CBOR axis.
-pub fn region_kappa(object: &RegionObject) -> Result<String, RegionObjectError> {
+pub fn region_kappa(object: &RegionObject) -> Option<String> {
     let bytes = canonical_region_bytes(object)?;
     uor_addr::cbor::address_blake3(&bytes)
         .map(|outcome| outcome.address.to_string())
-        .map_err(|_| RegionObjectError::AddressingFailed)
+        .ok()
 }
 
 /// Resolve the deepest available prefix and apply deterministic token argmax.
@@ -229,11 +193,9 @@ pub fn predict_witness_with_resolver<R: RegionResolver>(
     resolver: &R,
     manifest: &RegionManifest,
     code: &[u8; STAGES],
-) -> Result<Prediction, RegionResolveError> {
+) -> Option<Prediction> {
     if manifest.schema != REGION_MANIFEST_SCHEMA {
-        return Err(RegionResolveError::InvalidObject(
-            RegionObjectError::InvalidSchema,
-        ));
+        return None;
     }
     for depth in (0..=STAGES).rev() {
         let depth_u8 = depth as u8;
@@ -245,25 +207,20 @@ pub fn predict_witness_with_resolver<R: RegionResolver>(
         else {
             continue;
         };
-        let Some(object) = resolver.resolve(&reference.kappa)? else {
+        let Some(object) = resolver.resolve(&reference.kappa) else {
             continue;
         };
         if object.depth != depth_u8 || object.key != key {
-            return Err(RegionResolveError::InvalidObject(
-                RegionObjectError::InvalidKeyDepth,
-            ));
+            return None;
         }
-        let object_bytes =
-            canonical_region_bytes(&object).map_err(RegionResolveError::InvalidObject)?;
-        let object_kappa = region_kappa(&object).map_err(RegionResolveError::InvalidObject)?;
+        let object_bytes = canonical_region_bytes(&object)?;
+        let object_kappa = region_kappa(&object)?;
         if object_bytes.len() as u64 != reference.bytes || object_kappa != reference.kappa {
-            return Err(RegionResolveError::InvalidObject(
-                RegionObjectError::Malformed,
-            ));
+            return None;
         }
-        return Ok(argmax(depth_u8, &object.distribution));
+        return Some(argmax(depth_u8, &object.distribution));
     }
-    Ok(Prediction::default())
+    Some(Prediction::default())
 }
 
 fn argmax(depth: u8, distribution: &BTreeMap<u32, u32>) -> Prediction {
@@ -282,17 +239,17 @@ fn argmax(depth: u8, distribution: &BTreeMap<u32, u32>) -> Prediction {
     best
 }
 
-fn validate_object(object: &RegionObject) -> Result<(), RegionObjectError> {
+fn validate_object(object: &RegionObject) -> Option<()> {
     if object.key.len() != usize::from(object.depth) {
-        return Err(RegionObjectError::InvalidKeyDepth);
+        return None;
     }
-    Ok(())
+    Some(())
 }
 
 /// Canonical CBOR bytes for a region manifest.
-pub fn canonical_manifest_bytes(manifest: &RegionManifest) -> Result<Vec<u8>, RegionObjectError> {
+pub fn canonical_manifest_bytes(manifest: &RegionManifest) -> Option<Vec<u8>> {
     if manifest.schema != REGION_MANIFEST_SCHEMA {
-        return Err(RegionObjectError::InvalidSchema);
+        return None;
     }
     validate_regions(&manifest.regions)?;
     let mut bytes = Vec::new();
@@ -308,11 +265,11 @@ pub fn canonical_manifest_bytes(manifest: &RegionManifest) -> Result<Vec<u8>, Re
         cbor_text(&mut bytes, &region.kappa);
         cbor_uint(&mut bytes, region.bytes);
     }
-    Ok(bytes)
+    Some(bytes)
 }
 
 /// Derive the manifest κ-label from its canonical skeleton.
-pub fn manifest_kappa_for(regions: &[RegionReference]) -> Result<String, RegionObjectError> {
+pub fn manifest_kappa_for(regions: &[RegionReference]) -> Option<String> {
     validate_regions(regions)?;
     let mut bytes = Vec::new();
     cbor_array(&mut bytes, 3);
@@ -328,37 +285,37 @@ pub fn manifest_kappa_for(regions: &[RegionReference]) -> Result<String, RegionO
     }
     uor_addr::cbor::address_blake3(&bytes)
         .map(|outcome| outcome.address.to_string())
-        .map_err(|_| RegionObjectError::AddressingFailed)
+        .ok()
 }
 
-fn validate_regions(regions: &[RegionReference]) -> Result<(), RegionObjectError> {
+fn validate_regions(regions: &[RegionReference]) -> Option<()> {
     let mut previous: Option<(&u8, &[u8])> = None;
     for region in regions {
         if region.key.len() != usize::from(region.depth) {
-            return Err(RegionObjectError::InvalidKeyDepth);
+            return None;
         }
         let current = (&region.depth, region.key.as_slice());
         if previous.is_some_and(|previous| current <= previous) {
-            return Err(RegionObjectError::Malformed);
+            return None;
         }
         previous = Some(current);
     }
-    Ok(())
+    Some(())
 }
 
 #[derive(serde::Deserialize)]
 struct ManifestWire(u32, String, String, Vec<(u8, Vec<u8>, String, u64)>);
 
 /// Decode and validate a canonical region manifest.
-pub fn decode_manifest_bytes(bytes: &[u8]) -> Result<RegionManifest, RegionObjectError> {
+pub fn decode_manifest_bytes(bytes: &[u8]) -> Option<RegionManifest> {
     let mut cursor = std::io::Cursor::new(bytes);
     let ManifestWire(schema, domain, kappa, entries): ManifestWire =
-        ciborium::de::from_reader(&mut cursor).map_err(|_| RegionObjectError::Malformed)?;
+        ciborium::de::from_reader(&mut cursor).ok()?;
     if cursor.position() != bytes.len() as u64
         || schema != REGION_MANIFEST_SCHEMA
         || domain != "r4-region-manifest"
     {
-        return Err(RegionObjectError::Malformed);
+        return None;
     }
     let regions = entries
         .into_iter()
@@ -371,7 +328,7 @@ pub fn decode_manifest_bytes(bytes: &[u8]) -> Result<RegionManifest, RegionObjec
         .collect::<Vec<_>>();
     let expected = manifest_kappa_for(&regions)?;
     if expected != kappa {
-        return Err(RegionObjectError::Malformed);
+        return None;
     }
     let manifest = RegionManifest {
         schema,
@@ -379,9 +336,9 @@ pub fn decode_manifest_bytes(bytes: &[u8]) -> Result<RegionManifest, RegionObjec
         regions,
     };
     if canonical_manifest_bytes(&manifest)?.as_slice() != bytes {
-        return Err(RegionObjectError::Malformed);
+        return None;
     }
-    Ok(manifest)
+    Some(manifest)
 }
 
 fn cbor_array(out: &mut Vec<u8>, length: u64) {

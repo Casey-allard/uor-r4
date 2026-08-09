@@ -245,9 +245,9 @@ impl ModelStore {
         object: &uor_r4_core::transformerless::region_store::RegionObject,
     ) -> Result<ModelObject, ModelError> {
         let bytes = uor_r4_core::transformerless::region_store::canonical_region_bytes(object)
-            .map_err(|error| ModelError::InvalidRegionObject(error.to_string()))?;
+            .ok_or_else(|| ModelError::InvalidRegionObject("canonical region bytes".to_string()))?;
         let cid = uor_r4_core::transformerless::region_store::region_kappa(object)
-            .map_err(|error| ModelError::InvalidRegionObject(error.to_string()))?;
+            .ok_or_else(|| ModelError::InvalidRegionObject("region addressing".to_string()))?;
         self.put_addressed_bytes(&cid, &bytes)
     }
 
@@ -264,9 +264,11 @@ impl ModelStore {
             Err(error) => return Err(ModelError::Io(error)),
         };
         let object = uor_r4_core::transformerless::region_store::decode_region_bytes(&bytes)
-            .map_err(|error| ModelError::InvalidRegionObject(error.to_string()))?;
+            .ok_or_else(|| {
+                ModelError::InvalidRegionObject("malformed region object".to_string())
+            })?;
         let actual = uor_r4_core::transformerless::region_store::region_kappa(&object)
-            .map_err(|error| ModelError::InvalidRegionObject(error.to_string()))?;
+            .ok_or_else(|| ModelError::InvalidRegionObject("region addressing".to_string()))?;
         if actual != kappa {
             return Err(ModelError::InvalidCid(kappa.to_owned()));
         }
@@ -280,12 +282,12 @@ impl ModelStore {
     ) -> Result<ModelObject, ModelError> {
         let expected =
             uor_r4_core::transformerless::region_store::manifest_kappa_for(&manifest.regions)
-                .map_err(|error| ModelError::InvalidRegionObject(error.to_string()))?;
+                .ok_or_else(|| ModelError::InvalidRegionObject("region manifest".to_string()))?;
         if expected != manifest.manifest_kappa {
             return Err(ModelError::InvalidCid(manifest.manifest_kappa.clone()));
         }
         let bytes = uor_r4_core::transformerless::region_store::canonical_manifest_bytes(manifest)
-            .map_err(|error| ModelError::InvalidRegionObject(error.to_string()))?;
+            .ok_or_else(|| ModelError::InvalidRegionObject("region manifest".to_string()))?;
         self.put_addressed_bytes(&manifest.manifest_kappa, &bytes)
     }
 
@@ -302,7 +304,7 @@ impl ModelStore {
             Err(error) => return Err(ModelError::Io(error)),
         };
         let manifest = uor_r4_core::transformerless::region_store::decode_manifest_bytes(&bytes)
-            .map_err(|error| ModelError::InvalidRegionObject(error.to_string()))?;
+            .ok_or_else(|| ModelError::InvalidRegionObject("region manifest".to_string()))?;
         if manifest.manifest_kappa != kappa {
             return Err(ModelError::InvalidCid(kappa.to_owned()));
         }
@@ -391,15 +393,9 @@ impl uor_r4_core::transformerless::region_store::RegionResolver for ModelStore {
     fn resolve(
         &self,
         kappa: &str,
-    ) -> Result<
-        Option<uor_r4_core::transformerless::region_store::RegionObject>,
-        uor_r4_core::transformerless::region_store::RegionResolveError,
-    > {
-        self.get_region_object(kappa).map_err(|error| {
-            uor_r4_core::transformerless::region_store::RegionResolveError::Backend(
-                error.to_string(),
-            )
-        })
+    ) -> Option<uor_r4_core::transformerless::region_store::RegionObject> {
+        // Total resolver: a backend/IO failure or a miss both resolve to `None`.
+        self.get_region_object(kappa).ok().flatten()
     }
 }
 
@@ -812,7 +808,6 @@ mod tests {
         assert_eq!(actual, expected);
         assert!(
             <ModelStore as RegionResolver>::resolve(&model_store, &manifest.regions[0].kappa)
-                .expect("resolver read")
                 .is_some()
         );
         std::fs::remove_dir_all(root).unwrap();
