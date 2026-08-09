@@ -13,5 +13,5 @@ pub mod status;
 
 mod vp_tree;
 
-pub use engine::{R4G1Runtime, RuntimeError};
+pub use engine::R4G1Runtime;
 pub use status::ResolutionStatus;

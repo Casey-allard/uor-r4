@@ -2,28 +2,9 @@ use crate::runtime_state::RuntimeState;
 use crate::runtime_state::SemanticStateSlot;
 use crate::status::ResolutionStatus;
 use crate::vp_tree::{MIN_ROUTE_INDEX_NODES, VpTree};
-use core::fmt;
 use uor_r4_graph_format::ScoreQ;
 use uor_r4_graph_format::{CODE_OP_HALT, OP_CLEAR_SLOT, OP_SHIFT_SLOTS, OP_UPDATE_SLOT};
-use uor_r4_graph_format::{FormatError, GraphView, SectionId};
-
-/// Errors during graph step execution.
-#[derive(Debug)]
-pub enum RuntimeError {
-    Format(FormatError),
-    InvalidNode,
-    Patch(alloc::borrow::Cow<'static, str>),
-}
-
-impl fmt::Display for RuntimeError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Format(e) => write!(f, "Format error: {:?}", e),
-            Self::InvalidNode => write!(f, "Invalid node reference in graph"),
-            Self::Patch(msg) => write!(f, "Patch error: {}", msg),
-        }
-    }
-}
+use uor_r4_graph_format::{GraphView, NotAProduct, SectionId};
 
 /// Multiplication-free zero-allocation prediction runtime wrapping an R4G1 borrowed `PatchChain`.
 ///
@@ -95,8 +76,8 @@ fn best_context_entry(
 
 impl<'a> R4G1Runtime<'a> {
     /// Create a new R4G1 runtime by running two-stage validation over `bytes`.
-    pub fn parse(bytes: &'a [u8]) -> Result<Self, FormatError> {
-        let view = GraphView::parse(bytes).map_err(|e| e.reason)?;
+    pub fn parse(bytes: &'a [u8]) -> Result<Self, NotAProduct> {
+        let view = GraphView::parse(bytes)?;
         let route_index = (view.node_count().unwrap_or(0) >= MIN_ROUTE_INDEX_NODES)
             .then(|| VpTree::from_graph(&view))
             .flatten();
@@ -107,11 +88,16 @@ impl<'a> R4G1Runtime<'a> {
     }
 
     /// Appends a patch epoch to the runtime's chain.
-    pub fn try_push_patch(&mut self, patch_bytes: &'a [u8]) -> Result<(), RuntimeError> {
-        let view = GraphView::parse(patch_bytes).map_err(|e| RuntimeError::Format(e.reason))?;
-        self.chain
-            .try_push_patch(view)
-            .map_err(|e| RuntimeError::Patch(alloc::borrow::Cow::Borrowed(e)))
+    ///
+    /// Total verdict: `None` on success, `Some(reason)` when the patch is
+    /// rejected — either because `patch_bytes` is not a valid R4G1 artifact
+    /// or because the chain-precedence rules reject it (see
+    /// [`crate::patch_chain::PatchChain::try_push_patch`]).
+    pub fn try_push_patch(&mut self, patch_bytes: &'a [u8]) -> Option<&'static str> {
+        let Ok(view) = GraphView::parse(patch_bytes) else {
+            return Some("patch bytes are not a valid R4G1 artifact");
+        };
+        self.chain.try_push_patch(view)
     }
 
     /// One ROUT probe: query `sig` against the per-node prototypes/masks
@@ -186,17 +172,20 @@ impl<'a> R4G1Runtime<'a> {
     }
 
     /// Single deterministic, allocation-free step of the graph runtime.
+    ///
+    /// Total: every input yields a `(token, status)` pair — an empty graph
+    /// resolves to `(0, BackedOff)` rather than an error.
     pub fn step(
         &self,
         state: &mut RuntimeState,
         token: u32,
         _witness: &mut [u8],
-    ) -> Result<(u32, ResolutionStatus), RuntimeError> {
+    ) -> (u32, ResolutionStatus) {
         state.record_token(token);
 
         let num_nodes = self.node_count();
         if num_nodes == 0 {
-            return Ok((0, ResolutionStatus::BackedOff));
+            return (0, ResolutionStatus::BackedOff);
         }
 
         let context = state.token().as_slice();
@@ -216,7 +205,7 @@ impl<'a> R4G1Runtime<'a> {
             Self::execute_state_updates(state, code_bytes);
         }
 
-        Ok((pred_token, status))
+        (pred_token, status)
     }
 
     /// Execute the bytecode program in the CODE section to update semantic states.

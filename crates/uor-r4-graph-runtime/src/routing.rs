@@ -1,15 +1,16 @@
-use crate::engine::RuntimeError;
-use uor_r4_graph_format::{FormatError, GraphView, SectionId};
+use uor_r4_graph_format::{GraphView, SectionId};
 use uor_r4_graph_format::{OP_HALT, OP_JMP_FWD, OP_LEAF, OP_TEST_POPCOUNT_LE};
 
-pub fn evaluate_route<'a>(
-    view: &GraphView<'a>,
-    signature: &[u64],
-) -> Result<&'a [u8], RuntimeError> {
-    let head = view.head().ok_or(RuntimeError::InvalidNode)?;
+/// Evaluate the ROUT bytecode program, returning the resolved shortlist slice.
+///
+/// Total verdict: `Some(slice)` on a well-formed traversal (the empty slice
+/// when there is no ROUT section), `None` when the program is malformed —
+/// an absent head, an out-of-bounds field, or an unknown opcode.
+pub fn evaluate_route<'a>(view: &GraphView<'a>, signature: &[u64]) -> Option<&'a [u8]> {
+    let head = view.head()?;
     let rout_bytes = view.section(SectionId::ROUT).unwrap_or(&[]);
     if rout_bytes.is_empty() {
-        return Ok(&[]);
+        return Some(&[]);
     }
 
     // Scan for HALT to find the shortlist table start
@@ -25,12 +26,8 @@ pub fn evaluate_route<'a>(
             OP_TEST_POPCOUNT_LE => scan_pc += 12,
             OP_JMP_FWD => scan_pc += 3,
             OP_LEAF => scan_pc += 7,
-            _ => {
-                return Err(RuntimeError::Format(FormatError::UnknownRoutingOp {
-                    offset: scan_pc as u32,
-                    opcode: op,
-                }));
-            }
+            // Unknown opcode at `scan_pc`: the ROUT program is malformed.
+            _ => return None,
         }
     }
 
@@ -50,23 +47,15 @@ pub fn evaluate_route<'a>(
 
         match opcode {
             OP_HALT => {
-                return Ok(table); // Return the entire table as fallback
+                return Some(table); // Return the entire table as fallback
             }
             OP_TEST_POPCOUNT_LE => {
                 if pc + 12 > rout_bytes.len() {
-                    return Err(RuntimeError::InvalidNode);
+                    return None;
                 }
                 let word = rout_bytes[pc + 1] as usize;
-                let mask = u64::from_le_bytes(
-                    rout_bytes[pc + 2..pc + 10]
-                        .try_into()
-                        .map_err(|_| RuntimeError::InvalidNode)?,
-                );
-                let threshold = u16::from_le_bytes(
-                    rout_bytes[pc + 10..pc + 12]
-                        .try_into()
-                        .map_err(|_| RuntimeError::InvalidNode)?,
-                );
+                let mask = u64::from_le_bytes(rout_bytes[pc + 2..pc + 10].try_into().ok()?);
+                let threshold = u16::from_le_bytes(rout_bytes[pc + 10..pc + 12].try_into().ok()?);
 
                 let popcount = if word < signature.len() {
                     (signature[word] & mask).count_ones() as u16
@@ -86,7 +75,7 @@ pub fn evaluate_route<'a>(
                             OP_TEST_POPCOUNT_LE => 12,
                             OP_JMP_FWD => 3,
                             OP_LEAF => 7,
-                            _ => return Err(RuntimeError::InvalidNode),
+                            _ => return None,
                         };
                         pc += skip_size;
                     }
@@ -94,17 +83,13 @@ pub fn evaluate_route<'a>(
             }
             OP_JMP_FWD => {
                 if pc + 3 > rout_bytes.len() {
-                    return Err(RuntimeError::InvalidNode);
+                    return None;
                 }
-                let delta_ops = u16::from_le_bytes(
-                    rout_bytes[pc + 1..pc + 3]
-                        .try_into()
-                        .map_err(|_| RuntimeError::InvalidNode)?,
-                );
+                let delta_ops = u16::from_le_bytes(rout_bytes[pc + 1..pc + 3].try_into().ok()?);
                 pc += 3;
                 for _ in 0..delta_ops {
                     if pc >= rout_bytes.len() {
-                        return Err(RuntimeError::InvalidNode);
+                        return None;
                     }
                     let skip_op = rout_bytes[pc];
                     let skip_size = match skip_op {
@@ -112,33 +97,27 @@ pub fn evaluate_route<'a>(
                         OP_TEST_POPCOUNT_LE => 12,
                         OP_JMP_FWD => 3,
                         OP_LEAF => 7,
-                        _ => return Err(RuntimeError::InvalidNode),
+                        _ => return None,
                     };
                     pc += skip_size;
                 }
             }
             OP_LEAF => {
                 if pc + 7 > rout_bytes.len() {
-                    return Err(RuntimeError::InvalidNode);
+                    return None;
                 }
-                let shortlist_start = u32::from_le_bytes(
-                    rout_bytes[pc + 1..pc + 5]
-                        .try_into()
-                        .map_err(|_| RuntimeError::InvalidNode)?,
-                ) as usize;
-                let shortlist_len = u16::from_le_bytes(
-                    rout_bytes[pc + 5..pc + 7]
-                        .try_into()
-                        .map_err(|_| RuntimeError::InvalidNode)?,
-                ) as usize;
+                let shortlist_start =
+                    u32::from_le_bytes(rout_bytes[pc + 1..pc + 5].try_into().ok()?) as usize;
+                let shortlist_len =
+                    u16::from_le_bytes(rout_bytes[pc + 5..pc + 7].try_into().ok()?) as usize;
                 if shortlist_start + shortlist_len > table.len() {
-                    return Err(RuntimeError::InvalidNode);
+                    return None;
                 }
-                return Ok(&table[shortlist_start..shortlist_start + shortlist_len]);
+                return Some(&table[shortlist_start..shortlist_start + shortlist_len]);
             }
-            _ => return Err(RuntimeError::InvalidNode),
+            _ => return None,
         }
     }
 
-    Ok(table)
+    Some(table)
 }

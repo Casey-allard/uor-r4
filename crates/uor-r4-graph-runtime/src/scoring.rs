@@ -61,11 +61,6 @@ pub struct TypedContribution {
     pub value: ScoreQ,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum AccumulatorError {
-    DuplicateEvidenceId(u32),
-}
-
 /// Sort contributions into canonical accumulation order.
 pub fn sort_contributions_canonical(contributions: &mut [TypedContribution]) {
     contributions.sort_by_key(|c| (c.kind as u8, c.evidence_id));
@@ -74,24 +69,21 @@ pub fn sort_contributions_canonical(contributions: &mut [TypedContribution]) {
 /// Reference fixed-point accumulator.
 ///
 /// The order is the provided slice order; callers should canonicalize first via
-/// [`sort_contributions_canonical`].
-pub fn accumulate_reference(
-    base: ScoreQ,
-    contributions: &[TypedContribution],
-) -> Result<ScoreQ, AccumulatorError> {
+/// [`sort_contributions_canonical`]. Total: `Some(total)` for a well-formed
+/// contribution set, `None` when any evidence id is duplicated (each canonical
+/// evidence may contribute at most once).
+pub fn accumulate_reference(base: ScoreQ, contributions: &[TypedContribution]) -> Option<ScoreQ> {
     let mut total = base;
     for (index, contribution) in contributions.iter().enumerate() {
         if contributions[..index]
             .iter()
             .any(|prior| prior.evidence_id == contribution.evidence_id)
         {
-            return Err(AccumulatorError::DuplicateEvidenceId(
-                contribution.evidence_id,
-            ));
+            return None;
         }
         total = total.saturating_add(contribution.value);
     }
-    Ok(total)
+    Some(total)
 }
 
 /// Canonical deterministic top-1 selector:
@@ -110,8 +102,8 @@ pub fn select_best(candidates: &[(u32, OrderedScore)]) -> Option<(u32, OrderedSc
 #[cfg(test)]
 mod tests {
     use super::{
-        AccumulatorError, OrderedScore, ResidualKind, ScoreSentinel, TypedContribution,
-        accumulate_reference, select_best, sort_contributions_canonical,
+        OrderedScore, ResidualKind, ScoreSentinel, TypedContribution, accumulate_reference,
+        select_best, sort_contributions_canonical,
     };
     use uor_r4_graph_format::ScoreQ;
 
@@ -124,6 +116,7 @@ mod tests {
         }];
         let max_total = accumulate_reference(ScoreQ::MAX, &contributions).expect("accumulate");
         assert_eq!(max_total, ScoreQ::MAX);
+        // (Option::expect on the total accumulator: None == duplicate id.)
 
         let negative = [TypedContribution {
             evidence_id: 1,
@@ -175,8 +168,8 @@ mod tests {
                 value: ScoreQ::from_raw(5),
             },
         ];
-        let err = accumulate_reference(ScoreQ::ZERO, &contributions).expect_err("duplicate");
-        assert_eq!(err, AccumulatorError::DuplicateEvidenceId(3));
+        // Duplicate evidence id 3 → the total accumulator rejects with None.
+        assert_eq!(accumulate_reference(ScoreQ::ZERO, &contributions), None);
     }
 
     #[test]
@@ -199,8 +192,8 @@ mod tests {
             },
         ];
         sort_contributions_canonical(&mut contributions);
-        let err = accumulate_reference(ScoreQ::ZERO, &contributions).expect_err("duplicate");
-        assert_eq!(err, AccumulatorError::DuplicateEvidenceId(3));
+        // The canonical sort surfaces the non-adjacent duplicate id 3 → None.
+        assert_eq!(accumulate_reference(ScoreQ::ZERO, &contributions), None);
     }
 
     #[test]

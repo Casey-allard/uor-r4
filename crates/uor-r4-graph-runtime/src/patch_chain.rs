@@ -24,11 +24,13 @@ impl<'a> PatchChain<'a> {
     /// Tries to append a patch epoch to the chain.
     ///
     /// Validates deterministic newest-valid precedence and rejects forks
-    /// (the patch's parent CID must match the current chain tip).
-    pub fn try_push_patch(&mut self, patch: GraphView<'a>) -> Result<(), &'static str> {
-        let parent_cid = patch
-            .patch_parent_cid()
-            .ok_or("Patch has no PTCH section or parent CID")?;
+    /// (the patch's parent CID must match the current chain tip). Total
+    /// verdict: `None` when the patch is appended, `Some(reason)` when it is
+    /// rejected.
+    pub fn try_push_patch(&mut self, patch: GraphView<'a>) -> Option<&'static str> {
+        let Some(parent_cid) = patch.patch_parent_cid() else {
+            return Some("Patch has no PTCH section or parent CID");
+        };
 
         let expected_parent = if let Some(last) = self.patches.last() {
             last.header().artifact_cid
@@ -38,16 +40,16 @@ impl<'a> PatchChain<'a> {
 
         // Chain validation: fork rejection unless compacted.
         if parent_cid != expected_parent {
-            return Err("Fork rejection: parent CID does not match tip of the chain");
+            return Some("Fork rejection: parent CID does not match tip of the chain");
         }
 
         // Bounded layer limits: force compaction if we exceed 8 layers.
         if self.patches.len() >= 8 {
-            return Err("Compaction required: chain length exceeds 8 uncompacted layers");
+            return Some("Compaction required: chain length exceeds 8 uncompacted layers");
         }
 
         self.patches.push(patch);
-        Ok(())
+        None
     }
 
     /// Checks whether a node ID is tombstoned by any patch in the chain.

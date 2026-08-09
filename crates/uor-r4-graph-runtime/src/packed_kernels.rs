@@ -15,7 +15,6 @@
 //! 8. Immutable patch-chain delta application (`apply_patch_chain`).
 //! 9. Complete zero-allocation prediction step (`evaluate_no_alloc_predict_step`).
 
-use crate::engine::RuntimeError;
 use crate::runtime_state::RuntimeState;
 use core::cmp::Ordering;
 use uor_r4_graph_format::{GraphView, ScoreQ};
@@ -93,18 +92,11 @@ impl<const TOP_K: usize> StepOutput<TOP_K> {
 /// # TODO(open: packed-routing-dormant)
 /// Declared placeholder — ROUT bytecode interpretation over the graph's routing
 /// section is not yet wired; registered `open` in model/ledger.toml behind its
-/// activation gate (#159 Phase 2). Validates `max_steps` and returns 0 as the
-/// pre-declared route-target placeholder; unreferenced by the serving path.
-pub fn evaluate_routing_program(
-    _view: &GraphView<'_>,
-    _start_pc: usize,
-    max_steps: usize,
-) -> Result<u32, RuntimeError> {
-    if max_steps == 0 {
-        return Err(RuntimeError::InvalidNode);
-    }
+/// activation gate (#159 Phase 2). Total: returns 0 as the pre-declared
+/// route-target placeholder for every input; unreferenced by the serving path.
+pub fn evaluate_routing_program(_view: &GraphView<'_>, _start_pc: usize, _max_steps: usize) -> u32 {
     // TODO(open: packed-routing-dormant, #159 Phase 2): walk view.routing_section() / ROUT opcodes up to max_steps.
-    Ok(0)
+    0
 }
 
 /// Kernel 2: Bounded active-frontier expansion and eviction.
@@ -169,15 +161,11 @@ pub fn accumulate_candidate_shortlist<const C: usize>(
 /// # TODO(open: packed-routing-dormant)
 /// Declared placeholder — graph-edge traversal using the `action_mask` is not
 /// yet wired; registered `open` in model/ledger.toml behind its activation gate
-/// (#159 Phase 2). Returns `src_node + 1` as the pre-declared placeholder
-/// successor; unreferenced by the serving path.
-pub fn evaluate_typed_transition(
-    _view: &GraphView<'_>,
-    src_node: u32,
-    _action_mask: u64,
-) -> Result<u32, RuntimeError> {
+/// (#159 Phase 2). Total: returns `src_node + 1` as the pre-declared
+/// placeholder successor; unreferenced by the serving path.
+pub fn evaluate_typed_transition(_view: &GraphView<'_>, src_node: u32, _action_mask: u64) -> u32 {
     // TODO(open: packed-routing-dormant, #159 Phase 2): look up outgoing edges from src_node filtered by action_mask.
-    Ok(src_node.saturating_add(1))
+    src_node.saturating_add(1)
 }
 
 /// Kernel 5: Hazard constraint evaluator (returns true if candidate is safe / non-hazard).
@@ -232,13 +220,13 @@ pub fn evaluate_no_alloc_predict_step<const N: usize, const C: usize, const K: u
     state: &mut RuntimeState,
     token: u32,
     output: &mut StepOutput<K>,
-) -> Result<u32, RuntimeError> {
+) -> u32 {
     state.record_token(token);
 
     let node_count = view.node_count().unwrap_or(0);
     if node_count == 0 {
         output.count = 0;
-        return Ok(0);
+        return 0;
     }
 
     let mut frontier = PackedFrontier::<N>::new();
@@ -261,9 +249,9 @@ pub fn evaluate_no_alloc_predict_step<const N: usize, const C: usize, const K: u
     // decode_canonical_topk sets output.count = candidates.len().min(K), so
     // output.count == 0 whenever candidate_count == 0 or K == 0.
     if output.count == 0 {
-        return Ok(0);
+        return 0;
     }
-    Ok(output.predictions[0].0)
+    output.predictions[0].0
 }
 
 #[cfg(test)]
