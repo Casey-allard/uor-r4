@@ -1143,7 +1143,7 @@ pub fn score_command(args: &[String]) -> Result<(), String> {
     // #469 lever A: per-record codes come from the κ-keyed sidecar when one
     // verifies against this artifact κ and corpus κ, and are written back
     // when it does not. Store bytes are identical on both branches.
-    let (store, _) = code_sidecar::build_store_cached(&artifacts, &corpus, threads)?;
+    let (store, _) = code_sidecar::build_store_cached(&artifacts, &corpus, threads);
     let tls1 = runtime::store_bytes(&store);
     // The "code sidecar: HIT/MISS/WROTE/LOADED" line above is inside this
     // phase: a cold miss recomputes every record code (#469 lever A), which is

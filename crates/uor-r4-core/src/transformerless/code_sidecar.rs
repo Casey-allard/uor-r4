@@ -176,34 +176,11 @@ pub fn sidecar_bytes(artifact_kappa: &str, corpus_kappa: &str, codes: &[[u8; STA
     b
 }
 
-/// Why a sidecar was not usable. Reported in the provenance log so a MISS
-/// is never mysterious.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum SidecarReject {
-    Magic,
-    Version(u32),
-    Stages(u32),
-    RecordCount(u64),
-    ArtifactKappa(String),
-    CorpusKappa(String),
-    Truncated,
-    Digest,
-}
-
-impl std::fmt::Display for SidecarReject {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            SidecarReject::Magic => write!(f, "not an {} container", MAGIC.escape_ascii()),
-            SidecarReject::Version(v) => write!(f, "version {v} (expected {VERSION})"),
-            SidecarReject::Stages(s) => write!(f, "stages {s} (expected {STAGES})"),
-            SidecarReject::RecordCount(n) => write!(f, "record count {n} does not match corpus"),
-            SidecarReject::ArtifactKappa(k) => write!(f, "artifact κ {k} does not match"),
-            SidecarReject::CorpusKappa(k) => write!(f, "corpus κ {k} does not match"),
-            SidecarReject::Truncated => write!(f, "truncated or over-long container"),
-            SidecarReject::Digest => write!(f, "code-block digest mismatch"),
-        }
-    }
-}
+// R5 (#510): a sidecar either verifies into the exact code block or it does
+// not — magic/version/stages/record-count/κ/digest are all properties of the
+// bytes on disk, so `parse_sidecar` is total (`None` = not a usable sidecar)
+// and the former `SidecarReject` enum is removed. The provenance log still
+// names the path and κs on a MISS.
 
 fn read_u16(b: &[u8], at: usize) -> Option<usize> {
     let raw = b.get(at..at + 2)?;
@@ -217,61 +194,46 @@ pub fn parse_sidecar(
     artifact_kappa: &str,
     corpus_kappa: &str,
     records: usize,
-) -> Result<Vec<[u8; STAGES]>, SidecarReject> {
+) -> Option<Vec<[u8; STAGES]>> {
     if bytes.len() < HEADER_FIXED || &bytes[0..4] != MAGIC {
-        return Err(SidecarReject::Magic);
+        return None;
     }
     let version = u32::from_le_bytes(bytes[4..8].try_into().unwrap());
     if version != VERSION {
-        return Err(SidecarReject::Version(version));
+        return None;
     }
     let stages = u32::from_le_bytes(bytes[8..12].try_into().unwrap());
     if stages as usize != STAGES {
-        return Err(SidecarReject::Stages(stages));
+        return None;
     }
     let count = u64::from_le_bytes(bytes[12..20].try_into().unwrap());
     if count != records as u64 {
-        return Err(SidecarReject::RecordCount(count));
+        return None;
     }
     let mut offset = HEADER_FIXED;
-    let art_len = read_u16(bytes, offset).ok_or(SidecarReject::Truncated)?;
+    let art_len = read_u16(bytes, offset)?;
     offset += 2;
-    let art_key = bytes
-        .get(offset..offset + art_len)
-        .ok_or(SidecarReject::Truncated)?;
+    let art_key = bytes.get(offset..offset + art_len)?;
     offset += art_len;
-    let corpus_len = read_u16(bytes, offset).ok_or(SidecarReject::Truncated)?;
+    let corpus_len = read_u16(bytes, offset)?;
     offset += 2;
-    let corpus_key = bytes
-        .get(offset..offset + corpus_len)
-        .ok_or(SidecarReject::Truncated)?;
+    let corpus_key = bytes.get(offset..offset + corpus_len)?;
     offset += corpus_len;
     if art_key != artifact_kappa.as_bytes() {
-        return Err(SidecarReject::ArtifactKappa(
-            String::from_utf8_lossy(art_key).into_owned(),
-        ));
+        return None;
     }
     if corpus_key != corpus_kappa.as_bytes() {
-        return Err(SidecarReject::CorpusKappa(
-            String::from_utf8_lossy(corpus_key).into_owned(),
-        ));
+        return None;
     }
-    let digest = bytes
-        .get(offset..offset + DIGEST_BYTES)
-        .ok_or(SidecarReject::Truncated)?
-        .to_vec();
+    let digest = bytes.get(offset..offset + DIGEST_BYTES)?.to_vec();
     offset += DIGEST_BYTES;
-    let packed_len = records
-        .checked_mul(STAGES)
-        .ok_or(SidecarReject::RecordCount(count))?;
-    let packed = bytes
-        .get(offset..offset + packed_len)
-        .ok_or(SidecarReject::Truncated)?;
+    let packed_len = records.checked_mul(STAGES)?;
+    let packed = bytes.get(offset..offset + packed_len)?;
     if offset + packed_len != bytes.len() {
-        return Err(SidecarReject::Truncated);
+        return None;
     }
     if blake3::hash(packed).as_bytes()[..] != digest[..] {
-        return Err(SidecarReject::Digest);
+        return None;
     }
     let mut codes = Vec::with_capacity(records);
     for chunk in packed.chunks_exact(STAGES) {
@@ -279,7 +241,7 @@ pub fn parse_sidecar(
         code.copy_from_slice(chunk);
         codes.push(code);
     }
-    Ok(codes)
+    Some(codes)
 }
 
 /// Read the sidecar at [`codes_path`] and verify it against the given keys.
@@ -303,7 +265,7 @@ pub fn load_codes(
         }
     };
     match parse_sidecar(&bytes, artifact_kappa, corpus_kappa, records) {
-        Ok(codes) => {
+        Some(codes) => {
             eprintln!(
                 "code sidecar: LOADED {path} ({} records, {} bytes, artifact κ \
                  {artifact_kappa}, corpus κ {corpus_kappa})",
@@ -312,9 +274,10 @@ pub fn load_codes(
             );
             Some(codes)
         }
-        Err(reason) => {
+        None => {
             eprintln!(
-                "code sidecar: MISS {path} ({reason}); computing {records} record codes \
+                "code sidecar: MISS {path} (failed a magic/version/stages/count/κ/digest \
+                 check); computing {records} record codes \
                  (artifact κ {artifact_kappa}, corpus κ {corpus_kappa})"
             );
             None
@@ -365,8 +328,8 @@ pub fn build_store_cached(
     art: &Compiled,
     c: &Corpus,
     _threads: usize,
-) -> Result<(runtime::Store, Vec<[u8; STAGES]>), String> {
-    Ok(runtime::build_store(art, c))
+) -> (runtime::Store, Vec<[u8; STAGES]>) {
+    runtime::build_store(art, c)
 }
 
 /// Per-record codes for a whole corpus: served from the sidecar when it
@@ -397,7 +360,7 @@ pub fn build_store_cached(
     art: &Compiled,
     c: &Corpus,
     threads: usize,
-) -> Result<(runtime::Store, Vec<[u8; STAGES]>), String> {
+) -> (runtime::Store, Vec<[u8; STAGES]>) {
     let (artifact_kappa, corpus_kappa) = sidecar_keys(art, c);
     let codes = match load_codes(&artifact_kappa, &corpus_kappa, c.n) {
         Some(codes) => codes,
@@ -408,5 +371,5 @@ pub fn build_store_cached(
         }
     };
     let store = runtime::store_from_codes(c, &codes);
-    Ok((store, codes))
+    (store, codes)
 }

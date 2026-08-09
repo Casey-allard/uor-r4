@@ -14,9 +14,7 @@
 //! environment (`R4_CODES_PATH`); every rejection case exercises the pure
 //! parser, so the suite is parallel-safe within this test binary.
 
-use uor_r4_core::transformerless::code_sidecar::{
-    self, parse_sidecar, sidecar_bytes, SidecarReject,
-};
+use uor_r4_core::transformerless::code_sidecar::{self, parse_sidecar, sidecar_bytes};
 use uor_r4_core::transformerless::compiler::{self, Compiled, Corpus, STAGES};
 use uor_r4_core::transformerless::runtime;
 
@@ -109,8 +107,7 @@ fn sidecar_round_trip_matches_fresh_codes() {
     // built by the uncached path.
     let (reference_store, reference_codes) = runtime::build_store_with_threads(&art, &corpus, 2);
     assert_eq!(reference_codes, expected);
-    let (cached_store, cached_codes) =
-        code_sidecar::build_store_cached(&art, &corpus, 2).expect("cached store");
+    let (cached_store, cached_codes) = code_sidecar::build_store_cached(&art, &corpus, 2);
     assert_eq!(cached_codes, expected);
     assert_eq!(
         runtime::store_bytes(&cached_store),
@@ -143,10 +140,7 @@ fn a_mismatched_artifact_kappa_is_rejected() {
     let codes = good_codes();
     let bytes = sidecar_bytes("blake3:art-A", "blake3:corpus", &codes);
     let got = parse_sidecar(&bytes, "blake3:art-B", "blake3:corpus", codes.len());
-    assert!(
-        matches!(got, Err(SidecarReject::ArtifactKappa(_))),
-        "{got:?}"
-    );
+    assert!(got.is_none(), "{got:?}");
 }
 
 #[test]
@@ -154,7 +148,7 @@ fn a_mismatched_corpus_kappa_is_rejected() {
     let codes = good_codes();
     let bytes = sidecar_bytes("blake3:art", "blake3:corpus-A", &codes);
     let got = parse_sidecar(&bytes, "blake3:art", "blake3:corpus-B", codes.len());
-    assert!(matches!(got, Err(SidecarReject::CorpusKappa(_))), "{got:?}");
+    assert!(got.is_none(), "{got:?}");
 }
 
 #[test]
@@ -163,13 +157,13 @@ fn a_truncated_container_is_rejected() {
     let bytes = sidecar_bytes("blake3:art", "blake3:corpus", &codes);
     for cut in [0usize, 4, 12, 24, 60, bytes.len() - 1] {
         let got = parse_sidecar(&bytes[..cut], "blake3:art", "blake3:corpus", codes.len());
-        assert!(got.is_err(), "prefix of {cut} bytes must not load");
+        assert!(got.is_none(), "prefix of {cut} bytes must not load");
     }
     // Over-long is rejected too: the header must account for every byte.
     let mut extended = bytes.clone();
     extended.push(0);
     let got = parse_sidecar(&extended, "blake3:art", "blake3:corpus", codes.len());
-    assert!(matches!(got, Err(SidecarReject::Truncated)), "{got:?}");
+    assert!(got.is_none(), "{got:?}");
 }
 
 #[test]
@@ -179,7 +173,7 @@ fn a_wrong_stage_count_is_rejected() {
     let wrong = (STAGES as u32) + 1;
     bytes[8..12].copy_from_slice(&wrong.to_le_bytes());
     let got = parse_sidecar(&bytes, "blake3:art", "blake3:corpus", codes.len());
-    assert!(matches!(got, Err(SidecarReject::Stages(_))), "{got:?}");
+    assert!(got.is_none(), "{got:?}");
 }
 
 #[test]
@@ -187,7 +181,7 @@ fn a_wrong_record_count_is_rejected() {
     let codes = good_codes();
     let bytes = sidecar_bytes("blake3:art", "blake3:corpus", &codes);
     let got = parse_sidecar(&bytes, "blake3:art", "blake3:corpus", codes.len() + 1);
-    assert!(matches!(got, Err(SidecarReject::RecordCount(_))), "{got:?}");
+    assert!(got.is_none(), "{got:?}");
 }
 
 #[test]
@@ -196,16 +190,10 @@ fn a_wrong_magic_or_version_is_rejected() {
     let bytes = sidecar_bytes("blake3:art", "blake3:corpus", &codes);
     let mut foreign = bytes.clone();
     foreign[0..4].copy_from_slice(b"TLA7");
-    assert!(matches!(
-        parse_sidecar(&foreign, "blake3:art", "blake3:corpus", codes.len()),
-        Err(SidecarReject::Magic)
-    ));
+    assert!(parse_sidecar(&foreign, "blake3:art", "blake3:corpus", codes.len()).is_none());
     let mut future = bytes;
     future[4..8].copy_from_slice(&(code_sidecar::VERSION + 1).to_le_bytes());
-    assert!(matches!(
-        parse_sidecar(&future, "blake3:art", "blake3:corpus", codes.len()),
-        Err(SidecarReject::Version(_))
-    ));
+    assert!(parse_sidecar(&future, "blake3:art", "blake3:corpus", codes.len()).is_none());
 }
 
 #[test]
@@ -215,7 +203,7 @@ fn a_corrupted_code_block_is_rejected() {
     let last = bytes.len() - 1;
     bytes[last] ^= 0xff;
     let got = parse_sidecar(&bytes, "blake3:art", "blake3:corpus", codes.len());
-    assert!(matches!(got, Err(SidecarReject::Digest)), "{got:?}");
+    assert!(got.is_none(), "{got:?}");
 }
 
 /// The corpus key changes when the corpus content changes, so a sidecar
