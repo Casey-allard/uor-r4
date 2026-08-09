@@ -64,7 +64,7 @@ fn op_size(opcode: u8) -> Option<usize> {
 /// Two zero-allocation passes over the bytes: structure/termination,
 /// then operands and jump targets. Section lengths are u32 (RFC §9.1),
 /// so all op offsets and counts fit u32.
-pub(crate) fn validate(bytes: &[u8], head: &Head) -> Result<(), FormatError> {
+pub(crate) fn validate(bytes: &[u8], head: &Head) -> Result<(), crate::NotAProduct> {
     // Pass 1: op sizes, count, terminator, and the program/table split.
     let mut cursor: usize = 0;
     let mut op_count: u32 = 0;
@@ -73,16 +73,18 @@ pub(crate) fn validate(bytes: &[u8], head: &Head) -> Result<(), FormatError> {
     while cursor < bytes.len() {
         let opcode = bytes[cursor];
         let Some(size) = op_size(opcode) else {
-            return Err(FormatError::UnknownRoutingOp {
+            return Err((FormatError::UnknownRoutingOp {
                 offset: cursor as u32,
                 opcode,
-            });
+            })
+            .into());
         };
         if cursor + size > bytes.len() {
-            return Err(FormatError::TruncatedRoutingOp {
+            return Err((FormatError::TruncatedRoutingOp {
                 offset: cursor as u32,
                 opcode,
-            });
+            })
+            .into());
         }
         // Cannot overflow: op_count <= bytes.len() <= u32::MAX.
         op_count += 1;
@@ -94,13 +96,14 @@ pub(crate) fn validate(bytes: &[u8], head: &Head) -> Result<(), FormatError> {
         }
     }
     if !halted && last_opcode != Some(OP_LEAF) {
-        return Err(FormatError::RoutingProgramUnterminated);
+        return Err((FormatError::RoutingProgramUnterminated).into());
     }
     if op_count > head.max_program_steps() {
-        return Err(FormatError::RoutingProgramTooDeep {
+        return Err((FormatError::RoutingProgramTooDeep {
             ops: op_count,
             max: head.max_program_steps(),
-        });
+        })
+        .into());
     }
     let table = &bytes[cursor..];
 
@@ -114,17 +117,18 @@ pub(crate) fn validate(bytes: &[u8], head: &Head) -> Result<(), FormatError> {
                 let word = bytes[cursor + 1];
                 let threshold = read_u16_le(bytes, cursor + 10);
                 if u16::from(word) >= head.signature_words() || threshold > MAX_POPCOUNT {
-                    return Err(FormatError::RoutingOperandOutOfBounds { op_index: index });
+                    return Err((FormatError::RoutingOperandOutOfBounds { op_index: index }).into());
                 }
             }
             OP_JMP_FWD => {
                 let delta = read_u16_le(bytes, cursor + 1);
                 let target = u64::from(index) + 1 + u64::from(delta);
                 if target >= u64::from(op_count) {
-                    return Err(FormatError::RoutingJumpOutOfBounds {
+                    return Err((FormatError::RoutingJumpOutOfBounds {
                         op_index: index,
                         target,
-                    });
+                    })
+                    .into());
                 }
             }
             OP_LEAF => {
@@ -132,12 +136,16 @@ pub(crate) fn validate(bytes: &[u8], head: &Head) -> Result<(), FormatError> {
                 let len = read_u16_le(bytes, cursor + 5);
                 if table.is_empty() {
                     if len != 0 {
-                        return Err(FormatError::RoutingShortlistOutOfBounds { op_index: index });
+                        return Err(
+                            (FormatError::RoutingShortlistOutOfBounds { op_index: index }).into(),
+                        );
                     }
                 } else {
                     let end = u64::from(start) + u64::from(len);
                     if end > table.len() as u64 {
-                        return Err(FormatError::RoutingShortlistOutOfBounds { op_index: index });
+                        return Err(
+                            (FormatError::RoutingShortlistOutOfBounds { op_index: index }).into(),
+                        );
                     }
                 }
             }
@@ -145,10 +153,11 @@ pub(crate) fn validate(bytes: &[u8], head: &Head) -> Result<(), FormatError> {
             // Pass 1 rejected every unknown opcode, but stay explicit
             // rather than unreachable.
             _ => {
-                return Err(FormatError::UnknownRoutingOp {
+                return Err((FormatError::UnknownRoutingOp {
                     offset: cursor as u32,
                     opcode,
                 })
+                .into())
             }
         }
         // Pass 1 established the size, so this never fails.

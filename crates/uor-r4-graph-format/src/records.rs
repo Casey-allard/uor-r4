@@ -203,15 +203,15 @@ impl StorageDescriptor {
     /// (RFC §6 item 8): the section must carry at least
     /// [`STORAGE_DESCRIPTOR_LEN`] bytes, `width ∈ {0,1,2}`, and
     /// `|shift| ≤ 31`.
-    pub fn parse(section: SectionId, bytes: &[u8]) -> Result<Self, FormatError> {
+    pub fn parse(section: SectionId, bytes: &[u8]) -> Result<Self, crate::NotAProduct> {
         if bytes.len() < STORAGE_DESCRIPTOR_LEN {
-            return Err(FormatError::InvalidStorageDescriptor { section });
+            return Err((FormatError::InvalidStorageDescriptor { section }).into());
         }
         let width = bytes[0];
         let shift = bytes[1] as i8;
         let zero_point = read_i16_le(bytes, 2);
         if width > 2 || (shift as i16).abs() > 31 {
-            return Err(FormatError::InvalidStorageDescriptor { section });
+            return Err((FormatError::InvalidStorageDescriptor { section }).into());
         }
         Ok(Self {
             width,

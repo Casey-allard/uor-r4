@@ -77,19 +77,19 @@ pub struct NgramRows<'a> {
 }
 
 impl<'a> NgramTable<'a> {
-    pub fn parse(bytes: &'a [u8]) -> Result<Self, FormatError> {
+    pub fn parse(bytes: &'a [u8]) -> Result<Self, crate::NotAProduct> {
         if bytes.len() < NGRAM_HEADER_LEN {
-            return Err(FormatError::NgramTooShort);
+            return Err((FormatError::NgramTooShort).into());
         }
         if bytes[..4] != NGRAM_MAGIC {
-            return Err(FormatError::NgramBadMagic);
+            return Err((FormatError::NgramBadMagic).into());
         }
         if read_u16(&bytes[4..6]) != NGRAM_VERSION {
-            return Err(FormatError::NgramUnsupportedVersion);
+            return Err((FormatError::NgramUnsupportedVersion).into());
         }
         if bytes[6..8].iter().any(|&byte| byte != 0) || bytes[14..16].iter().any(|&byte| byte != 0)
         {
-            return Err(FormatError::NgramNonZeroReserved);
+            return Err((FormatError::NgramNonZeroReserved).into());
         }
         let row_count = read_u32(&bytes[8..12]);
         let max_entries = read_u16(&bytes[12..14]) as usize;
@@ -100,7 +100,7 @@ impl<'a> NgramTable<'a> {
             .checked_add(rows_len)
             .ok_or(FormatError::NgramBounds)?;
         if entries_start > bytes.len() {
-            return Err(FormatError::NgramBounds);
+            return Err((FormatError::NgramBounds).into());
         }
 
         let mut previous = None;
@@ -110,19 +110,19 @@ impl<'a> NgramTable<'a> {
             let row = &bytes[start..start + NGRAM_ROW_LEN];
             let context_len = row[0];
             if !(1..=2).contains(&context_len) || row[1] != 0 {
-                return Err(FormatError::NgramInvalidRow);
+                return Err((FormatError::NgramInvalidRow).into());
             }
             let entry_count = read_u16(&row[2..4]);
             if usize::from(entry_count) > max_entries {
-                return Err(FormatError::NgramInvalidRow);
+                return Err((FormatError::NgramInvalidRow).into());
             }
             let key = (read_u32(&row[4..8]), read_u32(&row[8..12]));
             if context_len == 1 && key.1 != 0 {
-                return Err(FormatError::NgramInvalidRow);
+                return Err((FormatError::NgramInvalidRow).into());
             }
             let entry_start = read_u32(&row[12..16]) as usize;
             if row[16..20].iter().any(|&byte| byte != 0) || entry_start != expected_entry_start {
-                return Err(FormatError::NgramBounds);
+                return Err((FormatError::NgramBounds).into());
             }
             let entry_bytes = (entry_count as usize)
                 .checked_mul(NGRAM_ENTRY_LEN)
@@ -131,12 +131,12 @@ impl<'a> NgramTable<'a> {
                 .checked_add(entry_bytes)
                 .ok_or(FormatError::NgramBounds)?;
             if entry_end > bytes.len() {
-                return Err(FormatError::NgramBounds);
+                return Err((FormatError::NgramBounds).into());
             }
             expected_entry_start = entry_end;
             let sort_key = (context_len, key.0, key.1);
             if previous.is_some_and(|last| last >= sort_key) {
-                return Err(FormatError::NgramRowsNotSorted);
+                return Err((FormatError::NgramRowsNotSorted).into());
             }
             previous = Some(sort_key);
             let entries = &bytes[entry_start..entry_end];
@@ -144,14 +144,14 @@ impl<'a> NgramTable<'a> {
             for chunk in entries.chunks_exact(NGRAM_ENTRY_LEN) {
                 let token = read_u32(&chunk[..4]);
                 if previous_token.is_some_and(|last| last >= token) {
-                    return Err(FormatError::NgramEntriesNotSorted);
+                    return Err((FormatError::NgramEntriesNotSorted).into());
                 }
                 previous_token = Some(token);
             }
         }
 
         if expected_entry_start != bytes.len() {
-            return Err(FormatError::NgramBounds);
+            return Err((FormatError::NgramBounds).into());
         }
 
         Ok(Self { bytes, row_count })

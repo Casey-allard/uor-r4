@@ -36,30 +36,32 @@ pub struct FmmTranslationTable<'a> {
 impl<'a> FmmTranslationTable<'a> {
     /// Parse the fixed header and establish all table slices using checked
     /// arithmetic. No allocation or floating-point conversion occurs here.
-    pub fn parse(bytes: &'a [u8]) -> Result<Self, FormatError> {
+    pub fn parse(bytes: &'a [u8]) -> Result<Self, crate::NotAProduct> {
         if bytes.len() < FMM_HEADER_LEN {
-            return Err(FormatError::FmmSectionTooShort {
+            return Err((FormatError::FmmSectionTooShort {
                 actual: bytes.len() as u64,
-            });
+            })
+            .into());
         }
         if bytes[0..4] != FMM_MAGIC {
-            return Err(FormatError::FmmSectionBadMagic);
+            return Err((FormatError::FmmSectionBadMagic).into());
         }
         let version = read_u16_le(bytes, 4);
         if version != FMM_VERSION {
-            return Err(FormatError::FmmSectionUnsupportedVersion(version));
+            return Err((FormatError::FmmSectionUnsupportedVersion(version)).into());
         }
         let dimension = read_u16_le(bytes, 6);
         let rank = read_u16_le(bytes, 8);
         let token_count = read_u32_le(bytes, 12);
         let factor_fraction_bits = bytes[16];
         if dimension == 0 || rank == 0 || token_count == 0 || factor_fraction_bits > 31 {
-            return Err(FormatError::FmmSectionInvalidDimensions {
+            return Err((FormatError::FmmSectionInvalidDimensions {
                 dimension,
                 rank,
                 token_count,
                 factor_fraction_bits,
-            });
+            })
+            .into());
         }
 
         let token_bytes = usize::try_from(token_count)
@@ -81,10 +83,11 @@ impl<'a> FmmTranslationTable<'a> {
             .and_then(|value| value.checked_add(coefficient_bytes))
             .ok_or(FormatError::FmmSectionLengthOverflow)?;
         if bytes.len() != expected {
-            return Err(FormatError::FmmSectionLengthMismatch {
+            return Err((FormatError::FmmSectionLengthMismatch {
                 expected: expected as u64,
                 actual: bytes.len() as u64,
-            });
+            })
+            .into());
         }
 
         let tokens_start = FMM_HEADER_LEN;
@@ -277,17 +280,18 @@ mod tests {
         bytes[0] = b'X';
         assert_eq!(
             FmmTranslationTable::parse(&bytes),
-            Err(FormatError::FmmSectionBadMagic)
+            Err((FormatError::FmmSectionBadMagic).into())
         );
 
         let mut bytes = sample();
         bytes.pop();
         assert_eq!(
             FmmTranslationTable::parse(&bytes),
-            Err(FormatError::FmmSectionLengthMismatch {
+            Err((FormatError::FmmSectionLengthMismatch {
                 expected: 52,
                 actual: 51,
             })
+            .into())
         );
     }
 }

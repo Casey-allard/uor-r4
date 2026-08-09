@@ -91,13 +91,13 @@ impl Head {
     /// the module docs: shorter payloads return
     /// [`FormatError::HeadTooShort`], longer ones
     /// [`FormatError::HeadTooLong`].
-    pub fn parse(bytes: &[u8]) -> Result<Self, FormatError> {
+    pub fn parse(bytes: &[u8]) -> Result<Self, crate::NotAProduct> {
         let actual = bytes.len() as u64;
         if bytes.len() < HEAD_PAYLOAD_LEN {
-            return Err(FormatError::HeadTooShort { actual });
+            return Err((FormatError::HeadTooShort { actual }).into());
         }
         if bytes.len() > HEAD_PAYLOAD_LEN {
-            return Err(FormatError::HeadTooLong { actual });
+            return Err((FormatError::HeadTooLong { actual }).into());
         }
         let mut hf_revision = [0u8; 20];
         hf_revision.copy_from_slice(&bytes[128..148]);

@@ -63,28 +63,28 @@ impl ArtifactBuilder {
     }
 
     /// Emit the canonical container bytes.
-    pub fn build(&self) -> Result<Vec<u8>, FormatError> {
+    pub fn build(&self) -> Result<Vec<u8>, crate::NotAProduct> {
         if !(MIN_ALIGNMENT_LOG2..=MAX_ALIGNMENT_LOG2).contains(&self.alignment_log2) {
-            return Err(FormatError::UnsupportedAlignment(self.alignment_log2));
+            return Err((FormatError::UnsupportedAlignment(self.alignment_log2)).into());
         }
         let unknown_mandatory = self.flags & MANDATORY_FEATURE_SPACE & !KNOWN_MANDATORY_FEATURES;
         if unknown_mandatory != 0 {
-            return Err(FormatError::UnknownMandatoryFeature(unknown_mandatory));
+            return Err((FormatError::UnknownMandatoryFeature(unknown_mandatory)).into());
         }
 
         let mut sections: Vec<&(SectionId, u32, Vec<u8>)> = self.sections.iter().collect();
         sections.sort_by_key(|(id, _, _)| id.0);
         for pair in sections.windows(2) {
             if pair[0].0 == pair[1].0 {
-                return Err(FormatError::DuplicateSection(pair[0].0));
+                return Err((FormatError::DuplicateSection(pair[0].0)).into());
             }
         }
         if !sections.iter().any(|(id, _, _)| *id == SectionId::HEAD) {
-            return Err(FormatError::MissingHead);
+            return Err((FormatError::MissingHead).into());
         }
         for (id, _, _) in &sections {
             if !id.is_known() && id.mandatory() {
-                return Err(FormatError::UnknownMandatorySection(id.0));
+                return Err((FormatError::UnknownMandatorySection(id.0)).into());
             }
         }
 
@@ -162,8 +162,8 @@ impl ArtifactBuilder {
 }
 
 /// Smallest multiple of `align` ≥ `x`, with checked arithmetic.
-fn align_up(x: u64, align: u64) -> Result<u64, FormatError> {
+fn align_up(x: u64, align: u64) -> Result<u64, crate::NotAProduct> {
     x.checked_add(align - 1)
         .map(|v| v & !(align - 1))
-        .ok_or(FormatError::OffsetOverflow)
+        .ok_or_else(|| FormatError::OffsetOverflow.into())
 }

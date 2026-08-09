@@ -17,7 +17,7 @@ use alloc::{
     vec::Vec,
 };
 
-use crate::{FormatError, GraphView, SectionId};
+use crate::{GraphView, SectionId};
 
 /// Version of the R4G1 realization skeleton.
 pub const REALIZATION_VERSION: u64 = 1;
@@ -27,8 +27,10 @@ pub const REALIZATION_NAME: &str = "r4g1";
 /// Failure while validating or addressing an R4G1 artifact.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RealizationError {
-    /// The container failed R4G1 structural or semantic validation.
-    InvalidArtifact(FormatError),
+    /// The container is not a valid R4G1 artifact.
+    InvalidArtifact(crate::NotAProduct),
+    /// A CID did not reproduce.
+    CidMismatch(crate::KappaError),
     /// The generated skeleton was not accepted by the CBOR realization.
     AddressingFailed,
 }
@@ -37,6 +39,7 @@ impl core::fmt::Display for RealizationError {
     fn fmt(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
             Self::InvalidArtifact(error) => write!(formatter, "invalid R4G1 artifact: {error}"),
+            Self::CidMismatch(error) => write!(formatter, "R4G1 CID mismatch: {error}"),
             Self::AddressingFailed => write!(formatter, "uor-addr rejected the R4G1 skeleton"),
         }
     }
@@ -70,8 +73,7 @@ pub struct R4G1Address {
 /// Address a validated R4G1 container using its canonical section skeleton.
 pub fn address(bytes: &[u8]) -> Result<R4G1Address, RealizationError> {
     let view = GraphView::parse(bytes).map_err(RealizationError::InvalidArtifact)?;
-    view.verify_cids()
-        .map_err(RealizationError::InvalidArtifact)?;
+    view.verify_cids().map_err(RealizationError::CidMismatch)?;
 
     let mut sections = Vec::with_capacity(view.sections().len());
     for section in view.sections() {

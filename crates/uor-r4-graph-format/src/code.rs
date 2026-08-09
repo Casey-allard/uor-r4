@@ -29,7 +29,7 @@ fn op_size(opcode: u8) -> Option<usize> {
 }
 
 /// Validate a CODE section payload against the HEAD-declared bounds.
-pub(crate) fn validate(bytes: &[u8], max_steps: u32) -> Result<(), FormatError> {
+pub(crate) fn validate(bytes: &[u8], max_steps: u32) -> Result<(), crate::NotAProduct> {
     let mut cursor: usize = 0;
     let mut op_count: u32 = 0;
     let mut halted = false;
@@ -37,16 +37,18 @@ pub(crate) fn validate(bytes: &[u8], max_steps: u32) -> Result<(), FormatError> 
     while cursor < bytes.len() {
         let opcode = bytes[cursor];
         let Some(size) = op_size(opcode) else {
-            return Err(FormatError::UnknownCodeOp {
+            return Err((FormatError::UnknownCodeOp {
                 offset: cursor as u32,
                 opcode,
-            });
+            })
+            .into());
         };
         if cursor + size > bytes.len() {
-            return Err(FormatError::TruncatedCodeOp {
+            return Err((FormatError::TruncatedCodeOp {
                 offset: cursor as u32,
                 opcode,
-            });
+            })
+            .into());
         }
 
         // Cannot overflow: op_count <= bytes.len() <= u32::MAX.
@@ -59,9 +61,10 @@ pub(crate) fn validate(bytes: &[u8], max_steps: u32) -> Result<(), FormatError> 
 
         // level 0 = local, 1 = segment, 2 = session
         if level > 2 {
-            return Err(FormatError::CodeOperandOutOfBounds {
+            return Err((FormatError::CodeOperandOutOfBounds {
                 op_index: op_count - 1,
-            });
+            })
+            .into());
         }
 
         cursor += size;
@@ -74,14 +77,15 @@ pub(crate) fn validate(bytes: &[u8], max_steps: u32) -> Result<(), FormatError> 
     // In CODE, unlike ROUT, HALT is required: there is no implicit fall-through.
     if !halted {
         // Did not halt cleanly
-        return Err(FormatError::CodeProgramUnterminated);
+        return Err((FormatError::CodeProgramUnterminated).into());
     }
 
     if op_count > max_steps {
-        return Err(FormatError::CodeProgramTooDeep {
+        return Err((FormatError::CodeProgramTooDeep {
             ops: op_count,
             max: max_steps,
-        });
+        })
+        .into());
     }
 
     Ok(())

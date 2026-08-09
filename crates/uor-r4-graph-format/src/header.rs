@@ -132,39 +132,40 @@ pub(crate) fn read_cid(bytes: &[u8], at: usize) -> ArtifactCid {
 /// invariants: length, magic, major version, endianness marker,
 /// alignment range, `total_len == actual`, and unknown mandatory
 /// feature bits (RFC §6 stage-1 rules 1–2).
-pub(crate) fn parse(bytes: &[u8]) -> Result<Header, FormatError> {
+pub(crate) fn parse(bytes: &[u8]) -> Result<Header, crate::NotAProduct> {
     if bytes.len() < HEADER_LEN {
-        return Err(FormatError::TruncatedHeader);
+        return Err((FormatError::TruncatedHeader).into());
     }
     if &bytes[0..4] != MAGIC {
-        return Err(FormatError::BadMagic);
+        return Err((FormatError::BadMagic).into());
     }
     let major = bytes[4];
     let minor = bytes[5];
     if major != FORMAT_VERSION_MAJOR {
-        return Err(FormatError::UnsupportedMajorVersion(major));
+        return Err((FormatError::UnsupportedMajorVersion(major)).into());
     }
     let endianness = bytes[6];
     if endianness != ENDIANNESS_LITTLE {
-        return Err(FormatError::UnsupportedEndianness(endianness));
+        return Err((FormatError::UnsupportedEndianness(endianness)).into());
     }
     let alignment_log2 = bytes[7];
     if !(MIN_ALIGNMENT_LOG2..=MAX_ALIGNMENT_LOG2).contains(&alignment_log2) {
-        return Err(FormatError::UnsupportedAlignment(alignment_log2));
+        return Err((FormatError::UnsupportedAlignment(alignment_log2)).into());
     }
     let total_len = read_u64_le(bytes, 8);
     let actual = bytes.len() as u64;
     if total_len != actual {
-        return Err(FormatError::TotalLenMismatch {
+        return Err((FormatError::TotalLenMismatch {
             declared: total_len,
             actual,
-        });
+        })
+        .into());
     }
     let section_count = read_u32_le(bytes, 16);
     let flags = read_u32_le(bytes, 20);
     let unknown_mandatory = flags & MANDATORY_FEATURE_SPACE & !KNOWN_MANDATORY_FEATURES;
     if unknown_mandatory != 0 {
-        return Err(FormatError::UnknownMandatoryFeature(unknown_mandatory));
+        return Err((FormatError::UnknownMandatoryFeature(unknown_mandatory)).into());
     }
     let artifact_cid = read_cid(bytes, ARTIFACT_CID_OFFSET);
     let head_cid = read_cid(bytes, HEAD_CID_OFFSET);

@@ -39,16 +39,14 @@ use crate::view::GraphView;
 /// Run stage 2 over the sections of a stage-1-validated view. Returns
 /// the decoded [`Head`] when a HEAD section is present; `None` keeps
 /// the container stage-1-only (see module docs).
-pub(crate) fn validate(view: &GraphView) -> Result<Option<Head>, FormatError> {
+pub(crate) fn validate(view: &GraphView) -> Result<Option<Head>, crate::NotAProduct> {
     let head = match view.section(SectionId::HEAD) {
         Some(bytes) => Head::parse(bytes)?,
         None => return Ok(None),
     };
     let unknown_required = head.feature_bits_required() & !KNOWN_FEATURE_BITS_REQUIRED;
     if unknown_required != 0 {
-        return Err(FormatError::UnknownMandatoryFeature(u32::from(
-            unknown_required,
-        )));
+        return Err((FormatError::UnknownMandatoryFeature(u32::from(unknown_required))).into());
     }
     let edge_algebra_v1 = head.feature_bits_required() & FEATURE_EDGE_ALGEBRA_V1 != 0;
 
@@ -59,11 +57,12 @@ pub(crate) fn validate(view: &GraphView) -> Result<Option<Head>, FormatError> {
     let storage_bytes = u32::from(head.signature_words()) * 8;
     let signature_bytes = u32::from(head.signature_bytes());
     if signature_bytes > storage_bytes || signature_bytes <= storage_bytes.saturating_sub(8) {
-        return Err(FormatError::DishonestBounds {
+        return Err((FormatError::DishonestBounds {
             bound: BoundKind::SignatureBytes,
             declared: signature_bytes,
             observed: storage_bytes,
-        });
+        })
+        .into());
     }
 
     // EMIT/EXCT storage descriptors (RFC §6 item 8). Node emission
@@ -108,16 +107,17 @@ pub(crate) fn validate(view: &GraphView) -> Result<Option<Head>, FormatError> {
         Some(bytes) => {
             let expected = u64::from(head.node_count()) * PACKED_NODE_LEN as u64;
             if bytes.len() as u64 != expected {
-                return Err(FormatError::NodeCountMismatch {
+                return Err((FormatError::NodeCountMismatch {
                     declared: head.node_count(),
                     section_len: bytes.len() as u64,
-                });
+                })
+                .into());
             }
             Some(bytes)
         }
         None => {
             if head.node_count() > 0 {
-                return Err(FormatError::MissingNodeSection);
+                return Err((FormatError::MissingNodeSection).into());
             }
             None
         }
@@ -129,16 +129,17 @@ pub(crate) fn validate(view: &GraphView) -> Result<Option<Head>, FormatError> {
             let expected =
                 u64::from(head.edge_count()) * (PACKED_EDGE_LEN + REVERSE_INDEX_ENTRY_LEN) as u64;
             if bytes.len() as u64 != expected {
-                return Err(FormatError::EdgeCountMismatch {
+                return Err((FormatError::EdgeCountMismatch {
                     declared: head.edge_count(),
                     section_len: bytes.len() as u64,
-                });
+                })
+                .into());
             }
             Some(bytes)
         }
         None => {
             if head.edge_count() > 0 {
-                return Err(FormatError::MissingEdgeSection);
+                return Err((FormatError::MissingEdgeSection).into());
             }
             None
         }
@@ -153,39 +154,44 @@ pub(crate) fn validate(view: &GraphView) -> Result<Option<Head>, FormatError> {
             let node = records::decode_node(&bytes[i as usize * PACKED_NODE_LEN..]);
             let child_end = u64::from(node.child_start) + u64::from(node.child_len);
             if child_end > u64::from(head.edge_count()) {
-                return Err(FormatError::RangeOutOfBounds {
+                return Err((FormatError::RangeOutOfBounds {
                     node: i,
                     field: RangeField::Child,
-                });
+                })
+                .into());
             }
             let forward_end = u64::from(node.forward_start) + u64::from(node.forward_len);
             if forward_end > u64::from(head.edge_count()) {
-                return Err(FormatError::RangeOutOfBounds {
+                return Err((FormatError::RangeOutOfBounds {
                     node: i,
                     field: RangeField::Forward,
-                });
+                })
+                .into());
             }
             let emission_end = u64::from(node.emission_start) + u64::from(node.emission_len);
             if emission_end > emit_remainder as u64 {
-                return Err(FormatError::RangeOutOfBounds {
+                return Err((FormatError::RangeOutOfBounds {
                     node: i,
                     field: RangeField::Emission,
-                });
+                })
+                .into());
             }
             // Word starts plus the full W-word extent must resolve
             // within the ROUT section.
             let signature_words = u64::from(head.signature_words());
             if u64::from(node.prototype_word_start) + signature_words > rout_words {
-                return Err(FormatError::RangeOutOfBounds {
+                return Err((FormatError::RangeOutOfBounds {
                     node: i,
                     field: RangeField::Prototype,
-                });
+                })
+                .into());
             }
             if u64::from(node.mask_word_start) + signature_words > rout_words {
-                return Err(FormatError::RangeOutOfBounds {
+                return Err((FormatError::RangeOutOfBounds {
                     node: i,
                     field: RangeField::Mask,
-                });
+                })
+                .into());
             }
             // Zero-padding rule (RFC §4.1): with word-aligned storage of
             // a byte-exact signature, the bytes between the signature
@@ -202,34 +208,39 @@ pub(crate) fn validate(view: &GraphView) -> Result<Option<Head>, FormatError> {
                         let begin = word_start as usize * 8 + signature_bytes;
                         let end = word_start as usize * 8 + storage_bytes;
                         let Some(padding) = rout.get(begin..end) else {
-                            return Err(FormatError::RangeOutOfBounds { node: i, field });
+                            return Err((FormatError::RangeOutOfBounds { node: i, field }).into());
                         };
                         if padding.iter().any(|&byte| byte != 0) {
-                            return Err(FormatError::NonZeroSignaturePadding { node: i, field });
+                            return Err(
+                                (FormatError::NonZeroSignaturePadding { node: i, field }).into()
+                            );
                         }
                     }
                 }
             }
             if node.child_len > head.max_frontier_width() {
-                return Err(FormatError::DishonestBounds {
+                return Err((FormatError::DishonestBounds {
                     bound: BoundKind::FrontierWidth,
                     declared: u32::from(head.max_frontier_width()),
                     observed: u32::from(node.child_len),
-                });
+                })
+                .into());
             }
             if u32::from(node.emission_len) > head.max_emission_entries() {
-                return Err(FormatError::DishonestBounds {
+                return Err((FormatError::DishonestBounds {
                     bound: BoundKind::EmissionEntries,
                     declared: head.max_emission_entries(),
                     observed: u32::from(node.emission_len),
-                });
+                })
+                .into());
             }
             if node.depth.0 >= head.depth_count() {
-                return Err(FormatError::DishonestBounds {
+                return Err((FormatError::DishonestBounds {
                     bound: BoundKind::DepthCount,
                     declared: u32::from(head.depth_count()),
                     observed: u32::from(node.depth.0),
-                });
+                })
+                .into());
             }
         }
     }
@@ -244,53 +255,60 @@ pub(crate) fn validate(view: &GraphView) -> Result<Option<Head>, FormatError> {
             // in bounds.
             let edge = records::decode_edge(&bytes[i as usize * PACKED_EDGE_LEN..]);
             if edge.src.0 >= head.node_count() || edge.dst.0 >= head.node_count() {
-                return Err(FormatError::EdgeEndpointOutOfBounds {
+                return Err((FormatError::EdgeEndpointOutOfBounds {
                     edge: i,
                     src: edge.src.0,
                     dst: edge.dst.0,
-                });
+                })
+                .into());
             }
             let known_kind = EdgeKind::from_raw(edge.kind);
             if known_kind.is_none() && !is_optional_edge_kind(edge.kind) {
-                return Err(FormatError::UnknownMandatoryEdgeKind {
+                return Err((FormatError::UnknownMandatoryEdgeKind {
                     edge: i,
                     kind: edge.kind,
-                });
+                })
+                .into());
             }
             if edge.flags != 0 {
-                return Err(FormatError::InvalidEdgePayload {
+                return Err((FormatError::InvalidEdgePayload {
                     edge: i,
                     field: EdgePayloadField::Flags,
-                });
+                })
+                .into());
             }
             if !edge_algebra_v1 && edge.reserved != 0 {
-                return Err(FormatError::InvalidEdgePayload {
+                return Err((FormatError::InvalidEdgePayload {
                     edge: i,
                     field: EdgePayloadField::Reserved,
-                });
+                })
+                .into());
             }
             if let Some(kind) = known_kind {
                 if kind.directed() && !kind.may_cycle() && edge.src.0 >= edge.dst.0 {
-                    return Err(FormatError::InvalidEdgePayload {
+                    return Err((FormatError::InvalidEdgePayload {
                         edge: i,
                         field: EdgePayloadField::AcyclicOrder,
-                    });
+                    })
+                    .into());
                 }
                 if edge_algebra_v1 && kind.requires_contribution_id() && edge.reserved == 0 {
-                    return Err(FormatError::InvalidEdgePayload {
+                    return Err((FormatError::InvalidEdgePayload {
                         edge: i,
                         field: EdgePayloadField::ContributionId,
-                    });
+                    })
+                    .into());
                 }
             }
             let contribution_id = if edge_algebra_v1 { edge.reserved } else { 0 };
             let key = (edge.src.0, edge.kind, edge.dst.0, contribution_id);
             if let Some(prev) = previous_key {
                 if prev >= key {
-                    return Err(FormatError::EdgeCanonicalOrderViolation {
+                    return Err((FormatError::EdgeCanonicalOrderViolation {
                         previous: i - 1,
                         edge: i,
-                    });
+                    })
+                    .into());
                 }
             }
             previous_key = Some(key);
@@ -316,13 +334,14 @@ pub(crate) fn validate(view: &GraphView) -> Result<Option<Head>, FormatError> {
                         && edge_a.dst == edge_b.dst
                         && edge_a.reserved == edge_b.reserved
                     {
-                        return Err(FormatError::ContributionIdCollision {
+                        return Err((FormatError::ContributionIdCollision {
                             first: a,
                             second: b,
                             src: edge_a.src.0,
                             dst: edge_a.dst.0,
                             contribution_id: edge_a.reserved,
-                        });
+                        })
+                        .into());
                     }
                 }
             }
@@ -331,10 +350,11 @@ pub(crate) fn validate(view: &GraphView) -> Result<Option<Head>, FormatError> {
         for (j, entry) in reverse.chunks_exact(REVERSE_INDEX_ENTRY_LEN).enumerate() {
             let edge_id = read_u32_le(entry, 0);
             if edge_id >= edge_count {
-                return Err(FormatError::ReverseIndexOutOfBounds {
+                return Err((FormatError::ReverseIndexOutOfBounds {
                     index: j as u32,
                     edge_id,
-                });
+                })
+                .into());
             }
         }
         // Existence scan (v0): every canonical edge ID that requires reverse
@@ -353,7 +373,7 @@ pub(crate) fn validate(view: &GraphView) -> Result<Option<Head>, FormatError> {
                 .chunks_exact(REVERSE_INDEX_ENTRY_LEN)
                 .any(|entry| read_u32_le(entry, 0) == i);
             if !found {
-                return Err(FormatError::ReverseIndexMissing { edge: i });
+                return Err((FormatError::ReverseIndexMissing { edge: i }).into());
             }
         }
         // Every declared node reverse range must resolve to incoming edges of
@@ -368,12 +388,13 @@ pub(crate) fn validate(view: &GraphView) -> Result<Option<Head>, FormatError> {
                     let edge_id = read_u32_le(reverse_entry, 0);
                     let edge = records::decode_edge(&bytes[edge_id as usize * PACKED_EDGE_LEN..]);
                     if edge.dst.0 != node {
-                        return Err(FormatError::ReverseRangeTargetMismatch {
+                        return Err((FormatError::ReverseRangeTargetMismatch {
                             node,
                             index,
                             edge_id,
                             edge_dst: edge.dst.0,
-                        });
+                        })
+                        .into());
                     }
                 }
             }
@@ -390,12 +411,13 @@ pub(crate) fn validate(view: &GraphView) -> Result<Option<Head>, FormatError> {
             for edge_id in start..end {
                 let edge = records::decode_edge(&edges[edge_id as usize * PACKED_EDGE_LEN..]);
                 if edge.src.0 != node || edge.kind != EdgeKind::RefinementAbstraction as u8 {
-                    return Err(FormatError::ChildRangeEdgeMismatch {
+                    return Err((FormatError::ChildRangeEdgeMismatch {
                         node,
                         edge: edge_id,
                         edge_src: edge.src.0,
                         edge_kind: edge.kind,
-                    });
+                    })
+                    .into());
                 }
             }
         }
@@ -404,18 +426,20 @@ pub(crate) fn validate(view: &GraphView) -> Result<Option<Head>, FormatError> {
     // PTCH (Phase 9) section: 32-byte parent CID + array of PACKED_TOMBSTONE_LEN.
     if let Some(bytes) = view.section(SectionId::PTCH) {
         if bytes.len() < 32 || (bytes.len() - 32) % records::PACKED_TOMBSTONE_LEN != 0 {
-            return Err(FormatError::PatchSectionMisaligned {
+            return Err((FormatError::PatchSectionMisaligned {
                 actual_len: bytes.len() as u64,
-            });
+            })
+            .into());
         }
     }
 
     // RTNX (Phase 9) section length must be a multiple of PACKED_ROUTE_TRANSLATION_LEN.
     if let Some(bytes) = view.section(SectionId::RTNX) {
         if bytes.len() % records::PACKED_ROUTE_TRANSLATION_LEN != 0 {
-            return Err(FormatError::RouteTranslationSectionMisaligned {
+            return Err((FormatError::RouteTranslationSectionMisaligned {
                 actual_len: bytes.len() as u64,
-            });
+            })
+            .into());
         }
     }
 
@@ -438,7 +462,7 @@ pub(crate) fn validate(view: &GraphView) -> Result<Option<Head>, FormatError> {
             &[],
         )
     {
-        return Err(FormatError::InvariantViolation(inv_err));
+        return Err((FormatError::InvariantViolation(inv_err)).into());
     }
 
     Ok(Some(head))

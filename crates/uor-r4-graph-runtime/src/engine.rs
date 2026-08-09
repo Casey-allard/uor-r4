@@ -96,7 +96,7 @@ fn best_context_entry(
 impl<'a> R4G1Runtime<'a> {
     /// Create a new R4G1 runtime by running two-stage validation over `bytes`.
     pub fn parse(bytes: &'a [u8]) -> Result<Self, FormatError> {
-        let view = GraphView::parse(bytes)?;
+        let view = GraphView::parse(bytes).map_err(|e| e.reason)?;
         let route_index = (view.node_count().unwrap_or(0) >= MIN_ROUTE_INDEX_NODES)
             .then(|| VpTree::from_graph(&view))
             .flatten();
@@ -108,7 +108,7 @@ impl<'a> R4G1Runtime<'a> {
 
     /// Appends a patch epoch to the runtime's chain.
     pub fn try_push_patch(&mut self, patch_bytes: &'a [u8]) -> Result<(), RuntimeError> {
-        let view = GraphView::parse(patch_bytes).map_err(RuntimeError::Format)?;
+        let view = GraphView::parse(patch_bytes).map_err(|e| RuntimeError::Format(e.reason))?;
         self.chain
             .try_push_patch(view)
             .map_err(|e| RuntimeError::Patch(alloc::borrow::Cow::Borrowed(e)))

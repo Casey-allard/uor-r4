@@ -11,8 +11,8 @@ use common::{
     storage_section, EdgeFields, HeadFields, NodeFields,
 };
 use uor_r4_graph_format::{
-    ArtifactBuilder, BoundKind, Depth, EdgeKind, EdgePayloadField, FormatError, GraphView, NodeId,
-    Radius, RangeField, ScoreQ, SectionId, FEATURE_EDGE_ALGEBRA_V1, HEADER_LEN,
+    ArtifactBuilder, BoundKind, Depth, EdgeKind, EdgePayloadField, FormatError, GraphView,
+    KappaError, NodeId, Radius, RangeField, ScoreQ, SectionId, FEATURE_EDGE_ALGEBRA_V1, HEADER_LEN,
 };
 
 /// The happy-path packed node records: two nodes whose ranges resolve
@@ -147,7 +147,7 @@ impl Fixture {
 fn err_of(bytes: &[u8]) -> FormatError {
     match GraphView::parse(bytes) {
         Ok(_) => panic!("expected rejection, but the artifact parsed"),
-        Err(e) => e,
+        Err(e) => e.reason,
     }
 }
 
@@ -389,7 +389,7 @@ fn container_without_head_is_stage1_only() {
     assert_eq!(view.edge(0), None);
     assert_eq!(view.reverse_edge_id(0), None);
     assert_eq!(view.section(SectionId::NODE), Some(&[1, 2, 3, 4][..]));
-    assert_eq!(view.verify_cids(), Err(FormatError::MissingHead));
+    assert_eq!(view.verify_cids(), Err(KappaError::MissingHead));
 }
 
 // ── HEAD payload (RFC §4) ─────────────────────────────────────────────

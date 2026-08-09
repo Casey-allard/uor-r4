@@ -13,7 +13,7 @@ mod common;
 
 use common::{head_payload, node_section, storage_section, HeadFields, NodeFields};
 use uor_r4_graph_format::{
-    ArtifactBuilder, Depth, FormatError, GraphView, NodeId, Radius, ScoreQ, SectionId,
+    ArtifactBuilder, Depth, FormatError, GraphView, KappaError, NodeId, Radius, ScoreQ, SectionId,
     SectionOffset, TokenId, HEADER_LEN,
 };
 
@@ -98,7 +98,7 @@ fn build_sample() -> Vec<u8> {
 fn err_of(bytes: &[u8]) -> FormatError {
     match GraphView::parse(bytes) {
         Ok(_) => panic!("expected rejection, but the artifact parsed"),
-        Err(e) => e,
+        Err(e) => e.reason,
     }
 }
 
@@ -183,7 +183,7 @@ fn tokenizer_cid_mismatch_detected() {
     );
     assert_eq!(
         view.verify_tokenizer_cid(dummy_tokenizer),
-        Err(FormatError::TokenizerCidMismatch)
+        Err(KappaError::Tokenizer)
     );
 }
 
@@ -197,7 +197,7 @@ fn head_cid_tamper_detected() {
     let mut tampered = bytes.clone();
     tampered[head_off] ^= 0xFF;
     let view = GraphView::parse(&tampered).unwrap();
-    assert_eq!(view.verify_cids(), Err(FormatError::HeadCidMismatch));
+    assert_eq!(view.verify_cids(), Err(KappaError::Head));
 }
 
 #[test]
@@ -212,13 +212,13 @@ fn artifact_cid_tamper_detected() {
     let mut tampered = bytes.clone();
     tampered[opaque_off + 1] ^= 0xFF;
     let view = GraphView::parse(&tampered).unwrap();
-    assert_eq!(view.verify_cids(), Err(FormatError::ArtifactCidMismatch));
+    assert_eq!(view.verify_cids(), Err(KappaError::Artifact));
 
     // Flip a section-table flags byte: same result.
     let mut tampered = bytes.clone();
     tampered[HEADER_LEN + 4] ^= 0xFF;
     let view = GraphView::parse(&tampered).unwrap();
-    assert_eq!(view.verify_cids(), Err(FormatError::ArtifactCidMismatch));
+    assert_eq!(view.verify_cids(), Err(KappaError::Artifact));
 }
 
 #[test]
@@ -394,7 +394,10 @@ fn reject_unknown_mandatory_feature_bit() {
 fn builder_requires_head() {
     let mut b = ArtifactBuilder::new(3);
     b.add_section(SectionId::NODE, 0, &[0u8; 4]);
-    assert_eq!(b.build(), Err(FormatError::MissingHead));
+    assert_eq!(
+        b.build().map_err(|e| e.reason),
+        Err(FormatError::MissingHead)
+    );
 }
 
 #[test]
@@ -403,7 +406,7 @@ fn builder_rejects_duplicate_sections() {
     b.add_section(SectionId::HEAD, 0, b"a");
     b.add_section(SectionId::HEAD, 0, b"b");
     assert_eq!(
-        b.build(),
+        b.build().map_err(|e| e.reason),
         Err(FormatError::DuplicateSection(SectionId::HEAD))
     );
 }
@@ -413,7 +416,10 @@ fn builder_rejects_unknown_mandatory_id() {
     let mut b = ArtifactBuilder::new(3);
     b.add_section(SectionId::HEAD, 0, b"head");
     b.add_section(SectionId(0x40), 0, b"nope");
-    assert_eq!(b.build(), Err(FormatError::UnknownMandatorySection(0x40)));
+    assert_eq!(
+        b.build().map_err(|e| e.reason),
+        Err(FormatError::UnknownMandatorySection(0x40))
+    );
 }
 
 // ── Newtype smoke ─────────────────────────────────────────────────────

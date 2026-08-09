@@ -1105,8 +1105,9 @@ impl R4Engine {
         // Fail fast with a typed format error before any scorer state is
         // built (the scorer re-validates internally; this surfaces the
         // format crate's focused error at the library boundary).
-        let view = GraphView::parse(parts.graph).map_err(LoadError::InvalidGraph)?;
-        view.verify_cids().map_err(LoadError::InvalidGraph)?;
+        let view = GraphView::parse(parts.graph).map_err(|e| LoadError::InvalidGraph(e.reason))?;
+        view.verify_cids()
+            .map_err(|k| LoadError::InvalidGraph(k.as_format()))?;
         if let Some(tokenizer_bytes) = parts.tokenizer {
             let expected = view
                 .head()

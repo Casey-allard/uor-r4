@@ -77,6 +77,7 @@ mod ngram;
 pub mod r4g1;
 pub mod records;
 mod rout;
+pub mod sanctioned;
 pub mod scoring_semantics;
 #[cfg(feature = "alloc")]
 mod ser;
@@ -122,6 +123,7 @@ pub use records::{
     PACKED_NODE_LEN, STORAGE_DESCRIPTOR_LEN,
 };
 pub use rout::{OP_HALT, OP_JMP_FWD, OP_LEAF, OP_TEST_POPCOUNT_LE};
+pub use sanctioned::{KappaError, NotAProduct, ObjectKind, ObservedBound};
 #[cfg(feature = "alloc")]
 pub use ser::ArtifactBuilder;
 pub use types::{ArtifactCid, Depth, NodeId, Radius, ScoreQ, SectionId, SectionOffset, TokenId};

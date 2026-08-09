@@ -17,6 +17,7 @@ use crate::records::{
     self, PackedEdge, PackedNode, PackedRouteTranslation, PackedTombstone, PACKED_EDGE_LEN,
     PACKED_NODE_LEN, PACKED_ROUTE_TRANSLATION_LEN, PACKED_TOMBSTONE_LEN,
 };
+use crate::sanctioned::KappaError;
 use crate::stage2;
 use crate::types::{ArtifactCid, SectionId};
 
@@ -45,13 +46,13 @@ pub(crate) fn decode_entry(bytes: &[u8], index: u32) -> RawEntry {
 }
 
 /// Byte offset one past the section table.
-fn table_end(header: &Header) -> Result<u64, FormatError> {
+fn table_end(header: &Header) -> Result<u64, crate::NotAProduct> {
     let table_len = (header.section_count as u64)
         .checked_mul(SECTION_ENTRY_LEN as u64)
         .ok_or(FormatError::SectionTableOutOfBounds)?;
     (HEADER_LEN as u64)
         .checked_add(table_len)
-        .ok_or(FormatError::SectionTableOutOfBounds)
+        .ok_or_else(|| FormatError::SectionTableOutOfBounds.into())
 }
 
 /// Run the full stage-1 structural validation of RFC §6 over `bytes`.
@@ -71,12 +72,12 @@ fn table_end(header: &Header) -> Result<u64, FormatError> {
 /// 7. every section body within `total_len`;
 /// 8. no section body overlapping the header/table region or another
 ///    section body.
-pub(crate) fn validate(bytes: &[u8]) -> Result<Header, FormatError> {
+pub(crate) fn validate(bytes: &[u8]) -> Result<Header, crate::NotAProduct> {
     let header = header::parse(bytes)?;
 
     let table_end = table_end(&header)?;
     if table_end > header.total_len {
-        return Err(FormatError::SectionTableOutOfBounds);
+        return Err((FormatError::SectionTableOutOfBounds).into());
     }
 
     let align: u32 = 1 << header.alignment_log2;
@@ -86,18 +87,18 @@ pub(crate) fn validate(bytes: &[u8]) -> Result<Header, FormatError> {
 
         if let Some(prev) = prev_id {
             if entry.id <= prev {
-                return Err(FormatError::SectionsNotSorted);
+                return Err((FormatError::SectionsNotSorted).into());
             }
         }
         prev_id = Some(entry.id);
 
         let section = SectionId(entry.id);
         if !section.is_known() && section.mandatory() {
-            return Err(FormatError::UnknownMandatorySection(entry.id));
+            return Err((FormatError::UnknownMandatorySection(entry.id)).into());
         }
 
         if !entry.offset.is_multiple_of(align) {
-            return Err(FormatError::SectionMisaligned);
+            return Err((FormatError::SectionMisaligned).into());
         }
 
         let end = entry
@@ -105,10 +106,10 @@ pub(crate) fn validate(bytes: &[u8]) -> Result<Header, FormatError> {
             .checked_add(entry.length)
             .ok_or(FormatError::OffsetOverflow)?;
         if u64::from(end) > header.total_len {
-            return Err(FormatError::SectionOutOfBounds);
+            return Err((FormatError::SectionOutOfBounds).into());
         }
         if u64::from(entry.offset) < table_end && entry.length > 0 {
-            return Err(FormatError::SectionsOverlap);
+            return Err((FormatError::SectionsOverlap).into());
         }
 
         // Pairwise body-overlap check in u64, robust against
@@ -118,7 +119,7 @@ pub(crate) fn validate(bytes: &[u8]) -> Result<Header, FormatError> {
             let other = decode_entry(bytes, j);
             let other_end = u64::from(other.offset) + u64::from(other.length);
             if u64::from(entry.offset) < other_end && u64::from(other.offset) < u64::from(end) {
-                return Err(FormatError::SectionsOverlap);
+                return Err((FormatError::SectionsOverlap).into());
             }
         }
     }
@@ -151,7 +152,7 @@ impl<'a> GraphView<'a> {
     /// pure section carriers): [`GraphView::head`] returns `None` and the
     /// typed node/edge accessors report nothing, leaving the sections as
     /// opaque bytes.
-    pub fn parse(bytes: &'a [u8]) -> Result<Self, FormatError> {
+    pub fn parse(bytes: &'a [u8]) -> Result<Self, crate::NotAProduct> {
         let header = validate(bytes)?;
         let mut view = Self {
             bytes,
@@ -330,21 +331,23 @@ impl<'a> GraphView<'a> {
     }
 
     /// Parse the optional packed lexical context table.
-    pub fn ngram_table(&self) -> Result<Option<NgramTable<'a>>, FormatError> {
+    pub fn ngram_table(&self) -> Result<Option<NgramTable<'a>>, crate::NotAProduct> {
         self.section(SectionId::NGRAM)
             .map(NgramTable::parse)
             .transpose()
     }
 
     /// Parse the optional packed forward-anchor table (issue #399).
-    pub fn fwda_table(&self) -> Result<Option<FwdaTable<'a>>, FormatError> {
+    pub fn fwda_table(&self) -> Result<Option<FwdaTable<'a>>, crate::NotAProduct> {
         self.section(SectionId::FWDA)
             .map(FwdaTable::parse)
             .transpose()
     }
 
     /// Borrow the optional compiler-folded FMM translation table.
-    pub fn fmm_translation_table(&self) -> Result<Option<FmmTranslationTable<'a>>, FormatError> {
+    pub fn fmm_translation_table(
+        &self,
+    ) -> Result<Option<FmmTranslationTable<'a>>, crate::NotAProduct> {
         self.section(SectionId::FMM)
             .map(FmmTranslationTable::parse)
             .transpose()
@@ -358,31 +361,31 @@ impl<'a> GraphView<'a> {
     /// total_len])`. Returns [`FormatError::MissingHead`] when HEAD is
     /// absent, [`FormatError::HeadCidMismatch`] /
     /// [`FormatError::ArtifactCidMismatch`] on digest mismatch.
-    pub fn verify_cids(&self) -> Result<(), FormatError> {
+    pub fn verify_cids(&self) -> Result<(), KappaError> {
         let head = self
             .section(SectionId::HEAD)
-            .ok_or(FormatError::MissingHead)?;
+            .ok_or(KappaError::MissingHead)?;
         if blake3::hash(head).as_bytes() != &self.header.head_cid.0 {
-            return Err(FormatError::HeadCidMismatch);
+            return Err(KappaError::Head);
         }
         let artifact = blake3::hash(&self.bytes[header::ARTIFACT_HASH_START..]);
         if artifact.as_bytes() != &self.header.artifact_cid.0 {
-            return Err(FormatError::ArtifactCidMismatch);
+            return Err(KappaError::Artifact);
         }
         Ok(())
     }
 
     /// Verify that the loaded tokenizer bytes match the header's `tokenizer_cid`.
-    pub fn verify_tokenizer_cid(&self, tokenizer_bytes: &[u8]) -> Result<(), FormatError> {
+    pub fn verify_tokenizer_cid(&self, tokenizer_bytes: &[u8]) -> Result<(), KappaError> {
         let expected = self
             .head()
-            .ok_or(FormatError::MissingHead)?
+            .ok_or(KappaError::MissingHead)?
             .tokenizer_cid()
             .0;
         if expected != [0u8; 32] {
             let actual = blake3::hash(tokenizer_bytes);
             if expected != *actual.as_bytes() {
-                return Err(FormatError::TokenizerCidMismatch);
+                return Err(KappaError::Tokenizer);
             }
         }
         Ok(())

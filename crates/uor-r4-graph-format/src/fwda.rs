@@ -105,19 +105,19 @@ pub struct FwdaRows<'a> {
 }
 
 impl<'a> FwdaTable<'a> {
-    pub fn parse(bytes: &'a [u8]) -> Result<Self, FormatError> {
+    pub fn parse(bytes: &'a [u8]) -> Result<Self, crate::NotAProduct> {
         if bytes.len() < FWDA_HEADER_LEN {
-            return Err(FormatError::FwdaTooShort);
+            return Err((FormatError::FwdaTooShort).into());
         }
         if bytes[..4] != FWDA_MAGIC {
-            return Err(FormatError::FwdaBadMagic);
+            return Err((FormatError::FwdaBadMagic).into());
         }
         if read_u16(&bytes[4..6]) != FWDA_VERSION {
-            return Err(FormatError::FwdaUnsupportedVersion);
+            return Err((FormatError::FwdaUnsupportedVersion).into());
         }
         if bytes[6..8].iter().any(|&byte| byte != 0) || bytes[14..16].iter().any(|&byte| byte != 0)
         {
-            return Err(FormatError::FwdaNonZeroReserved);
+            return Err((FormatError::FwdaNonZeroReserved).into());
         }
         let row_count = read_u32(&bytes[8..12]);
         let max_entries = read_u16(&bytes[12..14]) as usize;
@@ -128,7 +128,7 @@ impl<'a> FwdaTable<'a> {
             .checked_add(rows_len)
             .ok_or(FormatError::FwdaBounds)?;
         if entries_start > bytes.len() {
-            return Err(FormatError::FwdaBounds);
+            return Err((FormatError::FwdaBounds).into());
         }
 
         let mut previous = None;
@@ -138,20 +138,20 @@ impl<'a> FwdaTable<'a> {
             let row = &bytes[start..start + FWDA_ROW_LEN];
             let distance = row[0];
             if !(1..=FWDA_MAX_DISTANCE).contains(&distance) || row[1] != 0 {
-                return Err(FormatError::FwdaInvalidRow);
+                return Err((FormatError::FwdaInvalidRow).into());
             }
             let entry_count = read_u16(&row[2..4]);
             if usize::from(entry_count) > max_entries {
-                return Err(FormatError::FwdaInvalidRow);
+                return Err((FormatError::FwdaInvalidRow).into());
             }
             let anchor = read_u32(&row[4..8]);
             let total = read_u32(&row[8..12]);
             if total == 0 {
-                return Err(FormatError::FwdaInvalidRow);
+                return Err((FormatError::FwdaInvalidRow).into());
             }
             let entry_start = read_u32(&row[12..16]) as usize;
             if row[16..20].iter().any(|&byte| byte != 0) || entry_start != expected_entry_start {
-                return Err(FormatError::FwdaBounds);
+                return Err((FormatError::FwdaBounds).into());
             }
             let entry_bytes = (entry_count as usize)
                 .checked_mul(FWDA_ENTRY_LEN)
@@ -160,12 +160,12 @@ impl<'a> FwdaTable<'a> {
                 .checked_add(entry_bytes)
                 .ok_or(FormatError::FwdaBounds)?;
             if entry_end > bytes.len() {
-                return Err(FormatError::FwdaBounds);
+                return Err((FormatError::FwdaBounds).into());
             }
             expected_entry_start = entry_end;
             let sort_key = (distance, anchor);
             if previous.is_some_and(|last| last >= sort_key) {
-                return Err(FormatError::FwdaRowsNotSorted);
+                return Err((FormatError::FwdaRowsNotSorted).into());
             }
             previous = Some(sort_key);
             let entries = &bytes[entry_start..entry_end];
@@ -173,14 +173,14 @@ impl<'a> FwdaTable<'a> {
             for chunk in entries.chunks_exact(FWDA_ENTRY_LEN) {
                 let token = read_u32(&chunk[..4]);
                 if previous_token.is_some_and(|last| last >= token) {
-                    return Err(FormatError::FwdaEntriesNotSorted);
+                    return Err((FormatError::FwdaEntriesNotSorted).into());
                 }
                 previous_token = Some(token);
             }
         }
 
         if expected_entry_start != bytes.len() {
-            return Err(FormatError::FwdaBounds);
+            return Err((FormatError::FwdaBounds).into());
         }
 
         Ok(Self { bytes, row_count })

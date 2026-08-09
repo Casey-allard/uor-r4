@@ -70,8 +70,10 @@ fn malformed_or_tampered_artifacts_are_rejected() {
     let mut tampered = sample(3, false);
     let last = tampered.len() - 1;
     tampered[last] ^= 1;
+    // Flipping a content byte leaves the structure valid but breaks the
+    // artifact CID, so the failure is now the sanctioned kappa condition.
     assert!(matches!(
         r4g1::address(&tampered),
-        Err(r4g1::RealizationError::InvalidArtifact(_))
+        Err(r4g1::RealizationError::CidMismatch(_))
     ));
 }
