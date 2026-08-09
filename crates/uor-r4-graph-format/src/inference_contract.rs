@@ -37,14 +37,14 @@ impl ContractVersion {
         ((self.major as u32) << 20) | ((self.minor as u32) << 10) | self.patch as u32
     }
 
-    pub fn decode_packed(raw: u32) -> Result<Self, InferenceContractError> {
+    pub fn decode_packed(raw: u32) -> Option<Self> {
         let major = ((raw >> 20) & 0x0fff) as u16;
         let minor = ((raw >> 10) & 0x03ff) as u16;
         let patch = (raw & 0x03ff) as u16;
         if major == 0 && minor == 0 && patch == 0 {
-            return Err(InferenceContractError::InvalidPackedVersion(raw));
+            return None;
         }
-        Ok(Self {
+        Some(Self {
             major,
             minor,
             patch,
@@ -215,30 +215,29 @@ impl InferenceContractVerifier {
     pub fn audit_operation(
         activity: BoundaryActivity,
         op: OperationClass,
-    ) -> Result<(), ContractValidationError> {
+    ) -> Option<ContractValidationError> {
         match (activity, op) {
             (BoundaryActivity::HotPathInference, OperationClass::ForbiddenFloat) => {
-                Err(ContractValidationError::ForbiddenFloatOperationDetected)
+                Some(ContractValidationError::ForbiddenFloatOperationDetected)
             }
             (BoundaryActivity::HotPathInference, OperationClass::ForbiddenMultiplyDivide) => {
-                Err(ContractValidationError::ForbiddenMultiplicationDetected)
+                Some(ContractValidationError::ForbiddenMultiplicationDetected)
             }
             (BoundaryActivity::HotPathInference, OperationClass::ForbiddenHeapAlloc) => {
-                Err(ContractValidationError::SteadyStateAllocationDetected)
+                Some(ContractValidationError::SteadyStateAllocationDetected)
             }
-            _ => Ok(()),
+            _ => None,
         }
     }
 
-    pub fn audit_contract_compliance(
-    ) -> Result<InferenceContractAuditReport, ContractValidationError> {
-        Ok(InferenceContractAuditReport {
+    pub fn audit_contract_compliance() -> InferenceContractAuditReport {
+        InferenceContractAuditReport {
             contract_version: Self::version(),
             permitted_op_classes_count: 6,
             is_zero_allocation_guaranteed: true,
             is_cpu_only_target: true,
             is_certified: true,
-        })
+        }
     }
 }
 
@@ -362,14 +361,11 @@ pub const ACTIVITY_OWNERS: [ActivityOwner; 9] = [
     },
 ];
 
-pub fn owner_for_activity(
-    activity: BoundaryActivity,
-) -> Result<&'static str, InferenceContractError> {
+pub fn owner_for_activity(activity: BoundaryActivity) -> Option<&'static str> {
     ACTIVITY_OWNERS
         .iter()
         .find(|entry| entry.activity == activity)
         .map(|entry| entry.module_path)
-        .ok_or(InferenceContractError::UnknownBoundaryActivity(activity))
 }
 
 #[cfg(test)]
@@ -429,21 +425,21 @@ mod tests {
                 BoundaryActivity::HotPathInference,
                 OperationClass::ForbiddenFloat
             ),
-            Err(ContractValidationError::ForbiddenFloatOperationDetected)
+            Some(ContractValidationError::ForbiddenFloatOperationDetected)
         );
         assert_eq!(
             InferenceContractVerifier::audit_operation(
                 BoundaryActivity::HotPathInference,
                 OperationClass::ForbiddenMultiplyDivide
             ),
-            Err(ContractValidationError::ForbiddenMultiplicationDetected)
+            Some(ContractValidationError::ForbiddenMultiplicationDetected)
         );
         assert_eq!(
             InferenceContractVerifier::audit_operation(
                 BoundaryActivity::HotPathInference,
                 OperationClass::ForbiddenHeapAlloc
             ),
-            Err(ContractValidationError::SteadyStateAllocationDetected)
+            Some(ContractValidationError::SteadyStateAllocationDetected)
         );
     }
 }

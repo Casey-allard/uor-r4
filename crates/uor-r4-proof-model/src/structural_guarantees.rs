@@ -403,15 +403,8 @@ impl StructuralGuaranteeVerifier {
         obligation_id: &str,
     ) -> Result<ProofVerificationReport, ProofValidationError> {
         use uor_r4_graph_format::inference_contract::InferenceContractVerifier;
-        let contract_report =
-            InferenceContractVerifier::audit_contract_compliance().map_err(|_| {
-                ProofValidationError::ResourceBoundExceeded {
-                    obligation_id: obligation_id.to_string(),
-                    metric: "contract_audit".to_string(),
-                    actual: 1,
-                    limit: 0,
-                }
-            })?;
+        // Total audit: the compliance report is always produced.
+        let contract_report = InferenceContractVerifier::audit_contract_compliance();
 
         Ok(ProofVerificationReport {
             obligation_id: obligation_id.to_string(),

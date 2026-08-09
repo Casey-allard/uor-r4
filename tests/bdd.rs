@@ -1945,7 +1945,8 @@ fn bdd_contract_spec_given(_w: &mut R4g1World) {}
 
 #[when("audited by the inference contract verifier")]
 fn bdd_contract_audit_when(w: &mut R4g1World) {
-    let rep = InferenceContractVerifier::audit_contract_compliance().expect("contract audit");
+    // audit_contract_compliance is total: it always returns the report.
+    let rep = InferenceContractVerifier::audit_contract_compliance();
     w.contract_report = Some(rep);
 }
 
@@ -1970,16 +1971,17 @@ fn bdd_contract_op_audit_when(_w: &mut R4g1World) {}
 
 #[then("permitted bitwise and integer operations are accepted")]
 fn bdd_contract_permitted_accepted(_w: &mut R4g1World) {
+    // audit_operation is total: `None` is the accept verdict.
     assert!(InferenceContractVerifier::audit_operation(
         BoundaryActivity::HotPathInference,
         OperationClass::PermittedBitwise
     )
-    .is_ok());
+    .is_none());
     assert!(InferenceContractVerifier::audit_operation(
         BoundaryActivity::HotPathInference,
         OperationClass::PermittedIntArithmetic
     )
-    .is_ok());
+    .is_none());
 }
 
 #[then("forbidden float and multiplication operations are rejected")]
@@ -1989,14 +1991,14 @@ fn bdd_contract_forbidden_rejected(_w: &mut R4g1World) {
             BoundaryActivity::HotPathInference,
             OperationClass::ForbiddenFloat
         ),
-        Err(ContractValidationError::ForbiddenFloatOperationDetected)
+        Some(ContractValidationError::ForbiddenFloatOperationDetected)
     );
     assert_eq!(
         InferenceContractVerifier::audit_operation(
             BoundaryActivity::HotPathInference,
             OperationClass::ForbiddenMultiplyDivide
         ),
-        Err(ContractValidationError::ForbiddenMultiplicationDetected)
+        Some(ContractValidationError::ForbiddenMultiplicationDetected)
     );
 }
 
