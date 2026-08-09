@@ -675,13 +675,13 @@ pub fn build_observations_with_threads(
     corpus: &Corpus,
     positions: &[usize],
     threads: usize,
-) -> Result<Vec<Observation>, String> {
+) -> Vec<Observation> {
     if positions.is_empty() {
-        return Ok(Vec::new());
+        return Vec::new();
     }
     let worker_count = threads.max(1).min(positions.len());
     if worker_count == 1 {
-        return Ok(build_observations_serial(art, corpus, positions));
+        return build_observations_serial(art, corpus, positions);
     }
     let chunk_size = positions.len().div_ceil(worker_count);
     let mut chunks = Vec::with_capacity(worker_count);
@@ -694,19 +694,21 @@ pub fn build_observations_with_threads(
             ));
         }
         for (chunk_id, handle) in handles {
-            let observations = handle.join().map_err(|_| {
-                format!("observation worker {chunk_id} panicked during cover compilation")
-            })?;
+            // A worker panic propagates as a panic (total): the observation
+            // build has no reportable condition of its own (R5), and a
+            // panicked worker is a defect, not a limitation the model sanctions.
+            let observations = handle.join().unwrap_or_else(|_| {
+                panic!("observation worker {chunk_id} panicked during cover compilation")
+            });
             chunks.push((chunk_id, observations));
         }
-        Ok::<(), String>(())
-    })?;
+    });
     chunks.sort_by_key(|(chunk_id, _)| *chunk_id);
     let mut observations = Vec::with_capacity(positions.len());
     for (_, mut chunk) in chunks {
         observations.append(&mut chunk);
     }
-    Ok(observations)
+    observations
 }
 
 fn build_observations_serial(
@@ -1669,9 +1671,11 @@ pub fn induce_cover(
     config: &CoverConfig,
     artifact_kappa: &str,
     corpus_kappa: &str,
-) -> Result<InducedCover, String> {
+) -> Option<InducedCover> {
     if observations.is_empty() {
-        return Err("cover induction needs at least one train observation".to_owned());
+        // No train observations: there is no cover to induce (R5 — the absence
+        // of a product, reported as `None`, not a raised error).
+        return None;
     }
     let n = observations.len();
     let regions_budget = config.effective_regions_budget(n);
@@ -1874,7 +1878,7 @@ pub fn induce_cover(
     }
 
     let max_depth = regions.iter().map(|r| r.depth as usize).max().unwrap_or(1);
-    Ok(InducedCover {
+    Some(InducedCover {
         cover: Cover {
             regions,
             max_depth,

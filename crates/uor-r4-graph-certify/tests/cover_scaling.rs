@@ -459,15 +459,13 @@ fn cover_scaling() {
         &corpus,
         &train_pos,
         threads as usize,
-    )
-    .expect("train observations");
+    );
     let held_obs = induction::build_observations_with_threads(
         &artifacts,
         &corpus,
         &held_pos,
         threads as usize,
-    )
-    .expect("held-out observations");
+    );
     println!(
         "  observations built in {:.1}s: {} train, {} held-out",
         build_started.elapsed().as_secs_f64(),

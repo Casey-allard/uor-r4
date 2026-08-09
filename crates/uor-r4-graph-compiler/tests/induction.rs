@@ -397,8 +397,7 @@ fn cover_induction_is_deterministic_across_repeats_and_worker_counts() {
     let serial = cover::build_observations(&artifacts, &corpus, &positions);
     for threads in [1usize, 2, 3, 5, 8, 64] {
         let parallel =
-            cover::build_observations_with_threads(&artifacts, &corpus, &positions, threads)
-                .expect("observation workers succeed");
+            cover::build_observations_with_threads(&artifacts, &corpus, &positions, threads);
         assert_eq!(
             parallel.len(),
             serial.len(),

@@ -175,7 +175,8 @@ pub fn compile(args: &[String]) -> Result<(), String> {
     let (train_positions, held_out_positions) = induction::split_positions(&corpus);
     let train = induction::build_observations(&artifacts, &corpus, &train_positions);
     let held_out = induction::build_observations(&artifacts, &corpus, &held_out_positions);
-    let induced = induction::induce_cover(&train, &config, &artifact_kappa, &corpus_kappa)?;
+    let induced = induction::induce_cover(&train, &config, &artifact_kappa, &corpus_kappa)
+        .ok_or_else(|| "cover induction needs at least one train observation".to_owned())?;
     let reference = induction::ReferenceClassifier::freeze(&induced.cover);
     eprintln!(
         "graph-compiler: {} regions across {} depth(s); evaluating held-out routing recall...",

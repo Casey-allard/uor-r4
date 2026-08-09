@@ -431,7 +431,8 @@ pub fn run_point(
         &point.config,
         &inputs.artifact_kappa,
         &inputs.corpus_kappa,
-    )?;
+    )
+    .ok_or_else(|| "cover induction needs at least one train observation".to_owned())?;
     let reference = cover::ReferenceClassifier::freeze(&induced.cover);
     let recall = cover::evaluate_held_out(
         &inputs.artifacts,
@@ -587,7 +588,8 @@ pub fn reconstruction_null(
         &point.config,
         &inputs.artifact_kappa,
         &inputs.corpus_kappa,
-    )?;
+    )
+    .ok_or_else(|| "cover induction needs at least one train observation".to_owned())?;
     let reference = cover::ReferenceClassifier::freeze(&induced.cover);
     let edges = cover::build_edges(
         &induced.cover,

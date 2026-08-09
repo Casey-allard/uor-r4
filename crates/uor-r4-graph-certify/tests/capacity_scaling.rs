@@ -953,8 +953,7 @@ fn capacity_scaling() {
     let (train_positions, _held) = induction::split_positions(&corpus);
     let started = Instant::now();
     let observations =
-        induction::build_observations_with_threads(&artifacts, &corpus, &train_positions, threads)
-            .expect("train observations");
+        induction::build_observations_with_threads(&artifacts, &corpus, &train_positions, threads);
     println!(
         "\n  train observations: {} (built once in {:.1}s, shared by FWDA/NGRAM and COVER)",
         observations.len(),

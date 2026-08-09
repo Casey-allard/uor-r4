@@ -139,8 +139,7 @@ fn m1_induced_forward() {
     let train_pos: Vec<usize> = (0..c.n).filter(|&i| is_constr(c.story[i])).collect();
     let held_pos: Vec<usize> = (0..c.n).filter(|&i| !is_constr(c.story[i])).collect();
 
-    let train_obs = induction::build_observations_with_threads(&art, &c, &train_pos, 2)
-        .expect("train observations");
+    let train_obs = induction::build_observations_with_threads(&art, &c, &train_pos, 2);
     println!("train observations built: {}", train_obs.len());
 
     let config = CoverConfig {
@@ -199,8 +198,7 @@ fn m1_induced_forward() {
     }
 
     // ---- held-out routing + eval ----
-    let held_obs =
-        induction::build_observations_with_threads(&art, &c, &held_pos, 2).expect("held obs");
+    let held_obs = induction::build_observations_with_threads(&art, &c, &held_pos, 2);
     let mut unigram: BTreeMap<u32, u64> = BTreeMap::new();
     for &i in &train_pos {
         *unigram.entry(c.next[i]).or_default() += 1;

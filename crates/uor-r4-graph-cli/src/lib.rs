@@ -664,14 +664,15 @@ pub fn cover_command(args: &[String]) -> Result<(), String> {
         &corpus,
         &train_positions,
         config.threads as usize,
-    )?;
+    );
     let held_out = cover::build_observations_with_threads(
         &artifacts,
         &corpus,
         &held_out_positions,
         config.threads as usize,
-    )?;
-    let induced = cover::induce_cover(&train, &config, &artifact_kappa, &corpus_kappa)?;
+    );
+    let induced = cover::induce_cover(&train, &config, &artifact_kappa, &corpus_kappa)
+        .ok_or_else(|| "cover induction needs at least one train observation".to_owned())?;
     let reference = cover::ReferenceClassifier::freeze(&induced.cover);
     eprintln!(
         "cover: {} regions across {} depth(s); evaluating held-out routing recall...",
@@ -1083,9 +1084,9 @@ pub fn score_command(args: &[String]) -> Result<(), String> {
         .map(|count| count.get().min(8))
         .unwrap_or(1);
     let train =
-        cover::build_observations_with_threads(&artifacts, &corpus, &train_positions, threads)?;
+        cover::build_observations_with_threads(&artifacts, &corpus, &train_positions, threads);
     let held_out =
-        cover::build_observations_with_threads(&artifacts, &corpus, &held_out_positions, threads)?;
+        cover::build_observations_with_threads(&artifacts, &corpus, &held_out_positions, threads);
     phases.mark("inputs + observations (load, split, observe)");
 
     // Region parameters + structural edges: recovered from a previously
@@ -1122,7 +1123,8 @@ pub fn score_command(args: &[String]) -> Result<(), String> {
                 &cover::CoverConfig::default(),
                 &artifact_kappa,
                 &corpus_kappa,
-            )?;
+            )
+            .ok_or_else(|| "cover induction needs at least one train observation".to_owned())?;
             let reference = cover::ReferenceClassifier::freeze(&induced.cover);
             let edges = cover::build_edges(&induced.cover, &reference, &train, &corpus.story);
             let n_reg = induced.cover.regions.len();
