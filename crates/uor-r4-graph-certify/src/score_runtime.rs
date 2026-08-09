@@ -825,6 +825,7 @@ impl GraphScorer {
             self.vocab,
             config,
         )
+        .ok_or_else(|| "FMM candidate scorer could not be built from the graph parts".to_owned())
     }
 
     /// Enable or disable predicted-cloud (F / ΔT) emissions. Default

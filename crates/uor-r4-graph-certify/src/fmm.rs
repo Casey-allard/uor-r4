@@ -41,20 +41,24 @@ impl Default for FmmConfig {
 }
 
 impl FmmConfig {
-    fn validate(self, dimension: usize) -> Result<Self, String> {
+    /// Normalize the config against a prototype dimension. `None` when the
+    /// config is not a valid instantiation: a zero max_rank, a tolerance
+    /// outside (0, 1], or a zero dimension (R5 — the absence of a product
+    /// rather than a raised error).
+    fn validate(self, dimension: usize) -> Option<Self> {
         if self.max_rank == 0 {
-            return Err("FMM max_rank must be nonzero".to_owned());
+            return None;
         }
         if !self.relative_singular_tolerance.is_finite()
             || self.relative_singular_tolerance <= 0.0
             || self.relative_singular_tolerance > 1.0
         {
-            return Err("FMM relative_singular_tolerance must be in (0, 1]".to_owned());
+            return None;
         }
         if dimension == 0 {
-            return Err("FMM prototype dimension must be nonzero".to_owned());
+            return None;
         }
-        Ok(Self {
+        Some(Self {
             max_rank: self.max_rank.min(dimension),
             ..self
         })
@@ -126,17 +130,17 @@ impl FmmCandidateScorer {
         root_floor: ScoreQ,
         vocab: u32,
         config: FmmConfig,
-    ) -> Result<Self, String> {
+    ) -> Option<Self> {
         if regions.is_empty() || regions.len() != emissions.len() {
-            return Err("FMM regions and emissions must be nonempty and aligned".to_owned());
+            return None;
         }
         if vocab == 0 {
-            return Err("FMM vocabulary must be nonzero".to_owned());
+            return None;
         }
         let dimension = regions[0].sig.len() * 8;
         let config = config.validate(dimension)?;
         if regions.iter().any(|r| r.sig.len() * 8 != dimension) {
-            return Err("FMM region signatures have inconsistent widths".to_owned());
+            return None;
         }
 
         let mut gram = vec![0.0; dimension * dimension];
@@ -157,7 +161,7 @@ impl FmmCandidateScorer {
         let (mut eigenvalues, eigenvectors) = symmetric_eigen(gram, dimension)?;
         let largest = eigenvalues.first().copied().unwrap_or(0.0).max(0.0).sqrt();
         if largest <= f64::EPSILON {
-            return Err("FMM prototypes have zero spectral energy".to_owned());
+            return None;
         }
         let cutoff = largest * config.relative_singular_tolerance;
         let total_energy = eigenvalues.iter().sum::<f64>();
@@ -183,7 +187,7 @@ impl FmmCandidateScorer {
         }
         let candidate_tokens: Vec<u32> = token_set.into_iter().collect();
         if candidate_tokens.is_empty() {
-            return Err("FMM graph has no root or emission candidates".to_owned());
+            return None;
         }
         let mut token_index = BTreeMap::new();
         for (index, &token) in candidate_tokens.iter().enumerate() {
@@ -212,7 +216,7 @@ impl FmmCandidateScorer {
             }
         }
 
-        Ok(Self {
+        Some(Self {
             config,
             dimension,
             rank,
@@ -241,7 +245,9 @@ impl FmmCandidateScorer {
     }
 
     /// Quantize the float candidate into a deterministic fixed-point table.
-    pub fn fixed_point(&self) -> Result<FmmFixedCandidateScorer, String> {
+    /// Total: every element is rounded and clamped into range, so the
+    /// quantization cannot fail (R5 — the former Result was spurious).
+    pub fn fixed_point(&self) -> FmmFixedCandidateScorer {
         let basis_q15 = self
             .basis
             .iter()
@@ -263,7 +269,7 @@ impl FmmCandidateScorer {
                     .clamp(i32::MIN as f64, i32::MAX as f64) as i32
             })
             .collect();
-        Ok(FmmFixedCandidateScorer {
+        FmmFixedCandidateScorer {
             dimension: self.dimension,
             rank: self.rank,
             basis_q15,
@@ -278,7 +284,7 @@ impl FmmCandidateScorer {
                 .collect(),
             root_floor: ScoreQ::from_raw((self.root_floor * 65_536.0).round() as i32),
             candidate_tokens: self.candidate_tokens.clone(),
-        })
+        }
     }
 
     /// Approximate storage occupied by the float factors and token metadata.
@@ -290,9 +296,11 @@ impl FmmCandidateScorer {
     }
 
     /// Score one sign signature with the low-rank far-field approximation.
-    pub fn score(&self, sig: &[u8], recent_tokens: &[u32]) -> Result<FmmScoreOutcome, String> {
+    /// `None` when the query signature width does not match the graph, or the
+    /// candidate set is empty (R5 — the absence of a product).
+    pub fn score(&self, sig: &[u8], recent_tokens: &[u32]) -> Option<FmmScoreOutcome> {
         if sig.len() * 8 != self.dimension {
-            return Err("FMM query signature width does not match the graph".to_owned());
+            return None;
         }
         let query = sign_row(sig, self.dimension);
         let mut projected = vec![0.0; self.rank];
@@ -324,9 +332,8 @@ impl FmmCandidateScorer {
                     .total_cmp(right_score)
                     .then_with(|| right_token.cmp(left_token))
             })
-            .map(|&(token, _)| token)
-            .ok_or("FMM produced no candidates")?;
-        Ok(FmmScoreOutcome {
+            .map(|&(token, _)| token)?;
+        Some(FmmScoreOutcome {
             selected,
             candidates,
             rank: self.rank,
@@ -357,27 +364,18 @@ impl FmmFixedCandidateScorer {
     /// [`uor_r4_graph_format::GraphView::fmm_translation_table`]. The
     /// rank-factor products are evaluated here, offline; the resulting
     /// runtime table needs only signed additions and table reads.
-    pub fn to_packed_section(&self) -> Result<Vec<u8>, String> {
-        let dimension = u16::try_from(self.dimension)
-            .map_err(|_| "FMM dimension exceeds the packed u16 width".to_owned())?;
-        let rank = u16::try_from(self.rank)
-            .map_err(|_| "FMM rank exceeds the packed u16 width".to_owned())?;
-        let token_count = u32::try_from(self.candidate_tokens.len())
-            .map_err(|_| "FMM candidate count exceeds the packed u32 width".to_owned())?;
+    pub fn to_packed_section(&self) -> Option<Vec<u8>> {
+        let dimension = u16::try_from(self.dimension).ok()?;
+        let rank = u16::try_from(self.rank).ok()?;
+        let token_count = u32::try_from(self.candidate_tokens.len()).ok()?;
         if self.dimension == 0 || self.rank == 0 || self.candidate_tokens.is_empty() {
-            return Err(
-                "FMM packed table cannot have an empty dimension, rank, or candidate set"
-                    .to_owned(),
-            );
+            return None;
         }
-        let expected_factors = self
-            .rank
-            .checked_mul(self.candidate_tokens.len())
-            .ok_or_else(|| "FMM factor dimensions overflow".to_owned())?;
+        let expected_factors = self.rank.checked_mul(self.candidate_tokens.len())?;
         if self.token_factors_q.len() != expected_factors
             || self.basis_q15.len() != self.dimension * self.rank
         {
-            return Err("FMM fixed-point factor dimensions are inconsistent".to_owned());
+            return None;
         }
 
         let mut bytes = Vec::with_capacity(
@@ -418,12 +416,11 @@ impl FmmFixedCandidateScorer {
                     unscaled = unscaled.saturating_add(basis.saturating_mul(factor));
                 }
                 let coefficient = round_shift_signed(unscaled, shift);
-                let coefficient = i32::try_from(coefficient)
-                    .map_err(|_| "FMM packed coefficient exceeds i32".to_owned())?;
+                let coefficient = i32::try_from(coefficient).ok()?;
                 bytes.extend_from_slice(&coefficient.to_le_bytes());
             }
         }
-        Ok(bytes)
+        Some(bytes)
     }
 
     /// Select the best token without allocating. The caller owns the
@@ -434,12 +431,12 @@ impl FmmFixedCandidateScorer {
         sig: &[u8],
         recent_tokens: &[u32],
         projected: &mut [i64],
-    ) -> Result<(u32, i64), String> {
+    ) -> Option<(u32, i64)> {
         if sig.len() * 8 != self.dimension {
-            return Err("fixed FMM query signature width does not match the graph".to_owned());
+            return None;
         }
         if projected.len() < self.rank {
-            return Err("fixed FMM projection scratch is too small".to_owned());
+            return None;
         }
         projected[..self.rank].fill(0);
         for (component, projected_value) in projected[..self.rank].iter_mut().enumerate() {
@@ -479,14 +476,14 @@ impl FmmFixedCandidateScorer {
                 best = Some((token, score));
             }
         }
-        best.ok_or("fixed FMM produced no candidates".to_owned())
+        best
     }
 
     /// Score one signature using only integer table values after the
     /// compiler-selected quantization scales have been fixed.
-    pub fn score(&self, sig: &[u8], recent_tokens: &[u32]) -> Result<FmmFixedScoreOutcome, String> {
+    pub fn score(&self, sig: &[u8], recent_tokens: &[u32]) -> Option<FmmFixedScoreOutcome> {
         if sig.len() * 8 != self.dimension {
-            return Err("fixed FMM query signature width does not match the graph".to_owned());
+            return None;
         }
         let mut projected = vec![0i64; self.rank];
         for (component, projected_value) in projected.iter_mut().enumerate() {
@@ -528,9 +525,8 @@ impl FmmFixedCandidateScorer {
                     .cmp(right_score)
                     .then_with(|| right_token.cmp(left_token))
             })
-            .map(|&(token, _)| token)
-            .ok_or("fixed FMM produced no candidates")?;
-        Ok(FmmFixedScoreOutcome {
+            .map(|&(token, _)| token)?;
+        Some(FmmFixedScoreOutcome {
             selected,
             candidates,
             rank: self.rank,
@@ -586,9 +582,9 @@ fn take_columns(values: &[f64], dimension: usize, rank: usize) -> Vec<f64> {
 /// are returned in descending eigenvalue order; the fixed sweep and pivot
 /// order make the certifier output reproducible without an external LAPACK
 /// dependency.
-fn symmetric_eigen(mut matrix: Vec<f64>, dimension: usize) -> Result<(Vec<f64>, Vec<f64>), String> {
+fn symmetric_eigen(mut matrix: Vec<f64>, dimension: usize) -> Option<(Vec<f64>, Vec<f64>)> {
     if matrix.len() != dimension * dimension || dimension == 0 {
-        return Err("invalid symmetric matrix dimensions".to_owned());
+        return None;
     }
     let mut vectors = vec![0.0; dimension * dimension];
     for index in 0..dimension {
@@ -609,7 +605,7 @@ fn symmetric_eigen(mut matrix: Vec<f64>, dimension: usize) -> Result<(Vec<f64>, 
         if max <= 1.0e-12 {
             break;
         }
-        let (p, q) = pivot.ok_or("Jacobi pivot missing")?;
+        let (p, q) = pivot?;
         let app = matrix[p * dimension + p];
         let aqq = matrix[q * dimension + q];
         let apq = matrix[p * dimension + q];
@@ -650,7 +646,7 @@ fn symmetric_eigen(mut matrix: Vec<f64>, dimension: usize) -> Result<(Vec<f64>, 
             ordered_vectors[row * dimension + column] = vectors[row * dimension + source];
         }
     }
-    Ok((eigenvalues, ordered_vectors))
+    Some((eigenvalues, ordered_vectors))
 }
 
 #[cfg(test)]
@@ -705,7 +701,7 @@ mod tests {
             scorer.score(&left_sig, &[]).unwrap().candidates
         );
         assert!(scorer.retained_energy() > 0.0);
-        let fixed = scorer.fixed_point().expect("fixed candidate builds");
+        let fixed = scorer.fixed_point();
         let packed = fixed.to_packed_section().expect("packed table builds");
         let table =
             uor_r4_graph_format::FmmTranslationTable::parse(&packed).expect("packed table parses");
@@ -726,7 +722,7 @@ mod tests {
     fn invalid_configuration_fails_closed() {
         let regions = vec![region(1, 1)];
         let emissions = vec![BTreeMap::from([(1, ScoreQ::from_raw(1))])];
-        let error = FmmCandidateScorer::from_graph_parts(
+        let result = FmmCandidateScorer::from_graph_parts(
             &regions,
             &emissions,
             &BTreeMap::new(),
@@ -736,8 +732,7 @@ mod tests {
                 max_rank: 0,
                 ..FmmConfig::default()
             },
-        )
-        .expect_err("zero rank must fail");
-        assert!(error.contains("max_rank"));
+        );
+        assert!(result.is_none(), "zero max_rank must produce no scorer");
     }
 }

@@ -2707,9 +2707,7 @@ fn load_parity_fixtures() -> Option<ParityFixtures> {
     let r4g1 = load_r4g1(&bundle, &artifact_bytes);
     let corpus = load_parity_corpus(&bundle);
     let fmm = load_fmm_candidate(&bundle, &artifact_bytes);
-    let fmm_fixed = fmm
-        .as_ref()
-        .and_then(|candidate| candidate.fixed_point().ok());
+    let fmm_fixed = fmm.as_ref().map(|candidate| candidate.fixed_point());
     Some(ParityFixtures {
         teacher,
         artifacts,
@@ -2921,7 +2919,7 @@ fn fmm_teacher_forced_eval(fx: &mut ParityFixtures, budget: usize) -> Option<Par
             let teacher_argmax = top8[0].0;
             let window = &tokens[(i + 1).saturating_sub(WINDOW)..=i];
             let sig = r4g1.signature_for_window(window).ok()?;
-            let outcome = fmm.score(&sig, &[]).ok()?;
+            let outcome = fmm.score(&sig, &[])?;
             positions += 1;
             if outcome.selected == teacher_argmax {
                 top1_hits += 1;
@@ -2975,7 +2973,7 @@ fn fmm_fixed_teacher_forced_eval(fx: &mut ParityFixtures, budget: usize) -> Opti
             let teacher_argmax = top8[0].0;
             let window = &tokens[(i + 1).saturating_sub(WINDOW)..=i];
             let sig = r4g1.signature_for_window(window).ok()?;
-            let outcome = fmm.score(&sig, &[]).ok()?;
+            let outcome = fmm.score(&sig, &[])?;
             positions += 1;
             if outcome.selected == teacher_argmax {
                 top1_hits += 1;
