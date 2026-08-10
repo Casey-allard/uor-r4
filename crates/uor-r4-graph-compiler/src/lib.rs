@@ -2,6 +2,7 @@ pub mod behavioral_probes;
 pub mod dependency_audit;
 pub mod executor;
 pub mod future_state_planner;
+#[cfg(feature = "graph-construction")]
 pub mod graph;
 pub mod induction;
 pub mod jobs_config;
@@ -13,7 +14,9 @@ pub mod observation_shards;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod observation_text;
 pub mod pack;
+#[cfg(feature = "patch-induction")]
 pub mod patch_induction;
+#[cfg(feature = "perturbation")]
 pub mod perturbation;
 pub mod probability_calibration;
 pub mod quantum_cover;

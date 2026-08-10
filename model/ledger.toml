@@ -107,16 +107,6 @@ level = "open"
 statement = "The unsupervised intervention and counterfactual behavioral-probes layer (crates/uor-r4-graph-compiler/src/behavioral_probes.rs; PDF §§7,11,17 / #128) is retained off the serving path as a probing surface. Activation gate: a behavioral-probe result adopted as a required gate on a pre-declared reusability bar."
 
 [[claim]]
-id = "future-state-planner-dormant"
-level = "open"
-statement = "The bounded future-state optimization and planning over graph transitions (crates/uor-r4-graph-compiler/src/future_state_planner.rs; PDF §§3,10,12,17 / #131), an explicit bounded future-state optimizer, is retained off the serving path as a distinct planning mechanism. Activation gate: a future-state planner wired into serving scoring at or above the shipped greedy path on a pre-declared held-out slice."
-
-[[claim]]
-id = "stage-dag-dormant"
-level = "open"
-statement = "The normative compiler stage-ownership and parallelization DAG (crates/uor-r4-graph-compiler/src/stage_dag.rs; #166), classifying pipeline stages into concurrency classes, is retained off the serving path as a normative specification surface. Activation gate: the stage DAG adopted to drive the shipped executor's parallelization on a pre-declared determinism-preserving bar."
-
-[[claim]]
 id = "patch-overlay-dormant"
 level = "open"
 statement = "The graph-patch (PTCH) overlay mechanism — section emission (crates/uor-r4-graph-compiler/src/patch_induction.rs), the patch-epoch chain overlaying a base graph (crates/uor-r4-graph-runtime/src/patch_chain.rs), and its lifecycle discipline: newest-valid precedence, fork rejection, compaction after 8 layers (crates/uor-r4-graph-certify/src/patch_lifecycle.rs) — is retained off the serving path as a distinct incremental-update mechanism (patch epochs over a base graph rather than full recompile). Activation gate: a patch-overlay serving path scoring at or above a full recompile on a pre-declared held-out slice."

@@ -15,3 +15,14 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 log = "0.4"
 env_logger = "0.11"
+
+[features]
+# #515 preserve-and-gate: dormant compiler surfaces with NO default-build
+# reference (code or tests) are compile-toggled here, default OFF. Modules that
+# the root BDD validation suite (tests/bdd.rs) exercises — quantum_cover,
+# rate_distortion_compression, monograph, reference_compiler_ir,
+# behavioral_probes — are NOT gated: they carry live default-suite coverage and
+# stay registered-but-compiled, like the CLI-reachable bott_fock/cd_space.
+graph-construction = []
+patch-induction = []
+perturbation = []
