@@ -11,6 +11,7 @@ use std::process::ExitCode;
 use repo_model::{codegen, Model};
 
 mod audit;
+mod gate;
 
 fn main() -> ExitCode {
     let task = std::env::args()
@@ -23,6 +24,14 @@ fn main() -> ExitCode {
         "check-model" => check_model(&root, write),
         "audit-limits" => audit::audit_limits(&root),
         "audit-deferral" => audit::audit_deferral(&root),
+        "gates" => gate::gate(&root, None),
+        "gate" => match std::env::args().nth(2) {
+            Some(id) => gate::gate(&root, Some(&id)),
+            None => {
+                eprintln!("cargo xtask gate <claim-id>   (or `gates` for all)");
+                return ExitCode::from(2);
+            }
+        },
         "validate" => validate(&root),
         _ => {
             eprintln!(
@@ -31,6 +40,8 @@ fn main() -> ExitCode {
                  check-model       R1: model/*.toml is the single source; regenerate and diff\n\
                  audit-limits      R5:  no bound that cannot be traced to a parameter\n\
                  audit-deferral    R4: no deferral marker, no stub, no capability behind a flag\n\
+                 gates             #515: list every dormant claim's activation gate and status\n\
+                 gate <claim-id>   #515: report one dormant claim's activation gate and status\n\
                  validate          run every gate above\n\
                  \n\
                  --write           check-model only: rewrite the generated file"
