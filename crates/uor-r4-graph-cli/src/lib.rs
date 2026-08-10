@@ -76,7 +76,9 @@ struct RecordedCompileOptions {
     output: PathBuf,
 }
 
-fn parse_recorded_compile_options(args: &[String]) -> Result<RecordedCompileOptions, String> {
+fn parse_recorded_compile_options(
+    args: &[String],
+) -> Result<RecordedCompileOptions, SourceUnavailable> {
     let mut corpus_meta = None;
     let mut corpus_recs = None;
     let mut vocab_size = None;
@@ -86,29 +88,37 @@ fn parse_recorded_compile_options(args: &[String]) -> Result<RecordedCompileOpti
         let flag = &args[index];
         let value = args
             .get(index + 1)
-            .ok_or_else(|| format!("missing value for {flag}"))?;
+            .ok_or_else(|| SourceUnavailable::new(format!("missing value for {flag}")))?;
         match flag.as_str() {
             "--corpus-meta" => corpus_meta = Some(PathBuf::from(value)),
             "--corpus-recs" => corpus_recs = Some(PathBuf::from(value)),
             "--vocab-size" => {
-                let parsed = value
-                    .parse()
-                    .map_err(|_| format!("invalid --vocab-size value: {value}"))?;
+                let parsed = value.parse().map_err(|_| {
+                    SourceUnavailable::new(format!("invalid --vocab-size value: {value}"))
+                })?;
                 if parsed == 0 {
-                    return Err("--vocab-size must be greater than zero".to_owned());
+                    return Err(SourceUnavailable::new(
+                        "--vocab-size must be greater than zero",
+                    ));
                 }
                 vocab_size = Some(parsed);
             }
             "--out" | "--output" => output = Some(PathBuf::from(value)),
-            _ => return Err(format!("unknown compile-recorded option: {flag}")),
+            _ => {
+                return Err(SourceUnavailable::new(format!(
+                    "unknown compile-recorded option: {flag}"
+                )));
+            }
         }
         index += 2;
     }
     Ok(RecordedCompileOptions {
-        corpus_meta: corpus_meta.ok_or_else(|| "--corpus-meta is required".to_owned())?,
-        corpus_recs: corpus_recs.ok_or_else(|| "--corpus-recs is required".to_owned())?,
-        vocab_size: vocab_size.ok_or_else(|| "--vocab-size is required".to_owned())?,
-        output: output.ok_or_else(|| "--out is required".to_owned())?,
+        corpus_meta: corpus_meta
+            .ok_or_else(|| SourceUnavailable::new("--corpus-meta is required"))?,
+        corpus_recs: corpus_recs
+            .ok_or_else(|| SourceUnavailable::new("--corpus-recs is required"))?,
+        vocab_size: vocab_size.ok_or_else(|| SourceUnavailable::new("--vocab-size is required"))?,
+        output: output.ok_or_else(|| SourceUnavailable::new("--out is required"))?,
     })
 }
 
@@ -139,7 +149,7 @@ struct ObserveOptions {
     sequence_length: usize,
 }
 
-fn parse_observe_options(args: &[String]) -> Result<ObserveOptions, String> {
+fn parse_observe_options(args: &[String]) -> Result<ObserveOptions, SourceUnavailable> {
     let mut options = ObserveOptions {
         source: PathBuf::from(DEFAULT_HF_SOURCE_PATH),
         checkpoint: None,
@@ -154,41 +164,47 @@ fn parse_observe_options(args: &[String]) -> Result<ObserveOptions, String> {
         let flag = &args[index];
         let value = args
             .get(index + 1)
-            .ok_or_else(|| format!("missing value for {flag}"))?;
+            .ok_or_else(|| SourceUnavailable::new(format!("missing value for {flag}")))?;
         match flag.as_str() {
             "--source" => options.source = PathBuf::from(value),
             "--checkpoint" => options.checkpoint = Some(PathBuf::from(value)),
             "--out" => options.output = PathBuf::from(value),
             "--seconds" => {
-                options.seconds = value
-                    .parse()
-                    .map_err(|_| format!("invalid --seconds value: {value}"))?;
+                options.seconds = value.parse().map_err(|_| {
+                    SourceUnavailable::new(format!("invalid --seconds value: {value}"))
+                })?;
             }
             "--target" => {
-                options.target = value
-                    .parse()
-                    .map_err(|_| format!("invalid --target value: {value}"))?;
+                options.target = value.parse().map_err(|_| {
+                    SourceUnavailable::new(format!("invalid --target value: {value}"))
+                })?;
             }
             "--shards" => {
-                options.shards = value
-                    .parse()
-                    .map_err(|_| format!("invalid --shards value: {value}"))?;
+                options.shards = value.parse().map_err(|_| {
+                    SourceUnavailable::new(format!("invalid --shards value: {value}"))
+                })?;
                 if options.shards > observe::MAX_SHARD_BITS {
-                    return Err(format!(
+                    return Err(SourceUnavailable::new(format!(
                         "--shards must be at most {} (2^N shard files)",
                         observe::MAX_SHARD_BITS
-                    ));
+                    )));
                 }
             }
             "--sequence-length" => {
-                options.sequence_length = value
-                    .parse()
-                    .map_err(|_| format!("invalid --sequence-length value: {value}"))?;
+                options.sequence_length = value.parse().map_err(|_| {
+                    SourceUnavailable::new(format!("invalid --sequence-length value: {value}"))
+                })?;
                 if options.sequence_length == 0 {
-                    return Err("--sequence-length must be greater than zero".to_owned());
+                    return Err(SourceUnavailable::new(
+                        "--sequence-length must be greater than zero",
+                    ));
                 }
             }
-            _ => return Err(format!("unknown observe option: {flag}")),
+            _ => {
+                return Err(SourceUnavailable::new(format!(
+                    "unknown observe option: {flag}"
+                )));
+            }
         }
         index += 2;
     }
@@ -203,7 +219,7 @@ pub fn observe_command(args: &[String]) -> Result<(), String> {
     eprintln!(
         "warning: debug builds make teacher generation much slower; use `cargo run --release -- observe ...`"
     );
-    let options = parse_observe_options(args)?;
+    let options = parse_observe_options(args).map_err(|e| e.to_string())?;
     std::fs::create_dir_all(&options.output).map_err(|error| error.to_string())?;
     let token_byte_lengths: Option<Vec<u32>>;
     let mut oracle: Box<dyn TeacherOracle> = if let Some(checkpoint) = &options.checkpoint {
@@ -272,7 +288,7 @@ struct ObserveTextOptions {
     sequence_length: usize,
 }
 
-fn parse_observe_text_options(args: &[String]) -> Result<ObserveTextOptions, String> {
+fn parse_observe_text_options(args: &[String]) -> Result<ObserveTextOptions, SourceUnavailable> {
     let mut options = ObserveTextOptions {
         input: PathBuf::from(DEFAULT_TEXT_CORPUS),
         source: PathBuf::from(DEFAULT_HF_SOURCE_PATH),
@@ -288,7 +304,7 @@ fn parse_observe_text_options(args: &[String]) -> Result<ObserveTextOptions, Str
         let flag = &args[index];
         let value = args
             .get(index + 1)
-            .ok_or_else(|| format!("missing value for {flag}"))?;
+            .ok_or_else(|| SourceUnavailable::new(format!("missing value for {flag}")))?;
         match flag.as_str() {
             "--input" => options.input = PathBuf::from(value),
             "--source" => options.source = PathBuf::from(value),
@@ -296,30 +312,36 @@ fn parse_observe_text_options(args: &[String]) -> Result<ObserveTextOptions, Str
             "--tokenizer" => options.tokenizer = Some(PathBuf::from(value)),
             "--out" => options.output = PathBuf::from(value),
             "--seconds" => {
-                options.seconds = value
-                    .parse()
-                    .map_err(|_| format!("invalid --seconds value: {value}"))?;
+                options.seconds = value.parse().map_err(|_| {
+                    SourceUnavailable::new(format!("invalid --seconds value: {value}"))
+                })?;
             }
             "--shards" => {
-                options.shards = value
-                    .parse()
-                    .map_err(|_| format!("invalid --shards value: {value}"))?;
+                options.shards = value.parse().map_err(|_| {
+                    SourceUnavailable::new(format!("invalid --shards value: {value}"))
+                })?;
                 if options.shards > observe::MAX_SHARD_BITS {
-                    return Err(format!(
+                    return Err(SourceUnavailable::new(format!(
                         "--shards must be at most {} (2^N shard files)",
                         observe::MAX_SHARD_BITS
-                    ));
+                    )));
                 }
             }
             "--sequence-length" => {
-                options.sequence_length = value
-                    .parse()
-                    .map_err(|_| format!("invalid --sequence-length value: {value}"))?;
+                options.sequence_length = value.parse().map_err(|_| {
+                    SourceUnavailable::new(format!("invalid --sequence-length value: {value}"))
+                })?;
                 if options.sequence_length == 0 {
-                    return Err("--sequence-length must be greater than zero".to_owned());
+                    return Err(SourceUnavailable::new(
+                        "--sequence-length must be greater than zero",
+                    ));
                 }
             }
-            _ => return Err(format!("unknown observe-text option: {flag}")),
+            _ => {
+                return Err(SourceUnavailable::new(format!(
+                    "unknown observe-text option: {flag}"
+                )));
+            }
         }
         index += 2;
     }
@@ -335,7 +357,7 @@ pub fn observe_text_command(args: &[String]) -> Result<(), String> {
     eprintln!(
         "warning: debug builds make teacher generation much slower; use `cargo run --release -- observe-text ...`"
     );
-    let options = parse_observe_text_options(args)?;
+    let options = parse_observe_text_options(args).map_err(|e| e.to_string())?;
     std::fs::create_dir_all(&options.output).map_err(|error| error.to_string())?;
     let token_byte_lengths: Vec<u32>;
     let tokenizer: TokenizerKind;
@@ -466,7 +488,7 @@ struct CoverOptions {
     output: PathBuf,
 }
 
-fn parse_cover_options(args: &[String]) -> Result<CoverOptions, String> {
+fn parse_cover_options(args: &[String]) -> Result<CoverOptions, SourceUnavailable> {
     let (default_meta, default_recs) = compiler::corpus_paths();
     let mut options = CoverOptions {
         corpus_meta: PathBuf::from(default_meta),
@@ -486,69 +508,81 @@ fn parse_cover_options(args: &[String]) -> Result<CoverOptions, String> {
         let flag = &args[index];
         let value = args
             .get(index + 1)
-            .ok_or_else(|| format!("missing value for {flag}"))?;
+            .ok_or_else(|| SourceUnavailable::new(format!("missing value for {flag}")))?;
         match flag.as_str() {
             "--corpus-meta" => options.corpus_meta = PathBuf::from(value),
             "--corpus-recs" => options.corpus_recs = PathBuf::from(value),
             "--artifacts" => options.artifacts = PathBuf::from(value),
             "--depths" => {
-                options.depths = value
-                    .parse()
-                    .map_err(|_| format!("invalid --depths value: {value}"))?;
+                options.depths = value.parse().map_err(|_| {
+                    SourceUnavailable::new(format!("invalid --depths value: {value}"))
+                })?;
                 if options.depths == 0 {
-                    return Err("--depths must be at least 1".to_owned());
+                    return Err(SourceUnavailable::new("--depths must be at least 1"));
                 }
             }
             "--k0" => {
                 options.k0 = value
                     .parse()
-                    .map_err(|_| format!("invalid --k0 value: {value}"))?;
+                    .map_err(|_| SourceUnavailable::new(format!("invalid --k0 value: {value}")))?;
                 if options.k0 == 0 {
-                    return Err("--k0 must be at least 1".to_owned());
+                    return Err(SourceUnavailable::new("--k0 must be at least 1"));
                 }
             }
             "--regions-budget" => {
-                options.regions_budget = value
-                    .parse()
-                    .map_err(|_| format!("invalid --regions-budget value: {value}"))?;
+                options.regions_budget = value.parse().map_err(|_| {
+                    SourceUnavailable::new(format!("invalid --regions-budget value: {value}"))
+                })?;
                 if options.regions_budget == 0 {
-                    return Err("--regions-budget must be at least 1".to_owned());
+                    return Err(SourceUnavailable::new(
+                        "--regions-budget must be at least 1",
+                    ));
                 }
             }
             "--memory-budget" => {
-                options.memory_budget_mb = value
-                    .parse()
-                    .map_err(|_| format!("invalid --memory-budget value: {value}"))?;
+                options.memory_budget_mb = value.parse().map_err(|_| {
+                    SourceUnavailable::new(format!("invalid --memory-budget value: {value}"))
+                })?;
                 if options.memory_budget_mb == 0 {
-                    return Err("--memory-budget must be at least 1 MiB".to_owned());
+                    return Err(SourceUnavailable::new(
+                        "--memory-budget must be at least 1 MiB",
+                    ));
                 }
             }
             "--min-support" => {
-                options.min_support = value
-                    .parse()
-                    .map_err(|_| format!("invalid --min-support value: {value}"))?;
+                options.min_support = value.parse().map_err(|_| {
+                    SourceUnavailable::new(format!("invalid --min-support value: {value}"))
+                })?;
                 if options.min_support == 0 {
-                    return Err("--min-support must be at least 1".to_owned());
+                    return Err(SourceUnavailable::new("--min-support must be at least 1"));
                 }
             }
             "--entropy-gain" => {
-                options.entropy_gain_bits = value
-                    .parse()
-                    .map_err(|_| format!("invalid --entropy-gain value: {value}"))?;
+                options.entropy_gain_bits = value.parse().map_err(|_| {
+                    SourceUnavailable::new(format!("invalid --entropy-gain value: {value}"))
+                })?;
                 if !options.entropy_gain_bits.is_finite() || options.entropy_gain_bits < 0.0 {
-                    return Err("--entropy-gain must be a finite non-negative number".to_owned());
+                    return Err(SourceUnavailable::new(
+                        "--entropy-gain must be a finite non-negative number",
+                    ));
                 }
             }
             "--radius-quantile" => {
-                options.radius_quantile = value
-                    .parse()
-                    .map_err(|_| format!("invalid --radius-quantile value: {value}"))?;
+                options.radius_quantile = value.parse().map_err(|_| {
+                    SourceUnavailable::new(format!("invalid --radius-quantile value: {value}"))
+                })?;
                 if options.radius_quantile == 0 || options.radius_quantile > 100 {
-                    return Err("--radius-quantile must be between 1 and 100".to_owned());
+                    return Err(SourceUnavailable::new(
+                        "--radius-quantile must be between 1 and 100",
+                    ));
                 }
             }
             "--out" => options.output = PathBuf::from(value),
-            _ => return Err(format!("unknown cover option: {flag}")),
+            _ => {
+                return Err(SourceUnavailable::new(format!(
+                    "unknown cover option: {flag}"
+                )));
+            }
         }
         index += 2;
     }
@@ -565,7 +599,7 @@ pub fn cover_command(args: &[String]) -> Result<(), String> {
     eprintln!(
         "warning: debug builds make cover induction much slower; use `cargo run --release -- transformerless cover ...`"
     );
-    let options = parse_cover_options(args)?;
+    let options = parse_cover_options(args).map_err(|e| e.to_string())?;
     let corpus_meta_path = if !options.corpus_meta.exists() {
         if let Some(parent) = options.corpus_meta.parent() {
             if parent.join("corpus.meta").exists() {
@@ -783,7 +817,7 @@ struct ScoreOptions {
     output: PathBuf,
 }
 
-fn parse_score_options(args: &[String]) -> Result<ScoreOptions, String> {
+fn parse_score_options(args: &[String]) -> Result<ScoreOptions, SourceUnavailable> {
     let (default_meta, default_recs) = compiler::corpus_paths();
     let mut options = ScoreOptions {
         corpus_meta: PathBuf::from(default_meta),
@@ -812,7 +846,7 @@ fn parse_score_options(args: &[String]) -> Result<ScoreOptions, String> {
         let flag = &args[index];
         let value = args
             .get(index + 1)
-            .ok_or_else(|| format!("missing value for {flag}"))?;
+            .ok_or_else(|| SourceUnavailable::new(format!("missing value for {flag}")))?;
         match flag.as_str() {
             "--corpus-meta" => options.corpus_meta = PathBuf::from(value),
             "--corpus-recs" => options.corpus_recs = PathBuf::from(value),
@@ -820,11 +854,15 @@ fn parse_score_options(args: &[String]) -> Result<ScoreOptions, String> {
             "--cover" => options.cover = Some(PathBuf::from(value)),
             "--stories" => options.stories = Some(PathBuf::from(value)),
             "--transition-out-degree" => {
-                options.transition_out_degree = value
-                    .parse()
-                    .map_err(|_| format!("invalid --transition-out-degree value: {value}"))?;
+                options.transition_out_degree = value.parse().map_err(|_| {
+                    SourceUnavailable::new(format!(
+                        "invalid --transition-out-degree value: {value}"
+                    ))
+                })?;
                 if options.transition_out_degree == 0 {
-                    return Err("--transition-out-degree must be at least 1".to_owned());
+                    return Err(SourceUnavailable::new(
+                        "--transition-out-degree must be at least 1",
+                    ));
                 }
             }
             "--emission-shrinkage" => {
@@ -833,10 +871,10 @@ fn parse_score_options(args: &[String]) -> Result<ScoreOptions, String> {
                     "witten-bell" => score::EmissionShrinkage::WittenBell,
                     "contrast" => score::EmissionShrinkage::Contrast,
                     other => {
-                        return Err(format!(
+                        return Err(SourceUnavailable::new(format!(
                             "invalid --emission-shrinkage value: {other} \
                              (expected none|witten-bell|contrast)"
-                        ));
+                        )));
                     }
                 };
             }
@@ -845,48 +883,53 @@ fn parse_score_options(args: &[String]) -> Result<ScoreOptions, String> {
                     "ratio" => score::EmissionSelection::Ratio,
                     "probability" => score::EmissionSelection::Probability,
                     other => {
-                        return Err(format!(
+                        return Err(SourceUnavailable::new(format!(
                             "invalid --emission-selection value: {other} \
                              (expected ratio|probability)"
-                        ));
+                        )));
                     }
                 };
             }
             "--emission-entries" => {
-                options.emission_entries = value
-                    .parse()
-                    .map_err(|_| format!("invalid --emission-entries value: {value}"))?;
+                options.emission_entries = value.parse().map_err(|_| {
+                    SourceUnavailable::new(format!("invalid --emission-entries value: {value}"))
+                })?;
                 if options.emission_entries == 0 {
-                    return Err("--emission-entries must be at least 1".to_owned());
+                    return Err(SourceUnavailable::new(
+                        "--emission-entries must be at least 1",
+                    ));
                 }
             }
             "--context-order" => {
-                options.context_order = value
-                    .parse()
-                    .map_err(|_| format!("invalid --context-order value: {value}"))?;
+                options.context_order = value.parse().map_err(|_| {
+                    SourceUnavailable::new(format!("invalid --context-order value: {value}"))
+                })?;
                 if options.context_order > 2 {
-                    return Err(
-                        "--context-order must be 0 (no NGRAM rows), 1 (bigram), or 2                          (bigram + trigram, default)"
-                            .to_owned(),
-                    );
+                    return Err(SourceUnavailable::new(
+                        "--context-order must be 0 (no NGRAM rows), 1 (bigram), or 2                          (bigram + trigram, default)",
+                    ));
                 }
             }
             "--context-entries" => {
-                options.context_entries = value
-                    .parse()
-                    .map_err(|_| format!("invalid --context-entries value: {value}"))?;
+                options.context_entries = value.parse().map_err(|_| {
+                    SourceUnavailable::new(format!("invalid --context-entries value: {value}"))
+                })?;
                 if options.context_entries == 0 {
-                    return Err("--context-entries must be at least 1".to_owned());
+                    return Err(SourceUnavailable::new(
+                        "--context-entries must be at least 1",
+                    ));
                 }
             }
             "--repetition-penalty-raw" => {
-                options.repetition_penalty_raw = value
-                    .parse()
-                    .map_err(|_| format!("invalid --repetition-penalty-raw value: {value}"))?;
+                options.repetition_penalty_raw = value.parse().map_err(|_| {
+                    SourceUnavailable::new(format!(
+                        "invalid --repetition-penalty-raw value: {value}"
+                    ))
+                })?;
                 if options.repetition_penalty_raw > 0 {
-                    return Err(
-                        "--repetition-penalty-raw must be <= 0 (raw ScoreQ units)".to_owned()
-                    );
+                    return Err(SourceUnavailable::new(
+                        "--repetition-penalty-raw must be <= 0 (raw ScoreQ units)",
+                    ));
                 }
             }
             "--gate-c-context-window" => {
@@ -894,39 +937,39 @@ fn parse_score_options(args: &[String]) -> Result<ScoreOptions, String> {
                     "on" | "true" => true,
                     "off" | "false" => false,
                     other => {
-                        return Err(format!(
+                        return Err(SourceUnavailable::new(format!(
                             "invalid --gate-c-context-window value: {other} (expected on|off)"
-                        ));
+                        )));
                     }
                 };
             }
             "--root-top-b" => {
-                options.root_top_b = value
-                    .parse()
-                    .map_err(|_| format!("invalid --root-top-b value: {value}"))?;
+                options.root_top_b = value.parse().map_err(|_| {
+                    SourceUnavailable::new(format!("invalid --root-top-b value: {value}"))
+                })?;
                 if options.root_top_b == 0 {
-                    return Err("--root-top-b must be at least 1".to_owned());
+                    return Err(SourceUnavailable::new("--root-top-b must be at least 1"));
                 }
             }
             "--exct-top-x" => {
-                options.exct_top_x = value
-                    .parse()
-                    .map_err(|_| format!("invalid --exct-top-x value: {value}"))?;
+                options.exct_top_x = value.parse().map_err(|_| {
+                    SourceUnavailable::new(format!("invalid --exct-top-x value: {value}"))
+                })?;
                 if options.exct_top_x == 0 {
-                    return Err("--exct-top-x must be at least 1".to_owned());
+                    return Err(SourceUnavailable::new("--exct-top-x must be at least 1"));
                 }
             }
             "--witness-sample" => {
-                options.witness_sample = value
-                    .parse()
-                    .map_err(|_| format!("invalid --witness-sample value: {value}"))?;
+                options.witness_sample = value.parse().map_err(|_| {
+                    SourceUnavailable::new(format!("invalid --witness-sample value: {value}"))
+                })?;
             }
             "--smoothing" => {
                 options.smoothing = score::Smoothing::parse(value).ok_or_else(|| {
-                    format!(
+                    SourceUnavailable::new(format!(
                         "invalid --smoothing value: {value} \
                          (expected add-one | witten-bell | abs-disc:δ with δ finite in (0, 1])"
-                    )
+                    ))
                 })?;
             }
             "--scoring-variant" => {
@@ -937,22 +980,26 @@ fn parse_score_options(args: &[String]) -> Result<ScoreOptions, String> {
                     }
                     "margin" | "margin-weighted" => score_runtime::ScoringVariant::MarginWeighted,
                     _ => {
-                        return Err(format!(
+                        return Err(SourceUnavailable::new(format!(
                             "invalid --scoring-variant value: {value} (expected chain | normalized | margin)"
-                        ));
+                        )));
                     }
                 };
             }
             "--quality-profile" => {
                 if !matches!(value.as_str(), "pinned" | "relative_tla") {
-                    return Err(format!(
+                    return Err(SourceUnavailable::new(format!(
                         "invalid --quality-profile value: {value} (expected pinned | relative_tla)"
-                    ));
+                    )));
                 }
                 options.quality_profile = value.clone();
             }
             "--out" => options.output = PathBuf::from(value),
-            _ => return Err(format!("unknown score option: {flag}")),
+            _ => {
+                return Err(SourceUnavailable::new(format!(
+                    "unknown score option: {flag}"
+                )));
+            }
         }
         index += 2;
     }
@@ -971,7 +1018,7 @@ pub fn score_command(args: &[String]) -> Result<(), String> {
     eprintln!(
         "warning: debug builds make scoring much slower; use `cargo run --release -- transformerless score ...`"
     );
-    let options = parse_score_options(args)?;
+    let options = parse_score_options(args).map_err(|e| e.to_string())?;
     // #488: account for where a real corpus's hours go across the WHOLE score
     // pipeline, not just Gate C. Same instrument, same conventions as #471
     // (stderr only — a duration in `score_report.json` would break the
@@ -1672,7 +1719,7 @@ struct FloorDecomposition {
     worst_articles: Vec<FloorSlice>,
 }
 
-fn parse_compile_options(args: &[String]) -> Result<CompileOptions, String> {
+fn parse_compile_options(args: &[String]) -> Result<CompileOptions, SourceUnavailable> {
     let mut options = CompileOptions {
         model: None,
         revision: None,
@@ -1693,39 +1740,49 @@ fn parse_compile_options(args: &[String]) -> Result<CompileOptions, String> {
         }
         let value = args
             .get(index + 1)
-            .ok_or_else(|| format!("missing value for {flag}"))?;
+            .ok_or_else(|| SourceUnavailable::new(format!("missing value for {flag}")))?;
         match flag.as_str() {
             "--model" => options.model = Some(value.clone()),
             "--revision" => options.revision = Some(value.clone()),
             "--source" => options.source = Some(PathBuf::from(value)),
             "--output" => options.output = Some(PathBuf::from(value)),
             "--seconds" => {
-                options.seconds = value
-                    .parse()
-                    .map_err(|_| format!("invalid --seconds value: {value}"))?;
+                options.seconds = value.parse().map_err(|_| {
+                    SourceUnavailable::new(format!("invalid --seconds value: {value}"))
+                })?;
             }
             "--target" => {
-                options.target = value
-                    .parse()
-                    .map_err(|_| format!("invalid --target value: {value}"))?;
+                options.target = value.parse().map_err(|_| {
+                    SourceUnavailable::new(format!("invalid --target value: {value}"))
+                })?;
             }
             "--sequence-length" => {
-                options.sequence_length = value
-                    .parse()
-                    .map_err(|_| format!("invalid --sequence-length value: {value}"))?;
+                options.sequence_length = value.parse().map_err(|_| {
+                    SourceUnavailable::new(format!("invalid --sequence-length value: {value}"))
+                })?;
                 if options.sequence_length == 0 {
-                    return Err("--sequence-length must be greater than zero".to_owned());
+                    return Err(SourceUnavailable::new(
+                        "--sequence-length must be greater than zero",
+                    ));
                 }
             }
-            _ => return Err(format!("unknown compile option: {flag}")),
+            _ => {
+                return Err(SourceUnavailable::new(format!(
+                    "unknown compile option: {flag}"
+                )));
+            }
         }
         index += 2;
     }
     if options.model.is_none() && options.source.is_none() {
-        return Err("pass --model <HF_REPOSITORY> or --source <DIRECTORY>".to_owned());
+        return Err(SourceUnavailable::new(
+            "pass --model <HF_REPOSITORY> or --source <DIRECTORY>",
+        ));
     }
     if options.model.is_some() && options.revision.is_none() {
-        return Err("--model requires an immutable --revision".to_owned());
+        return Err(SourceUnavailable::new(
+            "--model requires an immutable --revision",
+        ));
     }
     Ok(options)
 }
@@ -1756,7 +1813,9 @@ fn source_slug(options: &CompileOptions) -> String {
     slug.trim_matches('-').to_owned()
 }
 
-fn parse_evaluate_report_options(args: &[String]) -> Result<EvaluateReportOptions, String> {
+fn parse_evaluate_report_options(
+    args: &[String],
+) -> Result<EvaluateReportOptions, SourceUnavailable> {
     let mut options = EvaluateReportOptions {
         source: PathBuf::from(DEFAULT_HF_SOURCE_PATH),
         compiled: PathBuf::from(DEFAULT_HF_COMPILED_PATH),
@@ -1775,29 +1834,37 @@ fn parse_evaluate_report_options(args: &[String]) -> Result<EvaluateReportOption
         }
         let value = args
             .get(index + 1)
-            .ok_or_else(|| format!("missing value for {flag}"))?;
+            .ok_or_else(|| SourceUnavailable::new(format!("missing value for {flag}")))?;
         match flag.as_str() {
             "--source" => options.source = PathBuf::from(value),
             "--compiled" => options.compiled = PathBuf::from(value),
             "--report" => options.report = Some(PathBuf::from(value)),
             "--sequence-length" => {
-                options.sequence_length = value
-                    .parse()
-                    .map_err(|_| format!("invalid --sequence-length value: {value}"))?;
+                options.sequence_length = value.parse().map_err(|_| {
+                    SourceUnavailable::new(format!("invalid --sequence-length value: {value}"))
+                })?;
                 if options.sequence_length == 0 {
-                    return Err("--sequence-length must be greater than zero".to_owned());
+                    return Err(SourceUnavailable::new(
+                        "--sequence-length must be greater than zero",
+                    ));
                 }
             }
             "--max-held-out-stories" => {
-                let limit: u32 = value
-                    .parse()
-                    .map_err(|_| format!("invalid --max-held-out-stories value: {value}"))?;
+                let limit: u32 = value.parse().map_err(|_| {
+                    SourceUnavailable::new(format!("invalid --max-held-out-stories value: {value}"))
+                })?;
                 if limit == 0 {
-                    return Err("--max-held-out-stories must be greater than zero".to_owned());
+                    return Err(SourceUnavailable::new(
+                        "--max-held-out-stories must be greater than zero",
+                    ));
                 }
                 options.max_held_out_stories = Some(limit);
             }
-            _ => return Err(format!("unknown evaluate-report option: {flag}")),
+            _ => {
+                return Err(SourceUnavailable::new(format!(
+                    "unknown evaluate-report option: {flag}"
+                )));
+            }
         }
         index += 2;
     }
@@ -1881,7 +1948,7 @@ fn deepest_argmax(store: &runtime::Store, code: &[u8; compiler::STAGES]) -> Opti
 }
 
 fn evaluate_report(args: &[String]) -> Result<(), String> {
-    let options = parse_evaluate_report_options(args)?;
+    let options = parse_evaluate_report_options(args).map_err(|e| e.to_string())?;
     let report_path = options
         .report
         .clone()
@@ -2334,7 +2401,7 @@ where
     eprintln!(
         "warning: debug builds make teacher generation much slower; use `cargo run --release -- compile ...`"
     );
-    let options = parse_compile_options(args)?;
+    let options = parse_compile_options(args).map_err(|e| e.to_string())?;
     let slug = source_slug(&options);
     let source = options
         .source
@@ -2489,7 +2556,7 @@ where
 /// capture remains available through `observe`/`compile` as an explicitly
 /// separate offline step.
 pub fn compile_recorded_corpus(args: &[String]) -> Result<(), String> {
-    let options = parse_recorded_compile_options(args)?;
+    let options = parse_recorded_compile_options(args).map_err(|e| e.to_string())?;
     let meta = options
         .corpus_meta
         .to_str()
@@ -2557,7 +2624,7 @@ pub fn compile_recorded_corpus(args: &[String]) -> Result<(), String> {
 
 /// Parse a `--skeleton` spec: comma-separated token ids with `_` at
 /// free positions, e.g. `12,_,_,_,99,_,_,_,7`.
-fn parse_skeleton(spec: &str) -> Result<Vec<Option<u32>>, String> {
+fn parse_skeleton(spec: &str) -> Result<Vec<Option<u32>>, SourceUnavailable> {
     spec.split(',')
         .map(|slot| {
             let slot = slot.trim();
@@ -2565,7 +2632,9 @@ fn parse_skeleton(spec: &str) -> Result<Vec<Option<u32>>, String> {
                 Ok(None)
             } else {
                 slot.parse::<u32>().map(Some).map_err(|_| {
-                    format!("invalid skeleton slot: {slot:?} (expected a token id or _)")
+                    SourceUnavailable::new(format!(
+                        "invalid skeleton slot: {slot:?} (expected a token id or _)"
+                    ))
                 })
             }
         })
@@ -2617,7 +2686,7 @@ pub fn graph_infill_command(args: &[String]) -> Result<(), String> {
     let artifact_path = artifact_path.ok_or("pass --artifact <scored R4G1 path>")?;
     let skeleton_spec =
         skeleton_spec.ok_or("pass --skeleton <comma-separated token ids, _ for free positions>")?;
-    let skeleton = parse_skeleton(&skeleton_spec)?;
+    let skeleton = parse_skeleton(&skeleton_spec).map_err(|e| e.to_string())?;
 
     let r4g1 = std::fs::read(&artifact_path)
         .map_err(|error| format!("{}: {error}", artifact_path.display()))?;
@@ -2882,10 +2951,8 @@ mod tests {
     #[test]
     fn remote_model_requires_pinned_revision() {
         let args = ["--model", "org/model"].map(str::to_owned);
-        assert_eq!(
-            parse_compile_options(&args),
-            Err("--model requires an immutable --revision".to_owned())
-        );
+        let error = parse_compile_options(&args).expect_err("requires --revision");
+        assert_eq!(error.reason, "--model requires an immutable --revision");
     }
 
     #[test]
