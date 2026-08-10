@@ -1818,7 +1818,7 @@ fn compile_r4g1_bundle(
         "--out".to_owned(),
         cover_output.display().to_string(),
     ];
-    uor_r4_graph_cli::cover_command(&cover_args)?;
+    uor_r4_graph_cli::cover_command(&cover_args).map_err(|error| error.to_string())?;
 
     set_r4g1_compile_progress(status, 55, "Scoring graph transitions and emissions...");
     let cover_artifact = cover_output.join("cover.r4g1");

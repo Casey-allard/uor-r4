@@ -600,12 +600,12 @@ fn parse_cover_options(args: &[String]) -> Result<CoverOptions, SourceUnavailabl
 /// lane, freeze the reference classifier, measure held-out routing recall
 /// against it and against the incumbent 4×256 class cover, and write the
 /// R4G1 artifact plus the JSON recall/stability report.
-pub fn cover_command(args: &[String]) -> Result<(), String> {
+pub fn cover_command(args: &[String]) -> Result<(), SourceUnavailable> {
     #[cfg(debug_assertions)]
     eprintln!(
         "warning: debug builds make cover induction much slower; use `cargo run --release -- transformerless cover ...`"
     );
-    let options = parse_cover_options(args).map_err(|e| e.to_string())?;
+    let options = parse_cover_options(args)?;
     let corpus_meta_path = if !options.corpus_meta.exists() {
         if let Some(parent) = options.corpus_meta.parent() {
             if parent.join("corpus.meta").exists() {
@@ -640,27 +640,30 @@ pub fn cover_command(args: &[String]) -> Result<(), String> {
 
     let corpus_meta = corpus_meta_path
         .to_str()
-        .ok_or_else(|| "corpus metadata path is not UTF-8".to_owned())?;
+        .ok_or_else(|| SourceUnavailable::new("corpus metadata path is not UTF-8"))?;
     let corpus_recs = corpus_recs_path
         .to_str()
-        .ok_or_else(|| "corpus records path is not UTF-8".to_owned())?;
+        .ok_or_else(|| SourceUnavailable::new("corpus records path is not UTF-8"))?;
     // #450: resolve and announce the inputs *before* the long work, so the
     // run says which teacher container it actually read. `--artifacts`
     // defaults to a shared mutable path that helper scripts overwrite.
-    let artifact_container = std::fs::read(&options.artifacts)
-        .map_err(|error| format!("{}: {error}", options.artifacts.display()))?;
+    let artifact_container = std::fs::read(&options.artifacts).map_err(|error| {
+        SourceUnavailable::new(format!("{}: {error}", options.artifacts.display()))
+    })?;
     let artifacts = compiler::parse_artifacts(&artifact_container).ok_or_else(|| {
-        format!(
+        SourceUnavailable::new(format!(
             "{}: not a TLA3/TLA4/TLA5 artifact container",
             options.artifacts.display()
-        )
+        ))
     })?;
     let artifact_kappa = repro::container_kappa(&artifact_container);
     repro::announce_teacher_container(&options.artifacts, &artifact_kappa);
-    let meta_bytes = std::fs::read(&options.corpus_meta)
-        .map_err(|error| format!("{}: {error}", options.corpus_meta.display()))?;
-    let recs_bytes = std::fs::read(&options.corpus_recs)
-        .map_err(|error| format!("{}: {error}", options.corpus_recs.display()))?;
+    let meta_bytes = std::fs::read(&options.corpus_meta).map_err(|error| {
+        SourceUnavailable::new(format!("{}: {error}", options.corpus_meta.display()))
+    })?;
+    let recs_bytes = std::fs::read(&options.corpus_recs).map_err(|error| {
+        SourceUnavailable::new(format!("{}: {error}", options.corpus_recs.display()))
+    })?;
     let corpus_kappa = repro::corpus_stream_kappa(&meta_bytes, &recs_bytes);
     repro::announce_corpus(&options.corpus_meta, &options.corpus_recs, &corpus_kappa);
     if options.corpus_meta != corpus_meta_path || options.corpus_recs != corpus_recs_path {
@@ -674,11 +677,11 @@ pub fn cover_command(args: &[String]) -> Result<(), String> {
         );
     }
     let corpus = compiler::load_corpus_from(corpus_meta, corpus_recs).ok_or_else(|| {
-        format!(
+        SourceUnavailable::new(format!(
             "corpus is incomplete at {}/{}; run compile until it is complete",
             corpus_meta_path.display(),
             corpus_recs_path.display()
-        )
+        ))
     })?;
 
     let config = cover::CoverConfig {
@@ -715,8 +718,10 @@ pub fn cover_command(args: &[String]) -> Result<(), String> {
         &held_out_positions,
         config.threads as usize,
     );
-    let induced = cover::induce_cover(&train, &config, &artifact_kappa, &corpus_kappa)
-        .ok_or_else(|| "cover induction needs at least one train observation".to_owned())?;
+    let induced =
+        cover::induce_cover(&train, &config, &artifact_kappa, &corpus_kappa).ok_or_else(|| {
+            SourceUnavailable::new("cover induction needs at least one train observation")
+        })?;
     let reference = cover::ReferenceClassifier::freeze(&induced.cover);
     eprintln!(
         "cover: {} regions across {} depth(s); evaluating held-out routing recall...",
@@ -728,7 +733,7 @@ pub fn cover_command(args: &[String]) -> Result<(), String> {
     let edges = cover::build_edges(&induced.cover, &reference, &train, &corpus.story);
     let prior = cover::root_prior(&train);
     let vocab = u32::try_from(artifacts.token_codes.len() / compiler::STAGES)
-        .map_err(|_| "vocabulary exceeds u32 token ids".to_owned())?;
+        .expect("vocabulary exceeds u32 token ids");
     let (artifact_bytes, info) = cover::emit_r4g1(
         &artifact_container,
         (&meta_bytes, &recs_bytes),
@@ -738,7 +743,11 @@ pub fn cover_command(args: &[String]) -> Result<(), String> {
         &prior,
         &train,
     )
-    .map_err(|bound| format!("a token or count exceeded the i32 R4G1 wire bound: {bound}"))?;
+    .map_err(|bound| {
+        SourceUnavailable::new(format!(
+            "a token or count exceeded the i32 R4G1 wire bound: {bound}"
+        ))
+    })?;
     let report = cover::build_report(
         &config,
         &induced,
@@ -752,14 +761,14 @@ pub fn cover_command(args: &[String]) -> Result<(), String> {
         },
     );
 
-    std::fs::create_dir_all(&options.output).map_err(|error| error.to_string())?;
+    std::fs::create_dir_all(&options.output)?;
     let artifact_path = options.output.join("cover.r4g1");
     std::fs::write(&artifact_path, &artifact_bytes)
-        .map_err(|error| format!("{}: {error}", artifact_path.display()))?;
-    let report_json = serde_json::to_string_pretty(&report).map_err(|error| error.to_string())?;
+        .map_err(|error| SourceUnavailable::new(format!("{}: {error}", artifact_path.display())))?;
+    let report_json = serde_json::to_string_pretty(&report)?;
     let report_path = options.output.join("cover_report.json");
     std::fs::write(&report_path, &report_json)
-        .map_err(|error| format!("{}: {error}", report_path.display()))?;
+        .map_err(|error| SourceUnavailable::new(format!("{}: {error}", report_path.display())))?;
 
     println!(
         "cover complete: {} regions ({} splits), {} edges ({} refinement + {} neighbor), depths 1..={}",
@@ -2822,7 +2831,7 @@ pub fn run(args: &[String]) -> Result<(), String> {
         },
         Some("convert-r4g1") => convert_r4g1::run(&args[1..]).map_err(|e| e.to_string())?,
         Some("runtime-corpus") => runtime_corpus::run(&args[1..]).map_err(|e| e.to_string())?,
-        Some("cover") => cover_command(&args[1..])?,
+        Some("cover") => cover_command(&args[1..]).map_err(|e| e.to_string())?,
         Some("cover-sweep") => {
             cover_sweep::cover_sweep_command(&args[1..]).map_err(|e| e.to_string())?
         }
