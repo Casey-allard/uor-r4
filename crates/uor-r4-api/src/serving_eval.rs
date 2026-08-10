@@ -20,12 +20,12 @@
 //! prediction that matches the recorded corpus/teacher continuation
 //! before the full sample is spent.
 
-use std::fmt;
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 
 use uor_r4_core::transformerless::compiler;
 use uor_r4_graph_compiler::induction;
+use uor_r4_model_source::SourceUnavailable;
 
 use crate::engine::{EngineParts, PolicyStatus, PredictDecision, R4Engine};
 
@@ -49,32 +49,6 @@ pub struct ServingBundle {
     pub corpus_meta: PathBuf,
     pub corpus_records: PathBuf,
 }
-
-/// Focused error enum for bundle discovery and loading.
-#[derive(Debug)]
-pub enum ServingEvalError {
-    /// A required bundle file is missing or unreadable.
-    Io { path: PathBuf, message: String },
-    /// The corpus pair did not parse as a complete corpus.
-    Corpus { message: String },
-    /// The engine rejected the graph/teacher pair.
-    Load { message: String },
-    /// The bundle's held-out partition is empty.
-    EmptyHeldOut,
-}
-
-impl fmt::Display for ServingEvalError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Io { path, message } => write!(f, "{}: {message}", path.display()),
-            Self::Corpus { message } => write!(f, "corpus: {message}"),
-            Self::Load { message } => write!(f, "engine load: {message}"),
-            Self::EmptyHeldOut => write!(f, "held-out partition is empty"),
-        }
-    }
-}
-
-impl std::error::Error for ServingEvalError {}
 
 /// Wall-clock budgets. Defaults match the retired C row's env contract
 /// (`R4_CERTIFY_R4G1_BUDGET_SECS` / `R4_CERTIFY_R4G1_EVAL_BUDGET_SECS`
@@ -247,12 +221,10 @@ pub fn evaluate_serving_bundle(
     bundle: &ServingBundle,
     budgets: ServingEvalBudgets,
     progress: &mut dyn FnMut(usize, usize, u64),
-) -> Result<ServingEvalOutcome, ServingEvalError> {
+) -> Result<ServingEvalOutcome, SourceUnavailable> {
     let read = |path: &Path| {
-        std::fs::read(path).map_err(|error| ServingEvalError::Io {
-            path: path.to_path_buf(),
-            message: error.to_string(),
-        })
+        std::fs::read(path)
+            .map_err(|error| SourceUnavailable::new(format!("{}: {error}", path.display())))
     };
     let graph_bytes = read(&bundle.graph)?;
     let teacher_bytes = read(&bundle.teacher)?;
@@ -268,27 +240,24 @@ pub fn evaluate_serving_bundle(
         bundle
             .corpus_meta
             .to_str()
-            .ok_or_else(|| ServingEvalError::Corpus {
-                message: "corpus metadata path is not UTF-8".to_owned(),
-            })?,
+            .ok_or_else(|| SourceUnavailable::new("corpus: metadata path is not UTF-8"))?,
         bundle
             .corpus_records
             .to_str()
-            .ok_or_else(|| ServingEvalError::Corpus {
-                message: "corpus records path is not UTF-8".to_owned(),
-            })?,
+            .ok_or_else(|| SourceUnavailable::new("corpus: records path is not UTF-8"))?,
     );
-    let corpus =
-        compiler::load_corpus_from(meta, recs).ok_or_else(|| ServingEvalError::Corpus {
-            message: format!(
-                "incomplete corpus at {} / {}",
-                bundle.corpus_meta.display(),
-                bundle.corpus_records.display()
-            ),
-        })?;
+    let corpus = compiler::load_corpus_from(meta, recs).ok_or_else(|| {
+        SourceUnavailable::new(format!(
+            "corpus: incomplete corpus at {} / {}",
+            bundle.corpus_meta.display(),
+            bundle.corpus_records.display()
+        ))
+    })?;
     let (_, held_out) = induction::split_positions(&corpus);
     if held_out.is_empty() {
-        return Err(ServingEvalError::EmptyHeldOut);
+        return Err(SourceUnavailable::new(
+            "the bundle's held-out partition is empty",
+        ));
     }
 
     let mut engine = R4Engine::load(EngineParts {
@@ -296,9 +265,6 @@ pub fn evaluate_serving_bundle(
         signature_artifact: &teacher_bytes,
         tokenizer: None,
         score_report: score_report.as_deref(),
-    })
-    .map_err(|error| ServingEvalError::Load {
-        message: error.to_string(),
     })?;
 
     // Deterministic stride subsample (#244 amendment; #282 mechanics).
@@ -328,10 +294,8 @@ pub fn evaluate_serving_bundle(
                 },
             ));
         }
-        if let PredictDecision::Serve(outcome) =
-            decide(&mut engine, i).map_err(|error| ServingEvalError::Load {
-                message: error.to_string(),
-            })?
+        if let PredictDecision::Serve(outcome) = decide(&mut engine, i)
+            .map_err(|error| SourceUnavailable::new(format!("serving decision: {error}")))?
         {
             probe_served += 1;
             if outcome.token == corpus.next[i] || outcome.token == corpus.t_argmax[i] {
@@ -375,9 +339,9 @@ pub fn evaluate_serving_bundle(
                 },
             ));
         }
-        match decide(&mut engine, i).map_err(|error| ServingEvalError::Load {
-            message: error.to_string(),
-        })? {
+        match decide(&mut engine, i)
+            .map_err(|error| SourceUnavailable::new(format!("serving decision: {error}")))?
+        {
             PredictDecision::Serve(outcome) => {
                 row.served += 1;
                 row.served_by
