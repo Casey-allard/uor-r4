@@ -2561,29 +2561,30 @@ where
 /// transformer. This is the observation-first production path; teacher
 /// capture remains available through `observe`/`compile` as an explicitly
 /// separate offline step.
-pub fn compile_recorded_corpus(args: &[String]) -> Result<(), String> {
-    let options = parse_recorded_compile_options(args).map_err(|e| e.to_string())?;
+pub fn compile_recorded_corpus(args: &[String]) -> Result<(), SourceUnavailable> {
+    let options = parse_recorded_compile_options(args)?;
     let meta = options
         .corpus_meta
         .to_str()
-        .ok_or_else(|| "corpus metadata path is not UTF-8".to_owned())?;
+        .ok_or_else(|| SourceUnavailable::new("corpus metadata path is not UTF-8"))?;
     let records = options
         .corpus_recs
         .to_str()
-        .ok_or_else(|| "corpus records path is not UTF-8".to_owned())?;
+        .ok_or_else(|| SourceUnavailable::new("corpus records path is not UTF-8"))?;
     let corpus = compiler::load_corpus_from(meta, records).ok_or_else(|| {
-        format!(
+        SourceUnavailable::new(format!(
             "recorded corpus is incomplete or invalid at {}/{}",
             options.corpus_meta.display(),
             options.corpus_recs.display()
-        )
+        ))
     })?;
     eprintln!(
         "recorded compile: {} records, {} stories, vocabulary {} (no teacher loaded)",
         corpus.n, corpus.stories, options.vocab_size
     );
-    let artifacts = compiler::compile_recorded(&corpus, options.vocab_size)
-        .ok_or_else(|| "recorded compile failed: empty corpus or invalid vocabulary".to_string())?;
+    let artifacts = compiler::compile_recorded(&corpus, options.vocab_size).ok_or_else(|| {
+        SourceUnavailable::new("recorded compile failed: empty corpus or invalid vocabulary")
+    })?;
     let calibration = compiler::calibrate_hamming_regions(&artifacts, &corpus);
     let hierarchical =
         compiler::induce_hierarchical_codes(&artifacts.token_codes, options.vocab_size, &corpus);
@@ -2592,31 +2593,25 @@ pub fn compile_recorded_corpus(args: &[String]) -> Result<(), String> {
         .unwrap_or(1);
     let (store, _) = runtime::build_store_with_threads(&artifacts, &corpus, threads);
 
-    std::fs::create_dir_all(&options.output).map_err(|error| error.to_string())?;
+    std::fs::create_dir_all(&options.output)?;
     std::fs::write(
         options.output.join("tless_artifacts.bin"),
         compiler::artifact_bytes(&artifacts),
-    )
-    .map_err(|error| error.to_string())?;
+    )?;
     std::fs::write(
         options.output.join("tless_store.bin"),
         runtime::store_bytes(&store),
-    )
-    .map_err(|error| error.to_string())?;
+    )?;
     std::fs::write(
         options.output.join("hamming_calibration.json"),
-        serde_json::to_string_pretty(&calibration).map_err(|error| error.to_string())?,
-    )
-    .map_err(|error| error.to_string())?;
+        serde_json::to_string_pretty(&calibration).map_err(SourceUnavailable::from)?,
+    )?;
     std::fs::write(
         options.output.join("hierarchical_codes.json"),
-        serde_json::to_string_pretty(&hierarchical).map_err(|error| error.to_string())?,
-    )
-    .map_err(|error| error.to_string())?;
-    std::fs::copy(&options.corpus_meta, options.output.join("corpus.meta"))
-        .map_err(|error| error.to_string())?;
-    std::fs::copy(&options.corpus_recs, options.output.join("corpus.records"))
-        .map_err(|error| error.to_string())?;
+        serde_json::to_string_pretty(&hierarchical).map_err(SourceUnavailable::from)?,
+    )?;
+    std::fs::copy(&options.corpus_meta, options.output.join("corpus.meta"))?;
+    std::fs::copy(&options.corpus_recs, options.output.join("corpus.records"))?;
 
     let artifact_bytes = compiler::artifact_bytes(&artifacts);
     println!(
@@ -2784,7 +2779,9 @@ pub fn run(args: &[String]) -> Result<(), String> {
                 compile_hugging_face(&args[1..])?;
             }
         }
-        Some("compile-recorded") => compile_recorded_corpus(&args[1..])?,
+        Some("compile-recorded") => {
+            compile_recorded_corpus(&args[1..]).map_err(|e| e.to_string())?
+        }
         Some("store") => {
             let c = compiler::load_corpus()
                 .expect("corpus incomplete: run `transformerless gen` first");
