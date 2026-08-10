@@ -127,6 +127,7 @@ use uor_r4_core::transformerless::runtime::{self, Store};
 use uor_r4_graph_certify::{self as score, GateCMetrics, ScoreConfig};
 use uor_r4_graph_compiler::induction::{self as cover, Observation};
 use uor_r4_graph_compiler::reproducibility as repro;
+use uor_r4_model_source::SourceUnavailable;
 
 /// The `cover_sweep.json` schema version (module docs).
 pub const SWEEP_REPORT_SCHEMA: u32 = 3;
@@ -219,36 +220,37 @@ pub fn load_inputs(
     corpus_meta: &Path,
     corpus_recs: &Path,
     artifacts_path: &Path,
-) -> Result<SweepInputs, String> {
+) -> Result<SweepInputs, SourceUnavailable> {
     let meta_str = corpus_meta
         .to_str()
-        .ok_or_else(|| "corpus metadata path is not UTF-8".to_owned())?;
+        .ok_or_else(|| SourceUnavailable::new("corpus metadata path is not UTF-8"))?;
     let recs_str = corpus_recs
         .to_str()
-        .ok_or_else(|| "corpus records path is not UTF-8".to_owned())?;
+        .ok_or_else(|| SourceUnavailable::new("corpus records path is not UTF-8"))?;
     // #450: announce the resolved containers before the sweep's long work.
-    let artifact_container = std::fs::read(artifacts_path)
-        .map_err(|error| format!("{}: {error}", artifacts_path.display()))?;
+    let artifact_container = std::fs::read(artifacts_path).map_err(|error| {
+        SourceUnavailable::new(format!("{}: {error}", artifacts_path.display()))
+    })?;
     let artifacts = compiler::parse_artifacts(&artifact_container).ok_or_else(|| {
-        format!(
+        SourceUnavailable::new(format!(
             "{}: not a TLA3/TLA4/TLA5 artifact container",
             artifacts_path.display()
-        )
+        ))
     })?;
     let artifact_kappa = repro::container_kappa(&artifact_container);
     repro::announce_teacher_container(artifacts_path, &artifact_kappa);
     let meta_bytes = std::fs::read(corpus_meta)
-        .map_err(|error| format!("{}: {error}", corpus_meta.display()))?;
+        .map_err(|error| SourceUnavailable::new(format!("{}: {error}", corpus_meta.display())))?;
     let recs_bytes = std::fs::read(corpus_recs)
-        .map_err(|error| format!("{}: {error}", corpus_recs.display()))?;
+        .map_err(|error| SourceUnavailable::new(format!("{}: {error}", corpus_recs.display())))?;
     let corpus_kappa = repro::corpus_stream_kappa(&meta_bytes, &recs_bytes);
     repro::announce_corpus(corpus_meta, corpus_recs, &corpus_kappa);
     let corpus = compiler::load_corpus_from(meta_str, recs_str).ok_or_else(|| {
-        format!(
+        SourceUnavailable::new(format!(
             "corpus is incomplete at {}/{}; run compile until it is complete",
             corpus_meta.display(),
             corpus_recs.display()
-        )
+        ))
     })?;
     let (train_positions, held_out_positions) = cover::split_positions(&corpus);
     let train = cover::build_observations(&artifacts, &corpus, &train_positions);
@@ -425,14 +427,13 @@ pub fn run_point(
     inputs: &SweepInputs,
     point: &SweepPoint,
     score_config: &ScoreConfig,
-) -> Result<(SweepRow, GateCMetrics, Vec<u8>), String> {
+) -> Option<(SweepRow, GateCMetrics, Vec<u8>)> {
     let induced = cover::induce_cover(
         &inputs.train,
         &point.config,
         &inputs.artifact_kappa,
         &inputs.corpus_kappa,
-    )
-    .ok_or_else(|| "cover induction needs at least one train observation".to_owned())?;
+    )?;
     let reference = cover::ReferenceClassifier::freeze(&induced.cover);
     let recall = cover::evaluate_held_out(
         &inputs.artifacts,
@@ -458,7 +459,7 @@ pub fn run_point(
         score_config.transition_out_degree,
     );
     let vocab = u32::try_from(inputs.artifacts.token_codes.len() / compiler::STAGES)
-        .map_err(|_| "vocabulary exceeds u32 token ids".to_owned())?;
+        .expect("vocabulary exceeds u32 token ids");
     let context_rows =
         score::compile_context_rows(&inputs.corpus, &inputs.train, vocab, score_config);
     let fwd_rows = score::compile_forward_anchor_rows(&inputs.corpus, &inputs.train);
@@ -495,8 +496,7 @@ pub fn run_point(
         &inputs.corpus,
         &inputs.held_out,
         score_config,
-    )
-    .ok_or_else(|| "gate C could not evaluate an empty held-out split".to_owned())?;
+    )?;
 
     let cover = &induced.cover;
     let mut per_depth = vec![0u32; cover.max_depth];
@@ -547,7 +547,7 @@ pub fn run_point(
         gate_c_rule12: gate_c.rule12_precedence.clone(),
         reconstruction: gate_c.rule1_chain.clone(),
     };
-    Ok((row, gate_c.tla3_baseline.clone(), artifact_bytes))
+    Some((row, gate_c.tla3_baseline.clone(), artifact_bytes))
 }
 
 /// #456 null arm (K-2 mutation discipline). The EXCT-disabled reconstruction
@@ -583,14 +583,13 @@ pub fn reconstruction_null(
     score_config: &ScoreConfig,
     held_cap: usize,
     seed: u64,
-) -> Result<ReconstructionNull, String> {
+) -> Option<ReconstructionNull> {
     let induced = cover::induce_cover(
         &inputs.train,
         &point.config,
         &inputs.artifact_kappa,
         &inputs.corpus_kappa,
-    )
-    .ok_or_else(|| "cover induction needs at least one train observation".to_owned())?;
+    )?;
     let reference = cover::ReferenceClassifier::freeze(&induced.cover);
     let edges = cover::build_edges(
         &induced.cover,
@@ -609,7 +608,7 @@ pub fn reconstruction_null(
         score_config.transition_out_degree,
     );
     let vocab = u32::try_from(inputs.artifacts.token_codes.len() / compiler::STAGES)
-        .map_err(|_| "vocabulary exceeds u32 token ids".to_owned())?;
+        .expect("vocabulary exceeds u32 token ids");
     let context_rows =
         score::compile_context_rows(&inputs.corpus, &inputs.train, vocab, score_config);
     let fwd_rows = score::compile_forward_anchor_rows(&inputs.corpus, &inputs.train);
@@ -626,7 +625,7 @@ pub fn reconstruction_null(
     let held_len = held_cap.min(inputs.held_out.len());
     let held = &inputs.held_out[..held_len];
 
-    let score_with = |tables: &score::EmissionTables| -> Result<score::GateCOutcome, String> {
+    let score_with = |tables: &score::EmissionTables| -> Option<score::GateCOutcome> {
         let (artifact_bytes, _info) = score::emit_scored_r4g1(
             &inputs.artifact_container,
             (&inputs.meta_bytes, &inputs.recs_bytes),
@@ -652,7 +651,6 @@ pub fn reconstruction_null(
             held,
             score_config,
         )
-        .ok_or_else(|| "gate C could not evaluate an empty held-out split".to_owned())
     };
 
     let real_gate = score_with(&emissions)?;
@@ -660,7 +658,7 @@ pub fn reconstruction_null(
     derange_region_lists(&mut shuffled.region_lists, seed);
     let null_gate = score_with(&shuffled)?;
 
-    Ok(ReconstructionNull {
+    Some(ReconstructionNull {
         label: point.label.clone(),
         held_out_scored: held_len,
         real: real_gate.rule1_chain.clone(),
@@ -822,7 +820,7 @@ pub fn run_sweep(
     inputs: &SweepInputs,
     score_config: &ScoreConfig,
     distinctiveness_weight: f64,
-) -> Result<SweepReport, String> {
+) -> Option<SweepReport> {
     let points = sweep_grid();
     let mut rows = Vec::with_capacity(points.len());
     let mut tla3_baseline: Option<GateCMetrics> = None;
@@ -850,9 +848,9 @@ pub fn run_sweep(
         tla3_baseline.get_or_insert(baseline_metrics);
         rows.push(row);
     }
-    let tla3_baseline = tla3_baseline.ok_or_else(|| "sweep grid is empty".to_owned())?;
+    let tla3_baseline = tla3_baseline?;
     let recommendation = recommend(&rows);
-    Ok(SweepReport {
+    Some(SweepReport {
         schema: SWEEP_REPORT_SCHEMA,
         inputs: SweepReportInputs {
             artifact_kappa: inputs.artifact_kappa.clone(),
@@ -965,7 +963,7 @@ struct CoverSweepOptions {
     distinctiveness_weight: f64,
 }
 
-fn parse_cover_sweep_options(args: &[String]) -> Result<CoverSweepOptions, String> {
+fn parse_cover_sweep_options(args: &[String]) -> Result<CoverSweepOptions, SourceUnavailable> {
     let (default_meta, default_recs) = compiler::corpus_paths();
     let mut options = CoverSweepOptions {
         corpus_meta: PathBuf::from(default_meta),
@@ -981,7 +979,7 @@ fn parse_cover_sweep_options(args: &[String]) -> Result<CoverSweepOptions, Strin
         let flag = &args[index];
         let value = args
             .get(index + 1)
-            .ok_or_else(|| format!("missing value for {flag}"))?;
+            .ok_or_else(|| SourceUnavailable::new(format!("missing value for {flag}")))?;
         match flag.as_str() {
             "--corpus-meta" => options.corpus_meta = PathBuf::from(value),
             "--corpus-recs" => options.corpus_recs = PathBuf::from(value),
@@ -992,10 +990,10 @@ fn parse_cover_sweep_options(args: &[String]) -> Result<CoverSweepOptions, Strin
                     "ratio" => score::EmissionSelection::Ratio,
                     "probability" => score::EmissionSelection::Probability,
                     other => {
-                        return Err(format!(
+                        return Err(SourceUnavailable::new(format!(
                             "invalid --emission-selection value: {other} \
                              (expected ratio|probability)"
-                        ));
+                        )));
                     }
                 };
             }
@@ -1005,25 +1003,31 @@ fn parse_cover_sweep_options(args: &[String]) -> Result<CoverSweepOptions, Strin
                     "witten-bell" => score::EmissionShrinkage::WittenBell,
                     "contrast" => score::EmissionShrinkage::Contrast,
                     other => {
-                        return Err(format!(
+                        return Err(SourceUnavailable::new(format!(
                             "invalid --emission-shrinkage value: {other} \
                              (expected none|witten-bell|contrast)"
-                        ));
+                        )));
                     }
                 };
             }
             "--distinctiveness-weight" => {
                 let weight = value.parse::<f64>().map_err(|error| {
-                    format!("invalid --distinctiveness-weight value {value}: {error}")
+                    SourceUnavailable::new(format!(
+                        "invalid --distinctiveness-weight value {value}: {error}"
+                    ))
                 })?;
                 if !weight.is_finite() || weight < 0.0 {
-                    return Err(format!(
+                    return Err(SourceUnavailable::new(format!(
                         "invalid --distinctiveness-weight value {value} (expected finite non-negative number)"
-                    ));
+                    )));
                 }
                 options.distinctiveness_weight = weight;
             }
-            _ => return Err(format!("unknown cover-sweep option: {flag}")),
+            _ => {
+                return Err(SourceUnavailable::new(format!(
+                    "unknown cover-sweep option: {flag}"
+                )));
+            }
         }
         index += 2;
     }
@@ -1035,7 +1039,7 @@ fn parse_cover_sweep_options(args: &[String]) -> Result<CoverSweepOptions, Strin
 /// `cover_sweep.json` plus the console table. `--distinctiveness-weight`
 /// sets the optional induction-time between-region contrast reward.
 /// Release-mode workload on the fixture corpus.
-pub fn cover_sweep_command(args: &[String]) -> Result<(), String> {
+pub fn cover_sweep_command(args: &[String]) -> Result<(), SourceUnavailable> {
     #[cfg(debug_assertions)]
     eprintln!(
         "warning: debug builds make the sweep much slower; use `cargo run --release -- transformerless cover-sweep ...`"
@@ -1060,13 +1064,19 @@ pub fn cover_sweep_command(args: &[String]) -> Result<(), String> {
         score_config.emission_shrinkage.label(),
         options.distinctiveness_weight
     );
-    let report = run_sweep(&inputs, &score_config, options.distinctiveness_weight)?;
+    let report =
+        run_sweep(&inputs, &score_config, options.distinctiveness_weight).ok_or_else(|| {
+            SourceUnavailable::new(
+                "cover sweep produced no report: degenerate corpus \
+                 (empty train/held-out split or empty grid)",
+            )
+        })?;
 
-    std::fs::create_dir_all(&options.output).map_err(|error| error.to_string())?;
-    let report_json = serde_json::to_string_pretty(&report).map_err(|error| error.to_string())?;
+    std::fs::create_dir_all(&options.output)?;
+    let report_json = serde_json::to_string_pretty(&report).map_err(SourceUnavailable::from)?;
     let report_path = options.output.join("cover_sweep.json");
     std::fs::write(&report_path, &report_json)
-        .map_err(|error| format!("{}: {error}", report_path.display()))?;
+        .map_err(|error| SourceUnavailable::new(format!("{}: {error}", report_path.display())))?;
 
     print!("{}", render_table(&report));
     println!("  report: {}", report_path.display());
