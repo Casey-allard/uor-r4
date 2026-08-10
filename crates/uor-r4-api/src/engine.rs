@@ -1042,17 +1042,21 @@ impl R4Engine {
     /// Independently replay compact witnesses against this loaded artifact.
     /// This is server-side verification only; it does not mutate the normal
     /// allocation-free step scratch or status counters.
+    ///
+    /// Total verifier: `None` means every witness replayed to the same claim;
+    /// `Some(reason)` names the first divergence (R5, #510).
     pub fn verify_witnesses(
         &mut self,
         seed: &[u32],
         generated: &[u32],
         witnesses: &[InferenceWitness],
-    ) -> Result<(), WitnessVerificationError> {
+    ) -> Option<WitnessVerificationError> {
         if generated.len() != witnesses.len() {
-            return Err(WitnessVerificationError::LengthMismatch);
+            return Some(WitnessVerificationError::LengthMismatch);
         }
-        self.check_window(seed)
-            .map_err(|_| WitnessVerificationError::LengthMismatch)?;
+        if self.check_window(seed).is_err() {
+            return Some(WitnessVerificationError::LengthMismatch);
+        }
         let mut window = [0u32; WINDOW];
         let seed = &seed[seed.len().saturating_sub(WINDOW)..];
         let mut window_len = seed.len();
@@ -1064,29 +1068,31 @@ impl R4Engine {
             } else {
                 TOP_M
             };
-            let outcome = self
-                .score_sig_witness(&sig, Some(&code), top_m, &window[..window_len])
-                .map_err(|_| WitnessVerificationError::StatusMismatch)?;
+            let outcome =
+                match self.score_sig_witness(&sig, Some(&code), top_m, &window[..window_len]) {
+                    Ok(outcome) => outcome,
+                    Err(_) => return Some(WitnessVerificationError::StatusMismatch),
+                };
             let expected = self.compact_witness(&outcome.witness, claimed.widened);
             if claimed.engine != "r4g1" {
-                return Err(WitnessVerificationError::EngineMismatch);
+                return Some(WitnessVerificationError::EngineMismatch);
             }
             if claimed.token != token || claimed.token != expected.token {
-                return Err(WitnessVerificationError::TokenMismatch);
+                return Some(WitnessVerificationError::TokenMismatch);
             }
             if claimed.region_kappa != expected.region_kappa
                 || claimed.region_id != expected.region_id
             {
-                return Err(WitnessVerificationError::RegionMismatch);
+                return Some(WitnessVerificationError::RegionMismatch);
             }
             if claimed.depth != expected.depth {
-                return Err(WitnessVerificationError::DepthMismatch);
+                return Some(WitnessVerificationError::DepthMismatch);
             }
             if claimed.resolution_status != expected.resolution_status {
-                return Err(WitnessVerificationError::StatusMismatch);
+                return Some(WitnessVerificationError::StatusMismatch);
             }
             if claimed.widened != expected.widened {
-                return Err(WitnessVerificationError::WidenedMismatch);
+                return Some(WitnessVerificationError::WidenedMismatch);
             }
             if window_len < WINDOW {
                 window[window_len] = token;
@@ -1096,7 +1102,7 @@ impl R4Engine {
                 window[WINDOW - 1] = token;
             }
         }
-        Ok(())
+        None
     }
 }
 
@@ -1168,7 +1174,9 @@ impl R4Engine {
             )
         })?;
         if let Some(report) = score_report.as_ref() {
-            validate_quality_report(report).map_err(LoadError::QualityGate)?;
+            if let Some(message) = validate_quality_report(report) {
+                return Err(LoadError::QualityGate(message));
+            }
         }
         let tokenizer = parts
             .tokenizer
@@ -1251,7 +1259,7 @@ const QUALITY_FLOOR_BITS_PER_TOKEN: f64 = 9.86 + 0.10;
 /// Dynamic Hugging Face builds use `config.quality_profile = "relative_tla"`
 /// because their teacher-generated distributions are not comparable to the
 /// legacy fixture corpus that established the absolute floor.
-pub fn validate_quality_report(report: &serde_json::Value) -> Result<(), String> {
+pub fn validate_quality_report(report: &serde_json::Value) -> Option<String> {
     let graph_agreement = report
         .pointer("/gate_c/rule12_precedence/top1_agreement")
         .and_then(serde_json::Value::as_f64);
@@ -1263,7 +1271,7 @@ pub fn validate_quality_report(report: &serde_json::Value) -> Result<(), String>
         .and_then(serde_json::Value::as_f64);
     if let (Some(graph), Some(baseline)) = (graph_agreement, baseline_agreement) {
         if graph < baseline {
-            return Err(format!(
+            return Some(format!(
                 "R4G1 quality gate failed: graph runtime top-1 {:.2}% is below TLA baseline {:.2}%",
                 graph * 100.0,
                 baseline * 100.0
@@ -1275,11 +1283,11 @@ pub fn validate_quality_report(report: &serde_json::Value) -> Result<(), String>
         .and_then(serde_json::Value::as_str)
         .unwrap_or("pinned");
     if quality_profile == "relative_tla" {
-        return Ok(());
+        return None;
     }
     if let Some(graph) = graph_agreement {
         if graph < QUALITY_FLOOR_TOP1_AGREEMENT {
-            return Err(format!(
+            return Some(format!(
                 "R4G1 quality gate failed: graph runtime top-1 {:.2}% digresses below the pinned floor {:.2}%",
                 graph * 100.0,
                 QUALITY_FLOOR_TOP1_AGREEMENT * 100.0
@@ -1288,13 +1296,13 @@ pub fn validate_quality_report(report: &serde_json::Value) -> Result<(), String>
     }
     if let Some(bits) = graph_bits {
         if bits > QUALITY_FLOOR_BITS_PER_TOKEN {
-            return Err(format!(
+            return Some(format!(
                 "R4G1 quality gate failed: graph runtime {:.4} bits/token digresses above the pinned ceiling {:.4}",
                 bits, QUALITY_FLOOR_BITS_PER_TOKEN
             ));
         }
     }
-    Ok(())
+    None
 }
 
 #[cfg(test)]

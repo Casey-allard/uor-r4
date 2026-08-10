@@ -135,9 +135,14 @@ impl R4g1State {
         generated: &[u32],
         witnesses: &[InferenceWitness],
     ) -> Result<(), WitnessVerificationError> {
-        self.engine
+        match self
+            .engine
             .borrow_mut()
             .verify_witnesses(seed, generated, witnesses)
+        {
+            Some(error) => Err(error),
+            None => Ok(()),
+        }
     }
 
     /// Load and validate a scored graph. The teacher artifact supplies the

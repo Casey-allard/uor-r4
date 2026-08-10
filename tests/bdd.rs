@@ -315,8 +315,7 @@ fn below_baseline_report(w: &mut R4g1World) {
 
 #[when("the R4G1 quality gate validates the report")]
 fn quality_gate_validates_report(w: &mut R4g1World) {
-    w.quality_error =
-        validate_quality_report(w.quality_report.as_ref().expect("quality report")).err();
+    w.quality_error = validate_quality_report(w.quality_report.as_ref().expect("quality report"));
 }
 
 #[then("the quality gate rejects the graph below baseline")]
