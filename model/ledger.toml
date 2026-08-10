@@ -40,3 +40,88 @@ statement = "The standalone Phase-2/4 graph-construction entry point (crates/uor
 id = "packed-routing-dormant"
 level = "open"
 statement = "The packed zero-allocation ROUT-bytecode routing-program evaluator and typed semantic-transition evaluator (crates/uor-r4-graph-runtime/src/packed_kernels.rs, evaluate_routing_program / evaluate_typed_transition) are retained as declared placeholders behind their activation gate (#159 Phase 2): the geometric-routing walk over view.routing_section() is not yet wired, so each returns a pre-declared placeholder successor and is unreferenced by the serving path. Kept, not deleted, because the ROUT/typed-transition surface is a live design direction; measured and reported, never asserted. Activation gate: a routing walk that improves top-1 over the placeholder on a pre-declared held-out slice."
+
+# uor-r4 #515: preserve-and-gate. Every mechanism/surface retained OFF the
+# serving path is registered here rather than deleted, so a later run can return
+# to it. These are `open` (measured and reported, never asserted); each names an
+# activation gate. Registration only — the modules are unchanged.
+
+[[claim]]
+id = "region-store-dormant"
+level = "open"
+statement = "A standalone region-store surface (crates/uor-r4-core/src/transformerless/region_store.rs) is retained off the serving path — unreferenced by any shipped or test path. Kept, not deleted, as an alternative region-storage mechanism. Activation gate: a region-store wired into the compile/serving path scoring at or above the shipped store on a pre-declared held-out slice."
+
+[[claim]]
+id = "endomorphism-dormant"
+level = "open"
+statement = "The endomorphic multiplication algebra End_R(V) ≅ Cl(0,8) operator store (crates/uor-r4-core/src/transformerless/endomorphism.rs, after Furey 2026 arXiv:2607.18450) is retained off the serving path — referenced only by the dormant lie_jordan substrate (lie-jordan-dormant). Kept as the operator algebra a Lie-Jordan re-grounding would need. Activation gate: shared with lie-jordan-dormant — a positive syntactic-morphism contribution over a pre-declared null."
+
+[[claim]]
+id = "holographic-encoding-dormant"
+level = "open"
+statement = "The holographic-encoding contract — projection-family semantics, ablation protocol, partial reconstruction, and progressive-fidelity probes (crates/uor-r4-graph-certify/src/holographic_encoding.rs; PDF §5 / #126) — is retained off the serving path as a research/certification surface; measured and reported, never asserted. Activation gate: a holographic-encoding ablation result adopted as a required gate on a pre-declared fidelity bar."
+
+[[claim]]
+id = "predictive-sufficiency-dormant"
+level = "open"
+statement = "The predictive-sufficiency divergence and rate-distortion reporting across graph depths (crates/uor-r4-graph-certify/src/predictive_sufficiency.rs; Phase 3 / Plan §9.14) is retained off the serving path as a measurement surface. Activation gate: its divergence metric adopted as a required conformance gate on a pre-declared threshold."
+
+[[claim]]
+id = "shortlist-evaluator-dormant"
+level = "open"
+statement = "The shortlist top-M recall and fallback-behaviour evaluation vs the reference classifier (crates/uor-r4-graph-certify/src/shortlist_evaluator.rs; Decision D5 / Gate H / Plan §9.16) is retained off the serving path as a measurement surface. Activation gate: a shortlist-recall result clearing Gate H's pre-declared bar."
+
+[[claim]]
+id = "anti-degeneracy-dormant"
+level = "open"
+statement = "The semantic anti-degeneracy surface — corpus transformations, MDL objective J(C), and evaluation harness (crates/uor-r4-graph-certify/src/anti_degeneracy.rs; PDF §7 / Gate G) together with its unsupervised context-perturbation suite (crates/uor-r4-graph-compiler/src/perturbation.rs; Phase 3) — is retained off the serving path; measured and reported, never asserted. Activation gate: an anti-degeneracy J(C) result clearing Gate G's pre-declared bar."
+
+[[claim]]
+id = "fairness-provenance-dormant"
+level = "open"
+statement = "The fairness/provenance harness — source-bias amplification, rare-group erasure, and provenance-deletion (crates/uor-r4-graph-certify/src/fairness_provenance.rs; PDF §14 / Plan §9.21) — is retained off the serving path. Activation gate: a fairness/provenance result adopted as a required gate on a pre-declared bar."
+
+[[claim]]
+id = "long-context-dormant"
+level = "open"
+statement = "The long-context multi-timescale state certification (crates/uor-r4-graph-certify/src/long_context.rs, certify_long_context) is retained off the serving path as a certification routine. Activation gate: a long-context behaviour result adopted as a required gate on a pre-declared bar."
+
+[[claim]]
+id = "compiler-scaling-dormant"
+level = "open"
+statement = "The compiler-parallelism benchmark and scaling-certificate engine (crates/uor-r4-graph-certify/src/compiler_scaling.rs; docs/compiler_scaling_certificate.md / #175) is retained off the serving path as a benchmark/certificate surface. Activation gate: a scaling certificate adopted as a required gate on a pre-declared parallelism bar."
+
+[[claim]]
+id = "reference-compiler-ir-dormant"
+level = "open"
+statement = "The reference floating-point semantic compiler and IR (crates/uor-r4-graph-compiler/src/reference_compiler_ir.rs; PDF §§7,11,17 / #129) is retained off the serving path as the research oracle the shipped integer compiler is checked against. Activation gate: a reference-IR optimisation ported to the shipped integer path scoring at or above it on a pre-declared held-out slice."
+
+[[claim]]
+id = "rate-distortion-compression-dormant"
+level = "open"
+statement = "The semantic-compression and rate-distortion analyzer (crates/uor-r4-graph-compiler/src/rate_distortion_compression.rs; PDF §7 / #136), which formalizes compilation as lossy semantic compression, is retained off the serving path as an analysis surface. Activation gate: a rate-distortion operating point adopted onto the shipped cover/score path clearing a pre-declared bytes-vs-fidelity bar."
+
+[[claim]]
+id = "monograph-validator-dormant"
+level = "open"
+statement = "The hologram/R4 formal-monograph validator and traceability harness (crates/uor-r4-graph-compiler/src/monograph.rs; PDF §§14–17 / #133) is retained off the serving path as a traceability surface. Activation gate: its monograph-traceability check adopted as a required gate."
+
+[[claim]]
+id = "behavioral-probes-dormant"
+level = "open"
+statement = "The unsupervised intervention and counterfactual behavioral-probes layer (crates/uor-r4-graph-compiler/src/behavioral_probes.rs; PDF §§7,11,17 / #128) is retained off the serving path as a probing surface. Activation gate: a behavioral-probe result adopted as a required gate on a pre-declared reusability bar."
+
+[[claim]]
+id = "future-state-planner-dormant"
+level = "open"
+statement = "The bounded future-state optimization and planning over graph transitions (crates/uor-r4-graph-compiler/src/future_state_planner.rs; PDF §§3,10,12,17 / #131), an explicit bounded future-state optimizer, is retained off the serving path as a distinct planning mechanism. Activation gate: a future-state planner wired into serving scoring at or above the shipped greedy path on a pre-declared held-out slice."
+
+[[claim]]
+id = "stage-dag-dormant"
+level = "open"
+statement = "The normative compiler stage-ownership and parallelization DAG (crates/uor-r4-graph-compiler/src/stage_dag.rs; #166), classifying pipeline stages into concurrency classes, is retained off the serving path as a normative specification surface. Activation gate: the stage DAG adopted to drive the shipped executor's parallelization on a pre-declared determinism-preserving bar."
+
+[[claim]]
+id = "patch-overlay-dormant"
+level = "open"
+statement = "The graph-patch (PTCH) overlay mechanism — section emission (crates/uor-r4-graph-compiler/src/patch_induction.rs), the patch-epoch chain overlaying a base graph (crates/uor-r4-graph-runtime/src/patch_chain.rs), and its lifecycle discipline: newest-valid precedence, fork rejection, compaction after 8 layers (crates/uor-r4-graph-certify/src/patch_lifecycle.rs) — is retained off the serving path as a distinct incremental-update mechanism (patch epochs over a base graph rather than full recompile). Activation gate: a patch-overlay serving path scoring at or above a full recompile on a pre-declared held-out slice."
