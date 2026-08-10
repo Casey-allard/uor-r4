@@ -2737,12 +2737,10 @@ fn load_fmm_candidate(bundle: &Path, artifact_bytes: &[u8]) -> Option<FmmCandida
         .ok()
         .and_then(|value| value.parse().ok())
         .unwrap_or(defaults.relative_singular_tolerance);
-    scorer
-        .fmm_candidate(FmmConfig {
-            max_rank,
-            relative_singular_tolerance,
-        })
-        .ok()
+    scorer.fmm_candidate(FmmConfig {
+        max_rank,
+        relative_singular_tolerance,
+    })
 }
 
 /// Load the bundle's corpus record stream for the S6 in-distribution

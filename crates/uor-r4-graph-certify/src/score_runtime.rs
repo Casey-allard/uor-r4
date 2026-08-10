@@ -813,10 +813,14 @@ pub struct GraphScorer {
 impl GraphScorer {
     /// Build the certifier-side low-rank far-field candidate for this graph.
     /// This deliberately does not alter deployed scoring semantics.
+    ///
+    /// Total: `None` when the low-rank factorization cannot be built from the
+    /// graph parts (the sole path [`crate::fmm::FmmCandidateScorer::from_graph_parts`]
+    /// already reports as `None`) — R5, #510.
     pub fn fmm_candidate(
         &self,
         config: crate::fmm::FmmConfig,
-    ) -> Result<crate::fmm::FmmCandidateScorer, String> {
+    ) -> Option<crate::fmm::FmmCandidateScorer> {
         crate::fmm::FmmCandidateScorer::from_graph_parts(
             &self.regions,
             &self.emissions,
@@ -825,7 +829,6 @@ impl GraphScorer {
             self.vocab,
             config,
         )
-        .ok_or_else(|| "FMM candidate scorer could not be built from the graph parts".to_owned())
     }
 
     /// Enable or disable predicted-cloud (F / ΔT) emissions. Default
