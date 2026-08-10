@@ -2036,15 +2036,16 @@ impl GraphScorer {
     /// Construction is the one allocating step; every later
     /// [`GraphScorer::score_step`] call with the state is
     /// allocation-free.
-    pub fn step_state(&self, max_top_m: usize) -> Result<StepState, String> {
+    ///
+    /// Total: `None` when a deployed step state cannot exist for this
+    /// scorer — the HEAD vocabulary is zero or past the deployed step bound,
+    /// or a zero membership width was requested (R5, #510).
+    pub fn step_state(&self, max_top_m: usize) -> Option<StepState> {
         if self.vocab == 0 || self.vocab > STEP_MAX_VOCAB {
-            return Err(format!(
-                "HEAD vocabulary {} outside the deployed step bound {}",
-                self.vocab, STEP_MAX_VOCAB
-            ));
+            return None;
         }
         if max_top_m == 0 {
-            return Err("step state requires a nonzero membership bound".to_owned());
+            return None;
         }
         let vocab = self.vocab as usize;
         let depth_slots = self.max_depth.max(1);
@@ -2055,7 +2056,7 @@ impl GraphScorer {
             i += 1;
         }
         let region_count = self.regions.len();
-        Ok(StepState {
+        Some(StepState {
             residuals: vec![0i32; vocab],
             cand_epoch: vec![0u64; vocab],
             touched: Vec::with_capacity(vocab),
@@ -2083,21 +2084,19 @@ impl GraphScorer {
         epoch: u64,
         state: &mut StepState,
         k: &mut OpKernel,
-    ) -> Result<(), String> {
+    ) -> Option<()> {
         if state.node_epoch[node as usize] == epoch {
-            return Ok(());
+            return Some(());
         }
         state.node_epoch[node as usize] = epoch;
         let in_chain = state.chain_epoch[node as usize] == epoch;
-        let Some(emissions) = self.emissions.get((node - 1) as usize) else {
-            return Err("active node outside the emission tables".to_owned());
-        };
+        let emissions = self.emissions.get((node - 1) as usize)?;
         for (&token, &value) in emissions {
             k.candidate_scans += 1;
             k.table_reads += 1;
             let idx = token as usize;
             if idx >= state.residuals.len() {
-                return Err("emission token outside the HEAD vocabulary".to_owned());
+                return None;
             }
             if state.cand_epoch[idx] != epoch {
                 state.cand_epoch[idx] = epoch;
@@ -2144,7 +2143,7 @@ impl GraphScorer {
                 k.adds += 1;
             }
         }
-        Ok(())
+        Some(())
     }
 
     /// One deployed scoring step over `sig` with per-depth membership
@@ -2162,7 +2161,7 @@ impl GraphScorer {
         sig: &[u8; SIG_BYTES],
         top_m: usize,
         state: &mut StepState,
-    ) -> Result<StepOutcome, String> {
+    ) -> Option<StepOutcome> {
         self.score_step_with_recent(sig, top_m, state, &[])
     }
 
@@ -2174,7 +2173,7 @@ impl GraphScorer {
         top_m: usize,
         state: &mut StepState,
         recent_tokens: &[u32],
-    ) -> Result<StepOutcome, String> {
+    ) -> Option<StepOutcome> {
         self.score_step_coded_with_recent(sig, None, top_m, state, recent_tokens)
     }
 
@@ -2190,27 +2189,23 @@ impl GraphScorer {
         top_m: usize,
         state: &mut StepState,
         recent_tokens: &[u32],
-    ) -> Result<StepOutcome, String> {
+    ) -> Option<StepOutcome> {
         if top_m == 0 || top_m > state.max_top_m {
-            return Err(format!(
-                "membership width {top_m} outside the step state bound {}",
-                state.max_top_m
-            ));
+            return None;
         }
         if self.f_emissions {
-            return Err(
-                "deployed step requires predicted-cloud emissions disabled (#66 ablation)"
-                    .to_owned(),
-            );
+            // Deployed step requires predicted-cloud emissions disabled
+            // (#66 ablation).
+            return None;
         }
         if self.store.is_some() {
-            return Err(
-                "deployed step requires residualized RX1 exact-context evidence; legacy TLS1 store present"
-                    .to_owned(),
-            );
+            // Deployed step requires residualized RX1 exact-context
+            // evidence; a legacy TLS1 store is present.
+            return None;
         }
         if state.residuals.len() != self.vocab as usize {
-            return Err("step state does not match this scorer".to_owned());
+            // Step state does not match this scorer.
+            return None;
         }
         if let Some(entries) = self.context_row(recent_tokens) {
             let (selected, selected_score) = Self::context_row_argmax(entries);
@@ -2218,7 +2213,7 @@ impl GraphScorer {
                 table_reads: 1,
                 ..Default::default()
             };
-            return Ok(StepOutcome {
+            return Some(StepOutcome {
                 selected,
                 selected_score,
                 status: ScoreStatus::ExactContext,
@@ -2306,7 +2301,7 @@ impl GraphScorer {
             k.table_reads += 1;
             let idx = token as usize;
             if idx >= state.residuals.len() {
-                return Err("root-prior token outside the HEAD vocabulary".to_owned());
+                return None;
             }
             if state.cand_epoch[idx] != epoch {
                 state.cand_epoch[idx] = epoch;
@@ -2325,11 +2320,9 @@ impl GraphScorer {
                 Some(code) => *code,
                 None if art.dot_cb.is_empty() => assign_code_plain(art, sig),
                 None => {
-                    return Err(
-                        "TLA6 artifact: the EXCT probe requires the assigned graded code \
-                         (witness contract, #243 Phase C option A)"
-                            .to_owned(),
-                    );
+                    // TLA6 artifact without a caller code: the sig cannot
+                    // reconstruct the dot-metric graded code (#243 Phase C A).
+                    return None;
                 }
             };
             for level in (0..=STAGES).rev() {
@@ -2351,9 +2344,7 @@ impl GraphScorer {
                             k.table_reads += 1;
                             let idx = token as usize;
                             if idx >= state.residuals.len() {
-                                return Err(
-                                    "exact-context token outside the HEAD vocabulary".to_owned()
-                                );
+                                return None;
                             }
                             if state.cand_epoch[idx] != epoch {
                                 state.cand_epoch[idx] = epoch;
@@ -2373,7 +2364,7 @@ impl GraphScorer {
         }
 
         if state.touched.is_empty() {
-            return Err("scoring produced an empty candidate set".to_owned());
+            return None;
         }
         // Final per-candidate scores: the baked root prior plus the
         // accumulated residual; canonical argmax (highest score, then
@@ -2412,7 +2403,7 @@ impl GraphScorer {
         } else {
             ScoreStatus::Graph
         };
-        Ok(StepOutcome {
+        Some(StepOutcome {
             selected: best,
             selected_score: best_score,
             status,

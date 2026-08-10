@@ -670,7 +670,9 @@ impl R4Engine {
             let outcome = self
                 .scorer
                 .score_step_coded_with_recent(sig, input_code, top_m, &mut self.step, recent_tokens)
-                .map_err(InferenceError::Scorer)?;
+                .ok_or_else(|| {
+                    InferenceError::Scorer("deployed step produced no outcome".to_owned())
+                })?;
             Ok(ScoredProbe {
                 token: outcome.selected,
                 status: outcome.status,
@@ -1175,9 +1177,9 @@ impl R4Engine {
 
         let policy = StatusPolicy::from_report(score_report.as_ref());
         let step_supported = !scorer.has_legacy_exct();
-        let step = scorer
-            .step_state(WIDENED_TOP_M)
-            .map_err(LoadError::Scorer)?;
+        let step = scorer.step_state(WIDENED_TOP_M).ok_or_else(|| {
+            LoadError::Scorer("scorer does not support a deployed step state".to_owned())
+        })?;
         let token_rows = u32::try_from(artifacts.token_codes.len() / STAGES)
             .map_err(|_| LoadError::TeacherTooLarge)?;
         let artifact_kappa = r4g1::artifact_kappa(parts.graph)
@@ -1210,7 +1212,7 @@ impl R4Engine {
     pub fn reset(&mut self) {
         self.counters = PolicyCounters::default();
         self.novel_seen = NovelSeen::new(NOVEL_SEEN_CAPACITY);
-        if let Ok(step) = self.scorer.step_state(WIDENED_TOP_M) {
+        if let Some(step) = self.scorer.step_state(WIDENED_TOP_M) {
             self.step = step;
         }
     }
