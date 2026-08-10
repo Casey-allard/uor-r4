@@ -454,12 +454,15 @@ jobs:
       - run: "echo 'cargo audit already ran in pull_request context (issue #240) - the advisory-DB lookup is merge-content-independent.'"
 
   # #273 template adoption: the register conformance gate. R1/R2/R3 landed in
-  # Phase 1; #510 adds R4 (deferral, with the open-claim carve-out) and R6
-  # (cargo-deny over the real graph). Still advisory (not in the required set)
-  # until R5 (audit-limits) completes its incremental migration, at which point
-  # the whole job is promoted to required. Runs in every context; it is cheap.
+  # Phase 1; #510 adds R4 (deferral, with the open-claim carve-out), R5
+  # (audit-limits) and R6 (cargo-deny over the real graph). R5's incremental
+  # migration is COMPLETE (graph-cli hit 0 in #587): every shipped crate's
+  # Result error surface now names only the four sanctioned types, and
+  # audit-limits is enforced here. Promoting this job to a required status
+  # check is a repo-admin branch-protection toggle. Runs in every context; it
+  # is cheap.
   register-conformance:
-    name: register conformance (R1/R2/R3/R4/R6, #273 + #510)
+    name: register conformance (R1/R2/R3/R4/R5/R6, #273 + #510)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -480,6 +483,8 @@ jobs:
           cargo test -q -p repo-conformance
       - name: R4 audit-deferral (nothing deferred and unregistered)
         run: cargo run -q -p xtask -- audit-deferral
+      - name: R5 audit-limits (every shipped Result names only sanctioned error types)
+        run: cargo run -q -p xtask -- audit-limits
       - name: R6 cargo-deny (advisories, licences, bans, sources)
         uses: EmbarkStudios/cargo-deny-action@v2
         with:
