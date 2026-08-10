@@ -1844,7 +1844,7 @@ fn compile_r4g1_bundle(
         "--out".to_owned(),
         graph_output.display().to_string(),
     ];
-    uor_r4_graph_cli::score_command(&score_args)?;
+    uor_r4_graph_cli::score_command(&score_args).map_err(|error| error.to_string())?;
 
     set_r4g1_compile_progress(status, 90, "Validating and loading the compiled graph...");
     let state = R4g1State::load(&graph_path, &artifacts)

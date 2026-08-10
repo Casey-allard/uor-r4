@@ -1028,12 +1028,12 @@ fn parse_score_options(args: &[String]) -> Result<ScoreOptions, SourceUnavailabl
 /// no EXCT), Rule 1+2 (D4 EXCT precedence), and the TLA3 store baseline
 /// side by side on the held-out partition — writing `score.r4g1` and
 /// `score_report.json`.
-pub fn score_command(args: &[String]) -> Result<(), String> {
+pub fn score_command(args: &[String]) -> Result<(), SourceUnavailable> {
     #[cfg(debug_assertions)]
     eprintln!(
         "warning: debug builds make scoring much slower; use `cargo run --release -- transformerless score ...`"
     );
-    let options = parse_score_options(args).map_err(|e| e.to_string())?;
+    let options = parse_score_options(args)?;
     // #488: account for where a real corpus's hours go across the WHOLE score
     // pipeline, not just Gate C. Same instrument, same conventions as #471
     // (stderr only — a duration in `score_report.json` would break the
@@ -1074,35 +1074,38 @@ pub fn score_command(args: &[String]) -> Result<(), String> {
 
     let corpus_meta = corpus_meta_path
         .to_str()
-        .ok_or_else(|| "corpus metadata path is not UTF-8".to_owned())?;
+        .ok_or_else(|| SourceUnavailable::new("corpus metadata path is not UTF-8"))?;
     let corpus_recs = corpus_recs_path
         .to_str()
-        .ok_or_else(|| "corpus records path is not UTF-8".to_owned())?;
+        .ok_or_else(|| SourceUnavailable::new("corpus records path is not UTF-8"))?;
     // #450: resolve and announce the inputs *before* the long work, so the
     // run says which teacher container it actually read. `--artifacts`
     // defaults to a shared mutable path that helper scripts overwrite.
-    let artifact_container = std::fs::read(&options.artifacts)
-        .map_err(|error| format!("{}: {error}", options.artifacts.display()))?;
+    let artifact_container = std::fs::read(&options.artifacts).map_err(|error| {
+        SourceUnavailable::new(format!("{}: {error}", options.artifacts.display()))
+    })?;
     let artifacts = compiler::parse_artifacts(&artifact_container).ok_or_else(|| {
-        format!(
+        SourceUnavailable::new(format!(
             "{}: not a TLA3/TLA4/TLA5 artifact container",
             options.artifacts.display()
-        )
+        ))
     })?;
     let artifact_kappa = repro::container_kappa(&artifact_container);
     repro::announce_teacher_container(&options.artifacts, &artifact_kappa);
-    let meta_bytes = std::fs::read(&corpus_meta_path)
-        .map_err(|error| format!("{}: {error}", corpus_meta_path.display()))?;
-    let recs_bytes = std::fs::read(&corpus_recs_path)
-        .map_err(|error| format!("{}: {error}", corpus_recs_path.display()))?;
+    let meta_bytes = std::fs::read(&corpus_meta_path).map_err(|error| {
+        SourceUnavailable::new(format!("{}: {error}", corpus_meta_path.display()))
+    })?;
+    let recs_bytes = std::fs::read(&corpus_recs_path).map_err(|error| {
+        SourceUnavailable::new(format!("{}: {error}", corpus_recs_path.display()))
+    })?;
     let corpus_kappa = repro::corpus_stream_kappa(&meta_bytes, &recs_bytes);
     repro::announce_corpus(&corpus_meta_path, &corpus_recs_path, &corpus_kappa);
     let corpus = compiler::load_corpus_from(corpus_meta, corpus_recs).ok_or_else(|| {
-        format!(
+        SourceUnavailable::new(format!(
             "corpus is incomplete at {}/{}; run compile until it is complete",
             corpus_meta_path.display(),
             corpus_recs_path.display()
-        )
+        ))
     })?;
 
     let config = score::ScoreConfig {
@@ -1126,8 +1129,10 @@ pub fn score_command(args: &[String]) -> Result<(), String> {
         // stories index; honor it instead of the ordinal train cut.
         Some(path) => {
             let index = observe_text::StoryIndex::load(path)
-                .map_err(|error| error.to_string())?
-                .ok_or_else(|| format!("stories index not found at {}", path.display()))?;
+                .map_err(SourceUnavailable::new)?
+                .ok_or_else(|| {
+                    SourceUnavailable::new(format!("stories index not found at {}", path.display()))
+                })?;
             let mut train = Vec::new();
             let mut held_out = Vec::new();
             for i in 0..corpus.n {
@@ -1136,10 +1141,10 @@ pub fn score_command(args: &[String]) -> Result<(), String> {
                     Some(observe::RecordPartition::Construction) => train.push(i),
                     Some(observe::RecordPartition::HeldOut) => held_out.push(i),
                     None => {
-                        return Err(format!(
+                        return Err(SourceUnavailable::new(format!(
                             "story {story} missing from stories index {}",
                             path.display()
-                        ));
+                        )));
                     }
                 }
             }
@@ -1168,8 +1173,8 @@ pub fn score_command(args: &[String]) -> Result<(), String> {
     // (deterministic double-run), so the choice is a pure cache.
     let (regions, structural, cover_source) = match &options.cover {
         Some(path) => {
-            let bytes =
-                std::fs::read(path).map_err(|error| format!("{}: {error}", path.display()))?;
+            let bytes = std::fs::read(path)
+                .map_err(|error| SourceUnavailable::new(format!("{}: {error}", path.display())))?;
             // #450: the cached cover is the second container this command
             // consumes; address it in the log too.
             eprintln!(
@@ -1178,7 +1183,7 @@ pub fn score_command(args: &[String]) -> Result<(), String> {
                 repro::container_kappa(&bytes)
             );
             let (regions, structural) =
-                score::recover_from_artifact(&bytes).map_err(|error| error.to_string())?;
+                score::recover_from_artifact(&bytes).map_err(SourceUnavailable::new)?;
             eprintln!(
                 "score: recovered {} regions from {}",
                 regions.len(),
@@ -1198,7 +1203,9 @@ pub fn score_command(args: &[String]) -> Result<(), String> {
                 &artifact_kappa,
                 &corpus_kappa,
             )
-            .ok_or_else(|| "cover induction needs at least one train observation".to_owned())?;
+            .ok_or_else(|| {
+                SourceUnavailable::new("cover induction needs at least one train observation")
+            })?;
             let reference = cover::ReferenceClassifier::freeze(&induced.cover);
             let edges = cover::build_edges(&induced.cover, &reference, &train, &corpus.story);
             let n_reg = induced.cover.regions.len();
@@ -1236,7 +1243,7 @@ pub fn score_command(args: &[String]) -> Result<(), String> {
     );
     phases.mark("forward transitions");
     let vocab = u32::try_from(artifacts.token_codes.len() / compiler::STAGES)
-        .map_err(|_| "vocabulary exceeds u32 token ids".to_owned())?;
+        .expect("vocabulary exceeds u32 token ids");
     let context_rows = score::compile_context_rows(&corpus, &train, vocab, &config);
     let fwd_rows = score::compile_forward_anchor_rows(&corpus, &train);
     phases.mark("context + forward-anchor rows");
@@ -1260,7 +1267,7 @@ pub fn score_command(args: &[String]) -> Result<(), String> {
         },
     );
     let graph_kappa = uor_r4_graph_format::r4g1::artifact_kappa(&artifact_bytes)
-        .ok_or_else(|| "cannot address emitted R4G1 artifact".to_string())?;
+        .expect("cannot address emitted R4G1 artifact");
     phases.mark("R4G1 artifact emission");
 
     eprintln!("score: running Gate C evaluation [========================] 100%");
@@ -1273,7 +1280,7 @@ pub fn score_command(args: &[String]) -> Result<(), String> {
         &held_out,
         &config,
     )
-    .ok_or_else(|| "gate C could not evaluate an empty held-out split".to_owned())?;
+    .ok_or_else(|| SourceUnavailable::new("gate C could not evaluate an empty held-out split"))?;
     // The "gate c phase:" lines above break this phase down further (#471);
     // here it is one line so the score-level total stays complete.
     phases.mark("gate c evaluation");
@@ -1323,14 +1330,14 @@ pub fn score_command(args: &[String]) -> Result<(), String> {
             histogram.join(" ")
         );
     }
-    std::fs::create_dir_all(&options.output).map_err(|error| error.to_string())?;
+    std::fs::create_dir_all(&options.output).map_err(SourceUnavailable::new)?;
     let artifact_path = options.output.join("score.r4g1");
     std::fs::write(&artifact_path, &artifact_bytes)
-        .map_err(|error| format!("{}: {error}", artifact_path.display()))?;
-    let report_json = serde_json::to_string_pretty(&report).map_err(|error| error.to_string())?;
+        .map_err(|error| SourceUnavailable::new(format!("{}: {error}", artifact_path.display())))?;
+    let report_json = serde_json::to_string_pretty(&report).map_err(SourceUnavailable::new)?;
     let report_path = options.output.join("score_report.json");
     std::fs::write(&report_path, &report_json)
-        .map_err(|error| format!("{}: {error}", report_path.display()))?;
+        .map_err(|error| SourceUnavailable::new(format!("{}: {error}", report_path.display())))?;
     // #488: report build (from the gate-c mark) + both artifact writes. The
     // trailing stdout summary below is negligible and shows up as the total's
     // remainder — which is the check that no stage went unnamed.
@@ -2836,7 +2843,7 @@ pub fn run(args: &[String]) -> Result<(), String> {
             cover_sweep::cover_sweep_command(&args[1..]).map_err(|e| e.to_string())?
         }
         Some("recommend-scale") => recommend_scale::run(&args[1..]).map_err(|e| e.to_string())?,
-        Some("score") => score_command(&args[1..])?,
+        Some("score") => score_command(&args[1..]).map_err(|e| e.to_string())?,
         Some("graph") => graph_command(&args[1..]).map_err(|e| e.to_string())?,
         Some("cd-compile") => cd_compile_command(&args[1..]),
         Some("quantum-eval") => quantum_eval_command(&args[1..]),
