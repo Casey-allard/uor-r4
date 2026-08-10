@@ -443,7 +443,8 @@ fn compile(args: &CompileArgs) -> Result<(), RunError> {
             "--out".to_owned(),
             output.display().to_string(),
         ];
-        return transformerless_command::run(&values).map_err(RunError::Command);
+        return transformerless_command::run(&values)
+            .map_err(|error| RunError::Command(error.to_string()));
     }
     let mut values = Vec::new();
     if let Some(source) = &args.source {
@@ -550,7 +551,7 @@ fn evaluate_report(args: &EvaluateReportArgs) -> Result<(), RunError> {
 fn run_core(name: &str, arguments: &[String]) -> Result<(), RunError> {
     let mut values = vec![name.to_owned()];
     values.extend_from_slice(arguments);
-    transformerless_command::run(&values).map_err(RunError::Command)
+    transformerless_command::run(&values).map_err(|error| RunError::Command(error.to_string()))
 }
 
 /// Default location of the reference teacher checkpoint used by `certify`/`compare`.
@@ -647,12 +648,13 @@ fn run(cli: &Cli) -> Result<(), RunError> {
         Some(Command::Scenarios) => run_core("scenarios", &[]),
         Some(Command::TeacherKappa) => run_core("teacher-kappa", &[]),
         Some(Command::Transformerless { args }) => {
-            transformerless_command::run(args).map_err(RunError::Command)
+            transformerless_command::run(args).map_err(|error| RunError::Command(error.to_string()))
         }
         Some(Command::Graph { args }) => {
             let mut values = vec!["graph".to_owned()];
             values.extend_from_slice(args);
-            transformerless_command::run(&values).map_err(RunError::Command)
+            transformerless_command::run(&values)
+                .map_err(|error| RunError::Command(error.to_string()))
         }
         Some(Command::GraphCompile { args }) => uor_r4_graph_compiler::compile(args)
             .map_err(|error| RunError::Command(error.to_string())),

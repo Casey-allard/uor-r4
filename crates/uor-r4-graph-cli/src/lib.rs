@@ -2797,7 +2797,7 @@ pub fn graph_command(args: &[String]) -> Result<(), SourceUnavailable> {
     }
 }
 
-pub fn run(args: &[String]) -> Result<(), String> {
+pub fn run(args: &[String]) -> Result<(), SourceUnavailable> {
     match args.first().map(|s| s.as_str()) {
         Some("setup") => setup(),
         Some("gen") => {
@@ -2814,12 +2814,10 @@ pub fn run(args: &[String]) -> Result<(), String> {
                 let art = compiler::compile(&oracle, &c);
                 compiler::save_artifacts(&art);
             } else {
-                compile_hugging_face(&args[1..]).map_err(|e| e.to_string())?;
+                compile_hugging_face(&args[1..])?;
             }
         }
-        Some("compile-recorded") => {
-            compile_recorded_corpus(&args[1..]).map_err(|e| e.to_string())?
-        }
+        Some("compile-recorded") => compile_recorded_corpus(&args[1..])?,
         Some("store") => {
             let c = compiler::load_corpus()
                 .expect("corpus incomplete: run `transformerless gen` first");
@@ -2835,9 +2833,9 @@ pub fn run(args: &[String]) -> Result<(), String> {
                 runtime::store_kappa(&store)
             );
         }
-        Some("evaluate-report") => evaluate_report(&args[1..]).map_err(|e| e.to_string())?,
-        Some("observe") => observe_command(&args[1..]).map_err(|e| e.to_string())?,
-        Some("observe-text") => observe_text_command(&args[1..]).map_err(|e| e.to_string())?,
+        Some("evaluate-report") => evaluate_report(&args[1..])?,
+        Some("observe") => observe_command(&args[1..])?,
+        Some("observe-text") => observe_text_command(&args[1..])?,
         Some("scenarios") => {
             let mut oracle = LlamaOracle::load(DEFAULT_CHECKPOINT);
             scenarios::scenarios(&mut oracle);
@@ -2850,15 +2848,13 @@ pub fn run(args: &[String]) -> Result<(), String> {
             ),
             Err(_) => println!("source checkpoint not found; see `setup`"),
         },
-        Some("convert-r4g1") => convert_r4g1::run(&args[1..]).map_err(|e| e.to_string())?,
-        Some("runtime-corpus") => runtime_corpus::run(&args[1..]).map_err(|e| e.to_string())?,
-        Some("cover") => cover_command(&args[1..]).map_err(|e| e.to_string())?,
-        Some("cover-sweep") => {
-            cover_sweep::cover_sweep_command(&args[1..]).map_err(|e| e.to_string())?
-        }
-        Some("recommend-scale") => recommend_scale::run(&args[1..]).map_err(|e| e.to_string())?,
-        Some("score") => score_command(&args[1..]).map_err(|e| e.to_string())?,
-        Some("graph") => graph_command(&args[1..]).map_err(|e| e.to_string())?,
+        Some("convert-r4g1") => convert_r4g1::run(&args[1..])?,
+        Some("runtime-corpus") => runtime_corpus::run(&args[1..])?,
+        Some("cover") => cover_command(&args[1..])?,
+        Some("cover-sweep") => cover_sweep::cover_sweep_command(&args[1..])?,
+        Some("recommend-scale") => recommend_scale::run(&args[1..])?,
+        Some("score") => score_command(&args[1..])?,
+        Some("graph") => graph_command(&args[1..])?,
         Some("cd-compile") => cd_compile_command(&args[1..]),
         Some("quantum-eval") => quantum_eval_command(&args[1..]),
         _ => {
