@@ -214,14 +214,18 @@ impl RegionParams {
 /// a region is the source of its refinement edge (the root maps to
 /// `None`); a region without a refinement parent maps to `None` as well
 /// (every emitted region has exactly one).
-pub fn regions_from_view(view: &GraphView) -> Result<Vec<RegionParams>, String> {
-    let head = view.head().ok_or("artifact carries no HEAD section")?;
-    let rout = view
-        .section(SectionId::ROUT)
-        .ok_or("artifact carries no ROUT section")?;
+///
+/// Total: `None` when the view — already parse- and CID-validated by the
+/// caller — lacks a section the recovery needs (HEAD, ROUT), declares zero
+/// nodes, is missing a node record inside its declared count, or points a
+/// prototype window outside ROUT. Every such case means the bytes are not a
+/// scorer's graph (R5, #510).
+pub fn regions_from_view(view: &GraphView) -> Option<Vec<RegionParams>> {
+    let head = view.head()?;
+    let rout = view.section(SectionId::ROUT)?;
     let node_count = head.node_count();
     if node_count == 0 {
-        return Err("HEAD declares zero nodes".to_owned());
+        return None;
     }
     // Parents from refinement edges (dst node -> src node).
     let mut parent_of: BTreeMap<u32, u32> = BTreeMap::new();
@@ -234,13 +238,9 @@ pub fn regions_from_view(view: &GraphView) -> Result<Vec<RegionParams>, String> 
     let mut regions = Vec::with_capacity((node_count - 1) as usize);
     let mut node_index = 1u32;
     while node_index < node_count {
-        let node = view
-            .node(node_index)
-            .ok_or("node record missing within declared count")?;
+        let node = view.node(node_index)?;
         let start = (node.prototype_word_start as usize) << 3;
-        let window = rout
-            .get(start..start + signature_bytes)
-            .ok_or("prototype window outside ROUT")?;
+        let window = rout.get(start..start + signature_bytes)?;
         let mut sig = [0u8; SIG_BYTES];
         sig.copy_from_slice(window);
         let parent =
@@ -256,7 +256,7 @@ pub fn regions_from_view(view: &GraphView) -> Result<Vec<RegionParams>, String> 
         });
         node_index += 1;
     }
-    Ok(regions)
+    Some(regions)
 }
 
 /// One structural edge recovered from the canonical array (E_r/E_o with
@@ -895,7 +895,7 @@ impl GraphScorer {
                 head.fallback_policies(),
             );
         let graph_cid = view.header().artifact_cid.0;
-        let regions = regions_from_view(&view).ok()?;
+        let regions = regions_from_view(&view)?;
         let max_depth = regions.iter().map(|r| r.depth as usize).max().unwrap_or(0);
 
         let mut forward_by_src: BTreeMap<u32, Vec<EdgeUse>> = BTreeMap::new();

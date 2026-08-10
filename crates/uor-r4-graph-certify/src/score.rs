@@ -1812,7 +1812,8 @@ pub fn recover_from_artifact(
         .map_err(|error| format!("invalid cover artifact: {error}"))?;
     view.verify_cids()
         .map_err(|error| format!("cover artifact has bad CIDs: {error}"))?;
-    let regions = regions_from_view(&view)?;
+    let regions = regions_from_view(&view)
+        .ok_or_else(|| "cover artifact is missing its scoring regions".to_owned())?;
     let structural = structural_edges_from_view(&view);
     Ok((regions, structural))
 }
