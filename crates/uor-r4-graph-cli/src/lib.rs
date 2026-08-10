@@ -44,7 +44,9 @@ use std::io::Read;
 use std::path::{Path, PathBuf};
 use uor_r4_core::transformerless::hf_bpe::{HfBpeTokenizer, TokenizerKind};
 use uor_r4_core::transformerless::scenarios as core_scenarios;
-use uor_r4_model_source::{BehaviorSource, HuggingFaceLlamaOracle, LlamaOracle, TeacherOracle};
+use uor_r4_model_source::{
+    BehaviorSource, HuggingFaceLlamaOracle, LlamaOracle, SourceUnavailable, TeacherOracle,
+};
 
 const DEFAULT_CHECKPOINT: &str = "/tmp/ref/out/model.bin";
 const DEFAULT_TOKENIZER: &str = "/tmp/ref/tokenizer.bin";
@@ -1802,12 +1804,13 @@ fn parse_evaluate_report_options(args: &[String]) -> Result<EvaluateReportOption
     Ok(options)
 }
 
-fn file_cid(path: &Path) -> Result<String, String> {
-    let mut file = std::fs::File::open(path).map_err(|error| error.to_string())?;
+fn file_cid(path: &Path) -> Result<String, SourceUnavailable> {
+    let mut file = std::fs::File::open(path)
+        .map_err(|error| SourceUnavailable::new(format!("{}: {error}", path.display())))?;
     let mut hasher = blake3::Hasher::new();
     let mut buffer = [0u8; 8192];
     loop {
-        let bytes_read = file.read(&mut buffer).map_err(|error| error.to_string())?;
+        let bytes_read = file.read(&mut buffer).map_err(SourceUnavailable::from)?;
         if bytes_read == 0 {
             break;
         }
@@ -1820,10 +1823,12 @@ fn collect_file_entries(
     root: &Path,
     directory: &Path,
     entries: &mut Vec<(PathBuf, String)>,
-) -> Result<(), String> {
+) -> Result<(), SourceUnavailable> {
     let mut children = Vec::new();
-    for child in std::fs::read_dir(directory).map_err(|error| error.to_string())? {
-        children.push(child.map_err(|error| error.to_string())?.path());
+    for child in std::fs::read_dir(directory)
+        .map_err(|error| SourceUnavailable::new(format!("{}: {error}", directory.display())))?
+    {
+        children.push(child.map_err(SourceUnavailable::from)?.path());
     }
     children.sort();
     for child in children {
@@ -1833,14 +1838,14 @@ fn collect_file_entries(
         }
         let relative = child
             .strip_prefix(root)
-            .map_err(|error| error.to_string())?
+            .map_err(|error| SourceUnavailable::new(format!("{}: {error}", child.display())))?
             .to_path_buf();
         entries.push((relative, file_cid(&child)?));
     }
     Ok(())
 }
 
-fn directory_cid(path: &Path) -> Result<String, String> {
+fn directory_cid(path: &Path) -> Result<String, SourceUnavailable> {
     let mut entries = Vec::new();
     collect_file_entries(path, path, &mut entries)?;
     let mut hasher = blake3::Hasher::new();
@@ -1881,17 +1886,17 @@ fn evaluate_report(args: &[String]) -> Result<(), String> {
         .report
         .clone()
         .unwrap_or_else(|| options.compiled.join(DEFAULT_HF_EVALUATION_REPORT));
-    let source_cid = directory_cid(&options.source)?;
+    let source_cid = directory_cid(&options.source).map_err(|error| error.to_string())?;
     let artifacts_path = options.compiled.join("tless_artifacts.bin");
     let store_path = options.compiled.join("tless_store.bin");
     let tokenizer_path = options.compiled.join("tokenizer.bin");
     let corpus_meta_path = options.compiled.join("corpus.meta");
     let corpus_records_path = options.compiled.join("corpus.records");
-    let artifacts_cid = file_cid(&artifacts_path)?;
-    let store_cid = file_cid(&store_path)?;
-    let tokenizer_cid = file_cid(&tokenizer_path)?;
-    let corpus_meta_cid = file_cid(&corpus_meta_path)?;
-    let corpus_records_cid = file_cid(&corpus_records_path)?;
+    let artifacts_cid = file_cid(&artifacts_path).map_err(|error| error.to_string())?;
+    let store_cid = file_cid(&store_path).map_err(|error| error.to_string())?;
+    let tokenizer_cid = file_cid(&tokenizer_path).map_err(|error| error.to_string())?;
+    let corpus_meta_cid = file_cid(&corpus_meta_path).map_err(|error| error.to_string())?;
+    let corpus_records_cid = file_cid(&corpus_records_path).map_err(|error| error.to_string())?;
 
     let corpus_meta = corpus_meta_path
         .to_str()
