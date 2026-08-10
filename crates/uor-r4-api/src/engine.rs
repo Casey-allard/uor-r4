@@ -116,8 +116,8 @@ use uor_r4_graph_certify::{
     WIDENED_TOP_M,
 };
 use uor_r4_graph_format::{
-    ContractVersion, FormatError, GraphView, FORMAT_VERSION_MAJOR, FORMAT_VERSION_MINOR,
-    INFERENCE_OPERATION_CONTRACT_VERSION,
+    ContractVersion, FormatError, GraphView, ObservedBound, FORMAT_VERSION_MAJOR,
+    FORMAT_VERSION_MINOR, INFERENCE_OPERATION_CONTRACT_VERSION,
 };
 
 /// The resolution status of a scored prediction. Alias of the production
@@ -219,32 +219,6 @@ impl std::error::Error for LoadError {
         }
     }
 }
-
-/// Focused predict/generate-time failures of [`R4Engine`].
-#[derive(Debug)]
-pub enum InferenceError {
-    /// A window carried a token id the teacher artifact cannot decode
-    /// (boundary check: signature derivation indexes by token id).
-    TokenOutOfVocabulary {
-        /// Exclusive upper bound of decodable token ids.
-        token_rows: u32,
-    },
-    /// The production scorer failed on a validated input.
-    Scorer(String),
-}
-
-impl fmt::Display for InferenceError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            InferenceError::TokenOutOfVocabulary { token_rows } => {
-                write!(f, "token id outside the teacher vocabulary ({token_rows})")
-            }
-            InferenceError::Scorer(message) => write!(f, "{message}"),
-        }
-    }
-}
-
-impl std::error::Error for InferenceError {}
 
 /// Typed rejection reasons for an opt-in response witness.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -598,7 +572,7 @@ impl R4Engine {
     /// Derive the sign signature for a token window for certifier-side
     /// experiments. This exposes no deployed scoring semantics; callers still
     /// receive the same artifact-derived signature used by the graph path.
-    pub fn signature_for_window(&self, window: &[u32]) -> Result<[u8; SIG_BYTES], InferenceError> {
+    pub fn signature_for_window(&self, window: &[u32]) -> Result<[u8; SIG_BYTES], ObservedBound> {
         self.check_window(window)?;
         Ok(self.derive_sig_code(window).0)
     }
@@ -638,7 +612,7 @@ impl R4Engine {
     /// Reject a window carrying a token id the teacher artifact cannot
     /// decode. Also enforces the `WINDOW = 8` Dyadic-Recency boundary, emitting
     /// a `tracing::warn!` log if `window.len() > 8` before sliding window truncation.
-    fn check_window(&self, window: &[u32]) -> Result<(), InferenceError> {
+    fn check_window(&self, window: &[u32]) -> Result<(), ObservedBound> {
         if window.len() > WINDOW {
             tracing::warn!(
                 target: "uor_r4_core::runtime",
@@ -647,9 +621,10 @@ impl R4Engine {
                 "Input context exceeds 8-token window; truncating to 8 most recent tokens"
             );
         }
-        if window.iter().any(|&t| t >= self.token_rows) {
-            return Err(InferenceError::TokenOutOfVocabulary {
-                token_rows: self.token_rows,
+        if let Some(&token) = window.iter().find(|&&t| t >= self.token_rows) {
+            return Err(ObservedBound {
+                observed: i64::from(token),
+                bound: i64::from(self.token_rows),
             });
         }
         Ok(())
@@ -665,35 +640,29 @@ impl R4Engine {
         input_code: Option<&[u8; compiler::STAGES]>,
         top_m: usize,
         recent_tokens: &[u32],
-    ) -> Result<ScoredProbe, InferenceError> {
+    ) -> ScoredProbe {
         if self.step_supported {
             let outcome = self
                 .scorer
                 .score_step_coded_with_recent(sig, input_code, top_m, &mut self.step, recent_tokens)
-                .ok_or_else(|| {
-                    InferenceError::Scorer("deployed step produced no outcome".to_owned())
-                })?;
-            Ok(ScoredProbe {
+                .expect("serving: scorer produced no candidates for a validated sig");
+            ScoredProbe {
                 token: outcome.selected,
                 status: outcome.status,
                 ngram_hit: outcome.exact_context_source
                     == Some(uor_r4_graph_certify::ExactContextSource::NgramRow),
-            })
+            }
         } else {
             let outcome = self
                 .scorer
                 .score_candidates_coded(sig, input_code, recent_tokens)
-                .ok_or_else(|| {
-                    InferenceError::Scorer(
-                        "scorer produced no candidates for the probe signature".to_owned(),
-                    )
-                })?;
-            Ok(ScoredProbe {
+                .expect("serving: scorer produced no candidates for a validated sig");
+            ScoredProbe {
                 token: outcome.selected,
                 status: outcome.witness.status,
                 ngram_hit: outcome.exact_context_source
                     == Some(uor_r4_graph_certify::ExactContextSource::NgramRow),
-            })
+            }
         }
     }
 
@@ -705,7 +674,7 @@ impl R4Engine {
         input_code: Option<&[u8; compiler::STAGES]>,
         top_m: usize,
         recent_tokens: &[u32],
-    ) -> Result<uor_r4_graph_certify::ScoreOutcome, InferenceError> {
+    ) -> uor_r4_graph_certify::ScoreOutcome {
         // The reference scorer has a fixed membership width today; keeping
         // the parameter at the call site makes the witness contract explicit
         // and avoids silently claiming widening when the artifact cannot
@@ -713,11 +682,7 @@ impl R4Engine {
         let _ = top_m;
         self.scorer
             .score_candidates_coded(sig, input_code, recent_tokens)
-            .ok_or_else(|| {
-                InferenceError::Scorer(
-                    "scorer produced no candidates for the probe signature".to_owned(),
-                )
-            })
+            .expect("serving: scorer produced no candidates for a validated sig")
     }
 
     /// The D4 policy decision for one input signature: score at the
@@ -725,10 +690,7 @@ impl R4Engine {
     /// the declared policy. WidenOnce re-probes once at
     /// [`WIDENED_TOP_M`]; a signature still Novel after widening is
     /// remembered so identical probes abstain without widening again.
-    pub fn predict_signature_status(
-        &mut self,
-        sig: &[u8; SIG_BYTES],
-    ) -> Result<PredictDecision, InferenceError> {
+    pub fn predict_signature_status(&mut self, sig: &[u8; SIG_BYTES]) -> PredictDecision {
         self.predict_signature_status_with_recent(sig, None, &[])
     }
 
@@ -737,67 +699,67 @@ impl R4Engine {
         sig: &[u8; SIG_BYTES],
         input_code: Option<&[u8; compiler::STAGES]>,
         recent_tokens: &[u32],
-    ) -> Result<PredictDecision, InferenceError> {
+    ) -> PredictDecision {
         self.counters.predicts += 1;
-        let first = self.score_sig(sig, input_code, TOP_M, recent_tokens)?;
+        let first = self.score_sig(sig, input_code, TOP_M, recent_tokens);
         match self.policy.action(first.status.into()) {
             StatusAction::Serve => {
                 self.counters.serves += 1;
-                Ok(PredictDecision::Serve(PredictOutcome {
+                PredictDecision::Serve(PredictOutcome {
                     token: first.token,
                     status: first.status,
                     widened: false,
                     ngram_hit: first.ngram_hit,
-                }))
+                })
             }
             StatusAction::Abstain => {
                 self.counters.abstains += 1;
-                Ok(PredictDecision::Abstain(AbstainOutcome {
+                PredictDecision::Abstain(AbstainOutcome {
                     status: first.status,
                     widened: false,
                     ngram_hit: first.ngram_hit,
-                }))
+                })
             }
             StatusAction::WidenOnce => {
                 if !self.step_supported {
                     // No widening on the legacy reference path: abstain
                     // directly (documented degrade for TLS1 artifacts).
                     self.counters.abstains += 1;
-                    return Ok(PredictDecision::Abstain(AbstainOutcome {
+                    return PredictDecision::Abstain(AbstainOutcome {
                         status: first.status,
                         widened: false,
                         ngram_hit: first.ngram_hit,
-                    }));
+                    });
                 }
                 if self.novel_seen.contains(sig) {
                     self.counters.widen_skipped_seen += 1;
                     self.counters.abstains += 1;
-                    return Ok(PredictDecision::Abstain(AbstainOutcome {
+                    return PredictDecision::Abstain(AbstainOutcome {
                         status: first.status,
                         widened: false,
                         ngram_hit: first.ngram_hit,
-                    }));
+                    });
                 }
                 self.counters.widen_attempts += 1;
-                let second = self.score_sig(sig, input_code, WIDENED_TOP_M, recent_tokens)?;
+                let second = self.score_sig(sig, input_code, WIDENED_TOP_M, recent_tokens);
                 if second.status == ScoreStatus::Novel {
                     self.novel_seen.insert(sig);
                 }
                 if self.policy.action(second.status.into()) == StatusAction::Serve {
                     self.counters.serves += 1;
-                    Ok(PredictDecision::Serve(PredictOutcome {
+                    PredictDecision::Serve(PredictOutcome {
                         token: second.token,
                         status: second.status,
                         widened: true,
                         ngram_hit: second.ngram_hit,
-                    }))
+                    })
                 } else {
                     self.counters.abstains += 1;
-                    Ok(PredictDecision::Abstain(AbstainOutcome {
+                    PredictDecision::Abstain(AbstainOutcome {
                         status: second.status,
                         widened: true,
                         ngram_hit: second.ngram_hit,
-                    }))
+                    })
                 }
             }
         }
@@ -806,10 +768,10 @@ impl R4Engine {
     /// The status-aware decision for one token window: score the packed
     /// signature through the D4 policy. Abstention is a typed outcome —
     /// no guessed token is emitted.
-    pub fn predict_decision(&mut self, window: &[u32]) -> Result<PredictDecision, InferenceError> {
+    pub fn predict_decision(&mut self, window: &[u32]) -> Result<PredictDecision, ObservedBound> {
         self.check_window(window)?;
         let (sig, code) = self.derive_sig_code(window);
-        self.predict_signature_status_with_recent(&sig, Some(&code), window)
+        Ok(self.predict_signature_status_with_recent(&sig, Some(&code), window))
     }
 
     /// Predict one window and retain the compact proof claim for the
@@ -819,11 +781,11 @@ impl R4Engine {
     pub fn predict_decision_with_witness(
         &mut self,
         window: &[u32],
-    ) -> Result<(PredictDecision, InferenceWitness), InferenceError> {
+    ) -> Result<(PredictDecision, InferenceWitness), ObservedBound> {
         self.check_window(window)?;
         let (sig, code) = self.derive_sig_code(window);
         self.counters.predicts += 1;
-        let first = self.score_sig_witness(&sig, Some(&code), TOP_M, window)?;
+        let first = self.score_sig_witness(&sig, Some(&code), TOP_M, window);
         let first_witness = self.compact_witness(&first.witness, false);
         match self.policy.action(first.witness.status.into()) {
             StatusAction::Serve => {
@@ -865,7 +827,7 @@ impl R4Engine {
                     ));
                 }
                 self.counters.widen_attempts += 1;
-                let second = self.score_sig_witness(&sig, Some(&code), WIDENED_TOP_M, window)?;
+                let second = self.score_sig_witness(&sig, Some(&code), WIDENED_TOP_M, window);
                 let second_witness = self.compact_witness(&second.witness, true);
                 if second.witness.status == ScoreStatus::Novel {
                     self.novel_seen.insert(&sig);
@@ -905,7 +867,7 @@ impl R4Engine {
         &mut self,
         window: &[u32],
         out: &mut PredictOutput,
-    ) -> Result<(), InferenceError> {
+    ) -> Result<(), ObservedBound> {
         match self.predict_decision(window)? {
             PredictDecision::Serve(outcome) => {
                 out.token = outcome.token;
@@ -930,7 +892,7 @@ impl R4Engine {
         &mut self,
         seed: &[u32],
         out: &mut [u32],
-    ) -> Result<GenerateStatus, InferenceError> {
+    ) -> Result<GenerateStatus, ObservedBound> {
         self.check_window(seed)?;
         let mut window = [0u32; WINDOW];
         let seed = &seed[seed.len().saturating_sub(WINDOW)..];
@@ -987,7 +949,7 @@ impl R4Engine {
         seed: &[u32],
         out: &mut [u32],
         witnesses: &mut Vec<InferenceWitness>,
-    ) -> Result<GenerateStatus, InferenceError> {
+    ) -> Result<GenerateStatus, ObservedBound> {
         self.check_window(seed)?;
         witnesses.clear();
         let mut window = [0u32; WINDOW];
@@ -1068,11 +1030,7 @@ impl R4Engine {
             } else {
                 TOP_M
             };
-            let outcome =
-                match self.score_sig_witness(&sig, Some(&code), top_m, &window[..window_len]) {
-                    Ok(outcome) => outcome,
-                    Err(_) => return Some(WitnessVerificationError::StatusMismatch),
-                };
+            let outcome = self.score_sig_witness(&sig, Some(&code), top_m, &window[..window_len]);
             let expected = self.compact_witness(&outcome.witness, claimed.widened);
             if claimed.engine != "r4g1" {
                 return Some(WitnessVerificationError::EngineMismatch);

@@ -321,11 +321,13 @@ fn out_of_vocabulary_window_is_a_typed_error_not_a_panic() {
     let err = state
         .predict_window_status(&[5, 64])
         .expect_err("out-of-vocabulary window rejected");
-    assert!(err.contains("outside the teacher vocabulary"), "{err}");
+    // The boundary now reports the sanctioned ObservedBound surface: the
+    // observed token id and the vocabulary bound it crossed.
+    assert!(err.contains("past bound"), "{err}");
     let err = state
         .generate_into_status(&[999_999], &mut [0u32; 4])
         .expect_err("out-of-vocabulary seed rejected");
-    assert!(err.contains("outside the teacher vocabulary"), "{err}");
+    assert!(err.contains("past bound"), "{err}");
     // The boundary itself still works (a decision, not the vocab error).
     assert!(state.predict_window_status(&[63]).is_ok());
     assert!(state.predict_window_status(&[5, 63, 0]).is_ok());

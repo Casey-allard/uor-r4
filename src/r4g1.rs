@@ -75,10 +75,7 @@ impl R4g1State {
         &self,
         sig: &[u8; SIG_BYTES],
     ) -> Result<PredictDecision, String> {
-        self.engine
-            .borrow_mut()
-            .predict_signature_status(sig)
-            .map_err(|error| error.to_string())
+        Ok(self.engine.borrow_mut().predict_signature_status(sig))
     }
 
     /// Score one token window through the D4 policy.
