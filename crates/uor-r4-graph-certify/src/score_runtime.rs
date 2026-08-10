@@ -1151,7 +1151,7 @@ impl GraphScorer {
         &self,
         sig: &[u8; SIG_BYTES],
         recent_tokens: &[u32],
-    ) -> Result<ScoreOutcome, String> {
+    ) -> Option<ScoreOutcome> {
         self.score_candidates_coded(sig, None, recent_tokens)
     }
 
@@ -1164,15 +1164,13 @@ impl GraphScorer {
         art: &Compiled,
         sig: &[u8; SIG_BYTES],
         input_code: Option<&[u8; STAGES]>,
-    ) -> Result<[u8; STAGES], String> {
+    ) -> Option<[u8; STAGES]> {
         match input_code {
-            Some(code) => Ok(*code),
-            None if art.dot_cb.is_empty() => Ok(runtime::assign_plain(art, sig)),
-            None => Err(
-                "TLA6 artifact: the EXCT probe requires the assigned graded code \
-                 (witness contract, #243 Phase C option A)"
-                    .to_owned(),
-            ),
+            Some(code) => Some(*code),
+            None if art.dot_cb.is_empty() => Some(runtime::assign_plain(art, sig)),
+            // TLA6 artifact without a caller code: the sig cannot reconstruct
+            // the dot-metric graded code (witness contract, #243 Phase C A).
+            None => None,
         }
     }
 
@@ -1185,7 +1183,7 @@ impl GraphScorer {
         sig: &[u8; SIG_BYTES],
         input_code: Option<&[u8; STAGES]>,
         recent_tokens: &[u32],
-    ) -> Result<ScoreOutcome, String> {
+    ) -> Option<ScoreOutcome> {
         let recent_tokens = if recent_tokens.len() > 32 {
             &recent_tokens[recent_tokens.len() - 32..]
         } else {
@@ -1226,7 +1224,7 @@ impl GraphScorer {
                 candidate_count: candidates.len() as u32,
                 census,
             };
-            return Ok(ScoreOutcome {
+            return Some(ScoreOutcome {
                 selected,
                 selected_score,
                 candidates,
@@ -1530,7 +1528,7 @@ impl GraphScorer {
             ranked_candidates.push((token, score, contributions));
         }
         if ranked_candidates.is_empty() {
-            return Err("scoring produced an empty candidate set".to_owned());
+            return None;
         }
 
         // Canonical argmax: highest score, then the lowest token id
@@ -1576,7 +1574,7 @@ impl GraphScorer {
             candidate_count,
             census: k,
         };
-        Ok(ScoreOutcome {
+        Some(ScoreOutcome {
             selected,
             selected_score,
             candidates: candidates_out,
@@ -1633,13 +1631,13 @@ impl GraphScorer {
         input_code: Option<&[u8; STAGES]>,
         recent_tokens: &[u32],
         next_anchor: Option<(u32, u8)>,
-    ) -> Result<ScoreOutcome, String> {
+    ) -> Option<ScoreOutcome> {
         let base = self.score_candidates_coded(sig, input_code, recent_tokens)?;
         let Some((anchor, distance)) = next_anchor else {
-            return Ok(base);
+            return Some(base);
         };
         let Some(row) = self.fwd_rows.get(&(distance, anchor)) else {
-            return Ok(base);
+            return Some(base);
         };
         let floor_base = self
             .root_floor
@@ -1664,13 +1662,13 @@ impl GraphScorer {
             }
         }
         let Some((selected, selected_score)) = best else {
-            return Ok(base);
+            return Some(base);
         };
         let mut outcome = base;
         outcome.selected = selected;
         outcome.selected_score = selected_score;
         outcome.candidates = fused.into_iter().collect();
-        Ok(outcome)
+        Some(outcome)
     }
 
     /// The pre-#64 Σ-over-cloud formula `S(v) = B(v) + Σ_{n∈A} ΔE(n,v) +
@@ -1680,7 +1678,7 @@ impl GraphScorer {
     /// semantics; emits no replayable witness. The active cloud uses the
     /// same ReferenceClassifier semantics the old formula scored
     /// (nearest-region fallback included).
-    pub fn score_candidates_legacy(&self, sig: &[u8; SIG_BYTES]) -> Result<LegacyOutcome, String> {
+    pub fn score_candidates_legacy(&self, sig: &[u8; SIG_BYTES]) -> Option<LegacyOutcome> {
         let mut k = OpKernel::default();
 
         // Active cloud A: top-M memberships at each depth.
@@ -1781,7 +1779,7 @@ impl GraphScorer {
             ranked_candidates.push((token, score));
         }
         if ranked_candidates.is_empty() {
-            return Err("scoring produced an empty candidate set".to_owned());
+            return None;
         }
         let mut best_index = 0usize;
         for (index, &(_, score)) in ranked_candidates.iter().enumerate() {
@@ -1790,7 +1788,7 @@ impl GraphScorer {
             }
         }
         let (selected, selected_score) = ranked_candidates[best_index];
-        Ok(LegacyOutcome {
+        Some(LegacyOutcome {
             selected,
             selected_score,
             candidates: ranked_candidates,
@@ -2506,7 +2504,7 @@ pub fn two_pass_infill_generate(
     rotations: &[usize; compiler::WINDOW + 1],
     seed: &[u32],
     tokens_to_generate: usize,
-) -> Result<TwoPassGeneration, String> {
+) -> Option<TwoPassGeneration> {
     let seed_len = seed.len();
 
     // ---- Pass 1: greedy draft, recording per-position context. ----
@@ -2586,7 +2584,7 @@ pub fn two_pass_infill_generate(
         }
     }
 
-    Ok(TwoPassGeneration {
+    Some(TwoPassGeneration {
         draft,
         final_tokens,
         changed_positions,
@@ -2642,7 +2640,7 @@ pub fn infill_fill(
     artifacts: &Compiled,
     rotations: &[usize; compiler::WINDOW + 1],
     skeleton: &[Option<u32>],
-) -> Result<Vec<u32>, String> {
+) -> Option<Vec<u32>> {
     let mut window = [0u32; compiler::WINDOW];
     let mut w_len = 0usize;
     let mut recent_tokens = std::collections::VecDeque::with_capacity(32);
@@ -2678,7 +2676,7 @@ pub fn infill_fill(
         }
         recent_tokens.push_back(token);
     }
-    Ok(filled)
+    Some(filled)
 }
 
 /// Rejection reasons of the independent witness-replay verifier
@@ -2812,8 +2810,12 @@ pub fn verify_witness_replay(
         witness.input_code.as_ref(),
         &witness.context_tokens,
     ) {
-        Ok(outcome) => outcome,
-        Err(e) => return Some(ReplayError::Artifact(e)),
+        Some(outcome) => outcome,
+        None => {
+            return Some(ReplayError::Artifact(
+                "score_candidates_coded produced no outcome on replay".to_owned(),
+            ));
+        }
     };
     let recomputed = &outcome.witness;
 

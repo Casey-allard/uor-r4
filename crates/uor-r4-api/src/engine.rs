@@ -681,7 +681,11 @@ impl R4Engine {
             let outcome = self
                 .scorer
                 .score_candidates_coded(sig, input_code, recent_tokens)
-                .map_err(InferenceError::Scorer)?;
+                .ok_or_else(|| {
+                    InferenceError::Scorer(
+                        "scorer produced no candidates for the probe signature".to_owned(),
+                    )
+                })?;
             Ok(ScoredProbe {
                 token: outcome.selected,
                 status: outcome.witness.status,
@@ -707,7 +711,11 @@ impl R4Engine {
         let _ = top_m;
         self.scorer
             .score_candidates_coded(sig, input_code, recent_tokens)
-            .map_err(InferenceError::Scorer)
+            .ok_or_else(|| {
+                InferenceError::Scorer(
+                    "scorer produced no candidates for the probe signature".to_owned(),
+                )
+            })
     }
 
     /// The D4 policy decision for one input signature: score at the

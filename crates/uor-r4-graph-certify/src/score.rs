@@ -2727,8 +2727,9 @@ fn generate_greedy_repetition_rate(
         for (i, &t) in recent_tokens.iter().enumerate() {
             recent_array[i] = t;
         }
-        let outcome =
-            scorer.score_candidates_coded(&sig, Some(&code), &recent_array[..recent_len])?;
+        let outcome = scorer
+            .score_candidates_coded(&sig, Some(&code), &recent_array[..recent_len])
+            .expect("gate C: scoring self-produced sig");
         let token = outcome.selected;
 
         if recent_tokens.contains(&token) {
@@ -4727,33 +4728,32 @@ fn evaluate_gate_c_row(
 
     let legacy = context
         .scorer_with_exct
-        .score_candidates_legacy(&observation.sig)?;
-    let rule1 =
-        context
-            .scorer_no_exct
-            .score_candidates_coded(&observation.sig, Some(&code), window)?;
-    let rule12 =
-        context
-            .scorer_with_exct
-            .score_candidates_coded(&observation.sig, Some(&code), window)?;
-    let rule1_no_f = context.scorer_no_exct_no_f.score_candidates_coded(
-        &observation.sig,
-        Some(&code),
-        window,
-    )?;
-    let rule12_no_f = context.scorer_with_exct_no_f.score_candidates_coded(
-        &observation.sig,
-        Some(&code),
-        window,
-    )?;
-    let normalized =
-        context
-            .scorer_normalized
-            .score_candidates_coded(&observation.sig, Some(&code), window)?;
-    let margin =
-        context
-            .scorer_margin
-            .score_candidates_coded(&observation.sig, Some(&code), window)?;
+        .score_candidates_legacy(&observation.sig)
+        .expect("gate C: scoring self-produced sig");
+    let rule1 = context
+        .scorer_no_exct
+        .score_candidates_coded(&observation.sig, Some(&code), window)
+        .expect("gate C: scoring self-produced sig");
+    let rule12 = context
+        .scorer_with_exct
+        .score_candidates_coded(&observation.sig, Some(&code), window)
+        .expect("gate C: scoring self-produced sig");
+    let rule1_no_f = context
+        .scorer_no_exct_no_f
+        .score_candidates_coded(&observation.sig, Some(&code), window)
+        .expect("gate C: scoring self-produced sig");
+    let rule12_no_f = context
+        .scorer_with_exct_no_f
+        .score_candidates_coded(&observation.sig, Some(&code), window)
+        .expect("gate C: scoring self-produced sig");
+    let normalized = context
+        .scorer_normalized
+        .score_candidates_coded(&observation.sig, Some(&code), window)
+        .expect("gate C: scoring self-produced sig");
+    let margin = context
+        .scorer_margin
+        .score_candidates_coded(&observation.sig, Some(&code), window)
+        .expect("gate C: scoring self-produced sig");
     let baseline = runtime::predict_witness_plain(context.store, &code);
 
     let hits = [
@@ -5092,11 +5092,10 @@ fn evaluate_gate_c_row(
             } else {
                 &[]
             };
-            let anchor_outcome = context.scorer_with_exct.score_candidates_coded(
-                &anchor_sig,
-                Some(&anchor_code),
-                anchor_window,
-            )?;
+            let anchor_outcome = context
+                .scorer_with_exct
+                .score_candidates_coded(&anchor_sig, Some(&anchor_code), anchor_window)
+                .expect("gate C: scoring self-produced sig");
             let anchor_hat = anchor_outcome.selected;
             anchor_hat_correct = Some(anchor_hat == anchor);
             if let Some(fwd_row) = context.fwd_table.get(&(lookahead, anchor_hat)) {
@@ -5161,11 +5160,14 @@ fn evaluate_gate_c_row(
                 );
                 let draft_sig = runtime::sig_plain(context.artifacts, &draft_bundle);
                 let draft_code = runtime::assign_for_bundle(context.artifacts, &draft_bundle);
-                let draft_outcome = context.scorer_with_exct.score_candidates_coded(
-                    &draft_sig,
-                    Some(&draft_code),
-                    &draft_recent[..draft_recent_len],
-                )?;
+                let draft_outcome = context
+                    .scorer_with_exct
+                    .score_candidates_coded(
+                        &draft_sig,
+                        Some(&draft_code),
+                        &draft_recent[..draft_recent_len],
+                    )
+                    .expect("gate C: scoring self-produced sig");
                 pending = draft_outcome.selected;
                 draft_anchor = pending;
                 draft_gate = draft_outcome.witness.status == ScoreStatus::ExactContext;

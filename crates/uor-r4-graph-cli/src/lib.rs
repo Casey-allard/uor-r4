@@ -2638,7 +2638,8 @@ pub fn graph_infill_command(args: &[String]) -> Result<(), String> {
     .ok_or_else(|| "could not build scorer from R4G1 artifact".to_owned())?;
     let rotations = runtime::derive_rotations();
 
-    let filled = score_runtime::infill_fill(&scorer, &artifacts, &rotations, &skeleton)?;
+    let filled = score_runtime::infill_fill(&scorer, &artifacts, &rotations, &skeleton)
+        .ok_or_else(|| "infill fill produced no tokens".to_owned())?;
 
     let free_positions = skeleton.iter().filter(|slot| slot.is_none()).count();
     let live_fwd_positions = skeleton
