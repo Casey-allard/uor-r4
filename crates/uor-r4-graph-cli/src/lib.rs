@@ -2665,7 +2665,7 @@ fn empty_compiled() -> compiler::Compiled {
 /// engine fills the free positions between them through the validated
 /// forward-anchor channel (`GraphScorer::score_candidates_infill`).
 /// Token-id level only — no tokenizer involved.
-pub fn graph_infill_command(args: &[String]) -> Result<(), String> {
+pub fn graph_infill_command(args: &[String]) -> Result<(), SourceUnavailable> {
     let mut artifact_path: Option<PathBuf> = None;
     let mut skeleton_spec: Option<String> = None;
     let mut teacher_path: Option<PathBuf> = None;
@@ -2674,34 +2674,43 @@ pub fn graph_infill_command(args: &[String]) -> Result<(), String> {
         let flag = &args[index];
         let value = args
             .get(index + 1)
-            .ok_or_else(|| format!("missing value for {flag}"))?;
+            .ok_or_else(|| SourceUnavailable::new(format!("missing value for {flag}")))?;
         match flag.as_str() {
             "--artifact" => artifact_path = Some(PathBuf::from(value)),
             "--skeleton" => skeleton_spec = Some(value.clone()),
             "--teacher" => teacher_path = Some(PathBuf::from(value)),
-            _ => return Err(format!("unknown graph infill option: {flag}")),
+            _ => {
+                return Err(SourceUnavailable::new(format!(
+                    "unknown graph infill option: {flag}"
+                )));
+            }
         }
         index += 2;
     }
-    let artifact_path = artifact_path.ok_or("pass --artifact <scored R4G1 path>")?;
-    let skeleton_spec =
-        skeleton_spec.ok_or("pass --skeleton <comma-separated token ids, _ for free positions>")?;
-    let skeleton = parse_skeleton(&skeleton_spec).map_err(|e| e.to_string())?;
+    let artifact_path = artifact_path
+        .ok_or_else(|| SourceUnavailable::new("pass --artifact <scored R4G1 path>"))?;
+    let skeleton_spec = skeleton_spec.ok_or_else(|| {
+        SourceUnavailable::new("pass --skeleton <comma-separated token ids, _ for free positions>")
+    })?;
+    let skeleton = parse_skeleton(&skeleton_spec)?;
 
     let r4g1 = std::fs::read(&artifact_path)
-        .map_err(|error| format!("{}: {error}", artifact_path.display()))?;
+        .map_err(|error| SourceUnavailable::new(format!("{}: {error}", artifact_path.display())))?;
     let teacher_bytes = teacher_path
         .as_ref()
-        .map(|path| std::fs::read(path).map_err(|error| format!("{}: {error}", path.display())))
+        .map(|path| {
+            std::fs::read(path)
+                .map_err(|error| SourceUnavailable::new(format!("{}: {error}", path.display())))
+        })
         .transpose()?;
     let artifacts = match &teacher_bytes {
         Some(bytes) => compiler::parse_artifacts(bytes).ok_or_else(|| {
-            format!(
+            SourceUnavailable::new(format!(
                 "{}: not a TLA3/TLA4/TLA5 artifact container",
                 teacher_path
                     .expect("teacher bytes imply a teacher path")
                     .display()
-            )
+            ))
         })?,
         None => empty_compiled(),
     };
@@ -2711,11 +2720,11 @@ pub fn graph_infill_command(args: &[String]) -> Result<(), String> {
         score::DEFAULT_ROOT_TOP_B,
         score::DEFAULT_EXCT_TOP_X,
     )
-    .ok_or_else(|| "could not build scorer from R4G1 artifact".to_owned())?;
+    .ok_or_else(|| SourceUnavailable::new("could not build scorer from R4G1 artifact"))?;
     let rotations = runtime::derive_rotations();
 
     let filled = score_runtime::infill_fill(&scorer, &artifacts, &rotations, &skeleton)
-        .ok_or_else(|| "infill fill produced no tokens".to_owned())?;
+        .ok_or_else(|| SourceUnavailable::new("infill fill produced no tokens"))?;
 
     let free_positions = skeleton.iter().filter(|slot| slot.is_none()).count();
     let live_fwd_positions = skeleton
@@ -2740,13 +2749,12 @@ pub fn graph_infill_command(args: &[String]) -> Result<(), String> {
 }
 
 /// Dispatch of the `graph` command family (A-mode serving surfaces).
-pub fn graph_command(args: &[String]) -> Result<(), String> {
+pub fn graph_command(args: &[String]) -> Result<(), SourceUnavailable> {
     match args.first().map(|s| s.as_str()) {
         Some("infill") => graph_infill_command(&args[1..]),
-        _ => Err(
-            "graph commands: infill --artifact <scored R4G1> --skeleton <token ids, _ for free> [--teacher <TLA container>]"
-                .to_owned(),
-        ),
+        _ => Err(SourceUnavailable::new(
+            "graph commands: infill --artifact <scored R4G1> --skeleton <token ids, _ for free> [--teacher <TLA container>]",
+        )),
     }
 }
 
@@ -2809,9 +2817,9 @@ pub fn run(args: &[String]) -> Result<(), String> {
         }
         Some("recommend-scale") => recommend_scale::run(&args[1..]).map_err(|e| e.to_string())?,
         Some("score") => score_command(&args[1..])?,
-        Some("graph") => graph_command(&args[1..])?,
-        Some("cd-compile") => cd_compile_command(&args[1..])?,
-        Some("quantum-eval") => quantum_eval_command(&args[1..])?,
+        Some("graph") => graph_command(&args[1..]).map_err(|e| e.to_string())?,
+        Some("cd-compile") => cd_compile_command(&args[1..]),
+        Some("quantum-eval") => quantum_eval_command(&args[1..]),
         _ => {
             println!(
                 "R4 transformerless — compile a mul-free table artifact\n\
@@ -2831,7 +2839,7 @@ pub fn run(args: &[String]) -> Result<(), String> {
     Ok(())
 }
 
-pub fn cd_compile_command(args: &[String]) -> Result<(), String> {
+pub fn cd_compile_command(args: &[String]) {
     use uor_r4_core::transformerless::bott_fock::BottFockContextStore;
     use uor_r4_core::transformerless::cd_space::{
         CayleyDicksonVector, ComplexNumber, Octonion, Quaternion,
@@ -2864,10 +2872,9 @@ pub fn cd_compile_command(args: &[String]) -> Result<(), String> {
     println!("Folded Matrix Dimension: 16x16 (256 real parameters)");
     println!("Processed Tokens: {}", store.token_count());
     println!("Context Scaling Complexity: O(1) Memory, O(1) Token Update");
-    Ok(())
 }
 
-pub fn quantum_eval_command(_args: &[String]) -> Result<(), String> {
+pub fn quantum_eval_command(_args: &[String]) {
     use std::time::Instant;
     use uor_r4_core::transformerless::bott_fock::BottFockContextStore;
 
@@ -2894,7 +2901,6 @@ pub fn quantum_eval_command(_args: &[String]) -> Result<(), String> {
             n, 0.8420, "1.0 KB (O(1))", per_token_us
         );
     }
-    Ok(())
 }
 
 #[cfg(test)]

@@ -117,6 +117,7 @@ fn graph_infill_arguments_fail_closed() {
     assert!(
         missing_artifact
             .expect_err("artifact is required")
+            .reason
             .contains("--artifact")
     );
 
@@ -127,6 +128,7 @@ fn graph_infill_arguments_fail_closed() {
     assert!(
         missing_skeleton
             .expect_err("skeleton is required")
+            .reason
             .contains("--skeleton")
     );
 
@@ -139,6 +141,7 @@ fn graph_infill_arguments_fail_closed() {
     assert!(
         bad_slot
             .expect_err("non-numeric slot is rejected")
+            .reason
             .contains("invalid skeleton slot")
     );
 
@@ -146,6 +149,7 @@ fn graph_infill_arguments_fail_closed() {
     assert!(
         unknown_flag
             .expect_err("unknown flags are rejected")
+            .reason
             .contains("unknown graph infill option")
     );
 
@@ -153,6 +157,7 @@ fn graph_infill_arguments_fail_closed() {
     assert!(
         unknown_family
             .expect_err("unknown graph subcommands are rejected")
+            .reason
             .contains("graph commands")
     );
 }
