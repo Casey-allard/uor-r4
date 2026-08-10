@@ -9,7 +9,7 @@ use std::path::PathBuf;
 use uor_r4_api::compile::{
     compile, CompileOptions, CompileOutcome, CompileRequest, QualityProfile, Stage,
 };
-use uor_r4_api::engine::{AbiVersion, EngineParts, LoadError, PredictOutput, R4Engine};
+use uor_r4_api::engine::{AbiVersion, EngineParts, PredictOutput, R4Engine};
 use uor_r4_api::Tokenizer;
 use uor_r4_graph_format::{
     FORMAT_VERSION_MAJOR, FORMAT_VERSION_MINOR, INFERENCE_OPERATION_CONTRACT_VERSION,
@@ -90,14 +90,17 @@ fn engine_load_rejects_garbage_graph() {
         score_report: None,
     };
     match R4Engine::load(parts) {
-        Err(LoadError::InvalidGraph(_)) => {}
-        other => panic!("expected InvalidGraph, got {}", outcome_label(other)),
+        Err(error) => assert!(error.reason.contains("invalid R4G1 graph"), "{error}"),
+        other => panic!(
+            "expected an invalid-graph failure, got {}",
+            outcome_label(other)
+        ),
     }
 }
 
 #[test]
 fn engine_load_rejects_garbage_score_report_after_valid_graph_shape() {
-    // A graph that fails structural parse still reports InvalidGraph
+    // A graph that fails structural parse still reports the graph failure
     // before the score report is examined (fail-fast order).
     let parts = EngineParts {
         graph: &[],
@@ -106,12 +109,15 @@ fn engine_load_rejects_garbage_score_report_after_valid_graph_shape() {
         score_report: Some(b"{not json"),
     };
     match R4Engine::load(parts) {
-        Err(LoadError::InvalidGraph(_)) => {}
-        other => panic!("expected InvalidGraph, got {}", outcome_label(other)),
+        Err(error) => assert!(error.reason.contains("invalid R4G1 graph"), "{error}"),
+        other => panic!(
+            "expected an invalid-graph failure, got {}",
+            outcome_label(other)
+        ),
     }
 }
 
-fn outcome_label(result: Result<R4Engine, LoadError>) -> String {
+fn outcome_label(result: Result<R4Engine, uor_r4_api::SourceUnavailable>) -> String {
     match result {
         Ok(_) => "Ok(engine)".to_owned(),
         Err(error) => format!("Err({error})"),
@@ -130,9 +136,10 @@ fn engine_errors_implement_std_error() {
         Err(error) => error,
         Ok(_) => panic!("garbage graph must fail"),
     };
-    // Display is non-empty and the wrapped FormatError is chained.
+    // The sanctioned SourceUnavailable is a leaf std::error::Error: its full
+    // diagnostic is carried inline in Display, with no wrapped source.
     assert!(!error.to_string().is_empty());
-    assert!(error.source().is_some());
+    assert!(error.source().is_none());
 }
 
 #[test]
@@ -282,12 +289,14 @@ fn e2e_compile_then_engine_load() {
         score_report: Some(&model.score_report),
     });
     match mismatch_result {
-        Err(LoadError::TokenizerCidMismatch { expected, actual }) => {
-            assert!(expected.starts_with("blake3:"));
-            assert!(actual.starts_with("blake3:"));
+        Err(error) => {
+            // The sanctioned reason carries both the header-expected and the
+            // loaded tokenizer CIDs.
+            assert!(error.reason.contains("tokenizer_cid mismatch"), "{error}");
+            assert_eq!(error.reason.matches("blake3:").count(), 2, "{error}");
         }
         other => panic!(
-            "expected TokenizerCidMismatch, got {}",
+            "expected a tokenizer_cid mismatch, got {}",
             outcome_label(other)
         ),
     }

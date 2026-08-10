@@ -33,9 +33,7 @@
 use std::cell::RefCell;
 use std::path::{Path, PathBuf};
 
-use uor_r4_api::engine::{
-    EngineParts, InferenceWitness, LoadError, R4Engine, WitnessVerificationError,
-};
+use uor_r4_api::engine::{EngineParts, InferenceWitness, R4Engine, WitnessVerificationError};
 use uor_r4_core::transformerless::compiler::SIG_BYTES;
 use uor_r4_core::transformerless::scenarios::Tokenizer;
 
@@ -166,11 +164,17 @@ impl R4g1State {
             tokenizer: None,
             score_report: score_report.as_deref(),
         })
-        .map_err(|error| match error {
-            LoadError::InvalidSignatureArtifact | LoadError::TeacherTooLarge => {
-                format!("{}: {error}", teacher_path.display())
-            }
-            other => format!("{}: {other}", graph_path.display()),
+        .map_err(|error| {
+            // The engine loader now returns a single sanctioned
+            // SourceUnavailable whose reason names the failing part; attribute
+            // teacher-artifact reasons to the teacher path, the rest to the
+            // graph path.
+            let path = if error.reason.contains("teacher") {
+                teacher_path.display()
+            } else {
+                graph_path.display()
+            };
+            format!("{path}: {error}")
         })?;
         let tokenizer = teacher_path
             .parent()

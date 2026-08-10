@@ -119,6 +119,7 @@ use uor_r4_graph_format::{
     ContractVersion, FormatError, GraphView, ObservedBound, FORMAT_VERSION_MAJOR,
     FORMAT_VERSION_MINOR, INFERENCE_OPERATION_CONTRACT_VERSION,
 };
+use uor_r4_model_source::SourceUnavailable;
 
 /// The resolution status of a scored prediction. Alias of the production
 /// scorer's [`ScoreStatus`] — no second definition of the status space.
@@ -160,62 +161,6 @@ impl AbiVersion {
             format_minor: FORMAT_VERSION_MINOR,
             contract: INFERENCE_OPERATION_CONTRACT_VERSION,
             api_crate_version: env!("CARGO_PKG_VERSION"),
-        }
-    }
-}
-
-/// Focused load-time failures of [`R4Engine::load`].
-#[derive(Debug)]
-pub enum LoadError {
-    /// The graph bytes failed the format crate's two-stage structural
-    /// validation or CID verification.
-    InvalidGraph(FormatError),
-    /// The signature artifact is not a TLA3/TLA4/TLA5 teacher container.
-    InvalidSignatureArtifact,
-    /// The score report bytes are not well-formed JSON.
-    InvalidScoreReport(String),
-    /// The tokenizer bytes are not a well-formed binary tokenizer.
-    InvalidTokenizer,
-    /// The graph's Rule 1+2 quality digresses from the declared quality
-    /// basis (see [`validate_quality_report`]).
-    QualityGate(String),
-    /// The production scorer rejected the validated parts.
-    Scorer(String),
-    /// The teacher token table exceeds the u32 token-id space.
-    TeacherTooLarge,
-    /// The loaded tokenizer CID does not match the R4G1 header's tokenizer_cid.
-    TokenizerCidMismatch { expected: String, actual: String },
-}
-
-impl fmt::Display for LoadError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            LoadError::InvalidGraph(error) => write!(f, "invalid R4G1 graph: {error}"),
-            LoadError::InvalidSignatureArtifact => {
-                write!(f, "not a TLA3/TLA4/TLA5 teacher artifact")
-            }
-            LoadError::InvalidScoreReport(message) => {
-                write!(f, "invalid score report: {message}")
-            }
-            LoadError::InvalidTokenizer => write!(f, "invalid tokenizer bytes"),
-            LoadError::QualityGate(message) => write!(f, "{message}"),
-            LoadError::Scorer(message) => write!(f, "{message}"),
-            LoadError::TeacherTooLarge => write!(f, "teacher token table too large"),
-            LoadError::TokenizerCidMismatch { expected, actual } => {
-                write!(
-                    f,
-                    "tokenizer_cid mismatch: header expected {expected}, loaded {actual}"
-                )
-            }
-        }
-    }
-}
-
-impl std::error::Error for LoadError {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        match self {
-            LoadError::InvalidGraph(error) => Some(error),
-            _ => None,
         }
     }
 }
@@ -1073,34 +1018,45 @@ impl R4Engine {
     /// supplies the compressed token rows used to derive input
     /// signatures. EXCT is not enabled because its reference
     /// implementation performs probe-time floating-point quantization.
-    pub fn load(parts: EngineParts<'_>) -> Result<Self, LoadError> {
-        // Fail fast with a typed format error before any scorer state is
-        // built (the scorer re-validates internally; this surfaces the
-        // format crate's focused error at the library boundary).
-        let view = GraphView::parse(parts.graph).map_err(|e| LoadError::InvalidGraph(e.reason))?;
-        view.verify_cids()
-            .map_err(|k| LoadError::InvalidGraph(k.as_format()))?;
+    pub fn load(parts: EngineParts<'_>) -> Result<Self, SourceUnavailable> {
+        // Fail fast with the format crate's focused reason before any scorer
+        // state is built (the scorer re-validates internally). Every part is
+        // an external byte source; a malformed part is reported as a
+        // SourceUnavailable with the specific diagnostic preserved. Failures
+        // that operate on the already-parsed-and-CID-verified graph (scorer
+        // rebuild, step state, addressability) are self-produced defects and
+        // panic (R5, #510).
+        let view = GraphView::parse(parts.graph)
+            .map_err(|e| SourceUnavailable::new(format!("invalid R4G1 graph: {}", e.reason)))?;
+        view.verify_cids().map_err(|k| {
+            SourceUnavailable::new(format!("invalid R4G1 graph: {}", k.as_format()))
+        })?;
         if let Some(tokenizer_bytes) = parts.tokenizer {
             let expected = view
                 .head()
-                .ok_or(FormatError::MissingHead)
-                .map_err(LoadError::InvalidGraph)?
+                .ok_or_else(|| {
+                    SourceUnavailable::new(format!(
+                        "invalid R4G1 graph: {}",
+                        FormatError::MissingHead
+                    ))
+                })?
                 .tokenizer_cid();
             let actual = blake3::hash(tokenizer_bytes);
             if expected.0 != [0u8; 32] && expected.0 != *actual.as_bytes() {
-                return Err(LoadError::TokenizerCidMismatch {
-                    expected: format!("blake3:{}", blake3::Hash::from(expected.0).to_hex()),
-                    actual: format!("blake3:{actual}"),
-                });
+                return Err(SourceUnavailable::new(format!(
+                    "tokenizer_cid mismatch: header expected blake3:{}, loaded blake3:{actual}",
+                    blake3::Hash::from(expected.0).to_hex()
+                )));
             }
         }
         let artifacts = compiler::parse_artifacts(parts.signature_artifact)
-            .ok_or(LoadError::InvalidSignatureArtifact)?;
+            .ok_or_else(|| SourceUnavailable::new("not a TLA3/TLA4/TLA5 teacher artifact"))?;
         let score_report = parts
             .score_report
             .map(|bytes| {
-                serde_json::from_slice::<serde_json::Value>(bytes)
-                    .map_err(|error| LoadError::InvalidScoreReport(error.to_string()))
+                serde_json::from_slice::<serde_json::Value>(bytes).map_err(|error| {
+                    SourceUnavailable::new(format!("invalid score report: {error}"))
+                })
             })
             .transpose()?;
         let root_top_b = score_report
@@ -1126,30 +1082,29 @@ impl R4Engine {
             root_top_b,
             exct_top_x,
         )
-        .ok_or_else(|| {
-            LoadError::Scorer(
-                "signature artifact is not a scorer (parse, CID, or teacher_cid)".to_owned(),
-            )
-        })?;
+        .expect("engine load: scorer rebuild from the parsed and CID-verified graph bytes");
         if let Some(report) = score_report.as_ref() {
             if let Some(message) = validate_quality_report(report) {
-                return Err(LoadError::QualityGate(message));
+                return Err(SourceUnavailable::new(message));
             }
         }
         let tokenizer = parts
             .tokenizer
-            .map(|bytes| Tokenizer::from_bytes(bytes).ok_or(LoadError::InvalidTokenizer))
+            .map(|bytes| {
+                Tokenizer::from_bytes(bytes)
+                    .ok_or_else(|| SourceUnavailable::new("invalid tokenizer bytes"))
+            })
             .transpose()?;
 
         let policy = StatusPolicy::from_report(score_report.as_ref());
         let step_supported = !scorer.has_legacy_exct();
-        let step = scorer.step_state(WIDENED_TOP_M).ok_or_else(|| {
-            LoadError::Scorer("scorer does not support a deployed step state".to_owned())
-        })?;
+        let step = scorer
+            .step_state(WIDENED_TOP_M)
+            .expect("engine load: scorer built from a validated graph supports a step state");
         let token_rows = u32::try_from(artifacts.token_codes.len() / STAGES)
-            .map_err(|_| LoadError::TeacherTooLarge)?;
+            .map_err(|_| SourceUnavailable::new("teacher token table too large"))?;
         let artifact_kappa = r4g1::artifact_kappa(parts.graph)
-            .ok_or_else(|| LoadError::Scorer("R4G1 artifact is not addressable".to_string()))?;
+            .expect("engine load: the validated R4G1 artifact is addressable");
         // The graph is known addressable here (artifact_kappa succeeded), so a
         // `None` is a genuinely absent NODE section, kept as such.
         let node_section_kappa = r4g1::section_kappa(parts.graph, SectionId::NODE);
@@ -1301,17 +1256,5 @@ mod tests {
         let decoded: InferenceResponse =
             serde_json::from_str(&json).expect("deserialize InferenceResponse");
         assert_eq!(res, decoded);
-    }
-
-    #[test]
-    fn test_load_error_tokenizer_cid_mismatch_display() {
-        let err = LoadError::TokenizerCidMismatch {
-            expected: "blake3:1111".to_string(),
-            actual: "blake3:2222".to_string(),
-        };
-        assert_eq!(
-            err.to_string(),
-            "tokenizer_cid mismatch: header expected blake3:1111, loaded blake3:2222"
-        );
     }
 }

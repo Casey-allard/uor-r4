@@ -31,7 +31,7 @@ pub use compile::{
 };
 pub use engine::{
     validate_quality_report, AbiVersion, AbstainOutcome, EngineParts, GenerateStatus,
-    InferenceRequest, InferenceResponse, InferenceWitness, LoadError, PolicyCounters, PolicyStatus,
+    InferenceRequest, InferenceResponse, InferenceWitness, PolicyCounters, PolicyStatus,
     PredictDecision, PredictOutcome, PredictOutput, R4Engine, ResolutionStatus, StatusAction,
     StatusPolicy, WitnessVerificationError,
 };
@@ -41,3 +41,7 @@ pub use engine::{
 // and decode against the same vocabulary the bundle was compiled with.
 pub use uor_r4_core::transformerless::scenarios::Tokenizer;
 pub use uor_r4_graph_certify::ScoreStatus;
+// The sanctioned host-source failure type `compile` and `R4Engine::load`
+// return (R5): re-exported so consumers name it without depending on
+// `uor-r4-model-source` directly.
+pub use uor_r4_model_source::SourceUnavailable;
