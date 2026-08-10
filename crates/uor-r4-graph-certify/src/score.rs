@@ -439,26 +439,19 @@ impl Smoothing {
 
     /// Parse a `--smoothing` flag value: `add-one` | `witten-bell` |
     /// `abs-disc:δ` with δ finite and in (0, 1].
-    pub fn parse(value: &str) -> Result<Smoothing, String> {
+    ///
+    /// Total: `None` means the value is not a valid smoothing spec (an
+    /// unknown rule, a non-numeric δ, or a δ outside the finite (0, 1]
+    /// range). The caller supplies the user-facing message (R5, #510).
+    pub fn parse(value: &str) -> Option<Smoothing> {
         match value {
-            "add-one" => Ok(Smoothing::AddOne),
-            "witten-bell" => Ok(Smoothing::WittenBell),
+            "add-one" => Some(Smoothing::AddOne),
+            "witten-bell" => Some(Smoothing::WittenBell),
             _ => {
-                let Some(delta) = value.strip_prefix("abs-disc:") else {
-                    return Err(format!(
-                        "invalid --smoothing value: {value} \
-                         (expected add-one | witten-bell | abs-disc:δ)"
-                    ));
-                };
-                let delta: f64 = delta
-                    .parse()
-                    .map_err(|_| format!("invalid --smoothing abs-disc delta: {delta}"))?;
-                if !delta.is_finite() || delta <= 0.0 || delta > 1.0 {
-                    return Err(format!(
-                        "--smoothing abs-disc delta must be finite and in (0, 1]: {delta}"
-                    ));
-                }
-                Ok(Smoothing::AbsoluteDiscount(delta))
+                let delta = value.strip_prefix("abs-disc:")?;
+                let delta: f64 = delta.parse().ok()?;
+                (delta.is_finite() && delta > 0.0 && delta <= 1.0)
+                    .then_some(Smoothing::AbsoluteDiscount(delta))
             }
         }
     }

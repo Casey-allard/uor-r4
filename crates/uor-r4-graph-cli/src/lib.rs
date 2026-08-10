@@ -920,7 +920,12 @@ fn parse_score_options(args: &[String]) -> Result<ScoreOptions, String> {
                     .map_err(|_| format!("invalid --witness-sample value: {value}"))?;
             }
             "--smoothing" => {
-                options.smoothing = score::Smoothing::parse(value)?;
+                options.smoothing = score::Smoothing::parse(value).ok_or_else(|| {
+                    format!(
+                        "invalid --smoothing value: {value} \
+                         (expected add-one | witten-bell | abs-disc:δ with δ finite in (0, 1])"
+                    )
+                })?;
             }
             "--scoring-variant" => {
                 options.scoring_variant = match value.as_str() {
