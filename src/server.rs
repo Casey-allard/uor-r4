@@ -1674,12 +1674,15 @@ fn compile_bundle_from_source(
         set_r4g1_compile_progress(status, progress, &message);
         std::thread::sleep(Duration::from_millis(500));
     }
-    compiler.join().map_err(|payload| {
-        format!(
-            "teacher compilation panicked: {}",
-            panic_payload_message(&*payload)
-        )
-    })??;
+    compiler
+        .join()
+        .map_err(|payload| {
+            format!(
+                "teacher compilation panicked: {}",
+                panic_payload_message(&*payload)
+            )
+        })?
+        .map_err(|error| error.to_string())?;
     for file in [
         "tless_artifacts.bin",
         "tless_store.bin",

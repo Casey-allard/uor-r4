@@ -473,7 +473,8 @@ fn compile(args: &CompileArgs) -> Result<(), RunError> {
     if args.canonical_deterministic {
         std::env::set_var("TLESS_CANONICAL_DETERMINISTIC", "1");
     }
-    transformerless_command::compile_hugging_face(&values).map_err(RunError::Command)
+    transformerless_command::compile_hugging_face(&values)
+        .map_err(|error| RunError::Command(error.to_string()))
 }
 
 fn download(args: &DownloadArgs) -> Result<(), RunError> {
