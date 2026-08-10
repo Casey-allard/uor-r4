@@ -91,9 +91,13 @@ export class UorR4Router {
      */
     get_vocab_size(): number;
     /**
-     * Imports a JSON string and restores the router system database
+     * Imports a JSON string and restores the router system database. Returns
+     * `true` when the string is a valid serialized router state and was
+     * applied, `false` when it could not be parsed. Import is total: a
+     * malformed input is the absence of a state to restore, reported as
+     * `false`, not a thrown JS error (R5).
      */
-    import_state(json_str: string): void;
+    import_state(json_str: string): boolean;
     /**
      * Indexes an entire block of text split into sentences
      */
@@ -223,7 +227,6 @@ export interface InitOutput {
     readonly __wbg_get_uorr4router_geometry_type: (a: number) => number;
     readonly __wbg_set_uorr4router_geometry_type: (a: number, b: number) => void;
     readonly __wbg_uorr4router_free: (a: number, b: number) => void;
-    readonly init_wasm: () => void;
     readonly uorr4router_banded_storage: (a: number) => number;
     readonly uorr4router_calculate_resonance: (a: number, b: number, c: number) => any;
     readonly uorr4router_clear_corpus: (a: number) => void;
@@ -247,7 +250,7 @@ export interface InitOutput {
     readonly uorr4router_get_top_resonances: (a: number, b: number, c: number, d: number, e: number, f: number) => any;
     readonly uorr4router_get_total_indexed_sentences: (a: number) => number;
     readonly uorr4router_get_vocab_size: (a: number) => number;
-    readonly uorr4router_import_state: (a: number, b: number, c: number) => [number, number];
+    readonly uorr4router_import_state: (a: number, b: number, c: number) => number;
     readonly uorr4router_index_corpus: (a: number, b: number, c: number, d: number, e: number) => number;
     readonly uorr4router_index_default_corpus: (a: number) => void;
     readonly uorr4router_index_sentence: (a: number, b: number, c: number, d: number, e: number) => void;
@@ -272,11 +275,11 @@ export interface InitOutput {
     readonly vsa_encode_event: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number) => [number, number];
     readonly vsa_encode_graph_edge: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number) => [number, number];
     readonly vsa_encode_statement: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number) => [number, number];
+    readonly init_wasm: () => void;
     readonly __wbindgen_free: (a: number, b: number, c: number) => void;
     readonly __wbindgen_malloc: (a: number, b: number) => number;
     readonly __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;
     readonly __wbindgen_externrefs: WebAssembly.Table;
-    readonly __externref_table_dealloc: (a: number) => void;
     readonly __wbindgen_start: () => void;
 }
 

@@ -299,16 +299,19 @@ export class UorR4Router {
         return ret >>> 0;
     }
     /**
-     * Imports a JSON string and restores the router system database
+     * Imports a JSON string and restores the router system database. Returns
+     * `true` when the string is a valid serialized router state and was
+     * applied, `false` when it could not be parsed. Import is total: a
+     * malformed input is the absence of a state to restore, reported as
+     * `false`, not a thrown JS error (R5).
      * @param {string} json_str
+     * @returns {boolean}
      */
     import_state(json_str) {
         const ptr0 = passStringToWasm0(json_str, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len0 = WASM_VECTOR_LEN;
         const ret = wasm.uorr4router_import_state(this.__wbg_ptr, ptr0, len0);
-        if (ret[1]) {
-            throw takeFromExternrefTable0(ret[0]);
-        }
+        return ret !== 0;
     }
     /**
      * Indexes an entire block of text split into sentences
@@ -816,12 +819,6 @@ function passStringToWasm0(arg, malloc, realloc) {
 
     WASM_VECTOR_LEN = offset;
     return ptr;
-}
-
-function takeFromExternrefTable0(idx) {
-    const value = wasm.__wbindgen_externrefs.get(idx);
-    wasm.__externref_table_dealloc(idx);
-    return value;
 }
 
 let cachedTextDecoder = new TextDecoder('utf-8', { ignoreBOM: true, fatal: true });

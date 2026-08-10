@@ -2,6 +2,7 @@
   "name": "uor-r4-wasm-router",
   "type": "module",
   "version": "0.1.0",
+  "license": "MIT",
   "files": [
     "uor_r4_wasm_router_bg.wasm",
     "uor_r4_wasm_router.js",
