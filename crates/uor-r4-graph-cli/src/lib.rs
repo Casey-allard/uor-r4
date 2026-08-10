@@ -1113,7 +1113,8 @@ pub fn score_command(args: &[String]) -> Result<(), String> {
                 path.display(),
                 repro::container_kappa(&bytes)
             );
-            let (regions, structural) = score::recover_from_artifact(&bytes)?;
+            let (regions, structural) =
+                score::recover_from_artifact(&bytes).map_err(|error| error.to_string())?;
             eprintln!(
                 "score: recovered {} regions from {}",
                 regions.len(),
@@ -1207,7 +1208,8 @@ pub fn score_command(args: &[String]) -> Result<(), String> {
         &corpus,
         &held_out,
         &config,
-    )?;
+    )
+    .ok_or_else(|| "gate C could not evaluate an empty held-out split".to_owned())?;
     // The "gate c phase:" lines above break this phase down further (#471);
     // here it is one line so the score-level total stays complete.
     phases.mark("gate c evaluation");

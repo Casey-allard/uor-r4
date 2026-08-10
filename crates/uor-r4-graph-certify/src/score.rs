@@ -1807,13 +1807,25 @@ pub fn emit_scored_r4g1(
 /// re-induced inputs by construction (deterministic double-run).
 pub fn recover_from_artifact(
     r4g1: &[u8],
-) -> Result<(Vec<RegionParams>, Vec<StructuralEdge>), String> {
-    let view = uor_r4_graph_format::GraphView::parse(r4g1)
-        .map_err(|error| format!("invalid cover artifact: {error}"))?;
-    view.verify_cids()
-        .map_err(|error| format!("cover artifact has bad CIDs: {error}"))?;
-    let regions = regions_from_view(&view)
-        .ok_or_else(|| "cover artifact is missing its scoring regions".to_owned())?;
+) -> Result<(Vec<RegionParams>, Vec<StructuralEdge>), uor_r4_graph_format::NotAProduct> {
+    // The `--cover` bytes are an external file: validated as a product. A
+    // structural failure is a `NotAProduct` (parse propagates one directly);
+    // a CID mismatch is folded through its `FormatError` bridge; a view that
+    // parses and verifies but cannot yield scoring regions is reported as a
+    // missing NODE section (R5, #510).
+    let view = uor_r4_graph_format::GraphView::parse(r4g1)?;
+    view.verify_cids().map_err(|kappa| {
+        uor_r4_graph_format::NotAProduct::new(
+            uor_r4_graph_format::ObjectKind::Graph,
+            kappa.as_format(),
+        )
+    })?;
+    let regions = regions_from_view(&view).ok_or_else(|| {
+        uor_r4_graph_format::NotAProduct::new(
+            uor_r4_graph_format::ObjectKind::Graph,
+            uor_r4_graph_format::FormatError::MissingNodeSection,
+        )
+    })?;
     let structural = structural_edges_from_view(&view);
     Ok((regions, structural))
 }
@@ -2701,7 +2713,7 @@ fn generate_greedy_repetition_rate(
     rotations: &[usize; compiler::WINDOW + 1],
     seed: &[u32],
     tokens_to_generate: usize,
-) -> Result<f64, String> {
+) -> f64 {
     let mut window = [0u32; compiler::WINDOW];
     let mut recent_tokens = std::collections::VecDeque::with_capacity(32);
     let seed_len = seed.len();
@@ -2749,7 +2761,7 @@ fn generate_greedy_repetition_rate(
         recent_tokens.push_back(token);
     }
 
-    Ok(duplicate_count as f64 / tokens_to_generate as f64)
+    duplicate_count as f64 / tokens_to_generate as f64
 }
 
 fn baseline_greedy_repetition_rate(
@@ -3337,7 +3349,7 @@ pub fn evaluate_gate_c(
     corpus: &Corpus,
     held_out: &[Observation],
     config: &ScoreConfig,
-) -> Result<GateCOutcome, String> {
+) -> Option<GateCOutcome> {
     // #471: every whole-corpus pass below announces its own cost, and the
     // arm groups this run was told not to build are resolved up front so the
     // skip is one decision read in one place.
@@ -3751,7 +3763,7 @@ pub fn evaluate_gate_c(
         .par_iter()
         .enumerate()
         .map(|(index, observation)| evaluate_gate_c_row(index, observation, &context))
-        .collect::<Result<Vec<_>, _>>()?;
+        .collect::<Vec<_>>();
     phases.mark(&format!("scoring {} positions", scored.len()));
     for row in rows {
         hits_legacy += u64::from(row.hits[0]);
@@ -4004,7 +4016,8 @@ pub fn evaluate_gate_c(
     }
     let n = scored.len();
     if n == 0 {
-        return Err("held-out split is empty; cannot evaluate".to_owned());
+        // Nothing to measure: a total "cannot evaluate" answer, not an error.
+        return None;
     }
     let nf = n as f64;
     let metrics = |hits: u64, bits: f64| {
@@ -4380,13 +4393,8 @@ pub fn evaluate_gate_c(
         let pos = obs.position as usize;
         if pos >= 32 && corpus.story[pos] == corpus.story[pos - 32] {
             let seed = &corpus.input[pos - 32..pos];
-            graph_rep_sum += generate_greedy_repetition_rate(
-                &scorer_with_exct,
-                artifacts,
-                &rotations,
-                seed,
-                64,
-            )?;
+            graph_rep_sum +=
+                generate_greedy_repetition_rate(&scorer_with_exct, artifacts, &rotations, seed, 64);
             baseline_rep_sum +=
                 baseline_greedy_repetition_rate(store, artifacts, &rotations, seed, 64);
             probe_count += 1;
@@ -4406,7 +4414,7 @@ pub fn evaluate_gate_c(
 
     phases.mark("reduction, per-status rollups and replay probes");
     phases.total();
-    Ok(outcome)
+    Some(outcome)
 }
 
 /// The `score_report.json` document. Schema history: 1 = the three-set
@@ -4703,7 +4711,7 @@ fn evaluate_gate_c_row(
     index: usize,
     observation: &Observation,
     context: &GateCContext<'_>,
-) -> Result<GateCRow, String> {
+) -> GateCRow {
     let position = observation.position as usize;
     let teacher_argmax = context.corpus.t_argmax[position];
     let next = context.corpus.next[position];
@@ -5308,7 +5316,7 @@ fn evaluate_gate_c_row(
         )
         .is_some();
 
-    Ok(GateCRow {
+    GateCRow {
         hits,
         bits,
         status_index,
@@ -5380,7 +5388,7 @@ fn evaluate_gate_c_row(
         hit_latent_shuffled: latent_shuffled_selected == teacher_argmax,
         bits_latent_shuffled,
         latent_shuffled_live,
-    })
+    }
 }
 
 /// Gate C table (graph_no_exct/graph_with_exct/tla3_baseline); 2 = the

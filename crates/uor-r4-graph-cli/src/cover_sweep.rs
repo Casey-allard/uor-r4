@@ -495,7 +495,8 @@ pub fn run_point(
         &inputs.corpus,
         &inputs.held_out,
         score_config,
-    )?;
+    )
+    .ok_or_else(|| "gate C could not evaluate an empty held-out split".to_owned())?;
 
     let cover = &induced.cover;
     let mut per_depth = vec![0u32; cover.max_depth];
@@ -651,6 +652,7 @@ pub fn reconstruction_null(
             held,
             score_config,
         )
+        .ok_or_else(|| "gate C could not evaluate an empty held-out split".to_owned())
     };
 
     let real_gate = score_with(&emissions)?;
