@@ -47,11 +47,6 @@ statement = "The packed zero-allocation ROUT-bytecode routing-program evaluator 
 # activation gate. Registration only — the modules are unchanged.
 
 [[claim]]
-id = "region-store-dormant"
-level = "open"
-statement = "A standalone region-store surface (crates/uor-r4-core/src/transformerless/region_store.rs) is retained off the serving path — unreferenced by any shipped or test path. Kept, not deleted, as an alternative region-storage mechanism. Activation gate: a region-store wired into the compile/serving path scoring at or above the shipped store on a pre-declared held-out slice."
-
-[[claim]]
 id = "endomorphism-dormant"
 level = "open"
 statement = "The endomorphic multiplication algebra End_R(V) ≅ Cl(0,8) operator store (crates/uor-r4-core/src/transformerless/endomorphism.rs, after Furey 2026 arXiv:2607.18450) is retained off the serving path — referenced only by the dormant lie_jordan substrate (lie-jordan-dormant). Kept as the operator algebra a Lie-Jordan re-grounding would need. Activation gate: shared with lie-jordan-dormant — a positive syntactic-morphism contribution over a pre-declared null."
