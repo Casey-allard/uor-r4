@@ -77,16 +77,6 @@ level = "open"
 statement = "The fairness/provenance harness — source-bias amplification, rare-group erasure, and provenance-deletion (crates/uor-r4-graph-certify/src/fairness_provenance.rs; PDF §14 / Plan §9.21) — is retained off the serving path. Activation gate: a fairness/provenance result adopted as a required gate on a pre-declared bar."
 
 [[claim]]
-id = "long-context-dormant"
-level = "open"
-statement = "The long-context multi-timescale state certification (crates/uor-r4-graph-certify/src/long_context.rs, certify_long_context) is retained off the serving path as a certification routine. Activation gate: a long-context behaviour result adopted as a required gate on a pre-declared bar."
-
-[[claim]]
-id = "compiler-scaling-dormant"
-level = "open"
-statement = "The compiler-parallelism benchmark and scaling-certificate engine (crates/uor-r4-graph-certify/src/compiler_scaling.rs; docs/compiler_scaling_certificate.md / #175) is retained off the serving path as a benchmark/certificate surface. Activation gate: a scaling certificate adopted as a required gate on a pre-declared parallelism bar."
-
-[[claim]]
 id = "reference-compiler-ir-dormant"
 level = "open"
 statement = "The reference floating-point semantic compiler and IR (crates/uor-r4-graph-compiler/src/reference_compiler_ir.rs; PDF §§7,11,17 / #129) is retained off the serving path as the research oracle the shipped integer compiler is checked against. Activation gate: a reference-IR optimisation ported to the shipped integer path scoring at or above it on a pre-declared held-out slice."
@@ -109,4 +99,4 @@ statement = "The unsupervised intervention and counterfactual behavioral-probes 
 [[claim]]
 id = "patch-overlay-dormant"
 level = "open"
-statement = "The graph-patch (PTCH) overlay mechanism — section emission (crates/uor-r4-graph-compiler/src/patch_induction.rs), the patch-epoch chain overlaying a base graph (crates/uor-r4-graph-runtime/src/patch_chain.rs), and its lifecycle discipline: newest-valid precedence, fork rejection, compaction after 8 layers (crates/uor-r4-graph-certify/src/patch_lifecycle.rs) — is retained off the serving path as a distinct incremental-update mechanism (patch epochs over a base graph rather than full recompile). Activation gate: a patch-overlay serving path scoring at or above a full recompile on a pre-declared held-out slice."
+statement = "The dormant portion of the graph-patch (PTCH) overlay mechanism — section emission (crates/uor-r4-graph-compiler/src/patch_induction.rs) and its lifecycle discipline: newest-valid precedence, fork rejection, compaction after 8 layers (crates/uor-r4-graph-certify/src/patch_lifecycle.rs) — is retained off the serving path as a distinct incremental-update surface (patch epochs over a base graph rather than full recompile). The patch-epoch chain itself (crates/uor-r4-graph-runtime/src/patch_chain.rs) is NOT dormant: it is wired into the serving runtime, held by R4G1Runtime as its patch chain. Activation gate: a patch-overlay serving path built on patch_induction/patch_lifecycle scoring at or above a full recompile on a pre-declared held-out slice."
