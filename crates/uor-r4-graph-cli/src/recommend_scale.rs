@@ -27,6 +27,8 @@
 //! sub-sample sweep (docs/scaling_law.md) measures the real knee, which
 //! supersedes this number.
 
+use uor_r4_model_source::SourceUnavailable;
+
 /// Records that saturate coverage on natural (wiki) text --- the knee, not the
 /// ceiling. See #432.
 const N_REF: f64 = 2_000_000.0;
@@ -83,7 +85,7 @@ struct Config {
 
 /// Read `hidden_size` / `num_hidden_layers` / `vocab_size` from an HF
 /// `config.json` (a directory or the file itself).
-fn config_from_hf(path: &str) -> Result<Config, String> {
+fn config_from_hf(path: &str) -> Result<Config, SourceUnavailable> {
     let p = std::path::Path::new(path);
     let file = if p.is_dir() {
         p.join("config.json")
@@ -91,13 +93,14 @@ fn config_from_hf(path: &str) -> Result<Config, String> {
         p.to_path_buf()
     };
     let text = std::fs::read_to_string(&file)
-        .map_err(|e| format!("cannot read {}: {e}", file.display()))?;
-    let v: serde_json::Value = serde_json::from_str(&text)
-        .map_err(|e| format!("{} is not valid JSON: {e}", file.display()))?;
-    let get = |k: &str| -> Result<f64, String> {
-        v.get(k)
-            .and_then(serde_json::Value::as_f64)
-            .ok_or_else(|| format!("{} has no numeric `{k}`", file.display()))
+        .map_err(|e| SourceUnavailable::new(format!("cannot read {}: {e}", file.display())))?;
+    let v: serde_json::Value = serde_json::from_str(&text).map_err(|e| {
+        SourceUnavailable::new(format!("{} is not valid JSON: {e}", file.display()))
+    })?;
+    let get = |k: &str| -> Result<f64, SourceUnavailable> {
+        v.get(k).and_then(serde_json::Value::as_f64).ok_or_else(|| {
+            SourceUnavailable::new(format!("{} has no numeric `{k}`", file.display()))
+        })
     };
     Ok(Config {
         d_model: get("hidden_size")?,
@@ -118,7 +121,7 @@ fn parse_flag(args: &[String], flag: &str) -> Option<String> {
 }
 
 /// `recommend-scale` entry point.
-pub fn run(args: &[String]) -> Result<(), String> {
+pub fn run(args: &[String]) -> Result<(), SourceUnavailable> {
     if args.iter().any(|a| a == "--help" || a == "-h") {
         println!(
             "recommend-scale --- size an observe run for a teacher (#514)\n\
@@ -132,11 +135,13 @@ pub fn run(args: &[String]) -> Result<(), String> {
     let cfg = if let Some(path) = parse_flag(args, "--config") {
         config_from_hf(&path)?
     } else {
-        let need = |f: &str| -> Result<f64, String> {
+        let need = |f: &str| -> Result<f64, SourceUnavailable> {
             parse_flag(args, f)
-                .ok_or_else(|| format!("missing {f} (or pass --config <hf dir>)"))?
+                .ok_or_else(|| {
+                    SourceUnavailable::new(format!("missing {f} (or pass --config <hf dir>)"))
+                })?
                 .parse::<f64>()
-                .map_err(|_| format!("{f} must be a number"))
+                .map_err(|_| SourceUnavailable::new(format!("{f} must be a number")))
         };
         Config {
             d_model: need("--d-model")?,

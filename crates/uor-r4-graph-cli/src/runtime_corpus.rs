@@ -13,6 +13,7 @@ use std::path::{Path, PathBuf};
 
 use serde::Serialize;
 use uor_r4_core::transformerless::{compiler, runtime};
+use uor_r4_model_source::SourceUnavailable;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct Options {
@@ -39,7 +40,7 @@ struct Manifest {
     store_kappa: String,
 }
 
-fn parse_options(args: &[String]) -> Result<Options, String> {
+fn parse_options(args: &[String]) -> Result<Options, SourceUnavailable> {
     let mut artifacts = None;
     let mut store = None;
     let mut seed_meta = None;
@@ -55,7 +56,7 @@ fn parse_options(args: &[String]) -> Result<Options, String> {
         let flag = &args[index];
         let value = args
             .get(index + 1)
-            .ok_or_else(|| format!("missing value for {flag}"))?;
+            .ok_or_else(|| SourceUnavailable::new(format!("missing value for {flag}")))?;
         match flag.as_str() {
             "--artifacts" => artifacts = Some(PathBuf::from(value)),
             "--store" => store = Some(PathBuf::from(value)),
@@ -63,40 +64,48 @@ fn parse_options(args: &[String]) -> Result<Options, String> {
             "--seed-recs" => seed_recs = Some(PathBuf::from(value)),
             "--out" => output = Some(PathBuf::from(value)),
             "--target" => {
-                let parsed = value
-                    .parse()
-                    .map_err(|_| format!("invalid --target value: {value}"))?;
+                let parsed = value.parse().map_err(|_| {
+                    SourceUnavailable::new(format!("invalid --target value: {value}"))
+                })?;
                 if parsed == 0 {
-                    return Err("--target must be greater than zero".to_owned());
+                    return Err(SourceUnavailable::new("--target must be greater than zero"));
                 }
                 target = Some(parsed);
             }
             "--threads" => {
-                threads = value
-                    .parse()
-                    .map_err(|_| format!("invalid --threads value: {value}"))?;
+                threads = value.parse().map_err(|_| {
+                    SourceUnavailable::new(format!("invalid --threads value: {value}"))
+                })?;
                 if threads == 0 {
-                    return Err("--threads must be greater than zero".to_owned());
+                    return Err(SourceUnavailable::new(
+                        "--threads must be greater than zero",
+                    ));
                 }
             }
-            _ => return Err(format!("unknown runtime-corpus option: {flag}")),
+            _ => {
+                return Err(SourceUnavailable::new(format!(
+                    "unknown runtime-corpus option: {flag}"
+                )));
+            }
         }
         index += 2;
     }
 
+    let missing = |flag: &str| SourceUnavailable::new(format!("missing {flag}"));
     Ok(Options {
-        artifacts: artifacts.ok_or("missing --artifacts")?,
-        store: store.ok_or("missing --store")?,
-        seed_meta: seed_meta.ok_or("missing --seed-meta")?,
-        seed_recs: seed_recs.ok_or("missing --seed-recs")?,
-        output: output.ok_or("missing --out")?,
-        target: target.ok_or("missing --target")?,
+        artifacts: artifacts.ok_or_else(|| missing("--artifacts"))?,
+        store: store.ok_or_else(|| missing("--store"))?,
+        seed_meta: seed_meta.ok_or_else(|| missing("--seed-meta"))?,
+        seed_recs: seed_recs.ok_or_else(|| missing("--seed-recs"))?,
+        output: output.ok_or_else(|| missing("--out"))?,
+        target: target.ok_or_else(|| missing("--target"))?,
         threads,
     })
 }
 
-fn file_kappa(path: &Path) -> Result<String, String> {
-    let bytes = fs::read(path).map_err(|error| format!("{}: {error}", path.display()))?;
+fn file_kappa(path: &Path) -> Result<String, SourceUnavailable> {
+    let bytes = fs::read(path)
+        .map_err(|error| SourceUnavailable::new(format!("{}: {error}", path.display())))?;
     Ok(format!("blake3:{}", blake3::hash(&bytes).to_hex()))
 }
 
@@ -124,7 +133,7 @@ fn append_runtime_record(
     next: u32,
     position: u32,
     prediction: runtime::Prediction,
-) -> Result<(), String> {
+) -> Result<(), SourceUnavailable> {
     let top_tokens = [prediction.token, 0, 0];
     let top_weights = [100, 0, 0];
     let record = compiler::encode_v3_record(
@@ -135,40 +144,42 @@ fn append_runtime_record(
         (position, position.saturating_add(1)),
         (u32::MAX, u32::MAX),
     );
-    records
-        .write_all(&record)
-        .map_err(|error| error.to_string())
+    records.write_all(&record).map_err(SourceUnavailable::from)
 }
 
-pub fn run(args: &[String]) -> Result<(), String> {
+pub fn run(args: &[String]) -> Result<(), SourceUnavailable> {
     let options = parse_options(args)?;
-    fs::create_dir_all(&options.output).map_err(|error| error.to_string())?;
+    fs::create_dir_all(&options.output)?;
 
-    let artifact_bytes = fs::read(&options.artifacts).map_err(|error| error.to_string())?;
-    let art = compiler::parse_artifacts(&artifact_bytes)
-        .ok_or_else(|| format!("invalid artifacts: {}", options.artifacts.display()))?;
-    let store_bytes = fs::read(&options.store).map_err(|error| error.to_string())?;
-    let store = runtime::parse_store(&store_bytes)
-        .ok_or_else(|| format!("invalid store: {}", options.store.display()))?;
+    let artifact_bytes = fs::read(&options.artifacts)?;
+    let art = compiler::parse_artifacts(&artifact_bytes).ok_or_else(|| {
+        SourceUnavailable::new(format!(
+            "invalid artifacts: {}",
+            options.artifacts.display()
+        ))
+    })?;
+    let store_bytes = fs::read(&options.store)?;
+    let store = runtime::parse_store(&store_bytes).ok_or_else(|| {
+        SourceUnavailable::new(format!("invalid store: {}", options.store.display()))
+    })?;
     let seed = compiler::load_corpus_from(
         options
             .seed_meta
             .to_str()
-            .ok_or("seed metadata path is not UTF-8")?,
+            .ok_or_else(|| SourceUnavailable::new("seed metadata path is not UTF-8"))?,
         options
             .seed_recs
             .to_str()
-            .ok_or("seed records path is not UTF-8")?,
+            .ok_or_else(|| SourceUnavailable::new("seed records path is not UTF-8"))?,
     )
-    .ok_or_else(|| "seed corpus is incomplete or malformed".to_owned())?;
+    .ok_or_else(|| SourceUnavailable::new("seed corpus is incomplete or malformed"))?;
     if seed.n == 0 {
-        return Err("seed corpus is empty".to_owned());
+        return Err(SourceUnavailable::new("seed corpus is empty"));
     }
 
     let meta_path = options.output.join("corpus.meta");
     let records_path = options.output.join("corpus.records");
-    let mut records =
-        BufWriter::new(File::create(&records_path).map_err(|error| error.to_string())?);
+    let mut records = BufWriter::new(File::create(&records_path)?);
     let mut runtime = runtime::Runtime::new(&art);
     let mut window = [0u32; compiler::WINDOW];
     let mut previous_story = None;
@@ -222,31 +233,29 @@ pub fn run(args: &[String]) -> Result<(), String> {
         story_id = story_id.saturating_add(1);
         generated_window_len = generated_window_len.min(compiler::WINDOW);
     }
-    records.flush().map_err(|error| error.to_string())?;
+    records.flush()?;
 
     let mut meta = [0u8; 25];
     meta[0..8].copy_from_slice(&(records_written as u64).to_le_bytes());
     meta[8..16].copy_from_slice(&(story_id as u64).to_le_bytes());
     meta[16..24].copy_from_slice(&0x52554E54494D45u64.to_le_bytes());
     meta[24] = 1;
-    fs::write(&meta_path, meta).map_err(|error| error.to_string())?;
+    fs::write(&meta_path, meta)?;
 
     let final_corpus = compiler::load_corpus_from(
         meta_path
             .to_str()
-            .ok_or("output metadata path is not UTF-8")?,
+            .ok_or_else(|| SourceUnavailable::new("output metadata path is not UTF-8"))?,
         records_path
             .to_str()
-            .ok_or("output records path is not UTF-8")?,
+            .ok_or_else(|| SourceUnavailable::new("output records path is not UTF-8"))?,
     )
-    .ok_or_else(|| "runtime corpus failed its own round-trip validation".to_owned())?;
+    .ok_or_else(|| SourceUnavailable::new("runtime corpus failed its own round-trip validation"))?;
     let threads = options.threads.min(final_corpus.n.max(1));
     let (rebuilt_store, _) = runtime::build_store_with_threads(&art, &final_corpus, threads);
     let rebuilt_store_bytes = runtime::store_bytes(&rebuilt_store);
-    fs::write(options.output.join("tless_artifacts.bin"), &artifact_bytes)
-        .map_err(|error| error.to_string())?;
-    fs::write(options.output.join("tless_store.bin"), &rebuilt_store_bytes)
-        .map_err(|error| error.to_string())?;
+    fs::write(options.output.join("tless_artifacts.bin"), &artifact_bytes)?;
+    fs::write(options.output.join("tless_store.bin"), &rebuilt_store_bytes)?;
 
     let manifest = Manifest {
         schema: 1,
@@ -260,12 +269,11 @@ pub fn run(args: &[String]) -> Result<(), String> {
         artifacts_kappa: format!("blake3:{}", blake3::hash(&artifact_bytes).to_hex()),
         store_kappa: runtime::store_kappa(&rebuilt_store),
     };
-    let manifest_json = serde_json::to_vec_pretty(&manifest).map_err(|error| error.to_string())?;
+    let manifest_json = serde_json::to_vec_pretty(&manifest).map_err(SourceUnavailable::from)?;
     fs::write(
         options.output.join("runtime_corpus_manifest.json"),
         manifest_json,
-    )
-    .map_err(|error| error.to_string())?;
+    )?;
 
     println!(
         "runtime corpus complete: {} records ({} seed + {} generated), {} threads, output {}",
