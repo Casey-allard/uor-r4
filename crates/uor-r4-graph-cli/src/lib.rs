@@ -1953,35 +1953,35 @@ fn deepest_argmax(store: &runtime::Store, code: &[u8; compiler::STAGES]) -> Opti
     None
 }
 
-fn evaluate_report(args: &[String]) -> Result<(), String> {
-    let options = parse_evaluate_report_options(args).map_err(|e| e.to_string())?;
+fn evaluate_report(args: &[String]) -> Result<(), SourceUnavailable> {
+    let options = parse_evaluate_report_options(args)?;
     let report_path = options
         .report
         .clone()
         .unwrap_or_else(|| options.compiled.join(DEFAULT_HF_EVALUATION_REPORT));
-    let source_cid = directory_cid(&options.source).map_err(|error| error.to_string())?;
+    let source_cid = directory_cid(&options.source)?;
     let artifacts_path = options.compiled.join("tless_artifacts.bin");
     let store_path = options.compiled.join("tless_store.bin");
     let tokenizer_path = options.compiled.join("tokenizer.bin");
     let corpus_meta_path = options.compiled.join("corpus.meta");
     let corpus_records_path = options.compiled.join("corpus.records");
-    let artifacts_cid = file_cid(&artifacts_path).map_err(|error| error.to_string())?;
-    let store_cid = file_cid(&store_path).map_err(|error| error.to_string())?;
-    let tokenizer_cid = file_cid(&tokenizer_path).map_err(|error| error.to_string())?;
-    let corpus_meta_cid = file_cid(&corpus_meta_path).map_err(|error| error.to_string())?;
-    let corpus_records_cid = file_cid(&corpus_records_path).map_err(|error| error.to_string())?;
+    let artifacts_cid = file_cid(&artifacts_path)?;
+    let store_cid = file_cid(&store_path)?;
+    let tokenizer_cid = file_cid(&tokenizer_path)?;
+    let corpus_meta_cid = file_cid(&corpus_meta_path)?;
+    let corpus_records_cid = file_cid(&corpus_records_path)?;
 
     let corpus_meta = corpus_meta_path
         .to_str()
-        .ok_or_else(|| "corpus metadata path is not UTF-8".to_owned())?;
+        .ok_or_else(|| SourceUnavailable::new("corpus metadata path is not UTF-8"))?;
     let corpus_records = corpus_records_path
         .to_str()
-        .ok_or_else(|| "corpus records path is not UTF-8".to_owned())?;
+        .ok_or_else(|| SourceUnavailable::new("corpus records path is not UTF-8"))?;
     let corpus = compiler::load_corpus_from(corpus_meta, corpus_records).ok_or_else(|| {
-        format!(
+        SourceUnavailable::new(format!(
             "corpus is incomplete at {}; rerun compile until it is complete",
             options.compiled.display()
-        )
+        ))
     })?;
     let held_out_cut = compiler::train_cut(&corpus);
     // --bos occupies one oracle position per story, so a full
@@ -1992,21 +1992,26 @@ fn evaluate_report(args: &[String]) -> Result<(), String> {
     let oracle_sequence_length = options.sequence_length + usize::from(options.bos);
     let mut oracle =
         HuggingFaceLlamaOracle::load_with_sequence_length(&options.source, oracle_sequence_length)
-            .map_err(|error| format!("failed to load Hugging Face model: {error}"))?;
+            .map_err(|error| {
+                SourceUnavailable::new(format!("failed to load Hugging Face model: {error}"))
+            })?;
     let mut teacher_logits = vec![0f32; oracle.vocab()];
-    let artifacts_bytes = std::fs::read(&artifacts_path).map_err(|error| error.to_string())?;
-    let tokenizer_bytes = std::fs::read(&tokenizer_path).map_err(|error| error.to_string())?;
+    let artifacts_bytes = std::fs::read(&artifacts_path)?;
+    let tokenizer_bytes = std::fs::read(&tokenizer_path)?;
 
     if let Ok(graph_view) = uor_r4_graph_format::GraphView::parse(&artifacts_bytes) {
         graph_view
             .verify_tokenizer_cid(&tokenizer_bytes)
-            .map_err(|e| format!("tokenizer_cid verification failed: {e}"))?;
+            .map_err(|e| {
+                SourceUnavailable::new(format!("tokenizer_cid verification failed: {e}"))
+            })?;
     }
 
     let artifacts = compiler::parse_artifacts(&artifacts_bytes)
-        .ok_or_else(|| "invalid compiled artifact container".to_owned())?;
-    let store_bytes = std::fs::read(&store_path).map_err(|error| error.to_string())?;
-    let store = runtime::parse_store(&store_bytes).ok_or_else(|| "invalid store".to_owned())?;
+        .ok_or_else(|| SourceUnavailable::new("invalid compiled artifact container"))?;
+    let store_bytes = std::fs::read(&store_path)?;
+    let store = runtime::parse_store(&store_bytes)
+        .ok_or_else(|| SourceUnavailable::new("invalid store"))?;
     let rotations = compiler::derive_rotations();
 
     let mut held_out_tokens = 0usize;
@@ -2122,7 +2127,9 @@ fn evaluate_report(args: &[String]) -> Result<(), String> {
         held_out_tokens += 1;
         let code = runtime::code_plain(&artifacts, &rotations, &corpus, index);
         let prediction = deepest_argmax(&store, &code).ok_or_else(|| {
-            format!("store has no populated backoff class for held-out position {index}")
+            SourceUnavailable::new(format!(
+                "store has no populated backoff class for held-out position {index}"
+            ))
         })?;
         if prediction == corpus.next[index] {
             top1_hits += 1;
@@ -2132,17 +2139,17 @@ fn evaluate_report(args: &[String]) -> Result<(), String> {
             .enumerate()
             .max_by(|a, b| a.1.total_cmp(b.1))
             .map(|(token, _)| token as u32)
-            .ok_or_else(|| "teacher produced empty logits".to_owned())?;
+            .ok_or_else(|| SourceUnavailable::new("teacher produced empty logits"))?;
         if prediction == teacher_argmax {
             argmax_hits += 1;
         }
         let next_token = corpus.next[index] as usize;
         if next_token >= teacher_logits.len() {
-            return Err(format!(
+            return Err(SourceUnavailable::new(format!(
                 "next token {} is outside teacher vocab {}",
                 corpus.next[index],
                 teacher_logits.len()
-            ));
+            )));
         }
         let max_logit = teacher_logits
             .iter()
@@ -2174,7 +2181,9 @@ fn evaluate_report(args: &[String]) -> Result<(), String> {
         bits += -score::witten_bell_probability(&store, &code, corpus.next[index]).log2();
     }
     if held_out_tokens == 0 {
-        return Err("held-out split is empty; cannot evaluate".to_owned());
+        return Err(SourceUnavailable::new(
+            "held-out split is empty; cannot evaluate",
+        ));
     }
     let top1_accuracy_pct = 100.0 * top1_hits as f64 / held_out_tokens as f64;
     let teacher_argmax_agreement_pct = 100.0 * argmax_hits as f64 / held_out_tokens as f64;
@@ -2285,17 +2294,16 @@ fn evaluate_report(args: &[String]) -> Result<(), String> {
         floor_decomposition,
     };
     if let Some(parent) = report_path.parent() {
-        std::fs::create_dir_all(parent).map_err(|error| error.to_string())?;
+        std::fs::create_dir_all(parent)?;
     }
-    let report_json = serde_json::to_vec_pretty(&report).map_err(|error| error.to_string())?;
+    let report_json = serde_json::to_vec_pretty(&report)?;
     let report_cid = format!("blake3:{}", blake3::hash(&report_json).to_hex());
     let envelope = EvaluationReportEnvelope {
         report,
         report_cid_of_report_bytes: report_cid.clone(),
     };
-    let envelope_json =
-        serde_json::to_string_pretty(&envelope).map_err(|error| error.to_string())?;
-    std::fs::write(&report_path, envelope_json).map_err(|error| error.to_string())?;
+    let envelope_json = serde_json::to_string_pretty(&envelope)?;
+    std::fs::write(&report_path, envelope_json)?;
 
     println!(
         "evaluation report written: {} ({})",
@@ -2797,7 +2805,7 @@ pub fn run(args: &[String]) -> Result<(), String> {
                 runtime::store_kappa(&store)
             );
         }
-        Some("evaluate-report") => evaluate_report(&args[1..])?,
+        Some("evaluate-report") => evaluate_report(&args[1..]).map_err(|e| e.to_string())?,
         Some("observe") => observe_command(&args[1..]).map_err(|e| e.to_string())?,
         Some("observe-text") => observe_text_command(&args[1..]).map_err(|e| e.to_string())?,
         Some("scenarios") => {
