@@ -489,3 +489,51 @@ jobs:
         uses: EmbarkStudios/cargo-deny-action@v2
         with:
           command: check
+
+  # #515 preserve-and-gate: the dormant mechanisms retained off the serving path
+  # are compiled behind default-off cargo features (one per `open` ledger claim).
+  # The shipped default build never touches them, so a normal `cargo build` /
+  # nextest run cannot catch bit-rot in a dormant module or its gated tests.
+  # This job turns every feature ON and (a) does a real codegen+link build so the
+  # gated code cannot silently stop compiling, and (b) EXECUTES the gated tests
+  # (the default nextest run in `gates` uses default features, so those tests
+  # never otherwise run). It runs only in merge_group / push — NOT pull_request —
+  # so it stays off the PR author's wait path and runs in parallel with `gates`
+  # in the queue (which is bounded by the heavier κ-reproduction / trend ladder,
+  # so this adds no wall-clock to the binding verdict). Promoting it to a
+  # required status check is a repo-admin branch-protection toggle.
+  all-features:
+    name: all-features build + gated dormant tests (#515)
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust (stable)
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: cargo-${{ runner.os }}-${{ hashFiles('Cargo.lock') }}
+          restore-keys: cargo-${{ runner.os }}-
+
+      - name: cargo build --workspace --all-features
+        run: cargo build --workspace --all-features
+
+      - name: cargo test --workspace --all-features (runs the dormant-mechanism gated tests)
+        run: cargo test --workspace --all-features
+
+  # PR-context companion to `all-features` (same name), so the check resolves on
+  # pull_request while the real all-features build + gated tests run once, in the
+  # queue. Mirrors wasm-pr-stub / fuzz-smoke-pr-stub (issue #240).
+  all-features-pr-stub:
+    name: all-features build + gated dormant tests (#515)
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - run: "echo 'Deferred to the merge queue - the real --all-features build + gated dormant tests run on the speculative merge.'"
