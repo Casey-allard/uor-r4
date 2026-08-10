@@ -214,13 +214,13 @@ fn parse_observe_options(args: &[String]) -> Result<ObserveOptions, SourceUnavai
 /// Observation pipeline v2 (plan §5 Phase 2): the same teacher generation
 /// as [`compile_hugging_face`]'s corpus step, spilled into content-
 /// addressed, resumable shards instead of one corpus stream.
-pub fn observe_command(args: &[String]) -> Result<(), String> {
+pub fn observe_command(args: &[String]) -> Result<(), SourceUnavailable> {
     #[cfg(debug_assertions)]
     eprintln!(
         "warning: debug builds make teacher generation much slower; use `cargo run --release -- observe ...`"
     );
-    let options = parse_observe_options(args).map_err(|e| e.to_string())?;
-    std::fs::create_dir_all(&options.output).map_err(|error| error.to_string())?;
+    let options = parse_observe_options(args)?;
+    std::fs::create_dir_all(&options.output)?;
     let token_byte_lengths: Option<Vec<u32>>;
     let mut oracle: Box<dyn TeacherOracle> = if let Some(checkpoint) = &options.checkpoint {
         // Legacy llama2.c checkpoint: no HF tokenizer tree, so byte
@@ -228,21 +228,23 @@ pub fn observe_command(args: &[String]) -> Result<(), String> {
         token_byte_lengths = None;
         let path = checkpoint
             .to_str()
-            .ok_or_else(|| "checkpoint path is not UTF-8".to_owned())?;
+            .ok_or_else(|| SourceUnavailable::new("checkpoint path is not UTF-8"))?;
         Box::new(LlamaOracle::load(path))
     } else {
         let oracle = HuggingFaceLlamaOracle::load_with_sequence_length(
             &options.source,
             options.sequence_length,
         )
-        .map_err(|error| format!("failed to load Hugging Face model: {error}"))?;
+        .map_err(|error| {
+            SourceUnavailable::new(format!("failed to load Hugging Face model: {error}"))
+        })?;
         eprintln!("exporting tokenizer...");
         token_byte_lengths = Some(
             uor_r4_core::transformerless::scenarios::export_hf_bytelevel_tokenizer_with_lengths(
                 options.source.join("tokenizer.json"),
                 options.output.join("tokenizer.bin"),
             )
-            .map_err(|error| error.to_string())?,
+            .map_err(SourceUnavailable::new)?,
         );
         Box::new(oracle)
     };
@@ -254,14 +256,14 @@ pub fn observe_command(args: &[String]) -> Result<(), String> {
         &options.output,
         token_byte_lengths.as_deref(),
     )
-    .map_err(|error| error.to_string())?;
+    .map_err(SourceUnavailable::new)?;
     if summary.done {
         // Persist the merged record stream so Gate C can consume it as
         // --corpus-recs with state.bin as --corpus-meta (same convention
         // as the from-text driver, issue #75).
-        let merged = observe::merge_shards(&options.output).map_err(|error| error.to_string())?;
+        let merged = observe::merge_shards(&options.output).map_err(SourceUnavailable::new)?;
         let merged_path = options.output.join("merged.bin");
-        std::fs::write(&merged_path, &merged).map_err(|error| error.to_string())?;
+        std::fs::write(&merged_path, &merged)?;
         println!(
             "observe complete: {} records at {}",
             summary.records,
@@ -352,13 +354,13 @@ fn parse_observe_text_options(args: &[String]) -> Result<ObserveTextOptions, Sou
 /// corpus (D3) through the teacher, recording the same v3 observation
 /// records the autoregressive `observe` path produces, with the corpus
 /// split rule applied at write time and recorded per shard.
-pub fn observe_text_command(args: &[String]) -> Result<(), String> {
+pub fn observe_text_command(args: &[String]) -> Result<(), SourceUnavailable> {
     #[cfg(debug_assertions)]
     eprintln!(
         "warning: debug builds make teacher generation much slower; use `cargo run --release -- observe-text ...`"
     );
-    let options = parse_observe_text_options(args).map_err(|e| e.to_string())?;
-    std::fs::create_dir_all(&options.output).map_err(|error| error.to_string())?;
+    let options = parse_observe_text_options(args)?;
+    std::fs::create_dir_all(&options.output)?;
     let token_byte_lengths: Vec<u32>;
     let tokenizer: TokenizerKind;
     let mut oracle: Box<dyn TeacherOracle> = if let Some(checkpoint) = &options.checkpoint {
@@ -371,8 +373,9 @@ pub fn observe_text_command(args: &[String]) -> Result<(), String> {
             .tokenizer
             .clone()
             .unwrap_or_else(|| PathBuf::from(DEFAULT_TOKENIZER));
-        let legacy = scenarios::Tokenizer::try_load(&tokenizer_path)
-            .map_err(|error| format!("{}: {error}", tokenizer_path.display()))?;
+        let legacy = scenarios::Tokenizer::try_load(&tokenizer_path).map_err(|error| {
+            SourceUnavailable::new(format!("{}: {error}", tokenizer_path.display()))
+        })?;
         token_byte_lengths = legacy
             .vocab
             .iter()
@@ -381,21 +384,23 @@ pub fn observe_text_command(args: &[String]) -> Result<(), String> {
         tokenizer = TokenizerKind::Legacy(legacy);
         let path = checkpoint
             .to_str()
-            .ok_or_else(|| "checkpoint path is not UTF-8".to_owned())?;
+            .ok_or_else(|| SourceUnavailable::new("checkpoint path is not UTF-8"))?;
         Box::new(LlamaOracle::load(path))
     } else {
         let oracle = HuggingFaceLlamaOracle::load_with_sequence_length(
             &options.source,
             options.sequence_length,
         )
-        .map_err(|error| format!("failed to load Hugging Face model: {error}"))?;
+        .map_err(|error| {
+            SourceUnavailable::new(format!("failed to load Hugging Face model: {error}"))
+        })?;
         eprintln!("exporting tokenizer...");
         token_byte_lengths =
             uor_r4_core::transformerless::scenarios::export_hf_bytelevel_tokenizer_with_lengths(
                 options.source.join("tokenizer.json"),
                 options.output.join("tokenizer.bin"),
             )
-            .map_err(|error| error.to_string())?;
+            .map_err(SourceUnavailable::new)?;
         // Issue #242: segment observation text with the teacher's REAL
         // byte-level BPE (ordered merges from tokenizer.json), not the
         // legacy lowest-id greedy heuristic — otherwise every record feeds
@@ -405,13 +410,14 @@ pub fn observe_text_command(args: &[String]) -> Result<(), String> {
         let tokenizer_json = options.source.join("tokenizer.json");
         tokenizer = if tokenizer_json.is_file() {
             TokenizerKind::HfBpe(Box::new(
-                HfBpeTokenizer::from_dir(&options.source)
-                    .map_err(|error| format!("{}: {error}", tokenizer_json.display()))?,
+                HfBpeTokenizer::from_dir(&options.source).map_err(|error| {
+                    SourceUnavailable::new(format!("{}: {error}", tokenizer_json.display()))
+                })?,
             ))
         } else {
             TokenizerKind::Legacy(
                 scenarios::Tokenizer::try_load(options.output.join("tokenizer.bin"))
-                    .map_err(|error| error.to_string())?,
+                    .map_err(SourceUnavailable::new)?,
             )
         };
         Box::new(oracle)
@@ -426,7 +432,7 @@ pub fn observe_text_command(args: &[String]) -> Result<(), String> {
         options.shards,
         true,
     )
-    .map_err(|error| error.to_string())?;
+    .map_err(SourceUnavailable::new)?;
     println!(
         "observe-text: {} records across {}/{} shards ({} written this run)",
         report.records, report.shards_completed, report.shard_count, report.written
@@ -454,9 +460,9 @@ pub fn observe_text_command(args: &[String]) -> Result<(), String> {
     if report.done {
         // Persist the merged record stream: Gate C consumes it as
         // --corpus-recs with state.bin as --corpus-meta (issue #72).
-        let merged = observe::merge_shards(&options.output).map_err(|error| error.to_string())?;
+        let merged = observe::merge_shards(&options.output).map_err(SourceUnavailable::new)?;
         let merged_path = options.output.join("merged.bin");
-        std::fs::write(&merged_path, &merged).map_err(|error| error.to_string())?;
+        std::fs::write(&merged_path, &merged)?;
         println!(
             "observe-text complete: merged κ {} at {}",
             report.merged_kappa.expect("done reports merged κ"),
@@ -2795,8 +2801,8 @@ pub fn run(args: &[String]) -> Result<(), String> {
             );
         }
         Some("evaluate-report") => evaluate_report(&args[1..])?,
-        Some("observe") => observe_command(&args[1..])?,
-        Some("observe-text") => observe_text_command(&args[1..])?,
+        Some("observe") => observe_command(&args[1..]).map_err(|e| e.to_string())?,
+        Some("observe-text") => observe_text_command(&args[1..]).map_err(|e| e.to_string())?,
         Some("scenarios") => {
             let mut oracle = LlamaOracle::load(DEFAULT_CHECKPOINT);
             scenarios::scenarios(&mut oracle);
