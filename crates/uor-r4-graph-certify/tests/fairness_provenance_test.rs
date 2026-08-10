@@ -1,3 +1,4 @@
+#![cfg(feature = "fairness-provenance")]
 use uor_r4_core::transformerless::score_q::ScoreQ;
 use uor_r4_core::transformerless::transitions::{EdgeKind, TransitionGraph};
 use uor_r4_graph_certify::fairness_provenance::{

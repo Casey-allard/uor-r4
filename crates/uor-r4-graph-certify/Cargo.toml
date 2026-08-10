@@ -21,3 +21,16 @@ rayon = "1.10.0"
 # The original f64 geometric router — measurement harnesses only
 # (issue #421 M-R1 reconnection), never the deployed scoring path.
 uor-r4-router = { version = "0.1.0", path = "../uor-r4-router" }
+
+[features]
+# #515 preserve-and-gate: dormant research/certificate surfaces retained off the
+# serving path, registered as `open` claims in model/ledger.toml and compile-
+# toggled here (default OFF) so they stay buildable (CI builds --all-features)
+# without bit-rotting. Per-mechanism granularity — one feature per claim. The
+# shipped default build is byte-identical whether or not these are enabled.
+anti-degeneracy = []
+fairness-provenance = []
+holographic-encoding = []
+patch-lifecycle = []
+predictive-sufficiency = []
+shortlist-evaluator = []

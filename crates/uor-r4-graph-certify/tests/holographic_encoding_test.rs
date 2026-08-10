@@ -1,3 +1,4 @@
+#![cfg(feature = "holographic-encoding")]
 use uor_r4_graph_certify::holographic_encoding::{
     AblationProtocol, DivergenceMetric, HolographicEncodingCertificate,
     HolographicEncodingEvaluator, HolographicProbeReport, Projection, ProjectionMetadata,

@@ -1,3 +1,4 @@
+#![cfg(feature = "shortlist-evaluator")]
 use uor_r4_graph_certify::shortlist_evaluator::{ShortlistEvaluator, ShortlistRecallReport};
 
 #[test]

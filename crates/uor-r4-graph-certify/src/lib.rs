@@ -1,3 +1,4 @@
+#[cfg(feature = "anti-degeneracy")]
 pub mod anti_degeneracy;
 pub mod certificate;
 #[cfg(not(target_arch = "wasm32"))]
@@ -6,15 +7,20 @@ pub mod certify;
 pub mod compare;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod compiler_scaling;
+#[cfg(feature = "fairness-provenance")]
 pub mod fairness_provenance;
 pub mod fmm;
+#[cfg(feature = "holographic-encoding")]
 pub mod holographic_encoding;
 pub mod long_context;
+#[cfg(feature = "patch-lifecycle")]
 pub mod patch_lifecycle;
 pub mod performance_certificate;
+#[cfg(feature = "predictive-sufficiency")]
 pub mod predictive_sufficiency;
 pub mod score;
 pub mod score_runtime;
+#[cfg(feature = "shortlist-evaluator")]
 pub mod shortlist_evaluator;
 
 pub use fmm::*;

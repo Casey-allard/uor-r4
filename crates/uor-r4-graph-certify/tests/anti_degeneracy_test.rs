@@ -1,3 +1,4 @@
+#![cfg(feature = "anti-degeneracy")]
 use uor_r4_graph_certify::anti_degeneracy::{
     MdlObjective, ParaphraseEvaluator, PerturbationKind, PerturbationSuite, PolysemyEvaluator,
     SemanticCoherenceCertificate,

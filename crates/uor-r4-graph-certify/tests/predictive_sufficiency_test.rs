@@ -1,3 +1,4 @@
+#![cfg(feature = "predictive-sufficiency")]
 use uor_r4_core::transformerless::runtime::OpKernel;
 use uor_r4_graph_certify::predictive_sufficiency::{
     DivergencePoint, GraphDepth, PredictiveSufficiencyEvaluator, RateDistortionReport,
