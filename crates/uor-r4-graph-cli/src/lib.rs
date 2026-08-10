@@ -2634,7 +2634,8 @@ pub fn graph_infill_command(args: &[String]) -> Result<(), String> {
         teacher_bytes.as_deref(),
         score::DEFAULT_ROOT_TOP_B,
         score::DEFAULT_EXCT_TOP_X,
-    )?;
+    )
+    .ok_or_else(|| "could not build scorer from R4G1 artifact".to_owned())?;
     let rotations = runtime::derive_rotations();
 
     let filled = score_runtime::infill_fill(&scorer, &artifacts, &rotations, &skeleton)?;

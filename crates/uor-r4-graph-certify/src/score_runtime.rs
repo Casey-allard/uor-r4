@@ -873,21 +873,29 @@ impl GraphScorer {
     /// exact-context evidence (its blake3 must equal HEAD `teacher_cid`
     /// — fail closed, so the evidence chains to the pinned teacher),
     /// and a `None` teacher runs the same artifact without EXCT.
+    ///
+    /// Total: `None` when the bytes are not a scorer — they fail two-stage
+    /// parse (`NotAProduct`) or CID integrity (`KappaError`), lack a section
+    /// the scorer needs, or carry a teacher container that does not match the
+    /// pinned `teacher_cid`. The two sanctioned failure reasons are collapsed
+    /// into `None` here because every caller either rebuilds from
+    /// self-produced bytes (a `None` is then a defect it panics on) or only
+    /// needs the yes/no answer (R5, #510).
     pub fn from_artifact(
         r4g1: &[u8],
         teacher_container: Option<&[u8]>,
         root_top_b: usize,
         exct_top_x: usize,
-    ) -> Result<Self, String> {
-        let view = GraphView::parse(r4g1).map_err(|e| format!("invalid R4G1: {e}"))?;
-        view.verify_cids().map_err(|e| format!("bad CIDs: {e}"))?;
-        let head = view.head().ok_or("artifact carries no HEAD section")?;
+    ) -> Option<Self> {
+        let view = GraphView::parse(r4g1).ok()?;
+        view.verify_cids().ok()?;
+        let head = view.head()?;
         let fallback_policy =
             uor_r4_core::transformerless::resolution_status::FallbackPolicy::from_bytes(
                 head.fallback_policies(),
             );
         let graph_cid = view.header().artifact_cid.0;
-        let regions = regions_from_view(&view)?;
+        let regions = regions_from_view(&view).ok()?;
         let max_depth = regions.iter().map(|r| r.depth as usize).max().unwrap_or(0);
 
         let mut forward_by_src: BTreeMap<u32, Vec<EdgeUse>> = BTreeMap::new();
@@ -904,28 +912,21 @@ impl GraphScorer {
 
         // EMIT: descriptor (stage-2 validated), the root-prior block,
         // and per-node emission lists wired by the packed ranges.
-        let emit = view
-            .section(SectionId::EMIT)
-            .ok_or("artifact carries no EMIT section")?;
-        let remainder = emit
-            .get(uor_r4_graph_format::STORAGE_DESCRIPTOR_LEN..)
-            .ok_or("EMIT section shorter than its descriptor")?;
-        let header = remainder
-            .get(..EMIT_ROOT_HEADER_BYTES)
-            .ok_or("EMIT remainder shorter than the root header")?;
+        let emit = view.section(SectionId::EMIT)?;
+        let remainder = emit.get(uor_r4_graph_format::STORAGE_DESCRIPTOR_LEN..)?;
+        let header = remainder.get(..EMIT_ROOT_HEADER_BYTES)?;
         let root_entry_count = u32::from_le_bytes(header[0..4].try_into().expect("4 bytes"));
         let root_floor = ScoreQ::from_raw(i32::from_le_bytes(
             header[8..12].try_into().expect("4 bytes"),
         ));
         let root_entry_bytes = (root_entry_count as usize) << 3;
-        let root_block = remainder
-            .get(EMIT_ROOT_HEADER_BYTES..EMIT_ROOT_HEADER_BYTES + root_entry_bytes)
-            .ok_or("EMIT root prior block truncated")?;
+        let root_block =
+            remainder.get(EMIT_ROOT_HEADER_BYTES..EMIT_ROOT_HEADER_BYTES + root_entry_bytes)?;
         let mut root_prior = BTreeMap::new();
         for entry in root_block.chunks_exact(EMIT_ENTRY_BYTES) {
             let token = i32::from_le_bytes(entry[0..4].try_into().expect("4 bytes"));
             let value = i32::from_le_bytes(entry[4..8].try_into().expect("4 bytes"));
-            let token = u32::try_from(token).map_err(|_| "EMIT root token is negative")?;
+            let token = u32::try_from(token).ok()?;
             root_prior.insert(token, ScoreQ::from_raw(value));
         }
         // Top-B root candidates by (score desc, token asc) — context-
@@ -942,29 +943,22 @@ impl GraphScorer {
         let mut emissions = vec![BTreeMap::new(); regions.len()];
         let mut node_index = 1u32;
         while node_index < node_count {
-            let node = view
-                .node(node_index)
-                .ok_or("node record missing within declared count")?;
+            let node = view.node(node_index)?;
             let start = node.emission_start as usize;
             let byte_len = (node.emission_len as usize) << 3;
-            let list = remainder
-                .get(start..start + byte_len)
-                .ok_or("node emission list outside the EMIT remainder")?;
+            let list = remainder.get(start..start + byte_len)?;
             let map = &mut emissions[(node_index - 1) as usize];
             for entry in list.chunks_exact(EMIT_ENTRY_BYTES) {
                 let token = i32::from_le_bytes(entry[0..4].try_into().expect("4 bytes"));
                 let value = i32::from_le_bytes(entry[4..8].try_into().expect("4 bytes"));
-                let token = u32::try_from(token).map_err(|_| "EMIT emission token is negative")?;
+                let token = u32::try_from(token).ok()?;
                 map.insert(token, ScoreQ::from_raw(value));
             }
             node_index += 1;
         }
 
         let mut context_rows = BTreeMap::new();
-        if let Some(table) = view
-            .ngram_table()
-            .map_err(|e| format!("invalid NGRAM section: {e}"))?
-        {
+        if let Some(table) = view.ngram_table().ok()? {
             for row in table.rows() {
                 let entries: Vec<(u32, ScoreQ)> = row
                     .entries()
@@ -981,10 +975,7 @@ impl GraphScorer {
         // raw counts plus each row's full total; residuals are quantized
         // here, once, so the per-token infill fusion stays integer-only.
         let mut fwd_rows = BTreeMap::new();
-        if let Some(table) = view
-            .fwda_table()
-            .map_err(|e| format!("invalid FWDA section: {e}"))?
-        {
+        if let Some(table) = view.fwda_table().ok()? {
             let vocab = head.vocab_size();
             for row in table.rows() {
                 let total = row.total();
@@ -1009,42 +1000,37 @@ impl GraphScorer {
         let exct = view.section(SectionId::EXCT);
         let (residual_exct, store, artifacts) = match exct {
             Some(bytes) => {
-                let body = bytes
-                    .get(uor_r4_graph_format::STORAGE_DESCRIPTOR_LEN..)
-                    .ok_or("EXCT section shorter than its descriptor")?;
+                let body = bytes.get(uor_r4_graph_format::STORAGE_DESCRIPTOR_LEN..)?;
                 if let Some(residuals) = parse_residual_exct(body) {
-                    let artifacts = teacher_container
-                        .map(|teacher| {
+                    let artifacts = match teacher_container {
+                        Some(teacher) => {
                             if blake3::hash(teacher).as_bytes() != &head.teacher_cid().0 {
-                                return Err(
-                                    "teacher container does not match HEAD teacher_cid".to_owned()
-                                );
+                                return None;
                             }
-                            compiler::parse_artifacts(teacher).ok_or_else(|| {
-                                "teacher container is not a TLA artifact container".to_owned()
-                            })
-                        })
-                        .transpose()?;
+                            Some(compiler::parse_artifacts(teacher)?)
+                        }
+                        None => None,
+                    };
                     (Some(residuals), None, artifacts)
-                } else if let Some(teacher) = teacher_container {
+                } else {
+                    // EXCT present but not residualized RX1: it must be a raw
+                    // TLS1 store paired with the pinned teacher. A missing
+                    // teacher container means these bytes are not a scorer.
+                    let teacher = teacher_container?;
                     if blake3::hash(teacher).as_bytes() != &head.teacher_cid().0 {
-                        return Err("teacher container does not match HEAD teacher_cid".to_owned());
+                        return None;
                     }
-                    let parsed = compiler::parse_artifacts(teacher)
-                        .ok_or("teacher container is not a TLA artifact container")?;
+                    let parsed = compiler::parse_artifacts(teacher)?;
                     #[allow(deprecated)]
                     let store = runtime::parse_store(body)
-                        .or_else(|| runtime::parse_store_legacy_u16(body))
-                        .ok_or("EXCT remainder is not a TLS1 store (either era)")?;
+                        .or_else(|| runtime::parse_store_legacy_u16(body))?;
                     (None, Some(store), Some(parsed))
-                } else {
-                    return Err("EXCT remainder is neither residualized RX1 nor TLS1".to_owned());
                 }
             }
             None => (None, None, None),
         };
 
-        Ok(GraphScorer {
+        Some(GraphScorer {
             graph_cid,
             regions,
             max_depth,
@@ -2777,93 +2763,105 @@ pub fn verify_witness_replay(
     witness: &ScoreWitness,
     root_top_b: usize,
     exct_top_x: usize,
-) -> Result<(), ReplayError> {
+) -> Option<ReplayError> {
     // Theorem 10: reject duplicate contribution ids out of hand.
     let mut seen: BTreeSet<ContributionId> = BTreeSet::new();
     for contribution in &witness.selected_contributions {
         if !seen.insert(contribution.id) {
-            return Err(ReplayError::DuplicateContributionId);
+            return Some(ReplayError::DuplicateContributionId);
         }
     }
     let mut seen_edges: BTreeSet<u32> = BTreeSet::new();
     for edge in &witness.edges_applied {
         if !seen_edges.insert(edge.edge_id) {
-            return Err(ReplayError::DuplicateEdgeId);
+            return Some(ReplayError::DuplicateEdgeId);
         }
     }
 
     if witness.exct.is_some() && teacher_container.is_none() {
-        return Err(ReplayError::TeacherMissing);
+        return Some(ReplayError::TeacherMissing);
     }
-    let scorer = GraphScorer::from_artifact(r4g1, teacher_container, root_top_b, exct_top_x)
-        .map(|mut scorer| {
+    // `from_artifact` is now total (`Option`), so the teacher-cid mismatch is
+    // detected here rather than sniffed from an error string: a supplied
+    // teacher whose blake3 does not reproduce HEAD `teacher_cid` is the one
+    // distinguished replay failure, and any other `None` is a generic
+    // artifact defect.
+    if let Some(teacher) = teacher_container {
+        if let Some(head) = GraphView::parse(r4g1).ok().and_then(|view| view.head()) {
+            if blake3::hash(teacher).as_bytes() != &head.teacher_cid().0 {
+                return Some(ReplayError::TeacherCidMismatch);
+            }
+        }
+    }
+    let scorer = match GraphScorer::from_artifact(r4g1, teacher_container, root_top_b, exct_top_x) {
+        Some(mut scorer) => {
             scorer.set_f_emissions(witness.f_emissions);
             scorer
-        })
-        .map_err(|e| {
-            if e.contains("teacher_cid") {
-                ReplayError::TeacherCidMismatch
-            } else {
-                ReplayError::Artifact(e)
-            }
-        })?;
+        }
+        None => {
+            return Some(ReplayError::Artifact(
+                "artifact bytes are not a scorer on replay".to_owned(),
+            ));
+        }
+    };
     if scorer.graph_cid != witness.graph_cid {
-        return Err(ReplayError::GraphCidMismatch);
+        return Some(ReplayError::GraphCidMismatch);
     }
-    let outcome = scorer
-        .score_candidates_coded(
-            &witness.input_sig,
-            witness.input_code.as_ref(),
-            &witness.context_tokens,
-        )
-        .map_err(ReplayError::Artifact)?;
+    let outcome = match scorer.score_candidates_coded(
+        &witness.input_sig,
+        witness.input_code.as_ref(),
+        &witness.context_tokens,
+    ) {
+        Ok(outcome) => outcome,
+        Err(e) => return Some(ReplayError::Artifact(e)),
+    };
     let recomputed = &outcome.witness;
 
     if recomputed.input_code != witness.input_code {
-        return Err(ReplayError::Artifact(
+        return Some(ReplayError::Artifact(
             "input_code mismatch on replay (witness contract, #243 Phase C)".to_owned(),
         ));
     }
     if recomputed.context_tokens != witness.context_tokens {
-        return Err(ReplayError::Artifact(
+        return Some(ReplayError::Artifact(
             "context_tokens mismatch on replay".to_owned(),
         ));
     }
     if recomputed.active != witness.active {
-        return Err(ReplayError::ActiveMismatch);
+        return Some(ReplayError::ActiveMismatch);
     }
     if recomputed.status != witness.status {
-        return Err(ReplayError::StatusMismatch);
+        return Some(ReplayError::StatusMismatch);
     }
     if recomputed.chain != witness.chain {
-        return Err(ReplayError::ChainMismatch);
+        return Some(ReplayError::ChainMismatch);
     }
     if recomputed.predicted != witness.predicted {
-        return Err(ReplayError::PredictedMismatch);
+        return Some(ReplayError::PredictedMismatch);
     }
     if recomputed.edges_applied != witness.edges_applied
         || recomputed.transition_offset != witness.transition_offset
     {
-        return Err(ReplayError::EdgesMismatch);
+        return Some(ReplayError::EdgesMismatch);
     }
     if recomputed.exct != witness.exct {
-        return Err(ReplayError::ExctMismatch);
+        return Some(ReplayError::ExctMismatch);
     }
     if recomputed.selected_contributions != witness.selected_contributions {
-        return Err(ReplayError::ContributionsMismatch);
+        return Some(ReplayError::ContributionsMismatch);
     }
     if recomputed.selected != witness.selected
         || recomputed.selected_score != witness.selected_score
     {
-        return Err(ReplayError::SelectedMismatch);
+        return Some(ReplayError::SelectedMismatch);
     }
     if recomputed.candidate_count != witness.candidate_count {
-        return Err(ReplayError::CandidateCountMismatch);
+        return Some(ReplayError::CandidateCountMismatch);
     }
     if recomputed.census != witness.census {
-        return Err(ReplayError::CensusMismatch);
+        return Some(ReplayError::CensusMismatch);
     }
-    Ok(())
+    None
 }
 
 // `shift_mul_i128`/`shift_div_i128` are exercised below against literal,

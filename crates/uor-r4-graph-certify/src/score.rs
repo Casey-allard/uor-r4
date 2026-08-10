@@ -3349,7 +3349,8 @@ pub fn evaluate_gate_c(
         );
     }
     let mut scorer_no_exct =
-        GraphScorer::from_artifact(r4g1, None, config.root_top_b, config.exct_top_x)?;
+        GraphScorer::from_artifact(r4g1, None, config.root_top_b, config.exct_top_x)
+            .expect("gate C: scorer rebuild from self-emitted artifact");
     scorer_no_exct.set_f_emissions(true);
     scorer_no_exct.set_scoring_variant(config.scoring_variant);
     scorer_no_exct.set_repetition_penalty_raw(config.repetition_penalty_raw);
@@ -3358,14 +3359,16 @@ pub fn evaluate_gate_c(
         Some(artifact_container),
         config.root_top_b,
         config.exct_top_x,
-    )?;
+    )
+    .expect("gate C: scorer rebuild from self-emitted artifact");
     scorer_with_exct.set_f_emissions(true);
     scorer_with_exct.set_scoring_variant(config.scoring_variant);
     scorer_with_exct.set_repetition_penalty_raw(config.repetition_penalty_raw);
     // Ablation scorers (issue #66): identical configs with ΔT emissions off
     // (the deployed default since the ablation decision).
     let mut scorer_no_exct_no_f =
-        GraphScorer::from_artifact(r4g1, None, config.root_top_b, config.exct_top_x)?;
+        GraphScorer::from_artifact(r4g1, None, config.root_top_b, config.exct_top_x)
+            .expect("gate C: scorer rebuild from self-emitted artifact");
     scorer_no_exct_no_f.set_scoring_variant(config.scoring_variant);
     scorer_no_exct_no_f.set_repetition_penalty_raw(config.repetition_penalty_raw);
     let mut scorer_with_exct_no_f = GraphScorer::from_artifact(
@@ -3373,7 +3376,8 @@ pub fn evaluate_gate_c(
         Some(artifact_container),
         config.root_top_b,
         config.exct_top_x,
-    )?;
+    )
+    .expect("gate C: scorer rebuild from self-emitted artifact");
     scorer_with_exct_no_f.set_scoring_variant(config.scoring_variant);
     scorer_with_exct_no_f.set_repetition_penalty_raw(config.repetition_penalty_raw);
     let mut scorer_normalized = GraphScorer::from_artifact(
@@ -3381,7 +3385,8 @@ pub fn evaluate_gate_c(
         Some(artifact_container),
         config.root_top_b,
         config.exct_top_x,
-    )?;
+    )
+    .expect("gate C: scorer rebuild from self-emitted artifact");
     scorer_normalized.set_scoring_variant(ScoringVariant::CloudSizeNormalized);
     scorer_normalized.set_repetition_penalty_raw(config.repetition_penalty_raw);
     let mut scorer_margin = GraphScorer::from_artifact(
@@ -3389,7 +3394,8 @@ pub fn evaluate_gate_c(
         Some(artifact_container),
         config.root_top_b,
         config.exct_top_x,
-    )?;
+    )
+    .expect("gate C: scorer rebuild from self-emitted artifact");
     scorer_margin.set_scoring_variant(ScoringVariant::MarginWeighted);
     scorer_margin.set_repetition_penalty_raw(config.repetition_penalty_raw);
 
@@ -5297,7 +5303,7 @@ fn evaluate_gate_c_row(
             context.config.root_top_b,
             context.config.exct_top_x,
         )
-        .is_err();
+        .is_some();
 
     Ok(GateCRow {
         hits,

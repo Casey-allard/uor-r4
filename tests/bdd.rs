@@ -2727,7 +2727,7 @@ fn load_parity_fixtures() -> Option<ParityFixtures> {
 fn load_fmm_candidate(bundle: &Path, artifact_bytes: &[u8]) -> Option<FmmCandidateScorer> {
     let graph_path = bundle.join("graph/score.r4g1");
     let graph = std::fs::read(&graph_path).ok()?;
-    let scorer = GraphScorer::from_artifact(&graph, Some(artifact_bytes), 64, 64).ok()?;
+    let scorer = GraphScorer::from_artifact(&graph, Some(artifact_bytes), 64, 64)?;
     let defaults = FmmConfig::default();
     let max_rank = std::env::var("R4_FMM_RANK")
         .ok()

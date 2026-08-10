@@ -1152,7 +1152,11 @@ impl R4Engine {
             root_top_b,
             exct_top_x,
         )
-        .map_err(LoadError::Scorer)?;
+        .ok_or_else(|| {
+            LoadError::Scorer(
+                "signature artifact is not a scorer (parse, CID, or teacher_cid)".to_owned(),
+            )
+        })?;
         if let Some(report) = score_report.as_ref() {
             validate_quality_report(report).map_err(LoadError::QualityGate)?;
         }
