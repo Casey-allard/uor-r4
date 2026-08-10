@@ -36,6 +36,7 @@ use uor_r4_graph_format::{
     ContractVersion, FORMAT_VERSION_MAJOR, FORMAT_VERSION_MINOR,
     INFERENCE_OPERATION_CONTRACT_VERSION,
 };
+use uor_r4_model_source::SourceUnavailable;
 
 /// Which compiler stage a progress event or failure belongs to.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -235,62 +236,6 @@ pub struct CompileProvenance {
     pub digests: ComponentDigests,
 }
 
-/// Focused compile failures.
-#[derive(Debug)]
-pub enum CompileError {
-    /// The source directory is not a verified local HF-style source.
-    SourceInvalid {
-        /// What is missing or malformed.
-        message: String,
-    },
-    /// Filesystem failure while preparing the work directory or
-    /// collecting outputs.
-    Io {
-        /// The stage whose I/O failed.
-        stage: Stage,
-        /// The underlying I/O error.
-        source: std::io::Error,
-    },
-    /// A compiler stage rejected its inputs or failed mid-run (the
-    /// stage's own message, forwarded verbatim).
-    Stage {
-        /// The failing stage.
-        stage: Stage,
-        /// The stage's error message.
-        message: String,
-    },
-    /// A path derived from the request is not UTF-8 (the stage
-    /// implementations stringify corpus paths).
-    NonUtf8Path {
-        /// The stage that needs the path.
-        stage: Stage,
-        /// The offending path.
-        path: PathBuf,
-    },
-}
-
-impl fmt::Display for CompileError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            CompileError::SourceInvalid { message } => write!(f, "invalid source: {message}"),
-            CompileError::Io { stage, source } => write!(f, "{stage} stage I/O: {source}"),
-            CompileError::Stage { stage, message } => write!(f, "{stage} stage: {message}"),
-            CompileError::NonUtf8Path { stage, path } => {
-                write!(f, "{stage} stage: path is not UTF-8: {}", path.display())
-            }
-        }
-    }
-}
-
-impl std::error::Error for CompileError {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        match self {
-            CompileError::Io { source, .. } => Some(source),
-            _ => None,
-        }
-    }
-}
-
 /// Orchestrate the three compiler stages for `request`. Resumable: an
 /// incomplete teacher corpus returns
 /// [`CompileOutcome::Incomplete`] and re-calling with the same request
@@ -298,12 +243,11 @@ impl std::error::Error for CompileError {
 pub fn compile(
     request: &CompileRequest,
     progress: &mut dyn FnMut(ProgressEvent),
-) -> Result<CompileOutcome, CompileError> {
+) -> Result<CompileOutcome, SourceUnavailable> {
     validate_source(&request.source_dir)?;
     let work = &request.work_dir;
-    std::fs::create_dir_all(work).map_err(|source| CompileError::Io {
-        stage: Stage::TeacherBundle,
-        source,
+    std::fs::create_dir_all(work).map_err(|source| {
+        SourceUnavailable::new(format!("{} stage I/O: {source}", Stage::TeacherBundle))
     })?;
     let meta = work.join("corpus.meta");
     let recs = work.join("corpus.records");
@@ -322,9 +266,8 @@ pub fn compile(
             });
         },
     )
-    .map_err(|message| CompileError::Stage {
-        stage: Stage::TeacherBundle,
-        message,
+    .map_err(|message| {
+        SourceUnavailable::new(format!("{} stage: {message}", Stage::TeacherBundle))
     })?;
 
     if !corpus_complete(&meta)? {
@@ -344,12 +287,8 @@ pub fn compile(
         percent: 0,
         label: "Inducing multiresolution cover...",
     });
-    uor_r4_graph_compiler::compile(&stage_b_flags(request, &cover_out)).map_err(|error| {
-        CompileError::Stage {
-            stage: Stage::GraphCover,
-            message: error.to_string(),
-        }
-    })?;
+    uor_r4_graph_compiler::compile(&stage_b_flags(request, &cover_out))
+        .map_err(|error| SourceUnavailable::new(format!("{} stage: {error}", Stage::GraphCover)))?;
     progress(ProgressEvent {
         stage: Stage::GraphCover,
         percent: 100,
@@ -363,10 +302,7 @@ pub fn compile(
         label: "Compiling transitions and emission residuals...",
     });
     uor_r4_graph_cli::score_command(&stage_c_flags(request, &cover_out, &scored_out)).map_err(
-        |message| CompileError::Stage {
-            stage: Stage::Scoring,
-            message,
-        },
+        |message| SourceUnavailable::new(format!("{} stage: {message}", Stage::Scoring)),
     )?;
     progress(ProgressEvent {
         stage: Stage::Scoring,
@@ -380,10 +316,10 @@ pub fn compile(
         Ok(bytes) => Some(bytes),
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => None,
         Err(source) => {
-            return Err(CompileError::Io {
-                stage: Stage::TeacherBundle,
-                source,
-            })
+            return Err(SourceUnavailable::new(format!(
+                "{} stage I/O: {source}",
+                Stage::TeacherBundle
+            )));
         }
     };
     let score_report = read_stage_file(Stage::Scoring, &scored_out.join("score_report.json"))?;
@@ -416,8 +352,8 @@ pub fn compile(
 /// A verified local HF-style source: `config.json`, `tokenizer.json`,
 /// and at least one `*.safetensors` weight file. Downloading is out of
 /// scope for this crate by design.
-fn validate_source(source: &Path) -> Result<(), CompileError> {
-    let invalid = |message: String| CompileError::SourceInvalid { message };
+fn validate_source(source: &Path) -> Result<(), SourceUnavailable> {
+    let invalid = |message: String| SourceUnavailable::new(format!("invalid source: {message}"));
     let metadata = source
         .metadata()
         .map_err(|error| invalid(format!("{}: {error}", source.display())))?;
@@ -456,28 +392,29 @@ fn validate_source(source: &Path) -> Result<(), CompileError> {
 /// meta, `meta[24] == 1`) without loading the corpus; a missing or
 /// partial meta means the teacher-bundle stage has more generation to
 /// do. This is the ONLY resume signal — no stage stdout is parsed.
-fn corpus_complete(meta: &Path) -> Result<bool, CompileError> {
+fn corpus_complete(meta: &Path) -> Result<bool, SourceUnavailable> {
     match std::fs::read(meta) {
         Ok(bytes) => Ok(bytes.len() == 25 && bytes[24] == 1),
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(false),
-        Err(source) => Err(CompileError::Io {
-            stage: Stage::TeacherBundle,
-            source,
-        }),
+        Err(source) => Err(SourceUnavailable::new(format!(
+            "{} stage I/O: {source}",
+            Stage::TeacherBundle
+        ))),
     }
 }
 
-fn utf8(path: &Path, stage: Stage) -> Result<(), CompileError> {
-    path.to_str()
-        .map(|_| ())
-        .ok_or_else(|| CompileError::NonUtf8Path {
-            stage,
-            path: path.to_path_buf(),
-        })
+fn utf8(path: &Path, stage: Stage) -> Result<(), SourceUnavailable> {
+    path.to_str().map(|_| ()).ok_or_else(|| {
+        SourceUnavailable::new(format!(
+            "{stage} stage: path is not UTF-8: {}",
+            path.display()
+        ))
+    })
 }
 
-fn read_stage_file(stage: Stage, path: &Path) -> Result<Vec<u8>, CompileError> {
-    std::fs::read(path).map_err(|source| CompileError::Io { stage, source })
+fn read_stage_file(stage: Stage, path: &Path) -> Result<Vec<u8>, SourceUnavailable> {
+    std::fs::read(path)
+        .map_err(|source| SourceUnavailable::new(format!("{stage} stage I/O: {source}")))
 }
 
 fn digest(bytes: &[u8]) -> String {

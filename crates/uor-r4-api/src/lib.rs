@@ -26,9 +26,8 @@ pub mod engine;
 pub mod serving_eval;
 
 pub use compile::{
-    compile, CompileError, CompileOptions, CompileOutcome, CompileProvenance, CompileRequest,
-    CompiledModel, ComponentDigests, ProgressEvent, QualityProfile, ResumeHint, ScoringOptions,
-    Stage,
+    compile, CompileOptions, CompileOutcome, CompileProvenance, CompileRequest, CompiledModel,
+    ComponentDigests, ProgressEvent, QualityProfile, ResumeHint, ScoringOptions, Stage,
 };
 pub use engine::{
     validate_quality_report, AbiVersion, AbstainOutcome, EngineParts, GenerateStatus,

@@ -7,7 +7,7 @@ use std::error::Error;
 use std::path::PathBuf;
 
 use uor_r4_api::compile::{
-    compile, CompileError, CompileOptions, CompileOutcome, CompileRequest, QualityProfile, Stage,
+    compile, CompileOptions, CompileOutcome, CompileRequest, QualityProfile, Stage,
 };
 use uor_r4_api::engine::{AbiVersion, EngineParts, LoadError, PredictOutput, R4Engine};
 use uor_r4_api::Tokenizer;
@@ -176,8 +176,8 @@ fn compile_rejects_missing_source() {
         &mut |_| {},
     );
     match outcome {
-        Err(CompileError::SourceInvalid { .. }) => {}
-        other => panic!("expected SourceInvalid, got {other:?}"),
+        Err(error) => assert!(error.reason.contains("invalid source"), "{error}"),
+        other => panic!("expected an invalid-source failure, got {other:?}"),
     }
     let _ = std::fs::remove_dir_all(&work);
 }
@@ -189,18 +189,14 @@ fn compile_rejects_source_without_required_files() {
     std::fs::write(source.join("config.json"), b"{}").expect("config");
     // tokenizer.json and weights missing.
     match compile(&request(source.clone(), work.clone()), &mut |_| {}) {
-        Err(CompileError::SourceInvalid { message }) => {
-            assert!(message.contains("tokenizer.json"), "{message}");
-        }
-        other => panic!("expected SourceInvalid, got {other:?}"),
+        Err(error) => assert!(error.reason.contains("tokenizer.json"), "{error}"),
+        other => panic!("expected an invalid-source failure, got {other:?}"),
     }
     // Weights still missing after the tokenizer appears.
     std::fs::write(source.join("tokenizer.json"), b"{}").expect("tokenizer");
     match compile(&request(source.clone(), work.clone()), &mut |_| {}) {
-        Err(CompileError::SourceInvalid { message }) => {
-            assert!(message.contains("safetensors"), "{message}");
-        }
-        other => panic!("expected SourceInvalid, got {other:?}"),
+        Err(error) => assert!(error.reason.contains("safetensors"), "{error}"),
+        other => panic!("expected an invalid-source failure, got {other:?}"),
     }
     let _ = std::fs::remove_dir_all(&source);
     let _ = std::fs::remove_dir_all(&work);
