@@ -70,6 +70,57 @@ Config-only capacity proxy `S = d_model · n_layers · log2(vocab)`:
 | SmolLM2-135M | 576 | 30 | 49,152 | 269,308 | 0.562 |
 | SmolLM2-360M | 960 | 32 | 49,152 | 478,770 | 1.000 |
 
+### Measured saturation sweep — past the knee at 2M records, two teachers (#531)
+
+The #514 sweep above topped out at 360k records and never reached the knee. #531
+is the first observe *past* it. Two teachers — SmolLM2-360M and SmolLM2-135M —
+were each teacher-forced over the same 17,000-article Simple-Wiki corpus to
+**1,995,026 records** (batched inference, batch 64; 360M merged
+κ `blake3:d122ab38…`, 135M merged κ `blake3:cde559db…`). One `scale_sweep.sh` per
+teacher sub-samples that one corpus and re-runs compile → cover → score at each
+size:
+
+| records | held-out | 360M top-1 | 360M EXCT-miss | 135M top-1 | 135M EXCT-miss |
+|---:|---:|---:|---:|---:|---:|
+| 50,000 | 9,636 | 5.05% | 45.95% | 5.77% | 46.17% |
+| 200,000 | 25,265 | 5.89% | 37.73% | 6.22% | 35.92% |
+| 500,000 | 100,359 | 5.48% | 26.89% | 6.11% | 27.76% |
+| 1,000,000 | 200,619 | 5.37% | 21.52% | 5.95% | 20.94% |
+| 1,500,000 | 300,658 | 5.31% | 17.52% | 5.78% | 18.85% |
+| 1,900,000 | 376,754 | 5.38% | 16.67% | 5.84% | 16.42% |
+
+Three reads:
+
+- **The coverage knee is real and now measured.** EXCT-miss falls steeply, then
+  bends. The 360M marginal slope collapses from −1.07 pp / 100k records (around
+  750k) to −0.21 pp / 100k in the 1.5M→1.9M segment; 135M mirrors it (−1.36 →
+  −0.61). The elbow sits at **~1.5M records** — the first empirical confirmation
+  of the "~1–2M knee" the anchors implied, and it grounds the calculator's
+  `N_REF = 2,000,000` floor in a measured knee rather than an extrapolation.
+
+- **Coverage is teacher-independent, exactly as the mechanism predicts.** The two
+  EXCT-miss columns track within ~1–2pp at every scale (21.52% vs 20.94% at 1M;
+  16.67% vs 16.42% at 1.9M). Coverage is a corpus n-gram property; swapping a
+  360M teacher for a 135M one on the *same* articles barely moves it.
+
+- **top-1 (resolution) did not scale — so β is still not pinnable.** Held-out
+  top-1 stayed flat at ~5–6% for *both* teachers across the whole 50k→1.9M range
+  (360M 5.05–5.89%, 135M 5.77–6.22%), with no upward trend. β is the exponent of
+  the *resolution* demand — how much more corpus a deeper/wider teacher needs to
+  keep its finer distinctions apart — and it can only be fit from a
+  *teacher-dependent* knee in that resolution signal. Here the resolution signal
+  is flat and the only knee (coverage) is shared, so the two teachers yield one
+  coincident knee, not the two distinct knees a β slope requires. Fitting β to
+  coincident coverage knees would return ≈0 — an artifact of measuring the wrong
+  quantity, not a scaling exponent. We therefore do **not** pin β from this run.
+
+What #531 settled: the coverage-knee floor is measured (~1.5M, `N_REF = 2M`
+grounded) and teacher-independent, and the batched-inference path (#616) turns a
+2M-record teacher observe into a ~2-hour run rather than a multi-day one. What
+remains to pin β is a held-out *resolution* metric that climbs with corpus scale
+**and** separates by teacher size; the flat top-1 here is a corpus/metric limit,
+not evidence that β = 0.
+
 ## The law
 
 ```text
@@ -125,11 +176,16 @@ promise.
   when they share those names. Fixed by writing the sub-sample under
   `sub.meta`/`sub.records` (the #516 pipeline had dodged it only because
   `obs_bundle_to_corpus.py` uses `.bin` names).
-- β calibration: the 360M observe landed (#516) and its sweep is recorded above.
-  It yields **no knee** — the largest corpus we can observe on dev hardware
-  (360k records) is still on the rising part of the coverage curve, below the
-  ~1–2M knee — so it cannot pin β on its own. β therefore stays **provisional
-  0.5, bounded `[0.45, 1.0]`**; pinning it needs at least one teacher observed
-  *past* its knee (a 2M-record observe is a multi-hour-to-multi-day teacher run).
-  The law, the calculator, and the harness are complete and mutually consistent;
-  what remains is compute, not tooling.
+- β calibration: **coverage knee now measured; resolution exponent still open.**
+  #531 observed two teachers (360M, 135M) past the knee — 1,995,026 records each
+  on 17k Simple-Wiki via batched inference (#616) — and its dual sweep (recorded
+  above) measures the coverage knee at **~1.5M records** and shows it is
+  teacher-independent, empirically grounding `N_REF = 2,000,000`. But held-out
+  top-1 stayed flat (~5–6%) for both teachers, so the run exposes no
+  teacher-dependent *resolution* knee: the two coverage knees coincide and cannot
+  fit a slope. β therefore stays **provisional 0.5, bounded `[0.45, 1.0]`** — no
+  longer for want of a past-knee observe (that box is now checked), but for want
+  of a resolution metric that scales with corpus size and separates teachers. The
+  earlier 360M-only sweep (#516, below the knee at 360k) is superseded by this
+  past-knee measurement. The law, the calculator, and the harness remain complete
+  and mutually consistent; what remains is a resolution metric, not compute.
