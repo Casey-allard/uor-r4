@@ -267,6 +267,23 @@ unsafe extern "C" {
         output: *mut f32,
         output_stride: i32,
     );
+
+    fn cblas_sgemm(
+        order: i32,
+        transpose_a: i32,
+        transpose_b: i32,
+        m: i32,
+        n: i32,
+        k: i32,
+        alpha: f32,
+        a: *const f32,
+        lda: i32,
+        b: *const f32,
+        ldb: i32,
+        beta: f32,
+        c: *mut f32,
+        ldc: i32,
+    );
 }
 
 #[cfg(not(target_os = "macos"))]
@@ -275,6 +292,72 @@ fn matmul_fast(xout: &mut [f32], x: &[f32], w: &[f32], n: usize) {
     debug_assert!(w.len() >= xout.len() * n);
     for (output, row) in xout.iter_mut().zip(w.chunks_exact(n)) {
         *output = dot_fast(row, x);
+    }
+}
+
+/// Batched matmul: `batch` input vectors of length `n` through weight
+/// `W[rows, n]` → `batch` output vectors of length `rows`. `x` is the `batch`
+/// input vectors laid out contiguously (`batch * n`); `xout` is the `batch`
+/// output vectors (`batch * rows`), same sequence-major layout.
+///
+/// This is the memory-amortized core of batched teacher inference: the serial
+/// [`matmul`] re-reads the entire weight `W` for every single token, which
+/// makes autoregressive inference of a large teacher memory-bandwidth bound.
+/// Here each weight is read once and reused across all `batch` inputs, so `B`
+/// tokens cost one weight sweep instead of `B` — turning the per-token
+/// matrix-vector products into one matrix-matrix product.
+///
+/// Off macOS this reuses [`dot_fast`] per (row, input) with each weight row
+/// held hot across the batch, so it is bit-identical to `batch` separate
+/// [`matmul`]`(.., fast = true)` calls. On macOS it dispatches to Accelerate's
+/// `cblas_sgemm`; like the serial `cblas_sgemv` fast path it is teacher data,
+/// not part of the pinned legacy proof, and is deterministic per machine.
+#[cfg(not(target_os = "macos"))]
+fn matmul_batched(xout: &mut [f32], x: &[f32], w: &[f32], n: usize, batch: usize) {
+    debug_assert!(batch > 0);
+    debug_assert_eq!(xout.len() % batch, 0);
+    let rows = xout.len() / batch;
+    debug_assert!(w.len() >= rows * n);
+    debug_assert_eq!(x.len(), batch * n);
+    for row in 0..rows {
+        let wr = &w[row * n..row * n + n];
+        for bi in 0..batch {
+            let xi = &x[bi * n..bi * n + n];
+            xout[bi * rows + row] = dot_fast(wr, xi);
+        }
+    }
+}
+
+#[cfg(target_os = "macos")]
+fn matmul_batched(xout: &mut [f32], x: &[f32], w: &[f32], n: usize, batch: usize) {
+    debug_assert!(batch > 0);
+    debug_assert_eq!(xout.len() % batch, 0);
+    let rows = xout.len() / batch;
+    debug_assert!(w.len() >= rows * n);
+    debug_assert_eq!(x.len(), batch * n);
+    const CBLAS_ROW_MAJOR: i32 = 101;
+    const CBLAS_NO_TRANSPOSE: i32 = 111;
+    const CBLAS_TRANSPOSE: i32 = 112;
+    // C[batch, rows] = X[batch, n] · W[rows, n]^T
+    // SAFETY: all pointers refer to initialized, non-overlapping f32 slices
+    // whose dimensions/strides describe X[batch, n], W[rows, n], C[batch, rows].
+    unsafe {
+        cblas_sgemm(
+            CBLAS_ROW_MAJOR,
+            CBLAS_NO_TRANSPOSE,
+            CBLAS_TRANSPOSE,
+            i32::try_from(batch).expect("teacher batch exceeds CBLAS i32"),
+            i32::try_from(rows).expect("teacher output dimension exceeds CBLAS i32"),
+            i32::try_from(n).expect("teacher input dimension exceeds CBLAS i32"),
+            1.0,
+            x.as_ptr(),
+            i32::try_from(n).expect("teacher input stride exceeds CBLAS i32"),
+            w.as_ptr(),
+            i32::try_from(n).expect("teacher weight stride exceeds CBLAS i32"),
+            0.0,
+            xout.as_mut_ptr(),
+            i32::try_from(rows).expect("teacher output stride exceeds CBLAS i32"),
+        );
     }
 }
 
@@ -779,6 +862,209 @@ impl Llama {
         }
         matmul(&mut st.logits, &st.x, &w[self.wcls..], dim, fast_matmul);
     }
+
+    /// Batched forward: advance `states.len()` independent sequences by one
+    /// position each — sequence `b` steps `tokens[b]` at `positions[b]` against
+    /// its own KV cache in `states[b]`. The memory-bound weight matmuls (Q/K/V,
+    /// output, MLP, vocab) run once over the whole batch via [`matmul_batched`]
+    /// instead of once per sequence, so B sequences cost one weight sweep — the
+    /// amortization that lifts the teacher off the per-token memory-bandwidth
+    /// wall. Every per-sequence op (rmsnorm, RoPE, attention, SwiGLU, residual)
+    /// mirrors [`Llama::forward`] exactly, and off macOS `matmul_batched` reuses
+    /// the same `dot_fast`, so this is bit-identical to calling `forward` on
+    /// each sequence with `fast_matmul = true`. `fast_matmul` is accepted for
+    /// signature parity; the batched path always takes the amortized kernel.
+    pub fn forward_batch(
+        &self,
+        states: &mut [State],
+        tokens: &[usize],
+        positions: &[usize],
+        fast_matmul: bool,
+    ) {
+        let _ = fast_matmul;
+        let c = &self.cfg;
+        let (dim, hid) = (c.dim, c.hidden);
+        let kv_dim = c.dim * c.n_kv_heads / c.n_heads;
+        let kv_mul = c.n_heads / c.n_kv_heads;
+        let head_size = dim / c.n_heads;
+        let w = &self.w;
+        let b = states.len();
+        debug_assert_eq!(tokens.len(), b);
+        debug_assert_eq!(positions.len(), b);
+
+        // Sequence-major stacked scratch for the batched matmuls.
+        let mut norm = vec![0f32; b * dim];
+        let mut q = vec![0f32; b * dim];
+        let mut ktmp = vec![0f32; b * kv_dim];
+        let mut vtmp = vec![0f32; b * kv_dim];
+        let mut attn = vec![0f32; b * dim];
+        let mut o = vec![0f32; b * dim];
+        let mut hb = vec![0f32; b * hid];
+        let mut hb2 = vec![0f32; b * hid];
+        let mut ffn = vec![0f32; b * dim];
+        let mut xstack = vec![0f32; b * dim];
+
+        for bi in 0..b {
+            let token = tokens[bi];
+            states[bi]
+                .x
+                .copy_from_slice(&w[self.emb + token * dim..self.emb + (token + 1) * dim]);
+        }
+
+        for l in 0..c.n_layers {
+            let loff = l * c.seq_len * kv_dim;
+            for bi in 0..b {
+                rmsnorm_with_mode(
+                    &mut norm[bi * dim..(bi + 1) * dim],
+                    &states[bi].x,
+                    &w[self.rms_att + l * dim..self.rms_att + (l + 1) * dim],
+                    self.canonical_math,
+                );
+            }
+            matmul_batched(&mut q, &norm, &w[self.wq + l * dim * dim..], dim, b);
+            matmul_batched(&mut ktmp, &norm, &w[self.wk + l * dim * kv_dim..], dim, b);
+            matmul_batched(&mut vtmp, &norm, &w[self.wv + l * dim * kv_dim..], dim, b);
+            for bi in 0..b {
+                let dst = loff + positions[bi] * kv_dim;
+                states[bi].key_cache[dst..dst + kv_dim]
+                    .copy_from_slice(&ktmp[bi * kv_dim..(bi + 1) * kv_dim]);
+                states[bi].value_cache[dst..dst + kv_dim]
+                    .copy_from_slice(&vtmp[bi * kv_dim..(bi + 1) * kv_dim]);
+            }
+
+            for bi in 0..b {
+                let pos = positions[bi];
+                let qb = &mut q[bi * dim..(bi + 1) * dim];
+                let out = &mut attn[bi * dim..(bi + 1) * dim];
+                let st = &mut states[bi];
+
+                if c.rope_interleaved {
+                    let k = &mut st.key_cache[loff + pos * kv_dim..loff + (pos + 1) * kv_dim];
+                    let rope_offset = pos * (head_size / 2);
+                    let mut i = 0usize;
+                    while i < dim {
+                        let angle_index = rope_offset + (i % head_size) / 2;
+                        let fcr = self.rope_cos[angle_index];
+                        let fci = self.rope_sin[angle_index];
+                        let rotn = if i < kv_dim { 2 } else { 1 };
+                        for v in 0..rotn {
+                            let vec: &mut [f32] = if v == 0 { &mut *qb } else { &mut *k };
+                            let v0 = vec[i];
+                            let v1 = vec[i + 1];
+                            vec[i] = v0 * fcr - v1 * fci;
+                            vec[i + 1] = v0 * fci + v1 * fcr;
+                        }
+                        i += 2;
+                    }
+                } else {
+                    let k = &mut st.key_cache[loff + pos * kv_dim..loff + (pos + 1) * kv_dim];
+                    for vector in [&mut qb[..], &mut k[..]] {
+                        for head in vector.chunks_exact_mut(head_size) {
+                            let half = head_size / 2;
+                            for i in 0..half {
+                                let angle_index = pos * half + i;
+                                let cos = self.rope_cos[angle_index];
+                                let sin = self.rope_sin[angle_index];
+                                let first = head[i];
+                                let second = head[i + half];
+                                head[i] = first * cos - second * sin;
+                                head[i + half] = second * cos + first * sin;
+                            }
+                        }
+                    }
+                }
+
+                for h in 0..c.n_heads {
+                    let qh = &qb[h * head_size..(h + 1) * head_size];
+                    let att = &mut st.att[h * c.seq_len..h * c.seq_len + pos + 1];
+                    if c.r4_attention {
+                        for (t, attention) in att.iter_mut().enumerate() {
+                            let k = &st.key_cache[loff + t * kv_dim + (h / kv_mul) * head_size..]
+                                [..head_size];
+                            let mut head_score = 0.0f32;
+                            let chunks = head_size / 4;
+                            for chunk_idx in 0..chunks {
+                                let q_chunk = &qh[chunk_idx * 4..(chunk_idx + 1) * 4];
+                                let k_chunk = &k[chunk_idx * 4..(chunk_idx + 1) * 4];
+                                head_score += q_chunk[0] * k_chunk[0]
+                                    + q_chunk[1] * k_chunk[1]
+                                    + q_chunk[2] * k_chunk[2]
+                                    + q_chunk[3] * k_chunk[3];
+                            }
+                            head_score /= sqrtf(head_size as f32, self.canonical_math);
+                            *attention = head_score;
+                        }
+                        softmax_with_mode(att, self.canonical_math);
+                    } else {
+                        for (t, attention) in att.iter_mut().enumerate() {
+                            let k = &st.key_cache[loff + t * kv_dim + (h / kv_mul) * head_size..]
+                                [..head_size];
+                            let mut score = 0.0f32;
+                            for i in 0..head_size {
+                                score += qh[i] * k[i];
+                            }
+                            score /= sqrtf(head_size as f32, self.canonical_math);
+                            *attention = score;
+                        }
+                        softmax_with_mode(att, self.canonical_math);
+                    }
+                    let outh = &mut out[h * head_size..(h + 1) * head_size];
+                    outh.iter_mut().for_each(|v| *v = 0.0);
+                    for (t, &attention) in att.iter().enumerate() {
+                        let v = &st.value_cache[loff + t * kv_dim + (h / kv_mul) * head_size..]
+                            [..head_size];
+                        for i in 0..head_size {
+                            outh[i] += attention * v[i];
+                        }
+                    }
+                }
+            }
+
+            matmul_batched(&mut o, &attn, &w[self.wo + l * dim * dim..], dim, b);
+            for bi in 0..b {
+                for i in 0..dim {
+                    states[bi].x[i] += o[bi * dim + i];
+                }
+            }
+
+            for bi in 0..b {
+                rmsnorm_with_mode(
+                    &mut norm[bi * dim..(bi + 1) * dim],
+                    &states[bi].x,
+                    &w[self.rms_ffn + l * dim..self.rms_ffn + (l + 1) * dim],
+                    self.canonical_math,
+                );
+            }
+            matmul_batched(&mut hb, &norm, &w[self.w1 + l * dim * hid..], dim, b);
+            matmul_batched(&mut hb2, &norm, &w[self.w3 + l * dim * hid..], dim, b);
+            for idx in 0..b * hid {
+                let mut val = hb[idx];
+                val *= 1.0f32 / (1.0f32 + expf(-val, self.canonical_math));
+                val *= hb2[idx];
+                hb[idx] = val;
+            }
+            matmul_batched(&mut ffn, &hb, &w[self.w2 + l * hid * dim..], hid, b);
+            for bi in 0..b {
+                for i in 0..dim {
+                    states[bi].x[i] += ffn[bi * dim + i];
+                }
+            }
+        }
+
+        let rf = self.rms_final;
+        for bi in 0..b {
+            let (wslice, x) = (&w[rf..rf + dim], &mut states[bi].x);
+            rmsnorm_inplace_with_mode(x, wslice, self.canonical_math);
+            xstack[bi * dim..(bi + 1) * dim].copy_from_slice(x);
+        }
+        let mut logits_stacked = vec![0f32; b * c.vocab];
+        matmul_batched(&mut logits_stacked, &xstack, &w[self.wcls..], dim, b);
+        for bi in 0..b {
+            states[bi]
+                .logits
+                .copy_from_slice(&logits_stacked[bi * c.vocab..(bi + 1) * c.vocab]);
+        }
+    }
 }
 
 pub trait RepresentationSource {
@@ -1076,10 +1362,47 @@ impl From<safetensors::SafeTensorError> for SourceUnavailable {
     }
 }
 
+/// A teacher that can advance a batch of independent sequences one position
+/// each through a single memory-amortized forward. Implemented by the HF oracle
+/// (the deployed teacher) and mockable for tests, so the batched observe driver
+/// need not name a concrete oracle.
+pub trait BatchedTeacher {
+    /// A fresh per-sequence state for this teacher.
+    fn new_state(&self) -> State;
+    /// Maximum context length (teacher-forced positions per article).
+    fn seq_len(&self) -> usize;
+    /// Vocabulary size (logits length).
+    fn vocab(&self) -> usize;
+    /// Advance `states.len()` sequences one position each: sequence `b` steps
+    /// `tokens[b]` at `positions[b]`, leaving its logits in `states[b].logits`.
+    fn forward_batch_into(&self, states: &mut [State], tokens: &[usize], positions: &[usize]);
+}
+
+impl BatchedTeacher for HuggingFaceLlamaOracle {
+    fn new_state(&self) -> State {
+        State::new(&self.model.cfg)
+    }
+    fn seq_len(&self) -> usize {
+        self.model.cfg.seq_len
+    }
+    fn vocab(&self) -> usize {
+        self.model.cfg.vocab
+    }
+    fn forward_batch_into(&self, states: &mut [State], tokens: &[usize], positions: &[usize]) {
+        self.model
+            .forward_batch(states, tokens, positions, self.fast_matmul);
+    }
+}
+
 impl HuggingFaceLlamaOracle {
     #[cfg(not(target_arch = "wasm32"))]
     pub fn load(source: impl AsRef<std::path::Path>) -> Result<Self, SourceUnavailable> {
         Self::load_inner(source, None)
+    }
+
+    /// This teacher's configuration (dims, heads, vocab, sequence length).
+    pub fn cfg(&self) -> &Config {
+        &self.model.cfg
     }
 
     /// Load an offline teacher with a bounded context allocation. Compilation
@@ -1434,5 +1757,193 @@ mod tests {
             let tolerance = 1e-5f32.max(expected.abs() * 1e-5);
             assert!((expected - actual).abs() <= tolerance);
         }
+    }
+
+    #[test]
+    fn matmul_batched_matches_serial_fast() {
+        const N: usize = 73;
+        const ROWS: usize = 40;
+        const BATCH: usize = 6;
+        let weights: Vec<f32> = (0..ROWS * N)
+            .map(|index| ((index * 29 % 43) as f32 - 21.0) / 32.0)
+            .collect();
+        let x: Vec<f32> = (0..BATCH * N)
+            .map(|index| ((index * 17 % 31) as f32 - 15.0) / 16.0)
+            .collect();
+        let mut batched = vec![0.0f32; BATCH * ROWS];
+        matmul_batched(&mut batched, &x, &weights, N, BATCH);
+        for bi in 0..BATCH {
+            let mut serial = [0.0f32; ROWS];
+            matmul(&mut serial, &x[bi * N..(bi + 1) * N], &weights, N, true);
+            for row in 0..ROWS {
+                let want = serial[row];
+                let got = batched[bi * ROWS + row];
+                // Off macOS the batched kernel reuses the exact same dot_fast as
+                // the serial fast path, so it is bit-identical. On macOS it is
+                // Accelerate sgemm vs sgemv — deterministic, within tolerance.
+                #[cfg(not(target_os = "macos"))]
+                assert_eq!(got, want, "batched != serial at b{bi} row{row}");
+                #[cfg(target_os = "macos")]
+                {
+                    let tolerance = 1e-4f32.max(want.abs() * 1e-4);
+                    assert!(
+                        (got - want).abs() <= tolerance,
+                        "batched vs serial b{bi} row{row}"
+                    );
+                }
+            }
+        }
+    }
+
+    /// A tiny synthetic Llama with deterministic weights, for exercising the
+    /// forward path without loading a real checkpoint.
+    fn tiny_llama() -> Llama {
+        let (dim, hid, nl, kv_dim, vocab, seq_len) =
+            (8usize, 16usize, 2usize, 8usize, 10usize, 8usize);
+        let cfg = Config {
+            dim,
+            hidden: hid,
+            n_layers: nl,
+            n_heads: 2,
+            n_kv_heads: 2,
+            vocab,
+            seq_len,
+            rope_theta: 10_000.0,
+            rms_norm_eps: 1e-5,
+            rope_interleaved: true,
+            r4_attention: false,
+        };
+        let emb = 0;
+        let rms_att = emb + vocab * dim;
+        let wq = rms_att + nl * dim;
+        let wk = wq + nl * dim * dim;
+        let wv = wk + nl * dim * kv_dim;
+        let wo = wv + nl * dim * kv_dim;
+        let rms_ffn = wo + nl * dim * dim;
+        let w1 = rms_ffn + nl * dim;
+        let w2 = w1 + nl * dim * hid;
+        let w3 = w2 + nl * hid * dim;
+        let rms_final = w3 + nl * dim * hid;
+        let total = rms_final + dim;
+        let w: Vec<f32> = (0..total)
+            .map(|i| (((i * 131 + 7) % 251) as f32 / 251.0 - 0.5) * 0.2)
+            .collect();
+        let mut model = Llama {
+            cfg,
+            w,
+            rope_cos: Vec::new(),
+            rope_sin: Vec::new(),
+            emb,
+            rms_att,
+            wq,
+            wk,
+            wv,
+            wo,
+            rms_ffn,
+            w1,
+            w2,
+            w3,
+            rms_final,
+            wcls: emb,
+            canonical_math: false,
+        };
+        model.rebuild_rope_cache();
+        model
+    }
+
+    /// forward_batch over B sequences, stepped position by position, must
+    /// produce the exact logits of B independent forward() streams. Off macOS
+    /// the batched matmul reuses the serial dot_fast, so this is bit-identical;
+    /// guards the batched teacher path added for #531.
+    #[cfg(not(target_os = "macos"))]
+    #[test]
+    #[allow(clippy::needless_range_loop)]
+    fn forward_batch_matches_serial_forward() {
+        let model = tiny_llama();
+        let seqs: [[usize; 4]; 3] = [[1, 3, 5, 2], [4, 0, 7, 8], [2, 9, 1, 6]];
+        let len = 4;
+
+        // Serial reference: one State per sequence, stepped token by token.
+        let mut serial: Vec<Vec<f32>> = Vec::new();
+        let mut sstates: Vec<State> = (0..3).map(|_| State::new(&model.cfg)).collect();
+        sstates.iter_mut().for_each(State::reset);
+        for pos in 0..len {
+            for (b, st) in sstates.iter_mut().enumerate() {
+                model.forward(st, seqs[b][pos], pos, true);
+                serial.push(st.logits.clone());
+            }
+        }
+
+        // Batched: all three sequences advanced together each step.
+        let mut bstates: Vec<State> = (0..3).map(|_| State::new(&model.cfg)).collect();
+        bstates.iter_mut().for_each(State::reset);
+        for pos in 0..len {
+            let tokens: Vec<usize> = (0..3).map(|b| seqs[b][pos]).collect();
+            let positions = vec![pos; 3];
+            model.forward_batch(&mut bstates, &tokens, &positions, true);
+            for (b, st) in bstates.iter().enumerate() {
+                assert_eq!(
+                    st.logits,
+                    serial[pos * 3 + b],
+                    "logits differ at pos {pos} seq {b}"
+                );
+            }
+        }
+    }
+
+    /// Raw teacher throughput: serial `step` vs batched `forward_batch_into` on
+    /// a real teacher. Ignored by default; run against a model directory:
+    ///   TLESS_BENCH_MODEL=.uor-models/sources/smollm2-360m-instruct \
+    ///   cargo test -p uor-r4-model-source --release bench_forward_batch \
+    ///     -- --ignored --nocapture
+    /// Optionally TLESS_BENCH_B=16 (batch), TLESS_BENCH_STEPS=128 (positions).
+    #[cfg(not(target_arch = "wasm32"))]
+    #[test]
+    #[ignore]
+    fn bench_forward_batch() {
+        use std::time::Instant;
+        let dir = std::env::var("TLESS_BENCH_MODEL")
+            .expect("set TLESS_BENCH_MODEL to a teacher source directory");
+        let steps: usize = std::env::var("TLESS_BENCH_STEPS")
+            .ok()
+            .and_then(|s| s.parse().ok())
+            .unwrap_or(128);
+        let batch: usize = std::env::var("TLESS_BENCH_B")
+            .ok()
+            .and_then(|s| s.parse().ok())
+            .unwrap_or(16);
+        let mut oracle =
+            HuggingFaceLlamaOracle::load_with_sequence_length(&dir, 128).expect("load teacher");
+        let vocab = oracle.cfg().vocab;
+
+        // Serial baseline: one sequence, `steps` positions via step().
+        let mut logits = vec![0f32; vocab];
+        oracle.reset();
+        let t = Instant::now();
+        for pos in 0..steps {
+            oracle.step((pos % vocab).max(1), pos, &mut logits);
+        }
+        let serial_s = t.elapsed().as_secs_f64();
+        let serial_tps = steps as f64 / serial_s;
+
+        // Batched: `batch` sequences, `steps` positions each.
+        let mut states: Vec<State> = (0..batch).map(|_| oracle.new_state()).collect();
+        states.iter_mut().for_each(State::reset);
+        let t = Instant::now();
+        for pos in 0..steps {
+            let tokens: Vec<usize> = (0..batch).map(|b| ((pos + b) % vocab).max(1)).collect();
+            let positions = vec![pos; batch];
+            oracle.forward_batch_into(&mut states, &tokens, &positions);
+        }
+        let batched_s = t.elapsed().as_secs_f64();
+        let batched_tps = (steps * batch) as f64 / batched_s;
+
+        eprintln!(
+            "BENCH serial: {steps} tok in {serial_s:.3}s = {serial_tps:.1} tok/s | \
+             batched B={batch}: {} tok in {batched_s:.3}s = {batched_tps:.1} tok/s | \
+             speedup {:.2}x",
+            steps * batch,
+            batched_tps / serial_tps
+        );
     }
 }

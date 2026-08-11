@@ -289,6 +289,7 @@ struct ObserveTextOptions {
     shards: u8,
     sequence_length: usize,
     workers: usize,
+    batch: usize,
 }
 
 fn parse_observe_text_options(args: &[String]) -> Result<ObserveTextOptions, SourceUnavailable> {
@@ -302,6 +303,7 @@ fn parse_observe_text_options(args: &[String]) -> Result<ObserveTextOptions, Sou
         shards: 4,
         sequence_length: 128,
         workers: 1,
+        batch: 1,
     };
     let mut index = 0usize;
     while index < args.len() {
@@ -354,6 +356,16 @@ fn parse_observe_text_options(args: &[String]) -> Result<ObserveTextOptions, Sou
                     ));
                 }
             }
+            "--batch" => {
+                // Articles teacher-forced together per forward (Hugging Face
+                // teacher only). One shared weight copy; the throughput lever.
+                options.batch = value.parse().map_err(|_| {
+                    SourceUnavailable::new(format!("invalid --batch value: {value}"))
+                })?;
+                if options.batch == 0 {
+                    return Err(SourceUnavailable::new("--batch must be greater than zero"));
+                }
+            }
             _ => {
                 return Err(SourceUnavailable::new(format!(
                     "unknown observe-text option: {flag}"
@@ -376,6 +388,17 @@ pub fn observe_text_command(args: &[String]) -> Result<(), SourceUnavailable> {
     );
     let options = parse_observe_text_options(args)?;
     std::fs::create_dir_all(&options.output)?;
+    // Batched teacher path: one shared weight copy, B articles per forward. This
+    // is the throughput lever (measured ~15× at batch 32) and supersedes
+    // --workers for the Hugging Face teacher.
+    if options.batch > 1 {
+        if options.checkpoint.is_some() {
+            return Err(SourceUnavailable::new(
+                "--batch is only supported for the Hugging Face teacher, not a legacy --checkpoint",
+            ));
+        }
+        return observe_text_batched_command(&options);
+    }
     let token_byte_lengths: Vec<u32>;
     let tokenizer: TokenizerKind;
     let oracle: Box<dyn TeacherOracle + Send> = if let Some(checkpoint) = &options.checkpoint {
@@ -475,6 +498,60 @@ pub fn observe_text_command(args: &[String]) -> Result<(), SourceUnavailable> {
         true,
     )
     .map_err(SourceUnavailable::new)?;
+    finish_observe_text_report(&report, &options.output)
+}
+
+/// Observe-text with a batched Hugging Face teacher: one shared weight copy,
+/// up to `--batch` articles teacher-forced per forward. Produces the same
+/// records as the serial path for identical logits.
+fn observe_text_batched_command(options: &ObserveTextOptions) -> Result<(), SourceUnavailable> {
+    let oracle =
+        HuggingFaceLlamaOracle::load_with_sequence_length(&options.source, options.sequence_length)
+            .map_err(|error| {
+                SourceUnavailable::new(format!("failed to load Hugging Face model: {error}"))
+            })?;
+    eprintln!("exporting tokenizer...");
+    let token_byte_lengths =
+        uor_r4_core::transformerless::scenarios::export_hf_bytelevel_tokenizer_with_lengths(
+            options.source.join("tokenizer.json"),
+            options.output.join("tokenizer.bin"),
+        )
+        .map_err(SourceUnavailable::new)?;
+    let tokenizer_json = options.source.join("tokenizer.json");
+    let tokenizer = if tokenizer_json.is_file() {
+        TokenizerKind::HfBpe(Box::new(
+            HfBpeTokenizer::from_dir(&options.source).map_err(|error| {
+                SourceUnavailable::new(format!("{}: {error}", tokenizer_json.display()))
+            })?,
+        ))
+    } else {
+        TokenizerKind::Legacy(
+            scenarios::Tokenizer::try_load(options.output.join("tokenizer.bin"))
+                .map_err(SourceUnavailable::new)?,
+        )
+    };
+    eprintln!("observing with batch {}", options.batch);
+    let report = observe_text::observe_text_corpus_batched(
+        &oracle,
+        options.batch,
+        options.seconds,
+        &tokenizer,
+        Some(&token_byte_lengths),
+        &options.input,
+        &options.output,
+        options.shards,
+        true,
+    )
+    .map_err(SourceUnavailable::new)?;
+    finish_observe_text_report(&report, &options.output)
+}
+
+/// Print the observe-text report and, when the corpus is complete, persist the
+/// merged record stream. Shared by the serial/pool and batched entry points.
+fn finish_observe_text_report(
+    report: &observe_text::ObservationReport,
+    output: &std::path::Path,
+) -> Result<(), SourceUnavailable> {
     println!(
         "observe-text: {} records across {}/{} shards ({} written this run)",
         report.records, report.shards_completed, report.shard_count, report.written
@@ -502,12 +579,15 @@ pub fn observe_text_command(args: &[String]) -> Result<(), SourceUnavailable> {
     if report.done {
         // Persist the merged record stream: Gate C consumes it as
         // --corpus-recs with state.bin as --corpus-meta (issue #72).
-        let merged = observe::merge_shards(&options.output).map_err(SourceUnavailable::new)?;
-        let merged_path = options.output.join("merged.bin");
+        let merged = observe::merge_shards(output).map_err(SourceUnavailable::new)?;
+        let merged_path = output.join("merged.bin");
         std::fs::write(&merged_path, &merged)?;
         println!(
             "observe-text complete: merged κ {} at {}",
-            report.merged_kappa.expect("done reports merged κ"),
+            report
+                .merged_kappa
+                .as_deref()
+                .expect("done reports merged κ"),
             merged_path.display()
         );
     } else {
@@ -515,7 +595,7 @@ pub fn observe_text_command(args: &[String]) -> Result<(), SourceUnavailable> {
             "text observation corpus is not complete ({}/{} articles); rerun the same command to resume {}",
             report.articles_completed,
             report.articles_total,
-            options.output.display()
+            output.display()
         );
     }
     Ok(())

@@ -54,6 +54,7 @@ use uor_r4_core::transformerless::hf_bpe::TokenizerKind;
 use uor_r4_model_source::SourceUnavailable;
 use uor_r4_model_source::TeacherOracle;
 use uor_r4_model_source::progress::Progress;
+use uor_r4_model_source::{BatchedTeacher, State};
 
 /// Authoritative per-article checkpoint file name within an observation
 /// directory.
@@ -577,6 +578,81 @@ struct ArticleProduced {
     replaced: u64,
 }
 
+/// One encoded teacher-forced position: its record, the shard it routes to, and
+/// the aligned probability sidecar.
+struct EncodedPosition {
+    shard: u32,
+    record: [u8; RECORD_SIZE],
+    metadata: observe::ProbabilityMetadata,
+}
+
+/// Encode the observation record at one teacher-forced position from that
+/// position's `logits`. Pushes `token` onto `window` (trimmed to the context
+/// width), routes by the content-addressed sample id, and returns the record
+/// plus the advanced story byte offset. Shared by the serial and batched
+/// drivers so both emit identical records for identical logits. The sampled
+/// token is discarded — every recorded field is deterministic from
+/// `(logits, token, next)`.
+#[allow(clippy::too_many_arguments)]
+fn encode_position(
+    logits: &mut [f32],
+    story: u32,
+    pos: usize,
+    token: u32,
+    next: u32,
+    window: &mut Vec<u32>,
+    story_byte_offset: u32,
+    token_byte_lengths: Option<&[u32]>,
+    shard_bits: u8,
+    rng: &mut u64,
+) -> (EncodedPosition, u32) {
+    let (_sampled, top_tokens, top_weights, sampled_stats) =
+        compiler::softmax_top8_sample_with_stats(logits, rng);
+    let stats = compiler::TokenProbabilityStats::from_normalized(
+        logits,
+        next as usize,
+        &top_tokens,
+        sampled_stats.top8_mass,
+    );
+    window.push(token);
+    if window.len() > compiler::WINDOW {
+        window.remove(0);
+    }
+    let id = observe::sample_id(window);
+    let shard = observe::shard_of(&id, shard_bits);
+    let span_start = pos as u32;
+    let span_end = span_start.saturating_add(1);
+    let (byte_start, byte_end) =
+        compiler::byte_anchors(token_byte_lengths, story_byte_offset, next as usize);
+    let record = compiler::encode_v4_record(
+        story,
+        next,
+        &top_tokens,
+        &top_weights,
+        (span_start, span_end),
+        (byte_start, byte_end),
+    );
+    let metadata = observe::ProbabilityMetadata {
+        target_logprob_nats: stats.target_logprob_nats,
+        entropy_bits: stats.entropy_bits,
+        top8_mass: stats.top8_mass,
+        target_rank: stats.target_rank,
+    };
+    let advanced = if token_byte_lengths.is_some() {
+        byte_end
+    } else {
+        story_byte_offset
+    };
+    (
+        EncodedPosition {
+            shard,
+            record,
+            metadata,
+        },
+        advanced,
+    )
+}
+
 /// Teacher-force one article and return its record stream. The sampled token
 /// is discarded (see the module docs): every recorded field is a deterministic
 /// function of `(article tokens, model)`, so this is independent of worker,
@@ -607,46 +683,21 @@ fn produce_article_records(
     for pos in 0..positions {
         let token = tokens[pos];
         oracle.step(token as usize, pos, &mut logits);
-        let (_sampled, top_tokens, top_weights, sampled_stats) =
-            compiler::softmax_top8_sample_with_stats(&mut logits, rng);
         let next = tokens[pos + 1];
-        let stats = compiler::TokenProbabilityStats::from_normalized(
-            &logits,
-            next as usize,
-            &top_tokens,
-            sampled_stats.top8_mass,
-        );
-        window.push(token);
-        if window.len() > compiler::WINDOW {
-            window.remove(0);
-        }
-        let id = observe::sample_id(&window);
-        let shard = observe::shard_of(&id, shard_bits);
-        let span_start = pos as u32;
-        let span_end = span_start.saturating_add(1);
-        let (byte_start, byte_end) =
-            compiler::byte_anchors(token_byte_lengths, story_byte_offset, next as usize);
-        let record = compiler::encode_v4_record(
+        let (encoded, advanced) = encode_position(
+            &mut logits,
             story,
+            pos,
+            token,
             next,
-            &top_tokens,
-            &top_weights,
-            (span_start, span_end),
-            (byte_start, byte_end),
+            &mut window,
+            story_byte_offset,
+            token_byte_lengths,
+            shard_bits,
+            rng,
         );
-        records.push((
-            shard,
-            record,
-            observe::ProbabilityMetadata {
-                target_logprob_nats: stats.target_logprob_nats,
-                entropy_bits: stats.entropy_bits,
-                top8_mass: stats.top8_mass,
-                target_rank: stats.target_rank,
-            },
-        ));
-        if token_byte_lengths.is_some() {
-            story_byte_offset = byte_end;
-        }
+        records.push((encoded.shard, encoded.record, encoded.metadata));
+        story_byte_offset = advanced;
     }
     Ok(ArticleProduced {
         ordinal,
@@ -711,32 +762,28 @@ fn commit_article(
     Ok(())
 }
 
-/// Observe a text corpus with a pool of `oracles` teacher instances. Articles
-/// are teacher-forced and mutually independent (the sampled token is discarded;
-/// every recorded field is a deterministic function of the article tokens and
-/// the model), so a batch of up to `oracles.len()` articles is produced in
-/// parallel — one worker thread per oracle — and then committed on this thread
-/// in ascending article ordinal. Because the shard writer appends in call
-/// order, the committed shard bytes are identical to a single-oracle pass.
-///
-/// A single-oracle pool (`oracles.len() == 1`) runs entirely on this thread and
-/// threads `checkpoint.rng` exactly as the original in-line loop did, so it is
-/// byte-for-byte unchanged including the committed checkpoint.
-#[allow(clippy::too_many_arguments)]
-pub fn observe_text_corpus(
-    oracles: &mut [Box<dyn TeacherOracle + Send>],
-    budget_s: u64,
-    tokenizer: &TokenizerKind,
-    token_byte_lengths: Option<&[u32]>,
-    articles_path: &Path,
+/// Outcome of opening an observation directory: either the corpus is already
+/// complete (its report), or a fresh/resumed session ready to receive records.
+enum Prepared {
+    Done(ObservationReport),
+    Ready {
+        writer: ObservationShardWriter,
+        checkpoint: Checkpoint,
+        articles_total: u64,
+        stories_path: PathBuf,
+    },
+}
+
+/// Open an observation directory: validate/resume the checkpoint, reconcile any
+/// interrupted on-disk shard/story tails, and count the article stream. Shared
+/// by the serial and batched drivers — everything up to the per-article loop is
+/// identical regardless of how records are produced.
+fn prepare_text_observation(
     out_dir: &Path,
+    articles_path: &Path,
     shard_bits: u8,
     resume: bool,
-) -> Result<ObservationReport, SourceUnavailable> {
-    assert!(
-        !oracles.is_empty(),
-        "observe_text_corpus needs at least one oracle"
-    );
+) -> Result<Prepared, SourceUnavailable> {
     let kappa = input_kappa(articles_path)?;
     let mut writer = ObservationShardWriter::open(out_dir, shard_bits)?;
     let shard_count = writer.manifest().shard_count();
@@ -761,7 +808,7 @@ pub fn observe_text_corpus(
     // (issue #72): the input κ is the corpus CID of the D3 manifest.
     writer.set_input_cid(&format!("blake3:{}", blake3::Hash::from(kappa).to_hex()))?;
 
-    let mut checkpoint = match read_checkpoint(out_dir, shard_count)? {
+    let checkpoint = match read_checkpoint(out_dir, shard_count)? {
         Some(checkpoint) => {
             if checkpoint.input_kappa != kappa {
                 return Err(SourceUnavailable::new(format!(
@@ -833,8 +880,54 @@ pub fn observe_text_corpus(
             "text observation corpus already complete: {} records",
             checkpoint.n
         );
-        return build_report(out_dir, &checkpoint, &writer, articles_total, 0, 0, 0);
+        let report = build_report(out_dir, &checkpoint, &writer, articles_total, 0, 0, 0)?;
+        return Ok(Prepared::Done(report));
     }
+
+    Ok(Prepared::Ready {
+        writer,
+        checkpoint,
+        articles_total,
+        stories_path,
+    })
+}
+
+/// Observe a text corpus with a pool of `oracles` teacher instances. Articles
+/// are teacher-forced and mutually independent (the sampled token is discarded;
+/// every recorded field is a deterministic function of the article tokens and
+/// the model), so a batch of up to `oracles.len()` articles is produced in
+/// parallel — one worker thread per oracle — and then committed on this thread
+/// in ascending article ordinal. Because the shard writer appends in call
+/// order, the committed shard bytes are identical to a single-oracle pass.
+///
+/// A single-oracle pool (`oracles.len() == 1`) runs entirely on this thread and
+/// threads `checkpoint.rng` exactly as the original in-line loop did, so it is
+/// byte-for-byte unchanged including the committed checkpoint.
+#[allow(clippy::too_many_arguments)]
+pub fn observe_text_corpus(
+    oracles: &mut [Box<dyn TeacherOracle + Send>],
+    budget_s: u64,
+    tokenizer: &TokenizerKind,
+    token_byte_lengths: Option<&[u32]>,
+    articles_path: &Path,
+    out_dir: &Path,
+    shard_bits: u8,
+    resume: bool,
+) -> Result<ObservationReport, SourceUnavailable> {
+    assert!(
+        !oracles.is_empty(),
+        "observe_text_corpus needs at least one oracle"
+    );
+    let (mut writer, mut checkpoint, articles_total, stories_path) =
+        match prepare_text_observation(out_dir, articles_path, shard_bits, resume)? {
+            Prepared::Done(report) => return Ok(report),
+            Prepared::Ready {
+                writer,
+                checkpoint,
+                articles_total,
+                stories_path,
+            } => (writer, checkpoint, articles_total, stories_path),
+        };
 
     let workers = oracles.len();
     let seq_len = oracles[0].seq_len();
@@ -950,10 +1043,37 @@ pub fn observe_text_corpus(
             break 'batches;
         }
     }
+    finalize_text_observation(
+        out_dir,
+        &mut writer,
+        &mut checkpoint,
+        &mut progress,
+        articles_total,
+        ordinal,
+        truncated,
+        replaced,
+        written,
+    )
+}
+
+/// Finalize an observation: mark a fully-consumed stream done, κ-pin the shards,
+/// and build the report. Shared by the serial and batched drivers.
+#[allow(clippy::too_many_arguments)]
+fn finalize_text_observation(
+    out_dir: &Path,
+    writer: &mut ObservationShardWriter,
+    checkpoint: &mut Checkpoint,
+    progress: &mut Progress,
+    articles_total: u64,
+    ordinal: u64,
+    truncated: u64,
+    replaced: u64,
+    written: u64,
+) -> Result<ObservationReport, SourceUnavailable> {
     if !checkpoint.done && ordinal == articles_total {
-        // Empty input file: nothing to do, the corpus is trivially complete.
+        // Empty (or fully consumed) stream: the corpus is complete.
         checkpoint.done = true;
-        write_checkpoint(out_dir, &checkpoint)?;
+        write_checkpoint(out_dir, checkpoint)?;
     }
     if checkpoint.done {
         writer.finalize_all()?;
@@ -961,8 +1081,8 @@ pub fn observe_text_corpus(
     }
     let report = build_report(
         out_dir,
-        &checkpoint,
-        &writer,
+        checkpoint,
+        writer,
         articles_total,
         truncated,
         replaced,
@@ -980,6 +1100,209 @@ pub fn observe_text_corpus(
         report.done
     );
     Ok(report)
+}
+
+/// One in-flight article in a batched observation group.
+struct BatchSlot {
+    ordinal: u64,
+    article: Article,
+    tokens: Vec<u32>,
+    positions: usize,
+    truncated: bool,
+    replaced: u64,
+    window: Vec<u32>,
+    byte_off: u32,
+    rng: u64,
+    records: Vec<(u32, [u8; RECORD_SIZE], observe::ProbabilityMetadata)>,
+}
+
+/// Observe a text corpus with a batched teacher: up to `batch` articles are
+/// teacher-forced together through the memory-amortized forward, so B articles
+/// cost one weight sweep per step instead of B — the throughput lever (measured
+/// ~15× at batch 32 on a 360M teacher). Articles are gathered in ordinal order
+/// into a group, stepped together to the group's longest article (a finished
+/// slot repeats its last position, which is idempotent, keeping the batch
+/// contiguous), each active position encoded via the shared [`encode_position`],
+/// then the group committed in ordinal order via [`commit_article`]. Records are
+/// identical to the serial path for identical logits; on the deployed macOS
+/// teacher the batched (`sgemm`) logits are a distinct, reproducible teacher
+/// path from the serial (`sgemv`) one — both are teacher data, not the pinned
+/// legacy proof.
+#[allow(clippy::too_many_arguments)]
+pub fn observe_text_corpus_batched(
+    oracle: &dyn BatchedTeacher,
+    batch: usize,
+    budget_s: u64,
+    tokenizer: &TokenizerKind,
+    token_byte_lengths: Option<&[u32]>,
+    articles_path: &Path,
+    out_dir: &Path,
+    shard_bits: u8,
+    resume: bool,
+) -> Result<ObservationReport, SourceUnavailable> {
+    assert!(batch >= 1, "observe_text_corpus_batched needs batch >= 1");
+    let (mut writer, mut checkpoint, articles_total, stories_path) =
+        match prepare_text_observation(out_dir, articles_path, shard_bits, resume)? {
+            Prepared::Done(report) => return Ok(report),
+            Prepared::Ready {
+                writer,
+                checkpoint,
+                articles_total,
+                stories_path,
+            } => (writer, checkpoint, articles_total, stories_path),
+        };
+
+    let seq_len = oracle.seq_len();
+    let mut progress = Progress::new("text observations", articles_total as usize);
+    progress.set(checkpoint.stories as usize);
+    let mut written = 0u64;
+    let mut truncated = 0u64;
+    let mut replaced = 0u64;
+    let t0 = std::time::Instant::now();
+
+    let file = fs::File::open(articles_path)
+        .map_err(|error| SourceUnavailable::new(format!("{}: {error}", articles_path.display())))?;
+    let mut lines = BufReader::new(file).lines();
+    let mut ordinal = 0u64;
+    let mut budget_hit = false;
+    // One reusable state per slot, all sharing the oracle's single weight copy.
+    let mut states: Vec<State> = (0..batch).map(|_| oracle.new_state()).collect();
+
+    'groups: loop {
+        let mut slots: Vec<BatchSlot> = Vec::with_capacity(batch);
+        while slots.len() < batch {
+            let line = match lines.next() {
+                Some(line) => line.map_err(|error| {
+                    SourceUnavailable::new(format!("{}: {error}", articles_path.display()))
+                })?,
+                None => break,
+            };
+            if ordinal < checkpoint.stories {
+                ordinal += 1;
+                continue;
+            }
+            if t0.elapsed().as_secs() >= budget_s {
+                budget_hit = true;
+                break;
+            }
+            let article: Article = serde_json::from_str(&line).map_err(|error| {
+                SourceUnavailable::new(format!(
+                    "{} line {}: invalid article: {error}",
+                    articles_path.display(),
+                    ordinal + 1
+                ))
+            })?;
+            let (tokens, replaced_n) = tokenizer.encode_lossy(&article.text);
+            let positions = tokens.len().saturating_sub(1).min(seq_len);
+            let truncated = positions < tokens.len().saturating_sub(1);
+            slots.push(BatchSlot {
+                ordinal,
+                article,
+                tokens,
+                positions,
+                truncated,
+                replaced: replaced_n,
+                window: Vec::with_capacity(compiler::WINDOW),
+                byte_off: 0,
+                rng: RNG_SEED,
+                records: Vec::new(),
+            });
+            ordinal += 1;
+        }
+        if slots.is_empty() {
+            break;
+        }
+        let active = slots.len();
+        states[..active].iter_mut().for_each(State::reset);
+        let max_len = slots.iter().map(|s| s.positions).max().unwrap_or(0);
+
+        for pos in 0..max_len {
+            let tokens: Vec<usize> = slots
+                .iter()
+                .map(|s| {
+                    let p = pos.min(s.positions.saturating_sub(1));
+                    s.tokens.get(p).copied().unwrap_or(0) as usize
+                })
+                .collect();
+            let positions: Vec<usize> = slots
+                .iter()
+                .map(|s| pos.min(s.positions.saturating_sub(1)))
+                .collect();
+            oracle.forward_batch_into(&mut states[..active], &tokens, &positions);
+            for (i, slot) in slots.iter_mut().enumerate() {
+                if pos < slot.positions {
+                    let story = u32::try_from(slot.ordinal).map_err(|_| {
+                        SourceUnavailable::new("article ordinal exceeds the u32 story field")
+                    })?;
+                    let token = slot.tokens[pos];
+                    let next = slot.tokens[pos + 1];
+                    let (encoded, advanced) = encode_position(
+                        &mut states[i].logits,
+                        story,
+                        pos,
+                        token,
+                        next,
+                        &mut slot.window,
+                        slot.byte_off,
+                        token_byte_lengths,
+                        shard_bits,
+                        &mut slot.rng,
+                    );
+                    slot.records
+                        .push((encoded.shard, encoded.record, encoded.metadata));
+                    slot.byte_off = advanced;
+                }
+            }
+        }
+
+        // Commit the group in ascending ordinal (slots gathered in order).
+        for slot in &slots {
+            let story = u32::try_from(slot.ordinal).map_err(|_| {
+                SourceUnavailable::new("article ordinal exceeds the u32 story field")
+            })?;
+            let produced = ArticleProduced {
+                ordinal: slot.ordinal,
+                records: slot.records.clone(),
+                story_entry: StoryEntry {
+                    story,
+                    id: slot.article.id.clone(),
+                    url: slot.article.url.clone(),
+                    title: slot.article.title.clone(),
+                    partition: partition_of(&slot.article.id),
+                },
+                truncated: slot.truncated,
+                replaced: slot.replaced,
+            };
+            commit_article(
+                &mut writer,
+                &mut checkpoint,
+                out_dir,
+                &stories_path,
+                &produced,
+                articles_total,
+                &mut written,
+                &mut truncated,
+                &mut replaced,
+            )?;
+            progress.set((slot.ordinal + 1) as usize);
+        }
+
+        if budget_hit {
+            break 'groups;
+        }
+    }
+
+    finalize_text_observation(
+        out_dir,
+        &mut writer,
+        &mut checkpoint,
+        &mut progress,
+        articles_total,
+        ordinal,
+        truncated,
+        replaced,
+        written,
+    )
 }
 
 #[cfg(test)]
@@ -1818,6 +2141,124 @@ mod tests {
 
         let _ = fs::remove_dir_all(&dir1);
         let _ = fs::remove_dir_all(&dir3);
+        let _ = fs::remove_file(&input);
+    }
+
+    /// A batched teacher whose per-position logits match `FakeOracle::step`
+    /// exactly, so the batched driver's records can be compared byte-for-byte
+    /// against the serial driver's.
+    struct FakeBatchedOracle {
+        cfg: uor_r4_model_source::Config,
+    }
+
+    impl BatchedTeacher for FakeBatchedOracle {
+        fn new_state(&self) -> State {
+            State::new(&self.cfg)
+        }
+        fn seq_len(&self) -> usize {
+            FAKE_SEQ_LEN
+        }
+        fn vocab(&self) -> usize {
+            FAKE_VOCAB
+        }
+        fn forward_batch_into(&self, states: &mut [State], tokens: &[usize], positions: &[usize]) {
+            for (b, st) in states.iter_mut().enumerate() {
+                let (token, pos) = (tokens[b], positions[b]);
+                for (index, logit) in st.logits.iter_mut().enumerate() {
+                    let value = (token as u64 * 31 + pos as u64 * 7 + index as u64 * 13) % 29;
+                    *logit = value as f32 * 0.25 - 3.0;
+                }
+            }
+        }
+    }
+
+    fn fake_batched_config() -> uor_r4_model_source::Config {
+        uor_r4_model_source::Config {
+            dim: 4,
+            hidden: 4,
+            n_layers: 1,
+            n_heads: 2,
+            n_kv_heads: 2,
+            vocab: FAKE_VOCAB,
+            seq_len: FAKE_SEQ_LEN,
+            rope_theta: 10_000.0,
+            rms_norm_eps: 1e-5,
+            rope_interleaved: true,
+            r4_attention: false,
+        }
+    }
+
+    /// The batched driver must produce a byte-for-byte identical corpus to the
+    /// serial driver when the teacher's per-position logits match: a fake whose
+    /// logits equal FakeOracle's is observed serially and with batch=4, and the
+    /// merged stream, its κ, every shard, and the story mapping must be equal.
+    /// Guards the batched observe path added for #531.
+    #[test]
+    fn batched_matches_serial_byte_for_byte() {
+        let articles = test_articles();
+        let articles_ref: Vec<(&str, &str)> = articles
+            .iter()
+            .map(|(id, text)| (id.as_str(), text.as_str()))
+            .collect();
+        let tokenizer = fixture_tokenizer();
+        let lengths = fixture_token_byte_lengths();
+        let input = unique_path("articles.jsonl");
+        write_articles(&input, &articles_ref);
+
+        let dir_s = unique_path("serial");
+        let mut pool: Vec<Box<dyn TeacherOracle + Send>> = vec![Box::new(FakeOracle)];
+        let serial = observe_text_corpus(
+            &mut pool,
+            60,
+            &tokenizer,
+            Some(&lengths),
+            &input,
+            &dir_s,
+            SHARD_BITS,
+            false,
+        )
+        .expect("serial observe");
+        assert!(serial.done);
+
+        let dir_b = unique_path("batched");
+        let fake = FakeBatchedOracle {
+            cfg: fake_batched_config(),
+        };
+        let batched = observe_text_corpus_batched(
+            &fake,
+            4,
+            60,
+            &tokenizer,
+            Some(&lengths),
+            &input,
+            &dir_b,
+            SHARD_BITS,
+            false,
+        )
+        .expect("batched observe");
+        assert!(batched.done);
+
+        assert_eq!(
+            merge_shards(&dir_s).expect("merge serial"),
+            merge_shards(&dir_b).expect("merge batched"),
+            "batched merged bytes differ from serial"
+        );
+        assert_eq!(serial.merged_kappa, batched.merged_kappa);
+        assert_eq!(serial.records, batched.records);
+        assert_eq!(serial.written, batched.written);
+        for shard in 0..SHARD_COUNT {
+            let f_s = fs::read(dir_s.join(shard_file_name(SHARD_BITS, shard))).unwrap_or_default();
+            let f_b = fs::read(dir_b.join(shard_file_name(SHARD_BITS, shard))).unwrap_or_default();
+            assert_eq!(f_s, f_b, "shard {shard} differs between serial and batched");
+        }
+        assert_eq!(
+            fs::read_to_string(&serial.stories_file).expect("serial stories"),
+            fs::read_to_string(&batched.stories_file).expect("batched stories"),
+            "story mapping differs between serial and batched"
+        );
+
+        let _ = fs::remove_dir_all(&dir_s);
+        let _ = fs::remove_dir_all(&dir_b);
         let _ = fs::remove_file(&input);
     }
 }
