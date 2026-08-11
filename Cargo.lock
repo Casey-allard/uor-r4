@@ -1750,18 +1750,9 @@ version = "0.2.0"
 source = "git+https://github.com/UOR-Foundation/uor-addr.git?rev=165b51e3e2113ee5d032730cde709335d4fe9b60#165b51e3e2113ee5d032730cde709335d4fe9b60"
 dependencies = [
  "ryu",
- "uor-foundation 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "uor-foundation-sdk 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "uor-foundation",
+ "uor-foundation-sdk",
  "uor-prism",
-]
-
-[[package]]
-name = "uor-foundation"
-version = "0.5.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0179d3c29eb68e52ed03f9b48136159d4d4d26bd6b8008da3a9864b43ed0492f"
-dependencies = [
- "libm",
 ]
 
 [[package]]
@@ -1770,17 +1761,6 @@ version = "0.5.2"
 source = "git+https://github.com/UOR-Foundation/UOR-Framework.git?rev=51c01382200b0179d6640b07e9c8119364ab69a1#51c01382200b0179d6640b07e9c8119364ab69a1"
 dependencies = [
  "libm",
-]
-
-[[package]]
-name = "uor-foundation-sdk"
-version = "0.5.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2c9ab22f2053e30eb0b748543182e236326a02c576aa46f1956ad4a3e4396490"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.119",
 ]
 
 [[package]]
@@ -1798,7 +1778,7 @@ name = "uor-foundation-verify"
 version = "0.5.2"
 source = "git+https://github.com/UOR-Foundation/UOR-Framework.git?rev=51c01382200b0179d6640b07e9c8119364ab69a1#51c01382200b0179d6640b07e9c8119364ab69a1"
 dependencies = [
- "uor-foundation 0.5.2 (git+https://github.com/UOR-Foundation/UOR-Framework.git?rev=51c01382200b0179d6640b07e9c8119364ab69a1)",
+ "uor-foundation",
 ]
 
 [[package]]
@@ -1807,8 +1787,8 @@ version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6d31f122d1466f5a48780fec22cdbef89dbd345e2b9aab8d8ebe89b5502fbb56"
 dependencies = [
- "uor-foundation 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "uor-foundation-sdk 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "uor-foundation",
+ "uor-foundation-sdk",
  "uor-prism-crypto",
  "uor-prism-fhe",
  "uor-prism-numerics",
@@ -1824,8 +1804,8 @@ dependencies = [
  "blake3",
  "sha2",
  "sha3",
- "uor-foundation 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "uor-foundation-sdk 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "uor-foundation",
+ "uor-foundation-sdk",
 ]
 
 [[package]]
@@ -1834,8 +1814,8 @@ version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "80bc3e193c5ca7a505d6db4937e30562d276ce6a90e9b0bb181815de64cd8ef2"
 dependencies = [
- "uor-foundation 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "uor-foundation-sdk 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "uor-foundation",
+ "uor-foundation-sdk",
 ]
 
 [[package]]
@@ -1844,8 +1824,8 @@ version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "112180275b7f1b94f202f8894441bb7635fce583be291b91fc1be174435bdfa6"
 dependencies = [
- "uor-foundation 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "uor-foundation-sdk 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "uor-foundation",
+ "uor-foundation-sdk",
 ]
 
 [[package]]
@@ -1854,8 +1834,8 @@ version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b69a4f7b49a8acc21823ca567fb962124d3d6b5b2891e20f5308ac1602211601"
 dependencies = [
- "uor-foundation 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "uor-foundation-sdk 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "uor-foundation",
+ "uor-foundation-sdk",
  "uor-prism-numerics",
 ]
 
@@ -1997,8 +1977,8 @@ dependencies = [
  "sha2",
  "tracing",
  "uor-addr",
- "uor-foundation 0.5.2 (git+https://github.com/UOR-Foundation/UOR-Framework.git?rev=51c01382200b0179d6640b07e9c8119364ab69a1)",
- "uor-foundation-sdk 0.5.2 (git+https://github.com/UOR-Foundation/UOR-Framework.git?rev=51c01382200b0179d6640b07e9c8119364ab69a1)",
+ "uor-foundation",
+ "uor-foundation-sdk",
  "uor-r4-core",
  "wasm-bindgen",
 ]
@@ -2018,8 +1998,8 @@ dependencies = [
  "tokio",
  "tracing",
  "uor-addr",
- "uor-foundation 0.5.2 (git+https://github.com/UOR-Foundation/UOR-Framework.git?rev=51c01382200b0179d6640b07e9c8119364ab69a1)",
- "uor-foundation-sdk 0.5.2 (git+https://github.com/UOR-Foundation/UOR-Framework.git?rev=51c01382200b0179d6640b07e9c8119364ab69a1)",
+ "uor-foundation",
+ "uor-foundation-sdk",
  "uor-foundation-verify",
  "uor-r4-api",
  "uor-r4-core",

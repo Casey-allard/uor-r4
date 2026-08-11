@@ -73,3 +73,16 @@ tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 [[test]]
 name = "bdd"
 harness = false
+
+# #618: uor-addr -> uor-prism pull uor-foundation/-sdk 0.5.2 from crates.io,
+# which puts a second, type-incompatible copy of each in the lock next to our
+# git pins. The git source cannot be dropped instead: uor-foundation-verify is
+# published only in the Framework git workspace, and verify_trace consumes
+# types minted by our uor_foundation, so all three must share one source.
+# Patch the registry copies onto the same pinned rev: one build per crate, one
+# type identity across uor-addr, uor-prism, and r4. The rev's foundation
+# crates are code-identical to published 0.5.2 (README-only delta, audited in
+# #618); bump these together with the [dependencies] pins, never separately.
+[patch.crates-io]
+uor-foundation = { git = "https://github.com/UOR-Foundation/UOR-Framework.git", rev = "51c01382200b0179d6640b07e9c8119364ab69a1" }
+uor-foundation-sdk = { git = "https://github.com/UOR-Foundation/UOR-Framework.git", rev = "51c01382200b0179d6640b07e9c8119364ab69a1" }
