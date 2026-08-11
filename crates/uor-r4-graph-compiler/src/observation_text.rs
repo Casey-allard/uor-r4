@@ -561,8 +561,170 @@ fn build_report(
 /// directory continues from its checkpoint; without it, a non-empty
 /// directory is an error.
 #[allow(clippy::too_many_arguments)] // mirrors the observe_sharded driver signature
-pub fn observe_text_corpus(
+/// The per-article product of the teacher-forced pass: the ordered records
+/// (each with its shard and probability sidecar), the story-mapping entry, and
+/// the truncation/replacement counters. Pure — it neither writes shards nor
+/// touches the checkpoint — so it can run on a worker thread with its own
+/// oracle while a single-threaded collector commits the results in article
+/// order. Because the writer appends in call order, committing produced
+/// articles in ascending ordinal (and each article's positions in order)
+/// reproduces the exact shard bytes of a single-pass run.
+struct ArticleProduced {
+    ordinal: u64,
+    records: Vec<(u32, [u8; RECORD_SIZE], observe::ProbabilityMetadata)>,
+    story_entry: StoryEntry,
+    truncated: bool,
+    replaced: u64,
+}
+
+/// Teacher-force one article and return its record stream. The sampled token
+/// is discarded (see the module docs): every recorded field is a deterministic
+/// function of `(article tokens, model)`, so this is independent of worker,
+/// order, and the throwaway rng seeded below.
+#[allow(clippy::too_many_arguments)]
+fn produce_article_records(
     oracle: &mut dyn TeacherOracle,
+    ordinal: u64,
+    article: &Article,
+    seq_len: usize,
+    tokenizer: &TokenizerKind,
+    token_byte_lengths: Option<&[u32]>,
+    shard_bits: u8,
+    rng: &mut u64,
+) -> Result<ArticleProduced, SourceUnavailable> {
+    let story = u32::try_from(ordinal)
+        .map_err(|_| SourceUnavailable::new("article ordinal exceeds the u32 story field"))?;
+    let partition = partition_of(&article.id);
+    let (tokens, replaced) = tokenizer.encode_lossy(&article.text);
+    let positions = tokens.len().saturating_sub(1).min(seq_len);
+    let truncated = positions < tokens.len().saturating_sub(1);
+
+    let mut logits = vec![0f32; oracle.vocab()];
+    let mut window: Vec<u32> = Vec::with_capacity(compiler::WINDOW);
+    let mut records = Vec::with_capacity(positions);
+    let mut story_byte_offset = 0u32;
+    oracle.reset();
+    for pos in 0..positions {
+        let token = tokens[pos];
+        oracle.step(token as usize, pos, &mut logits);
+        let (_sampled, top_tokens, top_weights, sampled_stats) =
+            compiler::softmax_top8_sample_with_stats(&mut logits, rng);
+        let next = tokens[pos + 1];
+        let stats = compiler::TokenProbabilityStats::from_normalized(
+            &logits,
+            next as usize,
+            &top_tokens,
+            sampled_stats.top8_mass,
+        );
+        window.push(token);
+        if window.len() > compiler::WINDOW {
+            window.remove(0);
+        }
+        let id = observe::sample_id(&window);
+        let shard = observe::shard_of(&id, shard_bits);
+        let span_start = pos as u32;
+        let span_end = span_start.saturating_add(1);
+        let (byte_start, byte_end) =
+            compiler::byte_anchors(token_byte_lengths, story_byte_offset, next as usize);
+        let record = compiler::encode_v4_record(
+            story,
+            next,
+            &top_tokens,
+            &top_weights,
+            (span_start, span_end),
+            (byte_start, byte_end),
+        );
+        records.push((
+            shard,
+            record,
+            observe::ProbabilityMetadata {
+                target_logprob_nats: stats.target_logprob_nats,
+                entropy_bits: stats.entropy_bits,
+                top8_mass: stats.top8_mass,
+                target_rank: stats.target_rank,
+            },
+        ));
+        if token_byte_lengths.is_some() {
+            story_byte_offset = byte_end;
+        }
+    }
+    Ok(ArticleProduced {
+        ordinal,
+        records,
+        story_entry: StoryEntry {
+            story,
+            id: article.id.clone(),
+            url: article.url.clone(),
+            title: article.title.clone(),
+            partition,
+        },
+        truncated,
+        replaced,
+    })
+}
+
+/// Commit one produced article's records in order: append them to their
+/// shards, roll the per-shard partition counts, write the story-mapping line,
+/// and advance + persist the checkpoint. The single point that mutates the
+/// writer and checkpoint, so applying produced articles here in ascending
+/// ordinal reproduces a single-pass run's shard bytes exactly.
+#[allow(clippy::too_many_arguments)]
+fn commit_article(
+    writer: &mut ObservationShardWriter,
+    checkpoint: &mut Checkpoint,
+    out_dir: &Path,
+    stories_path: &Path,
+    produced: &ArticleProduced,
+    articles_total: u64,
+    written: &mut u64,
+    truncated: &mut u64,
+    replaced: &mut u64,
+) -> Result<(), SourceUnavailable> {
+    if produced.truncated {
+        *truncated += 1;
+    }
+    *replaced += produced.replaced;
+    checkpoint.n += produced.records.len() as u64;
+    // Per-article checkpoint: shard bytes first (flush), then the story
+    // mapping line, then the atomic committed checkpoint and its state.bin
+    // mirror.
+    for (shard, record, probability) in &produced.records {
+        if writer.write_record_with_probability_in_partition(
+            record,
+            *probability,
+            *shard,
+            produced.story_entry.partition,
+        )? {
+            *written += 1;
+            checkpoint.shards[*shard as usize].bytes += RECORD_SIZE as u64;
+        }
+    }
+    writer.flush()?;
+    for (slot, shard_checkpoint) in checkpoint.shards.iter_mut().enumerate() {
+        shard_checkpoint.partitions = writer.partition_counts(slot as u32).unwrap_or_default();
+    }
+    append_story(stories_path, &produced.story_entry)?;
+    let next_ordinal = produced.ordinal + 1;
+    checkpoint.stories = next_ordinal;
+    checkpoint.done = next_ordinal == articles_total;
+    write_checkpoint(out_dir, checkpoint)?;
+    Ok(())
+}
+
+/// Observe a text corpus with a pool of `oracles` teacher instances. Articles
+/// are teacher-forced and mutually independent (the sampled token is discarded;
+/// every recorded field is a deterministic function of the article tokens and
+/// the model), so a batch of up to `oracles.len()` articles is produced in
+/// parallel — one worker thread per oracle — and then committed on this thread
+/// in ascending article ordinal. Because the shard writer appends in call
+/// order, the committed shard bytes are identical to a single-oracle pass.
+///
+/// A single-oracle pool (`oracles.len() == 1`) runs entirely on this thread and
+/// threads `checkpoint.rng` exactly as the original in-line loop did, so it is
+/// byte-for-byte unchanged including the committed checkpoint.
+#[allow(clippy::too_many_arguments)]
+pub fn observe_text_corpus(
+    oracles: &mut [Box<dyn TeacherOracle + Send>],
     budget_s: u64,
     tokenizer: &TokenizerKind,
     token_byte_lengths: Option<&[u32]>,
@@ -571,6 +733,10 @@ pub fn observe_text_corpus(
     shard_bits: u8,
     resume: bool,
 ) -> Result<ObservationReport, SourceUnavailable> {
+    assert!(
+        !oracles.is_empty(),
+        "observe_text_corpus needs at least one oracle"
+    );
     let kappa = input_kappa(articles_path)?;
     let mut writer = ObservationShardWriter::open(out_dir, shard_bits)?;
     let shard_count = writer.manifest().shard_count();
@@ -670,10 +836,8 @@ pub fn observe_text_corpus(
         return build_report(out_dir, &checkpoint, &writer, articles_total, 0, 0, 0);
     }
 
-    let vocab = oracle.vocab();
-    let seq_len = oracle.seq_len();
-    let mut logits = vec![0f32; vocab];
-    let mut window: Vec<u32> = Vec::with_capacity(compiler::WINDOW);
+    let workers = oracles.len();
+    let seq_len = oracles[0].seq_len();
     let mut progress = Progress::new("text observations", articles_total as usize);
     progress.set(checkpoint.stories as usize);
     let mut written = 0u64;
@@ -683,121 +847,108 @@ pub fn observe_text_corpus(
 
     let file = fs::File::open(articles_path)
         .map_err(|error| SourceUnavailable::new(format!("{}: {error}", articles_path.display())))?;
+    let mut lines = BufReader::new(file).lines();
     let mut ordinal = 0u64;
-    for line in BufReader::new(file).lines() {
-        let line = line.map_err(|error| {
-            SourceUnavailable::new(format!("{}: {error}", articles_path.display()))
-        })?;
-        if ordinal < checkpoint.stories {
-            // Completed article: skip without re-deriving its records.
+    let mut budget_hit = false;
+    'batches: loop {
+        // Gather up to `workers` not-yet-committed articles. Completed articles
+        // (the dense committed prefix) are skipped; the budget stops the gather.
+        let mut batch: Vec<(u64, Article)> = Vec::with_capacity(workers);
+        while batch.len() < workers {
+            let line = match lines.next() {
+                Some(line) => line.map_err(|error| {
+                    SourceUnavailable::new(format!("{}: {error}", articles_path.display()))
+                })?,
+                None => break,
+            };
+            if ordinal < checkpoint.stories {
+                // Completed article: skip without re-deriving its records.
+                ordinal += 1;
+                continue;
+            }
+            if t0.elapsed().as_secs() >= budget_s {
+                // This line is not processed; it is re-read on resume (the file
+                // is re-scanned and the committed prefix skipped), so `ordinal`
+                // is left un-advanced for it.
+                budget_hit = true;
+                break;
+            }
+            let article: Article = serde_json::from_str(&line).map_err(|error| {
+                SourceUnavailable::new(format!(
+                    "{} line {}: invalid article: {error}",
+                    articles_path.display(),
+                    ordinal + 1
+                ))
+            })?;
+            batch.push((ordinal, article));
             ordinal += 1;
-            continue;
         }
-        if t0.elapsed().as_secs() >= budget_s {
+        if batch.is_empty() {
             break;
         }
-        let article: Article = serde_json::from_str(&line).map_err(|error| {
-            SourceUnavailable::new(format!(
-                "{} line {}: invalid article: {error}",
-                articles_path.display(),
-                ordinal + 1
-            ))
-        })?;
-        let story = u32::try_from(ordinal)
-            .map_err(|_| SourceUnavailable::new("article ordinal exceeds the u32 story field"))?;
-        let partition = partition_of(&article.id);
-        let (tokens, article_replaced) = tokenizer.encode_lossy(&article.text);
-        replaced += article_replaced;
-        let positions = tokens.len().saturating_sub(1).min(seq_len);
-        if positions < tokens.len().saturating_sub(1) {
-            truncated += 1;
+        // Produce the batch. A single-oracle pool runs on this thread and
+        // threads `checkpoint.rng` exactly as the original loop (byte-identical,
+        // checkpoint included). A multi-oracle pool teacher-forces the articles
+        // in parallel — one worker thread per oracle — each with a local
+        // throwaway rng, which is sound because no recorded field depends on it.
+        let produced_batch: Vec<ArticleProduced> =
+            if workers == 1 {
+                let (ord, article) = &batch[0];
+                vec![produce_article_records(
+                    oracles[0].as_mut(),
+                    *ord,
+                    article,
+                    seq_len,
+                    tokenizer,
+                    token_byte_lengths,
+                    shard_bits,
+                    &mut checkpoint.rng,
+                )?]
+            } else {
+                std::thread::scope(|scope| -> Result<Vec<ArticleProduced>, SourceUnavailable> {
+                    let mut handles = Vec::with_capacity(batch.len());
+                    for ((ord, article), oracle) in batch.iter().zip(oracles.iter_mut()) {
+                        handles.push(scope.spawn(move || {
+                            let mut rng = RNG_SEED;
+                            produce_article_records(
+                                oracle.as_mut(),
+                                *ord,
+                                article,
+                                seq_len,
+                                tokenizer,
+                                token_byte_lengths,
+                                shard_bits,
+                                &mut rng,
+                            )
+                        }));
+                    }
+                    let mut produced = Vec::with_capacity(handles.len());
+                    for handle in handles {
+                        produced.push(handle.join().map_err(|_| {
+                            SourceUnavailable::new("observe worker thread panicked")
+                        })??);
+                    }
+                    Ok(produced)
+                })?
+            };
+        // Commit in ascending ordinal (the batch is gathered in order).
+        for produced in &produced_batch {
+            commit_article(
+                &mut writer,
+                &mut checkpoint,
+                out_dir,
+                &stories_path,
+                produced,
+                articles_total,
+                &mut written,
+                &mut truncated,
+                &mut replaced,
+            )?;
+            progress.set((produced.ordinal + 1) as usize);
         }
-        // Teacher-forced record stream for this article, buffered until
-        // the per-article checkpoint so an interrupted article leaves no
-        // partial records behind.
-        let mut records: Vec<(u32, [u8; RECORD_SIZE], observe::ProbabilityMetadata)> =
-            Vec::with_capacity(positions);
-        oracle.reset();
-        window.clear();
-        let mut story_byte_offset = 0u32;
-        for pos in 0..positions {
-            let token = tokens[pos];
-            oracle.step(token as usize, pos, &mut logits);
-            let (_sampled, top_tokens, top_weights, sampled_stats) =
-                compiler::softmax_top8_sample_with_stats(&mut logits, &mut checkpoint.rng);
-            let next = tokens[pos + 1];
-            let stats = compiler::TokenProbabilityStats::from_normalized(
-                &logits,
-                next as usize,
-                &top_tokens,
-                sampled_stats.top8_mass,
-            );
-            window.push(token);
-            if window.len() > compiler::WINDOW {
-                window.remove(0);
-            }
-            let id = observe::sample_id(&window);
-            let shard = observe::shard_of(&id, shard_bits);
-            let span_start = pos as u32;
-            let span_end = span_start.saturating_add(1);
-            let (byte_start, byte_end) =
-                compiler::byte_anchors(token_byte_lengths, story_byte_offset, next as usize);
-            let record = compiler::encode_v4_record(
-                story,
-                next,
-                &top_tokens,
-                &top_weights,
-                (span_start, span_end),
-                (byte_start, byte_end),
-            );
-            records.push((
-                shard,
-                record,
-                observe::ProbabilityMetadata {
-                    target_logprob_nats: stats.target_logprob_nats,
-                    entropy_bits: stats.entropy_bits,
-                    top8_mass: stats.top8_mass,
-                    target_rank: stats.target_rank,
-                },
-            ));
-            if token_byte_lengths.is_some() {
-                story_byte_offset = byte_end;
-            }
-            checkpoint.n += 1;
+        if budget_hit {
+            break 'batches;
         }
-        // Per-article checkpoint: shard bytes first (flush), then the
-        // story mapping line, then the atomic committed checkpoint and its
-        // state.bin mirror.
-        for (shard, record, probability) in &records {
-            if writer.write_record_with_probability_in_partition(
-                record,
-                *probability,
-                *shard,
-                partition,
-            )? {
-                written += 1;
-                checkpoint.shards[*shard as usize].bytes += RECORD_SIZE as u64;
-            }
-        }
-        writer.flush()?;
-        for (slot, shard_checkpoint) in checkpoint.shards.iter_mut().enumerate() {
-            shard_checkpoint.partitions = writer.partition_counts(slot as u32).unwrap_or_default();
-        }
-        append_story(
-            &stories_path,
-            &StoryEntry {
-                story,
-                id: article.id,
-                url: article.url,
-                title: article.title,
-                partition,
-            },
-        )?;
-        ordinal += 1;
-        checkpoint.stories = ordinal;
-        checkpoint.done = ordinal == articles_total;
-        write_checkpoint(out_dir, &checkpoint)?;
-        progress.set(ordinal as usize);
     }
     if !checkpoint.done && ordinal == articles_total {
         // Empty input file: nothing to do, the corpus is trivially complete.
@@ -1187,9 +1338,9 @@ mod tests {
 
         // Run A: single pass to completion.
         let dir_a = unique_path("run-a");
-        let mut oracle = FakeOracle;
+        let mut pool: Vec<Box<dyn TeacherOracle + Send>> = vec![Box::new(FakeOracle)];
         let report = observe_text_corpus(
-            &mut oracle,
+            &mut pool,
             60,
             &tokenizer,
             Some(&lengths),
@@ -1280,7 +1431,7 @@ mod tests {
         // Rerun: fully resumed, no byte changes anywhere.
         let fingerprint = directory_fingerprint(&dir_a);
         let rerun = observe_text_corpus(
-            &mut oracle,
+            &mut pool,
             60,
             &tokenizer,
             Some(&lengths),
@@ -1302,7 +1453,7 @@ mod tests {
         // resume=false refuses a non-empty directory.
         assert!(
             observe_text_corpus(
-                &mut oracle,
+                &mut pool,
                 60,
                 &tokenizer,
                 Some(&lengths),
@@ -1319,7 +1470,7 @@ mod tests {
         // article completion order).
         let dir_b = unique_path("run-b");
         let starved = observe_text_corpus(
-            &mut oracle,
+            &mut pool,
             0,
             &tokenizer,
             Some(&lengths),
@@ -1332,7 +1483,7 @@ mod tests {
         assert!(!starved.done);
         assert_eq!(starved.written, 0);
         let resumed = observe_text_corpus(
-            &mut oracle,
+            &mut pool,
             60,
             &tokenizer,
             Some(&lengths),
@@ -1391,9 +1542,9 @@ mod tests {
             },
         )
         .expect("craft story line");
-        let mut oracle = FakeOracle;
+        let mut pool: Vec<Box<dyn TeacherOracle + Send>> = vec![Box::new(FakeOracle)];
         let report_a = observe_text_corpus(
-            &mut oracle,
+            &mut pool,
             60,
             &tokenizer,
             Some(&lengths),
@@ -1471,7 +1622,7 @@ mod tests {
             .expect("craft story line");
         }
         let report_b = observe_text_corpus(
-            &mut oracle,
+            &mut pool,
             60,
             &tokenizer,
             Some(&lengths),
@@ -1504,16 +1655,9 @@ mod tests {
         const LONG_TEXT: &str = "adadadadadadadadadadadadadadadadadadadad";
         write_articles(&input, &[("9", LONG_TEXT), ("10", "ab")]);
         let dir = unique_path("anchors");
-        let mut oracle = FakeOracle;
+        let mut pool: Vec<Box<dyn TeacherOracle + Send>> = vec![Box::new(FakeOracle)];
         let report = observe_text_corpus(
-            &mut oracle,
-            60,
-            &tokenizer,
-            None,
-            &input,
-            &dir,
-            SHARD_BITS,
-            false,
+            &mut pool, 60, &tokenizer, None, &input, &dir, SHARD_BITS, false,
         )
         .expect("pass");
         assert!(report.done);
@@ -1550,9 +1694,9 @@ mod tests {
         let input = unique_path("articles.jsonl");
         write_articles(&input, &articles_ref);
         let dir = unique_path("corpus-load");
-        let mut oracle = FakeOracle;
+        let mut pool: Vec<Box<dyn TeacherOracle + Send>> = vec![Box::new(FakeOracle)];
         let report = observe_text_corpus(
-            &mut oracle,
+            &mut pool,
             60,
             &tokenizer,
             Some(&lengths),
@@ -1596,5 +1740,84 @@ mod tests {
         let _ = fs::remove_file(&input);
         let _ = fs::remove_file(&meta);
         let _ = fs::remove_file(&recs);
+    }
+
+    /// A multi-worker pool must produce a byte-for-byte identical corpus to a
+    /// single worker: articles are teacher-forced independently and committed
+    /// in ascending ordinal, so worker count changes only *how fast* the
+    /// records are produced, never *what* they are. Guards the parallel observe
+    /// path added for #531.
+    #[test]
+    fn parallel_workers_match_single_worker_byte_for_byte() {
+        let articles = test_articles();
+        let articles_ref: Vec<(&str, &str)> = articles
+            .iter()
+            .map(|(id, text)| (id.as_str(), text.as_str()))
+            .collect();
+        let tokenizer = fixture_tokenizer();
+        let lengths = fixture_token_byte_lengths();
+        let input = unique_path("articles.jsonl");
+        write_articles(&input, &articles_ref);
+
+        let dir1 = unique_path("workers-1");
+        let mut pool1: Vec<Box<dyn TeacherOracle + Send>> = vec![Box::new(FakeOracle)];
+        let report1 = observe_text_corpus(
+            &mut pool1,
+            60,
+            &tokenizer,
+            Some(&lengths),
+            &input,
+            &dir1,
+            SHARD_BITS,
+            false,
+        )
+        .expect("workers=1");
+        assert!(report1.done);
+
+        let dir3 = unique_path("workers-3");
+        let mut pool3: Vec<Box<dyn TeacherOracle + Send>> = vec![
+            Box::new(FakeOracle),
+            Box::new(FakeOracle),
+            Box::new(FakeOracle),
+        ];
+        let report3 = observe_text_corpus(
+            &mut pool3,
+            60,
+            &tokenizer,
+            Some(&lengths),
+            &input,
+            &dir3,
+            SHARD_BITS,
+            false,
+        )
+        .expect("workers=3");
+        assert!(report3.done);
+
+        // The merged record stream, its κ, every shard file, and the story
+        // mapping are all identical regardless of worker count.
+        let merged1 = merge_shards(&dir1).expect("merge workers=1");
+        let merged3 = merge_shards(&dir3).expect("merge workers=3");
+        assert_eq!(
+            merged1, merged3,
+            "parallel merged bytes diverge from single worker"
+        );
+        assert_eq!(report1.merged_kappa, report3.merged_kappa);
+        assert_eq!(report1.records, report3.records);
+        assert_eq!(report1.written, report3.written);
+        for shard in 0..SHARD_COUNT {
+            let f1 = fs::read(dir1.join(shard_file_name(SHARD_BITS, shard))).unwrap_or_default();
+            let f3 = fs::read(dir3.join(shard_file_name(SHARD_BITS, shard))).unwrap_or_default();
+            assert_eq!(f1, f3, "shard {shard} bytes differ across worker counts");
+        }
+        let stories1 = fs::read_to_string(&report1.stories_file).expect("stories workers=1");
+        let stories3 = fs::read_to_string(&report3.stories_file).expect("stories workers=3");
+        assert_eq!(
+            stories1, stories3,
+            "story mapping differs across worker counts"
+        );
+
+        let _ = fs::remove_dir_all(&dir1);
+        let _ = fs::remove_dir_all(&dir3);
+        let _ = fs::remove_file(&input);
     }
 }

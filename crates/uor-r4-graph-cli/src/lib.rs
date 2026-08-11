@@ -288,6 +288,7 @@ struct ObserveTextOptions {
     seconds: u64,
     shards: u8,
     sequence_length: usize,
+    workers: usize,
 }
 
 fn parse_observe_text_options(args: &[String]) -> Result<ObserveTextOptions, SourceUnavailable> {
@@ -300,6 +301,7 @@ fn parse_observe_text_options(args: &[String]) -> Result<ObserveTextOptions, Sou
         seconds: 300,
         shards: 4,
         sequence_length: 128,
+        workers: 1,
     };
     let mut index = 0usize;
     while index < args.len() {
@@ -339,6 +341,19 @@ fn parse_observe_text_options(args: &[String]) -> Result<ObserveTextOptions, Sou
                     ));
                 }
             }
+            "--workers" => {
+                // Teacher instances observing articles in parallel. Each holds a
+                // full copy of the teacher weights, so memory scales with this;
+                // the produced corpus is identical to `--workers 1`.
+                options.workers = value.parse().map_err(|_| {
+                    SourceUnavailable::new(format!("invalid --workers value: {value}"))
+                })?;
+                if options.workers == 0 {
+                    return Err(SourceUnavailable::new(
+                        "--workers must be greater than zero",
+                    ));
+                }
+            }
             _ => {
                 return Err(SourceUnavailable::new(format!(
                     "unknown observe-text option: {flag}"
@@ -363,7 +378,7 @@ pub fn observe_text_command(args: &[String]) -> Result<(), SourceUnavailable> {
     std::fs::create_dir_all(&options.output)?;
     let token_byte_lengths: Vec<u32>;
     let tokenizer: TokenizerKind;
-    let mut oracle: Box<dyn TeacherOracle> = if let Some(checkpoint) = &options.checkpoint {
+    let oracle: Box<dyn TeacherOracle + Send> = if let Some(checkpoint) = &options.checkpoint {
         // Legacy llama2.c checkpoint: the companion tokenizer is the
         // scoreless tokenizer.bin fetched by `setup` (overridable with
         // --tokenizer); its piece byte lengths anchor records into the
@@ -422,8 +437,35 @@ pub fn observe_text_command(args: &[String]) -> Result<(), SourceUnavailable> {
         };
         Box::new(oracle)
     };
+    // Build the worker pool: the oracle loaded above plus `workers - 1` more
+    // identical teacher instances, so up to `workers` articles are observed in
+    // parallel. Each instance holds its own copy of the teacher weights.
+    let mut pool: Vec<Box<dyn TeacherOracle + Send>> = Vec::with_capacity(options.workers);
+    pool.push(oracle);
+    for _ in 1..options.workers {
+        let extra: Box<dyn TeacherOracle + Send> = if let Some(checkpoint) = &options.checkpoint {
+            let path = checkpoint
+                .to_str()
+                .ok_or_else(|| SourceUnavailable::new("checkpoint path is not UTF-8"))?;
+            Box::new(LlamaOracle::load(path))
+        } else {
+            Box::new(
+                HuggingFaceLlamaOracle::load_with_sequence_length(
+                    &options.source,
+                    options.sequence_length,
+                )
+                .map_err(|error| {
+                    SourceUnavailable::new(format!("failed to load Hugging Face model: {error}"))
+                })?,
+            )
+        };
+        pool.push(extra);
+    }
+    if options.workers > 1 {
+        eprintln!("observing with {} teacher workers", options.workers);
+    }
     let report = observe_text::observe_text_corpus(
-        oracle.as_mut(),
+        &mut pool,
         options.seconds,
         &tokenizer,
         Some(&token_byte_lengths),
