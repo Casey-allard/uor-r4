@@ -1,0 +1,12 @@
+run_name,configuration,runtime_seconds,cpu_utilization_note,change_applied,note
+tau_key_validation,n_steps=10000,,n/a,validate_tau_key_determinism,"mismatches=0, unique_states=9614, key_valid=True"
+warmup_pool_build,POOL_SIZE=4000,,n/a,build_warmup_pool,pool_size=4000
+cache_prime,from_pool,,n/a,prime_tau_nexts_cache,cache_entries=204081
+timing_D8_baseline,"D=8,n_batches=500,batch_size=32",27.51,single_core_Python,none_baseline,"steps_per_s=4652.0,cache_size=0"
+timing_D8_optimized,"D=8,n_batches=500,batch_size=32",18.44,single_core_Python,tau_nexts_memoization+warmup_pool,"steps_per_s=6940.6,cache_size=77597"
+timing_D16_baseline,"D=16,n_batches=500,batch_size=32",46.32,single_core_Python,none_baseline,"steps_per_s=5526.3,cache_size=0"
+timing_D16_optimized,"D=16,n_batches=500,batch_size=32",24.78,single_core_Python,tau_nexts_memoization+warmup_pool,"steps_per_s=10329.5,cache_size=152097"
+speedup_D8,D=8,1.492,speedup_ratio,tau_nexts_memoization+warmup_pool,speedup_factor=1.492x
+speedup_D16,D=16,1.869,speedup_ratio,tau_nexts_memoization+warmup_pool,speedup_factor=1.869x
+correctness_D2,"D=2,n_batches=800,batch_size=32",,n/a,tau_nexts_memoization+warmup_pool,"accuracy=0.6060,chance=0.2500,verdict=PASS"
+correctness_D16,"D=16,n_batches=800,batch_size=32",,n/a,tau_nexts_memoization+warmup_pool,"accuracy=0.2600,chance=0.2500,verdict=PASS"

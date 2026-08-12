@@ -1,0 +1,6 @@
+predictor,pearson_visible_H_residual,spearman_visible_H_residual
+num_first_splitting_classes_residual,0.7080268361864062,0.8144338729465652
+total_extra_child_classes_residual,0.6747752061831499,0.7879242712955016
+gap_max_residual,0.6929539694849323,0.7841852240636016
+fraction_first_splitting_classes_residual,0.7403832772483376,0.7776149817645324
+new_prime_residual,0.6280192326014363,0.6393790552461432

@@ -1,0 +1,18 @@
+run_name,delay,configuration,runtime_seconds_before,runtime_seconds_after,speedup_ratio,steps_per_second_before,steps_per_second_after,cpu_utilization_note,correctness_result,change_applied,note
+benchmark_D8,8,"D=8,batches=400,B=32",8.47,11.19,0.757,12086.0,9148.0,single_core; batched BLAS vs serial loops,statistical_equivalence,"batched_forward+backward,state_transition_cache,tau_nexts_cache",speedup=0.76x
+benchmark_D16,16,"D=16,batches=400,B=32",11.5,13.77,0.835,17808.0,14871.0,single_core; batched BLAS vs serial loops,statistical_equivalence,"batched_forward+backward,state_transition_cache,tau_nexts_cache",speedup=0.84x
+correctness_D2,2,"D=2,batches=800,B=32",,,,,,n/a,PASS,batched_forward+backward,"acc_batched=0.9300,v6_ref=0.9930,delta=-0.0630"
+correctness_D8,8,"D=8,batches=800,B=32",,,,,,n/a,PASS,batched_forward+backward,"acc_batched=0.3050,v6_ref=0.3200,delta=-0.0150"
+correctness_D16,16,"D=16,batches=800,B=32",,,,,,n/a,PASS,batched_forward+backward,"acc_batched=0.2820,v6_ref=0.2720,delta=+0.0100"
+opt_experiment_D2_b800,2,"D=2,budget=800,B=32",,,,,,n/a,n/a,batched_v6_opt,"acc=0.9960,v6_ref=0.9930,tr=0.4250,H=1.6464,alpha0=0.5001"
+opt_experiment_D2_b2000,2,"D=2,budget=2000,B=32",,,,,,n/a,n/a,batched_v6_opt,"acc=1.0000,v6_ref=1.0000,tr=0.5320,H=1.5815,alpha0=0.5036"
+opt_experiment_D2_b5000,2,"D=2,budget=5000,B=32",,,,,,n/a,n/a,batched_v6_opt,"acc=1.0000,v6_ref=1.0000,tr=0.6520,H=1.5604,alpha0=0.5345"
+opt_experiment_D4_b800,4,"D=4,budget=800,B=32",,,,,,n/a,n/a,batched_v6_opt,"acc=0.4680,v6_ref=0.4630,tr=0.6048,H=1.7399,alpha0=0.2502"
+opt_experiment_D4_b2000,4,"D=4,budget=2000,B=32",,,,,,n/a,n/a,batched_v6_opt,"acc=0.9970,v6_ref=0.9970,tr=0.7525,H=1.7043,alpha0=0.2504"
+opt_experiment_D4_b5000,4,"D=4,budget=5000,B=32",,,,,,n/a,n/a,batched_v6_opt,"acc=1.0000,v6_ref=1.0000,tr=0.9922,H=1.4925,alpha0=0.7696"
+opt_experiment_D8_b800,8,"D=8,budget=800,B=32",,,,,,n/a,n/a,batched_v6_opt,"acc=0.3060,v6_ref=0.3200,tr=0.0607,H=1.6891,alpha0=0.1250"
+opt_experiment_D8_b2000,8,"D=8,budget=2000,B=32",,,,,,n/a,n/a,batched_v6_opt,"acc=0.4830,v6_ref=0.5230,tr=0.0774,H=1.6879,alpha0=0.1251"
+opt_experiment_D8_b5000,8,"D=8,budget=5000,B=32",,,,,,n/a,n/a,batched_v6_opt,"acc=1.0000,v6_ref=1.0000,tr=0.5581,H=1.6498,alpha0=0.6893"
+opt_experiment_D16_b800,16,"D=16,budget=800,B=32",,,,,,n/a,n/a,batched_v6_opt,"acc=0.2630,v6_ref=0.2720,tr=0.7966,H=1.7390,alpha0=0.0625"
+opt_experiment_D16_b2000,16,"D=16,budget=2000,B=32",,,,,,n/a,n/a,batched_v6_opt,"acc=0.2770,v6_ref=0.3060,tr=0.8220,H=1.7386,alpha0=0.0625"
+opt_experiment_D16_b5000,16,"D=16,budget=5000,B=32",,,,,,n/a,n/a,batched_v6_opt,"acc=0.4780,v6_ref=0.4190,tr=0.9539,H=1.7285,alpha0=0.0625"

@@ -1,0 +1,4 @@
+W,active_max_prime,residue_class_mod_W,prime_example,semiprime_example,semiprime_factors,tested_residues_before_hit
+2310,11,1,2311,6931,29 * 239,1
+30030,13,1,120121,30031,59 * 509,1
+510510,17,1,4084081,1021021,181 * 5641,1

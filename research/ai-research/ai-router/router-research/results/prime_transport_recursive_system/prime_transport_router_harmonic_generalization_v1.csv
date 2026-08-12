@@ -1,0 +1,13 @@
+transport,task,eps_high,inject,position,decodability,final_accuracy,solve_step,no_last_accuracy,alpha_last,runtime_seconds,note
+baseline,task_A_inject,0.0,True,initial,1.0,1.0,2500,0.2485,0.8731,45.3,baseline eps_high=0.0 full transport; inject=True; mod8
+baseline,task_A_inject,0.0,True,mid,1.0,1.0,2500,0.2485,0.8731,45.3,baseline eps_high=0.0 full transport; inject=True; mod8
+baseline,task_A_inject,0.0,True,final,1.0,1.0,2500,0.2485,0.8731,45.3,baseline eps_high=0.0 full transport; inject=True; mod8
+split_canonical,task_A_inject,1.0,True,initial,1.0,1.0,500,1.0,0.6268,45.5,split_canonical eps_high=1.0 k>=2 frozen; inject=True; mod8
+split_canonical,task_A_inject,1.0,True,mid,1.0,1.0,500,1.0,0.6268,45.5,split_canonical eps_high=1.0 k>=2 frozen; inject=True; mod8
+split_canonical,task_A_inject,1.0,True,final,1.0,1.0,500,1.0,0.6268,45.5,split_canonical eps_high=1.0 k>=2 frozen; inject=True; mod8
+baseline,task_B_no_inject,0.0,False,initial,1.0,0.2397,,0.3091,0.0412,48.1,baseline eps_high=0.0 full transport; inject=False; mod8
+baseline,task_B_no_inject,0.0,False,mid,1.0,0.2397,,0.3091,0.0412,48.1,baseline eps_high=0.0 full transport; inject=False; mod8
+baseline,task_B_no_inject,0.0,False,final,1.0,0.2397,,0.3091,0.0412,48.1,baseline eps_high=0.0 full transport; inject=False; mod8
+split_canonical,task_B_no_inject,1.0,False,initial,1.0,1.0,500,1.0,0.0417,48.8,split_canonical eps_high=1.0 k>=2 frozen; inject=False; mod8
+split_canonical,task_B_no_inject,1.0,False,mid,1.0,1.0,500,1.0,0.0417,48.8,split_canonical eps_high=1.0 k>=2 frozen; inject=False; mod8
+split_canonical,task_B_no_inject,1.0,False,final,1.0,1.0,500,1.0,0.0417,48.8,split_canonical eps_high=1.0 k>=2 frozen; inject=False; mod8

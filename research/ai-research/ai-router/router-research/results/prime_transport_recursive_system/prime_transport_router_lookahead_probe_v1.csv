@@ -1,0 +1,7 @@
+row_type,component,candidate_count_per_decision,future_candidate_depth_scored,repeated_score_recomputation,recompute_overlap_events,cand_work_pct_of_fwd,total_fwd_s,total_calls,total_steps,mean_fwd_ms,function_description
+SUMMARY,all,6,0,True,9052,47.59,0.183894,20,480,9.1947,RouterAngularHybrid.forward
+COMPONENT,CAND_GEN,6,0,True,9052,12.38,0.183894,480,480,1.1385,TN[state_ids]              — fetch N_OPS=6 candidate tau-nexts
+COMPONENT,CAND_SCORE,6,0,True,9052,23.55,0.183894,480,480,2.1651,"MLP(emb,tau)+softmax        — score N_OPS=6 candidates, 1 pass"
+COMPONENT,CAND_COMB,6,0,True,9052,11.66,0.183894,480,480,1.072,"einsum(w,tn)+hybrid_decomp  — combine N_OPS=6 via soft mixture"
+COMPONENT,STATE_ADV,6,0,True,9052,6.75,0.183894,480,480,0.6208,argmax(w)+TR.gather         — advance 1 next state per sample
+COMPONENT,ATTN_POOL,6,0,True,9052,4.65,0.183894,20,480,0.4278,"stack+W_attn+softmax+W_pred — trajectory pooling, not scoring"

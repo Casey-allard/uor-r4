@@ -1,0 +1,31 @@
+operator,cluster,field_family,avg_fields_changed_in_family,max_atom_change_freq,avg_atom_change_freq,dominant_family,atom_detail,note
+T_b,non-transport,theta,1.000000,1.000000,0.500000,no,b=1.0000; phi=0.0000,Operator T_b (non-transport): avg 1.0000 fields/state in theta family; dominant=no
+T_b,non-transport,rho,0.000000,0.000000,0.000000,no,r=0.0000,Operator T_b (non-transport): avg 0.0000 fields/state in rho family; dominant=no
+T_b,non-transport,sigma,0.892522,0.892522,0.892522,no,spin_h=0.8925,Operator T_b (non-transport): avg 0.8925 fields/state in sigma family; dominant=no
+T_b,non-transport,tau_holonomy,1.794632,0.994046,0.448658,yes,tau_swap=0.0000; tau_coupled=0.8006; tau_twist=0.0000; tau_lift=0.9940,Operator T_b (non-transport): avg 1.7946 fields/state in tau_holonomy family; dominant=yes
+T_b,non-transport,swap_geometry,0.000000,0.000000,0.000000,no,swap_geo_qs=0.0000; swap_geo_bs=0.0000; swap_geo_ccc=0.0000; swap_geo_at=0.0000; twist_bit=0.0000,Operator T_b (non-transport): avg 0.0000 fields/state in swap_geometry family; dominant=no
+T_x,non-transport,theta,0.000000,0.000000,0.000000,no,b=0.0000; phi=0.0000,Operator T_x (non-transport): avg 0.0000 fields/state in theta family; dominant=no
+T_x,non-transport,rho,0.000000,0.000000,0.000000,no,r=0.0000,Operator T_x (non-transport): avg 0.0000 fields/state in rho family; dominant=no
+T_x,non-transport,sigma,0.919439,0.919439,0.919439,no,spin_h=0.9194,Operator T_x (non-transport): avg 0.9194 fields/state in sigma family; dominant=no
+T_x,non-transport,tau_holonomy,1.491666,1.000000,0.372916,no,tau_swap=0.4917; tau_coupled=0.0000; tau_twist=0.0000; tau_lift=1.0000,Operator T_x (non-transport): avg 1.4917 fields/state in tau_holonomy family; dominant=no
+T_x,non-transport,swap_geometry,2.000000,1.000000,0.400000,yes,swap_geo_qs=1.0000; swap_geo_bs=1.0000; swap_geo_ccc=0.0000; swap_geo_at=0.0000; twist_bit=0.0000,Operator T_x (non-transport): avg 2.0000 fields/state in swap_geometry family; dominant=yes
+T_y,non-transport,theta,0.000000,0.000000,0.000000,no,b=0.0000; phi=0.0000,Operator T_y (non-transport): avg 0.0000 fields/state in theta family; dominant=no
+T_y,non-transport,rho,0.000000,0.000000,0.000000,no,r=0.0000,Operator T_y (non-transport): avg 0.0000 fields/state in rho family; dominant=no
+T_y,non-transport,sigma,0.591065,0.591065,0.591065,no,spin_h=0.5911,Operator T_y (non-transport): avg 0.5911 fields/state in sigma family; dominant=no
+T_y,non-transport,tau_holonomy,1.553707,0.987313,0.388427,yes,tau_swap=0.0000; tau_coupled=0.0000; tau_twist=0.5664; tau_lift=0.9873,Operator T_y (non-transport): avg 1.5537 fields/state in tau_holonomy family; dominant=yes
+T_y,non-transport,swap_geometry,1.000000,1.000000,0.200000,no,swap_geo_qs=0.0000; swap_geo_bs=0.0000; swap_geo_ccc=0.0000; swap_geo_at=0.0000; twist_bit=1.0000,Operator T_y (non-transport): avg 1.0000 fields/state in swap_geometry family; dominant=no
+T_c,transport,theta,1.000000,1.000000,0.500000,no,b=1.0000; phi=0.0000,Operator T_c (transport): avg 1.0000 fields/state in theta family; dominant=no
+T_c,transport,rho,0.000000,0.000000,0.000000,no,r=0.0000,Operator T_c (transport): avg 0.0000 fields/state in rho family; dominant=no
+T_c,transport,sigma,0.601742,0.601742,0.601742,no,spin_h=0.6017,Operator T_c (transport): avg 0.6017 fields/state in sigma family; dominant=no
+T_c,transport,tau_holonomy,2.216549,0.927481,0.554137,yes,tau_swap=0.0000; tau_coupled=0.7898; tau_twist=0.4993; tau_lift=0.9275,Operator T_c (transport): avg 2.2165 fields/state in tau_holonomy family; dominant=yes
+T_c,transport,swap_geometry,0.000000,0.000000,0.000000,no,swap_geo_qs=0.0000; swap_geo_bs=0.0000; swap_geo_ccc=0.0000; swap_geo_at=0.0000; twist_bit=0.0000,Operator T_c (transport): avg 0.0000 fields/state in swap_geometry family; dominant=no
+T_z',transport,theta,1.000000,1.000000,0.500000,no,b=0.0000; phi=1.0000,Operator T_z' (transport): avg 1.0000 fields/state in theta family; dominant=no
+T_z',transport,rho,0.000000,0.000000,0.000000,no,r=0.0000,Operator T_z' (transport): avg 0.0000 fields/state in rho family; dominant=no
+T_z',transport,sigma,0.605059,0.605059,0.605059,no,spin_h=0.6051,Operator T_z' (transport): avg 0.6051 fields/state in sigma family; dominant=no
+T_z',transport,tau_holonomy,2.189457,0.894013,0.547364,yes,tau_swap=0.0000; tau_coupled=0.7967; tau_twist=0.4987; tau_lift=0.8940,Operator T_z' (transport): avg 2.1895 fields/state in tau_holonomy family; dominant=yes
+T_z',transport,swap_geometry,0.000000,0.000000,0.000000,no,swap_geo_qs=0.0000; swap_geo_bs=0.0000; swap_geo_ccc=0.0000; swap_geo_at=0.0000; twist_bit=0.0000,Operator T_z' (transport): avg 0.0000 fields/state in swap_geometry family; dominant=no
+T_r*,transport,theta,0.666349,0.666349,0.333175,no,b=0.0000; phi=0.6663,Operator T_r* (transport): avg 0.6663 fields/state in theta family; dominant=no
+T_r*,transport,rho,1.000000,1.000000,1.000000,no,r=1.0000,Operator T_r* (transport): avg 1.0000 fields/state in rho family; dominant=no
+T_r*,transport,sigma,0.623514,0.623514,0.623514,no,spin_h=0.6235,Operator T_r* (transport): avg 0.6235 fields/state in sigma family; dominant=no
+T_r*,transport,tau_holonomy,2.171735,0.884402,0.542934,yes,tau_swap=0.0000; tau_coupled=0.7875; tau_twist=0.4998; tau_lift=0.8844,Operator T_r* (transport): avg 2.1717 fields/state in tau_holonomy family; dominant=yes
+T_r*,transport,swap_geometry,0.000000,0.000000,0.000000,no,swap_geo_qs=0.0000; swap_geo_bs=0.0000; swap_geo_ccc=0.0000; swap_geo_at=0.0000; twist_bit=0.0000,Operator T_r* (transport): avg 0.0000 fields/state in swap_geometry family; dominant=no

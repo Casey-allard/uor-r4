@@ -1,0 +1,58 @@
+scope,metric,count,total,fraction,note
+operator,state_count,461,461,1.0,reachable structured states on bounded operator surface
+operator,transition_count,2766,2766,1.0,nonzero operator entries on bounded surface
+operator,lawful_transition_fraction,2766,2766,1.0,fraction of nonzero operator entries that are lawful
+operator,illegal_transition_fraction,0,2766,0.0,fraction of nonzero operator entries that are illegal
+orbit_change,state_count_vs_v5,461,60,7.683333333333334,reachable state expansion relative to H_v5
+orbit_change,transition_count_vs_v5,2766,360,7.683333333333334,nonzero transition expansion relative to H_v5
+class_escape,distinct_class_identities_reached,27,27,1.0,number of distinct target class identities reached
+spin_escape,distinct_spin_classes_reached,13,13,1.0,number of distinct target spin_h classes reached
+generator_axis,T_z_changes_fiber_class,1,1,1.0,refined lift changes phi
+generator_axis,T_z_changes_spin_class,1,1,1.0,refined lift changes spin_h through explicit spin transport
+component,fraction_using_refined_lift,461,2766,0.16666666666666666,fraction of transitions emitted by refined lift component
+component,hold,461,2766,0.16666666666666666,fraction of operator entries by component
+component,torus_base_advance,461,2766,0.16666666666666666,fraction of operator entries by component
+component,composite_swap,461,2766,0.16666666666666666,fraction of operator entries by component
+component,coupled_torus_kick,461,2766,0.16666666666666666,fraction of operator entries by component
+component,composite_twist,461,2766,0.16666666666666666,fraction of operator entries by component
+component,fiber_phase_lift_spin_transport,461,2766,0.16666666666666666,fraction of operator entries by component
+class_distribution,class_r0_phi0_spin0000_compat100_100,97,2766,0.03506869125090383,distribution of operator transitions by target class tuple
+class_distribution,class_r0_phi0_spin0001_compat100_100,109,2766,0.03940708604483008,distribution of operator transitions by target class tuple
+class_distribution,class_r0_phi0_spin0010_compat100_100,111,2766,0.04013015184381779,distribution of operator transitions by target class tuple
+class_distribution,class_r0_phi0_spin0100_compat100_100,123,2766,0.044468546637744036,distribution of operator transitions by target class tuple
+class_distribution,class_r0_phi0_spin0101_compat100_100,105,2766,0.03796095444685466,distribution of operator transitions by target class tuple
+class_distribution,class_r0_phi0_spin1000_compat100_100,115,2766,0.041576283441793205,distribution of operator transitions by target class tuple
+class_distribution,class_r0_phi0_spin1010_compat100_100,110,2766,0.03976861894432393,distribution of operator transitions by target class tuple
+class_distribution,class_r0_phi0_spin1100_compat100_100,115,2766,0.041576283441793205,distribution of operator transitions by target class tuple
+class_distribution,class_r0_phi0_spin1111_compat100_100,100,2766,0.036153289949385395,distribution of operator transitions by target class tuple
+class_distribution,class_r0_phi1_spin0000_compat100_100,133,2766,0.04808387563268257,distribution of operator transitions by target class tuple
+class_distribution,class_r0_phi1_spin0001_compat100_100,114,2766,0.04121475054229935,distribution of operator transitions by target class tuple
+class_distribution,class_r0_phi1_spin0010_compat100_100,93,2766,0.033622559652928416,distribution of operator transitions by target class tuple
+class_distribution,class_r0_phi1_spin0100_compat100_100,125,2766,0.04519161243673174,distribution of operator transitions by target class tuple
+class_distribution,class_r0_phi1_spin0101_compat100_100,105,2766,0.03796095444685466,distribution of operator transitions by target class tuple
+class_distribution,class_r0_phi1_spin0111_compat100_100,110,2766,0.03976861894432393,distribution of operator transitions by target class tuple
+class_distribution,class_r0_phi1_spin1000_compat100_100,85,2766,0.030730296456977585,distribution of operator transitions by target class tuple
+class_distribution,class_r0_phi1_spin1010_compat100_100,75,2766,0.027114967462039046,distribution of operator transitions by target class tuple
+class_distribution,class_r0_phi1_spin1110_compat100_100,110,2766,0.03976861894432393,distribution of operator transitions by target class tuple
+class_distribution,class_r0_phi2_spin0000_compat100_100,128,2766,0.046276211135213303,distribution of operator transitions by target class tuple
+class_distribution,class_r0_phi2_spin0001_compat100_100,42,2766,0.015184381778741865,distribution of operator transitions by target class tuple
+class_distribution,class_r0_phi2_spin0010_compat100_100,93,2766,0.033622559652928416,distribution of operator transitions by target class tuple
+class_distribution,class_r0_phi2_spin0100_compat100_100,34,2766,0.012292118582791034,distribution of operator transitions by target class tuple
+class_distribution,class_r0_phi2_spin0101_compat100_100,119,2766,0.04302241503976862,distribution of operator transitions by target class tuple
+class_distribution,class_r0_phi2_spin0110_compat100_100,110,2766,0.03976861894432393,distribution of operator transitions by target class tuple
+class_distribution,class_r0_phi2_spin1000_compat100_100,75,2766,0.027114967462039046,distribution of operator transitions by target class tuple
+class_distribution,class_r0_phi2_spin1001_compat100_100,110,2766,0.03976861894432393,distribution of operator transitions by target class tuple
+class_distribution,class_r0_phi2_spin1010_compat100_100,120,2766,0.04338394793926247,distribution of operator transitions by target class tuple
+spin_distribution,spin_0000,358,2766,0.1294287780187997,distribution of operator transitions by target spin_h
+spin_distribution,spin_0001,265,2766,0.09580621836587129,distribution of operator transitions by target spin_h
+spin_distribution,spin_0010,297,2766,0.10737527114967461,distribution of operator transitions by target spin_h
+spin_distribution,spin_0100,282,2766,0.1019522776572668,distribution of operator transitions by target spin_h
+spin_distribution,spin_0101,329,2766,0.11894432393347795,distribution of operator transitions by target spin_h
+spin_distribution,spin_0110,110,2766,0.03976861894432393,distribution of operator transitions by target spin_h
+spin_distribution,spin_0111,110,2766,0.03976861894432393,distribution of operator transitions by target spin_h
+spin_distribution,spin_1000,275,2766,0.09942154736080984,distribution of operator transitions by target spin_h
+spin_distribution,spin_1001,110,2766,0.03976861894432393,distribution of operator transitions by target spin_h
+spin_distribution,spin_1010,305,2766,0.11026753434562545,distribution of operator transitions by target spin_h
+spin_distribution,spin_1100,115,2766,0.041576283441793205,distribution of operator transitions by target spin_h
+spin_distribution,spin_1110,110,2766,0.03976861894432393,distribution of operator transitions by target spin_h
+spin_distribution,spin_1111,100,2766,0.036153289949385395,distribution of operator transitions by target spin_h

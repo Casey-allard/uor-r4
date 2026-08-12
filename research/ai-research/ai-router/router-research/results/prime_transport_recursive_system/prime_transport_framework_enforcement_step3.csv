@@ -1,0 +1,16 @@
+scope,metric,count,total,fraction,note
+candidate_supply,total_candidate_count_before_gate,3584,3584,1.0,all side-step candidates including explicit within-class hold primitive
+candidate_supply,total_candidate_count_after_gate,776,3584,0.21651785714285715,lawful candidates remaining after enforced direct-comparison gate
+side_step,has_at_least_one_lawful_candidate,512,512,1.0,side-steps with lawful supply > 0
+side_step,zero_lawful_candidates,0,512,0.0,side-steps that become explicit no_lawful_move
+side_step,explicit_failure_no_lawful_move,0,512,0.0,failed side-transports with no fallback
+candidate_supply,average_lawful_candidates_per_side_step,776,512,1.515625,mean lawful candidate count per side-step
+sequence,terminated_sequences_due_to_no_lawful_move,0,16,0.0,sequences halted because one or both sides had no lawful move
+selection,selected_within_class_hold_primitive,424,512,0.828125,side-steps selecting the new lawful within-class hold primitive
+selection,selected_ordinary_lawful_candidate,88,512,0.171875,side-steps selecting an ordinary lawful candidate
+candidate_fail,radial_mismatch,1512,3584,0.421875,candidates rejected for radial class mismatch
+candidate_fail,fiber_mismatch,2124,3584,0.5926339285714286,candidates rejected for fiber class mismatch
+candidate_fail,spin_mismatch,768,3584,0.21428571428571427,candidates rejected for spin_h mismatch
+candidate_fail,composite_compat_mismatch,1433,3584,0.3998325892857143,candidates rejected for composite compatibility mismatch
+lawful_candidate_distribution,lawful_count_1,424,512,0.828125,distribution over lawful candidate counts per side-step
+lawful_candidate_distribution,lawful_count_4,88,512,0.171875,distribution over lawful candidate counts per side-step

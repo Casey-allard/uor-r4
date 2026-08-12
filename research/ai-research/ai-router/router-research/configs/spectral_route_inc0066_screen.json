@@ -1,0 +1,17 @@
+{
+  "experiment_id": "inc0066_spectral_route_operator_screen",
+  "stage": "screen",
+  "source_proxy_config": "configs/proxy_transfer_inc0065_product_phase_field_confirm.json",
+  "seeds": [0, 1],
+  "route_ids": [
+    "HOPF_BASE_K25_PHI",
+    "HOPF_K25_BASE_PHI",
+    "HOPF_PHI2_BAND_PHI",
+    "H4XH4_FIELD_A100",
+    "H4XH4_FIELD_A150",
+    "R0"
+  ],
+  "max_points": 384,
+  "knn_k": 12,
+  "lowfreq_modes": 8
+}

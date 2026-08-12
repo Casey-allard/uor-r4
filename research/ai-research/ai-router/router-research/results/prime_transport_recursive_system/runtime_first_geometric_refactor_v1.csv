@@ -1,0 +1,9 @@
+config,variant,D,final_acc,solve_step,decodability_final,runtime_seconds,n_trainable_params,note
+current_fused_path,original_s42,20,0.6748,500,1.0,117.4,908,branch=runtime_first_geometric_refactor_v1; config=current_fused_path; variant=original_s42; D=20; seed=42; D_HIDDEN=32; rng_fix=True; trainable_params=908
+current_fused_path,original_s42,32,0.9814,,1.0,170.8,908,branch=runtime_first_geometric_refactor_v1; config=current_fused_path; variant=original_s42; D=32; seed=42; D_HIDDEN=32; rng_fix=True; trainable_params=908
+current_fused_path,shift1_s42,20,0.9756,,1.0,118.0,908,branch=runtime_first_geometric_refactor_v1; config=current_fused_path; variant=shift1_s42; D=20; seed=42; D_HIDDEN=32; rng_fix=True; trainable_params=908
+current_fused_path,shift1_s42,32,0.9932,,1.0,171.0,908,branch=runtime_first_geometric_refactor_v1; config=current_fused_path; variant=shift1_s42; D=32; seed=42; D_HIDDEN=32; rng_fix=True; trainable_params=908
+runtime_first_geometric,original_s42,20,0.998,,1.0,53.7,214,branch=runtime_first_geometric_refactor_v1; config=runtime_first_geometric; variant=original_s42; D=20; seed=42; D_HIDDEN=32; rng_fix=True; trainable_params=214
+runtime_first_geometric,original_s42,32,0.9927,,1.0,79.2,214,branch=runtime_first_geometric_refactor_v1; config=runtime_first_geometric; variant=original_s42; D=32; seed=42; D_HIDDEN=32; rng_fix=True; trainable_params=214
+runtime_first_geometric,shift1_s42,20,0.9995,3500,1.0,52.3,214,branch=runtime_first_geometric_refactor_v1; config=runtime_first_geometric; variant=shift1_s42; D=20; seed=42; D_HIDDEN=32; rng_fix=True; trainable_params=214
+runtime_first_geometric,shift1_s42,32,0.9902,,1.0,78.8,214,branch=runtime_first_geometric_refactor_v1; config=runtime_first_geometric; variant=shift1_s42; D=32; seed=42; D_HIDDEN=32; rng_fix=True; trainable_params=214

@@ -1,0 +1,2269 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>MUDBench Local Observer</title>
+    <style>
+      :root {
+        --bg: #f4f1ea;
+        --panel: #fffdf8;
+        --ink: #1d1a17;
+        --muted: #6d655d;
+        --line: #d7cec3;
+        --accent: #0f6c5c;
+        --accent-soft: #dff1ed;
+        --accent-deep: #164c42;
+        --warn: #8d2f2f;
+        --warn-soft: #f6dcdc;
+        --shadow: rgba(29, 26, 23, 0.08);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: "Georgia", "Times New Roman", serif;
+        color: var(--ink);
+        background:
+          radial-gradient(circle at top left, #f7ead2 0, transparent 28rem),
+          linear-gradient(180deg, #efe8dc 0%, var(--bg) 100%);
+      }
+
+      main {
+        max-width: 1180px;
+        margin: 0 auto;
+        padding: 2rem 1rem 3rem;
+      }
+
+      h1,
+      h2,
+      h3 {
+        margin: 0;
+        font-weight: 700;
+      }
+
+      p {
+        margin: 0;
+        line-height: 1.5;
+      }
+
+      .hero {
+        margin-bottom: 1.5rem;
+        padding: 1.5rem;
+        border: 1px solid var(--line);
+        border-radius: 1.25rem;
+        background: linear-gradient(135deg, rgba(255, 253, 248, 0.96), rgba(247, 240, 229, 0.96));
+        box-shadow: 0 18px 40px var(--shadow);
+      }
+
+      .hero p {
+        margin-top: 0.5rem;
+        color: var(--muted);
+      }
+
+      .panel {
+        margin-top: 1rem;
+        padding: 1rem;
+        border: 1px solid var(--line);
+        border-radius: 1rem;
+        background: var(--panel);
+        box-shadow: 0 10px 24px var(--shadow);
+      }
+
+      .controls {
+        display: grid;
+        gap: 0.75rem;
+      }
+
+      .controls-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        align-items: center;
+      }
+
+      .button,
+      input[type="file"]::file-selector-button {
+        border: 1px solid var(--accent);
+        border-radius: 999px;
+        background: var(--accent);
+        color: #fff;
+        cursor: pointer;
+        font: inherit;
+        padding: 0.55rem 0.95rem;
+      }
+
+      .button.secondary {
+        background: #fff;
+        color: var(--accent-deep);
+      }
+
+      input[type="file"] {
+        font: inherit;
+        color: var(--muted);
+      }
+
+      .select {
+        min-width: 18rem;
+        border: 1px solid var(--line);
+        border-radius: 0.85rem;
+        background: #fff;
+        color: var(--ink);
+        font: inherit;
+        padding: 0.55rem 0.75rem;
+      }
+
+      textarea {
+        width: 100%;
+        min-height: 12rem;
+        resize: vertical;
+        border: 1px solid var(--line);
+        border-radius: 0.85rem;
+        padding: 0.9rem;
+        font: 0.95rem/1.45 ui-monospace, "SFMono-Regular", "SF Mono", Consolas, monospace;
+        color: var(--ink);
+        background: #fff;
+      }
+
+      .status {
+        padding: 0.8rem 0.9rem;
+        border-radius: 0.85rem;
+        border: 1px solid var(--line);
+        color: var(--muted);
+        background: #faf6ef;
+      }
+
+      .status.error {
+        color: var(--warn);
+        background: var(--warn-soft);
+        border-color: #ddb0b0;
+      }
+
+      .grid {
+        display: grid;
+        gap: 1rem;
+        margin-top: 1rem;
+      }
+
+      .coverage-grid {
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      }
+
+      .summary-grid {
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      }
+
+      .coverage-list,
+      .artifact-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.45rem;
+        margin-top: 0.75rem;
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.35rem 0.7rem;
+        border-radius: 999px;
+        border: 1px solid #c7ddd8;
+        background: var(--accent-soft);
+        color: var(--accent-deep);
+        font-size: 0.92rem;
+      }
+
+      .muted {
+        color: var(--muted);
+      }
+
+      .stack {
+        display: grid;
+        gap: 1rem;
+      }
+
+      .card {
+        border: 1px solid var(--line);
+        border-radius: 0.9rem;
+        padding: 0.9rem;
+        background: #fff;
+      }
+
+      .card h3 {
+        margin-bottom: 0.6rem;
+      }
+
+      .meta-list {
+        display: grid;
+        gap: 0.45rem;
+      }
+
+      .meta-row {
+        display: grid;
+        grid-template-columns: 8rem 1fr;
+        gap: 0.75rem;
+        align-items: start;
+      }
+
+      .meta-row strong {
+        color: var(--muted);
+      }
+
+      .code-block {
+        margin-top: 0.75rem;
+        border: 1px solid var(--line);
+        border-radius: 0.85rem;
+        background: #faf6ef;
+        padding: 0.75rem;
+        overflow-x: auto;
+        white-space: pre-wrap;
+        word-break: break-word;
+        font: 0.9rem/1.45 ui-monospace, "SFMono-Regular", "SF Mono", Consolas, monospace;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 0.75rem;
+      }
+
+      th,
+      td {
+        text-align: left;
+        vertical-align: top;
+        padding: 0.7rem 0.55rem;
+        border-top: 1px solid var(--line);
+      }
+
+      th {
+        color: var(--muted);
+        font-size: 0.92rem;
+        font-weight: 700;
+      }
+
+      tbody tr:nth-child(even) {
+        background: rgba(215, 206, 195, 0.12);
+      }
+
+      .event-table-wrap {
+        overflow-x: auto;
+      }
+
+      code {
+        font: 0.92rem ui-monospace, "SFMono-Regular", "SF Mono", Consolas, monospace;
+      }
+
+      .hidden {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section class="hero">
+        <h1>MUDBench Local Observer</h1>
+        <p>
+          Load either a <code>reports export --dir ...</code> JSON viewmodel or a standalone
+          shard export payload to inspect benchmark summaries and in-process world-mode state.
+        </p>
+      </section>
+
+      <section class="panel controls">
+        <div class="controls-row">
+          <input id="file-input" type="file" accept=".json,application/json">
+          <button id="load-text" class="button" type="button">Load From Text</button>
+          <button id="clear-view" class="button" type="button">Clear</button>
+        </div>
+        <textarea id="json-input" placeholder="Paste reports export or shard export JSON here"></textarea>
+        <div id="status" class="status">Choose an export JSON file or paste JSON to begin.</div>
+      </section>
+
+      <section id="dashboard" class="hidden">
+        <section class="panel stack">
+          <div>
+            <h2>Shard Export Summary</h2>
+            <p class="muted">
+              Inspect a standalone in-process shard export payload from <code>ShardState.build_shard_export_payload()</code>.
+            </p>
+          </div>
+
+          <div id="shard-empty" class="muted"></div>
+
+          <section class="grid summary-grid">
+            <div class="card">
+              <h3>Shard Metadata</h3>
+              <div id="shard-meta" class="meta-list"></div>
+            </div>
+            <div class="card">
+              <h3>Record Families</h3>
+              <div id="shard-counts" class="meta-list"></div>
+            </div>
+            <div class="card">
+              <h3>Lifecycle Counts</h3>
+              <div id="shard-lifecycle" class="meta-list"></div>
+            </div>
+            <div class="card">
+              <h3>Checkpoint And Journal</h3>
+              <div id="shard-generations" class="meta-list"></div>
+            </div>
+            <div class="card">
+              <h3>Bundle Verification</h3>
+              <div id="shard-verification" class="meta-list"></div>
+            </div>
+          </section>
+
+          <div class="card">
+            <h3>Identity Categories</h3>
+            <div id="shard-identities" class="meta-list"></div>
+          </div>
+        </section>
+
+        <section id="filters-panel" class="panel stack">
+          <div>
+            <h2>Observer Filters</h2>
+            <p class="muted">
+              Narrow the loaded export by built-in actors, external labels, external profiles, and comparison context without mutating any saved artifacts.
+            </p>
+          </div>
+
+          <div class="controls-row">
+            <label>
+              <span class="muted">Built-In Actor</span><br>
+              <select id="actor-filter" class="select"></select>
+            </label>
+            <label>
+              <span class="muted">External Label</span><br>
+              <select id="label-filter" class="select"></select>
+            </label>
+            <label>
+              <span class="muted">External Profile</span><br>
+              <select id="profile-filter" class="select"></select>
+            </label>
+            <label>
+              <span class="muted">Comparison View</span><br>
+              <select id="comparison-mode-filter" class="select"></select>
+            </label>
+            <button id="reset-filters" class="button secondary" type="button">Reset Filters</button>
+          </div>
+
+          <div id="filter-summary" class="status">No filters applied.</div>
+        </section>
+
+        <section id="coverage-panel" class="grid coverage-grid">
+          <div class="panel">
+            <h2>Coverage</h2>
+            <p class="muted" id="coverage-summary"></p>
+            <div>
+              <h3>Scenarios</h3>
+              <div id="scenario-coverage" class="coverage-list"></div>
+            </div>
+            <div style="margin-top: 0.85rem;">
+              <h3>Actors</h3>
+              <div id="actor-coverage" class="coverage-list"></div>
+            </div>
+            <div style="margin-top: 0.85rem;">
+              <h3>External Labels</h3>
+              <div id="external-coverage" class="coverage-list"></div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <h2>Artifacts</h2>
+            <p class="muted" id="artifact-summary"></p>
+            <div id="artifact-list" class="artifact-list"></div>
+          </div>
+        </section>
+
+        <section id="leaderboard-panel" class="panel">
+          <h2>Leaderboard</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Actor</th>
+                <th>Artifacts</th>
+                <th>Suites</th>
+                <th>Benchmarks</th>
+                <th>Score Total</th>
+              </tr>
+            </thead>
+            <tbody id="leaderboard-body"></tbody>
+          </table>
+        </section>
+
+        <section id="rollups-panel" class="panel stack">
+          <div>
+            <h2>Identity Rollups</h2>
+            <p class="muted">
+              Profile-centric summaries derived from the export's <code>identity_rollups</code> section.
+            </p>
+          </div>
+
+          <div id="rollup-empty" class="muted"></div>
+          <div class="event-table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Identity</th>
+                  <th>Coverage</th>
+                  <th>Artifacts / Runs</th>
+                  <th>Scores</th>
+                  <th>Comparison</th>
+                  <th>Arena</th>
+                </tr>
+              </thead>
+              <tbody id="rollup-body"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section id="history-panel" class="panel">
+          <h2>History</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Mode</th>
+                <th>Suite</th>
+                <th>Actors</th>
+                <th>Coverage</th>
+                <th>Score Summary</th>
+                <th>Refs</th>
+              </tr>
+            </thead>
+            <tbody id="history-body"></tbody>
+          </table>
+        </section>
+
+        <section id="arena-panel" class="panel stack">
+          <div>
+            <h2>Arena Summary</h2>
+            <p class="muted">
+              Review true shared-run comparison artifacts as compact arena matchups with a quick winner view and direct replay entrypoints.
+            </p>
+          </div>
+
+          <div class="controls-row">
+            <label>
+              <span class="muted">Shared-Run Matchup</span><br>
+              <select id="arena-select" class="select"></select>
+            </label>
+          </div>
+
+          <section class="grid summary-grid">
+            <div class="card">
+              <h3>Matchup Identity</h3>
+              <div id="arena-identity" class="meta-list"></div>
+            </div>
+            <div class="card">
+              <h3>Arena Result</h3>
+              <div id="arena-summary" class="meta-list"></div>
+            </div>
+            <div class="card">
+              <h3>Replay Entrypoint</h3>
+              <div id="arena-context" class="meta-list"></div>
+            </div>
+          </section>
+
+          <div class="card">
+            <h3>Scenario Matchups</h3>
+            <div id="arena-empty" class="muted"></div>
+            <div class="event-table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Scenario</th>
+                    <th>Baseline</th>
+                    <th>Candidate</th>
+                    <th>Difference</th>
+                    <th>Leader</th>
+                    <th>Event Types</th>
+                    <th>Inspect</th>
+                  </tr>
+                </thead>
+                <tbody id="arena-body"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <section id="match-panel" class="panel stack">
+          <div>
+            <h2>Match Summary</h2>
+            <p class="muted">
+              Review comparison artifacts as compact scenario-by-scenario head-to-head summaries.
+              If an artifact is not a true shared-run comparison, the page pairs baseline and candidate runs by scenario when possible.
+            </p>
+          </div>
+
+          <div class="controls-row">
+            <label>
+              <span class="muted">Comparison Artifact</span><br>
+              <select id="comparison-select" class="select"></select>
+            </label>
+          </div>
+
+          <section class="grid summary-grid">
+            <div class="card">
+              <h3>Match Identity</h3>
+              <div id="comparison-identity" class="meta-list"></div>
+            </div>
+            <div class="card">
+              <h3>Aggregate Difference</h3>
+              <div id="comparison-summary" class="meta-list"></div>
+            </div>
+            <div class="card">
+              <h3>Replay Context</h3>
+              <div id="comparison-context" class="meta-list"></div>
+            </div>
+          </section>
+
+          <div class="card">
+            <h3>Scenario Head-To-Head</h3>
+            <div id="comparison-empty" class="muted"></div>
+            <div class="event-table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Scenario</th>
+                    <th>Baseline</th>
+                    <th>Candidate</th>
+                    <th>Difference</th>
+                    <th>Event Types</th>
+                    <th>Inspect</th>
+                  </tr>
+                </thead>
+                <tbody id="comparison-body"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <section id="replay-panel" class="panel stack">
+          <div>
+            <h2>Replay Inspector</h2>
+            <p class="muted">
+              Select one exported replay drilldown artifact and one saved run to inspect event-by-event progression.
+            </p>
+          </div>
+
+          <div class="controls-row">
+            <label>
+              <span class="muted">Replay Artifact</span><br>
+              <select id="drilldown-select" class="select"></select>
+            </label>
+            <label>
+              <span class="muted">Saved Run</span><br>
+              <select id="run-select" class="select"></select>
+            </label>
+          </div>
+
+          <section class="grid summary-grid">
+            <div class="card">
+              <h3>Run Identity</h3>
+              <div id="run-identity" class="meta-list"></div>
+            </div>
+            <div class="card">
+              <h3>Final State Summary</h3>
+              <div id="run-final-state" class="meta-list"></div>
+              <div id="run-final-state-json" class="code-block"></div>
+            </div>
+            <div class="card">
+              <h3>Score Summary</h3>
+              <div id="run-score-summary" class="meta-list"></div>
+              <div id="run-score-json" class="code-block"></div>
+            </div>
+          </section>
+
+          <div class="card">
+            <h3>Visible Event Types</h3>
+            <div id="run-event-types" class="coverage-list"></div>
+          </div>
+
+          <div class="card">
+            <h3>Event Progression</h3>
+            <div class="event-table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Step</th>
+                    <th>Event Type</th>
+                    <th>Actor</th>
+                    <th>Payload</th>
+                  </tr>
+                </thead>
+                <tbody id="event-body"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <script>
+      (function () {
+        var EXPECTED_VERSION = "reports_export_viewmodel_v1";
+        var SHARD_EXPORT_KIND = "shard_export_placeholder";
+        var fileInput = document.getElementById("file-input");
+        var jsonInput = document.getElementById("json-input");
+        var loadTextButton = document.getElementById("load-text");
+        var clearButton = document.getElementById("clear-view");
+        var status = document.getElementById("status");
+        var dashboard = document.getElementById("dashboard");
+        var shardEmpty = document.getElementById("shard-empty");
+        var shardMeta = document.getElementById("shard-meta");
+        var shardCounts = document.getElementById("shard-counts");
+        var shardLifecycle = document.getElementById("shard-lifecycle");
+        var shardGenerations = document.getElementById("shard-generations");
+        var shardVerification = document.getElementById("shard-verification");
+        var shardIdentities = document.getElementById("shard-identities");
+        var filtersPanel = document.getElementById("filters-panel");
+        var coveragePanel = document.getElementById("coverage-panel");
+        var leaderboardPanel = document.getElementById("leaderboard-panel");
+        var rollupsPanel = document.getElementById("rollups-panel");
+        var historyPanel = document.getElementById("history-panel");
+        var arenaPanel = document.getElementById("arena-panel");
+        var matchPanel = document.getElementById("match-panel");
+        var replayPanel = document.getElementById("replay-panel");
+        var actorFilter = document.getElementById("actor-filter");
+        var labelFilter = document.getElementById("label-filter");
+        var profileFilter = document.getElementById("profile-filter");
+        var comparisonModeFilter = document.getElementById("comparison-mode-filter");
+        var resetFiltersButton = document.getElementById("reset-filters");
+        var filterSummary = document.getElementById("filter-summary");
+        var coverageSummary = document.getElementById("coverage-summary");
+        var scenarioCoverage = document.getElementById("scenario-coverage");
+        var actorCoverage = document.getElementById("actor-coverage");
+        var externalCoverage = document.getElementById("external-coverage");
+        var artifactSummary = document.getElementById("artifact-summary");
+        var artifactList = document.getElementById("artifact-list");
+        var leaderboardBody = document.getElementById("leaderboard-body");
+        var rollupBody = document.getElementById("rollup-body");
+        var rollupEmpty = document.getElementById("rollup-empty");
+        var historyBody = document.getElementById("history-body");
+
+        var arenaSelect = document.getElementById("arena-select");
+        var arenaIdentity = document.getElementById("arena-identity");
+        var arenaSummary = document.getElementById("arena-summary");
+        var arenaContext = document.getElementById("arena-context");
+        var arenaBody = document.getElementById("arena-body");
+        var arenaEmpty = document.getElementById("arena-empty");
+
+        var comparisonSelect = document.getElementById("comparison-select");
+        var comparisonIdentity = document.getElementById("comparison-identity");
+        var comparisonSummary = document.getElementById("comparison-summary");
+        var comparisonContext = document.getElementById("comparison-context");
+        var comparisonBody = document.getElementById("comparison-body");
+        var comparisonEmpty = document.getElementById("comparison-empty");
+
+        var drilldownSelect = document.getElementById("drilldown-select");
+        var runSelect = document.getElementById("run-select");
+        var runIdentity = document.getElementById("run-identity");
+        var runFinalState = document.getElementById("run-final-state");
+        var runFinalStateJson = document.getElementById("run-final-state-json");
+        var runScoreSummary = document.getElementById("run-score-summary");
+        var runScoreJson = document.getElementById("run-score-json");
+        var runEventTypes = document.getElementById("run-event-types");
+        var eventBody = document.getElementById("event-body");
+
+        var currentPayload = null;
+        var currentDisplayPayload = null;
+
+        function setStatus(message, isError) {
+          status.textContent = message;
+          status.className = isError ? "status error" : "status";
+        }
+
+        function clearNode(node) {
+          while (node.firstChild) {
+            node.removeChild(node.firstChild);
+          }
+        }
+
+        function escapeHtml(value) {
+          return String(value)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/\"/g, "&quot;")
+            .replace(/'/g, "&#39;");
+        }
+
+        function formatNumber(value) {
+          if (typeof value === "number") {
+            return value.toFixed(4).replace(/0+$/, "").replace(/\.$/, "");
+          }
+          return String(value);
+        }
+
+        function formatJson(value) {
+          return JSON.stringify(value, null, 2);
+        }
+
+        function appendPills(node, values, emptyMessage) {
+          clearNode(node);
+          if (!Array.isArray(values) || values.length === 0) {
+            var fallback = document.createElement("span");
+            fallback.className = "muted";
+            fallback.textContent = emptyMessage;
+            node.appendChild(fallback);
+            return;
+          }
+          values.forEach(function (value) {
+            var pill = document.createElement("span");
+            pill.className = "pill";
+            pill.textContent = String(value);
+            node.appendChild(pill);
+          });
+        }
+
+        function createMetaRow(label, value) {
+          var row = document.createElement("div");
+          row.className = "meta-row";
+          var labelNode = document.createElement("strong");
+          labelNode.textContent = label;
+          var valueNode = document.createElement("span");
+          valueNode.textContent = value;
+          row.appendChild(labelNode);
+          row.appendChild(valueNode);
+          return row;
+        }
+
+        function validateViewmodel(payload) {
+          if (isShardExportPayload(payload)) {
+            return { kind: "shard_export", payload: validateShardExportPayload(payload) };
+          }
+          return { kind: "reports_export", payload: validateReportsExportPayload(payload) };
+        }
+
+        function isShardExportPayload(payload) {
+          return !!payload && typeof payload === "object" && payload.payload_kind === SHARD_EXPORT_KIND;
+        }
+
+        function validateReportsExportPayload(payload) {
+          if (!payload || typeof payload !== "object") {
+            throw new Error("Export payload must be a JSON object.");
+          }
+          if (payload.accepted !== true) {
+            throw new Error("Export payload must have accepted=true.");
+          }
+          if (payload.command !== "reports_export") {
+            throw new Error("Export payload must come from reports_export.");
+          }
+          if (payload.viewmodel_version !== EXPECTED_VERSION) {
+            throw new Error("Unsupported viewmodel_version: " + String(payload.viewmodel_version));
+          }
+          if (!Array.isArray(payload.history) || !Array.isArray(payload.leaderboard) || !Array.isArray(payload.artifacts)) {
+            throw new Error("Export payload is missing history, leaderboard, or artifacts arrays.");
+          }
+          if (!payload.coverage || typeof payload.coverage !== "object") {
+            throw new Error("Export payload is missing coverage.");
+          }
+          if (!Array.isArray(payload.replay_drilldowns)) {
+            throw new Error("Export payload is missing replay_drilldowns.");
+          }
+          return payload;
+        }
+
+        function validateShardExportPayload(payload) {
+          if (!payload || typeof payload !== "object") {
+            throw new Error("Shard export payload must be a JSON object.");
+          }
+          if (payload.payload_kind !== SHARD_EXPORT_KIND) {
+            throw new Error("Unsupported shard payload_kind: " + String(payload.payload_kind));
+          }
+          if (payload.payload_version !== 1) {
+            throw new Error("Unsupported shard payload_version: " + String(payload.payload_version));
+          }
+          if (!payload.metadata || typeof payload.metadata !== "object") {
+            throw new Error("Shard export payload is missing metadata.");
+          }
+          if (!payload.record_family_counts || typeof payload.record_family_counts !== "object") {
+            throw new Error("Shard export payload is missing record_family_counts.");
+          }
+          if (!payload.lifecycle_counts || typeof payload.lifecycle_counts !== "object") {
+            throw new Error("Shard export payload is missing lifecycle_counts.");
+          }
+          if (!payload.checkpoint || typeof payload.checkpoint !== "object") {
+            throw new Error("Shard export payload is missing checkpoint.");
+          }
+          if (!payload.journal || typeof payload.journal !== "object") {
+            throw new Error("Shard export payload is missing journal.");
+          }
+          if (
+            payload.bundle_verification_summary !== undefined
+            && (
+              !payload.bundle_verification_summary
+              || typeof payload.bundle_verification_summary !== "object"
+            )
+          ) {
+            throw new Error("Shard export payload bundle_verification_summary must be an object when present.");
+          }
+          if (
+            payload.bundle_recovery_summary !== undefined
+            && (
+              !payload.bundle_recovery_summary
+              || typeof payload.bundle_recovery_summary !== "object"
+            )
+          ) {
+            throw new Error("Shard export payload bundle_recovery_summary must be an object when present.");
+          }
+          return payload;
+        }
+
+        function createOption(value, label) {
+          var option = document.createElement("option");
+          option.value = value;
+          option.textContent = label;
+          return option;
+        }
+
+        function collectBuiltInActors(payload) {
+          var seen = {};
+          (payload.history || []).forEach(function (entry) {
+            (entry.identity_summary || []).forEach(function (identity) {
+              if (identity.identity_type === "built_in_actor" && identity.actor_id) {
+                seen[String(identity.actor_id)] = true;
+              }
+            });
+          });
+          return Object.keys(seen).sort();
+        }
+
+        function collectExternalLabels(payload) {
+          var seen = {};
+          (payload.coverage && payload.coverage.external_agent_labels || []).forEach(function (label) {
+            if (label) {
+              seen[String(label)] = true;
+            }
+          });
+          (payload.history || []).forEach(function (entry) {
+            if (entry.external_agent_label) {
+              seen[String(entry.external_agent_label)] = true;
+            }
+            (entry.identity_summary || []).forEach(function (identity) {
+              if (identity.external_agent_label) {
+                seen[String(identity.external_agent_label)] = true;
+              }
+            });
+          });
+          return Object.keys(seen).sort();
+        }
+
+        function collectExternalProfiles(payload) {
+          var seen = {};
+          (payload.coverage && payload.coverage.external_agent_profile_ids || []).forEach(function (profileId) {
+            if (profileId) {
+              seen[String(profileId)] = true;
+            }
+          });
+          (payload.history || []).forEach(function (entry) {
+            [
+              entry.external_agent_profile_id,
+              entry.baseline_external_agent_profile_id,
+              entry.candidate_external_agent_profile_id
+            ].forEach(function (profileId) {
+              if (profileId) {
+                seen[String(profileId)] = true;
+              }
+            });
+            (entry.identity_summary || []).forEach(function (identity) {
+              if (identity.external_agent_profile_id) {
+                seen[String(identity.external_agent_profile_id)] = true;
+              }
+            });
+          });
+          return Object.keys(seen).sort();
+        }
+
+        function populateFilterControls(payload) {
+          clearNode(actorFilter);
+          clearNode(labelFilter);
+          clearNode(profileFilter);
+          clearNode(comparisonModeFilter);
+
+          actorFilter.appendChild(createOption("", "All built-in actors"));
+          collectBuiltInActors(payload).forEach(function (actorId) {
+            actorFilter.appendChild(createOption(actorId, actorId));
+          });
+
+          labelFilter.appendChild(createOption("", "All external labels"));
+          collectExternalLabels(payload).forEach(function (label) {
+            labelFilter.appendChild(createOption(label, label));
+          });
+
+          profileFilter.appendChild(createOption("", "All external profiles"));
+          collectExternalProfiles(payload).forEach(function (profileId) {
+            profileFilter.appendChild(createOption(profileId, profileId));
+          });
+
+          comparisonModeFilter.appendChild(createOption("all", "All artifacts"));
+          comparisonModeFilter.appendChild(createOption("shared", "Shared-run comparisons"));
+          comparisonModeFilter.appendChild(createOption("nonshared", "Non-shared comparisons"));
+
+          actorFilter.onchange = renderFilteredView;
+          labelFilter.onchange = renderFilteredView;
+          profileFilter.onchange = renderFilteredView;
+          comparisonModeFilter.onchange = renderFilteredView;
+        }
+
+        function getSelectedFilters() {
+          return {
+            actorId: String(actorFilter.value || ""),
+            externalLabel: String(labelFilter.value || ""),
+            externalProfileId: String(profileFilter.value || ""),
+            comparisonMode: String(comparisonModeFilter.value || "all")
+          };
+        }
+
+        function summarizeFilters(filters) {
+          var parts = [];
+          if (filters.actorId) {
+            parts.push("actor=" + filters.actorId);
+          }
+          if (filters.externalLabel) {
+            parts.push("label=" + filters.externalLabel);
+          }
+          if (filters.externalProfileId) {
+            parts.push("profile=" + filters.externalProfileId);
+          }
+          if (filters.comparisonMode !== "all") {
+            parts.push("comparison=" + filters.comparisonMode);
+          }
+          return parts.length > 0 ? parts.join(" | ") : "No filters applied.";
+        }
+
+        function matchesBuiltInActor(entry, actorId) {
+          if (!actorId) {
+            return true;
+          }
+          return (entry.identity_summary || []).some(function (identity) {
+            return identity.identity_type === "built_in_actor" && identity.actor_id === actorId;
+          });
+        }
+
+        function matchesExternalLabel(entry, externalLabel) {
+          if (!externalLabel) {
+            return true;
+          }
+          if (entry.external_agent_label === externalLabel) {
+            return true;
+          }
+          return (entry.identity_summary || []).some(function (identity) {
+            return identity.external_agent_label === externalLabel;
+          });
+        }
+
+        function matchesExternalProfile(entry, externalProfileId) {
+          if (!externalProfileId) {
+            return true;
+          }
+          if (
+            entry.external_agent_profile_id === externalProfileId ||
+            entry.baseline_external_agent_profile_id === externalProfileId ||
+            entry.candidate_external_agent_profile_id === externalProfileId
+          ) {
+            return true;
+          }
+          return (entry.identity_summary || []).some(function (identity) {
+            return identity.external_agent_profile_id === externalProfileId;
+          });
+        }
+
+        function buildDrilldownIndex(payload) {
+          var byManifestPath = {};
+          (payload.replay_drilldowns || []).forEach(function (entry) {
+            byManifestPath[String(entry.manifest_path || "")] = entry;
+          });
+          return byManifestPath;
+        }
+
+        function matchesComparisonMode(entry, filters, drilldownIndex) {
+          if (filters.comparisonMode === "all") {
+            return true;
+          }
+          if (entry.command_mode !== "suite_comparison") {
+            return false;
+          }
+          var drilldown = drilldownIndex[String(entry.manifest_path || "")];
+          if (!drilldown) {
+            return false;
+          }
+          var isShared = hasSharedRunContext(drilldown);
+          return filters.comparisonMode === "shared" ? isShared : !isShared;
+        }
+
+        function filterHistoryEntries(payload, filters, drilldownIndex) {
+          return (payload.history || []).filter(function (entry) {
+            return (
+              matchesBuiltInActor(entry, filters.actorId) &&
+              matchesExternalLabel(entry, filters.externalLabel) &&
+              matchesExternalProfile(entry, filters.externalProfileId) &&
+              matchesComparisonMode(entry, filters, drilldownIndex)
+            );
+          });
+        }
+
+        function filterLeaderboardEntries(payload, filters, visibleHistory) {
+          var visibleActors = {};
+          visibleHistory.forEach(function (entry) {
+            (entry.identity_summary || []).forEach(function (identity) {
+              visibleActors[String(identity.actor_id)] = true;
+            });
+          });
+
+          return (payload.leaderboard || []).filter(function (entry) {
+            if (!visibleActors[String(entry.actor_id)]) {
+              return false;
+            }
+            if (filters.actorId && !(entry.identity_type === "built_in_actor" && entry.actor_id === filters.actorId)) {
+              return false;
+            }
+            if (filters.externalLabel && entry.external_agent_label !== filters.externalLabel) {
+              return false;
+            }
+            if (filters.externalProfileId && entry.external_agent_profile_id !== filters.externalProfileId) {
+              return false;
+            }
+            return true;
+          });
+        }
+
+        function buildFilteredCoverage(historyEntries, drilldowns) {
+          var scenarioIds = {};
+          var actorIds = {};
+          var labels = {};
+          var profiles = {};
+
+          historyEntries.forEach(function (entry) {
+            (entry.scenario_ids || []).forEach(function (scenarioId) {
+              scenarioIds[String(scenarioId)] = true;
+            });
+            (entry.identity_summary || []).forEach(function (identity) {
+              if (identity.actor_id) {
+                actorIds[String(identity.actor_id)] = true;
+              }
+              if (identity.external_agent_label) {
+                labels[String(identity.external_agent_label)] = true;
+              }
+              if (identity.external_agent_profile_id) {
+                profiles[String(identity.external_agent_profile_id)] = true;
+              }
+            });
+          });
+
+          drilldowns.forEach(function (drilldown) {
+            (drilldown.scenario_ids || []).forEach(function (scenarioId) {
+              scenarioIds[String(scenarioId)] = true;
+            });
+            [
+              drilldown.external_agent_label,
+              drilldown.baseline_external_agent_label,
+              drilldown.candidate_external_agent_label
+            ].forEach(function (label) {
+              if (label) {
+                labels[String(label)] = true;
+              }
+            });
+            [
+              drilldown.external_agent_profile_id,
+              drilldown.baseline_external_agent_profile_id,
+              drilldown.candidate_external_agent_profile_id
+            ].forEach(function (profileId) {
+              if (profileId) {
+                profiles[String(profileId)] = true;
+              }
+            });
+          });
+
+          return {
+            scenario_ids: Object.keys(scenarioIds).sort(),
+            actor_ids: Object.keys(actorIds).sort(),
+            external_agent_labels: Object.keys(labels).sort(),
+            external_agent_profile_ids: Object.keys(profiles).sort()
+          };
+        }
+
+        function buildFilteredPayload(payload, filters) {
+          var drilldownIndex = buildDrilldownIndex(payload);
+          var historyEntries = filterHistoryEntries(payload, filters, drilldownIndex);
+          var visibleManifestPaths = {};
+          historyEntries.forEach(function (entry) {
+            visibleManifestPaths[String(entry.manifest_path || "")] = true;
+          });
+
+          var artifacts = (payload.artifacts || []).filter(function (entry) {
+            return visibleManifestPaths[String(entry.manifest_path || "")];
+          });
+          var drilldowns = (payload.replay_drilldowns || []).filter(function (entry) {
+            return visibleManifestPaths[String(entry.manifest_path || "")];
+          });
+
+          return {
+            accepted: payload.accepted,
+            command: payload.command,
+            viewmodel_version: payload.viewmodel_version,
+            artifact_count: artifacts.length,
+            artifacts: artifacts,
+            history: historyEntries,
+            leaderboard: filterLeaderboardEntries(payload, filters, historyEntries),
+            identity_rollups: filterIdentityRollups(payload, filters),
+            replay_drilldowns: drilldowns,
+            coverage: buildFilteredCoverage(historyEntries, drilldowns)
+          };
+        }
+
+        function toggleBenchmarkPanels(show) {
+          [
+            filtersPanel,
+            coveragePanel,
+            leaderboardPanel,
+            rollupsPanel,
+            historyPanel,
+            arenaPanel,
+            matchPanel,
+            replayPanel
+          ].forEach(function (node) {
+            if (!node) {
+              return;
+            }
+            node.classList[show ? "remove" : "add"]("hidden");
+          });
+        }
+
+        function renderShardExportSummary(payload) {
+          clearNode(shardMeta);
+          clearNode(shardCounts);
+          clearNode(shardLifecycle);
+          clearNode(shardGenerations);
+          clearNode(shardVerification);
+          clearNode(shardIdentities);
+
+          if (!payload) {
+            shardEmpty.textContent = "No shard export payload is loaded. Load a standalone shard export JSON to inspect in-process world-mode state.";
+            return;
+          }
+
+          shardEmpty.textContent = "";
+          var metadata = payload.metadata || {};
+          var recordCounts = payload.record_family_counts || {};
+          var lifecycleCounts = payload.lifecycle_counts || {};
+          var characterCounts = lifecycleCounts.characters || {};
+          var sessionCounts = lifecycleCounts.sessions || {};
+          var checkpoint = payload.checkpoint || {};
+          var journal = payload.journal || {};
+          var verificationSummary = payload.bundle_verification_summary || null;
+          var recoverySummary = payload.bundle_recovery_summary || null;
+          var identityCounts = payload.identity_category_counts || {};
+
+          shardMeta.appendChild(createMetaRow("Shard", String(payload.shard_id || "")));
+          shardMeta.appendChild(createMetaRow("Mode", String(metadata.mode_marker || "")));
+          shardMeta.appendChild(createMetaRow("Status", String(metadata.shard_status || "")));
+          shardMeta.appendChild(createMetaRow("Ruleset", String(metadata.world_ruleset_version || "")));
+          shardMeta.appendChild(createMetaRow("Engine", String(metadata.benchmark_engine_version || "")));
+          shardMeta.appendChild(createMetaRow("Scheduler", String(metadata.scheduler_policy_version || "")));
+          shardMeta.appendChild(createMetaRow("Season", String(metadata.season_id || "none")));
+
+          Object.keys(recordCounts).sort().forEach(function (key) {
+            shardCounts.appendChild(createMetaRow(key, String(recordCounts[key])));
+          });
+
+          shardLifecycle.appendChild(createMetaRow(
+            "Characters",
+            [
+              "active=" + String(characterCounts.active || 0),
+              "inactive=" + String(characterCounts.inactive || 0),
+              "total=" + String(characterCounts.total || 0)
+            ].join(" | ")
+          ));
+          shardLifecycle.appendChild(createMetaRow(
+            "Sessions",
+            [
+              "active=" + String(sessionCounts.active || 0),
+              "inactive=" + String(sessionCounts.inactive || 0),
+              "total=" + String(sessionCounts.total || 0)
+            ].join(" | ")
+          ));
+
+          shardGenerations.appendChild(createMetaRow(
+            "Checkpoint Generation",
+            String(checkpoint.registry_checkpoint_generation || 0)
+          ));
+          shardGenerations.appendChild(createMetaRow(
+            "Checkpoint Marker",
+            String(checkpoint.checkpoint_commit_marker || "")
+          ));
+          shardGenerations.appendChild(createMetaRow(
+            "Last Mutation",
+            String(journal.last_committed_mutation_generation || 0)
+          ));
+          shardGenerations.appendChild(createMetaRow(
+            "Next Mutation",
+            String(journal.expected_next_mutation_generation || 0)
+          ));
+          shardGenerations.appendChild(createMetaRow(
+            "Journal Mode",
+            String(journal.mutation_journal_mode || "")
+          ));
+
+          if (verificationSummary) {
+            var issueCodes = Array.isArray(verificationSummary.issue_codes)
+              ? verificationSummary.issue_codes.map(function (value) { return String(value); }).sort()
+              : [];
+            var hashIssueCodes = Array.isArray(verificationSummary.hash_issue_codes)
+              ? verificationSummary.hash_issue_codes.map(function (value) { return String(value); }).sort()
+              : [];
+            var linkageIssueCodes = Array.isArray(verificationSummary.linkage_issue_codes)
+              ? verificationSummary.linkage_issue_codes.map(function (value) { return String(value); }).sort()
+              : [];
+            var manifestIssueCodes = Array.isArray(verificationSummary.manifest_issue_codes)
+              ? verificationSummary.manifest_issue_codes.map(function (value) { return String(value); }).sort()
+              : [];
+            var issueCategoryCounts = verificationSummary.issue_category_counts || {};
+            shardVerification.appendChild(createMetaRow(
+              "Status",
+              verificationSummary.is_valid ? "valid" : "invalid"
+            ));
+            shardVerification.appendChild(createMetaRow(
+              "Issue Codes",
+              issueCodes.length > 0 ? issueCodes.join(" | ") : "none"
+            ));
+            shardVerification.appendChild(createMetaRow(
+              "Artifacts",
+              String(verificationSummary.artifact_count || 0)
+            ));
+            shardVerification.appendChild(createMetaRow(
+              "Verified",
+              String(verificationSummary.verified_artifact_count || 0)
+            ));
+            shardVerification.appendChild(createMetaRow(
+              "Hash Issues",
+              hashIssueCodes.length > 0 ? hashIssueCodes.join(" | ") : "none"
+            ));
+            shardVerification.appendChild(createMetaRow(
+              "Linkage Issues",
+              linkageIssueCodes.length > 0 ? linkageIssueCodes.join(" | ") : "none"
+            ));
+            shardVerification.appendChild(createMetaRow(
+              "Manifest Issues",
+              manifestIssueCodes.length > 0 ? manifestIssueCodes.join(" | ") : "none"
+            ));
+            shardVerification.appendChild(createMetaRow(
+              "Issue Counts",
+              [
+                "hash=" + String(issueCategoryCounts.hash || 0),
+                "linkage=" + String(issueCategoryCounts.linkage || 0),
+                "manifest=" + String(issueCategoryCounts.manifest || 0),
+                "other=" + String(issueCategoryCounts.other || 0)
+              ].join(" | ")
+            ));
+          } else {
+            shardVerification.appendChild(createMetaRow(
+              "Status",
+              "not provided"
+            ));
+            shardVerification.appendChild(createMetaRow(
+              "Issue Codes",
+              "none"
+            ));
+            shardVerification.appendChild(createMetaRow(
+              "Artifacts",
+              "0"
+            ));
+            shardVerification.appendChild(createMetaRow(
+              "Verified",
+              "0"
+            ));
+            shardVerification.appendChild(createMetaRow(
+              "Hash Issues",
+              "none"
+            ));
+            shardVerification.appendChild(createMetaRow(
+              "Linkage Issues",
+              "none"
+            ));
+            shardVerification.appendChild(createMetaRow(
+              "Manifest Issues",
+              "none"
+            ));
+            shardVerification.appendChild(createMetaRow(
+              "Issue Counts",
+              "hash=0 | linkage=0 | manifest=0 | other=0"
+            ));
+          }
+
+          if (recoverySummary) {
+            var recoveryIssueCodes = Array.isArray(recoverySummary.issue_codes)
+              ? recoverySummary.issue_codes.map(function (value) { return String(value); }).sort()
+              : [];
+            var fatalIssueCodes = Array.isArray(recoverySummary.fatal_issue_codes)
+              ? recoverySummary.fatal_issue_codes.map(function (value) { return String(value); }).sort()
+              : [];
+            var degradableIssueCodes = Array.isArray(recoverySummary.degradable_issue_codes)
+              ? recoverySummary.degradable_issue_codes.map(function (value) { return String(value); }).sort()
+              : [];
+            shardVerification.appendChild(createMetaRow(
+              "Recovery State",
+              String(recoverySummary.recovery_state || "unknown")
+            ));
+            shardVerification.appendChild(createMetaRow(
+              "Verification Valid",
+              recoverySummary.verification_is_valid ? "true" : "false"
+            ));
+            shardVerification.appendChild(createMetaRow(
+              "Recovery Issues",
+              recoveryIssueCodes.length > 0 ? recoveryIssueCodes.join(" | ") : "none"
+            ));
+            shardVerification.appendChild(createMetaRow(
+              "Fatal Issues",
+              fatalIssueCodes.length > 0 ? fatalIssueCodes.join(" | ") : "none"
+            ));
+            shardVerification.appendChild(createMetaRow(
+              "Degradable Issues",
+              degradableIssueCodes.length > 0 ? degradableIssueCodes.join(" | ") : "none"
+            ));
+          } else {
+            shardVerification.appendChild(createMetaRow(
+              "Recovery State",
+              "not provided"
+            ));
+            shardVerification.appendChild(createMetaRow(
+              "Verification Valid",
+              "false"
+            ));
+            shardVerification.appendChild(createMetaRow(
+              "Recovery Issues",
+              "none"
+            ));
+            shardVerification.appendChild(createMetaRow(
+              "Fatal Issues",
+              "none"
+            ));
+            shardVerification.appendChild(createMetaRow(
+              "Degradable Issues",
+              "none"
+            ));
+          }
+
+          Object.keys(identityCounts).sort().forEach(function (key) {
+            var counts = identityCounts[key] || {};
+            var summary = Object.keys(counts).sort().map(function (countKey) {
+              return countKey + "=" + String(counts[countKey]);
+            });
+            shardIdentities.appendChild(createMetaRow(
+              key,
+              summary.length > 0 ? summary.join(" | ") : "none"
+            ));
+          });
+        }
+
+        function filterIdentityRollups(payload, filters) {
+          if (!Array.isArray(payload.identity_rollups)) {
+            return [];
+          }
+          return payload.identity_rollups.filter(function (entry) {
+            if (filters.actorId && !(entry.identity_type === "built_in_actor" && entry.identity_value === filters.actorId)) {
+              return false;
+            }
+            if (filters.externalLabel && entry.external_agent_label !== filters.externalLabel) {
+              return false;
+            }
+            if (filters.externalProfileId && entry.external_agent_profile_id !== filters.externalProfileId) {
+              return false;
+            }
+            if (filters.comparisonMode === "shared") {
+              return entry.has_shared_run_arena_artifacts === true;
+            }
+            if (filters.comparisonMode === "nonshared") {
+              return entry.has_comparison_artifacts === true && entry.has_shared_run_arena_artifacts !== true;
+            }
+            return true;
+          });
+        }
+
+        function renderLeaderboard(entries) {
+          clearNode(leaderboardBody);
+          if (!entries.length) {
+            var row = document.createElement("tr");
+            row.innerHTML = "<td colspan=\"5\" class=\"muted\">No leaderboard entries match the active filters.</td>";
+            leaderboardBody.appendChild(row);
+            return;
+          }
+          entries.forEach(function (entry) {
+            var row = document.createElement("tr");
+            row.innerHTML =
+              "<td><strong>" + escapeHtml(entry.actor_id) + "</strong></td>" +
+              "<td>" + escapeHtml(String(entry.artifact_count)) + "</td>" +
+              "<td>" + escapeHtml((entry.suite_ids || []).join(", ")) + "</td>" +
+              "<td>" + escapeHtml((entry.benchmark_ids || []).join(", ")) + "</td>" +
+              "<td>" + escapeHtml(formatNumber(entry.score_total)) + "</td>";
+            leaderboardBody.appendChild(row);
+          });
+        }
+
+        function renderIdentityRollups(entries, rollupsAvailable) {
+          clearNode(rollupBody);
+          if (!rollupsAvailable) {
+            rollupEmpty.textContent = "This export does not include identity_rollups. Load a newer reports export to view profile-centric summaries.";
+            return;
+          }
+          if (!entries.length) {
+            rollupEmpty.textContent = "No identity rollups match the active filters.";
+            var row = document.createElement("tr");
+            row.innerHTML = "<td colspan=\"6\" class=\"muted\">No rollup rows to display.</td>";
+            rollupBody.appendChild(row);
+            return;
+          }
+          rollupEmpty.textContent = "";
+          entries.forEach(function (entry) {
+            var identityParts = [String(entry.identity_type || ""), String(entry.identity_value || "")];
+            if (entry.external_agent_label) {
+              identityParts.push("label: " + String(entry.external_agent_label));
+            }
+            if (entry.external_agent_profile_id) {
+              identityParts.push("profile: " + String(entry.external_agent_profile_id));
+            }
+            var coverageParts = [
+              String(entry.scenario_coverage_count || 0) + " scenarios",
+              Array.isArray(entry.scenario_ids) && entry.scenario_ids.length > 0 ? entry.scenario_ids.join(", ") : "none"
+            ];
+            var artifactParts = [
+              String(entry.artifact_count || 0) + " artifact(s)",
+              String(entry.run_count || 0) + " run(s)"
+            ];
+            var scoreParts = [];
+            if (typeof entry.score_total === "number") {
+              scoreParts.push("total: " + formatNumber(entry.score_total));
+            }
+            if (typeof entry.score_average_per_artifact === "number") {
+              scoreParts.push("avg: " + formatNumber(entry.score_average_per_artifact));
+            }
+            if (scoreParts.length === 0) {
+              scoreParts.push("n/a");
+            }
+            var comparisonParts = [];
+            if (typeof entry.comparison_artifact_count === "number") {
+              comparisonParts.push(String(entry.comparison_artifact_count) + " artifact(s)");
+            }
+            comparisonParts.push(entry.has_comparison_artifacts === true ? "present" : "absent");
+            var arenaParts = [];
+            if (typeof entry.shared_run_arena_artifact_count === "number") {
+              arenaParts.push(String(entry.shared_run_arena_artifact_count) + " artifact(s)");
+            }
+            arenaParts.push(entry.has_shared_run_arena_artifacts === true ? "shared-run present" : "n/a");
+
+            var row = document.createElement("tr");
+            row.innerHTML =
+              "<td><strong>" + escapeHtml(identityParts[1]) + "</strong><br><span class=\"muted\">" +
+              escapeHtml(identityParts.join(" | ")) + "</span></td>" +
+              "<td><code>" + escapeHtml(coverageParts.join(" | ")) + "</code></td>" +
+              "<td><code>" + escapeHtml(artifactParts.join(" | ")) + "</code></td>" +
+              "<td><code>" + escapeHtml(scoreParts.join(" | ")) + "</code></td>" +
+              "<td><code>" + escapeHtml(comparisonParts.join(" | ")) + "</code></td>" +
+              "<td><code>" + escapeHtml(arenaParts.join(" | ")) + "</code></td>";
+            rollupBody.appendChild(row);
+          });
+        }
+
+        function renderHistory(entries) {
+          clearNode(historyBody);
+          if (!entries.length) {
+            var row = document.createElement("tr");
+            row.innerHTML = "<td colspan=\"6\" class=\"muted\">No history entries match the active filters.</td>";
+            historyBody.appendChild(row);
+            return;
+          }
+          entries.forEach(function (entry) {
+            var summary = entry.score_summary || {};
+            var coverageText = (entry.scenario_ids || []).join(", ");
+            var actorText = (entry.actor_ids || []).join(", ");
+            if (entry.external_agent_label) {
+              actorText += " | label: " + entry.external_agent_label;
+            }
+            if (entry.external_agent_profile_id) {
+              actorText += " | profile: " + entry.external_agent_profile_id;
+            }
+            var summaryLines = [];
+            Object.keys(summary).sort().forEach(function (key) {
+              summaryLines.push(key + ": " + formatNumber(summary[key]));
+            });
+            var refsText =
+              "report: " + entry.report_path + "\n" +
+              "manifest: " + entry.manifest_path;
+            var row = document.createElement("tr");
+            row.innerHTML =
+              "<td><strong>" + escapeHtml(entry.command_mode) + "</strong></td>" +
+              "<td>" + escapeHtml(String(entry.suite_id || "")) + "<br><span class=\"muted\">" +
+              escapeHtml(String(entry.benchmark_id || "")) + "</span></td>" +
+              "<td>" + escapeHtml(actorText) + "</td>" +
+              "<td>" + escapeHtml(coverageText) + "</td>" +
+              "<td><code>" + escapeHtml(summaryLines.join(" | ")) + "</code></td>" +
+              "<td><code>" + escapeHtml(refsText) + "</code></td>";
+            historyBody.appendChild(row);
+          });
+        }
+
+        function renderArtifacts(entries) {
+          clearNode(artifactList);
+          if (!entries.length) {
+            var fallback = document.createElement("span");
+            fallback.className = "muted";
+            fallback.textContent = "No saved artifacts match the active filters.";
+            artifactList.appendChild(fallback);
+            return;
+          }
+          entries.forEach(function (entry) {
+            var pill = document.createElement("span");
+            pill.className = "pill";
+            pill.textContent = entry.command_mode + " | " + entry.suite_id + " | " + entry.report_path;
+            artifactList.appendChild(pill);
+          });
+        }
+
+        function populateReplaySelectors(payload) {
+          clearNode(drilldownSelect);
+          clearNode(runSelect);
+          payload.replay_drilldowns.forEach(function (entry, index) {
+            var option = document.createElement("option");
+            option.value = String(index);
+            option.textContent = entry.command_mode + " | " + entry.suite_id + " | " + entry.report_path;
+            drilldownSelect.appendChild(option);
+          });
+
+          drilldownSelect.onchange = function () {
+            renderSelectedReplay();
+          };
+          runSelect.onchange = function () {
+            renderSelectedRun();
+          };
+
+          renderSelectedReplay();
+        }
+
+        function renderSelectedReplay() {
+          clearNode(runSelect);
+          if (!currentDisplayPayload || !Array.isArray(currentDisplayPayload.replay_drilldowns) || currentDisplayPayload.replay_drilldowns.length === 0) {
+            renderSelectedRun();
+            return;
+          }
+
+          var drilldownIndex = Number(drilldownSelect.value || 0);
+          var drilldown = currentDisplayPayload.replay_drilldowns[drilldownIndex] || currentDisplayPayload.replay_drilldowns[0];
+          (drilldown.runs || []).forEach(function (run, index) {
+            var option = document.createElement("option");
+            option.value = String(index);
+            option.textContent = run.scenario_id + " | " + run.source + " | " + run.run_id;
+            runSelect.appendChild(option);
+          });
+          renderSelectedRun();
+        }
+
+        function renderSelectedRun() {
+          clearNode(runIdentity);
+          clearNode(runFinalState);
+          clearNode(runScoreSummary);
+          clearNode(eventBody);
+          runFinalStateJson.textContent = "{}";
+          runScoreJson.textContent = "{}";
+          appendPills(runEventTypes, [], "No replay drilldown loaded");
+
+          if (!currentDisplayPayload || !Array.isArray(currentDisplayPayload.replay_drilldowns) || currentDisplayPayload.replay_drilldowns.length === 0) {
+            return;
+          }
+
+          var drilldownIndex = Number(drilldownSelect.value || 0);
+          var drilldown = currentDisplayPayload.replay_drilldowns[drilldownIndex] || currentDisplayPayload.replay_drilldowns[0];
+          var runs = Array.isArray(drilldown.runs) ? drilldown.runs : [];
+          var runIndex = Number(runSelect.value || 0);
+          var run = runs[runIndex] || runs[0];
+          if (!run) {
+            return;
+          }
+
+          renderRunIdentity(drilldown, run);
+          renderFinalState(run.final_state_summary);
+          renderScoreSummary(run.score_summary);
+          appendPills(runEventTypes, run.event_types, "No event types recorded");
+          renderEventTable(run.events);
+        }
+
+        function renderRunIdentity(drilldown, run) {
+          runIdentity.appendChild(createMetaRow("Mode", String(drilldown.command_mode || "")));
+          runIdentity.appendChild(createMetaRow("Suite", String(drilldown.suite_id || "")));
+          runIdentity.appendChild(createMetaRow("Scenario", String(run.scenario_id || "")));
+          runIdentity.appendChild(createMetaRow("Run ID", String(run.run_id || "")));
+          runIdentity.appendChild(createMetaRow("Source", String(run.source || "")));
+          runIdentity.appendChild(createMetaRow("Actors", (run.actor_ids || []).join(", ")));
+          runIdentity.appendChild(createMetaRow("Max Steps", String(run.max_steps || 0)));
+          runIdentity.appendChild(createMetaRow("Events", String(run.event_count || 0)));
+          runIdentity.appendChild(createMetaRow("Replay Ref", String(run.replay_ref || "")));
+          runIdentity.appendChild(createMetaRow("Replay File", String(drilldown.replay_drilldown_path || "")));
+        }
+
+        function renderFinalState(summary) {
+          var safeSummary = summary && typeof summary === "object" ? summary : {};
+          var signals = safeSummary.tracker_total_signals || {};
+          var agentStates = Array.isArray(safeSummary.agent_states) ? safeSummary.agent_states : [];
+          runFinalState.appendChild(createMetaRow("Final Step", String(safeSummary.step_index || 0)));
+          runFinalState.appendChild(createMetaRow("Signal Keys", Object.keys(signals).sort().join(", ") || "none"));
+          runFinalState.appendChild(createMetaRow("Agent States", String(agentStates.length)));
+          runFinalStateJson.textContent = formatJson(safeSummary);
+        }
+
+        function renderScoreSummary(summary) {
+          var safeSummary = summary && typeof summary === "object" ? summary : {};
+          var actors = Array.isArray(safeSummary.actors) ? safeSummary.actors : [];
+          runScoreSummary.appendChild(createMetaRow("Aggregate", formatNumber(safeSummary.aggregate_score || 0)));
+          runScoreSummary.appendChild(createMetaRow("Actor Scores", String(actors.length)));
+          runScoreJson.textContent = formatJson(safeSummary);
+        }
+
+        function renderEventTable(events) {
+          clearNode(eventBody);
+          (Array.isArray(events) ? events : []).forEach(function (event, index) {
+            var payloadText = formatJson(event.payload || {});
+            var row = document.createElement("tr");
+            row.innerHTML =
+              "<td>" + escapeHtml(String(index)) + "</td>" +
+              "<td>" + escapeHtml(String(event.step_index || 0)) + "</td>" +
+              "<td><strong>" + escapeHtml(String(event.event_type || "")) + "</strong></td>" +
+              "<td>" + escapeHtml(String(event.actor_id || event.entity_id || "")) + "</td>" +
+              "<td><code>" + escapeHtml(payloadText) + "</code></td>";
+            eventBody.appendChild(row);
+          });
+        }
+
+        function populateComparisonSelectors(payload) {
+          clearNode(comparisonSelect);
+          var comparisons = getComparisonDrilldowns(payload);
+          if (comparisons.length === 0) {
+            comparisonEmpty.textContent = "No comparison artifacts were found in this export.";
+            renderComparison(null);
+            return;
+          }
+
+          comparisons.forEach(function (entry, index) {
+            var option = document.createElement("option");
+            option.value = String(index);
+            option.textContent = entry.command_mode + " | " + entry.suite_id + " | " + entry.report_path;
+            comparisonSelect.appendChild(option);
+          });
+
+          comparisonSelect.onchange = function () {
+            renderSelectedComparison();
+          };
+          renderSelectedComparison();
+        }
+
+        function populateArenaSelectors(payload) {
+          clearNode(arenaSelect);
+          var comparisons = getSharedRunComparisons(payload);
+          if (comparisons.length === 0) {
+            arenaEmpty.textContent = "No shared-run comparison artifacts were found in this export. Paired comparisons remain available in Match Summary.";
+            renderArena(null);
+            return;
+          }
+
+          comparisons.forEach(function (entry, index) {
+            var option = document.createElement("option");
+            option.value = String(index);
+            option.textContent = buildComparisonIdentityLabel(entry);
+            arenaSelect.appendChild(option);
+          });
+
+          arenaSelect.onchange = function () {
+            renderSelectedArena();
+          };
+          renderSelectedArena();
+        }
+
+        function getComparisonDrilldowns(payload) {
+          return (payload.replay_drilldowns || []).filter(function (entry) {
+            return entry.command_mode === "suite_comparison";
+          });
+        }
+
+        function getSharedRunComparisons(payload) {
+          return getComparisonDrilldowns(payload).filter(function (entry) {
+            return hasSharedRunContext(entry);
+          });
+        }
+
+        function renderSelectedArena() {
+          if (!currentDisplayPayload) {
+            renderArena(null);
+            return;
+          }
+          var comparisons = getSharedRunComparisons(currentDisplayPayload);
+          if (comparisons.length === 0) {
+            renderArena(null);
+            return;
+          }
+          var arenaIndex = Number(arenaSelect.value || 0);
+          var comparison = comparisons[arenaIndex] || comparisons[0];
+          renderArena(comparison);
+        }
+
+        function renderSelectedComparison() {
+          if (!currentDisplayPayload) {
+            renderComparison(null);
+            return;
+          }
+          var comparisons = getComparisonDrilldowns(currentDisplayPayload);
+          if (comparisons.length === 0) {
+            renderComparison(null);
+            return;
+          }
+          var comparisonIndex = Number(comparisonSelect.value || 0);
+          var comparison = comparisons[comparisonIndex] || comparisons[0];
+          renderComparison(comparison);
+        }
+
+        function renderArena(comparison) {
+          clearNode(arenaIdentity);
+          clearNode(arenaSummary);
+          clearNode(arenaContext);
+          clearNode(arenaBody);
+
+          if (!comparison) {
+            arenaEmpty.textContent = "No shared-run arena matchup is available in the loaded export.";
+            return;
+          }
+
+          arenaEmpty.textContent = "";
+          var identities = getComparisonIdentities(comparison);
+          var baselineIdentity = identities.baseline;
+          var candidateIdentity = identities.candidate;
+          var historyEntry = findHistoryEntry(comparison.manifest_path);
+          var scoreSummary = historyEntry && historyEntry.score_summary ? historyEntry.score_summary : {};
+          var scenarios = buildScenarioComparisonRows(comparison, baselineIdentity, candidateIdentity);
+          var winnerSummary = deriveWinnerSummary(
+            scoreSummary.composite_score_difference_total,
+            baselineIdentity,
+            candidateIdentity
+          );
+
+          arenaIdentity.appendChild(createMetaRow("Matchup", baselineIdentity + " vs " + candidateIdentity));
+          arenaIdentity.appendChild(createMetaRow("Suite", String(comparison.suite_id || "")));
+          arenaIdentity.appendChild(createMetaRow("Benchmark", String(comparison.benchmark_id || "")));
+          arenaIdentity.appendChild(createMetaRow("Scenarios", String((comparison.scenario_ids || []).length)));
+          arenaIdentity.appendChild(createMetaRow("Profiles", buildProfileIdentitySummary(comparison)));
+
+          arenaSummary.appendChild(createMetaRow(
+            "Aggregate Diff",
+            formatNumber(scoreSummary.composite_score_difference_total || 0)
+          ));
+          arenaSummary.appendChild(createMetaRow(
+            "Average Diff",
+            formatNumber(scoreSummary.composite_score_difference_average || 0)
+          ));
+          arenaSummary.appendChild(createMetaRow("Leader", winnerSummary.label));
+          arenaSummary.appendChild(createMetaRow(
+            "Wins By Scenario",
+            summarizeScenarioLeads(scenarios, baselineIdentity, candidateIdentity)
+          ));
+
+          arenaContext.appendChild(createMetaRow("Replay Context", "Shared-run replay available"));
+          arenaContext.appendChild(createMetaRow("Replay Runs", String(comparison.replay_run_count || 0)));
+          arenaContext.appendChild(createMetaRow("Replay File", String(comparison.replay_drilldown_path || "")));
+          arenaContext.appendChild(createMetaRow("Inspect", "Use scenario-level Inspect Replay to focus the existing replay inspector."));
+
+          if (scenarios.length === 0) {
+            arenaEmpty.textContent = "This shared-run comparison artifact does not expose enough replay detail for an arena table.";
+            return;
+          }
+
+          scenarios.forEach(function (scenario) {
+            var leader = deriveWinnerSummary(
+              scenario.difference,
+              baselineIdentity,
+              candidateIdentity
+            );
+            var row = document.createElement("tr");
+            var inspectButton = document.createElement("button");
+            inspectButton.type = "button";
+            inspectButton.className = "button secondary";
+            inspectButton.textContent = "Inspect Replay";
+            inspectButton.addEventListener("click", function () {
+              focusReplayRun(comparison.manifest_path, scenario.inspectRunId);
+            });
+
+            var inspectCell = document.createElement("td");
+            inspectCell.appendChild(inspectButton);
+            inspectCell.appendChild(document.createElement("br"));
+            var pointer = document.createElement("span");
+            pointer.className = "muted";
+            pointer.textContent = scenario.inspectPointer;
+            inspectCell.appendChild(pointer);
+
+            row.innerHTML =
+              "<td><strong>" + escapeHtml(scenario.scenarioId) + "</strong></td>" +
+              "<td>" + escapeHtml(formatNumberOrDash(scenario.baselineScore)) + "</td>" +
+              "<td>" + escapeHtml(formatNumberOrDash(scenario.candidateScore)) + "</td>" +
+              "<td>" + escapeHtml(formatNumberOrDash(scenario.difference)) + "</td>" +
+              "<td>" + escapeHtml(leader.label) + "</td>" +
+              "<td><code>" + escapeHtml(scenario.eventTypes.join(", ")) + "</code></td>";
+            row.appendChild(inspectCell);
+            arenaBody.appendChild(row);
+          });
+        }
+
+        function renderComparison(comparison) {
+          clearNode(comparisonIdentity);
+          clearNode(comparisonSummary);
+          clearNode(comparisonContext);
+          clearNode(comparisonBody);
+
+          if (!comparison) {
+            comparisonEmpty.textContent = "No comparison artifact is available in the loaded export.";
+            return;
+          }
+
+          comparisonEmpty.textContent = "";
+          var identities = getComparisonIdentities(comparison);
+          var baselineIdentity = identities.baseline;
+          var candidateIdentity = identities.candidate;
+          var historyEntry = findHistoryEntry(comparison.manifest_path);
+          var scoreSummary = historyEntry && historyEntry.score_summary ? historyEntry.score_summary : {};
+          var scenarios = buildScenarioComparisonRows(comparison, baselineIdentity, candidateIdentity);
+
+          comparisonIdentity.appendChild(createMetaRow("Suite", String(comparison.suite_id || "")));
+          comparisonIdentity.appendChild(createMetaRow("Benchmark", String(comparison.benchmark_id || "")));
+          comparisonIdentity.appendChild(createMetaRow("Baseline", baselineIdentity));
+          comparisonIdentity.appendChild(createMetaRow("Candidate", candidateIdentity));
+          comparisonIdentity.appendChild(createMetaRow("Scenarios", String((comparison.scenario_ids || []).length)));
+
+          comparisonSummary.appendChild(createMetaRow(
+            "Total Diff",
+            formatNumber(scoreSummary.composite_score_difference_total || 0)
+          ));
+          comparisonSummary.appendChild(createMetaRow(
+            "Avg Diff",
+            formatNumber(scoreSummary.composite_score_difference_average || 0)
+          ));
+          comparisonSummary.appendChild(createMetaRow(
+            "Baseline Total",
+            formatNumber(scoreSummary.baseline_composite_score_total || 0)
+          ));
+          comparisonSummary.appendChild(createMetaRow(
+            "Candidate Total",
+            formatNumber(scoreSummary.candidate_composite_score_total || 0)
+          ));
+          comparisonSummary.appendChild(createMetaRow(
+            "Leader",
+            deriveWinnerSummary(
+              scoreSummary.composite_score_difference_total,
+              baselineIdentity,
+              candidateIdentity
+            ).label
+          ));
+
+          comparisonContext.appendChild(createMetaRow("Replay Runs", String(comparison.replay_run_count || 0)));
+          comparisonContext.appendChild(createMetaRow(
+            "Replay File",
+            String(comparison.replay_drilldown_path || "")
+          ));
+          comparisonContext.appendChild(createMetaRow(
+            "Context",
+            hasSharedRunContext(comparison) ? "Shared-run replay available" : "Paired baseline/candidate runs"
+          ));
+
+          if (scenarios.length === 0) {
+            comparisonEmpty.textContent = "This comparison artifact does not expose enough replay detail for a scenario table.";
+            return;
+          }
+
+          scenarios.forEach(function (scenario) {
+            var row = document.createElement("tr");
+            var inspectButton = document.createElement("button");
+            inspectButton.type = "button";
+            inspectButton.className = "button secondary";
+            inspectButton.textContent = "Inspect Replay";
+            inspectButton.addEventListener("click", function () {
+              focusReplayRun(comparison.manifest_path, scenario.inspectRunId);
+            });
+
+            var inspectCell = document.createElement("td");
+            inspectCell.appendChild(inspectButton);
+            inspectCell.appendChild(document.createElement("br"));
+            var pointer = document.createElement("span");
+            pointer.className = "muted";
+            pointer.textContent = scenario.inspectPointer;
+            inspectCell.appendChild(pointer);
+
+            row.innerHTML =
+              "<td><strong>" + escapeHtml(scenario.scenarioId) + "</strong></td>" +
+              "<td>" + escapeHtml(formatNumberOrDash(scenario.baselineScore)) + "</td>" +
+              "<td>" + escapeHtml(formatNumberOrDash(scenario.candidateScore)) + "</td>" +
+              "<td>" + escapeHtml(formatNumberOrDash(scenario.difference)) + "</td>" +
+              "<td><code>" + escapeHtml(scenario.eventTypes.join(", ")) + "</code></td>";
+            row.appendChild(inspectCell);
+            comparisonBody.appendChild(row);
+          });
+        }
+
+        function getComparisonIdentities(comparison) {
+          return {
+            baseline:
+              comparison.baseline_external_agent_label ||
+              comparison.baseline_external_agent_profile_id ||
+              (comparison.actor_ids || [])[0] ||
+              "unknown-baseline",
+            candidate:
+              comparison.candidate_external_agent_label ||
+              comparison.external_agent_label ||
+              comparison.candidate_external_agent_profile_id ||
+              (comparison.actor_ids || [])[1] ||
+              "unknown-candidate"
+          };
+        }
+
+        function buildComparisonIdentityLabel(comparison) {
+          var identities = getComparisonIdentities(comparison);
+          return identities.baseline + " vs " + identities.candidate + " | " + String(comparison.suite_id || "");
+        }
+
+        function buildProfileIdentitySummary(comparison) {
+          var parts = [];
+          if (comparison.baseline_external_agent_profile_id) {
+            parts.push("baseline profile: " + comparison.baseline_external_agent_profile_id);
+          }
+          if (comparison.candidate_external_agent_profile_id) {
+            parts.push("candidate profile: " + comparison.candidate_external_agent_profile_id);
+          }
+          if (parts.length === 0 && comparison.external_agent_profile_id) {
+            parts.push("external profile: " + comparison.external_agent_profile_id);
+          }
+          return parts.length > 0 ? parts.join(" | ") : "none";
+        }
+
+        function deriveWinnerSummary(difference, baselineIdentity, candidateIdentity) {
+          if (typeof difference !== "number") {
+            return { label: "n/a" };
+          }
+          if (difference > 0) {
+            return { label: candidateIdentity + " leads" };
+          }
+          if (difference < 0) {
+            return { label: baselineIdentity + " leads" };
+          }
+          return { label: "tied" };
+        }
+
+        function summarizeScenarioLeads(scenarios, baselineIdentity, candidateIdentity) {
+          var baselineWins = 0;
+          var candidateWins = 0;
+          var ties = 0;
+
+          scenarios.forEach(function (scenario) {
+            if (typeof scenario.difference !== "number") {
+              return;
+            }
+            if (scenario.difference > 0) {
+              candidateWins += 1;
+            } else if (scenario.difference < 0) {
+              baselineWins += 1;
+            } else {
+              ties += 1;
+            }
+          });
+
+          return (
+            baselineIdentity + ": " + baselineWins +
+            " | " + candidateIdentity + ": " + candidateWins +
+            " | ties: " + ties
+          );
+        }
+
+        function findHistoryEntry(manifestPath) {
+          if (!currentDisplayPayload || !Array.isArray(currentDisplayPayload.history)) {
+            return null;
+          }
+          for (var index = 0; index < currentDisplayPayload.history.length; index += 1) {
+            if (currentDisplayPayload.history[index].manifest_path === manifestPath) {
+              return currentDisplayPayload.history[index];
+            }
+          }
+          return null;
+        }
+
+        function hasSharedRunContext(comparison) {
+          return (comparison.runs || []).some(function (run) {
+            return run.source === "shared";
+          });
+        }
+
+        function buildScenarioComparisonRows(comparison, baselineIdentity, candidateIdentity) {
+          var byScenario = {};
+          (comparison.runs || []).forEach(function (run) {
+            var scenarioId = run.scenario_id || "unknown-scenario";
+            if (!byScenario[scenarioId]) {
+              byScenario[scenarioId] = {
+                scenarioId: scenarioId,
+                baselineScore: null,
+                candidateScore: null,
+                difference: null,
+                eventTypes: [],
+                inspectRunId: run.run_id,
+                inspectPointer: run.source + " | " + run.run_id
+              };
+            }
+
+            byScenario[scenarioId].eventTypes = uniqueSorted(
+              byScenario[scenarioId].eventTypes.concat(run.event_types || [])
+            );
+
+            if (run.source === "shared") {
+              byScenario[scenarioId].baselineScore = findActorScore(run, baselineIdentity, true);
+              byScenario[scenarioId].candidateScore = findCandidateScoreForSharedRun(run, baselineIdentity, candidateIdentity);
+              byScenario[scenarioId].inspectRunId = run.run_id;
+              byScenario[scenarioId].inspectPointer = "shared | " + run.run_id;
+            } else if (run.source === "baseline") {
+              byScenario[scenarioId].baselineScore = findActorScore(run, baselineIdentity, true);
+              if (!String(byScenario[scenarioId].inspectPointer).startsWith("shared")) {
+                byScenario[scenarioId].inspectRunId = run.run_id;
+                byScenario[scenarioId].inspectPointer = "baseline | " + run.run_id;
+              }
+            } else if (run.source === "candidate") {
+              byScenario[scenarioId].candidateScore = findCandidateScoreForPairedRun(run, baselineIdentity);
+              if (!String(byScenario[scenarioId].inspectPointer).startsWith("shared") && !String(byScenario[scenarioId].inspectPointer).startsWith("baseline")) {
+                byScenario[scenarioId].inspectRunId = run.run_id;
+                byScenario[scenarioId].inspectPointer = "candidate | " + run.run_id;
+              }
+            }
+
+            if (typeof byScenario[scenarioId].baselineScore === "number" && typeof byScenario[scenarioId].candidateScore === "number") {
+              byScenario[scenarioId].difference = byScenario[scenarioId].candidateScore - byScenario[scenarioId].baselineScore;
+            }
+          });
+
+          return Object.keys(byScenario).sort().map(function (key) {
+            return byScenario[key];
+          });
+        }
+
+        function findActorScore(run, preferredActorId, useFallback) {
+          var actors = run && run.score_summary && Array.isArray(run.score_summary.actors)
+            ? run.score_summary.actors
+            : [];
+          for (var index = 0; index < actors.length; index += 1) {
+            if (actors[index].actor_id === preferredActorId) {
+              return Number(actors[index].composite_score);
+            }
+          }
+          if (useFallback && actors.length > 0) {
+            return Number(actors[0].composite_score);
+          }
+          return null;
+        }
+
+        function findCandidateScoreForSharedRun(run, baselineIdentity, candidateIdentity) {
+          var actors = run && run.score_summary && Array.isArray(run.score_summary.actors)
+            ? run.score_summary.actors
+            : [];
+          for (var index = 0; index < actors.length; index += 1) {
+            if (actors[index].actor_id === candidateIdentity) {
+              return Number(actors[index].composite_score);
+            }
+          }
+          for (var secondIndex = 0; secondIndex < actors.length; secondIndex += 1) {
+            if (actors[secondIndex].actor_id !== baselineIdentity) {
+              return Number(actors[secondIndex].composite_score);
+            }
+          }
+          return actors.length > 1 ? Number(actors[1].composite_score) : null;
+        }
+
+        function findCandidateScoreForPairedRun(run, baselineIdentity) {
+          var actors = run && run.score_summary && Array.isArray(run.score_summary.actors)
+            ? run.score_summary.actors
+            : [];
+          for (var index = 0; index < actors.length; index += 1) {
+            if (actors[index].actor_id === baselineIdentity) {
+              return Number(actors[index].composite_score);
+            }
+          }
+          return actors.length > 0 ? Number(actors[0].composite_score) : null;
+        }
+
+        function uniqueSorted(values) {
+          var seen = {};
+          values.forEach(function (value) {
+            seen[String(value)] = true;
+          });
+          return Object.keys(seen).sort();
+        }
+
+        function formatNumberOrDash(value) {
+          if (typeof value === "number") {
+            return formatNumber(value);
+          }
+          return "n/a";
+        }
+
+        function focusReplayRun(manifestPath, runId) {
+          if (!currentDisplayPayload || !Array.isArray(currentDisplayPayload.replay_drilldowns)) {
+            return;
+          }
+
+          for (var drilldownIndex = 0; drilldownIndex < currentDisplayPayload.replay_drilldowns.length; drilldownIndex += 1) {
+            var drilldown = currentDisplayPayload.replay_drilldowns[drilldownIndex];
+            if (drilldown.manifest_path !== manifestPath) {
+              continue;
+            }
+            drilldownSelect.value = String(drilldownIndex);
+            renderSelectedReplay();
+            for (var runIndex = 0; runIndex < (drilldown.runs || []).length; runIndex += 1) {
+              if (drilldown.runs[runIndex].run_id === runId) {
+                runSelect.value = String(runIndex);
+                break;
+              }
+            }
+            renderSelectedRun();
+            setStatus("Focused replay inspector on " + runId + ".", false);
+            return;
+          }
+        }
+
+        function render(payload) {
+          var validated = validateViewmodel(payload);
+          currentPayload = validated.payload;
+          renderShardExportSummary(validated.kind === "shard_export" ? validated.payload : null);
+          toggleBenchmarkPanels(validated.kind === "reports_export");
+          if (validated.kind === "shard_export") {
+            currentDisplayPayload = null;
+            dashboard.classList.remove("hidden");
+            setStatus("Loaded shard export payload successfully.", false);
+            return;
+          }
+          populateFilterControls(validated.payload);
+          actorFilter.value = "";
+          labelFilter.value = "";
+          profileFilter.value = "";
+          comparisonModeFilter.value = "all";
+          renderFilteredView();
+          dashboard.classList.remove("hidden");
+          setStatus("Loaded export viewmodel successfully.", false);
+        }
+
+        function renderFilteredView() {
+          if (!currentPayload) {
+            return;
+          }
+          var filters = getSelectedFilters();
+          var filteredPayload = buildFilteredPayload(currentPayload, filters);
+          currentDisplayPayload = filteredPayload;
+          coverageSummary.textContent =
+            filteredPayload.artifact_count + " artifact(s), " +
+            filteredPayload.coverage.scenario_ids.length + " scenario(s), " +
+            filteredPayload.coverage.actor_ids.length + " actor label(s), " +
+            filteredPayload.replay_drilldowns.length + " replay drilldown artifact(s)";
+          artifactSummary.textContent =
+            "Derived from saved manifest/report/replay sidecars. No benchmark re-execution occurs here.";
+          filterSummary.textContent = summarizeFilters(filters);
+          appendPills(scenarioCoverage, filteredPayload.coverage.scenario_ids, "No scenarios recorded");
+          appendPills(actorCoverage, filteredPayload.coverage.actor_ids, "No actors recorded");
+          appendPills(externalCoverage, filteredPayload.coverage.external_agent_labels, "No external labels recorded");
+          renderArtifacts(filteredPayload.artifacts);
+          renderLeaderboard(filteredPayload.leaderboard);
+          renderIdentityRollups(
+            filteredPayload.identity_rollups,
+            Array.isArray(currentPayload.identity_rollups)
+          );
+          renderHistory(filteredPayload.history);
+          populateArenaSelectors(filteredPayload);
+          populateComparisonSelectors(filteredPayload);
+          populateReplaySelectors(filteredPayload);
+        }
+
+        function loadFromText() {
+          try {
+            var payload = JSON.parse(jsonInput.value);
+            render(payload);
+          } catch (error) {
+            dashboard.classList.add("hidden");
+            setStatus(error.message || "Failed to load export JSON.", true);
+          }
+        }
+
+        fileInput.addEventListener("change", function () {
+          var file = fileInput.files && fileInput.files[0];
+          if (!file) {
+            return;
+          }
+          var reader = new FileReader();
+          reader.onload = function (event) {
+            jsonInput.value = String(event.target && event.target.result || "");
+            loadFromText();
+          };
+          reader.onerror = function () {
+            dashboard.classList.add("hidden");
+            setStatus("Failed to read the selected file.", true);
+          };
+          reader.readAsText(file, "utf-8");
+        });
+
+        loadTextButton.addEventListener("click", loadFromText);
+        resetFiltersButton.addEventListener("click", function () {
+          actorFilter.value = "";
+          labelFilter.value = "";
+          profileFilter.value = "";
+          comparisonModeFilter.value = "all";
+          renderFilteredView();
+        });
+        clearButton.addEventListener("click", function () {
+          fileInput.value = "";
+          jsonInput.value = "";
+          currentPayload = null;
+          currentDisplayPayload = null;
+          dashboard.classList.add("hidden");
+          toggleBenchmarkPanels(true);
+          clearNode(shardMeta);
+          clearNode(shardCounts);
+          clearNode(shardLifecycle);
+          clearNode(shardGenerations);
+          clearNode(shardIdentities);
+          clearNode(actorFilter);
+          clearNode(labelFilter);
+          clearNode(profileFilter);
+          clearNode(comparisonModeFilter);
+          clearNode(scenarioCoverage);
+          clearNode(actorCoverage);
+          clearNode(externalCoverage);
+          clearNode(artifactList);
+          clearNode(leaderboardBody);
+          clearNode(rollupBody);
+          clearNode(historyBody);
+          clearNode(arenaSelect);
+          clearNode(arenaIdentity);
+          clearNode(arenaSummary);
+          clearNode(arenaContext);
+          clearNode(arenaBody);
+          clearNode(comparisonSelect);
+          clearNode(comparisonIdentity);
+          clearNode(comparisonSummary);
+          clearNode(comparisonContext);
+          clearNode(comparisonBody);
+          clearNode(drilldownSelect);
+          clearNode(runSelect);
+          clearNode(runIdentity);
+          clearNode(runFinalState);
+          clearNode(runScoreSummary);
+          clearNode(runEventTypes);
+          clearNode(eventBody);
+          arenaEmpty.textContent = "";
+          comparisonEmpty.textContent = "";
+          shardEmpty.textContent = "";
+          filterSummary.textContent = "";
+          rollupEmpty.textContent = "";
+          coverageSummary.textContent = "";
+          artifactSummary.textContent = "";
+          runFinalStateJson.textContent = "";
+          runScoreJson.textContent = "";
+          setStatus("Choose an export JSON file or paste JSON to begin.", false);
+        });
+      }());
+    </script>
+  </body>
+</html>

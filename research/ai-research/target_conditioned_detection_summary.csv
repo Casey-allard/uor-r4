@@ -1,0 +1,9 @@
+name,n,is_prime,smallest_prime_factor,first_detection_by_filter_chain,undetected_through_23
+prime_887,887,True,887,,True
+semiprime_29x31,899,False,29,,True
+prime_1009,1009,True,1009,,True
+semiprime_1009x1013,1022117,False,1009,,True
+composite_17x101,1717,False,17,17.0,False
+composite_19x101,1919,False,19,19.0,False
+composite_23x101,2323,False,23,23.0,False
+prime_1000003,1000003,True,1000003,,True

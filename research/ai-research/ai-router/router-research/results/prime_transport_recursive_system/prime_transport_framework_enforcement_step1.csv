@@ -1,0 +1,10 @@
+scope,metric,count,total,fraction,note
+state,native_spin_h_present,256,256,1.0,explicit_native_truncated_spin_h_h=4
+pair,gate_inputs_computable,3072,3072,1.0,"radial,fiber,spin_h,composite_compat all computable"
+pair,scaffold_gate_pass,228,3072,0.07421875,direct comparison rule only; no lawful lifts implemented
+selected_transport,scaffold_gate_pass,88,512,0.171875,selected side-transports whose target class tuple matches source exactly
+pair_fail,radial_class_mismatch,1512,3072,0.4921875,candidate radial_class != source radial_class
+pair_fail,fiber_class_mismatch,2124,3072,0.69140625,candidate fiber_class != source fiber_class
+pair_fail,spin_class_mismatch,768,3072,0.25,candidate spin_h != source spin_h
+pair_fail,composite_compat_class_mismatch,1695,3072,0.5517578125,candidate composite compatibility class != source
+pair_fail,incomplete_gate_input,0,3072,0.0,gate could not compute full inputs

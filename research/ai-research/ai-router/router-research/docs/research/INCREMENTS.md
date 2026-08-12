@@ -1,0 +1,225 @@
+# Mathematical Research Increments
+
+Each increment is hypothesis-driven and result-gated.
+
+## Process
+1. Define hypothesis tied to geometric routing mechanism.
+2. Run stage policy: screen -> confirm -> finalize.
+3. Record evidence paths and quantitative outcomes.
+4. Make an explicit keep/kill/refine decision.
+5. Queue the next increment from unresolved uncertainty.
+
+## Increments
+- `INC_0001_phase4d_validation.md`
+- `INC_0002_phase4d_dims_fast.md`
+- `INC_0003_r0_vs_r5b_non_fast.md`
+- `INC_0004_r0_vs_r5b_finalize4.md`
+- `INC_0005_timepressure_r5b.md`
+- `INC_0006_r5b_robustness_large_n.md`
+- `INC_0007_r5b_lm_proxy_smoke.md`
+- `INC_0008_proxy_transfer_multiseed.md`
+- `INC_0009_fixed_phase4d_stabilization.md`
+- `INC_0010_adaptive_phase4d_transfer.md`
+- `INC_0011_shell_activation.md`
+- `INC_0012_convergence_control.md`
+- `INC_0013_phase_diagram.md`
+- `INC_0014_strict_robustness.md`
+- `INC_0015_ridge_discrimination.md`
+- `INC_0016_delta_confirm.md`
+- `INC_0017_phi_ratio_controller.md`
+- `INC_0018_phi_delta_retune.md`
+- `INC_0019_hybrid_local_zoom.md`
+- `INC_0020_hybrid_local_rescue.md`
+- `INC_0021_phi_ladder_screen.md`
+- `INC_0022_phi_phi_phi_shells.md`
+- `INC_0023_phi3_budget_compression.md`
+- `INC_0024_phase_coupled_shells.md`
+- `INC_0025_phase_gated_shells.md`
+- `INC_0026_h4_hopf_geodesic.md`
+- `INC_0027_chart_cost_decomposition.md`
+- `INC_0028_hopf_chi_axis.md`
+- `INC_0029_phi_fibonacci_lattice.md`
+- `INC_0030_hopf_confirm.md`
+- `INC_0031_phi2_rung_forcing.md`
+- `INC_0032_phi2_gated_widening.md`
+- `INC_0033_phi2_band_lattice.md`
+- `INC_0034_blended_hopf_capacity.md`
+- `INC_0035_poincare_global_alignment.md`
+- `INC_0036_chart_isometry_route.md`
+- `INC_0037_isometric_band_route.md`
+- `INC_0038_bounded_isometry_band_route.md`
+- `INC_0039_route_memory_separation.md`
+- `INC_0040_hopf_cost_decomposition.md`
+- `INC_0041_cost_frontier_large_subset.md`
+- `INC_0042_large_subset_ema_pressure.md`
+- `INC_0048_integration_translation.md`
+- `INC_0049_retrieval_cost_rescue.md`
+- `INC_0051_retrieval_amortization.md`
+- `INC_0052_retrieval_amortization_confirm.md`
+- `INC_0050_dynamic_h4_state.md`
+- `INC_0054_tangent_flow_route_law.md`
+- `INC_0055_product_h4x4_retrieval_field.md`
+- `INC_0056_product_complex_translation.md`
+- `INC_0057_product_complex_backfill.md`
+- `INC_0058_product_complex_rerank.md`
+- `INC_0059_h4x4_polar_flow.md`
+
+## Controls
+- `CTRL_0001_seedmajor_lead.md`
+- `CTRL_0002_phi3_vs_r0_fairness.md`
+- `CTRL_0003_hopf_frontier_confirm.md`
+
+## Active Leads
+- Synthetic lead:
+  - `R5B`
+  - `phase4d`
+  - `phase4_dims=0,2,4,6`
+  - `time_pressure_lambda=0.0`
+- Transfer frontier:
+  - control baseline:
+  - `R0`
+  - still shell-collapsed and health-failing on strict confirm
+  - current routed quality lead:
+  - `HOPF_K25_BASE_IT60_P4`
+  - `phase4d_hopf`
+  - reduced-schedule pure Hopf quality candidate under larger subset
+  - best MSE among the large-subset routes, but no longer a runtime winner
+  - current widened routed-family comparator:
+  - `PHASE_K25_C035`
+  - `phase4d_adaptive`
+  - `adaptive_converge_mode=phi_ladder`
+  - `shell_mode=phi_phase`
+  - `shell_phase_coupling=0.35`
+  - `delta_r=3.6`
+  - wider and faster than Hopf in confirm, but lower quality
+  - coarse family reference:
+  - `PHI_PHI_PHI v1`
+  - normalized artifact label: `PHI3_K25_D36_L065`
+  - historical artifact label: `PHILOG_D36_L065`
+  - compression comparator:
+  - `PHI3_K20_D36_L065`
+  - won screen, lost 4-seed confirm to `K25`
+  - historical continuous-phi comparator:
+  - `PHI_D32_L120`
+  - current operational routed lead:
+  - `HOPF_K25_BASE_IT40_P2_STATIC`
+  - `phase4d_hopf`
+  - `train_route_mode=final_static`
+  - best-quality routed winner over `R0` at near-full-proxy scale
+  - current hardware-efficiency routed lead:
+  - `HOPF_PHI2_BAND_IT40_P2_STATIC`
+  - `phase4d_hopf_fib_band`
+  - `train_route_mode=final_static`
+  - fastest routed branch while still beating `R0` at near-full-proxy scale
+  - current dynamic routed quality reference:
+  - `HOPF_K25_BASE_IT60_P4`
+  - dynamic reference retained as the pre-static comparison point
+  - healthiest hybrid local-quality branch:
+  - `HYB4_M2_T010_C005`
+  - fixed-controller comparator:
+  - `D30_FIXED_SG16`
+
+## Next Queued Research
+- `INC-0029`: phi/Fibonacci lattice pilot
+  - first screen completed
+  - first allocator law collapsed back to Hopf and needs a recurrence-constrained rewrite
+- `INC-0030`: pure Hopf confirm
+  - completed
+  - confirmed `HOPF_K25_BASE` as routed-quality lead, not runtime lead
+- `INC-0031`: phi^2 rung forcing
+  - completed
+  - widened Hopf cleanly, but cost regressed too sharply for promotion
+- `INC-0032`: sparse / gated phi^2 widening
+  - completed
+  - threshold gating reduced cost modestly, but failed operationally
+- `INC-0033`: banded phi^2 lattice
+  - completed
+  - shared-state banding rescued cost materially, but still missed the operational gate
+- `INC-0034`: blended Hopf-capacity law
+  - completed
+  - widened Hopf, but failed to beat pure Hopf or recover the runtime story
+- `INC-0035`: Poincare-global alignment
+  - completed at Slice A/B diagnostic level
+  - alignment metric is now part of the experiment contract
+  - shell-anchor pilot failed as a primary fix
+- `INC-0036`: chart-isometry routing pilot
+  - completed
+  - pure isometric routing preserved geometry exactly, but stayed too compressed and too slow
+- `INC-0037`: isometric-band routing
+  - completed
+  - proved exact alignment and widening can coexist, but runtime regressed too far
+- `INC-0038`: bounded-isometry band routing
+  - completed
+  - proved the alignment/runtime interpolation is real
+  - no bounded point passed the operational gate
+- `INC-0039`: route/memory coordinate separation
+  - completed
+  - improved geometry, but did not recover enough runtime
+- `CTRL-0003`: Hopf frontier confirm
+  - completed
+  - `HOPF_K25_BASE` is the only routed strict-gate survivor
+  - `HOPF_PHI2_BAND` remains alive as the widened-quality candidate, but misses the runtime bar
+- `INC-0040`: Hopf cost decomposition
+  - completed
+  - reduced chart schedule rescued runtime without breaking route health
+- `INC-0041`: cost frontier large-subset confirm
+  - completed
+  - reduced-schedule frontier kept quality, but lost the runtime win under larger load
+- `INC-0042`: large-subset EMA pressure
+  - completed
+  - proved the large-subset EMA bottleneck was almost entirely per-step training rerouting
+- `INC-0043`: static training-route reuse
+  - completed
+  - restored a routed quality/runtime win over `R0` on 4-seed larger-subset confirm
+- `INC-0044`: static-frontier chart pressure
+  - completed
+  - found `HOPF_PHI2_BAND_IT48_P3_STATIC` as the best cheap-schedule strict-gate branch
+- `INC-0045`: static routed chart floor
+  - completed
+  - found `HOPF_K25_BASE_IT40_P2_STATIC` as the current operational routed lead
+- `INC-0046`: static routed scale robustness
+  - completed
+  - kept both cheap routed branches ahead of `R0` at the next larger subset step
+- `INC-0047`: near-full proxy scale
+  - completed
+  - kept both cheap routed branches ahead of `R0` near the proxy data ceiling
+- `INC-0048`: integration translation
+  - screen completed
+  - routed retrieval preserves candidate-pruning signal, but dense exact retrieval still dominates wall-clock
+- `INC-0049`: retrieval cost rescue
+  - completed
+  - vectorized same-bucket retrieval and timing decomposition proved routed online retrieval is now faster than dense exact retrieval
+  - single-batch total still loses because offline chart/index build dominates
+- `INC-0051`: retrieval amortization
+  - completed
+  - plain Hopf crossed dense on amortized per-repeat cost at `Q24`
+  - widened Hopf did not
+- `INC-0052`: retrieval amortization confirm
+  - completed
+  - the narrow `Q24/Q32` crossover did not survive 4 seeds
+- `INC-0050`: dynamic `H^4` state
+  - Slice A completed
+  - `TXH4_W050` beat static `H^4` on proxy MSE and runtime
+  - `H4XH4_W025` stayed alive by improving top-1 more strongly than static `H^4`
+- `INC-0054`: tangent-flow route law
+  - queued
+  - primary next branch after `INC-0050` Slice A confirm
+- `INC-0055`: product `H^4 x H^4` retrieval field
+  - queued
+  - secondary next branch after `INC-0050` Slice A confirm
+- `INC-0056`: product complex translation
+  - completed
+  - translated the product complex route-key law into the routed retrieval harness
+- `INC-0057`: product complex backfill
+  - completed
+  - killed coarse backfill as the preferred translated recall-repair path
+- `INC-0058`: product complex exact-bucket rerank
+  - completed
+  - simple reranking kept candidate fraction fixed, but did not rescue quality cleanly enough
+- `INC-0059`: coupled `H^4 x H^4` polar flow
+  - queued
+  - next dynamic branch because both candidate expansion and local reranking have now failed as translated repair strategies
+- `INC-0025`: sparse / quantized phase-gated shell pilot
+  - secondary fallback only if the deeper `H4` / `chi` route still fails or if a cheaper local correction becomes preferable
+- `INC-0027`: chart-cost decomposition
+  - superseded by `INC-0040`, which is now using real confirm-stage timing evidence instead of speculation

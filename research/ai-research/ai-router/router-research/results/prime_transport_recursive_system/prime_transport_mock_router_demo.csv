@@ -1,0 +1,4 @@
+state,initial_mode,updated_mode,route_key,score_hint,unresolved_fraction,should_promote,promoted_mode
+R_static,R_static,R_static,"static:b=8:phi=(1, 0):r=2",0.25,0.0,0,
+R_min,R_min,R_min,"min:b=9:phi=(2, 2):r=2:gap=2",0.75,0.30966370637028995,1,R_full
+R_full,R_full,R_full,"full:b=10:spin=(0, 1, 1, 0, 1)",1.0,0.0,0,

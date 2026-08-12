@@ -1,0 +1,39 @@
+% Shared preamble for the three-paper split.
+% Keep this file free of \documentclass and \begin{document}.
+% Do NOT mention proof assistants anywhere in the split papers.
+
+\usepackage[margin=1in]{geometry}
+\usepackage{booktabs}
+\usepackage{float}
+\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[utf8]{inputenc}
+\usepackage{microtype}
+\usepackage{hyperref}
+\usepackage[numbers,sort&compress]{natbib}
+\hypersetup{colorlinks=true,linkcolor=black,citecolor=black,urlcolor=black}
+
+% Theorems
+\newtheorem{theorem}{Theorem}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{hypothesis}[theorem]{Hypothesis}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+
+% Basic macros
+\newcommand{\C}{\mathbb{C}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\PP}{\mathcal{P}}
+\newcommand{\Hilb}{\mathcal H}
+\DeclareMathOperator{\dettwo}{det_2}
+
+% Stable angle-bracket convention
+\newcommand{\angles}[1]{\langle #1\rangle}
+
+

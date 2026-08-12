@@ -1,0 +1,3 @@
+# A3 m_zero Stability Sweep (eta4, sf3, global_log)
+
+| m_zero | status | A_H | C_H | valid_holds | valid_ratio_max | valid_max_gap | det_valid_holds | det_valid_max_gap | error |\n|---:|---|---:|---:|---:|---:|---:|---:|---:|---|\n| 64 | fail |  |  |  |  |  |  |  | ValueError: no held-out-valid envelope candidate found |\n| 128 | ok | 1.2 | 2.60722567538 | True | 0.945541199909 | -3.78542946895 | True | -3.57281370001 |  |\n| 192 | ok | 1.3 | 2.47771069557 | True | 0.900991754585 | -8.59830404552 | True | -6.61256500197 |  |\n| 256 | ok | 1.3 | 2.5190006937 | True | 0.861998944188 | -12.1843266817 | True | -8.87212122624 |  |\n| 512 | ok | 1.2 | 3.47471643488 | True | 0.889425146287 | -10.2426045052 | True | -5.22026632972 |  |\n

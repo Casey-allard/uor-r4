@@ -1,0 +1,17 @@
+delay,d_hidden,batch_size,device,route_entropy,transport_usage_fraction,attention_alpha0,runtime_seconds,steps_per_second,cpu_utilization_note,verdict,note,metric_name,metric_value
+16,32,256,cpu,1.574,0.3216,0.5852,72.54,564617.0,single_core_clean,solved,"D_H=32,D_H_attn=8,budget=10000,B=256,1thread,v6_step0_inject",accuracy,1.0
+16,32,256,cpu,1.574,0.3216,0.5852,72.54,564617.0,single_core_clean,solved,"D_H=32,D_H_attn=8,budget=10000,B=256,1thread,v6_step0_inject",route_entropy,1.574
+16,32,256,cpu,1.574,0.3216,0.5852,72.54,564617.0,single_core_clean,solved,"D_H=32,D_H_attn=8,budget=10000,B=256,1thread,v6_step0_inject",transport_fraction,0.3216
+16,32,256,cpu,1.574,0.3216,0.5852,72.54,564617.0,single_core_clean,solved,"D_H=32,D_H_attn=8,budget=10000,B=256,1thread,v6_step0_inject",attention_alpha0,0.5852
+24,48,256,cpu,1.6677,0.1621,0.0419,125.19,490772.0,single_core_larger_matmuls_multi_thread_borderline,learning_not_solved,"D_H=48,D_H_attn=12,budget=10000,B=256,1thread,v6_step0_inject",accuracy,0.668
+24,48,256,cpu,1.6677,0.1621,0.0419,125.19,490772.0,single_core_larger_matmuls_multi_thread_borderline,learning_not_solved,"D_H=48,D_H_attn=12,budget=10000,B=256,1thread,v6_step0_inject",route_entropy,1.6677
+24,48,256,cpu,1.6677,0.1621,0.0419,125.19,490772.0,single_core_larger_matmuls_multi_thread_borderline,learning_not_solved,"D_H=48,D_H_attn=12,budget=10000,B=256,1thread,v6_step0_inject",transport_fraction,0.1621
+24,48,256,cpu,1.6677,0.1621,0.0419,125.19,490772.0,single_core_larger_matmuls_multi_thread_borderline,learning_not_solved,"D_H=48,D_H_attn=12,budget=10000,B=256,1thread,v6_step0_inject",attention_alpha0,0.0419
+32,64,256,cpu,1.704,0.9346,0.0312,170.79,479641.0,single_core_larger_matmuls_multi_thread_borderline,learning_not_solved,"D_H=64,D_H_attn=16,budget=10000,B=256,1thread,v6_step0_inject",accuracy,0.378
+32,64,256,cpu,1.704,0.9346,0.0312,170.79,479641.0,single_core_larger_matmuls_multi_thread_borderline,learning_not_solved,"D_H=64,D_H_attn=16,budget=10000,B=256,1thread,v6_step0_inject",route_entropy,1.704
+32,64,256,cpu,1.704,0.9346,0.0312,170.79,479641.0,single_core_larger_matmuls_multi_thread_borderline,learning_not_solved,"D_H=64,D_H_attn=16,budget=10000,B=256,1thread,v6_step0_inject",transport_fraction,0.9346
+32,64,256,cpu,1.704,0.9346,0.0312,170.79,479641.0,single_core_larger_matmuls_multi_thread_borderline,learning_not_solved,"D_H=64,D_H_attn=16,budget=10000,B=256,1thread,v6_step0_inject",attention_alpha0,0.0312
+48,96,256,cpu,1.6738,0.6072,0.021,308.9,397804.0,single_core_larger_matmuls_multi_thread_borderline,near_chance_failed,"D_H=96,D_H_attn=24,budget=10000,B=256,1thread,v6_step0_inject",accuracy,0.297
+48,96,256,cpu,1.6738,0.6072,0.021,308.9,397804.0,single_core_larger_matmuls_multi_thread_borderline,near_chance_failed,"D_H=96,D_H_attn=24,budget=10000,B=256,1thread,v6_step0_inject",route_entropy,1.6738
+48,96,256,cpu,1.6738,0.6072,0.021,308.9,397804.0,single_core_larger_matmuls_multi_thread_borderline,near_chance_failed,"D_H=96,D_H_attn=24,budget=10000,B=256,1thread,v6_step0_inject",transport_fraction,0.6072
+48,96,256,cpu,1.6738,0.6072,0.021,308.9,397804.0,single_core_larger_matmuls_multi_thread_borderline,near_chance_failed,"D_H=96,D_H_attn=24,budget=10000,B=256,1thread,v6_step0_inject",attention_alpha0,0.021

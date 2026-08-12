@@ -1,0 +1,168 @@
+{
+  "D_invariance": "yes",
+  "D_min_stats": {
+    "min": 0,
+    "max": 0,
+    "mean": 0.0,
+    "std": 0.0,
+    "per_class": {
+      "0": 0,
+      "1": 0,
+      "2": 0,
+      "3": 0
+    },
+    "note": "D_min=0 means H3 is already present in the initial geometric state. No trajectory steps are required for class extraction."
+  },
+  "scaling_law": {
+    "form": "D_min = constant = 0",
+    "fit_error": 0.0,
+    "r_squared": 1.0,
+    "interpretation": "H3 is preserved at D=0 (initial state contains the class invariant). D_min does not scale with cycle_length, n_harmonics, log(pool_size), or any other input complexity metric. All adaptive D formulas achieve identical accuracy (1.0) because the invariant is never degraded by transport steps.",
+    "what_D_controls": "D controls trajectory diversity (h1 phase coverage) and runtime cost only. For D>=1, each step updates h1 (fundamental) while preserving h2 and h3 exactly. The class readout is independent of how many steps were taken."
+  },
+  "input_complexity_metrics": {
+    "h3_energy_mean": 1.0,
+    "h3_energy_std": 0.0,
+    "h2_energy_mean": 1.0,
+    "h1_phase_circ_var": 0.816966,
+    "cycle_length": 12,
+    "n_harmonics": 3,
+    "partition_period": 4,
+    "pool_size": 4000,
+    "log_pool_size": 8.294,
+    "class_distribution": {
+      "0": 1004,
+      "1": 1032,
+      "2": 999,
+      "3": 965
+    }
+  },
+  "adaptive_D_results": {
+    "k1_x_cycle": {
+      "D": 12,
+      "acc": 1.0,
+      "h3_err": 0.0
+    },
+    "k2_x_cycle": {
+      "D": 24,
+      "acc": 1.0,
+      "h3_err": 0.0
+    },
+    "k1_x_harmonics": {
+      "D": 3,
+      "acc": 1.0,
+      "h3_err": 0.0
+    },
+    "k2_x_harmonics": {
+      "D": 6,
+      "acc": 1.0,
+      "h3_err": 0.0
+    },
+    "k1_x_log_pool": {
+      "D": 8,
+      "acc": 1.0,
+      "h3_err": 0.0
+    },
+    "k2_x_log_pool": {
+      "D": 17,
+      "acc": 1.0,
+      "h3_err": 0.0
+    },
+    "d_min_stability": {
+      "D": 1,
+      "acc": 1.0,
+      "h3_err": 0.0
+    }
+  },
+  "accuracy_vs_D": {
+    "0": 1.0,
+    "1": 1.0,
+    "2": 1.0,
+    "3": 1.0,
+    "5": 1.0,
+    "8": 1.0,
+    "10": 1.0,
+    "12": 1.0,
+    "15": 1.0,
+    "20": 1.0,
+    "24": 1.0,
+    "32": 1.0,
+    "36": 1.0,
+    "50": 1.0,
+    "64": 1.0,
+    "100": 1.0
+  },
+  "h3_error_vs_D": {
+    "0": 0.0,
+    "1": 0.0,
+    "2": 0.0,
+    "3": 0.0,
+    "5": 0.0,
+    "8": 0.0,
+    "10": 0.0,
+    "12": 0.0,
+    "15": 0.0,
+    "20": 0.0,
+    "24": 0.0,
+    "32": 0.0,
+    "36": 0.0,
+    "50": 0.0,
+    "64": 0.0,
+    "100": 0.0
+  },
+  "phase_error_vs_D": {
+    "0": 2.3e-07,
+    "1": 2.3e-07,
+    "2": 2.3e-07,
+    "3": 2.3e-07,
+    "5": 2.3e-07,
+    "8": 2.3e-07,
+    "10": 2.3e-07,
+    "12": 2.3e-07,
+    "15": 2.3e-07,
+    "20": 2.3e-07,
+    "24": 2.3e-07,
+    "32": 2.3e-07,
+    "36": 2.3e-07,
+    "50": 2.3e-07,
+    "64": 2.3e-07,
+    "100": 2.3e-07
+  },
+  "runtime_vs_D": {
+    "0": 4.7e-05,
+    "1": 0.007157,
+    "2": 0.002026,
+    "3": 0.002187,
+    "5": 0.003454,
+    "8": 0.005886,
+    "10": 0.008947,
+    "12": 0.01246,
+    "15": 0.014334,
+    "20": 0.017677,
+    "24": 0.021142,
+    "32": 0.02778,
+    "36": 0.034383,
+    "50": 0.039879,
+    "64": 0.049174,
+    "100": 0.090419
+  },
+  "per_step_runtime_vs_D": {
+    "0": 4.654e-05,
+    "1": 0.00715658,
+    "2": 0.00101304,
+    "3": 0.00072892,
+    "5": 0.00069081,
+    "8": 0.00073578,
+    "10": 0.00089471,
+    "12": 0.00103836,
+    "15": 0.00095557,
+    "20": 0.00088384,
+    "24": 0.0008809,
+    "32": 0.00086812,
+    "36": 0.00095508,
+    "50": 0.00079757,
+    "64": 0.00076835,
+    "100": 0.00090419
+  },
+  "conclusion": "D is a pure runtime knob. The H3 harmonic invariant (tau_final[:,10:12]) equals tau_init[:,10:12] to machine precision for ALL D >= 0, because apply_split_transport(eps_high=1.0) assigns zero weight to new transport values for h>=2. D_min = 0 for all input classes and complexity levels. No adaptive D formula is needed: D=1 (operationally) is sufficient. D affects only the h1 trajectory diversity and wall-clock cost, which scale linearly with D. The class is encoded in the initial geometric state and is never disturbed by subsequent transport steps."
+}

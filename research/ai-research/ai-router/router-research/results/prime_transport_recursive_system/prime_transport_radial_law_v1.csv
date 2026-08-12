@@ -1,0 +1,27 @@
+scope,metric,count,total,fraction,note
+operator,state_count,38315,38315,1.0,reachable states under fuller bounded radial law
+operator,transition_count,268205,268205,1.0,nonzero operator entries under fuller bounded radial law
+operator,lawful_transition_fraction,268205,268205,1.0,fraction of nonzero operator entries that are lawful
+operator,illegal_transition_fraction,0,268205,0.0,fraction of nonzero operator entries that are illegal
+radial_escape,distinct_radial_classes_reached,3,3,1.0,number of distinct target radial classes reached
+class_escape,distinct_class_identities_reached,29901,29901,1.0,number of distinct tau-aware target class identities reached
+spin_escape,distinct_spin_classes_reached,16,16,1.0,number of distinct target spin classes reached
+radial_escape,fraction_changing_radial_class,38315,268205,0.14285714285714285,fraction of transitions that change radial class
+spin_escape,fraction_changing_spin_class_lawfully,71716,268205,0.26739247963311646,fraction of transitions that change spin class lawfully
+tau_escape,fraction_changing_tau_lawfully,189188,268205,0.7053858056337503,fraction of transitions that change tau lawfully
+comparison_vs_old_radial,state_space_expansion_vs_T_r,38315,14032,2.7305444697833523,reachable state expansion relative to adjacent radial placeholder
+comparison_vs_old_radial,class_diversity_vs_T_r,29901,15287,1.9559756655982208,class diversity relative to adjacent radial placeholder
+comparison_vs_old_radial,spin_diversity_vs_T_r,16,16,1.0,spin diversity relative to adjacent radial placeholder
+generator_axis,T_r_star_changes_radial_class,1,1,1.0,radial_transport_unfolding changes radial class via expansion/contraction law
+generator_axis,T_r_star_changes_spin_class_lawfully,1,1,1.0,radial_transport_unfolding uses explicit recursive-unfolding spin transport
+generator_axis,T_r_star_changes_tau_lawfully,1,1,1.0,radial_transport_unfolding uses explicit recursive-unfolding tau transport
+component,hold,38315,268205,0.14285714285714285,fraction of operator entries by component
+component,torus_base_advance,38315,268205,0.14285714285714285,fraction of operator entries by component
+component,composite_swap,38315,268205,0.14285714285714285,fraction of operator entries by component
+component,coupled_torus_kick,38315,268205,0.14285714285714285,fraction of operator entries by component
+component,composite_twist,38315,268205,0.14285714285714285,fraction of operator entries by component
+component,fiber_phase_lift_spin_transport,38315,268205,0.14285714285714285,fraction of operator entries by component
+component,radial_transport_unfolding,38315,268205,0.14285714285714285,fraction of operator entries by component
+radial_distribution,radial_class_0,89373,268205,0.3332264499170411,distribution of operator transitions by target radial class
+radial_distribution,radial_class_1,87249,268205,0.3253071344680375,distribution of operator transitions by target radial class
+radial_distribution,radial_class_2,91583,268205,0.3414664156149214,distribution of operator transitions by target radial class

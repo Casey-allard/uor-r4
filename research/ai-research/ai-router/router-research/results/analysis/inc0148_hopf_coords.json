@@ -1,0 +1,90 @@
+{
+  "config": "configs/spectral_inc0148_geometry_native_screen.json",
+  "graph_mode": "hopf_coords",
+  "knn_k": 12,
+  "lowfreq_modes": 8,
+  "max_points": 384,
+  "results": [
+    {
+      "args": {
+        "field4_dims": "4,66,5,22",
+        "phase4_dims": "3,65,2,21",
+        "phase_field_lambda": 0.0,
+        "phase_transport_lambda": 0.0,
+        "sector_mode": "phase4d_hopf_base"
+      },
+      "metrics": {
+        "graph_edges": 2958,
+        "graph_sigma": 0.2449807402553414,
+        "n_points": 384,
+        "sector_lowfreq_energy": 0.3142739406504538,
+        "shell_lowfreq_energy": 0.0,
+        "spectral_eigenvalues_head": [
+          0.0,
+          0.00017840813225812317,
+          0.0009462626062351352,
+          0.0014177038813014396,
+          0.0029029817337412407,
+          0.026736962622990097,
+          0.0337622572342023,
+          0.0348647051060474,
+          0.0476020850679728,
+          0.05346309083207549,
+          0.05548850768248625,
+          0.0723102190394972
+        ],
+        "spectral_gap_23": 0.000767854473977012,
+        "spectral_gap_34": 0.00047144127506630433,
+        "spectral_lambda2": 0.00017840813225812317,
+        "spectral_lambda3": 0.0009462626062351352,
+        "spectral_lambda4": 0.0014177038813014396,
+        "spectral_lowfreq_mass_ratio": 0.000386487933293616,
+        "spectral_mode_participation_mean": 0.14513716600750856,
+        "spectral_mode_participation_min": 0.005916182987451361,
+        "spectral_zero_eigs": 1
+      },
+      "route_id": "HOPF_BASE_K75"
+    },
+    {
+      "args": {
+        "field4_dims": "4,66,5,22",
+        "phase4_dims": "3,65,2,21",
+        "phase_field_lambda": 0.0,
+        "phase_transport_lambda": 0.0,
+        "sector_mode": "phase4d_hopf_transport"
+      },
+      "metrics": {
+        "graph_edges": 2958,
+        "graph_sigma": 0.2449807402553414,
+        "n_points": 384,
+        "sector_lowfreq_energy": 0.5379339661497331,
+        "shell_lowfreq_energy": 0.0,
+        "spectral_eigenvalues_head": [
+          0.0,
+          0.00017840813225812317,
+          0.0009462626062351352,
+          0.0014177038813014396,
+          0.0029029817337412407,
+          0.026736962622990097,
+          0.0337622572342023,
+          0.0348647051060474,
+          0.0476020850679728,
+          0.05346309083207549,
+          0.05548850768248625,
+          0.0723102190394972
+        ],
+        "spectral_gap_23": 0.000767854473977012,
+        "spectral_gap_34": 0.00047144127506630433,
+        "spectral_lambda2": 0.00017840813225812317,
+        "spectral_lambda3": 0.0009462626062351352,
+        "spectral_lambda4": 0.0014177038813014396,
+        "spectral_lowfreq_mass_ratio": 0.000386487933293616,
+        "spectral_mode_participation_mean": 0.14513716600750856,
+        "spectral_mode_participation_min": 0.005916182987451361,
+        "spectral_zero_eigs": 1
+      },
+      "route_id": "HOPF_TRANS_K75_L0"
+    }
+  ],
+  "seed": 0
+}

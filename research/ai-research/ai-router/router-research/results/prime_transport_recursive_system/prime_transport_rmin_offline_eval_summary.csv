@@ -1,0 +1,4 @@
+state,state_definition,predictive_membership_purity,split_partition_purity,label_complexity_ratio_to_spin,combined_capture_fraction_of_spin,promotion_needed_fraction,prototype_reading,recommendation
+R_static,chart_exact_address_(b_phi_r),1.0,1.0,7.273714418110126,1.0,0.0,Exact but too detailed; not a practical compressed router state.,baseline_only
+R_min,next_return_gap,1.0,0.69033629362971,0.6121906310452204,0.7502981320146836,0.30966370637028995,Best first prototype tradeoff: materially predictive and still smaller than spin.,prototype_target
+R_full,full_spin_predictive_state,1.0,1.0,1.0,1.0,0.0,Reference exact predictor; too costly as the first prototype target.,reference_only

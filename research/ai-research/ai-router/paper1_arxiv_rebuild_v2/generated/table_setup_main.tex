@@ -1,0 +1,8 @@
+\begin{tabular}{p{0.17\linewidth}p{0.18\linewidth}p{0.21\linewidth}p{0.16\linewidth}p{0.20\linewidth}}
+\toprule
+Setting & Data & Model / routing regime & Budget / seeds & Main outputs \\
+\midrule
+Semantic proxy & WikiText-2-derived PPMI-SVD embeddings & Fixed Hopf-derived sector map on normalized static embeddings & $K=25$--$5000$; finalized multi-run analysis chain & Effective routing footprint, concentration statistics, scaling laws \\
+Toy LM transfer & PTB and WT2 & 2-layer transformer-like LM with learned top-1, fixed HOPF, or fixed PERMUTED routing & $K=64$; 4000 steps; 2 seeds / dataset & Validation perplexity and effective expert-path count \\
+\bottomrule
+\end{tabular}

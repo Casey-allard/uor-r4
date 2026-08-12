@@ -1,0 +1,7 @@
+{
+  "task_id": "ramsey_divisor_residual_test_v1",
+  "input_rows": 1056,
+  "input_path": "/Users/adminamn/ramsey/results/shadow/ramsey_nonlocal_shadow_test_v1/tables/feature_table.csv",
+  "verdict": "REFINE",
+  "rationale": "Divisor features explain partial residual structure, but not consistently strong across all targets."
+}

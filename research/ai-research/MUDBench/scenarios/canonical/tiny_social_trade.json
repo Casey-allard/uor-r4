@@ -1,0 +1,22 @@
+{
+  "scenario_id": "tiny-social-trade",
+  "title": "Tiny Social Trade",
+  "description": "Tiny social/trade scenario requiring giving the correct token to an NPC before the objective item becomes obtainable.",
+  "start_room_id": "start",
+  "max_steps": 7,
+  "seed": 66,
+  "version": "1.0",
+  "scenario_vars": {
+    "mode": "social-trade-dependency",
+    "agent_script_policy": "social-trade-dependency",
+    "world_config_json": "{\"items\":[{\"entity_id\":\"trade-token\",\"entity_type\":\"item\",\"location\":\"token-room\"}],\"npcs\":[{\"entity_id\":\"trader\",\"entity_type\":\"npc\",\"health\":30,\"location\":\"market\"}],\"rooms\":{\"market\":{\"description\":\"A compact market stall where a trader watches quietly.\",\"entities\":[],\"exits\":{\"west\":\"start\"},\"title\":\"Market\"},\"start\":{\"description\":\"A small crossroads linking the token room and market.\",\"entities\":[],\"exits\":{\"east\":\"market\",\"west\":\"token-room\"},\"title\":\"Crossroads\"},\"token-room\":{\"description\":\"A narrow supply room with a single trade token on a shelf.\",\"entities\":[],\"exits\":{\"east\":\"start\"},\"title\":\"Token Room\"}},\"trade_effects\":[{\"effect_id\":\"market-trade\",\"item_id\":\"trade-token\",\"target_id\":\"trader\",\"reward_item_id\":\"artifact\",\"reward_entity_type\":\"item\"}]}"
+  },
+  "objectives": [
+    {
+      "objective_id": "collect-artifact",
+      "objective_type": "collect_item",
+      "target_id": "artifact",
+      "required_count": 1
+    }
+  ]
+}

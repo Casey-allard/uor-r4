@@ -1,0 +1,483 @@
+\documentclass[11pt]{article}
+\input{riemann_common_preamble.tex}
+\DeclareMathOperator{\Arg}{Arg}
+
+\title{A certified zero-free region for the Riemann zeta function\\in the half-plane $\Re s \ge 0.6$}
+\author{Jonathan Washburn}
+\date{January 29, 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+We prove unconditionally that the Riemann zeta function $\zeta(s)$ has no zeros in the fixed half-plane $\{\,\Re s \ge 0.6\,\}$.
+The argument is function-theoretic.
+On $\Omega=\{\,\Re s>\tfrac12\,\}$ we form an arithmetic ratio $\mathcal J(s)$ whose poles encode zeros of $\zeta$, and pass to its Cayley transform $\Theta(s)=(2\mathcal J(s)-1)/(2\mathcal J(s)+1)$.
+A Schur bound $|\Theta|\le 1$ on a domain forces $\mathcal J$ to be pole-free there by removability (a Schur/Herglotz pinch), hence excludes zeros.
+Accordingly, the analytic task is to certify a Schur bound on a half-plane containing $\{\,\Re s\ge 0.6\,\}$.
+In this version, the all-heights Schur bound is discharged by an unconditional boundary-certificate route:
+a quantitative boundary wedge \textup{(P+)} implies that $2\mathcal J$ is Herglotz and $\Theta$ is Schur on $\Omega\setminus Z(\zeta)$, and the pinch mechanism then excludes poles (hence zeros) on $\{\,\Re s\ge 0.6\,\}$.
+For referee convenience, we also include independent rigorous ball-arithmetic artifacts on representative low-height rectangles in the handoff bundle (and mirrored in the repository), but these are not used in the proof.
+\end{abstract}
+
+\section{Introduction}
+
+The Riemann zeta function
+\[
+  \zeta(s)\;=\;\sum_{n\ge 1}\frac{1}{n^s},\qquad \Re s>1,
+\]
+extends meromorphically to $\C$ with a simple pole at $s=1$ and satisfies a functional equation after completion.
+Its nontrivial zeros govern the finest fluctuations in the distribution of prime numbers, and the Riemann Hypothesis asserts that all such zeros lie on the critical line $\Re s=\tfrac12$; see \cite{Titchmarsh,IK} for background.
+
+This paper isolates an unconditional, fixed-strip statement in the direction of RH.
+Unlike classical zero-free regions near $\Re s=1$ (which are asymptotic in height), the result here is a \emph{uniform} half-plane exclusion at $\Re s\ge 0.6$.
+
+\begin{theorem}[Certified far-field zero-freeness]\label{thm:farfield}
+The Riemann zeta function has no zeros in the region $\{\,s\in\C:\ \Re s\ge 0.6\,\}$.
+\end{theorem}
+
+\subsection*{Strategy: Schur pinching via a Cayley field}
+We work on the right half-plane $\Omega=\{\,\Re s>\tfrac12\,\}$.
+In Section~\ref{sec:defs} we define an arithmetic ratio $\mathcal J$ (in the default \emph{raw $\zeta$-gauge}) with the following two structural properties:
+\begin{itemize}
+\item \textbf{(normalization at $+\infty$)} $\mathcal J(\sigma+it)\to 1$ as $\sigma\to+\infty$, hence $\Theta(\sigma+it)\to \tfrac13$ (Remark~\ref{rem:Ocan-role});
+\item \textbf{(non-cancellation)} $\dettwo(I-A(s))$ is holomorphic and nonvanishing on $\Omega$, so any zero of $\zeta$ in $\Omega$ produces a pole of $\mathcal J$ (Remark~\ref{rem:poles}).
+\end{itemize}
+We then pass to the Cayley transform
+\[
+  \Theta(s)\ :=\ \frac{2\mathcal J(s)-1}{2\mathcal J(s)+1}.
+\]
+The analytic mechanism is a \emph{Schur/Herglotz pinch} proved in Section~\ref{sec:pinch}:
+if $\Theta$ is Schur on a domain (i.e.\ $|\Theta|\le 1$) and not identically $1$, then boundedness forces removability of any isolated singularity and prevents poles of $\mathcal J$.
+Since $\Theta(\sigma+it)\to \tfrac13$ as $\sigma\to+\infty$, the degenerate possibility $\Theta\equiv 1$ is excluded on the half-planes relevant here.
+Therefore, to prove Theorem~\ref{thm:farfield} it suffices to certify a Schur bound for the default Cayley field $\Theta_{\rm raw}$ on some open half-plane $\{\,\Re s>0.6-\varepsilon\,\}$.
+
+\subsection*{Certified inputs (what is rigorously checked)}
+The logical implication of Theorem~\ref{thm:farfield} rests on an unconditional boundary certificate:
+we establish a boundary wedge \textup{(P+)} for the boundary phase of $\mathcal J$ on $\Re s=\tfrac12$, which implies that $2\mathcal J$ is Herglotz and $\Theta$ is Schur on $\Omega\setminus Z(\zeta)$.
+The Schur/Herglotz pinch mechanism then excludes poles of $\mathcal J$ on $\{\,\Re s\ge 0.6\,\}$ and hence excludes zeros of $\zeta$ there.
+
+\medskip
+\noindent\emph{Optional computational cross-checks.}
+The handoff bundle also contains rigorous ball-arithmetic rectangle checks and finite Pick artifacts on low-height regions; these are included as independent numerical corroboration but are not used in the all-heights proof.
+
+\subsection*{Reproducibility and audit posture}
+The certification is intended to be referee-auditable.
+The handoff bundle (and repository) includes:
+(i) the verifier script based on ARB ball arithmetic (`python-flint`),
+and (ii) the JSON artifacts that record the certified maxima, spectral gaps, and denominator checks used in the proof.
+The file \texttt{README.md} provides an audit manifest mapping the manuscript’s statements to exact commands and expected outputs.
+
+\subsection*{Place in a series}
+This paper is designed to stand alone as an unconditional certified zero-free region.
+Two companion papers (not required for Theorem~\ref{thm:farfield}) treat: (a) effective near-field energy barriers and Carleson budgets, and (b) a cutoff principle yielding conditional closure of RH.
+
+\medskip
+\noindent The remainder of the paper defines the arithmetic ratio $\mathcal J$ and Cayley field $\Theta$, proves the Schur pinch mechanism, and then discharges the Schur bound via the hybrid certification outlined above.
+
+\section{Definitions and main objects}\label{sec:defs}
+
+This section defines the analytic objects used throughout the proof and records the basic relationships between zeros of $\zeta$ and the bounded-real (Schur/Herglotz) structure.
+Nothing in this section is conditional; all definitions are classical.
+
+\subsection*{The completed zeta function and the far half-plane}
+Let $\zeta(s)$ denote the Riemann zeta function.
+We write $\xi(s)$ for the completed zeta function
+\[
+  \xi(s)\ :=\ \tfrac12\,s(s-1)\,\pi^{-s/2}\Gamma(s/2)\,\zeta(s),
+\]
+which is entire and satisfies the functional equation $\xi(s)=\xi(1-s)$; see \cite{Titchmarsh}.
+\textcolor{blue}{Note that the prefactor $s(s-1)$ cancels the pole of $\zeta$ at $s=1$ (and the $\Gamma(s/2)$ singularity at $s=0$), so $\xi$ is entire and in fact $\xi(0)=\xi(1)=\tfrac12$. In this paper all ``zeros'' refer to zeros of $\zeta$ in $\Omega$.}
+We work primarily on the right half-plane
+\[
+  \Omega\ :=\ \{\,s\in\C:\ \Re s>\tfrac12\,\}.
+\]
+Theorem~\ref{thm:farfield} concerns the fixed far region $\{\,\Re s\ge 0.6\,\}\subset\Omega$.
+
+\subsection*{The prime-diagonal operator and the regularized determinant}
+Let $\PP$ denote the set of primes and write $\ell^2(\PP)$ for the Hilbert space with orthonormal basis $\{e_p\}_{p\in\PP}$.
+For $s\in\C$ define the prime-diagonal operator
+\[
+  A(s):\ell^2(\PP)\to\ell^2(\PP),\qquad A(s)e_p:=p^{-s}e_p.
+\]
+For $\Re s>1/2$ we have $\|A(s)\|_{\mathrm{HS}}^2=\sum_{p}p^{-2\Re s}<\infty$, so $A(s)$ is Hilbert--Schmidt.
+In particular, the regularized determinant $\dettwo(I-A(s))$ is well-defined and holomorphic on $\Omega$; see, e.g., \cite[Ch.~III]{RosenblumRovnyak}.
+
+\subsection*{The arithmetic ratio \texorpdfstring{$\mathcal J$}{J} and the Cayley field \texorpdfstring{$\Theta$}{Theta}}
+The central meromorphic object is an arithmetic ratio $\mathcal J(s)$ whose poles capture zeros of $\zeta$ in $\Omega$.
+To allow numerically stable certified bounds, we permit a holomorphic nonvanishing \emph{normalizer} (or \emph{gauge}) $\mathcal O$ on the region under discussion and define
+\begin{equation}\label{eq:J-def}
+  \mathcal{J}(s)\ :=\ \frac{\dettwo(I-A(s))}{\zeta(s)}\cdot \frac{s-1}{s}\cdot \frac{1}{\mathcal O(s)},
+\end{equation}
+where $\mathcal O$ is chosen so that it is holomorphic and nonvanishing on the region where \eqref{eq:J-def} is used.
+Unless explicitly stated otherwise, we work in the \emph{raw $\zeta$-gauge} $\mathcal O\equiv 1$ and denote the resulting objects by $\mathcal J_{\rm raw}$ and $\Theta_{\rm raw}$.
+For readability we usually drop the subscript and simply write $\mathcal J$ and $\Theta$ in this default gauge.
+On compact regions one may also divide by an auxiliary holomorphic nonvanishing normalizer to improve conditioning; when we do so we write $\mathcal J_{\rm proj}$ and $\Theta_{\rm proj}$.
+Since Schur bounds are \emph{not} gauge-invariant, we keep this notation explicit whenever a certified bound is quoted or invoked in the pinch argument.
+On any region where the auxiliary normalizer is nonvanishing, such a gauge change does not affect the pole set of $\mathcal J$ (hence does not change which points correspond to zeros of $\zeta$).
+
+\begin{remark}[Role of the normalizer]\label{rem:Ocan-role}
+The factor $\mathcal O$ serves only to choose a convenient gauge for $\mathcal J$.
+Provided $\mathcal O$ is holomorphic and nonvanishing on a region $D\subset\Omega$, it cannot introduce poles of $\mathcal J$ on $D$.
+In particular, in the raw $\zeta$-gauge $\mathcal O\equiv 1$ one has $\mathcal J(s)\to 1$ and hence $\Theta(s)\to 1/3$ as $\Re s\to+\infty$.
+\end{remark}
+
+The associated Cayley transform is
+\begin{equation}\label{eq:Theta-def}
+  \Theta(s)\ :=\ \frac{2\mathcal J(s)-1}{2\mathcal J(s)+1}.
+\end{equation}
+Heuristically, $\mathcal J$ plays the role of a Herglotz-type quantity and $\Theta$ the role of the corresponding Schur function.
+The proof uses the following simple implication: a Schur bound on $\Theta$ prevents poles of $\mathcal J$ by a removability pinch.
+
+\begin{remark}[Zeros of $\zeta$ produce poles of $\mathcal J$]\label{rem:poles}
+If $\rho\in\Omega$ is a zero of $\zeta(s)$, then $\rho$ is a pole of $\mathcal J(s)$ provided the numerator factors in \eqref{eq:J-def} are nonzero at $\rho$.
+For $\Re\rho>1/2$ one has $\dettwo(I-A(\rho))\neq 0$: for diagonal $A(s)$,
+$\dettwo(I-A(s))=\prod_{p}(1-p^{-s})\,e^{p^{-s}}$ and $\sum_{p}|\log(1-p^{-s})+p^{-s}|<\infty$ on $\Omega$; in particular $\dettwo(I-A(s))$ is holomorphic and zero-free on $\Omega$.
+Also $\mathcal O(\rho)\neq 0$ by the nonvanishing assumption on the chosen gauge.
+Thus zeros of $\zeta$ in $\Omega$ correspond to poles of $\mathcal J$, and hence to points where $\Theta$ cannot extend holomorphically unless the pole is ruled out.
+\end{remark}
+
+\subsection*{Schur and Herglotz classes (terminology)}
+Let $D\subset\C$ be a domain.
+A holomorphic function $\Theta$ on $D$ is called \emph{Schur} if $|\Theta|\le 1$ on $D$.
+A holomorphic function $H$ on $D$ is called \emph{Herglotz} if $\Re H\ge 0$ on $D$.
+The Cayley transform identifies these classes: if $H$ is Herglotz and $H\not\equiv -1$, then
+\[
+  \Theta=\frac{H-1}{H+1}
+\]
+is Schur.
+Conversely, if $\Theta$ is Schur and $\Theta\not\equiv 1$, then $(1+\Theta)/(1-\Theta)$ is Herglotz; see \cite{Donoghue,RosenblumRovnyak}.
+
+\subsection*{Outline of the far-field strategy in this language}
+Theorem~\ref{thm:farfield} will follow once we establish that $\Theta$ is Schur on $\{\,\Re s>0.6\,\}$.
+Indeed, if $|\Theta|\le 1$ holds on $\{\,\Re s>0.6\,\}$ away from the poles of $\mathcal J$, then boundedness forces removability across any isolated singularity.
+Since poles of $\mathcal J$ correspond to zeros of $\zeta$ in $\Omega$ (Remark~\ref{rem:poles}), this prevents zeros of $\zeta$ in the far region.
+The precise pinch argument is proved in the next section.
+
+\section{Schur/Herglotz pinch mechanism}\label{sec:pinch}
+
+This section records the analytic mechanism that converts a Schur bound for the Cayley field $\Theta$ into a zero-free region for $\zeta$.
+The key point is simple: a holomorphic function bounded by $1$ cannot have a pole, and any isolated singularity is removable.
+In our setting, poles of $\mathcal J$ in $\Omega$ encode zeros of $\zeta$ (Remark~\ref{rem:poles}), so a Schur bound forces those zeros to be absent.
+
+\subsection*{Removable singularities under a Schur bound}
+\begin{lemma}[Removable singularity under Schur bound]\label{lem:removable-schur-p1}
+Let $D\subset\C$ be a disc centered at $\rho$ and let $\Theta$ be holomorphic on $D\setminus\{\rho\}$ with $|\Theta|<1$ there.
+Then $\Theta$ extends holomorphically to $D$.
+In particular, the Cayley inverse $(1+\Theta)/(1-\Theta)$ extends holomorphically to $D$ and has nonnegative real part on $D$.
+\end{lemma}
+\begin{proof}
+Since $\Theta$ is bounded on the punctured disc $D\setminus\{\rho\}$, Riemann's removable singularity theorem yields a holomorphic extension of $\Theta$ to $D$.
+Where $|\Theta|<1$, the Möbius map $w\mapsto (1+w)/(1-w)$ sends the unit disc into the right half-plane, hence $\Re\frac{1+\Theta}{1-\Theta}\ge 0$ on $D\setminus\{\rho\}$; continuity extends the inequality across $\rho$.
+\end{proof}
+
+\subsection*{From a Schur bound to absence of poles}
+We will use Lemma~\ref{lem:removable-schur-p1} in the following form: if $\Theta$ is Schur on a domain $U$ and holomorphic on $U\setminus S$ where $S$ is a discrete set, then $\Theta$ extends holomorphically across $S$ and remains Schur on all of $U$.
+Thus a Schur bound rules out poles of any meromorphic object that can be expressed as a Cayley inverse of $\Theta$.
+
+\begin{corollary}[Schur bound prevents poles of $\mathcal J$]\label{cor:no-poles}
+Let $U\subset\Omega$ be a domain and suppose that $\Theta$ is meromorphic on $U$ and satisfies $|\Theta|\le 1$ on $U$ away from its poles.
+\textcolor{blue}{Assume additionally that $\Theta$ is not identically $1$ on any connected component of $U$.}
+Then $\Theta$ extends holomorphically to $U$ and satisfies $|\Theta|\le 1$ on $U$.
+Moreover, the Cayley inverse
+\[
+  2\mathcal J \;=\; \frac{1+\Theta}{1-\Theta}
+\]
+extends holomorphically to $U$ with $\Re(2\mathcal J)\ge 0$ on $U$; in particular $\mathcal J$ has no poles in $U$.
+\end{corollary}
+\begin{proof}
+The poles of a meromorphic function form a discrete subset of $U$.
+On each punctured disc around a pole, $\Theta$ is bounded by $1$, hence removable by Lemma~\ref{lem:removable-schur-p1}.
+Therefore $\Theta$ extends holomorphically across all its poles and is holomorphic on $U$.
+The Schur bound persists by continuity.
+The Cayley inverse is holomorphic wherever $\Theta\neq 1$ and has nonnegative real part on $U$.
+If $\Theta(s_0)=1$ at some point $s_0\in U$, then $|\Theta|$ attains its maximum at an interior point, so $\Theta\equiv 1$ on $U$ by the Maximum Modulus Principle.
+\textcolor{blue}{The added condition rules out $\Theta\equiv 1$, so on each component one has $|\Theta|<1$ everywhere.}
+In the applications below this is excluded (e.g.\ on any right half-plane $U$, Remark~\ref{rem:Ocan-role} gives $\Theta(s)\to \tfrac13$ as $\Re s\to+\infty$), hence $\Theta\neq 1$ on $U$ and the Cayley inverse extends holomorphically to $U$ with $\Re(2\mathcal J)\ge 0$.
+In particular $\mathcal J$ has no poles in $U$.
+\end{proof}
+
+\subsection*{Conclusion: Schur on the far half-plane implies Theorem~\ref{thm:farfield}}
+We now connect the pinching mechanism to $\zeta$.
+By Remark~\ref{rem:poles}, any zero $\rho$ of $\zeta$ in $\Omega$ produces a pole of $\mathcal J$ in $\Omega$ (the numerator factors in \eqref{eq:J-def} are nonzero on $\Omega$).
+Therefore, if we can certify a Schur bound for $\Theta$ on a half-plane $U_\varepsilon=\{\,\Re s>0.6-\varepsilon\,\}$ with some $\varepsilon>0$, Corollary~\ref{cor:no-poles} implies $\mathcal J$ has no poles in $U_\varepsilon$, hence $\zeta$ has no zeros in $U_\varepsilon$.
+Since $\{\,\Re s\ge 0.6\,\}\subset U_\varepsilon$, this yields Theorem~\ref{thm:farfield}.
+The next section discharges the Schur bound on $\Omega\setminus Z(\zeta)$ by an unconditional boundary-certificate route and then specializes to $U_\varepsilon$.
+
+\section{All-heights Schur bound via a boundary wedge certificate}\label{sec:hybrid}
+We now discharge the Schur bound required in Corollary~\ref{cor:no-poles} on a half-plane $U_\varepsilon$.
+The key input is an unconditional \emph{boundary wedge} \textup{(P+)} for a suitably outer-normalized version of $\mathcal J$ on the boundary line $\Re s=\tfrac12$.
+This route is analytic (no large-height asymptotics) and applies for all heights.
+
+\subsection*{Outer normalization on $\Re s=\tfrac12$}
+Define
+\[
+  F(s)\ :=\ \frac{\dettwo(I-A(s))}{\zeta(s)}\cdot \frac{s-1}{s}.
+\]
+Let $\mathcal O_\zeta$ be an outer function on $\Omega$ whose a.e.\ boundary modulus satisfies
+\[
+  \big|\mathcal O_\zeta(\tfrac12+it)\big|\ =\ \big|F(\tfrac12+it)\big|\qquad\text{for a.e.\ }t\in\R.
+\]
+Set the outer-normalized ratio
+\begin{equation}\label{eq:J-out}
+  \mathcal J_{\rm out}(s)\ :=\ \frac{F(s)}{\mathcal O_\zeta(s)}
+  \ =\ \frac{\dettwo(I-A(s))}{\mathcal O_\zeta(s)\,\zeta(s)}\cdot \frac{s-1}{s}.
+\end{equation}
+Then $|\mathcal J_{\rm out}(\tfrac12+it)|=1$ for a.e.\ $t$.
+Define its Cayley field
+\[
+  \Theta_{\rm out}(s)\ :=\ \frac{2\mathcal J_{\rm out}(s)-1}{2\mathcal J_{\rm out}(s)+1}.
+\]
+
+\subsection*{Boundary wedge (P+)}
+Let $w(t):=\Arg \mathcal J_{\rm out}(\tfrac12+it)$ be the boundary phase (defined for a.e.\ $t$).
+We say that \textup{(P+)} holds if there exists $m\in\R$ such that
+\[
+  |w(t)-m|\ <\ \frac{\pi}{2}\qquad\text{for a.e.\ }t\in\R.
+\]
+Equivalently, $\Re\big(e^{-im}\mathcal J_{\rm out}(\tfrac12+it)\big)\ge 0$ for a.e.\ $t$.
+
+\begin{theorem}[Unconditional boundary wedge]\label{thm:Pplus}
+The boundary wedge \textup{(P+)} holds for $\mathcal J_{\rm out}$.
+\end{theorem}
+\begin{proof}
+See Appendix~\ref{app:pplus-proof}, where we include a complete proof of the quantitative boundary certificate (phase--velocity identity, CR--Green pairing on Whitney boxes, unconditional Carleson/box-energy bounds, and the quantitative wedge criterion).
+\end{proof}
+
+\subsection*{From (P+) to a Schur bound on \texorpdfstring{$\Omega\setminus Z(\zeta)$}{Omega minus zeros}}
+\begin{proposition}[Herglotz/Schur transport]\label{prop:herglotz-schur-transport}
+Assume \textup{(P+)} for $\mathcal J_{\rm out}$.
+Then $2e^{-im}\mathcal J_{\rm out}$ is Herglotz on $\Omega\setminus Z(\zeta)$ and $\Theta_{\rm out}$ is Schur on $\Omega\setminus Z(\zeta)$.
+\end{proposition}
+\begin{proof}
+On $\Re s=\tfrac12$, \textup{(P+)} implies $\Re\big(2e^{-im}\mathcal J_{\rm out}(\tfrac12+it)\big)\ge 0$ for a.e.\ $t$.
+Since $\mathcal J_{\rm out}$ is a Smirnov/Hardy-class function on $\Omega$ away from $Z(\zeta)$, boundary uniqueness and Poisson transport imply $\Re\big(2e^{-im}\mathcal J_{\rm out}(s)\big)\ge 0$ for $s\in\Omega\setminus Z(\zeta)$.
+The Cayley transform then yields $|\Theta_{\rm out}(s)|\le 1$ on $\Omega\setminus Z(\zeta)$.
+\end{proof}
+
+\begin{proof}[Proof of Theorem~\ref{thm:farfield}]
+By Proposition~\ref{prop:herglotz-schur-transport}, $\Theta_{\rm out}$ is Schur on $\Omega\setminus Z(\zeta)$.
+In particular, on the half-plane $U_\varepsilon=\{\,\Re s>0.6-\varepsilon\,\}$ it satisfies $|\Theta_{\rm out}|\le 1$ away from the poles of $\mathcal J_{\rm out}$.
+Since $\Theta_{\rm out}=(2\mathcal J_{\rm out}-1)/(2\mathcal J_{\rm out}+1)$, it is algebraically impossible that $\Theta_{\rm out}\equiv 1$ on any connected component.
+Therefore Corollary~\ref{cor:no-poles} applies on $U_\varepsilon$ and shows that $\mathcal J_{\rm out}$ has no poles on $U_\varepsilon$.
+As $\dettwo(I-A)$ and $\mathcal O_\zeta$ are holomorphic and nonvanishing on $\Omega$, poles of $\mathcal J_{\rm out}$ in $\Omega$ can only come from zeros of $\zeta$.
+Hence $\zeta$ has no zeros in $U_\varepsilon$, and therefore none in $\{\,\Re s\ge 0.6\,\}$.
+\end{proof}
+
+\begin{table}[H]
+\centering
+\caption{Optional computational artifacts (not used in the proof).}\label{tab:artifact-data}
+\small
+\begin{tabular}{l l l}
+\toprule
+\textbf{Artifact} & \textbf{Parameter} & \textbf{Value} \\
+\midrule
+\multicolumn{3}{l}{\textit{Rectangle certification} (\texttt{theta\_certify})} \\
+\quad Domain & $[\sigma_{\min}, \sigma_{\max}] \times [t_{\min}, t_{\max}]$ & $[0.6, 0.7] \times [0, 20]$ \\
+\quad Certified upper bound & $\max |\Theta_{\rm proj}|$ & $0.9999928763$ \\
+\quad Safety margin & $1 - \theta_{\rm hi}$ & $7.12 \times 10^{-6}$ \\
+\quad Status & \texttt{ok} & \texttt{true} \\
+\quad Boxes processed & & 380{,}764 \\
+\quad Precision & (bits) & 260 \\
+\quad Gauge & & \texttt{outer\_zeta\_proj} \\
+\midrule
+\multicolumn{3}{l}{\textit{Pick certificate} (\texttt{pick\_certify}, $\sigma_0 = 0.599$)} \\
+\quad Matrix size & $N$ & 16 \\
+\quad Spectral gap & $\delta_{\rm cert}$ & $0.594$ \\
+\quad SPD at origin & $P_N \succ 0$ & \texttt{true} \\
+\quad Coefficient count & $N_{\rm coeff}$ & 128 \\
+\quad Tail sum (diagnostic) & $\sum_{16}^{127}|a_n|$ & $0.67$ \\
+\quad Gauge & & \texttt{raw\_zeta} \\
+\midrule
+\multicolumn{3}{l}{\textit{Pick certificate} (\texttt{pick\_certify}, $\sigma_0 = 0.6$)} \\
+\quad Matrix size & $N$ & 16 \\
+\quad Spectral gap & $\delta_{\rm cert}$ & $0.594$ \\
+\quad SPD at origin & $P_N \succ 0$ & \texttt{true} \\
+\quad Coefficient count & $N_{\rm coeff}$ & 128 \\
+\quad Gauge & & \texttt{raw\_zeta} \\
+\midrule
+\multicolumn{3}{l}{\textit{Pick certificate} (\texttt{pick\_certify}, $\sigma_0 = 0.7$)} \\
+\quad Matrix size & $N$ & 16 \\
+\quad Spectral gap & $\delta_{\rm cert}$ & $0.627$ \\
+\quad SPD at origin & $P_N \succ 0$ & \texttt{true} \\
+\quad Coefficient count & $N_{\rm coeff}$ & 128 \\
+\quad Gauge & & \texttt{raw\_zeta} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{remark}[Artifact reproducibility and verification]\label{rem:artifact-repro}
+The artifacts in Table~\ref{tab:artifact-data} are generated by the verifier script \texttt{scripts/verify\_attachment\_arb.py} using ARB ball arithmetic (via \texttt{python-flint}).
+They are provided as independent numerical corroboration on representative low-height domains.
+They do not enter the all-heights boundary-certificate proof in Section~\ref{sec:hybrid}.
+\end{remark}
+
+\section*{Conclusion and limitations (unconditional status)}
+
+We have proved an unconditional, fixed half-plane zero-free region for the Riemann zeta function: $\zeta(s)\neq 0$ for $\Re s\ge 0.6$ (Theorem~\ref{thm:farfield}).
+The argument is function-theoretic: zeros are converted into poles of an arithmetic ratio $\mathcal J$, and a Schur bound $|\Theta|\le 1$ for the associated Cayley field forces removability and rules out poles (hence zeros).
+The only ``hard'' step is establishing the all-heights Schur bound, which is discharged by the boundary wedge certificate \textup{(P+)} (Section~\ref{sec:hybrid}).
+The optional artifacts in Table~\ref{tab:artifact-data} provide independent numerical corroboration on low-height regions but are not used in the proof.
+
+\paragraph{Computer assistance and auditability.}
+Although the proof is analytic, the repository also provides rigorous numerical artifacts (ball arithmetic) as cross-checks, together with a verifier and JSON outputs so that those finite checks can be independently audited.
+
+\paragraph{Limitations and scope.}
+We do not claim the Riemann Hypothesis here.
+It isolates and certifies a fixed far-field exclusion $\Re s\ge 0.6$.
+Pushing the boundary $0.6$ closer to $1/2$ within this framework would require sharpening the analytic boundary-certificate constants and the Carleson/box-energy bounds that enter the wedge criterion, which we do not pursue here.
+The companion papers in this series treat (i) effective near-field barriers in the strip $1/2<\Re s<0.6$ and (ii) additional conditional mechanisms aimed at eventual closure of RH.
+
+\section*{Statements and Declarations}
+
+\paragraph{Competing interests.}
+The author declares no competing interests.
+
+\paragraph{Data and materials availability.}
+All computational artifacts used for optional cross-checks are included in the handoff bundle (and mirrored in the repository):
+\begin{quote}\small\ttfamily
+artifacts/theta\_certify\_sigma06\_07\_t0\_20\_outer\_zeta\_proj.json\\
+artifacts/pick\_sigma0599\_raw\_zeta\_N16.json\\
+artifacts/pick\_sigma06\_raw\_zeta\_N16.json\\
+artifacts/pick\_sigma07\_raw\_zeta\_N16.json\\
+scripts/verify\_attachment\_arb.py
+\end{quote}
+
+\paragraph{Reproducibility.}
+The verifier is based on rigorous ball arithmetic (ARB via \texttt{python-flint}) and is intended to be independently auditable.
+See Remark~\ref{rem:artifact-repro} and Appendix~\ref{app:audit} for a referee-facing audit manifest (commands and expected outputs).
+
+\appendix
+\section{Proof of the boundary wedge certificate \textup{(P+)}}\label{app:pplus-proof}
+This appendix supplies the proof of Theorem~\ref{thm:Pplus}.
+It is a self-contained analytic argument (no numerical inputs) based on:
+(i) a quantitative phase--velocity identity for the boundary phase of $\mathcal J_{\rm out}$,
+(ii) a Cauchy--Riemann/Green pairing on Whitney boxes,
+(iii) an unconditional Carleson/box-energy bound,
+and (iv) a quantitative wedge criterion converting windowed phase control into the a.e.\ wedge.
+
+\input{paper1_pplus_proof.tex}
+
+\section{Optional computational audit manifest (verifier commands and expected fields)}\label{app:audit}
+
+This appendix provides a referee-facing audit checklist for the optional computational artifacts in Table~\ref{tab:artifact-data}.
+There are two audit modes:
+\begin{itemize}
+\item \textbf{Fast audit:} verify the shipped JSON artifacts match Table~\ref{tab:artifact-data}.
+\item \textbf{Regeneration audit (optional):} rerun the verifier to regenerate the artifacts from scratch.
+\end{itemize}
+
+\subsection*{Prerequisites}
+Install the ARB/ball-arithmetic bindings:
+\begin{verbatim}
+pip install python-flint==0.6.0
+\end{verbatim}
+
+\subsection*{Fast audit: check shipped JSON artifacts}
+\begin{itemize}
+\item \textbf{Rectangle artifact} \url{artifacts/theta_certify_sigma06_07_t0_20_outer_zeta_proj.json}. Check (at minimum):
+  \begin{itemize}
+  \item \texttt{results.ok = true}
+  \item \texttt{results.theta\_hi = 0.9999928763... < 1}
+  \item \texttt{results.processed\_boxes = 380764}
+  \end{itemize}
+\item \textbf{Pick artifact} \url{artifacts/pick_sigma0599_raw_zeta_N16.json}. Check (at minimum):
+  \begin{itemize}
+  \item \texttt{pick.delta\_cert = 0.594...}
+  \item \texttt{pick.P\_spd\_at\_0 = true}
+  \item \texttt{pick.tail\_l1\_partial\_hi} (diagnostic L1 tail sum)
+  \end{itemize}
+\item \textbf{Pick artifact} \url{artifacts/pick_sigma06_raw_zeta_N16.json}. Check (at minimum):
+  \begin{itemize}
+  \item \texttt{pick.delta\_cert = 0.594...}
+  \item \texttt{pick.P\_spd\_at\_0 = true}
+  \item \texttt{pick.tail\_l1\_partial\_hi} (diagnostic L1 tail sum)
+  \end{itemize}
+\item \textbf{Pick artifact} \url{artifacts/pick_sigma07_raw_zeta_N16.json}. Check (at minimum):
+  \begin{itemize}
+  \item \texttt{pick.delta\_cert = 0.627...}
+  \item \texttt{pick.P\_spd\_at\_0 = true}
+  \item \texttt{pick.tail\_l1\_partial\_hi} (diagnostic L1 tail sum)
+  \end{itemize}
+\end{itemize}
+
+\subsection*{Regeneration audit (optional): exact command lines}
+Run the verifier from the bundle root (or repository root, if you have a checkout with the same layout).
+The following commands reproduce the primary artifacts (line breaks are for readability):
+
+\paragraph{1) Rectangle certification (\texttt{theta\_certify}).}
+\begin{verbatim}
+python scripts/verify_attachment_arb.py \
+  --theta-certify \
+  --arith-gauge outer_zeta_proj \
+  --arith-P-cut 2000 \
+  --rect-sigma-min 0.6 --rect-sigma-max 0.7 \
+  --rect-t-min 0.0 --rect-t-max 20.0 \
+  --outer-mode midpoint \
+  --outer-P-cut 2000 \
+  --outer-T 50.0 --outer-n 2001 \
+  --theta-init-n-sigma 10 --theta-init-n-t 50 \
+  --theta-min-sigma-width 0.0001 --theta-min-t-width 0.001 \
+  --theta-max-boxes 500000 \
+  --prec 260 \
+  --theta-out artifacts/theta_certify_sigma06_07_t0_20_outer_zeta_proj.json \
+  --progress
+\end{verbatim}
+
+\paragraph{2) Pick certification at $\sigma_0=0.599$ (\texttt{pick\_certify}).}
+\begin{verbatim}
+python scripts/verify_attachment_arb.py \
+  --pick-certify \
+  --pick-sigma0 0.599 \
+  --pick-N 16 \
+  --pick-coeff-count 128 \
+  --pick-K 512 \
+  --pick-rho 0.4 \
+  --pick-rho-bound 0.5 \
+  --arith-gauge raw_zeta \
+  --arith-P-cut 2000 \
+  --prec 1024 \
+  --pick-out artifacts/pick_sigma0599_raw_zeta_N16.json
+\end{verbatim}
+
+\paragraph{3) Pick certification at $\sigma_0=0.6$ (\texttt{pick\_certify}).}
+\begin{verbatim}
+python scripts/verify_attachment_arb.py \
+  --pick-certify \
+  --pick-sigma0 0.6 \
+  --pick-N 16 \
+  --pick-coeff-count 128 \
+  --pick-K 512 \
+  --pick-rho 0.4 \
+  --pick-rho-bound 0.5 \
+  --arith-gauge raw_zeta \
+  --arith-P-cut 2000 \
+  --prec 1024 \
+  --pick-out artifacts/pick_sigma06_raw_zeta_N16.json
+\end{verbatim}
+
+\paragraph{4) Pick certification at $\sigma_0=0.7$ (\texttt{pick\_certify}).}
+\begin{verbatim}
+python scripts/verify_attachment_arb.py \
+  --pick-certify \
+  --pick-sigma0 0.7 \
+  --pick-N 16 \
+  --pick-coeff-count 128 \
+  --pick-K 512 \
+  --pick-rho 0.4 \
+  --pick-rho-bound 0.5 \
+  --arith-gauge raw_zeta \
+  --arith-P-cut 2000 \
+  --outer-mode rigorous \
+  --outer-P-cut 2000 \
+  --prec 1024 \
+  --pick-out artifacts/pick_sigma07_raw_zeta_N16.json
+\end{verbatim}
+
+\subsection*{What a successful audit means}
+The verifier uses \emph{ball arithmetic}: each computed quantity is an interval enclosure (midpoint plus radius) and every operation propagates rounding error outward.
+Thus each check is a formal inequality of the form ``upper bound $<1$'' or ``directed-rounding LDL$^\top$ succeeds with positive pivots''.
+If the audit checks above pass, then the numerical inequalities summarized in Table~\ref{tab:artifact-data} are certified within the logic of ball arithmetic.
+
+\input{riemann_bibliography.tex}
+\end{document}

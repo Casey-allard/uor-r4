@@ -1,0 +1,11 @@
+variant,ablation,b_posLast_init,b_posLast_trained,steps,accuracy,solve_step,alpha0,alphaD,tau0_direct_accuracy,runtime_seconds,note
+no_prior,training_summary,0.0,0.0454,3500,0.2627,,0.0415,0.0435,,47.7,training result
+bLast_0.5,training_summary,0.5,0.6549,3500,0.2944,,0.0399,0.0773,,48.4,training result
+bLast_1.0,training_summary,1.0,2.0649,3500,0.5571,,0.031,0.2559,,48.8,training result
+bLast_2.0,training_summary,2.0,5.0637,3500,1.0,2500,0.0049,0.874,0.2593,51.9,training result
+bLast_2.0,full,2.0,5.0637,3500,1.0,,0.0049,0.8739,0.2593,0.0033,full trajectory
+bLast_2.0,tau0_direct,2.0,5.0637,3500,0.2593,,1.0,0.0,0.2593,0.0002,attention bypassed; pred = τ₀ @ W_pred + b_pred
+bLast_2.0,no_tau0,2.0,5.0637,3500,1.0,,0.0,0.8782,0.2593,0.003,position 0 masked
+bLast_2.0,last_only,2.0,5.0637,3500,1.0,,0.0,1.0,0.2593,0.003,only t=23
+bLast_2.0,no_last,2.0,5.0637,3500,0.2598,,0.0386,0.0,0.2593,0.0031,t=23 masked
+bLast_2.0,random_t_gt0,2.0,5.0637,3500,0.2739,,0.0048,0.8738,0.2593,0.0032,τ_t (t>0) replaced with random table entries; τ₀ intact

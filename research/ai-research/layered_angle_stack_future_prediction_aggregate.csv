@@ -1,0 +1,6 @@
+model,mean_information_gain_bits,mean_pure_group_fraction
+raw_coarse_route_only,0.0,1.0
+angle_x17_only,0.0,1.0
+angle_x17_x19,0.0,1.0
+angle_x17_x19_x23,0.0,1.0
+route_plus_angle_stack,0.0,1.0

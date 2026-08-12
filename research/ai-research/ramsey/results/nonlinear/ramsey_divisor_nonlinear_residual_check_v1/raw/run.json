@@ -1,0 +1,6 @@
+{
+  "task_id": "ramsey_divisor_nonlinear_residual_check_v1",
+  "input_rows": 1056,
+  "verdict": "KEEP",
+  "rationale": "Limited nonlinear interactions reveal meaningful new residual and mirrored-gap signal."
+}

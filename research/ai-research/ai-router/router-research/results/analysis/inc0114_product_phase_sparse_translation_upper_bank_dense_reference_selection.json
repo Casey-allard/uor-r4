@@ -1,0 +1,57 @@
+{
+  "bounded_backfill": {
+    "eligible": true,
+    "gap_bias": "operationally_negligible",
+    "label": "upper_dense_vs_backfill",
+    "metrics": {
+      "amortized_per_repeat_sec": 3.4700956357701216,
+      "candidate_fraction": 0.1820030871875,
+      "top1": 0.047287499999999996
+    },
+    "quality_classification": "quality-near systems promotion",
+    "route_id": "CHART_H4XH4_FIELD_A150_EVT_T070_BF2_SB1_CPX8_Q01_T40000"
+  },
+  "carry_forward_contract": "single_promoted_reference",
+  "generated_at": "2026-03-12T15:34:45.786346-04:00",
+  "interpretation": "CHART_H4XH4_FIELD_A150_EVT_T070_CPX8_Q01_T40000 is promoted as the single upper-bank dense-near routed reference. The remaining delta versus CHART_H4XH4_FIELD_A150_EVT_T070_BF2_SB1_CPX8_Q01_T40000 stays inside the configured top-1, amortized, and candidate-fraction tolerance band, so the supporting route can drop to comparator status.",
+  "pair_deltas": {
+    "soft_minus_backfill_amortized_per_repeat_sec": -0.04383391680312343,
+    "soft_minus_backfill_candidate_fraction": 0.001760785312499985,
+    "soft_minus_backfill_top1": 3.750000000000281e-05
+  },
+  "promoted_label": "upper_dense_vs_soft_sparse",
+  "promoted_route_id": "CHART_H4XH4_FIELD_A150_EVT_T070_CPX8_Q01_T40000",
+  "selection_mode": "tie_break_within_tolerance",
+  "soft_sparse": {
+    "eligible": true,
+    "gap_bias": "operationally_negligible",
+    "label": "upper_dense_vs_soft_sparse",
+    "metrics": {
+      "amortized_per_repeat_sec": 3.426261718966998,
+      "candidate_fraction": 0.18376387249999998,
+      "top1": 0.047325
+    },
+    "quality_classification": "quality-near systems promotion",
+    "route_id": "CHART_H4XH4_FIELD_A150_EVT_T070_CPX8_Q01_T40000"
+  },
+  "sources": {
+    "confirm_analysis": "inc0113_product_phase_sparse_translation_upper_bank_dense_gap_decomposition_confirm",
+    "gap_analysis": [
+      "inc0113_product_phase_sparse_translation_upper_bank_dense_gap_decomposition_confirm"
+    ],
+    "quality_analysis": [
+      "inc0105_product_phase_soft_sparse_translation_upper_bank_carry_forward_confirm",
+      "inc0108_product_phase_sparse_translation_repeated_timing_hardening_upper_r2",
+      "inc0108_product_phase_sparse_translation_repeated_timing_hardening_upper_r3",
+      "inc0112_product_phase_sparse_translation_upper_bank_dense_quality_tolerance_hardening_r4",
+      "inc0112_product_phase_sparse_translation_upper_bank_dense_quality_tolerance_hardening_r5"
+    ]
+  },
+  "supporting_label": "upper_dense_vs_backfill",
+  "supporting_route_id": "CHART_H4XH4_FIELD_A150_EVT_T070_BF2_SB1_CPX8_Q01_T40000",
+  "tolerances": {
+    "amortized_per_repeat_sec": 0.05,
+    "candidate_fraction": 0.002,
+    "top1": 0.0001
+  }
+}

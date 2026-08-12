@@ -1,0 +1,777 @@
+\documentclass[11pt,leqno]{amsart}
+
+%-------------------------------------------------------------------------
+% Packages
+%-------------------------------------------------------------------------
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{geometry}
+\usepackage{mathrsfs}
+\usepackage{enumitem}
+\usepackage{times} % A font closer to the classic Annals look
+
+%-------------------------------------------------------------------------
+% Geometry / Annals-like formatting
+%-------------------------------------------------------------------------
+\geometry{
+  body={6.5in, 9in},
+  left=1in,
+  top=1in
+}
+
+%-------------------------------------------------------------------------
+% Environments
+%-------------------------------------------------------------------------
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{conjecture}[theorem]{Conjecture}
+
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{remark}[theorem]{Remark}
+
+%-------------------------------------------------------------------------
+% Macros
+%-------------------------------------------------------------------------
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\C}{\mathbb{C}}
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\E}{\mathbb{E}}
+\renewcommand{\P}{\mathbb{P}}
+\newcommand{\Rea}{\mathrm{Re}}
+\newcommand{\Cov}{\mathrm{Cov}}
+
+\title[Gaussian Approximation for Dirichlet Polynomials]{Gaussian Approximation and Block Berry--Esseen for Arithmetic Dirichlet Polynomials Attached to the Riemann Zeta Function}
+
+\author{Matteo Cipollina}
+\author{Jonathan Washburne}
+\address{Recognition Physics Institute}
+\email{mcipollina@recognitionphysics.com}
+
+\begin{document}
+
+\begin{abstract}
+We consider the Dirichlet polynomial approximation
+\[
+X_T^{\zeta}(h)
+:= \Rea\sum_{p\le T^\theta} p^{-1/2-i(\tau+h)},\qquad \tau\sim\mathrm{Unif}[T,2T],\ |h|\le 1,
+\]
+to $\log|\zeta(1/2+i(\tau+h))|$, and its multiscale block decomposition according to the size of $\log p$, as developed by Fyodorov--Hiary--Keating and Arguin--Bourgade--Radziwiłł (ABR/FHK).
+
+Our main result is a \textbf{finite--dimensional, blockwise Gaussian universality theorem in the arithmetic model}: for each fixed scale $k$ in the ABR/FHK decomposition and each finite set of offsets $h_0,\dots,h_m\in[-1,1]$, the joint law of the arithmetic block vector
+\[
+\mathbf Y_k^{\zeta}
+:=\big(Y_k^{\zeta}(h_0),\dots,Y_k^{\zeta}(h_m)\big),\qquad
+Y_k^{\zeta}(h)
+:=\sum_{e^{k-1}<\log p\le e^{k}}\Rea\big(p^{-1/2-i(\tau+h)} + \tfrac12 p^{-1-2i(\tau+h)}\big),
+\]
+under the $\tau$--average, is close—in rectangle distance and in the smooth test--function metric—to that of a Gaussian vector with matching covariance. The error decays like $e^{-c e^k}$ in the block index $k$, and is summable over scales.
+
+The proof proceeds in three steps:
+\begin{enumerate}
+    \item A multivariate Berry--Esseen bound for the \textbf{prime--phase} model, where $p^{-i(\tau+h)}$ is replaced by an independent phase $Z_p p^{-ih}$.
+    \item A representation of smoothed block indicators as squared moduli of Dirichlet polynomials of length $\le T^{1/100}$ using the multiscale smoothing and length estimates of ABR/FHK.
+    \item A mean--value theorem for Dirichlet polynomials that transfers expectations of these smoothed observables from the arithmetic model to the prime--phase model with error $O(T^{-c})$.
+\end{enumerate}
+
+As a corollary, we obtain a \textbf{blockwise arithmetic Gaussian approximation} strong enough to control any finite-dimensional marginal of a \emph{single block} at any fixed scale.
+
+We then prove a correct \textbf{approximate Gaussian integration--by--parts (IBP) identity} for the \textbf{random (prime--phase)} model, using independence of blocks and the block Berry--Esseen. Finally, we formulate an explicit global Dirichlet--polynomial representation conjecture under which the same IBP identity would hold for the arithmetic field $X_T^{\zeta}$. This isolates precisely what additional analytic input is needed to import Guerra/Parisi spin--glass techniques (stochastic stability, Ghirlanda--Guerra identities) into the genuine arithmetic setting.
+\end{abstract}
+
+\maketitle
+
+\section{Introduction}
+
+Let $\zeta(s)$ be the Riemann zeta function, and consider its values on the critical line,
+\[
+s=\tfrac12+i(\tau+h),\qquad \tau\in[T,2T],\ h\in[-1,1].
+\]
+Over the last decade, a detailed probabilistic picture of the fluctuations of $\log|\zeta(1/2+i(\tau+h))|$ on such microscopic intervals has emerged. The works of Fyodorov--Hiary--Keating and Arguin--Bourgade--Radziwiłł (ABR/FHK) show that $\log|\zeta(1/2+i(\tau+h))|$ can be modelled by a log--correlated Gaussian field, and they use this to prove the Fyodorov--Hiary--Keating conjecture on its maxima on mesoscopic intervals.
+
+A key technical component in ABR/FHK is a \textbf{multiscale block decomposition} of the prime sum in $\log\zeta$: primes are grouped by the size of $\log p$, and the resulting block increments behave approximately like independent Gaussian increments at the level of a \textbf{prime--phase model}, where $p^{-i(\tau+h)}$ is replaced by an independent random phase $Z_p p^{-ih}$. This decomposition underlies their analysis of the maximum and free energy.
+
+In parallel, spin--glass theory—particularly the Guerra/Parisi interpolation and the Ghirlanda--Guerra identities—offers a powerful framework for understanding the extremal process and overlap structure of log--correlated fields. To import these tools into the zeta setting, one needs an \textbf{approximate Gaussian integration--by--parts (IBP)} identity for the relevant field, of the form
+\[
+\mathbb E\big[X_T(h_0)F(\mathbf X_T)\big]
+\approx \sum_j \mathrm{Cov}(X_T(h_0),X_T(h_j))\,\mathbb E[\partial_jF(\mathbf X_T)],
+\]
+for a class of test functions $F$ and sampling points $h_j$.
+
+The present paper does \textbf{not} prove such a global IBP for the arithmetic field. Instead, it establishes the precise \textbf{blockwise Gaussian universality} for the arithmetic Dirichlet polynomial that is the main analytic ingredient, and then shows:
+\begin{itemize}
+    \item how to obtain an approximate IBP in the \textbf{prime--phase model} using independence of blocks, and
+    \item what exact \textbf{global Dirichlet--polynomial representation} would be needed to transfer this IBP to the arithmetic model.
+\end{itemize}
+In other words, we separate what is currently possible from what remains an open analytic problem, sharpening the interface between ABR/FHK and the Parisi/Guerra methodology.
+
+\subsection{The arithmetic block increments}
+
+Let $T$ be large, and let $\tau$ be uniform on $[T,2T]$. For some fixed $\theta>0$ (small), define the Dirichlet polynomial approximation to $\log|\zeta|$ on a short interval:
+\[
+X_T^{\zeta}(h)
+:= \Rea\sum_{p\le T^\theta} p^{-1/2-i(\tau+h)},\qquad |h|\le 1.
+\]
+
+Following FHK/ABR, we decompose the prime sum into blocks indexed by $k$, corresponding to ranges of $\log p$. Set
+\[
+n := \lfloor \log\log T\rfloor,\quad n_0 := \lfloor y\rfloor,\quad n_L := n-n_0
+\]
+for some fixed $y\ge 1$. For $n_0<k\le n_L$, define
+\[
+\mathcal P_k := \{p:\ e^{k-1}<\log p\le e^k\},
+\]
+and the \textbf{arithmetic block increment}
+\[
+Y_k^{\zeta}(h)
+:=
+\sum_{p\in\mathcal P_k}
+\Rea\Big(p^{-1/2-i(\tau+h)}+\tfrac12 p^{-1-2i(\tau+h)}\Big).
+\]
+
+Then
+\[
+X_T^{\zeta}(h)
+= \sum_{k=n_0+1}^{n_L} Y_k^{\zeta}(h) + R_T^{\zeta}(h),
+\]
+where the tail $R_T^{\zeta}(h)$ is a Dirichlet polynomial supported on very small and very large primes and has variance $O(1)$. In particular, the main fluctuations are carried by the block increments $Y_k^{\zeta}$ for $k\in(n_0,n_L]$.
+
+For a finite set of points $h_0,\dots,h_m\in[-1,1]$, we denote
+\[
+\mathbf Y_k^{\zeta}
+:=
+\big(Y_k^{\zeta}(h_0),\dots,Y_k^{\zeta}(h_m)\big)\in\mathbb R^{m+1}.
+\]
+
+\subsection{Main unconditional result: arithmetic block Gaussian approximation}
+
+Our first (and main unconditional) theorem is:
+
+\begin{theorem}[Arithmetic block Berry--Esseen]\label{thm:A}
+Fix $m\ge 0$ and points $h_0,\dots,h_m\in[-1,1]$. For each block $k\in(n_0,n_L]$, let $\mathbf Y_k^{\mathrm{rand}}$ be the corresponding block in the \textbf{prime--phase model}, obtained by replacing $p^{-i(\tau+h)}$ with $Z_p p^{-ih}$ where $Z_p$ are independent uniform phases, and let $\mathbf N_k$ be a centred Gaussian vector with covariance
+\[
+\mathrm{Cov}(\mathbf N_k) = \mathrm{Cov}(\mathbf Y_k^{\mathrm{rand}}).
+\]
+Then there exist constants $c_m,C_m>0$ (depending only on $m$) such that, for all sufficiently large $T$, all blocks $k\in(n_0,n_L]$, and all axis-aligned rectangles $R\subset \mathbb R^{m+1}$,
+\[
+\Big|\mathbb P_\tau(\mathbf Y_k^{\zeta}\in R)
+- \mathbb P(\mathbf N_k\in R)\Big|
+\le C_m e^{-c_m e^k}.
+\]
+As a consequence, for any smooth test function $\Phi\in C^3(\mathbb R^{m+1})$ with polynomial growth and bounded derivatives up to order 3,
+\[
+\big|\mathbb E_\tau \Phi(\mathbf Y_k^{\zeta})
+- \mathbb E \Phi(\mathbf N_k)\big|
+\le C(m,h_\bullet,\Phi)\,e^{-c'_m e^k}.
+\]
+In particular, the errors are summable in $k$.
+\end{theorem}
+
+Theorem A is a genuine \textbf{blockwise Gaussian universality result for the arithmetic field} $X_T^{\zeta}$. It is not stated in ABR/FHK; its proof uses their smoothing and mean--value machinery but requires a multivariate Berry--Esseen at the block level plus careful length control for Dirichlet polynomial representations.
+
+This is the central technical result of the paper.
+
+\subsection{Random model IBP vs arithmetic IBP}
+
+On top of Theorem A, one would like an approximate \textbf{Gaussian integration--by--parts} identity for the full field. In this direction we prove:
+
+\begin{theorem}[Approximate IBP in the prime--phase model]\label{thm:B_rand}
+For the prime--phase field
+\[
+X_T^{\mathrm{rand}}(h)
+:= \sum_{k} Y_k^{\mathrm{rand}}(h),
+\]
+and any fixed finite set of points $h_0,\dots,h_m\in[-1,1]$, there is a constant $C(F,m,h_\bullet)$ such that for all sufficiently large $T$ and all $C^3$ test functions $F:\mathbb R^{m+1}\to\mathbb R$ with polynomial growth,
+\[
+\bigg|
+\mathbb E\big[X_T^{\mathrm{rand}}(h_0)F(\mathbf X_T^{\mathrm{rand}})\big]
+-\sum_{j=0}^m \Sigma^{\mathrm{rand}}_{0j}\,\mathbb E \big[\partial_{x_j}F(\mathbf X_T^{\mathrm{rand}})\big]
+\bigg|
+\le C(F,m,h_\bullet),
+\]
+where $\Sigma^{\mathrm{rand}}_{0j}
+=\mathrm{Cov}(X_T^{\mathrm{rand}}(h_0),X_T^{\mathrm{rand}}(h_j))$, and $\mathbf X_T^{\mathrm{rand}}=(X_T^{\mathrm{rand}}(h_0),\dots,X_T^{\mathrm{rand}}(h_m))$.
+\end{theorem}
+
+This is an approximate IBP with an \textbf{absolute} error $O(1)$ at scale $\log\log T$; it is proved by combining Theorem A on the random model side (where blocks are independent) with a blockwise Lindeberg replacement and exact Gaussian IBP.
+
+For the \textbf{arithmetic} field $X_T^{\zeta}$, we do \textbf{not} claim such an IBP theorem at present. Instead, we formulate:
+\begin{itemize}
+\item a concrete conjecture about \textbf{global} Dirichlet--polynomial representations of IBP--type functionals with length $\ll T^\delta$; and
+\item a conditional ``Theorem B${}_{\mathrm{arith}}$'' showing that, \emph{if} this conjecture holds, then the same approximate IBP identity carries over to the arithmetic model.
+\end{itemize}
+This clarifies exactly which analytic input is missing for a full Guerra/Parisi analysis in the zeta setting.
+
+\section{Framework: arithmetic and random models, block decomposition}
+
+We first recall the block decomposition and introduce the random prime--phase model and Gaussian surrogates in a unified notation.
+
+\subsection{Block decomposition by size of $\log p$}
+
+Let $T$ be large and $\tau\sim\mathrm{Unif}[T,2T]$. Fix a small $\theta>0$, and define
+\[
+X_T^{\zeta}(h)
+:= \Rea\sum_{p\le T^\theta} p^{-1/2-i(\tau+h)},\qquad |h|\le 1.
+\]
+
+Set
+\[
+n := \lfloor \log\log T\rfloor,\qquad
+n_0 := \lfloor y\rfloor,\qquad
+n_L := n-n_0,
+\]
+where $y$ is a fixed constant (say $y\ge 1$). For $n_0<k\le n_L$, define the $k$-th block of primes
+\[
+\mathcal P_k :=\{p:\ e^{k-1}<\log p\le e^k\}.
+\]
+
+The block increments are
+\[
+Y_k^{\zeta}(h)
+:=\sum_{p\in\mathcal P_k}
+\Rea\Big(p^{-1/2-i(\tau+h)}+\tfrac12 p^{-1-2i(\tau+h)}\Big).
+\]
+
+One has
+\[
+X_T^{\zeta}(h)
+= \sum_{k=n_0+1}^{n_L} Y_k^{\zeta}(h) + R_T^{\zeta}(h),
+\]
+where $R_T^{\zeta}(h)$ collects contributions from primes with $\log p\le e^{n_0}$ and $\log p>e^{n_L}$ and has variance $O(1)$. The main variance ($\sim \tfrac12\log\log T$) is carried by the blocks $Y_k^{\zeta}$.
+
+\subsection{Random prime--phase model}
+
+Let $\{\theta_p\}_{p}$ be i.i.d. uniform on $[0,2\pi]$, and define the prime--phase model
+\[
+X_T^{\mathrm{rand}}(h)
+:= \Rea\sum_{p\le T^\theta} e^{i\theta_p}p^{-1/2-ih}.
+\]
+
+Define block increments
+\[
+Y_k^{\mathrm{rand}}(h)
+:= \sum_{p\in\mathcal P_k}
+\Rea\Big(e^{i\theta_p}p^{-1/2-ih}+\tfrac12e^{2i\theta_p}p^{-1-2ih}\Big),
+\]
+and set
+\[
+X_T^{\mathrm{rand}}(h) = \sum_{k=n_0+1}^{n_L} Y_k^{\mathrm{rand}}(h).
+\]
+
+For each fixed block index $k$, the family $\{Y_k^{\mathrm{rand}}(h)\}_{|h|\le 1}$ forms an increment of a log--correlated field; for our purposes, it is a finite family of sums of independent (in $p$) bounded random variables.
+
+\subsection{Gaussian block surrogates}
+
+Fix $m\ge 0$ and points $h_0,\dots,h_m\in[-1,1]$. For each block $k$, define the block vectors
+\[
+\mathbf Y_k^{\zeta}
+:=\big(Y_k^{\zeta}(h_0),\dots,Y_k^{\zeta}(h_m)\big),
+\quad
+\mathbf Y_k^{\mathrm{rand}}
+:=\big(Y_k^{\mathrm{rand}}(h_0),\dots,Y_k^{\mathrm{rand}}(h_m)\big).
+\]
+
+Let $\Sigma_k := \mathrm{Cov}(\mathbf Y_k^{\mathrm{rand}})$, and define a centred Gaussian vector $\mathbf N_k$ with covariance $\Sigma_k$. The field
+\[
+\mathbf G_T
+:= \sum_{k=n_0+1}^{n_L} \mathbf N_k + \mathbf R_T
+\]
+(with $\mathbf R_T$ a Gaussian tail correction) is our Gaussian surrogate for the finite–dimensional marginals of $\mathbf X_T^{\zeta}$ or $\mathbf X_T^{\mathrm{rand}}$.
+
+\section{Multivariate Berry--Esseen for blocks in the random model}
+
+We begin by establishing a multivariate Berry--Esseen estimate for the block vector $\mathbf Y_k^{\mathrm{rand}}$, for fixed $k$ and finite set of points $h_0,\dots,h_m$.
+
+\subsection{Prime--wise decomposition and moment bounds}
+
+For each prime $p\in\mathcal P_k$, define the contribution
+\[
+W_p
+:=\big(
+\Rea(e^{i\theta_p}p^{-1/2-ih_0}+\tfrac12e^{2i\theta_p}p^{-1-2ih_0}),\dots,
+\Rea(e^{i\theta_p}p^{-1/2-ih_m}+\tfrac12e^{2i\theta_p}p^{-1-2ih_m})
+\big)\in\mathbb R^{m+1}.
+\]
+
+Then
+\[
+\mathbf Y_k^{\mathrm{rand}} = \sum_{p\in\mathcal P_k} W_p.
+\]
+
+The $W_p$ are independent, mean-zero random vectors. Each coordinate of $W_p$ is bounded by $Cp^{-1/2}$, hence
+\[
+|W_p| \ll_m p^{-1/2},\qquad \mathbb E|W_p|^3\ll_m p^{-3/2}.
+\]
+
+Let
+\[
+M_k^{(3)} := \sum_{p\in\mathcal P_k} \mathbb E|W_p|^3.
+\]
+Since $\mathcal P_k\subset\{p:\log p\ge e^{k-1}\}$,
+\[
+M_k^{(3)}\ll_m \sum_{p\in\mathcal P_k}p^{-3/2}
+\ll \exp(-c e^k)
+\]
+for some $c>0$.
+
+On the other hand, the covariance matrix $\Sigma_k = \mathrm{Cov}(\mathbf Y_k^{\mathrm{rand}})$ satisfies
+\[
+\mathrm{tr}(\Sigma_k)
+= \sum_{j=0}^m\mathrm{Var}\big(Y_k^{\mathrm{rand}}(h_j)\big)
+\asymp_m 1,
+\]
+since ABR/FHK show that $\mathrm{Var}(Y_k^{\mathrm{rand}}(h))=\tfrac12+O(e^{-c\sqrt{k}})$ for each fixed $h$.
+
+Thus the Berry--Esseen ``Lyapunov ratio''
+\[
+\rho_k
+:= \frac{M_k^{(3)}}{(\mathrm{tr}(\Sigma_k))^{3/2}}
+\ll_m e^{-c e^k}.
+\]
+
+\subsection{Multivariate Berry--Esseen for rectangles}
+
+We use a standard multivariate Berry--Esseen inequality for sums of independent vectors in $\mathbb R^d$, controlling the Kolmogorov distance over axis–aligned rectangles $\mathcal R_d$:
+
+\begin{theorem}[Multivariate BE for rectangles]
+Let $Z_1,\dots,Z_n$ be independent, mean-zero vectors in $\mathbb R^d$ with covariance $\Sigma$, and let $S:=\sum_i Z_i$, $G\sim \mathcal N(0,\Sigma)$. There exists a constant $C_d>0$ such that
+\[
+\sup_{R\in\mathcal R_d}
+\big|\mathbb P(S\in R) - \mathbb P(G\in R)\big|
+\le C_d \frac{\sum_i\mathbb E|Z_i|^3}{(\mathrm{tr}\,\Sigma)^{3/2}}.
+\]
+\end{theorem}
+
+Applying this with $Z_i=W_{p_i}$ and $d=m+1$, we get:
+
+\begin{proposition}[Block BE in the random model]
+For each fixed $m\ge 0$, points $h_0,\dots,h_m\in[-1,1]$, and block index $k$,
+\[
+\sup_{R\in\mathcal R_{m+1}}
+\big|\mathbb P(\mathbf Y_k^{\mathrm{rand}}\in R)
+-\mathbb P(\mathbf N_k\in R)\big|
+\ll_m e^{-c_m e^k},
+\]
+where $\mathbf N_k\sim\mathcal N(0,\Sigma_k)$ with $\Sigma_k=\mathrm{Cov}(\mathbf Y_k^{\mathrm{rand}})$.
+\end{proposition}
+
+This is the multivariate generalization of the 1D/2D block CLTs in FHK.
+
+\section{Smoothing and Dirichlet polynomial representation (ABR/FHK)}
+
+We now recall the ABR smoothing construction and show how, composed with block increments, it yields Dirichlet polynomials in $\tau$ of controlled length.
+
+\subsection{Smoothing a one--dimensional indicator}
+
+Let $\Delta\ge 2$, $A\ge 1$. ABR construct an entire function $G_{\Delta,A}:\mathbb R\to[0,1]$ with the following properties:
+
+\begin{enumerate}
+\item \textbf{Approximation of an interval.}
+   For any interval $[u,v]\subset \mathbb R$,
+   \[
+   1_{[u,v]}(x)\le G_{\Delta,A}(x-u)\le 1_{[u-\Delta^{-A},v+\Delta^{-A}]}(x) + O(e^{-\Delta^{A-1}}).
+   \]
+\item \textbf{Dirichlet polynomial representation.}
+   $G_{\Delta,A}$ can be written as the squared modulus of a trigonometric polynomial
+   \[
+   G_{\Delta,A}(x) = |D_{\Delta,A}(x)|^2,
+   \]
+   where
+   \[
+   D_{\Delta,A}(x)
+   = \sum_{|\ell|\le \Delta^{C}} d_\ell e^{2\pi i \ell x}
+   \]
+   for some absolute constant $C$, and $|d_\ell|\le \Delta^{C'}$.
+\end{enumerate}
+
+By scaling and translation, we may produce for each interval $[a,b]$ a function $G_{[a,b]}$ with analogous properties:
+\[
+1_{[a,b]}(x)\le G_{[a,b]}(x)\le 1_{[a-\delta,b+\delta]}(x) + O(e^{-\Delta^{A-1}}),
+\]
+where $\delta=\Delta^{-A}$, and
+\[
+G_{[a,b]}(x) = |D_{[a,b]}(x)|^2
+\]
+with $D_{[a,b]}$ a trigonometric polynomial of degree $\ll \Delta^C$.
+
+\subsection{Product smoothing for a rectangle in $\mathbb R^{m+1}$}
+
+Let
+\[
+R=\prod_{r=0}^m [a_r,b_r]\subset\mathbb R^{m+1}.
+\]
+Define
+\[
+G_R(\mathbf x)
+:=\prod_{r=0}^m G_{[a_r,b_r]}(x_r),
+\qquad
+\mathbf x=(x_0,\dots,x_m)\in\mathbb R^{m+1}.
+\]
+
+Then:
+\begin{itemize}
+\item For all $\mathbf x$,
+  \[
+  1_R(\mathbf x)\le G_R(\mathbf x)
+  \le 1_{R^{(+\delta)}}(\mathbf x) + O(e^{-\Delta^{A-1}}),
+  \]
+  where $R^{(+\delta)}$ is the rectangle obtained by fattening each interval by $\delta=\Delta^{-A}$.
+\item $G_R(\mathbf x)$ is a finite linear combination of products of exponentials $\exp(2\pi i\sum_r \ell_r x_r)$, with $|\ell_r|\le \Delta^C$, and coefficients of size $\ll \Delta^{C'(m)}$.
+\end{itemize}
+
+\subsection{Composition with block increments and length bounds}
+
+Fix a block $k\in(n_0,n_L]$. For each $r$, $Y_k^{\zeta}(h_r)$ is a finite sum over primes $p\in\mathcal P_k$ of terms of the form $p^{-1/2-i(\tau+h_r)}$, $p^{-1-2i(\tau+h_r)}$, and their conjugates. Therefore, each monomial in $Y_k^{\zeta}(h_r)$ of degree $\le M$ is a sum over integers $n$ of the form
+\[
+n=\prod_{p\in\mathcal P_k} p^{v_p},\quad 0\le v_p\le M,
+\]
+with coefficients $\ll p^{-v_p/2}$, and can therefore be written as
+\[
+\sum_{n\le \exp(Me^k)} a_n n^{-1/2-i\tau}.
+\]
+
+By expanding $G_R(\mathbf Y_k^{\zeta}(\tau))$ as a polynomial in the coordinates $Y_k^{\zeta}(h_r)$ of degree bounded by $\ll \Delta^{C}$, we conclude:
+
+\begin{proposition}[Dirichlet polynomial representation, block level]
+Fix $m\ge 0$ and points $h_0,\dots,h_m\in[-1,1]$. For each block $k\le n_L$ and rectangle $R\subset\mathbb R^{m+1}$, there exists a Dirichlet polynomial
+\[
+Q_{k,R}(\tau)
+=\sum_{n\le N_k} b_{k,R}(n)\,n^{-1/2-i\tau}
+\]
+with length
+\[
+N_k \le \exp(C_m \Delta_k^{C'} e^k),
+\]
+where $\Delta_k$ is a chosen scale parameter, such that
+\[
+G_R\big(\mathbf Y_k^{\zeta}(\tau)\big)
+= |Q_{k,R}(\tau)|^2 + O_m(e^{-\Delta_k^{A-1}})
+\]
+pointwise in $\tau$.
+\end{proposition}
+
+ABR/FHK select
+\[
+\Delta_k := (k\wedge (n-k))^4,
+\]
+and show (by summing over $k$ and choosing constants appropriately) that for all $k\le n_L$,
+\[
+\exp(C_m \Delta_k^{C'} e^k) \le \exp(e^n/100)=T^{1/100}.
+\]
+
+We adopt this choice here, so that for all blocks $k\le n_L$,
+\[
+N_k \le T^{1/100}.
+\]
+
+A completely analogous construction yields a \textbf{random} Dirichlet polynomial
+\[
+Q_{k,R}^{\mathrm{rand}}
+= \sum_{n\le N_k} b_{k,R}(n) X_n n^{-1/2},
+\]
+where the $X_n$ are multiplicative random phases built from the independent $\theta_p$, such that
+\[
+G_R(\mathbf Y_k^{\mathrm{rand}}) = |Q_{k,R}^{\mathrm{rand}}|^2 + O_m(e^{-\Delta_k^{A-1}}).
+\]
+
+\section{Arithmetic vs random: mean--value theorem and proof of Theorem A}
+
+We now use ABR's mean--value theorem for Dirichlet polynomials to compare arithmetic and prime--phase expectations of the smoothed observables $G_R(\mathbf Y_k^{\zeta})$.
+
+\subsection{Mean--value theorem}
+
+We use the following mean--value theorem for Dirichlet polynomials, which is a standard consequence of Montgomery--Vaughan mean--value estimates and ABR/FHK's setup:
+
+\begin{lemma}[Mean--value theorem]
+Let $\tau\sim\mathrm{Unif}[T,2T]$, and let
+\[
+D(\tau)
+= \sum_{n\le N} a(n) n^{-1/2-i\tau},
+\]
+with $N\le T^{1/4}$. Then
+\[
+\mathbb E_\tau |D(\tau)|^2
+= \Big(1+O\Big(\frac{N}{T}\Big)\Big)
+\sum_{n\le N}|a(n)|^2
+= \Big(1+O\Big(\frac{N}{T}\Big)\Big)
+\mathbb E_Z\Big|\sum_{n\le N}a(n)X_n n^{-1/2}\Big|^2,
+\]
+where $X_n$ is the multiplicative prime--phase model.
+\end{lemma}
+
+In our setting, $N_k\le T^{1/100}\le T^{1/4}$ for large $T$, so Lemma 5.1 applies to each $Q_{k,R}$.
+
+\subsection{Expectation comparison for smoothed indicators}
+
+Combining Proposition 4.1 and Lemma 5.1 yields:
+\[
+\begin{aligned}
+\mathbb E_\tau G_R(\mathbf Y_k^{\zeta})
+&= \mathbb E_\tau |Q_{k,R}(\tau)|^2 + O_m(e^{-\Delta_k^{A-1}})\\
+&= \Big(1+O\Big(\frac{N_k}{T}\Big)\Big)\sum_{n\le N_k}|b_{k,R}(n)|^2 + O_m(e^{-\Delta_k^{A-1}})\\
+&= \Big(1+O\Big(\frac{N_k}{T}\Big)\Big)\mathbb E_Z|Q_{k,R}^{\mathrm{rand}}|^2 + O_m(e^{-\Delta_k^{A-1}})\\
+&= \mathbb E_Z G_R(\mathbf Y_k^{\mathrm{rand}}) + O_m\Big(\frac{N_k}{T}\Big) + O_m(e^{-\Delta_k^{A-1}}).
+\end{aligned}
+\]
+
+Since $N_k\le T^{1/100}$, the mean--value error satisfies
+\[
+\frac{N_k}{T}\le T^{-99/100},
+\]
+which is much smaller than any power of $e^{-e^k}$ for $k\le n_L$ (recall $e^n=\log T$ and $e^k\le e^n$). Specifically, for each fixed $\varepsilon>0$,
+\[
+T^{-99/100}\le e^{-\varepsilon e^k}
+\]
+for all $k\le n_L$ and large $T$. Likewise, $e^{-\Delta_k^{A-1}}$ decays super-polynomially in $k$.
+
+Thus we can write
+\[
+\big|\mathbb E_\tau G_R(\mathbf Y_k^{\zeta})
+-\mathbb E_Z G_R(\mathbf Y_k^{\mathrm{rand}})\big|
+\ll_m e^{-c_m e^k}.
+\]
+
+\subsection{From smoothed indicators to rectangles and smooth test functions}
+
+By construction,
+\[
+1_R(\mathbf x)\le G_R(\mathbf x)\le 1_{R^{(+\delta)}}(\mathbf x)+O(e^{-\Delta_k^{A-1}}),
+\]
+with $\delta=\Delta_k^{-A}$. Therefore, for any random vector $\mathbf V$,
+\[
+\mathbb P(\mathbf V\in R)\le \mathbb E G_R(\mathbf V)
+\le \mathbb P(\mathbf V\in R^{(+\delta)}) + O(e^{-\Delta_k^{A-1}}).
+\]
+
+Applying this to $\mathbf V=\mathbf Y_k^{\zeta}$ and $\mathbf V=\mathbf Y_k^{\mathrm{rand}}$, and using the block BE for $\mathbf Y_k^{\mathrm{rand}}$ vs $\mathbf N_k$ (Proposition 3.2), we obtain:
+\[
+\begin{aligned}
+\big|\mathbb P_\tau(\mathbf Y_k^{\zeta}\in R)
+-\mathbb P(\mathbf N_k\in R)\big|
+&\le
+\big|\mathbb E_\tau G_R(\mathbf Y_k^{\zeta})-\mathbb E G_R(\mathbf N_k)\big|
++O_m(\delta)+O_m(e^{-\Delta_k^{A-1}})\\
+&\ll_m e^{-c_m e^k} + \delta.
+\end{aligned}
+\]
+
+With $\Delta_k=(k\wedge(n-k))^4$ and $A$ large, $\delta=\Delta_k^{-A}$ decays faster than any power of $k$, so in particular
+\[
+\sum_{k} \delta <\infty.
+\]
+The leading error term is $e^{-c_m e^k}$, also summable in $k$.
+
+This proves the rectangle version of Theorem A. The smooth test–function version follows similarly by approximating any $\Phi\in C^3$ by finite linear combinations of such smoothed rectangles and using the block BE plus the above error estimates.
+
+This completes the proof of Theorem A.
+
+\section{Approximate Gaussian integration--by--parts in the random model}
+
+We now work entirely in the \textbf{random prime–phase model}, where blocks are independent, and deduce an approximate Gaussian IBP for the full field $X_T^{\mathrm{rand}}(h)$.
+
+\subsection{Setup}
+
+Fix $m\ge 0$ and points $h_0,\dots,h_m\in[-1,1]$. Define
+\[
+X_T^{\mathrm{rand}}(h)
+:=\sum_{k=n_0+1}^{n_L}Y_k^{\mathrm{rand}}(h),
+\qquad
+\mathbf X_T^{\mathrm{rand}} := (X_T^{\mathrm{rand}}(h_0),\dots,X_T^{\mathrm{rand}}(h_m)).
+\]
+
+Similarly, let
+\[
+\mathbf G_T = \sum_{k=n_0+1}^{n_L} \mathbf N_k + \mathbf R_T
+\]
+be a Gaussian vector with covariance
+\[
+\Sigma_T^{\mathrm{rand}} := \mathrm{Cov}(\mathbf X_T^{\mathrm{rand}}).
+\]
+
+By Theorem A (applied to the random model) and independence of blocks, we can compare $\mathbf X_T^{\mathrm{rand}}$ and $\mathbf G_T$ at the level of expectations of smooth functionals with error $O(1)$.
+
+\subsection{Blockwise Lindeberg replacement}
+
+Let $F:\mathbb R^{m+1}\to\mathbb R$ be $C^3$ with polynomial growth and bounded derivatives up to order 3. Define
+\[
+\Phi_0(x) := x_0 F(x),\qquad
+\Phi_j(x) := \partial_{x_j}F(x),\quad j=0,\dots,m.
+\]
+
+Consider hybrid fields
+\[
+\mathbf Z^{(\ell)}
+:= \sum_{k\le \ell}\mathbf Y_k^{\mathrm{rand}} + \sum_{k>\ell}\mathbf N_k + \mathbf R_T,
+\qquad
+\ell=n_0,\dots,n_L.
+\]
+
+Thus $\mathbf Z^{(n_0)}=\mathbf G_T$ and $\mathbf Z^{(n_L)}$ is a version of $\mathbf X_T^{\mathrm{rand}}$ (up to Gaussian tail correction $\mathbf R_T$ of variance $O(1)$).
+
+Write
+\[
+\Delta_\ell(\Phi) := \mathbb E\Phi(\mathbf Z^{(\ell+1)}) -\mathbb E\Phi(\mathbf Z^{(\ell)}).
+\]
+
+By construction, conditioning on all blocks except $\ell+1$, we can write
+\[
+\Delta_\ell(\Phi)
+= \mathbb E\Big[\Phi(U+Y_{\ell+1}^{\mathrm{rand}})
+-\Phi(U+N_{\ell+1})\Big],
+\]
+where $U$ is independent of $Y_{\ell+1}^{\mathrm{rand}}$, $N_{\ell+1}$. Here independence holds because the $Y_k^{\mathrm{rand}}$ are independent in $k$.
+
+A standard application of the block BE (Theorem A in the random model) and Taylor expansion of $\Phi$ shows that
+\[
+|\Delta_\ell(\Phi)|
+\le C(F,m,h_\bullet) e^{-c_m e^{\ell+1}}.
+\]
+
+Summing over $\ell$ yields
+\[
+\big|\mathbb E\Phi(\mathbf X_T^{\mathrm{rand}})
+-\mathbb E\Phi(\mathbf G_T)\big|
+\le \sum_{\ell} |\Delta_\ell(\Phi)| + O(1)
+\le C(F,m,h_\bullet).
+\]
+
+In particular, this holds when $\Phi=\Phi_0$ and $\Phi_j$.
+
+\subsection{Gaussian IBP and conclusion}
+
+For the Gaussian vector $\mathbf G_T\sim \mathcal N(0,\Sigma_T^{\mathrm{rand}})$, exact Gaussian integration--by--parts gives
+\[
+\mathbb E[G_T(h_0) F(\mathbf G_T)]
+= \sum_{j=0}^m \Sigma^{\mathrm{rand}}_{0j} \mathbb E[\partial_{x_j}F(\mathbf G_T)].
+\]
+
+Combining with the comparison estimates for $\Phi_0,\Phi_j$ yields:
+\[
+\begin{aligned}
+&\mathbb E\big[X_T^{\mathrm{rand}}(h_0)F(\mathbf X_T^{\mathrm{rand}})\big]
+-\sum_{j=0}^m\Sigma^{\mathrm{rand}}_{0j}\,\mathbb E\big[\partial_{x_j}F(\mathbf X_T^{\mathrm{rand}})\big]\\
+&\quad = \big(\mathbb E\Phi_0(\mathbf X_T^{\mathrm{rand}}) -\mathbb E\Phi_0(\mathbf G_T)\big)
+-\sum_{j=0}^m\Sigma^{\mathrm{rand}}_{0j}\big(\mathbb E\Phi_j(\mathbf X_T^{\mathrm{rand}}) -\mathbb E\Phi_j(\mathbf G_T)\big)\\
+&\quad = O(F,m,h_\bullet).
+\end{aligned}
+\]
+
+This is precisely Theorem B(${}_{\mathrm{rand}}$): an approximate Gaussian IBP for the random model with absolute error $O(1)$.
+
+\section{Arithmetic IBP and open problems}
+
+We now return to the \textbf{arithmetic} field $X_T^{\zeta}$. One would like to prove an analogue of Theorem B(${}_{\mathrm{rand}}$) for $\mathbf X_T^{\zeta}$. However, the Lindeberg argument of Section 6 fails in the arithmetic setting because the blocks $Y_k^{\zeta}$ are all functions of the same $\tau$ and are not independent.
+
+We explain the obstruction, then formulate a precise global Dirichlet–polynomial representation conjecture under which an arithmetic IBP would follow.
+
+\subsection{Why blockwise Lindeberg fails in the arithmetic model}
+
+In the random model, $\mathbf Z^{(\ell)}$ is a sum of independent blocks up to $\ell$, plus independent Gaussian blocks from $\ell+1$ onward. Conditioning on all blocks except $\ell+1$ truly isolates the single increment $Y_{\ell+1}^{\mathrm{rand}}$, and the block BE controls the difference $\Phi(U+Y_{\ell+1}^{\mathrm{rand}})-\Phi(U+N_{\ell+1})$.
+
+In the arithmetic model, if we write
+\[
+\mathbf X_T^{\zeta} = \sum_k \mathbf Y_k^{\zeta} + \mathbf R_T^{\zeta},
+\]
+then any hybrid
+\[
+\mathbf Z^{(\ell)} := \sum_{k\le \ell}\mathbf Y_k^{\zeta} + \sum_{k>\ell} \mathbf N_k + \mathbf R_T,
+\]
+is still a function of the \emph{same} random variable $\tau$ through the surviving $Y_k^{\zeta}$; there is no independence across blocks. Conditioning on ``all blocks except $\ell+1$'' does not yield a random variable $U$ independent of $Y_{\ell+1}^{\zeta}$: both are functions of $\tau$.
+
+Theorem A is a \textbf{marginal} CLT for each block $\mathbf Y_k^{\zeta}$, but it says nothing about the joint distribution of $(\mathbf Y_k^{\zeta}, U)$ for arbitrary $U$. Consequently, there is no way to bound
+\[
+\mathbb E_\tau\Big[\Phi(U+Y_{\ell+1}^{\zeta})-\Phi(U+N_{\ell+1})\Big]
+\]
+by Theorem A alone: we would need a conditional CLT for $Y_{\ell+1}^{\zeta}$ given $U$, which we do not have.
+
+Therefore \textbf{the blockwise Lindeberg replacement is not available in the arithmetic field}, and the naive attempt to mimic Section 6 fails at a conceptual level.
+
+\subsection{A global Dirichlet–polynomial representation conjecture}
+
+To recover an IBP identity for $X_T^{\zeta}$, one must work at the level of the \textbf{entire functional} appearing in IBP, rather than blockwise. The natural approach is:
+\begin{itemize}
+    \item Represent the IBP functional (e.g. $X_T^{\zeta}(h_0)F(\mathbf X_T^{\zeta})$) as a single global Dirichlet polynomial $Q_{\mathrm{tot}}(\tau)$ of controlled length $N_{\mathrm{tot}}\le T^\delta$ for some $\delta<1$.
+    \item Apply a global mean–value theorem to compare $\mathbb E_\tau Q_{\mathrm{tot}}(\tau)$ with the corresponding expectation in the prime–phase model.
+\end{itemize}
+
+We formalize this as follows.
+
+Fix $m$ and points $h_0,\dots,h_m\in[-1,1]$. Let $\mathcal F$ be a class of test functions $F:\mathbb R^{m+1}\to\mathbb R$ (e.g. smooth with certain growth, or a specific family such as free–energy observables). For each $F\in\mathcal F$, define
+\[
+\Phi_0^F(\mathbf x) := x_0 F(\mathbf x),\qquad \Phi_j^F(\mathbf x):=\partial_{x_j}F(\mathbf x).
+\]
+
+\begin{conjecture}[Global Dirichlet–polynomial representation]
+There exists $\delta\in(0,1)$ and a class $\mathcal F$ of test functions such that for each $F\in\mathcal F$, and each $j=0,\dots,m$, there are Dirichlet polynomials
+\[
+Q_{F,j}(\tau) = \sum_{n\le N_{\mathrm{tot}}} a_{F,j}(n)n^{-1/2-i\tau},\qquad N_{\mathrm{tot}}\le T^\delta,
+\]
+with
+\[
+\Phi_j^F(\mathbf X_T^{\zeta}(\tau))
+= Q_{F,j}(\tau) + o(\log\log T)
+\quad\text{in }L^1(\tau\in[T,2T]),
+\]
+and such that the analogous prime–phase polynomials $Q_{F,j}^{\mathrm{rand}}$ have the same coefficients.
+\end{conjecture}
+
+If such a representation exists, then Lemma 5.1 (suitably generalized to $\mathbb E|Q_{F,j}|^2$ and slightly higher moments) yields
+\[
+\mathbb E_\tau \Phi_j^F(\mathbf X_T^{\zeta})
+= \mathbb E_Z \Phi_j^F(\mathbf X_T^{\mathrm{rand}}) + o(\log\log T),
+\]
+for all $F\in\mathcal F$, $j=0,\dots,m$. Similarly for $X_T^{\zeta}(h_0)F(\mathbf X_T^{\zeta})$.
+
+\subsection{Conditional arithmetic IBP}
+
+Assume the above conjecture for a class $\mathcal F$ containing the Gibbs/free–energy observables of interest. The random–model IBP (Theorem B(${}_{\mathrm{rand}}$)) gives
+\[
+\mathbb E_Z\big[X_T^{\mathrm{rand}}(h_0)F(\mathbf X_T^{\mathrm{rand}})\big]
+= \sum_{j=0}^m \Sigma^{\mathrm{rand}}_{0j}\,\mathbb E_Z\big[\partial_{x_j}F(\mathbf X_T^{\mathrm{rand}})\big] + O(1).
+\]
+
+Assuming the conjectural Dirichlet–polynomial representation and applying the mean–value transfer, we obtain
+\[
+\mathbb E_\tau\big[X_T^{\zeta}(h_0)F(\mathbf X_T^{\zeta})\big]
+= \sum_{j=0}^m \Sigma^{\mathrm{rand}}_{0j}\,\mathbb E_\tau\big[\partial_{x_j}F(\mathbf X_T^{\zeta})\big] + O(1) + o(\log\log T).
+\]
+
+Since $\Sigma^{\mathrm{rand}}_{0j}=\Sigma^{\zeta}_{0j}+O(1)$ (ABR/FHK), we can rewrite the main term with $\Sigma^{\zeta}_{0j}$ at the cost of an additional $O(1)$ error. Thus we obtain:
+
+\begin{theorem}[Conditional Theorem B${}_{\mathrm{arith}}$]\label{thm:B_arith}
+Assume the global Dirichlet–polynomial representation conjecture above for a class $\mathcal F$ and fixed points $h_0,\dots,h_m$. Then for each $F\in\mathcal F$,
+\[
+\bigg|
+\mathbb E_\tau\big[X_T^{\zeta}(h_0)F(\mathbf X_T^{\zeta})\big]
+-\sum_{j=0}^m\Sigma^{\zeta}_{0j}\,\mathbb E_\tau\big[\partial_{x_j}F(\mathbf X_T^{\zeta})\big]
+\bigg|
+= O_F(1).
+\]
+Dividing by $\log\log T$, the relative error tends to 0 as $T\to\infty$.
+\end{theorem}
+
+This is exactly the approximate IBP identity needed to apply the Guerra/Parisi machinery (stochastic stability, Ghirlanda–Guerra identities) to the arithmetic field for the class $\mathcal F$.
+
+\subsection{Relation to spin–glass theory}
+
+From the spin–glass perspective, the field $X_T^{\zeta}(h)$ or its prime–phase analogue plays the role of a Hamiltonian on a one–dimensional configuration space (the interval $h\in[-1,1]$); the Guerra interpolation and Parisi's functional require two main analytic inputs:
+\begin{enumerate}
+    \item \textbf{Gaussian universality / approximate IBP} for the finite–dimensional distributions of the Hamiltonian at a given ``temperature'', and
+    \item Precise control of the free energy (or maximum) and of overlaps.
+\end{enumerate}
+
+Theorem A provides a \textbf{blockwise} Gaussian approximation in the arithmetic model, and Theorem B(${}_{\mathrm{rand}}$) plus Theorem A provide a fully rigorous approximate IBP in the \textbf{random} model. Thus, for the random model, stochastic stability and Ghirlanda–Guerra identities at high temperature can be treated with standard methods.
+
+For the arithmetic model, the missing piece is exactly the global Dirichlet–polynomial representation conjecture above. Proving such a representation for an appropriate class $\mathcal F$ would constitute a major analytic advance: it would bridge ABR/FHK's detailed Dirichlet-polynomial technology and the full Parisi/Guerra overlap analysis for the zeta field.
+
+We view the present paper as a technical bridge in this direction:
+\begin{itemize}
+\item It \textbf{packages} the ABR/FHK machinery into a robust arithmetic block Gaussian universality theorem (Theorem A).
+\item It shows how, \emph{given} a global Dirichlet–polynomial representation for IBP functionals, one could bootstrap Theorem A and the random–model IBP into a full arithmetic IBP.
+\item It thereby isolates a concrete and well–posed analytic problem at the interface of analytic number theory and spin–glass theory.
+\end{itemize}
+
+We do not claim that this final step is solved here, and we believe it is a natural and challenging direction for future work.
+
+\end{document}

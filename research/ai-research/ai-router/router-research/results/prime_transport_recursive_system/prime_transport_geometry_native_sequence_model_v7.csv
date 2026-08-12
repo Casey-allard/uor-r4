@@ -1,0 +1,3 @@
+model,train_loss,test_loss,test_accuracy,transfer_query_accuracy,param_count,effective_state_size,train_seconds,eval_seconds
+geometry_native_sequence_model_v7,0.009290146641,8.150774955750,0.479204952717,0.544108569622,5699,10,2.026054167072,0.005754499929
+tiny_transformer_baseline_v7,0.430381655693,2.312074422836,0.480468750000,0.502776086330,70019,64,5.265222666902,0.028366292012

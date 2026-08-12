@@ -1,0 +1,638 @@
+\documentclass[11pt]{article}
+\input{riemann_common_preamble.tex}
+
+\title{A certified zero-free region for the Riemann zeta function\\in the half-plane $\Re s \ge 0.6$ (v6a draft)}
+\author{Jonathan Washburn}
+\date{January 28, 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+This draft is an attempt to restore the original all-heights claim $\zeta(s)\neq 0$ on $\{\,\Re s\ge 0.6\,\}$ by the standard referee-approved structure:
+(\textbf{nearfield}) a certified statement on a compact strip $\{0.6\le \Re s\le 0.999,\ |\Im s|\le T_{\rm cert}\}$;
+(\textbf{farfield}) a fully explicit analytic lemma that makes the complementary tail region $|\Im s|\ge T$ automatic; and
+(\textbf{bridge}) additional certified domains if $T>T_{\rm cert}$.
+\textcolor{blue}{GAP: in this v6a draft, the farfield lemma is currently a template; it must be instantiated for the arithmetic object used in the pinch (with explicit constants) in order to recover the unconditional all-heights theorem.}
+\end{abstract}
+
+\section{Introduction}
+
+The Riemann zeta function
+\[
+  \zeta(s)\;=\;\sum_{n\ge 1}\frac{1}{n^s},\qquad \Re s>1,
+\]
+extends meromorphically to $\C$ with a simple pole at $s=1$ and satisfies a functional equation after completion.
+Its nontrivial zeros govern the finest fluctuations in the distribution of prime numbers, and the Riemann Hypothesis asserts that all such zeros lie on the critical line $\Re s=\tfrac12$; see \cite{Titchmarsh,IK} for background.
+
+This draft targets an unconditional, all-heights far-field exclusion in the direction of RH.
+
+\begin{theorem}[Certified low-height far-field zero-freeness]\label{thm:nearfield}
+The Riemann zeta function has no zeros in the compact region
+\[
+  R_{\rm cert}\ :=\ \{\,s=\sigma+it:\ 0.6\le \sigma \le 0.999,\ |t|\le 20\,\}.
+\]
+\end{theorem}
+
+\begin{theorem}[All-heights far-field zero-freeness (target)]\label{thm:farfield}
+The Riemann zeta function has no zeros in the region $\{\,s\in\C:\ \Re s\ge 0.6\,\}$.
+\end{theorem}
+\textcolor{blue}{GAP: Theorem~\ref{thm:farfield} is a target statement in v6a.
+Theorem~\ref{thm:nearfield} is proved from the shipped certified artifacts.
+We isolate below the exact additional farfield lemma (with explicit constants) and any needed bridge artifacts to upgrade from $\{|t|\le 20\}$ to all heights.}
+
+\subsection*{Strategy: Schur pinching via a Cayley field}
+We work on the right half-plane $\Omega=\{\,\Re s>\tfrac12\,\}$.
+In Section~\ref{sec:defs} we define an arithmetic ratio $\mathcal J$ (in the default \emph{raw $\zeta$-gauge}) with the following two structural properties:
+\begin{itemize}
+\item \textbf{(normalization at $+\infty$)} $\mathcal J(\sigma+it)\to 1$ as $\sigma\to+\infty$, hence $\Theta(\sigma+it)\to \tfrac13$ (Remark~\ref{rem:Ocan-role});
+\item \textbf{(non-cancellation)} $\dettwo(I-A(s))$ is holomorphic and nonvanishing on $\Omega$, so any zero of $\zeta$ in $\Omega$ produces a pole of $\mathcal J$ (Remark~\ref{rem:poles}).
+\end{itemize}
+We then pass to the Cayley transform
+\[
+  \Theta(s)\ :=\ \frac{2\mathcal J(s)-1}{2\mathcal J(s)+1}.
+\]
+The analytic mechanism is a \emph{Schur/Herglotz pinch} proved in Section~\ref{sec:pinch}:
+if $\Theta$ is Schur on a domain (i.e.\ $|\Theta|\le 1$) and not identically $1$, then boundedness forces removability of any isolated singularity and prevents poles of $\mathcal J$.
+Since $\Theta(\sigma+it)\to \tfrac13$ as $\sigma\to+\infty$, the degenerate possibility $\Theta\equiv 1$ is excluded on the half-planes relevant here.
+Therefore, Theorem~\ref{thm:nearfield} is proved by excluding poles of $\mathcal J$ on the compact region $R_{\rm cert}$, which we do by certifying Schur bounds (or direct nonvanishing) on an explicit open cover of $R_{\rm cert}$.
+To upgrade to Theorem~\ref{thm:farfield}, one additionally needs a farfield lemma controlling the complementary region $|t|\ge T$ together with a finite bridge certification if $T>20$; see Section~\ref{sec:all-heights}.
+
+\subsection*{Certified inputs (what is rigorously checked)}
+We separate the available certified inputs (already audited) from the missing farfield step.
+\begin{itemize}
+\item \textbf{Nearfield (certified).} Rigorous ball arithmetic certifies zero-freeness on a compact low-height region
+\[
+  R_{\rm cert}:=\{\,s=\sigma+it:\ 0.6\le \sigma \le 0.999,\ |t|\le T_{\rm cert}\,\},
+\]
+currently with $T_{\rm cert}=20$, by directly certifying $\zeta(s)\neq 0$ on two rectangles:
+\[
+  [0.6,0.7]\times[-20,20]\qquad\text{and}\qquad [0.7,0.999]\times[-20,20],
+\]
+via the verifier’s \texttt{zeta\_certify} mode (Section~\ref{sec:cert}).
+\item \textbf{Farfield (analytic).} \textcolor{blue}{GAP: provide a fully explicit lemma (no big-O) that implies zero-freeness on
+\[
+  R_{\rm tail}:=\{\,s=\sigma+it:\ 0.6\le \sigma \le 0.999,\ |t|\ge T\,\}
+\]
+for some explicit $T$.}
+\item \textbf{Bridge (certified, if needed).} \textcolor{blue}{GAP: if the farfield lemma only activates at $T>T_{\rm cert}$, add certified domains covering $T_{\rm cert}\le |t|\le T$ (finite computation).}
+\end{itemize}
+
+We also supply a \textbf{finite arithmetic Pick-matrix certificate} at $\sigma_0=0.599$ (with $N=16$ and a strict spectral gap) as an algebraic robustness check.
+\textcolor{blue}{GAP: do not use the finite Pick certificate to infer infinite positivity unless explicit block/tail operator bounds are provided (per the referee report).}
+
+\subsection*{Reproducibility and audit posture}
+The certification is intended to be referee-auditable.
+The repository includes:
+(i) the verifier script based on ARB ball arithmetic (`python-flint`),
+and (ii) the JSON artifacts that record the certified maxima, spectral gaps, and denominator checks used in the proof.
+The file \texttt{README.md} provides an audit manifest mapping the manuscript’s statements to exact commands and expected outputs.
+
+\subsection*{Place in a series}
+This paper is designed to stand alone as an unconditional certified zero-free region.
+Two companion papers (not required for Theorem~\ref{thm:nearfield}) treat: (a) effective near-field energy barriers and Carleson budgets, and (b) a cutoff principle yielding conditional closure of RH.
+
+\medskip
+\noindent The remainder of the paper defines the arithmetic ratio $\mathcal J$ and Cayley field $\Theta$, proves the Schur pinch mechanism, and then discharges the Schur bound via the hybrid certification outlined above.
+
+\section{Definitions and main objects}\label{sec:defs}
+
+This section defines the analytic objects used throughout the proof and records the basic relationships between zeros of $\zeta$ and the bounded-real (Schur/Herglotz) structure.
+Nothing in this section is conditional; all definitions are classical.
+
+\subsection*{The completed zeta function and the far half-plane}
+Let $\zeta(s)$ denote the Riemann zeta function.
+We write $\xi(s)$ for the completed zeta function
+\[
+  \xi(s)\ :=\ \tfrac12\,s(s-1)\,\pi^{-s/2}\Gamma(s/2)\,\zeta(s),
+\]
+which is entire and satisfies the functional equation $\xi(s)=\xi(1-s)$; see \cite{Titchmarsh}.
+We work primarily on the right half-plane
+\[
+  \Omega\ :=\ \{\,s\in\C:\ \Re s>\tfrac12\,\}.
+\]
+Write $Z(\xi):=\{\,s\in\C:\ \xi(s)=0\,\}$ for the zero set of $\xi$.
+Theorem~\ref{thm:nearfield} concerns the compact far region
+\[
+  R_{\rm cert}\ =\ [0.6,0.999]\times[-20,20]\ \subset\ \Omega.
+\]
+\textcolor{blue}{GAP: Theorem~\ref{thm:farfield} additionally requires an explicit farfield lemma on $|t|\ge T$ (and a bridge if $T>20$); see Section~\ref{sec:all-heights}.}
+
+\subsection*{The prime-diagonal operator and the regularized determinant}
+Let $\PP$ denote the set of primes and write $\ell^2(\PP)$ for the Hilbert space with orthonormal basis $\{e_p\}_{p\in\PP}$.
+For $s\in\C$ define the prime-diagonal operator
+\[
+  A(s):\ell^2(\PP)\to\ell^2(\PP),\qquad A(s)e_p:=p^{-s}e_p.
+\]
+For $\Re s>1/2$ we have $\|A(s)\|_{\mathrm{HS}}^2=\sum_{p}p^{-2\Re s}<\infty$, so $A(s)$ is Hilbert--Schmidt.
+In particular, the regularized determinant $\dettwo(I-A(s))$ is well-defined and holomorphic on $\Omega$; see, e.g., \cite[Ch.~III]{RosenblumRovnyak}.
+
+\subsection*{The arithmetic ratio \texorpdfstring{$\mathcal J$}{J} and the Cayley field \texorpdfstring{$\Theta$}{Theta}}
+The central meromorphic object is an arithmetic ratio $\mathcal J(s)$ whose poles capture zeros of $\zeta$ in $\Omega$.
+To allow numerically stable certified bounds, we permit a holomorphic nonvanishing \emph{normalizer} (or \emph{gauge}) $\mathcal O$ on the region under discussion and define
+\begin{equation}\label{eq:J-def}
+  \mathcal{J}(s)\ :=\ \frac{\dettwo(I-A(s))}{\zeta(s)}\cdot \frac{s}{s-1}\cdot \frac{1}{\mathcal O(s)},
+\end{equation}
+where $\mathcal O$ is chosen so that it is holomorphic and nonvanishing on the region where \eqref{eq:J-def} is used.
+Unless explicitly stated otherwise, we work in the \emph{raw $\zeta$-gauge} $\mathcal O\equiv 1$ and denote the resulting objects by $\mathcal J_{\rm raw}$ and $\Theta_{\rm raw}$.
+For readability we usually drop the subscript and simply write $\mathcal J$ and $\Theta$ in this default gauge.
+On compact regions one may also divide by an auxiliary holomorphic nonvanishing normalizer to improve conditioning; when we do so we write $\mathcal J_{\rm proj}$ and $\Theta_{\rm proj}$ (see Remark~\ref{rem:gauges}).
+Since Schur bounds are \emph{not} gauge-invariant, we keep this notation explicit whenever a certified bound is quoted or invoked in the pinch argument.
+On any region where the auxiliary normalizer is nonvanishing, such a gauge change does not affect the pole set of $\mathcal J$ (hence does not change which points correspond to zeros of $\zeta$).
+
+\begin{remark}[Normalizations (gauges)]\label{rem:gauges}
+Let $D\subset\Omega$ be a domain and let $\mathcal O_1,\mathcal O_2$ be holomorphic and nonvanishing on $D$.
+Define $\mathcal J_j(s):=\frac{\dettwo(I-A(s))}{\zeta(s)}\cdot\frac{s}{s-1}\cdot\frac{1}{\mathcal O_j(s)}$.
+Then $\mathcal J_2=\mathcal J_1\cdot(\mathcal O_1/\mathcal O_2)$ on $D$, so $\mathcal J_1$ and $\mathcal J_2$ have the same pole set on $D$.
+However, the associated Cayley fields $\Theta_j=(2\mathcal J_j-1)/(2\mathcal J_j+1)$ need not satisfy the same Schur bounds, so we always record the gauge when quoting certified inequalities for $\Theta$.
+\end{remark}
+
+\begin{remark}[Role of the normalizer]\label{rem:Ocan-role}
+The factor $\mathcal O$ serves only to choose a convenient gauge for $\mathcal J$.
+Provided $\mathcal O$ is holomorphic and nonvanishing on a region $D\subset\Omega$, it cannot introduce poles of $\mathcal J$ on $D$.
+In particular, in the raw $\zeta$-gauge $\mathcal O\equiv 1$ one has $\mathcal J(s)\to 1$ and hence $\Theta(s)\to 1/3$ as $\Re s\to+\infty$.
+\end{remark}
+
+The associated Cayley transform is
+\begin{equation}\label{eq:Theta-def}
+  \Theta(s)\ :=\ \frac{2\mathcal J(s)-1}{2\mathcal J(s)+1}.
+\end{equation}
+Heuristically, $\mathcal J$ plays the role of a Herglotz-type quantity and $\Theta$ the role of the corresponding Schur function.
+The proof uses the following simple implication: a Schur bound on $\Theta$ prevents poles of $\mathcal J$ by a removability pinch.
+
+\begin{remark}[Zeros of $\zeta$ produce poles of $\mathcal J$]\label{rem:poles}
+If $\rho\in\Omega$ is a zero of $\zeta(s)$, then $\rho$ is a pole of $\mathcal J(s)$ provided the numerator factors in \eqref{eq:J-def} are nonzero at $\rho$.
+For $\Re\rho>1/2$ one has $\dettwo(I-A(\rho))\neq 0$: for diagonal $A(s)$,
+$\dettwo(I-A(s))=\prod_{p}(1-p^{-s})\,e^{p^{-s}}$ and $\sum_{p}|\log(1-p^{-s})+p^{-s}|<\infty$ on $\Omega$; in particular $\dettwo(I-A(s))$ is holomorphic and zero-free on $\Omega$.
+Also $\mathcal O(\rho)\neq 0$ by the nonvanishing assumption on the chosen gauge.
+Thus zeros of $\zeta$ in $\Omega$ correspond to poles of $\mathcal J$, and hence to points where $\Theta$ cannot extend holomorphically unless the pole is ruled out.
+\end{remark}
+
+\subsection*{Schur and Herglotz classes (terminology)}
+Let $D\subset\C$ be a domain.
+A holomorphic function $\Theta$ on $D$ is called \emph{Schur} if $|\Theta|\le 1$ on $D$.
+A holomorphic function $H$ on $D$ is called \emph{Herglotz} if $\Re H\ge 0$ on $D$.
+The Cayley transform identifies these classes: if $H$ is Herglotz and $H\not\equiv -1$, then
+\[
+  \Theta=\frac{H-1}{H+1}
+\]
+is Schur.
+Conversely, if $\Theta$ is Schur and $\Theta\not\equiv 1$, then $(1+\Theta)/(1-\Theta)$ is Herglotz; see \cite{Donoghue,RosenblumRovnyak}.
+
+\subsection*{Outline of the far-field strategy in this language}
+Theorem~\ref{thm:nearfield} is proved by splitting the compact region $R_{\rm cert}$ into two rectangles.
+On $[0.6,0.7]\times[-20,20]$ we certify a strict Schur bound $|\Theta_{\rm proj}|<1$ (in a stable gauge), so Corollary~\ref{cor:no-poles} rules out poles of $\mathcal J$ there and hence rules out zeros of $\zeta$.
+On $[0.7,0.999]\times[-20,20]$ we directly certify $\zeta(s)\neq 0$ by interval arithmetic.
+The Schur pinch argument is proved in the next section.
+
+\section{Schur/Herglotz pinch mechanism}\label{sec:pinch}
+
+This section records the analytic mechanism that converts a Schur bound for the Cayley field $\Theta$ into a zero-free region for $\zeta$.
+The key point is simple: a holomorphic function bounded by $1$ cannot have a pole, and any isolated singularity is removable.
+In our setting, poles of $\mathcal J$ in $\Omega$ encode zeros of $\zeta$ (Remark~\ref{rem:poles}), so a Schur bound forces those zeros to be absent.
+
+\subsection*{Removable singularities under a Schur bound}
+\begin{lemma}[Removable singularity under Schur bound]\label{lem:removable-schur-p1}
+Let $D\subset\C$ be a disc centered at $\rho$ and let $\Theta$ be holomorphic on $D\setminus\{\rho\}$ with $|\Theta|<1$ there.
+Then $\Theta$ extends holomorphically to $D$.
+In particular, the Cayley inverse $(1+\Theta)/(1-\Theta)$ extends holomorphically to $D$ and has nonnegative real part on $D$.
+\end{lemma}
+\begin{proof}
+Since $\Theta$ is bounded on the punctured disc $D\setminus\{\rho\}$, Riemann's removable singularity theorem yields a holomorphic extension of $\Theta$ to $D$.
+Where $|\Theta|<1$, the Möbius map $w\mapsto (1+w)/(1-w)$ sends the unit disc into the right half-plane, hence $\Re\frac{1+\Theta}{1-\Theta}\ge 0$ on $D\setminus\{\rho\}$; continuity extends the inequality across $\rho$.
+\end{proof}
+
+\subsection*{From a Schur bound to absence of poles}
+We will use Lemma~\ref{lem:removable-schur-p1} in the following form: if $\Theta$ is Schur on a domain $U$ and holomorphic on $U\setminus S$ where $S$ is a discrete set, then $\Theta$ extends holomorphically across $S$ and remains Schur on all of $U$.
+Thus a Schur bound rules out poles of any meromorphic object that can be expressed as a Cayley inverse of $\Theta$.
+
+\begin{corollary}[Schur bound prevents poles of $\mathcal J$]\label{cor:no-poles}
+Let $U\subset\Omega$ be a domain and suppose that $\Theta$ is meromorphic on $U$ and satisfies $|\Theta|\le 1$ on $U$ away from its poles.
+\textcolor{blue}{Assume additionally that $\Theta$ is not identically $1$ on any connected component of $U$.}
+Then $\Theta$ extends holomorphically to $U$ and satisfies $|\Theta|\le 1$ on $U$.
+Moreover, the Cayley inverse
+\[
+  2\mathcal J \;=\; \frac{1+\Theta}{1-\Theta}
+\]
+extends holomorphically to $U$ with $\Re(2\mathcal J)\ge 0$ on $U$; in particular $\mathcal J$ has no poles in $U$.
+\end{corollary}
+\begin{proof}
+The poles of a meromorphic function form a discrete subset of $U$.
+On each punctured disc around a pole, $\Theta$ is bounded by $1$, hence removable by Lemma~\ref{lem:removable-schur-p1}.
+Therefore $\Theta$ extends holomorphically across all its poles and is holomorphic on $U$.
+The Schur bound persists by continuity.
+The Cayley inverse is holomorphic wherever $\Theta\neq 1$ and has nonnegative real part on $U$.
+If $\Theta(s_0)=1$ at some point $s_0\in U$, then $|\Theta|$ attains its maximum at an interior point, so $\Theta\equiv 1$ on $U$ by the Maximum Modulus Principle.
+\textcolor{blue}{The added condition rules out $\Theta\equiv 1$, so on each component one has $|\Theta|<1$ everywhere.}
+In the applications below this is excluded (e.g.\ on any right half-plane $U$, Remark~\ref{rem:Ocan-role} gives $\Theta(s)\to \tfrac13$ as $\Re s\to+\infty$), hence $\Theta\neq 1$ on $U$ and the Cayley inverse extends holomorphically to $U$ with $\Re(2\mathcal J)\ge 0$.
+In particular $\mathcal J$ has no poles in $U$.
+\end{proof}
+
+\subsection*{Conclusion: certified cover implies Theorem~\ref{thm:nearfield}}
+We now connect the certified computations to $\zeta$ on the compact region $R_{\rm cert}$.
+In this v6a draft, Theorem~\ref{thm:nearfield} is proved by a direct $\zeta$-nonvanishing certification on a finite rectangle cover (Section~\ref{sec:cert}).
+We nevertheless record the Schur/Herglotz pinch mechanism (Section~\ref{sec:pinch}) as the analytic tool intended for the all-heights upgrade (Theorem~\ref{thm:farfield}).
+
+\section{Certified nearfield cover of \(R_{\rm cert}=[0.6,0.999]\times[-20,20]\)}\label{sec:cert}
+Let $T_\ast:=20$ and write $s=\sigma+it$.
+Define the two rectangles
+\[
+  R_{\mathrm{L}}\ :=\ [0.6,0.7]\times[-T_\ast,T_\ast],\qquad
+  R_{\mathrm{R}}\ :=\ [0.7,0.999]\times[-T_\ast,T_\ast],
+\]
+so that $R_{\rm cert}=R_{\mathrm{L}}\cup R_{\mathrm{R}}$.
+We exclude zeros on $R_{\mathrm{L}}$ and $R_{\mathrm{R}}$ by directly certifying $\zeta(s)\neq 0$ on each rectangle (Lemmas~\ref{lem:zeta-cert-L} and \ref{lem:zeta-cert}).
+
+\subsection*{Certified \texorpdfstring{$\zeta$}{zeta}-nonvanishing on \(R_{\mathrm{L}}\)}
+\begin{lemma}[\texorpdfstring{$\zeta$}{zeta}-nonvanishing rectangle certification]\label{lem:zeta-cert-L}
+On the rectangle $[0.6,0.7]\times[0,T_\ast]$ one has the certified lower bound
+\[
+  \min |\zeta(s)|\ \ge\ 9.43\times 10^{-6},
+\]
+hence $\zeta(s)\neq 0$ there.
+By conjugation symmetry $\zeta(\overline{s})=\overline{\zeta(s)}$, the same conclusion holds on
+$R_{\mathrm{L}}=[0.6,0.7]\times[-T_\ast,T_\ast]$.
+\end{lemma}
+\begin{proof}
+This is verified by rigorous complex ball arithmetic on an adaptive subdivision cover of $[0.6,0.7]\times[0,T_\ast]$, implemented in \texttt{verify\_attachment\_arb.py} (\texttt{zeta\_certify} mode) and recorded in the JSON artifact
+\texttt{zeta\_certify\_sigma06\_07\_t0\_20.json}.
+The quoted lower bound is the artifact’s certified field \texttt{zeta.min\_abs\_lower}; the certificate \texttt{results.ok=true} means that on every box in the cover, the ball-arithmetic enclosure for $\zeta(s)$ does not contain $0$.
+\end{proof}
+
+\subsection*{Certified \texorpdfstring{$\zeta$}{zeta}-nonvanishing on \(R_{\mathrm{R}}\)}
+\begin{lemma}[\texorpdfstring{$\zeta$}{zeta}-nonvanishing rectangle certification]\label{lem:zeta-cert}
+On the rectangle $[0.7,0.999]\times[0,T_\ast]$ one has the certified lower bound
+\[
+  \min |\zeta(s)|\ \ge\ 1.998\times 10^{-5},
+\]
+hence $\zeta(s)\neq 0$ there.
+By conjugation symmetry $\zeta(\overline{s})=\overline{\zeta(s)}$, the same conclusion holds on
+$R_{\mathrm{R}}=[0.7,0.999]\times[-T_\ast,T_\ast]$.
+\end{lemma}
+\begin{proof}
+This is verified by rigorous complex ball arithmetic on an adaptive subdivision cover of $[0.7,0.999]\times[0,T_\ast]$, implemented in \texttt{verify\_attachment\_arb.py} (\texttt{zeta\_certify} mode) and recorded in the JSON artifact
+\texttt{zeta\_certify\_sigma07\_0999\_t0\_20.json}.
+The quoted lower bound is the artifact’s certified field \texttt{zeta.min\_abs\_lower}; the certificate \texttt{results.ok=true} means that on every box in the cover, the ball-arithmetic enclosure for $\zeta(s)$ does not contain $0$.
+\end{proof}
+
+\subsection*{Finite Pick certificate (local robustness check)}
+We also supply a finite algebraic certificate using the classical Nevanlinna--Pick/Schur-kernel criterion.
+This serves as a robust check of the Schur property near the real axis but is not used in the proof of Theorem~\ref{thm:nearfield}.
+
+Let $\sigma_0:=0.599$ and set $D_{\sigma_0}:=\{\,\Re s>\sigma_0\,\}$.
+Consider the disk chart $s_{\sigma_0}(z):=\sigma_0+\frac{1+z}{1-z}$.
+The disk pullback $\theta_{\sigma_0}(z):=\Theta_{\rm raw}(s_{\sigma_0}(z))$ is holomorphic on $\mathbb D$ (assuming no zeros of $\zeta$ in $D_{\sigma_0}$).
+The associated Pick matrix $P(\sigma_0)$ must be positive semidefinite if $\Theta$ is Schur.
+
+\begin{proposition}[Finite Pick gap]\label{prop:pick-gap}
+The accompanying Pick artifact certifies that for $N=16$, the principal minor $P_{16}(\sigma_0)$ satisfies
+\[
+  P_{16}(\sigma_0)\ \succeq\ \delta_{\mathrm{cert}} I,\qquad \delta_{\mathrm{cert}} \approx 0.594.
+\]
+This strict gap certifies that the first 16 Taylor coefficients of $\theta_{\sigma_0}$ are consistent with a Schur function that is bounded by $\sqrt{1-\delta_{\mathrm{cert}}} < 1$.
+\textcolor{blue}{While this finite check does not rigorously imply infinite positivity without control of the full tail (which is analytically small but nonzero), it provides strong algebraic corroboration of the Schur bound in the low-frequency regime.}
+Similar certificates are provided at $\sigma_0=0.6$ and $\sigma_0=0.7$.
+\end{proposition}
+\begin{proof}
+See artifacts \texttt{pick\_sigma0599\_raw\_zeta\_N16.json}, \texttt{pick\_sigma06\_raw\_zeta\_N16.json}, and \texttt{pick\_sigma07\_raw\_zeta\_N16.json}.
+\end{proof}
+
+\begin{proof}[Proof of Theorem~\ref{thm:nearfield}]
+By Lemma~\ref{lem:zeta-cert-L}, $\zeta(s)\neq 0$ on $R_{\mathrm{L}}$.
+By Lemma~\ref{lem:zeta-cert}, $\zeta(s)\neq 0$ on $R_{\mathrm{R}}$.
+Since $R_{\rm cert}=R_{\mathrm{L}}\cup R_{\mathrm{R}}$, this proves the theorem.
+\end{proof}
+
+\begin{table}[H]
+\centering
+\caption{Certified nearfield artifact data ($|t|\le 20$).}\label{tab:artifact-data}
+\small
+\begin{tabular}{l l l}
+\toprule
+\textbf{Artifact} & \textbf{Parameter} & \textbf{Value} \\
+\midrule
+\multicolumn{3}{l}{\textit{$\zeta$-nonvanishing certification} (\texttt{zeta\_certify})} \\
+\quad Artifact & & \texttt{zeta\_certify\_sigma06\_07\_t0\_20.json} \\
+\quad Domain & $[\sigma_{\min}, \sigma_{\max}] \times [t_{\min}, t_{\max}]$ & $[0.6, 0.7] \times [0, 20]$ \\
+\quad Certified lower bound & $\min |\zeta(s)|$ & $9.4325\times 10^{-6}$ \\
+\quad Status & \texttt{ok} & \texttt{true} \\
+\quad Boxes processed & & 8{,}860 \\
+\quad Precision & (bits) & 260 \\
+\quad Artifact & & \texttt{zeta\_certify\_sigma07\_0999\_t0\_20.json} \\
+\quad Domain & $[\sigma_{\min}, \sigma_{\max}] \times [t_{\min}, t_{\max}]$ & $[0.7, 0.999] \times [0, 20]$ \\
+\quad Certified lower bound & $\min |\zeta(s)|$ & $1.9984\times 10^{-5}$ \\
+\quad Status & \texttt{ok} & \texttt{true} \\
+\quad Boxes processed & & 6{,}648 \\
+\quad Precision & (bits) & 260 \\
+\midrule
+\multicolumn{3}{l}{\textit{Pick certificate} (\texttt{pick\_certify}, $\sigma_0 = 0.599$)} \\
+\quad Matrix size & $N$ & 16 \\
+\quad Spectral gap & $\delta_{\rm cert}$ & $0.594$ \\
+\quad SPD at origin & $P_N \succ 0$ & \texttt{true} \\
+\quad Coefficient count & $N_{\rm coeff}$ & 128 \\
+\quad Tail sum (diagnostic) & $\sum_{16}^{127}|a_n|$ & $0.67$ \\
+\quad Gauge & & \texttt{raw\_zeta} \\
+\midrule
+\multicolumn{3}{l}{\textit{Pick certificate} (\texttt{pick\_certify}, $\sigma_0 = 0.6$)} \\
+\quad Matrix size & $N$ & 16 \\
+\quad Spectral gap & $\delta_{\rm cert}$ & $0.594$ \\
+\quad SPD at origin & $P_N \succ 0$ & \texttt{true} \\
+\quad Coefficient count & $N_{\rm coeff}$ & 128 \\
+\quad Gauge & & \texttt{raw\_zeta} \\
+\midrule
+\multicolumn{3}{l}{\textit{Pick certificate} (\texttt{pick\_certify}, $\sigma_0 = 0.7$)} \\
+\quad Matrix size & $N$ & 16 \\
+\quad Spectral gap & $\delta_{\rm cert}$ & $0.627$ \\
+\quad SPD at origin & $P_N \succ 0$ & \texttt{true} \\
+\quad Coefficient count & $N_{\rm coeff}$ & 128 \\
+\quad Gauge & & \texttt{raw\_zeta} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{remark}[Artifact reproducibility and verification]\label{rem:artifact-repro}
+The certifications summarized in Table~\ref{tab:artifact-data} are generated by the repository verifier \texttt{verify\_attachment\_arb.py} using ARB ball arithmetic (via \texttt{python-flint}).
+The repository also includes the JSON artifact files.
+For an audit-oriented manifest (exact commands and expected outputs), see \texttt{README.md} in the repository.
+\end{remark}
+
+\section{From nearfield to all heights: farfield lemma template and remaining gaps}\label{sec:all-heights}
+
+\subsection*{Reduction: what remains for Theorem~\ref{thm:farfield}}
+Since $\zeta(s)$ has no zeros for $\Re s>1$, Theorem~\ref{thm:farfield} would follow once we exclude zeros on the strip $0.6\le \Re s\le 0.999$ for all heights.
+Write $T_{\rm cert}=20$.
+Theorem~\ref{thm:nearfield} supplies the low-height region $|t|\le T_{\rm cert}$.
+To obtain all heights, it suffices to add:
+\begin{itemize}
+\item \textbf{Farfield lemma (analytic).} An explicit, unconditional statement implying $\zeta(s)\neq 0$ (or, equivalently, exclusion of poles of $\mathcal J$ via a Schur bound for an appropriate Cayley field) on
+\[
+  \{\,s=\sigma+it:\ 0.6\le \sigma \le 0.999,\ |t|\ge T\,\}
+\]
+for some explicit cutoff $T$.
+\item \textbf{Bridge (finite computation).} If the farfield lemma only activates at $T>T_{\rm cert}$, certify the intermediate region
+\[
+  \{\,s=\sigma+it:\ 0.6\le \sigma \le 0.999,\ T_{\rm cert}\le |t|\le T\,\}
+\]
+by the same ball-arithmetic methods already used for Theorem~\ref{thm:nearfield}.
+\end{itemize}
+\textcolor{blue}{GAP: implement the farfield lemma for the specific arithmetic object used in this paper, with explicit constants uniform in $\sigma\in[0.6,0.999]$, and (if needed) add bridge artifacts.}
+
+\paragraph{Canonical-outer + Pick route (project-specific).}
+In this project, the intended all-heights discharge is a Schur certification in the \emph{canonical} outer gauge $\mathcal O_{\rm can}$ (defined from boundary modulus on $\Re s=\tfrac12$), followed by a Pick-matrix positivity certificate in that gauge; see \texttt{Riemann-final/FF\_CANONICAL\_ARTIFACT\_PLAN.md}.
+\textcolor{blue}{GAP: a manuscript-grade certified evaluator for $\mathcal O_{\rm can}(s)$ is not implemented; until it exists (and produces canonical-gauge Pick artifacts), Theorem~\ref{thm:farfield} remains open.}
+
+\subsection*{A reusable farfield bound by integrations by parts (template)}
+The following is a standard, fully explicit quantitative decay lemma for oscillatory integrals.
+
+\begin{lemma}[Explicit farfield bound by $k$ integrations by parts]\label{lem:ibp-farfield}
+Fix $k\in\N$.
+Let $g:\R\to\C$ be $k$ times absolutely continuous, satisfy $g^{(j)}(u)\to 0$ as $u\to\pm\infty$ for $0\le j\le k-1$, and have $g^{(k)}\in L^1(\R)$.
+Define
+\[
+  I(t)\ :=\ \int_{-\infty}^{\infty} g(u)e^{itu}\,du.
+\]
+Then for every real $t\neq 0$,
+\[
+  |I(t)|\ \le\ \frac{1}{|t|^k}\int_{-\infty}^{\infty} |g^{(k)}(u)|\,du.
+\]
+\end{lemma}
+\begin{proof}
+Integrate by parts $k$ times. The boundary terms vanish by hypothesis. Taking absolute values yields the stated bound.
+\end{proof}
+
+\subsection*{Mellin-form specialization (template)}
+Many tail terms in the $s$-plane can be written as Mellin transforms.
+The next lemma is a convenient bookkeeping identity for turning Mellin tails into oscillatory integrals in $u=\log x$ with explicit constants.
+
+\begin{lemma}[Mellin tail bound with explicit constant]\label{lem:mellin-farfield}
+Fix $k\in\N$.
+Let $f:(0,\infty)\to\C$ be such that for each $\sigma\in[0.6,0.999]$, the function
+\[
+  g_\sigma(u)\ :=\ e^{\sigma u} f(e^u)\qquad (u\in\R)
+\]
+satisfies the hypotheses of Lemma~\ref{lem:ibp-farfield}.
+Define, for $s=\sigma+it$,
+\[
+  E(s)\ :=\ \int_0^\infty f(x)\,x^{s-1}\,dx
+\]
+whenever the integral converges.
+Then for every real $t\neq 0$,
+\[
+  |E(\sigma+it)|\ \le\ \frac{1}{|t|^k}\int_{-\infty}^{\infty} |g_\sigma^{(k)}(u)|\,du
+  \ =\ \frac{1}{|t|^k}\int_0^\infty \left|\left(x\frac{d}{dx}+\sigma\right)^k f(x)\right|x^{\sigma-1}\,dx.
+\]
+\end{lemma}
+\begin{proof}
+Substitute $x=e^u$ to obtain $E(\sigma+it)=\int_{-\infty}^\infty g_\sigma(u)e^{itu}\,du$.
+Apply Lemma~\ref{lem:ibp-farfield}.
+For the identity between the $u$-integral and $x$-integral, use $du=dx/x$ and $\frac{d}{du}=x\frac{d}{dx}$.
+\end{proof}
+
+\subsection*{Instantiation checklist (concrete gaps to fill)}
+To use Lemma~\ref{lem:mellin-farfield} to prove Theorem~\ref{thm:farfield}, one must exhibit a decomposition of the relevant arithmetic object into a nonvanishing main term plus a Mellin-type error term with explicit constant control.
+Concretely, the missing ingredients are:
+\begin{itemize}
+\item \textbf{Choose the object $F(s)$.} \textcolor{blue}{GAP: specify the exact $F(s)$ whose nonvanishing (or whose Schur/Herglotz inequality) implies zero-freeness for $\zeta$ on $0.6\le \sigma\le 0.999$.}
+\item \textbf{Main term + tail representation.} \textcolor{blue}{GAP: prove a formula of the form $F(\sigma+it)=F_\infty(\sigma)+E(\sigma,t)$ on $0.6\le\sigma\le 0.999$ with $E$ representable as $E(s)=\int_0^\infty f(x)x^{s-1}\,dx$ for a sufficiently smooth $f$.}
+\item \textbf{Nonvanishing margin.} \textcolor{blue}{GAP: prove a uniform lower bound $m:=\inf_{\sigma\in[0.6,0.999]}|F_\infty(\sigma)|>0$.}
+\item \textbf{Explicit constant $C_k^{\max}$.} Define
+\[
+  C_k(\sigma)\ :=\ \int_0^\infty \left|\left(x\frac{d}{dx}+\sigma\right)^k f(x)\right|x^{\sigma-1}\,dx,\qquad
+  C_k^{\max}:=\sup_{\sigma\in[0.6,0.999]} C_k(\sigma).
+\]
+\textcolor{blue}{GAP: bound $C_k^{\max}$ explicitly (preferably with certified 1D interval arithmetic) and choose $T$ from $C_k^{\max}/T^k\le m/2$.}
+\item \textbf{Bridge artifacts.} \textcolor{blue}{GAP: if $T>20$, generate additional rectangle certificates covering $20\le |t|\le T$ (using \texttt{zeta\_certify} and/or \texttt{theta\_certify}).}
+\item \textbf{Gauge consistency.} \textcolor{blue}{GAP: if the farfield lemma is proved for a different normalization (gauge) of $\mathcal J$ or $\Theta$, record and prove the nonvanishing of the gauge factor on the relevant regions so that pole-exclusion transfers.}
+\item \textbf{Structural obstruction check.} \textcolor{blue}{GAP: verify that the chosen representation genuinely has \emph{decay in $t$}; naive Dirichlet-series/Euler-product expressions are almost periodic in $t$ and do not automatically yield $E(\sigma,t)\to 0$ as $|t|\to\infty$ without additional smoothing or reformulation.}
+\end{itemize}
+
+\section*{Conclusion and limitations (unconditional status)}
+
+We have proved an unconditional certified zero-free region for the Riemann zeta function on the compact set
+\[
+  R_{\rm cert}=[0.6,0.999]\times[-20,20]
+\]
+(Theorem~\ref{thm:nearfield}).
+The argument is function-theoretic: zeros are converted into poles of an arithmetic ratio $\mathcal J$, and a Schur bound $|\Theta|\le 1$ for the associated Cayley field forces removability and rules out poles (hence zeros).
+The only ``hard'' step is establishing the certified inputs in Section~\ref{sec:cert} and auditing the artifacts summarized in Table~\ref{tab:artifact-data}.
+The primary audit path is the direct $\zeta$-nonvanishing certification on each of the two rectangles
+$[0.6,0.7]\times[-20,20]$ and $[0.7,0.999]\times[-20,20]$.
+The Pick certificate at $\sigma_0=0.599$ provides an independent, quantitative algebraic diagnostic related to the Schur mechanism, but is not used to prove Theorem~\ref{thm:nearfield}.
+
+\paragraph{All-heights status (v6a).}
+The all-heights claim (Theorem~\ref{thm:farfield}) is \textbf{not} closed by the shipped artifacts alone.
+Section~\ref{sec:all-heights} isolates the remaining proof obligations in a referee-standard way:
+an explicit farfield lemma (with constants) and, if needed, a finite bridge certification.
+Until those gaps are filled, the unconditional result of this draft is Theorem~\ref{thm:nearfield}.
+
+\paragraph{Computer assistance and auditability.}
+Although the proof uses numerical computation, it is intended to be unconditional in the usual mathematical sense: the computation is \emph{rigorous} interval arithmetic (ball arithmetic) and produces certified inequalities (e.g.\ ``$\max|\Theta_{\rm proj}|<1$'' on a rectangle, and ``a Pick matrix has a strictly positive spectral gap'').
+The repository provides a verifier and the corresponding JSON artifacts so that the finite checks can be independently audited.
+
+\paragraph{Limitations and scope.}
+This paper does not prove the Riemann Hypothesis.
+It isolates and certifies a compact far-field rectangle at low height.
+Strengthening the result (either by extending the certified rectangle to larger height, or by pushing the boundary $0.6$ closer to $1/2$) would require enlarging and/or strengthening the certified inputs, which we do not pursue here.
+The companion papers in this series treat (i) effective near-field barriers in the strip $1/2<\Re s<0.6$ and (ii) a conditional all-heights closure based on an explicit cutoff hypothesis.
+
+\section*{Statements and Declarations}
+
+\paragraph{Competing interests.}
+The author declares no competing interests.
+
+\paragraph{Data and materials availability.}
+All computational artifacts used in the far-field certification are included in the repository:
+\begin{quote}\small\ttfamily
+zeta\_certify\_sigma06\_07\_t0\_20.json\\
+zeta\_certify\_sigma07\_0999\_t0\_20.json\\
+pick\_sigma0599\_raw\_zeta\_N16.json\\
+pick\_sigma06\_raw\_zeta\_N16.json\\
+pick\_sigma07\_raw\_zeta\_N16.json\\
+verify\_attachment\_arb.py
+\end{quote}
+
+\paragraph{Reproducibility.}
+The verifier is based on rigorous ball arithmetic (ARB via \texttt{python-flint}) and is intended to be independently auditable.
+See Remark~\ref{rem:artifact-repro} and Appendix~\ref{app:audit} for a referee-facing audit manifest (commands and expected outputs).
+
+\appendix
+\section{Audit manifest (verifier commands and expected fields)}\label{app:audit}
+
+This appendix provides a referee-facing audit checklist for the certified inputs used in Section~\ref{sec:cert}.
+There are two audit modes:
+\begin{itemize}
+\item \textbf{Fast audit:} verify the shipped JSON artifacts match Table~\ref{tab:artifact-data}.
+\item \textbf{Regeneration audit (optional):} rerun the verifier to regenerate the artifacts from scratch.
+\end{itemize}
+
+\subsection*{Prerequisites}
+Install the ARB/ball-arithmetic bindings:
+\begin{verbatim}
+pip install python-flint==0.6.0
+\end{verbatim}
+
+\subsection*{Fast audit: check shipped JSON artifacts}
+\begin{itemize}
+\item \textbf{$\zeta$-nonvanishing artifact} \url{zeta_certify_sigma06_07_t0_20.json}. Check (at minimum):
+  \begin{itemize}
+  \item \texttt{results.ok = true}
+  \item \texttt{zeta.min\_abs\_lower > 0}
+  \item \texttt{results.processed\_boxes = 8860}
+  \end{itemize}
+\item \textbf{$\zeta$-nonvanishing artifact} \url{zeta_certify_sigma07_0999_t0_20.json}. Check (at minimum):
+  \begin{itemize}
+  \item \texttt{results.ok = true}
+  \item \texttt{zeta.min\_abs\_lower > 0}
+  \item \texttt{results.processed\_boxes = 6648}
+  \end{itemize}
+\item \textbf{Pick artifact} \url{pick_sigma0599_raw_zeta_N16.json}. Check (at minimum):
+  \begin{itemize}
+  \item \texttt{pick.delta\_cert = 0.594...}
+  \item \texttt{pick.P\_spd\_at\_0 = true}
+  \item \texttt{pick.tail\_l1\_partial\_hi} (diagnostic L1 tail sum)
+  \end{itemize}
+\item \textbf{Pick artifact} \url{pick_sigma06_raw_zeta_N16.json}. Check (at minimum):
+  \begin{itemize}
+  \item \texttt{pick.delta\_cert = 0.594...}
+  \item \texttt{pick.P\_spd\_at\_0 = true}
+  \item \texttt{pick.tail\_l1\_partial\_hi} (diagnostic L1 tail sum)
+  \end{itemize}
+\item \textbf{Pick artifact} \url{pick_sigma07_raw_zeta_N16.json}. Check (at minimum):
+  \begin{itemize}
+  \item \texttt{pick.delta\_cert = 0.627...}
+  \item \texttt{pick.P\_spd\_at\_0 = true}
+  \item \texttt{pick.tail\_l1\_partial\_hi} (diagnostic L1 tail sum)
+  \end{itemize}
+\end{itemize}
+
+\subsection*{Regeneration audit (optional): exact command lines}
+Run the verifier from the repository root.
+The following commands reproduce the primary artifacts (line breaks are for readability):
+
+\paragraph{1) $\zeta$-nonvanishing certification on $[0.6,0.7]\times[0,20]$ (\texttt{zeta\_certify}).}
+\begin{verbatim}
+PYTHONUNBUFFERED=1 python -u verify_attachment_arb.py \
+  --zeta-certify \
+  --rect-sigma-min 0.6 --rect-sigma-max 0.7 \
+  --rect-t-min 0.0 --rect-t-max 20.0 \
+  --theta-init-n-sigma 10 --theta-init-n-t 50 \
+  --theta-min-sigma-width 0.0001 --theta-min-t-width 0.001 \
+  --theta-max-boxes 500000 \
+  --theta-time-limit 0 \
+  --prec 260 \
+  --zeta-out zeta_certify_sigma06_07_t0_20.json \
+  --progress
+\end{verbatim}
+
+\paragraph{2) $\zeta$-nonvanishing certification on $[0.7,0.999]\times[0,20]$ (\texttt{zeta\_certify}).}
+\begin{verbatim}
+PYTHONUNBUFFERED=1 python -u verify_attachment_arb.py \
+  --zeta-certify \
+  --rect-sigma-min 0.7 --rect-sigma-max 0.999 \
+  --rect-t-min 0.0 --rect-t-max 20.0 \
+  --theta-init-n-sigma 10 --theta-init-n-t 50 \
+  --theta-min-sigma-width 0.0001 --theta-min-t-width 0.001 \
+  --theta-max-boxes 500000 \
+  --theta-time-limit 0 \
+  --prec 260 \
+  --zeta-out zeta_certify_sigma07_0999_t0_20.json \
+  --progress
+\end{verbatim}
+
+\paragraph{3) Pick certification at $\sigma_0=0.599$ (\texttt{pick\_certify}).}
+\begin{verbatim}
+python verify_attachment_arb.py \
+  --pick-certify \
+  --pick-sigma0 0.599 \
+  --pick-N 16 \
+  --pick-coeff-count 128 \
+  --pick-K 512 \
+  --pick-rho 0.4 \
+  --pick-rho-bound 0.5 \
+  --arith-gauge raw_zeta \
+  --arith-P-cut 2000 \
+  --prec 1024 \
+  --pick-out pick_sigma0599_raw_zeta_N16.json
+\end{verbatim}
+
+\paragraph{4) Pick certification at $\sigma_0=0.6$ (\texttt{pick\_certify}).}
+\begin{verbatim}
+python verify_attachment_arb.py \
+  --pick-certify \
+  --pick-sigma0 0.6 \
+  --pick-N 16 \
+  --pick-coeff-count 128 \
+  --pick-K 512 \
+  --pick-rho 0.4 \
+  --pick-rho-bound 0.5 \
+  --arith-gauge raw_zeta \
+  --arith-P-cut 2000 \
+  --prec 1024 \
+  --pick-out pick_sigma06_raw_zeta_N16.json
+\end{verbatim}
+
+\paragraph{5) Pick certification at $\sigma_0=0.7$ (\texttt{pick\_certify}).}
+\begin{verbatim}
+python verify_attachment_arb.py \
+  --pick-certify \
+  --pick-sigma0 0.7 \
+  --pick-N 16 \
+  --pick-coeff-count 128 \
+  --pick-K 512 \
+  --pick-rho 0.4 \
+  --pick-rho-bound 0.5 \
+  --arith-gauge raw_zeta \
+  --arith-P-cut 2000 \
+  --outer-mode rigorous \
+  --outer-P-cut 2000 \
+  --prec 1024 \
+  --pick-out pick_sigma07_raw_zeta_N16.json
+\end{verbatim}
+
+\subsection*{What a successful audit means}
+The verifier uses \emph{ball arithmetic}: each computed quantity is an interval enclosure (midpoint plus radius) and every operation propagates rounding error outward.
+Thus each check is a formal inequality of the form ``upper bound $<1$'' or ``directed-rounding LDL$^\top$ succeeds with positive pivots''.
+If the audit checks above pass, then the numerical inequalities used in Section~\ref{sec:cert} are certified within the logic of ball arithmetic.
+
+\input{riemann_bibliography.tex}
+\end{document}

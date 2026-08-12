@@ -1,0 +1,7 @@
+predictor,pearson_visible_threshold,spearman_visible_threshold
+top_split_phi_tuple_share,-0.9329765175810295,-0.9817255676437577
+split_phi_tuple_support_fraction,nan,nan
+num_first_splitting_classes,0.9499938411158375,0.9939209163101398
+top_split_base_share,-0.6725557659713219,-0.9817255676437577
+split_base_support_fraction,0.6489216237912473,0.8139881369630423
+boundary_enrichment_ratio,-0.16352980279565488,-0.18293022999573125

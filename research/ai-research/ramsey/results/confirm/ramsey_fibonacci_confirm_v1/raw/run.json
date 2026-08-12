@@ -1,0 +1,45 @@
+{
+  "task_id": "ramsey_fibonacci_confirm_v1",
+  "instances": 1056,
+  "families": [
+    "fibonacci_block_growth",
+    "fibonacci_mirrored_growth",
+    "fibonacci_phi_partition",
+    "fibonacci_offbyone_growth",
+    "balanced_binary_partitions",
+    "random_baseline"
+  ],
+  "sizes": [
+    8,
+    10,
+    12,
+    14,
+    16,
+    18,
+    20,
+    22,
+    24,
+    26,
+    28
+  ],
+  "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15
+  ],
+  "verdict": "REFINE",
+  "verdict_rationale": "Signal persists, but nearby perturbations achieve similar performance; effect may be broader recursive-ratio structure."
+}

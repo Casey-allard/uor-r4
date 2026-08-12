@@ -1,0 +1,254 @@
+{
+  "increment": "INC-0173",
+  "verdict": "REFINE",
+  "config": {
+    "vocab_size": 5000,
+    "seq_len": 32,
+    "hidden_dim": 128,
+    "n_heads": 4,
+    "n_layers": 2,
+    "k_experts": 64,
+    "expert_dim": 128,
+    "steps": 4000,
+    "seeds": [
+      0
+    ],
+    "conditions": [
+      "BASELINE",
+      "HOPF",
+      "PERMUTED"
+    ]
+  },
+  "summary": {
+    "BASELINE": {
+      "mean_val_ppl": 106.95840938565748,
+      "mean_eff_buckets": 31.906038139560547,
+      "n_seeds": 1
+    },
+    "HOPF": {
+      "mean_val_ppl": 113.6451563869599,
+      "mean_eff_buckets": 45.375578723334165,
+      "n_seeds": 1
+    },
+    "PERMUTED": {
+      "mean_val_ppl": 113.86190482514355,
+      "mean_eff_buckets": 45.80297013720561,
+      "n_seeds": 1
+    }
+  },
+  "ppl_ratio_hopf_vs_baseline": 1.0625172629221904,
+  "eff_ratio_baseline_vs_hopf": 0.7031544067812192,
+  "eff_ratio_dense_vs_hopf": 1.410450330346714,
+  "results": [
+    {
+      "condition": "BASELINE",
+      "seed": 0,
+      "n_params": 5660672,
+      "final_val_ppl": 106.95840938565748,
+      "final_eff_buckets": 31.906038139560547,
+      "log": [
+        {
+          "step": 400,
+          "val_ppl": 183.23521661825,
+          "eff_buckets": 17.0109534018551,
+          "routing_ops": 2048.0
+        },
+        {
+          "step": 800,
+          "val_ppl": 149.65780286070213,
+          "eff_buckets": 21.866208722990287,
+          "routing_ops": 2048.0
+        },
+        {
+          "step": 1200,
+          "val_ppl": 131.7536543081824,
+          "eff_buckets": 26.35151417275969,
+          "routing_ops": 2048.0
+        },
+        {
+          "step": 1600,
+          "val_ppl": 120.88404051487475,
+          "eff_buckets": 27.297277778286144,
+          "routing_ops": 2048.0
+        },
+        {
+          "step": 2000,
+          "val_ppl": 114.3486276165774,
+          "eff_buckets": 29.053626636314025,
+          "routing_ops": 2048.0
+        },
+        {
+          "step": 2400,
+          "val_ppl": 110.99348883537458,
+          "eff_buckets": 30.997753026499836,
+          "routing_ops": 2048.0
+        },
+        {
+          "step": 2800,
+          "val_ppl": 109.08317788409344,
+          "eff_buckets": 31.896022591384508,
+          "routing_ops": 2048.0
+        },
+        {
+          "step": 3200,
+          "val_ppl": 107.56665424222764,
+          "eff_buckets": 31.680571892947945,
+          "routing_ops": 2048.0
+        },
+        {
+          "step": 3600,
+          "val_ppl": 106.97825804577498,
+          "eff_buckets": 32.017566570982694,
+          "routing_ops": 2048.0
+        },
+        {
+          "step": 4000,
+          "val_ppl": 106.95840938565748,
+          "eff_buckets": 31.906038139560547,
+          "routing_ops": 2048.0
+        }
+      ],
+      "elapsed_s": 438.4381709098816
+    },
+    {
+      "condition": "HOPF",
+      "seed": 0,
+      "n_params": 5644288,
+      "final_val_ppl": 113.6451563869599,
+      "final_eff_buckets": 45.375578723334165,
+      "log": [
+        {
+          "step": 400,
+          "val_ppl": 188.45065815242057,
+          "eff_buckets": 31.87166868310414,
+          "routing_ops": 2048.0
+        },
+        {
+          "step": 800,
+          "val_ppl": 155.67062772913457,
+          "eff_buckets": 35.18116561756498,
+          "routing_ops": 2048.0
+        },
+        {
+          "step": 1200,
+          "val_ppl": 138.75763350910194,
+          "eff_buckets": 39.27803080379081,
+          "routing_ops": 2048.0
+        },
+        {
+          "step": 1600,
+          "val_ppl": 129.011549797795,
+          "eff_buckets": 42.49508419224743,
+          "routing_ops": 2048.0
+        },
+        {
+          "step": 2000,
+          "val_ppl": 122.05653729449718,
+          "eff_buckets": 44.06253185159218,
+          "routing_ops": 2048.0
+        },
+        {
+          "step": 2400,
+          "val_ppl": 117.7654051189995,
+          "eff_buckets": 44.587041414563416,
+          "routing_ops": 2048.0
+        },
+        {
+          "step": 2800,
+          "val_ppl": 116.06279203366373,
+          "eff_buckets": 44.267600802289905,
+          "routing_ops": 2048.0
+        },
+        {
+          "step": 3200,
+          "val_ppl": 114.13896165370159,
+          "eff_buckets": 44.99337652038767,
+          "routing_ops": 2048.0
+        },
+        {
+          "step": 3600,
+          "val_ppl": 113.73867841857805,
+          "eff_buckets": 45.448177408312155,
+          "routing_ops": 2048.0
+        },
+        {
+          "step": 4000,
+          "val_ppl": 113.6451563869599,
+          "eff_buckets": 45.375578723334165,
+          "routing_ops": 2048.0
+        }
+      ],
+      "elapsed_s": 475.5019142627716
+    },
+    {
+      "condition": "PERMUTED",
+      "seed": 0,
+      "n_params": 5644288,
+      "final_val_ppl": 113.86190482514355,
+      "final_eff_buckets": 45.80297013720561,
+      "log": [
+        {
+          "step": 400,
+          "val_ppl": 188.8239223128684,
+          "eff_buckets": 30.2909131987151,
+          "routing_ops": 2048.0
+        },
+        {
+          "step": 800,
+          "val_ppl": 156.44203326196677,
+          "eff_buckets": 35.27374726391944,
+          "routing_ops": 2048.0
+        },
+        {
+          "step": 1200,
+          "val_ppl": 139.106881187496,
+          "eff_buckets": 39.702107265952414,
+          "routing_ops": 2048.0
+        },
+        {
+          "step": 1600,
+          "val_ppl": 129.1208486914908,
+          "eff_buckets": 42.983825101617434,
+          "routing_ops": 2048.0
+        },
+        {
+          "step": 2000,
+          "val_ppl": 122.10984600084899,
+          "eff_buckets": 44.335383000779444,
+          "routing_ops": 2048.0
+        },
+        {
+          "step": 2400,
+          "val_ppl": 117.9626525556875,
+          "eff_buckets": 44.86787497231609,
+          "routing_ops": 2048.0
+        },
+        {
+          "step": 2800,
+          "val_ppl": 116.15344059379878,
+          "eff_buckets": 44.876255752471444,
+          "routing_ops": 2048.0
+        },
+        {
+          "step": 3200,
+          "val_ppl": 114.38718049463651,
+          "eff_buckets": 45.550642286336334,
+          "routing_ops": 2048.0
+        },
+        {
+          "step": 3600,
+          "val_ppl": 113.91375723114172,
+          "eff_buckets": 45.85282157293962,
+          "routing_ops": 2048.0
+        },
+        {
+          "step": 4000,
+          "val_ppl": 113.86190482514355,
+          "eff_buckets": 45.80297013720561,
+          "routing_ops": 2048.0
+        }
+      ],
+      "elapsed_s": 459.180034160614
+    }
+  ]
+}

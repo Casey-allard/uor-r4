@@ -1,0 +1,78 @@
+{
+  "HOPF_BASE_K75_ambient_euclidean": {
+    "graph_edges": 3519,
+    "graph_mode": "ambient_euclidean",
+    "graph_sigma": 0.2628343343373746,
+    "participation_mean": 0.2929880030623865,
+    "participation_min": 0.20276077634091397,
+    "route_id": "HOPF_BASE_K75",
+    "sector_lowfreq_energy": 0.19600827589157643,
+    "shell_lowfreq_energy": 0.0,
+    "spectral_gap_23": 0.06323952460318527,
+    "spectral_lambda2": 0.08634435308597613
+  },
+  "HOPF_BASE_K75_hopf_coords": {
+    "graph_edges": 2958,
+    "graph_mode": "hopf_coords",
+    "graph_sigma": 0.2449807402553414,
+    "participation_mean": 0.14513716600750856,
+    "participation_min": 0.005916182987451361,
+    "route_id": "HOPF_BASE_K75",
+    "sector_lowfreq_energy": 0.3142739406504538,
+    "sector_rel_improvement_pct": 60.3,
+    "shell_lowfreq_energy": 0.0,
+    "spectral_gap_23": 0.000767854473977012,
+    "spectral_lambda2": 0.00017840813225812317
+  },
+  "HOPF_BASE_K75_poincare_4d": {
+    "graph_edges": 2951,
+    "graph_mode": "poincare_4d",
+    "graph_sigma": 0.08431958264145527,
+    "participation_mean": 0.3720616265708362,
+    "participation_min": 0.17637884269749637,
+    "route_id": "HOPF_BASE_K75",
+    "sector_lowfreq_energy": 0.3823733392240755,
+    "sector_rel_improvement_pct": 95.1,
+    "shell_lowfreq_energy": 0.0,
+    "spectral_gap_23": 0.010974258078387061,
+    "spectral_lambda2": 0.017926097968628978
+  },
+  "HOPF_TRANS_K75_L0_ambient_euclidean": {
+    "graph_edges": 3519,
+    "graph_mode": "ambient_euclidean",
+    "graph_sigma": 0.2628343343373746,
+    "participation_mean": 0.2929880030623865,
+    "participation_min": 0.20276077634091397,
+    "route_id": "HOPF_TRANS_K75_L0",
+    "sector_lowfreq_energy": 0.3491231455252482,
+    "shell_lowfreq_energy": 0.0,
+    "spectral_gap_23": 0.06323952460318527,
+    "spectral_lambda2": 0.08634435308597613
+  },
+  "HOPF_TRANS_K75_L0_hopf_coords": {
+    "graph_edges": 2958,
+    "graph_mode": "hopf_coords",
+    "graph_sigma": 0.2449807402553414,
+    "participation_mean": 0.14513716600750856,
+    "participation_min": 0.005916182987451361,
+    "route_id": "HOPF_TRANS_K75_L0",
+    "sector_lowfreq_energy": 0.5379339661497331,
+    "sector_rel_improvement_pct": 54.1,
+    "shell_lowfreq_energy": 0.0,
+    "spectral_gap_23": 0.000767854473977012,
+    "spectral_lambda2": 0.00017840813225812317
+  },
+  "HOPF_TRANS_K75_L0_poincare_4d": {
+    "graph_edges": 2951,
+    "graph_mode": "poincare_4d",
+    "graph_sigma": 0.08431958264145527,
+    "participation_mean": 0.3720616265708362,
+    "participation_min": 0.17637884269749637,
+    "route_id": "HOPF_TRANS_K75_L0",
+    "sector_lowfreq_energy": 0.6698155753563046,
+    "sector_rel_improvement_pct": 91.9,
+    "shell_lowfreq_energy": 0.0,
+    "spectral_gap_23": 0.010974258078387061,
+    "spectral_lambda2": 0.017926097968628978
+  }
+}

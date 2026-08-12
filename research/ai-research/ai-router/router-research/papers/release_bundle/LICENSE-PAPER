@@ -1,0 +1,23 @@
+# License — Manuscript and Figures
+
+The following files in this bundle are licensed under the
+**Creative Commons Attribution 4.0 International (CC BY 4.0)** license:
+
+- `main.pdf`
+- `main.tex`
+- `references.bib`
+- `figures/fig_scaling_law.pdf`
+
+**Copyright 2026 Casey Allard**
+
+You are free to share and adapt these materials for any purpose, provided
+you give appropriate credit, provide a link to the license, and indicate
+if changes were made.
+
+Full license text: https://creativecommons.org/licenses/by/4.0/legalcode
+
+---
+
+The code/script files in this bundle (`hopf_routing_demo.py`,
+`generate_ppmi_proxy.py`, `generate_figures.py`) are licensed separately
+under Apache-2.0 — see `LICENSE-CODE`.

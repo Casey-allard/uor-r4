@@ -1,0 +1,24 @@
+{
+  "scenario_id": "tiny-hidden-key",
+  "title": "Tiny Hidden Key",
+  "description": "Tiny partial-observability scenario where hidden key is revealed only after look in the vault.",
+  "start_room_id": "start",
+  "max_steps": 6,
+  "seed": 33,
+  "version": "1.0",
+  "scenario_vars": {
+    "mode": "vertical-slice-observability",
+    "agent_script_policy": "partial_observability_v1",
+    "observation_policy": "look_reveals_hidden_items_v1",
+    "hidden_item_ids_json": "[\"hidden-key\"]",
+    "world_config_json": "{\"items\":[{\"entity_id\":\"hidden-key\",\"entity_type\":\"item\",\"location\":\"vault\"},{\"entity_id\":\"decoy-note\",\"entity_type\":\"item\",\"location\":\"start\"}],\"rooms\":{\"hall\":{\"description\":\"A quiet connecting hall.\",\"entities\":[],\"exits\":{\"east\":\"vault\",\"west\":\"start\"},\"title\":\"Hall\"},\"start\":{\"description\":\"A small chamber with worn stone walls.\",\"entities\":[],\"exits\":{\"east\":\"hall\"},\"title\":\"Start\"},\"vault\":{\"description\":\"A compact vault with dusty shelves.\",\"entities\":[],\"exits\":{\"west\":\"hall\"},\"title\":\"Vault\"}}}"
+  },
+  "objectives": [
+    {
+      "objective_id": "collect-hidden-key",
+      "objective_type": "collect_item",
+      "target_id": "hidden-key",
+      "required_count": 1
+    }
+  ]
+}

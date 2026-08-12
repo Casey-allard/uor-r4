@@ -1,0 +1,117 @@
+{
+  "branch_status": "positive_explanatory",
+  "carry_forward_contract": "promoted_upper_bank_single_reference",
+  "default_broader_comparison_packet": {
+    "description": "Default dual-anchor broader-comparison packet: lower-bank dense baseline plus the lower-bank systems-only routed point, and upper-bank dense baseline plus the promoted upper-bank dense-near routed reference.",
+    "route_ids": [
+      "DENSE_Q01_T2500",
+      "CHART_H4XH4_FIELD_A150_EVT_T070_BF2_SB1_CPX8_Q01_T2500",
+      "DENSE_Q01_T40000",
+      "CHART_H4XH4_FIELD_A150_EVT_T070_CPX8_Q01_T40000"
+    ]
+  },
+  "excluded_by_default": {
+    "description": "Routes excluded from the default broader packet because they are either comparator-only or carry a nondefault lower-bank quality/pruning read.",
+    "route_ids": [
+      "CHART_H4XH4_FIELD_A150_EVT_T070_CPX8_Q01_T2500",
+      "CHART_H4XH4_FIELD_A150_EVT_T070_BF2_SB1_CPX8_Q01_T40000"
+    ]
+  },
+  "generated_at": "2026-03-12T16:06:49.800568-04:00",
+  "inclusion_rules": [
+    "Always carry CHART_H4XH4_FIELD_A150_EVT_T070_CPX8_Q01_T40000 as the sole upper-bank routed representative in broader comparisons.",
+    "Only add CHART_H4XH4_FIELD_A150_EVT_T070_BF2_SB1_CPX8_Q01_T40000 when an explicit upper-bank pruning or systems comparator is required.",
+    "Keep CHART_H4XH4_FIELD_A150_EVT_T070_BF2_SB1_CPX8_Q01_T2500 as the default lower-bank routed representative because the lower-bank dense story remains systems-only.",
+    "Do not carry CHART_H4XH4_FIELD_A150_EVT_T070_CPX8_Q01_T2500 by default; it remains a lower-bank pruning/quality reference rather than the lower-bank default routed point."
+  ],
+  "interpretation": "The default broader-comparison packet now carries CHART_H4XH4_FIELD_A150_EVT_T070_BF2_SB1_CPX8_Q01_T2500 as the lower-bank systems-only routed point and CHART_H4XH4_FIELD_A150_EVT_T070_CPX8_Q01_T40000 as the sole upper-bank dense-near routed reference. CHART_H4XH4_FIELD_A150_EVT_T070_BF2_SB1_CPX8_Q01_T40000 remains available only when an explicit pruning/systems comparator is needed, and the lower-bank soft sparse point stays out of the default packet because the lower-bank dense read remains systems-only.",
+  "lower_bank_mode": "systems_only_anchor",
+  "optional_comparators": {
+    "description": "Routes kept available only for explicit pruning/systems side-by-side comparisons.",
+    "route_ids": [
+      "CHART_H4XH4_FIELD_A150_EVT_T070_BF2_SB1_CPX8_Q01_T40000"
+    ]
+  },
+  "pair_deltas": {
+    "soft_minus_backfill_amortized_per_repeat_sec": -0.04383391680312343,
+    "soft_minus_backfill_candidate_fraction": 0.001760785312499985,
+    "soft_minus_backfill_top1": 3.750000000000281e-05
+  },
+  "promoted_upper_bank_route_id": "CHART_H4XH4_FIELD_A150_EVT_T070_CPX8_Q01_T40000",
+  "route_roles": {
+    "lower_bank_default_routed_systems_reference": {
+      "metrics": {
+        "amortized_per_repeat_sec": 0.10571638625697233,
+        "candidate_fraction": 0.18936551999999998,
+        "top1": 0.0444
+      },
+      "role": "lower_bank_default_routed_systems_reference",
+      "route_id": "CHART_H4XH4_FIELD_A150_EVT_T070_BF2_SB1_CPX8_Q01_T2500"
+    },
+    "lower_bank_dense_baseline": {
+      "metrics": {
+        "amortized_per_repeat_sec": 0.12536509374331217,
+        "candidate_fraction": 1.0,
+        "top1": 0.052000000000000005
+      },
+      "role": "lower_bank_dense_baseline",
+      "route_id": "DENSE_Q01_T2500"
+    },
+    "lower_bank_nondefault_quality_reference": {
+      "metrics": {
+        "amortized_per_repeat_sec": 0.15270838602737058,
+        "candidate_fraction": 0.19332824,
+        "top1": 0.0446
+      },
+      "role": "lower_bank_nondefault_quality_reference",
+      "route_id": "CHART_H4XH4_FIELD_A150_EVT_T070_CPX8_Q01_T2500"
+    },
+    "upper_bank_dense_baseline": {
+      "metrics": {
+        "amortized_per_repeat_sec": 16.770385021023685,
+        "candidate_fraction": 1.0,
+        "top1": 0.048850000000000005
+      },
+      "role": "upper_bank_dense_baseline",
+      "route_id": "DENSE_Q01_T40000"
+    },
+    "upper_bank_promoted_dense_near_reference": {
+      "metrics": {
+        "amortized_per_repeat_sec": 3.426261718966998,
+        "candidate_fraction": 0.18376387249999998,
+        "top1": 0.047325
+      },
+      "role": "upper_bank_promoted_dense_near_reference",
+      "route_id": "CHART_H4XH4_FIELD_A150_EVT_T070_CPX8_Q01_T40000"
+    },
+    "upper_bank_supporting_comparator": {
+      "metrics": {
+        "amortized_per_repeat_sec": 3.4700956357701216,
+        "candidate_fraction": 0.1820030871875,
+        "top1": 0.047287499999999996
+      },
+      "role": "upper_bank_supporting_comparator",
+      "route_id": "CHART_H4XH4_FIELD_A150_EVT_T070_BF2_SB1_CPX8_Q01_T40000"
+    }
+  },
+  "selection_mode": "tie_break_within_tolerance",
+  "sources": {
+    "lower_confirm": "inc0104_product_phase_soft_sparse_translation_backfill_recovery_confirm",
+    "selection_analysis": {
+      "confirm_analysis": "inc0113_product_phase_sparse_translation_upper_bank_dense_gap_decomposition_confirm",
+      "gap_analysis": [
+        "inc0113_product_phase_sparse_translation_upper_bank_dense_gap_decomposition_confirm"
+      ],
+      "quality_analysis": [
+        "inc0105_product_phase_soft_sparse_translation_upper_bank_carry_forward_confirm",
+        "inc0108_product_phase_sparse_translation_repeated_timing_hardening_upper_r2",
+        "inc0108_product_phase_sparse_translation_repeated_timing_hardening_upper_r3",
+        "inc0112_product_phase_sparse_translation_upper_bank_dense_quality_tolerance_hardening_r4",
+        "inc0112_product_phase_sparse_translation_upper_bank_dense_quality_tolerance_hardening_r5"
+      ]
+    },
+    "upper_confirm": "inc0113_product_phase_sparse_translation_upper_bank_dense_gap_decomposition_confirm"
+  },
+  "supporting_upper_bank_route_id": "CHART_H4XH4_FIELD_A150_EVT_T070_BF2_SB1_CPX8_Q01_T40000",
+  "upper_bank_mode": "single_promoted_reference"
+}

@@ -1,0 +1,4 @@
+wheel_W,orbit_length_L,admissible_phases,raw_word_bits,raw_word_zlib_bytes,generator_bits_estimate,generator_zlib_bytes,raw/generator_bit_ratio,components
+210,35,3,35,14,18,35,1.9444444444444444,B=18
+2310,385,21,385,34,54,96,7.12962962962963,B=18; U11*=28; tau11 coeffs=8
+30030,5005,189,5005,181,102,130,49.068627450980394,B=18; U11*=28; tau11 coeffs=8; U13*=36; tau13 coeffs=12

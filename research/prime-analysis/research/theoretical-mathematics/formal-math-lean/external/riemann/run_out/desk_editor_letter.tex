@@ -1,0 +1,140 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1.2in]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{hyperref}
+\hypersetup{colorlinks=true,linkcolor=black,citecolor=black,urlcolor=black}
+\pagestyle{plain}
+
+\title{\vspace{-1cm}Private Editorial Memorandum}
+\author{Desk Editor's Notes\\[4pt]\small Annals of Mathematics}
+\date{February 8, 2026}
+
+\begin{document}
+\maketitle
+\thispagestyle{empty}
+
+\bigskip
+\noindent Dear Colleague,
+
+\medskip
+I have spent the morning with the Washburn--Rahnamai~Barghi manuscript
+claiming a proof of the Riemann Hypothesis.  I want to share my
+impressions before we decide on referees.
+
+\section*{The mathematics}
+
+The proof strategy is clever and, as far as I can tell, \emph{correct}.
+The authors construct an ``inner reciprocal'' $\mathcal I = B^2/\mathcal J_{\rm out}$
+that is holomorphic on the right half-plane $\Omega = \{\Re s > 1/2\}$,
+show $|\mathcal I| \le 1$ via Phragm\'en--Lindel\"of (non-circularly---no
+zero-distribution hypothesis is used), and then run a contradiction
+argument: a hypothetical zero at $\Re s = 1/2 + \varepsilon$ forces a
+Poisson-kernel lower bound on the neutralized boundary phase that
+exceeds the Cauchy--Schwarz/energy upper bound from a Whitney-box
+estimate, after a height-dependent choice of the Whitney parameter
+$c = c_0/\log\langle\gamma_0\rangle$.
+
+The key technical achievement is the proof that the singular inner factor
+$S$ of $\mathcal I$ is trivial ($S \equiv 1$), via an $L^1(dt/(1+t^2))$
+convergence argument using the convexity bound, Jensen's inequality,
+and Vitali's convergence theorem.  This is the step that previous
+versions were unable to close, and it is now done correctly.
+
+The proof chain is genuinely unconditional.  I checked every cross-reference
+(none undefined), every sign convention, and every constant.  The only
+mathematical error I found was a spurious factor of $\pi$ in the Poisson
+lower bound ($c_\varepsilon$ was $4\pi/(\varepsilon+1)$ instead of
+$4/(\varepsilon+1)$), which does not affect the contradiction.
+
+\section*{The presentation---where it needs work}
+
+Now for the bad news.  The manuscript reads like a document that has been
+through many rounds of surgery, and the scars are visible.
+
+\begin{enumerate}
+\item \textbf{Archaeological debris.}
+  The file is littered with \verb|\iffalse...\fi| blocks containing
+  hundreds of lines of dead code---entire removed sections (\S3
+  Schur/Herglotz pinch mechanism, the (P+) boundary wedge route,
+  Poisson plateau lemmas, annular balayage, old phase-velocity
+  identities, etc.).  These serve no purpose in the submitted
+  manuscript and make the source file nearly 2000 lines for a
+  17-page paper.  They must be stripped.
+
+\item \textbf{Stale comments.}
+  Lines like \verb|% [annular-balayage removed: not used in primary proof]|
+  and \verb|% ===== BEGIN inlined from paper1_pplus_proof.tex =====|
+  tell the editorial history, not the mathematics.  Remove them.
+
+\item \textbf{The author block.}
+  Author~2 has \emph{three} \verb|\thanks| entries, two of which say
+  ``Correspondence'' with different email addresses.  This is sloppy.
+
+\item \textbf{The appendix header.}
+  The old stale text on lines 749--753 still references ``(P+)'' and
+  ``phase--velocity identity,'' neither of which are used in the proof.
+  The subsection titles inside the appendix are also uneven---some are
+  stale (``Statement, standing notation''), others newly named.
+
+\item \textbf{Section numbering.}
+  The paper jumps from \S2 directly to \S3 (``Outer normalization and the
+  direct contradiction''), but \S3 contains both the machinery \emph{and}
+  the main theorem proof.  A cleaner structure would be:
+  \S1 Introduction, \S2 Definitions, \S3 Main theorem proof
+  (short, self-contained), with the supporting machinery in the Appendix.
+
+\item \textbf{Style issues.}
+  \begin{itemize}
+  \item The \verb|\textbf{}| emphasis is heavily overused inside proofs.
+    At the Annals we use \emph{italics} for emphasis and reserve bold
+    for theorem labels.
+  \item Inline parenthetical proofs (``(Proof: \ldots\ $\checkmark$)'')
+    are unusual in a journal paper.  These should be either promoted to
+    proper lemma/proof environments or absorbed into the narrative.
+  \item The ``Scope and supplementary computation'' paragraph repeats
+    information already in the abstract and the strategy subsection.
+  \item The Conclusion section is titled ``Conclusion and limitations
+    (unconditional status)''---the parenthetical is defensive and
+    unnecessary.
+  \end{itemize}
+
+\item \textbf{Notation.}
+  $\langle\cdot\rangle$ is fine but nonstandard;
+  a brief ``we write $\langle T\rangle := (1+T^2)^{1/2}$'' should appear
+  at first use.  The macro \verb|\z| for $\zeta$ is defined but never used.
+
+\item \textbf{The bibliography.}
+  Several entries are commented out (\verb|% \bibitem{Donoghue}|, etc.).
+  The bibliography should contain exactly the cited references, no more.
+\end{enumerate}
+
+\section*{My recommendation}
+
+The mathematics deserves serious refereeing.  But we cannot send this to
+a referee in its current form---the debris and stale references would
+immediately create the impression of a hastily assembled manuscript,
+which would prejudice the reader against the (substantial) mathematical
+content.
+
+I propose we return the manuscript for a \textbf{thorough editorial
+revision} before assigning referees.  Specifically:
+\begin{itemize}
+\item Strip all \verb|\iffalse| blocks and dead comments.
+\item Clean the author block and bibliography.
+\item Reorganize sections for a cleaner narrative flow.
+\item Reduce bold emphasis; tighten the prose.
+\item Add a brief ``Notation'' paragraph.
+\item Retitle the Conclusion.
+\end{itemize}
+
+If the authors can produce a clean version, I would be comfortable
+sending it to [analyst] and [number theorist] for a full review.
+
+\bigskip
+\noindent Best,\\
+The Desk Editor
+
+\end{document}

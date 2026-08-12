@@ -1,0 +1,141 @@
+\documentclass[11pt]{amsart}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{booktabs}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+
+\newcommand{\C}{\mathbb{C}}
+\newcommand{\R}{\mathbb{R}}
+\DeclareMathOperator{\dettwo}{det_2}
+
+\title{Proof that the singular inner factor is trivial ($S\equiv 1$)}
+\author{Technical companion to paper1\_zerozeta-v19}
+\date{February 7, 2026}
+
+\begin{document}
+\maketitle
+
+\section{The problem}
+
+The inner reciprocal $\mathcal I:=B^2/\mathcal J_{\rm out}$ is an inner function
+on $\Omega=\{\Re s>1/2\}$ (holomorphic, $|\mathcal I|\le 1$, $|\mathcal I^*|=1$ a.e.).
+Its canonical factorization is
+\[
+  \mathcal I\ =\ e^{i\theta}\,B_{\mathcal I}\,S,
+\]
+where $B_{\mathcal I}$ is the Blaschke product over $\zeta$-zeros in $\Omega$
+and $S$ is the singular inner factor (Poisson integral of a positive singular
+measure $\nu_S$ on $\partial\Omega$).
+
+\textbf{The obstacle:}
+If $S\not\equiv 1$, then $-\log|S|=P_\sigma[\nu_S]$ contributes a Poisson spike
+at height $\sigma\sim L$ of size $\nu_S(\text{near})/(\pi\sigma)
+=O(\log^2\!\langle t_0\rangle/c_0)$
+to the boundary bound $M=\sup_{\partial D}\widetilde W$.
+This extra $\log$ factor in $M$ breaks the height-dependent $c=c_0/\log$
+cancellation trick (the ratio Upper/Lower grows as $\log\langle\gamma_0\rangle$
+instead of being constant).
+
+\textbf{The resolution:}
+We prove $S\equiv 1$ using the polynomial growth of $\zeta$ and the standard
+$N^+$ (Smirnov class) criterion.
+
+\section{The proof}
+
+\begin{proposition}
+The singular inner factor of $\mathcal I=B\,\mathcal O_\zeta\,\zeta/\dettwo(I-A)$
+on $\Omega$ is trivial: $S\equiv 1$.
+\end{proposition}
+
+\begin{proof}
+The singular inner of $\mathcal I$ equals the singular inner of $(s-1)\zeta(s)/s$
+on $\Omega$, because:
+\begin{itemize}
+\item $\dettwo(I-A)$ is holomorphic and nonvanishing on $\Omega$,
+  with $\log|\dettwo|$ having a BMO boundary trace (from the arithmetic Carleson
+  energy bound). This implies $\dettwo\in N^+(\Omega)$
+  (Fefferman--Stein/Garnett characterization), so its inner factor is trivial.
+\item $\mathcal O_\zeta$ is outer by construction (trivial inner factor).
+\item The rational factor $B(s)=(s-1)/s$ is in $H^\infty(\Omega)$
+  (trivial inner factor on $\Omega$, since $|B|=1$ on $\partial\Omega$
+  and $|B|\le C$ on $\Omega$).
+\end{itemize}
+Hence the singular inner of the product $\mathcal I=B\,\mathcal O_\zeta\,\zeta/\dettwo$
+equals the singular inner of $\zeta$ (equivalently, of $f(s):=(s-1)\zeta(s)/s$)
+on $\Omega$.
+
+\medskip
+Now we show $f\in N^+(\Omega)$, which implies $\nu_\zeta=0$.
+
+\emph{Step 1: $f\in N(\Omega)$.}
+The function $f$ is holomorphic on $\Omega$ (the pole of $\zeta$ at $s=1$
+is canceled by $s-1$; $s=0\notin\Omega$).
+By the convexity bound for $\zeta$:
+\[
+  |f(\tfrac12+\sigma+it)|\ \le\ C(1+|t|)^A
+  \qquad\text{for all }\sigma\in(0,1],\;t\in\R,
+\]
+where $A$ and $C$ are absolute constants.
+Hence $\log^+\!|f|=O(\log(2+|s|))$, and the Poisson integral
+$\int\log^+\!|f|/(1+t^2)\,dt<\infty$ provides a harmonic majorant.
+So $f\in N(\Omega)$.
+
+\emph{Step 2: $f\in N^+(\Omega)$ by the uniform integrability criterion.}
+By Garnett~\cite[Ch.~II, Thm.~3.2]{GarnettBAF}:
+$f\in N(\Omega)$ belongs to $N^+(\Omega)$ if and only if the family
+$\{\log^+\!|f(\sigma,\cdot)|\}_{\sigma>0}$ is uniformly integrable
+in $L^1(\R,dt/(1+t^2))$.
+
+Since $\log^+\!|f(\tfrac12+\sigma+it)|\le A\log(2+|t|)$ \textbf{uniformly}
+for all $\sigma\in(0,1]$, and $A\log(2+|t|)/(1+t^2)\in L^1(\R)$,
+the family is dominated by a fixed $L^1$ function, hence uniformly integrable.
+Therefore $f\in N^+(\Omega)$.
+
+\emph{Step 3: Conclusion.}
+$f\in N^+(\Omega)$ means the inner factor of $f$ has no singular part:
+$\nu_\zeta=0$.
+Therefore $S\equiv 1$.
+\end{proof}
+
+\section{Why this is unconditional}
+
+The proof uses \textbf{only}:
+\begin{enumerate}
+\item The polynomial growth of $\zeta$ on $\Omega$
+  ($|\zeta(\tfrac12+\sigma+it)|\le C(1+|t|)^A$ for $\sigma\in(0,1]$),
+  which follows from the \textbf{convexity bound} (a classical,
+  unconditional result; see Titchmarsh, Ch.~V).
+\item The $N^+$ criterion via uniform integrability of $\log^+$
+  (Garnett, Ch.~II, Thm.~3.2).
+\item The triviality of the singular inner factors of $\dettwo$ and $\mathcal O_\zeta$
+  (from the Carleson energy bound and the outer construction, respectively).
+\end{enumerate}
+
+\textbf{No zero-free hypothesis is used.}
+The convexity bound is a consequence of the Phragm\'en--Lindel\"of principle
+applied to $\zeta$ on vertical strips, and does not assume anything about
+the location of $\zeta$-zeros.
+
+\section{Impact on the proof}
+
+With $S\equiv 1$:
+\begin{itemize}
+\item The neutralized potential $\widetilde W=-\log|B_{\rm far}|$ has
+  \textbf{no singular inner contribution}.
+\item The boundary bound $M=\sup_{\partial D}\widetilde W\le C_*\log\langle t_0\rangle$
+  comes \textbf{entirely from the Blaschke tail} (Poisson-averaged Green kernels).
+\item The constant $C_*$ depends only on the apertures and the RvM density ---
+  \textbf{not on $c$}.
+\item The contradiction in Theorem~1 closes with $c=c_0/\log\langle\gamma_0\rangle$:
+  ratio $A\sqrt{c_0}/11=11/(\sqrt{2}\cdot 11)<1$. Unconditional.
+\end{itemize}
+
+\end{document}

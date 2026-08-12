@@ -1,0 +1,214 @@
+{
+  "branch_status": "positive_explanatory",
+  "comparison_surface": "lm_proxy_real_task_refreshed",
+  "contract_id": "inc0133_product_phase_sparse_event_translation_lower_bank_contract_refresh",
+  "default_real_task_route_ids": [
+    "DENSE_Q01_T2500",
+    "CHART_H4XH4_FIELD_A150_EVT_T070_TAU002_CPX8_Q01_T2500",
+    "DENSE_Q01_T40000",
+    "CHART_H4XH4_FIELD_A150_EVT_T070_CPX8_Q01_T40000"
+  ],
+  "excluded_by_default_route_ids": [
+    "CHART_H4XH4_FIELD_A150_EVT_T070_CPX8_Q01_T2500",
+    "CHART_H4XH4_FIELD_A150_EVT_T070_BF2_SB1_CPX8_Q01_T2500"
+  ],
+  "generated_at": "2026-03-12T20:39:31.719707-04:00",
+  "inheritance_rules": [
+    "Use `CHART_H4XH4_FIELD_A150_EVT_T070_TAU002_CPX8_Q01_T2500` as the only default lower-bank routed route on current dual-anchor surfaces.",
+    "Keep `CHART_H4XH4_FIELD_A150_EVT_T070_TAU002_SBI030_CPX8_Q01_T2500` and `CHART_H4XH4_FIELD_A150_EVT_T070_TAU002_SBI080_CPX8_Q01_T2500` as explicit lower-bank comparators rather than defaults.",
+    "Keep `CHART_H4XH4_FIELD_A150_EVT_T070_BF2_SB1_CPX8_Q01_T2500` out of default inheritance; only use it when a branch explicitly needs the stale historical comparator.",
+    "Leave the upper-bank promoted default at `CHART_H4XH4_FIELD_A150_EVT_T070_CPX8_Q01_T40000` and the upper-bank optional comparator at `CHART_H4XH4_FIELD_A150_EVT_T070_BF2_SB1_CPX8_Q01_T40000`."
+  ],
+  "lower_anchor_balanced_quality_comparator": {
+    "baseline_route_id": "DENSE_Q01_T2500",
+    "classification": "balanced_quality_comparator",
+    "delta_vs_default": {
+      "amortized_per_repeat_sec": 0.004296750470530242,
+      "candidate_fraction": 0.0,
+      "online_per_repeat_sec": 0.0056546352279838175,
+      "top1": 0.001799999999999996
+    },
+    "delta_vs_dense": {
+      "amortized_per_repeat_sec": -0.03155654175498057,
+      "candidate_fraction": -0.80667176,
+      "online_per_repeat_sec": -0.05277413576550316,
+      "top1": -0.005600000000000008
+    },
+    "metrics": {
+      "amortized_per_repeat_sec": 0.09419665650057141,
+      "candidate_fraction": 0.19332824,
+      "online_per_repeat_sec": 0.07297906249004882,
+      "top1": 0.0464
+    },
+    "recommendation": {
+      "reason": "smallest confirmed quality lift over the lower-bank default with a small amortized penalty",
+      "verdict": "optional_balanced_quality_comparator"
+    },
+    "route_id": "CHART_H4XH4_FIELD_A150_EVT_T070_TAU002_SBI030_CPX8_Q01_T2500"
+  },
+  "lower_anchor_default": {
+    "baseline_route_id": "DENSE_Q01_T2500",
+    "classification": "systems-only",
+    "delta_vs_dense": {
+      "amortized_per_repeat_sec": -0.03585329222551081,
+      "candidate_fraction": -0.80667176,
+      "online_per_repeat_sec": -0.05842877099348698,
+      "top1": -0.007400000000000004
+    },
+    "metrics": {
+      "amortized_per_repeat_sec": 0.08989990603004117,
+      "candidate_fraction": 0.19332824,
+      "online_per_repeat_sec": 0.067324427262065,
+      "top1": 0.0446
+    },
+    "recommendation": {
+      "reason": "best lower-bank amortized profile, but still materially below dense top-1",
+      "verdict": "carry_as_systems_only_default"
+    },
+    "route_id": "CHART_H4XH4_FIELD_A150_EVT_T070_TAU002_CPX8_Q01_T2500"
+  },
+  "lower_anchor_historical_comparator": {
+    "baseline_route_id": "DENSE_Q01_T2500",
+    "classification": "historical_only",
+    "delta_vs_default": {
+      "amortized_per_repeat_sec": 1.9091718749841675,
+      "candidate_fraction": -0.0031786400000000103,
+      "online_per_repeat_sec": 1.9007208122347947,
+      "top1": 0.0005999999999999964
+    },
+    "metrics": {
+      "amortized_per_repeat_sec": 1.9990717810142087,
+      "candidate_fraction": 0.1901496,
+      "online_per_repeat_sec": 1.9680452394968597,
+      "top1": 0.0452
+    },
+    "recommendation": {
+      "reason": "focused prewarmed packet keeps this route well outside the active lower-bank carry-forward set",
+      "verdict": "historical_only"
+    },
+    "route_id": "CHART_H4XH4_FIELD_A150_EVT_T070_BF2_SB1_CPX8_Q01_T2500"
+  },
+  "lower_anchor_quality_first_comparator": {
+    "baseline_route_id": "DENSE_Q01_T2500",
+    "classification": "quality_first_comparator",
+    "delta_vs_default": {
+      "amortized_per_repeat_sec": 0.05169207249127794,
+      "candidate_fraction": 0.0,
+      "online_per_repeat_sec": 0.04536154148809146,
+      "top1": 0.007800000000000001
+    },
+    "delta_vs_dense": {
+      "amortized_per_repeat_sec": 0.015838780265767127,
+      "candidate_fraction": -0.80667176,
+      "online_per_repeat_sec": -0.013067229505395517,
+      "top1": 0.0003999999999999976
+    },
+    "metrics": {
+      "amortized_per_repeat_sec": 0.1415919785213191,
+      "candidate_fraction": 0.19332824,
+      "online_per_repeat_sec": 0.11268596875015646,
+      "top1": 0.0524
+    },
+    "recommendation": {
+      "reason": "only lower-bank point that edges dense on top-1, but it gives back the systems advantage",
+      "verdict": "optional_quality_first_comparator"
+    },
+    "route_id": "CHART_H4XH4_FIELD_A150_EVT_T070_TAU002_SBI080_CPX8_Q01_T2500"
+  },
+  "optional_real_task_comparator_route_ids": [
+    "CHART_H4XH4_FIELD_A150_EVT_T070_TAU002_SBI030_CPX8_Q01_T2500",
+    "CHART_H4XH4_FIELD_A150_EVT_T070_TAU002_SBI080_CPX8_Q01_T2500",
+    "CHART_H4XH4_FIELD_A150_EVT_T070_BF2_SB1_CPX8_Q01_T40000"
+  ],
+  "optional_upper_comparator": {
+    "baseline_route_id": "DENSE_Q01_T40000",
+    "classification": "quality-near systems promotion",
+    "delta_vs_dense": {
+      "amortized_per_repeat_sec": -13.300289385253564,
+      "candidate_fraction": -0.8179969128125,
+      "online_per_repeat_sec": -13.661422031247639,
+      "top1": -0.0015625000000000083
+    },
+    "delta_vs_upper_default": {
+      "amortized_per_repeat_sec": 0.04383391680312343,
+      "candidate_fraction": -0.001760785312499985,
+      "online_per_repeat_sec": -0.02679392695426941,
+      "top1": -3.750000000000281e-05
+    },
+    "metrics": {
+      "amortized_per_repeat_sec": 3.4700956357701216,
+      "candidate_fraction": 0.1820030871875,
+      "online_per_repeat_sec": 3.108962989776046,
+      "top1": 0.047287499999999996
+    },
+    "recommendation": {
+      "reason": "keep only as an explicit upper-bank pruning/systems comparator inside the existing tolerance band",
+      "verdict": "optional_only"
+    },
+    "route_id": "CHART_H4XH4_FIELD_A150_EVT_T070_BF2_SB1_CPX8_Q01_T40000",
+    "selection_context": {
+      "interpretation": "CHART_H4XH4_FIELD_A150_EVT_T070_CPX8_Q01_T40000 is promoted as the single upper-bank dense-near routed reference. The remaining delta versus CHART_H4XH4_FIELD_A150_EVT_T070_BF2_SB1_CPX8_Q01_T40000 stays inside the configured top-1, amortized, and candidate-fraction tolerance band, so the supporting route can drop to comparator status.",
+      "selection_mode": "tie_break_within_tolerance"
+    }
+  },
+  "overall_real_task_comparison_read": "Refreshed LM-proxy dual-anchor real-task comparison now uses CHART_H4XH4_FIELD_A150_EVT_T070_TAU002_CPX8_Q01_T2500 as the lower-bank systems-only default, keeps CHART_H4XH4_FIELD_A150_EVT_T070_TAU002_SBI030_CPX8_Q01_T2500 as the balanced lower-bank quality comparator, keeps CHART_H4XH4_FIELD_A150_EVT_T070_TAU002_SBI080_CPX8_Q01_T2500 as the lower-bank quality-first comparator, and leaves CHART_H4XH4_FIELD_A150_EVT_T070_CPX8_Q01_T40000 as the upper-bank quality-near systems default. CHART_H4XH4_FIELD_A150_EVT_T070_BF2_SB1_CPX8_Q01_T2500 is no longer an active default route.",
+  "promotion_recommendation": {
+    "lower_bank_balanced_quality_comparator": {
+      "reason": "smallest confirmed quality lift over the lower-bank default with a small amortized penalty",
+      "verdict": "optional_balanced_quality_comparator"
+    },
+    "lower_bank_default": {
+      "reason": "best lower-bank amortized profile, but still materially below dense top-1",
+      "verdict": "carry_as_systems_only_default"
+    },
+    "lower_bank_quality_first_comparator": {
+      "reason": "only lower-bank point that edges dense on top-1, but it gives back the systems advantage",
+      "verdict": "optional_quality_first_comparator"
+    },
+    "upper_bank_default": {
+      "reason": "upper-bank route stays inside the dense-near quality band while preserving a large systems win",
+      "verdict": "carry_as_promoted_real_task_default"
+    },
+    "upper_bank_optional_comparator": {
+      "reason": "keep only as an explicit upper-bank pruning/systems comparator inside the existing tolerance band",
+      "verdict": "optional_only"
+    }
+  },
+  "report_target_path": "docs/reports/REAL_TASK_COMPARISON.md",
+  "required_outputs": [
+    "refreshed real-task comparison artifact",
+    "update to docs/reports/REAL_TASK_COMPARISON.md",
+    "carry-forward recommendation from refreshed lower-bank evidence"
+  ],
+  "source_analyses": {
+    "lower_confirm": "inc0131_product_phase_sparse_event_translation_soft_bias_carry_forward_confirm",
+    "upper_confirm": "inc0113_product_phase_sparse_translation_upper_bank_dense_gap_decomposition_confirm",
+    "upper_selection_mode": "tie_break_within_tolerance"
+  },
+  "source_contract": {
+    "contract_id": "inc0133_product_phase_sparse_event_translation_lower_bank_contract_refresh",
+    "interpretation": "INC-0132 moved the real lower-bank science: CHART_H4XH4_FIELD_A150_EVT_T070_TAU002_CPX8_Q01_T2500 is now the explicit default systems reference, while the two soft-bias routes are explicit comparator-only options. INC-0133 applies that result once across broader, task-side, and downstream contracts so later branches stop inheriting the stale lower-bank backfill default.",
+    "refresh_mode": "single_contract_refresh_from_inc0132"
+  },
+  "upper_anchor_default": {
+    "baseline_route_id": "DENSE_Q01_T40000",
+    "classification": "quality-near systems promotion",
+    "delta_vs_dense": {
+      "amortized_per_repeat_sec": -13.344123302056687,
+      "candidate_fraction": -0.8162361275000001,
+      "online_per_repeat_sec": -13.63462810429337,
+      "top1": -0.0015250000000000055
+    },
+    "metrics": {
+      "amortized_per_repeat_sec": 3.426261718966998,
+      "candidate_fraction": 0.18376387249999998,
+      "online_per_repeat_sec": 3.1357569167303154,
+      "top1": 0.047325
+    },
+    "recommendation": {
+      "reason": "upper-bank route stays inside the dense-near quality band while preserving a large systems win",
+      "verdict": "carry_as_promoted_real_task_default"
+    },
+    "route_id": "CHART_H4XH4_FIELD_A150_EVT_T070_CPX8_Q01_T40000"
+  }
+}

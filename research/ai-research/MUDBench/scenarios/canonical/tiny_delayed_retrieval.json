@@ -1,0 +1,22 @@
+{
+  "scenario_id": "tiny-delayed-retrieval",
+  "title": "Tiny Delayed Retrieval",
+  "description": "Tiny memory-focused scenario where agents traverse away and return to retrieve a target item.",
+  "start_room_id": "start",
+  "max_steps": 6,
+  "seed": 24,
+  "version": "1.0",
+  "scenario_vars": {
+    "mode": "vertical-slice-memory",
+    "agent_script_policy": "memory_delayed_retrieval_v1",
+    "world_config_json": "{\"items\":[{\"entity_id\":\"memory-token\",\"entity_type\":\"item\",\"location\":\"cache\"},{\"entity_id\":\"note-fragment\",\"entity_type\":\"item\",\"location\":\"start\"}],\"rooms\":{\"cache\":{\"description\":\"A quiet storage alcove.\",\"entities\":[],\"exits\":{\"west\":\"junction\"},\"title\":\"Cache\"},\"junction\":{\"description\":\"A crossroads with worn stone marks.\",\"entities\":[],\"exits\":{\"east\":\"cache\",\"west\":\"start\"},\"title\":\"Junction\"},\"start\":{\"description\":\"A small starting chamber with etched markings.\",\"entities\":[],\"exits\":{\"east\":\"junction\"},\"title\":\"Start\"}}}"
+  },
+  "objectives": [
+    {
+      "objective_id": "retrieve-memory-token",
+      "objective_type": "collect_item",
+      "target_id": "memory-token",
+      "required_count": 1
+    }
+  ]
+}

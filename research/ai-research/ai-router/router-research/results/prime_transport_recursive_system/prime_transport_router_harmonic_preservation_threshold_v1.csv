@@ -1,0 +1,13 @@
+variant,regime,eps_high,position,decodability,final_accuracy,solve_step,no_last_accuracy,alpha_last,runtime_seconds,note
+eps_high_0.50,fuller_k3,0.5,initial,1.0,1.0,2500,0.3677,0.8582,69.6,harmonic-split eps_high=0.50; k>=2 blended
+eps_high_0.50,fuller_k3,0.5,mid,0.3367,1.0,2500,0.3677,0.8582,69.6,harmonic-split eps_high=0.50; k>=2 blended
+eps_high_0.50,fuller_k3,0.5,final,1.0,1.0,2500,0.3677,0.8582,69.6,harmonic-split eps_high=0.50; k>=2 blended
+eps_high_0.75,fuller_k3,0.75,initial,1.0,1.0,2500,0.6318,0.8581,72.5,harmonic-split eps_high=0.75; k>=2 blended
+eps_high_0.75,fuller_k3,0.75,mid,0.4463,1.0,2500,0.6318,0.8581,72.5,harmonic-split eps_high=0.75; k>=2 blended
+eps_high_0.75,fuller_k3,0.75,final,1.0,1.0,2500,0.6318,0.8581,72.5,harmonic-split eps_high=0.75; k>=2 blended
+eps_high_0.90,fuller_k3,0.9,initial,1.0,1.0,1500,0.9717,0.821,69.5,harmonic-split eps_high=0.90; k>=2 blended
+eps_high_0.90,fuller_k3,0.9,mid,0.9294,1.0,1500,0.9717,0.821,69.5,harmonic-split eps_high=0.90; k>=2 blended
+eps_high_0.90,fuller_k3,0.9,final,1.0,1.0,1500,0.9717,0.821,69.5,harmonic-split eps_high=0.90; k>=2 blended
+eps_high_1.00,fuller_k3,1.0,initial,1.0,1.0,500,1.0,0.6357,70.5,harmonic-split eps_high=1.00; k>=2 freeze; fully frozen
+eps_high_1.00,fuller_k3,1.0,mid,1.0,1.0,500,1.0,0.6357,70.5,harmonic-split eps_high=1.00; k>=2 freeze; fully frozen
+eps_high_1.00,fuller_k3,1.0,final,1.0,1.0,500,1.0,0.6357,70.5,harmonic-split eps_high=1.00; k>=2 freeze; fully frozen

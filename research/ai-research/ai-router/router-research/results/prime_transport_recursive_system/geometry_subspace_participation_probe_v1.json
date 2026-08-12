@@ -1,0 +1,246 @@
+{
+  "probe": "geometry_subspace_participation_probe_v1",
+  "branch": "geometry_subspace_participation_probe_v1",
+  "contract": "prompt_contract_v4.md",
+  "dependency_table": "prime_transport_geometry_dependency_order_probe_v1.md",
+  "prior_probes": [
+    "geometry_space_type_probe_v1 \u2192 SPACE_INVARIANT_SIGNAL",
+    "geometry_space_dynamics_probe_v1 \u2192 SPACE_INVARIANT_UNDER_DYNAMICS"
+  ],
+  "n_samples": 1024,
+  "n_per_class": 256,
+  "vocab": 4,
+  "operator": "cos (cosine similarity)",
+  "normalization": "unit-norm per subspace vector; no reweighting",
+  "basis": "apply_anchor_two_i (2i frame)",
+  "eps_high": 1.0,
+  "no_training": true,
+  "threshold_meaningful_delta": 0.05,
+  "space_candidates": {
+    "CURRENT_BASELINE": {
+      "description": "R^16 hybrid: 12 angular (6 harmonic pairs) + 4 magnitude",
+      "dims": 16
+    },
+    "REDUCED_BLOCK": {
+      "description": "R^12: 12 angular dims only (4 magnitude dims removed from R^16)",
+      "dims": 12
+    },
+    "R4_FLAT": {
+      "description": "R^4: h2+h3 pairs of dominant block3 only",
+      "dims": 4,
+      "note": "H1 subspace not available"
+    }
+  },
+  "subspace_types": {
+    "H3_ONLY": {
+      "description": "h=3 of block3; \u03b8=\u03c0\u00b7k/2; 4 classes at 90\u00b0 \u2192 orthogonal (control)",
+      "dims_baseline": [
+        10,
+        11
+      ],
+      "dims_r4": [
+        2,
+        3
+      ]
+    },
+    "H2_ONLY": {
+      "description": "h=2 of block3; \u03b8=\u03c0\u00b7k/3; 4 classes at 60\u00b0 \u2192 not orthogonal",
+      "dims_baseline": [
+        8,
+        9
+      ],
+      "dims_r4": [
+        0,
+        1
+      ]
+    },
+    "H1_ONLY": {
+      "description": "h=1 of block3; \u03b8=\u03c0\u00b7k/6; 4 classes at 30\u00b0 \u2192 high overlap",
+      "dims_baseline": [
+        6,
+        7
+      ],
+      "dims_r4": null
+    },
+    "H2_PLUS_H3": {
+      "description": "h=2 and h=3 of block3 concatenated (4D)",
+      "dims_baseline": [
+        8,
+        9,
+        10,
+        11
+      ],
+      "dims_r4": [
+        0,
+        1,
+        2,
+        3
+      ]
+    },
+    "H1_PLUS_H3": {
+      "description": "h=1 and h=3 of block3 concatenated (4D)",
+      "dims_baseline": [
+        6,
+        7,
+        10,
+        11
+      ],
+      "dims_r4": null
+    },
+    "FULL_B3": {
+      "description": "h=1, h=2, h=3 of block3 concatenated (6D)",
+      "dims_baseline": [
+        6,
+        7,
+        8,
+        9,
+        10,
+        11
+      ],
+      "dims_r4": null
+    }
+  },
+  "separation_metrics": {
+    "CURRENT_BASELINE": {
+      "H3_ONLY": {
+        "mean_matched_cos": 1.0,
+        "mean_mismatched_cos": -0.33333333,
+        "separation_delta": 1.33333333,
+        "n_matched_pairs": 1024,
+        "n_mismatched_pairs": 3072
+      },
+      "H2_ONLY": {
+        "mean_matched_cos": 1.0,
+        "mean_mismatched_cos": -0.08333333,
+        "separation_delta": 1.08333333,
+        "n_matched_pairs": 1024,
+        "n_mismatched_pairs": 3072
+      },
+      "H1_ONLY": {
+        "mean_matched_cos": 1.0,
+        "mean_mismatched_cos": 0.59967937,
+        "separation_delta": 0.40032063,
+        "n_matched_pairs": 1024,
+        "n_mismatched_pairs": 3072
+      },
+      "H2_PLUS_H3": {
+        "mean_matched_cos": 1.0,
+        "mean_mismatched_cos": -0.20833333,
+        "separation_delta": 1.20833333,
+        "n_matched_pairs": 1024,
+        "n_mismatched_pairs": 3072
+      },
+      "H1_PLUS_H3": {
+        "mean_matched_cos": 1.0,
+        "mean_mismatched_cos": 0.13317302,
+        "separation_delta": 0.86682698,
+        "n_matched_pairs": 1024,
+        "n_mismatched_pairs": 3072
+      },
+      "FULL_B3": {
+        "mean_matched_cos": 1.0,
+        "mean_mismatched_cos": 0.06100423,
+        "separation_delta": 0.93899577,
+        "n_matched_pairs": 1024,
+        "n_mismatched_pairs": 3072
+      }
+    },
+    "REDUCED_BLOCK": {
+      "H3_ONLY": {
+        "mean_matched_cos": 1.0,
+        "mean_mismatched_cos": -0.33333333,
+        "separation_delta": 1.33333333,
+        "n_matched_pairs": 1024,
+        "n_mismatched_pairs": 3072
+      },
+      "H2_ONLY": {
+        "mean_matched_cos": 1.0,
+        "mean_mismatched_cos": -0.08333333,
+        "separation_delta": 1.08333333,
+        "n_matched_pairs": 1024,
+        "n_mismatched_pairs": 3072
+      },
+      "H1_ONLY": {
+        "mean_matched_cos": 1.0,
+        "mean_mismatched_cos": 0.59967937,
+        "separation_delta": 0.40032063,
+        "n_matched_pairs": 1024,
+        "n_mismatched_pairs": 3072
+      },
+      "H2_PLUS_H3": {
+        "mean_matched_cos": 1.0,
+        "mean_mismatched_cos": -0.20833333,
+        "separation_delta": 1.20833333,
+        "n_matched_pairs": 1024,
+        "n_mismatched_pairs": 3072
+      },
+      "H1_PLUS_H3": {
+        "mean_matched_cos": 1.0,
+        "mean_mismatched_cos": 0.13317302,
+        "separation_delta": 0.86682698,
+        "n_matched_pairs": 1024,
+        "n_mismatched_pairs": 3072
+      },
+      "FULL_B3": {
+        "mean_matched_cos": 1.0,
+        "mean_mismatched_cos": 0.06100423,
+        "separation_delta": 0.93899577,
+        "n_matched_pairs": 1024,
+        "n_mismatched_pairs": 3072
+      }
+    },
+    "R4_FLAT": {
+      "H3_ONLY": {
+        "mean_matched_cos": 1.0,
+        "mean_mismatched_cos": -0.33333333,
+        "separation_delta": 1.33333333,
+        "n_matched_pairs": 1024,
+        "n_mismatched_pairs": 3072
+      },
+      "H2_ONLY": {
+        "mean_matched_cos": 1.0,
+        "mean_mismatched_cos": -0.08333333,
+        "separation_delta": 1.08333333,
+        "n_matched_pairs": 1024,
+        "n_mismatched_pairs": 3072
+      },
+      "H1_ONLY": null,
+      "H2_PLUS_H3": {
+        "mean_matched_cos": 1.0,
+        "mean_mismatched_cos": -0.20833333,
+        "separation_delta": 1.20833333,
+        "n_matched_pairs": 1024,
+        "n_mismatched_pairs": 3072
+      },
+      "H1_PLUS_H3": null,
+      "FULL_B3": null
+    }
+  },
+  "classification": "H3_ONLY_SIGNAL",
+  "validity_pass": true,
+  "validity_detail": {
+    "n_samples_consistent": true,
+    "h3_baseline_vs_reduced_max_diff": 0.0,
+    "h3_baseline_vs_r4_max_diff": 0.0,
+    "h3_baseline_vs_reduced_pass": true,
+    "h3_baseline_vs_r4_pass": true,
+    "h2_baseline_vs_reduced_max_diff": 0.0,
+    "h2_baseline_vs_r4_max_diff": 0.0,
+    "h2_baseline_vs_reduced_pass": true,
+    "h2_baseline_vs_r4_pass": true,
+    "h1_baseline_vs_reduced_max_diff": 0.0,
+    "h1_baseline_vs_reduced_pass": true,
+    "subspace_norms": {
+      "bl_h1_min_norm": 1.0,
+      "bl_h1_all_nonzero": true,
+      "bl_h2_min_norm": 1.0,
+      "bl_h2_all_nonzero": true,
+      "bl_h3_min_norm": 1.0,
+      "bl_h3_all_nonzero": true,
+      "r4_h2_min_norm": 1.0,
+      "r4_h2_all_nonzero": true,
+      "r4_h3_min_norm": 1.0,
+      "r4_h3_all_nonzero": true
+    }
+  }
+}

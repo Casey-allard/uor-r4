@@ -1,0 +1,20 @@
+scope,metric,count,total,fraction,note
+summary,primary_states_examined,45,45,1.0,distinct primary chart states on the bounded lawful H_v8 surface
+summary,distinct_spin_H_core_v4_states_reached,38315,45,851.4444444444445,distinct canonical parent states with composition-aware sigma carrier
+summary,collision_count,0,45,0.0,many-to-one collisions from primary chart states into composition-aware parent states
+summary,recursive_consistency_rate,38315,38315,1.0,fraction of parent states whose lawful component updates remain canonical
+projection,spin_h4_derivable_from_parent,1,1,1.0,Pi_pred(spin_H_core_v4) -> spin_h4 via derived mode orbit
+projection,tau_derivable_from_parent,1,1,1.0,Pi_rec(spin_H_core_v4) -> tau
+projection,kappa_derivable_from_parent,1,1,1.0,Pi_hol(spin_H_core_v4) -> kappa
+projection,sigma_still_depends_on_bounded_local_observable_orbit_summaries,0,1,0.0,false when sigma carrier is no longer only a one-step local observable orbit summary
+projection,sigma_mode_carrier_less_bounded_than_global_regressive_mode_index,1,1,1.0,true when sigma carrier includes lawful generator-composition profile beyond v3 one-step profile
+comparison_vs_v3,collision_change,0,0,0.0,change in collisions relative to spin_H_core_v3
+comparison_vs_v3,recursive_consistency_change,0,38315,0.0,change in recursive consistency relative to spin_H_core_v3
+comparison_vs_v3,distinct_state_count_change,0,38315,0.0,change in distinct parent states relative to spin_H_core_v3
+update_law,hold,38315,38315,1.0,dominant_component_delta=theta0_rho0_sigma0_h0
+update_law,torus_base_advance,38315,38315,1.0,dominant_component_delta=theta1_rho0_sigma0_h0
+update_law,composite_swap,38155,38315,0.9958240897820697,dominant_component_delta=theta0_rho0_sigma1_h1
+update_law,coupled_torus_kick,22231,38315,0.5802166253425551,dominant_component_delta=theta1_rho1_sigma1_h1
+update_law,composite_twist,38315,38315,1.0,dominant_component_delta=theta0_rho1_sigma1_h1
+update_law,fiber_phase_lift_spin_transport,38315,38315,1.0,dominant_component_delta=theta1_rho1_sigma1_h1
+update_law,radial_transport_unfolding,28873,38315,0.7535690982643873,dominant_component_delta=theta1_rho1_sigma1_h1

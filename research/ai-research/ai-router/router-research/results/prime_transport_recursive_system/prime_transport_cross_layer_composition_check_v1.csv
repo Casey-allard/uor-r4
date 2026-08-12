@@ -1,0 +1,31 @@
+metric,value,note
+surface_version,v25,"geometry_native_operator_model_v25.bounded_operator_surface_v25, depth=8"
+state_count,525355,total states in bounded v25 surface at depth=8
+Tx_after_Tc_distinct,yes,T_x(T_c(s)) image: 201315 distinct states over 525355 inputs (38.32%)
+Tc_after_Tx_distinct,yes,T_c(T_x(s)) image: 160787 distinct states over 525355 inputs (30.61%)
+Tx_Tc_noncollapsed,yes,exact agreement count = 90 of 525355 (fraction = 0.000171); compositions are non-commutative and non-degenerate
+Tx_Tc_exact_agreement_count,90,states s where T_x(T_c(s)) == T_c(T_x(s))
+Tx_Tc_exact_agreement_fraction,0.000171,90 / 525355
+Tx_after_Tc_image_size,201315,distinct states in image of T_x ∘ T_c
+Tc_after_Tx_image_size,160787,distinct states in image of T_c ∘ T_x
+Tx_Tc_image_overlap,76780,states in both images; overlap fraction = 76780/525355 = 0.1461
+Tx_Tc_collapse_verdict,DISTINCT,DISTINCT = agree_count < n; COLLAPSED = agree_count == n
+Ty_after_Tz_distinct,yes,T_y(T_z'(s)) image: 277666 distinct states over 525355 inputs (52.85%)
+Tz_after_Ty_distinct,yes,T_z'(T_y(s)) image: 277895 distinct states over 525355 inputs (52.90%)
+Ty_Tz_noncollapsed,yes,exact agreement count = 352 of 525355 (fraction = 0.000670); compositions are non-commutative and non-degenerate
+Ty_Tz_exact_agreement_count,352,states s where T_y(T_z'(s)) == T_z'(T_y(s))
+Ty_Tz_exact_agreement_fraction,0.000670,352 / 525355
+Ty_after_Tz_image_size,277666,distinct states in image of T_y ∘ T_z'
+Tz_after_Ty_image_size,277895,distinct states in image of T_z' ∘ T_y
+Ty_Tz_image_overlap,120855,states in both images; overlap fraction = 120855/525355 = 0.2300
+Ty_Tz_collapse_verdict,DISTINCT,DISTINCT = agree_count < n; COLLAPSED = agree_count == n
+Tb_after_Tr_distinct,yes,T_b(T_r*(s)) image: 294004 distinct states over 525355 inputs (55.96%)
+Tr_after_Tb_distinct,yes,T_r*(T_b(s)) image: 296329 distinct states over 525355 inputs (56.41%)
+Tb_Tr_noncollapsed,yes,exact agreement count = 106 of 525355 (fraction = 0.000202); compositions are non-commutative and non-degenerate
+Tb_Tr_exact_agreement_count,106,states s where T_b(T_r*(s)) == T_r*(T_b(s))
+Tb_Tr_exact_agreement_fraction,0.000202,106 / 525355
+Tb_after_Tr_image_size,294004,distinct states in image of T_b ∘ T_r*
+Tr_after_Tb_image_size,296329,distinct states in image of T_r* ∘ T_b
+Tb_Tr_image_overlap,136521,states in both images; overlap fraction = 136521/525355 = 0.2599
+Tb_Tr_collapse_verdict,DISTINCT,DISTINCT = agree_count < n; COLLAPSED = agree_count == n
+cross_layer_composition_check_passed,yes,yes iff all three cross-layer pairs are distinct and non-collapsed on the bounded v25 surface

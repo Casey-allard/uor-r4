@@ -1,0 +1,4 @@
+density_band,row_count,mean_parent_density,mean_visible_H,spearman_visible_vs_num_first_splitting_classes,spearman_visible_vs_total_extra_child_classes,spearman_visible_vs_fraction_first_splitting_classes
+low_density_le_0p08,9,0.05546871429224371,28.22222222222222,0.7815402003388966,0.7815402003388966,0.7395219099980958
+mid_density_0p08_to_0p18,4,0.12712581536110948,12.75,0.9999999999999998,0.9999999999999998,0.9999999999999998
+high_density_gt_0p18,3,0.3030498912851854,4.0,0.9999999999999998,0.9999999999999998,0.9999999999999998

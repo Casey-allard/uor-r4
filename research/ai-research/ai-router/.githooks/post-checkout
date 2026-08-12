@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+# post-checkout hook
+# Prints research branch context whenever you switch branches (not for
+# file-level checkouts). Reads the branch name, maps it to the canonical
+# RR entry, and shows the active queue + quick-command cheat sheet.
+#
+# Enabled by: git config core.hooksPath .githooks
+# Or run:     bash setup_hooks.sh
+
+PREV_HEAD="$1"
+NEW_HEAD="$2"
+CHECKOUT_TYPE="$3"   # 1 = branch checkout, 0 = file-level checkout
+
+# Skip file-level checkouts to avoid noise
+[[ "$CHECKOUT_TYPE" != "1" ]] && exit 0
+
+# Skip if it's the same commit (e.g. `git checkout -- file` followed by branch)
+[[ "$PREV_HEAD" == "$NEW_HEAD" ]] && exit 0
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+TOOL="$REPO_ROOT/router-research/tools/git_research.py"
+
+if [[ -f "$TOOL" ]]; then
+    python3 "$TOOL" status 2>/dev/null || true
+else
+    BRANCH="$(git rev-parse --abbrev-ref HEAD)"
+    echo ""
+    echo "  Branch: $BRANCH"
+    echo "  (run 'make state' to validate research state)"
+    echo ""
+fi

@@ -1,0 +1,10 @@
+transport_source,nontransport_actor,source_sigma_stable_count,preserved_sigma_stable_count,preserved_sigma_stable_fraction,closure_verdict,note
+T_c,T_b,209227,93981,0.449182,mostly-disrupted,Fraction of T_c sigma-stable states that remain sigma-stable under T_c after T_b is applied
+T_c,T_x,209227,97575,0.466360,mostly-disrupted,Fraction of T_c sigma-stable states that remain sigma-stable under T_c after T_x is applied
+T_c,T_y,209227,97029,0.463750,mostly-disrupted,Fraction of T_c sigma-stable states that remain sigma-stable under T_c after T_y is applied
+T_z',T_b,207484,91367,0.440357,mostly-disrupted,Fraction of T_z' sigma-stable states that remain sigma-stable under T_z' after T_b is applied
+T_z',T_x,207484,93539,0.450825,mostly-disrupted,Fraction of T_z' sigma-stable states that remain sigma-stable under T_z' after T_x is applied
+T_z',T_y,207484,84000,0.404850,mostly-disrupted,Fraction of T_z' sigma-stable states that remain sigma-stable under T_z' after T_y is applied
+T_r*,T_b,197789,77787,0.393283,mostly-disrupted,Fraction of T_r* sigma-stable states that remain sigma-stable under T_r* after T_b is applied
+T_r*,T_x,197789,86882,0.439266,mostly-disrupted,Fraction of T_r* sigma-stable states that remain sigma-stable under T_r* after T_x is applied
+T_r*,T_y,197789,85271,0.431121,mostly-disrupted,Fraction of T_r* sigma-stable states that remain sigma-stable under T_r* after T_y is applied

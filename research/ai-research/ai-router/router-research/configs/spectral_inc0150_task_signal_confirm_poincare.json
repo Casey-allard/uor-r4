@@ -1,0 +1,11 @@
+{
+  "experiment_id": "inc0150_signal_confirm_poincare",
+  "source_proxy_config": "configs/spectral_inc0148_geometry_native_screen.json",
+  "seeds": [0, 1],
+  "stage": "confirm",
+  "max_points": 384,
+  "knn_k": 12,
+  "lowfreq_modes": 8,
+  "graph_mode": "poincare_4d",
+  "route_ids": ["HOPF_BASE_K75", "HOPF_TRANS_K75_L0"]
+}

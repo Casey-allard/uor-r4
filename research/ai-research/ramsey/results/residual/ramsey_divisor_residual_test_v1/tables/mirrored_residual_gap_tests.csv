@@ -1,0 +1,3 @@
+target,gap_rows,group_divisor_gap_cv_r2,group_divisor_gap_cv_rmse,best_single_gap_feature,best_single_gap_feature_cv_r2
+delay,264,-0.035567549177161206,0.39750118049090705,cross_block_contrast,-0.03138080329756643
+force,264,0.004759318250357469,0.035836602757631085,level_shadow_sum,-0.016624769707043185

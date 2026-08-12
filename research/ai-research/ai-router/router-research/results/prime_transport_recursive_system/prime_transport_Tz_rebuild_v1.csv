@@ -1,0 +1,26 @@
+metric,value,note
+Tz_depends_on_spin_H_core_v6,yes,"fiber_phase_lift_component_v21 imports active_transport_lift_core_v6, sigma_update_v6, project_tau_v6 from geometry_native_spinH_core_v6"
+Tz_stale_pre_v6_dependency_removed,yes,geometry_native_operator_model_v21 does not import fiber_phase_lift_component_v10 or any spin_H_core_v4/v5 function for T_z'; sigma_update_v6 replaces pre-v6 sigma calls
+Tz_rebuild_local_only,yes,"only fiber_phase_lift_component_v10 was replaced; all other components (hold, torus_base_advance, composite_swap, coupled_torus_kick_v20, composite_twist, radial_transport_v12) copied forward unchanged"
+Tz_bounded_audit_passed,yes,lawful_fraction=1.0000 illegal_count=0
+non_Tz_paths_match_v20,yes,per-component transition counts for all non-T_z' paths equal state_count (same structural invariant as v20)
+Tz_only_behavioral_delta_confirmed,yes,non-T_z' parity holds; any count differences between v20 and v21 are sourced solely from fiber_phase_lift
+state_count,178638,reachable states with T_z' rebuilt from spin_H_core_v6
+transition_count,1250466,nonzero operator entries with T_c (v20) and T_z' (v21) from spin_H_core_v6
+lawful_fraction,1.000000,fraction of nonzero operator entries that are lawful
+illegal_count,0,number of illegal transitions
+class_diversity,34546,distinct tau-aware target class identities reached
+distinct_spin_classes_reached,16,distinct target spin classes reached
+distinct_radial_classes_reached,3,distinct target radial classes reached
+state_count_change_vs_v20,45284,reachable state change vs v20 (T_c from spin_H_core_v6): v20=133354
+transition_count_change_vs_v20,316988,transition count change vs v20: v20=933478
+class_diversity_change_vs_v20,747,class diversity change vs v20: v20=33799
+spin_diversity_change_vs_v20,0,spin diversity change vs v20: v20=16
+radial_diversity_change_vs_v20,0,radial diversity change vs v20: v20=3
+component_hold_count,178638,operator entries for hold
+component_torus_base_advance_count,178638,operator entries for torus_base_advance
+component_composite_swap_count,178638,operator entries for composite_swap
+component_coupled_torus_kick_count,178638,operator entries for coupled_torus_kick
+component_composite_twist_count,178638,operator entries for composite_twist
+component_fiber_phase_lift_spin_transport_count,178638,operator entries for fiber_phase_lift_spin_transport
+component_radial_transport_unfolding_count,178638,operator entries for radial_transport_unfolding

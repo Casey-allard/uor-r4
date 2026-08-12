@@ -1,0 +1,39 @@
+{
+  "schema_version": "1.0",
+  "stages": {
+    "screen": [],
+    "confirm": [],
+    "finalize": [0, 1]
+  },
+  "common_args": {
+    "mode": "anis",
+    "learn_so8": 0,
+    "learn_scale": 1,
+    "scale_mode": "radial",
+    "radial_bins": 10,
+    "chart_beta": 50.0,
+    "extra_budget": 96,
+    "max_slots_per_bucket": 8,
+    "K": 8,
+    "delta_r": 3.0,
+    "phase_dims": "0,1",
+    "phase4_dims": "0,2,4,6",
+    "complex_dims": "0,1",
+    "N": 6000,
+    "chart_iters": 300,
+    "so8_candidates": 20,
+    "scale_candidates": 16,
+    "split_rounds": 96,
+    "fast_dev": 0,
+    "cache_chart": 0,
+    "cache_routes": 0,
+    "sector_mode": "phase4d"
+  },
+  "routes": [
+    {"route_id": "R5B_L000", "args": {"time_pressure_lambda": 0.0}},
+    {"route_id": "R5B_L025", "args": {"time_pressure_lambda": 0.25}},
+    {"route_id": "R5B_L050", "args": {"time_pressure_lambda": 0.5}},
+    {"route_id": "R5B_L080", "args": {"time_pressure_lambda": 0.8}},
+    {"route_id": "R5B_L120", "args": {"time_pressure_lambda": 1.2}}
+  ]
+}

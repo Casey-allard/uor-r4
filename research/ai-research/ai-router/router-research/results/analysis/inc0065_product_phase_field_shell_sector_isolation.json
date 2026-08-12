@@ -1,0 +1,66 @@
+{
+  "experiment_id": "inc0065_product_phase_field_shell_sector_isolation",
+  "description": "Audit separating shell changes from sector changes on the corrected INC-0065 product phase-field routes.",
+  "config": "configs/proxy_transfer_inc0065_product_phase_field_screen.json",
+  "seed": 0,
+  "baseline_route_id": "HOPF_BASE_K25_PHI",
+  "rows": [
+    {
+      "route_id": "HOPF_BASE_K25_PHI",
+      "sector_mode": "phase4d_hopf_base",
+      "unique_shells": 1,
+      "unique_sectors": 14,
+      "shell_diff_vs_baseline": 0,
+      "sector_diff_vs_baseline": 0,
+      "sector_diff_minus_shell_diff": 0,
+      "baseline_shells": 1,
+      "phase_transport_lambda": 1.0,
+      "phase_field_lambda": 1.0,
+      "phase_transport_field_shift_abs_mean": 0.0,
+      "phase_transport_field_weight_abs_mean": 0.0
+    },
+    {
+      "route_id": "H4XH4_FIELD_A050",
+      "sector_mode": "phase4d_hopf_product_phase",
+      "unique_shells": 1,
+      "unique_sectors": 10,
+      "shell_diff_vs_baseline": 0,
+      "sector_diff_vs_baseline": 2494,
+      "sector_diff_minus_shell_diff": 2494,
+      "baseline_shells": 1,
+      "phase_transport_lambda": 0.0,
+      "phase_field_lambda": 0.5,
+      "phase_transport_field_shift_abs_mean": 0.004756371270106495,
+      "phase_transport_field_weight_abs_mean": 0.00215199999684727
+    },
+    {
+      "route_id": "H4XH4_FIELD_A100",
+      "sector_mode": "phase4d_hopf_product_phase",
+      "unique_shells": 2,
+      "unique_sectors": 12,
+      "shell_diff_vs_baseline": 32,
+      "sector_diff_vs_baseline": 2494,
+      "sector_diff_minus_shell_diff": 2462,
+      "baseline_shells": 1,
+      "phase_transport_lambda": 0.0,
+      "phase_field_lambda": 1.0,
+      "phase_transport_field_shift_abs_mean": 0.009490859135015435,
+      "phase_transport_field_weight_abs_mean": 0.00429262015882863
+    },
+    {
+      "route_id": "H4XH4_FIELD_A150",
+      "sector_mode": "phase4d_hopf_product_phase",
+      "unique_shells": 1,
+      "unique_sectors": 14,
+      "shell_diff_vs_baseline": 0,
+      "sector_diff_vs_baseline": 2494,
+      "sector_diff_minus_shell_diff": 2494,
+      "baseline_shells": 1,
+      "phase_transport_lambda": 0.0,
+      "phase_field_lambda": 1.5,
+      "phase_transport_field_shift_abs_mean": 0.010743407538141831,
+      "phase_transport_field_weight_abs_mean": 0.006411608813989364
+    }
+  ],
+  "conclusion": "The product routes are primarily moving sectors rather than shells."
+}

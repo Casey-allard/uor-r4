@@ -1,0 +1,8 @@
+family,encoder,composition,best_within_scale_test_error,avg_within_scale_test_error,cross_scale_transfer_test_error_30030_to_510510,cross_scale_transfer_train_error_on_510510,feature_dim
+fourier4_adjacent_interactions,fourier4,adjacent_interactions,0.9865538737427051,0.9932769368713525,1.0132677110237265,1.013267711023726,20
+baseline_phase_conjugate_sum,symmetric2,uniform_sum_norm,0.9996218920441539,0.9997514455751524,1.0005003916073962,1.000500391607395,2
+symmetric_sum,symmetric2,uniform_sum_norm,0.9996218920441539,0.9997514455751524,1.0005003916073962,1.000500391607395,2
+single_mode_sum,single1,uniform_sum_norm,0.9998047209813774,0.9998748372664649,1.0001429796727768,1.0001429796727792,1
+fourier4_sum,fourier4,uniform_sum_norm,0.9999904192645783,0.9999929825504293,1.000002401984518,1.0000024019845244,4
+fourier4_concat_linear,fourier4,concat_linear,1.0,1.0,1.0,1.0,12
+symmetric_concat_linear,symmetric2,concat_linear,1.0,1.0,1.0,1.0,6

@@ -1,0 +1,2 @@
+num_routes_tested,mean_route_only_ig_bits,mean_x17_only_ig_bits,mean_x17_x19_ig_bits,mean_x17_x19_x23_ig_bits,median_route_only_ig_bits,median_x17_only_ig_bits,median_x17_x19_ig_bits,median_x17_x19_x23_ig_bits,mean_route_only_pure_frac,mean_x17_only_pure_frac,mean_x17_x19_pure_frac,mean_x17_x19_x23_pure_frac
+24,0.0,0.002054072922717809,0.04046637196798094,0.9756003715932731,0.0,0.0019657722729097826,0.04021061348210886,0.9758118260217863,0.0,0.0024509803921568627,0.00043302656029732154,1.0

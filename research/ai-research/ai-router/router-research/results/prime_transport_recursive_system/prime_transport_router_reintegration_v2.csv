@@ -1,0 +1,217 @@
+model,task,delay,metric_name,metric_value,operator,usage_fraction,transport_usage_fraction,route_entropy,note
+fixed_Tx,first_token_recall_D2,2,accuracy,0.24,T_b,0.0,0.0,0.0,cluster=non_transport
+fixed_Tx,first_token_recall_D2,2,accuracy,0.24,T_x,1.0,0.0,0.0,cluster=non_transport
+fixed_Tx,first_token_recall_D2,2,accuracy,0.24,T_y,0.0,0.0,0.0,cluster=non_transport
+fixed_Tx,first_token_recall_D2,2,accuracy,0.24,T_c,0.0,0.0,0.0,cluster=transport
+fixed_Tx,first_token_recall_D2,2,accuracy,0.24,T_z',0.0,0.0,0.0,cluster=transport
+fixed_Tx,first_token_recall_D2,2,accuracy,0.24,T_r*,0.0,0.0,0.0,cluster=transport
+fixed_Tx,first_token_recall_D2,2,transport_frac_at_step,0.0,aggregate_transport,0.0,0.0,0.0,step=0; dist_from_query=2
+fixed_Tx,first_token_recall_D2,2,transport_frac_at_step,0.0,aggregate_transport,0.0,0.0,0.0,step=1; dist_from_query=1
+fixed_Tx,first_token_recall_D4,4,accuracy,0.272,T_b,0.0,0.0,0.0,cluster=non_transport
+fixed_Tx,first_token_recall_D4,4,accuracy,0.272,T_x,1.0,0.0,0.0,cluster=non_transport
+fixed_Tx,first_token_recall_D4,4,accuracy,0.272,T_y,0.0,0.0,0.0,cluster=non_transport
+fixed_Tx,first_token_recall_D4,4,accuracy,0.272,T_c,0.0,0.0,0.0,cluster=transport
+fixed_Tx,first_token_recall_D4,4,accuracy,0.272,T_z',0.0,0.0,0.0,cluster=transport
+fixed_Tx,first_token_recall_D4,4,accuracy,0.272,T_r*,0.0,0.0,0.0,cluster=transport
+fixed_Tx,first_token_recall_D4,4,transport_frac_at_step,0.0,aggregate_transport,0.0,0.0,0.0,step=0; dist_from_query=4
+fixed_Tx,first_token_recall_D4,4,transport_frac_at_step,0.0,aggregate_transport,0.0,0.0,0.0,step=1; dist_from_query=3
+fixed_Tx,first_token_recall_D4,4,transport_frac_at_step,0.0,aggregate_transport,0.0,0.0,0.0,step=2; dist_from_query=2
+fixed_Tx,first_token_recall_D4,4,transport_frac_at_step,0.0,aggregate_transport,0.0,0.0,0.0,step=3; dist_from_query=1
+fixed_Tx,first_token_recall_D8,8,accuracy,0.245,T_b,0.0,0.0,0.0,cluster=non_transport
+fixed_Tx,first_token_recall_D8,8,accuracy,0.245,T_x,1.0,0.0,0.0,cluster=non_transport
+fixed_Tx,first_token_recall_D8,8,accuracy,0.245,T_y,0.0,0.0,0.0,cluster=non_transport
+fixed_Tx,first_token_recall_D8,8,accuracy,0.245,T_c,0.0,0.0,0.0,cluster=transport
+fixed_Tx,first_token_recall_D8,8,accuracy,0.245,T_z',0.0,0.0,0.0,cluster=transport
+fixed_Tx,first_token_recall_D8,8,accuracy,0.245,T_r*,0.0,0.0,0.0,cluster=transport
+fixed_Tx,first_token_recall_D8,8,transport_frac_at_step,0.0,aggregate_transport,0.0,0.0,0.0,step=0; dist_from_query=8
+fixed_Tx,first_token_recall_D8,8,transport_frac_at_step,0.0,aggregate_transport,0.0,0.0,0.0,step=1; dist_from_query=7
+fixed_Tx,first_token_recall_D8,8,transport_frac_at_step,0.0,aggregate_transport,0.0,0.0,0.0,step=2; dist_from_query=6
+fixed_Tx,first_token_recall_D8,8,transport_frac_at_step,0.0,aggregate_transport,0.0,0.0,0.0,step=3; dist_from_query=5
+fixed_Tx,first_token_recall_D8,8,transport_frac_at_step,0.0,aggregate_transport,0.0,0.0,0.0,step=4; dist_from_query=4
+fixed_Tx,first_token_recall_D8,8,transport_frac_at_step,0.0,aggregate_transport,0.0,0.0,0.0,step=5; dist_from_query=3
+fixed_Tx,first_token_recall_D8,8,transport_frac_at_step,0.0,aggregate_transport,0.0,0.0,0.0,step=6; dist_from_query=2
+fixed_Tx,first_token_recall_D8,8,transport_frac_at_step,0.0,aggregate_transport,0.0,0.0,0.0,step=7; dist_from_query=1
+fixed_Tx,first_token_recall_D16,16,accuracy,0.252,T_b,0.0,0.0,0.0,cluster=non_transport
+fixed_Tx,first_token_recall_D16,16,accuracy,0.252,T_x,1.0,0.0,0.0,cluster=non_transport
+fixed_Tx,first_token_recall_D16,16,accuracy,0.252,T_y,0.0,0.0,0.0,cluster=non_transport
+fixed_Tx,first_token_recall_D16,16,accuracy,0.252,T_c,0.0,0.0,0.0,cluster=transport
+fixed_Tx,first_token_recall_D16,16,accuracy,0.252,T_z',0.0,0.0,0.0,cluster=transport
+fixed_Tx,first_token_recall_D16,16,accuracy,0.252,T_r*,0.0,0.0,0.0,cluster=transport
+fixed_Tx,first_token_recall_D16,16,transport_frac_at_step,0.0,aggregate_transport,0.0,0.0,0.0,step=0; dist_from_query=16
+fixed_Tx,first_token_recall_D16,16,transport_frac_at_step,0.0,aggregate_transport,0.0,0.0,0.0,step=1; dist_from_query=15
+fixed_Tx,first_token_recall_D16,16,transport_frac_at_step,0.0,aggregate_transport,0.0,0.0,0.0,step=2; dist_from_query=14
+fixed_Tx,first_token_recall_D16,16,transport_frac_at_step,0.0,aggregate_transport,0.0,0.0,0.0,step=3; dist_from_query=13
+fixed_Tx,first_token_recall_D16,16,transport_frac_at_step,0.0,aggregate_transport,0.0,0.0,0.0,step=4; dist_from_query=12
+fixed_Tx,first_token_recall_D16,16,transport_frac_at_step,0.0,aggregate_transport,0.0,0.0,0.0,step=5; dist_from_query=11
+fixed_Tx,first_token_recall_D16,16,transport_frac_at_step,0.0,aggregate_transport,0.0,0.0,0.0,step=6; dist_from_query=10
+fixed_Tx,first_token_recall_D16,16,transport_frac_at_step,0.0,aggregate_transport,0.0,0.0,0.0,step=7; dist_from_query=9
+fixed_Tx,first_token_recall_D16,16,transport_frac_at_step,0.0,aggregate_transport,0.0,0.0,0.0,step=8; dist_from_query=8
+fixed_Tx,first_token_recall_D16,16,transport_frac_at_step,0.0,aggregate_transport,0.0,0.0,0.0,step=9; dist_from_query=7
+fixed_Tx,first_token_recall_D16,16,transport_frac_at_step,0.0,aggregate_transport,0.0,0.0,0.0,step=10; dist_from_query=6
+fixed_Tx,first_token_recall_D16,16,transport_frac_at_step,0.0,aggregate_transport,0.0,0.0,0.0,step=11; dist_from_query=5
+fixed_Tx,first_token_recall_D16,16,transport_frac_at_step,0.0,aggregate_transport,0.0,0.0,0.0,step=12; dist_from_query=4
+fixed_Tx,first_token_recall_D16,16,transport_frac_at_step,0.0,aggregate_transport,0.0,0.0,0.0,step=13; dist_from_query=3
+fixed_Tx,first_token_recall_D16,16,transport_frac_at_step,0.0,aggregate_transport,0.0,0.0,0.0,step=14; dist_from_query=2
+fixed_Tx,first_token_recall_D16,16,transport_frac_at_step,0.0,aggregate_transport,0.0,0.0,0.0,step=15; dist_from_query=1
+gumbel_router,first_token_recall_D2,2,accuracy,0.234,T_b,0.0075,0.398,1.6641,cluster=non_transport
+gumbel_router,first_token_recall_D2,2,accuracy,0.234,T_x,0.4295,0.398,1.6641,cluster=non_transport
+gumbel_router,first_token_recall_D2,2,accuracy,0.234,T_y,0.165,0.398,1.6641,cluster=non_transport
+gumbel_router,first_token_recall_D2,2,accuracy,0.234,T_c,0.003,0.398,1.6641,cluster=transport
+gumbel_router,first_token_recall_D2,2,accuracy,0.234,T_z',0.046,0.398,1.6641,cluster=transport
+gumbel_router,first_token_recall_D2,2,accuracy,0.234,T_r*,0.349,0.398,1.6641,cluster=transport
+gumbel_router,first_token_recall_D2,2,transport_frac_at_step,0.385,aggregate_transport,0.385,0.398,1.6641,step=0; dist_from_query=2
+gumbel_router,first_token_recall_D2,2,transport_frac_at_step,0.411,aggregate_transport,0.411,0.398,1.6641,step=1; dist_from_query=1
+gumbel_router,first_token_recall_D4,4,accuracy,0.233,T_b,0.1072,0.6255,1.7176,cluster=non_transport
+gumbel_router,first_token_recall_D4,4,accuracy,0.233,T_x,0.042,0.6255,1.7176,cluster=non_transport
+gumbel_router,first_token_recall_D4,4,accuracy,0.233,T_y,0.2253,0.6255,1.7176,cluster=non_transport
+gumbel_router,first_token_recall_D4,4,accuracy,0.233,T_c,0.0895,0.6255,1.7176,cluster=transport
+gumbel_router,first_token_recall_D4,4,accuracy,0.233,T_z',0.1388,0.6255,1.7176,cluster=transport
+gumbel_router,first_token_recall_D4,4,accuracy,0.233,T_r*,0.3972,0.6255,1.7176,cluster=transport
+gumbel_router,first_token_recall_D4,4,transport_frac_at_step,0.722,aggregate_transport,0.722,0.6255,1.7176,step=0; dist_from_query=4
+gumbel_router,first_token_recall_D4,4,transport_frac_at_step,0.628,aggregate_transport,0.628,0.6255,1.7176,step=1; dist_from_query=3
+gumbel_router,first_token_recall_D4,4,transport_frac_at_step,0.587,aggregate_transport,0.587,0.6255,1.7176,step=2; dist_from_query=2
+gumbel_router,first_token_recall_D4,4,transport_frac_at_step,0.565,aggregate_transport,0.565,0.6255,1.7176,step=3; dist_from_query=1
+gumbel_router,first_token_recall_D8,8,accuracy,0.254,T_b,0.0134,0.3473,1.7469,cluster=non_transport
+gumbel_router,first_token_recall_D8,8,accuracy,0.254,T_x,0.1599,0.3473,1.7469,cluster=non_transport
+gumbel_router,first_token_recall_D8,8,accuracy,0.254,T_y,0.4795,0.3473,1.7469,cluster=non_transport
+gumbel_router,first_token_recall_D8,8,accuracy,0.254,T_c,0.1329,0.3473,1.7469,cluster=transport
+gumbel_router,first_token_recall_D8,8,accuracy,0.254,T_z',0.0092,0.3473,1.7469,cluster=transport
+gumbel_router,first_token_recall_D8,8,accuracy,0.254,T_r*,0.2051,0.3473,1.7469,cluster=transport
+gumbel_router,first_token_recall_D8,8,transport_frac_at_step,0.409,aggregate_transport,0.409,0.3473,1.7469,step=0; dist_from_query=8
+gumbel_router,first_token_recall_D8,8,transport_frac_at_step,0.356,aggregate_transport,0.356,0.3473,1.7469,step=1; dist_from_query=7
+gumbel_router,first_token_recall_D8,8,transport_frac_at_step,0.334,aggregate_transport,0.334,0.3473,1.7469,step=2; dist_from_query=6
+gumbel_router,first_token_recall_D8,8,transport_frac_at_step,0.337,aggregate_transport,0.337,0.3473,1.7469,step=3; dist_from_query=5
+gumbel_router,first_token_recall_D8,8,transport_frac_at_step,0.35,aggregate_transport,0.35,0.3473,1.7469,step=4; dist_from_query=4
+gumbel_router,first_token_recall_D8,8,transport_frac_at_step,0.344,aggregate_transport,0.344,0.3473,1.7469,step=5; dist_from_query=3
+gumbel_router,first_token_recall_D8,8,transport_frac_at_step,0.317,aggregate_transport,0.317,0.3473,1.7469,step=6; dist_from_query=2
+gumbel_router,first_token_recall_D8,8,transport_frac_at_step,0.331,aggregate_transport,0.331,0.3473,1.7469,step=7; dist_from_query=1
+gumbel_router,first_token_recall_D16,16,accuracy,0.247,T_b,0.8692,0.1135,1.7124,cluster=non_transport
+gumbel_router,first_token_recall_D16,16,accuracy,0.247,T_x,0.0052,0.1135,1.7124,cluster=non_transport
+gumbel_router,first_token_recall_D16,16,accuracy,0.247,T_y,0.0121,0.1135,1.7124,cluster=non_transport
+gumbel_router,first_token_recall_D16,16,accuracy,0.247,T_c,0.0342,0.1135,1.7124,cluster=transport
+gumbel_router,first_token_recall_D16,16,accuracy,0.247,T_z',0.075,0.1135,1.7124,cluster=transport
+gumbel_router,first_token_recall_D16,16,accuracy,0.247,T_r*,0.0043,0.1135,1.7124,cluster=transport
+gumbel_router,first_token_recall_D16,16,transport_frac_at_step,0.317,aggregate_transport,0.317,0.1135,1.7124,step=0; dist_from_query=16
+gumbel_router,first_token_recall_D16,16,transport_frac_at_step,0.109,aggregate_transport,0.109,0.1135,1.7124,step=1; dist_from_query=15
+gumbel_router,first_token_recall_D16,16,transport_frac_at_step,0.122,aggregate_transport,0.122,0.1135,1.7124,step=2; dist_from_query=14
+gumbel_router,first_token_recall_D16,16,transport_frac_at_step,0.105,aggregate_transport,0.105,0.1135,1.7124,step=3; dist_from_query=13
+gumbel_router,first_token_recall_D16,16,transport_frac_at_step,0.11,aggregate_transport,0.11,0.1135,1.7124,step=4; dist_from_query=12
+gumbel_router,first_token_recall_D16,16,transport_frac_at_step,0.094,aggregate_transport,0.094,0.1135,1.7124,step=5; dist_from_query=11
+gumbel_router,first_token_recall_D16,16,transport_frac_at_step,0.106,aggregate_transport,0.106,0.1135,1.7124,step=6; dist_from_query=10
+gumbel_router,first_token_recall_D16,16,transport_frac_at_step,0.093,aggregate_transport,0.093,0.1135,1.7124,step=7; dist_from_query=9
+gumbel_router,first_token_recall_D16,16,transport_frac_at_step,0.088,aggregate_transport,0.088,0.1135,1.7124,step=8; dist_from_query=8
+gumbel_router,first_token_recall_D16,16,transport_frac_at_step,0.106,aggregate_transport,0.106,0.1135,1.7124,step=9; dist_from_query=7
+gumbel_router,first_token_recall_D16,16,transport_frac_at_step,0.096,aggregate_transport,0.096,0.1135,1.7124,step=10; dist_from_query=6
+gumbel_router,first_token_recall_D16,16,transport_frac_at_step,0.086,aggregate_transport,0.086,0.1135,1.7124,step=11; dist_from_query=5
+gumbel_router,first_token_recall_D16,16,transport_frac_at_step,0.1,aggregate_transport,0.1,0.1135,1.7124,step=12; dist_from_query=4
+gumbel_router,first_token_recall_D16,16,transport_frac_at_step,0.084,aggregate_transport,0.084,0.1135,1.7124,step=13; dist_from_query=3
+gumbel_router,first_token_recall_D16,16,transport_frac_at_step,0.1,aggregate_transport,0.1,0.1135,1.7124,step=14; dist_from_query=2
+gumbel_router,first_token_recall_D16,16,transport_frac_at_step,0.1,aggregate_transport,0.1,0.1135,1.7124,step=15; dist_from_query=1
+non_transport,first_token_recall_D2,2,accuracy,0.227,T_b,1.0,0.0,1.0986,cluster=non_transport
+non_transport,first_token_recall_D2,2,accuracy,0.227,T_x,0.0,0.0,1.0986,cluster=non_transport
+non_transport,first_token_recall_D2,2,accuracy,0.227,T_y,0.0,0.0,1.0986,cluster=non_transport
+non_transport,first_token_recall_D2,2,accuracy,0.227,T_c,0.0,0.0,1.0986,cluster=transport
+non_transport,first_token_recall_D2,2,accuracy,0.227,T_z',0.0,0.0,1.0986,cluster=transport
+non_transport,first_token_recall_D2,2,accuracy,0.227,T_r*,0.0,0.0,1.0986,cluster=transport
+non_transport,first_token_recall_D2,2,transport_frac_at_step,0.0,aggregate_transport,0.0,0.0,1.0986,step=0; dist_from_query=2
+non_transport,first_token_recall_D2,2,transport_frac_at_step,0.0,aggregate_transport,0.0,0.0,1.0986,step=1; dist_from_query=1
+non_transport,first_token_recall_D4,4,accuracy,0.242,T_b,1.0,0.0,1.0986,cluster=non_transport
+non_transport,first_token_recall_D4,4,accuracy,0.242,T_x,0.0,0.0,1.0986,cluster=non_transport
+non_transport,first_token_recall_D4,4,accuracy,0.242,T_y,0.0,0.0,1.0986,cluster=non_transport
+non_transport,first_token_recall_D4,4,accuracy,0.242,T_c,0.0,0.0,1.0986,cluster=transport
+non_transport,first_token_recall_D4,4,accuracy,0.242,T_z',0.0,0.0,1.0986,cluster=transport
+non_transport,first_token_recall_D4,4,accuracy,0.242,T_r*,0.0,0.0,1.0986,cluster=transport
+non_transport,first_token_recall_D4,4,transport_frac_at_step,0.0,aggregate_transport,0.0,0.0,1.0986,step=0; dist_from_query=4
+non_transport,first_token_recall_D4,4,transport_frac_at_step,0.0,aggregate_transport,0.0,0.0,1.0986,step=1; dist_from_query=3
+non_transport,first_token_recall_D4,4,transport_frac_at_step,0.0,aggregate_transport,0.0,0.0,1.0986,step=2; dist_from_query=2
+non_transport,first_token_recall_D4,4,transport_frac_at_step,0.0,aggregate_transport,0.0,0.0,1.0986,step=3; dist_from_query=1
+non_transport,first_token_recall_D8,8,accuracy,0.228,T_b,1.0,0.0,1.0986,cluster=non_transport
+non_transport,first_token_recall_D8,8,accuracy,0.228,T_x,0.0,0.0,1.0986,cluster=non_transport
+non_transport,first_token_recall_D8,8,accuracy,0.228,T_y,0.0,0.0,1.0986,cluster=non_transport
+non_transport,first_token_recall_D8,8,accuracy,0.228,T_c,0.0,0.0,1.0986,cluster=transport
+non_transport,first_token_recall_D8,8,accuracy,0.228,T_z',0.0,0.0,1.0986,cluster=transport
+non_transport,first_token_recall_D8,8,accuracy,0.228,T_r*,0.0,0.0,1.0986,cluster=transport
+non_transport,first_token_recall_D8,8,transport_frac_at_step,0.0,aggregate_transport,0.0,0.0,1.0986,step=0; dist_from_query=8
+non_transport,first_token_recall_D8,8,transport_frac_at_step,0.0,aggregate_transport,0.0,0.0,1.0986,step=1; dist_from_query=7
+non_transport,first_token_recall_D8,8,transport_frac_at_step,0.0,aggregate_transport,0.0,0.0,1.0986,step=2; dist_from_query=6
+non_transport,first_token_recall_D8,8,transport_frac_at_step,0.0,aggregate_transport,0.0,0.0,1.0986,step=3; dist_from_query=5
+non_transport,first_token_recall_D8,8,transport_frac_at_step,0.0,aggregate_transport,0.0,0.0,1.0986,step=4; dist_from_query=4
+non_transport,first_token_recall_D8,8,transport_frac_at_step,0.0,aggregate_transport,0.0,0.0,1.0986,step=5; dist_from_query=3
+non_transport,first_token_recall_D8,8,transport_frac_at_step,0.0,aggregate_transport,0.0,0.0,1.0986,step=6; dist_from_query=2
+non_transport,first_token_recall_D8,8,transport_frac_at_step,0.0,aggregate_transport,0.0,0.0,1.0986,step=7; dist_from_query=1
+non_transport,first_token_recall_D16,16,accuracy,0.264,T_b,1.0,0.0,1.0986,cluster=non_transport
+non_transport,first_token_recall_D16,16,accuracy,0.264,T_x,0.0,0.0,1.0986,cluster=non_transport
+non_transport,first_token_recall_D16,16,accuracy,0.264,T_y,0.0,0.0,1.0986,cluster=non_transport
+non_transport,first_token_recall_D16,16,accuracy,0.264,T_c,0.0,0.0,1.0986,cluster=transport
+non_transport,first_token_recall_D16,16,accuracy,0.264,T_z',0.0,0.0,1.0986,cluster=transport
+non_transport,first_token_recall_D16,16,accuracy,0.264,T_r*,0.0,0.0,1.0986,cluster=transport
+non_transport,first_token_recall_D16,16,transport_frac_at_step,0.0,aggregate_transport,0.0,0.0,1.0986,step=0; dist_from_query=16
+non_transport,first_token_recall_D16,16,transport_frac_at_step,0.0,aggregate_transport,0.0,0.0,1.0986,step=1; dist_from_query=15
+non_transport,first_token_recall_D16,16,transport_frac_at_step,0.0,aggregate_transport,0.0,0.0,1.0986,step=2; dist_from_query=14
+non_transport,first_token_recall_D16,16,transport_frac_at_step,0.0,aggregate_transport,0.0,0.0,1.0986,step=3; dist_from_query=13
+non_transport,first_token_recall_D16,16,transport_frac_at_step,0.0,aggregate_transport,0.0,0.0,1.0986,step=4; dist_from_query=12
+non_transport,first_token_recall_D16,16,transport_frac_at_step,0.0,aggregate_transport,0.0,0.0,1.0986,step=5; dist_from_query=11
+non_transport,first_token_recall_D16,16,transport_frac_at_step,0.0,aggregate_transport,0.0,0.0,1.0986,step=6; dist_from_query=10
+non_transport,first_token_recall_D16,16,transport_frac_at_step,0.0,aggregate_transport,0.0,0.0,1.0986,step=7; dist_from_query=9
+non_transport,first_token_recall_D16,16,transport_frac_at_step,0.0,aggregate_transport,0.0,0.0,1.0986,step=8; dist_from_query=8
+non_transport,first_token_recall_D16,16,transport_frac_at_step,0.0,aggregate_transport,0.0,0.0,1.0986,step=9; dist_from_query=7
+non_transport,first_token_recall_D16,16,transport_frac_at_step,0.0,aggregate_transport,0.0,0.0,1.0986,step=10; dist_from_query=6
+non_transport,first_token_recall_D16,16,transport_frac_at_step,0.0,aggregate_transport,0.0,0.0,1.0986,step=11; dist_from_query=5
+non_transport,first_token_recall_D16,16,transport_frac_at_step,0.0,aggregate_transport,0.0,0.0,1.0986,step=12; dist_from_query=4
+non_transport,first_token_recall_D16,16,transport_frac_at_step,0.0,aggregate_transport,0.0,0.0,1.0986,step=13; dist_from_query=3
+non_transport,first_token_recall_D16,16,transport_frac_at_step,0.0,aggregate_transport,0.0,0.0,1.0986,step=14; dist_from_query=2
+non_transport,first_token_recall_D16,16,transport_frac_at_step,0.0,aggregate_transport,0.0,0.0,1.0986,step=15; dist_from_query=1
+random,first_token_recall_D2,2,accuracy,0.245,T_b,1.0,0.0,1.7918,cluster=non_transport
+random,first_token_recall_D2,2,accuracy,0.245,T_x,0.0,0.0,1.7918,cluster=non_transport
+random,first_token_recall_D2,2,accuracy,0.245,T_y,0.0,0.0,1.7918,cluster=non_transport
+random,first_token_recall_D2,2,accuracy,0.245,T_c,0.0,0.0,1.7918,cluster=transport
+random,first_token_recall_D2,2,accuracy,0.245,T_z',0.0,0.0,1.7918,cluster=transport
+random,first_token_recall_D2,2,accuracy,0.245,T_r*,0.0,0.0,1.7918,cluster=transport
+random,first_token_recall_D2,2,transport_frac_at_step,0.0,aggregate_transport,0.0,0.0,1.7918,step=0; dist_from_query=2
+random,first_token_recall_D2,2,transport_frac_at_step,0.0,aggregate_transport,0.0,0.0,1.7918,step=1; dist_from_query=1
+random,first_token_recall_D4,4,accuracy,0.24,T_b,1.0,0.0,1.7918,cluster=non_transport
+random,first_token_recall_D4,4,accuracy,0.24,T_x,0.0,0.0,1.7918,cluster=non_transport
+random,first_token_recall_D4,4,accuracy,0.24,T_y,0.0,0.0,1.7918,cluster=non_transport
+random,first_token_recall_D4,4,accuracy,0.24,T_c,0.0,0.0,1.7918,cluster=transport
+random,first_token_recall_D4,4,accuracy,0.24,T_z',0.0,0.0,1.7918,cluster=transport
+random,first_token_recall_D4,4,accuracy,0.24,T_r*,0.0,0.0,1.7918,cluster=transport
+random,first_token_recall_D4,4,transport_frac_at_step,0.0,aggregate_transport,0.0,0.0,1.7918,step=0; dist_from_query=4
+random,first_token_recall_D4,4,transport_frac_at_step,0.0,aggregate_transport,0.0,0.0,1.7918,step=1; dist_from_query=3
+random,first_token_recall_D4,4,transport_frac_at_step,0.0,aggregate_transport,0.0,0.0,1.7918,step=2; dist_from_query=2
+random,first_token_recall_D4,4,transport_frac_at_step,0.0,aggregate_transport,0.0,0.0,1.7918,step=3; dist_from_query=1
+random,first_token_recall_D8,8,accuracy,0.247,T_b,1.0,0.0,1.7918,cluster=non_transport
+random,first_token_recall_D8,8,accuracy,0.247,T_x,0.0,0.0,1.7918,cluster=non_transport
+random,first_token_recall_D8,8,accuracy,0.247,T_y,0.0,0.0,1.7918,cluster=non_transport
+random,first_token_recall_D8,8,accuracy,0.247,T_c,0.0,0.0,1.7918,cluster=transport
+random,first_token_recall_D8,8,accuracy,0.247,T_z',0.0,0.0,1.7918,cluster=transport
+random,first_token_recall_D8,8,accuracy,0.247,T_r*,0.0,0.0,1.7918,cluster=transport
+random,first_token_recall_D8,8,transport_frac_at_step,0.0,aggregate_transport,0.0,0.0,1.7918,step=0; dist_from_query=8
+random,first_token_recall_D8,8,transport_frac_at_step,0.0,aggregate_transport,0.0,0.0,1.7918,step=1; dist_from_query=7
+random,first_token_recall_D8,8,transport_frac_at_step,0.0,aggregate_transport,0.0,0.0,1.7918,step=2; dist_from_query=6
+random,first_token_recall_D8,8,transport_frac_at_step,0.0,aggregate_transport,0.0,0.0,1.7918,step=3; dist_from_query=5
+random,first_token_recall_D8,8,transport_frac_at_step,0.0,aggregate_transport,0.0,0.0,1.7918,step=4; dist_from_query=4
+random,first_token_recall_D8,8,transport_frac_at_step,0.0,aggregate_transport,0.0,0.0,1.7918,step=5; dist_from_query=3
+random,first_token_recall_D8,8,transport_frac_at_step,0.0,aggregate_transport,0.0,0.0,1.7918,step=6; dist_from_query=2
+random,first_token_recall_D8,8,transport_frac_at_step,0.0,aggregate_transport,0.0,0.0,1.7918,step=7; dist_from_query=1
+random,first_token_recall_D16,16,accuracy,0.259,T_b,1.0,0.0,1.7918,cluster=non_transport
+random,first_token_recall_D16,16,accuracy,0.259,T_x,0.0,0.0,1.7918,cluster=non_transport
+random,first_token_recall_D16,16,accuracy,0.259,T_y,0.0,0.0,1.7918,cluster=non_transport
+random,first_token_recall_D16,16,accuracy,0.259,T_c,0.0,0.0,1.7918,cluster=transport
+random,first_token_recall_D16,16,accuracy,0.259,T_z',0.0,0.0,1.7918,cluster=transport
+random,first_token_recall_D16,16,accuracy,0.259,T_r*,0.0,0.0,1.7918,cluster=transport
+random,first_token_recall_D16,16,transport_frac_at_step,0.0,aggregate_transport,0.0,0.0,1.7918,step=0; dist_from_query=16
+random,first_token_recall_D16,16,transport_frac_at_step,0.0,aggregate_transport,0.0,0.0,1.7918,step=1; dist_from_query=15
+random,first_token_recall_D16,16,transport_frac_at_step,0.0,aggregate_transport,0.0,0.0,1.7918,step=2; dist_from_query=14
+random,first_token_recall_D16,16,transport_frac_at_step,0.0,aggregate_transport,0.0,0.0,1.7918,step=3; dist_from_query=13
+random,first_token_recall_D16,16,transport_frac_at_step,0.0,aggregate_transport,0.0,0.0,1.7918,step=4; dist_from_query=12
+random,first_token_recall_D16,16,transport_frac_at_step,0.0,aggregate_transport,0.0,0.0,1.7918,step=5; dist_from_query=11
+random,first_token_recall_D16,16,transport_frac_at_step,0.0,aggregate_transport,0.0,0.0,1.7918,step=6; dist_from_query=10
+random,first_token_recall_D16,16,transport_frac_at_step,0.0,aggregate_transport,0.0,0.0,1.7918,step=7; dist_from_query=9
+random,first_token_recall_D16,16,transport_frac_at_step,0.0,aggregate_transport,0.0,0.0,1.7918,step=8; dist_from_query=8
+random,first_token_recall_D16,16,transport_frac_at_step,0.0,aggregate_transport,0.0,0.0,1.7918,step=9; dist_from_query=7
+random,first_token_recall_D16,16,transport_frac_at_step,0.0,aggregate_transport,0.0,0.0,1.7918,step=10; dist_from_query=6
+random,first_token_recall_D16,16,transport_frac_at_step,0.0,aggregate_transport,0.0,0.0,1.7918,step=11; dist_from_query=5
+random,first_token_recall_D16,16,transport_frac_at_step,0.0,aggregate_transport,0.0,0.0,1.7918,step=12; dist_from_query=4
+random,first_token_recall_D16,16,transport_frac_at_step,0.0,aggregate_transport,0.0,0.0,1.7918,step=13; dist_from_query=3
+random,first_token_recall_D16,16,transport_frac_at_step,0.0,aggregate_transport,0.0,0.0,1.7918,step=14; dist_from_query=2
+random,first_token_recall_D16,16,transport_frac_at_step,0.0,aggregate_transport,0.0,0.0,1.7918,step=15; dist_from_query=1

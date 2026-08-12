@@ -1,0 +1,43 @@
+operator,cluster,cycle_length,frequency,canonical_modulus,relation_type,matches_canonical,null_expected_rate,observed_rate,enrichment_ratio,note
+T_b,non-transport,ALL,1000,"LCM=60;PROD=240;sub=[2,5,2,12]",divides_60,836,0.101120,0.836000,8.267405,"null_draws=100000; rng_seed=77; matching_lengths=[5, 10, 15, 20, 30, 60]"
+T_b,non-transport,ALL,1000,"LCM=60;PROD=240;sub=[2,5,2,12]",divides_120,957,0.134000,0.957000,7.141791,"null_draws=100000; rng_seed=77; matching_lengths=[5, 10, 15, 20, 30, 40, 60, 120]"
+T_b,non-transport,ALL,1000,"LCM=60;PROD=240;sub=[2,5,2,12]",divides_240,957,0.159460,0.957000,6.001505,"null_draws=100000; rng_seed=77; matching_lengths=[5, 10, 15, 20, 30, 40, 60, 120]"
+T_b,non-transport,ALL,1000,"LCM=60;PROD=240;sub=[2,5,2,12]",multiple_60,308,0.016610,0.308000,18.543046,"null_draws=100000; rng_seed=77; matching_lengths=[60, 120]"
+T_b,non-transport,ALL,1000,"LCM=60;PROD=240;sub=[2,5,2,12]",mult_2,780,0.501590,0.780000,1.555055,"null_draws=100000; rng_seed=77; matching_lengths=[10, 20, 30, 40, 60, 120]"
+T_b,non-transport,ALL,1000,"LCM=60;PROD=240;sub=[2,5,2,12]",mult_5,1000,0.202520,1.000000,4.937784,"null_draws=100000; rng_seed=77; matching_lengths=[5, 10, 15, 20, 25, 30, 40, 60, 75, 105]"
+T_b,non-transport,ALL,1000,"LCM=60;PROD=240;sub=[2,5,2,12]",mult_12,308,0.081920,0.308000,3.759766,"null_draws=100000; rng_seed=77; matching_lengths=[60, 120]"
+T_x,non-transport,ALL,1000,"LCM=60;PROD=240;sub=[2,5,2,12]",divides_60,1000,1.000000,1.000000,1.000000,null_draws=100000; rng_seed=77; matching_lengths=[6]
+T_x,non-transport,ALL,1000,"LCM=60;PROD=240;sub=[2,5,2,12]",divides_120,1000,1.000000,1.000000,1.000000,null_draws=100000; rng_seed=77; matching_lengths=[6]
+T_x,non-transport,ALL,1000,"LCM=60;PROD=240;sub=[2,5,2,12]",divides_240,1000,1.000000,1.000000,1.000000,null_draws=100000; rng_seed=77; matching_lengths=[6]
+T_x,non-transport,ALL,1000,"LCM=60;PROD=240;sub=[2,5,2,12]",multiple_60,0,0.000000,0.000000,inf,null_draws=100000; rng_seed=77; matching_lengths=[]
+T_x,non-transport,ALL,1000,"LCM=60;PROD=240;sub=[2,5,2,12]",mult_2,1000,0.498040,1.000000,2.007871,null_draws=100000; rng_seed=77; matching_lengths=[6]
+T_x,non-transport,ALL,1000,"LCM=60;PROD=240;sub=[2,5,2,12]",mult_5,0,0.167680,0.000000,0.000000,null_draws=100000; rng_seed=77; matching_lengths=[]
+T_x,non-transport,ALL,1000,"LCM=60;PROD=240;sub=[2,5,2,12]",mult_12,0,0.000000,0.000000,inf,null_draws=100000; rng_seed=77; matching_lengths=[]
+T_y,non-transport,ALL,1000,"LCM=60;PROD=240;sub=[2,5,2,12]",divides_60,626,0.099970,0.626000,6.261879,"null_draws=100000; rng_seed=77; matching_lengths=[2, 4, 6, 10, 12, 20, 30, 60]"
+T_y,non-transport,ALL,1000,"LCM=60;PROD=240;sub=[2,5,2,12]",divides_120,708,0.134340,0.708000,5.270210,"null_draws=100000; rng_seed=77; matching_lengths=[2, 4, 6, 8, 10, 12, 20, 24, 30, 60]"
+T_y,non-transport,ALL,1000,"LCM=60;PROD=240;sub=[2,5,2,12]",divides_240,724,0.158500,0.724000,4.567823,"null_draws=100000; rng_seed=77; matching_lengths=[2, 4, 6, 8, 10, 12, 16, 20, 24, 30]"
+T_y,non-transport,ALL,1000,"LCM=60;PROD=240;sub=[2,5,2,12]",multiple_60,18,0.017680,0.018000,1.018100,"null_draws=100000; rng_seed=77; matching_lengths=[60, 120]"
+T_y,non-transport,ALL,1000,"LCM=60;PROD=240;sub=[2,5,2,12]",mult_2,1000,0.502120,1.000000,1.991556,"null_draws=100000; rng_seed=77; matching_lengths=[2, 4, 6, 8, 10, 12, 14, 16, 18, 20]"
+T_y,non-transport,ALL,1000,"LCM=60;PROD=240;sub=[2,5,2,12]",mult_5,119,0.200740,0.119000,0.592807,"null_draws=100000; rng_seed=77; matching_lengths=[10, 20, 30, 60, 120]"
+T_y,non-transport,ALL,1000,"LCM=60;PROD=240;sub=[2,5,2,12]",mult_12,257,0.083810,0.257000,3.066460,"null_draws=100000; rng_seed=77; matching_lengths=[12, 24, 36, 60, 72, 84, 120]"
+T_c,transport,ALL,1000,"LCM=60;PROD=240;sub=[2,5,2,12]",divides_60,394,0.087490,0.394000,4.503372,"null_draws=100000; rng_seed=77; matching_lengths=[2, 3, 4, 6, 12, 15, 30, 60]"
+T_c,transport,ALL,1000,"LCM=60;PROD=240;sub=[2,5,2,12]",divides_120,532,0.117340,0.532000,4.533833,"null_draws=100000; rng_seed=77; matching_lengths=[2, 3, 4, 6, 8, 12, 15, 24, 30, 60]"
+T_c,transport,ALL,1000,"LCM=60;PROD=240;sub=[2,5,2,12]",divides_240,532,0.139720,0.532000,3.807615,"null_draws=100000; rng_seed=77; matching_lengths=[2, 3, 4, 6, 8, 12, 15, 24, 30, 60]"
+T_c,transport,ALL,1000,"LCM=60;PROD=240;sub=[2,5,2,12]",multiple_60,21,0.015190,0.021000,1.382488,null_draws=100000; rng_seed=77; matching_lengths=[60]
+T_c,transport,ALL,1000,"LCM=60;PROD=240;sub=[2,5,2,12]",mult_2,637,0.498750,0.637000,1.277193,"null_draws=100000; rng_seed=77; matching_lengths=[2, 4, 6, 8, 12, 18, 24, 30, 36, 60]"
+T_c,transport,ALL,1000,"LCM=60;PROD=240;sub=[2,5,2,12]",mult_5,140,0.201320,0.140000,0.695410,"null_draws=100000; rng_seed=77; matching_lengths=[15, 25, 30, 60, 75, 90, 135]"
+T_c,transport,ALL,1000,"LCM=60;PROD=240;sub=[2,5,2,12]",mult_12,161,0.081400,0.161000,1.977887,"null_draws=100000; rng_seed=77; matching_lengths=[12, 24, 36, 60, 96]"
+T_z',transport,ALL,1000,"LCM=60;PROD=240;sub=[2,5,2,12]",divides_60,444,0.082960,0.444000,5.351977,"null_draws=100000; rng_seed=77; matching_lengths=[2, 3, 4, 5, 6, 10, 12, 15, 30, 60]"
+T_z',transport,ALL,1000,"LCM=60;PROD=240;sub=[2,5,2,12]",divides_120,457,0.110820,0.457000,4.123804,"null_draws=100000; rng_seed=77; matching_lengths=[2, 3, 4, 5, 6, 10, 12, 15, 30, 60]"
+T_z',transport,ALL,1000,"LCM=60;PROD=240;sub=[2,5,2,12]",divides_240,468,0.130890,0.468000,3.575521,"null_draws=100000; rng_seed=77; matching_lengths=[2, 3, 4, 5, 6, 10, 12, 15, 30, 48]"
+T_z',transport,ALL,1000,"LCM=60;PROD=240;sub=[2,5,2,12]",multiple_60,84,0.013450,0.084000,6.245353,"null_draws=100000; rng_seed=77; matching_lengths=[60, 120]"
+T_z',transport,ALL,1000,"LCM=60;PROD=240;sub=[2,5,2,12]",mult_2,607,0.499950,0.607000,1.214121,"null_draws=100000; rng_seed=77; matching_lengths=[2, 4, 6, 10, 12, 18, 26, 30, 42, 44]"
+T_z',transport,ALL,1000,"LCM=60;PROD=240;sub=[2,5,2,12]",mult_5,237,0.195390,0.237000,1.212959,"null_draws=100000; rng_seed=77; matching_lengths=[5, 10, 15, 30, 60, 65, 75, 120]"
+T_z',transport,ALL,1000,"LCM=60;PROD=240;sub=[2,5,2,12]",mult_12,143,0.082080,0.143000,1.742203,"null_draws=100000; rng_seed=77; matching_lengths=[12, 48, 60, 120, 144]"
+T_r*,transport,ALL,1000,"LCM=60;PROD=240;sub=[2,5,2,12]",divides_60,82,0.023230,0.082000,3.529918,"null_draws=100000; rng_seed=77; matching_lengths=[4, 5, 6, 12, 15, 60]"
+T_r*,transport,ALL,1000,"LCM=60;PROD=240;sub=[2,5,2,12]",divides_120,170,0.030750,0.170000,5.528455,"null_draws=100000; rng_seed=77; matching_lengths=[4, 5, 6, 8, 12, 15, 24, 60, 120]"
+T_r*,transport,ALL,1000,"LCM=60;PROD=240;sub=[2,5,2,12]",divides_240,189,0.038630,0.189000,4.892571,"null_draws=100000; rng_seed=77; matching_lengths=[4, 5, 6, 8, 12, 15, 16, 24, 48, 60]"
+T_r*,transport,ALL,1000,"LCM=60;PROD=240;sub=[2,5,2,12]",multiple_60,34,0.015590,0.034000,2.180885,"null_draws=100000; rng_seed=77; matching_lengths=[60, 120]"
+T_r*,transport,ALL,1000,"LCM=60;PROD=240;sub=[2,5,2,12]",mult_2,548,0.498600,0.548000,1.099077,"null_draws=100000; rng_seed=77; matching_lengths=[4, 6, 8, 12, 16, 18, 24, 34, 48, 50]"
+T_r*,transport,ALL,1000,"LCM=60;PROD=240;sub=[2,5,2,12]",mult_5,192,0.199720,0.192000,0.961346,"null_draws=100000; rng_seed=77; matching_lengths=[5, 15, 35, 45, 50, 60, 75, 90, 120]"
+T_r*,transport,ALL,1000,"LCM=60;PROD=240;sub=[2,5,2,12]",mult_12,211,0.080910,0.211000,2.607836,"null_draws=100000; rng_seed=77; matching_lengths=[12, 24, 48, 60, 72, 84, 120, 192, 228]"

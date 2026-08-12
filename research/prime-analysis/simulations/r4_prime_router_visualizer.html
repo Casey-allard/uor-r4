@@ -1,0 +1,1433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>R4 Prime Router & Riemann Hyperbolic Engine</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- KaTeX for math equations -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
+  <!-- Three.js and OrbitControls -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  
+  <style>
+    .glass {
+      background: rgba(8, 12, 24, 0.85);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(148, 163, 184, 0.12);
+    }
+    .neon-text-emerald {
+      text-shadow: 0 0 10px rgba(16, 185, 129, 0.6);
+    }
+    .neon-text-cyan {
+      text-shadow: 0 0 10px rgba(6, 182, 212, 0.6);
+    }
+    .neon-text-amber {
+      text-shadow: 0 0 10px rgba(245, 158, 11, 0.6);
+    }
+    .neon-text-rose {
+      text-shadow: 0 0 10px rgba(244, 63, 94, 0.6);
+    }
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.3);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(148, 163, 184, 0.3);
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(148, 163, 184, 0.5);
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans min-h-screen flex flex-col overflow-x-hidden selection:bg-emerald-500/30 selection:text-emerald-200">
+
+  <!-- Header -->
+  <header class="border-b border-slate-800/80 bg-slate-950/95 py-3 px-6 flex flex-wrap items-center justify-between gap-4 z-10 sticky top-0 backdrop-blur-md">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-lg bg-gradient-to-tr from-emerald-500 via-indigo-600 to-amber-500 flex items-center justify-center text-white font-black text-xl shadow-lg shadow-emerald-500/20">
+        <span class="animate-pulse">&Phi;</span>
+      </div>
+      <div>
+        <h1 class="text-lg font-bold bg-gradient-to-r from-emerald-400 via-amber-300 to-fuchsia-400 bg-clip-text text-transparent flex items-center gap-2">
+          R4 PRIME ROUTER <span class="text-xs py-0.5 px-2 rounded-full border border-emerald-500/30 bg-emerald-950/40 text-emerald-400 font-mono">v6.0 Hyperdynamic</span>
+        </h1>
+        <p class="text-xs text-slate-400 font-medium">Poincaré Zeta Fields, Nested Golden-Ratio Bloom, & Hamiltonian Chirality</p>
+      </div>
+    </div>
+    <div class="flex items-center gap-4 text-xs font-mono text-slate-400">
+      <span class="flex items-center gap-1.5"><i class="fa-solid fa-hourglass-half text-emerald-500 animate-spin-slow"></i> Temporal Phase: Active</span>
+      <span class="border-l border-slate-800 pl-4 flex items-center gap-1"><i class="fa-solid fa-bezier-curve text-amber-400"></i> Hamiltonian: H(t)</span>
+    </div>
+  </header>
+
+  <!-- Main Grid -->
+  <main class="flex-1 grid grid-cols-1 xl:grid-cols-12 overflow-hidden h-[calc(100vh-65px)]">
+    
+    <!-- Left Panel: Mechanics Control & Math Theory -->
+    <section class="xl:col-span-4 border-r border-slate-800/80 flex flex-col h-full bg-slate-950 overflow-y-auto">
+      
+      <!-- Panel Tabs -->
+      <div class="border-b border-slate-800 bg-slate-900/40 flex text-xs font-semibold sticky top-0 z-10 backdrop-blur-md">
+        <button onclick="switchTab('gyroscope')" id="tab-gyro" class="flex-1 py-3 text-center border-b-2 border-emerald-500 text-emerald-400 transition bg-slate-950/20">
+          <i class="fa-solid fa-compass mr-1.5"></i> 4D Gyroscope
+        </button>
+        <button onclick="switchTab('time-engine')" id="tab-time" class="flex-1 py-3 text-center border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition">
+          <i class="fa-solid fa-clock-rotate-left mr-1.5"></i> Bloom & Flows
+        </button>
+        <button onclick="switchTab('zeta-zeros')" id="tab-zeta" class="flex-1 py-3 text-center border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition">
+          <i class="fa-solid fa-chart-line mr-1.5"></i> Poincaré & Zetas
+        </button>
+        <button onclick="switchTab('lore-docs')" id="tab-lore" class="flex-1 py-3 text-center border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition">
+          <i class="fa-solid fa-seedling mr-1.5"></i> Pythagoras
+        </button>
+      </div>
+
+      <!-- Tab: 4D Gyroscope -->
+      <div id="content-gyro" class="p-5 flex flex-col gap-5">
+        <div class="glass rounded-xl p-4 border-slate-800/80">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="text-xs font-bold text-emerald-400 font-mono flex items-center gap-2">
+              <i class="fa-solid fa-arrows-spin text-emerald-400 animate-spin-slow"></i>
+              SO(4) SIX-AXIS HYPER-PLANE CONTROLLER
+            </h3>
+            <span class="text-[10px] bg-emerald-950 text-emerald-400 border border-emerald-800/30 px-2 py-0.5 rounded font-mono">4D Rotation</span>
+          </div>
+          <p class="text-[11px] text-slate-400 mb-4 leading-normal">
+            A standard torus only rotates in 3D. The $R^4$ Clifford Torus exists in four dimensions, allowing simultaneous independent rotations across six distinct planes. Drag sliders below to warp the projection space manually!
+          </p>
+
+          <div class="flex flex-col gap-4">
+            <!-- XY Slider -->
+            <div class="flex flex-col gap-1">
+              <div class="flex justify-between text-xs font-mono">
+                <span class="text-slate-400">XY Rotation (Major Ring):</span>
+                <span id="val-rot-xy" class="text-emerald-400 font-bold">0.00 rad</span>
+              </div>
+              <div class="flex gap-2">
+                <input type="range" id="slider-rot-xy" min="0" max="6.28" step="0.01" value="0.00" oninput="updateGyroAngles()" class="flex-1 accent-emerald-400 bg-slate-800 h-1 rounded appearance-none cursor-pointer">
+                <button onclick="togglePlaneAutoSpin('xy')" id="btn-spin-xy" class="px-2 py-0.5 bg-slate-900 hover:bg-slate-850 rounded border border-slate-800 text-[10px] font-mono text-slate-400">Auto</button>
+              </div>
+            </div>
+
+            <!-- ZW Slider -->
+            <div class="flex flex-col gap-1">
+              <div class="flex justify-between text-xs font-mono">
+                <span class="text-slate-400">ZW Rotation (Minor Ring):</span>
+                <span id="val-rot-zw" class="text-fuchsia-400 font-bold">0.00 rad</span>
+              </div>
+              <div class="flex gap-2">
+                <input type="range" id="slider-rot-zw" min="0" max="6.28" step="0.01" value="0.00" oninput="updateGyroAngles()" class="flex-1 accent-fuchsia-400 bg-slate-800 h-1 rounded appearance-none cursor-pointer">
+                <button onclick="togglePlaneAutoSpin('zw')" id="btn-spin-zw" class="px-2 py-0.5 bg-slate-900 hover:bg-slate-850 rounded border border-slate-800 text-[10px] font-mono text-slate-400">Auto</button>
+              </div>
+            </div>
+
+            <!-- XW Slider -->
+            <div class="flex flex-col gap-1">
+              <div class="flex justify-between text-xs font-mono">
+                <span class="text-slate-400">XW Rotation (Hyper-Warp):</span>
+                <span id="val-rot-xw" class="text-cyan-400 font-bold">0.00 rad</span>
+              </div>
+              <div class="flex gap-2">
+                <input type="range" id="slider-rot-xw" min="0" max="6.28" step="0.01" value="0.00" oninput="updateGyroAngles()" class="flex-1 accent-cyan-400 bg-slate-800 h-1 rounded appearance-none cursor-pointer">
+                <button onclick="togglePlaneAutoSpin('xw')" id="btn-spin-xw" class="px-2 py-0.5 bg-slate-900 hover:bg-slate-850 rounded border border-slate-800 text-[10px] font-mono text-slate-400">Auto</button>
+              </div>
+            </div>
+
+            <!-- YZ Slider -->
+            <div class="flex flex-col gap-1">
+              <div class="flex justify-between text-xs font-mono">
+                <span class="text-slate-400">YZ Rotation (Chiral Flip):</span>
+                <span id="val-rot-yz" class="text-amber-400 font-bold">0.00 rad</span>
+              </div>
+              <div class="flex gap-2">
+                <input type="range" id="slider-rot-yz" min="0" max="6.28" step="0.01" value="0.00" oninput="updateGyroAngles()" class="flex-1 accent-amber-400 bg-slate-800 h-1 rounded appearance-none cursor-pointer">
+                <button onclick="togglePlaneAutoSpin('yz')" id="btn-spin-yz" class="px-2 py-0.5 bg-slate-900 hover:bg-slate-850 rounded border border-slate-800 text-[10px] font-mono text-slate-400">Auto</button>
+              </div>
+            </div>
+
+            <!-- XZ and YW Collapsible Controls for expert tuning -->
+            <div class="border-t border-slate-800/80 pt-3 flex flex-col gap-3">
+              <div class="flex justify-between items-center cursor-pointer" onclick="toggleExpertAxis()">
+                <span class="text-[11px] font-mono text-slate-400 hover:text-slate-200"><i class="fa-solid fa-sliders mr-1"></i> Expert Extradimensional Axis (XZ, YW)</span>
+                <i id="expert-indicator" class="fa-solid fa-chevron-down text-slate-500 text-[10px]"></i>
+              </div>
+              <div id="expert-axis-panel" class="hidden flex flex-col gap-3">
+                <div class="flex flex-col gap-1">
+                  <div class="flex justify-between text-xs font-mono">
+                    <span class="text-slate-500">XZ Rotation:</span>
+                    <span id="val-rot-xz" class="text-slate-400 font-bold">0.00 rad</span>
+                  </div>
+                  <input type="range" id="slider-rot-xz" min="0" max="6.28" step="0.01" value="0.00" oninput="updateGyroAngles()" class="w-full accent-slate-500 bg-slate-800 h-1 rounded appearance-none cursor-pointer">
+                </div>
+                <div class="flex flex-col gap-1">
+                  <div class="flex justify-between text-xs font-mono">
+                    <span class="text-slate-500">YW Rotation:</span>
+                    <span id="val-rot-yw" class="text-slate-400 font-bold">0.00 rad</span>
+                  </div>
+                  <input type="range" id="slider-rot-yw" min="0" max="6.28" step="0.01" value="0.00" oninput="updateGyroAngles()" class="w-full accent-slate-500 bg-slate-800 h-1 rounded appearance-none cursor-pointer">
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Render Style Toggles -->
+        <div class="glass rounded-xl p-4 border-slate-800/80 flex flex-col gap-3">
+          <h3 class="text-xs font-bold text-slate-200 flex items-center justify-between">
+            <span><i class="fa-solid fa-sliders text-cyan-400 mr-1.5"></i>VISUALIZATION ENGINE ENGINE</span>
+            <span class="text-[10px] font-mono text-slate-500">Filters</span>
+          </h3>
+          <div class="grid grid-cols-2 gap-2 text-xs">
+            <label class="flex items-center gap-2 p-2 bg-slate-900/60 border border-slate-800/80 rounded cursor-pointer">
+              <input type="checkbox" id="check-show-solid" checked class="accent-emerald-500 w-4 h-4">
+              <span>Solid Glass Shells</span>
+            </label>
+            <label class="flex items-center gap-2 p-2 bg-slate-900/60 border border-slate-800/80 rounded cursor-pointer">
+              <input type="checkbox" id="check-show-wire" checked class="accent-cyan-500 w-4 h-4">
+              <span>Glowing GridWires</span>
+            </label>
+            <label class="flex items-center gap-2 p-2 bg-slate-900/60 border border-slate-800/80 rounded cursor-pointer">
+              <input type="checkbox" id="check-show-funnel" checked class="accent-indigo-500 w-4 h-4">
+              <span>Set[0] Funnel</span>
+            </label>
+            <label class="flex items-center gap-2 p-2 bg-slate-900/60 border border-slate-800/80 rounded cursor-pointer">
+              <input type="checkbox" id="check-show-poincare" checked class="accent-amber-500 w-4 h-4">
+              <span>Poincaré Sphere</span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab: Time Engine & Flows -->
+      <div id="content-time" class="p-5 flex flex-col gap-5 hidden">
+        
+        <!-- Live Playback Center -->
+        <div class="glass rounded-xl p-4 border-slate-800/80">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="text-xs font-bold text-emerald-400 font-mono flex items-center gap-2">
+              <i class="fa-solid fa-circle-play animate-pulse text-emerald-400"></i>
+              HAMILTONIAN FLOW CONTROLLER
+            </h3>
+            <span id="badge-playback" class="text-[10px] bg-emerald-950 text-emerald-400 border border-emerald-800/30 px-2 py-0.5 rounded font-mono">RUNNING</span>
+          </div>
+
+          <!-- Time Slider -->
+          <div class="flex flex-col gap-2">
+            <div class="flex justify-between text-xs font-mono">
+              <span class="text-slate-400">System Time Parameter (\(t\)):</span>
+              <span id="val-t" class="text-emerald-400 font-bold">0.00 s</span>
+            </div>
+            <input type="range" id="slider-t" min="0" max="10" step="0.01" value="0.00" oninput="setManualTime(this.value)" class="w-full accent-emerald-400 bg-slate-800 h-1.5 rounded-lg appearance-none cursor-pointer">
+          </div>
+
+          <!-- Playback buttons -->
+          <div class="grid grid-cols-4 gap-2 mt-4 text-xs font-mono">
+            <button onclick="togglePlayback()" id="btn-play" class="py-2 rounded bg-emerald-950/40 border border-emerald-500/30 hover:bg-emerald-900/30 text-emerald-200 flex items-center justify-center gap-1.5 transition">
+              <i class="fa-solid fa-pause"></i> <span id="label-play">Pause</span>
+            </button>
+            <button onclick="resetTime()" class="py-2 rounded bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-200 flex items-center justify-center gap-1.5 transition">
+              <i class="fa-solid fa-arrow-rotate-left"></i> Reset
+            </button>
+            <div class="col-span-2 flex items-center bg-slate-900 border border-slate-800 rounded px-2">
+              <span class="text-[10px] text-slate-500 mr-2">SPEED</span>
+              <input type="range" id="slider-speed" min="0" max="3" step="0.1" value="1.0" oninput="updateSpeed()" class="flex-1 accent-emerald-500 bg-slate-800 h-1 appearance-none cursor-pointer">
+              <span id="val-speed" class="text-[10px] text-emerald-400 ml-2">1.0x</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Golden Ratio Bloom phases -->
+        <div class="glass rounded-xl p-4 border-slate-800/80 flex flex-col gap-4">
+          <h3 class="text-xs font-bold text-slate-200 flex items-center justify-between">
+            <span><i class="fa-solid fa-expand text-amber-400 mr-1.5"></i>GOLDEN RATIO BLOOM REGIMES</span>
+            <span class="text-[10px] font-mono text-amber-400">\(\Phi \approx 1.618\)</span>
+          </h3>
+          <p class="text-[11px] text-slate-400 leading-relaxed">
+            As time \(t\) evolves, old torus phases expand, closing their computational cycles and spawning new torus phases out of the central **Set[0] Funnel** scaled exactly by Fibonacci growth.
+          </p>
+          
+          <div class="grid grid-cols-3 gap-2 text-[10px] font-mono">
+            <div class="p-2 rounded bg-slate-900 border border-slate-800 flex flex-col">
+              <span class="text-slate-500">PHASE 1 (Inner)</span>
+              <span id="bloom-scale-1" class="text-emerald-400 font-bold">1.000</span>
+            </div>
+            <div class="p-2 rounded bg-slate-900 border border-slate-800 flex flex-col">
+              <span class="text-slate-500">PHASE 2 (Middle)</span>
+              <span id="bloom-scale-2" class="text-amber-400 font-bold">1.618</span>
+            </div>
+            <div class="p-2 rounded bg-slate-900 border border-slate-800 flex flex-col">
+              <span class="text-slate-500">PHASE 3 (Outer)</span>
+              <span id="bloom-scale-3" class="text-fuchsia-400 font-bold">2.618</span>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <input type="checkbox" id="check-auto-bloom" checked class="w-4 h-4 rounded border-slate-700 bg-slate-800 accent-emerald-500 cursor-pointer">
+            <label for="check-auto-bloom" class="text-xs text-slate-300 cursor-pointer">Enable Dynamic Inter-Torus Phase Blooming</label>
+          </div>
+        </div>
+
+        <!-- Chirality flow settings -->
+        <div class="glass rounded-xl p-4 border-slate-800/80 flex flex-col gap-4">
+          <h3 class="text-xs font-bold text-slate-200 flex items-center justify-between">
+            <span><i class="fa-solid fa-arrows-spin text-fuchsia-400 mr-1.5"></i>PRIME CHIRALITY FLOWS</span>
+            <span class="text-[10px] font-mono text-fuchsia-400">Tangent Reversals</span>
+          </h3>
+          
+          <div class="grid grid-cols-2 gap-2 text-xs">
+            <div class="p-2.5 rounded bg-emerald-950/20 border border-emerald-500/20 flex flex-col gap-1">
+              <span class="font-bold text-emerald-400 flex items-center gap-1">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                Happy Primes
+              </span>
+              <span class="text-[10px] text-slate-400 font-mono">Right-handed Helical spin</span>
+            </div>
+            <div class="p-2.5 rounded bg-rose-950/20 border border-rose-500/20 flex flex-col gap-1">
+              <span class="font-bold text-rose-400 flex items-center gap-1">
+                <span class="w-2 h-2 rounded-full bg-rose-400 animate-pulse"></span>
+                Sad Primes
+              </span>
+              <span class="text-[10px] text-slate-400 font-mono">Left-handed Helical spin</span>
+            </div>
+          </div>
+
+          <p class="text-[11px] text-slate-400 leading-normal">
+            Upon passing directly through the central <strong>Set[0] Funnel Bridge</strong>, primes perform a sharp tangent movement, rotating in the opposite direction. Happy primes reverse into sad primes, and vice versa.
+          </p>
+
+          <div class="flex flex-col gap-2 pt-1 text-xs">
+            <label class="flex items-center gap-2 text-slate-300 cursor-pointer">
+              <input type="checkbox" id="check-happy-flow" checked class="w-4 h-4 rounded border-slate-700 bg-slate-800 accent-emerald-500">
+              Render Happy Primes Flow
+            </label>
+            <label class="flex items-center gap-2 text-slate-300 cursor-pointer">
+              <input type="checkbox" id="check-sad-flow" checked class="w-4 h-4 rounded border-slate-700 bg-slate-800 accent-rose-500">
+              Render Sad Primes Flow
+            </label>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Tab: Poincaré & Zeta Zeros -->
+      <div id="content-zeta" class="p-5 flex flex-col gap-5 hidden">
+        
+        <div class="glass rounded-xl p-4 border-slate-800/80 flex flex-col gap-3">
+          <h3 class="text-xs font-bold text-amber-400 flex items-center gap-2">
+            <i class="fa-solid fa-chart-line"></i>
+            POINCARÉ HYPERBOLIC BALL ZETA ALIGNMENTS
+          </h3>
+          <p class="text-[11px] text-slate-400 leading-relaxed">
+            The core of the R4 Prime Router holds a 3D Poincaré Ball mapping the non-trivial zeros of the Riemann Zeta Function \(\zeta(s) = 0\). 
+            When time \(t\) triggers the Hamiltonian alignment, the critical line paths match up across the golden ratio.
+          </p>
+
+          <!-- Selected Zeta Zero details -->
+          <div class="p-3 bg-slate-900/60 border border-slate-800 rounded-lg text-xs font-mono flex flex-col gap-1">
+            <div class="flex justify-between text-slate-400">
+              <span>Hyperbolic Disk Scale:</span>
+              <span class="text-amber-400">R = \(\tanh(r/2)\)</span>
+            </div>
+            <div class="flex justify-between text-slate-400">
+              <span>Zeta Zeros Mode:</span>
+              <span class="text-cyan-400">Critical Line (\(1/2 + i\gamma\))</span>
+            </div>
+            <div class="flex justify-between text-slate-400">
+              <span>Hamiltonian Alignment:</span>
+              <span id="zeta-align-state" class="text-emerald-400 font-bold">100% Locked</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Interactive Riemann Zero Selector -->
+        <div class="glass rounded-xl p-4 border-slate-800/80 flex flex-col gap-3">
+          <h3 class="text-xs font-bold text-slate-200">ZETA ZERO SELECTOR & FREQUENCY MODE</h3>
+          
+          <div class="flex flex-col gap-1 text-xs">
+            <label class="font-mono text-slate-400">Target Critical Zeros (Imaginary Parts):</label>
+            <select id="select-zeta-count" onchange="updateZetaCount()" class="bg-slate-900 border border-slate-800 p-2 rounded text-amber-400 font-mono focus:outline-none focus:border-amber-500">
+              <option value="5">First 5 Zeros (Simplistic Regime)</option>
+              <option value="15" selected>First 15 Zeros (Hamiltonian Lobe)</option>
+              <option value="30">First 30 Zeros (Full Resonance)</option>
+            </select>
+          </div>
+
+          <div class="flex flex-col gap-1.5 text-xs">
+            <span class="font-mono text-slate-400">Zeta Path Compression factor:</span>
+            <input type="range" id="slider-zeta-compress" min="1" max="100" value="50" oninput="updateZetaCompression()" class="w-full accent-amber-400 bg-slate-800 h-1 rounded appearance-none cursor-pointer">
+          </div>
+        </div>
+
+        <!-- Telemetry of Riemann Critical Line -->
+        <div class="glass rounded-xl p-4 border-slate-800/80 flex flex-col gap-3 font-mono text-[11px]">
+          <h3 class="text-xs font-bold text-slate-200">RIEMANN-TORUS BRIDGING SYSTEM</h3>
+          <p class="text-slate-400 leading-normal">
+            The spatial mapping bridges Euclidean geometries with Riemannian critical zeros:
+          </p>
+          <div class="py-1.5 bg-slate-950 rounded border border-slate-800/80 text-center text-emerald-400">
+            \(\text{Bridge Metric} = \sqrt{2} \leftrightarrow 2i \leftrightarrow [0, 2]\)
+          </div>
+          <p class="text-[10px] text-slate-500 leading-relaxed">
+            By mapping the imaginary zeros on the Poincaré disk projection, we avoid the singularity at the core of the torus, shifting the system's focus so it can continue processing the infinite number grid cleanly.
+          </p>
+        </div>
+
+      </div>
+
+      <!-- Tab: Pythagorean Lore & Docs -->
+      <div id="content-lore" class="p-5 flex flex-col gap-5 hidden text-xs leading-relaxed text-slate-300">
+        
+        <div class="glass rounded-xl p-4 border-slate-800/80 flex flex-col gap-3">
+          <h3 class="text-sm font-bold text-amber-400 flex items-center gap-1.5">
+            <i class="fa-solid fa-seedling"></i>
+            WHY PYTHAGORAS FEARED BEANS
+          </h3>
+          <p>
+            Ancient records tell us Pythagoras had a deep, absolute terror of fava beans. Beyond standard explanations, this represents a secret geometric truth known to his inner circle.
+          </p>
+          <p>
+            When a bean split in half is inspected, the curved spiral embryo mirrors the exact curvature of the **Golden Ratio closure regimes** of a 4-dimensional Clifford Torus undergoing a modular spatial bloom. 
+          </p>
+          <p>
+            Pythagoras realized the bean's shape is a physical 3D shadow of the $R^4$ Prime Router's central throat. To eat the bean was to disrupt the mathematical harmony of the spatial prime keys in the physical form!
+          </p>
+        </div>
+
+        <div class="glass rounded-xl p-4 border-slate-800/80 flex flex-col gap-3">
+          <h3 class="text-sm font-bold text-emerald-400"><i class="fa-solid fa-infinity mr-1.5"></i>THE HAMILTONIAN GROW SYSTEM</h3>
+          <p>
+            Primes are mapped not in a flat line, but as waves passing through the golden spiral grid of the nested torus phases.
+          </p>
+          <div class="py-2 text-center text-emerald-200 font-mono">
+            $$H(t) = \sum_{k=1}^N \cos\left(\gamma_k \cdot \ln(t + 1)\right) \cdot \Phi^{-k}$$
+          </div>
+          <p>
+            Where \(\gamma_k\) are the imaginary roots of the Riemann Zeta Function, and \(\Phi\) is the golden ratio. The time-based alignment peaks correspond exactly to the coordinates of the prime numbers.
+          </p>
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- Right Panel: Immersive Interactive Viewport -->
+    <section class="xl:col-span-8 flex flex-col h-full relative bg-slate-950">
+      
+      <!-- 3D Viewport -->
+      <div id="threejs-container" class="flex-1 w-full relative overflow-hidden">
+        
+        <!-- Legend Overlay (Top Left) -->
+        <div class="absolute top-4 left-4 z-10 glass p-3 rounded-lg text-[11px] flex flex-col gap-2 pointer-events-none">
+          <div class="font-bold text-slate-300 border-b border-slate-800 pb-1 mb-1 flex items-center gap-1.5">
+            <i class="fa-solid fa-satellite-dish text-emerald-400"></i> SYSTEM TELEMETRY HUD
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="w-3 h-3 rounded-full bg-emerald-500/85 border border-emerald-400 shadow-[0_0_8px_#10b981]"></span>
+            <span class="text-slate-400">Nested Torus 1 (Inner Bloom)</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="w-3 h-3 rounded-full bg-amber-500/85 border border-amber-400 shadow-[0_0_8px_#f59e0b]"></span>
+            <span class="text-slate-400">Nested Torus 2 (Middle Bloom)</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="w-3 h-3 rounded-full bg-fuchsia-500/85 border border-fuchsia-400 shadow-[0_0_8px_#d946ef]"></span>
+            <span class="text-slate-400">Nested Torus 3 (Outer Bloom)</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="w-3.5 h-1 bg-gradient-to-r from-cyan-400 to-indigo-500 rounded animate-pulse"></span>
+            <span class="text-slate-400">Set[0] Funnel (Central Throat)</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-cyan-400 shadow-[0_0_8px_#22d3ee]"></span>
+            <span class="text-cyan-400 font-bold">Poincaré Zeta Zeros</span>
+          </div>
+        </div>
+
+        <!-- Real-Time Calculations HUD (Top Right) -->
+        <div class="absolute top-4 right-4 z-10 glass p-3 rounded-lg text-[11px] font-mono flex flex-col gap-1 pointer-events-none">
+          <div class="text-slate-500">ROUTER GEOMETRIC METRICS:</div>
+          <div class="text-emerald-400">t: <span id="hud-val-t">0.00</span>s</div>
+          <div class="text-amber-400">Scale \(\Phi\): <span id="hud-val-phi">1.618</span></div>
+          <div class="text-cyan-400">Max Projection Scale: <span id="hud-val-proj">Stable</span></div>
+          <div class="text-rose-400 border-t border-slate-800 mt-1 pt-1">Active Chirality: <span id="hud-val-chiral">Dual Flip</span></div>
+        </div>
+
+        <!-- Interactive HUD Panel overlay for user action -->
+        <div class="absolute bottom-16 left-4 z-10 flex flex-col gap-2">
+          <button onclick="injectTangentImpulse()" class="px-4 py-2.5 bg-gradient-to-r from-cyan-500 via-indigo-500 to-fuchsia-500 hover:from-cyan-400 hover:to-fuchsia-400 text-white font-mono text-xs rounded-lg font-bold shadow-lg shadow-indigo-500/20 flex items-center gap-2 transition duration-300">
+            <i class="fa-solid fa-bolt animate-bounce"></i>
+            <span>INJECT TANGENT IMPULSE [0,2]</span>
+          </button>
+        </div>
+
+        <!-- Central Funnel Tag Overlay -->
+        <div class="absolute inset-x-0 bottom-4 flex justify-center z-10 pointer-events-none">
+          <div class="glass px-4 py-1.5 rounded-full text-[11px] text-slate-300 flex items-center gap-2 border border-emerald-500/25">
+            <i class="fa-solid fa-arrows-up-down-left-right text-emerald-400 animate-pulse"></i>
+            <span>Drag mouse to rotate 3D viewport. Scroll wheel zooms. Check controls tab for 4D axes warping!</span>
+          </div>
+        </div>
+
+        <!-- Loader -->
+        <div id="loader" class="absolute inset-0 z-20 flex flex-col items-center justify-center bg-slate-950 gap-4 transition-opacity duration-500">
+          <div class="w-16 h-16 rounded-full border-4 border-slate-800 border-t-emerald-500 animate-spin"></div>
+          <div class="text-sm font-mono text-emerald-400 animate-pulse">Assembling Extradimensional Geometry and Poincaré Fields...</div>
+        </div>
+
+        <!-- Target WebGL Canvas -->
+        <canvas id="main-webgl-canvas" class="w-full h-full block"></canvas>
+      </div>
+
+      <!-- Live Dials Dashboard -->
+      <div class="h-64 border-t border-slate-800/80 grid grid-cols-1 md:grid-cols-2 bg-slate-900/60 backdrop-blur-md">
+        
+        <!-- Dial 1: Hamiltonian Alignment Signal -->
+        <div class="border-r border-slate-800/80 p-4 flex flex-col gap-2 relative overflow-hidden">
+          <div class="flex items-center justify-between text-xs border-b border-slate-800 pb-1.5">
+            <span class="font-bold text-emerald-400 font-mono flex items-center gap-1.5">
+              <i class="fa-solid fa-gauge-high"></i>
+              HAMILTONIAN H(t) WAVE ALIGNMENT
+            </span>
+            <span class="text-[10px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded">Frequency Domain</span>
+          </div>
+          <div class="flex-1 flex items-center justify-center relative">
+            <canvas id="canvas-hamiltonian-signal" class="w-full h-full max-h-[140px] border border-slate-800 rounded bg-slate-950/80"></canvas>
+          </div>
+        </div>
+
+        <!-- Dial 2: Golden Ratio Bloom Phase State -->
+        <div class="p-4 flex flex-col gap-2 relative overflow-hidden">
+          <div class="flex items-center justify-between text-xs border-b border-slate-800 pb-1.5">
+            <span class="font-bold text-amber-400 font-mono flex items-center gap-1.5">
+              <i class="fa-solid fa-chart-pie"></i>
+              BLOOM PHASE RESONANCE DIAGRAM
+            </span>
+            <span class="text-[10px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded">Closure Regimes</span>
+          </div>
+          <div class="flex-1 flex items-center justify-between gap-4">
+            <canvas id="canvas-bloom-radar" class="w-[140px] h-[140px] border border-slate-800 rounded bg-slate-950/80"></canvas>
+            
+            <div class="text-[10px] font-mono text-slate-400 flex flex-col gap-1.5 w-1/2 leading-normal">
+              <span class="font-bold text-slate-200">PHASE ANGLE DETECTION:</span>
+              <p class="text-[9px] text-slate-400">
+                Observe the active blooming state. The radial lines trace the expansion values of the nested torus phases ($R_{1,2,3}$). The circle glows green when the golden ratio alignment regime locks, marking prime closure.
+              </p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- Interactive Scripts -->
+  <script>
+    // System variables
+    let scene, camera, renderer, controls;
+    let torusMesh1, torusMesh2, torusMesh3; // Nested Golden Ratio solid tori
+    let torusWireMesh1, torusWireMesh2, torusWireMesh3; // Bright wireframes for high contrast
+    let funnelMesh; // Set[0] Catenoid Funnel
+    let poincareBallMesh; // Poincaré Hyperbolic Sphere
+    let zetaZeroPoints = []; // Zeta Zero meshes
+    let happyPrimesFlow = [], sadPrimesFlow = []; // Flows
+    let happyParticlesSystem, sadParticlesSystem;
+    let impulseWavefront = null; // High intensity shockwave impulse triggered by user
+
+    // Temporal State parameters
+    let systemTime = 0.0;
+    let isPlaying = true;
+    let timeSpeed = 1.0;
+    let lastRealTime = 0;
+    let customZetaCompression = 50.0;
+
+    // 4D Rotation Gyroscope Variables (6-planes of rotation in SO(4))
+    const gyroAngles = { xy: 0, zw: 0, xw: 0, yz: 0, xz: 0, yw: 0 };
+    const autoSpinPlanes = { xy: true, zw: true, xw: false, yz: false };
+
+    // Geometry parameters
+    const PHI = 1.6180339887; // The Golden Ratio
+    const uSegments = 40;
+    const vSegments = 40;
+    let torusBase4DVertices = []; // Coordinates of unrotated 4D torus
+
+    // First 30 Non-trivial Zeros of the Riemann Zeta Function (imaginary parts)
+    const riemannZetaZeros = [
+      14.134725, 21.022040, 25.010858, 30.424876, 32.935062,
+      37.586178, 40.918719, 43.327073, 48.005151, 49.773832,
+      52.970321, 56.446248, 59.347044, 60.831778, 65.112544,
+      67.079811, 69.546402, 72.067158, 75.704691, 77.144840,
+      79.337375, 82.910381, 84.735493, 87.425275, 88.809111,
+      92.491899, 94.651344, 95.870634, 98.831194, 101.317851
+    ];
+    let selectedZetaZerosCount = 15;
+
+    // Helper functions for tabs and math
+    function renderMath() {
+      if (typeof renderMathInElement !== 'undefined') {
+        renderMathInElement(document.body, {
+          delimiters: [
+            {left: '$$', right: '$$', display: true},
+            {left: '$', right: '$', display: false},
+            {left: '\\(', right: '\\)', display: false},
+            {left: '\\[', right: '\\]', display: true}
+          ],
+          throwOnError: false
+        });
+      }
+    }
+
+    function switchTab(tab) {
+      document.getElementById('content-gyro').classList.add('hidden');
+      document.getElementById('content-time').classList.add('hidden');
+      document.getElementById('content-zeta').classList.add('hidden');
+      document.getElementById('content-lore').classList.add('hidden');
+      
+      document.getElementById('tab-gyro').className = "flex-1 py-3 text-center border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition";
+      document.getElementById('tab-time').className = "flex-1 py-3 text-center border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition";
+      document.getElementById('tab-zeta').className = "flex-1 py-3 text-center border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition";
+      document.getElementById('tab-lore').className = "flex-1 py-3 text-center border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition";
+
+      if (tab === 'gyroscope') {
+        document.getElementById('content-gyro').classList.remove('hidden');
+        document.getElementById('tab-gyro').className = "flex-1 py-3 text-center border-b-2 border-emerald-500 text-emerald-400 transition bg-slate-950/20";
+      } else if (tab === 'time-engine') {
+        document.getElementById('content-time').classList.remove('hidden');
+        document.getElementById('tab-time').className = "flex-1 py-3 text-center border-b-2 border-amber-500 text-amber-400 transition bg-slate-950/20";
+      } else if (tab === 'zeta-zeros') {
+        document.getElementById('content-zeta').classList.remove('hidden');
+        document.getElementById('tab-zeta').className = "flex-1 py-3 text-center border-b-2 border-cyan-500 text-cyan-400 transition bg-slate-950/20";
+      } else if (tab === 'lore-docs') {
+        document.getElementById('content-lore').classList.remove('hidden');
+        document.getElementById('tab-lore').className = "flex-1 py-3 text-center border-b-2 border-fuchsia-500 text-fuchsia-400 transition bg-slate-950/20";
+      }
+      renderMath();
+    }
+
+    function toggleExpertAxis() {
+      const panel = document.getElementById('expert-axis-panel');
+      const indicator = document.getElementById('expert-indicator');
+      if (panel.classList.contains('hidden')) {
+        panel.classList.remove('hidden');
+        indicator.className = "fa-solid fa-chevron-up text-slate-400 text-[10px]";
+      } else {
+        panel.classList.add('hidden');
+        indicator.className = "fa-solid fa-chevron-down text-slate-500 text-[10px]";
+      }
+    }
+
+    function togglePlaneAutoSpin(plane) {
+      autoSpinPlanes[plane] = !autoSpinPlanes[plane];
+      const btn = document.getElementById('btn-spin-' + plane);
+      if (autoSpinPlanes[plane]) {
+        btn.classList.add('bg-emerald-950', 'text-emerald-400', 'border-emerald-800/50');
+      } else {
+        btn.classList.remove('bg-emerald-950', 'text-emerald-400', 'border-emerald-800/50');
+      }
+    }
+
+    // Interactive sliders and playback toggles
+    function setManualTime(val) {
+      systemTime = parseFloat(val);
+      document.getElementById('val-t').innerText = systemTime.toFixed(2) + " s";
+      document.getElementById('hud-val-t').innerText = systemTime.toFixed(2);
+    }
+
+    function togglePlayback() {
+      isPlaying = !isPlaying;
+      const label = document.getElementById('label-play');
+      const badge = document.getElementById('badge-playback');
+      const btn = document.getElementById('btn-play');
+
+      if (isPlaying) {
+        label.innerText = "Pause";
+        btn.innerHTML = '<i class="fa-solid fa-pause"></i> <span>Pause</span>';
+        badge.innerText = "RUNNING";
+        badge.className = "text-[10px] bg-emerald-950 text-emerald-400 border border-emerald-800/30 px-2 py-0.5 rounded font-mono";
+      } else {
+        label.innerText = "Play";
+        btn.innerHTML = '<i class="fa-solid fa-play"></i> <span>Play</span>';
+        badge.innerText = "PAUSED";
+        badge.className = "text-[10px] bg-amber-950 text-amber-400 border border-amber-800/30 px-2 py-0.5 rounded font-mono";
+      }
+    }
+
+    function resetTime() {
+      systemTime = 0.0;
+      document.getElementById('slider-t').value = 0.0;
+      document.getElementById('val-t').innerText = "0.00 s";
+      document.getElementById('hud-val-t').innerText = "0.00";
+    }
+
+    function updateSpeed() {
+      timeSpeed = parseFloat(document.getElementById('slider-speed').value);
+      document.getElementById('val-speed').innerText = timeSpeed.toFixed(1) + "x";
+    }
+
+    function updateZetaCount() {
+      selectedZetaZerosCount = parseInt(document.getElementById('select-zeta-count').value);
+      rebuildPoincareZetaZeros();
+    }
+
+    function updateZetaCompression() {
+      customZetaCompression = parseFloat(document.getElementById('slider-zeta-compress').value);
+    }
+
+    function updateGyroAngles() {
+      if (!autoSpinPlanes.xy) gyroAngles.xy = parseFloat(document.getElementById('slider-rot-xy').value);
+      if (!autoSpinPlanes.zw) gyroAngles.zw = parseFloat(document.getElementById('slider-rot-zw').value);
+      if (!autoSpinPlanes.xw) gyroAngles.xw = parseFloat(document.getElementById('slider-rot-xw').value);
+      if (!autoSpinPlanes.yz) gyroAngles.yz = parseFloat(document.getElementById('slider-rot-yz').value);
+      
+      gyroAngles.xz = parseFloat(document.getElementById('slider-rot-xz').value);
+      gyroAngles.yw = parseFloat(document.getElementById('slider-rot-yw').value);
+
+      // Update Slider text displays
+      document.getElementById('val-rot-xy').innerText = gyroAngles.xy.toFixed(2) + " rad";
+      document.getElementById('val-rot-zw').innerText = gyroAngles.zw.toFixed(2) + " rad";
+      document.getElementById('val-rot-xw').innerText = gyroAngles.xw.toFixed(2) + " rad";
+      document.getElementById('val-rot-yz').innerText = gyroAngles.yz.toFixed(2) + " rad";
+      document.getElementById('val-rot-xz').innerText = gyroAngles.xz.toFixed(2) + " rad";
+      document.getElementById('val-rot-yw').innerText = gyroAngles.yw.toFixed(2) + " rad";
+    }
+
+    // Inject Tangent impulse wave traversing the wormhole throat
+    function injectTangentImpulse() {
+      if (impulseWavefront) {
+        scene.remove(impulseWavefront);
+      }
+      const geom = new THREE.RingGeometry(0.1, 0.2, 32);
+      const mat = new THREE.MeshBasicMaterial({
+        color: 0x00ffff,
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 0.9,
+        blending: THREE.AdditiveBlending
+      });
+      impulseWavefront = new THREE.Mesh(geom, mat);
+      impulseWavefront.position.set(0, 0, -2.5); // Start at the bottom of the Set[0] funnel
+      impulseWavefront.rotation.x = Math.PI / 2;
+      scene.add(impulseWavefront);
+
+      // Visual flash effect on HUD active status
+      const chiralHud = document.getElementById('hud-val-chiral');
+      chiralHud.innerText = "BYPASS IMPULSE";
+      chiralHud.className = "text-cyan-400 font-bold animate-ping";
+      setTimeout(() => {
+        chiralHud.className = "text-rose-400";
+        chiralHud.innerText = "Dual Flip";
+      }, 1500);
+    }
+
+    // Mathematical matrix 4D rotation logic through six planes in SO(4) space
+    function rotate4D(coord, angles) {
+      let { x, y, z, w } = coord;
+      let cos, sin, tmp;
+
+      // 1. XY Plane Rotation
+      if (angles.xy !== 0) {
+        cos = Math.cos(angles.xy); sin = Math.sin(angles.xy);
+        tmp = x * cos - y * sin; y = x * sin + y * cos; x = tmp;
+      }
+      // 2. ZW Plane Rotation
+      if (angles.zw !== 0) {
+        cos = Math.cos(angles.zw); sin = Math.sin(angles.zw);
+        tmp = z * cos - w * sin; w = z * sin + w * cos; z = tmp;
+      }
+      // 3. XW Plane Rotation
+      if (angles.xw !== 0) {
+        cos = Math.cos(angles.xw); sin = Math.sin(angles.xw);
+        tmp = x * cos - w * sin; w = x * sin + w * cos; x = tmp;
+      }
+      // 4. YZ Plane Rotation
+      if (angles.yz !== 0) {
+        cos = Math.cos(angles.yz); sin = Math.sin(angles.yz);
+        tmp = y * cos - z * sin; z = y * sin + z * cos; y = tmp;
+      }
+      // 5. XZ Plane Rotation
+      if (angles.xz !== 0) {
+        cos = Math.cos(angles.xz); sin = Math.sin(angles.xz);
+        tmp = x * cos - z * sin; z = x * sin + z * cos; x = tmp;
+      }
+      // 6. YW Plane Rotation
+      if (angles.yw !== 0) {
+        cos = Math.cos(angles.yw); sin = Math.sin(angles.yw);
+        tmp = y * cos - w * sin; w = y * sin + w * cos; y = tmp;
+      }
+
+      return { x, y, z, w };
+    }
+
+    // --- INITIALIZE THREEJS GRAPHICS ENGINE ---
+    function initVisualizer() {
+      const container = document.getElementById('threejs-container');
+      const width = container.clientWidth;
+      const height = container.clientHeight;
+
+      // Scene
+      scene = new THREE.Scene();
+      scene.fog = new THREE.FogExp2(0x060813, 0.05);
+
+      // Camera
+      camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 150);
+      camera.position.set(6, 6, 8);
+
+      // Renderer
+      const canvas = document.getElementById('main-webgl-canvas');
+      renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
+      renderer.setSize(width, height);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+      // Orbit Controls
+      controls = new THREE.OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.05;
+      controls.maxDistance = 35;
+      controls.minDistance = 3;
+
+      // Beautiful High-Contrast Lighting
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.35);
+      scene.add(ambientLight);
+
+      const emLight = new THREE.DirectionalLight(0x10b981, 1.8); // Major Emerald Light
+      emLight.position.set(5, 12, 6);
+      scene.add(emLight);
+
+      const amLight = new THREE.DirectionalLight(0xf59e0b, 1.2); // Minor Amber Light
+      amLight.position.set(-5, -5, -5);
+      scene.add(amLight);
+
+      const pointLight = new THREE.PointLight(0xd946ef, 2.0, 15); // Glowing purple core
+      pointLight.position.set(0, 0, 0);
+      scene.add(pointLight);
+
+      // Initialize active autospin button styles on header loading
+      togglePlaneAutoSpin('xy'); togglePlaneAutoSpin('xy'); // Force correct styling
+      togglePlaneAutoSpin('zw'); togglePlaneAutoSpin('zw');
+
+      // 1. GENERATE BASE 4D CLIFFORD TORUS VERTICES
+      // The unrotated Clifford Torus resides in S³ with x²+y²=0.5, z²+w²=0.5
+      const R = 1.0 / Math.sqrt(2.0);
+      const r = 1.0 / Math.sqrt(2.0);
+      torusBase4DVertices = [];
+
+      for (let i = 0; i <= uSegments; i++) {
+        const u = (i / uSegments) * Math.PI * 2;
+        for (let j = 0; j <= vSegments; j++) {
+          const v = (j / vSegments) * Math.PI * 2;
+          
+          const x = R * Math.cos(u);
+          const y = R * Math.sin(u);
+          const z = r * Math.cos(v);
+          const w = r * Math.sin(v);
+
+          torusBase4DVertices.push({ x, y, z, w, u, v });
+        }
+      }
+
+      // 2. CREATE GEOMETRIES FOR THREE NESTED CLIFFORD TORUS SHELLS
+      // We will create both a Solid semi-transparent glass mesh and a vibrant wireframe mesh for each shell
+      const makeTorusGeometry = () => {
+        const geom = new THREE.BufferGeometry();
+        const vertexCount = (uSegments + 1) * (vSegments + 1);
+        geom.setAttribute('position', new THREE.BufferAttribute(new Float32Array(vertexCount * 3), 3));
+        geom.setAttribute('color', new THREE.BufferAttribute(new Float32Array(vertexCount * 3), 3));
+        
+        const indices = [];
+        for (let i = 0; i < uSegments; i++) {
+          for (let j = 0; j < vSegments; j++) {
+            const a = i * (vSegments + 1) + j;
+            const b = i * (vSegments + 1) + (j + 1);
+            const c = (i + 1) * (vSegments + 1) + j;
+            const d = (i + 1) * (vSegments + 1) + (j + 1);
+            indices.push(a, c, b);
+            indices.push(b, c, d);
+          }
+        }
+        geom.setIndex(indices);
+        return geom;
+      };
+
+      // Create Solid glass shell materials (using physical lighting properties)
+      const matSolid1 = new THREE.MeshStandardMaterial({
+        vertexColors: true,
+        roughness: 0.1,
+        metalness: 0.8,
+        transparent: true,
+        opacity: 0.35,
+        side: THREE.DoubleSide
+      });
+      const matSolid2 = new THREE.MeshStandardMaterial({
+        vertexColors: true,
+        roughness: 0.1,
+        metalness: 0.8,
+        transparent: true,
+        opacity: 0.25,
+        side: THREE.DoubleSide
+      });
+      const matSolid3 = new THREE.MeshStandardMaterial({
+        vertexColors: true,
+        roughness: 0.1,
+        metalness: 0.8,
+        transparent: true,
+        opacity: 0.15,
+        side: THREE.DoubleSide
+      });
+
+      // Wireframe overlay materials
+      const matWire1 = new THREE.MeshBasicMaterial({ color: 0x10b981, wireframe: true, transparent: true, opacity: 0.55 }); // Glowing Emerald
+      const matWire2 = new THREE.MeshBasicMaterial({ color: 0xf59e0b, wireframe: true, transparent: true, opacity: 0.45 }); // Glowing Amber
+      const matWire3 = new THREE.MeshBasicMaterial({ color: 0xd946ef, wireframe: true, transparent: true, opacity: 0.35 }); // Glowing Fuchsia
+
+      // Instantiate Meshes
+      torusMesh1 = new THREE.Mesh(makeTorusGeometry(), matSolid1);
+      torusMesh2 = new THREE.Mesh(makeTorusGeometry(), matSolid2);
+      torusMesh3 = new THREE.Mesh(makeTorusGeometry(), matSolid3);
+
+      torusWireMesh1 = new THREE.Mesh(makeTorusGeometry(), matWire1);
+      torusWireMesh2 = new THREE.Mesh(makeTorusGeometry(), matWire2);
+      torusWireMesh3 = new THREE.Mesh(makeTorusGeometry(), matWire3);
+
+      // Add to scene
+      scene.add(torusMesh1); scene.add(torusWireMesh1);
+      scene.add(torusMesh2); scene.add(torusWireMesh2);
+      scene.add(torusMesh3); scene.add(torusWireMesh3);
+
+      // 3. GENERATE THE CENTRAL SET[0] FUNNEL (Catenoid Hyperbolic Wormhole Throat)
+      // Math formula for minimal catenoid throat matching curvature
+      const funnelGeom = new THREE.CylinderGeometry(0.1, 1.8, 5.0, 32, 20, true);
+      const funnelMat = new THREE.MeshPhongMaterial({
+        color: 0x4f46e5,
+        emissive: 0x1e1b4b,
+        wireframe: true,
+        transparent: true,
+        opacity: 0.4,
+        side: THREE.DoubleSide
+      });
+      funnelMesh = new THREE.Mesh(funnelGeom, funnelMat);
+      funnelMesh.rotation.x = Math.PI / 2;
+      scene.add(funnelMesh);
+
+      // 4. GENERATE POINCARÉ BALL WIREFRAME 
+      const poincareBallGeom = new THREE.SphereGeometry(1.5, 32, 16);
+      const poincareBallMat = new THREE.MeshBasicMaterial({
+        color: 0x06b6d4,
+        wireframe: true,
+        transparent: true,
+        opacity: 0.15
+      });
+      poincareBallMesh = new THREE.Mesh(poincareBallGeom, poincareBallMat);
+      scene.add(poincareBallMesh);
+
+      // 5. REBUILD ZETA ZERO NODES IN 3D HYPERBOLIC SPACE
+      rebuildPoincareZetaZeros();
+
+      // 6. INITIALIZE CHIRAL HELICAL PRIMES FLOW
+      initChiralParticles();
+
+      // Clear Loader and Display Viewport
+      document.getElementById('loader').classList.add('opacity-0');
+      setTimeout(() => {
+        document.getElementById('loader').style.display = 'none';
+      }, 500);
+
+      // Start rendering animation frame loop
+      requestAnimationFrame(animate);
+    }
+
+    // --- REBUILD POINCARÉ BALL RIEMANN ZETA ZEROS ---
+    function rebuildPoincareZetaZeros() {
+      // Remove old zeta representations
+      zetaZeroPoints.forEach(p => scene.remove(p.mesh));
+      zetaZeroPoints = [];
+
+      const zeroGeo = new THREE.SphereGeometry(0.08, 16, 16);
+
+      // Map Riemann Zeros to hyperbolic radii and Golden spiral coordinates
+      for (let k = 0; k < selectedZetaZerosCount; k++) {
+        const gamma = riemannZetaZeros[k];
+
+        // Poincaré Disc hyperbolic coordinates: r_hyperbolic = tanh(gamma / mapping_const)
+        const r_hyperbolic = Math.tanh(gamma / 45.0) * 1.5;
+
+        // Spherical distribution mapped on the critical line
+        const theta = k * Math.PI * (3.0 - Math.sqrt(5.0)); // Golden spiral angle
+        const phi = Math.acos(1.0 - (2.0 * (k + 0.5) / selectedZetaZerosCount));
+
+        // Coordinate transforms
+        const x = r_hyperbolic * Math.sin(phi) * Math.cos(theta);
+        const y = r_hyperbolic * Math.sin(phi) * Math.sin(theta);
+        const z = r_hyperbolic * Math.cos(phi);
+
+        const nodeMat = new THREE.MeshPhongMaterial({
+          color: 0x22d3ee,
+          emissive: 0x0891b2,
+          emissiveIntensity: 1.2,
+          transparent: true,
+          opacity: 0.95,
+          shininess: 100
+        });
+
+        const mesh = new THREE.Mesh(zeroGeo, nodeMat);
+        mesh.position.set(x, y, z);
+        scene.add(mesh);
+
+        zetaZeroPoints.push({
+          k: k,
+          gamma: gamma,
+          r_base: r_hyperbolic,
+          theta: theta,
+          phi: phi,
+          mesh: mesh
+        });
+      }
+    }
+
+    // --- INITIALIZE CHIRAL PARTICLE SYSTEMS ---
+    function initChiralParticles() {
+      const pCount = 300;
+      happyPrimesFlow = [];
+      sadPrimesFlow = [];
+
+      const pPositionsHappy = new Float32Array(pCount * 3);
+      const pPositionsSad = new Float32Array(pCount * 3);
+
+      const pColorsHappy = new Float32Array(pCount * 3);
+      const pColorsSad = new Float32Array(pCount * 3);
+
+      for (let i = 0; i < pCount; i++) {
+        happyPrimesFlow.push({
+          progress: (i / pCount),
+          speed: 0.18 + Math.random() * 0.04,
+          angleOffset: Math.random() * Math.PI * 2,
+          radius: 0.12 + Math.random() * 0.08
+        });
+
+        sadPrimesFlow.push({
+          progress: (i / pCount),
+          speed: 0.18 + Math.random() * 0.04,
+          angleOffset: Math.random() * Math.PI * 2,
+          radius: 0.12 + Math.random() * 0.08
+        });
+
+        // Set high-visibility neon colors matching chirality properties
+        pColorsHappy[i*3] = 0.06; pColorsHappy[i*3+1] = 0.95; pColorsHappy[i*3+2] = 0.55; // Happy green
+        pColorsSad[i*3] = 0.95; pColorsSad[i*3+1] = 0.15; pColorsSad[i*3+2] = 0.45;    // Sad rose
+      }
+
+      const happyGeo = new THREE.BufferGeometry();
+      happyGeo.setAttribute('position', new THREE.BufferAttribute(pPositionsHappy, 3));
+      happyGeo.setAttribute('color', new THREE.BufferAttribute(pColorsHappy, 3));
+
+      const sadGeo = new THREE.BufferGeometry();
+      sadGeo.setAttribute('position', new THREE.BufferAttribute(pPositionsSad, 3));
+      sadGeo.setAttribute('color', new THREE.BufferAttribute(pColorsSad, 3));
+
+      const happyMat = new THREE.PointsMaterial({
+        size: 0.1,
+        vertexColors: true,
+        transparent: true,
+        opacity: 0.9,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false
+      });
+
+      const sadMat = new THREE.PointsMaterial({
+        size: 0.1,
+        vertexColors: true,
+        transparent: true,
+        opacity: 0.9,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false
+      });
+
+      happyParticlesSystem = new THREE.Points(happyGeo, happyMat);
+      sadParticlesSystem = new THREE.Points(sadGeo, sadMat);
+
+      scene.add(happyParticlesSystem);
+      scene.add(sadParticlesSystem);
+    }
+
+    // --- MAIN PHYSICS & RENDER LOOP ---
+    function animate(timestamp) {
+      requestAnimationFrame(animate);
+
+      // Playback timing calculations
+      if (!lastRealTime) lastRealTime = timestamp;
+      const deltaRealTime = (timestamp - lastRealTime) / 1000.0;
+      lastRealTime = timestamp;
+
+      if (isPlaying) {
+        systemTime += deltaRealTime * timeSpeed;
+        if (systemTime > 10.0) systemTime = 0.0; // timeline warp around
+
+        // Update autospin values for enabled 4D rotation hyper-planes
+        const speedMultiplier = deltaRealTime * timeSpeed * 0.5;
+        if (autoSpinPlanes.xy) gyroAngles.xy = (gyroAngles.xy + speedMultiplier) % 6.28;
+        if (autoSpinPlanes.zw) gyroAngles.zw = (gyroAngles.zw - speedMultiplier * 1.5) % 6.28;
+        if (autoSpinPlanes.xw) gyroAngles.xw = (gyroAngles.xw + speedMultiplier * 0.7) % 6.28;
+        if (autoSpinPlanes.yz) gyroAngles.yz = (gyroAngles.yz + speedMultiplier * 0.4) % 6.28;
+
+        // Keep input sliders aligned with active autospun values
+        document.getElementById('slider-rot-xy').value = gyroAngles.xy;
+        document.getElementById('slider-rot-zw').value = gyroAngles.zw;
+        document.getElementById('slider-rot-xw').value = gyroAngles.xw;
+        document.getElementById('slider-rot-yz').value = gyroAngles.yz;
+
+        // Update displays
+        document.getElementById('val-rot-xy').innerText = gyroAngles.xy.toFixed(2) + " rad";
+        document.getElementById('val-rot-zw').innerText = gyroAngles.zw.toFixed(2) + " rad";
+        document.getElementById('val-rot-xw').innerText = gyroAngles.xw.toFixed(2) + " rad";
+        document.getElementById('val-rot-yz').innerText = gyroAngles.yz.toFixed(2) + " rad";
+
+        document.getElementById('slider-t').value = systemTime;
+        document.getElementById('val-t').innerText = systemTime.toFixed(2) + " s";
+        document.getElementById('hud-val-t').innerText = systemTime.toFixed(2);
+      }
+
+      controls.update();
+
+      // UI Config Toggles check
+      const showSolid = document.getElementById('check-show-solid').checked;
+      const showWire = document.getElementById('check-show-wire').checked;
+      const showFunnel = document.getElementById('check-show-funnel').checked;
+      const showPoincare = document.getElementById('check-show-poincare').checked;
+
+      torusMesh1.visible = showSolid; torusMesh2.visible = showSolid; torusMesh3.visible = showSolid;
+      torusWireMesh1.visible = showWire; torusWireMesh2.visible = showWire; torusWireMesh3.visible = showWire;
+      funnelMesh.visible = showFunnel;
+      poincareBallMesh.visible = showPoincare;
+      zetaZeroPoints.forEach(p => p.mesh.visible = showPoincare);
+
+      // 1. DYNAMIC GOLDEN RATIO BLOOM REGIMES
+      const dynamicBloom = document.getElementById('check-auto-bloom').checked;
+      let scalePhase1 = 1.0;
+      let scalePhase2 = PHI;
+      let scalePhase3 = PHI * PHI;
+
+      if (dynamicBloom) {
+        // Logarithmic spiral factor matching Fibonacci closure phases
+        const cycleProgress = (systemTime / 10.0);
+        const scaleFactor = Math.pow(PHI, cycleProgress * 2.0);
+        scalePhase1 = 0.5 * scaleFactor;
+        scalePhase2 = 0.5 * scaleFactor * PHI;
+        scalePhase3 = 0.5 * scaleFactor * PHI * PHI;
+      }
+
+      // Sync scales on UI telemetry board
+      document.getElementById('bloom-scale-1').innerText = scalePhase1.toFixed(3);
+      document.getElementById('bloom-scale-2').innerText = scalePhase2.toFixed(3);
+      document.getElementById('bloom-scale-3').innerText = scalePhase3.toFixed(3);
+
+      // --- DYNAMIC STABILIZED STEREOGRAPHIC PROJECTION ---
+      // To prevent coordinate division singularities, D must be computed on a per-shell basis
+      const updateTorusMeshPair = (solidMesh, wireMesh, globalScale, baseColorHex) => {
+        if (!solidMesh || !wireMesh) return;
+        
+        // Stabilize D: D is always set to be strictly greater than max possible rotated w component
+        // Since base.z^2 + base.w^2 = 0.5, the max possible 4D coordinate value is globalScale * 0.707
+        const stableD = (globalScale * 0.707) + 0.45;
+
+        const positionsSolid = solidMesh.geometry.attributes.position.array;
+        const colorsSolid = solidMesh.geometry.attributes.color.array;
+        
+        const positionsWire = wireMesh.geometry.attributes.position.array;
+        const colorsWire = wireMesh.geometry.attributes.color.array;
+
+        let index = 0;
+        for (let i = 0; i < torusBase4DVertices.length; i++) {
+          const base = torusBase4DVertices[i];
+
+          // Set 4D scale
+          const coord4D = {
+            x: base.x * globalScale,
+            y: base.y * globalScale,
+            z: base.z * globalScale,
+            w: base.w * globalScale
+          };
+
+          // Rotate coordinate through 6-axis 4D gyroscope
+          const rot = rotate4D(coord4D, gyroAngles);
+
+          // Projected coordinates: division by (stableD - rot.w) will NEVER be zero or negative!
+          const scaleProj = 1.0 / (stableD - rot.w);
+          const X = rot.x * scaleProj;
+          const Y = rot.y * scaleProj;
+          const Z = rot.z * scaleProj;
+
+          // Assign to solid meshes
+          positionsSolid[index] = X;
+          positionsSolid[index+1] = Y;
+          positionsSolid[index+2] = Z;
+
+          // Assign to wire overlays
+          positionsWire[index] = X;
+          positionsWire[index+1] = Y;
+          positionsWire[index+2] = Z;
+
+          // Color gradient tracking W-axis depth coordinates
+          const baseCol = new THREE.Color(baseColorHex);
+          const warpGlow = (rot.w / (globalScale * 0.707) + 1.0) / 2.0; // normalized 0 to 1
+
+          colorsSolid[index] = baseCol.r * 0.4 + warpGlow * 0.6;
+          colorsSolid[index+1] = baseCol.g * 0.3 + (1.0 - warpGlow) * 0.4;
+          colorsSolid[index+2] = baseCol.b * 0.4 + warpGlow * 0.6;
+
+          colorsWire[index] = colorsSolid[index];
+          colorsWire[index+1] = colorsSolid[index+1];
+          colorsWire[index+2] = colorsSolid[index+2];
+
+          index += 3;
+        }
+
+        // Trigger updates and compute normals to handle lighting correctly
+        solidMesh.geometry.attributes.position.needsUpdate = true;
+        solidMesh.geometry.attributes.color.needsUpdate = true;
+        solidMesh.geometry.computeVertexNormals();
+        solidMesh.geometry.computeBoundingSphere();
+
+        wireMesh.geometry.attributes.position.needsUpdate = true;
+        wireMesh.geometry.attributes.color.needsUpdate = true;
+        wireMesh.geometry.computeVertexNormals();
+        wireMesh.geometry.computeBoundingSphere();
+      };
+
+      // Perform stabilized 4D-to-3D projection on all nested regimes
+      updateTorusMeshPair(torusMesh1, torusWireMesh1, scalePhase1, 0x10b981); // Inner Emerald
+      updateTorusMeshPair(torusMesh2, torusWireMesh2, scalePhase2, 0xf59e0b); // Middle Amber
+      updateTorusMeshPair(torusMesh3, torusWireMesh3, scalePhase3, 0xd946ef); // Outer Fuchsia
+
+      // 2. ANIMATE CENTRAL CATENOID FUNNEL 
+      const funnelScale = 1.0 + 0.1 * Math.sin(systemTime * Math.PI * 0.5);
+      funnelMesh.scale.set(funnelScale, funnelScale, 1.0);
+      funnelMesh.rotation.y = systemTime * 0.2;
+
+      // 3. ANIMATE IMPULSE SHOCKWAVE IF ACTIVE
+      if (impulseWavefront) {
+        impulseWavefront.position.z += deltaRealTime * timeSpeed * 4.0; // Travel upwards
+        // scale rings to fit funnel contours
+        const funnelContourRadius = 0.1 + (impulseWavefront.position.z * impulseWavefront.position.z) * 0.18;
+        impulseWavefront.scale.set(funnelContourRadius * 5.0, funnelContourRadius * 5.0, 1.0);
+
+        impulseWavefront.material.opacity -= deltaRealTime * timeSpeed * 0.15; // Fade over time
+        if (impulseWavefront.position.z > 2.5 || impulseWavefront.material.opacity <= 0.0) {
+          scene.remove(impulseWavefront);
+          impulseWavefront = null;
+        }
+      }
+
+      // 4. ANIMATE POINCARÉ BALL ZETA ZEROS
+      zetaZeroPoints.forEach(node => {
+        const rotationFactor = systemTime * 0.3 * (node.gamma * 0.03);
+        const currentTheta = node.theta + rotationFactor;
+
+        // Perform hyperbolic mapping on internal Poincaré manifold
+        const x = node.r_base * Math.sin(node.phi) * Math.cos(currentTheta);
+        const y = node.r_base * Math.sin(node.phi) * Math.sin(currentTheta);
+        const z = node.r_base * Math.cos(node.phi);
+
+        node.mesh.position.set(x, y, z);
+
+        // Compute Hamiltonian Resonance glowing highlights
+        const alignmentWave = Math.abs(Math.sin(systemTime * Math.PI * 0.5 + node.gamma * 0.08));
+        if (alignmentWave > 0.94) {
+          node.mesh.material.emissiveIntensity = 2.5;
+          node.mesh.scale.set(1.4, 1.4, 1.4);
+        } else {
+          node.mesh.material.emissiveIntensity = 0.8;
+          node.mesh.scale.set(1.0, 1.0, 1.0);
+        }
+      });
+
+      // 5. ANIMATE CHIRAL PRIME VORTICES FLOW
+      const updateChiralFlows = (flowArray, particleSystem, chiralitySign, show) => {
+        if (!particleSystem) return;
+        particleSystem.visible = show;
+        if (!show) return;
+
+        const positions = particleSystem.geometry.attributes.position.array;
+
+        for (let i = 0; i < flowArray.length; i++) {
+          const p = flowArray[i];
+
+          // Progress loop
+          p.progress += p.speed * deltaRealTime * timeSpeed;
+          if (p.progress > 1.0) p.progress -= 1.0;
+
+          const zPos = (p.progress - 0.5) * 5.0; // map along cylinder length [-2.5 to 2.5]
+          const baseRadius = 0.12 + (zPos * zPos) * 0.15; // catenoid flare profile
+
+          // Chirality tangent bypass reversal logic: chirality reverses sign at the exact singularity threshold (zPos = 0)
+          const activeChirality = zPos < 0 ? chiralitySign : -chiralitySign;
+          const theta = zPos * 5.0 * activeChirality + p.angleOffset + systemTime * 2.5;
+
+          const x = Math.cos(theta) * (baseRadius + p.radius * 0.2);
+          const y = Math.sin(theta) * (baseRadius + p.radius * 0.2);
+
+          positions[i*3] = x;
+          positions[i*3+1] = y;
+          positions[i*3+2] = zPos;
+        }
+
+        particleSystem.geometry.attributes.position.needsUpdate = true;
+      };
+
+      const showHappy = document.getElementById('check-happy-flow').checked;
+      const showSad = document.getElementById('check-sad-flow').checked;
+      updateChiralFlows(happyPrimesFlow, happyParticlesSystem, 1.0, showHappy);
+      updateChiralFlows(sadPrimesFlow, sadParticlesSystem, -1.0, showSad);
+
+      // Render diagnostic waveforms and radar sweeps
+      drawHamiltonianSignal();
+      drawBloomPhaseState();
+
+      renderer.render(scene, camera);
+    }
+
+    // --- DIAGNOSTICS CANVASES ---
+    const signalDataHistory = Array(150).fill(0);
+    function drawHamiltonianSignal() {
+      // Calculates H(t) = sum_k cos(gamma_k * ln(t+1)) * Phi^-k
+      let H_t = 0;
+      for (let k = 1; k <= selectedZetaZerosCount; k++) {
+        const gamma = riemannZetaZeros[k - 1];
+        H_t += Math.cos(gamma * Math.log(systemTime + 1.15)) * Math.pow(PHI, -k * (customZetaCompression / 100.0));
+      }
+
+      signalDataHistory.push(H_t);
+      if (signalDataHistory.length > 150) signalDataHistory.shift();
+
+      const canvas = document.getElementById('canvas-hamiltonian-signal');
+      const ctx = canvas.getContext('2d');
+      const w = canvas.width;
+      const h = canvas.height;
+
+      ctx.clearRect(0, 0, w, h);
+
+      // Grid line reference
+      ctx.strokeStyle = 'rgba(51, 65, 85, 0.35)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(0, h/2); ctx.lineTo(w, h/2);
+      ctx.stroke();
+
+      // Plot Hamiltonian trace
+      ctx.strokeStyle = '#10b981';
+      ctx.lineWidth = 2.5;
+      ctx.shadowColor = '#10b981';
+      ctx.shadowBlur = 4;
+      ctx.beginPath();
+
+      const maxVal = Math.max(...signalDataHistory, 0.4);
+      const minVal = Math.min(...signalDataHistory, -0.4);
+      const range = maxVal - minVal || 1.0;
+
+      for (let i = 0; i < signalDataHistory.length; i++) {
+        const x = (w / (signalDataHistory.length - 1)) * i;
+        const normVal = (signalDataHistory[i] - minVal) / range;
+        const y = h - 10 - normVal * (h - 20);
+
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+      ctx.shadowBlur = 0; // reset
+    }
+
+    function drawBloomPhaseState() {
+      const canvas = document.getElementById('canvas-bloom-radar');
+      const ctx = canvas.getContext('2d');
+      const cx = canvas.width / 2;
+      const cy = canvas.height / 2;
+      const r = cx - 12;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Plot polar grids
+      ctx.strokeStyle = 'rgba(71, 85, 105, 0.35)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.arc(cx, cy, r * 0.65, 0, Math.PI * 2);
+      ctx.arc(cx, cy, r * 0.3, 0, Math.PI * 2);
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.moveTo(cx - r, cy); ctx.lineTo(cx + r, cy);
+      ctx.moveTo(cx, cy - r); ctx.lineTo(cx, cy + r);
+      ctx.stroke();
+
+      // Golden ratio phase angles mapping
+      const cycleProgress = (systemTime / 10.0);
+      const angle1 = cycleProgress * Math.PI * 2;
+      const angle2 = (cycleProgress * PHI) * Math.PI * 2;
+      const angle3 = (cycleProgress * PHI * PHI) * Math.PI * 2;
+
+      const drawMarker = (angle, color, scaleRadius) => {
+        const x = cx + Math.cos(angle) * (r * scaleRadius);
+        const y = cy + Math.sin(angle) * (r * scaleRadius);
+
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(x, y);
+        ctx.stroke();
+
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.arc(x, y, 4.5, 0, Math.PI * 2);
+        ctx.fill();
+      };
+
+      drawMarker(angle1, '#10b981', 0.4);
+      drawMarker(angle2, '#f59e0b', 0.7);
+      drawMarker(angle3, '#d946ef', 0.95);
+
+      // Radar rotation tracer sweep
+      const tracerSweep = (systemTime * 1.8) % (Math.PI * 2);
+      ctx.fillStyle = 'rgba(16, 185, 129, 0.08)';
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.arc(cx, cy, r, tracerSweep - 0.25, tracerSweep);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    // --- VIEWPORT RESIZING HANDLING ---
+    window.addEventListener('resize', () => {
+      const container = document.getElementById('threejs-container');
+      const width = container.clientWidth;
+      const height = container.clientHeight;
+
+      camera.aspect = width / height;
+      camera.updateProjectionMatrix();
+      renderer.setSize(width, height);
+
+      const canvas1 = document.getElementById('canvas-bloom-radar');
+      const canvas2 = document.getElementById('canvas-hamiltonian-signal');
+      canvas2.width = canvas2.parentElement.clientWidth;
+    });
+
+    window.onload = function() {
+      const canvas2 = document.getElementById('canvas-hamiltonian-signal');
+      canvas2.width = canvas2.parentElement.clientWidth;
+
+      initVisualizer();
+      renderMath();
+    };
+  </script>
+</body>
+</html>

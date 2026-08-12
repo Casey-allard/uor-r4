@@ -1,0 +1,3 @@
+relation,ok_pairs,total_pairs,fraction_ok
+within_tuplet_visible_non_decreasing_in_new_prime,16,16,1.0
+within_new_prime_visible_non_decreasing_in_tuplet_size,15,18,0.8333333333333334

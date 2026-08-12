@@ -1,0 +1,4 @@
+trace_source,tuplet_name,offsets,parent_W,child_W,visible_H_first,trace_length,r_depth,route_policy_cache_size,route_reuse_fraction,promotion_step_fraction,effective_resolved_fraction,route_decision_instability,observed_route_modes,unique_emitted_route_keys
+visible_threshold_tight_density_matched_rows.csv,quadruplet,"[0,2,6,8]",2310,30030,21,385,1,105,0.7272727272727273,0.2727272727272727,0.9480519480519489,0.0,"R_full,R_min",120
+visible_threshold_second_tight_density_matched_rows.csv,quad_alt_0406,"[0,2,4,6]",30030,510510,36,5005,2,250,0.9500499500499501,0.6503496503496503,0.985014985014985,0.0,"R_full,R_min",355
+ALL,ALL,ALL,,,,5390,,177.5,0.8386613386613386,0.4615384615384615,0.966533466533467,0.0,"R_full,R_min",237.5

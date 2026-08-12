@@ -22,7 +22,7 @@ default-members = [
     "crates/uor-r4-proof-model",
     "crates/uor-r4-graph-runtime",
 ]
-exclude = ["uor_standards", "crates/uor-r4-graph-format/fuzz"]
+exclude = ["uor_standards", "crates/uor-r4-graph-format/fuzz", "research"]
 resolver = "2"
 
 [package]

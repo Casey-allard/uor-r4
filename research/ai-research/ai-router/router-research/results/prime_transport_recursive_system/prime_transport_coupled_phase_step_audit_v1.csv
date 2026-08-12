@@ -1,0 +1,31 @@
+operator,cluster,step_size,count,fraction,note
+T_b,non_transport,0,192,0.192,
+T_b,non_transport,1,202,0.202,
+T_b,non_transport,2,212,0.212,
+T_b,non_transport,3,218,0.218,
+T_b,non_transport,4,176,0.176,
+T_x,non_transport,0,1000,1.0,coupled_phase preserved by operator construction
+T_x,non_transport,1,0,0.0,impossible by construction
+T_x,non_transport,2,0,0.0,impossible by construction
+T_x,non_transport,3,0,0.0,impossible by construction
+T_x,non_transport,4,0,0.0,impossible by construction
+T_y,non_transport,0,1000,1.0,coupled_phase preserved by operator construction
+T_y,non_transport,1,0,0.0,impossible by construction
+T_y,non_transport,2,0,0.0,impossible by construction
+T_y,non_transport,3,0,0.0,impossible by construction
+T_y,non_transport,4,0,0.0,impossible by construction
+T_c,transport,0,213,0.213,
+T_c,transport,1,191,0.191,
+T_c,transport,2,207,0.207,
+T_c,transport,3,184,0.184,
+T_c,transport,4,205,0.205,
+T_z',transport,0,204,0.204,
+T_z',transport,1,195,0.195,
+T_z',transport,2,203,0.203,
+T_z',transport,3,220,0.22,
+T_z',transport,4,178,0.178,
+T_r*,transport,0,204,0.204,
+T_r*,transport,1,209,0.209,
+T_r*,transport,2,188,0.188,
+T_r*,transport,3,210,0.21,
+T_r*,transport,4,189,0.189,

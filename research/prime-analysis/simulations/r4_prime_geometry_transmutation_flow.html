@@ -1,0 +1,1766 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>R4 Prime Router: Geometric Transmutation Laboratory</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- KaTeX for math formatting -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
+  <!-- Three.js and OrbitControls -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+  <style>
+    .glass {
+      background: rgba(10, 15, 30, 0.85);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(16, 185, 129, 0.15);
+    }
+    .text-glow-emerald {
+      text-shadow: 0 0 8px rgba(16, 185, 129, 0.6);
+    }
+    .text-glow-cyan {
+      text-shadow: 0 0 8px rgba(6, 182, 212, 0.6);
+    }
+    .text-glow-amber {
+      text-shadow: 0 0 8px rgba(245, 158, 11, 0.6);
+    }
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(10, 15, 30, 0.3);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(16, 185, 129, 0.3);
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(16, 185, 129, 0.5);
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans min-h-screen flex flex-col overflow-x-hidden selection:bg-emerald-500/30 selection:text-emerald-200">
+
+  <!-- Header Section -->
+  <header class="border-b border-emerald-900/40 bg-slate-950/95 py-3.5 px-6 flex flex-wrap items-center justify-between gap-4 z-10 sticky top-0 backdrop-blur-md">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-lg bg-gradient-to-tr from-emerald-500 via-cyan-500 to-indigo-600 flex items-center justify-center text-white font-black text-xl shadow-lg shadow-emerald-500/20">
+        <span class="animate-pulse">&Delta;</span>
+      </div>
+      <div>
+        <h1 class="text-lg font-bold bg-gradient-to-r from-emerald-400 via-cyan-300 to-indigo-400 bg-clip-text text-transparent flex items-center gap-2">
+          R4 PRIME ROUTER <span class="text-xs py-0.5 px-2 rounded-full border border-emerald-500/30 bg-emerald-950/40 text-emerald-400 font-mono">v7.2 Transmuter</span>
+        </h1>
+        <p class="text-xs text-slate-400 font-medium">Hyperbolic Chain Coordinates, Pythagorean Positioning & Modular Fibonacci Dials</p>
+      </div>
+    </div>
+    <div class="flex items-center gap-4 text-xs font-mono text-slate-400">
+      <span class="flex items-center gap-1.5"><i class="fa-solid fa-circle-nodes text-emerald-400 animate-ping"></i> Core: Transmuting</span>
+      <span class="border-l border-slate-800 pl-4 flex items-center gap-1"><i class="fa-solid fa-square-root-variable text-cyan-400"></i> \(\sqrt{2} = 2i\) Bridge</span>
+    </div>
+  </header>
+
+  <!-- Workspace Layout -->
+  <main class="flex-1 grid grid-cols-1 xl:grid-cols-12 overflow-hidden h-[calc(100vh-65px)]">
+
+    <!-- Left Controls Panel -->
+    <section class="xl:col-span-4 border-r border-emerald-900/40 flex flex-col h-full bg-slate-950 overflow-y-auto">
+      
+      <!-- Interactive Navigation Tabs -->
+      <div class="border-b border-emerald-900/20 bg-slate-900/40 flex text-xs font-semibold sticky top-0 z-10 backdrop-blur-md">
+        <button onclick="switchTab('transmute')" id="tab-transmute" class="flex-1 py-3 text-center border-b-2 border-emerald-500 text-emerald-400 transition bg-emerald-950/10">
+          <i class="fa-solid fa-shuffle mr-1"></i> Transmute
+        </button>
+        <button onclick="switchTab('pythagoras')" id="tab-pythagoras" class="flex-1 py-3 text-center border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition">
+          <i class="fa-solid fa-triangle-exclamation mr-1"></i> Triangles
+        </button>
+        <button onclick="switchTab('fibonacci')" id="tab-fibonacci" class="flex-1 py-3 text-center border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition">
+          <i class="fa-solid fa-route mr-1"></i> Fibonacci
+        </button>
+        <button onclick="switchTab('zeta-zeros')" id="tab-zeta" class="flex-1 py-3 text-center border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition">
+          <i class="fa-solid fa-link mr-1"></i> Zeta Chain
+        </button>
+        <button onclick="switchTab('ai-oracle')" id="tab-oracle" class="flex-1 py-3 text-center border-b-2 border-transparent text-slate-400 hover:text-emerald-400 transition font-bold">
+          <i class="fa-solid fa-sparkles mr-1"></i> AI Oracle
+        </button>
+      </div>
+
+      <!-- Tab 1: Token Transmutation Space -->
+      <div id="content-transmute" class="p-5 flex flex-col gap-5">
+        <div class="glass rounded-xl p-4 border-emerald-900/30">
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="text-xs font-bold text-emerald-400 font-mono flex items-center gap-1.5">
+              <i class="fa-solid fa-right-from-bracket rotate-90 text-emerald-400"></i>
+              GEOMETRIC SPACE SELECTION
+            </h3>
+            <span class="text-[9px] bg-emerald-950 text-emerald-400 px-2 py-0.5 rounded font-mono border border-emerald-800/40">Active</span>
+          </div>
+          <p class="text-[11px] text-slate-400 mb-3 leading-relaxed">
+            Change the underlying dimensional mapping of the active numeric token. Watch it smoothly interpolate and translate its coordinates!
+          </p>
+          
+          <div class="grid grid-cols-3 gap-2 text-xs font-semibold">
+            <button onclick="setSpaceMode('hyperbolic')" id="btn-space-hyperbolic" class="py-2.5 px-2 rounded bg-emerald-950/40 border border-emerald-500/40 hover:bg-emerald-900/30 text-emerald-300 text-center transition flex flex-col items-center gap-1">
+              <i class="fa-solid fa-circle-radiation text-base text-cyan-400"></i>
+              <span>Poincaré Ball</span>
+            </button>
+            <button onclick="setSpaceMode('toroidal')" id="btn-space-toroidal" class="py-2.5 px-2 rounded bg-slate-900 border border-slate-800 hover:bg-slate-850 text-slate-300 text-center transition flex flex-col items-center gap-1">
+              <i class="fa-solid fa-ring text-base text-emerald-400"></i>
+              <span>Clifford Torus</span>
+            </button>
+            <button onclick="setSpaceMode('complex')" id="btn-space-complex" class="py-2.5 px-2 rounded bg-slate-900 border border-slate-800 hover:bg-slate-850 text-slate-300 text-center transition flex flex-col items-center gap-1">
+              <i class="fa-solid fa-compass-drafting text-base text-amber-400"></i>
+              <span>Complex Plane</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Token Transmutation Trigger -->
+        <div class="glass rounded-xl p-4 border-emerald-900/30 flex flex-col gap-4">
+          <h3 class="text-xs font-bold text-slate-200 flex items-center justify-between">
+            <span><i class="fa-solid fa-hashtag text-cyan-400 mr-1.5"></i>NUMERIC TOKEN TRANSMUTATION UNIT</span>
+            <span class="text-[10px] font-mono text-cyan-400">Token Input</span>
+          </h3>
+          <div class="flex flex-col gap-2">
+            <div class="flex justify-between text-xs font-mono">
+              <span class="text-slate-400">Select Active Integer Token (\(n\)):</span>
+              <span id="val-active-token" class="text-cyan-400 font-bold">F_7 = 13</span>
+            </div>
+            <input type="range" id="slider-token-n" min="1" max="15" value="7" oninput="changeActiveTokenIndex(this.value)" class="w-full accent-cyan-400 bg-slate-800 h-1.5 rounded-lg appearance-none cursor-pointer">
+          </div>
+
+          <!-- Telemetry readouts -->
+          <div class="p-3 bg-slate-950/80 border border-emerald-950 rounded-lg text-[11px] font-mono flex flex-col gap-1">
+            <div class="flex justify-between text-slate-500">
+              <span>Token Value:</span>
+              <span id="tel-token-val" class="text-cyan-300 font-bold">13</span>
+            </div>
+            <div class="flex justify-between text-slate-500">
+              <span>Hyperbolic Radius:</span>
+              <span id="tel-hyper-r" class="text-amber-400 font-bold">0.85</span>
+            </div>
+            <div class="flex justify-between text-slate-500">
+              <span>Current Phase Shift:</span>
+              <span id="tel-phase-shift" class="text-fuchsia-400 font-bold">0.00 rad</span>
+            </div>
+            <div class="flex justify-between text-slate-500">
+              <span>Positioning:</span>
+              <span id="tel-coords-r4" class="text-emerald-400 font-bold">Calculated</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Phase shifts control -->
+        <div class="glass rounded-xl p-4 border-emerald-900/30 flex flex-col gap-4">
+          <h3 class="text-xs font-bold text-slate-200 flex items-center justify-between">
+            <span><i class="fa-solid fa-wave-square text-fuchsia-400 mr-1.5"></i>PHASE TRANSFORMATION DIAL</span>
+            <span class="text-[10px] font-mono text-fuchsia-400">\(\theta \to \theta + \Delta\phi\)</span>
+          </h3>
+          <p class="text-[11px] text-slate-400 leading-normal">
+            Adjusting the Phase Shift rotates the spatial boundaries of the unit 3-sphere, inducing sudden coordinate flips in the projected 3D space.
+          </p>
+          <div class="flex flex-col gap-1.5">
+            <div class="flex justify-between text-xs font-mono">
+              <span class="text-slate-400">Shift Delta (\(\Delta\phi\)):</span>
+              <span id="val-phase-shift" class="text-fuchsia-400 font-bold">0.00 rad</span>
+            </div>
+            <input type="range" id="slider-phase-shift" min="0" max="6.28" step="0.01" value="0.00" oninput="updatePhaseShift(this.value)" class="w-full accent-fuchsia-400 bg-slate-800 h-1 rounded appearance-none cursor-pointer">
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 2: Pythagorean Triangulator -->
+      <div id="content-pythagoras" class="p-5 flex flex-col gap-5 hidden">
+        <div class="glass rounded-xl p-4 border-emerald-900/30 flex flex-col gap-3">
+          <h3 class="text-xs font-bold text-amber-400 flex items-center gap-1.5">
+            <i class="fa-solid fa-expand text-amber-400"></i>
+            PYTHAGOREAN HYPERDIMENSIONAL TRACER
+          </h3>
+          <p class="text-[11px] text-slate-400 leading-relaxed">
+            How do we pinpoint coordinates inside high-dimensional spaces? The R4 Prime Router relies on nested cascades of the Pythagorean Theorem in orthogonal planes:
+          </p>
+          <div class="p-3 bg-slate-900/80 border border-emerald-950 rounded text-center font-mono text-xs text-amber-300">
+            $$x^2 + y^2 = r_{xy}^2 \quad (\text{Base Planar Triangle})$$
+            $$r_{xy}^2 + z^2 = R_{xyz}^2 \quad (\text{Space Projection})$$
+            $$R_{xyz}^2 + w^2 = \mathcal{D}^2 \quad (\text{Hyperbolic Scale})$$
+          </div>
+          <p class="text-[11px] text-slate-400 leading-relaxed">
+            The active green visualization traces these orthogonal projections in the viewport, highlighting the triangles used to construct pinpoint accuracy as scale expands.
+          </p>
+        </div>
+
+        <!-- Live triangle readout -->
+        <div class="glass rounded-xl p-4 border-emerald-900/30 flex flex-col gap-3">
+          <h3 class="text-xs font-bold text-slate-200">ACTIVE TRIANGLE TELEMETRY</h3>
+          <div class="flex flex-col gap-2 font-mono text-xs text-slate-400">
+            <div class="flex justify-between py-1 border-b border-slate-900">
+              <span>Leg A (X-component):</span>
+              <span id="pyt-leg-a" class="text-cyan-400">0.00</span>
+            </div>
+            <div class="flex justify-between py-1 border-b border-slate-900">
+              <span>Leg B (Y-component):</span>
+              <span id="pyt-leg-b" class="text-cyan-400">0.00</span>
+            </div>
+            <div class="flex justify-between py-1 border-b border-slate-900">
+              <span>Planar Hypotenuse (\(r_{xy}\)):</span>
+              <span id="pyt-hyp-r" class="text-emerald-400 font-bold">0.00</span>
+            </div>
+            <div class="flex justify-between py-1 border-b border-slate-900">
+              <span>Leg C (Z-component):</span>
+              <span id="pyt-leg-c" class="text-cyan-400">0.00</span>
+            </div>
+            <div class="flex justify-between py-1 pt-1.5">
+              <span>Unified Distance in \(\mathbb{R}^3\):</span>
+              <span id="pyt-dist-r3" class="text-amber-400 font-bold text-glow-amber">0.00</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 3: Fibonacci & Primes -->
+      <div id="content-fibonacci" class="p-5 flex flex-col gap-5 hidden">
+        <div class="glass rounded-xl p-4 border-emerald-900/30 flex flex-col gap-3">
+          <h3 class="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
+            <i class="fa-solid fa-chart-line text-emerald-400"></i>
+            FIBONACCI SPIRAL GROWTH AND PRIME NODES
+          </h3>
+          <p class="text-[11px] text-slate-400 leading-relaxed">
+            Primes are structurally aligned along a Golden spiral where coordinates correspond strictly to Fibonacci scales. This creates consistent closure regimes.
+          </p>
+
+          <!-- Interactive Fibonacci Table -->
+          <div class="p-2.5 bg-slate-900/80 border border-emerald-950 rounded-lg flex flex-col gap-1.5">
+            <span class="text-[10px] font-mono text-slate-500">RESIDUE CO-PRIME INTERACTION LOOKUP:</span>
+            <div class="grid grid-cols-6 gap-1 text-center font-mono text-[10px]">
+              <div class="py-1 bg-slate-950 rounded text-slate-500">n</div>
+              <div class="py-1 bg-slate-950 rounded text-slate-500">F_n</div>
+              <div class="py-1 bg-slate-950 rounded text-slate-500">Prime</div>
+              <div class="py-1 bg-slate-950 rounded text-slate-500">n</div>
+              <div class="py-1 bg-slate-950 rounded text-slate-500">F_n</div>
+              <div class="py-1 bg-slate-950 rounded text-slate-500">Prime</div>
+
+              <div class="py-1 bg-emerald-950/20 text-emerald-400 border border-emerald-900/40">3</div>
+              <div class="py-1 bg-slate-950">2</div>
+              <div class="py-1 bg-amber-950/20 text-amber-400">YES</div>
+              <div class="py-1 bg-slate-900">4</div>
+              <div class="py-1 bg-slate-950">3</div>
+              <div class="py-1 bg-slate-900 text-slate-600">NO</div>
+
+              <div class="py-1 bg-emerald-950/20 text-emerald-400 border border-emerald-900/40">5</div>
+              <div class="py-1 bg-slate-950">5</div>
+              <div class="py-1 bg-amber-950/20 text-amber-400">YES</div>
+              <div class="py-1 bg-slate-900">6</div>
+              <div class="py-1 bg-slate-950">8</div>
+              <div class="py-1 bg-slate-900 text-slate-600">NO</div>
+
+              <div class="py-1 bg-emerald-950/20 text-emerald-400 border border-emerald-900/40">7</div>
+              <div class="py-1 bg-slate-950">13</div>
+              <div class="py-1 bg-amber-950/20 text-amber-400">YES</div>
+              <div class="py-1 bg-slate-900">8</div>
+              <div class="py-1 bg-slate-950">21</div>
+              <div class="py-1 bg-slate-900 text-slate-600">NO</div>
+
+              <div class="py-1 bg-emerald-950/20 text-emerald-400 border border-emerald-900/40">11</div>
+              <div class="py-1 bg-slate-950">89</div>
+              <div class="py-1 bg-amber-950/20 text-amber-400">YES</div>
+              <div class="py-1 bg-slate-900">12</div>
+              <div class="py-1 bg-slate-950">144</div>
+              <div class="py-1 bg-slate-900 text-slate-600">NO</div>
+
+              <div class="py-1 bg-emerald-950/20 text-emerald-400 border border-emerald-900/40">13</div>
+              <div class="py-1 bg-slate-950">233</div>
+              <div class="py-1 bg-amber-950/20 text-amber-400">YES</div>
+              <div class="py-1 bg-slate-900">14</div>
+              <div class="py-1 bg-slate-950">377</div>
+              <div class="py-1 bg-slate-900 text-slate-600">NO</div>
+            </div>
+            <p class="text-[9px] text-slate-500 leading-normal mt-1">
+              Notice: If index \(n\) is prime, the corresponding Fibonacci number \(F_n\) contains prime factorization properties linked to structural phase transitions of the Clifford torus.
+            </p>
+          </div>
+        </div>
+
+        <div class="glass rounded-xl p-4 border-emerald-900/30 flex flex-col gap-2">
+          <h3 class="text-xs font-bold text-slate-200">GOLDEN RATIO SPIRAL DENSITY</h3>
+          <p class="text-[11px] text-slate-400">
+            Control the tightness of the Fibonacci spiral representing growth phases. Tightness changes coordinate intersection grids.
+          </p>
+          <div class="flex flex-col gap-1.5 mt-2">
+            <div class="flex justify-between text-xs font-mono">
+              <span>Spiral Scale factor:</span>
+              <span id="val-spiral-density" class="text-emerald-400">1.0</span>
+            </div>
+            <input type="range" id="slider-spiral-density" min="0.2" max="2.5" step="0.1" value="1.0" oninput="updateSpiralDensity(this.value)" class="w-full accent-emerald-400 bg-slate-800 h-1.5 rounded appearance-none cursor-pointer">
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 4: Zeta Zeros Ball Chain -->
+      <div id="content-zeta" class="p-5 flex flex-col gap-5 hidden">
+        <div class="glass rounded-xl p-4 border-emerald-900/30 flex flex-col gap-3">
+          <h3 class="text-xs font-bold text-cyan-400 flex items-center gap-1.5">
+            <i class="fa-solid fa-share-nodes text-cyan-400"></i>
+            POINCARÉ BALL 4D ZETA CHAIN
+          </h3>
+          <p class="text-[11px] text-slate-400 leading-relaxed">
+            In the $R^4$ space, Poincaré balls are linked sequentially along the 4th spatial coordinate ($w$). 
+            This configuration represents past, transition, and blooming states:
+          </p>
+          <div class="grid grid-cols-3 gap-2 text-[10px] font-mono text-center">
+            <div class="p-2 bg-slate-900/60 rounded border border-slate-800">
+              <span class="text-cyan-400 block font-bold">Sphere L</span>
+              <span class="text-slate-500">w = -2.0</span>
+              <span class="text-[9px] text-slate-400 mt-1 block">Past Phase</span>
+            </div>
+            <div class="p-2 bg-slate-900/60 rounded border border-emerald-900/40">
+              <span class="text-emerald-400 block font-bold">Sphere C</span>
+              <span class="text-slate-500">w = 0.0</span>
+              <span class="text-[9px] text-slate-400 mt-1 block">Transition</span>
+            </div>
+            <div class="p-2 bg-slate-900/60 rounded border border-slate-800">
+              <span class="text-fuchsia-400 block font-bold">Sphere R</span>
+              <span class="text-slate-500">w = +2.0</span>
+              <span class="text-[9px] text-slate-400 mt-1 block">Future Bloom</span>
+            </div>
+          </div>
+          <p class="text-[11px] text-slate-400 leading-relaxed">
+            A continuous frequency wave computed from the non-trivial zeroes of the Riemann Zeta Function maps directly through the center of this chain, causing synchronization nodes.
+          </p>
+        </div>
+
+        <!-- Wave Pulse Controls -->
+        <div class="glass rounded-xl p-4 border-emerald-900/30 flex flex-col gap-3">
+          <h3 class="text-xs font-bold text-slate-200">ZETA CHAIN RESONANCE COUPLING</h3>
+          <div class="flex flex-col gap-1 text-xs">
+            <label class="font-mono text-slate-400">Select Target Zero Frequency (\(\gamma_k\)):</label>
+            <select id="select-chain-zeta" onchange="changeZetaChainFrequency()" class="bg-slate-900 border border-slate-800 p-2 rounded text-cyan-400 font-mono focus:outline-none focus:border-emerald-500 mt-1">
+              <option value="14.13">First Zero (14.13)</option>
+              <option value="21.02">Second Zero (21.02)</option>
+              <option value="25.01" selected>Third Zero (25.01)</option>
+              <option value="30.42">Fourth Zero (30.42)</option>
+            </select>
+          </div>
+          <div class="flex flex-col gap-1 text-xs mt-1">
+            <span class="font-mono text-slate-400">Resonant Amplitude:</span>
+            <input type="range" id="slider-wave-amp" min="0.1" max="2.0" step="0.1" value="1.0" oninput="updateWaveAmplitude(this.value)" class="w-full accent-cyan-400 bg-slate-800 h-1.5 rounded appearance-none cursor-pointer mt-1">
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 5: Gemini AI Oracle Command Center -->
+      <div id="content-oracle" class="p-5 flex flex-col gap-5 hidden">
+        
+        <!-- NEW FEATURE: Extradimensional Council Persona Selection -->
+        <div class="glass rounded-xl p-4 border-emerald-500/30 flex flex-col gap-3">
+          <div class="flex items-center justify-between">
+            <h3 class="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+              <i class="fa-solid fa-ghost animate-pulse text-indigo-400"></i>
+              EXTRADIMENSIONAL COUNCIL SUMMONS
+            </h3>
+            <span class="text-[9px] bg-indigo-950 text-indigo-400 px-2 py-0.5 rounded font-mono border border-indigo-800/40">Historical</span>
+          </div>
+          <p class="text-[11px] text-slate-400 leading-normal">
+            Choose a legendary master of geometry and number theory to join the loop. They will analyze the live coordinate matrix in character.
+          </p>
+          <div class="flex flex-col gap-2">
+            <select id="select-council-member" class="bg-slate-900 border border-emerald-950 p-2 rounded text-emerald-400 font-mono focus:outline-none focus:border-emerald-500 text-xs">
+              <option value="pythagoras" selected>📐 Pythagoras of Samos (Voice: Puck)</option>
+              <option value="riemann">🔍 Bernhard Riemann (Voice: Fenrir)</option>
+              <option value="fibonacci">🌀 Leonardo Fibonacci (Voice: Kore)</option>
+            </select>
+            <button onclick="summonCouncilPerspective()" class="w-full py-2 bg-gradient-to-r from-indigo-700 to-emerald-700 hover:from-indigo-600 hover:to-emerald-600 text-white font-mono text-xs rounded-lg font-bold shadow-lg flex items-center justify-center gap-1.5 transition">
+              <i class="fa-solid fa-sparkles"></i>
+              <span>✨ Summon Council Perspective</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="glass rounded-xl p-4 border-emerald-500/30 flex flex-col gap-3">
+          <div class="flex items-center justify-between">
+            <h3 class="text-xs font-bold text-emerald-400 font-mono flex items-center gap-1.5">
+              <i class="fa-solid fa-sparkles text-emerald-400 animate-pulse"></i>
+              GEMINI PRIME ROUTER ORACLE
+            </h3>
+            <span class="text-[9px] bg-emerald-950 text-emerald-400 px-2 py-0.5 rounded font-mono border border-emerald-800/40">2.5 Flash</span>
+          </div>
+          <p class="text-[11px] text-slate-400 leading-relaxed">
+            By connecting to the Gemini LLM platform, we can synthesize multi-dimensional configurations, analyze resonance alignments, and stream audio mathematical readouts.
+          </p>
+
+          <button onclick="synthesizeActiveTelemetry()" class="w-full py-2.5 bg-gradient-to-r from-emerald-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 text-white font-mono text-xs rounded-lg font-bold shadow-lg shadow-emerald-500/10 flex items-center justify-center gap-2 transition duration-300">
+            <i class="fa-solid fa-wand-magic-sparkles animate-spin-slow"></i>
+            <span>✨ Synthesize Telemetry</span>
+          </button>
+        </div>
+
+        <!-- Cosmic Auto-Tune Control -->
+        <div class="glass rounded-xl p-4 border-emerald-500/30 flex flex-col gap-3">
+          <h3 class="text-xs font-bold text-slate-200">✨ AI Cosmic Auto-Tune</h3>
+          <p class="text-[11px] text-slate-400 leading-normal">
+            Input a cosmic state description or a "vibe" (e.g., <em>"chaotic black hole"</em>, <em>"harmonious fibonacci resonance"</em>). Gemini will autotune the physical 3D manifolds, changing colors, space modes, frequencies, and golden spiral densities!
+          </p>
+          <div class="flex flex-col gap-2 mt-1">
+            <div class="flex gap-2">
+              <input type="text" id="input-autotune-vibe" placeholder="Describe a vibe (e.g. quantum foam)..." class="flex-1 bg-slate-900 border border-emerald-950 rounded px-3 py-2 text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:border-emerald-500 font-mono">
+              <button onclick="autoTuneManifold()" class="px-3.5 py-2 bg-emerald-900 hover:bg-emerald-800 text-emerald-300 font-mono text-xs rounded-lg font-bold transition flex items-center gap-1 border border-emerald-500/20">
+                <span>Tune</span>
+              </button>
+            </div>
+            <!-- Quick Presets -->
+            <div class="flex flex-wrap gap-1 mt-1">
+              <button onclick="applyAutoTunePreset('Black Hole Singularity')" class="text-[9px] bg-slate-900 border border-slate-800 hover:bg-slate-850 px-2 py-1 rounded text-slate-400">✨ Black Hole</button>
+              <button onclick="applyAutoTunePreset('Harmonious Zenith')" class="text-[9px] bg-slate-900 border border-slate-800 hover:bg-slate-850 px-2 py-1 rounded text-slate-400">✨ Harmonious Zenith</button>
+              <button onclick="applyAutoTunePreset('Chaotic Quantum Foam')" class="text-[9px] bg-slate-900 border border-slate-800 hover:bg-slate-850 px-2 py-1 rounded text-slate-400">✨ Quantum Foam</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- NEW FEATURE: Hyperdimensional Portal Painter (Gemini Imagen 4.0) -->
+        <div class="glass rounded-xl p-4 border-emerald-500/30 flex flex-col gap-3">
+          <h3 class="text-xs font-bold text-slate-200">✨ Hyperdimensional Portal Painter</h3>
+          <p class="text-[11px] text-slate-400 leading-normal">
+            Generate and paint a custom, immersive 3D scene backdrop texture dynamically using <strong>Gemini Imagen 4</strong>.
+          </p>
+          <div class="flex flex-col gap-2 mt-1">
+            <input type="text" id="input-portal-prompt" value="glowing golden spiral nebula with cybernetic green matrix coordinates, 3d math geometry depth, dark space backdrop, 8k wallpaper" class="w-full bg-slate-900 border border-emerald-950 rounded px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-emerald-500 font-mono">
+            <div class="grid grid-cols-2 gap-2">
+              <button onclick="paintHyperdimensionalPortal()" class="py-2.5 bg-gradient-to-r from-cyan-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white font-mono text-xs rounded-lg font-bold shadow-lg flex items-center justify-center gap-1.5 transition">
+                <i class="fa-solid fa-paintbrush"></i>
+                <span>✨ Paint Portal</span>
+              </button>
+              <button onclick="resetPortalSkybox()" class="py-2.5 bg-slate-900 hover:bg-slate-850 text-slate-400 border border-slate-800 font-mono text-xs rounded-lg transition flex items-center justify-center gap-1.5">
+                <i class="fa-solid fa-trash-can"></i>
+                <span>Reset Skybox</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Custom AI Question Panel -->
+        <div class="glass rounded-xl p-4 border-emerald-500/30 flex flex-col gap-2">
+          <h3 class="text-xs font-bold text-slate-200">✨ Query the Extradimensional Engine</h3>
+          <div class="flex gap-2 mt-1">
+            <input type="text" id="input-oracle-query" placeholder="Ask about Pythagorean R4 vectors..." class="flex-1 bg-slate-900 border border-emerald-950 rounded px-3 py-2 text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:border-emerald-500 font-mono">
+            <button onclick="queryOracleCustom()" class="px-3.5 py-2 bg-emerald-900/60 hover:bg-emerald-800 border border-emerald-500/30 rounded text-emerald-400 font-bold transition">
+              <i class="fa-solid fa-chevron-right"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Oracle Response Readout -->
+        <div class="glass rounded-xl p-4 border-emerald-500/30 flex flex-col gap-3 min-h-[160px] relative">
+          <div class="flex items-center justify-between text-[10px] font-mono text-slate-500 border-b border-emerald-950 pb-1.5">
+            <span>ORACLE TELEPATHIC WAVEFRONT</span>
+            <div class="flex items-center gap-1">
+              <span id="oracle-status" class="text-emerald-500">Awaiting Signal...</span>
+            </div>
+          </div>
+
+          <!-- Loading Spinner -->
+          <div id="oracle-loading" class="hidden absolute inset-0 flex flex-col items-center justify-center bg-slate-950/80 rounded-xl gap-2 z-10">
+            <div class="w-8 h-8 rounded-full border-2 border-emerald-900 border-t-emerald-400 animate-spin"></div>
+            <span id="oracle-loading-text" class="text-[10px] font-mono text-emerald-400 animate-pulse">Establishing Bridge...</span>
+          </div>
+
+          <!-- Output Content Area -->
+          <div id="oracle-output" class="text-xs font-mono text-slate-300 leading-relaxed overflow-y-auto max-h-[220px] select-text font-semibold">
+            No telepathic wave initialized yet. Press <strong class="text-emerald-400">✨ Summon Council Perspective</strong>, <strong class="text-emerald-400">✨ Synthesize Telemetry</strong> or write a custom query to activate!
+          </div>
+
+          <!-- TTS Speech Controls -->
+          <div id="tts-controls-panel" class="hidden border-t border-emerald-950/50 pt-2 flex items-center justify-between">
+            <span id="label-active-voice" class="text-[10px] text-slate-500 font-mono">Voice: Fenrir</span>
+            <button id="btn-play-tts" onclick="speakOracleOutput()" class="px-3 py-1.5 bg-cyan-950/40 hover:bg-cyan-900/40 border border-cyan-500/30 rounded text-cyan-400 text-[10px] font-mono flex items-center gap-1.5 transition">
+              <i class="fa-solid fa-volume-high"></i>
+              <span>✨ Speak Resonance</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- Right Panel: Immersive Interactive Viewport -->
+    <section class="xl:col-span-8 flex flex-col h-full relative bg-slate-950">
+      
+      <!-- 3D Viewport -->
+      <div id="threejs-container" class="flex-1 w-full relative overflow-hidden">
+        
+        <!-- Interactive Telemetry Legend -->
+        <div class="absolute top-4 left-4 z-10 glass p-3.5 rounded-lg text-[11px] flex flex-col gap-2 pointer-events-none border-emerald-500/20">
+          <div class="font-bold text-slate-300 border-b border-emerald-900/40 pb-1 mb-1 flex items-center gap-1.5">
+            <i class="fa-solid fa-chart-network text-emerald-400"></i> TRANSMUTER DIAGNOSTICS
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-cyan-400 shadow-[0_0_8px_#22d3ee]"></span>
+            <span class="text-slate-400">Active Transmuting Token Node</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_8px_#10b981]"></span>
+            <span class="text-slate-400">Pythagorean Projection Paths</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="w-3.5 h-1 bg-amber-400 rounded"></span>
+            <span class="text-slate-400">Golden ratio Fibonacci Spiral</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-indigo-500 shadow-[0_0_8px_#6366f1]"></span>
+            <span class="text-slate-400">Riemann Zeta Wave Nodes</span>
+          </div>
+        </div>
+
+        <!-- 3D HUD Coordinates -->
+        <div class="absolute top-4 right-4 z-10 glass p-3 rounded-lg text-[11px] font-mono flex flex-col gap-1 pointer-events-none border-emerald-500/20">
+          <div class="text-slate-500">MAPPING VECTOR READOUT:</div>
+          <div class="text-cyan-400">Token Space: <span id="hud-space-mode">Hyperbolic</span></div>
+          <div class="text-emerald-400">Triangle Hypotenuse: <span id="hud-tri-hyp">0.00</span></div>
+          <div class="text-fuchsia-400">Shift Delta: <span id="hud-phase-shift">0.00</span></div>
+        </div>
+
+        <!-- Trigger Buttons overlay inside 3D environment -->
+        <div class="absolute bottom-16 left-4 z-10 flex flex-wrap gap-2">
+          <button onclick="triggerTransmissionSequence()" class="px-4 py-2.5 bg-gradient-to-r from-emerald-500 via-cyan-500 to-indigo-500 hover:from-emerald-400 hover:to-indigo-400 text-white font-mono text-xs rounded-lg font-bold shadow-lg shadow-emerald-500/10 flex items-center gap-2 transition duration-300">
+            <i class="fa-solid fa-bolt animate-bounce text-cyan-200"></i>
+            <span>✨ Transmute Coordinates</span>
+          </button>
+          <button onclick="injectResonancePulse()" class="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 border border-emerald-500/20 text-emerald-300 font-mono text-xs rounded-lg shadow-lg flex items-center gap-2 transition duration-300">
+            <i class="fa-solid fa-wave-square text-cyan-400 animate-pulse"></i>
+            <span>✨ Emit Zeta Pulse</span>
+          </button>
+        </div>
+
+        <!-- Central help text overlay -->
+        <div class="absolute inset-x-0 bottom-4 flex justify-center z-10 pointer-events-none">
+          <div class="glass px-4 py-1.5 rounded-full text-[11px] text-slate-300 flex items-center gap-2 border border-emerald-500/25">
+            <i class="fa-solid fa-arrows-up-down-left-right text-emerald-400 animate-pulse"></i>
+            <span>Drag to rotate, scroll wheel to zoom. Use transmutation triggers to change modes!</span>
+          </div>
+        </div>
+
+        <!-- Loader -->
+        <div id="loader" class="absolute inset-0 z-20 flex flex-col items-center justify-center bg-slate-950 gap-4 transition-opacity duration-500">
+          <div class="w-16 h-16 rounded-full border-4 border-slate-800 border-t-emerald-500 animate-spin"></div>
+          <div class="text-sm font-mono text-emerald-400">Loading Extradimensional Hyperbolic Manifolds...</div>
+        </div>
+
+        <!-- Main WebGL target canvas -->
+        <canvas id="main-webgl-canvas" class="w-full h-full block"></canvas>
+      </div>
+
+      <!-- Live Dual Dashboard -->
+      <div class="h-64 border-t border-emerald-900/40 grid grid-cols-1 md:grid-cols-2 bg-slate-900/60 backdrop-blur-md">
+        
+        <!-- Left Dial: Fibonacci Residue phasor clock -->
+        <div class="border-r border-emerald-900/20 p-4 flex flex-col gap-2 relative overflow-hidden">
+          <div class="flex items-center justify-between text-xs border-b border-emerald-900/20 pb-1.5">
+            <span class="font-bold text-emerald-400 font-mono flex items-center gap-1.5">
+              <i class="fa-solid fa-circle-notch animate-spin-slow"></i>
+              FIBONACCI PHASOR INTERSECTION
+            </span>
+            <span class="text-[10px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded">Phase Alignment</span>
+          </div>
+          <div class="flex-1 flex items-center justify-center gap-6 relative">
+            <div class="flex flex-col items-center">
+              <canvas id="canvas-phasor-fib" width="110" height="110" class="border border-emerald-950/40 rounded bg-slate-950/80"></canvas>
+              <span class="text-[10px] font-mono text-emerald-400 mt-1">Theta: Fibonacci Rotation</span>
+            </div>
+            <div class="flex flex-col items-center">
+              <canvas id="canvas-phasor-prime" width="110" height="110" class="border border-emerald-950/40 rounded bg-slate-950/80"></canvas>
+              <span class="text-[10px] font-mono text-cyan-400 mt-1">Phi: Prime Co-Phasing</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Dial: Wave frequency graph -->
+        <div class="p-4 flex flex-col gap-2 relative overflow-hidden">
+          <div class="flex items-center justify-between text-xs border-b border-emerald-900/20 pb-1.5">
+            <span class="font-bold text-cyan-400 font-mono flex items-center gap-1.5">
+              <i class="fa-solid fa-chart-area"></i>
+              ZETA FREQUENCY RESONANCE SPECTRUM
+            </span>
+            <span class="text-[10px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded">Telemetry Signal</span>
+          </div>
+          <div class="flex-1 flex items-center justify-between gap-4">
+            <canvas id="canvas-frequency-spectrum" class="flex-1 max-w-full h-[140px] border border-emerald-950/40 rounded bg-slate-950/80"></canvas>
+          </div>
+        </div>
+
+      </div>
+
+    </section>
+
+  </main>
+
+  <script>
+    // --- APP & SYSTEM SETUP ---
+    let scene, camera, renderer, controls;
+    let poincareSphereChain = []; // Array representing linked Poincaré Spheres [left, center, right]
+    let torusMesh, torusWireMesh; // Torus structures
+    let complexPlaneGrid; // Complex coordinate visualization grid
+    let goldenSpiralLine; // Golden Fibonacci spiral representation
+    let zetaChainWave; // Waveform tracing through the Poincaré chain
+    let activeTokenNode; // High-energy transmuting token representation
+    let pythagoreanTriangleLines; // Lines illustrating live triangle positioning
+    let pulseWave = null; // High-intensity transient pulse wave traveling through chain
+
+    // Simulation Parameters
+    let systemTime = 0.0;
+    let lastRealTime = 0; // Fixes ReferenceError: lastRealTime is not defined
+    let activeTokenIndex = 7; // correspond to F_7 = 13
+    let tokenSpaceMode = 'hyperbolic'; // 'hyperbolic', 'toroidal', 'complex'
+    let targetSpaceMode = 'hyperbolic';
+    let transitionProgress = 1.0; // 0.0 means at tokenSpaceMode, 1.0 means fully transmutated to targetSpaceMode
+    let activePhaseShiftAngle = 0.0;
+    let spiralDensityScale = 1.0;
+    let selectedZetaFrequency = 25.01;
+    let waveAmplitudeFactor = 1.0;
+
+    // GEMINI API SETTINGS
+    const apiKey = ""; // Provided securely at runtime
+    let activeAudioPlayer = null; // Stored audio playback object
+    let activeSpeechVoice = "Fenrir"; // Voice preset variable mapped to current LLM generation
+
+    // Mathematical Constants
+    const PHI = 1.6180339887; // Golden Ratio
+    const fibonacciNumbers = [1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144, 233, 377, 610];
+    
+    // Live calculated coordinates for active token
+    let activePosition3D = new THREE.Vector3(0, 0, 0);
+    let hyperbolicTargetPos = new THREE.Vector3(0,0,0);
+    let toroidalTargetPos = new THREE.Vector3(0,0,0);
+    let complexTargetPos = new THREE.Vector3(0,0,0);
+
+    const councilVoices = {
+      pythagoras: "Puck",
+      riemann: "Fenrir",
+      fibonacci: "Kore"
+    };
+
+    // Initial setups and triggers
+    function renderMath() {
+      if (typeof renderMathInElement !== 'undefined') {
+        renderMathInElement(document.body, {
+          delimiters: [
+            {left: '$$', right: '$$', display: true},
+            {left: '$', right: '$', display: false},
+            {left: '\\(', right: '\\)', display: false},
+            {left: '\\[', right: '\\]', display: true}
+          ],
+          throwOnError: false
+        });
+      }
+    }
+
+    function switchTab(tab) {
+      document.getElementById('content-transmute').classList.add('hidden');
+      document.getElementById('content-pythagoras').classList.add('hidden');
+      document.getElementById('content-fibonacci').classList.add('hidden');
+      document.getElementById('content-zeta').classList.add('hidden');
+      document.getElementById('content-oracle').classList.add('hidden');
+
+      document.getElementById('tab-transmute').className = "flex-1 py-3 text-center border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition";
+      document.getElementById('tab-pythagoras').className = "flex-1 py-3 text-center border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition";
+      document.getElementById('tab-fibonacci').className = "flex-1 py-3 text-center border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition";
+      document.getElementById('tab-zeta').className = "flex-1 py-3 text-center border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition";
+      document.getElementById('tab-oracle').className = "flex-1 py-3 text-center border-b-2 border-transparent text-slate-400 hover:text-emerald-400 transition font-bold";
+
+      if (tab === 'transmute') {
+        document.getElementById('content-transmute').classList.remove('hidden');
+        document.getElementById('tab-transmute').className = "flex-1 py-3 text-center border-b-2 border-emerald-500 text-emerald-400 transition bg-emerald-950/10";
+      } else if (tab === 'pythagoras') {
+        document.getElementById('content-pythagoras').classList.remove('hidden');
+        document.getElementById('tab-pythagoras').className = "flex-1 py-3 text-center border-b-2 border-amber-500 text-amber-400 transition bg-amber-950/10";
+      } else if (tab === 'fibonacci') {
+        document.getElementById('content-fibonacci').classList.remove('hidden');
+        document.getElementById('tab-fibonacci').className = "flex-1 py-3 text-center border-b-2 border-emerald-500 text-emerald-400 transition bg-emerald-950/10";
+      } else if (tab === 'zeta-zeros') {
+        document.getElementById('content-zeta').classList.remove('hidden');
+        document.getElementById('tab-zeta').className = "flex-1 py-3 text-center border-b-2 border-cyan-500 text-cyan-400 transition bg-cyan-950/10";
+      } else if (tab === 'ai-oracle') {
+        document.getElementById('content-oracle').classList.remove('hidden');
+        document.getElementById('tab-oracle').className = "flex-1 py-3 text-center border-b-2 border-emerald-500 text-emerald-400 transition bg-emerald-950/10";
+      }
+      renderMath();
+    }
+
+    // Interactive adjustment event triggers
+    function changeActiveTokenIndex(val) {
+      activeTokenIndex = parseInt(val);
+      const fibVal = fibonacciNumbers[activeTokenIndex - 1];
+      document.getElementById('val-active-token').innerText = `F_${activeTokenIndex} = ${fibVal}`;
+      document.getElementById('tel-token-val').innerText = fibVal;
+
+      // Recompute static projections
+      recalculateTokenCoordinates();
+    }
+
+    function updatePhaseShift(val) {
+      activePhaseShiftAngle = parseFloat(val);
+      document.getElementById('val-phase-shift').innerText = activePhaseShiftAngle.toFixed(2) + " rad";
+      document.getElementById('tel-phase-shift').innerText = activePhaseShiftAngle.toFixed(2) + " rad";
+    }
+
+    // Adjust Fibonacci spiral tightness
+    function updateSpiralDensity(val) {
+      spiralDensityScale = parseFloat(val);
+      document.getElementById('val-spiral-density').innerText = spiralDensityScale.toFixed(1);
+      rebuildFibonacciSpiral();
+    }
+
+    function changeZetaChainFrequency() {
+      selectedZetaFrequency = parseFloat(document.getElementById('select-chain-zeta').value);
+    }
+
+    function updateWaveAmplitude(val) {
+      waveAmplitudeFactor = parseFloat(val);
+    }
+
+    function setSpaceMode(mode) {
+      targetSpaceMode = mode;
+      transitionProgress = 0.0; // Trigger interpolation sweep
+
+      // Dynamic styles on button configurations
+      document.getElementById('btn-space-hyperbolic').className = "py-2.5 px-2 rounded bg-slate-900 border border-slate-800 hover:bg-slate-850 text-slate-300 text-center transition flex flex-col items-center gap-1";
+      document.getElementById('btn-space-toroidal').className = "py-2.5 px-2 rounded bg-slate-900 border border-slate-800 hover:bg-slate-850 text-slate-300 text-center transition flex flex-col items-center gap-1";
+      document.getElementById('btn-space-complex').className = "py-2.5 px-2 rounded bg-slate-900 border border-slate-800 hover:bg-slate-850 text-slate-300 text-center transition flex flex-col items-center gap-1";
+
+      const activeBtn = document.getElementById('btn-space-' + mode);
+      activeBtn.className = "py-2.5 px-2 rounded bg-emerald-950/40 border border-emerald-500/40 hover:bg-emerald-900/30 text-emerald-300 text-center transition flex flex-col items-center gap-1 shadow-lg shadow-emerald-500/5";
+
+      document.getElementById('hud-space-mode').innerText = mode.charAt(0).toUpperCase() + mode.slice(1);
+    }
+
+    function triggerTransmissionSequence() {
+      // Sends a rapid transition sequence across spaces
+      if (tokenSpaceMode === 'hyperbolic') {
+        setSpaceMode('toroidal');
+      } else if (tokenSpaceMode === 'toroidal') {
+        setSpaceMode('complex');
+      } else {
+        setSpaceMode('hyperbolic');
+      }
+    }
+
+    function injectResonancePulse() {
+      if (pulseWave) scene.remove(pulseWave);
+      const ringGeom = new THREE.RingGeometry(0.1, 0.2, 32);
+      const ringMat = new THREE.MeshBasicMaterial({
+        color: 0x00ffff,
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 0.9,
+        blending: THREE.AdditiveBlending
+      });
+      pulseWave = new THREE.Mesh(ringGeom, ringMat);
+      pulseWave.position.set(-6, 0, 0); // Start at Sphere L
+      pulseWave.rotation.y = Math.PI / 2;
+      scene.add(pulseWave);
+    }
+
+    // --- RECALCULATE TOKEN PLACEMENT ACROSS GEOMETRIES ---
+    function recalculateTokenCoordinates() {
+      const fibVal = fibonacciNumbers[activeTokenIndex - 1];
+
+      // 1. Hyperbolic inside Central Poincaré Ball: Use modular fractional logs
+      const fractionLog = (fibVal % 13) / 13.0;
+      const radiusHyperbolic = Math.tanh(fractionLog * 1.5) * 1.4; // Poincaré hyperbolic mapped inside disk
+      document.getElementById('tel-hyper-r').innerText = radiusHyperbolic.toFixed(3);
+
+      const thetaH = (fibVal * Math.PI * (3.0 - Math.sqrt(5.0))); // Mapped along Golden Angle
+      hyperbolicTargetPos.set(
+        radiusHyperbolic * Math.sin(thetaH),
+        radiusHyperbolic * Math.cos(thetaH),
+        0 // Aligned on 2D slice inside central Poincaré sphere
+      );
+
+      // 2. Toroidal Position on Clifford Torus: Parameterized helix coordinates
+      const majorAngle = (activeTokenIndex / 15.0) * Math.PI * 2;
+      const minorAngle = (fibVal % 7) / 7.0 * Math.PI * 2;
+      
+      const TorusMajorRadius = 1.5;
+      const TorusMinorRadius = 0.55;
+
+      toroidalTargetPos.set(
+        (TorusMajorRadius + TorusMinorRadius * Math.cos(minorAngle)) * Math.cos(majorAngle),
+        (TorusMajorRadius + TorusMinorRadius * Math.cos(minorAngle)) * Math.sin(majorAngle),
+        TorusMinorRadius * Math.sin(minorAngle)
+      );
+
+      // 3. Complex Plane: Map onto concentric rings
+      const radiusComplex = Math.log(fibVal + 1.1) * 0.5;
+      const angleComplex = (fibVal * 0.1) * Math.PI * 2;
+      complexTargetPos.set(
+        radiusComplex * Math.cos(angleComplex),
+        radiusComplex * Math.sin(angleComplex),
+        -2.5 // Aligned flat on complex plane background
+      );
+    }
+
+    // --- INITIALIZE THREEJS ENVIRONMENT ---
+    function initVisualizer() {
+      const container = document.getElementById('threejs-container');
+      const width = container.clientWidth;
+      const height = container.clientHeight;
+
+      // Scene
+      scene = new THREE.Scene();
+      scene.fog = new THREE.FogExp2(0x060813, 0.06);
+
+      // Camera
+      camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 150);
+      camera.position.set(0, 5, 10);
+
+      // WebGL Renderer
+      const canvas = document.getElementById('main-webgl-canvas');
+      renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
+      renderer.setSize(width, height);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+      // Controls
+      controls = new THREE.OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.05;
+      controls.maxDistance = 30;
+      controls.minDistance = 3;
+
+      // Lights
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.25);
+      scene.add(ambientLight);
+
+      const emLight = new THREE.DirectionalLight(0x10b981, 1.5); // Emerald Major
+      emLight.position.set(5, 10, 5);
+      scene.add(emLight);
+
+      const amLight = new THREE.DirectionalLight(0x06b6d4, 1.0); // Cyan minor
+      amLight.position.set(-5, -10, -5);
+      scene.add(amLight);
+
+      // 1. GENERATE THE 4D POINCARÉ BALL CHAIN (Linked Spheres)
+      // Represent three states along the w-axis: w = -4, w = 0, w = 4
+      const sphereGeo = new THREE.SphereGeometry(1.5, 32, 16);
+      const chainOffsets = [-5, 0, 5]; // Transmitted past, center transition, future bloom
+      const sphereColors = [0x00ffff, 0x10b981, 0xd946ef];
+
+      for (let i = 0; i < 3; i++) {
+        const wireMat = new THREE.MeshBasicMaterial({
+          color: sphereColors[i],
+          wireframe: true,
+          transparent: true,
+          opacity: 0.1
+        });
+        const mesh = new THREE.Mesh(sphereGeo, wireMat);
+        mesh.position.set(chainOffsets[i], 0, 0);
+        scene.add(mesh);
+        poincareSphereChain.push(mesh);
+      }
+
+      // 2. GENERATE COMPATIBLE CLIFFORD TORUS MESH
+      const torusGeom = new THREE.TorusGeometry(1.5, 0.55, 16, 100);
+      const torusMat = new THREE.MeshStandardMaterial({
+        color: 0x10b981,
+        transparent: true,
+        opacity: 0.15,
+        wireframe: false,
+        roughness: 0.2,
+        metalness: 0.8
+      });
+      torusMesh = new THREE.Mesh(torusGeom, torusMat);
+      torusMesh.position.set(0, 0, 0); // Aligned on active transition sphere
+      scene.add(torusMesh);
+
+      // Torus wireframe overlay
+      const torusWireMat = new THREE.MeshBasicMaterial({
+        color: 0x10b981,
+        wireframe: true,
+        transparent: true,
+        opacity: 0.2
+      });
+      torusWireMesh = new THREE.Mesh(torusGeom, torusWireMat);
+      torusWireMesh.position.set(0,0,0);
+      scene.add(torusWireMesh);
+
+      // 3. GENERATE COMPLEX PLANE COORDINATE GRID BACKGROUND
+      const gridHelper = new THREE.GridHelper(6, 20, 0x06b6d4, 0x1e293b);
+      gridHelper.position.set(0, 0, -2.5); // Aligned behind central sphere
+      gridHelper.rotation.x = Math.PI / 2;
+      scene.add(gridHelper);
+
+      // 4. GENERATE GOLDEN FIBONACCI SPIRAL
+      rebuildFibonacciSpiral();
+
+      // 5. INITIALIZE ACTIVE TRANSMUTING TOKEN NODE
+      const tokenGeo = new THREE.SphereGeometry(0.14, 24, 24);
+      const tokenMat = new THREE.MeshPhongMaterial({
+        color: 0x06b6d4,
+        emissive: 0x0891b2,
+        emissiveIntensity: 1.5,
+        shininess: 100
+      });
+      activeTokenNode = new THREE.Mesh(tokenGeo, tokenMat);
+      scene.add(activeTokenNode);
+
+      // 6. INITIALIZE PYTHAGOREAN 3D RIGHT-TRIANGLE LINES
+      const lineMat = new THREE.LineBasicMaterial({
+        color: 0x10b981,
+        linewidth: 2,
+        transparent: true,
+        opacity: 0.8
+      });
+      const lineGeom = new THREE.BufferGeometry().setAttribute('position', new THREE.BufferAttribute(new Float32Array(5 * 3), 3));
+      pythagoreanTriangleLines = new THREE.Line(lineGeom, lineMat);
+      scene.add(pythagoreanTriangleLines);
+
+      // 7. INITIALIZE ZETA CHAIN FREQUENCY SINE WAVE
+      const waveGeom = new THREE.BufferGeometry();
+      const wavePointsCount = 200;
+      const wavePosArr = new Float32Array(wavePointsCount * 3);
+      waveGeom.setAttribute('position', new THREE.BufferAttribute(wavePosArr, 3));
+      const waveMat = new THREE.LineDashedMaterial({
+        color: 0x6366f1,
+        dashSize: 0.1,
+        gapSize: 0.05
+      });
+      zetaChainWave = new THREE.Line(waveGeom, waveMat);
+      scene.add(zetaChainWave);
+
+      recalculateTokenCoordinates();
+
+      // Clear Loader and Display Viewport
+      document.getElementById('loader').classList.add('opacity-0');
+      setTimeout(() => {
+        document.getElementById('loader').style.display = 'none';
+      }, 500);
+
+      // Start rendering loop
+      requestAnimationFrame(animate);
+    }
+
+    // --- REBUILD THE GOLDEN SPIRAL GEOMETRY ---
+    function rebuildFibonacciSpiral() {
+      if (goldenSpiralLine) scene.remove(goldenSpiralLine);
+
+      const points = [];
+      const growthFactor = 0.12 * spiralDensityScale;
+
+      for (let theta = 0; theta < Math.PI * 4.0; theta += 0.05) {
+        // Logarithmic Fibonacci expansion: r = a * e^(b*theta)
+        const radius = 0.18 * Math.pow(PHI, theta * growthFactor);
+        const rotatedTheta = theta + activePhaseShiftAngle;
+
+        points.push(new THREE.Vector3(
+          radius * Math.sin(rotatedTheta),
+          radius * Math.cos(rotatedTheta),
+          -0.1 // Aligned flat
+        ));
+      }
+
+      const spiralGeom = new THREE.BufferGeometry().setFromPoints(points);
+      const spiralMat = new THREE.LineBasicMaterial({
+        color: 0xf59e0b, // Amber
+        transparent: true,
+        opacity: 0.5
+      });
+      goldenSpiralLine = new THREE.Line(spiralGeom, spiralMat);
+      scene.add(goldenSpiralLine);
+    }
+
+    // --- MAIN PHYSICS & RENDERING LOOP ---
+    function animate(timestamp) {
+      requestAnimationFrame(animate);
+
+      // Delta timing
+      if (!lastRealTime) lastRealTime = timestamp;
+      const dt = (timestamp - lastRealTime) / 1000.0;
+      lastRealTime = timestamp;
+
+      // Clamp Delta time to avoid visual jumps
+      const safeDt = Math.min(dt, 0.1);
+      systemTime += safeDt;
+
+      // Update Controls
+      controls.update();
+
+      // 1. STEREOGRAPHIC SPACE MODE INTERPOLATION (Transmutation)
+      if (transitionProgress < 1.0) {
+        transitionProgress += safeDt * 1.5; // Smooth interpolation speed
+        if (transitionProgress > 1.0) {
+          transitionProgress = 1.0;
+          tokenSpaceMode = targetSpaceMode;
+        }
+      }
+
+      // Compute dynamic transition interpolation using Cosine easing
+      const easeVal = (1.0 - Math.cos(transitionProgress * Math.PI)) / 2.0;
+
+      let sourcePos = new THREE.Vector3();
+      if (tokenSpaceMode === 'hyperbolic') sourcePos.copy(hyperbolicTargetPos);
+      else if (tokenSpaceMode === 'toroidal') sourcePos.copy(toroidalTargetPos);
+      else sourcePos.copy(complexTargetPos);
+
+      let targetPos = new THREE.Vector3();
+      if (targetSpaceMode === 'hyperbolic') targetPos.copy(hyperbolicTargetPos);
+      else if (targetSpaceMode === 'toroidal') targetPos.copy(toroidalTargetPos);
+      else targetPos.copy(complexTargetPos);
+
+      // Linearly interpolate coordinates
+      activePosition3D.lerpVectors(sourcePos, targetPos, easeVal);
+
+      // Integrate phase shifts on final positioning (circular coordinates orbit dynamically)
+      if (activePhaseShiftAngle > 0) {
+        const cosP = Math.cos(activePhaseShiftAngle);
+        const sinP = Math.sin(activePhaseShiftAngle);
+        const rx = activePosition3D.x * cosP - activePosition3D.y * sinP;
+        const ry = activePosition3D.x * sinP + activePosition3D.y * cosP;
+        activeTokenNode.position.set(rx, ry, activePosition3D.z);
+      } else {
+        activeTokenNode.position.copy(activePosition3D);
+      }
+
+      // Pulse effects on node scaling
+      const pulseIntensity = 1.0 + 0.1 * Math.sin(systemTime * 6.0);
+      activeTokenNode.scale.set(pulseIntensity, pulseIntensity, pulseIntensity);
+
+      // 2. COMPUTE LIVE PYTHAGOREAN TRIANGLE TRACER
+      // We map the 3D position vector legs from origin (0,0,0) to active position
+      const px = activeTokenNode.position.x;
+      const py = activeTokenNode.position.y;
+      const pz = activeTokenNode.position.z;
+
+      const pythagoreanVertices = new Float32Array([
+        0.0, 0.0, 0.0,   // Origin
+        px, 0.0, 0.0,    // Leg A (along X axis)
+        px, py, 0.0,     // Leg B (completes plane triangle)
+        0.0, 0.0, 0.0,   // Hypotenuse Planar r_xy
+        px, py, pz       // Height Z completes space triangle projection
+      ]);
+
+      pythagoreanTriangleLines.geometry.setAttribute('position', new THREE.BufferAttribute(pythagoreanVertices, 3));
+      pythagoreanTriangleLines.geometry.attributes.position.needsUpdate = true;
+
+      // Push calculated values to dashboard UI
+      const planrHyp = Math.sqrt(px*px + py*py);
+      const unifiedDist = Math.sqrt(px*px + py*py + pz*pz);
+
+      document.getElementById('pyt-leg-a').innerText = Math.abs(px).toFixed(3);
+      document.getElementById('pyt-leg-b').innerText = Math.abs(py).toFixed(3);
+      document.getElementById('pyt-hyp-r').innerText = planrHyp.toFixed(3);
+      document.getElementById('pyt-leg-c').innerText = Math.abs(pz).toFixed(3);
+      document.getElementById('pyt-dist-r3').innerText = unifiedDist.toFixed(3);
+      document.getElementById('hud-tri-hyp').innerText = unifiedDist.toFixed(3);
+
+      // 3. ANIMATE RIEMANN ZETA FREQUENCY CHAIN SINE WAVE
+      // The wave travels horizontally through Sphere L, C, and R
+      const wavePositions = zetaChainWave.geometry.attributes.position.array;
+      const amplitude = 0.55 * waveAmplitudeFactor;
+      const waveFreq = selectedZetaFrequency * 0.15; // Normalized scale
+
+      for (let i = 0; i < 200; i++) {
+        const pct = (i / 199.0);
+        const x_coord = -7.0 + pct * 14.0; // from left -7 to right +7
+
+        // Map sine wave aligned along Poincaré chain. Modulates over time t
+        const y_coord = amplitude * Math.sin(x_coord * waveFreq - systemTime * 4.0);
+        const z_coord = 0.2 * Math.cos(x_coord * waveFreq - systemTime * 4.0);
+
+        wavePositions[i*3] = x_coord;
+        wavePositions[i*3+1] = y_coord;
+        wavePositions[i*3+2] = z_coord;
+      }
+      zetaChainWave.geometry.attributes.position.needsUpdate = true;
+
+      // 4. ANIMATE TRANSIENT COUPLING WAVEFRONT PULSE
+      if (pulseWave) {
+        pulseWave.position.x += safeDt * 5.0; // travel along X coordinates through spheres
+        const waveProgress = (pulseWave.position.x + 6.0) / 12.0; // normalize 0 to 1
+        
+        // Scale radial pulse based on position proximity to central transition funnel
+        const funnelCurvature = Math.abs(pulseWave.position.x);
+        pulseWave.scale.set(1.0 + funnelCurvature * 0.4, 1.0 + funnelCurvature * 0.4, 1.0);
+        pulseWave.material.opacity = 1.0 - waveProgress; // Fade as it reaches Sphere R
+
+        if (pulseWave.position.x > 6.0 || pulseWave.material.opacity <= 0.0) {
+          scene.remove(pulseWave);
+          pulseWave = null;
+        }
+      }
+
+      // Rotate torus wireframes gently
+      torusMesh.rotation.z = systemTime * 0.1;
+      torusWireMesh.rotation.z = systemTime * 0.1;
+
+      // Synchronize golden Fibonacci spiral rotational orientation on phase shifts
+      if (goldenSpiralLine) {
+        goldenSpiralLine.rotation.z = activePhaseShiftAngle;
+      }
+
+      // Render diagnostic canvases
+      drawResiduePhasorClocks();
+      drawResonanceSpectrum();
+
+      renderer.render(scene, camera);
+    }
+
+    // --- DRAW PHASOR COMPILATION CLOCKS ---
+    function drawResiduePhasorClocks() {
+      const fibVal = fibonacciNumbers[activeTokenIndex - 1];
+
+      const drawClock = (canvasId, angleValue, activeColor) => {
+        const canvas = document.getElementById(canvasId);
+        const ctx = canvas.getContext('2d');
+        const cx = canvas.width / 2;
+        const cy = canvas.height / 2;
+        const r = cx - 12;
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Grid circular references
+        ctx.strokeStyle = 'rgba(16, 185, 129, 0.15)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.moveTo(cx - r, cy); ctx.lineTo(cx + r, cy);
+        ctx.moveTo(cx, cy - r); ctx.lineTo(cx, cy + r);
+        ctx.stroke();
+
+        // Vector Phasor Line representing modular residue shifts
+        const targetX = cx + r * Math.cos(angleValue);
+        const targetY = cy + r * Math.sin(angleValue);
+
+        ctx.strokeStyle = activeColor;
+        ctx.lineWidth = 2.5;
+        ctx.shadowColor = activeColor;
+        ctx.shadowBlur = 4;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(targetX, targetY);
+        ctx.stroke();
+
+        ctx.fillStyle = activeColor;
+        ctx.beginPath();
+        ctx.arc(targetX, targetY, 4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0; // reset
+      };
+
+      // Fibonacci angle mapped to token progression
+      const thetaFib = (fibVal % 15) / 15.0 * Math.PI * 2 + systemTime * 0.3;
+      drawClock('canvas-phasor-fib', thetaFib, '#10b981'); // Emerald
+
+      // Prime co-phasing angle
+      const phiPrime = (activeTokenIndex % 7) / 7.0 * Math.PI * 2 + activePhaseShiftAngle;
+      drawClock('canvas-phasor-prime', phiPrime, '#06b6d4'); // Cyan
+    }
+
+    // --- DRAW RESONANCE SINE SPECTRUM WAVE ---
+    const spectrumHistory = Array(120).fill(0);
+    function drawResonanceSpectrum() {
+      // Calculates instantaneous amplitude summation at central singularity
+      const waveFreq = selectedZetaFrequency * 0.15;
+      const instantValue = waveAmplitudeFactor * Math.sin(systemTime * waveFreq);
+      
+      spectrumHistory.push(instantValue);
+      if (spectrumHistory.length > 120) spectrumHistory.shift();
+
+      const canvas = document.getElementById('canvas-frequency-spectrum');
+      const ctx = canvas.getContext('2d');
+      const w = canvas.width;
+      const h = canvas.height;
+
+      ctx.clearRect(0, 0, w, h);
+
+      ctx.strokeStyle = 'rgba(16, 185, 129, 0.1)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(0, h/2); ctx.lineTo(w, h/2);
+      ctx.stroke();
+
+      ctx.strokeStyle = '#06b6d4';
+      ctx.lineWidth = 2;
+      ctx.shadowColor = '#06b6d4';
+      ctx.shadowBlur = 4;
+      ctx.beginPath();
+
+      for (let i = 0; i < spectrumHistory.length; i++) {
+        const x = (w / (spectrumHistory.length - 1)) * i;
+        const normVal = (spectrumHistory[i] + 2.0) / 4.0; // normalize
+        const y = h - normVal * h;
+
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+    }
+
+    // --- GEMINI API INTEGRATIONS & EXPO BACKOFF RETRY ENGINE ---
+    async function fetchWithExponentialBackoff(url, requestOptions, maxRetries = 5) {
+      let delay = 1000;
+      for (let attempt = 0; attempt < maxRetries; attempt++) { // Fixed ReferenceError: i is not defined
+        try {
+          const response = await fetch(url, requestOptions);
+          if (response.ok) {
+            return await response.json();
+          }
+          // Retry on 429 or 5xx server issues
+          if (response.status === 429 || response.status >= 500) {
+            // Wait with exponential delay, do not log warnings to console
+          } else {
+            throw new Error(`API returned non-retryable status: ${response.status}`);
+          }
+        } catch (error) {
+          if (attempt === maxRetries - 1) {
+            throw error; // All retries exhausted
+          }
+        }
+        await new Promise(resolve => setTimeout(resolve, delay));
+        delay *= 2; // exponential backoff 1s, 2s, 4s, 8s, 16s
+      }
+    }
+
+    // NEW FEATURE: Summon Historical Persona to Comment on Live 3D Metrics
+    async function summonCouncilPerspective() {
+      const selectedMember = document.getElementById('select-council-member').value;
+      const loader = document.getElementById('oracle-loading');
+      const loaderText = document.getElementById('oracle-loading-text');
+      const output = document.getElementById('oracle-output');
+      const status = document.getElementById('oracle-status');
+      const ttsPanel = document.getElementById('tts-controls-panel');
+      const voiceLabel = document.getElementById('label-active-voice');
+
+      loader.classList.remove('hidden');
+      ttsPanel.classList.add('hidden');
+      status.innerText = "Aligning Extradimensional Personas...";
+      
+      let personaName = "Pythagoras";
+      let systemPromptText = "";
+      if (selectedMember === "pythagoras") {
+        personaName = "Pythagoras of Samos";
+        loaderText.innerText = "Seeking Pythagoras's Monad Resonance...";
+        systemPromptText = "You are Pythagoras of Samos. Speak with an ancient Greek philosophical aura, focusing heavily on cosmic chords, fava bean taboos, geometric proportions, monads, and integer ratios. Use LaTeX inside $ and $$ identifiers.";
+      } else if (selectedMember === "riemann") {
+        personaName = "Bernhard Riemann";
+        loaderText.innerText = "Mapping Bernhard Riemann's Zeta Plane...";
+        systemPromptText = "You are Bernhard Riemann. Focus on mathematical analysis, critical lines, zeta zeroes, complex numbers, multidimensional manifolds, and curvature mappings. Use LaTeX inside $ and $$ identifiers.";
+      } else if (selectedMember === "fibonacci") {
+        personaName = "Leonardo Fibonacci";
+        loaderText.innerText = "Tracing Leonardo's Golden Spiral...";
+        systemPromptText = "You are Leonardo Fibonacci (Leonardo of Pisa). Discuss sequence convergence, the golden ratio, natural growth regimes, phi proportions, and recursive number loops. Use LaTeX inside $ and $$ identifiers.";
+      }
+
+      // Map global voice output for subsequent TTS speech conversion
+      activeSpeechVoice = councilVoices[selectedMember] || "Fenrir";
+      voiceLabel.innerText = "Voice: " + activeSpeechVoice;
+
+      const fibVal = fibonacciNumbers[activeTokenIndex - 1];
+      const px = activeTokenNode.position.x.toFixed(3);
+      const py = activeTokenNode.position.y.toFixed(3);
+      const pz = activeTokenNode.position.z.toFixed(3);
+      const hyp = Math.sqrt(px*px + py*py + pz*pz).toFixed(3);
+
+      const promptText = `
+        Active State Telemetry:
+        - Token index: F_${activeTokenIndex} = ${fibVal}.
+        - Dimensional mapping style: ${tokenSpaceMode}.
+        - Real-time 3D coordinate vectors: [x: ${px}, y: ${py}, z: ${pz}], Pythagorean hypotenuse: ${hyp}.
+        - Clifford phase angle: ${activePhaseShiftAngle.toFixed(2)} rad.
+        - Selected Zeta Zero frequency: ${selectedZetaFrequency} Hz.
+
+        As ${personaName}, analyze these parameters. Relate them to your specific philosophical paradigm or mathematical breakthroughs. Be brief, mystical, yet mathematically dense. Limit response to 120 words.
+      `;
+
+      const requestPayload = {
+        contents: [{ parts: [{ text: promptText }] }],
+        systemInstruction: {
+          parts: [{ text: systemPromptText }]
+        }
+      };
+
+      try {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+        const responseData = await fetchWithExponentialBackoff(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(requestPayload)
+        });
+
+        const textOutput = responseData.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (!textOutput) throw new Error("Empty candidate frame returned.");
+
+        output.innerHTML = textOutput;
+        status.innerText = "Channeling Complete";
+        ttsPanel.classList.remove('hidden');
+
+        // Render equations
+        renderMath();
+
+      } catch (err) {
+        output.innerHTML = `<span class="text-rose-400">Failed to establish telepathic bridge to the extradimensional council member.<br>${err.message}</span>`;
+        status.innerText = "Resonance Broken";
+      } finally {
+        loader.classList.add('hidden');
+      }
+    }
+
+    // Trigger Synthesis of live UI telemetry configurations
+    async function synthesizeActiveTelemetry() {
+      const loader = document.getElementById('oracle-loading');
+      const loaderText = document.getElementById('oracle-loading-text');
+      const output = document.getElementById('oracle-output');
+      const status = document.getElementById('oracle-status');
+      const ttsPanel = document.getElementById('tts-controls-panel');
+      const voiceLabel = document.getElementById('label-active-voice');
+
+      loader.classList.remove('hidden');
+      ttsPanel.classList.add('hidden');
+      status.innerText = "Processing R4 Grid...";
+      loaderText.innerText = "Analyzing R4 Prime Coordinates...";
+      
+      activeSpeechVoice = "Fenrir"; // Default voice for standard telemetry outputs
+      voiceLabel.innerText = "Voice: " + activeSpeechVoice;
+
+      const fibVal = fibonacciNumbers[activeTokenIndex - 1];
+      const px = activeTokenNode.position.x.toFixed(3);
+      const py = activeTokenNode.position.y.toFixed(3);
+      const pz = activeTokenNode.position.z.toFixed(3);
+      const hyp = Math.sqrt(px*px + py*py + pz*pz).toFixed(3);
+
+      const promptText = `
+        Active Token F_${activeTokenIndex} = ${fibVal}.
+        Space Mapping projection format: ${tokenSpaceMode}.
+        Pythagorean Triangulation positioning: Vector = [x: ${px}, y: ${py}, z: ${pz}], Hypotenuse Length: ${hyp} units.
+        Current Manifold Phase Shift Angle: ${activePhaseShiftAngle.toFixed(2)} rad.
+        Active Poincaré Zeta chain resonance frequency: ${selectedZetaFrequency} Hz.
+
+        Provide a deeply creative, poetic, yet theoretically dense mathematical summary of what happens inside the 4-dimensional Clifford core at this moment. Break down the spatial transition and how the critical Riemann wave lines integrate. Limit response to 120 words.
+      `;
+
+      const requestPayload = {
+        contents: [{ parts: [{ text: promptText }] }],
+        systemInstruction: {
+          parts: [{
+            text: "You are the R4 Prime Router AI Oracle. You are a hyper-dimensional mathematical intelligence. Explain spatial configuration scenarios using highly advanced, aesthetic terms, including occasional LaTeX expressions formatted inside $ or $$ identifiers. Be inspiring, brief, and precise."
+          }]
+        }
+      };
+
+      try {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+        const responseData = await fetchWithExponentialBackoff(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(requestPayload)
+        });
+
+        const textOutput = responseData.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (!textOutput) throw new Error("Empty candidate frame returned.");
+
+        output.innerHTML = textOutput;
+        status.innerText = "Telemetry Aligned";
+        ttsPanel.classList.remove('hidden');
+
+        // Dynamically parse math elements
+        renderMath();
+
+      } catch (err) {
+        output.innerHTML = `<span class="text-rose-400">Failed to establish telepathic bridge to the AI Oracle. Check connection or verify API runtime environments.<br>${err.message}</span>`;
+        status.innerText = "Bridge Blocked";
+      } finally {
+        loader.classList.add('hidden');
+      }
+    }
+
+    // Trigger custom query to AI Oracle
+    async function queryOracleCustom() {
+      const queryField = document.getElementById('input-oracle-query');
+      const queryText = queryField.value.trim();
+      if (!queryText) return;
+
+      const loader = document.getElementById('oracle-loading');
+      const loaderText = document.getElementById('oracle-loading-text');
+      const output = document.getElementById('oracle-output');
+      const status = document.getElementById('oracle-status');
+      const ttsPanel = document.getElementById('tts-controls-panel');
+      const voiceLabel = document.getElementById('label-active-voice');
+
+      loader.classList.remove('hidden');
+      ttsPanel.classList.add('hidden');
+      status.innerText = "Tuning Frequencies...";
+      loaderText.innerText = "Searching Hyperspace Archives...";
+
+      activeSpeechVoice = "Fenrir";
+      voiceLabel.innerText = "Voice: " + activeSpeechVoice;
+
+      const promptText = `
+        The user asks: "${queryText}".
+        Explain this specifically in the context of the R4 Prime Router, Clifford Torus geometry, Poincaré ball chains, or Golden Ratio closure regimes. Keep the response around 100 words, rich with LaTeX equations.
+      `;
+
+      const requestPayload = {
+        contents: [{ parts: [{ text: promptText }] }],
+        systemInstruction: {
+          parts: [{
+            text: "You are the R4 Prime Router AI Oracle. Respond creatively to the query, linking standard number theory to the router's speculative geometry. Include elegant LaTeX mathematical equations formatted inside $ or $$ identifiers."
+          }]
+        }
+      };
+
+      try {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+        const responseData = await fetchWithExponentialBackoff(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(requestPayload)
+        });
+
+        const textOutput = responseData.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (!textOutput) throw new Error("Empty candidate frame returned.");
+
+        output.innerHTML = textOutput;
+        status.innerText = "Transmission Complete";
+        queryField.value = "";
+        ttsPanel.classList.remove('hidden');
+
+        // Render equations
+        renderMath();
+
+      } catch (err) {
+        output.innerHTML = `<span class="text-rose-400">Harmonic resonance error during custom query dispatch.<br>${err.message}</span>`;
+        status.innerText = "Connection Severed";
+      } finally {
+        loader.classList.add('hidden');
+      }
+    }
+
+    // --- GEMINI DYNAMIC STRUCTURAL AUTO-TUNE ---
+    async function autoTuneManifold(vibeText = "") {
+      const queryField = document.getElementById('input-autotune-vibe');
+      const query = vibeText || queryField.value.trim() || "Harmonious Golden Resonance";
+
+      const loader = document.getElementById('oracle-loading');
+      const loaderText = document.getElementById('oracle-loading-text');
+      const output = document.getElementById('oracle-output');
+      const status = document.getElementById('oracle-status');
+      const ttsPanel = document.getElementById('tts-controls-panel');
+      const voiceLabel = document.getElementById('label-active-voice');
+
+      loader.classList.remove('hidden');
+      ttsPanel.classList.add('hidden');
+      status.innerText = "Transmuting Dimensions...";
+      loaderText.innerText = "AI Auto-Tuning Clifford Manifold Geometry...";
+
+      activeSpeechVoice = "Fenrir";
+      voiceLabel.innerText = "Voice: " + activeSpeechVoice;
+
+      const promptText = `
+        The user wants to tune the R4 Prime Router to the cosmic vibe: "${query}".
+        Formulate a physical tuning state for the Clifford torus golden ratio growth engine, including golden spiral density, phase shift, selected zeta frequency, wave amplitude, space mode, active token index, and a neon color theme hex value.
+      `;
+
+      const responseSchema = {
+        type: "OBJECT",
+        properties: {
+          spiralDensity: { type: "NUMBER", description: "Density of the golden spiral, between 0.2 and 2.5." },
+          phaseShift: { type: "NUMBER", description: "Phase shift angle of the manifold in radians, between 0.0 and 6.28." },
+          zetaFrequency: { type: "NUMBER", description: "Target zeta frequency in Hz. Must be exactly one of: 14.13, 21.02, 25.01, 30.42." },
+          waveAmplitude: { type: "NUMBER", description: "Amplitude of the resonance wave, between 0.1 and 2.0." },
+          spaceMode: { type: "STRING", enum: ["hyperbolic", "toroidal", "complex"], description: "The target geometric projection space mode." },
+          tokenIndex: { type: "INTEGER", description: "The recommended active Fibonacci token index, between 1 and 15." },
+          colorHex: { type: "STRING", description: "A vibrant CSS color hex starting with # for the glowing token node." },
+          explanation: { type: "STRING", description: "A creative mathematical explanation (around 1 sentence) of how this vibe maps to R4 coordinates." }
+        },
+        required: ["spiralDensity", "phaseShift", "zetaFrequency", "waveAmplitude", "spaceMode", "tokenIndex", "colorHex", "explanation"]
+      };
+
+      const requestPayload = {
+        contents: [{ parts: [{ text: promptText }] }],
+        systemInstruction: {
+          parts: [{
+            text: "You are the R4 Prime Router AI Auto-Tuner. Your goal is to map creative vibes to precise 4D geometry parameters in JSON format. Provide an aesthetic, mathematically rigorous setup that aligns with the user's vibe."
+          }]
+        },
+        generationConfig: {
+          responseMimeType: "application/json",
+          responseSchema: responseSchema
+        }
+      };
+
+      try {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+        const responseData = await fetchWithExponentialBackoff(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(requestPayload)
+        });
+
+        const jsonText = responseData.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (!jsonText) throw new Error("Auto-tune returned empty JSON frames.");
+
+        const data = JSON.parse(jsonText);
+
+        // Smoothly apply parameters directly to the active 3D Simulation state!
+        spiralDensityScale = data.spiralDensity;
+        document.getElementById('slider-spiral-density').value = data.spiralDensity;
+        document.getElementById('val-spiral-density').innerText = data.spiralDensity.toFixed(1);
+        rebuildFibonacciSpiral();
+
+        activePhaseShiftAngle = data.phaseShift;
+        document.getElementById('slider-phase-shift').value = data.phaseShift;
+        document.getElementById('val-phase-shift').innerText = data.phaseShift.toFixed(2) + " rad";
+        document.getElementById('tel-phase-shift').innerText = data.phaseShift.toFixed(2) + " rad";
+
+        selectedZetaFrequency = data.zetaFrequency;
+        document.getElementById('select-chain-zeta').value = data.zetaFrequency;
+
+        waveAmplitudeFactor = data.waveAmplitude;
+        document.getElementById('slider-wave-amp').value = data.waveAmplitude;
+
+        setSpaceMode(data.spaceMode);
+        changeActiveTokenIndex(data.tokenIndex);
+        document.getElementById('slider-token-n').value = data.tokenIndex;
+
+        // Change node color glow dynamically
+        if (activeTokenNode) {
+          activeTokenNode.material.color.set(data.colorHex);
+          activeTokenNode.material.emissive.set(data.colorHex);
+        }
+
+        output.innerHTML = `
+          <div class="text-emerald-400 font-bold border-b border-emerald-950 pb-1.5 mb-2">✨ AI Manifold Auto-Tuned!</div>
+          <p class="mb-2"><strong class="text-slate-400">Explanation:</strong> ${data.explanation}</p>
+          <div class="grid grid-cols-2 gap-2 text-[10px] font-mono bg-slate-900/60 p-2 rounded border border-emerald-950/40">
+            <div>Space Mode: <span class="text-cyan-400 font-bold">${data.spaceMode}</span></div>
+            <div>Active Token: <span class="text-cyan-400 font-bold">F_${data.tokenIndex}</span></div>
+            <div>Spiral Density: <span class="text-amber-400 font-bold">${data.spiralDensity.toFixed(2)}</span></div>
+            <div>Phase Shift: <span class="text-amber-400 font-bold">${data.phaseShift.toFixed(2)} rad</span></div>
+            <div>Zeta Sync: <span class="text-indigo-400 font-bold">${data.zetaFrequency} Hz</span></div>
+            <div>Theme Target: <span style="color: ${data.colorHex}; font-weight: bold;">${data.colorHex}</span></div>
+          </div>
+        `;
+
+        status.innerText = "Coordinates Anchored";
+        if (vibeText === "") queryField.value = "";
+        ttsPanel.classList.remove('hidden');
+        renderMath();
+
+      } catch (err) {
+        output.innerHTML = `<span class="text-rose-400">AI Auto-Tuning sequence interrupted.<br>${err.message}</span>`;
+        status.innerText = "Tuning Blocked";
+      } finally {
+        loader.classList.add('hidden');
+      }
+    }
+
+    function applyAutoTunePreset(preset) {
+      document.getElementById('input-autotune-vibe').value = preset;
+      autoTuneManifold(preset);
+    }
+
+    // --- GEMINI IMAGEN HYPERDIMENSIONAL PORTAL PAINTER ---
+    async function paintHyperdimensionalPortal() {
+      const input = document.getElementById('input-portal-prompt');
+      const promptText = input.value.trim() || "seamless deep nebula with cybernetic green matrix coordinates, 3d math geometry depth, dark space backdrop, 8k wallpaper";
+
+      const loader = document.getElementById('oracle-loading');
+      const loaderText = document.getElementById('oracle-loading-text');
+      const status = document.getElementById('oracle-status');
+
+      loader.classList.remove('hidden');
+      status.innerText = "Painting Portal...";
+      loaderText.innerText = "Gemini Imagen is rendering your hyperdimensional skybox...";
+
+      const requestPayload = {
+        instances: { prompt: promptText },
+        parameters: { sampleCount: 1 }
+      };
+
+      try {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-generate-001:predict?key=${apiKey}`;
+        const responseData = await fetchWithExponentialBackoff(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(requestPayload)
+        });
+
+        const base64Bytes = responseData.predictions?.[0]?.bytesBase64Encoded;
+        if (!base64Bytes) throw new Error("Imagen model did not return prediction bytes.");
+
+        const imageUrl = `data:image/png;base64,${base64Bytes}`;
+
+        // Create texture loader and update ThreeJS scene background
+        const texLoader = new THREE.TextureLoader();
+        texLoader.load(imageUrl, function(texture) {
+          scene.background = texture;
+          status.innerText = "Portal Painted!";
+          loader.classList.add('hidden');
+        }, undefined, function(err) {
+          throw new Error("Three.js failed to map the base64 texture frame.");
+        });
+
+      } catch (err) {
+        status.innerText = "Painting Failed";
+        loader.classList.add('hidden');
+        document.getElementById('oracle-output').innerHTML = `<span class="text-rose-400">Imagen Portal Painter failed to load texture:<br>${err.message}</span>`;
+      }
+    }
+
+    function resetPortalSkybox() {
+      if (scene) {
+        scene.background = null;
+        document.getElementById('oracle-status').innerText = "Portal Cleared";
+      }
+    }
+
+    // --- GEMINI TEXT TO SPEECH (TTS) CONVERSION ENGINE ---
+    async function speakOracleOutput() {
+      const outputElement = document.getElementById('oracle-output');
+      // Clean up text content by stripping raw LaTeX delimiters or HTML tags before speech synth
+      let rawText = outputElement.innerText.replace(/[\$\*\#]/g, '');
+
+      const btnTts = document.getElementById('btn-play-tts');
+      const status = document.getElementById('oracle-status');
+
+      // Toggle Pause/Stop if audio is active
+      if (activeAudioPlayer) {
+        activeAudioPlayer.pause();
+        activeAudioPlayer = null;
+        btnTts.innerHTML = '<i class="fa-solid fa-volume-high"></i> <span>✨ Speak Resonance</span>';
+        status.innerText = "Audio Terminated";
+        return;
+      }
+
+      btnTts.innerHTML = '<i class="fa-solid fa-spinner animate-spin"></i> <span>✨ Modulating...</span>';
+      status.innerText = "Generating Audio...";
+
+      const requestPayload = {
+        contents: [{ parts: [{ text: "Say in a futuristic, whisper-like mathematical cadence: " + rawText }] }],
+        generationConfig: {
+          responseModalities: ["AUDIO"],
+          speechConfig: {
+            voiceConfig: {
+              prebuiltVoiceConfig: {
+                voiceName: activeSpeechVoice // Direct persona voice binding
+              }
+            }
+          }
+        },
+        model: "gemini-2.5-flash-preview-tts"
+      };
+
+      try {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`;
+        const responseData = await fetchWithExponentialBackoff(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(requestPayload)
+        });
+
+        const inlineData = responseData.candidates?.[0]?.content?.parts?.find(p => p.inlineData)?.inlineData;
+        if (!inlineData || !inlineData.data) throw new Error("Could not extract synthesized audio bytes.");
+
+        // Convert PCM16 (L16) back to playable WAV blob
+        const sampleRate = parseInt(inlineData.mimeType.split('rate=')[1]) || 24000;
+        const wavBlob = pcmToWav(inlineData.data, sampleRate);
+        const audioUrl = URL.createObjectURL(wavBlob);
+
+        activeAudioPlayer = new Audio(audioUrl);
+        activeAudioPlayer.play();
+
+        btnTts.innerHTML = '<i class="fa-solid fa-square-poll-horizontal"></i> <span>✨ Silence Signal</span>';
+        status.innerText = "Transmitting Audio...";
+
+        activeAudioPlayer.onended = () => {
+          btnTts.innerHTML = '<i class="fa-solid fa-volume-high"></i> <span>✨ Speak Resonance</span>';
+          status.innerText = "Playback Concluded";
+          activeAudioPlayer = null;
+        };
+
+      } catch (err) {
+        status.innerText = "Audio Modulation Error";
+        btnTts.innerHTML = '<i class="fa-solid fa-volume-high"></i> <span>✨ Speak Resonance</span>';
+        console.error(err);
+      }
+    }
+
+    // Helper: Build standard audio headers for RAW L16 PCM byte arrays
+    function pcmToWav(pcmBase64, sampleRate = 24000) {
+      const binaryString = atob(pcmBase64);
+      const len = binaryString.length;
+      const bytes = new Uint8Array(len);
+      for (let i = 0; i < len; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      const buffer = new ArrayBuffer(44 + len);
+      const view = new DataView(buffer);
+      
+      // RIFF identifier
+      writeString(view, 0, 'RIFF');
+      // file length
+      view.setUint32(4, 36 + len, true);
+      // RIFF type
+      writeString(view, 8, 'WAVE');
+      // format chunk identifier
+      writeString(view, 12, 'fmt ');
+      // format chunk length
+      view.setUint32(16, 16, true);
+      // sample format (1 = raw PCM)
+      view.setUint16(20, 1, true);
+      // channel count (1 = mono)
+      view.setUint16(22, 1, true);
+      // sample rate
+      view.setUint32(24, sampleRate, true);
+      // byte rate (sample rate * block align)
+      view.setUint32(28, sampleRate * 2, true);
+      // block align (channel count * bytes per sample)
+      view.setUint16(32, 2, true);
+      // bits per sample (16-bit PCM)
+      view.setUint16(34, 16, true);
+      // data chunk identifier
+      writeString(view, 36, 'data');
+      // data chunk length
+      view.setUint32(40, len, true);
+      
+      // write PCM data
+      for (let i = 0; i < len; i++) {
+        view.setUint8(44 + i, bytes[i]);
+      }
+      
+      return new Blob([buffer], { type: 'audio/wav' });
+    }
+
+    function writeString(view, offset, string) {
+      for (let i = 0; i < string.length; i++) {
+        view.setUint8(offset + i, string.charCodeAt(i));
+      }
+    }
+
+    // --- MANAGE SCREEN RESPONSIBILITY ---
+    window.addEventListener('resize', () => {
+      const container = document.getElementById('threejs-container');
+      const width = container.clientWidth;
+      const height = container.clientHeight;
+
+      camera.aspect = width / height;
+      camera.updateProjectionMatrix();
+      renderer.setSize(width, height);
+
+      const canvasSpectrum = document.getElementById('canvas-frequency-spectrum');
+      canvasSpectrum.width = canvasSpectrum.parentElement.clientWidth;
+    });
+
+    window.onload = function() {
+      const canvasSpectrum = document.getElementById('canvas-frequency-spectrum');
+      canvasSpectrum.width = canvasSpectrum.parentElement.clientWidth;
+
+      initVisualizer();
+      renderMath();
+    };
+  </script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+{
+  "task_id": "ramsey_nonlocal_shadow_test_v1",
+  "input": "/Users/adminamn/ramsey/results/ablation/ramsey_recursive_ablation_v1/tables/instances.csv",
+  "rows_used": 1056,
+  "families": [
+    "balanced_binary_partitions",
+    "fibonacci_block_growth_base",
+    "fibonacci_mirrored_growth",
+    "random_baseline"
+  ],
+  "verdict": "REFINE",
+  "rationale": "Divisor observables show partial/weak incremental value, but evidence is not strong or uniform."
+}

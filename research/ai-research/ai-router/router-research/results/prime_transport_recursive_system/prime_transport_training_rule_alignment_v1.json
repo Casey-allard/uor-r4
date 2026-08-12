@@ -1,0 +1,197 @@
+{
+  "analysis_version": "v1",
+  "date": "2026-04-08",
+  "baseline_config": {
+    "device": "cpu",
+    "D": 24,
+    "D_HIDDEN": 32,
+    "batch_size": 256,
+    "optimizer": "SGD",
+    "lr": 0.02,
+    "grad_clip": 1.0,
+    "temp_schedule": "exponential 2.0 -> 0.1"
+  },
+
+  "forward_geometry_elements": [
+    {
+      "name": "discrete_torus_T4",
+      "description": "Tau state lives on T^4 = Z/2 x Z/5 x Z/2 x Z/12 (240 points)",
+      "source": "geometry_native_spinH_candidate_v3.py:28-39",
+      "moduli": [2, 5, 2, 12],
+      "total_states": 240,
+      "encoding": "one-hot in R^21"
+    },
+    {
+      "name": "operator_state_fiber_bundle",
+      "description": "State = (base_angle b, fiber_phase phi, radial_class r, spin_h, tau)",
+      "source": "geometry_native_operator_model_v10.py:36-46",
+      "structure": "product: torus x fiber x radial_shells x spin_word x tau_phases"
+    },
+    {
+      "name": "six_geometric_operators",
+      "description": "T_b (torus advance), T_x (swap), T_y (twist), T_c (coupled kick), T_z' (fiber lift), T_r* (radial transport)",
+      "source": "run_router_reintegration_v6_torch.py:68-73",
+      "non_transport": ["T_b", "T_x", "T_y"],
+      "transport": ["T_c", "T_z'", "T_r*"]
+    },
+    {
+      "name": "holonomy_corrections",
+      "description": "Transport operators use active_transport_lift_core_v6 with coupled_holonomy_residue_v6 and sigma_family_holonomy_law_v6",
+      "source": "geometry_native_spinH_core_v6.py:76-154"
+    },
+    {
+      "name": "hopf_fibration_map",
+      "description": "S^3 decomposition into base (chi, delta) and transported fiber phase (alpha_t = alpha + 0.5*lambda*cos(2*chi)*delta)",
+      "source": "main.pdf Eq.(1)-(2), hyperbolic_router_so8.py:826-880"
+    },
+    {
+      "name": "precomputed_state_tables",
+      "description": "343,665 states enumerated by BFS. TN=(N,6,21) tau-nexts, TR=(N,6) state transitions",
+      "source": "run_router_reintegration_v6_torch.py:217-276"
+    },
+    {
+      "name": "D_step_recurrence",
+      "description": "24-step sequential trajectory on state space with Gumbel-softmax operator routing",
+      "source": "RouterV6Scaled.forward"
+    }
+  ],
+
+  "training_rule_elements": [
+    {
+      "name": "loss_function",
+      "description": "Cross-entropy on x0 prediction, no geometric structure",
+      "type": "classification"
+    },
+    {
+      "name": "gradient_computation",
+      "description": "torch.autograd reverse-mode through 24-step recurrence, Euclidean Jacobians at each step",
+      "type": "euclidean_reverse_mode"
+    },
+    {
+      "name": "optimizer",
+      "description": "SGD with flat Euclidean metric, lr=0.02, identity preconditioner",
+      "type": "flat_euclidean_sgd"
+    },
+    {
+      "name": "gradient_clipping",
+      "description": "clip_grad_norm with max_norm=1.0, Euclidean L2 norm",
+      "type": "euclidean_norm_clip"
+    },
+    {
+      "name": "temperature_schedule",
+      "description": "Exponential decay 2.0 -> 0.1, time-based not geometry-based",
+      "type": "time_scheduled_annealing"
+    },
+    {
+      "name": "tau_representation",
+      "description": "One-hot encoding of T^4 phases in R^21, destroying cyclic adjacency",
+      "type": "one_hot_ambient_embedding"
+    }
+  ],
+
+  "mismatch_points": [
+    {
+      "id": "M1",
+      "name": "one_hot_destroys_cyclic_adjacency",
+      "severity": "high",
+      "description": "One-hot encoding maps adjacent cyclic phases to orthogonal vectors (distance sqrt(2)). Gradients see no connection between lift_phase=11 and lift_phase=0 despite being one step apart on Z/12.",
+      "status": "proven"
+    },
+    {
+      "id": "M2",
+      "name": "soft_mixture_in_wrong_space",
+      "severity": "medium",
+      "description": "Euclidean convex combination of one-hot tau vectors produces interior points with no geometric meaning on T^4. Angular circular mean would be the natural operation.",
+      "status": "proven"
+    },
+    {
+      "id": "M3",
+      "name": "sgd_flat_metric_ignores_torus_curvature",
+      "severity": "medium",
+      "description": "SGD uses identity metric on parameter space. Loss surface inherits anisotropy from torus structure: different phase blocks (mod 2 vs mod 12) may have very different effective curvature.",
+      "status": "plausible"
+    },
+    {
+      "id": "M4",
+      "name": "euclidean_adjoint_not_geometric_adjoint",
+      "severity": "medium",
+      "description": "Backward pass computes Euclidean Jacobian chain through 24 steps, not the geometric adjoint of the transport. Forward operators use holonomy corrections; backward has no corresponding connection term.",
+      "status": "plausible"
+    },
+    {
+      "id": "M5",
+      "name": "no_transport_nontransport_gradient_distinction",
+      "severity": "low-medium",
+      "description": "Transport operators (T_c, T_z', T_r*) implement geometrically distinct operations from non-transport (T_b, T_x, T_y), but gradient treats all 6 operator weight dimensions identically.",
+      "status": "plausible"
+    },
+    {
+      "id": "M6",
+      "name": "full_fiber_bundle_riemannian_structure",
+      "severity": "unknown",
+      "description": "The operator algebra may implement a discrete connection on a fiber bundle. If so, the correct optimizer would use the connection-induced Riemannian metric.",
+      "status": "speculative"
+    }
+  ],
+
+  "proven_claims": [
+    "Tau state space is T^4 = Z/2 x Z/5 x Z/2 x Z/12 (discrete torus, 240 points)",
+    "One-hot encoding destroys cyclic adjacency (all distinct phases equidistant at sqrt(2))",
+    "Training rule is flat Euclidean SGD with no manifold awareness",
+    "Soft tau mixture operates in ambient R^21 via Euclidean convex combination",
+    "Forward operators implement explicit geometric transformations with holonomy corrections",
+    "Paper establishes Hopf fibration captures angular structure; mechanism is primarily fiber-phase-based (alpha = +20.6pp, transport = +2pp more)",
+    "The D-step recurrence is mathematically sequential (nonlinear coupled recurrence)"
+  ],
+
+  "plausible_claims": [
+    "Angular encoding of tau phases would improve learning by respecting cyclic adjacency",
+    "SGD's flat metric is a material bottleneck for this loss surface geometry",
+    "Euclidean backward pass produces materially different credit assignment than geometric backward",
+    "Transport operators would benefit from different gradient treatment than non-transport operators",
+    "Smaller angular representation (8 dims vs 21) may also speed up the sequential recurrence"
+  ],
+
+  "speculative_claims": [
+    "The full operator algebra state space has smooth manifold structure",
+    "A full Riemannian optimizer would provide large gains beyond angular encoding",
+    "Holonomy corrections in operators correspond to curvature that materially affects the loss landscape",
+    "The fiber bundle interpretation extends from the Hopf routing (paper) to the full operator algebra (implementation)"
+  ],
+
+  "recommended_next_experiment": {
+    "name": "angular_phase_encoding_vs_onehot",
+    "description": "Replace one-hot tau encoding (21 dims) with angular cos/sin pairs (8 dims). Each cyclic phase k in Z/m becomes (cos(2*pi*k/m), sin(2*pi*k/m)). Rebuild TN/tau0 tables with angular encoding. Compare convergence speed, final accuracy, and gradient behavior against one-hot baseline on the same task.",
+    "what_changes": [
+      "TN table entries: 21-dim one-hot -> 8-dim angular",
+      "tau0_table: same re-encoding",
+      "W1 shape: (25, D_HIDDEN) -> (12, D_HIDDEN)",
+      "W_tok_inject shape: (VOCAB, 21) -> (VOCAB, 8)",
+      "W_attn shape: (D_HIDDEN_ATTN, 21) -> (D_HIDDEN_ATTN, 8)",
+      "W_pred shape: (21, VOCAB) -> (8, VOCAB)"
+    ],
+    "what_stays_same": [
+      "All operator semantics (TN/TR transitions unchanged)",
+      "Task (predict x0 from trajectory)",
+      "Recurrence structure (D=24 steps)",
+      "Gumbel-softmax routing mechanism",
+      "Attention pooling with pos0 bias fix",
+      "SGD with lr=0.02, same temperature schedule, same gradient clipping",
+      "Device/batch/thread configuration"
+    ],
+    "measurements": [
+      "Convergence speed (loss curve over training steps)",
+      "Final accuracy at D=24",
+      "Gradient norms per parameter group over training",
+      "Operator selection entropy over training",
+      "Wall-time per step (angular model has smaller matrices)"
+    ],
+    "positive_result_meaning": "One-hot encoding was fighting the torus geometry. Training rule credit assignment was misaligned due to coordinate system choice.",
+    "negative_result_meaning": "MLP is powerful enough to learn cyclic structure from one-hot data, or one-hot provides useful information for attention pooling. Redirects investigation to C.3/C.4 mismatches.",
+    "followup_if_positive": [
+      "Angular auxiliary loss (regularize soft tau toward valid angular states)",
+      "Phase-aware preconditioner (block-diagonal, separate rates for angular vs embedding)",
+      "Circular weighted mean for soft mixture (replace Euclidean average with circular mean per phase pair)"
+    ]
+  }
+}

@@ -1,0 +1,6 @@
+predictor,pearson_visible_threshold,spearman_visible_threshold
+num_first_splitting_classes,0.994309153919809,0.9999999999999998
+total_extra_child_classes_from_first_split,0.9502241002847668,0.9999999999999998
+fraction_first_splitting_classes,0.9501621473715827,0.9999999999999998
+gap_max,0.6507913734559685,0.31622776601683794
+gap_span,-0.6507913734559685,-0.31622776601683794

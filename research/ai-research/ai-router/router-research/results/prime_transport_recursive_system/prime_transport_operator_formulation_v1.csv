@@ -1,0 +1,13 @@
+scope,metric,count,total,fraction,note
+operator,state_count,5,5,1.0,reachable structured states on bounded operator surface
+operator,transition_count,10,10,1.0,nonzero operator entries on bounded surface
+operator,lawful_transition_fraction,10,10,1.0,fraction of nonzero operator entries that are lawful
+operator,illegal_transition_fraction,0,10,0.0,fraction of nonzero operator entries that are illegal
+sparsity,nonzero_from_state_b0_phi0_r0,2,10,0.2,nonzero transitions emitted by operator from one structured state
+sparsity,nonzero_from_state_b1_phi0_r0,2,10,0.2,nonzero transitions emitted by operator from one structured state
+sparsity,nonzero_from_state_b2_phi0_r0,2,10,0.2,nonzero transitions emitted by operator from one structured state
+sparsity,nonzero_from_state_b3_phi0_r0,2,10,0.2,nonzero transitions emitted by operator from one structured state
+sparsity,nonzero_from_state_b4_phi0_r0,2,10,0.2,nonzero transitions emitted by operator from one structured state
+component,hold,5,10,0.5,fraction of operator entries by component
+component,torus_base_advance,5,10,0.5,fraction of operator entries by component
+class_distribution,class_r0_phi0_spin1111_compat100_100,10,10,1.0,distribution of operator transitions by source class tuple

@@ -1,0 +1,13 @@
+regime,geometry_regime,ablation,d_tau_ang,d_tau_hyb,accuracy,delta_vs_baseline,solve_step,alpha0,alphaD,b_posLast_trained,runtime_seconds,note
+delayed_baseline,reduced,training_summary,8,12,1.0,0.0,2500,0.0049,0.8739,5.0626,58.5,training result
+delayed_fuller,fuller,training_summary,14,18,0.9946,-0.0054,,0.0054,0.8603,4.9476,73.5,training result
+delayed_baseline,reduced,full,8,12,1.0,1.0,,0.0049,0.8738,,0.0034,reference
+delayed_baseline,reduced,tau0_direct,8,12,0.2588,1.0,,1.0,0.0,,0.0002,τ₀ does NOT encode answer ✓
+delayed_baseline,reduced,no_tau0,8,12,1.0,1.0,,0.0,0.8781,,0.0032,trajectory sufficient without τ₀ ✓
+delayed_baseline,reduced,last_only,8,12,1.0,1.0,,0.0,1.0,,0.0032,final position carries full answer ✓
+delayed_baseline,reduced,no_last,8,12,0.2578,1.0,,0.0386,0.0,,0.0032,t=D-1 critical (collapse without it) ✓
+delayed_fuller,fuller,full,14,18,0.999,0.999,,0.0054,0.8604,,0.0043,reference
+delayed_fuller,fuller,tau0_direct,14,18,0.252,0.999,,1.0,0.0,,0.0002,τ₀ does NOT encode answer ✓
+delayed_fuller,fuller,no_tau0,14,18,0.999,0.999,,0.0,0.8651,,0.0041,trajectory sufficient without τ₀ ✓
+delayed_fuller,fuller,last_only,14,18,1.0,0.999,,0.0,1.0,,0.0041,final position carries full answer ✓
+delayed_fuller,fuller,no_last,14,18,0.2568,0.999,,0.0388,0.0,,0.0041,t=D-1 critical (collapse without it) ✓

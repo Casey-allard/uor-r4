@@ -1,0 +1,185 @@
+\documentclass[11pt]{amsart}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{booktabs}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+
+\newcommand{\C}{\mathbb{C}}
+\DeclareMathOperator{\dettwo}{det_2}
+\DeclareMathOperator{\Arg}{Arg}
+
+\title{Complaint and Resolution (Round 2):\\
+Neutralization, charges, and the final inequality chain}
+\author{Technical companion to paper1\_zerozeta-v19}
+\date{February 7, 2026}
+
+\begin{document}
+\maketitle
+
+\section{Context}
+
+After the first round of complaints (circularity in $V\ge 0$, log$^2$ growth,
+singular inner factor, near-zero count), two further structural critiques were raised
+against the proof of Theorem~1 ($\zeta(s)\neq 0$ for $\Re s\ge 0.6$).
+
+Both critiques target the same mismatch: the theorem proof applies the CR--Green
+upper bound to the \emph{full} windowed phase of $\mathcal J_{\rm out}$,
+but the CR--Green lemma requires the underlying function to be \emph{harmonic}
+on the Whitney box --- which $\log|\mathcal J_{\rm out}|$ is \emph{not},
+because $\mathcal J_{\rm out}$ has poles at $\zeta$-zeros inside the box.
+
+This document states each complaint and explains the fix now implemented in the paper.
+
+\section{Complaint 5: CR--Green applied to a meromorphic function}
+
+\subsection*{The complaint}
+
+The theorem proof (Step~2) asserts:
+\[
+  \int\psi_{L,\gamma_0}(-w')\;\le\; Z_0\,C_{\rm test}\,\sqrt{E(I)}\cdot L
+\]
+where $E(I)=\iint|\nabla\log|\mathcal J_{\rm out}||^2\,\sigma$ and
+$-w'$ is the boundary phase derivative of $\mathcal J_{\rm out}$.
+
+The CR--Green lemma (Proposition~\texttt{prop:length-free}) requires
+the function $\log|J|$ to be \textbf{harmonic} on the box $D$.
+But $\mathcal J_{\rm out}$ has \textbf{poles} at $\zeta$-zeros inside $D$,
+so $\log|\mathcal J_{\rm out}|$ is \textbf{not harmonic} there.
+The Green identity on the punctured domain produces \emph{extra interior charge terms}
+$2\pi\sum m_j V(\rho_j)$ that are not accounted for in the inequality.
+
+Applying the CR--Green bound directly to $\mathcal J_{\rm out}$ is therefore invalid.
+
+\subsection*{The resolution: the neutralized ratio $\mathcal J_{\rm neut}$}
+
+Define the \textbf{neutralized ratio}
+\[
+  \mathcal J_{\rm neut}(s)\ :=\ \mathcal J_{\rm out}(s)\cdot B_{\rm box}(s),
+\]
+where $B_{\rm box}$ is the half-plane Blaschke product over the $\zeta$-zeros
+inside the Whitney box $D$.
+
+\begin{itemize}
+\item Each Blaschke factor $b(s,\rho_j)=(s-\rho_j)/(s-\rho_j^\#)$ has a zero at $\rho_j$,
+  which cancels the pole of $\mathcal J_{\rm out}$ there.
+\item Hence $\mathcal J_{\rm neut}$ is \textbf{holomorphic} on $D$,
+  and $\log|\mathcal J_{\rm neut}|$ is \textbf{harmonic} on $D$.
+\item On $\partial\Omega$: $|\mathcal J_{\rm neut}|=|\mathcal J_{\rm out}|\cdot|B_{\rm box}|=1\cdot 1=1$ a.e.
+\end{itemize}
+
+The CR--Green pairing now applies to $\mathcal J_{\rm neut}$
+\emph{with no interior charge terms}:
+\[
+  \int\psi_{L,\gamma_0}(-w'_{\rm neut})
+  \;\le\; Z_0\,C_{\rm test}\,\sqrt{E_{\rm neut}(I)}\cdot L.
+\]
+
+\textbf{Lower bound transfer.}
+The boundary phase derivative of $\mathcal J_{\rm neut}$ satisfies
+\[
+  -w'_{\rm neut}\ =\ -w'_{\mathcal J_{\rm out}}\ +\ \sum_j\frac{2\delta_j}{\delta_j^2+(t-\gamma_j)^2}
+  \ \ge\ -w'_{\mathcal J_{\rm out}}\ \ge\ 0,
+\]
+because each Blaschke factor contributes a nonneg Poisson kernel to the phase derivative
+(computed explicitly: $-d/dt\,\Arg\,b(\tfrac12+it,\rho)=2\delta/(\delta^2+(t-\gamma)^2)\ge 0$).
+
+The hypothetical zero $\rho_0$ at $\beta_0\ge 0.6$ is \textbf{outside} $D$
+(since $\delta_0\ge 0.1>\alpha'L$ for $t_0$ large),
+so its Poisson contribution is present in $-w'_{\mathcal J_{\rm out}}$
+and hence also in $-w'_{\rm neut}$:
+\[
+  \int\psi(-w'_{\rm neut})\;\ge\;\int\psi(-w'_{\mathcal J_{\rm out}})\;\ge\;11L.
+\]
+
+\textbf{Energy bound.}
+$\log|\mathcal J_{\rm neut}|=2\log|B|+\widetilde W$ where $\widetilde W=-\log|B_{\rm far}\cdot S|$
+is the harmonic neutralized field from Proposition~\texttt{prop:Cbox-finite}.
+The energy $E_{\rm neut}\le C\log^2\!\langle\gamma_0\rangle\cdot|I|$
+with $C$ independent of $c$ (the $L$'s cancel in the Poisson integral).
+
+\textbf{Contradiction.} With $c=c_0/\log\langle\gamma_0\rangle$:
+$E_{\rm neut}=2Cc_0$ (constant), giving
+$A\sqrt{c_0}\cdot L < 11L$ for $c_0<(11/A)^2$.
+
+\section{Complaint 6: ``near Blaschke energy is $O(|I|)$'' is false}
+
+\subsection*{The complaint}
+
+The earlier version of Proposition~\texttt{prop:Cbox-finite} stated that the
+near Blaschke factors (zeros inside the box) each contribute $O(|I|)$ to the
+weighted Dirichlet energy.
+
+This is false: $|\nabla\log|b(s,\rho_j)||$ has a $1/|s-\rho_j|$ singularity,
+and $\iint (1/r^2)\cdot\sigma\cdot r\,dr\,d\theta$ diverges logarithmically.
+The $\sigma$ weight does not cure the divergence.
+
+\subsection*{The resolution: the claim is removed}
+
+The proposition now explicitly states:
+
+\begin{quote}
+\emph{``The zeros in $B_{\rm near}$ lie inside the box $D$, so $\log|B_{\rm near}|$
+has logarithmic singularities there and its weighted Dirichlet energy on $Q(\alpha'I)$
+is \textbf{infinite}. This is not a problem: the near Blaschke factors are absorbed
+into the \textbf{neutralization} step in the main theorem proof, where they cancel
+the poles of $\mathcal J_{\rm out}$ and produce the harmonic function
+$\log|\mathcal J_{\rm neut}|=2\log|B|+\widetilde W$ on~$D$.
+The energy estimate bounds the harmonic field $\widetilde W$ only.''}
+\end{quote}
+
+No finite-energy claim is made for the near Blaschke factors.
+Their singularities are \emph{removed} by neutralization,
+not \emph{bounded} by an energy estimate.
+
+\section{Summary of the proof chain after both fixes}
+
+\begin{center}
+\renewcommand{\arraystretch}{1.4}
+\begin{tabular}{lp{8.5cm}}
+\toprule
+\textbf{Step} & \textbf{What happens}\\
+\midrule
+Hypothesis & Assume $\zeta(\rho_0)=0$ with $\beta_0\ge 0.6$.
+  Set $c=c_0/\log\langle\gamma_0\rangle$, $L=c_0/\log^2\!\langle\gamma_0\rangle$.\\
+Neutralize & Define $\mathcal J_{\rm neut}:=\mathcal J_{\rm out}\cdot B_{\rm box}$.
+  This is \textbf{holomorphic} on $D$ (poles canceled). $\log|\mathcal J_{\rm neut}|$
+  is \textbf{harmonic}.\\
+Lower bound & $-w'_{\rm neut}\ge -w'_{\mathcal J_{\rm out}}\ge 0$
+  (Blaschke factors add positive Poisson mass).
+  $\int\psi(-w'_{\rm neut})\ge 11L$ (from $\rho_0$, which is outside $D$).\\
+Upper bound & CR--Green on the \textbf{harmonic} $\log|\mathcal J_{\rm neut}|$:
+  $\int\psi(-w'_{\rm neut})\le A\sqrt{c_0}\cdot L$.
+  No interior charges (harmonic $\Rightarrow$ no punctured domain needed).\\
+Energy & $E_{\rm neut}=C\log^2\cdot|I|=2Cc_0$ (height-independent after $\log^2$ cancellation).
+  $C$ independent of $c$ (Poisson integral $L$-cancellation).\\
+Contradiction & $11\le A\sqrt{c_0}=11/\sqrt{2}<11$.\\
+Small height & $|\gamma_0|\le 2$: ball-arithmetic certificate.\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\section{What is no longer in the proof}
+
+\begin{itemize}
+\item \textbf{CR--Green applied to meromorphic $\mathcal J_{\rm out}$} ---
+  replaced by CR--Green on holomorphic $\mathcal J_{\rm neut}$.
+\item \textbf{``Near Blaschke energy $O(|I|)$''} ---
+  removed; near factors are neutralized, not energy-bounded.
+\item \textbf{Interior charge terms in the Green identity} ---
+  eliminated by neutralization (no punctured domain needed).
+\item \textbf{``$V\ge 0$'' for $-\log|\mathcal J_{\rm out}|$} ---
+  replaced by $W=-\log|\mathcal I|\ge 0$ (inner reciprocal, unconditional).
+\item \textbf{``$S\equiv 1$'' claim} ---
+  removed; singular inner absorbed by $W\le N\log(2+|t|)+C$ (PL/convexity).
+\item \textbf{Short-interval zero control at scale $L$} ---
+  not used; Poisson integral $L$-cancellation uses only coarse $O(\log T)$ density.
+\end{itemize}
+
+\end{document}

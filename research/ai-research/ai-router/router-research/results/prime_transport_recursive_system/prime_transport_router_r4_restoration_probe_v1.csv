@@ -1,0 +1,17 @@
+variant,geometry_regime,inject_position,radial_mode,b_pos0_trained,accuracy,delta_vs_baseline,runtime_seconds,alpha0,alphaD,tau0_only_sufficient,trajectory_load_bearing,solve_step,train_acc,ablated_component,note
+full,baseline,first,fixed_one,5.0665,1.0,0.0,0.0033,0.8736,0.0055,True,False,2500,1.0,none — full trajectory,D=24 baseline full
+tau0_direct,baseline,first,fixed_one,5.0665,1.0,0.0,0.0002,1.0,0.0,True,False,2500,1.0,attention bypassed; pred = τ₀ @ W_pred + b_pred,D=24 baseline tau0_direct
+no_tau0,baseline,first,fixed_one,5.0665,0.3027,-0.6973,0.0029,0.0,0.0435,True,False,2500,1.0,position 0 masked (alpha[0]→0),D=24 baseline no_tau0
+last_only,baseline,first,fixed_one,5.0665,0.2612,-0.7388,0.0041,0.0,1.0,True,False,2500,1.0,all positions except t=23 masked,D=24 baseline last_only
+no_last,baseline,first,fixed_one,5.0665,1.0,0.0,0.0029,0.8784,0.0,True,False,2500,1.0,position t=23 masked,D=24 baseline no_last
+late_half,baseline,first,fixed_one,5.0665,0.2812,-0.7188,0.0039,0.0,0.0834,True,False,2500,1.0,positions 0..11 masked (only 12..23 used),D=24 baseline late_half
+early_2,baseline,first,fixed_one,5.0665,1.0,0.0,0.004,0.9937,0.0,True,False,2500,1.0,"positions 2..D-1 masked (only 0,1 used)",D=24 baseline early_2
+random_t_gt0,baseline,first,fixed_one,5.0665,1.0,0.0,0.0034,0.8736,0.0055,True,False,2500,1.0,τ_t (t>0) replaced with random tau table entries; τ₀ intact,D=24 baseline random_t_gt0
+full,restored,last,dynamic,-0.0017,0.2695,-0.7305,0.0032,0.0416,0.0417,False,False,,0.265625,none — full trajectory,D=24 restored full
+tau0_direct,restored,last,dynamic,-0.0017,0.2563,-0.7437,0.0002,1.0,0.0,False,False,,0.265625,attention bypassed; pred = τ₀ @ W_pred + b_pred,D=24 restored tau0_direct
+no_tau0,restored,last,dynamic,-0.0017,0.2729,-0.7271,0.0031,0.0,0.0435,False,False,,0.265625,position 0 masked (alpha[0]→0),D=24 restored no_tau0
+last_only,restored,last,dynamic,-0.0017,0.375,-0.625,0.0029,0.0,1.0,False,False,,0.265625,all positions except t=23 masked,D=24 restored last_only
+no_last,restored,last,dynamic,-0.0017,0.2485,-0.7515,0.0027,0.0434,0.0,False,False,,0.265625,position t=23 masked,D=24 restored no_last
+late_half,restored,last,dynamic,-0.0017,0.2637,-0.7363,0.0027,0.0,0.0833,False,False,,0.265625,positions 0..11 masked (only 12..23 used),D=24 restored late_half
+early_2,restored,last,dynamic,-0.0017,0.25,-0.75,0.0027,0.4995,0.0,False,False,,0.265625,"positions 2..D-1 masked (only 0,1 used)",D=24 restored early_2
+random_t_gt0,restored,last,dynamic,-0.0017,0.2559,-0.7441,0.0029,0.0411,0.0418,False,False,,0.265625,τ_t (t>0) replaced with random tau table entries; τ₀ intact,D=24 restored random_t_gt0

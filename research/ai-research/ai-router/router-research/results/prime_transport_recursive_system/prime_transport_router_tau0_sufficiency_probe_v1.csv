@@ -1,0 +1,15 @@
+variant,routing,accuracy,delta_vs_reference,alpha0,runtime_s,ablated_component,note
+reference,hard_geom,1.0,0.0,0.862,0.003,none (full trajectory),D=24 hard_geom
+tau0_direct,hard_geom,1.0,0.0,1.0,0.0001,attention bypassed; pred=τ₀@W_pred+b_pred,D=24 hard_geom
+tau0_repeated,hard_geom,1.0,0.0,0.8617,0.0033,τ_t (t>0) replaced with τ₀,D=24 hard_geom
+no_tau0,hard_geom,0.3062,-0.6938,0.0,0.0028,position 0 masked in attention (alpha[0]=0),D=24 hard_geom
+early_2,hard_geom,1.0,0.0,0.9931,0.0027,"positions 2..D-1 masked (only pos 0,1 used)",D=24 hard_geom
+late_half,hard_geom,0.2832,-0.7168,0.0,0.0027,positions 0..11 masked (only pos 12..23 used),D=24 hard_geom
+random_t_gt_0,hard_geom,1.0,0.0,0.8619,0.0047,τ_t (t>0) replaced with random tau table entries,D=24 hard_geom
+reference,soft_mlp,1.0,0.0,0.862,0.003,none (full trajectory),D=24 soft_mlp
+tau0_direct,soft_mlp,1.0,0.0,1.0,0.0001,attention bypassed; pred=τ₀@W_pred+b_pred,D=24 soft_mlp
+tau0_repeated,soft_mlp,1.0,0.0,0.8617,0.0032,τ_t (t>0) replaced with τ₀,D=24 soft_mlp
+no_tau0,soft_mlp,0.25,-0.75,0.0,0.0029,position 0 masked in attention (alpha[0]=0),D=24 soft_mlp
+early_2,soft_mlp,1.0,0.0,0.9931,0.0027,"positions 2..D-1 masked (only pos 0,1 used)",D=24 soft_mlp
+late_half,soft_mlp,0.2588,-0.7412,0.0,0.0026,positions 0..11 masked (only pos 12..23 used),D=24 soft_mlp
+random_t_gt_0,soft_mlp,1.0,0.0,0.8627,0.0029,τ_t (t>0) replaced with random tau table entries,D=24 soft_mlp

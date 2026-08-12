@@ -1,0 +1,22 @@
+category,item,path,status,notes
+canonical_note,router_memory_status,/Users/adminamn/AI-Research/ai-router/router-research/docs/research/prime_transport_router_memory_status.md,active,Branch-level architectural status freeze
+canonical_note,workspace_experiment,/Users/adminamn/AI-Research/ai-router/router-research/docs/research/prime_transport_router_memory_workspace_experiment.md,active,First bounded workspace-system result
+canonical_note,agent_loop,/Users/adminamn/AI-Research/ai-router/router-research/docs/research/prime_transport_router_memory_agent_loop.md,active,First bounded action/control loop result
+canonical_note,context_packet,/Users/adminamn/AI-Research/ai-router/router-research/docs/research/prime_transport_router_memory_context_packet.md,active,First packet-surface control improvement
+canonical_note,packet_control_improvement,/Users/adminamn/AI-Research/ai-router/router-research/docs/research/prime_transport_router_memory_packet_control_improvement.md,active,Improved bounded ranking controller
+canonical_note,attractor_identity,/Users/adminamn/AI-Research/ai-router/router-research/docs/research/prime_transport_attractor_identity_experiment.md,active,Minimal convergence-identity controller aid
+canonical_note,control_stack_decision,/Users/adminamn/AI-Research/ai-router/router-research/docs/research/prime_transport_router_memory_control_stack_decision.md,active,Current best stack freeze
+canonical_note,coordination_prototype,/Users/adminamn/AI-Research/ai-router/router-research/docs/research/prime_transport_router_memory_coordination_prototype.md,active,Current harder coordination prototype spec
+canonical_note,coordination_experiment,/Users/adminamn/AI-Research/ai-router/router-research/docs/research/prime_transport_router_memory_coordination_experiment.md,active,Latest harder coordination result
+driver,workspace_driver,/Users/adminamn/AI-Research/ai-router/router-research/tools/prime_transport/run_router_memory_workspace_experiment.py,active,Bounded workspace-system driver
+driver,agent_loop_driver,/Users/adminamn/AI-Research/ai-router/router-research/tools/prime_transport/run_router_memory_agent_loop.py,active,Bounded agent-style control loop driver
+driver,context_packet_driver,/Users/adminamn/AI-Research/ai-router/router-research/tools/prime_transport/run_router_memory_context_packet.py,active,Baseline vs packet vs improved vs attractor comparison
+driver,coordination_driver,/Users/adminamn/AI-Research/ai-router/router-research/tools/prime_transport/run_router_memory_coordination_experiment.py,active,Four-entity reassignment and dependency-coordination loop
+result_csv,workspace_csv,/Users/adminamn/AI-Research/ai-router/router-research/results/prime_transport_recursive_system/prime_transport_router_memory_workspace_experiment.csv,active,Exact local/shared retrieval with bounded workspace state
+result_csv,agent_loop_csv,/Users/adminamn/AI-Research/ai-router/router-research/results/prime_transport_recursive_system/prime_transport_router_memory_agent_loop.csv,active,Baseline bounded control loop result
+result_csv,context_packet_csv,/Users/adminamn/AI-Research/ai-router/router-research/results/prime_transport_recursive_system/prime_transport_router_memory_context_packet.csv,active,Canonical controller-surface comparison table
+result_csv,coordination_csv,/Users/adminamn/AI-Research/ai-router/router-research/results/prime_transport_recursive_system/prime_transport_router_memory_coordination_experiment.csv,active,Latest harder bounded coordination result
+best_stack,current_best_stack,unchanged router-memory substrate + unchanged promotion/query behavior + packet + attractor identity,active,Primary bounded controller stack going forward
+open_cost,promoted_query_burden,explicit deeper-family efficiency cost,open,Not reduced by current controller-side improvements
+open_cost,mixed_full_loop_coordination,full-loop coordination quality still mixed on harder coordination prototype,open,Main next controller-side challenge
+next_experiment,coordination_quality_improvement,improve bounded coordination policy quality on the same unchanged stack,planned,Do not redesign substrate before that step

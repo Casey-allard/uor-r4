@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+# prepare-commit-msg hook
+# Pre-populates commit messages with the current RR issue tag so every
+# commit is automatically traceable to an increment without manual effort.
+#
+# Only activates when no message is provided (blank commit, not --amend,
+# not merge, not squash). Skips automatically if you've already typed a message.
+
+MSG_FILE="$1"
+MSG_SOURCE="${2:-}"
+
+# Skip for merge, squash, template-driven, or explicit -m messages
+case "$MSG_SOURCE" in
+    merge|squash|commit) exit 0 ;;
+esac
+
+BRANCH="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")"
+
+# Require a codex/ branch to get the template
+[[ "$BRANCH" != codex/* ]] && exit 0
+
+# Extract the RR tag from the branch name
+RR="$(echo "$BRANCH" | grep -oE 'RR-[0-9]+' | head -1)"
+[[ -z "$RR" ]] && exit 0
+
+# Don't overwrite a message the user already typed (non-comment lines)
+EXISTING="$(grep -v '^#' "$MSG_FILE" 2>/dev/null | tr -d '[:space:]')"
+[[ -n "$EXISTING" ]] && exit 0
+
+# Write the template — the user replaces the placeholder
+cat > "$MSG_FILE" <<TEMPLATE
+[$RR] <describe this commit in one line>
+
+# Branch : $BRANCH
+# ---
+# What changed and why — keep the [$RR] prefix so commits link to the issue.
+# Examples:
+#   [$RR] Add shell-pressure blend parameter + screen config
+#   [$RR] Fix geodesic radius computation in phase4d_hopf_base_ball
+#   [$RR] Record screen results; geometry gate NOT met, narrowing further
+#
+# Artifacts (fill in what applies):
+#   config  :
+#   analysis:
+#   gate    :
+TEMPLATE

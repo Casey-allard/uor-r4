@@ -1,0 +1,81 @@
+import math
+
+MAX_LIMIT = 10_000_000  # Adjust this as needed
+SMALL_PRIMES = [2,3,5,7,11,13]
+
+def reduced_digit_sum_mod9(n):
+    s = 0
+    while n > 0:
+        s += n % 10
+        n //=10
+    return s % 9
+
+def passes_digit_sum_filter(n):
+    r = reduced_digit_sum_mod9(n)
+    return r not in [0,3,6]
+
+def divisible_by_small_primes(n):
+    for p in SMALL_PRIMES:
+        if n > p and n % p == 0:
+            return True
+    return False
+
+def sieve_primes_up_to(n):
+    """Sieve of Eratosthenes to identify primes up to n."""
+    sieve = [True]*(n+1)
+    sieve[0] = False
+    sieve[1] = False
+    limit = int(math.isqrt(n))
+    for i in range(2, limit+1):
+        if sieve[i]:
+            for j in range(i*i, n+1, i):
+                sieve[j] = False
+    return sieve
+
+def main():
+    print(f"Building sieve up to {MAX_LIMIT}...")
+    is_prime = sieve_primes_up_to(MAX_LIMIT)
+    print("Sieve built.")
+
+    survivors = []
+    count_survived = 0
+    
+    print("Filtering integers...")
+    for n in range(2, MAX_LIMIT+1):
+        # Apply 6k±1 filter:
+        # All primes > 3 are of form 6k ± 1
+        # If n > 3 and not in {1,5} mod 6, skip.
+        if n > 3 and (n % 6 not in [1,5]):
+            continue
+        
+        # Digit sum filter
+        if not passes_digit_sum_filter(n):
+            continue
+        
+        # Small prime divisibility check
+        if divisible_by_small_primes(n):
+            continue
+        
+        survivors.append(n)
+        count_survived += 1
+    
+    print("Checking primality of survivors...")
+    # With sieve, primality check is O(1)
+    count_prime = sum(1 for s in survivors if is_prime[s])
+    
+    print("Checking twin primes...")
+    survivor_set = set(survivors)
+    twin_count = 0
+    for p in survivors:
+        if (p+2) in survivor_set and is_prime[p] and is_prime[p+2]:
+            twin_count += 1
+
+    print(f"Max Limit: {MAX_LIMIT}")
+    print(f"Survivors: {count_survived}")
+    print(f"Primes in survivors: {count_prime}")
+    print(f"Twin prime pairs in survivors: {twin_count}")
+    print("Done.")
+
+if __name__ == "__main__":
+    main()
+

@@ -1,0 +1,102 @@
+
+\documentclass[11pt]{article}
+\usepackage{amsmath,amsfonts,amssymb}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{geometry}
+\geometry{margin=1in}
+
+\title{Quantum Information Merge Conflict (QIMC):\\ A Framework for Observer-State Desynchronization}
+\author{Casey and GPT-4}
+\date{2025}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+We introduce the concept of Quantum Information Merge Conflict (QIMC), a theoretical framework describing discontinuities that arise when independent observer states attempt to synchronize across decoherent quantum environments. Drawing inspiration from classical version control conflicts and formal observer theory, QIMC proposes that certain classes of informational paradoxes and inconsistencies originate not in fundamental uncertainty but in mismatched observer domains and incompatible informational histories.
+\end{abstract}
+
+\section{Introduction}
+Quantum mechanics places the observer at the center of reality formation. From the double-slit experiment to Wigner's Friend, observer-dependence is not a bug but a defining feature. Yet, there remains no unified model explaining how multiple observers reconcile divergent informational states, especially in environments exhibiting decoherence.
+
+The proposed Quantum Information Merge Conflict (QIMC) model draws an analogy between distributed computation and distributed observation in quantum systems. Just as version control systems encounter merge conflicts, quantum observers may experience informational conflict during state recombination. We model this using observer-space synchronization errors.
+
+\section{QIMC Framework}
+Let $O_1$ and $O_2$ be observers with respective informational states $I_1(t), I_2(t)$ defined over a shared decoherent system $S$.
+
+A Quantum Information Merge Conflict exists at time $t^*$ if:
+\[
+\text{merge}(I_1(t^*), I_2(t^*)) \rightarrow \bot
+\]
+where $\bot$ denotes logical inconsistency or non-unitary collapse across reference frames.
+
+This occurs when:
+\begin{itemize}
+  \item The decoherence basis of $S$ differs between $O_1$ and $O_2$
+  \item Information recorded is locally valid but globally incompatible
+  \item No reconciling unitary exists across the joint Hilbert space spanned by $O_1 \cup O_2$
+\end{itemize}
+
+\section{Mathematical Formalism}
+Let $\mathcal{H}_S$ be the system Hilbert space. The state is:
+\[
+\rho_S \in \mathcal{D}(\mathcal{H}_S)
+\]
+Each observer $O_i$ maps via a CPTP channel:
+\[
+\Phi_i: \mathcal{D}(\mathcal{H}_S) \rightarrow \mathcal{D}(\mathcal{H}_i)
+\]
+Define the observer's state:
+\[
+\rho_i = \Phi_i(\rho_S)
+\]
+
+A merge conflict exists if:
+\[
+\exists i,j: \text{Tr}(\rho_1 P_i) \neq \text{Tr}(\rho_2 P_j) \quad \text{and} \quad \nexists U: U \rho_1 U^\dagger = \rho_2
+\]
+
+Define the conflict set:
+\[
+\text{QIMC}_{\rho_1, \rho_2} = \left\{ \Pi \in \text{Proj}(\mathcal{H}) \mid \text{Tr}(\rho_1 \Pi) \neq \text{Tr}(\rho_2 \Pi) \right\}
+\]
+
+\section{Categorical Modeling}
+We define a symmetric monoidal category $\mathcal{Q}$:
+\begin{itemize}
+  \item \textbf{Objects:} Quantum systems $\mathcal{H}_S$, $\mathcal{H}_i$
+  \item \textbf{Morphisms:} Observer channels $\Phi_i$
+  \item \textbf{Tensor:} Joint systems $\mathcal{H}_S \otimes \mathcal{H}_i$
+  \item \textbf{Composition:} Time evolution or chaining
+\end{itemize}
+
+Conflict arises when:
+\[
+\begin{array}{ccc}
+& \mathcal{H}_S & \\
+\Phi_1 \swarrow & & \searrow \Phi_2 \\
+\mathcal{H}_1 & \xrightarrow[]{M?} & \mathcal{H}_2
+\end{array}
+\]
+fails to commute.
+
+We define a subcategory $\mathcal{Q}_{\text{conflict}}$ where morphisms $M$ are undefined due to irreconcilable observer histories.
+
+\section{Simulation}
+We simulate observers decohering in different bases (Z, X, Y). The divergence of their Bloch vector trajectories indicates QIMCs.
+
+See included Python script in the repository.
+
+\section{Implications and Future Work}
+\begin{itemize}
+  \item Measurement irreversibility as failed synchronization
+  \item Entanglement asymmetry as merge imbalance
+  \item Decoherence as observer domain drift
+  \item Expand QIMC to quantum error correction
+\end{itemize}
+
+\section{Acknowledgements}
+Co-developed by Casey and GPT-4, 2025.
+
+\end{document}

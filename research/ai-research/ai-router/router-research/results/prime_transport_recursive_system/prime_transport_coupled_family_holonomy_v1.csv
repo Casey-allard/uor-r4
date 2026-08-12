@@ -1,0 +1,27 @@
+scope,metric,count,total,fraction,note
+summary,primary_states_examined,45,45,1.0,distinct primary chart states on the bounded lawful H_v8 surface
+summary,distinct_parent_states_reached,38315,45,851.4444444444445,distinct canonical parent states with coupled-holonomy residue law
+summary,collision_count,0,45,0.0,many-to-one collisions from primary chart states into v6 parent states
+summary,recursive_consistency_rate,38315,38315,1.0,fraction of parent states whose lawful component updates remain canonical
+projection,sigma_updated_directly_by_R_G,1,1,1.0,sigma updated by direct R_G maps with coupled-family holonomy residue law
+projection,profile_fields_are_derived_diagnostics_only,1,1,1.0,seed_orbit and action/composition profiles remain derived diagnostics only
+projection,spin_h4_derivable_from_parent,1,1,1.0,Pi_pred(spin_H_core_v6) -> sigma.current_mode
+projection,tau_derivable_from_parent,1,1,1.0,Pi_rec(spin_H_core_v6) -> tau
+projection,kappa_derivable_from_parent,1,1,1.0,Pi_hol(spin_H_core_v6) -> kappa
+composition,R_Tz_after_R_Tr_exact_agreement_count,10837,38315,0.2828396189481926,exact sigma agreement under coupled-family holonomy residue law
+comparison_vs_v5,R_Tz_after_R_Tr_exact_agreement_count_change,-16768,38315,-0.43763539083909697,exact-agreement change relative to spin_H_core_v5 family holonomy law
+composition,R_Tc_after_R_Tr_exact_agreement_count,13952,38315,0.36413937100352345,exact sigma agreement under coupled-family holonomy residue law
+comparison_vs_v5,R_Tc_after_R_Tr_exact_agreement_count_change,-24363,38315,-0.6358606289964766,exact-agreement change relative to spin_H_core_v5 family holonomy law
+composition,R_Ty_after_R_Tr_exact_agreement_count,7463,38315,0.1947801122275871,exact sigma agreement under coupled-family holonomy residue law
+comparison_vs_v5,R_Ty_after_R_Tr_exact_agreement_count_change,-14711,38315,-0.38394884509983035,exact-agreement change relative to spin_H_core_v5 family holonomy law
+primitive,coupled_holonomy_residue_active,1,1,1.0,"coupled_holonomy_residue_v6 replaces (0,1,2) stub in sigma_family_holonomy_law_v6"
+primitive,family_uplift_scope,7,7,1.0,all seven R_G maps (R_I R_Tb R_Tx R_Tc R_Ty R_Tz R_Tr) call sigma_family_holonomy_law_v6
+primitive,new_state_fields_added,0,0,0.0,no new fields in SigmaDirectV5; primitive is purely functional
+primitive,h_dependency,0,0,0.0,coupled_holonomy_residue_v6 uses only source_sigma and proposed_sigma fields
+update_law,hold,38315,38315,1.0,dominant_component_delta=theta0_rho0_sigma0_h0
+update_law,torus_base_advance,38315,38315,1.0,dominant_component_delta=theta1_rho0_sigma0_h0
+update_law,composite_swap,19463,38315,0.5079733785723607,dominant_component_delta=theta0_rho0_sigma1_h1
+update_law,coupled_torus_kick,21161,38315,0.5522902257601462,dominant_component_delta=theta1_rho1_sigma1_h1
+update_law,composite_twist,37607,38315,0.9815215972856584,dominant_component_delta=theta0_rho1_sigma1_h1
+update_law,fiber_phase_lift_spin_transport,37551,38315,0.9800600287093828,dominant_component_delta=theta1_rho1_sigma1_h1
+update_law,radial_transport_unfolding,28857,38315,0.7531515072425943,dominant_component_delta=theta1_rho1_sigma1_h1

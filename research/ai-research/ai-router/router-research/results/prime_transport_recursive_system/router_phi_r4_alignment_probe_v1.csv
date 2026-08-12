@@ -1,0 +1,13 @@
+config,ctrl_mode,orientation,horizon,accuracy,solve_step,no_last_accuracy,decodability_initial,decodability_mid,decodability_final,alpha_last,runtime_seconds,note
+ctrl_baseline_original_s42,baseline,original_s42,24,0.9941,,0.9932,1.0,1.0,1.0,0.0408,111.4,task=mod12_quarter_D24_no_inject; D=24; anchor=two_i_rot; ctrl_mode=baseline; orientation=original_s42; eps_high=1.0; geom=GEOM_K3
+ctrl_baseline_shift1_s42,baseline,shift1_s42,24,0.9976,,0.9971,1.0,1.0,1.0,0.0322,110.5,task=mod12_quarter_D24_no_inject; D=24; anchor=two_i_rot; ctrl_mode=baseline; orientation=shift1_s42; eps_high=1.0; geom=GEOM_K3
+ctrl_phi_original_s42,phi,original_s42,24,0.9893,,0.9922,1.0,1.0,1.0,0.0353,124.5,task=mod12_quarter_D24_no_inject; D=24; anchor=two_i_rot; ctrl_mode=phi; orientation=original_s42; eps_high=1.0; geom=GEOM_K3
+ctrl_phi_shift1_s42,phi,shift1_s42,24,0.8638,,0.8403,1.0,1.0,1.0,0.0388,124.5,task=mod12_quarter_D24_no_inject; D=24; anchor=two_i_rot; ctrl_mode=phi; orientation=shift1_s42; eps_high=1.0; geom=GEOM_K3
+ctrl_phi_r4_original_s42,phi_r4,original_s42,24,0.7285,,0.709,1.0,1.0,1.0,0.0412,175.2,task=mod12_quarter_D24_no_inject; D=24; anchor=two_i_rot; ctrl_mode=phi_r4; orientation=original_s42; eps_high=1.0; geom=GEOM_K3
+ctrl_phi_r4_shift1_s42,phi_r4,shift1_s42,24,0.9683,,0.9692,1.0,1.0,1.0,0.0508,175.8,task=mod12_quarter_D24_no_inject; D=24; anchor=two_i_rot; ctrl_mode=phi_r4; orientation=shift1_s42; eps_high=1.0; geom=GEOM_K3
+ctrl_baseline_original_s42,baseline,original_s42,32,0.9707,,0.9717,1.0,1.0,1.0,0.0272,147.5,task=mod12_quarter_D32_no_inject; D=32; anchor=two_i_rot; ctrl_mode=baseline; orientation=original_s42; eps_high=1.0; geom=GEOM_K3
+ctrl_baseline_shift1_s42,baseline,shift1_s42,32,0.9805,,0.9868,1.0,1.0,1.0,0.0303,148.8,task=mod12_quarter_D32_no_inject; D=32; anchor=two_i_rot; ctrl_mode=baseline; orientation=shift1_s42; eps_high=1.0; geom=GEOM_K3
+ctrl_phi_original_s42,phi,original_s42,32,0.9912,,0.9927,1.0,1.0,1.0,0.0259,170.3,task=mod12_quarter_D32_no_inject; D=32; anchor=two_i_rot; ctrl_mode=phi; orientation=original_s42; eps_high=1.0; geom=GEOM_K3
+ctrl_phi_shift1_s42,phi,shift1_s42,32,0.9937,,0.9927,1.0,1.0,1.0,0.0242,169.0,task=mod12_quarter_D32_no_inject; D=32; anchor=two_i_rot; ctrl_mode=phi; orientation=shift1_s42; eps_high=1.0; geom=GEOM_K3
+ctrl_phi_r4_original_s42,phi_r4,original_s42,32,0.9946,,0.9961,1.0,1.0,1.0,0.0272,240.2,task=mod12_quarter_D32_no_inject; D=32; anchor=two_i_rot; ctrl_mode=phi_r4; orientation=original_s42; eps_high=1.0; geom=GEOM_K3
+ctrl_phi_r4_shift1_s42,phi_r4,shift1_s42,32,0.981,,0.9854,1.0,1.0,1.0,0.0262,240.0,task=mod12_quarter_D32_no_inject; D=32; anchor=two_i_rot; ctrl_mode=phi_r4; orientation=shift1_s42; eps_high=1.0; geom=GEOM_K3

@@ -1,0 +1,201 @@
+{
+  "branch_outcome": "translated_systems_cost_branch",
+  "candidate_omission_supported": false,
+  "event_gate_overhead_supported": true,
+  "generated_at": "2026-03-12T19:03:51.573444-04:00",
+  "in_candidate_ordering_loss_supported": false,
+  "interpretation": "The near-hard controller survives as a sparse and healthy proxy mechanism, and it keeps the same translated top-1 plus candidate fraction as the translated soft-sparse and continuous references. The translated failure is therefore a systems-cost problem, not a candidate-quality or trainability problem.",
+  "proxy_deltas": {
+    "hard_vs_near_hard": {
+      "event_gate_active_frac": 0.8403750000000001,
+      "event_gate_mean": 0.8203372905890616,
+      "mse": 3.222498033118859e-05,
+      "shell_pmax": 0.0,
+      "total_sec": 1.7053990522399545,
+      "unseen_rate": 0.0
+    },
+    "near_hard_vs_continuous": {
+      "event_gate_active_frac": -1.0,
+      "event_gate_mean": -0.9799622905890615,
+      "mse": -2.509302621694215e-05,
+      "shell_pmax": 0.0,
+      "total_sec": -3.015132437751163,
+      "unseen_rate": 0.0
+    },
+    "near_hard_vs_soft_sparse": {
+      "event_gate_active_frac": 0.0,
+      "event_gate_mean": -0.29892103647347706,
+      "mse": -3.53250841167857e-05,
+      "shell_pmax": 0.0,
+      "total_sec": 0.028919281263370067,
+      "unseen_rate": 0.0
+    }
+  },
+  "proxy_reference_routes": {
+    "continuous": {
+      "metrics": {
+        "event_gate_active_frac": 1.0,
+        "event_gate_mean": 1.0,
+        "mse": 0.0038844288025547628,
+        "shell_pmax": 0.5759,
+        "total_sec": 13.228438083504443,
+        "unseen_rate": 0.00095
+      },
+      "route_id": "H4XH4_FIELD_A150"
+    },
+    "hard": {
+      "metrics": {
+        "event_gate_active_frac": 0.8403750000000001,
+        "event_gate_mean": 0.8403750000000001,
+        "mse": 0.003891560756669009,
+        "shell_pmax": 0.5759,
+        "total_sec": 11.918704697993235,
+        "unseen_rate": 0.00095
+      },
+      "route_id": "H4XH4_FIELD_A150_HARD_T062"
+    },
+    "near_hard": {
+      "metrics": {
+        "event_gate_active_frac": 0.0,
+        "event_gate_mean": 0.020037709410938576,
+        "mse": 0.0038593357763378206,
+        "shell_pmax": 0.5759,
+        "total_sec": 10.21330564575328,
+        "unseen_rate": 0.00095
+      },
+      "route_id": "H4XH4_FIELD_A150_EVT_T070_TAU002"
+    },
+    "soft_sparse": {
+      "metrics": {
+        "event_gate_active_frac": 0.0,
+        "event_gate_mean": 0.31895874588441564,
+        "mse": 0.0038946608604546063,
+        "shell_pmax": 0.5759,
+        "total_sec": 10.18438636448991,
+        "unseen_rate": 0.00095
+      },
+      "route_id": "H4XH4_FIELD_A150_EVT_T070"
+    }
+  },
+  "quality_preserved_vs_continuous": true,
+  "quality_preserved_vs_soft_sparse": true,
+  "route_search_interaction_cost_supported": true,
+  "sources": {
+    "near_hard_translated_analysis": "inc0102_product_phase_near_hard_event_translation_screen",
+    "proxy_analysis": "inc0125_product_phase_sparse_event_proxy_trainability_hardening_confirm",
+    "soft_translated_analysis": "inc0100_product_phase_sparse_event_translation_confirm"
+  },
+  "translated_deltas": {
+    "near_hard_vs_continuous": {
+      "amortized_per_repeat_sec": 0.14502081254613586,
+      "candidate_fraction": 0.0,
+      "event_gate_active_frac": -1.0,
+      "event_gate_mean": -0.9790271035281569,
+      "online_per_repeat_sec": 0.13421966703026555,
+      "query_route_sec": 0.019695791561389342,
+      "retrieval_search_sec": 0.11452387546887621,
+      "route_index_build_sec": 0.01056768701528199,
+      "top1": 0.0
+    },
+    "near_hard_vs_soft_sparse": {
+      "amortized_per_repeat_sec": 0.11768856248818338,
+      "candidate_fraction": 0.0,
+      "event_gate_active_frac": 0.0,
+      "event_gate_mean": -0.29823861659607387,
+      "online_per_repeat_sec": 0.09860243750154041,
+      "query_route_sec": 0.011107770551461726,
+      "retrieval_search_sec": 0.08749466695007868,
+      "route_index_build_sec": 0.01888987500569783,
+      "top1": 0.0
+    },
+    "soft_sparse_confirm_vs_continuous": {
+      "amortized_per_repeat_sec": -0.1694031670485856,
+      "candidate_fraction": 0.0,
+      "event_gate_active_frac": -1.0,
+      "event_gate_mean": -0.680934784575668,
+      "online_per_repeat_sec": -0.15817317726032343,
+      "query_route_sec": -0.03467211450333707,
+      "retrieval_search_sec": -0.12350106275698636,
+      "route_index_build_sec": -0.011057146009989083,
+      "top1": 0.0
+    }
+  },
+  "translated_near_hard_component_shares_vs_soft_sparse": {
+    "query_route_share": 0.11265208886228797,
+    "retrieval_search_share": 0.887347911137712,
+    "route_index_build_share": 0.19157614643555568
+  },
+  "translated_near_hard_primary_runtime_driver_vs_soft_sparse": "retrieval_search_sec",
+  "translated_reference_routes": {
+    "continuous": {
+      "metrics": {
+        "amortized_per_repeat_sec": 0.11841456292313524,
+        "candidate_fraction": 0.18901600000000002,
+        "event_gate_active_frac": 1.0,
+        "event_gate_mean": 1.0,
+        "online_per_repeat_sec": 0.08139212496462278,
+        "query_route_sec": 0.012768020969815552,
+        "retrieval_search_sec": 0.06862410399480723,
+        "route_index_build_sec": 0.03606972948182374,
+        "top1": 0.0444
+      },
+      "route_id": "CHART_H4XH4_FIELD_A150_CPX8_Q01_T2500"
+    },
+    "dense": {
+      "metrics": {
+        "amortized_per_repeat_sec": 0.2511076664668508,
+        "candidate_fraction": 1.0,
+        "event_gate_active_frac": 1.0,
+        "event_gate_mean": 1.0,
+        "online_per_repeat_sec": 0.2511076664668508,
+        "query_route_sec": 0.0,
+        "retrieval_search_sec": 0.2511076664668508,
+        "route_index_build_sec": 0.0,
+        "top1": 0.0516
+      },
+      "route_id": "DENSE_Q01_T2500"
+    },
+    "near_hard": {
+      "metrics": {
+        "amortized_per_repeat_sec": 0.2634353754692711,
+        "candidate_fraction": 0.18901600000000002,
+        "event_gate_active_frac": 0.0,
+        "event_gate_mean": 0.02097289647184307,
+        "online_per_repeat_sec": 0.21561179199488834,
+        "query_route_sec": 0.032463812531204894,
+        "retrieval_search_sec": 0.18314797946368344,
+        "route_index_build_sec": 0.04663741649710573,
+        "top1": 0.0444
+      },
+      "route_id": "CHART_H4XH4_FIELD_A150_EVT_T070_TAU002_CPX8_Q01_T2500"
+    },
+    "soft_sparse_confirm_reference": {
+      "metrics": {
+        "amortized_per_repeat_sec": 0.1686110412410926,
+        "candidate_fraction": 0.19332824,
+        "event_gate_active_frac": 0.0,
+        "event_gate_mean": 0.31906521542433197,
+        "online_per_repeat_sec": 0.11774084324133582,
+        "query_route_sec": 0.02333927074505482,
+        "retrieval_search_sec": 0.094401572496281,
+        "route_index_build_sec": 0.049970281252171844,
+        "top1": 0.0446
+      },
+      "route_id": "CHART_H4XH4_FIELD_A150_EVT_T070_CPX8_Q01_T2500"
+    },
+    "soft_sparse_screen_context": {
+      "metrics": {
+        "amortized_per_repeat_sec": 0.14574681298108771,
+        "candidate_fraction": 0.18901600000000002,
+        "event_gate_active_frac": 0.0,
+        "event_gate_mean": 0.31921151306791695,
+        "online_per_repeat_sec": 0.11700935449334793,
+        "query_route_sec": 0.021356041979743168,
+        "retrieval_search_sec": 0.09565331251360476,
+        "route_index_build_sec": 0.0277475414914079,
+        "top1": 0.0444
+      },
+      "route_id": "CHART_H4XH4_FIELD_A150_EVT_T070_CPX8_Q01_T2500"
+    }
+  }
+}

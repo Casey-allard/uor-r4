@@ -1,0 +1,4269 @@
+{
+  "ExpA_L2": {
+    "label": "ExpA_L2_baseline",
+    "delta_r": 3.6,
+    "r_eff_stats": {
+      "min": 0.9999999999999996,
+      "max": 1.0000000000000004,
+      "mean": 1.0,
+      "std": 1.16515248533348e-16,
+      "p05": 0.9999999999999998,
+      "p25": 0.9999999999999999,
+      "p50": 1.0,
+      "p75": 1.0,
+      "p95": 1.0000000000000002,
+      "shell1_threshold": 2.224922359499622,
+      "pct_above_shell1": 0.0
+    },
+    "routing_results": [
+      {
+        "K": 10,
+        "mode": "BASE",
+        "variant": "ORIG",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 10,
+        "sectors_above_1pct": 10,
+        "n_buckets": 10,
+        "effective_bucket_count": 8.304281299397665,
+        "routing_gini": 0.32504,
+        "top_half_concentration": 0.7186,
+        "bucket_purity": 1.0,
+        "sector_entropy": 2.1167712010180946,
+        "sector_gini": 0.32504
+      },
+      {
+        "K": 10,
+        "mode": "BASE",
+        "variant": "PERM",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 10,
+        "sectors_above_1pct": 10,
+        "n_buckets": 10,
+        "effective_bucket_count": 9.120141858706706,
+        "routing_gini": 0.22583999999999982,
+        "top_half_concentration": 0.649,
+        "bucket_purity": 1.0,
+        "sector_entropy": 2.21048535864802,
+        "sector_gini": 0.22583999999999982
+      },
+      {
+        "K": 10,
+        "mode": "TRANS",
+        "variant": "ORIG",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 8,
+        "sectors_above_1pct": 8,
+        "n_buckets": 8,
+        "effective_bucket_count": 6.648837426942566,
+        "routing_gini": 0.33135000000000003,
+        "top_half_concentration": 0.7414,
+        "bucket_purity": 1.0,
+        "sector_entropy": 1.8944420163682827,
+        "sector_gini": 0.33135000000000003
+      },
+      {
+        "K": 10,
+        "mode": "TRANS",
+        "variant": "PERM",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 8,
+        "sectors_above_1pct": 8,
+        "n_buckets": 8,
+        "effective_bucket_count": 7.417019762916396,
+        "routing_gini": 0.20425000000000004,
+        "top_half_concentration": 0.6354,
+        "bucket_purity": 1.0,
+        "sector_entropy": 2.003777327294001,
+        "sector_gini": 0.20425000000000004
+      },
+      {
+        "K": 25,
+        "mode": "BASE",
+        "variant": "ORIG",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 25,
+        "sectors_above_1pct": 20,
+        "n_buckets": 25,
+        "effective_bucket_count": 20.464051259594648,
+        "routing_gini": 0.338592,
+        "top_half_concentration": 0.7314,
+        "bucket_purity": 1.0,
+        "sector_entropy": 3.0186697497001718,
+        "sector_gini": 0.338592
+      },
+      {
+        "K": 25,
+        "mode": "BASE",
+        "variant": "PERM",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 25,
+        "sectors_above_1pct": 25,
+        "n_buckets": 25,
+        "effective_bucket_count": 23.5979369771443,
+        "routing_gini": 0.19222399999999995,
+        "top_half_concentration": 0.6284,
+        "bucket_purity": 1.0,
+        "sector_entropy": 3.161159291987845,
+        "sector_gini": 0.19222399999999995
+      },
+      {
+        "K": 25,
+        "mode": "TRANS",
+        "variant": "ORIG",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 24,
+        "sectors_above_1pct": 21,
+        "n_buckets": 24,
+        "effective_bucket_count": 18.551319186380557,
+        "routing_gini": 0.39436666666666653,
+        "top_half_concentration": 0.7716,
+        "bucket_purity": 1.0,
+        "sector_entropy": 2.9205409016936437,
+        "sector_gini": 0.39436666666666653
+      },
+      {
+        "K": 25,
+        "mode": "TRANS",
+        "variant": "PERM",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 24,
+        "sectors_above_1pct": 24,
+        "n_buckets": 24,
+        "effective_bucket_count": 21.829119457598196,
+        "routing_gini": 0.23924999999999996,
+        "top_half_concentration": 0.667,
+        "bucket_purity": 1.0,
+        "sector_entropy": 3.0832448334037577,
+        "sector_gini": 0.23924999999999996
+      },
+      {
+        "K": 50,
+        "mode": "BASE",
+        "variant": "ORIG",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 50,
+        "sectors_above_1pct": 31,
+        "n_buckets": 50,
+        "effective_bucket_count": 34.24411768797776,
+        "routing_gini": 0.476688,
+        "top_half_concentration": 0.8538,
+        "bucket_purity": 1.0,
+        "sector_entropy": 3.533514803621728,
+        "sector_gini": 0.476688
+      },
+      {
+        "K": 50,
+        "mode": "BASE",
+        "variant": "PERM",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 50,
+        "sectors_above_1pct": 45,
+        "n_buckets": 50,
+        "effective_bucket_count": 43.99248298995585,
+        "routing_gini": 0.2789520000000001,
+        "top_half_concentration": 0.6942,
+        "bucket_purity": 1.0,
+        "sector_entropy": 3.7840187781858843,
+        "sector_gini": 0.2789520000000001
+      },
+      {
+        "K": 50,
+        "mode": "TRANS",
+        "variant": "ORIG",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 50,
+        "sectors_above_1pct": 27,
+        "n_buckets": 50,
+        "effective_bucket_count": 32.49660559025253,
+        "routing_gini": 0.5076959999999999,
+        "top_half_concentration": 0.876,
+        "bucket_purity": 1.0,
+        "sector_entropy": 3.4811356405042577,
+        "sector_gini": 0.5076959999999999
+      },
+      {
+        "K": 50,
+        "mode": "TRANS",
+        "variant": "PERM",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 50,
+        "sectors_above_1pct": 45,
+        "n_buckets": 50,
+        "effective_bucket_count": 44.17878794834633,
+        "routing_gini": 0.2745599999999999,
+        "top_half_concentration": 0.6844,
+        "bucket_purity": 1.0,
+        "sector_entropy": 3.788244763218773,
+        "sector_gini": 0.2745599999999999
+      },
+      {
+        "K": 75,
+        "mode": "BASE",
+        "variant": "ORIG",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 75,
+        "sectors_above_1pct": 35,
+        "n_buckets": 75,
+        "effective_bucket_count": 49.05134381519022,
+        "routing_gini": 0.5032533333333333,
+        "top_half_concentration": 0.861,
+        "bucket_purity": 1.0,
+        "sector_entropy": 3.8928675824799233,
+        "sector_gini": 0.5032533333333333
+      },
+      {
+        "K": 75,
+        "mode": "BASE",
+        "variant": "PERM",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 75,
+        "sectors_above_1pct": 48,
+        "n_buckets": 75,
+        "effective_bucket_count": 67.12894786947383,
+        "routing_gini": 0.2587999999999999,
+        "top_half_concentration": 0.6736,
+        "bucket_purity": 1.0,
+        "sector_entropy": 4.206615364797506,
+        "sector_gini": 0.2587999999999999
+      },
+      {
+        "K": 75,
+        "mode": "TRANS",
+        "variant": "ORIG",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 69,
+        "sectors_above_1pct": 25,
+        "n_buckets": 69,
+        "effective_bucket_count": 33.25960362231125,
+        "routing_gini": 0.6415072463768114,
+        "top_half_concentration": 0.9448,
+        "bucket_purity": 1.0,
+        "sector_entropy": 3.504343556144496,
+        "sector_gini": 0.6415072463768114
+      },
+      {
+        "K": 75,
+        "mode": "TRANS",
+        "variant": "PERM",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 73,
+        "sectors_above_1pct": 44,
+        "n_buckets": 73,
+        "effective_bucket_count": 55.324880622571214,
+        "routing_gini": 0.4044821917808219,
+        "top_half_concentration": 0.7876,
+        "bucket_purity": 1.0,
+        "sector_entropy": 4.0132227281864115,
+        "sector_gini": 0.4044821917808219
+      },
+      {
+        "K": 100,
+        "mode": "BASE",
+        "variant": "ORIG",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 100,
+        "sectors_above_1pct": 42,
+        "n_buckets": 100,
+        "effective_bucket_count": 70.69459107195617,
+        "routing_gini": 0.45877999999999997,
+        "top_half_concentration": 0.8472,
+        "bucket_purity": 1.0,
+        "sector_entropy": 4.258369064628689,
+        "sector_gini": 0.45877999999999997
+      },
+      {
+        "K": 100,
+        "mode": "BASE",
+        "variant": "PERM",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 100,
+        "sectors_above_1pct": 41,
+        "n_buckets": 100,
+        "effective_bucket_count": 92.63318056550445,
+        "routing_gini": 0.22146399999999988,
+        "top_half_concentration": 0.6602,
+        "bucket_purity": 1.0,
+        "sector_entropy": 4.52864739891207,
+        "sector_gini": 0.22146399999999988
+      },
+      {
+        "K": 100,
+        "mode": "TRANS",
+        "variant": "ORIG",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 87,
+        "sectors_above_1pct": 26,
+        "n_buckets": 87,
+        "effective_bucket_count": 38.321545729370776,
+        "routing_gini": 0.6729425287356321,
+        "top_half_concentration": 0.9476,
+        "bucket_purity": 1.0,
+        "sector_entropy": 3.646012289694421,
+        "sector_gini": 0.6729425287356321
+      },
+      {
+        "K": 100,
+        "mode": "TRANS",
+        "variant": "PERM",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 93,
+        "sectors_above_1pct": 45,
+        "n_buckets": 93,
+        "effective_bucket_count": 74.03527245448755,
+        "routing_gini": 0.36645591397849464,
+        "top_half_concentration": 0.7532,
+        "bucket_purity": 1.0,
+        "sector_entropy": 4.304541634430733,
+        "sector_gini": 0.36645591397849464
+      },
+      {
+        "K": 150,
+        "mode": "BASE",
+        "variant": "ORIG",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 149,
+        "sectors_above_1pct": 41,
+        "n_buckets": 149,
+        "effective_bucket_count": 94.8979250649098,
+        "routing_gini": 0.5198442953020133,
+        "top_half_concentration": 0.8716,
+        "bucket_purity": 1.0,
+        "sector_entropy": 4.552801840939653,
+        "sector_gini": 0.5198442953020133
+      },
+      {
+        "K": 150,
+        "mode": "BASE",
+        "variant": "PERM",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 150,
+        "sectors_above_1pct": 19,
+        "n_buckets": 150,
+        "effective_bucket_count": 134.57166381707316,
+        "routing_gini": 0.25838400000000017,
+        "top_half_concentration": 0.6814,
+        "bucket_purity": 1.0,
+        "sector_entropy": 4.9020968736294055,
+        "sector_gini": 0.25838400000000017
+      },
+      {
+        "K": 150,
+        "mode": "TRANS",
+        "variant": "ORIG",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 122,
+        "sectors_above_1pct": 31,
+        "n_buckets": 122,
+        "effective_bucket_count": 46.992250771829376,
+        "routing_gini": 0.7128065573770492,
+        "top_half_concentration": 0.9612,
+        "bucket_purity": 1.0,
+        "sector_entropy": 3.849982710921201,
+        "sector_gini": 0.7128065573770492
+      },
+      {
+        "K": 150,
+        "mode": "TRANS",
+        "variant": "PERM",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 139,
+        "sectors_above_1pct": 35,
+        "n_buckets": 139,
+        "effective_bucket_count": 90.6131424339439,
+        "routing_gini": 0.5065755395683453,
+        "top_half_concentration": 0.853,
+        "bucket_purity": 1.0,
+        "sector_entropy": 4.506599262506059,
+        "sector_gini": 0.5065755395683453
+      },
+      {
+        "K": 200,
+        "mode": "BASE",
+        "variant": "ORIG",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 198,
+        "sectors_above_1pct": 40,
+        "n_buckets": 198,
+        "effective_bucket_count": 123.49967931853644,
+        "routing_gini": 0.5322969696969697,
+        "top_half_concentration": 0.8778,
+        "bucket_purity": 1.0,
+        "sector_entropy": 4.81623855945362,
+        "sector_gini": 0.5322969696969697
+      },
+      {
+        "K": 200,
+        "mode": "BASE",
+        "variant": "PERM",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 200,
+        "sectors_above_1pct": 11,
+        "n_buckets": 200,
+        "effective_bucket_count": 176.5840708680644,
+        "routing_gini": 0.275544,
+        "top_half_concentration": 0.692,
+        "bucket_purity": 1.0,
+        "sector_entropy": 5.173797085166608,
+        "sector_gini": 0.275544
+      },
+      {
+        "K": 200,
+        "mode": "TRANS",
+        "variant": "ORIG",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 157,
+        "sectors_above_1pct": 31,
+        "n_buckets": 157,
+        "effective_bucket_count": 57.207048570406755,
+        "routing_gini": 0.7275566878980892,
+        "top_half_concentration": 0.9614,
+        "bucket_purity": 1.0,
+        "sector_entropy": 4.046677117549321,
+        "sector_gini": 0.7275566878980892
+      },
+      {
+        "K": 200,
+        "mode": "TRANS",
+        "variant": "PERM",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 183,
+        "sectors_above_1pct": 33,
+        "n_buckets": 183,
+        "effective_bucket_count": 118.85677576349181,
+        "routing_gini": 0.5097617486338797,
+        "top_half_concentration": 0.8574,
+        "bucket_purity": 1.0,
+        "sector_entropy": 4.777919203232812,
+        "sector_gini": 0.5097617486338797
+      },
+      {
+        "K": 400,
+        "mode": "BASE",
+        "variant": "ORIG",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 387,
+        "sectors_above_1pct": 0,
+        "n_buckets": 387,
+        "effective_bucket_count": 257.09226627268407,
+        "routing_gini": 0.4979493540051678,
+        "top_half_concentration": 0.8672,
+        "bucket_purity": 1.0,
+        "sector_entropy": 5.549435033199747,
+        "sector_gini": 0.4979493540051678
+      },
+      {
+        "K": 400,
+        "mode": "BASE",
+        "variant": "PERM",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 400,
+        "sectors_above_1pct": 0,
+        "n_buckets": 400,
+        "effective_bucket_count": 358.6004510595069,
+        "routing_gini": 0.261582,
+        "top_half_concentration": 0.6844,
+        "bucket_purity": 1.0,
+        "sector_entropy": 5.882208819004895,
+        "sector_gini": 0.261582
+      },
+      {
+        "K": 400,
+        "mode": "TRANS",
+        "variant": "ORIG",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 271,
+        "sectors_above_1pct": 33,
+        "n_buckets": 271,
+        "effective_bucket_count": 103.35443509312512,
+        "routing_gini": 0.7123704797047972,
+        "top_half_concentration": 0.949,
+        "bucket_purity": 1.0,
+        "sector_entropy": 4.6381641985415705,
+        "sector_gini": 0.7123704797047972
+      },
+      {
+        "K": 400,
+        "mode": "TRANS",
+        "variant": "PERM",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 342,
+        "sectors_above_1pct": 8,
+        "n_buckets": 342,
+        "effective_bucket_count": 228.5771248589347,
+        "routing_gini": 0.49544093567251446,
+        "top_half_concentration": 0.8504,
+        "bucket_purity": 1.0,
+        "sector_entropy": 5.431873680119869,
+        "sector_gini": 0.49544093567251446
+      }
+    ],
+    "scaling_exponents": {
+      "BASE_ORIG": {
+        "alpha": 0.9159283460963002,
+        "c": 0.9982835361502582,
+        "r2": 0.9954617220975939
+      },
+      "BASE_PERM": {
+        "alpha": 0.9863144440773769,
+        "c": 0.9617989901376207,
+        "r2": 0.9993852981739171
+      },
+      "TRANS_ORIG": {
+        "alpha": 0.5717337827154445,
+        "c": 2.9569026719710645,
+        "r2": 0.9627581802475725
+      },
+      "TRANS_PERM": {
+        "alpha": 0.8141892643223391,
+        "c": 1.6637188421036264,
+        "r2": 0.9928797872001128
+      }
+    },
+    "compression_by_K": {
+      "BASE": {
+        "10": {
+          "eff_bucket_ratio_PERM_over_ORIG": 1.0982457758708413,
+          "gini_ratio_ORIG_over_PERM": 1.4392490258590163,
+          "eff_orig": 8.304281299397665,
+          "eff_perm": 9.120141858706706,
+          "gini_orig": 0.32504,
+          "gini_perm": 0.22583999999999982,
+          "purity_orig": 1.0,
+          "purity_perm": 1.0
+        },
+        "25": {
+          "eff_bucket_ratio_PERM_over_ORIG": 1.153141021677236,
+          "gini_ratio_ORIG_over_PERM": 1.761444980855669,
+          "eff_orig": 20.464051259594648,
+          "eff_perm": 23.5979369771443,
+          "gini_orig": 0.338592,
+          "gini_perm": 0.19222399999999995,
+          "purity_orig": 1.0,
+          "purity_perm": 1.0
+        },
+        "50": {
+          "eff_bucket_ratio_PERM_over_ORIG": 1.28467269592992,
+          "gini_ratio_ORIG_over_PERM": 1.7088531360234014,
+          "eff_orig": 34.24411768797776,
+          "eff_perm": 43.99248298995585,
+          "gini_orig": 0.476688,
+          "gini_perm": 0.2789520000000001,
+          "purity_orig": 1.0,
+          "purity_perm": 1.0
+        },
+        "75": {
+          "eff_bucket_ratio_PERM_over_ORIG": 1.3685445218869894,
+          "gini_ratio_ORIG_over_PERM": 1.944564657393097,
+          "eff_orig": 49.05134381519022,
+          "eff_perm": 67.12894786947383,
+          "gini_orig": 0.5032533333333333,
+          "gini_perm": 0.2587999999999999,
+          "purity_orig": 1.0,
+          "purity_perm": 1.0
+        },
+        "100": {
+          "eff_bucket_ratio_PERM_over_ORIG": 1.31032910949606,
+          "gini_ratio_ORIG_over_PERM": 2.071578224903371,
+          "eff_orig": 70.69459107195617,
+          "eff_perm": 92.63318056550445,
+          "gini_orig": 0.45877999999999997,
+          "gini_perm": 0.22146399999999988,
+          "purity_orig": 1.0,
+          "purity_perm": 1.0
+        },
+        "150": {
+          "eff_bucket_ratio_PERM_over_ORIG": 1.4180675049009415,
+          "gini_ratio_ORIG_over_PERM": 2.011905904785176,
+          "eff_orig": 94.8979250649098,
+          "eff_perm": 134.57166381707316,
+          "gini_orig": 0.5198442953020133,
+          "gini_perm": 0.25838400000000017,
+          "purity_orig": 1.0,
+          "purity_perm": 1.0
+        },
+        "200": {
+          "eff_bucket_ratio_PERM_over_ORIG": 1.429834246068041,
+          "gini_ratio_ORIG_over_PERM": 1.9318038850309558,
+          "eff_orig": 123.49967931853644,
+          "eff_perm": 176.5840708680644,
+          "gini_orig": 0.5322969696969697,
+          "gini_perm": 0.275544,
+          "purity_orig": 1.0,
+          "purity_perm": 1.0
+        },
+        "400": {
+          "eff_bucket_ratio_PERM_over_ORIG": 1.3948317320411283,
+          "gini_ratio_ORIG_over_PERM": 1.9036071060132878,
+          "eff_orig": 257.09226627268407,
+          "eff_perm": 358.6004510595069,
+          "gini_orig": 0.4979493540051678,
+          "gini_perm": 0.261582,
+          "purity_orig": 1.0,
+          "purity_perm": 1.0
+        }
+      },
+      "TRANS": {
+        "10": {
+          "eff_bucket_ratio_PERM_over_ORIG": 1.1155363391592317,
+          "gini_ratio_ORIG_over_PERM": 1.6222766217870255,
+          "eff_orig": 6.648837426942566,
+          "eff_perm": 7.417019762916396,
+          "gini_orig": 0.33135000000000003,
+          "gini_perm": 0.20425000000000004,
+          "purity_orig": 1.0,
+          "purity_perm": 1.0
+        },
+        "25": {
+          "eff_bucket_ratio_PERM_over_ORIG": 1.1766882580309457,
+          "gini_ratio_ORIG_over_PERM": 1.6483455242075928,
+          "eff_orig": 18.551319186380557,
+          "eff_perm": 21.829119457598196,
+          "gini_orig": 0.39436666666666653,
+          "gini_perm": 0.23924999999999996,
+          "purity_orig": 1.0,
+          "purity_perm": 1.0
+        },
+        "50": {
+          "eff_bucket_ratio_PERM_over_ORIG": 1.3594893111420203,
+          "gini_ratio_ORIG_over_PERM": 1.8491258741258745,
+          "eff_orig": 32.49660559025253,
+          "eff_perm": 44.17878794834633,
+          "gini_orig": 0.5076959999999999,
+          "gini_perm": 0.2745599999999999,
+          "purity_orig": 1.0,
+          "purity_perm": 1.0
+        },
+        "75": {
+          "eff_bucket_ratio_PERM_over_ORIG": 1.6634257356410014,
+          "gini_ratio_ORIG_over_PERM": 1.5859962673571228,
+          "eff_orig": 33.25960362231125,
+          "eff_perm": 55.324880622571214,
+          "gini_orig": 0.6415072463768114,
+          "gini_perm": 0.4044821917808219,
+          "purity_orig": 1.0,
+          "purity_perm": 1.0
+        },
+        "100": {
+          "eff_bucket_ratio_PERM_over_ORIG": 1.9319490131564476,
+          "gini_ratio_ORIG_over_PERM": 1.836353304902929,
+          "eff_orig": 38.321545729370776,
+          "eff_perm": 74.03527245448755,
+          "gini_orig": 0.6729425287356321,
+          "gini_perm": 0.36645591397849464,
+          "purity_orig": 1.0,
+          "purity_perm": 1.0
+        },
+        "150": {
+          "eff_bucket_ratio_PERM_over_ORIG": 1.9282571263486727,
+          "gini_ratio_ORIG_over_PERM": 1.4071081244555037,
+          "eff_orig": 46.992250771829376,
+          "eff_perm": 90.6131424339439,
+          "gini_orig": 0.7128065573770492,
+          "gini_perm": 0.5065755395683453,
+          "purity_orig": 1.0,
+          "purity_perm": 1.0
+        },
+        "200": {
+          "eff_bucket_ratio_PERM_over_ORIG": 2.077659636945097,
+          "gini_ratio_ORIG_over_PERM": 1.4272484937284573,
+          "eff_orig": 57.207048570406755,
+          "eff_perm": 118.85677576349181,
+          "gini_orig": 0.7275566878980892,
+          "gini_perm": 0.5097617486338797,
+          "purity_orig": 1.0,
+          "purity_perm": 1.0
+        },
+        "400": {
+          "eff_bucket_ratio_PERM_over_ORIG": 2.21158506311781,
+          "gini_ratio_ORIG_over_PERM": 1.4378514741375201,
+          "eff_orig": 103.35443509312512,
+          "eff_perm": 228.5771248589347,
+          "gini_orig": 0.7123704797047972,
+          "gini_perm": 0.49544093567251446,
+          "purity_orig": 1.0,
+          "purity_perm": 1.0
+        }
+      }
+    }
+  },
+  "ExpB1_L1_canonicalDeltaR": {
+    "label": "ExpB1_L1_deltaR_canonical",
+    "delta_r": 3.6,
+    "r_eff_stats": {
+      "min": 0.15700663588888164,
+      "max": 0.3293473006532882,
+      "mean": 0.2682238389381075,
+      "std": 0.021917864306886116,
+      "p05": 0.23101187733023118,
+      "p25": 0.2549861881316512,
+      "p50": 0.27009862251593897,
+      "p75": 0.28276868458589277,
+      "p95": 0.3016135678503209,
+      "shell1_threshold": 2.224922359499622,
+      "pct_above_shell1": 0.0
+    },
+    "routing_results": [
+      {
+        "K": 10,
+        "mode": "BASE",
+        "variant": "ORIG",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 10,
+        "sectors_above_1pct": 10,
+        "n_buckets": 10,
+        "effective_bucket_count": 8.304281299397665,
+        "routing_gini": 0.32504,
+        "top_half_concentration": 0.7186,
+        "bucket_purity": 1.0,
+        "sector_entropy": 2.1167712010180946,
+        "sector_gini": 0.32504
+      },
+      {
+        "K": 10,
+        "mode": "BASE",
+        "variant": "PERM",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 10,
+        "sectors_above_1pct": 10,
+        "n_buckets": 10,
+        "effective_bucket_count": 9.190670271196218,
+        "routing_gini": 0.2161599999999999,
+        "top_half_concentration": 0.6448,
+        "bucket_purity": 1.0,
+        "sector_entropy": 2.2181888685497877,
+        "sector_gini": 0.2161599999999999
+      },
+      {
+        "K": 10,
+        "mode": "TRANS",
+        "variant": "ORIG",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 8,
+        "sectors_above_1pct": 8,
+        "n_buckets": 8,
+        "effective_bucket_count": 6.648837426942566,
+        "routing_gini": 0.33135000000000003,
+        "top_half_concentration": 0.7414,
+        "bucket_purity": 1.0,
+        "sector_entropy": 1.8944420163682827,
+        "sector_gini": 0.33135000000000003
+      },
+      {
+        "K": 10,
+        "mode": "TRANS",
+        "variant": "PERM",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 8,
+        "sectors_above_1pct": 8,
+        "n_buckets": 8,
+        "effective_bucket_count": 7.4279963326012375,
+        "routing_gini": 0.20209999999999995,
+        "top_half_concentration": 0.6352,
+        "bucket_purity": 1.0,
+        "sector_entropy": 2.0052561497640635,
+        "sector_gini": 0.20209999999999995
+      },
+      {
+        "K": 25,
+        "mode": "BASE",
+        "variant": "ORIG",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 25,
+        "sectors_above_1pct": 20,
+        "n_buckets": 25,
+        "effective_bucket_count": 20.464051259594648,
+        "routing_gini": 0.338592,
+        "top_half_concentration": 0.7314,
+        "bucket_purity": 1.0,
+        "sector_entropy": 3.0186697497001718,
+        "sector_gini": 0.338592
+      },
+      {
+        "K": 25,
+        "mode": "BASE",
+        "variant": "PERM",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 25,
+        "sectors_above_1pct": 25,
+        "n_buckets": 25,
+        "effective_bucket_count": 23.64010332888864,
+        "routing_gini": 0.1892959999999999,
+        "top_half_concentration": 0.6278,
+        "bucket_purity": 1.0,
+        "sector_entropy": 3.1629445634627205,
+        "sector_gini": 0.1892959999999999
+      },
+      {
+        "K": 25,
+        "mode": "TRANS",
+        "variant": "ORIG",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 24,
+        "sectors_above_1pct": 21,
+        "n_buckets": 24,
+        "effective_bucket_count": 18.551319186380557,
+        "routing_gini": 0.39436666666666653,
+        "top_half_concentration": 0.7716,
+        "bucket_purity": 1.0,
+        "sector_entropy": 2.9205409016936437,
+        "sector_gini": 0.39436666666666653
+      },
+      {
+        "K": 25,
+        "mode": "TRANS",
+        "variant": "PERM",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 24,
+        "sectors_above_1pct": 24,
+        "n_buckets": 24,
+        "effective_bucket_count": 21.944784991773147,
+        "routing_gini": 0.23319999999999985,
+        "top_half_concentration": 0.662,
+        "bucket_purity": 1.0,
+        "sector_entropy": 3.088529525496992,
+        "sector_gini": 0.23319999999999985
+      },
+      {
+        "K": 50,
+        "mode": "BASE",
+        "variant": "ORIG",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 50,
+        "sectors_above_1pct": 31,
+        "n_buckets": 50,
+        "effective_bucket_count": 34.24411768797776,
+        "routing_gini": 0.476688,
+        "top_half_concentration": 0.8538,
+        "bucket_purity": 1.0,
+        "sector_entropy": 3.533514803621728,
+        "sector_gini": 0.476688
+      },
+      {
+        "K": 50,
+        "mode": "BASE",
+        "variant": "PERM",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 50,
+        "sectors_above_1pct": 44,
+        "n_buckets": 50,
+        "effective_bucket_count": 44.35188428942193,
+        "routing_gini": 0.27201600000000004,
+        "top_half_concentration": 0.6904,
+        "bucket_purity": 1.0,
+        "sector_entropy": 3.792155194649486,
+        "sector_gini": 0.27201600000000004
+      },
+      {
+        "K": 50,
+        "mode": "TRANS",
+        "variant": "ORIG",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 50,
+        "sectors_above_1pct": 27,
+        "n_buckets": 50,
+        "effective_bucket_count": 32.49660559025253,
+        "routing_gini": 0.5076959999999999,
+        "top_half_concentration": 0.876,
+        "bucket_purity": 1.0,
+        "sector_entropy": 3.4811356405042577,
+        "sector_gini": 0.5076959999999999
+      },
+      {
+        "K": 50,
+        "mode": "TRANS",
+        "variant": "PERM",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 50,
+        "sectors_above_1pct": 46,
+        "n_buckets": 50,
+        "effective_bucket_count": 44.294761638229694,
+        "routing_gini": 0.26960800000000007,
+        "top_half_concentration": 0.679,
+        "bucket_purity": 1.0,
+        "sector_entropy": 3.790866422615285,
+        "sector_gini": 0.26960800000000007
+      },
+      {
+        "K": 75,
+        "mode": "BASE",
+        "variant": "ORIG",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 75,
+        "sectors_above_1pct": 35,
+        "n_buckets": 75,
+        "effective_bucket_count": 49.05134381519022,
+        "routing_gini": 0.5032533333333333,
+        "top_half_concentration": 0.861,
+        "bucket_purity": 1.0,
+        "sector_entropy": 3.8928675824799233,
+        "sector_gini": 0.5032533333333333
+      },
+      {
+        "K": 75,
+        "mode": "BASE",
+        "variant": "PERM",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 75,
+        "sectors_above_1pct": 48,
+        "n_buckets": 75,
+        "effective_bucket_count": 67.27622701008264,
+        "routing_gini": 0.2565599999999999,
+        "top_half_concentration": 0.6728,
+        "bucket_purity": 1.0,
+        "sector_entropy": 4.20880693516954,
+        "sector_gini": 0.2565599999999999
+      },
+      {
+        "K": 75,
+        "mode": "TRANS",
+        "variant": "ORIG",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 69,
+        "sectors_above_1pct": 25,
+        "n_buckets": 69,
+        "effective_bucket_count": 33.25960362231125,
+        "routing_gini": 0.6415072463768114,
+        "top_half_concentration": 0.9448,
+        "bucket_purity": 1.0,
+        "sector_entropy": 3.504343556144496,
+        "sector_gini": 0.6415072463768114
+      },
+      {
+        "K": 75,
+        "mode": "TRANS",
+        "variant": "PERM",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 73,
+        "sectors_above_1pct": 44,
+        "n_buckets": 73,
+        "effective_bucket_count": 55.76093156435489,
+        "routing_gini": 0.3995232876712329,
+        "top_half_concentration": 0.784,
+        "bucket_purity": 1.0,
+        "sector_entropy": 4.021073472990528,
+        "sector_gini": 0.3995232876712329
+      },
+      {
+        "K": 100,
+        "mode": "BASE",
+        "variant": "ORIG",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 100,
+        "sectors_above_1pct": 42,
+        "n_buckets": 100,
+        "effective_bucket_count": 70.69459107195617,
+        "routing_gini": 0.45877999999999997,
+        "top_half_concentration": 0.8472,
+        "bucket_purity": 1.0,
+        "sector_entropy": 4.258369064628689,
+        "sector_gini": 0.45877999999999997
+      },
+      {
+        "K": 100,
+        "mode": "BASE",
+        "variant": "PERM",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 100,
+        "sectors_above_1pct": 42,
+        "n_buckets": 100,
+        "effective_bucket_count": 92.65752556549484,
+        "routing_gini": 0.22132799999999997,
+        "top_half_concentration": 0.662,
+        "bucket_purity": 1.0,
+        "sector_entropy": 4.528910175180117,
+        "sector_gini": 0.22132799999999997
+      },
+      {
+        "K": 100,
+        "mode": "TRANS",
+        "variant": "ORIG",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 87,
+        "sectors_above_1pct": 26,
+        "n_buckets": 87,
+        "effective_bucket_count": 38.321545729370776,
+        "routing_gini": 0.6729425287356321,
+        "top_half_concentration": 0.9476,
+        "bucket_purity": 1.0,
+        "sector_entropy": 3.646012289694421,
+        "sector_gini": 0.6729425287356321
+      },
+      {
+        "K": 100,
+        "mode": "TRANS",
+        "variant": "PERM",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 93,
+        "sectors_above_1pct": 47,
+        "n_buckets": 93,
+        "effective_bucket_count": 74.26724284204303,
+        "routing_gini": 0.36363010752688174,
+        "top_half_concentration": 0.7474,
+        "bucket_purity": 1.0,
+        "sector_entropy": 4.307669977551195,
+        "sector_gini": 0.36363010752688174
+      },
+      {
+        "K": 150,
+        "mode": "BASE",
+        "variant": "ORIG",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 149,
+        "sectors_above_1pct": 41,
+        "n_buckets": 149,
+        "effective_bucket_count": 94.8979250649098,
+        "routing_gini": 0.5198442953020133,
+        "top_half_concentration": 0.8716,
+        "bucket_purity": 1.0,
+        "sector_entropy": 4.552801840939653,
+        "sector_gini": 0.5198442953020133
+      },
+      {
+        "K": 150,
+        "mode": "BASE",
+        "variant": "PERM",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 150,
+        "sectors_above_1pct": 21,
+        "n_buckets": 150,
+        "effective_bucket_count": 134.85658823544225,
+        "routing_gini": 0.2569626666666667,
+        "top_half_concentration": 0.6798,
+        "bucket_purity": 1.0,
+        "sector_entropy": 4.904211904420814,
+        "sector_gini": 0.2569626666666667
+      },
+      {
+        "K": 150,
+        "mode": "TRANS",
+        "variant": "ORIG",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 122,
+        "sectors_above_1pct": 31,
+        "n_buckets": 122,
+        "effective_bucket_count": 46.992250771829376,
+        "routing_gini": 0.7128065573770492,
+        "top_half_concentration": 0.9612,
+        "bucket_purity": 1.0,
+        "sector_entropy": 3.849982710921201,
+        "sector_gini": 0.7128065573770492
+      },
+      {
+        "K": 150,
+        "mode": "TRANS",
+        "variant": "PERM",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 135,
+        "sectors_above_1pct": 36,
+        "n_buckets": 135,
+        "effective_bucket_count": 90.40743570045144,
+        "routing_gini": 0.4931407407407409,
+        "top_half_concentration": 0.8448,
+        "bucket_purity": 1.0,
+        "sector_entropy": 4.50432651733909,
+        "sector_gini": 0.4931407407407409
+      },
+      {
+        "K": 200,
+        "mode": "BASE",
+        "variant": "ORIG",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 198,
+        "sectors_above_1pct": 40,
+        "n_buckets": 198,
+        "effective_bucket_count": 123.49967931853644,
+        "routing_gini": 0.5322969696969697,
+        "top_half_concentration": 0.8778,
+        "bucket_purity": 1.0,
+        "sector_entropy": 4.81623855945362,
+        "sector_gini": 0.5322969696969697
+      },
+      {
+        "K": 200,
+        "mode": "BASE",
+        "variant": "PERM",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 200,
+        "sectors_above_1pct": 9,
+        "n_buckets": 200,
+        "effective_bucket_count": 177.15170094932435,
+        "routing_gini": 0.2735960000000002,
+        "top_half_concentration": 0.6902,
+        "bucket_purity": 1.0,
+        "sector_entropy": 5.177006433011501,
+        "sector_gini": 0.2735960000000002
+      },
+      {
+        "K": 200,
+        "mode": "TRANS",
+        "variant": "ORIG",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 157,
+        "sectors_above_1pct": 31,
+        "n_buckets": 157,
+        "effective_bucket_count": 57.207048570406755,
+        "routing_gini": 0.7275566878980892,
+        "top_half_concentration": 0.9614,
+        "bucket_purity": 1.0,
+        "sector_entropy": 4.046677117549321,
+        "sector_gini": 0.7275566878980892
+      },
+      {
+        "K": 200,
+        "mode": "TRANS",
+        "variant": "PERM",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 181,
+        "sectors_above_1pct": 33,
+        "n_buckets": 181,
+        "effective_bucket_count": 118.29049380545099,
+        "routing_gini": 0.5069701657458563,
+        "top_half_concentration": 0.8566,
+        "bucket_purity": 1.0,
+        "sector_entropy": 4.7731434110814455,
+        "sector_gini": 0.5069701657458563
+      },
+      {
+        "K": 400,
+        "mode": "BASE",
+        "variant": "ORIG",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 387,
+        "sectors_above_1pct": 0,
+        "n_buckets": 387,
+        "effective_bucket_count": 257.09226627268407,
+        "routing_gini": 0.4979493540051678,
+        "top_half_concentration": 0.8672,
+        "bucket_purity": 1.0,
+        "sector_entropy": 5.549435033199747,
+        "sector_gini": 0.4979493540051678
+      },
+      {
+        "K": 400,
+        "mode": "BASE",
+        "variant": "PERM",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 399,
+        "sectors_above_1pct": 0,
+        "n_buckets": 399,
+        "effective_bucket_count": 358.01662169190337,
+        "routing_gini": 0.2620852130325815,
+        "top_half_concentration": 0.6878,
+        "bucket_purity": 1.0,
+        "sector_entropy": 5.880579414629885,
+        "sector_gini": 0.2620852130325815
+      },
+      {
+        "K": 400,
+        "mode": "TRANS",
+        "variant": "ORIG",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 271,
+        "sectors_above_1pct": 33,
+        "n_buckets": 271,
+        "effective_bucket_count": 103.35443509312512,
+        "routing_gini": 0.7123704797047972,
+        "top_half_concentration": 0.949,
+        "bucket_purity": 1.0,
+        "sector_entropy": 4.6381641985415705,
+        "sector_gini": 0.7123704797047972
+      },
+      {
+        "K": 400,
+        "mode": "TRANS",
+        "variant": "PERM",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 342,
+        "sectors_above_1pct": 7,
+        "n_buckets": 342,
+        "effective_bucket_count": 226.68515909034122,
+        "routing_gini": 0.5001953216374269,
+        "top_half_concentration": 0.8544,
+        "bucket_purity": 1.0,
+        "sector_entropy": 5.423562090396325,
+        "sector_gini": 0.5001953216374269
+      }
+    ],
+    "scaling_exponents": {
+      "BASE_ORIG": {
+        "alpha": 0.9159283460963002,
+        "c": 0.9982835361502582,
+        "r2": 0.9954617220975939
+      },
+      "BASE_PERM": {
+        "alpha": 0.9846921241644971,
+        "c": 0.9712653383782817,
+        "r2": 0.9995087936214332
+      },
+      "TRANS_ORIG": {
+        "alpha": 0.5717337827154445,
+        "c": 2.9569026719710645,
+        "r2": 0.9627581802475725
+      },
+      "TRANS_PERM": {
+        "alpha": 0.8087997826133535,
+        "c": 1.7065420733037775,
+        "r2": 0.9927166281561943
+      }
+    },
+    "compression_by_K": {
+      "BASE": {
+        "10": {
+          "eff_bucket_ratio_PERM_over_ORIG": 1.1067387941040538,
+          "gini_ratio_ORIG_over_PERM": 1.5037009622501856,
+          "eff_orig": 8.304281299397665,
+          "eff_perm": 9.190670271196218,
+          "gini_orig": 0.32504,
+          "gini_perm": 0.2161599999999999,
+          "purity_orig": 1.0,
+          "purity_perm": 1.0
+        },
+        "25": {
+          "eff_bucket_ratio_PERM_over_ORIG": 1.155201530186008,
+          "gini_ratio_ORIG_over_PERM": 1.7886907277491346,
+          "eff_orig": 20.464051259594648,
+          "eff_perm": 23.64010332888864,
+          "gini_orig": 0.338592,
+          "gini_perm": 0.1892959999999999,
+          "purity_orig": 1.0,
+          "purity_perm": 1.0
+        },
+        "50": {
+          "eff_bucket_ratio_PERM_over_ORIG": 1.2951679670518346,
+          "gini_ratio_ORIG_over_PERM": 1.7524263278630667,
+          "eff_orig": 34.24411768797776,
+          "eff_perm": 44.35188428942193,
+          "gini_orig": 0.476688,
+          "gini_perm": 0.27201600000000004,
+          "purity_orig": 1.0,
+          "purity_perm": 1.0
+        },
+        "75": {
+          "eff_bucket_ratio_PERM_over_ORIG": 1.3715470724626413,
+          "gini_ratio_ORIG_over_PERM": 1.9615424592038258,
+          "eff_orig": 49.05134381519022,
+          "eff_perm": 67.27622701008264,
+          "gini_orig": 0.5032533333333333,
+          "gini_perm": 0.2565599999999999,
+          "purity_orig": 1.0,
+          "purity_perm": 1.0
+        },
+        "100": {
+          "eff_bucket_ratio_PERM_over_ORIG": 1.3106734781333382,
+          "gini_ratio_ORIG_over_PERM": 2.0728511530398324,
+          "eff_orig": 70.69459107195617,
+          "eff_perm": 92.65752556549484,
+          "gini_orig": 0.45877999999999997,
+          "gini_perm": 0.22132799999999997,
+          "purity_orig": 1.0,
+          "purity_perm": 1.0
+        },
+        "150": {
+          "eff_bucket_ratio_PERM_over_ORIG": 1.4210699353352656,
+          "gini_ratio_ORIG_over_PERM": 2.0230343265247868,
+          "eff_orig": 94.8979250649098,
+          "eff_perm": 134.85658823544225,
+          "gini_orig": 0.5198442953020133,
+          "gini_perm": 0.2569626666666667,
+          "purity_orig": 1.0,
+          "purity_perm": 1.0
+        },
+        "200": {
+          "eff_bucket_ratio_PERM_over_ORIG": 1.434430452992562,
+          "gini_ratio_ORIG_over_PERM": 1.9455583038383946,
+          "eff_orig": 123.49967931853644,
+          "eff_perm": 177.15170094932435,
+          "gini_orig": 0.5322969696969697,
+          "gini_perm": 0.2735960000000002,
+          "purity_orig": 1.0,
+          "purity_perm": 1.0
+        },
+        "400": {
+          "eff_bucket_ratio_PERM_over_ORIG": 1.3925608377195378,
+          "gini_ratio_ORIG_over_PERM": 1.8999521119234781,
+          "eff_orig": 257.09226627268407,
+          "eff_perm": 358.01662169190337,
+          "gini_orig": 0.4979493540051678,
+          "gini_perm": 0.2620852130325815,
+          "purity_orig": 1.0,
+          "purity_perm": 1.0
+        }
+      },
+      "TRANS": {
+        "10": {
+          "eff_bucket_ratio_PERM_over_ORIG": 1.1171872397573366,
+          "gini_ratio_ORIG_over_PERM": 1.639534883720931,
+          "eff_orig": 6.648837426942566,
+          "eff_perm": 7.4279963326012375,
+          "gini_orig": 0.33135000000000003,
+          "gini_perm": 0.20209999999999995,
+          "purity_orig": 1.0,
+          "purity_perm": 1.0
+        },
+        "25": {
+          "eff_bucket_ratio_PERM_over_ORIG": 1.182923153404848,
+          "gini_ratio_ORIG_over_PERM": 1.691109205260149,
+          "eff_orig": 18.551319186380557,
+          "eff_perm": 21.944784991773147,
+          "gini_orig": 0.39436666666666653,
+          "gini_perm": 0.23319999999999985,
+          "purity_orig": 1.0,
+          "purity_perm": 1.0
+        },
+        "50": {
+          "eff_bucket_ratio_PERM_over_ORIG": 1.3630581051060935,
+          "gini_ratio_ORIG_over_PERM": 1.8830895225660953,
+          "eff_orig": 32.49660559025253,
+          "eff_perm": 44.294761638229694,
+          "gini_orig": 0.5076959999999999,
+          "gini_perm": 0.26960800000000007,
+          "purity_orig": 1.0,
+          "purity_perm": 1.0
+        },
+        "75": {
+          "eff_bucket_ratio_PERM_over_ORIG": 1.6765362629562208,
+          "gini_ratio_ORIG_over_PERM": 1.6056817366418619,
+          "eff_orig": 33.25960362231125,
+          "eff_perm": 55.76093156435489,
+          "gini_orig": 0.6415072463768114,
+          "gini_perm": 0.3995232876712329,
+          "purity_orig": 1.0,
+          "purity_perm": 1.0
+        },
+        "100": {
+          "eff_bucket_ratio_PERM_over_ORIG": 1.9380022759656692,
+          "gini_ratio_ORIG_over_PERM": 1.850623792711895,
+          "eff_orig": 38.321545729370776,
+          "eff_perm": 74.26724284204303,
+          "gini_orig": 0.6729425287356321,
+          "gini_perm": 0.36363010752688174,
+          "purity_orig": 1.0,
+          "purity_perm": 1.0
+        },
+        "150": {
+          "eff_bucket_ratio_PERM_over_ORIG": 1.9238796655947439,
+          "gini_ratio_ORIG_over_PERM": 1.4454424436852469,
+          "eff_orig": 46.992250771829376,
+          "eff_perm": 90.40743570045144,
+          "gini_orig": 0.7128065573770492,
+          "gini_perm": 0.4931407407407409,
+          "purity_orig": 1.0,
+          "purity_perm": 1.0
+        },
+        "200": {
+          "eff_bucket_ratio_PERM_over_ORIG": 2.0677608225123985,
+          "gini_ratio_ORIG_over_PERM": 1.4351075014990384,
+          "eff_orig": 57.207048570406755,
+          "eff_perm": 118.29049380545099,
+          "gini_orig": 0.7275566878980892,
+          "gini_perm": 0.5069701657458563,
+          "purity_orig": 1.0,
+          "purity_perm": 1.0
+        },
+        "400": {
+          "eff_bucket_ratio_PERM_over_ORIG": 2.1932794551689225,
+          "gini_ratio_ORIG_over_PERM": 1.424184611269052,
+          "eff_orig": 103.35443509312512,
+          "eff_perm": 226.68515909034122,
+          "gini_orig": 0.7123704797047972,
+          "gini_perm": 0.5001953216374269,
+          "purity_orig": 1.0,
+          "purity_perm": 1.0
+        }
+      }
+    }
+  },
+  "ExpB2_L1_adjustedDeltaR": {
+    "label": "ExpB2_L1_deltaR_adjusted",
+    "delta_r": 0.41517731396805096,
+    "r_eff_stats": {
+      "min": 0.15700663588888164,
+      "max": 0.3293473006532882,
+      "mean": 0.2682238389381075,
+      "std": 0.021917864306886116,
+      "p05": 0.23101187733023118,
+      "p25": 0.2549861881316512,
+      "p50": 0.27009862251593897,
+      "p75": 0.28276868458589277,
+      "p95": 0.3016135678503209,
+      "shell1_threshold": 2.224922359499622,
+      "pct_above_shell1": 0.0
+    },
+    "routing_results": [
+      {
+        "K": 10,
+        "mode": "BASE",
+        "variant": "ORIG",
+        "delta_r": 0.41517731396805096,
+        "n_tokens": 5000,
+        "n_shells": 2,
+        "shell_distribution": {
+          "0": 1352,
+          "1": 3648
+        },
+        "n_active_sectors": 10,
+        "sectors_above_1pct": 10,
+        "n_buckets": 20,
+        "effective_bucket_count": 14.731017880148617,
+        "routing_gini": 0.42067999999999994,
+        "top_half_concentration": 0.786,
+        "bucket_purity": 1.0,
+        "sector_entropy": 2.1167712010180946,
+        "sector_gini": 0.32504
+      },
+      {
+        "K": 10,
+        "mode": "BASE",
+        "variant": "PERM",
+        "delta_r": 0.41517731396805096,
+        "n_tokens": 5000,
+        "n_shells": 2,
+        "shell_distribution": {
+          "0": 1301,
+          "1": 3699
+        },
+        "n_active_sectors": 10,
+        "sectors_above_1pct": 10,
+        "n_buckets": 20,
+        "effective_bucket_count": 16.280611099115127,
+        "routing_gini": 0.35152000000000005,
+        "top_half_concentration": 0.7494,
+        "bucket_purity": 1.0,
+        "sector_entropy": 2.2181888685497877,
+        "sector_gini": 0.2161599999999999
+      },
+      {
+        "K": 10,
+        "mode": "TRANS",
+        "variant": "ORIG",
+        "delta_r": 0.41517731396805096,
+        "n_tokens": 5000,
+        "n_shells": 2,
+        "shell_distribution": {
+          "0": 1352,
+          "1": 3648
+        },
+        "n_active_sectors": 8,
+        "sectors_above_1pct": 8,
+        "n_buckets": 16,
+        "effective_bucket_count": 11.669707452049819,
+        "routing_gini": 0.42852500000000004,
+        "top_half_concentration": 0.8014,
+        "bucket_purity": 1.0,
+        "sector_entropy": 1.8944420163682827,
+        "sector_gini": 0.33135000000000003
+      },
+      {
+        "K": 10,
+        "mode": "TRANS",
+        "variant": "PERM",
+        "delta_r": 0.41517731396805096,
+        "n_tokens": 5000,
+        "n_shells": 2,
+        "shell_distribution": {
+          "0": 1301,
+          "1": 3699
+        },
+        "n_active_sectors": 8,
+        "sectors_above_1pct": 8,
+        "n_buckets": 16,
+        "effective_bucket_count": 13.171801266081896,
+        "routing_gini": 0.34365,
+        "top_half_concentration": 0.7586,
+        "bucket_purity": 1.0,
+        "sector_entropy": 2.0052561497640635,
+        "sector_gini": 0.20209999999999995
+      },
+      {
+        "K": 25,
+        "mode": "BASE",
+        "variant": "ORIG",
+        "delta_r": 0.41517731396805096,
+        "n_tokens": 5000,
+        "n_shells": 2,
+        "shell_distribution": {
+          "0": 1352,
+          "1": 3648
+        },
+        "n_active_sectors": 25,
+        "sectors_above_1pct": 20,
+        "n_buckets": 50,
+        "effective_bucket_count": 35.93211688882355,
+        "routing_gini": 0.4446399999999999,
+        "top_half_concentration": 0.832,
+        "bucket_purity": 1.0,
+        "sector_entropy": 3.0186697497001718,
+        "sector_gini": 0.338592
+      },
+      {
+        "K": 25,
+        "mode": "BASE",
+        "variant": "PERM",
+        "delta_r": 0.41517731396805096,
+        "n_tokens": 5000,
+        "n_shells": 2,
+        "shell_distribution": {
+          "0": 1301,
+          "1": 3699
+        },
+        "n_active_sectors": 25,
+        "sectors_above_1pct": 25,
+        "n_buckets": 50,
+        "effective_bucket_count": 41.81875040653182,
+        "routing_gini": 0.33685600000000004,
+        "top_half_concentration": 0.7402,
+        "bucket_purity": 1.0,
+        "sector_entropy": 3.1629445634627205,
+        "sector_gini": 0.1892959999999999
+      },
+      {
+        "K": 25,
+        "mode": "TRANS",
+        "variant": "ORIG",
+        "delta_r": 0.41517731396805096,
+        "n_tokens": 5000,
+        "n_shells": 2,
+        "shell_distribution": {
+          "0": 1352,
+          "1": 3648
+        },
+        "n_active_sectors": 24,
+        "sectors_above_1pct": 21,
+        "n_buckets": 48,
+        "effective_bucket_count": 32.066892428818775,
+        "routing_gini": 0.4879916666666668,
+        "top_half_concentration": 0.8484,
+        "bucket_purity": 1.0,
+        "sector_entropy": 2.9205409016936437,
+        "sector_gini": 0.39436666666666653
+      },
+      {
+        "K": 25,
+        "mode": "TRANS",
+        "variant": "PERM",
+        "delta_r": 0.41517731396805096,
+        "n_tokens": 5000,
+        "n_shells": 2,
+        "shell_distribution": {
+          "0": 1301,
+          "1": 3699
+        },
+        "n_active_sectors": 24,
+        "sectors_above_1pct": 24,
+        "n_buckets": 48,
+        "effective_bucket_count": 38.81627576472254,
+        "routing_gini": 0.36302500000000015,
+        "top_half_concentration": 0.7596,
+        "bucket_purity": 1.0,
+        "sector_entropy": 3.088529525496992,
+        "sector_gini": 0.23319999999999985
+      },
+      {
+        "K": 50,
+        "mode": "BASE",
+        "variant": "ORIG",
+        "delta_r": 0.41517731396805096,
+        "n_tokens": 5000,
+        "n_shells": 2,
+        "shell_distribution": {
+          "0": 1352,
+          "1": 3648
+        },
+        "n_active_sectors": 50,
+        "sectors_above_1pct": 31,
+        "n_buckets": 95,
+        "effective_bucket_count": 59.92150079936468,
+        "routing_gini": 0.5244589473684209,
+        "top_half_concentration": 0.8718,
+        "bucket_purity": 1.0,
+        "sector_entropy": 3.533514803621728,
+        "sector_gini": 0.476688
+      },
+      {
+        "K": 50,
+        "mode": "BASE",
+        "variant": "PERM",
+        "delta_r": 0.41517731396805096,
+        "n_tokens": 5000,
+        "n_shells": 2,
+        "shell_distribution": {
+          "0": 1301,
+          "1": 3699
+        },
+        "n_active_sectors": 50,
+        "sectors_above_1pct": 44,
+        "n_buckets": 100,
+        "effective_bucket_count": 78.31492192619689,
+        "routing_gini": 0.3865799999999999,
+        "top_half_concentration": 0.767,
+        "bucket_purity": 1.0,
+        "sector_entropy": 3.792155194649486,
+        "sector_gini": 0.27201600000000004
+      },
+      {
+        "K": 50,
+        "mode": "TRANS",
+        "variant": "ORIG",
+        "delta_r": 0.41517731396805096,
+        "n_tokens": 5000,
+        "n_shells": 2,
+        "shell_distribution": {
+          "0": 1352,
+          "1": 3648
+        },
+        "n_active_sectors": 50,
+        "sectors_above_1pct": 27,
+        "n_buckets": 97,
+        "effective_bucket_count": 55.59493453869344,
+        "routing_gini": 0.5706515463917525,
+        "top_half_concentration": 0.9084,
+        "bucket_purity": 1.0,
+        "sector_entropy": 3.4811356405042577,
+        "sector_gini": 0.5076959999999999
+      },
+      {
+        "K": 50,
+        "mode": "TRANS",
+        "variant": "PERM",
+        "delta_r": 0.41517731396805096,
+        "n_tokens": 5000,
+        "n_shells": 2,
+        "shell_distribution": {
+          "0": 1301,
+          "1": 3699
+        },
+        "n_active_sectors": 50,
+        "sectors_above_1pct": 46,
+        "n_buckets": 100,
+        "effective_bucket_count": 78.23417118659502,
+        "routing_gini": 0.38693200000000005,
+        "top_half_concentration": 0.7724,
+        "bucket_purity": 1.0,
+        "sector_entropy": 3.790866422615285,
+        "sector_gini": 0.26960800000000007
+      },
+      {
+        "K": 75,
+        "mode": "BASE",
+        "variant": "ORIG",
+        "delta_r": 0.41517731396805096,
+        "n_tokens": 5000,
+        "n_shells": 2,
+        "shell_distribution": {
+          "0": 1352,
+          "1": 3648
+        },
+        "n_active_sectors": 75,
+        "sectors_above_1pct": 35,
+        "n_buckets": 140,
+        "effective_bucket_count": 85.20978707024926,
+        "routing_gini": 0.5406485714285714,
+        "top_half_concentration": 0.8742,
+        "bucket_purity": 1.0,
+        "sector_entropy": 3.8928675824799233,
+        "sector_gini": 0.5032533333333333
+      },
+      {
+        "K": 75,
+        "mode": "BASE",
+        "variant": "PERM",
+        "delta_r": 0.41517731396805096,
+        "n_tokens": 5000,
+        "n_shells": 2,
+        "shell_distribution": {
+          "0": 1301,
+          "1": 3699
+        },
+        "n_active_sectors": 75,
+        "sectors_above_1pct": 48,
+        "n_buckets": 150,
+        "effective_bucket_count": 118.52674495794892,
+        "routing_gini": 0.3775706666666667,
+        "top_half_concentration": 0.7602,
+        "bucket_purity": 1.0,
+        "sector_entropy": 4.20880693516954,
+        "sector_gini": 0.2565599999999999
+      },
+      {
+        "K": 75,
+        "mode": "TRANS",
+        "variant": "ORIG",
+        "delta_r": 0.41517731396805096,
+        "n_tokens": 5000,
+        "n_shells": 2,
+        "shell_distribution": {
+          "0": 1352,
+          "1": 3648
+        },
+        "n_active_sectors": 69,
+        "sectors_above_1pct": 25,
+        "n_buckets": 121,
+        "effective_bucket_count": 56.600138405361896,
+        "routing_gini": 0.6525355371900827,
+        "top_half_concentration": 0.9448,
+        "bucket_purity": 1.0,
+        "sector_entropy": 3.504343556144496,
+        "sector_gini": 0.6415072463768114
+      },
+      {
+        "K": 75,
+        "mode": "TRANS",
+        "variant": "PERM",
+        "delta_r": 0.41517731396805096,
+        "n_tokens": 5000,
+        "n_shells": 2,
+        "shell_distribution": {
+          "0": 1301,
+          "1": 3699
+        },
+        "n_active_sectors": 73,
+        "sectors_above_1pct": 44,
+        "n_buckets": 144,
+        "effective_bucket_count": 98.13549130017296,
+        "routing_gini": 0.4805611111111112,
+        "top_half_concentration": 0.8336,
+        "bucket_purity": 1.0,
+        "sector_entropy": 4.021073472990528,
+        "sector_gini": 0.3995232876712329
+      },
+      {
+        "K": 100,
+        "mode": "BASE",
+        "variant": "ORIG",
+        "delta_r": 0.41517731396805096,
+        "n_tokens": 5000,
+        "n_shells": 2,
+        "shell_distribution": {
+          "0": 1352,
+          "1": 3648
+        },
+        "n_active_sectors": 100,
+        "sectors_above_1pct": 42,
+        "n_buckets": 188,
+        "effective_bucket_count": 122.18757168861578,
+        "routing_gini": 0.5099425531914894,
+        "top_half_concentration": 0.866,
+        "bucket_purity": 1.0,
+        "sector_entropy": 4.258369064628689,
+        "sector_gini": 0.45877999999999997
+      },
+      {
+        "K": 100,
+        "mode": "BASE",
+        "variant": "PERM",
+        "delta_r": 0.41517731396805096,
+        "n_tokens": 5000,
+        "n_shells": 2,
+        "shell_distribution": {
+          "0": 1301,
+          "1": 3699
+        },
+        "n_active_sectors": 100,
+        "sectors_above_1pct": 42,
+        "n_buckets": 199,
+        "effective_bucket_count": 162.83870843126473,
+        "routing_gini": 0.35572462311557795,
+        "top_half_concentration": 0.7474,
+        "bucket_purity": 1.0,
+        "sector_entropy": 4.528910175180117,
+        "sector_gini": 0.22132799999999997
+      },
+      {
+        "K": 100,
+        "mode": "TRANS",
+        "variant": "ORIG",
+        "delta_r": 0.41517731396805096,
+        "n_tokens": 5000,
+        "n_shells": 2,
+        "shell_distribution": {
+          "0": 1352,
+          "1": 3648
+        },
+        "n_active_sectors": 87,
+        "sectors_above_1pct": 26,
+        "n_buckets": 144,
+        "effective_bucket_count": 64.96815077250024,
+        "routing_gini": 0.6649583333333333,
+        "top_half_concentration": 0.9442,
+        "bucket_purity": 1.0,
+        "sector_entropy": 3.646012289694421,
+        "sector_gini": 0.6729425287356321
+      },
+      {
+        "K": 100,
+        "mode": "TRANS",
+        "variant": "PERM",
+        "delta_r": 0.41517731396805096,
+        "n_tokens": 5000,
+        "n_shells": 2,
+        "shell_distribution": {
+          "0": 1301,
+          "1": 3699
+        },
+        "n_active_sectors": 93,
+        "sectors_above_1pct": 47,
+        "n_buckets": 182,
+        "effective_bucket_count": 130.69490459685815,
+        "routing_gini": 0.44751428571428575,
+        "top_half_concentration": 0.8138,
+        "bucket_purity": 1.0,
+        "sector_entropy": 4.307669977551195,
+        "sector_gini": 0.36363010752688174
+      },
+      {
+        "K": 150,
+        "mode": "BASE",
+        "variant": "ORIG",
+        "delta_r": 0.41517731396805096,
+        "n_tokens": 5000,
+        "n_shells": 2,
+        "shell_distribution": {
+          "0": 1352,
+          "1": 3648
+        },
+        "n_active_sectors": 149,
+        "sectors_above_1pct": 41,
+        "n_buckets": 271,
+        "effective_bucket_count": 163.21199851131556,
+        "routing_gini": 0.5477520295202953,
+        "top_half_concentration": 0.8786,
+        "bucket_purity": 1.0,
+        "sector_entropy": 4.552801840939653,
+        "sector_gini": 0.5198442953020133
+      },
+      {
+        "K": 150,
+        "mode": "BASE",
+        "variant": "PERM",
+        "delta_r": 0.41517731396805096,
+        "n_tokens": 5000,
+        "n_shells": 2,
+        "shell_distribution": {
+          "0": 1301,
+          "1": 3699
+        },
+        "n_active_sectors": 150,
+        "sectors_above_1pct": 21,
+        "n_buckets": 299,
+        "effective_bucket_count": 235.53216921473984,
+        "routing_gini": 0.38205886287625423,
+        "top_half_concentration": 0.7616,
+        "bucket_purity": 1.0,
+        "sector_entropy": 4.904211904420814,
+        "sector_gini": 0.2569626666666667
+      },
+      {
+        "K": 150,
+        "mode": "TRANS",
+        "variant": "ORIG",
+        "delta_r": 0.41517731396805096,
+        "n_tokens": 5000,
+        "n_shells": 2,
+        "shell_distribution": {
+          "0": 1352,
+          "1": 3648
+        },
+        "n_active_sectors": 122,
+        "sectors_above_1pct": 31,
+        "n_buckets": 191,
+        "effective_bucket_count": 79.48738568360366,
+        "routing_gini": 0.6899790575916231,
+        "top_half_concentration": 0.95,
+        "bucket_purity": 1.0,
+        "sector_entropy": 3.849982710921201,
+        "sector_gini": 0.7128065573770492
+      },
+      {
+        "K": 150,
+        "mode": "TRANS",
+        "variant": "PERM",
+        "delta_r": 0.41517731396805096,
+        "n_tokens": 5000,
+        "n_shells": 2,
+        "shell_distribution": {
+          "0": 1301,
+          "1": 3699
+        },
+        "n_active_sectors": 135,
+        "sectors_above_1pct": 36,
+        "n_buckets": 260,
+        "effective_bucket_count": 158.3447414409455,
+        "routing_gini": 0.5386230769230769,
+        "top_half_concentration": 0.8648,
+        "bucket_purity": 1.0,
+        "sector_entropy": 4.50432651733909,
+        "sector_gini": 0.4931407407407409
+      },
+      {
+        "K": 200,
+        "mode": "BASE",
+        "variant": "ORIG",
+        "delta_r": 0.41517731396805096,
+        "n_tokens": 5000,
+        "n_shells": 2,
+        "shell_distribution": {
+          "0": 1352,
+          "1": 3648
+        },
+        "n_active_sectors": 198,
+        "sectors_above_1pct": 40,
+        "n_buckets": 346,
+        "effective_bucket_count": 211.47936221440213,
+        "routing_gini": 0.5407410404624278,
+        "top_half_concentration": 0.8742,
+        "bucket_purity": 1.0,
+        "sector_entropy": 4.81623855945362,
+        "sector_gini": 0.5322969696969697
+      },
+      {
+        "K": 200,
+        "mode": "BASE",
+        "variant": "PERM",
+        "delta_r": 0.41517731396805096,
+        "n_tokens": 5000,
+        "n_shells": 2,
+        "shell_distribution": {
+          "0": 1301,
+          "1": 3699
+        },
+        "n_active_sectors": 200,
+        "sectors_above_1pct": 9,
+        "n_buckets": 397,
+        "effective_bucket_count": 307.3458593306547,
+        "routing_gini": 0.39358790931989907,
+        "top_half_concentration": 0.7682,
+        "bucket_purity": 1.0,
+        "sector_entropy": 5.177006433011501,
+        "sector_gini": 0.2735960000000002
+      },
+      {
+        "K": 200,
+        "mode": "TRANS",
+        "variant": "ORIG",
+        "delta_r": 0.41517731396805096,
+        "n_tokens": 5000,
+        "n_shells": 2,
+        "shell_distribution": {
+          "0": 1352,
+          "1": 3648
+        },
+        "n_active_sectors": 157,
+        "sectors_above_1pct": 31,
+        "n_buckets": 237,
+        "effective_bucket_count": 96.28994639894077,
+        "routing_gini": 0.6963021097046413,
+        "top_half_concentration": 0.9484,
+        "bucket_purity": 1.0,
+        "sector_entropy": 4.046677117549321,
+        "sector_gini": 0.7275566878980892
+      },
+      {
+        "K": 200,
+        "mode": "TRANS",
+        "variant": "PERM",
+        "delta_r": 0.41517731396805096,
+        "n_tokens": 5000,
+        "n_shells": 2,
+        "shell_distribution": {
+          "0": 1301,
+          "1": 3699
+        },
+        "n_active_sectors": 181,
+        "sectors_above_1pct": 33,
+        "n_buckets": 341,
+        "effective_bucket_count": 205.749187208864,
+        "routing_gini": 0.5444152492668621,
+        "top_half_concentration": 0.869,
+        "bucket_purity": 1.0,
+        "sector_entropy": 4.7731434110814455,
+        "sector_gini": 0.5069701657458563
+      },
+      {
+        "K": 400,
+        "mode": "BASE",
+        "variant": "ORIG",
+        "delta_r": 0.41517731396805096,
+        "n_tokens": 5000,
+        "n_shells": 2,
+        "shell_distribution": {
+          "0": 1352,
+          "1": 3648
+        },
+        "n_active_sectors": 387,
+        "sectors_above_1pct": 0,
+        "n_buckets": 633,
+        "effective_bucket_count": 429.2585865952634,
+        "routing_gini": 0.4866818325434439,
+        "top_half_concentration": 0.844,
+        "bucket_purity": 1.0,
+        "sector_entropy": 5.549435033199747,
+        "sector_gini": 0.4979493540051678
+      },
+      {
+        "K": 400,
+        "mode": "BASE",
+        "variant": "PERM",
+        "delta_r": 0.41517731396805096,
+        "n_tokens": 5000,
+        "n_shells": 2,
+        "shell_distribution": {
+          "0": 1301,
+          "1": 3699
+        },
+        "n_active_sectors": 399,
+        "sectors_above_1pct": 0,
+        "n_buckets": 775,
+        "effective_bucket_count": 609.7714451518179,
+        "routing_gini": 0.3855912258064518,
+        "top_half_concentration": 0.7694,
+        "bucket_purity": 1.0,
+        "sector_entropy": 5.880579414629885,
+        "sector_gini": 0.2620852130325815
+      },
+      {
+        "K": 400,
+        "mode": "TRANS",
+        "variant": "ORIG",
+        "delta_r": 0.41517731396805096,
+        "n_tokens": 5000,
+        "n_shells": 2,
+        "shell_distribution": {
+          "0": 1352,
+          "1": 3648
+        },
+        "n_active_sectors": 271,
+        "sectors_above_1pct": 33,
+        "n_buckets": 394,
+        "effective_bucket_count": 171.3917713547711,
+        "routing_gini": 0.6728802030456853,
+        "top_half_concentration": 0.9344,
+        "bucket_purity": 1.0,
+        "sector_entropy": 4.6381641985415705,
+        "sector_gini": 0.7123704797047972
+      },
+      {
+        "K": 400,
+        "mode": "TRANS",
+        "variant": "PERM",
+        "delta_r": 0.41517731396805096,
+        "n_tokens": 5000,
+        "n_shells": 2,
+        "shell_distribution": {
+          "0": 1301,
+          "1": 3699
+        },
+        "n_active_sectors": 342,
+        "sectors_above_1pct": 7,
+        "n_buckets": 613,
+        "effective_bucket_count": 386.74270223401584,
+        "routing_gini": 0.5208913539967375,
+        "top_half_concentration": 0.8514,
+        "bucket_purity": 1.0,
+        "sector_entropy": 5.423562090396325,
+        "sector_gini": 0.5001953216374269
+      }
+    ],
+    "scaling_exponents": {
+      "BASE_ORIG": {
+        "alpha": 0.8985071466533648,
+        "c": 1.8659255040774385,
+        "r2": 0.9959503071359904
+      },
+      "BASE_PERM": {
+        "alpha": 0.9713525379709803,
+        "c": 1.805992498781843,
+        "r2": 0.9995435041839082
+      },
+      "TRANS_ORIG": {
+        "alpha": 0.5577088017471422,
+        "c": 5.349210441804959,
+        "r2": 0.9620266836904307
+      },
+      "TRANS_PERM": {
+        "alpha": 0.7965249646774415,
+        "c": 3.1609935232691297,
+        "r2": 0.9926306666608676
+      }
+    },
+    "compression_by_K": {
+      "BASE": {
+        "10": {
+          "eff_bucket_ratio_PERM_over_ORIG": 1.1051925421294022,
+          "gini_ratio_ORIG_over_PERM": 1.1967455621301772,
+          "eff_orig": 14.731017880148617,
+          "eff_perm": 16.280611099115127,
+          "gini_orig": 0.42067999999999994,
+          "gini_perm": 0.35152000000000005,
+          "purity_orig": 1.0,
+          "purity_perm": 1.0
+        },
+        "25": {
+          "eff_bucket_ratio_PERM_over_ORIG": 1.1638265158694079,
+          "gini_ratio_ORIG_over_PERM": 1.319970551214762,
+          "eff_orig": 35.93211688882355,
+          "eff_perm": 41.81875040653182,
+          "gini_orig": 0.4446399999999999,
+          "gini_perm": 0.33685600000000004,
+          "purity_orig": 1.0,
+          "purity_perm": 1.0
+        },
+        "50": {
+          "eff_bucket_ratio_PERM_over_ORIG": 1.3069586188840454,
+          "gini_ratio_ORIG_over_PERM": 1.3566634263759663,
+          "eff_orig": 59.92150079936468,
+          "eff_perm": 78.31492192619689,
+          "gini_orig": 0.5244589473684209,
+          "gini_perm": 0.3865799999999999,
+          "purity_orig": 1.0,
+          "purity_perm": 1.0
+        },
+        "75": {
+          "eff_bucket_ratio_PERM_over_ORIG": 1.3909991919148004,
+          "gini_ratio_ORIG_over_PERM": 1.4319135970005736,
+          "eff_orig": 85.20978707024926,
+          "eff_perm": 118.52674495794892,
+          "gini_orig": 0.5406485714285714,
+          "gini_perm": 0.3775706666666667,
+          "purity_orig": 1.0,
+          "purity_perm": 1.0
+        },
+        "100": {
+          "eff_bucket_ratio_PERM_over_ORIG": 1.332694530064357,
+          "gini_ratio_ORIG_over_PERM": 1.4335317828864624,
+          "eff_orig": 122.18757168861578,
+          "eff_perm": 162.83870843126473,
+          "gini_orig": 0.5099425531914894,
+          "gini_perm": 0.35572462311557795,
+          "purity_orig": 1.0,
+          "purity_perm": 1.0
+        },
+        "150": {
+          "eff_bucket_ratio_PERM_over_ORIG": 1.443105723617558,
+          "gini_ratio_ORIG_over_PERM": 1.4336849180690459,
+          "eff_orig": 163.21199851131556,
+          "eff_perm": 235.53216921473984,
+          "gini_orig": 0.5477520295202953,
+          "gini_perm": 0.38205886287625423,
+          "purity_orig": 1.0,
+          "purity_perm": 1.0
+        },
+        "200": {
+          "eff_bucket_ratio_PERM_over_ORIG": 1.4533137234405935,
+          "gini_ratio_ORIG_over_PERM": 1.3738761472546304,
+          "eff_orig": 211.47936221440213,
+          "eff_perm": 307.3458593306547,
+          "gini_orig": 0.5407410404624278,
+          "gini_perm": 0.39358790931989907,
+          "purity_orig": 1.0,
+          "purity_perm": 1.0
+        },
+        "400": {
+          "eff_bucket_ratio_PERM_over_ORIG": 1.4205224174740978,
+          "gini_ratio_ORIG_over_PERM": 1.2621704021546765,
+          "eff_orig": 429.2585865952634,
+          "eff_perm": 609.7714451518179,
+          "gini_orig": 0.4866818325434439,
+          "gini_perm": 0.3855912258064518,
+          "purity_orig": 1.0,
+          "purity_perm": 1.0
+        }
+      },
+      "TRANS": {
+        "10": {
+          "eff_bucket_ratio_PERM_over_ORIG": 1.128717349616869,
+          "gini_ratio_ORIG_over_PERM": 1.246980939909792,
+          "eff_orig": 11.669707452049819,
+          "eff_perm": 13.171801266081896,
+          "gini_orig": 0.42852500000000004,
+          "gini_perm": 0.34365,
+          "purity_orig": 1.0,
+          "purity_perm": 1.0
+        },
+        "25": {
+          "eff_bucket_ratio_PERM_over_ORIG": 1.2104782479588836,
+          "gini_ratio_ORIG_over_PERM": 1.3442370819273235,
+          "eff_orig": 32.066892428818775,
+          "eff_perm": 38.81627576472254,
+          "gini_orig": 0.4879916666666668,
+          "gini_perm": 0.36302500000000015,
+          "purity_orig": 1.0,
+          "purity_perm": 1.0
+        },
+        "50": {
+          "eff_bucket_ratio_PERM_over_ORIG": 1.40721761498154,
+          "gini_ratio_ORIG_over_PERM": 1.4748109393685518,
+          "eff_orig": 55.59493453869344,
+          "eff_perm": 78.23417118659502,
+          "gini_orig": 0.5706515463917525,
+          "gini_perm": 0.38693200000000005,
+          "purity_orig": 1.0,
+          "purity_perm": 1.0
+        },
+        "75": {
+          "eff_bucket_ratio_PERM_over_ORIG": 1.733838362679274,
+          "gini_ratio_ORIG_over_PERM": 1.35786172060687,
+          "eff_orig": 56.600138405361896,
+          "eff_perm": 98.13549130017296,
+          "gini_orig": 0.6525355371900827,
+          "gini_perm": 0.4805611111111112,
+          "purity_orig": 1.0,
+          "purity_perm": 1.0
+        },
+        "100": {
+          "eff_bucket_ratio_PERM_over_ORIG": 2.0116765375470527,
+          "gini_ratio_ORIG_over_PERM": 1.4858929749515843,
+          "eff_orig": 64.96815077250024,
+          "eff_perm": 130.69490459685815,
+          "gini_orig": 0.6649583333333333,
+          "gini_perm": 0.44751428571428575,
+          "purity_orig": 1.0,
+          "purity_perm": 1.0
+        },
+        "150": {
+          "eff_bucket_ratio_PERM_over_ORIG": 1.9920738376178375,
+          "gini_ratio_ORIG_over_PERM": 1.2810053767714118,
+          "eff_orig": 79.48738568360366,
+          "eff_perm": 158.3447414409455,
+          "gini_orig": 0.6899790575916231,
+          "gini_perm": 0.5386230769230769,
+          "purity_orig": 1.0,
+          "purity_perm": 1.0
+        },
+        "200": {
+          "eff_bucket_ratio_PERM_over_ORIG": 2.136767075935638,
+          "gini_ratio_ORIG_over_PERM": 1.2789908266572583,
+          "eff_orig": 96.28994639894077,
+          "eff_perm": 205.749187208864,
+          "gini_orig": 0.6963021097046413,
+          "gini_perm": 0.5444152492668621,
+          "purity_orig": 1.0,
+          "purity_perm": 1.0
+        },
+        "400": {
+          "eff_bucket_ratio_PERM_over_ORIG": 2.256483489125512,
+          "gini_ratio_ORIG_over_PERM": 1.2917860852992769,
+          "eff_orig": 171.3917713547711,
+          "eff_perm": 386.74270223401584,
+          "gini_orig": 0.6728802030456853,
+          "gini_perm": 0.5208913539967375,
+          "purity_orig": 1.0,
+          "purity_perm": 1.0
+        }
+      }
+    }
+  },
+  "ExpC1_L3": {
+    "label": "ExpC1_L3_norm",
+    "delta_r": 3.6,
+    "r_eff_stats": {
+      "min": 1.094430659474202,
+      "max": 1.513842272355401,
+      "mean": 1.1543386109264855,
+      "std": 0.032751741403714014,
+      "p05": 1.11849565853587,
+      "p25": 1.1344762799767119,
+      "p50": 1.1482545510016244,
+      "p75": 1.1658886110522364,
+      "p95": 1.2077398873278486,
+      "shell1_threshold": 2.224922359499622,
+      "pct_above_shell1": 0.0
+    },
+    "routing_results": [
+      {
+        "K": 10,
+        "mode": "BASE",
+        "variant": "ORIG",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 10,
+        "sectors_above_1pct": 10,
+        "n_buckets": 10,
+        "effective_bucket_count": 8.304281299397665,
+        "routing_gini": 0.32504,
+        "top_half_concentration": 0.7186,
+        "bucket_purity": 1.0,
+        "sector_entropy": 2.1167712010180946,
+        "sector_gini": 0.32504
+      },
+      {
+        "K": 10,
+        "mode": "BASE",
+        "variant": "PERM",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 10,
+        "sectors_above_1pct": 10,
+        "n_buckets": 10,
+        "effective_bucket_count": 9.101193421143716,
+        "routing_gini": 0.22951999999999995,
+        "top_half_concentration": 0.6518,
+        "bucket_purity": 1.0,
+        "sector_entropy": 2.208405550104655,
+        "sector_gini": 0.22951999999999995
+      },
+      {
+        "K": 10,
+        "mode": "TRANS",
+        "variant": "ORIG",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 8,
+        "sectors_above_1pct": 8,
+        "n_buckets": 8,
+        "effective_bucket_count": 6.648837426942566,
+        "routing_gini": 0.33135000000000003,
+        "top_half_concentration": 0.7414,
+        "bucket_purity": 1.0,
+        "sector_entropy": 1.8944420163682827,
+        "sector_gini": 0.33135000000000003
+      },
+      {
+        "K": 10,
+        "mode": "TRANS",
+        "variant": "PERM",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 8,
+        "sectors_above_1pct": 8,
+        "n_buckets": 8,
+        "effective_bucket_count": 7.418863962547806,
+        "routing_gini": 0.20389999999999997,
+        "top_half_concentration": 0.6348,
+        "bucket_purity": 1.0,
+        "sector_entropy": 2.0040259406796324,
+        "sector_gini": 0.20389999999999997
+      },
+      {
+        "K": 25,
+        "mode": "BASE",
+        "variant": "ORIG",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 25,
+        "sectors_above_1pct": 20,
+        "n_buckets": 25,
+        "effective_bucket_count": 20.464051259594648,
+        "routing_gini": 0.338592,
+        "top_half_concentration": 0.7314,
+        "bucket_purity": 1.0,
+        "sector_entropy": 3.0186697497001718,
+        "sector_gini": 0.338592
+      },
+      {
+        "K": 25,
+        "mode": "BASE",
+        "variant": "PERM",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 25,
+        "sectors_above_1pct": 25,
+        "n_buckets": 25,
+        "effective_bucket_count": 23.565499660477997,
+        "routing_gini": 0.194704,
+        "top_half_concentration": 0.629,
+        "bucket_purity": 1.0,
+        "sector_entropy": 3.1597837636509247,
+        "sector_gini": 0.194704
+      },
+      {
+        "K": 25,
+        "mode": "TRANS",
+        "variant": "ORIG",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 24,
+        "sectors_above_1pct": 21,
+        "n_buckets": 24,
+        "effective_bucket_count": 18.551319186380557,
+        "routing_gini": 0.39436666666666653,
+        "top_half_concentration": 0.7716,
+        "bucket_purity": 1.0,
+        "sector_entropy": 2.9205409016936437,
+        "sector_gini": 0.39436666666666653
+      },
+      {
+        "K": 25,
+        "mode": "TRANS",
+        "variant": "PERM",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 24,
+        "sectors_above_1pct": 24,
+        "n_buckets": 24,
+        "effective_bucket_count": 21.79015297315277,
+        "routing_gini": 0.24278333333333335,
+        "top_half_concentration": 0.6702,
+        "bucket_purity": 1.0,
+        "sector_entropy": 3.081458169269324,
+        "sector_gini": 0.24278333333333335
+      },
+      {
+        "K": 50,
+        "mode": "BASE",
+        "variant": "ORIG",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 50,
+        "sectors_above_1pct": 31,
+        "n_buckets": 50,
+        "effective_bucket_count": 34.24411768797776,
+        "routing_gini": 0.476688,
+        "top_half_concentration": 0.8538,
+        "bucket_purity": 1.0,
+        "sector_entropy": 3.533514803621728,
+        "sector_gini": 0.476688
+      },
+      {
+        "K": 50,
+        "mode": "BASE",
+        "variant": "PERM",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 50,
+        "sectors_above_1pct": 44,
+        "n_buckets": 50,
+        "effective_bucket_count": 43.71394746936583,
+        "routing_gini": 0.28381600000000007,
+        "top_half_concentration": 0.696,
+        "bucket_purity": 1.0,
+        "sector_entropy": 3.777667215238245,
+        "sector_gini": 0.28381600000000007
+      },
+      {
+        "K": 50,
+        "mode": "TRANS",
+        "variant": "ORIG",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 50,
+        "sectors_above_1pct": 27,
+        "n_buckets": 50,
+        "effective_bucket_count": 32.49660559025253,
+        "routing_gini": 0.5076959999999999,
+        "top_half_concentration": 0.876,
+        "bucket_purity": 1.0,
+        "sector_entropy": 3.4811356405042577,
+        "sector_gini": 0.5076959999999999
+      },
+      {
+        "K": 50,
+        "mode": "TRANS",
+        "variant": "PERM",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 50,
+        "sectors_above_1pct": 45,
+        "n_buckets": 50,
+        "effective_bucket_count": 44.09864552787338,
+        "routing_gini": 0.27684,
+        "top_half_concentration": 0.6866,
+        "bucket_purity": 1.0,
+        "sector_entropy": 3.786429068327462,
+        "sector_gini": 0.27684
+      },
+      {
+        "K": 75,
+        "mode": "BASE",
+        "variant": "ORIG",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 75,
+        "sectors_above_1pct": 35,
+        "n_buckets": 75,
+        "effective_bucket_count": 49.05134381519022,
+        "routing_gini": 0.5032533333333333,
+        "top_half_concentration": 0.861,
+        "bucket_purity": 1.0,
+        "sector_entropy": 3.8928675824799233,
+        "sector_gini": 0.5032533333333333
+      },
+      {
+        "K": 75,
+        "mode": "BASE",
+        "variant": "PERM",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 75,
+        "sectors_above_1pct": 48,
+        "n_buckets": 75,
+        "effective_bucket_count": 66.58990874761867,
+        "routing_gini": 0.2671306666666666,
+        "top_half_concentration": 0.6774,
+        "bucket_purity": 1.0,
+        "sector_entropy": 4.198553045759956,
+        "sector_gini": 0.2671306666666666
+      },
+      {
+        "K": 75,
+        "mode": "TRANS",
+        "variant": "ORIG",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 69,
+        "sectors_above_1pct": 25,
+        "n_buckets": 69,
+        "effective_bucket_count": 33.25960362231125,
+        "routing_gini": 0.6415072463768114,
+        "top_half_concentration": 0.9448,
+        "bucket_purity": 1.0,
+        "sector_entropy": 3.504343556144496,
+        "sector_gini": 0.6415072463768114
+      },
+      {
+        "K": 75,
+        "mode": "TRANS",
+        "variant": "PERM",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 73,
+        "sectors_above_1pct": 43,
+        "n_buckets": 73,
+        "effective_bucket_count": 55.14800417075836,
+        "routing_gini": 0.4068328767123288,
+        "top_half_concentration": 0.79,
+        "bucket_purity": 1.0,
+        "sector_entropy": 4.010020555937841,
+        "sector_gini": 0.4068328767123288
+      },
+      {
+        "K": 100,
+        "mode": "BASE",
+        "variant": "ORIG",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 100,
+        "sectors_above_1pct": 42,
+        "n_buckets": 100,
+        "effective_bucket_count": 70.69459107195617,
+        "routing_gini": 0.45877999999999997,
+        "top_half_concentration": 0.8472,
+        "bucket_purity": 1.0,
+        "sector_entropy": 4.258369064628689,
+        "sector_gini": 0.45877999999999997
+      },
+      {
+        "K": 100,
+        "mode": "BASE",
+        "variant": "PERM",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 100,
+        "sectors_above_1pct": 41,
+        "n_buckets": 100,
+        "effective_bucket_count": 92.4200563922558,
+        "routing_gini": 0.22430799999999995,
+        "top_half_concentration": 0.6616,
+        "bucket_purity": 1.0,
+        "sector_entropy": 4.5263440156156625,
+        "sector_gini": 0.22430799999999995
+      },
+      {
+        "K": 100,
+        "mode": "TRANS",
+        "variant": "ORIG",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 87,
+        "sectors_above_1pct": 26,
+        "n_buckets": 87,
+        "effective_bucket_count": 38.321545729370776,
+        "routing_gini": 0.6729425287356321,
+        "top_half_concentration": 0.9476,
+        "bucket_purity": 1.0,
+        "sector_entropy": 3.646012289694421,
+        "sector_gini": 0.6729425287356321
+      },
+      {
+        "K": 100,
+        "mode": "TRANS",
+        "variant": "PERM",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 93,
+        "sectors_above_1pct": 45,
+        "n_buckets": 93,
+        "effective_bucket_count": 74.02049081853855,
+        "routing_gini": 0.3665118279569892,
+        "top_half_concentration": 0.7534,
+        "bucket_purity": 1.0,
+        "sector_entropy": 4.304341957826845,
+        "sector_gini": 0.3665118279569892
+      },
+      {
+        "K": 150,
+        "mode": "BASE",
+        "variant": "ORIG",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 149,
+        "sectors_above_1pct": 41,
+        "n_buckets": 149,
+        "effective_bucket_count": 94.8979250649098,
+        "routing_gini": 0.5198442953020133,
+        "top_half_concentration": 0.8716,
+        "bucket_purity": 1.0,
+        "sector_entropy": 4.552801840939653,
+        "sector_gini": 0.5198442953020133
+      },
+      {
+        "K": 150,
+        "mode": "BASE",
+        "variant": "PERM",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 150,
+        "sectors_above_1pct": 18,
+        "n_buckets": 150,
+        "effective_bucket_count": 134.23593802990223,
+        "routing_gini": 0.2608666666666668,
+        "top_half_concentration": 0.6806,
+        "bucket_purity": 1.0,
+        "sector_entropy": 4.899598983246648,
+        "sector_gini": 0.2608666666666668
+      },
+      {
+        "K": 150,
+        "mode": "TRANS",
+        "variant": "ORIG",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 122,
+        "sectors_above_1pct": 31,
+        "n_buckets": 122,
+        "effective_bucket_count": 46.992250771829376,
+        "routing_gini": 0.7128065573770492,
+        "top_half_concentration": 0.9612,
+        "bucket_purity": 1.0,
+        "sector_entropy": 3.849982710921201,
+        "sector_gini": 0.7128065573770492
+      },
+      {
+        "K": 150,
+        "mode": "TRANS",
+        "variant": "PERM",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 138,
+        "sectors_above_1pct": 35,
+        "n_buckets": 138,
+        "effective_bucket_count": 90.65721849364321,
+        "routing_gini": 0.5022347826086957,
+        "top_half_concentration": 0.85,
+        "bucket_purity": 1.0,
+        "sector_entropy": 4.507085564407179,
+        "sector_gini": 0.5022347826086957
+      },
+      {
+        "K": 200,
+        "mode": "BASE",
+        "variant": "ORIG",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 198,
+        "sectors_above_1pct": 40,
+        "n_buckets": 198,
+        "effective_bucket_count": 123.49967931853644,
+        "routing_gini": 0.5322969696969697,
+        "top_half_concentration": 0.8778,
+        "bucket_purity": 1.0,
+        "sector_entropy": 4.81623855945362,
+        "sector_gini": 0.5322969696969697
+      },
+      {
+        "K": 200,
+        "mode": "BASE",
+        "variant": "PERM",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 200,
+        "sectors_above_1pct": 11,
+        "n_buckets": 200,
+        "effective_bucket_count": 175.9891816079814,
+        "routing_gini": 0.2785000000000002,
+        "top_half_concentration": 0.693,
+        "bucket_purity": 1.0,
+        "sector_entropy": 5.170422525012439,
+        "sector_gini": 0.2785000000000002
+      },
+      {
+        "K": 200,
+        "mode": "TRANS",
+        "variant": "ORIG",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 157,
+        "sectors_above_1pct": 31,
+        "n_buckets": 157,
+        "effective_bucket_count": 57.207048570406755,
+        "routing_gini": 0.7275566878980892,
+        "top_half_concentration": 0.9614,
+        "bucket_purity": 1.0,
+        "sector_entropy": 4.046677117549321,
+        "sector_gini": 0.7275566878980892
+      },
+      {
+        "K": 200,
+        "mode": "TRANS",
+        "variant": "PERM",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 181,
+        "sectors_above_1pct": 32,
+        "n_buckets": 181,
+        "effective_bucket_count": 119.10967848019177,
+        "routing_gini": 0.5025104972375689,
+        "top_half_concentration": 0.8514,
+        "bucket_purity": 1.0,
+        "sector_entropy": 4.780044736537238,
+        "sector_gini": 0.5025104972375689
+      },
+      {
+        "K": 400,
+        "mode": "BASE",
+        "variant": "ORIG",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 387,
+        "sectors_above_1pct": 0,
+        "n_buckets": 387,
+        "effective_bucket_count": 257.09226627268407,
+        "routing_gini": 0.4979493540051678,
+        "top_half_concentration": 0.8672,
+        "bucket_purity": 1.0,
+        "sector_entropy": 5.549435033199747,
+        "sector_gini": 0.4979493540051678
+      },
+      {
+        "K": 400,
+        "mode": "BASE",
+        "variant": "PERM",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 400,
+        "sectors_above_1pct": 0,
+        "n_buckets": 400,
+        "effective_bucket_count": 357.09109924470283,
+        "routing_gini": 0.267377,
+        "top_half_concentration": 0.6902,
+        "bucket_purity": 1.0,
+        "sector_entropy": 5.877990929183923,
+        "sector_gini": 0.267377
+      },
+      {
+        "K": 400,
+        "mode": "TRANS",
+        "variant": "ORIG",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 271,
+        "sectors_above_1pct": 33,
+        "n_buckets": 271,
+        "effective_bucket_count": 103.35443509312512,
+        "routing_gini": 0.7123704797047972,
+        "top_half_concentration": 0.949,
+        "bucket_purity": 1.0,
+        "sector_entropy": 4.6381641985415705,
+        "sector_gini": 0.7123704797047972
+      },
+      {
+        "K": 400,
+        "mode": "TRANS",
+        "variant": "PERM",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 339,
+        "sectors_above_1pct": 9,
+        "n_buckets": 339,
+        "effective_bucket_count": 227.85653946445987,
+        "routing_gini": 0.4918796460176993,
+        "top_half_concentration": 0.8456,
+        "bucket_purity": 1.0,
+        "sector_entropy": 5.428716218041767,
+        "sector_gini": 0.4918796460176993
+      }
+    ],
+    "scaling_exponents": {
+      "BASE_ORIG": {
+        "alpha": 0.9159283460963002,
+        "c": 0.9982835361502582,
+        "r2": 0.9954617220975939
+      },
+      "BASE_PERM": {
+        "alpha": 0.986295421649568,
+        "c": 0.9580186433364118,
+        "r2": 0.9992835397652152
+      },
+      "TRANS_ORIG": {
+        "alpha": 0.5717337827154445,
+        "c": 2.9569026719710645,
+        "r2": 0.9627581802475725
+      },
+      "TRANS_PERM": {
+        "alpha": 0.8146005635619683,
+        "c": 1.658769050815528,
+        "r2": 0.9930790199955141
+      }
+    },
+    "compression_by_K": {
+      "BASE": {
+        "10": {
+          "eff_bucket_ratio_PERM_over_ORIG": 1.09596400856554,
+          "gini_ratio_ORIG_over_PERM": 1.4161728825374698,
+          "eff_orig": 8.304281299397665,
+          "eff_perm": 9.101193421143716,
+          "gini_orig": 0.32504,
+          "gini_perm": 0.22951999999999995,
+          "purity_orig": 1.0,
+          "purity_perm": 1.0
+        },
+        "25": {
+          "eff_bucket_ratio_PERM_over_ORIG": 1.1515559339419277,
+          "gini_ratio_ORIG_over_PERM": 1.7390089571862932,
+          "eff_orig": 20.464051259594648,
+          "eff_perm": 23.565499660477997,
+          "gini_orig": 0.338592,
+          "gini_perm": 0.194704,
+          "purity_orig": 1.0,
+          "purity_perm": 1.0
+        },
+        "50": {
+          "eff_bucket_ratio_PERM_over_ORIG": 1.2765388750171442,
+          "gini_ratio_ORIG_over_PERM": 1.6795670434365924,
+          "eff_orig": 34.24411768797776,
+          "eff_perm": 43.71394746936583,
+          "gini_orig": 0.476688,
+          "gini_perm": 0.28381600000000007,
+          "purity_orig": 1.0,
+          "purity_perm": 1.0
+        },
+        "75": {
+          "eff_bucket_ratio_PERM_over_ORIG": 1.357555238415244,
+          "gini_ratio_ORIG_over_PERM": 1.8839219757621741,
+          "eff_orig": 49.05134381519022,
+          "eff_perm": 66.58990874761867,
+          "gini_orig": 0.5032533333333333,
+          "gini_perm": 0.2671306666666666,
+          "purity_orig": 1.0,
+          "purity_perm": 1.0
+        },
+        "100": {
+          "eff_bucket_ratio_PERM_over_ORIG": 1.3073143926695392,
+          "gini_ratio_ORIG_over_PERM": 2.0453126950443146,
+          "eff_orig": 70.69459107195617,
+          "eff_perm": 92.4200563922558,
+          "gini_orig": 0.45877999999999997,
+          "gini_perm": 0.22430799999999995,
+          "purity_orig": 1.0,
+          "purity_perm": 1.0
+        },
+        "150": {
+          "eff_bucket_ratio_PERM_over_ORIG": 1.4145297480222607,
+          "gini_ratio_ORIG_over_PERM": 1.992758607086684,
+          "eff_orig": 94.8979250649098,
+          "eff_perm": 134.23593802990223,
+          "gini_orig": 0.5198442953020133,
+          "gini_perm": 0.2608666666666668,
+          "purity_orig": 1.0,
+          "purity_perm": 1.0
+        },
+        "200": {
+          "eff_bucket_ratio_PERM_over_ORIG": 1.4250173164746562,
+          "gini_ratio_ORIG_over_PERM": 1.9112997116587769,
+          "eff_orig": 123.49967931853644,
+          "eff_perm": 175.9891816079814,
+          "gini_orig": 0.5322969696969697,
+          "gini_perm": 0.2785000000000002,
+          "purity_orig": 1.0,
+          "purity_perm": 1.0
+        },
+        "400": {
+          "eff_bucket_ratio_PERM_over_ORIG": 1.3889608754934515,
+          "gini_ratio_ORIG_over_PERM": 1.86234924471876,
+          "eff_orig": 257.09226627268407,
+          "eff_perm": 357.09109924470283,
+          "gini_orig": 0.4979493540051678,
+          "gini_perm": 0.267377,
+          "purity_orig": 1.0,
+          "purity_perm": 1.0
+        }
+      },
+      "TRANS": {
+        "10": {
+          "eff_bucket_ratio_PERM_over_ORIG": 1.1158137109030402,
+          "gini_ratio_ORIG_over_PERM": 1.6250613045610598,
+          "eff_orig": 6.648837426942566,
+          "eff_perm": 7.418863962547806,
+          "gini_orig": 0.33135000000000003,
+          "gini_perm": 0.20389999999999997,
+          "purity_orig": 1.0,
+          "purity_perm": 1.0
+        },
+        "25": {
+          "eff_bucket_ratio_PERM_over_ORIG": 1.174587788298635,
+          "gini_ratio_ORIG_over_PERM": 1.624356422049838,
+          "eff_orig": 18.551319186380557,
+          "eff_perm": 21.79015297315277,
+          "gini_orig": 0.39436666666666653,
+          "gini_perm": 0.24278333333333335,
+          "purity_orig": 1.0,
+          "purity_perm": 1.0
+        },
+        "50": {
+          "eff_bucket_ratio_PERM_over_ORIG": 1.3570231329361035,
+          "gini_ratio_ORIG_over_PERM": 1.8338968357173817,
+          "eff_orig": 32.49660559025253,
+          "eff_perm": 44.09864552787338,
+          "gini_orig": 0.5076959999999999,
+          "gini_perm": 0.27684,
+          "purity_orig": 1.0,
+          "purity_perm": 1.0
+        },
+        "75": {
+          "eff_bucket_ratio_PERM_over_ORIG": 1.658107679123509,
+          "gini_ratio_ORIG_over_PERM": 1.5768323631091905,
+          "eff_orig": 33.25960362231125,
+          "eff_perm": 55.14800417075836,
+          "gini_orig": 0.6415072463768114,
+          "gini_perm": 0.4068328767123288,
+          "purity_orig": 1.0,
+          "purity_perm": 1.0
+        },
+        "100": {
+          "eff_bucket_ratio_PERM_over_ORIG": 1.931563286650179,
+          "gini_ratio_ORIG_over_PERM": 1.8360731561836607,
+          "eff_orig": 38.321545729370776,
+          "eff_perm": 74.02049081853855,
+          "gini_orig": 0.6729425287356321,
+          "gini_perm": 0.3665118279569892,
+          "purity_orig": 1.0,
+          "purity_perm": 1.0
+        },
+        "150": {
+          "eff_bucket_ratio_PERM_over_ORIG": 1.9291950694983488,
+          "gini_ratio_ORIG_over_PERM": 1.419269596730451,
+          "eff_orig": 46.992250771829376,
+          "eff_perm": 90.65721849364321,
+          "gini_orig": 0.7128065573770492,
+          "gini_perm": 0.5022347826086957,
+          "purity_orig": 1.0,
+          "purity_perm": 1.0
+        },
+        "200": {
+          "eff_bucket_ratio_PERM_over_ORIG": 2.0820804683464704,
+          "gini_ratio_ORIG_over_PERM": 1.4478437602749752,
+          "eff_orig": 57.207048570406755,
+          "eff_perm": 119.10967848019177,
+          "gini_orig": 0.7275566878980892,
+          "gini_perm": 0.5025104972375689,
+          "purity_orig": 1.0,
+          "purity_perm": 1.0
+        },
+        "400": {
+          "eff_bucket_ratio_PERM_over_ORIG": 2.204613079827247,
+          "gini_ratio_ORIG_over_PERM": 1.448261755639232,
+          "eff_orig": 103.35443509312512,
+          "eff_perm": 227.85653946445987,
+          "gini_orig": 0.7123704797047972,
+          "gini_perm": 0.4918796460176993,
+          "purity_orig": 1.0,
+          "purity_perm": 1.0
+        }
+      }
+    }
+  },
+  "ExpC2_L4": {
+    "label": "ExpC2_L4_norm",
+    "delta_r": 3.6,
+    "r_eff_stats": {
+      "min": 1.1137541302164373,
+      "max": 1.730209248618117,
+      "mean": 1.192326905149822,
+      "std": 0.04330013966240506,
+      "p05": 1.1456953911063894,
+      "p25": 1.1664883409437687,
+      "p50": 1.1849577114508747,
+      "p75": 1.206737269977758,
+      "p95": 1.261176859772359,
+      "shell1_threshold": 2.224922359499622,
+      "pct_above_shell1": 0.0
+    },
+    "routing_results": [
+      {
+        "K": 10,
+        "mode": "BASE",
+        "variant": "ORIG",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 10,
+        "sectors_above_1pct": 10,
+        "n_buckets": 10,
+        "effective_bucket_count": 8.304281299397665,
+        "routing_gini": 0.32504,
+        "top_half_concentration": 0.7186,
+        "bucket_purity": 1.0,
+        "sector_entropy": 2.1167712010180946,
+        "sector_gini": 0.32504
+      },
+      {
+        "K": 10,
+        "mode": "BASE",
+        "variant": "PERM",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 10,
+        "sectors_above_1pct": 10,
+        "n_buckets": 10,
+        "effective_bucket_count": 9.08785424451263,
+        "routing_gini": 0.23119999999999985,
+        "top_half_concentration": 0.6532,
+        "bucket_purity": 1.0,
+        "sector_entropy": 2.2069388236143355,
+        "sector_gini": 0.23119999999999985
+      },
+      {
+        "K": 10,
+        "mode": "TRANS",
+        "variant": "ORIG",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 8,
+        "sectors_above_1pct": 8,
+        "n_buckets": 8,
+        "effective_bucket_count": 6.648837426942566,
+        "routing_gini": 0.33135000000000003,
+        "top_half_concentration": 0.7414,
+        "bucket_purity": 1.0,
+        "sector_entropy": 1.8944420163682827,
+        "sector_gini": 0.33135000000000003
+      },
+      {
+        "K": 10,
+        "mode": "TRANS",
+        "variant": "PERM",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 8,
+        "sectors_above_1pct": 8,
+        "n_buckets": 8,
+        "effective_bucket_count": 7.415790991076853,
+        "routing_gini": 0.20465,
+        "top_half_concentration": 0.6358,
+        "bucket_purity": 1.0,
+        "sector_entropy": 2.00361164435464,
+        "sector_gini": 0.20465
+      },
+      {
+        "K": 25,
+        "mode": "BASE",
+        "variant": "ORIG",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 25,
+        "sectors_above_1pct": 20,
+        "n_buckets": 25,
+        "effective_bucket_count": 20.464051259594648,
+        "routing_gini": 0.338592,
+        "top_half_concentration": 0.7314,
+        "bucket_purity": 1.0,
+        "sector_entropy": 3.0186697497001718,
+        "sector_gini": 0.338592
+      },
+      {
+        "K": 25,
+        "mode": "BASE",
+        "variant": "PERM",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 25,
+        "sectors_above_1pct": 25,
+        "n_buckets": 25,
+        "effective_bucket_count": 23.540687381700284,
+        "routing_gini": 0.19614399999999987,
+        "top_half_concentration": 0.6298,
+        "bucket_purity": 1.0,
+        "sector_entropy": 3.158730301987802,
+        "sector_gini": 0.19614399999999987
+      },
+      {
+        "K": 25,
+        "mode": "TRANS",
+        "variant": "ORIG",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 24,
+        "sectors_above_1pct": 21,
+        "n_buckets": 24,
+        "effective_bucket_count": 18.551319186380557,
+        "routing_gini": 0.39436666666666653,
+        "top_half_concentration": 0.7716,
+        "bucket_purity": 1.0,
+        "sector_entropy": 2.9205409016936437,
+        "sector_gini": 0.39436666666666653
+      },
+      {
+        "K": 25,
+        "mode": "TRANS",
+        "variant": "PERM",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 24,
+        "sectors_above_1pct": 24,
+        "n_buckets": 24,
+        "effective_bucket_count": 21.776971902375358,
+        "routing_gini": 0.24341666666666661,
+        "top_half_concentration": 0.6706,
+        "bucket_purity": 1.0,
+        "sector_entropy": 3.080853076726851,
+        "sector_gini": 0.24341666666666661
+      },
+      {
+        "K": 50,
+        "mode": "BASE",
+        "variant": "ORIG",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 50,
+        "sectors_above_1pct": 31,
+        "n_buckets": 50,
+        "effective_bucket_count": 34.24411768797776,
+        "routing_gini": 0.476688,
+        "top_half_concentration": 0.8538,
+        "bucket_purity": 1.0,
+        "sector_entropy": 3.533514803621728,
+        "sector_gini": 0.476688
+      },
+      {
+        "K": 50,
+        "mode": "BASE",
+        "variant": "PERM",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 50,
+        "sectors_above_1pct": 45,
+        "n_buckets": 50,
+        "effective_bucket_count": 43.634244592603835,
+        "routing_gini": 0.285096,
+        "top_half_concentration": 0.6958,
+        "bucket_purity": 1.0,
+        "sector_entropy": 3.775842268504926,
+        "sector_gini": 0.285096
+      },
+      {
+        "K": 50,
+        "mode": "TRANS",
+        "variant": "ORIG",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 50,
+        "sectors_above_1pct": 27,
+        "n_buckets": 50,
+        "effective_bucket_count": 32.49660559025253,
+        "routing_gini": 0.5076959999999999,
+        "top_half_concentration": 0.876,
+        "bucket_purity": 1.0,
+        "sector_entropy": 3.4811356405042577,
+        "sector_gini": 0.5076959999999999
+      },
+      {
+        "K": 50,
+        "mode": "TRANS",
+        "variant": "PERM",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 50,
+        "sectors_above_1pct": 44,
+        "n_buckets": 50,
+        "effective_bucket_count": 44.06183575417247,
+        "routing_gini": 0.27801600000000004,
+        "top_half_concentration": 0.687,
+        "bucket_purity": 1.0,
+        "sector_entropy": 3.785594005376247,
+        "sector_gini": 0.27801600000000004
+      },
+      {
+        "K": 75,
+        "mode": "BASE",
+        "variant": "ORIG",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 75,
+        "sectors_above_1pct": 35,
+        "n_buckets": 75,
+        "effective_bucket_count": 49.05134381519022,
+        "routing_gini": 0.5032533333333333,
+        "top_half_concentration": 0.861,
+        "bucket_purity": 1.0,
+        "sector_entropy": 3.8928675824799233,
+        "sector_gini": 0.5032533333333333
+      },
+      {
+        "K": 75,
+        "mode": "BASE",
+        "variant": "PERM",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 75,
+        "sectors_above_1pct": 47,
+        "n_buckets": 75,
+        "effective_bucket_count": 66.49020136499351,
+        "routing_gini": 0.26803733333333324,
+        "top_half_concentration": 0.678,
+        "bucket_purity": 1.0,
+        "sector_entropy": 4.197054588910207,
+        "sector_gini": 0.26803733333333324
+      },
+      {
+        "K": 75,
+        "mode": "TRANS",
+        "variant": "ORIG",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 69,
+        "sectors_above_1pct": 25,
+        "n_buckets": 69,
+        "effective_bucket_count": 33.25960362231125,
+        "routing_gini": 0.6415072463768114,
+        "top_half_concentration": 0.9448,
+        "bucket_purity": 1.0,
+        "sector_entropy": 3.504343556144496,
+        "sector_gini": 0.6415072463768114
+      },
+      {
+        "K": 75,
+        "mode": "TRANS",
+        "variant": "PERM",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 73,
+        "sectors_above_1pct": 44,
+        "n_buckets": 73,
+        "effective_bucket_count": 55.12651183150033,
+        "routing_gini": 0.4072328767123288,
+        "top_half_concentration": 0.7894,
+        "bucket_purity": 1.0,
+        "sector_entropy": 4.009630758905683,
+        "sector_gini": 0.4072328767123288
+      },
+      {
+        "K": 100,
+        "mode": "BASE",
+        "variant": "ORIG",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 100,
+        "sectors_above_1pct": 42,
+        "n_buckets": 100,
+        "effective_bucket_count": 70.69459107195617,
+        "routing_gini": 0.45877999999999997,
+        "top_half_concentration": 0.8472,
+        "bucket_purity": 1.0,
+        "sector_entropy": 4.258369064628689,
+        "sector_gini": 0.45877999999999997
+      },
+      {
+        "K": 100,
+        "mode": "BASE",
+        "variant": "PERM",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 100,
+        "sectors_above_1pct": 41,
+        "n_buckets": 100,
+        "effective_bucket_count": 92.36919795881319,
+        "routing_gini": 0.2248079999999999,
+        "top_half_concentration": 0.662,
+        "bucket_purity": 1.0,
+        "sector_entropy": 4.525793567648267,
+        "sector_gini": 0.2248079999999999
+      },
+      {
+        "K": 100,
+        "mode": "TRANS",
+        "variant": "ORIG",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 87,
+        "sectors_above_1pct": 26,
+        "n_buckets": 87,
+        "effective_bucket_count": 38.321545729370776,
+        "routing_gini": 0.6729425287356321,
+        "top_half_concentration": 0.9476,
+        "bucket_purity": 1.0,
+        "sector_entropy": 3.646012289694421,
+        "sector_gini": 0.6729425287356321
+      },
+      {
+        "K": 100,
+        "mode": "TRANS",
+        "variant": "PERM",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 93,
+        "sectors_above_1pct": 45,
+        "n_buckets": 93,
+        "effective_bucket_count": 74.05969264759983,
+        "routing_gini": 0.3658150537634408,
+        "top_half_concentration": 0.7528,
+        "bucket_purity": 1.0,
+        "sector_entropy": 4.304871425430945,
+        "sector_gini": 0.3658150537634408
+      },
+      {
+        "K": 150,
+        "mode": "BASE",
+        "variant": "ORIG",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 149,
+        "sectors_above_1pct": 41,
+        "n_buckets": 149,
+        "effective_bucket_count": 94.8979250649098,
+        "routing_gini": 0.5198442953020133,
+        "top_half_concentration": 0.8716,
+        "bucket_purity": 1.0,
+        "sector_entropy": 4.552801840939653,
+        "sector_gini": 0.5198442953020133
+      },
+      {
+        "K": 150,
+        "mode": "BASE",
+        "variant": "PERM",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 150,
+        "sectors_above_1pct": 21,
+        "n_buckets": 150,
+        "effective_bucket_count": 134.1185331973302,
+        "routing_gini": 0.2618373333333335,
+        "top_half_concentration": 0.681,
+        "bucket_purity": 1.0,
+        "sector_entropy": 4.898723985043519,
+        "sector_gini": 0.2618373333333335
+      },
+      {
+        "K": 150,
+        "mode": "TRANS",
+        "variant": "ORIG",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 122,
+        "sectors_above_1pct": 31,
+        "n_buckets": 122,
+        "effective_bucket_count": 46.992250771829376,
+        "routing_gini": 0.7128065573770492,
+        "top_half_concentration": 0.9612,
+        "bucket_purity": 1.0,
+        "sector_entropy": 3.849982710921201,
+        "sector_gini": 0.7128065573770492
+      },
+      {
+        "K": 150,
+        "mode": "TRANS",
+        "variant": "PERM",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 138,
+        "sectors_above_1pct": 35,
+        "n_buckets": 138,
+        "effective_bucket_count": 90.54700771065602,
+        "routing_gini": 0.5023739130434783,
+        "top_half_concentration": 0.8488,
+        "bucket_purity": 1.0,
+        "sector_entropy": 4.505869138070049,
+        "sector_gini": 0.5023739130434783
+      },
+      {
+        "K": 200,
+        "mode": "BASE",
+        "variant": "ORIG",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 198,
+        "sectors_above_1pct": 40,
+        "n_buckets": 198,
+        "effective_bucket_count": 123.49967931853644,
+        "routing_gini": 0.5322969696969697,
+        "top_half_concentration": 0.8778,
+        "bucket_purity": 1.0,
+        "sector_entropy": 4.81623855945362,
+        "sector_gini": 0.5322969696969697
+      },
+      {
+        "K": 200,
+        "mode": "BASE",
+        "variant": "PERM",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 200,
+        "sectors_above_1pct": 10,
+        "n_buckets": 200,
+        "effective_bucket_count": 175.9016100146239,
+        "routing_gini": 0.2789940000000002,
+        "top_half_concentration": 0.694,
+        "bucket_purity": 1.0,
+        "sector_entropy": 5.169924804712561,
+        "sector_gini": 0.2789940000000002
+      },
+      {
+        "K": 200,
+        "mode": "TRANS",
+        "variant": "ORIG",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 157,
+        "sectors_above_1pct": 31,
+        "n_buckets": 157,
+        "effective_bucket_count": 57.207048570406755,
+        "routing_gini": 0.7275566878980892,
+        "top_half_concentration": 0.9614,
+        "bucket_purity": 1.0,
+        "sector_entropy": 4.046677117549321,
+        "sector_gini": 0.7275566878980892
+      },
+      {
+        "K": 200,
+        "mode": "TRANS",
+        "variant": "PERM",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 182,
+        "sectors_above_1pct": 33,
+        "n_buckets": 182,
+        "effective_bucket_count": 119.02206586857746,
+        "routing_gini": 0.5058087912087912,
+        "top_half_concentration": 0.8546,
+        "bucket_purity": 1.0,
+        "sector_entropy": 4.779308903389019,
+        "sector_gini": 0.5058087912087912
+      },
+      {
+        "K": 400,
+        "mode": "BASE",
+        "variant": "ORIG",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 387,
+        "sectors_above_1pct": 0,
+        "n_buckets": 387,
+        "effective_bucket_count": 257.09226627268407,
+        "routing_gini": 0.4979493540051678,
+        "top_half_concentration": 0.8672,
+        "bucket_purity": 1.0,
+        "sector_entropy": 5.549435033199747,
+        "sector_gini": 0.4979493540051678
+      },
+      {
+        "K": 400,
+        "mode": "BASE",
+        "variant": "PERM",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 400,
+        "sectors_above_1pct": 0,
+        "n_buckets": 400,
+        "effective_bucket_count": 357.052307157428,
+        "routing_gini": 0.2675050000000001,
+        "top_half_concentration": 0.6914,
+        "bucket_purity": 1.0,
+        "sector_entropy": 5.877882289695089,
+        "sector_gini": 0.2675050000000001
+      },
+      {
+        "K": 400,
+        "mode": "TRANS",
+        "variant": "ORIG",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 271,
+        "sectors_above_1pct": 33,
+        "n_buckets": 271,
+        "effective_bucket_count": 103.35443509312512,
+        "routing_gini": 0.7123704797047972,
+        "top_half_concentration": 0.949,
+        "bucket_purity": 1.0,
+        "sector_entropy": 4.6381641985415705,
+        "sector_gini": 0.7123704797047972
+      },
+      {
+        "K": 400,
+        "mode": "TRANS",
+        "variant": "PERM",
+        "delta_r": 3.6,
+        "n_tokens": 5000,
+        "n_shells": 1,
+        "shell_distribution": {
+          "0": 5000
+        },
+        "n_active_sectors": 339,
+        "sectors_above_1pct": 10,
+        "n_buckets": 339,
+        "effective_bucket_count": 228.5443180065794,
+        "routing_gini": 0.49003421828908555,
+        "top_half_concentration": 0.8436,
+        "bucket_purity": 1.0,
+        "sector_entropy": 5.431730143416773,
+        "sector_gini": 0.49003421828908555
+      }
+    ],
+    "scaling_exponents": {
+      "BASE_ORIG": {
+        "alpha": 0.9159283460963002,
+        "c": 0.9982835361502582,
+        "r2": 0.9954617220975939
+      },
+      "BASE_PERM": {
+        "alpha": 0.9867734482103383,
+        "c": 0.9550295448303959,
+        "r2": 0.999261905306018
+      },
+      "TRANS_ORIG": {
+        "alpha": 0.5717337827154445,
+        "c": 2.9569026719710645,
+        "r2": 0.9627581802475725
+      },
+      "TRANS_PERM": {
+        "alpha": 0.8155330411549888,
+        "c": 1.651578944861571,
+        "r2": 0.9929539580112942
+      }
+    },
+    "compression_by_K": {
+      "BASE": {
+        "10": {
+          "eff_bucket_ratio_PERM_over_ORIG": 1.0943577074119346,
+          "gini_ratio_ORIG_over_PERM": 1.4058823529411775,
+          "eff_orig": 8.304281299397665,
+          "eff_perm": 9.08785424451263,
+          "gini_orig": 0.32504,
+          "gini_perm": 0.23119999999999985,
+          "purity_orig": 1.0,
+          "purity_perm": 1.0
+        },
+        "25": {
+          "eff_bucket_ratio_PERM_over_ORIG": 1.150343452675977,
+          "gini_ratio_ORIG_over_PERM": 1.7262419446936956,
+          "eff_orig": 20.464051259594648,
+          "eff_perm": 23.540687381700284,
+          "gini_orig": 0.338592,
+          "gini_perm": 0.19614399999999987,
+          "purity_orig": 1.0,
+          "purity_perm": 1.0
+        },
+        "50": {
+          "eff_bucket_ratio_PERM_over_ORIG": 1.274211383986766,
+          "gini_ratio_ORIG_over_PERM": 1.6720262648371074,
+          "eff_orig": 34.24411768797776,
+          "eff_perm": 43.634244592603835,
+          "gini_orig": 0.476688,
+          "gini_perm": 0.285096,
+          "purity_orig": 1.0,
+          "purity_perm": 1.0
+        },
+        "75": {
+          "eff_bucket_ratio_PERM_over_ORIG": 1.3555225238172337,
+          "gini_ratio_ORIG_over_PERM": 1.877549396104026,
+          "eff_orig": 49.05134381519022,
+          "eff_perm": 66.49020136499351,
+          "gini_orig": 0.5032533333333333,
+          "gini_perm": 0.26803733333333324,
+          "purity_orig": 1.0,
+          "purity_perm": 1.0
+        },
+        "100": {
+          "eff_bucket_ratio_PERM_over_ORIG": 1.3065949821365488,
+          "gini_ratio_ORIG_over_PERM": 2.0407636738906096,
+          "eff_orig": 70.69459107195617,
+          "eff_perm": 92.36919795881319,
+          "gini_orig": 0.45877999999999997,
+          "gini_perm": 0.2248079999999999,
+          "purity_orig": 1.0,
+          "purity_perm": 1.0
+        },
+        "150": {
+          "eff_bucket_ratio_PERM_over_ORIG": 1.4132925783740127,
+          "gini_ratio_ORIG_over_PERM": 1.9853711794422477,
+          "eff_orig": 94.8979250649098,
+          "eff_perm": 134.1185331973302,
+          "gini_orig": 0.5198442953020133,
+          "gini_perm": 0.2618373333333335,
+          "purity_orig": 1.0,
+          "purity_perm": 1.0
+        },
+        "200": {
+          "eff_bucket_ratio_PERM_over_ORIG": 1.424308232905851,
+          "gini_ratio_ORIG_over_PERM": 1.90791547379861,
+          "eff_orig": 123.49967931853644,
+          "eff_perm": 175.9016100146239,
+          "gini_orig": 0.5322969696969697,
+          "gini_perm": 0.2789940000000002,
+          "purity_orig": 1.0,
+          "purity_perm": 1.0
+        },
+        "400": {
+          "eff_bucket_ratio_PERM_over_ORIG": 1.3888099876902622,
+          "gini_ratio_ORIG_over_PERM": 1.8614581185591583,
+          "eff_orig": 257.09226627268407,
+          "eff_perm": 357.052307157428,
+          "gini_orig": 0.4979493540051678,
+          "gini_perm": 0.2675050000000001,
+          "purity_orig": 1.0,
+          "purity_perm": 1.0
+        }
+      },
+      "TRANS": {
+        "10": {
+          "eff_bucket_ratio_PERM_over_ORIG": 1.115351529129953,
+          "gini_ratio_ORIG_over_PERM": 1.619105790373809,
+          "eff_orig": 6.648837426942566,
+          "eff_perm": 7.415790991076853,
+          "gini_orig": 0.33135000000000003,
+          "gini_perm": 0.20465,
+          "purity_orig": 1.0,
+          "purity_perm": 1.0
+        },
+        "25": {
+          "eff_bucket_ratio_PERM_over_ORIG": 1.1738772689741068,
+          "gini_ratio_ORIG_over_PERM": 1.6201300924340978,
+          "eff_orig": 18.551319186380557,
+          "eff_perm": 21.776971902375358,
+          "gini_orig": 0.39436666666666653,
+          "gini_perm": 0.24341666666666661,
+          "purity_orig": 1.0,
+          "purity_perm": 1.0
+        },
+        "50": {
+          "eff_bucket_ratio_PERM_over_ORIG": 1.3558904062087325,
+          "gini_ratio_ORIG_over_PERM": 1.8261395027624303,
+          "eff_orig": 32.49660559025253,
+          "eff_perm": 44.06183575417247,
+          "gini_orig": 0.5076959999999999,
+          "gini_perm": 0.27801600000000004,
+          "purity_orig": 1.0,
+          "purity_perm": 1.0
+        },
+        "75": {
+          "eff_bucket_ratio_PERM_over_ORIG": 1.6574614796226943,
+          "gini_ratio_ORIG_over_PERM": 1.5752835369183005,
+          "eff_orig": 33.25960362231125,
+          "eff_perm": 55.12651183150033,
+          "gini_orig": 0.6415072463768114,
+          "gini_perm": 0.4072328767123288,
+          "purity_orig": 1.0,
+          "purity_perm": 1.0
+        },
+        "100": {
+          "eff_bucket_ratio_PERM_over_ORIG": 1.9325862576268231,
+          "gini_ratio_ORIG_over_PERM": 1.8395703561472332,
+          "eff_orig": 38.321545729370776,
+          "eff_perm": 74.05969264759983,
+          "gini_orig": 0.6729425287356321,
+          "gini_perm": 0.3658150537634408,
+          "purity_orig": 1.0,
+          "purity_perm": 1.0
+        },
+        "150": {
+          "eff_bucket_ratio_PERM_over_ORIG": 1.9268497725360407,
+          "gini_ratio_ORIG_over_PERM": 1.418876535723619,
+          "eff_orig": 46.992250771829376,
+          "eff_perm": 90.54700771065602,
+          "gini_orig": 0.7128065573770492,
+          "gini_perm": 0.5023739130434783,
+          "purity_orig": 1.0,
+          "purity_perm": 1.0
+        },
+        "200": {
+          "eff_bucket_ratio_PERM_over_ORIG": 2.080548968054046,
+          "gini_ratio_ORIG_over_PERM": 1.4384026148682802,
+          "eff_orig": 57.207048570406755,
+          "eff_perm": 119.02206586857746,
+          "gini_orig": 0.7275566878980892,
+          "gini_perm": 0.5058087912087912,
+          "purity_orig": 1.0,
+          "purity_perm": 1.0
+        },
+        "400": {
+          "eff_bucket_ratio_PERM_over_ORIG": 2.2112676422705504,
+          "gini_ratio_ORIG_over_PERM": 1.4537157878320834,
+          "eff_orig": 103.35443509312512,
+          "eff_perm": 228.5443180065794,
+          "gini_orig": 0.7123704797047972,
+          "gini_perm": 0.49003421828908555,
+          "purity_orig": 1.0,
+          "purity_perm": 1.0
+        }
+      }
+    }
+  }
+}

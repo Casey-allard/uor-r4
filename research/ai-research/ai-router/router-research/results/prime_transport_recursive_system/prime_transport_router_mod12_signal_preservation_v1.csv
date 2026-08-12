@@ -1,0 +1,19 @@
+regime,position_probe,linear_decodability,final_accuracy,solve_step,tau0_direct_accuracy,alpha_last,runtime_seconds,note
+reduced_k1,training_summary,,1.0,2500,0.2661,0.8743,56.6,training result
+fuller_k3,training_summary,,1.0,2500,0.2812,0.8567,64.2,training result
+reduced_k1,full,,1.0,,0.2661,0.8742,0.0029,full trajectory
+reduced_k1,tau0_direct,,0.2661,,0.2661,0.0,0.0002,τ after step-0 → W_pred (no injection; like r4_retest def)
+reduced_k1,no_tau0,,1.0,,0.2661,0.8785,0.0031,position 0 masked
+reduced_k1,last_only,,1.0,,0.2661,1.0,0.0039,only t=23
+reduced_k1,no_last,,0.2427,,0.2661,0.0,0.0028,t=23 masked  ← KEY: routing-only signal
+fuller_k3,full,,1.0,,0.2812,0.8569,0.003,full trajectory
+fuller_k3,tau0_direct,,0.2812,,0.2812,0.0,0.0002,τ after step-0 → W_pred (no injection; like r4_retest def)
+fuller_k3,no_tau0,,1.0,,0.2812,0.8616,0.0029,position 0 masked
+fuller_k3,last_only,,1.0,,0.2812,1.0,0.0029,only t=23
+fuller_k3,no_last,,0.2432,,0.2812,0.0,0.0029,t=23 masked  ← KEY: routing-only signal
+reduced_k1,initial,0.2937,1.0,2500,0.2661,0.8743,,linear decodability at initial position
+reduced_k1,mid,0.2786,1.0,2500,0.2661,0.8743,,linear decodability at mid position
+reduced_k1,final,1.0,1.0,2500,0.2661,0.8743,,linear decodability at final position
+fuller_k3,initial,1.0,1.0,2500,0.2812,0.8567,,linear decodability at initial position
+fuller_k3,mid,0.3076,1.0,2500,0.2812,0.8567,,linear decodability at mid position
+fuller_k3,final,1.0,1.0,2500,0.2812,0.8567,,linear decodability at final position

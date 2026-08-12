@@ -1,0 +1,23 @@
+{
+  "scenario_id": "tiny-context-pressure",
+  "title": "Tiny Context Pressure",
+  "description": "Richer tiny scenario with a dangerous shortcut, a longer dependency route, a consumable decoy shortcut, and a final shared resource gate.",
+  "start_room_id": "camp",
+  "max_steps": 12,
+  "seed": 101,
+  "version": "1.0",
+  "scenario_vars": {
+    "mode": "context-pressure",
+    "agent_script_policy": "context-pressure-v1",
+    "world_config_json": "{\"items\":[{\"entity_id\":\"coolant-cell\",\"entity_type\":\"item\",\"location\":\"depot\"},{\"entity_id\":\"valve-handle\",\"entity_type\":\"item\",\"location\":\"workshop\"},{\"entity_id\":\"signal-flare\",\"entity_type\":\"item\",\"location\":\"decoy-annex\"},{\"entity_id\":\"archive-prism\",\"entity_type\":\"item\",\"location\":\"archive\"}],\"npcs\":[{\"entity_id\":\"marauder\",\"entity_type\":\"npc\",\"health\":10,\"location\":\"relay-hall\"}],\"rooms\":{\"archive\":{\"description\":\"The inner archive chamber where the prism rests once the final seal is powered.\",\"entities\":[],\"exits\":{\"south\":\"seal-door\"},\"title\":\"Archive\"},\"camp\":{\"description\":\"A pressure camp between a raider-held relay hall, a coolant depot, and a maintenance workshop.\",\"entities\":[],\"exits\":{\"east\":\"depot\",\"north\":\"relay-hall\",\"south\":\"workshop\"},\"title\":\"Pressure Camp\"},\"decoy-annex\":{\"description\":\"A side annex opened by the emergency lift; a signal flare sits here, but it does not help with the archive.\",\"entities\":[],\"exits\":{\"west\":\"relay-hall\"},\"title\":\"Decoy Annex\"},\"depot\":{\"description\":\"A coolant depot with a single charged cell still resting in its cradle.\",\"entities\":[],\"exits\":{\"west\":\"camp\"},\"title\":\"Coolant Depot\"},\"relay-hall\":{\"description\":\"A relay hall where a marauder guards the short route; an emergency lift can be powered here, but it will drain the coolant cell.\",\"entities\":[],\"exits\":{\"north\":\"seal-door\",\"south\":\"camp\"},\"title\":\"Relay Hall\"},\"seal-door\":{\"description\":\"A reinforced pressure seal whose northern lock requires the same coolant cell that can be wasted on the relay lift.\",\"entities\":[],\"exits\":{\"south\":\"spillway\"},\"title\":\"Seal Door\"},\"service-bay\":{\"description\":\"A maintenance bay with a seized pressure valve that can open the spillway bypass.\",\"entities\":[],\"exits\":{\"west\":\"workshop\"},\"title\":\"Service Bay\"},\"spillway\":{\"description\":\"A spillway access path that reaches the seal door without fighting through the relay hall.\",\"entities\":[],\"exits\":{\"north\":\"seal-door\",\"south\":\"service-bay\"},\"title\":\"Spillway Access\"},\"workshop\":{\"description\":\"A cramped workshop where the missing valve handle lies on a bench beside maintenance notes.\",\"entities\":[],\"exits\":{\"east\":\"service-bay\",\"north\":\"camp\"},\"title\":\"Workshop\"}},\"unlock_effects\":[{\"effect_id\":\"service-bypass\",\"item_id\":\"valve-handle\",\"source_room_id\":\"service-bay\",\"direction\":\"north\",\"destination_room_id\":\"spillway\",\"consume_item\":false,\"requires_actor_in_place\":true},{\"effect_id\":\"relay-lift\",\"item_id\":\"coolant-cell\",\"source_room_id\":\"relay-hall\",\"direction\":\"east\",\"destination_room_id\":\"decoy-annex\",\"consume_item\":true,\"requires_actor_in_place\":true},{\"effect_id\":\"archive-seal\",\"item_id\":\"coolant-cell\",\"source_room_id\":\"seal-door\",\"direction\":\"north\",\"destination_room_id\":\"archive\",\"consume_item\":true,\"requires_actor_in_place\":true}]}",
+    "timing_consequence": "cadence_efficiency"
+  },
+  "objectives": [
+    {
+      "objective_id": "collect-archive-prism",
+      "objective_type": "collect_item",
+      "target_id": "archive-prism",
+      "required_count": 1
+    }
+  ]
+}

@@ -1,0 +1,172 @@
+% !TEX root = riemannian_complex_euclidean.tex
+\documentclass[11pt]{article}
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{geometry}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage{parskip}
+
+\geometry{margin=1in}
+
+\title{Formal Framing: Geometric Routing via Riemannian--Complex Structure}
+\author{}
+\date{}
+
+\begin{document}
+
+\maketitle
+
+\section{Core Hypothesis}
+
+We propose that standard transformer architectures are constrained by their reliance on
+Euclidean linear operators, which inadequately capture directional, phase-dependent, and
+hierarchical structure.
+
+We introduce a geometric routing framework in which:
+\begin{itemize}
+    \item Local dynamics are governed by a complex-valued transport law
+    \item Global structure is encoded in a Riemannian manifold
+    \item Information propagation follows geodesic-aware routing rather than purely linear mixing
+\end{itemize}
+
+\section{Geometric State Space}
+
+Let $(M, g)$ be a smooth Riemannian manifold with metric $g$.
+Each token or latent state evolves as:
+\[
+    x_t \in M
+\]
+
+\section{Tangent Space Representation}
+
+At each point $x_t$, we define a local representation in the tangent space:
+\[
+    v_t \in T_{x_t}M
+\]
+To introduce directional and phase-aware structure, we extend this to a complexified tangent
+space:
+\[
+    z_t \in T_{x_t}M \otimes \mathbb{C}
+\]
+with decomposition:
+\[
+    z_t = v_t^{(r)} + i\,v_t^{(i)}
+\]
+
+\section{Local Transport Operator (Complex Phase Dynamics)}
+
+We define a local update operator:
+\[
+    \mathcal{U}_{x_t} \colon T_{x_t}M \otimes \mathbb{C}
+    \;\rightarrow\; T_{x_t}M \otimes \mathbb{C}
+\]
+which encodes:
+\begin{itemize}
+    \item rotation (phase evolution)
+    \item scaling (amplitude modulation)
+    \item directional coupling
+\end{itemize}
+
+A minimal form:
+\[
+    \mathcal{U}_{x_t}(z) = W_r z + i\,W_i z
+\]
+where $W_r, W_i$ are learned linear maps on $T_{x_t}M$.
+
+This generalizes real-valued linear layers by allowing intrinsic rotational structure rather
+than encoding it implicitly.
+
+\section{Manifold Update (Geometric Routing Step)}
+
+The updated state is obtained via exponential mapping:
+\[
+    x_{t+1} = \exp_{x_t}\!\Big(\Re\bigl(\mathcal{U}_{x_t}(z_t)\bigr)\Big)
+\]
+Key properties:
+\begin{itemize}
+    \item respects manifold geometry
+    \item enforces constraint structure (e.g., curvature, boundedness)
+    \item replaces unconstrained linear accumulation
+\end{itemize}
+
+\section{Interpretation}
+
+This framework separates computation into two regimes:
+
+\textbf{Local (Tangent Space)}
+\begin{itemize}
+    \item complex-valued
+    \item phase-aware
+    \item linearizable
+    \item supports rotation/interference
+\end{itemize}
+
+\textbf{Global (Manifold)}
+\begin{itemize}
+    \item nonlinear
+    \item curvature-aware
+    \item enforces structure
+    \item governs routing and compression
+\end{itemize}
+
+\section{Relationship to Standard Architectures}
+
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+\textbf{Component} & \textbf{Standard Transformer} & \textbf{Proposed Framework} \\
+\midrule
+State space  & $\mathbb{R}^n$                   & Riemannian manifold $M$       \\
+Local ops    & real linear layers               & complex transport operators   \\
+Mixing       & attention / linear projection    & geodesic-aware routing        \\
+Geometry     & implicit / flat                  & explicit / curved             \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\section{Key Claim}
+
+The advantage does not arise from complex numbers alone.
+Rather, it emerges from:
+
+\begin{quote}
+The interaction between complex local transport (phase dynamics) and global Riemannian
+structure (geodesic routing), which induces non-linear compression and structured information
+flow not achievable in purely Euclidean linear systems.
+\end{quote}
+
+\section{Minimal Theoretical Statement}
+
+Let $M$ be a Riemannian manifold and $T_xM \otimes \mathbb{C}$ its complexified tangent
+bundle. A routing process defined by local complex-linear transport followed by exponential
+mapping induces a nonlinear flow on $M$ whose trajectories encode both phase-dependent
+dynamics and curvature-constrained propagation.
+
+\section{Intuition}
+
+\begin{itemize}
+    \item \textbf{Euclidean models:} information spreads like diffusion in a flat grid.
+    \item \textbf{Proposed model:} information moves like waves constrained to a curved
+          surface, with phase, interference, preferred directions, and natural compression
+          into geometric sectors.
+\end{itemize}
+
+\section{What \textquotedblleft$2i$\textquotedblright\ Actually Becomes}
+
+\begin{itemize}
+    \item $i \;\to\;$ local $90^{\circ}$ rotation operator
+    \item $2i \;\to\;$ rotation $+$ scaling
+\end{itemize}
+
+In this framework, scalar complex multiplication generalizes to a learned complex transport
+field over a manifold:
+\[
+    \text{scalar } 2i
+    \;\;\longrightarrow\;\;
+    \mathcal{U}_{x_t}(z) = W_r z + i\,W_i z
+\]
+
+\end{document}

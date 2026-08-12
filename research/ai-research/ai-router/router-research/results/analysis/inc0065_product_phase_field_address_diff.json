@@ -1,0 +1,71 @@
+{
+  "baseline_route": "HOPF_BASE_K25_PHI",
+  "comparisons": [
+    {
+      "key_diff_count": 0,
+      "key_diff_rate": 0.0,
+      "route_id": "HOPF_BASE_K25_PHI",
+      "sector_diff_count": 0,
+      "sector_diff_rate": 0.0,
+      "shell_diff_count": 0,
+      "shell_diff_rate": 0.0
+    },
+    {
+      "key_diff_count": 2500,
+      "key_diff_rate": 1.0,
+      "route_id": "HOPF_K25_BASE_PHI",
+      "sector_diff_count": 2500,
+      "sector_diff_rate": 1.0,
+      "shell_diff_count": 80,
+      "shell_diff_rate": 0.032
+    },
+    {
+      "key_diff_count": 2500,
+      "key_diff_rate": 1.0,
+      "route_id": "HOPF_PHI2_BAND_PHI",
+      "sector_diff_count": 2500,
+      "sector_diff_rate": 1.0,
+      "shell_diff_count": 134,
+      "shell_diff_rate": 0.0536
+    },
+    {
+      "key_diff_count": 2478,
+      "key_diff_rate": 0.9912,
+      "route_id": "H4XH4_FIELD_A050",
+      "sector_diff_count": 2464,
+      "sector_diff_rate": 0.9856,
+      "shell_diff_count": 148,
+      "shell_diff_rate": 0.0592
+    },
+    {
+      "key_diff_count": 2476,
+      "key_diff_rate": 0.9904,
+      "route_id": "H4XH4_FIELD_A100",
+      "sector_diff_count": 2464,
+      "sector_diff_rate": 0.9856,
+      "shell_diff_count": 158,
+      "shell_diff_rate": 0.0632
+    },
+    {
+      "key_diff_count": 2475,
+      "key_diff_rate": 0.99,
+      "route_id": "H4XH4_FIELD_A150",
+      "sector_diff_count": 2460,
+      "sector_diff_rate": 0.984,
+      "shell_diff_count": 148,
+      "shell_diff_rate": 0.0592
+    },
+    {
+      "key_diff_count": 2364,
+      "key_diff_rate": 0.9456,
+      "route_id": "R0",
+      "sector_diff_count": 2300,
+      "sector_diff_rate": 0.92,
+      "shell_diff_count": 1171,
+      "shell_diff_rate": 0.4684
+    }
+  ],
+  "config": "configs/proxy_transfer_inc0065_product_phase_field_screen.json",
+  "n_eval": 2500,
+  "seed": 0
+}

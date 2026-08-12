@@ -1,0 +1,8 @@
+spin_horizon_H,states_used,compression_vs_raw_phase,max_predict_horizon_exactly_recovered
+1,38,131.71052631578948,1
+2,41,122.07317073170732,2
+3,44,113.75,3
+5,50,100.1,5
+8,62,80.7258064516129,8
+13,82,61.03658536585366,13
+21,130,38.5,21

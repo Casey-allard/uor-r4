@@ -1,0 +1,16 @@
+\begin{tabular}{ll}
+\toprule
+Item & Value \\
+\midrule
+Static proxy & PPMI-SVD embeddings (100 dimensions), context length 32 \\
+Proxy source text & PTB co-occurrence statistics applied to WT2 token windows \\
+Proxy sample counts & 50{,}000 train / 50{,}000 val / 50{,}000 test \\
+4D routing chart & dims $(3,65,2,21)$ from proxy correlation pre-screen \\
+LM architecture & 2 layers, hidden 128, 4 heads, sequence length 32 \\
+Experts & 64 experts, expert dimension 128 \\
+Datasets & PTB and WikiText-2 \\
+Training horizon & 4000 steps, 2 seeds per dataset \\
+Main LM conditions & BASELINE, HOPF, PERMUTED \\
+Primary routing metric & $e_{\mathrm{eff}} = \exp(-\sum_r p_r \log p_r)$ \\
+\bottomrule
+\end{tabular}

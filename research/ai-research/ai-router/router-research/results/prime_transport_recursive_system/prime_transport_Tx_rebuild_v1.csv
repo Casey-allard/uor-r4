@@ -1,0 +1,26 @@
+metric,value,note
+Tx_depends_on_spin_H_core_v6,yes,"composite_swap_component_v24 imports active_transport_lift_core_v6, sigma_update_v6, project_tau_v6 from geometry_native_spinH_core_v6; sigma_update_v6 dispatches 'composite_swap' to R_Tx_v6"
+Tx_stale_pre_v6_dependency_removed,yes,"geometry_native_operator_model_v24 does not import composite_swap_component_v10, composite_swap_component_v4, or any pre-v6 sigma call for T_x; swap_phase_v3 is no longer used for this component (its fixed-increment logic is replaced by sigma-mediated swap_phase via R_Tx_v6)"
+Tx_rebuild_local_only,yes,"only composite_swap_component_v10 was replaced; all other components (hold_v10, torus_base_advance_v23, coupled_torus_kick_v20, composite_twist_v10, fiber_phase_lift_v21, radial_transport_v22) were copied forward unchanged from v23"
+Tx_bounded_audit_passed,yes,"lawful_fraction=1.0000 illegal_count=0; lawful check verifies target.b == source.b, target.r == source.r, target.phi == source.phi, target.spin_h.horizon == source.spin_h.horizon, target.query_semiprime == source.binding_semiprime, target.binding_semiprime == source.query_semiprime"
+non_Tx_paths_match_v23,yes,"the six non-T_x components (hold, torus_base_advance, coupled_torus_kick, composite_twist, fiber_phase_lift_spin_transport, radial_transport_unfolding) were copied forward unchanged from v23; bounded audit confirms each component's entry count equals state_count, satisfying the structural invariant that every state has exactly one transition per component"
+Tx_only_behavioral_delta_confirmed,yes,non-T_x parity holds; any count differences between v23 and v24 are sourced solely from composite_swap
+state_count,522675,"reachable states with T_c (v20), T_z' (v21), T_r* (v22), T_b (v23), T_x (v24) rebuilt from spin_H_core_v6"
+transition_count,3658725,nonzero operator entries with five core-v6-derived components
+lawful_fraction,1.000000,fraction of nonzero operator entries that are lawful
+illegal_count,0,number of illegal transitions
+class_diversity,34560,distinct tau-aware target class identities reached
+distinct_spin_classes_reached,16,distinct target spin classes reached
+distinct_radial_classes_reached,3,distinct target radial classes reached
+state_count_change_vs_v23,235333,reachable state change vs v23 (T_b from spin_H_core_v6): v23=287342
+transition_count_change_vs_v23,1647331,transition count change vs v23: v23=2011394
+class_diversity_change_vs_v23,0,class diversity change vs v23: v23=34560
+spin_diversity_change_vs_v23,0,spin diversity change vs v23: v23=16
+radial_diversity_change_vs_v23,0,radial diversity change vs v23: v23=3
+component_hold_count,522675,operator entries for hold
+component_torus_base_advance_count,522675,operator entries for torus_base_advance
+component_composite_swap_count,522675,operator entries for composite_swap
+component_coupled_torus_kick_count,522675,operator entries for coupled_torus_kick
+component_composite_twist_count,522675,operator entries for composite_twist
+component_fiber_phase_lift_spin_transport_count,522675,operator entries for fiber_phase_lift_spin_transport
+component_radial_transport_unfolding_count,522675,operator entries for radial_transport_unfolding

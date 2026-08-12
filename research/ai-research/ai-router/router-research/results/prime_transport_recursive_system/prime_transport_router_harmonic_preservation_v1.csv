@@ -1,0 +1,25 @@
+variant,regime,position,decodability,final_accuracy,solve_step,no_last_accuracy,alpha_last,runtime_seconds,note
+baseline,reduced_k1,initial,0.2937,1.0,2500,0.2432,0.8745,57.7,standard transport; no carry
+baseline,reduced_k1,mid,0.2786,1.0,2500,0.2432,0.8745,57.7,standard transport; no carry
+baseline,reduced_k1,final,1.0,1.0,2500,0.2432,0.8745,57.7,standard transport; no carry
+baseline,fuller_k3,initial,1.0,1.0,2500,0.2393,0.8572,71.4,standard transport; no carry
+baseline,fuller_k3,mid,0.3076,1.0,2500,0.2393,0.8572,71.4,standard transport; no carry
+baseline,fuller_k3,final,1.0,1.0,2500,0.2393,0.8572,71.4,standard transport; no carry
+residual_0.1,reduced_k1,initial,0.2937,1.0,2500,0.2417,0.8749,63.7,tau_{t+1} = 0.9*transport + 0.1*tau_t
+residual_0.1,reduced_k1,mid,0.2776,1.0,2500,0.2417,0.8749,63.7,tau_{t+1} = 0.9*transport + 0.1*tau_t
+residual_0.1,reduced_k1,final,1.0,1.0,2500,0.2417,0.8749,63.7,tau_{t+1} = 0.9*transport + 0.1*tau_t
+residual_0.1,fuller_k3,initial,1.0,1.0,2500,0.2554,0.8587,72.7,tau_{t+1} = 0.9*transport + 0.1*tau_t
+residual_0.1,fuller_k3,mid,0.3123,1.0,2500,0.2554,0.8587,72.7,tau_{t+1} = 0.9*transport + 0.1*tau_t
+residual_0.1,fuller_k3,final,1.0,1.0,2500,0.2554,0.8587,72.7,tau_{t+1} = 0.9*transport + 0.1*tau_t
+residual_0.25,reduced_k1,initial,0.2937,1.0,2000,0.252,0.8754,61.9,tau_{t+1} = 0.75*transport + 0.25*tau_t
+residual_0.25,reduced_k1,mid,0.2925,1.0,2000,0.252,0.8754,61.9,tau_{t+1} = 0.75*transport + 0.25*tau_t
+residual_0.25,reduced_k1,final,1.0,1.0,2000,0.252,0.8754,61.9,tau_{t+1} = 0.75*transport + 0.25*tau_t
+residual_0.25,fuller_k3,initial,1.0,1.0,3000,0.2983,0.8594,72.5,tau_{t+1} = 0.75*transport + 0.25*tau_t
+residual_0.25,fuller_k3,mid,0.3179,1.0,3000,0.2983,0.8594,72.5,tau_{t+1} = 0.75*transport + 0.25*tau_t
+residual_0.25,fuller_k3,final,1.0,1.0,3000,0.2983,0.8594,72.5,tau_{t+1} = 0.75*transport + 0.25*tau_t
+harmonic_split,reduced_k1,initial,0.2937,1.0,2500,0.2407,0.8743,58.1,k=1 full transport; k>=2 carry eps_high=0.5
+harmonic_split,reduced_k1,mid,0.2786,1.0,2500,0.2407,0.8743,58.1,k=1 full transport; k>=2 carry eps_high=0.5
+harmonic_split,reduced_k1,final,1.0,1.0,2500,0.2407,0.8743,58.1,k=1 full transport; k>=2 carry eps_high=0.5
+harmonic_split,fuller_k3,initial,1.0,1.0,2500,0.3687,0.859,69.9,k=1 full transport; k>=2 carry eps_high=0.5
+harmonic_split,fuller_k3,mid,0.3367,1.0,2500,0.3687,0.859,69.9,k=1 full transport; k>=2 carry eps_high=0.5
+harmonic_split,fuller_k3,final,1.0,1.0,2500,0.3687,0.859,69.9,k=1 full transport; k>=2 carry eps_high=0.5

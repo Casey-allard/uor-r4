@@ -1,0 +1,4 @@
+wheel_W,orbit_length_L,direct_ones,predicted_ones,mask_exact_match,mask_hamming_difference,max_abs_energy_difference,l2_energy_difference
+210,35,3,3,True,0,0.0,0.0
+2310,385,21,21,True,0,0.0,0.0
+30030,5005,189,189,True,0,0.0,0.0

@@ -1,0 +1,85 @@
+representation,predict_horizon_K,exact_prediction,num_distinct_rep_states_used,compression_vs_raw_phase
+current_bit,1,True,2,2502.5
+current_bit,2,False,2,2502.5
+current_bit,3,False,2,2502.5
+current_bit,5,False,2,2502.5
+current_bit,8,False,2,2502.5
+current_bit,13,False,2,2502.5
+current_bit,21,False,2,2502.5
+base_phase_b,1,False,35,143.0
+base_phase_b,2,False,35,143.0
+base_phase_b,3,False,35,143.0
+base_phase_b,5,False,35,143.0
+base_phase_b,8,False,35,143.0
+base_phase_b,13,False,35,143.0
+base_phase_b,21,False,35,143.0
+fiber_phase_phi,1,False,143,35.0
+fiber_phase_phi,2,False,143,35.0
+fiber_phase_phi,3,False,143,35.0
+fiber_phase_phi,5,False,143,35.0
+fiber_phase_phi,8,False,143,35.0
+fiber_phase_phi,13,False,143,35.0
+fiber_phase_phi,21,False,143,35.0
+"(b, current_bit)",1,True,38,131.71052631578948
+"(b, current_bit)",2,False,38,131.71052631578948
+"(b, current_bit)",3,False,38,131.71052631578948
+"(b, current_bit)",5,False,38,131.71052631578948
+"(b, current_bit)",8,False,38,131.71052631578948
+"(b, current_bit)",13,False,38,131.71052631578948
+"(b, current_bit)",21,False,38,131.71052631578948
+"(b, phi)",1,True,5005,1.0
+"(b, phi)",2,True,5005,1.0
+"(b, phi)",3,True,5005,1.0
+"(b, phi)",5,True,5005,1.0
+"(b, phi)",8,True,5005,1.0
+"(b, phi)",13,True,5005,1.0
+"(b, phi)",21,True,5005,1.0
+"(b, spin_1)",1,True,38,131.71052631578948
+"(b, spin_1)",2,False,38,131.71052631578948
+"(b, spin_1)",3,False,38,131.71052631578948
+"(b, spin_1)",5,False,38,131.71052631578948
+"(b, spin_1)",8,False,38,131.71052631578948
+"(b, spin_1)",13,False,38,131.71052631578948
+"(b, spin_1)",21,False,38,131.71052631578948
+"(b, spin_2)",1,True,41,122.07317073170732
+"(b, spin_2)",2,True,41,122.07317073170732
+"(b, spin_2)",3,False,41,122.07317073170732
+"(b, spin_2)",5,False,41,122.07317073170732
+"(b, spin_2)",8,False,41,122.07317073170732
+"(b, spin_2)",13,False,41,122.07317073170732
+"(b, spin_2)",21,False,41,122.07317073170732
+"(b, spin_3)",1,True,44,113.75
+"(b, spin_3)",2,True,44,113.75
+"(b, spin_3)",3,True,44,113.75
+"(b, spin_3)",5,False,44,113.75
+"(b, spin_3)",8,False,44,113.75
+"(b, spin_3)",13,False,44,113.75
+"(b, spin_3)",21,False,44,113.75
+"(b, spin_5)",1,True,50,100.1
+"(b, spin_5)",2,True,50,100.1
+"(b, spin_5)",3,True,50,100.1
+"(b, spin_5)",5,True,50,100.1
+"(b, spin_5)",8,False,50,100.1
+"(b, spin_5)",13,False,50,100.1
+"(b, spin_5)",21,False,50,100.1
+"(b, spin_8)",1,True,62,80.7258064516129
+"(b, spin_8)",2,True,62,80.7258064516129
+"(b, spin_8)",3,True,62,80.7258064516129
+"(b, spin_8)",5,True,62,80.7258064516129
+"(b, spin_8)",8,True,62,80.7258064516129
+"(b, spin_8)",13,False,62,80.7258064516129
+"(b, spin_8)",21,False,62,80.7258064516129
+"(b, spin_13)",1,True,82,61.03658536585366
+"(b, spin_13)",2,True,82,61.03658536585366
+"(b, spin_13)",3,True,82,61.03658536585366
+"(b, spin_13)",5,True,82,61.03658536585366
+"(b, spin_13)",8,True,82,61.03658536585366
+"(b, spin_13)",13,True,82,61.03658536585366
+"(b, spin_13)",21,False,82,61.03658536585366
+"(b, spin_21)",1,True,130,38.5
+"(b, spin_21)",2,True,130,38.5
+"(b, spin_21)",3,True,130,38.5
+"(b, spin_21)",5,True,130,38.5
+"(b, spin_21)",8,True,130,38.5
+"(b, spin_21)",13,True,130,38.5
+"(b, spin_21)",21,True,130,38.5

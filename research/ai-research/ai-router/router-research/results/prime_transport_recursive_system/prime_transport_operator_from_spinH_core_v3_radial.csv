@@ -1,0 +1,25 @@
+scope,metric,count,total,fraction,note
+operator,state_count,236969,236969,1.0,reachable states with T_r* rebuilt from spin_H_core_v3
+operator,transition_count,1658783,1658783,1.0,nonzero operator entries with one additional core-v3-derived component
+operator,lawful_transition_fraction,1658783,1658783,1.0,fraction of nonzero operator entries that are lawful
+operator,illegal_transition_fraction,0,1658783,0.0,fraction of nonzero operator entries that are illegal
+class_escape,distinct_class_identities_reached,34560,34560,1.0,distinct tau-aware target class identities reached
+spin_escape,distinct_spin_classes_reached,16,16,1.0,distinct target spin classes reached
+radial_escape,distinct_radial_classes_reached,3,3,1.0,distinct target radial classes reached
+core_dependency,rebuilt_component_depends_on_spin_H_core_v3,1,1,1.0,T_r* calls active_transport_lift_core_v3 and reads sigma** global_regressive_mode_index
+core_dependency,sigma_parent_mode_identity_materially_used,1,1,1.0,"T_r* uses sigma** generator_projection_profile, generator_orbit_profile, derived mode orbit, and radial residue placement"
+core_dependency,theta_materially_used,1,1,1.0,T_r* uses theta.base_angle and theta.fiber_phase in radial phase transport and spin injection
+core_dependency,rho_materially_used,1,1,1.0,"T_r* uses rho.radial_target, radial_target_phi, radial_direction, and unfolding_load as the radial transport law itself"
+core_dependency,h_materially_used,1,1,1.0,"T_r* uses h.recursive_phase, h.fiber_recursive_phase, h.radial_recursive_phase, and h.holonomy_bit in radial tau/spin transport"
+comparison_vs_v14,state_count_change,82072,154897,0.5298488673118267,reachable state change vs prior operator with older T_r*
+comparison_vs_v14,transition_count_change,574504,1084279,0.5298488673118267,transition count change vs prior operator with older T_r*
+comparison_vs_v14,class_diversity_change,552,34008,0.016231474947071334,class diversity change vs prior operator with older T_r*
+comparison_vs_v14,spin_diversity_change,0,16,0.0,spin diversity change vs prior operator with older T_r*
+comparison_vs_v14,radial_diversity_change,0,3,0.0,radial diversity change vs prior operator with older T_r*
+component,hold,236969,1658783,0.14285714285714285,fraction of operator entries by component
+component,torus_base_advance,236969,1658783,0.14285714285714285,fraction of operator entries by component
+component,composite_swap,236969,1658783,0.14285714285714285,fraction of operator entries by component
+component,coupled_torus_kick,236969,1658783,0.14285714285714285,fraction of operator entries by component
+component,composite_twist,236969,1658783,0.14285714285714285,fraction of operator entries by component
+component,fiber_phase_lift_spin_transport,236969,1658783,0.14285714285714285,fraction of operator entries by component
+component,radial_transport_unfolding,236969,1658783,0.14285714285714285,fraction of operator entries by component

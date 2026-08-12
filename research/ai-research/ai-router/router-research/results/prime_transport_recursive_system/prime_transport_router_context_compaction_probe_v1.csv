@@ -1,0 +1,7 @@
+variant,warmup_wall_time_seconds,total_wall_time_seconds,cache_size_bytes,semantic_match,TN_hash,TR_hash,n_states,accuracy,solve_step,steps_per_sec,note
+bfs_reference,145.7,176.06,0,REFERENCE,02f49ba43ff4c3b0,104d515abc5d128a,343665,1.0,2500,98.8,pool=1.6s + bfs=141.4s + build=2.7s
+cache_full_tensor,0.358,30.96,232352065,BIT_EXACT,02f49ba43ff4c3b0,104d515abc5d128a,343665,1.0,2500,98.0,save=1.67s load=0.358s size=232.4MB speedup=407x
+cache_compact_linkstate,0.149,31.65,9248756,BIT_EXACT,02f49ba43ff4c3b0,104d515abc5d128a,343665,1.0,2500,95.3,save=2.38s load=0.149s size=9.2MB speedup=975x
+algebraic_analysis,N/A,N/A,0,ANALYSIS_ONLY,N/A,N/A,343665,N/A,N/A,N/A,"coverage=99.4% of 345,600 product; derived fields prevent pure enumeration; BFS needed once then cached"
+cache_full_warm_reload,0.3461,N/A,232352065,BIT_EXACT,02f49ba43ff4c3b0,104d515abc5d128a,343665,N/A,N/A,N/A,"warm reload best of 5: 0.3461s, speedup=421x vs BFS"
+cache_compact_warm_reload,0.1426,N/A,9248756,BIT_EXACT,02f49ba43ff4c3b0,104d515abc5d128a,343665,N/A,N/A,N/A,"warm reload best of 5: 0.1426s, speedup=1022x vs BFS"

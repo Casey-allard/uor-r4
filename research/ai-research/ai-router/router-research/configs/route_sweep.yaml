@@ -1,0 +1,54 @@
+{
+  "schema_version": "1.0",
+  "stages": {
+    "screen": [0],
+    "confirm": [0, 1],
+    "finalize": [0, 1, 2, 3]
+  },
+  "common_args": {
+    "mode": "anis",
+    "learn_so8": 0,
+    "learn_scale": 1,
+    "scale_mode": "radial",
+    "radial_bins": 10,
+    "chart_beta": 50.0,
+    "extra_budget": 96,
+    "max_slots_per_bucket": 8,
+    "K": 8,
+    "delta_r": 3.0,
+    "phase_dims": "0,1",
+    "phase4_dims": "0,2,4,6",
+    "complex_dims": "0,1",
+    "fast_dev": 1
+  },
+  "routes": [
+    {
+      "route_id": "R0",
+      "args": {
+        "sector_mode": "kmeans",
+        "time_pressure_lambda": 0.0
+      }
+    },
+    {
+      "route_id": "R1",
+      "args": {
+        "sector_mode": "phase2",
+        "time_pressure_lambda": 0.0
+      }
+    },
+    {
+      "route_id": "R5",
+      "args": {
+        "sector_mode": "phase4d",
+        "time_pressure_lambda": 0.0
+      }
+    },
+    {
+      "route_id": "R6",
+      "args": {
+        "sector_mode": "complex2",
+        "time_pressure_lambda": 0.0
+      }
+    }
+  ]
+}

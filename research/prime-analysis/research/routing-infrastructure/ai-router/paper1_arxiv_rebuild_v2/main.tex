@@ -1,0 +1,268 @@
+\documentclass[11pt,letterpaper]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{newtxtext,newtxmath}
+\usepackage{microtype}
+\usepackage{amsmath,mathtools}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{caption}
+\usepackage{natbib}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{url}
+
+\graphicspath{{figures/}}
+\captionsetup{font=small,labelfont=bf}
+\setlength{\textfloatsep}{12pt plus 2pt minus 2pt}
+\setlength{\floatsep}{10pt plus 2pt minus 2pt}
+\setlength{\intextsep}{10pt plus 2pt minus 2pt}
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue!50!black,
+  citecolor=blue!50!black,
+  urlcolor=blue!50!black
+}
+
+\input{generated/metrics.tex}
+
+\title{\bfseries Fixed Geometric Routing from Angular Structure in Normalized Language Representations}
+\author{Casey Allard\\Independent Researcher}
+\date{}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+Sparse expert models usually obtain routing concentration by learning a gate and regularizing that gate during training \citep{shazeer2017outrageously,lepikhin2021gshard,fedus2022switch,lewis2021base}. This work studies a narrower question: whether some routing structure can be supplied \emph{before} gate learning, directly from the angular organization of normalized language representations. We evaluate a fixed routing map built from a 4D coordinate chart, a Hopf-style angular parameterization, and a transport-corrected phase coordinate. On a semantic proxy derived from structured WikiText-2 embeddings, the resulting routing footprint is sublinear in routing budget, with fitted law $\hat e=\PaperHopfScalingA K^{\PaperHopfScalingAlpha}$ over $K=25$--$400$, and the advantage persists through $K=5000$. The effect weakens under column permutation of the embeddings and is stronger than an adaptive Euclidean $K$-means control on the same proxy, which constrains the interpretation to structured angular signal rather than generic sparsity. In a two-layer language model with 64 experts, the same fixed routing scaffold remains usable: on both Penn Treebank and WikiText-2 it stays within about $8\%$ of a learned top-1 baseline while removing the learned gate matrix. The central limitation is also the central negative result: after end-to-end training, Hopf routing is not measurably better than a randomly permuted fixed routing map. The evidence therefore supports a narrow conclusion. Angular structure in normalized language representations can support concentrated fixed routing, and that scaffold can transfer to a toy trainable model, but the present results do not establish a geometry-specific quality advantage in end-to-end language-model training.
+\end{abstract}
+
+\section{Introduction}
+Conditional computation in language models is usually mediated by a learned router. In sparse mixture-of-experts systems, a gating network assigns each token to one or more experts, and additional training machinery is then used to keep that routing stable, balanced, and numerically tractable \citep{shazeer2017outrageously,lepikhin2021gshard,fedus2022switch,lewis2021base}. That recipe is effective, but it entangles routing behavior with gate optimization. It therefore leaves open a simpler preliminary question: how much routing structure is already present in the geometry of the representations being routed?
+
+This paper studies a fixed alternative. Each normalized representation is projected into a fixed four-dimensional chart, converted into a small set of angular coordinates, and assigned to a routing sector with no learned gate matrix. The motivation is empirical. Prior work on contextual representation geometry has shown that trained language-model embeddings are often strongly anisotropic rather than close to uniform on the sphere \citep{ethayarajh2019anisotropy}. More recent angular-compression work exploits the same observation by destroying angular structure with rotation before quantization \citep{turboquant2026}. Here the engineering choice is the opposite. If normalized representations occupy angular coordinates non-uniformly, then a fixed angular partition should receive non-uniform traffic and may therefore concentrate routing without any learned gate.
+
+The paper makes one narrow claim with two layers of evidence. The first layer is a static semantic proxy built from structured embeddings, where the routing map itself can be evaluated without expert co-adaptation. The second layer is a small trainable language model, where the same fixed routing scaffold can be tested under end-to-end learning. The main positive result is that the proxy exhibits a sublinear routing footprint and that the same fixed scaffold partially transfers to a toy trainable model. The main negative result is that, once experts are trained end to end, the specific Hopf-derived assignment is not better than a randomly permuted fixed routing map.
+
+That null result matters for the paper's scope. The evidence supports fixed geometric routing as a usable scaffold and as a concrete consequence of angular structure in normalized language representations. It does not support a broader claim that this particular geometry is uniquely superior to other fixed assignments after training, nor does it justify claims about replacing modern large-scale sparse routing systems.
+
+\section{Problem Setting and Scope}
+The work is positioned against learned sparse routing, but it does not attempt a full modern MoE comparison. Learned routing systems jointly optimize two objects: a router and a bank of experts. Once those two objects can co-adapt, it becomes difficult to tell whether routing concentration comes from the geometry of the inputs, from the learned gate, or from compensation by the experts themselves. The experiments here separate those questions.
+
+The first setting is a semantic proxy built from static WikiText-2-derived embeddings \citep{merity2016wt2}. This setting removes gate learning entirely and therefore tests the routing map as a geometric object. It is the right place to ask whether structured language representations occupy a fixed angular partition unevenly enough to produce concentrated routing. The second setting is a two-layer transformer-like language model evaluated on Penn Treebank \citep{ptb1993} and WikiText-2. This is not intended as a production-scale sparse-transformer benchmark. Its role is narrower: to test whether the same fixed routing scaffold remains usable after experts are trained end to end.
+
+The paper uses one primary response variable in both settings: the \emph{effective routing footprint}, meaning the effective number of routes used under the empirical routing distribution. On the semantic proxy this is the effective number of occupied sectors. In the language model it is the effective number of active expert paths. Lower values at fixed routing budget indicate more concentrated traffic.
+
+This framing intentionally excludes several broader themes that exist elsewhere in the repository: product-manifold architectural framing, spectral operators, sparse-event execution, and large projected hardware savings. Those ideas may motivate future work, but they are not needed for the claim tested here and are not supported directly by the evidence reported in this article.
+
+\section{Fixed Geometric Routing}
+\subsection{Mechanism overview}
+The mechanism is fixed and deterministic. Given a normalized representation $\mathbf{x}\in\mathbb{R}^D$, select a fixed four-dimensional coordinate chart, summarize that chart with a small set of angular variables, and quantize those variables into one of at most $K$ routing sectors. If the input distribution is close to uniform in those coordinates, then increasing $K$ should activate routes almost linearly. If the input distribution is anisotropic, traffic should collect in a smaller subset of routes. The method is therefore a direct test of whether normalized language representations carry stable angular structure that a fixed partition can exploit.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.90\linewidth]{paper1_method_schematic_v2.pdf}
+  \caption{Fixed geometric routing used in this study. A normalized representation is read through a fixed 4D chart, converted into Hopf-style angular coordinates, corrected on the phase coordinate by a transport term, and discretized into a sector address. The routing map is fixed; any concentration must therefore come from the occupancy pattern of the representations rather than from learned gate adaptation.}
+  \label{fig:method}
+\end{figure}
+
+\subsection{Fixed 4D chart and Hopf-style coordinates}
+Figure~\ref{fig:method} summarizes the construction. Let the normalized input be $\mathbf{x}\in\mathbb{R}^D$. The routing rule reads a fixed coordinate tuple $(3,65,2,21)$ and writes the projected coordinates as $(a,b,c,d)$. The role of this chart is practical: it creates a small, stable coordinate system in which angular structure can be parameterized explicitly without introducing another learned module.
+
+From $(a,b,c,d)$ the method computes two planar radii and three angular quantities,
+\begin{align}
+\rho_1 &= \sqrt{a^2+b^2}, &
+\rho_2 &= \sqrt{c^2+d^2}, \\
+\chi_u &= \frac{\rho_2^2}{\rho_1^2+\rho_2^2}, &
+\delta &= \arctan2(b,a)-\arctan2(d,c), \\
+\alpha &= \tfrac{1}{2}\!\left(\arctan2(b,a)+\arctan2(d,c)\right). &&
+\end{align}
+These variables separate three different aspects of the projection. The coordinate $\chi_u$ records how mass is split between the two 2D planes, $\delta$ records the relative angle between those planes, and $\alpha$ records a mean phase. The point is not to claim that this is the unique optimal representation of the geometry. The point is that it provides a concrete, low-dimensional address that can be fixed across all experiments.
+
+\subsection{Transport-corrected phase and sectorization}
+The canonical routing rule perturbs the phase coordinate according to
+\begin{equation}
+\chi = \arcsin\!\left(\frac{\rho_2}{\sqrt{\rho_1^2+\rho_2^2}}\right), \qquad
+\alpha_t = \alpha + \tfrac{1}{2}\lambda \cos(2\chi)\,\delta,
+\label{eq:transport}
+\end{equation}
+where $\lambda$ is fixed. Mechanically, this transport term shifts the mean phase according to where the point lies in the low-dimensional geometry. Two inputs with similar raw phase can therefore receive different routing addresses if their relative-angle structure differs. The transport term is part of the canonical routing rule used in the evidence base; the paper does not isolate it as a separate contribution.
+
+Given a routing budget $K$, the coordinate triple $(\chi_u,\delta,\alpha_t)$ is discretized into product bins $(k_\chi,k_\delta,k_\alpha)$ with total budget at most $K$. The resulting triplet index is the sector address. Because the map is fixed, any reduction in the effective routing footprint must come from the occupancy pattern of the data rather than from gate learning.
+
+\subsection{Why this construction can concentrate routing}
+The proxy-side claim is not that every fixed partition will concentrate routing. It is that a fixed partition aligned with angular structure can do so when the representation cloud is anisotropic. That distinction is important. A structure-destroying control should weaken the concentration effect, and a generic Euclidean comparator need not match it even if it adapts cluster centroids in a much higher-dimensional space. Those two tests are built directly into the empirical sections below.
+
+\section{Experimental Design}
+\subsection{Semantic proxy}
+The semantic proxy is built from a WikiText-2-derived PPMI-SVD embedding set. This proxy is static: there is no end-to-end language-model backpropagation and no expert co-adaptation. Its purpose is to test the routing map itself. Routing budget is swept from $K=25$ to $K=400$ for the canonical scaling law and extended to $K=5000$ for the large-budget persistence check. The proxy analyses report the effective routing footprint together with sector entropy and peak sector mass $p_{\max}$, which help distinguish genuine concentration from superficial occupancy effects.
+
+The key controls are also defined at the proxy level. In the first control, the same embeddings are column-permuted before routing, which preserves marginal statistics while destroying the structured alignment between coordinates and semantic signal. In the second, fixed Hopf routing is compared against adaptive Euclidean $K$-means on the same structured proxy. If the main effect is genuinely geometric rather than generic, it should weaken under permutation and need not be reproduced by the Euclidean comparator.
+
+\subsection{Trainable language model}
+The trainable setting uses a two-layer transformer-like language model with hidden dimension 128, four attention heads, vocabulary size 5000, sequence length 32, 64 experts, and expert dimension 128. All conditions train for 4000 optimization steps with two seeds per dataset. The reported datasets are Penn Treebank and WikiText-2.
+
+Three routing conditions are central. \textsc{Baseline} is learned top-1 routing without an auxiliary load-balancing loss. \textsc{Hopf} removes the learned gate and uses the fixed geometric sector map. \textsc{Permuted} keeps the same fixed-routing scaffold but randomly permutes the sector assignments. This null condition is crucial because it preserves sparsity and parameter count while removing any geometry-specific assignment pattern.
+
+The choice of \textsc{Baseline} deserves emphasis. The question here is whether a fixed routing map can replace a naturally concentrated learned sparse regime. An auxiliary load-balancing objective pushes learned routing toward near-uniform usage and therefore changes the comparison target. That auxiliary-loss control is reported in the appendix as support for comparator choice, not as a headline result.
+
+\section{Semantic Proxy Results}
+\subsection{Sublinear routing footprint}
+The semantic proxy provides the paper's strongest evidence. Figure~\ref{fig:scaling} shows the effective routing footprint as a function of routing budget. Dense routing scales linearly by construction. Fixed geometric routing scales much more slowly: over the anchor range $K=25$--$400$, the fitted law is
+\begin{equation}
+\hat e = \PaperHopfScalingA K^{\PaperHopfScalingAlpha}.
+\end{equation}
+The corresponding permuted fixed-routing control scales with exponent \PaperPermScalingAlpha, much closer to linear. The effect is not confined to the anchor range. Extending the same analysis to $K=5000$ yields a refitted Hopf exponent of approximately \PaperHopfLargeKAlpha, and the advantage over the permuted control reaches \PaperRatioAtFourHundred$\times$ at $K=400$ and \PaperRatioAtFiveThousand$\times$ at $K=5000$.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.83\linewidth]{paper1_scaling_main.pdf}
+  \caption{Effective routing footprint on the semantic proxy as a function of routing budget. Fixed geometric routing grows sublinearly, whereas dense routing grows linearly and the permuted fixed-routing control grows substantially more steeply. The large-budget extension indicates that the gap is not a small-$K$ artifact.}
+  \label{fig:scaling}
+\end{figure}
+
+This result should be read as a statement about occupancy, not about trained language-model quality. On the proxy, the routing map itself is the object under test, and the main question is whether structured representations populate a fixed angular partition unevenly enough to reduce the effective number of active routes.
+
+\subsection{Controls that constrain the interpretation}
+The main scaling law would be much less informative without controls. Figure~\ref{fig:proxy-controls-main} makes the two most important ones visible. First, the effect depends on structure in the embeddings. When the same proxy data are column-permuted before routing, peak sector mass drops from \PaperStructuredPmax\ to \PaperColPermPmax\ and the entropy of the routing distribution rises. Second, the effect is not reproduced equally well by a generic adaptive Euclidean comparator. On the same structured proxy, fixed Hopf routing reaches sector $p_{\max}=\PaperHopfControlPmax$, whereas adaptive $K$-means reaches \PaperKMeansPmax.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.88\linewidth]{paper1_proxy_controls.pdf}
+  \caption{Two controls that anchor the proxy result. Left: concentration weakens when the structured embeddings are column-permuted before routing. Right: fixed Hopf routing is more concentrated than adaptive Euclidean $K$-means on the same structured proxy, and both routing families weaken under permutation controls.}
+  \label{fig:proxy-controls-main}
+\end{figure}
+
+Together, these controls narrow the interpretation of Figure~\ref{fig:scaling}. The effect is not generic route sparsity, not a trivial consequence of fixed assignment, and not matched by a high-dimensional adaptive Euclidean clustering baseline. Appendix~\ref{app:proxy-controls} provides the detailed tables, and Appendix~\ref{app:proxy-robustness} shows that the fitted exponent remains essentially unchanged across L1, L2, L3, and L4 normalization, with span below \PaperNormInvariantSpan.
+
+\section{Results in a Trainable Language Model}
+\subsection{Partial transfer to PTB and WikiText-2}
+Table~\ref{tab:lm-main} summarizes the trainable language-model results. On Penn Treebank, fixed Hopf routing achieves a HOPF/BASELINE validation-perplexity ratio of \PaperPTBHopfBaselineRatio. On WikiText-2, the same ratio is \PaperWTTwoHopfBaselineRatio. Across both datasets, the fixed scaffold remains within about $8\%$ of the learned top-1 baseline while removing the learned gate matrix.
+
+\begin{table}[t]
+  \centering
+  \caption{Main trainable-model result. Fixed geometric routing remains usable in a two-layer language model on both PTB and WikiText-2, but it does not improve over the permuted fixed-routing null.}
+  \label{tab:lm-main}
+  \small
+  \input{generated/table_lm_combined.tex}
+\end{table}
+
+The routing-efficiency side of the result is modest but consistent. Hopf uses \PaperPTBHopfEff\ effective expert paths on PTB and \PaperWTTwoHopfEff\ on WikiText-2 out of 64 available experts. That is weaker than the proxy-side concentration effect, but it does show that the fixed scaffold can function inside a trainable model without catastrophic collapse.
+
+\subsection{The null result against permuted routing}
+\label{sec:null}
+The most important negative result in the paper is that the specific Hopf-derived assignment is not better than a randomly permuted fixed routing map after end-to-end training. In both datasets, \textsc{Hopf} and \textsc{Permuted} are effectively indistinguishable on validation perplexity: the difference is \PaperPTBHopfPermDelta\ on Penn Treebank and \PaperWTTwoHopfPermDelta\ on WikiText-2. Appendix~\ref{app:lm-support} provides the compact null-result summary together with the cross-dataset support tables.
+
+This null result changes the meaning of the trainable evidence. The proxy demonstrates that structured representations interact nontrivially with the Hopf-derived sector map. Once the experts are allowed to adapt, however, they can co-adapt to whichever fixed scaffold they receive. The trainable evidence therefore supports a claim about fixed routing as a usable scaffold, not a claim that Hopf geometry is uniquely superior after learning.
+
+\subsection{Why the learned comparator is no-aux top-1 routing}
+The learned comparator is intentionally a top-1 gate without an auxiliary load-balancing loss. That choice follows from the question under study. The comparison is meant to test whether a fixed routing map can substitute for a naturally concentrated sparse regime, not whether it can imitate a deliberately balance-forced router. In the auxiliary-loss control, the balance objective drives learned routing toward near-uniform usage, with \PaperAuxSparseEff\ effective paths out of 64. That table is included in Appendix~\ref{app:lm-support}. It supports the choice of comparator, but it is not the headline result.
+
+\section{Discussion and Limitations}
+The evidence supports a limited but nontrivial conclusion. On a static semantic proxy, a fixed routing map derived from angular structure in normalized language representations yields a sublinear routing footprint, and that advantage persists to large routing budgets. The same fixed scaffold can also be inserted into a toy trainable language model and remain within a modest perplexity margin of a learned top-1 baseline.
+
+The limitations are equally important. The strongest evidence is proxy-side rather than trainable. The trainable architecture is small: two layers, 64 experts, short training runs, and FFN routing only. Most importantly, the geometry-specific advantage disappears under expert co-adaptation. Once the model is trained end to end, Hopf routing is not better than a randomly permuted fixed routing scaffold on quality. That result is substantive, not incidental. It is why the paper argues for fixed geometric routing as a constrained first result rather than as a general replacement for learned sparse routing.
+
+Recent angular-compression results make the broader motivation concrete: angular organization in normalized representations appears to have engineering consequences beyond a single use case. The evidence here, however, supports only the routing consequence tested directly in this article. Larger architectural implications remain conjectural unless they are validated in larger trainable systems.
+
+\section{Conclusion}
+This work isolates and tests a narrow proposition: angular structure in normalized language representations can support a fixed routing map. The evidence supports that proposition in two ways. First, on a static semantic proxy, the routing footprint is clearly sublinear and remains so at large routing budgets, with controls that tie the effect to structured angular signal. Second, the same fixed routing scaffold partially transfers to a small trainable language model without a learned gate matrix. At the same time, the trainable experiments show that the specific Hopf-derived assignment does not outperform a randomly permuted fixed routing map after end-to-end learning. The appropriate conclusion is therefore limited and direct: fixed geometric routing is viable as a scaffold, but the current evidence does not establish a geometry-specific advantage in trained language models.
+
+\bibliographystyle{plainnat}
+\bibliography{references}
+
+\clearpage
+\appendix
+
+\section{Detailed Experimental Setup}
+\label{app:setup}
+This appendix provides the supporting details needed to audit the main-text claims without widening them.
+
+\begin{table}[H]
+  \centering
+  \caption{Exact settings for the toy language-model experiments.}
+  \small
+  \input{generated/table_setup_appendix.tex}
+\end{table}
+
+\section{Semantic Proxy Controls and Robustness}
+\label{app:proxy-controls}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.75\linewidth]{paper1_proxy_controls.pdf}
+  \caption{Proxy-side controls at appendix scale. The same two controls shown in the main text are repeated here for readability next to the detailed support tables.}
+  \label{fig:proxy-controls-appendix}
+\end{figure}
+
+\begin{table}[H]
+  \centering
+  \caption{Structured-versus-permuted proxy control. The concentration effect weakens when the embedding coordinates are permuted before routing.}
+  \small
+  \input{generated/table_proxy_structured_control.tex}
+\end{table}
+
+\begin{table}[H]
+  \centering
+  \caption{Hopf-versus-$K$-means control on the semantic proxy. Fixed Hopf routing is more concentrated than adaptive Euclidean $K$-means on the same structured embeddings.}
+  \small
+  \input{generated/table_proxy_hopf_kmeans_control.tex}
+\end{table}
+
+\subsection{Normalization robustness}
+\label{app:proxy-robustness}
+\begin{table}[H]
+  \centering
+  \caption{Scaling-law robustness across L1, L2, L3, and L4 normalization. The fitted Hopf exponent changes only minimally across these variants.}
+  \small
+  \input{generated/table_norm_invariance.tex}
+\end{table}
+
+\section{Language-Model Support Tables}
+\label{app:lm-support}
+\begin{table}[H]
+  \centering
+  \caption{Compact summary of the main null result in the trainable language model.}
+  \small
+  \input{generated/table_key_null_main.tex}
+\end{table}
+
+\begin{table}[H]
+  \centering
+  \caption{Cross-dataset summary for the trainable-model results.}
+  \small
+  \input{generated/table_cross_dataset_summary.tex}
+\end{table}
+
+\begin{table}[H]
+  \centering
+  \caption{Auxiliary-loss control supporting the choice of no-aux top-1 routing as the learned comparator. The load-balancing objective drives the learned router toward near-uniform usage.}
+  \small
+  \input{generated/table_auxiliary_control.tex}
+\end{table}
+
+\begin{table}[H]
+  \centering
+  \caption{Combined control and null-result summary used to interpret the trainable-model evidence.}
+  \small
+  \input{generated/table_key_control_null_result.tex}
+\end{table}
+
+\begin{table}[H]
+  \centering
+  \caption{Detailed Penn Treebank language-model results.}
+  \small
+  \input{generated/table_ptb_results.tex}
+\end{table}
+
+\begin{table}[H]
+  \centering
+  \caption{Detailed WikiText-2 language-model results.}
+  \small
+  \input{generated/table_wt2_results.tex}
+\end{table}
+
+\end{document}

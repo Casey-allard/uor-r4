@@ -1,0 +1,557 @@
+{
+  "config": "configs/proxy_transfer_inc0155_routing_compression_screen.json",
+  "max_points": 0,
+  "results": [
+    {
+      "args": {
+        "K": 4,
+        "input_transform": "none",
+        "sector_mode": "phase4d_hopf_base"
+      },
+      "metrics": {
+        "bucket_entropy_mean": 6.854989777785281,
+        "bucket_entropy_std": 0.07672109772372451,
+        "bucket_label_mi": 0.2226213995819153,
+        "bucket_purity_max": 0.07386363636363637,
+        "bucket_purity_mean": 0.0632131348195999,
+        "bucket_purity_min": 0.051330798479087454,
+        "bucket_purity_std": 0.008390250654619433,
+        "bucket_size_mean": 625.0,
+        "bucket_size_std": 102.20078277586722,
+        "h_label": 7.087804223909929,
+        "h_label_given_bucket": 6.865182824328014,
+        "input_transform": "none",
+        "n_buckets_active": 4,
+        "n_classes": 256,
+        "n_samples": 2500
+      },
+      "route_id": "BASE_K4_ORIG"
+    },
+    {
+      "args": {
+        "K": 4,
+        "input_transform": "col_perm",
+        "sector_mode": "phase4d_hopf_base"
+      },
+      "metrics": {
+        "bucket_entropy_mean": 6.827034576742293,
+        "bucket_entropy_std": 0.10002526666671105,
+        "bucket_label_mi": 0.2536701425863557,
+        "bucket_purity_max": 0.08094435075885328,
+        "bucket_purity_mean": 0.06521648925645612,
+        "bucket_purity_min": 0.05649717514124294,
+        "bucket_purity_std": 0.009379927086365522,
+        "bucket_size_mean": 625.0,
+        "bucket_size_std": 48.026034606242476,
+        "h_label": 7.087804223909929,
+        "h_label_given_bucket": 6.834134081323573,
+        "input_transform": "col_perm",
+        "n_buckets_active": 4,
+        "n_classes": 256,
+        "n_samples": 2500
+      },
+      "route_id": "BASE_K4_PERM"
+    },
+    {
+      "args": {
+        "K": 9,
+        "input_transform": "none",
+        "sector_mode": "phase4d_hopf_base"
+      },
+      "metrics": {
+        "bucket_entropy_mean": 6.425717357179866,
+        "bucket_entropy_std": 0.2059525164967464,
+        "bucket_label_mi": 0.6057795403012074,
+        "bucket_purity_max": 0.08163265306122448,
+        "bucket_purity_mean": 0.06379158496920795,
+        "bucket_purity_min": 0.049019607843137254,
+        "bucket_purity_std": 0.009878669027556686,
+        "bucket_size_mean": 277.77777777777777,
+        "bucket_size_std": 82.87175873035234,
+        "h_label": 7.087804223909929,
+        "h_label_given_bucket": 6.482024683608722,
+        "input_transform": "none",
+        "n_buckets_active": 9,
+        "n_classes": 256,
+        "n_samples": 2500
+      },
+      "route_id": "BASE_K9_ORIG"
+    },
+    {
+      "args": {
+        "K": 9,
+        "input_transform": "col_perm",
+        "sector_mode": "phase4d_hopf_base"
+      },
+      "metrics": {
+        "bucket_entropy_mean": 6.437777465174559,
+        "bucket_entropy_std": 0.13914346338810807,
+        "bucket_label_mi": 0.6298371870907529,
+        "bucket_purity_max": 0.08823529411764706,
+        "bucket_purity_mean": 0.06700664029891047,
+        "bucket_purity_min": 0.05365853658536585,
+        "bucket_purity_std": 0.01062990987016273,
+        "bucket_size_mean": 277.77777777777777,
+        "bucket_size_std": 54.775862035465906,
+        "h_label": 7.087804223909929,
+        "h_label_given_bucket": 6.457967036819176,
+        "input_transform": "col_perm",
+        "n_buckets_active": 9,
+        "n_classes": 256,
+        "n_samples": 2500
+      },
+      "route_id": "BASE_K9_PERM"
+    },
+    {
+      "args": {
+        "K": 16,
+        "input_transform": "none",
+        "sector_mode": "phase4d_hopf_base"
+      },
+      "metrics": {
+        "bucket_entropy_mean": 6.051708671850881,
+        "bucket_entropy_std": 0.24155043243239463,
+        "bucket_label_mi": 0.9546855668383314,
+        "bucket_purity_max": 0.09090909090909091,
+        "bucket_purity_mean": 0.06892095731484904,
+        "bucket_purity_min": 0.04918032786885246,
+        "bucket_purity_std": 0.009052796981152172,
+        "bucket_size_mean": 156.25,
+        "bucket_size_std": 60.70677474549278,
+        "h_label": 7.087804223909929,
+        "h_label_given_bucket": 6.133118657071598,
+        "input_transform": "none",
+        "n_buckets_active": 16,
+        "n_classes": 256,
+        "n_samples": 2500
+      },
+      "route_id": "BASE_K16_ORIG"
+    },
+    {
+      "args": {
+        "K": 16,
+        "input_transform": "col_perm",
+        "sector_mode": "phase4d_hopf_base"
+      },
+      "metrics": {
+        "bucket_entropy_mean": 6.089840458247305,
+        "bucket_entropy_std": 0.20772505174413566,
+        "bucket_label_mi": 0.9692009139748832,
+        "bucket_purity_max": 0.1056338028169014,
+        "bucket_purity_mean": 0.07410296801307978,
+        "bucket_purity_min": 0.047058823529411764,
+        "bucket_purity_std": 0.01716484473100292,
+        "bucket_size_mean": 156.25,
+        "bucket_size_std": 28.23450902707536,
+        "h_label": 7.087804223909929,
+        "h_label_given_bucket": 6.118603309935046,
+        "input_transform": "col_perm",
+        "n_buckets_active": 16,
+        "n_classes": 256,
+        "n_samples": 2500
+      },
+      "route_id": "BASE_K16_PERM"
+    },
+    {
+      "args": {
+        "K": 25,
+        "input_transform": "none",
+        "sector_mode": "phase4d_hopf_base"
+      },
+      "metrics": {
+        "bucket_entropy_mean": 5.43270057815291,
+        "bucket_entropy_std": 0.8255699094328505,
+        "bucket_label_mi": 1.203442911956401,
+        "bucket_purity_max": 0.29411764705882354,
+        "bucket_purity_mean": 0.08738992507296302,
+        "bucket_purity_min": 0.047619047619047616,
+        "bucket_purity_std": 0.04663225845470303,
+        "bucket_size_mean": 100.0,
+        "bucket_size_std": 62.06512708437807,
+        "h_label": 7.087804223909929,
+        "h_label_given_bucket": 5.884361311953528,
+        "input_transform": "none",
+        "n_buckets_active": 25,
+        "n_classes": 256,
+        "n_samples": 2500
+      },
+      "route_id": "BASE_K25_ORIG"
+    },
+    {
+      "args": {
+        "K": 25,
+        "input_transform": "col_perm",
+        "sector_mode": "phase4d_hopf_base"
+      },
+      "metrics": {
+        "bucket_entropy_mean": 5.7222713589786665,
+        "bucket_entropy_std": 0.2629862461104497,
+        "bucket_label_mi": 1.3081792933317296,
+        "bucket_purity_max": 0.11842105263157894,
+        "bucket_purity_mean": 0.07883489511766693,
+        "bucket_purity_min": 0.0425531914893617,
+        "bucket_purity_std": 0.01770820280956069,
+        "bucket_size_mean": 100.0,
+        "bucket_size_std": 25.833311827948037,
+        "h_label": 7.087804223909929,
+        "h_label_given_bucket": 5.7796249305781995,
+        "input_transform": "col_perm",
+        "n_buckets_active": 25,
+        "n_classes": 256,
+        "n_samples": 2500
+      },
+      "route_id": "BASE_K25_PERM"
+    },
+    {
+      "args": {
+        "K": 50,
+        "input_transform": "none",
+        "sector_mode": "phase4d_hopf_base"
+      },
+      "metrics": {
+        "bucket_entropy_mean": 4.425354010877333,
+        "bucket_entropy_std": 1.2552486073528262,
+        "bucket_label_mi": 1.6833217270944019,
+        "bucket_purity_max": 0.3333333333333333,
+        "bucket_purity_mean": 0.12382820298816304,
+        "bucket_purity_min": 0.045454545454545456,
+        "bucket_purity_std": 0.06902503280907189,
+        "bucket_size_mean": 50.0,
+        "bucket_size_std": 45.55085070555763,
+        "h_label": 7.087804223909929,
+        "h_label_given_bucket": 5.404482496815527,
+        "input_transform": "none",
+        "n_buckets_active": 50,
+        "n_classes": 256,
+        "n_samples": 2500
+      },
+      "route_id": "BASE_K50_ORIG"
+    },
+    {
+      "args": {
+        "K": 50,
+        "input_transform": "col_perm",
+        "sector_mode": "phase4d_hopf_base"
+      },
+      "metrics": {
+        "bucket_entropy_mean": 4.985029115046262,
+        "bucket_entropy_std": 0.47091115595638466,
+        "bucket_label_mi": 1.8878004912075896,
+        "bucket_purity_max": 0.15555555555555556,
+        "bucket_purity_mean": 0.08990181220637855,
+        "bucket_purity_min": 0.030303030303030304,
+        "bucket_purity_std": 0.0268164143483101,
+        "bucket_size_mean": 50.0,
+        "bucket_size_std": 26.502830037563914,
+        "h_label": 7.087804223909929,
+        "h_label_given_bucket": 5.200003732702339,
+        "input_transform": "col_perm",
+        "n_buckets_active": 50,
+        "n_classes": 256,
+        "n_samples": 2500
+      },
+      "route_id": "BASE_K50_PERM"
+    },
+    {
+      "args": {
+        "K": 75,
+        "input_transform": "none",
+        "sector_mode": "phase4d_hopf_base"
+      },
+      "metrics": {
+        "bucket_entropy_mean": 3.957571082889722,
+        "bucket_entropy_std": 1.2808361725300308,
+        "bucket_label_mi": 2.039222825417915,
+        "bucket_purity_max": 0.5,
+        "bucket_purity_mean": 0.1420512519184594,
+        "bucket_purity_min": 0.04878048780487805,
+        "bucket_purity_std": 0.09289030222449075,
+        "bucket_size_mean": 33.333333333333336,
+        "bucket_size_std": 34.58259035346478,
+        "h_label": 7.087804223909929,
+        "h_label_given_bucket": 5.048581398492014,
+        "input_transform": "none",
+        "n_buckets_active": 75,
+        "n_classes": 256,
+        "n_samples": 2500
+      },
+      "route_id": "BASE_K75_ORIG"
+    },
+    {
+      "args": {
+        "K": 75,
+        "input_transform": "col_perm",
+        "sector_mode": "phase4d_hopf_base"
+      },
+      "metrics": {
+        "bucket_entropy_mean": 4.5441855010991805,
+        "bucket_entropy_std": 0.47952618352034804,
+        "bucket_label_mi": 2.350092978746341,
+        "bucket_purity_max": 0.23076923076923078,
+        "bucket_purity_mean": 0.10320901847463478,
+        "bucket_purity_min": 0.038461538461538464,
+        "bucket_purity_std": 0.03867409967592517,
+        "bucket_size_mean": 33.333333333333336,
+        "bucket_size_std": 15.699115332470877,
+        "h_label": 7.087804223909929,
+        "h_label_given_bucket": 4.737711245163588,
+        "input_transform": "col_perm",
+        "n_buckets_active": 75,
+        "n_classes": 256,
+        "n_samples": 2500
+      },
+      "route_id": "BASE_K75_PERM"
+    },
+    {
+      "args": {
+        "K": 100,
+        "input_transform": "none",
+        "sector_mode": "phase4d_hopf_base"
+      },
+      "metrics": {
+        "bucket_entropy_mean": 3.6639695325519495,
+        "bucket_entropy_std": 1.388838977999211,
+        "bucket_label_mi": 2.3998437400573893,
+        "bucket_purity_max": 1.0,
+        "bucket_purity_mean": 0.1780944734352678,
+        "bucket_purity_min": 0.05084745762711865,
+        "bucket_purity_std": 0.1665858868927329,
+        "bucket_size_mean": 25.0,
+        "bucket_size_std": 21.145685139053782,
+        "h_label": 7.087804223909929,
+        "h_label_given_bucket": 4.68796048385254,
+        "input_transform": "none",
+        "n_buckets_active": 100,
+        "n_classes": 256,
+        "n_samples": 2500
+      },
+      "route_id": "BASE_K100_ORIG"
+    },
+    {
+      "args": {
+        "K": 100,
+        "input_transform": "col_perm",
+        "sector_mode": "phase4d_hopf_base"
+      },
+      "metrics": {
+        "bucket_entropy_mean": 4.2688047324220655,
+        "bucket_entropy_std": 0.43170781560117755,
+        "bucket_label_mi": 2.695515725629459,
+        "bucket_purity_max": 0.23529411764705882,
+        "bucket_purity_mean": 0.11109457750636378,
+        "bucket_purity_min": 0.038461538461538464,
+        "bucket_purity_std": 0.04241334267910493,
+        "bucket_size_mean": 25.0,
+        "bucket_size_std": 8.031189202104505,
+        "h_label": 7.087804223909929,
+        "h_label_given_bucket": 4.39228849828047,
+        "input_transform": "col_perm",
+        "n_buckets_active": 100,
+        "n_classes": 256,
+        "n_samples": 2500
+      },
+      "route_id": "BASE_K100_PERM"
+    },
+    {
+      "args": {
+        "K": 25,
+        "input_transform": "none",
+        "sector_mode": "phase4d_hopf_transport"
+      },
+      "metrics": {
+        "bucket_entropy_mean": 5.400763809003098,
+        "bucket_entropy_std": 0.9052301449369813,
+        "bucket_label_mi": 1.1807321613574553,
+        "bucket_purity_max": 0.18604651162790697,
+        "bucket_purity_mean": 0.08851397255499599,
+        "bucket_purity_min": 0.04891304347826087,
+        "bucket_purity_std": 0.03616687971689608,
+        "bucket_size_mean": 104.16666666666667,
+        "bucket_size_std": 74.09997001049025,
+        "h_label": 7.087804223909929,
+        "h_label_given_bucket": 5.907072062552474,
+        "input_transform": "none",
+        "n_buckets_active": 24,
+        "n_classes": 256,
+        "n_samples": 2500
+      },
+      "route_id": "TRANS_K25_ORIG"
+    },
+    {
+      "args": {
+        "K": 25,
+        "input_transform": "col_perm",
+        "sector_mode": "phase4d_hopf_transport"
+      },
+      "metrics": {
+        "bucket_entropy_mean": 5.716810536126215,
+        "bucket_entropy_std": 0.3374323944908215,
+        "bucket_label_mi": 1.2560935860818505,
+        "bucket_purity_max": 0.12121212121212122,
+        "bucket_purity_mean": 0.07629311847124949,
+        "bucket_purity_min": 0.043010752688172046,
+        "bucket_purity_std": 0.019857935922309458,
+        "bucket_size_mean": 104.16666666666667,
+        "bucket_size_std": 38.87122614765608,
+        "h_label": 7.087804223909929,
+        "h_label_given_bucket": 5.8317106378280785,
+        "input_transform": "col_perm",
+        "n_buckets_active": 24,
+        "n_classes": 256,
+        "n_samples": 2500
+      },
+      "route_id": "TRANS_K25_PERM"
+    },
+    {
+      "args": {
+        "K": 50,
+        "input_transform": "none",
+        "sector_mode": "phase4d_hopf_transport"
+      },
+      "metrics": {
+        "bucket_entropy_mean": 4.334012427154582,
+        "bucket_entropy_std": 1.3613371489726673,
+        "bucket_label_mi": 1.6462293786971323,
+        "bucket_purity_max": 0.4,
+        "bucket_purity_mean": 0.1307996528847018,
+        "bucket_purity_min": 0.05,
+        "bucket_purity_std": 0.08398322501894129,
+        "bucket_size_mean": 50.0,
+        "bucket_size_std": 47.373410263564516,
+        "h_label": 7.087804223909929,
+        "h_label_given_bucket": 5.441574845212797,
+        "input_transform": "none",
+        "n_buckets_active": 50,
+        "n_classes": 256,
+        "n_samples": 2500
+      },
+      "route_id": "TRANS_K50_ORIG"
+    },
+    {
+      "args": {
+        "K": 50,
+        "input_transform": "col_perm",
+        "sector_mode": "phase4d_hopf_transport"
+      },
+      "metrics": {
+        "bucket_entropy_mean": 4.979110539633917,
+        "bucket_entropy_std": 0.502050434412946,
+        "bucket_label_mi": 1.9069747323097568,
+        "bucket_purity_max": 0.2,
+        "bucket_purity_mean": 0.09352344551960429,
+        "bucket_purity_min": 0.052083333333333336,
+        "bucket_purity_std": 0.02904207657396265,
+        "bucket_size_mean": 50.0,
+        "bucket_size_std": 22.309639172339836,
+        "h_label": 7.087804223909929,
+        "h_label_given_bucket": 5.180829491600172,
+        "input_transform": "col_perm",
+        "n_buckets_active": 50,
+        "n_classes": 256,
+        "n_samples": 2500
+      },
+      "route_id": "TRANS_K50_PERM"
+    },
+    {
+      "args": {
+        "K": 75,
+        "input_transform": "none",
+        "sector_mode": "phase4d_hopf_transport"
+      },
+      "metrics": {
+        "bucket_entropy_mean": 3.328696816262521,
+        "bucket_entropy_std": 2.033565546945735,
+        "bucket_label_mi": 1.7140916299255418,
+        "bucket_purity_max": 1.0,
+        "bucket_purity_mean": 0.2891101927303342,
+        "bucket_purity_min": 0.05555555555555555,
+        "bucket_purity_std": 0.3096820981536475,
+        "bucket_size_mean": 36.76470588235294,
+        "bucket_size_std": 46.17840010955556,
+        "h_label": 7.087804223909929,
+        "h_label_given_bucket": 5.373712593984387,
+        "input_transform": "none",
+        "n_buckets_active": 68,
+        "n_classes": 256,
+        "n_samples": 2500
+      },
+      "route_id": "TRANS_K75_ORIG"
+    },
+    {
+      "args": {
+        "K": 75,
+        "input_transform": "col_perm",
+        "sector_mode": "phase4d_hopf_transport"
+      },
+      "metrics": {
+        "bucket_entropy_mean": 4.110453685131394,
+        "bucket_entropy_std": 1.4658442858592247,
+        "bucket_label_mi": 2.16485756762611,
+        "bucket_purity_max": 1.0,
+        "bucket_purity_mean": 0.1697962545316602,
+        "bucket_purity_min": 0.04,
+        "bucket_purity_std": 0.20030264898001146,
+        "bucket_size_mean": 34.24657534246575,
+        "bucket_size_std": 22.495528214327035,
+        "h_label": 7.087804223909929,
+        "h_label_given_bucket": 4.922946656283819,
+        "input_transform": "col_perm",
+        "n_buckets_active": 73,
+        "n_classes": 256,
+        "n_samples": 2500
+      },
+      "route_id": "TRANS_K75_PERM"
+    },
+    {
+      "args": {
+        "K": 100,
+        "input_transform": "none",
+        "sector_mode": "phase4d_hopf_transport"
+      },
+      "metrics": {
+        "bucket_entropy_mean": 3.007612274265783,
+        "bucket_entropy_std": 2.000903243500506,
+        "bucket_label_mi": 1.8175133602151181,
+        "bucket_purity_max": 1.0,
+        "bucket_purity_mean": 0.3129987730654377,
+        "bucket_purity_min": 0.04285714285714286,
+        "bucket_purity_std": 0.3056489285475673,
+        "bucket_size_mean": 30.120481927710845,
+        "bucket_size_std": 41.8834865783702,
+        "h_label": 7.087804223909929,
+        "h_label_given_bucket": 5.270290863694811,
+        "input_transform": "none",
+        "n_buckets_active": 83,
+        "n_classes": 256,
+        "n_samples": 2500
+      },
+      "route_id": "TRANS_K100_ORIG"
+    },
+    {
+      "args": {
+        "K": 100,
+        "input_transform": "col_perm",
+        "sector_mode": "phase4d_hopf_transport"
+      },
+      "metrics": {
+        "bucket_entropy_mean": 3.98992884128762,
+        "bucket_entropy_std": 1.2575408049663472,
+        "bucket_label_mi": 2.486918937988899,
+        "bucket_purity_max": 1.0,
+        "bucket_purity_mean": 0.1661116782804881,
+        "bucket_purity_min": 0.04,
+        "bucket_purity_std": 0.19483997125022612,
+        "bucket_size_mean": 26.881720430107528,
+        "bucket_size_std": 15.564537485824856,
+        "h_label": 7.087804223909929,
+        "h_label_given_bucket": 4.60088528592103,
+        "input_transform": "col_perm",
+        "n_buckets_active": 93,
+        "n_classes": 256,
+        "n_samples": 2500
+      },
+      "route_id": "TRANS_K100_PERM"
+    }
+  ],
+  "seed": 3
+}

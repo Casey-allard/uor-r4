@@ -1,0 +1,6 @@
+component,purpose,primary_state,input_shape,output_shape,update_rule,promotion_role
+initialize_state,construct initial offline routing state,R_min,"orbit/chart inputs plus wheel metadata and tuplet pattern","R_static or R_min state record","derive b phi r and optionally next_return_gap","none"
+update_state,advance one odometer step,R_min,"current state plus next transport step","updated state record","update b phi and if present next_return_gap or spin_H","preserves current mode until explicit promotion"
+score_or_route,produce routing key or grouping key,R_min,"current state","stable route key or route score key","pure read of current state","none"
+should_promote,detect unresolved predictive ambiguity,R_min,"current R_min state plus local ambiguity summary","boolean or promotion signal","no state mutation","decides whether local class should escalate toward R_full"
+promote_state,escalate unresolved class to richer predictive state,R_full,"current R_min state plus local predictive support","promoted R_full state","replace minimal residual with spin_H-like predictive state","implements delayed selective refinement"

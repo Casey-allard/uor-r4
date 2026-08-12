@@ -1,0 +1,22 @@
+{
+  "scenario_id": "tiny-locked-path",
+  "title": "Tiny Locked Path",
+  "description": "Tiny planning scenario that requires picking up a key, unlocking a sealed door, and retrieving the artifact beyond it.",
+  "start_room_id": "entry",
+  "max_steps": 8,
+  "seed": 55,
+  "version": "1.0",
+  "scenario_vars": {
+    "mode": "planning-dependency",
+    "agent_script_policy": "planning-dependency",
+    "world_config_json": "{\"items\":[{\"entity_id\":\"brass-key\",\"entity_type\":\"item\",\"location\":\"key-chamber\"},{\"entity_id\":\"artifact\",\"entity_type\":\"item\",\"location\":\"treasure\"}],\"rooms\":{\"entry\":{\"description\":\"The entry chamber smells of salt and stone. Paths lead east to the locksmiths and south to a sealed gate.\",\"entities\":[],\"exits\":{\"east\":\"key-chamber\",\"south\":\"lock-ante\"},\"title\":\"Entry Chamber\"},\"key-chamber\":{\"description\":\"A cramped chamber with a brass key resting on an iron stand.\",\"entities\":[],\"exits\":{\"west\":\"entry\"},\"title\":\"Key Chamber\"},\"lock-ante\":{\"description\":\"A narrow ante-chamber with a barred northern door and a passage south.\",\"entities\":[],\"exits\":{\"south\":\"entry\"},\"title\":\"Lock Ante-Chamber\"},\"treasure\":{\"description\":\"A tiny vault lit by phosphor moss; a prized artifact lies within.\",\"entities\":[],\"exits\":{\"south\":\"lock-ante\"},\"title\":\"Treasure Vault\"}},\"unlock_effects\":[{\"effect_id\":\"sealed_gate\",\"item_id\":\"brass-key\",\"source_room_id\":\"lock-ante\",\"direction\":\"north\",\"destination_room_id\":\"treasure\",\"consume_item\":false,\"requires_actor_in_place\":true}]}"
+  },
+  "objectives": [
+    {
+      "objective_id": "collect-artifact",
+      "objective_type": "collect_item",
+      "target_id": "artifact",
+      "required_count": 1
+    }
+  ]
+}

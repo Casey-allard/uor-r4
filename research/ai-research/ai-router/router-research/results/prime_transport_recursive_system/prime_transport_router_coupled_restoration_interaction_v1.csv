@@ -1,0 +1,7 @@
+config,factors_enabled,accuracy,solve_step,no_last_accuracy,decodability_initial,decodability_mid,decodability_final,alpha_last,runtime_seconds,note
+working_baseline,none,0.9741,,0.98,1.0,1.0,1.0,0.0386,71.5,factors=none; eps_high=1.0; d_hyb=16; inject=False (task_B_no_inject)
+A_only,A,0.9951,,0.9961,1.0,1.0,1.0,0.0257,79.3,factors=A; eps_high=1.0; d_hyb=18; inject=False (task_B_no_inject)
+B_only,B,0.9951,,0.9946,1.0,1.0,1.0,0.0471,88.7,factors=B; eps_high=1.0; d_hyb=16; inject=False (task_B_no_inject)
+A_B,A+B,0.9653,,0.9727,1.0,1.0,1.0,0.0405,99.7,factors=A+B; eps_high=1.0; d_hyb=18; inject=False (task_B_no_inject)
+A_B_C,A+B+C,0.9976,,0.999,1.0,1.0,1.0,0.0302,97.3,factors=A+B+C; eps_high=1.0; d_hyb=18; inject=False (task_B_no_inject)
+A_B_C_D,A+B+C+D,0.3579,,0.3223,1.0,0.3296,0.3101,0.0155,102.1,factors=A+B+C+D; eps_high=0.0; d_hyb=18; inject=False (task_B_no_inject)

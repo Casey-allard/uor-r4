@@ -1,0 +1,26 @@
+# ── macOS ────────────────────────────────────────────────────────────────────
+.DS_Store
+**/.DS_Store
+
+# ── Python ───────────────────────────────────────────────────────────────────
+router-research/__pycache__/
+router-research/**/__pycache__/
+router-research/**/*.pyc
+router-research/**/*.pyo
+router-research/.venv/
+*.egg-info/
+
+# ── Research results (generated) ─────────────────────────────────────────────
+# Raw logs can be very large; parsed/analysis artifacts are reproducible.
+# Remove these lines if you want results tracked in git.
+router-research/results/raw/
+router-research/results/parsed/
+router-research/results/cache/
+
+# ── Do NOT ignore (must stay tracked) ────────────────────────────────────────
+# .githooks/        — versioned git hooks, activated via setup_hooks.sh
+# results/analysis/ — experiment-level aggregate analyses (manually produced)
+# results/summary.csv — tabulated run records
+!router-research/results/analysis/
+!router-research/results/summary.csv
+

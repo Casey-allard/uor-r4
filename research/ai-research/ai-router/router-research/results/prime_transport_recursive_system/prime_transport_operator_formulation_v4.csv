@@ -1,0 +1,37 @@
+scope,metric,count,total,fraction,note
+operator,state_count,20,20,1.0,reachable structured states on bounded operator surface
+operator,transition_count,100,100,1.0,nonzero operator entries on bounded surface
+operator,lawful_transition_fraction,100,100,1.0,fraction of nonzero operator entries that are lawful
+operator,illegal_transition_fraction,0,100,0.0,fraction of nonzero operator entries that are illegal
+orbit_change,state_count_vs_v3,20,10,2.0,reachable state expansion relative to H_v3
+orbit_change,transition_count_vs_v3,100,40,2.5,nonzero transition expansion relative to H_v3
+generator_axis,T_y_changes_phi,0,1,0.0,composite_twist does not change phi
+generator_axis,T_y_changes_spin_h,0,1,0.0,composite_twist does not change spin_h
+generator_axis,T_y_changes_both_phi_and_spin_h,0,1,0.0,composite_twist changes neither phi nor spin_h
+generator_axis,T_y_changes_neither_phi_nor_spin_h,1,1,1.0,composite_twist acts on relational twist axis only
+sparsity,nonzero_from_state_b0_phi0_r0_q6_b10_tw0,5,100,0.05,nonzero transitions emitted by operator from one structured state
+sparsity,nonzero_from_state_b0_phi0_r0_q6_b10_tw1,5,100,0.05,nonzero transitions emitted by operator from one structured state
+sparsity,nonzero_from_state_b0_phi0_r0_q10_b6_tw0,5,100,0.05,nonzero transitions emitted by operator from one structured state
+sparsity,nonzero_from_state_b0_phi0_r0_q10_b6_tw1,5,100,0.05,nonzero transitions emitted by operator from one structured state
+sparsity,nonzero_from_state_b1_phi0_r0_q6_b10_tw0,5,100,0.05,nonzero transitions emitted by operator from one structured state
+sparsity,nonzero_from_state_b1_phi0_r0_q6_b10_tw1,5,100,0.05,nonzero transitions emitted by operator from one structured state
+sparsity,nonzero_from_state_b1_phi0_r0_q10_b6_tw0,5,100,0.05,nonzero transitions emitted by operator from one structured state
+sparsity,nonzero_from_state_b1_phi0_r0_q10_b6_tw1,5,100,0.05,nonzero transitions emitted by operator from one structured state
+sparsity,nonzero_from_state_b2_phi0_r0_q6_b10_tw0,5,100,0.05,nonzero transitions emitted by operator from one structured state
+sparsity,nonzero_from_state_b2_phi0_r0_q6_b10_tw1,5,100,0.05,nonzero transitions emitted by operator from one structured state
+sparsity,nonzero_from_state_b2_phi0_r0_q10_b6_tw0,5,100,0.05,nonzero transitions emitted by operator from one structured state
+sparsity,nonzero_from_state_b2_phi0_r0_q10_b6_tw1,5,100,0.05,nonzero transitions emitted by operator from one structured state
+sparsity,nonzero_from_state_b3_phi0_r0_q6_b10_tw0,5,100,0.05,nonzero transitions emitted by operator from one structured state
+sparsity,nonzero_from_state_b3_phi0_r0_q6_b10_tw1,5,100,0.05,nonzero transitions emitted by operator from one structured state
+sparsity,nonzero_from_state_b3_phi0_r0_q10_b6_tw0,5,100,0.05,nonzero transitions emitted by operator from one structured state
+sparsity,nonzero_from_state_b3_phi0_r0_q10_b6_tw1,5,100,0.05,nonzero transitions emitted by operator from one structured state
+sparsity,nonzero_from_state_b4_phi0_r0_q6_b10_tw0,5,100,0.05,nonzero transitions emitted by operator from one structured state
+sparsity,nonzero_from_state_b4_phi0_r0_q6_b10_tw1,5,100,0.05,nonzero transitions emitted by operator from one structured state
+sparsity,nonzero_from_state_b4_phi0_r0_q10_b6_tw0,5,100,0.05,nonzero transitions emitted by operator from one structured state
+sparsity,nonzero_from_state_b4_phi0_r0_q10_b6_tw1,5,100,0.05,nonzero transitions emitted by operator from one structured state
+component,hold,20,100,0.2,fraction of operator entries by component
+component,torus_base_advance,20,100,0.2,fraction of operator entries by component
+component,composite_swap,20,100,0.2,fraction of operator entries by component
+component,coupled_torus_kick,20,100,0.2,fraction of operator entries by component
+component,composite_twist,20,100,0.2,fraction of operator entries by component
+class_distribution,class_r0_phi0_spin1111_compat100_100,100,100,1.0,distribution of operator transitions by source class tuple

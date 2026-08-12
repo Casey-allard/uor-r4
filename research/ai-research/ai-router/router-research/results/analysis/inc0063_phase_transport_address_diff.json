@@ -1,0 +1,47 @@
+{
+  "experiment_id": "inc0063_phase_transport_address_diff",
+  "description": "Route-address audit comparing transported-phase modes against the Hopf-base coarse-address control on the RR-063 proxy schedule.",
+  "rows": [
+    {
+      "sector_mode": "phase4d_hopf_base",
+      "phase_transport_lambda": 1.0,
+      "unique_sectors": 9,
+      "unique_shells": 2,
+      "sector_diff_vs_hopf_base": 0,
+      "shell_diff_vs_hopf_base": 0
+    },
+    {
+      "sector_mode": "phase4d_hopf_transport",
+      "phase_transport_lambda": 0.5,
+      "unique_sectors": 9,
+      "unique_shells": 2,
+      "sector_diff_vs_hopf_base": 0,
+      "shell_diff_vs_hopf_base": 0
+    },
+    {
+      "sector_mode": "phase4d_hopf_transport",
+      "phase_transport_lambda": 1.0,
+      "unique_sectors": 9,
+      "unique_shells": 2,
+      "sector_diff_vs_hopf_base": 0,
+      "shell_diff_vs_hopf_base": 0
+    },
+    {
+      "sector_mode": "phase4d_hopf_transport",
+      "phase_transport_lambda": 1.5,
+      "unique_sectors": 9,
+      "unique_shells": 2,
+      "sector_diff_vs_hopf_base": 0,
+      "shell_diff_vs_hopf_base": 0
+    },
+    {
+      "sector_mode": "phase4d_hopf",
+      "phase_transport_lambda": 1.0,
+      "unique_sectors": 4,
+      "unique_shells": 2,
+      "sector_diff_vs_hopf_base": 2500,
+      "shell_diff_vs_hopf_base": 0
+    }
+  ],
+  "conclusion": "The current transported-phase law is address-inert on the RR-063 schedule: all transported variants produce exactly the same shell and sector assignments as phase4d_hopf_base."
+}

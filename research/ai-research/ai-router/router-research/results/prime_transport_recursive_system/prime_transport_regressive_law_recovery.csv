@@ -1,0 +1,11 @@
+scope,metric,value,note
+representation_level,current_sigma_carrier_is_canonical_regressive_law,no,"Current sigma carrier stores finite action samples, not the parent update law"
+representation_level,current_sigma_carrier_is_bounded_encoding_of_direct_law,yes,"Carrier fields are bounded observables of lawful sigma transport"
+parent_law,direct_parent_law,"sigma' = R_G(sigma)","Canonical regressive law is generator-equivariant sigma update under each lawful generator G"
+projection,seed_orbit_from_direct_law,"derived","seed_orbit is a bounded orbit sample from predictive projection of sigma"
+projection,generator_projection_profile_from_direct_law,"derived","generator_projection_profile is Pi_pred(R_G(sigma)) sampled over lawful generators"
+projection,generator_orbit_profile_from_direct_law,"derived","generator_orbit_profile is bounded orbit closure generated from projected sigma images"
+projection,generator_composition_profile_from_direct_law,"derived","generator_composition_profile is Pi_pred(R_H(R_G(sigma))) sampled over lawful generator pairs"
+comparison,direct_law_preferred_over_profile_encoding,yes,"Direct law keeps sigma as transported parent state and demotes profile tables to diagnostics"
+match,recovered_law_matches_generator_based_recursive_geometry,yes,"Recovered law matches the earlier intended generator-based recursive transport structure"
+next_step,implementation_primitive,"direct_regressive_sigma_update_maps","Implement lawful sigma update maps R_G as parent carrier and keep current profile fields only as derived diagnostics"

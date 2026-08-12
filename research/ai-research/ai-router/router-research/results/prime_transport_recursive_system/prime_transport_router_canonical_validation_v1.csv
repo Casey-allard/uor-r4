@@ -1,0 +1,3 @@
+config,label,accuracy,solve_step,no_last_accuracy,decodability_initial,decodability_mid,decodability_final,alpha_last,runtime_seconds,note
+working_baseline,split+none,0.9741,,0.979,1.0,1.0,1.0,0.0226,91.3,task=mod12_quarter_D32_no_inject; D=32; eps_high=1.0; d_hyb=16; radial=1.0; use_B=False
+canonical_A_B_C,split+A+B+C,0.9087,,0.9062,1.0,1.0,1.0,0.0225,133.2,task=mod12_quarter_D32_no_inject; D=32; eps_high=1.0; d_hyb=18; radial=sqrt2; use_B=True

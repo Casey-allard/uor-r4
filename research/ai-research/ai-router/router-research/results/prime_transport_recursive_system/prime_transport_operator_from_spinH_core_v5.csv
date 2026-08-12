@@ -1,0 +1,25 @@
+scope,metric,count,total,fraction,note
+operator,state_count,119785,119785,1.0,reachable states with T_c rebuilt from spin_H_core_v5
+operator,transition_count,838495,838495,1.0,nonzero operator entries with one core-v5-derived component
+operator,lawful_transition_fraction,838495,838495,1.0,fraction of nonzero operator entries that are lawful
+operator,illegal_transition_fraction,0,838495,0.0,fraction of nonzero operator entries that are illegal
+class_escape,distinct_class_identities_reached,31465,31465,1.0,distinct tau-aware target class identities reached
+spin_escape,distinct_spin_classes_reached,16,16,1.0,distinct target spin classes reached
+radial_escape,distinct_radial_classes_reached,3,3,1.0,distinct target radial classes reached
+core_dependency,rebuilt_component_depends_on_spin_H_core_v5,1,1,1.0,T_c calls active_transport_lift_core_v5 and uses sigma_direct under sigma_family_holonomy_law
+core_dependency,sigma_direct_materially_used,1,1,1.0,"T_c uses sigma_update_v5 on sigma_direct and reads current_mode, fiber_mode, radial_mode, regressive_phase, and family_holonomy_class"
+core_dependency,theta_materially_used,1,1,1.0,T_c uses theta.base_angle and theta.fiber_phase in coupled base-step logic
+core_dependency,rho_materially_used,1,1,1.0,"T_c uses rho.radial_class, unfolding_load, radial_target, and radial_target_phi in coupled base-step logic"
+core_dependency,h_materially_used,1,1,1.0,"T_c uses h.recursive_phase, h.radial_recursive_phase, and h.holonomy_bit in coupled tau update logic"
+comparison_vs_v16,state_count_change,-5892,125677,-0.046882086618872165,reachable state change vs prior T_c rebuild from spin_H_core_v4
+comparison_vs_v16,transition_count_change,-41244,879739,-0.046882086618872165,transition count change vs prior T_c rebuild from spin_H_core_v4
+comparison_vs_v16,class_diversity_change,-2766,34231,-0.08080394963629456,class diversity change vs prior T_c rebuild from spin_H_core_v4
+comparison_vs_v16,spin_diversity_change,0,16,0.0,spin diversity change vs prior T_c rebuild from spin_H_core_v4
+comparison_vs_v16,radial_diversity_change,0,3,0.0,radial diversity change vs prior T_c rebuild from spin_H_core_v4
+component,hold,119785,838495,0.14285714285714285,fraction of operator entries by component
+component,torus_base_advance,119785,838495,0.14285714285714285,fraction of operator entries by component
+component,composite_swap,119785,838495,0.14285714285714285,fraction of operator entries by component
+component,coupled_torus_kick,119785,838495,0.14285714285714285,fraction of operator entries by component
+component,composite_twist,119785,838495,0.14285714285714285,fraction of operator entries by component
+component,fiber_phase_lift_spin_transport,119785,838495,0.14285714285714285,fraction of operator entries by component
+component,radial_transport_unfolding,119785,838495,0.14285714285714285,fraction of operator entries by component

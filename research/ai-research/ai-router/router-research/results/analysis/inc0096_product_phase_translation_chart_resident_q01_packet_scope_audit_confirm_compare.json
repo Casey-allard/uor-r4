@@ -1,0 +1,43 @@
+{
+  "comparisons": [
+    {
+      "amortized_delta_mixed_minus_focused_sec": -0.0209789582513622,
+      "focused_amortized_per_repeat_sec": 0.11553357799857622,
+      "focused_candidate_fraction": 1.0,
+      "focused_chart_cache_hit": 0.0,
+      "focused_route_cache_hit": 0.0,
+      "focused_top1": 0.050300000000000004,
+      "mixed_amortized_per_repeat_sec": 0.09455461974721402,
+      "mixed_candidate_fraction": 1.0,
+      "mixed_chart_cache_hit": 0.0,
+      "mixed_route_cache_hit": 0.0,
+      "mixed_top1": 0.050300000000000004,
+      "route_id": "DENSE_Q01_T2500"
+    },
+    {
+      "amortized_delta_mixed_minus_focused_sec": 0.0063139683625195175,
+      "focused_amortized_per_repeat_sec": 0.08073813038208755,
+      "focused_candidate_fraction": 0.19872304000000002,
+      "focused_chart_cache_hit": 1.0,
+      "focused_route_cache_hit": 0.0,
+      "focused_top1": 0.04630000000000001,
+      "mixed_amortized_per_repeat_sec": 0.08705209874460706,
+      "mixed_candidate_fraction": 0.19872304000000002,
+      "mixed_chart_cache_hit": 1.0,
+      "mixed_route_cache_hit": 0.0,
+      "mixed_top1": 0.04630000000000001,
+      "route_id": "CHART_H4XH4_FIELD_A150_CPX8_Q01_T2500"
+    }
+  ],
+  "generated_at": "2026-03-12T09:25:45",
+  "summary": {
+    "chart_route_positive_in_focused": true,
+    "chart_route_positive_in_mixed": true,
+    "focused_experiment_id": "inc0096_product_phase_translation_chart_resident_q01_packet_scope_audit_focused_confirm",
+    "focused_margin_vs_dense_sec": 0.03479544761648867,
+    "mixed_experiment_id": "inc0096_product_phase_translation_chart_resident_q01_packet_scope_audit_mixed_confirm",
+    "mixed_margin_vs_dense_sec": 0.007502521002606954,
+    "packet_scope_margin_delta_sec": -0.02729292661388172,
+    "stage": "confirm"
+  }
+}

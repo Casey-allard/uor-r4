@@ -1,0 +1,115 @@
+{
+  "experiment_id": "inc0055_product_h4x4_retrieval_field_screen",
+  "run_order": "seed_major",
+  "baseline_route_id": "H4XH4_BUCKET_W025",
+  "task_script": "tasks/dynamic_h4_state_eval.py",
+  "seeds": [0, 1],
+  "common_args": {
+    "input": "data/wikitext2_proxy/wikitext2_proxy.npz",
+    "eval_split": "test",
+    "max_train": 6000,
+    "max_eval": 3000,
+    "K": 25,
+    "delta_r": 3.6,
+    "kmeans_iters": 12,
+    "sector_mode": "phase4d_hopf",
+    "phase_dims": "0,1",
+    "phase4_dims": "0,2,4,6",
+    "complex_dims": "1,3",
+    "adaptive_min_pair_bins": 3,
+    "adaptive_time_growth": 1.4,
+    "adaptive_balance": 1.2,
+    "adaptive_angle_growth": 0.5,
+    "adaptive_shell_growth": 1.6,
+    "adaptive_shell_balance": 1.0,
+    "adaptive_converge_lambda": 0.65,
+    "adaptive_converge_target": 0.85,
+    "adaptive_converge_hysteresis": 0.05,
+    "adaptive_converge_mode": "phi_ladder",
+    "shell_mode": "phi_log",
+    "shell_phase_coupling": 0.0,
+    "fib_rung_gate_threshold": 0.0,
+    "route_scale_lambda": 1.0,
+    "memory_coord_mode": "route_chart",
+    "hopf_chi_bins": 2,
+    "hopf_blend_lambda": 0.8,
+    "hopf_blend_chi_weight": 1.0,
+    "hopf_blend_shell_weight": 0.5,
+    "hybrid_local_k": 4,
+    "hybrid_complex_roots": 4,
+    "hybrid_local_min_k": 1,
+    "hybrid_local_target": 0.60,
+    "hybrid_local_hysteresis": 0.05,
+    "hybrid_local_converge_lambda": 1.0,
+    "learn_so8": 0,
+    "learn_scale": 1,
+    "scale_mode": "radial",
+    "radial_bins": 10,
+    "radial_rmax": 0.0,
+    "radial_update_frac": 0.25,
+    "radial_l2": 0.0,
+    "chart_iters": 40,
+    "chart_alpha": 0.01,
+    "chart_beta": 0.0,
+    "so8_step": 0.1,
+    "so8_candidates": 2,
+    "scale_step": 0.08,
+    "scale_candidates": 2,
+    "scale_clip": 2.0,
+    "cache_dir": "results/cache",
+    "cache_chart": 0,
+    "candidate_mode": "static_bucket_knn",
+    "flow_step": 1,
+    "flow_scale": 1.0,
+    "state_topk": 8,
+    "state_block_size": 192,
+    "state_pair_samples": 512,
+    "complex_key_radius_bins": 1
+  },
+  "routes": [
+    {
+      "route_id": "STATIC_BUCKET",
+      "args": {
+        "dynamic_state_mode": "static_h4",
+        "route_key_mode": "hopf_bucket",
+        "flow_weight": 0.0
+      }
+    },
+    {
+      "route_id": "STATIC_CPX13",
+      "args": {
+        "dynamic_state_mode": "static_h4",
+        "route_key_mode": "hopf_plus_complex",
+        "complex_key_roots": 13,
+        "flow_weight": 0.0
+      }
+    },
+    {
+      "route_id": "H4XH4_BUCKET_W025",
+      "args": {
+        "dynamic_state_mode": "product_h4x_h4",
+        "route_key_mode": "hopf_bucket",
+        "flow_weight": 0.25
+      }
+    },
+    {
+      "route_id": "H4XH4_CPX13_W025",
+      "args": {
+        "dynamic_state_mode": "product_h4x_h4",
+        "route_key_mode": "hopf_plus_complex",
+        "complex_key_roots": 13,
+        "flow_weight": 0.25
+      }
+    },
+    {
+      "route_id": "H4XH4_CPX13_R2_W025",
+      "args": {
+        "dynamic_state_mode": "product_h4x_h4",
+        "route_key_mode": "hopf_plus_complex",
+        "complex_key_roots": 13,
+        "complex_key_radius_bins": 2,
+        "flow_weight": 0.25
+      }
+    }
+  ]
+}

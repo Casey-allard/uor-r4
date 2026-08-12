@@ -1,0 +1,1439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Riemann Hypothesis: The Symphony of Primes</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Three.js (r128) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <!-- OrbitControls -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <!-- MathJax Configuration -->
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']],
+        displayMath: [['$$', '$$'], ['\\[', '\\]']],
+        processEscapes: true
+      },
+      options: {
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre']
+      }
+    };
+  </script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+  <style>
+    /* Premium glassmorphism & scrolling */
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.3);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(147, 51, 234, 0.4);
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(147, 51, 234, 0.6);
+    }
+    .custom-shadow-glow {
+      box-shadow: 0 0 25px rgba(168, 85, 247, 0.15);
+    }
+    .text-glow-cyan {
+      text-shadow: 0 0 8px rgba(34, 211, 238, 0.6);
+    }
+    .text-glow-gold {
+      text-shadow: 0 0 8px rgba(245, 158, 11, 0.6);
+    }
+    canvas {
+      display: block;
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 overflow-hidden font-sans h-screen flex flex-col selection:bg-purple-600 selection:text-white">
+
+  <!-- Main Top Bar -->
+  <header class="bg-slate-900/90 border-b border-slate-800/80 px-6 py-4 flex items-center justify-between z-20 backdrop-blur-md">
+    <div class="flex items-center space-x-3">
+      <div class="bg-gradient-to-tr from-purple-600 to-cyan-500 p-2 rounded-xl shadow-lg shadow-purple-500/20">
+        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.003 9.003 0 1020.945 13H11V3.055z"/>
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"/>
+        </svg>
+      </div>
+      <div>
+        <h1 class="text-lg font-bold bg-gradient-to-r from-white via-slate-200 to-purple-400 bg-clip-text text-transparent">
+          The Riemann Hypothesis 3D Explorer
+        </h1>
+        <p class="text-xs text-slate-400">An interactive quantum-harmonic tour of the primes</p>
+      </div>
+    </div>
+
+    <!-- Active Mode Indicators -->
+    <div class="hidden md:flex items-center space-x-4 text-xs font-semibold">
+      <div class="flex items-center space-x-2 px-3 py-1.5 bg-slate-800/50 rounded-full border border-slate-700/50">
+        <span class="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse"></span>
+        <span class="text-slate-300">Zeta Space Probe</span>
+      </div>
+      <div class="flex items-center space-x-2 px-3 py-1.5 bg-slate-800/50 rounded-full border border-slate-700/50">
+        <span class="text-slate-400">Critical Line Check:</span>
+        <span class="text-amber-400 text-glow-gold" id="critical-snap-status">Active (\(\sigma = 0.5\))</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Core Layout Container -->
+  <div class="flex-1 flex flex-col lg:flex-row overflow-hidden relative">
+    
+    <!-- LEFT PANEL: Educational Guide & Milestones -->
+    <aside class="w-full lg:w-[480px] bg-slate-900/70 border-r border-slate-800/80 flex flex-col z-10 backdrop-blur-md overflow-hidden shrink-0">
+      
+      <!-- Top Guide Selector Tabs -->
+      <div class="grid grid-cols-5 border-b border-slate-800 text-xs">
+        <button onclick="switchTab('intro')" id="tab-intro" class="py-3 px-1 border-b-2 font-medium text-center transition-all duration-200 border-purple-500 text-purple-400 bg-slate-800/30">
+          Intro
+        </button>
+        <button onclick="switchTab('landscape')" id="tab-landscape" class="py-3 px-1 border-b-2 font-medium text-center transition-all duration-200 border-transparent text-slate-400 hover:text-slate-200">
+          Landscape
+        </button>
+        <button onclick="switchTab('polar')" id="tab-polar" class="py-3 px-1 border-b-2 font-medium text-center transition-all duration-200 border-transparent text-slate-400 hover:text-slate-200">
+          Polar Path
+        </button>
+        <button onclick="switchTab('primes')" id="tab-primes" class="py-3 px-1 border-b-2 font-medium text-center transition-all duration-200 border-transparent text-slate-400 hover:text-slate-200">
+          Prime Music
+        </button>
+        <button onclick="switchTab('quantum')" id="tab-quantum" class="py-3 px-1 border-b-2 font-medium text-center transition-all duration-200 border-transparent text-slate-400 hover:text-slate-200">
+          Spectral
+        </button>
+      </div>
+
+      <!-- Scrollable content area -->
+      <div class="flex-1 overflow-y-auto p-6 space-y-6" id="narrative-content">
+        <!-- Dynmically updated via JavaScript -->
+      </div>
+
+      <!-- Action Panel & Quick Settings -->
+      <div class="p-4 bg-slate-950/80 border-t border-slate-800/60 text-xs text-slate-400 flex flex-col space-y-2">
+        <div class="flex justify-between items-center">
+          <span>Simulation Speed:</span>
+          <div class="flex items-center space-x-2">
+            <button onclick="adjustSpeed(-0.2)" class="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 rounded transition">-</button>
+            <span id="speed-indicator" class="font-mono text-slate-200">1.0x</span>
+            <button onclick="adjustSpeed(0.2)" class="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 rounded transition">+</button>
+          </div>
+        </div>
+        <div class="text-[10px] text-slate-500 text-center pt-1 border-t border-slate-800/40">
+          Interact with the 3D scene using your mouse to rotate, zoom, and pan.
+        </div>
+      </div>
+    </aside>
+
+    <!-- RIGHT/CENTER PANEL: Interactive 3D Canvas -->
+    <main class="flex-1 flex flex-col relative bg-slate-950 overflow-hidden">
+      
+      <!-- 3D Canvas Container -->
+      <div id="canvas-container" class="w-full flex-1 relative cursor-grab active:cursor-grabbing">
+        <!-- Three.js Appends Canvas Here -->
+
+        <!-- Simulation HUD Display overlay -->
+        <div class="absolute top-4 left-4 bg-slate-900/80 border border-slate-800/80 p-4 rounded-xl text-xs font-mono text-slate-300 max-w-sm backdrop-blur-md custom-shadow-glow z-10 pointer-events-auto">
+          <div class="text-purple-400 font-bold mb-2 flex items-center justify-between">
+            <span>REAL-TIME TELEMETRY</span>
+            <span class="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          </div>
+          <div class="space-y-1">
+            <div class="flex justify-between">
+              <span class="text-slate-500">Probe Coordinate s:</span>
+              <span class="text-slate-200" id="hud-coord-s">0.50 + 14.13i</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-500">Re(s) = &sigma;:</span>
+              <span class="text-cyan-400" id="hud-sigma">0.500</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-500">Im(s) = t:</span>
+              <span class="text-indigo-400" id="hud-t">14.134</span>
+            </div>
+            <div class="border-t border-slate-800/60 my-2"></div>
+            <div class="flex justify-between font-semibold">
+              <span class="text-slate-500">&zeta;(s) Val:</span>
+              <span class="text-yellow-400" id="hud-zeta">0.003 - 0.005i</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-500">Magnitude |&zeta;(s)|:</span>
+              <span class="text-emerald-400 font-bold" id="hud-zeta-mag">0.0058</span>
+            </div>
+          </div>
+          
+          <div id="zero-detector-pill" class="mt-3 px-2 py-1 rounded bg-emerald-950/40 border border-emerald-500/30 text-[11px] text-emerald-400 font-bold text-center hidden">
+            🎯 MATCH: Critical Zero Detected!
+          </div>
+        </div>
+
+        <!-- 3D Scene Controls Panel overlay (Bottom / Center-right) -->
+        <div class="absolute bottom-4 right-4 bg-slate-900/90 border border-slate-800/80 px-4 py-3 rounded-xl flex items-center space-x-4 backdrop-blur-md z-10">
+          <!-- Play / Pause Time Climb -->
+          <button id="btn-play-pause" onclick="toggleAutoScroll()" class="p-2.5 bg-gradient-to-tr from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 rounded-lg text-white shadow-md shadow-purple-500/20 transition duration-150 flex items-center justify-center">
+            <i data-lucide="play" class="w-4 h-4" id="play-pause-icon"></i>
+          </button>
+
+          <!-- Probe Real Part (Sigma Slider) -->
+          <div class="flex flex-col">
+            <div class="flex justify-between text-[11px] text-slate-400 mb-1">
+              <span>Real part (&sigma;)</span>
+              <span class="text-cyan-400 font-bold" id="slider-sigma-val">0.50</span>
+            </div>
+            <div class="flex items-center space-x-2">
+              <input id="slider-sigma" type="range" min="0.05" max="1.2" step="0.01" value="0.5" 
+                     class="w-32 accent-purple-500 h-1.5 bg-slate-800 rounded-lg cursor-pointer"
+                     oninput="onSigmaSliderChange(this.value)">
+              <button onclick="snapToCriticalLine()" class="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 text-[10px] text-amber-400 hover:text-amber-300 font-semibold rounded border border-amber-500/30 transition">
+                Snap 0.5
+              </button>
+            </div>
+          </div>
+
+          <!-- Vertical Climb (t-axis slider) -->
+          <div class="flex flex-col">
+            <div class="flex justify-between text-[11px] text-slate-400 mb-1">
+              <span>Height along line (t)</span>
+              <span class="text-indigo-400 font-bold" id="slider-t-val">14.13</span>
+            </div>
+            <input id="slider-t" type="range" min="1.0" max="45.0" step="0.02" value="14.13" 
+                   class="w-36 accent-purple-500 h-1.5 bg-slate-800 rounded-lg cursor-pointer"
+                   oninput="onTSliderChange(this.value)">
+          </div>
+        </div>
+
+        <!-- Historical Attempt Overlay Cards for Explaining Proofs -->
+        <div id="historical-attacks-card" class="absolute bottom-4 left-4 bg-slate-900/95 border border-slate-800/80 p-5 rounded-2xl max-w-sm backdrop-blur-md custom-shadow-glow z-10 hidden transition duration-200">
+          <div class="flex justify-between items-center mb-3">
+            <h4 class="text-xs font-bold text-slate-400 uppercase tracking-widest" id="proof-title">Historical Attempt</h4>
+            <button onclick="toggleProofsCard(false)" class="text-slate-500 hover:text-slate-300 transition">
+              <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+          </div>
+          <div id="proof-card-body" class="space-y-3">
+            <!-- Dynamically populated card content -->
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Sub-Tab Navigation Bar at bottom of canvas -->
+      <footer class="bg-slate-900/90 border-t border-slate-800/80 px-6 py-3 text-xs text-slate-400 flex flex-col sm:flex-row items-center justify-between z-10 backdrop-blur-md">
+        <div class="flex space-x-4 mb-2 sm:mb-0">
+          <span class="font-semibold text-slate-300">Quick Tour:</span>
+          <button onclick="loadTourPreset(1)" class="hover:text-purple-400 transition">1. The Golden Line</button>
+          <button onclick="loadTourPreset(2)" class="hover:text-purple-400 transition">2. Harmonic Symphony</button>
+          <button onclick="loadTourPreset(3)" class="hover:text-purple-400 transition">3. Chaotic Quantum Billiards</button>
+        </div>
+        <div class="flex items-center space-x-1">
+          <span>A math project based on Riemann's 1859 Epochal Memoir</span>
+        </div>
+      </footer>
+    </main>
+
+  </div>
+
+  <!-- Custom Alert System (No native alert() allowed) -->
+  <div id="custom-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md hidden items-center justify-center z-50 p-4">
+    <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl max-w-md w-full custom-shadow-glow">
+      <div class="flex items-center space-x-3 text-purple-400 mb-4">
+        <i data-lucide="info" class="w-6 h-6"></i>
+        <h3 class="text-lg font-bold" id="modal-title">Info</h3>
+      </div>
+      <p class="text-slate-300 text-sm mb-6 leading-relaxed" id="modal-body">This is an alert placeholder.</p>
+      <div class="flex justify-end">
+        <button onclick="closeModal()" class="px-5 py-2 bg-gradient-to-tr from-purple-600 to-indigo-600 text-white rounded-lg hover:from-purple-500 hover:to-indigo-500 font-semibold transition text-sm">
+          Close Window
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main JavaScript File -->
+  <script>
+    // -------------------------------------------------------------
+    // App State Configuration
+    // -------------------------------------------------------------
+    const state = {
+      activeTab: 'intro', // 'intro', 'landscape', 'polar', 'primes', 'quantum'
+      sigma: 0.5,
+      tCenter: 14.134,
+      autoScrollT: false,
+      speed: 1.0,
+      activeProof: 'euler',
+      zerosCount: 5,
+      primeLimit: 50,
+      showCriticalLine: true
+    };
+
+    // First 10 Non-Trivial Zeros (height t on critical line sigma = 0.5)
+    const ZETA_ZEROS = [
+      14.134725,
+      21.022040,
+      25.010858,
+      30.424876,
+      32.935062,
+      37.586178,
+      40.918719,
+      43.327073,
+      48.005151,
+      49.773832
+    ];
+
+    // -------------------------------------------------------------
+    // Narrative Tab Content Definitions
+    // -------------------------------------------------------------
+    const narratives = {
+      intro: `
+        <div class="space-y-4">
+          <div class="flex items-center space-x-2 text-purple-400">
+            <i data-lucide="book-open" class="w-5 h-5"></i>
+            <h2 class="text-xl font-bold">The Core Mystery</h2>
+          </div>
+          
+          <p class="text-slate-300 leading-relaxed text-sm">
+            Prime numbers ($2, 3, 5, 7, 11, \\dots$) are the atoms of multiplication. Yet, looking up the number line, their arrival feels unpredictable, almost random.
+          </p>
+
+          <p class="text-slate-300 leading-relaxed text-sm">
+            In 1859, the German mathematician <strong>Bernhard Riemann</strong> proposed a beautiful, deep bridge between prime numbers and a function on the complex plane called the <strong>Riemann Zeta Function</strong>:
+          </p>
+
+          <div class="bg-slate-950/60 border border-slate-800/80 p-3 rounded-xl font-mono text-center text-xs text-purple-300">
+            $$\\zeta(s) = \\sum_{n=1}^{\\infty} \\frac{1}{n^s}$$
+          </div>
+
+          <p class="text-slate-300 leading-relaxed text-sm">
+            The <strong>Riemann Hypothesis (RH)</strong> asserts that all non-trivial zeros of this function—the points $s$ where $\\zeta(s) = 0$—must lie on a single, vertical straight line on the complex plane: the <strong>Critical Line</strong> where the real part of $s$ is exactly $\\frac{1}{2}$ ($\sigma = 0.5$).
+          </p>
+
+          <div class="bg-purple-950/20 border border-purple-500/20 p-4 rounded-xl">
+            <h4 class="text-xs font-bold text-purple-400 uppercase tracking-wider mb-1">What to look for:</h4>
+            <p class="text-xs text-slate-300 leading-relaxed">
+              Use the tabs above to jump through the chapters of this application. We will visualize the landscape of this function in 3D, trace the winding paths, stack up the musical frequencies, and look at the physical connections to quantum systems!
+            </p>
+          </div>
+
+          <div class="pt-2">
+            <button onclick="switchTab('landscape')" class="w-full py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-xl font-bold text-xs transition duration-150 flex items-center justify-center space-x-2">
+              <span>Begin Guided Tour</span>
+              <i data-lucide="arrow-right" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </div>
+      `,
+      landscape: `
+        <div class="space-y-4">
+          <div class="flex items-center space-x-2 text-cyan-400">
+            <i data-lucide="mountain" class="w-5 h-5"></i>
+            <h2 class="text-xl font-bold">The Zeta Landscape</h2>
+          </div>
+          
+          <p class="text-slate-300 leading-relaxed text-sm">
+            We are looking at the 3D graph of the magnitude $|\\zeta(s)|$ as the height. The input is a complex number $s = \\sigma + it$. 
+          </p>
+
+          <ul class="space-y-2 text-xs text-slate-400 bg-slate-950/40 p-3 rounded-lg border border-slate-800/60">
+            <li><span class="text-cyan-400 font-bold">&sigma; (Real Part)</span>: Controlled by left-right axis on grid.</li>
+            <li><span class="text-indigo-400 font-bold">t (Imaginary Part)</span>: Moves along the depth of the valley.</li>
+            <li><span class="text-yellow-400 font-bold">Height</span>: Represents the absolute value $|\\zeta(s)|$.</li>
+          </ul>
+
+          <p class="text-slate-300 leading-relaxed text-sm">
+            Notice the <strong>glowing golden track</strong> running straight down the center. This is the <strong>Critical Line</strong> ($Re(s) = 0.5$). 
+          </p>
+
+          <p class="text-slate-300 leading-relaxed text-sm">
+            Whenever the surface dips down into a perfect dark-blue basin where the height is exactly $0$, you have discovered a <strong>Zeta Zero</strong>. Drag the controls on the right to navigate along the critical line.
+          </p>
+
+          <div class="bg-slate-950/60 border border-slate-800/80 p-3 rounded-xl">
+            <h4 class="text-xs font-bold text-slate-400 mb-2">Interactive Zeros Along the Line:</h4>
+            <div class="grid grid-cols-2 gap-2 text-[11px]">
+              <button onclick="warpToT(14.13)" class="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded transition text-left">
+                📍 Zero 1: t &approx; 14.13
+              </button>
+              <button onclick="warpToT(21.02)" class="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded transition text-left">
+                📍 Zero 2: t &approx; 21.02
+              </button>
+              <button onclick="warpToT(25.01)" class="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded transition text-left">
+                📍 Zero 3: t &approx; 25.01
+              </button>
+              <button onclick="warpToT(30.42)" class="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded transition text-left">
+                📍 Zero 4: t &approx; 30.42
+              </button>
+            </div>
+          </div>
+        </div>
+      `,
+      polar: `
+        <div class="space-y-4">
+          <div class="flex items-center space-x-2 text-pink-400">
+            <i data-lucide="git-commit" class="w-5 h-5"></i>
+            <h2 class="text-xl font-bold">The Polar Dance</h2>
+          </div>
+          
+          <p class="text-slate-300 leading-relaxed text-sm">
+            In this visualization, we map the trajectory of $\\zeta(\\sigma + it)$ on a complex output grid.
+          </p>
+
+          <p class="text-slate-300 leading-relaxed text-sm">
+            Imagine walking up along a vertical line of constant $\\sigma$ while graphing the output value of $\\zeta(s)$ as an $(x, y)$ coordinate on the screen. This forms a winding geometric lasso.
+          </p>
+
+          <div class="bg-amber-950/20 border border-amber-500/20 p-3.5 rounded-xl">
+            <h4 class="text-xs font-bold text-amber-400 uppercase tracking-wider mb-1">Key Insight:</h4>
+            <p class="text-xs text-slate-300 leading-relaxed">
+              If the curve passes <strong>exactly through the glowing central target (origin 0,0)</strong>, it means $\\zeta(s) = 0$ at that point!
+            </p>
+          </div>
+
+          <p class="text-slate-300 leading-relaxed text-sm">
+            Drag the <strong>Real part slider ($\\sigma$)</strong> to see the curve morph. When $\\sigma \\neq 0.5$, the loop always misses the origin. But watch what happens when you snap it exactly to <strong>$\\sigma = 0.5$</strong>—the curve sweeps precisely through the center repeatedly!
+          </p>
+        </div>
+      `,
+      primes: `
+        <div class="space-y-4">
+          <div class="flex items-center space-x-2 text-amber-400">
+            <i data-lucide="music" class="w-5 h-5"></i>
+            <h2 class="text-xl font-bold">The Music of Primes</h2>
+          </div>
+          
+          <p class="text-slate-300 leading-relaxed text-sm">
+            How do complex zeros control actual physical numbers? Riemann found a formula showing that the prime numbers are composed of <strong>vibrational frequencies</strong> dictated by the zeros.
+          </p>
+
+          <p class="text-slate-300 leading-relaxed text-sm">
+            We are graphing the prime-counting step function $\\psi(x)$ (the staircase in blue). It jumps up at every prime number. 
+          </p>
+
+          <p class="text-slate-300 leading-relaxed text-sm">
+            The smooth curve represents Riemann's approximation. By summing up the individual mathematical waveforms generated by each zero of $\\zeta(s)$, we can warp the smooth curve into the sharp staircase steps:
+          </p>
+
+          <div class="bg-slate-950/60 border border-slate-800/80 p-3 rounded-xl font-mono text-center text-xs text-amber-300">
+            $$\\psi(x) \\approx x - \\sum_{\\rho} \\frac{x^\\rho}{\\rho}$$
+          </div>
+
+          <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl">
+            <div class="flex justify-between items-center mb-2">
+              <span class="text-xs font-bold text-slate-300">Include Harmonics (Zeros):</span>
+              <span class="text-amber-400 font-bold text-xs font-mono" id="zeros-count-display">5 Zeros</span>
+            </div>
+            <input type="range" min="0" max="10" step="1" value="5" class="w-full accent-amber-500 h-1.5 bg-slate-800 rounded-lg cursor-pointer"
+                   oninput="onZerosCountChange(this.value)">
+            <p class="text-[11px] text-slate-400 mt-2 leading-normal">
+              Increase the zeros to see the sum of the wave vibrations align closer and closer with the true steps of the primes!
+            </p>
+          </div>
+        </div>
+      `,
+      quantum: `
+        <div class="space-y-4">
+          <div class="flex items-center space-x-2 text-emerald-400">
+            <i data-lucide="activity" class="w-5 h-5"></i>
+            <h2 class="text-xl font-bold">The Hilbert-Pólya Spectre</h2>
+          </div>
+          
+          <p class="text-slate-300 leading-relaxed text-sm">
+            How do we prove all zeros are on the line? In the early 20th century, Hilbert and Pólya suggested a startling physical idea:
+          </p>
+
+          <div class="bg-emerald-950/20 border border-emerald-500/20 p-4 rounded-xl">
+            <p class="text-xs text-slate-200 leading-relaxed italic">
+              "The zeros of the Zeta function might represent the resonant energy levels of a physical quantum chaotic system."
+            </p>
+          </div>
+
+          <p class="text-slate-300 leading-relaxed text-sm">
+            If such a quantum operator exists, its eigenvalues must mathematically be real numbers, which forces all the zeros to lie on the line!
+          </p>
+
+          <p class="text-slate-300 leading-relaxed text-sm">
+            In the 3D scene, we simulate a <strong>quantum chaotic billiard stadium</strong>. Watch the glowing wave packets bounce. When they resonate, their spectral energy frequencies (shown on the vertical neon column) align exactly with the heights of the Riemann Zeros.
+          </p>
+
+          <div class="pt-2 flex justify-between items-center space-x-2">
+            <button onclick="triggerHistoricalAttack('dyson')" class="flex-1 py-2 px-3 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-semibold text-center transition">
+              Dyson & Montgomery
+            </button>
+            <button onclick="triggerHistoricalAttack('debruijn')" class="flex-1 py-2 px-3 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-semibold text-center transition">
+              de Bruijn-Newman
+            </button>
+          </div>
+        </div>
+      `
+    };
+
+    // -------------------------------------------------------------
+    // Historical Proof Attempts Data Card content
+    // -------------------------------------------------------------
+    const historicalAttempts = {
+      euler: {
+        title: "Euler's Bridge (1737)",
+        body: `
+          <p class="text-xs text-slate-300 leading-relaxed">
+            Leonhard Euler proved that the infinite sum Zeta is equivalent to an infinite product over the primes:
+          </p>
+          <div class="bg-slate-950 p-2 rounded text-center text-[10px] font-mono text-purple-300">
+            $$\\sum_{n} \\frac{1}{n^s} = \\prod_{p} \\frac{1}{1 - p^{-s}}$$
+          </div>
+          <p class="text-xs text-slate-400 leading-relaxed">
+            This established the prime connection. Riemann extended Euler's work from simple real numbers to the entire complex plane.
+          </p>
+        `
+      },
+      critical: {
+        title: "The Boundary Proof (1896)",
+        body: `
+          <p class="text-xs text-slate-300 leading-relaxed">
+            Jacques Hadamard and de la Vallée Poussin proved that no zeros can lie on the outer boundary lines $\\sigma = 1$ and $\\sigma = 0$.
+          </p>
+          <p class="text-xs text-slate-400 leading-relaxed">
+            This proved the Prime Number Theorem—that primes average out to a smooth curve of logarithmic growth ($x / \\ln x$).
+          </p>
+        `
+      },
+      hardy: {
+        title: "Hardy's Infinite Line (1914)",
+        body: `
+          <p class="text-xs text-slate-300 leading-relaxed">
+            G. H. Hardy famously proved that there are infinitely many zeros that sit <strong>exactly</strong> on the critical line.
+          </p>
+          <p class="text-xs text-slate-400 leading-relaxed">
+            However, this leaves open the possibility that there might also be infinitely many other zeros off the line.
+          </p>
+        `
+      },
+      dyson: {
+        title: "Dyson & Montgomery (1972)",
+        body: `
+          <p class="text-xs text-slate-300 leading-relaxed">
+            Physicist Freeman Dyson and mathematician Hugh Montgomery realized the spacing of Zeta zeros is statistically identical to the spacing of energy levels in large atomic nuclei (GUE eigenvalues).
+          </p>
+          <p class="text-xs text-slate-400 leading-relaxed">
+            This quantum-zeta connection remains one of the strongest routes towards a complete proof.
+          </p>
+        `
+      },
+      debruijn: {
+        title: "de Bruijn-Newman Constant (2018/2021)",
+        body: `
+          <p class="text-xs text-slate-300 leading-relaxed">
+            Newman formulated a mathematical deformation process that forces zeros onto the critical line.
+          </p>
+          <p class="text-xs text-slate-400 leading-relaxed">
+            The Riemann Hypothesis is equivalent to showing a certain mathematical constant $\\Lambda \\leq 0$. Modern computer calculations suggest it is bounded extremely close to zero.
+          </p>
+        `
+      }
+    };
+
+    // -------------------------------------------------------------
+    // Complex Zeta Calculation Helper
+    // -------------------------------------------------------------
+    // Uses the Dirichlet Eta function approximation inside the critical strip:
+    // eta(s) = sum_{n=1}^N (-1)^{n-1} / n^s
+    // zeta(s) = eta(s) / (1 - 2^(1-s))
+    // Highly optimized for fast interactive FPS.
+    function computeZeta(sigma, t, N = 100) {
+      let etaRe = 0;
+      let etaIm = 0;
+      
+      // Dirichlet Eta loop
+      for (let n = 1; n <= N; n++) {
+        // term = (-1)^(n-1) * n^(-s)
+        // n^(-s) = n^(-sigma) * (cos(t ln n) - i sin(t ln n))
+        const nNegSigma = Math.pow(n, -sigma);
+        const tLnN = t * Math.log(n);
+        const termRe = nNegSigma * Math.cos(tLnN);
+        const termIm = -nNegSigma * Math.sin(tLnN);
+
+        if (n % 2 === 0) {
+          etaRe -= termRe;
+          etaIm -= termIm;
+        } else {
+          etaRe += termRe;
+          etaIm += termIm;
+        }
+      }
+
+      // Denominator: 1 - 2^(1-s)
+      // 2^(1-s) = 2^(1-sigma) * (cos(t ln 2) - i sin(t ln 2))
+      const twoPower = Math.pow(2, 1 - sigma);
+      const tLn2 = t * Math.log(2);
+      const denomRe = 1 - twoPower * Math.cos(tLn2);
+      const denomIm = twoPower * Math.sin(tLn2);
+
+      const denomSq = denomRe * denomRe + denomIm * denomIm;
+      
+      // Safe division check near potential poles
+      if (denomSq < 1e-12) {
+        return { re: 0, im: 0, abs: 0 };
+      }
+
+      const zetaRe = (etaRe * denomRe + etaIm * denomIm) / denomSq;
+      const zetaIm = (etaIm * denomRe - etaRe * denomIm) / denomSq;
+
+      return { 
+        re: zetaRe, 
+        im: zetaIm, 
+        abs: Math.sqrt(zetaRe * zetaRe + zetaIm * zetaIm) 
+      };
+    }
+
+    // -------------------------------------------------------------
+    // Three.js Engine Setup
+    // -------------------------------------------------------------
+    let scene, camera, renderer, controls;
+    let landscapeGroup, polarGroup, primesGroup, quantumGroup;
+    let landscapeMesh, criticalLineObject, zeroSpouts = [];
+    let polarPathLine, originTorus, polarPointerSphere;
+    let billiardBall, billiardTrail, stadiumOutline, spectrometerPlates = [];
+
+    // Canvas Container size holder
+    const container = document.getElementById('canvas-container');
+
+    function initThree() {
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x020617); // Sleek slate-950
+
+      // Fog for atmospheric depth
+      scene.fog = new THREE.FogExp2(0x020617, 0.015);
+
+      camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
+      camera.position.set(22, 16, 28);
+
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.setSize(container.clientWidth, container.clientHeight);
+      container.appendChild(renderer.domElement);
+
+      controls = new THREE.OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.05;
+      controls.maxPolarAngle = Math.PI / 2 - 0.05; // Prevent camera going below ground
+      controls.minDistance = 3;
+      controls.maxDistance = 150;
+
+      // Lights
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+      scene.add(ambientLight);
+
+      const dirLight1 = new THREE.DirectionalLight(0xa855f7, 0.8); // Purple main light
+      dirLight1.position.set(10, 20, 10);
+      scene.add(dirLight1);
+
+      const dirLight2 = new THREE.DirectionalLight(0x06b6d4, 0.5); // Cyan backup light
+      dirLight2.position.set(-10, 10, -10);
+      scene.add(dirLight2);
+
+      // Create Groups for individual views
+      landscapeGroup = new THREE.Group();
+      polarGroup = new THREE.Group();
+      primesGroup = new THREE.Group();
+      quantumGroup = new THREE.Group();
+
+      scene.add(landscapeGroup);
+      scene.add(polarGroup);
+      scene.add(primesGroup);
+      scene.add(quantumGroup);
+
+      // Create all items
+      buildLandscapeView();
+      buildPolarView();
+      buildPrimeMusicView();
+      buildQuantumChaosView();
+
+      // Show/Hide groups based on initial tab
+      updateGroupVisibilities();
+
+      window.addEventListener('resize', onWindowResize);
+    }
+
+    // -------------------------------------------------------------
+    // VISUALIZATION 1: The Complex Landscape
+    // -------------------------------------------------------------
+    const gridSegX = 60; // sigma resolution
+    const gridSegZ = 90; // t resolution
+    let landscapeGeometry;
+
+    function buildLandscapeView() {
+      landscapeGeometry = new THREE.PlaneGeometry(24, 36, gridSegX, gridSegZ);
+      landscapeGeometry.rotateX(-Math.PI / 2); // Make flat
+
+      const material = new THREE.MeshPhongMaterial({
+        vertexColors: true,
+        side: THREE.DoubleSide,
+        shininess: 40,
+        flatShading: false,
+        wireframe: false
+      });
+
+      landscapeMesh = new THREE.Mesh(landscapeGeometry, material);
+      landscapeGroup.add(landscapeMesh);
+
+      // Base coordinate grid
+      const gridHelper = new THREE.GridHelper(40, 40, 0x334155, 0x1e293b);
+      gridHelper.position.y = -0.01;
+      landscapeGroup.add(gridHelper);
+
+      // Neon-glowing axis indicators
+      const axisGeo = new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(-12, 0, 18), new THREE.Vector3(12, 0, 18)
+      ]);
+      const axisMat = new THREE.LineBasicMaterial({ color: 0x22d3ee, linewidth: 2 });
+      const sigmaAxis = new THREE.Line(axisGeo, axisMat);
+      landscapeGroup.add(sigmaAxis);
+
+      // Build static Zero markers in landscape mode
+      for (let zVal of ZETA_ZEROS) {
+        const cylinderGeo = new THREE.CylinderGeometry(0.08, 0.08, 6, 8);
+        const cylinderMat = new THREE.MeshBasicMaterial({ 
+          color: 0x22d3ee, 
+          transparent: true, 
+          opacity: 0.25 
+        });
+        const sp = new THREE.Mesh(cylinderGeo, cylinderMat);
+        // Map from complex coordinates to mesh units
+        const zCoord = mapTToZ(zVal);
+        sp.position.set(0, 3, zCoord); // Centered on sigma = 0.5
+        landscapeGroup.add(sp);
+        zeroSpouts.push(sp);
+      }
+
+      updateLandscapeMesh();
+    }
+
+    // Map Sigma [0.05, 1.2] to Local 3D Mesh space X [-12, 12]
+    function mapSigmaToX(sig) {
+      const minS = 0.05, maxS = 1.2;
+      return -12 + ((sig - minS) / (maxS - minS)) * 24;
+    }
+
+    // Map Local 3D Space X [-12, 12] back to Sigma
+    function mapXToSigma(x) {
+      return 0.05 + ((x + 12) / 24) * (1.2 - 0.05);
+    }
+
+    // Map imaginary scale t [tCenter-18, tCenter+18] to Local 3D Mesh space Z [18, -18]
+    function mapTToZ(tVal) {
+      const diff = tVal - state.tCenter;
+      return -((diff / 18) * 18); // scaled to fit 36 width plane
+    }
+
+    // Map Local 3D Space Z [-18, 18] to T coordinates
+    function mapZToT(z) {
+      return state.tCenter - (z / 18) * 18;
+    }
+
+    function updateLandscapeMesh() {
+      if (state.activeTab !== 'landscape' && state.activeTab !== 'intro') return;
+
+      const posAttr = landscapeGeometry.attributes.position;
+      const colors = [];
+
+      for (let i = 0; i < posAttr.count; i++) {
+        const x = posAttr.getX(i);
+        const z = posAttr.getZ(i);
+
+        const sig = mapXToSigma(x);
+        const t = mapZToT(z);
+
+        // Compute approximation
+        const res = computeZeta(sig, t, 80);
+
+        // Apply logarithm compression so peaks don't blow up out of screen
+        const mappedHeight = Math.log(1 + res.abs) * 4.2;
+        posAttr.setY(i, mappedHeight);
+
+        // Dynamic vertex color
+        const isCritical = Math.abs(sig - 0.5) < 0.015;
+        let r, g, b;
+
+        // Base color maps height
+        const intensity = Math.min(1, mappedHeight / 5.0);
+
+        if (res.abs < 0.1) {
+          // Zero valley - glowing cyan
+          const mix = res.abs / 0.1;
+          r = 0.0;
+          g = 0.9 * (1 - mix) + 0.1 * mix;
+          b = 1.0 * (1 - mix) + 0.4 * mix;
+        } else {
+          // Normal heights - indigo/purple spectrum
+          r = intensity * 0.8 + (1 - intensity) * 0.1;
+          g = (1 - intensity) * 0.1;
+          b = intensity * 0.4 + (1 - intensity) * 0.6;
+        }
+
+        // Add prominent gold line to mark the Critical Line sigma = 0.5
+        if (isCritical) {
+          r = r * 0.3 + 0.95 * 0.7;
+          g = g * 0.3 + 0.75 * 0.7;
+          b = b * 0.3 + 0.0 * 0.7;
+        }
+
+        colors.push(r, g, b);
+      }
+
+      landscapeGeometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+      posAttr.needsUpdate = true;
+      landscapeGeometry.computeVertexNormals();
+
+      // Update positions of the Zeros' indicators
+      zeroSpouts.forEach((sp, idx) => {
+        const zVal = ZETA_ZEROS[idx];
+        sp.position.z = mapTToZ(zVal);
+        // Only show spouts within current viewport window
+        if (zVal >= state.tCenter - 18 && zVal <= state.tCenter + 18) {
+          sp.visible = true;
+        } else {
+          sp.visible = false;
+        }
+      });
+    }
+
+    // -------------------------------------------------------------
+    // VISUALIZATION 2: The Polar Dance Complex Curve
+    // -------------------------------------------------------------
+    const polarPointsCount = 400;
+
+    function buildPolarView() {
+      // Background Grid
+      const grid = new THREE.GridHelper(30, 30, 0x1e293b, 0x0f172a);
+      grid.rotateX(Math.PI / 2); // vertical standard grid
+      polarGroup.add(grid);
+
+      // Target Torus around origin
+      const torusGeo = new THREE.TorusGeometry(0.18, 0.03, 8, 32);
+      const torusMat = new THREE.MeshBasicMaterial({ color: 0x22d3ee });
+      originTorus = new THREE.Mesh(torusGeo, torusMat);
+      polarGroup.add(originTorus);
+
+      // Golden vertical rod to trace the Z parameter progression (depth)
+      const axisGeo = new THREE.CylinderGeometry(0.04, 0.04, 30, 8);
+      const axisMat = new THREE.MeshBasicMaterial({ color: 0xd97706, transparent: true, opacity: 0.3 });
+      const goldenAxis = new THREE.Mesh(axisGeo, axisMat);
+      goldenAxis.rotateX(Math.PI / 2);
+      polarGroup.add(goldenAxis);
+
+      // Trace line geometry
+      const lineGeometry = new THREE.BufferGeometry();
+      const positions = new Float32Array(polarPointsCount * 3);
+      lineGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+
+      const lineMaterial = new THREE.LineBasicMaterial({
+        color: 0xec4899, // Bright pink curve
+        linewidth: 2.5
+      });
+
+      polarPathLine = new THREE.Line(lineGeometry, lineMaterial);
+      polarGroup.add(polarPathLine);
+
+      // Realtime Pointer sphere showing current selected t probe position
+      const sphereGeo = new THREE.SphereGeometry(0.25, 16, 16);
+      const sphereMat = new THREE.MeshPhongMaterial({ color: 0xf59e0b, emissive: 0xd97706 });
+      polarPointerSphere = new THREE.Mesh(sphereGeo, sphereMat);
+      polarGroup.add(polarPointerSphere);
+    }
+
+    function updatePolarPath() {
+      if (state.activeTab !== 'polar') return;
+
+      const positions = polarPathLine.geometry.attributes.position.array;
+      const tMin = state.tCenter - 10;
+      const tMax = state.tCenter + 10;
+
+      for (let i = 0; i < polarPointsCount; i++) {
+        const fraction = i / (polarPointsCount - 1);
+        const tVal = tMin + fraction * (tMax - tMin);
+
+        const res = computeZeta(state.sigma, tVal, 100);
+
+        // Position coordinates mapped: X = Re(zeta), Y = Im(zeta), Z = relative depth (tVal)
+        const scale = 2.5;
+        positions[i * 3] = res.re * scale;
+        positions[i * 3 + 1] = res.im * scale;
+        positions[i * 3 + 2] = (tVal - state.tCenter) * 1.5;
+      }
+
+      polarPathLine.geometry.attributes.position.needsUpdate = true;
+
+      // Update interactive probe sphere position
+      const curProbe = computeZeta(state.sigma, state.tCenter, 100);
+      const scale = 2.5;
+      polarPointerSphere.position.set(curProbe.re * scale, curProbe.im * scale, 0);
+    }
+
+    // -------------------------------------------------------------
+    // VISUALIZATION 3: Prime Music Waveforms
+    // -------------------------------------------------------------
+    let primeStepLine, waveSumLine, individualHarmonics = [];
+
+    function buildPrimeMusicView() {
+      // 3D coordinate backing plane
+      const grid = new THREE.GridHelper(40, 40, 0x1e293b, 0x0f172a);
+      grid.position.y = -6;
+      primesGroup.add(grid);
+
+      // We will trace X from 2 to 45 (Horizontal space)
+      // Height Y (Upward scale for step counting function)
+      // Depth Z (To separate different wave layers)
+
+      // 1. Prime counting exact steps line (Staircase)
+      const stepPoints = [];
+      for (let x = 2; x <= 45; x += 0.05) {
+        const yVal = computeChebyshevExact(x);
+        stepPoints.push(new THREE.Vector3(mapPrimeX(x), mapPrimeY(yVal) + 0.02, 0));
+      }
+      const stepGeo = new THREE.BufferGeometry().setFromPoints(stepPoints);
+      const stepMat = new THREE.LineBasicMaterial({ color: 0x3b82f6, linewidth: 3 });
+      primeStepLine = new THREE.Line(stepGeo, stepMat);
+      primesGroup.add(primeStepLine);
+
+      // 2. Harmonic reconstructed sum line
+      const sumGeometry = new THREE.BufferGeometry();
+      const sumPositions = new Float32Array(500 * 3);
+      sumGeometry.setAttribute('position', new THREE.BufferAttribute(sumPositions, 3));
+      const sumMat = new THREE.LineBasicMaterial({ color: 0xf59e0b, linewidth: 2.5 });
+      waveSumLine = new THREE.Line(sumGeometry, sumMat);
+      primesGroup.add(waveSumLine);
+
+      // 3. Create individual rows showing the waves generated by individual Zeros
+      for (let idx = 0; idx < 5; idx++) {
+        const waveGeo = new THREE.BufferGeometry();
+        const wavePos = new Float32Array(300 * 3);
+        waveGeo.setAttribute('position', new THREE.BufferAttribute(wavePos, 3));
+        const waveMat = new THREE.LineBasicMaterial({ 
+          color: 0x8b5cf6, 
+          transparent: true, 
+          opacity: 0.5 
+        });
+        const waveLine = new THREE.Line(waveGeo, waveMat);
+        primesGroup.add(waveLine);
+        individualHarmonics.push(waveLine);
+      }
+
+      updatePrimeMusicView();
+    }
+
+    function mapPrimeX(x) {
+      // Map x inside [2, 45] to mesh interval [-15, 15]
+      return -15 + ((x - 2) / 43) * 30;
+    }
+
+    function mapPrimeY(y) {
+      // Map y inside [0, 45] to height interval [-5, 8]
+      return -5 + (y / 45) * 13;
+    }
+
+    function updatePrimeMusicView() {
+      if (state.activeTab !== 'primes') return;
+
+      // Update harmonic sum line positions
+      const positions = waveSumLine.geometry.attributes.position.array;
+      const count = 300;
+
+      for (let i = 0; i < count; i++) {
+        const fraction = i / (count - 1);
+        const xVal = 2.0 + fraction * 43.0; // range 2 to 45
+        const approxY = computeChebyshevApprox(xVal, state.zerosCount);
+
+        positions[i * 3] = mapPrimeX(xVal);
+        positions[i * 3 + 1] = mapPrimeY(approxY);
+        positions[i * 3 + 2] = 0; // Layered in foreground
+      }
+      waveSumLine.geometry.attributes.position.needsUpdate = true;
+
+      // Update each individual harmonic path layered at increasing depths (Z positive)
+      for (let idx = 0; idx < individualHarmonics.length; idx++) {
+        const currentLine = individualHarmonics[idx];
+        
+        if (idx >= state.zerosCount) {
+          currentLine.visible = false;
+          continue;
+        }
+        currentLine.visible = true;
+
+        const wavePositions = currentLine.geometry.attributes.position.array;
+        const gamma = ZETA_ZEROS[idx];
+        const depthZ = (idx + 1) * 3.5; // push backwards in space
+
+        for (let i = 0; i < count; i++) {
+          const fraction = i / (count - 1);
+          const xVal = 2.0 + fraction * 43.0;
+
+          // Standard explicit formula wave component for individual zero
+          const sqrtX = Math.sqrt(xVal);
+          const denom = 0.25 + gamma * gamma;
+          const lnX = Math.log(xVal);
+          const val = -2.0 * (sqrtX / denom) * (0.5 * Math.cos(gamma * lnX) + gamma * Math.sin(gamma * lnX));
+
+          wavePositions[i * 3] = mapPrimeX(xVal);
+          wavePositions[i * 3 + 1] = mapPrimeY(val + 10); // Offset upwards so they hover nicely
+          wavePositions[i * 3 + 2] = depthZ;
+        }
+        currentLine.geometry.attributes.position.needsUpdate = true;
+      }
+    }
+
+    // Exact Chebyshev step function step precomputer
+    function computeChebyshevExact(x) {
+      let sum = 0;
+      const primePowers = [
+        {val: 2, lnP: Math.log(2)}, {val: 3, lnP: Math.log(3)}, {val: 4, lnP: Math.log(2)},
+        {val: 5, lnP: Math.log(5)}, {val: 7, lnP: Math.log(7)}, {val: 8, lnP: Math.log(2)},
+        {val: 9, lnP: Math.log(3)}, {val: 11, lnP: Math.log(11)}, {val: 13, lnP: Math.log(13)},
+        {val: 16, lnP: Math.log(2)}, {val: 17, lnP: Math.log(17)}, {val: 19, lnP: Math.log(19)},
+        {val: 23, lnP: Math.log(23)}, {val: 25, lnP: Math.log(5)}, {val: 27, lnP: Math.log(3)},
+        {val: 29, lnP: Math.log(29)}, {val: 31, lnP: Math.log(31)}, {val: 32, lnP: Math.log(2)},
+        {val: 37, lnP: Math.log(37)}, {val: 41, lnP: Math.log(41)}, {val: 43, lnP: Math.log(43)},
+        {val: 47, lnP: Math.log(47)}
+      ];
+      for (let p of primePowers) {
+        if (p.val <= x) sum += p.lnP;
+      }
+      return sum;
+    }
+
+    // Chebyshev formula approximation using standard zeros sum:
+    // psi(x) = x - sum_{gamma} (x^(1/2 + i*gamma)/(1/2 + i*gamma)) - ln(2pi)
+    function computeChebyshevApprox(x, numZeros) {
+      let sum = 0;
+      for (let i = 0; i < Math.min(numZeros, ZETA_ZEROS.length); i++) {
+        const gamma = ZETA_ZEROS[i];
+        const sqrtX = Math.sqrt(x);
+        const denom = 0.25 + gamma * gamma;
+        const lnX = Math.log(x);
+        const oscillation = 0.5 * Math.cos(gamma * lnX) + gamma * Math.sin(gamma * lnX);
+        sum += (sqrtX / denom) * oscillation;
+      }
+      return x - 2 * sum - Math.log(2 * Math.PI);
+    }
+
+    // -------------------------------------------------------------
+    // VISUALIZATION 4: Quantum Chaos & Billiards
+    // -------------------------------------------------------------
+    const billiardHistory = [];
+    const maxBilliardHistory = 50;
+    let billiardVel = new THREE.Vector3(0.12, 0, 0.08); // Bouncing velocity
+
+    function buildQuantumChaosView() {
+      // Stadium Table outline geometry (Bunimovich Stadium-like flat box)
+      const rectW = 16, rectH = 10;
+      const points = [];
+      // Draw rectangular sides & curved caps
+      for (let theta = -Math.PI/2; theta <= Math.PI/2; theta += 0.1) {
+        points.push(new THREE.Vector3(rectW/2 + Math.cos(theta)*rectH/2, 0, Math.sin(theta)*rectH/2));
+      }
+      for (let theta = Math.PI/2; theta <= 3*Math.PI/2; theta += 0.1) {
+        points.push(new THREE.Vector3(-rectW/2 + Math.cos(theta)*rectH/2, 0, Math.sin(theta)*rectH/2));
+      }
+      points.push(points[0]); // Close loop
+
+      const stadiumGeo = new THREE.BufferGeometry().setFromPoints(points);
+      const stadiumMat = new THREE.LineBasicMaterial({ color: 0x10b981, linewidth: 2.5 });
+      stadiumOutline = new THREE.Line(stadiumGeo, stadiumMat);
+      quantumGroup.add(stadiumOutline);
+
+      // Dynamic glowing billiard particle sphere
+      const ballGeo = new THREE.SphereGeometry(0.3, 16, 16);
+      const ballMat = new THREE.MeshPhongMaterial({ color: 0x34d399, emissive: 0x059669 });
+      billiardBall = new THREE.Mesh(ballGeo, ballMat);
+      billiardBall.position.set(0, 0, 0);
+      quantumGroup.add(billiardBall);
+
+      // Tail trail lines
+      const trailGeo = new THREE.BufferGeometry();
+      const trailPositions = new Float32Array(maxBilliardHistory * 3);
+      trailGeo.setAttribute('position', new THREE.BufferAttribute(trailPositions, 3));
+      const trailMat = new THREE.LineBasicMaterial({ color: 0x34d399, transparent: true, opacity: 0.4 });
+      billiardTrail = new THREE.Line(trailGeo, trailMat);
+      quantumGroup.add(billiardTrail);
+
+      // Vertical Spectral Energy Level Spectrometer
+      const columnGeo = new THREE.CylinderGeometry(0.3, 0.3, 16, 16);
+      const columnMat = new THREE.MeshPhongMaterial({ 
+        color: 0x1e293b, 
+        transparent: true, 
+        opacity: 0.3, 
+        wireframe: true 
+      });
+      const column = new THREE.Mesh(columnGeo, columnMat);
+      column.position.set(-14, 2.5, 0);
+      quantumGroup.add(column);
+
+      // Horizontal energy glowing level plates
+      for (let idx = 0; idx < 6; idx++) {
+        const plateGeo = new THREE.CylinderGeometry(0.9, 0.9, 0.12, 16);
+        const plateMat = new THREE.MeshPhongMaterial({ 
+          color: 0x10b981, 
+          emissive: 0x047857,
+          transparent: true,
+          opacity: 0.8
+        });
+        const plate = new THREE.Mesh(plateGeo, plateMat);
+        
+        // Zeros represent energy levels
+        const zeroHeight = ZETA_ZEROS[idx];
+        const scaledY = -5 + (zeroHeight / 50) * 15; // Fit inside tower height scale
+        plate.position.set(-14, scaledY, 0);
+        
+        quantumGroup.add(plate);
+        spectrometerPlates.push(plate);
+      }
+    }
+
+    function animateQuantumBilliard() {
+      if (state.activeTab !== 'quantum') return;
+
+      // Standard chaotic wall collision boundaries
+      // Bunimovich stadium definition
+      const rectW = 16, rectH = 10;
+      const radius = rectH / 2;
+
+      let pos = billiardBall.position.clone();
+      // Apply velocity vector
+      pos.addScaledVector(billiardVel, state.speed);
+
+      // Verify boundary containment
+      let collided = false;
+      if (pos.x > rectW/2) {
+        // Right semi-circular wall check
+        const dx = pos.x - rectW/2;
+        const dist = Math.sqrt(dx*dx + pos.z*pos.z);
+        if (dist > radius) {
+          // Bounce normal vector
+          const normal = new THREE.Vector3(dx, 0, pos.z).normalize();
+          billiardVel.reflect(normal);
+          collided = true;
+        }
+      } else if (pos.x < -rectW/2) {
+        // Left semi-circular wall check
+        const dx = pos.x + rectW/2;
+        const dist = Math.sqrt(dx*dx + pos.z*pos.z);
+        if (dist > radius) {
+          const normal = new THREE.Vector3(dx, 0, pos.z).normalize();
+          billiardVel.reflect(normal);
+          collided = true;
+        }
+      } else {
+        // Flat straight walls check
+        if (Math.abs(pos.z) > radius) {
+          billiardVel.z *= -1;
+          collided = true;
+        }
+      }
+
+      // Re-apply velocity update if hit
+      if (collided) {
+        pos = billiardBall.position.clone().addScaledVector(billiardVel, state.speed);
+        // Flash spectrometer levels on collisions as "energetic impact resonant pulses"
+        spectrometerPlates.forEach(p => {
+          p.material.emissive.setHex(0x34d399);
+          setTimeout(() => p.material.emissive.setHex(0x047857), 150);
+        });
+      }
+
+      billiardBall.position.copy(pos);
+
+      // Record path history
+      billiardHistory.push(pos.clone());
+      if (billiardHistory.length > maxBilliardHistory) {
+        billiardHistory.shift();
+      }
+
+      // Re-draw trails
+      const positions = billiardTrail.geometry.attributes.position.array;
+      for (let i = 0; i < maxBilliardHistory; i++) {
+        const histPoint = billiardHistory[i] || pos;
+        positions[i * 3] = histPoint.x;
+        positions[i * 3 + 1] = histPoint.y;
+        positions[i * 3 + 2] = histPoint.z;
+      }
+      billiardTrail.geometry.attributes.position.needsUpdate = true;
+    }
+
+    // -------------------------------------------------------------
+    // Global Tab Switching / Setup Manager
+    // -------------------------------------------------------------
+    function switchTab(tabId) {
+      state.activeTab = tabId;
+
+      // Update UI Tabs Styling
+      ['intro', 'landscape', 'polar', 'primes', 'quantum'].forEach(t => {
+        const el = document.getElementById(`tab-${t}`);
+        if (t === tabId) {
+          el.className = "py-3 px-1 border-b-2 font-medium text-center transition-all duration-200 border-purple-500 text-purple-400 bg-slate-800/30";
+        } else {
+          el.className = "py-3 px-1 border-b-2 font-medium text-center transition-all duration-200 border-transparent text-slate-400 hover:text-slate-200";
+        }
+      });
+
+      // Update text details on Left Guide bar
+      document.getElementById('narrative-content').innerHTML = narratives[tabId];
+      lucide.createIcons();
+      MathJax.typesetPromise();
+
+      // Update active 3D views groups visibility
+      updateGroupVisibilities();
+
+      // Trigger default historical detail cards if switching onto corresponding chapters
+      if (tabId === 'intro') {
+        toggleProofsCard(true);
+        triggerHistoricalAttack('euler');
+      } else if (tabId === 'landscape') {
+        toggleProofsCard(true);
+        triggerHistoricalAttack('hardy');
+      } else {
+        toggleProofsCard(false);
+      }
+
+      // Re-set default viewing positions for different tabs for the best educational view
+      if (tabId === 'polar') {
+        camera.position.set(0, 0, 30);
+        controls.target.set(0, 0, 0);
+      } else if (tabId === 'primes') {
+        camera.position.set(0, 5, 26);
+        controls.target.set(0, 0, 4);
+      } else if (tabId === 'quantum') {
+        camera.position.set(0, 16, 20);
+        controls.target.set(-2, 0, 0);
+      } else {
+        camera.position.set(22, 16, 28);
+        controls.target.set(0, 1, 0);
+      }
+      controls.update();
+
+      updateAllVisualizations();
+    }
+
+    function updateGroupVisibilities() {
+      landscapeGroup.visible = (state.activeTab === 'landscape' || state.activeTab === 'intro');
+      polarGroup.visible = (state.activeTab === 'polar');
+      primesGroup.visible = (state.activeTab === 'primes');
+      quantumGroup.visible = (state.activeTab === 'quantum');
+    }
+
+    function updateAllVisualizations() {
+      updateLandscapeMesh();
+      updatePolarPath();
+      updatePrimeMusicView();
+    }
+
+    // -------------------------------------------------------------
+    // Interactive Controls Listeners
+    // -------------------------------------------------------------
+    function onSigmaSliderChange(val) {
+      state.sigma = parseFloat(val);
+      document.getElementById('slider-sigma-val').innerText = state.sigma.toFixed(2);
+      
+      const isCritical = Math.abs(state.sigma - 0.5) < 0.005;
+      const statusEl = document.getElementById('critical-snap-status');
+      if (isCritical) {
+        statusEl.innerHTML = 'Active (\\(\\sigma = 0.5\\))';
+        statusEl.className = 'text-amber-400 text-glow-gold';
+      } else {
+        statusEl.innerHTML = `Inactive (\\(\\sigma = ${state.sigma.toFixed(2)}\\))`;
+        statusEl.className = 'text-slate-400';
+      }
+      MathJax.typesetPromise();
+
+      updateAllVisualizations();
+      updateTelemetryHUD();
+    }
+
+    function onTSliderChange(val) {
+      state.tCenter = parseFloat(val);
+      document.getElementById('slider-t-val').innerText = state.tCenter.toFixed(2);
+      updateAllVisualizations();
+      updateTelemetryHUD();
+    }
+
+    function snapToCriticalLine() {
+      const slider = document.getElementById('slider-sigma');
+      slider.value = 0.5;
+      onSigmaSliderChange(0.5);
+    }
+
+    function warpToT(tVal) {
+      const slider = document.getElementById('slider-t');
+      slider.value = tVal;
+      onTSliderChange(tVal);
+    }
+
+    function onZerosCountChange(val) {
+      state.zerosCount = parseInt(val);
+      document.getElementById('zeros-count-display').innerText = `${state.zerosCount} Zeros`;
+      updatePrimeMusicView();
+    }
+
+    function toggleAutoScroll() {
+      state.autoScrollT = !state.autoScrollT;
+      const btn = document.getElementById('btn-play-pause');
+      const icon = document.getElementById('play-pause-icon');
+      
+      if (state.autoScrollT) {
+        icon.setAttribute('data-lucide', 'pause');
+        btn.className = "p-2.5 bg-gradient-to-tr from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 rounded-lg text-white shadow-md transition duration-150 flex items-center justify-center";
+      } else {
+        icon.setAttribute('data-lucide', 'play');
+        btn.className = "p-2.5 bg-gradient-to-tr from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 rounded-lg text-white shadow-md shadow-purple-500/20 transition duration-150 flex items-center justify-center";
+      }
+      lucide.createIcons();
+    }
+
+    function adjustSpeed(delta) {
+      state.speed = Math.max(0.2, Math.min(3.0, state.speed + delta));
+      document.getElementById('speed-indicator').innerText = `${state.speed.toFixed(1)}x`;
+    }
+
+    // Updates live math telemetry status
+    function updateTelemetryHUD() {
+      const currentZeta = computeZeta(state.sigma, state.tCenter, 100);
+      
+      document.getElementById('hud-coord-s').innerText = `${state.sigma.toFixed(2)} + ${state.tCenter.toFixed(2)}i`;
+      document.getElementById('hud-sigma').innerText = state.sigma.toFixed(3);
+      document.getElementById('hud-t').innerText = state.tCenter.toFixed(3);
+      
+      const signStr = currentZeta.im >= 0 ? '+' : '-';
+      document.getElementById('hud-zeta').innerText = `${currentZeta.re.toFixed(3)} ${signStr} ${Math.abs(currentZeta.im).toFixed(3)}i`;
+      document.getElementById('hud-zeta-mag').innerText = currentZeta.abs.toFixed(4);
+
+      // Check if we hit one of the Zeros closely
+      let zeroMatch = false;
+      if (Math.abs(state.sigma - 0.5) < 0.02) {
+        for (let zero of ZETA_ZEROS) {
+          if (Math.abs(state.tCenter - zero) < 0.15) {
+            zeroMatch = true;
+            break;
+          }
+        }
+      }
+
+      const pill = document.getElementById('zero-detector-pill');
+      if (zeroMatch) {
+        pill.classList.remove('hidden');
+      } else {
+        pill.classList.add('hidden');
+      }
+    }
+
+    // Show custom explanation modal windows on demand
+    function triggerHistoricalAttack(attackKey) {
+      const data = historicalAttempts[attackKey];
+      if (!data) return;
+
+      document.getElementById('proof-title').innerText = data.title;
+      document.getElementById('proof-card-body').innerHTML = data.body;
+      toggleProofsCard(true);
+      MathJax.typesetPromise();
+    }
+
+    function toggleProofsCard(show) {
+      const card = document.getElementById('historical-attacks-card');
+      if (show) {
+        card.classList.remove('hidden');
+      } else {
+        card.classList.add('hidden');
+      }
+    }
+
+    // Modal windows
+    function showCustomModal(title, text) {
+      document.getElementById('modal-title').innerText = title;
+      document.getElementById('modal-body').innerText = text;
+      document.getElementById('custom-modal').classList.remove('hidden');
+      document.getElementById('custom-modal').classList.add('flex');
+    }
+
+    function closeModal() {
+      document.getElementById('custom-modal').classList.add('hidden');
+      document.getElementById('custom-modal').classList.remove('flex');
+    }
+
+    // Preset Tour Buttons
+    function loadTourPreset(num) {
+      if (num === 1) {
+        switchTab('landscape');
+        snapToCriticalLine();
+        warpToT(14.13);
+        showCustomModal(
+          "Preset 1: The Critical Valley",
+          "We have aligned you on the Critical Line (Re(s)=0.5) near the 1st zero at t=14.13. Look at the 3D grid: the surface dips perfectly down to touch zero height exactly on the golden line!"
+        );
+      } else if (num === 2) {
+        switchTab('primes');
+        state.zerosCount = 5;
+        document.getElementById('zeros-count-display').innerText = "5 Zeros";
+        updatePrimeMusicView();
+        showCustomModal(
+          "Preset 2: The Prime Symphony",
+          "We have loaded the exact primes staircase (blue) and overlaid the sum of 5 zero waveforms (gold). Observe how individual waves below sum together to recreate the staircase!"
+        );
+      } else if (num === 3) {
+        switchTab('quantum');
+        showCustomModal(
+          "Preset 3: Quantum Chaos",
+          "We are observing a classical billiard particle bouncing in a chaotic stadium. The horizontal green plates on the left column show the energy states where quantum waves resonate, matching the Riemann zeros!"
+        );
+      }
+    }
+
+    // -------------------------------------------------------------
+    // Core Game Render loop
+    // -------------------------------------------------------------
+    function animate() {
+      requestAnimationFrame(animate);
+
+      // Auto-climb feature
+      if (state.autoScrollT) {
+        state.tCenter += 0.03 * state.speed;
+        if (state.tCenter > 45.0) {
+          state.tCenter = 1.0; // Loop back
+        }
+        document.getElementById('slider-t').value = state.tCenter;
+        document.getElementById('slider-t-val').innerText = state.tCenter.toFixed(2);
+        
+        updateAllVisualizations();
+        updateTelemetryHUD();
+      }
+
+      // Live simulations updates
+      animateQuantumBilliard();
+
+      controls.update();
+      renderer.render(scene, camera);
+    }
+
+    function onWindowResize() {
+      camera.aspect = container.clientWidth / container.clientHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(container.clientWidth, container.clientHeight);
+    }
+
+    // Initialize on window load
+    window.onload = function() {
+      initThree();
+      switchTab('intro'); // Start on home chapter
+      updateTelemetryHUD();
+      animate();
+    };
+  </script>
+</body>
+</html>

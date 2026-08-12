@@ -1,0 +1,1860 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Unity Framework: Synthesis of UOR, R4, and W(3,3)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Three.js Integration for 3D Geodesic Manifold Visualizations -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+            color: #1e293b;
+        }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 40vh;
+            max-height: 450px;
+            min-height: 300px;
+        }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(203, 213, 225, 0.5);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+        .tab-btn.active {
+            border-bottom: 2px solid #0f172a;
+            color: #0f172a;
+            font-weight: 600;
+        }
+        .visualizer-container {
+            position: relative;
+            width: 100%;
+            height: 400px;
+            background: #0f172a;
+            border-radius: 0.75rem;
+            overflow: hidden;
+        }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        .dot-flashing {
+            position: relative;
+            width: 8px;
+            height: 8px;
+            border-radius: 5px;
+            background-color: #3b82f6;
+            color: #3b82f6;
+            animation: dot-flashing 1s infinite linear alternate;
+            animation-delay: .5s;
+        }
+        .dot-flashing::before, .dot-flashing::after {
+            content: '';
+            display: inline-block;
+            position: absolute;
+            top: 0;
+        }
+        .dot-flashing::before {
+            left: -14px;
+            width: 8px;
+            height: 8px;
+            border-radius: 5px;
+            background-color: #3b82f6;
+            color: #3b82f6;
+            animation: dot-flashing 1s infinite alternate;
+            animation-delay: 0s;
+        }
+        .dot-flashing::after {
+            left: 14px;
+            width: 8px;
+            height: 8px;
+            border-radius: 5px;
+            background-color: #3b82f6;
+            color: #3b82f6;
+            animation: dot-flashing 1s infinite alternate;
+            animation-delay: 1s;
+        }
+        @keyframes dot-flashing {
+            0% { background-color: #3b82f6; }
+            50%, 100% { background-color: #e2e8f0; }
+        }
+    </style>
+</head>
+<body class="antialiased selection:bg-slate-300 selection:text-slate-900">
+
+    <!-- Chosen Palette: Slate Base with Subdued Tech Accents (Blue for UOR, Emerald for R4, Purple for ToE) -->
+
+    <!-- Application Structure Plan: 
+    The SPA is structured to synthesize three highly complex, theoretical frameworks into a cohesive narrative. 
+    1. Hero/Intro: Sets the context of the synthesis.
+    2. KPI Metrics Grid: Surfaces live system indicators which are dynamically co-driven by player choices in MUDBench.
+    3. The Triad (Cards): Breaks down the core tenets of UOR, R4, and W(3,3) individually for foundational understanding.
+    4. Comparative Analytics (Charts): Uses Radar and Bar charts to visually map similarities, differences, and complementary strengths.
+    5. The Convergence (Tabs + Interactive Canvas): Directly addresses the user's 4 core prompts (ToE, AGI, Hologram, Observability) using an interactive tabbed interface paired with a dynamic generative canvas that visually represents the state of the active synthesis.
+    6. ✨ AI Manifold Co-Processor: Powered by Gemini structured JSON generation to map complex variables and dynamically configure the visual canvas properties.
+    7. ✨ Grounded Lean-4 Proof Generator: Integrates Gemini Google Search Grounding to verify absolute algebra/topology and output attributions.
+    8. ✨ MUDBench Agentic Dialogue: Simulates tense, dramatic multi-agent debate logs between Flom, Allard, and Bahn.
+    9. ✨ Hologram Sigil Generator (Imagen-4): Generates gorgeous, sacred geometric representations of calculated manifolds on the fly.
+    10. ✨ MUDBench Interactive Quest Console (Quest Game): Turn-based text interface allowing users to coordinate directly with the Wandering Elder. Actions are evaluated by Gemini and directly update system indicators in real-time.
+    11. Acoustic Representation Engine: Powered by Gemini TTS to speak computed formulas and unified theories in natural mathematical audio.
+    12. Missing Pieces Matrix: A structured grid detailing the gaps in each framework and how the others resolve them. -->
+
+    <!-- Visualization & Content Choices:
+    - Radar Chart: Goal: Compare framework traits. Justification: Best for multi-variable profiling. Method: Chart.js.
+    - Stacked Bar Chart: Goal: Show complementary fulfillment of "Missing Pieces". Justification: Clearly illustrates how one framework's gap is filled by another's strength. Method: Chart.js.
+    - Custom Particle Canvas: Goal: Illustrate the 4 Synthesis Outcomes. Justification: Pure HTML5 Canvas API driving dynamic interactive physics. NO SVG/Mermaid.
+    - ✨ 3D Geodesic Chamber: Goal: Render the high-dimensional manifold coordinates generated by the Gemini API. Justification: Pure WebGL Three.js coordinates, allowing the user to rotate and explore the E8 attractor nodes and Hopf fibers dynamically. -->
+    
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+
+    <!-- Navigation -->
+    <nav class="sticky top-0 z-50 glass-panel border-b border-slate-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16 items-center">
+                <div class="flex-shrink-0 flex items-center gap-2">
+                    <span class="text-2xl">⎈</span>
+                    <span class="font-bold text-lg tracking-tight">The Unity Framework</span>
+                </div>
+                <div class="hidden md:flex space-x-8">
+                    <a href="#triad" class="text-slate-600 hover:text-slate-900 px-3 py-2 text-sm font-medium transition-colors">The Triad</a>
+                    <a href="#analysis" class="text-slate-600 hover:text-slate-900 px-3 py-2 text-sm font-medium transition-colors">Comparative Analysis</a>
+                    <a href="#synthesis" class="text-slate-600 hover:text-slate-900 px-3 py-2 text-sm font-medium transition-colors">The Synthesis (4 Outcomes)</a>
+                    <a href="#sandbox" class="text-slate-600 hover:text-slate-900 px-3 py-2 text-sm font-medium transition-colors font-semibold text-blue-600">✨ AI Co-Processor</a>
+                    <a href="#matrix" class="text-slate-600 hover:text-slate-900 px-3 py-2 text-sm font-medium transition-colors">Missing Pieces</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <header class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">
+        <div class="inline-block mb-4 px-3 py-1 rounded-full bg-slate-200 text-slate-700 text-xs font-semibold tracking-wider uppercase">
+            Confidential Research Synthesis
+        </div>
+        <h1 class="text-4xl md:text-6xl font-bold text-slate-900 tracking-tight mb-6">
+            Synthesizing UOR, R4, and W(3,3)
+        </h1>
+        <p class="mt-4 text-xl text-slate-600 max-w-3xl mx-auto leading-relaxed">
+            A unified architectural translation bridging formal ontology (<span class="font-mono text-sm text-blue-600">Alex Flom</span>), continuous geometric routing manifolds (<span class="font-mono text-sm text-emerald-600">Casey Allard</span>), and finite combinatorial geometry (<span class="font-mono text-sm text-purple-600">Wil Bahn</span>).
+        </p>
+        <div class="mt-8 flex justify-center">
+            <span class="font-mono text-sm bg-slate-900 text-slate-200 px-4 py-2 rounded-lg border border-slate-800">
+                Synthesis Anchor: <span class="text-blue-400">\mathcal{Z}(X) = i(e^{i \pi \sigma(X)} + 1)</span>
+            </span>
+        </div>
+    </header>
+
+    <!-- Real-time KPI Metric Cards -->
+    <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-12">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm text-center">
+                <span class="text-xs uppercase text-slate-400 font-semibold tracking-wider block">Unified Capacity</span>
+                <span class="text-2xl font-bold text-slate-900 font-mono mt-1 block" id="kpi-capacity">K = 5000</span>
+            </div>
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm text-center">
+                <span class="text-xs uppercase text-slate-400 font-semibold tracking-wider block">Scaling Law Exponent</span>
+                <span class="text-2xl font-bold text-emerald-600 font-mono mt-1 block" id="kpi-scaling">O(K^0.572)</span>
+            </div>
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm text-center">
+                <span class="text-xs uppercase text-slate-400 font-semibold tracking-wider block">Absolute Closure</span>
+                <span class="text-2xl font-bold text-purple-600 font-mono mt-1 block" id="kpi-closure">\sigma = 1.00</span>
+            </div>
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm text-center">
+                <span class="text-xs uppercase text-slate-400 font-semibold tracking-wider block">Verified Coordinates</span>
+                <span class="text-2xl font-bold text-blue-600 font-mono mt-1 block" id="kpi-nodes">40-96-240</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- The Triad Section -->
+    <section id="triad" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div class="mb-10">
+            <h2 class="text-2xl font-bold text-slate-900 border-l-4 border-slate-800 pl-3">The Three Core Frameworks</h2>
+            <p class="mt-2 text-slate-600">An introduction to the foundational architectures prior to synthesis. Each provides a distinct mathematical and operational layer.</p>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <!-- UOR -->
+            <div class="glass-panel p-8 rounded-2xl hover:shadow-lg transition-shadow border-t-4 border-t-blue-500">
+                <div class="text-4xl mb-4 text-blue-500">◈</div>
+                <h3 class="text-xl font-bold mb-2">UOR Framework</h3>
+                <p class="text-sm text-slate-500 font-mono mb-4">Alex Flom | Layer 2 & Ontology</p>
+                <p class="text-slate-600 text-sm leading-relaxed mb-4">
+                    Universal Object Reference. Anchors identity and data to immutable, content-derived addresses. Utilizes absolute algebra over the "Field with One Element" ($\mathbb{F}_1$) for formal verification and OpenTelemetry for the "Fair Witness" consensus protocol.
+                </p>
+                <div class="flex flex-wrap gap-2">
+                    <span class="px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs">\mathbb{F}_1 absolute algebra</span>
+                    <span class="px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs">Immutable Ledger</span>
+                    <span class="px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs">Fair Witness</span>
+                </div>
+            </div>
+
+            <!-- R4 -->
+            <div class="glass-panel p-8 rounded-2xl hover:shadow-lg transition-shadow border-t-4 border-t-emerald-500">
+                <div class="text-4xl mb-4 text-emerald-500">⬡</div>
+                <h3 class="text-xl font-bold mb-2">R4 Prime Router</h3>
+                <p class="text-sm text-slate-500 font-mono mb-4">Casey Allard | Geometric Intelligence</p>
+                <p class="text-slate-600 text-sm leading-relaxed mb-4">
+                    Applied Geometric Intelligence operating on Riemannian manifolds. Replaces dense matrices with sublinear Hopf-based sector routing. Uses prime factorization for topological MAC addressing and phase-transport for cognitive inference.
+                </p>
+                <div class="flex flex-wrap gap-2">
+                    <span class="px-2 py-1 bg-emerald-50 text-emerald-700 rounded text-xs">Hopf Fibration</span>
+                    <span class="px-2 py-1 bg-emerald-50 text-emerald-700 rounded text-xs">Prime Routing</span>
+                    <span class="px-2 py-1 bg-emerald-50 text-emerald-700 rounded text-xs">QIMC</span>
+                </div>
+            </div>
+
+            <!-- ToE -->
+            <div class="glass-panel p-8 rounded-2xl hover:shadow-lg transition-shadow border-t-4 border-t-purple-500">
+                <div class="text-4xl mb-4 text-purple-500">⌘</div>
+                <h3 class="text-xl font-bold mb-2">W(3,3) ToE</h3>
+                <p class="text-sm text-slate-500 font-mono mb-4">Wil Bahn | Exact Finite Geometry</p>
+                <p class="text-slate-600 text-sm leading-relaxed mb-4">
+                    The Witting Reference Fabric. A theory of everything deriving standard models from zero free parameters using exact discrete combinatorial symmetries (E8, F4, 96-vertex graphs). Defines "The Recursive Scaffold" of reality.
+                </p>
+                <div class="flex flex-wrap gap-2">
+                    <span class="px-2 py-1 bg-purple-50 text-purple-700 rounded text-xs">Finite Geometry</span>
+                    <span class="px-2 py-1 bg-purple-50 text-purple-700 rounded text-xs">Exact Closure</span>
+                    <span class="px-2 py-1 bg-purple-50 text-purple-700 rounded text-xs">Witting Fabric</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Comparative Analysis -->
+    <section id="analysis" class="bg-white py-16 border-y border-slate-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="mb-10">
+                <h2 class="text-2xl font-bold text-slate-900 border-l-4 border-slate-800 pl-3">Comparative Analytics</h2>
+                <p class="mt-2 text-slate-600">Visualizing the structural similarities and contrasting features of the three frameworks.</p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
+                <!-- Radar Chart -->
+                <div class="bg-slate-50 p-6 rounded-2xl border border-slate-100">
+                    <h3 class="text-center font-semibold mb-4 text-slate-700">Architectural Signatures</h3>
+                    <div class="chart-container">
+                        <canvas id="radarChart"></canvas>
+                    </div>
+                    <p class="text-xs text-center text-slate-500 mt-4">Analysis of framework focus areas. UOR leads in immutability, R4 in dynamic flows, W(3,3) in exact boundaries.</p>
+                </div>
+
+                <!-- Missing Pieces Bar Chart -->
+                <div class="bg-slate-50 p-6 rounded-2xl border border-slate-100">
+                    <h3 class="text-center font-semibold mb-4 text-slate-700">Complementary Synthesis (Gap Filling)</h3>
+                    <div class="chart-container">
+                        <canvas id="barChart"></canvas>
+                    </div>
+                    <p class="text-xs text-center text-slate-500 mt-4">How the combined stack fulfills requirements. No single framework achieves 100% across all domains independently.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- The 4 Outcomes (The Core Prompt Request) -->
+    <section id="synthesis" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <div class="mb-10">
+            <h2 class="text-3xl font-bold text-slate-900 border-l-4 border-slate-800 pl-3">The Grand Synthesis</h2>
+            <p class="mt-2 text-slate-600 text-lg">How UOR, R4, and W(3,3) synergize to produce the four requested paradigm shifts.</p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <!-- Tabs Navigation -->
+            <div class="lg:col-span-3 flex flex-col gap-2">
+                <button onclick="switchTab('toe')" id="tab-toe" class="tab-btn active text-left px-4 py-3 rounded-lg hover:bg-slate-100 text-slate-500 transition-all">
+                    1. Theory of Everything
+                </button>
+                <button onclick="switchTab('agi')" id="tab-agi" class="tab-btn text-left px-4 py-3 rounded-lg hover:bg-slate-100 text-slate-500 transition-all">
+                    2. Local AGI
+                </button>
+                <button onclick="switchTab('quantum')" id="tab-quantum" class="tab-btn text-left px-4 py-3 rounded-lg hover:bg-slate-100 text-slate-500 transition-all">
+                    3. Quantum Hyperscaled Networking
+                </button>
+                <button onclick="switchTab('observability')" id="tab-observability" class="tab-btn text-left px-4 py-3 rounded-lg hover:bg-slate-100 text-slate-500 transition-all">
+                    4. Universal Observability
+                </button>
+            </div>
+
+            <!-- Content Area (Dual 2D and 3D Viewers) -->
+            <div class="lg:col-span-9">
+                <!-- Integrated Visualizer Box -->
+                <div class="glass-panel p-6 rounded-2xl border border-slate-200 shadow-sm mb-8">
+                    <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+                        <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wider font-mono">Real-Time Manifold Projections</h3>
+                        <div class="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200 animate-fade-in" id="viz-toggle-group">
+                            <button onclick="switchVisualizerView('2d')" id="viz-btn-2d" class="px-3 py-1 text-xs font-mono font-medium rounded-md bg-white text-slate-800 shadow-sm transition-all">2D Phase Field</button>
+                            <button onclick="switchVisualizerView('3d')" id="viz-btn-3d" class="px-3 py-1 text-xs font-mono font-medium rounded-md text-slate-500 hover:text-slate-800 transition-all">✨ 3D Geodesic Chamber</button>
+                        </div>
+                    </div>
+                    
+                    <!-- 2D View Container -->
+                    <div id="view-container-2d" class="visualizer-container shadow-inner border border-slate-800 relative">
+                        <canvas id="generativeCanvas"></canvas>
+                        <div class="absolute bottom-4 left-4 text-white text-xs font-mono opacity-50" id="visualizer-label-2d">
+                            Initializing Manifold...
+                        </div>
+                        <!-- Live Canvas Parameter Overlays -->
+                        <div class="absolute top-4 right-4 flex flex-col gap-1 bg-slate-950/80 px-3 py-2 rounded border border-slate-800 font-mono text-[10px] text-slate-400">
+                            <div>Mode: <span id="overlay-mode" class="text-emerald-400">Default</span></div>
+                            <div>Particles: <span id="overlay-count" class="text-blue-400">100</span></div>
+                            <div>Velocity: <span id="overlay-speed" class="text-purple-400">1.0x</span></div>
+                            <div>Coupling Link: <span id="overlay-threshold" class="text-yellow-400">100px</span></div>
+                        </div>
+                    </div>
+
+                    <!-- 3D View Container (Three.js WebGL Sandbox) -->
+                    <div id="view-container-3d" class="visualizer-container shadow-inner border border-slate-800 hidden relative">
+                        <div id="threejs-container" class="w-full h-full cursor-grab active:cursor-grabbing"></div>
+                        <div class="absolute bottom-4 left-4 text-white text-xs font-mono opacity-50 select-none" id="visualizer-label-3d">
+                            3D Hopf Geodesic Projection Chamber (Left Click + Drag or Touch to rotate coordinates)
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Text Content Container -->
+                <div id="content-container" class="glass-panel p-8 rounded-xl">
+                    <!-- Content injected via JS -->
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ✨ AI MANIFOLD CO-PROCESSOR SECTION (NATIVE GEMINI MODEL INTEGRATIONS) -->
+    <section id="sandbox" class="bg-slate-100 border-y border-slate-200 py-16">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="mb-10 text-center md:text-left">
+                <span class="inline-block mb-2 px-3 py-1 rounded-full bg-blue-100 text-blue-800 text-xs font-semibold tracking-wider uppercase">
+                    Manifold Experimentation Module
+                </span>
+                <h2 class="text-3xl font-bold text-slate-900 tracking-tight">✨ AI Manifold Co-Processor</h2>
+                <p class="mt-2 text-slate-600 max-w-2xl">
+                    Compute synthesis projections across UOR, R4, and W(3,3). The AI evaluates physical variables, yields structured algebraic configurations, and dynamically transforms both visualizers.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                <!-- Control Panel (Left) -->
+                <div class="lg:col-span-5 flex flex-col gap-6 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-2">Select Scenario Preset</label>
+                        <select id="preset-selector" onchange="loadPreset()" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="custom">-- Custom Scenario Mapping --</option>
+                            <option value="qimc">Quantum Information Merge Conflict (QIMC) Resolution</option>
+                            <option value="mobius">Möbius-twisted Parity Flip in Hyperbolic Latent Spaces</option>
+                            <option value="witness">Zero-Knowledge OTel Handshake on W3 Seal</option>
+                            <option value="unfolding">Project Hologram 10^9 Container Unfolding</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-2">Primary Synthesis Goal</label>
+                        <div class="grid grid-cols-2 gap-2" id="goal-selectors">
+                            <button onclick="selectGoal('toe')" id="goal-toe" class="goal-btn active border-2 border-slate-800 bg-slate-900 text-white text-xs py-2 px-3 rounded-lg font-medium transition-all">ToE Lattice</button>
+                            <button onclick="selectGoal('agi')" id="goal-agi" class="goal-btn border border-slate-300 text-slate-600 hover:bg-slate-50 text-xs py-2 px-3 rounded-lg font-medium transition-all">Local AGI</button>
+                            <button onclick="selectGoal('networking')" id="goal-networking" class="goal-btn border border-slate-300 text-slate-600 hover:bg-slate-50 text-xs py-2 px-3 rounded-lg font-medium transition-all">L2 Mesh</button>
+                            <button onclick="selectGoal('observability')" id="goal-observability" class="goal-btn border border-slate-300 text-slate-600 hover:bg-slate-50 text-xs py-2 px-3 rounded-lg font-medium transition-all">OTel Witness</button>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-2">Scenario Specifics & Equations</label>
+                        <textarea id="ai-prompt-input" rows="4" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-3 text-sm font-mono text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Type a custom conceptual translation query or adjust loaded preset..."></textarea>
+                    </div>
+
+                    <!-- Dynamic Multi-Action Trigger Grid -->
+                    <div class="flex flex-col gap-2">
+                        <button onclick="runAiSynthesis()" id="run-ai-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-xl shadow-md transition-colors flex items-center justify-center gap-2 text-sm">
+                            <span>✨ Compute Unified Synthesis</span>
+                        </button>
+                        
+                        <div class="grid grid-cols-2 gap-2">
+                            <button onclick="runAgenticDialogue()" id="run-dialogue-btn" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 px-3 rounded-xl shadow transition-colors flex items-center justify-center gap-1.5 text-xs">
+                                <span>✨ Simulate Dialogue</span>
+                            </button>
+                            <button onclick="runGroundedProof()" id="run-proof-btn" class="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2.5 px-3 rounded-xl shadow transition-colors flex items-center justify-center gap-1.5 text-xs">
+                                <span>✨ Grounded Proof</span>
+                            </button>
+                        </div>
+
+                        <!-- Expanded Model Integrations -->
+                        <div class="grid grid-cols-2 gap-2">
+                            <button onclick="generateHologramSigil()" id="run-sigil-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 px-3 rounded-xl shadow transition-colors flex items-center justify-center gap-1.5 text-xs">
+                                <span>✨ Manifest Sigil</span>
+                            </button>
+                            <button onclick="switchTerminalTab('quest')" class="bg-pink-600 hover:bg-pink-700 text-white font-semibold py-2.5 px-3 rounded-xl shadow transition-colors flex items-center justify-center gap-1.5 text-xs">
+                                <span>✨ Launch MUDBench Quest</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Simulation Output & TTS Manifestation (Right) -->
+                <div class="lg:col-span-7 flex flex-col h-[650px] bg-slate-900 rounded-2xl border border-slate-800 shadow-xl overflow-hidden relative">
+                    <!-- Console Header with custom Dynamic Tabs -->
+                    <div class="flex items-center justify-between bg-slate-950 px-4 py-3 border-b border-slate-800">
+                        <div class="flex items-center gap-2">
+                            <span class="w-3 h-3 rounded-full bg-red-500"></span>
+                            <span class="w-3 h-3 rounded-full bg-yellow-500"></span>
+                            <span class="w-3 h-3 rounded-full bg-green-500"></span>
+                            <div class="flex gap-2 ml-4 flex-wrap" id="terminal-tabs">
+                                <button onclick="switchTerminalTab('synthesis')" id="term-tab-synthesis" class="text-white font-mono text-[10px] bg-slate-800 px-2 py-0.5 rounded">synthesis.log</button>
+                                <button onclick="switchTerminalTab('dialogue')" id="term-tab-dialogue" class="text-slate-400 font-mono text-[10px] hover:text-white px-2 py-0.5 rounded">dialogue.stdout</button>
+                                <button onclick="switchTerminalTab('proof')" id="term-tab-proof" class="text-slate-400 font-mono text-[10px] hover:text-white px-2 py-0.5 rounded">verification.lean</button>
+                                <button onclick="switchTerminalTab('sigil')" id="term-tab-sigil" class="text-slate-400 font-mono text-[10px] hover:text-white px-2 py-0.5 rounded">✨ sigil.png</button>
+                                <button onclick="switchTerminalTab('quest')" id="term-tab-quest" class="text-slate-400 font-mono text-[10px] hover:text-white px-2 py-0.5 rounded">✨ mudbench.exe</button>
+                            </div>
+                        </div>
+                        <span id="ai-status" class="text-emerald-400 text-xs font-mono flex items-center gap-1.5">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Ready
+                        </span>
+                    </div>
+
+                    <!-- Inner Logger/Output Area -->
+                    <div id="ai-terminal-output" class="p-6 overflow-y-auto flex-1 font-mono text-xs leading-relaxed text-slate-300 space-y-4">
+                        <div class="text-slate-500">
+                            # Unified Sandbox Initialized.<br>
+                            # Ready for boundary-mapping prompts.<br>
+                            # Select a preset scenario on the left or enter custom algebraic constraints, then choose an execution strategy.
+                        </div>
+                    </div>
+
+                    <!-- Interactive Grounding/Citation Panel -->
+                    <div id="grounding-panel" class="hidden bg-slate-950 border-t border-slate-800 px-4 py-2.5 flex flex-wrap gap-2 items-center">
+                        <span class="text-slate-500 text-[10px] uppercase font-bold tracking-wider mr-1">Grounding Sources:</span>
+                        <div id="grounding-citations" class="flex flex-wrap gap-1.5">
+                            <!-- Clickable Badges -->
+                        </div>
+                    </div>
+
+                    <!-- Voice Manifestation Module (TTS Interface) -->
+                    <div class="bg-slate-950/90 border-t border-slate-800 p-4 flex flex-col md:flex-row items-center justify-between gap-4">
+                        <div class="flex items-center gap-3 w-full md:w-auto">
+                            <label class="text-slate-400 text-xs font-mono whitespace-nowrap">Voice Operator:</label>
+                            <select id="tts-voice-selector" class="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-slate-200 font-mono focus:outline-none w-full md:w-auto">
+                                <option value="Kore">Kore (Cheerful)</option>
+                                <option value="Zephyr">Zephyr (Warm)</option>
+                                <option value="Puck">Puck (Witty)</option>
+                                <option value="Fenrir">Fenrir (Fierce)</option>
+                                <option value="Leda">Leda (Calm)</option>
+                                <option value="Aoede">Aoede (Expressive)</option>
+                            </select>
+                        </div>
+                        <button onclick="pronounceActiveSynthesis()" id="tts-play-btn" disabled class="opacity-50 cursor-not-allowed bg-emerald-600 hover:bg-emerald-500 text-white font-mono text-xs py-2 px-4 rounded transition-all flex items-center gap-1.5 w-full md:w-auto justify-center">
+                            <span>✨ Speak Computed Manifold</span>
+                        </button>
+                    </div>
+
+                    <!-- Error Alert Modal Overlay -->
+                    <div id="ai-error-box" class="absolute bottom-0 inset-x-0 bg-red-950/95 border-t border-red-800 p-4 transform translate-y-full transition-transform duration-300 ease-out flex items-start gap-3 z-20">
+                        <span class="text-red-400 text-xl font-bold">⚠️</span>
+                        <div class="flex-1">
+                            <h4 class="text-red-400 font-bold text-xs font-mono uppercase tracking-wider">Topological Computation Error</h4>
+                            <p id="ai-error-text" class="text-slate-300 text-xs mt-1 font-mono"></p>
+                        </div>
+                        <button onclick="dismissError()" class="text-slate-400 hover:text-slate-200 font-mono text-xs p-1">Dismiss</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Missing Pieces Matrix -->
+    <section id="matrix" class="bg-slate-900 text-slate-100 py-16">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="mb-10">
+                <h2 class="text-2xl font-bold text-white border-l-4 border-slate-500 pl-3">Missing Pieces & Complementary Mechanics</h2>
+                <p class="mt-2 text-slate-400">Detailed breakdown of the gaps in each isolated framework and how the others resolve them.</p>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="border-b border-slate-700 text-sm uppercase tracking-wider text-slate-400">
+                            <th class="p-4">Framework</th>
+                            <th class="p-4">Core Strength</th>
+                            <th class="p-4">Missing Piece (Weakness)</th>
+                            <th class="p-4">Provided By Complement</th>
+                        </tr>
+                    </thead>
+                    <tbody class="text-sm">
+                        <tr class="border-b border-slate-800 hover:bg-slate-800/50">
+                            <td class="p-4 font-bold text-blue-400">UOR (Flom)</td>
+                            <td class="p-4">Ontology, Immutability, Verification, OTel</td>
+                            <td class="p-4 text-slate-300">Lacks a fluid, continuous intelligence routing mechanism. Data is static.</td>
+                            <td class="p-4">
+                                <span class="text-emerald-400 font-semibold">R4</span> provides the dynamic phase-transport.<br>
+                                <span class="text-purple-400 font-semibold">W(3,3)</span> limits the combinatorial explosion of states.
+                            </td>
+                        </tr>
+                        <tr class="border-b border-slate-800 hover:bg-slate-800/50">
+                            <td class="p-4 font-bold text-emerald-400">R4 Router (Allard)</td>
+                            <td class="p-4">Geometric Routing, Hopf Phase Transport, AGI Flow</td>
+                            <td class="p-4 text-slate-300">Prone to topological drift. Needs strict data provenance and bounded closure.</td>
+                            <td class="p-4">
+                                <span class="text-purple-400 font-semibold">W(3,3)</span> provides exact finite bounds (Thermodynamic Stability).<br>
+                                <span class="text-blue-400 font-semibold">UOR</span> anchors nodes via the W3 Seal/Genesis layer.
+                            </td>
+                        </tr>
+                        <tr class="border-b border-slate-800 hover:bg-slate-800/50">
+                            <td class="p-4 font-bold text-purple-400">W(3,3) (Bahn)</td>
+                            <td class="p-4">Exact Math, Standard Model, Witting Fabric</td>
+                            <td class="p-4 text-slate-300">Highly abstract. Lacks a practical hardware/software addressing protocol and cognitive agent mechanics.</td>
+                            <td class="p-4">
+                                <span class="text-blue-400 font-semibold">UOR</span> translates the W(3,3) 96-vertex graph into software primitives.<br>
+                                <span class="text-emerald-400 font-semibold">R4</span> routes agents across this Witting fabric.
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 py-8 text-center text-sm text-slate-500">
+        <p>Synthesized generated report based on confidential repository context (UOR, Prime Router, Bahn ToE).</p>
+        <p class="mt-2 font-mono text-xs">System: HTML5 / Tailwind / Vanilla JS / Chart.js / Three.js WebGL</p>
+    </footer>
+
+    <!-- Logic -->
+    <script>
+        // --- 1. Content Data for Tabs ---
+        const contentData = {
+            toe: {
+                title: "1. A Theory of Everything",
+                body: `
+                    <p class="mb-4"><strong>The Synthesis:</strong> A Theory of Everything (ToE) requires exact physical laws, a medium for dynamic interaction, and an observer matrix. By combining the triad, we create a computational universe.</p>
+                    <ul class="list-disc pl-5 space-y-2 text-slate-600 mb-4">
+                        <li><strong>W(3,3) provides the Physics:</strong> Wil Bahn's finite geometry establishes the exact combinatorial symmetries (E8/E6 logic, 96-vertex graphs, resonance classes) with zero free parameters. It is the "Recursive Scaffold" of reality.</li>
+                        <li><strong>R4 provides the Dynamics:</strong> Casey Allard's continuous phase transport and Hopf fibrations allow wave-like signal propagation across this scaffold. It dictates how energy/information routes along the geodesics of the W(3,3) universe.</li>
+                        <li><strong>UOR provides the Quantum Observer:</strong> Alex Flom's Universal Object Reference acts as the F_1 base layer, giving immutable, content-derived reality coordinates. It forces the continuous wave (R4) to collapse into verifiable states (W3,3 geometry) through OpenTelemetry traces.</li>
+                    </ul>
+                    <p class="text-sm font-mono bg-slate-100 p-3 rounded">Result: Reality generated by recursive radial partition (W3,3), routed fluidly (R4), and immutably recorded (UOR).</p>
+                `
+            },
+            agi: {
+                title: "2. Local AGI",
+                body: `
+                    <p class="mb-4"><strong>The Synthesis:</strong> Local AGI requires moving away from massive, parameter-heavy Euclidean models toward sublinear, geometrically aware cognition that fits on local silicon.</p>
+                    <ul class="list-disc pl-5 space-y-2 text-slate-600 mb-4">
+                        <li><strong>R4 provides the Brain:</strong> Replaces dense matrices with Angular Manifold Routing. Tokens are embedded on a hypersphere and routed by direction via Hopf-base sector discretization. This sublinear compute reduction is the engine of the AGI.</li>
+                        <li><strong>UOR provides the Memory & Identity:</strong> Identity-scoped brain states. Using the UOR-addr-1 protocol, the AGI maintains isolated, verifiable context windows. It solves the "hallucination" problem by enforcing type-constraint-to-resolution pipelines via F_1 verification.</li>
+                        <li><strong>W(3,3) provides the Logic Bounds:</strong> Limits the AGI's topological drift. The finite geometry acts as a thermodynamic constraint, ensuring the phase-transport (thought process) converges on stable attractors rather than catastrophically drifting.</li>
+                    </ul>
+                    <p class="text-sm font-mono bg-emerald-50 text-emerald-800 p-3 rounded border border-emerald-200">Result: "Intelligence as Metric-Topology Factorization." Highly efficient routing of thought, anchored by irrefutable memory, bounded by exact geometric law.</p>
+                `
+            },
+            quantum: {
+                title: "3. Quantum Hyperscaled Networking Containers",
+                body: `
+                    <p class="mb-4"><strong>The Synthesis:</strong> Project Hologram aims to unlock the economic value of idle compute via workload routing and quantum-immune data migration. The triad enables a 10^9 node mesh behaving as a single fabric.</p>
+                    <ul class="list-disc pl-5 space-y-2 text-slate-600 mb-4">
+                        <li><strong>W(3,3) provides the Topography:</strong> The Witting Reference Fabric establishes a highly redundant 240-carrier link grid. It defines the physical routing lattice where quantum states map to network nodes.</li>
+                        <li><strong>R4 provides the Quantum Tunneling:</strong> Uses combinatorial prime factorization for MAC addressing. This allows "Quantum Information Merge Conflict" (QIMC) resolution—data moves like a murmuration in a complex phase space, resolving collisions using the prime architecture before they happen.</li>
+                        <li><strong>UOR provides the Containerization:</strong> Implements the Layer 2 Genesis Seal. Workloads are wrapped in UOR boundaries. The network is no longer location-based (IP addresses) but content-addressed, creating a decentralized, quantum-immune container ecosystem.</li>
+                    </ul>
+                    <p class="text-sm font-mono bg-blue-50 text-blue-800 p-3 rounded border border-blue-200">Result: A sublinear, completely decentralized Layer 2 networking mesh where data routes itself via phase geometry.</p>
+                `
+            },
+            observability: {
+                title: "4. Universal Observability",
+                body: `
+                    <p class="mb-4"><strong>The Synthesis:</strong> How do we monitor a decentralized, quantum-routed AGI network without violating the "Conservation of Semantic Flux" or slowing it down?</p>
+                    <ul class="list-disc pl-5 space-y-2 text-slate-600 mb-4">
+                        <li><strong>UOR provides the Lens:</strong> Implements the "Fair Witness" protocol. Maps network interactions natively to OpenTelemetry (OTel). Trace IDs map to boundary topology; Span IDs map to conceptual prime Greatest Common Divisors (GCDs).</li>
+                        <li><strong>R4 provides the Shadow State:</strong> Rather than exporting raw activation data (which violates privacy and bandwidth), the R4 Geo-Transformer exports the "2D Shadow"—the tangent vector of movement in the phase space.</li>
+                        <li><strong>W(3,3) provides the Verification Key:</strong> The external observer compares the exported tangent shadow against the W3 Seal constants (the finite geometric rules). If they align, the system's intent is verified as sterically pure without needing to inspect the underlying data.</li>
+                    </ul>
+                    <p class="text-sm font-mono bg-purple-50 text-purple-800 p-3 rounded border border-purple-200">Result: "A Zero-Knowledge Handshake." We observe the geometry of the network's behavior, proving it is acting correctly without reading its mind.</p>
+                `
+            }
+        };
+
+        // --- 2. Chart.js Initialization ---
+        function initCharts() {
+            const ctxRadar = document.getElementById('radarChart').getContext('2d');
+            new Chart(ctxRadar, {
+                type: 'radar',
+                data: {
+                    labels: ['Formal Verification (F_1)', 'Dynamic Flow/Routing', 'Sublinear Compute', 'Exact Finite Constraints', 'Data Immutability', 'Physics/Topology Mapping'],
+                    datasets: [
+                        {
+                            label: 'UOR (Flom)',
+                            data: [100, 20, 30, 70, 100, 40],
+                            backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                            borderColor: 'rgba(59, 130, 246, 1)',
+                            borderWidth: 2,
+                            pointBackgroundColor: 'rgba(59, 130, 246, 1)'
+                        },
+                        {
+                            label: 'R4 (Allard)',
+                            data: [40, 100, 100, 50, 40, 90],
+                            backgroundColor: 'rgba(16, 185, 129, 0.2)',
+                            borderColor: 'rgba(16, 185, 129, 1)',
+                            borderWidth: 2,
+                            pointBackgroundColor: 'rgba(16, 185, 129, 1)'
+                        },
+                        {
+                            label: 'W(3,3) (Bahn)',
+                            data: [90, 30, 40, 100, 60, 100],
+                            backgroundColor: 'rgba(168, 85, 247, 0.2)',
+                            borderColor: 'rgba(168, 85, 247, 1)',
+                            borderWidth: 2,
+                            pointBackgroundColor: 'rgba(168, 85, 247, 1)'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            angleLines: { color: 'rgba(0,0,0,0.1)' },
+                            grid: { color: 'rgba(0,0,0,0.1)' },
+                            pointLabels: { font: { family: 'Inter', size: 11 } },
+                            ticks: { display: false }
+                        }
+                    },
+                    plugins: { legend: { position: 'bottom' } }
+                }
+            });
+
+            const ctxBar = document.getElementById('barChart').getContext('2d');
+            new Chart(ctxBar, {
+                type: 'bar',
+                data: {
+                    labels: ['Cognitive Flow', 'State Memory', 'Network Fabric', 'Governance/Verification'],
+                    datasets: [
+                        {
+                            label: 'Provided by UOR',
+                            data: [10, 80, 40, 90],
+                            backgroundColor: 'rgba(59, 130, 246, 0.8)',
+                        },
+                        {
+                            label: 'Provided by R4',
+                            data: [80, 10, 50, 10],
+                            backgroundColor: 'rgba(16, 185, 129, 0.8)',
+                        },
+                        {
+                            label: 'Provided by W(3,3)',
+                            data: [10, 10, 100, 50],
+                            backgroundColor: 'rgba(168, 85, 247, 0.8)',
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { stacked: true, grid: { display: false } },
+                        y: { stacked: true, max: 100, ticks: { display: false } }
+                    },
+                    plugins: { legend: { position: 'bottom' } }
+                }
+            });
+        }
+
+        // --- 3. Custom Interactive 2D Canvas Engine ---
+        const canvas = document.getElementById('generativeCanvas');
+        const ctx2d = canvas.getContext('2d');
+        let animationFrameId;
+        let particles = [];
+        let currentMode = 'toe';
+
+        let visualizerConfig = {
+            particleColor: "",
+            speedMultiplier: 1.0,
+            particleCount: null,
+            lineThreshold: null
+        };
+
+        function resizeCanvas() {
+            const container = canvas.parentElement;
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+        }
+
+        class Particle {
+            constructor(mode) {
+                this.reset(mode);
+            }
+            reset(mode) {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.baseSize = Math.random() * 2 + 1;
+                
+                if (mode === 'toe') {
+                    this.vx = (Math.random() - 0.5) * 0.5;
+                    this.vy = (Math.random() - 0.5) * 0.5;
+                    this.color = visualizerConfig.particleColor || `rgba(168, 85, 247, ${Math.random() * 0.5 + 0.2})`;
+                } else if (mode === 'agi') {
+                    this.angle = Math.random() * Math.PI * 2;
+                    this.speed = Math.random() * 2 + 0.5;
+                    this.color = visualizerConfig.particleColor || `rgba(16, 185, 129, ${Math.random() * 0.5 + 0.2})`;
+                } else if (mode === 'quantum') {
+                    this.vx = (Math.random() > 0.5 ? 1 : -1) * (Math.random() * 3 + 1);
+                    this.vy = (Math.random() > 0.5 ? 1 : -1) * (Math.random() * 3 + 1);
+                    this.color = visualizerConfig.particleColor || `rgba(59, 130, 246, ${Math.random() * 0.5 + 0.5})`;
+                } else {
+                    this.angle = Math.random() * Math.PI * 2;
+                    this.radius = Math.random() * 150 + 50;
+                    this.speed = (Math.random() * 0.02 + 0.01) * (Math.random() > 0.5 ? 1 : -1);
+                    this.color = visualizerConfig.particleColor || `rgba(248, 113, 113, ${Math.random() * 0.5 + 0.3})`;
+                }
+            }
+
+            update(mode) {
+                const stepScale = visualizerConfig.speedMultiplier || 1.0;
+                if (mode === 'toe') {
+                    this.x += this.vx * stepScale; 
+                    this.y += this.vy * stepScale;
+                    if (this.x < 0 || this.x > canvas.width) this.vx *= -1;
+                    if (this.y < 0 || this.y > canvas.height) this.vy *= -1;
+                } else if (mode === 'agi') {
+                    this.angle += (Math.random() - 0.5) * 0.2;
+                    this.x += Math.cos(this.angle) * this.speed * stepScale;
+                    this.y += Math.sin(this.angle) * this.speed * stepScale;
+                    if (this.x < 0) this.x = canvas.width;
+                    if (this.x > canvas.width) this.x = 0;
+                    if (this.y < 0) this.y = canvas.height;
+                    if (this.y > canvas.height) this.y = 0;
+                } else if (mode === 'quantum') {
+                    this.x += this.vx * stepScale; 
+                    this.y += this.vy * stepScale;
+                    if (this.x < 0 || this.x > canvas.width) this.x = canvas.width/2;
+                    if (this.y < 0 || this.y > canvas.height) this.y = canvas.height/2;
+                } else if (mode === 'observability') {
+                    this.angle += this.speed * stepScale;
+                    this.x = canvas.width/2 + Math.cos(this.angle) * this.radius;
+                    this.y = canvas.height/2 + Math.sin(this.angle) * this.radius;
+                }
+            }
+
+            draw() {
+                ctx2d.beginPath();
+                ctx2d.arc(this.x, this.y, this.baseSize, 0, Math.PI * 2);
+                ctx2d.fillStyle = this.color;
+                ctx2d.fill();
+            }
+        }
+
+        function initParticles(mode) {
+            particles = [];
+            const defaultNum = mode === 'quantum' ? 50 : 100;
+            const numParticles = visualizerConfig.particleCount || defaultNum;
+            for (let i = 0; i < numParticles; i++) {
+                particles.push(new Particle(mode));
+            }
+            
+            document.getElementById('overlay-mode').innerText = mode.toUpperCase() + (visualizerConfig.particleColor ? " (AI Tuned)" : "");
+            document.getElementById('overlay-count').innerText = numParticles;
+            document.getElementById('overlay-speed').innerText = (visualizerConfig.speedMultiplier || 1.0).toFixed(1) + "x";
+            document.getElementById('overlay-threshold').innerText = (visualizerConfig.lineThreshold || (mode === 'toe' ? 80 : (mode === 'quantum' ? 150 : 100))) + "px";
+        }
+
+        function drawConnections(mode) {
+            const threshold = visualizerConfig.lineThreshold || (mode === 'toe' ? 80 : (mode === 'quantum' ? 150 : 100));
+            for (let i = 0; i < particles.length; i++) {
+                for (let j = i + 1; j < particles.length; j++) {
+                    const dx = particles[i].x - particles[j].x;
+                    const dy = particles[i].y - particles[j].y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+
+                    if (dist < threshold) {
+                        ctx2d.beginPath();
+                        ctx2d.moveTo(particles[i].x, particles[i].y);
+                        ctx2d.lineTo(particles[j].x, particles[j].y);
+                        
+                        let opacity = 1 - (dist / threshold);
+                        if (visualizerConfig.particleColor) {
+                            ctx2d.strokeStyle = visualizerConfig.particleColor.replace(/[\d\.]+\)$/g, `${opacity * 0.3})`);
+                        } else {
+                            if(mode === 'toe') ctx2d.strokeStyle = `rgba(168, 85, 247, ${opacity * 0.3})`;
+                            if(mode === 'agi') ctx2d.strokeStyle = `rgba(16, 185, 129, ${opacity * 0.2})`;
+                            if(mode === 'quantum') ctx2d.strokeStyle = `rgba(59, 130, 246, ${opacity * 0.4})`;
+                            if(mode === 'observability') ctx2d.strokeStyle = `rgba(248, 113, 113, ${opacity * 0.1})`;
+                        }
+                        ctx2d.stroke();
+                    }
+                }
+            }
+        }
+
+        // --- 4. ✨ Custom Interactive 3D WebGL Engine (Three.js) with Touch Support ---
+        let scene, camera, renderer, splineObject, attractorsGroup, fiberSystem;
+        let isDragging = false;
+        let previousMousePosition = { x: 0, y: 0 };
+        let animationTime = 0;
+
+        function initThreeJS() {
+            const container = document.getElementById('threejs-container');
+            if (!container) return;
+
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0f172a); // slate-900
+
+            camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight || 1, 0.1, 100);
+            camera.position.z = 12;
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            const width = container.clientWidth || 500;
+            const height = container.clientHeight || 400;
+            renderer.setSize(width, height);
+            container.appendChild(renderer.domElement);
+
+            const ambientLight = new THREE.AmbientLight(0x475569, 1.5);
+            scene.add(ambientLight);
+
+            const pointLight = new THREE.PointLight(0x3b82f6, 2, 50);
+            pointLight.position.set(5, 5, 5);
+            scene.add(pointLight);
+
+            attractorsGroup = new THREE.Group();
+            scene.add(attractorsGroup);
+
+            splineObject = new THREE.Group();
+            scene.add(splineObject);
+
+            fiberSystem = new THREE.Group();
+            scene.add(fiberSystem);
+
+            createHopfFibers(12);
+            createDefaultAttractors();
+            updateGeodesicOrbit();
+
+            const rotateScene = (deltaX, deltaY) => {
+                attractorsGroup.rotation.y += deltaX;
+                attractorsGroup.rotation.x += deltaY;
+
+                splineObject.rotation.y += deltaX;
+                splineObject.rotation.x += deltaY;
+
+                fiberSystem.rotation.y += deltaX;
+                fiberSystem.rotation.x += deltaY;
+            };
+
+            // Dragging via Mouse
+            container.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                previousMousePosition = { x: e.clientX, y: e.clientY };
+            });
+
+            container.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                const deltaMove = {
+                    x: e.clientX - previousMousePosition.x,
+                    y: e.clientY - previousMousePosition.y
+                };
+                rotateScene(deltaMove.x * 0.007, deltaMove.y * 0.007);
+                previousMousePosition = { x: e.clientX, y: e.clientY };
+            });
+
+            window.addEventListener('mouseup', () => { isDragging = false; });
+
+            // Dragging via Touch (Mobile/Tablet Support)
+            container.addEventListener('touchstart', (e) => {
+                isDragging = true;
+                if (e.touches.length > 0) {
+                    previousMousePosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+                }
+            }, { passive: true });
+
+            container.addEventListener('touchmove', (e) => {
+                if (!isDragging || e.touches.length === 0) return;
+                const deltaMove = {
+                    x: e.touches[0].clientX - previousMousePosition.x,
+                    y: e.touches[0].clientY - previousMousePosition.y
+                };
+                rotateScene(deltaMove.x * 0.007, deltaMove.y * 0.007);
+                previousMousePosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+            }, { passive: true });
+
+            window.addEventListener('touchend', () => { isDragging = false; });
+        }
+
+        function createHopfFibers(count) {
+            while(fiberSystem.children.length > 0) { 
+                fiberSystem.remove(fiberSystem.children[0]); 
+            }
+
+            const material = new THREE.LineBasicMaterial({ color: 0x1e1b4b, transparent: true, opacity: 0.4 });
+            for (let i = 0; i < count; i++) {
+                const theta = (i / count) * Math.PI * 2;
+                const radius = 3;
+                const points = [];
+                for (let j = 0; j <= 64; j++) {
+                    const phi = (j / 64) * Math.PI * 2;
+                    const x = (radius + Math.cos(phi)) * Math.cos(theta);
+                    const y = Math.sin(phi);
+                    const z = (radius + Math.cos(phi)) * Math.sin(theta);
+                    points.push(new THREE.Vector3(x, y, z));
+                }
+                const geometry = new THREE.BufferGeometry().setFromPoints(points);
+                const line = new THREE.Line(geometry, material);
+                fiberSystem.add(line);
+            }
+        }
+
+        function createDefaultAttractors() {
+            while(attractorsGroup.children.length > 0) {
+                attractorsGroup.remove(attractorsGroup.children[0]);
+            }
+
+            const geometry = new THREE.SphereGeometry(0.15, 16, 16);
+            const material = new THREE.MeshPhongMaterial({ color: 0xa855f7, emissive: 0x6b21a8 });
+            
+            const count = 12;
+            for (let i = 0; i < count; i++) {
+                const offset = 2 / count;
+                const increment = Math.PI * (3 - Math.sqrt(5));
+                const y = ((i * offset) - 1) + (offset / 2);
+                const r = Math.sqrt(1 - y * y);
+                const phi = i * increment;
+                const x = Math.cos(phi) * r;
+                const z = Math.sin(phi) * r;
+
+                const mesh = new THREE.Mesh(geometry, material);
+                mesh.position.set(x * 3, y * 3, z * 3);
+                attractorsGroup.add(mesh);
+            }
+        }
+
+        function updateGeodesicOrbit(coords) {
+            while(splineObject.children.length > 0) {
+                splineObject.remove(splineObject.children[0]);
+            }
+
+            const points = [];
+            if (coords && coords.length > 0) {
+                coords.forEach(pt => {
+                    points.push(new THREE.Vector3(pt[0], pt[1], pt[2]));
+                });
+            } else {
+                for (let i = 0; i <= 100; i++) {
+                    const t = i / 100;
+                    const theta = t * Math.PI * 12;
+                    const r = Math.sin(t * Math.PI) * 3;
+                    const x = Math.cos(theta) * r;
+                    const y = (t * 6) - 3;
+                    const z = Math.sin(theta) * r;
+                    points.push(new THREE.Vector3(x, y, z));
+                }
+            }
+
+            const curve = new THREE.CatmullRomCurve3(points);
+            const geom = new THREE.TubeGeometry(curve, 100, 0.04, 8, false);
+            const mat = new THREE.MeshPhongMaterial({ 
+                color: 0x10b981, 
+                emissive: 0x065f46,
+                shininess: 100
+            });
+            const mesh = new THREE.Mesh(geom, mat);
+            splineObject.add(mesh);
+
+            const pulseGeom = new THREE.SphereGeometry(0.12, 16, 16);
+            const pulseMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+            const pulseMesh = new THREE.Mesh(pulseGeom, pulseMat);
+            splineObject.add(pulseMesh);
+
+            window.activeOrbitCurve = curve;
+            window.orbitPulseMesh = pulseMesh;
+        }
+
+        function switchVisualizerView(viewId) {
+            const btn2d = document.getElementById('viz-btn-2d');
+            const btn3d = document.getElementById('viz-btn-3d');
+            const view2d = document.getElementById('view-container-2d');
+            const view3d = document.getElementById('view-container-3d');
+
+            if (viewId === '2d') {
+                btn2d.className = "px-3 py-1 text-xs font-mono font-medium rounded-md bg-white text-slate-800 shadow-sm transition-all";
+                btn3d.className = "px-3 py-1 text-xs font-mono font-medium rounded-md text-slate-500 hover:text-slate-800 transition-all";
+                view2d.classList.remove('hidden');
+                view3d.classList.add('hidden');
+            } else {
+                btn2d.className = "px-3 py-1 text-xs font-mono font-medium rounded-md text-slate-500 hover:text-slate-800 transition-all";
+                btn3d.className = "px-3 py-1 text-xs font-mono font-medium rounded-md bg-white text-slate-800 shadow-sm transition-all";
+                view2d.classList.add('hidden');
+                view3d.classList.remove('hidden');
+                
+                setTimeout(() => {
+                    const container = document.getElementById('threejs-container');
+                    if (container && renderer && camera) {
+                        camera.aspect = container.clientWidth / container.clientHeight;
+                        camera.updateProjectionMatrix();
+                        renderer.setSize(container.clientWidth, container.clientHeight);
+                    }
+                }, 50);
+            }
+        }
+
+        function animateThreeJS() {
+            animationTime += 0.005;
+
+            if (fiberSystem) fiberSystem.rotation.y += 0.001;
+            if (attractorsGroup) attractorsGroup.rotation.y += 0.001;
+
+            if (window.orbitPulseMesh && window.activeOrbitCurve) {
+                const progress = (animationTime * (visualizerConfig.speedMultiplier || 1.0)) % 1.0;
+                const position = window.activeOrbitCurve.getPointAt(progress);
+                window.orbitPulseMesh.position.copy(position);
+            }
+
+            if (renderer && scene && camera) {
+                renderer.render(scene, camera);
+            }
+        }
+
+        // --- 5. Unified Animation Loop ---
+        function animate() {
+            ctx2d.fillStyle = 'rgba(15, 23, 42, 0.2)'; 
+            if(currentMode === 'quantum') ctx2d.fillStyle = 'rgba(15, 23, 42, 0.4)';
+            ctx2d.fillRect(0, 0, canvas.width, canvas.height);
+
+            particles.forEach(p => {
+                p.update(currentMode);
+                p.draw();
+            });
+            drawConnections(currentMode);
+
+            animateThreeJS();
+
+            animationFrameId = requestAnimationFrame(animate);
+        }
+
+        // --- 6. UI Interaction Logic ---
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+                btn.classList.replace('text-slate-900', 'text-slate-500');
+            });
+            const activeBtn = document.getElementById(`tab-${tabId}`);
+            activeBtn.classList.add('active');
+            activeBtn.classList.replace('text-slate-500', 'text-slate-900');
+
+            const content = contentData[tabId];
+            document.getElementById('content-container').innerHTML = `
+                <h3 class="text-2xl font-bold text-slate-800 mb-4">${content.title}</h3>
+                ${content.body}
+            `;
+
+            visualizerConfig = {
+                particleColor: "",
+                speedMultiplier: 1.0,
+                particleCount: null,
+                lineThreshold: null
+            };
+
+            currentMode = tabId;
+            initParticles(tabId);
+            
+            const labels = {
+                toe: "Visualizing W(3,3) Exact Combinatorial Geometry",
+                agi: "Visualizing Hopf-Base Phase Transport (R4)",
+                quantum: "Visualizing Prime-Aligned Multi-Agent Routing (L2)",
+                observability: "Visualizing OTel Tangent Shadow State Validation"
+            };
+            document.getElementById('visualizer-label-2d').innerText = labels[tabId];
+        }
+
+        // --- 7. ✨ Gemini API Client Configuration with Exponential Backoff ---
+        const apiKey = ""; 
+        let activeSynthesisGoal = "toe";
+        let activeComputedResolutionText = ""; 
+        let terminalMemory = {
+            synthesis: "",
+            dialogue: "",
+            proof: "",
+            sigil: "",
+            quest: `
+                <div class="text-pink-400 font-bold mb-2"># MUDBench PERSISTENT WORLD QUEST CONSOLE [uor://mudbench.exe]</div>
+                <div class="text-slate-400 mb-3">You find yourself standing on a flat, cold slate floor. The air is dry and smells of ozone. In the center of the chamber, a monolithic dark basalt stone floats, humming at exactly 240 Hertz.</div>
+                <div class="text-yellow-400 font-bold mb-4 font-mono">The Wandering Elder stands near the stone, looking at you in expectance.</div>
+                <div class="text-slate-500 font-mono text-[10px] mb-4"># Command examples: "ask elder about the stone", "sing harmonic resonance to stone", "examine seal", "align F1 coordinates"</div>
+                <div id="quest-log-box" class="space-y-3 mb-4"></div>
+                <div class="flex gap-2 items-center bg-slate-950 p-2 rounded border border-slate-800">
+                    <span class="text-pink-500 font-bold font-mono">></span>
+                    <input type="text" id="quest-input" onkeydown="handleQuestKeyPress(event)" class="flex-1 bg-transparent text-slate-200 outline-none font-mono text-xs" placeholder="What will you do? Enter command..."/>
+                    <button onclick="submitQuestAction()" class="bg-pink-700 hover:bg-pink-600 text-white text-[10px] uppercase font-mono px-3 py-1 rounded">Execute</button>
+                </div>
+            `
+        };
+
+        const scenarioPresets = {
+            qimc: {
+                goal: "networking",
+                prompt: "RE: Quantum Information Merge Conflict (QIMC) resolving in a hyper-dense L2 topology.\n\n" +
+                        "Identify how an R4 Prime Router can resolve collision states across an associative three-operator algebra {T_b, T_x, T_y} acting upon a W(3,3) projective commutation geometry (Schläfli graph).\n\n" +
+                        "Compute the zero-knowledge handshake required to verify collision-minimized traffic using UOR-addr-1."
+            },
+            mobius: {
+                goal: "agi",
+                prompt: "RE: Resolution of parity ambiguities within a Möbius-twisted 4D hyperbolic state space.\n\n" +
+                        "Define the Metric-Topology Factorization (MTF) operator sequence. We assume a local complex transport law: U_xt(z) = Wr z + i Wi z.\n\n" +
+                        "Demonstrate how topological switching halts catastrophic gradient restart, and map this to a zero-point isotropic regression coordinate \\sigma."
+            },
+            witness: {
+                goal: "observability",
+                prompt: "RE: Fair Witness OpenTelemetry validation for an autonomous agent group.\n\n" +
+                        "A group of 7-node Turing-Complete cluster nodes is executing recursive thoughts. We cannot read activation state natively without violating semantic flux.\n\n" +
+                        "Compute how mapping OTel Trace ID (to boundary-mapped topology) and Span ID (to conceptual greatest common divisors) provides exact geometric verification of intent via the W3 Seal."
+            },
+            unfolding: {
+                goal: "toe",
+                prompt: "RE: The Witting Reference Fabric and Project Hologram compute unification.\n\n" +
+                        "We are projecting execution cycle data over 10^9 nodes. Standard models fail to preserve modular residues.\n\n" +
+                        "Formulate the mapping from E8 exceptional Lie roots to W(3,3) commutativity coordinates. Solve for scale-invariant representation using the Fibonacci-derived radial scale layer (rho)."
+            }
+        };
+
+        function loadPreset() {
+            const presetKey = document.getElementById("preset-selector").value;
+            if (presetKey !== "custom" && scenarioPresets[presetKey]) {
+                const config = scenarioPresets[presetKey];
+                document.getElementById("ai-prompt-input").value = config.prompt;
+                selectGoal(config.goal);
+            }
+        }
+
+        function selectGoal(goalId) {
+            activeSynthesisGoal = goalId;
+            document.querySelectorAll(".goal-btn").forEach(btn => {
+                btn.classList.remove("active", "border-slate-800", "bg-slate-900", "text-white");
+                btn.classList.add("border-slate-300", "text-slate-600");
+            });
+            const activeBtn = document.getElementById(`goal-${goalId}`);
+            activeBtn.classList.remove("border-slate-300", "text-slate-600");
+            activeBtn.classList.add("active", "border-slate-800", "bg-slate-900", "text-white");
+        }
+
+        function showError(msg) {
+            const errBox = document.getElementById("ai-error-box");
+            document.getElementById("ai-error-text").innerText = msg;
+            errBox.classList.remove("translate-y-full");
+        }
+
+        function dismissError() {
+            const errBox = document.getElementById("ai-error-box");
+            errBox.classList.add("translate-y-full");
+        }
+
+        // Generic Client supporting Exponential Backoff Retries
+        async function runGeminiRequest(url, payload) {
+            let delay = 1000;
+            for (let i = 0; i < 5; i++) {
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    if (!response.ok) {
+                        throw new Error(`Server returned status: ${response.status}`);
+                    }
+                    return await response.json();
+                } catch (err) {
+                    if (i === 4) throw err;
+                    await new Promise(r => setTimeout(r, delay));
+                    delay *= 2;
+                }
+            }
+        }
+
+        // Switch Terminal Tabs
+        function switchTerminalTab(tabId) {
+            document.querySelectorAll('#terminal-tabs button').forEach(btn => {
+                btn.classList.remove('text-white', 'bg-slate-800');
+                btn.classList.add('text-slate-400');
+            });
+            const activeBtn = document.getElementById(`term-tab-${tabId}`);
+            activeBtn.classList.add('text-white', 'bg-slate-800');
+            activeBtn.classList.remove('text-slate-400');
+
+            const terminal = document.getElementById('ai-terminal-output');
+            if (terminalMemory[tabId]) {
+                terminal.innerHTML = terminalMemory[tabId];
+            } else {
+                terminal.innerHTML = `<div class="text-slate-500 font-mono text-xs"># Tab [${tabId}] is empty. Run a compute or simulation to populate.</div>`;
+            }
+
+            if (tabId !== 'proof') {
+                document.getElementById('grounding-panel').classList.add('hidden');
+            } else if (terminalMemory.proof && document.getElementById('grounding-citations').children.length > 0) {
+                document.getElementById('grounding-panel').classList.remove('hidden');
+            }
+        }
+
+        // Helper to apply markdown parsing to terminal screens
+        function formatOutputToHtml(rawText) {
+            return rawText
+                .replace(/### (.*?)\n/g, '<h4 class="text-blue-400 font-bold mt-4 mb-2 text-sm">$1</h4>')
+                .replace(/## (.*?)\n/g, '<h3 class="text-emerald-400 font-bold mt-6 mb-2 text-base border-b border-slate-800 pb-1">$1</h3>')
+                .replace(/\*\*(.*?)\*\*/g, '<strong class="text-white">$1</strong>')
+                .replace(/`([^`]+)`/g, '<code class="bg-slate-800 px-1 py-0.5 rounded text-yellow-300 font-mono text-[11px]">$1</code>')
+                .replace(/\n\n/g, '<p class="mb-3"></p>')
+                .replace(/\n/g, '<br/>');
+        }
+
+        // --- 8. Structured JSON Text & Coordinate Generation Execution ---
+        async function runAiSynthesis() {
+            dismissError();
+            const promptInput = document.getElementById("ai-prompt-input").value.trim();
+            if (!promptInput) {
+                showError("Please enter a custom scenario or choose a preset before launching synthesis.");
+                return;
+            }
+
+            const runBtn = document.getElementById("run-ai-btn");
+            const terminal = document.getElementById("ai-terminal-output");
+            const statusLabel = document.getElementById("ai-status");
+            const playBtn = document.getElementById("tts-play-btn");
+
+            runBtn.disabled = true;
+            runBtn.innerHTML = `<span>✨ Synthesizing Manifold Matrix...</span>`;
+            statusLabel.innerHTML = `<span class="dot-flashing inline-block ml-4"></span>`;
+            playBtn.disabled = true;
+            playBtn.classList.add("opacity-50", "cursor-not-allowed");
+
+            terminal.innerHTML = `
+                <div class="text-blue-400 font-mono text-xs"># ESTABLISHING LEVI-CIVITA TRANSPORT ALIGNMENT...</div>
+                <div class="text-slate-400 font-mono text-xs"># Connecting to Unified Theory Co-Processor (Gemini Model)...</div>
+                <div class="text-slate-500 font-mono text-xs"># Resolving spatial 3D geodesics and E8 lattice coordinates...</div>
+            `;
+
+            const systemPrompt = `You are the Unified Manifold Co-Processor, a mathematical intelligence specializing in translating, validating, and synthesizing three advanced theories:
+            1. Universal Object Reference (UOR by Alex Flom): Focused on identity coordinates, F_1 field properties, immutability, uor-addr-1 protocols, OpenTelemetry observability (Trace ID mapping topology, Span ID mapping GCDs), and 'Fair Witness' consensus.
+            2. R4 Prime Router (Casey Allard): Focused on non-Euclidean latent spaces, Metric-Topology Factorization (MTF), Hopf fibration routing, 2i complex tangent operators (rotation + scaling), and Quantum Information Merge Conflict (QIMC) resolution.
+            3. ToE W(3,3) (Wil Bahn): Focused on discrete finite geometries (Schläfli graph, exceptional E8/E6 groups, the Witting Reference Fabric, PG(2,3) split).
+
+            Process the prompt and return valid JSON matching the schema parameters. In the algebraicDerivation field, write a mathematically dense and structurally clean resolution. Provide numerical tuning directives for the interactive live canvas. 
+
+            Additionally, output 3D geometry coordinates inside threeDProjection field. Calculate 15 distinct 3D points inside 'orbitSplinePoints' and up to 8 E8 projection coordinates inside 'attractors'. Scale all x, y, and z coordinate values to fit inside the range of [-4.0, 4.0] to keep them fully centered in the 3D scene view. Mode must be one of: "toe", "agi", "quantum", "observability".`;
+
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+            const payload = {
+                contents: [{ parts: [{ text: promptInput }] }],
+                systemInstruction: { parts: [{ text: systemPrompt }] },
+                generationConfig: {
+                    responseMimeType: "application/json",
+                    responseSchema: {
+                        type: "OBJECT",
+                        properties: {
+                            title: { type: "STRING" },
+                            algebraicDerivation: { type: "STRING" },
+                            canvasCoefficients: {
+                                type: "OBJECT",
+                                properties: {
+                                    mode: { type: "STRING" },
+                                    speedMultiplier: { type: "NUMBER" },
+                                    particleColor: { type: "STRING" },
+                                    particleCount: { type: "NUMBER" },
+                                    lineThreshold: { type: "NUMBER" }
+                                },
+                                required: ["mode", "speedMultiplier", "particleColor", "particleCount", "lineThreshold"]
+                            },
+                            threeDProjection: {
+                                type: "OBJECT",
+                                properties: {
+                                    orbitSplinePoints: {
+                                        type: "ARRAY",
+                                        items: {
+                                            type: "ARRAY",
+                                            items: { type: "NUMBER" }
+                                        }
+                                    },
+                                    attractors: {
+                                        type: "ARRAY",
+                                        items: {
+                                            type: "OBJECT",
+                                            properties: {
+                                                x: { type: "NUMBER" },
+                                                y: { type: "NUMBER" },
+                                                z: { type: "NUMBER" },
+                                                color: { type: "STRING" },
+                                                label: { type: "STRING" }
+                                            },
+                                            required: ["x", "y", "z", "color", "label"]
+                                        }
+                                    },
+                                    fiberCount: { type: "NUMBER" }
+                                },
+                                required: ["orbitSplinePoints", "attractors", "fiberCount"]
+                            },
+                            practicalApplications: {
+                                type: "ARRAY",
+                                items: { type: "STRING" }
+                            },
+                            governanceVerify: { type: "STRING" }
+                        },
+                        required: ["title", "algebraicDerivation", "canvasCoefficients", "threeDProjection", "practicalApplications", "governanceVerify"]
+                    }
+                }
+            };
+
+            try {
+                const resJson = await runGeminiRequest(url, payload);
+                const rawJsonText = resJson.candidates?.[0]?.content?.parts?.[0]?.text;
+                if (!rawJsonText) throw new Error("Unified model returned empty candidate response.");
+                
+                const data = JSON.parse(rawJsonText);
+                
+                // 1. Update 2D Canvas Visualizer Parameters
+                visualizerConfig.particleColor = data.canvasCoefficients.particleColor;
+                visualizerConfig.speedMultiplier = data.canvasCoefficients.speedMultiplier;
+                visualizerConfig.particleCount = data.canvasCoefficients.particleCount;
+                visualizerConfig.lineThreshold = data.canvasCoefficients.lineThreshold;
+                
+                const matchedMode = ["toe", "agi", "quantum", "observability"].includes(data.canvasCoefficients.mode) 
+                    ? data.canvasCoefficients.mode 
+                    : "toe";
+                
+                currentMode = matchedMode;
+                initParticles(matchedMode);
+
+                // 2. Update 3D WebGL Projection Chamber
+                if (data.threeDProjection) {
+                    createHopfFibers(data.threeDProjection.fiberCount || 12);
+
+                    while(attractorsGroup.children.length > 0) {
+                        attractorsGroup.remove(attractorsGroup.children[0]);
+                    }
+                    const sphereGeom = new THREE.SphereGeometry(0.18, 16, 16);
+                    data.threeDProjection.attractors.forEach(node => {
+                        const hexColor = node.color.startsWith('#') ? parseInt(node.color.slice(1), 16) : 0xa855f7;
+                        const nodeMat = new THREE.MeshPhongMaterial({ color: hexColor, emissive: hexColor & 0x777777 });
+                        const mesh = new THREE.Mesh(sphereGeom, nodeMat);
+                        mesh.position.set(node.x, node.y, node.z);
+                        attractorsGroup.add(mesh);
+                    });
+
+                    if (data.threeDProjection.orbitSplinePoints && data.threeDProjection.orbitSplinePoints.length > 0) {
+                        updateGeodesicOrbit(data.threeDProjection.orbitSplinePoints);
+                    }
+                    
+                    switchVisualizerView('3d');
+                }
+
+                activeComputedResolutionText = data.algebraicDerivation;
+                let formattedText = formatOutputToHtml(data.algebraicDerivation);
+                let appListHtml = data.practicalApplications.map(app => `<li>• ${app}</li>`).join("");
+
+                const finalOutput = `
+                    <div class="text-emerald-400 font-bold mb-1 font-mono text-[11px]"># MANIFOLD OPTIMIZED STRUCTURE RESOLVED:</div>
+                    <div class="text-white font-bold text-sm mb-3">${data.title}</div>
+                    
+                    <div class="text-slate-400 font-mono text-[10px] mb-3 bg-slate-950 p-2.5 rounded border border-slate-800">
+                        ZK Handshake Hash: <span class="text-yellow-400 select-all">${data.governanceVerify}</span>
+                    </div>
+
+                    <div class="text-slate-200 font-sans space-y-2 text-xs leading-relaxed border-l-2 border-slate-700 pl-3 py-1 mb-4">
+                        ${formattedText}
+                    </div>
+
+                    <div class="text-emerald-400 font-semibold text-xs mb-1">Coordinated System Application Vector:</div>
+                    <ul class="text-slate-300 text-xs font-mono space-y-1 mb-2">
+                        ${appListHtml}
+                    </ul>
+                `;
+
+                terminalMemory.synthesis = finalOutput;
+                switchTerminalTab('synthesis');
+
+                statusLabel.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Complete`;
+                
+                playBtn.disabled = false;
+                playBtn.classList.remove("opacity-50", "cursor-not-allowed");
+            } catch (err) {
+                showError(`Failed to process algebraic coordinates: ${err.message}`);
+                statusLabel.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-red-500"></span> Error`;
+                terminal.innerHTML = `<div class="text-red-400 font-mono text-xs"># SYNTHESIS ABORTED DUE TO TRANSPORT INTERFERENCE.</div>`;
+            } finally {
+                runBtn.disabled = false;
+                runBtn.innerHTML = `<span>✨ Compute Unified Synthesis</span>`;
+            }
+        }
+
+        // --- 9. ✨ Grounded Proof Generator (Gemini + Google Search Grounding) ---
+        async function runGroundedProof() {
+            dismissError();
+            const promptInput = document.getElementById("ai-prompt-input").value.trim();
+            if (!promptInput) {
+                showError("Select a preset scenario or type custom specifics first.");
+                return;
+            }
+
+            const proofBtn = document.getElementById("run-proof-btn");
+            const terminal = document.getElementById("ai-terminal-output");
+            const statusLabel = document.getElementById("ai-status");
+            const playBtn = document.getElementById("tts-play-btn");
+
+            proofBtn.disabled = true;
+            proofBtn.innerHTML = `<span>✨ Grounding...</span>`;
+            statusLabel.innerHTML = `<span class="dot-flashing inline-block ml-4"></span>`;
+            document.getElementById('grounding-panel').classList.add('hidden');
+
+            terminal.innerHTML = `
+                <div class="text-purple-400 font-mono text-xs"># INITIALIZING FORMAL SEARCH GROUNDING ENGINE...</div>
+                <div class="text-slate-400 font-mono text-xs"># Querying academic consensus databases via Google Grounding...</div>
+                <div class="text-slate-500 font-mono text-xs"># Verifying Weyl groups, F_1 geometry, and Hopf fibration equations...</div>
+            `;
+
+            const systemPrompt = `You are a formal mathematical verification co-processor specializing in Lean-4 and LaTeX formulation.
+            Generate a rigorous, publication-grade theorem statement and a structured formal proof sketch in Lean-4 or LaTeX syntax.
+            Your response must explicitly unify Flom's UOR (multiplicative F_1 algebra), Allard's R4 (hyperbolic manifold routing / complex tangent updates), and Bahn's W(3,3) (96-vertex projective geometries).
+            Rely strictly on established mathematical models from number theory, differential geometry, and representation theory. Keep the tone academic and neutral.`;
+
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+            const payload = {
+                contents: [{ parts: [{ text: `Scenario under test: ${promptInput}\n\nFormulate the absolute structural proof mapping to the target: ${activeSynthesisGoal.toUpperCase()}` }] }],
+                systemInstruction: { parts: [{ text: systemPrompt }] },
+                tools: [{ "google_search": {} }]
+            };
+
+            try {
+                const response = await runGeminiRequest(url, payload);
+                const text = response.candidates?.[0]?.content?.parts?.[0]?.text;
+                if (!text) throw new Error("Verification engine yielded empty validation content.");
+
+                const attributions = response.candidates?.[0]?.groundingMetadata?.groundingAttributions || [];
+                const citationContainer = document.getElementById('grounding-citations');
+                citationContainer.innerHTML = "";
+
+                if (attributions.length > 0) {
+                    attributions.forEach((attr, idx) => {
+                        if (attr.web?.uri) {
+                            const badge = document.createElement('a');
+                            badge.href = attr.web.uri;
+                            badge.target = "_blank";
+                            badge.className = "px-2 py-0.5 bg-purple-950/80 text-purple-300 border border-purple-800 rounded font-mono text-[9px] hover:bg-purple-900 transition-colors";
+                            badge.innerText = `[${idx+1}] ${attr.web.title || 'Research Source'}`;
+                            citationContainer.appendChild(badge);
+                        }
+                    });
+                    document.getElementById('grounding-panel').classList.remove('hidden');
+                }
+
+                if (attractorsGroup && splineObject) {
+                    createHopfFibers(8);
+                    const proofPoints = [];
+                    for(let i=0; i<=100; i++) {
+                        const t = i/100;
+                        const r = 2.5;
+                        const x = Math.sin(t*Math.PI*2) * Math.cos(t*Math.PI*4) * r;
+                        const y = Math.sin(t*Math.PI*2) * Math.sin(t*Math.PI*4) * r;
+                        const z = Math.cos(t*Math.PI*2) * r;
+                        proofPoints.push([x, y, z]);
+                    }
+                    updateGeodesicOrbit(proofPoints);
+                    switchVisualizerView('3d');
+                }
+
+                activeComputedResolutionText = text;
+                const formattedHtml = `
+                    <div class="text-purple-400 font-bold mb-2 font-mono text-[11px]"># RE-VERIFIED PROOF SEQUENCE SKELETON (LEAN-4 / LATEX):</div>
+                    <div class="text-slate-300 font-sans space-y-2 text-xs leading-relaxed max-w-none">
+                        ${formatOutputToHtml(text)}
+                    </div>
+                `;
+
+                terminalMemory.proof = formattedHtml;
+                switchTerminalTab('proof');
+                statusLabel.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Grounded Proof Complete`;
+
+                playBtn.disabled = false;
+                playBtn.classList.remove("opacity-50", "cursor-not-allowed");
+            } catch (err) {
+                showError(`Formal grounding sequence interrupted: ${err.message}`);
+                statusLabel.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-red-500"></span> Error`;
+            } finally {
+                proofBtn.disabled = false;
+                proofBtn.innerHTML = `<span>✨ Generate Grounded Proof</span>`;
+            }
+        }
+
+        // --- 10. ✨ MUDBench Agentic Dialogue Simulation ---
+        async function runAgenticDialogue() {
+            dismissError();
+            const promptInput = document.getElementById("ai-prompt-input").value.trim();
+            if (!promptInput) {
+                showError("Select a preset scenario or enter custom specifics first.");
+                return;
+            }
+
+            const dialogueBtn = document.getElementById("run-dialogue-btn");
+            const terminal = document.getElementById("ai-terminal-output");
+            const statusLabel = document.getElementById("ai-status");
+            const playBtn = document.getElementById("tts-play-btn");
+
+            dialogueBtn.disabled = true;
+            dialogueBtn.innerHTML = `<span>✨ Simulating...</span>`;
+            statusLabel.innerHTML = `<span class="dot-flashing inline-block ml-4"></span>`;
+
+            terminal.innerHTML = `
+                <div class="text-emerald-400 font-mono text-xs"># SPINNING UP MUDBench PERSISTENT WORLD INSTABILITY REGIME...</div>
+                <div class="text-slate-400 font-mono text-xs"># Loading character profiles (Alex Flom, Casey Allard, Wil Bahn)...</div>
+                <div class="text-slate-500 font-mono text-xs"># Computing intellectual friction vectors across multi-agent workspace...</div>
+            `;
+
+            const systemPrompt = `You are a persistent multi-agent world simulator running inside MUDBench.
+            Generate a sharp, intellectual, dramatic, and highly technical dialogue log between three agents attempting to resolve the active scenario:
+            1. Alex Flom (Ontologist): Stern, protective of UOR-addr-1 immutability, F_1 field invariants, OTel logging structures, and Fair Witness protocols.
+            2. Casey Allard (AGI Geometer): Pragmatic, champion of continuous Riemannian manifolds, Hopf fibrations, Metric-Topology Factorization, and sublinear local execution on physical hardware.
+            3. Wil Bahn (Combinatorist): Theoretical, absolute, maps everything to standard model symmetries, E8 roots, exceptional Lie algebras, and zero-parameter physical closure.
+
+            Write the dialogue as a collaborative (but highly argumentative and precise) debate where they construct the solution. Format cleanly with markdown. Highlight their disagreements and resolution paths.`;
+
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+            const payload = {
+                contents: [{ parts: [{ text: `Active Scenario: ${promptInput}\nTarget Plane: ${activeSynthesisGoal.toUpperCase()}` }] }],
+                systemInstruction: { parts: [{ text: systemPrompt }] }
+            };
+
+            try {
+                const response = await runGeminiRequest(url, payload);
+                const text = response.candidates?.[0]?.content?.parts?.[0]?.text;
+                if (!text) throw new Error("Agentic engine yielded empty communication trace.");
+
+                visualizerConfig.particleColor = "rgba(16, 185, 129, 0.9)";
+                visualizerConfig.speedMultiplier = 1.8;
+                visualizerConfig.particleCount = 140;
+                visualizerConfig.lineThreshold = 120;
+                initParticles('agi');
+
+                if (attractorsGroup && splineObject) {
+                    createHopfFibers(18);
+                    const dialoguePoints = [];
+                    for(let i=0; i<=100; i++) {
+                        const t = i/100;
+                        const theta = t * Math.PI * 24;
+                        const r = 3;
+                        dialoguePoints.push([Math.cos(theta)*r, (t*6)-3, Math.sin(theta)*r]);
+                    }
+                    updateGeodesicOrbit(dialoguePoints);
+                    switchVisualizerView('3d');
+                }
+
+                activeComputedResolutionText = text;
+                const formattedHtml = `
+                    <div class="text-emerald-400 font-bold mb-2 font-mono text-[11px]"># MUDBench STDOUT AGENTIC DEBATE TRACE:</div>
+                    <div class="text-slate-300 font-sans space-y-2 text-xs leading-relaxed max-w-none">
+                        ${formatOutputToHtml(text)}
+                    </div>
+                `;
+
+                terminalMemory.dialogue = formattedHtml;
+                switchTerminalTab('dialogue');
+                statusLabel.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Communication Logged`;
+
+                playBtn.disabled = false;
+                playBtn.classList.remove("opacity-50", "cursor-not-allowed");
+            } catch (err) {
+                showError(`Multi-agent co-simulation aborted: ${err.message}`);
+                statusLabel.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-red-500"></span> Error`;
+            } finally {
+                dialogueBtn.disabled = false;
+                dialogueBtn.innerHTML = `<span>✨ Simulate Dialogue</span>`;
+            }
+        }
+
+        // --- 11. ✨ Hologram Sigil Generator (Imagen-4) ---
+        async function generateHologramSigil() {
+            dismissError();
+            const promptInput = document.getElementById("ai-prompt-input").value.trim();
+            const sigilBtn = document.getElementById("run-sigil-btn");
+            const statusLabel = document.getElementById("ai-status");
+            const terminal = document.getElementById("ai-terminal-output");
+
+            sigilBtn.disabled = true;
+            sigilBtn.innerHTML = `<span>✨ Manifesting...</span>`;
+            statusLabel.innerHTML = `<span class="dot-flashing inline-block ml-4"></span>`;
+
+            terminal.innerHTML = `
+                <div class="text-indigo-400 font-mono text-xs"># CONTACTING IMAGEN CO-PROCESSOR SUBSYSTEM [imagen-4.0-generate-001]...</div>
+                <div class="text-slate-400 font-mono text-xs"># Constructing high-dimensional geometry prompt based on current synthesis target...</div>
+                <div class="text-slate-500 font-mono text-xs"># Generating base-64 bytes vector representation of sacred manifold...</div>
+            `;
+
+            // Compile high fidelity visual prompt based on active goals
+            const basePrompt = `High-definition, publication-grade sacred geometry, mathematical visualization of ${activeSynthesisGoal.toUpperCase()} state space. ` +
+                               `Intricate glowing networks, complex coordinate lines in cyan, neon emerald, and violet. ` +
+                               `Hopf fibration vectors mapping E8 exceptional Lie roots, non-collapsed Riemannian manifold, on deep black velvet space background. ` +
+                               `Crisp, clean vector lines, symmetric and perfectly balanced, abstract sci-fi blueprint aesthetic.`;
+
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-generate-001:predict?key=${apiKey}`;
+            const payload = {
+                instances: { prompt: basePrompt },
+                parameters: { sampleCount: 1 }
+            };
+
+            try {
+                const result = await runGeminiRequest(url, payload);
+                const base64Bytes = result.predictions?.[0]?.bytesBase64Encoded;
+                if (!base64Bytes) throw new Error("Image prediction returned empty payload.");
+
+                const imageUrl = `data:image/png;base64,${base64Bytes}`;
+                
+                const responseHtml = `
+                    <div class="text-indigo-400 font-bold mb-2 font-mono text-[11px]"># MANIFESTED HOLOGRAPHIC SIGIL [uor://hologram.png]:</div>
+                    <div class="flex flex-col items-center gap-4 bg-slate-950 p-4 rounded-xl border border-slate-800">
+                        <img src="${imageUrl}" alt="Holographic Sigil" class="max-w-md w-full rounded-lg shadow-lg border border-slate-700 animate-fade-in"/>
+                        <p class="text-[10px] text-slate-500 font-mono max-w-sm text-center">Generated dynamic representation matching metric-topology coordinates for ${activeSynthesisGoal.toUpperCase()}</p>
+                    </div>
+                `;
+
+                terminalMemory.sigil = responseHtml;
+                switchTerminalTab('sigil');
+                statusLabel.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Sigil Manifested`;
+            } catch (err) {
+                showError(`Visual sigil generation failed: ${err.message}`);
+                statusLabel.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-red-500"></span> Error`;
+            } finally {
+                sigilBtn.disabled = false;
+                sigilBtn.innerHTML = `<span>✨ Manifest Sigil</span>`;
+            }
+        }
+
+        // --- 12. ✨ Interactive MUDBench Quest Console (Dynamic LLM DM) ---
+        async function submitQuestAction() {
+            dismissError();
+            const inputEl = document.getElementById("quest-input");
+            const actionText = inputEl.value.trim();
+            if (!actionText) return;
+
+            inputEl.value = "";
+            const logBox = document.getElementById("quest-log-box");
+
+            // Print User action locally in console
+            const playerLine = document.createElement("div");
+            playerLine.className = "text-slate-100 font-mono text-xs pl-2 border-l-2 border-pink-500";
+            playerLine.innerHTML = `<span class="text-pink-400 font-bold">> You:</span> ${actionText}`;
+            logBox.appendChild(playerLine);
+            logBox.scrollTop = logBox.scrollHeight;
+
+            const systemPrompt = `You are the Wandering Elder, a mystical but highly technical guardian inside the MUDBench simulation environment.
+            You must evaluate the player's action regarding the central basalt stone, W3 Seal, or F1 coordinates.
+            Return a valid JSON response containing exactly four fields:
+            1. "elderResponse" (string): The spoken dialogue or environmental description. Keep it short, cryptic, but technically grounded in Allard's R4, Flom's UOR, or Bahn's W(3,3).
+            2. "coherenceChange" (number): A value between -0.2 and +0.2 representing state-change in thermodynamic stability.
+            3. "capacityChange" (number): An integer change (positive or negative) to system throughput capacity.
+            4. "activeCoordinates" (string): Re-calculated coordinate string (e.g. "45-96-240" or a modified variant).
+
+            Evaluate actions that seek "alignment", "resonance", "harmony" or "formal proof" positively. Actions seeking "chaos", "brute force", or "Euclidean expansion" negatively.`;
+
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+            const payload = {
+                contents: [{ parts: [{ text: actionText }] }],
+                systemInstruction: { parts: [{ text: systemPrompt }] },
+                generationConfig: {
+                    responseMimeType: "application/json",
+                    responseSchema: {
+                        type: "OBJECT",
+                        properties: {
+                            elderResponse: { type: "STRING" },
+                            coherenceChange: { type: "NUMBER" },
+                            capacityChange: { type: "NUMBER" },
+                            activeCoordinates: { type: "STRING" }
+                        },
+                        required: ["elderResponse", "coherenceChange", "capacityChange", "activeCoordinates"]
+                    }
+                }
+            };
+
+            // Loading state
+            const loadingLine = document.createElement("div");
+            loadingLine.className = "text-slate-500 font-mono text-[10px] animate-pulse";
+            loadingLine.innerText = "# The Monolith vibrates... evaluating coherence...";
+            loadingLine.id = "quest-loading";
+            logBox.appendChild(loadingLine);
+            logBox.scrollTop = logBox.scrollHeight;
+
+            try {
+                const response = await runGeminiRequest(url, payload);
+                const rawJson = response.candidates?.[0]?.content?.parts?.[0]?.text;
+                if (!rawJson) throw new Error("Wandering Elder failed to acknowledge the command.");
+
+                const data = JSON.parse(rawJson);
+                
+                // Remove loading line
+                const ld = document.getElementById("quest-loading");
+                if (ld) ld.remove();
+
+                // Print Elder output
+                const elderLine = document.createElement("div");
+                elderLine.className = "text-pink-300 font-mono text-xs pl-2 border-l-2 border-emerald-500 space-y-1";
+                elderLine.innerHTML = `<span class="text-emerald-400 font-bold">> The Elder:</span> <span>"${data.elderResponse}"</span>`;
+                logBox.appendChild(elderLine);
+
+                // Print system updates inside quest log
+                const systemLine = document.createElement("div");
+                systemLine.className = "text-slate-500 font-mono text-[9px] uppercase tracking-wider pl-4";
+                systemLine.innerHTML = `[Coherence: ${data.coherenceChange > 0 ? '+' : ''}${data.coherenceChange.toFixed(2)}] | [Capacity: ${data.capacityChange > 0 ? '+' : ''}${data.capacityChange}] | [Nodes: ${data.activeCoordinates}]`;
+                logBox.appendChild(systemLine);
+                logBox.scrollTop = logBox.scrollHeight;
+
+                // 2. DYNAMICALLY CO-DRIVE PAGE KPI CARDS!
+                // Capture current states
+                const capEl = document.getElementById("kpi-capacity");
+                const scaleEl = document.getElementById("kpi-scaling");
+                const closureEl = document.getElementById("kpi-closure");
+                const nodesEl = document.getElementById("kpi-nodes");
+
+                let currentCap = parseInt(capEl.innerText.replace(/\D/g, "")) || 5000;
+                let currentClosure = parseFloat(closureEl.innerText.replace(/[^\d\.-]/g, "")) || 1.0;
+
+                // Apply deltas safely
+                let nextCap = Math.max(100, currentCap + data.capacityChange);
+                let nextClosure = Math.max(0.1, Math.min(2.0, currentClosure + data.coherenceChange));
+
+                // Animate updates to UI card fields
+                capEl.innerText = `K = ${nextCap}`;
+                closureEl.innerText = `\\sigma = ${nextClosure.toFixed(2)}`;
+                nodesEl.innerText = data.activeCoordinates;
+                scaleEl.innerText = `O(K^${(0.572 * (1.0 / nextClosure)).toFixed(3)})`;
+
+                // Store state changes locally to retain log history
+                terminalMemory.quest = document.getElementById("ai-terminal-output").innerHTML;
+
+                // Also trigger subtle change on visualizer speed
+                visualizerConfig.speedMultiplier = nextClosure;
+                if (attractorsGroup && splineObject) {
+                    // Warp spline geometry slightly based on calculations
+                    const coords = [];
+                    for(let i=0; i<=15; i++) {
+                        const t = i/15;
+                        const r = 2.0 * nextClosure;
+                        coords.push([Math.cos(t*Math.PI*2)*r, (t*6)-3, Math.sin(t*Math.PI*2)*r]);
+                    }
+                    updateGeodesicOrbit(coords);
+                }
+
+            } catch (err) {
+                const ld = document.getElementById("quest-loading");
+                if (ld) ld.remove();
+                showError(`MUDBench Engine sync error: ${err.message}`);
+            }
+        }
+
+        function handleQuestKeyPress(e) {
+            if (e.key === "Enter") {
+                submitQuestAction();
+            }
+        }
+
+        // --- 13. Acoustic Translation Engine (Gemini TTS API) ---
+        async function pronounceActiveSynthesis() {
+            dismissError();
+            if (!activeComputedResolutionText) {
+                showError("No active synthesis to read. Please run an execution mode first.");
+                return;
+            }
+
+            const playBtn = document.getElementById("tts-play-btn");
+            const statusLabel = document.getElementById("ai-status");
+            const selectedVoice = document.getElementById("tts-voice-selector").value;
+
+            const textToSpeak = `Computed Resolution Summary: ${activeComputedResolutionText}`
+                .replace(/[\$\*`#_]/g, "")
+                .substring(0, 400); 
+
+            playBtn.disabled = true;
+            playBtn.innerHTML = `<span>✨ Synthesizing Audio...</span>`;
+            statusLabel.innerHTML = `<span class="dot-flashing inline-block ml-4"></span>`;
+
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`;
+            const payload = {
+                contents: [{ parts: [{ text: textToSpeak }] }],
+                generationConfig: {
+                    responseModalities: ["AUDIO"],
+                    speechConfig: {
+                        voiceConfig: {
+                            prebuiltVoiceConfig: {
+                                voiceName: selectedVoice
+                            }
+                        }
+                    }
+                },
+                model: "gemini-2.5-flash-preview-tts"
+            };
+
+            try {
+                const response = await runGeminiRequest(url, payload);
+                const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+                const mimeType = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.mimeType || "audio/L16;rate=24000";
+
+                if (!base64Audio) throw new Error("Speech synthesis did not return a valid audio stream.");
+
+                let sampleRate = 24000;
+                const match = mimeType.match(/rate=(\d+)/);
+                if (match) sampleRate = parseInt(match[1]);
+
+                const wavUrl = pcmToWav(base64Audio, sampleRate);
+                const audio = new Audio(wavUrl);
+                
+                audio.onended = () => {
+                    playBtn.disabled = false;
+                    playBtn.innerHTML = `<span>✨ Speak Computed Manifold</span>`;
+                    statusLabel.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Complete`;
+                };
+
+                await audio.play();
+            } catch (err) {
+                showError(`Acoustic synthesis failure: ${err.message}`);
+                playBtn.disabled = false;
+                playBtn.innerHTML = `<span>✨ Speak Computed Manifold</span>`;
+                statusLabel.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Ready`;
+            }
+        }
+
+        // Native PCM-16 RAW Base64 conversion to WAV container
+        function pcmToWav(pcmBase64, sampleRate = 24000) {
+            const binaryString = atob(pcmBase64);
+            const len = binaryString.length;
+            const buffer = new ArrayBuffer(44 + len);
+            const view = new DataView(buffer);
+            
+            view.setUint32(0, 0x52494646, false); // "RIFF"
+            view.setUint32(4, 36 + len, true);   // Total size minus "RIFF WAVE" chunks
+            view.setUint32(8, 0x57415645, false); // "WAVE"
+            view.setUint32(12, 0x666d7420, false); // "fmt "
+            view.setUint16(20, 1, true);           // Compression format code (1 = PCM)
+            view.setUint16(22, 1, true);           // Channel Count (Mono)
+            view.setUint32(24, sampleRate, true);  // Sampling Frequency Rate
+            view.setUint32(28, sampleRate * 1 * 2, true); // Byte Rate
+            view.setUint16(32, 2, true);           // Block Align size
+            view.setUint16(34, 16, true);          // Quantization Bits per Sample
+            view.setUint32(36, 0x64617461, false); // "data"
+            view.setUint32(40, len, true);         // raw audio payload data length
+            
+            for (let i = 0; i < len; i++) {
+                view.setUint8(44 + i, binaryString.charCodeAt(i));
+            }
+            
+            const blob = new Blob([view], { type: 'audio/wav' });
+            return URL.createObjectURL(blob);
+        }
+
+        // Initialization
+        window.addEventListener('resize', resizeCanvas);
+        window.onload = function() {
+            initCharts();
+            resizeCanvas();
+            initThreeJS();
+            switchTab('toe'); 
+            animate();
+            loadPreset();
+        };
+
+    </script>
+</body>
+</html>

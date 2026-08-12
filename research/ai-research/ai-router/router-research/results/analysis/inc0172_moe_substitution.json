@@ -1,0 +1,468 @@
+{
+  "increment": "INC-0172",
+  "verdict": "REFINE",
+  "verdict_full": "REFINE \u2014 concentration guard failed; check aux_coeff before proceeding",
+  "config": {
+    "vocab_size": 5000,
+    "seq_len": 32,
+    "hidden_dim": 128,
+    "n_heads": 4,
+    "n_layers": 2,
+    "k_experts": 64,
+    "expert_dim": 128,
+    "steps": 4000,
+    "seeds": [
+      0
+    ],
+    "conditions": [
+      "DENSE",
+      "BASELINE",
+      "LEARNED_SPARSE",
+      "HOPF",
+      "PERMUTED"
+    ],
+    "aux_coeff": 0.01
+  },
+  "summary": {
+    "DENSE": {
+      "mean_val_ppl": 135.13872312573827,
+      "mean_eff_buckets": NaN,
+      "n_seeds": 1,
+      "n_params": 1680640
+    },
+    "BASELINE": {
+      "mean_val_ppl": 154.55468882685935,
+      "mean_eff_buckets": 43.99961014555766,
+      "n_seeds": 1,
+      "n_params": 5660672
+    },
+    "LEARNED_SPARSE": {
+      "mean_val_ppl": 154.78264525611635,
+      "mean_eff_buckets": 62.7745902804277,
+      "n_seeds": 1,
+      "n_params": 5660672
+    },
+    "HOPF": {
+      "mean_val_ppl": 165.58564500990656,
+      "mean_eff_buckets": 47.73971280748573,
+      "n_seeds": 1,
+      "n_params": 5644288
+    },
+    "PERMUTED": {
+      "mean_val_ppl": 165.2497045393745,
+      "mean_eff_buckets": 47.1430602563652,
+      "n_seeds": 1,
+      "n_params": 5644288
+    }
+  },
+  "key_metrics": {
+    "ppl_ratio_hopf_vs_baseline": 1.0713725107065803,
+    "ppl_ratio_hopf_vs_learned_sparse": 1.0697946448448057,
+    "eff_ratio_dense_vs_hopf": 1.3406029537313138,
+    "learned_sparse_eff_b": 62.7745902804277,
+    "concentration_guard_limit": 57.6,
+    "concentration_guard_passed": false
+  },
+  "results": [
+    {
+      "condition": "DENSE",
+      "seed": 0,
+      "n_params": 1680640,
+      "final_val_ppl": 135.13872312573827,
+      "final_eff_buckets": NaN,
+      "log": [
+        {
+          "step": 400,
+          "val_ppl": 271.8701960356066,
+          "eff_buckets": NaN,
+          "routing_ops": 0.0,
+          "mean_aux_loss": NaN
+        },
+        {
+          "step": 800,
+          "val_ppl": 202.53337510620554,
+          "eff_buckets": NaN,
+          "routing_ops": 0.0,
+          "mean_aux_loss": NaN
+        },
+        {
+          "step": 1200,
+          "val_ppl": 173.2049696652942,
+          "eff_buckets": NaN,
+          "routing_ops": 0.0,
+          "mean_aux_loss": NaN
+        },
+        {
+          "step": 1600,
+          "val_ppl": 156.99398376864676,
+          "eff_buckets": NaN,
+          "routing_ops": 0.0,
+          "mean_aux_loss": NaN
+        },
+        {
+          "step": 2000,
+          "val_ppl": 146.735768142278,
+          "eff_buckets": NaN,
+          "routing_ops": 0.0,
+          "mean_aux_loss": NaN
+        },
+        {
+          "step": 2400,
+          "val_ppl": 141.35633186003398,
+          "eff_buckets": NaN,
+          "routing_ops": 0.0,
+          "mean_aux_loss": NaN
+        },
+        {
+          "step": 2800,
+          "val_ppl": 138.37321103762903,
+          "eff_buckets": NaN,
+          "routing_ops": 0.0,
+          "mean_aux_loss": NaN
+        },
+        {
+          "step": 3200,
+          "val_ppl": 135.9167066386079,
+          "eff_buckets": NaN,
+          "routing_ops": 0.0,
+          "mean_aux_loss": NaN
+        },
+        {
+          "step": 3600,
+          "val_ppl": 135.24372813931734,
+          "eff_buckets": NaN,
+          "routing_ops": 0.0,
+          "mean_aux_loss": NaN
+        },
+        {
+          "step": 4000,
+          "val_ppl": 135.13872312573827,
+          "eff_buckets": NaN,
+          "routing_ops": 0.0,
+          "mean_aux_loss": NaN
+        }
+      ],
+      "elapsed_s": 270.5632541179657
+    },
+    {
+      "condition": "BASELINE",
+      "seed": 0,
+      "n_params": 5660672,
+      "final_val_ppl": 154.55468882685935,
+      "final_eff_buckets": 43.99961014555766,
+      "log": [
+        {
+          "step": 400,
+          "val_ppl": 299.5743568205777,
+          "eff_buckets": 20.24361590345336,
+          "routing_ops": 2048.0,
+          "mean_aux_loss": NaN
+        },
+        {
+          "step": 800,
+          "val_ppl": 228.2436948424533,
+          "eff_buckets": 29.207750664004777,
+          "routing_ops": 2048.0,
+          "mean_aux_loss": NaN
+        },
+        {
+          "step": 1200,
+          "val_ppl": 194.3854947371191,
+          "eff_buckets": 35.86007563899586,
+          "routing_ops": 2048.0,
+          "mean_aux_loss": NaN
+        },
+        {
+          "step": 1600,
+          "val_ppl": 176.75901530321022,
+          "eff_buckets": 39.262617561646096,
+          "routing_ops": 2048.0,
+          "mean_aux_loss": NaN
+        },
+        {
+          "step": 2000,
+          "val_ppl": 166.5186360974122,
+          "eff_buckets": 41.597608951127135,
+          "routing_ops": 2048.0,
+          "mean_aux_loss": NaN
+        },
+        {
+          "step": 2400,
+          "val_ppl": 160.2967127629948,
+          "eff_buckets": 42.92500706088787,
+          "routing_ops": 2048.0,
+          "mean_aux_loss": NaN
+        },
+        {
+          "step": 2800,
+          "val_ppl": 157.1156897347001,
+          "eff_buckets": 43.59674873745519,
+          "routing_ops": 2048.0,
+          "mean_aux_loss": NaN
+        },
+        {
+          "step": 3200,
+          "val_ppl": 155.2921085162958,
+          "eff_buckets": 43.96047678910073,
+          "routing_ops": 2048.0,
+          "mean_aux_loss": NaN
+        },
+        {
+          "step": 3600,
+          "val_ppl": 154.66322999404056,
+          "eff_buckets": 43.99650636359599,
+          "routing_ops": 2048.0,
+          "mean_aux_loss": NaN
+        },
+        {
+          "step": 4000,
+          "val_ppl": 154.55468882685935,
+          "eff_buckets": 43.99961014555766,
+          "routing_ops": 2048.0,
+          "mean_aux_loss": NaN
+        }
+      ],
+      "elapsed_s": 559.9529039859772
+    },
+    {
+      "condition": "LEARNED_SPARSE",
+      "seed": 0,
+      "n_params": 5660672,
+      "final_val_ppl": 154.78264525611635,
+      "final_eff_buckets": 62.7745902804277,
+      "log": [
+        {
+          "step": 400,
+          "val_ppl": 298.64336097061624,
+          "eff_buckets": 61.71455986315674,
+          "routing_ops": 2048.0,
+          "mean_aux_loss": 0.010038115355807046
+        },
+        {
+          "step": 800,
+          "val_ppl": 225.9108678256376,
+          "eff_buckets": 62.36495719987037,
+          "routing_ops": 2048.0,
+          "mean_aux_loss": 0.01004193777528902
+        },
+        {
+          "step": 1200,
+          "val_ppl": 193.3045378858437,
+          "eff_buckets": 62.36293652145246,
+          "routing_ops": 2048.0,
+          "mean_aux_loss": 0.010042683919891715
+        },
+        {
+          "step": 1600,
+          "val_ppl": 176.33069400087146,
+          "eff_buckets": 62.46913596794924,
+          "routing_ops": 2048.0,
+          "mean_aux_loss": 0.01003269217390981
+        },
+        {
+          "step": 2000,
+          "val_ppl": 166.4406063619398,
+          "eff_buckets": 62.64320963486385,
+          "routing_ops": 2048.0,
+          "mean_aux_loss": 0.01003089478601598
+        },
+        {
+          "step": 2400,
+          "val_ppl": 160.44662173580159,
+          "eff_buckets": 62.72597100075556,
+          "routing_ops": 2048.0,
+          "mean_aux_loss": 0.010023284574142761
+        },
+        {
+          "step": 2800,
+          "val_ppl": 157.17213230524496,
+          "eff_buckets": 62.7136305209318,
+          "routing_ops": 2048.0,
+          "mean_aux_loss": 0.010020365692778595
+        },
+        {
+          "step": 3200,
+          "val_ppl": 155.58150439851482,
+          "eff_buckets": 62.76504548230049,
+          "routing_ops": 2048.0,
+          "mean_aux_loss": 0.010015507293347683
+        },
+        {
+          "step": 3600,
+          "val_ppl": 154.95394967015673,
+          "eff_buckets": 62.763171121631686,
+          "routing_ops": 2048.0,
+          "mean_aux_loss": 0.010017325260883404
+        },
+        {
+          "step": 4000,
+          "val_ppl": 154.78264525611635,
+          "eff_buckets": 62.7745902804277,
+          "routing_ops": 2048.0,
+          "mean_aux_loss": 0.010016394921371507
+        }
+      ],
+      "elapsed_s": 565.2847900390625
+    },
+    {
+      "condition": "HOPF",
+      "seed": 0,
+      "n_params": 5644288,
+      "final_val_ppl": 165.58564500990656,
+      "final_eff_buckets": 47.73971280748573,
+      "log": [
+        {
+          "step": 400,
+          "val_ppl": 316.5048955703514,
+          "eff_buckets": 31.981836064959925,
+          "routing_ops": 2048.0,
+          "mean_aux_loss": NaN
+        },
+        {
+          "step": 800,
+          "val_ppl": 244.52508424232738,
+          "eff_buckets": 38.76309841931402,
+          "routing_ops": 2048.0,
+          "mean_aux_loss": NaN
+        },
+        {
+          "step": 1200,
+          "val_ppl": 210.21054341942633,
+          "eff_buckets": 40.90651297066688,
+          "routing_ops": 2048.0,
+          "mean_aux_loss": NaN
+        },
+        {
+          "step": 1600,
+          "val_ppl": 190.92612878945474,
+          "eff_buckets": 42.74710018948971,
+          "routing_ops": 2048.0,
+          "mean_aux_loss": NaN
+        },
+        {
+          "step": 2000,
+          "val_ppl": 179.93541816048935,
+          "eff_buckets": 45.26596991182508,
+          "routing_ops": 2048.0,
+          "mean_aux_loss": NaN
+        },
+        {
+          "step": 2400,
+          "val_ppl": 173.22693097115382,
+          "eff_buckets": 47.18413877943452,
+          "routing_ops": 2048.0,
+          "mean_aux_loss": NaN
+        },
+        {
+          "step": 2800,
+          "val_ppl": 168.26176274226538,
+          "eff_buckets": 47.05441351416632,
+          "routing_ops": 2048.0,
+          "mean_aux_loss": NaN
+        },
+        {
+          "step": 3200,
+          "val_ppl": 166.39460302837298,
+          "eff_buckets": 47.47854242800702,
+          "routing_ops": 2048.0,
+          "mean_aux_loss": NaN
+        },
+        {
+          "step": 3600,
+          "val_ppl": 165.66445665327998,
+          "eff_buckets": 47.73382857533741,
+          "routing_ops": 2048.0,
+          "mean_aux_loss": NaN
+        },
+        {
+          "step": 4000,
+          "val_ppl": 165.58564500990656,
+          "eff_buckets": 47.73971280748573,
+          "routing_ops": 2048.0,
+          "mean_aux_loss": NaN
+        }
+      ],
+      "elapsed_s": 496.7862899303436
+    },
+    {
+      "condition": "PERMUTED",
+      "seed": 0,
+      "n_params": 5644288,
+      "final_val_ppl": 165.2497045393745,
+      "final_eff_buckets": 47.1430602563652,
+      "log": [
+        {
+          "step": 400,
+          "val_ppl": 317.7334085611263,
+          "eff_buckets": 33.19327368055848,
+          "routing_ops": 2048.0,
+          "mean_aux_loss": NaN
+        },
+        {
+          "step": 800,
+          "val_ppl": 243.78028747391343,
+          "eff_buckets": 39.55811711828645,
+          "routing_ops": 2048.0,
+          "mean_aux_loss": NaN
+        },
+        {
+          "step": 1200,
+          "val_ppl": 209.56587364276777,
+          "eff_buckets": 41.515249655086976,
+          "routing_ops": 2048.0,
+          "mean_aux_loss": NaN
+        },
+        {
+          "step": 1600,
+          "val_ppl": 190.26190348367757,
+          "eff_buckets": 43.1632265896891,
+          "routing_ops": 2048.0,
+          "mean_aux_loss": NaN
+        },
+        {
+          "step": 2000,
+          "val_ppl": 179.88033829417452,
+          "eff_buckets": 45.30210386973837,
+          "routing_ops": 2048.0,
+          "mean_aux_loss": NaN
+        },
+        {
+          "step": 2400,
+          "val_ppl": 172.99355911782897,
+          "eff_buckets": 46.53921435707223,
+          "routing_ops": 2048.0,
+          "mean_aux_loss": NaN
+        },
+        {
+          "step": 2800,
+          "val_ppl": 168.02867452272324,
+          "eff_buckets": 46.78816945215214,
+          "routing_ops": 2048.0,
+          "mean_aux_loss": NaN
+        },
+        {
+          "step": 3200,
+          "val_ppl": 166.14922596113547,
+          "eff_buckets": 47.05265503812425,
+          "routing_ops": 2048.0,
+          "mean_aux_loss": NaN
+        },
+        {
+          "step": 3600,
+          "val_ppl": 165.27774996675623,
+          "eff_buckets": 47.178930504354675,
+          "routing_ops": 2048.0,
+          "mean_aux_loss": NaN
+        },
+        {
+          "step": 4000,
+          "val_ppl": 165.2497045393745,
+          "eff_buckets": 47.1430602563652,
+          "routing_ops": 2048.0,
+          "mean_aux_loss": NaN
+        }
+      ],
+      "elapsed_s": 487.55433797836304
+    }
+  ]
+}

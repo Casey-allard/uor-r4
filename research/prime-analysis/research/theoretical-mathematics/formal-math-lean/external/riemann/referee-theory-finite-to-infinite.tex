@@ -1,0 +1,129 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[utf8]{inputenc}
+\usepackage{microtype}
+\usepackage{hyperref}
+\usepackage{xcolor}
+
+\hypersetup{colorlinks=true,linkcolor=black,citecolor=black,urlcolor=black}
+
+\newcommand{\Rev}[1]{\textcolor{blue}{#1}}
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{hypothesis}[theorem]{Hypothesis}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+
+\newcommand{\C}{\mathbb{C}}
+\newcommand{\N}{\mathbb{N}}
+\title{\bf Referee Note (Theory-Only):\\
+	Paper 1: ``Certified far-field zero-freeness''}
+\author{Referee: Amir Rahnama}
+\date{\today}
+\begin{document}
+\maketitle
+	
+	
+	\begin{center}
+		{\Large \textbf{Pick-tail $\Rightarrow$ infinite positivity}}
+	\end{center}
+	
+	\section{Schur/Herglotz pinch: a minor but necessary condition}
+	
+	\begin{lemma}[Removable singularity under Schur bound]\label{lem:removable}
+		Let $D\subset\C$ be a disc centered at $\rho$ and let $\Theta$ be holomorphic on $D\setminus\{\rho\}$ with $|\Theta|<1$ there.
+		Then $\Theta$ extends holomorphically to $D$.
+	\end{lemma}
+	\begin{proof}
+		Since $\Theta$ is bounded on $D\setminus\{\rho\}$, Riemann's removable singularity theorem applies.
+	\end{proof}
+	
+	\begin{corollary}[Schur bound prevents poles of the Cayley inverse]\label{cor:pinch}
+		Let $U$ be a domain and suppose $\Theta$ is meromorphic on $U$ and satisfies $|\Theta|\le 1$ on $U$ away from its poles.
+		\Rev{Assume additionally that $\Theta$ is not identically $1$ on any connected component of $U$.}
+		Then $\Theta$ extends holomorphically to $U$ and satisfies $|\Theta|\le 1$ on $U$.
+		Moreover the Cayley inverse $(1+\Theta)/(1-\Theta)$ is holomorphic on $U$ and has nonnegative real part there.
+	\end{corollary}
+	\begin{proof}
+		Poles of a meromorphic function are isolated, hence locally the hypothesis reduces to Lemma~\ref{lem:removable} (if $|\Theta|<1$).
+		If $\Theta$ is holomorphic and $|\Theta|\le 1$ on a connected domain, either $|\Theta|<1$ everywhere or $\Theta$ is constant of modulus $1$
+		(by the maximum modulus principle).
+		\Rev{The added condition rules out $\Theta\equiv 1$, so on each component one has $|\Theta|<1$ everywhere.}
+		Then the Cayley inverse is holomorphic and maps the unit disk into the right half-plane.
+	\end{proof}
+	
+	\section{What is missing in the finite-to-infinite Pick step}
+	
+	\subsection{A correct (and standard) operator lemma you \emph{can} use}
+	
+	\begin{lemma}[Schur complement criterion for block operators]\label{lem:schur-complement}
+		Let $\mathcal H=\mathcal H_1\oplus\mathcal H_2$ and let
+		\[
+		P \;=\;
+		\begin{pmatrix}
+			A & B\\
+			B^* & D
+		\end{pmatrix}
+		\]
+		be a bounded self-adjoint operator on $\mathcal H$.
+		Assume $D$ is invertible and $D\succeq \gamma I_{\mathcal H_2}$ for some $\gamma>0$.
+		If
+		\[
+		A - B\,D^{-1}B^* \succeq 0 \quad \text{on }\mathcal H_1,
+		\]
+		then $P\succeq 0$ on $\mathcal H$.
+	\end{lemma}
+	\begin{proof}
+		For $x\in\mathcal H_1$, $y\in\mathcal H_2$ set $y'=y+D^{-1}B^*x$.
+		Then
+		\[
+		\langle P(x\oplus y),x\oplus y\rangle
+		= \langle (A-BD^{-1}B^*)x,x\rangle + \langle Dy',y'\rangle \ge 0.
+		\]
+	\end{proof}
+	
+	\subsection{The real gap: you do \emph{not} currently produce the needed block bounds}
+	
+	\begin{hypothesis}[Finite-to-infinite Pick positivity: what must be supplied]\label{hyp:pick-gap}
+		Fix $\theta(z)=\sum_{n\ge0}a_n z^n$ and let $P(\theta)$ denote the associated infinite Pick matrix/operator.
+		Fix $N\ge1$ and decompose $\ell^2(\N_0)=\mathrm{span}\{e_0,\dots,e_{N-1}\}\oplus(\cdot)^\perp$.
+		Write the corresponding block operator as
+		\[
+		P(\theta)=
+		\begin{pmatrix}
+			A & B\\
+			B^* & D
+		\end{pmatrix}.
+		\]
+		
+		\Rev{To conclude $P(\theta)\succeq 0$ from finite data, your proof must provide \textbf{one} of the following:}
+		
+		\begin{itemize}
+			\item \Rev{\textbf{(A) Direct certificate:} a rigorous argument (analytic or machine-checked) that $P(\theta)$ is positive semidefinite as an operator on $\ell^2(\N_0)$.}
+			\item \Rev{\textbf{(B) Block bounds:} explicit numbers $\delta,\beta,\gamma>0$ such that
+				$A\succeq \delta I$, $D\succeq \gamma I$, and $\|B\|\le \beta$ with $\delta\ge \beta^2/\gamma$,
+				so that Lemma~\ref{lem:schur-complement} implies $P(\theta)\succeq 0$.}
+		\end{itemize}
+		
+		\Rev{Important: a bound of the form $\sum_{n\ge N}(n+1)|a_n|^2\le \varepsilon_N^2$ does \emph{not}, by itself, yield the needed operator-norm bounds on $B$ and $D$ unless a fully written analytic estimate is supplied.  Your current text sketches such a passage, but it is not rigorous as stated and must be replaced by a complete derivation with explicit constants, or else the verifier must output the required block bounds directly.}
+	\end{hypothesis}
+	
+	\section*{Referee verdict (theory-only)}
+	
+	\begin{itemize}
+		\item \Rev{\textbf{Fixable:}} the Schur/Herglotz pinch part is fine once you explicitly exclude $\Theta\equiv 1$ (already true in your setting).
+		\item \Rev{\textbf{Hard blocker:}} the finite-to-infinite Pick step (your Lemma~9/Proposition~10 implication) is currently \textbf{not certified}.
+		You must supply either a direct infinite positivity proof/certificate, or quantitative block bounds that feed Schur complement.
+		\item \Rev{\textbf{What must be checked next:}} provide a complete analytic derivation from your tail quantity to the needed operator bounds, or have the verifier output those bounds as certified inequalities.
+	\end{itemize}
+	
+\end{document}
