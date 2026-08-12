@@ -38,6 +38,7 @@ use uor_r4_core::transformerless::hf_bpe::TokenizerAdapter;
 use uor_r4_model_source::SourceUnavailable;
 #[cfg(not(target_arch = "wasm32"))]
 use uor_r4_model_source::TeacherOracle;
+use uor_r4_model_source::attention::AttentionOperatorSpec;
 use uor_r4_model_source::geometry::GeometryProjection;
 #[cfg(not(target_arch = "wasm32"))]
 use uor_r4_model_source::progress::Progress;
@@ -275,6 +276,17 @@ pub struct ObservationManifest {
     /// readable and legacy manifest bytes are unchanged when unset.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub tokenizer_adapter: Option<TokenizerAdapter>,
+    /// #602 typed record of the source attention operator the teacher
+    /// oracle computed while producing these observations
+    /// (`standard-source-attention/1`, or
+    /// `experimental-r4-source-attention/1` when the `r4_attention`
+    /// switch was on), when the producing pipeline's oracle declares
+    /// one. `None` marks the legacy interpretation documented in
+    /// `docs/MODEL_LIFECYCLE.md`. Optional with a serde default so
+    /// every legacy manifest stays readable and legacy manifest bytes
+    /// are unchanged when unset.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub attention_operator: Option<AttentionOperatorSpec>,
     #[serde(default)]
     pub completed: BTreeMap<u32, ShardEntry>,
     #[serde(default)]
@@ -291,6 +303,7 @@ impl ObservationManifest {
             source_manifest_kappa: None,
             geometry: None,
             tokenizer_adapter: None,
+            attention_operator: None,
             completed: BTreeMap::new(),
             total_records: 0,
         }
@@ -443,6 +456,20 @@ impl ObservationShardWriter {
     ) -> Result<(), SourceUnavailable> {
         if self.manifest.tokenizer_adapter.as_ref() != Some(adapter) {
             self.manifest.tokenizer_adapter = Some(adapter.clone());
+            self.manifest.store(&self.dir)?;
+        }
+        Ok(())
+    }
+
+    /// Record the #602 typed attention-operator identity record of the
+    /// teacher oracle in the observation manifest (idempotent, atomic
+    /// store).
+    pub fn set_attention_operator(
+        &mut self,
+        operator: &AttentionOperatorSpec,
+    ) -> Result<(), SourceUnavailable> {
+        if self.manifest.attention_operator.as_ref() != Some(operator) {
+            self.manifest.attention_operator = Some(operator.clone());
             self.manifest.store(&self.dir)?;
         }
         Ok(())

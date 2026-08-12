@@ -6,6 +6,7 @@
 //! the original reduction order; native Hugging Face compilation may use an
 //! optimized CPU matrix-vector backend.
 
+pub mod attention;
 pub mod conformance;
 pub mod geometry;
 pub mod progress;
@@ -93,7 +94,7 @@ impl State {
 }
 
 #[inline]
-fn sqrtf(value: f32, canonical: bool) -> f32 {
+pub(crate) fn sqrtf(value: f32, canonical: bool) -> f32 {
     if canonical {
         libm::sqrtf(value)
     } else {
@@ -161,7 +162,7 @@ fn rmsnorm_inplace_with_mode(x: &mut [f32], weight: &[f32], canonical: bool) {
     }
 }
 
-fn softmax_with_mode(x: &mut [f32], canonical: bool) {
+pub(crate) fn softmax_with_mode(x: &mut [f32], canonical: bool) {
     let mut max_val = x[0];
     for &value in x.iter().skip(1) {
         if value > max_val {
@@ -793,57 +794,47 @@ impl Llama {
             }
 
             // multihead attention (serial over heads; per-head work is
-            // independent of order).
+            // independent of order). The per-head weight computation and
+            // value aggregation are the free #602 reference functions in
+            // [`attention`], factored out of this loop unchanged; the
+            // `r4_attention` switch selects between exactly the two
+            // registered operators (`standard-source-attention/1` and
+            // `experimental-r4-source-attention/1`, a chunked dot
+            // product with the same softmax selector).
             for h in 0..c.n_heads {
                 let q = &st.q[h * head_size..(h + 1) * head_size];
                 let att = &mut st.att[h * c.seq_len..h * c.seq_len + pos + 1];
+                let kv_head_offset = (h / kv_mul) * head_size;
 
                 if c.r4_attention {
-                    // Compute R4 4D Spin(4) quaternionic alignment
-                    for (t, attention) in att.iter_mut().enumerate() {
-                        let k = &st.key_cache[loff + t * kv_dim + (h / kv_mul) * head_size..]
-                            [..head_size];
-
-                        let mut head_score = 0.0f32;
-                        let chunks = head_size / 4;
-                        for chunk_idx in 0..chunks {
-                            let q_chunk = &q[chunk_idx * 4..(chunk_idx + 1) * 4];
-                            let k_chunk = &k[chunk_idx * 4..(chunk_idx + 1) * 4];
-                            let dot_4d = q_chunk[0] * k_chunk[0]
-                                + q_chunk[1] * k_chunk[1]
-                                + q_chunk[2] * k_chunk[2]
-                                + q_chunk[3] * k_chunk[3];
-                            head_score += dot_4d;
-                        }
-                        head_score /= sqrtf(head_size as f32, self.canonical_math);
-                        *attention = head_score;
-                    }
-                    softmax_with_mode(att, self.canonical_math);
+                    attention::experimental_r4_head_attention_weights(
+                        att,
+                        q,
+                        &st.key_cache[loff..],
+                        kv_head_offset,
+                        kv_dim,
+                        self.canonical_math,
+                    );
                 } else {
-                    // Standard Llama scaled dot-product attention
-                    for (t, attention) in att.iter_mut().enumerate() {
-                        let k = &st.key_cache[loff + t * kv_dim + (h / kv_mul) * head_size..]
-                            [..head_size];
-                        let mut score = 0.0f32;
-                        for i in 0..head_size {
-                            score += q[i] * k[i];
-                        }
-                        score /= sqrtf(head_size as f32, self.canonical_math);
-                        *attention = score;
-                    }
-                    softmax_with_mode(att, self.canonical_math);
+                    attention::standard_head_attention_weights(
+                        att,
+                        q,
+                        &st.key_cache[loff..],
+                        kv_head_offset,
+                        kv_dim,
+                        self.canonical_math,
+                    );
                 }
 
+                let att = &st.att[h * c.seq_len..h * c.seq_len + pos + 1];
                 let xb = &mut st.xb[h * head_size..(h + 1) * head_size];
-                xb.iter_mut().for_each(|v| *v = 0.0);
-                for (t, &attention) in att.iter().enumerate() {
-                    let v = &st.value_cache[loff + t * kv_dim + (h / kv_mul) * head_size..]
-                        [..head_size];
-                    let a = attention;
-                    for i in 0..head_size {
-                        xb[i] += a * v[i];
-                    }
-                }
+                attention::head_attention_value_aggregate(
+                    xb,
+                    att,
+                    &st.value_cache[loff..],
+                    kv_head_offset,
+                    kv_dim,
+                );
             }
 
             matmul(
@@ -1021,49 +1012,41 @@ impl Llama {
                     }
                 }
 
+                // Same #602 reference functions as the serial
+                // [`Llama::layer_forward`] path: the `r4_attention`
+                // switch selects between the two registered operators.
                 for h in 0..c.n_heads {
                     let qh = &qb[h * head_size..(h + 1) * head_size];
                     let att = &mut st.att[h * c.seq_len..h * c.seq_len + pos + 1];
+                    let kv_head_offset = (h / kv_mul) * head_size;
                     if c.r4_attention {
-                        for (t, attention) in att.iter_mut().enumerate() {
-                            let k = &st.key_cache[loff + t * kv_dim + (h / kv_mul) * head_size..]
-                                [..head_size];
-                            let mut head_score = 0.0f32;
-                            let chunks = head_size / 4;
-                            for chunk_idx in 0..chunks {
-                                let q_chunk = &qh[chunk_idx * 4..(chunk_idx + 1) * 4];
-                                let k_chunk = &k[chunk_idx * 4..(chunk_idx + 1) * 4];
-                                head_score += q_chunk[0] * k_chunk[0]
-                                    + q_chunk[1] * k_chunk[1]
-                                    + q_chunk[2] * k_chunk[2]
-                                    + q_chunk[3] * k_chunk[3];
-                            }
-                            head_score /= sqrtf(head_size as f32, self.canonical_math);
-                            *attention = head_score;
-                        }
-                        softmax_with_mode(att, self.canonical_math);
+                        attention::experimental_r4_head_attention_weights(
+                            att,
+                            qh,
+                            &st.key_cache[loff..],
+                            kv_head_offset,
+                            kv_dim,
+                            self.canonical_math,
+                        );
                     } else {
-                        for (t, attention) in att.iter_mut().enumerate() {
-                            let k = &st.key_cache[loff + t * kv_dim + (h / kv_mul) * head_size..]
-                                [..head_size];
-                            let mut score = 0.0f32;
-                            for i in 0..head_size {
-                                score += qh[i] * k[i];
-                            }
-                            score /= sqrtf(head_size as f32, self.canonical_math);
-                            *attention = score;
-                        }
-                        softmax_with_mode(att, self.canonical_math);
+                        attention::standard_head_attention_weights(
+                            att,
+                            qh,
+                            &st.key_cache[loff..],
+                            kv_head_offset,
+                            kv_dim,
+                            self.canonical_math,
+                        );
                     }
+                    let att = &st.att[h * c.seq_len..h * c.seq_len + pos + 1];
                     let outh = &mut out[h * head_size..(h + 1) * head_size];
-                    outh.iter_mut().for_each(|v| *v = 0.0);
-                    for (t, &attention) in att.iter().enumerate() {
-                        let v = &st.value_cache[loff + t * kv_dim + (h / kv_mul) * head_size..]
-                            [..head_size];
-                        for i in 0..head_size {
-                            outh[i] += attention * v[i];
-                        }
-                    }
+                    attention::head_attention_value_aggregate(
+                        outh,
+                        att,
+                        &st.value_cache[loff..],
+                        kv_head_offset,
+                        kv_dim,
+                    );
                 }
             }
 
@@ -1161,6 +1144,21 @@ pub trait TeacherOracle: RepresentationSource + BehaviorSource {
     /// [`RepresentationSource::source_dimension`]); the default keeps
     /// every existing oracle unaffected.
     fn geometry_projection(&self) -> Option<geometry::GeometryProjection> {
+        None
+    }
+
+    /// The #602 typed record of the attention operator this oracle's
+    /// source executor computes during [`BehaviorSource::step`], when the
+    /// oracle declares one. The boolean `r4_attention` switch maps to
+    /// exactly the two registered operators
+    /// (`standard-source-attention/1` when off,
+    /// `experimental-r4-source-attention/1` when on — see
+    /// [`attention::operator_for_r4_switch`]). `None` means the oracle
+    /// predates the record (the legacy interpretation documented in
+    /// `docs/MODEL_LIFECYCLE.md`); the default keeps every existing
+    /// oracle unaffected, mirroring
+    /// [`TeacherOracle::geometry_projection`].
+    fn attention_operator_spec(&self) -> Option<attention::AttentionOperatorSpec> {
         None
     }
 
@@ -1700,6 +1698,17 @@ pub enum SourceIngestKind {
         /// The requested adapter version.
         version: u32,
     },
+    /// #602 attention-operator registry: a caller named a source
+    /// attention operator `(id, version)` outside the versioned registry
+    /// ([`attention::operator_spec`]), so no specification exists to
+    /// interpret it. Refused by name, never approximated by a "closest"
+    /// operator or version.
+    UnknownAttentionOperator {
+        /// The requested operator id.
+        id: String,
+        /// The requested operator version.
+        version: u32,
+    },
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -1778,6 +1787,15 @@ impl std::fmt::Display for SourceIngestKind {
                  registry (known: hf-byte-bpe/1; sentencepiece-unigram is the recorded \
                  follow-up family and stays rejected until its adapter is implemented, \
                  never approximated)"
+            ),
+            Self::UnknownAttentionOperator { id, version } => write!(
+                f,
+                "attention operator {id}/{version} is not in the versioned operator \
+                 registry (known: {}/{} and {}/{})",
+                attention::AttentionOperatorSpec::STANDARD_ID,
+                attention::AttentionOperatorSpec::STANDARD_VERSION,
+                attention::AttentionOperatorSpec::EXPERIMENTAL_R4_ID,
+                attention::AttentionOperatorSpec::EXPERIMENTAL_R4_VERSION,
             ),
         }
     }
@@ -2342,12 +2360,18 @@ impl HuggingFaceLlamaOracle {
         Self::load_inner(source, Some(sequence_length))
     }
 
-    /// Enable or disable experimental R4 Spin(4) softmax-free attention calculation.
+    /// Enable or disable the experimental attention variant
+    /// (`experimental-r4-source-attention/1`, #602): a 4-wide-chunked
+    /// dot product — truncating the trailing `head_size mod 4`
+    /// dimensions from the score — followed by the same softmax the
+    /// standard operator applies. Despite the flag's historical name it
+    /// is neither quaternionic nor softmax-bypassing (#515 audit).
     pub fn set_r4_attention(&mut self, enable: bool) {
         self.model.cfg.r4_attention = enable;
     }
 
-    /// Check if experimental R4 Spin(4) attention is enabled.
+    /// Check if the experimental attention variant
+    /// (`experimental-r4-source-attention/1`) is enabled.
     pub fn r4_attention(&self) -> bool {
         self.model.cfg.r4_attention
     }
@@ -2623,6 +2647,14 @@ impl TeacherOracle for HuggingFaceLlamaOracle {
         u32::try_from(self.model.cfg.dim).ok().map(|source_width| {
             geometry::GeometryProjection::bucket_average(source_width, geometry::COMPILED_WIDTH)
         })
+    }
+    fn attention_operator_spec(&self) -> Option<attention::AttentionOperatorSpec> {
+        // #602: the boolean switch maps to exactly the two registered
+        // operators — this is the one boundary where the legacy flag
+        // becomes a versioned identity.
+        Some(attention::operator_for_r4_switch(
+            self.model.cfg.r4_attention,
+        ))
     }
     fn hidden_state(&self) -> Option<&[f32]> {
         Some(&self.state.x)

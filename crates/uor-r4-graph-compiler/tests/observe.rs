@@ -585,9 +585,67 @@ fn tokenizer_adapter_persists_in_the_manifest() {
     let _ = std::fs::remove_dir_all(&dir);
 }
 
+/// #602 provenance seam: the writer setter persists the typed
+/// [`AttentionOperatorSpec`] record into the observation manifest
+/// atomically and idempotently across reopen, and an unset record leaves
+/// legacy manifest bytes unchanged (no `attention_operator` key at all)
+/// — oracles that predate the record never set one, so their historical
+/// bytes stay valid (the documented legacy interpretation).
+#[test]
+fn attention_operator_persists_in_the_manifest() {
+    use uor_r4_model_source::attention::AttentionOperatorSpec;
+    let record = AttentionOperatorSpec::standard();
+
+    let dir = unique_path("observe-attention-operator");
+    let mut writer = ObservationShardWriter::open(&dir, 2).expect("writer");
+    assert_eq!(writer.manifest().attention_operator, None);
+    // Legacy bytes: an unset record serializes no `attention_operator` key.
+    let legacy_json = serde_json::to_string(writer.manifest()).expect("manifest serializes");
+    assert!(
+        !legacy_json.contains("attention_operator"),
+        "an unset record must leave legacy manifest bytes unchanged"
+    );
+    // And a legacy manifest without the key still deserializes (None).
+    let legacy: ObservationManifest =
+        serde_json::from_str(&legacy_json).expect("legacy manifest deserializes");
+    assert_eq!(legacy.attention_operator, None);
+
+    writer
+        .set_attention_operator(&record)
+        .expect("set and store");
+    // Idempotent: re-setting the recorded value does not rewrite.
+    writer
+        .set_attention_operator(&record)
+        .expect("idempotent set");
+    drop(writer);
+    let manifest = ObservationManifest::load(&dir)
+        .expect("manifest io")
+        .expect("manifest present");
+    assert_eq!(manifest.attention_operator.as_ref(), Some(&record));
+    // Round trip: the persisted record parses back bit-for-bit, digest
+    // included.
+    assert_eq!(
+        manifest
+            .attention_operator
+            .as_ref()
+            .map(|operator| &operator.implementation_digest),
+        Some(&record.implementation_digest)
+    );
+    // A reopened writer (as the observe drivers do after the pre-set)
+    // preserves the stored record.
+    let reopened = ObservationShardWriter::open(&dir, 2).expect("reopen");
+    assert_eq!(
+        reopened.manifest().attention_operator.as_ref(),
+        Some(&record)
+    );
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
 /// #600: the legacy checkpoint oracle declares no projection (its dim IS
 /// the source width), while the Hugging Face adapter declares
 /// `bucket-average/1` — asserted here structurally via the trait default.
+/// #602 mirrors the pattern for the attention operator: an oracle that
+/// declares nothing carries the documented legacy interpretation.
 #[test]
 fn trait_geometry_projection_defaults_to_none() {
     struct Plain;
@@ -632,6 +690,7 @@ fn trait_geometry_projection_defaults_to_none() {
         fn embedding(&self, _token: usize, _out: &mut [f32]) {}
     }
     assert_eq!(Plain.geometry_projection(), None);
+    assert_eq!(Plain.attention_operator_spec(), None);
 }
 
 #[test]

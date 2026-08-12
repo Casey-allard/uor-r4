@@ -315,7 +315,7 @@ Anything else is served as a static file from the working directory; `/` serves
 | `transformerless` | Allocation-free table-native codebook retrieval, sub-millisecond on CPU |
 | `r4g1` | The validated R4G1 graph scorer; needs a loaded `score.r4g1` |
 | `attention` | Standard scaled dot-product attention on the loaded teacher (up to 256 tokens) |
-| `r4-attention` | Experimental 4D Spin(4) softmax-free attention (~25% faster on CPU by bypassing softmax exponents) |
+| `r4-attention` | Experimental teacher attention variant (#602 operator `experimental-r4-source-attention/1`: a 4-wide-chunked dot product with the same softmax selector as `attention`; never measured against it — see `docs/deferral_record_2026_08_05.md`) |
 | `geometric` | Route purely geometrically and decode from manifold resonance |
 
 Omitting `engine` runs the **full cascade, r4g1-first** — it does *not* mean

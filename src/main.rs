@@ -213,7 +213,9 @@ struct CompileArgs {
     /// Teacher context allocation and story length.
     #[arg(long, default_value_t = 128)]
     sequence_length: usize,
-    /// Enable experimental R4 Spin(4) softmax-free attention during compilation.
+    /// Enable the experimental teacher attention variant (#602 operator
+    /// `experimental-r4-source-attention/1`: a 4-wide-chunked dot product with
+    /// the same softmax selector as the standard operator) during compilation.
     #[arg(long, default_value_t = false)]
     r4_attention: bool,
     /// Force exact scalar CPU math instead of Apple Accelerate / SIMD hardware matrix acceleration.

@@ -56,6 +56,13 @@ pub struct GraphCompileOptions {
     /// into the compile report. This crate never derives the record
     /// itself; the pipeline that held the oracle passes it.
     pub geometry: Option<uor_r4_model_source::geometry::GeometryProjection>,
+    /// #602 typed attention-operator record of the teacher source
+    /// (`--attention-operator`, a JSON serialization of
+    /// [`uor_r4_model_source::attention::AttentionOperatorSpec`]),
+    /// carried into the compile report. This crate never derives the
+    /// record itself; the pipeline that held the oracle (or its
+    /// `r4_attention` switch) passes it.
+    pub attention_operator: Option<uor_r4_model_source::attention::AttentionOperatorSpec>,
 }
 
 /// Parse graph-compile CLI arguments. `None` when the arguments do not name a
@@ -77,6 +84,7 @@ pub fn parse_options(args: &[String]) -> Option<GraphCompileOptions> {
         output: PathBuf::from("r4g1_output"),
         source_manifest_kappa: None,
         geometry: None,
+        attention_operator: None,
     };
     let mut index = 0usize;
     while index < args.len() {
@@ -120,6 +128,9 @@ pub fn parse_options(args: &[String]) -> Option<GraphCompileOptions> {
             }
             "--geometry-projection" => {
                 options.geometry = Some(serde_json::from_str(value).ok()?);
+            }
+            "--attention-operator" => {
+                options.attention_operator = Some(serde_json::from_str(value).ok()?);
             }
             _ => return None,
         }
@@ -248,6 +259,9 @@ pub fn compile(args: &[String]) -> Result<(), SourceUnavailable> {
     // #600: bind the teacher's geometry-projection record when the caller
     // passed it (`--geometry-projection`).
     report.geometry = options.geometry.clone();
+    // #602: bind the teacher's attention-operator record when the caller
+    // passed it (`--attention-operator`).
+    report.attention_operator = options.attention_operator.clone();
 
     std::fs::create_dir_all(&options.output)?;
     let artifact_path = options.output.join("compiled.r4g1");
@@ -351,13 +365,15 @@ pub fn observe(args: &[String]) -> Result<(), SourceUnavailable> {
             Box::new(o)
         };
 
-    // #597: record the source-snapshot identity — and, since #600, the
-    // typed geometry-projection record the oracle itself declares — in
-    // the observation manifest before the sharded run opens it
-    // (idempotent, atomic; the run's own writer loads and preserves the
-    // stored fields).
+    // #597: record the source-snapshot identity — and, since #600/#602,
+    // the typed geometry-projection and attention-operator records the
+    // oracle itself declares — in the observation manifest before the
+    // sharded run opens it (idempotent, atomic; the run's own writer
+    // loads and preserves the stored fields).
     let geometry = oracle.geometry_projection();
-    if options.source_manifest_kappa.is_some() || geometry.is_some() {
+    let attention_operator = oracle.attention_operator_spec();
+    if options.source_manifest_kappa.is_some() || geometry.is_some() || attention_operator.is_some()
+    {
         let mut writer =
             observation::ObservationShardWriter::open(&options.output, options.shards)?;
         if let Some(kappa) = &options.source_manifest_kappa {
@@ -365,6 +381,9 @@ pub fn observe(args: &[String]) -> Result<(), SourceUnavailable> {
         }
         if let Some(geometry) = &geometry {
             writer.set_geometry(geometry)?;
+        }
+        if let Some(operator) = &attention_operator {
+            writer.set_attention_operator(operator)?;
         }
     }
 

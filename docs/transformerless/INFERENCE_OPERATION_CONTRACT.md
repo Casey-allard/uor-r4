@@ -68,6 +68,14 @@ This contract does **not** restrict:
 
 Compilation and training are explicitly unrestricted by this contract.
 
+Note (non-normative cross-reference, #602): the source attention operator
+specifications in `uor-r4-model-source::attention`
+(`standard-source-attention/1`, `experimental-r4-source-attention/1`) are
+host-side provenance records of teacher execution — an activity this
+section already excludes. They are distinct from this deployed contract,
+describe floating-point source computation the deployed hot path never
+performs, and change none of the operation lists or obligations above.
+
 ## 5) Activity ownership map
 
 Each in-scope activity has a crate/module owner:

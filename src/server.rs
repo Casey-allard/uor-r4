@@ -1840,6 +1840,15 @@ fn compile_r4g1_bundle(
     if let Some(geometry) = downloaded_source.and_then(geometry_projection_of) {
         cover_args.extend(["--geometry-projection".to_owned(), geometry]);
     }
+    // #602: the server compile job never passes `--r4-attention` to the
+    // teacher stage above, so the teacher ran exactly the registered
+    // `standard-source-attention/1` operator; bind its typed record into
+    // the cover report.
+    if let Ok(operator) =
+        serde_json::to_string(&uor_r4_model_source::attention::AttentionOperatorSpec::standard())
+    {
+        cover_args.extend(["--attention-operator".to_owned(), operator]);
+    }
     uor_r4_graph_cli::cover_command(&cover_args).map_err(|error| error.to_string())?;
 
     set_r4g1_compile_progress(status, 55, "Scoring graph transitions and emissions...");

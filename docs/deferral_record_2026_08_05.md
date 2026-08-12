@@ -30,6 +30,22 @@ and teacher bits/token. If the A/B records zero-or-negative, the engine
 becomes a #410-style removal candidate; until the A/B exists, the flag stays
 shipped and off.
 
+**Correction 2026-08-12 (#602).** The description above is retained as the
+historical record, but its characterization of the variant does not match
+the control flow (#515's audit recorded the mismatch): the branch is
+neither quaternionic nor a softmax bypass. What it actually computes — as
+factored, specified, and unit-test-pinned by #602
+(`uor-r4-model-source::attention`, documented in
+`docs/MODEL_LIFECYCLE.md` "Attention operator identity (#602)") — is a
+4-wide-chunked dot product over the leading `4·⌊H/4⌋` head dimensions
+(the trailing `H mod 4` dimensions never enter any score, the scale still
+divides by `sqrt(H)`, and heads narrower than 4 score uniformly),
+followed by the SAME max-subtracted softmax the standard operator
+applies. Its versioned identity is `experimental-r4-source-attention/1`
+(the standard arm is `standard-source-attention/1`); the deferral
+disposition, activation condition, and default-off status above are
+unchanged.
+
 ## bott_fock context store — tracking re-pointed from #234 to #424
 
 `docs/r4_furey_quantum_geometric_plan.md` records `bott_fock.rs` (the O(1)

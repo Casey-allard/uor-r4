@@ -2531,6 +2531,16 @@ pub struct CoverReport {
     /// callers set the public field after [`build_report`].
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub geometry: Option<uor_r4_model_source::geometry::GeometryProjection>,
+    /// #602 typed record of the source attention operator the teacher
+    /// computed while producing the compiled inputs
+    /// (`standard-source-attention/1`, or
+    /// `experimental-r4-source-attention/1` when the `r4_attention`
+    /// switch was on), when the invoking pipeline knows it
+    /// (`--attention-operator`). Optional so every legacy report and
+    /// its bytes stay unchanged when unset; callers set the public
+    /// field after [`build_report`].
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub attention_operator: Option<uor_r4_model_source::attention::AttentionOperatorSpec>,
     pub config: CoverReportConfig,
     pub inputs: CoverReportInputs,
     pub objective: CoverReportObjective,
@@ -2748,9 +2758,11 @@ pub fn build_report(config: &CoverConfig, induced: &InducedCover, data: ReportDa
         // #597: populated by callers that hold the source-snapshot
         // manifest root κ; the induction stages do not see the snapshot.
         source_manifest_kappa: None,
-        // #600: populated by callers that hold the teacher's geometry
-        // projection record; the induction stages do not see the teacher.
+        // #600/#602: populated by callers that hold the teacher's geometry
+        // projection record and attention-operator record; the induction
+        // stages do not see the teacher.
         geometry: None,
+        attention_operator: None,
         config: CoverReportConfig {
             depths: config.depths,
             k0: config.k0,

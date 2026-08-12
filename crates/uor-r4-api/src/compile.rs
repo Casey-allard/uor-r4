@@ -479,6 +479,16 @@ fn stage_b_flags(request: &CompileRequest, cover_out: &Path) -> Vec<String> {
     if let Some(kappa) = &request.source_manifest_kappa {
         flags.extend(["--source-manifest-kappa".to_owned(), kappa.clone()]);
     }
+    // #602: this request holds the teacher's `r4_attention` switch, which
+    // maps to exactly one registered attention operator
+    // (`standard-source-attention/1` off,
+    // `experimental-r4-source-attention/1` on); thread the typed record
+    // into the cover stage so compile_report.json binds the operator the
+    // teacher actually ran.
+    let operator = uor_r4_model_source::attention::operator_for_r4_switch(options.r4_attention);
+    if let Ok(json) = serde_json::to_string(&operator) {
+        flags.extend(["--attention-operator".to_owned(), json]);
+    }
     flags
 }
 
@@ -541,5 +551,33 @@ mod tests {
         let without = stage_b_flags(&request(None), Path::new("cover"));
         assert!(!without.iter().any(|flag| flag == "--source-manifest-kappa"));
         assert_eq!(with.len(), without.len() + 2);
+    }
+
+    /// #602 plumbing seam: the request's boolean `r4_attention` switch is
+    /// forwarded to the cover stage as the typed record of exactly the
+    /// registered operator the teacher ran — `standard-source-attention/1`
+    /// when off (the default), `experimental-r4-source-attention/1` when
+    /// on.
+    #[test]
+    fn attention_operator_is_threaded_into_cover_stage_flags() {
+        use uor_r4_model_source::attention::AttentionOperatorSpec;
+        let flag_value = |flags: &[String]| -> AttentionOperatorSpec {
+            let index = flags
+                .iter()
+                .position(|flag| flag == "--attention-operator")
+                .expect("flag present");
+            serde_json::from_str(&flags[index + 1]).expect("typed record round-trips")
+        };
+
+        let standard = stage_b_flags(&request(None), Path::new("cover"));
+        assert_eq!(flag_value(&standard), AttentionOperatorSpec::standard());
+
+        let mut experimental_request = request(None);
+        experimental_request.options.r4_attention = true;
+        let experimental = stage_b_flags(&experimental_request, Path::new("cover"));
+        assert_eq!(
+            flag_value(&experimental),
+            AttentionOperatorSpec::experimental_r4()
+        );
     }
 }

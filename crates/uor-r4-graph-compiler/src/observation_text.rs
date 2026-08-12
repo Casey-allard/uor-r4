@@ -939,6 +939,15 @@ pub fn observe_text_corpus(
         writer.set_geometry(&geometry)?;
     }
 
+    // #602: record the typed attention-operator identity the teacher
+    // oracle's source executor computes (the boolean `r4_attention`
+    // switch resolved to its registered operator id), when the oracle
+    // declares one. Idempotent and atomic; legacy manifests without the
+    // field remain byte-identical.
+    if let Some(operator) = oracles[0].attention_operator_spec() {
+        writer.set_attention_operator(&operator)?;
+    }
+
     // #601: record the versioned tokenizer-adapter identity this pass
     // segments with, when the selected tokenizer declares one (the HF
     // byte-level BPE path; the legacy llama2.c tokenizer declares none,

@@ -624,6 +624,13 @@ struct CoverOptions {
     /// into the cover report. This crate never derives the record itself;
     /// the pipeline that held the oracle passes it.
     geometry: Option<uor_r4_model_source::geometry::GeometryProjection>,
+    /// #602 typed attention-operator record of the teacher source
+    /// (`--attention-operator`, a JSON serialization of
+    /// [`uor_r4_model_source::attention::AttentionOperatorSpec`]),
+    /// carried into the cover report. This crate never derives the
+    /// record itself; the pipeline that held the oracle (or its
+    /// `r4_attention` switch) passes it.
+    attention_operator: Option<uor_r4_model_source::attention::AttentionOperatorSpec>,
 }
 
 fn parse_cover_options(args: &[String]) -> Result<CoverOptions, SourceUnavailable> {
@@ -642,6 +649,7 @@ fn parse_cover_options(args: &[String]) -> Result<CoverOptions, SourceUnavailabl
         output: PathBuf::from("cover"),
         source_manifest_kappa: None,
         geometry: None,
+        attention_operator: None,
     };
     let mut index = 0usize;
     while index < args.len() {
@@ -725,6 +733,14 @@ fn parse_cover_options(args: &[String]) -> Result<CoverOptions, SourceUnavailabl
                 options.geometry = Some(serde_json::from_str(value).map_err(|error| {
                     SourceUnavailable::new(format!("invalid --geometry-projection value: {error}"))
                 })?);
+            }
+            "--attention-operator" => {
+                options.attention_operator =
+                    Some(serde_json::from_str(value).map_err(|error| {
+                        SourceUnavailable::new(format!(
+                            "invalid --attention-operator value: {error}"
+                        ))
+                    })?);
             }
             _ => {
                 return Err(SourceUnavailable::new(format!(
@@ -908,6 +924,9 @@ pub fn cover_command(args: &[String]) -> Result<(), SourceUnavailable> {
     // #600: bind the teacher's geometry-projection record when the caller
     // passed it (`--geometry-projection`).
     report.geometry = options.geometry.clone();
+    // #602: bind the teacher's attention-operator record when the caller
+    // passed it (`--attention-operator`).
+    report.attention_operator = options.attention_operator.clone();
 
     std::fs::create_dir_all(&options.output)?;
     let artifact_path = options.output.join("cover.r4g1");
@@ -3154,6 +3173,30 @@ mod tests {
             parse_cover_options(&["--geometry-projection".to_owned(), "{not json".to_owned()])
                 .expect_err("malformed record is not a product");
         assert!(error.reason.contains("--geometry-projection"));
+    }
+
+    /// #602 plumbing seam: the cover stage accepts the typed
+    /// attention-operator record as JSON (populated into the cover
+    /// report), leaves it unset when the flag is absent (the legacy
+    /// interpretation), and refuses malformed JSON by name on the
+    /// sanctioned error surface.
+    #[test]
+    fn cover_options_carry_the_attention_operator() {
+        for record in [
+            uor_r4_model_source::attention::AttentionOperatorSpec::standard(),
+            uor_r4_model_source::attention::AttentionOperatorSpec::experimental_r4(),
+        ] {
+            let json = serde_json::to_string(&record).expect("record serializes");
+            let args = ["--attention-operator".to_owned(), json];
+            let options = parse_cover_options(&args).expect("valid cover options");
+            assert_eq!(options.attention_operator.as_ref(), Some(&record));
+        }
+        let defaults = parse_cover_options(&[]).expect("default cover options");
+        assert_eq!(defaults.attention_operator, None);
+        let error =
+            parse_cover_options(&["--attention-operator".to_owned(), "{not json".to_owned()])
+                .expect_err("malformed record is not a product");
+        assert!(error.reason.contains("--attention-operator"));
     }
 
     #[test]

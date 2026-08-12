@@ -172,9 +172,13 @@ cargo run --release -- compile \
 
 `--revision` must be a full 40-character commit hash. `--seconds` limits the
 teacher-generation work performed by one invocation, while `--target` is the
-teacher-token goal. `--r4-attention` enables the experimental 4D softmax-free
-Spin(4) attention geometry during teacher generation (omitting this flag runs
-standard scaled dot-product attention). Hugging Face compilation defaults to
+teacher-token goal. `--r4-attention` selects the experimental teacher
+attention variant during generation — the #602 operator
+`experimental-r4-source-attention/1`, a 4-wide-chunked dot product with the
+same softmax selector as the standard operator (see "Attention operator
+identity (#602)" below; omitting this flag runs the standard
+`standard-source-attention/1` scaled dot-product operator, the default
+everywhere). Hugging Face compilation defaults to
 20,000 tokens and 128-token teacher stories. The bounded story length keeps
 attention cost and KV memory proportional to the eight-token deployed runtime
 window; increase `--target` or `--sequence-length` explicitly for quality
@@ -294,6 +298,100 @@ boundaries, raw-byte round trips — as the baseline any drift fails
 against, and a consumer-agreement test asserts the observation,
 evaluation, serving-prompt, and exported-runtime-tokenizer selection
 seams resolve the same adapter identity, token ids, and decode bytes.
+
+#### Attention operator identity (#602)
+
+The attention operator the source teacher computes is a typed, versioned
+identity, not a boolean. `uor-r4-model-source::attention` defines
+`AttentionOperatorSpec { id, version, projections, positional_action,
+compatibility_relation, selector_normalization, value_aggregation,
+output_projection, runtime_state, tie_breaking,
+permitted_operation_class, params }` with the same canonical-bytes +
+declared-identity digest discipline as the #600 geometry and #601
+tokenizer records (blake3 over a pinned line format of the declared
+identity — deliberately not a hash of source code text; a behavioral
+change must arrive as a new registry version). A versioned registry maps
+`(id, version)` to the spec (`attention::operator_spec`); an unknown
+pair fails closed with the focused
+`SourceIngestKind::UnknownAttentionOperator` rather than being guessed.
+
+**Truthful operator inventory.** Two operators are registered, and they
+are exactly the two branches the teacher's `r4_attention` switch selects
+between (`attention::operator_for_r4_switch` is the one boundary mapping
+from the legacy boolean to the versioned identity):
+
+- `standard-source-attention/1` (the switch off — the default
+  everywhere): dense per-layer f32 `wq`/`wk`/`wv` projections with
+  grouped-query key/value sharing (head `h` reads kv head `h / kv_mul`);
+  RoPE rotation of q and k before scoring (interleaved vs. split-half
+  layout is a source-config property); compatibility relation
+  `score(t) = (Σ_{i<H} q[i]·k_t[i]) / sqrt(H)` accumulated as one
+  sequential f32 left fold over the full head width `H` (no remainder at
+  any width); selector `softmax_with_mode` — subtract the maximum score
+  (first maximum on ties, value-identical since only the maximum's value
+  enters), `exp` each shifted score (`libm::expf` in D2 canonical mode,
+  `f32::exp` otherwise), divide by the sum; value aggregation as a
+  position-ascending weighted sum over the full growing-KV-cache prefix;
+  dense f32 `wo` output projection. No argmax or selection happens
+  inside the operator, so no further tie-break exists.
+- `experimental-r4-source-attention/1` (the switch on): identical in
+  every respect EXCEPT the compatibility relation, which computes the
+  dot product in 4-wide chunks over dimensions `0..4·⌊H/4⌋` (each chunk
+  a left-to-right 4-term fold, chunk subtotals then summed).
+  **Remainder policy, measured from the code and pinned by unit tests:**
+  the trailing `H mod 4` q/k dimensions never enter any score (dropped),
+  the scale still divides by `sqrt(H)` over the full head width, and
+  value aggregation still uses every head dimension; for `H < 4` no
+  chunk exists, every score is 0, and the softmax yields uniform
+  weights. The selector is the SAME max-subtracted softmax as the
+  standard operator — the historical description of this branch did not
+  match its control flow (#515 audit; see the dated correction in
+  `docs/deferral_record_2026_08_05.md`), and the registry id names what
+  it computes. The branch remains shipped, selectable, default-off, and
+  unmeasured; #602 changes no selection and activates nothing.
+
+The reference implementations are free deterministic functions factored
+verbatim out of the executor (`standard_head_attention_weights`,
+`experimental_r4_head_attention_weights`,
+`head_attention_value_aggregate`) — iteration order and arithmetic
+unchanged, the same discipline as #600's `bucket_average_project` and
+#599's `layer_forward` factoring, with the existing bit-exactness parity
+tests (e.g. `forward_batch_matches_serial_forward`) guarding the
+executor path and unit tests pinning divisible and non-divisible head
+widths.
+
+The record threads into provenance the same way the #597 manifest κ,
+the #600 geometry record, and the #601 tokenizer record do: the observe
+drivers record it in the observation manifest automatically whenever
+the oracle declares one (`attention_operator`, an optional
+serde-defaulted field; `TeacherOracle::attention_operator_spec()`
+defaults to `None`, and the legacy checkpoint oracle declares none, so
+legacy manifest bytes are unchanged); the cover stages
+(`transformerless cover`, `graph-compile`) accept
+`--attention-operator <json>` and bind it as the optional
+`attention_operator` field of the cover/compile report; the typed
+compile API derives it from its `r4_attention` option; and the HTTP
+server's compile job binds the standard record (its teacher stage never
+enables the experimental switch). An absent record marks the implicit
+legacy era: documents produced before #602 are not rewritten, and — the
+switch having been default-off everywhere — a reader may *interpret* an
+absent record on teacher-produced inputs as `standard-source-attention/1`
+unless the producing invocation is known to have passed
+`--r4-attention`. **Honesty item:** the score/certify report structs in
+`uor-r4-graph-certify` carry no attention-operator field — that stage
+reads corpus, cover, and artifact bytes with no teacher oracle in reach
+(the #597 source κ and #600 geometry records are likewise absent there),
+so #602 records the gap instead of inventing plumbing; an
+operator-specific experiment should thread the record through the cover
+report it already consumes.
+
+**Boundary note.** These specs describe HOST-SIDE source-teacher
+computation (f32 dot products, `exp`, division). The deployed inference
+operation contract
+(`docs/transformerless/INFERENCE_OPERATION_CONTRACT.md`) is a distinct,
+unchanged surface: it forbids floating-point arithmetic on the deployed
+hot path and explicitly excludes teacher execution. #602 defines no
+target (deployed) operator and changes no runtime contract.
 
 ### 3. Compile the holographic graph
 
