@@ -1292,7 +1292,9 @@ fn default_eos_token() -> usize {
     2
 }
 
-/// Offline teacher adapter for Hugging Face Llama-family BF16 Safetensors.
+/// Offline teacher adapter for Hugging Face Llama-family Safetensors
+/// (BF16/F16/F32; single-file or #598 indexed shards, ingested through the
+/// [`SafetensorsSnapshot`] validation boundary).
 /// The full source model executes only while compiling; deployed inference
 /// continues to use the multiplication-free [`super::runtime`] tables.
 pub struct HuggingFaceLlamaOracle {
@@ -1308,25 +1310,35 @@ pub struct HuggingFaceLlamaOracle {
 /// The sanctioned host-ingestion boundary error (R5).
 ///
 /// A declared external source artifact — a teacher directory, its
-/// `model.safetensors`, `config.json`, or a named tensor within — could not be
-/// ingested into a valid teacher at construction. This is the host-side
-/// analogue of graph-format's `NotAProduct`: the only reportable condition is
-/// that the requested object does not exist as a valid product, reported at
-/// construction. It carries the operator-facing diagnostic (which file, which
-/// tensor, what dtype) rather than discarding it.
+/// `model.safetensors`, `config.json`, an indexed shard set, or a named
+/// tensor within — could not be ingested into a valid teacher at
+/// construction. This is the host-side analogue of graph-format's
+/// `NotAProduct`: the only reportable condition is that the requested object
+/// does not exist as a valid product, reported at construction. It carries
+/// the operator-facing diagnostic (which file, which tensor, what dtype)
+/// rather than discarding it, and — since #598 — the structured
+/// [`SourceIngestKind`] classifying which ingestion check refused the
+/// artifact, so callers and tests can assert the exact failure class without
+/// this crate growing a second error surface.
 #[cfg(not(target_arch = "wasm32"))]
 #[derive(Debug, Clone)]
 pub struct SourceUnavailable {
     /// Human-facing description of why the source could not be ingested.
     pub reason: String,
+    /// The #598 ingestion failure class, when a validation-boundary check
+    /// produced this error; [`SourceIngestKind::Unspecified`] otherwise
+    /// (I/O, JSON, or legacy construction sites).
+    pub kind: SourceIngestKind,
 }
 
 #[cfg(not(target_arch = "wasm32"))]
 impl SourceUnavailable {
-    /// Construct from any displayable reason.
+    /// Construct from any displayable reason (failure class
+    /// [`SourceIngestKind::Unspecified`]).
     pub fn new(reason: impl std::fmt::Display) -> Self {
         Self {
             reason: reason.to_string(),
+            kind: SourceIngestKind::Unspecified,
         }
     }
 }
@@ -1360,6 +1372,794 @@ impl From<safetensors::SafeTensorError> for SourceUnavailable {
     fn from(error: safetensors::SafeTensorError) -> Self {
         Self::new(error)
     }
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+impl From<SourceIngestKind> for SourceUnavailable {
+    fn from(kind: SourceIngestKind) -> Self {
+        Self {
+            reason: kind.to_string(),
+            kind,
+        }
+    }
+}
+
+/// Exact-widening source codecs (#598): BF16, F16, and F32 → `f32`.
+///
+/// Every BF16 and F16 value — normals, subnormals, ±0, ±infinity, and NaN —
+/// is exactly representable in `f32`, so widening is a pure bit rewrite: no
+/// rounding path exists in this module. NaN widening is payload-preserving:
+/// the narrow mantissa payload (including the quiet bit) is shifted into the
+/// top of the `f32` mantissa (BF16 by 16 bits, F16 by 13 bits) and the sign
+/// is kept, so a BF16/F16 NaN widens to an `f32` NaN carrying the same
+/// payload bits. F32 is decoded little-endian, bit-identically.
+pub mod codec {
+    /// Widen one BF16 bit pattern to the `f32` with the identical value.
+    /// BF16 is the top half of an `f32`, so this is a 16-bit left shift.
+    #[inline]
+    pub const fn bf16_to_f32(bits: u16) -> f32 {
+        f32::from_bits((bits as u32) << 16)
+    }
+
+    /// Widen one IEEE 754 binary16 bit pattern to the `f32` with the
+    /// identical value. Normals re-bias the exponent (+112), subnormals are
+    /// normalized (every F16 subnormal is an `f32` normal), and ±infinity
+    /// and NaN map onto the `f32` exponent 0xFF with the mantissa payload
+    /// shifted left by 13.
+    #[inline]
+    pub const fn f16_to_f32(bits: u16) -> f32 {
+        let sign = ((bits as u32) & 0x8000) << 16;
+        let exponent = ((bits >> 10) & 0x1F) as u32;
+        let mantissa = (bits as u32) & 0x3FF;
+        let widened = if exponent == 0x1F {
+            // Infinity (mantissa 0) or NaN (payload shifted, preserved).
+            sign | 0x7F80_0000 | (mantissa << 13)
+        } else if exponent != 0 {
+            // Normal: re-bias 15 → 127.
+            sign | ((exponent + 112) << 23) | (mantissa << 13)
+        } else if mantissa == 0 {
+            // ±0.
+            sign
+        } else {
+            // Subnormal: value = mantissa × 2⁻²⁴; normalize the leading one
+            // away. With the mantissa's most significant bit at position p,
+            // the shift is 10 − p and the biased f32 exponent is 103 + p.
+            let shift = mantissa.leading_zeros() - 21;
+            sign | ((113 - shift) << 23) | (((mantissa << shift) & 0x3FF) << 13)
+        };
+        f32::from_bits(widened)
+    }
+
+    /// Decode one little-endian F32 value, bit-identically.
+    #[inline]
+    pub const fn f32_from_le(bytes: [u8; 4]) -> f32 {
+        f32::from_le_bytes(bytes)
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    /// Append the exact `f32` widening of `data` (one tensor's raw bytes in
+    /// `dtype`) to `out`. The caller guarantees `data.len()` is a multiple
+    /// of the dtype's byte size — the #598 validation boundary checks every
+    /// tensor's byte length against shape × dtype size before loading.
+    pub(crate) fn append_widened(dtype: super::SourceDtype, data: &[u8], out: &mut Vec<f32>) {
+        match dtype {
+            super::SourceDtype::Bf16 => {
+                for bytes in data.chunks_exact(2) {
+                    out.push(bf16_to_f32(u16::from_le_bytes([bytes[0], bytes[1]])));
+                }
+            }
+            super::SourceDtype::F16 => {
+                for bytes in data.chunks_exact(2) {
+                    out.push(f16_to_f32(u16::from_le_bytes([bytes[0], bytes[1]])));
+                }
+            }
+            super::SourceDtype::F32 => {
+                for bytes in data.chunks_exact(4) {
+                    out.push(f32_from_le([bytes[0], bytes[1], bytes[2], bytes[3]]));
+                }
+            }
+        }
+    }
+}
+
+/// File name of the Hugging Face Safetensors shard index.
+#[cfg(not(target_arch = "wasm32"))]
+pub const SAFETENSORS_INDEX_FILE_NAME: &str = "model.safetensors.index.json";
+/// File name of the single-file (unsharded) Safetensors weights artifact.
+#[cfg(not(target_arch = "wasm32"))]
+pub const SAFETENSORS_SINGLE_FILE_NAME: &str = "model.safetensors";
+
+/// The source dtypes this crate can ingest (#598). Each widens exactly to
+/// `f32` through [`codec`]; nothing else is admitted.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SourceDtype {
+    /// bfloat16 — the top half of an `f32`.
+    Bf16,
+    /// IEEE 754 binary16.
+    F16,
+    /// IEEE 754 binary32, stored little-endian.
+    F32,
+}
+
+impl SourceDtype {
+    /// Bytes per element in the Safetensors data section.
+    pub const fn byte_size(self) -> usize {
+        match self {
+            Self::Bf16 | Self::F16 => 2,
+            Self::F32 => 4,
+        }
+    }
+
+    /// The Safetensors header spelling of this dtype.
+    pub const fn name(self) -> &'static str {
+        match self {
+            Self::Bf16 => "BF16",
+            Self::F16 => "F16",
+            Self::F32 => "F32",
+        }
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    fn classify(declared: &str) -> Option<Self> {
+        match declared {
+            "BF16" => Some(Self::Bf16),
+            "F16" => Some(Self::F16),
+            "F32" => Some(Self::F32),
+            _ => None,
+        }
+    }
+}
+
+/// The #598 source-ingestion failure class: one variant per check at the
+/// [`SafetensorsSnapshot::open`] validation boundary, all detected before
+/// any model construction. This is NOT a second error surface — the one
+/// sanctioned host-ingestion error remains [`SourceUnavailable`] (R5);
+/// this enum rides inside it as the structured `kind` field, so each
+/// variant names the offending object and callers/tests can still assert
+/// the exact failure class.
+#[cfg(not(target_arch = "wasm32"))]
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum SourceIngestKind {
+    /// No structured ingestion class: the error came from a plain I/O,
+    /// JSON, or legacy construction site ([`SourceUnavailable::new`]).
+    Unspecified,
+    /// A snapshot file exists but could not be read or parsed (I/O error,
+    /// malformed JSON header or index, non-portable shard name).
+    Unreadable {
+        /// The file (or file: tensor context) that failed.
+        path: String,
+        /// The underlying parse or I/O diagnostic.
+        reason: String,
+    },
+    /// A shard file referenced by the index (or the single
+    /// `model.safetensors`) is absent from the snapshot directory.
+    MissingShardFile {
+        /// The missing shard's file name.
+        shard: String,
+    },
+    /// A tensor is declared (by the index or by the model geometry) but the
+    /// shard that should carry it does not.
+    MissingTensor {
+        /// The declared tensor name.
+        tensor: String,
+        /// Where the tensor was expected (a shard file, or the index/single
+        /// file for a geometry-required tensor missing everywhere).
+        shard: String,
+    },
+    /// A tensor is claimed more than once: two shard headers both declare
+    /// it, or the raw index JSON maps the same name twice.
+    DuplicateTensor {
+        /// The doubly-claimed tensor name.
+        tensor: String,
+        /// The first claimant (shard file, or the index file itself).
+        first_shard: String,
+        /// The second claimant.
+        second_shard: String,
+    },
+    /// A shard header declares a tensor the index does not assign to any
+    /// shard. Only possible in indexed mode; a single-file snapshot has no
+    /// index, so extra tensors there are ignored exactly as before #598.
+    UnexpectedTensor {
+        /// The unindexed tensor name.
+        tensor: String,
+        /// The shard whose header declares it.
+        shard: String,
+    },
+    /// A geometry-required tensor's declared shape does not match the shape
+    /// `config.json` implies.
+    ShapeMismatch {
+        /// The tensor name.
+        tensor: String,
+        /// The shape the model geometry requires.
+        expected: Vec<usize>,
+        /// The shape the shard header declares.
+        actual: Vec<usize>,
+    },
+    /// A declared byte length is inconsistent: a tensor's data span differs
+    /// from shape × dtype size, the data spans are not contiguous, or the
+    /// shard file's size differs from what its header claims.
+    ByteLengthMismatch {
+        /// Which check failed (shard file, or shard file + tensor).
+        context: String,
+        /// The byte length the header/shape claims.
+        expected: u64,
+        /// The byte length actually found.
+        actual: u64,
+    },
+    /// The same tensor name is declared with two different dtypes.
+    DtypeInconsistency {
+        /// The tensor name.
+        tensor: String,
+        /// First declaration, as `DTYPE (in <shard>)`.
+        first: String,
+        /// Conflicting declaration, as `DTYPE (in <shard>)`.
+        second: String,
+    },
+    /// A tensor declares a dtype outside BF16/F16/F32 — e.g. quantized I8,
+    /// U8, or GPTQ/AWQ-style packed formats. Rejected by name, never
+    /// silently approximated (#598 non-goal).
+    UnsupportedDtype {
+        /// The tensor name.
+        tensor: String,
+        /// The declared dtype/format string from the shard header.
+        dtype: String,
+    },
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+impl std::fmt::Display for SourceIngestKind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Unspecified => write!(f, "no structured ingestion class"),
+            Self::Unreadable { path, reason } => write!(f, "{path}: {reason}"),
+            Self::MissingShardFile { shard } => {
+                write!(
+                    f,
+                    "shard file {shard} is absent from the snapshot directory"
+                )
+            }
+            Self::MissingTensor { tensor, shard } => {
+                write!(f, "tensor {tensor} is declared but absent from {shard}")
+            }
+            Self::DuplicateTensor {
+                tensor,
+                first_shard,
+                second_shard,
+            } => write!(
+                f,
+                "tensor {tensor} is claimed twice ({first_shard} and {second_shard})"
+            ),
+            Self::UnexpectedTensor { tensor, shard } => write!(
+                f,
+                "tensor {tensor} appears in shard {shard} but not in the index"
+            ),
+            Self::ShapeMismatch {
+                tensor,
+                expected,
+                actual,
+            } => write!(
+                f,
+                "tensor {tensor} has shape {actual:?}, expected {expected:?}"
+            ),
+            Self::ByteLengthMismatch {
+                context,
+                expected,
+                actual,
+            } => write!(
+                f,
+                "byte-length mismatch at {context}: expected {expected} bytes, found {actual}"
+            ),
+            Self::DtypeInconsistency {
+                tensor,
+                first,
+                second,
+            } => write!(f, "tensor {tensor} is declared {first} and {second}"),
+            Self::UnsupportedDtype { tensor, dtype } => write!(
+                f,
+                "tensor {tensor} is {dtype}; supported source dtypes are BF16, F16, F32 \
+                 (quantized formats are rejected, not approximated)"
+            ),
+        }
+    }
+}
+
+/// One tensor the model geometry requires from a snapshot: its name and the
+/// shape `config.json` implies. [`SafetensorsSnapshot::open`] verifies
+/// presence, shape, and (implicitly, via the global dtype check) codec
+/// support for every requirement before the model is constructed.
+#[cfg(not(target_arch = "wasm32"))]
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TensorRequirement {
+    /// The Safetensors tensor name.
+    pub name: String,
+    /// The required shape.
+    pub shape: Vec<usize>,
+}
+
+/// One tensor's location and declared metadata within a loaded shard.
+#[cfg(not(target_arch = "wasm32"))]
+#[derive(Debug, Clone)]
+struct TensorMeta {
+    dtype: SourceDtype,
+    shape: Vec<usize>,
+    /// Byte offsets relative to the shard's data section.
+    begin: usize,
+    end: usize,
+}
+
+/// One validated shard: its file name, raw bytes, data-section offset, and
+/// header-declared tensors.
+#[cfg(not(target_arch = "wasm32"))]
+#[derive(Debug)]
+struct Shard {
+    name: String,
+    bytes: Vec<u8>,
+    data_start: usize,
+    tensors: std::collections::BTreeMap<String, TensorMeta>,
+}
+
+/// JSON map entries in document order, duplicate keys preserved. serde_json
+/// maps silently drop duplicate keys, so both the shard-index `weight_map`
+/// and the Safetensors headers are parsed through this visitor to make
+/// duplicate tensor names detectable.
+#[cfg(not(target_arch = "wasm32"))]
+struct MapEntries(Vec<(String, serde_json::Value)>);
+
+#[cfg(not(target_arch = "wasm32"))]
+impl<'de> serde::Deserialize<'de> for MapEntries {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        struct EntriesVisitor;
+        impl<'de> serde::de::Visitor<'de> for EntriesVisitor {
+            type Value = MapEntries;
+            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+                formatter.write_str("a JSON object")
+            }
+            fn visit_map<D>(self, mut map: D) -> Result<Self::Value, D::Error>
+            where
+                D: serde::de::MapAccess<'de>,
+            {
+                let mut entries = Vec::new();
+                while let Some(entry) = map.next_entry::<String, serde_json::Value>()? {
+                    entries.push(entry);
+                }
+                Ok(MapEntries(entries))
+            }
+        }
+        deserializer.deserialize_map(EntriesVisitor)
+    }
+}
+
+/// The raw `model.safetensors.index.json` document. Unknown fields (e.g.
+/// `metadata.total_size`) are tolerated; `weight_map` keeps duplicate keys
+/// visible for the duplicate-tensor check.
+#[cfg(not(target_arch = "wasm32"))]
+#[derive(serde::Deserialize)]
+struct RawShardIndex {
+    weight_map: MapEntries,
+}
+
+/// One tensor's declared header record: dtype spelling, shape, and data
+/// span. Mirrors the Safetensors header schema.
+#[cfg(not(target_arch = "wasm32"))]
+#[derive(serde::Deserialize)]
+struct RawTensorInfo {
+    dtype: String,
+    shape: Vec<u64>,
+    data_offsets: (u64, u64),
+}
+
+/// A fully validated Safetensors snapshot: THE #598 ingestion boundary.
+///
+/// [`SafetensorsSnapshot::open`] is the single deterministic validation
+/// entry point for both snapshot layouts:
+///
+/// * **Indexed shards** — `model.safetensors.index.json` is parsed and every
+///   tensor is resolved to exactly one shard file.
+/// * **Single file** — `model.safetensors` alone is treated as a one-shard
+///   resolution with no index (the pre-#598 layout); it flows through the
+///   same code path, so behavior and κ are unchanged.
+///
+/// Validation runs over all shard headers BEFORE any tensor data is decoded
+/// or any model is constructed, and every failure class maps to one
+/// [`SourceIngestKind`] variant: missing shard files and tensors,
+/// duplicate and unexpected tensors, shape mismatches against the model
+/// geometry, byte-length mismatches (tensor span vs shape × dtype size,
+/// non-contiguous spans, shard file size vs header claim), dtype
+/// inconsistencies, and unsupported (e.g. quantized) dtypes.
+///
+/// Seam with the #597 snapshot manifest: this boundary checks only that
+/// every shard file the index references exists in the directory — the
+/// byte-length checks above come from the shard headers themselves. The
+/// full `source_manifest.json` digest cross-check (path/bytes/blake3 per
+/// admitted file, root κ) belongs to the root crate
+/// (`src/model.rs::read_source_manifest`); `uor-r4-model-source` stays free
+/// of that dependency by design.
+///
+/// The snapshot κ is `blake3:<hex>` over the concatenated shard bytes in
+/// lexicographic shard-name order. A single-file snapshot therefore keeps
+/// exactly the pre-#598 κ (the hash of `model.safetensors` alone); the
+/// index bytes are bound by the #597 manifest, not by this κ.
+#[cfg(not(target_arch = "wasm32"))]
+#[derive(Debug)]
+pub struct SafetensorsSnapshot {
+    /// Shards in lexicographic file-name order.
+    shards: Vec<Shard>,
+    /// Tensor name → index into `shards`.
+    resolved: std::collections::BTreeMap<String, usize>,
+    /// Where a geometry-required tensor is reported missing from: the index
+    /// file name in indexed mode, the single file name otherwise.
+    origin: String,
+    kappa: String,
+    source_bytes: usize,
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+impl SafetensorsSnapshot {
+    /// Open and validate a snapshot directory. See the type-level docs for
+    /// the full contract; this is the one deterministic #598 validation
+    /// boundary, and it fails BEFORE any model construction.
+    pub fn open(
+        dir: impl AsRef<std::path::Path>,
+        required: &[TensorRequirement],
+    ) -> Result<Self, SourceUnavailable> {
+        use std::collections::{BTreeMap, BTreeSet};
+        let dir = dir.as_ref();
+        let index_path = dir.join(SAFETENSORS_INDEX_FILE_NAME);
+
+        // Resolve the shard set: parse the index, or synthesize the
+        // single-file one-shard resolution.
+        let (index_map, shard_names, origin) = if index_path.is_file() {
+            let bytes = std::fs::read(&index_path)
+                .map_err(|error| unreadable(&index_path.display().to_string(), &error))?;
+            let raw: RawShardIndex = serde_json::from_slice(&bytes)
+                .map_err(|error| unreadable(&index_path.display().to_string(), &error))?;
+            let mut map = BTreeMap::new();
+            let mut names = BTreeSet::new();
+            for (tensor, value) in raw.weight_map.0 {
+                let Some(shard) = value.as_str() else {
+                    return Err(unreadable(
+                        &index_path.display().to_string(),
+                        &format!("weight_map entry {tensor} is not a string"),
+                    )
+                    .into());
+                };
+                if shard.is_empty() || shard.contains(['/', '\\']) || shard.contains("..") {
+                    return Err(unreadable(
+                        &index_path.display().to_string(),
+                        &format!("shard name {shard:?} is not a bare file name"),
+                    )
+                    .into());
+                }
+                names.insert(shard.to_owned());
+                if let Some(previous) = map.insert(tensor.clone(), shard.to_owned()) {
+                    return Err(SourceIngestKind::DuplicateTensor {
+                        tensor,
+                        first_shard: previous,
+                        second_shard: shard.to_owned(),
+                    }
+                    .into());
+                }
+            }
+            (Some(map), names, SAFETENSORS_INDEX_FILE_NAME.to_owned())
+        } else {
+            let mut names = BTreeSet::new();
+            names.insert(SAFETENSORS_SINGLE_FILE_NAME.to_owned());
+            (None, names, SAFETENSORS_SINGLE_FILE_NAME.to_owned())
+        };
+
+        // Pass 1 — load every shard and validate its header in isolation.
+        let mut shards = Vec::with_capacity(shard_names.len());
+        for name in &shard_names {
+            let path = dir.join(name);
+            if !path.is_file() {
+                return Err(SourceIngestKind::MissingShardFile {
+                    shard: name.clone(),
+                }
+                .into());
+            }
+            let bytes = crate::progress::read_file(&path, "loading Safetensors")
+                .map_err(|error| unreadable(&path.display().to_string(), &error.reason))?;
+            shards.push(parse_and_validate_shard(name, bytes)?);
+        }
+
+        // Pass 2 — global resolution: every tensor to exactly one shard.
+        let mut resolved: BTreeMap<String, usize> = BTreeMap::new();
+        for (index, shard) in shards.iter().enumerate() {
+            for (tensor, meta) in &shard.tensors {
+                if let Some(&previous) = resolved.get(tensor) {
+                    let previous_shard = &shards[previous];
+                    let previous_meta = &previous_shard.tensors[tensor];
+                    if previous_meta.dtype != meta.dtype {
+                        return Err(SourceIngestKind::DtypeInconsistency {
+                            tensor: tensor.clone(),
+                            first: format!(
+                                "{} (in {})",
+                                previous_meta.dtype.name(),
+                                previous_shard.name
+                            ),
+                            second: format!("{} (in {})", meta.dtype.name(), shard.name),
+                        }
+                        .into());
+                    }
+                    return Err(SourceIngestKind::DuplicateTensor {
+                        tensor: tensor.clone(),
+                        first_shard: previous_shard.name.clone(),
+                        second_shard: shard.name.clone(),
+                    }
+                    .into());
+                }
+                resolved.insert(tensor.clone(), index);
+            }
+        }
+
+        // Pass 3 — cross-check the index against the shard headers.
+        if let Some(index_map) = &index_map {
+            for (tensor, shard_name) in index_map {
+                let missing = match resolved.get(tensor) {
+                    Some(&index) => &shards[index].name != shard_name,
+                    None => true,
+                };
+                if missing {
+                    return Err(SourceIngestKind::MissingTensor {
+                        tensor: tensor.clone(),
+                        shard: shard_name.clone(),
+                    }
+                    .into());
+                }
+            }
+            for shard in &shards {
+                for tensor in shard.tensors.keys() {
+                    if !index_map.contains_key(tensor) {
+                        return Err(SourceIngestKind::UnexpectedTensor {
+                            tensor: tensor.clone(),
+                            shard: shard.name.clone(),
+                        }
+                        .into());
+                    }
+                }
+            }
+        }
+
+        // Pass 4 — the model geometry's requirements: presence and shape.
+        // (Dtype support was already validated for every declared tensor.)
+        for requirement in required {
+            let Some(&index) = resolved.get(&requirement.name) else {
+                return Err(SourceIngestKind::MissingTensor {
+                    tensor: requirement.name.clone(),
+                    shard: origin.clone(),
+                }
+                .into());
+            };
+            let meta = &shards[index].tensors[&requirement.name];
+            if meta.shape != requirement.shape {
+                return Err(SourceIngestKind::ShapeMismatch {
+                    tensor: requirement.name.clone(),
+                    expected: requirement.shape.clone(),
+                    actual: meta.shape.clone(),
+                }
+                .into());
+            }
+        }
+
+        // Identity: blake3 over concatenated shard bytes in name order.
+        // With one shard (the single-file layout) this is exactly the
+        // pre-#598 κ of `model.safetensors`.
+        let mut hasher = blake3::Hasher::new();
+        let mut source_bytes = 0usize;
+        for shard in &shards {
+            hasher.update(&shard.bytes);
+            source_bytes += shard.bytes.len();
+        }
+        let kappa = format!("blake3:{}", hasher.finalize().to_hex());
+        Ok(Self {
+            shards,
+            resolved,
+            origin,
+            kappa,
+            source_bytes,
+        })
+    }
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+impl SafetensorsSnapshot {
+    /// The snapshot κ: `blake3:<hex>` over the concatenated shard bytes in
+    /// lexicographic shard-name order (single-file: the file's own hash,
+    /// unchanged from before #598).
+    pub fn kappa(&self) -> &str {
+        &self.kappa
+    }
+
+    /// Total bytes across all shard files.
+    pub fn source_bytes(&self) -> usize {
+        self.source_bytes
+    }
+
+    /// Append tensor `name`, widened exactly to `f32` through [`codec`],
+    /// to `out`. Fails only for a name outside the validated resolution.
+    pub fn tensor_f32_into(&self, name: &str, out: &mut Vec<f32>) -> Result<(), SourceUnavailable> {
+        let Some(&index) = self.resolved.get(name) else {
+            return Err(SourceIngestKind::MissingTensor {
+                tensor: name.to_owned(),
+                shard: self.origin.clone(),
+            }
+            .into());
+        };
+        let shard = &self.shards[index];
+        let meta = &shard.tensors[name];
+        let data = &shard.bytes[shard.data_start + meta.begin..shard.data_start + meta.end];
+        codec::append_widened(meta.dtype, data, out);
+        Ok(())
+    }
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn unreadable(path: &str, reason: &impl std::fmt::Display) -> SourceIngestKind {
+    SourceIngestKind::Unreadable {
+        path: path.to_owned(),
+        reason: reason.to_string(),
+    }
+}
+
+/// Parse one shard's Safetensors header and validate it in isolation:
+/// dtype support, tensor span vs shape × dtype size, span contiguity, and
+/// file size vs header claim. Duplicate names within one header are
+/// detected on the raw JSON (before map collapse).
+#[cfg(not(target_arch = "wasm32"))]
+fn parse_and_validate_shard(name: &str, bytes: Vec<u8>) -> Result<Shard, SourceUnavailable> {
+    let file_len = bytes.len() as u64;
+    if bytes.len() < 8 {
+        return Err(SourceIngestKind::ByteLengthMismatch {
+            context: format!("{name}: header length prefix"),
+            expected: 8,
+            actual: file_len,
+        }
+        .into());
+    }
+    let header_len = u64::from_le_bytes(bytes[..8].try_into().expect("eight bytes"));
+    let data_start = header_len
+        .checked_add(8)
+        .filter(|start| *start <= file_len)
+        .ok_or(SourceIngestKind::ByteLengthMismatch {
+            context: format!("{name}: header"),
+            expected: header_len.saturating_add(8),
+            actual: file_len,
+        })?;
+    let header = std::str::from_utf8(&bytes[8..data_start as usize])
+        .map_err(|error| unreadable(name, &error))?;
+    let entries: MapEntries =
+        serde_json::from_str(header).map_err(|error| unreadable(name, &error))?;
+
+    let mut tensors: std::collections::BTreeMap<String, TensorMeta> =
+        std::collections::BTreeMap::new();
+    for (tensor, value) in entries.0 {
+        if tensor == "__metadata__" {
+            continue;
+        }
+        let info: RawTensorInfo = serde_json::from_value(value)
+            .map_err(|error| unreadable(&format!("{name}: tensor {tensor}"), &error))?;
+        let Some(dtype) = SourceDtype::classify(&info.dtype) else {
+            return Err(SourceIngestKind::UnsupportedDtype {
+                tensor,
+                dtype: info.dtype,
+            }
+            .into());
+        };
+        let mut shape = Vec::with_capacity(info.shape.len());
+        for &extent in &info.shape {
+            let extent = usize::try_from(extent)
+                .map_err(|error| unreadable(&format!("{name}: tensor {tensor}"), &error))?;
+            shape.push(extent);
+        }
+        let elements = shape
+            .iter()
+            .copied()
+            .try_fold(1usize, usize::checked_mul)
+            .ok_or_else(|| {
+                unreadable(
+                    &format!("{name}: tensor {tensor}"),
+                    &"shape element count overflows",
+                )
+            })?;
+        let claimed = elements as u64 * dtype.byte_size() as u64;
+        let (begin, end) = info.data_offsets;
+        if end < begin || end - begin != claimed {
+            return Err(SourceIngestKind::ByteLengthMismatch {
+                context: format!("{name}: tensor {tensor} data length vs shape×dtype size"),
+                expected: claimed,
+                actual: end.saturating_sub(begin),
+            }
+            .into());
+        }
+        let meta = TensorMeta {
+            dtype,
+            shape,
+            begin: usize::try_from(begin)
+                .map_err(|error| unreadable(&format!("{name}: tensor {tensor}"), &error))?,
+            end: usize::try_from(end)
+                .map_err(|error| unreadable(&format!("{name}: tensor {tensor}"), &error))?,
+        };
+        if tensors.insert(tensor.clone(), meta).is_some() {
+            return Err(SourceIngestKind::DuplicateTensor {
+                tensor,
+                first_shard: name.to_owned(),
+                second_shard: name.to_owned(),
+            }
+            .into());
+        }
+    }
+
+    // Spans must tile the data section contiguously from zero.
+    let mut spans: Vec<(usize, usize, &String)> = tensors
+        .iter()
+        .map(|(tensor, meta)| (meta.begin, meta.end, tensor))
+        .collect();
+    spans.sort_unstable();
+    let mut cursor = 0usize;
+    for (begin, end, tensor) in spans {
+        if begin != cursor {
+            return Err(SourceIngestKind::ByteLengthMismatch {
+                context: format!("{name}: tensor {tensor} data offsets are not contiguous"),
+                expected: cursor as u64,
+                actual: begin as u64,
+            }
+            .into());
+        }
+        cursor = end;
+    }
+    let claimed_file_len = data_start + cursor as u64;
+    if claimed_file_len != file_len {
+        return Err(SourceIngestKind::ByteLengthMismatch {
+            context: format!("{name}: file size vs header claim"),
+            expected: claimed_file_len,
+            actual: file_len,
+        }
+        .into());
+    }
+    Ok(Shard {
+        name: name.to_owned(),
+        bytes,
+        data_start: data_start as usize,
+        tensors,
+    })
+}
+
+/// The tensors (name + shape) a Llama-family teacher requires, in the
+/// flattened append order `load_inner` uses. Derived entirely from the
+/// `config.json` geometry, so shape validation happens at the #598 boundary
+/// before the model is constructed.
+#[cfg(not(target_arch = "wasm32"))]
+fn required_llama_tensors(cfg: &Config, tie_word_embeddings: bool) -> Vec<TensorRequirement> {
+    let (dim, hidden, vocab) = (cfg.dim, cfg.hidden, cfg.vocab);
+    let kv_dim = cfg.dim * cfg.n_kv_heads / cfg.n_heads;
+    let mut required = Vec::new();
+    let mut push = |name: String, shape: Vec<usize>| {
+        required.push(TensorRequirement { name, shape });
+    };
+    push("model.embed_tokens.weight".to_owned(), vec![vocab, dim]);
+    for (suffix, shape) in [
+        ("input_layernorm.weight", vec![dim]),
+        ("self_attn.q_proj.weight", vec![dim, dim]),
+        ("self_attn.k_proj.weight", vec![kv_dim, dim]),
+        ("self_attn.v_proj.weight", vec![kv_dim, dim]),
+        ("self_attn.o_proj.weight", vec![dim, dim]),
+        ("post_attention_layernorm.weight", vec![dim]),
+        ("mlp.gate_proj.weight", vec![hidden, dim]),
+        ("mlp.down_proj.weight", vec![dim, hidden]),
+        ("mlp.up_proj.weight", vec![hidden, dim]),
+    ] {
+        for layer in 0..cfg.n_layers {
+            push(format!("model.layers.{layer}.{suffix}"), shape.clone());
+        }
+    }
+    push("model.norm.weight".to_owned(), vec![dim]);
+    if !tie_word_embeddings {
+        push("lm_head.weight".to_owned(), vec![vocab, dim]);
+    }
+    required
 }
 
 /// A teacher that can advance a batch of independent sequences one position
@@ -1432,6 +2232,15 @@ impl HuggingFaceLlamaOracle {
         self.model.cfg.r4_attention
     }
 
+    /// Load the teacher from a snapshot directory: `config.json` plus the
+    /// weights as either a single `model.safetensors` or #598 indexed
+    /// shards (`model.safetensors.index.json` + shard files). Both layouts
+    /// flow through the one [`SafetensorsSnapshot::open`] validation
+    /// boundary — resolution, shape, byte-length, and dtype checks all fail
+    /// there, before any model construction — and tensors are widened
+    /// exactly from BF16/F16/F32 to `f32` through [`codec`]. κ is blake3
+    /// over the shard bytes in shard-name order, so single-file snapshots
+    /// keep their pre-#598 κ unchanged.
     #[cfg(not(target_arch = "wasm32"))]
     fn load_inner(
         source: impl AsRef<std::path::Path>,
@@ -1440,9 +2249,6 @@ impl HuggingFaceLlamaOracle {
         let source = source.as_ref();
         let config: HuggingFaceConfig =
             serde_json::from_slice(&std::fs::read(source.join("config.json"))?)?;
-        let model_bytes =
-            crate::progress::read_file(source.join("model.safetensors"), "loading Safetensors")?;
-        let tensors = safetensors::SafeTensors::deserialize(&model_bytes)?;
         let cfg = Config {
             dim: config.hidden_size,
             hidden: config.intermediate_size,
@@ -1462,54 +2268,72 @@ impl HuggingFaceLlamaOracle {
             "model geometry: vocab={} hidden={} layers={} heads={} kv_heads={}",
             cfg.vocab, cfg.dim, cfg.n_layers, cfg.n_heads, cfg.n_kv_heads
         );
-        eprintln!("converting BF16 tensors to the compiler teacher layout...");
-        let mut weights = Vec::with_capacity(model_bytes.len() / 2);
-        append_tensor(&tensors, "model.embed_tokens.weight", &mut weights)?;
+        // #598: one validation boundary for single-file and indexed sharded
+        // snapshots; every failure class errors here, before construction.
+        let required = required_llama_tensors(&cfg, config.tie_word_embeddings);
+        let snapshot = SafetensorsSnapshot::open(source, &required)?;
+        eprintln!("widening source tensors (BF16/F16/F32) to the compiler teacher layout...");
+        let flattened_len = required
+            .iter()
+            .map(|requirement| requirement.shape.iter().product::<usize>())
+            .sum();
+        let mut weights = Vec::with_capacity(flattened_len);
+        append_tensor(&snapshot, "model.embed_tokens.weight", &mut weights)?;
         append_layers(
-            &tensors,
+            &snapshot,
             cfg.n_layers,
             "input_layernorm.weight",
             &mut weights,
         )?;
         append_layers(
-            &tensors,
+            &snapshot,
             cfg.n_layers,
             "self_attn.q_proj.weight",
             &mut weights,
         )?;
         append_layers(
-            &tensors,
+            &snapshot,
             cfg.n_layers,
             "self_attn.k_proj.weight",
             &mut weights,
         )?;
         append_layers(
-            &tensors,
+            &snapshot,
             cfg.n_layers,
             "self_attn.v_proj.weight",
             &mut weights,
         )?;
         append_layers(
-            &tensors,
+            &snapshot,
             cfg.n_layers,
             "self_attn.o_proj.weight",
             &mut weights,
         )?;
         append_layers(
-            &tensors,
+            &snapshot,
             cfg.n_layers,
             "post_attention_layernorm.weight",
             &mut weights,
         )?;
-        append_layers(&tensors, cfg.n_layers, "mlp.gate_proj.weight", &mut weights)?;
-        append_layers(&tensors, cfg.n_layers, "mlp.down_proj.weight", &mut weights)?;
-        append_layers(&tensors, cfg.n_layers, "mlp.up_proj.weight", &mut weights)?;
-        append_tensor(&tensors, "model.norm.weight", &mut weights)?;
+        append_layers(
+            &snapshot,
+            cfg.n_layers,
+            "mlp.gate_proj.weight",
+            &mut weights,
+        )?;
+        append_layers(
+            &snapshot,
+            cfg.n_layers,
+            "mlp.down_proj.weight",
+            &mut weights,
+        )?;
+        append_layers(&snapshot, cfg.n_layers, "mlp.up_proj.weight", &mut weights)?;
+        append_tensor(&snapshot, "model.norm.weight", &mut weights)?;
         if !config.tie_word_embeddings {
-            append_tensor(&tensors, "lm_head.weight", &mut weights)?;
+            append_tensor(&snapshot, "lm_head.weight", &mut weights)?;
         }
-        let kappa = format!("blake3:{}", blake3::hash(&model_bytes).to_hex());
-        let source_bytes = model_bytes.len();
+        let kappa = snapshot.kappa().to_owned();
+        let source_bytes = snapshot.source_bytes();
         let canonical_math =
             std::env::var("TLESS_CANONICAL_DETERMINISTIC").is_ok_and(|value| value != "0");
         let mut model = Llama::from_flat(cfg, weights, config.tie_word_embeddings);
@@ -1542,37 +2366,33 @@ impl HuggingFaceLlamaOracle {
     }
 }
 
+/// Append one tensor per layer (`model.layers.<n>.<suffix>`) from the
+/// validated snapshot, in layer order.
 #[cfg(not(target_arch = "wasm32"))]
 fn append_layers(
-    tensors: &safetensors::SafeTensors<'_>,
+    snapshot: &SafetensorsSnapshot,
     layers: usize,
     suffix: &str,
     out: &mut Vec<f32>,
 ) -> Result<(), SourceUnavailable> {
     for layer in 0..layers {
-        append_tensor(tensors, &format!("model.layers.{layer}.{suffix}"), out)?;
+        append_tensor(snapshot, &format!("model.layers.{layer}.{suffix}"), out)?;
     }
     Ok(())
 }
 
+/// Append tensor `name` from the validated snapshot, widened exactly from
+/// its declared source dtype (BF16, F16, or F32) to `f32` through
+/// [`codec`]. Dtype support, shape, and byte lengths were already checked
+/// at the [`SafetensorsSnapshot::open`] boundary (#598), so this only fails
+/// for a name outside the validated resolution.
 #[cfg(not(target_arch = "wasm32"))]
 fn append_tensor(
-    tensors: &safetensors::SafeTensors<'_>,
+    snapshot: &SafetensorsSnapshot,
     name: &str,
     out: &mut Vec<f32>,
 ) -> Result<(), SourceUnavailable> {
-    let tensor = tensors.tensor(name)?;
-    if tensor.dtype() != safetensors::Dtype::BF16 {
-        return Err(SourceUnavailable::new(format!(
-            "tensor {name} is {:?}, expected BF16",
-            tensor.dtype()
-        )));
-    }
-    for bytes in tensor.data().chunks_exact(2) {
-        let bits = u16::from_le_bytes([bytes[0], bytes[1]]);
-        out.push(f32::from_bits(u32::from(bits) << 16));
-    }
-    Ok(())
+    snapshot.tensor_f32_into(name, out)
 }
 
 impl RepresentationSource for HuggingFaceLlamaOracle {
@@ -1945,5 +2765,685 @@ mod tests {
             steps * batch,
             batched_tps / serial_tps
         );
+    }
+
+    /// #598 source-codec bit-pattern tables: exact widening of BF16, F16,
+    /// and F32 against hand-written hex constants — normals, subnormals,
+    /// ±0, ±infinity, and payload-carrying NaNs. Equality is on raw bits.
+    mod codec_bits {
+        use crate::codec;
+
+        /// (bf16 bits, expected f32 bits). BF16 → f32 is a 16-bit shift, so
+        /// every class widens exactly, including NaN payloads.
+        const BF16_WIDENING: &[(u16, u32)] = &[
+            (0x0000, 0x0000_0000), // +0
+            (0x8000, 0x8000_0000), // -0
+            (0x3F80, 0x3F80_0000), // 1.0
+            (0xBF80, 0xBF80_0000), // -1.0
+            (0x4000, 0x4000_0000), // 2.0
+            (0x3FC0, 0x3FC0_0000), // 1.5
+            (0xC2F7, 0xC2F7_0000), // -123.5
+            (0x0001, 0x0001_0000), // min subnormal (widens to an f32 subnormal)
+            (0x007F, 0x007F_0000), // max subnormal
+            (0x0080, 0x0080_0000), // min normal 2^-126
+            (0x7F7F, 0x7F7F_0000), // max finite
+            (0x7F80, 0x7F80_0000), // +inf
+            (0xFF80, 0xFF80_0000), // -inf
+            (0x7FC0, 0x7FC0_0000), // quiet NaN
+            (0x7F81, 0x7F81_0000), // NaN, payload 0x01 preserved
+            (0xFFC1, 0xFFC1_0000), // negative NaN, payload preserved
+        ];
+
+        /// (f16 bits, expected f32 bits). Normals re-bias (+112),
+        /// subnormals normalize to f32 normals, NaN payloads shift by 13.
+        const F16_WIDENING: &[(u16, u32)] = &[
+            (0x0000, 0x0000_0000), // +0
+            (0x8000, 0x8000_0000), // -0
+            (0x3C00, 0x3F80_0000), // 1.0
+            (0xBC00, 0xBF80_0000), // -1.0
+            (0x4000, 0x4000_0000), // 2.0
+            (0x3E00, 0x3FC0_0000), // 1.5
+            (0x3555, 0x3EAA_A000), // 0.333251953125
+            (0x7BFF, 0x477F_E000), // 65504.0 (max finite)
+            (0xFBFF, 0xC77F_E000), // -65504.0
+            (0x0400, 0x3880_0000), // min normal 2^-14
+            (0x0001, 0x3380_0000), // min subnormal 2^-24
+            (0x8001, 0xB380_0000), // -min subnormal
+            (0x03FF, 0x387F_C000), // max subnormal 1023×2^-24
+            (0x7C00, 0x7F80_0000), // +inf
+            (0xFC00, 0xFF80_0000), // -inf
+            (0x7E00, 0x7FC0_0000), // quiet NaN
+            (0x7C01, 0x7F80_2000), // NaN, payload 0x001 → mantissa 0x001<<13
+            (0xFE2A, 0xFFC5_4000), // negative NaN, payload 0x22A preserved
+        ];
+
+        /// F32 little-endian decode is bit-identity.
+        const F32_IDENTITY: &[u32] = &[
+            0x0000_0000, // +0
+            0x8000_0000, // -0
+            0x3F80_0000, // 1.0
+            0xC2F6_E979, // -123.456...
+            0x0000_0001, // min subnormal
+            0x7F80_0000, // +inf
+            0xFF80_0000, // -inf
+            0x7FC0_0001, // quiet NaN with payload
+            0x7F80_0001, // signaling NaN bit pattern
+        ];
+
+        #[test]
+        fn bf16_widening_bit_patterns() {
+            for &(bits, expected) in BF16_WIDENING {
+                assert_eq!(
+                    codec::bf16_to_f32(bits).to_bits(),
+                    expected,
+                    "bf16 {bits:#06x}"
+                );
+            }
+        }
+
+        #[test]
+        fn f16_widening_bit_patterns() {
+            for &(bits, expected) in F16_WIDENING {
+                assert_eq!(
+                    codec::f16_to_f32(bits).to_bits(),
+                    expected,
+                    "f16 {bits:#06x}"
+                );
+            }
+        }
+
+        #[test]
+        fn f32_decode_is_bit_identity() {
+            for &bits in F32_IDENTITY {
+                assert_eq!(
+                    codec::f32_from_le(bits.to_le_bytes()).to_bits(),
+                    bits,
+                    "f32 {bits:#010x}"
+                );
+            }
+        }
+
+        /// Exact round-trip: an f32 value representable in the narrow type
+        /// survives narrow → widen unchanged, bit for bit.
+        #[test]
+        fn bf16_round_trip_values_are_exact() {
+            for value in [1.0f32, -2.5, 0.156_25, 3.875, -0.007_812_5] {
+                let narrow = (value.to_bits() >> 16) as u16;
+                assert_eq!(codec::bf16_to_f32(narrow).to_bits(), value.to_bits());
+            }
+        }
+
+        #[test]
+        fn f16_round_trip_values_are_exact() {
+            for (narrow, value) in [
+                (0x3C00u16, 1.0f32),
+                (0xB800, -0.5),
+                (0x7BFF, 65504.0),
+                (0x0400, f32::from_bits(0x3880_0000)), // 2^-14
+            ] {
+                assert_eq!(codec::f16_to_f32(narrow).to_bits(), value.to_bits());
+            }
+        }
+
+        /// The byte-stream widening path used by tensor loading.
+        #[cfg(not(target_arch = "wasm32"))]
+        #[test]
+        fn append_widened_decodes_each_dtype() {
+            let mut out = Vec::new();
+            codec::append_widened(
+                crate::SourceDtype::Bf16,
+                &[0x80, 0x3F, 0x00, 0xC0], // 1.0, -2.0
+                &mut out,
+            );
+            codec::append_widened(
+                crate::SourceDtype::F16,
+                &[0x00, 0x3C, 0x00, 0xB8], // 1.0, -0.5
+                &mut out,
+            );
+            codec::append_widened(crate::SourceDtype::F32, &1.5f32.to_le_bytes(), &mut out);
+            assert_eq!(out, [1.0, -2.0, 1.0, -0.5, 1.5]);
+        }
+    }
+
+    /// #598 ingestion-boundary tests: synthetic Safetensors shards and
+    /// indexes built in-test (std only), one test per failure class, plus
+    /// the sharded-equals-single-file round trip.
+    #[cfg(not(target_arch = "wasm32"))]
+    mod shard_ingestion {
+        use crate::{
+            HuggingFaceLlamaOracle, SafetensorsSnapshot, SourceIngestKind, TensorRequirement,
+        };
+        use std::path::{Path, PathBuf};
+        use std::sync::atomic::{AtomicUsize, Ordering};
+
+        const SHARD_1: &str = "model-00001-of-00002.safetensors";
+        const SHARD_2: &str = "model-00002-of-00002.safetensors";
+
+        fn temp_snapshot_dir(tag: &str) -> PathBuf {
+            static COUNTER: AtomicUsize = AtomicUsize::new(0);
+            let dir = std::env::temp_dir().join(format!(
+                "uor-r4-i598-{tag}-{}-{}",
+                std::process::id(),
+                COUNTER.fetch_add(1, Ordering::Relaxed)
+            ));
+            std::fs::create_dir_all(&dir).expect("create synthetic snapshot dir");
+            dir
+        }
+
+        fn raw_shard(header: &str, data: &[u8]) -> Vec<u8> {
+            let mut out = (header.len() as u64).to_le_bytes().to_vec();
+            out.extend_from_slice(header.as_bytes());
+            out.extend_from_slice(data);
+            out
+        }
+
+        /// Build a well-formed shard: contiguous offsets in entry order.
+        fn shard_bytes(tensors: &[(&str, &str, &[usize], &[u8])]) -> Vec<u8> {
+            let mut entries = Vec::new();
+            let mut data = Vec::new();
+            let mut offset = 0usize;
+            for (name, dtype, shape, bytes) in tensors {
+                let end = offset + bytes.len();
+                let dims = shape
+                    .iter()
+                    .map(ToString::to_string)
+                    .collect::<Vec<_>>()
+                    .join(",");
+                entries.push(format!(
+                    "\"{name}\":{{\"dtype\":\"{dtype}\",\"shape\":[{dims}],\
+                     \"data_offsets\":[{offset},{end}]}}"
+                ));
+                data.extend_from_slice(bytes);
+                offset = end;
+            }
+            raw_shard(&format!("{{{}}}", entries.join(",")), &data)
+        }
+
+        fn index_bytes(entries: &[(&str, &str)]) -> Vec<u8> {
+            let body = entries
+                .iter()
+                .map(|(tensor, shard)| format!("\"{tensor}\":\"{shard}\""))
+                .collect::<Vec<_>>()
+                .join(",");
+            format!("{{\"metadata\":{{\"total_size\":0}},\"weight_map\":{{{body}}}}}").into_bytes()
+        }
+
+        fn write(dir: &Path, name: &str, bytes: &[u8]) {
+            std::fs::write(dir.join(name), bytes).expect("write synthetic snapshot file");
+        }
+
+        fn req(name: &str, shape: &[usize]) -> TensorRequirement {
+            TensorRequirement {
+                name: name.to_owned(),
+                shape: shape.to_vec(),
+            }
+        }
+
+        /// Deterministic finite BF16 payload bytes for `n` elements.
+        fn bf16_data(n: usize, salt: u16) -> Vec<u8> {
+            (0..n)
+                .flat_map(|i| {
+                    (0x3F00u16 | ((i as u16).wrapping_mul(31).wrapping_add(salt) & 0x7F))
+                        .to_le_bytes()
+                })
+                .collect()
+        }
+
+        #[test]
+        fn missing_shard_file_is_detected() {
+            let dir = temp_snapshot_dir("missing-shard");
+            write(
+                &dir,
+                "model.safetensors.index.json",
+                &index_bytes(&[("a", SHARD_1), ("b", SHARD_2)]),
+            );
+            write(
+                &dir,
+                SHARD_1,
+                &shard_bytes(&[("a", "BF16", &[2], &bf16_data(2, 1))]),
+            );
+            let error = SafetensorsSnapshot::open(&dir, &[]).unwrap_err();
+            assert_eq!(
+                error.kind,
+                SourceIngestKind::MissingShardFile {
+                    shard: SHARD_2.to_owned()
+                }
+            );
+        }
+
+        #[test]
+        fn tensor_missing_from_its_mapped_shard_is_detected() {
+            let dir = temp_snapshot_dir("missing-tensor");
+            write(
+                &dir,
+                "model.safetensors.index.json",
+                &index_bytes(&[("a", SHARD_1), ("b", SHARD_1)]),
+            );
+            write(
+                &dir,
+                SHARD_1,
+                &shard_bytes(&[("a", "BF16", &[2], &bf16_data(2, 2))]),
+            );
+            let error = SafetensorsSnapshot::open(&dir, &[]).unwrap_err();
+            assert_eq!(
+                error.kind,
+                SourceIngestKind::MissingTensor {
+                    tensor: "b".to_owned(),
+                    shard: SHARD_1.to_owned()
+                }
+            );
+        }
+
+        #[test]
+        fn required_tensor_absent_everywhere_is_detected() {
+            let dir = temp_snapshot_dir("missing-required");
+            write(
+                &dir,
+                "model.safetensors",
+                &shard_bytes(&[("a", "BF16", &[2], &bf16_data(2, 3))]),
+            );
+            let error = SafetensorsSnapshot::open(&dir, &[req("b", &[2])]).unwrap_err();
+            assert_eq!(
+                error.kind,
+                SourceIngestKind::MissingTensor {
+                    tensor: "b".to_owned(),
+                    shard: "model.safetensors".to_owned()
+                }
+            );
+        }
+
+        #[test]
+        fn duplicate_tensor_across_shards_is_detected() {
+            let dir = temp_snapshot_dir("dup-shards");
+            write(
+                &dir,
+                "model.safetensors.index.json",
+                &index_bytes(&[("a", SHARD_1), ("b", SHARD_2)]),
+            );
+            write(
+                &dir,
+                SHARD_1,
+                &shard_bytes(&[("a", "BF16", &[2], &bf16_data(2, 4))]),
+            );
+            write(
+                &dir,
+                SHARD_2,
+                &shard_bytes(&[
+                    ("a", "BF16", &[2], &bf16_data(2, 4)),
+                    ("b", "BF16", &[2], &bf16_data(2, 12)),
+                ]),
+            );
+            let error = SafetensorsSnapshot::open(&dir, &[]).unwrap_err();
+            assert_eq!(
+                error.kind,
+                SourceIngestKind::DuplicateTensor {
+                    tensor: "a".to_owned(),
+                    first_shard: SHARD_1.to_owned(),
+                    second_shard: SHARD_2.to_owned()
+                }
+            );
+        }
+
+        #[test]
+        fn duplicate_index_mapping_is_detected() {
+            let dir = temp_snapshot_dir("dup-index");
+            // Hand-written raw JSON: the same key appears twice in
+            // weight_map; a plain serde_json map would silently drop one.
+            let index = format!("{{\"weight_map\":{{\"a\":\"{SHARD_1}\",\"a\":\"{SHARD_1}\"}}}}");
+            write(&dir, "model.safetensors.index.json", index.as_bytes());
+            write(
+                &dir,
+                SHARD_1,
+                &shard_bytes(&[("a", "BF16", &[2], &bf16_data(2, 5))]),
+            );
+            let error = SafetensorsSnapshot::open(&dir, &[]).unwrap_err();
+            assert_eq!(
+                error.kind,
+                SourceIngestKind::DuplicateTensor {
+                    tensor: "a".to_owned(),
+                    first_shard: SHARD_1.to_owned(),
+                    second_shard: SHARD_1.to_owned()
+                }
+            );
+        }
+
+        #[test]
+        fn unexpected_tensor_outside_index_is_detected() {
+            let dir = temp_snapshot_dir("unexpected");
+            write(
+                &dir,
+                "model.safetensors.index.json",
+                &index_bytes(&[("a", SHARD_1)]),
+            );
+            write(
+                &dir,
+                SHARD_1,
+                &shard_bytes(&[
+                    ("a", "BF16", &[2], &bf16_data(2, 6)),
+                    ("b", "BF16", &[2], &bf16_data(2, 7)),
+                ]),
+            );
+            let error = SafetensorsSnapshot::open(&dir, &[]).unwrap_err();
+            assert_eq!(
+                error.kind,
+                SourceIngestKind::UnexpectedTensor {
+                    tensor: "b".to_owned(),
+                    shard: SHARD_1.to_owned()
+                }
+            );
+        }
+
+        #[test]
+        fn shape_mismatch_against_geometry_is_detected() {
+            let dir = temp_snapshot_dir("shape");
+            write(
+                &dir,
+                "model.safetensors",
+                &shard_bytes(&[("a", "BF16", &[4], &bf16_data(4, 8))]),
+            );
+            let error = SafetensorsSnapshot::open(&dir, &[req("a", &[2, 2])]).unwrap_err();
+            assert_eq!(
+                error.kind,
+                SourceIngestKind::ShapeMismatch {
+                    tensor: "a".to_owned(),
+                    expected: vec![2, 2],
+                    actual: vec![4]
+                }
+            );
+        }
+
+        #[test]
+        fn tensor_span_shorter_than_shape_dtype_size_is_detected() {
+            let dir = temp_snapshot_dir("span");
+            // Shape [2,2] BF16 claims 8 bytes but the span declares 6.
+            let header = "{\"a\":{\"dtype\":\"BF16\",\"shape\":[2,2],\"data_offsets\":[0,6]}}";
+            write(&dir, "model.safetensors", &raw_shard(header, &[0u8; 6]));
+            let error = SafetensorsSnapshot::open(&dir, &[]).unwrap_err();
+            match error.kind {
+                SourceIngestKind::ByteLengthMismatch {
+                    context,
+                    expected: 8,
+                    actual: 6,
+                } => assert!(context.contains("shape×dtype"), "{context}"),
+                other => panic!("expected tensor-span ByteLengthMismatch, got {other:?}"),
+            }
+        }
+
+        #[test]
+        fn shard_file_size_disagreeing_with_header_is_detected() {
+            let dir = temp_snapshot_dir("filesize");
+            let mut shard = shard_bytes(&[("a", "BF16", &[2], &bf16_data(2, 9))]);
+            shard.extend_from_slice(&[0u8; 4]); // trailing bytes the header never claimed
+            write(&dir, "model.safetensors", &shard);
+            let error = SafetensorsSnapshot::open(&dir, &[]).unwrap_err();
+            match error.kind {
+                SourceIngestKind::ByteLengthMismatch { context, .. } => {
+                    assert!(context.contains("file size"), "{context}");
+                }
+                other => panic!("expected file-size ByteLengthMismatch, got {other:?}"),
+            }
+        }
+
+        #[test]
+        fn non_contiguous_data_offsets_are_detected() {
+            let dir = temp_snapshot_dir("gap");
+            let header = "{\"a\":{\"dtype\":\"BF16\",\"shape\":[2],\"data_offsets\":[4,8]}}";
+            write(&dir, "model.safetensors", &raw_shard(header, &[0u8; 8]));
+            let error = SafetensorsSnapshot::open(&dir, &[]).unwrap_err();
+            match error.kind {
+                SourceIngestKind::ByteLengthMismatch { context, .. } => {
+                    assert!(context.contains("contiguous"), "{context}");
+                }
+                other => panic!("expected contiguity ByteLengthMismatch, got {other:?}"),
+            }
+        }
+
+        #[test]
+        fn dtype_inconsistency_across_shards_is_detected() {
+            let dir = temp_snapshot_dir("dtype-mix");
+            write(
+                &dir,
+                "model.safetensors.index.json",
+                &index_bytes(&[("a", SHARD_1), ("b", SHARD_2)]),
+            );
+            write(
+                &dir,
+                SHARD_1,
+                &shard_bytes(&[("a", "BF16", &[2], &bf16_data(2, 10))]),
+            );
+            write(
+                &dir,
+                SHARD_2,
+                &shard_bytes(&[
+                    ("a", "F16", &[2], &[0u8; 4]),
+                    ("b", "BF16", &[2], &bf16_data(2, 13)),
+                ]),
+            );
+            let error = SafetensorsSnapshot::open(&dir, &[]).unwrap_err();
+            match error.kind {
+                SourceIngestKind::DtypeInconsistency {
+                    tensor,
+                    first,
+                    second,
+                } => {
+                    assert_eq!(tensor, "a");
+                    assert!(first.contains("BF16"), "{first}");
+                    assert!(second.contains("F16"), "{second}");
+                }
+                other => panic!("expected DtypeInconsistency, got {other:?}"),
+            }
+        }
+
+        #[test]
+        fn quantized_and_unknown_dtypes_are_rejected_by_name() {
+            for dtype in ["I8", "U8", "Q4_GPTQ"] {
+                let dir = temp_snapshot_dir("unsupported");
+                let header = format!(
+                    "{{\"a\":{{\"dtype\":\"{dtype}\",\"shape\":[4],\"data_offsets\":[0,4]}}}}"
+                );
+                write(&dir, "model.safetensors", &raw_shard(&header, &[0u8; 4]));
+                let error = SafetensorsSnapshot::open(&dir, &[]).unwrap_err();
+                assert_eq!(
+                    error.kind,
+                    SourceIngestKind::UnsupportedDtype {
+                        tensor: "a".to_owned(),
+                        dtype: dtype.to_owned()
+                    }
+                );
+                assert!(error.to_string().contains(dtype));
+            }
+        }
+
+        #[test]
+        fn single_file_snapshot_keeps_its_kappa_and_widens_exactly() {
+            let dir = temp_snapshot_dir("single");
+            let shard = shard_bytes(&[(
+                "a",
+                "BF16",
+                &[2],
+                &[0x80, 0x3F, 0x00, 0xC0], // 1.0, -2.0
+            )]);
+            write(&dir, "model.safetensors", &shard);
+            let snapshot = SafetensorsSnapshot::open(&dir, &[req("a", &[2])]).expect("open");
+            // The single-file κ is the pre-#598 hash of model.safetensors.
+            assert_eq!(
+                snapshot.kappa(),
+                format!("blake3:{}", blake3::hash(&shard).to_hex())
+            );
+            assert_eq!(snapshot.source_bytes(), shard.len());
+            let mut out = Vec::new();
+            snapshot.tensor_f32_into("a", &mut out).expect("tensor");
+            assert_eq!(out, [1.0, -2.0]);
+        }
+
+        #[test]
+        fn extra_tensor_without_index_is_tolerated() {
+            let dir = temp_snapshot_dir("extra");
+            write(
+                &dir,
+                "model.safetensors",
+                &shard_bytes(&[
+                    ("a", "BF16", &[2], &bf16_data(2, 11)),
+                    ("rotary.inv_freq", "F32", &[1], &1.0f32.to_le_bytes()),
+                ]),
+            );
+            // No index: extra tensors are ignored exactly as before #598.
+            SafetensorsSnapshot::open(&dir, &[req("a", &[2])]).expect("open single-file");
+        }
+
+        /// The tiny synthetic Llama snapshot used by the round-trip test:
+        /// mixed BF16/F16/F32 tensors matching `tiny_config_json`.
+        fn tiny_model_tensors() -> Vec<(String, &'static str, Vec<usize>, Vec<u8>)> {
+            let f16_data = |n: usize| -> Vec<u8> {
+                (0..n)
+                    .flat_map(|i| (0x3400u16 | ((i as u16).wrapping_mul(17) & 0xFF)).to_le_bytes())
+                    .collect()
+            };
+            let f32_data = |n: usize| -> Vec<u8> {
+                (0..n)
+                    .flat_map(|i| (i as f32 * 0.031_25 - 1.0).to_le_bytes())
+                    .collect()
+            };
+            let mut tensors = Vec::new();
+            let mut push = |name: &str, dtype: &'static str, shape: &[usize], data: Vec<u8>| {
+                tensors.push((name.to_owned(), dtype, shape.to_vec(), data));
+            };
+            push(
+                "model.embed_tokens.weight",
+                "BF16",
+                &[10, 8],
+                bf16_data(80, 20),
+            );
+            push(
+                "model.layers.0.input_layernorm.weight",
+                "F16",
+                &[8],
+                f16_data(8),
+            );
+            push(
+                "model.layers.0.self_attn.q_proj.weight",
+                "BF16",
+                &[8, 8],
+                bf16_data(64, 21),
+            );
+            push(
+                "model.layers.0.self_attn.k_proj.weight",
+                "BF16",
+                &[8, 8],
+                bf16_data(64, 22),
+            );
+            push(
+                "model.layers.0.self_attn.v_proj.weight",
+                "BF16",
+                &[8, 8],
+                bf16_data(64, 23),
+            );
+            push(
+                "model.layers.0.self_attn.o_proj.weight",
+                "BF16",
+                &[8, 8],
+                bf16_data(64, 24),
+            );
+            push(
+                "model.layers.0.post_attention_layernorm.weight",
+                "BF16",
+                &[8],
+                bf16_data(8, 25),
+            );
+            push(
+                "model.layers.0.mlp.gate_proj.weight",
+                "BF16",
+                &[16, 8],
+                bf16_data(128, 26),
+            );
+            push(
+                "model.layers.0.mlp.down_proj.weight",
+                "BF16",
+                &[8, 16],
+                bf16_data(128, 27),
+            );
+            push(
+                "model.layers.0.mlp.up_proj.weight",
+                "BF16",
+                &[16, 8],
+                bf16_data(128, 28),
+            );
+            push("model.norm.weight", "F32", &[8], f32_data(8));
+            tensors
+        }
+
+        const TINY_CONFIG: &str = r#"{
+            "hidden_size": 8,
+            "intermediate_size": 16,
+            "num_hidden_layers": 1,
+            "num_attention_heads": 2,
+            "num_key_value_heads": 2,
+            "vocab_size": 10,
+            "max_position_embeddings": 8,
+            "tie_word_embeddings": true
+        }"#;
+
+        fn as_entries<'a>(
+            tensors: &'a [(String, &'static str, Vec<usize>, Vec<u8>)],
+        ) -> Vec<(&'a str, &'a str, &'a [usize], &'a [u8])> {
+            tensors
+                .iter()
+                .map(|(name, dtype, shape, data)| {
+                    (name.as_str(), *dtype, shape.as_slice(), data.as_slice())
+                })
+                .collect()
+        }
+
+        /// The #598 round trip: a valid 2-shard indexed snapshot loads to
+        /// the same flattened f32 weights — and the same step logits — as
+        /// the equivalent single-file snapshot, through one code path.
+        #[test]
+        fn two_shard_index_round_trip_equals_single_file_load() {
+            let tensors = tiny_model_tensors();
+
+            let single = temp_snapshot_dir("roundtrip-single");
+            write(&single, "config.json", TINY_CONFIG.as_bytes());
+            write(
+                &single,
+                "model.safetensors",
+                &shard_bytes(&as_entries(&tensors)),
+            );
+
+            let sharded = temp_snapshot_dir("roundtrip-sharded");
+            write(&sharded, "config.json", TINY_CONFIG.as_bytes());
+            let (first, second) = tensors.split_at(5);
+            write(&sharded, SHARD_1, &shard_bytes(&as_entries(first)));
+            write(&sharded, SHARD_2, &shard_bytes(&as_entries(second)));
+            let index: Vec<(&str, &str)> = first
+                .iter()
+                .map(|(name, ..)| (name.as_str(), SHARD_1))
+                .chain(second.iter().map(|(name, ..)| (name.as_str(), SHARD_2)))
+                .collect();
+            write(
+                &sharded,
+                "model.safetensors.index.json",
+                &index_bytes(&index),
+            );
+
+            let mut from_single =
+                HuggingFaceLlamaOracle::load(&single).expect("load single-file snapshot");
+            let mut from_shards =
+                HuggingFaceLlamaOracle::load(&sharded).expect("load sharded snapshot");
+            assert_eq!(
+                from_single.model.w, from_shards.model.w,
+                "flattened f32 weights must be identical"
+            );
+
+            use crate::BehaviorSource;
+            let vocab = from_single.model.cfg.vocab;
+            let mut single_logits = vec![0.0f32; vocab];
+            let mut sharded_logits = vec![0.0f32; vocab];
+            from_single.reset();
+            from_shards.reset();
+            from_single.step(1, 0, &mut single_logits);
+            from_shards.step(1, 0, &mut sharded_logits);
+            assert!(single_logits.iter().all(|logit| logit.is_finite()));
+            assert_eq!(single_logits, sharded_logits);
+        }
     }
 }

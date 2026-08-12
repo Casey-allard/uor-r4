@@ -94,6 +94,27 @@ the `model.safetensors` bytes and nothing else. They are NOT relabeled and do
 not become snapshot identities; the snapshot-wide identity is only the
 `source_manifest.json` root κ described above.
 
+#### Sharded snapshots (#598)
+
+Snapshots whose weights arrive as indexed Safetensors shards
+(`model.safetensors.index.json` plus `model-NNNNN-of-NNNNN.safetensors`
+files) load through the same teacher adapter as single-file snapshots.
+`uor-r4-model-source` resolves and validates the whole snapshot at one
+deterministic boundary (`SafetensorsSnapshot::open`) before any model is
+constructed: every tensor must resolve to exactly one shard, and missing
+shard files or tensors, duplicate or unexpected tensors, shape mismatches
+against the `config.json` geometry, byte-length mismatches (tensor spans vs
+shape×dtype size, shard file size vs header claim), dtype inconsistencies,
+and unsupported dtypes each fail with their own named error. Source tensors
+declared BF16, F16, or F32 are widened exactly to f32 (no rounding path);
+quantized formats (I8/U8/GPTQ/AWQ-style) are rejected by name, never
+silently approximated. A single `model.safetensors` is simply the one-shard
+case of the same code path, and its teacher κ (blake3 of the file bytes)
+is unchanged. The adapter only checks that every shard file the index
+references exists in the snapshot directory; the full per-file digest
+cross-check against `source_manifest.json` (#597) remains the root crate's
+responsibility.
+
 ### 2. Compile the source
 
 Compile an already downloaded directory:
