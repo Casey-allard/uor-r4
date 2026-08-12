@@ -58,4 +58,7 @@ allow-registry = ["https://github.com/rust-lang/crates.io-index"]
 allow-git = [
     "https://github.com/UOR-Foundation/uor-addr",
     "https://github.com/UOR-Foundation/UOR-Framework",
+    # #622/#626: uor-matmul-core as a dev-only tropical-semantics reference
+    # (parity test in uor-r4-graph-cli). Rev-pinned in the consuming manifest.
+    "https://github.com/UOR-Foundation/uor-matmul",
 ]
