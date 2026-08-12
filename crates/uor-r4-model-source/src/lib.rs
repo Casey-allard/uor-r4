@@ -706,6 +706,63 @@ impl Llama {
         self.finish_forward(st, fast_matmul);
     }
 
+    /// One forward step with the #603 teacher-trace lanes captured at
+    /// declared layer indices. This IS the exact executor — the same
+    /// [`Llama::layer_forward`]/[`Llama::finish_forward`] path `forward`
+    /// and `forward_capturing` take, so a traced step and a plain step
+    /// produce identical bits; the taps only READ state the layer body
+    /// already produced. Bounded by construction: each lane copies out
+    /// only its declared layer indices, once per step.
+    ///
+    /// Taps, all read after `layer_forward(l)` returns:
+    ///
+    /// - residual: `st.x` (the post-layer residual stream, the same slice
+    ///   `forward_capturing` sinks);
+    /// - q/k/v: `st.q` (the current position's RoPE-rotated query) and the
+    ///   layer's key/value cache rows at `pos` — the exact vectors the
+    ///   #602 attention operators consumed;
+    /// - attention support: per head `h`, the softmax-normalized weights
+    ///   `st.att[h*seq_len .. h*seq_len+pos+1]` the #602 factored per-head
+    ///   weight functions just produced for layer `l`. Read before the
+    ///   next layer overwrites the shared buffer.
+    #[cfg(not(target_arch = "wasm32"))]
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn forward_capturing_trace(
+        &self,
+        st: &mut State,
+        token: usize,
+        pos: usize,
+        fast_matmul: bool,
+        request: &TraceCaptureRequest<'_>,
+        sinks: &mut TraceCaptureSinks<'_, '_>,
+    ) {
+        let dim = self.cfg.dim;
+        let kv_dim = self.cfg.dim * self.cfg.n_kv_heads / self.cfg.n_heads;
+        st.x.copy_from_slice(&self.w[self.emb + token * dim..self.emb + (token + 1) * dim]);
+        for l in 0..self.cfg.n_layers {
+            self.layer_forward(st, l, pos, fast_matmul);
+            if request.attention_layers.contains(&l) {
+                for h in 0..self.cfg.n_heads {
+                    (sinks.attention)(
+                        l,
+                        h,
+                        &st.att[h * self.cfg.seq_len..h * self.cfg.seq_len + pos + 1],
+                    );
+                }
+            }
+            if request.qkv_layers.contains(&l) {
+                let loff = l * self.cfg.seq_len * kv_dim;
+                let k = &st.key_cache[loff + pos * kv_dim..loff + (pos + 1) * kv_dim];
+                let v = &st.value_cache[loff + pos * kv_dim..loff + (pos + 1) * kv_dim];
+                (sinks.qkv)(l, &st.q, k, v);
+            }
+            if request.residual_layers.contains(&l) {
+                (sinks.residual)(l, &st.x);
+            }
+        }
+        self.finish_forward(st, fast_matmul);
+    }
+
     /// One transformer layer of the exact forward step, factored out of
     /// [`Llama::forward`] so the #599 conformance runner can observe the
     /// residual stream at declared layer indices through the very same
@@ -1113,6 +1170,64 @@ pub trait BehaviorSource {
     fn step(&mut self, token: usize, pos: usize, logits: &mut [f32]);
 }
 
+/// The bounded dimensions a trace-capturing oracle exposes for the #603
+/// teacher-trace lanes: how many layers exist (bounding the declarable
+/// layer indices), how many attention heads and kv heads each layer has
+/// (bounding the attention-support and k/v lane widths), and the width of
+/// the residual stream the capture taps (`cfg.dim`, the SOURCE width — for
+/// the Hugging Face adapter this is 576, not the compiled 288 that
+/// [`TeacherOracle::dim`] presents).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct TraceCaptureGeometry {
+    /// Number of transformer layers (declared capture indices must be
+    /// strictly below this).
+    pub layers: usize,
+    /// Attention heads per layer.
+    pub heads: usize,
+    /// Key/value heads per layer (grouped query).
+    pub kv_heads: usize,
+    /// Residual-stream width of the captured `st.x` / q vectors (the
+    /// source `cfg.dim`). K/v rows are
+    /// `residual_width * kv_heads / heads` wide.
+    pub residual_width: usize,
+}
+
+/// Which layer indices each #603 trace lane captures during one
+/// [`TeacherOracle::step_with_trace_capture`]. Empty slices capture
+/// nothing for that lane; indices outside the model's layer range are
+/// never matched (the caller validates them against
+/// [`TraceCaptureGeometry::layers`] up front).
+#[derive(Debug, Clone, Copy)]
+pub struct TraceCaptureRequest<'a> {
+    /// Post-layer residual-stream capture indices.
+    pub residual_layers: &'a [usize],
+    /// Current-position q/k/v capture indices.
+    pub qkv_layers: &'a [usize],
+    /// Per-head attention-weight capture indices.
+    pub attention_layers: &'a [usize],
+}
+
+/// `(layer, post-layer residual stream)` sink of one traced step.
+pub type ResidualSink<'a> = dyn FnMut(usize, &[f32]) + 'a;
+/// `(layer, rotated q at the current position, k cache row, v cache
+/// row)` sink of one traced step.
+pub type QkvSink<'a> = dyn FnMut(usize, &[f32], &[f32], &[f32]) + 'a;
+/// `(layer, head, softmax weights over positions 0..=pos)` sink of one
+/// traced step.
+pub type AttentionSupportSink<'a> = dyn FnMut(usize, usize, &[f32]) + 'a;
+
+/// The capture sinks one traced step feeds. Each is called only for the
+/// declared layer indices, in ascending layer order (heads ascending
+/// within a layer for the attention sink), once per step.
+pub struct TraceCaptureSinks<'a, 'b> {
+    /// See [`ResidualSink`].
+    pub residual: &'a mut ResidualSink<'b>,
+    /// See [`QkvSink`].
+    pub qkv: &'a mut QkvSink<'b>,
+    /// See [`AttentionSupportSink`].
+    pub attention: &'a mut AttentionSupportSink<'b>,
+}
+
 /// The TWO-SURFACE interface every source architecture must expose to the
 /// compiler: the embedding table (representation) and a sequential
 /// next-token forward (behavior). The compiler is written against this
@@ -1179,6 +1294,38 @@ pub trait TeacherOracle: RepresentationSource + BehaviorSource {
     fn top_k(&self, k: usize, out: &mut [(u32, f32)]) -> usize {
         let _ = (k, out);
         0
+    }
+
+    /// Optional compiler-only #603 trace-capture surface: the bounded
+    /// capture dimensions this oracle exposes, when it supports the
+    /// traced step. `None` means the oracle has no bounded per-layer
+    /// capture path (richer trace profiles must be refused, never
+    /// zero-filled); the default keeps every existing oracle unaffected,
+    /// mirroring [`TeacherOracle::hidden_state`].
+    fn trace_capture_geometry(&self) -> Option<TraceCaptureGeometry> {
+        None
+    }
+
+    /// Optional compiler-only #603 trace-capture step: one forward step
+    /// with the declared lanes captured through the exact executor path
+    /// (`Llama::forward_capturing_trace`, the #599 `forward_capturing`
+    /// discipline extended with the q/k/v and per-head attention taps).
+    /// Returns `true` when the oracle captured through its executor;
+    /// the default performs a plain [`BehaviorSource::step`] and returns
+    /// `false` — the caller must treat `false` as "this oracle has no
+    /// capture surface" and refuse the richer profile rather than emit
+    /// absent lanes as zeros.
+    fn step_with_trace_capture(
+        &mut self,
+        token: usize,
+        pos: usize,
+        logits: &mut [f32],
+        request: &TraceCaptureRequest<'_>,
+        sinks: &mut TraceCaptureSinks<'_, '_>,
+    ) -> bool {
+        let _ = (request, sinks);
+        self.step(token, pos, logits);
+        false
     }
 }
 
@@ -1308,6 +1455,30 @@ impl TeacherOracle for LlamaOracle {
     }
     fn top_k(&self, k: usize, out: &mut [(u32, f32)]) -> usize {
         top_k_from_logits(&self.state.logits, k, out, self.model.canonical_math)
+    }
+    fn trace_capture_geometry(&self) -> Option<TraceCaptureGeometry> {
+        Some(TraceCaptureGeometry {
+            layers: self.model.cfg.n_layers,
+            heads: self.model.cfg.n_heads,
+            kv_heads: self.model.cfg.n_kv_heads,
+            residual_width: self.model.cfg.dim,
+        })
+    }
+    #[cfg(not(target_arch = "wasm32"))]
+    fn step_with_trace_capture(
+        &mut self,
+        token: usize,
+        pos: usize,
+        logits: &mut [f32],
+        request: &TraceCaptureRequest<'_>,
+        sinks: &mut TraceCaptureSinks<'_, '_>,
+    ) -> bool {
+        // Same matmul selection as `step` (the legacy exact scalar path),
+        // so a traced step and a plain step produce identical bits.
+        self.model
+            .forward_capturing_trace(&mut self.state, token, pos, false, request, sinks);
+        logits.copy_from_slice(&self.state.logits);
+        true
     }
 }
 
@@ -2662,6 +2833,37 @@ impl TeacherOracle for HuggingFaceLlamaOracle {
     fn top_k(&self, k: usize, out: &mut [(u32, f32)]) -> usize {
         top_k_from_logits(&self.state.logits, k, out, self.model.canonical_math)
     }
+    fn trace_capture_geometry(&self) -> Option<TraceCaptureGeometry> {
+        Some(TraceCaptureGeometry {
+            layers: self.model.cfg.n_layers,
+            heads: self.model.cfg.n_heads,
+            kv_heads: self.model.cfg.n_kv_heads,
+            residual_width: self.model.cfg.dim,
+        })
+    }
+    #[cfg(not(target_arch = "wasm32"))]
+    fn step_with_trace_capture(
+        &mut self,
+        token: usize,
+        pos: usize,
+        logits: &mut [f32],
+        request: &TraceCaptureRequest<'_>,
+        sinks: &mut TraceCaptureSinks<'_, '_>,
+    ) -> bool {
+        // This oracle's own matmul selection, exactly as
+        // `step_with_layer_capture` (#599) delegates it, so a traced
+        // step and a plain step produce identical bits.
+        self.model.forward_capturing_trace(
+            &mut self.state,
+            token,
+            pos,
+            self.fast_matmul,
+            request,
+            sinks,
+        );
+        logits.copy_from_slice(&self.state.logits);
+        true
+    }
 }
 
 /// Backward-compatible name for the first supported Hugging Face model.
@@ -2859,6 +3061,77 @@ mod tests {
         };
         model.rebuild_rope_cache();
         model
+    }
+
+    /// #603: the traced forward IS the exact executor — a
+    /// `forward_capturing_trace` stream produces bit-identical logits and
+    /// hidden state to a plain `forward` stream, and its taps are bounded
+    /// to the declared layer indices: residuals once per declared layer,
+    /// q/k/v rows at the current position, and per-head attention weights
+    /// that are softmax-normalized over the prefix (each head's captured
+    /// row sums to 1 and has `pos + 1` entries).
+    #[test]
+    fn forward_capturing_trace_matches_plain_forward_with_bounded_taps() {
+        let model = tiny_llama();
+        let tokens = [1usize, 3, 5, 2, 7];
+        let kv_dim = model.cfg.dim * model.cfg.n_kv_heads / model.cfg.n_heads;
+
+        let mut plain = State::new(&model.cfg);
+        plain.reset();
+        let mut traced = State::new(&model.cfg);
+        traced.reset();
+        let request = TraceCaptureRequest {
+            residual_layers: &[1],
+            qkv_layers: &[0],
+            attention_layers: &[1],
+        };
+        for (pos, &token) in tokens.iter().enumerate() {
+            model.forward(&mut plain, token, pos, false);
+
+            let mut residuals: Vec<(usize, Vec<f32>)> = Vec::new();
+            let mut qkv: Vec<(usize, usize, usize, usize)> = Vec::new();
+            let mut attention: Vec<(usize, usize, Vec<f32>)> = Vec::new();
+            let mut residual_sink = |layer: usize, x: &[f32]| residuals.push((layer, x.to_vec()));
+            let mut qkv_sink = |layer: usize, q: &[f32], k: &[f32], v: &[f32]| {
+                qkv.push((layer, q.len(), k.len(), v.len()));
+            };
+            let mut attention_sink = |layer: usize, head: usize, att: &[f32]| {
+                attention.push((layer, head, att.to_vec()))
+            };
+            model.forward_capturing_trace(
+                &mut traced,
+                token,
+                pos,
+                false,
+                &request,
+                &mut TraceCaptureSinks {
+                    residual: &mut residual_sink,
+                    qkv: &mut qkv_sink,
+                    attention: &mut attention_sink,
+                },
+            );
+
+            let plain_bits: Vec<u32> = plain.logits.iter().map(|v| v.to_bits()).collect();
+            let traced_bits: Vec<u32> = traced.logits.iter().map(|v| v.to_bits()).collect();
+            assert_eq!(plain_bits, traced_bits, "logits diverged at pos {pos}");
+            let plain_x: Vec<u32> = plain.x.iter().map(|v| v.to_bits()).collect();
+            let traced_x: Vec<u32> = traced.x.iter().map(|v| v.to_bits()).collect();
+            assert_eq!(plain_x, traced_x, "hidden state diverged at pos {pos}");
+
+            // Bounded taps: exactly the declared layers, once per step.
+            assert_eq!(residuals.len(), 1);
+            assert_eq!(residuals[0].0, 1);
+            assert_eq!(residuals[0].1.len(), model.cfg.dim);
+            assert_eq!(qkv, vec![(0, model.cfg.dim, kv_dim, kv_dim)]);
+            assert_eq!(attention.len(), model.cfg.n_heads);
+            for (head, (layer, got_head, att)) in attention.iter().enumerate() {
+                assert_eq!(*layer, 1);
+                assert_eq!(*got_head, head);
+                assert_eq!(att.len(), pos + 1, "prefix-bounded weights");
+                let total: f32 = att.iter().sum();
+                assert!((total - 1.0).abs() < 1e-5, "head {head} not normalized");
+            }
+        }
     }
 
     /// forward_batch over B sequences, stepped position by position, must

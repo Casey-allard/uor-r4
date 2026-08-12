@@ -28,6 +28,7 @@ pub mod routing;
 pub mod semantic_emission_decoupling;
 pub mod semantic_state;
 pub mod stage_dag;
+pub mod trace_profile;
 
 use std::path::PathBuf;
 #[cfg(not(target_arch = "wasm32"))]
@@ -297,6 +298,18 @@ pub struct ObserveOptions {
     /// (`--source-manifest-kappa`), recorded in the observation manifest.
     /// Carried as an opaque string; this crate never computes it.
     pub source_manifest_kappa: Option<String>,
+    /// #603 teacher-trace profile (`--trace-profile <id>` or
+    /// `<id>/<version>`), resolved through the versioned registry
+    /// ([`trace_profile::profile_spec`]) at run time. `None` — the
+    /// default everywhere — is the minimal profile: exactly today's
+    /// observation bytes. Richer profiles are strictly opt-in.
+    pub trace_profile: Option<(String, u32)>,
+    /// Declared capture layer indices for the richer #603 lanes
+    /// (`--trace-layers <csv>`; bounded by the registry).
+    pub trace_layers: Vec<u32>,
+    /// Declared per-head attention-support cap (`--trace-support <n>`;
+    /// bounded by the registry).
+    pub trace_support: u32,
 }
 
 /// Parse observe CLI arguments. `None` when the arguments do not name a valid
@@ -313,6 +326,9 @@ pub fn parse_observe_options(args: &[String]) -> Option<ObserveOptions> {
         shards: 3,
         sequence_length: 128,
         source_manifest_kappa: None,
+        trace_profile: None,
+        trace_layers: Vec::new(),
+        trace_support: trace_profile::PRIMARY_TOP_K,
     };
     let mut index = 0usize;
     while index < args.len() {
@@ -336,6 +352,22 @@ pub fn parse_observe_options(args: &[String]) -> Option<ObserveOptions> {
             }
             "--source-manifest-kappa" => {
                 options.source_manifest_kappa = Some(value.clone());
+            }
+            "--trace-profile" => {
+                // `<id>` (registry version 1) or `<id>/<version>`.
+                options.trace_profile = Some(match value.split_once('/') {
+                    Some((id, version)) => (id.to_owned(), version.parse().ok()?),
+                    None => (value.clone(), trace_profile::PROFILE_VERSION),
+                });
+            }
+            "--trace-layers" => {
+                options.trace_layers = value
+                    .split(',')
+                    .map(|index| index.trim().parse().ok())
+                    .collect::<Option<Vec<u32>>>()?;
+            }
+            "--trace-support" => {
+                options.trace_support = value.parse().ok()?;
             }
             _ => return None,
         }
@@ -387,13 +419,40 @@ pub fn observe(args: &[String]) -> Result<(), SourceUnavailable> {
         }
     }
 
-    observation::observe_sharded(
-        &mut *oracle,
-        options.seconds,
-        options.target,
-        options.shards,
-        &options.output,
-        None,
-    )?;
+    // #603: resolve the opt-in teacher-trace profile through the
+    // versioned registry — an unknown (profile, version) or unbounded
+    // declaration is refused by name, never guessed. No flag means the
+    // minimal profile: exactly today's observation bytes.
+    match &options.trace_profile {
+        None => {
+            observation::observe_sharded(
+                &mut *oracle,
+                options.seconds,
+                options.target,
+                options.shards,
+                &options.output,
+                None,
+            )?;
+        }
+        Some((id, version)) => {
+            let profile = trace_profile::profile_spec(
+                id,
+                *version,
+                &trace_profile::TraceCaptureBounds {
+                    layer_indices: options.trace_layers.clone(),
+                    support_size: options.trace_support,
+                },
+            )?;
+            observation::observe_sharded_traced(
+                &mut *oracle,
+                options.seconds,
+                options.target,
+                options.shards,
+                &options.output,
+                None,
+                &profile,
+            )?;
+        }
+    }
     Ok(())
 }

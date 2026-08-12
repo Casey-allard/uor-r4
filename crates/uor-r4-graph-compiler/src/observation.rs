@@ -23,6 +23,9 @@
 //! A rerun skips completed shards and regenerates only missing/incomplete
 //! ones, continuing the stream from the checkpoint.
 
+#[cfg(not(target_arch = "wasm32"))]
+use crate::trace_profile::SUPPORT_ABSENT_MARKER;
+use crate::trace_profile::TraceProfile;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 #[cfg(not(target_arch = "wasm32"))]
@@ -42,6 +45,8 @@ use uor_r4_model_source::attention::AttentionOperatorSpec;
 use uor_r4_model_source::geometry::GeometryProjection;
 #[cfg(not(target_arch = "wasm32"))]
 use uor_r4_model_source::progress::Progress;
+#[cfg(not(target_arch = "wasm32"))]
+use uor_r4_model_source::{TraceCaptureRequest, TraceCaptureSinks};
 
 /// Observation record width: the v4 corpus record layout (story, next,
 /// top-8 tokens, top-8 weights, span, byte anchors) — see
@@ -234,6 +239,12 @@ pub struct ShardEntry {
     /// metadata was captured for this shard.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub probability_kappa: Option<String>,
+    /// Content κ of the aligned #603 teacher-trace sidecar
+    /// (`<shard>.trace`), when a non-minimal trace profile captured
+    /// richer lanes for this shard. Absent for the minimal profile, so
+    /// legacy manifest bytes are unchanged.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub trace_kappa: Option<String>,
 }
 
 /// Manifest of an observation shard directory: the fan-out, the completed
@@ -287,6 +298,21 @@ pub struct ObservationManifest {
     /// are unchanged when unset.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub attention_operator: Option<AttentionOperatorSpec>,
+    /// #603 typed record of the teacher-trace profile the producing pass
+    /// captured under (which lanes, which declared layer indices, which
+    /// caps), when a non-minimal profile was active. `None` marks the
+    /// minimal profile — exactly today's surface, the implicit legacy
+    /// era — so every legacy manifest stays readable and legacy manifest
+    /// bytes are unchanged when unset.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub trace_profile: Option<TraceProfile>,
+    /// Width in bytes of one #603 trace-sidecar row for this directory
+    /// (a pure function of the trace profile's declared bounds and the
+    /// oracle's capture geometry, pinned at the first traced write so
+    /// resume and merge validate alignment). Absent for the minimal
+    /// profile.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub trace_row_bytes: Option<u64>,
     #[serde(default)]
     pub completed: BTreeMap<u32, ShardEntry>,
     #[serde(default)]
@@ -304,9 +330,81 @@ impl ObservationManifest {
             geometry: None,
             tokenizer_adapter: None,
             attention_operator: None,
+            trace_profile: None,
+            trace_row_bytes: None,
             completed: BTreeMap::new(),
             total_records: 0,
         }
+    }
+
+    /// Canonical serialization of the manifest's identity BUNDLE (#603):
+    /// the five identity fields (`input_cid`, `source_manifest_kappa`,
+    /// `geometry` #600, `tokenizer_adapter` #601, `attention_operator`
+    /// #602) plus the #603 `trace_profile`, in that fixed order, one
+    /// line per component. Absence is part of the digest input as an
+    /// EXPLICIT marker: an unset component serializes as
+    /// `<name>=absent`, a set component as `<name>=present:<value>`
+    /// (the raw string for the κ/CID fields, the declared-identity
+    /// digest recomputed from the typed records) — so an absent field is
+    /// never confusable with an empty or zero one, and the digest is a
+    /// pure function of the field values regardless of the order they
+    /// were set in.
+    pub fn identity_bundle_bytes(&self) -> Vec<u8> {
+        fn line(text: &mut String, name: &str, value: Option<String>) {
+            match value {
+                None => text.push_str(&format!("{name}=absent\n")),
+                Some(value) => text.push_str(&format!("{name}=present:{value}\n")),
+            }
+        }
+        let mut text = String::from("uor-r4-observation-identity-bundle/1\n");
+        line(&mut text, "input_cid", self.input_cid.clone());
+        line(
+            &mut text,
+            "source_manifest_kappa",
+            self.source_manifest_kappa.clone(),
+        );
+        line(
+            &mut text,
+            "geometry",
+            self.geometry
+                .as_ref()
+                .map(|record| record.declared_digest()),
+        );
+        line(
+            &mut text,
+            "tokenizer_adapter",
+            self.tokenizer_adapter
+                .as_ref()
+                .map(|record| record.declared_digest()),
+        );
+        line(
+            &mut text,
+            "attention_operator",
+            self.attention_operator
+                .as_ref()
+                .map(|record| record.declared_digest()),
+        );
+        line(
+            &mut text,
+            "trace_profile",
+            self.trace_profile
+                .as_ref()
+                .map(|record| record.declared_digest()),
+        );
+        text.into_bytes()
+    }
+
+    /// The identity-bundle digest: `blake3:<hex>` over
+    /// [`ObservationManifest::identity_bundle_bytes`]. This is the ONE
+    /// stable bundle identity of an observation corpus's provenance
+    /// seam: it moves when any component changes, is independent of the
+    /// order components were recorded in, and distinguishes an absent
+    /// component from an empty one.
+    pub fn identity_bundle_digest(&self) -> String {
+        format!(
+            "blake3:{}",
+            blake3::hash(&self.identity_bundle_bytes()).to_hex()
+        )
     }
 
     /// Number of shards in the configured fan-out (2^shard_bits).
@@ -341,10 +439,17 @@ impl ObservationManifest {
     }
 }
 
+/// Name of one shard's #603 trace sidecar: `<shard file>.trace`,
+/// mirroring the `.prob` probability sidecar naming.
+pub fn trace_sidecar_name(shard_bits: u8, shard: u32) -> String {
+    format!("{}.trace", shard_file_name(shard_bits, shard))
+}
+
 #[cfg(not(target_arch = "wasm32"))]
 struct ShardHandle {
     file: BufWriter<fs::File>,
     probability: Option<BufWriter<fs::File>>,
+    trace: Option<BufWriter<fs::File>>,
 }
 
 /// Spills observation records into per-shard files with a κ-pinned
@@ -475,6 +580,20 @@ impl ObservationShardWriter {
         Ok(())
     }
 
+    /// Record the #603 typed teacher-trace-profile record of the
+    /// producing pass in the observation manifest (idempotent, atomic
+    /// store), mirroring
+    /// [`ObservationShardWriter::set_geometry`]/[`ObservationShardWriter::set_tokenizer_adapter`].
+    /// The minimal profile is never recorded — absence marks it — so
+    /// legacy manifest bytes are unchanged for every minimal pass.
+    pub fn set_trace_profile(&mut self, profile: &TraceProfile) -> Result<(), SourceUnavailable> {
+        if self.manifest.trace_profile.as_ref() != Some(profile) {
+            self.manifest.trace_profile = Some(profile.clone());
+            self.manifest.store(&self.dir)?;
+        }
+        Ok(())
+    }
+
     /// Pending per-shard partition counts (records written so far via
     /// [`ObservationShardWriter::write_record_in_partition`] plus any
     /// counts restored by [`ObservationShardWriter::restore_partition_counts`]).
@@ -543,6 +662,7 @@ impl ObservationShardWriter {
             self.handles[index] = Some(ShardHandle {
                 file: BufWriter::new(file),
                 probability: None,
+                trace: None,
             });
         }
         let handle = self.handles[index]
@@ -616,6 +736,79 @@ impl ObservationShardWriter {
         Ok(true)
     }
 
+    /// Append an observation record, its aligned probability metadata,
+    /// and its aligned #603 trace-sidecar row (the richer lanes of a
+    /// non-minimal trace profile, assembled by the traced observe
+    /// driver). The first traced write pins the row width in the
+    /// manifest; every later row must match it, and finalization
+    /// validates that every non-empty shard has a complete, aligned
+    /// trace sidecar rather than silently publishing partial lanes. The
+    /// primary shard record bytes are written through the unchanged v4
+    /// path — richer lanes never alter them.
+    pub fn write_record_with_probability_and_trace(
+        &mut self,
+        record: &[u8; RECORD_SIZE],
+        probability: ProbabilityMetadata,
+        trace_row: &[u8],
+        shard: u32,
+    ) -> Result<bool, SourceUnavailable> {
+        if trace_row.is_empty() {
+            return Err(invalid_input(
+                "a trace-sidecar row must be non-empty; minimal passes use \
+                 write_record_with_probability instead"
+                    .to_owned(),
+            ));
+        }
+        if self.is_complete(shard) {
+            return Ok(false);
+        }
+        match self.manifest.trace_row_bytes {
+            Some(width) if width != trace_row.len() as u64 => {
+                return Err(invalid_input(format!(
+                    "trace row is {} bytes but the manifest pins {width}-byte rows; \
+                     the trace profile or capture geometry cannot change mid-corpus",
+                    trace_row.len()
+                )));
+            }
+            None => {
+                self.manifest.trace_row_bytes = Some(trace_row.len() as u64);
+                self.manifest.store(&self.dir)?;
+            }
+            Some(_) => {}
+        }
+        let written = self.write_record_with_probability(record, probability, shard)?;
+        if !written {
+            return Ok(false);
+        }
+        let index = shard as usize;
+        let path = self
+            .dir
+            .join(trace_sidecar_name(self.manifest.shard_bits, shard));
+        let handle = self.handles[index]
+            .as_mut()
+            .ok_or_else(|| invalid_data(format!("shard {shard} handle was not opened")))?;
+        if handle.trace.is_none() {
+            let file = fs::OpenOptions::new()
+                .create(true)
+                .append(true)
+                .open(&path)?;
+            let existing = file.metadata()?.len();
+            if existing % trace_row.len() as u64 != 0 {
+                return Err(invalid_data(format!(
+                    "trace sidecar {} has a torn row",
+                    path.display()
+                )));
+            }
+            handle.trace = Some(BufWriter::new(file));
+        }
+        handle
+            .trace
+            .as_mut()
+            .expect("trace handle opened above")
+            .write_all(trace_row)?;
+        Ok(true)
+    }
+
     /// Probability-sidecar variant of
     /// [`ObservationShardWriter::write_record_in_partition`].
     pub fn write_record_with_probability_in_partition(
@@ -642,6 +835,9 @@ impl ObservationShardWriter {
             if let Some(probability) = handle.probability.as_mut() {
                 probability.flush()?;
             }
+            if let Some(trace) = handle.trace.as_mut() {
+                trace.flush()?;
+            }
         }
         Ok(())
     }
@@ -663,6 +859,9 @@ impl ObservationShardWriter {
             handle.file.flush()?;
             if let Some(probability) = handle.probability.as_mut() {
                 probability.flush()?;
+            }
+            if let Some(trace) = handle.trace.as_mut() {
+                trace.flush()?;
             }
         }
         let path = self.shard_path(shard);
@@ -696,6 +895,36 @@ impl ObservationShardWriter {
         } else {
             None
         };
+        let trace_path = self
+            .dir
+            .join(trace_sidecar_name(self.manifest.shard_bits, shard));
+        let trace_kappa = if trace_path.exists() {
+            let row_bytes = self.manifest.trace_row_bytes.ok_or_else(|| {
+                invalid_data(format!(
+                    "trace sidecar {} exists but the manifest pins no row width",
+                    trace_path.display()
+                ))
+            })?;
+            let trace_length = fs::metadata(&trace_path)?.len();
+            let records = length / RECORD_SIZE as u64;
+            if trace_length != records * row_bytes {
+                return Err(invalid_data(format!(
+                    "trace sidecar {} has {} bytes for {} records of {}-byte rows",
+                    trace_path.display(),
+                    trace_length,
+                    records,
+                    row_bytes
+                )));
+            }
+            Some(file_kappa(&trace_path)?)
+        } else if self.manifest.trace_row_bytes.is_some() && length != 0 {
+            return Err(invalid_data(format!(
+                "shard {shard} has records but no trace sidecar; the trace \
+                 profile cannot change mid-corpus"
+            )));
+        } else {
+            None
+        };
         let entry = ShardEntry {
             records: length / RECORD_SIZE as u64,
             kappa: file_kappa(&path)?,
@@ -703,6 +932,7 @@ impl ObservationShardWriter {
                 .partitions_active
                 .then_some(self.partition_counts[shard as usize]),
             probability_kappa,
+            trace_kappa,
         };
         self.manifest.total_records = self.manifest.total_records.saturating_add(entry.records);
         self.manifest.completed.insert(shard, entry);
@@ -885,6 +1115,106 @@ pub fn reconcile_probability_pair(
     Ok(())
 }
 
+/// Merge aligned #603 trace-sidecar rows in the same deterministic shard
+/// order as [`merge_shards`]. The result depends only on shard contents,
+/// never on completion order; rows are returned as raw bytes (the lane
+/// layout is declared by the manifest's `trace_profile` and
+/// `trace_row_bytes`).
+#[cfg(not(target_arch = "wasm32"))]
+pub fn merge_trace_rows(dir: impl AsRef<Path>) -> Result<Vec<u8>, SourceUnavailable> {
+    let dir = dir.as_ref();
+    let manifest = ObservationManifest::load(dir)?
+        .ok_or_else(|| invalid_data(format!("no observation manifest in {}", dir.display())))?;
+    let row_bytes = manifest.trace_row_bytes.ok_or_else(|| {
+        invalid_data(format!(
+            "{} has no trace sidecars (minimal trace profile)",
+            dir.display()
+        ))
+    })?;
+    let mut merged = Vec::new();
+    for shard in 0..manifest.shard_count() {
+        let Some(entry) = manifest.completed.get(&shard) else {
+            continue;
+        };
+        if entry.trace_kappa.is_none() {
+            if entry.records == 0 {
+                continue;
+            }
+            return Err(invalid_data(format!("shard {shard} has no trace sidecar")));
+        }
+        let path = dir.join(trace_sidecar_name(manifest.shard_bits, shard));
+        let bytes = fs::read(&path)?;
+        if bytes.len() as u64 != entry.records * row_bytes {
+            return Err(invalid_data(format!(
+                "trace sidecar {} is not aligned",
+                path.display()
+            )));
+        }
+        merged.extend_from_slice(&bytes);
+    }
+    Ok(merged)
+}
+
+/// Reconcile a generation-path record/probability/trace triple after a
+/// crash between the buffered writes of one position: the common record
+/// prefix of the three files is the recoverable prefix (the #603
+/// extension of [`reconcile_probability_pair`], applied when the
+/// manifest pins a trace row width). Records without trace rows are
+/// refused — a corpus cannot silently change trace profile mid-stream.
+#[cfg(not(target_arch = "wasm32"))]
+pub fn reconcile_trace_triple(
+    dir: impl AsRef<Path>,
+    shard_bits: u8,
+    shard: u32,
+    trace_row_bytes: u64,
+) -> Result<(), SourceUnavailable> {
+    let dir = dir.as_ref();
+    reconcile_probability_pair(dir, shard_bits, shard)?;
+    let record_path = dir.join(shard_file_name(shard_bits, shard));
+    let record_length = match fs::metadata(&record_path) {
+        Ok(metadata) => metadata.len(),
+        Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(()),
+        Err(error) => return Err(error.into()),
+    };
+    let trace_path = dir.join(trace_sidecar_name(shard_bits, shard));
+    let trace_length = match fs::metadata(&trace_path) {
+        Ok(metadata) => metadata.len(),
+        Err(error) if error.kind() == io::ErrorKind::NotFound => {
+            if record_length == 0 {
+                return Ok(());
+            }
+            return Err(invalid_data(format!(
+                "shard {shard} has records but no trace sidecar; the trace \
+                 profile cannot change mid-corpus"
+            )));
+        }
+        Err(error) => return Err(error.into()),
+    };
+    let records = (record_length / RECORD_SIZE as u64).min(trace_length / trace_row_bytes.max(1));
+    let targets = [
+        (record_path, records * RECORD_SIZE as u64),
+        (
+            dir.join(format!("{}.prob", shard_file_name(shard_bits, shard))),
+            records * PROBABILITY_METADATA_SIZE as u64,
+        ),
+        (trace_path, records * trace_row_bytes),
+    ];
+    for (path, expected) in targets {
+        let length = match fs::metadata(&path) {
+            Ok(metadata) => metadata.len(),
+            Err(error) if error.kind() == io::ErrorKind::NotFound => continue,
+            Err(error) => return Err(error.into()),
+        };
+        if length > expected {
+            fs::OpenOptions::new()
+                .write(true)
+                .open(&path)?
+                .set_len(expected)?;
+        }
+    }
+    Ok(())
+}
+
 /// Outcome of one [`observe_sharded`] invocation.
 #[cfg(not(target_arch = "wasm32"))]
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -902,6 +1232,214 @@ pub struct ObserveSummary {
     pub done: bool,
 }
 
+/// The bounded per-step capture state of one traced observation pass
+/// (#603): the resolved lane plan of a non-minimal [`TraceProfile`]
+/// against one oracle's declared capture geometry, and the assembly
+/// buffer for one trace-sidecar row. Lane order within a row is fixed
+/// and documented: per-layer residuals (ascending declared layers), the
+/// final-hidden state (#95 lane), q/k/v rows (ascending declared
+/// layers, q then k then v), then attention support (ascending declared
+/// layers, heads ascending, S fixed slots of `(u32 position, f32
+/// weight)` — unfilled slots carry the explicit
+/// [`SUPPORT_ABSENT_MARKER`], never zeros). All values little-endian
+/// f32/u32 bytes; the row width is a pure function of (profile,
+/// geometry), pinned into the manifest at the first write.
+#[cfg(not(target_arch = "wasm32"))]
+struct TraceCapture {
+    profile: TraceProfile,
+    residual_layers: Vec<usize>,
+    qkv_layers: Vec<usize>,
+    attention_layers: Vec<usize>,
+    support: usize,
+    final_hidden: bool,
+    residual_width: usize,
+    row_bytes: usize,
+    row: Vec<u8>,
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+impl TraceCapture {
+    /// Resolve `profile` against `oracle`'s declared capture geometry.
+    /// Refused — never zero-filled — when the oracle exposes no capture
+    /// surface, no hidden state for a declared final-hidden lane, or a
+    /// declared layer index outside its layer range.
+    fn new(profile: &TraceProfile, oracle: &dyn TeacherOracle) -> Result<Self, SourceUnavailable> {
+        let geometry = oracle.trace_capture_geometry().ok_or_else(|| {
+            invalid_input(format!(
+                "trace profile {}/{} needs the oracle's bounded capture surface, \
+                 but this oracle declares none; richer lanes are refused, not zero-filled",
+                profile.id, profile.version
+            ))
+        })?;
+        let resolve = |indices: &[u32], lane: &str| -> Result<Vec<usize>, SourceUnavailable> {
+            let mut resolved = Vec::with_capacity(indices.len());
+            for &index in indices {
+                if index as usize >= geometry.layers {
+                    return Err(invalid_input(format!(
+                        "{lane} capture layer {index} is outside the oracle's {} layers",
+                        geometry.layers
+                    )));
+                }
+                resolved.push(index as usize);
+            }
+            Ok(resolved)
+        };
+        let (residual_layers, final_hidden) = match &profile.layer_lane {
+            Some(lane) => (resolve(&lane.layer_indices, "residual")?, lane.final_hidden),
+            None => (Vec::new(), false),
+        };
+        if final_hidden && oracle.hidden_state().is_none() {
+            return Err(invalid_input(format!(
+                "trace profile {}/{} declares the final-hidden lane, but this \
+                 oracle retains no hidden state; the lane is refused, not zero-filled",
+                profile.id, profile.version
+            )));
+        }
+        let qkv_layers = match &profile.qkv_lane {
+            Some(lane) => resolve(&lane.layer_indices, "q/k/v")?,
+            None => Vec::new(),
+        };
+        let (attention_layers, support) = match &profile.attention_support_lane {
+            Some(lane) => (
+                resolve(&lane.layer_indices, "attention-support")?,
+                lane.support_size as usize,
+            ),
+            None => (Vec::new(), 0),
+        };
+        let kv_width = geometry.residual_width * geometry.kv_heads / geometry.heads;
+        let row_bytes = residual_layers.len() * geometry.residual_width * 4
+            + usize::from(final_hidden) * geometry.residual_width * 4
+            + qkv_layers.len() * (geometry.residual_width + 2 * kv_width) * 4
+            + attention_layers.len() * geometry.heads * support * 8;
+        if row_bytes == 0 {
+            return Err(invalid_input(format!(
+                "trace profile {}/{} declares no captured bytes; use the minimal profile",
+                profile.id, profile.version
+            )));
+        }
+        Ok(Self {
+            profile: profile.clone(),
+            residual_layers,
+            qkv_layers,
+            attention_layers,
+            support,
+            final_hidden,
+            residual_width: geometry.residual_width,
+            row_bytes,
+            row: Vec::with_capacity(row_bytes),
+        })
+    }
+
+    /// One traced teacher step: capture the declared lanes through the
+    /// oracle's exact-executor capture path and assemble this position's
+    /// trace-sidecar row into `self.row`. Deterministic: the row is a
+    /// pure function of (oracle state, token, pos, profile).
+    fn step(
+        &mut self,
+        oracle: &mut dyn TeacherOracle,
+        token: usize,
+        pos: usize,
+        logits: &mut [f32],
+    ) -> Result<(), SourceUnavailable> {
+        let mut residual_bytes: Vec<u8> = Vec::new();
+        let mut qkv_bytes: Vec<u8> = Vec::new();
+        let mut attention_bytes: Vec<u8> = Vec::new();
+        let support = self.support;
+        let captured = {
+            let mut residual_sink = |_layer: usize, x: &[f32]| {
+                for value in x {
+                    residual_bytes.extend_from_slice(&value.to_le_bytes());
+                }
+            };
+            let mut qkv_sink = |_layer: usize, q: &[f32], k: &[f32], v: &[f32]| {
+                for vector in [q, k, v] {
+                    for value in vector {
+                        qkv_bytes.extend_from_slice(&value.to_le_bytes());
+                    }
+                }
+            };
+            let mut attention_sink = |_layer: usize, _head: usize, att: &[f32]| {
+                // Bounded top-S support: positions ordered by descending
+                // weight, ties to the lower position (the same canonical
+                // tie-break as the top-k trace surface).
+                let mut order: Vec<u32> = (0..att.len() as u32).collect();
+                order.sort_by(|a, b| {
+                    att[*b as usize]
+                        .total_cmp(&att[*a as usize])
+                        .then_with(|| a.cmp(b))
+                });
+                for slot in 0..support {
+                    match order.get(slot) {
+                        Some(&position) => {
+                            attention_bytes.extend_from_slice(&position.to_le_bytes());
+                            attention_bytes
+                                .extend_from_slice(&att[position as usize].to_le_bytes());
+                        }
+                        None => {
+                            // Fewer prefix positions than the cap: mark
+                            // the slot explicitly absent — never a
+                            // zero-filled entry.
+                            attention_bytes.extend_from_slice(&SUPPORT_ABSENT_MARKER.to_le_bytes());
+                            attention_bytes.extend_from_slice(&SUPPORT_ABSENT_MARKER.to_le_bytes());
+                        }
+                    }
+                }
+            };
+            oracle.step_with_trace_capture(
+                token,
+                pos,
+                logits,
+                &TraceCaptureRequest {
+                    residual_layers: &self.residual_layers,
+                    qkv_layers: &self.qkv_layers,
+                    attention_layers: &self.attention_layers,
+                },
+                &mut TraceCaptureSinks {
+                    residual: &mut residual_sink,
+                    qkv: &mut qkv_sink,
+                    attention: &mut attention_sink,
+                },
+            )
+        };
+        if !captured {
+            return Err(invalid_input(format!(
+                "trace profile {}/{} needs the oracle's exact-executor capture \
+                 step, but this oracle performs only plain steps; richer lanes \
+                 are refused, not zero-filled",
+                self.profile.id, self.profile.version
+            )));
+        }
+        self.row.clear();
+        self.row.extend_from_slice(&residual_bytes);
+        if self.final_hidden {
+            let hidden = oracle.hidden_state().ok_or_else(|| {
+                invalid_data("oracle hidden state disappeared mid-pass".to_owned())
+            })?;
+            if hidden.len() != self.residual_width {
+                return Err(invalid_data(format!(
+                    "hidden state is {} wide, expected the capture geometry's {}",
+                    hidden.len(),
+                    self.residual_width
+                )));
+            }
+            for value in hidden {
+                self.row.extend_from_slice(&value.to_le_bytes());
+            }
+        }
+        self.row.extend_from_slice(&qkv_bytes);
+        self.row.extend_from_slice(&attention_bytes);
+        if self.row.len() != self.row_bytes {
+            return Err(invalid_data(format!(
+                "assembled trace row is {} bytes, expected {} — the oracle's \
+                 captures do not match its declared geometry",
+                self.row.len(),
+                self.row_bytes
+            )));
+        }
+        Ok(())
+    }
+}
+
 /// Run the teacher generation of `compile_hugging_face`'s corpus step,
 /// spilling v4 records plus aligned probability metadata into content-addressed
 /// shards instead of one
@@ -911,6 +1449,10 @@ pub struct ObserveSummary {
 /// window is the existing 8-token window of fed tokens. Resume: a rerun
 /// continues the stream from `state.bin`, skips shards the manifest marks
 /// complete, and appends to the incomplete ones.
+///
+/// This is the minimal trace profile: byte-for-byte today's records,
+/// sidecars, and manifest (no `trace_profile` field is recorded). Richer
+/// #603 profiles are opt-in through [`observe_sharded_traced`].
 #[cfg(not(target_arch = "wasm32"))]
 pub fn observe_sharded(
     oracle: &mut dyn TeacherOracle,
@@ -920,9 +1462,112 @@ pub fn observe_sharded(
     out: &Path,
     token_byte_lengths: Option<&[u32]>,
 ) -> Result<ObserveSummary, SourceUnavailable> {
+    observe_sharded_inner(
+        oracle,
+        budget_s,
+        target,
+        shard_bits,
+        out,
+        token_byte_lengths,
+        None,
+    )
+}
+
+/// [`observe_sharded`] under an explicit #603 teacher-trace profile: the
+/// SAME pipeline (same deterministic stream, records, sharding,
+/// checkpointing, and resume), extended — when the profile is not
+/// minimal — with one aligned trace-sidecar row per record carrying the
+/// declared richer lanes, captured through the oracle's exact-executor
+/// capture step within the profile's declared bounds. Passing the
+/// minimal profile is exactly [`observe_sharded`]. Deterministic: the
+/// same inputs and profile produce byte-identical shard and sidecar
+/// bytes; a corpus's profile is pinned in its manifest and cannot change
+/// mid-stream.
+#[cfg(not(target_arch = "wasm32"))]
+pub fn observe_sharded_traced(
+    oracle: &mut dyn TeacherOracle,
+    budget_s: u64,
+    target: usize,
+    shard_bits: u8,
+    out: &Path,
+    token_byte_lengths: Option<&[u32]>,
+    profile: &TraceProfile,
+) -> Result<ObserveSummary, SourceUnavailable> {
+    let trace = if profile.is_minimal() {
+        None
+    } else {
+        Some(TraceCapture::new(profile, oracle)?)
+    };
+    observe_sharded_inner(
+        oracle,
+        budget_s,
+        target,
+        shard_bits,
+        out,
+        token_byte_lengths,
+        trace,
+    )
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn observe_sharded_inner(
+    oracle: &mut dyn TeacherOracle,
+    budget_s: u64,
+    target: usize,
+    shard_bits: u8,
+    out: &Path,
+    token_byte_lengths: Option<&[u32]>,
+    mut trace: Option<TraceCapture>,
+) -> Result<ObserveSummary, SourceUnavailable> {
     let mut writer = ObservationShardWriter::open(out, shard_bits)?;
+    // #603 profile pinning: a corpus is captured under ONE profile. A
+    // recorded profile must match the requested one (minimal requests
+    // refuse traced corpora and vice versa once bytes exist); a fresh
+    // traced pass records its profile before any record is written.
+    let recorded = writer.manifest().trace_profile.clone();
+    let has_prior_state = out.join(STATE_FILE).exists() || !writer.manifest().completed.is_empty();
+    match (&recorded, trace.as_ref()) {
+        (None, None) => {}
+        (Some(recorded), Some(trace)) if *recorded == trace.profile => {}
+        (None, Some(trace)) => {
+            if has_prior_state {
+                return Err(invalid_input(format!(
+                    "{} was captured under the minimal trace profile; profile \
+                     {}/{} cannot be introduced mid-corpus",
+                    out.display(),
+                    trace.profile.id,
+                    trace.profile.version
+                )));
+            }
+            writer.set_trace_profile(&trace.profile)?;
+        }
+        (Some(recorded), Some(trace)) => {
+            return Err(invalid_input(format!(
+                "{} is pinned to trace profile {}/{}; requested {}/{}",
+                out.display(),
+                recorded.id,
+                recorded.version,
+                trace.profile.id,
+                trace.profile.version
+            )));
+        }
+        (Some(recorded), None) => {
+            return Err(invalid_input(format!(
+                "{} is pinned to trace profile {}/{}; pass the same profile to resume",
+                out.display(),
+                recorded.id,
+                recorded.version
+            )));
+        }
+    }
+    let trace_row_bytes = writer.manifest().trace_row_bytes;
     for shard in 0..writer.manifest().shard_count() {
-        reconcile_probability_pair(out, shard_bits, shard)?;
+        match (trace.as_ref(), trace_row_bytes) {
+            (Some(_), Some(row_bytes)) => {
+                reconcile_trace_triple(out, shard_bits, shard, row_bytes)?;
+            }
+            _ => reconcile_probability_pair(out, shard_bits, shard)?,
+        }
     }
     let state_path = out.join(STATE_FILE);
     let (mut n, mut stories, mut rng, mut done) = match fs::read(&state_path) {
@@ -967,7 +1612,10 @@ pub fn observe_sharded(
         window.clear();
         for pos in 0..seq_len {
             progress.set(n as usize);
-            oracle.step(token, pos, &mut logits);
+            match trace.as_mut() {
+                None => oracle.step(token, pos, &mut logits),
+                Some(trace) => trace.step(oracle, token, pos, &mut logits)?,
+            }
             let (next, top_tokens, top_weights, stats) =
                 compiler::softmax_top8_sample_with_stats(&mut logits, &mut rng);
             window.push(token as u32);
@@ -988,16 +1636,22 @@ pub fn observe_sharded(
                 (span_start, span_end),
                 (byte_start, byte_end),
             );
-            if writer.write_record_with_probability(
-                &record,
-                ProbabilityMetadata {
-                    target_logprob_nats: stats.target_logprob_nats,
-                    entropy_bits: stats.entropy_bits,
-                    top8_mass: stats.top8_mass,
-                    target_rank: stats.target_rank,
-                },
-                shard,
-            )? {
+            let probability = ProbabilityMetadata {
+                target_logprob_nats: stats.target_logprob_nats,
+                entropy_bits: stats.entropy_bits,
+                top8_mass: stats.top8_mass,
+                target_rank: stats.target_rank,
+            };
+            let wrote = match trace.as_ref() {
+                None => writer.write_record_with_probability(&record, probability, shard)?,
+                Some(trace) => writer.write_record_with_probability_and_trace(
+                    &record,
+                    probability,
+                    &trace.row,
+                    shard,
+                )?,
+            };
+            if wrote {
                 written += 1;
             } else {
                 skipped += 1;

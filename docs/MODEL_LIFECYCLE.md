@@ -393,6 +393,107 @@ unchanged surface: it forbids floating-point arithmetic on the deployed
 hot path and explicitly excludes teacher execution. #602 defines no
 target (deployed) operator and changes no runtime contract.
 
+#### Teacher trace profiles (#603)
+
+What an observation pass captures — its trace richness, boundedness,
+profile identity, absence semantics, and source/provenance dependencies —
+is a typed, versioned identity, not an implicit property of the run.
+`uor-r4-graph-compiler::trace_profile` defines
+`TraceProfile { id, version, top_k, layer_lane, qkv_lane,
+attention_support_lane, declared_digest }` (`uor-r4-teacher-trace/1`)
+with the same canonical-bytes + declared-identity digest discipline as
+the #600 geometry, #601 tokenizer, and #602 attention records (blake3
+over a pinned line format of the declared identity, with EXPLICIT
+absence markers — an undeclared lane serializes as `<lane>=absent`, so
+absence is part of the digest input and distinct from an empty
+declaration). A versioned registry maps `(profile, version)` plus the
+caller-declared bounds to the record (`trace_profile::profile_spec`);
+an unknown pair — and any unbounded declaration (no layer list, a
+support cap outside `1..=64`, more than 64 layer indices) — is refused
+by name on the sanctioned error surface rather than guessed.
+
+Four profiles are registered, every one an extension of the existing
+observation pipeline (no second pipeline exists), each declaring exactly
+which lanes it captures and their bounds (layer index list, top-k size,
+per-head support cap):
+
+- `minimal/1` — **the default everywhere**: exactly today's surface,
+  the v4 88-byte records (bounded token / top-8 / probability rows)
+  plus the aligned `.prob` sidecar. A minimal pass writes bytes and a
+  manifest byte-identical to a pre-#603 pass: no `trace_profile` field
+  is recorded — absence marks the minimal profile, the implicit legacy
+  era, exactly like the #597/#600/#601/#602 fields.
+- `layer/1` — minimal plus the per-layer residual lane at declared
+  layer indices and the final-hidden lane (the post-final-rmsnorm
+  hidden state, `TeacherOracle::hidden_state()`). **Measurement record
+  (merged #95):** the final-hidden lane was measured NEGATIVE for the
+  cover compiler — 2.8% vs 31.7% Gate C top-1 when the hidden state was
+  used as the cover observation vector. The lane is preserved here as a
+  recorded capture for measurement, not adopted for fitting and not
+  deleted; adopting ANY richer profile for fitting requires a separate
+  measured issue.
+- `attention-support/1` — minimal plus per-head attention support:
+  the top-S `(position, weight)` pairs of each head's softmax weights,
+  captured ONLY for declared layer indices and within the declared cap
+  S (tapped from the #602 factored per-head weight functions through
+  the exact executor path).
+- `full/1` — minimal plus all richer lanes: per-layer residuals, final
+  hidden, current-position q/k/v rows, and attention support.
+
+**Sidecar, not record change.** The v4 88-byte observation record is a
+fixed-width era-stable byte format and cannot carry optional per-layer
+f32 lanes without a byte-format change, so richer lanes live in a
+per-shard side-car file (`shard-NN.bin.trace`, one fixed-width row per
+record), following the probability sidecar's existing pattern: the same
+deterministic content-addressed partitioning, crash-safe
+append/reconcile/resume, per-shard κ registration in the manifest
+(`ShardEntry::trace_kappa`), and canonical ascending-shard merge
+(`merge_trace_rows`). The primary shard bytes are identical for every
+profile. Lane order within a row is fixed (residuals ascending declared
+layers, final hidden, q/k/v, attention support), values are
+little-endian f32/u32, and the row width — a pure function of (profile,
+capture geometry) — is pinned in the manifest (`trace_row_bytes`) at
+the first traced write, so a profile or geometry change mid-corpus is
+refused. Absence stays absence: an undeclared lane produces no bytes,
+an oracle without the bounded capture surface refuses richer profiles
+(`SourceUnavailable`, never zero-filled lanes), and an unfilled
+attention-support slot (fewer prefix positions than the cap) carries
+the explicit `SUPPORT_ABSENT_MARKER` (`0xFFFFFFFF` in both fields),
+never a zero-valued entry.
+
+**Bundle identity.** The manifest's identity seam is ONE stable bundle:
+`ObservationManifest::identity_bundle_digest()` computes a canonical
+blake3 over the five existing identity fields (`input_cid`,
+`source_manifest_kappa` #597, `geometry` #600, `tokenizer_adapter`
+#601, `attention_operator` #602) plus the #603 `trace_profile`, in a
+fixed order with explicit `absent` / `present:<value>` markers per
+component — so the digest moves when any component changes, is
+independent of the order the fields were recorded in, and an absent
+component is never confusable with an empty or zero one.
+
+**Capture plumbing, bounded.** Richer lanes are captured through the
+surfaces that already exist: the #599 `forward_capturing` discipline
+extended as `TeacherOracle::step_with_trace_capture` (the exact
+executor path — a traced step and a plain step produce identical bits,
+pinned by unit test), the `hidden_state()` hook for the #95 lane, and
+the #602 factored per-head attention functions as the natural tap for
+the support lane. Captures copy out only the declared layer indices,
+once per step. Determinism is tested by double-run byte comparison:
+the same inputs and profile produce byte-identical shard and sidecar
+bytes.
+
+**No default change.** The default profile is `minimal` on every path;
+richer profiles are strictly opt-in on the generation observe path via
+`observe --trace-profile <id[/version]> --trace-layers <csv>
+[--trace-support <n>]` (graph-compiler CLI), mirroring how
+`--source-manifest-kappa` flows, or programmatically via
+`observation::observe_sharded_traced`. The from-text observe drivers
+(serial and batched) remain minimal-only: they carry the manifest
+seam (`set_trace_profile` exists on the shard writer) but no capture
+wiring — richer text-path capture is a recorded follow-up, not
+invented plumbing. Existing fixtures, corpora, and manifests are
+unchanged.
+
 ### 3. Compile the holographic graph
 
 The graph compiler turns the retained observation corpus and TLA artifact
