@@ -6,6 +6,7 @@
 //! the original reduction order; native Hugging Face compilation may use an
 //! optimized CPU matrix-vector backend.
 
+pub mod conformance;
 pub mod progress;
 pub struct Config {
     pub dim: usize,
@@ -667,16 +668,55 @@ impl Llama {
     /// One forward step. After return, st.x holds the post-final-rmsnorm
     /// hidden state (the kNN-LM context vector) and st.logits the logits.
     pub fn forward(&self, st: &mut State, token: usize, pos: usize, fast_matmul: bool) {
+        let dim = self.cfg.dim;
+        st.x.copy_from_slice(&self.w[self.emb + token * dim..self.emb + (token + 1) * dim]);
+        for l in 0..self.cfg.n_layers {
+            self.layer_forward(st, l, pos, fast_matmul);
+        }
+        self.finish_forward(st, fast_matmul);
+    }
+
+    /// One forward step with the residual stream captured after each layer in
+    /// `capture_layers` (#599 conformance trace). This IS the exact executor:
+    /// embedding, per-layer body, and final norm/logits are the same
+    /// [`Llama::layer_forward`]/[`Llama::finish_forward`] path `forward`
+    /// takes, so a captured run and a plain run produce identical bits. The
+    /// capture is bounded by construction: only the declared layer indices
+    /// are copied out, once per step.
+    #[cfg(not(target_arch = "wasm32"))]
+    pub(crate) fn forward_capturing(
+        &self,
+        st: &mut State,
+        token: usize,
+        pos: usize,
+        fast_matmul: bool,
+        capture_layers: &[usize],
+        sink: &mut dyn FnMut(usize, &[f32]),
+    ) {
+        let dim = self.cfg.dim;
+        st.x.copy_from_slice(&self.w[self.emb + token * dim..self.emb + (token + 1) * dim]);
+        for l in 0..self.cfg.n_layers {
+            self.layer_forward(st, l, pos, fast_matmul);
+            if capture_layers.contains(&l) {
+                sink(l, &st.x);
+            }
+        }
+        self.finish_forward(st, fast_matmul);
+    }
+
+    /// One transformer layer of the exact forward step, factored out of
+    /// [`Llama::forward`] so the #599 conformance runner can observe the
+    /// residual stream at declared layer indices through the very same
+    /// executor path. Operation order and arithmetic are unchanged from the
+    /// original in-line loop body.
+    fn layer_forward(&self, st: &mut State, l: usize, pos: usize, fast_matmul: bool) {
         let c = &self.cfg;
         let (dim, hid) = (c.dim, c.hidden);
         let kv_dim = c.dim * c.n_kv_heads / c.n_heads;
         let kv_mul = c.n_heads / c.n_kv_heads;
         let head_size = dim / c.n_heads;
         let w = &self.w;
-
-        st.x.copy_from_slice(&w[self.emb + token * dim..self.emb + (token + 1) * dim]);
-
-        for l in 0..c.n_layers {
+        {
             rmsnorm_with_mode(
                 &mut st.xb,
                 &st.x,
@@ -853,7 +893,13 @@ impl Llama {
                 st.x[i] += st.xb[i];
             }
         }
+    }
 
+    /// The tail of the exact forward step (final in-place rmsnorm and the
+    /// vocabulary matmul), factored out of [`Llama::forward`] unchanged.
+    fn finish_forward(&self, st: &mut State, fast_matmul: bool) {
+        let dim = self.cfg.dim;
+        let w = &self.w;
         let rf = self.rms_final;
         // C: rmsnorm(x, x, w) — in-place with pre-read ss.
         {
@@ -1604,6 +1650,21 @@ pub enum SourceIngestKind {
         /// The declared dtype/format string from the shard header.
         dtype: String,
     },
+    /// #599 adapter-conformance gate: the parsed `config.json` declares a
+    /// feature outside the adapter's typed
+    /// [`conformance::AdapterFeatures`] declaration — an activation, norm
+    /// epsilon, RoPE mode, head geometry, bias, embedding-tying, or token
+    /// policy the source executor would otherwise silently misinterpret.
+    /// Detected at oracle construction, before any tensor is read and
+    /// before any observation can be generated (fail-closed).
+    UnsupportedConfigFeature {
+        /// Which declared feature the configuration falls outside of.
+        feature: conformance::AdapterFeature,
+        /// What the adapter declares it supports for this feature.
+        declared: String,
+        /// What `config.json` actually contains.
+        actual: String,
+    },
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -1658,6 +1719,16 @@ impl std::fmt::Display for SourceIngestKind {
                 f,
                 "tensor {tensor} is {dtype}; supported source dtypes are BF16, F16, F32 \
                  (quantized formats are rejected, not approximated)"
+            ),
+            Self::UnsupportedConfigFeature {
+                feature,
+                declared,
+                actual,
+            } => write!(
+                f,
+                "config.json feature {feature} is outside the adapter's declared support: \
+                 adapter declares {declared}, configuration has {actual} \
+                 (rejected before any observation)"
             ),
         }
     }
@@ -2232,6 +2303,36 @@ impl HuggingFaceLlamaOracle {
         self.model.cfg.r4_attention
     }
 
+    /// One teacher step with the residual stream captured after each layer
+    /// in `capture_layers` (#599 conformance trace). Delegates to the exact
+    /// executor path [`Llama::forward_capturing`] with this oracle's own
+    /// matmul selection, so a traced step and a plain [`BehaviorSource::step`]
+    /// produce identical state, logits, and top-k.
+    #[cfg(not(target_arch = "wasm32"))]
+    pub(crate) fn step_with_layer_capture(
+        &mut self,
+        token: usize,
+        pos: usize,
+        capture_layers: &[usize],
+        sink: &mut dyn FnMut(usize, &[f32]),
+    ) {
+        self.model.forward_capturing(
+            &mut self.state,
+            token,
+            pos,
+            self.fast_matmul,
+            capture_layers,
+            sink,
+        );
+    }
+
+    /// The logits the last step (plain or capturing) left in this oracle's
+    /// state (#599 conformance trace surface).
+    #[cfg(not(target_arch = "wasm32"))]
+    pub(crate) fn last_logits(&self) -> &[f32] {
+        &self.state.logits
+    }
+
     /// Load the teacher from a snapshot directory: `config.json` plus the
     /// weights as either a single `model.safetensors` or #598 indexed
     /// shards (`model.safetensors.index.json` + shard files). Both layouts
@@ -2247,8 +2348,16 @@ impl HuggingFaceLlamaOracle {
         sequence_length: Option<usize>,
     ) -> Result<Self, SourceUnavailable> {
         let source = source.as_ref();
-        let config: HuggingFaceConfig =
-            serde_json::from_slice(&std::fs::read(source.join("config.json"))?)?;
+        let config_bytes = std::fs::read(source.join("config.json"))?;
+        // #599: fail-closed adapter-conformance gate. The raw configuration
+        // is validated against this adapter's typed feature declaration
+        // BEFORE the typed parse, before the #598 snapshot boundary, and
+        // therefore before any tensor is read or observation generated. Any
+        // feature outside the declaration is a focused
+        // [`SourceIngestKind::UnsupportedConfigFeature`] failure.
+        let raw_config: serde_json::Value = serde_json::from_slice(&config_bytes)?;
+        conformance::AdapterFeatures::huggingface_llama().validate_config(&raw_config)?;
+        let config: HuggingFaceConfig = serde_json::from_slice(&config_bytes)?;
         let cfg = Config {
             dim: config.hidden_size,
             hidden: config.intermediate_size,

@@ -115,6 +115,36 @@ references exists in the snapshot directory; the full per-file digest
 cross-check against `source_manifest.json` (#597) remains the root crate's
 responsibility.
 
+#### Adapter conformance (#599)
+
+The teacher adapter carries a typed feature declaration
+(`uor-r4-model-source::conformance::AdapterFeatures`): exactly which
+`config.json` space its executor interprets faithfully — activation (silu),
+RMSNorm epsilon (the executor's fixed 1e-5, exact), RoPE mode and theta
+range (unscaled only; `rope_scaling` is rejected by name), GQA/MQA head
+geometry, projection biases (none), embedding tying (either), scalar
+BOS/EOS ids, and a never-interpreted chat-template policy. At oracle
+construction the parsed configuration is validated against the declaration
+BEFORE any tensor is read or observation generated; anything outside it
+fails closed with the focused `SourceIngestKind::UnsupportedConfigFeature`,
+so a config the adapter would silently misinterpret can no longer load.
+
+Source-executor parity is pinned by schema-versioned canonical-JSON
+fixtures (`uor-r4-adapter-fixture/1`): prompt token ids + byte strings,
+bounded per-layer residual captures (declared layer indices only), final
+hidden state, logits, top-k, per-check tolerances, and an identity block
+(#597 manifest binding read via `source_manifest.json` when present, source
+κ, adapter/compiler versions, tokenizer identity). The deterministic runner
+(`conformance::run_fixture` / `run_fixture_file`) replays a fixture through
+the real executor and returns a three-state canonical report: PASS, FAIL
+with per-check numeric deltas, or UNAVAILABLE naming the missing
+prerequisite — a missing pinned snapshot or fixture is reported as
+UNAVAILABLE evidence, never silently skipped. Replaying the same fixture
+twice produces byte-identical reports. The synthetic conformance tests run
+everywhere; the real SmolLM2 arm is fixture-gated
+(`real_smollm2_fixture_round_trip_passes`, ignored until the pinned 257 MiB
+snapshot is downloaded).
+
 ### 2. Compile the source
 
 Compile an already downloaded directory:
