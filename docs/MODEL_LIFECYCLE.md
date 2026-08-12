@@ -206,6 +206,51 @@ Interactive terminals show progress bars. Redirected output receives periodic
 allocate; the allocation-free guarantee applies to the deployed prediction hot
 path, which uses fixed and caller-owned buffers.
 
+#### Geometry and projection identity (#600)
+
+The teacher adapter distinguishes two widths: the **source geometry**
+(`source_dimension()`, the `hidden_size` declared by `config.json` — 576 for
+the pinned SmolLM2-135M) and the **compiled geometry** it presents to the
+transformerless compiler (`dim()`, the legacy `D = 288`). The reduction
+between them is an explicit, versioned algorithm, not an implementation
+detail: `uor-r4-model-source::geometry` names the current one
+`bucket-average/1` (output index `i` averages the contiguous source slice
+`[floor(i·S/C), floor((i+1)·S/C))`; non-divisible widths spread the
+remainder by the floor boundaries so bucket sizes differ by at most one;
+each bucket is summed left-to-right in f32 and divided once — the exact
+arithmetic the adapter has always used, factored into the free deterministic
+function `bucket_average_project`). A versioned registry maps
+`(id, version)` to the implementation (`projection_implementation`); an
+unknown pair fails closed with the focused
+`SourceIngestKind::UnknownGeometryProjection` rather than being guessed.
+
+The typed record — `GeometryProjection { id, version, source_width,
+compiled_width, params, implementation_digest }` — threads into provenance
+the same way the #597 manifest κ does: the observe drivers record it in the
+observation manifest automatically whenever the oracle declares one, the
+cover stages (`transformerless cover`, `graph-compile`) accept
+`--geometry-projection <json>` and bind it as the optional `geometry` field
+of the cover/compile report, and the HTTP server's compile job binds it
+opportunistically from the downloaded snapshot's declared `hidden_size`.
+The `implementation_digest` is the blake3 of a canonical, byte-stable
+serialization of the algorithm's declared parameters plus a stable
+algorithm tag — deliberately not a hash of source code text, which would
+churn under refactors that leave the arithmetic bit-identical; the unit
+tests pin the implementation to the declaration, so a behavioral change
+must arrive as a new registry version. The record rides the report/manifest
+provenance sidecars; artifact container bytes (TLA/R4G1) are unchanged, so
+every previously pinned artifact κ remains valid.
+
+**Migration note.** Reports and observation manifests produced before #600
+carry no `geometry` field; absent metadata marks the implicit legacy era.
+For teacher inputs produced by the Hugging Face adapter — where
+bucket-averaging 576→288 was the sole historical behavior for the pinned
+SmolLM2-135M — an absent record may be *interpreted* as `bucket-average/1`
+at 576→288. This is an interpretation rule for readers, not a relabeling:
+legacy documents are not rewritten, and inputs from the legacy checkpoint
+oracle (whose source width is already 288, no projection) carry no such
+implication.
+
 ### 3. Compile the holographic graph
 
 The graph compiler turns the retained observation corpus and TLA artifact

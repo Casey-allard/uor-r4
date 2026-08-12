@@ -7,6 +7,7 @@
 //! optimized CPU matrix-vector backend.
 
 pub mod conformance;
+pub mod geometry;
 pub mod progress;
 pub struct Config {
     pub dim: usize,
@@ -1153,6 +1154,16 @@ pub trait TeacherOracle: RepresentationSource + BehaviorSource {
     /// Copy the embedding row of `token` into `out` (len == dim).
     fn embedding(&self, token: usize, out: &mut [f32]);
 
+    /// The #600 typed record of the source→compiled geometry projection
+    /// this oracle applies inside [`TeacherOracle::embedding`], when it
+    /// applies one. `None` means embedding rows pass through at the
+    /// source width ([`TeacherOracle::dim`] ==
+    /// [`RepresentationSource::source_dimension`]); the default keeps
+    /// every existing oracle unaffected.
+    fn geometry_projection(&self) -> Option<geometry::GeometryProjection> {
+        None
+    }
+
     /// Optional compiler-only trace surface (graph-compiler plan §5 Phase
     /// 2): the final hidden state (post-final-rmsnorm activation) of the
     /// last `step`, if the oracle retains it. Defaults to `None` so
@@ -1665,6 +1676,17 @@ pub enum SourceIngestKind {
         /// What `config.json` actually contains.
         actual: String,
     },
+    /// #600 geometry registry: a caller named a source→compiled geometry
+    /// projection `(id, version)` outside the versioned registry
+    /// ([`geometry::projection_implementation`]), so no implementation
+    /// exists to interpret it. Refused by name, never approximated by a
+    /// "closest" algorithm or version.
+    UnknownGeometryProjection {
+        /// The requested projection algorithm id.
+        id: String,
+        /// The requested projection version.
+        version: u32,
+    },
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -1729,6 +1751,13 @@ impl std::fmt::Display for SourceIngestKind {
                 "config.json feature {feature} is outside the adapter's declared support: \
                  adapter declares {declared}, configuration has {actual} \
                  (rejected before any observation)"
+            ),
+            Self::UnknownGeometryProjection { id, version } => write!(
+                f,
+                "geometry projection {id}/{version} is not in the versioned projection \
+                 registry (known: {}/{})",
+                geometry::GeometryProjection::BUCKET_AVERAGE_ID,
+                geometry::GeometryProjection::BUCKET_AVERAGE_VERSION,
             ),
         }
     }
@@ -2543,7 +2572,9 @@ impl TeacherOracle for HuggingFaceLlamaOracle {
         self.model.cfg.vocab
     }
     fn dim(&self) -> usize {
-        288
+        // The compiled geometry this adapter presents (D = 288), not the
+        // source width; `embedding` projects rows down to it (#600).
+        geometry::COMPILED_WIDTH as usize
     }
     fn seq_len(&self) -> usize {
         self.model.cfg.seq_len
@@ -2563,17 +2594,15 @@ impl TeacherOracle for HuggingFaceLlamaOracle {
     fn embedding(&self, token: usize, out: &mut [f32]) {
         let dim = self.model.cfg.dim;
         let row = &self.model.w[self.model.emb + token * dim..self.model.emb + (token + 1) * dim];
-        assert!(
-            dim >= out.len(),
-            "source dimension is smaller than runtime geometry"
-        );
-        let output_dimensions = out.len();
-        for (index, value) in out.iter_mut().enumerate() {
-            let start = index * dim / output_dimensions;
-            let end = (index + 1) * dim / output_dimensions;
-            let bucket = &row[start..end];
-            *value = bucket.iter().sum::<f32>() / bucket.len() as f32;
-        }
+        // #600: the explicitly named `bucket-average/1` projection — the
+        // exact arithmetic this method always performed, factored into
+        // the versioned geometry module (see `geometry_projection`).
+        geometry::bucket_average_project(row, out);
+    }
+    fn geometry_projection(&self) -> Option<geometry::GeometryProjection> {
+        u32::try_from(self.model.cfg.dim).ok().map(|source_width| {
+            geometry::GeometryProjection::bucket_average(source_width, geometry::COMPILED_WIDTH)
+        })
     }
     fn hidden_state(&self) -> Option<&[f32]> {
         Some(&self.state.x)

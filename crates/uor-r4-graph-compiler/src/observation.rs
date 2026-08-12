@@ -37,6 +37,7 @@ use uor_r4_core::transformerless::compiler;
 use uor_r4_model_source::SourceUnavailable;
 #[cfg(not(target_arch = "wasm32"))]
 use uor_r4_model_source::TeacherOracle;
+use uor_r4_model_source::geometry::GeometryProjection;
 #[cfg(not(target_arch = "wasm32"))]
 use uor_r4_model_source::progress::Progress;
 
@@ -256,6 +257,14 @@ pub struct ObservationManifest {
     /// readable and legacy manifest bytes are unchanged.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub source_manifest_kappa: Option<String>,
+    /// #600 typed record of the source→compiled geometry projection the
+    /// teacher oracle applied while producing these observations (e.g.
+    /// `bucket-average/1`, 576→288 for the pinned SmolLM2-135M), when the
+    /// producing pipeline's oracle declares one. Optional with a serde
+    /// default so every legacy manifest stays readable and legacy
+    /// manifest bytes are unchanged when unset.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub geometry: Option<GeometryProjection>,
     #[serde(default)]
     pub completed: BTreeMap<u32, ShardEntry>,
     #[serde(default)]
@@ -270,6 +279,7 @@ impl ObservationManifest {
             partition_rule: None,
             input_cid: None,
             source_manifest_kappa: None,
+            geometry: None,
             completed: BTreeMap::new(),
             total_records: 0,
         }
@@ -398,6 +408,16 @@ impl ObservationShardWriter {
     pub fn set_source_manifest_kappa(&mut self, kappa: &str) -> Result<(), SourceUnavailable> {
         if self.manifest.source_manifest_kappa.as_deref() != Some(kappa) {
             self.manifest.source_manifest_kappa = Some(kappa.to_owned());
+            self.manifest.store(&self.dir)?;
+        }
+        Ok(())
+    }
+
+    /// Record the #600 typed geometry-projection record of the teacher
+    /// oracle in the observation manifest (idempotent, atomic store).
+    pub fn set_geometry(&mut self, geometry: &GeometryProjection) -> Result<(), SourceUnavailable> {
+        if self.manifest.geometry.as_ref() != Some(geometry) {
+            self.manifest.geometry = Some(geometry.clone());
             self.manifest.store(&self.dir)?;
         }
         Ok(())

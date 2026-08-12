@@ -50,6 +50,12 @@ pub struct GraphCompileOptions {
     /// report. This crate never computes the κ itself (no uor-addr
     /// dependency); callers that hold the snapshot pass the string.
     pub source_manifest_kappa: Option<String>,
+    /// #600 typed geometry-projection record of the teacher source
+    /// (`--geometry-projection`, a JSON serialization of
+    /// [`uor_r4_model_source::geometry::GeometryProjection`]), carried
+    /// into the compile report. This crate never derives the record
+    /// itself; the pipeline that held the oracle passes it.
+    pub geometry: Option<uor_r4_model_source::geometry::GeometryProjection>,
 }
 
 /// Parse graph-compile CLI arguments. `None` when the arguments do not name a
@@ -70,6 +76,7 @@ pub fn parse_options(args: &[String]) -> Option<GraphCompileOptions> {
         jobs: None,
         output: PathBuf::from("r4g1_output"),
         source_manifest_kappa: None,
+        geometry: None,
     };
     let mut index = 0usize;
     while index < args.len() {
@@ -110,6 +117,9 @@ pub fn parse_options(args: &[String]) -> Option<GraphCompileOptions> {
             "--out" => options.output = PathBuf::from(value),
             "--source-manifest-kappa" => {
                 options.source_manifest_kappa = Some(value.clone());
+            }
+            "--geometry-projection" => {
+                options.geometry = Some(serde_json::from_str(value).ok()?);
             }
             _ => return None,
         }
@@ -235,6 +245,9 @@ pub fn compile(args: &[String]) -> Result<(), SourceUnavailable> {
     // #597: bind the source-snapshot identity into the compile report when
     // the caller passed it (`--source-manifest-kappa`).
     report.source_manifest_kappa = options.source_manifest_kappa.clone();
+    // #600: bind the teacher's geometry-projection record when the caller
+    // passed it (`--geometry-projection`).
+    report.geometry = options.geometry.clone();
 
     std::fs::create_dir_all(&options.output)?;
     let artifact_path = options.output.join("compiled.r4g1");
@@ -338,13 +351,21 @@ pub fn observe(args: &[String]) -> Result<(), SourceUnavailable> {
             Box::new(o)
         };
 
-    // #597: record the source-snapshot identity in the observation
-    // manifest before the sharded run opens it (idempotent, atomic; the
-    // run's own writer loads and preserves the stored field).
-    if let Some(kappa) = &options.source_manifest_kappa {
+    // #597: record the source-snapshot identity — and, since #600, the
+    // typed geometry-projection record the oracle itself declares — in
+    // the observation manifest before the sharded run opens it
+    // (idempotent, atomic; the run's own writer loads and preserves the
+    // stored fields).
+    let geometry = oracle.geometry_projection();
+    if options.source_manifest_kappa.is_some() || geometry.is_some() {
         let mut writer =
             observation::ObservationShardWriter::open(&options.output, options.shards)?;
-        writer.set_source_manifest_kappa(kappa)?;
+        if let Some(kappa) = &options.source_manifest_kappa {
+            writer.set_source_manifest_kappa(kappa)?;
+        }
+        if let Some(geometry) = &geometry {
+            writer.set_geometry(geometry)?;
+        }
     }
 
     observation::observe_sharded(

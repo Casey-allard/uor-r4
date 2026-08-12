@@ -767,7 +767,9 @@ fn commit_article(
 enum Prepared {
     Done(ObservationReport),
     Ready {
-        writer: ObservationShardWriter,
+        /// Boxed: the manifest-carrying writer dominates the variant size
+        /// (clippy::large_enum_variant since the #600 geometry record).
+        writer: Box<ObservationShardWriter>,
         checkpoint: Checkpoint,
         articles_total: u64,
         stories_path: PathBuf,
@@ -885,7 +887,7 @@ fn prepare_text_observation(
     }
 
     Ok(Prepared::Ready {
-        writer,
+        writer: Box::new(writer),
         checkpoint,
         articles_total,
         stories_path,
@@ -928,6 +930,14 @@ pub fn observe_text_corpus(
                 stories_path,
             } => (writer, checkpoint, articles_total, stories_path),
         };
+
+    // #600: record the typed geometry-projection record the teacher
+    // oracle declares (the source→compiled reduction its embedding
+    // surface applies), when it declares one. Idempotent and atomic;
+    // legacy manifests without the field remain byte-identical.
+    if let Some(geometry) = oracles[0].geometry_projection() {
+        writer.set_geometry(&geometry)?;
+    }
 
     let workers = oracles.len();
     let seq_len = oracles[0].seq_len();

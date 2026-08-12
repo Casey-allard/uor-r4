@@ -618,6 +618,12 @@ struct CoverOptions {
     /// (`--source-manifest-kappa`), carried verbatim into the cover
     /// report. This crate never computes the κ (no uor-addr dependency).
     source_manifest_kappa: Option<String>,
+    /// #600 typed geometry-projection record of the teacher source
+    /// (`--geometry-projection`, a JSON serialization of
+    /// [`uor_r4_model_source::geometry::GeometryProjection`]), carried
+    /// into the cover report. This crate never derives the record itself;
+    /// the pipeline that held the oracle passes it.
+    geometry: Option<uor_r4_model_source::geometry::GeometryProjection>,
 }
 
 fn parse_cover_options(args: &[String]) -> Result<CoverOptions, SourceUnavailable> {
@@ -635,6 +641,7 @@ fn parse_cover_options(args: &[String]) -> Result<CoverOptions, SourceUnavailabl
         radius_quantile: cover::RADIUS_QUANTILE_NUMERATOR,
         output: PathBuf::from("cover"),
         source_manifest_kappa: None,
+        geometry: None,
     };
     let mut index = 0usize;
     while index < args.len() {
@@ -713,6 +720,11 @@ fn parse_cover_options(args: &[String]) -> Result<CoverOptions, SourceUnavailabl
             "--out" => options.output = PathBuf::from(value),
             "--source-manifest-kappa" => {
                 options.source_manifest_kappa = Some(value.clone());
+            }
+            "--geometry-projection" => {
+                options.geometry = Some(serde_json::from_str(value).map_err(|error| {
+                    SourceUnavailable::new(format!("invalid --geometry-projection value: {error}"))
+                })?);
             }
             _ => {
                 return Err(SourceUnavailable::new(format!(
@@ -893,6 +905,9 @@ pub fn cover_command(args: &[String]) -> Result<(), SourceUnavailable> {
     // #597: bind the source-snapshot identity into the cover report when
     // the caller passed it (`--source-manifest-kappa`).
     report.source_manifest_kappa = options.source_manifest_kappa.clone();
+    // #600: bind the teacher's geometry-projection record when the caller
+    // passed it (`--geometry-projection`).
+    report.geometry = options.geometry.clone();
 
     std::fs::create_dir_all(&options.output)?;
     let artifact_path = options.output.join("cover.r4g1");
@@ -3120,6 +3135,25 @@ mod tests {
         );
         let defaults = parse_cover_options(&[]).expect("default cover options");
         assert_eq!(defaults.source_manifest_kappa, None);
+    }
+
+    /// #600 plumbing seam: the cover stage accepts the typed
+    /// geometry-projection record as JSON (populated into the cover
+    /// report), leaves it unset when the flag is absent, and refuses
+    /// malformed JSON by name on the sanctioned error surface.
+    #[test]
+    fn cover_options_carry_the_geometry_projection() {
+        let record = uor_r4_model_source::geometry::GeometryProjection::bucket_average(576, 288);
+        let json = serde_json::to_string(&record).expect("record serializes");
+        let args = ["--geometry-projection".to_owned(), json];
+        let options = parse_cover_options(&args).expect("valid cover options");
+        assert_eq!(options.geometry.as_ref(), Some(&record));
+        let defaults = parse_cover_options(&[]).expect("default cover options");
+        assert_eq!(defaults.geometry, None);
+        let error =
+            parse_cover_options(&["--geometry-projection".to_owned(), "{not json".to_owned()])
+                .expect_err("malformed record is not a product");
+        assert!(error.reason.contains("--geometry-projection"));
     }
 
     #[test]

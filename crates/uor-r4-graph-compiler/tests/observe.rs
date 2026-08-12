@@ -10,6 +10,7 @@ use uor_r4_graph_compiler::observation::{
     merge_probability_metadata, merge_shards, message_bits_per_token, sample_id, shard_file_name,
     shard_of,
 };
+use uor_r4_model_source::geometry::GeometryProjection;
 use uor_r4_model_source::{BehaviorSource, LlamaOracle, RepresentationSource, TeacherOracle};
 
 const LEGACY_CHECKPOINT: &str = "/tmp/ref/out/model.bin";
@@ -461,6 +462,113 @@ fn source_manifest_kappa_parses_and_persists_in_the_manifest() {
         Some(kappa.as_str())
     );
     let _ = std::fs::remove_dir_all(&dir);
+}
+
+/// #600 plumbing seam: `--geometry-projection` parses a typed
+/// [`GeometryProjection`] into the compile options, the writer setter
+/// persists it into the observation manifest atomically and idempotently
+/// across reopen, and an unset record leaves legacy manifest bytes
+/// unchanged (no `geometry` key at all).
+#[test]
+fn geometry_projection_parses_and_persists_in_the_manifest() {
+    let record = GeometryProjection::bucket_average(576, 288);
+    let json = serde_json::to_string(&record).expect("record serializes");
+
+    // The compile parser accepts the typed record as JSON.
+    let compile_args: Vec<String> = ["--geometry-projection", json.as_str()]
+        .map(str::to_owned)
+        .to_vec();
+    let compile_options =
+        uor_r4_graph_compiler::parse_options(&compile_args).expect("valid options");
+    assert_eq!(compile_options.geometry.as_ref(), Some(&record));
+    // Malformed JSON is not a product of the arguments.
+    let bad_args: Vec<String> = ["--geometry-projection", "{not json"]
+        .map(str::to_owned)
+        .to_vec();
+    assert!(uor_r4_graph_compiler::parse_options(&bad_args).is_none());
+
+    let dir = unique_path("observe-geometry");
+    let mut writer = ObservationShardWriter::open(&dir, 2).expect("writer");
+    assert_eq!(writer.manifest().geometry, None);
+    // Legacy bytes: an unset record serializes no `geometry` key.
+    let legacy_json = serde_json::to_string(writer.manifest()).expect("manifest serializes");
+    assert!(
+        !legacy_json.contains("geometry"),
+        "an unset record must leave legacy manifest bytes unchanged"
+    );
+    // And a legacy manifest without the key still deserializes (None).
+    let legacy: ObservationManifest =
+        serde_json::from_str(&legacy_json).expect("legacy manifest deserializes");
+    assert_eq!(legacy.geometry, None);
+
+    writer.set_geometry(&record).expect("set and store");
+    // Idempotent: re-setting the recorded value does not rewrite.
+    writer.set_geometry(&record).expect("idempotent set");
+    drop(writer);
+    let manifest = ObservationManifest::load(&dir)
+        .expect("manifest io")
+        .expect("manifest present");
+    assert_eq!(manifest.geometry.as_ref(), Some(&record));
+    // Round trip: the persisted record parses back bit-for-bit, digest
+    // included.
+    assert_eq!(
+        manifest.geometry.as_ref().map(|g| &g.implementation_digest),
+        Some(&record.implementation_digest)
+    );
+    // A reopened writer (as `observe_sharded` does after the pre-set)
+    // preserves the stored record.
+    let reopened = ObservationShardWriter::open(&dir, 2).expect("reopen");
+    assert_eq!(reopened.manifest().geometry.as_ref(), Some(&record));
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+/// #600: the legacy checkpoint oracle declares no projection (its dim IS
+/// the source width), while the Hugging Face adapter declares
+/// `bucket-average/1` — asserted here structurally via the trait default.
+#[test]
+fn trait_geometry_projection_defaults_to_none() {
+    struct Plain;
+    impl RepresentationSource for Plain {
+        fn vocab_size(&self) -> usize {
+            4
+        }
+        fn source_dimension(&self) -> usize {
+            8
+        }
+        fn tokenizer_address(&self) -> &str {
+            "plain"
+        }
+        fn read_embedding_rows(
+            &self,
+            _range: std::ops::Range<usize>,
+            _output: &mut [f32],
+        ) -> Option<()> {
+            Some(())
+        }
+    }
+    impl BehaviorSource for Plain {
+        fn reset(&mut self) {}
+        fn step(&mut self, _token: usize, _pos: usize, _logits: &mut [f32]) {}
+    }
+    impl TeacherOracle for Plain {
+        fn vocab(&self) -> usize {
+            4
+        }
+        fn dim(&self) -> usize {
+            8
+        }
+        fn seq_len(&self) -> usize {
+            8
+        }
+        fn kappa(&self) -> String {
+            "blake3:plain".to_owned()
+        }
+        fn source_bytes(&self) -> usize {
+            0
+        }
+        fn embedding(&self, _token: usize, _out: &mut [f32]) {}
+    }
+    assert_eq!(Plain.geometry_projection(), None);
 }
 
 #[test]

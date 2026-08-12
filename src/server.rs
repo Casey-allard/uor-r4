@@ -1833,6 +1833,13 @@ fn compile_r4g1_bundle(
     if let Some(kappa) = downloaded_source.and_then(source_manifest_kappa_of) {
         cover_args.extend(["--source-manifest-kappa".to_owned(), kappa]);
     }
+    // #600: bind the typed geometry-projection record the teacher adapter
+    // applies (bucket-average/1, hidden_size→288) into the cover report,
+    // when the downloaded snapshot declares its width. Opportunistic like
+    // the #597 binding above: a miss compiles exactly as before.
+    if let Some(geometry) = downloaded_source.and_then(geometry_projection_of) {
+        cover_args.extend(["--geometry-projection".to_owned(), geometry]);
+    }
     uor_r4_graph_cli::cover_command(&cover_args).map_err(|error| error.to_string())?;
 
     set_r4g1_compile_progress(status, 55, "Scoring graph transitions and emissions...");
@@ -2003,6 +2010,27 @@ fn huggingface_source(model: Option<&str>) -> Result<SourceDownload, String> {
 fn source_manifest_kappa_of(source: &Path) -> Option<String> {
     let manifest = crate::model::read_source_manifest(source).ok()?;
     crate::model::source_manifest_kappa(&manifest).ok()
+}
+
+/// JSON serialization of the #600 geometry-projection record the teacher
+/// adapter applies for a downloaded snapshot: `bucket-average/1` from the
+/// snapshot's declared `hidden_size` down to the compiled width (288).
+/// Total: any miss (no `config.json`, no numeric `hidden_size`, a source
+/// narrower than the compiled width) resolves to `None` so such inputs
+/// keep compiling unchanged with no record bound.
+fn geometry_projection_of(source: &Path) -> Option<String> {
+    let config: serde_json::Value =
+        serde_json::from_slice(&fs::read(source.join("config.json")).ok()?).ok()?;
+    let hidden_size = u32::try_from(config.get("hidden_size")?.as_u64()?).ok()?;
+    let compiled_width = uor_r4_model_source::geometry::COMPILED_WIDTH;
+    if hidden_size < compiled_width {
+        return None;
+    }
+    let record = uor_r4_model_source::geometry::GeometryProjection::bucket_average(
+        hidden_size,
+        compiled_width,
+    );
+    serde_json::to_string(&record).ok()
 }
 
 fn downloaded_source_path(source: &SourceDownload) -> PathBuf {

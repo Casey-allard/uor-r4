@@ -1055,6 +1055,47 @@ fn report_serializes_source_manifest_kappa_only_when_bound() {
     assert!(bound_json.contains(&format!("\"source_manifest_kappa\":\"{kappa}\"")));
 }
 
+/// #600 plumbing seam: `build_report` leaves the geometry-projection
+/// record unset (legacy report bytes carry no such key), and a caller
+/// that binds it — as `compile` does from `--geometry-projection` — gets
+/// the full typed record, digest included, serialized into the report.
+#[test]
+fn report_serializes_geometry_projection_only_when_bound() {
+    let (observations, _) = synthetic_observations();
+    let config = synthetic_config();
+    let induced = induce_synthetic(&observations, &config);
+    let reference = cover::ReferenceClassifier::freeze(&induced.cover);
+    let story = vec![0u32; observations.len()];
+    let edges = cover::build_edges(&induced.cover, &reference, &observations, &story);
+    let mut report = cover::build_report(
+        &config,
+        &induced,
+        cover::ReportData {
+            reference: &reference,
+            train: &observations,
+            held_out: &observations,
+            edges: &edges,
+            recall: Vec::new(),
+            artifact: None,
+        },
+    );
+    assert_eq!(report.geometry, None);
+    let legacy_json = serde_json::to_string(&report).expect("report serializes");
+    assert!(
+        !legacy_json.contains("\"geometry\""),
+        "an unbound record must leave legacy report bytes unchanged"
+    );
+    let record = uor_r4_model_source::geometry::GeometryProjection::bucket_average(576, 288);
+    report.geometry = Some(record.clone());
+    let bound_json = serde_json::to_string(&report).expect("report serializes");
+    assert!(bound_json.contains("\"id\":\"bucket-average\""));
+    assert!(bound_json.contains("\"source_width\":576"));
+    assert!(bound_json.contains(&format!(
+        "\"implementation_digest\":\"{}\"",
+        record.implementation_digest
+    )));
+}
+
 #[test]
 fn kmeans_recovers_tight_clusters_at_any_batch_size() {
     let (observations, _) = synthetic_observations();
