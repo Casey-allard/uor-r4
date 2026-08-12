@@ -1,0 +1,12 @@
+[package]
+name = "uor-r4-naf"
+license = "MIT"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "UOR-NAF v1-draft.6 interchange slice (#623): core + integer + tensor + address(-binding). Never a dependency of a shipped r4 crate; sha256 labels exist ONLY at this interchange boundary (r4's internal store keys stay blake3)."
+
+[dependencies]
+# SHA-256 is a normative dependency of uor-naf/1-draft.6 §8.2 (the hash axis
+# is NOT pluggable there; blake3 is typed out at this boundary by design).
+sha2 = "0.10"
