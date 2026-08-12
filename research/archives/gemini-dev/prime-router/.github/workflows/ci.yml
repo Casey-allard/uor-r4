@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install \
+            pyyaml \
+            numpy \
+            psutil \
+            opentelemetry-api \
+            opentelemetry-sdk \
+            uor-addr \
+            sympy
+
+      - name: Validate CI Workflow
+        run: |
+          python tests/validate_ci_config.py
+
+      - name: Compile Checks
+        run: |
+          python -m py_compile server.py cli.py prime_router_package.py \
+            tests/test_vv_strict.py tests/test_integration_system.py tests/test_e2e_api_journey.py
+
+      - name: Run Test Suites
+        run: |
+          python -m unittest -v \
+            tests/test_vv_strict.py \
+            tests/test_integration_system.py \
+            tests/test_e2e_api_journey.py

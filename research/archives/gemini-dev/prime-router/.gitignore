@@ -1,0 +1,4 @@
+manifold_cache.json
+manifold_cache.json.tmp
+manifold_cache.json.corrupt
+glove_cache.npz

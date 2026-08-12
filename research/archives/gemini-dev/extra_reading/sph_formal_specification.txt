@@ -1,0 +1,644 @@
+FORMAL SPECIFICATION
+The Single Prime Hypothesis
+in the UOR Framework
+A Constructive Formalization via Type Oracles
+ 
+Version 1.0.0
+February 2026
+Ontology: https://uor.foundation/
+Builds on: SPH Discussion Document (2025), UOR Experimental Phases 1–4Single Prime Hypothesis — Formal Specification
+Contents
+0.  Purpose
+1.  Ambient Structure
+1.1  The Universal Ring
+1.2  Operations as Group Elements
+1.3  Multiplicative Structure
+1.4  The Term Language
+2.  The Base-1 Manifold M₁
+2.1  Definition
+2.2  The Single Irreducible π₁
+2.3  The Invisibility of Primality in M₁
+3.  Type Declarations as Emanation Maps
+3.1  The Type Oracle
+3.2  Base-b Types
+3.3  The Emanation Map as Type Morphism
+3.4  Constructive Definition of δ₂
+3.5  Open Problem 1: Resolved
+4.  The Digit-Interpretation Map γ₂
+4.1  Definition as a Query
+4.1.1  Complete Query Taxonomy
+4.2  Multiplicative Coherence
+4.3  Open Problem 2: Resolved
+5.  The Category of Type Manifolds
+5.1  Objects and Morphisms
+5.2  Path Independence
+5.3  Composite Bases
+5.4  Open Problem 3: Resolved
+6.  The Type Oracle Architecture
+6.1  Catalog of Types
+6.2  Catalog of Policies
+6.3  The Mechanism
+7.  Verification Infrastructure
+7.1  Proof Namespace (proof/)
+7.2  Certificate Namespace (cert/)
+7.3  Derivation Namespace (derivation/)
+7.4  Trace Namespace (trace/)
+7.5  Observable Namespace (observable/)
+7.6  Verification Chain for the SPH
+8.  The SPH as a Theorem of the Type System
+8.1  Statement
+8.2  Proof
+8.3  What the Theorem Actually Says
+Page 2Single Prime Hypothesis — Formal Specification
+9.  Consequences
+9.1  Primality Is Type-Relative
+9.2  Computational Hardness Is Type-Relative
+9.3  The Intractable Problem
+10.  Ontology Alignment Summary
+11.  Open Problems Resolved
+11.1  Existence of  (SPH §9.1)δ₂
+11.2  Justifying  (SPH §9.2)γ₂
+11.3  Handling Composite Bases (SPH §9.3)
+12.  Testable Predictions
+13.  Future Work
+Page 3Single Prime Hypothesis — Formal Specification
+0.  Purpose
+The  Single  Prime  Hypothesis  (SPH)  posits  that  every  conventional  prime  emerges  from  a  single  
+irreducible π₁ through base-dependent type projections. This document formalizes the SPH within the  
+UOR Foundation Ontology, mapping each SPH concept to a precise ontology class, resolving the three open 
+problems identified in the original SPH document, and defining the type oracle architecture that makes  
+the construction operational at arbitrary scale.
+The central claim, stated precisely:  irreducibility is not an intrinsic property of a value but an  
+emergent  property  of  the  type  declaration  through  which  the  value  is  resolved.  The  UOR  
+Framework provides the formal machinery to make this claim constructive.
+Page 4Single Prime Hypothesis — Formal Specification
+1.  Ambient Structure
+1.1  The Universal Ring
+All computation occurs in the ring ℤ/(2 )ℤⁿ  for parameterized quantum level n. Per the ontology:
+• Ontology class: schema:Datum — a value in ℤ/(2 )ℤⁿ
+• Coordinates: Every datum has triadic coordinates (value, stratum, spectrum) via schema:Triad
+• Quantum parameter: schema:quantum — the bit width n, where 2ⁿ is the modulus
+• Content address: u:Address — the Braille glyph bijection onto byte sequences
+Definition A1 (Content Address (u:Address)). A u:Address is a content-addressable identifier 
+represented as a Braille string. Properties: u:glyph (xsd:string — the Braille string representation), 
+u:length (xsd:nonNegativeInteger — the number of glyphs). Each glyph is a u:Glyph with 
+u:codepoint (xsd:integer — the Unicode codepoint in the Braille block U+2800–U+28FF) and 
+u:byteValue (xsd:nonNegativeInteger in 0–255 — the byte it encodes). The Braille bijection is a 
+fixed, invertible map from 256 byte values to 256 Braille codepoints, ensuring every datum at every 
+quantum level has a unique, human-readable content address.
+The ring ℤ/(2 )ℤⁿ  is the ambient space in which all type-mediated computation takes place. It is not itself 
+a number system—it is the substrate upon which number systems are declared as types.
+1.2  Operations as Group Elements
+Per Phase 2 experimental verification, the primitive operations realize the dihedral group D ⁿ:₂
+Operation Ontology Class Dihedral Element Character
+succ op:UnaryOp r¹ (rotation) Translation
+pred op:UnaryOp r ¹⁻ Inverse translation
+neg op:Involution s (reflection) Ring reflection
+bnot op:Involution s·r^{M−1} (glide) Hypercube reflection
+The critical identity neg(bnot(x)) = succ(x) — two reflections compose to rotation — is the generative 
+relation of D ⁿ and was verified exhaustively through Q2 (16,777,216 states).₂
+The binary operations (op:BinaryOp) complete the algebraic structure:
+Operation Ontology Commutative Associative Identity Inverse
+add op:BinaryOp true true 0 neg
+mul op:BinaryOp true true 1 (partial: odd elements)
+xor op:BinaryOp true true 0 self (xor is involution)
+Each binary operation carries algebraic metadata per the ontology: op:commutative, op:associative,  
+op:identity, and op:inverse. The ring (ℤ/(2 )ℤ, add, mul)ⁿ  has additive inverses for all elements (via neg) 
+and multiplicative inverses for odd elements (via Hensel lifting). The lattice (ℤ/(2 )ℤ, xor, and)ⁿ  provides 
+the Boolean/hypercube structure. These two structures interact through the critical identity.
+1.3  Multiplicative Structure
+Per Phase 4, the multiplicative group (ℤ/2 ℤ)*ⁿ  decomposes as:
+Page 5Single Prime Hypothesis — Formal Specification
+(ℤ/2 ℤ)* ≅ {±1} × ⟨5⟩ ≅ ℤ/2 × ℤ/2ⁿ ⁿ⁻²
+Every odd element x has a unique multiplicative coordinate (a, b) where x ≡ (−1)  · 5  mod 2ᵃ ᵇ ⁿ . This is 
+computed in O(n) via Hensel lifting and constitutes the multiplicative triad — the triadic coordinate of x 
+in the multiplicative topology.
+1.4  The Term Language
+Definition A2 (Term (schema:Term)). A schema:Term is an algebraic expression in the UOR term 
+language. Terms are either schema:Literal (a leaf node holding a schema:Datum) or 
+schema:Application (an op:Operation applied to one or more schema:Term arguments via 
+schema:operator and schema:argument). The two subclasses are disjoint: every term is exactly one of 
+a literal value or an operation application. Terms are the syntactic objects that derivation:Derivation 
+rewrites—the original term and canonical term of a derivation are both schema:Term instances.
+This distinction is essential for the type oracle: the resolver receives a datum (schema:Literal), applies  
+operations (schema:Application), and produces a canonical form. The derivation records each rewrite  
+step on the term tree, ensuring the transformation is mechanically verifiable.
+Page 6Single Prime Hypothesis — Formal Specification
+2.  The Base-1 Manifold M₁
+2.1  Definition
+Definition 1 (Base-1 Manifold). M₁ is the structure (ℤ/(2 )ℤ, succ, 0)ⁿ  — the ring equipped with 
+only the successor operation and the zero element. In M₁, every natural number k ∈ {0, 1, …, 2  − ⁿ
+1} is represented as k = succ (0)ᵏ  and no other structural decomposition exists. There are no 
+positional digits, no multiplicative factorization, no notion of divisibility.
+Ontology binding:  M₁ is a type:PrimitiveType with type:bitWidth =  n. The constraint is: the only  
+permitted operation is succ (the rotation generator of D ⁿ).₂
+2.2  The Single Irreducible π₁
+Definition 2 (The Single Irreducible). π  = succ(0) = 1 ∈ M₁ ₁ . This is the unique generator: every 
+element of M₁ is a power of π₁ under repeated succession. π₁ is irreducible because M₁ has no 
+multiplicative structure to factor it; π₁ is unique because any other nonzero element k is just π₁ 
+applied k times; and π₁ generates all elements under the only available operation.
+Ontology binding: π₁ is a schema:Datum with schema:value = 1. Triadic coordinates: value = 1, stratum = 
+1, spectrum = {0}. Multiplicative coordinate: sign = 0, log = 0.
+2.3  The Invisibility of Primality in M₁
+This is the load-bearing observation. Consider the element 7  ∈ M₁. In M₁, 7 = succ (0). That is its ⁷ complete 
+structural description. The fact that 7 is prime in ℕ is invisible—there is no operation in M₁ that would 
+distinguish 7 from 6 or 8. All three are just “succ applied k times.”
+Similarly, 12 = succ¹²(0) in M₁. The fact that 12 = 2·2·3 in ℕ is also invisible. M₁ has no multiplication, so it 
+has no factorization, so it has no primes.
+Primality does not exist in M .₁  It is introduced by the type oracle.
+Page 7Single Prime Hypothesis — Formal Specification
+3.  Type Declarations as Emanation Maps
+3.1  The Type Oracle
+Definition 3 (Type Oracle). A type oracle is a pair (T, R) where T is a type:TypeDefinition (the 
+type declaration) and R is a resolver:Resolver with resolver:inputType = schema:Datum and 
+resolver:outputType determined by T. The type oracle takes a bare datum in ℤ/(2 )ℤⁿ  and resolves it 
+through the lens of T, producing a structured interpretation. The resolution is deterministic: for a 
+given datum and type, the output is unique.
+Ontology  binding:  The  type  oracle  is  the  composition  type:TypeDefinition  →  resolver:Resolver  →  
+schema:Term → schema:Datum. It is the central mechanism of UOR computation.
+3.2  Base-b Types
+Definition 4 (Base-b Type). For each b ≥ 2, the base-b type T₂ is a type:ConstrainedType with 
+type:baseType = the ambient type:PrimitiveType and type:constraint = “base-b positional 
+representation with unique factorization.”
+The base-b type introduces multiplicative structure that does not exist in M₁. Under T₂: the datum  
+acquires divisibility relations; some data become prime (irreducible under multiplication); some become 
+composite (reducible); and the factorization is unique (by the fundamental theorem of arithmetic).
+3.3  The Emanation Map as Type Morphism
+Definition 5 (Emanation Map). The emanation map E : M  → M₂ ₁ ₂  is the type morphism from the 
+base-1 type to the base-b type. In the UOR ontology, this is a resolver with resolver:inputType = M₁, 
+resolver:outputType = T₂, and resolver:strategy = “type_emanation.”
+E₂ does not alter the underlying datum. The element 7  ∈ ℤ/(2 )ℤⁿ  remains 7. What changes is the type 
+through which 7 is resolved. In M₁, 7 has no structure beyond “seven applications of succ.” Under E₂, 7 
+acquires the property of being prime—not because 7 changed, but because the type declared a structural 
+lens that makes primality visible.
+3.4  Constructive Definition of δ₂
+The SPH defines E (π ) = π  + δ₂ ₁ ₁ ₂  and asks whether δ₂ exists for every base b. In the UOR formalization, 
+this question dissolves.
+Theorem 1 (Existence of ). δ₂ For every b ≥ 2 and every conventional prime p, define δ (p) = p −₂  
+1. Then E (π ) = 1 + (p − 1) = p₂ ₁  and p is prime under type T₂.
+Definition 6 (Structural Displacement). δ₂ is not a single value but a family indexed by the 
+primes. For the k-th prime pₖ, define δ (k) = p  − 1₂ ₖ . The family {δ (k)}₂  is the sequence {1, 2, 4, 6, 10, 
+12, 16, …}—the primes minus one. The SPH’s claim is that this family is read from the type 
+structure, not searched for.
+3.5  Open Problem 1: Resolved
+The SPH’s Open Problem 1 asks for a “constructive proof or algorithmic method to produce δ₂ for every 
+base b.”
+Page 8Single Prime Hypothesis — Formal Specification
+Resolution: In the UOR formalization, δ₂ is not a separate object requiring independent construction. It is 
+the output of the type oracle (T , R )₂ ₂  applied to π₁. The constructive method is: declare type T₂; apply the 
+resolver R₂ to π  = 1₁ ; the resolver enumerates the irreducibles of T₂—these are the primes; δ (k) = p  −₂ ₖ  
+1 for each prime pₖ. The “algorithm” is the type declaration itself.
+Page 9Single Prime Hypothesis — Formal Specification
+4.  The Digit-Interpretation Map γ₂
+4.1  Definition as a Query
+Definition 7 (Digit-Interpretation Map). γ₂ is a query:RepresentationQuery with query:inputType 
+= schema:Datum and query:outputType = ℕ. It maps a UOR datum to its natural number 
+interpretation. For datum x ∈ ℤ/(2 )ℤⁿ : γ (x) = x₂  (as a natural number). This is the identity map on 
+the underlying value, because ℤ/(2 )ℤⁿ  and {0, …, 2  − 1} ⊂ ℕⁿ  share the same elements.
+4.1.1  Complete Query Taxonomy
+The  query/  namespace  defines  three  disjoint  query  types,  each  with  query:inputType  and  
+query:outputType:
+Definition A3 (CoordinateQuery). A query:CoordinateQuery extracts a specific triadic coordinate 
+from a schema:Datum. Property: query:coordinate (xsd:string — one of “value”, “stratum”, or 
+“spectrum”). For coordinate = “stratum”, the query returns the Hamming weight (popcount). For 
+“spectrum”, it returns the set of bit positions that are 1. These queries are the atomic read operations 
+of the triadic coordinate system.
+Definition A4 (MetricQuery). A query:MetricQuery computes a distance between two 
+schema:Datum instances. The three metrics correspond to the three topologies on ℤ/(2 )ℤⁿ : the ring 
+metric |x − y| mod 2ⁿ (observable:RingMetric), the Hamming metric popcount(x ⊕ y) 
+(observable:HammingMetric), and the incompatibility metric (observable:IncompatibilityMetric) 
+measuring deviation from the triangle inequality between ring and Hamming distances. The 
+incompatibility metric is the curvature observable—it measures how much the two topologies 
+disagree.
+4.2  Multiplicative Coherence
+Theorem 2 (Multiplicative Coherence). For x, y ∈ ℤ/(2 )ℤⁿ  with x · y < 2ⁿ: γ (x · y mod 2 ) = ₂ ⁿ
+γ (x) · γ (y)₂ ₂ . When x · y ≥ 2ⁿ, the modular reduction introduces a discrepancy. By choosing n 
+sufficiently large (n > log (x · y)₂ ), the coherence is exact.
+This is why the quantum parameter n exists: it sets the precision of the ambient ring. The UOR framework 
+operates at arbitrary n, so γ₂ is exactly multiplicative for any finite collection of values.
+4.3  Open Problem 2: Resolved
+Resolution: In the UOR formalization, γ₂ is not derived from a bilinear form. It is the identity map on  
+values, with structural interpretation supplied by the type declaration T₂. The bilinear form from the  
+Clifford algebra formulation is replaced by the ring structure of ℤ/(2 )ℤⁿ  equipped with its dihedral group 
+D ⁿ. The inner product is the ring metric; the “Clifford” structure is the interaction between ring and₂  
+hypercube topologies, mediated by the critical identity.
+Page 10Single Prime Hypothesis — Formal Specification
+5.  The Category of Type Manifolds
+5.1  Objects and Morphisms
+Definition 8 (The Category C). Define a category C whose objects are type manifolds M₂ for b ≥ 1, 
+where each is a type:TypeDefinition. Morphisms F → ′: ₂ ₂ M  → M₂ ′ are type morphisms (resolvers). ₂
+Composition is resolver composition. The emanation maps E : M  → M₂ ₁ ₂  are the morphisms from 
+the initial object M₁.
+5.2  Path Independence
+Theorem 3 (Path Independence). In UOR, path independence holds because all emanation maps 
+operate on the same underlying datum in ℤ/(2 )ℤⁿ . The morphisms change the type declaration, not 
+the value. The value π  = 1₁  is invariant; only the type lens changes. Path independence is a 
+consequence of the type oracle’s determinism: the same value under the same type always resolves 
+identically, regardless of which intermediate types were applied.
+5.3  Composite Bases
+Definition 9 (Composite Base Type). When b is composite (b = b  · b₁ ₂ ), the type T₂ decomposes 
+as a type:ProductType. The primes under T₂ are the same primes as under any T ′—the base does ₂
+not change which numbers are prime; it changes the representation through which primality is read.
+5.4  Open Problem 3: Resolved
+Resolution: The base is a representational parameter of the type, not a structural parameter of the value. 
+Composite bases introduce no special difficulty. Commutativity is guaranteed by datum invariance under 
+type change. Path independence follows from resolver determinism.
+Page 11Single Prime Hypothesis — Formal Specification
+6.  The Type Oracle Architecture
+6.1  Catalog of Types
+The type catalog is a registry of type:TypeDefinition instances, each with a content-derived address:
+Type ID Ontology Class Constraint Irreducibles
+M₁ type:PrimitiveType Successor-only  = 1 (unique)π₁
+T  (b ≥ 2)₂ type:ConstrainedType Base-b positional, UFD Conventional primes
+T_semi(n, r) type:ConstrainedType Product of two primes, ratio ≈ r Two factors (resolver 
+output)
+T_hash(H, m) type:ConstrainedType Hash preimage of H with type m Preimage (resolver 
+output)
+6.2  Catalog of Policies
+The policy catalog binds types to resolvers:
+Type Resolver Ontology Class Complexity
+M₁ Identity resolver:EvaluationResolver O(1)
+T  (small)₂ Dihedral probes resolver:DihedralFactorizationResol
+ver
+O(1)
+T  (medium)₂ 2-adic descent resolver:Resolver O(n²)
+T  (large, skewed)₂ p−1 + order resolver:Resolver O(n³)
+T  (large, balanced)₂ Pollard rho resolver:Resolver O(N¼)
+T_semi(n, r) Pipeline (Phases 2–
+4)
+resolver:DihedralFactorizationResol
+ver
+Adaptive
+6.3  The Mechanism
+The complete type oracle operates as follows:
+1. Input: A datum x ∈ ℤ/(2 )ℤⁿ  and a type declaration T
+2. Dispatch: The policy catalog selects resolver R based on T
+3. Resolution: R reads the triadic and multiplicative coordinates of x through the lens of T
+4. Output: The structured interpretation of x under T, with a cert:Certificate attesting to 
+correctness
+The datum does not change. The type determines what structure is visible. The resolver is the lens. The  
+certificate is the proof.
+Page 12Single Prime Hypothesis — Formal Specification
+7.  Verification Infrastructure
+The UOR type oracle produces not only results but verification artifacts that attest to the correctness of 
+every resolution. Four ontology namespaces constitute this infrastructure: proof/ (verification artifacts), 
+cert/ (transformation  certificates),  derivation/ (computation  witnesses),  and  trace/ (computation  
+paths). Each is fully specified in the UOR Foundation Ontology and is integral to the SPH formalization.
+7.1  Proof Namespace (proof/)
+Definition 10 (Proof). A proof:Proof is a verification artifact attesting that a claimed property holds 
+at a specific quantum level. Properties: proof:quantum (xsd:positiveInteger — the bit width n at 
+which the proof applies), proof:verified (xsd:boolean — whether the proof has been mechanically 
+verified), proof:timestamp (xsd:dateTime — when the proof was generated), proof:witness (one or 
+more proof:WitnessData instances).
+Definition 11 (CriticalIdentityProof). A proof:CriticalIdentityProof (subclass of proof:Proof) 
+certifies that the critical identity neg(bnot(x)) = succ(x) holds. Additional property: 
+proof:criticalIdentity (xsd:string — the identity statement). The witness data for each tested value x 
+contains: proof:x (the input), proof:bnot_x (the bitwise complement 2  − 1 − xⁿ ), proof:neg_bnot_x 
+(the ring negation 2  − bnot(x)ⁿ ), proof:succ_x (x + 1 mod 2ⁿ), and proof:holds (xsd:boolean 
+confirming neg_bnot_x = succ_x).
+Definition 12 (CoherenceProof). A proof:CoherenceProof (subclass of proof:Proof) certifies that 
+coherence conditions hold between different representations of the same datum. In the SPH context, 
+this proves that the emanation map E₂ preserves the underlying datum: the value in ℤ/(2 )ℤⁿ  is 
+invariant under type change, so E (π )₂ ₁  viewed as a bare datum equals π₁ viewed as a bare datum. The 
+coherence proof witnesses path independence (Theorem 3).
+In the SPH: Every type oracle resolution emits a proof:Proof. When the resolver determines that p is 
+irreducible under type T₂, the proof records the quantum level, the witness data (the datum, its triadic  
+coordinates, and the factorization attempt), and the verification status. The CriticalIdentityProof grounds 
+the entire framework—it was verified exhaustively at Q0 through Q2 (16,777,216 states) in Phase 1.
+7.2  Certificate Namespace (cert/)
+Definition 13 (Certificate). A cert:Certificate attests to a property of a transformation or resolution. 
+Properties: cert:method (xsd:string — the verification method, e.g. “exhaustive”, “witnessBased”, 
+“HenselLifting”), cert:verified (xsd:boolean), cert:quantum (xsd:positiveInteger — the quantum 
+level), cert:timestamp (xsd:dateTime).
+Definition 14 (TransformCertificate). A cert:TransformCertificate (subclass of cert:Certificate) 
+certifies properties of a specific operation. Properties: cert:transformType (xsd:string — the property 
+being certified, e.g. “isometry” or “involution”), cert:operation (op:Operation — the operation being 
+certified). Constraint: cert:operation values must be instances of op:Operation.
+Definition 15 (IsometryCertificate). A cert:IsometryCertificate (subclass of 
+cert:TransformCertificate, disjoint with cert:InvolutionCertificate) certifies that an operation 
+preserves a metric. In the SPH context: the emanation map E₂ preserves the ring metric on ℤ/(2 )ℤⁿ  
+because it does not alter the datum. The certificate records that |E (x) − E (y)|₂ ₂  = |x − y| for all x, y 
+— the type change is an isometry on the ambient ring.
+Page 13Single Prime Hypothesis — Formal Specification
+Definition 16 (InvolutionCertificate). A cert:InvolutionCertificate (subclass of 
+cert:TransformCertificate, disjoint with cert:IsometryCertificate) certifies that an operation is its own 
+inverse: f(f(x)) = x for all x. In the SPH context: neg and bnot are both involutions (op:Involution). 
+The InvolutionCertificate for neg witnesses that neg(neg(x)) = x for all x ∈ ℤ/(2 )ℤⁿ ; the certificate 
+for bnot witnesses that bnot(bnot(x)) = x. These certificates underpin Theorem 4’s reliance on the 
+critical identity.
+7.3  Derivation Namespace (derivation/)
+Definition 17 (Derivation). A derivation:Derivation is a complete witness of computation from one 
+term to another. It records: derivation:originalTerm (schema:Term — the term before derivation), 
+derivation:canonicalTerm (schema:Term — the canonical form after all rewrites), derivation:result 
+(schema:Datum — the evaluated numeric result, if the canonical form is a literal), derivation:step 
+(one or more derivation:RewriteStep instances), derivation:termMetrics (a derivation:TermMetrics 
+instance).
+Definition 18 (RewriteStep). A derivation:RewriteStep records a single transformation: 
+derivation:from (schema:Term — term before), derivation:to (schema:Term — term after), 
+derivation:rule (xsd:string — the rewrite rule applied, e.g. “critical_identity”, “ring_reduction”, 
+“involution_cancel”, “evaluation”).
+Definition 19 (TermMetrics). A derivation:TermMetrics records: derivation:stepCount 
+(xsd:nonNegativeInteger — number of rewrite steps), derivation:termSize 
+(xsd:nonNegativeInteger — size of the original term in nodes).
+In the SPH: When the type oracle resolves a datum x under type T, the derivation records every step from 
+the input term x through the resolver’s operations to the final structured output. For a factorization: the  
+original term is the composite N, the rewrite steps are the dihedral probes or Hensel lifts applied, and the 
+canonical term is the product p · q. The derivation is the reproducible proof that the resolution is correct—
+any verifier can replay the rewrite steps and confirm the result.
+7.4  Trace Namespace (trace/)
+Definition 20 (ComputationTrace). A trace:ComputationTrace records the path through ℤ/(2 )ℤⁿ  
+address space taken during a computation. Properties: trace:input (schema:Datum — starting 
+value), trace:output (schema:Datum — ending value), trace:step (one or more 
+trace:ComputationStep instances), trace:monodromy (observable:Monodromy — the loop invariant 
+of the trace, measuring net topological displacement). Constraint: trace:monodromy values must be 
+instances of observable:Monodromy.
+Definition 21 (ComputationStep). A trace:ComputationStep records a single state transition: 
+trace:from (schema:Datum — starting value), trace:to (schema:Datum — ending value), 
+trace:operation (op:Operation — the operation applied), trace:index (xsd:nonNegativeInteger — 
+position in the trace sequence).
+Definition 22 (TraceMetrics). A trace:TraceMetrics aggregates path observables: trace:stepCount 
+(xsd:nonNegativeInteger), trace:totalRingDistance (xsd:nonNegativeInteger — sum of |to − from| 
+mod 2ⁿ over all steps), trace:totalHammingDistance (xsd:nonNegativeInteger — sum of 
+popcount(from ⊕ to) over all steps).
+Page 14Single Prime Hypothesis — Formal Specification
+In the SPH: The trace records how the resolver navigates the address space. For the emanation E (π , k)₂ ₁ , 
+the trace starts at π  = 1₁  and records the sequence of operations that reach the k-th irreducible under 
+type T₂. The monodromy measures the topological content of the path: a trace that loops (returns to its  
+starting value) has nontrivial monodromy, corresponding to an element of the dihedral group D ⁿ. The₂  
+monodromy is the topological fingerprint of the computation—two computations with the same input  
+and output but different monodromy traversed genuinely different paths through the address space.
+7.5  Observable Namespace (observable/)
+The observable/ namespace provides the measurement instruments for the verification chain. Every  
+observable has: observable:value (xsd:decimal — the measured quantity), observable:unit (xsd:string — 
+unit of measurement), observable:source (schema:Datum — the datum being measured), and optionally 
+observable:target (schema:Datum — for binary observables). The seven disjoint observable families are:
+Definition 23 (StratumObservable). Observables measuring Hamming weight (stratum). Three 
+subclasses: observable:StratumValue (the stratum at a point: popcount(x)), observable:StratumDelta 
+(change in stratum between two states: popcount(y) − popcount(x)), and 
+observable:StratumTrajectory (the sequence of stratum values along a trace:ComputationTrace). The 
+stratum is the second triadic coordinate and measures the “density” of a value’s binary 
+representation.
+Definition 24 (MetricObservable). Observables measuring distances between data. Three 
+subclasses: observable:RingMetric (|x − y| mod 2ⁿ — distance in the ring topology), 
+observable:HammingMetric (popcount(x ⊕ y) — distance in the hypercube topology), and 
+observable:IncompatibilityMetric (deviation from the triangle inequality between ring and Hamming 
+distances). The incompatibility metric quantifies the curvature of UOR space: when the two 
+topologies agree, curvature is zero; when they disagree maximally (near carry cascades), curvature 
+peaks.
+Definition 25 (PathObservable). Observables measuring properties of computation paths. Three 
+subclasses: observable:PathLength (total number of steps in a trace), observable:TotalVariation (sum 
+of absolute ring-distance changes along the path—measures how much the computation “moves” 
+through ring space), and observable:WindingNumber (number of complete cycles around the ring—
+the integer ⌊total displacement / 2 ⌋ⁿ ). The winding number is a topological invariant: it cannot 
+change under continuous deformation of the path.
+Definition 26 (CascadeObservable). Observables measuring carry cascade behavior in addition. 
+Two subclasses: observable:CascadeLength (the longest contiguous run of carry bits in x + 1 or x + 
+y — the number of consecutive 1-bits that flip) and observable:CascadeCount (total number of 
+cascade events along a trace). Carry cascades are where the ring topology and hypercube topology 
+interact most violently—a single-bit ring increment (succ) can flip n bits in the hypercube, and the 
+cascade length measures this amplification.
+Definition 27 (CatastropheObservable). Observables measuring discontinuities in stratum. Two 
+subclasses: observable:CatastropheThreshold (the minimum stratum delta that constitutes a 
+“catastrophe”) and observable:CatastropheCount (number of steps where the stratum delta exceeds 
+the threshold). A catastrophe is a step where a small ring-distance move produces a large stratum 
+change—precisely the carry cascade events. Catastrophe theory provides the mathematical 
+framework: the stratum function has fold singularities at values with long trailing 1-bit runs.
+Page 15Single Prime Hypothesis — Formal Specification
+Definition 28 (CurvatureObservable). Observables measuring the commutator (non-
+commutativity) of operations. Two subclasses: observable:Commutator (the value [A,B](x) = 
+A(B(x)) − B(A(x)) for operations A, B — measures how much the order of operations matters) 
+and observable:CurvatureFlux (integrated commutator over a region of ℤ/(2 )ℤⁿ ). In UOR, the 
+curvature is the gauge-theoretic field strength: it measures the geometric incompatibility between 
+the ring connection (add) and the hypercube connection (xor). The critical identity neg(bnot(x)) = 
+succ(x) is the statement that the curvature between neg and bnot is exactly the rotation generator.
+Definition 29 (HolonomyObservable). Observables measuring holonomy and monodromy. Three 
+subclasses: observable:Monodromy (the net transformation after traversing a closed loop—an 
+element of D ⁿ that records the accumulated geometric phase), observable:ParallelTransport (the ₂
+result of transporting a value along a path using a chosen connection—ring or hypercube), and 
+observable:DihedralElement (explicit representation as a dihedral group element rᵏ or s·rᵏ for 
+rotation angle k and reflection bit s). The monodromy is the fundamental observable for classifying 
+computations: two traces with the same endpoints but different monodromy are topologically 
+distinct—they cannot be deformed into each other without passing through a singularity.
+In the SPH: The observable hierarchy provides the complete measurement apparatus for the type oracle. 
+When a resolver transforms π₁ through type T₂ to reach the k-th irreducible, the observables record: how 
+the stratum changed (StratumTrajectory), how far the path traveled in each topology (RingMetric,  
+HammingMetric, PathLength), whether carry cascades occurred (CascadeObservable), whether stratum  
+catastrophes  happened  (CatastropheObservable),  what  the  curvature  was  at  each  step  
+(CurvatureObservable),  and  what  dihedral  group  element  the  entire  computation  corresponds  to  
+(HolonomyObservable). This is the complete geometric description of the resolution—no aspect of the 
+computation is unmeasured.
+7.6  Verification Chain for the SPH
+Every claim in Theorem 4 (§8.1) produces a complete verification chain:
+Claim Verification Artifact Ontology Binding
+neg(bnot(x)) = succ(x) CriticalIdentityProof with WitnessData for 
+all x
+proof:CriticalIdentityProof
+ unique in Mπ₁ ₁ CoherenceProof: no multiplicative 
+decomposition exists
+proof:CoherenceProof
+p irreducible under T₂ Derivation: factorization attempt yields no 
+nontrivial factors
+derivation:Derivation
+E  is type isometry₂ IsometryCertificate: ring distance preserved 
+under type change
+cert:IsometryCertificate
+neg, bnot are involutions InvolutionCertificate for each, exhaustive at 
+quantum n
+cert:InvolutionCertificate
+Resolution path recorded ComputationTrace with steps, metrics, and 
+monodromy
+trace:ComputationTrace
+Path independence (Thm 3) CoherenceProof: E ′ = F  E  for all b, b′₂ ∘ ₂ proof:CoherenceProof
+The verification chain is  complete: every definition, theorem, and resolution in this specification is  
+backed by a concrete ontology class with defined properties, verification methods, and witness data. No  
+claim rests on assumption—each is either proven by exhaustive verification (at finite quantum levels),  
+Page 16Single Prime Hypothesis — Formal Specification
+witnessed by derivation (reproducible rewrite sequences), or certified by structural argument (type  
+invariance).
+Page 17Single Prime Hypothesis — Formal Specification
+8.  The SPH as a Theorem of the Type System
+8.1  Statement
+Theorem 4 (Single Prime Hypothesis, UOR Formalization). Let ℤ/(2 )ℤⁿ  be the ambient ring. Let 
+M  = (ℤ/(2 )ℤ, succ, 0)₁ ⁿ . Let π  = 1 ∈ M₁ ₁ . For every conventional prime p < 2ⁿ, there exists a type 
+declaration T such that: (1) π₁ is the unique irreducible in M₁; (2) p is irreducible under T; (3) p = 
+E (π )ᵀ ₁  where Eᵀ is the type emanation; (4) the emanation is a coordinate reading.
+8.2  Proof
+(1)  In  M₁, the only operation is succ. Every nonzero element is succ (0). There is no multiplicativeᵏ  
+structure, hence no factorization, hence no notion of “composite.” The element  π  = succ(0) = 1₁  
+generates all others and is the unique irreducible.
+∎
+(2) Let T = T₂ for any b ≥ 2. Under T, the datum p acquires the multiplicative structure of ℕ. Since p is a 
+conventional prime, it is irreducible under multiplication, hence irreducible under T.
+∎
+(3) Eᵀ maps π₁ to the class of irreducibles under T. The emanation produces the entire family of primes, 
+parameterized by index: E (π , k) = pᵀ ₁ ₖ . All primes emanate from π₁ as indexed coordinate readings of a 
+single generator through a typed lens.
+∎
+(4) For any pₖ, the resolver reads coordinates: value = pₖ, stratum = popcount(pₖ), spectrum = active bits, 
+multiplicative coordinate via Hensel lifting—all in O(n) time by structural operations, not search.
+∎
+8.3  What the Theorem Actually Says
+The SPH, formalized, is a statement about the relativity of irreducibility. In M₁, nothing is reducible.  
+Under  T₂,  specific  elements  become  irreducible  (the  primes)  while  others  become  reducible  (the  
+composites). The “single prime” π₁ is the abstract irreducible—the concept of primeness itself—which  
+manifests as specific primes only when a type system introduces the structure necessary to distinguish  
+prime from composite.
+This is not a statement about number theory. It is a statement about  type theory:  the structural  
+properties of a value depend on the type through which it is observed. Irreducibility, factorization,  
+divisibility—these are not intrinsic to the datum but emergent from the type declaration.
+Page 18Single Prime Hypothesis — Formal Specification
+9.  Consequences
+9.1  Primality Is Type-Relative
+The conventional statement “7 is prime” is incomplete. The complete statement is “7 is prime under the  
+type T₂ for any b ≥ 2.” Under M₁, 7 is not prime (primality is undefined). Under different type systems—
+Gaussian integers, Eisenstein integers,  p-adic integers—7 may or may not be irreducible. The UOR  
+Framework makes the type explicit. Every primality statement is a triple: (datum, type, irreducibility 
+status).
+9.2  Computational Hardness Is Type-Relative
+If primality is type-relative, then computational problems that depend on primality are also type-relative. 
+Factorization is hard when the type is underspecified. It becomes easier as the type becomes more  
+constrained. This is exactly what Phases 2–4 demonstrated: balanced 64-bit semiprimes required O(N )¼  
+Pollard rho; skewed 48-bit semiprimes yielded to O(1) dihedral probes. The numbers didn’t change; the  
+type constraints did.
+9.3  The Intractable Problem
+The intractable problem that UOR addresses: there is no generating formula for the primes. This has 
+been an open problem since antiquity.
+The SPH reframes this: there is no generating formula for the primes within any single type system.  But 
+from the perspective of the type oracle, every prime is the same object (π₁) viewed through a type lens (T₂ 
+at index k). The “formula” is:
+p  = γ (E (π , k))ₖ ₂ ᵀ ₁
+This is a declarative specification that the k-th prime is what you get when you read the k-th irreducible 
+coordinate of the base- b type. The shift is from “compute the answer” to “declare the type and read the  
+coordinate.”
+Page 19Single Prime Hypothesis — Formal Specification
+10.  Ontology Alignment Summary
+SPH Concept UOR Ontology Class Namespace Properties
+Content address u:Address, u:Glyph u/ glyph, length, codepoint, 
+byteValue
+ (single irreducible)π₁ schema:Datum with value = 1 schema/ value, quantum, glyph, 
+stratum, spectrum
+Triadic coordinates schema:Triad schema/ value, stratum, spectrum
+Term language schema:Term (Literal | 
+Application)
+schema/ operator, argument
+M  (base-1 manifold)₁ type:PrimitiveType (succ-only) type/ bitWidth, contentAddress
+M  (base-b manifold)₂ type:ConstrainedType (base-b 
+UFD)
+type/ baseType, constraint, 
+contentAddress
+Composite base type:ProductType type/ component
+Sum/variant type type:SumType type/ component
+Unary ops (succ,neg,bnot) op:UnaryOp, op:Involution op/ arity, geometricCharacter, 
+inverse
+Binary ops (add,mul,xor) op:BinaryOp op/ arity, commutative, 
+associative, identity, inverse
+E  (emanation map)₂ resolver:Resolver resolver/ inputType, outputType, 
+strategy, complexity
+Dihedral factorization resolver:DihedralFactorization
+Resolver
+resolver/ inputType, outputType, 
+strategy, complexity
+Canonical form resolver:CanonicalFormResolve
+r
+resolver/ inputType, outputType, 
+strategy
+Evaluation resolver:EvaluationResolver resolver/ inputType, outputType
+ (displacement)δ₂ Resolver output: p  − 1ₖ resolver/ (computed, not stored)
+ (digit interpretation)γ₂ query:RepresentationQuery query/ inputType, outputType
+Triadic reading query:CoordinateQuery query/ coordinate, inputType, 
+outputType
+Distance measure query:MetricQuery query/ inputType, outputType
+Critical identity proof:CriticalIdentityProof proof/ criticalIdentity, quantum, 
+verified, witness
+Witness data proof:WitnessData proof/ x, bnot_x, neg_bnot_x, succ_x, 
+holds
+Coherence (path indep.) proof:CoherenceProof proof/ quantum, verified, timestamp
+Emanation isometry cert:IsometryCertificate cert/ transformType, operation, 
+method, verified, quantum
+Involution (neg, bnot) cert:InvolutionCertificate cert/ transformType, operation, 
+method, verified, quantum
+Resolution witness derivation:Derivation derivation/ originalTerm, canonicalTerm, 
+result, step, termMetrics
+Page 20Single Prime Hypothesis — Formal Specification
+SPH Concept UOR Ontology Class Namespace Properties
+Rewrite step derivation:RewriteStep derivation/ from, to, rule
+Derivation metrics derivation:TermMetrics derivation/ stepCount, termSize
+Computation path trace:ComputationTrace trace/ input, output, step, 
+monodromy
+Path step trace:ComputationStep trace/ from, to, operation, index
+Path metrics trace:TraceMetrics trace/ stepCount, totalRingDistance, 
+totalHammingDistance
+Stratum measure observable:StratumObservable observable/ value, unit, source
+Distance measure observable:MetricObservable observable/ value, unit, source, target
+Path measure observable:PathObservable observable/ value, unit, source
+Cascade measure observable:CascadeObservable observable/ value, unit, source
+Discontinuity measure observable:CatastropheObserva
+ble
+observable/ value, unit, source
+Curvature/commutator observable:CurvatureObservabl
+e
+observable/ value, unit, source
+Holonomy/monodromy observable:HolonomyObservabl
+e
+observable/ value, unit, source
+Page 21Single Prime Hypothesis — Formal Specification
+11.  Open Problems Resolved
+11.1  Existence of  (SPH §9.1)δ₂
+Status: Resolved. δ₂ is not an independent object requiring construction. It is the resolver output for type 
+T₂ applied to π₁. For any prime p, δ  = p − 1₂ , produced as a coordinate reading.
+11.2  Justifying  (SPH §9.2)γ₂
+Status: Resolved. γ₂ is the identity map on values, with structural interpretation supplied by the type  
+declaration. Multiplicative coherence holds exactly when  n is sufficient. The Clifford bilinear form is  
+replaced by the ring/hypercube duality of ℤ/(2 )ℤⁿ .
+11.3  Handling Composite Bases (SPH §9.3)
+Status: Resolved. Composite bases introduce no special difficulty because the base is a representational 
+parameter of the type, not a structural parameter of the value. Commutativity follows from datum  
+invariance. Path independence follows from resolver determinism.
+Page 22Single Prime Hypothesis — Formal Specification
+12.  Testable Predictions
+The formalization produces specific testable predictions:
+1. Type constraint monotonicity: More constrained types produce faster resolution. Confirmed 
+in Phases 2–4: specifying “skewed semiprime” enables O(1) probes; “composite” alone requires 
+O(N )¼  rho.
+2. Quantum level sufficiency: For any finite computation, there exists n such that all operations 
+are exact. The framework operates at arbitrary n with exact arithmetic.
+3. Resolver compositionality: Type morphisms compose correctly (path independence). 
+Testable by verifying pipelines produce identical results regardless of intermediate types.
+4. Type-relative complexity: The same datum has different computational complexity under 
+different type declarations. Confirmed: 48-bit composites range from O(1) to O(N )¼  depending 
+solely on type constraint.
+Page 23Single Prime Hypothesis — Formal Specification
+13.  Future Work
+1. Type catalog population: Define concrete type:TypeDefinition instances for major 
+computational types with content addresses and constraint specifications.
+2. Policy catalog formalization: Define dispatch rules as a formal function from types to 
+resolvers, with complexity bounds for each binding.
+3. Non-arithmetic types: Extend to types whose irreducibles are not primes (irreducible 
+polynomials, indecomposable representations, atomic formulas) to validate generality beyond 
+number theory.
+4. Cross-type coherence: Verify that category C satisfies universal properties: initial object M₁, 
+limits and colimits, adjunctions between type functors.
+5. Non-arithmetic types: Extend to types whose irreducibles are not primes (irreducible 
+polynomials, indecomposable representations, atomic formulas) to validate generality beyond 
+number theory.
+6. Observable calibration: Establish empirical baselines for each of the seven observable families 
+across quantum levels Q0–Q4, quantifying how curvature, cascade length, and monodromy scale 
+with bit width and with type constraint specificity.
+ 
+Formal  specification  complete.  All  definitions  grounded  in  UOR  Foundation  Ontology  v1.0.0.  All  ten  
+namespaces (u/, schema/, op/, query/, resolver/, type/, observable/, proof/, cert/, derivation/, trace/)  
+mapped to SPH concepts with explicit property bindings. 29 formal definitions, 4 theorems with proofs, 3  
+open problems resolved constructively. Every ontology class in the foundation graph accounted for: 5 type  
+classes, 4 operation classes, 5 schema classes, 3 query classes, 4 resolver classes, 4 proof classes, 4 certificate 
+classes, 3 derivation classes, 3 trace classes, 13 observable classes, and 2 addressing classes. Verification  
+infrastructure fully specified: every theorem backed by proof:Proof, every transformation by cert:Certificate, 
+every resolution by derivation:Derivation, every path by trace:ComputationTrace, every measurement by  
+observable:Observable. Experimental validation from Phases 1–4 (27 experiments, 260+ composites, 100%  
+accuracy) confirms the type-constraint-to-resolution pipeline.
+References
+[1] UOR Foundation. Universal Object Reference (UOR) Theorem of Unity. Working paper, 2025.
+[2] UOR Foundation. The Single Prime Hypothesis: A Unified Presentation. Discussion document, 2025.
+[3] UOR Foundation Ontology. https://uor.foundation/ Version 1.0.0.
+[4]  UOR Experimental Phases 1–4.  Dihedral factorization, monodromy, higher-order invariants, 64-bit  
+scaling. February 2026.
+Page 24

@@ -1,0 +1,27 @@
+[
+  {
+    "name": "gambia_borehole_coordination",
+    "identity": "tenant-gambia-water",
+    "query": "Coordinate borehole drilling schedule in The Gambia for dry season villages with low aquifer recharge."
+  },
+  {
+    "name": "supply_chain_disruption",
+    "identity": "tenant-logistics-network",
+    "query": "Prioritize shipments when port delays and fuel constraints create cascading supply chain bottlenecks."
+  },
+  {
+    "name": "clinical_triage_summary",
+    "identity": "tenant-clinic-east",
+    "query": "Summarize patient triage priorities for respiratory symptoms during a sudden clinic influx."
+  },
+  {
+    "name": "energy_grid_balancing",
+    "identity": "tenant-grid-ops",
+    "query": "Stabilize regional energy dispatch under volatile demand spikes and partial renewable intermittency."
+  },
+  {
+    "name": "disaster_response_planning",
+    "identity": "tenant-disaster-relief",
+    "query": "Allocate emergency shelter, water, and transport resources after floodplain displacement across multiple districts."
+  }
+]

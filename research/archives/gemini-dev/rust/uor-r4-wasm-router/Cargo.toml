@@ -1,0 +1,26 @@
+[package]
+name = "uor-r4-wasm-router"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[[bin]]
+name = "server"
+path = "src/main.rs"
+
+[dependencies]
+wasm-bindgen = "0.2.92"
+serde = { version = "1.0", features = ["derive"] }
+serde-wasm-bindgen = "0.6.5"
+console_error_panic_hook = "0.1.7"
+serde_json = "1.0"
+sha2 = "0.10.8"
+hex = "0.4.3"
+
+uor-addr = { path = "uor_standards/uor-addr/crates/uor-addr", default-features = false, features = ["alloc"] }
+uor-foundation = { path = "uor_standards/UOR-Framework/foundation", default-features = false, features = ["std", "serde"] }
+uor-foundation-sdk = { path = "uor_standards/UOR-Framework/uor-foundation-sdk" }
+uor-prism = { path = "uor_standards/prism/crates/uor-prism", default-features = false, features = ["std", "serde"] }
+

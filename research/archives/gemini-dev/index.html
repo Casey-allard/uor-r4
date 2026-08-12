@@ -1,0 +1,2394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>R4 Prime Router — UOR World Model | Holographic Dashboard</title>
+    <meta name="description" content="R4 Prime Router geometric world model featuring real-time UOR prime routing, Hopf S³ manifold visualization, C² quantum phase tracking, and semantic point-cloud corpus map.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@300;400;600;800&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg:        #050609;
+            --bg2:       #08090f;
+            --panel:     rgba(12, 14, 24, 0.75);
+            --panel2:    rgba(16, 18, 32, 0.85);
+            --border:    rgba(255,255,255,0.06);
+            --border2:   rgba(255,255,255,0.10);
+            --text:      #e8eaf0;
+            --text2:     #8b93a8;
+            --muted:     #4b5268;
+            --cyan:      #00e5ff;
+            --purple:    #bf7fff;
+            --emerald:   #00e5a0;
+            --amber:     #ffb300;
+            --red:       #ff5252;
+            --pink:      #ff4db8;
+            --glow-c:    rgba(0, 229, 255, 0.15);
+            --glow-p:    rgba(191, 127, 255, 0.15);
+        }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Outfit', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            height: 100vh;
+            overflow: hidden;
+            display: grid;
+            grid-template-columns: 300px 1fr 400px;
+            grid-template-rows: 100vh;
+            background-image:
+                radial-gradient(ellipse 60% 40% at 15% 50%, rgba(0,229,255,0.03) 0%, transparent 60%),
+                radial-gradient(ellipse 50% 60% at 85% 20%, rgba(191,127,255,0.04) 0%, transparent 60%),
+                radial-gradient(ellipse 40% 30% at 50% 90%, rgba(0,229,160,0.02) 0%, transparent 50%);
+        }
+
+        /* ============ SCROLLBARS ============ */
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 2px; }
+
+        /* ============ LEFT SIDEBAR ============ */
+        .sidebar {
+            background: var(--bg2);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            padding: 1.25rem;
+            overflow: hidden;
+            gap: 1.25rem;
+        }
+
+        .brand {
+            flex-shrink: 0;
+        }
+
+        .brand-title {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 1.1rem;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            background: linear-gradient(120deg, var(--cyan), var(--purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .brand-sub {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.58rem;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            margin-top: 2px;
+        }
+
+        .sidebar-section {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .section-label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.6rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--muted);
+            padding-bottom: 0.4rem;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 0.25rem;
+        }
+
+        /* Sliders */
+        .config-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.72rem;
+            color: var(--text2);
+            margin-bottom: 0.25rem;
+        }
+        .config-val {
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--cyan);
+            font-size: 0.7rem;
+        }
+        .slider {
+            width: 100%;
+            -webkit-appearance: none;
+            height: 2px;
+            background: rgba(255,255,255,0.08);
+            border-radius: 2px;
+            outline: none;
+            margin-bottom: 0.75rem;
+        }
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 12px; height: 12px;
+            border-radius: 50%;
+            background: var(--cyan);
+            box-shadow: 0 0 8px var(--cyan);
+            cursor: pointer;
+            transition: box-shadow 0.2s;
+        }
+        .slider::-webkit-slider-thumb:hover { box-shadow: 0 0 16px var(--cyan); }
+
+        .mac-label {
+            font-size: 0.72rem;
+            color: var(--text2);
+            margin-bottom: 0.3rem;
+        }
+        .mac-input {
+            width: 100%;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid var(--border2);
+            border-radius: 6px;
+            padding: 0.45rem 0.6rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.68rem;
+            color: var(--cyan);
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .mac-input:focus { border-color: var(--cyan); }
+
+        /* KB Textarea */
+        .kb-textarea {
+            width: 100%;
+            min-height: 80px;
+            max-height: 120px;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 0.5rem 0.6rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.65rem;
+            color: var(--text2);
+            resize: vertical;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .kb-textarea:focus { border-color: var(--purple); }
+
+        .btn {
+            border: none;
+            border-radius: 8px;
+            padding: 0.55rem 1rem;
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.78rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            width: 100%;
+            letter-spacing: 0.04em;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, rgba(0,229,255,0.15), rgba(191,127,255,0.15));
+            color: var(--cyan);
+            border: 1px solid rgba(0,229,255,0.3);
+        }
+        .btn-primary:hover {
+            background: linear-gradient(135deg, rgba(0,229,255,0.25), rgba(191,127,255,0.25));
+            border-color: var(--cyan);
+            box-shadow: 0 0 20px rgba(0,229,255,0.2);
+        }
+        .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        .index-status {
+            font-size: 0.65rem;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--text2);
+            text-align: center;
+            margin-top: 0.25rem;
+            display: none;
+        }
+
+        /* Quick telemetry at bottom of sidebar */
+        .telemetry-mini {
+            flex-shrink: 0;
+            border-top: 1px solid var(--border);
+            padding-top: 1rem;
+        }
+        .telemetry-mini-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.65rem;
+            color: var(--text2);
+            margin-bottom: 0.35rem;
+        }
+        .telemetry-mini-row span:last-child {
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--purple);
+        }
+
+        /* ============ CENTER — CHAT ============ */
+        .main {
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .chat-header {
+            flex-shrink: 0;
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            background: var(--bg2);
+        }
+        .chat-header-dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            background: var(--emerald);
+            box-shadow: 0 0 8px var(--emerald);
+            animation: pulse-dot 2s ease-in-out infinite;
+        }
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; box-shadow: 0 0 8px var(--emerald); }
+            50% { opacity: 0.5; box-shadow: 0 0 4px var(--emerald); }
+        }
+        .chat-header-title {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text);
+        }
+        .chat-header-sub {
+            font-size: 0.65rem;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--muted);
+            margin-left: auto;
+        }
+        .chat-header-route {
+            font-size: 0.65rem;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--purple);
+        }
+
+        .chat-log {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+        }
+
+        .message {
+            display: flex;
+            gap: 0.85rem;
+            animation: msg-in 0.3s ease both;
+        }
+        @keyframes msg-in {
+            from { opacity: 0; transform: translateY(8px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        .message.user { flex-direction: row-reverse; }
+
+        .avatar {
+            width: 32px; height: 32px;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.65rem;
+            font-weight: 700;
+            font-family: 'JetBrains Mono', monospace;
+            flex-shrink: 0;
+        }
+        .message.user .avatar {
+            background: linear-gradient(135deg, rgba(191,127,255,0.3), rgba(0,229,255,0.2));
+            border: 1px solid rgba(191,127,255,0.4);
+            color: var(--purple);
+        }
+        .message.model .avatar {
+            background: linear-gradient(135deg, rgba(0,229,255,0.2), rgba(0,229,160,0.2));
+            border: 1px solid rgba(0,229,255,0.4);
+            color: var(--cyan);
+        }
+
+        .message-content { max-width: 75%; }
+        .message.user .message-content { align-items: flex-end; }
+        .message-sender {
+            font-size: 0.65rem;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--muted);
+            margin-bottom: 0.35rem;
+        }
+        .message.user .message-sender { text-align: right; }
+        .message-bubble {
+            background: var(--panel2);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 0.85rem 1.1rem;
+            font-size: 0.85rem;
+            line-height: 1.6;
+            color: var(--text);
+        }
+        .message.user .message-bubble {
+            background: rgba(191,127,255,0.08);
+            border-color: rgba(191,127,255,0.2);
+        }
+        .message.model .message-bubble {
+            border-color: rgba(0,229,255,0.12);
+        }
+
+        .loading-dots { display: flex; gap: 6px; padding: 4px 0; }
+        .dot {
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            background: var(--cyan);
+            animation: bounce 1.2s ease-in-out infinite;
+        }
+        .dot:nth-child(2) { animation-delay: 0.15s; }
+        .dot:nth-child(3) { animation-delay: 0.30s; }
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0.7); opacity: 0.4; }
+            40% { transform: scale(1); opacity: 1; }
+        }
+
+        .chat-input-area {
+            flex-shrink: 0;
+            padding: 1rem 1.5rem;
+            border-top: 1px solid var(--border);
+            display: flex;
+            gap: 0.75rem;
+            background: var(--bg2);
+        }
+        .chat-input {
+            flex: 1;
+            background: var(--panel);
+            border: 1px solid var(--border2);
+            border-radius: 12px;
+            padding: 0.75rem 1.1rem;
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.88rem;
+            color: var(--text);
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .chat-input:focus {
+            border-color: var(--cyan);
+            box-shadow: 0 0 16px rgba(0,229,255,0.1);
+        }
+        .chat-input::placeholder { color: var(--muted); }
+        .chat-send-btn {
+            background: linear-gradient(135deg, var(--cyan), var(--purple));
+            border: none;
+            border-radius: 12px;
+            width: 44px; height: 44px;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+        .chat-send-btn:hover { transform: scale(1.08); box-shadow: 0 0 20px rgba(0,229,255,0.4); }
+        .chat-send-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+        .chat-send-btn svg { width: 18px; height: 18px; fill: #fff; }
+
+        /* ============ RIGHT PANEL ============ */
+        .right-panel {
+            background: var(--bg2);
+            border-left: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .tabs {
+            flex-shrink: 0;
+            display: flex;
+            border-bottom: 1px solid var(--border);
+        }
+        .tab-btn {
+            flex: 1;
+            padding: 0.75rem 0.5rem;
+            background: none;
+            border: none;
+            font-size: 0.7rem;
+            font-family: 'JetBrains Mono', monospace;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--muted);
+            cursor: pointer;
+            transition: color 0.2s, border-bottom 0.2s;
+            border-bottom: 2px solid transparent;
+        }
+        .tab-btn.active {
+            color: var(--cyan);
+            border-bottom-color: var(--cyan);
+        }
+
+        .tab-content { display: none; flex: 1; overflow-y: auto; padding: 1rem; }
+        .tab-content.active { display: flex; flex-direction: column; gap: 1rem; }
+
+        /* Metric cards */
+        .metric-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 0.5rem;
+        }
+        .metric-card {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 0.6rem 0.75rem;
+            transition: border-color 0.2s;
+        }
+        .metric-card-label {
+            font-size: 0.58rem;
+            font-family: 'JetBrains Mono', monospace;
+            text-transform: uppercase;
+            color: var(--muted);
+            letter-spacing: 0.08em;
+        }
+        .metric-card-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--cyan);
+            margin: 0.15rem 0 0.1rem;
+            line-height: 1;
+        }
+        .metric-card-status {
+            font-size: 0.6rem;
+            color: var(--text2);
+        }
+
+        /* Quantum metrics row */
+        .quantum-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+        }
+        .quantum-card {
+            background: linear-gradient(135deg, rgba(191,127,255,0.05), rgba(0,229,255,0.04));
+            border: 1px solid rgba(191,127,255,0.15);
+            border-radius: 8px;
+            padding: 0.5rem 0.65rem;
+        }
+        .quantum-card-label {
+            font-size: 0.55rem;
+            font-family: 'JetBrains Mono', monospace;
+            text-transform: uppercase;
+            color: var(--muted);
+            letter-spacing: 0.08em;
+        }
+        .quantum-card-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.88rem;
+            font-weight: 700;
+            color: var(--purple);
+            margin-top: 0.1rem;
+        }
+        .quantum-card.catastrophe-active {
+            border-color: var(--red);
+            background: rgba(255,82,82,0.08);
+            animation: catastrophe-flash 0.4s ease;
+        }
+        @keyframes catastrophe-flash {
+            0%, 100% { border-color: var(--red); }
+            50% { border-color: var(--amber); box-shadow: 0 0 12px rgba(255,179,0,0.4); }
+        }
+
+        /* Equalizer */
+        .equalizer {
+            display: flex;
+            align-items: flex-end;
+            gap: 2px;
+            height: 48px;
+            padding: 0 2px;
+        }
+        .eq-bar-wrap {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100%;
+            justify-content: flex-end;
+        }
+        .eq-bar {
+            width: 100%;
+            border-radius: 2px 2px 0 0;
+            background: rgba(0,229,255,0.25);
+            transition: height 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.3s;
+            min-height: 3px;
+        }
+        .eq-bar.active {
+            background: linear-gradient(to top, var(--cyan), var(--purple));
+            box-shadow: 0 0 8px rgba(0,229,255,0.5);
+        }
+        .eq-label {
+            font-size: 0.5rem;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--muted);
+            margin-top: 2px;
+        }
+
+        /* Canvas containers */
+        .canvas-section {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        .canvas-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .canvas-title {
+            font-size: 0.65rem;
+            font-family: 'JetBrains Mono', monospace;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text2);
+        }
+        .canvas-badge {
+            font-size: 0.55rem;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--muted);
+        }
+        .canvas-wrapper {
+            border-radius: 10px;
+            overflow: hidden;
+            border: 1px solid var(--border2);
+            background: rgba(0,0,0,0.5);
+            position: relative;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+        }
+
+        /* Timeline */
+        .timeline { display: flex; flex-direction: column; gap: 0.5rem; }
+        .timeline-item {
+            display: flex;
+            gap: 0.6rem;
+            align-items: flex-start;
+        }
+        .timeline-dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            margin-top: 4px;
+            flex-shrink: 0;
+        }
+        .timeline-dot.elliptic { background: var(--emerald); box-shadow: 0 0 6px var(--emerald); }
+        .timeline-dot.hyperbolic { background: var(--red); box-shadow: 0 0 6px var(--red); }
+        .timeline-dot.orthogonal { background: var(--cyan); box-shadow: 0 0 6px var(--cyan); }
+        .timeline-dot.catastrophe { background: var(--amber); box-shadow: 0 0 8px var(--amber); animation: catastrophe-flash 0.5s ease 3; }
+
+        .timeline-body { flex: 1; }
+        .timeline-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 2px;
+        }
+        .timeline-word {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.78rem;
+            font-weight: 700;
+            color: var(--text);
+        }
+        .timeline-step {
+            font-size: 0.6rem;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--muted);
+        }
+        .timeline-metrics {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.35rem;
+        }
+        .tl-metric {
+            font-size: 0.6rem;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--text2);
+            background: rgba(255,255,255,0.04);
+            padding: 1px 5px;
+            border-radius: 3px;
+        }
+        .tl-metric span { color: var(--cyan); }
+        .tl-metric.cat { background: rgba(255,179,0,0.1); }
+        .tl-metric.cat span { color: var(--amber); }
+
+        /* Resonance list */
+        .resonance-list { display: flex; flex-direction: column; gap: 0.5rem; }
+        .resonance-item {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 0.6rem 0.75rem;
+            transition: border-color 0.2s;
+        }
+        .resonance-item:hover { border-color: var(--border2); }
+        .resonance-text {
+            font-size: 0.75rem;
+            line-height: 1.5;
+            color: var(--text2);
+            margin-bottom: 0.35rem;
+        }
+        .resonance-meta { display: flex; gap: 0.5rem; align-items: center; }
+        .resonance-badge {
+            background: rgba(0,229,255,0.1);
+            border: 1px solid rgba(0,229,255,0.2);
+            color: var(--cyan);
+            font-size: 0.58rem;
+            font-family: 'JetBrains Mono', monospace;
+            padding: 1px 6px;
+            border-radius: 4px;
+        }
+        .resonance-win {
+            font-size: 0.6rem;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--muted);
+        }
+
+        /* Eigenvalue bars */
+        .eigen-list { display: flex; flex-direction: column; gap: 0.35rem; }
+        .eigen-row {}
+        .eigen-label-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.6rem;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--text2);
+            margin-bottom: 2px;
+        }
+        .eigen-bar-track {
+            height: 4px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        .eigen-bar-fill {
+            height: 100%;
+            border-radius: 2px;
+            background: linear-gradient(90deg, var(--purple), var(--cyan));
+            transition: width 0.4s ease;
+        }
+
+        /* Hopf subspace norms */
+        .subspace-row {
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+        }
+        .subspace-item { display: flex; align-items: center; gap: 0.5rem; }
+        .subspace-label {
+            font-size: 0.6rem;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--text2);
+            width: 44px;
+            flex-shrink: 0;
+        }
+        .subspace-track {
+            flex: 1;
+            height: 4px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        .subspace-fill {
+            height: 100%;
+            border-radius: 2px;
+            transition: width 0.4s ease;
+        }
+        .subspace-val {
+            font-size: 0.6rem;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--text2);
+            width: 40px;
+            text-align: right;
+        }
+
+        /* Map tooltip */
+        .map-tooltip {
+            position: absolute;
+            pointer-events: none;
+            background: rgba(5,6,9,0.95);
+            border: 1px solid var(--border2);
+            border-radius: 8px;
+            padding: 0.5rem 0.75rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.65rem;
+            color: var(--text);
+            max-width: 200px;
+            z-index: 100;
+            display: none;
+            line-height: 1.5;
+        }
+
+        /* Progression tab scale grid */
+        .scale-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.4rem;
+        }
+        .scale-card {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 0.5rem 0.6rem;
+            transition: all 0.2s;
+        }
+        .scale-card.active {
+            border-color: var(--purple);
+            background: rgba(191,127,255,0.08);
+            box-shadow: 0 0 12px rgba(191,127,255,0.15);
+        }
+        .scale-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 3px;
+        }
+        .scale-card-idx {
+            font-size: 0.6rem;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--purple);
+        }
+        .scale-card-val {
+            font-size: 0.58rem;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--muted);
+        }
+        .scale-card-theme {
+            font-size: 0.62rem;
+            color: var(--text2);
+            display: block;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* QIMC info */
+        .qimc-panel {
+            background: var(--panel);
+            border: 1px solid rgba(0,229,160,0.15);
+            border-radius: 10px;
+            padding: 0.75rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+        }
+        .qimc-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.65rem;
+        }
+        .qimc-key {
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--muted);
+        }
+        .qimc-val {
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--emerald);
+            font-weight: 700;
+        }
+
+        /* Map legend */
+        .map-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.4rem;
+            margin-top: 0.35rem;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 0.58rem;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--text2);
+        }
+        .legend-dot {
+            width: 6px; height: 6px;
+            border-radius: 50%;
+        }
+
+        /* Map load button */
+        .map-load-btn {
+            background: rgba(0,229,160,0.08);
+            border: 1px solid rgba(0,229,160,0.2);
+            border-radius: 6px;
+            padding: 0.35rem 0.75rem;
+            font-size: 0.65rem;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--emerald);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .map-load-btn:hover { background: rgba(0,229,160,0.15); box-shadow: 0 0 12px rgba(0,229,160,0.2); }
+
+        /* System Metrics Strip */
+        .sys-strip {
+            flex-shrink: 0;
+            border-top: 1px solid var(--border);
+            padding-top: 0.85rem;
+        }
+        .sys-row {
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+            margin-bottom: 0.5rem;
+        }
+        .sys-item {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+        .sys-label {
+            font-size: 0.58rem;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--muted);
+            width: 28px;
+            flex-shrink: 0;
+        }
+        .sys-bar-track {
+            flex: 1;
+            height: 4px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        .sys-bar {
+            height: 100%;
+            border-radius: 2px;
+            transition: width 0.5s ease, background 0.3s;
+        }
+        .sys-val {
+            font-size: 0.58rem;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--text2);
+            width: 42px;
+            text-align: right;
+        }
+        .sys-row2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.25rem 0.5rem;
+        }
+        .sys-kv {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.58rem;
+        }
+        .sys-k {
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--muted);
+        }
+        .sys-v {
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--purple);
+            font-weight: 700;
+        }
+        /* Responsive tweaks */
+        @media (max-width: 1300px) {
+            body { grid-template-columns: 260px 1fr 360px; }
+        }
+        @media (max-width: 1100px) {
+            body { grid-template-columns: 240px 1fr 320px; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ========== LEFT SIDEBAR ========== -->
+<aside class="sidebar">
+    <div class="brand">
+        <div class="brand-title">R4 Prime Router</div>
+        <div class="brand-sub">UOR World Model · Holographic Terminal</div>
+    </div>
+
+    <div class="sidebar-section">
+        <!-- Config -->
+        <div>
+            <div class="section-label">Active Manifold Tuning (Auto)</div>
+            
+            <div class="config-row">
+                <span>Temperature (T)</span>
+                <span class="config-val" id="tempVal" style="color: var(--cyan); font-weight: bold;">0.70</span>
+            </div>
+            <div class="config-row" style="margin-bottom: 0.5rem; font-size: 0.75rem; color: #888;">
+                <span>↳ Scaled by state curvature (θd)</span>
+            </div>
+
+            <div class="config-row">
+                <span>State Decay (γ)</span>
+                <span class="config-val" id="gammaVal" style="color: var(--cyan); font-weight: bold;">0.50</span>
+            </div>
+            <div class="config-row" style="margin-bottom: 0.5rem; font-size: 0.75rem; color: #888;">
+                <span>↳ Tuned by quantum energy (κ)</span>
+            </div>
+
+            <div class="config-row">
+                <span>Max Generation Length</span>
+                <span class="config-val" id="tokensVal" style="color: var(--cyan); font-weight: bold;">25</span>
+            </div>
+            <div class="config-row" style="margin-bottom: 0.5rem; font-size: 0.75rem; color: #888;">
+                <span>↳ Tuned by manifold stratum</span>
+            </div>
+
+            <div class="config-row">
+                <span>Synthesis Engine</span>
+                <span class="config-val" id="engineVal" style="color: var(--cyan); font-weight: bold;">Geometric</span>
+            </div>
+            <div class="config-row" style="margin-bottom: 0.75rem; font-size: 0.75rem; color: #888;">
+                <span>↳ Tuned by Ollama availability</span>
+            </div>
+
+            <div class="mac-label">QIMC MAC Address</div>
+            <input type="text" class="mac-input" id="macInput" placeholder="00:1A:2B:3C:4D:5E" value="00:1a:2b:3c:4d:5e" style="margin-bottom:0.75rem;">
+        </div>
+
+        <!-- QIMC Panel -->
+        <div>
+            <div class="section-label">Active QIMC Address</div>
+            <div class="qimc-panel">
+                <div class="qimc-row"><span class="qimc-key">Prime</span><span class="qimc-val" id="qimcPrime">—</span></div>
+                <div class="qimc-row"><span class="qimc-key">Index</span><span class="qimc-val" id="qimcIndex">—</span></div>
+                <div class="qimc-row"><span class="qimc-key">UOF Hash</span><span class="qimc-val" id="uofHash" style="font-size:0.55rem; color:var(--text2);">—</span></div>
+                <div class="qimc-row"><span class="qimc-key">Monodromy</span><span class="qimc-val" id="monoLabel" style="color:var(--amber);">r^0</span></div>
+            </div>
+        </div>
+
+        <!-- Subspace Norms -->
+        <div>
+            <div class="section-label">Hopf Subspace Norms</div>
+            <div class="subspace-row">
+                <div class="subspace-item">
+                    <div class="subspace-label">Act</div>
+                    <div class="subspace-track"><div class="subspace-fill" id="normActBar" style="width:0%;background:var(--cyan);"></div></div>
+                    <div class="subspace-val" id="normActVal">0.0000</div>
+                </div>
+                <div class="subspace-item">
+                    <div class="subspace-label">Obj</div>
+                    <div class="subspace-track"><div class="subspace-fill" id="normObjBar" style="width:0%;background:var(--emerald);"></div></div>
+                    <div class="subspace-val" id="normObjVal">0.0000</div>
+                </div>
+                <div class="subspace-item">
+                    <div class="subspace-label">Temp</div>
+                    <div class="subspace-track"><div class="subspace-fill" id="normTempBar" style="width:0%;background:var(--purple);"></div></div>
+                    <div class="subspace-val" id="normTempVal">0.0000</div>
+                </div>
+                <div class="subspace-item">
+                    <div class="subspace-label">Shared</div>
+                    <div class="subspace-track"><div class="subspace-fill" id="normSharedBar" style="width:0%;background:var(--pink);"></div></div>
+                    <div class="subspace-val" id="normSharedVal">0.0000</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+        <!-- System Metrics Strip -->
+        <div class="sys-strip" id="sysStrip">
+            <div class="section-label" style="margin-bottom:0.5rem;">System Metrics</div>
+            <div class="sys-row">
+                <div class="sys-item">
+                    <div class="sys-label">CPU</div>
+                    <div class="sys-bar-track"><div class="sys-bar" id="cpuBar" style="width:0%;background:var(--emerald);"></div></div>
+                    <div class="sys-val" id="cpuVal">—%</div>
+                </div>
+                <div class="sys-item">
+                    <div class="sys-label">RAM</div>
+                    <div class="sys-bar-track"><div class="sys-bar" id="ramBar" style="width:0%;background:var(--cyan);"></div></div>
+                    <div class="sys-val" id="ramVal">—MB</div>
+                </div>
+            </div>
+            <div class="sys-row2">
+                <div class="sys-kv"><span class="sys-k">Uptime</span><span class="sys-v" id="uptimeVal">—</span></div>
+                <div class="sys-kv"><span class="sys-k">Requests</span><span class="sys-v" id="reqTotal">—</span></div>
+                <div class="sys-kv"><span class="sys-k">P50 route</span><span class="sys-v" id="routeP50">—ms</span></div>
+                <div class="sys-kv"><span class="sys-k">P95 gen</span><span class="sys-v" id="genP95">—ms</span></div>
+                <div class="sys-kv"><span class="sys-k">Ollama</span><span class="sys-v" id="ollamaStatus" style="color:var(--muted);">—</span></div>
+                <div class="sys-kv"><span class="sys-k">Corpus</span><span class="sys-v" id="corpusCount">—</span></div>
+            </div>
+        </div>
+    <!-- Bottom mini telemetry -->
+    <div class="telemetry-mini">
+        <div class="section-label">Active Routing</div>
+        <div class="telemetry-mini-row"><span>Window</span><span id="telemetryRoute">—</span></div>
+        <div class="telemetry-mini-row"><span>Stratum</span><span id="stratumVal">—</span></div>
+        <div class="telemetry-mini-row"><span>Winding ω</span><span id="windingVal">—</span></div>
+        <div class="telemetry-mini-row"><span>Cascade</span><span id="cascadeVal">—</span></div>
+    </div>
+</aside>
+
+<!-- ========== CENTER CHAT ========== -->
+<main class="main">
+    <header class="chat-header">
+        <div class="chat-header-dot"></div>
+        <div class="chat-header-title">R4 Prime Router — World Model</div>
+        <div class="chat-header-sub">GCD Prime Steering · Hopf S³ Geometry</div>
+        <div class="chat-header-route" id="chatHeaderRoute">Manifold Ready</div>
+    </header>
+
+    <section class="chat-log" id="chatLog">
+        <div id="chatLogInner" style="display:flex; flex-direction:column; gap:1.25rem; width:100%;">
+            <div class="message model">
+                <div class="avatar">R4</div>
+                <div class="message-content">
+                    <div class="message-sender">R4 Prime Router</div>
+                    <div class="message-bubble">
+                        <p>Manifold initialized. The R4 routing geometry is active — prime product invariants loaded from cache. All 16 scale windows are pre-computed and ready for geometric query routing. Load the Semantic Map to see the full corpus point-cloud, then send a query to begin UOR tracing.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <div class="chat-input-area">
+        <input type="text" class="chat-input" id="chatInput" placeholder="Route a query through the R4 manifold..." autocomplete="off">
+        <button class="chat-send-btn" id="sendBtn" title="Send Query">
+            <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+        </button>
+    </div>
+</main>
+
+<!-- ========== RIGHT PANEL ========== -->
+<aside class="right-panel">
+    <div class="tabs">
+        <button class="tab-btn active" id="tabTelemetry" onclick="switchTab('telemetry')">Telemetry</button>
+        <button class="tab-btn" id="tabHopf"      onclick="switchTab('hopf')">R4 Orbit</button>
+        <button class="tab-btn" id="tabC2"        onclick="switchTab('c2')">C² Orbit</button>
+        <button class="tab-btn" id="tabMap"       onclick="switchTab('map')">World Map</button>
+    </div>
+
+    <!-- === TELEMETRY TAB === -->
+    <div class="tab-content active" id="tabContentTelemetry">
+        <!-- Metric Cards -->
+        <div class="metric-row">
+            <div class="metric-card">
+                <div class="metric-card-label">Curvature θd</div>
+                <div class="metric-card-value" id="metricDeficit">0.0000</div>
+                <div class="metric-card-status" id="metricDeficitStatus">—</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-card-label">Energy κ</div>
+                <div class="metric-card-value" id="metricKappa">0.0000</div>
+                <div class="metric-card-status" id="metricKappaStatus">—</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-card-label">Entropy H</div>
+                <div class="metric-card-value" id="metricEntropy">0.0000</div>
+                <div class="metric-card-status" id="metricEntropyStatus">—</div>
+            </div>
+        </div>
+
+        <!-- Quantum Metrics -->
+        <div>
+            <div class="section-label">Quantum Trajectory Metrics</div>
+            <div class="quantum-grid">
+                <div class="quantum-card" id="qcardStratum">
+                    <div class="quantum-card-label">Stratum (popcount)</div>
+                    <div class="quantum-card-value" id="qStratum">—</div>
+                </div>
+                <div class="quantum-card" id="qcardCascade">
+                    <div class="quantum-card-label">Carry Cascade Len</div>
+                    <div class="quantum-card-value" id="qCascade">—</div>
+                </div>
+                <div class="quantum-card" id="qcardWinding">
+                    <div class="quantum-card-label">Winding Number ω</div>
+                    <div class="quantum-card-value" id="qWinding">—</div>
+                </div>
+                <div class="quantum-card" id="qcardCommutator">
+                    <div class="quantum-card-label">Commutator Curv</div>
+                    <div class="quantum-card-value" id="qCommutator">—</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scale Window Equalizer -->
+        <div>
+            <div class="section-label">Scale Window Energy</div>
+            <div class="equalizer" id="equalizerChart"></div>
+        </div>
+
+        <!-- Eigenvalues -->
+        <div>
+            <div class="section-label">Eigenvalue Spectrum</div>
+            <div class="eigen-list" id="eigenvalueList"></div>
+        </div>
+
+        <!-- Resonance Projections -->
+        <div>
+            <div class="section-label">Top Corpus Resonances</div>
+            <div class="resonance-list" id="resonanceList">
+                <div style="font-size:0.72rem;color:var(--muted);text-align:center;padding:1rem;">No resonances yet. Send a query first.</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- === HOPF S³ TAB === -->
+    <div class="tab-content" id="tabContentHopf">
+        <div class="canvas-section">
+            <div class="canvas-header">
+                <span class="canvas-title">R4 → ℝ³ Zeta-Orbit Projection</span>
+                <span class="canvas-badge" id="rotationIndicator">γ₁..γ₁₆ ZETA RINGS · DRAG TO ROTATE</span>
+            </div>
+            <div class="canvas-wrapper">
+                <canvas id="hopfCanvas" width="360" height="360" style="cursor:grab;"></canvas>
+            </div>
+        </div>
+
+        <!-- Trajectory Timeline -->
+        <div>
+            <div class="section-label">Token Trajectory</div>
+            <div id="trajectoryContainer" style="max-height:300px;overflow-y:auto;">
+                <div class="timeline" id="trajectoryTimeline">
+                    <div style="font-size:0.72rem;color:var(--muted);text-align:center;padding:1rem;">No trajectory decoded yet.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- === C² COMPLEX ORBIT TAB === -->
+    <div class="tab-content" id="tabContentC2">
+        <div class="canvas-section">
+            <div class="canvas-header">
+                <span class="canvas-title">C² Phase Plane — z₁ · z₂ Orbits</span>
+                <span class="canvas-badge" id="c2StatusBadge">LIVE</span>
+            </div>
+            <div class="canvas-wrapper">
+                <canvas id="complexCanvas" width="360" height="260"></canvas>
+            </div>
+        </div>
+
+        <!-- Complex plane legend -->
+        <div>
+            <div class="section-label">Complex Coordinate Legend</div>
+            <div style="font-size:0.68rem;color:var(--text2);line-height:1.7;">
+                <div>• <span style="color:var(--cyan)">z₁</span> = ρ₁ · e<sup>iθ₁</sup> — Acts as quaternion real part rotation</div>
+                <div>• <span style="color:var(--purple)">z₂</span> = ρ₂ · e<sup>iθ₂</sup> — Acts as quaternion imaginary rotation</div>
+                <div>• <span style="color:var(--emerald)">χ</span> angle separates Hopf fiber from base</div>
+                <div>• Trail color = accumulated Hopf phase δ</div>
+            </div>
+        </div>
+
+        <!-- C² stats -->
+        <div class="quantum-grid">
+            <div class="quantum-card">
+                <div class="quantum-card-label">ρ₁ (act norm)</div>
+                <div class="quantum-card-value" id="c2rho1">—</div>
+            </div>
+            <div class="quantum-card">
+                <div class="quantum-card-label">ρ₂ (obj norm)</div>
+                <div class="quantum-card-value" id="c2rho2">—</div>
+            </div>
+            <div class="quantum-card">
+                <div class="quantum-card-label">χ angle</div>
+                <div class="quantum-card-value" id="c2chi">—</div>
+            </div>
+            <div class="quantum-card">
+                <div class="quantum-card-label">δ phase</div>
+                <div class="quantum-card-value" id="c2delta">—</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- === WORLD MAP TAB === -->
+    <div class="tab-content" id="tabContentMap">
+        <div class="canvas-section">
+            <div class="canvas-header">
+                <span class="canvas-title">Semantic Corpus Map</span>
+                <button class="map-load-btn" id="mapLoadBtn" onclick="loadSemanticMap()">↺ Reload Map</button>
+            </div>
+            <div class="canvas-wrapper" style="position:relative;">
+                <canvas id="semanticMapCanvas" width="360" height="300"></canvas>
+                <div class="map-tooltip" id="mapTooltip"></div>
+            </div>
+        </div>
+
+        <!-- Map legend -->
+        <div>
+            <div class="section-label">Window Color Legend</div>
+            <div class="map-legend" id="mapLegend"></div>
+        </div>
+
+        <!-- Map stats -->
+        <div class="quantum-grid">
+            <div class="quantum-card">
+                <div class="quantum-card-label">Total Points</div>
+                <div class="quantum-card-value" id="mapTotalPts">—</div>
+            </div>
+            <div class="quantum-card">
+                <div class="quantum-card-label">Active Window</div>
+                <div class="quantum-card-value" id="mapActiveWin">—</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- === PROGRESSION TAB (hidden but part of flow) ===  -->
+</aside>
+
+<script>
+// =====================================================
+// DOM References
+// =====================================================
+const chatLog     = document.getElementById("chatLog");
+const chatLogInner= document.getElementById("chatLogInner");
+const chatInput   = document.getElementById("chatInput");
+const sendBtn     = document.getElementById("sendBtn");
+
+const tempVal     = document.getElementById("tempVal");
+const tokensVal   = document.getElementById("tokensVal");
+const gammaVal    = document.getElementById("gammaVal");
+const engineVal   = document.getElementById("engineVal");
+
+const kbTextarea  = document.getElementById("kbTextarea");
+const indexBtn    = document.getElementById("indexBtn");
+const indexStatus = document.getElementById("indexStatus");
+
+// =====================================================
+// App State
+// =====================================================
+let modelTemperature = 0.7;
+let modelMaxTokens   = 25;
+let modelGamma       = 0.50;
+let modelEngine      = "geometric";
+window.currentTrajectory = [];
+let conversationTrajectory = [];
+let semanticMapPoints = [];
+let activeWindowIndex = null;
+let c2History = [];
+
+const WIN_COLORS = [
+    '#00e5ff','#00c8ff','#00aaff','#2a88ff',
+    '#5566ff','#7744ff','#9933ff','#bf7fff',
+    '#e060ff','#ff4db8','#ff5252','#ff7722',
+    '#ffb300','#d4e000','#00e5a0','#00ffc8'
+];
+
+const WINDOW_THEMES = {
+    1:"Origins",2:"Duality",3:"Temporal",4:"Boundaries",
+    5:"Quint Forces",6:"Harmonics",7:"Critical Paths",8:"Octave",
+    9:"Convergence",10:"Curvature",11:"Relativistic",12:"Hyperbolic",
+    13:"Zeta Horizon",14:"High-Freq",15:"Entropic",16:"Dissolution"
+};
+
+// =====================================================
+// Tab Switching
+// =====================================================
+window.switchTab = function(tab) {
+    ['telemetry','hopf','c2','map'].forEach(t => {
+        document.getElementById('tab'+t.charAt(0).toUpperCase()+t.slice(1)).classList.remove('active');
+        document.getElementById('tabContent'+t.charAt(0).toUpperCase()+t.slice(1)).classList.remove('active');
+    });
+    document.getElementById('tab'+tab.charAt(0).toUpperCase()+tab.slice(1)).classList.add('active');
+    document.getElementById('tabContent'+tab.charAt(0).toUpperCase()+tab.slice(1)).classList.add('active');
+};
+
+// =====================================================
+// Startup Background Pre-Caching
+// =====================================================
+console.log("[*] Preloading Ollama model in background on startup...");
+fetch("/api/preload", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" }
+}).then(r => r.json())
+  .then(data => {
+      console.log("[+] Initial startup preload status:", data);
+      if (engineVal) {
+          if (data.success) {
+              engineVal.textContent = "Transformer (Gemma 4)";
+              engineVal.style.color = "var(--green)";
+          } else {
+              engineVal.textContent = "Pure Geometric";
+              engineVal.style.color = "var(--cyan)";
+          }
+      }
+  })
+  .catch(err => {
+      console.error("[-] Startup preload error:", err);
+      if (engineVal) {
+          engineVal.textContent = "Pure Geometric";
+          engineVal.style.color = "var(--cyan)";
+      }
+  });
+
+// =====================================================
+// Build Static UI Elements
+// =====================================================
+// Equalizer bars
+const eqChart = document.getElementById("equalizerChart");
+for (let i = 1; i <= 16; i++) {
+    const w = document.createElement("div"); w.className = "eq-bar-wrap";
+    const b = document.createElement("div"); b.className = "eq-bar"; b.id = `bar-${i}`;
+    b.style.height = "3px";
+    const l = document.createElement("div"); l.className = "eq-label"; l.textContent = i;
+    w.appendChild(b); w.appendChild(l);
+    eqChart.appendChild(w);
+}
+
+// Eigenvalue bars
+const evalList = document.getElementById("eigenvalueList");
+for (let i = 0; i < 8; i++) {
+    const row = document.createElement("div"); row.className = "eigen-row";
+    const lr  = document.createElement("div"); lr.className = "eigen-label-row";
+    lr.innerHTML = `<span>λ${i+1}</span><span id="eval-val-${i}">0.0000</span>`;
+    const track = document.createElement("div"); track.className = "eigen-bar-track";
+    const fill  = document.createElement("div"); fill.className = "eigen-bar-fill";
+    fill.id = `eval-bar-${i}`; fill.style.width = "0%";
+    track.appendChild(fill); row.appendChild(lr); row.appendChild(track);
+    evalList.appendChild(row);
+}
+
+// Map legend
+const mapLegend = document.getElementById("mapLegend");
+for (let i = 0; i < 16; i++) {
+    const item = document.createElement("div"); item.className = "legend-item";
+    const dot = document.createElement("div"); dot.className = "legend-dot";
+    dot.style.background = WIN_COLORS[i];
+    const label = document.createElement("span"); label.textContent = `W${i+1}`;
+    item.appendChild(dot); item.appendChild(label);
+    mapLegend.appendChild(item);
+}
+
+// =====================================================
+// Semantic Map Loading & Rendering
+// =====================================================
+window.loadSemanticMap = async function() {
+    const btn = document.getElementById("mapLoadBtn");
+    btn.textContent = "Loading...";
+    btn.disabled = true;
+    try {
+        const resp = await fetch("/api/map");
+        const data = await resp.json();
+        semanticMapPoints = data.points || [];
+        
+        // Pre-compute 3D stereographic projection coordinates from v_4d
+        semanticMapPoints.forEach(p => {
+            const v4 = p.v_4d || [0,0,0,0];
+            const w = v4[0], x = v4[1], y = v4[2], z = v4[3];
+            const denom = Math.max(1.0 - w, 1e-6);
+            p.r4X = x / denom;
+            p.r4Y = y / denom;
+            p.r4Z = z / denom;
+        });
+        
+        document.getElementById("mapTotalPts").textContent = semanticMapPoints.length.toLocaleString();
+        renderSemanticMap();
+        btn.textContent = `✓ ${semanticMapPoints.length} pts`;
+    } catch(e) {
+        btn.textContent = "Error";
+        console.error(e);
+    } finally {
+        btn.disabled = false;
+    }
+};
+
+function renderSemanticMap(highlightWin = null, activePath = [], topResonance = []) {
+    const canvas = document.getElementById("semanticMapCanvas");
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    const W = canvas.width, H = canvas.height;
+    ctx.clearRect(0, 0, W, H);
+
+    if (!semanticMapPoints.length) {
+        ctx.fillStyle = "rgba(255,255,255,0.08)";
+        ctx.font = "12px 'JetBrains Mono', monospace";
+        ctx.textAlign = "center";
+        ctx.fillText("Click 'Load Map' to fetch the corpus point-cloud", W/2, H/2);
+        return;
+    }
+
+    // Find data bounds
+    let minU = Infinity, maxU = -Infinity, minV = Infinity, maxV = -Infinity;
+    semanticMapPoints.forEach(p => {
+        minU = Math.min(minU, p.u); maxU = Math.max(maxU, p.u);
+        minV = Math.min(minV, p.v); maxV = Math.max(maxV, p.v);
+    });
+    const pad = 24;
+    const scaleU = (W - pad*2) / (maxU - minU + 1e-9);
+    const scaleV = (H - pad*2) / (maxV - minV + 1e-9);
+
+    function toCanvas(u, v) {
+        return [
+            pad + (u - minU) * scaleU,
+            H - pad - (v - minV) * scaleV
+        ];
+    }
+
+    // Draw background connections (thin trails)
+    const islandMap = {};
+    semanticMapPoints.forEach(p => {
+        if (!islandMap[p.window_index]) islandMap[p.window_index] = [];
+        islandMap[p.window_index].push(p);
+    });
+
+    ctx.lineWidth = 0.3;
+    ctx.globalAlpha = 0.06;
+    Object.entries(islandMap).forEach(([wIdx, pts]) => {
+        const color = WIN_COLORS[(parseInt(wIdx)-1) % 16];
+        ctx.strokeStyle = color;
+        ctx.beginPath();
+        pts.forEach((p, i) => {
+            const [cx, cy] = toCanvas(p.u, p.v);
+            if (i === 0) ctx.moveTo(cx, cy); else ctx.lineTo(cx, cy);
+        });
+        ctx.stroke();
+    });
+    ctx.globalAlpha = 1.0;
+
+    // Fast Set-based lookup for path and resonance highlighting (removes O(N * M) nested loops)
+    const pathSentences = new Set(activePath.map(ap => (ap.sentence || "").slice(0, 80).toLowerCase()).filter(s => s.length > 0));
+    const resonantSentences = new Set(topResonance.map(tr => (tr.sentence || "").slice(0, 80).toLowerCase()).filter(s => s.length > 0));
+
+    // Group normal points by window color to batch draw calls (immense speedup)
+    const groups = {};
+    for (let i = 1; i <= 16; i++) {
+        groups[i] = [];
+    }
+    const specialPoints = [];
+
+    semanticMapPoints.forEach(p => {
+        const pSent = (p.sentence || "").slice(0, 80).toLowerCase();
+        const inPath = pathSentences.has(pSent);
+        const isResonant = resonantSentences.has(pSent);
+        const isActive = p.window_index === highlightWin;
+
+        if (inPath || isResonant || isActive) {
+            specialPoints.push({ p, inPath, isResonant, isActive });
+        } else {
+            groups[p.window_index].push(p);
+        }
+    });
+
+    // Draw normal background points as fast 2x2 squares
+    Object.entries(groups).forEach(([wIdx, pts]) => {
+        const color = WIN_COLORS[(parseInt(wIdx)-1) % 16];
+        ctx.fillStyle = hexToRgba(color, 0.25);
+        pts.forEach(p => {
+            const [cx, cy] = toCanvas(p.u, p.v);
+            ctx.fillRect(cx - 1, cy - 1, 2, 2);
+        });
+    });
+
+    // Draw special highlighted points with nice glowing arcs
+    specialPoints.forEach(({ p, inPath, isResonant, isActive }) => {
+        const [cx, cy] = toCanvas(p.u, p.v);
+        const color = WIN_COLORS[(p.window_index-1) % 16];
+        const r = isResonant ? 6.5 : (inPath ? 5.0 : 3.5);
+        const alpha = isResonant ? 1.0 : (inPath ? 0.9 : 0.7);
+
+        ctx.shadowColor = isResonant ? "#ffb300" : (inPath ? "#00e5ff" : color);
+        ctx.shadowBlur = isResonant ? 14 : (inPath ? 10 : 5);
+
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, 2*Math.PI);
+
+        let fillStyle = color;
+        if (!color.includes('rgba')) {
+            fillStyle = hexToRgba(color, alpha);
+        }
+        if (isResonant) {
+            fillStyle = "rgba(255, 179, 0, 0.95)";
+        }
+        ctx.fillStyle = fillStyle;
+        ctx.fill();
+
+        if (isResonant || inPath) {
+            ctx.beginPath();
+            ctx.arc(cx, cy, 1.5, 0, 2*Math.PI);
+            ctx.fillStyle = "#ffffff";
+            ctx.fill();
+        }
+        ctx.shadowBlur = 0;
+    });
+
+    // Draw active path connecting lines
+    if (activePath.length > 1) {
+        ctx.lineWidth = 1.5;
+        ctx.globalAlpha = 0.7;
+        for (let i = 0; i < activePath.length - 1; i++) {
+            const p1 = activePath[i], p2 = activePath[i+1];
+            const [x1,y1] = toCanvas(p1.u, p1.v);
+            const [x2,y2] = toCanvas(p2.u, p2.v);
+            const grad = ctx.createLinearGradient(x1,y1,x2,y2);
+            grad.addColorStop(0, WIN_COLORS[(p1.window_index-1)%16]);
+            grad.addColorStop(1, WIN_COLORS[(p2.window_index-1)%16]);
+            ctx.strokeStyle = grad;
+            ctx.beginPath();
+            ctx.moveTo(x1,y1); ctx.lineTo(x2,y2);
+            ctx.stroke();
+        }
+        ctx.globalAlpha = 1.0;
+    }
+}
+
+function hexToRgba(hex, alpha) {
+    const r = parseInt(hex.slice(1,3),16);
+    const g = parseInt(hex.slice(3,5),16);
+    const b = parseInt(hex.slice(5,7),16);
+    return `rgba(${r},${g},${b},${alpha})`;
+}
+
+// Hover tooltips on the semantic map
+const semanticCanvas = document.getElementById("semanticMapCanvas");
+const mapTooltip = document.getElementById("mapTooltip");
+semanticCanvas.addEventListener("mousemove", e => {
+    if (!semanticMapPoints.length) return;
+    const rect = semanticCanvas.getBoundingClientRect();
+    const mx = (e.clientX - rect.left) * (semanticCanvas.width / rect.width);
+    const my = (e.clientY - rect.top)  * (semanticCanvas.height / rect.height);
+
+    let minU = Infinity, maxU = -Infinity, minV = Infinity, maxV = -Infinity;
+    semanticMapPoints.forEach(p => {
+        minU = Math.min(minU, p.u); maxU = Math.max(maxU, p.u);
+        minV = Math.min(minV, p.v); maxV = Math.max(maxV, p.v);
+    });
+    const pad = 24;
+    const W = semanticCanvas.width, H = semanticCanvas.height;
+    const scaleU = (W - pad*2) / (maxU - minU + 1e-9);
+    const scaleV = (H - pad*2) / (maxV - minV + 1e-9);
+
+    let closest = null, closestD = Infinity;
+    semanticMapPoints.forEach(p => {
+        const cx = pad + (p.u - minU) * scaleU;
+        const cy = H - pad - (p.v - minV) * scaleV;
+        const d = Math.hypot(mx - cx, my - cy);
+        if (d < closestD && d < 14) { closestD = d; closest = p; }
+    });
+
+    if (closest) {
+        mapTooltip.style.display = "block";
+        mapTooltip.style.left = `${e.offsetX + 12}px`;
+        mapTooltip.style.top  = `${e.offsetY - 10}px`;
+        mapTooltip.innerHTML = `
+            <div style="color:${WIN_COLORS[(closest.window_index-1)%16]};margin-bottom:4px;">Window ${closest.window_index}</div>
+            <div style="color:var(--text);max-width:190px;word-break:break-word;">${closest.sentence}</div>
+            <div style="margin-top:4px;color:var(--muted);">κ: ${closest.kappa.toFixed(4)}</div>
+        `;
+    } else {
+        mapTooltip.style.display = "none";
+    }
+});
+semanticCanvas.addEventListener("mouseleave", () => { mapTooltip.style.display = "none"; });
+
+// =====================================================
+// C² Complex Orbit Canvas
+// =====================================================
+const complexCanvas = document.getElementById("complexCanvas");
+const c2Ctx = complexCanvas ? complexCanvas.getContext("2d") : null;
+const C2_W = complexCanvas ? complexCanvas.width : 360;
+const C2_H = complexCanvas ? complexCanvas.height : 260;
+const C2_MAX_TRAIL = 120;
+
+function drawComplexCanvas() {
+    if (!c2Ctx) return;
+    requestAnimationFrame(drawComplexCanvas);
+
+    // Fade
+    c2Ctx.fillStyle = "rgba(0,0,0,0.12)";
+    c2Ctx.fillRect(0, 0, C2_W, C2_H);
+
+    // Draw axes
+    c2Ctx.strokeStyle = "rgba(255,255,255,0.05)";
+    c2Ctx.lineWidth = 1;
+    c2Ctx.beginPath();
+    c2Ctx.moveTo(C2_W/2, 0); c2Ctx.lineTo(C2_W/2, C2_H);
+    c2Ctx.moveTo(0, C2_H/2); c2Ctx.lineTo(C2_W, C2_H/2);
+    c2Ctx.stroke();
+
+    // Draw axis labels
+    c2Ctx.font = "9px 'JetBrains Mono',monospace";
+    c2Ctx.textAlign = "left";
+    c2Ctx.fillStyle = "rgba(255,255,255,0.15)";
+    c2Ctx.fillText("Re(z)", C2_W - 32, C2_H/2 - 4);
+    c2Ctx.textAlign = "center";
+    c2Ctx.fillText("Im(z)", C2_W/2 + 12, 12);
+
+    if (c2History.length < 2) return;
+
+    const R = Math.min(C2_W, C2_H) * 0.42;
+
+    // Draw z1 trail (cyan)
+    c2Ctx.lineWidth = 1.5;
+    for (let i = 1; i < c2History.length; i++) {
+        const h1 = c2History[i-1], h2 = c2History[i];
+        const alpha = (i / c2History.length) * 0.8;
+        c2Ctx.strokeStyle = `rgba(0,229,255,${alpha})`;
+        c2Ctx.beginPath();
+        c2Ctx.moveTo(C2_W/2 + h1.x1 * R, C2_H/2 - h1.y1 * R);
+        c2Ctx.lineTo(C2_W/2 + h2.x1 * R, C2_H/2 - h2.y1 * R);
+        c2Ctx.stroke();
+    }
+
+    // Draw z2 trail (purple)
+    for (let i = 1; i < c2History.length; i++) {
+        const h1 = c2History[i-1], h2 = c2History[i];
+        const alpha = (i / c2History.length) * 0.8;
+        c2Ctx.strokeStyle = `rgba(191,127,255,${alpha})`;
+        c2Ctx.beginPath();
+        c2Ctx.moveTo(C2_W/2 + h1.x2 * R, C2_H/2 - h1.y2 * R);
+        c2Ctx.lineTo(C2_W/2 + h2.x2 * R, C2_H/2 - h2.y2 * R);
+        c2Ctx.stroke();
+    }
+
+    // Draw current z1 point
+    if (c2History.length > 0) {
+        const h = c2History[c2History.length - 1];
+        const x1s = C2_W/2 + h.x1 * R;
+        const y1s = C2_H/2 - h.y1 * R;
+        const x2s = C2_W/2 + h.x2 * R;
+        const y2s = C2_H/2 - h.y2 * R;
+
+        c2Ctx.shadowColor = "#00e5ff";
+        c2Ctx.shadowBlur = 10;
+        c2Ctx.beginPath(); c2Ctx.arc(x1s, y1s, 4, 0, 2*Math.PI);
+        c2Ctx.fillStyle = "#00e5ff"; c2Ctx.fill();
+
+        c2Ctx.shadowColor = "#bf7fff";
+        c2Ctx.beginPath(); c2Ctx.arc(x2s, y2s, 4, 0, 2*Math.PI);
+        c2Ctx.fillStyle = "#bf7fff"; c2Ctx.fill();
+
+        // Draw Lissajous connection
+        c2Ctx.shadowBlur = 0;
+        c2Ctx.strokeStyle = "rgba(0,229,160,0.3)";
+        c2Ctx.lineWidth = 0.8;
+        c2Ctx.beginPath(); c2Ctx.moveTo(x1s, y1s); c2Ctx.lineTo(x2s, y2s);
+        c2Ctx.stroke();
+        c2Ctx.shadowBlur = 0;
+    }
+}
+
+// Auto-advance C² phase if no trajectory yet
+let c2AutoPhase = 0;
+function advanceC2Auto() {
+    if (c2History.length === 0 || window.currentTrajectory.length === 0) {
+        c2AutoPhase += 0.02;
+        const rho1 = 0.6, rho2 = 0.4;
+        c2History.push({
+            x1: rho1 * Math.cos(c2AutoPhase * 1.0),
+            y1: rho1 * Math.sin(c2AutoPhase * 1.0),
+            x2: rho2 * Math.cos(c2AutoPhase * 1.618),
+            y2: rho2 * Math.sin(c2AutoPhase * 1.618),
+        });
+        if (c2History.length > C2_MAX_TRAIL) c2History.shift();
+    }
+    setTimeout(advanceC2Auto, 60);
+}
+
+// =====================================================
+// Hopf S³ Canvas
+// =====================================================
+const hopfCanvas = document.getElementById("hopfCanvas");
+let rotX = -0.3, rotY = 0.5;
+let isDragging = false, startMX = 0, startMY = 0, baseRX = -0.3, baseRY = 0.5;
+
+if (hopfCanvas) {
+    hopfCanvas.addEventListener("mousedown", e => {
+        isDragging = true; startMX = e.clientX; startMY = e.clientY;
+        baseRX = rotX; baseRY = rotY; hopfCanvas.style.cursor = "grabbing";
+    });
+    window.addEventListener("mousemove", e => {
+        if (!isDragging) return;
+        rotY = baseRY + (e.clientX - startMX) * 0.01;
+        rotX = baseRX + (e.clientY - startMY) * 0.01;
+    });
+    window.addEventListener("mouseup", () => {
+        if (isDragging) { isDragging = false; hopfCanvas.style.cursor = "grab"; }
+    });
+    hopfCanvas.addEventListener("touchstart", e => {
+        if (e.touches.length !== 1) return;
+        isDragging = true;
+        startMX = e.touches[0].clientX; startMY = e.touches[0].clientY;
+        baseRX = rotX; baseRY = rotY;
+    }, {passive:true});
+    window.addEventListener("touchmove", e => {
+        if (!isDragging || e.touches.length !== 1) return;
+        rotY = baseRY + (e.touches[0].clientX - startMX) * 0.01;
+        rotX = baseRX + (e.touches[0].clientY - startMY) * 0.01;
+    }, {passive:true});
+    window.addEventListener("touchend", () => { isDragging = false; });
+}
+
+function drawHopfCanvas() {
+    if (!hopfCanvas) return;
+    requestAnimationFrame(drawHopfCanvas);
+    if (hopfCanvas.offsetParent === null) return;
+    drawR4ZetaOrbit();
+}
+
+// Zeta zeros cached from server
+let ZETA_ZEROS = [14.13,21.02,25.01,30.42,32.93,37.59,40.92,43.33,48.01,49.77,52.97,56.45,59.35,60.83,65.11,67.08];
+(async function fetchZetaZeros() {
+    try {
+        const r = await fetch("/api/zeros");
+        const d = await r.json();
+        if (d.zeros && d.zeros.length > 0) ZETA_ZEROS = d.zeros.slice(0, 16);
+    } catch(e) {}
+})();
+
+function drawR4ZetaOrbit() {
+    const ctx = hopfCanvas.getContext("2d");
+    const W = hopfCanvas.width, H = hopfCanvas.height;
+    ctx.clearRect(0, 0, W, H);
+
+    const cx = W / 2, cy = H / 2;
+    const maxR = Math.min(W, H) * 0.44;
+    const maxZeta = ZETA_ZEROS[ZETA_ZEROS.length - 1] || 70;
+
+    if (!isDragging) rotY += 0.004;
+
+    // Draw zeta-zero orbital rings (γ₁..γ₁₆)
+    ZETA_ZEROS.forEach((gamma, i) => {
+        const r = (gamma / maxZeta) * maxR;
+        const color = WIN_COLORS[i % 16];
+        const isActive = (activeWindowIndex === i + 1);
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, 2 * Math.PI);
+        ctx.strokeStyle = isActive
+            ? color
+            : color.replace(')', ',0.18)').replace('#', 'rgba(').replace('rgba(#', 'rgba(');
+        // Use a simpler approach for hex colors
+        const hexR = parseInt(color.slice(1,3),16), hexG = parseInt(color.slice(3,5),16), hexB = parseInt(color.slice(5,7),16);
+        ctx.strokeStyle = isActive
+            ? `rgba(${hexR},${hexG},${hexB},0.85)`
+            : `rgba(${hexR},${hexG},${hexB},0.18)`;
+        ctx.lineWidth = isActive ? 1.5 : 0.7;
+        if (isActive) { ctx.shadowColor = color; ctx.shadowBlur = 8; }
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+
+        // Label every 4th ring
+        if (i % 4 === 0) {
+            ctx.fillStyle = `rgba(${hexR},${hexG},${hexB},0.6)`;
+            ctx.font = "8px 'JetBrains Mono',monospace";
+            ctx.textAlign = "left";
+            ctx.fillText(`γ${i+1}=${gamma.toFixed(1)}`, cx + r + 3, cy - 3);
+        }
+    });
+
+    // Draw 3D corpus point cloud background mapped onto the 4D hypersphere (3D Hopf projection)
+    if (semanticMapPoints && semanticMapPoints.length > 0) {
+        const step = Math.max(1, Math.floor(semanticMapPoints.length / 1200)); // subsample to 1,200 points for hyper-smooth performance
+        
+        // Group points by color for batched rendering
+        const groups = {};
+        for (let i = 1; i <= 16; i++) {
+            groups[i] = [];
+        }
+        
+        for (let i = 0; i < semanticMapPoints.length; i += step) {
+            const p = semanticMapPoints[i];
+            if (p.r4X !== undefined) {
+                groups[p.window_index].push(p);
+            }
+        }
+        
+        ctx.globalAlpha = 0.12; // Slightly more visible for a beautiful glowing nebula
+        Object.entries(groups).forEach(([wIdx, pts]) => {
+            ctx.fillStyle = WIN_COLORS[(parseInt(wIdx)-1) % 16];
+            pts.forEach(p => {
+                const px2d = cx + (p.r4X * Math.cos(rotY) - p.r4Z * Math.sin(rotY)) * maxR * 0.5;
+                const py2d = cy - (p.r4Y + (p.r4X * Math.sin(rotY) + p.r4Z * Math.cos(rotY)) * 0.3) * maxR * 0.5;
+                ctx.fillRect(px2d - 0.7, py2d - 0.7, 1.4, 1.4); // extremely fast pixel draw
+            });
+        });
+        ctx.globalAlpha = 1.0;
+    }
+
+    // Draw axes (R4 stereographic projection axes)
+    ctx.strokeStyle = "rgba(255,255,255,0.06)";
+    ctx.lineWidth = 0.8;
+    ctx.beginPath(); ctx.moveTo(cx - maxR, cy); ctx.lineTo(cx + maxR, cy); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx, cy - maxR); ctx.lineTo(cx, cy + maxR); ctx.stroke();
+    // Rotated axes (w-z plane)
+    const ax = Math.cos(rotY) * maxR, ay = Math.sin(rotY) * maxR;
+    ctx.strokeStyle = "rgba(255,255,255,0.04)";
+    ctx.beginPath(); ctx.moveTo(cx - ax, cy - ay); ctx.lineTo(cx + ax, cy + ay); ctx.stroke();
+
+    // Draw trajectory through R4 stereographic projection
+    const traj = window.currentTrajectory || [];
+    if (traj.length === 0) {
+        // Idle animation: pulsing dot at center with rotating spoke
+        const t = Date.now() / 1000;
+        ctx.strokeStyle = "rgba(0,229,255,0.3)";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(cx + Math.cos(t * 0.8) * maxR * 0.3, cy + Math.sin(t * 0.8) * maxR * 0.3);
+        ctx.stroke();
+        ctx.beginPath(); ctx.arc(cx, cy, 4, 0, 2 * Math.PI);
+        ctx.fillStyle = "#00e5ff"; ctx.fill();
+        return;
+    }
+
+    // Plot trajectory using r4_projection (X, Y, Z → project to 2D with rotY)
+    let nodes = [];
+    traj.forEach((step, i) => {
+        const r4 = step.r4_projection || {};
+        const X = r4.X || 0, Y = r4.Y || 0, Z = r4.Z || 0;
+        // Project 3D (X,Y,Z) → 2D screen using current rotY
+        const px2d = cx + (X * Math.cos(rotY) - Z * Math.sin(rotY)) * maxR * 0.5;
+        const py2d = cy - (Y + (X * Math.sin(rotY) + Z * Math.cos(rotY)) * 0.3) * maxR * 0.5;
+        // Map to zeta ring radius
+        const winR = (((step.window_index - 1) / 15) * maxR);
+        const color = WIN_COLORS[(step.window_index - 1) % 16];
+        const q = step.quantum || {};
+        nodes.push({
+            px: px2d, py: py2d, winR, color,
+            word: step.word, step: step.step,
+            window_index: step.window_index,
+            catastrophe: q.catastrophe || false,
+            winding: q.winding_number || 0
+        });
+    });
+
+    // Draw connecting path
+    ctx.lineWidth = 1.5;
+    for (let i = 0; i < nodes.length - 1; i++) {
+        const n1 = nodes[i], n2 = nodes[i+1];
+        const grad = ctx.createLinearGradient(n1.px, n1.py, n2.px, n2.py);
+        grad.addColorStop(0, n1.color + "aa");
+        grad.addColorStop(1, n2.color + "aa");
+        ctx.strokeStyle = grad;
+        ctx.beginPath(); ctx.moveTo(n1.px, n1.py); ctx.lineTo(n2.px, n2.py); ctx.stroke();
+    }
+
+    // Draw nodes
+    nodes.forEach(node => {
+        const isOnRing = Math.abs(node.winR - Math.hypot(node.px - cx, node.py - cy)) < 20;
+        ctx.shadowColor = node.catastrophe ? "#ffb300" : node.color;
+        ctx.shadowBlur  = node.catastrophe ? 16 : 8;
+        ctx.beginPath(); ctx.arc(node.px, node.py, node.catastrophe ? 6 : 4, 0, 2 * Math.PI);
+        ctx.fillStyle = node.catastrophe ? "#ffb300" : node.color;
+        ctx.fill();
+        // White core
+        ctx.shadowBlur = 0;
+        ctx.beginPath(); ctx.arc(node.px, node.py, 1.5, 0, 2 * Math.PI);
+        ctx.fillStyle = "#fff"; ctx.fill();
+        // Token label
+        ctx.fillStyle = "rgba(255,255,255,0.75)";
+        ctx.font = "9px 'JetBrains Mono',monospace";
+        ctx.textAlign = "center";
+        ctx.fillText(node.word, node.px, node.py - 8);
+    });
+}
+
+// =====================================================
+// Update Telemetry Panel
+// =====================================================
+function updateTelemetry(data) {
+    if (!data) return;
+    const m = data.metrics || {};
+
+    // Update auto-tuned parameters
+    if (m.auto_tuned) {
+        const auto = m.auto_tuned;
+        if (tempVal) tempVal.textContent = auto.temperature.toFixed(2);
+        if (gammaVal) gammaVal.textContent = auto.gamma.toFixed(2);
+        if (tokensVal) tokensVal.textContent = auto.max_tokens;
+        if (engineVal) {
+            if (auto.engine === "ollama") {
+                engineVal.textContent = "Transformer (Gemma 4)";
+                engineVal.style.color = "var(--green)";
+            } else {
+                engineVal.textContent = "Pure Geometric";
+                engineVal.style.color = "var(--cyan)";
+            }
+        }
+    }
+
+    // Push evolved state active projection point into conversationTrajectory
+    if (data.active_projection && data.active_projection.u !== undefined) {
+        conversationTrajectory.push({
+            u: data.active_projection.u,
+            v: data.active_projection.v,
+            v_4d: data.active_projection.v_4d,
+            window_index: m.window_index,
+            sentence: data.text
+        });
+    }
+
+    // Store trajectory globally for canvas
+    window.currentTrajectory = data.trajectory || [];
+    window._lastLLMConnected = data.llm_connected;
+
+    // Update chat header route
+    const chatRoute = document.getElementById("chatHeaderRoute");
+    if (chatRoute && m.window_index) {
+        chatRoute.textContent = `W${m.window_index} · Scale ${(m.scale_x||0).toLocaleString(undefined,{maximumFractionDigits:0})}`;
+    }
+
+    // Sidebar mini telemetry
+    document.getElementById("telemetryRoute").textContent = m.window_index ? `Window ${m.window_index}` : "—";
+    document.getElementById("mapActiveWin").textContent   = m.window_index || "—";
+
+    // QIMC + UOF
+    if (m.qimc) {
+        document.getElementById("qimcPrime").textContent = m.qimc.prime || "—";
+        document.getElementById("qimcIndex").textContent = m.qimc.index || "—";
+    }
+    if (m.uof_hash) {
+        document.getElementById("uofHash").textContent = m.uof_hash.slice(0,32) + "...";
+    }
+
+    // Hopf subspace norms
+    if (m.hopf && m.hopf.subspace_norms) {
+        const n = m.hopf.subspace_norms;
+        const L2 = Math.sqrt((n.act**2)+(n.obj**2)+(n.temp**2)+(n.shared**2)) || 1;
+        const setNorm = (id, barId, val, total) => {
+            const el = document.getElementById(id);
+            const br = document.getElementById(barId);
+            if (el) el.textContent = val.toFixed(4);
+            if (br) br.style.width = `${(val/total)*100}%`;
+        };
+        setNorm("normActVal","normActBar",n.act,L2);
+        setNorm("normObjVal","normObjBar",n.obj,L2);
+        setNorm("normTempVal","normTempBar",n.temp,L2);
+        setNorm("normSharedVal","normSharedBar",n.shared,L2);
+    }
+
+    // Main metric cards
+    const deficitEl = document.getElementById("metricDeficit");
+    const kappaEl   = document.getElementById("metricKappa");
+    const entropyEl = document.getElementById("metricEntropy");
+    if (deficitEl) deficitEl.textContent = (m.deficit_angle !== undefined) ? m.deficit_angle.toFixed(4) : "0.0000";
+    if (kappaEl)   kappaEl.textContent   = (m.kappa !== undefined)         ? m.kappa.toFixed(4)         : "0.0000";
+    if (entropyEl) entropyEl.textContent = (m.sigma_kl !== undefined)      ? m.sigma_kl.toFixed(4)      : "0.0000";
+
+    const deficitStatus = document.getElementById("metricDeficitStatus");
+    if (deficitStatus) {
+        if      (m.deficit_angle > -1.0) { deficitStatus.textContent = "Elliptic Trap"; deficitStatus.style.color = "var(--emerald)"; }
+        else if (m.deficit_angle < -1.4) { deficitStatus.textContent = "Hyperbolic";    deficitStatus.style.color = "var(--red)"; }
+        else                              { deficitStatus.textContent = "Orthogonal";    deficitStatus.style.color = "var(--cyan)"; }
+    }
+    const kappaStatus = document.getElementById("metricKappaStatus");
+    if (kappaStatus) {
+        if      (m.kappa > 0.8) { kappaStatus.textContent = "High Resonance"; kappaStatus.style.color = "var(--emerald)"; }
+        else if (m.kappa > 0.4) { kappaStatus.textContent = "Moderate Sync";  kappaStatus.style.color = "var(--cyan)"; }
+        else                    { kappaStatus.textContent = "Low Alignment";   kappaStatus.style.color = "var(--muted)"; }
+    }
+    const entropyStatus = document.getElementById("metricEntropyStatus");
+    if (entropyStatus) {
+        if      (m.sigma_kl > 0.8) { entropyStatus.textContent = "High Chaos"; entropyStatus.style.color = "var(--purple)"; }
+        else if (m.sigma_kl > 0.3) { entropyStatus.textContent = "Neutral";    entropyStatus.style.color = "var(--cyan)"; }
+        else                        { entropyStatus.textContent = "Ordered";    entropyStatus.style.color = "var(--emerald)"; }
+    }
+
+    // Quantum metrics from last trajectory step
+    const lastStep = (data.trajectory && data.trajectory.length > 0)
+        ? data.trajectory[data.trajectory.length-1]
+        : null;
+    if (lastStep && lastStep.quantum) {
+        const q = lastStep.quantum;
+        document.getElementById("qStratum").textContent    = q.stratum ?? "—";
+        document.getElementById("qCascade").textContent    = q.cascade_length ?? "—";
+        document.getElementById("qWinding").textContent    = typeof q.winding_number === "number" ? q.winding_number.toFixed(3) : "—";
+        document.getElementById("qCommutator").textContent = typeof q.commutator_curvature === "number" ? q.commutator_curvature.toFixed(4) : "—";
+        // Monodromy
+        const mono = q.monodromy || {};
+        document.getElementById("monoLabel").textContent   = mono.label || "r^0";
+        document.getElementById("stratumVal").textContent  = q.stratum ?? "—";
+        document.getElementById("windingVal").textContent  = typeof q.winding_number === "number" ? q.winding_number.toFixed(3) : "—";
+        document.getElementById("cascadeVal").textContent  = q.cascade_length ?? "—";
+
+        // Catastrophe highlight
+        if (q.catastrophe) {
+            ['qcardStratum','qcardCascade','qcardWinding','qcardCommutator'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) { el.classList.add('catastrophe-active'); setTimeout(() => el.classList.remove('catastrophe-active'), 2000); }
+            });
+        }
+    }
+
+    // Update C² orbit history from trajectory
+    if (data.trajectory && data.trajectory.length > 0) {
+        c2History = [];
+        data.trajectory.forEach(step => {
+            const h = step.hopf || {};
+            const rho1 = h.rho1 || 0, theta1 = h.theta1 || 0;
+            const rho2 = h.rho2 || 0, theta2 = h.theta2 || (h.transported_alpha || 0);
+            c2History.push({
+                x1: rho1 * Math.cos(theta1),
+                y1: rho1 * Math.sin(theta1),
+                x2: rho2 * Math.cos(theta2),
+                y2: rho2 * Math.sin(theta2),
+            });
+        });
+        // Update C² stats
+        const last = c2History[c2History.length-1];
+        if (last) {
+            const h = data.trajectory[data.trajectory.length-1].hopf || {};
+            const setC2 = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = typeof val === "number" ? val.toFixed(4) : "—"; };
+            setC2("c2rho1", h.rho1);
+            setC2("c2rho2", h.rho2);
+            setC2("c2chi",  h.chi);
+            setC2("c2delta",h.delta);
+        }
+    }
+
+    // Equalizer bars
+    const allRoutes = data.all_routes || [];
+    let maxNorm = 0.001;
+    const norms = allRoutes.map(r => {
+        const sv = r.state_vector || [];
+        const n = Math.sqrt(sv.reduce((s,x) => s + x*x, 0));
+        if (n > maxNorm) maxNorm = n;
+        return n;
+    });
+    allRoutes.forEach((r, idx) => {
+        const bar = document.getElementById(`bar-${r.window_index}`);
+        if (bar) {
+            const pct = (norms[idx] / maxNorm) * 100;
+            bar.style.height = `${Math.max(4, pct)}%`;
+            if (r.window_index === m.window_index) bar.classList.add("active");
+            else bar.classList.remove("active");
+        }
+    });
+
+    // Eigenvalues
+    const evals = data.eigenvalues || [];
+    const maxE  = evals.length > 0 ? Math.max(...evals, 0.001) : 1.0;
+    for (let i = 0; i < 8; i++) {
+        const v  = evals[i] || 0;
+        const ve = document.getElementById(`eval-val-${i}`);
+        const be = document.getElementById(`eval-bar-${i}`);
+        if (ve) ve.textContent = v.toFixed(4);
+        if (be) be.style.width = `${(v/maxE)*100}%`;
+    }
+
+    // Top resonances
+    const resList = document.getElementById("resonanceList");
+    resList.innerHTML = "";
+    const resonances = data.top_resonance || [];
+    if (resonances.length === 0) {
+        resList.innerHTML = `<div style="font-size:0.72rem;color:var(--muted);text-align:center;padding:1rem;">No resonances. Index a corpus first.</div>`;
+    } else {
+        resonances.forEach(res => {
+            const item = document.createElement("div"); item.className = "resonance-item";
+            const text = document.createElement("div"); text.className = "resonance-text";
+            text.textContent = res.sentence;
+            const meta = document.createElement("div"); meta.className = "resonance-meta";
+            const badge = document.createElement("span"); badge.className = "resonance-badge";
+            badge.textContent = `Res: ${res.relevance.toFixed(4)}`;
+            const win = document.createElement("span"); win.className = "resonance-win";
+            win.textContent = `Win ${res.window_index}`;
+            meta.appendChild(badge); meta.appendChild(win);
+            item.appendChild(text); item.appendChild(meta);
+            resList.appendChild(item);
+        });
+    }
+
+    // Trajectory timeline
+    renderTrajectoryTimeline(data.trajectory);
+
+    // Redraw semantic map with highlighted window and active path
+    if (semanticMapPoints.length > 0) {
+        renderSemanticMap(m.window_index, conversationTrajectory, data.top_resonance || []);
+    }
+}
+
+// =====================================================
+// Trajectory Timeline
+// =====================================================
+function renderTrajectoryTimeline(trajectory) {
+    const timeline = document.getElementById("trajectoryTimeline");
+    if (!timeline) return;
+    timeline.innerHTML = "";
+    if (!trajectory || trajectory.length === 0) {
+        timeline.innerHTML = `<div style="font-size:0.72rem;color:var(--muted);text-align:center;padding:1rem;">No trajectory decoded yet.</div>`;
+        return;
+    }
+    trajectory.forEach(step => {
+        const q = step.quantum || {};
+        const isElliptic   = step.deficit_angle > -1.0;
+        const isHyperbolic = step.deficit_angle < -1.4;
+        const isCatastrophe = q.catastrophe || false;
+
+        const item = document.createElement("div"); item.className = "timeline-item";
+        const dot  = document.createElement("div"); dot.className  = "timeline-dot";
+        if (isCatastrophe)      dot.classList.add("catastrophe");
+        else if (isElliptic)    dot.classList.add("elliptic");
+        else if (isHyperbolic)  dot.classList.add("hyperbolic");
+        else                    dot.classList.add("orthogonal");
+
+        const body = document.createElement("div"); body.className = "timeline-body";
+        const hdr  = document.createElement("div"); hdr.className  = "timeline-header";
+        hdr.innerHTML = `<span class="timeline-word">${step.word}</span><span class="timeline-step">Step ${step.step}</span>`;
+
+        const mrow = document.createElement("div"); mrow.className = "timeline-metrics";
+        const mkm = (label, val, isCat) => {
+            const d = document.createElement("div");
+            d.className = "tl-metric" + (isCat ? " cat" : "");
+            d.innerHTML = `${label}: <span>${val}</span>`;
+            return d;
+        };
+        mrow.appendChild(mkm("Win", step.window_index));
+        mrow.appendChild(mkm("θd",  step.deficit_angle.toFixed(3)));
+        mrow.appendChild(mkm("κ",   step.kappa.toFixed(3)));
+        if (q.stratum !== undefined)  mrow.appendChild(mkm("Stratum", q.stratum));
+        if (q.cascade_length !== undefined) mrow.appendChild(mkm("Cascade", q.cascade_length));
+        if (typeof q.winding_number === "number")  mrow.appendChild(mkm("ω", q.winding_number.toFixed(2)));
+        if (q.monodromy && q.monodromy.label) mrow.appendChild(mkm("Mono", q.monodromy.label));
+        if (isCatastrophe) mrow.appendChild(mkm("⚡", "CATASTROPHE", true));
+
+        body.appendChild(hdr); body.appendChild(mrow);
+        item.appendChild(dot); item.appendChild(body);
+        timeline.appendChild(item);
+    });
+}
+
+// =====================================================
+// Simple markdown renderer
+// =====================================================
+function renderMarkdown(text) {
+    if (!text) return "";
+    const div = document.createElement('div');
+    div.textContent = text;
+    let html = div.innerHTML;
+    html = html.replace(/\*\*(.*?)\*\*/g, '<strong style="color:var(--purple);font-weight:600;">$1</strong>');
+    html = html.replace(/\*(.*?)\*/g, '<em style="color:var(--text);">$1</em>');
+    html = html.replace(/`/g, '');
+    html = html.replace(/\n/g, '<br>');
+    return html;
+}
+
+// =====================================================
+// Chat message helpers
+// =====================================================
+function scrollToBottom() {
+    setTimeout(() => {
+        chatLog.scrollTop = chatLog.scrollHeight;
+    }, 50);
+    setTimeout(() => {
+        chatLog.scrollTop = chatLog.scrollHeight;
+    }, 150);
+}
+
+function addMessage(sender, content) {
+    const msg = document.createElement("div"); msg.className = `message ${sender}`;
+    const av  = document.createElement("div"); av.className  = "avatar";
+    av.textContent = sender === "user" ? "U" : "R4";
+
+    const contentDiv = document.createElement("div"); contentDiv.className = "message-content";
+    const senderDiv  = document.createElement("div"); senderDiv.className  = "message-sender";
+    senderDiv.textContent = sender === "user" ? "User Prompt" : "R4 Prime Router";
+
+    const bubble = document.createElement("div"); bubble.className = "message-bubble";
+    const p = document.createElement("p"); p.innerHTML = renderMarkdown(content);
+    bubble.appendChild(p); contentDiv.appendChild(senderDiv); contentDiv.appendChild(bubble);
+    msg.appendChild(av); msg.appendChild(contentDiv);
+    chatLogInner.appendChild(msg);
+    scrollToBottom();
+}
+
+// =====================================================
+// Send Query
+// =====================================================
+async function sendQuery(text) {
+    if (!text.trim()) return;
+    addMessage("user", text);
+    chatInput.value = "";
+    chatInput.disabled = true;
+    sendBtn.disabled = true;
+
+    const loadMsg = document.createElement("div"); loadMsg.className = "message model";
+    loadMsg.innerHTML = `<div class="avatar">R4</div><div class="message-content"><div class="message-sender">R4 Prime Router</div><div class="message-bubble" style="padding:0.75rem 1rem"><div class="loading-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div></div>`;
+    chatLogInner.appendChild(loadMsg);
+    scrollToBottom();
+
+    const mac = document.getElementById("macInput")?.value.trim() || "00:1a:2b:3c:4d:5e";
+    try {
+        const resp = await fetch("/api/chat", {
+            method: "POST",
+            headers: {"Content-Type":"application/json"},
+            body: JSON.stringify({ 
+                text, 
+                mac
+            })
+        });
+        const data = await resp.json();
+        chatLogInner.removeChild(loadMsg);
+        if (data.error) {
+            addMessage("model", "Manifold error: " + data.error);
+        } else {
+            addMessage("model", data.description);
+            updateTelemetry(data);
+        }
+    } catch(err) {
+        chatLogInner.removeChild(loadMsg);
+        addMessage("model", "Network error: " + err.message);
+    } finally {
+        chatInput.disabled = false;
+        sendBtn.disabled = false;
+        chatInput.focus();
+    }
+}
+
+// =====================================================
+// Index corpus handler
+// =====================================================
+if (indexBtn) {
+    indexBtn.addEventListener("click", async () => {
+        const corpus = kbTextarea.value.trim();
+        if (!corpus) return;
+        indexBtn.disabled = true; kbTextarea.disabled = true;
+        indexStatus.style.display = "block";
+        indexStatus.style.color = "var(--text2)";
+        indexStatus.textContent = "Indexing manifold... please wait";
+        try {
+            const resp = await fetch("/api/corpus", {
+                method:"POST", headers:{"Content-Type":"application/json"},
+                body: JSON.stringify({corpus})
+            });
+            const data = await resp.json();
+            if (data.success) {
+                indexStatus.style.color = "var(--emerald)";
+                indexStatus.textContent = `✓ Indexed ${data.count} sentences`;
+                kbTextarea.value = "";
+            } else {
+                indexStatus.style.color = "var(--red)";
+                indexStatus.textContent = `Error: ${data.error}`;
+            }
+        } catch(err) {
+            indexStatus.style.color = "var(--red)";
+            indexStatus.textContent = `Network error: ${err.message}`;
+        } finally {
+            indexBtn.disabled = false; kbTextarea.disabled = false;
+        }
+    });
+}
+
+// =====================================================
+// Event Listeners
+// =====================================================
+sendBtn.addEventListener("click", () => sendQuery(chatInput.value));
+chatInput.addEventListener("keydown", e => { if (e.key === "Enter") sendBtn.click(); });
+
+const resetBrainBtn = document.getElementById("resetBrainBtn");
+if (resetBrainBtn) {
+    resetBrainBtn.addEventListener("click", async () => {
+        resetBrainBtn.disabled = true;
+        try {
+            const resp = await fetch("/api/reset", { method: "POST" });
+            const data = await resp.json();
+            if (data.success) {
+                conversationTrajectory = [];
+                c2History = [];
+                window.currentTrajectory = [];
+                activeWindowIndex = null;
+                
+                // Clear UI fields
+                document.getElementById("telemetryRoute").textContent = "—";
+                document.getElementById("mapActiveWin").textContent   = "—";
+                document.getElementById("qStratum").textContent    = "—";
+                document.getElementById("qCascade").textContent    = "—";
+                document.getElementById("qWinding").textContent    = "—";
+                document.getElementById("qCommutator").textContent = "—";
+                document.getElementById("monoLabel").textContent   = "r^0";
+                
+                // Reset metric cards
+                document.getElementById("metricDeficit").textContent = "0.0000";
+                document.getElementById("metricKappa").textContent   = "0.0000";
+                document.getElementById("metricEntropy").textContent = "0.0000";
+                
+                // Clear equalizer
+                for (let i = 1; i <= 16; i++) {
+                    const bar = document.getElementById(`bar-${i}`);
+                    if (bar) {
+                        bar.style.height = "3px";
+                        bar.classList.remove("active");
+                    }
+                }
+                
+                // Redraw maps and orbits
+                renderSemanticMap(null, []);
+                
+                addMessage("model", "Hypersphere brain state successfully reset to neutral baseline superposition.");
+            } else {
+                addMessage("model", "Error resetting brain state: " + data.error);
+            }
+        } catch(err) {
+            addMessage("model", "Network error: " + err.message);
+        } finally {
+            resetBrainBtn.disabled = false;
+        }
+    });
+}
+
+
+// =====================================================
+// System Metrics Polling (/api/sysinfo every 3s)
+// =====================================================
+async function pollSysinfo() {
+    try {
+        const r = await fetch("/api/sysinfo");
+        const d = await r.json();
+
+        // CPU bar
+        const cpu = d.cpu_percent ?? 0;
+        const cpuBar = document.getElementById("cpuBar");
+        const cpuVal = document.getElementById("cpuVal");
+        if (cpuBar) {
+            cpuBar.style.width = cpu + "%";
+            cpuBar.style.background = cpu > 70 ? "var(--red)" : cpu > 35 ? "var(--amber)" : "var(--emerald)";
+        }
+        if (cpuVal) cpuVal.textContent = cpu.toFixed(0) + "%";
+
+        // RAM bar
+        const ram = d.memory_mb ?? 0;
+        const ramBar = document.getElementById("ramBar");
+        const ramVal = document.getElementById("ramVal");
+        if (ramBar) ramBar.style.width = Math.min((ram / 2048) * 100, 100) + "%";
+        if (ramVal) ramVal.textContent = ram > 1024 ? (ram/1024).toFixed(1)+"GB" : ram.toFixed(0)+"MB";
+
+        // Text fields
+        const setEl = (id, val) => { const e = document.getElementById(id); if (e) e.textContent = val; };
+        const uptime = d.uptime_seconds ?? 0;
+        const h = Math.floor(uptime/3600), mi = Math.floor((uptime%3600)/60), s = Math.floor(uptime%60);
+        setEl("uptimeVal",  h > 0 ? `${h}h${mi}m` : `${mi}m${s}s`);
+        setEl("reqTotal",   d.requests_total ?? "—");
+        setEl("routeP50",   (d.routing_latency_p50_ms ?? 0).toFixed(1) + "ms");
+        setEl("genP95",     (d.gen_latency_p95_ms ?? 0).toFixed(0) + "ms");
+        setEl("corpusCount", (d.sentences_indexed ?? 0).toLocaleString());
+
+        const ollamaEl = document.getElementById("ollamaStatus");
+        if (ollamaEl) {
+            if (window._lastLLMConnected === true) {
+                ollamaEl.textContent = "● Live";
+                ollamaEl.style.color = "var(--emerald)";
+            } else if (window._lastLLMConnected === false) {
+                ollamaEl.textContent = "○ Fallback";
+                ollamaEl.style.color = "var(--amber)";
+            } else {
+                ollamaEl.textContent = "—";
+                ollamaEl.style.color = "var(--muted)";
+            }
+        }
+    } catch(e) { /* server not ready yet */ }
+}
+pollSysinfo();
+setInterval(pollSysinfo, 3000);
+
+// =====================================================
+// Start all animation loops
+// =====================================================
+drawHopfCanvas();
+drawComplexCanvas();
+advanceC2Auto();
+
+// Auto-load the semantic map on startup
+(async function autoStartup() {
+    // Small delay to let the server catch its breath after starting
+    await new Promise(r => setTimeout(r, 800));
+    renderSemanticMap(); // shows placeholder first
+    await loadSemanticMap();
+})();
+
+</script>
+</body>
+</html>
