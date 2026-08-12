@@ -12,6 +12,7 @@ use repo_model::{codegen, Model};
 
 mod audit;
 mod gate;
+mod kappa;
 
 fn main() -> ExitCode {
     let task = std::env::args()
@@ -33,6 +34,7 @@ fn main() -> ExitCode {
             }
         },
         "validate" => validate(&root),
+        "kappa" => kappa::run(&std::env::args().skip(2).collect::<Vec<_>>()),
         _ => {
             eprintln!(
                 "cargo xtask <task>\n\
@@ -43,6 +45,7 @@ fn main() -> ExitCode {
                  gates             #515: list every dormant claim's activation gate and status\n\
                  gate <claim-id>   #515: report one dormant claim's activation gate and status\n\
                  validate          run every gate above\n\
+                 kappa <cmd>       #624: publish/fetch/tag against a kappa-registry (R4_KAPPA_REGISTRY)\n\
                  \n\
                  --write           check-model only: rewrite the generated file"
             );
