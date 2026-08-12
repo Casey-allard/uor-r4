@@ -18,6 +18,7 @@ pub mod patch_lifecycle;
 pub mod performance_certificate;
 #[cfg(feature = "predictive-sufficiency")]
 pub mod predictive_sufficiency;
+pub mod route_attention;
 pub mod score;
 pub mod score_runtime;
 #[cfg(feature = "shortlist-evaluator")]

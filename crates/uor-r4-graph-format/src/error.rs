@@ -471,6 +471,62 @@ pub enum FormatError {
         /// The evidence ID that appears more than once.
         evidence_id: u32,
     },
+    /// Route-attention instance shorter than its fixed header + mask
+    /// (#604, `route_attention` module).
+    RouteInstanceTooShort {
+        /// Actual buffer length.
+        actual: u64,
+    },
+    /// Route-attention instance does not begin with `RAT1`.
+    RouteInstanceBadMagic,
+    /// Route-attention instance version is not supported by this reader.
+    RouteInstanceUnsupportedVersion(u16),
+    /// Route-attention `code_bytes` is not the pinned 288-bit width
+    /// (36 bytes — the deployed signature substrate).
+    RouteCodeWidthMismatch {
+        /// Declared code width in bytes.
+        declared: u16,
+    },
+    /// Route-attention `candidate_count` is outside `1..=64` — the
+    /// declared candidate hard cap (sanctioned refusal carries the
+    /// observed value and the bound it crossed).
+    RouteCandidateCountOutOfBounds {
+        /// Declared candidate count.
+        declared: u32,
+        /// Permitted maximum.
+        max: u32,
+    },
+    /// Route-attention `top_m` is outside `1..=min(8, candidate_count)`
+    /// — the declared selection hard cap.
+    RouteTopMOutOfBounds {
+        /// Declared top-M.
+        declared: u32,
+        /// Permitted maximum.
+        max: u32,
+    },
+    /// Route-attention reserved header bytes are non-zero.
+    RouteNonZeroReserved,
+    /// Route-attention instance length does not equal the exact layout
+    /// implied by its declared candidate count.
+    RouteInstanceLengthMismatch {
+        /// Expected byte length.
+        expected: u64,
+        /// Actual byte length.
+        actual: u64,
+    },
+    /// Route-attention builder inputs declare differing candidate counts
+    /// (code table vs contribution table).
+    RouteTableShapeMismatch {
+        /// Code-table candidate count.
+        codes: u64,
+        /// Contribution-table candidate count.
+        contributions: u64,
+    },
+    /// A route-attention query is not one route-code width (36 bytes).
+    RouteQueryWidthMismatch {
+        /// Actual query length in bytes.
+        actual: u64,
+    },
 }
 
 impl fmt::Display for FormatError {
@@ -744,6 +800,45 @@ impl fmt::Display for FormatError {
             FormatError::DuplicateEvidence { evidence_id } => {
                 write!(f, "duplicate evidence ID {evidence_id} detected")
             },
+            FormatError::RouteInstanceTooShort { actual } => write!(
+                f,
+                "route-attention instance shorter than header + mask: {actual} bytes"
+            ),
+            FormatError::RouteInstanceBadMagic => {
+                write!(f, "route-attention instance magic is not RAT1")
+            }
+            FormatError::RouteInstanceUnsupportedVersion(version) => {
+                write!(f, "unsupported route-attention instance version {version}")
+            }
+            FormatError::RouteCodeWidthMismatch { declared } => write!(
+                f,
+                "route-code width {declared} bytes is not the pinned 36-byte (288-bit) width"
+            ),
+            FormatError::RouteCandidateCountOutOfBounds { declared, max } => write!(
+                f,
+                "route-attention candidate count {declared} outside 1..={max}"
+            ),
+            FormatError::RouteTopMOutOfBounds { declared, max } => {
+                write!(f, "route-attention top-M {declared} outside 1..={max}")
+            }
+            FormatError::RouteNonZeroReserved => {
+                write!(f, "route-attention reserved header bytes are non-zero")
+            }
+            FormatError::RouteInstanceLengthMismatch { expected, actual } => write!(
+                f,
+                "route-attention instance length mismatch: expected {expected} bytes, got {actual}"
+            ),
+            FormatError::RouteTableShapeMismatch {
+                codes,
+                contributions,
+            } => write!(
+                f,
+                "route-attention tables disagree: {codes} codes vs {contributions} contributions"
+            ),
+            FormatError::RouteQueryWidthMismatch { actual } => write!(
+                f,
+                "route-attention query is {actual} bytes, not one 36-byte route code"
+            ),
         }
     }
 }

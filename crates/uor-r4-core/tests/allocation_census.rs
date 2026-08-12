@@ -560,4 +560,101 @@ fn allocation_census() {
         predict_cen, ZERO,
         "R4G1 runtime kernels must be allocation-free in steady state"
     );
+
+    // Phase 7 — #604 dormant R4RouteAttentionV1 packed lowering: the
+    // per-step kernel over borrowed instance bytes and caller-owned
+    // bounded state must be allocation-free in steady state (asserted,
+    // not report-only: the kernel owns no growable structure at all —
+    // fixed selection slots plus an epoch stamp — so zero is its
+    // contract from the first step; no warm-up phase exists). The
+    // operator is dormant (`r4-route-attention-dormant`): this census
+    // constructs it directly, off every serving path.
+    println!("=== allocation census: #604 dormant route-attention packed step ===");
+    {
+        use uor_r4_core::transformerless::score_q::ScoreQ as CoreScoreQ;
+        use uor_r4_graph_runtime::route_attention::{route_attention_step, RouteState};
+
+        // Instance construction allocates (compiler/certifier side):
+        // measured and reported only.
+        let ((instance_bytes, queries), build_cen) = measure(|| {
+            let mask = [0xbfu8; 36];
+            let codes: Vec<[u8; 36]> = (0..16)
+                .map(|candidate: usize| {
+                    let mut code = [0u8; 36];
+                    for (position, byte) in code.iter_mut().enumerate() {
+                        *byte = ((position * 29 + candidate * 83) % 251) as u8;
+                    }
+                    code
+                })
+                .collect();
+            let contributions: Vec<uor_r4_graph_format::ScoreQ> = (0..16)
+                .map(|candidate: usize| {
+                    uor_r4_graph_format::ScoreQ::from_raw((candidate as i32) * 1_000 - 8_000)
+                })
+                .collect();
+            let instance_bytes = uor_r4_graph_format::build_route_attention_instance(
+                &mask,
+                &codes,
+                &contributions,
+                3,
+            )
+            .expect("census instance builds");
+            let queries: Vec<[u8; 36]> = (0..8)
+                .map(|step: usize| {
+                    let mut query = [0u8; 36];
+                    for (position, byte) in query.iter_mut().enumerate() {
+                        *byte = ((position * 17 + step * 41) % 249) as u8;
+                    }
+                    query
+                })
+                .collect();
+            (instance_bytes, queries)
+        });
+        println!(
+            "[route] instance build (compiler-side) → {} allocations, {} bytes (report only)",
+            build_cen.allocations, build_cen.bytes
+        );
+
+        let view = uor_r4_graph_format::RouteAttentionView::parse(&instance_bytes)
+            .expect("census instance parses");
+        let mut route_state = RouteState::new();
+        let mut route_census = uor_r4_graph_format::RouteOpCensus::default();
+        let mut aggregate_sink = CoreScoreQ::ZERO;
+
+        let (_, route_cen) = measure(|| {
+            for query in &queries {
+                let aggregate =
+                    route_attention_step(&view, query, &mut route_state, &mut route_census)
+                        .expect("census step succeeds");
+                aggregate_sink =
+                    aggregate_sink.saturating_add(CoreScoreQ::from_raw(aggregate.raw()));
+            }
+        });
+        println!(
+            "[route] packed route_attention_step × {} → {} allocations, {} bytes",
+            queries.len(),
+            route_cen.allocations,
+            route_cen.bytes
+        );
+        println!(
+            "[route] ops: adds {} | xors {} | popcounts {} | compares {} | table-reads {} | \
+             bytes-read {} | candidates-examined {}",
+            route_census.adds,
+            route_census.xors,
+            route_census.popcounts,
+            route_census.compares,
+            route_census.table_reads,
+            route_census.bytes_read,
+            route_census.candidates_examined
+        );
+        assert_eq!(
+            route_cen, ZERO,
+            "#604 packed route-attention step must be allocation-free in steady state"
+        );
+        assert_eq!(
+            route_census.candidates_examined,
+            (16 * queries.len()) as u64,
+            "candidate bound measured: N per step"
+        );
+    }
 }

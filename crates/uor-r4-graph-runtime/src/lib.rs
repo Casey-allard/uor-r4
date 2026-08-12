@@ -6,6 +6,7 @@ extern crate alloc;
 pub mod engine;
 pub mod packed_kernels;
 pub mod patch_chain;
+pub mod route_attention;
 pub mod routing;
 pub mod runtime_state;
 pub mod scoring;

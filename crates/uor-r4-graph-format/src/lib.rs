@@ -77,6 +77,7 @@ mod ngram;
 pub mod r4g1;
 pub mod records;
 mod rout;
+pub mod route_attention;
 pub mod sanctioned;
 pub mod scoring_semantics;
 #[cfg(feature = "alloc")]
@@ -123,6 +124,13 @@ pub use records::{
     PACKED_NODE_LEN, STORAGE_DESCRIPTOR_LEN,
 };
 pub use rout::{OP_HALT, OP_JMP_FWD, OP_LEAF, OP_TEST_POPCOUNT_LE};
+#[cfg(feature = "alloc")]
+pub use route_attention::build_route_attention_instance;
+pub use route_attention::{
+    route_instance_digest, RouteAttentionView, RouteOpCensus, ROUTE_ATTENTION_OPERATOR_ID,
+    ROUTE_ATTENTION_OPERATOR_VERSION, ROUTE_CODE_BITS, ROUTE_CODE_BYTES, ROUTE_MAX_CANDIDATES,
+    ROUTE_MAX_TOP_M, ROUTE_POPCOUNT_TABLE,
+};
 pub use sanctioned::{KappaError, NotAProduct, ObjectKind, ObservedBound};
 #[cfg(feature = "alloc")]
 pub use ser::ArtifactBuilder;

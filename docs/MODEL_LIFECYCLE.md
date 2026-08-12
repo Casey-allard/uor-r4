@@ -494,6 +494,83 @@ wiring — richer text-path capture is a recorded follow-up, not
 invented plumbing. Existing fixtures, corpora, and manifests are
 unchanged.
 
+#### R4RouteAttentionV1 (#604)
+
+The first genuinely R4-native TARGET attention/relation operator:
+`r4-route-attention/1`, a versioned reference specification with a
+scalar reference implementation, a packed R4G1 lowering, bounded
+operation accounting, and an independently replayable witness. It is
+DORMANT — registered `open` in `model/ledger.toml` as
+`r4-route-attention-dormant` with the pre-declared #604 run contract
+(metric: teacher-forced top-1/top-k agreement and bits/token preserving
+the runtime operation contract; first verdict: semantic/operation/
+witness correctness before any quality interpretation; exit rule: stop
+on any runtime-bound violation, witness-replay failure, or
+null-indistinguishability; positive hands the operator to the fitting
+issue #605 and stays dormant until the activation gate clears; negative
+retains the operator and the report). Nothing in the serving path
+constructs it, `packed-routing-dormant` is unchanged, no serving
+default moved, and no quality claim exists for it.
+
+- **Where it lives.** Reference semantics, witness format
+  (`uor-r4-route-attention-witness/1`), and the independent replayer:
+  `uor-r4-graph-certify::route_attention`. Packed lowering over
+  borrowed bytes and caller-owned bounded state:
+  `uor-r4-graph-runtime::route_attention` — a contract-owned module
+  covered by the P-4 source scan
+  (`uor-r4-core::transformerless`, `p4_contract_owned_graph_runtime_source_scan`).
+  Canonical instance wire layout, hard caps, validation, and the op
+  census vocabulary: `uor-r4-graph-format::route_attention`. Registry
+  record with canonical bytes + declared-identity digest (#600–#603
+  discipline): `AttentionOperatorSpec::r4_route_attention_v1()` in
+  `uor-r4-model-source::attention`.
+- **Semantics (version 1).** Route codes are 288-bit (36-byte) vectors
+  — the deployed signature width (`compiler::D = 288`, HEAD
+  `signature_bytes`, the ROUT prototype/mask windows), reused rather
+  than invented. Per step: the masked XOR+popcount relation
+  `d_j = Σ_b popcount((q[b] XOR c_j[b]) AND mask[b])` over every
+  declared candidate; bounded top-M selection (`M` declared,
+  `1..=min(8, N)`, `N ≤ 64`) by ascending `(distance, index)` with the
+  deterministic tie rule "lowest candidate index on equal distance";
+  aggregation of the selected candidates' declared ScoreQ contributions
+  in selection order with saturating integer adds. No Q/K/V weight is
+  reused under the route equation; source-teacher and target routing
+  semantics remain separate registry operators, and the legacy
+  `r4_attention` switch still selects only between the two #602 source
+  operators.
+- **Operation accounting.** `RouteOpCensus { adds, xors, popcounts,
+  compares, table_reads, bytes_read, candidates_examined }` in the
+  `OpKernel` census style; every per-step count is a data-independent
+  closed form of `(N, M)`, so the census is verifiable from the
+  instance shape alone. Hard caps refuse on the sanctioned surface
+  (`NotAProduct` with the observed value and the bound named — R5).
+  The packed step is allocation-free in steady state, asserted by
+  `crates/uor-r4-core/tests/allocation_census.rs`.
+- **Differential + witness evidence.** Reference and packed paths must
+  agree bit-for-bit on selections, distances, aggregates, the census,
+  and the serialized witness on a pinned deterministic fixture and
+  across a shape grid (`crates/uor-r4-graph-certify/tests/route_attention_604.rs`);
+  the witness (inputs digest, per-step selected candidates + distances,
+  output, census) is verified by an independent replayer that never
+  runs the operator; property tests pin mask honoring, top-M bounds,
+  tie determinism, ScoreQ saturation, and cap refusal; source-scan
+  tests keep both implementations free of float types and of value
+  multiply/divide/modulo by construction.
+- **Carriage.** Operator instances are separate canonical serialized
+  objects (the `RAT1` instance bytes; witnesses serialize via serde),
+  loaded by tests/certify only — nothing is emitted into R4G1
+  artifacts, so historical artifacts and every existing fixture stay
+  byte-identical. If activation later needs in-artifact carriage, the
+  optional-section conventions (`SectionId::OPTIONAL_BIT`,
+  `EDGE_KIND_OPTIONAL_BIT`) are the designated mechanism.
+- **Boundary.** The deployed inference operation contract
+  (`docs/transformerless/INFERENCE_OPERATION_CONTRACT.md`) is
+  unchanged: this operator's `permitted_operation_class` is the
+  deployed integer class (XOR / masked popcount via table / saturating
+  add / compare / table read), its packed implementation uses only
+  contract-allowed operation classes, and while dormant it is outside
+  every contract-bound serving activity.
+
 ### 3. Compile the holographic graph
 
 The graph compiler turns the retained observation corpus and TLA artifact

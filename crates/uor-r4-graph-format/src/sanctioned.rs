@@ -40,6 +40,11 @@ pub enum ObjectKind {
     Records,
     /// A serialized artifact under construction.
     Artifact,
+    /// A route-attention operator instance (#604, `route_attention`).
+    RouteAttentionInstance,
+    /// A route-attention step result (#604): the query the step was
+    /// asked to score is not a route code of the instance's width.
+    RouteAttentionStep,
 }
 
 impl fmt::Display for ObjectKind {
@@ -56,6 +61,8 @@ impl fmt::Display for ObjectKind {
             ObjectKind::CodeProgram => "CODE program",
             ObjectKind::Records => "record block",
             ObjectKind::Artifact => "artifact",
+            ObjectKind::RouteAttentionInstance => "route-attention instance",
+            ObjectKind::RouteAttentionStep => "route-attention step",
         };
         f.write_str(s)
     }

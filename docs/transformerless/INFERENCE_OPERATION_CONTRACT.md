@@ -76,6 +76,17 @@ section already excludes. They are distinct from this deployed contract,
 describe floating-point source computation the deployed hot path never
 performs, and change none of the operation lists or obligations above.
 
+Note (non-normative cross-reference, #604): `r4-route-attention/1`
+(`R4RouteAttentionV1`, documented in `docs/MODEL_LIFECYCLE.md`) is a
+DORMANT target operator whose packed lowering
+(`uor-r4-graph-runtime::route_attention`, P-4-scanned) uses only
+operation classes §2 already allows and none §3 forbids; its scalar
+reference implementation is a test-only reference outside the production
+inference path (excluded above), and while dormant
+(`r4-route-attention-dormant` in `model/ledger.toml`) it participates in
+no contract-bound serving activity. It changes none of the operation
+lists or obligations above.
+
 ## 5) Activity ownership map
 
 Each in-scope activity has a crate/module owner:

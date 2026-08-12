@@ -239,6 +239,10 @@ mod witnesses {
                 include_str!("../../../uor-r4-graph-runtime/src/engine.rs"),
             ),
             (
+                "route_attention.rs",
+                include_str!("../../../uor-r4-graph-runtime/src/route_attention.rs"),
+            ),
+            (
                 "routing.rs",
                 include_str!("../../../uor-r4-graph-runtime/src/routing.rs"),
             ),

@@ -74,14 +74,31 @@
 //! declarations, so a behavioral change must bump the version (a new
 //! registry entry) instead of silently drifting.
 //!
-//! **Boundary note.** These specs describe HOST-SIDE source-teacher
-//! computation (f32 dot products, exp, division). They are provenance
-//! records, distinct from — and outside — the deployed inference
-//! operation contract
+//! **Boundary note.** The two SOURCE specs describe HOST-SIDE
+//! source-teacher computation (f32 dot products, exp, division). They
+//! are provenance records, distinct from — and outside — the deployed
+//! inference operation contract
 //! (`docs/transformerless/INFERENCE_OPERATION_CONTRACT.md`), which
 //! forbids floating-point arithmetic on the deployed hot path and
-//! explicitly excludes teacher execution. #602 defines no target
+//! explicitly excludes teacher execution. #602 defined no target
 //! (deployed) operator.
+//!
+//! **Target operator (#604).** `r4-route-attention/1`
+//! ([`AttentionOperatorSpec::r4_route_attention_v1`]) is the FIRST
+//! registered TARGET operator: `R4RouteAttentionV1`, whose
+//! `permitted_operation_class` is the deployed integer class (XOR /
+//! masked popcount via table / saturating integer add / compare / table
+//! read — no float, no multiply, no divide), unlike the two source
+//! records above. It reuses NO Q/K/V weights: its route codes, mask,
+//! and ScoreQ contributions are declared tables over the 288-bit
+//! signature substrate. Source-teacher and target routing semantics
+//! remain SEPARATE operators: [`operator_for_r4_switch`] still maps the
+//! legacy boolean onto exactly the two source operators and never
+//! selects the target one. The operator is DORMANT
+//! (`r4-route-attention-dormant` in `model/ledger.toml`): its reference
+//! semantics live in `uor-r4-graph-certify::route_attention`, its
+//! packed lowering in `uor-r4-graph-runtime::route_attention`, and
+//! nothing in the serving path constructs it.
 
 use serde::{Deserialize, Serialize};
 
@@ -160,6 +177,32 @@ impl AttentionOperatorParams {
             score_accumulation: "per-4-chunk-left-fold-then-chunk-sum".to_owned(),
         }
     }
+
+    /// The declared parameters of `r4-route-attention/1` (#604) — the
+    /// target route operator's analogues of the source fields:
+    ///
+    /// - `head_selection = "single-route-lane"` — one route lane per
+    ///   operator instance; no grouped-query head arithmetic exists.
+    /// - `score_scale = "none-integer-popcount-distance"` — distances
+    ///   are raw masked popcounts; nothing divides or rescales them.
+    /// - `score_width_policy = "declared-288-bit-mask-over-route-code"`
+    ///   — the relation reads exactly the declared mask's bits of the
+    ///   288-bit route code.
+    /// - `remainder_policy = "unmasked-bits-never-scored"` — bits
+    ///   outside the mask never enter any distance (pinned by the mask
+    ///   property test).
+    /// - `score_accumulation = "per-byte-popcount-table-add-left-fold"`
+    ///   — one popcount-table read and one integer add per byte, in
+    ///   byte order.
+    pub fn r4_route_attention() -> Self {
+        Self {
+            head_selection: "single-route-lane".to_owned(),
+            score_scale: "none-integer-popcount-distance".to_owned(),
+            score_width_policy: "declared-288-bit-mask-over-route-code".to_owned(),
+            remainder_policy: "unmasked-bits-never-scored".to_owned(),
+            score_accumulation: "per-byte-popcount-table-add-left-fold".to_owned(),
+        }
+    }
 }
 
 /// The typed, versioned record of one source attention operator (#602).
@@ -234,6 +277,16 @@ impl AttentionOperatorSpec {
     /// implemented by [`experimental_r4_head_attention_weights`] +
     /// [`head_attention_value_aggregate`].
     pub const EXPERIMENTAL_R4_VERSION: u32 = 1;
+    /// Registry id of the `R4RouteAttentionV1` TARGET operator (#604) —
+    /// the same id string as
+    /// `uor-r4-graph-format::route_attention::ROUTE_ATTENTION_OPERATOR_ID`;
+    /// the two constants are asserted equal by the #604 test suite in
+    /// `uor-r4-graph-certify` (which depends on both crates).
+    pub const R4_ROUTE_ID: &'static str = "r4-route-attention";
+    /// Registry version of the target operator implemented by
+    /// `uor-r4-graph-certify::route_attention` (reference) and
+    /// `uor-r4-graph-runtime::route_attention` (packed lowering).
+    pub const R4_ROUTE_VERSION: u32 = 1;
 
     /// The `standard-source-attention/1` record — the operator the
     /// default-off `r4_attention` switch has always computed.
@@ -276,6 +329,50 @@ impl AttentionOperatorSpec {
             tie_breaking: "first-maximum-softmax-stabilizer-value-identical".to_owned(),
             permitted_operation_class: "host-source-f32".to_owned(),
             params: AttentionOperatorParams::experimental_r4(),
+            implementation_digest: String::new(),
+        };
+        record.implementation_digest = record.declared_digest();
+        record
+    }
+
+    /// The `r4-route-attention/1` record (#604): `R4RouteAttentionV1`,
+    /// the first TARGET operator — deployed integer class, dormant.
+    /// Truthful inventory of what the implementations compute
+    /// (reference: `uor-r4-graph-certify::route_attention`; packed:
+    /// `uor-r4-graph-runtime::route_attention`; both differentially
+    /// tested bit-for-bit with witness replay):
+    ///
+    /// - no projections and no positional action: route codes, the
+    ///   relation mask, and per-candidate ScoreQ contributions are
+    ///   DECLARED tables over the 288-bit signature substrate — no
+    ///   Q/K/V weight is reused under the route equation;
+    /// - compatibility relation `masked-xor-popcount`: per byte,
+    ///   `popcount((query XOR candidate) AND mask)`, table popcount,
+    ///   integer adds;
+    /// - selector: NONE — no softmax, no normalization; a bounded
+    ///   top-M selection (M declared, `1..=min(8, N)`, `N <= 64`) by
+    ///   ascending `(distance, index)`;
+    /// - tie-breaking: lowest candidate index on equal masked popcount
+    ///   distance, deterministic by construction;
+    /// - value aggregation: the selected ScoreQ contributions fold in
+    ///   selection order with saturating integer adds;
+    /// - runtime state: caller-owned fixed-capacity selection state
+    ///   (epoch-stamped), allocation-free in steady state.
+    pub fn r4_route_attention_v1() -> Self {
+        let mut record = Self {
+            id: Self::R4_ROUTE_ID.to_owned(),
+            version: Self::R4_ROUTE_VERSION,
+            projections: "none-declared-route-code-tables-no-qkv-reuse".to_owned(),
+            positional_action: "none-route-codes-carry-no-positional-action".to_owned(),
+            compatibility_relation: "masked-xor-popcount".to_owned(),
+            selector_normalization: "none-bounded-top-m-selection".to_owned(),
+            value_aggregation: "selection-order-saturating-scoreq-add".to_owned(),
+            output_projection: "none-aggregate-scoreq-only".to_owned(),
+            runtime_state: "caller-owned-fixed-capacity-epoch-stamped-selection-state".to_owned(),
+            tie_breaking: "lowest-candidate-index-on-equal-masked-popcount-distance".to_owned(),
+            permitted_operation_class: "deployed-integer-xor-popcount-add-compare-table-read"
+                .to_owned(),
+            params: AttentionOperatorParams::r4_route_attention(),
             implementation_digest: String::new(),
         };
         record.implementation_digest = record.declared_digest();
@@ -347,9 +444,10 @@ pub fn operator_for_r4_switch(r4_attention: bool) -> AttentionOperatorSpec {
     }
 }
 
-/// The versioned operator registry (#602): map `(id, version)` to the
-/// spec that names it. Every pair outside the registry is refused by
-/// name on the sanctioned [`SourceUnavailable`] surface
+/// The versioned operator registry (#602; #604 adds the first target
+/// entry): map `(id, version)` to the spec that names it. Every pair
+/// outside the registry is refused by name on the sanctioned
+/// [`SourceUnavailable`] surface
 /// ([`SourceIngestKind::UnknownAttentionOperator`]) — never guessed,
 /// never approximated by a "closest" operator or version.
 ///
@@ -368,6 +466,9 @@ pub fn operator_spec(
             AttentionOperatorSpec::EXPERIMENTAL_R4_ID,
             AttentionOperatorSpec::EXPERIMENTAL_R4_VERSION,
         ) => Ok(AttentionOperatorSpec::experimental_r4()),
+        (AttentionOperatorSpec::R4_ROUTE_ID, AttentionOperatorSpec::R4_ROUTE_VERSION) => {
+            Ok(AttentionOperatorSpec::r4_route_attention_v1())
+        }
         _ => Err(crate::SourceIngestKind::UnknownAttentionOperator {
             id: id.to_owned(),
             version,
@@ -777,6 +878,7 @@ mod tests {
         for record in [
             AttentionOperatorSpec::standard(),
             AttentionOperatorSpec::experimental_r4(),
+            AttentionOperatorSpec::r4_route_attention_v1(),
         ] {
             let json = serde_json::to_string(&record).expect("serializes");
             let back: AttentionOperatorSpec = serde_json::from_str(&json).expect("deserializes");
@@ -791,7 +893,10 @@ mod tests {
     }
 
     #[test]
-    fn switch_maps_to_exactly_the_two_registered_operators() {
+    fn switch_maps_to_exactly_the_two_registered_source_operators() {
+        // #604 boundary: the legacy boolean selects between the two
+        // SOURCE operators only; the target route operator is never
+        // reachable through it.
         assert_eq!(
             operator_for_r4_switch(false),
             AttentionOperatorSpec::standard()
@@ -800,10 +905,14 @@ mod tests {
             operator_for_r4_switch(true),
             AttentionOperatorSpec::experimental_r4()
         );
+        assert_ne!(
+            operator_for_r4_switch(true),
+            AttentionOperatorSpec::r4_route_attention_v1()
+        );
     }
 
     #[test]
-    fn registry_resolves_both_operators() {
+    fn registry_resolves_all_registered_operators() {
         let standard = operator_spec(
             AttentionOperatorSpec::STANDARD_ID,
             AttentionOperatorSpec::STANDARD_VERSION,
@@ -816,6 +925,62 @@ mod tests {
         )
         .expect("registered experimental operator");
         assert_eq!(experimental, AttentionOperatorSpec::experimental_r4());
+        let target = operator_spec(
+            AttentionOperatorSpec::R4_ROUTE_ID,
+            AttentionOperatorSpec::R4_ROUTE_VERSION,
+        )
+        .expect("registered target route operator");
+        assert_eq!(target, AttentionOperatorSpec::r4_route_attention_v1());
+    }
+
+    #[test]
+    fn r4_route_attention_canonical_serialization_is_byte_stable() {
+        // The target operator's declared identity, pinned byte-for-byte
+        // (#604): any drift in a field token is a version bump, never a
+        // silent edit.
+        let target = AttentionOperatorSpec::r4_route_attention_v1();
+        let pinned = "uor-r4-attention-operator/1\n\
+             id=r4-route-attention\n\
+             version=1\n\
+             projections=none-declared-route-code-tables-no-qkv-reuse\n\
+             positional_action=none-route-codes-carry-no-positional-action\n\
+             compatibility_relation=masked-xor-popcount\n\
+             selector_normalization=none-bounded-top-m-selection\n\
+             value_aggregation=selection-order-saturating-scoreq-add\n\
+             output_projection=none-aggregate-scoreq-only\n\
+             runtime_state=caller-owned-fixed-capacity-epoch-stamped-selection-state\n\
+             tie_breaking=lowest-candidate-index-on-equal-masked-popcount-distance\n\
+             permitted_operation_class=deployed-integer-xor-popcount-add-compare-table-read\n\
+             param.head_selection=single-route-lane\n\
+             param.score_scale=none-integer-popcount-distance\n\
+             param.score_width_policy=declared-288-bit-mask-over-route-code\n\
+             param.remainder_policy=unmasked-bits-never-scored\n\
+             param.score_accumulation=per-byte-popcount-table-add-left-fold\n";
+        assert_eq!(target.canonical_bytes(), pinned.as_bytes());
+        let expected = format!("blake3:{}", blake3::hash(pinned.as_bytes()).to_hex());
+        assert_eq!(target.implementation_digest, expected);
+        assert_eq!(target.declared_digest(), expected);
+        // Distinct identity from both source operators.
+        assert_ne!(
+            target.implementation_digest,
+            AttentionOperatorSpec::standard().implementation_digest
+        );
+        assert_ne!(
+            target.implementation_digest,
+            AttentionOperatorSpec::experimental_r4().implementation_digest
+        );
+        // The permitted class is the deployed integer class, unlike the
+        // host-side source records.
+        assert_eq!(
+            target.permitted_operation_class,
+            "deployed-integer-xor-popcount-add-compare-table-read"
+        );
+        assert_eq!(
+            AttentionOperatorSpec::standard().permitted_operation_class,
+            "host-source-f32"
+        );
+        // Rebuilding reproduces the record bit-for-bit.
+        assert_eq!(target, AttentionOperatorSpec::r4_route_attention_v1());
     }
 
     #[test]
