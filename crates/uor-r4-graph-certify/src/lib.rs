@@ -19,6 +19,8 @@ pub mod performance_certificate;
 #[cfg(feature = "predictive-sufficiency")]
 pub mod predictive_sufficiency;
 pub mod route_attention;
+#[cfg(not(target_arch = "wasm32"))]
+pub mod route_fit_report;
 pub mod score;
 pub mod score_runtime;
 #[cfg(feature = "shortlist-evaluator")]

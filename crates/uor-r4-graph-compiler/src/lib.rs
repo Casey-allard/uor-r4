@@ -24,6 +24,7 @@ pub mod rate_distortion_compression;
 pub mod reference_compiler_ir;
 pub mod reproducibility;
 pub mod residual;
+pub mod route_fit;
 pub mod routing;
 pub mod semantic_emission_decoupling;
 pub mod semantic_state;

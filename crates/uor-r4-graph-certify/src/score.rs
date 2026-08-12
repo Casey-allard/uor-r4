@@ -1943,7 +1943,13 @@ fn outcome_bits(
 /// number can never be quoted as a census: the first says whether the run
 /// scored the whole held-out split or a subsample of it, the second says
 /// how much of the printed rate is measurement noise.
-#[derive(Debug, Clone, Default, Serialize)]
+// `Deserialize`, `PartialEq`, and container-level `serde(default)` added
+// by #605 so the route-fit report can EMBED this existing Gate C parity
+// row type (rather than inventing a parallel metric struct) and still
+// round-trip; the serialized bytes of every existing report are
+// unchanged.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, serde::Deserialize)]
+#[serde(default)]
 pub struct GateCMetrics {
     pub positions: usize,
     /// P(selected token == recorded teacher argmax).

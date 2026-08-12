@@ -571,6 +571,107 @@ default moved, and no quality claim exists for it.
   contract-allowed operation classes, and while dormant it is outside
   every contract-bound serving activity.
 
+#### Route-attention fitting + replacement ladder (#605)
+
+The offline harness that fits `R4RouteAttentionV1` instances from
+standard-teacher traces, and the pre-registered evaluator that measures
+what a fitted selection is worth. Everything is DORMANT
+(`route-fit-dormant` in `model/ledger.toml`): no serving path references
+it, no artifact byte moves. Three separations are structural, not
+aspirational: compilation success is never fit success (kernel-level
+runtime checks and fit gates are separate record fields under separate
+verdicts), fit success is never model quality (the synthetic arm is a
+cheap instrument; the activation gate binds only to the real arm), and
+absence is absence (`NOT_RUN` ≠ `UNAVAILABLE` ≠ `FAIL`).
+
+- **Fit method `route-fit/1`**
+  (`uor-r4-graph-compiler::route_fit`), a versioned record in the
+  #600 discipline: canonical pinned-line bytes + blake3
+  declared-identity digest over the parameter DECLARATION, registry
+  refusing unknown `(id, version)` by name. Semantics, per
+  `(layer, head)`: project each captured query/key head vector to the
+  288-bucket route-code width through the registered `bucket-average/1`
+  implementation (vectors narrower than 288 are first cyclically tiled
+  to the least multiple of their width at or above 288 — a declared
+  parameter, since `bucket-average/1` refuses sources narrower than the
+  compiled width); binarize at per-bit LOWER-MEDIAN thresholds computed
+  over the fit sample in a fixed order (`f32::total_cmp`); pack bits
+  LSB-first. Keys become candidate codes (candidate index = position),
+  queries become query codes, queries and keys share one threshold
+  table. Mask v1 is FULL (recorded, not learned); radii and
+  residual/output projection are ABSENT; `top_m = min(8, trace support
+  cap)`. The fit manifest carries EIGHT identity fields (source
+  snapshot, tokenizer, adapter, trace, geometry, operator, corpus,
+  compiler) with typed absence — on the synthetic arm the tokenizer is
+  genuinely `None`, never an empty string — plus a provenance label for
+  every parameter (v1: route codes + thresholds `compiled`;
+  mask/contributions/top_m `declared`; radii, residual projection, and
+  source weights `absent`).
+- **Fit input boundary.** The fit consumes the PRODUCTION #603 trace
+  corpus: the synthetic fixture teacher implements the full
+  `TeacherOracle` capture surface and `observe_sharded_traced` writes
+  its shards, `.prob` sidecar, and `.trace` sidecar under the
+  registered `full/1` profile; the reader comes back through
+  `merge_shards` / `merge_probability_metadata` / `merge_trace_rows`.
+  No bespoke side channel exists.
+- **Pre-registered contract as data**
+  (`uor-r4-graph-certify::route_fit_report`,
+  `preregistered_route_fit_contract()`), posted to #605 before the run
+  and serialized INTO every report: metric (teacher-forced top-1/top-k
+  agreement and bits/token per replaced scope; support-overlap Jaccard
+  as diagnostic), nulls N1 (seeded-random codes, same shapes) and N2
+  (supports deranged by a cyclic one-position shift within each
+  sequence), advance gate per synthetic stage (preflight PASS ∧ runtime
+  checks PASS ∧ fitted overlap ≥ max(2× best null, 0.5) ∧ top-1 ≥ 0.90
+  ∧ replaced bits/token ≤ 1.10× teacher), anti-vacuity (N2 < 0.5×
+  fitted at every evaluated scope, else the instrument is VACUOUS and
+  the run is invalid regardless of other numbers), replacement
+  semantics `support-restrict-renormalize/1`, and the exit rule (stop
+  at the FIRST failing stage; later stages `NOT_RUN`).
+- **Selection evidence is the deployed kernel's.** Per step, the
+  candidate table is the causal prefix of fitted key codes built by
+  `build_route_attention_instance`, stepped by the packed
+  `route_attention_step` over caller-owned `RouteState`; every step's
+  witness is independently replayed (`replay_route_witness`), the
+  census is checked against its closed form, the certify-side
+  reference runs as a cross-check arm only, and the state's epoch
+  discipline is verified per step (the zero-allocation claim itself is
+  owned by `crates/uor-r4-core/tests/allocation_census.rs`).
+- **Measured result (synthetic cheap instrument; not a model claim).**
+  On the deterministic fixture teacher (2 layers, 2 heads, d=32,
+  vocab 64, QK-normalized cosine attention, integer-seeded) over a
+  1024-token mini-corpus: instrument VALID (N2 0.2353 < 0.5 × fitted
+  0.5718 at the reference scope), and all five synthetic stages passed
+  the pre-registered gates — fitted support overlap 0.5718–0.5872
+  against nulls N1 0.2019–0.2064 / N2 0.2312–0.2537, teacher-forced
+  top-1 agreement 0.9902–1.0 (top-8 agreement 1.0), replaced bits/token
+  at most 1.0002× the teacher's 4.9709. Instrument-construction record:
+  the first fixture iteration (unnormalized dot-product attention)
+  measured VACUOUS under the pre-registered anti-vacuity rule (N2
+  0.5272 vs fitted 0.7183) because norm-hub keys made supports largely
+  query-independent; the fixture teacher was rebuilt with per-head
+  QK normalization and the gates/nulls/margins were not touched.
+- **Real stages.** `real-teacher` and `real-corpus` are reported
+  UNAVAILABLE with their prerequisites named (pinned SmolLM2 snapshot
+  absent from the build env; #531 saturation corpus not yet produced —
+  compute-bound) — never a vacuous pass, never silently skipped. The
+  `route-fit-dormant` activation gate is a positive pre-registered
+  ladder result on the pinned real teacher with the #531 corpus,
+  witness replay intact, instrument non-vacuous.
+- **Where the report lives.** The ladder emits a canonical
+  `RouteFitReport` (`uor-r4-route-fit-report/1`, ciborium bytes + κ via
+  `route_fit_report_kappa`) carrying the contract, `instrument_valid`,
+  per-stage records (scope, fit-manifest κ, #599-typed preflight,
+  runtime checks, overlap instrument, embedded Gate C
+  [`GateCMetrics`] teacher/replaced parity rows — the existing #307
+  surface extended, not duplicated), and the predeclared decision
+  record. Tests: `crates/uor-r4-graph-compiler/tests/route_fit_605.rs`
+  (registry, manifest, deterministic double-run of the fit) and
+  `crates/uor-r4-graph-certify/tests/route_fit_605.rs` (ladder
+  determinism, one-head vs nulls under the pre-registered margins,
+  broken-fit FAIL, stop-at-first-failure, UNAVAILABLE reasons,
+  absence round-trips).
+
 ### 3. Compile the holographic graph
 
 The graph compiler turns the retained observation corpus and TLA artifact
