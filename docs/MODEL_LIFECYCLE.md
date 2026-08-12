@@ -60,6 +60,40 @@ The downloader prints the repository and destination immediately, streams the
 `hf` process, and emits a heartbeat every two seconds with file count, bytes,
 and elapsed time.
 
+#### Source-snapshot manifest (#597)
+
+After a successful download the downloader writes `source_manifest.json`
+(schema `uor-r4-source-manifest/1`) into the snapshot directory. It binds the
+whole snapshot in one canonical document: repository, immutable revision,
+license (SPDX identifier when known; the license *file* is always digested),
+compiler version, source-execution mode (`offline-compiler-input`), and every
+admitted file's path, byte length, and raw `blake3:<hex>` digest —
+`*.safetensors`, `*.json` (including `model.safetensors.index.json`),
+`*.model`, `merges.txt`, `LICENSE*`, and `README*`; the manifest excludes
+itself. The file list is sorted by path byte order and the serialization is
+deterministic, so rebuilding from the same directory reproduces identical
+bytes. The manifest's root κ is the canonical-JSON address of those bytes
+(`uor_addr::json::address_blake3`), so it uniquely identifies the exact
+snapshot; the programmatic surface is `build_source_manifest` /
+`write_source_manifest` / `read_source_manifest` / `source_manifest_kappa` in
+`src/model.rs`.
+
+The root κ threads into downstream provenance as an opaque string: the cover
+stages (`transformerless cover`, `graph-compile`) and the observe driver
+accept `--source-manifest-kappa`, recording it as the optional
+`source_manifest_kappa` field of the cover/compile report and the observation
+manifest; `uor-r4-api`'s `CompileRequest.source_manifest_kappa` forwards it to
+the cover stage; and the HTTP server's compile job binds it automatically when
+the downloaded snapshot carries a `source_manifest.json`. Legacy inputs
+without a manifest compile exactly as before, with the field absent.
+
+**Migration note.** Descriptor κs minted before #597 with
+`source_kappa_scope = "model.safetensors"` (e.g. `source_kappa` in
+`models/smollm2-135m-instruct.json`) are weight-only identities: they cover
+the `model.safetensors` bytes and nothing else. They are NOT relabeled and do
+not become snapshot identities; the snapshot-wide identity is only the
+`source_manifest.json` root κ described above.
+
 ### 2. Compile the source
 
 Compile an already downloaded directory:

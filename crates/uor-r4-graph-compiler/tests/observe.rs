@@ -405,6 +405,64 @@ fn llama_oracle_exposes_hidden_state_and_canonical_top_k() {
 
 // ------------------------------------------------------------------ CLI --
 
+/// #597 plumbing seam: `--source-manifest-kappa` parses into the observe
+/// options, and the writer setter persists the κ into the observation
+/// manifest atomically and idempotently across reopen.
+#[test]
+fn source_manifest_kappa_parses_and_persists_in_the_manifest() {
+    let kappa = format!("blake3:{}", "7".repeat(64));
+    let args: Vec<String> = [
+        "--checkpoint",
+        "/tmp/does-not-need-to-exist-for-parsing",
+        "--source-manifest-kappa",
+        kappa.as_str(),
+    ]
+    .map(str::to_owned)
+    .to_vec();
+    let options = uor_r4_graph_compiler::parse_observe_options(&args).expect("valid options");
+    assert_eq!(
+        options.source_manifest_kappa.as_deref(),
+        Some(kappa.as_str())
+    );
+    // The compile parser accepts the same flag.
+    let compile_args: Vec<String> = ["--source-manifest-kappa", kappa.as_str()]
+        .map(str::to_owned)
+        .to_vec();
+    let compile_options =
+        uor_r4_graph_compiler::parse_options(&compile_args).expect("valid options");
+    assert_eq!(
+        compile_options.source_manifest_kappa.as_deref(),
+        Some(kappa.as_str())
+    );
+
+    let dir = unique_path("observe-source-kappa");
+    let mut writer = ObservationShardWriter::open(&dir, 2).expect("writer");
+    assert_eq!(writer.manifest().source_manifest_kappa, None);
+    writer
+        .set_source_manifest_kappa(&kappa)
+        .expect("set and store");
+    // Idempotent: re-setting the recorded value does not rewrite.
+    writer
+        .set_source_manifest_kappa(&kappa)
+        .expect("idempotent set");
+    drop(writer);
+    let manifest = ObservationManifest::load(&dir)
+        .expect("manifest io")
+        .expect("manifest present");
+    assert_eq!(
+        manifest.source_manifest_kappa.as_deref(),
+        Some(kappa.as_str())
+    );
+    // A reopened writer (as `observe_sharded` does after the CLI pre-set)
+    // preserves the stored κ.
+    let reopened = ObservationShardWriter::open(&dir, 2).expect("reopen");
+    assert_eq!(
+        reopened.manifest().source_manifest_kappa.as_deref(),
+        Some(kappa.as_str())
+    );
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
 #[test]
 fn observe_cli_writes_shards_and_resumes_without_rewriting() {
     if std::fs::metadata(LEGACY_CHECKPOINT).is_err() {

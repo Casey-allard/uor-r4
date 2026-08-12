@@ -45,6 +45,11 @@ pub struct GraphCompileOptions {
     pub memory_budget_mb: u64,
     pub jobs: Option<usize>,
     pub output: PathBuf,
+    /// Root κ of the #597 source-snapshot manifest of the teacher source
+    /// (`--source-manifest-kappa`), carried verbatim into the compile
+    /// report. This crate never computes the κ itself (no uor-addr
+    /// dependency); callers that hold the snapshot pass the string.
+    pub source_manifest_kappa: Option<String>,
 }
 
 /// Parse graph-compile CLI arguments. `None` when the arguments do not name a
@@ -64,6 +69,7 @@ pub fn parse_options(args: &[String]) -> Option<GraphCompileOptions> {
         memory_budget_mb: induction::DEFAULT_MEMORY_BUDGET_MB,
         jobs: None,
         output: PathBuf::from("r4g1_output"),
+        source_manifest_kappa: None,
     };
     let mut index = 0usize;
     while index < args.len() {
@@ -102,6 +108,9 @@ pub fn parse_options(args: &[String]) -> Option<GraphCompileOptions> {
                 options.jobs = Some(j);
             }
             "--out" => options.output = PathBuf::from(value),
+            "--source-manifest-kappa" => {
+                options.source_manifest_kappa = Some(value.clone());
+            }
             _ => return None,
         }
         index += 2;
@@ -211,7 +220,7 @@ pub fn compile(args: &[String]) -> Result<(), SourceUnavailable> {
             "a token or count exceeded the i32 R4G1 wire bound: {bound}"
         ))
     })?;
-    let report = induction::build_report(
+    let mut report = induction::build_report(
         &config,
         &induced,
         induction::ReportData {
@@ -223,6 +232,9 @@ pub fn compile(args: &[String]) -> Result<(), SourceUnavailable> {
             artifact: Some((&artifact_bytes, info)),
         },
     );
+    // #597: bind the source-snapshot identity into the compile report when
+    // the caller passed it (`--source-manifest-kappa`).
+    report.source_manifest_kappa = options.source_manifest_kappa.clone();
 
     std::fs::create_dir_all(&options.output)?;
     let artifact_path = options.output.join("compiled.r4g1");
@@ -254,6 +266,10 @@ pub struct ObserveOptions {
     pub target: usize,
     pub shards: u8,
     pub sequence_length: usize,
+    /// Root κ of the #597 source-snapshot manifest of the teacher source
+    /// (`--source-manifest-kappa`), recorded in the observation manifest.
+    /// Carried as an opaque string; this crate never computes it.
+    pub source_manifest_kappa: Option<String>,
 }
 
 /// Parse observe CLI arguments. `None` when the arguments do not name a valid
@@ -269,6 +285,7 @@ pub fn parse_observe_options(args: &[String]) -> Option<ObserveOptions> {
         target: 20_000,
         shards: 3,
         sequence_length: 128,
+        source_manifest_kappa: None,
     };
     let mut index = 0usize;
     while index < args.len() {
@@ -289,6 +306,9 @@ pub fn parse_observe_options(args: &[String]) -> Option<ObserveOptions> {
             }
             "--sequence-length" => {
                 options.sequence_length = value.parse().ok()?;
+            }
+            "--source-manifest-kappa" => {
+                options.source_manifest_kappa = Some(value.clone());
             }
             _ => return None,
         }
@@ -317,6 +337,15 @@ pub fn observe(args: &[String]) -> Result<(), SourceUnavailable> {
             )?;
             Box::new(o)
         };
+
+    // #597: record the source-snapshot identity in the observation
+    // manifest before the sharded run opens it (idempotent, atomic; the
+    // run's own writer loads and preserves the stored field).
+    if let Some(kappa) = &options.source_manifest_kappa {
+        let mut writer =
+            observation::ObservationShardWriter::open(&options.output, options.shards)?;
+        writer.set_source_manifest_kappa(kappa)?;
+    }
 
     observation::observe_sharded(
         &mut *oracle,

@@ -2516,6 +2516,13 @@ pub fn emit_r4g1(
 #[derive(Debug, Clone, Serialize)]
 pub struct CoverReport {
     pub schema: u32,
+    /// Root κ of the #597 source-snapshot manifest
+    /// (`source_manifest.json`) the teacher inputs were derived from,
+    /// when the invoking pipeline knows it. Optional so every legacy
+    /// report and its bytes stay unchanged; callers set the public field
+    /// after [`build_report`].
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source_manifest_kappa: Option<String>,
     pub config: CoverReportConfig,
     pub inputs: CoverReportInputs,
     pub objective: CoverReportObjective,
@@ -2730,6 +2737,9 @@ pub fn build_report(config: &CoverConfig, induced: &InducedCover, data: ReportDa
     );
     CoverReport {
         schema: 2,
+        // #597: populated by callers that hold the source-snapshot
+        // manifest root κ; the induction stages do not see the snapshot.
+        source_manifest_kappa: None,
         config: CoverReportConfig {
             depths: config.depths,
             k0: config.k0,

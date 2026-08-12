@@ -249,6 +249,13 @@ pub struct ObservationManifest {
     /// of the D3 manifest; absent for teacher-generated streams).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub input_cid: Option<String>,
+    /// Root κ of the #597 source-snapshot manifest
+    /// (`source_manifest.json`) of the teacher source the observations
+    /// were generated from, when the producing pipeline knows it.
+    /// Optional with a serde default so every legacy manifest stays
+    /// readable and legacy manifest bytes are unchanged.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source_manifest_kappa: Option<String>,
     #[serde(default)]
     pub completed: BTreeMap<u32, ShardEntry>,
     #[serde(default)]
@@ -262,6 +269,7 @@ impl ObservationManifest {
             shard_bits,
             partition_rule: None,
             input_cid: None,
+            source_manifest_kappa: None,
             completed: BTreeMap::new(),
             total_records: 0,
         }
@@ -380,6 +388,16 @@ impl ObservationShardWriter {
     pub fn set_input_cid(&mut self, cid: &str) -> Result<(), SourceUnavailable> {
         if self.manifest.input_cid.as_deref() != Some(cid) {
             self.manifest.input_cid = Some(cid.to_owned());
+            self.manifest.store(&self.dir)?;
+        }
+        Ok(())
+    }
+
+    /// Record the #597 source-snapshot manifest root κ of the teacher
+    /// source in the observation manifest (idempotent, atomic store).
+    pub fn set_source_manifest_kappa(&mut self, kappa: &str) -> Result<(), SourceUnavailable> {
+        if self.manifest.source_manifest_kappa.as_deref() != Some(kappa) {
+            self.manifest.source_manifest_kappa = Some(kappa.to_owned());
             self.manifest.store(&self.dir)?;
         }
         Ok(())

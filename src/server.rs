@@ -189,6 +189,11 @@ struct PinnedSourceManifest {
     repository: String,
     revision: String,
     source_directory: Option<String>,
+    /// SPDX license identifier of the pinned source (#597), forwarded
+    /// into the source-snapshot manifest. Optional so older descriptors
+    /// without the field stay readable.
+    #[serde(default)]
+    license: Option<String>,
 }
 
 impl R4g1CompileStatus {
@@ -1797,7 +1802,7 @@ fn compile_r4g1_bundle(
         }
     }
 
-    let cover_args = vec![
+    let mut cover_args = vec![
         "--corpus-meta".to_owned(),
         corpus_meta.display().to_string(),
         "--corpus-recs".to_owned(),
@@ -1821,6 +1826,13 @@ fn compile_r4g1_bundle(
         "--out".to_owned(),
         cover_output.display().to_string(),
     ];
+    // #597: when compiling from a downloaded snapshot that carries a
+    // source-snapshot manifest, bind its root κ into the cover report.
+    // Opportunistic by design: a legacy snapshot without a manifest (or an
+    // unreadable one) compiles exactly as before, with no κ recorded.
+    if let Some(kappa) = downloaded_source.and_then(source_manifest_kappa_of) {
+        cover_args.extend(["--source-manifest-kappa".to_owned(), kappa]);
+    }
     uor_r4_graph_cli::cover_command(&cover_args).map_err(|error| error.to_string())?;
 
     set_r4g1_compile_progress(status, 55, "Scoring graph transitions and emissions...");
@@ -1946,6 +1958,7 @@ fn pinned_huggingface_source() -> Result<SourceDownload, String> {
         revision: manifest.revision,
         name,
         output: manifest.source_directory.map(PathBuf::from),
+        license: manifest.license,
     })
 }
 
@@ -1970,6 +1983,9 @@ fn source_from_model_spec(model: &str) -> Result<SourceDownload, String> {
         revision: revision.to_owned(),
         name: format!("{}-{}", name, &revision[..12]),
         output: None,
+        // A custom owner/repository@revision spec carries no license
+        // metadata; the snapshot's license file is still digested.
+        license: None,
     })
 }
 
@@ -1978,6 +1994,15 @@ fn huggingface_source(model: Option<&str>) -> Result<SourceDownload, String> {
         Some(model) => source_from_model_spec(model),
         None => pinned_huggingface_source(),
     }
+}
+
+/// Root κ of the #597 source-snapshot manifest inside a downloaded
+/// snapshot directory, when one is present and verifiable. Total: any
+/// miss (legacy snapshot, malformed manifest, addressing failure)
+/// resolves to `None` so pre-#597 snapshots keep compiling unchanged.
+fn source_manifest_kappa_of(source: &Path) -> Option<String> {
+    let manifest = crate::model::read_source_manifest(source).ok()?;
+    crate::model::source_manifest_kappa(&manifest).ok()
 }
 
 fn downloaded_source_path(source: &SourceDownload) -> PathBuf {

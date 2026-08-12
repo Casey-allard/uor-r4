@@ -614,6 +614,10 @@ struct CoverOptions {
     entropy_gain_bits: f64,
     radius_quantile: u32,
     output: PathBuf,
+    /// Root κ of the #597 source-snapshot manifest of the teacher source
+    /// (`--source-manifest-kappa`), carried verbatim into the cover
+    /// report. This crate never computes the κ (no uor-addr dependency).
+    source_manifest_kappa: Option<String>,
 }
 
 fn parse_cover_options(args: &[String]) -> Result<CoverOptions, SourceUnavailable> {
@@ -630,6 +634,7 @@ fn parse_cover_options(args: &[String]) -> Result<CoverOptions, SourceUnavailabl
         entropy_gain_bits: cover::DEFAULT_SPLIT_ENTROPY_GAIN_BITS,
         radius_quantile: cover::RADIUS_QUANTILE_NUMERATOR,
         output: PathBuf::from("cover"),
+        source_manifest_kappa: None,
     };
     let mut index = 0usize;
     while index < args.len() {
@@ -706,6 +711,9 @@ fn parse_cover_options(args: &[String]) -> Result<CoverOptions, SourceUnavailabl
                 }
             }
             "--out" => options.output = PathBuf::from(value),
+            "--source-manifest-kappa" => {
+                options.source_manifest_kappa = Some(value.clone());
+            }
             _ => {
                 return Err(SourceUnavailable::new(format!(
                     "unknown cover option: {flag}"
@@ -870,7 +878,7 @@ pub fn cover_command(args: &[String]) -> Result<(), SourceUnavailable> {
             "a token or count exceeded the i32 R4G1 wire bound: {bound}"
         ))
     })?;
-    let report = cover::build_report(
+    let mut report = cover::build_report(
         &config,
         &induced,
         cover::ReportData {
@@ -882,6 +890,9 @@ pub fn cover_command(args: &[String]) -> Result<(), SourceUnavailable> {
             artifact: Some((&artifact_bytes, info)),
         },
     );
+    // #597: bind the source-snapshot identity into the cover report when
+    // the caller passed it (`--source-manifest-kappa`).
+    report.source_manifest_kappa = options.source_manifest_kappa.clone();
 
     std::fs::create_dir_all(&options.output)?;
     let artifact_path = options.output.join("cover.r4g1");
@@ -3093,6 +3104,22 @@ mod tests {
         assert_eq!(options.target, 1000);
         assert_eq!(options.sequence_length, 64);
         assert_eq!(source_slug(&options), "smollm2-135m-instruct");
+    }
+
+    /// #597 plumbing seam: the cover stage accepts and carries the
+    /// source-snapshot manifest root κ (populated into the cover report),
+    /// and leaves it unset when the flag is absent.
+    #[test]
+    fn cover_options_carry_the_source_manifest_kappa() {
+        let kappa = format!("blake3:{}", "7".repeat(64));
+        let args = ["--source-manifest-kappa".to_owned(), kappa.clone()];
+        let options = parse_cover_options(&args).expect("valid cover options");
+        assert_eq!(
+            options.source_manifest_kappa.as_deref(),
+            Some(kappa.as_str())
+        );
+        let defaults = parse_cover_options(&[]).expect("default cover options");
+        assert_eq!(defaults.source_manifest_kappa, None);
     }
 
     #[test]

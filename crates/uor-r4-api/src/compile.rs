@@ -174,6 +174,13 @@ pub struct CompileRequest {
     pub work_dir: PathBuf,
     /// Stage knobs.
     pub options: CompileOptions,
+    /// Root κ of the #597 source-snapshot manifest
+    /// (`source_manifest.json`) describing `source_dir`, when the caller
+    /// has computed it (the root crate's `model::source_manifest_kappa`).
+    /// Passed through to the cover stage so `compile_report.json` binds
+    /// the snapshot identity; `None` leaves legacy reports unchanged.
+    /// This crate never computes the κ itself (no uor-addr dependency).
+    pub source_manifest_kappa: Option<String>,
 }
 
 /// How to resume an incomplete compile.
@@ -449,7 +456,7 @@ fn stage_a_flags(request: &CompileRequest) -> Vec<String> {
 fn stage_b_flags(request: &CompileRequest, cover_out: &Path) -> Vec<String> {
     let options = &request.options;
     let work = &request.work_dir;
-    vec![
+    let mut flags = vec![
         "--corpus-meta".to_owned(),
         work.join("corpus.meta").display().to_string(),
         "--corpus-recs".to_owned(),
@@ -466,7 +473,13 @@ fn stage_b_flags(request: &CompileRequest, cover_out: &Path) -> Vec<String> {
         options.memory_budget_mb.to_string(),
         "--out".to_owned(),
         cover_out.display().to_string(),
-    ]
+    ];
+    // #597: thread the source-snapshot manifest root κ into the cover
+    // stage so the emitted compile_report.json binds the snapshot.
+    if let Some(kappa) = &request.source_manifest_kappa {
+        flags.extend(["--source-manifest-kappa".to_owned(), kappa.clone()]);
+    }
+    flags
 }
 
 fn stage_c_flags(request: &CompileRequest, cover_out: &Path, scored_out: &Path) -> Vec<String> {
@@ -499,4 +512,34 @@ fn stage_c_flags(request: &CompileRequest, cover_out: &Path, scored_out: &Path) 
         "--out".to_owned(),
         scored_out.display().to_string(),
     ]
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn request(source_manifest_kappa: Option<String>) -> CompileRequest {
+        CompileRequest {
+            source_dir: PathBuf::from("source"),
+            work_dir: PathBuf::from("work"),
+            options: CompileOptions::default(),
+            source_manifest_kappa,
+        }
+    }
+
+    /// #597 plumbing seam: a request carrying the source-snapshot
+    /// manifest root κ forwards it to the cover stage (whose report field
+    /// it populates); an absent κ adds no flag, so legacy invocations are
+    /// byte-identical.
+    #[test]
+    fn source_manifest_kappa_is_threaded_into_cover_stage_flags() {
+        let kappa = format!("blake3:{}", "7".repeat(64));
+        let with = stage_b_flags(&request(Some(kappa.clone())), Path::new("cover"));
+        assert!(with
+            .windows(2)
+            .any(|pair| pair == ["--source-manifest-kappa", kappa.as_str()]));
+        let without = stage_b_flags(&request(None), Path::new("cover"));
+        assert!(!without.iter().any(|flag| flag == "--source-manifest-kappa"));
+        assert_eq!(with.len(), without.len() + 2);
+    }
 }

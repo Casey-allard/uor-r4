@@ -157,6 +157,7 @@ fn request(source: PathBuf, work: PathBuf) -> CompileRequest {
         source_dir: source,
         work_dir: work,
         options: CompileOptions::default(),
+        source_manifest_kappa: None,
     }
 }
 
@@ -250,6 +251,7 @@ fn e2e_compile_then_engine_load() {
                 target: 2_000,
                 ..CompileOptions::default()
             },
+            source_manifest_kappa: None,
         },
         &mut |event| {
             events += 1;

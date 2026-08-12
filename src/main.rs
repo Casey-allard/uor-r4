@@ -1,7 +1,7 @@
 use clap::{Args, Parser, Subcommand, ValueEnum};
 use std::fmt;
 use std::io::{self, BufRead, Write};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use uor_r4_graph_cli as transformerless_command;
 use uor_r4_wasm_router::chat::{ChatAnswer, ChatEngine, ChatError};
@@ -484,9 +484,29 @@ fn download(args: &DownloadArgs) -> Result<(), RunError> {
         revision: args.revision.clone(),
         name: args.name.clone(),
         output: args.output.clone(),
+        license: descriptor_license(&args.name, &args.repository, &args.revision),
     })?;
     println!("{}", path.display());
     Ok(())
+}
+
+/// SPDX license identifier from the pinned `models/<name>.json`
+/// descriptor, forwarded into the #597 source-snapshot manifest — only
+/// when the descriptor pins exactly the requested repository and
+/// revision. Any miss (no descriptor, malformed JSON, different pin)
+/// yields `None`; the snapshot's license file is digested either way.
+fn descriptor_license(name: &str, repository: &str, revision: &str) -> Option<String> {
+    let bytes = std::fs::read(Path::new("models").join(format!("{name}.json"))).ok()?;
+    let descriptor: serde_json::Value = serde_json::from_slice(&bytes).ok()?;
+    if descriptor.get("repository")?.as_str()? != repository
+        || descriptor.get("revision")?.as_str()? != revision
+    {
+        return None;
+    }
+    descriptor
+        .get("license")?
+        .as_str()
+        .map(|license| license.to_owned())
 }
 
 fn import(args: &ImportArgs) -> Result<(), RunError> {

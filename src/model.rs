@@ -9,6 +9,18 @@ use std::time::{Duration, Instant};
 
 const MANIFEST_SCHEMA: u32 = 1;
 
+/// Schema tag of the versioned source-snapshot manifest (#597).
+pub const SOURCE_MANIFEST_SCHEMA: &str = "uor-r4-source-manifest/1";
+
+/// File name the source-snapshot manifest is written under inside a
+/// snapshot directory. The manifest is excluded from its own file list.
+pub const SOURCE_MANIFEST_FILE_NAME: &str = "source_manifest.json";
+
+/// The only source-execution mode this stack ships today: the downloaded
+/// open-weight snapshot is executed exclusively as an offline compiler
+/// input (the teacher forward pass); the deployed runtime never runs it.
+pub const SOURCE_EXECUTION_MODE_OFFLINE_COMPILER_INPUT: &str = "offline-compiler-input";
+
 /// Default CID-manifest name selected when neither CLI nor environment chooses one.
 pub const DEFAULT_CHAT_MODEL: &str = "smollm2-135m-instruct";
 
@@ -106,6 +118,9 @@ pub enum ModelError {
     },
     SourceNotCompiled(PathBuf),
     CompiledNotImported(PathBuf),
+    UnsupportedSourceManifestSchema(String),
+    NonPortableSnapshotPath(PathBuf),
+    ManifestAddressing(String),
 }
 
 impl fmt::Display for ModelError {
@@ -171,6 +186,19 @@ impl fmt::Display for ModelError {
                 formatter,
                 "compiled transformerless bundle found at {} but it has no imported manifest; direct local chat may load it, or use `cargo run -- import --help` to attach a quality attestation and persist a named manifest",
                 path.display()
+            ),
+            Self::UnsupportedSourceManifestSchema(schema) => write!(
+                formatter,
+                "unsupported source-snapshot manifest schema '{schema}'; expected '{SOURCE_MANIFEST_SCHEMA}'"
+            ),
+            Self::NonPortableSnapshotPath(path) => write!(
+                formatter,
+                "snapshot file path is not portable UTF-8: {}",
+                path.display()
+            ),
+            Self::ManifestAddressing(reason) => write!(
+                formatter,
+                "source-snapshot manifest could not be κ-addressed: {reason}"
             ),
         }
     }
@@ -478,6 +506,11 @@ pub struct SourceDownload {
     /// Destination directory. When omitted, uses
     /// `<model-store>/sources/<name>`.
     pub output: Option<PathBuf>,
+    /// SPDX license identifier recorded in the #597 source-snapshot
+    /// manifest, when the caller knows it (e.g. from a pinned
+    /// `models/*.json` descriptor). `None` leaves the manifest's license
+    /// field null; the license *file* is digested either way.
+    pub license: Option<String>,
 }
 
 /// Download a pinned model source into the local compiler-input cache.
@@ -512,6 +545,22 @@ pub fn download_source(source: &SourceDownload) -> Result<PathBuf, ModelError> {
         "download complete: {} files, {}",
         stats.files,
         ByteCount(stats.bytes)
+    );
+    // #597: bind the whole admitted snapshot in one canonical,
+    // schema-versioned manifest with a root κ.
+    let manifest = build_source_manifest(
+        &destination,
+        &SourceSnapshotInfo {
+            repository: source.repository.clone(),
+            revision: source.revision.clone(),
+            license: source.license.clone(),
+            source_execution_mode: SOURCE_EXECUTION_MODE_OFFLINE_COMPILER_INPUT.to_owned(),
+        },
+    )?;
+    let manifest_kappa = write_source_manifest(&destination, &manifest)?;
+    eprintln!(
+        "source manifest: {SOURCE_MANIFEST_FILE_NAME} ({} admitted files), root κ {manifest_kappa}",
+        manifest.files.len()
     );
     Ok(destination)
 }
@@ -646,6 +695,224 @@ fn valid_repository(repository: &str) -> bool {
     )
 }
 
+// --------------------------------------------------------------------------
+// #597: versioned source-snapshot manifest.
+//
+// One canonical, schema-versioned manifest binds ALL open-weight model
+// semantics of a downloaded snapshot: repository, immutable revision,
+// license, compiler/adapter version, source-execution mode, and every
+// admitted file's path + byte length + blake3 digest. Its root κ is the
+// canonical-JSON address of the manifest bytes
+// (`uor_addr::json::address_blake3`), so the κ uniquely identifies the
+// exact snapshot. Pre-#597 descriptor κs with
+// `source_kappa_scope = "model.safetensors"` remain weight-only
+// identities and are NOT relabeled.
+
+/// One admitted file of a source snapshot: path relative to the snapshot
+/// root (`/`-separated), byte length, and raw `blake3:<hex>` digest of
+/// the file bytes.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SourceManifestFile {
+    pub path: String,
+    pub bytes: u64,
+    pub kappa: String,
+}
+
+/// The versioned source-snapshot manifest (#597). Field order is the
+/// canonical serialization order; `files` is sorted by path byte order in
+/// the canonical form. `license` is the SPDX identifier when the caller
+/// knows it (`null` otherwise; the license *file* is always digested in
+/// `files` when present).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SourceManifest {
+    pub schema: String,
+    pub repository: String,
+    pub revision: String,
+    pub license: Option<String>,
+    pub compiler_version: String,
+    pub source_execution_mode: String,
+    pub files: Vec<SourceManifestFile>,
+}
+
+/// Snapshot-level provenance the directory walk cannot derive by itself.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SourceSnapshotInfo {
+    pub repository: String,
+    pub revision: String,
+    /// SPDX license identifier, when known to the caller.
+    pub license: Option<String>,
+    /// How the snapshot is executed; today always
+    /// [`SOURCE_EXECUTION_MODE_OFFLINE_COMPILER_INPUT`].
+    pub source_execution_mode: String,
+}
+
+/// Whether a file name is admitted into the snapshot manifest. Mirrors
+/// exactly what [`download_source`] admits: `*.safetensors` (including
+/// sharded weights), `*.json` (config, tokenizer, chat template,
+/// generation config, `model.safetensors.index.json`), `*.model` +
+/// `merges.txt` (tokenizer files), `LICENSE*`, and `README*`. The
+/// manifest never lists itself.
+fn admitted_source_file(name: &str) -> bool {
+    if name == SOURCE_MANIFEST_FILE_NAME {
+        return false;
+    }
+    let extension = Path::new(name).extension().and_then(|ext| ext.to_str());
+    matches!(extension, Some("safetensors" | "json" | "model"))
+        || name == "merges.txt"
+        || name.starts_with("LICENSE")
+        || name.starts_with("README")
+}
+
+/// Build the source-snapshot manifest of a local snapshot directory by
+/// walking its admitted files (hidden entries such as the `hf` CLI's
+/// `.cache` metadata are skipped). Files are digested with raw blake3
+/// and listed sorted by path byte order.
+pub fn build_source_manifest(
+    snapshot_dir: &Path,
+    info: &SourceSnapshotInfo,
+) -> Result<SourceManifest, ModelError> {
+    let mut files = Vec::new();
+    collect_admitted_files(snapshot_dir, snapshot_dir, &mut files)?;
+    files.sort_by(|a, b| a.path.as_bytes().cmp(b.path.as_bytes()));
+    Ok(SourceManifest {
+        schema: SOURCE_MANIFEST_SCHEMA.to_owned(),
+        repository: info.repository.clone(),
+        revision: info.revision.clone(),
+        license: info.license.clone(),
+        compiler_version: env!("CARGO_PKG_VERSION").to_owned(),
+        source_execution_mode: info.source_execution_mode.clone(),
+        files,
+    })
+}
+
+fn collect_admitted_files(
+    root: &Path,
+    directory: &Path,
+    files: &mut Vec<SourceManifestFile>,
+) -> Result<(), ModelError> {
+    for entry in std::fs::read_dir(directory)? {
+        let entry = entry?;
+        let path = entry.path();
+        let name = entry.file_name();
+        let Some(name) = name.to_str() else {
+            return Err(ModelError::NonPortableSnapshotPath(path));
+        };
+        if name.starts_with('.') {
+            continue;
+        }
+        let file_type = entry.file_type()?;
+        if file_type.is_dir() {
+            collect_admitted_files(root, &path, files)?;
+        } else if file_type.is_file() && admitted_source_file(name) {
+            let relative = relative_manifest_path(root, &path)?;
+            let (bytes, kappa) = file_length_and_kappa(&path)?;
+            files.push(SourceManifestFile {
+                path: relative,
+                bytes,
+                kappa,
+            });
+        }
+    }
+    Ok(())
+}
+
+fn relative_manifest_path(root: &Path, path: &Path) -> Result<String, ModelError> {
+    let relative = path
+        .strip_prefix(root)
+        .map_err(|_| ModelError::NonPortableSnapshotPath(path.to_path_buf()))?;
+    let mut portable = String::new();
+    for component in relative.components() {
+        let Some(part) = component.as_os_str().to_str() else {
+            return Err(ModelError::NonPortableSnapshotPath(path.to_path_buf()));
+        };
+        if !portable.is_empty() {
+            portable.push('/');
+        }
+        portable.push_str(part);
+    }
+    Ok(portable)
+}
+
+/// Streamed raw blake3 of one file's bytes plus its length, as
+/// `blake3:<hex>` (per-file digests stay raw, unlike the manifest root κ).
+fn file_length_and_kappa(path: &Path) -> Result<(u64, String), ModelError> {
+    use std::io::Read as _;
+    let mut file = std::fs::File::open(path)?;
+    let mut hasher = blake3::Hasher::new();
+    let mut buffer = [0u8; 65_536];
+    let mut length = 0u64;
+    loop {
+        let read = file.read(&mut buffer)?;
+        if read == 0 {
+            break;
+        }
+        length += read as u64;
+        hasher.update(&buffer[..read]);
+    }
+    Ok((length, format!("blake3:{}", hasher.finalize().to_hex())))
+}
+
+/// Canonical manifest bytes: stable field order (struct declaration
+/// order, which `serde_json::to_vec` preserves), `files` sorted by path
+/// byte order, no floats. Two manifests describing the same snapshot
+/// serialize to identical bytes regardless of file insertion order.
+pub fn canonical_source_manifest_bytes(manifest: &SourceManifest) -> Result<Vec<u8>, ModelError> {
+    if manifest.schema != SOURCE_MANIFEST_SCHEMA {
+        return Err(ModelError::UnsupportedSourceManifestSchema(
+            manifest.schema.clone(),
+        ));
+    }
+    let mut canonical = manifest.clone();
+    canonical
+        .files
+        .sort_by(|a, b| a.path.as_bytes().cmp(b.path.as_bytes()));
+    Ok(serde_json::to_vec(&canonical)?)
+}
+
+/// Root κ of a source-snapshot manifest: the canonical-JSON blake3
+/// address (`uor_addr::json::address_blake3`) of the canonical manifest
+/// bytes. This κ uniquely identifies the exact snapshot — any admitted
+/// byte change, file addition/removal, or provenance change relabels it.
+pub fn source_manifest_kappa(manifest: &SourceManifest) -> Result<String, ModelError> {
+    let bytes = canonical_source_manifest_bytes(manifest)?;
+    match uor_addr::json::address_blake3(&bytes) {
+        Ok(outcome) => Ok(outcome.address.to_string()),
+        // Unreachable for serde-produced JSON; kept to honor the
+        // no-panic-on-recoverable-paths convention.
+        Err(failure) => Err(ModelError::ManifestAddressing(format!("{failure:?}"))),
+    }
+}
+
+/// Parse and schema-gate source-snapshot manifest bytes. Any `schema`
+/// value other than [`SOURCE_MANIFEST_SCHEMA`] is rejected.
+pub fn parse_source_manifest(bytes: &[u8]) -> Result<SourceManifest, ModelError> {
+    let manifest: SourceManifest = serde_json::from_slice(bytes)?;
+    if manifest.schema != SOURCE_MANIFEST_SCHEMA {
+        return Err(ModelError::UnsupportedSourceManifestSchema(manifest.schema));
+    }
+    Ok(manifest)
+}
+
+/// Read the source-snapshot manifest of a snapshot directory.
+pub fn read_source_manifest(snapshot_dir: &Path) -> Result<SourceManifest, ModelError> {
+    parse_source_manifest(&std::fs::read(
+        snapshot_dir.join(SOURCE_MANIFEST_FILE_NAME),
+    )?)
+}
+
+/// Write the canonical manifest as `source_manifest.json` inside the
+/// snapshot directory (the manifest excludes itself from its file list)
+/// and return the manifest root κ.
+pub fn write_source_manifest(
+    snapshot_dir: &Path,
+    manifest: &SourceManifest,
+) -> Result<String, ModelError> {
+    let bytes = canonical_source_manifest_bytes(manifest)?;
+    let kappa = source_manifest_kappa(manifest)?;
+    std::fs::write(snapshot_dir.join(SOURCE_MANIFEST_FILE_NAME), bytes)?;
+    Ok(kappa)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -710,6 +977,7 @@ mod tests {
             revision: "a".repeat(40),
             name: "model".to_owned(),
             output: None,
+            license: None,
         };
         let command = build_download_command(&source, Path::new("models/model"));
         let arguments: Vec<_> = command
@@ -769,6 +1037,164 @@ mod tests {
             .unwrap_err();
         assert!(matches!(error, ModelError::CompiledNotImported(path) if path == compiled));
         std::fs::remove_dir_all(root).unwrap();
+    }
+
+    fn snapshot_info() -> SourceSnapshotInfo {
+        SourceSnapshotInfo {
+            repository: "org/model".to_owned(),
+            revision: "a".repeat(40),
+            license: Some("Apache-2.0".to_owned()),
+            source_execution_mode: SOURCE_EXECUTION_MODE_OFFLINE_COMPILER_INPUT.to_owned(),
+        }
+    }
+
+    /// A manifest value constructed directly (no directory walk).
+    fn in_memory_manifest(files: Vec<SourceManifestFile>) -> SourceManifest {
+        let info = snapshot_info();
+        SourceManifest {
+            schema: SOURCE_MANIFEST_SCHEMA.to_owned(),
+            repository: info.repository,
+            revision: info.revision,
+            license: info.license,
+            compiler_version: env!("CARGO_PKG_VERSION").to_owned(),
+            source_execution_mode: info.source_execution_mode,
+            files,
+        }
+    }
+
+    /// A unique temp snapshot directory populated with one file per
+    /// admitted downloader pattern plus two files that must be excluded.
+    fn snapshot_dir(tag: &str) -> PathBuf {
+        let dir = std::env::temp_dir().join(format!(
+            "uor-r4-source-manifest-{tag}-{}",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(dir.join("nested")).unwrap();
+        for (name, contents) in [
+            ("model.safetensors", "weights"),
+            ("model.safetensors.index.json", "{\"weight_map\":{}}"),
+            ("config.json", "{\"hidden_size\":576}"),
+            ("tokenizer.json", "{\"model\":{}}"),
+            ("tokenizer.model", "sentencepiece"),
+            ("merges.txt", "a b"),
+            ("LICENSE", "Apache License 2.0"),
+            ("README.md", "# model"),
+            ("nested/extra.json", "{}"),
+            ("notes.txt", "not admitted"),
+            (".gitattributes", "hidden, not admitted"),
+        ] {
+            std::fs::write(dir.join(name), contents).unwrap();
+        }
+        dir
+    }
+
+    #[test]
+    fn canonical_manifest_bytes_are_insertion_order_independent() {
+        let file = |path: &str| SourceManifestFile {
+            path: path.to_owned(),
+            bytes: 1,
+            kappa: format!("blake3:{}", "2".repeat(64)),
+        };
+        let forward =
+            in_memory_manifest(vec![file("a.json"), file("b.safetensors"), file("z.model")]);
+        let mut reversed = forward.clone();
+        reversed.files.reverse();
+        assert_eq!(
+            canonical_source_manifest_bytes(&forward).unwrap(),
+            canonical_source_manifest_bytes(&reversed).unwrap()
+        );
+        assert_eq!(
+            source_manifest_kappa(&forward).unwrap(),
+            source_manifest_kappa(&reversed).unwrap()
+        );
+    }
+
+    #[test]
+    fn manifest_covers_every_admitted_file_exactly_once_and_excludes_itself() {
+        let dir = snapshot_dir("coverage");
+        let manifest = build_source_manifest(&dir, &snapshot_info()).unwrap();
+        write_source_manifest(&dir, &manifest).unwrap();
+        // Rebuild AFTER the manifest file exists on disk: it must not
+        // admit itself.
+        let rebuilt = build_source_manifest(&dir, &snapshot_info()).unwrap();
+        let paths: Vec<&str> = rebuilt.files.iter().map(|f| f.path.as_str()).collect();
+        assert_eq!(
+            paths,
+            [
+                "LICENSE",
+                "README.md",
+                "config.json",
+                "merges.txt",
+                "model.safetensors",
+                "model.safetensors.index.json",
+                "nested/extra.json",
+                "tokenizer.json",
+                "tokenizer.model",
+            ],
+            "sorted by path byte order, each admitted file exactly once"
+        );
+        assert!(!paths.contains(&SOURCE_MANIFEST_FILE_NAME));
+        assert!(!paths.contains(&"notes.txt"));
+        assert!(!paths.contains(&".gitattributes"));
+        for file in &rebuilt.files {
+            assert_eq!(
+                file.bytes,
+                std::fs::metadata(dir.join(&file.path)).unwrap().len()
+            );
+            assert!(file.kappa.starts_with("blake3:") && file.kappa.len() == 71);
+        }
+        assert_eq!(rebuilt, read_source_manifest(&dir).unwrap());
+        std::fs::remove_dir_all(dir).unwrap();
+    }
+
+    #[test]
+    fn double_build_is_deterministic_in_bytes_and_kappa() {
+        let dir = snapshot_dir("determinism");
+        let first = build_source_manifest(&dir, &snapshot_info()).unwrap();
+        let second = build_source_manifest(&dir, &snapshot_info()).unwrap();
+        assert_eq!(
+            canonical_source_manifest_bytes(&first).unwrap(),
+            canonical_source_manifest_bytes(&second).unwrap()
+        );
+        assert_eq!(
+            source_manifest_kappa(&first).unwrap(),
+            source_manifest_kappa(&second).unwrap()
+        );
+        std::fs::remove_dir_all(dir).unwrap();
+    }
+
+    #[test]
+    fn tampering_with_one_admitted_byte_changes_the_root_kappa() {
+        let dir = snapshot_dir("tamper");
+        let before =
+            source_manifest_kappa(&build_source_manifest(&dir, &snapshot_info()).unwrap()).unwrap();
+        let target = dir.join("model.safetensors");
+        let mut bytes = std::fs::read(&target).unwrap();
+        bytes[0] ^= 0x01;
+        std::fs::write(&target, bytes).unwrap();
+        let after =
+            source_manifest_kappa(&build_source_manifest(&dir, &snapshot_info()).unwrap()).unwrap();
+        assert_ne!(before, after);
+        std::fs::remove_dir_all(dir).unwrap();
+    }
+
+    #[test]
+    fn wrong_manifest_schema_is_rejected() {
+        let mut manifest = in_memory_manifest(Vec::new());
+        let bytes = canonical_source_manifest_bytes(&manifest).unwrap();
+        assert!(parse_source_manifest(&bytes).is_ok());
+        manifest.schema = "uor-r4-source-manifest/999".to_owned();
+        let tampered = serde_json::to_vec(&manifest).unwrap();
+        assert!(matches!(
+            parse_source_manifest(&tampered),
+            Err(ModelError::UnsupportedSourceManifestSchema(schema))
+                if schema == "uor-r4-source-manifest/999"
+        ));
+        assert!(matches!(
+            canonical_source_manifest_bytes(&manifest),
+            Err(ModelError::UnsupportedSourceManifestSchema(_))
+        ));
     }
 
     #[test]
