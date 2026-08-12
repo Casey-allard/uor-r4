@@ -25,6 +25,8 @@ pub mod score;
 pub mod score_runtime;
 #[cfg(feature = "shortlist-evaluator")]
 pub mod shortlist_evaluator;
+#[cfg(not(target_arch = "wasm32"))]
+pub mod target_operator_certificate;
 
 pub use fmm::*;
 pub use score::*;

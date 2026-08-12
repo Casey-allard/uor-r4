@@ -672,6 +672,105 @@ absence is absence (`NOT_RUN` ≠ `UNAVAILABLE` ≠ `FAIL`).
   broken-fit FAIL, stop-at-first-failure, UNAVAILABLE reasons,
   absence round-trips).
 
+#### Target-operator recompilation certificate (#606)
+
+One bounded, versioned, machine-readable certificate that COMPOSES the
+existing certification surfaces for `R4RouteAttentionV1` recompilation
+(`route-fit/1` fitting + packed lowering) — relating source parity,
+trace/fit provenance, progressive replacement, runtime bounds, witness
+replay, and model-quality measurement — without creating a second
+Gate C, a second teacher-parity harness, or restating any proof
+obligation. Everything is DORMANT
+(`target-operator-certificate-dormant` in `model/ledger.toml`): no
+serving path references it, no artifact byte moves. The binding
+separation is structural: a compiled artifact never reads as a quality
+success — the overall quality verdict is a pure function that returns
+`NOT_PASSING` unless every required row is present and valid, and the
+passing value carries a token constructible only by that derivation,
+so a missing, blocked, or unavailable prerequisite makes a passing
+quality claim unrepresentable rather than merely discouraged.
+
+- **Schema `uor-r4-target-operator-certificate/1`**
+  (`uor-r4-graph-certify::target_operator_certificate`), a versioned
+  record in the #600 discipline: canonical pinned-line bytes + blake3
+  declared-identity digest over the parameter DECLARATION (families,
+  verdict states, scopes, quality rule, witness binding, composition
+  rule, absence rule), with a registry (`certificate_spec`) refusing
+  unknown `(id, version)` by name on the sanctioned error surface. The
+  certificate instance itself serializes to canonical ciborium bytes
+  with a κ (`target_operator_certificate_kappa`); assembling the same
+  inputs twice is byte-identical, and serialize → parse → re-serialize
+  replays byte-for-byte.
+- **Composition map (reuse, never duplication).** Gate C parity rows:
+  the existing `GateCMetrics` type (#307) embedded verbatim from the
+  #605 report — no parallel metric struct, no second parity harness
+  (`evaluate_gate_c` / `score_runtime` stay the only ones). Fit
+  evidence: #605's `RouteFitReport` and the `RunContract` serialized
+  inside it, referenced by κ with selected rows embedded — the ladder
+  is never re-run and no fit logic is re-derived. Runtime bounds: the
+  #605 `RuntimeChecks` embedded, the candidate/selection bounds taken
+  as the declared `uor-r4-graph-format::route_attention` constants,
+  bytes-read/census referenced as that crate's data-independent closed
+  forms (verified step-by-step by the embedded checks), and the
+  zero-allocation claim left with its owner — the repository
+  allocation census, named by the embedded `allocation_note`.
+  Empirical/performance certificates (`Certificate`,
+  `PerformanceCertificate`, `RuntimePerformanceCertificate`):
+  referenced by their own self-CID identity scheme when instances
+  exist; where none participates the provenance row records a typed
+  absence — a digest is never invented for another type. Proof
+  obligations: linked by the existing proof-matrix theorem ids with
+  their recorded status tokens; `uor-r4-proof-model` depends on the
+  certify crate, so the id/status mirror is pinned by a
+  proof-model-side test rather than an import, and the obligation
+  logic stays where it lives.
+- **Rows and absence semantics.** The identity block links every
+  input/output identity — source snapshot, tokenizer, adapter, trace,
+  geometry, operator id/version, corpus, compiler, fit-manifest κ,
+  fit-report κ, fitted-params κ — with TYPED absence (the synthetic
+  arm's tokenizer is `None`, never an empty string). Per-scope rows
+  (head / layer / layer-range / model / real-teacher / real-corpus)
+  each carry FIVE separated verdict families — source-parity,
+  target-fit, runtime-contract, witness-replay, model-quality — every
+  family its own verdict instance, never merged, each supporting
+  `NOT_MEASURED` / `BLOCKED(reason)` / `UNAVAILABLE(reason)` as states
+  distinct from `PASS`/`FAIL` and from any zero value; the defaulted
+  verdict is `NOT_MEASURED`. A model-quality verdict binds only to the
+  real-teacher/real-corpus scopes; a measured quality verdict on a
+  synthetic scope is an inconsistency that refuses the whole claim.
+- **Witness-row semantics (design rule).** Replacement comparisons
+  bind to OUTCOMES UNDER REPLACEMENT — teacher-forced top-1/top-k
+  agreement and bits/token of the replaced forward, plus independently
+  replayed packed-kernel witnesses — never to per-step path agreement
+  between source and target internals. Measured justification: the
+  historical program measurement recorded in #606 planning found equal
+  task outcomes at roughly 0.1–0.2 per-step path agreement, so a
+  path-agreement gate would have declared equal-outcome runs failures;
+  path agreement may appear as a diagnostic, never as a verdict input.
+- **Measured result (composition over the #605 synthetic outputs; not
+  a model claim).** On the #605 synthetic-ladder fixture the
+  certificate records: the four synthetic scope rows with
+  source-parity / target-fit / runtime-contract / witness-replay PASS
+  (the #605 empirical pins) and model-quality UNAVAILABLE carrying the
+  #605 real-arm reason verbatim; the real-teacher and real-corpus rows
+  UNAVAILABLE with their prerequisites named (pinned SmolLM2 snapshot
+  absent from the build env; #531 saturation corpus not yet produced —
+  compute-bound); and the overall quality verdict NOT_PASSING. A
+  failing ladder composes honestly too: the first failing stage's row
+  reports target-fit FAIL while its runtime-contract and
+  witness-replay families stay PASS (compilation success is not fit
+  success), and every stage behind the exit rule becomes
+  BLOCKED(reason). Tamper is refused on the sanctioned surface: an
+  edited embedded κ reference fails source verification with both
+  values named, and an edited `PASSING` state fails verification
+  because the derivation is recomputed from the rows. Tests:
+  `crates/uor-r4-graph-certify/tests/target_operator_certificate_606.rs`
+  and the mirror pin in
+  `crates/uor-r4-proof-model/tests/proof_matrix_audit.rs`.
+- **Activation gate** (`target-operator-certificate-dormant`): a
+  certificate over the real-teacher + #531-corpus ladder with a valid
+  (non-vacuous) instrument deriving a passing quality verdict.
+
 ### 3. Compile the holographic graph
 
 The graph compiler turns the retained observation corpus and TLA artifact
