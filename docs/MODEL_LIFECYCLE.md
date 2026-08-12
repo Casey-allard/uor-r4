@@ -251,6 +251,50 @@ legacy documents are not rewritten, and inputs from the legacy checkpoint
 oracle (whose source width is already 288, no projection) carry no such
 implication.
 
+#### Versioned tokenizer adapters (#601)
+
+The tokenizer a pipeline segments with is a typed, versioned identity, not
+an implementation detail. `uor-r4-core::transformerless::hf_bpe` derives a
+`TokenizerAdapter { family, version, tokenizer_cid, policy,
+adapter_digest }` record from every parsed `tokenizer.json`
+(`HfBpeTokenizer::adapter()`, selected through `TokenizerKind::adapter()`):
+family `hf-byte-bpe` version 1 is the post-#242/#253 byte-level BPE, the
+`tokenizer_cid` is the blake3 of the raw `tokenizer.json` bytes (the same
+CID rule used everywhere today), and the policy block names the applied
+normalizer (`none`), the pre-tokenizer steps in order (e.g.
+`digits(individual_digits=true)` then
+`byte-level(add_prefix_space=false)`), the byte-fallback mechanism
+(`byte-level-alphabet` — the GPT-2 byte alphabet makes encoding total), an
+added-token count + canonical digest, BOS/EOS insertion (`none`; the
+pinned post-processor is null), and the chat-template policy
+(`not-interpreted`). The `adapter_digest` is the blake3 of a canonical,
+byte-stable serialization of that declared identity — like the #600
+geometry digest, deliberately not a hash of source code text; a
+behavioral change must arrive as a new registry version, never an
+in-place edit.
+
+A versioned registry maps `(family, version)` to the constructor
+(`hf_bpe::adapter_constructor`); an unknown pair fails closed with the
+focused `SourceIngestKind::UnknownTokenizerAdapter` rather than being
+guessed. SentencePiece/Unigram is the recorded follow-up family
+(`sentencepiece-unigram`): recognized by name, rejected until a versioned
+adapter for it exists, never approximated with the byte-level BPE rule.
+
+The record threads into provenance the same way the #597 manifest κ and
+the #600 geometry record do: the observe-text drivers (serial and
+batched) record it in the observation manifest automatically whenever the
+selected tokenizer declares one (`tokenizer_adapter`, an optional
+serde-defaulted field — manifests written through the legacy llama2.c
+tokenizer carry no field and stay byte-identical, and every existing
+tokenizer CID remains valid). Differential source fixtures
+(`crates/uor-r4-core/tests/tokenizer_adapter.rs`) pin the current
+verified encode/decode behavior — ASCII, accents, CJK, emoji incl. ZWJ
+sequences, byte fallback, added tokens, BOS/EOS handling, digit
+boundaries, raw-byte round trips — as the baseline any drift fails
+against, and a consumer-agreement test asserts the observation,
+evaluation, serving-prompt, and exported-runtime-tokenizer selection
+seams resolve the same adapter identity, token ids, and decode bytes.
+
 ### 3. Compile the holographic graph
 
 The graph compiler turns the retained observation corpus and TLA artifact

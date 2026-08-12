@@ -939,6 +939,14 @@ pub fn observe_text_corpus(
         writer.set_geometry(&geometry)?;
     }
 
+    // #601: record the versioned tokenizer-adapter identity this pass
+    // segments with, when the selected tokenizer declares one (the HF
+    // byte-level BPE path; the legacy llama2.c tokenizer declares none,
+    // so legacy manifests remain byte-identical). Idempotent and atomic.
+    if let Some(adapter) = tokenizer.adapter() {
+        writer.set_tokenizer_adapter(&adapter)?;
+    }
+
     let workers = oracles.len();
     let seq_len = oracles[0].seq_len();
     let mut progress = Progress::new("text observations", articles_total as usize);
@@ -1161,6 +1169,12 @@ pub fn observe_text_corpus_batched(
                 stories_path,
             } => (writer, checkpoint, articles_total, stories_path),
         };
+
+    // #601: same tokenizer-adapter provenance as the serial driver — the
+    // batched path segments with the identical `TokenizerKind` selection.
+    if let Some(adapter) = tokenizer.adapter() {
+        writer.set_tokenizer_adapter(&adapter)?;
+    }
 
     let seq_len = oracle.seq_len();
     let mut progress = Progress::new("text observations", articles_total as usize);

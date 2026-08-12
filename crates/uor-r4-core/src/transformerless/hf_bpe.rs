@@ -31,6 +31,8 @@
 use std::collections::{HashMap, HashSet};
 use std::sync::Mutex;
 
+use serde::{Deserialize, Serialize};
+
 use super::scenarios::Tokenizer;
 
 /// Upper bound on cached pre-token encodings (bounds memory on adversarial
@@ -268,7 +270,11 @@ impl HfBpeTokenizer {
     }
 
     /// Raw decoded bytes of `ids` (before any lossy UTF-8 conversion).
-    fn decode_bytes(&self, ids: &[u32]) -> Vec<u8> {
+    /// Public since #601: differential fixtures and consumer-agreement
+    /// tests compare token content at the byte level, where a token
+    /// holding a partial UTF-8 sequence keeps its true bytes instead of
+    /// the replacement character.
+    pub fn decode_bytes(&self, ids: &[u32]) -> Vec<u8> {
         let mut bytes = Vec::new();
         for &id in ids {
             let Some(token) = self.vocab.get(id as usize) else {
@@ -310,6 +316,63 @@ impl HfBpeTokenizer {
     /// Content address of the raw `tokenizer.json` bytes: `blake3:<hex>`.
     pub fn address(&self) -> String {
         self.address.clone()
+    }
+
+    /// The versioned adapter-identity record (#601) this tokenizer
+    /// implements: family `hf-byte-bpe` version 1, the `tokenizer.json`
+    /// content address, and the encode/decode policy the parsed
+    /// configuration selects. Host/compile-side metadata only — the
+    /// encode/decode hot paths never call this.
+    pub fn adapter(&self) -> TokenizerAdapter {
+        // Canonical added-token summary: entries sorted by id, each as
+        // `<id>:<byte length>:<content bytes>\n` (length-prefixed, so no
+        // content byte can be confused with a separator).
+        let mut entries: Vec<(u32, &str)> = self
+            .added_tokens
+            .iter()
+            .map(|(content, id)| (*id, content.as_str()))
+            .collect();
+        entries.sort_by_key(|(id, _)| *id);
+        let mut listing = Vec::new();
+        for (id, content) in &entries {
+            listing.extend_from_slice(format!("{id}:{}:", content.len()).as_bytes());
+            listing.extend_from_slice(content.as_bytes());
+            listing.push(b'\n');
+        }
+        let mut pre_tokenizers = Vec::new();
+        if let Some(individual) = self.digits_individual {
+            pre_tokenizers.push(format!("digits(individual_digits={individual})"));
+        }
+        pre_tokenizers.push(format!(
+            "byte-level(add_prefix_space={})",
+            self.add_prefix_space
+        ));
+        let policy = TokenizerAdapterPolicy {
+            // This adapter applies no normalizer; parsing accepts the
+            // configuration as-is and never rewrites input text.
+            normalizer: "none".to_owned(),
+            pre_tokenizers,
+            // The GPT-2 byte alphabet covers all 256 byte values, so
+            // every input byte is encodable: encoding is total.
+            byte_fallback: "byte-level-alphabet".to_owned(),
+            added_tokens_count: entries.len() as u32,
+            added_tokens_digest: format!("blake3:{}", blake3::hash(&listing).to_hex()),
+            // No BOS/EOS insertion: encode adds no tokens beyond the
+            // input (the pinned SmolLM2 post-processor is null; see
+            // `HfBpeTokenizer::encode`).
+            bos: "none".to_owned(),
+            eos: "none".to_owned(),
+            chat_template_policy: "not-interpreted".to_owned(),
+        };
+        let mut record = TokenizerAdapter {
+            family: TokenizerAdapter::HF_BYTE_BPE_FAMILY.to_owned(),
+            version: TokenizerAdapter::HF_BYTE_BPE_VERSION,
+            tokenizer_cid: self.address.clone(),
+            policy,
+            adapter_digest: String::new(),
+        };
+        record.adapter_digest = record.declared_digest();
+        record
     }
 
     /// Split text on added-token occurrences, leftmost-longest.
@@ -581,6 +644,168 @@ fn pre_tokenize(text: &str) -> Vec<&str> {
     pieces
 }
 
+/// Declared encode/decode policy of a versioned tokenizer adapter
+/// (#601). Every field is a stable machine token entering the canonical
+/// digest serialization byte-for-byte, mirroring the #600
+/// `GeometryProjectionParams` convention.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TokenizerAdapterPolicy {
+    /// Normalizer the adapter applies before pre-tokenization
+    /// (`"none"`: this adapter never rewrites input text).
+    #[serde(default)]
+    pub normalizer: String,
+    /// Pre-tokenizer steps in application order, e.g.
+    /// `digits(individual_digits=true)` then
+    /// `byte-level(add_prefix_space=false)`.
+    #[serde(default)]
+    pub pre_tokenizers: Vec<String>,
+    /// How bytes outside merged tokens are represented
+    /// (`"byte-level-alphabet"`: the GPT-2 byte alphabet covers all 256
+    /// byte values, so encoding is total).
+    #[serde(default)]
+    pub byte_fallback: String,
+    /// Number of added (special) tokens matched atomically before
+    /// pre-tokenization.
+    #[serde(default)]
+    pub added_tokens_count: u32,
+    /// `blake3:<hex>` over the canonical added-token listing (entries
+    /// sorted by id, each `<id>:<byte length>:<content>\n`).
+    #[serde(default)]
+    pub added_tokens_digest: String,
+    /// BOS insertion policy (`"none"`: encode inserts no BOS token).
+    #[serde(default)]
+    pub bos: String,
+    /// EOS insertion policy (`"none"`: encode inserts no EOS token).
+    #[serde(default)]
+    pub eos: String,
+    /// Chat-template handling (`"not-interpreted"`: any
+    /// `chat_template` in the source snapshot is provenance-pinned by
+    /// the tokenizer CID but never executed by this adapter).
+    #[serde(default)]
+    pub chat_template_policy: String,
+}
+
+/// The typed, versioned tokenizer-adapter identity record (#601),
+/// mirroring the #600 `GeometryProjection` pattern: `{family, version,
+/// tokenizer_cid, policy, adapter_digest}` with a canonical
+/// serialization and a digest over it, carried by provenance surfaces
+/// (the observation manifest) wherever the producing pipeline knows its
+/// tokenizer. A behavioral change to an adapter family is a new
+/// version — a new registry entry — never an in-place edit.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TokenizerAdapter {
+    /// Registry family id (e.g. [`TokenizerAdapter::HF_BYTE_BPE_FAMILY`]).
+    #[serde(default)]
+    pub family: String,
+    /// Registry version of the family's implementation.
+    #[serde(default)]
+    pub version: u32,
+    /// Content address of the raw tokenizer definition bytes
+    /// (`blake3:<hex>` of `tokenizer.json`, exactly how tokenizer CIDs
+    /// are formed today by [`HfBpeTokenizer::address`]).
+    #[serde(default)]
+    pub tokenizer_cid: String,
+    /// The declared encode/decode policy.
+    #[serde(default)]
+    pub policy: TokenizerAdapterPolicy,
+    /// `blake3:<hex>` of [`TokenizerAdapter::canonical_bytes`] — the
+    /// declared identity, not source code text (renames and formatting
+    /// must not move the digest; a behavioral change must bump
+    /// `version` instead).
+    #[serde(default)]
+    pub adapter_digest: String,
+}
+
+impl TokenizerAdapter {
+    /// Registry family of the Hugging Face byte-level BPE adapter
+    /// implemented by [`HfBpeTokenizer`].
+    pub const HF_BYTE_BPE_FAMILY: &'static str = "hf-byte-bpe";
+    /// Registry version of the byte-level BPE adapter currently
+    /// implemented (the post-#242/#253 verified behavior).
+    pub const HF_BYTE_BPE_VERSION: u32 = 1;
+    /// Recorded follow-up family (#601 non-goal): SentencePiece/Unigram
+    /// tokenizers are recognized by name and rejected by
+    /// [`adapter_constructor`] until a versioned adapter exists — never
+    /// approximated with the byte-level BPE rule.
+    pub const SENTENCEPIECE_UNIGRAM_FAMILY: &'static str = "sentencepiece-unigram";
+
+    /// Canonical serialization of the adapter identity: a fixed line
+    /// format (format tag then `key=value\n` per field, pre-tokenizer
+    /// steps joined with `,`). Byte-stable by construction — field
+    /// order and separators are fixed here, not derived from any
+    /// serializer — so the digest over these bytes is reproducible
+    /// everywhere.
+    pub fn canonical_bytes(&self) -> Vec<u8> {
+        format!(
+            "uor-r4-tokenizer-adapter/1\n\
+             family={}\n\
+             version={}\n\
+             tokenizer_cid={}\n\
+             policy.normalizer={}\n\
+             policy.pre_tokenizers={}\n\
+             policy.byte_fallback={}\n\
+             policy.added_tokens_count={}\n\
+             policy.added_tokens_digest={}\n\
+             policy.bos={}\n\
+             policy.eos={}\n\
+             policy.chat_template_policy={}\n",
+            self.family,
+            self.version,
+            self.tokenizer_cid,
+            self.policy.normalizer,
+            self.policy.pre_tokenizers.join(","),
+            self.policy.byte_fallback,
+            self.policy.added_tokens_count,
+            self.policy.added_tokens_digest,
+            self.policy.bos,
+            self.policy.eos,
+            self.policy.chat_template_policy,
+        )
+        .into_bytes()
+    }
+
+    /// The adapter digest this record's declared identity implies:
+    /// `blake3:<hex>` over [`TokenizerAdapter::canonical_bytes`].
+    pub fn declared_digest(&self) -> String {
+        format!("blake3:{}", blake3::hash(&self.canonical_bytes()).to_hex())
+    }
+}
+
+/// A registered adapter constructor: parse raw tokenizer definition
+/// bytes into the family's tokenizer. Total in the module's existing
+/// convention ([`HfBpeTokenizer::from_tokenizer_json_bytes`]): `None`
+/// when the bytes are not the shape the family requires.
+pub type AdapterConstructor = fn(&[u8]) -> Option<HfBpeTokenizer>;
+
+/// The versioned tokenizer-adapter registry (#601): map `(family,
+/// version)` to the constructor that implements it. Every pair outside
+/// the registry — including the recorded
+/// [`TokenizerAdapter::SENTENCEPIECE_UNIGRAM_FAMILY`] follow-up — is
+/// refused by name on the sanctioned
+/// [`uor_r4_model_source::SourceUnavailable`] surface
+/// (`SourceIngestKind::UnknownTokenizerAdapter`), matching the module's
+/// existing host-ingestion convention ([`HfBpeTokenizer::from_dir`])
+/// and the #600 geometry registry: never guessed, never approximated
+/// by a "closest" family or version.
+#[cfg(not(target_arch = "wasm32"))]
+pub fn adapter_constructor(
+    family: &str,
+    version: u32,
+) -> Result<AdapterConstructor, uor_r4_model_source::SourceUnavailable> {
+    match (family, version) {
+        (TokenizerAdapter::HF_BYTE_BPE_FAMILY, TokenizerAdapter::HF_BYTE_BPE_VERSION) => {
+            Ok(HfBpeTokenizer::from_tokenizer_json_bytes)
+        }
+        _ => Err(
+            uor_r4_model_source::SourceIngestKind::UnknownTokenizerAdapter {
+                family: family.to_owned(),
+                version,
+            }
+            .into(),
+        ),
+    }
+}
+
 /// Tokenizer selector for observation drivers: the legacy llama2.c
 /// tokenizer keeps its exact behavior (κ-pinned baselines), the HF path
 /// uses the teacher's real byte-level BPE when `tokenizer.json` exists.
@@ -617,6 +842,18 @@ impl TokenizerKind {
         match self {
             TokenizerKind::Legacy(tokenizer) => tokenizer.vocab.len(),
             TokenizerKind::HfBpe(tokenizer) => tokenizer.vocab_size(),
+        }
+    }
+
+    /// The versioned adapter-identity record (#601) this selection
+    /// resolves to: `Some` for the HF byte-level BPE path, `None` for
+    /// the legacy llama2.c tokenizer, which predates adapter records
+    /// and stays exactly as-is (its κ-pinned baselines and manifest
+    /// bytes are unchanged when no adapter is recorded).
+    pub fn adapter(&self) -> Option<TokenizerAdapter> {
+        match self {
+            TokenizerKind::Legacy(_) => None,
+            TokenizerKind::HfBpe(tokenizer) => Some(tokenizer.adapter()),
         }
     }
 }

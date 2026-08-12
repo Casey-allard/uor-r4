@@ -522,6 +522,69 @@ fn geometry_projection_parses_and_persists_in_the_manifest() {
     let _ = std::fs::remove_dir_all(&dir);
 }
 
+/// #601 provenance seam: the writer setter persists the typed
+/// [`TokenizerAdapter`] record into the observation manifest atomically
+/// and idempotently across reopen, and an unset record leaves legacy
+/// manifest bytes unchanged (no `tokenizer_adapter` key at all) — the
+/// legacy llama2.c selection never sets one, so its historical bytes and
+/// existing tokenizer CIDs stay valid.
+#[test]
+fn tokenizer_adapter_persists_in_the_manifest() {
+    let tokenizer_json = r#"{
+        "pre_tokenizer": {"type": "ByteLevel", "add_prefix_space": false},
+        "model": {"type": "BPE", "vocab": {"a": 0, "b": 1, "ab": 2}, "merges": ["a b"]}
+    }"#;
+    let record = uor_r4_core::transformerless::hf_bpe::HfBpeTokenizer::from_tokenizer_json_bytes(
+        tokenizer_json.as_bytes(),
+    )
+    .expect("fixture tokenizer parses")
+    .adapter();
+
+    let dir = unique_path("observe-tokenizer-adapter");
+    let mut writer = ObservationShardWriter::open(&dir, 2).expect("writer");
+    assert_eq!(writer.manifest().tokenizer_adapter, None);
+    // Legacy bytes: an unset record serializes no `tokenizer_adapter` key.
+    let legacy_json = serde_json::to_string(writer.manifest()).expect("manifest serializes");
+    assert!(
+        !legacy_json.contains("tokenizer_adapter"),
+        "an unset record must leave legacy manifest bytes unchanged"
+    );
+    // And a legacy manifest without the key still deserializes (None).
+    let legacy: ObservationManifest =
+        serde_json::from_str(&legacy_json).expect("legacy manifest deserializes");
+    assert_eq!(legacy.tokenizer_adapter, None);
+
+    writer
+        .set_tokenizer_adapter(&record)
+        .expect("set and store");
+    // Idempotent: re-setting the recorded value does not rewrite.
+    writer
+        .set_tokenizer_adapter(&record)
+        .expect("idempotent set");
+    drop(writer);
+    let manifest = ObservationManifest::load(&dir)
+        .expect("manifest io")
+        .expect("manifest present");
+    assert_eq!(manifest.tokenizer_adapter.as_ref(), Some(&record));
+    // Round trip: the persisted record parses back bit-for-bit, digest
+    // included.
+    assert_eq!(
+        manifest
+            .tokenizer_adapter
+            .as_ref()
+            .map(|a| &a.adapter_digest),
+        Some(&record.adapter_digest)
+    );
+    // A reopened writer (as the observe-text drivers do after the
+    // pre-set) preserves the stored record.
+    let reopened = ObservationShardWriter::open(&dir, 2).expect("reopen");
+    assert_eq!(
+        reopened.manifest().tokenizer_adapter.as_ref(),
+        Some(&record)
+    );
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
 /// #600: the legacy checkpoint oracle declares no projection (its dim IS
 /// the source width), while the Hugging Face adapter declares
 /// `bucket-average/1` — asserted here structurally via the trait default.

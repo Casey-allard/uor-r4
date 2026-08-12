@@ -33,6 +33,7 @@ use std::io::{self, BufWriter, Read, Write};
 use std::path::{Path, PathBuf};
 #[cfg(not(target_arch = "wasm32"))]
 use uor_r4_core::transformerless::compiler;
+use uor_r4_core::transformerless::hf_bpe::TokenizerAdapter;
 #[cfg(not(target_arch = "wasm32"))]
 use uor_r4_model_source::SourceUnavailable;
 #[cfg(not(target_arch = "wasm32"))]
@@ -265,6 +266,15 @@ pub struct ObservationManifest {
     /// manifest bytes are unchanged when unset.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub geometry: Option<GeometryProjection>,
+    /// #601 typed record of the versioned tokenizer adapter the
+    /// producing pipeline segmented these observations with (family,
+    /// version, tokenizer CID, encode/decode policy, adapter digest),
+    /// when the pipeline's tokenizer declares one (the HF byte-level
+    /// BPE path; the legacy llama2.c tokenizer declares none).
+    /// Optional with a serde default so every legacy manifest stays
+    /// readable and legacy manifest bytes are unchanged when unset.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tokenizer_adapter: Option<TokenizerAdapter>,
     #[serde(default)]
     pub completed: BTreeMap<u32, ShardEntry>,
     #[serde(default)]
@@ -280,6 +290,7 @@ impl ObservationManifest {
             input_cid: None,
             source_manifest_kappa: None,
             geometry: None,
+            tokenizer_adapter: None,
             completed: BTreeMap::new(),
             total_records: 0,
         }
@@ -418,6 +429,20 @@ impl ObservationShardWriter {
     pub fn set_geometry(&mut self, geometry: &GeometryProjection) -> Result<(), SourceUnavailable> {
         if self.manifest.geometry.as_ref() != Some(geometry) {
             self.manifest.geometry = Some(geometry.clone());
+            self.manifest.store(&self.dir)?;
+        }
+        Ok(())
+    }
+
+    /// Record the #601 typed tokenizer-adapter identity record of the
+    /// producing pipeline's tokenizer in the observation manifest
+    /// (idempotent, atomic store).
+    pub fn set_tokenizer_adapter(
+        &mut self,
+        adapter: &TokenizerAdapter,
+    ) -> Result<(), SourceUnavailable> {
+        if self.manifest.tokenizer_adapter.as_ref() != Some(adapter) {
+            self.manifest.tokenizer_adapter = Some(adapter.clone());
             self.manifest.store(&self.dir)?;
         }
         Ok(())

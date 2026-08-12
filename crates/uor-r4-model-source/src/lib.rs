@@ -1687,6 +1687,19 @@ pub enum SourceIngestKind {
         /// The requested projection version.
         version: u32,
     },
+    /// #601 tokenizer-adapter registry: a caller named a tokenizer
+    /// adapter `(family, version)` outside the versioned registry
+    /// (`uor_r4_core::transformerless::hf_bpe::adapter_constructor`),
+    /// so no constructor exists to interpret it. Refused by name, never
+    /// approximated by a "closest" family or version; in particular the
+    /// recorded `sentencepiece-unigram` follow-up family is rejected
+    /// here until a versioned adapter for it exists.
+    UnknownTokenizerAdapter {
+        /// The requested adapter family.
+        family: String,
+        /// The requested adapter version.
+        version: u32,
+    },
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -1758,6 +1771,13 @@ impl std::fmt::Display for SourceIngestKind {
                  registry (known: {}/{})",
                 geometry::GeometryProjection::BUCKET_AVERAGE_ID,
                 geometry::GeometryProjection::BUCKET_AVERAGE_VERSION,
+            ),
+            Self::UnknownTokenizerAdapter { family, version } => write!(
+                f,
+                "tokenizer adapter {family}/{version} is not in the versioned adapter \
+                 registry (known: hf-byte-bpe/1; sentencepiece-unigram is the recorded \
+                 follow-up family and stays rejected until its adapter is implemented, \
+                 never approximated)"
             ),
         }
     }
