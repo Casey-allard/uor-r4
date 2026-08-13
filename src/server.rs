@@ -64,7 +64,12 @@ pub struct ChatMessage {
     pub content: String,
 }
 
+/// The supported subset of the OpenAI Chat Completions request. `#654`
+/// phase B: `deny_unknown_fields` makes any parameter outside this subset
+/// fail closed with the standard error envelope instead of being silently
+/// accepted and ignored — support is never implied by omission.
 #[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct VendorChatCompletionsRequest {
     #[serde(default)]
     pub model: Option<String>,
@@ -2157,17 +2162,33 @@ fn handle_connection(
 
     // Vendor API endpoints
     if clean_path == "/v1/models" && method == "GET" {
-        let body = serde_json::json!({
-            "object": "list",
-            "data": [
-                {
-                    "id": "uor-r4",
-                    "object": "model"
-                }
-            ]
-        });
-        send_json_response(stream, 200, &body.to_string());
+        // #654 phase B: advertise only loadable compiled bundles, each with
+        // every field the pinned Model schema requires.
+        let models = loadable_models_in(Path::new(COMPILED_MODELS_DIR));
+        send_json_response(stream, 200, &models_list_body(&models).to_string());
         return;
+    }
+
+    // GET /v1/models/{model} (#654 phase B): agrees with the list; a model id
+    // absent from the loadable set is a 404 with the standard error envelope.
+    if method == "GET" {
+        if let Some(model_id) = clean_path.strip_prefix("/v1/models/") {
+            let models = loadable_models_in(Path::new(COMPILED_MODELS_DIR));
+            match models.iter().find(|(id, _)| id == model_id) {
+                Some((id, created)) => {
+                    send_json_response(stream, 200, &openai_model_object(id, *created).to_string())
+                }
+                None => send_openai_error(
+                    stream,
+                    404,
+                    "invalid_request_error",
+                    &format!("The model '{model_id}' does not exist or is not loadable."),
+                    Some("model"),
+                    Some("model_not_found"),
+                ),
+            }
+            return;
+        }
     }
 
     if clean_path == "/v1/status" && method == "GET" {
@@ -2370,12 +2391,19 @@ fn handle_connection(
 
     if clean_path == "/v1/chat/completions" && method == "POST" {
         let req: VendorChatCompletionsRequest = match serde_json::from_slice(&body) {
-            Ok(p) => p,
-            Err(e) => {
-                send_json_response(
+            Ok(parsed) => parsed,
+            Err(error) => {
+                // #654 phase B: malformed JSON and unsupported parameters (the
+                // request DTO denies unknown fields) return the standard error
+                // envelope, not an ad-hoc string body — support is never
+                // implied by silently ignoring a field.
+                send_openai_error(
                     stream,
                     400,
-                    &format!("{{\"error\":\"Invalid JSON: {}\"}}", e),
+                    "invalid_request_error",
+                    &format!("Invalid request body: {error}"),
+                    None,
+                    None,
                 );
                 return;
             }
@@ -3901,6 +3929,96 @@ fn handle_connection(
     let _ = stream.write_all(&contents);
 }
 
+/// The directory holding compiled model bundles.
+const COMPILED_MODELS_DIR: &str = ".uor-models/compiled";
+
+/// The standard OpenAI error object envelope (#654 phase B):
+/// `{ "error": { "message", "type", "param", "code" } }`, with `param`/`code`
+/// serialized as JSON `null` when absent. Official SDKs parse errors from this
+/// shape; the ad-hoc `{"error":"..."}` string body does not satisfy them.
+fn openai_error_body(
+    error_type: &str,
+    message: &str,
+    param: Option<&str>,
+    code: Option<&str>,
+) -> serde_json::Value {
+    serde_json::json!({
+        "error": {
+            "message": message,
+            "type": error_type,
+            "param": param,
+            "code": code,
+        }
+    })
+}
+
+/// Send the OpenAI error envelope with the mapped HTTP status.
+fn send_openai_error(
+    stream: TcpStream,
+    status: u16,
+    error_type: &str,
+    message: &str,
+    param: Option<&str>,
+    code: Option<&str>,
+) {
+    send_json_response(
+        stream,
+        status,
+        &openai_error_body(error_type, message, param, code).to_string(),
+    );
+}
+
+/// One OpenAI `Model` object with every field the pinned schema requires:
+/// `id`, `object`, `created` (unix seconds), and `owned_by`.
+fn openai_model_object(id: &str, created: u64) -> serde_json::Value {
+    serde_json::json!({
+        "id": id,
+        "object": "model",
+        "created": created,
+        "owned_by": "uor-foundation",
+    })
+}
+
+/// The models loadable from `compiled_dir`: each immediate subdirectory that
+/// contains a compiled `tless_artifacts.bin` bundle, reported as
+/// `(id = directory name, created = the bundle's mtime in unix seconds)` and
+/// sorted by id for a deterministic listing. Advertising only compiled bundles
+/// keeps `/v1/models` truthful — an id absent here is not loadable.
+fn loadable_models_in(compiled_dir: &Path) -> Vec<(String, u64)> {
+    let mut models = Vec::new();
+    if let Ok(entries) = std::fs::read_dir(compiled_dir) {
+        for entry in entries.flatten() {
+            let artifact = entry.path().join("tless_artifacts.bin");
+            if !artifact.is_file() {
+                continue;
+            }
+            let Some(id) = entry.file_name().to_str().map(str::to_owned) else {
+                continue;
+            };
+            let created = std::fs::metadata(&artifact)
+                .ok()
+                .and_then(|meta| meta.modified().ok())
+                .and_then(|time| time.duration_since(std::time::UNIX_EPOCH).ok())
+                .map(|delta| delta.as_secs())
+                .unwrap_or(0);
+            models.push((id, created));
+        }
+    }
+    models.sort_by(|a, b| a.0.cmp(&b.0));
+    models
+}
+
+/// The `GET /v1/models` list body over the loadable models.
+fn models_list_body(models: &[(String, u64)]) -> serde_json::Value {
+    serde_json::json!({
+        "object": "list",
+        "data": models
+            .iter()
+            .map(|(id, created)| openai_model_object(id, *created))
+            .collect::<Vec<_>>(),
+    })
+}
+
 fn send_json_response(mut stream: TcpStream, status_code: u16, body: &str) {
     let status_text = match status_code {
         200 => "OK",
@@ -4349,5 +4467,97 @@ mod tests {
             .as_str()
             .unwrap_or_default()
             .contains("not loaded"));
+    }
+
+    // ---- #654 phase B: OpenAI wire shapes ----
+
+    #[test]
+    fn openai_error_envelope_has_the_standard_shape() {
+        let body = super::openai_error_body(
+            "invalid_request_error",
+            "The model 'x' does not exist or is not loadable.",
+            Some("model"),
+            Some("model_not_found"),
+        );
+        let error = &body["error"];
+        assert_eq!(error["type"], "invalid_request_error");
+        assert_eq!(
+            error["message"],
+            "The model 'x' does not exist or is not loadable."
+        );
+        assert_eq!(error["param"], "model");
+        assert_eq!(error["code"], "model_not_found");
+
+        // Absent param/code serialize as JSON null (present, not omitted).
+        let bare = super::openai_error_body("invalid_request_error", "bad", None, None);
+        assert!(bare["error"]["param"].is_null());
+        assert!(bare["error"]["code"].is_null());
+    }
+
+    #[test]
+    fn openai_model_object_carries_every_required_field() {
+        let model = super::openai_model_object("smollm2-135m-instruct", 1_700_000_000);
+        assert_eq!(model["id"], "smollm2-135m-instruct");
+        assert_eq!(model["object"], "model");
+        assert_eq!(model["created"], 1_700_000_000u64);
+        assert!(model["owned_by"].as_str().is_some(), "owned_by is present");
+    }
+
+    #[test]
+    fn loadable_models_lists_only_compiled_bundles_sorted() {
+        let dir = std::env::temp_dir().join(format!("uor-r4-models-654b-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        for name in ["beta-model", "alpha-model"] {
+            let bundle = dir.join(name);
+            std::fs::create_dir_all(&bundle).unwrap();
+            std::fs::write(bundle.join("tless_artifacts.bin"), b"artifact").unwrap();
+        }
+        // A directory without a compiled artifact is NOT loadable.
+        std::fs::create_dir_all(dir.join("no-bundle")).unwrap();
+
+        let models = super::loadable_models_in(&dir);
+        let ids: Vec<&str> = models.iter().map(|(id, _)| id.as_str()).collect();
+        assert_eq!(
+            ids,
+            vec!["alpha-model", "beta-model"],
+            "only bundles with an artifact, sorted by id"
+        );
+        assert!(
+            models.iter().all(|(_, created)| *created > 0),
+            "created is the bundle mtime"
+        );
+
+        let body = super::models_list_body(&models);
+        assert_eq!(body["object"], "list");
+        assert_eq!(body["data"].as_array().unwrap().len(), 2);
+        assert_eq!(body["data"][0]["id"], "alpha-model");
+        assert_eq!(body["data"][0]["object"], "model");
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn loadable_models_is_empty_without_a_compiled_dir() {
+        let dir = std::env::temp_dir().join(format!("uor-r4-nomodels-654b-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        assert!(super::loadable_models_in(&dir).is_empty());
+    }
+
+    #[test]
+    fn chat_request_rejects_unsupported_parameters() {
+        // The supported subset parses.
+        let ok: Result<super::VendorChatCompletionsRequest, _> = serde_json::from_str(
+            r#"{"model":"uor-r4","messages":[{"role":"user","content":"hi"}],"max_tokens":8}"#,
+        );
+        assert!(ok.is_ok(), "supported fields parse");
+
+        // An unsupported OpenAI parameter fails closed (deny_unknown_fields),
+        // rather than being silently accepted and ignored.
+        let denied: Result<super::VendorChatCompletionsRequest, _> =
+            serde_json::from_str(r#"{"messages":[{"role":"user","content":"hi"}],"top_p":0.9}"#);
+        assert!(
+            denied.is_err(),
+            "unsupported parameter top_p is rejected, not ignored"
+        );
     }
 }
