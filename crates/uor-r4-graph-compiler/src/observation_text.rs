@@ -51,10 +51,10 @@ use std::fs;
 use std::io::{self, BufRead, BufReader, Write};
 use std::path::{Path, PathBuf};
 use uor_r4_core::transformerless::hf_bpe::TokenizerKind;
+use uor_r4_model_source::BatchedTeacher;
 use uor_r4_model_source::SourceUnavailable;
 use uor_r4_model_source::TeacherOracle;
 use uor_r4_model_source::progress::Progress;
-use uor_r4_model_source::{BatchedTeacher, State};
 
 /// Authoritative per-article checkpoint file name within an observation
 /// directory.
@@ -1156,8 +1156,8 @@ struct BatchSlot {
 /// path from the serial (`sgemv`) one — both are teacher data, not the pinned
 /// legacy proof.
 #[allow(clippy::too_many_arguments)]
-pub fn observe_text_corpus_batched(
-    oracle: &dyn BatchedTeacher,
+pub fn observe_text_corpus_batched<T: BatchedTeacher>(
+    oracle: &T,
     batch: usize,
     budget_s: u64,
     tokenizer: &TokenizerKind,
@@ -1199,7 +1199,7 @@ pub fn observe_text_corpus_batched(
     let mut ordinal = 0u64;
     let mut budget_hit = false;
     // One reusable state per slot, all sharing the oracle's single weight copy.
-    let mut states: Vec<State> = (0..batch).map(|_| oracle.new_state()).collect();
+    let mut states: Vec<T::State> = (0..batch).map(|_| oracle.new_state()).collect();
 
     'groups: loop {
         let mut slots: Vec<BatchSlot> = Vec::with_capacity(batch);
@@ -1246,7 +1246,9 @@ pub fn observe_text_corpus_batched(
             break;
         }
         let active = slots.len();
-        states[..active].iter_mut().for_each(State::reset);
+        for state in states[..active].iter_mut() {
+            oracle.reset_state(state);
+        }
         let max_len = slots.iter().map(|s| s.positions).max().unwrap_or(0);
 
         for pos in 0..max_len {
@@ -1270,7 +1272,7 @@ pub fn observe_text_corpus_batched(
                     let token = slot.tokens[pos];
                     let next = slot.tokens[pos + 1];
                     let (encoded, advanced) = encode_position(
-                        &mut states[i].logits,
+                        oracle.logits_mut(&mut states[i]),
                         story,
                         pos,
                         token,
@@ -1346,7 +1348,7 @@ mod tests {
     };
     use std::time::{SystemTime, UNIX_EPOCH};
     use uor_r4_core::transformerless::scenarios::Tokenizer;
-    use uor_r4_model_source::{BehaviorSource, RepresentationSource};
+    use uor_r4_model_source::{BehaviorSource, RepresentationSource, State};
 
     const SHARD_BITS: u8 = 2;
     const SHARD_COUNT: u32 = 1 << SHARD_BITS;
@@ -2185,8 +2187,15 @@ mod tests {
     }
 
     impl BatchedTeacher for FakeBatchedOracle {
+        type State = State;
         fn new_state(&self) -> State {
             State::new(&self.cfg)
+        }
+        fn reset_state(&self, state: &mut State) {
+            state.reset();
+        }
+        fn logits_mut<'a>(&self, state: &'a mut State) -> &'a mut [f32] {
+            &mut state.logits
         }
         fn seq_len(&self) -> usize {
             FAKE_SEQ_LEN

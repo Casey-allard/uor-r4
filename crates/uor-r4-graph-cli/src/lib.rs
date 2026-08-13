@@ -44,9 +44,7 @@ use std::io::Read;
 use std::path::{Path, PathBuf};
 use uor_r4_core::transformerless::hf_bpe::{HfBpeTokenizer, TokenizerKind};
 use uor_r4_core::transformerless::scenarios as core_scenarios;
-use uor_r4_model_source::{
-    BehaviorSource, HuggingFaceLlamaOracle, LlamaOracle, SourceUnavailable, Teacher, TeacherOracle,
-};
+use uor_r4_model_source::{BehaviorSource, LlamaOracle, SourceUnavailable, Teacher, TeacherOracle};
 
 const DEFAULT_CHECKPOINT: &str = "/tmp/ref/out/model.bin";
 const DEFAULT_TOKENIZER: &str = "/tmp/ref/tokenizer.bin";
@@ -498,15 +496,15 @@ pub fn observe_text_command(args: &[String]) -> Result<(), SourceUnavailable> {
 /// up to `--batch` articles teacher-forced per forward. Produces the same
 /// records as the serial path for identical logits.
 fn observe_text_batched_command(options: &ObserveTextOptions) -> Result<(), SourceUnavailable> {
-    // #657: the batched observation path scores through `BatchedTeacher`,
-    // whose per-sequence `State` is the Llama batched state — GPT-2 has no
-    // batched executor yet (that is #657 item 2), so this path stays
-    // Llama-only until then rather than dispatching over `Teacher`.
-    let oracle =
-        HuggingFaceLlamaOracle::load_with_sequence_length(&options.source, options.sequence_length)
-            .map_err(|error| {
-                SourceUnavailable::new(format!("failed to load Hugging Face model: {error}"))
-            })?;
+    // #657 item 2b: the batched observation path now dispatches over
+    // `Teacher`, so a GPT-2 source runs on its own batched executor
+    // (`Gpt2State`) instead of the Llama-only path. Both concrete oracles
+    // implement `BatchedTeacher`; the generic `observe_text_corpus_batched`
+    // is monomorphized per architecture.
+    let teacher = Teacher::load_with_sequence_length(&options.source, options.sequence_length)
+        .map_err(|error| {
+            SourceUnavailable::new(format!("failed to load Hugging Face model: {error}"))
+        })?;
     eprintln!("exporting tokenizer...");
     let token_byte_lengths =
         uor_r4_core::transformerless::scenarios::export_hf_bytelevel_tokenizer_with_lengths(
@@ -528,17 +526,30 @@ fn observe_text_batched_command(options: &ObserveTextOptions) -> Result<(), Sour
         )
     };
     eprintln!("observing with batch {}", options.batch);
-    let report = observe_text::observe_text_corpus_batched(
-        &oracle,
-        options.batch,
-        options.seconds,
-        &tokenizer,
-        Some(&token_byte_lengths),
-        &options.input,
-        &options.output,
-        options.shards,
-        true,
-    )
+    let report = match teacher {
+        Teacher::Llama(oracle) => observe_text::observe_text_corpus_batched(
+            &oracle,
+            options.batch,
+            options.seconds,
+            &tokenizer,
+            Some(&token_byte_lengths),
+            &options.input,
+            &options.output,
+            options.shards,
+            true,
+        ),
+        Teacher::Gpt2(oracle) => observe_text::observe_text_corpus_batched(
+            &oracle,
+            options.batch,
+            options.seconds,
+            &tokenizer,
+            Some(&token_byte_lengths),
+            &options.input,
+            &options.output,
+            options.shards,
+            true,
+        ),
+    }
     .map_err(SourceUnavailable::new)?;
     finish_observe_text_report(&report, &options.output)
 }

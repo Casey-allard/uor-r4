@@ -2485,20 +2485,38 @@ fn required_llama_tensors(cfg: &Config, tie_word_embeddings: bool) -> Vec<Tensor
 /// (the deployed teacher) and mockable for tests, so the batched observe driver
 /// need not name a concrete oracle.
 pub trait BatchedTeacher {
+    /// The per-sequence decode state this teacher advances. Generic so a
+    /// non-Llama architecture (GPT-2) can carry its own state through the
+    /// same batched observe driver instead of the Llama `State`.
+    type State;
     /// A fresh per-sequence state for this teacher.
-    fn new_state(&self) -> State;
+    fn new_state(&self) -> Self::State;
+    /// Reset a state to begin a new sequence (zero its caches/buffers).
+    fn reset_state(&self, state: &mut Self::State);
+    /// Mutable view of the logits the last
+    /// [`BatchedTeacher::forward_batch_into`] left in `state` — the observe
+    /// driver encodes each position in place.
+    fn logits_mut<'a>(&self, state: &'a mut Self::State) -> &'a mut [f32];
     /// Maximum context length (teacher-forced positions per article).
     fn seq_len(&self) -> usize;
     /// Vocabulary size (logits length).
     fn vocab(&self) -> usize;
     /// Advance `states.len()` sequences one position each: sequence `b` steps
-    /// `tokens[b]` at `positions[b]`, leaving its logits in `states[b].logits`.
-    fn forward_batch_into(&self, states: &mut [State], tokens: &[usize], positions: &[usize]);
+    /// `tokens[b]` at `positions[b]`, leaving its logits reachable through
+    /// [`BatchedTeacher::logits_mut`].
+    fn forward_batch_into(&self, states: &mut [Self::State], tokens: &[usize], positions: &[usize]);
 }
 
 impl BatchedTeacher for HuggingFaceLlamaOracle {
+    type State = State;
     fn new_state(&self) -> State {
         State::new(&self.model.cfg)
+    }
+    fn reset_state(&self, state: &mut State) {
+        state.reset();
+    }
+    fn logits_mut<'a>(&self, state: &'a mut State) -> &'a mut [f32] {
+        &mut state.logits
     }
     fn seq_len(&self) -> usize {
         self.model.cfg.seq_len

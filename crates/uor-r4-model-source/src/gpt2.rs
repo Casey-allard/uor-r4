@@ -302,6 +302,43 @@ fn conv1d(x: &[f32], w: &[f32], bias: &[f32], out_dim: usize, out: &mut [f32]) {
     }
 }
 
+/// Batched Conv1D: `b` input vectors of length `in_dim` through weight
+/// `[in_dim, out_dim]` → `b` output vectors of length `out_dim`, both in
+/// sequence-major layout (`b * in_dim` in, `b * out_dim` out). Each weight
+/// row `w[i * out_dim..]` is read once per input index `i` and reused
+/// across all `b` sequences — the memory-amortization that lifts batched
+/// teacher inference off the per-token bandwidth wall — while every output
+/// accumulates over `i` in the SAME order, with the same bias
+/// initialization and the same bit-neutral zero-input skip, as the serial
+/// [`conv1d`]. So `conv1d_batched` is bit-identical to calling `conv1d` on
+/// each sequence separately.
+fn conv1d_batched(
+    out: &mut [f32],
+    x: &[f32],
+    w: &[f32],
+    bias: &[f32],
+    out_dim: usize,
+    in_dim: usize,
+    b: usize,
+) {
+    for bi in 0..b {
+        out[bi * out_dim..(bi + 1) * out_dim].copy_from_slice(&bias[..out_dim]);
+    }
+    for i in 0..in_dim {
+        let row = &w[i * out_dim..(i + 1) * out_dim];
+        for bi in 0..b {
+            let xi = x[bi * in_dim + i];
+            if xi == 0.0 {
+                continue;
+            }
+            let ob = &mut out[bi * out_dim..(bi + 1) * out_dim];
+            for o in 0..out_dim {
+                ob[o] += xi * row[o];
+            }
+        }
+    }
+}
+
 /// Recurrent decode state: per-layer key/value caches, the working
 /// residual, the final hidden state, and the last step's logits.
 pub struct Gpt2State {
@@ -468,13 +505,10 @@ impl Gpt2 {
         inner: &mut [f32],
         mlp_out: &mut [f32],
         request: Option<&crate::TraceCaptureRequest<'_>>,
-        mut sinks: Option<&mut crate::TraceCaptureSinks<'_, '_>>,
+        sinks: Option<&mut crate::TraceCaptureSinks<'_, '_>>,
     ) {
         let d = self.cfg.n_embd;
-        let hs = self.cfg.head_size();
-        let scale = 1.0 / (hs as f32).sqrt();
         let layer = &self.layers[l];
-        let seq = self.cfg.seq_len;
 
         // --- attention ---
         layer_norm(
@@ -485,6 +519,53 @@ impl Gpt2 {
             normed,
         );
         conv1d(normed, &layer.c_attn_w, &layer.c_attn_b, 3 * d, qkv);
+        self.block_attention(st, l, pos, qkv, attn, request, sinks);
+        conv1d(attn, &layer.c_proj_w, &layer.c_proj_b, d, proj);
+        for (xi, &p) in st.x.iter_mut().zip(&proj[..d]) {
+            *xi += p;
+        }
+
+        // --- MLP ---
+        layer_norm(
+            &st.x,
+            &layer.ln2_w,
+            &layer.ln2_b,
+            self.cfg.layer_norm_eps,
+            normed,
+        );
+        conv1d(normed, &layer.fc_w, &layer.fc_b, self.cfg.n_inner, inner);
+        for v in inner.iter_mut() {
+            *v = gelu_new(*v);
+        }
+        conv1d(inner, &layer.mlp_w, &layer.mlp_b, d, mlp_out);
+        for (xi, &m) in st.x.iter_mut().zip(&mlp_out[..d]) {
+            *xi += m;
+        }
+    }
+
+    /// The per-sequence attention sub-block shared by [`Gpt2::block_forward`]
+    /// (serial) and [`Gpt2::forward_batch`] (batched): cache this position's
+    /// k/v from the fused `qkv` projection, then for each head compute the
+    /// scaled dot-product scores, the max-subtracted softmax (normalized in
+    /// place), and the value aggregation into `attn`. Optional #603 taps
+    /// (q/k/v and the per-head weights) fire for a requested layer. Sharing
+    /// it keeps the serial and batched executors bit-identical by
+    /// construction.
+    #[allow(clippy::too_many_arguments)]
+    fn block_attention(
+        &self,
+        st: &mut Gpt2State,
+        l: usize,
+        pos: usize,
+        qkv: &[f32],
+        attn: &mut [f32],
+        request: Option<&crate::TraceCaptureRequest<'_>>,
+        mut sinks: Option<&mut crate::TraceCaptureSinks<'_, '_>>,
+    ) {
+        let d = self.cfg.n_embd;
+        let hs = self.cfg.head_size();
+        let scale = 1.0 / (hs as f32).sqrt();
+        let seq = self.cfg.seq_len;
         // store this position's k, v (thirds 1 and 2 of the fused qkv).
         let base = (l * seq + pos) * d;
         st.k_cache[base..base + d].copy_from_slice(&qkv[d..2 * d]);
@@ -549,26 +630,148 @@ impl Gpt2 {
                 }
             }
         }
-        conv1d(attn, &layer.c_proj_w, &layer.c_proj_b, d, proj);
-        for (xi, &p) in st.x.iter_mut().zip(&proj[..d]) {
-            *xi += p;
+    }
+
+    /// Batched forward: advance `states.len()` independent sequences by one
+    /// position each — sequence `bi` steps `tokens[bi]` at `positions[bi]`
+    /// against its own k/v cache in `states[bi]`. The projection Conv1Ds
+    /// (`c_attn`, `c_proj`, `fc`, `mlp`) run once over the whole batch via
+    /// the amortized [`conv1d_batched`], and the tied lm-head reuses each
+    /// `wte` row across the batch — the same memory-amortization Llama's
+    /// `forward_batch` gets from `matmul_batched`. Every per-sequence op
+    /// (embedding, LayerNorm, attention via the shared
+    /// [`Gpt2::block_attention`], GELU, residual) mirrors [`Gpt2::forward`]
+    /// and keeps the serial accumulation order, so this is bit-identical to
+    /// calling `forward` on each sequence.
+    // Sequence-major index loops are deliberate here: the accumulation order
+    // must match the serial `forward` byte-for-byte, and the offsets index
+    // several stacked scratch buffers in lockstep.
+    #[allow(clippy::needless_range_loop)]
+    pub fn forward_batch(&self, states: &mut [Gpt2State], tokens: &[usize], positions: &[usize]) {
+        let d = self.cfg.n_embd;
+        let inner_dim = self.cfg.n_inner;
+        let b = states.len();
+        debug_assert_eq!(tokens.len(), b);
+        debug_assert_eq!(positions.len(), b);
+        if b == 0 {
+            return;
         }
 
-        // --- MLP ---
-        layer_norm(
-            &st.x,
-            &layer.ln2_w,
-            &layer.ln2_b,
-            self.cfg.layer_norm_eps,
-            normed,
-        );
-        conv1d(normed, &layer.fc_w, &layer.fc_b, self.cfg.n_inner, inner);
-        for v in inner.iter_mut() {
-            *v = gelu_new(*v);
+        let mut normed = vec![0.0f32; b * d];
+        let mut qkv = vec![0.0f32; b * 3 * d];
+        let mut attn = vec![0.0f32; b * d];
+        let mut proj = vec![0.0f32; b * d];
+        let mut inner = vec![0.0f32; b * inner_dim];
+        let mut mlp_out = vec![0.0f32; b * d];
+
+        // token + learned absolute position embedding, per sequence.
+        for bi in 0..b {
+            let (token, pos) = (tokens[bi], positions[bi]);
+            let x = &mut states[bi].x;
+            for i in 0..d {
+                x[i] = self.wte[token * d + i] + self.wpe[pos * d + i];
+            }
         }
-        conv1d(inner, &layer.mlp_w, &layer.mlp_b, d, mlp_out);
-        for (xi, &m) in st.x.iter_mut().zip(&mlp_out[..d]) {
-            *xi += m;
+
+        for l in 0..self.cfg.n_layer {
+            let layer = &self.layers[l];
+            for bi in 0..b {
+                layer_norm(
+                    &states[bi].x,
+                    &layer.ln1_w,
+                    &layer.ln1_b,
+                    self.cfg.layer_norm_eps,
+                    &mut normed[bi * d..(bi + 1) * d],
+                );
+            }
+            conv1d_batched(
+                &mut qkv,
+                &normed,
+                &layer.c_attn_w,
+                &layer.c_attn_b,
+                3 * d,
+                d,
+                b,
+            );
+            for bi in 0..b {
+                self.block_attention(
+                    &mut states[bi],
+                    l,
+                    positions[bi],
+                    &qkv[bi * 3 * d..(bi + 1) * 3 * d],
+                    &mut attn[bi * d..(bi + 1) * d],
+                    None,
+                    None,
+                );
+            }
+            conv1d_batched(&mut proj, &attn, &layer.c_proj_w, &layer.c_proj_b, d, d, b);
+            for bi in 0..b {
+                let x = &mut states[bi].x;
+                for i in 0..d {
+                    x[i] += proj[bi * d + i];
+                }
+            }
+            for bi in 0..b {
+                layer_norm(
+                    &states[bi].x,
+                    &layer.ln2_w,
+                    &layer.ln2_b,
+                    self.cfg.layer_norm_eps,
+                    &mut normed[bi * d..(bi + 1) * d],
+                );
+            }
+            conv1d_batched(
+                &mut inner,
+                &normed,
+                &layer.fc_w,
+                &layer.fc_b,
+                inner_dim,
+                d,
+                b,
+            );
+            for v in inner.iter_mut() {
+                *v = gelu_new(*v);
+            }
+            conv1d_batched(
+                &mut mlp_out,
+                &inner,
+                &layer.mlp_w,
+                &layer.mlp_b,
+                d,
+                inner_dim,
+                b,
+            );
+            for bi in 0..b {
+                let x = &mut states[bi].x;
+                for i in 0..d {
+                    x[i] += mlp_out[bi * d + i];
+                }
+            }
+        }
+
+        // final ln_f into each state's hidden, then the tied lm-head with
+        // each wte row reused across the batch (naive sequential dot per
+        // sequence — bit-identical to `finish_forward`).
+        for bi in 0..b {
+            let st = &mut states[bi];
+            layer_norm(
+                &st.x,
+                &self.ln_f_w,
+                &self.ln_f_b,
+                self.cfg.layer_norm_eps,
+                &mut st.hidden,
+            );
+        }
+        for v in 0..self.cfg.vocab {
+            let row = &self.wte[v * d..(v + 1) * d];
+            for bi in 0..b {
+                let st = &mut states[bi];
+                let mut acc = 0.0f32;
+                for i in 0..d {
+                    acc += st.hidden[i] * row[i];
+                }
+                st.logits[v] = acc;
+            }
         }
     }
 }
@@ -796,6 +999,89 @@ mod tests {
         }
     }
 
+    /// #667: GPT-2's batched forward is bit-identical to advancing each
+    /// sequence through the serial `forward` — the amortized conv1d/lm-head
+    /// keep the serial accumulation order, and each sequence reads its own
+    /// `positions[bi]` and k/v cache. Covers a lockstep batch (all at the
+    /// same position) and a divergent batch (each sequence at a different
+    /// position).
+    #[test]
+    #[allow(clippy::needless_range_loop)]
+    fn forward_batch_matches_serial_forward() {
+        let dir = fixture_dir();
+        let model = Gpt2::load(&dir, None).expect("load tiny gpt2 snapshot");
+        let steps = 4.min(model.cfg.seq_len).max(1);
+        let vocab = model.cfg.vocab;
+        let seqs: [Vec<usize>; 3] = [
+            (0..steps).map(|i| i % vocab).collect(),
+            (0..steps).map(|i| (i * 2 + 1) % vocab).collect(),
+            (0..steps).map(|i| (i * 3 + 2) % vocab).collect(),
+        ];
+
+        // Serial reference: each sequence's logits at each position.
+        let mut serial: Vec<Vec<Vec<f32>>> = Vec::new();
+        for seq in &seqs {
+            let mut st = Gpt2State::new(&model.cfg);
+            st.reset();
+            let mut per_pos = Vec::new();
+            for (pos, &tok) in seq.iter().enumerate() {
+                model.forward(&mut st, tok, pos, &[], &mut |_, _| {});
+                per_pos.push(st.logits.clone());
+            }
+            serial.push(per_pos);
+        }
+
+        let fresh = || {
+            let mut s = Gpt2State::new(&model.cfg);
+            s.reset();
+            s
+        };
+        let bits = |xs: &[f32]| -> Vec<u32> { xs.iter().map(|v| v.to_bits()).collect() };
+
+        // Lockstep: advance all three together, position by position.
+        {
+            let mut states: Vec<Gpt2State> = (0..seqs.len()).map(|_| fresh()).collect();
+            for pos in 0..steps {
+                let tokens: Vec<usize> = seqs.iter().map(|s| s[pos]).collect();
+                let positions = vec![pos; seqs.len()];
+                model.forward_batch(&mut states, &tokens, &positions);
+                for (b, st) in states.iter().enumerate() {
+                    assert_eq!(
+                        bits(&st.logits),
+                        bits(&serial[b][pos]),
+                        "lockstep batched seq {b} pos {pos} equals serial"
+                    );
+                }
+            }
+        }
+
+        // Divergent positions in one batch: seq b targets a different pos.
+        if steps >= 3 {
+            let targets = [2usize, 1, 0];
+            let mut states: Vec<Gpt2State> = (0..seqs.len()).map(|_| fresh()).collect();
+            // Pre-fill each state's k/v cache serially up to its target - 1.
+            for (b, &target) in targets.iter().enumerate() {
+                for pos in 0..target {
+                    model.forward(&mut states[b], seqs[b][pos], pos, &[], &mut |_, _| {});
+                }
+            }
+            let tokens: Vec<usize> = targets
+                .iter()
+                .enumerate()
+                .map(|(b, &t)| seqs[b][t])
+                .collect();
+            let positions = targets.to_vec();
+            model.forward_batch(&mut states, &tokens, &positions);
+            for (b, &target) in targets.iter().enumerate() {
+                assert_eq!(
+                    bits(&states[b].logits),
+                    bits(&serial[b][target]),
+                    "divergent batched seq {b} pos {target} equals serial"
+                );
+            }
+        }
+    }
+
     /// Loading a snapshot whose config declares a non-GPT-2 architecture is
     /// refused at the #599 gate before any weight is read.
     #[test]
@@ -990,6 +1276,28 @@ impl crate::TeacherOracle for HuggingFaceGpt2Oracle {
             .forward_capturing_trace(&mut self.state, token, pos, request, sinks);
         logits.copy_from_slice(&self.state.logits);
         true
+    }
+}
+
+impl crate::BatchedTeacher for HuggingFaceGpt2Oracle {
+    type State = Gpt2State;
+    fn new_state(&self) -> Gpt2State {
+        Gpt2State::new(&self.model.cfg)
+    }
+    fn reset_state(&self, state: &mut Gpt2State) {
+        state.reset();
+    }
+    fn logits_mut<'a>(&self, state: &'a mut Gpt2State) -> &'a mut [f32] {
+        &mut state.logits
+    }
+    fn seq_len(&self) -> usize {
+        self.model.cfg.seq_len
+    }
+    fn vocab(&self) -> usize {
+        self.model.cfg.vocab
+    }
+    fn forward_batch_into(&self, states: &mut [Gpt2State], tokens: &[usize], positions: &[usize]) {
+        self.model.forward_batch(states, tokens, positions);
     }
 }
 
