@@ -299,6 +299,22 @@ against, and a consumer-agreement test asserts the observation,
 evaluation, serving-prompt, and exported-runtime-tokenizer selection
 seams resolve the same adapter identity, token ids, and decode bytes.
 
+**GPT-2 family (#669).** A pinned GPT-2 source binds its exact tokenizer
+through this same `hf-byte-bpe/1` machinery — no new family. The
+`openai-community/gpt2` `tokenizer.json` is a plain byte-level BPE (one
+`<|endoftext|>` added token, `ByteLevel(add_prefix_space=false)` with NO
+digits splitter — the pre-tokenizer field that distinguishes it from
+SmolLM2), so `HfBpeTokenizer` ingests it unchanged and the observe
+manifest records the `hf-byte-bpe/1` adapter with that file's CID. The
+SPECIFIC tokenizer identity is pinned in `models/gpt2-124m.json` as
+`tokenizer_kappa` / `tokenizer_bytes` / `tokenizer_kappa_scope =
+tokenizer.json` — the blake3 of the revision-`607a30d7` `tokenizer.json`
+— so a compiled GPT-2 bundle binds the exact tokenizer, not merely the
+family id. `crates/uor-r4-core/tests/gpt2_tokenizer_pin.rs` checks the pin
+is well-formed in CI and, presence-gated on the real snapshot (never a CI
+download), that the on-disk `tokenizer.json` reproduces the pin and the
+`hf-byte-bpe/1` adapter built from it carries that same CID.
+
 #### Attention operator identity (#602)
 
 The attention operator the source teacher computes is a typed, versioned
