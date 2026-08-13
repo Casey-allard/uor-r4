@@ -3347,6 +3347,239 @@ fn apply_latent_arm(
     (selected, -mixed.max(1e-300).log2(), true)
 }
 
+/// The subset of Gate C metrics the cover sweep and its #456 null-arm harness
+/// consume (#611): Rule 1 (EXCT-disabled reconstruction), Rule 1+2 (with-EXCT
+/// agreement), the TLA3 store baseline, and the analytic unigram nulls. The
+/// `positions`/`positions_sampled` provenance travels with every metric so a
+/// sampled decision run is never quoted as a census.
+#[derive(Debug, Clone, Serialize)]
+pub struct SweepGateC {
+    /// Rule 1 (chain-telescoped residuals, no EXCT).
+    pub rule1_chain: GateCMetrics,
+    /// Rule 1+2 (chain-telescoped + D4 EXCT precedence).
+    pub rule12_precedence: GateCMetrics,
+    /// TLA3 store baseline (`runtime::predict_witness_plain`).
+    pub tla3_baseline: GateCMetrics,
+    /// Analytic unigram-null baselines (#390), consumed by the null-arm harness.
+    pub nulls: GateCNulls,
+    /// #467 provenance: the held-out population handed in, and the number of
+    /// positions actually scored (`0` = full census). Mirrors `GateCOutcome`.
+    pub held_out_population: usize,
+    pub positions_sampled: usize,
+}
+
+/// Sweep-specific Gate C evaluator (#611): computes EXACTLY the metrics the
+/// cover sweep (`SweepRow`/`SweepReport`) and the #456 null-arm harness read —
+/// Rule 1, Rule 1+2, the TLA3 baseline, and the analytic unigram nulls — and
+/// nothing else.
+///
+/// [`evaluate_gate_c`] additionally builds and scores ~thirty experimental
+/// arms the sweep never reads — the #66 ΔT ablations, the #80 normalized /
+/// margin variants, the #399 forward-anchor family (fused / self / gated /
+/// draft / strict, each with a live comparator), the #446 right-context
+/// family, the per-status breakdowns, the alpha sweep, the EXCT probe
+/// histogram, and the win/loss tables — plus the whole-corpus table passes
+/// those arms need (forward-anchor, right-context, two-sided, latent). Every
+/// one of those multiplies per-position work across all nine sweep points.
+/// This evaluator builds two scorers instead of seven and runs one lean
+/// per-position pass.
+///
+/// Parity is by construction, not reimplementation: it calls the SAME
+/// primitives the full evaluator's per-position row uses — `AssignTables` +
+/// `code_plain_with` for the code (identical to the full path's `left_codes`),
+/// `GraphScorer::score_candidates_coded`, `outcome_bits`,
+/// `predict_witness_plain`, `witten_bell_probability`, and the same #390
+/// unigram-null derivation and `gate_c_sample` — so its numbers equal the full
+/// evaluator's within the deterministic FP contract. A pinned-fixture parity
+/// test asserts that equality. The full path is untouched and remains the
+/// certification / research evaluator.
+pub fn evaluate_gate_c_sweep(
+    r4g1: &[u8],
+    artifact_container: &[u8],
+    artifacts: &compiler::Compiled,
+    store: &Store,
+    corpus: &Corpus,
+    held_out: &[Observation],
+    config: &ScoreConfig,
+) -> Option<SweepGateC> {
+    // Two scorers — Rule 1 (no EXCT) and Rule 1+2 (with EXCT) — constructed
+    // IDENTICALLY to the full evaluator's, so scoring matches bit-for-bit.
+    let mut scorer_no_exct =
+        GraphScorer::from_artifact(r4g1, None, config.root_top_b, config.exct_top_x)
+            .expect("gate C (sweep): scorer rebuild from self-emitted artifact");
+    scorer_no_exct.set_f_emissions(true);
+    scorer_no_exct.set_scoring_variant(config.scoring_variant);
+    scorer_no_exct.set_repetition_penalty_raw(config.repetition_penalty_raw);
+    let mut scorer_with_exct = GraphScorer::from_artifact(
+        r4g1,
+        Some(artifact_container),
+        config.root_top_b,
+        config.exct_top_x,
+    )
+    .expect("gate C (sweep): scorer rebuild from self-emitted artifact");
+    scorer_with_exct.set_f_emissions(true);
+    scorer_with_exct.set_scoring_variant(config.scoring_variant);
+    scorer_with_exct.set_repetition_penalty_raw(config.repetition_penalty_raw);
+
+    let gate_rotations = compiler::derive_rotations();
+
+    // #390 analytic unigram null over the construction split (train = every
+    // corpus position outside the held-out set), add-one smoothed over the
+    // compiled vocabulary — the same derivation `evaluate_gate_c` uses.
+    let mut is_held_out = vec![false; corpus.n];
+    for observation in held_out {
+        let position = observation.position as usize;
+        if position < corpus.n {
+            is_held_out[position] = true;
+        }
+    }
+    let vocab = (artifacts.token_codes.len() / compiler::STAGES) as u64;
+    let mut unigram_counts: BTreeMap<u32, u64> = BTreeMap::new();
+    let mut train_positions = 0usize;
+    for (position, held) in is_held_out.iter().enumerate().take(corpus.n) {
+        if !held {
+            *unigram_counts.entry(corpus.next[position]).or_insert(0) += 1;
+            train_positions += 1;
+        }
+    }
+    let unigram_total: u64 = unigram_counts.values().sum();
+    let unigram_train_argmax = unigram_counts
+        .iter()
+        .max_by(|a, b| a.1.cmp(b.1).then_with(|| b.0.cmp(a.0)))
+        .map(|(&token, _)| token)
+        .unwrap_or(0);
+    let unigram_bits = |token: u32| -> f64 {
+        let count = unigram_counts.get(&token).copied().unwrap_or(0);
+        let p = (count as f64 + 1.0) / (unigram_total as f64 + vocab as f64);
+        -p.log2()
+    };
+
+    let (scored, sample_size) = gate_c_sample(held_out);
+    if sample_size != 0 {
+        eprintln!(
+            "score: SAMPLED DECISION RUN ({GATE_C_SAMPLE_ENV}): sweep Gate C scored {} of {} \
+             held-out positions — every rate below is an ESTIMATE, not a census",
+            scored.len(),
+            held_out.len()
+        );
+    }
+
+    // One lean per-position pass, in parallel, reduced in input order so the
+    // floating-point totals are order-identical to the serial reference.
+    struct Row {
+        hit_rule1: bool,
+        bits_rule1: f64,
+        hit_rule12: bool,
+        bits_rule12: f64,
+        hit_baseline: bool,
+        bits_baseline: f64,
+        next: u32,
+        generalization: bool,
+    }
+    let tables = runtime::AssignTables::new(artifacts);
+    let rows: Vec<Row> = scored
+        .par_iter()
+        .map(|observation| {
+            let position = observation.position as usize;
+            let teacher_argmax = corpus.t_argmax[position];
+            let next = corpus.next[position];
+            let window: &[u32] = if config.gate_c_context_window {
+                story_bounded_window(corpus, position, 32)
+            } else {
+                &[]
+            };
+            // Identical to the full path's `left_codes[position]` (#469 lever
+            // B): same tables, same derivation, byte-identical code.
+            let code =
+                runtime::code_plain_with(&tables, artifacts, &gate_rotations, corpus, position);
+            let rule1 = scorer_no_exct
+                .score_candidates_coded(&observation.sig, Some(&code), window)
+                .expect("gate C (sweep): scoring self-produced sig");
+            let rule12 = scorer_with_exct
+                .score_candidates_coded(&observation.sig, Some(&code), window)
+                .expect("gate C (sweep): scoring self-produced sig");
+            let baseline = runtime::predict_witness_plain(store, &code);
+            Row {
+                hit_rule1: rule1.selected == teacher_argmax,
+                bits_rule1: outcome_bits(
+                    &scorer_no_exct,
+                    &rule1.candidates,
+                    next,
+                    rule1.witness.transition_offset,
+                ),
+                hit_rule12: rule12.selected == teacher_argmax,
+                bits_rule12: outcome_bits(
+                    &scorer_with_exct,
+                    &rule12.candidates,
+                    next,
+                    rule12.witness.transition_offset,
+                ),
+                hit_baseline: baseline.token == teacher_argmax,
+                bits_baseline: -witten_bell_probability(store, &code, next).log2(),
+                next,
+                generalization: !matches!(rule12.witness.status, ScoreStatus::ExactContext),
+            }
+        })
+        .collect();
+
+    let n = scored.len();
+    if n == 0 {
+        // Nothing to measure: a total "cannot evaluate", not an error.
+        return None;
+    }
+    let (mut hits_rule1, mut bits_rule1) = (0u64, 0f64);
+    let (mut hits_rule12, mut bits_rule12) = (0u64, 0f64);
+    let (mut hits_baseline, mut bits_baseline) = (0u64, 0f64);
+    let (mut null_hits_all, mut null_bits_all) = (0u64, 0f64);
+    let (mut null_hits_gen, mut null_bits_gen) = (0u64, 0f64);
+    let mut gen_positions = 0u64;
+    for row in &rows {
+        hits_rule1 += u64::from(row.hit_rule1);
+        bits_rule1 += row.bits_rule1;
+        hits_rule12 += u64::from(row.hit_rule12);
+        bits_rule12 += row.bits_rule12;
+        hits_baseline += u64::from(row.hit_baseline);
+        bits_baseline += row.bits_baseline;
+        let null_hit = u64::from(row.next == unigram_train_argmax);
+        let null_bit = unigram_bits(row.next);
+        null_hits_all += null_hit;
+        null_bits_all += null_bit;
+        if row.generalization {
+            gen_positions += 1;
+            null_hits_gen += null_hit;
+            null_bits_gen += null_bit;
+        }
+    }
+    let nf = n as f64;
+    let metrics = |hits: u64, bits: f64| {
+        let top1 = hits as f64 / nf;
+        GateCMetrics {
+            positions: n,
+            top1_agreement: top1,
+            bits_per_token: bits / nf,
+            positions_sampled: sample_size,
+            standard_error: binomial_standard_error(top1, n),
+        }
+    };
+    Some(SweepGateC {
+        rule1_chain: metrics(hits_rule1, bits_rule1),
+        rule12_precedence: metrics(hits_rule12, bits_rule12),
+        tla3_baseline: metrics(hits_baseline, bits_baseline),
+        nulls: GateCNulls {
+            unigram_train_argmax,
+            unigram_null_top1_all: null_hits_all as f64 / nf,
+            unigram_null_bits_all: null_bits_all / nf,
+            unigram_null_top1_generalization: null_hits_gen as f64
+                / (gen_positions as f64).max(1.0),
+            unigram_null_bits_generalization: null_bits_gen / (gen_positions as f64).max(1.0),
+            train_positions,
+            held_out_positions: n,
+        },
+        held_out_population: held_out.len(),
+        positions_sampled: sample_size,
+    })
+}
+
 pub fn evaluate_gate_c(
     r4g1: &[u8],
     artifact_container: &[u8],

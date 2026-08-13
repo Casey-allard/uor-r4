@@ -766,7 +766,10 @@ pub fn run_point(
     let r4g1_emission_ms = elapsed_ms(stage);
 
     let stage = Instant::now();
-    let gate_c = score::evaluate_gate_c(
+    // #611: the slim sweep evaluator computes exactly the three metrics this
+    // row reads (Rule 1+2, Rule 1 reconstruction, TLA3 baseline) — two scorers
+    // and one lean pass — instead of the full evaluator's ~thirty arms.
+    let gate_c = score::evaluate_gate_c_sweep(
         &artifact_bytes,
         &inputs.artifact_container,
         &inputs.artifacts,
@@ -915,7 +918,7 @@ pub fn reconstruction_null(
     let held_len = held_cap.min(inputs.held_out.len());
     let held = &inputs.held_out[..held_len];
 
-    let score_with = |tables: &score::EmissionTables| -> Option<score::GateCOutcome> {
+    let score_with = |tables: &score::EmissionTables| -> Option<score::SweepGateC> {
         let (artifact_bytes, _info) = score::emit_scored_r4g1(
             &inputs.artifact_container,
             (&inputs.meta_bytes, &inputs.recs_bytes),
@@ -932,7 +935,9 @@ pub fn reconstruction_null(
                 fwd_rows: &fwd_rows,
             },
         );
-        score::evaluate_gate_c(
+        // #611: reconstruction_null reads only rule1_chain + the analytic
+        // nulls, both produced by the slim sweep evaluator.
+        score::evaluate_gate_c_sweep(
             &artifact_bytes,
             &inputs.artifact_container,
             &inputs.artifacts,
