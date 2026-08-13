@@ -11,7 +11,11 @@ uor-r4-graph-certify = { version = "0.1.0", path = "../uor-r4-graph-certify" }
 uor-r4-graph-runtime = { version = "0.1.0", path = "../uor-r4-graph-runtime" }
 uor-r4-model-source = { version = "0.1.0", path = "../uor-r4-model-source" }
 serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
+# #613: `float_roundtrip` makes float PARSING correctly-rounded, so a metric
+# serialized into a checkpoint deserializes bit-for-bit identically — the
+# guarantee resume's byte-identity rests on (serde_json's default parser can
+# land 1 ULP off, which diverges a resumed report from a clean one).
+serde_json = { version = "1.0", features = ["float_roundtrip"] }
 blake3 = "1.5.0"
 uor-r4-graph-format = { version = "0.1.0", path = "../uor-r4-graph-format" }
 

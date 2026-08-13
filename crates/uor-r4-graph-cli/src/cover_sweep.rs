@@ -318,7 +318,7 @@ pub fn load_inputs(
 
 /// Per-depth routing numbers of one sweep point (the rate–distortion
 /// table's recall columns; a focused subset of [`cover::DepthRecall`]).
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, serde::Deserialize)]
 pub struct SweepDepthRecall {
     /// Multiresolution depth.
     pub depth: usize,
@@ -335,7 +335,7 @@ pub struct SweepDepthRecall {
 }
 
 /// Region-count summary of one sweep point.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, serde::Deserialize)]
 pub struct SweepRegions {
     /// Total induced regions.
     pub total: usize,
@@ -348,7 +348,7 @@ pub struct SweepRegions {
 }
 
 /// The cover configuration columns of one report row.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, serde::Deserialize)]
 pub struct SweepRowConfig {
     pub k0: usize,
     pub depths: usize,
@@ -363,7 +363,7 @@ pub struct SweepRowConfig {
 
 /// One rate–distortion table row: one sweep point's regions × bytes ×
 /// agreement plus the routing-recall detail.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, serde::Deserialize)]
 pub struct SweepRow {
     /// Sweep-point label.
     pub label: String,
@@ -455,7 +455,7 @@ fn elapsed_ms(start: Instant) -> u64 {
 /// measurement: wrapping each stage in an `Instant` never changes the
 /// artifact bytes or the scores, so a timed run is comparable to an
 /// untimed one and to a future parallel run.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, serde::Deserialize)]
 pub struct PointTiming {
     /// The point label (`k0=8/gain=0.25/budget=128`).
     pub label: String,
@@ -1133,6 +1133,141 @@ fn clamp_jobs(requested: Option<usize>, point_count: usize) -> usize {
     requested.unwrap_or(1).clamp(1, point_count.max(1))
 }
 
+// --------------------------------------------------------- checkpoints ---
+// #613: persist each completed point atomically so a long (or parallel)
+// sweep can resume after an interruption without recomputing valid points.
+// Opt-in: unset `R4_SWEEP_CHECKPOINT_DIR` = today's behavior exactly (no
+// files written, no reuse). The final report is still assembled only once
+// every point is present (`run_sweep` needs all rows), so a half-finished
+// checkpoint directory never yields a report.
+
+/// The compatibility manifest a stored point is reused under. Any change to
+/// the inputs, scorer, sampling, skipped arms, schema, or source revision
+/// makes a checkpoint ineligible — it is recomputed rather than trusted.
+#[derive(Debug, Clone, PartialEq, Serialize, serde::Deserialize)]
+pub struct CheckpointKey {
+    pub schema: u32,
+    pub artifact_kappa: String,
+    pub corpus_kappa: String,
+    /// The fixed #64 scorer knobs that shape every metric.
+    pub scorer: String,
+    /// Optional campaign/source revision tag (`R4_SWEEP_SOURCE_REV`).
+    pub source_revision: String,
+    /// Gate C held-out sampling cap (`R4_GATE_C_SAMPLE`); empty = full census.
+    pub gate_c_sample: String,
+    /// Skipped Gate C arm groups (`R4_GATE_C_SKIP_ARMS`); empty = none.
+    pub gate_c_skip_arms: String,
+}
+
+/// One point's persisted result plus the manifest and cover identity it was
+/// produced under (both re-checked before reuse).
+#[derive(Debug, Clone, Serialize, serde::Deserialize)]
+struct PointCheckpoint {
+    key: CheckpointKey,
+    label: String,
+    /// The point's cover configuration identity (its `Debug` form; stable per
+    /// build and covering every knob, not only the label's k0/gain/budget).
+    cover: String,
+    row: SweepRow,
+    baseline: GateCMetrics,
+    timing: PointTiming,
+}
+
+/// The checkpoint directory, if resume/persist is enabled for this run.
+fn checkpoint_dir() -> Option<PathBuf> {
+    std::env::var("R4_SWEEP_CHECKPOINT_DIR")
+        .ok()
+        .map(|value| PathBuf::from(value.trim()))
+        .filter(|path| !path.as_os_str().is_empty())
+}
+
+/// The manifest this run's checkpoints are valid under.
+fn checkpoint_key(inputs: &SweepInputs, score_config: &ScoreConfig) -> CheckpointKey {
+    CheckpointKey {
+        schema: SWEEP_REPORT_SCHEMA,
+        artifact_kappa: inputs.artifact_kappa.clone(),
+        corpus_kappa: inputs.corpus_kappa.clone(),
+        scorer: fingerprint_string(
+            &inputs.artifact_kappa,
+            &inputs.corpus_kappa,
+            inputs.train.len(),
+            score_config,
+        ),
+        source_revision: std::env::var("R4_SWEEP_SOURCE_REV").unwrap_or_default(),
+        gate_c_sample: std::env::var("R4_GATE_C_SAMPLE").unwrap_or_default(),
+        gate_c_skip_arms: std::env::var("R4_GATE_C_SKIP_ARMS").unwrap_or_default(),
+    }
+}
+
+/// A point's cover-configuration identity (its full `Debug` form).
+fn point_cover_identity(point: &SweepPoint) -> String {
+    format!("{:?}", point.config)
+}
+
+fn checkpoint_path(dir: &Path, index: usize) -> PathBuf {
+    dir.join(format!("point-{index:02}.json"))
+}
+
+/// Load a compatible checkpoint for `index`, or `None` to (re)compute it.
+///
+/// Returns `None` on a missing file, an unreadable or partial/corrupt file, or
+/// ANY manifest/label/cover mismatch. A stored point is trusted only when it
+/// fully deserializes AND its key, label, and cover identity all match the
+/// current run — so a partial write (which only ever exists under the `.tmp`
+/// name, never the final name) or a stale point can never be read as valid.
+fn load_point_checkpoint(
+    dir: &Path,
+    index: usize,
+    key: &CheckpointKey,
+    label: &str,
+    cover: &str,
+) -> Option<PointOutput> {
+    let bytes = std::fs::read(checkpoint_path(dir, index)).ok()?;
+    let checkpoint: PointCheckpoint = serde_json::from_slice(&bytes).ok()?;
+    if &checkpoint.key == key && checkpoint.label == label && checkpoint.cover == cover {
+        Some((checkpoint.row, checkpoint.baseline, checkpoint.timing))
+    } else {
+        None
+    }
+}
+
+/// Persist a completed point atomically: write the JSON to a `.tmp` sibling,
+/// then rename it into place. The rename is atomic on the same filesystem, so
+/// a reader only ever sees a complete file — an interrupted write leaves a
+/// stray `.tmp` that resume ignores. Best-effort: a persistence failure warns
+/// and does not fail the sweep (the point itself was computed correctly).
+fn save_point_checkpoint(
+    dir: &Path,
+    index: usize,
+    key: &CheckpointKey,
+    point: &SweepPoint,
+    cover: &str,
+    output: &PointOutput,
+) {
+    let checkpoint = PointCheckpoint {
+        key: key.clone(),
+        label: point.label.clone(),
+        cover: cover.to_owned(),
+        row: output.0.clone(),
+        baseline: output.1.clone(),
+        timing: output.2.clone(),
+    };
+    let result = (|| -> std::io::Result<()> {
+        std::fs::create_dir_all(dir)?;
+        let tmp_path = dir.join(format!("point-{index:02}.json.tmp"));
+        let json = serde_json::to_vec_pretty(&checkpoint).map_err(std::io::Error::other)?;
+        std::fs::write(&tmp_path, &json)?;
+        std::fs::rename(&tmp_path, checkpoint_path(dir, index))?;
+        Ok(())
+    })();
+    if let Err(error) = result {
+        eprintln!(
+            "cover-sweep: WARNING could not persist checkpoint for point {index} ({}): {error}",
+            point.label
+        );
+    }
+}
+
 /// Run the sweep points and return their outputs in canonical grid order.
 ///
 /// With `jobs == 1` this is the serial loop (the reproducible default). With
@@ -1161,15 +1296,33 @@ fn run_points_bounded(
     jobs: usize,
 ) -> Vec<Option<PointOutput>> {
     let n = configs.len();
+    // #613: resume/persist is enabled only when the checkpoint dir is set.
+    let checkpoint = checkpoint_dir();
+    let key = checkpoint
+        .as_ref()
+        .map(|_| checkpoint_key(inputs, score_config));
     let run_one = |index: usize| -> Option<PointOutput> {
+        let point = &configs[index];
+        // #613: reuse a compatible persisted point instead of recomputing.
+        if let (Some(dir), Some(key)) = (checkpoint.as_ref(), key.as_ref()) {
+            let cover = point_cover_identity(point);
+            if let Some(output) = load_point_checkpoint(dir, index, key, &point.label, &cover) {
+                eprintln!(
+                    "cover-sweep: point {}/{} ({}) resumed from checkpoint",
+                    index + 1,
+                    n,
+                    point.label
+                );
+                return Some(output);
+            }
+        }
         eprintln!(
             "cover-sweep: point {}/{} ({})...",
             index + 1,
             n,
-            configs[index].label
+            point.label
         );
-        let (row, baseline, _bytes, timing) =
-            run_point(inputs, &configs[index], score_config, prepared)?;
+        let (row, baseline, _bytes, timing) = run_point(inputs, point, score_config, prepared)?;
         eprintln!(
             "cover-sweep: {} regions, {} bytes, Rule 1+2 top-1 {:.4}, {:.4} bits/token; \
              dominant stage {}, point total {} ms",
@@ -1180,7 +1333,12 @@ fn run_points_bounded(
             timing.dominant_stage,
             timing.total_ms
         );
-        Some((row, baseline, timing))
+        let output = (row, baseline, timing);
+        if let (Some(dir), Some(key)) = (checkpoint.as_ref(), key.as_ref()) {
+            let cover = point_cover_identity(point);
+            save_point_checkpoint(dir, index, key, point, &cover, &output);
+        }
+        Some(output)
     };
 
     if jobs <= 1 {
@@ -1735,5 +1893,105 @@ mod tests {
         // Degenerate point counts stay at one worker.
         assert_eq!(clamp_jobs(Some(4), 0), 1);
         assert_eq!(clamp_jobs(Some(4), 1), 1);
+    }
+
+    fn sample_row() -> SweepRow {
+        let metrics = |bits: f64| GateCMetrics {
+            positions: 10,
+            top1_agreement: 0.5,
+            bits_per_token: bits,
+            ..GateCMetrics::default()
+        };
+        SweepRow {
+            label: "k0=8/gain=0.25/budget=128".to_owned(),
+            baseline: false,
+            config: SweepRowConfig {
+                k0: 8,
+                depths: 3,
+                entropy_gain_bits: 0.25,
+                regions_budget: 128,
+                min_support: 4,
+                memory_budget_bytes: 64 * 1024 * 1024,
+                distinctiveness_weight: 0.0,
+            },
+            regions: SweepRegions {
+                total: 1,
+                per_depth: vec![1],
+                splits: 0,
+                max_depth: 1,
+            },
+            recall: Vec::new(),
+            artifact_bytes: 1024,
+            graph_kappa: "blake3:test".to_owned(),
+            gate_c_rule12: metrics(1.0),
+            reconstruction: metrics(16.03),
+        }
+    }
+
+    // #613: a persisted point is reused ONLY under a fully matching manifest,
+    // label, and cover identity, and a partial/corrupt/interrupted write is
+    // never mistaken for a completed result — the guarantees the resume path
+    // rests on. Runs in CI (no fixtures): a temp dir plus round-trip.
+    #[test]
+    fn checkpoint_reused_only_under_a_matching_manifest() {
+        let dir = std::env::temp_dir().join("uor_r4_i613_ckpt_test");
+        let _ = std::fs::remove_dir_all(&dir);
+
+        let key = CheckpointKey {
+            schema: SWEEP_REPORT_SCHEMA,
+            artifact_kappa: "art-A".to_owned(),
+            corpus_kappa: "corpus-B".to_owned(),
+            scorer: "scorer-1".to_owned(),
+            source_revision: "rev-1".to_owned(),
+            gate_c_sample: String::new(),
+            gate_c_skip_arms: String::new(),
+        };
+        let point = sweep_grid().into_iter().next().expect("grid has points");
+        let cover = point_cover_identity(&point);
+        let output: PointOutput = (
+            sample_row(),
+            GateCMetrics::default(),
+            PointTiming::new(point.label.clone(), 1, 2, 3, 4, 5, 6, 7),
+        );
+
+        // No file yet -> recompute.
+        assert!(load_point_checkpoint(&dir, 0, &key, &point.label, &cover).is_none());
+
+        // Persist atomically, then a fully-matching load returns it.
+        save_point_checkpoint(&dir, 0, &key, &point, &cover, &output);
+        let loaded = load_point_checkpoint(&dir, 0, &key, &point.label, &cover)
+            .expect("matching checkpoint is reused");
+        // Bit-exact round-trip: a reused row serializes byte-for-byte the same
+        // as the persisted one, so a resumed report equals a clean one. This
+        // relies on serde_json's `float_roundtrip` feature — without it the
+        // default parser lands ~1 ULP off and the assertion below fails.
+        assert_eq!(
+            serde_json::to_string(&loaded.0).unwrap(),
+            serde_json::to_string(&output.0).unwrap(),
+            "reused row must serialize identically to the persisted row"
+        );
+        assert_eq!(
+            loaded.0.reconstruction.bits_per_token.to_bits(),
+            output.0.reconstruction.bits_per_token.to_bits(),
+            "a metric must survive the checkpoint round-trip bit-for-bit"
+        );
+
+        // Any manifest / label / cover mismatch -> recompute (not reused).
+        let mismatched_key = CheckpointKey {
+            scorer: "scorer-2".to_owned(),
+            ..key.clone()
+        };
+        assert!(load_point_checkpoint(&dir, 0, &mismatched_key, &point.label, &cover).is_none());
+        assert!(load_point_checkpoint(&dir, 0, &key, "other-label", &cover).is_none());
+        assert!(load_point_checkpoint(&dir, 0, &key, &point.label, "other-cover").is_none());
+
+        // A corrupt/partial FINAL file is never read as a result.
+        std::fs::write(checkpoint_path(&dir, 1), b"{ not complete json").unwrap();
+        assert!(load_point_checkpoint(&dir, 1, &key, &point.label, &cover).is_none());
+        // A stray `.tmp` from an interrupted write is ignored: no final file.
+        std::fs::write(dir.join("point-02.json.tmp"), b"{}").unwrap();
+        assert!(load_point_checkpoint(&dir, 2, &key, &point.label, &cover).is_none());
+
+        let _ = std::fs::remove_dir_all(&dir);
     }
 }
