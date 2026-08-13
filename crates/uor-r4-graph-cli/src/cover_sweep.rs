@@ -54,7 +54,21 @@
 //!    maintainer decision; this module only writes the recommendation
 //!    into the report.
 //!
-//! # Report schema (`cover_sweep.json`, `schema = 3`)
+//! # Report schema (`cover_sweep.json`, `schema = 4`)
+//!
+//! Schema 4 (#609): the report additionally records a `timing` block that
+//! attributes wall-clock time across the nine-point compile. Each point
+//! reports the elapsed milliseconds of its seven pipeline stages (cover
+//! induction, recall/edges, transitions, context/forward rows, emissions,
+//! R4G1 emission, Gate C), the point total, and the `dominant_stage` — the
+//! stage that consumed the most wall time for that point (ties break to the
+//! earliest stage in pipeline order). The block also records the run total,
+//! the thread count (currently one — the sweep is sequential), and the
+//! observation counts, so a future parallel sweep can be compared against
+//! this sequential baseline. The instrumentation is pure measurement: it
+//! wraps each existing stage in an [`std::time::Instant`] read and changes
+//! no artifact bytes and no score values (the schema-3 row fields are
+//! byte-for-byte identical with and without the timing block).
 //!
 //! Schema 3 (#456): every sweep row additionally records `reconstruction`
 //! — the EXCT-disabled reconstruction metric (held-out top-1 agreement
@@ -78,7 +92,7 @@
 //! zero, preserving the byte-exact default cover.
 //!
 //! ```text
-//! schema:          3
+//! schema:          4
 //! inputs:          {artifact_kappa, corpus_kappa,
 //!                   train_observations, held_out_observations}
 //! scorer:          {transition_out_degree, emission_entries, root_top_b,
@@ -102,6 +116,13 @@
 //!    gate_c_rule12: {positions, top1_agreement, bits_per_token},
 //!    reconstruction: {positions, top1_agreement, bits_per_token}}
 //!                   — #456: EXCT-disabled graph-only held-out score
+//! timing:          {thread_count, gate_c_sample, train_observations,
+//!                   held_out_observations, total_ms, points: per point
+//!                   {label, cover_induction_ms, recall_and_edges_ms,
+//!                    transitions_ms, context_and_forward_rows_ms,
+//!                    emissions_ms, r4g1_emission_ms, gate_c_ms, total_ms,
+//!                    dominant_stage}}
+//!                   — #609: wall-time attribution (pure measurement)
 //! determinism:     note string
 //! ```
 //!
@@ -121,6 +142,7 @@
 use serde::Serialize;
 use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
+use std::time::Instant;
 
 use uor_r4_core::transformerless::compiler::{self, Corpus};
 use uor_r4_core::transformerless::runtime::{self, Store};
@@ -129,8 +151,9 @@ use uor_r4_graph_compiler::induction::{self as cover, Observation};
 use uor_r4_graph_compiler::reproducibility as repro;
 use uor_r4_model_source::SourceUnavailable;
 
-/// The `cover_sweep.json` schema version (module docs).
-pub const SWEEP_REPORT_SCHEMA: u32 = 3;
+/// The `cover_sweep.json` schema version (module docs). v4 adds the #609
+/// per-stage wall-clock `timing` section.
+pub const SWEEP_REPORT_SCHEMA: u32 = 4;
 
 /// Grid axis: the broad depth-1 region counts under test.
 pub const SWEEP_K0: [usize; 2] = [8, 16];
@@ -401,6 +424,104 @@ pub struct SweepReportInputs {
     pub held_out_observations: usize,
 }
 
+/// Milliseconds elapsed since `start` (saturating into `u64`; a sweep
+/// stage never runs long enough to overflow).
+fn elapsed_ms(start: Instant) -> u64 {
+    u64::try_from(start.elapsed().as_millis()).unwrap_or(u64::MAX)
+}
+
+/// Per-stage wall-clock timing for one sweep point (#609). This is pure
+/// measurement: wrapping each stage in an `Instant` never changes the
+/// artifact bytes or the scores, so a timed run is comparable to an
+/// untimed one and to a future parallel run.
+#[derive(Debug, Clone, Serialize)]
+pub struct PointTiming {
+    /// The point label (`k0=8/gain=0.25/budget=128`).
+    pub label: String,
+    pub cover_induction_ms: u64,
+    /// Held-out routing recall plus edge/region/structural construction.
+    pub recall_and_edges_ms: u64,
+    pub transitions_ms: u64,
+    pub context_and_forward_rows_ms: u64,
+    pub emissions_ms: u64,
+    /// Scored R4G1 artifact emission.
+    pub r4g1_emission_ms: u64,
+    pub gate_c_ms: u64,
+    /// Sum of the stages above.
+    pub total_ms: u64,
+    /// The single stage with the largest wall time — the dominant cost
+    /// this instrumentation exists to identify for every point.
+    pub dominant_stage: String,
+}
+
+impl PointTiming {
+    #[allow(clippy::too_many_arguments)]
+    fn new(
+        label: String,
+        cover_induction_ms: u64,
+        recall_and_edges_ms: u64,
+        transitions_ms: u64,
+        context_and_forward_rows_ms: u64,
+        emissions_ms: u64,
+        r4g1_emission_ms: u64,
+        gate_c_ms: u64,
+    ) -> Self {
+        let stages = [
+            ("cover_induction", cover_induction_ms),
+            ("recall_and_edges", recall_and_edges_ms),
+            ("transitions", transitions_ms),
+            ("context_and_forward_rows", context_and_forward_rows_ms),
+            ("emissions", emissions_ms),
+            ("r4g1_emission", r4g1_emission_ms),
+            ("gate_c", gate_c_ms),
+        ];
+        let total_ms = stages.iter().map(|(_, ms)| *ms).sum();
+        // Strictly-greater replacement keeps the FIRST stage on ties (in the
+        // fixed order above), so the dominant label is deterministic given
+        // the timings — unlike `max_by_key`, which keeps the last.
+        let mut dominant = stages[0];
+        for &entry in &stages[1..] {
+            if entry.1 > dominant.1 {
+                dominant = entry;
+            }
+        }
+        let dominant_stage = dominant.0.to_owned();
+        Self {
+            label,
+            cover_induction_ms,
+            recall_and_edges_ms,
+            transitions_ms,
+            context_and_forward_rows_ms,
+            emissions_ms,
+            r4g1_emission_ms,
+            gate_c_ms,
+            total_ms,
+            dominant_stage,
+        }
+    }
+}
+
+/// Sweep-level timing context plus the per-point stage timings (#609):
+/// enough to attribute wall time at every point and to compare a
+/// sequential run against a future parallel one (#612).
+#[derive(Debug, Clone, Serialize)]
+pub struct SweepTiming {
+    /// Points evaluated concurrently (`1` = serial; #612 raises this). Kept
+    /// in the report so a parallel run is interpretable against this one.
+    pub thread_count: usize,
+    /// `R4_GATE_C_SAMPLE` at run time (Gate C held-out sampling cap; absent
+    /// means the full held-out slice was scored). Recorded because it moves
+    /// the Gate C stage cost.
+    pub gate_c_sample: Option<String>,
+    pub train_observations: usize,
+    pub held_out_observations: usize,
+    /// Wall time of the whole point loop. On a serial run this is about the
+    /// sum of the point totals; a parallel run drives it well below that.
+    pub total_ms: u64,
+    /// Per-point stage timings, in sweep-grid order.
+    pub points: Vec<PointTiming>,
+}
+
 /// The `cover_sweep.json` document (schema in the module docs).
 #[derive(Debug, Clone, Serialize)]
 pub struct SweepReport {
@@ -414,6 +535,10 @@ pub struct SweepReport {
     pub recommendation: Option<Recommendation>,
     /// The rate–distortion rows: grid points then the baseline row.
     pub points: Vec<SweepRow>,
+    /// #609 per-stage wall-clock attribution (does not affect any scored
+    /// value; wall time is non-deterministic and excluded from the
+    /// byte-equality determinism claim).
+    pub timing: SweepTiming,
     /// Determinism status note.
     pub determinism: String,
 }
@@ -421,19 +546,25 @@ pub struct SweepReport {
 /// Run one sweep point: induce the cover, measure held-out routing
 /// recall, emit the scored R4G1, and run Gate C. Returns the report row,
 /// the cover-independent TLA3 baseline metrics (identical at every
-/// point), and the scored artifact bytes (for the determinism double-run
-/// assertion; the sweep itself keeps only their length and κ).
+/// point), the scored artifact bytes (for the determinism double-run
+/// assertion; the sweep itself keeps only their length and κ), and the
+/// #609 per-stage wall-clock timing. The `Instant` wrappers are pure
+/// measurement — they never change the artifact bytes or the scores.
 pub fn run_point(
     inputs: &SweepInputs,
     point: &SweepPoint,
     score_config: &ScoreConfig,
-) -> Option<(SweepRow, GateCMetrics, Vec<u8>)> {
+) -> Option<(SweepRow, GateCMetrics, Vec<u8>, PointTiming)> {
+    let stage = Instant::now();
     let induced = cover::induce_cover(
         &inputs.train,
         &point.config,
         &inputs.artifact_kappa,
         &inputs.corpus_kappa,
     )?;
+    let cover_induction_ms = elapsed_ms(stage);
+
+    let stage = Instant::now();
     let reference = cover::ReferenceClassifier::freeze(&induced.cover);
     let recall = cover::evaluate_held_out(
         &inputs.artifacts,
@@ -451,6 +582,9 @@ pub fn run_point(
     let regions = score::regions_from_cover(&induced.cover);
     let structural = score::structural_from_cover(&edges);
     let max_depth = induced.cover.max_depth;
+    let recall_and_edges_ms = elapsed_ms(stage);
+
+    let stage = Instant::now();
     let (transitions, transition_quantization) = score::compile_transitions_with_quantization(
         &inputs.corpus,
         &regions,
@@ -458,11 +592,18 @@ pub fn run_point(
         max_depth,
         score_config.transition_out_degree,
     );
+    let transitions_ms = elapsed_ms(stage);
+
     let vocab = u32::try_from(inputs.artifacts.token_codes.len() / compiler::STAGES)
         .expect("vocabulary exceeds u32 token ids");
+
+    let stage = Instant::now();
     let context_rows =
         score::compile_context_rows(&inputs.corpus, &inputs.train, vocab, score_config);
     let fwd_rows = score::compile_forward_anchor_rows(&inputs.corpus, &inputs.train);
+    let context_and_forward_rows_ms = elapsed_ms(stage);
+
+    let stage = Instant::now();
     let emissions = score::compile_emissions(
         &inputs.corpus,
         &inputs.store,
@@ -472,6 +613,9 @@ pub fn run_point(
         vocab,
         score_config,
     );
+    let emissions_ms = elapsed_ms(stage);
+
+    let stage = Instant::now();
     let (artifact_bytes, _info) = score::emit_scored_r4g1(
         &inputs.artifact_container,
         (&inputs.meta_bytes, &inputs.recs_bytes),
@@ -488,6 +632,9 @@ pub fn run_point(
             fwd_rows: &fwd_rows,
         },
     );
+    let r4g1_emission_ms = elapsed_ms(stage);
+
+    let stage = Instant::now();
     let gate_c = score::evaluate_gate_c(
         &artifact_bytes,
         &inputs.artifact_container,
@@ -497,6 +644,18 @@ pub fn run_point(
         &inputs.held_out,
         score_config,
     )?;
+    let gate_c_ms = elapsed_ms(stage);
+
+    let timing = PointTiming::new(
+        point.label.clone(),
+        cover_induction_ms,
+        recall_and_edges_ms,
+        transitions_ms,
+        context_and_forward_rows_ms,
+        emissions_ms,
+        r4g1_emission_ms,
+        gate_c_ms,
+    );
 
     let cover = &induced.cover;
     let mut per_depth = vec![0u32; cover.max_depth];
@@ -547,7 +706,7 @@ pub fn run_point(
         gate_c_rule12: gate_c.rule12_precedence.clone(),
         reconstruction: gate_c.rule1_chain.clone(),
     };
-    Some((row, gate_c.tla3_baseline.clone(), artifact_bytes))
+    Some((row, gate_c.tla3_baseline.clone(), artifact_bytes, timing))
 }
 
 /// #456 null arm (K-2 mutation discipline). The EXCT-disabled reconstruction
@@ -823,7 +982,9 @@ pub fn run_sweep(
 ) -> Option<SweepReport> {
     let points = sweep_grid();
     let mut rows = Vec::with_capacity(points.len());
+    let mut timings = Vec::with_capacity(points.len());
     let mut tla3_baseline: Option<GateCMetrics> = None;
+    let sweep_start = Instant::now();
     for (index, point) in points.iter().enumerate() {
         let mut point = point.clone();
         point
@@ -837,7 +998,7 @@ pub fn run_sweep(
             points.len(),
             point.label
         );
-        let (row, baseline_metrics, _bytes) = run_point(inputs, &point, score_config)?;
+        let (row, baseline_metrics, _bytes, timing) = run_point(inputs, &point, score_config)?;
         eprintln!(
             "cover-sweep: {} regions, {} bytes, Rule 1+2 top-1 {:.4}, {:.4} bits/token",
             row.regions.total,
@@ -845,10 +1006,16 @@ pub fn run_sweep(
             row.gate_c_rule12.top1_agreement,
             row.gate_c_rule12.bits_per_token
         );
+        eprintln!(
+            "cover-sweep: {} timing — dominant stage {}, point total {} ms",
+            point.label, timing.dominant_stage, timing.total_ms
+        );
         tla3_baseline.get_or_insert(baseline_metrics);
         rows.push(row);
+        timings.push(timing);
     }
     let tla3_baseline = tla3_baseline?;
+    let sweep_total_ms = elapsed_ms(sweep_start);
     let recommendation = recommend(&rows);
     Some(SweepReport {
         schema: SWEEP_REPORT_SCHEMA,
@@ -873,6 +1040,14 @@ pub fn run_sweep(
         tla3_baseline,
         recommendation,
         points: rows,
+        timing: SweepTiming {
+            thread_count: 1,
+            gate_c_sample: std::env::var("R4_GATE_C_SAMPLE").ok(),
+            train_observations: inputs.train.len(),
+            held_out_observations: inputs.held_out.len(),
+            total_ms: sweep_total_ms,
+            points: timings,
+        },
         determinism: "every consumed compiler is deterministic by construction (content-\
                       addressed seeds, ordered reductions, canonical sorts): any single point \
                       run twice produces byte-identical scored artifacts and identical metrics \
@@ -1201,6 +1376,58 @@ mod tests {
         };
         let json = serde_json::to_value(&recommendation).expect("recommendation serializes");
         assert_eq!(json["reconstruction_bits_per_token"], 16.03);
-        assert_eq!(SWEEP_REPORT_SCHEMA, 3);
+        assert_eq!(SWEEP_REPORT_SCHEMA, 4);
+    }
+
+    #[test]
+    fn point_timing_reports_dominant_stage_and_serializes() {
+        // gate_c (100 ms) dominates; total is the sum of the stage times.
+        let timing = PointTiming::new(
+            "k0=8/gain=0.25/budget=128".to_owned(),
+            10,
+            20,
+            5,
+            3,
+            40,
+            7,
+            100,
+        );
+        assert_eq!(timing.dominant_stage, "gate_c");
+        assert_eq!(timing.total_ms, 10 + 20 + 5 + 3 + 40 + 7 + 100);
+
+        let json = serde_json::to_value(&timing).expect("point timing serializes");
+        assert_eq!(json["label"], "k0=8/gain=0.25/budget=128");
+        assert_eq!(json["cover_induction_ms"], 10);
+        assert_eq!(json["recall_and_edges_ms"], 20);
+        assert_eq!(json["transitions_ms"], 5);
+        assert_eq!(json["context_and_forward_rows_ms"], 3);
+        assert_eq!(json["emissions_ms"], 40);
+        assert_eq!(json["r4g1_emission_ms"], 7);
+        assert_eq!(json["gate_c_ms"], 100);
+        assert_eq!(json["total_ms"], 185);
+        assert_eq!(json["dominant_stage"], "gate_c");
+
+        let sweep = SweepTiming {
+            thread_count: 1,
+            gate_c_sample: Some("2000".to_owned()),
+            train_observations: 500,
+            held_out_observations: 100,
+            total_ms: 185,
+            points: vec![timing],
+        };
+        let json = serde_json::to_value(&sweep).expect("sweep timing serializes");
+        assert_eq!(json["thread_count"], 1);
+        assert_eq!(json["gate_c_sample"], "2000");
+        assert_eq!(json["train_observations"], 500);
+        assert_eq!(json["held_out_observations"], 100);
+        assert_eq!(json["points"][0]["dominant_stage"], "gate_c");
+    }
+
+    #[test]
+    fn point_timing_dominant_stage_breaks_ties_to_the_first_stage() {
+        // Equal maxima resolve to the first stage in the fixed order, so
+        // the dominant label is deterministic given the timings.
+        let timing = PointTiming::new("t".to_owned(), 5, 5, 0, 0, 0, 0, 0);
+        assert_eq!(timing.dominant_stage, "cover_induction");
     }
 }
