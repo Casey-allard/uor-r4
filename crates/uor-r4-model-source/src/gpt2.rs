@@ -373,12 +373,22 @@ impl Gpt2 {
                 &mut proj,
                 &mut inner,
                 &mut mlp_out,
+                None,
+                None,
             );
             if capture.contains(&l) {
                 sink(l, &st.x);
             }
         }
-        // final LayerNorm and tied lm-head.
+        self.finish_forward(st);
+    }
+
+    /// Final `ln_f` LayerNorm into `st.hidden` and the tied lm-head into
+    /// `st.logits`. Shared by [`Gpt2::forward`] and
+    /// [`Gpt2::forward_capturing_trace`] so a traced step finishes through
+    /// the exact same arithmetic.
+    fn finish_forward(&self, st: &mut Gpt2State) {
+        let d = self.cfg.n_embd;
         layer_norm(
             &st.x,
             &self.ln_f_w,
@@ -397,6 +407,54 @@ impl Gpt2 {
         }
     }
 
+    /// One teacher-forced forward step at `pos` with the #603 trace lanes
+    /// captured through the exact executor path: the post-block residual
+    /// stream, the current-position q/k/v, and the per-head softmax
+    /// attention weights, each for the layer indices `request` declares.
+    /// A traced step leaves the same logits, hidden state, and k/v caches
+    /// as [`Gpt2::forward`] — the taps read the executor's own
+    /// intermediates, they never recompute. Sinks fire in ascending layer
+    /// order (heads ascending within a layer for the attention lane).
+    pub fn forward_capturing_trace(
+        &self,
+        st: &mut Gpt2State,
+        token: usize,
+        pos: usize,
+        request: &crate::TraceCaptureRequest<'_>,
+        sinks: &mut crate::TraceCaptureSinks<'_, '_>,
+    ) {
+        let d = self.cfg.n_embd;
+        // token + learned absolute position embedding.
+        for i in 0..d {
+            st.x[i] = self.wte[token * d + i] + self.wpe[pos * d + i];
+        }
+        let mut normed = vec![0.0f32; d];
+        let mut qkv = vec![0.0f32; 3 * d];
+        let mut attn = vec![0.0f32; d];
+        let mut proj = vec![0.0f32; d];
+        let mut inner = vec![0.0f32; self.cfg.n_inner];
+        let mut mlp_out = vec![0.0f32; d];
+        for l in 0..self.cfg.n_layer {
+            self.block_forward(
+                st,
+                l,
+                pos,
+                &mut normed,
+                &mut qkv,
+                &mut attn,
+                &mut proj,
+                &mut inner,
+                &mut mlp_out,
+                Some(request),
+                Some(&mut *sinks),
+            );
+            if request.residual_layers.contains(&l) {
+                (sinks.residual)(l, &st.x);
+            }
+        }
+        self.finish_forward(st);
+    }
+
     #[allow(clippy::too_many_arguments)]
     fn block_forward(
         &self,
@@ -409,6 +467,8 @@ impl Gpt2 {
         proj: &mut [f32],
         inner: &mut [f32],
         mlp_out: &mut [f32],
+        request: Option<&crate::TraceCaptureRequest<'_>>,
+        mut sinks: Option<&mut crate::TraceCaptureSinks<'_, '_>>,
     ) {
         let d = self.cfg.n_embd;
         let hs = self.cfg.head_size();
@@ -429,6 +489,16 @@ impl Gpt2 {
         let base = (l * seq + pos) * d;
         st.k_cache[base..base + d].copy_from_slice(&qkv[d..2 * d]);
         st.v_cache[base..base + d].copy_from_slice(&qkv[2 * d..3 * d]);
+        // #603 q/k/v tap at this position (q = all heads, then the just-cached
+        // k and v rows), emitted only for a requested layer. GPT-2 is plain
+        // MHA (kv heads == query heads), so every row is `d` wide.
+        if let Some(request) = request {
+            if request.qkv_layers.contains(&l) {
+                if let Some(sinks) = sinks.as_deref_mut() {
+                    (sinks.qkv)(l, &qkv[..d], &qkv[d..2 * d], &qkv[2 * d..3 * d]);
+                }
+            }
+        }
         let mut scores = vec![0.0f32; pos + 1];
         for h in 0..self.cfg.n_head {
             let qh = &qkv[h * hs..(h + 1) * hs];
@@ -453,15 +523,29 @@ impl Gpt2 {
                 sum += *score;
             }
             let inv = 1.0 / sum;
+            // Normalize the softmax weights in place. `score * inv` is the
+            // exact per-position weight the value aggregation used before,
+            // so the executor arithmetic stays bit-identical — and `scores`
+            // now holds the per-head weights the #603 attention tap emits.
+            for score in scores.iter_mut() {
+                *score *= inv;
+            }
+            // #603 per-head attention-weight tap over positions 0..=pos.
+            if let Some(request) = request {
+                if request.attention_layers.contains(&l) {
+                    if let Some(sinks) = sinks.as_deref_mut() {
+                        (sinks.attention)(l, h, &scores);
+                    }
+                }
+            }
             // weighted sum of values into this head's attention output.
             let ao = &mut attn[h * hs..(h + 1) * hs];
             ao.fill(0.0);
-            for (t, &score) in scores.iter().enumerate() {
-                let w = score * inv;
+            for (t, &weight) in scores.iter().enumerate() {
                 let voff = (l * seq + t) * d + h * hs;
                 let vh = &st.v_cache[voff..voff + hs];
                 for i in 0..hs {
-                    ao[i] += w * vh[i];
+                    ao[i] += weight * vh[i];
                 }
             }
         }
@@ -618,6 +702,98 @@ mod tests {
         let standard = AttentionOperatorSpec::standard();
         assert_ne!(spec.positional_action, standard.positional_action);
         assert_ne!(spec.implementation_digest, standard.implementation_digest);
+    }
+
+    /// #667: a #603-traced GPT-2 step produces logits bit-identical to the
+    /// plain forward, and the residual/qkv/attention taps fire only for the
+    /// requested layers with the declared shapes (residual `n_embd`; q/k/v
+    /// each `n_embd` wide — plain MHA; per-head attention weights over
+    /// `0..=pos`, summing to 1).
+    #[test]
+    fn forward_capturing_trace_matches_plain_forward_and_bounds_taps() {
+        let dir = fixture_dir();
+        let model = Gpt2::load(&dir, None).expect("load tiny gpt2 snapshot");
+        let cfg_layers = model.cfg.n_layer;
+        let heads = model.cfg.n_head;
+        let d = model.cfg.n_embd;
+        // Safe token ids and positions for the tiny fixture.
+        let steps = 5.min(model.cfg.seq_len);
+        let tokens: Vec<usize> = (0..steps).map(|i| i % model.cfg.vocab).collect();
+
+        // Reference: plain forward logits at each position.
+        let mut plain = Gpt2State::new(&model.cfg);
+        plain.reset();
+        let mut plain_logits: Vec<Vec<f32>> = Vec::new();
+        for (pos, &tok) in tokens.iter().enumerate() {
+            model.forward(&mut plain, tok, pos, &[], &mut |_, _| {});
+            plain_logits.push(plain.logits.clone());
+        }
+
+        // Bounded capture request.
+        let residual_layers: Vec<usize> = vec![0, cfg_layers - 1];
+        let qkv_layers: Vec<usize> = vec![0];
+        let attn_layer = if cfg_layers > 1 { 1 } else { 0 };
+        let attention_layers: Vec<usize> = vec![attn_layer];
+        let request = crate::TraceCaptureRequest {
+            residual_layers: &residual_layers,
+            qkv_layers: &qkv_layers,
+            attention_layers: &attention_layers,
+        };
+
+        let mut traced = Gpt2State::new(&model.cfg);
+        traced.reset();
+        for (pos, &tok) in tokens.iter().enumerate() {
+            let mut residual_hits: Vec<usize> = Vec::new();
+            let mut qkv_hits: Vec<(usize, usize, usize, usize)> = Vec::new();
+            let mut attention_hits: Vec<(usize, usize, usize, f32)> = Vec::new();
+            {
+                let mut residual = |l: usize, x: &[f32]| {
+                    assert_eq!(x.len(), d, "residual width is n_embd");
+                    residual_hits.push(l);
+                };
+                let mut qkv = |l: usize, q: &[f32], k: &[f32], v: &[f32]| {
+                    qkv_hits.push((l, q.len(), k.len(), v.len()));
+                };
+                let mut attention = |l: usize, h: usize, w: &[f32]| {
+                    let sum: f32 = w.iter().sum();
+                    attention_hits.push((l, h, w.len(), sum));
+                };
+                let mut sinks = crate::TraceCaptureSinks {
+                    residual: &mut residual,
+                    qkv: &mut qkv,
+                    attention: &mut attention,
+                };
+                model.forward_capturing_trace(&mut traced, tok, pos, &request, &mut sinks);
+            }
+
+            // Logits are bit-identical to the plain forward.
+            let want: Vec<u32> = plain_logits[pos].iter().map(|v| v.to_bits()).collect();
+            let got: Vec<u32> = traced.logits.iter().map(|v| v.to_bits()).collect();
+            assert_eq!(
+                got, want,
+                "traced logits at pos {pos} equal the plain forward"
+            );
+
+            // Residual tap fires exactly for the requested layers, in order.
+            assert_eq!(
+                residual_hits, residual_layers,
+                "residual layers at pos {pos}"
+            );
+
+            // q/k/v tap: once for the one requested layer, each row n_embd wide.
+            assert_eq!(qkv_hits.len(), 1, "one qkv hit at pos {pos}");
+            assert_eq!(qkv_hits[0], (0, d, d, d), "qkv layer + widths at pos {pos}");
+
+            // Attention tap: one hit per head for the requested layer, weights
+            // over 0..=pos and summing to 1.
+            assert_eq!(attention_hits.len(), heads, "one attention hit per head");
+            for (idx, (l, h, wlen, sum)) in attention_hits.iter().enumerate() {
+                assert_eq!(*l, attn_layer, "attention layer");
+                assert_eq!(*h, idx, "heads ascending");
+                assert_eq!(*wlen, pos + 1, "attention weights span 0..=pos");
+                assert!((sum - 1.0).abs() < 1e-4, "softmax weights sum to 1: {sum}");
+            }
+        }
     }
 
     /// Loading a snapshot whose config declares a non-GPT-2 architecture is
@@ -787,6 +963,33 @@ impl crate::TeacherOracle for HuggingFaceGpt2Oracle {
     }
     fn top_k(&self, k: usize, out: &mut [(u32, f32)]) -> usize {
         crate::top_k_from_logits(&self.state.logits, k, out, false)
+    }
+    fn trace_capture_geometry(&self) -> Option<crate::TraceCaptureGeometry> {
+        Some(crate::TraceCaptureGeometry {
+            layers: self.model.cfg.n_layer,
+            heads: self.model.cfg.n_head,
+            // GPT-2 is plain multi-head: kv heads == query heads.
+            kv_heads: self.model.cfg.n_head,
+            // The SOURCE residual width the taps expose (n_embd), not the
+            // compiled width `dim()` presents. K/v rows are the same width
+            // (kv_heads == heads).
+            residual_width: self.model.cfg.n_embd,
+        })
+    }
+    fn step_with_trace_capture(
+        &mut self,
+        token: usize,
+        pos: usize,
+        logits: &mut [f32],
+        request: &crate::TraceCaptureRequest<'_>,
+        sinks: &mut crate::TraceCaptureSinks<'_, '_>,
+    ) -> bool {
+        // #603: capture through the exact executor path — a traced step
+        // leaves the same logits as the plain `step`.
+        self.model
+            .forward_capturing_trace(&mut self.state, token, pos, request, sinks);
+        logits.copy_from_slice(&self.state.logits);
+        true
     }
 }
 
