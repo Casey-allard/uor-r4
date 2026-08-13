@@ -1,0 +1,10 @@
+{
+  "timestamp_utc": "2026-02-24T05:59:03.032501+00:00",
+  "source": "arXiv API",
+  "queries": {
+    "cat:math.NT AND all:\"error term prime number theorem\"": [],
+    "cat:math.NT AND all:\"oscillation zeta zero\"": [],
+    "cat:math.NT AND all:\"explicit formula zeta\"": []
+  },
+  "errors": {}
+}

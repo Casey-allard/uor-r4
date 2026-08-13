@@ -1,0 +1,174 @@
+{
+  "timestamp_utc": "2026-02-18T06:42:14.833617+00:00",
+  "source": "arXiv API",
+  "queries": {
+    "all:\"riemann zeta\" AND all:\"explicit formula\"": [
+      {
+        "title": "Explicit conditional bounds for $\u03b6(s)$ at the edge of the critical strip",
+        "summary": "In this paper, we obtain explicit bounds for the real part of the logarithmic derivative of the Riemann zeta-function on the line $\\re s=1$, assuming the Riemann hypothesis. The proof combines the Guinand--Weil explicit formula with extremal bandlimited majorants and minorants for the Poisson kernel. As an application, we revisit the classical estimates of Littlewood for the modulus of the Riemann zeta-function and of its reciprocal on the line $\\re{s}=1$, and derive a slight refinement of the bounds of Lamzouri, Li, and Soundararajan. In addition, we establish an explicit bound for the modulus of the logarithmic derivative of the Riemann zeta-function on the line $\\re{s}=1$ under the Riemann hypothesis, improving the lower-order term in a result of Chirre, Val\u00e5s, and Simoni\u010d.",
+        "published": "2026-02-05T21:20:20Z",
+        "updated": "2026-02-05T21:20:20Z",
+        "url": "https://arxiv.org/abs/2602.06199v1"
+      },
+      {
+        "title": "Numerical Behavior of the Riemann Zeta Function Using Real-to-Complex Conversion Without Gram Points or Bracketing",
+        "summary": "The Riemann zeta function and the distribution of its nontrivial zeros on the critical line remain central topics in analytic number theory and large-scale computation. This work develops a numerical framework that replaces classical Gram-point bracketing with a real-to-complex parametrization of the critical line. Combined with high-precision evaluation of the Hardy Z function using the Riemann-Siegel formula with Gabcke type remainder control, this parametrization induces a Valley Scanner algorithm that identifies local minima of the absolute value of Z and refines them using safeguarded Newton iterations. The method exploits the mountain-valley geometry of the Z function rather than sign changes, and is implemented in a cloud based C language and MPFR pipeline with parallel execution on multi-core CPU instances. The paper reports Zero computations from the classical low lying range up to heights near 1e20, compares the observed spacing of zeros with Riemann - von Mangoldt predictions across several test windows, and summarizes consistency checks based on independent datasets and a local ball test. The work also introduces a fully real staircase formulation of the explicit-formula correction term for the Chebyshev function, expressed directly in terms of the zero ordinates and derived quantities. All numerical datasets, Docker images, and reproducibility materials are publicly archived via Zenodo and GitHub.",
+        "published": "2025-12-09T22:14:45Z",
+        "updated": "2025-12-09T22:14:45Z",
+        "url": "https://arxiv.org/abs/2512.09960v1"
+      },
+      {
+        "title": "On the Proof of the Gen\u010dev-Rucki Conjecture for Multiple Ap\u00e9ry-Like Series",
+        "summary": "In this paper, we employ the theories and techniques of hypergeometric functions to provide two distinct proofs of the conjectured identities involving multiple Ap\u00e9ry-like series with central binomial coefficients and multiple harmonic star sums, as recently proposed by Gen\u010dev and Rucki. Furthermore, we establish several more general identities for multiple Ap\u00e9ry-like series. Furthermore, by utilizing the method of iterated integrals, a class of multiple mixed values can be expressed as combinations of the multiple Ap\u00e9ry-like series identities conjectured by Gen\u010dev and Rucki and $\u03b6(2,\\ldots,2)$, thus allowing explicit formulas for these multiple mixed values to be derived in terms of Riemann zeta values.",
+        "published": "2025-10-10T06:43:39Z",
+        "updated": "2025-10-10T06:43:39Z",
+        "url": "https://arxiv.org/abs/2510.09052v1"
+      },
+      {
+        "title": "Explicit formulas of the relation between multiple zeta functions of Arakawa-Kaneko and Euler-Zagier types",
+        "summary": "Multiple zeta functions of Arakawa-Kaneko and Euler-Zagier types are known as generalizations of the Riemann zeta function. In 2018, Kaneko and Tsumura proved that the multiple zeta functions of Arakawa-Kaneko type can be expressed as a ${\\mathbb Q}$-linear combination of products of the ones of Euler-Zagier type and multiple zeta values. In this paper, we give explicit formulas to the above mentioned relation. Moreover, as a key of its proof, we also give certain functional equations among multi-polylogarithm functions explicitly.",
+        "published": "2025-07-20T16:36:16Z",
+        "updated": "2025-07-20T16:36:16Z",
+        "url": "https://arxiv.org/abs/2507.15034v1"
+      },
+      {
+        "title": "Explicit Formulas For Generalized Polylogarithmic Integrals, Euler Sums, And BBP-Type Series",
+        "summary": "This paper explores closed-form expressions for some polylogarithm integrals with integrands containing five parameters. These closed form expressions are given in terms of the Lerch transcendent function, which reduces, in some cases, to well-known special functions, such as the Riemann zeta, Dirichlet eta, Dirichlet beta, the Hurwitz zeta, and the polygamma functions. Related Euler sums and BBP-type series will also be discussed.",
+        "published": "2025-07-06T01:32:30Z",
+        "updated": "2025-07-06T01:32:30Z",
+        "url": "https://arxiv.org/abs/2507.04205v1"
+      },
+      {
+        "title": "Bethe roots for periodic TASEP and algebraic curve",
+        "summary": "We present an algebraic method for solving the Bethe ansatz equations for the periodic totally asymmetric exclusion process (TASEP) with an arbitrary number of sites and particles. The Bethe ansatz equations are realized as an algebraic equation on a certain Riemann surface. While our Riemann surface is essentially the same as the one introduced by Prolhac, we focus on its algebraic realization as a (singular) plane curve. Through a counting argument on the Riemann surface, we establish a rigorous proof that the Bethe ansatz equation has the expected number of solutions when counted with multiplicity. Consequently, under appropriate generic conditions, the completeness of the Bethe ansatz follows. The decomposition of the Riemann surface into connected components determines how often each value of the product of Bethe roots appears. We classify the connected components and their multiplicities using a similar argument to the spectral degeneracy of the Markov matrix discussed by Golinelli-Mallick. As a result, we give an algebro-geometric characterization of Golinelli-Mallick-type spectral degeneracy of the Markov matrix. We also give explicit formulas for the number of connected components, the number of ramification points, and the total genus of the Riemann surface. These formulas recover the table of examples presented by Prolhac. Moreover, we explore applications of the special type of Bethe roots that appear in this case to partition functions of the five-vertex model. We introduce a version of the free energy and evaluate the thermodynamic limit to find the explicit form in terms of the Riemann zeta function.",
+        "published": "2025-04-28T11:35:58Z",
+        "updated": "2025-09-01T01:15:53Z",
+        "url": "https://arxiv.org/abs/2504.19690v3"
+      },
+      {
+        "title": "Resolution Of Multiplicative Anomaly Of Zeta Regularization For Polynomials",
+        "summary": "In this paper, the problem of multiplicative anomaly of zeta regularization is solved for polynomials. For a regularizable sequence $\u039b$, we explicitly calculate the zeta regularized product of $(\u039b-z_1)\\dots(\u039b-z_n)$ for $z_1,\\dots,z_n\\in\\mathbb{C}$. We give an explicit formula for the discrepancies between polynomials. Our results imply Mizuno's theorem as a special case. We furthermore give novel regularized product formulas for multi-dimensional products in terms of Barnes multiple gamma functions, zeros of the Riemann zeta function and zeros of the Bessel function of the first kind.",
+        "published": "2025-04-20T10:23:09Z",
+        "updated": "2025-09-03T10:57:49Z",
+        "url": "https://arxiv.org/abs/2504.14563v2"
+      },
+      {
+        "title": "Knots, primes and class field theory",
+        "summary": "In this paper, we present a geometric generalization of class field theory, demonstrating how adelic constructions, central to the spectral realization of zeros of L-functions and the geometric framework for explicit formulas in number theory, naturally extend the classical theory. This generalization transitions from the idele class group, which acts as the adelic analog of Galois groups, to a geometric framework associated with schemes and the ring of integers of global fields. This perspective provides a conceptual explanation for the role of the adele class space in the spectral realization of L-function zeros and identifies the idele class group as a generic point in this context. The sector $X_{\\mathbb{Q}}$ of the adele class space corresponding to the Riemann zeta function gives the class field counterpart of the scaling topos. The main result is the construction of a functor mapping finite abelian extensions of $\\mathbb{Q}$ to finite covers of $X_{\\mathbb{Q}}$, with the monodromy of periodic orbits of length $\\log p$ under the scaling action corresponding to the Galois action of the Frobenius at the prime p.",
+        "published": "2025-01-11T14:40:30Z",
+        "updated": "2025-01-11T14:40:30Z",
+        "url": "https://arxiv.org/abs/2501.06560v1"
+      },
+      {
+        "title": "On moments of the derivative of CUE characteristic polynomials and the Riemann zeta function",
+        "summary": "We study the derivative of the characteristic polynomial of $N \\times N$ Haar distributed unitary matrices. We obtain the first explicit formulae for complex-valued moments when the spectral variable is inside the unit disc, in the limit $N \\to \\infty$. These formulae are expressed in terms of the confluent hypergeometric function of the first kind. As an application, we provide an alternative method to re-obtain Mezzadri's result [J. Phys. A, 36(12):2945-2962, 2003] on the asymptotic density of zeros of the derivative as $N \\to \\infty$. We explore the connection between these moments and those of the derivative of the Riemann zeta function away from the critical line. Under the Lindel\u00f6f hypothesis, we prove that all positive integer moments agree with our random matrix results up to an arithmetic factor. Inspired by this finding, we propose a conjecture on the asymptotics of non-integer moments of the derivative of the Riemann zeta function off the critical line. Within random matrix theory, we also investigate the microscopic regime where the spectral variable $z$ satisfies $|z|^{2}=1-\\frac{c}{N}$ for a fixed constant $c$. We obtain an asymptotic formula for the moments in this regime as a determinant involving the finite temperature Bessel kernel, which reduces to the Bessel kernel when $c=0$. For finite matrix size, we provide an exact formula for the moments of the derivative inside the unit disc, expressed as polynomials of the inverse of the distance from the circle, with coefficients given by combinatorial sums.",
+        "published": "2024-09-05T16:42:47Z",
+        "updated": "2024-12-23T13:13:44Z",
+        "url": "https://arxiv.org/abs/2409.03687v2"
+      },
+      {
+        "title": "On the spectrum of a differential operator on a Hilbert-P\u00f3lya space",
+        "summary": "In this paper we study the spectrum of a fundamental differential operator on a Hilbert-P\u00f3lya space. A number is an eigenvalue of this differential operator if and only if it is a nontrivial zero of the Riemann zeta function. An explicit formula is given for the eigenfunction associated with each nontrivial zero of the zeta function. Every eigenfunction is characterized via the Poisson summation formula by a sequence of mysterious functions whose explicit formulas are given.",
+        "published": "2024-04-18T05:06:05Z",
+        "updated": "2024-04-18T05:06:05Z",
+        "url": "https://arxiv.org/abs/2404.11902v1"
+      },
+      {
+        "title": "On Littlewood's estimate for the modulus of the zeta function on the critical line",
+        "summary": "Inspired by a result of Soundararajan, assuming the Riemann hypothesis (RH), we prove a new inequality for the logarithm of the modulus of the Riemann zeta-function on the critical line in terms of a Dirichlet polynomial over primes and prime powers. Our proof uses the Guinand-Weil explicit formula in conjunction with extremal one-sided bandlimited approximations for the Poisson kernel. As an application, by carefully estimating the Dirichlet polynomial, we revisit a 100-year-old estimate of Littlewood and give a slight refinement of the sharpest known upper bound (due to Chandee and Soundararajan) for the modulus of the zeta function on the critical line assuming RH, by providing explicit lower-order terms.",
+        "published": "2024-03-26T15:41:13Z",
+        "updated": "2024-03-26T15:41:13Z",
+        "url": "https://arxiv.org/abs/2403.17803v1"
+      },
+      {
+        "title": "On the series expansion of the secondary zeta function",
+        "summary": "In article, we explore the secondary zeta function $Z(s)$, which is defined as a generalized zeta type of series over imaginary parts of non-trivial zeros of the Riemann zeta function $\u03b6(s)$. This function has been analytically continued as a meromorphic function in $\\mathbb{C}$ with one double pole and an infinity of simple poles. The secondary zeta function is of interest because it can naturally represent an analytical formula for non-trivial zeros of the Riemann zeta function that we will explore, and we show that the non-trivial zeros can be generated directly from primes by introducing a new form of an explicit formula written in terms of the prime zeta function. Additionally, we will also give several new series expansions for $Z(s)$ and numerically compute these coefficients to high precision, and also develop several new methods to analytically extend $Z(s)$ to larger domains and develop algorithms to compute them.",
+        "published": "2024-03-23T06:47:53Z",
+        "updated": "2024-04-07T02:32:03Z",
+        "url": "https://arxiv.org/abs/2403.15741v2"
+      }
+    ],
+    "all:\"Chebyshev\" AND all:\"zeta zeros\"": [
+      {
+        "title": "Smooth integers and de Bruijn's approximation $\u039b$",
+        "summary": "This paper is concerned with the relationship of $y$-smooth integers and de Bruijn's approximation $\u039b(x,y)$. Under the Riemann hypothesis, Saias proved that the count of $y$-smooth integers up to $x$, $\u03a8(x,y)$, is asymptotic to $\u039b(x,y)$ when $y \\ge (\\log x)^{2+\\varepsilon}$. We extend the range to $y \\ge (\\log x)^{3/2+\\varepsilon}$ by introducing a correction factor that takes into account the contributions of zeta zeros and prime powers.   We use this correction term to uncover a lower order term in the asymptotics of $\u03a8(x,y)/\u039b(x,y)$. The term relates to the error term in the prime number theorem, and implies that large positive (resp. negative) values of $\\sum_{n \\le y} \u039b(n)-y$ lead to large positive (resp. negative) values of $\u03a8(x,y)-\u039b(x,y)$, and vice versa. Under the Linear Independence hypothesis, we show a Chebyshev's bias in $\u03a8(x,y)-\u039b(x,y)$.",
+        "published": "2022-12-04T23:04:35Z",
+        "updated": "2023-12-19T14:38:03Z",
+        "url": "https://arxiv.org/abs/2212.01949v3"
+      }
+    ],
+    "all:\"prime counting error term\" AND all:\"oscillation\"": [],
+    "all:\"Pintz\" AND all:\"zeta\"": [
+      {
+        "title": "A round of Pintz to celebrate oscillations in sums",
+        "summary": "We explore a method, going back to Landau and developed by Pintz, for connecting sums of arithmetic functions with zero-free regions for $L$-functions. In particular, we make explicit a general result of Pintz of this form; showing how one can use arithmetical information to deduce information about zeroes of $L$-functions, rather than the other way around. As a prototype, we work through an example with the Riemann zeta-function and sums of the M\u00f6bius function, but we also outline the utility of this method in general.",
+        "published": "2025-11-13T05:18:48Z",
+        "updated": "2026-02-09T03:47:43Z",
+        "url": "https://arxiv.org/abs/2511.09978v3"
+      },
+      {
+        "title": "On the connection between zero-free regions and the error term in the Prime Number Theorem",
+        "summary": "We provide for a wide class of zero-free regions an upper bound for the error term in the Prime Number Theorem, refining works of Pintz (1980), Johnston (2024), and R\u00e9v\u00e9sz (2024). Our method does not only apply to the Riemann zeta function, but to general Beurling zeta functions. Next we construct Beurling zeta functions having infinitely many zeros on a prescribed contour, and none to the right, for a wide class of such contours. We also deduce an oscillation result for the corresponding error term in the Prime Number Theorem, showing that our aforementioned refinement is close to being sharp.",
+        "published": "2025-07-18T09:46:12Z",
+        "updated": "2025-07-18T09:46:12Z",
+        "url": "https://arxiv.org/abs/2507.13780v1"
+      },
+      {
+        "title": "The Error in a Smooth Weighted Prime Number Formula and Zero-free Regions for the Riemann Zeta Function",
+        "summary": "We study the error bound for a smooth weighted prime number theorem, and its implication to the zero-free region for the Riemann zeta function using the method of Pintz. We also give an application to the average number of smooth weighted Goldbach representations and generalize the result to the case of smooth weighted average k-Goldbach representations.",
+        "published": "2025-05-26T12:53:07Z",
+        "updated": "2025-05-26T12:53:07Z",
+        "url": "https://arxiv.org/abs/2505.23795v1"
+      },
+      {
+        "title": "New zero-density estimates for the Beurling $\u03b6$ function",
+        "summary": "In two previous papers the second author proved some Carlson type density theorems for zeroes in the critical strip for Beurling zeta functions satisfying Axiom A of Knopfmacher. In the first of these invoking two additonal conditions were needed, while in the second an explicit, fully general result was obtained. Subsequently, Frederik Broucke and Gregory Debruyne obtained, via a different method, a general Carlson type density theorem with an even better exponent, and recently Frederik Broucke improved this further, getting $N(\u03c3,T) \\le T^{a(1-\u03c3)}$ with any $a>\\dfrac{4}{1-\u03b8}$. Broucke employed a new mean value estimate of the Beurling zeta function, while he did not use the method of Hal\u00e1sz and Montgomery.   Here we elaborate a new approach of the first author, using the classical zero detecting sums coupled with a kernel function technique and Hal\u00e1sz' method, but otherwise arguing in an elementary way avoiding e.g. mean value estimates for Dirichlet polynomials. We will make essential use of the additional assumptions that the Beurling system of integers consists of natural numbers, and that the system satisfies the Ramanujan condition, too. This way we give a new variant of the Carlson type density estimate with similar strength as Tur\u00e1n's 1954 result for the Riemann $\u03b6$ function, coming close even to the Density Hypothesis for $\u03c3$ close to 1.",
+        "published": "2024-07-17T17:08:37Z",
+        "updated": "2024-07-17T17:08:37Z",
+        "url": "https://arxiv.org/abs/2407.12746v1"
+      },
+      {
+        "title": "A remark on density theorems for Riemann's zeta-function",
+        "summary": "The goal of this paper is to give a relatively simple proof of some known zero density estimates for Riemann zeta function which are sufficiently strong to break the density hypothesis in a nontrivial part of the critical strip. Apart from a simple but ingenious idea of Halasz the proof uses only classical knowledge about the zeta function, results known since at least hundred years.",
+        "published": "2023-09-30T12:19:21Z",
+        "updated": "2023-09-30T12:19:21Z",
+        "url": "https://arxiv.org/abs/2310.04544v1"
+      },
+      {
+        "title": "The Carlson-type zero-density theorem for the Beurling zeta function",
+        "summary": "In a previous paper we proved a Carlson type density theorem for zeroes in the critical strip for Beurling zeta functions satisfying Axiom A of Knopfmacher. There we needed to invoke two additonal conditions, the integrality of the norm (Condition B) and an \"average Ramanujan Condition\" for the arithmetical function counting the number of different Beurling integers of the same norm (Condition G).   Here we implement a new approach of Pintz, using the classic zero detecting sums coupled with Hal\u00e1sz' method, but otherwise arguing in an elementary way avoiding e.g. large sieve type inequalities. This way we give a new proof of a Carlson type density estimate--with explicit constants--avoiding any use of the two additional conditions, needed earlier.   Therefore it is seen that the validity of a Carlson-type density estimate does not depend on any extra assumption--neither on the functional equation, present for the Selberg class, nor on growth estimates of coefficients say of the \"average Ramanujan type\"-but is a general property, presenting itself whenever the analytic continuation is guaranteed by Axiom A.",
+        "published": "2022-09-04T20:29:55Z",
+        "updated": "2024-11-12T17:11:51Z",
+        "url": "https://arxiv.org/abs/2209.01689v3"
+      },
+      {
+        "title": "The method of Pintz for the Ingham question about the connection of distribution of $\u03b6$-zeros and order of the error in the PNT in the Beurling context",
+        "summary": "We prove two results, generalizing long existing knowledge regarding the classical case of the Riemann zeta function and some of its generalizations. These are concerned with the question of Ingham who asked for optimal and explicit order estimates for the error term $\u0394(x):=\u03c8(x)-x$, given any zero-free region $D(\u03b7):=\\{s=\u03c3+it\\in\\mathbb{C}~:~ \u03c3:=\\Re s \\ge 1-\u03b7(t)\\}$. In the classical case essentially sharp results are due to some 40 years old work of Pintz. Here we consider a given a system of Beurling primes $\\mathcal{P}$, the generated arithmetical semigroup $\\mathcal{G}$ and the corresponding integer counting function $N(x)$, and the corresponding error term $\u0394_{\\mathcal{G}}(x):=\u03c8_{\\mathcal{G}}(x)-x$ in the PNT of Beurling, where $\u03c8_{\\mathcal{G}}(x)$ is the Beurling analog of $\u03c8(x)$. First we prove that if the Beurling zeta function $\u03b6_{\\mathcal{G}}$ does not vanish in $D(\u03b7)$, then the extension of Pintz' result holds: $|\u0394_{\\mathcal{G}}(x)| \\le x\\exp(-(1-\\varepsilon)\u03c9_\u03b7(x))~(x>x_0(\\varepsilon))$, where $\u03c9_\u03b7(y)$ is the naturally occurring conjugate function to $\u03b7(t)$, introduced into the field by Ingham. In the second part we prove a converse: if $\u03b6_{\\mathcal{G}}$ has an infinitude of zeroes in the given domain, then analogously to the classical case, $|\u0394_{\\mathcal{G}}(x)| \\ge x\\exp(-(1+\\varepsilon)\u03c9_\u03b7(x))$ holds \"infinitely often\". This also shows that both main results are sharp apart from the arbitrarily small $\\varepsilon>0$.",
+        "published": "2022-07-01T21:24:23Z",
+        "updated": "2023-02-21T17:40:21Z",
+        "url": "https://arxiv.org/abs/2207.00665v2"
+      },
+      {
+        "title": "Sharper bounds for the Chebyshev function $\u03c8(x)$",
+        "summary": "We improve the unconditional explicit bounds for the error term in the prime counting function $\u03c8(x)$. In particular, we prove that, for all $x>2$, we have \\[ \\left| \u03c8(x)-x \\right| < 9.22106 \\, x \\, (\\log x)^{3/2} \\exp(-0.8476836\\sqrt{\\log x}), \\] and that, for all $\\log x \\ge 3\\,000$, \\[ \\left| \u03c8(x)-x \\right| < 4.47\\cdot 10^{-15} x. \\] This compares to results of Platt \\& Trudgian (2021) who obtained $4.51\\cdot 10^{-13} x $. Our approach represents a significant refinement of ideas of Pintz which had been applied by Platt and Trudgian. Improvements are obtained by splitting the zeros into additional regions, carefully estimating all of the consequent terms, and a significant use of computational methods. Results concerning $\u03c0(x)$ will appear in a follow up work.",
+        "published": "2022-04-06T05:39:20Z",
+        "updated": "2023-05-17T04:24:40Z",
+        "url": "https://arxiv.org/abs/2204.02588v3"
+      },
+      {
+        "title": "Irregular behaviour of class numbers and Euler-Kronecker constants of cyclotomic fields: the log log log devil at play",
+        "summary": "Kummer (1851) and, many years later, Ihara (2005) both posed conjectures on invariants related to the cyclotomic field $\\mathbb Q(\u03b6_q)$ with $q$ a prime. Kummer's conjecture concerns the asymptotic behaviour of the first factor of the class number of $\\mathbb Q(\u03b6_q)$ and Ihara's the positivity of the Euler-Kronecker constant of $\\mathbb Q(\u03b6_q)$ (the ratio of the constant and the residue of the Laurent series of the Dedekind zeta function $\u03b6_{\\mathbb Q(\u03b6_q)}(s)$ at $s=1$). If certain standard conjectures in analytic number theory hold true, then one can show that both conjectures are true for a set of primes of natural density 1, but false in general. Responsible for this are irregularities in the distribution of the primes. With this survey we hope to convince the reader that the apparently dissimilar mathematical objects studied by Kummer and Ihara actually display a very similar behaviour.",
+        "published": "2017-11-21T19:04:33Z",
+        "updated": "2017-12-20T17:46:37Z",
+        "url": "https://arxiv.org/abs/1711.07996v2"
+      },
+      {
+        "title": "Prime pairs and Zeta's zeros",
+        "summary": "There is extensive numerical support for the prime-pair conjecture (PPC) of Hardy and Littlewood (1923) on the asymptotic behavior of pi_{2r}(x), the number of prime pairs (p,p+2r) with p not exceeding x. However, it is still not known whether there are infinitely many prime pairs with given even difference! Using a strong hypothesis on (weighted) equidistribution of primes in arithmetic progressions, Goldston, Pintz and Yildirim have shown (2007) that there are infinitely many pairs of primes differing by at most sixteen. The present author uses a Tauberian approach to derive that the PPC is equivalent to specific boundary behavior of certain functions involving zeta's complex zeros. Under Riemann's Hypothesis and on the real axis, these functions resemble pair-correlation expressions. A speculative extension of Montgomery's classical work (1973) would imply that there must be an abundance of prime pairs.",
+        "published": "2008-06-05T09:28:04Z",
+        "updated": "2008-06-05T09:28:04Z",
+        "url": "https://arxiv.org/abs/0806.0934v1"
+      }
+    ]
+  }
+}

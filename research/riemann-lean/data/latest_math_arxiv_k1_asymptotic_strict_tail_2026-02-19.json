@@ -1,0 +1,351 @@
+{
+  "timestamp_utc": "2026-02-19T13:51:02.142174+00:00",
+  "source": "arXiv API",
+  "queries": {
+    "cat:math.NT AND all:riemann AND all:zeta AND all:zero": [
+      {
+        "title": "Minimal zero-free regions for results on primes between consecutive perfect $k$th powers",
+        "summary": "We compute minimal zero-free regions for the Riemann zeta-function of the Littlewood form which ensure there is always a prime between consecutive perfect $k$th powers. Our computations cover powers $k\\geq 70$ and quantify how far we are away from proving certain milestones toward an infamous open problem (Legendre's conjecture).",
+        "published": "2026-02-15T23:15:04Z",
+        "updated": "2026-02-15T23:15:04Z",
+        "url": "https://arxiv.org/abs/2602.14340v1"
+      },
+      {
+        "title": "The Riemann Hypothesis: Past, Present and a Letter Through Time",
+        "summary": "This paper, commissioned as a survey of the Riemann Hypothesis, provides a comprehensive overview of 165 years of mathematical approaches to this fundamental problem, while introducing a new perspective that emerged during its preparation. The paper begins with a detailed description of what we know about the Riemann zeta function and its zeros, followed by an extensive survey of mathematical theories developed in pursuit of RH -- from classical analytic approaches to modern geometric and physical methods. We also discuss several equivalent formulations of the hypothesis. Within this survey framework, we present an original contribution in the form of a \"Letter to Riemann,\" using only mathematics available in his time. This letter reveals a method inspired by Riemann's own approach to the conformal mapping theorem: by extremizing a quadratic form (restriction of Weil's quadratic form in modern language), we obtain remarkable approximations to the zeros of zeta. Using only primes less than 13, this optimization procedure yields approximations to the first 50 zeros with accuracies ranging from $2.6 \\times 10^{-55}$ to $10^{-3}$. Moreover we prove a general result that these approximating values lie exactly on the critical line. Following the letter, we explain the underlying mathematics in modern terms, including the description of a deep connection of the Weil quadratic form with the world of information theory. The final sections develop a geometric perspective using trace formulas, outlining a potential proof strategy based on establishing convergence of zeros from finite to infinite Euler products. While completing the commissioned survey, these new results suggest a promising direction for future research on Riemann's conjecture.",
+        "published": "2026-02-03T21:11:58Z",
+        "updated": "2026-02-03T21:11:58Z",
+        "url": "https://arxiv.org/abs/2602.04022v1"
+      },
+      {
+        "title": "Generalisations of the Landau--Gonek Theorem and applications to mean values of zeta",
+        "summary": "The Landau--Gonek Theorem evaluates $X^\u03c1$ summed over the non-trivial zeros of the Riemann zeta function. Their result shows great sensitivity to the arithmetic nature of $X$. We prove a related result concerning the sum of $\u03c7(\u03c1) X^\u03c1$ over the zeros of zeta, where $\u03c7(s)$ is the term arising in the functional equation for the zeta function. Again, this result depends deeply on whether $X$ is an integer or not. We show the result splits into three cases, depending on whether $X$ is smaller than $T$, about the same size as $T$, or bigger than $T$. The reason this result is useful is that it easily permits the calculation of discrete moments of the Riemann zeta function via the approximate functional equation. As an application of this result, we provide an alternative proof of Shanks' conjecture.",
+        "published": "2026-01-25T22:48:55Z",
+        "updated": "2026-01-25T22:48:55Z",
+        "url": "https://arxiv.org/abs/2601.18025v1"
+      },
+      {
+        "title": "Density-based structural frameworks for prime numbers, prime gaps, and Euler products",
+        "summary": "We develop a unified density-based framework for primality, coprimality, and prime pairs, and introduce an intrinsic normalized model for prime gaps constrained by the Prime Number Theorem. Within this setting, a structural tension between Hardy-Littlewood, Cramer, and PNT predictions emerges, leading to quantitative estimates on the rarity of extreme gaps. Additive representations of even integers are reformulated as local density problems, yielding non-conjectural upper and lower bounds compatible with Hardy-Littlewood heuristics. Finally, the Riemann zeta function is analyzed via truncated Euler products, whose stability and oscillatory structure provide a coherent interpretation of the critical line and prime-based numerical criteria for the localization of non-trivial zeros.",
+        "published": "2026-01-22T18:46:20Z",
+        "updated": "2026-01-22T18:46:20Z",
+        "url": "https://arxiv.org/abs/2601.16193v1"
+      },
+      {
+        "title": "On the Zeros of the Riemann Zeta Function with Two Ordinate Shifts",
+        "summary": "We prove that for any fixed real numbers y_1, y_2 not equal to 0, and constant C > 0, there exists a threshold T_* = T_*(y_1, y_2, C) > 0 such that for all T >= T_*, the interval [T, T(1 + epsilon)], with epsilon = exp(-C sqrt(log T)), contains at least one gamma satisfying zeta(1/2 + i gamma) = 0, zeta(1/2 + i (gamma + y_1)) != 0, and zeta(1/2 + i (gamma + y_2)) != 0.   This extends earlier work by Banks (for a single shift y) to two distinct shifts y_1, y_2. Our argument is based on the behavior of zeta and L functions in zero-free regions via Perron's formula.",
+        "published": "2026-01-22T03:17:26Z",
+        "updated": "2026-01-22T03:17:26Z",
+        "url": "https://arxiv.org/abs/2601.15610v1"
+      },
+      {
+        "title": "The discrete second moment of mixed derivatives of the Riemann zeta function",
+        "summary": "We establish the full asymptotic for the discrete second moment of the Riemann zeta function of mixed derivatives evaluated at the zeta zeros, providing both unconditional and conditional error terms. This was first studied by Gonek, where only the leading order asymptotic was given, later extended by Conrey--Snaith and Milinovich to include the lower order terms for the first derivative. We extend the case of the first derivative to all derivatives.",
+        "published": "2026-01-09T20:10:39Z",
+        "updated": "2026-01-09T20:10:39Z",
+        "url": "https://arxiv.org/abs/2601.06292v1"
+      },
+      {
+        "title": "Explicit bounds for the graphicality of the prime gap sequence",
+        "summary": "We establish explicit unconditional results on the graphic properties of the prime gap sequence. Let $p_n$ denote the $n$-th prime number (with $p_0=1$) and $\\mathrm{PD}_n = (p_\\ell - p_{\\ell-1})_{\\ell=1}^n$ be the sequence of the first $n$ prime gaps. Building upon the recent work by Erd\u0151s \\emph{et al}, which proved the graphic nature of $\\mathrm{PD}_n$ for large $n$ unconditionally, and for all $n$ under RH, we provide the first explicit unconditional threshold such that: (1) For all $n \\geq \\exp\\exp(30.5)$, $\\mathrm{PD}_n$ is graphic. (2) For all $n \\geq \\exp\\exp(34.5)$, every realization $G_n$ of $\\mathrm{PD}_n$ satisfies that $(G_n, p_{n+1}-p_n)$ is DPG-graphic.   Our proofs utilize a more refined criterion for when a sequence is graphic, and better estimates for the first moment of large prime gaps proven through an explicit zero-free region and explicit zero-density estimate for the Riemann zeta function.",
+        "published": "2025-12-30T13:42:40Z",
+        "updated": "2026-01-15T14:42:12Z",
+        "url": "https://arxiv.org/abs/2512.24230v2"
+      },
+      {
+        "title": "Bounding the integral of the argument of the Riemann Zeta function",
+        "summary": "This article improves the estimate of $|S_1(t_2)-S_1(t_1)|$, which is the definite integral of the argument of the Riemann zeta-function between $t_1$ and $t_2$. Estimates of this quantity are needed to apply Turing's method to compute the exact number of zeta zeros up to a given height.",
+        "published": "2025-12-28T20:13:44Z",
+        "updated": "2026-01-04T16:21:12Z",
+        "url": "https://arxiv.org/abs/2512.23064v3"
+      },
+      {
+        "title": "Unimodular Fake Mobius Functions",
+        "summary": "We study \\emph{unimodular fake} $\u03bc's$, i.e. multiplicative functions $\\mathfrak f: \\N \\to \\mathbb{S}^1 \\cup \\{0\\} $ determined by a fixed sequence $\\{\\varepsilon_k\\}_{k\\ge 0} \\subset \\mathbb{S}^1 \\, \\cup \\, \\{0\\}$ via the rule $\\mathfrak f(p^k)=\\varepsilon_k$ for every prime $p$ and $k \\ge 0$. The Dirichlet series of a given $\\mathfrak f$ admits the Euler product \\[ F_{\\mathfrak f}(s)=\\sum_{n\\ge1}\\frac{\\mathfrak f(n)}{n^s} =\\prod_p g_{\\mathfrak f}(p^{-s}),\\qquad g_{\\mathfrak f}(u)=\\sum_{k\\ge0}\\varepsilon_k u^k, \\] and the canonical zeta-factorization \\[ F_{\\mathfrak f}(s)=\u03b6(s)^{\\,z}\\,\u03b6(2s)^{\\,w}\\,G_{\\mathfrak f}(s), \\qquad z=\\varepsilon_1,\\ \\ w=\\varepsilon_2-\\frac{\\varepsilon_1(\\varepsilon_1+1)}{2}, \\] where $G_{\\mathfrak f}(s)$ is a holomorphic Euler product on $\\Re s>1/3$.   Assuming the Riemann hypothesis and Simple Zeros Conjecture, we derive an explicit formula for $A_{\\mathfrak f}^{\\exp}(x)= \\sum_{n \\ge 1} \\mathfrak f(n) \\, e^{-n/x} $ of the form \\[ A_{\\mathfrak f}^{\\exp}(x) -\u0394_1(x;z,w) = \u0394_{1/2}(x;z,w)\\;+\\;\\sum_\u03c1\u0394_\u03c1(x;z,w,\\mathfrak f)\\;+\\;\\mathcal E(x). \\] To our knowledge, our expansion is the first extension of the Selberg-Delange method for Dirichlet series of the form $\u03b6(s)^{\\,z}\\,\u03b6(2s)^{\\,w}\\,G(s)$ that, beyond the main term from $s=1$, also extracts lower-order contributions from the singularities on the critical line $\\Re(s)=1/2$.   On the other hand, we introduce a notion of \\emph{bias} at the natural scale $x^{1/2}(\\Log x)^{w-1}$ and obtain an explicit criterion distinguishing \\emph{persistent}, \\emph{apparent}, and \\emph{unbiased} behavior in this regime.",
+        "published": "2025-12-22T01:13:04Z",
+        "updated": "2025-12-31T04:54:49Z",
+        "url": "https://arxiv.org/abs/2512.18936v2"
+      },
+      {
+        "title": "Mean values of the Riemann zeta function at shifted zeros under the Riemann Hypothesis",
+        "summary": "Assuming the Riemann hypothesis, we obtain asymptotic formulas for $\\sum_{0<\u03b3<T}\u03b6(\u03c1+\u03b4)\u03b6(1-\u03c1+\\overline\u03b4)$ in the region $-\\frac{a}{\\log T} \\leq \\Re \u03b4\\leq \\frac{1}{2}+\\frac{a}{\\log T}$, $|\\Im \u03b4|\\ll 1$. Unconditionally, this asymptotic formula was recently obtained by Garunk\u0161tis and Novikas in essentially the same region, with a slight incompleteness. Assuming RH, we obtain a sharper error term, and we also correct an inaccuracy in the unconditional error term there.",
+        "published": "2025-12-02T23:16:13Z",
+        "updated": "2025-12-02T23:16:13Z",
+        "url": "https://arxiv.org/abs/2512.03297v1"
+      },
+      {
+        "title": "Zeta Spectral Triples",
+        "summary": "We propose and investigate a strategy toward a proof of the Riemann Hypothesis based on a spectral realization of its non-trivial zeros. Our approach constructs self-adjoint operators obtained as rank-one perturbations of the spectral triple associated with the scaling operator on the interval $[\u03bb^{-1}, \u03bb]$. The construction only involves the Euler products over the primes $p \\leq x = \u03bb^2$ and produces self-adjoint operators whose spectra coincide, with striking numerical accuracy, with the lowest non-trivial zeros of $\u03b6(1/2 + i s)$, even for small values of $x$.   The theoretical foundation rests on the framework introduced in \"Spectral triples and zeta-cycles\" (Enseign. Math. 69 (2023), no. 1-2, 93-148), together with the extension in \"Quadratic Forms, Real Zeros and Echoes of the Spectral Action\" (Commun. Math. Phys. (2025)) of the classical Caratheodory-Fejer theorem for Toeplitz matrices, which guarantees the necessary self-adjointness.   Numerical experiments show that the spectra of the operators converge towards the zeros of $\u03b6(1/2 + i s)$ as the parameters $N, \u03bb\\to \\infty$. A rigorous proof of this convergence would establish the Riemann Hypothesis. We further compute the regularized determinants of these operators and discuss the analytic role they play in controlling and potentially proving the above result by showing that, suitably normalized, they converge towards the Riemann $\u039e$ function.",
+        "published": "2025-11-27T21:01:11Z",
+        "updated": "2025-11-27T21:01:11Z",
+        "url": "https://arxiv.org/abs/2511.22755v1"
+      },
+      {
+        "title": "Zeta Zeros on the Critical Line",
+        "summary": "Montgomery in 1973 introduced the pair correlation method to study the vertical distribution of Riemann zeta-function zeros. This work assumed the Riemann Hypothesis (RH). One striking application was a short proof that at least 2/3 of zeta-zeros are simple zeros, the first result of its type. Over the last 50 years, most work on pair correlation of zeta-zeros has continued to assume RH. Here we show that if RH could be removed from Montgomery's simple zero proof, then this would also give a proof that 2/3 of the zeros are simple and on the critical line. This idea has been applied in several recent papers to obtain other results on the zeros.",
+        "published": "2025-11-25T08:30:14Z",
+        "updated": "2026-02-05T15:45:12Z",
+        "url": "https://arxiv.org/abs/2511.20059v2"
+      }
+    ],
+    "cat:math.NT AND all:explicit AND all:formula AND all:primes": [
+      {
+        "title": "Unimodular Fake Mobius Functions",
+        "summary": "We study \\emph{unimodular fake} $\u03bc's$, i.e. multiplicative functions $\\mathfrak f: \\N \\to \\mathbb{S}^1 \\cup \\{0\\} $ determined by a fixed sequence $\\{\\varepsilon_k\\}_{k\\ge 0} \\subset \\mathbb{S}^1 \\, \\cup \\, \\{0\\}$ via the rule $\\mathfrak f(p^k)=\\varepsilon_k$ for every prime $p$ and $k \\ge 0$. The Dirichlet series of a given $\\mathfrak f$ admits the Euler product \\[ F_{\\mathfrak f}(s)=\\sum_{n\\ge1}\\frac{\\mathfrak f(n)}{n^s} =\\prod_p g_{\\mathfrak f}(p^{-s}),\\qquad g_{\\mathfrak f}(u)=\\sum_{k\\ge0}\\varepsilon_k u^k, \\] and the canonical zeta-factorization \\[ F_{\\mathfrak f}(s)=\u03b6(s)^{\\,z}\\,\u03b6(2s)^{\\,w}\\,G_{\\mathfrak f}(s), \\qquad z=\\varepsilon_1,\\ \\ w=\\varepsilon_2-\\frac{\\varepsilon_1(\\varepsilon_1+1)}{2}, \\] where $G_{\\mathfrak f}(s)$ is a holomorphic Euler product on $\\Re s>1/3$.   Assuming the Riemann hypothesis and Simple Zeros Conjecture, we derive an explicit formula for $A_{\\mathfrak f}^{\\exp}(x)= \\sum_{n \\ge 1} \\mathfrak f(n) \\, e^{-n/x} $ of the form \\[ A_{\\mathfrak f}^{\\exp}(x) -\u0394_1(x;z,w) = \u0394_{1/2}(x;z,w)\\;+\\;\\sum_\u03c1\u0394_\u03c1(x;z,w,\\mathfrak f)\\;+\\;\\mathcal E(x). \\] To our knowledge, our expansion is the first extension of the Selberg-Delange method for Dirichlet series of the form $\u03b6(s)^{\\,z}\\,\u03b6(2s)^{\\,w}\\,G(s)$ that, beyond the main term from $s=1$, also extracts lower-order contributions from the singularities on the critical line $\\Re(s)=1/2$.   On the other hand, we introduce a notion of \\emph{bias} at the natural scale $x^{1/2}(\\Log x)^{w-1}$ and obtain an explicit criterion distinguishing \\emph{persistent}, \\emph{apparent}, and \\emph{unbiased} behavior in this regime.",
+        "published": "2025-12-22T01:13:04Z",
+        "updated": "2025-12-31T04:54:49Z",
+        "url": "https://arxiv.org/abs/2512.18936v2"
+      },
+      {
+        "title": "Optimal bounds for sums of non-negative arithmetic functions",
+        "summary": "Let $A(s) = \\sum_n a_n n^{-s}$ be a Dirichlet series admitting meromorphic continuation to the complex plane. Assume we know the location of the poles of $A(s)$ with $|\\Im s| \\leq T$, and their residues, for some large constant $T$. It is natural to ask how such finite spectral information may be best used to estimate partial sums $\\sum_{n\\leq x} a_n$.   Here, we prove a sharp, general result on sums $\\sum_{n\\leq x} a_n n^{-\u03c3}$ for $a_n$ non-negative, giving an optimal way to use information on the poles of $A(s)$ with $|\\Im s|\\leq T$, with no need for zero-free regions. We give not just bounds, but an explicit formula with compact support. Our bounds on $\u03c8(x)-x$ are, unsurprisingly, better and often simpler than a long list of existing explicit versions of the Prime Number Theorem. We treat the case of $M(x)$ and similar functions in a companion paper.   Our solution mixes a Fourier-analytic approach in the style of Wiener--Ikehara with contour-shifting, using optimal approximants of Beurling--Selberg type found in (Graham--Vaaler, 1981).",
+        "published": "2025-12-17T18:58:26Z",
+        "updated": "2025-12-17T18:58:26Z",
+        "url": "https://arxiv.org/abs/2512.15709v1"
+      },
+      {
+        "title": "Quadratic Gauss sums over $\\mathbb{Z}^n/c\\mathbb{Z}^n$: explicit formulas, a duality theorem, and applications to Weil representations and cubic hypersurfaces over $\\mathbb{F}_p$",
+        "summary": "We provide explicit formulas for quadratic Gauss sums over $\\mathbb{Z}^n/c\\mathbb{Z}^n$, which generalize some of the existing formulas, e.g., Skoruppa and Zagier's (for $n=2$), and Iwaniec and Kowalski's (for arbitrary $n$). We then give four main applications. As the first application, we prove a duality theorem, which relates a sum over a subgroup of $\\mathbb{Z}^n/c\\mathbb{Z}^n$ to another sum over the orthogonal complement. This allows us to give explicit formulas for quadratic Gauss partial sums over certain subgroups. As the second application, we give an explicit formula for the coefficients of Weil representations of $\\mathrm{Mp}_2(\\mathbb{Z})$, which has the advantage, compared to Scheithauer's, Str\u00f6mberg's, and Boylan and Skoruppa's formulas, that it involves neither local data nor limits of theta series. As the third application, we provide an explicit formula for the number of solutions of an arbitrary quadratic congruence in $n$ variables modulo a prime, as well as an efficient formula modulo a general integer. As the final application, we give a uniform formula for the number of solutions of the Diophantine equation $dxyz=Q(x,y,z)$ over $\\mathbb{F}_p$, where $Q$ is an arbitrary integral quadratic form with some weak restrictions. This generalizes a result of Baragar regarding the Markoff equation. There is also a formula relating Hecke Gauss sums to sums over $\\mathbb{Z}^n/c\\mathbb{Z}^n$, an explicit formula for Hecke Gauss sums over quadratic fields, and an example of computing a Hecke Gauss sum over a cyclotomic field.",
+        "published": "2025-12-17T11:28:42Z",
+        "updated": "2025-12-17T11:28:42Z",
+        "url": "https://arxiv.org/abs/2512.15334v1"
+      },
+      {
+        "title": "Isomorphism between Jacobi forms of index $D_{2n+1}$ and elliptic modular forms of level $2$",
+        "summary": "There are three aims in this paper: (i) We show an isomorphism between Jacobi forms of index $D_{2n+1}$ (lattice index) and elliptic modular forms of level $2$. (ii) We give an explicit formula of Fourier coefficients of Jacobi-Eisenstein series of index $D_{2n+1}$. (iii) We construct a holomorphic modular form of weight $3/2$ of level $8$ from the Zagier Eisenstein series $\\mathscr{F}$ of weight $3/2$ of level $4$. Moreover, we show that the four functions $E^*_2$, $\u03b7^3$, $\u03b8^3$ and $\\mathscr{F}$ have essentially the same Hecke eigenvalue $1+p$ for any odd prime $p$, where $E^*_2$ is the non-holomorphic Eisenstein series of weight $2$, $\u03b7$ is the Dedekind eta-function and $\u03b8$ is the usual theta function. This fact follows from a special case of the isomorphism of (i).   As an application, we give a formula for a sum of the numbers $r_3(n)$, where $r_3(n)$ is the number of representations of an integer $n \\geq 0$ as a sum of $3$ squares.",
+        "published": "2025-12-17T02:04:19Z",
+        "updated": "2025-12-19T01:21:29Z",
+        "url": "https://arxiv.org/abs/2512.15012v2"
+      },
+      {
+        "title": "Distribution questions for isogeny graphs over finite fields",
+        "summary": "In the first part of the paper, we fix a non-CM elliptic curve $E/\\mathbb{Q}$ and an odd prime $\\ell$ and investigate the distribution of invariants associated to the $\\ell$-volcano containing the reduction $E_p$, as $p$ ranges over primes of good ordinary reduction. Let $H(p)$ be the height of the volcano and let $d'(p)$ denote the relative position of $j(E_p)$ above the floor, and let $r\\ge 0$ be an integer. Assuming that the $\\ell$-adic Galois representation attached to $E$ is surjective, we derive an explicit formula for the natural density of primes $p$ for which $H(p)=r$ (resp.\\ $d'(p)=r$). In the non-surjective case, we show that all sufficiently large heights occur with positive density. In the second part of the paper, we analyze the distribution of $\\ell$-volcano heights over a finite field $\\mathbb{F}_q$ and consider the limit as $q\\to\\infty$. Using analytic estimates for sums of Hurwitz class numbers in arithmetic progressions, we compute exact limiting densities for ordinary elliptic curves whose $\\ell$-isogeny graph has a prescribed height $r$.",
+        "published": "2025-12-16T14:55:38Z",
+        "updated": "2025-12-19T17:36:44Z",
+        "url": "https://arxiv.org/abs/2512.14469v2"
+      },
+      {
+        "title": "The $L$-polynomial of hyperelliptic function fields and its applications",
+        "summary": "Let $\\ell$ be an odd prime, $q$ an odd prime power such that $q \\not\\equiv 0 \\pmod \\ell$, and $m$ the order of $q$ in $\\F_\\ell^\\times$. We propose an explicit $L$-polynomial of hyperelliptic function field $K:=\\F_q(T, \\sqrt[\\ell]{T^2+aT+b})$ with $a, b \\in \\F_q$ and $a^2-4b \\ne 0$. Using our formula, we obtain the explicit closed formula for the class number of $K$, where $m$ is even or $m=\\frac{\\ell-1}{2}$.As an application, we compute the average class numbers for hyperelliptic function fields with genus up to $3$.",
+        "published": "2025-12-09T05:11:43Z",
+        "updated": "2025-12-09T05:11:43Z",
+        "url": "https://arxiv.org/abs/2512.08250v1"
+      },
+      {
+        "title": "Tree asymptotic densities in number theory",
+        "summary": "We study the asymptotic distribution of integers sharing the same rooted-tree structure that encodes their complete prime factorization tower. For each tree we derive an explicit density formula depending only on a pair $(m,k)$, the density signature of the tree, up to a suitable multiplicative scalar factor and introduce the corresponding tree zeta function, which generalizes the prime zeta function. Classical results such as the prime number theorem and later work by Landau appear as special cases.",
+        "published": "2025-12-01T07:47:30Z",
+        "updated": "2025-12-01T07:47:30Z",
+        "url": "https://arxiv.org/abs/2512.01376v1"
+      },
+      {
+        "title": "An analogue of Kida's formula for Mazur-Tate elements",
+        "summary": "We prove an analogue of Kida's formula for the Iwasawa invariants of the Mazur-Tate elements attached to elliptic curves over $\\mathbb{Q}$. Let $p$ be an odd prime and let $L/K$ be a Galois extension of abelian number fields with $p$-power Galois group. For an elliptic curve $E/\\mathbb{Q}$, we study the Mazur-Tate elements over the finite layers of the cyclotomic $\\mathbb{Z}_p$-extensions of $K$ and $L$. We show that the vanishing of the $\u03bc$-invariant is preserved in the extension: if the level-$n$ Mazur-Tate element over $K$ has $\u03bc= 0$, then the corresponding element over $L$ also has $\u03bc= 0$. Moreover, the associated $\u03bb$-invariants satisfy an explicit transition formula. This parallels the work of Hachimori-Matsuno on Selmer groups and of Matsuno on $p$-adic $L$-functions. As an application, we obtain an analogue of Kida's formula for the analytic Iwasawa invariants associated to Pollack's signed $p$-adic $L$-functions. Since our results apply to elliptic curves with any reduction type at $p$ under mild hypotheses, including those with additive reduction, we also obtain a Kida-type formula for the $p$-adic $L$-functions constructed by Delbourgo for elliptic curves with unstable additive reduction. In particular, because Mazur-Tate elements approximate $p$-adic $L$-functions in the limit, our results unify all previously known cases of Kida's formula for analytic Iwasawa invariants.",
+        "published": "2025-11-26T23:37:32Z",
+        "updated": "2025-11-26T23:37:32Z",
+        "url": "https://arxiv.org/abs/2511.21979v1"
+      },
+      {
+        "title": "Optimal bounds for sums of bounded arithmetic functions",
+        "summary": "Let $A(s) = \\sum_n a_n n^{-s}$ be a Dirichlet series with meromorphic continuation. Say we are given information on the poles of $A(s)$ with $|\\Im s| \\leq T$ for some large constant $T$. What is the best way to use such finite spectral data to give explicit estimates on sums $\\sum_{n\\leq x} a_n$?   The problem of giving explicit bounds on the Mertens function $M(x) = \\sum_{n\\leq x} \u03bc(n)$ illustrates how open this basic question was. Bounding $M(x)$ might seem equivalent to estimating $\u03c8(x) = \\sum_{n\\leq x} \u039b(n)$ or the number of primes $\\leq x$. However, we have long had fairly good explicit bounds on prime counts, while bounding $M(x)$ remained a notoriously stubborn problem.   We prove a sharp, general result on sums $\\sum_{n\\leq x} a_n n^{-\u03c3}$ for $a_n$ bounded, giving an optimal way to use information on the poles of $A(s)$ with $|\\Im s|\\leq T$ and no data on the poles above. Our bounds on $M(x)$ are stronger than previous ones by many orders of magnitude. (Similar results for $\u03c8(x)$ are given in a companion paper.) Using rigorous residue computations by D. Platt, we obtain, for $x\\geq 1$, $$|M(x)|\\leq \\frac{3}{\u03c0\\cdot 10^{10}}\\cdot x + 11.39 \\sqrt{x}.$$ This is a corollary of our main result, essentially an explicit formula with the contribution of each pole clearly stated; we shall discuss how this finer structure can be useful.   Our proof mixes a Fourier-analytic approach in the style of Wiener--Ikehara with contour-shifting, using optimal approximants of Beurling--Selberg type (Carneiro--Littmann, 2013); for $\u03c3=1$, the approximant in (Vaaler, 1985) reappears. While we proceed independently of existing explicit work on $M(x)$ and $\u03c8(x)$, our method has an important step in common with work on another problem by (Ramana--Ramar\u00e9, 2020).",
+        "published": "2025-11-18T18:29:56Z",
+        "updated": "2025-11-18T18:29:56Z",
+        "url": "https://arxiv.org/abs/2511.14736v1"
+      },
+      {
+        "title": "Counting newforms with prescribed ramified supercuspidal components",
+        "summary": "We give a formula for the number of newforms in $S_k^{\\mathrm{new}}(N)$ that have prescribed ramified supercuspidal components $\u03c0_p$ at a set $T$ of primes dividing $N$. This dimension is given in terms of the trace of the Atkin--Lehner operator at $T$ on $S_k^{\\mathrm{new}}(N)$. It depends only upon the weight, the level, the ramified quadratic extensions $E_p/{\\mathbb Q}_p$ attached to the $\u03c0_p$, and the root number of each $\u03c0_p$. The formula is completely explicit when $T$ consists of either a single prime or all prime factors of $N$.",
+        "published": "2025-11-18T15:31:49Z",
+        "updated": "2025-11-18T15:31:49Z",
+        "url": "https://arxiv.org/abs/2511.14587v1"
+      },
+      {
+        "title": "Arithmetic invariants of torus links",
+        "summary": "The classical analogy between knots and primes motivates the study of Alexander polynomials through an arithmetic perspective. In this article we study the two-parameter family of torus knots and links $T_{p,q}$ and analyze the asymptotic behaviour of the zeros of their Alexander polynomials $\u0394_{p,q}(t)$, defined with respect to the total linking number covering. We prove that as $p,q\\to\\infty$ these zeros become equidistributed on the unit circle and derive an explicit formula for the limiting frequency with which primitive $r$-th roots of unity appear. To capture finer statistical information, we introduce the moment sequence of the zero distribution and compute its generating function in closed form. We further examine the Iwasawa theory of the corresponding branched covers, determining the Iwasawa invariants. The logarithmic Mahler measure of $\u0394_{p,q}(t)$ vanishes identically and the associated homological growth in towers of abelian covers of $S^3$ branched along $T_{p,q}$ is subexponential.",
+        "published": "2025-11-05T13:07:13Z",
+        "updated": "2025-11-05T13:07:13Z",
+        "url": "https://arxiv.org/abs/2511.03446v1"
+      },
+      {
+        "title": "On the growth of Tate-Shafarevich groups of $p$-supersingular abelian varieties of ${\\rm GL}_2$-type over $\\mathbb{Z}_p$-extensions of number fields",
+        "summary": "We study the boundedness of the Mordell-Weil rank and the growth of the $v$-primary part of the Tate-Shafarevich group of $p$-supersingular abelian varieties of ${\\rm GL}_2$-type with real multiplication over $\\mathbb{Z}_p$-extensions of number fields, where $v$ is a prime lying above $p$. Building on the work of Iovita-Pollack in the case of elliptic curves, under precise ramification and splitting conditions on $p$, we construct explicit systems of local points using the theory of Lubin-Tate formal groups. We then define signed Coleman maps, which in turn allow us to formulate and analyse signed Selmer groups. Assuming these Selmer groups are cotorsion, we prove that the Mordell-Weil groups are bounded over any subextensions of the $\\mathbb{Z}_p$-extension and provide an asymptotic formula for the growth of the $v$-primary part of the Tate-Shafarevich groups. Our results extend those of Kobayashi, Pollack, and Sprung on $p$-supersingular elliptic curves.",
+        "published": "2025-10-13T15:18:40Z",
+        "updated": "2025-10-13T15:18:40Z",
+        "url": "https://arxiv.org/abs/2510.11511v1"
+      }
+    ],
+    "cat:math.NT AND all:omega AND all:primes": [
+      {
+        "title": "An omega result for the least negative Hecke eigenvalue",
+        "summary": "We establish the existence of many holomorphic Hecke eigenforms $f$ of large weight $k$ for the full modular group, for which the least positive integer $n_f$ such that $\u03bb_f(n_f)<0$ satisfies $n_f \\ge (\\log k)^{1-o(1)}.$ This is believed to be best possible up to the $o(1)$ term in the exponent, and improves on a result of Kowalski, Lau, Soundararajan and Wu, who showed that, when restricted to primes, the least prime $p$ such that $\u03bb_f(p)<0$ can be as large as $(\\log k)^{1/2+o(1)}$. We also discuss an extension of our result to primitive holomorphic cusp forms of weight $k$ and squarefree level $N\\geq 1$.",
+        "published": "2026-02-09T18:33:37Z",
+        "updated": "2026-02-09T18:33:37Z",
+        "url": "https://arxiv.org/abs/2602.08985v1"
+      },
+      {
+        "title": "Large character sums with multiplicative coefficients",
+        "summary": "In this paper, we investigate large values of Dirichlet character sums with multiplicative coefficients $\\sum_{n\\le N}f(n)\u03c7(n)$. We prove a new Omega result in the region $\\exp((\\log q)^{\\frac12+\u03b4})\\le N\\le\\sqrt q$, where $q$ is the prime modulus.",
+        "published": "2025-09-11T17:41:13Z",
+        "updated": "2025-09-11T17:41:13Z",
+        "url": "https://arxiv.org/abs/2509.09649v1"
+      },
+      {
+        "title": "Large quadratic character sums",
+        "summary": "In this article, we investigate conditional large values of quadratic Dirichlet character sums. We prove some Omega results of quadratic character sums under the assumption of the generalized Riemnn hypothesis, which are as sharp as previous results for all characters modulo a large prime.",
+        "published": "2025-09-09T12:17:51Z",
+        "updated": "2025-09-09T12:17:51Z",
+        "url": "https://arxiv.org/abs/2509.07651v1"
+      },
+      {
+        "title": "Large values of character sums with multiplicative coefficients",
+        "summary": "In this article, we investigate large values of Dirichlet character sums with multiplicative coefficients $\\sum_{n\\le N}f(n)\u03c7(n)$. We prove an Omega result in the region $\\exp((\\log q)^{\\frac12+\\varepsilon})\\le N\\le\\sqrt q$, where $q$ is the prime modulus.",
+        "published": "2025-08-13T12:25:01Z",
+        "updated": "2025-08-13T12:25:01Z",
+        "url": "https://arxiv.org/abs/2508.09750v1"
+      },
+      {
+        "title": "Transforming the Erd\u0151s-Kac theorem",
+        "summary": "Transforming the Erd\u0151s-Kac theorem provides more flexibility in how the theorem can be utilized as an interval estimate for the prime omega function, which counts the number of distinct prime divisors. Here, we consider a direct transformation by the delta method. Then, we demonstrate that the square-root and three-quarters power asymptotically achieve variance stabilization and an optimal width, respectively. Furthermore, by adjusting the denominator of the theorem, we derive the score interval estimate. To make these interval estimates reliable for small positive integers, we examine performances of various interval estimates for the prime omega function using fuzzy coverage probabilities. The results indicate that the score interval estimate performs well even for small positive integers after training the mean and standard deviation using the prime omega function. Moreover, the Poisson interval estimate is relatively reliable with or without training. Additional theoretical results on the Erd\u0151s-Pomerance theorem are also provided.",
+        "published": "2025-06-10T06:58:38Z",
+        "updated": "2025-06-10T06:58:38Z",
+        "url": "https://arxiv.org/abs/2506.08503v1"
+      },
+      {
+        "title": "Generalizations of Erd\u0151s-Kac theorem with applications",
+        "summary": "Let $\u03c9(n)$ denote the number of distinct prime factors of a natural number $n$. In 1940, Erd\u0151s and Kac established that $\u03c9(n)$ obeys the Gaussian distribution over natural numbers, and in 2004, the third author generalized their theorem to all abelian monoids. In this paper, we extend her theorem to any subsets of an abelian monoid satisfying some additional conditions, and apply this result to the subsets of $h$-free and $h$-full elements. We study generalizations of several arithmetic functions, such as the prime counting omega functions and the divisor function in a unified framework. Finally, we apply our results to number fields, global function fields, and geometrically irreducible projective varieties, demonstrating the broad relevance of our approach.",
+        "published": "2025-06-03T04:36:51Z",
+        "updated": "2025-06-03T04:36:51Z",
+        "url": "https://arxiv.org/abs/2506.02432v1"
+      },
+      {
+        "title": "On arithmetic terms expressing the prime-counting function and the n-th prime",
+        "summary": "We present the first fixed-length elementary closed-form expressions for the prime-counting function, $\u03c0(n)$, and the $n$-th prime number, $p(n)$. These expressions are arithmetic terms, requiring only a finite and fixed number of elementary arithmetic operations from the set: addition, subtraction, multiplication, integer division, and exponentiation. Mazzanti proved that every Kalmar function can be represented as an arithmetic term. We develop an arithmetic term representing the prime omega function, $\u03c9(n)$, which counts the number of distinct prime divisors of a positive integer $n$. From this term, we find immediately an arithmetic term for the prime-counting function, $\u03c0(n)$. Combining these results with a new arithmetic term for binomial coefficients and novel prime-related exponential Diophantine equations, we manage to develop an arithmetic term for the $n$-th prime number, $p(n)$, thereby providing a constructive solution to the fundamental question: Is there an order to the primes?",
+        "published": "2024-12-19T07:30:46Z",
+        "updated": "2025-08-04T15:14:51Z",
+        "url": "https://arxiv.org/abs/2412.14594v2"
+      },
+      {
+        "title": "Some ergodic theorems involving Omega function and their applications",
+        "summary": "In this paper, we build some ergodic theorems involving function $\u03a9$, where $\u03a9(n)$ denotes the number of prime factors of a natural number $n$ counted with multiplicities. As a combinatorial application, it is shown that for any $k\\in \\mathbb{N}$ and every $A\\subset \\mathbb{N}$ with positive upper Banach density, there are $a,d\\in \\mathbb{N}$ such that $$a,a+d,\\ldots,a+kd,a+\u03a9(d)\\in A.$$",
+        "published": "2024-12-05T03:39:59Z",
+        "updated": "2024-12-06T21:16:16Z",
+        "url": "https://arxiv.org/abs/2412.03852v2"
+      },
+      {
+        "title": "Average orders of Goldbach Estimates in Arithmetic Progressions",
+        "summary": "We obtain asymptotic results on the average numbers of Goldbach representations of an interger as the sum of two primes in different arithmetic progressions. We also prove an omega-result showing that the asymptotic result is essentially the best possible.",
+        "published": "2024-07-17T12:13:09Z",
+        "updated": "2025-05-01T10:21:57Z",
+        "url": "https://arxiv.org/abs/2407.18266v2"
+      },
+      {
+        "title": "Omega Theorems for Logarithmic Derivatives of Zeta and L-functions Near the 1-line",
+        "summary": "We establish an omega theorem for logarithmic derivative of the Riemann zeta function near the 1-line by resonance method. We show that the inequality $\\left| \u03b6^{\\prime}\\left(\u03c3_A+it\\right)/\u03b6\\left(\u03c3_A+it\\right) \\right| \\geqslant \\left(\\left(e^A-1\\right)/A\\right)\\log_2 T + O\\left(\\log_2 T / \\log_3 T\\right)$ has a solution $t \\in [T^\u03b2, T]$ for all sufficiently large $T,$ where $\u03c3_A = 1 - A / \\log_2 {T}.$Furthermore, we give a conditional lower bound for the measure of the set of $t$ for which the logarithmic derivative of the Riemann zeta function is large. Moreover, similar results can be generalized to Dirichlet $L$-functions.",
+        "published": "2024-04-26T08:42:10Z",
+        "updated": "2024-04-26T08:42:10Z",
+        "url": "https://arxiv.org/abs/2404.17250v1"
+      },
+      {
+        "title": "Properties and approximations of fractions associated to Ford circles extracted by inclined lines",
+        "summary": "We study fractions associated to Ford circles which are extracted by means continuous curves. We show that the extracted fractions have similar properties to Farey sequences, like the Farey sum, and we prove that every ordered sequence that satisfies the Farey sum and has two adjacent fractions, can be extracted from Ford circles through continuous curves. This allows us to relate sequences of fractions that satisfy the Farey sum and continuous curves. We focus on the fractions $F_{1/m}$ extracted from inclined lines with positive slopes of the form $1/m$ and define jumps as the cardinality increments of these fractions with respect to $m$. We relate the expression for every jump to the prime omega function in terms of $m$ and find a cardinality formula related to the M\u00f6bius function, which we approximate with three tractable expressions that grow in a log-linear way considering estimations of sums related to Euler's totient function or the graph of the lattice points corresponding to the fractions $p/q$.",
+        "published": "2023-12-19T19:19:11Z",
+        "updated": "2023-12-19T19:19:11Z",
+        "url": "https://arxiv.org/abs/2312.12539v1"
+      },
+      {
+        "title": "An effective Linear Independence conjecture for the zeros of the Riemann zeta function and applications",
+        "summary": "Using the same heuristic argument leading to the Lang-Waldschmidt Conjecture in the theory of linear forms in logarithms, we formulate an effective version of the Linear Independence conjecture for the ordinates of the non-trivial zeros of the Riemann zeta function. Then assuming this conjecture, we obtain Omega results for the error term in the prime number theorem, which are conjectured to be best possible by Montgomery. This was claimed to appear in Monach's thesis by Montgomery and Vaughan in their classical book, but such a result or its proof is nowhere to be found in this thesis or in the litterature. Moreover, if in addition to this effective Linear Independence conjecture we assume a conjecture of Gonek and Hejhal on the negative moments of the derivative of the Riemann zeta function, we can show that the summatory function of the M\u00f6bius function $M(x)$ is $\u03a9_{\\pm}\\left(\\sqrt{x}(\\log\\log\\log x)^{5/4}\\right)$. This conditionally resolves a part of a conjecture of Gonek.",
+        "published": "2023-11-08T17:56:36Z",
+        "updated": "2024-05-05T12:39:04Z",
+        "url": "https://arxiv.org/abs/2311.04860v2"
+      }
+    ],
+    "cat:math.NT AND all:prime AND all:error AND all:term": [
+      {
+        "title": "Mixed moments of twisted $L$-functions",
+        "summary": "We establish an asymptotic formula with a power-saving error term for the twisted mixed moment of Dirichlet $L$-functions and automorphic $L$-functions twisted by all primitive characters modulo $q$, valid for all admissible moduli. As a special case, this extends the asymptotic result of Blomer, Fouvry, Kowalski, Michel, and Mili\u0107evi\u0107 to general moduli, achieving an error term as sharp as the best bound recently proved by Khan and Zhang for prime moduli.",
+        "published": "2025-12-10T00:03:45Z",
+        "updated": "2025-12-10T00:03:45Z",
+        "url": "https://arxiv.org/abs/2512.09203v1"
+      },
+      {
+        "title": "Multiple Mertens theorems for arithmetic progressions",
+        "summary": "We establish asymptotic formulas for sums of reciprocals of primes in arithmetic progressions, generalizing recent results on multiple Mertens evaluations by Tenenbaum, Qi, and Hu. Specifically, for any fixed constant $K>0$, we derive asymptotic expansions for the sums $ \\sum_{\\substack{p_1\\cdots p_n\\leq x \\\\ p_i\\equiv h_i \\pmod{m_i} \\\\ i=1,\\dots, n}}\\frac{1}{p_1\\cdots p_n} $ and the corresponding log-weighted sums. A key feature of our results is that the error terms hold \\emph{uniformly} for moduli satisfying $m_i \\le (\\log x)^K$, a range accessible via the Siegel-Walfisz theorem. Furthermore, we identify the coefficients of the asymptotic expansion with the Taylor series of the reciprocal Gamma function, $1/\u0393(z)$, providing a structural explanation for the lower-order terms.",
+        "published": "2025-12-08T09:22:46Z",
+        "updated": "2025-12-08T09:22:46Z",
+        "url": "https://arxiv.org/abs/2512.07336v1"
+      },
+      {
+        "title": "Asymptotic error terms in Bonse-type inequalities",
+        "summary": "Let $p_n$ denote the $n$-th prime. In 2000, Panaitopol established the inequality $p_1 \\cdots p_n > p_{n+1}^{n - \u03c0(n)}$ for all $n \\geq 2$, where $\u03c0(x)$ is the prime counting function. In 2021, Yang and Liao refined this by introducing the exponent $k(n,x) = n - \u03c0(n) + \\frac{\u03c0(n)}{\u03c0(\\log n)} - x \\cdot \u03c0(\u03c0(n))$, proving the inequality holds for $x = 2$ and $n \\geq 8$. In 2022, Marques and Trojovsk\u00fd extended this to $x = 1.4$ for $n \\geq 21$ and conjectured its validity for $x = 0.1$ when $n \\geq 24,154,953$. This paper confirms the conjecture by analyzing the error term $E_n(x) = \\log(p_1 \\cdots p_n) - k(n,x) \\log p_{n+1}$. Also, we derive the asymptotic expansion to $E_n(x)$ demonstrating that it is positive for all sufficiently large $n$ when $x > -2$. For each $x > -2$, we identify a minimal integer $\u03a8(x)$ such that $E_n(x) > 0$ for all $n \\geq \u03a8(x)$, precisely determining $\u03a8(0.1) = 24,154,953$. Additionally, we establish effective upper bounds for $\u03a8(x)$ both unconditionally and under the Riemann Hypothesis, with the conditional bounds showing a significant improvement. Our analysis fully resolves the conjecture and characterizes $\u03a8(x)$ as a non-increasing, piecewise constant function, exhibiting discontinuities at a discrete set of threshold points. These results advance the understanding of Bonse-type inequalities and their asymptotic behavior.",
+        "published": "2025-11-17T18:45:13Z",
+        "updated": "2025-11-17T18:45:13Z",
+        "url": "https://arxiv.org/abs/2511.13691v1"
+      },
+      {
+        "title": "A Positive Lower Bound for the Sum of Log-Reciprocal Twin Prime Products via Weighted Sieve",
+        "summary": "The twin prime conjecture asserts that there are infinitely many pairs of primes that differ by two. While recent advances have improved our understanding of bounded prime gaps, the conjecture remains unresolved. This paper refines the weighted sieve method to estimate a sum over twin prime pairs, where each term is of the form \\((1/p)(log(x^{\u03b1}/p))^k\\). We establish a strict positive lower bound for this sum, which implies the infinitude of twin prime pairs.",
+        "published": "2025-11-17T03:56:27Z",
+        "updated": "2025-11-23T02:19:50Z",
+        "url": "https://arxiv.org/abs/2511.12944v3"
+      },
+      {
+        "title": "Gauss-Dickson Codes",
+        "summary": "Let l be an odd prime. For primes, p \\equiv 1 (mod l), Gauss (l = 3) and Dickson (l = 5) considered the Diophantine systems in terms of which cyclotomic numbers of order 3 and 5 were obtained. The aim of this paper is to show how to obtain 1-error detecting [2, 1, 2] code and 1-error correcting [4, 2, 3] code in terms of the solutions of these diophantine systems in the set up of finite fields of q = p^\u03b1 elements, p \\equiv 1 (mod l), l = 3, 5",
+        "published": "2025-10-15T10:11:33Z",
+        "updated": "2025-10-15T10:11:33Z",
+        "url": "https://arxiv.org/abs/2510.13376v1"
+      },
+      {
+        "title": "An effective Bombieri-Vinogradov error term for sifting problems",
+        "summary": "In number theory, many major results related to the twin prime and Goldbach conjectures are proven using the methods of sieve theory. However, in nearly every case, the existing proofs of these results are ineffective, in that explicit values for which they hold cannot be computed. The reason for this ineffectivity is due to the reliance on the Bombieri-Vinogradov theorem. In this paper, we show that any classical sifting problem with a Bombieri-Vinogradov style error term can in fact be made effective, with no loss to the asymptotic form of the original (ineffective) result. This is done by carefully modifying the sieve upper and lower bounds as to avoid the usual complications regarding the existence of a Siegel zero. We also provide some simple applications. For example, we show that one may effectively bound the number of primes $p\\leq x$ such that $p+2$ is also prime by \\begin{equation*} (4+o(1))C_2\\frac{x}{(\\log x)^2}, \\end{equation*} where \\begin{equation*} C_2=2\\prod_{p>2}\\left(1-\\frac{1}{(p-1)^2}\\right) \\end{equation*} is the twin-prime constant.",
+        "published": "2025-10-12T23:33:01Z",
+        "updated": "2025-10-12T23:33:01Z",
+        "url": "https://arxiv.org/abs/2510.10853v1"
+      },
+      {
+        "title": "Prime Geodesic Theorem for Arithmetic Compact Surfaces",
+        "summary": "We generalize Koyama's $7/10$ bound of the error term in the prime geodesic theorems to the principal congruence subgroups for quaternion algebras. Our method avoids the spectral side of the Jacquet--Langlands correspondences, and relates the counting function directly to those for the principal congruence subgroups of Eichler orders of level less than one.",
+        "published": "2025-10-07T08:12:12Z",
+        "updated": "2025-10-07T08:12:12Z",
+        "url": "https://arxiv.org/abs/2510.05659v1"
+      },
+      {
+        "title": "Joint distributions of error terms for primes in arithmetic progressions modulo 11",
+        "summary": "We provide a formula for the logarithmic density of the set of positive real numbers on which two prime counting functions $\u03c8(x;q,a)$ and $\u03c8(x;q,b)$ are simultaneously larger than their asymptotic main terms, as well as a method for calculating the numerical values of such densities with rigorously bounded errors. We apply these formulas to the pairwise races in the case $q=11$, determining which pairs of residues $a$ and $b$ are more or less correlated in this way. The outcomes when $q=11$ provide a deeper mathematical illumination of the \"mirror image\" and \"cyclic ordering\" phenomena observed by Bays and Hudson.",
+        "published": "2025-10-06T22:39:50Z",
+        "updated": "2025-10-06T22:39:50Z",
+        "url": "https://arxiv.org/abs/2510.05427v1"
+      },
+      {
+        "title": "Counting $2\\times 2$ matrices with fixed determinant and bounded coefficients",
+        "summary": "Recent work by M. Afifurrahman established the first asymptotic estimates with error terms for the number of $2\\times 2$ matrices with fixed non-zero determinant $n\\in\\mathbb{N}$, and with coefficients bounded in absolute value by $X$. In this paper we present a new proof of this result, which also gives an improved error term as $X\\rightarrow\\infty$. Similar to Afifurrahman's result, our error term is uniform in both $n$ and $X$, and our estimates are significant for $X$ as small as $n^{1/2+\u03b4}$. To complement this, we also demonstrate that the exponent $1/2+\u03b4$ in this statement cannot be reduced, by establishing a result which gives a different asymptotic main term when $n$ is either a prime or the square of a prime, and when $X=n^{1/2}$.",
+        "published": "2025-09-21T03:01:36Z",
+        "updated": "2025-09-21T03:01:36Z",
+        "url": "https://arxiv.org/abs/2509.16890v1"
+      },
+      {
+        "title": "On the verification of a Nicolas inequality",
+        "summary": "Nicolas inequality we deal can be written as \\begin{equation}\\label{Nicineq} e^\u03b3\\log\\log N_x < \\dfrac{N_x}{\\varphi(N_x)}\\,, \\end{equation} where $x\\ge 2$, $N_x$ denotes the product of the primes less or equal than $x$, $\u03b3$ is the Euler constant and $\\varphi$ is the Euler totient function. We see that verification of such an inequality depends on the sign of the big-O function in the Mertens estimate for the sum of reciprocals of primes that. Then we analyze the sign of such an error term.",
+        "published": "2025-09-14T09:26:54Z",
+        "updated": "2025-10-27T08:44:27Z",
+        "url": "https://arxiv.org/abs/2509.11182v7"
+      },
+      {
+        "title": "A Baseline $T\\log^2 T$ Upper Bound for KL-Regularized Prime--Zero Optimal Transport",
+        "summary": "We prove that $\\mathsf{OT}_\u03b7(T)\\ll T\\log^2 T$ unconditionally via a band-limited test scheme with Fej\u00e9r averaging. The approach normalizes $\\|\\widehat f\\|_1=\u0398(T^{-1})$ to ensure $\\|h\\|_1\\asymp T$ and $\\|\\widehat h\\|_1\\ll 1$, and applies an $L^1$-controlled smoothed explicit formula to bound the error terms. As a result, the prime--zero optimal transport distance admits the baseline $T\\log^2 T$ upper bound without additional assumptions.",
+        "published": "2025-09-09T01:54:30Z",
+        "updated": "2025-09-09T01:54:30Z",
+        "url": "https://arxiv.org/abs/2509.07329v1"
+      },
+      {
+        "title": "Centered Moments of Weighted One-Level Densities of $GL(2)$ $L$-Functions",
+        "summary": "Katz and Sarnak conjectured that the behavior of zeros near the central point of any family of $L$-functions is well-modeled by the behavior of eigenvalues near $1$ of some classical compact group (either the symplectic, unitary, or even, odd, or full orthogonal group). In 2018, Knightly and Reno proved that the symmetry group can vary depending on how the $L$-functions in the family are weighted. They observed both orthogonal and symplectic symmetry in the one-level densities of families of cuspidal newform $L$-functions for different choices of weights. We observe the same dependence of symmetry on weights in the $n^{\\text{th}}$ centered moments of these one-level densities, for smooth test functions whose Fourier transforms are supported in $\\left(-\\frac{1}{2n}, \\frac{1}{2n}\\right)$. To treat the new terms that emerge in our $n$-level calculations when $n>1$, i.e., the cross terms that emerge from $n$-fold products of primes rather than individual primes, we generalize Knightly and Reno's weighted trace formula from primes to arbitrary positive integers. We then perform a delicate analysis of these cross terms to distinguish their contributions to the main and error terms of the $n^{\\text{th}}$ centered moments. The final novelty here is an elementary combinatorial trick that we use to rewrite the main number theoretic terms arising from our analysis, facilitating comparisons with random matrix theory.",
+        "published": "2025-09-06T19:06:14Z",
+        "updated": "2025-10-16T01:15:37Z",
+        "url": "https://arxiv.org/abs/2509.05810v3"
+      }
+    ]
+  },
+  "errors": {}
+}

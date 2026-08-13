@@ -1,0 +1,568 @@
+{
+  "timestamp_utc": "2026-02-19T14:22:32.864355+00:00",
+  "source": "arXiv API",
+  "queries": {
+    "cat:math.NT AND all:\"riemann zeta\"": [
+      {
+        "title": "Minimal zero-free regions for results on primes between consecutive perfect $k$th powers",
+        "summary": "We compute minimal zero-free regions for the Riemann zeta-function of the Littlewood form which ensure there is always a prime between consecutive perfect $k$th powers. Our computations cover powers $k\\geq 70$ and quantify how far we are away from proving certain milestones toward an infamous open problem (Legendre's conjecture).",
+        "published": "2026-02-15T23:15:04Z",
+        "updated": "2026-02-15T23:15:04Z",
+        "url": "https://arxiv.org/abs/2602.14340v1"
+      },
+      {
+        "title": "Mean values and upper bounds for the Hurwitz and Barnes multiple zeta functions",
+        "summary": "Due to their deep connection with the Riemann zeta function, the asymptotic behavior of mean values of multiple zeta functions has attracted considerable attention. In this paper, we establish asymptotic formulas and upper bounds for the mean square values of Hurwitz-type and Barnes-type multiple zeta functions. In particular, we focus on the Hurwitz-type case, since Hurwitz multiple zeta functions can be expressed as linear combinations of the classical Hurwitz zeta function, which allows us to apply known results on the mean values and asymptotic behavior of the latter almost directly. Moreover, it can be shown that Hurwitz-type and Barnes-type multiple zeta functions have the same order under certain conditions. This fact enables us to investigate the mean values and growth of Barnes multiple zeta functions, which are otherwise difficult to evaluate, by using the results for Hurwitz multiple zeta functions.",
+        "published": "2026-02-06T01:53:38Z",
+        "updated": "2026-02-06T01:53:38Z",
+        "url": "https://arxiv.org/abs/2602.06304v1"
+      },
+      {
+        "title": "Explicit conditional bounds for $\u03b6(s)$ at the edge of the critical strip",
+        "summary": "In this paper, we obtain explicit bounds for the real part of the logarithmic derivative of the Riemann zeta-function on the line $\\re s=1$, assuming the Riemann hypothesis. The proof combines the Guinand--Weil explicit formula with extremal bandlimited majorants and minorants for the Poisson kernel. As an application, we revisit the classical estimates of Littlewood for the modulus of the Riemann zeta-function and of its reciprocal on the line $\\re{s}=1$, and derive a slight refinement of the bounds of Lamzouri, Li, and Soundararajan. In addition, we establish an explicit bound for the modulus of the logarithmic derivative of the Riemann zeta-function on the line $\\re{s}=1$ under the Riemann hypothesis, improving the lower-order term in a result of Chirre, Val\u00e5s, and Simoni\u010d.",
+        "published": "2026-02-05T21:20:20Z",
+        "updated": "2026-02-05T21:20:20Z",
+        "url": "https://arxiv.org/abs/2602.06199v1"
+      },
+      {
+        "title": "A new improved explicit estimate for $\u03b6\\left( 1/2+it\\right)$",
+        "summary": "In this paper, we present an improved explicit subconvexity result for the Riemann zeta function $\u03b6\\left( s\\right)$ along the critical line $s=1/2+it$, given by Hiary, Patel and Yang in 2024. This new bound is derived by combining a refined, explicit version of the van der Corput method together with computational calculations.",
+        "published": "2026-02-05T12:50:40Z",
+        "updated": "2026-02-05T12:50:40Z",
+        "url": "https://arxiv.org/abs/2602.05614v1"
+      },
+      {
+        "title": "The Riemann Hypothesis: Past, Present and a Letter Through Time",
+        "summary": "This paper, commissioned as a survey of the Riemann Hypothesis, provides a comprehensive overview of 165 years of mathematical approaches to this fundamental problem, while introducing a new perspective that emerged during its preparation. The paper begins with a detailed description of what we know about the Riemann zeta function and its zeros, followed by an extensive survey of mathematical theories developed in pursuit of RH -- from classical analytic approaches to modern geometric and physical methods. We also discuss several equivalent formulations of the hypothesis. Within this survey framework, we present an original contribution in the form of a \"Letter to Riemann,\" using only mathematics available in his time. This letter reveals a method inspired by Riemann's own approach to the conformal mapping theorem: by extremizing a quadratic form (restriction of Weil's quadratic form in modern language), we obtain remarkable approximations to the zeros of zeta. Using only primes less than 13, this optimization procedure yields approximations to the first 50 zeros with accuracies ranging from $2.6 \\times 10^{-55}$ to $10^{-3}$. Moreover we prove a general result that these approximating values lie exactly on the critical line. Following the letter, we explain the underlying mathematics in modern terms, including the description of a deep connection of the Weil quadratic form with the world of information theory. The final sections develop a geometric perspective using trace formulas, outlining a potential proof strategy based on establishing convergence of zeros from finite to infinite Euler products. While completing the commissioned survey, these new results suggest a promising direction for future research on Riemann's conjecture.",
+        "published": "2026-02-03T21:11:58Z",
+        "updated": "2026-02-03T21:11:58Z",
+        "url": "https://arxiv.org/abs/2602.04022v1"
+      },
+      {
+        "title": "In Search of Approximate Polynomial Dependencies Among the Derivatives of the Alternating Zeta Function",
+        "summary": "It is well-known that the Riemann zeta function does not satisfy any exact polynomial differential equation. Here we present numerical evidence for the existence of approximate polynomial dependencies between the values of the alternating zeta function and its initial derivatives.   A number of conjectures is stated.",
+        "published": "2026-02-03T11:36:44Z",
+        "updated": "2026-02-03T11:36:44Z",
+        "url": "https://arxiv.org/abs/2602.03408v1"
+      },
+      {
+        "title": "Some series representing the zeta function for $\\Re s>1$",
+        "summary": "We represent the Riemann zeta function in the half-plane $\\Re s >1$ via series whose terms admit geometrically decreasing bounds. Due to an underlying recurrence relation, which is used to compute coefficients entering into the terms, the cost is probably at least quadratic in the number of terms. And the number of terms needed to reach a given fixed-point precision grows linearly with the imaginary part, so, presumably, the usefulness is limited to small imaginary parts (up to the hundreds perhaps). The method is a development of tools introduced by the author for the evaluation of harmonic series with restricted digits in a given radix.",
+        "published": "2026-01-30T16:42:48Z",
+        "updated": "2026-02-07T10:13:29Z",
+        "url": "https://arxiv.org/abs/2601.23158v2"
+      },
+      {
+        "title": "On Dirichlet Series Involving $\u03b6(s)$ and Extensions of the Euler-Mascheroni Constant",
+        "summary": "In this paper, we introduce a class of Dirichlet series defined in terms of the Riemann zeta-function, motivated by the study of their special values, and establish integral representations for these series. We also define an extension of the Euler--Mascheroni constant and express certain special values explicitly in terms of the Bendersky constants. These results provide a unified framework for evaluating Dirichlet series involving the Riemann zeta-function at integer arguments, together with the associated number-theoretic constants.",
+        "published": "2026-01-27T10:08:31Z",
+        "updated": "2026-02-16T08:17:29Z",
+        "url": "https://arxiv.org/abs/2601.19429v2"
+      },
+      {
+        "title": "Mixed integral moments of the Hecke $L$-functions and Riemann zeta function",
+        "summary": "In this paper, let $f$ be a Hecke cusp form for $SL(2,\\mathbb{Z})$. We establish an asymptotic formula for the mixed moment of $\u03b6^{2}(s)$ and $L(s,f)$ on the critical line, valid for both holomorphic and Maass forms.",
+        "published": "2026-01-27T04:21:35Z",
+        "updated": "2026-02-07T03:50:19Z",
+        "url": "https://arxiv.org/abs/2601.19177v2"
+      },
+      {
+        "title": "Generalisations of the Landau--Gonek Theorem and applications to mean values of zeta",
+        "summary": "The Landau--Gonek Theorem evaluates $X^\u03c1$ summed over the non-trivial zeros of the Riemann zeta function. Their result shows great sensitivity to the arithmetic nature of $X$. We prove a related result concerning the sum of $\u03c7(\u03c1) X^\u03c1$ over the zeros of zeta, where $\u03c7(s)$ is the term arising in the functional equation for the zeta function. Again, this result depends deeply on whether $X$ is an integer or not. We show the result splits into three cases, depending on whether $X$ is smaller than $T$, about the same size as $T$, or bigger than $T$. The reason this result is useful is that it easily permits the calculation of discrete moments of the Riemann zeta function via the approximate functional equation. As an application of this result, we provide an alternative proof of Shanks' conjecture.",
+        "published": "2026-01-25T22:48:55Z",
+        "updated": "2026-01-25T22:48:55Z",
+        "url": "https://arxiv.org/abs/2601.18025v1"
+      },
+      {
+        "title": "The Mellin's transforms of $\\dfrac{1}{\\operatorname{arctanh} x}$ and $\\dfrac{1}{\\sqrt{1-x^2}\\,\\operatorname{arctanh} x}$",
+        "summary": "We investigate the Mellin transforms of \\(1/\\operatorname{arctanh} x\\) and \\(1/(\\sqrt{1-x^{2}}\\,\\operatorname{arctanh} x)\\), viewed as compactly supported functions on \\((0,1)\\). These transforms are closely connected with conjectures on the arithmetic nature of the ratios \\(\u03b6(2n+1)/\u03c0^{2n+1}\\) and \\(\u03b2(2n)/\u03c0^{2n}\\). While their values at odd integers were previously studied, the evaluation at even integers leads to classes of improper integrals that cannot be handled by parity arguments. Using contour integration techniques, we derive explicit closed-form expressions involving derivatives of the Riemann zeta and Dirichlet beta functions, thereby extending earlier results and providing new analytic tools for the study of related hyperbolic integrals.",
+        "published": "2026-01-23T11:54:22Z",
+        "updated": "2026-01-23T11:54:22Z",
+        "url": "https://arxiv.org/abs/2601.17092v1"
+      },
+      {
+        "title": "Density-based structural frameworks for prime numbers, prime gaps, and Euler products",
+        "summary": "We develop a unified density-based framework for primality, coprimality, and prime pairs, and introduce an intrinsic normalized model for prime gaps constrained by the Prime Number Theorem. Within this setting, a structural tension between Hardy-Littlewood, Cramer, and PNT predictions emerges, leading to quantitative estimates on the rarity of extreme gaps. Additive representations of even integers are reformulated as local density problems, yielding non-conjectural upper and lower bounds compatible with Hardy-Littlewood heuristics. Finally, the Riemann zeta function is analyzed via truncated Euler products, whose stability and oscillatory structure provide a coherent interpretation of the critical line and prime-based numerical criteria for the localization of non-trivial zeros.",
+        "published": "2026-01-22T18:46:20Z",
+        "updated": "2026-01-22T18:46:20Z",
+        "url": "https://arxiv.org/abs/2601.16193v1"
+      },
+      {
+        "title": "On the Zeros of the Riemann Zeta Function with Two Ordinate Shifts",
+        "summary": "We prove that for any fixed real numbers y_1, y_2 not equal to 0, and constant C > 0, there exists a threshold T_* = T_*(y_1, y_2, C) > 0 such that for all T >= T_*, the interval [T, T(1 + epsilon)], with epsilon = exp(-C sqrt(log T)), contains at least one gamma satisfying zeta(1/2 + i gamma) = 0, zeta(1/2 + i (gamma + y_1)) != 0, and zeta(1/2 + i (gamma + y_2)) != 0.   This extends earlier work by Banks (for a single shift y) to two distinct shifts y_1, y_2. Our argument is based on the behavior of zeta and L functions in zero-free regions via Perron's formula.",
+        "published": "2026-01-22T03:17:26Z",
+        "updated": "2026-01-22T03:17:26Z",
+        "url": "https://arxiv.org/abs/2601.15610v1"
+      },
+      {
+        "title": "Generalized relations between arithmetic functions",
+        "summary": "The aim of this article is to present in a self-contained way identities arising in elementary number theory, among which the following one: $$ \\sum_{d\\mid n}\\frac{\u03bc^2(d)}{\\varphi(d)\\,d^s}=\\prod_{p\\mid n}\\left(1+\\frac{1}{(p-1)p^s}\\right). $$ This formula expresses a non-trivial divisor sum involving the M\u00f6bius function $\u03bc$ and Euler's totient function $\\varphi$ as a simple and explicit multiplicative expression. This is a generalization of the remarkable Dineva formula, which corresponds to $s=0$ and gives $n/\\varphi(n)$ on the right-hand side. We explain why only squarefree divisors are involved, show how multiplicativity naturally comes into play, and interpret the identity as a finite Euler product. Beyond this one-parameter family of generalizations, we describe a general method for constructing similar formulas and present several examples. Finally, we reformulate these identities in terms of partial zeta functions, thus emphasizing their close relationship with the classical theory of Euler products and the Riemann zeta function. The connection with the Selberg sieve is briefly outlined.",
+        "published": "2026-01-20T22:26:41Z",
+        "updated": "2026-01-20T22:26:41Z",
+        "url": "https://arxiv.org/abs/2601.14521v1"
+      },
+      {
+        "title": "Inequalities for $\u03b6(s)-\u03c8(1-s)$ related to a conjecture of Henry",
+        "summary": "In this paper we investigate analytic inequalities related to a conjecture of Henry involving the difference between the Riemann zeta function and the digamma function. By treating $\u03b6(s)-\u03c8(1-s)$ as a unified analytic object, we establish its strict convexity and monotonicity on suitable intervals. Moreover, we obtain explicit boundary limits of the derivative, expressed in terms of $\u03c0$, $\\log (2\u03c0)$ and Stieltjes constants. These results lead to new inequalities for $\u03b6(s)-\u03c8(1-s)$ and shed further light on the conjecture.",
+        "published": "2026-01-14T08:21:40Z",
+        "updated": "2026-01-14T08:21:40Z",
+        "url": "https://arxiv.org/abs/2601.09276v1"
+      },
+      {
+        "title": "The discrete second moment of mixed derivatives of the Riemann zeta function",
+        "summary": "We establish the full asymptotic for the discrete second moment of the Riemann zeta function of mixed derivatives evaluated at the zeta zeros, providing both unconditional and conditional error terms. This was first studied by Gonek, where only the leading order asymptotic was given, later extended by Conrey--Snaith and Milinovich to include the lower order terms for the first derivative. We extend the case of the first derivative to all derivatives.",
+        "published": "2026-01-09T20:10:39Z",
+        "updated": "2026-01-09T20:10:39Z",
+        "url": "https://arxiv.org/abs/2601.06292v1"
+      },
+      {
+        "title": "Ramaswami Type translation formulae for the polylogarithm functions",
+        "summary": "In 1934, Ramaswami proved a number of curious translation formulae satisfied by the Riemann zeta function. Such translation formulae, in turn give the meromorphic extension of the Riemann zeta function. In 1954, Apostol extended those identities to establish a family of such similar translation formulae. In this article, we establish many such Ramaswami and Apostol type translation formulae for the Dirichlet series defining the polylogarithm functions. This extended set up has many interesting applications, for example, it allows us to also find some (seemingly new) recurrence relations between the Bernoulli numbers, and use them to deduce some congruence properties of the tangent numbers.",
+        "published": "2026-01-06T11:03:16Z",
+        "updated": "2026-01-06T11:03:16Z",
+        "url": "https://arxiv.org/abs/2601.02921v1"
+      },
+      {
+        "title": "Joint extreme values of the Riemann zeta function at harmonic points",
+        "summary": "Using the resonance method, we obtain refined estimates for joint extreme values of the Riemann zeta function at harmonic points, improving upon Levinson's 1972 results and providing new insight into the behavior of the Riemann zeta function. Our proof is primarily based on Dirichlet series theory and the truncated Euler product for the Riemann zeta function. As a corollary, we can recover some previously known extreme value results for the zeta function.",
+        "published": "2026-01-06T00:49:50Z",
+        "updated": "2026-01-06T00:49:50Z",
+        "url": "https://arxiv.org/abs/2601.02623v1"
+      },
+      {
+        "title": "A simple inequality relating the Euler-Riemann zeta function, digamma, and cotangent over the unit interval",
+        "summary": "We prove an inequality featuring three well-known functions from analysis, namely the cotangent, the Euler-Riemann zeta function, and the digamma function. Aside from a simple proof of our result, we give a conjectured strengthening. We offer various remarks about the origins of this problem.",
+        "published": "2026-01-02T10:24:32Z",
+        "updated": "2026-01-02T10:24:32Z",
+        "url": "https://arxiv.org/abs/2601.00631v1"
+      },
+      {
+        "title": "Bilinear forms with Kloosterman fractions and applications",
+        "summary": "We establish improved bounds for bilinear forms with Kloosterman fractions of the form ${\\sum\\sum}_{m,n} \u03b1_m \u03b2_n e(a\\overline{m}/(bn))$ with $M<m\\le 2M$, $N < n \\le 2N$ and $(m,n)=1$. Our approach works directly with arbitrary coefficient sequences $(\u03b1_m), (\u03b2_n) \\in \\mathbb{C}$, avoiding the temporary restriction to squarefree support used in prior work. While this requires handling additional arithmetic complexity, it yields strictly stronger bounds that improve upon the estimates of Duke, Friedlander, and Iwaniec \\cite{DFI} and Bettin-Chandee \\cite{BC}; in the balanced case $M \\approx N$, the new saving over the trivial bound is $1/12$%, compared to $1/48$ in \\cite{DFI} . As an application, we prove a generalized asymptotic formula for the twisted second moment of the Riemann zeta-function with Dirichlet polynomials of length $T^{1/2+\u03b4}$ for $\u03b4= 1/46$, extending beyond the previously limiting $\u03b8= 1/2$ barrier established by Bettin, Chandee, and Radziwi\u0142\u0142 \\cite{BCR}. We also establish bounds for related Hermitian sums involving Sali\u00e9-type exponential phases and develop techniques for more general bilinear forms with Kloosterman fractions.",
+        "published": "2026-01-01T10:18:28Z",
+        "updated": "2026-01-05T18:40:10Z",
+        "url": "https://arxiv.org/abs/2601.00292v2"
+      },
+      {
+        "title": "Explicit bounds for the graphicality of the prime gap sequence",
+        "summary": "We establish explicit unconditional results on the graphic properties of the prime gap sequence. Let $p_n$ denote the $n$-th prime number (with $p_0=1$) and $\\mathrm{PD}_n = (p_\\ell - p_{\\ell-1})_{\\ell=1}^n$ be the sequence of the first $n$ prime gaps. Building upon the recent work by Erd\u0151s \\emph{et al}, which proved the graphic nature of $\\mathrm{PD}_n$ for large $n$ unconditionally, and for all $n$ under RH, we provide the first explicit unconditional threshold such that: (1) For all $n \\geq \\exp\\exp(30.5)$, $\\mathrm{PD}_n$ is graphic. (2) For all $n \\geq \\exp\\exp(34.5)$, every realization $G_n$ of $\\mathrm{PD}_n$ satisfies that $(G_n, p_{n+1}-p_n)$ is DPG-graphic.   Our proofs utilize a more refined criterion for when a sequence is graphic, and better estimates for the first moment of large prime gaps proven through an explicit zero-free region and explicit zero-density estimate for the Riemann zeta function.",
+        "published": "2025-12-30T13:42:40Z",
+        "updated": "2026-01-15T14:42:12Z",
+        "url": "https://arxiv.org/abs/2512.24230v2"
+      },
+      {
+        "title": "Bounding the integral of the argument of the Riemann Zeta function",
+        "summary": "This article improves the estimate of $|S_1(t_2)-S_1(t_1)|$, which is the definite integral of the argument of the Riemann zeta-function between $t_1$ and $t_2$. Estimates of this quantity are needed to apply Turing's method to compute the exact number of zeta zeros up to a given height.",
+        "published": "2025-12-28T20:13:44Z",
+        "updated": "2026-01-04T16:21:12Z",
+        "url": "https://arxiv.org/abs/2512.23064v3"
+      },
+      {
+        "title": "Elementary proof of some Ramanujan-type identities",
+        "summary": "We give an elementary proof of some identities that express the squares of Riemann zeta function at integer points by the series involving hyperbolic functions, digamma function, Bernoulli numbers etc.",
+        "published": "2025-12-26T13:08:39Z",
+        "updated": "2025-12-26T13:08:39Z",
+        "url": "https://arxiv.org/abs/2512.22025v1"
+      },
+      {
+        "title": "The Density of Primes in the Eigensurface of ${\\bf S}_3$",
+        "summary": "The Prime Number Theorem asserts that the density of primes less than or equal to $N$ is asymptotically equal to $1/\\log N$. The density of prime triples in coprime triples in $\\mathbb{Z}^3_+$ is determined to be $3\u03b6(3)/\\log N$, where $\u03b6$ is the Riemann zeta function. In this paper, we prove that the density of prime triples in coprime triples in the surface $S=\\{z_0^{2} - z_1^{2} + z_2^{2} - z_0z_2=0\\}$ is greater than $3\u03b6(3)/\\log N$, meaning that $S$ meets primes more frequently. This surface is the eigensurface of the symmetric group ${\\bf S}_3$ with respect to an irreducible representation.",
+        "published": "2025-12-25T03:41:26Z",
+        "updated": "2025-12-25T03:41:26Z",
+        "url": "https://arxiv.org/abs/2512.21488v1"
+      },
+      {
+        "title": "Classical Ap\u00e9ry-Like Series and Their Cyclotomic Parametric Analogues via Contour Integration",
+        "summary": "In this paper, we present a method based on contour integration to investigate a class of cyclotomic parametric Ap\u00e9ry-like series. The general term of such series involves a parametric central binomial coefficient, which is defined via the Gamma function. Using this approach, we express a family of cyclotomic Ap\u00e9ry-like series in terms of multiple polylogarithms, cyclotomic Hurwitz zeta values, Riemann zeta values and $\\log(2)$. In particular, we provide several illustrative examples and corollaries, which enable us to recover a number of known results on Ap\u00e9ry-like series. At the same time, we have also left open two questions regarding Ap\u00e9ry-like series. Moreover, by considering integrals of the generating function for Fuss-Catalan numbers, we derive an alternative expression for a classical Ap\u00e9ry-like series. Combining this with known results allows us to establish several identities for multiple polylogarithm functions.",
+        "published": "2025-12-19T23:02:25Z",
+        "updated": "2025-12-19T23:02:25Z",
+        "url": "https://arxiv.org/abs/2512.18121v1"
+      }
+    ],
+    "cat:math.NT AND all:\"zeta zero\"": [
+      {
+        "title": "The discrete second moment of mixed derivatives of the Riemann zeta function",
+        "summary": "We establish the full asymptotic for the discrete second moment of the Riemann zeta function of mixed derivatives evaluated at the zeta zeros, providing both unconditional and conditional error terms. This was first studied by Gonek, where only the leading order asymptotic was given, later extended by Conrey--Snaith and Milinovich to include the lower order terms for the first derivative. We extend the case of the first derivative to all derivatives.",
+        "published": "2026-01-09T20:10:39Z",
+        "updated": "2026-01-09T20:10:39Z",
+        "url": "https://arxiv.org/abs/2601.06292v1"
+      },
+      {
+        "title": "Bounding the integral of the argument of the Riemann Zeta function",
+        "summary": "This article improves the estimate of $|S_1(t_2)-S_1(t_1)|$, which is the definite integral of the argument of the Riemann zeta-function between $t_1$ and $t_2$. Estimates of this quantity are needed to apply Turing's method to compute the exact number of zeta zeros up to a given height.",
+        "published": "2025-12-28T20:13:44Z",
+        "updated": "2026-01-04T16:21:12Z",
+        "url": "https://arxiv.org/abs/2512.23064v3"
+      },
+      {
+        "title": "Zeta Zeros on the Critical Line",
+        "summary": "Montgomery in 1973 introduced the pair correlation method to study the vertical distribution of Riemann zeta-function zeros. This work assumed the Riemann Hypothesis (RH). One striking application was a short proof that at least 2/3 of zeta-zeros are simple zeros, the first result of its type. Over the last 50 years, most work on pair correlation of zeta-zeros has continued to assume RH. Here we show that if RH could be removed from Montgomery's simple zero proof, then this would also give a proof that 2/3 of the zeros are simple and on the critical line. This idea has been applied in several recent papers to obtain other results on the zeros.",
+        "published": "2025-11-25T08:30:14Z",
+        "updated": "2026-02-05T15:45:12Z",
+        "url": "https://arxiv.org/abs/2511.20059v2"
+      },
+      {
+        "title": "Note on the positivity of the real part of the log-derivative of the Riemann $\u03be$-function near the critical line",
+        "summary": "In this work, we investigate the positivity of the real part of the log-derivative of the Riemann $\u03be$-function in the region $1/2+1/\\sqrt{\\log t}<\u03c3<1$, where $t$ is sufficiently large. We provide an explicit lower bound for $\\mathfrak{R}\\sum_\u03c11/(s-\u03c1)$, where the summation runs over the zeta-zeros on the critical line. We also consider hypothetical cases of positivity of the log-derivative of the Riemann $\u03be$-function in the provided region, assuming that there are non-trivial zeta-zeros off the critical line.",
+        "published": "2025-09-23T13:15:36Z",
+        "updated": "2025-09-23T13:15:36Z",
+        "url": "https://arxiv.org/abs/2509.18963v1"
+      },
+      {
+        "title": "Selberg's Central Limit Theorem weighted by Linear Statistics of Zeta Zeros",
+        "summary": "We consider the value distribution of the logarithm of the Riemann zeta function on the critical line, weighted by the local statistics of zeta zeros. We show that, with appropriate normalization, it satisfies a complex Central Limit Theorem, provided that the Fourier support of the test function in the linear statistics is sufficiently small. For the imaginary part, we extend this support condition up to its natural barrier under the Riemann Hypothesis. Finally, we prove that the correlation between $\\log \u03b6$ and the one-level density, while negligible on the level of Selberg's Central Limit Theorem, only decays at a rather slow rate if the Riemann Hypothesis is assumed. Our results can be viewed as a combination of Selberg's Central Limit Theorem with work of Hughes and Rudnick on mock-Gaussian behavior of the local statistics.",
+        "published": "2025-07-05T20:08:01Z",
+        "updated": "2025-07-05T20:08:01Z",
+        "url": "https://arxiv.org/abs/2507.04150v1"
+      },
+      {
+        "title": "A Rigorous Error Bound for the TG Kernel in Prime Counting",
+        "summary": "We establish rigorous error bounds for prime counting using a truncated Gaussian (TG) kernel in the explicit formula framework. Our main theorem proves that the approximation error remains globally below 1/2 for all sufficiently large arguments, guaranteeing exact computation of \u03c0(x) through simple rounding, without relying on unproven hypotheses.   The TG kernel construction employs Gaussian-like test functions with compact support, engineered with vanishing moments to eliminate main terms. For x with 10^8 decimal digits, we demonstrate that only ~1200 nontrivial zeta zeros suffice to achieve the error bound, enabling computation in seconds on modern hardware - a dramatic improvement over classical methods.   Key contributions include: (1) Explicit tail truncation bounds using Taylor remainder analysis, showing exponential decay; (2) Zero-sum truncation error bounds via unconditional density estimates; (3) Rigorous treatment of trivial zero contributions. All constants are made explicit, ensuring full verifiability.   The method bridges analytic number theory and practical computation, with potential applications to record-breaking prime counting computations. We discuss algorithmic implications including FFT-based arithmetic for ~330 million bit numbers. The framework's flexibility suggests connections to deeper structures in prime distribution, particularly regarding optimized kernel designs and the interplay between smoothing parameters \u03b1 and truncation heights.   This work exemplifies how classical analytic techniques, when carefully implemented with modern computational perspectives, yield practical algorithms for problems previously considered purely theoretical. The rigorous error analysis ensures reliability even at astronomical scales, opening new avenues for computational number theory research.",
+        "published": "2025-06-27T20:54:06Z",
+        "updated": "2025-06-27T20:54:06Z",
+        "url": "https://arxiv.org/abs/2506.22634v1"
+      },
+      {
+        "title": "The Lindel\u00f6f Hypothesis for Zeta Zero Ordinates",
+        "summary": "We provide conditional and unconditional asymptotic formulae for the exponential sums $\\sum_\u03b3\\,\u03b3^{-i\u03c4}$, where the summation is over the ordinates of the nontrivial zeros $\u03c1=\u03b2+i\u03b3$ of the Riemann zeta-function. In particular, the obtained results are related to the Lindel\u00f6f Hypothesis for these ordinates (in the sense of Gonek et al. [10]).",
+        "published": "2025-05-20T11:38:30Z",
+        "updated": "2025-05-20T11:38:30Z",
+        "url": "https://arxiv.org/abs/2505.14228v1"
+      },
+      {
+        "title": "Optimal Cosine Polynomials for Riemann Zeta Zero-Free Region",
+        "summary": "The zero-free region of the Riemann zeta function plays a pivotal role in understanding the distribution of prime numbers. Historically, E. Landau used a particular type of non-negative cosine polynomial to construct this region. Subsequent research by various mathematicians sought the optimal cosine polynomial that provides the largest zero-free region under this construction. In 1992, V. V. Arestov identified the optimal polynomial for all degrees up to 6. This article employs numerical methods to determine the optimal polynomials of degrees 7 and 8, as well as the corresponding zero-free region of the Riemann zeta function.",
+        "published": "2024-11-03T00:23:09Z",
+        "updated": "2025-02-06T01:28:11Z",
+        "url": "https://arxiv.org/abs/2411.01385v2"
+      },
+      {
+        "title": "A method for verifying the generalized Riemann hypothesis",
+        "summary": "Riemann numerically approximated at least three zeta zeros. According to Edwards, Riemann even took steps to verify that the lowest zero he computed was indeed the first zeta zero. This approach to verification is developed, improved, and generalized to a large class of $L$-functions. Results of numerical calculations demonstrating the efficacy of the method are presented.",
+        "published": "2024-07-31T22:42:36Z",
+        "updated": "2024-07-31T22:42:36Z",
+        "url": "https://arxiv.org/abs/2408.00187v1"
+      },
+      {
+        "title": "On convergence of points to limiting processes, with an application to zeta zeros",
+        "summary": "This paper considers sequences of points on the real line which have been randomly translated, and provides conditions under which various notions of convergence to a limiting point process are equivalent. In particular we consider convergence in correlation, convergence in distribution, and convergence of spacings between points. We also prove a simple Tauberian theorem regarding rescaled correlations. The results are applied to zeros of the Riemann zeta-function to show that several ways to state the GUE Hypothesis are equivalent. The proof relies on a moment bound of A. Fujii.",
+        "published": "2023-11-22T15:07:31Z",
+        "updated": "2024-08-14T07:04:28Z",
+        "url": "https://arxiv.org/abs/2311.13441v2"
+      },
+      {
+        "title": "Zeta zeros and prolate wave operators",
+        "summary": "We integrate in the framework of the semilocal trace formula two recent discoveries on the spectral realization of the zeros of the Riemann zeta function by introducing a semilocal analogue of the prolate wave operator. The latter plays a key role both in the spectral realization of the low lying zeros of zeta--using the positive part of its spectrum--and of their ultraviolet behavior--using the Sonin space which corresponds to the negative part of the spectrum. In the archimedean case the prolate operator is the sum of the square of the scaling operator with the grading of orthogonal polynomials, and we show that this formulation extends to the semilocal case. We prove the stability of the semilocal Sonin space under the increase of the finite set of places which govern the semilocal framework and describe their relation with Hilbert spaces of entire functions. Finally, we relate the prolate operator to the metaplectic representation of the double cover of $\\operatorname{SL}(2,\\mathbb R)$ with the goal of obtaining (in a forthcoming paper) a second candidate for the semilocal prolate operator.",
+        "published": "2023-10-27T18:36:23Z",
+        "updated": "2024-05-04T08:47:33Z",
+        "url": "https://arxiv.org/abs/2310.18423v2"
+      },
+      {
+        "title": "Negative discrete moments of the derivative of the Riemann zeta-function",
+        "summary": "We obtain conditional upper bounds for negative discrete moments of the derivative of the Riemann zeta-function averaged over a subfamily of zeros of the zeta function which is expected to have full density inside the set of all zeros. For $k\\leq 1/2$, our bounds for the $2k$-th moments are expected to be almost optimal. Assuming a conjecture about the maximum size of the argument of the zeta function on the critical line, we obtain upper bounds for these negative moments of the same strength while summing over a larger subfamily of zeta zeros.",
+        "published": "2023-10-05T23:57:12Z",
+        "updated": "2023-10-05T23:57:12Z",
+        "url": "https://arxiv.org/abs/2310.03949v1"
+      },
+      {
+        "title": "Smooth integers and de Bruijn's approximation $\u039b$",
+        "summary": "This paper is concerned with the relationship of $y$-smooth integers and de Bruijn's approximation $\u039b(x,y)$. Under the Riemann hypothesis, Saias proved that the count of $y$-smooth integers up to $x$, $\u03a8(x,y)$, is asymptotic to $\u039b(x,y)$ when $y \\ge (\\log x)^{2+\\varepsilon}$. We extend the range to $y \\ge (\\log x)^{3/2+\\varepsilon}$ by introducing a correction factor that takes into account the contributions of zeta zeros and prime powers.   We use this correction term to uncover a lower order term in the asymptotics of $\u03a8(x,y)/\u039b(x,y)$. The term relates to the error term in the prime number theorem, and implies that large positive (resp. negative) values of $\\sum_{n \\le y} \u039b(n)-y$ lead to large positive (resp. negative) values of $\u03a8(x,y)-\u039b(x,y)$, and vice versa. Under the Linear Independence hypothesis, we show a Chebyshev's bias in $\u03a8(x,y)-\u039b(x,y)$.",
+        "published": "2022-12-04T23:04:35Z",
+        "updated": "2023-12-19T14:38:03Z",
+        "url": "https://arxiv.org/abs/2212.01949v3"
+      },
+      {
+        "title": "On the number variance of zeta zeros and a conjecture of Berry",
+        "summary": "Assuming the Riemann hypothesis, we prove estimates for the variance of the real and imaginary part of the logarithm of the Riemann zeta-function in short intervals. We give three different formulations of these results. Assuming a conjecture of Chan for how often gaps between zeros can be close to a fixed nonzero value, we prove a conjecture of Berry (1988) for the number variance of zeta zeros in the non-universal regime. In this range, GUE statistics do not describe the distribution of the zeros. We also calculate lower-order terms in the second moment of the logarithm of the modulus of the Riemann zeta-function on the critical line. Assuming Montgomery's pair correlation conjecture, this establishes a special case of a conjecture of Keating and Snaith (2000).",
+        "published": "2022-11-27T19:24:16Z",
+        "updated": "2022-11-27T19:24:16Z",
+        "url": "https://arxiv.org/abs/2211.14918v1"
+      },
+      {
+        "title": "Report: Statistics of approximations to zeroes of $\u03b6$-function via truncated symmetrized Euler products",
+        "summary": "We look at approximations $ \u03b6_X $ of the $\u03b6$-function introduced in Gonek's paper (arXiv:0704.3448). We look at how close the approximate zeroes are to the actual zeroes when (i) X is fixed (Section 1)(ii) X varies like $ t/2\u03c0$ (Section 3.1). We establish a heuristic for estimating these differences, involving values of $ F_X^\\star(t) $ and its near-constant slopes near zeta-zero ordinates $ \u03b3$. In Section 3.2 we see the slope around the zeroes behaves logarithmically and we calculate a numerical formula for it. In Section 3.3 and 3.4 we scale the differences with the slopes and compare them with models involving 1 or 2 pairs of neighbouring zeta-zeroes. In Section 3.5, we also look at how often these models capture these scaled differences accurately. In Section 4, we look at our methods from a theoretical standpoint. In Section 5, we look at how close the approximate zeroes are to the actual zeroes when (i) X is fixed (ii) X varies like $ t/2\u03c0$. The errors seem to behave like powers of log which should be investigated further from a theoretical standpoint.",
+        "published": "2022-11-20T17:51:21Z",
+        "updated": "2022-11-22T09:06:40Z",
+        "url": "https://arxiv.org/abs/2211.11042v2"
+      },
+      {
+        "title": "Smooth integers and the Dickman $\u03c1$ function",
+        "summary": "We establish an asymptotic formula for $\u03a8(x,y)$ whose shape is $x \u03c1(\\log x/\\log y)$ times correction factors. These factors take into account the contributions of zeta zeros and prime powers and the formula can be regarded as an (approximate) explicit formula for $\u03a8(x,y)$. With this formula at hand we prove oscillation results for $\u03a8(x,y)$, which resolve a question of Hildebrand on the range of validity of $\u03a8(x,y) \\asymp x\u03c1(\\log x/\\log y)$. We also address a question of Pomerance on the range of validity of $\u03a8(x,y) \\ge x \u03c1(\\log x/\\log y)$.   Along the way we improve classical estimates for $\u03a8(x,y)$ and, on the Riemann Hypothesis, uncover an unexpected phase transition of $\u03a8(x,y)$ at $y=(\\log x)^{3/2+o(1)}$.",
+        "published": "2022-11-16T15:28:07Z",
+        "updated": "2023-12-19T14:32:45Z",
+        "url": "https://arxiv.org/abs/2211.08973v6"
+      },
+      {
+        "title": "Mean values of the logarithmic derivative of the Riemann zeta-function near the critical line",
+        "summary": "Assume the Riemann Hypothesis and a hypothesis on small gaps between zeta zeros, we prove a conjecture of Bailey, Bettin, Blower, Conrey, Prokhorov, Rubinstein and Snaith, which states that for any positive integer $K$ and real number $a>0$, \\begin{align*} \\lim_{a \\to 0^+}\\lim_{T \\to \\infty} \\frac{(2a)^{2K-1}}{T (\\log T)^{2K}} \\int_{T}^{2T} \\left|\\frac{\u03b6'}\u03b6\\left(\\frac{1}{2}+\\frac{a}{\\log T}+it\\right)\\right|^{2K} dt = \\binom{2K-2}{K-1}. \\end{align*} When $K=1$, this was essentially a result of Goldston, Gonek and Montgomery.",
+        "published": "2022-11-15T23:29:20Z",
+        "updated": "2023-03-15T16:23:07Z",
+        "url": "https://arxiv.org/abs/2211.08571v2"
+      },
+      {
+        "title": "A Prime Power Equation",
+        "summary": "A real valued function, $G$, is provided whose Fourier transform, $\\hat G$, is an entire function that satisfies, $E(s)\u03b6(s) = \\hat G(\\frac{s -\\frac{1}{2}}{i})$. Then $\\hat G(\u03b3) = 0$ for all nonreal zeros, $\u03c1= \\frac{1}{2} + i \u03b3$, of $\u03b6(s)$. Combined with Guinand's explicit formula we obtain a prime power equation free of zeta zeros. Using infinitely many translates of G, an infinite system of equations, indexed on the natural numbers, is obtained. The solution vector of this system is the vector of values of von Mangoldt's function, $\u039b(n), n = 1, 2 \\cdots$. The entries of the matrix are special values of the fourth power of the Jacobi theta function, $\u03b8_2(\u03c4)$.",
+        "published": "2022-09-21T17:36:47Z",
+        "updated": "2022-09-21T17:36:47Z",
+        "url": "https://arxiv.org/abs/2209.10522v1"
+      },
+      {
+        "title": "Small gaps and small spacings between zeta zeros",
+        "summary": "We show assuming RH that phenomena concerning pairs of zeros established $via$ pair correlations occur with positive density (with at most a slight adjustment of the constants). Also, while a double zero is commonly considered to be a close pair, we consider the difference between two $distinct$ zeros.",
+        "published": "2022-08-03T21:53:43Z",
+        "updated": "2022-08-03T21:53:43Z",
+        "url": "https://arxiv.org/abs/2208.02359v1"
+      },
+      {
+        "title": "Oscillation of the remainder term in the prime number theorem of Beurling, \"caused by a given zeta-zero\"",
+        "summary": "Continuing previous study of the Beurling zeta function, here we prove two results, generalizing long existing knowledge regarding the classical case of the Riemann zeta function and some of its generalizations.   First, we address the question of Littlewood, who asked for explicit oscillation results provided a zeta-zero is known. We prove that given a zero $\u03c1_0$ of the Beurling zeta function $\u03b6_P$ for a given number system generated by the primes $P$, the corresponding error term $\u0394_P(x):=\u03c8_{P}(x)-x$, where $\u03c8_{P}(x)$ is the von Mangoldt summatory function shows oscillation in any large enough interval, as large as $(\u03c0/2-\\varepsilon) x^{\\Re \u03c1_0}/|\u03c1_0|$.   The somewhat mysterious appearance of the constant $\u03c0/2$ is explained in the study. Finally, we prove as the next main result of the paper the following: given $\\varepsilon>0$, there exists a Beurling number system with primes $P$, such that $|\u0394_P(x)| \\le (\u03c0/2+\\varepsilon)x^{\\Re \u03c1_0}/|\u03c1_0|$.   In this second part a nontrivial construction of a low norm sine polynomial is coupled by the application of the wonderful recent prime random approximation result of Broucke and Vindas, who sharpened the breakthrough probabilistic construction due to Diamond, Montgomery and Vorhauer.",
+        "published": "2022-02-03T20:36:24Z",
+        "updated": "2022-09-15T13:16:58Z",
+        "url": "https://arxiv.org/abs/2202.01837v3"
+      },
+      {
+        "title": "Zeta zero dependence and the critical line",
+        "summary": "On the critical line the conditional distribution of the zeta function's magnitude around zeta zeros exists and predicts the well-known pair correlation between nontrivial zeta zeros. However, this conditional distribution does not exist at most distances above or below any nontrivial zeta zeros that are off the critical line. This shows that the zeta function's magnitude cannot have vertical statistical structure at most distances around nontrivial zeta zeros off the critical line. The proofs of these results are straightforward, using only statistical properties of certain prime sums, elementary properties of normal and elliptical random variables, and the pole structure of the zeta function. These results readily generalize to L-functions.",
+        "published": "2021-12-15T16:12:29Z",
+        "updated": "2023-04-23T17:11:02Z",
+        "url": "https://arxiv.org/abs/2112.08234v6"
+      },
+      {
+        "title": "On Congruences for Iterates of the Sum--Power Divisor Function and Conditional Implications for the Riemann Hypothesis",
+        "summary": "Inspired by Cohen and te Riele~\\cite{Cohen1996}, who computationally verified that for every $n \\leq 400$ there exists $k$ such that $\u03c3^k(n) \\equiv 0 \\pmod{n}$ (where $\u03c3^k$ denotes the $k$-fold iteration of the sum-of-divisors function), this paper resolves their reverse question negatively: no integer $n > 1$ satisfies $\u03c3^k(n) \\equiv 0 \\pmod{n}$ for \\emph{all} $k \\geq 1$.   The proof eliminates prior gaps via Lenstra's density-zero bounds $\u03c3_k(m) \\ll m / \\log\\log m$ combined with Robin's RH-equivalent criterion $\u03c3(n) < e^\u03b3n \\log\\log n + 0.6483 n / \\log\\log n$ ($n \\geq 5041$), showing universal metaperfect divisibility implies RH-violating $\u03c3$ growth or low-lying zeta zeros near $s=1$.   Among multiperfect $n$ with prime $L = \\mathrm{lcm}(1+e_p : p \\mid n)$, only $n=6$ satisfies the congruence for all odd $k$, with Shannon entropy $H(\u03c3^k(6) \\mod 6) \\to \\log 2$ reflecting periodic order. We analyze bifurcation phenomena in the dynamics $\u03c3^k(n) \\mod n$, where high-entropy chaotic residues for other $n$ mirror GUE statistics of zeta zeros ($\\sim \\log T / 2\u03c0$ near $s=1/2$, $>41\\%$ verified on critical line), contrasting the ordered $n=6$ case.   Zero rates near $s=1$ (simple pole) and $s=1/2$ bound iterated $\u03c3$ distributions, linking to RH via divisor sums and dynamical bifurcations; we conjecture $n=6$ uniquely achieves odd-$k$ divisibility with small period dividing $L$.",
+        "published": "2021-02-04T20:22:10Z",
+        "updated": "2025-12-25T17:07:38Z",
+        "url": "https://arxiv.org/abs/2102.09941v2"
+      },
+      {
+        "title": "Higher moments of distribution of zeta zeros",
+        "summary": "We develop a method for mean-value estimation of long Dirichlet polynomials. For an application, we use our method to study properties of the logarithmic derivative of the Riemann zeta function.",
+        "published": "2020-11-19T15:33:16Z",
+        "updated": "2020-11-19T15:33:16Z",
+        "url": "https://arxiv.org/abs/2011.09898v1"
+      },
+      {
+        "title": "On the self-replicating properties of Riemann zeta zeros: A statistical study",
+        "summary": "We study distributions of differences of unscaled Riemann zeta zeros, $\u03b3-\u03b3^{'}$, at large distances. We show, that independently of the height, a subset of finite number of successive zeros knows the locations of lower level zeros. The information contained in the subset of zeros is inversely proportional to $ln(\u03b3/(2\u03c0))$, where $\u03b3$ is the average zeta of the subset. Because the mean difference of the zeros also decreases as inversely proportional to $ln(\u03b3/(2\u03c0))$, each equally long segment of the line $\\Re(z)=1/2$ contains equal amount of information. The distributions of differences are skewed towards the nearest zeta zero, or at least, in the case of very nearby zeros, the skewness always decreases when zeta zero is crossed in increasing direction. We also show that the variance of distributions has local maximum or, at least, a turning point at every zeta zero, i.e., local minimum of the second derivative of the variance. In addition, it seems that the higher the zeros the more compactly the distributions of the differences are located in the skewness-kurtosis -plane. The flexibility of the Johnson distribution allows us to fit the distributions nicely, despite of the values of skewness and kurtosis of the distributions.",
+        "published": "2020-06-07T16:38:30Z",
+        "updated": "2020-06-07T16:38:30Z",
+        "url": "https://arxiv.org/abs/2006.04196v1"
+      },
+      {
+        "title": "On the statistics of differences of zeta zeros starting from zero number $10^{23}$",
+        "summary": "We study distributions of differences of unscaled Riemann zeta zeros, $\u03b3-\u03b3^{'}$, at large. We show, that independently of the location of the zeros, i.e., even for zeros as high as $10^{23}$, their differences have similar statistical properties. The distributions of differences are skewed usually towards the nearest zeta zero. We show, however, that this is not always the case, but depends upon the distance and number of nearby zeros on each side of the corresponding distribution. The skewness, however, always decreases when zeta zero is crossed from left to right, i.e., in increasing direction. Furthermore, we show that the variance of distributions has local maximum or, at least, a turning point at every zeta zero, i.e., local minimum of the second derivative of the variance. In addition, it seems that the higher the zeros the more compactly the distributions of the differences are located in the skewness-kurtosis -plane. Furthermore, we show that distributions can be fitted with Johnson probability density function, despite the value of skewness or kurtosis of the distribution.",
+        "published": "2020-01-29T12:10:15Z",
+        "updated": "2020-01-29T12:10:15Z",
+        "url": "https://arxiv.org/abs/2001.11353v1"
+      }
+    ],
+    "cat:math.NT AND all:\"prime gaps\"": [
+      {
+        "title": "Bounded gaps and perfect power gaps in sequences of consecutive primes",
+        "summary": "We study whether several consecutive prime gaps can all be   relatively large at the same time, or is it possible that all are squares   or perfect powers, or perhaps none of them are squares?   A few related results and problems are also presented.",
+        "published": "2026-02-07T14:06:18Z",
+        "updated": "2026-02-07T14:06:18Z",
+        "url": "https://arxiv.org/abs/2602.07558v1"
+      },
+      {
+        "title": "Density-based structural frameworks for prime numbers, prime gaps, and Euler products",
+        "summary": "We develop a unified density-based framework for primality, coprimality, and prime pairs, and introduce an intrinsic normalized model for prime gaps constrained by the Prime Number Theorem. Within this setting, a structural tension between Hardy-Littlewood, Cramer, and PNT predictions emerges, leading to quantitative estimates on the rarity of extreme gaps. Additive representations of even integers are reformulated as local density problems, yielding non-conjectural upper and lower bounds compatible with Hardy-Littlewood heuristics. Finally, the Riemann zeta function is analyzed via truncated Euler products, whose stability and oscillatory structure provide a coherent interpretation of the critical line and prime-based numerical criteria for the localization of non-trivial zeros.",
+        "published": "2026-01-22T18:46:20Z",
+        "updated": "2026-01-22T18:46:20Z",
+        "url": "https://arxiv.org/abs/2601.16193v1"
+      },
+      {
+        "title": "Explicit bounds for the graphicality of the prime gap sequence",
+        "summary": "We establish explicit unconditional results on the graphic properties of the prime gap sequence. Let $p_n$ denote the $n$-th prime number (with $p_0=1$) and $\\mathrm{PD}_n = (p_\\ell - p_{\\ell-1})_{\\ell=1}^n$ be the sequence of the first $n$ prime gaps. Building upon the recent work by Erd\u0151s \\emph{et al}, which proved the graphic nature of $\\mathrm{PD}_n$ for large $n$ unconditionally, and for all $n$ under RH, we provide the first explicit unconditional threshold such that: (1) For all $n \\geq \\exp\\exp(30.5)$, $\\mathrm{PD}_n$ is graphic. (2) For all $n \\geq \\exp\\exp(34.5)$, every realization $G_n$ of $\\mathrm{PD}_n$ satisfies that $(G_n, p_{n+1}-p_n)$ is DPG-graphic.   Our proofs utilize a more refined criterion for when a sequence is graphic, and better estimates for the first moment of large prime gaps proven through an explicit zero-free region and explicit zero-density estimate for the Riemann zeta function.",
+        "published": "2025-12-30T13:42:40Z",
+        "updated": "2026-01-15T14:42:12Z",
+        "url": "https://arxiv.org/abs/2512.24230v2"
+      },
+      {
+        "title": "Sierpinski's Hypothesis H1",
+        "summary": "Sierpinski's Hypothesis H1, formulated in 1958, is the conjecture that (provided $n\\geq 2$), when the first $n^2$ counting numbers, $1, 2,3,\\dots n^2$, are arranged in a square, then each row contains at least one prime. This conjecture is particularly interesting in that it subsumes and is stronger than both the Oppermann and Legrendre conjectures. Herein I shall verify Sierpinski's Hypothesis H1 for (at least) the first $n \\leq \\hbox{4 553 432 387} \\approx 4.5 \\hbox{ billion}$ of these Sierpinski matrices. I shall also demonstrate some partial but more general results. For example: Even for arbitrary $n\\geq \\hbox{4 553 432 388}$ at least one quarter of the rows of the $n$th Sierpinski matrix contain at least one prime. Furthermore, even for arbitrary $n\\geq \\hbox{4 553 432 388}$ at least the first $\\hbox{131 294}$ rows of the $n$th Sierpinski matrix always contain at least one prime. These and related results are obtained largely by using the locations and values of the known maximal prime gaps, the pigeonhole principle, and some recent bounds on the first Chebyshev function.",
+        "published": "2025-12-27T00:01:58Z",
+        "updated": "2025-12-27T00:01:58Z",
+        "url": "https://arxiv.org/abs/2512.22413v1"
+      },
+      {
+        "title": "A Generalized Elliott-Halberstam Conjecture Implying the Twin Prime Hypothesis",
+        "summary": "We propose a generalization of the Elliott-Halberstam conjecture concerning the distribution of prime pairs in arithmetic progressions. This conjecture, which we call the Generalized Elliott-Halberstam Conjecture for Shifted Convolutions (GEH-2), provides a level of distribution for correlations of the von Mangoldt function. We show that GEH-2 implies the twin prime conjecture, describe heuristic and analytic motivation, and discuss implications for prime gaps and $k$-tuple patterns.",
+        "published": "2025-11-17T21:39:29Z",
+        "updated": "2025-11-17T21:39:29Z",
+        "url": "https://arxiv.org/abs/2511.14810v1"
+      },
+      {
+        "title": "A Positive Lower Bound for the Sum of Log-Reciprocal Twin Prime Products via Weighted Sieve",
+        "summary": "The twin prime conjecture asserts that there are infinitely many pairs of primes that differ by two. While recent advances have improved our understanding of bounded prime gaps, the conjecture remains unresolved. This paper refines the weighted sieve method to estimate a sum over twin prime pairs, where each term is of the form \\((1/p)(log(x^{\u03b1}/p))^k\\). We establish a strict positive lower bound for this sum, which implies the infinitude of twin prime pairs.",
+        "published": "2025-11-17T03:56:27Z",
+        "updated": "2025-11-23T02:19:50Z",
+        "url": "https://arxiv.org/abs/2511.12944v3"
+      },
+      {
+        "title": "A Note on Algorithms for Computing $p_n$",
+        "summary": "We analyze algorithms for computing the $n$th prime $p_n$ and establish asymptotic bounds for several approaches. Using existing results on the complexity of evaluating the prime-counting function $\u03c0(x)$, we show that the binary search approach computes $p_n$ in $O(\\sqrt{n} \\, (\\log n)^4)$ time. Assuming the Riemann Hypothesis and Cram\u00e9r's conjecture, we construct a tighter interval around li$^{-1}(n)$, leading to an improved sieve-based algorithm running in $O(\\sqrt{n} \\, (\\log ^{7/2} n) \\, \\log \\log n)$ time. This improvement, though conditional, suggests that further refinements to prime gap estimates may yield provably faster methods for computing primes.",
+        "published": "2025-10-18T00:49:08Z",
+        "updated": "2025-10-18T00:49:08Z",
+        "url": "https://arxiv.org/abs/2510.16285v1"
+      },
+      {
+        "title": "Heuristic Bounded Prime Gaps via a Chaotic Multidimensional Sieve and Random Matrix Theory",
+        "summary": "We present the Enhanced Multidimensional Chaotic Heuristic Sieve (EMCHS), a novel probabilistic framework that integrates chaotic perturbations and random matrix theory (RMT) to suggest improved bounds on prime gaps. Building upon the foundational sieves of Goldston-Pintz-Yildirim and Maynard, EMCHS heuristically suggests unconditional gaps of at most 180 and conditional gaps of at most 8 under a partial Elliott-Halberstam conjecture (EHC) with delta = 0.3. These heuristic suggestions surpass Maynard's unconditional bound of 246 through refined polytope optimizations and probabilistic enhancements. We provide rigorous proofs for certain analytic components (such as bounding chaotic perturbations via ergodic theory) and explicitly distinguish which arguments and conclusions are heuristic or conjectural. Numerical evidence for primes up to 10^18 supports the framework, and we discuss limitations and avenues for future rigorous work.",
+        "published": "2025-07-23T23:31:48Z",
+        "updated": "2025-07-23T23:31:48Z",
+        "url": "https://arxiv.org/abs/2507.17986v1"
+      },
+      {
+        "title": "Quantum-Resistant RSA Modulus Decomposition via Adaptive R\u00e9nyi Entropy Optimization",
+        "summary": "This paper explores a theoretical approach to enhance RSA's resistance against quantum attacks by optimizing prime selection through R\u00e9nyi entropy constraints. We develop a framework where primes are generated with controlled proximity ($|p-q| < \u03b3\\sqrt{pq}$) to minimize the collision entropy $\\mathscr{H}_2$ of the quantum period-finding operator.   The main contributions include: (1) establishing a connection between prime distribution properties and quantum attack complexity via Maynard's prime gap theorem, (2) providing a constructive proof for prime existence under entropy constraints, and (3) demonstrating security reduction to ideal lattice problems under the quantum random oracle model.   Theoretical analysis suggests that for $k$-bit moduli with $\u03b3< k^{-1/2+\u03b5}$, Shor's algorithm requires $\u03a9(\u03b3^{-1}k^{3/2})$ quantum operations while maintaining classical security equivalent to standard RSA. Key Enhancements: (1) Prime existence proof via Maynard's theorem (Theorem 3.1), (2) Ideal lattice embedding for SVP reduction (Theorem 5.3), (3) Quantum Fano bound for information-theoretic analysis (Theorem 6.3), (4) Multi-prime RSA extension (Section 7.3).",
+        "published": "2025-07-04T11:18:34Z",
+        "updated": "2025-08-05T02:07:27Z",
+        "url": "https://arxiv.org/abs/2508.00840v2"
+      },
+      {
+        "title": "On the frequency of small gaps between the primes",
+        "summary": "In a recent work Friedlander studied the problem of how large consecutive prime gaps should be in order that the sum of the reciprocals should be divergent. Supposing a very deep Hypothesis, a generalization of the Hardy--Littlewood prime $k$-tuple conjecture, he gave an almost precise answer for it. In the present work we give an unconditional answer for a much weaker form of the same problem.",
+        "published": "2025-05-12T14:56:44Z",
+        "updated": "2025-05-12T14:56:44Z",
+        "url": "https://arxiv.org/abs/2505.07630v1"
+      },
+      {
+        "title": "Partition-theoretic model of prime distribution",
+        "summary": "We make an application of ideas from partition theory to a problem in multiplicative number theory. We propose a deterministic model of prime number distribution, from first principles related to properties of integer partitions, that naturally predicts the prime number theorem as well as the twin prime conjecture. The model posits that, for $n\\geq 2$, $$p_{n}\\ =\\ 1\\ +\\ 2\\sum_{j=1}^{n-1}\\left\\lceil \\frac{d(j)}{2}\\right\\rceil\\ +\\ \\varepsilon(n),$$   where $p_k$ is the $k$th prime number, $d(k)$ is the divisor function, and $\\varepsilon(k)$ is an explicit error term that is negligible asymptotically; both the main term and error term represent enumerative functions in our conceptual model. We refine the error term to give numerical estimates of $\u03c0(n)$ similar to those provided by the logarithmic integral, and much more accurate than $\\operatorname{li}(n)$ up to $n=10{,}000$ where the estimates are {\\it almost exact}.   We then perform computational tests of unusual predictions of the model, finding limited evidence of predictable variations in prime gaps.",
+        "published": "2024-12-31T18:11:34Z",
+        "updated": "2025-10-02T14:48:21Z",
+        "url": "https://arxiv.org/abs/2501.00580v3"
+      },
+      {
+        "title": "Conditional Bounds for Prime Gaps with Applications",
+        "summary": "We posit that $d_n^2 < 2p_{n+1}$ holds for all $n\\geq 1$, where $p_n$ represents the $n$th prime and $d_n$ stands for the $n$th prime gap i.e. $d_n := p_{n+1} - p_n$. Then, the presence of a prime between successive perfect squares, as well as the validity of $\u0394_n := \\sqrt{p_{n+1}} - \\sqrt{p_n} < 1$ are derived. Next, $\u03c0(x)$ being the number of primes $p$ up to $x$, we deduce $\u03c0(n^2-n) < \u03c0(n^2) < \u03c0(n^2+n)$ $(n\\geq 2)$. In addition, a proof of $\u03c0((n+1)^k) - \u03c0(n^k) \\geq \u03c0(2^k)$ \\ $(k\\geq 2, n\\geq 1)$ is worked out. The vanishing nature of $\u0394_n$ as $n$ goes to infinity is set, and used afterwards to achieve both $\\displaystyle{\\lim_{n\\rightarrow\\infty}d_n/\\sqrt{p_n} = 0}$ and the twin prime conjecture. Also, question about the estimate $p_n < 2j_n^2 \\ (n\\geq 6)$, where $j_n$ counts the twin prime pairs up to $p_n$, is raised. Finally, we put forward the conjecture that any rational number $r$ $(0\\leq r \\leq 1)$ represents an accumulation point of the sequence $\\left(\\{\\sqrt{p_n}\\}\\right)_{n\\geq 1}$, where $\\{x\\}$ acts for the fractional part of $x$.",
+        "published": "2024-12-16T19:29:48Z",
+        "updated": "2025-08-29T16:50:19Z",
+        "url": "https://arxiv.org/abs/2412.12311v2"
+      },
+      {
+        "title": "Prime Gaps In The Gaussian Integers",
+        "summary": "In this paper we create a definition for prime gaps in the Gaussian integers using a boxcar metric. From this we used numerical methods to derive an asymptotic upper bound for the gaps in this scenario, namely O(log^2|p_{n}|).",
+        "published": "2024-11-11T08:23:11Z",
+        "updated": "2024-11-11T08:23:11Z",
+        "url": "https://arxiv.org/abs/2411.06783v1"
+      },
+      {
+        "title": "On smooth gaps between primes using the Maynard-Tao sieve",
+        "summary": "In 1999, Balog, Br\u00fcdern, and Wooley (1999) showed there are infinitely many prime gaps $p-q$ that are $(\\log p)^{\\frac{3}{4}}$-smooth, and infinitely many consecutive prime gaps that are $(\\log p)^\\frac{7}{8}$-smooth. Advancements made since then by Zhang (2014), Maynard (2014), and Polymath8b (2014) towards resolving the twin prime conjecture have given us the tools to lower the bounds made by Balog, Br\u00fcdern, and Wooley to 47. Moreover, we can show there are infinitely many $m$-tuples of primes whose gaps are all $y_m$-smooth for a calculable prime $y_m$.",
+        "published": "2024-03-20T03:26:09Z",
+        "updated": "2024-10-13T03:39:15Z",
+        "url": "https://arxiv.org/abs/2403.19696v3"
+      },
+      {
+        "title": "The prime-counting Copeland-Erd\u0151s constant",
+        "summary": "Let $(a(n) : n \\in \\mathbb{N})$ denote a sequence of nonnegative integers. Let $0.a(1)a(2)...$ denote the real number obtained by concatenating the digit expansions, in a fixed base, of consecutive entries of $(a(n) : n \\in \\mathbb{N})$. Research on digit expansions of this form has mainly to do with the normality of $0.a(1)a(2)...$ for a given base. Famously, the Copeland-Erd\u0151s constant $0.2357111317...$, for the case whereby $a(n)$ equals the $n^{\\text{th}}$ prime number $p_{n}$, is normal in base 10. However, it seems that the ``inverse'' construction given by concatenating the decimal digits of $(\u03c0(n) : n \\in \\mathbb{N})$, where $\u03c0$ denotes the prime-counting function, has not previously been considered. Exploring the distribution of sequences of digits in this new constant $0.0122...9101011...$ would be comparatively difficult, since the number of times a fixed $m \\in \\mathbb{N}$ appears in $(\u03c0(n) : n \\in \\mathbb{N})$ is equal to the prime gap $g_{m} = p_{m+1} - p_{m}$, with the behaviour of prime gaps notoriously elusive. Using a combinatorial method due to Sz\u00fcsz and Volkmann, we prove that Cram\u00e9r's conjecture on prime gaps implies the normality of $0.a(1)a(2)...$ in a given base $g \\geq 2$, for $a(n) = \u03c0(n)$.",
+        "published": "2023-09-24T01:24:48Z",
+        "updated": "2023-09-24T01:24:48Z",
+        "url": "https://arxiv.org/abs/2309.13520v1"
+      },
+      {
+        "title": "Real exponential sums over primes and prime gaps",
+        "summary": "We prove that given $\u03bb\\in \\mathbb{R}$ such that $0 < \u03bb< 1$, then $\u03c0(x + x^\u03bb) - \u03c0(x) \\sim \\displaystyle \\frac{x^\u03bb}{\\log(x)}$. This solves a long-standing problem concerning the existence of primes in short intervals. In particular, we give a positive answer (for all sufficiently large number) to some old conjectures about prime numbers, such as Legendre's conjecture about the existence of at least two primes between two consecutive squares.",
+        "published": "2023-07-17T14:24:44Z",
+        "updated": "2025-12-27T07:46:37Z",
+        "url": "https://arxiv.org/abs/2307.08725v3"
+      },
+      {
+        "title": "Effective exponential bounds on the prime gaps",
+        "summary": "Over the last 50 years a large number of effective exponential bounds on the first Chebyshev function $\\vartheta(x)$ have been obtained. Specifically we shall be interested in effective exponential bounds of the form \\[ |\\vartheta(x)-x| < a \\;x \\;(\\ln x)^b \\; \\exp\\left(-c\\; \\sqrt{\\ln x}\\right); \\qquad (x \\geq x_0). \\] Herein we shall convert these effective bounds on $\\vartheta(x)$ into effective exponential bounds on the prime gaps $g_n = p_{n+1}-p_n$. Specifically we shall establish a number of effective exponential bounds of the form \\[ {g_n\\over p_n} < { 2a \\;(\\ln p_n)^b \\; \\exp\\left(-c\\; \\sqrt{\\ln p_n}\\right) \\over 1- a \\;(\\ln p_n)^b \\; \\exp\\left(-c\\; \\sqrt{\\ln p_n}\\right)}; \\qquad (x \\geq x_*); \\] and \\[ {g_n\\over p_n} < 3a \\;(\\ln p_n)^b \\; \\exp\\left(-c\\; \\sqrt{\\ln p_n}\\right); \\qquad (x \\geq x_*); \\] for some effective computable $x_*$. It is the explicit presence of the exponential factor, with known coefficients and known range of validity for the bound, that makes these bounds particularly interesting.",
+        "published": "2022-11-11T20:08:26Z",
+        "updated": "2022-11-11T20:08:26Z",
+        "url": "https://arxiv.org/abs/2211.06469v1"
+      },
+      {
+        "title": "Sieve Method and Prime Gaps via Probabilistic Method",
+        "summary": "Most prime gaps results have been proven using tools from analytic or algebraic number theory in the last few centuries. In this paper, we would like to present some probabilistic way of proving many essential results. A major component of the proof is a probabilistic approach to the sieve method. In addition, we discuss their connections with recent work by Zhang and Maynard on small and large gaps in prime numbers.",
+        "published": "2022-10-20T03:00:15Z",
+        "updated": "2022-10-20T03:00:15Z",
+        "url": "https://arxiv.org/abs/2210.10980v1"
+      },
+      {
+        "title": "The sequence of prime gaps is graphic",
+        "summary": "Let us call a simple graph on $n\\geq 2$ vertices a prime gap graph if its vertex degrees are $1$ and the first $n-1$ prime gaps. We show that such a graph exists for every large $n$, and in fact for every $n\\geq 2$ if we assume the Riemann hypothesis. Moreover, an infinite sequence of prime gap graphs can be generated by the so-called degree preserving growth process. This is the first time a naturally occurring infinite sequence of positive integers is identified as graphic. That is, we show the existence of an interesting, and so far unique, infinite combinatorial object.",
+        "published": "2022-05-01T23:29:20Z",
+        "updated": "2023-01-10T12:13:17Z",
+        "url": "https://arxiv.org/abs/2205.00580v2"
+      },
+      {
+        "title": "Prime Sums",
+        "summary": "We study the properties of certain graphs involving the sums of primes. Their structure largely turns out to relate to the distribution of prime gaps and can be roughly seen in Cram\u00e9r's model as well. We also discuss generalizations to the Gaussian integers.",
+        "published": "2021-11-01T18:56:39Z",
+        "updated": "2021-11-01T18:56:39Z",
+        "url": "https://arxiv.org/abs/2111.02795v1"
+      },
+      {
+        "title": "Combined Sieve Algorithm for Prime Gaps",
+        "summary": "A new Combined Sieve algorithm is presented with cost proportional to the number of enumerated factors over a series of intervals. This algorithm achieves a significant speedup, over a traditional sieve, when handling many ([10^4, 10^7]) intervals concurrently. The speedup comes from a space-time tradeoff and a novel solution to a modular equation. In real world tests, this new algorithm regularly runs 10,000x faster. This faster sieve paired with higher sieving limits eliminates more composites and accelerates the search for large prime gaps by 30-70%. During the development and testing of this new algorithm, two top-10 record merit prime gaps were discovered.",
+        "published": "2020-11-30T10:25:20Z",
+        "updated": "2020-11-30T10:25:20Z",
+        "url": "https://arxiv.org/abs/2012.03771v1"
+      },
+      {
+        "title": "Exponential prime sequences",
+        "summary": "Infinite exponential sequences of distinct prime numbers of the form $\\lfloor a c^{n^d}+b\\rfloor$, $n\\geq 0$, are proved to exist for well chosen real constants $a>0$, $b$, $c>1$, $d>1$, assuming Cramer's conjecture on prime gaps. There is an infinity of such prime sequences. Sequences having the least possible growth rate are of particular interest. This work's focus is on prime sequences with $a=1$, $b \\in \\{0,1\\}$, that have the smallest possible constant $c$ given $d>1$, and sequences with the smallest possible $d$, given $c=2$. In particular, we prove the existence of the four infinite exponential prime sequences $u_0(n)=\\lfloor c_0^{n\\sqrt{n}}\\rfloor$, $n\\geq 1$, with $c_0=2.0073340803...$, $u_1(n)=1+\\lfloor c_1^{n\\sqrt{n}}\\rfloor$, $n\\geq 0$, with $c_1=2.2679962677...$, $v_0(n)=\\lfloor 2^{n^{d_0}}\\rfloor$, $n\\geq 1$, with $d_0=1.5039285240...$, and $v_1(n)=1+\\lfloor 2^{n^{d_1}}\\rfloor$, $n\\geq 0$, with $d_1=1.7355149500...$.",
+        "published": "2020-11-30T09:46:40Z",
+        "updated": "2020-12-06T08:53:02Z",
+        "url": "https://arxiv.org/abs/2011.14653v2"
+      },
+      {
+        "title": "Prime Running Functions",
+        "summary": "We study arithmetic functions $\u03a6(x;d,a)$, called prime running functions, whose value at $x$ sums the gaps between primes $p_k \\equiv a\\ (\\text{mod}\\ d)$ below $x$ and the next following prime $p_{k+1}$, up to $x$. (The following prime $p_{k+1}$ may be in any residue class $(\\text{mod}\\ d)$.) We empirically observe systematic biases of order $x / \\log x$ in $\u03a6(x;d,a) - \u03a6(x;d,b)$ for different $a,b$. We formulate modified Cram\u00e9r models for primes and show that the corresponding sum of prime gap statistics exhibits systematic biases of this order of magnitude. The predictions of such modified Cram\u00e9r models are compared with the experimental data.",
+        "published": "2020-06-23T21:57:02Z",
+        "updated": "2020-06-23T21:57:02Z",
+        "url": "https://arxiv.org/abs/2006.13355v1"
+      },
+      {
+        "title": "On H\u00f6lder maps and prime gaps",
+        "summary": "Let $p_n$ denote the $n$th prime, and consider the function $1/n \\mapsto 1/p_n$ which maps the reciprocals of the positive integers bijectively to the reciprocals of the primes. We show that H\u00f6lder continuity of this function is equivalent to a parameterised family of Cram\u00e9r type estimates on the gaps between successive primes. Here the parameterisation comes from the H\u00f6lder exponent. In particular, we show that Cram\u00e9r's conjecture is equivalent to the map $1/n \\mapsto 1/p_n$ being Lipschitz. On the other hand, we show that the inverse map $1/p_n \\mapsto 1/n$ is H\u00f6lder of all orders but not Lipshitz and this is independent of Cram\u00e9r's conjecture.",
+        "published": "2020-06-17T15:52:29Z",
+        "updated": "2021-04-21T12:21:14Z",
+        "url": "https://arxiv.org/abs/2006.09947v2"
+      },
+      {
+        "title": "Distance between natural numbers based on their prime signature",
+        "summary": "We define a new metric between natural numbers induced by the $\\ell_\\infty$ norm of their unique prime signatures. In this space, we look at the natural analog of the number line and study the arithmetic function $L_\\infty(N)$, which tabulates the cumulative sum of distances between consecutive natural numbers up to $N$ in this new metric.   Our main result is to identify the positive and finite limit of the sequence $L_\\infty(N)/N$ as the expectation of a certain random variable. The main technical contribution is to show with elementary probability that for $K=1,2$ or $3$ and $\u03c9_0,\\ldots,\u03c9_K\\geq 2$ the following asymptotic density holds $$ \\lim_{n\\to\\infty}\\frac{\\big|\\big\\{M\\leq n:\\; \\|M-j\\|_\\infty <\u03c9_j \\text{ for } j=0,\\ldots,K \\big\\}\\big|}{n} = \\prod_{p:\\, \\mathrm{prime}}\\! \\bigg( 1- \\sum_{j=0}^K\\frac{1}{p^{\u03c9_j}} \\bigg)~. $$ This is a generalization of the formula for $k$-free numbers, i.e. when $\u03c9_0=\\ldots=\u03c9_K=k$. The random variable is derived from the joint distribution when $K=1$.   As an application, we obtain a modified version of the prime number theorem. Our computations up to $N=10^{12}$ have also revealed that prime gaps show a considerably richer structure than on the traditional number line. Moreover, we raise additional open problems, which could be of independent interest.",
+        "published": "2020-05-05T09:45:11Z",
+        "updated": "2021-10-31T22:20:38Z",
+        "url": "https://arxiv.org/abs/2005.02027v3"
+      }
+    ],
+    "cat:math.NT AND all:\"L-function zeros\"": [
+      {
+        "title": "On Hypothesis H of Rudnick and Sarnak",
+        "summary": "We prove Hypothesis H in full generality for ${\\rm GL}_n$ over any number field. This result is a consequence of our stronger effective bound on Euler products involving Rankin--Selberg coefficients at prime ideal powers. The proof rests on a new analytic method, which employs a power sieve over number fields and an iterative argument to bypass the functoriality barrier that had restricted prior results to $n\\leq 4$. As applications, we unconditionally establish the GUE statistics for automorphic $L$-function zeros, provide the first effective polynomial bound for the strong multiplicity one problem for coefficients, and resolve the Selberg orthogonality conjecture with stronger error terms.",
+        "published": "2025-07-28T09:20:50Z",
+        "updated": "2025-07-28T09:20:50Z",
+        "url": "https://arxiv.org/abs/2507.20653v1"
+      },
+      {
+        "title": "Knots, primes and class field theory",
+        "summary": "In this paper, we present a geometric generalization of class field theory, demonstrating how adelic constructions, central to the spectral realization of zeros of L-functions and the geometric framework for explicit formulas in number theory, naturally extend the classical theory. This generalization transitions from the idele class group, which acts as the adelic analog of Galois groups, to a geometric framework associated with schemes and the ring of integers of global fields. This perspective provides a conceptual explanation for the role of the adele class space in the spectral realization of L-function zeros and identifies the idele class group as a generic point in this context. The sector $X_{\\mathbb{Q}}$ of the adele class space corresponding to the Riemann zeta function gives the class field counterpart of the scaling topos. The main result is the construction of a functor mapping finite abelian extensions of $\\mathbb{Q}$ to finite covers of $X_{\\mathbb{Q}}$, with the monodromy of periodic orbits of length $\\log p$ under the scaling action corresponding to the Galois action of the Frobenius at the prime p.",
+        "published": "2025-01-11T14:40:30Z",
+        "updated": "2025-01-11T14:40:30Z",
+        "url": "https://arxiv.org/abs/2501.06560v1"
+      },
+      {
+        "title": "Beyond the excised ensemble: modelling elliptic curve L-functions with random matrices",
+        "summary": "The `excised ensemble', a random matrix model for the zeros of quadratic twist families of elliptic curve $L$-functions, was introduced by Due\u00f1ez, Huynh, Keating, Miller and Snaith. The excised model is motivated by a formula for central values of these $L$-functions in a paper by Kohnen and Zagier. This formula indicates that for a finite set of $L$-functions from a family of quadratic twists, the central values are all either zero or are greater than some positive cutoff. The excised model imposes this same condition on the central values of characteristic polynomials of matrices from $SO(2N)$. Strangely, the cutoff on the characteristic polynomials that results in a convincing model for the $L$-function zeros is significantly smaller than that which we would obtain by naively transferring Kohnen and Zagier's cutoff to the $SO(2N)$ ensemble. In this current paper we investigate a modification to the excised model. It lacks the simplicity of the original excised ensemble, but it serves to explain the reason for the unexpectedly low cutoff in the original excised model. Additionally, the distribution of central $L$-values is `choppier' than the distribution of characteristic polynomials, in the sense that it is a superposition of a series of peaks: the characteristic polynomial distribution is a smooth approximation to this. The excised model didn't attempt to incorporate these successive peaks, only the initial cutoff. Here we experiment with including some of the structure of the $L$-value distribution. The conclusion is that a critical feature of a good model is to associate the correct mass to the first peak of the $L$-value distribution.",
+        "published": "2015-11-18T14:35:35Z",
+        "updated": "2015-11-18T14:35:35Z",
+        "url": "https://arxiv.org/abs/1511.05805v1"
+      },
+      {
+        "title": "Statistics on Riemann zeros",
+        "summary": "We numerically study the statistical properties of differences of zeros of Riemann zeta function and L-functions predicted by the theory of the e\u00f1e product. In particular, this provides a simple algorithm that computes any non-real Riemann zeros from very large ones (\"self-replicating property of Riemann zeros\"). Also the algorithm computes the full sequence of non-real zeros of Riemann zeta function from the sequence of non-real zeros of any Dirichlet L-function (\"zeros of L-functions know about Riemann zeros\"). We also check that the first error to the convergence to the classical GUE statistic near 0 is a Fresnel distribution.",
+        "published": "2011-12-01T22:26:20Z",
+        "updated": "2011-12-01T22:26:20Z",
+        "url": "https://arxiv.org/abs/1112.0346v1"
+      }
+    ]
+  },
+  "errors": {}
+}

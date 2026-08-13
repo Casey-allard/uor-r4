@@ -1,0 +1,117 @@
+{
+  "timestamp_utc": "2026-02-24T06:10:52.552807+00:00",
+  "source": "arXiv API",
+  "queries": {
+    "all:\"riemann zeta\"": [
+      {
+        "title": "Five-point Type IIB String Amplitudes at One Loop",
+        "summary": "Massless type IIB superstring amplitudes are organized according to the number of external states and their ${\\mathrm U}(1)$ charge under the R-symmetry of type IIB supergravity. In this work, we analyze the low-energy expansion of one-loop five-point amplitudes in all charge sectors, focusing on the representative processes involving five gravitons and four gravitons with one dilaton. We compute the one-loop contributions to the moduli-dependent couplings in the type IIB effective action up to the $D^{12}R^5$ and $D^{14}\u03c6R^4$ interactions. The results are consistent with $S$-duality constraints in every charge sector and exhibit rich arithmetic structure, including single-valued multiple zeta values, affine linear combinations of logarithmic derivatives of the Riemann zeta function at odd integers, and a new constant of currently unknown nature.",
+        "published": "2026-02-23T15:46:39Z",
+        "updated": "2026-02-23T15:46:39Z",
+        "url": "https://arxiv.org/abs/2602.19979v1"
+      },
+      {
+        "title": "Highest-weight truncation, graded EFT structure, and renormalization of black hole Love numbers",
+        "summary": "The static tidal Love numbers of four-dimensional black holes vanish identically, unlike their nontrivial dynamical response at finite frequency. Recent work has provided three complementary descriptions of this phenomenon: an emergent $\\mathrm{SL}(2,\\mathbb{R})$ organization of static near-zone perturbations, a graded logarithmic and multi-zeta structure in Shell Effective Field Theory (Shell EFT), and an on-shell matching framework based on gravitational Raman scattering with renormalization group (RG) running. We show that these features arise from a common near-zone truncation mechanism. For a massless scalar field, horizon regularity selects a unique static solution forming a highest-weight-type representation, truncating the hypergeometric solution to a finite polynomial and eliminating the independent decaying branch at large radius. This excludes a static Wilson coefficient in the effective theory. We demonstrate that the same truncation operates in the static Regge-Wheeler and Zerilli equations for four-dimensional Schwarzschild black holes. Analytic continuation of the horizon-regular solution to small frequency via the Coulomb-hypergeometric or Mano-Suzuki-Takasugi formalisms preserves this truncation as an anchoring condition for the renormalized angular momentum parameter. The resulting low-frequency expansion is controlled by Gamma and hypergeometric functions, generating a graded algebra of logarithms and odd Riemann zeta values. Within this structure no invariant of negative weight exists in the static sector, so the vanishing of the static Love number follows as a structural consequence. This explains the ``zero-sum'' rule of Shell EFT and why the self-induced RG flow in gravitational Raman scattering cannot generate a static invariant.",
+        "published": "2026-02-19T13:02:39Z",
+        "updated": "2026-02-19T13:02:39Z",
+        "url": "https://arxiv.org/abs/2602.17334v1"
+      },
+      {
+        "title": "Complex Moments, Gamma and Riemann Zeta Functions unified by the Parabolic Mellin Transform",
+        "summary": "We present a unified integral framework based on the Fourier-Laplace transform evaluated along a vertical line in the complex plane. By identifying the moment-generating function (MGF) of a random variable with the weights of these integrals, we first establish a general expression for complex fractional moments valid for any random variable with a MGF. Applying this formula to the Gaussian distribution, we recover a global integral representation for the reciprocal Gamma function that unifies it with its reflection. We formalize the underlying operator as the Parabolic Mellin Transform, a holomorphic alternative to the classical Mellin transform that avoids strips of convergence by mapping the vertical line to a parabolic contour. This general framework leads to new meromorphic representations for the Hurwitz and Riemann zeta functions that are valid throughout the critical strip, as well as reformulations of the Riemann hypothesis and the Lindelof hypothesis.",
+        "published": "2026-02-19T02:09:32Z",
+        "updated": "2026-02-19T02:09:32Z",
+        "url": "https://arxiv.org/abs/2602.17007v1"
+      },
+      {
+        "title": "Minimal zero-free regions for results on primes between consecutive perfect $k$th powers",
+        "summary": "We compute minimal zero-free regions for the Riemann zeta-function of the Littlewood form which ensure there is always a prime between consecutive perfect $k$th powers. Our computations cover powers $k\\geq 70$ and quantify how far we are away from proving certain milestones toward an infamous open problem (Legendre's conjecture).",
+        "published": "2026-02-15T23:15:04Z",
+        "updated": "2026-02-15T23:15:04Z",
+        "url": "https://arxiv.org/abs/2602.14340v1"
+      },
+      {
+        "title": "Mean values and upper bounds for the Hurwitz and Barnes multiple zeta functions",
+        "summary": "Due to their deep connection with the Riemann zeta function, the asymptotic behavior of mean values of multiple zeta functions has attracted considerable attention. In this paper, we establish asymptotic formulas and upper bounds for the mean square values of Hurwitz-type and Barnes-type multiple zeta functions. In particular, we focus on the Hurwitz-type case, since Hurwitz multiple zeta functions can be expressed as linear combinations of the classical Hurwitz zeta function, which allows us to apply known results on the mean values and asymptotic behavior of the latter almost directly. Moreover, it can be shown that Hurwitz-type and Barnes-type multiple zeta functions have the same order under certain conditions. This fact enables us to investigate the mean values and growth of Barnes multiple zeta functions, which are otherwise difficult to evaluate, by using the results for Hurwitz multiple zeta functions.",
+        "published": "2026-02-06T01:53:38Z",
+        "updated": "2026-02-06T01:53:38Z",
+        "url": "https://arxiv.org/abs/2602.06304v1"
+      },
+      {
+        "title": "Closed-Form Evaluation of Arctanh Power Sums via Infinite Products",
+        "summary": "We establish closed-form expressions for the infinite series sum from n=2 to infinity of arctanh(n^-k) for all integers k >= 2 by connecting these sums to infinite product formulas involving the gamma function. Our approach uses logarithmic manipulations, the Fubini-Tonelli theorem, and Frullani's integral theorem. As applications, we derive a structural identity relating the Riemann zeta function zeta(k) to these sums, establish a new series representation for the Euler-Mascheroni constant gamma, and show that this representation admits an exponentially convergent reformulation via zeta values. We further prove that h(k) = sum from n=2 to infinity of arctanh(n^-k) is strictly decreasing and strictly convex in k, and we establish explicit two-sided bounds and asymptotic expansions. The decimal expansions of the closed-form values and several auxiliary sequences arising from these identities are cataloged in the OEIS.",
+        "published": "2026-02-05T22:47:53Z",
+        "updated": "2026-02-16T03:28:53Z",
+        "url": "https://arxiv.org/abs/2602.06244v3"
+      },
+      {
+        "title": "Explicit conditional bounds for $\u03b6(s)$ at the edge of the critical strip",
+        "summary": "In this paper, we obtain explicit bounds for the real part of the logarithmic derivative of the Riemann zeta-function on the line $\\re s=1$, assuming the Riemann hypothesis. The proof combines the Guinand--Weil explicit formula with extremal bandlimited majorants and minorants for the Poisson kernel. As an application, we revisit the classical estimates of Littlewood for the modulus of the Riemann zeta-function and of its reciprocal on the line $\\re{s}=1$, and derive a slight refinement of the bounds of Lamzouri, Li, and Soundararajan. In addition, we establish an explicit bound for the modulus of the logarithmic derivative of the Riemann zeta-function on the line $\\re{s}=1$ under the Riemann hypothesis, improving the lower-order term in a result of Chirre, Val\u00e5s, and Simoni\u010d.",
+        "published": "2026-02-05T21:20:20Z",
+        "updated": "2026-02-05T21:20:20Z",
+        "url": "https://arxiv.org/abs/2602.06199v1"
+      },
+      {
+        "title": "A new improved explicit estimate for $\u03b6\\left( 1/2+it\\right)$",
+        "summary": "In this paper, we present an improved explicit subconvexity result for the Riemann zeta function $\u03b6\\left( s\\right)$ along the critical line $s=1/2+it$, given by Hiary, Patel and Yang in 2024. This new bound is derived by combining a refined, explicit version of the van der Corput method together with computational calculations.",
+        "published": "2026-02-05T12:50:40Z",
+        "updated": "2026-02-05T12:50:40Z",
+        "url": "https://arxiv.org/abs/2602.05614v1"
+      },
+      {
+        "title": "The Riemann Hypothesis: Past, Present and a Letter Through Time",
+        "summary": "This paper, commissioned as a survey of the Riemann Hypothesis, provides a comprehensive overview of 165 years of mathematical approaches to this fundamental problem, while introducing a new perspective that emerged during its preparation. The paper begins with a detailed description of what we know about the Riemann zeta function and its zeros, followed by an extensive survey of mathematical theories developed in pursuit of RH -- from classical analytic approaches to modern geometric and physical methods. We also discuss several equivalent formulations of the hypothesis. Within this survey framework, we present an original contribution in the form of a \"Letter to Riemann,\" using only mathematics available in his time. This letter reveals a method inspired by Riemann's own approach to the conformal mapping theorem: by extremizing a quadratic form (restriction of Weil's quadratic form in modern language), we obtain remarkable approximations to the zeros of zeta. Using only primes less than 13, this optimization procedure yields approximations to the first 50 zeros with accuracies ranging from $2.6 \\times 10^{-55}$ to $10^{-3}$. Moreover we prove a general result that these approximating values lie exactly on the critical line. Following the letter, we explain the underlying mathematics in modern terms, including the description of a deep connection of the Weil quadratic form with the world of information theory. The final sections develop a geometric perspective using trace formulas, outlining a potential proof strategy based on establishing convergence of zeros from finite to infinite Euler products. While completing the commissioned survey, these new results suggest a promising direction for future research on Riemann's conjecture.",
+        "published": "2026-02-03T21:11:58Z",
+        "updated": "2026-02-03T21:11:58Z",
+        "url": "https://arxiv.org/abs/2602.04022v1"
+      },
+      {
+        "title": "In Search of Approximate Polynomial Dependencies Among the Derivatives of the Alternating Zeta Function",
+        "summary": "It is well-known that the Riemann zeta function does not satisfy any exact polynomial differential equation. Here we present numerical evidence for the existence of approximate polynomial dependencies between the values of the alternating zeta function and its initial derivatives.   A number of conjectures is stated.",
+        "published": "2026-02-03T11:36:44Z",
+        "updated": "2026-02-03T11:36:44Z",
+        "url": "https://arxiv.org/abs/2602.03408v1"
+      },
+      {
+        "title": "Some series representing the zeta function for $\\Re s>1$",
+        "summary": "We represent the Riemann zeta function in the half-plane $\\Re s >1$ via series whose terms admit geometrically decreasing bounds. Due to an underlying recurrence relation, which is used to compute coefficients entering into the terms, the cost is probably at least quadratic in the number of terms. And the number of terms needed to reach a given fixed-point precision grows linearly with the imaginary part, so, presumably, the usefulness is limited to small imaginary parts (up to the hundreds perhaps). The method is a development of tools introduced by the author for the evaluation of harmonic series with restricted digits in a given radix.",
+        "published": "2026-01-30T16:42:48Z",
+        "updated": "2026-02-07T10:13:29Z",
+        "url": "https://arxiv.org/abs/2601.23158v2"
+      },
+      {
+        "title": "On Dirichlet Series Involving $\u03b6(s)$ and Extensions of the Euler-Mascheroni Constant",
+        "summary": "In this paper, we introduce a class of Dirichlet series defined in terms of the Riemann zeta-function, motivated by the study of their special values, and establish integral representations for these series. We also define an extension of the Euler--Mascheroni constant and express certain special values explicitly in terms of the Bendersky constants. These results provide a unified framework for evaluating Dirichlet series involving the Riemann zeta-function at integer arguments, together with the associated number-theoretic constants.",
+        "published": "2026-01-27T10:08:31Z",
+        "updated": "2026-02-16T08:17:29Z",
+        "url": "https://arxiv.org/abs/2601.19429v2"
+      },
+      {
+        "title": "Mixed integral moments of the Hecke $L$-functions and Riemann zeta function",
+        "summary": "In this paper, let $f$ be a Hecke cusp form for $SL(2,\\mathbb{Z})$. We establish an asymptotic formula for the mixed moment of $\u03b6^{2}(s)$ and $L(s,f)$ on the critical line, valid for both holomorphic and Maass forms.",
+        "published": "2026-01-27T04:21:35Z",
+        "updated": "2026-02-07T03:50:19Z",
+        "url": "https://arxiv.org/abs/2601.19177v2"
+      },
+      {
+        "title": "Generalisations of the Landau--Gonek Theorem and applications to mean values of zeta",
+        "summary": "The Landau--Gonek Theorem evaluates $X^\u03c1$ summed over the non-trivial zeros of the Riemann zeta function. Their result shows great sensitivity to the arithmetic nature of $X$. We prove a related result concerning the sum of $\u03c7(\u03c1) X^\u03c1$ over the zeros of zeta, where $\u03c7(s)$ is the term arising in the functional equation for the zeta function. Again, this result depends deeply on whether $X$ is an integer or not. We show the result splits into three cases, depending on whether $X$ is smaller than $T$, about the same size as $T$, or bigger than $T$. The reason this result is useful is that it easily permits the calculation of discrete moments of the Riemann zeta function via the approximate functional equation. As an application of this result, we provide an alternative proof of Shanks' conjecture.",
+        "published": "2026-01-25T22:48:55Z",
+        "updated": "2026-01-25T22:48:55Z",
+        "url": "https://arxiv.org/abs/2601.18025v1"
+      },
+      {
+        "title": "The Mellin's transforms of $\\dfrac{1}{\\operatorname{arctanh} x}$ and $\\dfrac{1}{\\sqrt{1-x^2}\\,\\operatorname{arctanh} x}$",
+        "summary": "We investigate the Mellin transforms of \\(1/\\operatorname{arctanh} x\\) and \\(1/(\\sqrt{1-x^{2}}\\,\\operatorname{arctanh} x)\\), viewed as compactly supported functions on \\((0,1)\\). These transforms are closely connected with conjectures on the arithmetic nature of the ratios \\(\u03b6(2n+1)/\u03c0^{2n+1}\\) and \\(\u03b2(2n)/\u03c0^{2n}\\). While their values at odd integers were previously studied, the evaluation at even integers leads to classes of improper integrals that cannot be handled by parity arguments. Using contour integration techniques, we derive explicit closed-form expressions involving derivatives of the Riemann zeta and Dirichlet beta functions, thereby extending earlier results and providing new analytic tools for the study of related hyperbolic integrals.",
+        "published": "2026-01-23T11:54:22Z",
+        "updated": "2026-01-23T11:54:22Z",
+        "url": "https://arxiv.org/abs/2601.17092v1"
+      }
+    ],
+    "all:\"explicit formula primes\"": [],
+    "all:\"chebyshev psi\"": [],
+    "all:\"zero density zeta\"": []
+  },
+  "errors": {}
+}

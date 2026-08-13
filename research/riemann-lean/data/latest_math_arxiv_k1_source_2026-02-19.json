@@ -1,0 +1,190 @@
+{
+  "timestamp_utc": "2026-02-19T07:48:33.569424+00:00",
+  "source": "arXiv API",
+  "queries": {
+    "cat:math.NT AND all:\"explicit formula\" AND all:\"zeta zeros\"": [
+      {
+        "title": "A Rigorous Error Bound for the TG Kernel in Prime Counting",
+        "summary": "We establish rigorous error bounds for prime counting using a truncated Gaussian (TG) kernel in the explicit formula framework. Our main theorem proves that the approximation error remains globally below 1/2 for all sufficiently large arguments, guaranteeing exact computation of \u03c0(x) through simple rounding, without relying on unproven hypotheses.   The TG kernel construction employs Gaussian-like test functions with compact support, engineered with vanishing moments to eliminate main terms. For x with 10^8 decimal digits, we demonstrate that only ~1200 nontrivial zeta zeros suffice to achieve the error bound, enabling computation in seconds on modern hardware - a dramatic improvement over classical methods.   Key contributions include: (1) Explicit tail truncation bounds using Taylor remainder analysis, showing exponential decay; (2) Zero-sum truncation error bounds via unconditional density estimates; (3) Rigorous treatment of trivial zero contributions. All constants are made explicit, ensuring full verifiability.   The method bridges analytic number theory and practical computation, with potential applications to record-breaking prime counting computations. We discuss algorithmic implications including FFT-based arithmetic for ~330 million bit numbers. The framework's flexibility suggests connections to deeper structures in prime distribution, particularly regarding optimized kernel designs and the interplay between smoothing parameters \u03b1 and truncation heights.   This work exemplifies how classical analytic techniques, when carefully implemented with modern computational perspectives, yield practical algorithms for problems previously considered purely theoretical. The rigorous error analysis ensures reliability even at astronomical scales, opening new avenues for computational number theory research.",
+        "published": "2025-06-27T20:54:06Z",
+        "updated": "2025-06-27T20:54:06Z",
+        "url": "https://arxiv.org/abs/2506.22634v1"
+      },
+      {
+        "title": "Smooth integers and the Dickman $\u03c1$ function",
+        "summary": "We establish an asymptotic formula for $\u03a8(x,y)$ whose shape is $x \u03c1(\\log x/\\log y)$ times correction factors. These factors take into account the contributions of zeta zeros and prime powers and the formula can be regarded as an (approximate) explicit formula for $\u03a8(x,y)$. With this formula at hand we prove oscillation results for $\u03a8(x,y)$, which resolve a question of Hildebrand on the range of validity of $\u03a8(x,y) \\asymp x\u03c1(\\log x/\\log y)$. We also address a question of Pomerance on the range of validity of $\u03a8(x,y) \\ge x \u03c1(\\log x/\\log y)$.   Along the way we improve classical estimates for $\u03a8(x,y)$ and, on the Riemann Hypothesis, uncover an unexpected phase transition of $\u03a8(x,y)$ at $y=(\\log x)^{3/2+o(1)}$.",
+        "published": "2022-11-16T15:28:07Z",
+        "updated": "2023-12-19T14:32:45Z",
+        "url": "https://arxiv.org/abs/2211.08973v6"
+      },
+      {
+        "title": "A Prime Power Equation",
+        "summary": "A real valued function, $G$, is provided whose Fourier transform, $\\hat G$, is an entire function that satisfies, $E(s)\u03b6(s) = \\hat G(\\frac{s -\\frac{1}{2}}{i})$. Then $\\hat G(\u03b3) = 0$ for all nonreal zeros, $\u03c1= \\frac{1}{2} + i \u03b3$, of $\u03b6(s)$. Combined with Guinand's explicit formula we obtain a prime power equation free of zeta zeros. Using infinitely many translates of G, an infinite system of equations, indexed on the natural numbers, is obtained. The solution vector of this system is the vector of values of von Mangoldt's function, $\u039b(n), n = 1, 2 \\cdots$. The entries of the matrix are special values of the fourth power of the Jacobi theta function, $\u03b8_2(\u03c4)$.",
+        "published": "2022-09-21T17:36:47Z",
+        "updated": "2022-09-21T17:36:47Z",
+        "url": "https://arxiv.org/abs/2209.10522v1"
+      },
+      {
+        "title": "Application of an accurate remainder term in the calculation of Residue Class Distributions",
+        "summary": "This paper uses concepts introduced by Fiorilli and Martin to develop a more accurate remainder term in calculations of the distribution of primes in residue classes. Using it in Rubinstein and Sarnak's method estimates the limiting logarithmic frequency of pi(x)>Li(x) as 0.00000026300 with only 5 zeta zeros used explicitly, and a reliable value between 0.000000262996732 and 0.000000262996733 is obtained with fewer than 100 zeros. Accurate results for \"prime number races\" can usually be obtained with explicit use of only the first zero of each L-function involved, thus bringing out their dependence on those zeros. For extreme deviations, the method of steepest descent can be applied, and the remainder approximated by an explicit formula together with a rapidly convergent series. This gives, for example, 8.649*10^(-12477) for the logarithmic frequency of pi(x)>Li(x)+5*Li(sqrt(x)). The Monach - Lamzouri model of the extreme distribution is developed to give close agreement with these results. The remainder can also be calculated explicitly as an asymptotic series. This allows good modelling of non-extreme races and the calculation of distributions by direct convolution. The three different methods agree to within 0.001% where they overlap in application. The distribution calculated from values of pi(x) for x<10^20 shows similar behaviour to the limiting distribution, but is somewhat further from normal.",
+        "published": "2013-01-08T07:53:26Z",
+        "updated": "2013-01-08T07:53:26Z",
+        "url": "https://arxiv.org/abs/1301.1434v1"
+      },
+      {
+        "title": "Logarithmic Fourier integrals for the Riemann Zeta Function",
+        "summary": "We use symmetric Poisson-Schwarz formulas for analytic functions $f$ in the half-plane ${Re}(s)>\\frac12$ with $\\bar{f(\\bar{s})}=f(s)$ in order to derive factorisation theorems for the Riemann zeta function. We prove a variant of the Balazard-Saias-Yor theorem and obtain explicit formulas for functions which are important for the distribution of prime numbers. In contrast to Riemann's classical explicit formula, these representations use integrals along the critical line ${Re}(s)=\\frac12$ and Blaschke zeta zeroes.",
+        "published": "2008-04-30T13:57:09Z",
+        "updated": "2009-09-28T11:36:42Z",
+        "url": "https://arxiv.org/abs/0804.4829v2"
+      }
+    ],
+    "cat:math.NT AND all:\"prime number theorem\" AND all:\"oscillation\"": [
+      {
+        "title": "On the connection between zero-free regions and the error term in the Prime Number Theorem",
+        "summary": "We provide for a wide class of zero-free regions an upper bound for the error term in the Prime Number Theorem, refining works of Pintz (1980), Johnston (2024), and R\u00e9v\u00e9sz (2024). Our method does not only apply to the Riemann zeta function, but to general Beurling zeta functions. Next we construct Beurling zeta functions having infinitely many zeros on a prescribed contour, and none to the right, for a wide class of such contours. We also deduce an oscillation result for the corresponding error term in the Prime Number Theorem, showing that our aforementioned refinement is close to being sharp.",
+        "published": "2025-07-18T09:46:12Z",
+        "updated": "2025-07-18T09:46:12Z",
+        "url": "https://arxiv.org/abs/2507.13780v1"
+      },
+      {
+        "title": "Oscillation of the remainder term in the prime number theorem of Beurling, \"caused by a given zeta-zero\"",
+        "summary": "Continuing previous study of the Beurling zeta function, here we prove two results, generalizing long existing knowledge regarding the classical case of the Riemann zeta function and some of its generalizations.   First, we address the question of Littlewood, who asked for explicit oscillation results provided a zeta-zero is known. We prove that given a zero $\u03c1_0$ of the Beurling zeta function $\u03b6_P$ for a given number system generated by the primes $P$, the corresponding error term $\u0394_P(x):=\u03c8_{P}(x)-x$, where $\u03c8_{P}(x)$ is the von Mangoldt summatory function shows oscillation in any large enough interval, as large as $(\u03c0/2-\\varepsilon) x^{\\Re \u03c1_0}/|\u03c1_0|$.   The somewhat mysterious appearance of the constant $\u03c0/2$ is explained in the study. Finally, we prove as the next main result of the paper the following: given $\\varepsilon>0$, there exists a Beurling number system with primes $P$, such that $|\u0394_P(x)| \\le (\u03c0/2+\\varepsilon)x^{\\Re \u03c1_0}/|\u03c1_0|$.   In this second part a nontrivial construction of a low norm sine polynomial is coupled by the application of the wonderful recent prime random approximation result of Broucke and Vindas, who sharpened the breakthrough probabilistic construction due to Diamond, Montgomery and Vorhauer.",
+        "published": "2022-02-03T20:36:24Z",
+        "updated": "2022-09-15T13:16:58Z",
+        "url": "https://arxiv.org/abs/2202.01837v3"
+      },
+      {
+        "title": "Oscillations of the error term in the prime number theorem",
+        "summary": "Let $\u03c3+i\u03b3$ be a zero of the Riemann zeta function to the right of the line $\\frac{1}{2}+it$. We show that this zero causes large oscillations of the error term of the prime number theorem. Our result is close to optimal both in terms of the magnitude and in the localization of large values for the error term.",
+        "published": "2019-12-02T15:21:44Z",
+        "updated": "2019-12-02T15:21:44Z",
+        "url": "https://arxiv.org/abs/1912.00853v1"
+      },
+      {
+        "title": "On a Class of Sums with Unexpectedly High Cancellation, and its Applications",
+        "summary": "Following attempts at an analytic proof of the Pentagonal Number Theorem, we report on the discovery of a general principle leading to an unexpected cancellation of oscillating sums. After stating the motivation, and our theorem, we apply it to prove several results on the Prouhet-Tarry-Escott Problem, integer partitions, and the distribution of prime numbers. Regarding the Prouhet-Tarry-Escott problem, we show that \\begin{align*} \\sum_{|\\ell|\\leq x}(4x^2-4\\ell^2)^{2r}-\\sum_{|\\ell|<x}(4x^2-(2\\ell+1)^2)^{2r}=\\text{polynomial w.r.t. } x \\text{ with degree }2r-1. \\end{align*} This can perhaps be proved using properties of Bernoulli polynomials, but the claim fell out of our method in a more natural and motivated way. Using this result, we solve an approximate version of the PTE Problem, and in doing so our work in the approximate case exceeds the bounds one can prove using a pigeonhole argument, which seems remarkable. Also, we prove that $$ \\sum_{\\ell^2 < n} (-1)^\\ell p(n-\\ell^2)\\ \\sim\\ (-1)^n 2^{-3/4} n^{-1/4} \\sqrt{p(n)}, $$ where $p(n)$ is the usual partition function. We get the following \"Weak pentagonal number theorem\", in which we can replace the partition function $p(n)$ with Chebyshev $\u03a8$ function: $$ \\sum_{0 < \\ell < \\sqrt{xT}/2} \u03a8([e^{\\sqrt{x - \\frac{(2\\ell)^2}{T}}},\\ e^{\\sqrt{x - \\frac{(2\\ell-1)^2}{T}}}])\\ =\u03a8(e^{\\sqrt{x}})\\left(\\frac{1}{2} + O\\left (e^{-0.196\\sqrt{x}}\\right)\\right), $$ where $T=e^{0.786\\sqrt{x}}$, where $\u03a8([a,b]) := \\sum_{n\\in [a,b]} \u039b(n)$ and $\u03a8(x) = \u03a8([1,x])$, where $\u039b$ is the von Mangoldt function. Note that this last equation (sum over $\\ell$) is stronger than one would get using a strong form of the Prime Number Theorem and also a naive use of the Riemann Hypothesis in each interval, since the widths of the intervals are smaller than $e^{\\frac{1}{2} \\sqrt{x}}$, making the RH estimate ``trivial\".",
+        "published": "2019-09-27T02:24:08Z",
+        "updated": "2022-06-22T18:32:41Z",
+        "url": "https://arxiv.org/abs/1909.12470v3"
+      }
+    ],
+    "cat:math.NT AND all:\"Landau\" AND all:\"zeta\" AND all:\"omega\"": [
+      {
+        "title": "Omega theorems for logarithmic derivatives of zeta and $L$-functions",
+        "summary": "We establish several new $\u03a9$-theorems for logarithmic derivatives of the Riemann zeta function and Dirichlet $L$-functions. In particular, this improves on earlier work of Landau (1911), Bohr-Landau (1913), and recent work of Lamzouri.",
+        "published": "2023-11-27T23:30:34Z",
+        "updated": "2023-12-24T15:17:10Z",
+        "url": "https://arxiv.org/abs/2311.16371v2"
+      }
+    ],
+    "cat:math.NT AND all:\"Riemann zeta\" AND all:\"zero density\"": [
+      {
+        "title": "Explicit bounds for the graphicality of the prime gap sequence",
+        "summary": "We establish explicit unconditional results on the graphic properties of the prime gap sequence. Let $p_n$ denote the $n$-th prime number (with $p_0=1$) and $\\mathrm{PD}_n = (p_\\ell - p_{\\ell-1})_{\\ell=1}^n$ be the sequence of the first $n$ prime gaps. Building upon the recent work by Erd\u0151s \\emph{et al}, which proved the graphic nature of $\\mathrm{PD}_n$ for large $n$ unconditionally, and for all $n$ under RH, we provide the first explicit unconditional threshold such that: (1) For all $n \\geq \\exp\\exp(30.5)$, $\\mathrm{PD}_n$ is graphic. (2) For all $n \\geq \\exp\\exp(34.5)$, every realization $G_n$ of $\\mathrm{PD}_n$ satisfies that $(G_n, p_{n+1}-p_n)$ is DPG-graphic.   Our proofs utilize a more refined criterion for when a sequence is graphic, and better estimates for the first moment of large prime gaps proven through an explicit zero-free region and explicit zero-density estimate for the Riemann zeta function.",
+        "published": "2025-12-30T13:42:40Z",
+        "updated": "2026-01-15T14:42:12Z",
+        "url": "https://arxiv.org/abs/2512.24230v2"
+      },
+      {
+        "title": "An $L$-function Approach to Two-Dimensional Conformal Field Theory",
+        "summary": "We introduce a framework for two-dimensional conformal field theory (CFT) in the language of analytic number theory. Attached to the torus partition function of every two-dimensional CFT is a self-dual, degree-4 $L$-function of root number $\\varepsilon=1$, with a universal gamma factor determined by $SL(2,\\mathbb{Z})$ and local conformal invariance. Due to the richness of CFT operator spectra, these are not, in general, standard $L$-functions. We explicate their analytic structure, exploring the interplay of the Hadamard product over non-trivial zeros with the generalized Dirichlet series over CFT scalar primary conformal dimensions. We derive a zero sum rule in terms of the spectrum, and a global zero density bound in terms of the spectral gap. Convergence of the series representation implies square root cancellation of the degeneracies; we relate this to random matrix behavior of high-energy level spacings. Random matrix universality of the CFT implies \"Riemann zeta universality\" of the $L$-function: an average relation between the $L$-function on the critical line and Riemann zeta on the 1-line. This in turn yields a subconvexity bound. For a compact free boson, the $L$-function is a product of Riemann zeta functions times an analytic factor. Extensions to correlator $L$-functions and spinning spectra are briefly discussed.   In the course of this work, we are led to sharpen the notion of random matrix universality in two-dimensional CFTs. We formulate a precise version of the following standalone conjecture, logically independent of $L$-functions: in unitary, compact Virasoro CFTs with central charge $c>1$, fixed-spin primary spectra at high energy are asymptotically simple, with random extreme gap statistics.",
+        "published": "2025-09-25T22:40:24Z",
+        "updated": "2025-09-25T22:40:24Z",
+        "url": "https://arxiv.org/abs/2509.21672v1"
+      },
+      {
+        "title": "An explicit form of Ingham's zero density estimate",
+        "summary": "Ingham (1940) proved that $N(\u03c3,T)\\ll T^{3(1-\u03c3)/(2-\u03c3)}\\log^{5}{T}$, where $N(\u03c3,T)$ counts the number of the non-trivial zeros $\u03c1$ of the Riemann zeta-function with $\\Re\\{\u03c1\\}\\geq\u03c3\\geq 1/2$ and $0<\\Im\\{\u03c1\\}\\leq T$. We provide an explicit version of this result with the exponent $(7-5\u03c3)/(2-\u03c3)$ of the logarithmic factor. In addition, we also provide an explicit estimate with asymptotically correct main term for the fourth power moment of the Riemann zeta-function on the critical line.",
+        "published": "2025-07-21T02:05:26Z",
+        "updated": "2025-09-30T01:38:08Z",
+        "url": "https://arxiv.org/abs/2507.15184v2"
+      },
+      {
+        "title": "New exponent pairs, zero density estimates, and zero additive energy estimates: a systematic approach",
+        "summary": "We obtain several new bounds on exponents of interest in analytic number theory, including four new exponent pairs, new zero density estimates for the Riemann zeta-function, and new estimates for the additive energy of zeroes of the Riemann zeta-function. These results were obtained by creating the Analytic Number Theory Exponent Database (ANTEDB) to collect results and relationships between these exponents, and then systematically optimising these relationships to obtain the new bounds. We welcome further contributions to the database, which aims to allow easy conversion of new bounds on these exponents into optimised bounds on other related exponents of interest.",
+        "published": "2025-01-28T08:03:12Z",
+        "updated": "2025-01-28T08:03:12Z",
+        "url": "https://arxiv.org/abs/2501.16779v1"
+      },
+      {
+        "title": "An explicit version of Carlson's theorem",
+        "summary": "Let $N(\u03c3,T)$ denote the number of nontrivial zeros of the Riemann zeta function with real part greater than $\u03c3$ and imaginary part lying between $0$ and $T$. In this article, we provide an explicit version of Carlson's zero density estimate, that is, $N(\u03c3, T) \\leq 0.78 T^{4 \u03c3(1- \u03c3)} (\\log T)^{5-2 \u03c3} $, with a slight improvement in the exponent of the logarithm factor.",
+        "published": "2024-12-03T01:15:49Z",
+        "updated": "2024-12-03T01:15:49Z",
+        "url": "https://arxiv.org/abs/2412.02068v1"
+      },
+      {
+        "title": "Asymptotics for smooth numbers in short intervals",
+        "summary": "A number is said to be $y$-smooth if all of its prime factors are less than or equal to $y.$ For all $17/30<\u03b8\\leq 1,$ we show that the density of $y$-smooth numbers in the short interval $[x,x+x^\u03b8]$ is asymptotically equal to the density of $y$-smooth numbers in the long interval $[1,x],$ for all $y \\geq \\exp((\\log x)^{2/3+\\varepsilon}).$ Assuming the Riemann Hypothesis, we also prove that for all $1/2<\u03b8\\leq 1$ there exists a large constant $K$ such that the expected asymptotic result holds for $y\\geq (\\log x)^{K}.$   Our approach is to count smooth numbers using a Perron integral, shift this to a particular contour left of the saddle point, and employ a zero-density estimate of the Riemann zeta function.",
+        "published": "2024-09-09T16:18:59Z",
+        "updated": "2024-09-09T16:18:59Z",
+        "url": "https://arxiv.org/abs/2409.05761v1"
+      },
+      {
+        "title": "New large value estimates for Dirichlet polynomials",
+        "summary": "We prove new bounds for how often Dirichlet polynomials can take large values. This gives improved estimates for a Dirichlet polynomial of length $N$ taking values of size close to $N^{3/4}$, which is the critical situation for several estimates in analytic number theory connected to prime numbers and the Riemann zeta function. As a consequence, we deduce a zero density estimate $N(\u03c3,T)\\le T^{30(1-\u03c3)/13+o(1)}$ and asymptotics for primes in short intervals of length $x^{17/30+o(1)}$.",
+        "published": "2024-05-31T00:38:45Z",
+        "updated": "2024-05-31T00:38:45Z",
+        "url": "https://arxiv.org/abs/2405.20552v1"
+      },
+      {
+        "title": "An explicit log-free zero density estimate for the Riemann zeta-function",
+        "summary": "We will provide an explicit log-free zero-density estimate for $\u03b6(s)$ of the form $N(\u03c3,T)\\le AT^{B(1-\u03c3)}$. In particular, this estimate becomes the sharpest known explicit zero-density estimate uniformly for $\u03c3\\in[\u03b1_0,1]$, with $0.985\\le \u03b1_0\\le 0.9927$ and $3\\cdot 10^{12}<T\\le \\exp(6.7\\cdot 10^{12})$.",
+        "published": "2024-05-21T07:24:33Z",
+        "updated": "2024-05-25T06:19:46Z",
+        "url": "https://arxiv.org/abs/2405.12545v2"
+      },
+      {
+        "title": "A note on zero density results implying large value estimates for Dirichlet polynomials",
+        "summary": "In this note we investigate connections between zero density estimates for the Riemann zeta function and large value estimates for Dirichlet polynomials. It is well known that estimates of the latter type imply estimates of the former type. Our goal is to show that there is an implication to the other direction as well, i.e. zero density estimates for the Riemann zeta function imply large value estimates for Dirichlet polynomials.",
+        "published": "2024-03-19T21:08:57Z",
+        "updated": "2024-03-19T21:08:57Z",
+        "url": "https://arxiv.org/abs/2403.13157v1"
+      },
+      {
+        "title": "On the density hypothesis for $L$-functions associated with holomorphic cusp forms",
+        "summary": "We study the range of validity of the density hypothesis for the zeros of $L$-functions associated with cusp Hecke eigenforms $f$ of even integral weight and prove that $N_{f}(\u03c3, T) \\ll T^{2(1-\u03c3)+\\varepsilon}$ holds for $\u03c3\\geq 1407/1601$. This improves upon a result of Ivi\u0107, who had previously shown the zero-density estimate in the narrower range $\u03c3\\geq 53/60$. Our result relies on an improvement of the large value estimates for Dirichlet polynomials based on mixed moment estimates for the Riemann zeta function. The main ingredients in our proof are the Hal\u00e1sz-Montgomery inequality, Ivi\u0107's mixed moment bounds for the zeta function, Huxley's subdivision argument, Bourgain's dichotomy approach, and Heath-Brown's bound for double zeta sums.",
+        "published": "2023-10-10T19:22:02Z",
+        "updated": "2024-03-26T13:44:48Z",
+        "url": "https://arxiv.org/abs/2310.14797v2"
+      },
+      {
+        "title": "A remark on density theorems for Riemann's zeta-function",
+        "summary": "The goal of this paper is to give a relatively simple proof of some known zero density estimates for Riemann zeta function which are sufficiently strong to break the density hypothesis in a nontrivial part of the critical strip. Apart from a simple but ingenious idea of Halasz the proof uses only classical knowledge about the zeta function, results known since at least hundred years.",
+        "published": "2023-09-30T12:19:21Z",
+        "updated": "2023-09-30T12:19:21Z",
+        "url": "https://arxiv.org/abs/2310.04544v1"
+      },
+      {
+        "title": "An unconditional Montgomery Theorem for Pair Correlation of Zeros of the Riemann Zeta Function",
+        "summary": "Assuming the Riemann Hypothesis (RH), Montgomery proved a theorem concerning pair correlation of zeros of the Riemann zeta-function. One consequence of this theorem is that, assuming RH, at least $67.9\\%$ of the nontrivial zeros are simple. Here we obtain an unconditional form of Montgomery's theorem and show how to apply it to prove the following result on simple zeros: Assuming all the zeros $\u03c1=\u03b2+i\u03b3$ of the Riemann zeta-function such that $T^{3/8}<\u03b3\\le T$ satisfy $|\u03b2-1/2|<1/(2\\log T)$, %lie in the thin box $\\{s=\u03c3+it: |\u03c3-1/2|<1/(2\\log T),\\ T^{3/8}<t\\le T\\}$, then, as $T$ tends to infinity, at least $61.7\\%$ of these zeros are simple. The method of proof neither requires nor provides any information on whether any of these zeros are on or not on the critical line where $\u03b2=1/2$. We also obtain the same result under the weaker assumption of a strong zero-density hypothesis.",
+        "published": "2023-06-07T21:47:10Z",
+        "updated": "2023-06-07T21:47:10Z",
+        "url": "https://arxiv.org/abs/2306.04799v1"
+      },
+      {
+        "title": "Half-isolated zeros and zero-density estimates",
+        "summary": "We introduce a new method to detect the zeros of the Riemann zeta function which is sensitive to the vertical distribution of the zeros. This allows us to prove there are few `half-isolated' zeros. By combining this with classical methods, we improve the Ingham-Huxley zero-density estimate under the assumption that the non-trivial zeros of the zeta function are restricted to lie on a finite number of fixed vertical lines. This has new consequences for primes in short intervals under the same assumption.",
+        "published": "2022-06-23T14:28:18Z",
+        "updated": "2023-05-29T21:34:14Z",
+        "url": "https://arxiv.org/abs/2206.11729v2"
+      },
+      {
+        "title": "Some explicit estimates for the error term in the prime number theorem",
+        "summary": "By combining and improving recent techniques and results, we provide explicit estimates for the error terms $|\u03c0(x)-\\text{li}(x)|$, $|\u03b8(x)-x|$ and $|\u03c8(x)-x|$ appearing in the prime number theorem. For example, we show for all $x\\geq 2$ that $|\u03c8(x)-x|\\leq 9.39x(\\log x)^{1.515}\\exp(-0.8274\\sqrt{\\log x})$. Our estimates rely heavily on explicit zero-free regions and zero-density estimates for the Riemann zeta-function, and improve on existing bounds for prime-counting functions for large values of $x$.",
+        "published": "2022-04-05T04:31:11Z",
+        "updated": "2022-04-20T05:15:33Z",
+        "url": "https://arxiv.org/abs/2204.01980v2"
+      },
+      {
+        "title": "Zeros of higher derivatives of Riemann zeta function",
+        "summary": "In this article, we extend the result of Conrey [5, Theorem 2] to shorter intervals for higher-order derivatives of the zeta function. That is we study the mean value of the product of two finite order derivatives of the zeta function multiplied by a mollifier in short intervals. In this process, we obtain better mollifier length in some short intervals compared to the length of mollifier implied by Conrey's result. These finer studies allow us to refine the error term of some classical results of Levinson and Montgomery [13], Ki and Lee [11] on zero density estimates of $\u03b6^{(k)}$.   Further, we showed that almost all non-trivial zeros of Matsumoto-Tanigawa's $\u03b7_k$-function cluster near the critical line.",
+        "published": "2021-04-20T20:39:18Z",
+        "updated": "2024-05-22T19:53:44Z",
+        "url": "https://arxiv.org/abs/2104.10243v3"
+      }
+    ]
+  },
+  "errors": {}
+}

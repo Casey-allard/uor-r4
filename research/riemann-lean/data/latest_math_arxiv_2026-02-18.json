@@ -1,0 +1,72 @@
+{
+  "timestamp_utc": "2026-02-18T16:06:30.999714+00:00",
+  "source": "arXiv API",
+  "queries": {
+    "cat:math.NT AND all:\"riemann zeta\"": [],
+    "cat:math.NT AND all:\"zeta zero\"": [
+      {
+        "title": "The discrete second moment of mixed derivatives of the Riemann zeta function",
+        "summary": "We establish the full asymptotic for the discrete second moment of the Riemann zeta function of mixed derivatives evaluated at the zeta zeros, providing both unconditional and conditional error terms. This was first studied by Gonek, where only the leading order asymptotic was given, later extended by Conrey--Snaith and Milinovich to include the lower order terms for the first derivative. We extend the case of the first derivative to all derivatives.",
+        "published": "2026-01-09T20:10:39Z",
+        "updated": "2026-01-09T20:10:39Z",
+        "url": "https://arxiv.org/abs/2601.06292v1"
+      },
+      {
+        "title": "Bounding the integral of the argument of the Riemann Zeta function",
+        "summary": "This article improves the estimate of $|S_1(t_2)-S_1(t_1)|$, which is the definite integral of the argument of the Riemann zeta-function between $t_1$ and $t_2$. Estimates of this quantity are needed to apply Turing's method to compute the exact number of zeta zeros up to a given height.",
+        "published": "2025-12-28T20:13:44Z",
+        "updated": "2026-01-04T16:21:12Z",
+        "url": "https://arxiv.org/abs/2512.23064v3"
+      },
+      {
+        "title": "Zeta Zeros on the Critical Line",
+        "summary": "Montgomery in 1973 introduced the pair correlation method to study the vertical distribution of Riemann zeta-function zeros. This work assumed the Riemann Hypothesis (RH). One striking application was a short proof that at least 2/3 of zeta-zeros are simple zeros, the first result of its type. Over the last 50 years, most work on pair correlation of zeta-zeros has continued to assume RH. Here we show that if RH could be removed from Montgomery's simple zero proof, then this would also give a proof that 2/3 of the zeros are simple and on the critical line. This idea has been applied in several recent papers to obtain other results on the zeros.",
+        "published": "2025-11-25T08:30:14Z",
+        "updated": "2026-02-05T15:45:12Z",
+        "url": "https://arxiv.org/abs/2511.20059v2"
+      },
+      {
+        "title": "Note on the positivity of the real part of the log-derivative of the Riemann $\u03be$-function near the critical line",
+        "summary": "In this work, we investigate the positivity of the real part of the log-derivative of the Riemann $\u03be$-function in the region $1/2+1/\\sqrt{\\log t}<\u03c3<1$, where $t$ is sufficiently large. We provide an explicit lower bound for $\\mathfrak{R}\\sum_\u03c11/(s-\u03c1)$, where the summation runs over the zeta-zeros on the critical line. We also consider hypothetical cases of positivity of the log-derivative of the Riemann $\u03be$-function in the provided region, assuming that there are non-trivial zeta-zeros off the critical line.",
+        "published": "2025-09-23T13:15:36Z",
+        "updated": "2025-09-23T13:15:36Z",
+        "url": "https://arxiv.org/abs/2509.18963v1"
+      },
+      {
+        "title": "Selberg's Central Limit Theorem weighted by Linear Statistics of Zeta Zeros",
+        "summary": "We consider the value distribution of the logarithm of the Riemann zeta function on the critical line, weighted by the local statistics of zeta zeros. We show that, with appropriate normalization, it satisfies a complex Central Limit Theorem, provided that the Fourier support of the test function in the linear statistics is sufficiently small. For the imaginary part, we extend this support condition up to its natural barrier under the Riemann Hypothesis. Finally, we prove that the correlation between $\\log \u03b6$ and the one-level density, while negligible on the level of Selberg's Central Limit Theorem, only decays at a rather slow rate if the Riemann Hypothesis is assumed. Our results can be viewed as a combination of Selberg's Central Limit Theorem with work of Hughes and Rudnick on mock-Gaussian behavior of the local statistics.",
+        "published": "2025-07-05T20:08:01Z",
+        "updated": "2025-07-05T20:08:01Z",
+        "url": "https://arxiv.org/abs/2507.04150v1"
+      },
+      {
+        "title": "A Rigorous Error Bound for the TG Kernel in Prime Counting",
+        "summary": "We establish rigorous error bounds for prime counting using a truncated Gaussian (TG) kernel in the explicit formula framework. Our main theorem proves that the approximation error remains globally below 1/2 for all sufficiently large arguments, guaranteeing exact computation of \u03c0(x) through simple rounding, without relying on unproven hypotheses.   The TG kernel construction employs Gaussian-like test functions with compact support, engineered with vanishing moments to eliminate main terms. For x with 10^8 decimal digits, we demonstrate that only ~1200 nontrivial zeta zeros suffice to achieve the error bound, enabling computation in seconds on modern hardware - a dramatic improvement over classical methods.   Key contributions include: (1) Explicit tail truncation bounds using Taylor remainder analysis, showing exponential decay; (2) Zero-sum truncation error bounds via unconditional density estimates; (3) Rigorous treatment of trivial zero contributions. All constants are made explicit, ensuring full verifiability.   The method bridges analytic number theory and practical computation, with potential applications to record-breaking prime counting computations. We discuss algorithmic implications including FFT-based arithmetic for ~330 million bit numbers. The framework's flexibility suggests connections to deeper structures in prime distribution, particularly regarding optimized kernel designs and the interplay between smoothing parameters \u03b1 and truncation heights.   This work exemplifies how classical analytic techniques, when carefully implemented with modern computational perspectives, yield practical algorithms for problems previously considered purely theoretical. The rigorous error analysis ensures reliability even at astronomical scales, opening new avenues for computational number theory research.",
+        "published": "2025-06-27T20:54:06Z",
+        "updated": "2025-06-27T20:54:06Z",
+        "url": "https://arxiv.org/abs/2506.22634v1"
+      },
+      {
+        "title": "The Lindel\u00f6f Hypothesis for Zeta Zero Ordinates",
+        "summary": "We provide conditional and unconditional asymptotic formulae for the exponential sums $\\sum_\u03b3\\,\u03b3^{-i\u03c4}$, where the summation is over the ordinates of the nontrivial zeros $\u03c1=\u03b2+i\u03b3$ of the Riemann zeta-function. In particular, the obtained results are related to the Lindel\u00f6f Hypothesis for these ordinates (in the sense of Gonek et al. [10]).",
+        "published": "2025-05-20T11:38:30Z",
+        "updated": "2025-05-20T11:38:30Z",
+        "url": "https://arxiv.org/abs/2505.14228v1"
+      },
+      {
+        "title": "Optimal Cosine Polynomials for Riemann Zeta Zero-Free Region",
+        "summary": "The zero-free region of the Riemann zeta function plays a pivotal role in understanding the distribution of prime numbers. Historically, E. Landau used a particular type of non-negative cosine polynomial to construct this region. Subsequent research by various mathematicians sought the optimal cosine polynomial that provides the largest zero-free region under this construction. In 1992, V. V. Arestov identified the optimal polynomial for all degrees up to 6. This article employs numerical methods to determine the optimal polynomials of degrees 7 and 8, as well as the corresponding zero-free region of the Riemann zeta function.",
+        "published": "2024-11-03T00:23:09Z",
+        "updated": "2025-02-06T01:28:11Z",
+        "url": "https://arxiv.org/abs/2411.01385v2"
+      }
+    ],
+    "cat:math.NT AND all:\"prime gaps\"": [],
+    "cat:math.NT AND all:\"L-function zeros\"": []
+  },
+  "errors": {
+    "cat:math.NT AND all:\"riemann zeta\"": "HTTP Error 429: Unknown Error",
+    "cat:math.NT AND all:\"prime gaps\"": "HTTP Error 429: Too Many Requests",
+    "cat:math.NT AND all:\"L-function zeros\"": "HTTP Error 429: Unknown Error"
+  }
+}
