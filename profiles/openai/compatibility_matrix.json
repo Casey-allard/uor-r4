@@ -1,0 +1,2087 @@
+{
+  "_note": "r4-openai-profile compatibility matrix (#654 phase A). Regenerate with scripts/gen_openai_compat_matrix.py; the Rust drift gate tests/openai_profile_pin.rs verifies this stays consistent with the vendored spec.",
+  "profile": "r4-openai-profile",
+  "profile_version": 1,
+  "spec_pin": {
+    "upstream_repo": "openai/openai-openapi",
+    "commit": "11854aef674352d3f9cd5c0a7038f079a7bbac06",
+    "openapi_yaml_git_blob_sha1": "b4e4080c0baf909bc6bfa293dd0efa553dfb0a29",
+    "openapi_yaml_blake3": "blake3:396df55705eaca49b0f87c606a150443c4c0bd291efc3347cb8497f11d6e60f6",
+    "openapi_version": "3.1.0",
+    "api_version": "2.3.0",
+    "license": "MIT",
+    "retrieval": "curl -sSL https://raw.githubusercontent.com/openai/openai-openapi/11854aef674352d3f9cd5c0a7038f079a7bbac06/openapi.yaml"
+  },
+  "counts": {
+    "supported": 4,
+    "unsupported": 20,
+    "not-applicable": 264,
+    "total": 288
+  },
+  "operations": [
+    {
+      "operation_id": "CancelChatSessionMethod",
+      "path": "/chatkit/sessions/{session_id}/cancel",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "Compactconversation",
+      "path": "/responses/compact",
+      "method": "post",
+      "classification": "unsupported",
+      "rationale": "Stateful conversation compaction; phase-1 generation is stateless.",
+      "owning_issue": 654,
+      "phase": "A (classified out of the phase-1 profile)"
+    },
+    {
+      "operation_id": "CreateChatSessionMethod",
+      "path": "/chatkit/sessions",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "CreateContainer",
+      "path": "/containers",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "CreateContainerFile",
+      "path": "/containers/{container_id}/files",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "CreateSkill",
+      "path": "/skills",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "CreateSkillVersion",
+      "path": "/skills/{skill_id}/versions",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "CreateVideoCharacter",
+      "path": "/videos/characters",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "CreateVideoEdit",
+      "path": "/videos/edits",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "CreateVideoExtend",
+      "path": "/videos/extensions",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "CreateVideoRemix",
+      "path": "/videos/{video_id}/remix",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "CreateanAPIkeyforaserviceaccount",
+      "path": "/organization/projects/{project_id}/service_accounts/{service_account_id}/api_keys",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "Createcontentprovenancecheck",
+      "path": "/content_provenance_checks",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "DeleteContainer",
+      "path": "/containers/{container_id}",
+      "method": "delete",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "DeleteContainerFile",
+      "path": "/containers/{container_id}/files/{file_id}",
+      "method": "delete",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "DeleteSkill",
+      "path": "/skills/{skill_id}",
+      "method": "delete",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "DeleteSkillVersion",
+      "path": "/skills/{skill_id}/versions/{version}",
+      "method": "delete",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "DeleteThreadMethod",
+      "path": "/chatkit/threads/{thread_id}",
+      "method": "delete",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "DeleteVideo",
+      "path": "/videos/{video_id}",
+      "method": "delete",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "Deleteorganizationspendlimit",
+      "path": "/organization/spend_limit",
+      "method": "delete",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "Deleteprojectspendlimit",
+      "path": "/organization/projects/{project_id}/spend_limit",
+      "method": "delete",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "GetSkill",
+      "path": "/skills/{skill_id}",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "GetSkillContent",
+      "path": "/skills/{skill_id}/content",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "GetSkillVersion",
+      "path": "/skills/{skill_id}/versions/{version}",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "GetSkillVersionContent",
+      "path": "/skills/{skill_id}/versions/{version}/content",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "GetThreadMethod",
+      "path": "/chatkit/threads/{thread_id}",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "GetVideo",
+      "path": "/videos/{video_id}",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "GetVideoCharacter",
+      "path": "/videos/characters/{character_id}",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "Getinputtokencounts",
+      "path": "/responses/input_tokens",
+      "method": "post",
+      "classification": "unsupported",
+      "rationale": "Response input-token-count endpoint; not in the phase-1 profile.",
+      "owning_issue": 654,
+      "phase": "A (classified out of the phase-1 profile)"
+    },
+    {
+      "operation_id": "Getorganizationspendlimit",
+      "path": "/organization/spend_limit",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "Getprojectspendlimit",
+      "path": "/organization/projects/{project_id}/spend_limit",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "ListContainerFiles",
+      "path": "/containers/{container_id}/files",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "ListContainers",
+      "path": "/containers",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "ListSkillVersions",
+      "path": "/skills/{skill_id}/versions",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "ListSkills",
+      "path": "/skills",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "ListThreadItemsMethod",
+      "path": "/chatkit/threads/{thread_id}/items",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "ListThreadsMethod",
+      "path": "/chatkit/threads",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "ListVideos",
+      "path": "/videos",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "RetrieveContainer",
+      "path": "/containers/{container_id}",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "RetrieveContainerFile",
+      "path": "/containers/{container_id}/files/{file_id}",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "RetrieveContainerFileContent",
+      "path": "/containers/{container_id}/files/{file_id}/content",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "RetrieveVideoContent",
+      "path": "/videos/{video_id}/content",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "UpdateSkillDefaultVersion",
+      "path": "/skills/{skill_id}",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "Updateorganizationspendlimit",
+      "path": "/organization/spend_limit",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "Updateprojectspendlimit",
+      "path": "/organization/projects/{project_id}/spend_limit",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "accept-realtime-call",
+      "path": "/realtime/calls/{call_id}/accept",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "activateOrganizationCertificates",
+      "path": "/organization/certificates/activate",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "activateProjectCertificates",
+      "path": "/organization/projects/{project_id}/certificates/activate",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "add-group-user",
+      "path": "/organization/groups/{group_id}/users",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "add-project-group",
+      "path": "/organization/projects/{project_id}/groups",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "addUploadPart",
+      "path": "/uploads/{upload_id}/parts",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "admin-api-keys-create",
+      "path": "/organization/admin_api_keys",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "admin-api-keys-delete",
+      "path": "/organization/admin_api_keys/{key_id}",
+      "method": "delete",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "admin-api-keys-get",
+      "path": "/organization/admin_api_keys/{key_id}",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "admin-api-keys-list",
+      "path": "/organization/admin_api_keys",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "archive-project",
+      "path": "/organization/projects/{project_id}/archive",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "assign-group-role",
+      "path": "/organization/groups/{group_id}/roles",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "assign-project-group-role",
+      "path": "/projects/{project_id}/groups/{group_id}/roles",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "assign-project-user-role",
+      "path": "/projects/{project_id}/users/{user_id}/roles",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "assign-user-role",
+      "path": "/organization/users/{user_id}/roles",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "beta_Compactconversation",
+      "path": "/responses/compact?beta=true",
+      "method": "post",
+      "classification": "unsupported",
+      "rationale": "Beta channel of the responses surface; the stable phase-1 profile does not include beta variants.",
+      "owning_issue": 654,
+      "phase": "A (classified out of the phase-1 profile)"
+    },
+    {
+      "operation_id": "beta_Getinputtokencounts",
+      "path": "/responses/input_tokens?beta=true",
+      "method": "post",
+      "classification": "unsupported",
+      "rationale": "Beta channel of the responses surface; the stable phase-1 profile does not include beta variants.",
+      "owning_issue": 654,
+      "phase": "A (classified out of the phase-1 profile)"
+    },
+    {
+      "operation_id": "beta_cancelResponse",
+      "path": "/responses/{response_id}/cancel?beta=true",
+      "method": "post",
+      "classification": "unsupported",
+      "rationale": "Beta channel of the responses surface; the stable phase-1 profile does not include beta variants.",
+      "owning_issue": 654,
+      "phase": "A (classified out of the phase-1 profile)"
+    },
+    {
+      "operation_id": "beta_createResponse",
+      "path": "/responses?beta=true",
+      "method": "post",
+      "classification": "unsupported",
+      "rationale": "Beta channel of the responses surface; the stable phase-1 profile does not include beta variants.",
+      "owning_issue": 654,
+      "phase": "A (classified out of the phase-1 profile)"
+    },
+    {
+      "operation_id": "beta_deleteResponse",
+      "path": "/responses/{response_id}?beta=true",
+      "method": "delete",
+      "classification": "unsupported",
+      "rationale": "Beta channel of the responses surface; the stable phase-1 profile does not include beta variants.",
+      "owning_issue": 654,
+      "phase": "A (classified out of the phase-1 profile)"
+    },
+    {
+      "operation_id": "beta_getResponse",
+      "path": "/responses/{response_id}?beta=true",
+      "method": "get",
+      "classification": "unsupported",
+      "rationale": "Beta channel of the responses surface; the stable phase-1 profile does not include beta variants.",
+      "owning_issue": 654,
+      "phase": "A (classified out of the phase-1 profile)"
+    },
+    {
+      "operation_id": "beta_listInputItems",
+      "path": "/responses/{response_id}/input_items?beta=true",
+      "method": "get",
+      "classification": "unsupported",
+      "rationale": "Beta channel of the responses surface; the stable phase-1 profile does not include beta variants.",
+      "owning_issue": 654,
+      "phase": "A (classified out of the phase-1 profile)"
+    },
+    {
+      "operation_id": "cancelBatch",
+      "path": "/batches/{batch_id}/cancel",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "cancelEvalRun",
+      "path": "/evals/{eval_id}/runs/{run_id}",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "cancelFineTuningJob",
+      "path": "/fine_tuning/jobs/{fine_tuning_job_id}/cancel",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "cancelResponse",
+      "path": "/responses/{response_id}/cancel",
+      "method": "post",
+      "classification": "unsupported",
+      "rationale": "Background/stateful response cancellation; phase-1 generation is synchronous.",
+      "owning_issue": 654,
+      "phase": "A (classified out of the phase-1 profile)"
+    },
+    {
+      "operation_id": "cancelRun",
+      "path": "/threads/{thread_id}/runs/{run_id}/cancel",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "cancelUpload",
+      "path": "/uploads/{upload_id}/cancel",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "cancelVectorStoreFileBatch",
+      "path": "/vector_stores/{vector_store_id}/file_batches/{batch_id}/cancel",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "completeUpload",
+      "path": "/uploads/{upload_id}/complete",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "create-group",
+      "path": "/organization/groups",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "create-organization-spend-alert",
+      "path": "/organization/spend_alerts",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "create-project",
+      "path": "/organization/projects",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "create-project-role",
+      "path": "/projects/{project_id}/roles",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "create-project-service-account",
+      "path": "/organization/projects/{project_id}/service_accounts",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "create-project-spend-alert",
+      "path": "/organization/projects/{project_id}/spend_alerts",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "create-project-user",
+      "path": "/organization/projects/{project_id}/users",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "create-realtime-call",
+      "path": "/realtime/calls",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "create-realtime-client-secret",
+      "path": "/realtime/client_secrets",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "create-realtime-session",
+      "path": "/realtime/sessions",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "create-realtime-transcription-session",
+      "path": "/realtime/transcription_sessions",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "create-realtime-translation-client-secret",
+      "path": "/realtime/translations/client_secrets",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "create-role",
+      "path": "/organization/roles",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "createAssistant",
+      "path": "/assistants",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "createBatch",
+      "path": "/batches",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "createChatCompletion",
+      "path": "/chat/completions",
+      "method": "post",
+      "classification": "supported",
+      "rationale": "POST /chat/completions \u2014 the phase-1 chat text-generation operation.",
+      "owning_issue": 654,
+      "phase": "A (profile definition); wire implementation in later phases"
+    },
+    {
+      "operation_id": "createCompletion",
+      "path": "/completions",
+      "method": "post",
+      "classification": "unsupported",
+      "rationale": "Legacy POST /completions \u2014 explicitly out of the phase-1 profile (recorded decision, not implied by omission).",
+      "owning_issue": 654,
+      "phase": "A (classified out of the phase-1 profile)"
+    },
+    {
+      "operation_id": "createConversation",
+      "path": "/conversations",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "createConversationItems",
+      "path": "/conversations/{conversation_id}/items",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "createEmbedding",
+      "path": "/embeddings",
+      "method": "post",
+      "classification": "unsupported",
+      "rationale": "Embeddings are not a text-generation operation in this profile.",
+      "owning_issue": 654,
+      "phase": "A (classified out of the phase-1 profile)"
+    },
+    {
+      "operation_id": "createEval",
+      "path": "/evals",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "createEvalRun",
+      "path": "/evals/{eval_id}/runs",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "createFile",
+      "path": "/files",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "createFineTuningCheckpointPermission",
+      "path": "/fine_tuning/checkpoints/{fine_tuned_model_checkpoint}/permissions",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "createFineTuningJob",
+      "path": "/fine_tuning/jobs",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "createImage",
+      "path": "/images/generations",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "createImageEdit",
+      "path": "/images/edits",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "createImageVariation",
+      "path": "/images/variations",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "createMessage",
+      "path": "/threads/{thread_id}/messages",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "createModeration",
+      "path": "/moderations",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "createResponse",
+      "path": "/responses",
+      "method": "post",
+      "classification": "supported",
+      "rationale": "POST /responses \u2014 the recommended text-generation operation; routed through the same internal generation adapter as chat completions.",
+      "owning_issue": 654,
+      "phase": "A (profile definition); wire implementation in later phases"
+    },
+    {
+      "operation_id": "createRun",
+      "path": "/threads/{thread_id}/runs",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "createSpeech",
+      "path": "/audio/speech",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "createThread",
+      "path": "/threads",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "createThreadAndRun",
+      "path": "/threads/runs",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "createTranscription",
+      "path": "/audio/transcriptions",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "createTranslation",
+      "path": "/audio/translations",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "createUpload",
+      "path": "/uploads",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "createVectorStore",
+      "path": "/vector_stores",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "createVectorStoreFile",
+      "path": "/vector_stores/{vector_store_id}/files",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "createVectorStoreFileBatch",
+      "path": "/vector_stores/{vector_store_id}/file_batches",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "createVideo",
+      "path": "/videos",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "createVoice",
+      "path": "/audio/voices",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "createVoiceConsent",
+      "path": "/audio/voice_consents",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "deactivateOrganizationCertificates",
+      "path": "/organization/certificates/deactivate",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "deactivateProjectCertificates",
+      "path": "/organization/projects/{project_id}/certificates/deactivate",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "delete-group",
+      "path": "/organization/groups/{group_id}",
+      "method": "delete",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "delete-invite",
+      "path": "/organization/invites/{invite_id}",
+      "method": "delete",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "delete-organization-spend-alert",
+      "path": "/organization/spend_alerts/{alert_id}",
+      "method": "delete",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "delete-project-api-key",
+      "path": "/organization/projects/{project_id}/api_keys/{api_key_id}",
+      "method": "delete",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "delete-project-model-permissions",
+      "path": "/organization/projects/{project_id}/model_permissions",
+      "method": "delete",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "delete-project-role",
+      "path": "/projects/{project_id}/roles/{role_id}",
+      "method": "delete",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "delete-project-service-account",
+      "path": "/organization/projects/{project_id}/service_accounts/{service_account_id}",
+      "method": "delete",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "delete-project-spend-alert",
+      "path": "/organization/projects/{project_id}/spend_alerts/{alert_id}",
+      "method": "delete",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "delete-project-user",
+      "path": "/organization/projects/{project_id}/users/{user_id}",
+      "method": "delete",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "delete-role",
+      "path": "/organization/roles/{role_id}",
+      "method": "delete",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "delete-user",
+      "path": "/organization/users/{user_id}",
+      "method": "delete",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "deleteAssistant",
+      "path": "/assistants/{assistant_id}",
+      "method": "delete",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "deleteCertificate",
+      "path": "/organization/certificates/{certificate_id}",
+      "method": "delete",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "deleteChatCompletion",
+      "path": "/chat/completions/{completion_id}",
+      "method": "delete",
+      "classification": "unsupported",
+      "rationale": "Stored-completions management; R4 serving is stateless.",
+      "owning_issue": 654,
+      "phase": "A (classified out of the phase-1 profile)"
+    },
+    {
+      "operation_id": "deleteConversation",
+      "path": "/conversations/{conversation_id}",
+      "method": "delete",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "deleteConversationItem",
+      "path": "/conversations/{conversation_id}/items/{item_id}",
+      "method": "delete",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "deleteEval",
+      "path": "/evals/{eval_id}",
+      "method": "delete",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "deleteEvalRun",
+      "path": "/evals/{eval_id}/runs/{run_id}",
+      "method": "delete",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "deleteFile",
+      "path": "/files/{file_id}",
+      "method": "delete",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "deleteFineTuningCheckpointPermission",
+      "path": "/fine_tuning/checkpoints/{fine_tuned_model_checkpoint}/permissions/{permission_id}",
+      "method": "delete",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "deleteMessage",
+      "path": "/threads/{thread_id}/messages/{message_id}",
+      "method": "delete",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "deleteModel",
+      "path": "/models/{model}",
+      "method": "delete",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "deleteResponse",
+      "path": "/responses/{response_id}",
+      "method": "delete",
+      "classification": "unsupported",
+      "rationale": "Stateful response management; phase-1 generation is stateless.",
+      "owning_issue": 654,
+      "phase": "A (classified out of the phase-1 profile)"
+    },
+    {
+      "operation_id": "deleteThread",
+      "path": "/threads/{thread_id}",
+      "method": "delete",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "deleteVectorStore",
+      "path": "/vector_stores/{vector_store_id}",
+      "method": "delete",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "deleteVectorStoreFile",
+      "path": "/vector_stores/{vector_store_id}/files/{file_id}",
+      "method": "delete",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "deleteVoiceConsent",
+      "path": "/audio/voice_consents/{consent_id}",
+      "method": "delete",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "downloadFile",
+      "path": "/files/{file_id}/content",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "getAssistant",
+      "path": "/assistants/{assistant_id}",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "getCertificate",
+      "path": "/organization/certificates/{certificate_id}",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "getChatCompletion",
+      "path": "/chat/completions/{completion_id}",
+      "method": "get",
+      "classification": "unsupported",
+      "rationale": "Stored-completions management; R4 serving is stateless.",
+      "owning_issue": 654,
+      "phase": "A (classified out of the phase-1 profile)"
+    },
+    {
+      "operation_id": "getChatCompletionMessages",
+      "path": "/chat/completions/{completion_id}/messages",
+      "method": "get",
+      "classification": "unsupported",
+      "rationale": "Stored-completions management; R4 serving is stateless.",
+      "owning_issue": 654,
+      "phase": "A (classified out of the phase-1 profile)"
+    },
+    {
+      "operation_id": "getConversation",
+      "path": "/conversations/{conversation_id}",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "getConversationItem",
+      "path": "/conversations/{conversation_id}/items/{item_id}",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "getEval",
+      "path": "/evals/{eval_id}",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "getEvalRun",
+      "path": "/evals/{eval_id}/runs/{run_id}",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "getEvalRunOutputItem",
+      "path": "/evals/{eval_id}/runs/{run_id}/output_items/{output_item_id}",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "getEvalRunOutputItems",
+      "path": "/evals/{eval_id}/runs/{run_id}/output_items",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "getEvalRuns",
+      "path": "/evals/{eval_id}/runs",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "getMessage",
+      "path": "/threads/{thread_id}/messages/{message_id}",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "getResponse",
+      "path": "/responses/{response_id}",
+      "method": "get",
+      "classification": "unsupported",
+      "rationale": "Stateful response retrieval; phase-1 generation is stateless.",
+      "owning_issue": 654,
+      "phase": "A (classified out of the phase-1 profile)"
+    },
+    {
+      "operation_id": "getRun",
+      "path": "/threads/{thread_id}/runs/{run_id}",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "getRunStep",
+      "path": "/threads/{thread_id}/runs/{run_id}/steps/{step_id}",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "getThread",
+      "path": "/threads/{thread_id}",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "getVectorStore",
+      "path": "/vector_stores/{vector_store_id}",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "getVectorStoreFile",
+      "path": "/vector_stores/{vector_store_id}/files/{file_id}",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "getVectorStoreFileBatch",
+      "path": "/vector_stores/{vector_store_id}/file_batches/{batch_id}",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "getVoiceConsent",
+      "path": "/audio/voice_consents/{consent_id}",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "hangup-realtime-call",
+      "path": "/realtime/calls/{call_id}/hangup",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "inviteUser",
+      "path": "/organization/invites",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "list-audit-logs",
+      "path": "/organization/audit_logs",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "list-group-role-assignments",
+      "path": "/organization/groups/{group_id}/roles",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "list-group-users",
+      "path": "/organization/groups/{group_id}/users",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "list-groups",
+      "path": "/organization/groups",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "list-invites",
+      "path": "/organization/invites",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "list-organization-spend-alerts",
+      "path": "/organization/spend_alerts",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "list-project-api-keys",
+      "path": "/organization/projects/{project_id}/api_keys",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "list-project-group-role-assignments",
+      "path": "/projects/{project_id}/groups/{group_id}/roles",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "list-project-groups",
+      "path": "/organization/projects/{project_id}/groups",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "list-project-rate-limits",
+      "path": "/organization/projects/{project_id}/rate_limits",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "list-project-roles",
+      "path": "/projects/{project_id}/roles",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "list-project-service-accounts",
+      "path": "/organization/projects/{project_id}/service_accounts",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "list-project-spend-alerts",
+      "path": "/organization/projects/{project_id}/spend_alerts",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "list-project-user-role-assignments",
+      "path": "/projects/{project_id}/users/{user_id}/roles",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "list-project-users",
+      "path": "/organization/projects/{project_id}/users",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "list-projects",
+      "path": "/organization/projects",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "list-roles",
+      "path": "/organization/roles",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "list-user-role-assignments",
+      "path": "/organization/users/{user_id}/roles",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "list-users",
+      "path": "/organization/users",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "listAssistants",
+      "path": "/assistants",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "listBatches",
+      "path": "/batches",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "listChatCompletions",
+      "path": "/chat/completions",
+      "method": "get",
+      "classification": "unsupported",
+      "rationale": "Stored-completions management; R4 serving is stateless.",
+      "owning_issue": 654,
+      "phase": "A (classified out of the phase-1 profile)"
+    },
+    {
+      "operation_id": "listConversationItems",
+      "path": "/conversations/{conversation_id}/items",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "listEvals",
+      "path": "/evals",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "listFiles",
+      "path": "/files",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "listFilesInVectorStoreBatch",
+      "path": "/vector_stores/{vector_store_id}/file_batches/{batch_id}/files",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "listFineTuningCheckpointPermissions",
+      "path": "/fine_tuning/checkpoints/{fine_tuned_model_checkpoint}/permissions",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "listFineTuningEvents",
+      "path": "/fine_tuning/jobs/{fine_tuning_job_id}/events",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "listFineTuningJobCheckpoints",
+      "path": "/fine_tuning/jobs/{fine_tuning_job_id}/checkpoints",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "listInputItems",
+      "path": "/responses/{response_id}/input_items",
+      "method": "get",
+      "classification": "unsupported",
+      "rationale": "Stateful response input-item listing; phase-1 generation is stateless.",
+      "owning_issue": 654,
+      "phase": "A (classified out of the phase-1 profile)"
+    },
+    {
+      "operation_id": "listMessages",
+      "path": "/threads/{thread_id}/messages",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "listModels",
+      "path": "/models",
+      "method": "get",
+      "classification": "supported",
+      "rationale": "GET /models \u2014 model discovery over the loadable R4 models.",
+      "owning_issue": 654,
+      "phase": "A (profile definition); wire implementation in later phases"
+    },
+    {
+      "operation_id": "listOrganizationCertificates",
+      "path": "/organization/certificates",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "listPaginatedFineTuningJobs",
+      "path": "/fine_tuning/jobs",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "listProjectCertificates",
+      "path": "/organization/projects/{project_id}/certificates",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "listRunSteps",
+      "path": "/threads/{thread_id}/runs/{run_id}/steps",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "listRuns",
+      "path": "/threads/{thread_id}/runs",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "listVectorStoreFiles",
+      "path": "/vector_stores/{vector_store_id}/files",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "listVectorStores",
+      "path": "/vector_stores",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "listVoiceConsents",
+      "path": "/audio/voice_consents",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "modify-project",
+      "path": "/organization/projects/{project_id}",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "modify-project-user",
+      "path": "/organization/projects/{project_id}/users/{user_id}",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "modify-user",
+      "path": "/organization/users/{user_id}",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "modifyAssistant",
+      "path": "/assistants/{assistant_id}",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "modifyCertificate",
+      "path": "/organization/certificates/{certificate_id}",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "modifyMessage",
+      "path": "/threads/{thread_id}/messages/{message_id}",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "modifyRun",
+      "path": "/threads/{thread_id}/runs/{run_id}",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "modifyThread",
+      "path": "/threads/{thread_id}",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "modifyVectorStore",
+      "path": "/vector_stores/{vector_store_id}",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "pauseFineTuningJob",
+      "path": "/fine_tuning/jobs/{fine_tuning_job_id}/pause",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "refer-realtime-call",
+      "path": "/realtime/calls/{call_id}/refer",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "reject-realtime-call",
+      "path": "/realtime/calls/{call_id}/reject",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "remove-group-user",
+      "path": "/organization/groups/{group_id}/users/{user_id}",
+      "method": "delete",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "remove-project-group",
+      "path": "/organization/projects/{project_id}/groups/{group_id}",
+      "method": "delete",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "resumeFineTuningJob",
+      "path": "/fine_tuning/jobs/{fine_tuning_job_id}/resume",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "retrieve-group",
+      "path": "/organization/groups/{group_id}",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "retrieve-group-role",
+      "path": "/organization/groups/{group_id}/roles/{role_id}",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "retrieve-group-user",
+      "path": "/organization/groups/{group_id}/users/{user_id}",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "retrieve-invite",
+      "path": "/organization/invites/{invite_id}",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "retrieve-organization-data-retention",
+      "path": "/organization/data_retention",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "retrieve-organization-spend-alert",
+      "path": "/organization/spend_alerts/{alert_id}",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "retrieve-project",
+      "path": "/organization/projects/{project_id}",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "retrieve-project-api-key",
+      "path": "/organization/projects/{project_id}/api_keys/{api_key_id}",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "retrieve-project-data-retention",
+      "path": "/organization/projects/{project_id}/data_retention",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "retrieve-project-group",
+      "path": "/organization/projects/{project_id}/groups/{group_id}",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "retrieve-project-group-role",
+      "path": "/projects/{project_id}/groups/{group_id}/roles/{role_id}",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "retrieve-project-hosted-tool-permissions",
+      "path": "/organization/projects/{project_id}/hosted_tool_permissions",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "retrieve-project-model-permissions",
+      "path": "/organization/projects/{project_id}/model_permissions",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "retrieve-project-role",
+      "path": "/projects/{project_id}/roles/{role_id}",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "retrieve-project-service-account",
+      "path": "/organization/projects/{project_id}/service_accounts/{service_account_id}",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "retrieve-project-spend-alert",
+      "path": "/organization/projects/{project_id}/spend_alerts/{alert_id}",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "retrieve-project-user",
+      "path": "/organization/projects/{project_id}/users/{user_id}",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "retrieve-project-user-role",
+      "path": "/projects/{project_id}/users/{user_id}/roles/{role_id}",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "retrieve-role",
+      "path": "/organization/roles/{role_id}",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "retrieve-user",
+      "path": "/organization/users/{user_id}",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "retrieve-user-role",
+      "path": "/organization/users/{user_id}/roles/{role_id}",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "retrieveBatch",
+      "path": "/batches/{batch_id}",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "retrieveFile",
+      "path": "/files/{file_id}",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "retrieveFineTuningJob",
+      "path": "/fine_tuning/jobs/{fine_tuning_job_id}",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "retrieveModel",
+      "path": "/models/{model}",
+      "method": "get",
+      "classification": "supported",
+      "rationale": "GET /models/{model} \u2014 single-model discovery, agreeing with the list.",
+      "owning_issue": 654,
+      "phase": "A (profile definition); wire implementation in later phases"
+    },
+    {
+      "operation_id": "retrieveVectorStoreFileContent",
+      "path": "/vector_stores/{vector_store_id}/files/{file_id}/content",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "runGrader",
+      "path": "/fine_tuning/alpha/graders/run",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "searchVectorStore",
+      "path": "/vector_stores/{vector_store_id}/search",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "submitToolOuputsToRun",
+      "path": "/threads/{thread_id}/runs/{run_id}/submit_tool_outputs",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "unassign-group-role",
+      "path": "/organization/groups/{group_id}/roles/{role_id}",
+      "method": "delete",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "unassign-project-group-role",
+      "path": "/projects/{project_id}/groups/{group_id}/roles/{role_id}",
+      "method": "delete",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "unassign-project-user-role",
+      "path": "/projects/{project_id}/users/{user_id}/roles/{role_id}",
+      "method": "delete",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "unassign-user-role",
+      "path": "/organization/users/{user_id}/roles/{role_id}",
+      "method": "delete",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "update-group",
+      "path": "/organization/groups/{group_id}",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "update-organization-data-retention",
+      "path": "/organization/data_retention",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "update-organization-spend-alert",
+      "path": "/organization/spend_alerts/{alert_id}",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "update-project-data-retention",
+      "path": "/organization/projects/{project_id}/data_retention",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "update-project-hosted-tool-permissions",
+      "path": "/organization/projects/{project_id}/hosted_tool_permissions",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "update-project-model-permissions",
+      "path": "/organization/projects/{project_id}/model_permissions",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "update-project-rate-limits",
+      "path": "/organization/projects/{project_id}/rate_limits/{rate_limit_id}",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "update-project-role",
+      "path": "/projects/{project_id}/roles/{role_id}",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "update-project-service-account",
+      "path": "/organization/projects/{project_id}/service_accounts/{service_account_id}",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "update-project-spend-alert",
+      "path": "/organization/projects/{project_id}/spend_alerts/{alert_id}",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "update-role",
+      "path": "/organization/roles/{role_id}",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "updateChatCompletion",
+      "path": "/chat/completions/{completion_id}",
+      "method": "post",
+      "classification": "unsupported",
+      "rationale": "Stored-completions management; R4 serving is stateless.",
+      "owning_issue": 654,
+      "phase": "A (classified out of the phase-1 profile)"
+    },
+    {
+      "operation_id": "updateConversation",
+      "path": "/conversations/{conversation_id}",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "updateEval",
+      "path": "/evals/{eval_id}",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "updateVectorStoreFileAttributes",
+      "path": "/vector_stores/{vector_store_id}/files/{file_id}",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "updateVoiceConsent",
+      "path": "/audio/voice_consents/{consent_id}",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "uploadCertificate",
+      "path": "/organization/certificates",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "usage-audio-speeches",
+      "path": "/organization/usage/audio_speeches",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "usage-audio-transcriptions",
+      "path": "/organization/usage/audio_transcriptions",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "usage-code-interpreter-sessions",
+      "path": "/organization/usage/code_interpreter_sessions",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "usage-completions",
+      "path": "/organization/usage/completions",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "usage-costs",
+      "path": "/organization/costs",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "usage-embeddings",
+      "path": "/organization/usage/embeddings",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "usage-file-search-calls",
+      "path": "/organization/usage/file_search_calls",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "usage-images",
+      "path": "/organization/usage/images",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "usage-moderations",
+      "path": "/organization/usage/moderations",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "usage-vector-stores",
+      "path": "/organization/usage/vector_stores",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "usage-web-search-calls",
+      "path": "/organization/usage/web_search_calls",
+      "method": "get",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    },
+    {
+      "operation_id": "validateGrader",
+      "path": "/fine_tuning/alpha/graders/validate",
+      "method": "post",
+      "classification": "not-applicable",
+      "rationale": "OpenAI platform operation outside the local R4 text-model profile (see #654 non-goals)."
+    }
+  ]
+}
