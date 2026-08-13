@@ -12,9 +12,13 @@ pub mod geometry;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod gpt2;
 pub mod progress;
+#[cfg(not(target_arch = "wasm32"))]
+pub mod teacher;
 
 #[cfg(not(target_arch = "wasm32"))]
 pub use gpt2::HuggingFaceGpt2Oracle;
+#[cfg(not(target_arch = "wasm32"))]
+pub use teacher::Teacher;
 pub struct Config {
     pub dim: usize,
     pub hidden: usize,

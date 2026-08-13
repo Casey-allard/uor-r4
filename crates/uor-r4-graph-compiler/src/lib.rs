@@ -391,7 +391,7 @@ pub fn observe(args: &[String]) -> Result<(), SourceUnavailable> {
             let o = uor_r4_model_source::LlamaOracle::load(ckpt.to_str().unwrap());
             Box::new(o)
         } else {
-            let o = uor_r4_model_source::HuggingFaceLlamaOracle::load_with_sequence_length(
+            let o = uor_r4_model_source::Teacher::load_with_sequence_length(
                 options.source.as_ref().unwrap(),
                 options.sequence_length,
             )?;

@@ -245,8 +245,7 @@ pub fn run_server(cli: Arc<ServerConfig>) {
     let start_time = Instant::now();
     let router = Arc::new(Mutex::new(UorR4Router::new(0.85)));
     let tless: Arc<Mutex<Option<tless_uor::TlessState>>> = Arc::new(Mutex::new(None));
-    let oracle: Arc<Mutex<Option<uor_r4_model_source::HuggingFaceLlamaOracle>>> =
-        Arc::new(Mutex::new(None));
+    let oracle: Arc<Mutex<Option<uor_r4_model_source::Teacher>>> = Arc::new(Mutex::new(None));
 
     let last_model = std::fs::read_to_string(".uor-models/last_model_name.txt").unwrap_or_default();
     let last_model_name = last_model.trim();
@@ -266,7 +265,7 @@ pub fn run_server(cli: Arc<ServerConfig>) {
             "[*] Loading full Llama teacher oracle from {} for attention-based generation...",
             path
         );
-        match uor_r4_model_source::HuggingFaceLlamaOracle::load(path) {
+        match uor_r4_model_source::Teacher::load(path) {
             Ok(o) => {
                 println!(
                     "[+] Successfully loaded full Llama teacher model ({})!",
@@ -745,7 +744,7 @@ fn load_serving_hf_tokenizer(dir: &std::path::Path) {
 }
 
 fn generate_attention_text(
-    oracle: &mut uor_r4_model_source::HuggingFaceLlamaOracle,
+    oracle: &mut uor_r4_model_source::Teacher,
     prompt: &str,
     max_tokens: usize,
 ) -> Option<(String, usize)> {
@@ -1265,7 +1264,7 @@ fn transformerless_tier(
 /// the readability gate — pinned attention modes get the same gate as the
 /// cascade tier.
 fn attention_tier(
-    oracle: &mut Option<uor_r4_model_source::HuggingFaceLlamaOracle>,
+    oracle: &mut Option<uor_r4_model_source::Teacher>,
     prompt: &str,
     max_tokens: usize,
     r4_attention: bool,
@@ -1329,7 +1328,7 @@ fn run_serving_cascade(
     router: &mut UorR4Router,
     r4g1: &Arc<Mutex<Option<R4g1State>>>,
     tless: &Arc<Mutex<Option<tless_uor::TlessState>>>,
-    oracle: &mut Option<uor_r4_model_source::HuggingFaceLlamaOracle>,
+    oracle: &mut Option<uor_r4_model_source::Teacher>,
     prompt: &str,
     identity: &str,
     max_tokens: usize,
@@ -2092,7 +2091,7 @@ fn handle_connection(
     r4g1: Arc<Mutex<Option<R4g1State>>>,
     r4g1_compile: Arc<Mutex<R4g1CompileStatus>>,
     hf_download: Arc<Mutex<HuggingFaceDownloadStatus>>,
-    oracle: Arc<Mutex<Option<uor_r4_model_source::HuggingFaceLlamaOracle>>>,
+    oracle: Arc<Mutex<Option<uor_r4_model_source::Teacher>>>,
     cli: Arc<ServerConfig>,
     start_time: Instant,
 ) {
@@ -2243,7 +2242,7 @@ fn handle_connection(
             .join("model.safetensors")
             .exists()
         {
-            match uor_r4_model_source::HuggingFaceLlamaOracle::load(&oracle_source) {
+            match uor_r4_model_source::Teacher::load(&oracle_source) {
                 Ok(o) => {
                     println!(
                         "[+] Successfully reloaded teacher oracle model for '{}'",
