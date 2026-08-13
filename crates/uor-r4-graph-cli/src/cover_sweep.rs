@@ -1252,19 +1252,32 @@ fn save_point_checkpoint(
         baseline: output.1.clone(),
         timing: output.2.clone(),
     };
-    let result = (|| -> std::io::Result<()> {
-        std::fs::create_dir_all(dir)?;
-        let tmp_path = dir.join(format!("point-{index:02}.json.tmp"));
-        let json = serde_json::to_vec_pretty(&checkpoint).map_err(std::io::Error::other)?;
-        std::fs::write(&tmp_path, &json)?;
-        std::fs::rename(&tmp_path, checkpoint_path(dir, index))?;
-        Ok(())
-    })();
-    if let Err(error) = result {
+    // Best-effort persistence, handled inline: each fallible step warns and
+    // returns rather than propagating an error. (The R5 audit forbids a
+    // shipped signature that returns an unsanctioned `Result`, so this does
+    // not wrap the I/O in a `Result`-typed helper — a persistence failure is
+    // not a limitation the model reports; the point was computed correctly.)
+    let warn = |what: &str, error: &dyn std::fmt::Display| {
         eprintln!(
-            "cover-sweep: WARNING could not persist checkpoint for point {index} ({}): {error}",
+            "cover-sweep: WARNING could not persist checkpoint for point {index} ({}): \
+             {what}: {error}",
             point.label
         );
+    };
+    let json = match serde_json::to_vec_pretty(&checkpoint) {
+        Ok(json) => json,
+        Err(error) => return warn("serialize", &error),
+    };
+    if let Err(error) = std::fs::create_dir_all(dir) {
+        return warn("create dir", &error);
+    }
+    let tmp_path = dir.join(format!("point-{index:02}.json.tmp"));
+    if let Err(error) = std::fs::write(&tmp_path, &json) {
+        return warn("write tmp", &error);
+    }
+    // Atomic rename into place: a reader sees a complete file or nothing.
+    if let Err(error) = std::fs::rename(&tmp_path, checkpoint_path(dir, index)) {
+        warn("rename", &error);
     }
 }
 
