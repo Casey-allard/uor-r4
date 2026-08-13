@@ -160,6 +160,8 @@
 use serde::Serialize;
 use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
+use std::sync::Mutex;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::Instant;
 
 use uor_r4_core::transformerless::compiler::{self, Corpus};
@@ -1109,6 +1111,110 @@ pub fn recommend(rows: &[SweepRow]) -> Option<Recommendation> {
     })
 }
 
+/// One point's report contributions: its row, the cover-independent TLA3
+/// baseline it observed (identical at every point), and its stage timings.
+type PointOutput = (SweepRow, GateCMetrics, PointTiming);
+
+/// Worker count for the point loop (#612), from `R4_SWEEP_JOBS` (default `1`
+/// = serial, for reproducibility/debugging). Clamped to the point count —
+/// more workers than points is wasted — and to at least one. The bound is a
+/// memory bound: at most this many points hold their large intermediate
+/// tables (cover, transitions, emissions, the ~15 MB artifact) at once.
+fn sweep_jobs(point_count: usize) -> usize {
+    let requested = std::env::var("R4_SWEEP_JOBS")
+        .ok()
+        .and_then(|value| value.trim().parse::<usize>().ok());
+    clamp_jobs(requested, point_count)
+}
+
+/// Pure worker-count policy (testable without the process-global env): default
+/// `1` (serial), then clamp to `[1, point_count]`.
+fn clamp_jobs(requested: Option<usize>, point_count: usize) -> usize {
+    requested.unwrap_or(1).clamp(1, point_count.max(1))
+}
+
+/// Run the sweep points and return their outputs in canonical grid order.
+///
+/// With `jobs == 1` this is the serial loop (the reproducible default). With
+/// `jobs > 1`, `jobs` OS worker threads pull points from a shared cursor and
+/// write each result into the point's fixed slot, so the returned vector is
+/// always in grid order regardless of completion order — the report and every
+/// artifact byte are identical to serial.
+///
+/// Determinism: each point's INTERNAL parallelism (the compile and Gate C
+/// Rayon passes) uses the global Rayon pool exactly as in serial mode, and
+/// those passes already reduce in input order, so a point computes the same
+/// bytes whether it runs alone or beside others — only the wall-clock overlap
+/// changes.
+///
+/// Oversubscription: the outer workers are OS threads, so their inner Rayon
+/// passes share the one global Rayon pool; with `jobs > 1` that pool is
+/// oversubscribed. This is bounded and deliberate — the per-point Gate C cost
+/// is small since #611, `jobs` is small, and the OS scheduler multiplexes the
+/// overlap. Keep `jobs` at or below the core count for the best wall-clock;
+/// peak memory is `jobs` concurrent points.
+fn run_points_bounded(
+    inputs: &SweepInputs,
+    configs: &[SweepPoint],
+    score_config: &ScoreConfig,
+    prepared: &PreparedScoring,
+    jobs: usize,
+) -> Vec<Option<PointOutput>> {
+    let n = configs.len();
+    let run_one = |index: usize| -> Option<PointOutput> {
+        eprintln!(
+            "cover-sweep: point {}/{} ({})...",
+            index + 1,
+            n,
+            configs[index].label
+        );
+        let (row, baseline, _bytes, timing) =
+            run_point(inputs, &configs[index], score_config, prepared)?;
+        eprintln!(
+            "cover-sweep: {} regions, {} bytes, Rule 1+2 top-1 {:.4}, {:.4} bits/token; \
+             dominant stage {}, point total {} ms",
+            row.regions.total,
+            row.artifact_bytes,
+            row.gate_c_rule12.top1_agreement,
+            row.gate_c_rule12.bits_per_token,
+            timing.dominant_stage,
+            timing.total_ms
+        );
+        Some((row, baseline, timing))
+    };
+
+    if jobs <= 1 {
+        return (0..n).map(run_one).collect();
+    }
+
+    // `jobs` OS workers pull the next point index from a shared cursor and
+    // drop the result into that index's slot; grid order is by construction.
+    let cursor = AtomicUsize::new(0);
+    let slots: Vec<Mutex<Option<Option<PointOutput>>>> = (0..n).map(|_| Mutex::new(None)).collect();
+    std::thread::scope(|scope| {
+        for _ in 0..jobs {
+            scope.spawn(|| {
+                loop {
+                    let index = cursor.fetch_add(1, Ordering::Relaxed);
+                    if index >= n {
+                        break;
+                    }
+                    let output = run_one(index);
+                    *slots[index].lock().expect("sweep slot mutex poisoned") = Some(output);
+                }
+            });
+        }
+    });
+    slots
+        .into_iter()
+        .map(|slot| {
+            slot.into_inner()
+                .expect("sweep slot mutex poisoned")
+                .expect("every point slot is filled exactly once")
+        })
+        .collect()
+}
+
 /// Run the full 9-point sweep over the shared inputs with the fixed
 /// scorer and assemble the report.
 pub fn run_sweep(
@@ -1117,9 +1223,6 @@ pub fn run_sweep(
     distinctiveness_weight: f64,
 ) -> Option<SweepReport> {
     let points = sweep_grid();
-    let mut rows = Vec::with_capacity(points.len());
-    let mut timings = Vec::with_capacity(points.len());
-    let mut tla3_baseline: Option<GateCMetrics> = None;
     // #610: build the cover-independent scoring context once, before the
     // point loop, then hand shared references to every point. `sweep_start`
     // begins after this so `total_ms` stays the point-loop wall time and the
@@ -1132,39 +1235,46 @@ pub fn run_sweep(
          (context/forward rows + vocab; shared across all {} points)",
         points.len()
     );
+    // The per-point configs in canonical grid order (the only per-point
+    // mutation is the #364 distinctiveness weight on the COVER config).
+    let configs: Vec<SweepPoint> = points
+        .iter()
+        .map(|point| {
+            let mut point = point.clone();
+            point
+                .config
+                .objective
+                .weights
+                .between_region_distinctiveness = distinctiveness_weight;
+            point
+        })
+        .collect();
+    // #612: run independent points with bounded parallelism (default serial).
+    // Results come back in grid order and are byte-identical to serial.
+    let jobs = sweep_jobs(configs.len());
+    if jobs > 1 {
+        eprintln!(
+            "cover-sweep: evaluating {} points with {jobs} bounded workers \
+             (peak memory ~{jobs} concurrent points; set R4_SWEEP_JOBS=1 for serial)",
+            configs.len()
+        );
+    }
     let sweep_start = Instant::now();
-    for (index, point) in points.iter().enumerate() {
-        let mut point = point.clone();
-        point
-            .config
-            .objective
-            .weights
-            .between_region_distinctiveness = distinctiveness_weight;
-        eprintln!(
-            "cover-sweep: point {}/{} ({})...",
-            index + 1,
-            points.len(),
-            point.label
-        );
-        let (row, baseline_metrics, _bytes, timing) =
-            run_point(inputs, &point, score_config, &prepared)?;
-        eprintln!(
-            "cover-sweep: {} regions, {} bytes, Rule 1+2 top-1 {:.4}, {:.4} bits/token",
-            row.regions.total,
-            row.artifact_bytes,
-            row.gate_c_rule12.top1_agreement,
-            row.gate_c_rule12.bits_per_token
-        );
-        eprintln!(
-            "cover-sweep: {} timing — dominant stage {}, point total {} ms",
-            point.label, timing.dominant_stage, timing.total_ms
-        );
+    let outputs = run_points_bounded(inputs, &configs, score_config, &prepared, jobs);
+    let sweep_total_ms = elapsed_ms(sweep_start);
+
+    // Reduce in grid order: the TLA3 baseline is taken from the first point
+    // (identical at every point), exactly as the serial `get_or_insert` did.
+    let mut rows = Vec::with_capacity(configs.len());
+    let mut timings = Vec::with_capacity(configs.len());
+    let mut tla3_baseline: Option<GateCMetrics> = None;
+    for output in outputs {
+        let (row, baseline_metrics, timing) = output?;
         tla3_baseline.get_or_insert(baseline_metrics);
         rows.push(row);
         timings.push(timing);
     }
     let tla3_baseline = tla3_baseline?;
-    let sweep_total_ms = elapsed_ms(sweep_start);
     let recommendation = recommend(&rows);
     Some(SweepReport {
         schema: SWEEP_REPORT_SCHEMA,
@@ -1190,7 +1300,7 @@ pub fn run_sweep(
         recommendation,
         points: rows,
         timing: SweepTiming {
-            thread_count: 1,
+            thread_count: jobs,
             gate_c_sample: std::env::var("R4_GATE_C_SAMPLE").ok(),
             preparation_ms,
             train_observations: inputs.train.len(),
@@ -1607,5 +1717,23 @@ mod tests {
             ..ScoreConfig::default()
         };
         assert_ne!(base, fingerprint_string("art-A", "corpus-B", 100, &other));
+    }
+
+    // #612: the worker-count policy. Default is serial; a request is clamped to
+    // [1, point_count] so a point never has more workers than there are points
+    // and an out-of-range request cannot drive unbounded parallelism.
+    #[test]
+    fn clamp_jobs_defaults_to_serial_and_bounds_the_request() {
+        // Unset / unparseable -> serial.
+        assert_eq!(clamp_jobs(None, 9), 1);
+        // In range -> honored.
+        assert_eq!(clamp_jobs(Some(2), 9), 2);
+        assert_eq!(clamp_jobs(Some(9), 9), 9);
+        // Zero or above the point count -> clamped into [1, point_count].
+        assert_eq!(clamp_jobs(Some(0), 9), 1);
+        assert_eq!(clamp_jobs(Some(64), 9), 9);
+        // Degenerate point counts stay at one worker.
+        assert_eq!(clamp_jobs(Some(4), 0), 1);
+        assert_eq!(clamp_jobs(Some(4), 1), 1);
     }
 }
