@@ -1,0 +1,16 @@
+{
+  "model_type": "gpt2",
+  "architectures": [
+    "GPT2LMHeadModel"
+  ],
+  "activation_function": "gelu_new",
+  "layer_norm_epsilon": 1e-05,
+  "n_embd": 32,
+  "n_head": 4,
+  "n_layer": 2,
+  "n_positions": 16,
+  "n_ctx": 16,
+  "vocab_size": 24,
+  "bos_token_id": 0,
+  "eos_token_id": 0
+}

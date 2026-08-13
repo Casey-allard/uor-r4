@@ -971,3 +971,82 @@ cargo run --release -- compare-report
 
 See [COMPARISON.md](transformerless/COMPARISON.md) for the measured quality
 and throughput evidence.
+
+
+## Source-model architecture families (#607)
+
+The compiler talks to a source model through one interface: the
+`TeacherOracle` two-surface trait (`RepresentationSource` for the embedding
+table, `BehaviorSource` for a sequential next-token forward), plus the
+optional compiled surfaces (`embedding` projection, `hidden_state`,
+`top_k`, `trace_capture_*`). Every architecture-specific fact — tensor
+names, normalization, position handling, activation, QKV packing, weight
+orientation — is confined to an adapter inside `uor-r4-model-source`. A
+mechanical boundary test (`tests/architecture_boundary.rs`) fails if a
+GPT-2 family token appears in any other crate.
+
+Two adapters ship:
+
+- **`huggingface-llama`** (`HuggingFaceLlamaOracle`): the Llama family
+  (SmolLM2, etc.) — RMSNorm, RoPE, SwiGLU, GQA, split q/k/v projections,
+  `model.layers.*` naming.
+- **`huggingface-gpt2`** (`HuggingFaceGpt2Oracle`, #607): the first
+  genuinely non-Llama adapter. Pinned source `openai-community/gpt2`
+  (revision `607a30d783dfa663caf39e06633721c8d4cfcd7e`, MIT, source κ
+  `blake3:3bca1b7f…`, `models/gpt2-124m.json`). It differs from Llama on
+  every axis the boundary cares about: LayerNorm **with a learned bias**
+  (not RMSNorm), **learned absolute** position embeddings (`wpe`, no RoPE),
+  the `gelu_new` activation, a **fused `c_attn`** QKV projection with Conv1D
+  `[in, out]` weight orientation, bare `wte`/`wpe`/`h.<l>.*`/`ln_f` tensor
+  names, and tied embeddings.
+
+### The generalized conformance surface
+
+The #599 fail-closed `AdapterFeatures`/`validate_config` gate was extended
+(not duplicated) so a non-Llama config can be declared and validated through
+the same path: a `NormKind` (RMSNorm vs LayerNorm — selects the epsilon
+key), a `PositionKind` (RoPE vs learned-absolute — gates the `rope_*`
+checks), and a `ConfigKeys` map so the validator reads each family's own
+`config.json` spellings (`n_embd`/`n_head`/`layer_norm_epsilon`/
+`activation_function` for GPT-2 vs `hidden_size`/`num_attention_heads`/
+`rms_norm_eps`/`hidden_act` for Llama). The Llama declaration and behaviour
+are byte-unchanged. A GPT-2 config offered to the Llama adapter (or vice
+versa) is refused at the `model_type` gate before any weight is read.
+
+Tokenizer: GPT-2 reuses the existing byte-level BPE adapter family
+(`hf-byte-bpe/1`) with its own `vocab.json` + `merges.txt`; no new tokenizer
+family is introduced. Geometry: the source width 768 projects to the
+compiled width 288 through the same #600 `bucket-average/1` projection the
+Llama adapter uses.
+
+### Validation
+
+The GPT-2 executor is validated against an **independent numpy GPT-2
+reference**, so "faithful" is a measured claim rather than self-consistency:
+
+- Tiny generated fixture (`scripts/gen_gpt2_tiny_fixture.py`, committed
+  under `tests/fixtures/gpt2-tiny/`): across three prompts the Rust executor
+  reproduces every per-layer residual, the final hidden state, and the full
+  logit vector to worst |Δ| ≈ 1e-8…1e-6 (tolerances 2e-3/3e-3).
+- Real 124M canary (`scripts/gen_gpt2_real_golden.py`), **presence-gated**:
+  when the 548 MB snapshot is present the oracle reproduces the reference to
+  final-hidden |Δ| ≈ 3e-5 with exact argmax and top-5 token-set agreement;
+  when absent (CI) it reports UNAVAILABLE and is a no-op success, never a
+  silent skip.
+
+**Claim discipline.** What is established: the pinned GPT-2 source runs the
+adapter → oracle → `TeacherOracle` boundary end-to-end under its declared
+features, faithfully to an independent reference, with all family logic
+confined to the adapter crate. This is **not** a claim of architecture
+universality.
+
+### Follow-up: compile-path dispatch
+
+Emitting a *compiled* R4 artifact from a GPT-2 source is a separate step.
+The graph-cli/graph-compiler/server compile entry points currently bind the
+concrete `HuggingFaceLlamaOracle` type (≈9 sites) and call its Llama-only
+inherent methods, rather than dispatching over `TeacherOracle` by
+architecture. Wiring GPT-2 through `compile`/`observe`/`score` therefore
+requires generalizing those call sites to the trait plus an
+architecture-keyed teacher factory — tracked as the #607 follow-up. The
+adapter and its parity evidence in this change do not depend on that wiring.

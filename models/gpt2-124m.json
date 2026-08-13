@@ -1,0 +1,19 @@
+{
+  "repository": "openai-community/gpt2",
+  "revision": "607a30d783dfa663caf39e06633721c8d4cfcd7e",
+  "source_kappa": "blake3:3bca1b7f6c327daecafc16e52d1319375299354e35413fb4e18d24e59b77ce06",
+  "source_bytes": 548105171,
+  "source_kappa_scope": "model.safetensors",
+  "license": "MIT",
+  "architecture": "GPT2LMHeadModel",
+  "weight_format": "safetensors",
+  "hidden_size": 768,
+  "intermediate_size": 3072,
+  "vocabulary_size": 50257,
+  "layers": 12,
+  "attention_heads": 12,
+  "key_value_heads": 12,
+  "bos_token_id": 50256,
+  "eos_token_id": 50256,
+  "source_directory": ".uor-models/sources/gpt2-124m"
+}

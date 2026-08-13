@@ -140,6 +140,90 @@ pub enum ChatTemplatePolicy {
     NotInterpreted,
 }
 
+/// Which normalization the source executor computes — and, with it, which
+/// `config.json` key carries the normalization epsilon. The two are
+/// distinct executors, never silently interchanged.
+#[cfg(not(target_arch = "wasm32"))]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum NormKind {
+    /// RMSNorm (Llama family): scale-only, epsilon from `rms_norm_eps`.
+    RmsNorm,
+    /// LayerNorm with a learned bias (GPT-2 family): mean-centred, scale
+    /// and shift, epsilon from `layer_norm_epsilon`.
+    LayerNorm,
+}
+
+/// How the source executor injects position — RoPE rotation applied inside
+/// attention, or a learned absolute position-embedding table added to the
+/// token embeddings. Declared so a RoPE config can never be run through a
+/// learned-absolute executor, or vice versa.
+#[cfg(not(target_arch = "wasm32"))]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PositionKind {
+    /// Rotary position embeddings (Llama family): no position table; the
+    /// `rope_*` configuration space applies.
+    Rope,
+    /// Learned absolute position embeddings (GPT-2 family): a
+    /// `[max_position, hidden]` table; no `rope_*` configuration is
+    /// interpreted, and any present, non-null `rope_*` key is rejected.
+    LearnedAbsolute,
+}
+
+/// The `config.json` key names a source family uses for the geometry and
+/// activation fields [`AdapterFeatures::validate_config`] inspects.
+/// Different decoder families spell the same geometry differently (Llama
+/// `hidden_size`/`num_attention_heads`/`max_position_embeddings`; GPT-2
+/// `n_embd`/`n_head`/`n_positions`), so the validator reads through this
+/// map rather than hard-coding one family's spellings. `key_value_heads`
+/// is `None` for a plain multi-head family with no separate KV count.
+#[cfg(not(target_arch = "wasm32"))]
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ConfigKeys {
+    /// Activation-function key (`hidden_act` / `activation_function`).
+    pub activation: &'static str,
+    /// The activation value assumed when the activation key is absent.
+    pub default_activation: &'static str,
+    /// Normalization-epsilon key (`rms_norm_eps` / `layer_norm_epsilon`).
+    pub norm_epsilon: &'static str,
+    /// Hidden-width key (`hidden_size` / `n_embd`).
+    pub hidden_size: &'static str,
+    /// Attention-head-count key (`num_attention_heads` / `n_head`).
+    pub attention_heads: &'static str,
+    /// Key-value-head-count key, when the family declares one separately.
+    pub key_value_heads: Option<&'static str>,
+    /// Maximum-position key (`max_position_embeddings` / `n_positions`).
+    pub max_position: &'static str,
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+impl ConfigKeys {
+    /// Llama-family `config.json` spellings.
+    pub const fn llama() -> Self {
+        Self {
+            activation: "hidden_act",
+            default_activation: "silu",
+            norm_epsilon: "rms_norm_eps",
+            hidden_size: "hidden_size",
+            attention_heads: "num_attention_heads",
+            key_value_heads: Some("num_key_value_heads"),
+            max_position: "max_position_embeddings",
+        }
+    }
+
+    /// GPT-2-family `config.json` spellings.
+    pub const fn gpt2() -> Self {
+        Self {
+            activation: "activation_function",
+            default_activation: "gelu_new",
+            norm_epsilon: "layer_norm_epsilon",
+            hidden_size: "n_embd",
+            attention_heads: "n_head",
+            key_value_heads: None,
+            max_position: "n_positions",
+        }
+    }
+}
+
 /// The typed feature declaration an adapter constructs (#599): exactly the
 /// configuration space its executor interprets faithfully. Oracle
 /// construction validates the parsed `config.json` against this declaration
@@ -183,6 +267,12 @@ pub struct AdapterFeatures {
     pub scalar_token_ids: bool,
     /// The chat-template stance.
     pub chat_template: ChatTemplatePolicy,
+    /// Which normalization the executor computes (selects the epsilon key).
+    pub norm_kind: NormKind,
+    /// How position is injected (RoPE vs learned absolute).
+    pub position_kind: PositionKind,
+    /// The `config.json` key spellings this family uses.
+    pub keys: ConfigKeys,
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -209,6 +299,45 @@ impl AdapterFeatures {
             grouped_query_attention: true,
             scalar_token_ids: true,
             chat_template: ChatTemplatePolicy::NotInterpreted,
+            norm_kind: NormKind::RmsNorm,
+            position_kind: PositionKind::Rope,
+            keys: ConfigKeys::llama(),
+        }
+    }
+
+    /// The declaration of [`HuggingFaceGpt2Oracle`](crate::HuggingFaceGpt2Oracle):
+    /// GPT-2-family Safetensors with a `gelu_new` MLP, LayerNorm (with a
+    /// learned bias) at the executor's fixed epsilon 1e-5, learned absolute
+    /// position embeddings (no RoPE), biased attention and MLP projections,
+    /// tied embeddings, plain multi-head attention (no separate KV count),
+    /// and scalar BOS/EOS ids. Chat templates are never interpreted by the
+    /// source executor. Fused `c_attn` QKV and Conv1D weight orientation are
+    /// a weight-layout concern validated at the #598 ingest boundary by
+    /// tensor shape, not a `config.json` feature.
+    pub fn huggingface_gpt2() -> Self {
+        Self {
+            adapter_name: "huggingface-gpt2".to_owned(),
+            adapter_version: env!("CARGO_PKG_VERSION").to_owned(),
+            model_types: vec!["gpt2".to_owned()],
+            activations: vec!["gelu_new".to_owned()],
+            norm_epsilons: vec![1e-5],
+            // No RoPE: position_kind is LearnedAbsolute, so rope_modes and
+            // rope_theta are inert; any present rope_* key is rejected.
+            rope_modes: vec![],
+            rope_theta: (1.0, 1e8),
+            rope_scaling: false,
+            // GPT-2 executes biased c_attn/c_proj and c_fc/c_proj.
+            attention_bias: true,
+            mlp_bias: true,
+            // GPT-2 ties wte and the lm-head; an untied checkpoint (a
+            // separate lm_head.weight) is tolerated by the executor too.
+            tied_embeddings: EmbeddingTying::Either,
+            grouped_query_attention: false,
+            scalar_token_ids: true,
+            chat_template: ChatTemplatePolicy::NotInterpreted,
+            norm_kind: NormKind::LayerNorm,
+            position_kind: PositionKind::LearnedAbsolute,
+            keys: ConfigKeys::gpt2(),
         }
     }
 
@@ -247,17 +376,23 @@ impl AdapterFeatures {
 
     fn check_activation(&self, config: &serde_json::Value) -> Result<(), SourceUnavailable> {
         let declared = format!("one of {:?}", self.activations);
-        match config.get("hidden_act") {
-            // Absent: the Hugging Face Llama default is silu; the default
-            // itself must be declared.
+        match config.get(self.keys.activation) {
+            // Absent: the family default applies and must itself be declared.
             None => {
-                if self.activations.iter().any(|known| known == "silu") {
+                if self
+                    .activations
+                    .iter()
+                    .any(|known| known == self.keys.default_activation)
+                {
                     Ok(())
                 } else {
                     Err(unsupported(
                         AdapterFeature::Activation,
                         declared,
-                        &serde_json::Value::String("silu (default)".to_owned()),
+                        &serde_json::Value::String(format!(
+                            "{} (default)",
+                            self.keys.default_activation
+                        )),
                     ))
                 }
             }
@@ -270,7 +405,7 @@ impl AdapterFeatures {
 
     fn check_norm_epsilon(&self, config: &serde_json::Value) -> Result<(), SourceUnavailable> {
         let declared = format!("exactly one of {:?}", self.norm_epsilons);
-        let Some(value) = config.get("rms_norm_eps") else {
+        let Some(value) = config.get(self.keys.norm_epsilon) else {
             // Absent: the typed parse defaults to 1e-5, which must itself
             // be declared.
             return if self.norm_epsilons.contains(&1e-5) {
@@ -290,6 +425,23 @@ impl AdapterFeatures {
     }
 
     fn check_rope(&self, config: &serde_json::Value) -> Result<(), SourceUnavailable> {
+        // A learned-absolute-position executor interprets no RoPE at all;
+        // any present, non-null rope_* key is a focused rejection rather
+        // than a silently-ignored field.
+        if let PositionKind::LearnedAbsolute = self.position_kind {
+            for key in ["rope_scaling", "rope_interleaved", "rope_theta"] {
+                if let Some(value) = config.get(key) {
+                    if !value.is_null() {
+                        return Err(unsupported(
+                            AdapterFeature::RopeMode,
+                            "no RoPE (learned absolute positions); no rope_* keys".to_owned(),
+                            value,
+                        ));
+                    }
+                }
+            }
+            return Ok(());
+        }
         if let Some(value) = config.get("rope_scaling") {
             if !value.is_null() && !self.rope_scaling {
                 return Err(unsupported(
@@ -373,12 +525,19 @@ impl AdapterFeatures {
         // Presence of these required fields is the typed parse's concern;
         // this check validates the geometry *relationships* when present.
         let read = |field: &str| config.get(field).and_then(serde_json::Value::as_u64);
-        let (Some(hidden), Some(heads), Some(kv_heads)) = (
-            read("hidden_size"),
-            read("num_attention_heads"),
-            read("num_key_value_heads"),
-        ) else {
+        let (Some(hidden), Some(heads)) =
+            (read(self.keys.hidden_size), read(self.keys.attention_heads))
+        else {
             return Ok(());
+        };
+        // A family with a separate KV-head count (GQA/MQA) reads it; a plain
+        // multi-head family (no KV key) has kv_heads == attention_heads.
+        let kv_heads = match self.keys.key_value_heads {
+            Some(key) => match read(key) {
+                Some(value) => value,
+                None => return Ok(()),
+            },
+            None => heads,
         };
         let declared = if self.grouped_query_attention {
             "num_key_value_heads dividing num_attention_heads (GQA/MQA), \
@@ -1204,5 +1363,138 @@ pub fn run_fixture_file(
             "conformance fixture {} is not a usable fixture: {error}",
             fixture_path.display()
         )),
+    }
+}
+
+// ---------------------------------------------------------------------------
+// #607 GPT-2 adapter-feature tests: the generalized fail-closed surface must
+// accept a real GPT-2 config, keep the Llama path unchanged, and refuse the
+// wrong architecture and each out-of-declaration GPT-2 feature by name —
+// none of which touches an executor (validate_config is pure over config).
+// ---------------------------------------------------------------------------
+
+#[cfg(all(test, not(target_arch = "wasm32")))]
+mod gpt2_feature_tests {
+    use super::*;
+
+    /// The pinned openai-community/gpt2 config fields validate_config reads.
+    fn gpt2_config() -> serde_json::Value {
+        serde_json::json!({
+            "model_type": "gpt2",
+            "activation_function": "gelu_new",
+            "layer_norm_epsilon": 1e-5,
+            "n_embd": 768,
+            "n_head": 12,
+            "n_layer": 12,
+            "n_positions": 1024,
+            "n_ctx": 1024,
+            "vocab_size": 50257,
+            "bos_token_id": 50256,
+            "eos_token_id": 50256
+        })
+    }
+
+    /// A SmolLM2-shaped Llama config (GQA, RoPE, RMSNorm).
+    fn llama_config() -> serde_json::Value {
+        serde_json::json!({
+            "model_type": "llama",
+            "hidden_act": "silu",
+            "rms_norm_eps": 1e-5,
+            "hidden_size": 576,
+            "num_attention_heads": 9,
+            "num_key_value_heads": 3,
+            "max_position_embeddings": 8192,
+            "vocab_size": 49152,
+            "bos_token_id": 1,
+            "eos_token_id": 2
+        })
+    }
+
+    fn rejected_feature(result: Result<(), SourceUnavailable>) -> AdapterFeature {
+        match result.expect_err("expected a focused rejection").kind {
+            SourceIngestKind::UnsupportedConfigFeature { feature, .. } => feature,
+            other => panic!("expected UnsupportedConfigFeature, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn gpt2_config_accepted_by_gpt2_features() {
+        AdapterFeatures::huggingface_gpt2()
+            .validate_config(&gpt2_config())
+            .expect("real GPT-2 config must validate under the GPT-2 declaration");
+    }
+
+    #[test]
+    fn llama_config_still_accepted_by_llama_features() {
+        // The generalization must not change the Llama path.
+        AdapterFeatures::huggingface_llama()
+            .validate_config(&llama_config())
+            .expect("Llama config must still validate under the Llama declaration");
+    }
+
+    #[test]
+    fn cross_family_configs_rejected_at_model_type() {
+        assert_eq!(
+            rejected_feature(AdapterFeatures::huggingface_llama().validate_config(&gpt2_config())),
+            AdapterFeature::ModelType,
+            "a GPT-2 config must be refused by the Llama adapter"
+        );
+        assert_eq!(
+            rejected_feature(AdapterFeatures::huggingface_gpt2().validate_config(&llama_config())),
+            AdapterFeature::ModelType,
+            "a Llama config must be refused by the GPT-2 adapter"
+        );
+    }
+
+    #[test]
+    fn gpt2_wrong_activation_rejected() {
+        let mut c = gpt2_config();
+        c["activation_function"] = serde_json::json!("relu");
+        assert_eq!(
+            rejected_feature(AdapterFeatures::huggingface_gpt2().validate_config(&c)),
+            AdapterFeature::Activation
+        );
+    }
+
+    #[test]
+    fn gpt2_wrong_layernorm_epsilon_rejected() {
+        let mut c = gpt2_config();
+        c["layer_norm_epsilon"] = serde_json::json!(1e-4);
+        assert_eq!(
+            rejected_feature(AdapterFeatures::huggingface_gpt2().validate_config(&c)),
+            AdapterFeature::NormEpsilon
+        );
+    }
+
+    #[test]
+    fn gpt2_rope_key_rejected_under_learned_absolute() {
+        // A rope_* key on a learned-absolute executor is a focused RopeMode
+        // rejection, never a silently-ignored field.
+        let mut c = gpt2_config();
+        c["rope_theta"] = serde_json::json!(10000.0);
+        assert_eq!(
+            rejected_feature(AdapterFeatures::huggingface_gpt2().validate_config(&c)),
+            AdapterFeature::RopeMode
+        );
+    }
+
+    #[test]
+    fn gpt2_non_integral_head_geometry_rejected() {
+        let mut c = gpt2_config();
+        c["n_head"] = serde_json::json!(5); // 768 / 5 is not integral
+        assert_eq!(
+            rejected_feature(AdapterFeatures::huggingface_gpt2().validate_config(&c)),
+            AdapterFeature::HeadGeometry
+        );
+    }
+
+    #[test]
+    fn gpt2_out_of_vocab_token_rejected() {
+        let mut c = gpt2_config();
+        c["eos_token_id"] = serde_json::json!(60000); // >= vocab_size 50257
+        assert_eq!(
+            rejected_feature(AdapterFeatures::huggingface_gpt2().validate_config(&c)),
+            AdapterFeature::TokenPolicy
+        );
     }
 }

@@ -9,7 +9,12 @@
 pub mod attention;
 pub mod conformance;
 pub mod geometry;
+#[cfg(not(target_arch = "wasm32"))]
+pub mod gpt2;
 pub mod progress;
+
+#[cfg(not(target_arch = "wasm32"))]
+pub use gpt2::HuggingFaceGpt2Oracle;
 pub struct Config {
     pub dim: usize,
     pub hidden: usize,
@@ -1333,7 +1338,7 @@ pub trait TeacherOracle: RepresentationSource + BehaviorSource {
 /// `State` retains after `step`. Softmax is computed in the same f32
 /// max-subtracted form the corpus generator uses; ordering is canonical
 /// (probability descending, token id ascending on ties).
-fn top_k_from_logits(
+pub(crate) fn top_k_from_logits(
     logits: &[f32],
     k: usize,
     out: &mut [(u32, f32)],
