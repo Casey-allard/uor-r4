@@ -203,6 +203,33 @@ impl AttentionOperatorParams {
             score_accumulation: "per-byte-popcount-table-add-left-fold".to_owned(),
         }
     }
+
+    /// The declared parameters of `learned-absolute-source-attention/1`
+    /// (#668) — the ACTUAL computation of the GPT-2 executor
+    /// (`crate::gpt2::Gpt2Model::layer_forward`):
+    ///
+    /// - `head_selection = "multi-head-identity-kv-head-equals-query-head"`
+    ///   — GPT-2 is plain multi-head (kv heads == query heads); head `h`
+    ///   reads its own `h`-th head slice, with no grouped-query sharing.
+    /// - `score_scale = "multiply-by-reciprocal-sqrt-full-head-size"` —
+    ///   the executor precomputes `scale = 1/sqrt(head_size)` once and
+    ///   multiplies every score by it, distinct from the standard
+    ///   operator's per-score divide by `sqrt(head_size)`.
+    /// - `score_width_policy = "full-head-width"` — every head dimension
+    ///   enters the dot product.
+    /// - `remainder_policy = "none-every-head-dimension-scored"` — there
+    ///   is no unscored remainder at any head width.
+    /// - `score_accumulation = "sequential-f32-left-fold"` — one running
+    ///   f32 sum over `i = 0..head_size` in order.
+    pub fn learned_absolute() -> Self {
+        Self {
+            head_selection: "multi-head-identity-kv-head-equals-query-head".to_owned(),
+            score_scale: "multiply-by-reciprocal-sqrt-full-head-size".to_owned(),
+            score_width_policy: "full-head-width".to_owned(),
+            remainder_policy: "none-every-head-dimension-scored".to_owned(),
+            score_accumulation: "sequential-f32-left-fold".to_owned(),
+        }
+    }
 }
 
 /// The typed, versioned record of one source attention operator (#602).
@@ -287,6 +314,16 @@ impl AttentionOperatorSpec {
     /// `uor-r4-graph-certify::route_attention` (reference) and
     /// `uor-r4-graph-runtime::route_attention` (packed lowering).
     pub const R4_ROUTE_VERSION: u32 = 1;
+    /// Registry id of the GPT-2-family source operator (#668): a scaled
+    /// dot product with the SAME max-subtracted softmax as the standard
+    /// operator, but learned absolute positions (no RoPE) and GPT-2's
+    /// fused-`c_attn`/`c_proj` Conv1D projections. Named for its
+    /// positional action, the field that distinguishes it from
+    /// `standard-source-attention`.
+    pub const LEARNED_ABSOLUTE_ID: &'static str = "learned-absolute-source-attention";
+    /// Registry version of the learned-absolute operator currently
+    /// computed by the GPT-2 executor (`crate::gpt2::Gpt2Model`).
+    pub const LEARNED_ABSOLUTE_VERSION: u32 = 1;
 
     /// The `standard-source-attention/1` record — the operator the
     /// default-off `r4_attention` switch has always computed.
@@ -373,6 +410,54 @@ impl AttentionOperatorSpec {
             permitted_operation_class: "deployed-integer-xor-popcount-add-compare-table-read"
                 .to_owned(),
             params: AttentionOperatorParams::r4_route_attention(),
+            implementation_digest: String::new(),
+        };
+        record.implementation_digest = record.declared_digest();
+        record
+    }
+
+    /// The `learned-absolute-source-attention/1` record (#668) — the
+    /// GPT-2-family source operator computed by the executor in
+    /// [`crate::gpt2`] (`Gpt2Model::layer_forward`), the way
+    /// `r4-route-attention/1`'s record names an operator whose
+    /// implementation lives outside this module. Truthful inventory of
+    /// what the GPT-2 executor computes, read from `layer_forward` (the
+    /// presence-gated numpy canary and the tiny-fixture parity test pin
+    /// the arithmetic):
+    ///
+    /// - `projections`: the fused `c_attn` Conv1D `[n_embd, 3·n_embd]`
+    ///   applied as `x @ W + b` (no transpose), split into q/k/v thirds,
+    ///   WITH bias — unlike Llama's separate biasless `wq`/`wk`/`wv`.
+    /// - `positional_action`: NONE on q/k before scoring. GPT-2 adds a
+    ///   learned absolute position embedding (`wpe`) to the input
+    ///   residual; no rotation touches q or k, unlike RoPE. This is the
+    ///   field that makes reusing `standard-source-attention/1` a false
+    ///   record.
+    /// - `compatibility_relation`: `scaled-dot-product`, a single
+    ///   sequential f32 left fold over the FULL head width, scaled by a
+    ///   precomputed `1/sqrt(head_size)` (multiply, not divide).
+    /// - `selector_normalization`: the SAME max-subtracted softmax the
+    ///   standard operator uses.
+    /// - `value_aggregation`: position-ascending weighted sum of values.
+    /// - `output_projection`: the `c_proj` Conv1D `[n_embd, n_embd]` with
+    ///   bias.
+    /// - head selection is plain multi-head (kv heads == query heads);
+    ///   no grouped-query arithmetic exists.
+    pub fn learned_absolute_source_attention() -> Self {
+        let mut record = Self {
+            id: Self::LEARNED_ABSOLUTE_ID.to_owned(),
+            version: Self::LEARNED_ABSOLUTE_VERSION,
+            projections: "fused-c-attn-conv1d-qkv-with-bias".to_owned(),
+            positional_action: "none-learned-absolute-positions-added-to-input-embeddings"
+                .to_owned(),
+            compatibility_relation: "scaled-dot-product".to_owned(),
+            selector_normalization: "softmax-max-subtracted-exp-then-sum-normalize".to_owned(),
+            value_aggregation: "position-ascending-weighted-sum-of-values".to_owned(),
+            output_projection: "dense-c-proj-conv1d-with-bias".to_owned(),
+            runtime_state: "growing-kv-cache-full-prefix".to_owned(),
+            tie_breaking: "first-maximum-softmax-stabilizer-value-identical".to_owned(),
+            permitted_operation_class: "host-source-f32".to_owned(),
+            params: AttentionOperatorParams::learned_absolute(),
             implementation_digest: String::new(),
         };
         record.implementation_digest = record.declared_digest();
@@ -469,6 +554,10 @@ pub fn operator_spec(
         (AttentionOperatorSpec::R4_ROUTE_ID, AttentionOperatorSpec::R4_ROUTE_VERSION) => {
             Ok(AttentionOperatorSpec::r4_route_attention_v1())
         }
+        (
+            AttentionOperatorSpec::LEARNED_ABSOLUTE_ID,
+            AttentionOperatorSpec::LEARNED_ABSOLUTE_VERSION,
+        ) => Ok(AttentionOperatorSpec::learned_absolute_source_attention()),
         _ => Err(crate::SourceIngestKind::UnknownAttentionOperator {
             id: id.to_owned(),
             version,
@@ -879,6 +968,7 @@ mod tests {
             AttentionOperatorSpec::standard(),
             AttentionOperatorSpec::experimental_r4(),
             AttentionOperatorSpec::r4_route_attention_v1(),
+            AttentionOperatorSpec::learned_absolute_source_attention(),
         ] {
             let json = serde_json::to_string(&record).expect("serializes");
             let back: AttentionOperatorSpec = serde_json::from_str(&json).expect("deserializes");
@@ -931,6 +1021,15 @@ mod tests {
         )
         .expect("registered target route operator");
         assert_eq!(target, AttentionOperatorSpec::r4_route_attention_v1());
+        let learned = operator_spec(
+            AttentionOperatorSpec::LEARNED_ABSOLUTE_ID,
+            AttentionOperatorSpec::LEARNED_ABSOLUTE_VERSION,
+        )
+        .expect("registered learned-absolute operator");
+        assert_eq!(
+            learned,
+            AttentionOperatorSpec::learned_absolute_source_attention()
+        );
     }
 
     #[test]
@@ -984,10 +1083,70 @@ mod tests {
     }
 
     #[test]
+    fn learned_absolute_canonical_serialization_is_byte_stable() {
+        // #668: the GPT-2-family operator's declared identity, pinned
+        // byte-for-byte. Any drift in a field token is a version bump,
+        // never a silent edit.
+        let learned = AttentionOperatorSpec::learned_absolute_source_attention();
+        let pinned = "uor-r4-attention-operator/1\n\
+             id=learned-absolute-source-attention\n\
+             version=1\n\
+             projections=fused-c-attn-conv1d-qkv-with-bias\n\
+             positional_action=none-learned-absolute-positions-added-to-input-embeddings\n\
+             compatibility_relation=scaled-dot-product\n\
+             selector_normalization=softmax-max-subtracted-exp-then-sum-normalize\n\
+             value_aggregation=position-ascending-weighted-sum-of-values\n\
+             output_projection=dense-c-proj-conv1d-with-bias\n\
+             runtime_state=growing-kv-cache-full-prefix\n\
+             tie_breaking=first-maximum-softmax-stabilizer-value-identical\n\
+             permitted_operation_class=host-source-f32\n\
+             param.head_selection=multi-head-identity-kv-head-equals-query-head\n\
+             param.score_scale=multiply-by-reciprocal-sqrt-full-head-size\n\
+             param.score_width_policy=full-head-width\n\
+             param.remainder_policy=none-every-head-dimension-scored\n\
+             param.score_accumulation=sequential-f32-left-fold\n";
+        assert_eq!(learned.canonical_bytes(), pinned.as_bytes());
+        let expected = format!("blake3:{}", blake3::hash(pinned.as_bytes()).to_hex());
+        assert_eq!(learned.implementation_digest, expected);
+        assert_eq!(learned.declared_digest(), expected);
+
+        // It shares the standard operator's compatibility relation and
+        // softmax selector, but is a DISTINCT identity: the positional
+        // action and projections differ, so the declared digest differs.
+        let standard = AttentionOperatorSpec::standard();
+        assert_eq!(
+            learned.compatibility_relation,
+            standard.compatibility_relation
+        );
+        assert_eq!(
+            learned.selector_normalization,
+            standard.selector_normalization
+        );
+        assert_ne!(
+            learned.positional_action, standard.positional_action,
+            "GPT-2 uses learned absolute positions, not RoPE"
+        );
+        assert_ne!(
+            learned.implementation_digest, standard.implementation_digest,
+            "learned-absolute is a distinct operator identity"
+        );
+        assert_ne!(
+            learned.implementation_digest,
+            AttentionOperatorSpec::experimental_r4().implementation_digest
+        );
+        // Rebuilding reproduces the record bit-for-bit.
+        assert_eq!(
+            learned,
+            AttentionOperatorSpec::learned_absolute_source_attention()
+        );
+    }
+
+    #[test]
     fn registry_refuses_unknown_id_and_version_by_name() {
         for (id, version) in [
             ("standard-source-attention", 2u32),
             ("experimental-r4-source-attention", 9),
+            ("learned-absolute-source-attention", 2),
             ("mystery-attention", 1),
         ] {
             let error =

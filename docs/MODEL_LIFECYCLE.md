@@ -315,10 +315,13 @@ change must arrive as a new registry version). A versioned registry maps
 pair fails closed with the focused
 `SourceIngestKind::UnknownAttentionOperator` rather than being guessed.
 
-**Truthful operator inventory.** Two operators are registered, and they
-are exactly the two branches the teacher's `r4_attention` switch selects
-between (`attention::operator_for_r4_switch` is the one boundary mapping
-from the legacy boolean to the versioned identity):
+**Truthful operator inventory.** Two source operators map to the
+teacher's `r4_attention` switch — they are exactly the two branches it
+selects between (`attention::operator_for_r4_switch` is the one boundary
+mapping from the legacy boolean to the versioned identity); a third
+source operator (`learned-absolute-source-attention/1`, #668) is
+registered for the GPT-2 family and selected by architecture rather than
+the switch:
 
 - `standard-source-attention/1` (the switch off — the default
   everywhere): dense per-layer f32 `wq`/`wk`/`wv` projections with
@@ -349,6 +352,28 @@ from the legacy boolean to the versioned identity):
   `docs/deferral_record_2026_08_05.md`), and the registry id names what
   it computes. The branch remains shipped, selectable, default-off, and
   unmeasured; #602 changes no selection and activates nothing.
+- `learned-absolute-source-attention/1` (#668, the GPT-2 family —
+  declared by the oracle's architecture, never reached through the
+  `r4_attention` switch): the SAME scaled-dot-product compatibility
+  relation and max-subtracted softmax selector as the standard operator,
+  but a truthfully distinct identity in the fields GPT-2 differs on. Its
+  projections are the fused `c_attn` Conv1D `[n_embd, 3·n_embd]` applied
+  as `x @ W + b` (split into q/k/v thirds, with bias) and its output is
+  the `c_proj` Conv1D with bias — not Llama's separate biasless
+  `wq`/`wk`/`wv`/`wo`. Its positional action is NONE on q/k: GPT-2 adds a
+  learned absolute position embedding (`wpe`) to the input residual and
+  nothing rotates q or k, so recording RoPE would be a false identity —
+  the field that forbids reusing `standard-source-attention/1`. Head
+  selection is plain multi-head (kv heads == query heads, no
+  grouped-query), and the score is scaled by a precomputed
+  `1/sqrt(head_size)` (a multiply, distinct from the standard operator's
+  per-score divide). Its implementation is the GPT-2 executor
+  (`gpt2::Gpt2Model::layer_forward`), pinned by the presence-gated numpy
+  canary and the committed tiny-fixture parity test — the same
+  implementation-lives-elsewhere discipline as the #604 target operator;
+  the GPT-2 oracle declares it via `attention_operator_spec`, so a
+  compiled GPT-2 bundle carries a truthful operator row (feeding the #606
+  certificate) instead of a misdeclared RoPE one.
 
 The reference implementations are free deterministic functions factored
 verbatim out of the executor (`standard_head_attention_weights`,

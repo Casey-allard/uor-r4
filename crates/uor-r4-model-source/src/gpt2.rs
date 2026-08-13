@@ -583,6 +583,43 @@ mod tests {
         }
     }
 
+    /// #668: the GPT-2 oracle reports the truthful learned-absolute
+    /// operator record, and it resolves through the versioned registry.
+    /// Its positional action is NOT RoPE, so it is a distinct identity
+    /// from `standard-source-attention/1` — reusing that record would be
+    /// a false operator identity.
+    #[test]
+    fn gpt2_oracle_reports_learned_absolute_operator() {
+        use crate::attention::{operator_spec, AttentionOperatorSpec};
+        use crate::TeacherOracle;
+
+        let oracle = HuggingFaceGpt2Oracle::load(fixture_dir()).expect("load tiny gpt2 oracle");
+        let spec = oracle
+            .attention_operator_spec()
+            .expect("gpt2 oracle declares an attention operator");
+
+        assert_eq!(
+            spec,
+            AttentionOperatorSpec::learned_absolute_source_attention()
+        );
+        assert_eq!(spec.id, AttentionOperatorSpec::LEARNED_ABSOLUTE_ID);
+        assert_eq!(
+            spec.version,
+            AttentionOperatorSpec::LEARNED_ABSOLUTE_VERSION
+        );
+
+        // Resolvable through the registry it is registered in.
+        let resolved = operator_spec(&spec.id, spec.version).expect("registered operator");
+        assert_eq!(resolved, spec);
+
+        // A distinct identity from the RoPE standard operator: the
+        // positional action is the discriminating field, and the digest
+        // over the declared identity differs accordingly.
+        let standard = AttentionOperatorSpec::standard();
+        assert_ne!(spec.positional_action, standard.positional_action);
+        assert_ne!(spec.implementation_digest, standard.implementation_digest);
+    }
+
     /// Loading a snapshot whose config declares a non-GPT-2 architecture is
     /// refused at the #599 gate before any weight is read.
     #[test]
@@ -737,15 +774,13 @@ impl crate::TeacherOracle for HuggingFaceGpt2Oracle {
             })
     }
     fn attention_operator_spec(&self) -> Option<crate::attention::AttentionOperatorSpec> {
-        // Deliberately absent, not defaulted by omission: the only
-        // registered #602 operator (`standard-source-attention/1`) declares
-        // `rope-rotation-of-q-and-k-before-scoring` as its positional
-        // action, which GPT-2 (learned absolute positions) does not perform.
-        // Recording it would be a false operator identity. Registering a
-        // learned-absolute operator and wiring it here is scoped future
-        // work in issue #657; until it exists this stays absent rather than
-        // misdeclared.
-        None
+        // #668: the truthful GPT-2 operator record. `Gpt2Model::layer_forward`
+        // (this module) is its implementation — a scaled dot product with the
+        // standard max-subtracted softmax, but learned absolute positions (no
+        // RoPE on q/k) and GPT-2's fused-`c_attn`/`c_proj` Conv1D projections.
+        // Reusing `standard-source-attention/1` would misdeclare the positional
+        // action, so this is its own registered `(id, version)`.
+        Some(crate::attention::AttentionOperatorSpec::learned_absolute_source_attention())
     }
     fn hidden_state(&self) -> Option<&[f32]> {
         Some(&self.state.hidden)
