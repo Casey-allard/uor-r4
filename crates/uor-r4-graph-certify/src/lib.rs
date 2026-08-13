@@ -10,6 +10,7 @@ pub mod compiler_scaling;
 #[cfg(feature = "fairness-provenance")]
 pub mod fairness_provenance;
 pub mod fmm;
+pub mod frame_consistency;
 #[cfg(feature = "holographic-encoding")]
 pub mod holographic_encoding;
 pub mod long_context;
