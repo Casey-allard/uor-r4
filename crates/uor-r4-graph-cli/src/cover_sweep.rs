@@ -54,7 +54,22 @@
 //!    maintainer decision; this module only writes the recommendation
 //!    into the report.
 //!
-//! # Report schema (`cover_sweep.json`, `schema = 4`)
+//! # Report schema (`cover_sweep.json`, `schema = 5`)
+//!
+//! Schema 5 (#610): the sweep builds its cover-independent scoring
+//! preparation — the vocabulary and the whole-corpus context n-gram rows
+//! and forward-anchor rows, all functions of the corpus, teacher artifact,
+//! and fixed scorer and NOT of the induced cover — exactly once per run
+//! instead of once per point, handing shared references to every point. The
+//! `timing` block gains `preparation_ms` (the one-time shared build), and
+//! each point's `context_and_forward_rows_ms` now measures only the
+//! per-point reference binding (≈0), so the moved cost stays visible rather
+//! than hidden as a false measured-zero: nine repeated whole-corpus passes
+//! collapse to one. A [`PreparedScoring`] fingerprint of the inputs and
+//! scorer config guards every reuse, so a shared context can never be
+//! silently applied to incompatible inputs. Emitted artifact bytes and
+//! every score metric are byte-for-byte identical to schema 4 — the caching
+//! changes only where the invariant work runs, never its result.
 //!
 //! Schema 4 (#609): the report additionally records a `timing` block that
 //! attributes wall-clock time across the nine-point compile. Each point
@@ -92,7 +107,7 @@
 //! zero, preserving the byte-exact default cover.
 //!
 //! ```text
-//! schema:          4
+//! schema:          5
 //! inputs:          {artifact_kappa, corpus_kappa,
 //!                   train_observations, held_out_observations}
 //! scorer:          {transition_out_degree, emission_entries, root_top_b,
@@ -116,13 +131,16 @@
 //!    gate_c_rule12: {positions, top1_agreement, bits_per_token},
 //!    reconstruction: {positions, top1_agreement, bits_per_token}}
 //!                   — #456: EXCT-disabled graph-only held-out score
-//! timing:          {thread_count, gate_c_sample, train_observations,
+//! timing:          {thread_count, gate_c_sample, preparation_ms,
+//!                   train_observations,
 //!                   held_out_observations, total_ms, points: per point
 //!                   {label, cover_induction_ms, recall_and_edges_ms,
 //!                    transitions_ms, context_and_forward_rows_ms,
 //!                    emissions_ms, r4g1_emission_ms, gate_c_ms, total_ms,
 //!                    dominant_stage}}
-//!                   — #609: wall-time attribution (pure measurement)
+//!                   — #609: wall-time attribution (pure measurement);
+//!                   #610: `preparation_ms` = one-time cover-independent
+//!                   scoring build (context/forward rows + vocab)
 //! determinism:     note string
 //! ```
 //!
@@ -152,8 +170,9 @@ use uor_r4_graph_compiler::reproducibility as repro;
 use uor_r4_model_source::SourceUnavailable;
 
 /// The `cover_sweep.json` schema version (module docs). v4 adds the #609
-/// per-stage wall-clock `timing` section.
-pub const SWEEP_REPORT_SCHEMA: u32 = 4;
+/// per-stage wall-clock `timing` section; v5 (#610) adds `preparation_ms`
+/// as the one-time cover-independent scoring build moves out of the loop.
+pub const SWEEP_REPORT_SCHEMA: u32 = 5;
 
 /// Grid axis: the broad depth-1 region counts under test.
 pub const SWEEP_K0: [usize; 2] = [8, 16];
@@ -513,6 +532,12 @@ pub struct SweepTiming {
     /// means the full held-out slice was scored). Recorded because it moves
     /// the Gate C stage cost.
     pub gate_c_sample: Option<String>,
+    /// #610: wall time of the one-time cover-independent scoring build
+    /// ([`PreparedScoring::prepare`] — vocab + context/forward rows) that
+    /// used to run once per point. Each point's `context_and_forward_rows_ms`
+    /// now measures only the per-point reference binding (≈0); this is where
+    /// that whole-corpus cost moved to.
+    pub preparation_ms: u64,
     pub train_observations: usize,
     pub held_out_observations: usize,
     /// Wall time of the whole point loop. On a serial run this is about the
@@ -543,6 +568,106 @@ pub struct SweepReport {
     pub determinism: String,
 }
 
+/// Cover-independent scoring preparation, built once per sweep (#610).
+///
+/// The vocabulary, the context n-gram rows ([`score::compile_context_rows`]),
+/// and the forward-anchor rows ([`score::compile_forward_anchor_rows`]) are
+/// functions of the corpus, the teacher artifact, and the fixed scorer
+/// config only — never of the induced cover — so the nine-point sweep can
+/// build them once and hand shared references to every point instead of
+/// repeating three whole-corpus passes nine times. Cover-dependent work
+/// (induction, regions, transitions, emissions, artifact emission, and Gate
+/// C, whose scorers are rebuilt from each point's own artifact bytes) stays
+/// per point.
+///
+/// The stored [`PreparedScoring::fingerprint`] pins the exact inputs and
+/// scorer this context was built for; [`PreparedScoring::validate`] refuses
+/// reuse against any mismatch, so a shared, immutable context can never be
+/// silently applied to incompatible inputs. (The single-point
+/// [`reconstruction_null`] path does not loop over covers and so keeps its
+/// own inline preparation; only the sweep loop repeated the work.)
+pub struct PreparedScoring {
+    /// Vocabulary size (teacher token codes / compiler stages).
+    vocab: u32,
+    /// Context bigram/trigram rows, invariant across cover points.
+    context_rows: Vec<score::ContextRow>,
+    /// Forward-anchor rows, invariant across cover points.
+    fwd_rows: Vec<score::ForwardAnchorRow>,
+    /// Identity of the inputs + scorer this context was prepared for; a
+    /// reuse whose fingerprint differs is rejected by [`Self::validate`].
+    fingerprint: String,
+}
+
+impl PreparedScoring {
+    /// Build the cover-independent scoring context once from the shared
+    /// inputs and the fixed scorer config.
+    pub fn prepare(inputs: &SweepInputs, score_config: &ScoreConfig) -> Self {
+        let vocab = u32::try_from(inputs.artifacts.token_codes.len() / compiler::STAGES)
+            .expect("vocabulary exceeds u32 token ids");
+        let context_rows =
+            score::compile_context_rows(&inputs.corpus, &inputs.train, vocab, score_config);
+        let fwd_rows = score::compile_forward_anchor_rows(&inputs.corpus, &inputs.train);
+        Self {
+            vocab,
+            context_rows,
+            fwd_rows,
+            fingerprint: scoring_fingerprint(inputs, score_config),
+        }
+    }
+
+    /// Panic if this context was not prepared for `inputs`/`score_config`.
+    /// Reuse across incompatible inputs would silently score a cover point
+    /// against another run's corpus/scorer tables — a correctness fault, so
+    /// it aborts rather than degrading quietly.
+    fn validate(&self, inputs: &SweepInputs, score_config: &ScoreConfig) {
+        let expected = scoring_fingerprint(inputs, score_config);
+        assert_eq!(
+            self.fingerprint, expected,
+            "prepared scoring context does not match the sweep inputs/scorer it is applied to"
+        );
+    }
+}
+
+/// Identity string for the inputs + scorer a [`PreparedScoring`] context is
+/// valid for. The two κs pin the corpus stream and teacher artifact (and
+/// therefore the derived train observations and vocab); the scorer fields
+/// pin every knob that feeds the context/forward-row builders (and more,
+/// conservatively), so any incompatible reuse is caught.
+fn scoring_fingerprint(inputs: &SweepInputs, score_config: &ScoreConfig) -> String {
+    fingerprint_string(
+        &inputs.artifact_kappa,
+        &inputs.corpus_kappa,
+        inputs.train.len(),
+        score_config,
+    )
+}
+
+/// Pure fingerprint builder (testable without a full [`SweepInputs`]).
+fn fingerprint_string(
+    artifact_kappa: &str,
+    corpus_kappa: &str,
+    train_len: usize,
+    score_config: &ScoreConfig,
+) -> String {
+    format!(
+        "artifact={}|corpus={}|train={}|order={}|entries={}|smoothing={}|selection={}|\
+         shrinkage={}|out_degree={}|emission_entries={}|root_top_b={}|exct_top_x={}|witness={}",
+        artifact_kappa,
+        corpus_kappa,
+        train_len,
+        score_config.context_order,
+        score_config.context_entries,
+        score_config.smoothing.label(),
+        score_config.emission_selection.label(),
+        score_config.emission_shrinkage.label(),
+        score_config.transition_out_degree,
+        score_config.emission_entries,
+        score_config.root_top_b,
+        score_config.exct_top_x,
+        score_config.witness_sample,
+    )
+}
+
 /// Run one sweep point: induce the cover, measure held-out routing
 /// recall, emit the scored R4G1, and run Gate C. Returns the report row,
 /// the cover-independent TLA3 baseline metrics (identical at every
@@ -554,7 +679,10 @@ pub fn run_point(
     inputs: &SweepInputs,
     point: &SweepPoint,
     score_config: &ScoreConfig,
+    prepared: &PreparedScoring,
 ) -> Option<(SweepRow, GateCMetrics, Vec<u8>, PointTiming)> {
+    // #610: refuse a prepared context that was not built for these inputs.
+    prepared.validate(inputs, score_config);
     let stage = Instant::now();
     let induced = cover::induce_cover(
         &inputs.train,
@@ -594,13 +722,16 @@ pub fn run_point(
     );
     let transitions_ms = elapsed_ms(stage);
 
-    let vocab = u32::try_from(inputs.artifacts.token_codes.len() / compiler::STAGES)
-        .expect("vocabulary exceeds u32 token ids");
+    let vocab = prepared.vocab;
 
     let stage = Instant::now();
-    let context_rows =
-        score::compile_context_rows(&inputs.corpus, &inputs.train, vocab, score_config);
-    let fwd_rows = score::compile_forward_anchor_rows(&inputs.corpus, &inputs.train);
+    // #610: the context and forward-anchor rows are cover-independent and
+    // were built once per sweep in `PreparedScoring`; here we only bind the
+    // shared references, so this stage now measures the per-point binding
+    // cost (≈0). The one-time build is recorded in the report's
+    // `preparation_ms` — the moved cost stays visible, not a false zero.
+    let context_rows: &[score::ContextRow] = &prepared.context_rows;
+    let fwd_rows: &[score::ForwardAnchorRow] = &prepared.fwd_rows;
     let context_and_forward_rows_ms = elapsed_ms(stage);
 
     let stage = Instant::now();
@@ -626,10 +757,10 @@ pub fn run_point(
             transitions: &transitions,
             transition_quantization,
             emissions: &emissions,
-            context_rows: &context_rows,
+            context_rows,
             exct_tls1: &inputs.tls1,
             exct_top_x: score_config.exct_top_x,
-            fwd_rows: &fwd_rows,
+            fwd_rows,
         },
     );
     let r4g1_emission_ms = elapsed_ms(stage);
@@ -984,6 +1115,18 @@ pub fn run_sweep(
     let mut rows = Vec::with_capacity(points.len());
     let mut timings = Vec::with_capacity(points.len());
     let mut tla3_baseline: Option<GateCMetrics> = None;
+    // #610: build the cover-independent scoring context once, before the
+    // point loop, then hand shared references to every point. `sweep_start`
+    // begins after this so `total_ms` stays the point-loop wall time and the
+    // one-time build is reported separately as `preparation_ms`.
+    let prepare_start = Instant::now();
+    let prepared = PreparedScoring::prepare(inputs, score_config);
+    let preparation_ms = elapsed_ms(prepare_start);
+    eprintln!(
+        "cover-sweep: cover-independent scoring prepared once in {preparation_ms} ms \
+         (context/forward rows + vocab; shared across all {} points)",
+        points.len()
+    );
     let sweep_start = Instant::now();
     for (index, point) in points.iter().enumerate() {
         let mut point = point.clone();
@@ -998,7 +1141,8 @@ pub fn run_sweep(
             points.len(),
             point.label
         );
-        let (row, baseline_metrics, _bytes, timing) = run_point(inputs, &point, score_config)?;
+        let (row, baseline_metrics, _bytes, timing) =
+            run_point(inputs, &point, score_config, &prepared)?;
         eprintln!(
             "cover-sweep: {} regions, {} bytes, Rule 1+2 top-1 {:.4}, {:.4} bits/token",
             row.regions.total,
@@ -1043,6 +1187,7 @@ pub fn run_sweep(
         timing: SweepTiming {
             thread_count: 1,
             gate_c_sample: std::env::var("R4_GATE_C_SAMPLE").ok(),
+            preparation_ms,
             train_observations: inputs.train.len(),
             held_out_observations: inputs.held_out.len(),
             total_ms: sweep_total_ms,
@@ -1376,7 +1521,7 @@ mod tests {
         };
         let json = serde_json::to_value(&recommendation).expect("recommendation serializes");
         assert_eq!(json["reconstruction_bits_per_token"], 16.03);
-        assert_eq!(SWEEP_REPORT_SCHEMA, 4);
+        assert_eq!(SWEEP_REPORT_SCHEMA, 5);
     }
 
     #[test]
@@ -1410,6 +1555,7 @@ mod tests {
         let sweep = SweepTiming {
             thread_count: 1,
             gate_c_sample: Some("2000".to_owned()),
+            preparation_ms: 12,
             train_observations: 500,
             held_out_observations: 100,
             total_ms: 185,
@@ -1418,6 +1564,7 @@ mod tests {
         let json = serde_json::to_value(&sweep).expect("sweep timing serializes");
         assert_eq!(json["thread_count"], 1);
         assert_eq!(json["gate_c_sample"], "2000");
+        assert_eq!(json["preparation_ms"], 12);
         assert_eq!(json["train_observations"], 500);
         assert_eq!(json["held_out_observations"], 100);
         assert_eq!(json["points"][0]["dominant_stage"], "gate_c");
@@ -1429,5 +1576,31 @@ mod tests {
         // the dominant label is deterministic given the timings.
         let timing = PointTiming::new("t".to_owned(), 5, 5, 0, 0, 0, 0, 0);
         assert_eq!(timing.dominant_stage, "cover_induction");
+    }
+
+    // #610: the PreparedScoring reuse guard. The fingerprint must change
+    // whenever any input the cover-independent context depends on changes —
+    // otherwise a shared context could be silently applied to an
+    // incompatible corpus/artifact/scorer and score a point against the
+    // wrong tables. This runs in CI without fixtures (pure string logic).
+    #[test]
+    fn fingerprint_distinguishes_inputs_and_scorer() {
+        let cfg = ScoreConfig::default();
+        let base = fingerprint_string("art-A", "corpus-B", 100, &cfg);
+
+        // Stable: identical inputs yield an identical fingerprint.
+        assert_eq!(base, fingerprint_string("art-A", "corpus-B", 100, &cfg));
+
+        // Any input-identity change must move the fingerprint.
+        assert_ne!(base, fingerprint_string("art-X", "corpus-B", 100, &cfg));
+        assert_ne!(base, fingerprint_string("art-A", "corpus-X", 100, &cfg));
+        assert_ne!(base, fingerprint_string("art-A", "corpus-B", 101, &cfg));
+
+        // A scorer knob that feeds the context rows must move it too.
+        let other = ScoreConfig {
+            context_order: cfg.context_order + 1,
+            ..ScoreConfig::default()
+        };
+        assert_ne!(base, fingerprint_string("art-A", "corpus-B", 100, &other));
     }
 }
