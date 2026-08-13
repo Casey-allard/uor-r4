@@ -75,8 +75,6 @@ use crate::observation::{
     ObservationManifest, ObserveSummary, RECORD_SIZE, merge_probability_metadata, merge_shards,
     merge_trace_rows, observe_sharded_traced,
 };
-#[cfg(not(target_arch = "wasm32"))]
-use crate::trace_profile::SUPPORT_ABSENT_MARKER;
 use crate::trace_profile::TraceProfile;
 use uor_r4_core::transformerless::compiler::xorshift;
 #[cfg(not(target_arch = "wasm32"))]
@@ -979,11 +977,6 @@ fn read_u32(bytes: &[u8], offset: usize) -> u32 {
     ])
 }
 
-#[cfg(not(target_arch = "wasm32"))]
-fn read_f32(bytes: &[u8], offset: usize) -> f32 {
-    f32::from_bits(read_u32(bytes, offset))
-}
-
 /// Load a #603 trace corpus written under a q/k + attention-support
 /// profile (`full/1`) back into the typed fit input. `bos_token` is the
 /// teacher's BOS id (the generation pipeline feeds it at position 0 of
@@ -1013,7 +1006,6 @@ pub fn load_route_trace_corpus(
             "trace profile declares no attention-support lane; the route fit needs it",
         )
     })?;
-    let layer_lane = profile.layer_lane.clone();
     let declared_layers = qkv_lane.layer_indices.clone();
     if support_lane.layer_indices != declared_layers {
         return Err(SourceUnavailable::new(
@@ -1021,23 +1013,10 @@ pub fn load_route_trace_corpus(
              the route fit reads one aligned layer list",
         ));
     }
-    let support = support_lane.support_size as usize;
-
-    // Row layout (documented #603 lane order): residuals (ascending
-    // declared layers) | final hidden | q/k/v (ascending declared
-    // layers, q then k then v) | attention support (ascending declared
-    // layers, heads ascending, S slots of (u32 position, f32 weight)).
-    let kv_width = geometry.residual_width * geometry.kv_heads / geometry.heads;
-    let (residual_layers, final_hidden) = match &layer_lane {
-        Some(lane) => (lane.layer_indices.len(), usize::from(lane.final_hidden)),
-        None => (0, 0),
-    };
-    let residual_bytes = residual_layers * geometry.residual_width * 4;
-    let hidden_bytes = final_hidden * geometry.residual_width * 4;
-    let qkv_bytes_per_layer = (geometry.residual_width + 2 * kv_width) * 4;
-    let qkv_bytes = declared_layers.len() * qkv_bytes_per_layer;
-    let support_bytes = declared_layers.len() * geometry.heads * support * 8;
-    let row_bytes = residual_bytes + hidden_bytes + qkv_bytes + support_bytes;
+    // One shared row layout (#603 lane order), derived beside the writer,
+    // so the fit's reader cannot drift from the assembler (#645).
+    let layout = crate::observation::TraceRowLayout::new(&profile, &geometry);
+    let row_bytes = layout.row_bytes;
     if manifest.trace_row_bytes != Some(row_bytes as u64) {
         return Err(SourceUnavailable::new(format!(
             "trace row width mismatch: manifest pins {:?}, geometry + profile imply {row_bytes}",
@@ -1073,44 +1052,12 @@ pub fn load_route_trace_corpus(
         let pos = read_u32(record, 72); // span_start
 
         let row = &trace_bytes[index * row_bytes..(index + 1) * row_bytes];
-        let mut offset = residual_bytes + hidden_bytes;
-        let mut q_rows = Vec::with_capacity(declared_layers.len());
-        let mut k_rows = Vec::with_capacity(declared_layers.len());
-        for _ in &declared_layers {
-            let mut q_row = Vec::with_capacity(geometry.residual_width);
-            for column in 0..geometry.residual_width {
-                q_row.push(read_f32(row, offset + column * 4));
-            }
-            offset += geometry.residual_width * 4;
-            let mut k_row = Vec::with_capacity(kv_width);
-            for column in 0..kv_width {
-                k_row.push(read_f32(row, offset + column * 4));
-            }
-            offset += kv_width * 4;
-            offset += kv_width * 4; // v row: captured, not consumed by the fit
-            q_rows.push(q_row);
-            k_rows.push(k_row);
-        }
-        let mut supports = Vec::with_capacity(declared_layers.len());
-        for _ in &declared_layers {
-            let mut per_head = Vec::with_capacity(geometry.heads);
-            for _ in 0..geometry.heads {
-                let mut entries = Vec::with_capacity(support);
-                for slot in 0..support {
-                    let position = read_u32(row, offset + slot * 8);
-                    let weight_bits = read_u32(row, offset + slot * 8 + 4);
-                    if position == SUPPORT_ABSENT_MARKER && weight_bits == SUPPORT_ABSENT_MARKER {
-                        // Explicit absence marker: the slot is absent,
-                        // never a zero-valued entry.
-                        continue;
-                    }
-                    entries.push((position, f32::from_bits(weight_bits)));
-                }
-                offset += support * 8;
-                per_head.push(entries);
-            }
-            supports.push(per_head);
-        }
+        let decoded = layout.read_row(row)?;
+        // The fit consumes the q and k lanes and the attention support; the
+        // residual, final-hidden, and v lanes are captured but unused here.
+        let q_rows: Vec<Vec<f32>> = decoded.qkv.iter().map(|(q, _, _)| q.clone()).collect();
+        let k_rows: Vec<Vec<f32>> = decoded.qkv.iter().map(|(_, k, _)| k.clone()).collect();
+        let supports = decoded.support;
         by_story.entry(story).or_default().push(StepTrace {
             pos,
             input_token: 0, // filled after position sort

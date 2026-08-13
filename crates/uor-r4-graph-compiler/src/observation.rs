@@ -1232,6 +1232,182 @@ pub struct ObserveSummary {
     pub done: bool,
 }
 
+/// The byte layout of one #603 trace-sidecar row — a pure function of the
+/// trace profile and an oracle's declared capture geometry. This is the
+/// SINGLE source of truth for the lane order and widths that
+/// [`TraceCapture`] assembles and every reader decodes, so a layout change
+/// cannot drift between the writer and a consumer: both derive it here.
+///
+/// Lane order (all little-endian; an absent lane contributes zero bytes):
+/// per-layer residuals (ascending declared layers) · final-hidden (#95) ·
+/// per-layer q/k/v (ascending, q then k then v) · attention support
+/// (ascending layers, heads ascending, `support` fixed slots of
+/// `(u32 position, f32 weight)`, unfilled slots = [`SUPPORT_ABSENT_MARKER`]).
+#[cfg(not(target_arch = "wasm32"))]
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TraceRowLayout {
+    /// Number of captured per-layer residual streams.
+    pub residual_layers: usize,
+    /// Whether the final-hidden (#95) lane is present.
+    pub final_hidden: bool,
+    /// Number of captured q/k/v layers.
+    pub qkv_layers: usize,
+    /// Number of captured attention-support layers.
+    pub attention_layers: usize,
+    /// Attention heads per layer.
+    pub heads: usize,
+    /// Per-head attention-support slot count (the declared cap).
+    pub support: usize,
+    /// Residual-stream / q width.
+    pub residual_width: usize,
+    /// k and v width (grouped-query: `residual_width * kv_heads / heads`).
+    pub kv_width: usize,
+    /// Total row width in bytes (pinned into the manifest at first write).
+    pub row_bytes: usize,
+}
+
+/// One decoded trace-sidecar row: the structured lanes a consumer reads.
+/// Absent lanes are empty (never zero-filled); an absent attention-support
+/// slot is dropped (marker-aware), never surfaced as a zero-valued entry.
+#[cfg(not(target_arch = "wasm32"))]
+#[derive(Debug, Clone, PartialEq)]
+pub struct TraceRow {
+    /// Per captured residual layer: the `residual_width` residual stream.
+    pub residual: Vec<Vec<f32>>,
+    /// The final-hidden (#95) state, when the lane is present.
+    pub final_hidden: Option<Vec<f32>>,
+    /// Per captured q/k/v layer: `(q[residual_width], k[kv_width], v[kv_width])`.
+    pub qkv: Vec<(Vec<f32>, Vec<f32>, Vec<f32>)>,
+    /// Per captured attention layer, per head: the present support entries
+    /// `(position, weight)` in stored order (absent slots dropped).
+    pub support: Vec<Vec<Vec<(u32, f32)>>>,
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+impl TraceRowLayout {
+    /// Resolve the row layout from a trace profile and capture geometry —
+    /// the same widths [`TraceCapture`] pins and every reader expects.
+    pub fn new(
+        profile: &TraceProfile,
+        geometry: &uor_r4_model_source::TraceCaptureGeometry,
+    ) -> Self {
+        let residual_layers = profile
+            .layer_lane
+            .as_ref()
+            .map_or(0, |lane| lane.layer_indices.len());
+        let final_hidden = profile
+            .layer_lane
+            .as_ref()
+            .is_some_and(|lane| lane.final_hidden);
+        let qkv_layers = profile
+            .qkv_lane
+            .as_ref()
+            .map_or(0, |lane| lane.layer_indices.len());
+        let (attention_layers, support) = profile
+            .attention_support_lane
+            .as_ref()
+            .map_or((0, 0), |lane| {
+                (lane.layer_indices.len(), lane.support_size as usize)
+            });
+        let residual_width = geometry.residual_width;
+        let kv_width = geometry.residual_width * geometry.kv_heads / geometry.heads;
+        let row_bytes = residual_layers * residual_width * 4
+            + usize::from(final_hidden) * residual_width * 4
+            + qkv_layers * (residual_width + 2 * kv_width) * 4
+            + attention_layers * geometry.heads * support * 8;
+        Self {
+            residual_layers,
+            final_hidden,
+            qkv_layers,
+            attention_layers,
+            heads: geometry.heads,
+            support,
+            residual_width,
+            kv_width,
+            row_bytes,
+        }
+    }
+
+    /// Decode one `row_bytes`-long row into its structured lanes. Errors if
+    /// the slice length does not match the pinned width.
+    pub fn read_row(&self, row: &[u8]) -> Result<TraceRow, SourceUnavailable> {
+        if row.len() != self.row_bytes {
+            return Err(invalid_data(format!(
+                "trace row is {} bytes, layout pins {}",
+                row.len(),
+                self.row_bytes
+            )));
+        }
+        let read_f32 = |offset: usize| {
+            f32::from_le_bytes([
+                row[offset],
+                row[offset + 1],
+                row[offset + 2],
+                row[offset + 3],
+            ])
+        };
+        let read_u32 = |offset: usize| {
+            u32::from_le_bytes([
+                row[offset],
+                row[offset + 1],
+                row[offset + 2],
+                row[offset + 3],
+            ])
+        };
+        let mut offset = 0usize;
+        let take_vec = |offset: &mut usize, width: usize| {
+            let mut out = Vec::with_capacity(width);
+            for i in 0..width {
+                out.push(read_f32(*offset + i * 4));
+            }
+            *offset += width * 4;
+            out
+        };
+        let mut residual = Vec::with_capacity(self.residual_layers);
+        for _ in 0..self.residual_layers {
+            residual.push(take_vec(&mut offset, self.residual_width));
+        }
+        let final_hidden = if self.final_hidden {
+            Some(take_vec(&mut offset, self.residual_width))
+        } else {
+            None
+        };
+        let mut qkv = Vec::with_capacity(self.qkv_layers);
+        for _ in 0..self.qkv_layers {
+            let q = take_vec(&mut offset, self.residual_width);
+            let k = take_vec(&mut offset, self.kv_width);
+            let v = take_vec(&mut offset, self.kv_width);
+            qkv.push((q, k, v));
+        }
+        let mut support = Vec::with_capacity(self.attention_layers);
+        for _ in 0..self.attention_layers {
+            let mut per_head = Vec::with_capacity(self.heads);
+            for _ in 0..self.heads {
+                let mut entries = Vec::with_capacity(self.support);
+                for slot in 0..self.support {
+                    let position = read_u32(offset + slot * 8);
+                    let weight_bits = read_u32(offset + slot * 8 + 4);
+                    if position == SUPPORT_ABSENT_MARKER && weight_bits == SUPPORT_ABSENT_MARKER {
+                        // Explicit absence marker: the slot is absent, never
+                        // a zero-valued entry.
+                        continue;
+                    }
+                    entries.push((position, f32::from_bits(weight_bits)));
+                }
+                offset += self.support * 8;
+                per_head.push(entries);
+            }
+            support.push(per_head);
+        }
+        Ok(TraceRow {
+            residual,
+            final_hidden,
+            qkv,
+            support,
+        })
+    }
+}
+
 /// The bounded per-step capture state of one traced observation pass
 /// (#603): the resolved lane plan of a non-minimal [`TraceProfile`]
 /// against one oracle's declared capture geometry, and the assembly
@@ -1306,11 +1482,9 @@ impl TraceCapture {
             ),
             None => (Vec::new(), 0),
         };
-        let kv_width = geometry.residual_width * geometry.kv_heads / geometry.heads;
-        let row_bytes = residual_layers.len() * geometry.residual_width * 4
-            + usize::from(final_hidden) * geometry.residual_width * 4
-            + qkv_layers.len() * (geometry.residual_width + 2 * kv_width) * 4
-            + attention_layers.len() * geometry.heads * support * 8;
+        // Single source of truth for the row width — the same layout every
+        // reader derives, so the writer and consumers cannot drift.
+        let row_bytes = TraceRowLayout::new(profile, &geometry).row_bytes;
         if row_bytes == 0 {
             return Err(invalid_input(format!(
                 "trace profile {}/{} declares no captured bytes; use the minimal profile",
@@ -1702,4 +1876,109 @@ fn observe_sharded_inner(
         skipped,
         done: done == 1,
     })
+}
+
+// ---------------------------------------------------------------------------
+// #645 round-trip test for the shared TraceRowLayout reader: a row assembled
+// exactly as TraceCapture writes it (front-loaded support entries, trailing
+// slots as the explicit absence marker) must decode back to the same
+// structured lanes through read_row — the guarantee the writer and every
+// consumer cannot drift.
+// ---------------------------------------------------------------------------
+#[cfg(all(test, not(target_arch = "wasm32")))]
+mod trace_row_tests {
+    use super::*;
+
+    /// Encode a row byte-for-byte the way the observe driver assembles it.
+    fn encode(
+        layout: &TraceRowLayout,
+        residual: &[Vec<f32>],
+        hidden: &Option<Vec<f32>>,
+        qkv: &[(Vec<f32>, Vec<f32>, Vec<f32>)],
+        support: &[Vec<Vec<(u32, f32)>>],
+    ) -> Vec<u8> {
+        let mut row = Vec::with_capacity(layout.row_bytes);
+        for lane in residual {
+            for &v in lane {
+                row.extend_from_slice(&v.to_le_bytes());
+            }
+        }
+        if let Some(h) = hidden {
+            for &v in h {
+                row.extend_from_slice(&v.to_le_bytes());
+            }
+        }
+        for (q, k, v) in qkv {
+            for vector in [q, k, v] {
+                for &x in vector {
+                    row.extend_from_slice(&x.to_le_bytes());
+                }
+            }
+        }
+        for layer in support {
+            for head in layer {
+                for slot in 0..layout.support {
+                    match head.get(slot) {
+                        Some(&(pos, weight)) => {
+                            row.extend_from_slice(&pos.to_le_bytes());
+                            row.extend_from_slice(&weight.to_le_bytes());
+                        }
+                        None => {
+                            row.extend_from_slice(&SUPPORT_ABSENT_MARKER.to_le_bytes());
+                            row.extend_from_slice(&SUPPORT_ABSENT_MARKER.to_le_bytes());
+                        }
+                    }
+                }
+            }
+        }
+        row
+    }
+
+    #[test]
+    fn trace_row_round_trips_through_the_shared_reader() {
+        // All lanes present; GQA (kv_width < residual_width); a support cap
+        // of 3 with heads carrying fewer real entries, exercising the
+        // absence marker in the trailing slots.
+        let (residual_layers, qkv_layers, attention_layers) = (2usize, 2usize, 2usize);
+        let (heads, support, residual_width, kv_width) = (2usize, 3usize, 4usize, 2usize);
+        let row_bytes = residual_layers * residual_width * 4
+            + residual_width * 4
+            + qkv_layers * (residual_width + 2 * kv_width) * 4
+            + attention_layers * heads * support * 8;
+        let layout = TraceRowLayout {
+            residual_layers,
+            final_hidden: true,
+            qkv_layers,
+            attention_layers,
+            heads,
+            support,
+            residual_width,
+            kv_width,
+            row_bytes,
+        };
+
+        let residual = vec![vec![1.0f32, 2.0, 3.0, 4.0], vec![5.0, 6.0, 7.0, 8.0]];
+        let hidden = Some(vec![9.0f32, 10.0, 11.0, 12.0]);
+        let qkv = vec![
+            (vec![0.1f32, 0.2, 0.3, 0.4], vec![0.5, 0.6], vec![0.7, 0.8]),
+            (vec![1.1, 1.2, 1.3, 1.4], vec![1.5, 1.6], vec![1.7, 1.8]),
+        ];
+        let support_entries: Vec<Vec<Vec<(u32, f32)>>> = vec![
+            vec![vec![(0, 0.9f32), (2, 0.1)], vec![(1, 1.0)]],
+            vec![vec![(0, 0.5), (1, 0.3), (2, 0.2)], vec![(3, 0.4), (0, 0.6)]],
+        ];
+
+        let row = encode(&layout, &residual, &hidden, &qkv, &support_entries);
+        assert_eq!(row.len(), layout.row_bytes);
+
+        let decoded = layout.read_row(&row).expect("decode a well-formed row");
+        assert_eq!(decoded.residual, residual);
+        assert_eq!(decoded.final_hidden, hidden);
+        assert_eq!(decoded.qkv, qkv);
+        assert_eq!(decoded.support, support_entries);
+
+        // A wrong-length row is rejected, never silently mis-decoded.
+        assert!(layout.read_row(&row[..row.len() - 1]).is_err());
+        assert!(layout.read_row(&[]).is_err());
+    }
 }
