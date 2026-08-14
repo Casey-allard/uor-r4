@@ -11,3 +11,9 @@ serde_json = "1.0"
 blake3 = "=1.5.0"
 libm = "0.2"
 hex = "0.4.3"
+# #655-B: the pinned exact matmul substrate. Promoted from the dev-only parity
+# pin (#622, crates/uor-r4-graph-cli) to a production dependency here; #655-B
+# wires it into the teacher executor in place of the Accelerate `cblas_*` FFI.
+# no_std, forbid(unsafe), zero-heap — its numerical path is byte-identical across
+# targets, so promoting it makes teacher output cross-machine reproducible.
+uor-matmul = { git = "https://github.com/UOR-Foundation/uor-matmul.git", rev = "b13c98449948174f590e337c4dc25dfc394a07d0", default-features = false }
