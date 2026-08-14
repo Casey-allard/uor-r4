@@ -315,6 +315,21 @@ is well-formed in CI and, presence-gated on the real snapshot (never a CI
 download), that the on-disk `tokenizer.json` reproduces the pin and the
 `hf-byte-bpe/1` adapter built from it carries that same CID.
 
+**SentencePiece/Unigram source pin (#639-1).** The recorded
+`sentencepiece-unigram` follow-up family (above) gets its pinned source
+ahead of the adapter: `models/t5-base-tokenizer.json` pins the
+`google-t5/t5-base` (revision `a9723ea7…`, Apache-2.0) `spiece.model` by
+`tokenizer_kappa` / `tokenizer_bytes` / `tokenizer_kappa_scope =
+spiece.model`, with `tokenizer_family = sentencepiece-unigram`, mirroring
+the `models/gpt2-124m.json` layout. This slice is descriptor + pin only —
+no adapter and no `(family, version)` registry entry yet, so
+`crates/uor-r4-core/tests/t5_tokenizer_pin.rs` binds bytes to κ (well-formed
+in CI; presence-gated on the real `spiece.model` reproducing the pin), not a
+tokenizer identity. The registry generalization (639-2), the real Unigram
+encode/decode adapter registering `(sentencepiece-unigram, 1)` (639-3), and
+differential fixtures (639-4) follow; until 639-3 lands the family stays
+refused-by-name as described above.
+
 #### Attention operator identity (#602)
 
 The attention operator the source teacher computes is a typed, versioned

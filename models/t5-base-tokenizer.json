@@ -1,0 +1,10 @@
+{
+  "repository": "google-t5/t5-base",
+  "revision": "a9723ea7f1b39c1eae772870f3b547bf6ef7e6c1",
+  "tokenizer_family": "sentencepiece-unigram",
+  "tokenizer_kappa": "blake3:18af7072534a34d626ca166c92f5e37c7ccfcd6ce6877c3c25d325bc8201090d",
+  "tokenizer_bytes": 791656,
+  "tokenizer_kappa_scope": "spiece.model",
+  "license": "Apache-2.0",
+  "source_directory": ".uor-models/sources/t5-base-tokenizer"
+}

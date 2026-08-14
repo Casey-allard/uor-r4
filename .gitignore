@@ -19,6 +19,9 @@ manifold_cache_rust.json
 !.uor-models/corpora/
 .uor-models/corpora/*/*
 !.uor-models/corpora/*/manifest.json
+# #639-1: local T5 SentencePiece source (spiece.model), pinned by κ in
+# models/t5-base-tokenizer.json; the bytes stay local like other sources.
+.uor-models/sources/t5-base-tokenizer/
 uor_standards/
 crates/uor-r4-graph-format/fuzz/target/
 pkg/
