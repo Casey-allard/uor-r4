@@ -284,6 +284,16 @@ guessed. SentencePiece/Unigram is the recorded follow-up family
 (`sentencepiece-unigram`): recognized by name, rejected until a versioned
 adapter for it exists, never approximated with the byte-level BPE rule.
 
+Since #639-2 the constructor yields a boxed `TokenizerModel` — the
+object-safe encode/decode/`adapter` surface a resolved family provides —
+so a registered family can encode and decode without being an
+`HfBpeTokenizer`. `hf-byte-bpe/1` implements the trait by delegating to
+its inherent methods, so its behavior is byte-unchanged (the
+`registry_resolves_hf_byte_bpe_1` regression check asserts the registry
+path's `adapter()` and `encode()` match a directly-constructed tokenizer);
+the SentencePiece/Unigram family implements the same trait when its adapter
+lands (#639-3), rather than widening the constructor's concrete return.
+
 The record threads into provenance the same way the #597 manifest κ and
 the #600 geometry record do: the observe-text drivers (serial and
 batched) record it in the observation manifest automatically whenever the

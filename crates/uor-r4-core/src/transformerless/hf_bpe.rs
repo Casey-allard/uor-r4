@@ -771,11 +771,52 @@ impl TokenizerAdapter {
     }
 }
 
-/// A registered adapter constructor: parse raw tokenizer definition
-/// bytes into the family's tokenizer. Total in the module's existing
-/// convention ([`HfBpeTokenizer::from_tokenizer_json_bytes`]): `None`
-/// when the bytes are not the shape the family requires.
-pub type AdapterConstructor = fn(&[u8]) -> Option<HfBpeTokenizer>;
+/// The behavior a registered tokenizer family provides once resolved
+/// from the versioned adapter registry (#639-2): encode/decode plus the
+/// versioned identity it declares. Object-safe by construction, so
+/// [`adapter_constructor`] can hand back a `Box<dyn TokenizerModel>` for
+/// any family — a family can encode and decode without being an
+/// [`HfBpeTokenizer`]. `hf-byte-bpe/1` implements it by delegating to its
+/// inherent methods, so its behavior is byte-unchanged; the recorded
+/// SentencePiece/Unigram follow-up (#639-3) implements the same trait
+/// rather than a new concrete return type.
+pub trait TokenizerModel {
+    /// Encode text to token ids (the family's exact encode path).
+    fn encode(&self, text: &str) -> Vec<u32>;
+    /// Lossy encode: ids plus the count of characters the family could not
+    /// represent (zero for lossless families such as byte-level BPE).
+    fn encode_lossy(&self, text: &str) -> (Vec<u32>, u64);
+    /// Decode ids to lossy-UTF-8 text.
+    fn decode(&self, ids: &[u32]) -> String;
+    /// Number of id slots (max assigned id + 1).
+    fn vocab_size(&self) -> usize;
+    /// The versioned adapter-identity record (#601) this family declares.
+    fn adapter(&self) -> TokenizerAdapter;
+}
+
+impl TokenizerModel for HfBpeTokenizer {
+    fn encode(&self, text: &str) -> Vec<u32> {
+        HfBpeTokenizer::encode(self, text)
+    }
+    fn encode_lossy(&self, text: &str) -> (Vec<u32>, u64) {
+        HfBpeTokenizer::encode_lossy(self, text)
+    }
+    fn decode(&self, ids: &[u32]) -> String {
+        HfBpeTokenizer::decode(self, ids)
+    }
+    fn vocab_size(&self) -> usize {
+        HfBpeTokenizer::vocab_size(self)
+    }
+    fn adapter(&self) -> TokenizerAdapter {
+        HfBpeTokenizer::adapter(self)
+    }
+}
+
+/// A registered adapter constructor: parse raw tokenizer definition bytes
+/// into the family's [`TokenizerModel`]. Total in the module's existing
+/// convention ([`HfBpeTokenizer::from_tokenizer_json_bytes`]): `None` when
+/// the bytes are not the shape the family requires.
+pub type AdapterConstructor = fn(&[u8]) -> Option<Box<dyn TokenizerModel>>;
 
 /// The versioned tokenizer-adapter registry (#601): map `(family,
 /// version)` to the constructor that implements it. Every pair outside
@@ -794,7 +835,10 @@ pub fn adapter_constructor(
 ) -> Result<AdapterConstructor, uor_r4_model_source::SourceUnavailable> {
     match (family, version) {
         (TokenizerAdapter::HF_BYTE_BPE_FAMILY, TokenizerAdapter::HF_BYTE_BPE_VERSION) => {
-            Ok(HfBpeTokenizer::from_tokenizer_json_bytes)
+            Ok(|bytes| {
+                HfBpeTokenizer::from_tokenizer_json_bytes(bytes)
+                    .map(|tokenizer| Box::new(tokenizer) as Box<dyn TokenizerModel>)
+            })
         }
         _ => Err(
             uor_r4_model_source::SourceIngestKind::UnknownTokenizerAdapter {
