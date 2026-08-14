@@ -21,10 +21,11 @@
 //! Refuse-by-name, never approximate: a non-Unigram `model_type`, a
 //! `byte_fallback` source (no pinned byte-fallback source exists yet), a
 //! missing or ambiguous `<unk>` piece, or malformed proto bytes each fail
-//! closed with a named [`SentencePieceError`] rather than a guess.
+//! closed with a named [`SourceUnavailable`] rather than a guess.
 
 use std::collections::HashMap;
-use std::fmt;
+
+use uor_r4_model_source::SourceUnavailable;
 
 /// The whitespace meta symbol SentencePiece escapes spaces to (`▁`,
 /// U+2581). Pieces carry it literally; [`UnigramModel::decode`] maps it
@@ -71,30 +72,6 @@ impl PieceType {
     }
 }
 
-/// A named refusal parsing a `spiece.model` or an unsupported SentencePiece
-/// feature — never a silent approximation.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct SentencePieceError {
-    /// Human-readable reason naming the exact refused feature or defect.
-    pub reason: String,
-}
-
-impl fmt::Display for SentencePieceError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.reason)
-    }
-}
-
-impl std::error::Error for SentencePieceError {}
-
-impl SentencePieceError {
-    fn new(reason: impl Into<String>) -> Self {
-        Self {
-            reason: reason.into(),
-        }
-    }
-}
-
 /// A parsed SentencePiece Unigram model: the vocabulary surfaces and
 /// per-piece log-prob scores plus the discriminants the Viterbi core
 /// needs. Encode/decode operate on already-normalized text (see the
@@ -123,12 +100,12 @@ pub struct UnigramModel {
 impl UnigramModel {
     /// Parse a Unigram model from raw `spiece.model` `ModelProto` bytes.
     ///
-    /// Fails closed with a named [`SentencePieceError`] on: malformed proto
+    /// Fails closed with a named [`SourceUnavailable`] on: malformed proto
     /// bytes, a `model_type` that is explicitly not `UNIGRAM`, a
     /// `byte_fallback` source (unsupported until a byte-fallback source is
     /// pinned), a non-UTF-8 piece surface, an unknown piece-type value, or a
     /// missing / ambiguous `<unk>` piece.
-    pub fn from_spiece_bytes(bytes: &[u8]) -> Result<Self, SentencePieceError> {
+    pub fn from_spiece_bytes(bytes: &[u8]) -> Result<Self, SourceUnavailable> {
         let mut reader = ProtoReader::new(bytes);
         let mut surfaces: Vec<String> = Vec::new();
         let mut types: Vec<PieceType> = Vec::new();
@@ -140,12 +117,12 @@ impl UnigramModel {
         while !reader.is_empty() {
             let (field, wire) = reader
                 .read_tag()
-                .ok_or_else(|| SentencePieceError::new("spiece.model: truncated field tag"))?;
+                .ok_or_else(|| SourceUnavailable::new("spiece.model: truncated field tag"))?;
             match (field, wire) {
                 // ModelProto.pieces (repeated SentencePiece message).
                 (1, WIRE_LEN) => {
                     let message = reader.read_len_delim().ok_or_else(|| {
-                        SentencePieceError::new("spiece.model: truncated piece message")
+                        SourceUnavailable::new("spiece.model: truncated piece message")
                     })?;
                     let (surface, score, piece_type) = parse_piece(message)?;
                     surfaces.push(surface);
@@ -155,7 +132,7 @@ impl UnigramModel {
                 // ModelProto.trainer_spec.
                 (2, WIRE_LEN) => {
                     let message = reader.read_len_delim().ok_or_else(|| {
-                        SentencePieceError::new("spiece.model: truncated trainer_spec")
+                        SourceUnavailable::new("spiece.model: truncated trainer_spec")
                     })?;
                     parse_trainer_spec(
                         message,
@@ -166,26 +143,26 @@ impl UnigramModel {
                 }
                 _ => reader
                     .skip_field(wire)
-                    .ok_or_else(|| SentencePieceError::new("spiece.model: unreadable field"))?,
+                    .ok_or_else(|| SourceUnavailable::new("spiece.model: unreadable field"))?,
             }
         }
 
         if let Some(other) = model_type {
             if other != MODEL_TYPE_UNIGRAM {
-                return Err(SentencePieceError::new(format!(
+                return Err(SourceUnavailable::new(format!(
                     "spiece.model: model_type {other} is not UNIGRAM (1); \
                      sentencepiece-unigram covers Unigram sources only"
                 )));
             }
         }
         if byte_fallback {
-            return Err(SentencePieceError::new(
+            return Err(SourceUnavailable::new(
                 "spiece.model: byte_fallback=true is not supported by sentencepiece-unigram/1 \
                  (no byte-fallback source is pinned); refused rather than approximated",
             ));
         }
         if surfaces.is_empty() {
-            return Err(SentencePieceError::new("spiece.model: no pieces"));
+            return Err(SourceUnavailable::new("spiece.model: no pieces"));
         }
 
         let unknown: Vec<u32> = types
@@ -197,19 +174,19 @@ impl UnigramModel {
         let unk_id = match unknown.as_slice() {
             [id] => *id,
             [] => {
-                return Err(SentencePieceError::new(
+                return Err(SourceUnavailable::new(
                     "spiece.model: no UNKNOWN piece to anchor unmatched spans",
                 ))
             }
             _ => {
-                return Err(SentencePieceError::new(
+                return Err(SourceUnavailable::new(
                     "spiece.model: multiple UNKNOWN pieces (ambiguous <unk>)",
                 ))
             }
         };
         if let Some(declared) = trainer_unk_id {
             if declared >= 0 && declared as u32 != unk_id {
-                return Err(SentencePieceError::new(format!(
+                return Err(SourceUnavailable::new(format!(
                     "spiece.model: trainer_spec unk_id {declared} disagrees with the UNKNOWN \
                      piece id {unk_id}"
                 )));
@@ -360,7 +337,7 @@ const WIRE_FIXED32: u8 = 5;
 
 /// Parse one `ModelProto.SentencePiece` message: `piece` (field 1, string),
 /// `score` (field 2, float / fixed32), `type` (field 3, enum / varint).
-fn parse_piece(message: &[u8]) -> Result<(String, f32, PieceType), SentencePieceError> {
+fn parse_piece(message: &[u8]) -> Result<(String, f32, PieceType), SourceUnavailable> {
     let mut reader = ProtoReader::new(message);
     let mut surface = String::new();
     let mut score = 0.0f32;
@@ -368,33 +345,33 @@ fn parse_piece(message: &[u8]) -> Result<(String, f32, PieceType), SentencePiece
     while !reader.is_empty() {
         let (field, wire) = reader
             .read_tag()
-            .ok_or_else(|| SentencePieceError::new("piece: truncated field tag"))?;
+            .ok_or_else(|| SourceUnavailable::new("piece: truncated field tag"))?;
         match (field, wire) {
             (1, WIRE_LEN) => {
                 let raw = reader
                     .read_len_delim()
-                    .ok_or_else(|| SentencePieceError::new("piece: truncated surface"))?;
+                    .ok_or_else(|| SourceUnavailable::new("piece: truncated surface"))?;
                 surface = std::str::from_utf8(raw)
-                    .map_err(|_| SentencePieceError::new("piece: non-UTF-8 surface"))?
+                    .map_err(|_| SourceUnavailable::new("piece: non-UTF-8 surface"))?
                     .to_owned();
             }
             (2, WIRE_FIXED32) => {
                 let bits = reader
                     .read_fixed32()
-                    .ok_or_else(|| SentencePieceError::new("piece: truncated score"))?;
+                    .ok_or_else(|| SourceUnavailable::new("piece: truncated score"))?;
                 score = f32::from_bits(bits);
             }
             (3, WIRE_VARINT) => {
                 let value = reader
                     .read_varint()
-                    .ok_or_else(|| SentencePieceError::new("piece: truncated type"))?;
+                    .ok_or_else(|| SourceUnavailable::new("piece: truncated type"))?;
                 piece_type = PieceType::from_proto(value).ok_or_else(|| {
-                    SentencePieceError::new(format!("piece: unknown piece type {value}"))
+                    SourceUnavailable::new(format!("piece: unknown piece type {value}"))
                 })?;
             }
             _ => reader
                 .skip_field(wire)
-                .ok_or_else(|| SentencePieceError::new("piece: unreadable field"))?,
+                .ok_or_else(|| SourceUnavailable::new("piece: unreadable field"))?,
         }
     }
     Ok((surface, score, piece_type))
@@ -408,34 +385,35 @@ fn parse_trainer_spec(
     model_type: &mut Option<u64>,
     byte_fallback: &mut bool,
     unk_id: &mut Option<i64>,
-) -> Result<(), SentencePieceError> {
+) -> Result<(), SourceUnavailable> {
     let mut reader = ProtoReader::new(message);
     while !reader.is_empty() {
         let (field, wire) = reader
             .read_tag()
-            .ok_or_else(|| SentencePieceError::new("trainer_spec: truncated field tag"))?;
+            .ok_or_else(|| SourceUnavailable::new("trainer_spec: truncated field tag"))?;
         match (field, wire) {
             (3, WIRE_VARINT) => {
-                *model_type = Some(reader.read_varint().ok_or_else(|| {
-                    SentencePieceError::new("trainer_spec: truncated model_type")
-                })?);
+                *model_type =
+                    Some(reader.read_varint().ok_or_else(|| {
+                        SourceUnavailable::new("trainer_spec: truncated model_type")
+                    })?);
             }
             (35, WIRE_VARINT) => {
                 let value = reader.read_varint().ok_or_else(|| {
-                    SentencePieceError::new("trainer_spec: truncated byte_fallback")
+                    SourceUnavailable::new("trainer_spec: truncated byte_fallback")
                 })?;
                 *byte_fallback = value != 0;
             }
             (40, WIRE_VARINT) => {
                 let value = reader
                     .read_varint()
-                    .ok_or_else(|| SentencePieceError::new("trainer_spec: truncated unk_id"))?;
+                    .ok_or_else(|| SourceUnavailable::new("trainer_spec: truncated unk_id"))?;
                 // int32 fields are varint-encoded two's complement.
                 *unk_id = Some(value as i64);
             }
             _ => reader
                 .skip_field(wire)
-                .ok_or_else(|| SentencePieceError::new("trainer_spec: unreadable field"))?,
+                .ok_or_else(|| SourceUnavailable::new("trainer_spec: unreadable field"))?,
         }
     }
     Ok(())

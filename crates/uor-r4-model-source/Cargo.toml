@@ -16,4 +16,4 @@ hex = "0.4.3"
 # wires it into the teacher executor in place of the Accelerate `cblas_*` FFI.
 # no_std, forbid(unsafe), zero-heap — its numerical path is byte-identical across
 # targets, so promoting it makes teacher output cross-machine reproducible.
-uor-matmul = { git = "https://github.com/UOR-Foundation/uor-matmul.git", rev = "b13c98449948174f590e337c4dc25dfc394a07d0", default-features = false }
+uor-matmul = { git = "https://github.com/UOR-Foundation/uor-matmul.git", version = "0.1.0", rev = "b13c98449948174f590e337c4dc25dfc394a07d0", default-features = false }

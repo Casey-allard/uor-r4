@@ -298,6 +298,11 @@ pub mod resolution_status;
 pub mod runtime;
 pub mod scenarios;
 pub mod score_q;
+// Host/compile-side tokenizer source adapter: parses `spiece.model` and
+// reports refusals on the `SourceUnavailable` surface, which is itself
+// gated off wasm32 (the deployed wasm runtime uses the exported tokenizer,
+// never the source parser). Gated to match, like `hf_bpe::adapter_constructor`.
+#[cfg(not(target_arch = "wasm32"))]
 pub mod sentencepiece;
 pub mod simd;
 pub mod transitions;
