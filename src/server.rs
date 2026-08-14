@@ -106,9 +106,9 @@ pub struct StreamOptions {
 
 /// The supported subset of the OpenAI Responses request (`#654` phase E).
 /// `deny_unknown_fields` makes any parameter outside this subset — tools,
-/// reasoning, structured-output formats, streaming — fail closed with the
-/// error envelope; support is never implied by omission. `input` is a bare
-/// string or an array of message items (flattened by `flatten_responses_input`).
+/// reasoning, structured-output formats — fail closed with the error envelope;
+/// support is never implied by omission. `input` is a bare string or an array
+/// of message items (flattened by `flatten_responses_input`).
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct VendorResponsesRequest {
@@ -121,6 +121,10 @@ pub struct VendorResponsesRequest {
     pub max_output_tokens: Option<usize>,
     #[serde(default)]
     pub temperature: Option<f64>,
+    /// When `true`, the completion is delivered as the Responses
+    /// `text/event-stream` event sequence terminating on `response.completed`.
+    #[serde(default)]
+    pub stream: Option<bool>,
     /// R4 engine pin, consistent with chat completions (issue #248).
     #[serde(default)]
     pub engine: Option<String>,
@@ -2829,6 +2833,27 @@ fn handle_connection(
         };
 
         let model_name = req.model.clone().unwrap_or_else(|| "uor-r4".to_string());
+
+        // Streaming for /v1/responses: like chat streaming, the cascade produces
+        // the whole completion up front, so this re-frames the finished text as
+        // the Responses typed-event sequence (created → … → response.completed;
+        // no `[DONE]` sentinel). The wire format is streaming, not the generation.
+        if req.stream == Some(true) {
+            let response_id = format!("resp-uor-r4-{}", gen.created_ts);
+            let created_at = gen.created_ts;
+            let content = gen.text.clone();
+            let completed = build_responses_body(gen, &model_name, max_tokens);
+            let frames = build_responses_stream_frames(
+                &response_id,
+                created_at,
+                &model_name,
+                &content,
+                completed,
+            );
+            send_sse_stream(stream, &frames);
+            return;
+        }
+
         let body = build_responses_body(gen, &model_name, max_tokens);
         send_json_response(stream, 200, &body.to_string());
         return;
@@ -4422,6 +4447,131 @@ fn build_responses_body(
     body
 }
 
+/// One Responses SSE event frame: `event: <type>\ndata: <json>\n\n`. The
+/// Responses stream uses *named* events (unlike chat completions' data-only
+/// chunks) and terminates on `response.completed` — there is no `[DONE]`
+/// sentinel (`#654`: streaming for /v1/responses).
+fn sse_event_frame(event_type: &str, value: &serde_json::Value) -> String {
+    format!("event: {event_type}\ndata: {value}\n\n")
+}
+
+/// Build the ordered Responses SSE event frames for a completed generation
+/// (`#654`: streaming for /v1/responses). Like chat streaming, the cascade
+/// produces the whole completion up front, so this re-frames the finished text
+/// as the spec's typed event sequence: `response.created` → `.in_progress` →
+/// `.output_item.added` → `.content_part.added` → `.output_text.delta`* →
+/// `.output_text.done` → `.content_part.done` → `.output_item.done` →
+/// `.completed`. Every event carries a monotonic `sequence_number`; the delta
+/// events' `delta`s rejoin byte-for-byte to `content`. `completed` is the full
+/// `Response` object (from `build_responses_body`) carried by the terminal event.
+fn build_responses_stream_frames(
+    id: &str,
+    created_at: u64,
+    model: &str,
+    content: &str,
+    completed: serde_json::Value,
+) -> Vec<String> {
+    let item_id = format!("msg-uor-r4-{created_at}");
+    let in_progress = serde_json::json!({
+        "id": id,
+        "object": "response",
+        "created_at": created_at,
+        "model": model,
+        "status": "in_progress",
+        "error": serde_json::Value::Null,
+        "incomplete_details": serde_json::Value::Null,
+        "output": [],
+        "usage": serde_json::Value::Null,
+    });
+    let part =
+        |text: &str| serde_json::json!({ "type": "output_text", "text": text, "annotations": [] });
+    let message = |status: &str, parts: serde_json::Value| {
+        serde_json::json!({
+            "id": item_id.clone(),
+            "type": "message",
+            "status": status,
+            "role": "assistant",
+            "content": parts,
+        })
+    };
+
+    let mut events: Vec<(&str, serde_json::Value)> = vec![
+        (
+            "response.created",
+            serde_json::json!({ "response": in_progress.clone() }),
+        ),
+        (
+            "response.in_progress",
+            serde_json::json!({ "response": in_progress }),
+        ),
+        (
+            "response.output_item.added",
+            serde_json::json!({ "output_index": 0, "item": message("in_progress", serde_json::json!([])) }),
+        ),
+        (
+            "response.content_part.added",
+            serde_json::json!({
+                "item_id": item_id.clone(),
+                "output_index": 0,
+                "content_index": 0,
+                "part": part(""),
+            }),
+        ),
+    ];
+    for piece in split_stream_deltas(content) {
+        events.push((
+            "response.output_text.delta",
+            serde_json::json!({
+                "item_id": item_id.clone(),
+                "output_index": 0,
+                "content_index": 0,
+                "delta": piece,
+                "logprobs": [],
+            }),
+        ));
+    }
+    events.push((
+        "response.output_text.done",
+        serde_json::json!({
+            "item_id": item_id.clone(),
+            "output_index": 0,
+            "content_index": 0,
+            "text": content,
+            "logprobs": [],
+        }),
+    ));
+    events.push((
+        "response.content_part.done",
+        serde_json::json!({
+            "item_id": item_id.clone(),
+            "output_index": 0,
+            "content_index": 0,
+            "part": part(content),
+        }),
+    ));
+    events.push((
+        "response.output_item.done",
+        serde_json::json!({
+            "output_index": 0,
+            "item": message("completed", serde_json::json!([part(content)])),
+        }),
+    ));
+    events.push((
+        "response.completed",
+        serde_json::json!({ "response": completed }),
+    ));
+
+    events
+        .into_iter()
+        .enumerate()
+        .map(|(seq, (event_type, mut payload))| {
+            payload["type"] = serde_json::json!(event_type);
+            payload["sequence_number"] = serde_json::json!(seq);
+            sse_event_frame(event_type, &payload)
+        })
+        .collect()
+}
+
 /// Split completion text into streaming content deltas whose concatenation
 /// byte-exactly reconstructs the input (`#654` phase D). Each piece is one
 /// non-whitespace run together with the whitespace that trails it, so joining
@@ -5595,5 +5745,85 @@ mod tests {
         // The canonical path and non-extended paths get no extra headers.
         assert_eq!(super::deprecation_headers("/uor/v1/status"), "");
         assert_eq!(super::deprecation_headers("/v1/chat/completions"), "");
+    }
+
+    // ---- streaming for /v1/responses (Responses event protocol) ----
+
+    fn parse_responses_events(frames: &[String]) -> Vec<(String, serde_json::Value)> {
+        // Each frame is `event: <type>\ndata: <json>\n\n`.
+        frames
+            .iter()
+            .map(|f| {
+                assert!(f.ends_with("\n\n"), "event frame ends with a blank line");
+                let (event_line, data_line) =
+                    f.trim_end().split_once('\n').expect("event then data line");
+                let event_type = event_line
+                    .strip_prefix("event: ")
+                    .expect("event: line")
+                    .to_string();
+                let json = data_line.strip_prefix("data: ").expect("data: line");
+                (
+                    event_type,
+                    serde_json::from_str(json).expect("data is JSON"),
+                )
+            })
+            .collect()
+    }
+
+    #[test]
+    fn responses_stream_frames_follow_the_spec_sequence() {
+        let completed =
+            super::build_responses_body(dummy_generation("hello world", 2, 7), "uor-r4", 64);
+        let frames = super::build_responses_stream_frames(
+            "resp-uor-r4-7",
+            7,
+            "uor-r4",
+            "hello world",
+            completed,
+        );
+        let events = parse_responses_events(&frames);
+
+        let types: Vec<&str> = events.iter().map(|(t, _)| t.as_str()).collect();
+        assert_eq!(types[0], "response.created");
+        assert_eq!(*types.last().unwrap(), "response.completed");
+        // The Responses stream terminates on response.completed — no [DONE].
+        assert!(frames.iter().all(|f| !f.contains("[DONE]")));
+
+        // Monotonic sequence numbers 0..N; the `type` field matches the event.
+        for (i, (event_type, payload)) in events.iter().enumerate() {
+            assert_eq!(payload["sequence_number"], i as u64);
+            assert_eq!(payload["type"], event_type.as_str());
+        }
+
+        // The delta events rejoin to the completion byte-for-byte.
+        let text: String = events
+            .iter()
+            .filter(|(t, _)| t == "response.output_text.delta")
+            .filter_map(|(_, p)| p["delta"].as_str())
+            .collect();
+        assert_eq!(text, "hello world");
+
+        // The finalize + terminal events carry the full text and the completed
+        // Response object (status + output_text + usage the SDK reads).
+        let done = events
+            .iter()
+            .find(|(t, _)| t == "response.output_text.done")
+            .unwrap();
+        assert_eq!(done.1["text"], "hello world");
+        let completed_ev = events.last().unwrap();
+        assert_eq!(completed_ev.1["response"]["status"], "completed");
+        assert_eq!(
+            completed_ev.1["response"]["output"][0]["content"][0]["text"],
+            "hello world"
+        );
+        assert_eq!(completed_ev.1["response"]["usage"]["total_tokens"], 6);
+    }
+
+    #[test]
+    fn responses_request_accepts_stream() {
+        let req: super::VendorResponsesRequest =
+            serde_json::from_str(r#"{"model":"uor-r4","input":"hi","stream":true}"#)
+                .expect("stream is accepted");
+        assert_eq!(req.stream, Some(true));
     }
 }
