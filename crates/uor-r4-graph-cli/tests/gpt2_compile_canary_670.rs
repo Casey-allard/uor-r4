@@ -24,9 +24,9 @@
 //! rows — the source-manifest κ (#597), the geometry projection (#600), and the
 //! learned-absolute attention operator (#602) the GPT-2 oracle declares — with
 //! held-out routing recall measured (Gate C) and the induced cover
-//! deterministic across runs. (The serialized R4G1 embeds a per-run
-//! HashMap-seeded provenance digest, so the *induced structure* — regions and
-//! recall — is the reproducibility invariant, not the raw artifact bytes.)
+//! deterministic across runs — byte-for-byte: since #694 the emission shortlist
+//! is BTreeMap-ordered with a total-order tie-break, so `cover.r4g1` reproduces
+//! bit-identically (no per-run HashMap-seeded ordering reaches the wire).
 //!
 //! This canary is additive: it adds no SmolLM2 path, so SmolLM2 compiles
 //! byte-unchanged.
@@ -268,10 +268,11 @@ fn gpt2_cover_certifies_source_parity_rows() {
     );
 
     // Deterministic induction: a second run over the same compiled teacher
-    // induces the identical cover — same regions and same held-out recall.
-    // (The serialized R4G1 carries a provenance digest seeded per-run by the
-    // std HashMap's random state, so raw artifact bytes are not the invariant;
-    // the induced structure is.)
+    // induces the identical cover, serialized to byte-identical R4G1. Since #694
+    // the emission shortlist is BTreeMap-ordered with a total-order (weight desc,
+    // token asc) tie-break, so no per-run HashMap seed reaches the wire and the
+    // artifact — including its content-addressed section CIDs — reproduces bit
+    // for bit. The report's structure (recall + regions) is checked below too.
     cover_command(&cover_args(
         &compiled,
         &cover_b,
@@ -282,9 +283,8 @@ fn gpt2_cover_certifies_source_parity_rows() {
     .expect("cover induction (second run)");
     let bytes_b = std::fs::read(cover_b.join("cover.r4g1")).expect("read second-run cover.r4g1");
     assert_eq!(
-        bytes_a.len(),
-        bytes_b.len(),
-        "the induced R4G1 has a stable size across runs"
+        bytes_a, bytes_b,
+        "the induced R4G1 is byte-identical across runs (#694)"
     );
     let report_b: serde_json::Value = serde_json::from_slice(
         &std::fs::read(cover_b.join("cover_report.json")).expect("read second cover_report.json"),

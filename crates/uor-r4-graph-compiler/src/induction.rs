@@ -2340,9 +2340,12 @@ pub fn emit_r4g1(
 
     for (index, _) in cover.regions.iter().enumerate() {
         let i = 1 + index;
-        let mut freq: std::collections::HashMap<u32, u32> = std::collections::HashMap::new();
-        let mut bigram_freq: std::collections::HashMap<(u32, u32), u32> =
-            std::collections::HashMap::new();
+        // BTreeMaps (not HashMaps): the emission shortlist is serialized to the
+        // wire, so its ordering must be seed-independent. std HashMap iteration
+        // is per-instance random-seeded; BTreeMap iterates in key order, making
+        // the pre-sort candidate order — and thus cover.r4g1 — reproducible (#694).
+        let mut freq: BTreeMap<u32, u32> = BTreeMap::new();
+        let mut bigram_freq: BTreeMap<(u32, u32), u32> = BTreeMap::new();
         for &obs_idx in &cover.members[index] {
             if let Some(obs) = observations.get(obs_idx) {
                 let prev_token = obs.prev;
@@ -2351,8 +2354,7 @@ pub fn emit_r4g1(
                 *bigram_freq.entry((prev_token, next_token)).or_insert(0) += 1;
             }
         }
-        let mut candidate_weights: std::collections::HashMap<u32, u32> =
-            std::collections::HashMap::new();
+        let mut candidate_weights: BTreeMap<u32, u32> = BTreeMap::new();
         for (&next_token, &count) in &freq {
             let mut weight = count * 10;
             for (&(prev, next), &bcount) in &bigram_freq {
@@ -2362,8 +2364,12 @@ pub fn emit_r4g1(
             }
             candidate_weights.insert(next_token, weight);
         }
+        // Total-order shortlist: weight descending, then token id ascending as a
+        // deterministic tie-break. A weight-only key leaves equal-weight tokens
+        // (and the token kept at the 64-candidate truncation boundary) resolved
+        // by the map's iteration order — which must not reach the wire (#694).
         let mut sorted: Vec<_> = candidate_weights.into_iter().collect();
-        sorted.sort_by_key(|&(_, weight)| std::cmp::Reverse(weight));
+        sorted.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.cmp(&b.0)));
         sorted.truncate(64); // max E = 64
 
         let start_in_remainder = (emit.len() - 4) as u32;
