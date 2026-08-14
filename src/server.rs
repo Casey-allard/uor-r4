@@ -84,6 +84,24 @@ pub struct VendorChatCompletionsRequest {
     /// falling back to the persisted `/engine` selection (issue #248).
     #[serde(default)]
     pub engine: Option<String>,
+    /// `#654` phase D: when `true`, the completion is delivered as a
+    /// `text/event-stream` of `chat.completion.chunk` events terminated by
+    /// `data: [DONE]`. Absent/`false` keeps the single-JSON response.
+    #[serde(default)]
+    pub stream: Option<bool>,
+    /// `#654` phase D: streaming options. Only `include_usage` is honored —
+    /// when set, a final usage-only chunk (empty `choices`) is emitted before
+    /// `[DONE]`. Denies unknown fields so an unsupported option fails closed.
+    #[serde(default)]
+    pub stream_options: Option<StreamOptions>,
+}
+
+/// The supported subset of OpenAI `stream_options` (`#654` phase D).
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct StreamOptions {
+    #[serde(default)]
+    pub include_usage: Option<bool>,
 }
 
 #[derive(Debug, serde::Serialize)]
@@ -2591,29 +2609,65 @@ fn handle_connection(
             tokens_detail,
         };
 
+        // Values shared by the single-JSON and the streaming surfaces.
+        let response_id = format!("chatcmpl-uor-r4-{}", created_ts);
+        let model_name = req.model.clone().unwrap_or_else(|| "uor-r4".to_string());
+        let system_fingerprint = format!("uor-r4-{}", generation_mode);
+        // #654 phase C: `length` when the served completion reached the
+        // effective token budget, otherwise `stop`.
+        let finish_reason = completion_finish_reason(completion_tokens, max_tokens).to_string();
+        let usage = VendorUsage {
+            prompt_tokens,
+            completion_tokens,
+            total_tokens,
+        };
+        let cascade_trail = cascade_trail_json(&cascade.outcome.trail);
+
+        // #654 phase D: streaming surface. The serving cascade produces the
+        // whole completion up front (there is no incremental token generator on
+        // this path), so streaming re-frames that finished text as ordered
+        // `chat.completion.chunk` events — the wire format is streaming, not the
+        // generation. The audit trail rides the terminal chunk for parity with
+        // the single-JSON body.
+        if req.stream == Some(true) {
+            let include_usage = req
+                .stream_options
+                .as_ref()
+                .and_then(|options| options.include_usage)
+                .unwrap_or(false);
+            let audit_value = serde_json::to_value(&uor_audit).ok();
+            let frames = build_chat_stream_frames(
+                &response_id,
+                created_ts,
+                &model_name,
+                &system_fingerprint,
+                &final_response_text,
+                &finish_reason,
+                if include_usage { Some(&usage) } else { None },
+                audit_value,
+                cascade_trail,
+            );
+            send_sse_stream(stream, &frames);
+            return;
+        }
+
         let resp = VendorChatCompletionsResponse {
-            id: format!("chatcmpl-uor-r4-{}", created_ts),
+            id: response_id,
             object: "chat.completion".to_string(),
             created: created_ts,
-            model: req.model.unwrap_or_else(|| "uor-r4".to_string()),
+            model: model_name,
             choices: vec![VendorChoice {
                 index: 0,
                 message: VendorChatMessage {
                     role: "assistant".to_string(),
                     content: final_response_text,
                 },
-                // #654 phase C: `length` when the served completion reached
-                // the effective token budget, otherwise `stop`.
-                finish_reason: completion_finish_reason(completion_tokens, max_tokens).to_string(),
+                finish_reason,
             }],
-            usage: VendorUsage {
-                prompt_tokens,
-                completion_tokens,
-                total_tokens,
-            },
-            system_fingerprint: Some(format!("uor-r4-{}", generation_mode)),
+            usage,
+            system_fingerprint: Some(system_fingerprint),
             uor_audit: Some(uor_audit),
-            cascade_trail: cascade_trail_json(&cascade.outcome.trail),
+            cascade_trail,
         };
 
         send_json_response(stream, 200, &serde_json::to_string(&resp).unwrap());
@@ -4079,6 +4133,131 @@ fn flatten_chat_prompt(messages: &[ChatMessage]) -> Result<String, String> {
     Ok(parts.join("\n"))
 }
 
+/// Split completion text into streaming content deltas whose concatenation
+/// byte-exactly reconstructs the input (`#654` phase D). Each piece is one
+/// non-whitespace run together with the whitespace that trails it, so joining
+/// every `delta.content` on the wire yields the original text unchanged.
+/// Empty input yields no content pieces (only the role and terminal chunks).
+fn split_stream_deltas(text: &str) -> Vec<String> {
+    if text.is_empty() {
+        return Vec::new();
+    }
+    let mut pieces = Vec::new();
+    let mut current = String::new();
+    let mut in_word = false;
+    for ch in text.chars() {
+        if ch.is_whitespace() {
+            current.push(ch);
+        } else {
+            if in_word && current.ends_with(char::is_whitespace) {
+                pieces.push(std::mem::take(&mut current));
+            }
+            current.push(ch);
+            in_word = true;
+        }
+    }
+    if !current.is_empty() {
+        pieces.push(current);
+    }
+    pieces
+}
+
+/// Format one Server-Sent Event frame: `data: <json>\n\n`.
+fn sse_frame(value: &serde_json::Value) -> String {
+    format!("data: {}\n\n", value)
+}
+
+/// Build the ordered SSE frames for a streaming chat completion (`#654`
+/// phase D): a role chunk, one chunk per content delta (concatenating to the
+/// full completion), a terminal chunk carrying `finish_reason` and the R4
+/// audit trail, an optional usage-only chunk when `include_usage` was
+/// requested, and the closing `data: [DONE]` marker.
+#[allow(clippy::too_many_arguments)]
+fn build_chat_stream_frames(
+    id: &str,
+    created: u64,
+    model: &str,
+    system_fingerprint: &str,
+    content: &str,
+    finish_reason: &str,
+    usage: Option<&VendorUsage>,
+    audit: Option<serde_json::Value>,
+    cascade_trail: serde_json::Value,
+) -> Vec<String> {
+    let chunk = |delta: serde_json::Value, finish: serde_json::Value| -> serde_json::Value {
+        serde_json::json!({
+            "id": id,
+            "object": "chat.completion.chunk",
+            "created": created,
+            "model": model,
+            "system_fingerprint": system_fingerprint,
+            "choices": [{ "index": 0, "delta": delta, "finish_reason": finish }],
+        })
+    };
+
+    let mut frames = Vec::new();
+    // Role chunk first, mirroring OpenAI's stream preamble.
+    frames.push(sse_frame(&chunk(
+        serde_json::json!({ "role": "assistant" }),
+        serde_json::Value::Null,
+    )));
+    // Content deltas — their concatenation reconstructs `content` exactly.
+    for piece in split_stream_deltas(content) {
+        frames.push(sse_frame(&chunk(
+            serde_json::json!({ "content": piece }),
+            serde_json::Value::Null,
+        )));
+    }
+    // Terminal chunk: empty delta, the truthful finish_reason, and the R4
+    // audit trail (SDKs ignore the extra fields; parity with the JSON body).
+    let mut final_chunk = chunk(serde_json::json!({}), serde_json::json!(finish_reason));
+    if let Some(audit) = audit {
+        final_chunk["uor_audit"] = audit;
+    }
+    final_chunk["cascade_trail"] = cascade_trail;
+    frames.push(sse_frame(&final_chunk));
+    // Optional usage-only chunk (empty choices) when include_usage was set.
+    if let Some(usage) = usage {
+        frames.push(sse_frame(&serde_json::json!({
+            "id": id,
+            "object": "chat.completion.chunk",
+            "created": created,
+            "model": model,
+            "system_fingerprint": system_fingerprint,
+            "choices": [],
+            "usage": {
+                "prompt_tokens": usage.prompt_tokens,
+                "completion_tokens": usage.completion_tokens,
+                "total_tokens": usage.total_tokens,
+            },
+        })));
+    }
+    frames.push("data: [DONE]\n\n".to_string());
+    frames
+}
+
+/// Write the streaming chat completion as `text/event-stream`. Frames are
+/// flushed in order; the body ends at connection close (no `Content-Length`).
+/// A write error means the client hung up mid-stream, so we stop cleanly.
+fn send_sse_stream(mut stream: TcpStream, frames: &[String]) {
+    let head = "HTTP/1.1 200 OK\r\n\
+                Content-Type: text/event-stream\r\n\
+                Cache-Control: no-cache\r\n\
+                Connection: close\r\n\
+                Access-Control-Allow-Origin: *\r\n\
+                Access-Control-Allow-Methods: POST, GET, OPTIONS\r\n\
+                Access-Control-Allow-Headers: Content-Type\r\n\r\n";
+    if stream.write_all(head.as_bytes()).is_err() {
+        return;
+    }
+    for frame in frames {
+        if stream.write_all(frame.as_bytes()).is_err() {
+            return;
+        }
+        let _ = stream.flush();
+    }
+}
+
 fn send_json_response(mut stream: TcpStream, status_code: u16, body: &str) {
     let status_text = match status_code {
         200 => "OK",
@@ -4677,5 +4856,131 @@ mod tests {
             content: "{}".into(),
         }];
         assert_eq!(super::flatten_chat_prompt(&bad).unwrap_err(), "tool");
+    }
+
+    // ---- #654 phase D: SSE streaming ----
+
+    #[test]
+    fn stream_deltas_reconstruct_the_completion_byte_for_byte() {
+        for text in [
+            "",
+            "hi",
+            "hello world",
+            "  leading spaces",
+            "trailing spaces  ",
+            "a   wide   gap",
+            "line one\nline two",
+            "héllo wörld — ünïcode",
+        ] {
+            let joined: String = super::split_stream_deltas(text).concat();
+            assert_eq!(joined, text, "deltas must rejoin to the exact input");
+        }
+        assert!(super::split_stream_deltas("").is_empty());
+        assert_eq!(super::split_stream_deltas("solo"), vec!["solo".to_string()]);
+    }
+
+    fn parse_stream_chunks(frames: &[String]) -> Vec<serde_json::Value> {
+        // Every frame is `data: <payload>\n\n`; collect the JSON payloads,
+        // skipping the terminal `[DONE]` marker.
+        frames
+            .iter()
+            .map(|f| {
+                assert!(f.starts_with("data: "), "frame must start with `data: `");
+                assert!(f.ends_with("\n\n"), "frame must end with a blank line");
+                f.trim_start_matches("data: ").trim_end().to_string()
+            })
+            .filter(|payload| payload != "[DONE]")
+            .map(|payload| serde_json::from_str(&payload).expect("chunk is JSON"))
+            .collect()
+    }
+
+    #[test]
+    fn stream_frames_have_role_first_content_then_terminal_done() {
+        let frames = super::build_chat_stream_frames(
+            "chatcmpl-uor-r4-1",
+            1,
+            "uor-r4",
+            "uor-r4-r4g1",
+            "hello world",
+            "stop",
+            None,
+            Some(serde_json::json!({ "generation_mode": "r4g1" })),
+            serde_json::json!([]),
+        );
+
+        // Closes with the SSE terminal marker.
+        assert_eq!(frames.last().unwrap(), "data: [DONE]\n\n");
+
+        let chunks = parse_stream_chunks(&frames);
+        // Every chunk is a chat.completion.chunk carrying the shared id.
+        for chunk in &chunks {
+            assert_eq!(chunk["object"], "chat.completion.chunk");
+            assert_eq!(chunk["id"], "chatcmpl-uor-r4-1");
+        }
+        // First chunk carries the assistant role and no finish_reason.
+        assert_eq!(chunks[0]["choices"][0]["delta"]["role"], "assistant");
+        assert!(chunks[0]["choices"][0]["finish_reason"].is_null());
+
+        // The content deltas rejoin to the exact completion.
+        let content: String = chunks
+            .iter()
+            .filter_map(|c| c["choices"][0]["delta"]["content"].as_str())
+            .collect();
+        assert_eq!(content, "hello world");
+
+        // Terminal chunk: empty delta, truthful finish_reason, audit parity.
+        let terminal = chunks.last().unwrap();
+        assert_eq!(terminal["choices"][0]["finish_reason"], "stop");
+        assert!(terminal["choices"][0]["delta"]
+            .as_object()
+            .unwrap()
+            .is_empty());
+        assert_eq!(terminal["uor_audit"]["generation_mode"], "r4g1");
+
+        // include_usage was false → no usage-only chunk.
+        assert!(chunks.iter().all(|c| c.get("usage").is_none()));
+    }
+
+    #[test]
+    fn stream_include_usage_emits_a_final_usage_only_chunk() {
+        let usage = super::VendorUsage {
+            prompt_tokens: 3,
+            completion_tokens: 2,
+            total_tokens: 5,
+        };
+        let frames = super::build_chat_stream_frames(
+            "chatcmpl-uor-r4-2",
+            2,
+            "uor-r4",
+            "uor-r4-r4g1",
+            "hi there",
+            "length",
+            Some(&usage),
+            None,
+            serde_json::json!([]),
+        );
+        let chunks = parse_stream_chunks(&frames);
+        // Exactly one usage-bearing chunk, and it has empty choices.
+        let usage_chunks: Vec<_> = chunks.iter().filter(|c| c.get("usage").is_some()).collect();
+        assert_eq!(usage_chunks.len(), 1);
+        assert_eq!(usage_chunks[0]["choices"].as_array().unwrap().len(), 0);
+        assert_eq!(usage_chunks[0]["usage"]["total_tokens"], 5);
+    }
+
+    #[test]
+    fn stream_request_parses_with_stream_and_options() {
+        let req: super::VendorChatCompletionsRequest = serde_json::from_str(
+            r#"{"messages":[{"role":"user","content":"hi"}],"stream":true,"stream_options":{"include_usage":true}}"#,
+        )
+        .expect("stream fields are accepted");
+        assert_eq!(req.stream, Some(true));
+        assert_eq!(req.stream_options.and_then(|o| o.include_usage), Some(true));
+    }
+
+    #[test]
+    fn stream_options_denies_unknown_fields() {
+        let parsed: Result<super::VendorChatCompletionsRequest, _> =
+            serde_json::from_str(r#"{"messages":[],"stream":true,"stream_options":{"bogus":1}}"#);
+        assert!(parsed.is_err(), "unknown stream option must fail closed");
     }
 }
