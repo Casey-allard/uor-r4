@@ -2409,23 +2409,24 @@ fn handle_connection(
             }
         };
 
-        let mut prompt_parts = Vec::new();
-        for msg in &req.messages {
-            match msg.role.as_str() {
-                "system" => prompt_parts.push(format!("System: {}", msg.content)),
-                "user" => prompt_parts.push(format!("User: {}", msg.content)),
-                "assistant" => prompt_parts.push(format!("Assistant: {}", msg.content)),
-                _ => prompt_parts.push(msg.content.clone()),
+        // #654 phase C: flatten the supported roles (system/developer/user/
+        // assistant); an unsupported role fails closed with the envelope
+        // rather than being silently accepted.
+        let prompt_text = match flatten_chat_prompt(&req.messages) {
+            Ok(text) => text,
+            Err(role) => {
+                send_openai_error(
+                    stream,
+                    400,
+                    "invalid_request_error",
+                    &format!(
+                        "Unsupported message role '{role}'. Supported roles: system, developer, user, assistant."
+                    ),
+                    Some("messages"),
+                    None,
+                );
+                return;
             }
-        }
-        let prompt_text = if prompt_parts.len() == 1
-            && req.messages.first().map(|m| m.role.as_str()) == Some("user")
-        {
-            req.messages[0].content.clone()
-        } else if !prompt_parts.is_empty() {
-            prompt_parts.join("\n")
-        } else {
-            String::new()
         };
 
         let max_tokens = req.max_tokens.unwrap_or(256);
@@ -2526,8 +2527,12 @@ fn handle_connection(
         router_guard.inject_thought_stream_native(&final_response_text);
         spawn_cache_save(&cli, router_guard.export_state());
 
-        let prompt_tokens = prompt_text.split_whitespace().count().max(1);
-        let completion_tokens = final_response_text.split_whitespace().count().max(1);
+        // #654 phase C: usage from the serving tokenizer (the compiled
+        // artifact's), not a whitespace-word estimate. On this served path a
+        // tokenizer is available (it produced the completion); the defensive
+        // `unwrap_or(0)` never substitutes a word count.
+        let prompt_tokens = count_serving_tokens(&prompt_text).unwrap_or(0);
+        let completion_tokens = count_serving_tokens(&final_response_text).unwrap_or(0);
         let total_tokens = prompt_tokens + completion_tokens;
 
         let created_ts = std::time::SystemTime::now()
@@ -2597,7 +2602,9 @@ fn handle_connection(
                     role: "assistant".to_string(),
                     content: final_response_text,
                 },
-                finish_reason: "stop".to_string(),
+                // #654 phase C: `length` when the served completion reached
+                // the effective token budget, otherwise `stop`.
+                finish_reason: completion_finish_reason(completion_tokens, max_tokens).to_string(),
             }],
             usage: VendorUsage {
                 prompt_tokens,
@@ -4019,6 +4026,59 @@ fn models_list_body(models: &[(String, u64)]) -> serde_json::Value {
     })
 }
 
+/// The server's per-request completion-token cap (mirrors the generation
+/// helpers' `MAX_SERVER_TOKENS`).
+const SERVER_MAX_COMPLETION_TOKENS: usize = 256;
+
+/// Count tokens with the loaded serving tokenizer — the compiled artifact's
+/// tokenizer the cascade encodes with — not a whitespace-word estimate
+/// (#654 phase C). The buffer is sized to the byte length, an upper bound on
+/// the token count, so the count is exact (no truncation). `None` means the
+/// serving tokenizer is unavailable; usage is then reported honestly rather
+/// than substituting a word count.
+fn count_serving_tokens(text: &str) -> Option<usize> {
+    if text.is_empty() {
+        return Some(0);
+    }
+    let mut buf = vec![0u32; text.len()];
+    tless_uor::tless_tokenize_into(text, &mut buf)
+}
+
+/// The truthful `finish_reason` for a served completion: `length` when it
+/// reached the effective token budget (the smaller of the requested
+/// `max_tokens` and the server cap), otherwise `stop`. Abstentions and hard
+/// failures never reach here — those are the declined/error path.
+fn completion_finish_reason(completion_tokens: usize, requested_max_tokens: usize) -> &'static str {
+    let budget = requested_max_tokens.min(SERVER_MAX_COMPLETION_TOKENS);
+    if completion_tokens >= budget {
+        "length"
+    } else {
+        "stop"
+    }
+}
+
+/// Flatten the supported chat roles into the router prompt. Supported roles:
+/// `system`, `developer` (system-equivalent, per the pinned spec), `user`,
+/// and `assistant`. An unsupported role (e.g. `tool`, `function`) returns
+/// `Err(role)` so the caller fails closed with the error envelope — a role
+/// outside the profile is never silently accepted. A single `user` message
+/// passes through verbatim (the common case).
+fn flatten_chat_prompt(messages: &[ChatMessage]) -> Result<String, String> {
+    let mut parts = Vec::with_capacity(messages.len());
+    for message in messages {
+        match message.role.as_str() {
+            "system" | "developer" => parts.push(format!("System: {}", message.content)),
+            "user" => parts.push(format!("User: {}", message.content)),
+            "assistant" => parts.push(format!("Assistant: {}", message.content)),
+            other => return Err(other.to_owned()),
+        }
+    }
+    if parts.len() == 1 && messages.first().map(|m| m.role.as_str()) == Some("user") {
+        return Ok(messages[0].content.clone());
+    }
+    Ok(parts.join("\n"))
+}
+
 fn send_json_response(mut stream: TcpStream, status_code: u16, body: &str) {
     let status_text = match status_code {
         200 => "OK",
@@ -4559,5 +4619,63 @@ mod tests {
             denied.is_err(),
             "unsupported parameter top_p is rejected, not ignored"
         );
+    }
+
+    // ---- #654 phase C: chat conformance ----
+
+    #[test]
+    fn finish_reason_is_length_only_at_the_budget() {
+        assert_eq!(super::completion_finish_reason(10, 64), "stop");
+        assert_eq!(super::completion_finish_reason(64, 64), "length");
+        assert_eq!(super::completion_finish_reason(100, 64), "length");
+        // A large requested max_tokens is bounded by the server cap.
+        assert_eq!(
+            super::completion_finish_reason(super::SERVER_MAX_COMPLETION_TOKENS, 100_000),
+            "length"
+        );
+        assert_eq!(
+            super::completion_finish_reason(super::SERVER_MAX_COMPLETION_TOKENS - 1, 100_000),
+            "stop"
+        );
+    }
+
+    #[test]
+    fn flatten_chat_prompt_handles_supported_roles() {
+        // A single user message passes through verbatim.
+        let one = vec![super::ChatMessage {
+            role: "user".into(),
+            content: "hi".into(),
+        }];
+        assert_eq!(super::flatten_chat_prompt(&one).unwrap(), "hi");
+
+        // Multiple roles, including developer (system-equivalent), are
+        // labeled and joined.
+        let many = vec![
+            super::ChatMessage {
+                role: "developer".into(),
+                content: "be terse".into(),
+            },
+            super::ChatMessage {
+                role: "user".into(),
+                content: "hello".into(),
+            },
+            super::ChatMessage {
+                role: "assistant".into(),
+                content: "hi".into(),
+            },
+        ];
+        assert_eq!(
+            super::flatten_chat_prompt(&many).unwrap(),
+            "System: be terse\nUser: hello\nAssistant: hi"
+        );
+    }
+
+    #[test]
+    fn flatten_chat_prompt_fails_closed_on_unsupported_role() {
+        let bad = vec![super::ChatMessage {
+            role: "tool".into(),
+            content: "{}".into(),
+        }];
+        assert_eq!(super::flatten_chat_prompt(&bad).unwrap_err(), "tool");
     }
 }
