@@ -70,6 +70,46 @@ the matrix disagree, if the vendored bytes do not match the pinned blake3, or if
 the `supported` set changes without updating the test — so drift cannot land
 unreviewed.
 
+## SDK compatibility (phase F)
+
+The pinned wire surfaces are verified against the **official OpenAI SDKs**, so a
+caller can point an unmodified SDK at an R4 server by setting its base URL:
+
+| SDK | Version verified | Surfaces |
+| --- | --- | --- |
+| `openai` (Python) | 3.0.0 | chat completions (non-stream + stream), responses |
+| `openai` (JS/TS) | 7.4.0 | chat completions (non-stream + stream), responses |
+
+Two layers of coverage:
+
+- **Deterministic fixtures (CI).** `src/server.rs` bakes the *exact* request
+  bodies these SDKs emit for basic calls and asserts our request DTOs
+  deserialize them, and that our response bodies carry the fields the SDKs read
+  (`choices[].message.content`, `finish_reason`, `usage.*`; and the Responses
+  `output[].content[].text` / `usage.*`). No network or model is needed.
+- **Runnable end-to-end scripts.** `smoke_test.py` and `smoke_test.mjs` drive a
+  live server with the real SDK across all three surfaces. They need a server
+  with a compiled model loaded (a declined cascade has no text to serve), so
+  they are developer-run, not CI:
+
+  ```
+  # Python
+  pip install openai
+  python3 profiles/openai/smoke_test.py --base-url http://127.0.0.1:8080/v1 --model <compiled-model-id>
+
+  # JS/TS
+  npm install openai
+  node profiles/openai/smoke_test.mjs --base-url http://127.0.0.1:8080/v1 --model <compiled-model-id>
+  ```
+
+Because the request DTOs use `#[serde(deny_unknown_fields)]`, an SDK call that
+passes a parameter outside the supported subset (a tool spec, a
+structured-output format, a reasoning control) is rejected with the error
+envelope rather than being silently ignored. This is not an SDK incompatibility:
+the SDKs omit every *unset* optional parameter, so ordinary calls always land
+inside the subset; only an explicitly-passed unsupported parameter fails closed,
+which is the intended "support is never implied by omission" contract.
+
 ## Claim status
 
 Passing the profile proves the tested wire-protocol contract against this

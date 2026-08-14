@@ -5387,4 +5387,107 @@ mod tests {
             serde_json::from_str(r#"{"input":"hi","tools":[]}"#);
         assert!(unsupported.is_err(), "unsupported param must fail closed");
     }
+
+    // ---- #654 phase F: official OpenAI SDK wire compatibility ----
+    // The fixtures below are the EXACT request bodies emitted by the official
+    // OpenAI Python SDK (3.0.0) and JS SDK (7.4.0) for basic calls, captured
+    // against an echo server. They deserialize into our DTOs unchanged: the SDKs
+    // omit every unset optional param, so a real call always lands inside the
+    // supported subset and `deny_unknown_fields` never trips on an SDK default.
+    // These are the deterministic, CI-safe half of the phase-F smoke coverage;
+    // the runnable end-to-end scripts live in profiles/openai/smoke_test.{py,mjs}.
+
+    #[test]
+    fn sdk_chat_request_fixtures_deserialize() {
+        // Minimal chat.completions.create(model, messages).
+        let minimal: super::VendorChatCompletionsRequest = serde_json::from_str(
+            r#"{"messages":[{"content":"hi","role":"user"}],"model":"uor-r4"}"#,
+        )
+        .expect("minimal SDK chat payload deserializes");
+        assert_eq!(minimal.model.as_deref(), Some("uor-r4"));
+        assert_eq!(minimal.messages.len(), 1);
+        assert!(minimal.stream.is_none());
+
+        // With max_tokens + temperature + a system message.
+        let full: super::VendorChatCompletionsRequest = serde_json::from_str(
+            r#"{"max_tokens":32,"messages":[{"content":"be terse","role":"system"},{"content":"hi","role":"user"}],"model":"uor-r4","temperature":0.5}"#,
+        )
+        .expect("full SDK chat payload deserializes");
+        assert_eq!(full.max_tokens, Some(32));
+        assert_eq!(full.messages.len(), 2);
+
+        // A streaming call adds exactly `stream: true`.
+        let streaming: super::VendorChatCompletionsRequest = serde_json::from_str(
+            r#"{"messages":[{"content":"hi","role":"user"}],"model":"uor-r4","stream":true}"#,
+        )
+        .expect("streaming SDK chat payload deserializes");
+        assert_eq!(streaming.stream, Some(true));
+    }
+
+    #[test]
+    fn sdk_responses_request_fixtures_deserialize() {
+        // Minimal responses.create(model, input).
+        let minimal: super::VendorResponsesRequest =
+            serde_json::from_str(r#"{"input":"hi","model":"uor-r4"}"#)
+                .expect("minimal SDK responses payload deserializes");
+        assert_eq!(minimal.model.as_deref(), Some("uor-r4"));
+        assert!(minimal.input.is_string());
+
+        // With instructions + max_output_tokens.
+        let full: super::VendorResponsesRequest = serde_json::from_str(
+            r#"{"input":"hi","instructions":"be terse","max_output_tokens":32,"model":"uor-r4"}"#,
+        )
+        .expect("full SDK responses payload deserializes");
+        assert_eq!(full.instructions.as_deref(), Some("be terse"));
+        assert_eq!(full.max_output_tokens, Some(32));
+    }
+
+    #[test]
+    fn chat_response_carries_the_fields_the_sdk_reads() {
+        // The SDK reads choices[0].message.{role,content}, choices[0].
+        // finish_reason, usage.{prompt,completion,total}_tokens, and id/object.
+        let resp = super::VendorChatCompletionsResponse {
+            id: "chatcmpl-uor-r4-1".to_string(),
+            object: "chat.completion".to_string(),
+            created: 1,
+            model: "uor-r4".to_string(),
+            choices: vec![super::VendorChoice {
+                index: 0,
+                message: super::VendorChatMessage {
+                    role: "assistant".to_string(),
+                    content: "hi".to_string(),
+                },
+                finish_reason: "stop".to_string(),
+            }],
+            usage: super::VendorUsage {
+                prompt_tokens: 1,
+                completion_tokens: 1,
+                total_tokens: 2,
+            },
+            system_fingerprint: Some("uor-r4-r4g1".to_string()),
+            uor_audit: None,
+            cascade_trail: serde_json::json!([]),
+        };
+        let value = serde_json::to_value(&resp).unwrap();
+        assert_eq!(value["object"], "chat.completion");
+        assert_eq!(value["choices"][0]["message"]["role"], "assistant");
+        assert_eq!(value["choices"][0]["message"]["content"], "hi");
+        assert_eq!(value["choices"][0]["finish_reason"], "stop");
+        assert_eq!(value["usage"]["total_tokens"], 2);
+    }
+
+    #[test]
+    fn responses_body_carries_the_fields_the_sdk_reads() {
+        // The SDK's `output_text` accessor reads output[].content[].text where
+        // type == output_text; it also reads usage.{input,output,total}_tokens
+        // and status.
+        let body = super::build_responses_body(dummy_generation("hi", 1, 1), "uor-r4", 64);
+        assert_eq!(body["object"], "response");
+        assert_eq!(body["status"], "completed");
+        assert_eq!(body["output"][0]["content"][0]["type"], "output_text");
+        assert_eq!(body["output"][0]["content"][0]["text"], "hi");
+        assert_eq!(body["usage"]["input_tokens"], 4);
+        assert_eq!(body["usage"]["output_tokens"], 1);
+        assert_eq!(body["usage"]["total_tokens"], 5);
+    }
 }
