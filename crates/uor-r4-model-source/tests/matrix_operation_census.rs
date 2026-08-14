@@ -1,21 +1,22 @@
-//! #655 sub-A — matrix-operation census guard.
+//! #655 — matrix-operation census guard.
 //!
 //! The production chain must contain no project-owned conventional library-BLAS
-//! matrix operation outside the single sanctioned teacher site. The teacher's
-//! `cblas_sgemv`/`cblas_sgemm` reach system Accelerate through
-//! `#[link(name = "Accelerate", kind = "framework")]` + `extern "C"` — an FFI
-//! symbol, not a crate dependency — so the crate/manifest audits
+//! matrix operation. Crate/manifest audits
 //! (`uor-r4-graph-compiler::dependency_audit`, `uor-r4-proof-model::inference_audit`)
-//! cannot see it. This source scan closes that gap: it fails CI if a
-//! library-BLAS matrix token appears in any production-chain crate `src/`
-//! outside `uor-r4-model-source/src/lib.rs`.
+//! catch forbidden BLAS/GPU *crate dependencies*, but a `cblas_*` reached through
+//! `#[link(name = "Accelerate")]` + `extern "C"` is an FFI *symbol*, not a crate
+//! dependency, so those audits cannot see it. This source scan closes that gap:
+//! it fails CI if a library-BLAS matrix token appears in any production-chain
+//! crate `src/` (only the two audit files, which list such names as denylist
+//! data, are exempt).
 //!
-//! This is the census baseline (no behavior/CID change). #655-B then replaces
-//! the sanctioned site itself with the pinned `uor-matmul` surface and tightens
-//! this guard to zero library-BLAS anywhere.
+//! Since #655-B2 the teacher's `cblas_sgemv`/`cblas_sgemm` are gone — its weight
+//! matmuls are the pinned `uor-matmul` exact GEMM — so the guard now enforces
+//! zero library-BLAS use anywhere in the production chain.
 //!
-//! The full classified inventory (including the hand-rolled fallbacks this
-//! mechanical guard does not keyword-match) lives in
+//! The full classified inventory (including the remaining hand-rolled GPT-2
+//! `conv1d` / attention accumulations this mechanical guard does not
+//! keyword-match, tracked for a follow-up) lives in
 //! `docs/matrix_operation_census.md`.
 #![cfg(not(target_arch = "wasm32"))]
 
@@ -29,16 +30,13 @@ use std::path::{Path, PathBuf};
 const BLAS_MATRIX_MARKERS: &[&str] =
     &["cblas_", "matrixmultiply", "openblas", "dgemm", "intel_mkl"];
 
-/// Files allowed to contain a library-BLAS matrix marker today, by path suffix:
-///
-/// - the teacher (Llama) executor's Accelerate fast path — the one production
-///   *use* of a library-BLAS matrix symbol (#655-B removes it; when it does,
-///   `sanctioned_file_still_owns_blas` forces this allowlist updated);
-/// - the two dependency/manifest audits, which enumerate forbidden BLAS crate
-///   names as denylist *data* so those crates can never enter the tree — the
-///   opposite of performing a matrix operation.
+/// Files allowed to contain a library-BLAS matrix marker today, by path suffix.
+/// Since #655-B2 the teacher's Accelerate `cblas_*` FFI is gone — every teacher
+/// weight matmul is the pinned `uor-matmul` exact GEMM — so no production *use*
+/// site remains sanctioned. Only the two dependency/manifest audits are listed:
+/// they enumerate forbidden BLAS crate names as denylist *data* so those crates
+/// can never enter the tree — the opposite of performing a matrix operation.
 const SANCTIONED_SUFFIXES: &[&str] = &[
-    "uor-r4-model-source/src/lib.rs",
     "uor-r4-graph-compiler/src/dependency_audit.rs",
     "uor-r4-proof-model/src/inference_audit.rs",
 ];
@@ -141,19 +139,20 @@ fn no_conventional_blas_matrix_op_outside_the_sanctioned_teacher_site() {
     );
 }
 
-/// The sanctioned teacher site is expected to still own the library-BLAS matrix
-/// FFI until #655-B migrates it. If this fails, the allowlist above is stale
-/// (the site moved or was replaced) and must be updated together with the
-/// census doc — a conventional GEMM must never become silently unsanctioned.
+/// Since #655-B2, the teacher executor must own NO library-BLAS matrix FFI: its
+/// weight matmuls are the pinned `uor-matmul` exact GEMM. If a `cblas_*` symbol
+/// reappears here it is a regression to a conventional matrix backend, which the
+/// main scan above would also catch (the file is no longer sanctioned) — this
+/// asserts it directly at the teacher site for a clearer failure.
 #[test]
-fn sanctioned_file_still_owns_blas() {
+fn teacher_site_owns_no_blas_matrix_ffi() {
     let root = workspace_root();
     let lib = root.join("crates/uor-r4-model-source/src/lib.rs");
     let text = std::fs::read_to_string(&lib).expect("read the teacher executor source");
     assert!(
-        text.contains("cblas_"),
-        "the sanctioned teacher site {} no longer contains a `cblas_` matrix FFI — update the \
-         census guard allowlist and docs/matrix_operation_census.md (likely #655-B landed)",
+        !text.contains("cblas_"),
+        "the teacher site {} reintroduced a `cblas_` matrix FFI — teacher matmuls must stay \
+         uor-matmul-owned (#655-B2)",
         lib.display()
     );
 }

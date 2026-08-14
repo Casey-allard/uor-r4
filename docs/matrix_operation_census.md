@@ -37,28 +37,53 @@ The crate/manifest audits (`uor-r4-graph-compiler::dependency_audit`,
 Deployed inference performs no matrix multiplication. This is the property
 #655's P-4 clause protects and does not need migration.
 
-## Compile / observe teacher — conventional-to-migrate (targets of #655-B)
+## Compile / observe teacher
 
 The teacher/source executors run at observe/compile time (teacher-forcing to
 generate the corpus and oracle logits). They are **not** deployed inference, but
 they are inside the production chain (`model-source → compiler`), so their
 conventional arithmetic is a migration target for #655-B.
 
+### uor-matmul-owned (migrated by #655-B2)
+
+The shared Llama teacher **weight matmuls** now call the pinned `uor-matmul`
+exact GEMM (`uor_matmul::slice::gemm_float`). The Accelerate `cblas_sgemv` /
+`cblas_sgemm` FFI and all hand-rolled SIMD dot helpers are removed. GPT-2's
+tied lm-head reuses `matmul_batched`, so it is migrated too. The result is
+correctly-rounded exact and byte-identical across targets (no per-machine
+Accelerate variance) — a determinism improvement for teacher-side κ.
+
+| Site | Operation | Backend | Classification |
+|---|---|---|---|
+| `uor-r4-model-source/src/lib.rs` `matmul` | matrix–vector (`W·x`) | `uor_matmul::slice::gemm_float` | uor-matmul-owned |
+| `uor-r4-model-source/src/lib.rs` `matmul_batched` | matrix–matrix (`X·Wᵀ`) | `uor_matmul::slice::gemm_float` | uor-matmul-owned |
+
+No `cblas_*` symbol remains anywhere in the production chain; the CI guard now
+enforces zero library-BLAS use (only the two dependency-audit files, which list
+BLAS crate names as denylist data, are exempt).
+
+### conventional-to-migrate (remaining — #655-B3)
+
+GPT-2 keeps its own hand-rolled f32 arithmetic, a separate follow-up:
+
 | Site | Operation | Backend today | Classification |
 |---|---|---|---|
-| `uor-r4-model-source/src/lib.rs` `matmul` | matrix–vector (`W·x`) | hand-rolled f32 loop | conventional-to-migrate |
-| `uor-r4-model-source/src/lib.rs` `matmul_fast` (macOS) | matrix–vector | Accelerate `cblas_sgemv` FFI | conventional-to-migrate |
-| `uor-r4-model-source/src/lib.rs` `matmul_fast` (non-macOS) | matrix–vector | hand-rolled (`dot_fast`) | conventional-to-migrate |
-| `uor-r4-model-source/src/lib.rs` `matmul_batched` (macOS) | matrix–matrix (`X·Wᵀ`) | Accelerate `cblas_sgemm` FFI | conventional-to-migrate |
-| `uor-r4-model-source/src/lib.rs` `matmul_batched` (non-macOS) | matrix–matrix | hand-rolled (`dot_fast` reuse) | conventional-to-migrate |
-| `uor-r4-model-source/src/lib.rs` `dot`/`dot_fast` | dot product | hand-rolled f32 | conventional-to-migrate |
-| `uor-r4-model-source/src/gpt2.rs` GPT-2 executor | Conv1D `x@W`, attention accumulation (reuses `matmul_batched`) | hand-rolled + shared matmul | conventional-to-migrate |
+| `uor-r4-model-source/src/gpt2.rs` `conv1d` / `conv1d_batched` | Conv1D `x@W` | hand-rolled f32 | conventional-to-migrate |
+| `uor-r4-model-source/src/{lib.rs,gpt2.rs}` attention scoring | per-head `Q·K` / `·V` accumulation | hand-rolled f32 | conventional-to-migrate |
 
-The library-BLAS FFI declaration lives once, in
-`uor-r4-model-source/src/lib.rs` (`#[link(name = "Accelerate", kind = "framework")]`
-→ `cblas_sgemv`, `cblas_sgemm`). That file is the **only** sanctioned location
-for a `cblas_*` symbol; the CI guard fails if one appears anywhere else in the
-production chain.
+These are not library-BLAS (no `cblas_*`), so the mechanical guard does not flag
+them; they are tracked here for #655-B3.
+
+## Teacher-arithmetic era (#655-B2)
+
+Switching the teacher weight matmuls from Accelerate/hand-rolled f32 to the exact
+`uor-matmul` GEMM changes teacher output bytes, so compiled artifacts produced
+after B2 have different CIDs than pre-B2 ones. This is recorded by the teacher's
+own κ (blake3 over teacher output), which changes accordingly, and surfaced in
+the "teacher model ready" diagnostic (`matmul=uor-matmul exact GEMM`). No test
+pins a pre-B2 teacher-derived κ as a constant (verified across the full suite),
+so no fixture re-pin is required; post-B2 CIDs are a new teacher-arithmetic era
+and are never retroactively assigned to pre-B2 artifacts.
 
 ## Out of census scope
 
@@ -66,17 +91,24 @@ production chain.
 |---|---|
 | `uor-r4-core/src/transformerless/compiler.rs:60` `vvexpf` (Accelerate vForce) | vector `exp`, not a matrix operation. Teacher-side softmax backend, disabled under canonical math. If a later issue wants full Accelerate removal it is tracked there, not here. |
 
-## Dev-only oracles
+## uor-matmul as a production dependency
 
-`uor-matmul-core` is currently pinned as a **dev-dependency** parity oracle in
-`crates/uor-r4-graph-cli/Cargo.toml` (`rev = b13c9844`). #655-B promotes it to
-the production arithmetic owner and makes any dev-only comparison oracle
-structurally unreachable from release compilation/serving.
+`uor-matmul` (`rev = b13c9844`) is a **production dependency** of
+`uor-r4-model-source` (promoted from the dev-only parity pin in
+`crates/uor-r4-graph-cli`, #622 → #655-B1). It is `no_std`, `forbid(unsafe)`,
+zero-heap. It enters only the **compile-time teacher**, not the deployed R4G1
+runtime kernel, so it adds nothing to the P-4 deployed-inference audit surface;
+the crate-dependency audits confirm it pulls in no BLAS/GPU crate.
 
 ## Status
 
-- #655-A (this): census + guard landed. No behavior or CID change.
-- #655-B: replace every `conventional-to-migrate` site with the pinned
-  `uor-matmul` exact/coded surface (or eliminate it), delete duplicate local
-  arithmetic, and extend the P-4 audit to the pinned dependency source. That is
-  the first CID-changing step (new artifact era + κ re-pin, pre-approved).
+- #655-A: census + guard landed (#699). No behavior/CID change.
+- #655-B1: `uor-matmul` promoted to production dep + exact-matmul parity harness
+  (#701). No behavior/CID change.
+- #655-B2 (this): Llama teacher weight matmuls (`matmul`, `matmul_batched`;
+  GPT-2 lm-head reuse included) migrated to `uor_matmul::slice::gemm_float`;
+  `cblas_*` FFI + SIMD dot helpers removed; census guard tightened to zero
+  library-BLAS. Teacher-arithmetic era change (see above); no fixture re-pin
+  required.
+- #655-B3: migrate GPT-2 `conv1d` / `conv1d_batched` and the attention-scoring
+  accumulations (`Q·K` / `·V`) — the remaining hand-rolled f32 matrix ops.

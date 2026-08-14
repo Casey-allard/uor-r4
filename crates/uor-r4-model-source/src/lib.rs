@@ -188,339 +188,54 @@ pub(crate) fn softmax_with_mode(x: &mut [f32], canonical: bool) {
     }
 }
 
-/// W (d,n) @ x (n,) -> xout (d,). The exact path preserves the original C
-/// reduction order for certificate reproduction. Hugging Face compilation
-/// may select the optimized CPU path because those source logits are teacher
-/// data rather than part of the pinned legacy proof.
-///
-/// Note: a row-parallel (rayon fork-join) variant of this exact path was
-/// measured 2026-07-31 and REVERTED — per-matmul fork-join costs ~1.5 ms of
-/// worker-scheduling latency on a load-average->100 development machine,
-/// ~10× slower end-to-end than the serial loop below (recorded negative
-/// result, issue #310). Parallelism in corpus generation must be
-/// story-level (a new corpus era) or not at all.
-fn matmul(xout: &mut [f32], x: &[f32], w: &[f32], n: usize, fast: bool) {
-    if fast {
-        return matmul_fast(xout, x, w, n);
-    }
+/// W (d,n) @ x (n,) -> xout (d,), computed by the pinned `uor-matmul` exact
+/// GEMM (#655-B2). `gemm_float` accumulates every product into a complete
+/// accumulator and rounds once, so the result is the correctly-rounded exact
+/// dot product — byte-identical across targets (no per-machine Accelerate
+/// variance), which is what teacher-side κ reproduction needs. The former
+/// `fast` (Accelerate BLAS `sgemv`) / hand-rolled canonical paths are gone;
+/// `_fast` is retained in the signature only so callers need not change.
+fn matmul(xout: &mut [f32], x: &[f32], w: &[f32], n: usize, _fast: bool) {
+    // xout[d] = W[d, n] · x[n]  ==>  C[d, 1] = A[d, n] · B[n, 1].
     let d = xout.len();
-    // Four rows in flight hide FP add latency while retaining each row's
-    // strictly sequential accumulation chain and therefore its exact bits.
-    let mut i = 0usize;
-    while i + 4 <= d {
-        let r0 = &w[i * n..i * n + n];
-        let r1 = &w[(i + 1) * n..(i + 1) * n + n];
-        let r2 = &w[(i + 2) * n..(i + 2) * n + n];
-        let r3 = &w[(i + 3) * n..(i + 3) * n + n];
-        let (mut v0, mut v1, mut v2, mut v3) = (0.0f32, 0.0f32, 0.0f32, 0.0f32);
-        for j in 0..n {
-            let xj = x[j];
-            v0 += r0[j] * xj;
-            v1 += r1[j] * xj;
-            v2 += r2[j] * xj;
-            v3 += r3[j] * xj;
-        }
-        xout[i] = v0;
-        xout[i + 1] = v1;
-        xout[i + 2] = v2;
-        xout[i + 3] = v3;
-        i += 4;
-    }
-    while i < d {
-        let mut value = 0.0f32;
-        let row = &w[i * n..i * n + n];
-        for j in 0..n {
-            value += row[j] * x[j];
-        }
-        xout[i] = value;
-        i += 1;
-    }
-}
-
-#[cfg(target_os = "macos")]
-fn matmul_fast(xout: &mut [f32], x: &[f32], w: &[f32], n: usize) {
-    const CBLAS_ROW_MAJOR: i32 = 101;
-    const CBLAS_NO_TRANSPOSE: i32 = 111;
-    debug_assert!(w.len() >= xout.len() * n);
-    // SAFETY: all pointers refer to initialized, non-overlapping f32 slices;
-    // their dimensions and strides describe W[xout.len(), n] and x[n].
-    unsafe {
-        cblas_sgemv(
-            CBLAS_ROW_MAJOR,
-            CBLAS_NO_TRANSPOSE,
-            i32::try_from(xout.len()).expect("teacher output dimension exceeds CBLAS i32"),
-            i32::try_from(n).expect("teacher input dimension exceeds CBLAS i32"),
-            1.0,
-            w.as_ptr(),
-            i32::try_from(n).expect("teacher stride exceeds CBLAS i32"),
-            x.as_ptr(),
-            1,
-            0.0,
-            xout.as_mut_ptr(),
-            1,
-        );
-    }
-}
-
-#[cfg(target_os = "macos")]
-#[link(name = "Accelerate", kind = "framework")]
-unsafe extern "C" {
-    fn cblas_sgemv(
-        order: i32,
-        transpose: i32,
-        rows: i32,
-        columns: i32,
-        alpha: f32,
-        matrix: *const f32,
-        leading_dimension: i32,
-        vector: *const f32,
-        vector_stride: i32,
-        beta: f32,
-        output: *mut f32,
-        output_stride: i32,
-    );
-
-    fn cblas_sgemm(
-        order: i32,
-        transpose_a: i32,
-        transpose_b: i32,
-        m: i32,
-        n: i32,
-        k: i32,
-        alpha: f32,
-        a: *const f32,
-        lda: i32,
-        b: *const f32,
-        ldb: i32,
-        beta: f32,
-        c: *mut f32,
-        ldc: i32,
-    );
-}
-
-#[cfg(not(target_os = "macos"))]
-fn matmul_fast(xout: &mut [f32], x: &[f32], w: &[f32], n: usize) {
-    debug_assert_eq!(x.len(), n);
-    debug_assert!(w.len() >= xout.len() * n);
-    for (output, row) in xout.iter_mut().zip(w.chunks_exact(n)) {
-        *output = dot_fast(row, x);
-    }
+    let mut pa = vec![uor_matmul::PackedCode::default(); n];
+    let mut pb = vec![uor_matmul::PackedCode::default(); n];
+    uor_matmul::slice::gemm_float(d, n, 1, w, x, xout, &mut pa, &mut pb)
+        .expect("teacher matrix-vector product is total over finite f32 operands");
 }
 
 /// Batched matmul: `batch` input vectors of length `n` through weight
-/// `W[rows, n]` → `batch` output vectors of length `rows`. `x` is the `batch`
-/// input vectors laid out contiguously (`batch * n`); `xout` is the `batch`
-/// output vectors (`batch * rows`), same sequence-major layout.
-///
-/// This is the memory-amortized core of batched teacher inference: the serial
-/// [`matmul`] re-reads the entire weight `W` for every single token, which
-/// makes autoregressive inference of a large teacher memory-bandwidth bound.
-/// Here each weight is read once and reused across all `batch` inputs, so `B`
-/// tokens cost one weight sweep instead of `B` — turning the per-token
-/// matrix-vector products into one matrix-matrix product.
-///
-/// Off macOS this reuses [`dot_fast`] per (row, input) with each weight row
-/// held hot across the batch, so it is bit-identical to `batch` separate
-/// [`matmul`]`(.., fast = true)` calls. On macOS it dispatches to Accelerate's
-/// `cblas_sgemm`; like the serial `cblas_sgemv` fast path it is teacher data,
-/// not part of the pinned legacy proof, and is deterministic per machine.
-#[cfg(not(target_os = "macos"))]
+/// `W[rows, n]` → `batch` output vectors of length `rows`, laid out
+/// sequence-major (`x` is `batch * n`, `xout` is `batch * rows`). Computes
+/// `C[batch, rows] = X[batch, n] · W[rows, n]ᵀ` with the pinned `uor-matmul`
+/// exact GEMM (#655-B2), replacing the former Accelerate BLAS `sgemm` /
+/// hand-rolled `dot_fast` reuse. Byte-identical across targets, so the batched
+/// teacher path reproduces the serial [`matmul`] exactly on every machine.
 fn matmul_batched(xout: &mut [f32], x: &[f32], w: &[f32], n: usize, batch: usize) {
     debug_assert!(batch > 0);
     debug_assert_eq!(xout.len() % batch, 0);
     let rows = xout.len() / batch;
     debug_assert!(w.len() >= rows * n);
     debug_assert_eq!(x.len(), batch * n);
-    for row in 0..rows {
-        let wr = &w[row * n..row * n + n];
-        for bi in 0..batch {
-            let xi = &x[bi * n..bi * n + n];
-            xout[bi * rows + row] = dot_fast(wr, xi);
+    // gemm_float is C = A·B (no transpose), so transpose W[rows, n] → Wt[n, rows]
+    // and compute X[batch, n] · Wt[n, rows] into the sequence-major `xout`.
+    let mut wt = vec![0f32; n * rows];
+    for r in 0..rows {
+        for j in 0..n {
+            wt[j * rows + r] = w[r * n + j];
         }
     }
+    let mut pa = vec![uor_matmul::PackedCode::default(); n];
+    let mut pb = vec![uor_matmul::PackedCode::default(); n * rows];
+    uor_matmul::slice::gemm_float(batch, n, rows, x, &wt, xout, &mut pa, &mut pb)
+        .expect("batched teacher product is total over finite f32 operands");
 }
 
-#[cfg(target_os = "macos")]
-fn matmul_batched(xout: &mut [f32], x: &[f32], w: &[f32], n: usize, batch: usize) {
-    debug_assert!(batch > 0);
-    debug_assert_eq!(xout.len() % batch, 0);
-    let rows = xout.len() / batch;
-    debug_assert!(w.len() >= rows * n);
-    debug_assert_eq!(x.len(), batch * n);
-    const CBLAS_ROW_MAJOR: i32 = 101;
-    const CBLAS_NO_TRANSPOSE: i32 = 111;
-    const CBLAS_TRANSPOSE: i32 = 112;
-    // C[batch, rows] = X[batch, n] · W[rows, n]^T
-    // SAFETY: all pointers refer to initialized, non-overlapping f32 slices
-    // whose dimensions/strides describe X[batch, n], W[rows, n], C[batch, rows].
-    unsafe {
-        cblas_sgemm(
-            CBLAS_ROW_MAJOR,
-            CBLAS_NO_TRANSPOSE,
-            CBLAS_TRANSPOSE,
-            i32::try_from(batch).expect("teacher batch exceeds CBLAS i32"),
-            i32::try_from(rows).expect("teacher output dimension exceeds CBLAS i32"),
-            i32::try_from(n).expect("teacher input dimension exceeds CBLAS i32"),
-            1.0,
-            x.as_ptr(),
-            i32::try_from(n).expect("teacher input stride exceeds CBLAS i32"),
-            w.as_ptr(),
-            i32::try_from(n).expect("teacher weight stride exceeds CBLAS i32"),
-            0.0,
-            xout.as_mut_ptr(),
-            i32::try_from(rows).expect("teacher output stride exceeds CBLAS i32"),
-        );
-    }
-}
-
-#[cfg(all(not(target_os = "macos"), target_arch = "aarch64"))]
-fn dot_fast(weights: &[f32], values: &[f32]) -> f32 {
-    // NEON is part of the AArch64 architecture baseline.
-    // SAFETY: the helper only performs unaligned loads within these equal-size
-    // slices, and its required target feature is always present on AArch64.
-    unsafe { dot_neon(weights, values) }
-}
-
-#[cfg(all(target_arch = "aarch64", any(not(target_os = "macos"), test)))]
-#[target_feature(enable = "neon")]
-unsafe fn dot_neon(weights: &[f32], values: &[f32]) -> f32 {
-    use core::arch::aarch64::{vaddq_f32, vaddvq_f32, vdupq_n_f32, vfmaq_f32, vld1q_f32};
-
-    debug_assert_eq!(weights.len(), values.len());
-    let mut sums = [vdupq_n_f32(0.0); 4];
-    let mut index = 0usize;
-    while index + 16 <= weights.len() {
-        for (lane, sum) in sums.iter_mut().enumerate() {
-            let offset = index + lane * 4;
-            // SAFETY: the loop condition guarantees four readable values from
-            // each pointer, and NEON's vld1q instruction permits unaligned data.
-            let (weight, value) = unsafe {
-                (
-                    vld1q_f32(weights.as_ptr().add(offset)),
-                    vld1q_f32(values.as_ptr().add(offset)),
-                )
-            };
-            *sum = vfmaq_f32(*sum, weight, value);
-        }
-        index += 16;
-    }
-    let combined = vaddq_f32(vaddq_f32(sums[0], sums[1]), vaddq_f32(sums[2], sums[3]));
-    let mut result = vaddvq_f32(combined);
-    for (&weight, &value) in weights[index..].iter().zip(&values[index..]) {
-        result += weight * value;
-    }
-    result
-}
-
-#[cfg(all(not(target_os = "macos"), target_arch = "x86_64"))]
-fn dot_fast(weights: &[f32], values: &[f32]) -> f32 {
-    if std::arch::is_x86_feature_detected!("avx2") && std::arch::is_x86_feature_detected!("fma") {
-        // SAFETY: runtime detection above establishes both target features;
-        // the helper bounds every unaligned load to the input slices.
-        unsafe { dot_avx2_fma(weights, values) }
-    } else {
-        dot_portable(weights, values)
-    }
-}
-
-#[cfg(all(not(target_os = "macos"), target_arch = "x86_64"))]
-#[target_feature(enable = "avx2,fma")]
-unsafe fn dot_avx2_fma(weights: &[f32], values: &[f32]) -> f32 {
-    use core::arch::x86_64::{
-        _mm256_add_ps, _mm256_fmadd_ps, _mm256_loadu_ps, _mm256_setzero_ps, _mm256_storeu_ps,
-    };
-
-    debug_assert_eq!(weights.len(), values.len());
-    let mut sums = [_mm256_setzero_ps(); 4];
-    let mut index = 0usize;
-    while index + 32 <= weights.len() {
-        for (lane, sum) in sums.iter_mut().enumerate() {
-            let offset = index + lane * 8;
-            // SAFETY: the loop condition guarantees eight readable values
-            // from each pointer; loadu explicitly supports unaligned data.
-            let (weight, value) = unsafe {
-                (
-                    _mm256_loadu_ps(weights.as_ptr().add(offset)),
-                    _mm256_loadu_ps(values.as_ptr().add(offset)),
-                )
-            };
-            *sum = _mm256_fmadd_ps(weight, value, *sum);
-        }
-        index += 32;
-    }
-    let combined = _mm256_add_ps(
-        _mm256_add_ps(sums[0], sums[1]),
-        _mm256_add_ps(sums[2], sums[3]),
-    );
-    let mut lanes = [0.0f32; 8];
-    // SAFETY: `lanes` has room for all eight values written by the intrinsic.
-    unsafe { _mm256_storeu_ps(lanes.as_mut_ptr(), combined) };
-    let mut result = lanes.into_iter().sum::<f32>();
-    for (&weight, &value) in weights[index..].iter().zip(&values[index..]) {
-        result += weight * value;
-    }
-    result
-}
-
-#[cfg(all(
-    not(target_os = "macos"),
-    not(any(target_arch = "aarch64", target_arch = "x86_64"))
-))]
-fn dot_fast(weights: &[f32], values: &[f32]) -> f32 {
-    dot_portable(weights, values)
-}
-
-#[cfg(not(target_os = "macos"))]
-fn dot_portable(weights: &[f32], values: &[f32]) -> f32 {
-    debug_assert_eq!(weights.len(), values.len());
-    let mut partial = [0.0f32; 8];
-    let mut weight_chunks = weights.chunks_exact(8);
-    let mut input_chunks = values.chunks_exact(8);
-    for (weight_chunk, value_chunk) in weight_chunks.by_ref().zip(input_chunks.by_ref()) {
-        for lane in 0..8 {
-            partial[lane] += weight_chunk[lane] * value_chunk[lane];
-        }
-    }
-    let mut result = partial.into_iter().sum::<f32>();
-    for (&weight, &value) in weight_chunks
-        .remainder()
-        .iter()
-        .zip(input_chunks.remainder())
-    {
-        result += weight * value;
-    }
-    result
-}
-
-#[allow(dead_code)]
-#[cfg(target_os = "macos")]
+/// The teacher's matrix-operation backend, for the "teacher model ready"
+/// diagnostic. Since #655-B2 every teacher weight matmul is the pinned,
+/// portable `uor-matmul` exact GEMM — no per-machine SIMD/Accelerate path.
 fn fast_matmul_backend() -> &'static str {
-    "Apple Accelerate CPU SIMD"
-}
-
-#[allow(dead_code)]
-#[cfg(all(not(target_os = "macos"), target_arch = "aarch64"))]
-fn fast_matmul_backend() -> &'static str {
-    "AArch64 NEON CPU"
-}
-
-#[allow(dead_code)]
-#[cfg(all(not(target_os = "macos"), target_arch = "x86_64"))]
-fn fast_matmul_backend() -> &'static str {
-    if std::arch::is_x86_feature_detected!("avx2") && std::arch::is_x86_feature_detected!("fma") {
-        "x86-64 AVX2/FMA CPU"
-    } else {
-        "portable CPU"
-    }
-}
-
-#[allow(dead_code)]
-#[cfg(all(
-    not(target_os = "macos"),
-    not(any(target_arch = "aarch64", target_arch = "x86_64"))
-))]
-fn fast_matmul_backend() -> &'static str {
-    "portable CPU"
+    "uor-matmul exact GEMM"
 }
 
 impl Llama {
