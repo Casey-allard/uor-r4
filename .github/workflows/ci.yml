@@ -57,6 +57,15 @@ on:
   pull_request:
   merge_group:
   workflow_dispatch:
+  schedule:
+    # Nightly D2 canonical-differential acceptance (07:00 UTC). The D2 jobs
+    # below run on push-to-main + this schedule + workflow_dispatch, NOT in
+    # the merge queue (merge_group) — they are not required checks and their
+    # ~hour-long corpus compile does not belong on the merge critical path
+    # (issue #713). The nightly run recompiles unconditionally (cache bypass)
+    # so it re-verifies determinism against runner/toolchain drift, not only
+    # source changes.
+    - cron: '0 7 * * *'
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -337,7 +346,11 @@ jobs:
   # macOS-pinned kappa reproduction and does not repin a shipped fixture.
   d2-differential:
     name: D2 canonical differential (${{ matrix.os }})
-    if: github.event_name != 'pull_request'
+    # Off the merge queue (issue #713): runs on push-to-main (post-merge),
+    # the nightly schedule, and manual dispatch — NOT on merge_group or
+    # pull_request. D2 is not a required check, so it never gated a merge;
+    # keeping its ~hour corpus compile off every speculative merge is the fix.
+    if: github.event_name == 'push' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     strategy:
       fail-fast: false
       matrix:
@@ -364,7 +377,25 @@ jobs:
           key: d2-${{ runner.os }}-${{ hashFiles('Cargo.lock') }}
           restore-keys: d2-${{ runner.os }}-
 
+      # Cache the compiled D2 manifest (the artifact the compare job consumes),
+      # so an unchanged compile path skips the ~hour corpus compile. The key is
+      # deliberately CONSERVATIVE — any first-party Rust source, Cargo.lock, or
+      # the D2 script busts it — so a cache hit can never mask a change to the
+      # compiled bytes. (A narrower, compile-path-scoped key is unsafe here: the
+      # teacher/compiler and unrelated code share crates, and Rust builds are
+      # not byte-reproducible, so it could silently skip a real determinism
+      # regression.) Cross-OS byte equality is still asserted by the compare
+      # job on the restored manifests. The nightly schedule bypasses the cache
+      # (below) to re-verify against runner/toolchain drift, not only source.
+      - name: Restore cached D2 manifest
+        id: d2_manifest_cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/d2-manifest.json
+          key: d2-manifest-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'src/**/*.rs', 'crates/**/*.rs', 'scripts/d2_differential_compile.sh') }}
+
       - name: Run canonical differential compile
+        if: steps.d2_manifest_cache.outputs.cache-hit != 'true' || github.event_name == 'schedule'
         env:
           D2_SOURCE_DIR: ${{ runner.temp }}/d2-source
           D2_OUTPUT_DIR: ${{ runner.temp }}/d2-output
@@ -381,7 +412,7 @@ jobs:
 
   d2-differential-compare:
     name: D2 differential equality
-    if: github.event_name != 'pull_request'
+    if: github.event_name == 'push' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     needs: d2-differential
     runs-on: ubuntu-24.04
     steps:
