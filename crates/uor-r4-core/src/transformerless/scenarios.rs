@@ -41,6 +41,98 @@ use uor_r4_model_source::TeacherOracle;
 
 const MAX_TOKEN_BYTES: usize = 1024;
 
+/// Prefix of the additive, tagged runtime-tokenizer container. Interpreted as
+/// an old-format little-endian `i32` token length, the first four bytes are
+/// negative, so the tagged representation is disjoint from every valid
+/// historical tokenizer.bin.
+const TAGGED_TOKENIZER_MAGIC: &[u8; 8] = b"R4T\xffTOK1";
+const TAGGED_TOKENIZER_FORMAT_VERSION: u32 = 1;
+const TAGGED_ENCODE_UNAVAILABLE: u32 = 1;
+const TAGGED_DECODE_SENTENCEPIECE: u32 = 1;
+/// Adapter identity whose UNKNOWN table entry may begin with an intentional
+/// ASCII space. Its dummy-prefix removal therefore acts on U+2581 before
+/// whitespace expansion, unlike the frozen `/1` decoder.
+const SENTENCEPIECE_REFERENCE_UNK_FAMILY: &str = "sentencepiece-unigram";
+const SENTENCEPIECE_REFERENCE_UNK_VERSION: u32 = 2;
+const MAX_TAGGED_FAMILY_BYTES: usize = 128;
+const MAX_TAGGED_VOCAB_SIZE: usize = 1 << 24;
+
+fn is_blake3_address(value: &str) -> bool {
+    value.len() == "blake3:".len() + 64
+        && value.starts_with("blake3:")
+        && value["blake3:".len()..]
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn write_tagged_identity(
+    bytes: &mut Vec<u8>,
+    value: &str,
+) -> Result<(), uor_r4_model_source::SourceUnavailable> {
+    let length = u32::try_from(value.len()).map_err(|_| {
+        uor_r4_model_source::SourceUnavailable::new("runtime tokenizer identity field too long")
+    })?;
+    bytes.extend_from_slice(&length.to_le_bytes());
+    bytes.extend_from_slice(value.as_bytes());
+    Ok(())
+}
+
+/// Whether a runtime decode table can also use the historical tokenizer.bin
+/// encoder. `Unavailable` is an explicit deployed-runtime boundary: the exact
+/// registered host tokenizer is required to encode prompts.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RuntimeTokenizerEncodePolicy {
+    LegacyCompatible,
+    Unavailable,
+}
+
+/// How a sequence of raw per-id table entries is decoded.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RuntimeTokenizerDecodePolicy {
+    /// Concatenate the already-decoded token bytes.
+    Concatenate,
+    /// SentencePiece surface decoding: replace U+2581 with a space and remove
+    /// the single leading space introduced by the declared dummy prefix.
+    SentencePiece { strip_dummy_prefix: bool },
+}
+
+/// Family-neutral table passed from a registered host tokenizer to the
+/// runtime-tokenizer exporter.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RuntimeTokenizerIdentity {
+    pub family: String,
+    pub version: u32,
+    /// Content address of the exact host tokenizer definition (for example,
+    /// raw `spiece.model`), distinct from the exported tokenizer.bin CID.
+    pub tokenizer_cid: String,
+    /// Digest of the complete versioned adapter identity and policy.
+    pub adapter_digest: String,
+}
+
+/// Family-neutral table passed from a registered host tokenizer to the
+/// runtime-tokenizer exporter.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RuntimeTokenizerDecodeTable {
+    pub identity: RuntimeTokenizerIdentity,
+    pub pieces: Vec<Vec<u8>>,
+    pub encode_policy: RuntimeTokenizerEncodePolicy,
+    pub decode_policy: RuntimeTokenizerDecodePolicy,
+    /// Source byte anchors are a separate semantic from runtime decode-piece
+    /// lengths. SentencePiece normalization does not preserve source offsets.
+    pub source_byte_lengths: Option<Vec<u32>>,
+}
+
+/// Evidence returned by the family-neutral runtime-tokenizer export.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RuntimeTokenizerExport {
+    /// Raw byte length of each exported decode-table entry.
+    pub decode_byte_lengths: Vec<u32>,
+    /// Per-token original-source byte lengths, only when the host adapter can
+    /// truthfully provide them.
+    pub source_byte_lengths: Option<Vec<u32>>,
+}
+
 /// Format an instructional query into native ChatML / instruct template format for teacher models:
 /// `<|im_start|>system\n{system_prompt}<|im_end|>\n<|im_start|>user\n{user_prompt}<|im_end|>\n<|im_start|>assistant\n`
 pub fn format_instruct_chat_prompt(system_prompt: Option<&str>, user_prompt: &str) -> String {
@@ -84,6 +176,137 @@ pub fn export_hf_bytelevel_tokenizer_with_lengths(
     }
     std::fs::write(destination, bytes)?;
     Ok(lengths)
+}
+
+/// Export a registered host tokenizer's family-neutral decode table.
+///
+/// Byte-level BPE keeps the historical untagged bytes exactly. A tokenizer
+/// whose encoder is unavailable in the deployed runtime uses the additive
+/// tagged representation; currently the only such registered policy is raw
+/// SentencePiece surface decoding.
+#[cfg(not(target_arch = "wasm32"))]
+pub fn export_registered_runtime_tokenizer(
+    tokenizer: &dyn super::hf_bpe::TokenizerModel,
+    destination: impl AsRef<Path>,
+) -> Result<RuntimeTokenizerExport, uor_r4_model_source::SourceUnavailable> {
+    let table = tokenizer.runtime_decode_table();
+    export_runtime_tokenizer_table(&table, destination)
+}
+
+/// Export a precomputed decode table. Split from
+/// [`export_registered_runtime_tokenizer`] so compiler callers can build and
+/// validate the table before performing the filesystem mutation.
+#[cfg(not(target_arch = "wasm32"))]
+pub fn export_runtime_tokenizer_table(
+    table: &RuntimeTokenizerDecodeTable,
+    destination: impl AsRef<Path>,
+) -> Result<RuntimeTokenizerExport, uor_r4_model_source::SourceUnavailable> {
+    let mut decode_byte_lengths = Vec::with_capacity(table.pieces.len());
+    for piece in &table.pieces {
+        let length = u32::try_from(piece.len()).map_err(|_| {
+            uor_r4_model_source::SourceUnavailable::new("runtime tokenizer piece too long")
+        })?;
+        decode_byte_lengths.push(length);
+    }
+
+    if let Some(source_lengths) = &table.source_byte_lengths {
+        if source_lengths.len() != table.pieces.len() {
+            return Err(uor_r4_model_source::SourceUnavailable::new(format!(
+                "runtime tokenizer source-length table has {} entries for {} pieces",
+                source_lengths.len(),
+                table.pieces.len()
+            )));
+        }
+    }
+
+    let mut bytes = Vec::new();
+    match (table.encode_policy, table.decode_policy) {
+        (
+            RuntimeTokenizerEncodePolicy::LegacyCompatible,
+            RuntimeTokenizerDecodePolicy::Concatenate,
+        ) => {
+            // This is intentionally the exact historical record loop used by
+            // `export_hf_bytelevel_tokenizer_with_lengths`.
+            for piece in &table.pieces {
+                let length = i32::try_from(piece.len())
+                    .map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "token too long"))?;
+                bytes.extend_from_slice(&length.to_le_bytes());
+                bytes.extend_from_slice(piece);
+            }
+        }
+        (
+            RuntimeTokenizerEncodePolicy::Unavailable,
+            RuntimeTokenizerDecodePolicy::SentencePiece { strip_dummy_prefix },
+        ) => {
+            if table
+                .pieces
+                .iter()
+                .any(|piece| std::str::from_utf8(piece).is_err())
+            {
+                return Err(uor_r4_model_source::SourceUnavailable::new(
+                    "SentencePiece runtime tokenizer pieces must be valid UTF-8",
+                ));
+            }
+            if !is_blake3_address(&table.identity.tokenizer_cid)
+                || !is_blake3_address(&table.identity.adapter_digest)
+            {
+                return Err(uor_r4_model_source::SourceUnavailable::new(
+                    "runtime tokenizer identity requires blake3 tokenizer_cid and adapter_digest",
+                ));
+            }
+            let family = table.identity.family.as_bytes();
+            if family.is_empty() || family.len() > MAX_TAGGED_FAMILY_BYTES {
+                return Err(uor_r4_model_source::SourceUnavailable::new(
+                    "runtime tokenizer family is empty or too long",
+                ));
+            }
+            if table.pieces.len() > MAX_TAGGED_VOCAB_SIZE {
+                return Err(uor_r4_model_source::SourceUnavailable::new(
+                    "runtime tokenizer vocabulary exceeds the tagged format limit",
+                ));
+            }
+            let family_len = u32::try_from(family.len()).map_err(|_| {
+                uor_r4_model_source::SourceUnavailable::new("runtime tokenizer family too long")
+            })?;
+            let piece_count = u32::try_from(table.pieces.len()).map_err(|_| {
+                uor_r4_model_source::SourceUnavailable::new("runtime tokenizer has too many ids")
+            })?;
+            bytes.extend_from_slice(TAGGED_TOKENIZER_MAGIC);
+            bytes.extend_from_slice(&TAGGED_TOKENIZER_FORMAT_VERSION.to_le_bytes());
+            bytes.extend_from_slice(&TAGGED_ENCODE_UNAVAILABLE.to_le_bytes());
+            bytes.extend_from_slice(&TAGGED_DECODE_SENTENCEPIECE.to_le_bytes());
+            bytes.extend_from_slice(&u32::from(strip_dummy_prefix).to_le_bytes());
+            bytes.extend_from_slice(&table.identity.version.to_le_bytes());
+            bytes.extend_from_slice(&family_len.to_le_bytes());
+            bytes.extend_from_slice(family);
+            write_tagged_identity(&mut bytes, &table.identity.tokenizer_cid)?;
+            write_tagged_identity(&mut bytes, &table.identity.adapter_digest)?;
+            bytes.extend_from_slice(&piece_count.to_le_bytes());
+            for piece in &table.pieces {
+                if piece.len() > MAX_TOKEN_BYTES {
+                    return Err(uor_r4_model_source::SourceUnavailable::new(
+                        "runtime tokenizer piece exceeds the tagged format limit",
+                    ));
+                }
+                let length = u32::try_from(piece.len()).map_err(|_| {
+                    uor_r4_model_source::SourceUnavailable::new("runtime tokenizer piece too long")
+                })?;
+                bytes.extend_from_slice(&length.to_le_bytes());
+                bytes.extend_from_slice(piece);
+            }
+        }
+        _ => {
+            return Err(uor_r4_model_source::SourceUnavailable::new(format!(
+                "unsupported runtime tokenizer policies: encode={:?}, decode={:?}",
+                table.encode_policy, table.decode_policy
+            )));
+        }
+    }
+    std::fs::write(destination, bytes)?;
+    Ok(RuntimeTokenizerExport {
+        decode_byte_lengths,
+        source_byte_lengths: table.source_byte_lengths.clone(),
+    })
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -157,15 +380,89 @@ fn bytelevel_inverse() -> BTreeMap<char, u8> {
 pub struct Tokenizer {
     pub vocab: Vec<Vec<u8>>,
     map: BTreeMap<Vec<u8>, u32>,
+    mode: RuntimeTokenizerMode,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum RuntimeTokenizerMode {
+    Untagged,
+    DecodeOnly {
+        identity: RuntimeTokenizerIdentity,
+        decode_policy: RuntimeTokenizerDecodePolicy,
+    },
+}
+
+fn read_u32(bytes: &[u8], offset: &mut usize) -> Option<u32> {
+    let end = offset.checked_add(4)?;
+    let value = u32::from_le_bytes(bytes.get(*offset..end)?.try_into().ok()?);
+    *offset = end;
+    Some(value)
+}
+
+fn read_tagged_identity(bytes: &[u8], offset: &mut usize) -> Option<String> {
+    let length = usize::try_from(read_u32(bytes, offset)?).ok()?;
+    if length != "blake3:".len() + 64 {
+        return None;
+    }
+    let end = offset.checked_add(length)?;
+    let value = std::str::from_utf8(bytes.get(*offset..end)?)
+        .ok()?
+        .to_owned();
+    *offset = end;
+    Some(value)
 }
 
 impl Tokenizer {
+    /// Whether `bytes` declare the additive tagged tokenizer container.
+    ///
+    /// Callers that retain a historical fallback use this discriminator
+    /// before parsing: a malformed tagged container must fail closed rather
+    /// than being reinterpreted as an untagged tokenizer from another id
+    /// space.
+    pub fn is_tagged_container_bytes(bytes: &[u8]) -> bool {
+        bytes.starts_with(TAGGED_TOKENIZER_MAGIC)
+    }
+
     /// Load and validate a tokenizer without panicking on malformed input.
     #[cfg(not(target_arch = "wasm32"))]
     pub fn try_load(
         path: impl AsRef<Path>,
     ) -> Result<Self, uor_r4_model_source::SourceUnavailable> {
         let path_ref = path.as_ref();
+
+        // Tagged decode-only artifacts must win over the historical
+        // directory-level vocab.json discovery. Otherwise a sibling file
+        // could silently turn an explicitly decode-only artifact back into an
+        // inferred encoder.
+        match std::fs::read(path_ref) {
+            Ok(bytes) if bytes.starts_with(TAGGED_TOKENIZER_MAGIC) => {
+                return Self::from_bytes(&bytes).ok_or_else(|| {
+                    uor_r4_model_source::SourceUnavailable::new(format!(
+                        "{}: malformed tagged tokenizer.bin",
+                        path_ref.display()
+                    ))
+                });
+            }
+            Ok(bytes) => {
+                let reserved_tagged_namespace = bytes
+                    .get(..4)
+                    .and_then(|prefix| <[u8; 4]>::try_from(prefix).ok())
+                    .is_some_and(|prefix| i32::from_le_bytes(prefix) < 0);
+                if reserved_tagged_namespace {
+                    return Err(uor_r4_model_source::SourceUnavailable::new(format!(
+                        "{}: malformed tagged tokenizer.bin header",
+                        path_ref.display()
+                    )));
+                }
+            }
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+            Err(error) => {
+                return Err(uor_r4_model_source::SourceUnavailable::new(format!(
+                    "{}: tokenizer.bin cannot be read: {error}",
+                    path_ref.display()
+                )));
+            }
+        }
 
         // 1. Try loading vocab.json if present in the target or parent directories
         let json_candidates = [
@@ -196,7 +493,11 @@ impl Tokenizer {
                             vocab[id as usize] = k_bytes.clone();
                             map.insert(k_bytes, id);
                         }
-                        return Ok(Tokenizer { vocab, map });
+                        return Ok(Tokenizer {
+                            vocab,
+                            map,
+                            mode: RuntimeTokenizerMode::Untagged,
+                        });
                     }
                 }
             }
@@ -217,6 +518,9 @@ impl Tokenizer {
     /// Split from [`try_load`](Self::try_load) so library consumers can
     /// validate a bundled tokenizer without filesystem access.
     pub fn from_bytes(bytes: &[u8]) -> Option<Self> {
+        if bytes.starts_with(TAGGED_TOKENIZER_MAGIC) {
+            return Self::from_tagged_bytes(bytes);
+        }
         let mut vocab = Vec::new();
         let mut offset = 0usize;
         while offset < bytes.len() {
@@ -236,7 +540,94 @@ impl Tokenizer {
             let id = index as u32;
             map.entry(token.clone()).or_insert(id);
         }
-        Some(Tokenizer { vocab, map })
+        Some(Tokenizer {
+            vocab,
+            map,
+            mode: RuntimeTokenizerMode::Untagged,
+        })
+    }
+
+    fn from_tagged_bytes(bytes: &[u8]) -> Option<Self> {
+        let mut offset = TAGGED_TOKENIZER_MAGIC.len();
+        let format_version = read_u32(bytes, &mut offset)?;
+        if format_version != TAGGED_TOKENIZER_FORMAT_VERSION {
+            return None;
+        }
+        let encode_policy = read_u32(bytes, &mut offset)?;
+        if encode_policy != TAGGED_ENCODE_UNAVAILABLE {
+            return None;
+        }
+        let decode_policy = match read_u32(bytes, &mut offset)? {
+            TAGGED_DECODE_SENTENCEPIECE => {
+                let strip_dummy_prefix = match read_u32(bytes, &mut offset)? {
+                    0 => false,
+                    1 => true,
+                    _ => return None,
+                };
+                RuntimeTokenizerDecodePolicy::SentencePiece { strip_dummy_prefix }
+            }
+            _ => return None,
+        };
+        let version = read_u32(bytes, &mut offset)?;
+        let family_len = usize::try_from(read_u32(bytes, &mut offset)?).ok()?;
+        if family_len == 0 || family_len > MAX_TAGGED_FAMILY_BYTES {
+            return None;
+        }
+        let family_bytes = bytes.get(offset..offset.checked_add(family_len)?)?;
+        let family = std::str::from_utf8(family_bytes).ok()?.to_owned();
+        if family.is_empty() {
+            return None;
+        }
+        offset += family_len;
+        let tokenizer_cid = read_tagged_identity(bytes, &mut offset)?;
+        let adapter_digest = read_tagged_identity(bytes, &mut offset)?;
+        if !is_blake3_address(&tokenizer_cid) || !is_blake3_address(&adapter_digest) {
+            return None;
+        }
+        let piece_count = usize::try_from(read_u32(bytes, &mut offset)?).ok()?;
+        if piece_count > MAX_TAGGED_VOCAB_SIZE
+            || piece_count > bytes.len().saturating_sub(offset) / 4
+        {
+            return None;
+        }
+        let mut vocab = Vec::with_capacity(piece_count);
+        for _ in 0..piece_count {
+            let length = usize::try_from(read_u32(bytes, &mut offset)?).ok()?;
+            if length > MAX_TOKEN_BYTES {
+                return None;
+            }
+            let piece = bytes.get(offset..offset.checked_add(length)?)?;
+            if matches!(
+                decode_policy,
+                RuntimeTokenizerDecodePolicy::SentencePiece { .. }
+            ) && std::str::from_utf8(piece).is_err()
+            {
+                return None;
+            }
+            vocab.push(piece.to_vec());
+            offset += length;
+        }
+        if offset != bytes.len() {
+            return None;
+        }
+        let mut map = BTreeMap::new();
+        for (index, token) in vocab.iter().enumerate() {
+            let id = u32::try_from(index).ok()?;
+            map.entry(token.clone()).or_insert(id);
+        }
+        Some(Self {
+            vocab,
+            map,
+            mode: RuntimeTokenizerMode::DecodeOnly {
+                identity: RuntimeTokenizerIdentity {
+                    family,
+                    version,
+                    tokenizer_cid,
+                    adapter_digest,
+                },
+                decode_policy,
+            },
+        })
     }
 
     #[cfg(not(target_arch = "wasm32"))]
@@ -305,6 +696,9 @@ impl Tokenizer {
     /// the encoding (a property of the caller's buffer) or the text needs a
     /// byte fallback the tokenizer lacks.
     pub fn encode_into(&self, text: &str, out: &mut [u32]) -> Option<usize> {
+        if matches!(&self.mode, RuntimeTokenizerMode::DecodeOnly { .. }) {
+            return None;
+        }
         let is_llama_bos = self.vocab.get(1).is_some_and(|v| v == b"<s>");
         let mut len = 0usize;
         if is_llama_bos {
@@ -411,6 +805,39 @@ impl Tokenizer {
     }
 
     pub fn decode(&self, toks: &[u32]) -> String {
+        if let RuntimeTokenizerMode::DecodeOnly {
+            identity,
+            decode_policy,
+        } = &self.mode
+        {
+            let mut raw = Vec::new();
+            for &token in toks {
+                if let Some(piece) = self.vocab.get(token as usize) {
+                    raw.extend_from_slice(piece);
+                }
+            }
+            let text = String::from_utf8_lossy(&raw);
+            return match *decode_policy {
+                RuntimeTokenizerDecodePolicy::SentencePiece { strip_dummy_prefix } => {
+                    if strip_dummy_prefix
+                        && identity.family == SENTENCEPIECE_REFERENCE_UNK_FAMILY
+                        && identity.version == SENTENCEPIECE_REFERENCE_UNK_VERSION
+                    {
+                        text.strip_prefix('\u{2581}')
+                            .unwrap_or(&text)
+                            .replace('\u{2581}', " ")
+                    } else {
+                        let spaced = text.replace('\u{2581}', " ");
+                        if strip_dummy_prefix {
+                            spaced.strip_prefix(' ').unwrap_or(&spaced).to_owned()
+                        } else {
+                            spaced
+                        }
+                    }
+                }
+                RuntimeTokenizerDecodePolicy::Concatenate => text.into_owned(),
+            };
+        }
         let is_llama_bos = self.vocab.get(1).is_some_and(|v| v == b"<s>");
         let mut raw = Vec::new();
         for &t in toks {
@@ -428,6 +855,33 @@ impl Tokenizer {
             .replace('ĉ', "\t")
     }
 
+    /// Registered family/version carried by a tagged runtime tokenizer.
+    /// Historical untagged artifacts intentionally return `None` because
+    /// their bytes predate adapter identity records.
+    pub fn adapter_key(&self) -> Option<(&str, u32)> {
+        match &self.mode {
+            RuntimeTokenizerMode::Untagged => None,
+            RuntimeTokenizerMode::DecodeOnly { identity, .. } => {
+                Some((&identity.family, identity.version))
+            }
+        }
+    }
+
+    /// Exact host-adapter identity carried by a tagged decode-only artifact.
+    /// Serving can compare this to the loaded host encoder before accepting
+    /// prompt text; the tokenizer.bin content itself remains independently
+    /// bound by the graph artifact's tokenizer CID.
+    pub fn adapter_identity(&self) -> Option<&RuntimeTokenizerIdentity> {
+        match &self.mode {
+            RuntimeTokenizerMode::Untagged => None,
+            RuntimeTokenizerMode::DecodeOnly { identity, .. } => Some(identity),
+        }
+    }
+
+    pub fn is_decode_only(&self) -> bool {
+        matches!(&self.mode, RuntimeTokenizerMode::DecodeOnly { .. })
+    }
+
     /// Decode into caller-owned byte storage.
     ///
     /// Note: this delegates to `decode`, which allocates an intermediate
@@ -435,6 +889,11 @@ impl Tokenizer {
     /// Total: `Some(count)` of bytes written, `None` when `out` cannot hold
     /// the decoded text.
     pub fn decode_into(&self, toks: &[u32], out: &mut [u8]) -> Option<usize> {
+        if matches!(&self.mode, RuntimeTokenizerMode::DecodeOnly { .. })
+            && toks.iter().any(|&token| token as usize >= self.vocab.len())
+        {
+            return None;
+        }
         let decoded = self.decode(toks);
         let bytes = decoded.as_bytes();
         if bytes.len() > out.len() {
@@ -473,16 +932,61 @@ fn scenario_set() -> Vec<Scenario> {
     };
     vec![
         // -- in-domain prompts (teacher-trajectory agreement)
-        s("in-domain prompt", "dog-named", "Once upon a time, there was a little dog named Rex.", false),
-        s("in-domain prompt", "park-ball", "Lily and Ben went to the park to play with their new ball.", false),
-        s("in-domain prompt", "sad-bird", "The little bird was sad because it could not fly.", false),
-        s("in-domain prompt", "red-truck", "Tom saw a big red truck outside his house.", false),
-        s("in-domain prompt", "shiny-key", "One day, a cat found a shiny key in the garden.", false),
+        s(
+            "in-domain prompt",
+            "dog-named",
+            "Once upon a time, there was a little dog named Rex.",
+            false,
+        ),
+        s(
+            "in-domain prompt",
+            "park-ball",
+            "Lily and Ben went to the park to play with their new ball.",
+            false,
+        ),
+        s(
+            "in-domain prompt",
+            "sad-bird",
+            "The little bird was sad because it could not fly.",
+            false,
+        ),
+        s(
+            "in-domain prompt",
+            "red-truck",
+            "Tom saw a big red truck outside his house.",
+            false,
+        ),
+        s(
+            "in-domain prompt",
+            "shiny-key",
+            "One day, a cat found a shiny key in the garden.",
+            false,
+        ),
         // -- out-of-domain real-world prompts
-        s("out-of-domain prompt", "capital-q", "What is the capital of France?", false),
-        s("out-of-domain prompt", "explain", "Explain how photosynthesis works.", false),
-        s("out-of-domain prompt", "code", "Write a Python function to add two numbers.", false),
-        s("out-of-domain prompt", "business", "The quarterly revenue increased by fifteen percent compared to", false),
+        s(
+            "out-of-domain prompt",
+            "capital-q",
+            "What is the capital of France?",
+            false,
+        ),
+        s(
+            "out-of-domain prompt",
+            "explain",
+            "Explain how photosynthesis works.",
+            false,
+        ),
+        s(
+            "out-of-domain prompt",
+            "code",
+            "Write a Python function to add two numbers.",
+            false,
+        ),
+        s(
+            "out-of-domain prompt",
+            "business",
+            "The quarterly revenue increased by fifteen percent compared to",
+            false,
+        ),
         // -- real human-written text, scored against actual next tokens
         s(
             "real text, in-domain style",
@@ -490,9 +994,19 @@ fn scenario_set() -> Vec<Scenario> {
             "One day, a little girl named Mia went to the park with her mom. Mia saw a big dog. The dog was sad because it lost its ball. Mia wanted to help the dog. She looked under the bench and found the ball. The dog was very happy and wagged its tail. Mia and the dog played together all day. When it was time to go home, the dog gave Mia a big lick on her face. Mia laughed and said she would come back tomorrow.",
             true,
         ),
-        s("real text, out-of-domain", "shakespeare", &shakespeare, true),
+        s(
+            "real text, out-of-domain",
+            "shakespeare",
+            &shakespeare,
+            true,
+        ),
         // -- structural stress
-        s("stress", "repetition", "one two three four one two three four one two three four one two three four", false),
+        s(
+            "stress",
+            "repetition",
+            "one two three four one two three four one two three four one two three four",
+            false,
+        ),
         s("stress", "one-word", "The", false),
         s("stress", "cold-start", "", false),
     ]
@@ -696,7 +1210,9 @@ pub fn scenarios(oracle: &mut dyn TeacherOracle) {
     }
 
     println!();
-    println!("| class | positions | agree w/ teacher | tless top1 | teacher top1 | tless tok/s | teacher tok/s |");
+    println!(
+        "| class | positions | agree w/ teacher | tless top1 | teacher top1 | tless tok/s | teacher tok/s |"
+    );
     println!("|---|---|---|---|---|---|---|");
     for (class, e) in &agg {
         let ag = 100.0 * e.agree as f64 / e.positions as f64;
@@ -735,6 +1251,37 @@ pub fn scenarios(oracle: &mut dyn TeacherOracle) {
 mod tests {
     use super::*;
 
+    fn tagged_fixture_bytes() -> Vec<u8> {
+        let path = std::env::temp_dir().join(format!(
+            "uor-r4-tagged-tokenizer-{}-{:?}.bin",
+            std::process::id(),
+            std::thread::current().id()
+        ));
+        let digest = format!("blake3:{}", "1".repeat(64));
+        let table = RuntimeTokenizerDecodeTable {
+            identity: RuntimeTokenizerIdentity {
+                family: "sentencepiece-unigram".to_owned(),
+                version: 1,
+                tokenizer_cid: digest.clone(),
+                adapter_digest: digest,
+            },
+            pieces: vec![
+                b"<unk>".to_vec(),
+                "\u{2581}a".as_bytes().to_vec(),
+                Vec::new(),
+            ],
+            encode_policy: RuntimeTokenizerEncodePolicy::Unavailable,
+            decode_policy: RuntimeTokenizerDecodePolicy::SentencePiece {
+                strip_dummy_prefix: true,
+            },
+            source_byte_lengths: None,
+        };
+        export_runtime_tokenizer_table(&table, &path).expect("export tagged fixture");
+        let bytes = std::fs::read(&path).expect("read tagged fixture");
+        std::fs::remove_file(path).ok();
+        bytes
+    }
+
     #[test]
     fn test_format_instruct_chat_prompt_default_system() {
         let formatted = format_instruct_chat_prompt(None, "Why is the sky blue?");
@@ -749,5 +1296,122 @@ mod tests {
         assert!(formatted.contains("<|im_start|>system\nSystem directive<|im_end|>"));
         assert!(formatted.contains("<|im_start|>user\nHello!<|im_end|>"));
         assert!(formatted.ends_with("<|im_start|>assistant\n"));
+    }
+
+    #[test]
+    fn historical_untagged_tokenizer_bytes_stay_exact() {
+        let mut bytes = Vec::new();
+        for piece in [&b" "[..], b"a", b"ab"] {
+            bytes.extend_from_slice(&(piece.len() as i32).to_le_bytes());
+            bytes.extend_from_slice(piece);
+        }
+        let tokenizer = Tokenizer::from_bytes(&bytes).expect("historical bytes parse");
+        assert_eq!(
+            tokenizer.vocab,
+            vec![b" ".to_vec(), b"a".to_vec(), b"ab".to_vec()]
+        );
+        assert_eq!(tokenizer.adapter_identity(), None);
+        assert!(!tokenizer.is_decode_only());
+        assert_eq!(tokenizer.decode(&[2]), "ab");
+    }
+
+    #[test]
+    fn tagged_parser_bounds_identity_counts_and_trailing_bytes() {
+        let bytes = tagged_fixture_bytes();
+        assert!(Tokenizer::is_tagged_container_bytes(&bytes));
+        let tokenizer = Tokenizer::from_bytes(&bytes).expect("valid tagged fixture parses");
+        assert_eq!(tokenizer.decode(&[1]), "a");
+
+        // Locate the identity fields without relying on their concrete string
+        // lengths, then corrupt each guarded boundary independently.
+        let mut offset = TAGGED_TOKENIZER_MAGIC.len() + 5 * 4;
+        let family_len = read_u32(&bytes, &mut offset).unwrap() as usize;
+        offset += family_len;
+        let cid_len_offset = offset;
+        let cid_len = read_u32(&bytes, &mut offset).unwrap() as usize;
+        let cid_start = offset;
+        offset += cid_len;
+        let digest_len = read_u32(&bytes, &mut offset).unwrap() as usize;
+        offset += digest_len;
+        let piece_count_offset = offset;
+
+        let mut bad_identity = bytes.clone();
+        bad_identity[cid_start] = b'X';
+        assert!(Tokenizer::from_bytes(&bad_identity).is_none());
+
+        let mut huge_count = bytes.clone();
+        huge_count[piece_count_offset..piece_count_offset + 4]
+            .copy_from_slice(&u32::MAX.to_le_bytes());
+        assert!(Tokenizer::from_bytes(&huge_count).is_none());
+
+        let mut huge_identity = bytes.clone();
+        huge_identity[cid_len_offset..cid_len_offset + 4].copy_from_slice(&u32::MAX.to_le_bytes());
+        assert!(Tokenizer::from_bytes(&huge_identity).is_none());
+
+        let mut trailing = bytes;
+        trailing.push(0);
+        assert!(Tokenizer::is_tagged_container_bytes(&trailing));
+        assert!(Tokenizer::from_bytes(&trailing).is_none());
+    }
+
+    #[test]
+    fn sentencepiece_tagged_export_and_parser_reject_invalid_utf8() {
+        let path = std::env::temp_dir().join(format!(
+            "uor-r4-invalid-utf8-tokenizer-{}-{:?}.bin",
+            std::process::id(),
+            std::thread::current().id()
+        ));
+        let digest = format!("blake3:{}", "2".repeat(64));
+        let table = RuntimeTokenizerDecodeTable {
+            identity: RuntimeTokenizerIdentity {
+                family: "sentencepiece-unigram".to_owned(),
+                version: 1,
+                tokenizer_cid: digest.clone(),
+                adapter_digest: digest,
+            },
+            pieces: vec![vec![0xff]],
+            encode_policy: RuntimeTokenizerEncodePolicy::Unavailable,
+            decode_policy: RuntimeTokenizerDecodePolicy::SentencePiece {
+                strip_dummy_prefix: true,
+            },
+            source_byte_lengths: None,
+        };
+        let error = export_runtime_tokenizer_table(&table, &path)
+            .expect_err("invalid UTF-8 must not enter a SentencePiece runtime table");
+        assert!(error.reason.contains("valid UTF-8"), "{error}");
+        assert!(!path.exists());
+
+        let mut valid_table = table;
+        valid_table.pieces = vec![b"a".to_vec()];
+        export_runtime_tokenizer_table(&valid_table, &path).expect("valid control export");
+        let mut bytes = std::fs::read(&path).expect("read valid control export");
+        let final_byte = bytes.last_mut().expect("fixture has a final piece byte");
+        *final_byte = 0xff;
+        assert!(Tokenizer::from_bytes(&bytes).is_none());
+        std::fs::remove_file(path).ok();
+    }
+
+    #[test]
+    fn damaged_tagged_header_cannot_downgrade_to_sibling_vocab() {
+        let dir = std::env::temp_dir().join(format!(
+            "uor-r4-damaged-tagged-tokenizer-{}-{:?}",
+            std::process::id(),
+            std::thread::current().id()
+        ));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).expect("create damaged-tag fixture");
+        let mut bytes = tagged_fixture_bytes();
+        bytes[4] ^= 1;
+        assert!(i32::from_le_bytes(bytes[..4].try_into().unwrap()) < 0);
+        let tokenizer_path = dir.join("tokenizer.bin");
+        std::fs::write(&tokenizer_path, bytes).expect("write damaged tagged bytes");
+        std::fs::write(dir.join("vocab.json"), br#"{"a":0}"#)
+            .expect("write otherwise-loadable sibling vocab");
+
+        let error = Tokenizer::try_load(&tokenizer_path)
+            .err()
+            .expect("damaged tag must not reach sibling/global fallback");
+        assert!(error.reason.contains("malformed tagged"), "{error}");
+        let _ = std::fs::remove_dir_all(dir);
     }
 }

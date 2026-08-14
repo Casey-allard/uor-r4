@@ -50,7 +50,7 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::io::{self, BufRead, BufReader, Write};
 use std::path::{Path, PathBuf};
-use uor_r4_core::transformerless::hf_bpe::TokenizerKind;
+use uor_r4_core::transformerless::hf_bpe::{TokenizerAdapter, TokenizerKind};
 use uor_r4_model_source::BatchedTeacher;
 use uor_r4_model_source::SourceUnavailable;
 use uor_r4_model_source::TeacherOracle;
@@ -785,9 +785,33 @@ fn prepare_text_observation(
     articles_path: &Path,
     shard_bits: u8,
     resume: bool,
+    tokenizer_adapter: Option<&TokenizerAdapter>,
 ) -> Result<Prepared, SourceUnavailable> {
     let kappa = input_kappa(articles_path)?;
     let mut writer = ObservationShardWriter::open(out_dir, shard_bits)?;
+    // The tokenizer identity is the first manifest operation after opening
+    // the directory. In particular it precedes partition/input metadata,
+    // crash-tail reconciliation, count restoration, and finalization. A
+    // mismatched registered adapter — including an adapterless legacy corpus
+    // that already has payload — therefore fails before any output byte can be
+    // trimmed, relabeled, or otherwise mutated.
+    match (
+        writer.manifest().tokenizer_adapter.as_ref(),
+        tokenizer_adapter,
+    ) {
+        (Some(recorded), None) => {
+            return Err(SourceUnavailable::new(format!(
+                "{} is pinned to tokenizer adapter {}/{} (CID {}, digest {}); requested the adapterless legacy tokenizer; incompatible resume refused before mutation",
+                out_dir.display(),
+                recorded.family,
+                recorded.version,
+                recorded.tokenizer_cid,
+                recorded.adapter_digest,
+            )));
+        }
+        (_, Some(adapter)) => writer.set_tokenizer_adapter(adapter)?,
+        (None, None) => {}
+    }
     let shard_count = writer.manifest().shard_count();
     let stories_path = out_dir.join(STORIES_FILE);
     let has_prior_state = out_dir.join(COMMITTED_FILE).exists()
@@ -920,16 +944,22 @@ pub fn observe_text_corpus(
         !oracles.is_empty(),
         "observe_text_corpus needs at least one oracle"
     );
-    let (mut writer, mut checkpoint, articles_total, stories_path) =
-        match prepare_text_observation(out_dir, articles_path, shard_bits, resume)? {
-            Prepared::Done(report) => return Ok(report),
-            Prepared::Ready {
-                writer,
-                checkpoint,
-                articles_total,
-                stories_path,
-            } => (writer, checkpoint, articles_total, stories_path),
-        };
+    let adapter = tokenizer.adapter();
+    let (mut writer, mut checkpoint, articles_total, stories_path) = match prepare_text_observation(
+        out_dir,
+        articles_path,
+        shard_bits,
+        resume,
+        adapter.as_ref(),
+    )? {
+        Prepared::Done(report) => return Ok(report),
+        Prepared::Ready {
+            writer,
+            checkpoint,
+            articles_total,
+            stories_path,
+        } => (writer, checkpoint, articles_total, stories_path),
+    };
 
     // #600: record the typed geometry-projection record the teacher
     // oracle declares (the source→compiled reduction its embedding
@@ -946,14 +976,6 @@ pub fn observe_text_corpus(
     // field remain byte-identical.
     if let Some(operator) = oracles[0].attention_operator_spec() {
         writer.set_attention_operator(&operator)?;
-    }
-
-    // #601: record the versioned tokenizer-adapter identity this pass
-    // segments with, when the selected tokenizer declares one (the HF
-    // byte-level BPE path; the legacy llama2.c tokenizer declares none,
-    // so legacy manifests remain byte-identical). Idempotent and atomic.
-    if let Some(adapter) = tokenizer.adapter() {
-        writer.set_tokenizer_adapter(&adapter)?;
     }
 
     let workers = oracles.len();
@@ -1168,22 +1190,22 @@ pub fn observe_text_corpus_batched<T: BatchedTeacher>(
     resume: bool,
 ) -> Result<ObservationReport, SourceUnavailable> {
     assert!(batch >= 1, "observe_text_corpus_batched needs batch >= 1");
-    let (mut writer, mut checkpoint, articles_total, stories_path) =
-        match prepare_text_observation(out_dir, articles_path, shard_bits, resume)? {
-            Prepared::Done(report) => return Ok(report),
-            Prepared::Ready {
-                writer,
-                checkpoint,
-                articles_total,
-                stories_path,
-            } => (writer, checkpoint, articles_total, stories_path),
-        };
-
-    // #601: same tokenizer-adapter provenance as the serial driver — the
-    // batched path segments with the identical `TokenizerKind` selection.
-    if let Some(adapter) = tokenizer.adapter() {
-        writer.set_tokenizer_adapter(&adapter)?;
-    }
+    let adapter = tokenizer.adapter();
+    let (mut writer, mut checkpoint, articles_total, stories_path) = match prepare_text_observation(
+        out_dir,
+        articles_path,
+        shard_bits,
+        resume,
+        adapter.as_ref(),
+    )? {
+        Prepared::Done(report) => return Ok(report),
+        Prepared::Ready {
+            writer,
+            checkpoint,
+            articles_total,
+            stories_path,
+        } => (writer, checkpoint, articles_total, stories_path),
+    };
 
     let seq_len = oracle.seq_len();
     let mut progress = Progress::new("text observations", articles_total as usize);
@@ -1347,6 +1369,7 @@ mod tests {
         ObservationManifest, merge_shards, sample_id, shard_file_name, shard_of,
     };
     use std::time::{SystemTime, UNIX_EPOCH};
+    use uor_r4_core::transformerless::hf_bpe::HfBpeTokenizer;
     use uor_r4_core::transformerless::scenarios::Tokenizer;
     use uor_r4_model_source::{BehaviorSource, RepresentationSource, State};
 
@@ -1384,6 +1407,23 @@ mod tests {
 
     fn fixture_token_byte_lengths() -> Vec<u32> {
         PIECES.iter().map(|piece| piece.len() as u32).collect()
+    }
+
+    fn fixture_registered_tokenizer(marker: &str) -> TokenizerKind {
+        let json = format!(
+            r#"{{
+                "fixture_marker":"{marker}",
+                "pre_tokenizer":{{"type":"ByteLevel","add_prefix_space":false}},
+                "model":{{
+                    "type":"BPE",
+                    "vocab":{{"a":0,"b":1,"ab":2}},
+                    "merges":["a b"]
+                }}
+            }}"#
+        );
+        let tokenizer = HfBpeTokenizer::from_tokenizer_json_bytes(json.as_bytes())
+            .expect("registered tokenizer fixture");
+        TokenizerKind::Registered(Box::new(tokenizer))
     }
 
     fn write_articles(path: &Path, articles: &[(&str, &str)]) {
@@ -2302,5 +2342,149 @@ mod tests {
         let _ = fs::remove_dir_all(&dir_s);
         let _ = fs::remove_dir_all(&dir_b);
         let _ = fs::remove_file(&input);
+    }
+
+    #[test]
+    fn registered_adapter_is_identical_on_serial_and_batched_manifests() {
+        let tokenizer = fixture_registered_tokenizer("serial-batched");
+        let adapter = tokenizer.adapter().expect("registered adapter");
+        let lengths = tokenizer
+            .runtime_decode_table()
+            .expect("runtime table")
+            .source_byte_lengths
+            .expect("BPE source anchors");
+        let input = unique_path("registered-articles.jsonl");
+        write_articles(&input, &[("registered", "aba")]);
+
+        let serial_dir = unique_path("registered-serial");
+        let mut pool: Vec<Box<dyn TeacherOracle + Send>> = vec![Box::new(FakeOracle)];
+        let serial = observe_text_corpus(
+            &mut pool,
+            60,
+            &tokenizer,
+            Some(&lengths),
+            &input,
+            &serial_dir,
+            SHARD_BITS,
+            false,
+        )
+        .expect("serial registered observation");
+
+        let batched_dir = unique_path("registered-batched");
+        let fake = FakeBatchedOracle {
+            cfg: fake_batched_config(),
+        };
+        let batched = observe_text_corpus_batched(
+            &fake,
+            2,
+            60,
+            &tokenizer,
+            Some(&lengths),
+            &input,
+            &batched_dir,
+            SHARD_BITS,
+            false,
+        )
+        .expect("batched registered observation");
+
+        assert!(serial.done && batched.done);
+        assert!(serial.records > 0);
+        for dir in [&serial_dir, &batched_dir] {
+            let manifest = ObservationManifest::load(dir)
+                .expect("manifest io")
+                .expect("manifest");
+            assert_eq!(manifest.tokenizer_adapter.as_ref(), Some(&adapter));
+        }
+        assert_eq!(
+            merge_shards(&serial_dir).expect("serial bytes"),
+            merge_shards(&batched_dir).expect("batched bytes")
+        );
+
+        let _ = fs::remove_dir_all(serial_dir);
+        let _ = fs::remove_dir_all(batched_dir);
+        let _ = fs::remove_file(input);
+    }
+
+    #[test]
+    fn incompatible_registered_resume_is_refused_before_any_output_mutation() {
+        let input = unique_path("adapter-resume-articles.jsonl");
+        write_articles(&input, &[("resume", "aba")]);
+        let first = fixture_registered_tokenizer("first");
+        let second = fixture_registered_tokenizer("second");
+        assert_ne!(first.adapter(), second.adapter());
+        let lengths = first
+            .runtime_decode_table()
+            .expect("runtime table")
+            .source_byte_lengths
+            .expect("BPE source anchors");
+        let dir = unique_path("adapter-mismatch");
+        let mut pool: Vec<Box<dyn TeacherOracle + Send>> = vec![Box::new(FakeOracle)];
+        let first_report = observe_text_corpus(
+            &mut pool,
+            60,
+            &first,
+            Some(&lengths),
+            &input,
+            &dir,
+            SHARD_BITS,
+            false,
+        )
+        .expect("first adapter pass");
+        assert!(first_report.done && first_report.records > 0);
+        let before = directory_fingerprint(&dir);
+
+        let error =
+            observe_text_corpus(&mut pool, 60, &second, None, &input, &dir, SHARD_BITS, true)
+                .expect_err("different adapter must not resume");
+        assert!(error.reason.contains("incompatible resume"));
+        assert_eq!(directory_fingerprint(&dir), before);
+
+        let _ = fs::remove_dir_all(dir);
+        let _ = fs::remove_file(input);
+    }
+
+    #[test]
+    fn adapterless_legacy_payload_cannot_be_relabelled_on_resume() {
+        let input = unique_path("legacy-resume-articles.jsonl");
+        write_articles(&input, &[("legacy", "abcd")]);
+        let legacy = fixture_tokenizer();
+        let lengths = fixture_token_byte_lengths();
+        let registered = fixture_registered_tokenizer("registered");
+        let dir = unique_path("adapterless-payload");
+        let mut pool: Vec<Box<dyn TeacherOracle + Send>> = vec![Box::new(FakeOracle)];
+        let legacy_report = observe_text_corpus(
+            &mut pool,
+            60,
+            &legacy,
+            Some(&lengths),
+            &input,
+            &dir,
+            SHARD_BITS,
+            false,
+        )
+        .expect("legacy pass");
+        assert!(legacy_report.done && legacy_report.records > 0);
+        let manifest = ObservationManifest::load(&dir)
+            .expect("manifest io")
+            .expect("manifest");
+        assert_eq!(manifest.tokenizer_adapter, None);
+        let before = directory_fingerprint(&dir);
+
+        let error = observe_text_corpus(
+            &mut pool,
+            60,
+            &registered,
+            None,
+            &input,
+            &dir,
+            SHARD_BITS,
+            true,
+        )
+        .expect_err("legacy payload cannot be relabelled");
+        assert!(error.reason.contains("no recorded tokenizer adapter"));
+        assert_eq!(directory_fingerprint(&dir), before);
+
+        let _ = fs::remove_dir_all(dir);
+        let _ = fs::remove_file(input);
     }
 }

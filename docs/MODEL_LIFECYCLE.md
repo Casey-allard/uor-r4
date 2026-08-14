@@ -197,7 +197,8 @@ When compilation completes, the output directory contains:
 ```text
 tless_artifacts.bin       # TLA teacher projection and class tables (TLA7 by default)
 tless_store.bin           # TLS1 graded continuation evidence
-tokenizer.bin
+tokenizer.bin             # deployed token table (tagged decode-only for SentencePiece)
+tokenizer_adapter.json    # full source adapter binding for corpus resume/evaluation
 corpus.meta               # observation-corpus metadata
 corpus.records            # deterministic observation records
 hamming_calibration.json
@@ -280,9 +281,11 @@ in-place edit.
 A versioned registry maps `(family, version)` to the constructor
 (`hf_bpe::adapter_constructor`); an unknown pair fails closed with the
 focused `SourceIngestKind::UnknownTokenizerAdapter` rather than being
-guessed. The registered families are `hf-byte-bpe/1` and, since #639-3b,
-`sentencepiece-unigram/1` (below); a bumped version of either is still
-refused by name, never approximated.
+guessed. The registered entries are `hf-byte-bpe/1` and
+`sentencepiece-unigram/{1,2}` (below). Version 1 is the immutable initially
+published SentencePiece behavior; version 2 is the current reference-correct
+behavior. Every other family/version pair is refused by name, never
+approximated.
 
 Since #639-2 the constructor yields a boxed `TokenizerModel` — the
 object-safe encode/decode/`adapter` surface a resolved family provides —
@@ -331,33 +334,127 @@ ahead of the adapter: `models/t5-base-tokenizer.json` pins the
 `google-t5/t5-base` (revision `a9723ea7…`, Apache-2.0) `spiece.model` by
 `tokenizer_kappa` / `tokenizer_bytes` / `tokenizer_kappa_scope =
 spiece.model`, with `tokenizer_family = sentencepiece-unigram`, mirroring
-the `models/gpt2-124m.json` layout. This slice is descriptor + pin only —
-no adapter and no `(family, version)` registry entry yet, so
+the `models/gpt2-124m.json` layout. At that slice boundary this was
+descriptor-and-pin only — there was not yet an adapter or `(family, version)`
+registry entry, so
 `crates/uor-r4-core/tests/t5_tokenizer_pin.rs` binds bytes to κ (well-formed
 in CI; presence-gated on the real `spiece.model` reproducing the pin), not a
 tokenizer identity. The registry generalization (639-2) and the real Unigram
 encode/decode adapter registering `(sentencepiece-unigram, 1)` (639-3b,
-below) followed; comprehensive differential fixtures (639-4) come next.
+below) followed; #718 supplies the consumer wiring and comprehensive
+differential fixture described below.
 
-**SentencePiece/Unigram adapter (#639-3b).** `sentencepiece-unigram/1` is
-now a real registered family
+**SentencePiece/Unigram adapter (#639-3b).** `sentencepiece-unigram/1` was the
+first registered implementation
 (`transformerless::sentencepiece::SentencePieceUnigramTokenizer`), built
-from the pinned `spiece.model` bytes. It composes two pure-Rust pieces, both
-validated byte-for-byte against the reference `sentencepiece` library before
-landing: a `Normalizer` that applies the `NormalizerSpec`'s
+from the pinned `spiece.model` bytes. It composes two pure-Rust pieces: a
+`Normalizer` that applies the `NormalizerSpec`'s
 `precompiled_charsmap` — a Darts double-array trie of longest-match byte
 replacements (NFKC folding: fullwidth → ASCII, ﬁ → fi, ½ → 1⁄2, Roman
 numerals, …) — then the dummy-prefix / `▁`-escape / whitespace-collapse
 rules; and a `UnigramModel` that runs the Viterbi best-path segmentation
 over the normalized surface (per-character `<unk>` for unmatched spans,
-consecutive unknowns collapsed). Refuse-by-name is preserved: a non-Unigram
+consecutive unknowns collapsed). The encode path and normalizer were
+differentially validated before landing; #718's decode differential later
+showed that version 1 renders the unknown id as the literal model surface
+`<unk>`, while reference SentencePiece renders ` ⁇ `. Version 1 is retained
+unchanged so a published registry meaning is never edited in place. Version 2
+changes that decode policy to the reference rendering and is the current
+selection. Refuse-by-name is preserved: a non-Unigram
 `model_type`, a `byte_fallback` source, a `normalization_rule_tsv`, or an
 absent `precompiled_charsmap` each fail closed on `SourceUnavailable` rather
 than being approximated. The adapter binds the `blake3` of `spiece.model` as
 its `tokenizer_cid`. The module and the registry arm are host/compile-side
-(`#[cfg(not(target_arch = "wasm32"))]`); wiring this adapter into the
-`TokenizerKind` selection the observe/serve drivers use is the remaining
-follow-up.
+(`#[cfg(not(target_arch = "wasm32"))]`). At the #639-3b slice boundary,
+wiring this adapter into the `TokenizerKind` selection used by observation,
+compilation, evaluation, and serving remained as a follow-up; #718 completes
+that boundary as described next.
+
+#### SentencePiece consumer wiring and external fixture (#718)
+
+**Semantic boundary.** `sentencepiece-unigram` consumes the raw, pinned
+32,000-piece `spiece.model`. It does not silently adopt the sibling Hugging
+Face `tokenizer.json`: that wrapper exposes 32,100 vocabulary slots, records
+103 added-token entries (the three base special tokens plus 100
+`<extra_id_*>` sentinels), and its `TemplateProcessing` post-processor appends
+EOS. Those are different semantics. Versions 1 and 2 differ only in raw-model
+unknown decode rendering; neither implements wrapper behavior. A future
+consumer that needs the wrapper must declare and register another adapter
+version instead of folding its behavior into either raw-model adapter.
+
+Source-based commands select one registry entry with the atomic pair
+`--tokenizer-family FAMILY --tokenizer-version N`; supplying only one flag,
+an unknown pair, an ambiguous source directory containing both BPE and
+SentencePiece definitions, or pairing the flags with a legacy
+`--checkpoint` fails closed. The observation, observe-text (serial and
+batched), compile, evaluation, typed API, and serving seams resolve through
+the same source adapter. A manifest already bound to a different adapter or
+a partially written legacy observation payload is not relabeled. Automatic
+selection of one unambiguous `spiece.model` chooses the current
+`sentencepiece-unigram/2`; callers can request version 1 only explicitly.
+
+**Host encode versus deployed decode.** Normalization and Unigram Viterbi
+encoding remain host-side. The exported `tokenizer.bin` uses an additive,
+tagged decode-only representation: it carries every piece plus the full
+source-adapter binding (`family`, registry `version`, raw `spiece.model` CID,
+and declared-policy `adapter_digest`). The graph still binds the exported
+`tokenizer.bin` by its own content address; these two identities answer
+different questions and neither substitutes for the other. Serving may
+encode prompt text only after the loaded host adapter matches the tagged
+identity in full. A missing/mismatched host adapter, an unavailable runtime
+encoder, an out-of-range token id, or a decode failure is an error; an
+explicit tagged tokenizer never falls back to the historical llama2.c/BPE
+tokenizer path.
+
+The compile directory also carries `tokenizer_adapter.json`, the complete
+source `TokenizerAdapter` record. Before resuming a corpus or evaluating it,
+the consumer resolves the requested source adapter, validates its registered
+policy digest, and requires the sidecar record to match in full. A non-empty
+legacy corpus without the sidecar is not retroactively relabeled. This
+sidecar protects the corpus token-id space and is distinct from both the
+content address of `tokenizer.bin` and the adapter identity embedded in a
+tagged runtime table; the latter protects serving-time host/runtime pairing.
+
+SentencePiece normalization and unknown-span collapse do not preserve a
+total original-input byte-offset map, so this adapter truthfully records no
+source byte anchors (`source_byte_lengths = None`). Runtime decode lengths
+remain available because they describe emitted piece bytes, not offsets into
+the original text.
+
+**Independent differential.** The compact checked-in fixture
+`crates/uor-r4-core/tests/fixtures/t5_raw_sentencepiece_reference.json` was
+generated by `sentencepiece==0.2.2` against
+`google-t5/t5-base@a9723ea7f1b39c1eae772870f3b547bf6ef7e6c1`. It records
+the 791,656-byte source's SHA-256 and BLAKE3 addresses, readable raw-text
+encode/decode cases, special-token decode cases, and a domain-separated
+SHA-256 over every ordered singleton decode in the 32,000-piece vocabulary.
+It also records the reference's out-of-range-id error and the source's actual
+piece-type inventory: 31,997 normal pieces, two controls, one unknown, and no
+user-defined, unused, or byte pieces. Checked synthetic tests cover what the
+real T5 model cannot exercise: the
+`registered_adapter_reports_unknown_loss_and_exports_decode_only_runtime`
+fixture covers control and unused pieces, while
+`unsupported_sentencepiece_semantics_are_refused_by_name` covers the
+fail-closed user-defined path. The fixture pins the current
+`sentencepiece-unigram/2` family/version/source-CID/policy-digest identity.
+The singleton digest gives full-vocabulary coverage without committing a
+large copied table. Reproduce it from the repository root with:
+
+```bash
+python3 -m venv /tmp/uor-r4-sp-reference
+/tmp/uor-r4-sp-reference/bin/pip install \
+  sentencepiece==0.2.2 blake3==1.0.9 protobuf==6.33.6
+/tmp/uor-r4-sp-reference/bin/python \
+  scripts/gen_t5_sentencepiece_fixture.py --check
+```
+
+The CI-run fixture test validates its schema and source pin without a model
+download. When the pinned local snapshot is present, the same test exercises
+the host adapter and tagged runtime against all selected cases and the full
+singleton-decode digest, rejects the reference out-of-range id through
+`decode_into`, and verifies two independent exports produce identical bytes
+and runtime results. Absence is printed as `UNAVAILABLE`, following the
+repository's three-state fixture convention.
 
 #### Attention operator identity (#602)
 

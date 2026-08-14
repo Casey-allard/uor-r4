@@ -28,6 +28,7 @@ pub mod serving_eval;
 pub use compile::{
     compile, CompileOptions, CompileOutcome, CompileProvenance, CompileRequest, CompiledModel,
     ComponentDigests, ProgressEvent, QualityProfile, ResumeHint, ScoringOptions, Stage,
+    TokenizerAdapter, TokenizerAdapterKey,
 };
 pub use engine::{
     validate_quality_report, AbiVersion, AbstainOutcome, EngineParts, GenerateStatus,
@@ -37,9 +38,10 @@ pub use engine::{
 };
 
 // The bytes-based tokenizer the engine's text helpers use
-// (`Tokenizer::from_bytes`); re-exported so downstream consumers encode
-// and decode against the same vocabulary the bundle was compiled with.
-pub use uor_r4_core::transformerless::scenarios::Tokenizer;
+// (`Tokenizer::from_bytes`) and the full identity carried by tagged runtime
+// tokenizers; re-exported so downstream consumers bind the same vocabulary
+// and registered host adapter the bundle was compiled with.
+pub use uor_r4_core::transformerless::scenarios::{RuntimeTokenizerIdentity, Tokenizer};
 pub use uor_r4_graph_certify::ScoreStatus;
 // The sanctioned host-source failure type `compile` and `R4Engine::load`
 // return (R5): re-exported so consumers name it without depending on

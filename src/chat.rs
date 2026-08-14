@@ -4,9 +4,8 @@
 
 use std::fmt;
 use std::io::{BufRead, Read, Write};
-use std::path::PathBuf;
 
-use crate::model::{default_model_reference, ModelError, ModelStore};
+use crate::model::{default_model_reference, ModelError, ModelObject, ModelStore};
 use uor_r4_core::transformerless::compiler::{self, Compiled};
 use uor_r4_core::transformerless::runtime::{self, Runtime, Store};
 use uor_r4_core::transformerless::scenarios::Tokenizer;
@@ -37,6 +36,9 @@ pub enum ChatError {
     /// Generation produced no tokens, or the question/answer could not be
     /// tokenized or decoded into its caller-owned buffer.
     EmptyGeneration,
+    /// The bundle carries a tagged decode-only tokenizer, but direct chat has
+    /// no exact registered host encoder for that family/version.
+    TokenizerUnavailable { family: String, version: u32 },
     /// Generation entered a repeated-token loop and was rejected.
     RepetitiveGeneration,
     /// No CID-addressed, capability-attested model was selected.
@@ -52,6 +54,10 @@ impl fmt::Display for ChatError {
             Self::InvalidArtifacts => formatter.write_str("invalid transformerless artifacts"),
             Self::InvalidStore => formatter.write_str("invalid transformerless store"),
             Self::EmptyGeneration => formatter.write_str("transformerless produced no text"),
+            Self::TokenizerUnavailable { family, version } => write!(
+                formatter,
+                "tokenizer unavailable: exact host adapter {family}/{version} is required"
+            ),
             Self::RepetitiveGeneration => formatter.write_str(
                 "transformerless generation became repetitive; refusing a low-quality answer",
             ),
@@ -70,6 +76,7 @@ impl std::error::Error for ChatError {
             Self::InvalidArtifacts
             | Self::InvalidStore
             | Self::EmptyGeneration
+            | Self::TokenizerUnavailable { .. }
             | Self::RepetitiveGeneration
             | Self::MissingModel => None,
             Self::Model(error) => Some(error),
@@ -145,23 +152,23 @@ impl ChatEngineBuilder {
             compiler::parse_artifacts(&artifact_bytes).ok_or(ChatError::InvalidArtifacts)?;
         let store_bytes = model_store.get(&manifest.store)?;
         let store = runtime::parse_store(&store_bytes).ok_or(ChatError::InvalidStore)?;
-        let r4g1_bytes = std::fs::read(format!(
+        let r4g1_path = std::path::PathBuf::from(format!(
             ".uor-models/compiled/{}/compiled.r4g1",
             manifest.name
-        ))
-        .ok();
-        let is_32k_graph = r4g1_bytes.as_ref().is_some_and(|b| {
-            uor_r4_graph_runtime::R4G1Runtime::parse(b).is_ok_and(|r| r.node_count() > 0)
-        });
-        let tokenizer_bytes =
-            if is_32k_graph && std::path::Path::new("/tmp/ref/tokenizer.bin").exists() {
-                std::fs::read("/tmp/ref/tokenizer.bin")?
-            } else {
-                model_store.get(&manifest.tokenizer)?
-            };
-        let tokenizer_path = write_tokenizer_cache(&manifest.tokenizer.cid, &tokenizer_bytes)?;
-        let tokenizer = Tokenizer::try_load(&tokenizer_path)
-            .map_err(|error| ChatError::Io(std::io::Error::other(error.reason)))?;
+        ));
+        let r4g1_bytes = read_optional_chat_file(&r4g1_path)?;
+        validate_chat_r4g1_structure(r4g1_bytes.as_deref())?;
+        let bundled_tokenizer = match model_store.get(&manifest.tokenizer) {
+            Ok(bytes) => bytes,
+            Err(error) => match matching_ref_tokenizer(&manifest.tokenizer, r4g1_bytes.as_deref())?
+            {
+                Some(bytes) => bytes,
+                None => return Err(error.into()),
+            },
+        };
+        let tokenizer_bytes = select_chat_tokenizer_bytes(&bundled_tokenizer)?;
+        let r4g1_bytes = bind_chat_r4g1(r4g1_bytes, &tokenizer_bytes)?;
+        let tokenizer = parse_chat_tokenizer(&tokenizer_bytes)?;
         tracing::info!(
             model = %manifest.name,
             source_model = %manifest.source_model,
@@ -191,17 +198,13 @@ fn build_local_compiled_engine(
 ) -> Result<ChatEngine, ChatError> {
     let artifact_bytes = std::fs::read(directory.join("tless_artifacts.bin"))?;
     let store_bytes = std::fs::read(directory.join("tless_store.bin"))?;
-    let r4g1_bytes = std::fs::read(directory.join("compiled.r4g1")).ok();
-    let is_32k_graph = r4g1_bytes.as_ref().is_some_and(|b| {
-        uor_r4_graph_runtime::R4G1Runtime::parse(b).is_ok_and(|r| r.node_count() > 0)
-    });
-    let tok_file = if is_32k_graph && std::path::Path::new("/tmp/ref/tokenizer.bin").exists() {
-        std::path::PathBuf::from("/tmp/ref/tokenizer.bin")
-    } else {
-        directory.join("tokenizer.bin")
-    };
-    tracing::debug!(is_32k_graph, ?tok_file, "resolved chat tokenizer path");
-    let tokenizer_bytes = std::fs::read(&tok_file)?;
+    let r4g1_bytes = read_optional_chat_file(&directory.join("compiled.r4g1"))?;
+    validate_chat_r4g1_structure(r4g1_bytes.as_deref())?;
+    let tok_file = directory.join("tokenizer.bin");
+    tracing::debug!(?tok_file, "resolved chat tokenizer path");
+    let bundled_tokenizer = std::fs::read(&tok_file)?;
+    let tokenizer_bytes = select_chat_tokenizer_bytes(&bundled_tokenizer)?;
+    let r4g1_bytes = bind_chat_r4g1(r4g1_bytes, &tokenizer_bytes)?;
     let artifacts =
         compiler::parse_artifacts(&artifact_bytes).ok_or(ChatError::InvalidArtifacts)?;
     let store = runtime::parse_store(&store_bytes).ok_or(ChatError::InvalidStore)?;
@@ -211,9 +214,7 @@ fn build_local_compiled_engine(
     let artifact_object = model_store.put(&artifact_bytes)?;
     let store_object = model_store.put(&store_bytes)?;
     let tokenizer_object = model_store.put(&tokenizer_bytes)?;
-    let tokenizer_path = write_tokenizer_cache(&tokenizer_object.cid, &tokenizer_bytes)?;
-    let tokenizer = Tokenizer::try_load(&tokenizer_path)
-        .map_err(|error| ChatError::Io(std::io::Error::other(error.reason)))?;
+    let tokenizer = parse_chat_tokenizer(&tokenizer_bytes)?;
     tracing::warn!(
         model = reference,
         directory = %directory.display(),
@@ -279,6 +280,7 @@ fn hologram_answer(
     question: &str,
     max_tokens: usize,
 ) -> Result<ChatAnswer, ChatError> {
+    ensure_chat_prompt_encoder(tokenizer)?;
     let mut question_tokens = [0u32; MAX_CHAT_HISTORY];
     let question_count = tokenizer
         .encode_into(question, &mut question_tokens)
@@ -460,6 +462,149 @@ fn hologram_answer(
     })
 }
 
+fn ensure_chat_prompt_encoder(tokenizer: &Tokenizer) -> Result<(), ChatError> {
+    match tokenizer.adapter_key() {
+        Some((family, version)) if tokenizer.is_decode_only() => {
+            Err(ChatError::TokenizerUnavailable {
+                family: family.to_owned(),
+                version,
+            })
+        }
+        _ => Ok(()),
+    }
+}
+
+fn invalid_chat_data(message: impl Into<String>) -> ChatError {
+    ChatError::Io(std::io::Error::new(
+        std::io::ErrorKind::InvalidData,
+        message.into(),
+    ))
+}
+
+fn read_optional_chat_file(path: &std::path::Path) -> Result<Option<Vec<u8>>, ChatError> {
+    let metadata = match std::fs::symlink_metadata(path) {
+        Ok(metadata) => metadata,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+        Err(error) => return Err(ChatError::Io(error)),
+    };
+    let is_regular = if metadata.file_type().is_symlink() {
+        std::fs::metadata(path)?.is_file()
+    } else {
+        metadata.is_file()
+    };
+    if !is_regular {
+        return Err(invalid_chat_data(format!(
+            "{} is not a regular file",
+            path.display()
+        )));
+    }
+    std::fs::read(path).map(Some).map_err(ChatError::Io)
+}
+
+fn validate_chat_r4g1_structure(graph: Option<&[u8]>) -> Result<(), ChatError> {
+    let Some(graph) = graph else {
+        return Ok(());
+    };
+    let view = uor_r4_graph_format::GraphView::parse(graph)
+        .map_err(|error| invalid_chat_data(format!("invalid R4G1 graph: {}", error.reason)))?;
+    view.verify_cids()
+        .map_err(|error| invalid_chat_data(format!("invalid R4G1 graph: {}", error.as_format())))?;
+    if view.head().is_none() {
+        return Err(invalid_chat_data(
+            "invalid R4G1 graph: missing HEAD section",
+        ));
+    }
+    uor_r4_graph_runtime::R4G1Runtime::parse(graph)
+        .map_err(|error| invalid_chat_data(format!("invalid R4G1 runtime: {}", error.reason)))?;
+    Ok(())
+}
+
+fn bind_chat_r4g1(
+    graph: Option<Vec<u8>>,
+    tokenizer_bytes: &[u8],
+) -> Result<Option<Vec<u8>>, ChatError> {
+    let Some(graph) = graph else {
+        return Ok(None);
+    };
+    let view = uor_r4_graph_format::GraphView::parse(&graph)
+        .map_err(|error| invalid_chat_data(format!("invalid R4G1 graph: {}", error.reason)))?;
+    view.verify_cids()
+        .map_err(|error| invalid_chat_data(format!("invalid R4G1 graph: {}", error.as_format())))?;
+    let expected = view
+        .head()
+        .ok_or_else(|| invalid_chat_data("invalid R4G1 graph: missing HEAD section"))?
+        .tokenizer_cid()
+        .0;
+    let actual = blake3::hash(tokenizer_bytes);
+    if expected != [0; 32] && expected != *actual.as_bytes() {
+        return Err(invalid_chat_data(format!(
+            "R4G1 tokenizer CID mismatch: header expected blake3:{}, selected blake3:{actual}",
+            blake3::Hash::from(expected).to_hex()
+        )));
+    }
+    if expected == [0; 32] && Tokenizer::is_tagged_container_bytes(tokenizer_bytes) {
+        return Err(invalid_chat_data(
+            "a tagged tokenizer requires a nonzero R4G1 header tokenizer CID",
+        ));
+    }
+    Ok(Some(graph))
+}
+
+/// Validate and retain the exact tokenizer object selected by the bundle.
+/// Present bytes are never replaced by `/tmp/ref/tokenizer.bin`: doing so
+/// would write different content under the manifest CID and could cross
+/// tokenizer id spaces.
+fn select_chat_tokenizer_bytes(bundled: &[u8]) -> Result<Vec<u8>, std::io::Error> {
+    if Tokenizer::is_tagged_container_bytes(bundled) {
+        let tokenizer = Tokenizer::from_bytes(bundled).ok_or_else(|| {
+            std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                "malformed tagged tokenizer.bin",
+            )
+        })?;
+        if !tokenizer.is_decode_only() {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                "tagged tokenizer.bin did not declare decode-only semantics",
+            ));
+        }
+        return Ok(bundled.to_vec());
+    }
+    if Tokenizer::from_bytes(bundled).is_none() {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::InvalidData,
+            "malformed tokenizer.bin",
+        ));
+    }
+    Ok(bundled.to_vec())
+}
+
+/// Compatibility path for historical 32k bundles whose content-addressed
+/// object is temporarily unavailable. The old `/tmp/ref` shortcut is admitted
+/// only when its bytes exactly match the manifest object, so an unavailable
+/// tagged object can never be replaced by unrelated legacy bytes.
+fn matching_ref_tokenizer(
+    expected: &ModelObject,
+    r4g1_bytes: Option<&[u8]>,
+) -> Result<Option<Vec<u8>>, ChatError> {
+    let is_32k_graph = r4g1_bytes.is_some_and(|bytes| {
+        uor_r4_graph_runtime::R4G1Runtime::parse(bytes)
+            .is_ok_and(|runtime| runtime.node_count() > 0)
+    });
+    if !is_32k_graph {
+        return Ok(None);
+    }
+    let Some(bytes) = read_optional_chat_file(std::path::Path::new("/tmp/ref/tokenizer.bin"))?
+    else {
+        return Ok(None);
+    };
+    if u64::try_from(bytes.len()).ok() != Some(expected.bytes) {
+        return Ok(None);
+    }
+    let actual = format!("blake3:{}", blake3::hash(&bytes).to_hex());
+    Ok((actual == expected.cid).then_some(bytes))
+}
+
 fn append_history(history: &mut [u32; MAX_CHAT_HISTORY], len: &mut usize, tokens: &[u32]) {
     let tokens = &tokens[tokens.len().saturating_sub(MAX_CHAT_HISTORY)..];
     let overflow = len
@@ -483,13 +628,13 @@ fn repeated_suffix(tokens: &[u32], width: usize) -> bool {
         .any(|window| window == suffix)
 }
 
-fn write_tokenizer_cache(cid: &str, bytes: &[u8]) -> Result<PathBuf, ChatError> {
-    let hash = cid.strip_prefix("blake3:").unwrap_or(cid);
-    let directory = std::env::temp_dir().join("uor-r4-tokenizers");
-    std::fs::create_dir_all(&directory)?;
-    let path = directory.join(format!("{hash}.bin"));
-    std::fs::write(&path, bytes)?;
-    Ok(path)
+fn parse_chat_tokenizer(bytes: &[u8]) -> Result<Tokenizer, ChatError> {
+    Tokenizer::from_bytes(bytes).ok_or_else(|| {
+        ChatError::Io(std::io::Error::new(
+            std::io::ErrorKind::InvalidData,
+            "invalid tokenizer.bin bytes",
+        ))
+    })
 }
 
 struct SlashCommandDef {
@@ -2372,13 +2517,147 @@ fn render_audit_trace_record(
 
 #[cfg(test)]
 mod tests {
-    use super::{parse_remote_url, repeated_suffix};
+    use super::{
+        bind_chat_r4g1, ensure_chat_prompt_encoder, parse_remote_url, repeated_suffix,
+        select_chat_tokenizer_bytes, ChatError,
+    };
+    use uor_r4_core::transformerless::scenarios::{
+        export_runtime_tokenizer_table, RuntimeTokenizerDecodePolicy, RuntimeTokenizerDecodeTable,
+        RuntimeTokenizerEncodePolicy, RuntimeTokenizerIdentity, Tokenizer,
+    };
     use uor_r4_router::session_signature_from_tokens;
+
+    fn minimal_graph(tokenizer_cid: [u8; 32]) -> Vec<u8> {
+        use uor_r4_graph_format::{ArtifactBuilder, SectionId};
+
+        let mut head = Vec::with_capacity(224);
+        head.extend_from_slice(&[0x11; 32]);
+        head.extend_from_slice(&tokenizer_cid);
+        head.extend_from_slice(&[0x33; 32]);
+        head.extend_from_slice(&[0x44; 32]);
+        head.extend_from_slice(b"0123456789abcdef0123");
+        head.extend_from_slice(&[0x55; 32]);
+        head.extend_from_slice(&32u16.to_le_bytes());
+        head.extend_from_slice(&16u16.to_le_bytes());
+        head.extend_from_slice(&8u16.to_le_bytes());
+        head.extend_from_slice(&8u16.to_le_bytes());
+        head.extend_from_slice(&64u32.to_le_bytes());
+        head.extend_from_slice(&64u32.to_le_bytes());
+        head.extend_from_slice(&0u32.to_le_bytes());
+        head.extend_from_slice(&0u32.to_le_bytes());
+        head.push(1);
+        head.extend_from_slice(&[0; 5]);
+        head.extend_from_slice(&[0; 2]);
+        head.extend_from_slice(&64u16.to_le_bytes());
+        head.extend_from_slice(&1u16.to_le_bytes());
+        head.extend_from_slice(&0u16.to_le_bytes());
+        head.extend_from_slice(&0u16.to_le_bytes());
+        head.extend_from_slice(&100u32.to_le_bytes());
+        assert_eq!(head.len(), 224);
+        let mut builder = ArtifactBuilder::new(3);
+        builder.add_section(SectionId::HEAD, 0, &head);
+        builder.build().expect("minimal graph")
+    }
 
     #[test]
     fn repetition_guard_detects_repeated_token_windows() {
         assert!(repeated_suffix(&[1, 2, 3, 4, 1, 2, 3, 4], 4));
         assert!(!repeated_suffix(&[1, 2, 3, 4, 1, 2, 3, 5], 4));
+    }
+
+    #[test]
+    fn direct_chat_reports_decode_only_tokenizer_as_unavailable() {
+        let path = std::env::temp_dir().join(format!(
+            "uor-r4-chat-decode-only-{}.bin",
+            std::process::id()
+        ));
+        let table = RuntimeTokenizerDecodeTable {
+            identity: RuntimeTokenizerIdentity {
+                family: "future-sentencepiece-family".to_owned(),
+                version: 41,
+                tokenizer_cid: format!("blake3:{}", "3".repeat(64)),
+                adapter_digest: format!("blake3:{}", "4".repeat(64)),
+            },
+            pieces: vec![Vec::new(), b"piece".to_vec()],
+            encode_policy: RuntimeTokenizerEncodePolicy::Unavailable,
+            decode_policy: RuntimeTokenizerDecodePolicy::SentencePiece {
+                strip_dummy_prefix: true,
+            },
+            source_byte_lengths: None,
+        };
+        export_runtime_tokenizer_table(&table, &path).expect("tagged export");
+        let bytes = std::fs::read(&path).expect("read tagged");
+        assert_eq!(
+            select_chat_tokenizer_bytes(&bytes).expect("valid tagged bytes stay selected"),
+            bytes
+        );
+        let mut malformed = bytes.clone();
+        malformed.pop();
+        let error = select_chat_tokenizer_bytes(&malformed)
+            .expect_err("malformed tagged bytes cannot downgrade to a legacy tokenizer");
+        assert_eq!(error.kind(), std::io::ErrorKind::InvalidData);
+
+        let tokenizer = Tokenizer::from_bytes(&bytes).expect("parse tagged");
+        let error = ensure_chat_prompt_encoder(&tokenizer).expect_err("encoder is unavailable");
+        assert!(matches!(
+            error,
+            ChatError::TokenizerUnavailable {
+                ref family,
+                version: 41,
+            } if family == "future-sentencepiece-family"
+        ));
+        assert!(error.to_string().contains("exact host adapter"));
+        let error = bind_chat_r4g1(Some(minimal_graph([0; 32])), &bytes)
+            .expect_err("zero-CID graph cannot admit a tagged tokenizer");
+        assert!(error.to_string().contains("nonzero"), "{error}");
+        assert!(bind_chat_r4g1(
+            Some(minimal_graph(*blake3::hash(&bytes).as_bytes())),
+            &bytes,
+        )
+        .expect("nonzero exact tagged binding")
+        .is_some());
+        let _ = std::fs::remove_file(path);
+    }
+
+    #[test]
+    fn present_untagged_chat_tokenizer_keeps_its_exact_bytes() {
+        let mut bytes = Vec::new();
+        for piece in [b"<unk>".as_slice(), b"a".as_slice(), b"b".as_slice()] {
+            bytes.extend_from_slice(&(piece.len() as i32).to_le_bytes());
+            bytes.extend_from_slice(piece);
+        }
+        assert!(!Tokenizer::is_tagged_container_bytes(&bytes));
+        assert_eq!(
+            select_chat_tokenizer_bytes(&bytes).expect("valid historical tokenizer"),
+            bytes
+        );
+    }
+
+    #[test]
+    fn direct_chat_rejects_a_graph_tokenizer_swap_and_preserves_zero_cid_legacy() {
+        let tokenizer_a = b"\x01\0\0\0a".to_vec();
+        let tokenizer_b = b"\x01\0\0\0b".to_vec();
+        let graph = minimal_graph(*blake3::hash(&tokenizer_a).as_bytes());
+        let error = bind_chat_r4g1(Some(graph.clone()), &tokenizer_b)
+            .expect_err("graph A plus tokenizer B must be rejected");
+        assert!(
+            error.to_string().contains("tokenizer CID mismatch"),
+            "{error}"
+        );
+        assert_eq!(
+            bind_chat_r4g1(Some(graph.clone()), &tokenizer_a)
+                .expect("exact graph/tokenizer pair")
+                .as_deref(),
+            Some(graph.as_slice())
+        );
+
+        let legacy = minimal_graph([0; 32]);
+        assert_eq!(
+            bind_chat_r4g1(Some(legacy.clone()), &tokenizer_b)
+                .expect("zero-CID graph retains legacy compatibility")
+                .as_deref(),
+            Some(legacy.as_slice())
+        );
     }
 
     #[test]

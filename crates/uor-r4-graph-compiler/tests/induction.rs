@@ -889,6 +889,45 @@ fn r4g1_artifact_validates_and_reproduces() {
     .expect("emit succeeds");
     assert_eq!(bytes, bytes2, "canonical serializer reproduces the bytes");
 
+    // #718: the historical wrapper is exactly the explicit zero-CID variant,
+    // while the production variant binds the exact deployed tokenizer bytes.
+    let (legacy_explicit, _) = cover::emit_r4g1_with_tokenizer_cid(
+        b"synthetic-artifact-container",
+        (b"synthetic-meta", b"synthetic-recs"),
+        64,
+        cover,
+        &edges,
+        &prior,
+        &[],
+        [0; 32],
+    )
+    .expect("explicit legacy emit succeeds");
+    assert_eq!(bytes, legacy_explicit, "legacy wrapper bytes changed");
+
+    let tokenizer_bytes = b"exact deployed tokenizer.bin bytes";
+    let tokenizer_cid = *blake3::hash(tokenizer_bytes).as_bytes();
+    let (bound_bytes, _) = cover::emit_r4g1_with_tokenizer_cid(
+        b"synthetic-artifact-container",
+        (b"synthetic-meta", b"synthetic-recs"),
+        64,
+        cover,
+        &edges,
+        &prior,
+        &[],
+        tokenizer_cid,
+    )
+    .expect("tokenizer-bound emit succeeds");
+    assert_ne!(bound_bytes, bytes);
+    let bound = GraphView::parse(&bound_bytes).expect("bound artifact validates");
+    assert_eq!(
+        bound.head().expect("bound HEAD").tokenizer_cid().0,
+        tokenizer_cid
+    );
+    bound
+        .verify_tokenizer_cid(tokenizer_bytes)
+        .expect("exact tokenizer verifies");
+    assert!(bound.verify_tokenizer_cid(b"swapped tokenizer").is_err());
+
     // The HEAD corpus construction CID pins the corpus material.
     let expected_corpus_cid = {
         let mut h = blake3::Hasher::new();

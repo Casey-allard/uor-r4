@@ -27,7 +27,7 @@ This crate hosts two things:
 | `score_q` | `ScoreQ` Q16.16 fixed-point log-domain scores (mul-free add/sub) |
 | `resolution_status` | Supported / Boundary / BackedOff / Novel / Contradictory status |
 | `graph_patch` | Immutable content-addressed patch epochs and route translation |
-| `scenarios` | ChatML prompt wrappers (`format_instruct_chat_prompt`, `encode_chat_prompt`), byte-level BPE tokenizer export, scenario suite |
+| `scenarios` | ChatML prompt wrappers (`format_instruct_chat_prompt`, `encode_chat_prompt`), historical and tagged decode-only runtime-tokenizer export/parse, scenario suite |
 | `cd_space` / `endomorphism` / `lie_jordan` / `bott_fock` | Dormant Furey-plan substrate modules (see `docs/r4_furey_quantum_geometric_plan.md`, dated deferral record) |
 
 Modules that started here and moved out in the crate split:

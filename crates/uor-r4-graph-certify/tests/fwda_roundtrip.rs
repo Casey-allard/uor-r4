@@ -16,8 +16,8 @@ use std::collections::BTreeMap;
 use uor_r4_core::transformerless::compiler::{self, Corpus, SIG_BYTES, STAGES};
 use uor_r4_core::transformerless::runtime;
 use uor_r4_graph_certify::score::{
-    compile_forward_anchor_rows, emit_scored_r4g1, ContextRow, EmissionTables, ForwardAnchorRow,
-    QuantizationErrorStats, ScoredGraphSections, Smoothing,
+    compile_forward_anchor_rows, emit_scored_r4g1, emit_scored_r4g1_with_tokenizer_cid, ContextRow,
+    EmissionTables, ForwardAnchorRow, QuantizationErrorStats, ScoredGraphSections, Smoothing,
 };
 use uor_r4_graph_certify::score_runtime::{
     infill_fill, next_skeleton_anchor, two_pass_infill_generate, GraphScorer, RegionParams,
@@ -136,6 +136,13 @@ fn emissions() -> EmissionTables {
 /// hit), an empty exact-context store, and the given forward-anchor
 /// rows.
 fn tiny_artifact(fwd_rows: &[ForwardAnchorRow]) -> Vec<u8> {
+    tiny_artifact_emitted(fwd_rows, None)
+}
+
+fn tiny_artifact_emitted(
+    fwd_rows: &[ForwardAnchorRow],
+    tokenizer_cid: Option<[u8; 32]>,
+) -> Vec<u8> {
     let regions = vec![RegionParams {
         node: 1,
         depth: 1,
@@ -167,24 +174,46 @@ fn tiny_artifact(fwd_rows: &[ForwardAnchorRow]) -> Vec<u8> {
     let store: runtime::Store = vec![BTreeMap::new(); STAGES + 1];
     let tls1 = runtime::store_bytes(&store);
     let emissions = emissions();
-    let (bytes, info) = emit_scored_r4g1(
-        b"teacher-container",
-        (b"meta", b"recs"),
-        VOCAB,
-        &ScoredGraphSections {
-            regions: &regions,
-            structural: &[],
-            transitions: &[],
-            transition_quantization: QuantizationErrorStats::default(),
-            emissions: &emissions,
-            context_rows: &context_rows,
-            exct_tls1: &tls1,
-            exct_top_x: 3,
-            fwd_rows,
-        },
-    );
+    let sections = ScoredGraphSections {
+        regions: &regions,
+        structural: &[],
+        transitions: &[],
+        transition_quantization: QuantizationErrorStats::default(),
+        emissions: &emissions,
+        context_rows: &context_rows,
+        exct_tls1: &tls1,
+        exct_top_x: 3,
+        fwd_rows,
+    };
+    let (bytes, info) = match tokenizer_cid {
+        Some(tokenizer_cid) => emit_scored_r4g1_with_tokenizer_cid(
+            b"teacher-container",
+            (b"meta", b"recs"),
+            VOCAB,
+            &sections,
+            tokenizer_cid,
+        ),
+        None => emit_scored_r4g1(b"teacher-container", (b"meta", b"recs"), VOCAB, &sections),
+    };
     assert_eq!(info.fwda_row_count as usize, fwd_rows.len());
     bytes
+}
+
+#[test]
+fn scored_emitter_binds_tokenizer_and_preserves_legacy_wrapper_bytes() {
+    let legacy = tiny_artifact_emitted(&[], None);
+    let explicit_legacy = tiny_artifact_emitted(&[], Some([0; 32]));
+    assert_eq!(legacy, explicit_legacy, "legacy wrapper bytes changed");
+
+    let tokenizer = b"exact scored tokenizer.bin bytes";
+    let tokenizer_cid = *blake3::hash(tokenizer).as_bytes();
+    let bound = tiny_artifact_emitted(&[], Some(tokenizer_cid));
+    assert_ne!(bound, legacy);
+    let view = GraphView::parse(&bound).expect("bound scored graph parses");
+    assert_eq!(view.head().expect("HEAD").tokenizer_cid().0, tokenizer_cid);
+    view.verify_tokenizer_cid(tokenizer)
+        .expect("exact tokenizer verifies");
+    assert!(view.verify_tokenizer_cid(b"swapped").is_err());
 }
 
 fn fusion_rows() -> Vec<ForwardAnchorRow> {

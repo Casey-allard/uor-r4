@@ -30,6 +30,35 @@ are accepted (`R4_GATE_C_SAMPLE=10_000`).
 | `UOR_R4_HOST` / `UOR_R4_PORT` | Server bind address | `127.0.0.1` / `8000` |
 | `UOR_R4_MANIFOLD_CACHE` | Router manifold cache | `manifold_cache_rust.json` |
 
+## Tokenizer adapter selection
+
+Registered source tokenizers are selected by CLI/API fields, not environment
+variables. CLI commands that accept `--source` also accept the atomic pair
+`--tokenizer-family FAMILY --tokenizer-version N`. Both flags must be present
+or absent. When absent, discovery succeeds only when the source directory has
+one unambiguous supported definition; a directory containing both
+`tokenizer.json` and `spiece.model` requires the explicit pair. Unknown pairs
+and any attempt to combine a registered adapter with legacy `--checkpoint`
+input fail closed.
+
+For raw SentencePiece sources, use family `sentencepiece-unigram`. Version 2
+is the current, reference-correct adapter; automatic discovery of one
+unambiguous `spiece.model` selects it. Version 1 remains registered only as the
+immutable published behavior whose unknown id decodes to the literal model
+surface `<unk>`. `N` is part of the semantic identity, not a compatibility
+range: consumers do not substitute a newer or older version. Both versions
+read the pinned 32,000-piece `spiece.model`; neither applies the T5 Hugging
+Face wrapper's 100 sentinel tokens or EOS-appending post-processor.
+
+The host adapter performs text normalization and encoding. The deployed
+tagged `tokenizer.bin` is decode-only and carries the complete adapter binding
+(family, version, source-model CID, and policy digest). Serving requires a
+matching host encoder for prompt text. Missing/mismatched identity, unavailable
+encode, invalid token ids, and decode failures are errors; an explicitly tagged
+tokenizer does not fall back to a legacy tokenizer. SentencePiece observation
+records have no original-source byte anchors because normalization and unknown
+collapse do not preserve a total input-offset map.
+
 ## Determinism and teacher math
 
 These are κ-relevant: changing them can change artifact bytes.
@@ -141,5 +170,5 @@ Written under `.uor-models/` (or `UOR_MODEL_STORE`):
 | `last_model.txt` / `last_model_name.txt` | Orchestrator's last model selection |
 | `last_engine.txt` | Persisted engine preference; **silently pins the cascade** for requests that omit `engine` |
 | `sources/<name>/` | Downloaded Hugging Face teacher sources |
-| `compiled/<name>/` | Compiled bundles (`score.r4g1`, `tless_artifacts.bin`, `corpus.meta`, `corpus.records`) |
+| `compiled/<name>/` | Compiled bundles: `score.r4g1`, `tless_artifacts.bin`, `tless_store.bin`, deployed `tokenizer.bin`, full source binding `tokenizer_adapter.json` (used to fail-close corpus resume/evaluation), `corpus.meta`, and `corpus.records` |
 | `corpora/` | Observation corpora |

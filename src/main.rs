@@ -198,6 +198,23 @@ struct CompileArgs {
     /// Vocabulary width for a transformer-free recorded compile.
     #[arg(long, requires = "corpus_meta", requires = "corpus_recs")]
     vocab_size: Option<usize>,
+    /// Registered source-tokenizer family. Must be supplied atomically with
+    /// `--tokenizer-version`; recorded-corpus compiles already carry token ids
+    /// and therefore do not accept a source-tokenizer selection.
+    #[arg(
+        long,
+        requires = "tokenizer_version",
+        conflicts_with_all = ["corpus_meta", "corpus_recs", "vocab_size"]
+    )]
+    tokenizer_family: Option<String>,
+    /// Registered source-tokenizer adapter version. Must be supplied
+    /// atomically with `--tokenizer-family`.
+    #[arg(
+        long,
+        requires = "tokenizer_family",
+        conflicts_with_all = ["corpus_meta", "corpus_recs", "vocab_size"]
+    )]
+    tokenizer_version: Option<u32>,
     /// Immutable 40-character Hugging Face commit SHA.
     #[arg(long, requires = "model")]
     revision: Option<String>,
@@ -299,6 +316,14 @@ struct EvaluateReportArgs {
     /// Teacher sequence length used for source-model loading.
     #[arg(long, default_value_t = 128)]
     sequence_length: usize,
+    /// Registered source-tokenizer family. Must be supplied atomically with
+    /// `--tokenizer-version`.
+    #[arg(long, requires = "tokenizer_version")]
+    tokenizer_family: Option<String>,
+    /// Registered source-tokenizer adapter version. Must be supplied
+    /// atomically with `--tokenizer-family`.
+    #[arg(long, requires = "tokenizer_family")]
+    tokenizer_version: Option<u32>,
 }
 
 impl Cli {
@@ -458,6 +483,20 @@ fn compile(args: &CompileArgs) -> Result<(), RunError> {
     if let Some(revision) = &args.revision {
         values.extend(["--revision".to_owned(), revision.clone()]);
     }
+    match (&args.tokenizer_family, args.tokenizer_version) {
+        (Some(family), Some(version)) => values.extend([
+            "--tokenizer-family".to_owned(),
+            family.clone(),
+            "--tokenizer-version".to_owned(),
+            version.to_string(),
+        ]),
+        (None, None) => {}
+        _ => {
+            return Err(RunError::Command(
+                "--tokenizer-family and --tokenizer-version must be supplied together".to_owned(),
+            ));
+        }
+    }
     if let Some(output) = &args.output {
         values.extend(["--output".to_owned(), output.display().to_string()]);
     }
@@ -562,6 +601,20 @@ fn evaluate_report(args: &EvaluateReportArgs) -> Result<(), RunError> {
     }
     if let Some(report) = &args.report {
         values.extend(["--report".to_owned(), report.display().to_string()]);
+    }
+    match (&args.tokenizer_family, args.tokenizer_version) {
+        (Some(family), Some(version)) => values.extend([
+            "--tokenizer-family".to_owned(),
+            family.clone(),
+            "--tokenizer-version".to_owned(),
+            version.to_string(),
+        ]),
+        (None, None) => {}
+        _ => {
+            return Err(RunError::Command(
+                "--tokenizer-family and --tokenizer-version must be supplied together".to_owned(),
+            ));
+        }
     }
     values.extend([
         "--sequence-length".to_owned(),
@@ -950,11 +1003,23 @@ mod tests {
 
     #[test]
     fn parses_compile_command() {
-        let cli = Cli::try_parse_from(["r4", "compile", "--source", "/models/local"]).unwrap();
+        let cli = Cli::try_parse_from([
+            "r4",
+            "compile",
+            "--source",
+            "/models/local",
+            "--tokenizer-family",
+            "hf-byte-bpe",
+            "--tokenizer-version",
+            "1",
+        ])
+        .unwrap();
         let Some(Command::Compile(args)) = cli.command else {
             panic!("expected compile")
         };
         assert_eq!(args.source, Some(PathBuf::from("/models/local")));
+        assert_eq!(args.tokenizer_family.as_deref(), Some("hf-byte-bpe"));
+        assert_eq!(args.tokenizer_version, Some(1));
         assert_eq!(args.target, 20_000);
         assert_eq!(args.sequence_length, 128);
     }
@@ -972,6 +1037,10 @@ mod tests {
             "/tmp/report.json",
             "--sequence-length",
             "256",
+            "--tokenizer-family",
+            "sentencepiece-unigram",
+            "--tokenizer-version",
+            "7",
         ])
         .unwrap();
         let Some(Command::EvaluateReport(args)) = cli.command else {
@@ -981,6 +1050,51 @@ mod tests {
         assert_eq!(args.compiled, Some(PathBuf::from("/models/compiled")));
         assert_eq!(args.report, Some(PathBuf::from("/tmp/report.json")));
         assert_eq!(args.sequence_length, 256);
+        assert_eq!(
+            args.tokenizer_family.as_deref(),
+            Some("sentencepiece-unigram")
+        );
+        assert_eq!(args.tokenizer_version, Some(7));
+    }
+
+    #[test]
+    fn tokenizer_selection_is_an_atomic_non_recorded_pair() {
+        for command in ["compile", "evaluate-report"] {
+            assert!(Cli::try_parse_from([
+                "r4",
+                command,
+                "--source",
+                "/models/source",
+                "--tokenizer-family",
+                "hf-byte-bpe",
+            ])
+            .is_err());
+            assert!(Cli::try_parse_from([
+                "r4",
+                command,
+                "--source",
+                "/models/source",
+                "--tokenizer-version",
+                "1",
+            ])
+            .is_err());
+        }
+
+        assert!(Cli::try_parse_from([
+            "r4",
+            "compile",
+            "--corpus-meta",
+            "/corpus/meta",
+            "--corpus-recs",
+            "/corpus/records",
+            "--vocab-size",
+            "32000",
+            "--tokenizer-family",
+            "hf-byte-bpe",
+            "--tokenizer-version",
+            "1",
+        ])
+        .is_err());
     }
 
     #[test]

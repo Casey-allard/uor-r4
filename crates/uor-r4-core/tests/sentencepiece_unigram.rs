@@ -193,6 +193,11 @@ fn real_t5_sentencepiece_adapter_matches_reference_ids() {
         TokenizerAdapter::SENTENCEPIECE_UNIGRAM_VERSION
     );
     assert_eq!(
+        tokenizer.decode(&[2]),
+        " \u{2047} ",
+        "current /2 uses TrainerSpec.unk_surface"
+    );
+    assert_eq!(
         adapter.tokenizer_cid,
         format!("blake3:{}", blake3::hash(&bytes).to_hex()),
         "tokenizer_cid is the blake3 of the spiece.model bytes"
@@ -205,30 +210,56 @@ fn real_t5_sentencepiece_adapter_matches_reference_ids() {
 }
 
 #[test]
-fn registry_resolves_sentencepiece_unigram_1() {
-    // #639-3b: the family that was refused-by-name now resolves to the real
-    // Unigram adapter.
-    let constructor = adapter_constructor(
+fn registry_resolves_frozen_v1_and_reference_correct_v2() {
+    let v1_constructor = adapter_constructor(
         TokenizerAdapter::SENTENCEPIECE_UNIGRAM_FAMILY,
-        TokenizerAdapter::SENTENCEPIECE_UNIGRAM_VERSION,
+        TokenizerAdapter::SENTENCEPIECE_UNIGRAM_V1_VERSION,
     )
-    .expect("sentencepiece-unigram/1 is registered");
-    // Malformed bytes stay total (None, not a panic).
-    assert!(constructor(b"not a spiece.model").is_none());
+    .expect("frozen sentencepiece-unigram/1 is registered");
+    let v2_constructor = adapter_constructor(
+        TokenizerAdapter::SENTENCEPIECE_UNIGRAM_FAMILY,
+        TokenizerAdapter::SENTENCEPIECE_UNIGRAM_V2_VERSION,
+    )
+    .expect("reference-correct sentencepiece-unigram/2 is registered");
+    for constructor in [v1_constructor, v2_constructor] {
+        // Malformed bytes preserve the parser's focused reason through the
+        // registry boundary.
+        let malformed = match constructor(b"not a spiece.model") {
+            Err(error) => error,
+            Ok(_) => panic!("malformed model is refused"),
+        };
+        assert!(malformed.reason.contains("spiece.model"));
+    }
 
     let Some(bytes) = spiece_bytes() else {
         return;
     };
     use uor_r4_core::transformerless::hf_bpe::TokenizerModel;
-    let via_registry = constructor(&bytes).expect("registry constructor parses the real model");
-    let direct = SentencePieceUnigramTokenizer::from_spiece_bytes(&bytes).expect("direct parse");
-    assert_eq!(via_registry.adapter(), direct.adapter());
+    let v1 = v1_constructor(&bytes).expect("v1 registry constructor parses the real model");
+    let v2 = v2_constructor(&bytes).expect("v2 registry constructor parses the real model");
+    let direct_v1 = SentencePieceUnigramTokenizer::from_spiece_bytes_v1(&bytes)
+        .expect("direct frozen v1 parse");
+    let direct_v2 = SentencePieceUnigramTokenizer::from_spiece_bytes_v2(&bytes)
+        .expect("direct reference v2 parse");
+    assert_eq!(v1.adapter(), direct_v1.adapter());
+    assert_eq!(v2.adapter(), direct_v2.adapter());
     assert_eq!(
-        via_registry.encode("Hello world"),
-        direct.encode("Hello world")
+        v1.adapter().adapter_digest,
+        "blake3:cc9b3d1ab746c3ba0cd1f4b94a6b9306a3bd8a41fe9e539800c538a2cee7d8ab",
+        "the published /1 identity is immutable"
     );
     assert_eq!(
-        via_registry.encode("Ａ１２３ ﬁ ½"),
-        vec![71, 14574, 361, 209, 2, 357]
+        v2.adapter().adapter_digest,
+        "blake3:e56dc74051fdaf4a90a626328ad01c81b7cd26044b2b071b8d50302c07bbacd1",
+        "the reference-correct /2 identity is pinned"
     );
+    assert_ne!(v1.adapter().adapter_digest, v2.adapter().adapter_digest);
+    assert_eq!(
+        v1.encode("Hello world"),
+        v2.encode("Hello world"),
+        "the version bump is decode-policy-only"
+    );
+    assert_eq!(v2.encode("Ａ１２３ ﬁ ½"), vec![71, 14574, 361, 209, 2, 357]);
+    assert_eq!(v1.decode(&[2]), "<unk>");
+    assert_eq!(v2.decode(&[2]), " \u{2047} ");
 }

@@ -23,7 +23,8 @@
 use std::path::PathBuf;
 
 use uor_r4_core::transformerless::hf_bpe::{
-    adapter_constructor, HfBpeTokenizer, TokenizerAdapter, TokenizerKind,
+    adapter_constructor, resolve_source_tokenizer, HfBpeTokenizer, TokenizerAdapter,
+    TokenizerAdapterKey, TokenizerKind,
 };
 use uor_r4_core::transformerless::scenarios;
 
@@ -97,6 +98,104 @@ fn fixture_json(digits: bool) -> Vec<u8> {
 fn fixture_tokenizer(digits: bool) -> HfBpeTokenizer {
     HfBpeTokenizer::from_tokenizer_json_bytes(&fixture_json(digits))
         .expect("fixture tokenizer.json parses")
+}
+
+#[test]
+fn byte_bpe_ingestion_refuses_sparse_or_duplicate_model_ids() {
+    for vocab in [r#"{"a":0,"b":2}"#, r#"{"a":0,"b":0}"#] {
+        let json = format!(
+            r#"{{
+                "pre_tokenizer": {{"type":"ByteLevel","add_prefix_space":false}},
+                "model": {{"type":"BPE","vocab":{vocab},"merges":[]}}
+            }}"#
+        );
+        assert!(
+            HfBpeTokenizer::from_tokenizer_json_bytes(json.as_bytes()).is_none(),
+            "non-dense model vocabulary must fail ingestion: {vocab}"
+        );
+    }
+}
+
+#[test]
+fn byte_bpe_ingestion_bounds_added_token_id_space_before_allocation() {
+    let json = r#"{
+        "added_tokens":[{"id":4294967295,"content":"<hostile>"}],
+        "pre_tokenizer":{"type":"ByteLevel","add_prefix_space":false},
+        "model":{"type":"BPE","vocab":{"a":0},"merges":[]}
+    }"#;
+    assert!(
+        HfBpeTokenizer::from_tokenizer_json_bytes(json.as_bytes()).is_none(),
+        "an extreme added-token id must be rejected before allocating an id-indexed table"
+    );
+}
+
+#[test]
+fn byte_bpe_ingestion_refuses_conflicting_added_token_aliases() {
+    for added_tokens in [
+        // An added surface cannot overwrite a model id.
+        r#"[{"id":0,"content":"x"}]"#,
+        // A model surface cannot acquire a second id.
+        r#"[{"id":1,"content":"a"}]"#,
+        // Added entries cannot share an id with different content.
+        r#"[{"id":1,"content":"x"},{"id":1,"content":"y"}]"#,
+        // Added entries cannot share content across different ids.
+        r#"[{"id":1,"content":"x"},{"id":2,"content":"x"}]"#,
+        // Empty atomic surfaces cannot advance the matcher.
+        r#"[{"id":1,"content":""}]"#,
+    ] {
+        let json = format!(
+            r#"{{
+                "added_tokens":{added_tokens},
+                "pre_tokenizer":{{"type":"ByteLevel","add_prefix_space":false}},
+                "model":{{"type":"BPE","vocab":{{"a":0}},"merges":[]}}
+            }}"#
+        );
+        assert!(
+            HfBpeTokenizer::from_tokenizer_json_bytes(json.as_bytes()).is_none(),
+            "conflicting added-token declaration must fail: {added_tokens}"
+        );
+    }
+}
+
+#[test]
+fn byte_bpe_ingestion_allows_exact_added_token_redeclaration() {
+    let json = br#"{
+        "added_tokens":[
+            {"id":0,"content":"<special>"},
+            {"id":0,"content":"<special>"}
+        ],
+        "pre_tokenizer":{"type":"ByteLevel","add_prefix_space":false},
+        "model":{"type":"BPE","vocab":{"<special>":0,"a":1},"merges":[]}
+    }"#;
+    let tokenizer = HfBpeTokenizer::from_tokenizer_json_bytes(json)
+        .expect("an exact model/added-token redeclaration is valid");
+    assert_eq!(tokenizer.encode("<special>"), vec![0]);
+    assert_eq!(tokenizer.decode(&[0]), "<special>");
+    assert_eq!(tokenizer.adapter().policy.added_tokens_count, 1);
+}
+
+#[test]
+fn runtime_loader_does_not_downgrade_a_non_regular_tokenizer_path() {
+    let dir = std::env::temp_dir().join(format!(
+        "uor-r4-non-regular-runtime-tokenizer-{}",
+        std::process::id()
+    ));
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).expect("create fixture root");
+    let tokenizer_path = dir.join("tokenizer.bin");
+    std::fs::create_dir(&tokenizer_path).expect("create non-regular tokenizer entry");
+    std::fs::write(dir.join("vocab.json"), br#"{"a":0}"#)
+        .expect("write otherwise-loadable sibling vocabulary");
+
+    let error = scenarios::Tokenizer::try_load(&tokenizer_path)
+        .err()
+        .expect("present non-regular tokenizer.bin must not fall through to vocab.json");
+    assert!(
+        error.reason.contains("tokenizer.bin cannot be read"),
+        "focused non-regular diagnostic: {error}"
+    );
+
+    let _ = std::fs::remove_dir_all(dir);
 }
 
 // =====================================================================
@@ -355,20 +454,24 @@ fn registry_resolves_hf_byte_bpe_1() {
         via_registry.encode("hello world"),
         direct.encode("hello world")
     );
-    // The constructor stays total in the module's existing convention:
-    // malformed bytes are None, not a panic.
-    assert!(constructor(b"not json").is_none());
+    // Malformed bytes retain a focused parse error, not a panic or an erased
+    // `None` at the registry boundary.
+    let malformed = match constructor(b"not json") {
+        Err(error) => error,
+        Ok(_) => panic!("malformed tokenizer.json is refused"),
+    };
+    assert!(malformed.reason.contains("hf-byte-bpe/1"));
 }
 
 #[test]
 fn registry_refuses_unknown_family_and_version_by_name() {
     // Any unknown (family, version) pair is rejected by name — including a
     // bumped version of a REGISTERED family (hf-byte-bpe/2, sentencepiece-
-    // unigram/2), so a future behavioral change must arrive as a new
+    // unigram/3), so a future behavioral change must arrive as a new
     // registry entry rather than silently reusing the current one.
     for (family, version) in [
         (TokenizerAdapter::HF_BYTE_BPE_FAMILY, 2u32),
-        (TokenizerAdapter::SENTENCEPIECE_UNIGRAM_FAMILY, 2),
+        (TokenizerAdapter::SENTENCEPIECE_UNIGRAM_FAMILY, 3),
         ("mystery-tokenizer", 1),
     ] {
         let error = adapter_constructor(family, version)
@@ -388,11 +491,17 @@ fn registry_refuses_unknown_family_and_version_by_name() {
             "reason names the family: {error}"
         );
     }
-    // sentencepiece-unigram/1 is now REGISTERED (#639-3b), not refused.
-    assert!(
-        adapter_constructor(TokenizerAdapter::SENTENCEPIECE_UNIGRAM_FAMILY, 1).is_ok(),
-        "sentencepiece-unigram/1 resolves to the real Unigram adapter"
-    );
+    // Published v1 remains immutable and resolvable; reference-correct v2 is
+    // the current entry.
+    for version in [
+        TokenizerAdapter::SENTENCEPIECE_UNIGRAM_V1_VERSION,
+        TokenizerAdapter::SENTENCEPIECE_UNIGRAM_V2_VERSION,
+    ] {
+        assert!(
+            adapter_constructor(TokenizerAdapter::SENTENCEPIECE_UNIGRAM_FAMILY, version).is_ok(),
+            "sentencepiece-unigram/{version} resolves to the real Unigram adapter"
+        );
+    }
 }
 
 // =====================================================================
@@ -409,12 +518,97 @@ fn unique_dir(name: &str) -> PathBuf {
     dir
 }
 
+#[test]
+fn source_resolver_is_registered_explicit_and_fail_closed() {
+    let dir = unique_dir("source-resolver");
+    let json = fixture_json(true);
+    std::fs::write(dir.join("tokenizer.json"), &json).expect("write BPE definition");
+
+    let automatic = resolve_source_tokenizer(&dir, None).expect("single definition resolves");
+    assert_eq!(
+        automatic.adapter().unwrap().family,
+        TokenizerAdapter::HF_BYTE_BPE_FAMILY
+    );
+
+    // Presence of a second definition is ambiguous before either definition
+    // is parsed. No file-order preference is permitted.
+    std::fs::write(dir.join("spiece.model"), b"malformed").expect("write second definition");
+    let ambiguous = match resolve_source_tokenizer(&dir, None) {
+        Err(error) => error,
+        Ok(_) => panic!("two tokenizer definitions require an explicit key"),
+    };
+    assert!(ambiguous
+        .reason
+        .contains("both tokenizer.json and spiece.model"));
+    assert!(ambiguous.reason.contains("family/version"));
+
+    let explicit_bpe = resolve_source_tokenizer(&dir, Some(&TokenizerAdapterKey::hf_byte_bpe_v1()))
+        .expect("explicit raw BPE selection resolves");
+    assert_eq!(explicit_bpe.encode("hello world"), vec![259, 264]);
+
+    // Selecting SentencePiece reaches its real parser and retains that
+    // parser's diagnostic rather than silently falling back to BPE.
+    let sentencepiece_error = match resolve_source_tokenizer(
+        &dir,
+        Some(&TokenizerAdapterKey::sentencepiece_unigram_v1()),
+    ) {
+        Err(error) => error,
+        Ok(_) => panic!("malformed selected spiece.model is refused"),
+    };
+    assert!(sentencepiece_error.reason.contains("spiece.model"));
+    assert!(!sentencepiece_error.reason.contains("fall back"));
+
+    let unknown = TokenizerAdapterKey::new(TokenizerAdapter::HF_BYTE_BPE_FAMILY, 99);
+    let unknown_error = match resolve_source_tokenizer(&dir, Some(&unknown)) {
+        Err(error) => error,
+        Ok(_) => panic!("unknown adapter version is refused by name"),
+    };
+    assert!(matches!(
+        unknown_error.kind,
+        uor_r4_model_source::SourceIngestKind::UnknownTokenizerAdapter { version: 99, .. }
+    ));
+
+    std::fs::remove_dir_all(dir).ok();
+}
+
+#[test]
+fn source_resolver_distinguishes_absent_from_present_invalid_entries() {
+    let dir = unique_dir("source-entry-kind");
+
+    std::fs::create_dir(dir.join("tokenizer.json")).expect("create invalid directory entry");
+    let directory_error = match resolve_source_tokenizer(&dir, None) {
+        Err(error) => error,
+        Ok(_) => panic!("directory masquerading as tokenizer.json is refused"),
+    };
+    assert!(directory_error.reason.contains("not a regular"));
+    std::fs::remove_dir(dir.join("tokenizer.json")).unwrap();
+
+    #[cfg(unix)]
+    {
+        std::os::unix::fs::symlink("missing-tokenizer.json", dir.join("tokenizer.json"))
+            .expect("create dangling definition symlink");
+        let dangling_error = match resolve_source_tokenizer(&dir, None) {
+            Err(error) => error,
+            Ok(_) => panic!("dangling tokenizer symlink is refused"),
+        };
+        assert!(dangling_error.reason.contains("dangling or unreadable"));
+        std::fs::remove_file(dir.join("tokenizer.json")).unwrap();
+
+        std::fs::write(dir.join("actual.json"), fixture_json(false)).unwrap();
+        std::os::unix::fs::symlink("actual.json", dir.join("tokenizer.json"))
+            .expect("create valid definition symlink");
+        let linked = resolve_source_tokenizer(&dir, None).expect("regular-file symlink resolves");
+        assert_eq!(linked.adapter().unwrap().family, "hf-byte-bpe");
+    }
+
+    std::fs::remove_dir_all(dir).ok();
+}
+
 /// The four consumer paths resolve their tokenizer at these seams:
 ///
 /// - **observation path** (`uor-r4-graph-cli::observe_text_command` and
-///   `observe_text_batched_command`): `TokenizerKind::HfBpe(Box::new(
-///   HfBpeTokenizer::from_dir(&options.source)?))` when the snapshot has
-///   a `tokenizer.json` — asserted below by building exactly that value.
+///   `observe_text_batched_command`): the registered source resolver returns
+///   `TokenizerKind::Registered` — asserted below at that shared seam.
 /// - **evaluation path** (`uor-r4-graph-cli::evaluate_report`):
 ///   `HfBpeTokenizer::from_dir(&options.source).ok()` — asserted below
 ///   by building exactly that value.
@@ -441,7 +635,7 @@ fn consumer_paths_agree_on_adapter_identity_token_ids_and_decode_bytes() {
 
     // Observation-path selection (graph-cli observe-text, serial and
     // batched drivers use this identical expression).
-    let observation = TokenizerKind::HfBpe(Box::new(
+    let observation = TokenizerKind::Registered(Box::new(
         HfBpeTokenizer::from_dir(&dir).expect("observation-path tokenizer loads"),
     ));
     // Evaluation-path selection (graph-cli evaluate_report).
@@ -504,6 +698,21 @@ fn consumer_paths_agree_on_adapter_identity_token_ids_and_decode_bytes() {
         );
         assert_eq!(hf_lengths[id], lengths[id], "byte-length table at id {id}");
     }
+
+    // The new family-neutral exporter must be a byte-for-byte no-op for the
+    // established byte-BPE tokenizer.bin representation.
+    let generic = scenarios::export_registered_runtime_tokenizer(
+        &evaluation,
+        dir.join("tokenizer-generic.bin"),
+    )
+    .expect("generic BPE export");
+    assert_eq!(generic.source_byte_lengths, Some(lengths.clone()));
+    assert_eq!(generic.decode_byte_lengths, lengths);
+    assert_eq!(
+        std::fs::read(dir.join("tokenizer-generic.bin")).unwrap(),
+        std::fs::read(dir.join("tokenizer.bin")).unwrap(),
+        "registered BPE export remains byte-identical"
+    );
 
     std::fs::remove_dir_all(&dir).ok();
 }

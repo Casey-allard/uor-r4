@@ -25,6 +25,8 @@
 use std::fmt;
 use std::path::{Path, PathBuf};
 
+use uor_r4_core::transformerless::hf_bpe::{adapter_constructor, resolve_source_tokenizer};
+pub use uor_r4_core::transformerless::hf_bpe::{TokenizerAdapter, TokenizerAdapterKey};
 use uor_r4_graph_certify::score::{
     DEFAULT_EMISSION_ENTRIES, DEFAULT_EXCT_TOP_X, DEFAULT_ROOT_TOP_B,
     DEFAULT_TRANSITION_OUT_DEGREE, DEFAULT_WITNESS_SAMPLE,
@@ -163,15 +165,25 @@ impl Default for CompileOptions {
 }
 
 /// A typed compile invocation.
+///
+/// Since issue #718, `tokenizer_adapter` is required rather than inferred.
+/// This is an intentional source-level API break: existing callers must name
+/// the exact family/version pair so adding a second tokenizer definition to a
+/// source snapshot can never silently change compilation semantics.
 #[derive(Debug, Clone)]
 pub struct CompileRequest {
     /// Verified local Hugging Face-style source directory (must contain
-    /// `config.json`, `tokenizer.json`, and at least one `*.safetensors`).
+    /// `config.json`, the selected tokenizer definition, and at least one
+    /// `*.safetensors`).
     pub source_dir: PathBuf,
     /// Private resumable workspace: the corpus, checkpoints, and
     /// intermediate artifacts live here. Re-running [`compile`] with the
     /// same request resumes an incomplete corpus.
     pub work_dir: PathBuf,
+    /// Exact registered source-tokenizer adapter to use. Compilation never
+    /// infers a preference when a snapshot presents multiple tokenizer
+    /// definitions: callers select the family and version as one typed pair.
+    pub tokenizer_adapter: TokenizerAdapterKey,
     /// Stage knobs.
     pub options: CompileOptions,
     /// Root κ of the #597 source-snapshot manifest
@@ -235,6 +247,9 @@ pub struct ComponentDigests {
 pub struct CompileProvenance {
     /// The exact options the stages ran with.
     pub options: CompileOptions,
+    /// Complete validated tokenizer-adapter identity used by stage A,
+    /// including the raw-definition CID, declared policy, and adapter digest.
+    pub tokenizer_adapter: TokenizerAdapter,
     /// R4G1 format version of the emitted graph.
     pub format_version: (u8, u8),
     /// Normative inference operation contract version.
@@ -251,7 +266,8 @@ pub fn compile(
     request: &CompileRequest,
     progress: &mut dyn FnMut(ProgressEvent),
 ) -> Result<CompileOutcome, SourceUnavailable> {
-    validate_source(&request.source_dir)?;
+    let preflight_tokenizer_adapter =
+        validate_source(&request.source_dir, &request.tokenizer_adapter)?;
     let work = &request.work_dir;
     std::fs::create_dir_all(work).map_err(|source| {
         SourceUnavailable::new(format!("{} stage I/O: {source}", Stage::TeacherBundle))
@@ -276,6 +292,7 @@ pub fn compile(
     .map_err(|message| {
         SourceUnavailable::new(format!("{} stage: {message}", Stage::TeacherBundle))
     })?;
+    let tokenizer_adapter = read_stage_a_tokenizer_adapter(work, &preflight_tokenizer_adapter)?;
 
     if !corpus_complete(&meta)? {
         return Ok(CompileOutcome::Incomplete {
@@ -319,16 +336,7 @@ pub fn compile(
 
     let graph = read_stage_file(Stage::Scoring, &scored_out.join("score.r4g1"))?;
     let signature_artifact = read_stage_file(Stage::TeacherBundle, &artifacts)?;
-    let tokenizer = match std::fs::read(work.join("tokenizer.bin")) {
-        Ok(bytes) => Some(bytes),
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => None,
-        Err(source) => {
-            return Err(SourceUnavailable::new(format!(
-                "{} stage I/O: {source}",
-                Stage::TeacherBundle
-            )));
-        }
-    };
+    let tokenizer = read_optional_stage_file(Stage::TeacherBundle, &work.join("tokenizer.bin"))?;
     let score_report = read_stage_file(Stage::Scoring, &scored_out.join("score_report.json"))?;
     let compile_report =
         read_stage_file(Stage::GraphCover, &cover_out.join("compile_report.json"))?;
@@ -342,6 +350,7 @@ pub fn compile(
     };
     let provenance = CompileProvenance {
         options: request.options,
+        tokenizer_adapter,
         format_version: (FORMAT_VERSION_MAJOR, FORMAT_VERSION_MINOR),
         contract_version: INFERENCE_OPERATION_CONTRACT_VERSION,
         digests,
@@ -356,10 +365,14 @@ pub fn compile(
     })))
 }
 
-/// A verified local HF-style source: `config.json`, `tokenizer.json`,
-/// and at least one `*.safetensors` weight file. Downloading is out of
-/// scope for this crate by design.
-fn validate_source(source: &Path) -> Result<(), SourceUnavailable> {
+/// A verified local HF-style source: `config.json`, at least one
+/// `*.safetensors` weight file, and the exact registered tokenizer definition
+/// named by `tokenizer_adapter`. Downloading is out of scope for this crate by
+/// design.
+fn validate_source(
+    source: &Path,
+    tokenizer_adapter: &TokenizerAdapterKey,
+) -> Result<TokenizerAdapter, SourceUnavailable> {
     let invalid = |message: String| SourceUnavailable::new(format!("invalid source: {message}"));
     let metadata = source
         .metadata()
@@ -367,13 +380,11 @@ fn validate_source(source: &Path) -> Result<(), SourceUnavailable> {
     if !metadata.is_dir() {
         return Err(invalid(format!("{} is not a directory", source.display())));
     }
-    for required in ["config.json", "tokenizer.json"] {
-        if !source.join(required).is_file() {
-            return Err(invalid(format!(
-                "{} is missing {required}",
-                source.display()
-            )));
-        }
+    if !source.join("config.json").is_file() {
+        return Err(invalid(format!(
+            "{} is missing config.json",
+            source.display()
+        )));
     }
     let has_weights = std::fs::read_dir(source)
         .map_err(|error| invalid(format!("{}: {error}", source.display())))?
@@ -390,7 +401,20 @@ fn validate_source(source: &Path) -> Result<(), SourceUnavailable> {
             source.display()
         )));
     }
-    Ok(())
+    let tokenizer = resolve_source_tokenizer(source, Some(tokenizer_adapter)).map_err(|error| {
+        SourceUnavailable {
+            reason: format!("invalid source: {}", error.reason),
+            kind: error.kind,
+        }
+    })?;
+    tokenizer.adapter().ok_or_else(|| {
+        invalid(format!(
+            "{} resolved to an adapterless tokenizer for {}/{}",
+            source.display(),
+            tokenizer_adapter.family,
+            tokenizer_adapter.version
+        ))
+    })
 }
 
 /// Structural corpus-completion check: the corpus metadata trailer's
@@ -424,6 +448,104 @@ fn read_stage_file(stage: Stage, path: &Path) -> Result<Vec<u8>, SourceUnavailab
         .map_err(|source| SourceUnavailable::new(format!("{stage} stage I/O: {source}")))
 }
 
+fn read_optional_stage_file(
+    stage: Stage,
+    path: &Path,
+) -> Result<Option<Vec<u8>>, SourceUnavailable> {
+    let io_error =
+        |message: String| SourceUnavailable::new(format!("{stage} stage I/O: {message}"));
+    let metadata = match std::fs::symlink_metadata(path) {
+        Ok(metadata) => metadata,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+        Err(error) => return Err(io_error(format!("{}: {error}", path.display()))),
+    };
+    let is_regular = if metadata.file_type().is_symlink() {
+        std::fs::metadata(path)
+            .map_err(|error| io_error(format!("{}: {error}", path.display())))?
+            .is_file()
+    } else {
+        metadata.is_file()
+    };
+    if !is_regular {
+        return Err(io_error(format!(
+            "{} is not a regular file",
+            path.display()
+        )));
+    }
+    std::fs::read(path)
+        .map(Some)
+        .map_err(|error| io_error(format!("{}: {error}", path.display())))
+}
+
+fn is_blake3_cid(value: &str) -> bool {
+    value.len() == "blake3:".len() + 64
+        && value.starts_with("blake3:")
+        && value["blake3:".len()..]
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+}
+
+fn validate_tokenizer_adapter_record(adapter: &TokenizerAdapter) -> Result<(), SourceUnavailable> {
+    adapter_constructor(&adapter.family, adapter.version)?;
+    if !is_blake3_cid(&adapter.tokenizer_cid) {
+        return Err(SourceUnavailable::new(format!(
+            "tokenizer adapter {}/{} has invalid tokenizer CID {}",
+            adapter.family, adapter.version, adapter.tokenizer_cid
+        )));
+    }
+    let declared = adapter.declared_digest();
+    if adapter.adapter_digest != declared {
+        return Err(SourceUnavailable::new(format!(
+            "tokenizer adapter {}/{} declares digest {}, expected {declared}",
+            adapter.family, adapter.version, adapter.adapter_digest
+        )));
+    }
+    Ok(())
+}
+
+fn read_stage_a_tokenizer_adapter(
+    work: &Path,
+    preflight: &TokenizerAdapter,
+) -> Result<TokenizerAdapter, SourceUnavailable> {
+    let path = work.join("tokenizer_adapter.json");
+    let stage_error = |message: String| {
+        SourceUnavailable::new(format!("{} stage: {message}", Stage::TeacherBundle))
+    };
+    let metadata = std::fs::symlink_metadata(&path)
+        .map_err(|error| stage_error(format!("{}: {error}", path.display())))?;
+    if !metadata.file_type().is_file() {
+        return Err(stage_error(format!(
+            "{} is not a regular tokenizer adapter sidecar",
+            path.display()
+        )));
+    }
+    let bytes = std::fs::read(&path)
+        .map_err(|error| stage_error(format!("{}: {error}", path.display())))?;
+    let recorded: TokenizerAdapter = serde_json::from_slice(&bytes).map_err(|error| {
+        stage_error(format!(
+            "{} is not a valid tokenizer adapter record: {error}",
+            path.display()
+        ))
+    })?;
+    validate_tokenizer_adapter_record(&recorded)
+        .map_err(|error| stage_error(format!("{}: {}", path.display(), error.reason)))?;
+    if recorded != *preflight {
+        return Err(stage_error(format!(
+            "{} does not match the preflight source adapter: recorded {}/{} CID {} digest {}; preflight {}/{} CID {} digest {}",
+            path.display(),
+            recorded.family,
+            recorded.version,
+            recorded.tokenizer_cid,
+            recorded.adapter_digest,
+            preflight.family,
+            preflight.version,
+            preflight.tokenizer_cid,
+            preflight.adapter_digest,
+        )));
+    }
+    Ok(recorded)
+}
+
 fn digest(bytes: &[u8]) -> String {
     format!("blake3:{}", blake3::hash(bytes).to_hex())
 }
@@ -446,6 +568,10 @@ fn stage_a_flags(request: &CompileRequest) -> Vec<String> {
         options.target.to_string(),
         "--sequence-length".to_owned(),
         options.sequence_length.to_string(),
+        "--tokenizer-family".to_owned(),
+        request.tokenizer_adapter.family.clone(),
+        "--tokenizer-version".to_owned(),
+        request.tokenizer_adapter.version.to_string(),
     ];
     if options.r4_attention {
         flags.push("--r4-attention".to_owned());
@@ -463,6 +589,8 @@ fn stage_b_flags(request: &CompileRequest, cover_out: &Path) -> Vec<String> {
         work.join("corpus.records").display().to_string(),
         "--artifacts".to_owned(),
         work.join("tless_artifacts.bin").display().to_string(),
+        "--tokenizer".to_owned(),
+        work.join("tokenizer.bin").display().to_string(),
         "--depths".to_owned(),
         options.depths.to_string(),
         "--k0".to_owned(),
@@ -503,6 +631,8 @@ fn stage_c_flags(request: &CompileRequest, cover_out: &Path, scored_out: &Path) 
         work.join("corpus.records").display().to_string(),
         "--artifacts".to_owned(),
         work.join("tless_artifacts.bin").display().to_string(),
+        "--tokenizer".to_owned(),
+        work.join("tokenizer.bin").display().to_string(),
         // The cover artifact of stage B: byte-identical to re-induction
         // by construction, so this is a pure cache.
         "--cover".to_owned(),
@@ -532,9 +662,153 @@ mod tests {
         CompileRequest {
             source_dir: PathBuf::from("source"),
             work_dir: PathBuf::from("work"),
+            tokenizer_adapter: TokenizerAdapterKey::hf_byte_bpe_v1(),
             options: CompileOptions::default(),
             source_manifest_kappa,
         }
+    }
+
+    #[test]
+    fn tokenizer_adapter_is_threaded_as_an_atomic_stage_a_pair() {
+        let mut request = request(None);
+        request.tokenizer_adapter = TokenizerAdapterKey::new("example-family", 41);
+        let flags = stage_a_flags(&request);
+        assert!(flags
+            .windows(2)
+            .any(|pair| { pair == ["--tokenizer-family", "example-family"] }));
+        assert!(flags
+            .windows(2)
+            .any(|pair| pair == ["--tokenizer-version", "41"]));
+    }
+
+    #[test]
+    fn deployed_tokenizer_is_threaded_into_cover_and_score_stages() {
+        let request = request(None);
+        let expected = request.work_dir.join("tokenizer.bin").display().to_string();
+        for flags in [
+            stage_b_flags(&request, Path::new("cover")),
+            stage_c_flags(&request, Path::new("cover"), Path::new("scored")),
+        ] {
+            assert!(
+                flags
+                    .windows(2)
+                    .any(|pair| pair == ["--tokenizer", expected.as_str()]),
+                "stage flags must bind the exact deployed tokenizer: {flags:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn source_validation_returns_the_complete_adapter_identity() {
+        let dir = std::env::temp_dir().join(format!(
+            "uor-r4-api-adapter-identity-{}",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).expect("source dir");
+        std::fs::write(dir.join("config.json"), b"{}").expect("config");
+        std::fs::write(dir.join("model.safetensors"), b"fixture").expect("weights");
+        std::fs::write(
+            dir.join("tokenizer.json"),
+            br#"{
+                "model":{"type":"BPE","vocab":{"a":0},"merges":[]},
+                "pre_tokenizer":{"type":"ByteLevel","add_prefix_space":false}
+            }"#,
+        )
+        .expect("tokenizer");
+
+        let adapter = validate_source(&dir, &TokenizerAdapterKey::hf_byte_bpe_v1())
+            .expect("selected source validates");
+        assert_eq!(adapter.family, "hf-byte-bpe");
+        assert_eq!(adapter.version, 1);
+        assert!(adapter.tokenizer_cid.starts_with("blake3:"));
+        assert_eq!(adapter.tokenizer_cid.len(), "blake3:".len() + 64);
+        assert!(adapter.adapter_digest.starts_with("blake3:"));
+        assert_eq!(adapter.adapter_digest, adapter.declared_digest());
+        assert_eq!(adapter.policy.normalizer, "none");
+        let _ = std::fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn optional_stage_file_distinguishes_absence_from_invalid_entries() {
+        let dir = std::env::temp_dir().join(format!(
+            "uor-r4-api-optional-stage-file-{}",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).expect("work dir");
+        assert_eq!(
+            read_optional_stage_file(Stage::TeacherBundle, &dir.join("missing.bin"))
+                .expect("genuine absence"),
+            None
+        );
+        let invalid = dir.join("tokenizer.bin");
+        std::fs::create_dir(&invalid).expect("directory at file path");
+        let error = read_optional_stage_file(Stage::TeacherBundle, &invalid)
+            .expect_err("non-file is not absence");
+        assert!(error.reason.contains("not a regular file"), "{error}");
+
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::symlink;
+            std::fs::remove_dir(&invalid).expect("remove directory");
+            symlink(dir.join("missing-target.bin"), &invalid).expect("dangling symlink");
+            let error = read_optional_stage_file(Stage::TeacherBundle, &invalid)
+                .expect_err("dangling symlink is not absence");
+            assert!(error.reason.contains("tokenizer.bin"), "{error}");
+        }
+        let _ = std::fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn stage_a_adapter_sidecar_is_validated_and_must_match_preflight() {
+        let dir =
+            std::env::temp_dir().join(format!("uor-r4-api-stage-a-adapter-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).expect("work dir");
+
+        let mut expected = TokenizerAdapter {
+            family: TokenizerAdapter::HF_BYTE_BPE_FAMILY.to_owned(),
+            version: TokenizerAdapter::HF_BYTE_BPE_VERSION,
+            tokenizer_cid: format!("blake3:{}", "1".repeat(64)),
+            ..TokenizerAdapter::default()
+        };
+        expected.adapter_digest = expected.declared_digest();
+        let path = dir.join("tokenizer_adapter.json");
+
+        std::fs::write(&path, b"{not json").expect("invalid sidecar");
+        let error = read_stage_a_tokenizer_adapter(&dir, &expected)
+            .expect_err("malformed sidecar must fail");
+        assert!(
+            error.reason.contains("not a valid tokenizer adapter"),
+            "{error}"
+        );
+
+        let mut mismatch = expected.clone();
+        mismatch.tokenizer_cid = format!("blake3:{}", "2".repeat(64));
+        mismatch.adapter_digest = mismatch.declared_digest();
+        std::fs::write(
+            &path,
+            serde_json::to_vec(&mismatch).expect("serialize mismatch"),
+        )
+        .expect("mismatching sidecar");
+        let error = read_stage_a_tokenizer_adapter(&dir, &expected)
+            .expect_err("valid but different stage-A identity must fail");
+        assert!(
+            error.reason.contains("does not match the preflight"),
+            "{error}"
+        );
+
+        std::fs::write(
+            &path,
+            serde_json::to_vec(&expected).expect("serialize expected"),
+        )
+        .expect("matching sidecar");
+        assert_eq!(
+            read_stage_a_tokenizer_adapter(&dir, &expected).expect("matching sidecar validates"),
+            expected
+        );
+        let _ = std::fs::remove_dir_all(dir);
     }
 
     /// #597 plumbing seam: a request carrying the source-snapshot

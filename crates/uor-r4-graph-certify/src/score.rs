@@ -1517,6 +1517,26 @@ pub fn emit_scored_r4g1(
     vocab_size: u32,
     sections: &ScoredGraphSections,
 ) -> (Vec<u8>, ScoredGraphInfo) {
+    emit_scored_r4g1_with_tokenizer_cid(
+        artifact_container,
+        corpus_cid_material,
+        vocab_size,
+        sections,
+        [0; 32],
+    )
+}
+
+/// Emit the scored graph while binding the exact deployed tokenizer bytes in
+/// HEAD. Callers compute `tokenizer_cid` as BLAKE3 over `tokenizer.bin`; the
+/// legacy [`emit_scored_r4g1`] wrapper deliberately supplies zero and therefore
+/// keeps its historical artifact bytes unchanged.
+pub fn emit_scored_r4g1_with_tokenizer_cid(
+    artifact_container: &[u8],
+    corpus_cid_material: (&[u8], &[u8]),
+    vocab_size: u32,
+    sections: &ScoredGraphSections,
+    tokenizer_cid: [u8; 32],
+) -> (Vec<u8>, ScoredGraphInfo) {
     let ScoredGraphSections {
         regions,
         structural,
@@ -1713,7 +1733,7 @@ pub fn emit_scored_r4g1(
     corpus_hasher.update(recs);
     let mut head = Vec::with_capacity(224);
     head.extend_from_slice(blake3::hash(artifact_container).as_bytes()); // teacher_cid
-    head.extend_from_slice(&[0u8; 32]); // tokenizer_cid: not carried
+    head.extend_from_slice(&tokenizer_cid); // exact tokenizer.bin CID, or legacy zero
     head.extend_from_slice(corpus_hasher.finalize().as_bytes()); // corpus_construction_cid
     head.extend_from_slice(&[0u8; 32]); // corpus_certification_cid: zeroed
     head.extend_from_slice(&[0u8; 20]); // hf_revision: zeroed

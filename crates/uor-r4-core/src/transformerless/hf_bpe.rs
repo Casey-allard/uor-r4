@@ -33,11 +33,18 @@ use std::sync::Mutex;
 
 use serde::{Deserialize, Serialize};
 
-use super::scenarios::Tokenizer;
+use super::scenarios::{
+    RuntimeTokenizerDecodePolicy, RuntimeTokenizerDecodeTable, RuntimeTokenizerEncodePolicy,
+    RuntimeTokenizerIdentity, Tokenizer,
+};
 
 /// Upper bound on cached pre-token encodings (bounds memory on adversarial
 /// corpora; natural text saturates far below this).
 const CACHE_CAPACITY: usize = 1 << 16;
+/// Hard ingestion bound for an id-indexed tokenizer table. Supported source
+/// vocabularies are far below this ceiling; it prevents one hostile added-token
+/// id from requesting a multi-billion-entry `Vec<String>`.
+const MAX_TOKENIZER_VOCAB_SIZE: usize = 1 << 20;
 
 /// The standard GPT-2 byte-to-unicode table: printable latin-1 bytes map to
 /// themselves; the remaining 68 bytes map to U+0100.. in ascending order.
@@ -73,6 +80,9 @@ pub struct HfBpeTokenizer {
     /// id → token content: byte-level alphabet for vocabulary tokens,
     /// literal text for added tokens, empty for unassigned ids.
     vocab: Vec<String>,
+    /// Number of ids declared by `model.vocab`, excluding added tokens. The
+    /// historical runtime export contains exactly this prefix.
+    model_vocab_len: usize,
     token_to_id: HashMap<String, u32>,
     /// `"left right"` → rank (list position in `model.merges`). Byte-level
     /// tokens never contain a space, so the joined key is unambiguous.
@@ -107,31 +117,77 @@ impl HfBpeTokenizer {
             }
         }
         let vocab_map = model.get("vocab").and_then(serde_json::Value::as_object)?;
-        let mut token_to_id: HashMap<String, u32> = HashMap::with_capacity(vocab_map.len());
+        let model_vocab_len = vocab_map.len();
+        if model_vocab_len == 0 || model_vocab_len > MAX_TOKENIZER_VOCAB_SIZE {
+            return None;
+        }
+        let mut token_to_id: HashMap<String, u32> = HashMap::with_capacity(model_vocab_len);
+        let mut id_to_content: HashMap<u32, String> = HashMap::with_capacity(model_vocab_len);
+        // The historical runtime export is an id-indexed dense prefix. Reject
+        // sparse or duplicate model ids at ingestion so the family-neutral
+        // runtime-table path cannot truncate or alias a host vocabulary.
+        let mut occupied_model_ids = vec![false; model_vocab_len];
         let mut max_id = 0u32;
         for (piece, id) in vocab_map {
             let id = id.as_u64().and_then(|id| u32::try_from(id).ok())?;
+            let index = usize::try_from(id).ok()?;
+            let occupied = occupied_model_ids.get_mut(index)?;
+            if std::mem::replace(occupied, true) {
+                return None;
+            }
             max_id = max_id.max(id);
             token_to_id.insert(piece.clone(), id);
+            id_to_content.insert(id, piece.clone());
         }
 
         let mut added_tokens: Vec<(String, u32)> = Vec::new();
+        let mut seen_added_tokens: HashSet<(String, u32)> = HashSet::new();
         if let Some(entries) = value
             .get("added_tokens")
             .and_then(serde_json::Value::as_array)
         {
             for entry in entries {
                 let content = entry.get("content").and_then(serde_json::Value::as_str)?;
+                if content.is_empty() {
+                    // Atomic matching an empty surface would never advance
+                    // the input cursor. Reject it at ingestion rather than
+                    // admitting a tokenizer whose encode path cannot make
+                    // progress.
+                    return None;
+                }
                 let id = entry
                     .get("id")
                     .and_then(serde_json::Value::as_u64)
                     .and_then(|id| u32::try_from(id).ok())?;
+                // Hugging Face tokenizers commonly repeat a model-vocabulary
+                // special in `added_tokens` with the exact same surface and
+                // id. Preserve that declaration, but refuse either axis of a
+                // conflicting alias: one id may not decode to two contents,
+                // and one content may not encode to two ids.
+                if id_to_content
+                    .get(&id)
+                    .is_some_and(|existing| existing != content)
+                    || token_to_id
+                        .get(content)
+                        .is_some_and(|&existing| existing != id)
+                {
+                    return None;
+                }
                 max_id = max_id.max(id);
-                added_tokens.push((content.to_owned(), id));
+                id_to_content
+                    .entry(id)
+                    .or_insert_with(|| content.to_owned());
+                token_to_id.entry(content.to_owned()).or_insert(id);
+                if seen_added_tokens.insert((content.to_owned(), id)) {
+                    added_tokens.push((content.to_owned(), id));
+                }
             }
         }
 
-        let vocab_len = max_id as usize + 1;
+        let vocab_len = usize::try_from(max_id).ok()?.checked_add(1)?;
+        if vocab_len > MAX_TOKENIZER_VOCAB_SIZE {
+            return None;
+        }
         let mut vocab = vec![String::new(); vocab_len];
         for (piece, &id) in &token_to_id {
             vocab[id as usize] = piece.clone();
@@ -183,6 +239,7 @@ impl HfBpeTokenizer {
 
         Some(Self {
             vocab,
+            model_vocab_len,
             token_to_id,
             merge_ranks,
             added_tokens,
@@ -727,8 +784,16 @@ impl TokenizerAdapter {
     /// [`super::sentencepiece::SentencePieceUnigramTokenizer`]: precompiled
     /// charsmap normalization + Unigram Viterbi segmentation.
     pub const SENTENCEPIECE_UNIGRAM_FAMILY: &'static str = "sentencepiece-unigram";
-    /// Registry version of the SentencePiece/Unigram adapter (#639-3b).
-    pub const SENTENCEPIECE_UNIGRAM_VERSION: u32 = 1;
+    /// Frozen registry version published by #639-3b. Version 1 decodes the
+    /// UNKNOWN id through its literal vocabulary surface (`<unk>` for T5).
+    pub const SENTENCEPIECE_UNIGRAM_V1_VERSION: u32 = 1;
+    /// Reference-correct registry version delivered by #718. Version 2 uses
+    /// `TrainerSpec.unk_surface` during sequence decoding, matching the pinned
+    /// SentencePiece reference implementation.
+    pub const SENTENCEPIECE_UNIGRAM_V2_VERSION: u32 = 2;
+    /// Current SentencePiece/Unigram adapter version. Published versions stay
+    /// independently resolvable; this alias is only the auto-selection target.
+    pub const SENTENCEPIECE_UNIGRAM_VERSION: u32 = Self::SENTENCEPIECE_UNIGRAM_V2_VERSION;
 
     /// Canonical serialization of the adapter identity: a fixed line
     /// format (format tag then `key=value\n` per field, pre-tokenizer
@@ -781,7 +846,7 @@ impl TokenizerAdapter {
 /// inherent methods, so its behavior is byte-unchanged; the recorded
 /// SentencePiece/Unigram follow-up (#639-3) implements the same trait
 /// rather than a new concrete return type.
-pub trait TokenizerModel {
+pub trait TokenizerModel: Send + Sync {
     /// Encode text to token ids (the family's exact encode path).
     fn encode(&self, text: &str) -> Vec<u32>;
     /// Lossy encode: ids plus the count of characters the family could not
@@ -793,6 +858,9 @@ pub trait TokenizerModel {
     fn vocab_size(&self) -> usize;
     /// The versioned adapter-identity record (#601) this family declares.
     fn adapter(&self) -> TokenizerAdapter;
+    /// Family-neutral per-id decode table for the deployed runtime. This is
+    /// deliberately distinct from original-source byte anchors.
+    fn runtime_decode_table(&self) -> RuntimeTokenizerDecodeTable;
 }
 
 impl TokenizerModel for HfBpeTokenizer {
@@ -811,18 +879,39 @@ impl TokenizerModel for HfBpeTokenizer {
     fn adapter(&self) -> TokenizerAdapter {
         HfBpeTokenizer::adapter(self)
     }
+    fn runtime_decode_table(&self) -> RuntimeTokenizerDecodeTable {
+        let pieces: Vec<Vec<u8>> = (0..self.model_vocab_len)
+            .map(|id| self.decode_bytes(&[id as u32]))
+            .collect();
+        let source_byte_lengths = Some(pieces.iter().map(|piece| piece.len() as u32).collect());
+        let adapter = self.adapter();
+        RuntimeTokenizerDecodeTable {
+            identity: RuntimeTokenizerIdentity {
+                family: adapter.family,
+                version: adapter.version,
+                tokenizer_cid: adapter.tokenizer_cid,
+                adapter_digest: adapter.adapter_digest,
+            },
+            pieces,
+            encode_policy: RuntimeTokenizerEncodePolicy::LegacyCompatible,
+            decode_policy: RuntimeTokenizerDecodePolicy::Concatenate,
+            source_byte_lengths,
+        }
+    }
 }
 
 /// A registered adapter constructor: parse raw tokenizer definition bytes
-/// into the family's [`TokenizerModel`]. Total in the module's existing
-/// convention ([`HfBpeTokenizer::from_tokenizer_json_bytes`]): `None` when
-/// the bytes are not the shape the family requires.
-pub type AdapterConstructor = fn(&[u8]) -> Option<Box<dyn TokenizerModel>>;
+/// into the family's [`TokenizerModel`]. Parse failures retain their focused
+/// [`uor_r4_model_source::SourceUnavailable`] diagnostic rather than being
+/// collapsed to `None` at the registry boundary.
+#[cfg(not(target_arch = "wasm32"))]
+pub type AdapterConstructor =
+    fn(&[u8]) -> Result<Box<dyn TokenizerModel>, uor_r4_model_source::SourceUnavailable>;
 
 /// The versioned tokenizer-adapter registry (#601): map `(family,
 /// version)` to the constructor that implements it. Registered families are
 /// `hf-byte-bpe/1` ([`HfBpeTokenizer`]) and, since #639-3b,
-/// `sentencepiece-unigram/1`
+/// `sentencepiece-unigram/1` and `sentencepiece-unigram/2`
 /// ([`super::sentencepiece::SentencePieceUnigramTokenizer`]). Every pair
 /// outside the registry — including a bumped version of a registered family —
 /// is refused by name on the sanctioned
@@ -841,14 +930,25 @@ pub fn adapter_constructor(
             Ok(|bytes| {
                 HfBpeTokenizer::from_tokenizer_json_bytes(bytes)
                     .map(|tokenizer| Box::new(tokenizer) as Box<dyn TokenizerModel>)
+                    .ok_or_else(|| {
+                        uor_r4_model_source::SourceUnavailable::new(
+                            "tokenizer.json: not a valid hf-byte-bpe/1 definition",
+                        )
+                    })
             })
         }
         (
             TokenizerAdapter::SENTENCEPIECE_UNIGRAM_FAMILY,
-            TokenizerAdapter::SENTENCEPIECE_UNIGRAM_VERSION,
+            TokenizerAdapter::SENTENCEPIECE_UNIGRAM_V1_VERSION,
         ) => Ok(|bytes| {
-            super::sentencepiece::SentencePieceUnigramTokenizer::from_spiece_bytes(bytes)
-                .ok()
+            super::sentencepiece::SentencePieceUnigramTokenizer::from_spiece_bytes_v1(bytes)
+                .map(|tokenizer| Box::new(tokenizer) as Box<dyn TokenizerModel>)
+        }),
+        (
+            TokenizerAdapter::SENTENCEPIECE_UNIGRAM_FAMILY,
+            TokenizerAdapter::SENTENCEPIECE_UNIGRAM_V2_VERSION,
+        ) => Ok(|bytes| {
+            super::sentencepiece::SentencePieceUnigramTokenizer::from_spiece_bytes_v2(bytes)
                 .map(|tokenizer| Box::new(tokenizer) as Box<dyn TokenizerModel>)
         }),
         _ => Err(
@@ -861,42 +961,197 @@ pub fn adapter_constructor(
     }
 }
 
+/// Explicit key for selecting one tokenizer definition from a source that
+/// presents multiple files. Selection is always family + version; a bare file
+/// preference is never inferred.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TokenizerAdapterKey {
+    pub family: String,
+    pub version: u32,
+}
+
+impl TokenizerAdapterKey {
+    pub fn new(family: impl Into<String>, version: u32) -> Self {
+        Self {
+            family: family.into(),
+            version,
+        }
+    }
+
+    pub fn hf_byte_bpe_v1() -> Self {
+        Self::new(
+            TokenizerAdapter::HF_BYTE_BPE_FAMILY,
+            TokenizerAdapter::HF_BYTE_BPE_VERSION,
+        )
+    }
+
+    pub fn sentencepiece_unigram_v1() -> Self {
+        Self::new(
+            TokenizerAdapter::SENTENCEPIECE_UNIGRAM_FAMILY,
+            TokenizerAdapter::SENTENCEPIECE_UNIGRAM_V1_VERSION,
+        )
+    }
+
+    pub fn sentencepiece_unigram_v2() -> Self {
+        Self::new(
+            TokenizerAdapter::SENTENCEPIECE_UNIGRAM_FAMILY,
+            TokenizerAdapter::SENTENCEPIECE_UNIGRAM_V2_VERSION,
+        )
+    }
+
+    pub fn sentencepiece_unigram_current() -> Self {
+        Self::sentencepiece_unigram_v2()
+    }
+}
+
+/// Resolve the exact registered tokenizer declared by a source snapshot.
+///
+/// Auto-selection is permitted only when exactly one supported definition
+/// file is present. A snapshot containing both `tokenizer.json` and
+/// `spiece.model` requires an explicit [`TokenizerAdapterKey`], so Hugging
+/// Face wrapper semantics can never be silently substituted for raw
+/// SentencePiece semantics. Legacy tokenizer.bin is deliberately outside
+/// this resolver and remains available only through its explicit checkpoint
+/// path.
+#[cfg(not(target_arch = "wasm32"))]
+pub fn resolve_source_tokenizer(
+    dir: &std::path::Path,
+    selection: Option<&TokenizerAdapterKey>,
+) -> Result<TokenizerKind, uor_r4_model_source::SourceUnavailable> {
+    let tokenizer_json = dir.join("tokenizer.json");
+    let spiece_model = dir.join("spiece.model");
+    let has_bpe_definition = tokenizer_definition_present(&tokenizer_json)?;
+    let has_sentencepiece_definition = tokenizer_definition_present(&spiece_model)?;
+
+    let selected = match selection {
+        Some(key) => key.clone(),
+        None => match (has_bpe_definition, has_sentencepiece_definition) {
+            (true, false) => TokenizerAdapterKey::hf_byte_bpe_v1(),
+            (false, true) => TokenizerAdapterKey::sentencepiece_unigram_current(),
+            (true, true) => {
+                return Err(uor_r4_model_source::SourceUnavailable::new(format!(
+                    "{} presents both tokenizer.json and spiece.model; select an explicit \
+                     tokenizer adapter family/version",
+                    dir.display()
+                )));
+            }
+            (false, false) => {
+                return Err(uor_r4_model_source::SourceUnavailable::new(format!(
+                    "{} has no registered tokenizer definition (expected tokenizer.json or \
+                     spiece.model)",
+                    dir.display()
+                )));
+            }
+        },
+    };
+
+    // Resolve the registry key first so an unknown version is refused by its
+    // structured name even when a similarly named file happens to exist.
+    let constructor = adapter_constructor(&selected.family, selected.version)?;
+    let definition = match (selected.family.as_str(), selected.version) {
+        (TokenizerAdapter::HF_BYTE_BPE_FAMILY, TokenizerAdapter::HF_BYTE_BPE_VERSION) => {
+            &tokenizer_json
+        }
+        (
+            TokenizerAdapter::SENTENCEPIECE_UNIGRAM_FAMILY,
+            TokenizerAdapter::SENTENCEPIECE_UNIGRAM_V1_VERSION
+            | TokenizerAdapter::SENTENCEPIECE_UNIGRAM_V2_VERSION,
+        ) => &spiece_model,
+        // Defensive registry/mapping drift guard: this is a public ingestion
+        // boundary, so even an internal metadata inconsistency is a focused
+        // refusal rather than a panic.
+        _ => {
+            return Err(uor_r4_model_source::SourceUnavailable::new(format!(
+                "tokenizer adapter {}/{} is registered but has no source-definition mapping",
+                selected.family, selected.version
+            )));
+        }
+    };
+    let bytes = std::fs::read(definition).map_err(|error| {
+        uor_r4_model_source::SourceUnavailable::new(format!(
+            "{} selected as {}/{}: {error}",
+            definition.display(),
+            selected.family,
+            selected.version
+        ))
+    })?;
+    let tokenizer =
+        constructor(&bytes).map_err(|error| uor_r4_model_source::SourceUnavailable {
+            reason: format!(
+                "{} selected as {}/{}: {}",
+                definition.display(),
+                selected.family,
+                selected.version,
+                error.reason
+            ),
+            kind: error.kind,
+        })?;
+    Ok(TokenizerKind::Registered(tokenizer))
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn tokenizer_definition_present(
+    path: &std::path::Path,
+) -> Result<bool, uor_r4_model_source::SourceUnavailable> {
+    match std::fs::symlink_metadata(path) {
+        Ok(metadata) if metadata.file_type().is_symlink() => match std::fs::metadata(path) {
+            Ok(target) if target.is_file() => Ok(true),
+            Ok(_) => Err(uor_r4_model_source::SourceUnavailable::new(format!(
+                "{} is a symlink to a non-regular tokenizer definition",
+                path.display()
+            ))),
+            Err(error) => Err(uor_r4_model_source::SourceUnavailable::new(format!(
+                "{} is a dangling or unreadable tokenizer-definition symlink: {error}",
+                path.display()
+            ))),
+        },
+        Ok(metadata) if metadata.is_file() => Ok(true),
+        Ok(_) => Err(uor_r4_model_source::SourceUnavailable::new(format!(
+            "{} exists but is not a regular tokenizer-definition file",
+            path.display()
+        ))),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(false),
+        Err(error) => Err(uor_r4_model_source::SourceUnavailable::new(format!(
+            "{} tokenizer definition cannot be inspected: {error}",
+            path.display()
+        ))),
+    }
+}
+
 /// Tokenizer selector for observation drivers: the legacy llama2.c
-/// tokenizer keeps its exact behavior (κ-pinned baselines), the HF path
-/// uses the teacher's real byte-level BPE when `tokenizer.json` exists.
-/// The HF variant is boxed: [`HfBpeTokenizer`] carries its byte tables
-/// inline and would otherwise dwarf the legacy variant.
+/// tokenizer keeps its exact behavior (κ-pinned baselines); every registered
+/// family shares the boxed [`TokenizerModel`] path.
 pub enum TokenizerKind {
     Legacy(Tokenizer),
-    HfBpe(Box<HfBpeTokenizer>),
+    Registered(Box<dyn TokenizerModel>),
 }
 
 impl TokenizerKind {
     pub fn encode(&self, text: &str) -> Vec<u32> {
         match self {
             TokenizerKind::Legacy(tokenizer) => tokenizer.encode(text),
-            TokenizerKind::HfBpe(tokenizer) => tokenizer.encode(text),
+            TokenizerKind::Registered(tokenizer) => tokenizer.encode(text),
         }
     }
 
     pub fn encode_lossy(&self, text: &str) -> (Vec<u32>, u64) {
         match self {
             TokenizerKind::Legacy(tokenizer) => tokenizer.encode_lossy(text),
-            TokenizerKind::HfBpe(tokenizer) => tokenizer.encode_lossy(text),
+            TokenizerKind::Registered(tokenizer) => tokenizer.encode_lossy(text),
         }
     }
 
     pub fn decode(&self, ids: &[u32]) -> String {
         match self {
             TokenizerKind::Legacy(tokenizer) => tokenizer.decode(ids),
-            TokenizerKind::HfBpe(tokenizer) => tokenizer.decode(ids),
+            TokenizerKind::Registered(tokenizer) => tokenizer.decode(ids),
         }
     }
 
     pub fn vocab_size(&self) -> usize {
         match self {
             TokenizerKind::Legacy(tokenizer) => tokenizer.vocab.len(),
-            TokenizerKind::HfBpe(tokenizer) => tokenizer.vocab_size(),
+            TokenizerKind::Registered(tokenizer) => tokenizer.vocab_size(),
         }
     }
 
@@ -908,7 +1163,18 @@ impl TokenizerKind {
     pub fn adapter(&self) -> Option<TokenizerAdapter> {
         match self {
             TokenizerKind::Legacy(_) => None,
-            TokenizerKind::HfBpe(tokenizer) => Some(tokenizer.adapter()),
+            TokenizerKind::Registered(tokenizer) => Some(tokenizer.adapter()),
         }
+    }
+
+    pub fn registered(&self) -> Option<&dyn TokenizerModel> {
+        match self {
+            TokenizerKind::Legacy(_) => None,
+            TokenizerKind::Registered(tokenizer) => Some(tokenizer.as_ref()),
+        }
+    }
+
+    pub fn runtime_decode_table(&self) -> Option<RuntimeTokenizerDecodeTable> {
+        self.registered().map(TokenizerModel::runtime_decode_table)
     }
 }

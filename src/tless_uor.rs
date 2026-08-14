@@ -50,13 +50,91 @@ thread_local! {
     static OWNED_TLESS: RefCell<Option<TlessState>> = const { RefCell::new(None) };
 }
 
-static OWNED_R4G1: std::sync::RwLock<Option<Vec<u8>>> = std::sync::RwLock::new(None);
+enum OwnedR4g1Tokenizer {
+    /// Compatibility for pre-binding graphs whose HEAD tokenizer CID is zero.
+    LegacyGlobal,
+    /// Exact tokenizer bytes parsed and installed atomically with the graph.
+    Exact(uor_r4_core::transformerless::scenarios::Tokenizer),
+}
+
+struct OwnedR4g1Bundle {
+    graph: Vec<u8>,
+    tokenizer: OwnedR4g1Tokenizer,
+}
+
+static OWNED_R4G1: std::sync::RwLock<Option<OwnedR4g1Bundle>> = std::sync::RwLock::new(None);
+
+fn validated_graph_tokenizer_cid(bytes: &[u8]) -> Result<[u8; 32], String> {
+    let view = uor_r4_graph_format::GraphView::parse(bytes)
+        .map_err(|error| format!("invalid R4G1 graph: {}", error.reason))?;
+    view.verify_cids()
+        .map_err(|error| format!("invalid R4G1 graph: {}", error.as_format()))?;
+    let head = view
+        .head()
+        .ok_or_else(|| "invalid R4G1 graph: missing HEAD section".to_owned())?;
+    uor_r4_graph_runtime::R4G1Runtime::parse(bytes)
+        .map_err(|error| format!("invalid R4G1 runtime graph: {}", error.reason))?;
+    Ok(head.tokenizer_cid().0)
+}
+
+/// Try to install graph-only bytes. This compatibility surface accepts only
+/// legacy graphs whose HEAD tokenizer CID is zero; a bound graph must use
+/// [`set_r4g1_bundle`] so graph and tokenizer enter the process atomically.
+pub fn try_set_r4g1_bytes(bytes: Vec<u8>) -> Result<(), String> {
+    let tokenizer_cid = validated_graph_tokenizer_cid(&bytes)?;
+    if tokenizer_cid != [0; 32] {
+        return Err(format!(
+            "R4G1 graph requires tokenizer.bin blake3:{}; graph-only installation is refused",
+            blake3::Hash::from(tokenizer_cid).to_hex()
+        ));
+    }
+    let mut guard = OWNED_R4G1
+        .write()
+        .map_err(|_| "R4G1 bundle lock poisoned".to_owned())?;
+    *guard = Some(OwnedR4g1Bundle {
+        graph: bytes,
+        tokenizer: OwnedR4g1Tokenizer::LegacyGlobal,
+    });
+    Ok(())
+}
 
 /// Set active R4G1 binary container bytes for zero-multiply prediction.
 pub fn set_r4g1_bytes(bytes: Vec<u8>) {
-    if let Ok(mut guard) = OWNED_R4G1.write() {
-        *guard = Some(bytes);
+    if let Err(error) = try_set_r4g1_bytes(bytes) {
+        println!("[-] set_r4g1_bytes: {error}");
     }
+}
+
+/// Atomically install a graph and its exact deployed tokenizer. A nonzero
+/// HEAD CID must equal BLAKE3 of `tokenizer_bytes`; malformed or swapped input
+/// returns an error without replacing the previously active bundle.
+pub fn set_r4g1_bundle(graph: Vec<u8>, tokenizer_bytes: Vec<u8>) -> Result<(), String> {
+    let expected = validated_graph_tokenizer_cid(&graph)?;
+    let actual = blake3::hash(&tokenizer_bytes);
+    if expected != [0; 32] && expected != *actual.as_bytes() {
+        return Err(format!(
+            "R4G1 tokenizer CID mismatch: header expected blake3:{}, loaded blake3:{actual}",
+            blake3::Hash::from(expected).to_hex()
+        ));
+    }
+    if expected == [0; 32]
+        && uor_r4_core::transformerless::scenarios::Tokenizer::is_tagged_container_bytes(
+            &tokenizer_bytes,
+        )
+    {
+        return Err("a tagged tokenizer requires a nonzero R4G1 header tokenizer CID".to_owned());
+    }
+    let tokenizer =
+        uor_r4_core::transformerless::scenarios::Tokenizer::from_bytes(&tokenizer_bytes)
+            .ok_or_else(|| "invalid tokenizer.bin bytes".to_owned())?;
+    let mut guard = OWNED_R4G1
+        .write()
+        .map_err(|_| "R4G1 bundle lock poisoned".to_owned())?;
+    *guard = Some(OwnedR4g1Bundle {
+        graph,
+        tokenizer: OwnedR4g1Tokenizer::Exact(tokenizer),
+    });
+    Ok(())
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -102,11 +180,11 @@ pub fn ensure_owned_tless() {
                             *state.borrow_mut() = Some(make_tless_state(art, store));
                             if std::path::Path::new(tok_path).exists() {
                                 TLESS_TOKENIZER.with(|tk| {
-                                    *tk.borrow_mut() = Some(
-                                        uor_r4_core::transformerless::scenarios::Tokenizer::load(
+                                    *tk.borrow_mut() =
+                                        uor_r4_core::transformerless::scenarios::Tokenizer::try_load(
                                             tok_path,
-                                        ),
-                                    );
+                                        )
+                                        .ok();
                                 });
                             }
                             break;
@@ -140,14 +218,14 @@ pub fn generate_r4g1_response_with_session_signature(
             return None;
         }
     };
-    let bytes = match guard.as_ref() {
-        Some(b) => b,
+    let bundle = match guard.as_ref() {
+        Some(bundle) => bundle,
         None => {
             println!("[-] generate_r4g1_response: OWNED_R4G1 is None");
             return None;
         }
     };
-    let runtime = match uor_r4_graph_runtime::R4G1Runtime::parse(bytes) {
+    let runtime = match uor_r4_graph_runtime::R4G1Runtime::parse(&bundle.graph) {
         Ok(r) => r,
         Err(e) => {
             println!("[-] generate_r4g1_response: runtime parse failed: {:?}", e);
@@ -155,7 +233,17 @@ pub fn generate_r4g1_response_with_session_signature(
         }
     };
 
-    let tokens = match tless_tokenize(prompt) {
+    let tokens = match &bundle.tokenizer {
+        OwnedR4g1Tokenizer::LegacyGlobal => tless_tokenize(prompt),
+        OwnedR4g1Tokenizer::Exact(tokenizer) => {
+            let mut tokens = vec![0u32; prompt.len().saturating_add(2)];
+            tokenizer.encode_into(prompt, &mut tokens).map(|count| {
+                tokens.truncate(count);
+                tokens
+            })
+        }
+    };
+    let tokens = match tokens {
         Some(t) => t,
         None => {
             println!("[-] generate_r4g1_response: tokenize failed");
@@ -281,7 +369,15 @@ pub fn generate_r4g1_response_with_session_signature(
     if best_beam.tokens.is_empty() {
         Some("R4G1 zero-multiply prediction complete.".to_string())
     } else {
-        tless_detokenize(&best_beam.tokens).or_else(|| Some("R4G1 response generated.".to_string()))
+        match &bundle.tokenizer {
+            OwnedR4g1Tokenizer::LegacyGlobal => tless_detokenize(&best_beam.tokens),
+            OwnedR4g1Tokenizer::Exact(tokenizer) => {
+                let mut bytes = vec![0u8; 16 * 1024];
+                tokenizer
+                    .decode_into(&best_beam.tokens, &mut bytes)
+                    .map(|count| String::from_utf8_lossy(&bytes[..count]).into_owned())
+            }
+        }
     }
 }
 
@@ -551,14 +647,9 @@ pub fn set_tless_tokenizer(t: uor_r4_core::transformerless::scenarios::Tokenizer
     TLESS_TOKENIZER.with(|tk| *tk.borrow_mut() = Some(t));
 }
 
-// TODO(#242 follow-up): the serving-side tokenizer is still the legacy
-// greedy longest-match encoder over the exported tokenizer.bin vocabulary.
-// `generate_attention_text` (src/server.rs) tokenizes teacher prompts with
-// `tless_tokenize`, so the HF teacher fallback receives segmentations its
-// byte-level BPE never produced. Wiring `hf_bpe::HfBpeTokenizer` here needs
-// the source-snapshot tokenizer.json (only tokenizer.bin is present in the
-// compiled bundle) and a `TokenizerKind` thread-local across the public
-// tless_tokenize/detokenize surface — deferred to keep this change scoped.
+// `tokenizer.bin` is the deployed decoder. Historical untagged artifacts keep
+// their existing encoder; tagged registered artifacts refuse encoding and
+// require an exact host adapter at the server/R4G1 boundary.
 #[cfg(not(target_arch = "wasm32"))]
 fn with_tokenizer<R>(
     f: impl FnOnce(&uor_r4_core::transformerless::scenarios::Tokenizer) -> R,
@@ -568,9 +659,7 @@ fn with_tokenizer<R>(
         if g.is_none() {
             let path = tokenizer_path();
             if std::fs::metadata(&path).is_ok() {
-                *g = Some(uor_r4_core::transformerless::scenarios::Tokenizer::load(
-                    &path,
-                ));
+                *g = uor_r4_core::transformerless::scenarios::Tokenizer::try_load(&path).ok();
             }
         }
         g.as_ref().map(f)
@@ -586,7 +675,14 @@ fn with_tokenizer<R>(
 
 /// Tokenize text (BOS-prefixed) with the bound tokenizer.
 pub fn tless_tokenize(text: &str) -> Option<Vec<u32>> {
-    with_tokenizer(|t| t.encode(text))
+    with_tokenizer(|tokenizer| {
+        if tokenizer.is_decode_only() {
+            None
+        } else {
+            Some(tokenizer.encode(text))
+        }
+    })
+    .flatten()
 }
 
 /// Tokenize into caller-owned storage without allocating.
@@ -961,6 +1057,12 @@ mod tests {
     use super::*;
     use uor_foundation::pipeline::PrismModel;
     use uor_r4_core::transformerless::compiler::STAGES;
+    use uor_r4_core::transformerless::scenarios::{
+        export_runtime_tokenizer_table, RuntimeTokenizerDecodePolicy, RuntimeTokenizerDecodeTable,
+        RuntimeTokenizerEncodePolicy, RuntimeTokenizerIdentity, Tokenizer,
+    };
+
+    static R4G1_TEST_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
 
     fn fixture_state() {
         let dir = concat!(
@@ -972,6 +1074,138 @@ mod tests {
         let mut store: Store = (0..=STAGES).map(|_| Default::default()).collect();
         store[0].entry(vec![]).or_default().insert(1, 10);
         set_tless_state(art, store);
+    }
+
+    fn tokenizer_bytes(tokens: &[&[u8]]) -> Vec<u8> {
+        let mut bytes = Vec::new();
+        for token in tokens {
+            bytes.extend_from_slice(&(token.len() as i32).to_le_bytes());
+            bytes.extend_from_slice(token);
+        }
+        bytes
+    }
+
+    fn minimal_graph(tokenizer_cid: [u8; 32]) -> Vec<u8> {
+        use uor_r4_graph_format::{ArtifactBuilder, SectionId};
+
+        let mut head = Vec::with_capacity(224);
+        head.extend_from_slice(&[0x11; 32]);
+        head.extend_from_slice(&tokenizer_cid);
+        head.extend_from_slice(&[0x33; 32]);
+        head.extend_from_slice(&[0x44; 32]);
+        head.extend_from_slice(b"0123456789abcdef0123");
+        head.extend_from_slice(&[0x55; 32]);
+        head.extend_from_slice(&32u16.to_le_bytes());
+        head.extend_from_slice(&16u16.to_le_bytes());
+        head.extend_from_slice(&8u16.to_le_bytes());
+        head.extend_from_slice(&8u16.to_le_bytes());
+        head.extend_from_slice(&64u32.to_le_bytes());
+        head.extend_from_slice(&64u32.to_le_bytes());
+        head.extend_from_slice(&0u32.to_le_bytes());
+        head.extend_from_slice(&0u32.to_le_bytes());
+        head.push(1);
+        head.extend_from_slice(&[0; 5]);
+        head.extend_from_slice(&[0; 2]);
+        head.extend_from_slice(&64u16.to_le_bytes());
+        head.extend_from_slice(&1u16.to_le_bytes());
+        head.extend_from_slice(&0u16.to_le_bytes());
+        head.extend_from_slice(&0u16.to_le_bytes());
+        head.extend_from_slice(&100u32.to_le_bytes());
+        assert_eq!(head.len(), 224);
+        let mut builder = ArtifactBuilder::new(3);
+        builder.add_section(SectionId::HEAD, 0, &head);
+        builder.build().expect("minimal graph")
+    }
+
+    #[test]
+    fn owned_r4g1_installation_is_atomic_and_cid_bound() {
+        let _test_guard = R4G1_TEST_LOCK.lock().expect("R4G1 test lock");
+        *OWNED_R4G1.write().expect("bundle lock") = None;
+        let tokenizer_a = tokenizer_bytes(&[b" ", b"a"]);
+        let tokenizer_b = tokenizer_bytes(&[b" ", b"b"]);
+        let graph = minimal_graph(*blake3::hash(&tokenizer_a).as_bytes());
+
+        let error = try_set_r4g1_bytes(graph.clone())
+            .expect_err("nonzero-CID graph-only install must be refused");
+        assert!(
+            error.contains("graph-only installation is refused"),
+            "{error}"
+        );
+        assert!(OWNED_R4G1.read().expect("bundle lock").is_none());
+
+        set_r4g1_bundle(graph.clone(), tokenizer_a).expect("exact bundle installs");
+        let installed_hash = {
+            let guard = OWNED_R4G1.read().expect("bundle lock");
+            blake3::hash(&guard.as_ref().expect("installed bundle").graph)
+        };
+        let error = set_r4g1_bundle(graph, tokenizer_b)
+            .expect_err("swapped tokenizer must not replace the active bundle");
+        assert!(error.contains("tokenizer CID mismatch"), "{error}");
+        let retained_hash = {
+            let guard = OWNED_R4G1.read().expect("bundle lock");
+            blake3::hash(&guard.as_ref().expect("retained bundle").graph)
+        };
+        assert_eq!(retained_hash, installed_hash);
+
+        try_set_r4g1_bytes(minimal_graph([0; 32]))
+            .expect("legacy zero-CID graph-only install remains supported");
+        let guard = OWNED_R4G1.read().expect("bundle lock");
+        assert!(matches!(
+            guard.as_ref().map(|bundle| &bundle.tokenizer),
+            Some(OwnedR4g1Tokenizer::LegacyGlobal)
+        ));
+    }
+
+    #[test]
+    fn tagged_runtime_tokenizer_decodes_but_never_panics_or_encodes() {
+        let _test_guard = R4G1_TEST_LOCK.lock().expect("R4G1 test lock");
+        let path = std::env::temp_dir().join(format!(
+            "uor-r4-tless-decode-only-{}.bin",
+            std::process::id()
+        ));
+        let table = RuntimeTokenizerDecodeTable {
+            identity: RuntimeTokenizerIdentity {
+                family: "future-sentencepiece-family".to_owned(),
+                version: 41,
+                tokenizer_cid: format!("blake3:{}", "5".repeat(64)),
+                adapter_digest: format!("blake3:{}", "6".repeat(64)),
+            },
+            pieces: vec![Vec::new(), "▁hello".as_bytes().to_vec()],
+            encode_policy: RuntimeTokenizerEncodePolicy::Unavailable,
+            decode_policy: RuntimeTokenizerDecodePolicy::SentencePiece {
+                strip_dummy_prefix: true,
+            },
+            source_byte_lengths: None,
+        };
+        export_runtime_tokenizer_table(&table, &path).expect("tagged export");
+        let bytes = std::fs::read(&path).expect("read tagged");
+        let tokenizer = Tokenizer::from_bytes(&bytes).expect("parse tagged");
+        set_tless_tokenizer(tokenizer);
+        assert_eq!(tless_tokenize("hello"), None);
+        assert_eq!(tless_detokenize(&[1]).as_deref(), Some("hello"));
+        let error = set_r4g1_bundle(minimal_graph([0; 32]), bytes)
+            .expect_err("zero-CID graph cannot bind a tagged tokenizer");
+        assert!(error.contains("nonzero"), "{error}");
+
+        let legacy_bytes = tokenizer_bytes(&[b" ", b"a"]);
+        let legacy = Tokenizer::from_bytes(&legacy_bytes).expect("usable legacy tokenizer");
+        set_tless_tokenizer(legacy);
+        assert!(
+            tless_tokenize("a").is_some(),
+            "the global legacy tokenizer must be demonstrably usable"
+        );
+        let tagged_bytes = std::fs::read(&path).expect("read tagged again");
+        set_r4g1_bundle(
+            minimal_graph(*blake3::hash(&tagged_bytes).as_bytes()),
+            tagged_bytes,
+        )
+        .expect("matching nonzero-CID tagged bundle installs");
+        assert_eq!(
+            generate_r4g1_response("a", 1),
+            None,
+            "decode-only tagged bundle must not borrow the global legacy encoder"
+        );
+        let _ = std::fs::remove_file(path);
     }
 
     #[test]

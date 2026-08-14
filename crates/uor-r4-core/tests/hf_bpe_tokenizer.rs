@@ -12,13 +12,13 @@ use uor_r4_core::transformerless::hf_bpe::HfBpeTokenizer;
 /// `merge_rank_order_beats_lowest_token_id_greedy`):
 ///
 ///   a:0 b:1 c:2 ab:3 bc:4 h:5 e:6 l:7 o:8 w:9 r:10 d:11 he:12 hel:13
-///   hell:14 hello:15 Ġ:16 Ġw:17 Ġwo:18 Ġwor:19 Ġworl:21 Ġworld:22
-///   Ã:23 ©:24 Ã©:25 f:26 1:27 2:28 12:29   +   added token <|end|>:20
+///   hell:14 hello:15 Ġ:16 Ġw:17 Ġwo:18 Ġwor:19 x:20 Ġworl:21 Ġworld:22
+///   Ã:23 ©:24 Ã©:25 f:26 1:27 2:28 12:29   +   added token <|end|>:30
 fn tokenizer_json_with(pre_tokenizer: &str) -> String {
     format!(
         r#"{{
   "added_tokens": [
-    {{"id": 20, "content": "<|end|>", "special": true}}
+    {{"id": 30, "content": "<|end|>", "special": true}}
   ],
   "pre_tokenizer": {pre_tokenizer},
   "model": {{
@@ -27,7 +27,7 @@ fn tokenizer_json_with(pre_tokenizer: &str) -> String {
       "a": 0, "b": 1, "c": 2, "ab": 3, "bc": 4,
       "h": 5, "e": 6, "l": 7, "o": 8, "w": 9, "r": 10, "d": 11,
       "he": 12, "hel": 13, "hell": 14, "hello": 15,
-      "Ġ": 16, "Ġw": 17, "Ġwo": 18, "Ġwor": 19, "Ġworl": 21, "Ġworld": 22,
+      "Ġ": 16, "Ġw": 17, "Ġwo": 18, "Ġwor": 19, "x": 20, "Ġworl": 21, "Ġworld": 22,
       "Ã": 23, "©": 24, "Ã©": 25, "f": 26, "1": 27, "2": 28, "12": 29
     }},
     "merges": [
@@ -76,10 +76,10 @@ fn merge_rank_order_beats_lowest_token_id_greedy() {
 #[test]
 fn special_token_matched_atomically() {
     let tok = tokenizer();
-    assert_eq!(tok.encode("<|end|>"), vec![20]);
-    assert_eq!(tok.encode("hello<|end|>hello"), vec![15, 20, 15]);
-    assert_eq!(tok.decode(&[20]), "<|end|>");
-    assert_eq!(tok.decode(&[15, 20, 15]), "hello<|end|>hello");
+    assert_eq!(tok.encode("<|end|>"), vec![30]);
+    assert_eq!(tok.encode("hello<|end|>hello"), vec![15, 30, 15]);
+    assert_eq!(tok.decode(&[30]), "<|end|>");
+    assert_eq!(tok.decode(&[15, 30, 15]), "hello<|end|>hello");
 }
 
 /// (c) Encode/decode round-trips, including repeated encodes through the
@@ -164,8 +164,8 @@ fn merges_as_array_pairs_parse_identically() {
 #[test]
 fn surface_metadata() {
     let tok = tokenizer();
-    // Highest assigned id is 29, so 30 id slots.
-    assert_eq!(tok.vocab_size(), 30);
+    // Highest assigned id is the appended special token at 30.
+    assert_eq!(tok.vocab_size(), 31);
     let address = tok.address();
     assert!(address.starts_with("blake3:"), "address is {address:?}");
     assert_eq!(address.len(), "blake3:".len() + 64);

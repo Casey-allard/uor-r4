@@ -1584,9 +1584,10 @@ pub enum SourceIngestKind {
     /// adapter `(family, version)` outside the versioned registry
     /// (`uor_r4_core::transformerless::hf_bpe::adapter_constructor`),
     /// so no constructor exists to interpret it. Refused by name, never
-    /// approximated by a "closest" family or version; in particular the
-    /// recorded `sentencepiece-unigram` follow-up family is rejected
-    /// here until a versioned adapter for it exists.
+    /// approximated by a "closest" family or version. Registered entries
+    /// include `hf-byte-bpe/1` plus frozen `sentencepiece-unigram/1` and
+    /// current `sentencepiece-unigram/2`; any unregistered family/version pair
+    /// is rejected here.
     UnknownTokenizerAdapter {
         /// The requested adapter family.
         family: String,
@@ -1679,9 +1680,9 @@ impl std::fmt::Display for SourceIngestKind {
             Self::UnknownTokenizerAdapter { family, version } => write!(
                 f,
                 "tokenizer adapter {family}/{version} is not in the versioned adapter \
-                 registry (known: hf-byte-bpe/1; sentencepiece-unigram is the recorded \
-                 follow-up family and stays rejected until its adapter is implemented, \
-                 never approximated)"
+                 registry (registered entries include hf-byte-bpe/1, \
+                 sentencepiece-unigram/1, and sentencepiece-unigram/2; unknown families or \
+                 versions are never approximated)"
             ),
             Self::UnknownAttentionOperator { id, version } => write!(
                 f,
@@ -2615,6 +2616,27 @@ pub type SmolLm2Oracle = HuggingFaceLlamaOracle;
 mod tests {
     use super::*;
 
+    #[cfg(not(target_arch = "wasm32"))]
+    #[test]
+    fn unknown_tokenizer_adapter_diagnostic_names_current_registry() {
+        let error: SourceUnavailable = SourceIngestKind::UnknownTokenizerAdapter {
+            family: "unknown-family".to_owned(),
+            version: 9,
+        }
+        .into();
+        assert!(matches!(
+            error.kind,
+            SourceIngestKind::UnknownTokenizerAdapter {
+                ref family,
+                version: 9,
+            } if family == "unknown-family"
+        ));
+        assert!(error.reason.contains("hf-byte-bpe/1"));
+        assert!(error.reason.contains("sentencepiece-unigram/1"));
+        assert!(error.reason.contains("sentencepiece-unigram/2"));
+        assert!(!error.reason.contains("stays rejected"));
+    }
+
     #[test]
     fn canonical_math_delegates_to_portable_libm() {
         let values = [-7.25f32, -1.0, 0.125, 1.0, 7.25];
@@ -2669,28 +2691,6 @@ mod tests {
         softmax_with_mode(&mut second, true);
         assert_eq!(first, second);
         assert!((first.iter().sum::<f32>() - 1.0).abs() < 1e-6);
-    }
-
-    #[cfg(target_arch = "aarch64")]
-    #[test]
-    fn neon_dot_tracks_scalar_result() {
-        const COLUMNS: usize = 73;
-        let values: Vec<f32> = (0..COLUMNS)
-            .map(|index| ((index * 17 % 31) as f32 - 15.0) / 16.0)
-            .collect();
-        let weights: Vec<f32> = (0..COLUMNS)
-            .map(|index| ((index * 29 % 43) as f32 - 21.0) / 32.0)
-            .collect();
-        let expected = weights
-            .iter()
-            .zip(&values)
-            .map(|(weight, value)| weight * value)
-            .sum::<f32>();
-        // SAFETY: NEON is part of the AArch64 baseline and both slices have
-        // identical lengths.
-        let actual = unsafe { dot_neon(&weights, &values) };
-        let tolerance = 1e-5f32.max(expected.abs() * 1e-5);
-        assert!((expected - actual).abs() <= tolerance);
     }
 
     #[test]

@@ -110,7 +110,7 @@ pub struct InferenceResponse {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub witness: Option<Vec<InferenceWitness>>,
 }
-use uor_r4_core::transformerless::scenarios::Tokenizer;
+use uor_r4_core::transformerless::scenarios::{RuntimeTokenizerIdentity, Tokenizer};
 use uor_r4_graph_certify::{
     GraphScorer, ScoreStatus, StepState, DEFAULT_EXCT_TOP_X, DEFAULT_ROOT_TOP_B, TOP_M,
     WIDENED_TOP_M,
@@ -1031,23 +1031,33 @@ impl R4Engine {
         view.verify_cids().map_err(|k| {
             SourceUnavailable::new(format!("invalid R4G1 graph: {}", k.as_format()))
         })?;
-        if let Some(tokenizer_bytes) = parts.tokenizer {
-            let expected = view
-                .head()
-                .ok_or_else(|| {
-                    SourceUnavailable::new(format!(
-                        "invalid R4G1 graph: {}",
-                        FormatError::MissingHead
-                    ))
-                })?
-                .tokenizer_cid();
+        let expected_tokenizer_cid = view
+            .head()
+            .ok_or_else(|| {
+                SourceUnavailable::new(format!("invalid R4G1 graph: {}", FormatError::MissingHead))
+            })?
+            .tokenizer_cid();
+        if expected_tokenizer_cid.0 != [0u8; 32] {
+            let tokenizer_bytes = parts.tokenizer.ok_or_else(|| {
+                SourceUnavailable::new(format!(
+                    "tokenizer unavailable: R4G1 header requires tokenizer.bin blake3:{}",
+                    blake3::Hash::from(expected_tokenizer_cid.0).to_hex()
+                ))
+            })?;
             let actual = blake3::hash(tokenizer_bytes);
-            if expected.0 != [0u8; 32] && expected.0 != *actual.as_bytes() {
+            if expected_tokenizer_cid.0 != *actual.as_bytes() {
                 return Err(SourceUnavailable::new(format!(
                     "tokenizer_cid mismatch: header expected blake3:{}, loaded blake3:{actual}",
-                    blake3::Hash::from(expected.0).to_hex()
+                    blake3::Hash::from(expected_tokenizer_cid.0).to_hex()
                 )));
             }
+        } else if parts
+            .tokenizer
+            .is_some_and(Tokenizer::is_tagged_container_bytes)
+        {
+            return Err(SourceUnavailable::new(
+                "tokenizer binding unavailable: a tagged tokenizer requires a nonzero R4G1 header tokenizer CID",
+            ));
         }
         let artifacts = compiler::parse_artifacts(parts.signature_artifact)
             .ok_or_else(|| SourceUnavailable::new("not a TLA3/TLA4/TLA5 teacher artifact"))?;
@@ -1143,11 +1153,21 @@ impl R4Engine {
         AbiVersion::current()
     }
 
-    /// Encode text with the bundle-matched tokenizer when one is
-    /// available. (The tokenizer's BPE path allocates an intermediate
-    /// `String`; text helpers sit outside the allocation-free step path.)
+    /// Encode text with the bundle-matched tokenizer when its deployed
+    /// representation supports encoding. A tagged decode-only tokenizer
+    /// returns `None` by construction; callers must supply its exact registered
+    /// host adapter outside the engine. (The historical BPE path allocates an
+    /// intermediate `String`; text helpers sit outside the allocation-free
+    /// step path.)
     pub fn encode_text_into(&self, text: &str, out: &mut [u32]) -> Option<usize> {
         self.tokenizer.as_ref()?.encode_into(text, out)
+    }
+
+    /// Exact registered host-adapter identity carried by a tagged,
+    /// decode-only runtime tokenizer. Historical untagged tokenizer bytes
+    /// predate this record and return `None`.
+    pub fn tokenizer_adapter_identity(&self) -> Option<&RuntimeTokenizerIdentity> {
+        self.tokenizer.as_ref()?.adapter_identity()
     }
 
     /// Decode tokens with the bundle-matched tokenizer when one is

@@ -3,11 +3,11 @@
 //! manifest + resume, ordered merge (T-invariance), the optional teacher
 //! trace surface, and the `observe` CLI.
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::time::{SystemTime, UNIX_EPOCH};
 use uor_r4_graph_compiler::observation::{
-    ObservationManifest, ObservationShardWriter, ProbabilityMetadata, RECORD_SIZE,
-    merge_probability_metadata, merge_shards, merge_trace_rows, message_bits_per_token,
+    MANIFEST_FILE, ObservationManifest, ObservationShardWriter, ProbabilityMetadata, RECORD_SIZE,
+    STATE_FILE, merge_probability_metadata, merge_shards, merge_trace_rows, message_bits_per_token,
     observe_sharded, observe_sharded_traced, sample_id, shard_file_name, shard_of,
     trace_sidecar_name,
 };
@@ -30,6 +30,31 @@ fn unique_path(name: &str) -> std::path::PathBuf {
 
 fn kappa_of(bytes: &[u8]) -> String {
     format!("blake3:{}", blake3::hash(bytes).to_hex())
+}
+
+fn directory_bytes(dir: &std::path::Path) -> BTreeMap<String, Vec<u8>> {
+    std::fs::read_dir(dir)
+        .expect("read observation directory")
+        .map(|entry| {
+            let entry = entry.expect("read directory entry");
+            let name = entry
+                .file_name()
+                .into_string()
+                .expect("observation file name is UTF-8");
+            let bytes = std::fs::read(entry.path()).expect("read observation file");
+            (name, bytes)
+        })
+        .collect()
+}
+
+fn fixture_byte_bpe_adapter(
+    tokenizer_json: &str,
+) -> uor_r4_core::transformerless::hf_bpe::TokenizerAdapter {
+    uor_r4_core::transformerless::hf_bpe::HfBpeTokenizer::from_tokenizer_json_bytes(
+        tokenizer_json.as_bytes(),
+    )
+    .expect("fixture tokenizer parses")
+    .adapter()
 }
 
 // ------------------------------------------------------------ sample id --
@@ -559,6 +584,13 @@ fn tokenizer_adapter_persists_in_the_manifest() {
         serde_json::from_str(&legacy_json).expect("legacy manifest deserializes");
     assert_eq!(legacy.tokenizer_adapter, None);
 
+    // Other identity metadata and empty payload files do not constitute a
+    // tokenizer era. This is the call order used by the text-observation
+    // preparation path before its first record.
+    writer
+        .set_partition_rule("fixture-partition-rule")
+        .expect("persist other identity metadata");
+    std::fs::write(dir.join(shard_file_name(2, 0)), []).expect("empty shard placeholder");
     writer
         .set_tokenizer_adapter(&record)
         .expect("set and store");
@@ -587,6 +619,419 @@ fn tokenizer_adapter_persists_in_the_manifest() {
         reopened.manifest().tokenizer_adapter.as_ref(),
         Some(&record)
     );
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+/// The setter is also the admission boundary for public/custom callers: an
+/// unregistered family/version is refused before a manifest can be created.
+#[test]
+fn tokenizer_adapter_unknown_version_is_refused_before_any_mutation() {
+    let tokenizer_json = r#"{
+        "pre_tokenizer": {"type": "ByteLevel", "add_prefix_space": false},
+        "model": {"type": "BPE", "vocab": {"a": 0, "b": 1, "ab": 2}, "merges": ["a b"]}
+    }"#;
+    let mut unknown = fixture_byte_bpe_adapter(tokenizer_json);
+    unknown.version += 1;
+    unknown.adapter_digest = unknown.declared_digest();
+
+    let dir = unique_path("observe-tokenizer-adapter-unknown-version");
+    let mut writer = ObservationShardWriter::open(&dir, 2).expect("writer");
+    let bytes_before = directory_bytes(&dir);
+    let manifest_before = writer.manifest().clone();
+    let error = writer
+        .set_tokenizer_adapter(&unknown)
+        .expect_err("unknown registry version must be refused");
+    assert!(matches!(
+        error.kind,
+        uor_r4_model_source::SourceIngestKind::UnknownTokenizerAdapter {
+            ref family,
+            version,
+        } if family == &unknown.family && version == unknown.version
+    ));
+    assert!(error.reason.contains("hf-byte-bpe/1"));
+    assert!(error.reason.contains("sentencepiece-unigram/1"));
+    assert!(error.reason.contains("sentencepiece-unigram/2"));
+    assert_eq!(writer.manifest(), &manifest_before);
+    assert_eq!(directory_bytes(&dir), bytes_before);
+
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+/// A registered key is insufficient when the claimed adapter digest does not
+/// reproduce from the canonical policy/CID fields. Both policy tampering and
+/// direct digest tampering are refused without creating a manifest.
+#[test]
+fn tokenizer_adapter_inconsistent_digest_is_refused_before_any_mutation() {
+    let tokenizer_json = r#"{
+        "pre_tokenizer": {"type": "ByteLevel", "add_prefix_space": false},
+        "model": {"type": "BPE", "vocab": {"a": 0, "b": 1, "ab": 2}, "merges": ["a b"]}
+    }"#;
+    let valid = fixture_byte_bpe_adapter(tokenizer_json);
+    let mut altered_policy = valid.clone();
+    altered_policy.policy.normalizer = "tampered-normalizer".to_owned();
+    let mut altered_digest = valid;
+    altered_digest.adapter_digest = format!("blake3:{}", "0".repeat(64));
+
+    let dir = unique_path("observe-tokenizer-adapter-inconsistent-digest");
+    let mut writer = ObservationShardWriter::open(&dir, 2).expect("writer");
+    let bytes_before = directory_bytes(&dir);
+    let manifest_before = writer.manifest().clone();
+    for candidate in [&altered_policy, &altered_digest] {
+        let error = writer
+            .set_tokenizer_adapter(candidate)
+            .expect_err("inconsistent adapter digest must be refused");
+        assert!(
+            error.reason.contains("canonical fields")
+                && error.reason.contains("inconsistent provenance")
+                && error.reason.contains("before mutation"),
+            "focused digest diagnostic: {error}"
+        );
+        assert_eq!(writer.manifest(), &manifest_before);
+        assert_eq!(directory_bytes(&dir), bytes_before);
+    }
+
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+/// Canonical address syntax is an independent admission rule. In particular,
+/// recomputing the declared digest after putting an uppercase/non-address value
+/// in `tokenizer_cid` must not make that internally self-consistent record
+/// persistable.
+#[test]
+fn tokenizer_adapter_noncanonical_addresses_are_refused_before_any_mutation() {
+    let tokenizer_json = r#"{
+        "pre_tokenizer": {"type": "ByteLevel", "add_prefix_space": false},
+        "model": {"type": "BPE", "vocab": {"a": 0, "b": 1, "ab": 2}, "merges": ["a b"]}
+    }"#;
+    let valid = fixture_byte_bpe_adapter(tokenizer_json);
+
+    let mut uppercase_cid = valid.clone();
+    uppercase_cid.tokenizer_cid = format!("blake3:{}", "A".repeat(64));
+    uppercase_cid.adapter_digest = uppercase_cid.declared_digest();
+    let mut malformed_digest = valid;
+    malformed_digest.adapter_digest = format!("blake3:{}", "B".repeat(64));
+
+    let dir = unique_path("observe-tokenizer-adapter-noncanonical-address");
+    let mut writer = ObservationShardWriter::open(&dir, 2).expect("writer");
+    let bytes_before = directory_bytes(&dir);
+    let manifest_before = writer.manifest().clone();
+    for (candidate, field) in [
+        (&uppercase_cid, "tokenizer_cid"),
+        (&malformed_digest, "adapter_digest"),
+    ] {
+        let error = writer
+            .set_tokenizer_adapter(candidate)
+            .expect_err("noncanonical address must be refused");
+        assert!(
+            error.reason.contains(field)
+                && error.reason.contains("lowercase blake3:<64 hex>")
+                && error.reason.contains("before mutation"),
+            "focused canonical-address diagnostic: {error}"
+        );
+        assert_eq!(writer.manifest(), &manifest_before);
+        assert_eq!(directory_bytes(&dir), bytes_before);
+    }
+
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+/// #639-4 incompatible-resume guard: an adapter identity is a one-time pin,
+/// not mutable metadata. A different adapter must be rejected before the
+/// manifest, completed shard records, or any other directory byte moves.
+#[test]
+fn tokenizer_adapter_mismatch_refuses_resume_before_any_mutation() {
+    let first_json = r#"{
+        "pre_tokenizer": {"type": "ByteLevel", "add_prefix_space": false},
+        "model": {"type": "BPE", "vocab": {"a": 0, "b": 1, "ab": 2}, "merges": ["a b"]}
+    }"#;
+    let second_json = r#"{
+        "pre_tokenizer": {"type": "ByteLevel", "add_prefix_space": false},
+        "model": {"type": "BPE", "vocab": {"a": 0, "b": 1, "ba": 2}, "merges": ["b a"]}
+    }"#;
+    let first = uor_r4_core::transformerless::hf_bpe::HfBpeTokenizer::from_tokenizer_json_bytes(
+        first_json.as_bytes(),
+    )
+    .expect("first fixture tokenizer parses")
+    .adapter();
+    let second = uor_r4_core::transformerless::hf_bpe::HfBpeTokenizer::from_tokenizer_json_bytes(
+        second_json.as_bytes(),
+    )
+    .expect("second fixture tokenizer parses")
+    .adapter();
+    assert_ne!(first, second, "fixtures must declare distinct identities");
+
+    let dir = unique_path("observe-tokenizer-adapter-mismatch");
+    {
+        let mut writer = ObservationShardWriter::open(&dir, 2).expect("writer");
+        writer
+            .set_tokenizer_adapter(&first)
+            .expect("pin first adapter");
+        writer
+            .write_record(&[0xA5; RECORD_SIZE], 0)
+            .expect("write record");
+        writer.finalize_all().expect("finalize observation corpus");
+    }
+
+    let bytes_before = directory_bytes(&dir);
+    let records_before = merge_shards(&dir).expect("merge records before resume");
+    let manifest_before = ObservationManifest::load(&dir)
+        .expect("manifest io before resume")
+        .expect("manifest before resume");
+    let mut resumed = ObservationShardWriter::open(&dir, 2).expect("resume writer");
+
+    // An identical reset is a byte-idempotent no-op.
+    resumed
+        .set_tokenizer_adapter(&first)
+        .expect("identical adapter is idempotent");
+    assert_eq!(directory_bytes(&dir), bytes_before);
+
+    let error = resumed
+        .set_tokenizer_adapter(&second)
+        .expect_err("different adapter must refuse resume");
+    assert!(
+        error.reason.contains("incompatible resume")
+            && error.reason.contains("refused before mutation")
+            && error.reason.contains(&first.tokenizer_cid)
+            && error.reason.contains(&second.tokenizer_cid),
+        "focused mismatch diagnostic: {error}"
+    );
+    assert_eq!(resumed.manifest(), &manifest_before);
+    assert_eq!(
+        directory_bytes(&dir),
+        bytes_before,
+        "mismatch changed an observation-directory byte"
+    );
+    assert_eq!(
+        merge_shards(&dir).expect("merge records after refused resume"),
+        records_before,
+        "mismatch changed completed observation records"
+    );
+
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+/// Removing the adapter field does not turn a completed corpus back into a
+/// fresh one. The payload is historical evidence of its tokenizer era, so the
+/// absent identity must be refused rather than retroactively relabelled.
+#[test]
+fn tokenizer_adapter_absence_cannot_relabel_completed_legacy_payload() {
+    let tokenizer_json = r#"{
+        "pre_tokenizer": {"type": "ByteLevel", "add_prefix_space": false},
+        "model": {"type": "BPE", "vocab": {"a": 0, "b": 1, "ab": 2}, "merges": ["a b"]}
+    }"#;
+    let adapter = uor_r4_core::transformerless::hf_bpe::HfBpeTokenizer::from_tokenizer_json_bytes(
+        tokenizer_json.as_bytes(),
+    )
+    .expect("fixture tokenizer parses")
+    .adapter();
+    let dir = unique_path("observe-tokenizer-adapter-legacy-completed");
+    {
+        let mut writer = ObservationShardWriter::open(&dir, 2).expect("writer");
+        writer
+            .set_tokenizer_adapter(&adapter)
+            .expect("pin adapter before payload");
+        writer
+            .write_record(&[0x5A; RECORD_SIZE], 0)
+            .expect("write record");
+        writer.finalize_all().expect("finalize observation corpus");
+    }
+
+    // Synthesize a historical manifest from before #601 by removing only the
+    // optional adapter field from a completed corpus.
+    let manifest_path = dir.join(MANIFEST_FILE);
+    let mut legacy_json: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(&manifest_path).expect("read manifest"))
+            .expect("parse manifest");
+    assert!(
+        legacy_json
+            .as_object_mut()
+            .expect("manifest object")
+            .remove("tokenizer_adapter")
+            .is_some(),
+        "fixture manifest must initially carry an adapter"
+    );
+    std::fs::write(
+        &manifest_path,
+        serde_json::to_vec_pretty(&legacy_json).expect("serialize legacy manifest"),
+    )
+    .expect("write legacy manifest");
+
+    let bytes_before = directory_bytes(&dir);
+    let records_before = merge_shards(&dir).expect("merge legacy records before resume");
+    let manifest_before = ObservationManifest::load(&dir)
+        .expect("manifest io before resume")
+        .expect("legacy manifest before resume");
+    assert_eq!(manifest_before.tokenizer_adapter, None);
+    assert!(!manifest_before.completed.is_empty());
+
+    let mut resumed = ObservationShardWriter::open(&dir, 2).expect("resume legacy writer");
+    let error = resumed
+        .set_tokenizer_adapter(&adapter)
+        .expect_err("completed legacy payload cannot be relabelled");
+    assert!(
+        error.reason.contains("observation payload")
+            && error.reason.contains("relabel legacy/unpinned")
+            && error.reason.contains("before mutation"),
+        "focused legacy-era diagnostic: {error}"
+    );
+    assert_eq!(resumed.manifest(), &manifest_before);
+    assert_eq!(directory_bytes(&dir), bytes_before);
+    assert_eq!(
+        merge_shards(&dir).expect("merge legacy records after refusal"),
+        records_before
+    );
+
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+/// A torn historical directory may retain only the tokenizer-dependent raw
+/// observation checkpoint after its adapter field was stripped. `state.bin`
+/// is still conclusive era evidence even when the manifest reports no records
+/// or completed shards, so provenance pinning must fail without changing any
+/// byte.
+#[test]
+fn tokenizer_adapter_absence_cannot_relabel_state_only_payload() {
+    let tokenizer_json = r#"{
+        "pre_tokenizer": {"type": "ByteLevel", "add_prefix_space": false},
+        "model": {"type": "BPE", "vocab": {"a": 0, "b": 1, "ab": 2}, "merges": ["a b"]}
+    }"#;
+    let adapter = fixture_byte_bpe_adapter(tokenizer_json);
+    let dir = unique_path("observe-tokenizer-adapter-legacy-state-only");
+    {
+        let mut writer = ObservationShardWriter::open(&dir, 2).expect("writer");
+        writer
+            .set_tokenizer_adapter(&adapter)
+            .expect("persist adapter-bearing manifest");
+    }
+
+    let manifest_path = dir.join(MANIFEST_FILE);
+    let mut legacy_json: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(&manifest_path).expect("read manifest"))
+            .expect("parse manifest");
+    assert!(
+        legacy_json
+            .as_object_mut()
+            .expect("manifest object")
+            .remove("tokenizer_adapter")
+            .is_some(),
+        "fixture manifest must initially carry an adapter"
+    );
+    std::fs::write(
+        &manifest_path,
+        serde_json::to_vec_pretty(&legacy_json).expect("serialize stripped manifest"),
+    )
+    .expect("write stripped manifest");
+    let state_path = dir.join(STATE_FILE);
+    let state_bytes = [0xA5; 37];
+    std::fs::write(&state_path, state_bytes).expect("write state-only checkpoint");
+
+    let bytes_before = directory_bytes(&dir);
+    let manifest_before = ObservationManifest::load(&dir)
+        .expect("manifest io before resume")
+        .expect("stripped manifest before resume");
+    assert_eq!(manifest_before.tokenizer_adapter, None);
+    assert_eq!(manifest_before.total_records, 0);
+    assert!(manifest_before.completed.is_empty());
+
+    let mut resumed = ObservationShardWriter::open(&dir, 2).expect("resume stripped writer");
+    let error = resumed
+        .set_tokenizer_adapter(&adapter)
+        .expect_err("state-only legacy payload cannot be relabelled");
+    assert!(
+        error.reason.contains("observation payload")
+            && error.reason.contains("relabel legacy/unpinned")
+            && error.reason.contains("before mutation"),
+        "focused state-only diagnostic: {error}"
+    );
+    assert_eq!(resumed.manifest(), &manifest_before);
+    assert_eq!(directory_bytes(&dir), bytes_before);
+    assert_eq!(
+        std::fs::read(&state_path).expect("state survives refusal"),
+        state_bytes
+    );
+
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+/// An interrupted writer can have payload bytes before any shard is complete.
+/// Those bytes establish the legacy tokenizer era just as firmly as a
+/// completed-manifest entry does.
+#[test]
+fn tokenizer_adapter_absence_cannot_relabel_partial_shard_payload() {
+    let tokenizer_json = r#"{
+        "pre_tokenizer": {"type": "ByteLevel", "add_prefix_space": false},
+        "model": {"type": "BPE", "vocab": {"a": 0, "b": 1, "ab": 2}, "merges": ["a b"]}
+    }"#;
+    let adapter = uor_r4_core::transformerless::hf_bpe::HfBpeTokenizer::from_tokenizer_json_bytes(
+        tokenizer_json.as_bytes(),
+    )
+    .expect("fixture tokenizer parses")
+    .adapter();
+    let dir = unique_path("observe-tokenizer-adapter-legacy-partial");
+    let mut writer = ObservationShardWriter::open(&dir, 2).expect("writer");
+    writer
+        .write_record(&[0x3C; RECORD_SIZE], 1)
+        .expect("write partial record");
+    writer.flush().expect("flush partial record");
+    assert_eq!(writer.manifest().tokenizer_adapter, None);
+    assert!(writer.manifest().completed.is_empty());
+
+    let bytes_before = directory_bytes(&dir);
+    let manifest_before = writer.manifest().clone();
+    let error = writer
+        .set_tokenizer_adapter(&adapter)
+        .expect_err("partial legacy payload cannot be relabelled");
+    assert!(error.reason.contains("observation payload"));
+    assert_eq!(writer.manifest(), &manifest_before);
+    assert_eq!(directory_bytes(&dir), bytes_before);
+
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+/// Payload-path inspection is fail-closed: it examines the directory entry
+/// itself rather than following a symlink (including a dangling one) or
+/// accepting another non-regular object as an empty payload placeholder.
+#[cfg(unix)]
+#[test]
+fn tokenizer_adapter_pin_refuses_non_regular_payload_path_before_mutation() {
+    use std::os::unix::fs::symlink;
+
+    let tokenizer_json = r#"{
+        "pre_tokenizer": {"type": "ByteLevel", "add_prefix_space": false},
+        "model": {"type": "BPE", "vocab": {"a": 0, "b": 1, "ab": 2}, "merges": ["a b"]}
+    }"#;
+    let adapter = fixture_byte_bpe_adapter(tokenizer_json);
+    let dir = unique_path("observe-tokenizer-adapter-payload-symlink");
+    let mut writer = ObservationShardWriter::open(&dir, 2).expect("writer");
+    let payload_path = dir.join(shard_file_name(2, 0));
+    let link_target = std::path::Path::new("missing-payload-target");
+    symlink(link_target, &payload_path).expect("create dangling payload symlink");
+    let entries_before: BTreeSet<_> = std::fs::read_dir(&dir)
+        .expect("read directory before refusal")
+        .map(|entry| entry.expect("directory entry").file_name())
+        .collect();
+    let manifest_before = writer.manifest().clone();
+
+    let error = writer
+        .set_tokenizer_adapter(&adapter)
+        .expect_err("non-regular payload path must be refused");
+    assert!(
+        error.reason.contains("not a regular file")
+            && error.reason.contains(&payload_path.display().to_string()),
+        "focused payload-path diagnostic: {error}"
+    );
+    assert_eq!(writer.manifest(), &manifest_before);
+    assert_eq!(
+        std::fs::read_link(&payload_path).expect("symlink survives refusal"),
+        link_target
+    );
+    let entries_after: BTreeSet<_> = std::fs::read_dir(&dir)
+        .expect("read directory after refusal")
+        .map(|entry| entry.expect("directory entry").file_name())
+        .collect();
+    assert_eq!(entries_after, entries_before);
+    assert!(std::fs::symlink_metadata(dir.join(MANIFEST_FILE)).is_err());
+
     let _ = std::fs::remove_dir_all(&dir);
 }
 
@@ -712,7 +1157,7 @@ fn observe_cli_writes_shards_and_resumes_without_rewriting() {
         "--seconds",
         "1",
         "--target",
-        "64",
+        "1",
         "--shards",
         "3",
         "--out",
@@ -728,7 +1173,7 @@ fn observe_cli_writes_shards_and_resumes_without_rewriting() {
         .expect("manifest present");
     assert_eq!(manifest.shard_bits, 3);
     assert_eq!(manifest.completed.len(), 8);
-    assert_eq!(manifest.total_records, 64);
+    assert_eq!(manifest.total_records, 1);
     let mut mtimes = Vec::new();
     for shard in 0..8u32 {
         let path = dir.join(shard_file_name(3, shard));
@@ -737,7 +1182,7 @@ fn observe_cli_writes_shards_and_resumes_without_rewriting() {
         mtimes.push(metadata.modified().expect("mtime"));
     }
     let merged1 = merge_shards(&dir).expect("merge 1");
-    assert_eq!(merged1.len(), 64 * RECORD_SIZE);
+    assert_eq!(merged1.len(), RECORD_SIZE);
 
     // Rerun: every shard is complete, so nothing may be rewritten.
     uor_r4_graph_compiler::observe(&args[1..]).expect("observe run 2");

@@ -40,10 +40,15 @@ mod runtime_corpus;
 mod scenarios;
 use serde::Serialize;
 use std::collections::BTreeMap;
-use std::io::Read;
+use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
-use uor_r4_core::transformerless::hf_bpe::{HfBpeTokenizer, TokenizerKind};
+use std::sync::atomic::{AtomicU64, Ordering};
+use uor_r4_core::transformerless::hf_bpe::{
+    TokenizerAdapter, TokenizerAdapterKey, TokenizerKind, adapter_constructor,
+    resolve_source_tokenizer,
+};
 use uor_r4_core::transformerless::scenarios as core_scenarios;
+use uor_r4_core::transformerless::scenarios::RuntimeTokenizerDecodeTable;
 use uor_r4_model_source::{BehaviorSource, LlamaOracle, SourceUnavailable, Teacher, TeacherOracle};
 
 const DEFAULT_CHECKPOINT: &str = "/tmp/ref/out/model.bin";
@@ -53,6 +58,259 @@ const DEFAULT_HF_SOURCE_PATH: &str = ".uor-models/sources/smollm2-135m-instruct"
 const DEFAULT_HF_COMPILED_PATH: &str = ".uor-models/compiled/smollm2-135m-instruct";
 const DEFAULT_HF_EVALUATION_REPORT: &str = "instruction-eval.json";
 const DEFAULT_TEXT_CORPUS: &str = ".uor-models/corpora/simple-wiki-20231101/articles.jsonl";
+const TOKENIZER_ADAPTER_FILE: &str = "tokenizer_adapter.json";
+static TOKENIZER_ADAPTER_TEMP_SEQUENCE: AtomicU64 = AtomicU64::new(0);
+
+fn is_blake3_cid(value: &str) -> bool {
+    value.len() == "blake3:".len() + 64
+        && value.starts_with("blake3:")
+        && value["blake3:".len()..]
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+}
+
+/// Read an explicitly selected tokenizer input without allowing absence to
+/// collapse into the legacy zero-CID mode. `symlink_metadata` deliberately
+/// rejects directories, symlinks (including dangling ones), and special files;
+/// only omission of the flag selects compatibility behavior.
+fn explicit_tokenizer_cid(path: Option<&Path>) -> Result<Option<[u8; 32]>, SourceUnavailable> {
+    let Some(path) = path else {
+        return Ok(None);
+    };
+    let metadata = std::fs::symlink_metadata(path)
+        .map_err(|error| SourceUnavailable::new(format!("{}: {error}", path.display())))?;
+    if !metadata.file_type().is_file() {
+        return Err(SourceUnavailable::new(format!(
+            "{}: explicit --tokenizer input is not a regular file",
+            path.display()
+        )));
+    }
+    let bytes = std::fs::read(path)
+        .map_err(|error| SourceUnavailable::new(format!("{}: {error}", path.display())))?;
+    Ok(Some(*blake3::hash(&bytes).as_bytes()))
+}
+
+/// Select the scored graph's tokenizer identity. A scored graph inherits a
+/// nonzero cover binding; an explicit tokenizer may introduce a binding for a
+/// legacy cover or reproduce the existing one, but may never replace it.
+fn scored_tokenizer_cid(
+    cover_bytes: Option<&[u8]>,
+    explicit: Option<[u8; 32]>,
+) -> Result<[u8; 32], SourceUnavailable> {
+    let cover_cid = match cover_bytes {
+        None => [0; 32],
+        Some(bytes) => {
+            let view = uor_r4_graph_format::GraphView::parse(bytes).map_err(|error| {
+                SourceUnavailable::new(format!("invalid cover R4G1 artifact: {error}"))
+            })?;
+            view.verify_cids().map_err(|error| {
+                SourceUnavailable::new(format!("invalid cover R4G1 integrity: {error}"))
+            })?;
+            view.head()
+                .ok_or_else(|| SourceUnavailable::new("cover R4G1 artifact has no HEAD"))?
+                .tokenizer_cid()
+                .0
+        }
+    };
+    if cover_cid == [0; 32] {
+        return Ok(explicit.unwrap_or([0; 32]));
+    }
+    match explicit {
+        None => Ok(cover_cid),
+        Some(explicit) if cover_cid == explicit => Ok(cover_cid),
+        Some(explicit) => Err(SourceUnavailable::new(format!(
+            "cover tokenizer CID blake3:{} does not match explicit --tokenizer CID blake3:{}; refusing to change tokenizer identity while scoring",
+            blake3::Hash::from(cover_cid).to_hex(),
+            blake3::Hash::from(explicit).to_hex(),
+        ))),
+    }
+}
+
+fn validate_tokenizer_adapter_record(adapter: &TokenizerAdapter) -> Result<(), SourceUnavailable> {
+    // Registry membership is part of provenance validity: a self-consistent
+    // digest cannot turn an unknown family/version into supported behavior.
+    adapter_constructor(&adapter.family, adapter.version)?;
+    if !is_blake3_cid(&adapter.tokenizer_cid) {
+        return Err(SourceUnavailable::new(format!(
+            "tokenizer adapter {}/{} has invalid tokenizer CID {}",
+            adapter.family, adapter.version, adapter.tokenizer_cid
+        )));
+    }
+    let declared = adapter.declared_digest();
+    if adapter.adapter_digest != declared {
+        return Err(SourceUnavailable::new(format!(
+            "tokenizer adapter {}/{} declares digest {}, expected {declared}",
+            adapter.family, adapter.version, adapter.adapter_digest
+        )));
+    }
+    Ok(())
+}
+
+fn read_compile_tokenizer_adapter(
+    output: &Path,
+) -> Result<Option<TokenizerAdapter>, SourceUnavailable> {
+    let sidecar = output.join(TOKENIZER_ADAPTER_FILE);
+    let metadata = match std::fs::symlink_metadata(&sidecar) {
+        Ok(metadata) => metadata,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+        Err(error) => {
+            return Err(SourceUnavailable::new(format!(
+                "{}: {error}",
+                sidecar.display()
+            )));
+        }
+    };
+    if !metadata.file_type().is_file() {
+        return Err(SourceUnavailable::new(format!(
+            "{} exists but is not a regular file; refusing tokenizer adapter provenance through a directory, symlink, or special file",
+            sidecar.display()
+        )));
+    }
+    let bytes = std::fs::read(&sidecar)
+        .map_err(|error| SourceUnavailable::new(format!("{}: {error}", sidecar.display())))?;
+    let recorded: TokenizerAdapter = serde_json::from_slice(&bytes).map_err(|error| {
+        SourceUnavailable::new(format!(
+            "{} is not a valid tokenizer adapter record: {error}",
+            sidecar.display()
+        ))
+    })?;
+    validate_tokenizer_adapter_record(&recorded).map_err(|error| {
+        SourceUnavailable::new(format!("{}: {}", sidecar.display(), error.reason))
+    })?;
+    Ok(Some(recorded))
+}
+
+fn require_matching_compile_tokenizer_adapter(
+    output: &Path,
+    requested: &TokenizerAdapter,
+    recorded: &TokenizerAdapter,
+) -> Result<(), SourceUnavailable> {
+    if recorded == requested {
+        return Ok(());
+    }
+    Err(SourceUnavailable::new(format!(
+        "{} is pinned to tokenizer adapter {}/{} (CID {}, digest {}); requested {}/{} (CID {}, digest {}); incompatible compile resume/evaluation identity refused before mutation",
+        output.display(),
+        recorded.family,
+        recorded.version,
+        recorded.tokenizer_cid,
+        recorded.adapter_digest,
+        requested.family,
+        requested.version,
+        requested.tokenizer_cid,
+        requested.adapter_digest,
+    )))
+}
+
+/// Bind a resumable compiler output to the exact full adapter identity before
+/// `tokenizer.bin`, `corpus.meta`, or `corpus.records` can be changed.
+fn pin_compile_tokenizer_adapter(
+    output: &Path,
+    requested: &TokenizerAdapter,
+) -> Result<(), SourceUnavailable> {
+    validate_tokenizer_adapter_record(requested)?;
+    let sidecar = output.join(TOKENIZER_ADAPTER_FILE);
+    if let Some(recorded) = read_compile_tokenizer_adapter(output)? {
+        return require_matching_compile_tokenizer_adapter(output, requested, &recorded);
+    }
+
+    // A pre-#718 compiler corpus has no adapter identity. Non-empty tokenizer
+    // or corpus files make that absence an incompatible legacy era; never
+    // relabel those bytes merely because the current source happens to parse.
+    for name in ["tokenizer.bin", "corpus.meta", "corpus.records"] {
+        let path = output.join(name);
+        match std::fs::symlink_metadata(&path) {
+            Ok(metadata) if !metadata.file_type().is_file() => {
+                return Err(SourceUnavailable::new(format!(
+                    "{} exists but is not a regular file; refusing to infer an empty compiler payload through a directory, symlink, or special file",
+                    path.display()
+                )));
+            }
+            Ok(metadata) if metadata.len() != 0 => {
+                return Err(SourceUnavailable::new(format!(
+                    "{} has no {TOKENIZER_ADAPTER_FILE} but already contains {name} payload; refusing to relabel legacy/unpinned compiler bytes as {}/{} before mutation",
+                    output.display(),
+                    requested.family,
+                    requested.version
+                )));
+            }
+            Ok(_) => {}
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+            Err(error) => {
+                return Err(SourceUnavailable::new(format!(
+                    "{}: {error}",
+                    path.display()
+                )));
+            }
+        }
+    }
+
+    std::fs::create_dir_all(output).map_err(SourceUnavailable::new)?;
+    let mut bytes = serde_json::to_vec_pretty(requested).map_err(SourceUnavailable::new)?;
+    bytes.push(b'\n');
+    let temporary = loop {
+        let sequence = TOKENIZER_ADAPTER_TEMP_SEQUENCE.fetch_add(1, Ordering::Relaxed);
+        let candidate = output.join(format!(
+            ".{TOKENIZER_ADAPTER_FILE}.{}.{}.tmp",
+            std::process::id(),
+            sequence
+        ));
+        match std::fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&candidate)
+        {
+            Ok(mut file) => {
+                if let Err(error) = file.write_all(&bytes).and_then(|()| file.sync_all()) {
+                    let _ = std::fs::remove_file(&candidate);
+                    return Err(SourceUnavailable::new(format!(
+                        "{}: {error}",
+                        candidate.display()
+                    )));
+                }
+                drop(file);
+                break candidate;
+            }
+            Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => continue,
+            Err(error) => {
+                return Err(SourceUnavailable::new(format!(
+                    "{}: {error}",
+                    candidate.display()
+                )));
+            }
+        }
+    };
+
+    // `hard_link` is an atomic no-clobber publish: unlike rename, it cannot
+    // replace a sidecar another compiler created after our initial read. A
+    // loser re-reads and accepts only the exact same validated identity.
+    match std::fs::hard_link(&temporary, &sidecar) {
+        Ok(()) => {
+            std::fs::remove_file(&temporary).map_err(|error| {
+                SourceUnavailable::new(format!("{}: {error}", temporary.display()))
+            })?;
+            Ok(())
+        }
+        Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {
+            let _ = std::fs::remove_file(&temporary);
+            let recorded = read_compile_tokenizer_adapter(output)?.ok_or_else(|| {
+                SourceUnavailable::new(format!(
+                    "{} appeared during tokenizer adapter publication but is now absent",
+                    sidecar.display()
+                ))
+            })?;
+            require_matching_compile_tokenizer_adapter(output, requested, &recorded)
+        }
+        Err(error) => {
+            let _ = std::fs::remove_file(&temporary);
+            Err(SourceUnavailable::new(format!(
+                "tokenizer adapter sidecar publish {} -> {}: {error}",
+                temporary.display(),
+                sidecar.display()
+            )))
+        }
+    }
+}
 
 #[derive(Debug, PartialEq, Eq)]
 struct CompileOptions {
@@ -64,6 +322,7 @@ struct CompileOptions {
     target: usize,
     sequence_length: usize,
     r4_attention: bool,
+    tokenizer_adapter: Option<TokenizerAdapterKey>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -134,6 +393,7 @@ struct EvaluateReportOptions {
     /// this exists so a change can be verified to sit in the measured
     /// path before a full run is spent on it.
     max_held_out_stories: Option<u32>,
+    tokenizer_adapter: Option<TokenizerAdapterKey>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -145,9 +405,45 @@ struct ObserveOptions {
     target: usize,
     shards: u8,
     sequence_length: usize,
+    tokenizer_adapter: Option<TokenizerAdapterKey>,
+}
+
+#[derive(Debug, Default)]
+struct TokenizerAdapterKeyBuilder {
+    family: Option<String>,
+    version: Option<u32>,
+}
+
+impl TokenizerAdapterKeyBuilder {
+    fn parse(&mut self, flag: &str, value: &str) -> Result<bool, SourceUnavailable> {
+        match flag {
+            "--tokenizer-family" => self.family = Some(value.to_owned()),
+            "--tokenizer-version" => {
+                self.version = Some(value.parse().map_err(|_| {
+                    SourceUnavailable::new(format!("invalid --tokenizer-version value: {value}"))
+                })?);
+            }
+            _ => return Ok(false),
+        }
+        Ok(true)
+    }
+
+    fn finish(self) -> Result<Option<TokenizerAdapterKey>, SourceUnavailable> {
+        match (self.family, self.version) {
+            (None, None) => Ok(None),
+            (Some(family), Some(version)) => Ok(Some(TokenizerAdapterKey::new(family, version))),
+            (Some(_), None) => Err(SourceUnavailable::new(
+                "--tokenizer-family requires --tokenizer-version",
+            )),
+            (None, Some(_)) => Err(SourceUnavailable::new(
+                "--tokenizer-version requires --tokenizer-family",
+            )),
+        }
+    }
 }
 
 fn parse_observe_options(args: &[String]) -> Result<ObserveOptions, SourceUnavailable> {
+    let mut tokenizer_adapter = TokenizerAdapterKeyBuilder::default();
     let mut options = ObserveOptions {
         source: PathBuf::from(DEFAULT_HF_SOURCE_PATH),
         checkpoint: None,
@@ -156,6 +452,7 @@ fn parse_observe_options(args: &[String]) -> Result<ObserveOptions, SourceUnavai
         target: 20_000,
         shards: 4,
         sequence_length: 128,
+        tokenizer_adapter: None,
     };
     let mut index = 0usize;
     while index < args.len() {
@@ -198,6 +495,7 @@ fn parse_observe_options(args: &[String]) -> Result<ObserveOptions, SourceUnavai
                     ));
                 }
             }
+            flag if tokenizer_adapter.parse(flag, value)? => {}
             _ => {
                 return Err(SourceUnavailable::new(format!(
                     "unknown observe option: {flag}"
@@ -206,7 +504,36 @@ fn parse_observe_options(args: &[String]) -> Result<ObserveOptions, SourceUnavai
         }
         index += 2;
     }
+    options.tokenizer_adapter = tokenizer_adapter.finish()?;
+    if options.checkpoint.is_some() && options.tokenizer_adapter.is_some() {
+        return Err(SourceUnavailable::new(
+            "--tokenizer-family/--tokenizer-version select registered source tokenizers and cannot be used with legacy --checkpoint",
+        ));
+    }
     Ok(options)
+}
+
+/// Pin the tokenizer identity before a resumable observation command writes
+/// `tokenizer.bin` or reconciles any partial shard tail. The writer performs
+/// the registry/digest checks and refuses adapterless payload relabeling.
+fn pin_observation_tokenizer_before_output(
+    output: &Path,
+    shard_bits: u8,
+    requested: Option<&TokenizerAdapter>,
+) -> Result<(), SourceUnavailable> {
+    let mut writer = observe::ObservationShardWriter::open(output, shard_bits)?;
+    match (writer.manifest().tokenizer_adapter.as_ref(), requested) {
+        (Some(recorded), None) => Err(SourceUnavailable::new(format!(
+            "{} is pinned to tokenizer adapter {}/{} (CID {}, digest {}); requested the adapterless legacy tokenizer; incompatible resume refused before mutation",
+            output.display(),
+            recorded.family,
+            recorded.version,
+            recorded.tokenizer_cid,
+            recorded.adapter_digest,
+        ))),
+        (_, Some(adapter)) => writer.set_tokenizer_adapter(adapter),
+        (None, None) => Ok(()),
+    }
 }
 
 /// Observation pipeline v2 (plan §5 Phase 2): the same teacher generation
@@ -218,7 +545,6 @@ pub fn observe_command(args: &[String]) -> Result<(), SourceUnavailable> {
         "warning: debug builds make teacher generation much slower; use `cargo run --release -- observe ...`"
     );
     let options = parse_observe_options(args)?;
-    std::fs::create_dir_all(&options.output)?;
     let token_byte_lengths: Option<Vec<u32>>;
     let mut oracle: Box<dyn TeacherOracle> = if let Some(checkpoint) = &options.checkpoint {
         // Legacy llama2.c checkpoint: no HF tokenizer tree, so byte
@@ -227,20 +553,27 @@ pub fn observe_command(args: &[String]) -> Result<(), SourceUnavailable> {
         let path = checkpoint
             .to_str()
             .ok_or_else(|| SourceUnavailable::new("checkpoint path is not UTF-8"))?;
+        pin_observation_tokenizer_before_output(&options.output, options.shards, None)?;
         Box::new(LlamaOracle::load(path))
     } else {
+        let tokenizer =
+            resolve_source_tokenizer(&options.source, options.tokenizer_adapter.as_ref())?;
+        let runtime_table = tokenizer.runtime_decode_table().ok_or_else(|| {
+            SourceUnavailable::new("registered source tokenizer has no runtime decode table")
+        })?;
         let oracle = Teacher::load_with_sequence_length(&options.source, options.sequence_length)
             .map_err(|error| {
             SourceUnavailable::new(format!("failed to load Hugging Face model: {error}"))
         })?;
+        let adapter = tokenizer.adapter();
+        pin_observation_tokenizer_before_output(&options.output, options.shards, adapter.as_ref())?;
         eprintln!("exporting tokenizer...");
-        token_byte_lengths = Some(
-            uor_r4_core::transformerless::scenarios::export_hf_bytelevel_tokenizer_with_lengths(
-                options.source.join("tokenizer.json"),
-                options.output.join("tokenizer.bin"),
-            )
-            .map_err(SourceUnavailable::new)?,
-        );
+        let export = core_scenarios::export_runtime_tokenizer_table(
+            &runtime_table,
+            options.output.join("tokenizer.bin"),
+        )
+        .map_err(SourceUnavailable::new)?;
+        token_byte_lengths = export.source_byte_lengths;
         Box::new(oracle)
     };
     let summary = observe::observe_sharded(
@@ -285,9 +618,11 @@ struct ObserveTextOptions {
     sequence_length: usize,
     workers: usize,
     batch: usize,
+    tokenizer_adapter: Option<TokenizerAdapterKey>,
 }
 
 fn parse_observe_text_options(args: &[String]) -> Result<ObserveTextOptions, SourceUnavailable> {
+    let mut tokenizer_adapter = TokenizerAdapterKeyBuilder::default();
     let mut options = ObserveTextOptions {
         input: PathBuf::from(DEFAULT_TEXT_CORPUS),
         source: PathBuf::from(DEFAULT_HF_SOURCE_PATH),
@@ -299,6 +634,7 @@ fn parse_observe_text_options(args: &[String]) -> Result<ObserveTextOptions, Sou
         sequence_length: 128,
         workers: 1,
         batch: 1,
+        tokenizer_adapter: None,
     };
     let mut index = 0usize;
     while index < args.len() {
@@ -361,6 +697,7 @@ fn parse_observe_text_options(args: &[String]) -> Result<ObserveTextOptions, Sou
                     return Err(SourceUnavailable::new("--batch must be greater than zero"));
                 }
             }
+            flag if tokenizer_adapter.parse(flag, value)? => {}
             _ => {
                 return Err(SourceUnavailable::new(format!(
                     "unknown observe-text option: {flag}"
@@ -369,7 +706,47 @@ fn parse_observe_text_options(args: &[String]) -> Result<ObserveTextOptions, Sou
         }
         index += 2;
     }
+    options.tokenizer_adapter = tokenizer_adapter.finish()?;
+    if options.checkpoint.is_some() && options.tokenizer_adapter.is_some() {
+        return Err(SourceUnavailable::new(
+            "--tokenizer-family/--tokenizer-version select registered source tokenizers and cannot be used with legacy --checkpoint",
+        ));
+    }
+    if options.checkpoint.is_none() && options.tokenizer.is_some() {
+        return Err(SourceUnavailable::new(
+            "--tokenizer is the legacy llama2.c tokenizer and requires --checkpoint",
+        ));
+    }
     Ok(options)
+}
+
+fn resolve_registered_observation_tokenizer(
+    source: &Path,
+    selection: Option<&TokenizerAdapterKey>,
+) -> Result<(TokenizerKind, RuntimeTokenizerDecodeTable), SourceUnavailable> {
+    // Resolve and materialize the table before loading an expensive teacher
+    // or touching resumable output. The same model then supplies manifest
+    // identity, host encoding, and runtime decoding.
+    let tokenizer = resolve_source_tokenizer(source, selection)?;
+    let runtime_table = tokenizer.runtime_decode_table().ok_or_else(|| {
+        SourceUnavailable::new("registered source tokenizer has no runtime decode table")
+    })?;
+    Ok((tokenizer, runtime_table))
+}
+
+fn pin_and_export_observation_tokenizer(
+    tokenizer: &TokenizerKind,
+    runtime_table: &RuntimeTokenizerDecodeTable,
+    output: &Path,
+    shard_bits: u8,
+) -> Result<Option<Vec<u32>>, SourceUnavailable> {
+    let adapter = tokenizer.adapter();
+    pin_observation_tokenizer_before_output(output, shard_bits, adapter.as_ref())?;
+    eprintln!("exporting tokenizer...");
+    let export =
+        core_scenarios::export_runtime_tokenizer_table(runtime_table, output.join("tokenizer.bin"))
+            .map_err(SourceUnavailable::new)?;
+    Ok(export.source_byte_lengths)
 }
 
 /// From-text observation driver (issue #72): feed the sealed natural-text
@@ -382,7 +759,6 @@ pub fn observe_text_command(args: &[String]) -> Result<(), SourceUnavailable> {
         "warning: debug builds make teacher generation much slower; use `cargo run --release -- observe-text ...`"
     );
     let options = parse_observe_text_options(args)?;
-    std::fs::create_dir_all(&options.output)?;
     // Batched teacher path: one shared weight copy, B articles per forward. This
     // is the throughput lever (measured ~15× at batch 32) and supersedes
     // --workers for the Hugging Face teacher.
@@ -394,7 +770,7 @@ pub fn observe_text_command(args: &[String]) -> Result<(), SourceUnavailable> {
         }
         return observe_text_batched_command(&options);
     }
-    let token_byte_lengths: Vec<u32>;
+    let token_byte_lengths: Option<Vec<u32>>;
     let tokenizer: TokenizerKind;
     let oracle: Box<dyn TeacherOracle + Send> = if let Some(checkpoint) = &options.checkpoint {
         // Legacy llama2.c checkpoint: the companion tokenizer is the
@@ -409,47 +785,34 @@ pub fn observe_text_command(args: &[String]) -> Result<(), SourceUnavailable> {
         let legacy = scenarios::Tokenizer::try_load(&tokenizer_path).map_err(|error| {
             SourceUnavailable::new(format!("{}: {error}", tokenizer_path.display()))
         })?;
-        token_byte_lengths = legacy
-            .vocab
-            .iter()
-            .map(|piece| piece.len() as u32)
-            .collect();
+        token_byte_lengths = Some(
+            legacy
+                .vocab
+                .iter()
+                .map(|piece| piece.len() as u32)
+                .collect(),
+        );
         tokenizer = TokenizerKind::Legacy(legacy);
         let path = checkpoint
             .to_str()
             .ok_or_else(|| SourceUnavailable::new("checkpoint path is not UTF-8"))?;
         Box::new(LlamaOracle::load(path))
     } else {
+        let (resolved_tokenizer, runtime_table) = resolve_registered_observation_tokenizer(
+            &options.source,
+            options.tokenizer_adapter.as_ref(),
+        )?;
         let oracle = Teacher::load_with_sequence_length(&options.source, options.sequence_length)
             .map_err(|error| {
             SourceUnavailable::new(format!("failed to load Hugging Face model: {error}"))
         })?;
-        eprintln!("exporting tokenizer...");
-        token_byte_lengths =
-            uor_r4_core::transformerless::scenarios::export_hf_bytelevel_tokenizer_with_lengths(
-                options.source.join("tokenizer.json"),
-                options.output.join("tokenizer.bin"),
-            )
-            .map_err(SourceUnavailable::new)?;
-        // Issue #242: segment observation text with the teacher's REAL
-        // byte-level BPE (ordered merges from tokenizer.json), not the
-        // legacy lowest-id greedy heuristic — otherwise every record feeds
-        // the teacher a segmentation it never saw. tokenizer.bin above
-        // remains the compiled runtime artifact; tokenizer.json is
-        // authoritative for observation when present.
-        let tokenizer_json = options.source.join("tokenizer.json");
-        tokenizer = if tokenizer_json.is_file() {
-            TokenizerKind::HfBpe(Box::new(
-                HfBpeTokenizer::from_dir(&options.source).map_err(|error| {
-                    SourceUnavailable::new(format!("{}: {error}", tokenizer_json.display()))
-                })?,
-            ))
-        } else {
-            TokenizerKind::Legacy(
-                scenarios::Tokenizer::try_load(options.output.join("tokenizer.bin"))
-                    .map_err(SourceUnavailable::new)?,
-            )
-        };
+        token_byte_lengths = pin_and_export_observation_tokenizer(
+            &resolved_tokenizer,
+            &runtime_table,
+            &options.output,
+            options.shards,
+        )?;
+        tokenizer = resolved_tokenizer;
         Box::new(oracle)
     };
     // Build the worker pool: the oracle loaded above plus `workers - 1` more
@@ -482,7 +845,7 @@ pub fn observe_text_command(args: &[String]) -> Result<(), SourceUnavailable> {
         &mut pool,
         options.seconds,
         &tokenizer,
-        Some(&token_byte_lengths),
+        token_byte_lengths.as_deref(),
         &options.input,
         &options.output,
         options.shards,
@@ -501,30 +864,20 @@ fn observe_text_batched_command(options: &ObserveTextOptions) -> Result<(), Sour
     // (`Gpt2State`) instead of the Llama-only path. Both concrete oracles
     // implement `BatchedTeacher`; the generic `observe_text_corpus_batched`
     // is monomorphized per architecture.
+    let (tokenizer, runtime_table) = resolve_registered_observation_tokenizer(
+        &options.source,
+        options.tokenizer_adapter.as_ref(),
+    )?;
     let teacher = Teacher::load_with_sequence_length(&options.source, options.sequence_length)
         .map_err(|error| {
             SourceUnavailable::new(format!("failed to load Hugging Face model: {error}"))
         })?;
-    eprintln!("exporting tokenizer...");
-    let token_byte_lengths =
-        uor_r4_core::transformerless::scenarios::export_hf_bytelevel_tokenizer_with_lengths(
-            options.source.join("tokenizer.json"),
-            options.output.join("tokenizer.bin"),
-        )
-        .map_err(SourceUnavailable::new)?;
-    let tokenizer_json = options.source.join("tokenizer.json");
-    let tokenizer = if tokenizer_json.is_file() {
-        TokenizerKind::HfBpe(Box::new(
-            HfBpeTokenizer::from_dir(&options.source).map_err(|error| {
-                SourceUnavailable::new(format!("{}: {error}", tokenizer_json.display()))
-            })?,
-        ))
-    } else {
-        TokenizerKind::Legacy(
-            scenarios::Tokenizer::try_load(options.output.join("tokenizer.bin"))
-                .map_err(SourceUnavailable::new)?,
-        )
-    };
+    let token_byte_lengths = pin_and_export_observation_tokenizer(
+        &tokenizer,
+        &runtime_table,
+        &options.output,
+        options.shards,
+    )?;
     eprintln!("observing with batch {}", options.batch);
     let report = match teacher {
         Teacher::Llama(oracle) => observe_text::observe_text_corpus_batched(
@@ -532,7 +885,7 @@ fn observe_text_batched_command(options: &ObserveTextOptions) -> Result<(), Sour
             options.batch,
             options.seconds,
             &tokenizer,
-            Some(&token_byte_lengths),
+            token_byte_lengths.as_deref(),
             &options.input,
             &options.output,
             options.shards,
@@ -543,7 +896,7 @@ fn observe_text_batched_command(options: &ObserveTextOptions) -> Result<(), Sour
             options.batch,
             options.seconds,
             &tokenizer,
-            Some(&token_byte_lengths),
+            token_byte_lengths.as_deref(),
             &options.input,
             &options.output,
             options.shards,
@@ -580,7 +933,7 @@ fn finish_observe_text_report(
     }
     if report.characters_replaced != 0 {
         println!(
-            "note: {} characters unencodable in the teacher vocab replaced with spaces",
+            "note: {} source characters or spans were represented lossily by the selected tokenizer",
             report.characters_replaced
         );
     }
@@ -614,6 +967,7 @@ struct CoverOptions {
     corpus_meta: PathBuf,
     corpus_recs: PathBuf,
     artifacts: PathBuf,
+    tokenizer: Option<PathBuf>,
     depths: usize,
     k0: usize,
     regions_budget: usize,
@@ -647,6 +1001,7 @@ fn parse_cover_options(args: &[String]) -> Result<CoverOptions, SourceUnavailabl
         corpus_meta: PathBuf::from(default_meta),
         corpus_recs: PathBuf::from(default_recs),
         artifacts: PathBuf::from(compiler::ART_PATH),
+        tokenizer: None,
         depths: cover::DEFAULT_DEPTHS,
         k0: cover::DEFAULT_K0,
         regions_budget: cover::DEFAULT_REGIONS_BUDGET,
@@ -669,6 +1024,7 @@ fn parse_cover_options(args: &[String]) -> Result<CoverOptions, SourceUnavailabl
             "--corpus-meta" => options.corpus_meta = PathBuf::from(value),
             "--corpus-recs" => options.corpus_recs = PathBuf::from(value),
             "--artifacts" => options.artifacts = PathBuf::from(value),
+            "--tokenizer" => options.tokenizer = Some(PathBuf::from(value)),
             "--depths" => {
                 options.depths = value.parse().map_err(|_| {
                     SourceUnavailable::new(format!("invalid --depths value: {value}"))
@@ -772,6 +1128,7 @@ pub fn cover_command(args: &[String]) -> Result<(), SourceUnavailable> {
         "warning: debug builds make cover induction much slower; use `cargo run --release -- transformerless cover ...`"
     );
     let options = parse_cover_options(args)?;
+    let tokenizer_cid = explicit_tokenizer_cid(options.tokenizer.as_deref())?.unwrap_or([0; 32]);
     let corpus_meta_path = if !options.corpus_meta.exists() {
         if let Some(parent) = options.corpus_meta.parent() {
             if parent.join("corpus.meta").exists() {
@@ -900,7 +1257,7 @@ pub fn cover_command(args: &[String]) -> Result<(), SourceUnavailable> {
     let prior = cover::root_prior(&train);
     let vocab = u32::try_from(artifacts.token_codes.len() / compiler::STAGES)
         .expect("vocabulary exceeds u32 token ids");
-    let (artifact_bytes, info) = cover::emit_r4g1(
+    let (artifact_bytes, info) = cover::emit_r4g1_with_tokenizer_cid(
         &artifact_container,
         (&meta_bytes, &recs_bytes),
         vocab,
@@ -908,6 +1265,7 @@ pub fn cover_command(args: &[String]) -> Result<(), SourceUnavailable> {
         &edges,
         &prior,
         &train,
+        tokenizer_cid,
     )
     .map_err(|bound| {
         SourceUnavailable::new(format!(
@@ -988,6 +1346,7 @@ struct ScoreOptions {
     corpus_meta: PathBuf,
     corpus_recs: PathBuf,
     artifacts: PathBuf,
+    tokenizer: Option<PathBuf>,
     cover: Option<PathBuf>,
     stories: Option<PathBuf>,
     transition_out_degree: usize,
@@ -1013,6 +1372,7 @@ fn parse_score_options(args: &[String]) -> Result<ScoreOptions, SourceUnavailabl
         corpus_meta: PathBuf::from(default_meta),
         corpus_recs: PathBuf::from(default_recs),
         artifacts: PathBuf::from(compiler::ART_PATH),
+        tokenizer: None,
         cover: None,
         stories: None,
         transition_out_degree: score::DEFAULT_TRANSITION_OUT_DEGREE,
@@ -1041,6 +1401,7 @@ fn parse_score_options(args: &[String]) -> Result<ScoreOptions, SourceUnavailabl
             "--corpus-meta" => options.corpus_meta = PathBuf::from(value),
             "--corpus-recs" => options.corpus_recs = PathBuf::from(value),
             "--artifacts" => options.artifacts = PathBuf::from(value),
+            "--tokenizer" => options.tokenizer = Some(PathBuf::from(value)),
             "--cover" => options.cover = Some(PathBuf::from(value)),
             "--stories" => options.stories = Some(PathBuf::from(value)),
             "--transition-out-degree" => {
@@ -1209,6 +1570,19 @@ pub fn score_command(args: &[String]) -> Result<(), SourceUnavailable> {
         "warning: debug builds make scoring much slower; use `cargo run --release -- transformerless score ...`"
     );
     let options = parse_score_options(args)?;
+    // Resolve tokenizer/cover identity before corpus observation or output
+    // mutation. This both preserves a bound cover CID when no tokenizer flag is
+    // repeated and rejects an explicit cross-id-space swap up front.
+    let explicit_tokenizer_cid = explicit_tokenizer_cid(options.tokenizer.as_deref())?;
+    let cover_bytes = options
+        .cover
+        .as_ref()
+        .map(|path| {
+            std::fs::read(path)
+                .map_err(|error| SourceUnavailable::new(format!("{}: {error}", path.display())))
+        })
+        .transpose()?;
+    let tokenizer_cid = scored_tokenizer_cid(cover_bytes.as_deref(), explicit_tokenizer_cid)?;
     // #488: account for where a real corpus's hours go across the WHOLE score
     // pipeline, not just Gate C. Same instrument, same conventions as #471
     // (stderr only — a duration in `score_report.json` would break the
@@ -1348,17 +1722,18 @@ pub fn score_command(args: &[String]) -> Result<(), SourceUnavailable> {
     // (deterministic double-run), so the choice is a pure cache.
     let (regions, structural, cover_source) = match &options.cover {
         Some(path) => {
-            let bytes = std::fs::read(path)
-                .map_err(|error| SourceUnavailable::new(format!("{}: {error}", path.display())))?;
+            let bytes = cover_bytes
+                .as_deref()
+                .expect("cover bytes were preflighted for a present --cover path");
             // #450: the cached cover is the second container this command
             // consumes; address it in the log too.
             eprintln!(
                 "cover container: {} (κ {})",
                 path.display(),
-                repro::container_kappa(&bytes)
+                repro::container_kappa(bytes)
             );
             let (regions, structural) =
-                score::recover_from_artifact(&bytes).map_err(SourceUnavailable::new)?;
+                score::recover_from_artifact(bytes).map_err(SourceUnavailable::new)?;
             eprintln!(
                 "score: recovered {} regions from {}",
                 regions.len(),
@@ -1425,7 +1800,7 @@ pub fn score_command(args: &[String]) -> Result<(), SourceUnavailable> {
     let emissions =
         score::compile_emissions(&corpus, &store, &regions, &train, max_depth, vocab, &config);
     phases.mark("emission compilation");
-    let (artifact_bytes, info) = score::emit_scored_r4g1(
+    let (artifact_bytes, info) = score::emit_scored_r4g1_with_tokenizer_cid(
         &artifact_container,
         (&meta_bytes, &recs_bytes),
         vocab,
@@ -1440,6 +1815,7 @@ pub fn score_command(args: &[String]) -> Result<(), SourceUnavailable> {
             exct_top_x: config.exct_top_x,
             fwd_rows: &fwd_rows,
         },
+        tokenizer_cid,
     );
     let graph_kappa = uor_r4_graph_format::r4g1::artifact_kappa(&artifact_bytes)
         .expect("cannot address emitted R4G1 artifact");
@@ -1917,6 +2293,7 @@ struct FloorDecomposition {
 }
 
 fn parse_compile_options(args: &[String]) -> Result<CompileOptions, SourceUnavailable> {
+    let mut tokenizer_adapter = TokenizerAdapterKeyBuilder::default();
     let mut options = CompileOptions {
         model: None,
         revision: None,
@@ -1926,6 +2303,7 @@ fn parse_compile_options(args: &[String]) -> Result<CompileOptions, SourceUnavai
         target: 20_000,
         sequence_length: 128,
         r4_attention: false,
+        tokenizer_adapter: None,
     };
     let mut index = 0usize;
     while index < args.len() {
@@ -1963,6 +2341,7 @@ fn parse_compile_options(args: &[String]) -> Result<CompileOptions, SourceUnavai
                     ));
                 }
             }
+            flag if tokenizer_adapter.parse(flag, value)? => {}
             _ => {
                 return Err(SourceUnavailable::new(format!(
                     "unknown compile option: {flag}"
@@ -1981,6 +2360,7 @@ fn parse_compile_options(args: &[String]) -> Result<CompileOptions, SourceUnavai
             "--model requires an immutable --revision",
         ));
     }
+    options.tokenizer_adapter = tokenizer_adapter.finish()?;
     Ok(options)
 }
 
@@ -2013,6 +2393,7 @@ fn source_slug(options: &CompileOptions) -> String {
 fn parse_evaluate_report_options(
     args: &[String],
 ) -> Result<EvaluateReportOptions, SourceUnavailable> {
+    let mut tokenizer_adapter = TokenizerAdapterKeyBuilder::default();
     let mut options = EvaluateReportOptions {
         source: PathBuf::from(DEFAULT_HF_SOURCE_PATH),
         compiled: PathBuf::from(DEFAULT_HF_COMPILED_PATH),
@@ -2020,6 +2401,7 @@ fn parse_evaluate_report_options(
         sequence_length: 128,
         bos: false,
         max_held_out_stories: None,
+        tokenizer_adapter: None,
     };
     let mut index = 0usize;
     while index < args.len() {
@@ -2057,6 +2439,7 @@ fn parse_evaluate_report_options(
                 }
                 options.max_held_out_stories = Some(limit);
             }
+            flag if tokenizer_adapter.parse(flag, value)? => {}
             _ => {
                 return Err(SourceUnavailable::new(format!(
                     "unknown evaluate-report option: {flag}"
@@ -2065,7 +2448,92 @@ fn parse_evaluate_report_options(
         }
         index += 2;
     }
+    options.tokenizer_adapter = tokenizer_adapter.finish()?;
     Ok(options)
+}
+
+fn read_required_regular_file(path: &Path, label: &str) -> Result<Vec<u8>, SourceUnavailable> {
+    let metadata = std::fs::symlink_metadata(path)
+        .map_err(|error| SourceUnavailable::new(format!("{}: {error}", path.display())))?;
+    if !metadata.file_type().is_file() {
+        return Err(SourceUnavailable::new(format!(
+            "{}: required {label} is not a regular file",
+            path.display()
+        )));
+    }
+    std::fs::read(path)
+        .map_err(|error| SourceUnavailable::new(format!("{}: {error}", path.display())))
+}
+
+/// Validate the deployable graph rather than accidentally parsing the teacher
+/// artifact container. New #718 evaluation requires an affirmative, nonzero
+/// HEAD binding and exact reproduction by the deployed tokenizer bytes.
+fn verify_scored_graph_tokenizer_binding(
+    graph_bytes: &[u8],
+    tokenizer_bytes: &[u8],
+) -> Result<(), SourceUnavailable> {
+    let view = uor_r4_graph_format::GraphView::parse(graph_bytes).map_err(|error| {
+        SourceUnavailable::new(format!("invalid final scored R4G1 graph: {error}"))
+    })?;
+    view.verify_cids().map_err(|error| {
+        SourceUnavailable::new(format!("invalid final scored R4G1 integrity: {error}"))
+    })?;
+    let expected = view
+        .head()
+        .ok_or_else(|| SourceUnavailable::new("final scored R4G1 graph has no HEAD"))?
+        .tokenizer_cid()
+        .0;
+    if expected == [0; 32] {
+        return Err(SourceUnavailable::new(
+            "final scored R4G1 graph has a legacy zero tokenizer CID; evaluation requires an exact tokenizer.bin binding",
+        ));
+    }
+    view.verify_tokenizer_cid(tokenizer_bytes).map_err(|error| {
+        SourceUnavailable::new(format!(
+            "final scored graph tokenizer_cid verification failed: {error}"
+        ))
+    })
+}
+
+/// Bind the deployed runtime table back to the already validated source and
+/// sidecar identity. The historical hf-byte-bpe/1 representation is the sole
+/// intentional untagged format; every tagged table must reproduce all four
+/// identity fields, and every other adapter requires a tagged identity.
+fn verify_runtime_tokenizer_adapter_identity(
+    tokenizer_bytes: &[u8],
+    adapter: &TokenizerAdapter,
+) -> Result<(), SourceUnavailable> {
+    let runtime = core_scenarios::Tokenizer::from_bytes(tokenizer_bytes)
+        .ok_or_else(|| SourceUnavailable::new("tokenizer.bin is not a valid runtime tokenizer"))?;
+    let Some(identity) = runtime.adapter_identity() else {
+        if adapter.family == TokenizerAdapterKey::hf_byte_bpe_v1().family
+            && adapter.version == TokenizerAdapterKey::hf_byte_bpe_v1().version
+        {
+            return Ok(());
+        }
+        return Err(SourceUnavailable::new(format!(
+            "tokenizer.bin is an untagged legacy runtime table, but source/sidecar require {}/{} (CID {}, digest {})",
+            adapter.family, adapter.version, adapter.tokenizer_cid, adapter.adapter_digest,
+        )));
+    };
+    if identity.family != adapter.family
+        || identity.version != adapter.version
+        || identity.tokenizer_cid != adapter.tokenizer_cid
+        || identity.adapter_digest != adapter.adapter_digest
+    {
+        return Err(SourceUnavailable::new(format!(
+            "tokenizer.bin embedded adapter identity {}/{} (CID {}, digest {}) does not match validated source/sidecar {}/{} (CID {}, digest {})",
+            identity.family,
+            identity.version,
+            identity.tokenizer_cid,
+            identity.adapter_digest,
+            adapter.family,
+            adapter.version,
+            adapter.tokenizer_cid,
+            adapter.adapter_digest,
+        )));
+    }
+    Ok(())
 }
 
 fn file_cid(path: &Path) -> Result<String, SourceUnavailable> {
@@ -2146,6 +2614,24 @@ fn deepest_argmax(store: &runtime::Store, code: &[u8; compiler::STAGES]) -> Opti
 
 fn evaluate_report(args: &[String]) -> Result<(), SourceUnavailable> {
     let options = parse_evaluate_report_options(args)?;
+    // Evaluation decodes/classifies in the same registered id space selected
+    // by observation and compilation. A malformed, missing, unsupported, or
+    // ambiguous source definition is an error rather than "unclassified".
+    let tokenizer = resolve_source_tokenizer(&options.source, options.tokenizer_adapter.as_ref())?;
+    let tokenizer_adapter = tokenizer.adapter().ok_or_else(|| {
+        SourceUnavailable::new("registered source tokenizer has no adapter identity")
+    })?;
+    let recorded_adapter = read_compile_tokenizer_adapter(&options.compiled)?.ok_or_else(|| {
+        SourceUnavailable::new(format!(
+            "{} has no {TOKENIZER_ADAPTER_FILE}; evaluation cannot prove that its corpus id space matches {}/{}",
+            options.compiled.display(), tokenizer_adapter.family, tokenizer_adapter.version
+        ))
+    })?;
+    require_matching_compile_tokenizer_adapter(
+        &options.compiled,
+        &tokenizer_adapter,
+        &recorded_adapter,
+    )?;
     let report_path = options
         .report
         .clone()
@@ -2154,11 +2640,17 @@ fn evaluate_report(args: &[String]) -> Result<(), SourceUnavailable> {
     let artifacts_path = options.compiled.join("tless_artifacts.bin");
     let store_path = options.compiled.join("tless_store.bin");
     let tokenizer_path = options.compiled.join("tokenizer.bin");
+    let scored_graph_path = options.compiled.join("graph").join("score.r4g1");
     let corpus_meta_path = options.compiled.join("corpus.meta");
     let corpus_records_path = options.compiled.join("corpus.records");
+    let scored_graph_bytes =
+        read_required_regular_file(&scored_graph_path, "final scored R4G1 graph")?;
+    let tokenizer_bytes = read_required_regular_file(&tokenizer_path, "tokenizer.bin")?;
+    verify_scored_graph_tokenizer_binding(&scored_graph_bytes, &tokenizer_bytes)?;
+    verify_runtime_tokenizer_adapter_identity(&tokenizer_bytes, &recorded_adapter)?;
     let artifacts_cid = file_cid(&artifacts_path)?;
     let store_cid = file_cid(&store_path)?;
-    let tokenizer_cid = file_cid(&tokenizer_path)?;
+    let tokenizer_cid = format!("blake3:{}", blake3::hash(&tokenizer_bytes).to_hex());
     let corpus_meta_cid = file_cid(&corpus_meta_path)?;
     let corpus_records_cid = file_cid(&corpus_records_path)?;
 
@@ -2187,15 +2679,6 @@ fn evaluate_report(args: &[String]) -> Result<(), SourceUnavailable> {
         })?;
     let mut teacher_logits = vec![0f32; oracle.vocab()];
     let artifacts_bytes = std::fs::read(&artifacts_path)?;
-    let tokenizer_bytes = std::fs::read(&tokenizer_path)?;
-
-    if let Ok(graph_view) = uor_r4_graph_format::GraphView::parse(&artifacts_bytes) {
-        graph_view
-            .verify_tokenizer_cid(&tokenizer_bytes)
-            .map_err(|e| {
-                SourceUnavailable::new(format!("tokenizer_cid verification failed: {e}"))
-            })?;
-    }
 
     let artifacts = compiler::parse_artifacts(&artifacts_bytes)
         .ok_or_else(|| SourceUnavailable::new("invalid compiled artifact container"))?;
@@ -2231,30 +2714,24 @@ fn evaluate_report(args: &[String]) -> Result<(), SourceUnavailable> {
     let mut floor_by_class = [(0usize, 0f64); TOKEN_CLASSES.len()];
     let mut floor_by_story: std::collections::BTreeMap<u32, (usize, f64)> =
         std::collections::BTreeMap::new();
-    // Next-token class through the HF byte-level BPE (the corpus id
-    // space post-#242); tokenizer absence degrades to "unclassified"
-    // rather than failing the evaluation.
-    let bpe = HfBpeTokenizer::from_dir(&options.source).ok();
+    // Next-token class through the exact registered tokenizer that defines
+    // the corpus id space. Resolver errors were surfaced before loading the
+    // expensive teacher and cannot silently become legacy/unclassified data.
     let mut class_cache: std::collections::BTreeMap<u32, usize> = std::collections::BTreeMap::new();
     let mut classify = |token: u32| -> usize {
         if let Some(&class) = class_cache.get(&token) {
             return class;
         }
-        let class = match &bpe {
-            None => 3,
-            Some(tokenizer) => {
-                let text = tokenizer.decode(&[token]);
-                let trimmed = text.trim();
-                if trimmed.is_empty() {
-                    2
-                } else if trimmed.chars().all(|ch| ch.is_ascii_digit()) {
-                    0
-                } else if trimmed.chars().all(char::is_alphabetic) {
-                    1
-                } else {
-                    2
-                }
-            }
+        let text = tokenizer.decode(&[token]);
+        let trimmed = text.trim();
+        let class = if trimmed.is_empty() {
+            2
+        } else if trimmed.chars().all(|ch| ch.is_ascii_digit()) {
+            0
+        } else if trimmed.chars().all(char::is_alphabetic) {
+            1
+        } else {
+            2
         };
         class_cache.insert(token, class);
         class
@@ -2588,6 +3065,8 @@ fn download_hf_source(
             "merges.txt",
             "--include",
             "vocab.json",
+            "--include",
+            "spiece.model",
         ])
         .status()
         .map_err(|error| SourceUnavailable::new(format!("failed to run hf: {error}")))?;
@@ -2634,12 +3113,19 @@ where
             &source,
         )?;
     }
+    let tokenizer = resolve_source_tokenizer(&source, options.tokenizer_adapter.as_ref())?;
+    let tokenizer_adapter = tokenizer.adapter().ok_or_else(|| {
+        SourceUnavailable::new("registered source tokenizer has no adapter identity")
+    })?;
+    let runtime_table = tokenizer.runtime_decode_table().ok_or_else(|| {
+        SourceUnavailable::new("registered source tokenizer has no runtime decode table")
+    })?;
     let output = options
         .output
         .clone()
         .unwrap_or_else(|| PathBuf::from(".uor-models/compiled").join(&slug));
     eprintln!("compiler output: {}", output.display());
-    std::fs::create_dir_all(&output).map_err(SourceUnavailable::new)?;
+    pin_compile_tokenizer_adapter(&output, &tokenizer_adapter)?;
     let meta = output.join("corpus.meta");
     let records = output.join("corpus.records");
     let meta = meta
@@ -2657,8 +3143,8 @@ where
     }
     progress(5, "Exporting tokenizer...");
     eprintln!("exporting tokenizer...");
-    let token_byte_lengths = core_scenarios::export_hf_bytelevel_tokenizer_with_lengths(
-        source.join("tokenizer.json"),
+    let tokenizer_export = core_scenarios::export_runtime_tokenizer_table(
+        &runtime_table,
         output.join("tokenizer.bin"),
     )
     .map_err(SourceUnavailable::new)?;
@@ -2669,7 +3155,7 @@ where
         options.target,
         meta,
         records,
-        Some(&token_byte_lengths),
+        tokenizer_export.source_byte_lengths.as_deref(),
     );
     let Some(corpus) = compiler::load_corpus_from(meta, records) else {
         println!(
@@ -3033,14 +3519,14 @@ pub fn run(args: &[String]) -> Result<(), SourceUnavailable> {
         _ => {
             println!(
                 "R4 transformerless — compile a mul-free table artifact\n\
-                 commands: setup | gen [secs] [target] | compile [--model REPO --revision SHA | --source DIR] [--output DIR] [--seconds N] [--target N] [--sequence-length N] | store | compare | compare-report | scenarios | teacher-kappa | convert-r4g1 --artifacts <TLA> --store <TLS1> [--calibration <hamming_calibration.json>] --out <R4G1>\n\
+                 commands: setup | gen [secs] [target] | compile [--model REPO --revision SHA | --source DIR] [--tokenizer-family FAMILY --tokenizer-version N] [--output DIR] [--seconds N] [--target N] [--sequence-length N] | store | compare | compare-report | scenarios | teacher-kappa | convert-r4g1 --artifacts <TLA> --store <TLS1> [--calibration <hamming_calibration.json>] --out <R4G1>\n\
                  recorded compile (no transformer): compile-recorded --corpus-meta <META> --corpus-recs <RECS> --vocab-size <N> --out <DIR>\n\
                  transformer-free refresh: runtime-corpus --artifacts <TLA> --store <TLS1> --seed-meta <META> --seed-recs <RECS> --out <DIR> --target N [--threads N]\n\
-                 observation pipeline: observe [--source DIR | --checkpoint BIN] [--seconds N] [--target N] [--shards N] [--out DIR] [--sequence-length N]\n\
-                 text observations (D3): observe-text [--input PATH] [--out DIR] [--shards N] [--seconds N] [--source DIR | --checkpoint BIN] [--tokenizer PATH] [--sequence-length N]\n\
+                 observation pipeline: observe [--source DIR [--tokenizer-family FAMILY --tokenizer-version N] | --checkpoint BIN] [--seconds N] [--target N] [--shards N] [--out DIR] [--sequence-length N]\n\
+                 text observations (D3): observe-text [--input PATH] [--out DIR] [--shards N] [--seconds N] [--source DIR [--tokenizer-family FAMILY --tokenizer-version N] | --checkpoint BIN --tokenizer PATH] [--sequence-length N]\n\
                  A-mode infill serving: graph infill --artifact <scored R4G1> --skeleton <token ids, _ for free> [--teacher <TLA container>]\n\
                  quantum operations: cd-compile | quantum-eval\n\
-                 hf evaluation: evaluate-report [--source DIR] [--compiled DIR] [--report PATH] [--sequence-length N] [--bos] [--max-held-out-stories N]\n\
+                 hf evaluation: evaluate-report [--source DIR] [--tokenizer-family FAMILY --tokenizer-version N] [--compiled DIR] [--report PATH] [--sequence-length N] [--bos] [--max-held-out-stories N]\n\
                  scale sizing (#514): recommend-scale (--config <hf dir> | --d-model N --n-layers N --vocab N) [--corpus wiki|stories] [--beta B]\n\
                  docs: docs/transformerless/TRANSFORMERLESS.md (extrapolation), docs/transformerless/PROOF.md (proof + certificate)"
             );
@@ -3117,6 +3603,77 @@ pub fn quantum_eval_command(_args: &[String]) {
 mod tests {
     use super::*;
 
+    fn unique_cli_test_path(name: &str) -> PathBuf {
+        let nonce = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("clock")
+            .as_nanos();
+        std::env::temp_dir().join(format!("uor-r4-cli-{name}-{nonce}"))
+    }
+
+    fn fixture_adapter(marker: &str) -> TokenizerAdapter {
+        let tokenizer_json = format!(
+            r#"{{
+                "fixture_marker":"{marker}",
+                "pre_tokenizer":{{"type":"ByteLevel","add_prefix_space":false}},
+                "model":{{"type":"BPE","vocab":{{"a":0}},"merges":[]}}
+            }}"#
+        );
+        uor_r4_core::transformerless::hf_bpe::HfBpeTokenizer::from_tokenizer_json_bytes(
+            tokenizer_json.as_bytes(),
+        )
+        .expect("adapter fixture")
+        .adapter()
+    }
+
+    fn directory_bytes(path: &Path) -> Vec<(String, Vec<u8>)> {
+        let mut entries: Vec<_> = std::fs::read_dir(path)
+            .expect("read test directory")
+            .map(|entry| entry.expect("directory entry").path())
+            .filter(|entry| entry.is_file())
+            .map(|entry| {
+                (
+                    entry
+                        .file_name()
+                        .expect("file name")
+                        .to_string_lossy()
+                        .into_owned(),
+                    std::fs::read(&entry).expect("file bytes"),
+                )
+            })
+            .collect();
+        entries.sort_by(|left, right| left.0.cmp(&right.0));
+        entries
+    }
+
+    fn minimal_graph_with_tokenizer_cid(tokenizer_cid: [u8; 32]) -> Vec<u8> {
+        let mut head = [0u8; uor_r4_graph_format::HEAD_PAYLOAD_LEN];
+        head[32..64].copy_from_slice(&tokenizer_cid);
+        head[184..186].copy_from_slice(&8u16.to_le_bytes()); // W
+        head[204] = 1; // depth_count
+        head[212..214].copy_from_slice(&64u16.to_le_bytes()); // signature_bytes
+        let mut builder = uor_r4_graph_format::ArtifactBuilder::new(6);
+        builder.add_section(uor_r4_graph_format::SectionId::HEAD, 0, &head);
+        builder.build().expect("minimal graph serializes")
+    }
+
+    fn tokenizer_adapter_temp_entries(path: &Path) -> Vec<String> {
+        let prefix = format!(".{TOKENIZER_ADAPTER_FILE}.");
+        let mut entries: Vec<String> = std::fs::read_dir(path)
+            .expect("read test directory")
+            .map(|entry| {
+                entry
+                    .expect("directory entry")
+                    .file_name()
+                    .to_string_lossy()
+                    .into_owned()
+            })
+            .filter(|name| name.starts_with(&prefix) && name.ends_with(".tmp"))
+            .collect();
+        entries.sort();
+        entries
+    }
+
     #[test]
     fn parses_parametric_hugging_face_compile() {
         let args = [
@@ -3132,6 +3689,10 @@ mod tests {
             "1000",
             "--sequence-length",
             "64",
+            "--tokenizer-family",
+            "hf-byte-bpe",
+            "--tokenizer-version",
+            "1",
         ]
         .map(str::to_owned);
         let options = parse_compile_options(&args).expect("valid options");
@@ -3143,6 +3704,10 @@ mod tests {
         assert_eq!(options.seconds, 60);
         assert_eq!(options.target, 1000);
         assert_eq!(options.sequence_length, 64);
+        assert_eq!(
+            options.tokenizer_adapter,
+            Some(TokenizerAdapterKey::hf_byte_bpe_v1())
+        );
         assert_eq!(source_slug(&options), "smollm2-135m-instruct");
     }
 
@@ -3206,6 +3771,144 @@ mod tests {
     }
 
     #[test]
+    fn graph_stage_tokenizer_flags_are_explicit_regular_inputs() {
+        let tokenizer = unique_cli_test_path("stage-tokenizer.bin");
+        std::fs::write(&tokenizer, b"exact stage tokenizer").expect("write tokenizer");
+        let flags = ["--tokenizer", tokenizer.to_str().expect("UTF-8 path")].map(str::to_owned);
+        assert_eq!(
+            parse_cover_options(&flags)
+                .expect("cover flag")
+                .tokenizer
+                .as_deref(),
+            Some(tokenizer.as_path())
+        );
+        assert_eq!(
+            parse_score_options(&flags)
+                .expect("score flag")
+                .tokenizer
+                .as_deref(),
+            Some(tokenizer.as_path())
+        );
+        assert_eq!(
+            explicit_tokenizer_cid(Some(&tokenizer)).expect("hash exact bytes"),
+            Some(*blake3::hash(b"exact stage tokenizer").as_bytes())
+        );
+        assert_eq!(explicit_tokenizer_cid(None).expect("legacy absence"), None);
+
+        let missing = unique_cli_test_path("missing-stage-tokenizer.bin");
+        assert!(explicit_tokenizer_cid(Some(&missing)).is_err());
+        let directory = unique_cli_test_path("stage-tokenizer-directory");
+        std::fs::create_dir_all(&directory).expect("create directory");
+        let error = explicit_tokenizer_cid(Some(&directory)).expect_err("directory refused");
+        assert!(error.reason.contains("not a regular file"));
+
+        let _ = std::fs::remove_file(tokenizer);
+        let _ = std::fs::remove_dir_all(directory);
+    }
+
+    #[test]
+    fn score_preserves_cover_tokenizer_and_refuses_a_swap() {
+        let cover_tokenizer = *blake3::hash(b"cover tokenizer").as_bytes();
+        let cover = minimal_graph_with_tokenizer_cid(cover_tokenizer);
+        assert_eq!(
+            scored_tokenizer_cid(Some(&cover), None).expect("inherit cover"),
+            cover_tokenizer
+        );
+        assert_eq!(
+            scored_tokenizer_cid(Some(&cover), Some(cover_tokenizer))
+                .expect("matching explicit tokenizer"),
+            cover_tokenizer
+        );
+        let replacement = *blake3::hash(b"replacement tokenizer").as_bytes();
+        let error = scored_tokenizer_cid(Some(&cover), Some(replacement))
+            .expect_err("cover identity cannot be replaced");
+        assert!(
+            error
+                .reason
+                .contains("does not match explicit --tokenizer CID")
+        );
+
+        let legacy_cover = minimal_graph_with_tokenizer_cid([0; 32]);
+        assert_eq!(
+            scored_tokenizer_cid(Some(&legacy_cover), Some(replacement))
+                .expect("explicit tokenizer upgrades a legacy cover"),
+            replacement
+        );
+    }
+
+    #[test]
+    fn evaluation_requires_bound_scored_graph_and_refuses_swapped_tokenizer() {
+        let tokenizer = b"evaluation tokenizer";
+        let graph = minimal_graph_with_tokenizer_cid(*blake3::hash(tokenizer).as_bytes());
+        verify_scored_graph_tokenizer_binding(&graph, tokenizer).expect("exact binding");
+        let swapped = verify_scored_graph_tokenizer_binding(&graph, b"swapped tokenizer")
+            .expect_err("swapped tokenizer refused");
+        assert!(swapped.reason.contains("tokenizer_cid verification failed"));
+
+        let legacy = minimal_graph_with_tokenizer_cid([0; 32]);
+        let legacy_error = verify_scored_graph_tokenizer_binding(&legacy, tokenizer)
+            .expect_err("zero CID is not evaluable");
+        assert!(legacy_error.reason.contains("legacy zero tokenizer CID"));
+    }
+
+    #[test]
+    fn evaluation_rejects_a_rebound_tagged_tokenizer_with_another_adapter_identity() {
+        let source_adapter = fixture_adapter("evaluation-source-a");
+        let tagged_path = unique_cli_test_path("evaluation-tagged-tokenizer-b.bin");
+        let replacement_identity = core_scenarios::RuntimeTokenizerIdentity {
+            // Keep the registry key equal so the regression proves that the
+            // raw-definition CID and complete adapter digest are checked too.
+            family: source_adapter.family.clone(),
+            version: source_adapter.version,
+            tokenizer_cid: format!("blake3:{}", "1".repeat(64)),
+            adapter_digest: format!("blake3:{}", "2".repeat(64)),
+        };
+        assert_ne!(
+            replacement_identity.tokenizer_cid,
+            source_adapter.tokenizer_cid
+        );
+        let table = RuntimeTokenizerDecodeTable {
+            identity: replacement_identity,
+            pieces: vec![b"<unk>".to_vec(), "▁a".as_bytes().to_vec()],
+            encode_policy: core_scenarios::RuntimeTokenizerEncodePolicy::Unavailable,
+            decode_policy: core_scenarios::RuntimeTokenizerDecodePolicy::SentencePiece {
+                strip_dummy_prefix: true,
+            },
+            source_byte_lengths: None,
+        };
+        core_scenarios::export_runtime_tokenizer_table(&table, &tagged_path)
+            .expect("export tagged replacement");
+        let tagged_bytes = std::fs::read(&tagged_path).expect("read tagged replacement");
+
+        // An attacker can make graph↔tokenizer binding internally consistent
+        // by rebinding HEAD to B. The independent runtime↔sidecar/source check
+        // must still reject B before evaluation touches corpus/oracle state.
+        let rebound_graph =
+            minimal_graph_with_tokenizer_cid(*blake3::hash(&tagged_bytes).as_bytes());
+        verify_scored_graph_tokenizer_binding(&rebound_graph, &tagged_bytes)
+            .expect("graph was deliberately rebound to tokenizer B");
+        let error = verify_runtime_tokenizer_adapter_identity(&tagged_bytes, &source_adapter)
+            .expect_err("tagged tokenizer B cannot impersonate source/sidecar A");
+        assert!(
+            error.reason.contains("embedded adapter identity")
+                && error
+                    .reason
+                    .contains("does not match validated source/sidecar")
+                && error.reason.contains(&source_adapter.tokenizer_cid),
+            "{error}"
+        );
+
+        // The one intentionally untagged runtime representation remains the
+        // historical hf-byte-bpe/1 byte table.
+        let mut legacy_bpe = 1i32.to_le_bytes().to_vec();
+        legacy_bpe.push(b'a');
+        verify_runtime_tokenizer_adapter_identity(&legacy_bpe, &source_adapter)
+            .expect("legacy hf-byte-bpe/1 remains explicit compatibility");
+
+        let _ = std::fs::remove_file(tagged_path);
+    }
+
+    #[test]
     fn local_source_does_not_require_hugging_face_revision() {
         let args = ["--source", "/models/local", "--target", "10"].map(str::to_owned);
         let options = parse_compile_options(&args).expect("valid local source");
@@ -3231,6 +3934,202 @@ mod tests {
     }
 
     #[test]
+    fn compile_adapter_sidecar_is_full_exact_and_idempotent() {
+        let output = unique_cli_test_path("compile-adapter-fresh");
+        let adapter = fixture_adapter("fresh");
+        pin_compile_tokenizer_adapter(&output, &adapter).expect("fresh pin");
+        let sidecar = output.join(TOKENIZER_ADAPTER_FILE);
+        let recorded: TokenizerAdapter =
+            serde_json::from_slice(&std::fs::read(&sidecar).expect("sidecar bytes"))
+                .expect("full adapter record");
+        assert_eq!(recorded, adapter);
+        let before = directory_bytes(&output);
+        pin_compile_tokenizer_adapter(&output, &adapter).expect("identical pin");
+        assert_eq!(directory_bytes(&output), before);
+        let _ = std::fs::remove_dir_all(output);
+    }
+
+    #[test]
+    fn compile_adapter_sidecar_publish_is_concurrent_and_no_clobber() {
+        let output = unique_cli_test_path("compile-adapter-concurrent");
+        let adapter = fixture_adapter("concurrent");
+        let mut threads = Vec::new();
+        for _ in 0..8 {
+            let output = output.clone();
+            let adapter = adapter.clone();
+            threads.push(std::thread::spawn(move || {
+                pin_compile_tokenizer_adapter(&output, &adapter)
+            }));
+        }
+        for thread in threads {
+            thread
+                .join()
+                .expect("publisher thread")
+                .expect("same identity publisher");
+        }
+        let recorded = read_compile_tokenizer_adapter(&output)
+            .expect("sidecar read")
+            .expect("sidecar present");
+        assert_eq!(recorded, adapter);
+        assert!(tokenizer_adapter_temp_entries(&output).is_empty());
+        let _ = std::fs::remove_dir_all(output);
+    }
+
+    #[test]
+    fn compile_adapter_requires_canonical_lowercase_blake3_cid() {
+        assert!(is_blake3_cid(&format!("blake3:{}", "0a1b2c3d".repeat(8))));
+        assert!(!is_blake3_cid(&format!("blake3:{}", "A".repeat(64))));
+        let output = unique_cli_test_path("compile-adapter-uppercase");
+        let mut adapter = fixture_adapter("uppercase");
+        adapter.tokenizer_cid = format!("blake3:{}", "A".repeat(64));
+        adapter.adapter_digest = adapter.declared_digest();
+        let error = pin_compile_tokenizer_adapter(&output, &adapter)
+            .expect_err("uppercase CID is not canonical");
+        assert!(error.reason.contains("invalid tokenizer CID"));
+        assert!(!output.exists());
+    }
+
+    #[test]
+    fn compile_adapter_rejects_directory_sidecar_without_mutation() {
+        let output = unique_cli_test_path("compile-adapter-sidecar-directory");
+        std::fs::create_dir_all(output.join(TOKENIZER_ADAPTER_FILE)).expect("directory sidecar");
+        std::fs::write(output.join("corpus.meta"), b"preserve me").expect("payload");
+        let before = directory_bytes(&output);
+        let error = pin_compile_tokenizer_adapter(&output, &fixture_adapter("directory"))
+            .expect_err("directory sidecar must fail closed");
+        assert!(error.reason.contains("not a regular file"));
+        assert_eq!(directory_bytes(&output), before);
+        assert!(output.join(TOKENIZER_ADAPTER_FILE).is_dir());
+        assert!(tokenizer_adapter_temp_entries(&output).is_empty());
+        let _ = std::fs::remove_dir_all(output);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn compile_adapter_rejects_dangling_sidecar_without_mutation() {
+        use std::os::unix::fs::symlink;
+
+        let output = unique_cli_test_path("compile-adapter-sidecar-dangling");
+        std::fs::create_dir_all(&output).expect("output dir");
+        let sidecar = output.join(TOKENIZER_ADAPTER_FILE);
+        symlink("missing-adapter-target", &sidecar).expect("dangling sidecar");
+        std::fs::write(output.join("corpus.meta"), b"preserve me").expect("payload");
+        let before = directory_bytes(&output);
+        let link_before = std::fs::read_link(&sidecar).expect("link target");
+        let error = pin_compile_tokenizer_adapter(&output, &fixture_adapter("dangling"))
+            .expect_err("dangling sidecar must fail closed");
+        assert!(error.reason.contains("not a regular file"));
+        assert_eq!(directory_bytes(&output), before);
+        assert_eq!(
+            std::fs::read_link(&sidecar).expect("link target"),
+            link_before
+        );
+        assert!(
+            std::fs::symlink_metadata(&sidecar)
+                .expect("sidecar metadata")
+                .file_type()
+                .is_symlink()
+        );
+        assert!(tokenizer_adapter_temp_entries(&output).is_empty());
+        let _ = std::fs::remove_dir_all(output);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn compile_adapter_rejects_non_regular_payload_entries() {
+        use std::os::unix::fs::symlink;
+
+        let adapter = fixture_adapter("non-regular-payload");
+        let directory_output = unique_cli_test_path("compile-payload-directory");
+        std::fs::create_dir_all(directory_output.join("corpus.meta")).expect("directory payload");
+        let error = pin_compile_tokenizer_adapter(&directory_output, &adapter)
+            .expect_err("directory payload must fail closed");
+        assert!(error.reason.contains("not a regular file"));
+        assert!(directory_output.join("corpus.meta").is_dir());
+        assert!(!directory_output.join(TOKENIZER_ADAPTER_FILE).exists());
+        assert!(tokenizer_adapter_temp_entries(&directory_output).is_empty());
+
+        let dangling_output = unique_cli_test_path("compile-payload-dangling");
+        std::fs::create_dir_all(&dangling_output).expect("output dir");
+        let tokenizer = dangling_output.join("tokenizer.bin");
+        symlink("missing-tokenizer-target", &tokenizer).expect("dangling payload");
+        let error = pin_compile_tokenizer_adapter(&dangling_output, &adapter)
+            .expect_err("dangling payload must fail closed");
+        assert!(error.reason.contains("not a regular file"));
+        assert!(
+            std::fs::symlink_metadata(&tokenizer)
+                .expect("payload metadata")
+                .file_type()
+                .is_symlink()
+        );
+        assert!(!dangling_output.join(TOKENIZER_ADAPTER_FILE).exists());
+        assert!(tokenizer_adapter_temp_entries(&dangling_output).is_empty());
+
+        let _ = std::fs::remove_dir_all(directory_output);
+        let _ = std::fs::remove_dir_all(dangling_output);
+    }
+
+    #[test]
+    fn compile_adapter_mismatch_and_malformed_sidecar_preserve_every_byte() {
+        let output = unique_cli_test_path("compile-adapter-mismatch");
+        let first = fixture_adapter("first");
+        let second = fixture_adapter("second");
+        assert_ne!(first, second);
+        pin_compile_tokenizer_adapter(&output, &first).expect("first pin");
+        std::fs::write(output.join("tokenizer.bin"), b"runtime tokenizer")
+            .expect("tokenizer payload");
+        std::fs::write(output.join("corpus.meta"), b"corpus metadata").expect("corpus payload");
+        std::fs::write(output.join("corpus.records"), b"corpus records").expect("record payload");
+        let before = directory_bytes(&output);
+        let error =
+            pin_compile_tokenizer_adapter(&output, &second).expect_err("mismatch must fail closed");
+        assert!(error.reason.contains("incompatible compile resume"));
+        assert_eq!(directory_bytes(&output), before);
+
+        std::fs::write(output.join(TOKENIZER_ADAPTER_FILE), b"{not json")
+            .expect("malformed sidecar");
+        let malformed_before = directory_bytes(&output);
+        let error = pin_compile_tokenizer_adapter(&output, &first)
+            .expect_err("malformed sidecar must fail closed");
+        assert!(
+            error
+                .reason
+                .contains("not a valid tokenizer adapter record")
+        );
+        assert_eq!(directory_bytes(&output), malformed_before);
+
+        let mut inconsistent = first.clone();
+        inconsistent.adapter_digest = format!("blake3:{}", "0".repeat(64));
+        std::fs::write(
+            output.join(TOKENIZER_ADAPTER_FILE),
+            serde_json::to_vec_pretty(&inconsistent).expect("invalid record JSON"),
+        )
+        .expect("inconsistent sidecar");
+        let inconsistent_before = directory_bytes(&output);
+        let error = pin_compile_tokenizer_adapter(&output, &first)
+            .expect_err("self-inconsistent sidecar must fail closed");
+        assert!(error.reason.contains("declares digest"));
+        assert_eq!(directory_bytes(&output), inconsistent_before);
+        let _ = std::fs::remove_dir_all(output);
+    }
+
+    #[test]
+    fn compile_adapter_refuses_to_relabel_legacy_corpus_payload() {
+        let output = unique_cli_test_path("compile-adapter-legacy");
+        std::fs::create_dir_all(&output).expect("output dir");
+        std::fs::write(output.join("tokenizer.bin"), b"legacy tokenizer")
+            .expect("tokenizer payload");
+        std::fs::write(output.join("corpus.meta"), b"legacy corpus").expect("corpus payload");
+        let before = directory_bytes(&output);
+        let error = pin_compile_tokenizer_adapter(&output, &fixture_adapter("requested"))
+            .expect_err("legacy payload must remain unpinned");
+        assert!(error.reason.contains("refusing to relabel legacy/unpinned"));
+        assert_eq!(directory_bytes(&output), before);
+        assert!(!output.join(TOKENIZER_ADAPTER_FILE).exists());
+        let _ = std::fs::remove_dir_all(output);
+    }
+
+    #[test]
     fn evaluate_report_defaults_target_smollm2_paths() {
         let options = parse_evaluate_report_options(&[]).expect("defaults");
         assert_eq!(options.source, PathBuf::from(DEFAULT_HF_SOURCE_PATH));
@@ -3239,6 +4138,7 @@ mod tests {
         assert_eq!(options.report, None);
         assert!(!options.bos);
         assert_eq!(options.max_held_out_stories, None);
+        assert_eq!(options.tokenizer_adapter, None);
     }
 
     #[test]
@@ -3255,6 +4155,10 @@ mod tests {
             "--bos",
             "--max-held-out-stories",
             "5",
+            "--tokenizer-family",
+            "sentencepiece-unigram",
+            "--tokenizer-version",
+            "1",
         ]
         .map(str::to_owned);
         let options = parse_evaluate_report_options(&args).expect("valid options");
@@ -3264,6 +4168,10 @@ mod tests {
         assert_eq!(options.sequence_length, 256);
         assert!(options.bos);
         assert_eq!(options.max_held_out_stories, Some(5));
+        assert_eq!(
+            options.tokenizer_adapter,
+            Some(TokenizerAdapterKey::sentencepiece_unigram_v1())
+        );
     }
 
     #[test]
@@ -3333,6 +4241,7 @@ mod tests {
         assert_eq!(options.target, 20_000);
         assert_eq!(options.shards, 4);
         assert_eq!(options.sequence_length, 128);
+        assert_eq!(options.tokenizer_adapter, None);
 
         let args = [
             "--checkpoint",
@@ -3356,6 +4265,7 @@ mod tests {
         assert_eq!(options.target, 64);
         assert_eq!(options.shards, 3);
         assert_eq!(options.output, PathBuf::from("/tmp/obs"));
+        assert_eq!(options.tokenizer_adapter, None);
     }
 
     #[test]
@@ -3399,6 +4309,7 @@ mod tests {
         assert_eq!(options.seconds, 300);
         assert_eq!(options.shards, 4);
         assert_eq!(options.sequence_length, 128);
+        assert_eq!(options.tokenizer_adapter, None);
 
         let args = [
             "--input",
@@ -3431,6 +4342,7 @@ mod tests {
         assert_eq!(options.seconds, 5);
         assert_eq!(options.shards, 3);
         assert_eq!(options.sequence_length, 64);
+        assert_eq!(options.tokenizer_adapter, None);
     }
 
     #[test]
@@ -3454,12 +4366,115 @@ mod tests {
     }
 
     #[test]
+    fn registered_tokenizer_flags_are_paired_and_exclude_legacy_paths() {
+        let family_only = [
+            "--source",
+            "/tmp/source",
+            "--tokenizer-family",
+            "hf-byte-bpe",
+        ]
+        .map(str::to_owned);
+        let version_only =
+            ["--source", "/tmp/source", "--tokenizer-version", "1"].map(str::to_owned);
+        for error in [
+            parse_compile_options(&family_only).expect_err("family alone is incomplete"),
+            parse_compile_options(&version_only).expect_err("version alone is incomplete"),
+        ] {
+            assert!(error.reason.contains("requires --tokenizer-"));
+        }
+
+        let selected = [
+            "--source",
+            "/tmp/source",
+            "--tokenizer-family",
+            "sentencepiece-unigram",
+            "--tokenizer-version",
+            "1",
+        ]
+        .map(str::to_owned);
+        assert_eq!(
+            parse_observe_options(&selected)
+                .expect("observe selection")
+                .tokenizer_adapter,
+            Some(TokenizerAdapterKey::sentencepiece_unigram_v1())
+        );
+        assert_eq!(
+            parse_observe_text_options(&selected)
+                .expect("observe-text selection")
+                .tokenizer_adapter,
+            Some(TokenizerAdapterKey::sentencepiece_unigram_v1())
+        );
+
+        let checkpoint_and_registered = [
+            "--checkpoint",
+            "/tmp/model.bin",
+            "--tokenizer-family",
+            "hf-byte-bpe",
+            "--tokenizer-version",
+            "1",
+        ]
+        .map(str::to_owned);
+        assert!(parse_observe_options(&checkpoint_and_registered).is_err());
+        assert!(parse_observe_text_options(&checkpoint_and_registered).is_err());
+        assert!(
+            parse_observe_text_options(&["--tokenizer", "/tmp/tokenizer.bin"].map(str::to_owned))
+                .is_err()
+        );
+    }
+
+    #[test]
+    fn source_tokenizer_selection_is_unambiguous_and_fail_closed() {
+        let nonce = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("clock")
+            .as_nanos();
+        let source = std::env::temp_dir().join(format!("uor-r4-cli-tokenizer-{nonce}"));
+        std::fs::create_dir_all(&source).expect("source dir");
+        let tokenizer_json = br#"{
+            "pre_tokenizer":{"type":"ByteLevel","add_prefix_space":false},
+            "model":{"type":"BPE","vocab":{"a":0},"merges":[]}
+        }"#;
+        std::fs::write(source.join("tokenizer.json"), tokenizer_json).expect("BPE fixture");
+
+        let automatic =
+            resolve_source_tokenizer(&source, None).expect("one definition auto-selects");
+        assert_eq!(
+            automatic.adapter().expect("registered").family,
+            "hf-byte-bpe"
+        );
+
+        // Even a malformed second definition makes auto-selection ambiguous;
+        // explicit BPE remains deterministic while explicit SentencePiece
+        // surfaces the selected parse failure instead of falling back.
+        std::fs::write(source.join("spiece.model"), b"not a model").expect("SP fixture");
+        assert!(resolve_source_tokenizer(&source, None).is_err());
+        assert!(
+            resolve_source_tokenizer(&source, Some(&TokenizerAdapterKey::hf_byte_bpe_v1())).is_ok()
+        );
+        assert!(
+            resolve_source_tokenizer(
+                &source,
+                Some(&TokenizerAdapterKey::sentencepiece_unigram_v1())
+            )
+            .is_err()
+        );
+        let unknown = TokenizerAdapterKey::new("hf-byte-bpe", 2);
+        let error = resolve_source_tokenizer(&source, Some(&unknown))
+            .err()
+            .expect("unknown version is refused by name");
+        assert!(error.reason.contains("hf-byte-bpe/2"));
+
+        let _ = std::fs::remove_dir_all(source);
+    }
+
+    #[test]
     fn score_defaults_and_overrides() {
         let (default_meta, default_recs) = compiler::corpus_paths();
         let options = parse_score_options(&[]).expect("defaults");
         assert_eq!(options.corpus_meta, PathBuf::from(default_meta));
         assert_eq!(options.corpus_recs, PathBuf::from(default_recs));
         assert_eq!(options.artifacts, PathBuf::from(compiler::ART_PATH));
+        assert_eq!(options.tokenizer, None);
         assert_eq!(options.cover, None);
         assert_eq!(
             options.transition_out_degree,
@@ -3488,6 +4503,8 @@ mod tests {
             "/tmp/r.bin",
             "--artifacts",
             "/tmp/a.bin",
+            "--tokenizer",
+            "/tmp/tokenizer.bin",
             "--cover",
             "/tmp/cover.r4g1",
             "--transition-out-degree",
@@ -3514,6 +4531,7 @@ mod tests {
         assert_eq!(options.corpus_meta, PathBuf::from("/tmp/m.bin"));
         assert_eq!(options.corpus_recs, PathBuf::from("/tmp/r.bin"));
         assert_eq!(options.artifacts, PathBuf::from("/tmp/a.bin"));
+        assert_eq!(options.tokenizer, Some(PathBuf::from("/tmp/tokenizer.bin")));
         assert_eq!(options.cover, Some(PathBuf::from("/tmp/cover.r4g1")));
         assert_eq!(options.transition_out_degree, 16);
         assert_eq!(options.emission_entries, 256);

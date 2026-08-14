@@ -11,27 +11,39 @@
 //! Since #639-3b this module also carries the [`Normalizer`] (the
 //! `nmt_nfkc` precompiled-charsmap folding + dummy-prefix/whitespace rules)
 //! and [`SentencePieceUnigramTokenizer`], which composes the normalizer with
-//! the Viterbi core into a [`super::hf_bpe::TokenizerModel`] registered under
-//! `(sentencepiece-unigram, 1)`. The `UnigramModel::encode_normalized` entry
-//! point still operates on already-normalized text; the tokenizer's
-//! `encode` normalizes first. Selecting this adapter from the observe/serve
-//! drivers (the `TokenizerKind` wiring) is the remaining follow-up.
+//! the Viterbi core into a [`super::hf_bpe::TokenizerModel`] in the
+//! `sentencepiece-unigram` registry family. The
+//! `UnigramModel::encode_normalized` entry point still operates on
+//! already-normalized text; the tokenizer's `encode` normalizes first. Since
+//! #718, the shared source resolver threads the selected registered adapter
+//! through observation, compilation, evaluation, and host serving. Its
+//! deployed runtime export is explicitly tagged decode-only and never runs
+//! normalization or Viterbi encoding.
 //!
 //! Refuse-by-name, never approximate: a non-Unigram `model_type`, a
 //! `byte_fallback` source (no pinned byte-fallback source exists yet), a
 //! missing or ambiguous `<unk>` piece, or malformed proto bytes each fail
 //! closed with a named [`SourceUnavailable`] rather than a guess.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 
 use uor_r4_model_source::SourceUnavailable;
 
 use super::hf_bpe::{TokenizerAdapter, TokenizerAdapterPolicy, TokenizerModel};
+use super::scenarios::{
+    RuntimeTokenizerDecodePolicy, RuntimeTokenizerDecodeTable, RuntimeTokenizerEncodePolicy,
+    RuntimeTokenizerIdentity,
+};
 
 /// The whitespace meta symbol SentencePiece escapes spaces to (`▁`,
 /// U+2581). Pieces carry it literally; [`UnigramModel::decode`] maps it
 /// back to a space.
 const WHITESPACE_META: char = '\u{2581}';
+
+/// Proto default for `TrainerSpec.unk_surface` (field 44). SentencePiece's
+/// sequence decoder emits this surface for UNKNOWN ids; it is deliberately
+/// distinct from the vocabulary label (`<unk>` in the pinned T5 model).
+const DEFAULT_UNK_SURFACE: &str = " \u{2047} ";
 
 /// SentencePiece's fixed penalty added (as a subtraction from the minimum
 /// piece score) to an unknown single-character node, matching
@@ -62,14 +74,12 @@ impl PieceType {
         }
     }
 
-    /// Whether a piece can be matched against input text. Control and
-    /// unknown symbols are produced only by the model (not by matching
-    /// surface text), and unused pieces never participate.
+    /// Whether a piece can be matched against normalized input text. The
+    /// published adapter currently admits only Normal pieces here;
+    /// user-defined and byte pieces require distinct pre-normalization or
+    /// byte-fallback semantics and are refused at ingestion.
     fn is_insertable(self) -> bool {
-        matches!(
-            self,
-            PieceType::Normal | PieceType::UserDefined | PieceType::Byte
-        )
+        self == PieceType::Normal
     }
 }
 
@@ -113,6 +123,7 @@ impl UnigramModel {
         let mut scores: Vec<f32> = Vec::new();
         let mut model_type: Option<u64> = None;
         let mut byte_fallback = false;
+        let mut treat_whitespace_as_suffix = false;
         let mut trainer_unk_id: Option<i64> = None;
 
         while !reader.is_empty() {
@@ -139,8 +150,21 @@ impl UnigramModel {
                         message,
                         &mut model_type,
                         &mut byte_fallback,
+                        &mut treat_whitespace_as_suffix,
                         &mut trainer_unk_id,
                     )?;
+                }
+                // ModelProto.denormalizer_spec. Applying a decode-time
+                // Denormalization is not part of either published raw-model
+                // adapter version.
+                (5, WIRE_LEN) => {
+                    reader.read_len_delim().ok_or_else(|| {
+                        SourceUnavailable::new("spiece.model: truncated denormalizer_spec")
+                    })?;
+                    return Err(SourceUnavailable::new(
+                        "spiece.model: denormalizer_spec is not supported by the published \
+                         sentencepiece-unigram adapters; refused rather than approximated",
+                    ));
                 }
                 _ => reader
                     .skip_field(wire)
@@ -158,8 +182,29 @@ impl UnigramModel {
         }
         if byte_fallback {
             return Err(SourceUnavailable::new(
-                "spiece.model: byte_fallback=true is not supported by sentencepiece-unigram/1 \
-                 (no byte-fallback source is pinned); refused rather than approximated",
+                "spiece.model: byte_fallback=true is not supported by the published \
+                 sentencepiece-unigram adapters (no byte-fallback source is pinned); refused \
+                 rather than approximated",
+            ));
+        }
+        if treat_whitespace_as_suffix {
+            return Err(SourceUnavailable::new(
+                "spiece.model: treat_whitespace_as_suffix=true is not supported by the \
+                 published sentencepiece-unigram adapters; refused rather than approximated",
+            ));
+        }
+        if types.contains(&PieceType::UserDefined) {
+            return Err(SourceUnavailable::new(
+                "spiece.model: USER_DEFINED pieces require atomic matching before \
+                 normalization and are not supported by the published sentencepiece-unigram \
+                 adapters; refused rather than approximated",
+            ));
+        }
+        if types.contains(&PieceType::Byte) {
+            return Err(SourceUnavailable::new(
+                "spiece.model: BYTE pieces are not supported by the published \
+                 sentencepiece-unigram adapters without the byte-fallback policy; refused \
+                 rather than approximated",
             ));
         }
         if surfaces.is_empty() {
@@ -177,12 +222,12 @@ impl UnigramModel {
             [] => {
                 return Err(SourceUnavailable::new(
                     "spiece.model: no UNKNOWN piece to anchor unmatched spans",
-                ))
+                ));
             }
             _ => {
                 return Err(SourceUnavailable::new(
                     "spiece.model: multiple UNKNOWN pieces (ambiguous <unk>)",
-                ))
+                ));
             }
         };
         if let Some(declared) = trainer_unk_id {
@@ -235,8 +280,17 @@ impl UnigramModel {
     /// output — matching SentencePiece exactly. The scoring uses per-
     /// character unknown nodes; only the emitted output merges them.
     pub fn encode_normalized(&self, text: &str) -> Vec<u32> {
+        self.encode_normalized_with_loss(text).0
+    }
+
+    /// Encode and report how many normalized Unicode scalar values had no
+    /// insertable one-character piece and therefore traversed an unknown
+    /// lattice node. The count is taken before adjacent unknown nodes collapse
+    /// to one `<unk>` id, so loss telemetry does not disappear merely because
+    /// the wire representation coalesces a span.
+    pub fn encode_normalized_with_loss(&self, text: &str) -> (Vec<u32>, u64) {
         if text.is_empty() {
-            return Vec::new();
+            return (Vec::new(), 0);
         }
         let len = text.len();
         // Byte offsets of every character boundary, terminated by `len`.
@@ -283,10 +337,14 @@ impl UnigramModel {
         }
 
         let mut ids: Vec<u32> = Vec::new();
+        let mut unknown_characters = 0u64;
         let mut offset = len;
         while offset > 0 {
             let (previous, id) = back[offset];
             debug_assert!(previous != usize::MAX, "every boundary is reachable");
+            if id == self.unk_id {
+                unknown_characters = unknown_characters.saturating_add(1);
+            }
             ids.push(id);
             offset = previous;
         }
@@ -300,7 +358,7 @@ impl UnigramModel {
             }
             out.push(id);
         }
-        out
+        (out, unknown_characters)
     }
 
     /// Decode token ids to the normalized surface text: concatenate piece
@@ -312,6 +370,10 @@ impl UnigramModel {
     /// (an `<unk>` cannot recover the original bytes). Full denormalization
     /// is a #639-3b concern; this is the surface inverse of the Viterbi.
     pub fn decode(&self, ids: &[u32]) -> String {
+        self.decode_with_leading_space_policy(ids, true)
+    }
+
+    fn decode_with_leading_space_policy(&self, ids: &[u32], strip_leading_space: bool) -> String {
         let mut surface = String::new();
         for &id in ids {
             let Some(piece) = self.surfaces.get(id as usize) else {
@@ -323,7 +385,47 @@ impl UnigramModel {
             surface.push_str(piece);
         }
         let spaced = surface.replace(WHITESPACE_META, " ");
-        spaced.strip_prefix(' ').unwrap_or(&spaced).to_owned()
+        if strip_leading_space {
+            spaced.strip_prefix(' ').unwrap_or(&spaced).to_owned()
+        } else {
+            spaced
+        }
+    }
+
+    /// SentencePiece-reference sequence decoding used by adapter version 2.
+    /// UNKNOWN ids emit `TrainerSpec.unk_surface`; dummy-prefix removal acts
+    /// on the leading U+2581 meta symbol before whitespace expansion, so an
+    /// intentional leading ASCII space in `unk_surface` is preserved.
+    fn decode_reference(&self, ids: &[u32], strip_dummy_prefix: bool, unk_surface: &str) -> String {
+        let mut surface = String::new();
+        for &id in ids {
+            let Some(piece) = self.surfaces.get(id as usize) else {
+                continue;
+            };
+            match self.types[id as usize] {
+                PieceType::Control => continue,
+                PieceType::Unknown => surface.push_str(unk_surface),
+                _ => surface.push_str(piece),
+            }
+        }
+        let surface = if strip_dummy_prefix {
+            surface.strip_prefix(WHITESPACE_META).unwrap_or(&surface)
+        } else {
+            &surface
+        };
+        surface.replace(WHITESPACE_META, " ")
+    }
+
+    fn runtime_decode_pieces(&self, unk_surface: Option<&str>) -> Vec<Vec<u8>> {
+        self.surfaces
+            .iter()
+            .zip(&self.types)
+            .map(|(surface, kind)| match kind {
+                PieceType::Control => Vec::new(),
+                PieceType::Unknown => unk_surface.unwrap_or(surface).as_bytes().to_vec(),
+                _ => surface.as_bytes().to_vec(),
+            })
+            .collect()
     }
 }
 
@@ -337,8 +439,86 @@ fn darts_has_leaf(unit: u32) -> bool {
 fn darts_value(unit: u32) -> u32 {
     unit & 0x7fff_ffff
 }
+fn darts_label(unit: u32) -> u32 {
+    unit & ((1u32 << 31) | 0xff)
+}
 fn darts_offset(unit: u32) -> u32 {
     (unit >> 10) << ((unit & 0x200) >> 6)
+}
+
+/// Validate every transition reachable from the Darts root and every leaf's
+/// null-terminated UTF-8 replacement. Unreachable array slots are allocator
+/// padding and do not influence lookup; reachable malformed offsets must fail
+/// at model ingestion rather than silently copying source bytes.
+fn validate_charsmap(trie: &[u32], normalized: &[u8]) -> Result<(), SourceUnavailable> {
+    std::str::from_utf8(normalized).map_err(|_| {
+        SourceUnavailable::new("normalizer_spec: replacement blob is not valid UTF-8")
+    })?;
+    let Some(root) = trie.first().copied() else {
+        // The identity fixture is represented by an empty trie and one empty
+        // replacement string.
+        if normalized.first() == Some(&0) {
+            return Ok(());
+        }
+        return Err(SourceUnavailable::new(
+            "normalizer_spec: empty charsmap trie has no empty replacement",
+        ));
+    };
+    let root_base = usize::try_from(darts_offset(root)).map_err(|_| {
+        SourceUnavailable::new("normalizer_spec: charsmap root offset is out of range")
+    })?;
+    if root_base >= trie.len() {
+        return Err(SourceUnavailable::new(
+            "normalizer_spec: charsmap root offset is out of range",
+        ));
+    }
+
+    let mut seen = vec![false; trie.len()];
+    seen[root_base] = true;
+    let mut queue = VecDeque::from([root_base]);
+    while let Some(base) = queue.pop_front() {
+        for label in 0u32..=u32::from(u8::MAX) {
+            let index = base ^ label as usize;
+            let Some(&unit) = trie.get(index) else {
+                continue;
+            };
+            if darts_label(unit) != label {
+                continue;
+            }
+            let next = index ^ darts_offset(unit) as usize;
+            let Some(&derived) = trie.get(next) else {
+                return Err(SourceUnavailable::new(
+                    "normalizer_spec: reachable charsmap offset is out of range",
+                ));
+            };
+            if darts_has_leaf(unit) {
+                let value = darts_value(derived) as usize;
+                let replacement = normalized.get(value..).ok_or_else(|| {
+                    SourceUnavailable::new(
+                        "normalizer_spec: charsmap leaf replacement offset is out of range",
+                    )
+                })?;
+                let end = replacement
+                    .iter()
+                    .position(|&byte| byte == 0)
+                    .ok_or_else(|| {
+                        SourceUnavailable::new(
+                            "normalizer_spec: charsmap leaf replacement is not null-terminated",
+                        )
+                    })?;
+                std::str::from_utf8(&replacement[..end]).map_err(|_| {
+                    SourceUnavailable::new(
+                        "normalizer_spec: charsmap leaf replacement is not valid UTF-8",
+                    )
+                })?;
+            }
+            if !seen[next] {
+                seen[next] = true;
+                queue.push_back(next);
+            }
+        }
+    }
+    Ok(())
 }
 
 /// The SentencePiece text normalizer: applies the `precompiled_charsmap`
@@ -384,6 +564,14 @@ impl Normalizer {
                 spec = Some(reader.read_len_delim().ok_or_else(|| {
                     SourceUnavailable::new("spiece.model: truncated normalizer_spec")
                 })?);
+            } else if (field, wire) == (5, WIRE_LEN) {
+                reader.read_len_delim().ok_or_else(|| {
+                    SourceUnavailable::new("spiece.model: truncated denormalizer_spec")
+                })?;
+                return Err(SourceUnavailable::new(
+                    "spiece.model: denormalizer_spec is not supported by the published \
+                     sentencepiece-unigram adapters; refused rather than approximated",
+                ));
             } else {
                 reader
                     .skip_field(wire)
@@ -455,6 +643,19 @@ impl Normalizer {
             }
         }
 
+        // The deployed decode table currently represents SentencePiece's
+        // U+2581 whitespace-meta policy. A source that keeps whitespace
+        // literal would make U+2581 an ordinary character, so accepting it
+        // while unconditionally mapping U+2581 back to space would corrupt
+        // valid pieces. Refuse that distinct policy until it receives an
+        // explicit runtime decode representation.
+        if !escape_whitespaces {
+            return Err(SourceUnavailable::new(
+                "normalizer_spec: escape_whitespaces=false is not supported by the published \
+                 sentencepiece-unigram adapters; refused rather than approximated",
+            ));
+        }
+
         let charsmap = charsmap.filter(|blob| !blob.is_empty()).ok_or_else(|| {
             SourceUnavailable::new(
                 "normalizer_spec: no precompiled_charsmap — only precompiled-charsmap normalizers \
@@ -480,6 +681,7 @@ impl Normalizer {
             .map(|chunk| u32::from_le_bytes([chunk[0], chunk[1], chunk[2], chunk[3]]))
             .collect();
         let normalized = charsmap[4 + trie_size..].to_vec();
+        validate_charsmap(&trie, &normalized)?;
 
         Ok(Self {
             name,
@@ -502,7 +704,7 @@ impl Normalizer {
         for (i, &byte) in key.iter().enumerate() {
             node_pos ^= byte as usize;
             unit = *self.trie.get(node_pos)?;
-            if (unit & 0xff) as u8 != byte {
+            if darts_label(unit) != u32::from(byte) {
                 break;
             }
             node_pos ^= darts_offset(unit) as usize;
@@ -579,18 +781,53 @@ impl Normalizer {
 
 /// The registered SentencePiece Unigram tokenizer (#639-3b): raw text →
 /// [`Normalizer`] → [`UnigramModel`] Viterbi → token ids, exposed as a
-/// [`TokenizerModel`] under the `(sentencepiece-unigram, 1)` registry entry.
+/// [`TokenizerModel`] under immutable `sentencepiece-unigram/1` and
+/// reference-correct `sentencepiece-unigram/2` registry entries.
 #[derive(Debug)]
 pub struct SentencePieceUnigramTokenizer {
     model: UnigramModel,
     normalizer: Normalizer,
     tokenizer_cid: String,
+    version: u32,
+    /// Present only for reference-correct version 2. Frozen version 1 emits
+    /// the literal UNKNOWN vocabulary surface exactly as originally shipped.
+    unk_surface: Option<String>,
 }
 
 impl SentencePieceUnigramTokenizer {
-    /// Build from raw `spiece.model` bytes: the Unigram model, its
-    /// normalizer, and the `blake3` content address of the definition.
+    /// Build the current, reference-correct adapter from raw `spiece.model`
+    /// bytes. Explicit historical resolution uses [`Self::from_spiece_bytes_v1`].
     pub fn from_spiece_bytes(bytes: &[u8]) -> Result<Self, SourceUnavailable> {
+        Self::from_spiece_bytes_v2(bytes)
+    }
+
+    /// Build the frozen `/1` adapter. Its UNKNOWN decode surface remains the
+    /// literal vocabulary piece and it deliberately does not interpret
+    /// `TrainerSpec.unk_surface`.
+    pub fn from_spiece_bytes_v1(bytes: &[u8]) -> Result<Self, SourceUnavailable> {
+        Self::from_spiece_bytes_for_version(
+            bytes,
+            TokenizerAdapter::SENTENCEPIECE_UNIGRAM_V1_VERSION,
+            None,
+        )
+    }
+
+    /// Build reference-correct `/2`, which binds and emits
+    /// `TrainerSpec.unk_surface` during sequence decoding.
+    pub fn from_spiece_bytes_v2(bytes: &[u8]) -> Result<Self, SourceUnavailable> {
+        let unk_surface = parse_trainer_unk_surface(bytes)?;
+        Self::from_spiece_bytes_for_version(
+            bytes,
+            TokenizerAdapter::SENTENCEPIECE_UNIGRAM_V2_VERSION,
+            Some(unk_surface),
+        )
+    }
+
+    fn from_spiece_bytes_for_version(
+        bytes: &[u8],
+        version: u32,
+        unk_surface: Option<String>,
+    ) -> Result<Self, SourceUnavailable> {
         let model = UnigramModel::from_spiece_bytes(bytes)?;
         let normalizer = Normalizer::from_spiece_bytes(bytes)?;
         let tokenizer_cid = format!("blake3:{}", blake3::hash(bytes).to_hex());
@@ -598,6 +835,8 @@ impl SentencePieceUnigramTokenizer {
             model,
             normalizer,
             tokenizer_cid,
+            version,
+            unk_surface,
         })
     }
 
@@ -628,13 +867,16 @@ impl TokenizerModel for SentencePieceUnigramTokenizer {
     }
 
     fn encode_lossy(&self, text: &str) -> (Vec<u32>, u64) {
-        // Unmatched characters map to `<unk>` (a real id), so the id stream
-        // represents every input; no characters are dropped.
-        (self.encode(text), 0)
+        let normalized = self.normalizer.normalize(text);
+        self.model.encode_normalized_with_loss(&normalized)
     }
 
     fn decode(&self, ids: &[u32]) -> String {
-        self.model.decode(ids)
+        let strip = self.normalizer.add_dummy_prefix || self.normalizer.remove_extra_whitespaces;
+        match self.unk_surface.as_deref() {
+            Some(unk_surface) => self.model.decode_reference(ids, strip, unk_surface),
+            None => self.model.decode_with_leading_space_policy(ids, strip),
+        }
     }
 
     fn vocab_size(&self) -> usize {
@@ -644,15 +886,25 @@ impl TokenizerModel for SentencePieceUnigramTokenizer {
     fn adapter(&self) -> TokenizerAdapter {
         let (added_tokens_count, added_tokens_digest) = self.special_tokens();
         let policy = TokenizerAdapterPolicy {
-            normalizer: format!("sentencepiece-precompiled-charsmap({})", self.normalizer.name),
+            normalizer: format!(
+                "sentencepiece-precompiled-charsmap({})",
+                self.normalizer.name
+            ),
             pre_tokenizers: vec![format!(
                 "sentencepiece-whitespace(add_dummy_prefix={},escape_meta={},remove_extra_whitespaces={})",
                 self.normalizer.add_dummy_prefix,
                 self.normalizer.escape_whitespaces,
                 self.normalizer.remove_extra_whitespaces,
             )],
-            // Non-byte-fallback: an unmatched span becomes a single `<unk>`.
-            byte_fallback: "unknown-token".to_owned(),
+            // Version 1 freezes the literal UNKNOWN vocabulary surface;
+            // version 2 explicitly binds TrainerSpec.unk_surface.
+            byte_fallback: if self.version
+                == TokenizerAdapter::SENTENCEPIECE_UNIGRAM_V1_VERSION
+            {
+                "unknown-token".to_owned()
+            } else {
+                "unknown-token(trainer-unk-surface)".to_owned()
+            },
             added_tokens_count,
             added_tokens_digest,
             bos: "none".to_owned(),
@@ -661,13 +913,36 @@ impl TokenizerModel for SentencePieceUnigramTokenizer {
         };
         let mut adapter = TokenizerAdapter {
             family: TokenizerAdapter::SENTENCEPIECE_UNIGRAM_FAMILY.to_owned(),
-            version: TokenizerAdapter::SENTENCEPIECE_UNIGRAM_VERSION,
+            version: self.version,
             tokenizer_cid: self.tokenizer_cid.clone(),
             policy,
             adapter_digest: String::new(),
         };
         adapter.adapter_digest = adapter.declared_digest();
         adapter
+    }
+
+    fn runtime_decode_table(&self) -> RuntimeTokenizerDecodeTable {
+        let adapter = self.adapter();
+        RuntimeTokenizerDecodeTable {
+            identity: RuntimeTokenizerIdentity {
+                family: adapter.family,
+                version: adapter.version,
+                tokenizer_cid: adapter.tokenizer_cid,
+                adapter_digest: adapter.adapter_digest,
+            },
+            pieces: self
+                .model
+                .runtime_decode_pieces(self.unk_surface.as_deref()),
+            encode_policy: RuntimeTokenizerEncodePolicy::Unavailable,
+            decode_policy: RuntimeTokenizerDecodePolicy::SentencePiece {
+                strip_dummy_prefix: self.normalizer.add_dummy_prefix
+                    || self.normalizer.remove_extra_whitespaces,
+            },
+            // Normalization, whitespace collapsing, and unknown spans make
+            // original-input offsets unavailable without an explicit map.
+            source_byte_lengths: None,
+        }
     }
 }
 
@@ -719,7 +994,53 @@ fn parse_piece(message: &[u8]) -> Result<(String, f32, PieceType), SourceUnavail
                 .ok_or_else(|| SourceUnavailable::new("piece: unreadable field"))?,
         }
     }
+    if !score.is_finite() {
+        return Err(SourceUnavailable::new(
+            "piece: non-finite score is not a valid Unigram model weight",
+        ));
+    }
     Ok((surface, score, piece_type))
+}
+
+/// Read `TrainerSpec.unk_surface` (field 44), applying the proto default when
+/// it is absent. Version 1 deliberately never calls this helper: its
+/// published decoder remains tied to the literal UNKNOWN vocabulary piece.
+fn parse_trainer_unk_surface(bytes: &[u8]) -> Result<String, SourceUnavailable> {
+    let mut surface = DEFAULT_UNK_SURFACE.to_owned();
+    let mut model = ProtoReader::new(bytes);
+    while !model.is_empty() {
+        let (field, wire) = model
+            .read_tag()
+            .ok_or_else(|| SourceUnavailable::new("spiece.model: truncated field tag"))?;
+        if (field, wire) == (2, WIRE_LEN) {
+            let trainer = model
+                .read_len_delim()
+                .ok_or_else(|| SourceUnavailable::new("spiece.model: truncated trainer_spec"))?;
+            let mut trainer = ProtoReader::new(trainer);
+            while !trainer.is_empty() {
+                let (field, wire) = trainer
+                    .read_tag()
+                    .ok_or_else(|| SourceUnavailable::new("trainer_spec: truncated field tag"))?;
+                if (field, wire) == (44, WIRE_LEN) {
+                    let raw = trainer.read_len_delim().ok_or_else(|| {
+                        SourceUnavailable::new("trainer_spec: truncated unk_surface")
+                    })?;
+                    surface = std::str::from_utf8(raw)
+                        .map_err(|_| SourceUnavailable::new("trainer_spec: non-UTF-8 unk_surface"))?
+                        .to_owned();
+                } else {
+                    trainer
+                        .skip_field(wire)
+                        .ok_or_else(|| SourceUnavailable::new("trainer_spec: unreadable field"))?;
+                }
+            }
+        } else {
+            model
+                .skip_field(wire)
+                .ok_or_else(|| SourceUnavailable::new("spiece.model: unreadable field"))?;
+        }
+    }
+    Ok(surface)
 }
 
 /// Parse the `model_type` (field 3), `byte_fallback` (field 35), and
@@ -729,6 +1050,7 @@ fn parse_trainer_spec(
     message: &[u8],
     model_type: &mut Option<u64>,
     byte_fallback: &mut bool,
+    treat_whitespace_as_suffix: &mut bool,
     unk_id: &mut Option<i64>,
 ) -> Result<(), SourceUnavailable> {
     let mut reader = ProtoReader::new(message);
@@ -748,6 +1070,12 @@ fn parse_trainer_spec(
                     SourceUnavailable::new("trainer_spec: truncated byte_fallback")
                 })?;
                 *byte_fallback = value != 0;
+            }
+            (24, WIRE_VARINT) => {
+                let value = reader.read_varint().ok_or_else(|| {
+                    SourceUnavailable::new("trainer_spec: truncated treat_whitespace_as_suffix")
+                })?;
+                *treat_whitespace_as_suffix = value != 0;
             }
             (40, WIRE_VARINT) => {
                 let value = reader
@@ -841,6 +1169,30 @@ impl<'buf> ProtoReader<'buf> {
 mod tests {
     use super::*;
 
+    fn test_varint(out: &mut Vec<u8>, mut value: u64) {
+        loop {
+            let mut byte = (value & 0x7f) as u8;
+            value >>= 7;
+            if value != 0 {
+                byte |= 0x80;
+            }
+            out.push(byte);
+            if value == 0 {
+                break;
+            }
+        }
+    }
+
+    fn test_tag(out: &mut Vec<u8>, field: u64, wire: u8) {
+        test_varint(out, (field << 3) | u64::from(wire));
+    }
+
+    fn test_len_delim(out: &mut Vec<u8>, field: u64, payload: &[u8]) {
+        test_tag(out, field, WIRE_LEN);
+        test_varint(out, payload.len() as u64);
+        out.extend_from_slice(payload);
+    }
+
     /// Emit a minimal `spiece.model` `ModelProto` from `(surface, score,
     /// type)` pieces plus a `TrainerSpec` carrying `model_type` and
     /// `unk_id`, so the parser and Viterbi run in CI without the 791 KB
@@ -884,6 +1236,33 @@ mod tests {
         tag(&mut trainer, 40, WIRE_VARINT);
         varint(&mut trainer, unk_id as u64);
         len_delim(&mut proto, 2, &trainer);
+
+        // Identity charsmap: zero trie units plus one NUL replacement byte.
+        // Unmatched input bytes pass through, while the real whitespace and
+        // dummy-prefix policies remain enabled by their proto defaults.
+        let mut normalizer = Vec::new();
+        len_delim(&mut normalizer, 1, b"identity");
+        len_delim(&mut normalizer, 2, &[0, 0, 0, 0, 0]);
+        len_delim(&mut proto, 3, &normalizer);
+        proto
+    }
+
+    fn with_normalizer_flags(mut proto: Vec<u8>, add_dummy: bool, remove_extra: bool) -> Vec<u8> {
+        let mut normalizer = Vec::new();
+        test_len_delim(&mut normalizer, 1, b"identity");
+        test_len_delim(&mut normalizer, 2, &[0, 0, 0, 0, 0]);
+        test_tag(&mut normalizer, 3, WIRE_VARINT);
+        test_varint(&mut normalizer, u64::from(add_dummy));
+        test_tag(&mut normalizer, 4, WIRE_VARINT);
+        test_varint(&mut normalizer, u64::from(remove_extra));
+        test_len_delim(&mut proto, 3, &normalizer);
+        proto
+    }
+
+    fn with_unk_surface(mut proto: Vec<u8>, surface: &str) -> Vec<u8> {
+        let mut trainer = Vec::new();
+        test_len_delim(&mut trainer, 44, surface.as_bytes());
+        test_len_delim(&mut proto, 2, &trainer);
         proto
     }
 
@@ -897,6 +1276,8 @@ mod tests {
             ("a", -2.0, 1),         // id 3
             ("b", -2.0, 1),         // id 4
             ("ab", -1.5, 1),        // id 5
+            ("<s>", 0.0, 3),        // id 6, CONTROL
+            ("<unused>", 0.0, 5),   // id 7, UNUSED
         ];
         UnigramModel::from_spiece_bytes(&build_model_proto(&pieces, MODEL_TYPE_UNIGRAM, 0))
             .expect("toy model parses")
@@ -905,7 +1286,7 @@ mod tests {
     #[test]
     fn parses_pieces_scores_types_and_unk() {
         let model = toy_model();
-        assert_eq!(model.vocab_size(), 6);
+        assert_eq!(model.vocab_size(), 8);
         assert_eq!(model.unk_id(), 0);
         assert_eq!(model.surfaces[2], "\u{2581}a");
         assert!((model.scores[2] - (-1.0)).abs() < 1e-6);
@@ -930,6 +1311,8 @@ mod tests {
         assert_eq!(model.encode_normalized("zaz"), vec![0, 3, 0]);
         // Empty input encodes to nothing.
         assert!(model.encode_normalized("").is_empty());
+        assert_eq!(model.encode_normalized_with_loss("zy"), (vec![0], 2));
+        assert_eq!(model.encode_normalized_with_loss("zaz"), (vec![0, 3, 0], 2));
     }
 
     #[test]
@@ -937,6 +1320,153 @@ mod tests {
         let model = toy_model();
         // "▁a" + "b" → "▁ab" → " ab" → "ab".
         assert_eq!(model.decode(&[2, 4]), "ab");
+        assert_eq!(model.decode(&[6, 2, 4]), "ab", "control piece is empty");
+    }
+
+    #[test]
+    fn registered_adapter_reports_unknown_loss_and_exports_decode_only_runtime() {
+        use crate::transformerless::scenarios::{export_registered_runtime_tokenizer, Tokenizer};
+
+        let pieces = [
+            ("<unk>", 0.0, 2u64),
+            ("\u{2581}", -3.0, 1),
+            ("\u{2581}a", -1.0, 1),
+            ("a", -2.0, 1),
+            ("b", -2.0, 1),
+            ("ab", -1.5, 1),
+            ("<s>", 0.0, 3),
+            ("<unused>", 0.0, 5),
+        ];
+        let bytes = build_model_proto(&pieces, MODEL_TYPE_UNIGRAM, 0);
+        let tokenizer = SentencePieceUnigramTokenizer::from_spiece_bytes(&bytes)
+            .expect("synthetic registered tokenizer parses");
+
+        assert_eq!(tokenizer.encode_lossy("zy"), (vec![1, 0], 2));
+        assert_eq!(tokenizer.encode_lossy("zaz"), (vec![1, 0, 3, 0], 2));
+        assert_eq!(tokenizer.encode_lossy("ab"), (vec![2, 4], 0));
+
+        let path = std::env::temp_dir().join(format!(
+            "uor-r4-sentencepiece-runtime-{}-{:?}.bin",
+            std::process::id(),
+            std::thread::current().id()
+        ));
+        let export = export_registered_runtime_tokenizer(&tokenizer, &path)
+            .expect("tagged decode-only export succeeds");
+        assert_eq!(export.source_byte_lengths, None);
+        assert_eq!(export.decode_byte_lengths.len(), pieces.len());
+
+        let artifact = std::fs::read(&path).expect("read tagged tokenizer");
+        assert!(i32::from_le_bytes(artifact[..4].try_into().unwrap()) < 0);
+        let runtime = Tokenizer::from_bytes(&artifact).expect("tagged tokenizer parses");
+        assert!(runtime.is_decode_only());
+        assert_eq!(
+            runtime.adapter_key(),
+            Some((
+                "sentencepiece-unigram",
+                TokenizerAdapter::SENTENCEPIECE_UNIGRAM_V2_VERSION
+            ))
+        );
+        let identity = runtime.adapter_identity().expect("tag carries identity");
+        assert_eq!(identity.tokenizer_cid, tokenizer.adapter().tokenizer_cid);
+        assert_eq!(identity.adapter_digest, tokenizer.adapter().adapter_digest);
+
+        for ids in [vec![2, 4], vec![6, 2, 4], vec![1, 0], vec![7]] {
+            assert_eq!(runtime.decode(&ids), tokenizer.decode(&ids), "ids {ids:?}");
+        }
+        let mut token_out = [0u32; 16];
+        assert_eq!(runtime.encode_into("ab", &mut token_out), None);
+        let mut text_out = [0u8; 32];
+        assert_eq!(runtime.decode_into(&[99], &mut text_out), None);
+
+        std::fs::remove_file(path).ok();
+    }
+
+    #[test]
+    fn source_resolver_selects_synthetic_sentencepiece_without_guessing_wrappers() {
+        use crate::transformerless::hf_bpe::{
+            resolve_source_tokenizer, TokenizerAdapterKey, TokenizerKind,
+        };
+
+        let pieces = [
+            ("<unk>", 0.0, 2u64),
+            ("\u{2581}", -3.0, 1),
+            ("\u{2581}a", -1.0, 1),
+            ("a", -2.0, 1),
+        ];
+        let model = build_model_proto(&pieces, MODEL_TYPE_UNIGRAM, 0);
+        let dir = std::env::temp_dir().join(format!(
+            "uor-r4-sentencepiece-source-{}-{:?}",
+            std::process::id(),
+            std::thread::current().id()
+        ));
+        std::fs::create_dir_all(&dir).expect("create source fixture");
+        std::fs::write(dir.join("spiece.model"), &model).expect("write spiece.model");
+
+        let automatic = resolve_source_tokenizer(&dir, None).expect("single spiece model resolves");
+        assert!(matches!(&automatic, TokenizerKind::Registered(_)));
+        assert_eq!(automatic.adapter().unwrap().family, "sentencepiece-unigram");
+        assert_eq!(
+            automatic.adapter().unwrap().version,
+            TokenizerAdapter::SENTENCEPIECE_UNIGRAM_V2_VERSION
+        );
+
+        // A wrapper definition makes auto-selection ambiguous even if that
+        // wrapper is unsupported. Explicit raw-model selection remains exact.
+        std::fs::write(
+            dir.join("tokenizer.json"),
+            br#"{"model":{"type":"Unigram","vocab":[]}}"#,
+        )
+        .expect("write wrapper declaration");
+        assert!(resolve_source_tokenizer(&dir, None).is_err());
+        let explicit =
+            resolve_source_tokenizer(&dir, Some(&TokenizerAdapterKey::sentencepiece_unigram_v1()))
+                .expect("explicit raw SentencePiece selection resolves");
+        assert_eq!(explicit.encode_lossy("az"), (vec![2, 0], 1));
+
+        std::fs::remove_dir_all(dir).ok();
+    }
+
+    #[test]
+    fn version_one_is_frozen_and_version_two_uses_trainer_unknown_surface() {
+        use crate::transformerless::scenarios::{export_registered_runtime_tokenizer, Tokenizer};
+
+        let pieces = [("<unk>", 0.0, 2u64), ("\u{2581}a", -1.0, 1), ("a", -2.0, 1)];
+        let bytes = with_unk_surface(
+            build_model_proto(&pieces, MODEL_TYPE_UNIGRAM, 0),
+            DEFAULT_UNK_SURFACE,
+        );
+        let v1 =
+            SentencePieceUnigramTokenizer::from_spiece_bytes_v1(&bytes).expect("frozen v1 parses");
+        let v2 = SentencePieceUnigramTokenizer::from_spiece_bytes_v2(&bytes)
+            .expect("reference-correct v2 parses");
+        assert_eq!(v1.adapter().version, 1);
+        assert_eq!(v2.adapter().version, 2);
+        assert_eq!(v1.decode(&[0]), "<unk>");
+        assert_eq!(v2.decode(&[0]), DEFAULT_UNK_SURFACE);
+        assert_eq!(v1.decode(&[1]), "a");
+        assert_eq!(v2.decode(&[1]), "a");
+        assert_eq!(v1.encode("a"), v2.encode("a"));
+        assert_eq!(v1.adapter().policy.byte_fallback, "unknown-token");
+        assert_eq!(
+            v2.adapter().policy.byte_fallback,
+            "unknown-token(trainer-unk-surface)"
+        );
+
+        for (label, tokenizer, expected) in [("v1", &v1, "<unk>"), ("v2", &v2, DEFAULT_UNK_SURFACE)]
+        {
+            let path = std::env::temp_dir().join(format!(
+                "uor-r4-sp-versioned-{label}-{}-{:?}.bin",
+                std::process::id(),
+                std::thread::current().id()
+            ));
+            export_registered_runtime_tokenizer(tokenizer, &path)
+                .expect("versioned runtime export");
+            let runtime = Tokenizer::from_bytes(&std::fs::read(&path).expect("runtime bytes"))
+                .expect("runtime parser");
+            assert_eq!(runtime.decode(&[0]), expected, "{label} runtime parity");
+            assert_eq!(runtime.decode(&[1]), "a", "{label} prefix parity");
+            std::fs::remove_file(path).ok();
+        }
     }
 
     #[test]
@@ -946,6 +1476,107 @@ mod tests {
         let error = UnigramModel::from_spiece_bytes(&proto).expect_err("BPE refused");
         assert!(error.reason.contains("model_type 2"));
         assert!(error.reason.contains("UNIGRAM"));
+    }
+
+    #[test]
+    fn non_finite_piece_scores_are_refused_before_viterbi() {
+        for score in [f32::NAN, f32::INFINITY, f32::NEG_INFINITY] {
+            let proto =
+                build_model_proto(&[("<unk>", 0.0, 2), ("a", score, 1)], MODEL_TYPE_UNIGRAM, 0);
+            let error = UnigramModel::from_spiece_bytes(&proto)
+                .expect_err("non-finite Unigram score must fail ingestion");
+            assert!(error.reason.contains("non-finite score"), "{error}");
+        }
+    }
+
+    #[test]
+    fn unsupported_sentencepiece_semantics_are_refused_by_name() {
+        let user_defined = build_model_proto(
+            &[("<unk>", 0.0, 2), ("<tag>", 0.0, 4)],
+            MODEL_TYPE_UNIGRAM,
+            0,
+        );
+        let error = UnigramModel::from_spiece_bytes(&user_defined)
+            .expect_err("USER_DEFINED atomic matching is not approximated");
+        assert!(error.reason.contains("USER_DEFINED"), "{error}");
+
+        let mut suffix =
+            build_model_proto(&[("<unk>", 0.0, 2), ("a", -1.0, 1)], MODEL_TYPE_UNIGRAM, 0);
+        let mut trainer = Vec::new();
+        test_tag(&mut trainer, 24, WIRE_VARINT);
+        test_varint(&mut trainer, 1);
+        test_len_delim(&mut suffix, 2, &trainer);
+        let error = UnigramModel::from_spiece_bytes(&suffix)
+            .expect_err("whitespace-suffix semantics are not approximated");
+        assert!(
+            error.reason.contains("treat_whitespace_as_suffix"),
+            "{error}"
+        );
+
+        let mut denormalized =
+            build_model_proto(&[("<unk>", 0.0, 2), ("a", -1.0, 1)], MODEL_TYPE_UNIGRAM, 0);
+        test_len_delim(&mut denormalized, 5, &[]);
+        let error = SentencePieceUnigramTokenizer::from_spiece_bytes(&denormalized)
+            .expect_err("decode denormalizer is not silently skipped");
+        assert!(error.reason.contains("denormalizer_spec"), "{error}");
+
+        let mut unescaped =
+            build_model_proto(&[("<unk>", 0.0, 2), ("a", -1.0, 1)], MODEL_TYPE_UNIGRAM, 0);
+        let mut normalizer = Vec::new();
+        test_len_delim(&mut normalizer, 1, b"identity");
+        test_len_delim(&mut normalizer, 2, &[0, 0, 0, 0, 0]);
+        test_tag(&mut normalizer, 5, WIRE_VARINT);
+        test_varint(&mut normalizer, 0);
+        test_len_delim(&mut unescaped, 3, &normalizer);
+        let error = SentencePieceUnigramTokenizer::from_spiece_bytes(&unescaped)
+            .expect_err("literal-whitespace semantics are not approximated");
+        assert!(error.reason.contains("escape_whitespaces=false"), "{error}");
+    }
+
+    #[test]
+    fn charsmap_validation_rejects_invalid_utf8_and_leaf_offsets() {
+        assert!(validate_charsmap(&[], &[0xff, 0]).is_err());
+
+        // root base=1; the 'a' transition at 1^'a'=96 declares a leaf at
+        // 96^1=97 whose value points beyond the replacement blob.
+        let mut trie = vec![0u32; 98];
+        trie[0] = 1 << 10;
+        trie[96] = u32::from(b'a') | (1 << 8) | (1 << 10);
+        trie[97] = 99;
+        let error = validate_charsmap(&trie, b"\0")
+            .expect_err("reachable out-of-range replacement must fail ingestion");
+        assert!(error.reason.contains("replacement offset"), "{error}");
+    }
+
+    #[test]
+    fn host_and_runtime_share_all_leading_whitespace_policy_combinations() {
+        use crate::transformerless::scenarios::{export_registered_runtime_tokenizer, Tokenizer};
+
+        let pieces = [("<unk>", 0.0, 2u64), ("\u{2581}a", -1.0, 1), ("a", -2.0, 1)];
+        for (add_dummy, remove_extra) in
+            [(false, false), (false, true), (true, false), (true, true)]
+        {
+            let proto = with_normalizer_flags(
+                build_model_proto(&pieces, MODEL_TYPE_UNIGRAM, 0),
+                add_dummy,
+                remove_extra,
+            );
+            let tokenizer = SentencePieceUnigramTokenizer::from_spiece_bytes(&proto)
+                .expect("supported whitespace policy parses");
+            let expected = if add_dummy || remove_extra { "a" } else { " a" };
+            assert_eq!(tokenizer.decode(&[1]), expected);
+
+            let path = std::env::temp_dir().join(format!(
+                "uor-r4-sp-whitespace-{add_dummy}-{remove_extra}-{}-{:?}.bin",
+                std::process::id(),
+                std::thread::current().id()
+            ));
+            export_registered_runtime_tokenizer(&tokenizer, &path).expect("runtime table export");
+            let runtime = Tokenizer::from_bytes(&std::fs::read(&path).expect("runtime bytes"))
+                .expect("runtime table parses");
+            assert_eq!(runtime.decode(&[1]), expected);
+            std::fs::remove_file(path).ok();
+        }
     }
 
     #[test]

@@ -16,6 +16,14 @@ There are two separate offline workflows:
    and store construction use ordered worker reductions, so output bytes do
    not depend on worker count.
 
+`compile-recorded` does not yet accept an observation manifest or runtime
+tokenizer as input, so it cannot propagate a registered tokenizer identity or
+emit `tokenizer.bin`. It must not be treated as a self-contained text-serving
+bundle or used to infer/relabel the recorded token-id space. Carrying that
+provenance through the observation-first boundary requires a separate explicit
+input contract; issue #718 only wires source-tokenizer consumers that can
+resolve the original definition.
+
 The root command is:
 
 ```text

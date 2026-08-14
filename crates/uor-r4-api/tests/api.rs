@@ -10,9 +10,14 @@ use uor_r4_api::compile::{
     compile, CompileOptions, CompileOutcome, CompileRequest, QualityProfile, Stage,
 };
 use uor_r4_api::engine::{AbiVersion, EngineParts, PredictOutput, R4Engine};
-use uor_r4_api::Tokenizer;
+use uor_r4_api::{Tokenizer, TokenizerAdapterKey};
+use uor_r4_core::transformerless::scenarios::{
+    export_runtime_tokenizer_table, RuntimeTokenizerDecodePolicy, RuntimeTokenizerDecodeTable,
+    RuntimeTokenizerEncodePolicy, RuntimeTokenizerIdentity,
+};
 use uor_r4_graph_format::{
-    FORMAT_VERSION_MAJOR, FORMAT_VERSION_MINOR, INFERENCE_OPERATION_CONTRACT_VERSION,
+    ArtifactBuilder, SectionId, FORMAT_VERSION_MAJOR, FORMAT_VERSION_MINOR,
+    INFERENCE_OPERATION_CONTRACT_VERSION,
 };
 
 // ------------------------------------------------------------ tokenizer --
@@ -66,6 +71,47 @@ fn tokenizer_from_bytes_rejects_truncated() {
 
     // Trailing partial length field.
     assert!(Tokenizer::from_bytes(&[0u8, 1]).is_none());
+}
+
+#[test]
+fn tagged_runtime_tokenizer_is_decode_only_and_preserves_identity() {
+    let dir = temp_dir("tagged-tokenizer");
+    let path = dir.join("tokenizer.bin");
+    let definition_cid = format!("blake3:{}", "1".repeat(64));
+    let adapter_digest = format!("blake3:{}", "2".repeat(64));
+    let table = RuntimeTokenizerDecodeTable {
+        identity: RuntimeTokenizerIdentity {
+            family: "future-sentencepiece-family".to_owned(),
+            version: 41,
+            tokenizer_cid: definition_cid.clone(),
+            adapter_digest: adapter_digest.clone(),
+        },
+        pieces: vec![Vec::new(), "▁hello".as_bytes().to_vec(), b"!".to_vec()],
+        encode_policy: RuntimeTokenizerEncodePolicy::Unavailable,
+        decode_policy: RuntimeTokenizerDecodePolicy::SentencePiece {
+            strip_dummy_prefix: true,
+        },
+        source_byte_lengths: None,
+    };
+    export_runtime_tokenizer_table(&table, &path).expect("tagged export");
+    let bytes = std::fs::read(&path).expect("tagged bytes");
+    let tokenizer = Tokenizer::from_bytes(&bytes).expect("tagged parser");
+    assert!(tokenizer.is_decode_only());
+    assert_eq!(
+        tokenizer.adapter_key(),
+        Some(("future-sentencepiece-family", 41))
+    );
+    let identity = tokenizer.adapter_identity().expect("tagged identity");
+    assert_eq!(identity.tokenizer_cid, definition_cid);
+    assert_eq!(identity.adapter_digest, adapter_digest);
+    assert_eq!(tokenizer.encode_into("hello", &mut [0; 8]), None);
+    let mut decoded = [0; 16];
+    let count = tokenizer
+        .decode_into(&[1, 2], &mut decoded)
+        .expect("exact decode");
+    assert_eq!(&decoded[..count], b"hello!");
+    assert_eq!(tokenizer.decode_into(&[99], &mut decoded), None);
+    let _ = std::fs::remove_dir_all(dir);
 }
 
 // ---------------------------------------------------------- abi version --
@@ -124,6 +170,146 @@ fn outcome_label(result: Result<R4Engine, uor_r4_api::SourceUnavailable>) -> Str
     }
 }
 
+fn minimal_graph_with_tokenizer_cid(tokenizer_cid: [u8; 32]) -> Vec<u8> {
+    let mut head = Vec::with_capacity(224);
+    head.extend_from_slice(&[0x11; 32]); // teacher CID
+    head.extend_from_slice(&tokenizer_cid);
+    head.extend_from_slice(&[0x33; 32]); // corpus-construction CID
+    head.extend_from_slice(&[0x44; 32]); // corpus-certification CID
+    head.extend_from_slice(b"0123456789abcdef0123"); // HF revision
+    head.extend_from_slice(&[0x55; 32]); // compiler-version CID
+    head.extend_from_slice(&32u16.to_le_bytes()); // max frontier width
+    head.extend_from_slice(&16u16.to_le_bytes()); // max candidates
+    head.extend_from_slice(&8u16.to_le_bytes()); // signature words
+    head.extend_from_slice(&8u16.to_le_bytes()); // shortlist size
+    head.extend_from_slice(&64u32.to_le_bytes()); // max emission entries
+    head.extend_from_slice(&64u32.to_le_bytes()); // max program steps
+    head.extend_from_slice(&0u32.to_le_bytes()); // node count
+    head.extend_from_slice(&0u32.to_le_bytes()); // edge count
+    head.push(1); // depth count
+    head.extend_from_slice(&[0; 5]); // fallback policies
+    head.extend_from_slice(&[0; 2]); // reserved
+    head.extend_from_slice(&64u16.to_le_bytes()); // signature bytes
+    head.extend_from_slice(&1u16.to_le_bytes()); // minimum runtime major
+    head.extend_from_slice(&0u16.to_le_bytes()); // minimum runtime minor
+    head.extend_from_slice(&0u16.to_le_bytes()); // required feature bits
+    head.extend_from_slice(&100u32.to_le_bytes()); // vocabulary size
+    assert_eq!(head.len(), 224);
+
+    let mut builder = ArtifactBuilder::new(3);
+    builder.add_section(SectionId::HEAD, 0, &head);
+    builder.build().expect("minimal graph")
+}
+
+#[test]
+fn engine_load_requires_tokenizer_bytes_for_a_nonzero_head_cid() {
+    let tokenizer = tokenizer_bytes(&[b"a"]);
+    let expected = *blake3::hash(&tokenizer).as_bytes();
+    let graph = minimal_graph_with_tokenizer_cid(expected);
+    let result = R4Engine::load(EngineParts {
+        graph: &graph,
+        signature_artifact: b"invalid teacher must not be reached",
+        tokenizer: None,
+        score_report: None,
+    });
+    let error = match result {
+        Err(error) => error,
+        Ok(_) => panic!("a nonzero tokenizer CID requires exact bytes"),
+    };
+    assert!(error.reason.contains("tokenizer unavailable"), "{error}");
+    assert!(
+        error
+            .reason
+            .contains(&blake3::Hash::from(expected).to_hex().to_string()),
+        "{error}"
+    );
+}
+
+#[test]
+fn engine_load_rejects_tokenizer_bytes_that_do_not_match_the_head_cid() {
+    let expected_bytes = tokenizer_bytes(&[b"a"]);
+    let graph = minimal_graph_with_tokenizer_cid(*blake3::hash(&expected_bytes).as_bytes());
+    let result = R4Engine::load(EngineParts {
+        graph: &graph,
+        signature_artifact: b"invalid teacher must not be reached",
+        tokenizer: Some(&tokenizer_bytes(&[b"b"])),
+        score_report: None,
+    });
+    let error = match result {
+        Err(error) => error,
+        Ok(_) => panic!("swapped tokenizer bytes must fail before teacher parsing"),
+    };
+    assert!(error.reason.contains("tokenizer_cid mismatch"), "{error}");
+    assert_eq!(error.reason.matches("blake3:").count(), 2, "{error}");
+}
+
+#[test]
+fn engine_load_keeps_missing_tokenizer_compatible_for_a_zero_head_cid() {
+    let graph = minimal_graph_with_tokenizer_cid([0; 32]);
+    let result = R4Engine::load(EngineParts {
+        graph: &graph,
+        signature_artifact: b"invalid teacher is the next load boundary",
+        tokenizer: None,
+        score_report: None,
+    });
+    let error = match result {
+        Err(error) => error,
+        Ok(_) => panic!("invalid teacher still fails after legacy tokenizer handling"),
+    };
+    assert!(error.reason.contains("teacher artifact"), "{error}");
+    assert!(!error.reason.contains("tokenizer unavailable"), "{error}");
+}
+
+#[test]
+fn engine_load_rejects_a_tagged_tokenizer_when_the_head_cid_is_zero() {
+    let dir = temp_dir("zero-cid-tagged");
+    let path = dir.join("tokenizer.bin");
+    let table = RuntimeTokenizerDecodeTable {
+        identity: RuntimeTokenizerIdentity {
+            family: "future-family".to_owned(),
+            version: 41,
+            tokenizer_cid: format!("blake3:{}", "1".repeat(64)),
+            adapter_digest: format!("blake3:{}", "2".repeat(64)),
+        },
+        pieces: vec![Vec::new(), b"piece".to_vec()],
+        encode_policy: RuntimeTokenizerEncodePolicy::Unavailable,
+        decode_policy: RuntimeTokenizerDecodePolicy::SentencePiece {
+            strip_dummy_prefix: true,
+        },
+        source_byte_lengths: None,
+    };
+    export_runtime_tokenizer_table(&table, &path).expect("tagged export");
+    let tokenizer = std::fs::read(&path).expect("tagged bytes");
+    let graph = minimal_graph_with_tokenizer_cid([0; 32]);
+    let result = R4Engine::load(EngineParts {
+        graph: &graph,
+        signature_artifact: b"invalid teacher must not be reached",
+        tokenizer: Some(&tokenizer),
+        score_report: None,
+    });
+    let error = match result {
+        Err(error) => error,
+        Ok(_) => panic!("a zero-CID graph cannot bind a tagged tokenizer"),
+    };
+    assert!(error.reason.contains("tagged tokenizer"), "{error}");
+    assert!(error.reason.contains("nonzero"), "{error}");
+
+    let graph = minimal_graph_with_tokenizer_cid(*blake3::hash(&tokenizer).as_bytes());
+    let result = R4Engine::load(EngineParts {
+        graph: &graph,
+        signature_artifact: b"invalid teacher is the next boundary",
+        tokenizer: Some(&tokenizer),
+        score_report: None,
+    });
+    let error = match result {
+        Err(error) => error,
+        Ok(_) => panic!("invalid teacher must still fail"),
+    };
+    assert!(error.reason.contains("teacher artifact"), "{error}");
+    assert!(!error.reason.contains("tagged tokenizer"), "{error}");
+    let _ = std::fs::remove_dir_all(dir);
+}
+
 #[test]
 fn engine_errors_implement_std_error() {
     let parts = EngineParts {
@@ -156,6 +342,7 @@ fn request(source: PathBuf, work: PathBuf) -> CompileRequest {
     CompileRequest {
         source_dir: source,
         work_dir: work,
+        tokenizer_adapter: TokenizerAdapterKey::hf_byte_bpe_v1(),
         options: CompileOptions::default(),
         source_manifest_kappa: None,
     }
@@ -195,9 +382,10 @@ fn compile_rejects_source_without_required_files() {
     let source = temp_dir("src-incomplete");
     let work = temp_dir("work-incomplete");
     std::fs::write(source.join("config.json"), b"{}").expect("config");
-    // tokenizer.json and weights missing.
+    // Tokenizer definition and weights are both missing. Structural weight
+    // validation runs before parsing the explicitly selected tokenizer.
     match compile(&request(source.clone(), work.clone()), &mut |_| {}) {
-        Err(error) => assert!(error.reason.contains("tokenizer.json"), "{error}"),
+        Err(error) => assert!(error.reason.contains("safetensors"), "{error}"),
         other => panic!("expected an invalid-source failure, got {other:?}"),
     }
     // Weights still missing after the tokenizer appears.
@@ -211,12 +399,65 @@ fn compile_rejects_source_without_required_files() {
 }
 
 #[test]
+fn compile_requires_the_explicitly_selected_tokenizer_definition() {
+    let source = temp_dir("src-selection");
+    let work = temp_dir("work-selection");
+    std::fs::write(source.join("config.json"), b"{}").expect("config");
+    std::fs::write(source.join("model.safetensors"), b"fixture").expect("weights");
+    std::fs::write(
+        source.join("tokenizer.json"),
+        br#"{
+            "model":{"type":"BPE","vocab":{"a":0},"merges":[]},
+            "pre_tokenizer":{"type":"ByteLevel","add_prefix_space":false}
+        }"#,
+    )
+    .expect("tokenizer");
+
+    let mut selected_sentencepiece = request(source.clone(), work.clone());
+    selected_sentencepiece.tokenizer_adapter = TokenizerAdapterKey::new("sentencepiece-unigram", 1);
+    match compile(&selected_sentencepiece, &mut |_| {}) {
+        Err(error) => {
+            assert!(error.reason.contains("spiece.model"), "{error}");
+            assert!(error.reason.contains("sentencepiece-unigram/1"), "{error}");
+        }
+        other => panic!("selected missing definition must fail, got {other:?}"),
+    }
+
+    let mut unknown = request(source.clone(), work.clone());
+    unknown.tokenizer_adapter = TokenizerAdapterKey::new("hf-byte-bpe", 999);
+    match compile(&unknown, &mut |_| {}) {
+        Err(error) => assert!(
+            error.reason.contains("hf-byte-bpe/999")
+                && error
+                    .reason
+                    .contains("not in the versioned adapter registry"),
+            "{error}"
+        ),
+        other => panic!("unknown adapter version must fail, got {other:?}"),
+    }
+
+    let _ = std::fs::remove_dir_all(&source);
+    let _ = std::fs::remove_dir_all(&work);
+}
+
+#[test]
 fn compile_options_default_to_stage_defaults() {
     let options = CompileOptions::default();
     assert_eq!(options.quality_profile, QualityProfile::RelativeTla);
     assert!(options.depths > 0 && options.k0 > 0 && options.regions_budget > 0);
     assert!(options.scoring.root_top_b > 0 && options.scoring.exct_top_x > 0);
     assert_eq!(Stage::TeacherBundle.label(), "teacher-bundle");
+}
+
+#[test]
+fn compile_request_selection_type_is_available_from_the_root_facade() {
+    let selection: uor_r4_api::TokenizerAdapterKey = TokenizerAdapterKey::new("future-family", 41);
+    assert_eq!(selection.family, "future-family");
+    assert_eq!(selection.version, 41);
+    let runtime_identity: Option<&uor_r4_api::RuntimeTokenizerIdentity> = None;
+    assert!(runtime_identity.is_none());
+    let full_adapter: Option<uor_r4_api::TokenizerAdapter> = None;
+    assert!(full_adapter.is_none());
 }
 
 // -------------------------------------------------------------- e2e -----
@@ -246,6 +487,7 @@ fn e2e_compile_then_engine_load() {
         &CompileRequest {
             source_dir: PathBuf::from(source),
             work_dir: work.clone(),
+            tokenizer_adapter: TokenizerAdapterKey::hf_byte_bpe_v1(),
             options: CompileOptions {
                 seconds: 30,
                 target: 2_000,

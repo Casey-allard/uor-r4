@@ -38,6 +38,8 @@ use std::path::{Path, PathBuf};
 use uor_r4_core::transformerless::compiler;
 use uor_r4_core::transformerless::hf_bpe::TokenizerAdapter;
 #[cfg(not(target_arch = "wasm32"))]
+use uor_r4_core::transformerless::hf_bpe::adapter_constructor;
+#[cfg(not(target_arch = "wasm32"))]
 use uor_r4_model_source::SourceUnavailable;
 #[cfg(not(target_arch = "wasm32"))]
 use uor_r4_model_source::TeacherOracle;
@@ -123,6 +125,15 @@ pub const MANIFEST_FILE: &str = "manifest.json";
 
 /// Generator checkpoint file name within an observation directory.
 pub const STATE_FILE: &str = "state.bin";
+
+#[cfg(not(target_arch = "wasm32"))]
+fn is_canonical_blake3_address(value: &str) -> bool {
+    value.len() == "blake3:".len() + 64
+        && value.starts_with("blake3:")
+        && value["blake3:".len()..]
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+}
 
 /// Content address of one observation sample: blake3 over the
 /// little-endian token bytes of the context window.
@@ -553,16 +564,127 @@ impl ObservationShardWriter {
     }
 
     /// Record the #601 typed tokenizer-adapter identity record of the
-    /// producing pipeline's tokenizer in the observation manifest
-    /// (idempotent, atomic store).
+    /// producing pipeline's tokenizer in the observation manifest.
+    ///
+    /// An absent record is the explicit legacy/unpinned state. It may be
+    /// pinned only before any observation payload exists; other identity
+    /// metadata does not by itself make the corpus an incompatible era.
+    /// Re-recording the identical adapter is idempotent. Once pinned, however,
+    /// a different adapter is an incompatible resume and is refused before
+    /// either the in-memory manifest or any directory bytes are changed. The
+    /// candidate must name a registered family/version and reproduce its
+    /// canonical digest; its manifest is installed in memory only after the
+    /// atomic store succeeds.
     pub fn set_tokenizer_adapter(
         &mut self,
         adapter: &TokenizerAdapter,
     ) -> Result<(), SourceUnavailable> {
-        if self.manifest.tokenizer_adapter.as_ref() != Some(adapter) {
-            self.manifest.tokenizer_adapter = Some(adapter.clone());
-            self.manifest.store(&self.dir)?;
+        // A provenance record is admitted only for an implemented registry
+        // key, and only when its canonical fields reproduce its claimed
+        // digest. This validation precedes every identity/resume branch so a
+        // custom caller cannot persist unknown or internally inconsistent
+        // metadata even in a fresh directory.
+        adapter_constructor(&adapter.family, adapter.version)?;
+        for (field, value) in [
+            ("tokenizer_cid", adapter.tokenizer_cid.as_str()),
+            ("adapter_digest", adapter.adapter_digest.as_str()),
+        ] {
+            if !is_canonical_blake3_address(value) {
+                return Err(invalid_input(format!(
+                    "tokenizer adapter {}/{} has non-canonical {field} {value}; expected lowercase blake3:<64 hex>; refusing provenance before mutation",
+                    adapter.family, adapter.version,
+                )));
+            }
         }
+        let declared_digest = adapter.declared_digest();
+        if adapter.adapter_digest != declared_digest {
+            return Err(invalid_input(format!(
+                "tokenizer adapter {}/{} claims digest {}, but its canonical fields \
+                 declare {}; refusing inconsistent provenance before mutation",
+                adapter.family, adapter.version, adapter.adapter_digest, declared_digest,
+            )));
+        }
+
+        match self.manifest.tokenizer_adapter.as_ref() {
+            Some(recorded) if recorded == adapter => return Ok(()),
+            Some(recorded) => {
+                return Err(invalid_input(format!(
+                    "{} is pinned to tokenizer adapter {}/{} (CID {}, digest {}); \
+                     requested {}/{} (CID {}, digest {}); incompatible resume \
+                     refused before mutation",
+                    self.dir.display(),
+                    recorded.family,
+                    recorded.version,
+                    recorded.tokenizer_cid,
+                    recorded.adapter_digest,
+                    adapter.family,
+                    adapter.version,
+                    adapter.tokenizer_cid,
+                    adapter.adapter_digest,
+                )));
+            }
+            None => {
+                let payload_file_has_bytes = |path: &Path| match fs::symlink_metadata(path) {
+                    Ok(metadata) if metadata.file_type().is_file() => Ok(metadata.len() != 0),
+                    Ok(_) => Err(invalid_input(format!(
+                        "observation payload path {} is not a regular file; refusing \
+                         tokenizer provenance mutation",
+                        path.display()
+                    ))),
+                    Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(false),
+                    Err(error) => Err(SourceUnavailable::from(error)),
+                };
+                let manifest_has_payload =
+                    self.manifest.total_records != 0 || !self.manifest.completed.is_empty();
+                let mut files_have_payload = false;
+                // Shards are not the only tokenizer-era evidence. The raw
+                // driver checkpoints its token stream in state.bin; the text
+                // driver additionally checkpoints article progress and story
+                // identity; the CLI can persist a merged record stream and
+                // the exact runtime token table in the same directory. A
+                // stripped/torn historical manifest must not make any of
+                // those sessions look fresh. The committed temp is included
+                // because a crash between write and rename is still evidence
+                // of an in-progress tokenizer-dependent session.
+                for name in [
+                    STATE_FILE,
+                    "merged.bin",
+                    "committed.bin",
+                    ".committed.bin.tmp",
+                    "stories.jsonl",
+                    "tokenizer.bin",
+                ] {
+                    files_have_payload |= payload_file_has_bytes(&self.dir.join(name))?;
+                }
+                for shard in 0..self.manifest.shard_count() {
+                    let shard_name = shard_file_name(self.manifest.shard_bits, shard);
+                    for path in [
+                        self.dir.join(&shard_name),
+                        self.dir.join(format!("{shard_name}.prob")),
+                        self.dir.join(format!("{shard_name}.trace")),
+                    ] {
+                        files_have_payload |= payload_file_has_bytes(&path)?;
+                    }
+                }
+                if manifest_has_payload || files_have_payload {
+                    return Err(invalid_input(format!(
+                        "{} has no recorded tokenizer adapter but already contains \
+                         observation payload; refusing to relabel legacy/unpinned bytes as \
+                         {}/{} (CID {}, digest {}) before mutation",
+                        self.dir.display(),
+                        adapter.family,
+                        adapter.version,
+                        adapter.tokenizer_cid,
+                        adapter.adapter_digest,
+                    )));
+                }
+            }
+        }
+
+        let mut candidate = self.manifest.clone();
+        candidate.tokenizer_adapter = Some(adapter.clone());
+        candidate.store(&self.dir)?;
+        self.manifest = candidate;
         Ok(())
     }
 

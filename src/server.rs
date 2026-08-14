@@ -5,6 +5,7 @@ use crate::tless_uor::{self, TlessAxis};
 use crate::UorR4Router;
 use serde::Deserialize;
 use std::any::Any;
+use std::cell::Cell;
 use std::fs;
 use std::io::{prelude::*, BufReader};
 use std::net::{TcpListener, TcpStream};
@@ -13,6 +14,9 @@ use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use uor_foundation::pipeline::PrismModel;
 
+use uor_r4_core::transformerless::hf_bpe::{
+    resolve_source_tokenizer, TokenizerAdapterKey, TokenizerKind,
+};
 use uor_r4_graph_certify::ScoreStatus;
 use uor_r4_model_source::{BehaviorSource, TeacherOracle};
 use uor_r4_router::fallback::{
@@ -150,6 +154,18 @@ pub struct VendorUsage {
     pub total_tokens: usize,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct ServingUsage {
+    prompt_tokens: usize,
+    completion_tokens: usize,
+}
+
+impl ServingUsage {
+    fn total_tokens(self) -> usize {
+        self.prompt_tokens + self.completion_tokens
+    }
+}
+
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct TokenTraceEntry {
     pub token_id: u32,
@@ -203,6 +219,23 @@ struct ResetPayload {
 #[derive(Debug, Deserialize, Default)]
 struct HuggingFaceDownloadPayload {
     model: Option<String>,
+    /// Optional explicit source-tokenizer selection. The two fields are one
+    /// atomic registry key; a half-selection is rejected at the HTTP edge.
+    tokenizer_family: Option<String>,
+    tokenizer_version: Option<u32>,
+}
+
+impl HuggingFaceDownloadPayload {
+    fn tokenizer_selection(&self) -> Result<Option<TokenizerAdapterKey>, String> {
+        match (&self.tokenizer_family, self.tokenizer_version) {
+            (Some(family), Some(version)) => {
+                Ok(Some(TokenizerAdapterKey::new(family.clone(), version)))
+            }
+            (None, None) => Ok(None),
+            (Some(_), None) => Err("tokenizer_family requires tokenizer_version".to_owned()),
+            (None, Some(_)) => Err("tokenizer_version requires tokenizer_family".to_owned()),
+        }
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -281,6 +314,7 @@ fn get_window_theme(win_idx: usize) -> &'static str {
 
 /// Run the HTTP server with configuration supplied by the caller.
 pub fn run_server(cli: Arc<ServerConfig>) {
+    clear_r4g1_terminal_load_error();
     tracing::info!(
         host = %cli.host,
         port = cli.port,
@@ -314,17 +348,20 @@ pub fn run_server(cli: Arc<ServerConfig>) {
             "[*] Loading full Llama teacher oracle from {} for attention-based generation...",
             path
         );
-        match uor_r4_model_source::Teacher::load(path) {
+        match load_serving_source_tokenizer(std::path::Path::new(path), None)
+            .and_then(|_| uor_r4_model_source::Teacher::load(path))
+        {
             Ok(o) => {
                 println!(
                     "[+] Successfully loaded full Llama teacher model ({})!",
                     path
                 );
-                load_serving_hf_tokenizer(std::path::Path::new(path));
                 *oracle.lock().unwrap() = Some(o);
             }
             Err(e) => {
                 println!("[-] Failed to load full Llama teacher model: {:?}", e);
+                *SERVING_SOURCE_TOKENIZER.lock().unwrap() = None;
+                *oracle.lock().unwrap() = None;
             }
         }
     }
@@ -354,16 +391,47 @@ pub fn run_server(cli: Arc<ServerConfig>) {
     }
     let mut loaded_r4g1 = false;
     for (graph_path, teacher_path) in r4g1_candidates {
-        if !graph_path.is_file() || !teacher_path.is_file() {
+        let inputs_present = match (
+            regular_file_presence(&graph_path),
+            regular_file_presence(&teacher_path),
+        ) {
+            (Ok(graph), Ok(teacher)) => graph && teacher,
+            (Err(error), _) | (_, Err(error)) => {
+                println!("[-] Refusing present-invalid R4G1 bundle: {error}");
+                set_r4g1_terminal_load_error(error);
+                break;
+            }
+        };
+        if !inputs_present {
             continue;
         }
-        match R4g1State::load(&graph_path, &teacher_path) {
+        let selected_source = source_dir
+            .map(Path::new)
+            .filter(|source| source.file_name() == teacher_path.parent().and_then(Path::file_name));
+        let inferred_source = if selected_source.is_none() {
+            match source_for_compiled_teacher(&teacher_path) {
+                Ok(source) => source,
+                Err(error) => {
+                    println!(
+                        "[-] Refusing R4G1 graph {} because its inferred source is invalid: {error}",
+                        graph_path.display()
+                    );
+                    set_r4g1_terminal_load_error(error);
+                    break;
+                }
+            }
+        } else {
+            None
+        };
+        let source = selected_source.or(inferred_source.as_deref());
+        match R4g1State::load_with_source(&graph_path, &teacher_path, source) {
             Ok(state) => {
                 println!(
                     "[+] Loaded validated R4G1 graph runtime from {}",
                     graph_path.display()
                 );
                 *r4g1.lock().unwrap() = Some(state);
+                clear_r4g1_terminal_load_error();
                 let mut compile_status = r4g1_compile.lock().unwrap();
                 compile_status.ready = true;
                 compile_status.progress = 100;
@@ -376,45 +444,20 @@ pub fn run_server(cli: Arc<ServerConfig>) {
                     "[-] Failed to load R4G1 graph runtime from {}: {error}",
                     graph_path.display()
                 );
+                if error.contains("tokenizer") {
+                    set_r4g1_terminal_load_error(error);
+                    break;
+                }
             }
         }
     }
     if !loaded_r4g1 {
-        tracing::info!("no validated R4G1 graph found; compile it from the dashboard");
-    }
-    if let Some(r4g1_path) = R4G1_ARTIFACT_CANDIDATES
-        .iter()
-        .find(|p| std::path::Path::new(p).exists())
-    {
-        if let Ok(r4g1_bytes) = std::fs::read(r4g1_path) {
-            match uor_r4_graph_runtime::R4G1Runtime::parse(&r4g1_bytes) {
-                Ok(_) => {
-                    println!(
-                        "[+] Successfully loaded R4G1 zero-multiply prediction runtime ({})!",
-                        r4g1_path
-                    );
-                    tless_uor::set_r4g1_bytes(r4g1_bytes);
-
-                    let parent_dir = std::path::Path::new(r4g1_path)
-                        .parent()
-                        .unwrap_or(std::path::Path::new("."));
-                    let art_path = parent_dir.join("tless_artifacts.bin").display().to_string();
-                    let store_path = parent_dir.join("tless_store.bin").display().to_string();
-                    let tok_path = parent_dir.join("tokenizer.bin").display().to_string();
-
-                    tless_uor::configure_tless_paths(tless_uor::TlessPaths {
-                        artifacts: art_path,
-                        store: store_path,
-                        tokenizer: tok_path,
-                    });
-                }
-                Err(e) => {
-                    println!("[-] Failed to parse R4G1 bundle: {:?}", e);
-                }
-            }
+        if let Some(error) = r4g1_terminal_load_error() {
+            tracing::error!(%error, "R4G1 graph was rejected; default serving will fail closed");
+        } else {
+            tracing::info!("no validated R4G1 graph found; compile it from the dashboard");
         }
     }
-
     // Load cache on startup
     {
         let mut r = router.lock().unwrap();
@@ -622,6 +665,98 @@ fn discover_compiled_r4g1_candidates() -> Vec<(PathBuf, PathBuf)> {
         .collect()
 }
 
+/// Inspect an optional file without collapsing a present-invalid filesystem
+/// entry into absence. Symlinks are followed only when their target is a
+/// regular file; directories, dangling links, and special files fail closed.
+fn regular_file_presence(path: &Path) -> Result<bool, String> {
+    let metadata = match fs::symlink_metadata(path) {
+        Ok(metadata) => metadata,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(false),
+        Err(error) => return Err(format!("{}: {error}", path.display())),
+    };
+    let is_regular = if metadata.file_type().is_symlink() {
+        fs::metadata(path)
+            .map_err(|error| format!("{}: {error}", path.display()))?
+            .is_file()
+    } else {
+        metadata.is_file()
+    };
+    if !is_regular {
+        return Err(format!("{} is not a regular file", path.display()));
+    }
+    Ok(true)
+}
+
+fn append_tokenizer_arg(
+    args: &mut Vec<String>,
+    tokenizer_path: &Path,
+    required: bool,
+) -> Result<(), String> {
+    if regular_file_presence(tokenizer_path)? {
+        args.extend([
+            "--tokenizer".to_owned(),
+            tokenizer_path.display().to_string(),
+        ]);
+    } else if required {
+        return Err(format!(
+            "required source-backed tokenizer is missing: {}",
+            tokenizer_path.display()
+        ));
+    }
+    Ok(())
+}
+
+fn select_regular_fallback_path(
+    primary: &Path,
+    fallback: &Path,
+) -> Result<Option<PathBuf>, String> {
+    if regular_file_presence(primary)? {
+        Ok(Some(primary.to_path_buf()))
+    } else if regular_file_presence(fallback)? {
+        Ok(Some(fallback.to_path_buf()))
+    } else {
+        Ok(None)
+    }
+}
+
+fn optional_source_directory(path: &Path) -> Result<Option<PathBuf>, String> {
+    let metadata = match fs::symlink_metadata(path) {
+        Ok(metadata) => metadata,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+        Err(error) => return Err(format!("{}: {error}", path.display())),
+    };
+    let is_directory = if metadata.file_type().is_symlink() {
+        fs::metadata(path)
+            .map_err(|error| format!("{}: {error}", path.display()))?
+            .is_dir()
+    } else {
+        metadata.is_dir()
+    };
+    if !is_directory {
+        return Err(format!("{} is not a source directory", path.display()));
+    }
+    Ok(Some(path.to_path_buf()))
+}
+
+/// Conventional source snapshot corresponding to
+/// `.uor-models/compiled/<name>/tless_artifacts.bin`. Genuine absence is
+/// optional; a present non-directory, dangling symlink, or unreadable entry is
+/// a hard error so it cannot be mistaken for "no host adapter available."
+fn source_for_compiled_teacher(teacher_path: &Path) -> Result<Option<PathBuf>, String> {
+    source_for_compiled_teacher_in(teacher_path, Path::new(".uor-models"))
+}
+
+fn source_for_compiled_teacher_in(
+    teacher_path: &Path,
+    models_root: &Path,
+) -> Result<Option<PathBuf>, String> {
+    let Some(name) = teacher_path.parent().and_then(Path::file_name) else {
+        return Ok(None);
+    };
+    let source = models_root.join("sources").join(name);
+    optional_source_directory(&source)
+}
+
 /// Generate a text continuation with the transformerless runtime. The shared
 /// state keeps chat turns on one graded store and serializes its thread-local
 /// UOR binding. `None` means the configured artifacts/tokenizer are not ready.
@@ -629,15 +764,8 @@ fn generate_tless_text(
     slot: &Arc<Mutex<Option<tless_uor::TlessState>>>,
     prompt: &str,
     max_tokens: usize,
-    session_signature: Option<&[u8]>,
+    _session_signature: Option<&[u8]>,
 ) -> Option<String> {
-    if let Some(r4g1_text) = tless_uor::generate_r4g1_response_with_session_signature(
-        prompt,
-        max_tokens,
-        session_signature,
-    ) {
-        return Some(r4g1_text);
-    }
     const MAX_SERVER_TOKENS: usize = 256;
     const MAX_SERVER_TEXT_BYTES: usize = 16 * 1024;
     let mut seed = [0u32; 4096];
@@ -699,6 +827,7 @@ struct R4g1Text {
     status: Option<ScoreStatus>,
     widened: bool,
     abstained: bool,
+    usage: ServingUsage,
 }
 
 /// Generate directly from the validated R4G1 graph runtime. Tokenization and
@@ -714,15 +843,25 @@ fn generate_r4g1_text(
     let mut seed = [0u32; 4096];
     let mut generated = [0u32; MAX_SERVER_TOKENS];
     let mut bytes = [0u8; MAX_SERVER_TEXT_BYTES];
-    let (byte_count, status, widened, abstained) = {
+    let (byte_count, status, widened, abstained, usage) = {
         let guard = slot.lock().unwrap();
         let Some(state) = guard.as_ref() else {
             return Ok(None);
         };
-        let seed_len = state
-            .encode_into(prompt, &mut seed)
-            .or_else(|| tless_uor::tless_tokenize_into(prompt, &mut seed))
-            .ok_or_else(|| "R4G1 tokenizer could not encode the prompt".to_owned())?;
+        let seed_len = match state.encode_into(prompt, &mut seed) {
+            Some(count) => count,
+            None if state.has_explicit_tokenizer() => {
+                let identity = state
+                    .tokenizer_adapter_identity()
+                    .map(|identity| format!(" {}/{}", identity.family, identity.version))
+                    .unwrap_or_default();
+                return Err(format!(
+                    "R4G1 tokenizer{identity} is unavailable for prompt encoding"
+                ));
+            }
+            None => tless_uor::tless_tokenize_into(prompt, &mut seed)
+                .ok_or_else(|| "R4G1 tokenizer could not encode the prompt".to_owned())?,
+        };
         if seed_len == 0 {
             return Err("R4G1 tokenizer produced an empty prompt".to_owned());
         }
@@ -738,18 +877,28 @@ fn generate_r4g1_text(
         let bytes_written = if outcome.abstained || outcome.count == 0 {
             0
         } else {
-            state
-                .decode_into(&generated[..outcome.count], &mut bytes)
-                .or_else(|| {
-                    tless_uor::tless_detokenize_into(&generated[..outcome.count], &mut bytes)
-                })
-                .ok_or_else(|| "R4G1 tokenizer could not decode generated tokens".to_owned())?
+            match state.decode_into(&generated[..outcome.count], &mut bytes) {
+                Some(count) => count,
+                None if state.has_explicit_tokenizer() => {
+                    return Err(
+                        "R4G1 bundle tokenizer could not decode generated tokens".to_owned()
+                    );
+                }
+                None => tless_uor::tless_detokenize_into(&generated[..outcome.count], &mut bytes)
+                    .ok_or_else(|| {
+                    "R4G1 tokenizer could not decode generated tokens".to_owned()
+                })?,
+            }
         };
         (
             bytes_written,
             outcome.status,
             outcome.widened,
             outcome.abstained,
+            ServingUsage {
+                prompt_tokens: seed_len,
+                completion_tokens: outcome.count,
+            },
         )
     };
     let text = String::from_utf8_lossy(&bytes[..byte_count])
@@ -760,60 +909,68 @@ fn generate_r4g1_text(
         status,
         widened,
         abstained,
+        usage,
     }))
 }
 
-/// Serving-side HF BPE tokenizer, loaded from the teacher oracle's source
-/// dir (tokenizer.json) whenever an HF oracle loads (issue #254, the #253
-/// lineage: seed/decode must live in the teacher's own id space). `None`
-/// means a local-llama oracle: the legacy tless pair applies.
-static SERVING_HF_TOKENIZER: std::sync::Mutex<
-    Option<uor_r4_core::transformerless::hf_bpe::HfBpeTokenizer>,
-> = std::sync::Mutex::new(None);
+/// Exact registered tokenizer paired with the loaded teacher oracle. A parse
+/// or selection failure clears the slot: teacher-backed serving never falls
+/// through to a tokenizer from another id space.
+static SERVING_SOURCE_TOKENIZER: std::sync::Mutex<Option<TokenizerKind>> =
+    std::sync::Mutex::new(None);
 
-fn load_serving_hf_tokenizer(dir: &std::path::Path) {
-    match uor_r4_core::transformerless::hf_bpe::HfBpeTokenizer::from_dir(dir) {
-        Ok(t) => {
-            println!(
-                "[+] Serving HF BPE tokenizer loaded ({}), address {}",
-                dir.display(),
-                t.address()
-            );
-            *SERVING_HF_TOKENIZER.lock().unwrap() = Some(t);
-        }
-        Err(e) => {
-            println!(
-                "[-] No HF BPE tokenizer for serving ({}): {} — legacy tless pair stays active",
-                dir.display(),
-                e
-            );
-            *SERVING_HF_TOKENIZER.lock().unwrap() = None;
-        }
-    }
+/// Focused startup/reload failure for a graph that was present but could not
+/// be bound safely. Keeping it separate from `Option<R4g1State>` preserves the
+/// distinction between genuine absence (the historical cascade may continue)
+/// and a rejected tokenizer binding (the default cascade must stop).
+static R4G1_TERMINAL_LOAD_ERROR: std::sync::Mutex<Option<String>> = std::sync::Mutex::new(None);
+
+fn clear_r4g1_terminal_load_error() {
+    *R4G1_TERMINAL_LOAD_ERROR.lock().unwrap() = None;
+}
+
+fn set_r4g1_terminal_load_error(error: impl Into<String>) {
+    *R4G1_TERMINAL_LOAD_ERROR.lock().unwrap() = Some(error.into());
+}
+
+fn r4g1_terminal_load_error() -> Option<String> {
+    R4G1_TERMINAL_LOAD_ERROR.lock().unwrap().clone()
+}
+
+fn load_serving_source_tokenizer(
+    dir: &std::path::Path,
+    selection: Option<&TokenizerAdapterKey>,
+) -> Result<(), uor_r4_model_source::SourceUnavailable> {
+    *SERVING_SOURCE_TOKENIZER.lock().unwrap() = None;
+    let tokenizer = resolve_source_tokenizer(dir, selection)?;
+    let adapter = tokenizer.adapter().ok_or_else(|| {
+        uor_r4_model_source::SourceUnavailable::new(format!(
+            "{} resolved to an adapterless tokenizer",
+            dir.display()
+        ))
+    })?;
+    println!(
+        "[+] Serving source tokenizer loaded ({}) as {}/{} (CID {}, digest {})",
+        dir.display(),
+        adapter.family,
+        adapter.version,
+        adapter.tokenizer_cid,
+        adapter.adapter_digest,
+    );
+    *SERVING_SOURCE_TOKENIZER.lock().unwrap() = Some(tokenizer);
+    Ok(())
 }
 
 fn generate_attention_text(
     oracle: &mut uor_r4_model_source::Teacher,
     prompt: &str,
     max_tokens: usize,
-) -> Option<(String, usize)> {
+) -> Option<(String, ServingUsage)> {
     // 1. Construct token seed for prompt
     let formatted_prompt = format!("User: {}\nAssistant:", prompt.trim());
-    // TODO(#242 follow-up): serving-side teacher prompting still uses tless_tokenize
-    let hf_tok = SERVING_HF_TOKENIZER.lock().unwrap();
-    let seed = match hf_tok.as_ref() {
-        Some(t) => {
-            let ids = t.encode(&formatted_prompt);
-            if ids.is_empty() {
-                return None;
-            }
-            ids
-        }
-        None => match tless_uor::tless_tokenize(&formatted_prompt) {
-            Some(s) if !s.is_empty() => s,
-            _ => return None,
-        },
-    };
+    let source_tokenizer = SERVING_SOURCE_TOKENIZER.lock().unwrap();
+    let tokenizer = source_tokenizer.as_ref()?;
+    let seed = tokenizer.encode(&formatted_prompt);
 
     let seed_len = seed.len();
     if seed_len == 0 {
@@ -861,18 +1018,17 @@ fn generate_attention_text(
     }
 
     // 5. Detokenize back to String — same id space as the seed (#254).
-    let decoded = match hf_tok.as_ref() {
-        Some(t) => t.decode(&generated),
-        None => {
-            let mut bytes = [0u8; 16 * 1024];
-            let byte_count = tless_uor::tless_detokenize_into(&generated, &mut bytes)?;
-            String::from_utf8_lossy(&bytes[..byte_count]).into_owned()
-        }
-    };
+    let decoded = tokenizer.decode(&generated);
     println!("[+] generate_attention_text: raw decoded: {:?}", decoded);
     let cleaned = clean_attention_response(&decoded, prompt);
     println!("[+] generate_attention_text: cleaned: {:?}", cleaned);
-    Some((cleaned, generated.len()))
+    Some((
+        cleaned,
+        ServingUsage {
+            prompt_tokens: seed_len,
+            completion_tokens: generated.len(),
+        },
+    ))
 }
 
 fn clean_attention_response(text: &str, prompt: &str) -> String {
@@ -1203,6 +1359,9 @@ struct ServingCascade {
     outcome: CascadeOutcome,
     r4g1: R4g1Signal,
     geometric: Option<uor_r4_router::GeometricResponse>,
+    /// Exact counts carried by the R4G1 or teacher tier that served. Legacy
+    /// tiers leave this empty and retain their historical tokenizer counter.
+    usage: Option<ServingUsage>,
 }
 
 /// The persisted `/engine` selection written by the terminal chat client
@@ -1253,6 +1412,8 @@ fn r4g1_tier(
     prompt: &str,
     max_tokens: usize,
     signal: &mut R4g1Signal,
+    load_error: Option<&str>,
+    usage: &Cell<Option<ServingUsage>>,
 ) -> TierResult {
     match generate_r4g1_text(slot, prompt, max_tokens.max(32)) {
         Ok(Some(gen)) if gen.abstained => {
@@ -1267,6 +1428,7 @@ fn r4g1_tier(
         Ok(Some(gen)) if is_usable_generated_text(&gen.text) => {
             signal.status = gen.status.map(r4g1::PolicyStatus::from).map(|s| s.label());
             signal.widened = gen.widened;
+            usage.set(Some(gen.usage));
             TierResult::success(gen.text)
         }
         Ok(Some(_)) => {
@@ -1276,8 +1438,10 @@ fn r4g1_tier(
             TierResult::pathological(reason)
         }
         Ok(None) => {
-            let reason = "R4G1 graph runtime is not loaded";
-            signal.error = Some(reason.to_owned());
+            let reason = load_error
+                .map(str::to_owned)
+                .unwrap_or_else(|| "R4G1 graph runtime is not loaded".to_owned());
+            signal.error = Some(reason.clone());
             TierResult::failed(reason)
         }
         Err(error) => {
@@ -1317,6 +1481,7 @@ fn attention_tier(
     prompt: &str,
     max_tokens: usize,
     r4_attention: bool,
+    usage: &Cell<Option<ServingUsage>>,
 ) -> TierResult {
     let Some(o) = oracle.as_mut() else {
         return TierResult::failed("teacher oracle is not loaded");
@@ -1325,7 +1490,10 @@ fn attention_tier(
     let generated = generate_attention_text(o, prompt, max_tokens);
     o.set_r4_attention(false);
     match generated {
-        Some((text, _count)) if is_usable_generated_text(&text) => TierResult::success(text),
+        Some((text, counts)) if is_usable_generated_text(&text) => {
+            usage.set(Some(counts));
+            TierResult::success(text)
+        }
         Some(_) => TierResult::pathological(
             "teacher oracle output rejected as non-readable or pathological",
         ),
@@ -1366,6 +1534,14 @@ fn geometric_tier(
     }
 }
 
+fn tokenizer_unavailable_is_terminal(
+    pinned: Option<&'static str>,
+    host_encoder_unavailable: bool,
+    rejected_binding: bool,
+) -> bool {
+    pinned.is_none() && (host_encoder_unavailable || rejected_binding)
+}
+
 /// Build and run THE serving cascade (issue #248): r4g1 → transformerless →
 /// teacher-oracle → geometric, or the single pinned tier when `pinned`
 /// names one. First success serves; every attempted tier's typed outcome
@@ -1388,18 +1564,41 @@ fn run_serving_cascade(
 ) -> ServingCascade {
     let mut signal = R4g1Signal::default();
     let mut geometric: Option<uor_r4_router::GeometricResponse> = None;
+    let usage = Cell::new(None);
+    let load_error = r4g1_terminal_load_error();
+    let host_encoder_unavailable = r4g1
+        .lock()
+        .unwrap()
+        .as_ref()
+        .is_some_and(R4g1State::host_encoder_unavailable);
+    // A tagged graph without its exact host encoder must terminate as
+    // tokenizer-unavailable. Continuing to the transformerless tier would
+    // invoke the historical greedy encoder in another id space, precisely the
+    // fallback this artifact tag forbids.
+    let tokenizer_terminal =
+        tokenizer_unavailable_is_terminal(pinned, host_encoder_unavailable, load_error.is_some());
     let outcome = {
         let signal_ref = &mut signal;
         let geometric_ref = &mut geometric;
+        let usage_ref = &usage;
         let include = |tier: &'static str| pinned.is_none() || pinned == Some(tier);
         let mut tiers: Vec<(&'static str, TierFn<'_>)> = Vec::new();
         if include(TIER_R4G1) {
             tiers.push((
                 TIER_R4G1,
-                Box::new(move || r4g1_tier(r4g1, prompt, max_tokens, signal_ref)),
+                Box::new(move || {
+                    r4g1_tier(
+                        r4g1,
+                        prompt,
+                        max_tokens,
+                        signal_ref,
+                        load_error.as_deref(),
+                        usage_ref,
+                    )
+                }),
             ));
         }
-        if include(TIER_TRANSFORMERLESS) {
+        if include(TIER_TRANSFORMERLESS) && !tokenizer_terminal {
             tiers.push((
                 TIER_TRANSFORMERLESS,
                 Box::new(move || {
@@ -1407,23 +1606,29 @@ fn run_serving_cascade(
                 }),
             ));
         }
-        if pinned.is_none() {
+        if pinned.is_none() && !tokenizer_terminal {
             tiers.push((
                 TIER_TEACHER_ORACLE,
-                Box::new(move || attention_tier(oracle, prompt, max_tokens.max(128), false)),
+                Box::new(move || {
+                    attention_tier(oracle, prompt, max_tokens.max(128), false, usage_ref)
+                }),
             ));
         } else if pinned == Some(TIER_ATTENTION) {
             tiers.push((
                 TIER_ATTENTION,
-                Box::new(move || attention_tier(oracle, prompt, max_tokens.max(256), false)),
+                Box::new(move || {
+                    attention_tier(oracle, prompt, max_tokens.max(256), false, usage_ref)
+                }),
             ));
         } else if pinned == Some(TIER_R4_ATTENTION) {
             tiers.push((
                 TIER_R4_ATTENTION,
-                Box::new(move || attention_tier(oracle, prompt, max_tokens.max(256), true)),
+                Box::new(move || {
+                    attention_tier(oracle, prompt, max_tokens.max(256), true, usage_ref)
+                }),
             ));
         }
-        if include(TIER_GEOMETRIC) {
+        if include(TIER_GEOMETRIC) && !tokenizer_terminal {
             tiers.push((
                 TIER_GEOMETRIC,
                 Box::new(move || {
@@ -1445,6 +1650,7 @@ fn run_serving_cascade(
         outcome,
         r4g1: signal,
         geometric,
+        usage: usage.get(),
     }
 }
 
@@ -1672,9 +1878,38 @@ fn r4g1_compile_paths(cli: &ServerConfig) -> Result<(PathBuf, PathBuf, PathBuf, 
     ))
 }
 
+fn validate_source_bundle_inventory(output: &Path) -> Result<(), String> {
+    for file in [
+        "tless_artifacts.bin",
+        "tless_store.bin",
+        "tokenizer.bin",
+        "tokenizer_adapter.json",
+        "corpus.meta",
+        "corpus.records",
+    ] {
+        let path = output.join(file);
+        match regular_file_presence(&path) {
+            Ok(true) => {}
+            Ok(false) => {
+                return Err(format!(
+                    "transformerless bundle compilation is incomplete; missing {}. Retry the compile action to resume the corpus",
+                    path.display()
+                ));
+            }
+            Err(error) => {
+                return Err(format!(
+                    "transformerless bundle compilation produced an invalid entry: {error}"
+                ));
+            }
+        }
+    }
+    Ok(())
+}
+
 fn compile_bundle_from_source(
     source: &Path,
     status: &Arc<Mutex<R4g1CompileStatus>>,
+    tokenizer_selection: Option<&TokenizerAdapterKey>,
 ) -> Result<PathBuf, String> {
     let name = source
         .file_name()
@@ -1686,6 +1921,14 @@ fn compile_bundle_from_source(
             )
         })?;
     let output = PathBuf::from(".uor-models/compiled").join(name);
+    // Resolve once before the resumable stage mutates its output and pass the
+    // selected family/version as an atomic pair. Sources with multiple
+    // definitions are intentionally refused until the caller names one.
+    let tokenizer =
+        resolve_source_tokenizer(source, tokenizer_selection).map_err(|error| error.to_string())?;
+    let adapter = tokenizer
+        .adapter()
+        .ok_or_else(|| "source resolved to an adapterless tokenizer".to_owned())?;
     let args = vec![
         "--source".to_owned(),
         source.display().to_string(),
@@ -1697,6 +1940,10 @@ fn compile_bundle_from_source(
         R4G1_CORPUS_TARGET.to_owned(),
         "--sequence-length".to_owned(),
         "128".to_owned(),
+        "--tokenizer-family".to_owned(),
+        adapter.family,
+        "--tokenizer-version".to_owned(),
+        adapter.version.to_string(),
     ];
     // The teacher compile can take most of the wall-clock time. Run it in a
     // child worker so the server can report corpus progress while the native
@@ -1736,20 +1983,7 @@ fn compile_bundle_from_source(
             )
         })?
         .map_err(|error| error.to_string())?;
-    for file in [
-        "tless_artifacts.bin",
-        "tless_store.bin",
-        "tokenizer.bin",
-        "corpus.meta",
-        "corpus.records",
-    ] {
-        if !output.join(file).is_file() {
-            return Err(format!(
-                "transformerless bundle compilation is incomplete; missing {}. Retry the compile action to resume the corpus",
-                output.join(file).display()
-            ));
-        }
-    }
+    validate_source_bundle_inventory(&output)?;
     let meta = output.join("corpus.meta");
     let records = output.join("corpus.records");
     let meta_str = meta
@@ -1782,6 +2016,7 @@ fn compile_r4g1_bundle(
     r4g1: &Arc<Mutex<Option<R4g1State>>>,
     status: &Arc<Mutex<R4g1CompileStatus>>,
     downloaded_source: Option<&Path>,
+    tokenizer_selection: Option<&TokenizerAdapterKey>,
 ) -> Result<serde_json::Value, String> {
     set_r4g1_compile_progress(
         status,
@@ -1793,8 +2028,13 @@ fn compile_r4g1_bundle(
     // first so the requested target (currently 200k tokens) is actually
     // reached instead of silently rebuilding the old ~20k corpus.
     let source_root = downloaded_source
-        .map(|source| compile_bundle_from_source(source, status))
+        .map(|source| compile_bundle_from_source(source, status, tokenizer_selection))
         .transpose()?;
+    if downloaded_source.is_none() && tokenizer_selection.is_some() {
+        return Err(
+            "an explicit tokenizer selection requires a downloaded source directory".to_owned(),
+        );
+    }
     set_r4g1_compile_progress(status, 20, "Building the R4G1 cover...");
     let (artifacts, corpus_meta, corpus_recs, cover_output, graph_output, graph_path) =
         match source_root {
@@ -1874,6 +2114,15 @@ fn compile_r4g1_bundle(
         "--out".to_owned(),
         cover_output.display().to_string(),
     ];
+    let tokenizer_path = artifacts
+        .parent()
+        .unwrap_or_else(|| Path::new("."))
+        .join("tokenizer.bin");
+    append_tokenizer_arg(
+        &mut cover_args,
+        &tokenizer_path,
+        downloaded_source.is_some(),
+    )?;
     // #597: when compiling from a downloaded snapshot that carries a
     // source-snapshot manifest, bind its root κ into the cover report.
     // Opportunistic by design: a legacy snapshot without a manifest (or an
@@ -1901,7 +2150,7 @@ fn compile_r4g1_bundle(
 
     set_r4g1_compile_progress(status, 55, "Scoring graph transitions and emissions...");
     let cover_artifact = cover_output.join("cover.r4g1");
-    let score_args = vec![
+    let mut score_args = vec![
         "--corpus-meta".to_owned(),
         corpus_meta.display().to_string(),
         "--corpus-recs".to_owned(),
@@ -1923,12 +2172,24 @@ fn compile_r4g1_bundle(
         "--out".to_owned(),
         graph_output.display().to_string(),
     ];
+    append_tokenizer_arg(
+        &mut score_args,
+        &tokenizer_path,
+        downloaded_source.is_some(),
+    )?;
     uor_r4_graph_cli::score_command(&score_args).map_err(|error| error.to_string())?;
 
     set_r4g1_compile_progress(status, 90, "Validating and loading the compiled graph...");
-    let state = R4g1State::load(&graph_path, &artifacts)
+    let inferred_source = if downloaded_source.is_none() {
+        source_for_compiled_teacher(&artifacts)?
+    } else {
+        None
+    };
+    let source_for_host = downloaded_source.or(inferred_source.as_deref());
+    let state = R4g1State::load_with_source(&graph_path, &artifacts, source_for_host)
         .map_err(|error| format!("compiled graph was written but failed validation: {error}"))?;
     *r4g1.lock().unwrap() = Some(state);
+    clear_r4g1_terminal_load_error();
 
     let report_path = graph_output.join("score_report.json");
     let report = fs::read_to_string(&report_path)
@@ -1945,6 +2206,7 @@ fn spawn_r4g1_compile(
     r4g1: Arc<Mutex<Option<R4g1State>>>,
     status: Arc<Mutex<R4g1CompileStatus>>,
     downloaded_source: Option<String>,
+    tokenizer_selection: Option<TokenizerAdapterKey>,
 ) {
     std::thread::spawn(move || {
         let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
@@ -1953,6 +2215,7 @@ fn spawn_r4g1_compile(
                 &r4g1,
                 &status,
                 downloaded_source.as_deref().map(Path::new),
+                tokenizer_selection.as_ref(),
             )
         }))
         .map_err(|payload| {
@@ -2271,13 +2534,26 @@ fn generate_serving_completion(
     router_guard.inject_thought_stream_native(&final_response_text);
     spawn_cache_save(cli, router_guard.export_state());
 
-    // #654 phase C: usage from the serving tokenizer (the compiled artifact's),
-    // not a whitespace-word estimate. On this served path a tokenizer is
-    // available (it produced the completion); the defensive `unwrap_or(0)`
-    // never substitutes a word count.
-    let prompt_tokens = count_serving_tokens(prompt_text).unwrap_or(0);
-    let completion_tokens = count_serving_tokens(&final_response_text).unwrap_or(0);
-    let total_tokens = prompt_tokens + completion_tokens;
+    // #654/#718: R4G1 and teacher tiers carry counts from the exact tokenizer
+    // and token stream they actually used. They must never be recounted with
+    // the process-global legacy tokenizer, which may inhabit another id space.
+    let usage = match serving_usage_for_cascade(&cascade, prompt_text, &final_response_text) {
+        Ok(usage) => usage,
+        Err(message) => {
+            return GenerationOutcome::Declined {
+                status: 500,
+                body: openai_error_body(
+                    "server_error",
+                    message,
+                    None,
+                    Some("tokenizer_usage_unavailable"),
+                ),
+            };
+        }
+    };
+    let prompt_tokens = usage.prompt_tokens;
+    let completion_tokens = usage.completion_tokens;
+    let total_tokens = usage.total_tokens();
 
     let created_ts = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
@@ -2507,31 +2783,110 @@ fn handle_connection(
     if extended_route_canonical(clean_path) == Some("/uor/v1/reload") && method == "POST" {
         // #654 phase G: canonical /uor/v1/reload; /v1/reload deprecated alias.
         let dep = deprecation_headers(clean_path);
-        let payload: serde_json::Value = serde_json::from_slice(&body).unwrap_or_default();
-        let target_model = payload["model"].as_str().unwrap_or("smollm2-135m-instruct");
-
-        let teacher_path = format!(".uor-models/compiled/{}/tless_artifacts.bin", target_model);
-        let graph_path = format!(".uor-models/compiled/{}/graph/score.r4g1", target_model);
-        let fallback_path = format!(".uor-models/compiled/{}/compiled.r4g1", target_model);
-
-        let path_to_load = if std::path::Path::new(&graph_path).is_file() {
-            std::path::PathBuf::from(graph_path)
+        let payload: HuggingFaceDownloadPayload = if body.is_empty() {
+            HuggingFaceDownloadPayload::default()
         } else {
-            std::path::PathBuf::from(fallback_path)
+            match serde_json::from_slice(&body) {
+                Ok(payload) => payload,
+                Err(error) => {
+                    send_json_response_ext(
+                        stream,
+                        400,
+                        &serde_json::json!({ "error": format!("Invalid JSON: {error}") })
+                            .to_string(),
+                        &dep,
+                    );
+                    return;
+                }
+            }
+        };
+        let tokenizer_selection = match payload.tokenizer_selection() {
+            Ok(selection) => selection,
+            Err(error) => {
+                send_json_response_ext(
+                    stream,
+                    400,
+                    &serde_json::json!({ "error": error }).to_string(),
+                    &dep,
+                );
+                return;
+            }
+        };
+        let target_model = payload.model.as_deref().unwrap_or("smollm2-135m-instruct");
+
+        let teacher_path = PathBuf::from(format!(
+            ".uor-models/compiled/{}/tless_artifacts.bin",
+            target_model
+        ));
+        let graph_path = PathBuf::from(format!(
+            ".uor-models/compiled/{}/graph/score.r4g1",
+            target_model
+        ));
+        let fallback_path = PathBuf::from(format!(
+            ".uor-models/compiled/{}/compiled.r4g1",
+            target_model
+        ));
+
+        // A reload changes the selected model atomically: discard the old
+        // graph/oracle/tokenizer tuple before inspecting the replacement.
+        *r4g1.lock().unwrap() = None;
+        *oracle.lock().unwrap() = None;
+        *SERVING_SOURCE_TOKENIZER.lock().unwrap() = None;
+        clear_r4g1_terminal_load_error();
+
+        let path_to_load = match select_regular_fallback_path(&graph_path, &fallback_path) {
+            Ok(path) => path,
+            Err(error) => {
+                set_r4g1_terminal_load_error(error.clone());
+                send_json_response_ext(
+                    stream,
+                    500,
+                    &serde_json::json!({ "status": "error", "message": error }).to_string(),
+                    &dep,
+                );
+                return;
+            }
+        };
+        let oracle_source_path = PathBuf::from(format!(".uor-models/sources/{}", target_model));
+        let source_for_reload = match optional_source_directory(&oracle_source_path) {
+            Ok(source) => source,
+            Err(error) => {
+                set_r4g1_terminal_load_error(error.clone());
+                send_json_response_ext(
+                    stream,
+                    500,
+                    &serde_json::json!({ "status": "error", "message": error }).to_string(),
+                    &dep,
+                );
+                return;
+            }
         };
 
-        let oracle_source = format!(".uor-models/sources/{}", target_model);
-        if std::path::Path::new(&oracle_source)
-            .join("model.safetensors")
-            .exists()
-        {
-            match uor_r4_model_source::Teacher::load(&oracle_source) {
+        let teacher_model_present = match source_for_reload.as_deref() {
+            Some(source) => match regular_file_presence(&source.join("model.safetensors")) {
+                Ok(present) => present,
+                Err(error) => {
+                    set_r4g1_terminal_load_error(error.clone());
+                    send_json_response_ext(
+                        stream,
+                        500,
+                        &serde_json::json!({ "status": "error", "message": error }).to_string(),
+                        &dep,
+                    );
+                    return;
+                }
+            },
+            None => false,
+        };
+        if let (true, Some(source)) = (teacher_model_present, source_for_reload.as_deref()) {
+            match load_serving_source_tokenizer(source, tokenizer_selection.as_ref())
+                .and_then(|_| uor_r4_model_source::Teacher::load(source))
+            {
                 Ok(o) => {
                     println!(
                         "[+] Successfully reloaded teacher oracle model for '{}'",
                         target_model
                     );
-                    load_serving_hf_tokenizer(std::path::Path::new(&oracle_source));
                     *oracle.lock().unwrap() = Some(o);
                 }
                 Err(e) => {
@@ -2539,14 +2894,21 @@ fn handle_connection(
                         "[-] Note: Teacher oracle reload skipped for '{}': {:?}",
                         target_model, e
                     );
+                    *SERVING_SOURCE_TOKENIZER.lock().unwrap() = None;
+                    *oracle.lock().unwrap() = None;
                 }
             }
         }
 
-        if path_to_load.is_file() {
-            match r4g1::R4g1State::load(&path_to_load, std::path::Path::new(&teacher_path)) {
+        if let Some(path_to_load) = path_to_load {
+            match r4g1::R4g1State::load_with_source(
+                &path_to_load,
+                &teacher_path,
+                source_for_reload.as_deref(),
+            ) {
                 Ok(state) => {
                     *r4g1.lock().unwrap() = Some(state);
+                    clear_r4g1_terminal_load_error();
                     let resp = serde_json::json!({
                         "status": "success",
                         "model": target_model,
@@ -2556,6 +2918,7 @@ fn handle_connection(
                     return;
                 }
                 Err(e) => {
+                    set_r4g1_terminal_load_error(e.clone());
                     let resp = serde_json::json!({
                         "status": "error",
                         "message": format!("Failed to load R4G1 graph artifact: {}", e)
@@ -3568,7 +3931,8 @@ fn handle_connection(
         }
         let guard = r4g1.lock().unwrap();
         let Some(state) = guard.as_ref() else {
-            let (status, body) = r4g1_unavailable_response();
+            let load_error = r4g1_terminal_load_error();
+            let (status, body) = r4g1_unavailable_response_with_reason(load_error.as_deref());
             send_json_response(stream, status, &body.to_string());
             return;
         };
@@ -3628,7 +3992,8 @@ fn handle_connection(
             .unwrap_or(false);
         let guard = r4g1.lock().unwrap();
         let Some(state) = guard.as_ref() else {
-            let (status, body) = r4g1_unavailable_response();
+            let load_error = r4g1_terminal_load_error();
+            let (status, body) = r4g1_unavailable_response_with_reason(load_error.as_deref());
             send_json_response(stream, status, &body.to_string());
             return;
         };
@@ -3638,16 +4003,29 @@ fn handle_connection(
                 .filter_map(|v| v.as_u64().map(|x| x as u32))
                 .collect()
         } else if let Some(text) = payload.get("text").and_then(|t| t.as_str()) {
-            match state
-                .encode_into(text, &mut seed_buf)
-                .or_else(|| tless_uor::tless_tokenize_into(text, &mut seed_buf))
-            {
+            let encoded = match state.encode_into(text, &mut seed_buf) {
+                some @ Some(_) => some,
+                None if state.has_explicit_tokenizer() => None,
+                None => tless_uor::tless_tokenize_into(text, &mut seed_buf),
+            };
+            match encoded {
                 Some(len) if len > 0 => seed_buf[..len].to_vec(),
                 _ => {
+                    let message = state
+                        .tokenizer_adapter_identity()
+                        .map(|identity| {
+                            format!(
+                                "tokenizer unavailable — exact host adapter {}/{} is required",
+                                identity.family, identity.version
+                            )
+                        })
+                        .unwrap_or_else(|| {
+                            "tokenizer unavailable — set TLESS_TOKENIZER".to_owned()
+                        });
                     send_json_response(
                         stream,
                         503,
-                        "{\"error\":\"tokenizer unavailable — set TLESS_TOKENIZER\"}",
+                        &serde_json::json!({ "error": message }).to_string(),
                     );
                     return;
                 }
@@ -3673,10 +4051,20 @@ fn handle_connection(
                 let text_len = if gen.abstained || gen.count == 0 {
                     0
                 } else {
-                    state
-                        .decode_into(tokens, &mut text_bytes)
-                        .or_else(|| tless_uor::tless_detokenize_into(tokens, &mut text_bytes))
-                        .unwrap_or(0)
+                    match state.decode_into(tokens, &mut text_bytes) {
+                        Some(count) => count,
+                        None if state.has_explicit_tokenizer() => {
+                            send_json_response(
+                                stream,
+                                500,
+                                "{\"error\":\"bundle tokenizer could not decode generated tokens\"}",
+                            );
+                            return;
+                        }
+                        None => {
+                            tless_uor::tless_detokenize_into(tokens, &mut text_bytes).unwrap_or(0)
+                        }
+                    }
                 };
                 let text = String::from_utf8_lossy(&text_bytes[..text_len]).into_owned();
                 let mut body = serde_json::json!({
@@ -3848,6 +4236,14 @@ fn handle_connection(
                 }
             }
         };
+        if let Err(error) = payload.tokenizer_selection() {
+            send_json_response(
+                stream,
+                400,
+                &serde_json::json!({ "error": error }).to_string(),
+            );
+            return;
+        }
         let source = match huggingface_source(payload.model.as_deref()) {
             Ok(source) => source,
             Err(error) => {
@@ -3910,6 +4306,17 @@ fn handle_connection(
                 }
             }
         };
+        let tokenizer_selection = match payload.tokenizer_selection() {
+            Ok(selection) => selection,
+            Err(error) => {
+                send_json_response(
+                    stream,
+                    400,
+                    &serde_json::json!({ "error": error }).to_string(),
+                );
+                return;
+            }
+        };
         let mut status = r4g1_compile.lock().unwrap();
         if status.running {
             send_json_response(
@@ -3942,6 +4349,7 @@ fn handle_connection(
             Arc::clone(&r4g1),
             Arc::clone(&r4g1_compile),
             downloaded_source,
+            tokenizer_selection,
         );
         send_json_response(
             stream,
@@ -4281,6 +4689,30 @@ fn count_serving_tokens(text: &str) -> Option<usize> {
     }
     let mut buf = vec![0u32; text.len()];
     tless_uor::tless_tokenize_into(text, &mut buf)
+}
+
+fn tier_carries_exact_usage(tier: Option<&str>) -> bool {
+    matches!(
+        tier,
+        Some(TIER_R4G1 | TIER_TEACHER_ORACLE | TIER_ATTENTION | TIER_R4_ATTENTION)
+    )
+}
+
+fn serving_usage_for_cascade(
+    cascade: &ServingCascade,
+    prompt: &str,
+    completion: &str,
+) -> Result<ServingUsage, &'static str> {
+    if let Some(usage) = cascade.usage {
+        return Ok(usage);
+    }
+    if tier_carries_exact_usage(cascade.outcome.served_by) {
+        return Err("the selected R4G1/teacher tokenizer did not carry exact usage counts");
+    }
+    Ok(ServingUsage {
+        prompt_tokens: count_serving_tokens(prompt).unwrap_or(0),
+        completion_tokens: count_serving_tokens(completion).unwrap_or(0),
+    })
 }
 
 /// The truthful `finish_reason` for a served completion: `length` when it
@@ -4979,6 +5411,300 @@ fn print_witness_line(a: &CliAnswer) {
 #[cfg(test)]
 mod tests {
     #[test]
+    fn http_tokenizer_selection_is_an_atomic_version_generic_pair() {
+        let absent = super::HuggingFaceDownloadPayload::default();
+        assert_eq!(absent.tokenizer_selection().expect("absent pair"), None);
+
+        let family_only = super::HuggingFaceDownloadPayload {
+            model: None,
+            tokenizer_family: Some("future-family".to_owned()),
+            tokenizer_version: None,
+        };
+        assert!(family_only.tokenizer_selection().is_err());
+
+        let version_only = super::HuggingFaceDownloadPayload {
+            model: None,
+            tokenizer_family: None,
+            tokenizer_version: Some(41),
+        };
+        assert!(version_only.tokenizer_selection().is_err());
+
+        let selected = super::HuggingFaceDownloadPayload {
+            model: None,
+            tokenizer_family: Some("future-family".to_owned()),
+            tokenizer_version: Some(41),
+        }
+        .tokenizer_selection()
+        .expect("complete pair")
+        .expect("selection");
+        assert_eq!(selected.family, "future-family");
+        assert_eq!(selected.version, 41);
+    }
+
+    #[test]
+    fn inferred_source_distinguishes_absence_from_present_invalid_entries() {
+        let root = std::env::temp_dir().join(format!(
+            "uor-r4-serving-inferred-source-{}",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_dir_all(&root);
+        let teacher = root
+            .join("compiled")
+            .join("model-a")
+            .join("tless_artifacts.bin");
+        std::fs::create_dir_all(teacher.parent().expect("teacher parent"))
+            .expect("compiled directory");
+        std::fs::create_dir_all(root.join("sources")).expect("sources root");
+        assert_eq!(
+            super::source_for_compiled_teacher_in(&teacher, &root).expect("genuine absence"),
+            None
+        );
+
+        let source = root.join("sources").join("model-a");
+        std::fs::create_dir(&source).expect("source directory");
+        assert_eq!(
+            super::source_for_compiled_teacher_in(&teacher, &root).expect("directory is present"),
+            Some(source.clone())
+        );
+
+        std::fs::remove_dir(&source).expect("remove source directory");
+        std::fs::write(&source, b"not a directory").expect("invalid source entry");
+        let error = super::source_for_compiled_teacher_in(&teacher, &root)
+            .expect_err("present file is not absence");
+        assert!(error.contains("is not a source directory"), "{error}");
+
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::symlink;
+            std::fs::remove_file(&source).expect("remove invalid file");
+            symlink(root.join("missing-source-target"), &source).expect("dangling source symlink");
+            let error = super::source_for_compiled_teacher_in(&teacher, &root)
+                .expect_err("dangling source is not absence");
+            assert!(error.contains("model-a"), "{error}");
+        }
+        let _ = std::fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn server_compile_binds_only_a_regular_adjacent_tokenizer() {
+        let root = std::env::temp_dir().join(format!(
+            "uor-r4-server-compile-tokenizer-{}",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_dir_all(&root);
+        std::fs::create_dir_all(&root).expect("fixture root");
+        let tokenizer = root.join("tokenizer.bin");
+
+        let mut legacy_args = Vec::new();
+        super::append_tokenizer_arg(&mut legacy_args, &tokenizer, false)
+            .expect("genuinely absent legacy tokenizer remains optional");
+        assert!(legacy_args.is_empty());
+
+        let mut source_args = Vec::new();
+        let error = super::append_tokenizer_arg(&mut source_args, &tokenizer, true)
+            .expect_err("source-backed compile requires tokenizer.bin");
+        assert!(
+            error.contains("required source-backed tokenizer"),
+            "{error}"
+        );
+
+        std::fs::write(&tokenizer, b"exact tokenizer bytes").expect("tokenizer fixture");
+        super::append_tokenizer_arg(&mut source_args, &tokenizer, true)
+            .expect("regular tokenizer is bound");
+        assert_eq!(
+            source_args,
+            vec!["--tokenizer".to_owned(), tokenizer.display().to_string()]
+        );
+
+        std::fs::remove_file(&tokenizer).expect("remove tokenizer fixture");
+        std::fs::create_dir(&tokenizer).expect("invalid tokenizer directory");
+        let error = super::append_tokenizer_arg(&mut Vec::new(), &tokenizer, false)
+            .expect_err("present-invalid tokenizer never becomes absence");
+        assert!(error.contains("not a regular file"), "{error}");
+        let _ = std::fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn source_bundle_inventory_requires_a_regular_adapter_sidecar() {
+        let root = std::env::temp_dir().join(format!(
+            "uor-r4-source-bundle-inventory-{}",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_dir_all(&root);
+        std::fs::create_dir_all(&root).expect("fixture root");
+        for file in [
+            "tless_artifacts.bin",
+            "tless_store.bin",
+            "tokenizer.bin",
+            "corpus.meta",
+            "corpus.records",
+        ] {
+            std::fs::write(root.join(file), b"fixture").expect("bundle file");
+        }
+        let error = super::validate_source_bundle_inventory(&root)
+            .expect_err("adapter sidecar is required");
+        assert!(error.contains("tokenizer_adapter.json"), "{error}");
+
+        let sidecar = root.join("tokenizer_adapter.json");
+        std::fs::create_dir(&sidecar).expect("invalid sidecar directory");
+        let error = super::validate_source_bundle_inventory(&root)
+            .expect_err("present-invalid sidecar fails closed");
+        assert!(error.contains("not a regular file"), "{error}");
+        std::fs::remove_dir(&sidecar).expect("remove invalid sidecar");
+        std::fs::write(&sidecar, b"{}").expect("regular sidecar");
+        super::validate_source_bundle_inventory(&root).expect("complete regular inventory");
+        let _ = std::fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn reload_source_selection_keeps_absence_optional_and_invalid_entries_terminal() {
+        let root = std::env::temp_dir().join(format!(
+            "uor-r4-reload-source-selection-{}",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_dir_all(&root);
+        std::fs::create_dir_all(&root).expect("fixture root");
+        let source = root.join("source");
+        assert_eq!(
+            super::optional_source_directory(&source).expect("genuine absence"),
+            None
+        );
+        std::fs::create_dir(&source).expect("source directory");
+        assert_eq!(
+            super::optional_source_directory(&source).expect("present source"),
+            Some(source.clone())
+        );
+        std::fs::remove_dir(&source).expect("remove source directory");
+        std::fs::write(&source, b"not a directory").expect("invalid source");
+        assert!(super::optional_source_directory(&source).is_err());
+        let _ = std::fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn missing_tagged_host_encoder_stops_the_default_cascade_before_legacy_tokenization() {
+        assert!(super::tokenizer_unavailable_is_terminal(None, true, false));
+        assert!(!super::tokenizer_unavailable_is_terminal(
+            None, false, false
+        ));
+        // A graph rejected at the exact-CID load boundary is also terminal;
+        // it can never be retried through the transformerless tier's legacy
+        // tokenizer.
+        assert!(super::tokenizer_unavailable_is_terminal(None, false, true));
+        // An explicit non-R4G1 engine selection never enters the R4G1 tier,
+        // so its independently selected tokenizer policy remains in force.
+        assert!(!super::tokenizer_unavailable_is_terminal(
+            Some(super::TIER_ATTENTION),
+            true,
+            true,
+        ));
+    }
+
+    #[test]
+    fn serving_source_tokenizer_is_registered_and_parse_failures_clear_it() {
+        let dir =
+            std::env::temp_dir().join(format!("uor-r4-serving-tokenizer-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).expect("source dir");
+        let tokenizer_path = dir.join("tokenizer.json");
+        std::fs::write(
+            &tokenizer_path,
+            br#"{
+                "model":{"type":"BPE","vocab":{"a":0},"merges":[]},
+                "pre_tokenizer":{"type":"ByteLevel","add_prefix_space":false}
+            }"#,
+        )
+        .expect("tokenizer definition");
+        let selection = uor_r4_core::transformerless::hf_bpe::TokenizerAdapterKey::hf_byte_bpe_v1();
+        super::load_serving_source_tokenizer(&dir, Some(&selection))
+            .expect("registered source loads");
+        let adapter = super::SERVING_SOURCE_TOKENIZER
+            .lock()
+            .unwrap()
+            .as_ref()
+            .and_then(|tokenizer| tokenizer.adapter())
+            .expect("registered identity");
+        assert_eq!(adapter.family, "hf-byte-bpe");
+        assert_eq!(adapter.version, 1);
+
+        std::fs::write(
+            dir.join("spiece.model"),
+            b"present to make selection ambiguous",
+        )
+        .expect("second tokenizer definition");
+        let error = super::load_serving_source_tokenizer(&dir, None)
+            .expect_err("ambiguous source selection fails closed");
+        assert!(
+            error
+                .reason
+                .contains("both tokenizer.json and spiece.model"),
+            "{error}"
+        );
+        assert!(super::SERVING_SOURCE_TOKENIZER.lock().unwrap().is_none());
+        std::fs::remove_file(dir.join("spiece.model")).expect("remove second definition");
+
+        std::fs::write(&tokenizer_path, br#"{"model":{"type":"Unigram"}}"#)
+            .expect("replace with unsupported wrapper");
+        let error = super::load_serving_source_tokenizer(&dir, Some(&selection))
+            .expect_err("unsupported selected definition fails closed");
+        assert!(error.reason.contains("hf-byte-bpe/1"), "{error}");
+        assert!(super::SERVING_SOURCE_TOKENIZER.lock().unwrap().is_none());
+        let _ = std::fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn r4g1_usage_keeps_registered_segmentation_and_generated_token_count() {
+        use uor_r4_core::transformerless::hf_bpe::{HfBpeTokenizer, TokenizerKind};
+        use uor_r4_core::transformerless::scenarios::Tokenizer;
+        use uor_r4_router::fallback::CascadeOutcome;
+
+        let registered = HfBpeTokenizer::from_tokenizer_json_bytes(
+            br#"{
+                "model":{"type":"BPE","vocab":{"1":0,"2":1,"12":2},"merges":["1 2"]},
+                "pre_tokenizer":{"type":"Sequence","pretokenizers":[
+                    {"type":"Digits","individual_digits":true},
+                    {"type":"ByteLevel","add_prefix_space":false}
+                ]}
+            }"#,
+        )
+        .expect("registered Digits tokenizer");
+        let registered = TokenizerKind::Registered(Box::new(registered));
+        let registered_prompt_tokens = registered.encode("12").len();
+        assert_eq!(registered_prompt_tokens, 2);
+
+        let mut legacy_bytes = Vec::new();
+        for piece in [
+            b"1".as_slice(),
+            "Ġ".as_bytes(),
+            b"2".as_slice(),
+            b"12".as_slice(),
+        ] {
+            legacy_bytes.extend_from_slice(&(piece.len() as i32).to_le_bytes());
+            legacy_bytes.extend_from_slice(piece);
+        }
+        let legacy = Tokenizer::from_bytes(&legacy_bytes).expect("legacy tokenizer");
+        assert_eq!(legacy.encode("12").len(), 1, "fixture must discriminate");
+
+        let cascade = super::ServingCascade {
+            outcome: CascadeOutcome {
+                text: Some("completion".to_owned()),
+                served_by: Some(super::TIER_R4G1),
+                trail: Vec::new(),
+            },
+            r4g1: super::R4g1Signal::default(),
+            geometric: None,
+            usage: Some(super::ServingUsage {
+                prompt_tokens: registered_prompt_tokens,
+                completion_tokens: 3,
+            }),
+        };
+        let usage = super::serving_usage_for_cascade(&cascade, "12", "12")
+            .expect("R4G1 carries exact usage");
+        assert_eq!(usage.prompt_tokens, 2);
+        assert_eq!(usage.completion_tokens, 3);
+        assert_eq!(usage.total_tokens(), 5);
+    }
+
+    #[test]
     fn canonical_address_is_encoding_independent() {
         // The conformance property the old raw-bytes hash lacked: two
         // byte-different encodings of the same JSON value get one label.
@@ -5117,6 +5843,7 @@ mod tests {
                 error: None,
             },
             geometric: None,
+            usage: None,
         };
         assert_eq!(
             super::derive_generation_mode(&served, None),
@@ -5152,6 +5879,7 @@ mod tests {
                 error: None,
             },
             geometric: None,
+            usage: None,
         };
         let generation_mode = super::derive_generation_mode(&declined, Some(super::TIER_R4G1));
         assert_eq!(generation_mode, "r4g1-abstained");
@@ -5184,6 +5912,7 @@ mod tests {
                 error: Some("R4G1 graph runtime is not loaded".to_owned()),
             },
             geometric: None,
+            usage: None,
         };
         let generation_mode = super::derive_generation_mode(&failed, Some(super::TIER_R4G1));
         assert_eq!(generation_mode, "r4g1-error");

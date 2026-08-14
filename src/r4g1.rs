@@ -35,7 +35,53 @@ use std::path::{Path, PathBuf};
 
 use uor_r4_api::engine::{EngineParts, InferenceWitness, R4Engine, WitnessVerificationError};
 use uor_r4_core::transformerless::compiler::SIG_BYTES;
-use uor_r4_core::transformerless::scenarios::Tokenizer;
+use uor_r4_core::transformerless::hf_bpe::{
+    resolve_source_tokenizer, TokenizerAdapterKey, TokenizerKind,
+};
+use uor_r4_core::transformerless::scenarios::{RuntimeTokenizerIdentity, Tokenizer};
+
+fn read_optional_tokenizer(path: &Path) -> Result<Option<Vec<u8>>, String> {
+    let metadata = match std::fs::symlink_metadata(path) {
+        Ok(metadata) => metadata,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+        Err(error) => return Err(format!("{}: {error}", path.display())),
+    };
+    let is_regular = if metadata.file_type().is_symlink() {
+        std::fs::metadata(path)
+            .map_err(|error| format!("{}: {error}", path.display()))?
+            .is_file()
+    } else {
+        metadata.is_file()
+    };
+    if !is_regular {
+        return Err(format!(
+            "{}: tokenizer path is not a regular file",
+            path.display()
+        ));
+    }
+    std::fs::read(path)
+        .map(Some)
+        .map_err(|error| format!("{}: {error}", path.display()))
+}
+
+fn read_required_bundle_file(path: &Path) -> Result<Vec<u8>, String> {
+    let metadata =
+        std::fs::symlink_metadata(path).map_err(|error| format!("{}: {error}", path.display()))?;
+    let is_regular = if metadata.file_type().is_symlink() {
+        std::fs::metadata(path)
+            .map_err(|error| format!("{}: {error}", path.display()))?
+            .is_file()
+    } else {
+        metadata.is_file()
+    };
+    if !is_regular {
+        return Err(format!(
+            "{}: bundle path is not a regular file",
+            path.display()
+        ));
+    }
+    std::fs::read(path).map_err(|error| format!("{}: {error}", path.display()))
+}
 
 // The deployed status-policy types and the status-aware decision path are
 // re-exports of the library engine (the integer-only delimited block the
@@ -51,9 +97,13 @@ pub use uor_r4_api::engine::{
 /// [`R4Engine`] for the server's shared-state access pattern.
 pub struct R4g1State {
     engine: RefCell<R4Engine>,
-    /// The bundle tokenizer, loaded with the historical fallback chain
-    /// (`Tokenizer::try_load` probes sibling vocab.json candidates).
+    /// Exact `tokenizer.bin` bytes beside the teacher artifact. Tagged
+    /// tokenizers are decode-only; historical untagged bytes retain their
+    /// existing encode/decode behavior.
     tokenizer: Option<Tokenizer>,
+    /// Exact registered host encoder for a tagged decode-only tokenizer.
+    /// It is installed only after all four identity fields match.
+    host_tokenizer: Option<TokenizerKind>,
 }
 
 impl R4g1State {
@@ -145,10 +195,43 @@ impl R4g1State {
     /// enabled because its reference implementation performs probe-time
     /// floating-point quantization.
     pub fn load(graph_path: &Path, teacher_path: &Path) -> Result<Self, String> {
-        let graph_bytes = std::fs::read(graph_path)
-            .map_err(|error| format!("{}: {error}", graph_path.display()))?;
-        let teacher_bytes = std::fs::read(teacher_path)
-            .map_err(|error| format!("{}: {error}", teacher_path.display()))?;
+        Self::load_with_source(graph_path, teacher_path, None)
+    }
+
+    /// Load a scored graph and, when `source_dir` is supplied for a tagged
+    /// decode-only tokenizer, bind the exact registered host encoder. A
+    /// present source that cannot parse or whose identity differs is a hard
+    /// load error; an absent source leaves decoding available and prompt
+    /// encoding explicitly unavailable.
+    pub fn load_with_source(
+        graph_path: &Path,
+        teacher_path: &Path,
+        source_dir: Option<&Path>,
+    ) -> Result<Self, String> {
+        let graph_bytes = read_required_bundle_file(graph_path)?;
+        let teacher_bytes = read_required_bundle_file(teacher_path)?;
+        let tokenizer_path = teacher_path
+            .parent()
+            .map(|parent| parent.join("tokenizer.bin"));
+        let tokenizer_bytes = tokenizer_path
+            .as_deref()
+            .map(read_optional_tokenizer)
+            .transpose()?
+            .flatten();
+        let tokenizer = tokenizer_bytes
+            .as_deref()
+            .map(|bytes| {
+                Tokenizer::from_bytes(bytes).ok_or_else(|| {
+                    format!(
+                        "{}: invalid tokenizer.bin bytes",
+                        tokenizer_path
+                            .as_deref()
+                            .unwrap_or_else(|| Path::new("tokenizer.bin"))
+                            .display()
+                    )
+                })
+            })
+            .transpose()?;
         // Historical behavior: a score report that does not parse is
         // ignored (D4 defaults), not an error — pre-validate before
         // handing the bytes to the typed loader.
@@ -159,43 +242,116 @@ impl R4g1State {
         let engine = R4Engine::load(EngineParts {
             graph: &graph_bytes,
             signature_artifact: &teacher_bytes,
-            // The engine's own text helpers are unused here: this wrapper
-            // keeps the historical tokenizer fallback chain below.
-            tokenizer: None,
+            // Supplying the exact bytes makes the graph header's independent
+            // tokenizer.bin CID binding authoritative at this boundary.
+            tokenizer: tokenizer_bytes.as_deref(),
             score_report: score_report.as_deref(),
         })
         .map_err(|error| {
             // The engine loader now returns a single sanctioned
             // SourceUnavailable whose reason names the failing part; attribute
-            // teacher-artifact reasons to the teacher path, the rest to the
-            // graph path.
+            // teacher-artifact and tokenizer-binding reasons to their exact
+            // bundle paths, and graph-format reasons to the graph path.
             let path = if error.reason.contains("teacher") {
                 teacher_path.display()
+            } else if error.reason.contains("tokenizer") {
+                tokenizer_path
+                    .as_deref()
+                    .unwrap_or_else(|| Path::new("tokenizer.bin"))
+                    .display()
             } else {
                 graph_path.display()
             };
             format!("{path}: {error}")
         })?;
-        let tokenizer = teacher_path
-            .parent()
-            .map(|parent| parent.join("tokenizer.bin"))
-            .filter(|path| path.is_file())
-            .and_then(|path| Tokenizer::try_load(path).ok());
+        let host_tokenizer = match (tokenizer.as_ref(), source_dir) {
+            (Some(runtime), Some(source)) if runtime.is_decode_only() => {
+                let identity = runtime.adapter_identity().ok_or_else(|| {
+                    "tagged runtime tokenizer omitted its adapter identity".to_owned()
+                })?;
+                let key = TokenizerAdapterKey::new(identity.family.clone(), identity.version);
+                let host = resolve_source_tokenizer(source, Some(&key))
+                    .map_err(|error| format!("{}: {error}", source.display()))?;
+                let adapter = host.adapter().ok_or_else(|| {
+                    format!(
+                        "{} resolved to an adapterless tokenizer for {}/{}",
+                        source.display(),
+                        identity.family,
+                        identity.version
+                    )
+                })?;
+                if adapter.family != identity.family
+                    || adapter.version != identity.version
+                    || adapter.tokenizer_cid != identity.tokenizer_cid
+                    || adapter.adapter_digest != identity.adapter_digest
+                {
+                    return Err(format!(
+                        "{} tokenizer identity mismatch: runtime requires {}/{} CID {} digest {}; host resolved {}/{} CID {} digest {}",
+                        source.display(),
+                        identity.family,
+                        identity.version,
+                        identity.tokenizer_cid,
+                        identity.adapter_digest,
+                        adapter.family,
+                        adapter.version,
+                        adapter.tokenizer_cid,
+                        adapter.adapter_digest,
+                    ));
+                }
+                Some(host)
+            }
+            _ => None,
+        };
 
         Ok(Self {
             engine: RefCell::new(engine),
             tokenizer,
+            host_tokenizer,
         })
     }
 
     /// Encode with the bundle-matched tokenizer when one is available.
     pub fn encode_into(&self, text: &str, out: &mut [u32]) -> Option<usize> {
-        self.tokenizer.as_ref()?.encode_into(text, out)
+        let runtime = self.tokenizer.as_ref()?;
+        if !runtime.is_decode_only() {
+            return runtime.encode_into(text, out);
+        }
+        let encoded = self.host_tokenizer.as_ref()?.encode(text);
+        if encoded.len() > out.len() {
+            return None;
+        }
+        out[..encoded.len()].copy_from_slice(&encoded);
+        Some(encoded.len())
     }
 
     /// Decode with the bundle-matched tokenizer when one is available.
     pub fn decode_into(&self, tokens: &[u32], out: &mut [u8]) -> Option<usize> {
         self.tokenizer.as_ref()?.decode_into(tokens, out)
+    }
+
+    /// Whether this bundle supplied explicit tokenizer bytes. Serving uses
+    /// this to distinguish a missing legacy tokenizer (where the historical
+    /// configured tokenizer may still be consulted) from a present tokenizer
+    /// whose failure must never trigger a cross-id-space fallback.
+    pub fn has_explicit_tokenizer(&self) -> bool {
+        self.tokenizer.is_some()
+    }
+
+    /// Whether a tagged decode-only tokenizer is loaded without its exact
+    /// registered host encoder. The serving cascade treats this condition as
+    /// terminal so it cannot invoke a legacy greedy tokenizer in another id
+    /// space.
+    pub fn host_encoder_unavailable(&self) -> bool {
+        self.tokenizer
+            .as_ref()
+            .is_some_and(Tokenizer::is_decode_only)
+            && self.host_tokenizer.is_none()
+    }
+
+    /// Full tagged runtime identity, when the bundle uses a registered
+    /// decode-only tokenizer.
+    pub fn tokenizer_adapter_identity(&self) -> Option<&RuntimeTokenizerIdentity> {
+        self.tokenizer.as_ref()?.adapter_identity()
     }
 
     /// Score one token window using the validated graph artifact.
@@ -231,4 +387,61 @@ pub fn discover_path(explicit: Option<&str>, teacher_path: &Path) -> Option<Path
             .parent()
             .map(|parent| parent.join("graph/score.r4g1"))
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{read_optional_tokenizer, read_required_bundle_file};
+
+    fn temp_dir(tag: &str) -> std::path::PathBuf {
+        let dir = std::env::temp_dir().join(format!(
+            "uor-r4-r4g1-tokenizer-{tag}-{}",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).expect("temp directory");
+        dir
+    }
+
+    #[test]
+    fn optional_tokenizer_distinguishes_absence_from_a_directory() {
+        let dir = temp_dir("directory");
+        let missing = dir.join("missing-tokenizer.bin");
+        assert_eq!(
+            read_optional_tokenizer(&missing).expect("genuine absence"),
+            None
+        );
+
+        let invalid = dir.join("tokenizer.bin");
+        std::fs::create_dir(&invalid).expect("directory at tokenizer path");
+        let error = read_optional_tokenizer(&invalid)
+            .expect_err("a present non-file tokenizer is not absence");
+        assert!(error.contains("tokenizer.bin"), "{error}");
+        let _ = std::fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn required_bundle_file_rejects_a_directory_without_reading_it() {
+        let dir = temp_dir("required-directory");
+        let invalid = dir.join("score.r4g1");
+        std::fs::create_dir(&invalid).expect("directory at graph path");
+        let error = read_required_bundle_file(&invalid)
+            .expect_err("present non-file bundle part must fail closed");
+        assert!(error.contains("not a regular file"), "{error}");
+        let _ = std::fs::remove_dir_all(dir);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn optional_tokenizer_rejects_a_dangling_symlink_instead_of_falling_back() {
+        use std::os::unix::fs::symlink;
+
+        let dir = temp_dir("dangling");
+        let invalid = dir.join("tokenizer.bin");
+        symlink(dir.join("missing-target.bin"), &invalid).expect("dangling symlink");
+        let error = read_optional_tokenizer(&invalid)
+            .expect_err("a present dangling tokenizer is not absence");
+        assert!(error.contains("tokenizer.bin"), "{error}");
+        let _ = std::fs::remove_dir_all(dir);
+    }
 }
