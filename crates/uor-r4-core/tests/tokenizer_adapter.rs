@@ -362,12 +362,13 @@ fn registry_resolves_hf_byte_bpe_1() {
 
 #[test]
 fn registry_refuses_unknown_family_and_version_by_name() {
-    // The recorded SentencePiece/Unigram follow-up family is rejected
-    // explicitly (bounded rejection, #601 non-goal), as is any unknown
-    // (family, version) pair — including a bumped hf-byte-bpe version.
+    // Any unknown (family, version) pair is rejected by name — including a
+    // bumped version of a REGISTERED family (hf-byte-bpe/2, sentencepiece-
+    // unigram/2), so a future behavioral change must arrive as a new
+    // registry entry rather than silently reusing the current one.
     for (family, version) in [
-        (TokenizerAdapter::SENTENCEPIECE_UNIGRAM_FAMILY, 1u32),
-        (TokenizerAdapter::HF_BYTE_BPE_FAMILY, 2),
+        (TokenizerAdapter::HF_BYTE_BPE_FAMILY, 2u32),
+        (TokenizerAdapter::SENTENCEPIECE_UNIGRAM_FAMILY, 2),
         ("mystery-tokenizer", 1),
     ] {
         let error = adapter_constructor(family, version)
@@ -387,12 +388,10 @@ fn registry_refuses_unknown_family_and_version_by_name() {
             "reason names the family: {error}"
         );
     }
-    // The rejection message records the follow-up path by name.
-    let error = adapter_constructor(TokenizerAdapter::SENTENCEPIECE_UNIGRAM_FAMILY, 1)
-        .expect_err("sentencepiece-unigram has no adapter yet");
+    // sentencepiece-unigram/1 is now REGISTERED (#639-3b), not refused.
     assert!(
-        error.reason.contains("sentencepiece-unigram"),
-        "follow-up family is named: {error}"
+        adapter_constructor(TokenizerAdapter::SENTENCEPIECE_UNIGRAM_FAMILY, 1).is_ok(),
+        "sentencepiece-unigram/1 resolves to the real Unigram adapter"
     );
 }
 

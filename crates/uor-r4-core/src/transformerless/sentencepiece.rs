@@ -8,15 +8,14 @@
 //! minimal protobuf reader, and implements the Unigram best-path
 //! segmentation (Viterbi) over **already-normalized** text.
 //!
-//! What this module deliberately does NOT do: the SentencePiece
-//! normalization (`nmt_nfkc` precompiled charsmap, dummy-prefix and
-//! whitespace escaping), the `(sentencepiece-unigram, 1)` registry entry,
-//! and the [`super::hf_bpe::TokenizerModel`] / [`super::hf_bpe::TokenizerKind`]
-//! wiring all land in #639-3b. Because the normalizer is not yet
-//! implemented, nothing here is registered or reachable from a driver, so
-//! no not-yet-faithful path is ever exposed to a caller. The encode entry
-//! point is named [`UnigramModel::encode_normalized`] to make that
-//! precondition explicit.
+//! Since #639-3b this module also carries the [`Normalizer`] (the
+//! `nmt_nfkc` precompiled-charsmap folding + dummy-prefix/whitespace rules)
+//! and [`SentencePieceUnigramTokenizer`], which composes the normalizer with
+//! the Viterbi core into a [`super::hf_bpe::TokenizerModel`] registered under
+//! `(sentencepiece-unigram, 1)`. The `UnigramModel::encode_normalized` entry
+//! point still operates on already-normalized text; the tokenizer's
+//! `encode` normalizes first. Selecting this adapter from the observe/serve
+//! drivers (the `TokenizerKind` wiring) is the remaining follow-up.
 //!
 //! Refuse-by-name, never approximate: a non-Unigram `model_type`, a
 //! `byte_fallback` source (no pinned byte-fallback source exists yet), a
@@ -26,6 +25,8 @@
 use std::collections::HashMap;
 
 use uor_r4_model_source::SourceUnavailable;
+
+use super::hf_bpe::{TokenizerAdapter, TokenizerAdapterPolicy, TokenizerModel};
 
 /// The whitespace meta symbol SentencePiece escapes spaces to (`▁`,
 /// U+2581). Pieces carry it literally; [`UnigramModel::decode`] maps it
@@ -323,6 +324,350 @@ impl UnigramModel {
         }
         let spaced = surface.replace(WHITESPACE_META, " ");
         spaced.strip_prefix(' ').unwrap_or(&spaced).to_owned()
+    }
+}
+
+// ============================ #639-3b: normalizer + adapter ===============
+
+/// Darts-clone double-array unit accessors (the trie encoding
+/// `precompiled_charsmap` uses). A unit is a `u32`.
+fn darts_has_leaf(unit: u32) -> bool {
+    (unit >> 8) & 1 == 1
+}
+fn darts_value(unit: u32) -> u32 {
+    unit & 0x7fff_ffff
+}
+fn darts_offset(unit: u32) -> u32 {
+    (unit >> 10) << ((unit & 0x200) >> 6)
+}
+
+/// The SentencePiece text normalizer: applies the `precompiled_charsmap`
+/// (a Darts double-array trie of longest-match byte-sequence replacements —
+/// e.g. NFKC folding for `nmt_nfkc`) then the whitespace rules
+/// (`add_dummy_prefix`, escape space → `▁`, collapse/strip extra
+/// whitespace). This reproduces `sentencepiece`'s `Normalizer::Normalize`
+/// byte-for-byte; the algorithm and the pinned T5 `nmt_nfkc` charsmap were
+/// validated against the reference library before this port.
+#[derive(Debug)]
+pub struct Normalizer {
+    /// Declared normalizer name (provenance only; the charsmap drives
+    /// behavior).
+    name: String,
+    /// Darts-clone double-array trie units.
+    trie: Vec<u32>,
+    /// Null-separated normalized replacement strings; a trie value is a byte
+    /// offset into this blob (offset 0 is the empty string).
+    normalized: Vec<u8>,
+    add_dummy_prefix: bool,
+    remove_extra_whitespaces: bool,
+    escape_whitespaces: bool,
+}
+
+impl Normalizer {
+    /// Parse the `NormalizerSpec` (`ModelProto` field 3) from raw
+    /// `spiece.model` bytes and decode its `precompiled_charsmap`.
+    ///
+    /// Fails closed via [`SourceUnavailable`] when the model carries no
+    /// `NormalizerSpec`, when a `normalization_rule_tsv` is present (custom
+    /// rules are refused, never approximated), or when the
+    /// `precompiled_charsmap` is absent or malformed — only
+    /// precompiled-charsmap normalizers are supported.
+    pub fn from_spiece_bytes(bytes: &[u8]) -> Result<Self, SourceUnavailable> {
+        // Locate the normalizer_spec sub-message (ModelProto field 3).
+        let mut reader = ProtoReader::new(bytes);
+        let mut spec: Option<&[u8]> = None;
+        while !reader.is_empty() {
+            let (field, wire) = reader
+                .read_tag()
+                .ok_or_else(|| SourceUnavailable::new("spiece.model: truncated field tag"))?;
+            if (field, wire) == (3, WIRE_LEN) {
+                spec = Some(reader.read_len_delim().ok_or_else(|| {
+                    SourceUnavailable::new("spiece.model: truncated normalizer_spec")
+                })?);
+            } else {
+                reader
+                    .skip_field(wire)
+                    .ok_or_else(|| SourceUnavailable::new("spiece.model: unreadable field"))?;
+            }
+        }
+        let spec =
+            spec.ok_or_else(|| SourceUnavailable::new("spiece.model: no normalizer_spec"))?;
+
+        // NormalizerSpec fields: name(1), precompiled_charsmap(2 bytes),
+        // add_dummy_prefix(3), remove_extra_whitespaces(4),
+        // escape_whitespaces(5), normalization_rule_tsv(6). Booleans default
+        // to true (the SentencePiece proto defaults).
+        let mut name = String::new();
+        let mut charsmap: Option<&[u8]> = None;
+        let mut add_dummy_prefix = true;
+        let mut remove_extra_whitespaces = true;
+        let mut escape_whitespaces = true;
+        let mut reader = ProtoReader::new(spec);
+        while !reader.is_empty() {
+            let (field, wire) = reader
+                .read_tag()
+                .ok_or_else(|| SourceUnavailable::new("normalizer_spec: truncated field tag"))?;
+            match (field, wire) {
+                (1, WIRE_LEN) => {
+                    let raw = reader
+                        .read_len_delim()
+                        .ok_or_else(|| SourceUnavailable::new("normalizer_spec: truncated name"))?;
+                    name = std::str::from_utf8(raw)
+                        .map_err(|_| SourceUnavailable::new("normalizer_spec: non-UTF-8 name"))?
+                        .to_owned();
+                }
+                (2, WIRE_LEN) => {
+                    charsmap = Some(reader.read_len_delim().ok_or_else(|| {
+                        SourceUnavailable::new("normalizer_spec: truncated precompiled_charsmap")
+                    })?);
+                }
+                (3, WIRE_VARINT) => {
+                    add_dummy_prefix = reader.read_varint().ok_or_else(|| {
+                        SourceUnavailable::new("normalizer_spec: truncated add_dummy_prefix")
+                    })? != 0;
+                }
+                (4, WIRE_VARINT) => {
+                    remove_extra_whitespaces = reader.read_varint().ok_or_else(|| {
+                        SourceUnavailable::new(
+                            "normalizer_spec: truncated remove_extra_whitespaces",
+                        )
+                    })? != 0;
+                }
+                (5, WIRE_VARINT) => {
+                    escape_whitespaces = reader.read_varint().ok_or_else(|| {
+                        SourceUnavailable::new("normalizer_spec: truncated escape_whitespaces")
+                    })? != 0;
+                }
+                (6, WIRE_LEN) => {
+                    let tsv = reader.read_len_delim().ok_or_else(|| {
+                        SourceUnavailable::new("normalizer_spec: truncated normalization_rule_tsv")
+                    })?;
+                    if !tsv.is_empty() {
+                        return Err(SourceUnavailable::new(
+                            "normalizer_spec: normalization_rule_tsv is not interpreted — refused \
+                             rather than approximated",
+                        ));
+                    }
+                }
+                _ => reader
+                    .skip_field(wire)
+                    .ok_or_else(|| SourceUnavailable::new("normalizer_spec: unreadable field"))?,
+            }
+        }
+
+        let charsmap = charsmap.filter(|blob| !blob.is_empty()).ok_or_else(|| {
+            SourceUnavailable::new(
+                "normalizer_spec: no precompiled_charsmap — only precompiled-charsmap normalizers \
+                 are supported",
+            )
+        })?;
+        // Charsmap layout: [u32 LE trie_blob_size][trie: u32 units][normalized
+        // blob: null-separated strings].
+        if charsmap.len() < 4 {
+            return Err(SourceUnavailable::new(
+                "normalizer_spec: precompiled_charsmap shorter than its trie-size header",
+            ));
+        }
+        let trie_size =
+            u32::from_le_bytes([charsmap[0], charsmap[1], charsmap[2], charsmap[3]]) as usize;
+        if !trie_size.is_multiple_of(4) || 4usize.saturating_add(trie_size) > charsmap.len() {
+            return Err(SourceUnavailable::new(
+                "normalizer_spec: precompiled_charsmap trie size is malformed",
+            ));
+        }
+        let trie: Vec<u32> = charsmap[4..4 + trie_size]
+            .chunks_exact(4)
+            .map(|chunk| u32::from_le_bytes([chunk[0], chunk[1], chunk[2], chunk[3]]))
+            .collect();
+        let normalized = charsmap[4 + trie_size..].to_vec();
+
+        Ok(Self {
+            name,
+            trie,
+            normalized,
+            add_dummy_prefix,
+            remove_extra_whitespaces,
+            escape_whitespaces,
+        })
+    }
+
+    /// Darts `commonPrefixSearch`: the LONGEST key prefix present in the
+    /// trie, as `(value offset into the normalized blob, matched byte
+    /// length)`. `None` when no prefix matches.
+    fn longest_match(&self, key: &[u8]) -> Option<(usize, usize)> {
+        let mut best: Option<(usize, usize)> = None;
+        let mut node_pos = 0usize;
+        let mut unit = *self.trie.first()?;
+        node_pos ^= darts_offset(unit) as usize;
+        for (i, &byte) in key.iter().enumerate() {
+            node_pos ^= byte as usize;
+            unit = *self.trie.get(node_pos)?;
+            if (unit & 0xff) as u8 != byte {
+                break;
+            }
+            node_pos ^= darts_offset(unit) as usize;
+            if darts_has_leaf(unit) {
+                let leaf = *self.trie.get(node_pos)?;
+                best = Some((darts_value(leaf) as usize, i + 1));
+            }
+        }
+        best
+    }
+
+    /// The null-terminated normalized replacement string at `offset`.
+    fn replacement(&self, offset: usize) -> Option<&[u8]> {
+        let rest = self.normalized.get(offset..)?;
+        let end = rest.iter().position(|&b| b == 0)?;
+        Some(&rest[..end])
+    }
+
+    /// Apply the `precompiled_charsmap` with greedy longest match; bytes with
+    /// no matching prefix are copied through unchanged.
+    fn apply_charsmap(&self, input: &[u8]) -> Vec<u8> {
+        let mut out = Vec::with_capacity(input.len());
+        let mut i = 0;
+        while i < input.len() {
+            if let Some((value, len)) = self.longest_match(&input[i..]) {
+                if let Some(replacement) = self.replacement(value) {
+                    out.extend_from_slice(replacement);
+                    i += len;
+                    continue;
+                }
+            }
+            out.push(input[i]);
+            i += 1;
+        }
+        out
+    }
+
+    /// Normalize raw text to the `▁`-escaped surface form the Unigram Viterbi
+    /// consumes — reproducing `sentencepiece`'s `Normalize`: charsmap folding,
+    /// then whitespace escaping/collapsing, then the dummy prefix (added only
+    /// when the result is non-empty).
+    pub fn normalize(&self, text: &str) -> String {
+        let mapped = self.apply_charsmap(text.as_bytes());
+        let mapped = String::from_utf8_lossy(&mapped);
+
+        let space = if self.escape_whitespaces {
+            WHITESPACE_META
+        } else {
+            ' '
+        };
+        let mut out = String::with_capacity(mapped.len() + WHITESPACE_META.len_utf8());
+        let mut prev_space = self.remove_extra_whitespaces;
+        for ch in mapped.chars() {
+            if ch == ' ' {
+                if self.remove_extra_whitespaces && prev_space {
+                    continue;
+                }
+                out.push(space);
+                prev_space = true;
+            } else {
+                out.push(ch);
+                prev_space = false;
+            }
+        }
+        if self.remove_extra_whitespaces && out.ends_with(space) {
+            out.pop();
+        }
+        if self.add_dummy_prefix && !out.is_empty() {
+            out.insert(0, space);
+        }
+        out
+    }
+}
+
+/// The registered SentencePiece Unigram tokenizer (#639-3b): raw text →
+/// [`Normalizer`] → [`UnigramModel`] Viterbi → token ids, exposed as a
+/// [`TokenizerModel`] under the `(sentencepiece-unigram, 1)` registry entry.
+#[derive(Debug)]
+pub struct SentencePieceUnigramTokenizer {
+    model: UnigramModel,
+    normalizer: Normalizer,
+    tokenizer_cid: String,
+}
+
+impl SentencePieceUnigramTokenizer {
+    /// Build from raw `spiece.model` bytes: the Unigram model, its
+    /// normalizer, and the `blake3` content address of the definition.
+    pub fn from_spiece_bytes(bytes: &[u8]) -> Result<Self, SourceUnavailable> {
+        let model = UnigramModel::from_spiece_bytes(bytes)?;
+        let normalizer = Normalizer::from_spiece_bytes(bytes)?;
+        let tokenizer_cid = format!("blake3:{}", blake3::hash(bytes).to_hex());
+        Ok(Self {
+            model,
+            normalizer,
+            tokenizer_cid,
+        })
+    }
+
+    /// Canonical listing digest + count of the non-Normal pieces (control,
+    /// unknown, user-defined, unused) — sorted by id, each
+    /// `<id>:<byte length>:<content>\n` — mirroring the byte-level BPE
+    /// added-token digest so provenance distinguishes vocabularies.
+    fn special_tokens(&self) -> (u32, String) {
+        let mut listing = Vec::new();
+        let mut count = 0u32;
+        for (id, kind) in self.model.types.iter().enumerate() {
+            if *kind != PieceType::Normal {
+                let content = &self.model.surfaces[id];
+                listing.extend_from_slice(format!("{id}:{}:", content.len()).as_bytes());
+                listing.extend_from_slice(content.as_bytes());
+                listing.push(b'\n');
+                count += 1;
+            }
+        }
+        (count, format!("blake3:{}", blake3::hash(&listing).to_hex()))
+    }
+}
+
+impl TokenizerModel for SentencePieceUnigramTokenizer {
+    fn encode(&self, text: &str) -> Vec<u32> {
+        self.model
+            .encode_normalized(&self.normalizer.normalize(text))
+    }
+
+    fn encode_lossy(&self, text: &str) -> (Vec<u32>, u64) {
+        // Unmatched characters map to `<unk>` (a real id), so the id stream
+        // represents every input; no characters are dropped.
+        (self.encode(text), 0)
+    }
+
+    fn decode(&self, ids: &[u32]) -> String {
+        self.model.decode(ids)
+    }
+
+    fn vocab_size(&self) -> usize {
+        self.model.vocab_size()
+    }
+
+    fn adapter(&self) -> TokenizerAdapter {
+        let (added_tokens_count, added_tokens_digest) = self.special_tokens();
+        let policy = TokenizerAdapterPolicy {
+            normalizer: format!("sentencepiece-precompiled-charsmap({})", self.normalizer.name),
+            pre_tokenizers: vec![format!(
+                "sentencepiece-whitespace(add_dummy_prefix={},escape_meta={},remove_extra_whitespaces={})",
+                self.normalizer.add_dummy_prefix,
+                self.normalizer.escape_whitespaces,
+                self.normalizer.remove_extra_whitespaces,
+            )],
+            // Non-byte-fallback: an unmatched span becomes a single `<unk>`.
+            byte_fallback: "unknown-token".to_owned(),
+            added_tokens_count,
+            added_tokens_digest,
+            bos: "none".to_owned(),
+            eos: "none".to_owned(),
+            chat_template_policy: "not-interpreted".to_owned(),
+        };
+        let mut adapter = TokenizerAdapter {
+            family: TokenizerAdapter::SENTENCEPIECE_UNIGRAM_FAMILY.to_owned(),
+            version: TokenizerAdapter::SENTENCEPIECE_UNIGRAM_VERSION,
+            tokenizer_cid: self.tokenizer_cid.clone(),
+            policy,
+            adapter_digest: String::new(),
+        };
+        adapter.adapter_digest = adapter.declared_digest();
+        adapter
     }
 }
 

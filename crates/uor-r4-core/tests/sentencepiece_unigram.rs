@@ -19,7 +19,50 @@
 
 use std::path::PathBuf;
 
-use uor_r4_core::transformerless::sentencepiece::UnigramModel;
+use uor_r4_core::transformerless::hf_bpe::{adapter_constructor, TokenizerAdapter};
+use uor_r4_core::transformerless::sentencepiece::{SentencePieceUnigramTokenizer, UnigramModel};
+
+/// #639-3b full-pipeline fixtures: raw text → the reference `sentencepiece`
+/// token ids (from `google-t5/t5-base` revision `a9723ea7…`). Unlike the
+/// `FIXTURES` above (which pre-normalize to isolate the Viterbi), these feed
+/// RAW text through the whole adapter — normalizer (precompiled charsmap +
+/// whitespace) then Viterbi — so they exercise the charsmap folding:
+/// fullwidth (Ａ→A, ①②③→123, ＵＯＲ), ligatures (ﬁ→fi, ﬀﬃ), fractions (½),
+/// Roman numerals (Ⅻ), squared forms (㍿), tabs/newlines, whitespace
+/// collapse, and CJK/emoji → `<unk>`.
+const RAW_FIXTURES: &[(&str, &[u32])] = &[
+    ("Hello world", &[8774, 296]),
+    ("Hello  world", &[8774, 296]),
+    ("The quick brown fox.", &[37, 1704, 4216, 3, 20400, 5]),
+    ("café", &[11949]),
+    ("naïve résumé", &[3, 29, 9, 2, 162, 1417, 4078, 154]),
+    (
+        "ﬁ ligature and ½ fraction",
+        &[361, 3, 17140, 2693, 11, 209, 2, 357, 12211],
+    ),
+    ("ｆｕｌｌｗｉｄｔｈ", &[423, 12018, 189]),
+    ("emoji 😀 test", &[3, 15, 51, 21892, 3, 2, 794]),
+    ("日本語のテキスト", &[3, 2]),
+    (" leading and  double   spaces ", &[1374, 11, 1486, 4856]),
+    ("H2O molecule", &[454, 357, 667, 3, 23098]),
+    ("MixedCASE Text", &[28024, 254, 17892, 5027]),
+    ("A🎉B🎉C", &[71, 2, 279, 2, 254]),
+    (
+        "Numbers: 12345 and 6.7",
+        &[7720, 7, 10, 3, 14574, 2128, 11, 3, 29045],
+    ),
+    ("Ａ１２３", &[71, 14574]),
+    ("①②③", &[3, 14574]),
+    ("ＵＯＲ", &[412, 2990]),
+    ("\tTab\nNL", &[10456, 3, 18207]),
+    ("Ⅻ roman", &[3, 4, 196, 196, 3408]),
+    ("㍿ square", &[3, 2, 2812]),
+    ("½+¼", &[209, 2, 357, 18446, 2, 591]),
+    (
+        "ﬀ ﬃ ligatures",
+        &[3, 89, 89, 3, 89, 89, 23, 3, 17140, 10471],
+    ),
+];
 
 /// Workspace root: `CARGO_MANIFEST_DIR` is `<root>/crates/uor-r4-core`.
 fn repo_root() -> PathBuf {
@@ -114,4 +157,78 @@ fn real_t5_unigram_encode_is_deterministic() {
         let second = model.encode_normalized(normalized);
         assert_eq!(first, second, "encode is deterministic for {normalized:?}");
     }
+}
+
+#[test]
+fn real_t5_sentencepiece_adapter_matches_reference_ids() {
+    let Some(bytes) = spiece_bytes() else {
+        return;
+    };
+    let tokenizer =
+        SentencePieceUnigramTokenizer::from_spiece_bytes(&bytes).expect("T5 spiece.model parses");
+
+    use uor_r4_core::transformerless::hf_bpe::TokenizerModel;
+    for (text, expected) in RAW_FIXTURES {
+        let ids = tokenizer.encode(text);
+        assert_eq!(
+            ids, *expected,
+            "full adapter (normalizer + Viterbi) must reproduce the reference ids for {text:?}"
+        );
+        // Determinism: a second encode is byte-identical.
+        assert_eq!(
+            tokenizer.encode(text),
+            ids,
+            "encode is deterministic for {text:?}"
+        );
+    }
+
+    // The declared adapter identity binds the right family/version/CID.
+    let adapter = tokenizer.adapter();
+    assert_eq!(
+        adapter.family,
+        TokenizerAdapter::SENTENCEPIECE_UNIGRAM_FAMILY
+    );
+    assert_eq!(
+        adapter.version,
+        TokenizerAdapter::SENTENCEPIECE_UNIGRAM_VERSION
+    );
+    assert_eq!(
+        adapter.tokenizer_cid,
+        format!("blake3:{}", blake3::hash(&bytes).to_hex()),
+        "tokenizer_cid is the blake3 of the spiece.model bytes"
+    );
+    assert_eq!(
+        adapter.adapter_digest,
+        adapter.declared_digest(),
+        "adapter_digest is the declared-identity digest"
+    );
+}
+
+#[test]
+fn registry_resolves_sentencepiece_unigram_1() {
+    // #639-3b: the family that was refused-by-name now resolves to the real
+    // Unigram adapter.
+    let constructor = adapter_constructor(
+        TokenizerAdapter::SENTENCEPIECE_UNIGRAM_FAMILY,
+        TokenizerAdapter::SENTENCEPIECE_UNIGRAM_VERSION,
+    )
+    .expect("sentencepiece-unigram/1 is registered");
+    // Malformed bytes stay total (None, not a panic).
+    assert!(constructor(b"not a spiece.model").is_none());
+
+    let Some(bytes) = spiece_bytes() else {
+        return;
+    };
+    use uor_r4_core::transformerless::hf_bpe::TokenizerModel;
+    let via_registry = constructor(&bytes).expect("registry constructor parses the real model");
+    let direct = SentencePieceUnigramTokenizer::from_spiece_bytes(&bytes).expect("direct parse");
+    assert_eq!(via_registry.adapter(), direct.adapter());
+    assert_eq!(
+        via_registry.encode("Hello world"),
+        direct.encode("Hello world")
+    );
+    assert_eq!(
+        via_registry.encode("Ａ１２３ ﬁ ½"),
+        vec![71, 14574, 361, 209, 2, 357]
+    );
 }

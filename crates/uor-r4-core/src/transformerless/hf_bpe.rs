@@ -723,11 +723,12 @@ impl TokenizerAdapter {
     /// Registry version of the byte-level BPE adapter currently
     /// implemented (the post-#242/#253 verified behavior).
     pub const HF_BYTE_BPE_VERSION: u32 = 1;
-    /// Recorded follow-up family (#601 non-goal): SentencePiece/Unigram
-    /// tokenizers are recognized by name and rejected by
-    /// [`adapter_constructor`] until a versioned adapter exists — never
-    /// approximated with the byte-level BPE rule.
+    /// SentencePiece/Unigram adapter family (#639-3). Implemented by
+    /// [`super::sentencepiece::SentencePieceUnigramTokenizer`]: precompiled
+    /// charsmap normalization + Unigram Viterbi segmentation.
     pub const SENTENCEPIECE_UNIGRAM_FAMILY: &'static str = "sentencepiece-unigram";
+    /// Registry version of the SentencePiece/Unigram adapter (#639-3b).
+    pub const SENTENCEPIECE_UNIGRAM_VERSION: u32 = 1;
 
     /// Canonical serialization of the adapter identity: a fixed line
     /// format (format tag then `key=value\n` per field, pre-tokenizer
@@ -819,10 +820,12 @@ impl TokenizerModel for HfBpeTokenizer {
 pub type AdapterConstructor = fn(&[u8]) -> Option<Box<dyn TokenizerModel>>;
 
 /// The versioned tokenizer-adapter registry (#601): map `(family,
-/// version)` to the constructor that implements it. Every pair outside
-/// the registry — including the recorded
-/// [`TokenizerAdapter::SENTENCEPIECE_UNIGRAM_FAMILY`] follow-up — is
-/// refused by name on the sanctioned
+/// version)` to the constructor that implements it. Registered families are
+/// `hf-byte-bpe/1` ([`HfBpeTokenizer`]) and, since #639-3b,
+/// `sentencepiece-unigram/1`
+/// ([`super::sentencepiece::SentencePieceUnigramTokenizer`]). Every pair
+/// outside the registry — including a bumped version of a registered family —
+/// is refused by name on the sanctioned
 /// [`uor_r4_model_source::SourceUnavailable`] surface
 /// (`SourceIngestKind::UnknownTokenizerAdapter`), matching the module's
 /// existing host-ingestion convention ([`HfBpeTokenizer::from_dir`])
@@ -840,6 +843,14 @@ pub fn adapter_constructor(
                     .map(|tokenizer| Box::new(tokenizer) as Box<dyn TokenizerModel>)
             })
         }
+        (
+            TokenizerAdapter::SENTENCEPIECE_UNIGRAM_FAMILY,
+            TokenizerAdapter::SENTENCEPIECE_UNIGRAM_VERSION,
+        ) => Ok(|bytes| {
+            super::sentencepiece::SentencePieceUnigramTokenizer::from_spiece_bytes(bytes)
+                .ok()
+                .map(|tokenizer| Box::new(tokenizer) as Box<dyn TokenizerModel>)
+        }),
         _ => Err(
             uor_r4_model_source::SourceIngestKind::UnknownTokenizerAdapter {
                 family: family.to_owned(),

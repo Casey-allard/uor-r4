@@ -280,9 +280,9 @@ in-place edit.
 A versioned registry maps `(family, version)` to the constructor
 (`hf_bpe::adapter_constructor`); an unknown pair fails closed with the
 focused `SourceIngestKind::UnknownTokenizerAdapter` rather than being
-guessed. SentencePiece/Unigram is the recorded follow-up family
-(`sentencepiece-unigram`): recognized by name, rejected until a versioned
-adapter for it exists, never approximated with the byte-level BPE rule.
+guessed. The registered families are `hf-byte-bpe/1` and, since #639-3b,
+`sentencepiece-unigram/1` (below); a bumped version of either is still
+refused by name, never approximated.
 
 Since #639-2 the constructor yields a boxed `TokenizerModel` — the
 object-safe encode/decode/`adapter` surface a resolved family provides —
@@ -335,10 +335,29 @@ the `models/gpt2-124m.json` layout. This slice is descriptor + pin only —
 no adapter and no `(family, version)` registry entry yet, so
 `crates/uor-r4-core/tests/t5_tokenizer_pin.rs` binds bytes to κ (well-formed
 in CI; presence-gated on the real `spiece.model` reproducing the pin), not a
-tokenizer identity. The registry generalization (639-2), the real Unigram
-encode/decode adapter registering `(sentencepiece-unigram, 1)` (639-3), and
-differential fixtures (639-4) follow; until 639-3 lands the family stays
-refused-by-name as described above.
+tokenizer identity. The registry generalization (639-2) and the real Unigram
+encode/decode adapter registering `(sentencepiece-unigram, 1)` (639-3b,
+below) followed; comprehensive differential fixtures (639-4) come next.
+
+**SentencePiece/Unigram adapter (#639-3b).** `sentencepiece-unigram/1` is
+now a real registered family
+(`transformerless::sentencepiece::SentencePieceUnigramTokenizer`), built
+from the pinned `spiece.model` bytes. It composes two pure-Rust pieces, both
+validated byte-for-byte against the reference `sentencepiece` library before
+landing: a `Normalizer` that applies the `NormalizerSpec`'s
+`precompiled_charsmap` — a Darts double-array trie of longest-match byte
+replacements (NFKC folding: fullwidth → ASCII, ﬁ → fi, ½ → 1⁄2, Roman
+numerals, …) — then the dummy-prefix / `▁`-escape / whitespace-collapse
+rules; and a `UnigramModel` that runs the Viterbi best-path segmentation
+over the normalized surface (per-character `<unk>` for unmatched spans,
+consecutive unknowns collapsed). Refuse-by-name is preserved: a non-Unigram
+`model_type`, a `byte_fallback` source, a `normalization_rule_tsv`, or an
+absent `precompiled_charsmap` each fail closed on `SourceUnavailable` rather
+than being approximated. The adapter binds the `blake3` of `spiece.model` as
+its `tokenizer_cid`. The module and the registry arm are host/compile-side
+(`#[cfg(not(target_arch = "wasm32"))]`); wiring this adapter into the
+`TokenizerKind` selection the observe/serve drivers use is the remaining
+follow-up.
 
 #### Attention operator identity (#602)
 
