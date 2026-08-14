@@ -907,6 +907,23 @@ mod tests {
         assert_ne!(spec.implementation_digest, standard.implementation_digest);
     }
 
+    /// #601 (item 4 of #657): the GPT-2 oracle declares the byte-level BPE
+    /// adapter family `hf-byte-bpe/1` it actually tokenizes with, distinct
+    /// from the generic `huggingface-tokenizer` the Llama oracle reports —
+    /// so a compiled GPT-2 bundle's tokenizer identity is not conflated with
+    /// any other HF source. The `(family, version)` rendering matches the
+    /// core `hf_bpe` registry that refuses every other pair by name.
+    #[test]
+    fn gpt2_oracle_reports_byte_bpe_tokenizer_identity() {
+        use crate::RepresentationSource;
+
+        let oracle = HuggingFaceGpt2Oracle::load(fixture_dir()).expect("load tiny gpt2 oracle");
+        assert_eq!(oracle.tokenizer_address(), "hf-byte-bpe/1");
+        // Distinct from the generic Hugging Face tokenizer identity the Llama
+        // oracle declares — the whole point of item 4.
+        assert_ne!(oracle.tokenizer_address(), "huggingface-tokenizer");
+    }
+
     /// #667: a #603-traced GPT-2 step produces logits bit-identical to the
     /// plain forward, and the residual/qkv/attention taps fire only for the
     /// requested layers with the declared shapes (residual `n_embd`; q/k/v
@@ -1113,13 +1130,14 @@ mod tests {
 /// source-width rows down through the #600 `bucket-average/1` projection,
 /// exactly as the Llama adapter does for its own source width.
 ///
-/// Surfaces this adapter deliberately leaves absent (each scoped, not
-/// silently dropped, in issue #657): the #602 attention-operator record
-/// (see [`Self::attention_operator_spec`]), the #603 trace-capture surface
-/// (`trace_capture_geometry`/`step_with_trace_capture` keep the trait
-/// defaults, so richer trace profiles are refused rather than zero-filled),
-/// a GPT-2-specific #601 tokenizer identity, and the graph-cli/compiler
-/// dispatch that would let a GPT-2 source compile to an artifact.
+/// The full #599–#606 source-parity surface is now declared (all items
+/// enumerated in issue #657 have landed): the #602 attention-operator record
+/// ([`Self::attention_operator_spec`] → learned-absolute), the #603
+/// trace-capture surface ([`Self::trace_capture_geometry`] /
+/// [`Self::step_with_trace_capture`] over [`Gpt2::forward_capturing_trace`]),
+/// the #601 tokenizer identity ([`Self::tokenizer_address`] →
+/// `hf-byte-bpe/1`), and the graph-cli/compiler dispatch that lets a pinned
+/// GPT-2 source compile to an R4G1 artifact end to end.
 pub struct HuggingFaceGpt2Oracle {
     model: Gpt2,
     state: Gpt2State,
@@ -1172,7 +1190,18 @@ impl crate::RepresentationSource for HuggingFaceGpt2Oracle {
         self.model.cfg.n_embd
     }
     fn tokenizer_address(&self) -> &str {
-        "huggingface-tokenizer"
+        // #601: GPT-2 tokenizes with Hugging Face byte-level BPE (vocab.json +
+        // merges.txt / tokenizer.json), so it declares the versioned adapter
+        // family that implements exactly that rule — `hf-byte-bpe/1` — rather
+        // than the generic `huggingface-tokenizer` the Llama oracle reports.
+        // The string is the `(family, version)` rendering of the core registry
+        // (`hf_bpe::TokenizerAdapter::HF_BYTE_BPE_FAMILY` / `_VERSION`), spelled
+        // literally here because `uor-r4-core` depends on this crate (the
+        // constant cannot be imported without a cycle). The pinned tokenizer
+        // *content* CID is bound by that core `TokenizerAdapter.tokenizer_cid`
+        // (blake3 over the tokenizer bytes) where the pipeline builds it; this
+        // family identity is the oracle's #601 surface.
+        "hf-byte-bpe/1"
     }
     fn read_embedding_rows(&self, range: std::ops::Range<usize>, output: &mut [f32]) -> Option<()> {
         let d = self.model.cfg.n_embd;
