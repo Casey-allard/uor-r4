@@ -2444,7 +2444,10 @@ fn handle_connection(
         }
     }
 
-    if clean_path == "/v1/status" && method == "GET" {
+    if extended_route_canonical(clean_path) == Some("/uor/v1/status") && method == "GET" {
+        // #654 phase G: canonical /uor/v1/status; /v1/status stays a deprecated
+        // alias (Deprecation header) so /v1 is OpenAI-only without losing this.
+        let dep = deprecation_headers(clean_path);
         let r4g1_loaded = r4g1.lock().unwrap().is_some();
         let oracle_loaded = oracle.lock().unwrap().is_some();
 
@@ -2493,11 +2496,13 @@ fn handle_connection(
                 "stage_4_r4g1_active": r4g1_loaded
             }
         });
-        send_json_response(stream, 200, &body.to_string());
+        send_json_response_ext(stream, 200, &body.to_string(), &dep);
         return;
     }
 
-    if clean_path == "/v1/reload" && method == "POST" {
+    if extended_route_canonical(clean_path) == Some("/uor/v1/reload") && method == "POST" {
+        // #654 phase G: canonical /uor/v1/reload; /v1/reload deprecated alias.
+        let dep = deprecation_headers(clean_path);
         let payload: serde_json::Value = serde_json::from_slice(&body).unwrap_or_default();
         let target_model = payload["model"].as_str().unwrap_or("smollm2-135m-instruct");
 
@@ -2543,7 +2548,7 @@ fn handle_connection(
                         "model": target_model,
                         "message": format!("Successfully reloaded R4G1 runtime for model '{}'", target_model)
                     });
-                    send_json_response(stream, 200, &resp.to_string());
+                    send_json_response_ext(stream, 200, &resp.to_string(), &dep);
                     return;
                 }
                 Err(e) => {
@@ -2551,7 +2556,7 @@ fn handle_connection(
                         "status": "error",
                         "message": format!("Failed to load R4G1 graph artifact: {}", e)
                     });
-                    send_json_response(stream, 500, &resp.to_string());
+                    send_json_response_ext(stream, 500, &resp.to_string(), &dep);
                     return;
                 }
             }
@@ -2560,12 +2565,14 @@ fn handle_connection(
                 "status": "error",
                 "message": format!("No compiled R4G1 graph artifact found for model '{}'. Please compile it first.", target_model)
             });
-            send_json_response(stream, 404, &resp.to_string());
+            send_json_response_ext(stream, 404, &resp.to_string(), &dep);
             return;
         }
     }
 
-    if clean_path == "/v1/corpus" && method == "POST" {
+    if extended_route_canonical(clean_path) == Some("/uor/v1/corpus") && method == "POST" {
+        // #654 phase G: canonical /uor/v1/corpus; /v1/corpus deprecated alias.
+        let dep = deprecation_headers(clean_path);
         let payload: serde_json::Value = serde_json::from_slice(&body).unwrap_or_default();
         let action = payload["action"].as_str().unwrap_or("list");
 
@@ -2597,7 +2604,7 @@ fn handle_connection(
                     "lines_indexed": line_count,
                     "message": format!("Added corpus file '{}' and indexed {} lines into geometric manifold hashes.", filename, line_count)
                 });
-                send_json_response(stream, 200, &resp.to_string());
+                send_json_response_ext(stream, 200, &resp.to_string(), &dep);
                 return;
             }
         }
@@ -2618,7 +2625,7 @@ fn handle_connection(
                 "bytes": state_json.len(),
                 "message": format!("Successfully exported manifold state to {}", export_file.display())
             });
-            send_json_response(stream, 200, &resp.to_string());
+            send_json_response_ext(stream, 200, &resp.to_string(), &dep);
             return;
         }
 
@@ -2638,7 +2645,7 @@ fn handle_connection(
             "status": "success",
             "files": files
         });
-        send_json_response(stream, 200, &resp.to_string());
+        send_json_response_ext(stream, 200, &resp.to_string(), &dep);
         return;
     }
 
@@ -4540,7 +4547,54 @@ fn send_sse_stream(mut stream: TcpStream, frames: &[String]) {
     }
 }
 
-fn send_json_response(mut stream: TcpStream, status_code: u16, body: &str) {
+/// The R4 extended-capability routes (`#654` phase G). Canonical under the
+/// vendor namespace `/uor/v1/*`; the bare `/v1/*` paths are retained as
+/// **deprecated aliases** so existing callers keep working while `/v1` stays a
+/// pure OpenAI surface (chat completions, models, responses). Given any accepted
+/// path — canonical or alias — returns the canonical `/uor/v1` path; `None` for
+/// a path that is not an extended route.
+fn extended_route_canonical(clean_path: &str) -> Option<&'static str> {
+    match clean_path {
+        "/uor/v1/status" | "/v1/status" => Some("/uor/v1/status"),
+        "/uor/v1/reload" | "/v1/reload" => Some("/uor/v1/reload"),
+        "/uor/v1/corpus" | "/v1/corpus" => Some("/uor/v1/corpus"),
+        _ => None,
+    }
+}
+
+/// True when `clean_path` is the deprecated bare `/v1` alias of an extended
+/// route (the canonical form lives under `/uor/v1/*`).
+fn is_deprecated_v1_alias(clean_path: &str) -> bool {
+    matches!(clean_path, "/v1/status" | "/v1/reload" | "/v1/corpus")
+}
+
+/// Extra HTTP header lines marking a deprecated-alias response: RFC 8594
+/// `Deprecation: true` plus a `Link` to the successor `/uor/v1` path. Empty for
+/// a canonical path (or a non-extended route), so canonical responses are
+/// unaffected.
+fn deprecation_headers(clean_path: &str) -> String {
+    match extended_route_canonical(clean_path) {
+        Some(canonical) if is_deprecated_v1_alias(clean_path) => {
+            format!("Deprecation: true\r\nLink: <{canonical}>; rel=\"successor-version\"\r\n")
+        }
+        _ => String::new(),
+    }
+}
+
+fn send_json_response(stream: TcpStream, status_code: u16, body: &str) {
+    send_json_response_ext(stream, status_code, body, "");
+}
+
+/// Like [`send_json_response`], plus `extra_headers`: a run of complete
+/// `Name: value\r\n` header lines injected before the header terminator. Used
+/// for the `Deprecation`/`Link` headers on the `/v1` extended-route aliases
+/// (`#654` phase G); pass `""` for the ordinary case.
+fn send_json_response_ext(
+    mut stream: TcpStream,
+    status_code: u16,
+    body: &str,
+    extra_headers: &str,
+) {
     let status_text = match status_code {
         200 => "OK",
         202 => "ACCEPTED",
@@ -4558,11 +4612,13 @@ fn send_json_response(mut stream: TcpStream, status_code: u16, body: &str) {
          Content-Length: {}\r\n\
          Access-Control-Allow-Origin: *\r\n\
          Access-Control-Allow-Methods: POST, GET, OPTIONS\r\n\
-         Access-Control-Allow-Headers: Content-Type\r\n\r\n\
+         Access-Control-Allow-Headers: Content-Type\r\n\
+         {}\r\n\
          {}",
         status_code,
         status_text,
         body.len(),
+        extra_headers,
         body
     );
     let _ = stream.write_all(response.as_bytes());
@@ -5489,5 +5545,55 @@ mod tests {
         assert_eq!(body["usage"]["input_tokens"], 4);
         assert_eq!(body["usage"]["output_tokens"], 1);
         assert_eq!(body["usage"]["total_tokens"], 5);
+    }
+
+    // ---- #654 phase G: R4 extended-capability namespace (/uor/v1/*) ----
+
+    #[test]
+    fn extended_routes_resolve_canonical_and_alias() {
+        // Canonical /uor/v1/* and the deprecated /v1/* alias both resolve to the
+        // same canonical path.
+        for (path, canonical) in [
+            ("/uor/v1/status", "/uor/v1/status"),
+            ("/v1/status", "/uor/v1/status"),
+            ("/uor/v1/reload", "/uor/v1/reload"),
+            ("/v1/reload", "/uor/v1/reload"),
+            ("/uor/v1/corpus", "/uor/v1/corpus"),
+            ("/v1/corpus", "/uor/v1/corpus"),
+        ] {
+            assert_eq!(super::extended_route_canonical(path), Some(canonical));
+        }
+        // The OpenAI surface and unrelated paths are not extended routes.
+        for path in [
+            "/v1/chat/completions",
+            "/v1/models",
+            "/v1/responses",
+            "/api/chat",
+            "/uor/v1/unknown",
+        ] {
+            assert_eq!(super::extended_route_canonical(path), None);
+        }
+    }
+
+    #[test]
+    fn only_bare_v1_paths_are_deprecated_aliases() {
+        assert!(super::is_deprecated_v1_alias("/v1/status"));
+        assert!(super::is_deprecated_v1_alias("/v1/reload"));
+        assert!(super::is_deprecated_v1_alias("/v1/corpus"));
+        // Canonical vendor-namespaced paths are not deprecated.
+        assert!(!super::is_deprecated_v1_alias("/uor/v1/status"));
+        // Neither is the OpenAI surface.
+        assert!(!super::is_deprecated_v1_alias("/v1/chat/completions"));
+    }
+
+    #[test]
+    fn deprecation_headers_only_on_the_alias() {
+        // A deprecated alias gets RFC 8594 Deprecation + a successor Link.
+        let headers = super::deprecation_headers("/v1/status");
+        assert!(headers.contains("Deprecation: true\r\n"));
+        assert!(headers.contains("Link: </uor/v1/status>; rel=\"successor-version\"\r\n"));
+        // The canonical path and non-extended paths get no extra headers.
+        assert_eq!(super::deprecation_headers("/uor/v1/status"), "");
+        assert_eq!(super::deprecation_headers("/v1/chat/completions"), "");
     }
 }

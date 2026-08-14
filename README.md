@@ -282,15 +282,28 @@ r4 setup            # prints the prerequisite commands
 `r4 serve` exposes an OpenAI-compatible surface and a dashboard surface. JSON
 responses carry permissive CORS.
 
-**OpenAI-compatible** — this is what `r4 client` and `r4 chat --remote` speak:
+**OpenAI-compatible (`/v1`)** — this is what `r4 client` and `r4 chat --remote`
+speak; `/v1` is kept a pure OpenAI surface (see `profiles/openai/`):
 
 | Endpoint | Purpose |
 |---|---|
-| `POST /v1/chat/completions` | Chat completion |
+| `POST /v1/chat/completions` | Chat completion (non-streaming and SSE streaming) |
+| `POST /v1/responses` | Responses API |
 | `GET /v1/models` | List available models |
-| `GET /v1/status` | Engine and artifact status |
-| `POST /v1/reload` | Reload the R4G1 graph and teacher from a path |
-| `POST /v1/corpus` | Load corpus text |
+| `GET /v1/models/{model}` | Retrieve one model |
+
+**R4 extended API (`/uor/v1`)** — capabilities beyond the OpenAI surface, under a
+vendor namespace so they never collide with the OpenAI standard on `/v1`:
+
+| Endpoint | Purpose |
+|---|---|
+| `GET /uor/v1/status` | Engine and artifact status (4-stage lifecycle) |
+| `POST /uor/v1/reload` | Reload the R4G1 graph and teacher for a model |
+| `POST /uor/v1/corpus` | Manage the extra-reading corpus (add / export / list) |
+
+The bare `/v1/status`, `/v1/reload`, and `/v1/corpus` paths remain as
+**deprecated aliases** — they still work but respond with an RFC 8594
+`Deprecation` header and a `Link` to the `/uor/v1` successor. Prefer `/uor/v1`.
 
 **Dashboard:**
 

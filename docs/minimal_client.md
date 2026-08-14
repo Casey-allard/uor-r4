@@ -1,6 +1,6 @@
 # Minimalist R⁴ Terminal Client & Local Vendor API
 
-R⁴ includes a minimalist interactive terminal client (`r4 client`) with a rich CLI interface, interactive slash command autocomplete, and vendor-compatible HTTP API endpoints (`POST /v1/chat/completions`, `GET /v1/models`, `GET /v1/status`) served 100% locally by the multiplication-free R⁴ engine.
+R⁴ includes a minimalist interactive terminal client (`r4 client`) with a rich CLI interface, interactive slash command autocomplete, and vendor-compatible HTTP API endpoints (`POST /v1/chat/completions`, `GET /v1/models`, `GET /uor/v1/status`) served 100% locally by the multiplication-free R⁴ engine.
 
 No external LLM providers, remote APIs, or cloud services are used.
 
@@ -68,8 +68,11 @@ Typing `/` triggers interactive command suggestions:
 
 The local R⁴ server implements OpenAI/vendor-compatible endpoints for local tools, IDE integrations, and custom frontends.
 
-### `GET /v1/status`
-Returns 4-stage pipeline readiness JSON for active teacher model.
+### `GET /uor/v1/status`
+Returns 4-stage pipeline readiness JSON for the active teacher model. (The bare
+`/v1/status` path is a deprecated alias — it still works but is served with a
+`Deprecation` header pointing at `/uor/v1/status`, keeping `/v1` a pure OpenAI
+surface.)
 
 ### `GET /v1/models`
 Returns the local model availability manifest.
