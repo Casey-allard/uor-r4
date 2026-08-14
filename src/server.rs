@@ -104,6 +104,28 @@ pub struct StreamOptions {
     pub include_usage: Option<bool>,
 }
 
+/// The supported subset of the OpenAI Responses request (`#654` phase E).
+/// `deny_unknown_fields` makes any parameter outside this subset — tools,
+/// reasoning, structured-output formats, streaming — fail closed with the
+/// error envelope; support is never implied by omission. `input` is a bare
+/// string or an array of message items (flattened by `flatten_responses_input`).
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct VendorResponsesRequest {
+    #[serde(default)]
+    pub model: Option<String>,
+    pub input: serde_json::Value,
+    #[serde(default)]
+    pub instructions: Option<String>,
+    #[serde(default)]
+    pub max_output_tokens: Option<usize>,
+    #[serde(default)]
+    pub temperature: Option<f64>,
+    /// R4 engine pin, consistent with chat completions (issue #248).
+    #[serde(default)]
+    pub engine: Option<String>,
+}
+
 #[derive(Debug, serde::Serialize)]
 pub struct VendorChatMessage {
     pub role: String,
@@ -2106,6 +2128,219 @@ fn spawn_huggingface_download(
     });
 }
 
+/// A completed generation from the shared serving core, before either wire
+/// surface shapes it into a response (`#654` phase E).
+struct GeneratedCompletion {
+    text: String,
+    generation_mode: String,
+    prompt_tokens: usize,
+    completion_tokens: usize,
+    total_tokens: usize,
+    created_ts: u64,
+    uor_audit: UorAuditTrace,
+    cascade_trail: serde_json::Value,
+}
+
+/// The outcome of the shared serving core: a completed generation, or an
+/// honest declined-by-all terminal carrying its `(status, body)`.
+enum GenerationOutcome {
+    Generated(Box<GeneratedCompletion>),
+    Declined {
+        status: u16,
+        body: serde_json::Value,
+    },
+}
+
+/// The generation cascade shared by `/v1/chat/completions` and `/v1/responses`
+/// (`#654` phase E). Both wire surfaces route the flattened prompt through this
+/// one internal adapter — routing, autotune, the #248 serving cascade, and the
+/// R4 audit — so the endpoints stay in lockstep and never diverge in what they
+/// actually run. The caller supplies the already-flattened prompt and the
+/// effective token budget; the endpoint-specific request and response shapes
+/// stay in the handlers.
+#[allow(clippy::too_many_arguments)]
+fn generate_serving_completion(
+    router: &Arc<Mutex<UorR4Router>>,
+    r4g1: &Arc<Mutex<Option<R4g1State>>>,
+    tless: &Arc<Mutex<Option<tless_uor::TlessState>>>,
+    oracle: &Arc<Mutex<Option<uor_r4_model_source::Teacher>>>,
+    cli: &Arc<ServerConfig>,
+    start_time: Instant,
+    prompt_text: &str,
+    engine: Option<&str>,
+    max_tokens: usize,
+    temperature_override: Option<f64>,
+) -> GenerationOutcome {
+    let identity = "tenant-alpha".to_string();
+
+    let mut router_guard = router.lock().unwrap();
+
+    let mut buf = [0u8; 640];
+    let query_bytes = prompt_text.as_bytes();
+    let identity_bytes = identity.as_bytes();
+    let query_len = query_bytes.len().min(512);
+    let identity_len = identity_bytes.len().min(128);
+    buf[..query_len].copy_from_slice(&query_bytes[..query_len]);
+    buf[512..512 + identity_len].copy_from_slice(&identity_bytes[..identity_len]);
+
+    let input = uor_r4_wasm_router::R4RoutingInput {
+        query: &buf[..512],
+        identity: &buf[512..],
+        data: &buf,
+    };
+
+    let router_ptr = &mut *router_guard as *mut UorR4Router;
+    uor_r4_wasm_router::ACTIVE_ROUTER.with(|r| {
+        *r.borrow_mut() = Some(router_ptr);
+    });
+
+    let _grounded_dry =
+        uor_r4_wasm_router::UorR4RouterModel::forward(input).expect("Dry run routing failed");
+
+    uor_r4_wasm_router::ACTIVE_ROUTER.with(|r| {
+        *r.borrow_mut() = None;
+    });
+
+    let routing = router_guard
+        .last_routing_data()
+        .clone()
+        .expect("No routing data generated");
+    let kappa = routing.routed.metrics.kappa;
+    let theta_d = routing.routed.metrics.deficit_angle;
+    let uor_bias = routing.routed.qimc.uor_control.entropy_bias;
+
+    let (gamma, default_temp) = autotune(kappa, theta_d, uor_bias);
+    let temperature = temperature_override.unwrap_or(default_temp);
+
+    let routing_prompt = if prompt_text.len() > 512 {
+        &prompt_text[..512]
+    } else {
+        prompt_text
+    };
+
+    router_guard.evolve_state(&identity, routing_prompt, gamma);
+    let session_signature = uor_r4_router::session_signature_from_state(
+        &router_guard.get_brain_state_native(&identity),
+    );
+
+    uor_r4_wasm_router::ACTIVE_ROUTER.with(|r| {
+        *r.borrow_mut() = Some(router_ptr);
+    });
+
+    let _grounded =
+        uor_r4_wasm_router::UorR4RouterModel::forward(input).expect("Final routing failed");
+
+    uor_r4_wasm_router::ACTIVE_ROUTER.with(|r| {
+        *r.borrow_mut() = None;
+    });
+
+    // Issue #248: the single serving cascade, honoring an engine pin from the
+    // request or the persisted `/engine` selection.
+    let pinned = resolve_pinned_tier(engine);
+    let cascade = {
+        let mut oracle_guard = oracle.lock().unwrap();
+        run_serving_cascade(
+            &mut router_guard,
+            r4g1,
+            tless,
+            &mut oracle_guard,
+            prompt_text,
+            &identity,
+            max_tokens,
+            temperature,
+            gamma,
+            Some(&session_signature),
+            pinned,
+        )
+    };
+    let generation_mode = derive_generation_mode(&cascade, pinned);
+    let Some(final_response_text) = cascade.outcome.text.clone() else {
+        // Declined by all: an honest terminal instead of serving the sparse-
+        // string placeholder as if it were generated.
+        let (status, body) = declined_by_all_response(&cascade, pinned, &generation_mode);
+        return GenerationOutcome::Declined { status, body };
+    };
+
+    router_guard.index_sentence(prompt_text, &identity);
+    router_guard.index_sentence(&final_response_text, &identity);
+    router_guard.inject_thought_stream_native(prompt_text);
+    router_guard.inject_thought_stream_native(&final_response_text);
+    spawn_cache_save(cli, router_guard.export_state());
+
+    // #654 phase C: usage from the serving tokenizer (the compiled artifact's),
+    // not a whitespace-word estimate. On this served path a tokenizer is
+    // available (it produced the completion); the defensive `unwrap_or(0)`
+    // never substitutes a word count.
+    let prompt_tokens = count_serving_tokens(prompt_text).unwrap_or(0);
+    let completion_tokens = count_serving_tokens(&final_response_text).unwrap_or(0);
+    let total_tokens = prompt_tokens + completion_tokens;
+
+    let created_ts = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs();
+
+    let duration_ms = start_time.elapsed().as_secs_f64() * 1000.0;
+    let words: Vec<&str> = final_response_text.split_whitespace().collect();
+    let per_token_ms = if words.is_empty() {
+        0.0
+    } else {
+        duration_ms / words.len() as f64
+    };
+    let tokens_detail: Vec<TokenTraceEntry> = words
+        .iter()
+        .enumerate()
+        .map(|(idx, w)| TokenTraceEntry {
+            token_id: idx as u32,
+            text: w.to_string(),
+            origin_rule: match generation_mode.as_str() {
+                "r4g1" => "R4G1 Residual Graph (Rule 1/2)".to_string(),
+                "teacher-oracle-fallback" => "Teacher Oracle Fallback (Full Attention)".to_string(),
+                "geometric-decoded" => "f64 Geometric Router Manifold".to_string(),
+                "r4g1-abstained" => "R4G1 Abstained (OOD Shield)".to_string(),
+                _ => "ExactContext Carryover".to_string(),
+            },
+            latency_ms: (per_token_ms * 100.0).round() / 100.0,
+        })
+        .collect();
+
+    // Issue #256: a real canonical label over the audit content.
+    let uor_addr = canonical_json_address_blake3(&serde_json::json!({
+        "generation_mode": generation_mode,
+        "kappa": (kappa * 10000.0).round() / 10000.0,
+        "deficit_angle": (theta_d * 10000.0).round() / 10000.0,
+        "gamma": (gamma * 10000.0).round() / 10000.0,
+        "temperature": temperature,
+    }));
+    let kappa_pass = (0.10..=2.50).contains(&kappa);
+
+    let uor_audit = UorAuditTrace {
+        uor_address: uor_addr,
+        kappa: (kappa * 10000.0).round() / 10000.0,
+        deficit_angle: (theta_d * 10000.0).round() / 10000.0,
+        entropy_bias: (uor_bias * 10000.0).round() / 10000.0,
+        gamma: (gamma * 10000.0).round() / 10000.0,
+        temperature,
+        kappa_pass,
+        generation_mode: generation_mode.clone(),
+        total_latency_ms: (duration_ms * 100.0).round() / 100.0,
+        tokens_detail,
+    };
+
+    let cascade_trail = cascade_trail_json(&cascade.outcome.trail);
+
+    GenerationOutcome::Generated(Box::new(GeneratedCompletion {
+        text: final_response_text,
+        generation_mode,
+        prompt_tokens,
+        completion_tokens,
+        total_tokens,
+        created_ts,
+        uor_audit,
+        cascade_trail,
+    }))
+}
+
 #[allow(clippy::too_many_arguments)]
 fn handle_connection(
     mut stream: TcpStream,
@@ -2448,180 +2683,39 @@ fn handle_connection(
         };
 
         let max_tokens = req.max_tokens.unwrap_or(256);
-        let identity = "tenant-alpha".to_string();
-
-        let mut router_guard = router.lock().unwrap();
-
-        let mut buf = [0u8; 640];
-        let query_bytes = prompt_text.as_bytes();
-        let identity_bytes = identity.as_bytes();
-        let query_len = query_bytes.len().min(512);
-        let identity_len = identity_bytes.len().min(128);
-        buf[..query_len].copy_from_slice(&query_bytes[..query_len]);
-        buf[512..512 + identity_len].copy_from_slice(&identity_bytes[..identity_len]);
-
-        let input = uor_r4_wasm_router::R4RoutingInput {
-            query: &buf[..512],
-            identity: &buf[512..],
-            data: &buf,
-        };
-
-        let router_ptr = &mut *router_guard as *mut UorR4Router;
-        uor_r4_wasm_router::ACTIVE_ROUTER.with(|r| {
-            *r.borrow_mut() = Some(router_ptr);
-        });
-
-        let _grounded_dry =
-            uor_r4_wasm_router::UorR4RouterModel::forward(input).expect("Dry run routing failed");
-
-        uor_r4_wasm_router::ACTIVE_ROUTER.with(|r| {
-            *r.borrow_mut() = None;
-        });
-
-        let routing = router_guard
-            .last_routing_data()
-            .clone()
-            .expect("No routing data generated");
-        let kappa = routing.routed.metrics.kappa;
-        let theta_d = routing.routed.metrics.deficit_angle;
-        let uor_bias = routing.routed.qimc.uor_control.entropy_bias;
-
-        let (gamma, default_temp) = autotune(kappa, theta_d, uor_bias);
-        let temperature = req.temperature.unwrap_or(default_temp);
-
-        let routing_prompt = if prompt_text.len() > 512 {
-            &prompt_text[..512]
-        } else {
-            &prompt_text[..]
-        };
-
-        router_guard.evolve_state(&identity, routing_prompt, gamma);
-        let session_signature = uor_r4_router::session_signature_from_state(
-            &router_guard.get_brain_state_native(&identity),
-        );
-
-        uor_r4_wasm_router::ACTIVE_ROUTER.with(|r| {
-            *r.borrow_mut() = Some(router_ptr);
-        });
-
-        let _grounded =
-            uor_r4_wasm_router::UorR4RouterModel::forward(input).expect("Final routing failed");
-
-        uor_r4_wasm_router::ACTIVE_ROUTER.with(|r| {
-            *r.borrow_mut() = None;
-        });
-
-        // Issue #248: the single serving cascade, honoring an engine pin
-        // from the request or the persisted `/engine` selection.
-        let pinned = resolve_pinned_tier(req.engine.as_deref());
-        let cascade = {
-            let mut oracle_guard = oracle.lock().unwrap();
-            run_serving_cascade(
-                &mut router_guard,
-                &r4g1,
-                &tless,
-                &mut oracle_guard,
-                &prompt_text,
-                &identity,
-                max_tokens,
-                temperature,
-                gamma,
-                Some(&session_signature),
-                pinned,
-            )
-        };
-        let generation_mode = derive_generation_mode(&cascade, pinned);
-        let Some(final_response_text) = cascade.outcome.text.clone() else {
-            // Declined by all: an honest terminal instead of serving the
-            // sparse-string placeholder as if it were generated.
-            let (status, body) = declined_by_all_response(&cascade, pinned, &generation_mode);
-            send_json_response(stream, status, &body.to_string());
-            return;
-        };
-
-        router_guard.index_sentence(&prompt_text, &identity);
-        router_guard.index_sentence(&final_response_text, &identity);
-        router_guard.inject_thought_stream_native(&prompt_text);
-        router_guard.inject_thought_stream_native(&final_response_text);
-        spawn_cache_save(&cli, router_guard.export_state());
-
-        // #654 phase C: usage from the serving tokenizer (the compiled
-        // artifact's), not a whitespace-word estimate. On this served path a
-        // tokenizer is available (it produced the completion); the defensive
-        // `unwrap_or(0)` never substitutes a word count.
-        let prompt_tokens = count_serving_tokens(&prompt_text).unwrap_or(0);
-        let completion_tokens = count_serving_tokens(&final_response_text).unwrap_or(0);
-        let total_tokens = prompt_tokens + completion_tokens;
-
-        let created_ts = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_secs();
-
-        let duration_ms = start_time.elapsed().as_secs_f64() * 1000.0;
-        let words: Vec<&str> = final_response_text.split_whitespace().collect();
-        let per_token_ms = if words.is_empty() {
-            0.0
-        } else {
-            duration_ms / words.len() as f64
-        };
-        let tokens_detail: Vec<TokenTraceEntry> = words
-            .iter()
-            .enumerate()
-            .map(|(idx, w)| TokenTraceEntry {
-                token_id: idx as u32,
-                text: w.to_string(),
-                origin_rule: match generation_mode.as_str() {
-                    "r4g1" => "R4G1 Residual Graph (Rule 1/2)".to_string(),
-                    "teacher-oracle-fallback" => {
-                        "Teacher Oracle Fallback (Full Attention)".to_string()
-                    }
-                    "geometric-decoded" => "f64 Geometric Router Manifold".to_string(),
-                    "r4g1-abstained" => "R4G1 Abstained (OOD Shield)".to_string(),
-                    _ => "ExactContext Carryover".to_string(),
-                },
-                latency_ms: (per_token_ms * 100.0).round() / 100.0,
-            })
-            .collect();
-
-        // Issue #256: a real canonical label over the audit content —
-        // previously a syntactically-valid, semantically-meaningless string
-        // minted from a curvature float.
-        let uor_addr = canonical_json_address_blake3(&serde_json::json!({
-            "generation_mode": generation_mode,
-            "kappa": (kappa * 10000.0).round() / 10000.0,
-            "deficit_angle": (theta_d * 10000.0).round() / 10000.0,
-            "gamma": (gamma * 10000.0).round() / 10000.0,
-            "temperature": temperature,
-        }));
-        let kappa_pass = (0.10..=2.50).contains(&kappa);
-
-        let uor_audit = UorAuditTrace {
-            uor_address: uor_addr,
-            kappa: (kappa * 10000.0).round() / 10000.0,
-            deficit_angle: (theta_d * 10000.0).round() / 10000.0,
-            entropy_bias: (uor_bias * 10000.0).round() / 10000.0,
-            gamma: (gamma * 10000.0).round() / 10000.0,
-            temperature,
-            kappa_pass,
-            generation_mode: generation_mode.clone(),
-            total_latency_ms: (duration_ms * 100.0).round() / 100.0,
-            tokens_detail,
+        // #654 phase E: route through the shared generation core (also used by
+        // /v1/responses) so both wire surfaces run the identical cascade.
+        let gen = match generate_serving_completion(
+            &router,
+            &r4g1,
+            &tless,
+            &oracle,
+            &cli,
+            start_time,
+            &prompt_text,
+            req.engine.as_deref(),
+            max_tokens,
+            req.temperature,
+        ) {
+            GenerationOutcome::Declined { status, body } => {
+                send_json_response(stream, status, &body.to_string());
+                return;
+            }
+            GenerationOutcome::Generated(gen) => *gen,
         };
 
         // Values shared by the single-JSON and the streaming surfaces.
-        let response_id = format!("chatcmpl-uor-r4-{}", created_ts);
+        let response_id = format!("chatcmpl-uor-r4-{}", gen.created_ts);
         let model_name = req.model.clone().unwrap_or_else(|| "uor-r4".to_string());
-        let system_fingerprint = format!("uor-r4-{}", generation_mode);
+        let system_fingerprint = format!("uor-r4-{}", gen.generation_mode);
         // #654 phase C: `length` when the served completion reached the
         // effective token budget, otherwise `stop`.
-        let finish_reason = completion_finish_reason(completion_tokens, max_tokens).to_string();
+        let finish_reason = completion_finish_reason(gen.completion_tokens, max_tokens).to_string();
         let usage = VendorUsage {
-            prompt_tokens,
-            completion_tokens,
-            total_tokens,
+            prompt_tokens: gen.prompt_tokens,
+            completion_tokens: gen.completion_tokens,
+            total_tokens: gen.total_tokens,
         };
-        let cascade_trail = cascade_trail_json(&cascade.outcome.trail);
 
         // #654 phase D: streaming surface. The serving cascade produces the
         // whole completion up front (there is no incremental token generator on
@@ -2635,17 +2729,17 @@ fn handle_connection(
                 .as_ref()
                 .and_then(|options| options.include_usage)
                 .unwrap_or(false);
-            let audit_value = serde_json::to_value(&uor_audit).ok();
+            let audit_value = serde_json::to_value(&gen.uor_audit).ok();
             let frames = build_chat_stream_frames(
                 &response_id,
-                created_ts,
+                gen.created_ts,
                 &model_name,
                 &system_fingerprint,
-                &final_response_text,
+                &gen.text,
                 &finish_reason,
                 if include_usage { Some(&usage) } else { None },
                 audit_value,
-                cascade_trail,
+                gen.cascade_trail,
             );
             send_sse_stream(stream, &frames);
             return;
@@ -2654,23 +2748,82 @@ fn handle_connection(
         let resp = VendorChatCompletionsResponse {
             id: response_id,
             object: "chat.completion".to_string(),
-            created: created_ts,
+            created: gen.created_ts,
             model: model_name,
             choices: vec![VendorChoice {
                 index: 0,
                 message: VendorChatMessage {
                     role: "assistant".to_string(),
-                    content: final_response_text,
+                    content: gen.text,
                 },
                 finish_reason,
             }],
             usage,
             system_fingerprint: Some(system_fingerprint),
-            uor_audit: Some(uor_audit),
-            cascade_trail,
+            uor_audit: Some(gen.uor_audit),
+            cascade_trail: gen.cascade_trail,
         };
 
         send_json_response(stream, 200, &serde_json::to_string(&resp).unwrap());
+        return;
+    }
+
+    if clean_path == "/v1/responses" && method == "POST" {
+        // #654 phase E: the Responses API, routed through the same internal
+        // generation adapter as chat completions (`generate_serving_completion`).
+        let req: VendorResponsesRequest = match serde_json::from_slice(&body) {
+            Ok(parsed) => parsed,
+            Err(error) => {
+                send_openai_error(
+                    stream,
+                    400,
+                    "invalid_request_error",
+                    &format!("Invalid request body: {error}"),
+                    None,
+                    None,
+                );
+                return;
+            }
+        };
+
+        let prompt_text = match flatten_responses_input(&req.input, req.instructions.as_deref()) {
+            Ok(text) => text,
+            Err(message) => {
+                send_openai_error(
+                    stream,
+                    400,
+                    "invalid_request_error",
+                    &message,
+                    Some("input"),
+                    None,
+                );
+                return;
+            }
+        };
+
+        let max_tokens = req.max_output_tokens.unwrap_or(256);
+        let gen = match generate_serving_completion(
+            &router,
+            &r4g1,
+            &tless,
+            &oracle,
+            &cli,
+            start_time,
+            &prompt_text,
+            req.engine.as_deref(),
+            max_tokens,
+            req.temperature,
+        ) {
+            GenerationOutcome::Declined { status, body } => {
+                send_json_response(stream, status, &body.to_string());
+                return;
+            }
+            GenerationOutcome::Generated(gen) => *gen,
+        };
+
+        let model_name = req.model.clone().unwrap_or_else(|| "uor-r4".to_string());
+        let body = build_responses_body(gen, &model_name, max_tokens);
+        send_json_response(stream, 200, &body.to_string());
         return;
     }
 
@@ -4133,6 +4286,135 @@ fn flatten_chat_prompt(messages: &[ChatMessage]) -> Result<String, String> {
     Ok(parts.join("\n"))
 }
 
+/// Convert one Responses `input` array element into a `ChatMessage` (`#654`
+/// phase E). Only message items are supported: an object with a `role` and a
+/// `content` that is a string or an array of text parts. Anything else — a
+/// non-object, a typed item other than `message`, a missing role/content, or a
+/// content part without a `text` string — returns `Err` so the caller fails
+/// closed rather than silently dropping input.
+fn responses_item_to_message(item: &serde_json::Value) -> Result<ChatMessage, String> {
+    let object = item
+        .as_object()
+        .ok_or_else(|| "each `input` item must be an object".to_string())?;
+    if let Some(kind) = object.get("type").and_then(|v| v.as_str()) {
+        if kind != "message" {
+            return Err(format!("unsupported `input` item type '{kind}'"));
+        }
+    }
+    let role = object
+        .get("role")
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| "each `input` message needs a string `role`".to_string())?;
+    let content = object
+        .get("content")
+        .ok_or_else(|| "each `input` message needs `content`".to_string())?;
+    let text = match content {
+        serde_json::Value::String(text) => text.clone(),
+        serde_json::Value::Array(parts) => {
+            let mut buffer = String::new();
+            for part in parts {
+                let piece = part
+                    .get("text")
+                    .and_then(|v| v.as_str())
+                    .ok_or_else(|| "each content part needs a `text` string".to_string())?;
+                buffer.push_str(piece);
+            }
+            buffer
+        }
+        _ => return Err("`content` must be a string or an array of text parts".to_string()),
+    };
+    Ok(ChatMessage {
+        role: role.to_string(),
+        content: text,
+    })
+}
+
+/// Flatten a Responses `input` (a bare string or an array of message items)
+/// plus optional top-level `instructions` into the single router prompt,
+/// reusing the chat role-flattening (`flatten_chat_prompt`) so the two wire
+/// surfaces treat roles identically (`#654` phase E). `instructions` is a
+/// system-level preamble. An unsupported role or malformed item fails closed.
+fn flatten_responses_input(
+    input: &serde_json::Value,
+    instructions: Option<&str>,
+) -> Result<String, String> {
+    let mut messages = Vec::new();
+    if let Some(system) = instructions {
+        messages.push(ChatMessage {
+            role: "system".to_string(),
+            content: system.to_string(),
+        });
+    }
+    match input {
+        serde_json::Value::String(text) => messages.push(ChatMessage {
+            role: "user".to_string(),
+            content: text.clone(),
+        }),
+        serde_json::Value::Array(items) => {
+            for item in items {
+                messages.push(responses_item_to_message(item)?);
+            }
+        }
+        _ => return Err("`input` must be a string or an array of message items".to_string()),
+    }
+    if messages.is_empty() {
+        return Err("`input` must contain at least one message".to_string());
+    }
+    flatten_chat_prompt(&messages).map_err(|role| {
+        format!("Unsupported message role '{role}'. Supported roles: system, developer, user, assistant.")
+    })
+}
+
+/// Build the OpenAI `Response` object for a completed generation (`#654`
+/// phase E): one assistant `message` output item with a single `output_text`
+/// part, token usage from the serving tokenizer, and `status`
+/// `completed`/`incomplete` (with `incomplete_details` when the completion hit
+/// the token budget). The R4 audit trail rides as extra fields for parity with
+/// the chat body (SDKs ignore unknown fields).
+fn build_responses_body(
+    gen: GeneratedCompletion,
+    model: &str,
+    requested_max_tokens: usize,
+) -> serde_json::Value {
+    let budget = requested_max_tokens.min(SERVER_MAX_COMPLETION_TOKENS);
+    let incomplete = gen.completion_tokens >= budget;
+    let status = if incomplete {
+        "incomplete"
+    } else {
+        "completed"
+    };
+    let audit = serde_json::to_value(&gen.uor_audit).unwrap_or(serde_json::Value::Null);
+    let mut body = serde_json::json!({
+        "id": format!("resp-uor-r4-{}", gen.created_ts),
+        "object": "response",
+        "created_at": gen.created_ts,
+        "model": model,
+        "status": status,
+        "output": [{
+            "type": "message",
+            "id": format!("msg-uor-r4-{}", gen.created_ts),
+            "status": "completed",
+            "role": "assistant",
+            "content": [{
+                "type": "output_text",
+                "text": gen.text,
+                "annotations": [],
+            }],
+        }],
+        "usage": {
+            "input_tokens": gen.prompt_tokens,
+            "output_tokens": gen.completion_tokens,
+            "total_tokens": gen.total_tokens,
+        },
+        "uor_audit": audit,
+        "cascade_trail": gen.cascade_trail,
+    });
+    if incomplete {
+        body["incomplete_details"] = serde_json::json!({ "reason": "max_output_tokens" });
+    }
+    body
+}
+
 /// Split completion text into streaming content deltas whose concatenation
 /// byte-exactly reconstructs the input (`#654` phase D). Each piece is one
 /// non-whitespace run together with the whitespace that trails it, so joining
@@ -4982,5 +5264,127 @@ mod tests {
         let parsed: Result<super::VendorChatCompletionsRequest, _> =
             serde_json::from_str(r#"{"messages":[],"stream":true,"stream_options":{"bogus":1}}"#);
         assert!(parsed.is_err(), "unknown stream option must fail closed");
+    }
+
+    // ---- #654 phase E: /v1/responses ----
+
+    fn dummy_generation(
+        text: &str,
+        completion_tokens: usize,
+        created: u64,
+    ) -> super::GeneratedCompletion {
+        super::GeneratedCompletion {
+            text: text.to_string(),
+            generation_mode: "r4g1".to_string(),
+            prompt_tokens: 4,
+            completion_tokens,
+            total_tokens: 4 + completion_tokens,
+            created_ts: created,
+            uor_audit: super::UorAuditTrace {
+                uor_address: "blake3:test".to_string(),
+                kappa: 1.0,
+                deficit_angle: 0.0,
+                entropy_bias: 0.0,
+                gamma: 1.0,
+                temperature: 0.7,
+                kappa_pass: true,
+                generation_mode: "r4g1".to_string(),
+                total_latency_ms: 1.0,
+                tokens_detail: Vec::new(),
+            },
+            cascade_trail: serde_json::json!([]),
+        }
+    }
+
+    #[test]
+    fn responses_input_string_passes_through_bare() {
+        assert_eq!(
+            super::flatten_responses_input(&serde_json::json!("hello"), None).unwrap(),
+            "hello"
+        );
+    }
+
+    #[test]
+    fn responses_instructions_and_messages_are_labeled() {
+        // A string input with instructions becomes a System preamble + User.
+        assert_eq!(
+            super::flatten_responses_input(&serde_json::json!("hi"), Some("be terse")).unwrap(),
+            "System: be terse\nUser: hi"
+        );
+        // An array of message items is flattened like chat roles, and content
+        // parts are concatenated.
+        let input = serde_json::json!([
+            { "role": "user", "content": [{ "type": "input_text", "text": "who " }, { "type": "input_text", "text": "are you" }] },
+            { "role": "assistant", "content": "a router" }
+        ]);
+        assert_eq!(
+            super::flatten_responses_input(&input, None).unwrap(),
+            "User: who are you\nAssistant: a router"
+        );
+    }
+
+    #[test]
+    fn responses_input_fails_closed_on_bad_shapes() {
+        // Unsupported role.
+        let bad_role = serde_json::json!([{ "role": "tool", "content": "{}" }]);
+        assert!(super::flatten_responses_input(&bad_role, None).is_err());
+        // Non-object item.
+        let non_object = serde_json::json!(["just a string"]);
+        assert!(super::flatten_responses_input(&non_object, None).is_err());
+        // Typed item that is not a message.
+        let wrong_type =
+            serde_json::json!([{ "type": "function_call", "role": "user", "content": "x" }]);
+        assert!(super::flatten_responses_input(&wrong_type, None).is_err());
+        // Empty input with no instructions.
+        assert!(super::flatten_responses_input(&serde_json::json!([]), None).is_err());
+        // Neither string nor array.
+        assert!(super::flatten_responses_input(&serde_json::json!(42), None).is_err());
+    }
+
+    #[test]
+    fn responses_body_is_a_completed_response_object() {
+        let body = super::build_responses_body(dummy_generation("a router", 2, 7), "uor-r4", 64);
+        assert_eq!(body["object"], "response");
+        assert_eq!(body["status"], "completed");
+        assert_eq!(body["model"], "uor-r4");
+        assert_eq!(body["output"][0]["type"], "message");
+        assert_eq!(body["output"][0]["role"], "assistant");
+        assert_eq!(body["output"][0]["content"][0]["type"], "output_text");
+        assert_eq!(body["output"][0]["content"][0]["text"], "a router");
+        assert_eq!(body["usage"]["input_tokens"], 4);
+        assert_eq!(body["usage"]["output_tokens"], 2);
+        assert_eq!(body["usage"]["total_tokens"], 6);
+        // Completed generations carry no incomplete_details.
+        assert!(body.get("incomplete_details").is_none());
+        // R4 audit parity extra.
+        assert_eq!(body["uor_audit"]["generation_mode"], "r4g1");
+    }
+
+    #[test]
+    fn responses_body_reports_incomplete_at_the_budget() {
+        // completion_tokens == effective budget → incomplete/max_output_tokens.
+        let body = super::build_responses_body(dummy_generation("x", 64, 9), "uor-r4", 64);
+        assert_eq!(body["status"], "incomplete");
+        assert_eq!(body["incomplete_details"]["reason"], "max_output_tokens");
+    }
+
+    #[test]
+    fn responses_request_parses_subset_and_denies_unknown() {
+        let req: super::VendorResponsesRequest = serde_json::from_str(
+            r#"{"model":"uor-r4","input":"hi","instructions":"be terse","max_output_tokens":32,"temperature":0.5}"#,
+        )
+        .expect("supported subset parses");
+        assert_eq!(req.model.as_deref(), Some("uor-r4"));
+        assert_eq!(req.max_output_tokens, Some(32));
+
+        // A missing `input` fails (it is required).
+        let missing: Result<super::VendorResponsesRequest, _> =
+            serde_json::from_str(r#"{"model":"uor-r4"}"#);
+        assert!(missing.is_err(), "input is required");
+
+        // An unsupported parameter (tools) fails closed.
+        let unsupported: Result<super::VendorResponsesRequest, _> =
+            serde_json::from_str(r#"{"input":"hi","tools":[]}"#);
+        assert!(unsupported.is_err(), "unsupported param must fail closed");
     }
 }
