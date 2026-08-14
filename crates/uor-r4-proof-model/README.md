@@ -30,10 +30,18 @@ Property tests and production test-suites call the `verify_*` functions
 directly (see `tests/proof_model_tests.rs`); the proof matrix is the
 machine-readable registry of what is proven, assumed, and still open.
 
+The default `full-model` feature enables that complete executable-spec surface.
+Kani runs with `--no-default-features`, which retains only the harnesses over
+`uor-r4-graph-format` and `uor-r4-graph-runtime`. This keeps native teacher and
+compiler dependencies outside the bounded-model-checking graph; Kani never
+suppresses or skips their assembly.
+
 ## Conventions
 
 - Mirrors the runtime's integer-only semantics — proofs are stated over the
   normative scalar kernel, not floating-point compiler internals.
 - Findings are reported as `Result<_, String>` with the violated invariant in
   the message; no panics in verification paths.
-- Depends only on `uor-r4-core` (for the structures under proof) and serde.
+- The default executable specification depends on core, compiler, certifier,
+  format, runtime, and serde surfaces. The isolated Kani graph depends only on
+  format and runtime.

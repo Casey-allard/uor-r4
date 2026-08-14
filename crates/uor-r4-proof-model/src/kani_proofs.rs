@@ -1,4 +1,8 @@
 #![allow(unexpected_cfgs)]
+
+#[cfg(all(kani, feature = "full-model"))]
+compile_error!("Kani proofs must run with --no-default-features");
+
 #[cfg(kani)]
 mod kani_proofs {
     use kani::any;
@@ -10,8 +14,8 @@ mod kani_proofs {
         let a = ScoreQ::from_raw(any::<i32>());
         let b = ScoreQ::from_raw(any::<i32>());
 
-        // This should not panic
-        let _ = a.raw().saturating_add(b.raw());
+        let sum = a.saturating_add(b);
+        assert_eq!(sum.raw(), a.raw().saturating_add(b.raw()));
     }
 
     #[kani::proof]

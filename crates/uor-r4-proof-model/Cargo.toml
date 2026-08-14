@@ -5,12 +5,30 @@ version = "0.1.0"
 edition = "2021"
 description = "Executable proof specification and formal verification harness for the R4 holographic graph compiler"
 
+[features]
+default = ["full-model"]
+full-model = [
+    "dep:serde",
+    "dep:uor-r4-core",
+    "dep:uor-r4-graph-certify",
+    "dep:uor-r4-graph-compiler",
+    "uor-r4-graph-format/std",
+]
+
 [dependencies]
-uor-r4-core = { version = "0.1.0", path = "../uor-r4-core" }
-uor-r4-graph-format = { version = "0.1.0", path = "../uor-r4-graph-format" }
+uor-r4-graph-format = { version = "0.1.0", path = "../uor-r4-graph-format", default-features = false }
 uor-r4-graph-runtime = { version = "0.1.0", path = "../uor-r4-graph-runtime" }
-uor-r4-graph-certify = { version = "0.1.0", path = "../uor-r4-graph-certify" }
-uor-r4-graph-compiler = { version = "0.1.0", path = "../uor-r4-graph-compiler" }
-serde = { version = "1.0", features = ["derive"] }
+uor-r4-core = { version = "0.1.0", path = "../uor-r4-core", optional = true }
+uor-r4-graph-certify = { version = "0.1.0", path = "../uor-r4-graph-certify", optional = true }
+uor-r4-graph-compiler = { version = "0.1.0", path = "../uor-r4-graph-compiler", optional = true }
+serde = { version = "1.0", features = ["derive"], optional = true }
 
+[[test]]
+name = "proof_matrix_audit"
+path = "tests/proof_matrix_audit.rs"
+required-features = ["full-model"]
 
+[[test]]
+name = "proof_model_tests"
+path = "tests/proof_model_tests.rs"
+required-features = ["full-model"]

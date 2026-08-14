@@ -25,5 +25,14 @@ jobs:
       - name: Verify Proof Status Matrix
         run: cargo test -p uor-r4-proof-model
 
+      - name: Verify Kani dependency boundary
+        run: |
+          dependency_tree="$(cargo tree -p uor-r4-proof-model --no-default-features --edges normal --prefix none)"
+          echo "$dependency_tree"
+          if grep -Eq '^(uor-r4-(core|model-source|graph-(certify|compiler))|uor-matmul([^[:alnum:]]|$))' <<<"$dependency_tree"; then
+            echo "Kani dependency boundary includes compiler or native-matmul crates" >&2
+            exit 1
+          fi
+
       - name: Run Kani proofs
-        run: cargo kani -p uor-r4-proof-model
+        run: cargo kani -p uor-r4-proof-model --no-default-features --lib
