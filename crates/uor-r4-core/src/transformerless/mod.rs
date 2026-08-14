@@ -298,6 +298,7 @@ pub mod resolution_status;
 pub mod runtime;
 pub mod scenarios;
 pub mod score_q;
+pub mod sentencepiece;
 pub mod simd;
 pub mod transitions;
 
