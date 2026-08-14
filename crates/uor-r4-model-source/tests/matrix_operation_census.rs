@@ -1,0 +1,159 @@
+//! #655 sub-A — matrix-operation census guard.
+//!
+//! The production chain must contain no project-owned conventional library-BLAS
+//! matrix operation outside the single sanctioned teacher site. The teacher's
+//! `cblas_sgemv`/`cblas_sgemm` reach system Accelerate through
+//! `#[link(name = "Accelerate", kind = "framework")]` + `extern "C"` — an FFI
+//! symbol, not a crate dependency — so the crate/manifest audits
+//! (`uor-r4-graph-compiler::dependency_audit`, `uor-r4-proof-model::inference_audit`)
+//! cannot see it. This source scan closes that gap: it fails CI if a
+//! library-BLAS matrix token appears in any production-chain crate `src/`
+//! outside `uor-r4-model-source/src/lib.rs`.
+//!
+//! This is the census baseline (no behavior/CID change). #655-B then replaces
+//! the sanctioned site itself with the pinned `uor-matmul` surface and tightens
+//! this guard to zero library-BLAS anywhere.
+//!
+//! The full classified inventory (including the hand-rolled fallbacks this
+//! mechanical guard does not keyword-match) lives in
+//! `docs/matrix_operation_census.md`.
+#![cfg(not(target_arch = "wasm32"))]
+
+use std::path::{Path, PathBuf};
+
+/// Library-BLAS / external matrix-multiply markers. These name a conventional
+/// matrix backend by symbol or crate; none has a non-matrix meaning, so any
+/// occurrence in production `src/` is a real conventional-GEMM site. Bare
+/// `sgemm`/`sgemv` are intentionally excluded — they appear as backticked words
+/// in doc comments; the `cblas_` FFI prefix is the load-bearing token.
+const BLAS_MATRIX_MARKERS: &[&str] =
+    &["cblas_", "matrixmultiply", "openblas", "dgemm", "intel_mkl"];
+
+/// Files allowed to contain a library-BLAS matrix marker today, by path suffix:
+///
+/// - the teacher (Llama) executor's Accelerate fast path — the one production
+///   *use* of a library-BLAS matrix symbol (#655-B removes it; when it does,
+///   `sanctioned_file_still_owns_blas` forces this allowlist updated);
+/// - the two dependency/manifest audits, which enumerate forbidden BLAS crate
+///   names as denylist *data* so those crates can never enter the tree — the
+///   opposite of performing a matrix operation.
+const SANCTIONED_SUFFIXES: &[&str] = &[
+    "uor-r4-model-source/src/lib.rs",
+    "uor-r4-graph-compiler/src/dependency_audit.rs",
+    "uor-r4-proof-model/src/inference_audit.rs",
+];
+
+/// Workspace root: `CARGO_MANIFEST_DIR` = `<root>/crates/uor-r4-model-source`.
+fn workspace_root() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("../..")
+        .canonicalize()
+        .expect("canonicalize workspace root")
+}
+
+/// Every production-chain crate `src/` plus the root serving crate's `src/`.
+/// Only `src/` trees are scanned, so this test file (under `tests/`) and its
+/// own marker literals are never self-flagged.
+fn production_src_roots(root: &Path) -> Vec<PathBuf> {
+    let mut roots = vec![root.join("src")];
+    if let Ok(entries) = std::fs::read_dir(root.join("crates")) {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.is_dir() {
+                roots.push(path.join("src"));
+            }
+        }
+    }
+    roots
+}
+
+fn rust_sources(dir: &Path, out: &mut Vec<PathBuf>) {
+    let Ok(entries) = std::fs::read_dir(dir) else {
+        return;
+    };
+    for entry in entries.flatten() {
+        let path = entry.path();
+        let name = entry.file_name();
+        let name = name.to_string_lossy();
+        if path.is_dir() {
+            if name == "target" || name == ".git" {
+                continue;
+            }
+            rust_sources(&path, out);
+        } else if path.extension().and_then(|e| e.to_str()) == Some("rs") {
+            out.push(path);
+        }
+    }
+}
+
+fn is_sanctioned(path: &Path) -> bool {
+    let normalized = path.to_string_lossy().replace('\\', "/");
+    SANCTIONED_SUFFIXES
+        .iter()
+        .any(|suffix| normalized.ends_with(suffix))
+}
+
+#[test]
+fn no_conventional_blas_matrix_op_outside_the_sanctioned_teacher_site() {
+    let root = workspace_root();
+    let mut files = Vec::new();
+    for r in production_src_roots(&root) {
+        rust_sources(&r, &mut files);
+    }
+    assert!(
+        files.len() > 20,
+        "census scan found only {} files; path resolution is wrong",
+        files.len()
+    );
+
+    let mut leaks: Vec<String> = Vec::new();
+    for file in &files {
+        if is_sanctioned(file) {
+            continue;
+        }
+        let Ok(text) = std::fs::read_to_string(file) else {
+            continue;
+        };
+        for (lineno, line) in text.lines().enumerate() {
+            for marker in BLAS_MATRIX_MARKERS {
+                if line.contains(marker) {
+                    leaks.push(format!(
+                        "{}:{}: conventional library-BLAS matrix marker `{marker}` — migrate to \
+                         uor-matmul (#655-B) or record + classify it in docs/matrix_operation_census.md",
+                        file.display(),
+                        lineno + 1
+                    ));
+                }
+            }
+        }
+    }
+
+    assert!(
+        leaks.is_empty(),
+        "conventional library-BLAS matrix operations leaked into the production chain \
+         ({} occurrences):\n{}",
+        leaks.len(),
+        leaks.join("\n")
+    );
+    eprintln!(
+        "matrix-operation census: {} production source files scanned, 0 unsanctioned library-BLAS matrix ops",
+        files.len()
+    );
+}
+
+/// The sanctioned teacher site is expected to still own the library-BLAS matrix
+/// FFI until #655-B migrates it. If this fails, the allowlist above is stale
+/// (the site moved or was replaced) and must be updated together with the
+/// census doc — a conventional GEMM must never become silently unsanctioned.
+#[test]
+fn sanctioned_file_still_owns_blas() {
+    let root = workspace_root();
+    let lib = root.join("crates/uor-r4-model-source/src/lib.rs");
+    let text = std::fs::read_to_string(&lib).expect("read the teacher executor source");
+    assert!(
+        text.contains("cblas_"),
+        "the sanctioned teacher site {} no longer contains a `cblas_` matrix FFI — update the \
+         census guard allowlist and docs/matrix_operation_census.md (likely #655-B landed)",
+        lib.display()
+    );
+}
