@@ -15,6 +15,8 @@ pub mod frame_consistency;
 pub mod holographic_encoding;
 pub mod long_context;
 pub mod octeract;
+#[cfg(not(target_arch = "wasm32"))]
+pub mod octeract_trace_screen;
 #[cfg(feature = "patch-lifecycle")]
 pub mod patch_lifecycle;
 pub mod performance_certificate;

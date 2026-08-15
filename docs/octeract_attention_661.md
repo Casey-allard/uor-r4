@@ -169,3 +169,147 @@ prefilter/refine and the safe lower bound, occupancy-matched and shuffled-block
 nulls, and the #647 frame control. Missing real trace/corpus prerequisites are
 recorded as `UNAVAILABLE`, never as zero or a negative quality verdict. At most
 two candidates may advance; no packed or long run begins before that decision.
+
+## 2026-08-14 - Phase B route-trace screen record (#722)
+
+### Frozen screen contract
+
+**Definition** Phase B is the certifier-side
+`uor-r4-octeract-trace-screen-contract/1` contract and
+`uor-r4-octeract-trace-screen/1` report. It fixes layer 0/head 0, 288 route bits
+as 36 natural bytes, the current full mask, causal candidates in ascending
+index order, stable ascending `(score,candidate-index)` ties, selection width
+`M = min(8, trace support cap)`, and only steps with more than `M` candidates.
+The full contract is embedded in every report before any support labels are
+read.
+
+The fixed rows are:
+
+| Row | Role | Relation / work rule | May advance |
+|---|---|---|---|
+| V1 baseline | frame and operator control | sum 36 full-byte XOR popcounts; existing packed/reference route-attention selection | no |
+| `weight9` | representation control | independently materialize each exact byte distance in `0..=8`, then sum | no |
+| `octeract-fold5` | direct candidate | sum the 36 complement-folded shell classes | yes |
+| `octeract-oriented` | representation control | retain shell plus high-side orientation, reconstruct every exact byte distance, then sum | no |
+| `octeract-prefilter` | prefilter candidate | shortlist the first `floor(3N/4)` fold-ranked candidates, then refine with V1 | yes |
+| safe lower bound | pruning control | skip a later exact distance only when its weight-difference lower bound cannot beat the current stable-tie worst selection | no |
+
+The fixed nulls are the occupancy-matched fold null with seed `0x661B0001`,
+the single nonidentity 36-block permutation with seed `0x661B0002`, and the
+cyclic deranged-support null. The direct-fold gate requires a mean Jaccard
+improvement of at least `0.03` over V1 and strict separation from every
+applicable null. The prefilter gate requires at least `0.95` V1-selection
+recall, at most `0.75` exact-refinement fraction, at least one work-eligible
+step, and strict null separation.
+
+**Guarantee** Status: **Structural**. Only `octeract-fold5` and
+`octeract-prefilter` can produce an advance disposition. Synthetic or manually
+constructed evidence is registry-limited to `instrument-conformance` and can
+produce neither empirical `PASS` nor empirical `FAIL`. The initial closed
+evidence registry has no `pinned-real` entry. Adding one requires new contract
+and report format versions rather than changing either `/1` record in place.
+Evidence:
+[`octeract_trace_screen_661.rs`](../crates/uor-r4-graph-certify/tests/octeract_trace_screen_661.rs).
+
+### Provenance and instrument controls
+
+The report repeats both Phase A source identities:
+
+| Bound source | SHA-256 |
+|---|---|
+| Octeract Cypher paper | `44bab09a20253437aeef43057ae316fcded5b00fd9f6b180f83843f06d2bbb3c` |
+| validation roadmap | `5322c519fa872ca836e2ad23d523ecf655defedd3dd17589ba290dec62a93a5e` |
+
+A future empirical evidence record must additionally bind one authoritative
+#603 observation identity bundle and its input CID, #597 source-manifest
+identity, source geometry and tokenizer-adapter records, registered source
+attention operator, merged records and trace kappas, `full/1` profile,
+`route-fit/1` method, fit manifest, fitted parameters, target
+`r4-route-attention/1`, source snapshot, adapter, and compiler identities. The
+teacher source snapshot kappa and #597 source-manifest kappa are separate
+fields; neither is substituted for the other.
+
+**Guarantee** Status: **Structural**. Input validation recomputes registered
+records and full record equality, checks observation/trace/fit alignment before
+scoring, and returns typed `UNAVAILABLE` for malformed geometry, missing lanes,
+unknown records, incomplete identities, or an unregistered evidence class.
+The empirical path also recomputes `route-fit/1` and requires its complete
+output to equal the supplied fitted artifact. Publicly constructible metadata
+cannot promote a synthetic bundle by changing an adapter string or requested
+trace kind. Evidence:
+[`octeract_trace_screen_661.rs`](../crates/uor-r4-graph-certify/tests/octeract_trace_screen_661.rs).
+
+The same executable evidence covers V1 packed/reference/scalar identity,
+independent `weight9` materialization, oriented reconstruction, fold and
+complement adversaries, prefilter fidelity and no-work cases, safe lower-bound
+ties, all 120 shell-label bijections, deterministic and nonvacuous nulls,
+malformed-geometry no-panic behavior, and exhaustive small-domain comparison
+of the bounded collision oracle with brute force. The report keeps common base
+occupancy once and gives every arm/null its own consumed-domain counts. That
+distinction is material: the conformance fixture's matched rows consume 20
+support entries while the cyclic deranged-support row consumes 19; a separate
+`M=8` fixture has base counts `1/4/42/32` for
+stories/steps/candidates/support entries but prefilter work-domain counts
+`1/2/23/16`. Typed optional fields likewise keep row-specific selection,
+collision, oracle, shortlist, prefilter, lower-bound, and transformed-null
+occupancy metrics at their actual owners.
+
+### Availability and canonical disposition
+
+No registered pinned-real `full/1` evidence record or corresponding exact
+observation/records/trace/fit bundle was delivered by #603-#606 or present in
+the configured local fixture inventory. The only local corpus manifest was the
+Simple Wiki corpus input; it is not a `full/1` route-trace evidence bundle and
+was not substituted. Phase B therefore exercised the explicit missing-input
+branch rather than generating a checkpoint, searching for an approximate
+fixture, or relabeling the synthetic #605 conformance data.
+
+**Empirical Criterion** Status: **Unproven**. No real support labels were
+available, so no attention-quality, collision-ceiling, null-separation, or
+prefilter-work result is claimed.
+
+The canonical missing-real report is:
+
+| Field | Frozen value |
+|---|---|
+| trace kind | `pinned-real` |
+| reason | `required explicitly supplied pinned full/1 trace input is absent` |
+| report bytes | 6,587 |
+| payload kappa | `blake3:8b8c3bdc41f04ac2d6b9a15ef843f5064fae92e8b6bfe57cafbc6803eca7c5a2` |
+| final envelope kappa | `blake3:eab7b1bb12d9508d9815da0c4fbac248eab8b93b8258e717829542e41ac75e5e` |
+| disposition | `UNAVAILABLE` |
+
+| Arm / null | Verdict | Reason |
+|---|---|---|
+| V1 baseline | `UNAVAILABLE` | required explicitly supplied pinned `full/1` trace input is absent |
+| `weight9` | `NOT_RUN` | unavailable prerequisite/instrument |
+| `octeract-fold5` | `NOT_RUN` | unavailable prerequisite/instrument |
+| `octeract-oriented` | `NOT_RUN` | unavailable prerequisite/instrument |
+| `octeract-prefilter` | `NOT_RUN` | unavailable prerequisite/instrument |
+| safe lower bound | `NOT_RUN` | unavailable prerequisite/instrument |
+| occupancy-matched fold null | `NOT_RUN` | unavailable prerequisite/instrument |
+| shuffled-block null | `NOT_RUN` | unavailable prerequisite/instrument |
+| deranged-support null | `NOT_RUN` | unavailable prerequisite/instrument |
+
+Repeated construction produces identical canonical bytes, payload kappa, and
+final envelope kappa. Typed absent identities remain absent; the two Phase A
+source hashes and the complete preregistered contract remain present.
+
+### Decision and compatibility
+
+The locked unavailable branch applies: create neither #661-C nor the
+negative-only classification/cache fallback. The Octeract attention mechanism
+remains dormant and unavailable unless a later, separately reviewed issue
+delivers and registers one exact real evidence bundle under new contract and
+report versions.
+
+The #310 weighted-Hamming experiment is cited, not rerun: its A-W rows recovered
+about 5% of the A-f32 gap, below the preregistered 25% shipping bar, and shipped
+nothing runtime-side. That negative sign-space result is context, not Octeract
+evidence.
+
+No fit method, attention-operator registry entry, packed instance, graph
+format, runtime kernel, artifact, serving path, default, historical Phase A
+record, or existing kappa fixture changes in Phase B. The added `libm` use is
+certifier-only and makes entropy/MI report arithmetic independent of a native
+`f64::log2` implementation; it does not enter the deployed integer runtime.
