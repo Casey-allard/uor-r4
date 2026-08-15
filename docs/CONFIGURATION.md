@@ -170,5 +170,5 @@ Written under `.uor-models/` (or `UOR_MODEL_STORE`):
 | `last_model.txt` / `last_model_name.txt` | Orchestrator's last model selection |
 | `last_engine.txt` | Persisted engine preference; **silently pins the cascade** for requests that omit `engine` |
 | `sources/<name>/` | Downloaded Hugging Face teacher sources |
-| `compiled/<name>/` | Compiled bundles: `score.r4g1`, `tless_artifacts.bin`, `tless_store.bin`, deployed `tokenizer.bin`, full source binding `tokenizer_adapter.json` (used to fail-close corpus resume/evaluation), `corpus.meta`, and `corpus.records` |
+| `compiled/<name>/` | Compiled bundles: `score.r4g1`, `tless_artifacts.bin`, `tless_store.bin`, deployed `tokenizer.bin`, full source binding `tokenizer_adapter.json`, source-attention binding `attention_operator.json` (both used to fail-close corpus resume/evaluation), `corpus.meta`, and `corpus.records` |
 | `corpora/` | Observation corpora |

@@ -1325,6 +1325,12 @@ impl crate::BatchedTeacher for HuggingFaceGpt2Oracle {
     fn vocab(&self) -> usize {
         self.model.cfg.vocab
     }
+    fn geometry_projection(&self) -> Option<crate::geometry::GeometryProjection> {
+        <Self as crate::TeacherOracle>::geometry_projection(self)
+    }
+    fn attention_operator_spec(&self) -> Option<crate::attention::AttentionOperatorSpec> {
+        <Self as crate::TeacherOracle>::attention_operator_spec(self)
+    }
     fn forward_batch_into(&self, states: &mut [Gpt2State], tokens: &[usize], positions: &[usize]) {
         self.model.forward_batch(states, tokens, positions);
     }

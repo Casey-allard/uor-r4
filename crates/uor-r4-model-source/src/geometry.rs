@@ -46,6 +46,7 @@ pub const COMPILED_WIDTH: u32 = 288;
 /// the canonical digest serialization byte-for-byte), documented on
 /// [`GeometryProjectionParams::bucket_average`].
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct GeometryProjectionParams {
     /// How source columns are grouped into buckets.
     #[serde(default)]
@@ -88,6 +89,7 @@ impl GeometryProjectionParams {
 /// report and the observation manifest wherever the projection is known,
 /// so a geometry change is visible in provenance instead of silent.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct GeometryProjection {
     /// Registry id of the projection algorithm (e.g. `"bucket-average"`).
     #[serde(default)]

@@ -250,6 +250,13 @@ r4 import --name N --source-model M --capability continuation|instruction-chat \
           --artifacts F --store F --tokenizer F [--evaluation-report F]
 ```
 
+Source compiles write `attention_operator.json` beside `corpus.meta` and
+`corpus.records`. The registry-validated sidecar binds the source-attention
+operator that produced the rows; resume fails closed when an existing payload
+has a missing or different binding. `compile-recorded` propagates an explicit
+operator from an observation manifest, while a genuinely absent historical
+record retains the documented implicit `standard-source-attention/1` meaning.
+
 **Graph pipeline**
 
 ```bash
@@ -264,6 +271,7 @@ r4 transformerless cover        [--corpus-meta M] [--corpus-recs R] [--artifacts
 r4 transformerless cover-sweep  [...]
 r4 transformerless score        [--corpus-meta M] [--corpus-recs R] [--artifacts A] [--tokenizer PATH] [--out DIR]
 r4 transformerless convert-r4g1 --artifacts TLA --store TLS1 --out R4G1
+r4 transformerless copy-recorded-attention --corpus-meta M --corpus-recs R --out attention_operator.json
 r4 transformerless compile-recorded --corpus-meta M --corpus-recs R --vocab-size N --out DIR
 r4 graph infill --artifact score.r4g1 --skeleton 12,_,_,_,99,_,_,_,7
 ```

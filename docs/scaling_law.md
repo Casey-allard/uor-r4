@@ -172,10 +172,13 @@ promise.
 - Saturation-sweep harness: **shipped and verified end-to-end** —
   `scripts/scale_sweep.sh` over `scripts/mc1_subsample_corpus.py`. The first run
   surfaced a latent bug: `compile-recorded --out $D` re-emits
-  `corpus.meta`/`corpus.records` into `$D`, clobbering the sub-sampled inputs
-  when they share those names. Fixed by writing the sub-sample under
-  `sub.meta`/`sub.records` (the #516 pipeline had dodged it only because
-  `obs_bundle_to_corpus.py` uses `.bin` names).
+  `corpus.meta`/`corpus.records` into `$D`, clobbering same-directory inputs.
+  The harness now writes each sub-sample as a canonical pair under
+  `$D/input/`, uses `copy-recorded-attention` to preserve its
+  registry-validated source-attention binding, and uses the copied output pair
+  for cover/score. Keeping input and output roots distinct also prevents an
+  unrelated same-directory filename pair from inheriting another corpus's
+  provenance.
 - β calibration: **coverage knee now measured; resolution exponent still open.**
   #531 observed two teachers (360M, 135M) past the knee — 1,995,026 records each
   on 17k Simple-Wiki via batched inference (#616) — and its dual sweep (recorded

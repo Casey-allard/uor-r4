@@ -54,6 +54,8 @@ use uor_r4_core::transformerless::hf_bpe::{TokenizerAdapter, TokenizerKind};
 use uor_r4_model_source::BatchedTeacher;
 use uor_r4_model_source::SourceUnavailable;
 use uor_r4_model_source::TeacherOracle;
+use uor_r4_model_source::attention::AttentionOperatorSpec;
+use uor_r4_model_source::geometry::GeometryProjection;
 use uor_r4_model_source::progress::Progress;
 
 /// Authoritative per-article checkpoint file name within an observation
@@ -82,6 +84,8 @@ const SHARD_ROW_SIZE: usize = 24;
 
 /// Input-pin width: blake3 digest of the articles file.
 const INPUT_KAPPA_SIZE: usize = 32;
+
+static STORIES_TEMP_SEQUENCE: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
 
 /// Document-level partition of one article, keyed by its article id:
 /// held-out when `blake3(id as utf-8)[0] % 5 == 0` (the D3 split rule).
@@ -255,6 +259,12 @@ impl Checkpoint {
                 bytes.len()
             )));
         }
+        if bytes[24] > 1 {
+            return Err(SourceUnavailable::new(format!(
+                "committed checkpoint has invalid done byte {}; expected 0 or 1",
+                bytes[24]
+            )));
+        }
         let at = |offset: usize| {
             u64::from_le_bytes(bytes[offset..offset + 8].try_into().expect("8-byte slice"))
         };
@@ -273,6 +283,21 @@ impl Checkpoint {
                     "committed checkpoint has a torn shard length",
                 ));
             }
+            let partition_records = shard
+                .partitions
+                .construction
+                .checked_add(shard.partitions.held_out)
+                .ok_or_else(|| {
+                    SourceUnavailable::new(
+                        "committed checkpoint partition counts overflow the record counter",
+                    )
+                })?;
+            let shard_records = shard.bytes / RECORD_SIZE as u64;
+            if partition_records != shard_records {
+                return Err(SourceUnavailable::new(format!(
+                    "committed checkpoint partition counts {partition_records} do not match the shard length's {shard_records} records"
+                )));
+            }
             shards.push(shard);
             offset += SHARD_ROW_SIZE;
         }
@@ -280,17 +305,19 @@ impl Checkpoint {
             n: at(0),
             stories: at(8),
             rng: at(16),
-            done: bytes[24] != 0,
+            done: bytes[24] == 1,
             input_kappa: bytes[HEADER_SIZE..HEADER_SIZE + INPUT_KAPPA_SIZE]
                 .try_into()
                 .expect("32-byte slice"),
             shards,
         };
-        let committed_records: u64 = checkpoint
-            .shards
-            .iter()
-            .map(|shard| shard.bytes / RECORD_SIZE as u64)
-            .sum();
+        let committed_records = checkpoint.shards.iter().try_fold(0u64, |total, shard| {
+            total
+                .checked_add(shard.bytes / RECORD_SIZE as u64)
+                .ok_or_else(|| {
+                    SourceUnavailable::new("committed checkpoint shard record total overflows u64")
+                })
+        })?;
         if checkpoint.n != committed_records {
             return Err(SourceUnavailable::new(format!(
                 "committed checkpoint records {} do not match the shard lengths {committed_records}",
@@ -319,6 +346,33 @@ fn read_checkpoint(dir: &Path, shard_count: u32) -> Result<Option<Checkpoint>, S
     }
 }
 
+fn state_mirror_needs_repair(
+    dir: &Path,
+    checkpoint: &Checkpoint,
+) -> Result<bool, SourceUnavailable> {
+    let path = dir.join(observe::STATE_FILE);
+    match fs::symlink_metadata(&path) {
+        Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(true),
+        Err(error) => Err(SourceUnavailable::new(format!(
+            "{}: {error}",
+            path.display()
+        ))),
+        Ok(metadata) if !metadata.file_type().is_file() => Err(SourceUnavailable::new(format!(
+            "{} is not a regular checkpoint mirror",
+            path.display()
+        ))),
+        Ok(_) => fs::read(&path)
+            .map(|bytes| bytes != checkpoint.header())
+            .map_err(|error| SourceUnavailable::new(format!("{}: {error}", path.display()))),
+    }
+}
+
+fn repair_state_mirror(dir: &Path, checkpoint: &Checkpoint) -> Result<(), SourceUnavailable> {
+    let path = dir.join(observe::STATE_FILE);
+    fs::write(&path, checkpoint.header())
+        .map_err(|error| SourceUnavailable::new(format!("{}: {error}", path.display())))
+}
+
 /// Persist the checkpoint: `committed.bin` atomically (write-then-rename),
 /// then the `state.bin` mirror in the 25-byte corpus-meta layout.
 fn write_checkpoint(dir: &Path, checkpoint: &Checkpoint) -> Result<(), SourceUnavailable> {
@@ -337,18 +391,24 @@ fn write_checkpoint(dir: &Path, checkpoint: &Checkpoint) -> Result<(), SourceUna
 /// restarted article never duplicates its records. A file longer than the
 /// checkpoint holds the content-stable tail of an interrupted article and
 /// is truncated; a file shorter than the checkpoint means data loss.
-fn reconcile_shard(
+fn preflight_shard_prefix(
     dir: &Path,
     shard_bits: u8,
     shard: u32,
     committed: u64,
-) -> Result<(), SourceUnavailable> {
+) -> Result<u64, SourceUnavailable> {
     let path = dir.join(observe::shard_file_name(shard_bits, shard));
-    let length = match fs::metadata(&path) {
-        Ok(metadata) => metadata.len(),
+    let length = match fs::symlink_metadata(&path) {
+        Ok(metadata) if metadata.file_type().is_file() => metadata.len(),
+        Ok(_) => {
+            return Err(SourceUnavailable::new(format!(
+                "{} is not a regular observation shard",
+                path.display()
+            )));
+        }
         Err(error) if error.kind() == io::ErrorKind::NotFound => {
             if committed == 0 {
-                return Ok(());
+                return Ok(0);
             }
             return Err(SourceUnavailable::new(format!(
                 "{} is missing but the checkpoint commits {committed} bytes; delete the observation directory and rerun",
@@ -374,6 +434,19 @@ fn reconcile_shard(
             path.display()
         )));
     }
+    Ok(length)
+}
+
+/// Trim one incomplete shard file back to its committed length after every
+/// shard and sidecar has passed the read-only prefix preflight.
+fn reconcile_shard(
+    dir: &Path,
+    shard_bits: u8,
+    shard: u32,
+    committed: u64,
+) -> Result<(), SourceUnavailable> {
+    let path = dir.join(observe::shard_file_name(shard_bits, shard));
+    let length = preflight_shard_prefix(dir, shard_bits, shard, committed)?;
     if length > committed {
         let file = fs::OpenOptions::new()
             .write(true)
@@ -385,14 +458,73 @@ fn reconcile_shard(
     Ok(())
 }
 
-/// Trim `stories.jsonl` back to the committed story count (crash window:
-/// a story line appended just before the checkpoint rename failed).
-fn reconcile_stories(path: &Path, stories: u64) -> Result<(), SourceUnavailable> {
-    let bytes = match fs::read(path) {
-        Ok(bytes) => bytes,
+fn preflight_probability_prefix(
+    dir: &Path,
+    shard_bits: u8,
+    shard: u32,
+    committed_record_bytes: u64,
+) -> Result<(), SourceUnavailable> {
+    let path = dir.join(format!(
+        "{}.prob",
+        observe::shard_file_name(shard_bits, shard)
+    ));
+    let expected =
+        committed_record_bytes / RECORD_SIZE as u64 * observe::PROBABILITY_METADATA_SIZE as u64;
+    let length = match fs::symlink_metadata(&path) {
+        Ok(metadata) if metadata.file_type().is_file() => metadata.len(),
+        Ok(_) => {
+            return Err(SourceUnavailable::new(format!(
+                "{} is not a regular probability sidecar",
+                path.display()
+            )));
+        }
+        Err(error) if error.kind() == io::ErrorKind::NotFound => {
+            if expected == 0 {
+                return Ok(());
+            }
+            return Err(SourceUnavailable::new(format!(
+                "{} is missing but the checkpoint commits probability metadata",
+                path.display()
+            )));
+        }
+        Err(error) => {
+            return Err(SourceUnavailable::new(format!(
+                "{}: {error}",
+                path.display()
+            )));
+        }
+    };
+    if length % observe::PROBABILITY_METADATA_SIZE as u64 != 0 {
+        return Err(SourceUnavailable::new(format!(
+            "probability sidecar {} has a torn metadata row ({length} bytes)",
+            path.display()
+        )));
+    }
+    if length < expected {
+        return Err(SourceUnavailable::new(format!(
+            "probability sidecar {} is shorter ({length} bytes) than the committed prefix ({expected} bytes)",
+            path.display()
+        )));
+    }
+    Ok(())
+}
+
+fn preflight_stories_prefix(
+    path: &Path,
+    stories: u64,
+) -> Result<(Vec<u8>, Vec<StoryEntry>), SourceUnavailable> {
+    let bytes = match fs::symlink_metadata(path) {
+        Ok(metadata) if metadata.file_type().is_file() => fs::read(path)
+            .map_err(|error| SourceUnavailable::new(format!("{}: {error}", path.display())))?,
+        Ok(_) => {
+            return Err(SourceUnavailable::new(format!(
+                "{} is not a regular story mapping",
+                path.display()
+            )));
+        }
         Err(error) if error.kind() == io::ErrorKind::NotFound => {
             if stories == 0 {
-                return Ok(());
+                return Ok((Vec::new(), Vec::new()));
             }
             return Err(SourceUnavailable::new(format!(
                 "{} is missing but the checkpoint commits {stories} stories; delete the observation directory and rerun",
@@ -406,6 +538,50 @@ fn reconcile_stories(path: &Path, stories: u64) -> Result<(), SourceUnavailable>
             )));
         }
     };
+    let mut entries = Vec::new();
+    for (line_index, line) in bytes.split(|&byte| byte == b'\n').enumerate() {
+        if entries.len() as u64 == stories {
+            break;
+        }
+        if line.is_empty() {
+            return Err(SourceUnavailable::new(format!(
+                "{} line {} is empty inside the committed story prefix",
+                path.display(),
+                line_index + 1
+            )));
+        }
+        let entry: StoryEntry = serde_json::from_slice(line).map_err(|error| {
+            SourceUnavailable::new(format!(
+                "{} line {}: invalid story entry: {error}",
+                path.display(),
+                line_index + 1
+            ))
+        })?;
+        if entry.story as usize != entries.len() {
+            return Err(SourceUnavailable::new(format!(
+                "{} line {}: story ordinals are not dense (got {}, expected {})",
+                path.display(),
+                line_index + 1,
+                entry.story,
+                entries.len()
+            )));
+        }
+        entries.push(entry);
+    }
+    if (entries.len() as u64) < stories {
+        return Err(SourceUnavailable::new(format!(
+            "{} has {} story lines but the checkpoint commits {stories}; delete the observation directory and rerun",
+            path.display(),
+            entries.len()
+        )));
+    }
+    Ok((bytes, entries))
+}
+
+/// Trim `stories.jsonl` back to the committed story count (crash window:
+/// a story line appended just before the checkpoint rename failed).
+fn reconcile_stories(path: &Path, stories: u64) -> Result<(), SourceUnavailable> {
+    let (bytes, _) = preflight_stories_prefix(path, stories)?;
     let mut lines: Vec<&[u8]> = bytes.split(|&byte| byte == b'\n').collect();
     if lines.last() == Some(&b"".as_slice()) {
         lines.pop();
@@ -425,13 +601,45 @@ fn reconcile_stories(path: &Path, stories: u64) -> Result<(), SourceUnavailable>
         trimmed.extend_from_slice(line);
         trimmed.push(b'\n');
     }
-    let tmp = path.with_extension("tmp");
-    fs::write(&tmp, &trimmed)
-        .map_err(|error| SourceUnavailable::new(format!("{}: {error}", tmp.display())))?;
-    fs::rename(&tmp, path).map_err(|error| {
-        SourceUnavailable::new(format!("{}: story mapping rename: {error}", path.display()))
-    })?;
-    Ok(())
+    for _ in 0..64 {
+        let sequence = STORIES_TEMP_SEQUENCE.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        let tmp = path.with_file_name(format!("stories.tmp-{}-{sequence}", std::process::id()));
+        let mut file = match fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&tmp)
+        {
+            Ok(file) => file,
+            Err(error) if error.kind() == io::ErrorKind::AlreadyExists => continue,
+            Err(error) => {
+                return Err(SourceUnavailable::new(format!(
+                    "{}: {error}",
+                    tmp.display()
+                )));
+            }
+        };
+        let write_result = file.write_all(&trimmed).and_then(|()| file.sync_all());
+        drop(file);
+        if let Err(error) = write_result {
+            let _ = fs::remove_file(&tmp);
+            return Err(SourceUnavailable::new(format!(
+                "{}: {error}",
+                tmp.display()
+            )));
+        }
+        if let Err(error) = fs::rename(&tmp, path) {
+            let _ = fs::remove_file(&tmp);
+            return Err(SourceUnavailable::new(format!(
+                "{}: story mapping rename: {error}",
+                path.display()
+            )));
+        }
+        return Ok(());
+    }
+    Err(SourceUnavailable::new(format!(
+        "could not reserve a unique story-mapping temporary beside {}",
+        path.display()
+    )))
 }
 
 /// Append one story mapping line to `stories.jsonl`.
@@ -776,65 +984,105 @@ enum Prepared {
     },
 }
 
-/// Open an observation directory: validate/resume the checkpoint, reconcile any
-/// interrupted on-disk shard/story tails, and count the article stream. Shared
-/// by the serial and batched drivers — everything up to the per-article loop is
-/// identical regardless of how records are produced.
-fn prepare_text_observation(
+/// Read-only compatibility check for every identity the text driver may
+/// persist. It deliberately runs before the first setter, checkpoint-tail
+/// reconciliation, or completed-corpus finalization so every refusal leaves
+/// the observation directory byte-identical.
+#[allow(clippy::too_many_arguments)]
+fn preflight_text_observation_identities(
+    out_dir: &Path,
+    writer: &ObservationShardWriter,
+    input_cid: &str,
+    geometry: Option<&GeometryProjection>,
+    attention_operator: Option<&AttentionOperatorSpec>,
+    tokenizer_adapter: Option<&TokenizerAdapter>,
+) -> Result<(), SourceUnavailable> {
+    let manifest = writer.manifest();
+    let payload_present = observe::observation_payload_present(out_dir, manifest, "text-identity")?;
+    match manifest.partition_rule.as_deref() {
+        Some(PARTITION_RULE) => {}
+        Some(_) => {
+            return Err(SourceUnavailable::new(format!(
+                "{} is pinned to a different partition rule; incompatible observation resume refused before mutation",
+                out_dir.display()
+            )));
+        }
+        None if payload_present => {
+            return Err(SourceUnavailable::new(format!(
+                "{} has observation payload but no partition rule; refusing to relabel legacy bytes before mutation",
+                out_dir.display()
+            )));
+        }
+        None => {}
+    }
+    match manifest.input_cid.as_deref() {
+        Some(recorded) if recorded == input_cid => {}
+        Some(_) => {
+            return Err(SourceUnavailable::new(format!(
+                "{} is pinned to a different input CID; incompatible observation resume refused before mutation",
+                out_dir.display()
+            )));
+        }
+        None if payload_present => {
+            return Err(SourceUnavailable::new(format!(
+                "{} has observation payload but no input CID; refusing to relabel orphan/legacy bytes as {input_cid} before mutation",
+                out_dir.display()
+            )));
+        }
+        None => {}
+    }
+    writer.preflight_geometry(geometry)?;
+    writer.preflight_tokenizer_adapter(tokenizer_adapter)?;
+    writer.preflight_attention_operator(attention_operator)
+}
+
+struct TextObservationPreflight {
+    input_cid: String,
+    checkpoint: Checkpoint,
+    repair_state_mirror: bool,
+    articles_total: u64,
+    stories_path: PathBuf,
+}
+
+#[allow(clippy::too_many_arguments)]
+fn inspect_text_observation(
     out_dir: &Path,
     articles_path: &Path,
     shard_bits: u8,
     resume: bool,
+    writer: &ObservationShardWriter,
+    geometry: Option<&GeometryProjection>,
+    attention_operator: Option<&AttentionOperatorSpec>,
     tokenizer_adapter: Option<&TokenizerAdapter>,
-) -> Result<Prepared, SourceUnavailable> {
+) -> Result<TextObservationPreflight, SourceUnavailable> {
     let kappa = input_kappa(articles_path)?;
-    let mut writer = ObservationShardWriter::open(out_dir, shard_bits)?;
-    // The tokenizer identity is the first manifest operation after opening
-    // the directory. In particular it precedes partition/input metadata,
-    // crash-tail reconciliation, count restoration, and finalization. A
-    // mismatched registered adapter — including an adapterless legacy corpus
-    // that already has payload — therefore fails before any output byte can be
-    // trimmed, relabeled, or otherwise mutated.
-    match (
-        writer.manifest().tokenizer_adapter.as_ref(),
-        tokenizer_adapter,
-    ) {
-        (Some(recorded), None) => {
-            return Err(SourceUnavailable::new(format!(
-                "{} is pinned to tokenizer adapter {}/{} (CID {}, digest {}); requested the adapterless legacy tokenizer; incompatible resume refused before mutation",
-                out_dir.display(),
-                recorded.family,
-                recorded.version,
-                recorded.tokenizer_cid,
-                recorded.adapter_digest,
-            )));
-        }
-        (_, Some(adapter)) => writer.set_tokenizer_adapter(adapter)?,
-        (None, None) => {}
-    }
+    let input_cid = format!("blake3:{}", blake3::Hash::from(kappa).to_hex());
     let shard_count = writer.manifest().shard_count();
     let stories_path = out_dir.join(STORIES_FILE);
-    let has_prior_state = out_dir.join(COMMITTED_FILE).exists()
-        || out_dir.join(observe::STATE_FILE).exists()
+    let story_temp_present = fs::read_dir(out_dir)?.any(|entry| {
+        entry.ok().is_some_and(|entry| {
+            entry
+                .file_name()
+                .to_str()
+                .is_some_and(|name| name == "stories.tmp" || name.starts_with("stories.tmp-"))
+        })
+    });
+    let stream_evidence = out_dir.join(observe::STATE_FILE).exists()
         || stories_path.exists()
+        || story_temp_present
+        || out_dir.join(".committed.bin.tmp").exists()
         || !writer.manifest().completed.is_empty()
-        || (0..shard_count).any(|shard| {
-            out_dir
-                .join(observe::shard_file_name(shard_bits, shard))
-                .exists()
-        });
+        || observe::observation_shard_payload_present(out_dir)?;
+    let has_prior_state = out_dir.join(COMMITTED_FILE).exists() || stream_evidence;
     if !resume && has_prior_state {
         return Err(SourceUnavailable::new(format!(
             "{} already contains an observation corpus; pass resume to continue it",
             out_dir.display()
         )));
     }
-    writer.set_partition_rule(PARTITION_RULE)?;
-    // The PROV link from produced artifacts back to the sealed corpus
-    // (issue #72): the input κ is the corpus CID of the D3 manifest.
-    writer.set_input_cid(&format!("blake3:{}", blake3::Hash::from(kappa).to_hex()))?;
-
-    let checkpoint = match read_checkpoint(out_dir, shard_count)? {
+    let persisted_checkpoint = read_checkpoint(out_dir, shard_count)?;
+    let has_persisted_checkpoint = persisted_checkpoint.is_some();
+    let checkpoint = match persisted_checkpoint {
         Some(checkpoint) => {
             if checkpoint.input_kappa != kappa {
                 return Err(SourceUnavailable::new(format!(
@@ -844,14 +1092,218 @@ fn prepare_text_observation(
             }
             checkpoint
         }
+        None if stream_evidence => {
+            return Err(SourceUnavailable::new(format!(
+                "{} contains text observation stream evidence but no authoritative {COMMITTED_FILE}; refusing a false fresh resume before mutation",
+                out_dir.display()
+            )));
+        }
         None => Checkpoint::fresh(shard_count, kappa),
     };
+    let repair_state_mirror =
+        out_dir.join(COMMITTED_FILE).exists() && state_mirror_needs_repair(out_dir, &checkpoint)?;
     if !checkpoint.done && !writer.manifest().completed.is_empty() {
         return Err(SourceUnavailable::new(format!(
             "{} has finalized shards but an unfinished checkpoint; delete the observation directory and rerun",
             out_dir.display()
         )));
     }
+    preflight_text_observation_identities(
+        out_dir,
+        writer,
+        &input_cid,
+        geometry,
+        attention_operator,
+        tokenizer_adapter,
+    )?;
+    let (_, story_entries) = preflight_stories_prefix(&stories_path, checkpoint.stories)?;
+    let articles_total = {
+        let file = fs::File::open(articles_path).map_err(|error| {
+            SourceUnavailable::new(format!("{}: {error}", articles_path.display()))
+        })?;
+        let mut lines = BufReader::new(file).lines();
+        let mut total = 0u64;
+        for line in &mut lines {
+            let line = line.map_err(|error| {
+                SourceUnavailable::new(format!("{}: {error}", articles_path.display()))
+            })?;
+            let article: Article = serde_json::from_str(&line).map_err(|error| {
+                SourceUnavailable::new(format!(
+                    "{} line {}: invalid article: {error}",
+                    articles_path.display(),
+                    total + 1
+                ))
+            })?;
+            if total < checkpoint.stories {
+                let recorded = &story_entries[total as usize];
+                let expected_partition = partition_of(&article.id);
+                if recorded.id != article.id
+                    || recorded.url != article.url
+                    || recorded.title != article.title
+                    || recorded.partition != expected_partition
+                {
+                    return Err(SourceUnavailable::new(format!(
+                        "{} story {} does not match the checkpoint-pinned input article metadata/partition; refusing corrupted story pairing before mutation",
+                        stories_path.display(),
+                        total
+                    )));
+                }
+            }
+            total += 1;
+        }
+        total
+    };
+    if checkpoint.stories > articles_total {
+        return Err(SourceUnavailable::new(format!(
+            "committed checkpoint covers {} stories but the input contains only {articles_total}",
+            checkpoint.stories
+        )));
+    }
+    if has_persisted_checkpoint && checkpoint.done != (checkpoint.stories == articles_total) {
+        return Err(SourceUnavailable::new(format!(
+            "committed checkpoint done={} disagrees with story progress {}/{}",
+            checkpoint.done, checkpoint.stories, articles_total
+        )));
+    }
+
+    // Validate every committed prefix before any identity setter, tokenizer
+    // export, state-mirror repair, or tail truncation. A later bad shard must
+    // never be discovered only after an earlier shard has already changed.
+    for shard in 0..shard_count {
+        let committed = checkpoint.shards[shard as usize].bytes;
+        preflight_shard_prefix(out_dir, shard_bits, shard, committed)?;
+        preflight_probability_prefix(out_dir, shard_bits, shard, committed)?;
+    }
+    Ok(TextObservationPreflight {
+        input_cid,
+        checkpoint,
+        repair_state_mirror,
+        articles_total,
+        stories_path,
+    })
+}
+
+/// Joint read-only text-observation preflight under an exclusive session.
+/// This covers partition rule, input CID, checkpoint/completion consistency,
+/// geometry, tokenizer, and attention before a command exports tokenizer
+/// bytes or invokes reconciliation.
+#[allow(clippy::too_many_arguments)]
+pub fn preflight_text_observation_in_session(
+    session: &observe::ObservationSession,
+    articles_path: &Path,
+    resume: bool,
+    geometry: Option<&GeometryProjection>,
+    attention_operator: Option<&AttentionOperatorSpec>,
+    tokenizer_adapter: Option<&TokenizerAdapter>,
+) -> Result<(), SourceUnavailable> {
+    let writer = session.writer()?;
+    inspect_text_observation(
+        session.dir(),
+        articles_path,
+        session.shard_bits(),
+        resume,
+        &writer,
+        geometry,
+        attention_operator,
+        tokenizer_adapter,
+    )?;
+    Ok(())
+}
+
+/// Repeat the joint text preflight, then publish every text identity before
+/// tokenizer export. No setter runs until the whole bundle agrees.
+#[allow(clippy::too_many_arguments)]
+pub fn pin_text_observation_identities_in_session(
+    session: &observe::ObservationSession,
+    articles_path: &Path,
+    resume: bool,
+    geometry: Option<&GeometryProjection>,
+    attention_operator: Option<&AttentionOperatorSpec>,
+    tokenizer_adapter: Option<&TokenizerAdapter>,
+) -> Result<(), SourceUnavailable> {
+    let mut writer = session.writer()?;
+    let inspected = inspect_text_observation(
+        session.dir(),
+        articles_path,
+        session.shard_bits(),
+        resume,
+        &writer,
+        geometry,
+        attention_operator,
+        tokenizer_adapter,
+    )?;
+    if let Some(adapter) = tokenizer_adapter {
+        writer.set_tokenizer_adapter(adapter)?;
+    }
+    writer.set_partition_rule(PARTITION_RULE)?;
+    writer.set_input_cid(&inspected.input_cid)?;
+    if let Some(geometry) = geometry {
+        writer.set_geometry(geometry)?;
+    }
+    if let Some(operator) = attention_operator {
+        writer.set_attention_operator(operator)?;
+    }
+    if inspected.repair_state_mirror {
+        repair_state_mirror(session.dir(), &inspected.checkpoint)?;
+    }
+    Ok(())
+}
+
+/// Open an observation directory: validate/resume the checkpoint, reconcile any
+/// interrupted on-disk shard/story tails, and count the article stream. Shared
+/// by the serial and batched drivers — everything up to the per-article loop is
+/// identical regardless of how records are produced.
+#[allow(clippy::too_many_arguments)]
+fn prepare_text_observation(
+    session: Option<&observe::ObservationSession>,
+    out_dir: &Path,
+    articles_path: &Path,
+    shard_bits: u8,
+    resume: bool,
+    geometry: Option<&GeometryProjection>,
+    attention_operator: Option<&AttentionOperatorSpec>,
+    tokenizer_adapter: Option<&TokenizerAdapter>,
+) -> Result<Prepared, SourceUnavailable> {
+    let mut writer = match session {
+        Some(session) => session.writer()?,
+        None => ObservationShardWriter::open(out_dir, shard_bits)?,
+    };
+    let shard_count = writer.manifest().shard_count();
+    let inspected = inspect_text_observation(
+        out_dir,
+        articles_path,
+        shard_bits,
+        resume,
+        &writer,
+        geometry,
+        attention_operator,
+        tokenizer_adapter,
+    )?;
+    let input_cid = inspected.input_cid;
+    let checkpoint = inspected.checkpoint;
+    let repair_checkpoint_mirror = inspected.repair_state_mirror;
+    let articles_total = inspected.articles_total;
+    let stories_path = inspected.stories_path;
+
+    // The tokenizer pin remains the first mutation of a compatible run, as in
+    // the post-#719 contract. Every other identity has already passed above.
+    if let Some(adapter) = tokenizer_adapter {
+        writer.set_tokenizer_adapter(adapter)?;
+    }
+    writer.set_partition_rule(PARTITION_RULE)?;
+    // The PROV link from produced artifacts back to the sealed corpus
+    // (issue #72): the input κ is the corpus CID of the D3 manifest.
+    writer.set_input_cid(&input_cid)?;
+    if let Some(geometry) = geometry {
+        writer.set_geometry(geometry)?;
+    }
+    if let Some(operator) = attention_operator {
+        writer.set_attention_operator(operator)?;
+    }
+    if repair_checkpoint_mirror {
+        repair_state_mirror(out_dir, &checkpoint)?;
+    }
+
     // Reconcile on-disk bytes to the committed checkpoint before writing:
     // interrupted articles leave content-stable tails that are trimmed, so
     // the restarted article's records are appended exactly once.
@@ -879,23 +1331,6 @@ fn prepare_text_observation(
         .map(|shard| shard.partitions)
         .collect();
     writer.restore_partition_counts(&counts)?;
-
-    // The article stream is processed in jsonl order; count it up front
-    // for progress and the report.
-    let articles_total = {
-        let file = fs::File::open(articles_path).map_err(|error| {
-            SourceUnavailable::new(format!("{}: {error}", articles_path.display()))
-        })?;
-        let mut lines = BufReader::new(file).lines();
-        let mut total = 0u64;
-        for line in &mut lines {
-            line.map_err(|error| {
-                SourceUnavailable::new(format!("{}: {error}", articles_path.display()))
-            })?;
-            total += 1;
-        }
-        total
-    };
 
     if checkpoint.done {
         // A crash between the done checkpoint and finalization can leave
@@ -940,16 +1375,97 @@ pub fn observe_text_corpus(
     shard_bits: u8,
     resume: bool,
 ) -> Result<ObservationReport, SourceUnavailable> {
+    observe_text_corpus_inner(
+        None,
+        oracles,
+        budget_s,
+        tokenizer,
+        token_byte_lengths,
+        articles_path,
+        out_dir,
+        shard_bits,
+        resume,
+    )
+}
+
+/// [`observe_text_corpus`] while retaining a caller-owned exclusive
+/// observation session across earlier identity pinning and tokenizer export.
+#[allow(clippy::too_many_arguments)]
+pub fn observe_text_corpus_in_session(
+    session: &observe::ObservationSession,
+    oracles: &mut [Box<dyn TeacherOracle + Send>],
+    budget_s: u64,
+    tokenizer: &TokenizerKind,
+    token_byte_lengths: Option<&[u32]>,
+    articles_path: &Path,
+    resume: bool,
+) -> Result<ObservationReport, SourceUnavailable> {
+    observe_text_corpus_inner(
+        Some(session),
+        oracles,
+        budget_s,
+        tokenizer,
+        token_byte_lengths,
+        articles_path,
+        session.dir(),
+        session.shard_bits(),
+        resume,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+fn observe_text_corpus_inner(
+    session: Option<&observe::ObservationSession>,
+    oracles: &mut [Box<dyn TeacherOracle + Send>],
+    budget_s: u64,
+    tokenizer: &TokenizerKind,
+    token_byte_lengths: Option<&[u32]>,
+    articles_path: &Path,
+    out_dir: &Path,
+    shard_bits: u8,
+    resume: bool,
+) -> Result<ObservationReport, SourceUnavailable> {
     assert!(
         !oracles.is_empty(),
         "observe_text_corpus needs at least one oracle"
     );
+    let geometry = oracles[0].geometry_projection();
+    if let Some(geometry) = geometry.as_ref() {
+        observe::validate_registered_geometry_projection(geometry)?;
+    }
+    let attention_operator = oracles[0].attention_operator_spec();
+    if let Some(operator) = attention_operator.as_ref() {
+        observe::validate_registered_source_attention_operator(operator)?;
+    }
+    for oracle in &oracles[1..] {
+        let candidate_geometry = oracle.geometry_projection();
+        if let Some(candidate) = candidate_geometry.as_ref() {
+            observe::validate_registered_geometry_projection(candidate)?;
+        }
+        if candidate_geometry != geometry {
+            return Err(SourceUnavailable::new(
+                "serial observation workers declare different source geometries; refusing mixed projection eras before mutation",
+            ));
+        }
+        let candidate = oracle.attention_operator_spec();
+        if let Some(operator) = candidate.as_ref() {
+            observe::validate_registered_source_attention_operator(operator)?;
+        }
+        if candidate != attention_operator {
+            return Err(SourceUnavailable::new(
+                "serial observation workers declare different attention operators; refusing mixed arithmetic eras before mutation",
+            ));
+        }
+    }
     let adapter = tokenizer.adapter();
     let (mut writer, mut checkpoint, articles_total, stories_path) = match prepare_text_observation(
+        session,
         out_dir,
         articles_path,
         shard_bits,
         resume,
+        geometry.as_ref(),
+        attention_operator.as_ref(),
         adapter.as_ref(),
     )? {
         Prepared::Done(report) => return Ok(report),
@@ -960,23 +1476,6 @@ pub fn observe_text_corpus(
             stories_path,
         } => (writer, checkpoint, articles_total, stories_path),
     };
-
-    // #600: record the typed geometry-projection record the teacher
-    // oracle declares (the source→compiled reduction its embedding
-    // surface applies), when it declares one. Idempotent and atomic;
-    // legacy manifests without the field remain byte-identical.
-    if let Some(geometry) = oracles[0].geometry_projection() {
-        writer.set_geometry(&geometry)?;
-    }
-
-    // #602: record the typed attention-operator identity the teacher
-    // oracle's source executor computes (the boolean `r4_attention`
-    // switch resolved to its registered operator id), when the oracle
-    // declares one. Idempotent and atomic; legacy manifests without the
-    // field remain byte-identical.
-    if let Some(operator) = oracles[0].attention_operator_spec() {
-        writer.set_attention_operator(&operator)?;
-    }
 
     let workers = oracles.len();
     let seq_len = oracles[0].seq_len();
@@ -1189,13 +1688,78 @@ pub fn observe_text_corpus_batched<T: BatchedTeacher>(
     shard_bits: u8,
     resume: bool,
 ) -> Result<ObservationReport, SourceUnavailable> {
+    observe_text_corpus_batched_inner(
+        None,
+        oracle,
+        batch,
+        budget_s,
+        tokenizer,
+        token_byte_lengths,
+        articles_path,
+        out_dir,
+        shard_bits,
+        resume,
+    )
+}
+
+/// [`observe_text_corpus_batched`] under a caller-owned exclusive observation
+/// session.
+#[allow(clippy::too_many_arguments)]
+pub fn observe_text_corpus_batched_in_session<T: BatchedTeacher>(
+    session: &observe::ObservationSession,
+    oracle: &T,
+    batch: usize,
+    budget_s: u64,
+    tokenizer: &TokenizerKind,
+    token_byte_lengths: Option<&[u32]>,
+    articles_path: &Path,
+    resume: bool,
+) -> Result<ObservationReport, SourceUnavailable> {
+    observe_text_corpus_batched_inner(
+        Some(session),
+        oracle,
+        batch,
+        budget_s,
+        tokenizer,
+        token_byte_lengths,
+        articles_path,
+        session.dir(),
+        session.shard_bits(),
+        resume,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+fn observe_text_corpus_batched_inner<T: BatchedTeacher>(
+    session: Option<&observe::ObservationSession>,
+    oracle: &T,
+    batch: usize,
+    budget_s: u64,
+    tokenizer: &TokenizerKind,
+    token_byte_lengths: Option<&[u32]>,
+    articles_path: &Path,
+    out_dir: &Path,
+    shard_bits: u8,
+    resume: bool,
+) -> Result<ObservationReport, SourceUnavailable> {
     assert!(batch >= 1, "observe_text_corpus_batched needs batch >= 1");
+    let geometry = oracle.geometry_projection();
+    if let Some(geometry) = geometry.as_ref() {
+        observe::validate_registered_geometry_projection(geometry)?;
+    }
+    let attention_operator = oracle.attention_operator_spec();
+    if let Some(operator) = attention_operator.as_ref() {
+        observe::validate_registered_source_attention_operator(operator)?;
+    }
     let adapter = tokenizer.adapter();
     let (mut writer, mut checkpoint, articles_total, stories_path) = match prepare_text_observation(
+        session,
         out_dir,
         articles_path,
         shard_bits,
         resume,
+        geometry.as_ref(),
+        attention_operator.as_ref(),
         adapter.as_ref(),
     )? {
         Prepared::Done(report) => return Ok(report),
@@ -1529,6 +2093,68 @@ mod tests {
         }
     }
 
+    struct DeclaredFakeOracle {
+        operator: Option<AttentionOperatorSpec>,
+        geometry: Option<GeometryProjection>,
+    }
+
+    impl RepresentationSource for DeclaredFakeOracle {
+        fn vocab_size(&self) -> usize {
+            FAKE_VOCAB
+        }
+        fn source_dimension(&self) -> usize {
+            4
+        }
+        fn tokenizer_address(&self) -> &str {
+            "fake-tokenizer"
+        }
+        fn read_embedding_rows(
+            &self,
+            _range: std::ops::Range<usize>,
+            output: &mut [f32],
+        ) -> Option<()> {
+            output.fill(0.0);
+            Some(())
+        }
+    }
+
+    impl BehaviorSource for DeclaredFakeOracle {
+        fn reset(&mut self) {}
+        fn step(&mut self, token: usize, pos: usize, logits: &mut [f32]) {
+            for (index, logit) in logits.iter_mut().enumerate() {
+                let value = (token as u64 * 31 + pos as u64 * 7 + index as u64 * 13) % 29;
+                *logit = value as f32 * 0.25 - 3.0;
+            }
+        }
+    }
+
+    impl TeacherOracle for DeclaredFakeOracle {
+        fn vocab(&self) -> usize {
+            FAKE_VOCAB
+        }
+        fn dim(&self) -> usize {
+            4
+        }
+        fn seq_len(&self) -> usize {
+            FAKE_SEQ_LEN
+        }
+        fn kappa(&self) -> String {
+            "blake3:declared-fake".to_owned()
+        }
+        fn source_bytes(&self) -> usize {
+            0
+        }
+        fn embedding(&self, _token: usize, out: &mut [f32]) {
+            out.fill(0.0);
+        }
+        fn attention_operator_spec(&self) -> Option<AttentionOperatorSpec> {
+            self.operator.clone()
+        }
+        fn geometry_projection(&self) -> Option<GeometryProjection> {
+            self.geometry.clone()
+        }
+    }
+
     /// Independent replication of the driver loop over the first `up_to`
     /// articles, built ONLY from the shared encoder helpers: the expected
     /// per-shard record runs plus the rng state after them. This is the
@@ -1719,7 +2345,297 @@ mod tests {
         let mut torn = committed.clone();
         torn[0] = torn[0].wrapping_add(1);
         assert!(Checkpoint::decode(&torn, SHARD_COUNT).is_err());
+        let mut invalid_done = committed;
+        invalid_done[24] = 2;
+        assert!(Checkpoint::decode(&invalid_done, SHARD_COUNT).is_err());
+
+        // Each shard's partition counters must describe exactly its committed
+        // record prefix; matching only the global n would permit a corrupted
+        // partition split to be restored into the writer.
+        let mut invalid_partitions = checkpoint.encode();
+        let shard_zero_construction = HEADER_SIZE + INPUT_KAPPA_SIZE + 8;
+        invalid_partitions[shard_zero_construction] =
+            invalid_partitions[shard_zero_construction].wrapping_add(1);
+        assert!(Checkpoint::decode(&invalid_partitions, SHARD_COUNT).is_err());
+
+        let huge_records = u64::MAX / RECORD_SIZE as u64;
+        let overflow = Checkpoint {
+            n: 0,
+            stories: 0,
+            rng: RNG_SEED,
+            done: false,
+            input_kappa: kappa,
+            shards: vec![
+                ShardCheckpoint {
+                    bytes: huge_records * RECORD_SIZE as u64,
+                    partitions: PartitionCounts {
+                        construction: huge_records,
+                        held_out: 0,
+                    },
+                };
+                1 << 8
+            ],
+        };
+        let error = Checkpoint::decode(&overflow.encode(), 1 << 8)
+            .expect_err("overflowing shard totals must return an error");
+        assert!(error.reason.contains("overflows"), "{error}");
         let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn text_preflight_rejects_semantic_and_prefix_corruption_before_mutation() {
+        let tokenizer = fixture_tokenizer();
+        let lengths = fixture_token_byte_lengths();
+        let articles = test_articles();
+        let article_refs: Vec<(&str, &str)> = articles
+            .iter()
+            .map(|(id, text)| (id.as_str(), text.as_str()))
+            .collect();
+        let input = unique_path("checkpoint-preflight-articles.jsonl");
+        write_articles(&input, &article_refs);
+        let dir = unique_path("checkpoint-preflight");
+        let mut pool: Vec<Box<dyn TeacherOracle + Send>> = vec![Box::new(FakeOracle)];
+        observe_text_corpus(
+            &mut pool,
+            60,
+            &tokenizer,
+            Some(&lengths),
+            &input,
+            &dir,
+            SHARD_BITS,
+            false,
+        )
+        .expect("complete reference corpus");
+
+        let committed_path = dir.join(COMMITTED_FILE);
+        let original_checkpoint = Checkpoint::decode(
+            &fs::read(&committed_path).expect("checkpoint bytes"),
+            SHARD_COUNT,
+        )
+        .expect("checkpoint");
+
+        let stories_path = dir.join(STORIES_FILE);
+        let original_stories = fs::read(&stories_path).expect("story bytes");
+        let first_newline = original_stories
+            .iter()
+            .position(|&byte| byte == b'\n')
+            .expect("first story newline");
+        let mut wrong_story: StoryEntry =
+            serde_json::from_slice(&original_stories[..first_newline]).expect("parse first story");
+        wrong_story.id = "wrong-committed-id".to_owned();
+        let mut mismatched_stories = serde_json::to_vec(&wrong_story).expect("encode wrong story");
+        mismatched_stories.push(b'\n');
+        mismatched_stories.extend_from_slice(&original_stories[first_newline + 1..]);
+        fs::write(&stories_path, mismatched_stories).expect("write mismatched story pairing");
+        let before = directory_fingerprint(&dir);
+        let error = observe_text_corpus(
+            &mut pool,
+            60,
+            &tokenizer,
+            Some(&lengths),
+            &input,
+            &dir,
+            SHARD_BITS,
+            true,
+        )
+        .expect_err("committed story metadata must match the pinned input");
+        assert!(error.reason.contains("corrupted story pairing"), "{error}");
+        assert_eq!(directory_fingerprint(&dir), before);
+        fs::write(&stories_path, &original_stories).expect("restore story bytes");
+
+        let mut blank_prefixed_stories = vec![b'\n'];
+        blank_prefixed_stories.extend_from_slice(&original_stories);
+        fs::write(&stories_path, blank_prefixed_stories)
+            .expect("insert empty committed story line");
+        let before = directory_fingerprint(&dir);
+        let error = observe_text_corpus(
+            &mut pool,
+            60,
+            &tokenizer,
+            Some(&lengths),
+            &input,
+            &dir,
+            SHARD_BITS,
+            true,
+        )
+        .expect_err("an empty line cannot shift the committed story prefix");
+        assert!(
+            error
+                .reason
+                .contains("empty inside the committed story prefix"),
+            "{error}"
+        );
+        assert_eq!(directory_fingerprint(&dir), before);
+        fs::write(&stories_path, &original_stories).expect("restore story bytes");
+
+        let mut malformed_stories = original_stories.clone();
+        malformed_stories.extend_from_slice(b"{partial-uncommitted-json");
+        fs::write(&stories_path, malformed_stories).expect("append malformed story tail");
+        let recovered = observe_text_corpus(
+            &mut pool,
+            60,
+            &tokenizer,
+            Some(&lengths),
+            &input,
+            &dir,
+            SHARD_BITS,
+            true,
+        )
+        .expect("malformed uncommitted story tail is safely truncated");
+        assert!(recovered.done);
+        assert_eq!(
+            fs::read(&stories_path).expect("recovered stories"),
+            original_stories,
+            "recovery changed the committed story prefix"
+        );
+
+        // A persisted done checkpoint must cover exactly the input's dense
+        // story prefix. Refusal happens before the state mirror is repaired,
+        // any identity is republished, or completed shards are finalized.
+        let mut short_done = original_checkpoint.clone();
+        short_done.stories -= 1;
+        write_checkpoint(&dir, &short_done).expect("write semantic adversary");
+        let before = directory_fingerprint(&dir);
+        let error = observe_text_corpus(
+            &mut pool,
+            60,
+            &tokenizer,
+            Some(&lengths),
+            &input,
+            &dir,
+            SHARD_BITS,
+            true,
+        )
+        .expect_err("done checkpoint with a short story prefix must fail");
+        assert!(
+            error.reason.contains("disagrees with story progress"),
+            "{error}"
+        );
+        assert_eq!(directory_fingerprint(&dir), before);
+
+        // Restore the canonical checkpoint, then make an early shard longer
+        // than its committed prefix and a later shard shorter. Inspection must
+        // discover every bad prefix read-only: it may not truncate the early
+        // tail before discovering the later data loss.
+        write_checkpoint(&dir, &original_checkpoint).expect("restore checkpoint");
+        let nonempty: Vec<u32> = original_checkpoint
+            .shards
+            .iter()
+            .enumerate()
+            .filter_map(|(shard, checkpoint)| (checkpoint.bytes > 0).then_some(shard as u32))
+            .collect();
+        assert!(nonempty.len() >= 2, "fixture needs two non-empty shards");
+        let early = nonempty[0];
+        let late = *nonempty.last().expect("late shard");
+        let mut manifest = ObservationManifest::load(&dir)
+            .expect("load manifest before modelling an incomplete resume")
+            .expect("completed corpus has a manifest");
+        manifest
+            .completed
+            .retain(|&shard, _| shard != early && shard != late);
+        manifest.total_records = manifest.completed.values().map(|entry| entry.records).sum();
+        fs::write(
+            dir.join(crate::observation::MANIFEST_FILE),
+            serde_json::to_vec_pretty(&manifest).expect("encode incomplete manifest"),
+        )
+        .expect("mark the adversarial shards incomplete");
+        let early_path = dir.join(shard_file_name(SHARD_BITS, early));
+        let mut early_bytes = fs::read(&early_path).expect("early shard");
+        early_bytes.extend_from_slice(&[0u8; RECORD_SIZE]);
+        fs::write(&early_path, early_bytes).expect("append uncommitted early tail");
+        let late_path = dir.join(shard_file_name(SHARD_BITS, late));
+        fs::OpenOptions::new()
+            .write(true)
+            .open(&late_path)
+            .expect("open late shard")
+            .set_len(original_checkpoint.shards[late as usize].bytes - RECORD_SIZE as u64)
+            .expect("shorten late shard");
+        let before = directory_fingerprint(&dir);
+        let error = observe_text_corpus(
+            &mut pool,
+            60,
+            &tokenizer,
+            Some(&lengths),
+            &input,
+            &dir,
+            SHARD_BITS,
+            true,
+        )
+        .expect_err("short committed shard must fail before tail repair");
+        assert!(error.reason.contains("is shorter"), "{error}");
+        assert_eq!(directory_fingerprint(&dir), before);
+
+        let _ = fs::remove_dir_all(dir);
+        let _ = fs::remove_file(input);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn planted_story_temp_symlink_is_refused_without_touching_target() {
+        use std::os::unix::fs::symlink;
+
+        let tokenizer = fixture_tokenizer();
+        let lengths = fixture_token_byte_lengths();
+        let input = unique_path("story-temp-articles.jsonl");
+        write_articles(&input, &[("1", "ab")]);
+        let dir = unique_path("story-temp-symlink");
+        let mut pool: Vec<Box<dyn TeacherOracle + Send>> = vec![Box::new(FakeOracle)];
+        observe_text_corpus(
+            &mut pool,
+            60,
+            &tokenizer,
+            Some(&lengths),
+            &input,
+            &dir,
+            SHARD_BITS,
+            false,
+        )
+        .expect("complete corpus");
+        append_story(
+            &dir.join(STORIES_FILE),
+            &StoryEntry {
+                story: 1,
+                id: "uncommitted-tail".to_owned(),
+                url: "https://example.test/tail".to_owned(),
+                title: "Tail".to_owned(),
+                partition: partition_of("uncommitted-tail"),
+            },
+        )
+        .expect("append uncommitted story tail");
+
+        let target = unique_path("story-temp-target");
+        fs::write(&target, b"external sentinel").expect("write external target");
+        let temp = dir.join("stories.tmp");
+        symlink(&target, &temp).expect("plant fixed story temp symlink");
+        let before = directory_fingerprint(&dir);
+        let target_before = fs::read(&target).expect("target bytes");
+        let link_before = fs::read_link(&temp).expect("link target");
+
+        let error = observe_text_corpus(
+            &mut pool,
+            60,
+            &tokenizer,
+            Some(&lengths),
+            &input,
+            &dir,
+            SHARD_BITS,
+            true,
+        )
+        .expect_err("story temporary symlink must fail before reconciliation");
+        assert!(error.reason.contains("not a regular file"), "{error}");
+        assert_eq!(directory_fingerprint(&dir), before);
+        assert_eq!(
+            fs::read(&target).expect("target after refusal"),
+            target_before
+        );
+        assert_eq!(
+            fs::read_link(&temp).expect("link after refusal"),
+            link_before
+        );
+
+        let _ = fs::remove_dir_all(dir);
+        let _ = fs::remove_file(input);
+        let _ = fs::remove_file(target);
     }
 
     #[test]
@@ -1826,6 +2742,36 @@ mod tests {
             .collect();
         assert_eq!(held_out_merged.len() as u64, held_out);
 
+        // committed.bin is authoritative across its write-before-state crash
+        // window: a missing or corrupt 25-byte mirror is repaired before the
+        // completed resume returns, without rewriting rows.
+        let expected_state = fs::read(dir_a.join(observe::STATE_FILE)).expect("state mirror");
+        for corrupt in [false, true] {
+            let state_path = dir_a.join(observe::STATE_FILE);
+            if corrupt {
+                fs::write(&state_path, b"corrupt").expect("corrupt state mirror");
+            } else {
+                fs::remove_file(&state_path).expect("remove state mirror");
+            }
+            let repaired = observe_text_corpus(
+                &mut pool,
+                60,
+                &tokenizer,
+                Some(&lengths),
+                &input,
+                &dir_a,
+                SHARD_BITS,
+                true,
+            )
+            .expect("repair completed state mirror");
+            assert!(repaired.done);
+            assert_eq!(repaired.written, 0);
+            assert_eq!(
+                fs::read(&state_path).expect("repaired state mirror"),
+                expected_state
+            );
+        }
+
         // Rerun: fully resumed, no byte changes anywhere.
         let fingerprint = directory_fingerprint(&dir_a);
         let rerun = observe_text_corpus(
@@ -1901,7 +2847,7 @@ mod tests {
     }
 
     #[test]
-    fn crash_trims_converge_to_single_pass_kappa() {
+    fn missing_checkpoint_refuses_and_committed_crash_trims_converge() {
         let articles = test_articles();
         let articles_ref: Vec<(&str, &str)> = articles
             .iter()
@@ -1916,10 +2862,24 @@ mod tests {
             expected_shards(&articles_ref, &tokenizer, Some(&lengths), articles.len());
         let (article0_shards, rng_after_0) =
             expected_shards(&articles_ref, &tokenizer, Some(&lengths), 1);
+        let reference = unique_path("crash-reference");
+        let mut pool: Vec<Box<dyn TeacherOracle + Send>> = vec![Box::new(FakeOracle)];
+        observe_text_corpus(
+            &mut pool,
+            60,
+            &tokenizer,
+            Some(&lengths),
+            &input,
+            &reference,
+            SHARD_BITS,
+            false,
+        )
+        .expect("reference pass");
 
         // Craft A: a crash before the first checkpoint — shard files hold
         // a partial article-0 tail and one story line, no committed.bin.
-        // Open must trim everything and recompute from scratch.
+        // There is no authoritative per-shard boundary, so resume must refuse
+        // byte-identically rather than truncate everything to a guessed zero.
         let dir_a = unique_path("crash-pre");
         fs::create_dir_all(&dir_a).expect("mkdir a");
         let index_path = dir_a.join(STORIES_FILE);
@@ -1940,8 +2900,8 @@ mod tests {
             },
         )
         .expect("craft story line");
-        let mut pool: Vec<Box<dyn TeacherOracle + Send>> = vec![Box::new(FakeOracle)];
-        let report_a = observe_text_corpus(
+        let before_a = directory_fingerprint(&dir_a);
+        let error = observe_text_corpus(
             &mut pool,
             60,
             &tokenizer,
@@ -1951,9 +2911,12 @@ mod tests {
             SHARD_BITS,
             true,
         )
-        .expect("pre-checkpoint crash recovery");
-        assert!(report_a.done);
-        assert_eq!(merge_shards(&dir_a).expect("merge a"), expected);
+        .expect_err("missing authoritative checkpoint must be refused");
+        assert!(
+            error.reason.contains("no authoritative committed.bin"),
+            "{error}"
+        );
+        assert_eq!(directory_fingerprint(&dir_a), before_a);
 
         // Craft B: a crash after the article-0 checkpoint — committed.bin
         // pins article 0 but shard files and stories.jsonl already hold
@@ -1967,6 +2930,12 @@ mod tests {
             let mut writer =
                 ObservationShardWriter::open(&dir_b, SHARD_BITS).expect("open craft writer");
             writer.set_partition_rule(PARTITION_RULE).expect("rule");
+            writer
+                .set_input_cid(&format!(
+                    "blake3:{}",
+                    blake3::Hash::from(input_kappa(&input).expect("input kappa")).to_hex()
+                ))
+                .expect("input cid");
         }
         for shard in 0..SHARD_COUNT {
             let mut bytes = article0_shards[shard as usize].concat();
@@ -1978,7 +2947,7 @@ mod tests {
             fs::write(dir_b.join(shard_file_name(SHARD_BITS, shard)), bytes)
                 .expect("craft shard bytes");
             fs::copy(
-                dir_a.join(format!("{}.prob", shard_file_name(SHARD_BITS, shard))),
+                reference.join(format!("{}.prob", shard_file_name(SHARD_BITS, shard))),
                 dir_b.join(format!("{}.prob", shard_file_name(SHARD_BITS, shard))),
             )
             .expect("craft probability sidecar");
@@ -2037,7 +3006,7 @@ mod tests {
             .expect("story mapping");
         assert_eq!(index.len(), articles.len());
 
-        for dir in [&dir_a, &dir_b] {
+        for dir in [&dir_a, &dir_b, &reference] {
             let _ = fs::remove_dir_all(dir);
         }
         let _ = fs::remove_file(&input);
@@ -2224,6 +3193,8 @@ mod tests {
     /// against the serial driver's.
     struct FakeBatchedOracle {
         cfg: uor_r4_model_source::Config,
+        attention_operator: Option<AttentionOperatorSpec>,
+        geometry: Option<GeometryProjection>,
     }
 
     impl BatchedTeacher for FakeBatchedOracle {
@@ -2242,6 +3213,12 @@ mod tests {
         }
         fn vocab(&self) -> usize {
             FAKE_VOCAB
+        }
+        fn attention_operator_spec(&self) -> Option<AttentionOperatorSpec> {
+            self.attention_operator.clone()
+        }
+        fn geometry_projection(&self) -> Option<GeometryProjection> {
+            self.geometry.clone()
         }
         fn forward_batch_into(&self, states: &mut [State], tokens: &[usize], positions: &[usize]) {
             for (b, st) in states.iter_mut().enumerate() {
@@ -2305,6 +3282,8 @@ mod tests {
         let dir_b = unique_path("batched");
         let fake = FakeBatchedOracle {
             cfg: fake_batched_config(),
+            attention_operator: None,
+            geometry: None,
         };
         let batched = observe_text_corpus_batched(
             &fake,
@@ -2373,6 +3352,8 @@ mod tests {
         let batched_dir = unique_path("registered-batched");
         let fake = FakeBatchedOracle {
             cfg: fake_batched_config(),
+            attention_operator: None,
+            geometry: None,
         };
         let batched = observe_text_corpus_batched(
             &fake,
@@ -2486,5 +3467,346 @@ mod tests {
 
         let _ = fs::remove_dir_all(dir);
         let _ = fs::remove_file(input);
+    }
+
+    #[test]
+    fn serial_and_batched_paths_bind_their_actual_registered_operator() {
+        let tokenizer = fixture_tokenizer();
+        let lengths = fixture_token_byte_lengths();
+        let input = unique_path("operator-binding-articles.jsonl");
+        write_articles(&input, &[("1", "ab")]);
+
+        let standard = AttentionOperatorSpec::standard();
+        let geometry = GeometryProjection::bucket_average(4, 2);
+        let serial_dir = unique_path("operator-binding-serial");
+        let mut serial_pool: Vec<Box<dyn TeacherOracle + Send>> =
+            vec![Box::new(DeclaredFakeOracle {
+                operator: Some(standard.clone()),
+                geometry: Some(geometry.clone()),
+            })];
+        observe_text_corpus(
+            &mut serial_pool,
+            60,
+            &tokenizer,
+            Some(&lengths),
+            &input,
+            &serial_dir,
+            SHARD_BITS,
+            false,
+        )
+        .expect("serial path binds declared operator");
+        let serial_manifest = ObservationManifest::load(&serial_dir)
+            .expect("read serial manifest")
+            .expect("serial manifest exists");
+        assert_eq!(serial_manifest.attention_operator.as_ref(), Some(&standard));
+        assert_eq!(serial_manifest.geometry.as_ref(), Some(&geometry));
+        let serial_before = directory_fingerprint(&serial_dir);
+        let mut pass_through_pool: Vec<Box<dyn TeacherOracle + Send>> =
+            vec![Box::new(DeclaredFakeOracle {
+                operator: Some(standard.clone()),
+                geometry: None,
+            })];
+        let error = observe_text_corpus(
+            &mut pass_through_pool,
+            60,
+            &tokenizer,
+            Some(&lengths),
+            &input,
+            &serial_dir,
+            SHARD_BITS,
+            true,
+        )
+        .expect_err("pass-through serial worker cannot resume projected bytes");
+        assert!(error.reason.contains("geometry"), "{error}");
+        assert_eq!(directory_fingerprint(&serial_dir), serial_before);
+
+        let experimental = AttentionOperatorSpec::experimental_r4();
+        let batched_dir = unique_path("operator-binding-batched");
+        let batched = FakeBatchedOracle {
+            cfg: fake_batched_config(),
+            attention_operator: Some(experimental.clone()),
+            geometry: Some(geometry.clone()),
+        };
+        observe_text_corpus_batched(
+            &batched,
+            2,
+            60,
+            &tokenizer,
+            Some(&lengths),
+            &input,
+            &batched_dir,
+            SHARD_BITS,
+            false,
+        )
+        .expect("batched path binds declared operator");
+        let batched_manifest = ObservationManifest::load(&batched_dir)
+            .expect("read batched manifest")
+            .expect("batched manifest exists");
+        assert_eq!(
+            batched_manifest.attention_operator.as_ref(),
+            Some(&experimental)
+        );
+        assert_eq!(batched_manifest.geometry.as_ref(), Some(&geometry));
+
+        let mixed_dir = unique_path("operator-binding-mixed-workers");
+        let mut mixed_pool: Vec<Box<dyn TeacherOracle + Send>> = vec![
+            Box::new(DeclaredFakeOracle {
+                operator: Some(standard),
+                geometry: None,
+            }),
+            Box::new(DeclaredFakeOracle {
+                operator: Some(experimental),
+                geometry: None,
+            }),
+        ];
+        observe_text_corpus(
+            &mut mixed_pool,
+            60,
+            &tokenizer,
+            Some(&lengths),
+            &input,
+            &mixed_dir,
+            SHARD_BITS,
+            false,
+        )
+        .expect_err("mixed serial worker operators must fail before output");
+        assert!(!mixed_dir.exists());
+
+        let mixed_geometry_dir = unique_path("operator-binding-mixed-geometries");
+        let mut mixed_geometry_pool: Vec<Box<dyn TeacherOracle + Send>> = vec![
+            Box::new(DeclaredFakeOracle {
+                operator: Some(AttentionOperatorSpec::standard()),
+                geometry: Some(geometry),
+            }),
+            Box::new(DeclaredFakeOracle {
+                operator: Some(AttentionOperatorSpec::standard()),
+                geometry: None,
+            }),
+        ];
+        let error = observe_text_corpus(
+            &mut mixed_geometry_pool,
+            60,
+            &tokenizer,
+            Some(&lengths),
+            &input,
+            &mixed_geometry_dir,
+            SHARD_BITS,
+            false,
+        )
+        .expect_err("mixed serial worker geometries must fail before output");
+        assert!(
+            error.reason.contains("different source geometries"),
+            "{error}"
+        );
+        assert!(!mixed_geometry_dir.exists());
+
+        let _ = fs::remove_dir_all(serial_dir);
+        let _ = fs::remove_dir_all(batched_dir);
+        let _ = fs::remove_file(input);
+    }
+
+    #[test]
+    fn completed_text_resume_refuses_changed_or_missing_operator_atomically() {
+        let tokenizer = fixture_tokenizer();
+        let lengths = fixture_token_byte_lengths();
+        let input = unique_path("operator-resume-articles.jsonl");
+        write_articles(&input, &[("1", "ab")]);
+        let dir = unique_path("operator-resume");
+
+        let standard = FakeBatchedOracle {
+            cfg: fake_batched_config(),
+            attention_operator: Some(AttentionOperatorSpec::standard()),
+            geometry: None,
+        };
+        observe_text_corpus_batched(
+            &standard,
+            2,
+            60,
+            &tokenizer,
+            Some(&lengths),
+            &input,
+            &dir,
+            SHARD_BITS,
+            false,
+        )
+        .expect("create standard corpus");
+        let before = directory_fingerprint(&dir);
+
+        let projected = FakeBatchedOracle {
+            cfg: fake_batched_config(),
+            attention_operator: Some(AttentionOperatorSpec::standard()),
+            geometry: Some(GeometryProjection::bucket_average(4, 2)),
+        };
+        let error = observe_text_corpus_batched(
+            &projected,
+            2,
+            60,
+            &tokenizer,
+            Some(&lengths),
+            &input,
+            &dir,
+            SHARD_BITS,
+            true,
+        )
+        .expect_err("projected batched worker cannot relabel pass-through bytes");
+        assert!(error.reason.contains("geometry"), "{error}");
+        assert_eq!(directory_fingerprint(&dir), before);
+
+        let experimental = FakeBatchedOracle {
+            cfg: fake_batched_config(),
+            attention_operator: Some(AttentionOperatorSpec::experimental_r4()),
+            geometry: None,
+        };
+        let error = observe_text_corpus_batched(
+            &experimental,
+            2,
+            60,
+            &tokenizer,
+            Some(&lengths),
+            &input,
+            &dir,
+            SHARD_BITS,
+            true,
+        )
+        .expect_err("different operator cannot resume completed corpus");
+        assert!(error.reason.contains("incompatible observation resume"));
+        assert_eq!(directory_fingerprint(&dir), before);
+
+        let undeclared = FakeBatchedOracle {
+            cfg: fake_batched_config(),
+            attention_operator: None,
+            geometry: None,
+        };
+        let error = observe_text_corpus_batched(
+            &undeclared,
+            2,
+            60,
+            &tokenizer,
+            Some(&lengths),
+            &input,
+            &dir,
+            SHARD_BITS,
+            true,
+        )
+        .expect_err("operatorless producer cannot resume explicit corpus");
+        assert!(error.reason.contains("declares none"), "{error}");
+        assert_eq!(directory_fingerprint(&dir), before);
+
+        let _ = fs::remove_dir_all(dir);
+        let _ = fs::remove_file(input);
+    }
+
+    #[test]
+    fn operatorless_legacy_refusal_cannot_backfill_other_manifest_fields() {
+        let tokenizer = fixture_tokenizer();
+        let lengths = fixture_token_byte_lengths();
+        let input = unique_path("operatorless-legacy-articles.jsonl");
+        write_articles(&input, &[("1", "ab")]);
+        let dir = unique_path("operatorless-legacy");
+
+        let legacy = FakeBatchedOracle {
+            cfg: fake_batched_config(),
+            attention_operator: None,
+            geometry: None,
+        };
+        observe_text_corpus_batched(
+            &legacy,
+            2,
+            60,
+            &tokenizer,
+            Some(&lengths),
+            &input,
+            &dir,
+            SHARD_BITS,
+            false,
+        )
+        .expect("create operatorless legacy corpus");
+        let mut manifest = ObservationManifest::load(&dir)
+            .expect("read manifest")
+            .expect("manifest exists");
+        manifest.partition_rule = None;
+        manifest.input_cid = None;
+        manifest.attention_operator = None;
+        fs::write(
+            dir.join(observe::MANIFEST_FILE),
+            serde_json::to_vec_pretty(&manifest).expect("serialize legacy manifest"),
+        )
+        .expect("write legacy manifest fixture");
+        let before = directory_fingerprint(&dir);
+
+        let current = FakeBatchedOracle {
+            cfg: fake_batched_config(),
+            attention_operator: Some(AttentionOperatorSpec::standard()),
+            geometry: None,
+        };
+        let error = observe_text_corpus_batched(
+            &current,
+            2,
+            60,
+            &tokenizer,
+            Some(&lengths),
+            &input,
+            &dir,
+            SHARD_BITS,
+            true,
+        )
+        .expect_err("legacy rows cannot be relabelled");
+        assert!(error.reason.contains("no partition rule"), "{error}");
+        assert_eq!(
+            directory_fingerprint(&dir),
+            before,
+            "refusal backfilled partition/input/operator provenance"
+        );
+
+        let _ = fs::remove_dir_all(dir);
+        let _ = fs::remove_file(input);
+    }
+
+    #[test]
+    fn checkpoint_input_mismatch_precedes_every_manifest_mutation() {
+        let tokenizer = fixture_tokenizer();
+        let lengths = fixture_token_byte_lengths();
+        let input_a = unique_path("checkpoint-input-a.jsonl");
+        let input_b = unique_path("checkpoint-input-b.jsonl");
+        write_articles(&input_a, &[("1", "ab")]);
+        write_articles(&input_b, &[("1", "bc")]);
+        let dir = unique_path("checkpoint-input-mismatch");
+        let standard = FakeBatchedOracle {
+            cfg: fake_batched_config(),
+            attention_operator: Some(AttentionOperatorSpec::standard()),
+            geometry: None,
+        };
+        observe_text_corpus_batched(
+            &standard,
+            2,
+            60,
+            &tokenizer,
+            Some(&lengths),
+            &input_a,
+            &dir,
+            SHARD_BITS,
+            false,
+        )
+        .expect("create first-input corpus");
+        let before = directory_fingerprint(&dir);
+
+        let error = observe_text_corpus_batched(
+            &standard,
+            2,
+            60,
+            &tokenizer,
+            Some(&lengths),
+            &input_b,
+            &dir,
+            SHARD_BITS,
+            true,
+        )
+        .expect_err("different input checkpoint must be refused");
+        assert!(error.reason.contains("checkpoint's input"), "{error}");
+        assert_eq!(directory_fingerprint(&dir), before);
+
+        let _ = fs::remove_dir_all(dir);
+        let _ = fs::remove_file(input_a);
+        let _ = fs::remove_file(input_b);
     }
 }

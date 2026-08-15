@@ -33,25 +33,38 @@ fi
 mkdir -p "$WORK"
 printf '%-12s %-10s %-12s %-12s\n' records held_out top1_rule12 exct_miss_%
 
-# NOTE: `compile-recorded --out "$D"` re-emits `corpus.meta`/`corpus.records`
-# into "$D", so the sub-sampled corpus is written under DISTINCT names
-# (`sub.meta`/`sub.records`) that compile cannot clobber; cover and score read
-# those, never compile's emitted `corpus.*`.
+# Each sub-sample is a canonical corpus pair in its own input directory.
+# `compile-recorded` may then emit its canonical output pair in "$D" without
+# clobbering the input, while attention provenance remains directory-scoped and
+# cannot be inherited by an unrelated same-directory filename pair.
 for N in "${SIZES[@]}"; do
     D="$WORK/n-$N"
-    mkdir -p "$D"
+    INPUT="$D/input"
+    mkdir -p "$INPUT"
     python3 scripts/mc1_subsample_corpus.py \
         --src-meta "$SRC_META" --src-recs "$SRC_RECS" \
-        --out-meta "$D/sub.meta" --out-recs "$D/sub.records" \
+        --out-meta "$INPUT/corpus.meta" --out-recs "$INPUT/corpus.records" \
         --records "$N" >/dev/null
+
+    # Preserve the source corpus's exact attention era without copying a
+    # manifest whose record counts describe the unsampled corpus. The Rust
+    # boundary validates the complete source manifest, canonical corpus pair,
+    # registry record, and no-clobber destination before publishing anything.
+    "$R4" transformerless copy-recorded-attention \
+        --corpus-meta "$SRC_META" --corpus-recs "$SRC_RECS" \
+        --out "$INPUT/attention_operator.json" >/dev/null
+
     "$R4" transformerless compile-recorded \
-        --corpus-meta "$D/sub.meta" --corpus-recs "$D/sub.records" \
+        --corpus-meta "$INPUT/corpus.meta" --corpus-recs "$INPUT/corpus.records" \
         --vocab-size "$VOCAB" --out "$D" >/dev/null 2>&1
+    ATTENTION_OPERATOR="$(python3 -c 'import json,sys; print(json.dumps(json.load(open(sys.argv[1])),separators=(",",":")))' "$D/attention_operator.json")"
     "$R4" transformerless cover \
-        --corpus-meta "$D/sub.meta" --corpus-recs "$D/sub.records" \
-        --artifacts "$D/tless_artifacts.bin" --out "$D/graph-cover" >/dev/null 2>&1
+        --corpus-meta "$D/corpus.meta" --corpus-recs "$D/corpus.records" \
+        --artifacts "$D/tless_artifacts.bin" \
+        --attention-operator "$ATTENTION_OPERATOR" \
+        --out "$D/graph-cover" >/dev/null 2>&1
     "$R4" transformerless score \
-        --corpus-meta "$D/sub.meta" --corpus-recs "$D/sub.records" \
+        --corpus-meta "$D/corpus.meta" --corpus-recs "$D/corpus.records" \
         --artifacts "$D/tless_artifacts.bin" --cover "$D/graph-cover/cover.r4g1" \
         --quality-profile relative_tla --out "$D/graph" >/dev/null 2>&1
     python3 - "$D/graph/score_report.json" "$N" <<'PY'

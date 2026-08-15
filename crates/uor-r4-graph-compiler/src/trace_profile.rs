@@ -92,6 +92,7 @@ pub const SUPPORT_ABSENT_MARKER: u32 = u32::MAX;
 /// streams are captured, and whether the final-hidden (#95) lane rides
 /// along.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct LayerLane {
     /// Declared post-layer capture indices, ascending and deduplicated.
     #[serde(default)]
@@ -108,6 +109,7 @@ pub struct LayerLane {
 /// The current-position q/k/v lane declaration (rotated query plus the
 /// key/value cache rows the #602 operators consumed), `full/1` only.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct QkvLane {
     /// Declared capture indices, ascending and deduplicated.
     #[serde(default)]
@@ -117,6 +119,7 @@ pub struct QkvLane {
 /// The attention-support lane declaration: per-head top-S attention
 /// weights for declared layer indices, within the declared cap.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct AttentionSupportLane {
     /// Declared capture indices, ascending and deduplicated.
     #[serde(default)]
@@ -135,6 +138,7 @@ pub struct AttentionSupportLane {
 /// non-minimal profile is active; a minimal pass carries NO record, so
 /// legacy manifest bytes are unchanged.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct TraceProfile {
     /// Registry id (`minimal`, `layer`, `attention-support`, `full`).
     #[serde(default)]

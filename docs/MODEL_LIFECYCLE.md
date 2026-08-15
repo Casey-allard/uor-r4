@@ -92,7 +92,10 @@ without a manifest compile exactly as before, with the field absent.
 `models/smollm2-135m-instruct.json`) are weight-only identities: they cover
 the `model.safetensors` bytes and nothing else. They are NOT relabeled and do
 not become snapshot identities; the snapshot-wide identity is only the
-`source_manifest.json` root κ described above.
+`source_manifest.json` root κ described above. Neither identity includes the
+executor's arithmetic: changing a reduction leaves the source bytes and both
+source κs unchanged. The versioned `attention_operator` record, rather than a
+source κ re-pin, carries that arithmetic-era distinction.
 
 #### Sharded snapshots (#598)
 
@@ -183,6 +186,10 @@ everywhere). Hugging Face compilation defaults to
 attention cost and KV memory proportional to the eight-token deployed runtime
 window; increase `--target` or `--sequence-length` explicitly for quality
 experiments. Repeat the same command to resume an incomplete corpus.
+Stage A writes a registry-validated `attention_operator.json` before corpus
+rows. A resume must reproduce that exact operator; an existing payload with a
+missing or different binding is refused before mutation rather than being
+silently relabelled or mixed across arithmetic eras.
 
 On macOS, offline Hugging Face teacher execution uses Apple Accelerate's
 SIMD-optimized CPU BLAS. Linux and Windows use explicit NEON on AArch64 or
@@ -199,6 +206,7 @@ tless_artifacts.bin       # TLA teacher projection and class tables (TLA7 by def
 tless_store.bin           # TLS1 graded continuation evidence
 tokenizer.bin             # deployed token table (tagged decode-only for SentencePiece)
 tokenizer_adapter.json    # full source adapter binding for corpus resume/evaluation
+attention_operator.json   # registered source-attention binding for corpus resume/cover
 corpus.meta               # observation-corpus metadata
 corpus.records            # deterministic observation records
 hamming_calibration.json
@@ -542,24 +550,27 @@ tests (e.g. `forward_batch_matches_serial_forward`) guarding the
 executor path and unit tests pinning divisible and non-divisible head
 widths.
 
-The record threads into provenance the same way the #597 manifest κ,
-the #600 geometry record, and the #601 tokenizer record do: the observe
-drivers record it in the observation manifest automatically whenever
-the oracle declares one (`attention_operator`, an optional
-serde-defaulted field; `TeacherOracle::attention_operator_spec()`
-defaults to `None`, and the legacy checkpoint oracle declares none, so
-legacy manifest bytes are unchanged); the cover stages
-(`transformerless cover`, `graph-compile`) accept
-`--attention-operator <json>` and bind it as the optional
-`attention_operator` field of the cover/compile report; the typed
-compile API derives it from its `r4_attention` option; and the HTTP
-server's compile job binds the standard record (its teacher stage never
-enables the experimental switch). An absent record marks the implicit
-legacy era: documents produced before #602 are not rewritten, and — the
-switch having been default-off everywhere — a reader may *interpret* an
-absent record on teacher-produced inputs as `standard-source-attention/1`
-unless the producing invocation is known to have passed
-`--r4-attention`. **Honesty item:** the score/certify report structs in
+The record threads into provenance alongside the #597 manifest κ, the #600
+geometry record, and the #601 tokenizer record. Observe drivers record the
+oracle's exact declaration in the observation manifest (`attention_operator`,
+an optional serde-defaulted field), and all shipped Llama/GPT-2 source oracles
+declare their registered operator. Direct source compilation publishes the
+same record atomically as `attention_operator.json` before corpus bytes; resume
+requires exact equality and refuses a missing, malformed, unregistered, or
+different binding before mutation. The cover stages (`transformerless cover`,
+`graph-compile`) accept `--attention-operator <json>` and bind it as the
+optional `attention_operator` field of the cover/compile report. The typed API
+and HTTP server forward the registry-validated stage-A/recorded binding rather
+than reconstructing it from the `r4_attention` policy bit, which preserves
+GPT-2's learned-absolute identity. `compile-recorded` likewise propagates an
+explicit observation-manifest record.
+
+An absent record remains the implicit legacy era: documents produced before
+#602 are not rewritten, and a genuinely operator-less caller-supplied corpus
+may be interpreted as `standard-source-attention/1`. That compatibility does
+not authorize adding current source-teacher rows to unbound bytes; source
+compile/resume requires the explicit sidecar. **Honesty item:** the
+score/certify report structs in
 `uor-r4-graph-certify` carry no attention-operator field — that stage
 reads corpus, cover, and artifact bytes with no teacher oracle in reach
 (the #597 source κ and #600 geometry records are likewise absent there),
@@ -627,8 +638,8 @@ fixed-width era-stable byte format and cannot carry optional per-layer
 f32 lanes without a byte-format change, so richer lanes live in a
 per-shard side-car file (`shard-NN.bin.trace`, one fixed-width row per
 record), following the probability sidecar's existing pattern: the same
-deterministic content-addressed partitioning, crash-safe
-append/reconcile/resume, per-shard κ registration in the manifest
+deterministic content-addressed partitioning, torn shard/sidecar alignment
+repair, per-shard κ registration in the manifest
 (`ShardEntry::trace_kappa`), and canonical ascending-shard merge
 (`merge_trace_rows`). The primary shard bytes are identical for every
 profile. Lane order within a row is fixed (residuals ascending declared
@@ -642,6 +653,14 @@ an oracle without the bounded capture surface refuses richer profiles
 attention-support slot (fewer prefix positions than the cap) carries
 the explicit `SUPPORT_ABSENT_MARKER` (`0xFFFFFFFF` in both fields),
 never a zero-valued entry.
+
+**Raw-resume limitation.** The autoregressive `observe` checkpoint still
+records only global stream state, not committed byte lengths for every shard.
+It can reject malformed checkpoints and repair a torn shard/sidecar pair, but
+an abrupt failure after an aligned mid-story append can leave a tail that a
+retry cannot distinguish from committed rows; exactly-once raw resume requires
+a separate per-shard checkpoint-format follow-up. The text observation driver
+already carries per-shard committed lengths and truncates to them on resume.
 
 **Bundle identity.** The manifest's identity seam is ONE stable bundle:
 `ObservationManifest::identity_bundle_digest()` computes a canonical

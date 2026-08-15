@@ -706,6 +706,7 @@ fn pre_tokenize(text: &str) -> Vec<&str> {
 /// digest serialization byte-for-byte, mirroring the #600
 /// `GeometryProjectionParams` convention.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct TokenizerAdapterPolicy {
     /// Normalizer the adapter applies before pre-tokenization
     /// (`"none"`: this adapter never rewrites input text).
@@ -750,6 +751,7 @@ pub struct TokenizerAdapterPolicy {
 /// tokenizer. A behavioral change to an adapter family is a new
 /// version — a new registry entry — never an in-place edit.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct TokenizerAdapter {
     /// Registry family id (e.g. [`TokenizerAdapter::HF_BYTE_BPE_FAMILY`]).
     #[serde(default)]

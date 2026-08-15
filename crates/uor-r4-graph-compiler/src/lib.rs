@@ -144,7 +144,10 @@ pub fn parse_options(args: &[String]) -> Option<GraphCompileOptions> {
                 options.geometry = Some(serde_json::from_str(value).ok()?);
             }
             "--attention-operator" => {
-                options.attention_operator = Some(serde_json::from_str(value).ok()?);
+                let operator: uor_r4_model_source::attention::AttentionOperatorSpec =
+                    serde_json::from_str(value).ok()?;
+                observation::validate_registered_source_attention_operator(&operator).ok()?;
+                options.attention_operator = Some(operator);
             }
             _ => return None,
         }
@@ -511,7 +514,7 @@ fn preflight_recorded_tokenizer_identity(
 /// registered output refuses an adapterless legacy request, while
 /// [`ObservationShardWriter::set_tokenizer_adapter`] refuses to relabel an
 /// adapterless payload and validates the full registered identity.
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(all(test, not(target_arch = "wasm32")))]
 fn preflight_observation_tokenizer(
     output: &std::path::Path,
     shard_bits: u8,
@@ -535,7 +538,7 @@ fn preflight_observation_tokenizer(
 /// Read-only resume check for the other source identities this command owns.
 /// A different explicitly requested value is an incompatible observation era;
 /// an omitted optional value preserves a recorded value for legacy callers.
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(all(test, not(target_arch = "wasm32")))]
 fn preflight_observation_metadata(
     output: &std::path::Path,
     shard_bits: u8,
@@ -544,63 +547,145 @@ fn preflight_observation_metadata(
     attention_operator: Option<&uor_r4_model_source::attention::AttentionOperatorSpec>,
     trace_profile: Option<&trace_profile::TraceProfile>,
 ) -> Result<(), SourceUnavailable> {
-    let Some(recorded) = observation::ObservationManifest::load(output)? else {
-        return Ok(());
-    };
-    if recorded.shard_bits != shard_bits {
+    let existing = observation::ObservationManifest::load(output)?;
+    if let Some(recorded) = existing.as_ref()
+        && recorded.shard_bits != shard_bits
+    {
         return Err(SourceUnavailable::new(format!(
             "manifest shard_bits {} does not match requested {shard_bits}",
             recorded.shard_bits
         )));
     }
-    if let (Some(recorded), Some(requested)) = (
+    let recorded = existing.unwrap_or_else(|| observation::ObservationManifest::new(shard_bits));
+    preflight_observation_metadata_for_manifest(
+        output,
+        &recorded,
+        source_manifest_kappa,
+        geometry,
+        attention_operator,
+        trace_profile,
+    )
+}
+
+/// Joint read-only identity check against a manifest already reloaded under an
+/// [`observation::ObservationSession`] lock.
+#[cfg(all(test, not(target_arch = "wasm32")))]
+fn preflight_observation_metadata_for_manifest(
+    output: &std::path::Path,
+    recorded: &observation::ObservationManifest,
+    source_manifest_kappa: Option<&str>,
+    geometry: Option<&uor_r4_model_source::geometry::GeometryProjection>,
+    attention_operator: Option<&uor_r4_model_source::attention::AttentionOperatorSpec>,
+    trace_profile: Option<&trace_profile::TraceProfile>,
+) -> Result<(), SourceUnavailable> {
+    let payload_present =
+        observation::observation_payload_present(output, recorded, "observation-identity")?;
+    if let Some(operator) = recorded.attention_operator.as_ref() {
+        observation::validate_registered_source_attention_operator(operator)?;
+    }
+    if let Some(operator) = attention_operator {
+        observation::validate_registered_source_attention_operator(operator)?;
+    }
+    match (
         recorded.source_manifest_kappa.as_deref(),
         source_manifest_kappa,
-    ) && recorded != requested
-    {
-        return Err(SourceUnavailable::new(format!(
-            "{} is pinned to source manifest κ {recorded}; requested {requested}; incompatible observation resume refused before mutation",
-            output.display()
-        )));
+    ) {
+        (Some(existing), Some(requested)) if existing == requested => {}
+        (Some(existing), Some(requested)) => {
+            return Err(SourceUnavailable::new(format!(
+                "{} is pinned to source manifest κ {existing}; requested {requested}; incompatible observation resume refused before mutation",
+                output.display()
+            )));
+        }
+        (Some(existing), None) => {
+            return Err(SourceUnavailable::new(format!(
+                "{} is pinned to source manifest κ {existing}; requested none; incompatible observation resume refused before mutation",
+                output.display()
+            )));
+        }
+        (None, Some(requested)) if payload_present => {
+            return Err(SourceUnavailable::new(format!(
+                "{} has payload but no source manifest κ; refusing to relabel it as {requested} before mutation",
+                output.display()
+            )));
+        }
+        _ => {}
     }
-    if let (Some(recorded), Some(requested)) = (recorded.geometry.as_ref(), geometry)
-        && recorded != requested
-    {
-        return Err(SourceUnavailable::new(format!(
-            "{} is pinned to geometry {}/{} digest {}; requested {}/{} digest {}; incompatible observation resume refused before mutation",
-            output.display(),
-            recorded.id,
-            recorded.version,
-            recorded.declared_digest(),
-            requested.id,
-            requested.version,
-            requested.declared_digest(),
-        )));
+    if let Some(recorded) = recorded.geometry.as_ref() {
+        observation::validate_registered_geometry_projection(recorded)?;
     }
-    if let (Some(recorded), Some(requested)) =
-        (recorded.attention_operator.as_ref(), attention_operator)
-        && recorded != requested
-    {
-        return Err(SourceUnavailable::new(format!(
-            "{} is pinned to attention operator {}/{} digest {}; requested {}/{} digest {}; incompatible observation resume refused before mutation",
-            output.display(),
-            recorded.id,
-            recorded.version,
-            recorded.declared_digest(),
-            requested.id,
-            requested.version,
-            requested.declared_digest(),
-        )));
+    if let Some(requested) = geometry {
+        observation::validate_registered_geometry_projection(requested)?;
     }
-    let state_exists = match std::fs::symlink_metadata(output.join(observation::STATE_FILE)) {
-        Ok(_) => true,
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => false,
-        Err(error) => return Err(SourceUnavailable::from(error)),
-    };
+    match (recorded.geometry.as_ref(), geometry) {
+        (Some(existing), Some(requested)) if existing == requested => {}
+        (Some(existing), Some(requested)) => {
+            return Err(SourceUnavailable::new(format!(
+                "{} is pinned to geometry {}/{} digest {}; requested {}/{} digest {}; incompatible observation resume refused before mutation",
+                output.display(),
+                existing.id,
+                existing.version,
+                existing.declared_digest(),
+                requested.id,
+                requested.version,
+                requested.declared_digest(),
+            )));
+        }
+        (Some(existing), None) => {
+            return Err(SourceUnavailable::new(format!(
+                "{} is pinned to geometry {}/{}; requested pass-through/none; incompatible observation resume refused before mutation",
+                output.display(),
+                existing.id,
+                existing.version
+            )));
+        }
+        (None, Some(requested)) if payload_present => {
+            return Err(SourceUnavailable::new(format!(
+                "{} has payload but no geometry; refusing to relabel it as {}/{} before mutation",
+                output.display(),
+                requested.id,
+                requested.version
+            )));
+        }
+        _ => {}
+    }
+    match (recorded.attention_operator.as_ref(), attention_operator) {
+        (Some(existing), Some(requested)) if existing != requested => {
+            return Err(SourceUnavailable::new(format!(
+                "{} is pinned to attention operator {}/{} digest {}; requested {}/{} digest {}; incompatible observation resume refused before mutation",
+                output.display(),
+                existing.id,
+                existing.version,
+                existing.declared_digest(),
+                requested.id,
+                requested.version,
+                requested.declared_digest(),
+            )));
+        }
+        (Some(existing), None) => {
+            return Err(SourceUnavailable::new(format!(
+                "{} is pinned to attention operator {}/{} digest {}; the requested producer declares none; incompatible observation resume refused before mutation",
+                output.display(),
+                existing.id,
+                existing.version,
+                existing.declared_digest(),
+            )));
+        }
+        (None, Some(requested)) if payload_present => {
+            return Err(SourceUnavailable::new(format!(
+                "{} has no recorded attention operator but already contains observation payload from the implicit legacy era; refusing to relabel those bytes as {}/{} digest {} before mutation",
+                output.display(),
+                requested.id,
+                requested.version,
+                requested.declared_digest(),
+            )));
+        }
+        _ => {}
+    }
     match (recorded.trace_profile.as_ref(), trace_profile) {
         (None, None) => {}
         (Some(recorded), Some(requested)) if recorded == requested => {}
-        (None, Some(requested)) if state_exists || !recorded.completed.is_empty() => {
+        (None, Some(requested)) if payload_present => {
             return Err(SourceUnavailable::new(format!(
                 "{} was captured under the minimal trace profile; profile {}/{} cannot be introduced mid-corpus; incompatible observation resume refused before mutation",
                 output.display(),
@@ -633,7 +718,7 @@ fn preflight_observation_metadata(
 
 /// Check all already-recorded identities without writing, then make the
 /// tokenizer pin the first mutation of a compatible run.
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(all(test, not(target_arch = "wasm32")))]
 #[allow(clippy::too_many_arguments)]
 fn preflight_observation_identities(
     output: &std::path::Path,
@@ -732,31 +817,31 @@ pub fn observe(args: &[String]) -> Result<(), SourceUnavailable> {
     // loads and preserves the stored fields).
     let geometry = oracle.geometry_projection();
     let attention_operator = oracle.attention_operator_spec();
-    preflight_observation_identities(
-        &options.output,
-        options.shards,
+    let session = observation::ObservationSession::acquire(&options.output, options.shards)?;
+    let tokenizer_adapter = registered_tokenizer
+        .as_ref()
+        .map(|resolved| &resolved.adapter);
+    observation::preflight_observation_identities_in_session(
+        &session,
         options.source_manifest_kappa.as_deref(),
         geometry.as_ref(),
+        tokenizer_adapter,
         attention_operator.as_ref(),
         requested_trace_profile.as_ref(),
-        registered_tokenizer
-            .as_ref()
-            .map(|resolved| &resolved.adapter),
     )?;
-    if options.source_manifest_kappa.is_some() || geometry.is_some() || attention_operator.is_some()
-    {
-        let mut writer =
-            observation::ObservationShardWriter::open(&options.output, options.shards)?;
-        if let Some(kappa) = &options.source_manifest_kappa {
-            writer.set_source_manifest_kappa(kappa)?;
-        }
-        if let Some(geometry) = &geometry {
-            writer.set_geometry(geometry)?;
-        }
-        if let Some(operator) = &attention_operator {
-            writer.set_attention_operator(operator)?;
-        }
-    }
+    observation::preflight_observation_trace_layout_in_session(
+        &session,
+        &*oracle,
+        requested_trace_profile.as_ref(),
+    )?;
+    observation::pin_observation_identities_in_session(
+        &session,
+        options.source_manifest_kappa.as_deref(),
+        geometry.as_ref(),
+        tokenizer_adapter,
+        attention_operator.as_ref(),
+        requested_trace_profile.as_ref(),
+    )?;
 
     // Export only after every recorded source/geometry/attention/tokenizer
     // identity has passed and its setter has completed. The same resolved
@@ -776,22 +861,20 @@ pub fn observe(args: &[String]) -> Result<(), SourceUnavailable> {
     // minimal profile: exactly today's observation bytes.
     match &requested_trace_profile {
         None => {
-            observation::observe_sharded(
+            observation::observe_sharded_in_session(
+                &session,
                 &mut *oracle,
                 options.seconds,
                 options.target,
-                options.shards,
-                &options.output,
                 token_byte_lengths.as_deref(),
             )?;
         }
         Some(profile) => {
-            observation::observe_sharded_traced(
+            observation::observe_sharded_traced_in_session(
+                &session,
                 &mut *oracle,
                 options.seconds,
                 options.target,
-                options.shards,
-                &options.output,
                 token_byte_lengths.as_deref(),
                 profile,
             )?;
@@ -963,6 +1046,68 @@ mod tokenizer_observe_tests {
     }
 
     #[test]
+    fn graph_compile_attention_flag_accepts_only_exact_registry_records() {
+        let standard = uor_r4_model_source::attention::AttentionOperatorSpec::standard();
+        let valid_json = serde_json::to_string(&standard).expect("serialize standard operator");
+        let valid =
+            parse_options(&["--attention-operator", valid_json.as_str()].map(str::to_owned))
+                .expect("exact registry record parses");
+        assert_eq!(valid.attention_operator.as_ref(), Some(&standard));
+        for source in [
+            uor_r4_model_source::attention::AttentionOperatorSpec::experimental_r4(),
+            uor_r4_model_source::attention::AttentionOperatorSpec::learned_absolute_source_attention(),
+        ] {
+            let json = serde_json::to_string(&source).expect("serialize source operator");
+            let parsed = parse_options(
+                &["--attention-operator", json.as_str()].map(str::to_owned),
+            )
+            .expect("every registered source operator parses");
+            assert_eq!(parsed.attention_operator.as_ref(), Some(&source));
+        }
+
+        let mut tampered = standard.clone();
+        tampered.value_aggregation = "tampered-value-fold".to_owned();
+        let tampered_json = serde_json::to_string(&tampered).expect("serialize tampered record");
+        assert!(
+            parse_options(&["--attention-operator", tampered_json.as_str()].map(str::to_owned))
+                .is_none()
+        );
+
+        let mut unknown = standard;
+        unknown.version = 999;
+        unknown.implementation_digest = unknown.declared_digest();
+        let unknown_json = serde_json::to_string(&unknown).expect("serialize unknown record");
+        assert!(
+            parse_options(&["--attention-operator", unknown_json.as_str()].map(str::to_owned))
+                .is_none()
+        );
+
+        let target = uor_r4_model_source::attention::AttentionOperatorSpec::r4_route_attention_v1();
+        let target_json = serde_json::to_string(&target).expect("serialize target record");
+        assert!(
+            parse_options(&["--attention-operator", target_json.as_str()].map(str::to_owned))
+                .is_none(),
+            "a deployed target operator is not source-teacher provenance"
+        );
+
+        let mut extra_claim: serde_json::Value =
+            serde_json::from_str(&valid_json).expect("parse canonical JSON");
+        extra_claim
+            .as_object_mut()
+            .expect("operator object")
+            .insert(
+                "unregistered_claim".to_owned(),
+                serde_json::Value::Bool(true),
+            );
+        let extra_json = extra_claim.to_string();
+        assert!(
+            parse_options(&["--attention-operator", extra_json.as_str()].map(str::to_owned))
+                .is_none(),
+            "unknown attention claims must fail closed"
+        );
+    }
+
+    #[test]
     fn observe_parser_requires_an_atomic_registered_key_and_rejects_legacy_mix() {
         let valid = parse_observe_options(
             &[
@@ -1075,8 +1220,12 @@ mod tokenizer_observe_tests {
         {
             let mut writer =
                 observation::ObservationShardWriter::open(&output, 2).expect("open pinned writer");
+            let source_kappa = format!(
+                "blake3:{}",
+                blake3::hash(b"original-source-manifest").to_hex()
+            );
             writer
-                .set_source_manifest_kappa("blake3:original")
+                .set_source_manifest_kappa(&source_kappa)
                 .expect("write unrelated provenance");
         }
         std::fs::write(output.join("sentinel.bin"), b"preserve me")
@@ -1152,6 +1301,30 @@ mod tokenizer_observe_tests {
         );
         assert_eq!(directory_bytes(&legacy_output), legacy_before);
 
+        let attention = uor_r4_model_source::attention::AttentionOperatorSpec::standard();
+        let geometry = uor_r4_model_source::geometry::GeometryProjection::bucket_average(576, 288);
+        let requested_source_kappa =
+            format!("blake3:{}", blake3::hash(b"must-not-be-recorded").to_hex());
+        let operator_error = preflight_observation_identities(
+            &legacy_output,
+            2,
+            Some(&requested_source_kappa),
+            Some(&geometry),
+            Some(&attention),
+            None,
+            None,
+        )
+        .expect_err("operatorless payload cannot acquire current identities");
+        assert!(
+            operator_error.reason.contains("no source manifest"),
+            "{operator_error}"
+        );
+        assert_eq!(
+            directory_bytes(&legacy_output),
+            legacy_before,
+            "attention refusal mutated stripped legacy output"
+        );
+
         let _ = std::fs::remove_dir_all(first_source);
         let _ = std::fs::remove_dir_all(second_source);
         let _ = std::fs::remove_dir_all(output);
@@ -1214,6 +1387,22 @@ mod tokenizer_observe_tests {
                 && error.reason.contains("incompatible observation resume")
                 && error.reason.contains("before mutation"),
             "{error}"
+        );
+        assert_eq!(directory_bytes(&output), before);
+
+        let undeclared_error = preflight_observation_identities(
+            &output,
+            2,
+            None,
+            Some(&recorded_geometry),
+            None,
+            Some(&trace),
+            Some(&resolved.adapter),
+        )
+        .expect_err("operatorless producer must not resume explicit output");
+        assert!(
+            undeclared_error.reason.contains("declares none"),
+            "{undeclared_error}"
         );
         assert_eq!(directory_bytes(&output), before);
 

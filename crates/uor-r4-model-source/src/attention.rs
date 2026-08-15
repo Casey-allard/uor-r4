@@ -74,7 +74,8 @@
 //! declarations, so a behavioral change must bump the version (a new
 //! registry entry) instead of silently drifting.
 //!
-//! **Boundary note.** The two SOURCE specs describe HOST-SIDE
+//! **Boundary note.** The three SOURCE specs (the two Llama switch
+//! branches plus GPT-2's learned-absolute operator) describe HOST-SIDE
 //! source-teacher computation (f32 dot products, exp, division). They
 //! are provenance records, distinct from — and outside — the deployed
 //! inference operation contract
@@ -88,7 +89,7 @@
 //! registered TARGET operator: `R4RouteAttentionV1`, whose
 //! `permitted_operation_class` is the deployed integer class (XOR /
 //! masked popcount via table / saturating integer add / compare / table
-//! read — no float, no multiply, no divide), unlike the two source
+//! read — no float, no multiply, no divide), unlike the source
 //! records above. It reuses NO Q/K/V weights: its route codes, mask,
 //! and ScoreQ contributions are declared tables over the 288-bit
 //! signature substrate. Source-teacher and target routing semantics
@@ -110,6 +111,7 @@ use serde::{Deserialize, Serialize};
 /// documented on [`AttentionOperatorParams::standard`] and
 /// [`AttentionOperatorParams::experimental_r4`].
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct AttentionOperatorParams {
     /// How a query head selects its key/value head (grouped query).
     #[serde(default)]
@@ -241,6 +243,7 @@ impl AttentionOperatorParams {
 /// teacher paths the default-off switch always computed
 /// `standard-source-attention/1`).
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct AttentionOperatorSpec {
     /// Registry id of the operator (e.g. `"standard-source-attention"`).
     #[serde(default)]
@@ -980,6 +983,14 @@ mod tests {
         assert_eq!(partial.id, "standard-source-attention");
         assert_eq!(partial.version, 0);
         assert_eq!(partial.params, AttentionOperatorParams::default());
+
+        for json in [
+            r#"{"id":"standard-source-attention","unregistered_claim":true}"#,
+            r#"{"params":{"unregistered_claim":"exact"}}"#,
+        ] {
+            serde_json::from_str::<AttentionOperatorSpec>(json)
+                .expect_err("unknown provenance claims must fail closed");
+        }
     }
 
     #[test]

@@ -1884,6 +1884,7 @@ fn validate_source_bundle_inventory(output: &Path) -> Result<(), String> {
         "tless_store.bin",
         "tokenizer.bin",
         "tokenizer_adapter.json",
+        uor_r4_graph_cli::ATTENTION_OPERATOR_BINDING_FILE,
         "corpus.meta",
         "corpus.records",
     ] {
@@ -2011,6 +2012,36 @@ fn panic_payload_message(payload: &(dyn Any + Send)) -> String {
     }
 }
 
+/// Append the exact registered source-attention identity recorded with one
+/// corpus. A genuinely operator-less caller corpus retains the historical
+/// implicit standard/1 interpretation; source-driven compiles must carry the
+/// explicit sidecar written by stage A.
+fn append_recorded_attention_operator(
+    cover_args: &mut Vec<String>,
+    corpus_meta: &Path,
+    corpus_recs: &Path,
+    require_explicit: bool,
+) -> Result<(), String> {
+    let operator = uor_r4_graph_cli::recorded_corpus_attention_operator(corpus_meta, corpus_recs)
+        .map_err(|error| error.to_string())?;
+    match operator {
+        Some(operator) => {
+            let json = serde_json::to_string(&operator).map_err(|error| error.to_string())?;
+            cover_args.extend(["--attention-operator".to_owned(), json]);
+            Ok(())
+        }
+        None if require_explicit => {
+            let root = corpus_meta.parent().unwrap_or_else(|| Path::new("."));
+            Err(format!(
+                "compiled source corpus is missing its attention-operator binding: {}",
+                root.join(uor_r4_graph_cli::ATTENTION_OPERATOR_BINDING_FILE)
+                    .display()
+            ))
+        }
+        None => Ok(()),
+    }
+}
+
 fn compile_r4g1_bundle(
     cli: &ServerConfig,
     r4g1: &Arc<Mutex<Option<R4g1State>>>,
@@ -2030,6 +2061,7 @@ fn compile_r4g1_bundle(
     let source_root = downloaded_source
         .map(|source| compile_bundle_from_source(source, status, tokenizer_selection))
         .transpose()?;
+    let compiled_from_source = source_root.is_some();
     if downloaded_source.is_none() && tokenizer_selection.is_some() {
         return Err(
             "an explicit tokenizer selection requires a downloaded source directory".to_owned(),
@@ -2137,15 +2169,15 @@ fn compile_r4g1_bundle(
     if let Some(geometry) = downloaded_source.and_then(geometry_projection_of) {
         cover_args.extend(["--geometry-projection".to_owned(), geometry]);
     }
-    // #602: the server compile job never passes `--r4-attention` to the
-    // teacher stage above, so the teacher ran exactly the registered
-    // `standard-source-attention/1` operator; bind its typed record into
-    // the cover report.
-    if let Ok(operator) =
-        serde_json::to_string(&uor_r4_model_source::attention::AttentionOperatorSpec::standard())
-    {
-        cover_args.extend(["--attention-operator".to_owned(), operator]);
-    }
+    // #602/#704: bind the identity stage A or the observation manifest
+    // actually recorded. Reconstructing it as standard from the absent
+    // experimental switch would mislabel GPT-2's learned-absolute operator.
+    append_recorded_attention_operator(
+        &mut cover_args,
+        &corpus_meta,
+        &corpus_recs,
+        compiled_from_source,
+    )?;
     uor_r4_graph_cli::cover_command(&cover_args).map_err(|error| error.to_string())?;
 
     set_r4g1_compile_progress(status, 55, "Scoring graph transitions and emissions...");
@@ -5410,6 +5442,107 @@ fn print_witness_line(a: &CliAnswer) {
 
 #[cfg(test)]
 mod tests {
+    fn attention_provenance_test_dir(label: &str) -> std::path::PathBuf {
+        static NEXT: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+        let path = std::env::temp_dir().join(format!(
+            "uor-r4-server-attention-{label}-{}-{}",
+            std::process::id(),
+            NEXT.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
+        ));
+        let _ = std::fs::remove_dir_all(&path);
+        std::fs::create_dir_all(&path).expect("create provenance test directory");
+        path
+    }
+
+    fn attention_corpus_markers(
+        root: &std::path::Path,
+    ) -> (std::path::PathBuf, std::path::PathBuf) {
+        let meta = root.join("corpus.meta");
+        let records = root.join("corpus.records");
+        std::fs::write(&meta, []).expect("create corpus metadata marker");
+        std::fs::write(&records, []).expect("create corpus records marker");
+        (meta, records)
+    }
+
+    #[test]
+    fn server_cover_uses_registry_validated_observation_manifest_operator() {
+        let root = attention_provenance_test_dir("learned-manifest");
+        let (meta, records) = attention_corpus_markers(&root);
+        let operator = uor_r4_model_source::attention::AttentionOperatorSpec::
+            learned_absolute_source_attention();
+        let mut manifest = uor_r4_graph_compiler::observation::ObservationManifest::new(1);
+        manifest.attention_operator = Some(operator.clone());
+        std::fs::write(
+            root.join(uor_r4_graph_compiler::observation::MANIFEST_FILE),
+            serde_json::to_vec_pretty(&manifest).expect("serialize manifest"),
+        )
+        .expect("write manifest");
+
+        let mut args = Vec::new();
+        super::append_recorded_attention_operator(&mut args, &meta, &records, false)
+            .expect("manifest operator is accepted");
+        assert_eq!(
+            args.first().map(String::as_str),
+            Some("--attention-operator")
+        );
+        let forwarded: uor_r4_model_source::attention::AttentionOperatorSpec =
+            serde_json::from_str(&args[1]).expect("forwarded record");
+        assert_eq!(forwarded, operator);
+        let _ = std::fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn server_cover_preserves_genuine_legacy_absence_but_requires_source_binding() {
+        let root = attention_provenance_test_dir("legacy-absence");
+        let (meta, records) = attention_corpus_markers(&root);
+
+        let mut args = Vec::new();
+        super::append_recorded_attention_operator(&mut args, &meta, &records, false)
+            .expect("caller-supplied legacy absence remains implicit");
+        assert!(args.is_empty());
+
+        let error =
+            super::append_recorded_attention_operator(&mut Vec::new(), &meta, &records, true)
+                .expect_err("source-driven compiles require an explicit binding");
+        assert!(error.contains("missing its attention-operator binding"));
+        let _ = std::fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn server_cover_refuses_malformed_and_non_file_binding_entries() {
+        let root = attention_provenance_test_dir("invalid-binding");
+        let (meta, records) = attention_corpus_markers(&root);
+        let binding = root.join(uor_r4_graph_cli::ATTENTION_OPERATOR_BINDING_FILE);
+        std::fs::write(&binding, b"{not json").expect("write malformed binding");
+        let error =
+            super::append_recorded_attention_operator(&mut Vec::new(), &meta, &records, false)
+                .expect_err("malformed binding must fail closed");
+        assert!(error.contains("attention_operator.json"));
+
+        std::fs::remove_file(&binding).expect("remove malformed binding");
+        std::fs::create_dir(&binding).expect("create non-file binding entry");
+        let error =
+            super::append_recorded_attention_operator(&mut Vec::new(), &meta, &records, false)
+                .expect_err("non-file binding must fail closed");
+        assert!(error.contains("attention_operator.json"));
+        let _ = std::fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn server_cover_refuses_corpus_files_from_different_roots() {
+        let meta_root = attention_provenance_test_dir("meta-root");
+        let records_root = attention_provenance_test_dir("records-root");
+        let (meta, _) = attention_corpus_markers(&meta_root);
+        let (_, records) = attention_corpus_markers(&records_root);
+
+        let error =
+            super::append_recorded_attention_operator(&mut Vec::new(), &meta, &records, false)
+                .expect_err("unpaired roots must fail before cover");
+        assert!(error.contains("parent"));
+        let _ = std::fs::remove_dir_all(meta_root);
+        let _ = std::fs::remove_dir_all(records_root);
+    }
+
     #[test]
     fn http_tokenizer_selection_is_an_atomic_version_generic_pair() {
         let absent = super::HuggingFaceDownloadPayload::default();
@@ -5525,7 +5658,7 @@ mod tests {
     }
 
     #[test]
-    fn source_bundle_inventory_requires_a_regular_adapter_sidecar() {
+    fn source_bundle_inventory_requires_regular_tokenizer_and_attention_sidecars() {
         let root = std::env::temp_dir().join(format!(
             "uor-r4-source-bundle-inventory-{}",
             std::process::id()
@@ -5552,6 +5685,17 @@ mod tests {
         assert!(error.contains("not a regular file"), "{error}");
         std::fs::remove_dir(&sidecar).expect("remove invalid sidecar");
         std::fs::write(&sidecar, b"{}").expect("regular sidecar");
+
+        let error = super::validate_source_bundle_inventory(&root)
+            .expect_err("attention sidecar is required");
+        assert!(error.contains("attention_operator.json"), "{error}");
+        let attention = root.join(uor_r4_graph_cli::ATTENTION_OPERATOR_BINDING_FILE);
+        std::fs::create_dir(&attention).expect("invalid attention sidecar directory");
+        let error = super::validate_source_bundle_inventory(&root)
+            .expect_err("present-invalid attention sidecar fails closed");
+        assert!(error.contains("not a regular file"), "{error}");
+        std::fs::remove_dir(&attention).expect("remove invalid attention sidecar");
+        std::fs::write(&attention, b"{}").expect("regular attention sidecar");
         super::validate_source_bundle_inventory(&root).expect("complete regular inventory");
         let _ = std::fs::remove_dir_all(root);
     }

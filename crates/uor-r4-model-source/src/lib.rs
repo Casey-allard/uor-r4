@@ -1174,6 +1174,17 @@ impl TeacherOracle for LlamaOracle {
             &self.model.w[self.model.emb + token * d..self.model.emb + (token + 1) * d],
         );
     }
+    fn attention_operator_spec(&self) -> Option<attention::AttentionOperatorSpec> {
+        // #704: this legacy checkpoint adapter executes the same current
+        // Llama attention implementation and public switch as the Safetensors
+        // adapter. Bind the branch actually selected by its mutable config.
+        // `None` is reserved for already-produced, pre-provenance corpora; a
+        // new observation must not be mislabeled as implicit standard/1 by
+        // omission when the current registry alias advances.
+        Some(attention::operator_for_r4_switch(
+            self.model.cfg.r4_attention,
+        ))
+    }
     fn hidden_state(&self) -> Option<&[f32]> {
         Some(&self.state.x)
     }
@@ -1687,11 +1698,15 @@ impl std::fmt::Display for SourceIngestKind {
             Self::UnknownAttentionOperator { id, version } => write!(
                 f,
                 "attention operator {id}/{version} is not in the versioned operator \
-                 registry (known: {}/{} and {}/{})",
+                 registry (registered entries include {}/{}, {}/{}, {}/{}, and {}/{})",
                 attention::AttentionOperatorSpec::STANDARD_ID,
                 attention::AttentionOperatorSpec::STANDARD_VERSION,
                 attention::AttentionOperatorSpec::EXPERIMENTAL_R4_ID,
                 attention::AttentionOperatorSpec::EXPERIMENTAL_R4_VERSION,
+                attention::AttentionOperatorSpec::LEARNED_ABSOLUTE_ID,
+                attention::AttentionOperatorSpec::LEARNED_ABSOLUTE_VERSION,
+                attention::AttentionOperatorSpec::R4_ROUTE_ID,
+                attention::AttentionOperatorSpec::R4_ROUTE_VERSION,
             ),
         }
     }
@@ -2217,6 +2232,19 @@ pub trait BatchedTeacher {
     fn seq_len(&self) -> usize;
     /// Vocabulary size (logits length).
     fn vocab(&self) -> usize;
+    /// The source-to-compiled geometry identity applied by this batched
+    /// teacher, when one exists. The default keeps external/mock teachers
+    /// compatible while allowing the observation boundary to bind shipped
+    /// producers before writing rows.
+    fn geometry_projection(&self) -> Option<geometry::GeometryProjection> {
+        None
+    }
+    /// The registered source-attention identity executed by this batched
+    /// teacher. A producer that returns `None` may create only an unbound
+    /// legacy corpus and cannot resume one with an explicit recorded era.
+    fn attention_operator_spec(&self) -> Option<attention::AttentionOperatorSpec> {
+        None
+    }
     /// Advance `states.len()` sequences one position each: sequence `b` steps
     /// `tokens[b]` at `positions[b]`, leaving its logits reachable through
     /// [`BatchedTeacher::logits_mut`].
@@ -2239,6 +2267,12 @@ impl BatchedTeacher for HuggingFaceLlamaOracle {
     }
     fn vocab(&self) -> usize {
         self.model.cfg.vocab
+    }
+    fn geometry_projection(&self) -> Option<geometry::GeometryProjection> {
+        <Self as TeacherOracle>::geometry_projection(self)
+    }
+    fn attention_operator_spec(&self) -> Option<attention::AttentionOperatorSpec> {
+        <Self as TeacherOracle>::attention_operator_spec(self)
     }
     fn forward_batch_into(&self, states: &mut [State], tokens: &[usize], positions: &[usize]) {
         self.model
@@ -2803,6 +2837,28 @@ mod tests {
         };
         model.rebuild_rope_cache();
         model
+    }
+
+    #[test]
+    fn legacy_llama_oracle_declares_the_selected_attention_branch() {
+        let model = tiny_llama();
+        let state = State::new(&model.cfg);
+        let mut oracle = LlamaOracle {
+            model,
+            state,
+            kappa: "blake3:synthetic".to_owned(),
+            source_bytes: 0,
+        };
+
+        assert_eq!(
+            oracle.attention_operator_spec(),
+            Some(attention::AttentionOperatorSpec::standard())
+        );
+        oracle.model.cfg.r4_attention = true;
+        assert_eq!(
+            oracle.attention_operator_spec(),
+            Some(attention::AttentionOperatorSpec::experimental_r4())
+        );
     }
 
     /// #603: the traced forward IS the exact executor — a

@@ -584,16 +584,15 @@ fn tokenizer_adapter_persists_in_the_manifest() {
         serde_json::from_str(&legacy_json).expect("legacy manifest deserializes");
     assert_eq!(legacy.tokenizer_adapter, None);
 
-    // Other identity metadata and empty payload files do not constitute a
-    // tokenizer era. This is the call order used by the text-observation
-    // preparation path before its first record.
+    // All identities are pinned before even an empty shard entry appears:
+    // recognized payload presence fixes the legacy tokenizer era.
     writer
         .set_partition_rule("fixture-partition-rule")
         .expect("persist other identity metadata");
-    std::fs::write(dir.join(shard_file_name(2, 0)), []).expect("empty shard placeholder");
     writer
         .set_tokenizer_adapter(&record)
         .expect("set and store");
+    std::fs::write(dir.join(shard_file_name(2, 0)), []).expect("empty shard placeholder");
     // Idempotent: re-setting the recorded value does not rewrite.
     writer
         .set_tokenizer_adapter(&record)
@@ -1621,6 +1620,9 @@ fn trace_sidecar_resumes_from_partial_writes() {
     // Single pass: the reference bytes.
     let dir_single = unique_path("trace-resume-single");
     let mut writer = ObservationShardWriter::open(&dir_single, SHARD_BITS).expect("open single");
+    writer
+        .set_trace_profile(&TraceProfile::layer(&[0]))
+        .expect("pin reference trace profile");
     write_all(&mut writer, 0..records.len());
     writer.finalize_all().expect("finalize single");
     let reference_trace = merge_trace_rows(&dir_single).expect("merge single");
@@ -1633,6 +1635,9 @@ fn trace_sidecar_resumes_from_partial_writes() {
     {
         let mut writer =
             ObservationShardWriter::open(&dir_resumed, SHARD_BITS).expect("open partial");
+        writer
+            .set_trace_profile(&TraceProfile::layer(&[0]))
+            .expect("pin resumed trace profile");
         write_all(&mut writer, 0..records.len() / 2);
         writer.flush().expect("flush partial");
     }

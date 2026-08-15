@@ -293,6 +293,7 @@ pub fn compile(
         SourceUnavailable::new(format!("{} stage: {message}", Stage::TeacherBundle))
     })?;
     let tokenizer_adapter = read_stage_a_tokenizer_adapter(work, &preflight_tokenizer_adapter)?;
+    let attention_operator = uor_r4_graph_cli::compiled_attention_operator(work)?;
 
     if !corpus_complete(&meta)? {
         return Ok(CompileOutcome::Incomplete {
@@ -311,7 +312,7 @@ pub fn compile(
         percent: 0,
         label: "Inducing multiresolution cover...",
     });
-    uor_r4_graph_compiler::compile(&stage_b_flags(request, &cover_out))
+    uor_r4_graph_compiler::compile(&stage_b_flags(request, &cover_out, &attention_operator)?)
         .map_err(|error| SourceUnavailable::new(format!("{} stage: {error}", Stage::GraphCover)))?;
     progress(ProgressEvent {
         stage: Stage::GraphCover,
@@ -579,7 +580,11 @@ fn stage_a_flags(request: &CompileRequest) -> Vec<String> {
     flags
 }
 
-fn stage_b_flags(request: &CompileRequest, cover_out: &Path) -> Vec<String> {
+fn stage_b_flags(
+    request: &CompileRequest,
+    cover_out: &Path,
+    operator: &uor_r4_model_source::attention::AttentionOperatorSpec,
+) -> Result<Vec<String>, SourceUnavailable> {
     let options = &request.options;
     let work = &request.work_dir;
     let mut flags = vec![
@@ -607,17 +612,15 @@ fn stage_b_flags(request: &CompileRequest, cover_out: &Path) -> Vec<String> {
     if let Some(kappa) = &request.source_manifest_kappa {
         flags.extend(["--source-manifest-kappa".to_owned(), kappa.clone()]);
     }
-    // #602: this request holds the teacher's `r4_attention` switch, which
-    // maps to exactly one registered attention operator
-    // (`standard-source-attention/1` off,
-    // `experimental-r4-source-attention/1` on); thread the typed record
-    // into the cover stage so compile_report.json binds the operator the
-    // teacher actually ran.
-    let operator = uor_r4_model_source::attention::operator_for_r4_switch(options.r4_attention);
-    if let Ok(json) = serde_json::to_string(&operator) {
-        flags.extend(["--attention-operator".to_owned(), json]);
-    }
-    flags
+    // #602/#704: the registry-validated stage-A binding is authoritative.
+    // Reconstructing identity from the request boolean would mislabel an
+    // auto-detected GPT-2 teacher as standard attention and could relabel a
+    // resumed corpus from another arithmetic era.
+    let json = serde_json::to_string(operator).map_err(|error| {
+        SourceUnavailable::new(format!("attention-operator binding serialization: {error}"))
+    })?;
+    flags.extend(["--attention-operator".to_owned(), json]);
+    Ok(flags)
 }
 
 fn stage_c_flags(request: &CompileRequest, cover_out: &Path, scored_out: &Path) -> Vec<String> {
@@ -685,8 +688,9 @@ mod tests {
     fn deployed_tokenizer_is_threaded_into_cover_and_score_stages() {
         let request = request(None);
         let expected = request.work_dir.join("tokenizer.bin").display().to_string();
+        let operator = uor_r4_model_source::attention::AttentionOperatorSpec::standard();
         for flags in [
-            stage_b_flags(&request, Path::new("cover")),
+            stage_b_flags(&request, Path::new("cover"), &operator).expect("cover flags"),
             stage_c_flags(&request, Path::new("cover"), Path::new("scored")),
         ] {
             assert!(
@@ -818,20 +822,21 @@ mod tests {
     #[test]
     fn source_manifest_kappa_is_threaded_into_cover_stage_flags() {
         let kappa = format!("blake3:{}", "7".repeat(64));
-        let with = stage_b_flags(&request(Some(kappa.clone())), Path::new("cover"));
+        let operator = uor_r4_model_source::attention::AttentionOperatorSpec::standard();
+        let with = stage_b_flags(&request(Some(kappa.clone())), Path::new("cover"), &operator)
+            .expect("flags");
         assert!(with
             .windows(2)
             .any(|pair| pair == ["--source-manifest-kappa", kappa.as_str()]));
-        let without = stage_b_flags(&request(None), Path::new("cover"));
+        let without = stage_b_flags(&request(None), Path::new("cover"), &operator).expect("flags");
         assert!(!without.iter().any(|flag| flag == "--source-manifest-kappa"));
         assert_eq!(with.len(), without.len() + 2);
     }
 
-    /// #602 plumbing seam: the request's boolean `r4_attention` switch is
-    /// forwarded to the cover stage as the typed record of exactly the
-    /// registered operator the teacher ran — `standard-source-attention/1`
-    /// when off (the default), `experimental-r4-source-attention/1` when
-    /// on.
+    /// #602/#704 plumbing seam: stage B forwards the registry-validated
+    /// stage-A binding independently of the request switch. In particular,
+    /// an auto-detected GPT-2 teacher remains learned-absolute rather than
+    /// being relabelled standard because `r4_attention` is false.
     #[test]
     fn attention_operator_is_threaded_into_cover_stage_flags() {
         use uor_r4_model_source::attention::AttentionOperatorSpec;
@@ -843,15 +848,19 @@ mod tests {
             serde_json::from_str(&flags[index + 1]).expect("typed record round-trips")
         };
 
-        let standard = stage_b_flags(&request(None), Path::new("cover"));
-        assert_eq!(flag_value(&standard), AttentionOperatorSpec::standard());
-
-        let mut experimental_request = request(None);
-        experimental_request.options.r4_attention = true;
-        let experimental = stage_b_flags(&experimental_request, Path::new("cover"));
-        assert_eq!(
-            flag_value(&experimental),
-            AttentionOperatorSpec::experimental_r4()
-        );
+        for (mut request, operator) in [
+            (request(None), AttentionOperatorSpec::standard()),
+            (request(None), AttentionOperatorSpec::experimental_r4()),
+            (
+                request(None),
+                AttentionOperatorSpec::learned_absolute_source_attention(),
+            ),
+        ] {
+            // Deliberately contradict the supplied record where possible:
+            // the stage-A binding, not this policy bit, is authoritative.
+            request.options.r4_attention = operator == AttentionOperatorSpec::standard();
+            let flags = stage_b_flags(&request, Path::new("cover"), &operator).expect("flags");
+            assert_eq!(flag_value(&flags), operator);
+        }
     }
 }
