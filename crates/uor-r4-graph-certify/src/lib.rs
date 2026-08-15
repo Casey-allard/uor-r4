@@ -14,6 +14,7 @@ pub mod frame_consistency;
 #[cfg(feature = "holographic-encoding")]
 pub mod holographic_encoding;
 pub mod long_context;
+pub mod octeract;
 #[cfg(feature = "patch-lifecycle")]
 pub mod patch_lifecycle;
 pub mod performance_certificate;
