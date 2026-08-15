@@ -1055,6 +1055,24 @@ fn inspect_text_observation(
     attention_operator: Option<&AttentionOperatorSpec>,
     tokenizer_adapter: Option<&TokenizerAdapter>,
 ) -> Result<TextObservationPreflight, SourceUnavailable> {
+    let raw_checkpoint = out_dir.join(observe::RAW_COMMITTED_FILE);
+    match fs::symlink_metadata(&raw_checkpoint) {
+        Ok(metadata) if metadata.file_type().is_file() => {
+            return Err(SourceUnavailable::new(format!(
+                "{} contains the raw observation {} format; refusing a mixed text observation resume",
+                out_dir.display(),
+                observe::RAW_COMMITTED_FILE
+            )));
+        }
+        Ok(_) => {
+            return Err(SourceUnavailable::new(format!(
+                "raw observation checkpoint {} is not a regular file; refusing text observation preflight",
+                raw_checkpoint.display()
+            )));
+        }
+        Err(error) if error.kind() == io::ErrorKind::NotFound => {}
+        Err(error) => return Err(error.into()),
+    }
     let kappa = input_kappa(articles_path)?;
     let input_cid = format!("blake3:{}", blake3::Hash::from(kappa).to_hex());
     let shard_count = writer.manifest().shard_count();

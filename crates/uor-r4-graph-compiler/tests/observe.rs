@@ -6,11 +6,13 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::time::{SystemTime, UNIX_EPOCH};
 use uor_r4_graph_compiler::observation::{
-    MANIFEST_FILE, ObservationManifest, ObservationShardWriter, ProbabilityMetadata, RECORD_SIZE,
+    MANIFEST_FILE, ObservationManifest, ObservationSession, ObservationShardWriter,
+    ProbabilityMetadata, RAW_COMMITTED_FILE, RECORD_SIZE, RawCommittedCheckpoint, RawResumeStatus,
     STATE_FILE, merge_probability_metadata, merge_shards, merge_trace_rows, message_bits_per_token,
-    observe_sharded, observe_sharded_traced, sample_id, shard_file_name, shard_of,
-    trace_sidecar_name,
+    observe_sharded, observe_sharded_traced, preflight_raw_observation_in_session,
+    recover_raw_observation_in_session, sample_id, shard_file_name, shard_of, trace_sidecar_name,
 };
+use uor_r4_graph_compiler::observation_text::preflight_text_observation_in_session;
 use uor_r4_graph_compiler::trace_profile::{SUPPORT_ABSENT_MARKER, TraceProfile};
 use uor_r4_model_source::geometry::GeometryProjection;
 use uor_r4_model_source::{
@@ -55,6 +57,423 @@ fn fixture_byte_bpe_adapter(
     )
     .expect("fixture tokenizer parses")
     .adapter()
+}
+
+// -------------------------------------- raw transaction checkpoint (#725) --
+
+#[test]
+fn raw_committed_checkpoint_is_canonical_and_strictly_decoded() {
+    let manifest = ObservationManifest::new(1);
+    let checkpoint =
+        RawCommittedCheckpoint::new(&manifest, 3, 2, 0x0123_4567_89AB_CDEF, false, vec![2, 1])
+            .expect("valid checkpoint");
+    let encoded = checkpoint.encode().expect("canonical encoding");
+
+    assert_eq!(&encoded[0..8], b"R4RAWCOM");
+    assert_eq!(u16::from_le_bytes(encoded[8..10].try_into().unwrap()), 1);
+    assert_eq!(encoded[10], 1, "shard_bits");
+    assert_eq!(encoded[11], 0, "done");
+    assert_eq!(
+        u32::from_le_bytes(encoded[12..16].try_into().unwrap()),
+        RECORD_SIZE as u32
+    );
+    assert_eq!(
+        u32::from_le_bytes(encoded[16..20].try_into().unwrap()),
+        16,
+        "probability row width"
+    );
+    assert_eq!(encoded.len(), 88 + 2 * 8);
+    assert_eq!(
+        RawCommittedCheckpoint::decode(&encoded).expect("round trip"),
+        checkpoint
+    );
+    assert_eq!(checkpoint.state(), (3, 2, 0x0123_4567_89AB_CDEF, false));
+    assert_eq!(checkpoint.committed_records(), &[2, 1]);
+    assert_eq!(checkpoint.shard_bits(), 1);
+    assert_eq!(checkpoint.trace_row_bytes(), None);
+    assert_eq!(
+        checkpoint.encode().unwrap(),
+        encoded,
+        "timestamp-free bytes"
+    );
+
+    let rejects = |label: &str, bytes: Vec<u8>| {
+        let error = match RawCommittedCheckpoint::decode(&bytes) {
+            Ok(_) => panic!("{label} must be rejected"),
+            Err(error) => error,
+        };
+        assert!(
+            error.reason.contains("raw observation checkpoint")
+                || error.reason.contains("raw checkpoint"),
+            "{label}: focused diagnostic: {error}"
+        );
+    };
+
+    rejects("truncated", encoded[..encoded.len() - 1].to_vec());
+    let mut extra = encoded.clone();
+    extra.push(0);
+    rejects("extra byte", extra);
+    let mut bad_magic = encoded.clone();
+    bad_magic[0] ^= 0xFF;
+    rejects("bad magic", bad_magic);
+    let mut unknown_version = encoded.clone();
+    unknown_version[8..10].copy_from_slice(&2u16.to_le_bytes());
+    rejects("unknown version", unknown_version);
+    let mut invalid_done = encoded.clone();
+    invalid_done[11] = 2;
+    rejects("invalid done", invalid_done);
+    let mut wrong_record_width = encoded.clone();
+    wrong_record_width[12..16].copy_from_slice(&87u32.to_le_bytes());
+    rejects("wrong record width", wrong_record_width);
+    let mut wrong_probability_width = encoded.clone();
+    wrong_probability_width[16..20].copy_from_slice(&15u32.to_le_bytes());
+    rejects("wrong probability width", wrong_probability_width);
+    let mut fanout_mismatch = encoded.clone();
+    fanout_mismatch[84..88].copy_from_slice(&1u32.to_le_bytes());
+    rejects("fan-out mismatch", fanout_mismatch);
+    let mut total_mismatch = encoded.clone();
+    total_mismatch[28..36].copy_from_slice(&4u64.to_le_bytes());
+    rejects("record total mismatch", total_mismatch);
+
+    assert!(
+        RawCommittedCheckpoint::new(
+            &ObservationManifest::new(0),
+            u64::MAX,
+            0,
+            0,
+            false,
+            vec![u64::MAX],
+        )
+        .is_err(),
+        "derived base/probability byte lengths must not overflow"
+    );
+    assert!(
+        RawCommittedCheckpoint::new(
+            &ObservationManifest::new(0),
+            0,
+            u64::from(u32::MAX) + 1,
+            0,
+            false,
+            vec![0],
+        )
+        .is_err(),
+        "story ids are a u32 wire field"
+    );
+
+    assert_eq!(RAW_COMMITTED_FILE, "raw-committed.bin");
+}
+
+fn raw_state_bytes(checkpoint: &RawCommittedCheckpoint) -> Vec<u8> {
+    let (records, stories, rng, done) = checkpoint.state();
+    let mut bytes = Vec::with_capacity(25);
+    bytes.extend_from_slice(&records.to_le_bytes());
+    bytes.extend_from_slice(&stories.to_le_bytes());
+    bytes.extend_from_slice(&rng.to_le_bytes());
+    bytes.push(u8::from(done));
+    bytes
+}
+
+fn fixture_probability(rank: u16) -> ProbabilityMetadata {
+    ProbabilityMetadata {
+        target_logprob_nats: -0.25 - f32::from(rank),
+        entropy_bits: 1.5 + f32::from(rank),
+        top8_mass: 0.75,
+        target_rank: rank,
+    }
+}
+
+#[test]
+fn raw_recovery_validates_every_shard_before_truncating_any_tail() {
+    let dir = unique_path("raw-two-phase-late-invalid");
+    let mut writer = ObservationShardWriter::open(&dir, 1).expect("writer");
+    writer
+        .write_record_with_probability(&[0x10; RECORD_SIZE], fixture_probability(0), 0)
+        .expect("committed shard 0 row");
+    writer
+        .write_record_with_probability(&[0x20; RECORD_SIZE], fixture_probability(1), 1)
+        .expect("committed shard 1 row");
+    writer.flush().expect("flush committed prefix");
+    let checkpoint =
+        RawCommittedCheckpoint::new(writer.manifest(), 2, 1, 0xCAFE, false, vec![1, 1])
+            .expect("checkpoint");
+
+    // Earlier shard has a complete tentative row that would be truncated.
+    writer
+        .write_record_with_probability(&[0x30; RECORD_SIZE], fixture_probability(2), 0)
+        .expect("tentative early row");
+    writer.flush().expect("flush tentative row");
+    drop(writer);
+    std::fs::write(
+        dir.join(RAW_COMMITTED_FILE),
+        checkpoint.encode().expect("encode checkpoint"),
+    )
+    .expect("write checkpoint");
+    std::fs::write(dir.join(STATE_FILE), raw_state_bytes(&checkpoint)).expect("write mirror");
+
+    // A later companion has lost committed data. Recovery must discover this
+    // in the read-only phase and leave the earlier tentative tail untouched.
+    let late_probability = dir.join(format!("{}.prob", shard_file_name(1, 1)));
+    std::fs::OpenOptions::new()
+        .write(true)
+        .open(&late_probability)
+        .expect("open late companion")
+        .set_len(0)
+        .expect("shorten below checkpoint");
+    let before = directory_bytes(&dir);
+
+    let session = ObservationSession::acquire(&dir, 1).expect("session");
+    let error = recover_raw_observation_in_session(&session)
+        .expect_err("late short companion must fail the read-only phase");
+    assert!(
+        error.reason.contains("probability sidecar")
+            && error.reason.contains("shorter than the committed"),
+        "focused late-shard error: {error}"
+    );
+    drop(session);
+    assert_eq!(
+        directory_bytes(&dir),
+        before,
+        "a later invalid shard must precede every truncation and mirror change"
+    );
+
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn raw_recovery_truncates_independent_tails_repairs_mirror_and_is_idempotent() {
+    let dir = unique_path("raw-recovery-idempotent");
+    let mut writer = ObservationShardWriter::open(&dir, 1).expect("writer");
+    writer
+        .write_record_with_probability(&[0x41; RECORD_SIZE], fixture_probability(0), 0)
+        .expect("committed shard 0 row");
+    writer
+        .write_record_with_probability(&[0x42; RECORD_SIZE], fixture_probability(1), 1)
+        .expect("committed shard 1 row");
+    writer.flush().expect("flush committed prefix");
+    let checkpoint =
+        RawCommittedCheckpoint::new(writer.manifest(), 2, 7, 0x1234, false, vec![1, 1])
+            .expect("checkpoint");
+    drop(writer);
+    std::fs::write(
+        dir.join(RAW_COMMITTED_FILE),
+        checkpoint.encode().expect("encode checkpoint"),
+    )
+    .expect("write checkpoint");
+
+    // Different streams retain different supported aligned crash tails.
+    let base0 = dir.join(shard_file_name(1, 0));
+    let mut base0_bytes = std::fs::read(&base0).expect("base 0 prefix");
+    base0_bytes.extend_from_slice(&[0xA0; RECORD_SIZE]);
+    std::fs::write(&base0, base0_bytes).expect("append base-only tail");
+    let probability1 = dir.join(format!("{}.prob", shard_file_name(1, 1)));
+    let mut probability1_bytes = std::fs::read(&probability1).expect("probability 1 prefix");
+    probability1_bytes.extend_from_slice(&fixture_probability(9).encode());
+    std::fs::write(&probability1, probability1_bytes).expect("append probability-only tail");
+    std::fs::write(dir.join(STATE_FILE), [0xFF; 9]).expect("write corrupt mirror");
+
+    let session = ObservationSession::acquire(&dir, 1).expect("session");
+    assert!(matches!(
+        preflight_raw_observation_in_session(&session).expect("read-only preflight"),
+        RawResumeStatus::Authoritative(ref observed) if observed == &checkpoint
+    ));
+    assert!(matches!(
+        recover_raw_observation_in_session(&session).expect("recover"),
+        RawResumeStatus::Authoritative(ref observed) if observed == &checkpoint
+    ));
+    drop(session);
+
+    assert_eq!(std::fs::metadata(&base0).unwrap().len(), RECORD_SIZE as u64);
+    assert_eq!(
+        std::fs::metadata(&probability1).unwrap().len(),
+        16,
+        "probability companion returns to one committed row"
+    );
+    assert_eq!(
+        std::fs::read(dir.join(STATE_FILE)).expect("repaired mirror"),
+        raw_state_bytes(&checkpoint)
+    );
+    let once = directory_bytes(&dir);
+    let session = ObservationSession::acquire(&dir, 1).expect("second session");
+    recover_raw_observation_in_session(&session).expect("idempotent second recovery");
+    drop(session);
+    assert_eq!(directory_bytes(&dir), once, "second recovery rewrote bytes");
+
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn raw_checkpoint_binds_identity_fanout_and_trace_layout_before_mutation() {
+    let canonical_manifest = ObservationManifest::new(1);
+    let canonical =
+        RawCommittedCheckpoint::new(&canonical_manifest, 0, 0, 0x5EED, false, vec![0, 0])
+            .expect("canonical checkpoint")
+            .encode()
+            .expect("encode checkpoint");
+
+    let mut wrong_identity = canonical.clone();
+    wrong_identity[52] ^= 1;
+    let mut wrong_trace_width = canonical.clone();
+    wrong_trace_width[20..28].copy_from_slice(&8u64.to_le_bytes());
+    let wrong_fanout =
+        RawCommittedCheckpoint::new(&ObservationManifest::new(0), 0, 0, 0x5EED, false, vec![0])
+            .expect("other fan-out checkpoint")
+            .encode()
+            .expect("encode other fan-out");
+
+    for (label, checkpoint_bytes, expected) in [
+        ("identity", wrong_identity, "identity"),
+        ("trace-layout", wrong_trace_width, "trace row width"),
+        ("fan-out", wrong_fanout, "fan-out"),
+    ] {
+        let dir = unique_path(&format!("raw-bind-{label}"));
+        std::fs::create_dir_all(&dir).expect("create directory");
+        std::fs::write(dir.join(RAW_COMMITTED_FILE), checkpoint_bytes)
+            .expect("write adversarial checkpoint");
+        let before = directory_bytes(&dir);
+        let session = ObservationSession::acquire(&dir, 1).expect("session");
+        let error =
+            preflight_raw_observation_in_session(&session).expect_err("layout mismatch must fail");
+        assert!(error.reason.contains(expected), "{label}: {error}");
+        drop(session);
+        assert_eq!(directory_bytes(&dir), before, "{label} mutated bytes");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+}
+
+#[test]
+fn raw_resume_refuses_mixed_text_checkpoint_formats_without_mutation() {
+    for text_checkpoint in ["committed.bin", ".committed.bin.tmp"] {
+        let dir = unique_path(&format!("raw-mixed-{text_checkpoint}"));
+        std::fs::create_dir_all(&dir).expect("create directory");
+        let checkpoint =
+            RawCommittedCheckpoint::new(&ObservationManifest::new(0), 0, 0, 0x5EED, false, vec![0])
+                .expect("raw checkpoint");
+        std::fs::write(dir.join(RAW_COMMITTED_FILE), checkpoint.encode().unwrap())
+            .expect("write raw checkpoint");
+        std::fs::write(dir.join(text_checkpoint), b"text-checkpoint-evidence")
+            .expect("write text checkpoint evidence");
+        let before = directory_bytes(&dir);
+
+        let session = ObservationSession::acquire(&dir, 0).expect("session");
+        let error = preflight_raw_observation_in_session(&session)
+            .expect_err("mixed driver formats must fail closed");
+        assert!(
+            error.reason.contains("text observation")
+                && error.reason.contains("mixed raw observation resume"),
+            "{text_checkpoint}: {error}"
+        );
+        drop(session);
+        assert_eq!(directory_bytes(&dir), before);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+}
+
+#[cfg(unix)]
+#[test]
+fn text_preflight_reciprocally_refuses_raw_checkpoint_entries_before_mutation() {
+    use std::os::unix::fs::symlink;
+
+    let input = unique_path("mixed-text-articles.jsonl");
+    std::fs::write(
+        &input,
+        br#"{"id":"1","url":"https://example.invalid/1","title":"one","text":"ab"}
+"#,
+    )
+    .expect("write article fixture");
+
+    // A genuine regular raw checkpoint is valid directory content for the
+    // common session layer, but belongs to the other driver and must be
+    // rejected by text preflight before it publishes committed.bin/state.
+    let regular = unique_path("text-refuses-regular-raw-checkpoint");
+    let session = ObservationSession::acquire(&regular, 0).expect("session");
+    std::fs::write(regular.join(RAW_COMMITTED_FILE), b"raw checkpoint evidence")
+        .expect("write raw evidence");
+    let before = directory_bytes(&regular);
+    let error = preflight_text_observation_in_session(&session, &input, true, None, None, None)
+        .expect_err("text driver must refuse a genuine raw checkpoint");
+    assert!(
+        error.reason.contains("raw observation")
+            && error.reason.contains("mixed text observation resume"),
+        "focused reciprocal mixed-format error: {error}"
+    );
+    assert_eq!(directory_bytes(&regular), before);
+    drop(session);
+
+    // Create adversarial entries after session acquisition so the public text
+    // preflight itself exercises the common reload plus its explicit raw-entry
+    // validation. Dangling links are inspected, never followed or ignored.
+    let dangling = unique_path("text-refuses-dangling-raw-checkpoint");
+    let session = ObservationSession::acquire(&dangling, 0).expect("session");
+    let link_target = std::path::Path::new("missing-raw-checkpoint-target");
+    symlink(link_target, dangling.join(RAW_COMMITTED_FILE)).expect("dangling checkpoint link");
+    let error = preflight_text_observation_in_session(&session, &input, true, None, None, None)
+        .expect_err("dangling raw checkpoint must fail text preflight");
+    assert!(error.reason.contains("not a regular file"), "{error}");
+    assert_eq!(
+        std::fs::read_link(dangling.join(RAW_COMMITTED_FILE)).expect("link survives"),
+        link_target
+    );
+    assert!(!dangling.join(STATE_FILE).exists());
+    assert!(!dangling.join("committed.bin").exists());
+    drop(session);
+
+    let nonregular = unique_path("text-refuses-nonregular-raw-checkpoint");
+    let session = ObservationSession::acquire(&nonregular, 0).expect("session");
+    std::fs::create_dir(nonregular.join(RAW_COMMITTED_FILE))
+        .expect("raw checkpoint directory entry");
+    let error = preflight_text_observation_in_session(&session, &input, true, None, None, None)
+        .expect_err("nonregular raw checkpoint must fail text preflight");
+    assert!(error.reason.contains("not a regular file"), "{error}");
+    assert!(nonregular.join(RAW_COMMITTED_FILE).is_dir());
+    assert!(!nonregular.join(STATE_FILE).exists());
+    assert!(!nonregular.join("committed.bin").exists());
+    drop(session);
+
+    for dir in [&regular, &dangling, &nonregular] {
+        let _ = std::fs::remove_dir_all(dir);
+    }
+    let _ = std::fs::remove_file(&input);
+}
+
+#[cfg(unix)]
+#[test]
+fn raw_checkpoint_symlink_and_nonregular_entries_are_refused() {
+    use std::os::unix::fs::symlink;
+
+    let symlink_dir = unique_path("raw-checkpoint-symlink");
+    std::fs::create_dir_all(&symlink_dir).expect("create symlink fixture");
+    let victim = symlink_dir.with_extension("victim");
+    std::fs::write(&victim, b"external checkpoint target").expect("write victim");
+    symlink(&victim, symlink_dir.join(RAW_COMMITTED_FILE)).expect("checkpoint symlink");
+    let error = ObservationSession::acquire(&symlink_dir, 0)
+        .err()
+        .expect("checkpoint symlink must be refused during session preflight");
+    assert!(
+        error.reason.contains("not a regular file"),
+        "focused symlink refusal: {error}"
+    );
+    assert_eq!(
+        std::fs::read(&victim).expect("victim survives"),
+        b"external checkpoint target"
+    );
+    assert!(
+        std::fs::symlink_metadata(symlink_dir.join(RAW_COMMITTED_FILE))
+            .expect("link survives")
+            .file_type()
+            .is_symlink()
+    );
+
+    let directory_entry = unique_path("raw-checkpoint-directory-entry");
+    std::fs::create_dir_all(directory_entry.join(RAW_COMMITTED_FILE))
+        .expect("checkpoint directory entry");
+    let error = ObservationSession::acquire(&directory_entry, 0)
+        .err()
+        .expect("checkpoint directory must be refused");
+    assert!(error.reason.contains("not a regular file"), "{error}");
+
+    let _ = std::fs::remove_dir_all(&symlink_dir);
+    let _ = std::fs::remove_file(&victim);
+    let _ = std::fs::remove_dir_all(&directory_entry);
 }
 
 // ------------------------------------------------------------ sample id --
@@ -368,6 +787,159 @@ impl TeacherOracle for FakeOracle {
         for value in out.iter_mut() {
             *value = 0.0;
         }
+    }
+}
+
+#[test]
+fn fresh_raw_run_publishes_zero_checkpoint_before_any_append() {
+    let dir = unique_path("raw-zero-checkpoint");
+    std::fs::create_dir_all(&dir).expect("create output");
+    let stale = dir.join(".raw-committed.bin.tmp-stale");
+    std::fs::write(&stale, b"never authoritative").expect("stale temporary");
+
+    let session = ObservationSession::acquire(&dir, 1).expect("fresh session");
+    assert_eq!(
+        preflight_raw_observation_in_session(&session).expect("stale temp is ignored"),
+        RawResumeStatus::Fresh
+    );
+    drop(session);
+
+    let mut oracle = FakeOracle { dim: 4, vocab: 8 };
+    let summary =
+        observe_sharded(&mut oracle, 0, 10, 1, &dir, None).expect("zero-budget initialization");
+    assert_eq!(summary.records, 0);
+    assert_eq!(summary.written, 0);
+    assert!(!summary.done);
+
+    let checkpoint = RawCommittedCheckpoint::decode(
+        &std::fs::read(dir.join(RAW_COMMITTED_FILE)).expect("authoritative checkpoint"),
+    )
+    .expect("decode zero checkpoint");
+    assert_eq!(checkpoint.state(), (0, 0, 0x5EED, false));
+    assert_eq!(checkpoint.committed_records(), &[0, 0]);
+    assert_eq!(
+        std::fs::read(dir.join(STATE_FILE)).expect("state mirror"),
+        raw_state_bytes(&checkpoint)
+    );
+    assert_eq!(
+        std::fs::read(&stale).expect("stale temp remains inert"),
+        b"never authoritative"
+    );
+    for shard in 0..2 {
+        assert!(
+            !dir.join(shard_file_name(1, shard)).exists(),
+            "zero checkpoint must precede the first shard append"
+        );
+    }
+
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+/// Small-fixture empirical record for #725. This intentionally has no timing
+/// threshold: filesystem synchronization latency is host-dependent. Run with
+/// `--ignored --nocapture` to report the canonical footprint plus median/mean
+/// end-to-end publication latency for the authoritative zero boundary and its
+/// `state.bin` mirror through the public observe entry point.
+#[test]
+#[ignore = "manual checkpoint publication overhead measurement"]
+fn raw_checkpoint_small_fixture_overhead_measurement() {
+    const ITERATIONS: usize = 31;
+    const SHARD_BITS: u8 = 2;
+    let dir = unique_path("raw-checkpoint-overhead");
+    let mut samples_ns = Vec::with_capacity(ITERATIONS);
+
+    // Warm the public path and establish the permanent out-of-directory lock
+    // inode before sampling. Removal is outside the measured interval and is
+    // safe because this is a private test directory with a zero checkpoint.
+    let mut oracle = FakeOracle { dim: 4, vocab: 8 };
+    observe_sharded(&mut oracle, 0, 1, SHARD_BITS, &dir, None).expect("warm-up publish");
+    for _ in 0..ITERATIONS {
+        std::fs::remove_file(dir.join(RAW_COMMITTED_FILE)).expect("remove prior raw checkpoint");
+        std::fs::remove_file(dir.join(STATE_FILE)).expect("remove prior mirror");
+        let mut oracle = FakeOracle { dim: 4, vocab: 8 };
+        let started = std::time::Instant::now();
+        observe_sharded(&mut oracle, 0, 1, SHARD_BITS, &dir, None)
+            .expect("publish zero transaction");
+        samples_ns.push(started.elapsed().as_nanos());
+    }
+
+    let checkpoint_bytes =
+        std::fs::read(dir.join(RAW_COMMITTED_FILE)).expect("published checkpoint bytes");
+    let checkpoint =
+        RawCommittedCheckpoint::decode(&checkpoint_bytes).expect("decode measured checkpoint");
+    assert_eq!(checkpoint.committed_records(), &[0, 0, 0, 0]);
+    assert_eq!(checkpoint_bytes.len(), 88 + 8 * (1 << SHARD_BITS));
+    assert_eq!(
+        std::fs::metadata(dir.join(STATE_FILE)).unwrap().len(),
+        25,
+        "compatibility mirror footprint"
+    );
+
+    samples_ns.sort_unstable();
+    let median_ns = samples_ns[ITERATIONS / 2];
+    let mean_ns = samples_ns.iter().sum::<u128>() / ITERATIONS as u128;
+    eprintln!(
+        "raw_checkpoint_overhead: iterations={ITERATIONS} shards={} canonical_bytes={} mirror_bytes=25 median_publish_ns={median_ns} mean_publish_ns={mean_ns}",
+        1usize << SHARD_BITS,
+        checkpoint_bytes.len(),
+    );
+
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn missing_raw_checkpoint_accepts_only_fresh_or_finalized_legacy() {
+    // Unfinished legacy bytes have no provable whole-story boundary.
+    let incomplete = unique_path("raw-incomplete-legacy");
+    let mut writer = ObservationShardWriter::open(&incomplete, 1).expect("legacy writer");
+    writer
+        .write_record_with_probability(&[0x71; RECORD_SIZE], fixture_probability(1), 0)
+        .expect("legacy row");
+    writer.flush().expect("flush legacy row");
+    drop(writer);
+    let mut unfinished_state = Vec::with_capacity(25);
+    unfinished_state.extend_from_slice(&1u64.to_le_bytes());
+    unfinished_state.extend_from_slice(&1u64.to_le_bytes());
+    unfinished_state.extend_from_slice(&0xABCDu64.to_le_bytes());
+    unfinished_state.push(0);
+    std::fs::write(incomplete.join(STATE_FILE), unfinished_state).expect("legacy state");
+    let before = directory_bytes(&incomplete);
+    let mut oracle = FakeOracle { dim: 4, vocab: 8 };
+    let error = observe_sharded(&mut oracle, 10, 2, 1, &incomplete, None)
+        .expect_err("unfinished legacy must fail closed");
+    assert!(
+        error.reason.contains("unfinished legacy")
+            && error.reason.contains("no authoritative raw-committed.bin")
+            && error.reason.contains("fresh output directory"),
+        "focused migration guidance: {error}"
+    );
+    assert_eq!(
+        directory_bytes(&incomplete),
+        before,
+        "legacy refusal must precede mutation"
+    );
+
+    // A fully finalized legacy bundle has manifest κs and a done state that
+    // prove every final boundary, so it remains readable without migration.
+    let complete = unique_path("raw-complete-legacy");
+    let mut oracle = FakeOracle { dim: 4, vocab: 8 };
+    observe_sharded(&mut oracle, 10, 1, 1, &complete, None).expect("complete fixture");
+    std::fs::remove_file(complete.join(RAW_COMMITTED_FILE))
+        .expect("synthesize pre-checkpoint legacy bundle");
+    let complete_before = directory_bytes(&complete);
+    let mut oracle = FakeOracle { dim: 4, vocab: 8 };
+    let summary = observe_sharded(&mut oracle, 10, 1, 1, &complete, None)
+        .expect("finalized legacy remains replayable");
+    assert!(summary.done);
+    assert_eq!(summary.written, 0);
+    assert_eq!(
+        directory_bytes(&complete),
+        complete_before,
+        "finalized legacy bytes must not be rewritten or migrated"
+    );
+
+    for dir in [&incomplete, &complete] {
+        let _ = std::fs::remove_dir_all(dir);
     }
 }
 
@@ -1412,6 +1984,11 @@ impl TeacherOracle for FakeTraceOracle {
     fn seq_len(&self) -> usize {
         6
     }
+    fn eos_token(&self) -> usize {
+        // Keep the deterministic crash fixture at fixed six-row story
+        // boundaries; sampled vocabulary tokens can never equal this value.
+        usize::MAX
+    }
     fn kappa(&self) -> String {
         "blake3:fake-trace".to_string()
     }
@@ -1493,6 +2070,290 @@ fn traced_run_bytes(dir: &std::path::Path, shard_bits: u8) -> Vec<Vec<u8>> {
         });
     }
     files
+}
+
+fn clone_observation_files(from: &std::path::Path, to: &std::path::Path) {
+    std::fs::create_dir_all(to).expect("create cloned observation directory");
+    for (name, bytes) in directory_bytes(from) {
+        std::fs::write(to.join(name), bytes).expect("clone observation file");
+    }
+}
+
+fn append_reference_rows(
+    reference: &std::path::Path,
+    resumed: &std::path::Path,
+    name: &str,
+    row_bytes: usize,
+    committed_rows: usize,
+    appended_rows: usize,
+) {
+    let reference_bytes = std::fs::read(reference.join(name)).unwrap_or_default();
+    let mut resumed_bytes = std::fs::read(resumed.join(name)).unwrap_or_default();
+    let committed_bytes = committed_rows
+        .checked_mul(row_bytes)
+        .expect("fixture committed byte length");
+    assert_eq!(
+        resumed_bytes.len(),
+        committed_bytes,
+        "{name}: prefix fixture agrees with checkpoint"
+    );
+    assert!(
+        reference_bytes.len() >= committed_bytes + appended_rows * row_bytes,
+        "{name}: reference contains requested tentative rows"
+    );
+    assert_eq!(
+        resumed_bytes,
+        reference_bytes[..committed_bytes],
+        "{name}: committed prefix matches uninterrupted run"
+    );
+    resumed_bytes.extend_from_slice(
+        &reference_bytes[committed_bytes..committed_bytes + appended_rows * row_bytes],
+    );
+    if !resumed_bytes.is_empty() {
+        std::fs::write(resumed.join(name), resumed_bytes).expect("append tentative rows");
+    }
+}
+
+/// Convert a finalized story-boundary fixture into the exact on-disk state of
+/// a crash after heterogeneous aligned writes from later stories but before
+/// the next authoritative checkpoint replacement.
+fn craft_raw_crash_tails(
+    prefix: &std::path::Path,
+    reference: &std::path::Path,
+    resumed: &std::path::Path,
+) -> RawCommittedCheckpoint {
+    clone_observation_files(prefix, resumed);
+    let old_checkpoint = RawCommittedCheckpoint::decode(
+        &std::fs::read(prefix.join(RAW_COMMITTED_FILE)).expect("prefix checkpoint"),
+    )
+    .expect("decode prefix checkpoint");
+    let (records, stories, rng, _) = old_checkpoint.state();
+    assert_eq!(records, 12, "fixture checkpoint is exactly two stories");
+    assert_eq!(stories, 2, "fixed-width story fixture");
+
+    let mut manifest = ObservationManifest::load(resumed)
+        .expect("manifest io")
+        .expect("prefix manifest");
+    manifest.completed.clear();
+    manifest.total_records = 0;
+    std::fs::write(
+        resumed.join(MANIFEST_FILE),
+        serde_json::to_vec_pretty(&manifest).expect("serialize incomplete manifest"),
+    )
+    .expect("write incomplete manifest");
+    let checkpoint = RawCommittedCheckpoint::new(
+        &manifest,
+        records,
+        stories,
+        rng,
+        false,
+        old_checkpoint.committed_records().to_vec(),
+    )
+    .expect("unfinished authoritative checkpoint");
+    std::fs::write(
+        resumed.join(RAW_COMMITTED_FILE),
+        checkpoint.encode().expect("encode checkpoint"),
+    )
+    .expect("write checkpoint");
+    std::fs::write(resumed.join(STATE_FILE), [0xD5; 25]).expect("stale state mirror");
+
+    let reference_checkpoint = RawCommittedCheckpoint::decode(
+        &std::fs::read(reference.join(RAW_COMMITTED_FILE)).expect("reference checkpoint"),
+    )
+    .expect("decode reference checkpoint");
+    assert_eq!(reference_checkpoint.state().0, 24);
+    let mut touched_shards = 0usize;
+    let mut companion_skew = false;
+    let mut trace_skew = false;
+    for (shard, (&committed, &final_rows)) in checkpoint
+        .committed_records()
+        .iter()
+        .zip(reference_checkpoint.committed_records())
+        .enumerate()
+    {
+        let later_rows = usize::try_from(final_rows - committed).expect("fixture tail rows");
+        if later_rows == 0 {
+            continue;
+        }
+        touched_shards += 1;
+        let base_name = shard_file_name(checkpoint.shard_bits(), shard as u32);
+        append_reference_rows(
+            reference,
+            resumed,
+            &base_name,
+            RECORD_SIZE,
+            committed as usize,
+            later_rows,
+        );
+        let probability_rows = if shard.is_multiple_of(2) {
+            0
+        } else {
+            later_rows.min(1)
+        };
+        append_reference_rows(
+            reference,
+            resumed,
+            &format!("{base_name}.prob"),
+            16,
+            committed as usize,
+            probability_rows,
+        );
+        companion_skew |= probability_rows != later_rows;
+        if let Some(trace_row_bytes) = checkpoint.trace_row_bytes() {
+            let trace_rows = if shard.is_multiple_of(3) {
+                later_rows
+            } else {
+                later_rows.saturating_sub(1)
+            };
+            append_reference_rows(
+                reference,
+                resumed,
+                &trace_sidecar_name(checkpoint.shard_bits(), shard as u32),
+                trace_row_bytes as usize,
+                committed as usize,
+                trace_rows,
+            );
+            trace_skew |= trace_rows != later_rows || trace_rows != probability_rows;
+        }
+    }
+    assert!(
+        touched_shards >= 2,
+        "deterministic fixture must exercise tentative tails on several shards"
+    );
+    assert!(companion_skew, "base/probability crash windows differ");
+    if checkpoint.trace_row_bytes().is_some() {
+        assert!(trace_skew, "base/probability/trace tails differ");
+    }
+    checkpoint
+}
+
+fn assert_raw_reference_resume_convergence(traced: bool) {
+    const SHARD_BITS: u8 = 2;
+    const PREFIX_RECORDS: usize = 12;
+    const FINAL_RECORDS: usize = 24;
+    let profile = TraceProfile::full(&[0, 1], 3);
+    let reference = unique_path(if traced {
+        "raw-reference-traced"
+    } else {
+        "raw-reference-minimal"
+    });
+    let prefix = unique_path(if traced {
+        "raw-prefix-traced"
+    } else {
+        "raw-prefix-minimal"
+    });
+    let resumed = unique_path(if traced {
+        "raw-resumed-traced"
+    } else {
+        "raw-resumed-minimal"
+    });
+
+    let run = |dir: &std::path::Path, target: usize| {
+        let mut oracle = FakeTraceOracle::new();
+        if traced {
+            observe_sharded_traced(&mut oracle, 30, target, SHARD_BITS, dir, None, &profile)
+                .expect("traced observation")
+        } else {
+            observe_sharded(&mut oracle, 30, target, SHARD_BITS, dir, None)
+                .expect("minimal observation")
+        }
+    };
+    assert!(run(&reference, FINAL_RECORDS).done);
+    assert!(run(&prefix, PREFIX_RECORDS).done);
+    let checkpoint = craft_raw_crash_tails(&prefix, &reference, &resumed);
+    assert_eq!(checkpoint.state().0, PREFIX_RECORDS as u64);
+
+    let summary = run(&resumed, FINAL_RECORDS);
+    assert!(summary.done);
+    assert_eq!(summary.records, FINAL_RECORDS as u64);
+    assert_eq!(
+        directory_bytes(&resumed),
+        directory_bytes(&reference),
+        "resume must converge checkpoint, mirror, manifest, shards, companions, and kappas byte-for-byte"
+    );
+    assert_eq!(
+        merge_shards(&resumed).expect("resumed merged base"),
+        merge_shards(&reference).expect("reference merged base")
+    );
+    assert_eq!(
+        merge_probability_metadata(&resumed).expect("resumed merged probability"),
+        merge_probability_metadata(&reference).expect("reference merged probability")
+    );
+    if traced {
+        assert_eq!(
+            merge_trace_rows(&resumed).expect("resumed merged trace"),
+            merge_trace_rows(&reference).expect("reference merged trace")
+        );
+    }
+
+    for dir in [&reference, &prefix, &resumed] {
+        let _ = std::fs::remove_dir_all(dir);
+    }
+}
+
+#[test]
+fn minimal_raw_failure_injection_converges_to_uninterrupted_bytes() {
+    assert_raw_reference_resume_convergence(false);
+}
+
+#[test]
+fn traced_raw_failure_injection_converges_to_uninterrupted_bytes() {
+    assert_raw_reference_resume_convergence(true);
+}
+
+#[test]
+fn final_checkpoint_resume_is_idempotent_across_finalization_and_merge() {
+    const SHARD_BITS: u8 = 2;
+    const TARGET: usize = 12;
+    let reference = unique_path("raw-finalization-reference");
+    let resumed = unique_path("raw-finalization-resumed");
+    let mut oracle = FakeTraceOracle::new();
+    observe_sharded(&mut oracle, 30, TARGET, SHARD_BITS, &reference, None).expect("reference run");
+    clone_observation_files(&reference, &resumed);
+
+    let checkpoint = RawCommittedCheckpoint::decode(
+        &std::fs::read(resumed.join(RAW_COMMITTED_FILE)).expect("final checkpoint"),
+    )
+    .expect("decode final checkpoint");
+    assert_eq!(
+        checkpoint.state(),
+        (TARGET as u64, 2, checkpoint.state().2, true)
+    );
+    let mut manifest = ObservationManifest::load(&resumed)
+        .expect("manifest io")
+        .expect("manifest");
+    manifest.completed.clear();
+    manifest.total_records = 0;
+    std::fs::write(
+        resumed.join(MANIFEST_FILE),
+        serde_json::to_vec_pretty(&manifest).expect("serialize incomplete manifest"),
+    )
+    .expect("simulate crash before finalization");
+    std::fs::remove_file(resumed.join(STATE_FILE)).expect("simulate missing mirror");
+    std::fs::write(resumed.join("merged.bin"), b"partial merged crash bytes")
+        .expect("simulate interrupted merge");
+
+    let mut oracle = FakeTraceOracle::new();
+    let summary = observe_sharded(&mut oracle, 30, TARGET, SHARD_BITS, &resumed, None)
+        .expect("resume final checkpoint");
+    assert!(summary.done);
+    assert_eq!(summary.written, 0);
+
+    // This is the graph-cli done-path operation: an interrupted `merged.bin`
+    // is derived afresh from the now κ-validated canonical shard order.
+    for dir in [&reference, &resumed] {
+        let merged = merge_shards(dir).expect("canonical merge");
+        std::fs::write(dir.join("merged.bin"), merged).expect("publish merged fixture");
+    }
+    assert_eq!(
+        directory_bytes(&resumed),
+        directory_bytes(&reference),
+        "checkpoint, finalization, mirror repair, and merge must converge"
+    );
+
+    for dir in [&reference, &resumed] {
+        let _ = std::fs::remove_dir_all(dir);
+    }
 }
 
 /// #603 determinism: the same inputs and profile produce byte-identical

@@ -654,13 +654,58 @@ attention-support slot (fewer prefix positions than the cap) carries
 the explicit `SUPPORT_ABSENT_MARKER` (`0xFFFFFFFF` in both fields),
 never a zero-valued entry.
 
-**Raw-resume limitation.** The autoregressive `observe` checkpoint still
-records only global stream state, not committed byte lengths for every shard.
-It can reject malformed checkpoints and repair a torn shard/sidecar pair, but
-an abrupt failure after an aligned mid-story append can leave a tail that a
-retry cannot distinguish from committed rows; exactly-once raw resume requires
-a separate per-shard checkpoint-format follow-up. The text observation driver
-already carries per-shard committed lengths and truncates to them on resume.
+**Transactional raw resume.** The autoregressive `observe` driver publishes a
+versioned, self-identifying `raw-committed.bin` checkpoint at every whole-story
+boundary. It is authoritative over the 25-byte `state.bin` compatibility
+mirror and binds the global teacher state, shard fan-out, identity-bundle
+digest, probability-row width, trace-row presence/width, and committed base
+record length of every shard. Probability and trace lengths are derived from
+those base lengths with checked arithmetic. Before any identity publication,
+mirror repair, truncation, append, or finalization, resume validates the full
+checkpoint and every base/`.prob`/`.trace` prefix under the existing exclusive
+`ObservationSession`. Only after that read-only pass succeeds are aligned bytes
+beyond the committed vector truncated; the next whole story is then regenerated
+from the checkpoint-selected teacher state. The recovery step is idempotent
+when different shards or companions retain different amounts of tentative
+data.
+
+**Definition.** The canonical checkpoint footprint is exactly
+`88 + 8 × shard_count` bytes: 104 bytes for the two-shard test fixture and
+2,136 bytes at the supported 256-shard maximum. It is O(number of shards),
+timestamp-free, and independent of completion order.
+
+**Empirical Criterion.** On 2026-08-15, the ignored four-shard fixture
+`raw_checkpoint_small_fixture_overhead_measurement` ran 31 zero-boundary
+publications through the public observe entry point on the local Darwin arm64
+development host. The authoritative file was 120 bytes, its compatibility
+mirror was 25 bytes, median end-to-end publication latency was 16,612,542 ns,
+and mean latency was 16,473,677 ns. This is a diagnostic record, not a portable
+latency threshold; filesystem synchronization cost is host-dependent.
+
+**Guarantee.** Status: **Structural**. After the enumerated aligned-tail crash
+windows, raw resume converges byte-for-byte to the uninterrupted shard,
+probability, trace, manifest, checkpoint, mirror, merge, and κ bytes, without
+duplicating a story. Evidence:
+`minimal_raw_failure_injection_converges_to_uninterrupted_bytes`,
+`traced_raw_failure_injection_converges_to_uninterrupted_bytes`,
+`raw_recovery_validates_every_shard_before_truncating_any_tail`, and
+`final_checkpoint_resume_is_idempotent_across_finalization_and_merge` in
+`crates/uor-r4-graph-compiler/tests/observe.rs`.
+
+**Assumption.** The host filesystem honors synchronized file writes, atomic
+same-directory replacement, and directory synchronization as documented by
+its platform APIs.
+
+**Compatibility and failure model.** A fresh raw directory receives a
+zero-length authoritative checkpoint before its first shard append. Missing or
+corrupt `state.bin` is repaired from `raw-committed.bin`; it does not select the
+transaction. A missing raw checkpoint is accepted only for a genuinely fresh
+directory or a fully finalized legacy raw bundle whose manifest counts and
+content κs validate. An unfinished legacy raw directory fails closed because
+aligned historical bytes cannot prove their last committed story boundary, and
+mixed raw/text checkpoint formats are refused. Existing observation records,
+probability rows, trace rows, text `committed.bin`, `state.bin`, merged bytes,
+and public readers keep their historical layouts.
 
 **Bundle identity.** The manifest's identity seam is ONE stable bundle:
 `ObservationManifest::identity_bundle_digest()` computes a canonical

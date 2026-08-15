@@ -1372,6 +1372,7 @@ fn observation_payload_exists(
 
     for name in [
         observe::STATE_FILE,
+        observe::RAW_COMMITTED_FILE,
         "merged.bin",
         "committed.bin",
         ".committed.bin.tmp",
@@ -6616,7 +6617,11 @@ mod tests {
 
     #[test]
     fn observation_preflight_treats_zero_byte_payload_entries_as_era_evidence() {
-        for (case, payload_name) in [("state", observe::STATE_FILE), ("shard", "shard-99.bin")] {
+        for (case, payload_name) in [
+            ("state", observe::STATE_FILE),
+            ("raw-committed", observe::RAW_COMMITTED_FILE),
+            ("shard", "shard-99.bin"),
+        ] {
             let output = unique_cli_test_path(&format!("observe-zero-byte-{case}"));
             write_observation_manifest(&output, &observe::ObservationManifest::new(1));
             std::fs::write(output.join(payload_name), []).expect("zero-byte payload entry");

@@ -16,15 +16,17 @@
 //!   shard-id order**, so shard completion order never changes the merged
 //!   observation bytes.
 //!
-//! Resume extends the corpus' append-only resumability (`compiler.rs`):
-//! `state.bin` checkpoints the deterministic teacher stream at whole-story
-//! boundaries (same 25-byte layout as the corpus meta), and
-//! `manifest.json` records which shards are complete with their content κ.
-//! A rerun skips completed shards and continues incomplete shards after
-//! validating record/sidecar alignment. The raw 25-byte checkpoint does not
-//! carry per-shard committed lengths, so an aligned mid-story tail cannot be
-//! distinguished from committed rows and raw resume is not an exactly-once
-//! recovery claim. The text driver has a separate per-shard checkpoint.
+//! Resume is transactional at whole-story boundaries. `raw-committed.bin` is
+//! the authoritative, versioned snapshot: it binds the observation identity
+//! and row layout to the deterministic teacher state plus one committed record
+//! count per shard. Every affected base/probability/trace stream is flushed and
+//! synchronized before that snapshot is atomically replaced. `state.bin`
+//! remains the historical 25-byte compatibility mirror and is published only
+//! after the authoritative snapshot. On resume, every stream is inspected
+//! before any is truncated, so complete aligned bytes beyond the committed
+//! vector are tentative and are regenerated exactly once. Fully finalized,
+//! kappa-validated legacy raw bundles remain readable; an unfinished legacy
+//! raw directory has no provable transaction boundary and fails closed.
 
 #[cfg(not(target_arch = "wasm32"))]
 use crate::trace_profile::SUPPORT_ABSENT_MARKER;
@@ -139,8 +141,9 @@ pub const MANIFEST_FILE: &str = "manifest.json";
 const OBSERVATION_SESSION_LOCK_PREFIX: &str = ".uor-r4-observation-session-";
 
 #[cfg(not(target_arch = "wasm32"))]
-const OBSERVATION_PAYLOAD_FILES: [&str; 7] = [
+const OBSERVATION_PAYLOAD_FILES: [&str; 8] = [
     STATE_FILE,
+    RAW_COMMITTED_FILE,
     "merged.bin",
     "committed.bin",
     ".committed.bin.tmp",
@@ -152,11 +155,297 @@ const OBSERVATION_PAYLOAD_FILES: [&str; 7] = [
 #[cfg(not(target_arch = "wasm32"))]
 static MANIFEST_TEMP_SEQUENCE: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
 
+#[cfg(not(target_arch = "wasm32"))]
+static RAW_CHECKPOINT_TEMP_SEQUENCE: std::sync::atomic::AtomicU64 =
+    std::sync::atomic::AtomicU64::new(0);
+
 /// Generator checkpoint file name within an observation directory.
 pub const STATE_FILE: &str = "state.bin";
 
+/// Authoritative raw-observation transaction snapshot. This is deliberately
+/// distinct from the text driver's `committed.bin`; neither format is accepted
+/// by the other driver.
+pub const RAW_COMMITTED_FILE: &str = "raw-committed.bin";
+
+#[cfg(not(target_arch = "wasm32"))]
+const RAW_COMMITTED_MAGIC: [u8; 8] = *b"R4RAWCOM";
+#[cfg(not(target_arch = "wasm32"))]
+const RAW_COMMITTED_SCHEMA: u16 = 1;
+#[cfg(not(target_arch = "wasm32"))]
+const RAW_COMMITTED_HEADER_BYTES: usize = 88;
+
 #[cfg(not(target_arch = "wasm32"))]
 type ObservationState = (u64, u64, u64, u8);
+
+/// Canonical raw-observation transaction snapshot.
+///
+/// The encoded representation is exactly `88 + 8 * shard_count` bytes. It is
+/// timestamp-free and stores record counts rather than redundant companion
+/// lengths; probability and trace lengths are derived with checked arithmetic
+/// from the pinned row widths.
+#[cfg(not(target_arch = "wasm32"))]
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RawCommittedCheckpoint {
+    shard_bits: u8,
+    trace_row_bytes: Option<u64>,
+    n: u64,
+    stories: u64,
+    rng: u64,
+    done: bool,
+    identity_digest: [u8; 32],
+    committed_records: Vec<u64>,
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+impl RawCommittedCheckpoint {
+    /// Construct and validate a checkpoint against the manifest identity and
+    /// layout that it commits.
+    pub fn new(
+        manifest: &ObservationManifest,
+        n: u64,
+        stories: u64,
+        rng: u64,
+        done: bool,
+        committed_records: Vec<u64>,
+    ) -> Result<Self, SourceUnavailable> {
+        manifest.validate_loaded_semantics()?;
+        let checkpoint = Self {
+            shard_bits: manifest.shard_bits,
+            trace_row_bytes: manifest.trace_row_bytes,
+            n,
+            stories,
+            rng,
+            done,
+            identity_digest: *blake3::hash(&manifest.identity_bundle_bytes()).as_bytes(),
+            committed_records,
+        };
+        checkpoint.validate_intrinsic()?;
+        checkpoint.validate_manifest(manifest)?;
+        Ok(checkpoint)
+    }
+
+    /// Decode the exact canonical binary representation. Compatibility with a
+    /// particular manifest is checked separately by the locked resume path.
+    pub fn decode(bytes: &[u8]) -> Result<Self, SourceUnavailable> {
+        if bytes.len() < RAW_COMMITTED_HEADER_BYTES {
+            return Err(invalid_data(format!(
+                "raw observation checkpoint has {} bytes, shorter than the {RAW_COMMITTED_HEADER_BYTES}-byte header",
+                bytes.len()
+            )));
+        }
+        if bytes[0..8] != RAW_COMMITTED_MAGIC {
+            return Err(invalid_data(
+                "raw observation checkpoint has invalid magic; refusing mixed or corrupt checkpoint format"
+                    .to_owned(),
+            ));
+        }
+        let schema = u16::from_le_bytes(bytes[8..10].try_into().expect("2-byte slice"));
+        if schema != RAW_COMMITTED_SCHEMA {
+            return Err(invalid_data(format!(
+                "unsupported raw observation checkpoint schema {schema}; expected {RAW_COMMITTED_SCHEMA}"
+            )));
+        }
+        let shard_bits = bytes[10];
+        let done = match bytes[11] {
+            0 => false,
+            1 => true,
+            value => {
+                return Err(invalid_data(format!(
+                    "raw observation checkpoint has invalid done byte {value}; expected 0 or 1"
+                )));
+            }
+        };
+        let record_size = u32::from_le_bytes(bytes[12..16].try_into().expect("4-byte slice"));
+        if record_size != RECORD_SIZE as u32 {
+            return Err(invalid_data(format!(
+                "raw observation checkpoint records {record_size}-byte base rows, expected {RECORD_SIZE}"
+            )));
+        }
+        let probability_size = u32::from_le_bytes(bytes[16..20].try_into().expect("4-byte slice"));
+        if probability_size != PROBABILITY_METADATA_SIZE as u32 {
+            return Err(invalid_data(format!(
+                "raw observation checkpoint records {probability_size}-byte probability rows, expected {PROBABILITY_METADATA_SIZE}"
+            )));
+        }
+        let trace_width = u64::from_le_bytes(bytes[20..28].try_into().expect("8-byte slice"));
+        let trace_row_bytes = (trace_width != 0).then_some(trace_width);
+        let n = u64::from_le_bytes(bytes[28..36].try_into().expect("8-byte slice"));
+        let stories = u64::from_le_bytes(bytes[36..44].try_into().expect("8-byte slice"));
+        let rng = u64::from_le_bytes(bytes[44..52].try_into().expect("8-byte slice"));
+        let identity_digest = bytes[52..84].try_into().expect("32-byte slice");
+        let encoded_shards = u32::from_le_bytes(bytes[84..88].try_into().expect("4-byte slice"));
+        let expected_shards = 1u32.checked_shl(u32::from(shard_bits)).ok_or_else(|| {
+            invalid_data(format!(
+                "raw observation checkpoint shard_bits {shard_bits} cannot define a bounded fan-out"
+            ))
+        })?;
+        if shard_bits > MAX_SHARD_BITS || encoded_shards != expected_shards {
+            return Err(invalid_data(format!(
+                "raw observation checkpoint fan-out {encoded_shards} does not match shard_bits {shard_bits} (maximum {MAX_SHARD_BITS})"
+            )));
+        }
+        let vector_bytes = usize::try_from(encoded_shards)
+            .ok()
+            .and_then(|count| count.checked_mul(8))
+            .and_then(|length| RAW_COMMITTED_HEADER_BYTES.checked_add(length))
+            .ok_or_else(|| invalid_data("raw checkpoint length overflows usize".to_owned()))?;
+        if bytes.len() != vector_bytes {
+            return Err(invalid_data(format!(
+                "raw observation checkpoint has {} bytes, expected exactly {vector_bytes} for {encoded_shards} shards",
+                bytes.len()
+            )));
+        }
+        let mut committed_records = Vec::with_capacity(encoded_shards as usize);
+        for row in bytes[RAW_COMMITTED_HEADER_BYTES..].chunks_exact(8) {
+            committed_records.push(u64::from_le_bytes(row.try_into().expect("8-byte slice")));
+        }
+        let checkpoint = Self {
+            shard_bits,
+            trace_row_bytes,
+            n,
+            stories,
+            rng,
+            done,
+            identity_digest,
+            committed_records,
+        };
+        checkpoint.validate_intrinsic()?;
+        Ok(checkpoint)
+    }
+
+    /// Encode the canonical binary representation.
+    pub fn encode(&self) -> Result<Vec<u8>, SourceUnavailable> {
+        self.validate_intrinsic()?;
+        let capacity = RAW_COMMITTED_HEADER_BYTES
+            .checked_add(self.committed_records.len().checked_mul(8).ok_or_else(|| {
+                invalid_data("raw checkpoint vector length overflows usize".to_owned())
+            })?)
+            .ok_or_else(|| invalid_data("raw checkpoint length overflows usize".to_owned()))?;
+        let mut bytes = Vec::with_capacity(capacity);
+        bytes.extend_from_slice(&RAW_COMMITTED_MAGIC);
+        bytes.extend_from_slice(&RAW_COMMITTED_SCHEMA.to_le_bytes());
+        bytes.push(self.shard_bits);
+        bytes.push(u8::from(self.done));
+        bytes.extend_from_slice(&(RECORD_SIZE as u32).to_le_bytes());
+        bytes.extend_from_slice(&(PROBABILITY_METADATA_SIZE as u32).to_le_bytes());
+        bytes.extend_from_slice(&self.trace_row_bytes.unwrap_or(0).to_le_bytes());
+        bytes.extend_from_slice(&self.n.to_le_bytes());
+        bytes.extend_from_slice(&self.stories.to_le_bytes());
+        bytes.extend_from_slice(&self.rng.to_le_bytes());
+        bytes.extend_from_slice(&self.identity_digest);
+        bytes.extend_from_slice(&(self.committed_records.len() as u32).to_le_bytes());
+        for records in &self.committed_records {
+            bytes.extend_from_slice(&records.to_le_bytes());
+        }
+        debug_assert_eq!(bytes.len(), capacity);
+        Ok(bytes)
+    }
+
+    /// Global teacher state selected by this transaction.
+    pub fn state(&self) -> (u64, u64, u64, bool) {
+        (self.n, self.stories, self.rng, self.done)
+    }
+
+    /// Per-shard committed record counts in canonical shard order.
+    pub fn committed_records(&self) -> &[u64] {
+        &self.committed_records
+    }
+
+    /// Pinned shard fan-out exponent.
+    pub fn shard_bits(&self) -> u8 {
+        self.shard_bits
+    }
+
+    /// Pinned trace row width, absent for a minimal raw pass.
+    pub fn trace_row_bytes(&self) -> Option<u64> {
+        self.trace_row_bytes
+    }
+
+    fn validate_intrinsic(&self) -> Result<(), SourceUnavailable> {
+        if self.shard_bits > MAX_SHARD_BITS {
+            return Err(invalid_data(format!(
+                "raw observation checkpoint shard_bits {} exceeds maximum {MAX_SHARD_BITS}",
+                self.shard_bits
+            )));
+        }
+        let shard_count = 1usize << self.shard_bits;
+        if self.committed_records.len() != shard_count {
+            return Err(invalid_data(format!(
+                "raw observation checkpoint has {} shard counters, expected {shard_count}",
+                self.committed_records.len()
+            )));
+        }
+        if self.trace_row_bytes == Some(0) {
+            return Err(invalid_data(
+                "raw observation checkpoint records a zero-byte trace row".to_owned(),
+            ));
+        }
+        if self.stories > u32::MAX as u64 {
+            return Err(invalid_data(format!(
+                "raw observation checkpoint records {} stories, outside the u32 story wire domain",
+                self.stories
+            )));
+        }
+        let total = self.committed_records.iter().try_fold(0u64, |sum, count| {
+            count.checked_mul(RECORD_SIZE as u64).ok_or_else(|| {
+                invalid_data("raw checkpoint base byte length overflows u64".to_owned())
+            })?;
+            count
+                .checked_mul(PROBABILITY_METADATA_SIZE as u64)
+                .ok_or_else(|| {
+                    invalid_data("raw checkpoint probability byte length overflows u64".to_owned())
+                })?;
+            if let Some(row_bytes) = self.trace_row_bytes {
+                count.checked_mul(row_bytes).ok_or_else(|| {
+                    invalid_data("raw checkpoint trace byte length overflows u64".to_owned())
+                })?;
+            }
+            sum.checked_add(*count).ok_or_else(|| {
+                invalid_data("raw observation checkpoint record total overflows u64".to_owned())
+            })
+        })?;
+        if total != self.n {
+            return Err(invalid_data(format!(
+                "raw observation checkpoint n={} does not match per-shard record total {total}",
+                self.n
+            )));
+        }
+        Ok(())
+    }
+
+    fn validate_manifest(&self, manifest: &ObservationManifest) -> Result<(), SourceUnavailable> {
+        if self.shard_bits != manifest.shard_bits
+            || self.committed_records.len() != manifest.shard_count() as usize
+        {
+            return Err(invalid_data(format!(
+                "raw observation checkpoint fan-out does not match manifest shard_bits {}",
+                manifest.shard_bits
+            )));
+        }
+        if self.trace_row_bytes != manifest.trace_row_bytes {
+            return Err(invalid_data(format!(
+                "raw observation checkpoint trace row width {:?} does not match manifest {:?}",
+                self.trace_row_bytes, manifest.trace_row_bytes
+            )));
+        }
+        let expected_identity = *blake3::hash(&manifest.identity_bundle_bytes()).as_bytes();
+        if self.identity_digest != expected_identity {
+            return Err(invalid_data(format!(
+                "raw observation checkpoint identity does not match manifest bundle {}",
+                manifest.identity_bundle_digest()
+            )));
+        }
+        for (&shard, entry) in &manifest.completed {
+            if self.committed_records[shard as usize] != entry.records {
+                return Err(invalid_data(format!(
+                    "raw observation checkpoint commits {} records for finalized shard {shard}, but the manifest commits {}",
+                    self.committed_records[shard as usize], entry.records
+                )));
+            }
+        }
+        Ok(())
+    }
+}
 
 #[cfg(not(target_arch = "wasm32"))]
 fn read_observation_state(dir: &Path) -> Result<Option<ObservationState>, SourceUnavailable> {
@@ -200,6 +489,126 @@ fn read_observation_state(dir: &Path) -> Result<Option<ObservationState>, Source
         u64::from_le_bytes(bytes[16..24].try_into().expect("8-byte slice")),
         done,
     )))
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn encode_observation_state(state: ObservationState) -> [u8; 25] {
+    let (n, stories, rng, done) = state;
+    let mut bytes = [0u8; 25];
+    bytes[0..8].copy_from_slice(&n.to_le_bytes());
+    bytes[8..16].copy_from_slice(&stories.to_le_bytes());
+    bytes[16..24].copy_from_slice(&rng.to_le_bytes());
+    bytes[24] = done;
+    bytes
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn sync_directory(dir: &Path) -> Result<(), SourceUnavailable> {
+    fs::File::open(dir)?.sync_all()?;
+    Ok(())
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn atomic_publish_observation_file(
+    dir: &Path,
+    destination_name: &str,
+    temporary_stem: &str,
+    bytes: &[u8],
+) -> Result<(), SourceUnavailable> {
+    let destination = dir.join(destination_name);
+    match fs::symlink_metadata(&destination) {
+        Ok(metadata) if !metadata.file_type().is_file() => {
+            return Err(invalid_input(format!(
+                "observation transaction file {} is not a regular file; refusing atomic replacement",
+                destination.display()
+            )));
+        }
+        Ok(_) => {}
+        Err(error) if error.kind() == io::ErrorKind::NotFound => {}
+        Err(error) => return Err(error.into()),
+    }
+    for _ in 0..64 {
+        let sequence =
+            RAW_CHECKPOINT_TEMP_SEQUENCE.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        let temporary = dir.join(format!(
+            ".{temporary_stem}.tmp-{}-{sequence}",
+            std::process::id()
+        ));
+        let mut file = match fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&temporary)
+        {
+            Ok(file) => file,
+            Err(error) if error.kind() == io::ErrorKind::AlreadyExists => continue,
+            Err(error) => return Err(error.into()),
+        };
+        let write_result = file.write_all(bytes).and_then(|()| file.sync_all());
+        drop(file);
+        if let Err(error) = write_result {
+            let _ = fs::remove_file(&temporary);
+            return Err(error.into());
+        }
+        if let Err(error) = fs::rename(&temporary, &destination) {
+            let _ = fs::remove_file(&temporary);
+            return Err(error.into());
+        }
+        sync_directory(dir)?;
+        return Ok(());
+    }
+    Err(invalid_input(format!(
+        "could not reserve a unique {destination_name} temporary in {}",
+        dir.display()
+    )))
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn publish_raw_checkpoint(
+    dir: &Path,
+    checkpoint: &RawCommittedCheckpoint,
+) -> Result<(), SourceUnavailable> {
+    atomic_publish_observation_file(
+        dir,
+        RAW_COMMITTED_FILE,
+        RAW_COMMITTED_FILE,
+        &checkpoint.encode()?,
+    )
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn publish_state_mirror(
+    dir: &Path,
+    checkpoint: &RawCommittedCheckpoint,
+) -> Result<(), SourceUnavailable> {
+    let (n, stories, rng, done) = checkpoint.state();
+    atomic_publish_observation_file(
+        dir,
+        STATE_FILE,
+        STATE_FILE,
+        &encode_observation_state((n, stories, rng, u8::from(done))),
+    )
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn read_raw_checkpoint(
+    dir: &Path,
+    manifest: &ObservationManifest,
+) -> Result<Option<RawCommittedCheckpoint>, SourceUnavailable> {
+    let path = dir.join(RAW_COMMITTED_FILE);
+    match fs::symlink_metadata(&path) {
+        Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(None),
+        Err(error) => return Err(error.into()),
+        Ok(metadata) if !metadata.file_type().is_file() => {
+            return Err(invalid_input(format!(
+                "raw observation checkpoint {} is not a regular file",
+                path.display()
+            )));
+        }
+        Ok(_) => {}
+    }
+    let checkpoint = RawCommittedCheckpoint::decode(&fs::read(path)?)?;
+    checkpoint.validate_manifest(manifest)?;
+    Ok(Some(checkpoint))
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -751,7 +1160,10 @@ impl ObservationManifest {
                     validate_completed_payloads(dir, &manifest)?;
                     if manifest.trace_profile.is_some()
                         && manifest.trace_row_bytes.is_none()
-                        && (regular_file_present(&dir.join(STATE_FILE), "trace-layout")?
+                        && (regular_file_present(
+                            &dir.join(RAW_COMMITTED_FILE),
+                            "trace-layout",
+                        )? || regular_file_present(&dir.join(STATE_FILE), "trace-layout")?
                             || observation_shard_payload_present(dir)?)
                     {
                         return Err(invalid_data(format!(
@@ -779,9 +1191,9 @@ impl ObservationManifest {
     }
 
     /// Persist the manifest atomically (write-then-rename). Shard files are
-    /// flushed before completed entries are published. A lost manifest update
-    /// leaves that shard incomplete; resume validates and appends its existing
-    /// aligned bytes. See the raw checkpoint limitation in the module docs.
+    /// flushed before completed entries are published. A lost finalization
+    /// update leaves that shard incomplete; raw resume restores the
+    /// authoritative committed prefix before retrying finalization.
     #[cfg(not(target_arch = "wasm32"))]
     fn store(&self, dir: &Path) -> Result<(), SourceUnavailable> {
         let bytes = serde_json::to_vec_pretty(self)
@@ -828,6 +1240,7 @@ impl ObservationManifest {
                 let _ = fs::remove_file(&tmp);
                 return Err(error.into());
             }
+            sync_directory(dir)?;
             return Ok(());
         }
         Err(invalid_input(format!(
@@ -997,6 +1410,7 @@ fn validate_completed_payloads(
 fn is_observation_payload_name(name: &str) -> bool {
     OBSERVATION_PAYLOAD_FILES.contains(&name)
         || is_manifest_temp_name(name)
+        || is_raw_transaction_temp_name(name)
         || name.starts_with("stories.tmp-")
         || is_shard_payload_name(name)
 }
@@ -1004,6 +1418,11 @@ fn is_observation_payload_name(name: &str) -> bool {
 #[cfg(not(target_arch = "wasm32"))]
 fn is_manifest_temp_name(name: &str) -> bool {
     name == ".manifest.json.tmp" || name.starts_with(".manifest.json.tmp-")
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn is_raw_transaction_temp_name(name: &str) -> bool {
+    name.starts_with(".raw-committed.bin.tmp-") || name.starts_with(".state.bin.tmp-")
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -1245,151 +1664,353 @@ pub(crate) fn observation_shard_payload_present(dir: &Path) -> Result<bool, Sour
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-fn raw_shard_record_total(
-    dir: &Path,
-    manifest: &ObservationManifest,
-) -> Result<(bool, u64), SourceUnavailable> {
-    let mut present = false;
-    let mut records = 0u64;
-    for entry in fs::read_dir(dir)? {
-        let entry = entry?;
-        let name = entry.file_name();
-        let Some(name) = name.to_str() else {
-            continue;
-        };
-        if !is_base_shard_payload_name(name) {
-            continue;
-        }
-        present = true;
-        let shard = name
-            .strip_prefix("shard-")
-            .and_then(|rest| rest.strip_suffix(".bin"))
-            .and_then(|index| index.parse::<u32>().ok())
-            .ok_or_else(|| invalid_data(format!("invalid observation shard name {name}")))?;
-        if shard >= manifest.shard_count() {
-            return Err(invalid_data(format!(
-                "observation shard {name} is outside the manifest's {}-shard fan-out",
-                manifest.shard_count()
-            )));
-        }
-        let metadata = fs::symlink_metadata(entry.path())?;
-        if !metadata.file_type().is_file() {
-            return Err(invalid_input(format!(
-                "observation shard {} is not a regular file",
-                entry.path().display()
-            )));
-        }
-        let length = metadata.len();
-        if length % RECORD_SIZE as u64 != 0 {
-            return Err(invalid_data(format!(
-                "observation shard {} has a torn record ({length} bytes)",
-                entry.path().display()
-            )));
-        }
-        records = records
-            .checked_add(length / RECORD_SIZE as u64)
-            .ok_or_else(|| {
-                invalid_data("observation shard record total overflows u64".to_owned())
-            })?;
-    }
-    Ok((present, records))
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum RawResumeStatus {
+    /// No raw or text transaction evidence exists yet.
+    Fresh,
+    /// A versioned raw checkpoint authoritatively selects these bytes/state.
+    Authoritative(RawCommittedCheckpoint),
+    /// A pre-checkpoint raw bundle whose complete manifest and kappas prove its
+    /// final boundaries. It is accepted read-only and is never migrated.
+    FinalizedLegacy {
+        records: u64,
+        stories: u64,
+        rng: u64,
+    },
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-fn raw_recoverable_record_total(
-    dir: &Path,
-    manifest: &ObservationManifest,
-) -> Result<u64, SourceUnavailable> {
-    let regular_length = |path: &Path| -> Result<Option<u64>, SourceUnavailable> {
-        match fs::symlink_metadata(path) {
-            Ok(metadata) if metadata.file_type().is_file() => Ok(Some(metadata.len())),
-            Ok(_) => Err(invalid_input(format!(
-                "raw observation payload {} is not a regular file",
+#[derive(Debug)]
+struct RawPayloadRecovery {
+    path: PathBuf,
+    current_bytes: u64,
+    committed_bytes: u64,
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+#[derive(Debug)]
+struct RawRecoveryPlan {
+    checkpoint: RawCommittedCheckpoint,
+    payloads: Vec<RawPayloadRecovery>,
+    repair_state_mirror: bool,
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+enum RawResumePlan {
+    Fresh,
+    Authoritative(RawRecoveryPlan),
+    FinalizedLegacy(ObservationState),
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn preflight_recovery_payload(
+    path: PathBuf,
+    row_bytes: u64,
+    committed_rows: u64,
+    label: &str,
+) -> Result<Option<RawPayloadRecovery>, SourceUnavailable> {
+    let committed_bytes = committed_rows.checked_mul(row_bytes).ok_or_else(|| {
+        invalid_data(format!(
+            "raw checkpoint {label} committed byte length overflows u64"
+        ))
+    })?;
+    let current_bytes = match fs::symlink_metadata(&path) {
+        Ok(metadata) if metadata.file_type().is_file() => metadata.len(),
+        Ok(_) => {
+            return Err(invalid_input(format!(
+                "raw observation {label} {} is not a regular file",
                 path.display()
-            ))),
-            Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(None),
-            Err(error) => Err(error.into()),
-        }
-    };
-    let mut recoverable = 0u64;
-    for shard in 0..manifest.shard_count() {
-        let base_path = dir.join(shard_file_name(manifest.shard_bits, shard));
-        let probability_path = dir.join(format!(
-            "{}.prob",
-            shard_file_name(manifest.shard_bits, shard)
-        ));
-        let trace_path = dir.join(trace_sidecar_name(manifest.shard_bits, shard));
-        let base_length = regular_length(&base_path)?;
-        let probability_length = regular_length(&probability_path)?;
-        let trace_length = regular_length(&trace_path)?;
-        let Some(base_length) = base_length else {
-            if probability_length.is_some() || trace_length.is_some() {
-                return Err(invalid_data(format!(
-                    "raw observation shard {shard} has a sidecar but no base record file"
-                )));
-            }
-            continue;
-        };
-        if base_length % RECORD_SIZE as u64 != 0 {
-            return Err(invalid_data(format!(
-                "raw observation shard {} has a torn record",
-                base_path.display()
             )));
         }
-        let base_records = base_length / RECORD_SIZE as u64;
-        let probability_records = match probability_length {
-            Some(length) if length % PROBABILITY_METADATA_SIZE as u64 == 0 => {
-                length / PROBABILITY_METADATA_SIZE as u64
-            }
-            Some(_) => {
+        Err(error) if error.kind() == io::ErrorKind::NotFound && committed_bytes == 0 => {
+            return Ok(None);
+        }
+        Err(error) if error.kind() == io::ErrorKind::NotFound => {
+            return Err(invalid_data(format!(
+                "raw observation {label} {} is missing but the checkpoint commits {committed_bytes} bytes",
+                path.display()
+            )));
+        }
+        Err(error) => return Err(error.into()),
+    };
+    if current_bytes % row_bytes != 0 {
+        return Err(invalid_data(format!(
+            "raw observation {label} {} has a torn row ({current_bytes} bytes at width {row_bytes})",
+            path.display()
+        )));
+    }
+    if current_bytes < committed_bytes {
+        return Err(invalid_data(format!(
+            "raw observation {label} {} has {current_bytes} bytes, shorter than the committed {committed_bytes}-byte prefix",
+            path.display()
+        )));
+    }
+    Ok(Some(RawPayloadRecovery {
+        path,
+        current_bytes,
+        committed_bytes,
+    }))
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn current_raw_record_counts(
+    dir: &Path,
+    manifest: &ObservationManifest,
+) -> Result<Vec<u64>, SourceUnavailable> {
+    let row_count = |path: &Path, row_bytes: u64, label: &str| match fs::symlink_metadata(path) {
+        Ok(metadata) if metadata.file_type().is_file() => {
+            let length = metadata.len();
+            if length % row_bytes != 0 {
                 return Err(invalid_data(format!(
-                    "raw probability sidecar {} has a torn metadata row",
-                    probability_path.display()
+                    "raw observation {label} {} has a torn row ({length} bytes at width {row_bytes})",
+                    path.display()
                 )));
             }
-            None if base_records == 0 => 0,
-            None => {
-                return Err(invalid_data(format!(
-                    "raw observation shard {} has records but no probability sidecar",
-                    base_path.display()
-                )));
-            }
-        };
-        let mut shard_recoverable = base_records.min(probability_records);
-        match (manifest.trace_profile.as_ref(), trace_length) {
-            (None, Some(_)) => {
-                return Err(invalid_data(format!(
-                    "raw observation shard {shard} has a trace sidecar but no trace profile"
-                )));
-            }
-            (None, None) => {}
-            (Some(_), Some(length)) => {
-                let row_bytes = manifest.trace_row_bytes.ok_or_else(|| {
-                    invalid_data("traced raw observation has no pinned trace row width".to_owned())
-                })?;
-                if length % row_bytes != 0 {
+            Ok(Some(length / row_bytes))
+        }
+        Ok(_) => Err(invalid_input(format!(
+            "raw observation {label} {} is not a regular file",
+            path.display()
+        ))),
+        Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(None),
+        Err(error) => Err(error.into()),
+    };
+    let mut counts = Vec::with_capacity(manifest.shard_count() as usize);
+    for shard in 0..manifest.shard_count() {
+        let base_name = shard_file_name(manifest.shard_bits, shard);
+        let base = row_count(&dir.join(&base_name), RECORD_SIZE as u64, "base shard")?.unwrap_or(0);
+        let probability = row_count(
+            &dir.join(format!("{base_name}.prob")),
+            PROBABILITY_METADATA_SIZE as u64,
+            "probability sidecar",
+        )?
+        .unwrap_or(0);
+        if probability != base {
+            return Err(invalid_data(format!(
+                "raw observation shard {shard} has {base} base rows but {probability} probability rows"
+            )));
+        }
+        let trace_path = dir.join(trace_sidecar_name(manifest.shard_bits, shard));
+        match manifest.trace_row_bytes {
+            Some(row_bytes) => {
+                let trace = row_count(&trace_path, row_bytes, "trace sidecar")?.unwrap_or(0);
+                if trace != base {
                     return Err(invalid_data(format!(
-                        "raw trace sidecar {} has a torn row",
-                        trace_path.display()
+                        "raw observation shard {shard} has {base} base rows but {trace} trace rows"
                     )));
                 }
-                shard_recoverable = shard_recoverable.min(length / row_bytes);
             }
-            (Some(_), None) if base_records == 0 => {
-                shard_recoverable = 0;
-            }
-            (Some(_), None) => {
+            None if regular_file_present(&trace_path, "raw-checkpoint")? => {
                 return Err(invalid_data(format!(
-                    "raw observation shard {} has records but no trace sidecar",
-                    base_path.display()
+                    "raw observation shard {shard} has a trace sidecar under the minimal layout"
                 )));
             }
+            None => {}
         }
-        recoverable = recoverable.checked_add(shard_recoverable).ok_or_else(|| {
-            invalid_data("recoverable raw observation record total overflows u64".to_owned())
-        })?;
+        counts.push(base);
     }
-    Ok(recoverable)
+    Ok(counts)
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn state_mirror_needs_repair(
+    dir: &Path,
+    checkpoint: &RawCommittedCheckpoint,
+) -> Result<bool, SourceUnavailable> {
+    let path = dir.join(STATE_FILE);
+    let expected = {
+        let (n, stories, rng, done) = checkpoint.state();
+        encode_observation_state((n, stories, rng, u8::from(done)))
+    };
+    match fs::symlink_metadata(&path) {
+        Ok(metadata) if metadata.file_type().is_file() => Ok(fs::read(path)? != expected),
+        Ok(_) => Err(invalid_input(format!(
+            "observation state mirror {} is not a regular file",
+            path.display()
+        ))),
+        Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(true),
+        Err(error) => Err(error.into()),
+    }
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn preflight_raw_resume(
+    dir: &Path,
+    manifest: &ObservationManifest,
+) -> Result<RawResumePlan, SourceUnavailable> {
+    let text_story_evidence = fs::read_dir(dir)?.try_fold(false, |found, entry| {
+        let entry = entry?;
+        let is_story = entry.file_name().to_str().is_some_and(|name| {
+            name == "stories.jsonl" || name == "stories.tmp" || name.starts_with("stories.tmp-")
+        });
+        Ok::<_, io::Error>(found || is_story)
+    })?;
+    if manifest.partition_rule.is_some()
+        || manifest.input_cid.is_some()
+        || text_story_evidence
+        || regular_file_present(&dir.join("committed.bin"), "raw-checkpoint")?
+        || regular_file_present(&dir.join(".committed.bin.tmp"), "raw-checkpoint")?
+    {
+        return Err(invalid_data(format!(
+            "{} contains the text observation committed.bin format; refusing a mixed raw observation resume",
+            dir.display()
+        )));
+    }
+    let Some(checkpoint) = read_raw_checkpoint(dir, manifest)? else {
+        let state = read_observation_state(dir)?;
+        let shard_payload = observation_shard_payload_present(dir)?;
+        let merged = regular_file_present(&dir.join("merged.bin"), "raw-checkpoint")?;
+        let stream_evidence = state.is_some()
+            || shard_payload
+            || merged
+            || manifest.total_records != 0
+            || !manifest.completed.is_empty();
+        if !stream_evidence {
+            return Ok(RawResumePlan::Fresh);
+        }
+        let fully_finalized = manifest.completed.len() == manifest.shard_count() as usize;
+        if fully_finalized
+            && let Some((n, stories, rng, 1)) = state
+            && n == manifest.total_records
+        {
+            return Ok(RawResumePlan::FinalizedLegacy((n, stories, rng, 1)));
+        }
+        return Err(invalid_data(format!(
+            "{} is an unfinished legacy raw observation directory with no authoritative {RAW_COMMITTED_FILE}; its aligned bytes cannot prove a whole-story boundary, so restart in a fresh output directory",
+            dir.display()
+        )));
+    };
+    if !checkpoint.done && !manifest.completed.is_empty() {
+        return Err(invalid_data(format!(
+            "{} has finalized raw shards but its authoritative checkpoint is unfinished; refusing an inconsistent resume",
+            dir.display()
+        )));
+    }
+
+    let mut payloads = Vec::new();
+    for (shard, &records) in checkpoint.committed_records().iter().enumerate() {
+        let shard = shard as u32;
+        let base_name = shard_file_name(manifest.shard_bits, shard);
+        if let Some(plan) = preflight_recovery_payload(
+            dir.join(&base_name),
+            RECORD_SIZE as u64,
+            records,
+            "base shard",
+        )? {
+            payloads.push(plan);
+        }
+        if let Some(plan) = preflight_recovery_payload(
+            dir.join(format!("{base_name}.prob")),
+            PROBABILITY_METADATA_SIZE as u64,
+            records,
+            "probability sidecar",
+        )? {
+            payloads.push(plan);
+        }
+        let trace_path = dir.join(trace_sidecar_name(manifest.shard_bits, shard));
+        match checkpoint.trace_row_bytes() {
+            Some(row_bytes) => {
+                if let Some(plan) =
+                    preflight_recovery_payload(trace_path, row_bytes, records, "trace sidecar")?
+                {
+                    payloads.push(plan);
+                }
+            }
+            None if regular_file_present(&trace_path, "raw-checkpoint")? => {
+                return Err(invalid_data(format!(
+                    "raw observation shard {shard} has a trace sidecar, but the checkpoint pins the minimal trace layout"
+                )));
+            }
+            None => {}
+        }
+    }
+    Ok(RawResumePlan::Authoritative(RawRecoveryPlan {
+        repair_state_mirror: state_mirror_needs_repair(dir, &checkpoint)?,
+        checkpoint,
+        payloads,
+    }))
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn status_from_plan(plan: &RawResumePlan) -> RawResumeStatus {
+    match plan {
+        RawResumePlan::Fresh => RawResumeStatus::Fresh,
+        RawResumePlan::Authoritative(plan) => {
+            RawResumeStatus::Authoritative(plan.checkpoint.clone())
+        }
+        RawResumePlan::FinalizedLegacy((records, stories, rng, _)) => {
+            RawResumeStatus::FinalizedLegacy {
+                records: *records,
+                stories: *stories,
+                rng: *rng,
+            }
+        }
+    }
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn apply_raw_recovery(dir: &Path, plan: &RawRecoveryPlan) -> Result<(), SourceUnavailable> {
+    // Phase two still opens and revalidates every file before changing the
+    // first one. This keeps a late permission/race failure from partially
+    // applying the plan assembled by the read-only phase.
+    let mut files = Vec::with_capacity(plan.payloads.len());
+    for payload in &plan.payloads {
+        let truncate = payload.current_bytes != payload.committed_bytes;
+        let file = fs::OpenOptions::new()
+            .read(true)
+            .write(truncate)
+            .open(&payload.path)?;
+        if file.metadata()?.len() != payload.current_bytes {
+            return Err(invalid_data(format!(
+                "raw observation payload {} changed after preflight; refusing recovery",
+                payload.path.display()
+            )));
+        }
+        files.push((file, payload.committed_bytes, truncate));
+    }
+    for (file, committed_bytes, truncate) in files {
+        if truncate {
+            file.set_len(committed_bytes)?;
+            file.sync_all()?;
+        }
+    }
+    if plan
+        .payloads
+        .iter()
+        .any(|payload| payload.current_bytes != payload.committed_bytes)
+    {
+        sync_directory(dir)?;
+    }
+    if plan.repair_state_mirror {
+        publish_state_mirror(dir, &plan.checkpoint)?;
+    }
+    Ok(())
+}
+
+/// Inspect raw recovery under an already-held observation session without
+/// mutating payload, provenance, checkpoint, or mirror bytes.
+#[cfg(not(target_arch = "wasm32"))]
+pub fn preflight_raw_observation_in_session(
+    session: &ObservationSession,
+) -> Result<RawResumeStatus, SourceUnavailable> {
+    let writer = session.writer()?;
+    let plan = preflight_raw_resume(session.dir(), writer.manifest())?;
+    Ok(status_from_plan(&plan))
+}
+
+/// Apply an authoritative raw recovery under an already-held session. Fresh
+/// outputs are left untouched (the observe driver publishes their identity-
+/// bound zero checkpoint), and finalized legacy bundles remain read-only.
+#[cfg(not(target_arch = "wasm32"))]
+pub fn recover_raw_observation_in_session(
+    session: &ObservationSession,
+) -> Result<RawResumeStatus, SourceUnavailable> {
+    let writer = session.writer()?;
+    let plan = preflight_raw_resume(session.dir(), writer.manifest())?;
+    if let RawResumePlan::Authoritative(recovery) = &plan {
+        apply_raw_recovery(session.dir(), recovery)?;
+    }
+    Ok(status_from_plan(&plan))
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -1397,27 +2018,14 @@ fn preflight_observation_state(
     dir: &Path,
     manifest: &ObservationManifest,
 ) -> Result<Option<ObservationState>, SourceUnavailable> {
-    let state = read_observation_state(dir)?;
-    let (base_shard_present, _) = raw_shard_record_total(dir, manifest)?;
-    let shard_payload_present = base_shard_present || observation_shard_payload_present(dir)?;
-    let merged_present = regular_file_present(&dir.join("merged.bin"), "checkpoint")?;
-    let manifest_stream_evidence = manifest.total_records != 0 || !manifest.completed.is_empty();
-    if state.is_none() && (shard_payload_present || merged_present || manifest_stream_evidence) {
-        return Err(invalid_data(format!(
-            "{} contains raw observation stream evidence but no {STATE_FILE}; refusing to restart from a false fresh state",
-            dir.display()
-        )));
-    }
-    if let Some((n, _, _, _)) = state {
-        let recoverable_records = raw_recoverable_record_total(dir, manifest)?;
-        if recoverable_records < n {
-            return Err(invalid_data(format!(
-                "{} checkpoint records {n} generated rows, but its aligned base/sidecar prefixes retain only {recoverable_records}; refusing lossy resume before mutation",
-                dir.display()
-            )));
+    match preflight_raw_resume(dir, manifest)? {
+        RawResumePlan::Fresh => Ok(None),
+        RawResumePlan::Authoritative(plan) => {
+            let (n, stories, rng, done) = plan.checkpoint.state();
+            Ok(Some((n, stories, rng, u8::from(done))))
         }
+        RawResumePlan::FinalizedLegacy(state) => Ok(Some(state)),
     }
-    Ok(state)
 }
 
 /// Exclusive coordination guard for one observation output directory.
@@ -1677,9 +2285,8 @@ struct ShardHandle {
 /// manifest. Records may arrive interleaved across shards (routed by
 /// [`shard_of`]); each incomplete shard is appended to after its aligned
 /// record/sidecar prefix is validated. Completed shards are never rewritten:
-/// writes routed to them are skipped. Semantic exactly-once recovery is the
-/// caller checkpoint's responsibility; the raw checkpoint limitation is
-/// documented at module scope.
+/// writes routed to them are skipped. The raw driver commits this writer's
+/// synchronized per-shard lengths at whole-story boundaries.
 #[cfg(not(target_arch = "wasm32"))]
 pub struct ObservationShardWriter {
     dir: PathBuf,
@@ -2037,7 +2644,8 @@ impl ObservationShardWriter {
                 self.dir.display()
             ))),
             (None, Some(_))
-                if regular_file_present(&self.dir.join(STATE_FILE), "trace-layout")?
+                if regular_file_present(&self.dir.join(RAW_COMMITTED_FILE), "trace-layout")?
+                    || regular_file_present(&self.dir.join(STATE_FILE), "trace-layout")?
                     || observation_shard_payload_present(&self.dir)? =>
             {
                 Err(invalid_input(format!(
@@ -2047,6 +2655,23 @@ impl ObservationShardWriter {
             }
             (None, Some(_)) | (None, None) => Ok(()),
         }
+    }
+
+    fn set_trace_row_bytes(&mut self, row_bytes: u64) -> Result<(), SourceUnavailable> {
+        if row_bytes == 0 {
+            return Err(invalid_input(
+                "trace row width must be greater than zero".to_owned(),
+            ));
+        }
+        self.preflight_trace_row_bytes(Some(row_bytes))?;
+        if self.manifest.trace_row_bytes == Some(row_bytes) {
+            return Ok(());
+        }
+        let mut candidate = self.manifest.clone();
+        candidate.trace_row_bytes = Some(row_bytes);
+        candidate.store(&self.dir)?;
+        self.manifest = candidate;
+        Ok(())
     }
 
     /// Record a non-minimal #603 trace-profile identity after compatibility
@@ -2240,8 +2865,7 @@ impl ObservationShardWriter {
                 )));
             }
             None => {
-                self.manifest.trace_row_bytes = Some(trace_row.len() as u64);
-                self.manifest.store(&self.dir)?;
+                self.set_trace_row_bytes(trace_row.len() as u64)?;
             }
             Some(_) => {}
         }
@@ -2309,6 +2933,26 @@ impl ObservationShardWriter {
             }
         }
         Ok(())
+    }
+
+    /// Durably synchronize every open raw stream, then return its strict
+    /// aligned record-count vector. This is the payload half of a whole-story
+    /// transaction and must complete before `raw-committed.bin` is replaced.
+    fn synchronize_raw_transaction(&mut self) -> Result<Vec<u64>, SourceUnavailable> {
+        self.flush()?;
+        for handle in self.handles.iter().flatten() {
+            handle.file.get_ref().sync_all()?;
+            if let Some(probability) = handle.probability.as_ref() {
+                probability.get_ref().sync_all()?;
+            }
+            if let Some(trace) = handle.trace.as_ref() {
+                trace.get_ref().sync_all()?;
+            }
+        }
+        // Persist any stream directory entries created since the previous
+        // transaction before publishing a checkpoint that refers to them.
+        sync_directory(&self.dir)?;
+        current_raw_record_counts(&self.dir, &self.manifest)
     }
 
     /// Finalize one shard: flush, κ-pin its file, and record it in the
@@ -3196,10 +3840,10 @@ impl TraceCapture {
 /// to `shard_of(sample_id(context_window), shard_bits)`, where the context
 /// window is the existing 8-token window of fed tokens. Resume continues the
 /// stream from a strictly decoded `state.bin`, skips completed shards, and
-/// appends to alignment-validated incomplete shards. Because raw `state.bin`
-/// has no per-shard committed lengths, aligned mid-story tails are not
-/// exactly-once recoverable; use the text driver where transactional
-/// per-shard recovery is required.
+/// appends to checkpoint-trimmed incomplete shards. `raw-committed.bin` is the
+/// authoritative whole-story boundary; the legacy `state.bin` is repaired as
+/// its compatibility mirror. Aligned bytes past the committed vector are
+/// tentative and are regenerated exactly once.
 ///
 /// This is the minimal trace profile: byte-for-byte today's records,
 /// sidecars, and manifest (no `trace_profile` field is recorded). Richer
@@ -3344,9 +3988,9 @@ fn observe_sharded_inner(
     };
     writer.preflight_geometry(geometry.as_ref())?;
     writer.preflight_attention_operator(attention_operator.as_ref())?;
-    let restored_state = preflight_observation_state(out, writer.manifest())?;
+    let preflight_state = preflight_observation_state(out, writer.manifest())?;
     let requested_target = u64::try_from(target).unwrap_or(u64::MAX);
-    if restored_state.is_some_and(|(n, _, _, _)| n < requested_target)
+    if preflight_state.is_some_and(|(n, _, _, _)| n < requested_target)
         && !writer.manifest().completed.is_empty()
     {
         return Err(invalid_input(format!(
@@ -3395,6 +4039,35 @@ fn observe_sharded_inner(
     if let Some(profile) = trace_profile_to_set.as_ref() {
         writer.set_trace_profile(profile)?;
     }
+    if let Some(trace) = trace.as_ref() {
+        writer.set_trace_row_bytes(trace.row_bytes as u64)?;
+    }
+    // Re-read the complete checkpoint/payload snapshot after every identity
+    // and layout setter has landed. Fresh runs publish the authoritative empty
+    // prefix before reconciliation or the first append. Existing runs apply
+    // the all-shard plan only after its read-only phase succeeded in full.
+    let resume = preflight_raw_resume(out, writer.manifest())?;
+    let restored_state = match &resume {
+        RawResumePlan::Fresh => {
+            let checkpoint = RawCommittedCheckpoint::new(
+                writer.manifest(),
+                0,
+                0,
+                0x5EED,
+                false,
+                vec![0; writer.manifest().shard_count() as usize],
+            )?;
+            publish_raw_checkpoint(out, &checkpoint)?;
+            publish_state_mirror(out, &checkpoint)?;
+            Some((0, 0, 0x5EED, 0))
+        }
+        RawResumePlan::Authoritative(plan) => {
+            apply_raw_recovery(out, plan)?;
+            let (n, stories, rng, done) = plan.checkpoint.state();
+            Some((n, stories, rng, u8::from(done)))
+        }
+        RawResumePlan::FinalizedLegacy(state) => Some(*state),
+    };
     let trace_row_bytes = writer.manifest().trace_row_bytes;
     for shard in 0..writer.manifest().shard_count() {
         match (trace.as_ref(), trace_row_bytes) {
@@ -3404,7 +4077,6 @@ fn observe_sharded_inner(
             _ => reconcile_probability_pair(out, shard_bits, shard)?,
         }
     }
-    let state_path = out.join(STATE_FILE);
     let (mut n, mut stories, mut rng, mut done) = restored_state.unwrap_or((0, 0, 0x5EED, 0));
     if (n as usize) < target {
         done = 0;
@@ -3498,16 +4170,19 @@ fn observe_sharded_inner(
             token = next;
         }
         stories += 1;
-        // Whole-story checkpoint: flush shard bytes first so they cover
-        // exactly the completed stories, then pin the stream position
-        // (identical 25-byte layout to the corpus meta).
-        writer.flush()?;
-        let mut state = [0u8; 25];
-        state[0..8].copy_from_slice(&n.to_le_bytes());
-        state[8..16].copy_from_slice(&stories.to_le_bytes());
-        state[16..24].copy_from_slice(&rng.to_le_bytes());
-        state[24] = done;
-        fs::write(&state_path, state)?;
+        // Whole-story transaction: payload synchronization, authoritative
+        // per-shard checkpoint replacement, then the legacy state mirror.
+        let committed_records = writer.synchronize_raw_transaction()?;
+        let checkpoint = RawCommittedCheckpoint::new(
+            writer.manifest(),
+            n,
+            stories,
+            rng,
+            done == 1,
+            committed_records,
+        )?;
+        publish_raw_checkpoint(out, &checkpoint)?;
+        publish_state_mirror(out, &checkpoint)?;
     }
     if done == 1 {
         writer.finalize_all()?;
@@ -4615,7 +5290,9 @@ mod attention_operator_resume_tests {
             };
             let error = observe_sharded(&mut oracle, 60, 1, 1, dir.path(), None)
                 .expect_err("stream evidence without state must fail");
-            assert!(error.reason.contains("no state.bin"), "{error}");
+            assert!(error.reason.contains("unfinished legacy"), "{error}");
+            assert!(error.reason.contains(RAW_COMMITTED_FILE), "{error}");
+            assert!(error.reason.contains("fresh output directory"), "{error}");
             assert_eq!(dir.bytes(), before);
         }
 
@@ -4637,7 +5314,9 @@ mod attention_operator_resume_tests {
         };
         let error = observe_sharded(&mut oracle, 60, 1, 1, missing_rows.path(), None)
             .expect_err("checkpoint rows missing from base shards must fail");
-        assert!(error.reason.contains("retain only 0"), "{error}");
+        assert!(error.reason.contains("unfinished legacy"), "{error}");
+        assert!(error.reason.contains(RAW_COMMITTED_FILE), "{error}");
+        assert!(error.reason.contains("fresh output directory"), "{error}");
         assert_eq!(missing_rows.bytes(), before);
 
         for alias_name in ["shard-1.bin", "shard-000.bin"] {
@@ -4696,11 +5375,10 @@ mod attention_operator_resume_tests {
         };
         observe_sharded(&mut oracle, 60, 1, 1, completed.path(), None)
             .expect("complete raw corpus");
-        fs::remove_file(completed.path().join(STATE_FILE)).expect("remove checkpoint");
         let before = completed.bytes();
-        let error = observe_sharded(&mut oracle, 60, 1, 1, completed.path(), None)
-            .expect_err("completed manifest without state must fail");
-        assert!(error.reason.contains("no state.bin"), "{error}");
+        fs::remove_file(completed.path().join(STATE_FILE)).expect("remove checkpoint");
+        observe_sharded(&mut oracle, 60, 1, 1, completed.path(), None)
+            .expect("authoritative checkpoint repairs a missing state mirror");
         assert_eq!(completed.bytes(), before);
     }
 
