@@ -241,9 +241,11 @@ r4 audit [--log-file .uor-models/audit_log.json]
 
 ```bash
 r4 download --repository OWNER/REPO --revision <40-char SHA> --name NAME
-r4 compile --source DIR [--output DIR] [--seconds N] [--target N] [--sequence-length N]
+r4 compile --source DIR [--tokenizer-family FAMILY --tokenizer-version N] \
+           [--output DIR] [--seconds N] [--target N] [--sequence-length N]
 r4 compile --corpus-meta META --corpus-recs RECS --vocab-size N     # teacher-free
-r4 evaluate-report [--source DIR] [--compiled DIR] [--report PATH]
+r4 evaluate-report [--source DIR] [--tokenizer-family FAMILY --tokenizer-version N] \
+                   [--compiled DIR] [--report PATH]
 r4 import --name N --source-model M --capability continuation|instruction-chat \
           --artifacts F --store F --tokenizer F [--evaluation-report F]
 ```
@@ -251,11 +253,16 @@ r4 import --name N --source-model M --capability continuation|instruction-chat \
 **Graph pipeline**
 
 ```bash
-r4 transformerless observe      [--source DIR] [--out obs] [--shards 4]
-r4 transformerless observe-text [--input PATH] [--out obs-text]
-r4 transformerless cover        [--corpus-meta M] [--corpus-recs R] [--artifacts A] [--out cover]
+r4 transformerless observe \
+  [--source DIR [--tokenizer-family FAMILY --tokenizer-version N] | --checkpoint BIN] \
+  [--out obs] [--shards 4]
+r4 transformerless observe-text \
+  [--input PATH] \
+  [--source DIR [--tokenizer-family FAMILY --tokenizer-version N] | --checkpoint BIN --tokenizer PATH] \
+  [--out obs-text]
+r4 transformerless cover        [--corpus-meta M] [--corpus-recs R] [--artifacts A] [--tokenizer PATH] [--out cover]
 r4 transformerless cover-sweep  [...]
-r4 transformerless score        [--corpus-meta M] [--corpus-recs R] [--artifacts A] [--out DIR]
+r4 transformerless score        [--corpus-meta M] [--corpus-recs R] [--artifacts A] [--tokenizer PATH] [--out DIR]
 r4 transformerless convert-r4g1 --artifacts TLA --store TLS1 --out R4G1
 r4 transformerless compile-recorded --corpus-meta M --corpus-recs R --vocab-size N --out DIR
 r4 graph infill --artifact score.r4g1 --skeleton 12,_,_,_,99,_,_,_,7
@@ -282,15 +289,28 @@ r4 setup            # prints the prerequisite commands
 `r4 serve` exposes an OpenAI-compatible surface and a dashboard surface. JSON
 responses carry permissive CORS.
 
-**OpenAI-compatible** — this is what `r4 client` and `r4 chat --remote` speak:
+**OpenAI-compatible (`/v1`)** — this is what `r4 client` and `r4 chat --remote`
+speak; `/v1` is kept a pure OpenAI surface (see `profiles/openai/`):
 
 | Endpoint | Purpose |
 |---|---|
-| `POST /v1/chat/completions` | Chat completion |
+| `POST /v1/chat/completions` | Chat completion (non-streaming and SSE streaming) |
+| `POST /v1/responses` | Responses API |
 | `GET /v1/models` | List available models |
-| `GET /v1/status` | Engine and artifact status |
-| `POST /v1/reload` | Reload the R4G1 graph and teacher from a path |
-| `POST /v1/corpus` | Load corpus text |
+| `GET /v1/models/{model}` | Retrieve one model |
+
+**R4 extended API (`/uor/v1`)** — capabilities beyond the OpenAI surface, under a
+vendor namespace so they never collide with the OpenAI standard on `/v1`:
+
+| Endpoint | Purpose |
+|---|---|
+| `GET /uor/v1/status` | Engine and artifact status (4-stage lifecycle) |
+| `POST /uor/v1/reload` | Reload the R4G1 graph and teacher for a model |
+| `POST /uor/v1/corpus` | Manage the extra-reading corpus (add / export / list) |
+
+The bare `/v1/status`, `/v1/reload`, and `/v1/corpus` paths remain as
+**deprecated aliases** — they still work but respond with an RFC 8594
+`Deprecation` header and a `Link` to the `/uor/v1` successor. Prefer `/uor/v1`.
 
 **Dashboard:**
 
@@ -304,6 +324,11 @@ responses carry permissive CORS.
 | `GET /api/huggingface/status`, `POST /api/huggingface/download` | Background teacher download |
 | `GET /api/tags` | Ollama-style tag list |
 | `GET /api/sysinfo` · `GET /api/map` | Host info; semantic map points |
+
+`POST /api/r4g1/compile` and `POST /uor/v1/reload` accept the optional JSON
+pair `tokenizer_family` / `tokenizer_version`. Supply both or neither. When the
+pair is omitted, automatic source-tokenizer selection succeeds only for a
+source with exactly one supported definition; an ambiguous source fails closed.
 
 Anything else is served as a static file from the working directory; `/` serves
 `index.html`.
