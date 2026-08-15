@@ -120,8 +120,8 @@ impl Teacher {
     }
 
     /// Toggle the experimental #602 R4 route-attention operator. Llama maps
-    /// this to its two registered operators (`standard-source-attention/1`
-    /// off, `experimental-r4-source-attention/1` on). GPT-2 has no such
+    /// this to its two current registered operators (`standard-source-attention/2`
+    /// off, `experimental-r4-source-attention/2` on). GPT-2 has no such
     /// switch — its learned-absolute operator is a separate registry entry
     /// (#657 item 3) — so the toggle is a documented no-op there rather than
     /// silently reinterpreting a Llama switch it does not execute.

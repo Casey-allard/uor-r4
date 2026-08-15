@@ -176,11 +176,11 @@ cargo run --release -- compile \
 `--revision` must be a full 40-character commit hash. `--seconds` limits the
 teacher-generation work performed by one invocation, while `--target` is the
 teacher-token goal. `--r4-attention` selects the experimental teacher
-attention variant during generation — the #602 operator
-`experimental-r4-source-attention/1`, a 4-wide-chunked dot product with the
-same softmax selector as the standard operator (see "Attention operator
-identity (#602)" below; omitting this flag runs the standard
-`standard-source-attention/1` scaled dot-product operator, the default
+attention variant during generation — the current #704 operator
+`experimental-r4-source-attention/2`, a certified-exact dot product over the
+leading `4·⌊H/4⌋` dimensions with the same softmax selector as the standard
+operator (see "Attention operator identity (#602, #704)" below; omitting this
+flag runs the current `standard-source-attention/2` operator, the default
 everywhere). Hugging Face compilation defaults to
 20,000 tokens and 128-token teacher stories. The bounded story length keeps
 attention cost and KV memory proportional to the eight-token deployed runtime
@@ -191,13 +191,50 @@ rows. A resume must reproduce that exact operator; an existing payload with a
 missing or different binding is refused before mutation rather than being
 silently relabelled or mixed across arithmetic eras.
 
-On macOS, offline Hugging Face teacher execution uses Apple Accelerate's
-SIMD-optimized CPU BLAS. Linux and Windows use explicit NEON on AArch64 or
-runtime-detected AVX2/FMA on x86-64, with a dependency-free scalar fallback.
-These compiler accelerators do not add a runtime dependency or change the
-allocation-free table-native inference path. Set `TLESS_TEACHER_EXACT=1` to
-force the slower, reduction-order-preserving scalar path for diagnostic
-comparisons. The pinned legacy proof workflow always uses that exact path.
+The browser compile endpoint additionally protects the conventional
+`.uor-models/compiled/<name>` root across the v1→v2 transition. If that root is
+populated and carries an explicit source-attention v1 binding (or has legacy
+payload with no binding), the endpoint leaves it byte-for-byte untouched and
+uses `.uor-models/compiled/<name>-attention-v2`. A matching v2 root resumes;
+malformed, nonregular, or conflicting provenance is a hard error rather than a
+reason to route around the evidence. On restart, discovery prefers the exact
+current-v2 sibling for the same base model and maps only that exact suffix back
+to `.uor-models/sources/<name>`. Explicit CLI `--output` paths retain the
+stricter existing behavior: an incompatible era is refused and the caller
+chooses a fresh directory.
+
+**Managed resolver hardening addendum (2026-08-15).** The server owns the exact
+`-attention-v2` suffix and rejects a downloaded source basename ending in it
+before creating or resuming output. Compile selection now inspects both roots
+even when the conventional root is already current, so a duplicate current
+root or malformed suffix cannot be hidden. Automatic restart, reload, model
+listing, and status use the same paired-root resolver. It returns the logical
+source name, selected physical root, graph, teacher artifact, and exact
+operator as one value. Base reload and the exact suffix alias therefore choose
+the same bundle and attach `.uor-models/sources/<logical-name>`; status exposes
+the physical root separately.
+
+A populated preferred root is authoritative: a graph/tokenizer load error does
+not fall through to a historical sibling. A genuinely absent source still
+permits #718 token-window/decode-only loading, while a present-invalid source
+is terminal. Before current-v2 install, the server exact-compares the root
+sidecar with the canonical corpus/observation record and requires the same
+operator in `graph-cover/cover_report.json`, then re-reads the resolved
+binding. Historical v1 bundles retain compatibility when those supporting
+records are genuinely absent. This is a consistency check over recorded
+metadata, not a claim that the score graph bytes themselves carry the operator;
+that R4G1 PROV binding remains tracked by #637.
+
+Offline Llama/shared teacher projections use the pinned portable exact
+`uor-matmul` owner on every host; there is no alternate Accelerate, NEON,
+AVX2/FMA, or scalar projection route for those sites. GPT-2 Conv1D/MLP and its
+tied `lm_head` remain explicitly conventional, while current-v2 QK/value
+attention uses the certified-native/exact-fallback owner described below.
+`TLESS_EXACT_SCALAR` remains accepted only so older scripts do not fail and no
+longer changes Llama projection arithmetic. `TLESS_CANONICAL_DETERMINISTIC=1`
+still selects the portable libm/reduction family for the other κ-sensitive
+teacher and compiler operations. None of these offline choices changes the
+allocation-free table-native inference path.
 
 When compilation completes, the output directory contains:
 
@@ -464,7 +501,7 @@ singleton-decode digest, rejects the reference out-of-range id through
 and runtime results. Absence is printed as `UNAVAILABLE`, following the
 repository's three-state fixture convention.
 
-#### Attention operator identity (#602)
+#### Attention operator identity (#602, #704)
 
 The attention operator the source teacher computes is a typed, versioned
 identity, not a boolean. `uor-r4-model-source::attention` defines
@@ -480,10 +517,10 @@ change must arrive as a new registry version). A versioned registry maps
 pair fails closed with the focused
 `SourceIngestKind::UnknownAttentionOperator` rather than being guessed.
 
-**Truthful operator inventory.** Two source operators map to the
+**Immutable v1 inventory (#602/#668).** Two source operators mapped to the
 teacher's `r4_attention` switch — they are exactly the two branches it
-selects between (`attention::operator_for_r4_switch` is the one boundary
-mapping from the legacy boolean to the versioned identity); a third
+selected between (`attention::operator_for_r4_switch` remains the one boundary
+mapping from the legacy boolean to the current versioned identity); a third
 source operator (`learned-absolute-source-attention/1`, #668) is
 registered for the GPT-2 family and selected by architecture rather than
 the switch:
@@ -540,15 +577,47 @@ the switch:
   compiled GPT-2 bundle carries a truthful operator row (feeding the #606
   certificate) instead of a misdeclared RoPE one.
 
-The reference implementations are free deterministic functions factored
-verbatim out of the executor (`standard_head_attention_weights`,
-`experimental_r4_head_attention_weights`,
-`head_attention_value_aggregate`) — iteration order and arithmetic
-unchanged, the same discipline as #600's `bucket_average_project` and
-#599's `layer_forward` factoring, with the existing bit-exactness parity
-tests (e.g. `forward_batch_matches_serial_forward`) guarding the
-executor path and unit tests pinning divisible and non-divisible head
-widths.
+At the #602 landing, the v1 reference implementations were free deterministic
+functions factored verbatim out of the executor
+(`standard_head_attention_weights`,
+`experimental_r4_head_attention_weights`, and
+`head_attention_value_aggregate`). The v1 records and their conventional
+control arms preserve that historical arithmetic; the current public seams
+advance as recorded in the dated addendum below.
+
+**#704 A2 current-era addendum (2026-08-15).** The three v1 records above stay
+immutable and accepted; they remain the truthful identity of existing corpus
+bytes. Each source family now also has a current v2 record, and the legacy
+unversioned constructors are current aliases for v2. `attention::operator_spec`
+resolves all six source records exactly.
+
+- `standard-source-attention/2` (switch off, the default) retains Llama's
+  projections, grouped-query head mapping, RoPE, per-score division by
+  `sqrt(H)`, max-subtracted softmax, and output projection. Full-width Q·K and
+  weighted-value folds use the certified-exact path: a hardware-native f64
+  fold is accepted only when an outward-error/rounding-cell witness proves the
+  exact f32 bit returned by pinned `uor-matmul`; uncertain lanes use that exact
+  kernel as fallback.
+- `experimental-r4-source-attention/2` (switch on) retains the scored domain
+  `0..4·⌊H/4⌋`, including the v1 remainder policy: trailing q/k dimensions do
+  not enter scores, scale still uses full `H`, and value aggregation still
+  covers the full head. Its Q·K/value folds use the same certified-exact path.
+  `H < 4` still produces zero scores and uniform softmax. The selector remains
+  the standard max-subtracted, divide-normalized softmax. The branch remains
+  selectable, default-off, and unmeasured.
+- `learned-absolute-source-attention/2` (GPT-2 architecture, never selected by
+  the switch) retains learned absolute positions and the historical GPT-2
+  reciprocal-multiply ordering: scores multiply the precomputed
+  `1/sqrt(head_size)`, and softmax computes one reciprocal before multiplying
+  each weight. Only Q·K and weighted-value folds are certified-exact. Dense
+  GPT-2 `c_attn`, `c_proj`, MLP projections, and `lm_head` remain conventional;
+  v2 makes no claim that they moved.
+
+The current shared seams preserve caller-owned output/scratch storage and keep
+the certified and exact-fallback arms allocation-free after setup. Tests pin
+the full/scored domains, GPT-2's reciprocal order, Llama's per-score division,
+the experimental tail policy, exact-bit parity, forced certificate rejection,
+and the registry's immutable v1/v2 bytes.
 
 The record threads into provenance alongside the #597 manifest κ, the #600
 geometry record, and the #601 tokenizer record. Observe drivers record the
@@ -563,7 +632,10 @@ optional `attention_operator` field of the cover/compile report. The typed API
 and HTTP server forward the registry-validated stage-A/recorded binding rather
 than reconstructing it from the `r4_attention` policy bit, which preserves
 GPT-2's learned-absolute identity. `compile-recorded` likewise propagates an
-explicit observation-manifest record.
+explicit observation-manifest record. New source compiles and observations
+declare the exact current-v2 record selected by architecture/switch; readers
+continue to accept exact immutable v1 records, but every resume, cover, and
+evaluation seam compares the whole record and refuses cross-era replay.
 
 An absent record remains the implicit legacy era: documents produced before
 #602 are not rewritten, and a genuinely operator-less caller-supplied corpus

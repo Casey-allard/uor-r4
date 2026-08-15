@@ -917,14 +917,14 @@ pub struct ObservationManifest {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub tokenizer_adapter: Option<TokenizerAdapter>,
     /// #602 typed record of the source attention operator the teacher
-    /// oracle computed while producing these observations
-    /// (`standard-source-attention/1`, or
-    /// `experimental-r4-source-attention/1` when the `r4_attention`
-    /// switch was on), when the producing pipeline's oracle declares
-    /// one. `None` marks the legacy interpretation documented in
-    /// `docs/MODEL_LIFECYCLE.md`. Optional with a serde default so
-    /// every legacy manifest stays readable and legacy manifest bytes
-    /// are unchanged when unset.
+    /// oracle computed while producing these observations. Current Llama
+    /// sources declare `standard-source-attention/2` or
+    /// `experimental-r4-source-attention/2`; GPT-2 declares
+    /// `learned-absolute-source-attention/2`. Immutable v1 records remain
+    /// accepted. `None` marks the implicit historical standard/1
+    /// interpretation documented in `docs/MODEL_LIFECYCLE.md`. Optional with
+    /// a serde default so every legacy manifest stays readable and legacy
+    /// manifest bytes are unchanged when unset.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub attention_operator: Option<AttentionOperatorSpec>,
     /// #603 typed record of the teacher-trace profile the producing pass
@@ -4815,9 +4815,12 @@ mod attention_operator_resume_tests {
         }
 
         for operator in [
-            AttentionOperatorSpec::standard(),
-            AttentionOperatorSpec::experimental_r4(),
-            AttentionOperatorSpec::learned_absolute_source_attention(),
+            AttentionOperatorSpec::standard_v1(),
+            AttentionOperatorSpec::standard_v2(),
+            AttentionOperatorSpec::experimental_r4_v1(),
+            AttentionOperatorSpec::experimental_r4_v2(),
+            AttentionOperatorSpec::learned_absolute_v1(),
+            AttentionOperatorSpec::learned_absolute_v2(),
         ] {
             let dir = TestDir::new(&operator.id);
             let mut writer = ObservationShardWriter::open(dir.path(), 1).expect("open writer");
@@ -4851,6 +4854,26 @@ mod attention_operator_resume_tests {
             Some(&standard)
         );
         assert_eq!(dir.bytes(), pinned, "mismatch changed directory bytes");
+
+        let same_family = TestDir::new("standard-v1-to-v2");
+        let v1 = AttentionOperatorSpec::standard_v1();
+        let v2 = AttentionOperatorSpec::standard_v2();
+        let mut writer =
+            ObservationShardWriter::open(same_family.path(), 1).expect("open same-family writer");
+        writer
+            .set_attention_operator(&v1)
+            .expect("pin immutable v1 record");
+        let pinned = same_family.bytes();
+        let error = writer
+            .set_attention_operator(&v2)
+            .expect_err("v2 cannot resume a v1 observation directory");
+        assert!(error.reason.contains("incompatible observation resume"));
+        assert_eq!(writer.manifest().attention_operator.as_ref(), Some(&v1));
+        assert_eq!(
+            same_family.bytes(),
+            pinned,
+            "v1-to-v2 refusal changed observation bytes"
+        );
     }
 
     #[test]

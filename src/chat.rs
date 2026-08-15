@@ -953,35 +953,11 @@ fn trigger_in_client_compilation<W: Write>(
         )?;
     }
 
-    // Stage 2: Compile observation corpus
-    let accel_options = [
-        (
-            "1) Fast Hardware Acceleration",
-            "Use Apple Accelerate BLAS SIMD/AMX (~25x Speedup) [Default]",
-        ),
-        (
-            "2) Strict Exact Scalar CPU",
-            "Exact bitwise scalar math (Slower, exact proof baseline)",
-        ),
-    ];
-
-    let use_exact_scalar = matches!(
-        select_menu_interactive(
-            "Select Teacher Matrix Acceleration Mode for Compilation:",
-            &accel_options,
-            output,
-        ),
-        Ok(Some(1))
-    );
-
+    // Stage 2: Compile observation corpus. Projection ownership is fixed by
+    // the loaded architecture; the legacy --exact-scalar switch is a no-op.
     writeln!(
         output,
-        "[*] [Stage 2/4] Compiling zero-multiply observation corpus (accel: {})...",
-        if use_exact_scalar {
-            "exact scalar"
-        } else {
-            "Apple Accelerate BLAS SIMD/AMX"
-        }
+        "[*] [Stage 2/4] Compiling zero-multiply observation corpus (exact uor-matmul projections; certified-exact current attention)..."
     )?;
     output.flush()?;
     std::fs::create_dir_all(&compiled_dir).ok();
@@ -994,7 +970,7 @@ fn trigger_in_client_compilation<W: Write>(
         _ => ("176800", "300"),
     };
 
-    let mut compile_cmd_args = vec![
+    let compile_cmd_args = vec![
         "compile".to_string(),
         "--source".to_string(),
         source_dir.clone(),
@@ -1007,10 +983,6 @@ fn trigger_in_client_compilation<W: Write>(
         "--sequence-length".to_string(),
         "128".to_string(),
     ];
-    if use_exact_scalar {
-        compile_cmd_args.push("--exact-scalar".to_string());
-    }
-
     let status = std::process::Command::new(&r4_exe)
         .args(&compile_cmd_args)
         .status()?;
@@ -1553,7 +1525,10 @@ pub fn remote_interactive_chat(
                             let engine_options = [
                                 ("r4g1", "Sub-ms Zero-Multiply Residual Graph Engine"),
                                 ("attention", "Full Attention Teacher Oracle Fallback"),
-                                ("r4-attention", "Manifold-Constrained Geometric Attention"),
+                                (
+                                    "r4-attention",
+                                    "Llama Certified Leading-4 Attention (GPT-2 Learned-Absolute)",
+                                ),
                                 ("geometric", "f64 Geometric Router Engine"),
                                 ("transformerless-legacy", "Legacy Table Store Kernel"),
                             ];

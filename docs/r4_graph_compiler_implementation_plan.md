@@ -72,6 +72,13 @@ platform BLAS) — slower, but byte-reproducible across platforms; (b) per-platf
 Recommendation: (a) for all certificate-bearing artifacts, with (b) tolerated for local iteration.
 Recorded in the R4G1 RFC in Phase 0; implemented as a compiler mode in Phase 2.
 
+Implementation update (2026-08-15): #655-B2 removed the historical
+Accelerate/NEON/AVX2 split from Llama/shared teacher projections, which now use
+the pinned portable exact `uor-matmul` owner. GPT-2 Conv1D/MLP and tied
+`lm_head` remain conventional; current-v2 QK/value attention has its own
+certified-native/exact-fallback owner. Canonical mode continues to govern the
+remaining libm and ordered-reduction choices.
+
 ### D3 — Evaluation distribution and corpora
 
 Question: which distribution do all certificates certify on? The current baseline is
@@ -234,9 +241,10 @@ only; it must never become a dependency of format/runtime/proof-model. Per-stage
    κ. CI asserts this on a pinned mini-corpus (T=1 vs T=4 → identical artifact bytes).
 2. No naive parallel FP reductions: FP addition is non-associative, so all reductions are ordered
    (shard-ID order) with f64 or fixed-point accumulators.
-3. Certificate-bearing compiles use scalar kernels only (no Accelerate/NEON matmul): platform SIMD
-   reorders FP sums internally and breaks cross-platform byte equality (D2). Platform-accelerated
-   mode is for local iteration, validated by behavioral equivalence (PDF §15).
+3. Llama/shared weight projections use pinned exact `uor-matmul`. Certificate-bearing compiles
+   additionally select the canonical libm and ordered-reduction family; GPT-2's conventional
+   dense sites and certified-exact current attention are recorded separately rather than being
+   relabeled by this historical D2 switch.
 4. Seeds pinned; any shuffling derives from a seeded PRNG over sample IDs, never iteration order.
 
 **Memory budget.** See [compiler_memory_budget.md](file:///Users/casey.allard/uor-r4/docs/compiler_memory_budget.md) (Issue #169) for the normative concurrency-aware memory budget and backpressure model. A `--memory-budget` flag derives shard sizes from
@@ -514,7 +522,8 @@ Objective: machine-checked evidence for the proof obligations (PDF §25, §27).
 Objective: AVX2/AVX-512/NEON kernels behind validated runtime dispatch (PDF §17, A5).
 
 - Precedent exists: `assign_plain` bulk-popcount fast path witnessed equal to kernel path
-  (PROOF.md P1); teacher matmul already has NEON/AVX2 backends (`teacher.rs:159-356`).
+  (PROOF.md P1). Historical teacher NEON/AVX2 backends were retired when #655-B2 made pinned exact
+  `uor-matmul` the sole teacher projection owner; they are not a current acceleration precedent.
 - Each specialized kernel: property-based equivalence over finite primitive domains + differential
   tests over runtime fixtures; optional disable flag; scalar safe Rust remains normative semantics.
 - Unsafe confined to adapter modules with SAFETY comments + Miri.

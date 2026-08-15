@@ -627,10 +627,12 @@ pub struct TopKEntry {
     pub probability: f32,
 }
 
-/// Per-check absolute tolerances. Defaults (see [`Default`]) cover the
-/// deterministic-per-machine variance between the fast SIMD matmul backends
-/// the teacher may select on different hosts; on one host a replay is
-/// bit-identical and every delta is zero.
+/// Per-check absolute tolerances. Defaults (see [`Default`]) retain legacy
+/// fixture compatibility and cover the remaining noncanonical libm/reduction
+/// family. They are not Llama weight-projection tolerances: those projections
+/// use the pinned portable exact `uor-matmul` owner, while Gate E separately
+/// owns the canonical cross-platform byte-reproduction claim. GPT-2 has its
+/// own declared dense and current-attention arithmetic records.
 #[cfg(not(target_arch = "wasm32"))]
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct FixtureTolerances {

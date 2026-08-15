@@ -23,7 +23,116 @@
 use std::collections::{BTreeMap, HashMap};
 #[cfg(not(target_arch = "wasm32"))]
 use std::io::Write;
+#[cfg(not(target_arch = "wasm32"))]
+use std::sync::atomic::{AtomicU64, Ordering};
+#[cfg(not(target_arch = "wasm32"))]
+use uor_r4_model_source::SourceUnavailable;
 use uor_r4_model_source::{RepresentationSource, TeacherOracle};
+
+#[cfg(not(target_arch = "wasm32"))]
+static SOURCE_CORPUS_CHECKPOINT_SEQUENCE: AtomicU64 = AtomicU64::new(0);
+
+/// Return whether `name` is one of the core compiler's reserved atomic
+/// checkpoint temporaries for `meta_file_name`.
+///
+/// Callers may reclaim such a file only while holding exclusive ownership of
+/// the corpus output. A process can die after `create_new` or a partial write,
+/// so byte completeness is deliberately not part of the name predicate.
+#[cfg(not(target_arch = "wasm32"))]
+pub fn is_source_corpus_checkpoint_temporary_name(name: &str, meta_file_name: &str) -> bool {
+    let prefix = format!(".{meta_file_name}.checkpoint.");
+    let Some(sequence) = name
+        .strip_prefix(&prefix)
+        .and_then(|rest| rest.strip_suffix(".tmp"))
+    else {
+        return false;
+    };
+    let mut parts = sequence.split('.');
+    parts
+        .next()
+        .is_some_and(|part| !part.is_empty() && part.bytes().all(|byte| byte.is_ascii_digit()))
+        && parts
+            .next()
+            .is_some_and(|part| !part.is_empty() && part.bytes().all(|byte| byte.is_ascii_digit()))
+        && parts.next().is_none()
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn source_corpus_checkpoint_bytes(n: u64, stories: u64, rng: u64, done: u8) -> [u8; 25] {
+    let mut bytes = [0u8; 25];
+    bytes[0..8].copy_from_slice(&n.to_le_bytes());
+    bytes[8..16].copy_from_slice(&stories.to_le_bytes());
+    bytes[16..24].copy_from_slice(&rng.to_le_bytes());
+    bytes[24] = done;
+    bytes
+}
+
+/// Atomically replace the fixed-width source corpus checkpoint.
+///
+/// The temporary is created beside the destination, synced, renamed, and the
+/// parent directory is synced. The records and hidden streams must be synced
+/// by the caller before invoking this helper so metadata can never durably
+/// name rows whose bytes were not durably committed first.
+#[cfg(not(target_arch = "wasm32"))]
+fn publish_source_corpus_checkpoint(mp: &str, bytes: &[u8; 25]) -> Result<(), SourceUnavailable> {
+    let destination = std::path::Path::new(mp);
+    let parent = destination
+        .parent()
+        .filter(|parent| !parent.as_os_str().is_empty())
+        .unwrap_or_else(|| std::path::Path::new("."));
+    let file_name = destination
+        .file_name()
+        .and_then(|name| name.to_str())
+        .ok_or_else(|| {
+            SourceUnavailable::new(format!(
+                "corpus checkpoint path is not UTF-8: {}",
+                destination.display()
+            ))
+        })?;
+
+    match std::fs::symlink_metadata(destination) {
+        Ok(metadata) if metadata.file_type().is_file() => {}
+        Ok(_) => {
+            return Err(SourceUnavailable::new(format!(
+                "corpus checkpoint {} is not a regular non-symlink file",
+                destination.display()
+            )));
+        }
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+        Err(error) => return Err(SourceUnavailable::new(error)),
+    }
+
+    let (temporary, mut file) = loop {
+        let sequence = SOURCE_CORPUS_CHECKPOINT_SEQUENCE.fetch_add(1, Ordering::Relaxed);
+        let candidate = parent.join(format!(
+            ".{file_name}.checkpoint.{}.{}.tmp",
+            std::process::id(),
+            sequence
+        ));
+        match std::fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&candidate)
+        {
+            Ok(file) => break (candidate, file),
+            Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => continue,
+            Err(error) => return Err(SourceUnavailable::new(error)),
+        }
+    };
+
+    if let Err(error) = file.write_all(bytes).and_then(|()| file.sync_all()) {
+        let _ = std::fs::remove_file(&temporary);
+        return Err(SourceUnavailable::new(error));
+    }
+    drop(file);
+    if let Err(error) = std::fs::rename(&temporary, destination) {
+        let _ = std::fs::remove_file(&temporary);
+        return Err(SourceUnavailable::new(error));
+    }
+    std::fs::File::open(parent)?
+        .sync_all()
+        .map_err(SourceUnavailable::new)
+}
 
 #[inline]
 fn canonical_math_enabled() -> bool {
@@ -887,6 +996,13 @@ pub fn generate_to_with_token_byte_lengths(
     rp: &str,
     token_byte_lengths: Option<&[u32]>,
 ) {
+    let mut hidden_path = String::from(rp);
+    if hidden_path.ends_with("_recs.bin") {
+        hidden_path = hidden_path.replace("_recs.bin", "_hidden.bin");
+    } else {
+        hidden_path.push_str(".hidden");
+    }
+
     let (mut n, mut stories, mut rng, mut done) = match std::fs::read(mp) {
         Ok(b) if b.len() == 25 => (
             u64::from_le_bytes(b[0..8].try_into().unwrap()),
@@ -894,7 +1010,40 @@ pub fn generate_to_with_token_byte_lengths(
             u64::from_le_bytes(b[16..24].try_into().unwrap()),
             b[24],
         ),
-        _ => (0, 0, 0x5EED, 0),
+        Ok(b) => {
+            eprintln!(
+                "corpus metadata cannot be resumed: {mp} is {} bytes, expected exactly 25",
+                b.len()
+            );
+            return;
+        }
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+            for path in [rp, hidden_path.as_str()] {
+                match std::fs::symlink_metadata(path) {
+                    Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+                    Ok(_) => {
+                        eprintln!(
+                            "corpus metadata cannot be initialized: {path} exists without the authoritative zero checkpoint {mp}"
+                        );
+                        return;
+                    }
+                    Err(error) => {
+                        eprintln!("corpus stream {path} cannot be inspected: {error}");
+                        return;
+                    }
+                }
+            }
+            let checkpoint = source_corpus_checkpoint_bytes(0, 0, 0x5EED, 0);
+            if let Err(error) = publish_source_corpus_checkpoint(mp, &checkpoint) {
+                eprintln!("cannot publish initial corpus checkpoint {mp}: {error}");
+                return;
+            }
+            (0, 0, 0x5EED, 0)
+        }
+        Err(error) => {
+            eprintln!("corpus metadata cannot be read: {mp}: {error}");
+            return;
+        }
     };
     if (n as usize) < target {
         done = 0;
@@ -961,12 +1110,6 @@ pub fn generate_to_with_token_byte_lengths(
         .open(rp)
         .unwrap();
 
-    let mut hidden_path = String::from(rp);
-    if hidden_path.ends_with("_recs.bin") {
-        hidden_path = hidden_path.replace("_recs.bin", "_hidden.bin");
-    } else {
-        hidden_path.push_str(".hidden");
-    }
     let mut hidden_file = std::fs::OpenOptions::new()
         .create(true)
         .append(true)
@@ -1019,12 +1162,16 @@ pub fn generate_to_with_token_byte_lengths(
             token = next;
         }
         stories += 1;
-        let mut b = [0u8; 25];
-        b[0..8].copy_from_slice(&n.to_le_bytes());
-        b[8..16].copy_from_slice(&stories.to_le_bytes());
-        b[16..24].copy_from_slice(&rng.to_le_bytes());
-        b[24] = done;
-        std::fs::write(mp, b).unwrap();
+        // Commit ordering is records -> hidden rows -> metadata. A host crash
+        // can therefore leave only an uncommitted stream tail, which resume
+        // safely truncates to the last authoritative story checkpoint.
+        recs.flush().and_then(|()| recs.sync_all()).unwrap();
+        hidden_file
+            .flush()
+            .and_then(|()| hidden_file.sync_all())
+            .unwrap();
+        let checkpoint = source_corpus_checkpoint_bytes(n, stories, rng, done);
+        publish_source_corpus_checkpoint(mp, &checkpoint).unwrap();
     }
     println!(
         "corpus: {} / {} tokens, {} stories, done={}",
@@ -2119,7 +2266,20 @@ pub fn induce_hierarchical_codes(
 
 #[cfg(test)]
 mod capacity_override_tests {
-    use super::{capacity_override_f64, capacity_override_usize};
+    use super::{
+        capacity_override_f64, capacity_override_usize, is_source_corpus_checkpoint_temporary_name,
+        publish_source_corpus_checkpoint, source_corpus_checkpoint_bytes,
+    };
+    use std::sync::atomic::{AtomicU64, Ordering};
+
+    fn checkpoint_test_path(label: &str) -> std::path::PathBuf {
+        static NEXT: AtomicU64 = AtomicU64::new(0);
+        std::env::temp_dir().join(format!(
+            "uor-r4-core-checkpoint-{label}-{}-{}",
+            std::process::id(),
+            NEXT.fetch_add(1, Ordering::Relaxed)
+        ))
+    }
 
     #[test]
     fn unset_returns_pinned_default() {
@@ -2151,5 +2311,42 @@ mod capacity_override_tests {
     fn zero_fails_loudly() {
         std::env::set_var("R4_TEST_CAP_ZERO", "0");
         let _ = capacity_override_usize("R4_TEST_CAP_ZERO", 50_000);
+    }
+
+    #[test]
+    fn source_corpus_checkpoint_publish_is_atomic_and_name_is_strict() {
+        let root = checkpoint_test_path("atomic");
+        std::fs::create_dir_all(&root).expect("checkpoint test directory");
+        let meta = root.join("corpus.meta");
+        let first = source_corpus_checkpoint_bytes(0, 0, 0x5EED, 0);
+        let second = source_corpus_checkpoint_bytes(17, 2, 99, 1);
+        publish_source_corpus_checkpoint(meta.to_str().expect("UTF-8 path"), &first)
+            .expect("initial atomic checkpoint");
+        publish_source_corpus_checkpoint(meta.to_str().expect("UTF-8 path"), &second)
+            .expect("atomic checkpoint replacement");
+        assert_eq!(std::fs::read(&meta).expect("stable checkpoint"), second);
+        assert!(std::fs::read_dir(&root)
+            .expect("checkpoint directory")
+            .all(|entry| !entry
+                .expect("checkpoint entry")
+                .file_name()
+                .to_string_lossy()
+                .ends_with(".tmp")));
+        assert!(is_source_corpus_checkpoint_temporary_name(
+            ".corpus.meta.checkpoint.12.34.tmp",
+            "corpus.meta"
+        ));
+        for invalid in [
+            ".corpus.meta.checkpoint..34.tmp",
+            ".corpus.meta.checkpoint.12.x.tmp",
+            ".corpus.meta.checkpoint.12.34.56.tmp",
+            ".other.meta.checkpoint.12.34.tmp",
+        ] {
+            assert!(!is_source_corpus_checkpoint_temporary_name(
+                invalid,
+                "corpus.meta"
+            ));
+        }
+        let _ = std::fs::remove_dir_all(root);
     }
 }

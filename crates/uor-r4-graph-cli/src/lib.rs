@@ -38,7 +38,7 @@ pub mod cover_sweep;
 pub mod recommend_scale;
 mod runtime_corpus;
 mod scenarios;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
@@ -235,11 +235,161 @@ const COMPILE_OUTPUT_MUTABLE_FILES: [&str; 9] = [
 
 const SOURCE_CORPUS_META_BYTES: usize = 25;
 const SOURCE_CORPUS_RECORD_BYTES: u64 = 48;
+const SOURCE_CORPUS_META_FILE: &str = "corpus.meta";
 
 #[derive(Debug, Default, PartialEq, Eq)]
 struct SourceCompileResumePlan {
     records_committed_bytes: Option<u64>,
     hidden_committed_bytes: Option<u64>,
+}
+
+fn looks_like_source_corpus_checkpoint_temporary(name: &str) -> bool {
+    name.starts_with(&format!(".{SOURCE_CORPUS_META_FILE}.checkpoint.")) && name.ends_with(".tmp")
+}
+
+/// Validate, without mutating, the exact checkpoint-temporary namespace.
+/// A strict numeric name can contain zero, partial, or complete bytes because
+/// every one is an honest process-death point after `create_new`. Only the
+/// caller holding exclusive compile-session ownership may reclaim it later.
+fn validate_source_corpus_checkpoint_temporaries(output: &Path) -> Result<(), SourceUnavailable> {
+    let entries = match std::fs::read_dir(output) {
+        Ok(entries) => entries,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(()),
+        Err(error) => {
+            return Err(SourceUnavailable::new(format!(
+                "source compile output {} cannot be enumerated for checkpoint recovery: {error}",
+                output.display()
+            )));
+        }
+    };
+    for entry in entries {
+        let entry = entry.map_err(SourceUnavailable::new)?;
+        let Some(name) = entry.file_name().to_str().map(str::to_owned) else {
+            continue;
+        };
+        if compiler::is_source_corpus_checkpoint_temporary_name(&name, SOURCE_CORPUS_META_FILE) {
+            let metadata =
+                std::fs::symlink_metadata(entry.path()).map_err(SourceUnavailable::new)?;
+            if !metadata.file_type().is_file() {
+                return Err(SourceUnavailable::new(format!(
+                    "recognized source corpus checkpoint temporary {} is not a regular non-symlink file",
+                    entry.path().display()
+                )));
+            }
+        } else if looks_like_source_corpus_checkpoint_temporary(&name) {
+            return Err(SourceUnavailable::new(format!(
+                "source compile output {} contains unrecognized checkpoint temporary {name}",
+                output.display()
+            )));
+        }
+    }
+    Ok(())
+}
+
+fn recover_source_corpus_checkpoint_temporaries(output: &Path) -> Result<(), SourceUnavailable> {
+    validate_source_corpus_checkpoint_temporaries(output)?;
+    let entries = match std::fs::read_dir(output) {
+        Ok(entries) => entries,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(()),
+        Err(error) => return Err(SourceUnavailable::new(error)),
+    };
+    let mut reclaimed = false;
+    for entry in entries {
+        let entry = entry.map_err(SourceUnavailable::new)?;
+        let Some(name) = entry.file_name().to_str().map(str::to_owned) else {
+            continue;
+        };
+        if compiler::is_source_corpus_checkpoint_temporary_name(&name, SOURCE_CORPUS_META_FILE) {
+            std::fs::remove_file(entry.path()).map_err(SourceUnavailable::new)?;
+            reclaimed = true;
+        }
+    }
+    if reclaimed {
+        sync_compile_output_directory(output)
+    } else {
+        Ok(())
+    }
+}
+
+fn initial_source_corpus_checkpoint() -> [u8; SOURCE_CORPUS_META_BYTES] {
+    let mut bytes = [0u8; SOURCE_CORPUS_META_BYTES];
+    bytes[16..24].copy_from_slice(&0x5EEDu64.to_le_bytes());
+    bytes
+}
+
+fn sync_compile_output_directory(output: &Path) -> Result<(), SourceUnavailable> {
+    std::fs::File::open(output)
+        .and_then(|directory| directory.sync_all())
+        .map_err(|error| {
+            SourceUnavailable::new(format!(
+                "compile output directory {} cannot be durably synchronized: {error}",
+                output.display()
+            ))
+        })
+}
+
+struct SourceCorpusSession {
+    file: std::fs::File,
+}
+
+impl Drop for SourceCorpusSession {
+    fn drop(&mut self) {
+        let _ = self.file.unlock();
+    }
+}
+
+fn source_corpus_session(output: &Path) -> Result<SourceCorpusSession, SourceUnavailable> {
+    let parent = output.parent().unwrap_or_else(|| Path::new("."));
+    std::fs::create_dir_all(parent).map_err(SourceUnavailable::new)?;
+    let output_name = output
+        .file_name()
+        .and_then(|name| name.to_str())
+        .ok_or_else(|| SourceUnavailable::new("compile output name is not UTF-8"))?;
+    let path = parent.join(format!(".{output_name}.source-corpus-session.lock"));
+    match std::fs::symlink_metadata(&path) {
+        Ok(metadata) if metadata.file_type().is_file() => {}
+        Ok(_) => {
+            return Err(SourceUnavailable::new(format!(
+                "source corpus session {} is not a regular non-symlink file",
+                path.display()
+            )));
+        }
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+        Err(error) => return Err(SourceUnavailable::new(error)),
+    }
+    let file = std::fs::OpenOptions::new()
+        .read(true)
+        .write(true)
+        .create(true)
+        .truncate(false)
+        .open(&path)
+        .map_err(SourceUnavailable::new)?;
+    let path_metadata = std::fs::symlink_metadata(&path).map_err(SourceUnavailable::new)?;
+    let file_metadata = file.metadata().map_err(SourceUnavailable::new)?;
+    if !path_metadata.file_type().is_file() || !file_metadata.file_type().is_file() {
+        return Err(SourceUnavailable::new(format!(
+            "source corpus session {} changed type while opened",
+            path.display()
+        )));
+    }
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::MetadataExt;
+        if path_metadata.dev() != file_metadata.dev() || path_metadata.ino() != file_metadata.ino()
+        {
+            return Err(SourceUnavailable::new(format!(
+                "source corpus session {} changed identity while opened",
+                path.display()
+            )));
+        }
+    }
+    file.try_lock().map_err(|error| {
+        SourceUnavailable::new(format!(
+            "source corpus output {} is BUSY under another compiler session: {error}",
+            output.display()
+        ))
+    })?;
+    Ok(SourceCorpusSession { file })
 }
 
 /// Inspect every mutable compile-output leaf without following it. Binding
@@ -412,6 +562,7 @@ fn preflight_source_compile_resume(
     // This also rejects a symlink output root and every nonregular mutable
     // leaf, independently of whether both identity sidecars already match.
     let _ = compile_output_payload_inventory(output)?;
+    validate_source_corpus_checkpoint_temporaries(output)?;
     let meta_path = output.join("corpus.meta");
     let records_path = output.join("corpus.records");
     let hidden_path = output.join("corpus.records.hidden");
@@ -426,6 +577,19 @@ fn preflight_source_compile_resume(
             return Err(SourceUnavailable::new(format!(
                 "{} exists without corpus.meta/corpus.records; refusing an orphan hidden resume stream before mutation",
                 hidden_path.display()
+            )));
+        }
+        (true, false) if !hidden_present => {
+            let bytes = std::fs::read(&meta_path).map_err(SourceUnavailable::new)?;
+            if bytes == initial_source_corpus_checkpoint() {
+                // The core compiler durably publishes the authoritative zero
+                // checkpoint before it creates either stream. A process death
+                // in that narrow window is therefore a valid fresh prefix.
+                return Ok(SourceCompileResumePlan::default());
+            }
+            return Err(SourceUnavailable::new(format!(
+                "{} exists without corpus.records and is not the authoritative zero checkpoint; one-sided source corpus resume refused before mutation",
+                meta_path.display()
             )));
         }
         (true, false) | (false, true) => {
@@ -718,7 +882,7 @@ fn pin_compile_tokenizer_adapter(
             std::fs::remove_file(&temporary).map_err(|error| {
                 SourceUnavailable::new(format!("{}: {error}", temporary.display()))
             })?;
-            Ok(())
+            sync_compile_output_directory(output)
         }
         Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {
             let _ = std::fs::remove_file(&temporary);
@@ -728,7 +892,8 @@ fn pin_compile_tokenizer_adapter(
                     sidecar.display()
                 ))
             })?;
-            require_matching_compile_tokenizer_adapter(output, requested, &recorded)
+            require_matching_compile_tokenizer_adapter(output, requested, &recorded)?;
+            sync_compile_output_directory(output)
         }
         Err(error) => {
             let _ = std::fs::remove_file(&temporary);
@@ -813,6 +978,108 @@ fn validate_attention_operator(
     Ok(registered)
 }
 
+/// Parse a JSON document solely to reject duplicate object keys at every
+/// nesting level. `serde_json::Value` is last-key-wins, which is unsuitable
+/// for provenance records where duplicated fields could spell two arithmetic
+/// eras in one sidecar.
+struct DuplicateRejectingJson;
+
+impl<'de> Deserialize<'de> for DuplicateRejectingJson {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        struct Visitor;
+
+        impl<'de> serde::de::Visitor<'de> for Visitor {
+            type Value = DuplicateRejectingJson;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("JSON without duplicate object keys")
+            }
+
+            fn visit_bool<E>(self, _: bool) -> Result<Self::Value, E> {
+                Ok(DuplicateRejectingJson)
+            }
+
+            fn visit_i64<E>(self, _: i64) -> Result<Self::Value, E> {
+                Ok(DuplicateRejectingJson)
+            }
+
+            fn visit_u64<E>(self, _: u64) -> Result<Self::Value, E> {
+                Ok(DuplicateRejectingJson)
+            }
+
+            fn visit_f64<E>(self, _: f64) -> Result<Self::Value, E> {
+                Ok(DuplicateRejectingJson)
+            }
+
+            fn visit_str<E>(self, _: &str) -> Result<Self::Value, E> {
+                Ok(DuplicateRejectingJson)
+            }
+
+            fn visit_string<E>(self, _: String) -> Result<Self::Value, E> {
+                Ok(DuplicateRejectingJson)
+            }
+
+            fn visit_none<E>(self) -> Result<Self::Value, E> {
+                Ok(DuplicateRejectingJson)
+            }
+
+            fn visit_unit<E>(self) -> Result<Self::Value, E> {
+                Ok(DuplicateRejectingJson)
+            }
+
+            fn visit_some<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                DuplicateRejectingJson::deserialize(deserializer)
+            }
+
+            fn visit_seq<A>(self, mut sequence: A) -> Result<Self::Value, A::Error>
+            where
+                A: serde::de::SeqAccess<'de>,
+            {
+                while sequence.next_element::<DuplicateRejectingJson>()?.is_some() {}
+                Ok(DuplicateRejectingJson)
+            }
+
+            fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
+            where
+                A: serde::de::MapAccess<'de>,
+            {
+                let mut keys = std::collections::BTreeSet::new();
+                while let Some(key) = map.next_key::<String>()? {
+                    if !keys.insert(key.clone()) {
+                        return Err(serde::de::Error::custom(format!(
+                            "duplicate JSON field {key:?}"
+                        )));
+                    }
+                    map.next_value::<DuplicateRejectingJson>()?;
+                }
+                Ok(DuplicateRejectingJson)
+            }
+        }
+
+        deserializer.deserialize_any(Visitor)
+    }
+}
+
+fn reject_duplicate_attention_operator_json(
+    bytes: &[u8],
+    path: &Path,
+) -> Result<(), SourceUnavailable> {
+    serde_json::from_slice::<DuplicateRejectingJson>(bytes)
+        .map(|_| ())
+        .map_err(|error| {
+            SourceUnavailable::new(format!(
+                "{}: malformed attention-operator binding: {error}",
+                path.display()
+            ))
+        })
+}
+
 fn validate_attention_operator_json(
     value: &serde_json::Value,
     context: &str,
@@ -846,6 +1113,7 @@ fn read_optional_compiled_attention_operator(
             path.display()
         ))
     })?;
+    reject_duplicate_attention_operator_json(&bytes, &path)?;
     let value: serde_json::Value = serde_json::from_slice(&bytes).map_err(|error| {
         SourceUnavailable::new(format!(
             "{}: malformed attention-operator binding: {error}",
@@ -979,7 +1247,7 @@ fn publish_attention_operator_binding(
             std::fs::remove_file(&temporary).map_err(|error| {
                 SourceUnavailable::new(format!("{}: {error}", temporary.display()))
             })?;
-            Ok(())
+            sync_compile_output_directory(output)
         }
         Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {
             let _ = std::fs::remove_file(&temporary);
@@ -989,7 +1257,8 @@ fn publish_attention_operator_binding(
                     path.display()
                 ))
             })?;
-            require_matching_compiled_attention_operator(output, &requested, &recorded)
+            require_matching_compiled_attention_operator(output, &requested, &recorded)?;
+            sync_compile_output_directory(output)
         }
         Err(error) => {
             let _ = std::fs::remove_file(&temporary);
@@ -3749,6 +4018,30 @@ fn deepest_argmax(store: &runtime::Store, code: &[u8; compiler::STAGES]) -> Opti
     None
 }
 
+/// Require the evaluation oracle to compute the exact immutable attention
+/// record pinned by the compiled bundle. Sharing a family id is insufficient:
+/// v1 and v2 name different teacher arithmetic and cannot replay each other's
+/// corpus rows.
+fn require_matching_evaluation_attention_operator(
+    compiled: &Path,
+    recorded: &AttentionOperatorSpec,
+    actual: &AttentionOperatorSpec,
+) -> Result<(), SourceUnavailable> {
+    if actual == recorded {
+        return Ok(());
+    }
+    Err(SourceUnavailable::new(format!(
+        "{} is pinned to attention operator {}/{} (digest {}), but the loaded evaluation teacher computes {}/{} (digest {}); evaluation refused before replay",
+        compiled.display(),
+        recorded.id,
+        recorded.version,
+        recorded.declared_digest(),
+        actual.id,
+        actual.version,
+        actual.declared_digest(),
+    )))
+}
+
 fn evaluate_report(args: &[String]) -> Result<(), SourceUnavailable> {
     let options = parse_evaluate_report_options(args)?;
     // Evaluation decodes/classifies in the same registered id space selected
@@ -3825,18 +4118,11 @@ fn evaluate_report(args: &[String]) -> Result<(), SourceUnavailable> {
         &actual_attention_operator,
         "evaluation teacher attention operator",
     )?;
-    if actual_attention_operator != recorded_attention_operator {
-        return Err(SourceUnavailable::new(format!(
-            "{} is pinned to attention operator {}/{} (digest {}), but the loaded evaluation teacher computes {}/{} (digest {}); evaluation refused before replay",
-            options.compiled.display(),
-            recorded_attention_operator.id,
-            recorded_attention_operator.version,
-            recorded_attention_operator.declared_digest(),
-            actual_attention_operator.id,
-            actual_attention_operator.version,
-            actual_attention_operator.declared_digest(),
-        )));
-    }
+    require_matching_evaluation_attention_operator(
+        &options.compiled,
+        &recorded_attention_operator,
+        &actual_attention_operator,
+    )?;
     let mut teacher_logits = vec![0f32; oracle.vocab()];
     let artifacts_bytes = std::fs::read(&artifacts_path)?;
 
@@ -4284,6 +4570,7 @@ where
         .output
         .clone()
         .unwrap_or_else(|| PathBuf::from(".uor-models/compiled").join(&slug));
+    let _corpus_session = source_corpus_session(&output)?;
     eprintln!("compiler output: {}", output.display());
     let meta = output.join("corpus.meta");
     let records = output.join("corpus.records");
@@ -4320,6 +4607,11 @@ where
         })
         .transpose()?;
     let resume = preflight_source_compile_resume(&output, hidden_row_bytes, options.target)?;
+    // All read-only identity and resume checks have now accepted the bundle.
+    // Under the server's cross-process output session, reclaim only the
+    // core compiler's exact reserved checkpoint temporaries; arbitrary names
+    // and nonregular entries were rejected above without mutation.
+    recover_source_corpus_checkpoint_temporaries(&output)?;
     // A story checkpoint commits records and hidden rows together. Normalize
     // both interrupted tails before the core generator reopens either stream.
     reconcile_source_compile_resume(&output, &resume)?;
@@ -4609,6 +4901,21 @@ pub fn copy_recorded_attention(args: &[String]) -> Result<(), SourceUnavailable>
     }
 }
 
+/// Resolve explicit recorded provenance or the immutable standard/1 meaning
+/// of genuine pre-provenance absence for `compile-recorded`.
+fn recorded_compile_attention_operator(
+    corpus_meta: &Path,
+    corpus_recs: &Path,
+) -> Result<AttentionOperatorSpec, SourceUnavailable> {
+    match recorded_corpus_attention_operator(corpus_meta, corpus_recs)? {
+        Some(recorded) => Ok(recorded),
+        None => uor_r4_model_source::attention::operator_spec(
+            AttentionOperatorSpec::STANDARD_ID,
+            LEGACY_STANDARD_ATTENTION_OPERATOR_VERSION,
+        ),
+    }
+}
+
 /// Compile a completed recorded corpus without loading or executing a
 /// transformer. This is the observation-first production path; teacher
 /// capture remains available through `observe`/`compile` as an explicitly
@@ -4617,13 +4924,7 @@ pub fn compile_recorded_corpus(args: &[String]) -> Result<(), SourceUnavailable>
     let options = parse_recorded_compile_options(args)?;
     preflight_recorded_compile_output(&options.output)?;
     let attention_operator =
-        match recorded_corpus_attention_operator(&options.corpus_meta, &options.corpus_recs)? {
-            Some(recorded) => recorded,
-            None => uor_r4_model_source::attention::operator_spec(
-                AttentionOperatorSpec::STANDARD_ID,
-                LEGACY_STANDARD_ATTENTION_OPERATOR_VERSION,
-            )?,
-        };
+        recorded_compile_attention_operator(&options.corpus_meta, &options.corpus_recs)?;
     preflight_compiled_attention_operator(&options.output, &attention_operator)?;
     let meta = options
         .corpus_meta
@@ -5211,9 +5512,12 @@ mod tests {
     #[test]
     fn cover_options_carry_the_attention_operator() {
         for record in [
-            uor_r4_model_source::attention::AttentionOperatorSpec::standard(),
-            uor_r4_model_source::attention::AttentionOperatorSpec::experimental_r4(),
-            uor_r4_model_source::attention::AttentionOperatorSpec::learned_absolute_source_attention(),
+            uor_r4_model_source::attention::AttentionOperatorSpec::standard_v1(),
+            uor_r4_model_source::attention::AttentionOperatorSpec::standard_v2(),
+            uor_r4_model_source::attention::AttentionOperatorSpec::experimental_r4_v1(),
+            uor_r4_model_source::attention::AttentionOperatorSpec::experimental_r4_v2(),
+            uor_r4_model_source::attention::AttentionOperatorSpec::learned_absolute_v1(),
+            uor_r4_model_source::attention::AttentionOperatorSpec::learned_absolute_v2(),
         ] {
             let json = serde_json::to_string(&record).expect("record serializes");
             let args = ["--attention-operator".to_owned(), json];
@@ -5625,7 +5929,7 @@ mod tests {
     #[test]
     fn compile_attention_operator_sidecar_is_exact_atomic_and_idempotent() {
         let output = unique_cli_test_path("compile-attention-fresh");
-        let operator = AttentionOperatorSpec::learned_absolute_source_attention();
+        let operator = AttentionOperatorSpec::learned_absolute_v1();
         bind_compiled_attention_operator(&output, &operator).expect("fresh operator pin");
         let sidecar = output.join(ATTENTION_OPERATOR_BINDING_FILE);
         let bytes_before = std::fs::read(&sidecar).expect("sidecar bytes");
@@ -5641,6 +5945,134 @@ mod tests {
         );
         assert!(attention_operator_temp_entries(&output).is_empty());
         let _ = std::fs::remove_dir_all(output);
+    }
+
+    #[test]
+    fn compile_attention_operator_reader_accepts_every_immutable_and_current_source_record() {
+        for operator in [
+            AttentionOperatorSpec::standard_v1(),
+            AttentionOperatorSpec::standard_v2(),
+            AttentionOperatorSpec::experimental_r4_v1(),
+            AttentionOperatorSpec::experimental_r4_v2(),
+            AttentionOperatorSpec::learned_absolute_v1(),
+            AttentionOperatorSpec::learned_absolute_v2(),
+        ] {
+            let output = unique_cli_test_path(&format!(
+                "compile-attention-reader-{}-v{}",
+                operator.id, operator.version
+            ));
+            bind_compiled_attention_operator(&output, &operator).expect("publish full record");
+            assert_eq!(
+                compiled_attention_operator(&output).expect("read registered source record"),
+                operator
+            );
+            let _ = std::fs::remove_dir_all(output);
+        }
+    }
+
+    #[test]
+    fn compile_attention_operator_refuses_same_family_v1_to_v2_resume() {
+        let output = unique_cli_test_path("compile-attention-standard-v1-to-v2");
+        let v1 = AttentionOperatorSpec::standard_v1();
+        bind_compiled_attention_operator(&output, &v1).expect("pin immutable v1 record");
+        std::fs::write(output.join("corpus.records"), b"immutable v1 rows")
+            .expect("write v1 payload");
+        let before = directory_bytes(&output);
+
+        let error =
+            bind_compiled_attention_operator(&output, &AttentionOperatorSpec::standard_v2())
+                .expect_err("v2 cannot resume a v1 compile directory");
+        assert!(
+            error.reason.contains("pinned to attention operator"),
+            "{error}"
+        );
+        assert_eq!(directory_bytes(&output), before);
+        assert_eq!(
+            compiled_attention_operator(&output).expect("v1 binding remains"),
+            v1
+        );
+        let _ = std::fs::remove_dir_all(output);
+    }
+
+    #[test]
+    fn compile_attention_operator_rejects_duplicate_v1_and_v2_eras_before_resume_mutation() {
+        for (operator, shadow_version) in [
+            (AttentionOperatorSpec::standard_v1(), 2),
+            (AttentionOperatorSpec::standard_v2(), 1),
+        ] {
+            let output = unique_cli_test_path(&format!(
+                "compile-attention-duplicate-v{}",
+                operator.version
+            ));
+            std::fs::create_dir_all(&output).expect("output directory");
+            std::fs::write(output.join("corpus.records"), b"immutable teacher rows")
+                .expect("write existing payload");
+            let canonical = serde_json::to_string_pretty(&operator).expect("operator JSON");
+            let recorded_version = format!("\"version\": {}", operator.version);
+            assert_eq!(
+                canonical.matches(&recorded_version).count(),
+                1,
+                "fixture has exactly one canonical version field"
+            );
+            let duplicate = canonical.replacen(
+                &recorded_version,
+                &format!(
+                    "\"version\": {shadow_version},\n  \"version\": {}",
+                    operator.version
+                ),
+                1,
+            );
+            std::fs::write(output.join(ATTENTION_OPERATOR_BINDING_FILE), duplicate)
+                .expect("write ambiguous sidecar");
+            let before = directory_bytes(&output);
+
+            let resume_error = preflight_compiled_attention_operator(&output, &operator)
+                .expect_err("last-key-wins must not authorize a compile resume");
+            assert!(
+                resume_error
+                    .reason
+                    .contains("duplicate JSON field \"version\""),
+                "{resume_error}"
+            );
+            assert_eq!(directory_bytes(&output), before);
+
+            let evaluation_error = compiled_attention_operator(&output)
+                .expect_err("evaluation provenance must reject the same ambiguity");
+            assert!(
+                evaluation_error
+                    .reason
+                    .contains("duplicate JSON field \"version\""),
+                "{evaluation_error}"
+            );
+            assert_eq!(directory_bytes(&output), before);
+            let _ = std::fs::remove_dir_all(output);
+        }
+    }
+
+    #[test]
+    fn evaluation_attention_operator_accepts_exact_records_and_refuses_cross_era_replay() {
+        let compiled = Path::new("compiled-fixture");
+        for operator in [
+            AttentionOperatorSpec::standard_v1(),
+            AttentionOperatorSpec::standard_v2(),
+            AttentionOperatorSpec::experimental_r4_v1(),
+            AttentionOperatorSpec::experimental_r4_v2(),
+            AttentionOperatorSpec::learned_absolute_v1(),
+            AttentionOperatorSpec::learned_absolute_v2(),
+        ] {
+            require_matching_evaluation_attention_operator(compiled, &operator, &operator)
+                .expect("exact immutable record is replayable");
+        }
+
+        let error = require_matching_evaluation_attention_operator(
+            compiled,
+            &AttentionOperatorSpec::standard_v1(),
+            &AttentionOperatorSpec::standard_v2(),
+        )
+        .expect_err("same-family cross-era replay must fail closed");
+        assert!(error.reason.contains("evaluation refused before replay"));
+        assert!(error.reason.contains("standard-source-attention/1"));
+        assert!(error.reason.contains("standard-source-attention/2"));
     }
 
     #[test]
@@ -6222,6 +6654,60 @@ mod tests {
     }
 
     #[test]
+    fn source_compile_meta_only_zero_checkpoint_resumes_before_stream_creation() {
+        let output = unique_cli_test_path("source-resume-meta-only-zero");
+        std::fs::create_dir_all(&output).expect("compile output");
+        std::fs::write(
+            output.join(SOURCE_CORPUS_META_FILE),
+            initial_source_corpus_checkpoint(),
+        )
+        .expect("durable zero checkpoint fixture");
+
+        let plan = preflight_source_compile_resume(&output, Some(16), 10)
+            .expect("zero checkpoint precedes stream creation");
+        assert_eq!(plan, SourceCompileResumePlan::default());
+        assert!(!output.join("corpus.records").exists());
+        assert!(!output.join("corpus.records.hidden").exists());
+        let _ = std::fs::remove_dir_all(output);
+    }
+
+    #[test]
+    fn source_compile_checkpoint_temp_crash_matrix_recovers_only_reserved_regular_files() {
+        for (case, bytes) in [
+            ("empty", Vec::new()),
+            ("partial", vec![0xA5; 9]),
+            ("complete", initial_source_corpus_checkpoint().to_vec()),
+        ] {
+            let output = unique_cli_test_path(&format!("source-checkpoint-temp-{case}"));
+            std::fs::create_dir_all(&output).expect("compile output");
+            let temporary = output.join(format!(
+                ".{SOURCE_CORPUS_META_FILE}.checkpoint.{}.1.tmp",
+                std::process::id()
+            ));
+            std::fs::write(&temporary, bytes).expect("checkpoint crash residue");
+            validate_source_corpus_checkpoint_temporaries(&output)
+                .expect("reserved regular crash residue");
+            recover_source_corpus_checkpoint_temporaries(&output)
+                .expect("exclusive-owner recovery");
+            assert!(!temporary.exists());
+            let _ = std::fs::remove_dir_all(output);
+        }
+
+        let malformed = unique_cli_test_path("source-checkpoint-temp-malformed");
+        std::fs::create_dir_all(&malformed).expect("compile output");
+        let unknown = malformed.join(format!(
+            ".{SOURCE_CORPUS_META_FILE}.checkpoint.not-numeric.1.tmp"
+        ));
+        std::fs::write(&unknown, b"sentinel").expect("unknown temporary");
+        let before = directory_bytes(&malformed);
+        let error = validate_source_corpus_checkpoint_temporaries(&malformed)
+            .expect_err("unknown checkpoint temporary is terminal");
+        assert!(error.reason.contains("unrecognized checkpoint temporary"));
+        assert_eq!(directory_bytes(&malformed), before);
+        let _ = std::fs::remove_dir_all(malformed);
+    }
+
+    #[test]
     fn source_compile_resume_keeps_legacy_missing_hidden_optional_but_refuses_short_present_hidden()
     {
         let historical = unique_cli_test_path("source-resume-no-hidden");
@@ -6505,7 +6991,7 @@ mod tests {
                 &session,
                 None,
                 None,
-                Some(&AttentionOperatorSpec::standard()),
+                Some(&AttentionOperatorSpec::standard_v1()),
             )
             .map_err(|error| error.reason)?;
             let mut writer = session.writer().map_err(|error| error.reason)?;
@@ -6539,7 +7025,7 @@ mod tests {
                 &session,
                 Some(&loser_adapter),
                 None,
-                Some(&AttentionOperatorSpec::experimental_r4()),
+                Some(&AttentionOperatorSpec::standard_v2()),
             );
             drop(session);
             match result {
@@ -6567,7 +7053,7 @@ mod tests {
         assert_eq!(manifest.tokenizer_adapter, None);
         assert_eq!(
             manifest.attention_operator,
-            Some(AttentionOperatorSpec::standard())
+            Some(AttentionOperatorSpec::standard_v1())
         );
         assert!(!output.join("tokenizer.bin").exists());
         assert_eq!(
@@ -6695,6 +7181,27 @@ mod tests {
     }
 
     #[test]
+    fn compile_recorded_genuine_absence_resolves_to_immutable_standard_v1() {
+        let root = unique_cli_test_path("compile-recorded-legacy-standard-v1");
+        let (meta, records) = corpus_markers(&root);
+        assert_eq!(
+            recorded_compile_attention_operator(&meta, &records)
+                .expect("genuine recorded-corpus absence has a pinned legacy meaning"),
+            AttentionOperatorSpec::standard_v1()
+        );
+        assert_eq!(
+            LEGACY_STANDARD_ATTENTION_OPERATOR_VERSION,
+            AttentionOperatorSpec::STANDARD_V1_VERSION
+        );
+        assert_ne!(
+            AttentionOperatorSpec::standard_v1(),
+            AttentionOperatorSpec::standard(),
+            "the current alias must not leak into compile-recorded legacy absence"
+        );
+        let _ = std::fs::remove_dir_all(root);
+    }
+
+    #[test]
     fn recorded_corpus_attention_operator_reads_both_sources_and_rejects_conflicts() {
         let sidecar_root = unique_cli_test_path("recorded-attention-sidecar");
         let sidecar_operator = AttentionOperatorSpec::learned_absolute_source_attention();
@@ -6718,14 +7225,14 @@ mod tests {
         );
 
         let conflict_root = unique_cli_test_path("recorded-attention-conflict");
-        bind_compiled_attention_operator(&conflict_root, &AttentionOperatorSpec::standard())
+        bind_compiled_attention_operator(&conflict_root, &AttentionOperatorSpec::standard_v1())
             .expect("sidecar binding");
         let mut manifest = observe::ObservationManifest::new(1);
-        manifest.attention_operator = Some(AttentionOperatorSpec::experimental_r4());
+        manifest.attention_operator = Some(AttentionOperatorSpec::standard_v2());
         write_observation_manifest(&conflict_root, &manifest);
         let (meta, records) = corpus_markers(&conflict_root);
         let error = recorded_corpus_attention_operator(&meta, &records)
-            .expect_err("two provenance sources must agree exactly");
+            .expect_err("same-family v1/v2 provenance sources must agree exactly");
         assert!(
             error
                 .reason

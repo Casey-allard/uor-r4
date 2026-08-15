@@ -66,7 +66,7 @@ These are κ-relevant: changing them can change artifact bytes.
 | Variable | Meaning | Default |
 |---|---|---|
 | `TLESS_CANONICAL_DETERMINISTIC` | Any value ≠ `0` selects portable libm math and scalar reductions. **Required for the cross-platform Gate E claim.** | off |
-| `TLESS_EXACT_SCALAR` | Any value disables the SIMD/Accelerate fast matmul | unset (fast path on) |
+| `TLESS_EXACT_SCALAR` | Deprecated compatibility input. Llama/shared projections already use pinned exact `uor-matmul`, so this variable no longer changes their arithmetic; it does not select a GPT-2 Conv1D/lm-head route. | unset |
 | `TLESS_TEACHER_VFORCE_EXP` | macOS only; `0` disables Accelerate `vvexpf` | on (macOS); off under canonical mode |
 | `R4_TLESS_TLA6` | `0` opts a compile out of TLA6 emission | on |
 | `R4_TLESS_TLA7` | `0` opts a compile out of TLA7 (residual) emission → TLA6 | on |
@@ -171,4 +171,24 @@ Written under `.uor-models/` (or `UOR_MODEL_STORE`):
 | `last_engine.txt` | Persisted engine preference; **silently pins the cascade** for requests that omit `engine` |
 | `sources/<name>/` | Downloaded Hugging Face teacher sources |
 | `compiled/<name>/` | Compiled bundles: `score.r4g1`, `tless_artifacts.bin`, `tless_store.bin`, deployed `tokenizer.bin`, full source binding `tokenizer_adapter.json`, source-attention binding `attention_operator.json` (both used to fail-close corpus resume/evaluation), `corpus.meta`, and `corpus.records` |
+| `compiled/<name>-attention-v2/` | Browser-compile output when `compiled/<name>/` is already populated by the implicit or explicit source-attention v1 era. The server preserves the v1 root byte-for-byte and deterministically writes/resumes v2 here; restart discovery prefers this exact current-v2 sibling and maps the exact suffix back to `sources/<name>/`. Malformed, nonregular, conflicting, or unbound-populated v2 provenance is a hard error. Explicit CLI `--output` paths are never auto-rerouted. |
 | `corpora/` | Observation corpora |
+
+### Managed attention-era resolver (2026-08-15)
+
+`-attention-v2` is reserved for the server's physical era root; a downloaded
+source basename ending in that token is refused before compilation mutates an
+output. The base and exact-suffix reload names are aliases for one logical
+model. Both attach to `sources/<logical-name>/`, and status reports the
+selected physical root separately. A missing source is allowed for the #718
+decode-only path; a source entry that exists but is not a usable directory is
+an error.
+
+Every managed operation inspects both physical roots before choosing either
+one. A malformed/nonregular binding, an unbound populated suffix, a future
+version, conflicting operator families, or two current roots is terminal.
+Current-v2 startup/reload also requires the canonical corpus pair and
+`graph-cover/cover_report.json` to carry the same registry-exact operator as
+the root sidecar. Historical v1 remains readable when those newer supporting
+records are genuinely absent. These checks reconcile the available metadata;
+they do not add the graph-byte provenance section tracked separately by #637.

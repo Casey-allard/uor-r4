@@ -14,15 +14,16 @@
 //!   selector_normalization, value_aggregation, output_projection,
 //!   runtime_state, tie_breaking, permitted_operation_class, params}`
 //!   carried by the observation manifest and the cover/compile report.
-//! - [`standard_head_attention_weights`] and
-//!   [`head_attention_value_aggregate`] are the free, deterministic
-//!   reference implementations of `standard-source-attention/1` — the
-//!   exact arithmetic (iteration order, sequential f32 folds, one divide
-//!   per score) the teacher has always used, factored out unchanged.
-//! - [`experimental_r4_head_attention_weights`] is the factored
-//!   experimental branch, recorded under the honest id
-//!   `experimental-r4-source-attention/1` with its ACTUAL computation
-//!   (see below) — not the historical description.
+//! - [`standard_head_attention_weights`],
+//!   [`experimental_r4_head_attention_weights`], and
+//!   [`head_attention_value_aggregate`] implement the current version-2
+//!   source operators. Every raw Q·K and weighted-value dot returns the
+//!   correctly-rounded binary32 exact-real result: a native f64 sum is used
+//!   only when an outward interval lies strictly inside one binary32 RNE
+//!   cell; all other lanes use the pinned exact `uor-matmul` owner.
+//! - Version-1 entries remain immutable registry metadata for historical
+//!   artifacts. They name the former sequential/chunked f32 folds and remain
+//!   readable, but current source executors never silently resume as v1.
 //! - [`operator_spec`] is the versioned registry mapping `(id, version)`
 //!   to a spec; an unknown pair is refused by name on the sanctioned
 //!   [`SourceUnavailable`](crate::SourceUnavailable) surface rather than
@@ -37,9 +38,9 @@
 //! `h / kv_mul` where `kv_mul = n_heads / n_kv_heads`); RoPE rotation of
 //! q and k applied before any score (interleaved-pair or split-half
 //! layout is a source-config property, not an operator property); a
-//! growing KV cache attending the full prefix `0..=pos`; value
-//! aggregation as a position-ascending weighted sum `out[i] +=
-//! att[t] * v_t[i]`; and a dense per-layer f32 `wo` output projection.
+//! growing KV cache attending the full prefix `0..=pos`; correctly-rounded
+//! exact-real value dots over the full prefix; and a dense per-layer f32
+//! `wo` output projection.
 //! Both branches normalize scores with the SAME selector,
 //! `softmax_with_mode`: subtract the maximum score (first maximum on
 //! ties — value-identical, since only the maximum's value enters), then
@@ -49,21 +50,18 @@
 //!
 //! They differ ONLY in the compatibility relation:
 //!
-//! - **standard**: `score(t) = (Σ_{i<H} q[i]·k_t[i]) / sqrt(H)` for head
-//!   width `H`, accumulated as a single sequential f32 left fold over
-//!   every head dimension.
+//! - **standard**: `score(t) = RN32(Σ_{i<H} q[i]·k_t[i]) / sqrt(H)` for
+//!   head width `H`. The exact dot rounds once to binary32, then Llama's
+//!   historical per-score divide and per-weight softmax-sum divide remain.
 //! - **experimental**: `score(t) = (Σ_{c<⌊H/4⌋} Σ_{j<4}
-//!   q[4c+j]·k_t[4c+j]) / sqrt(H)` — the dot product computed in 4-wide
-//!   chunks (each chunk a left-to-right 4-term fold, chunk subtotals
-//!   then summed), which is still a dot product followed by the same
-//!   softmax. **Remainder policy**: the trailing `H mod 4` q/k
+//!   q[4c+j]·k_t[4c+j]) / sqrt(H)` — one correctly-rounded exact-real dot
+//!   over the historical floor-multiple-of-four domain, followed by the same
+//!   divide and softmax. **Remainder policy**: the trailing `H mod 4` q/k
 //!   dimensions are never read by the score (dropped), while the scale
 //!   divides by `sqrt(H)` over the FULL head width and value aggregation
 //!   still uses every head dimension. For `H < 4` no chunk exists, every
 //!   score is 0, and the softmax yields uniform weights over the prefix.
-//!   For `H` divisible by 4 the same terms are scored but the chunked
-//!   accumulation order can differ from the standard single fold in the
-//!   last bits.
+//!   For `H` divisible by 4 both operators score the same exact-real dot.
 //!
 //! **Implementation digest.** As with the #600 geometry record and the
 //! #601 tokenizer-adapter record, `implementation_digest` is the blake3
@@ -76,7 +74,8 @@
 //!
 //! **Boundary note.** The three SOURCE specs (the two Llama switch
 //! branches plus GPT-2's learned-absolute operator) describe HOST-SIDE
-//! source-teacher computation (f32 dot products, exp, division). They
+//! source-teacher computation (f32/f64 certified arithmetic, pinned exact
+//! fallback, exp, and division). They
 //! are provenance records, distinct from — and outside — the deployed
 //! inference operation contract
 //! (`docs/transformerless/INFERENCE_OPERATION_CONTRACT.md`), which
@@ -103,6 +102,12 @@
 
 use serde::{Deserialize, Serialize};
 
+/// Stable arithmetic-era token shared by the three current source-attention
+/// records. It names the correctly-rounded f32 result contract and its two
+/// execution owners without freezing the particular conservative error-bound
+/// formula used to prove a native lane.
+pub const CERTIFIED_NATIVE_ARITHMETIC_ID: &str = "correctly-rounded-binary32-exact-real-dot-certified-native-f64-outward-cell-or-pinned-uor-matmul-exact-fallback";
+
 /// Declared parameters of an attention operator — head selection, score
 /// scale, score-width policy (which head dimensions the compatibility
 /// relation reads), remainder policy for non-divisible head widths, and
@@ -125,13 +130,18 @@ pub struct AttentionOperatorParams {
     /// What happens to head dimensions outside the scored width.
     #[serde(default)]
     pub remainder_policy: String,
-    /// The f32 accumulation order of one score.
+    /// The arithmetic and rounding discipline of one score accumulation.
     #[serde(default)]
     pub score_accumulation: String,
 }
 
 impl AttentionOperatorParams {
-    /// The declared parameters of `standard-source-attention/1`:
+    /// The declared parameters of current `standard-source-attention/2`.
+    pub fn standard() -> Self {
+        Self::standard_v2()
+    }
+
+    /// Immutable parameters of historical `standard-source-attention/1`:
     ///
     /// - `head_selection = "grouped-query-kv-head-h-div-kv-mul"` — head
     ///   `h` reads kv head `h / kv_mul`, `kv_mul = n_heads / n_kv_heads`.
@@ -143,7 +153,7 @@ impl AttentionOperatorParams {
     ///   is no unscored remainder at any head width.
     /// - `score_accumulation = "sequential-f32-left-fold"` — one running
     ///   f32 sum over `i = 0..H` in order.
-    pub fn standard() -> Self {
+    pub fn standard_v1() -> Self {
         Self {
             head_selection: "grouped-query-kv-head-h-div-kv-mul".to_owned(),
             score_scale: "divide-by-sqrt-full-head-size".to_owned(),
@@ -153,7 +163,25 @@ impl AttentionOperatorParams {
         }
     }
 
-    /// The declared parameters of `experimental-r4-source-attention/1`
+    /// Immutable parameters of current `standard-source-attention/2`.
+    pub fn standard_v2() -> Self {
+        Self {
+            head_selection: "grouped-query-kv-head-h-div-kv-mul".to_owned(),
+            score_scale: "divide-by-sqrt-full-head-size".to_owned(),
+            score_width_policy: "full-head-width".to_owned(),
+            remainder_policy: "none-every-head-dimension-scored".to_owned(),
+            score_accumulation: CERTIFIED_NATIVE_ARITHMETIC_ID.to_owned(),
+        }
+    }
+
+    /// The declared parameters of current
+    /// `experimental-r4-source-attention/2`.
+    pub fn experimental_r4() -> Self {
+        Self::experimental_r4_v2()
+    }
+
+    /// Immutable parameters of historical
+    /// `experimental-r4-source-attention/1`
     /// — the ACTUAL computation of the `r4_attention` branch:
     ///
     /// - `head_selection = "grouped-query-kv-head-h-div-kv-mul"` — same
@@ -170,13 +198,25 @@ impl AttentionOperatorParams {
     /// - `score_accumulation = "per-4-chunk-left-fold-then-chunk-sum"` —
     ///   each chunk is a left-to-right 4-term f32 fold; chunk subtotals
     ///   are then summed in chunk order.
-    pub fn experimental_r4() -> Self {
+    pub fn experimental_r4_v1() -> Self {
         Self {
             head_selection: "grouped-query-kv-head-h-div-kv-mul".to_owned(),
             score_scale: "divide-by-sqrt-full-head-size".to_owned(),
             score_width_policy: "chunks-of-4-floor-head-size-div-4".to_owned(),
             remainder_policy: "truncate-trailing-head-size-mod-4-dims-from-score".to_owned(),
             score_accumulation: "per-4-chunk-left-fold-then-chunk-sum".to_owned(),
+        }
+    }
+
+    /// Immutable parameters of current
+    /// `experimental-r4-source-attention/2`.
+    pub fn experimental_r4_v2() -> Self {
+        Self {
+            head_selection: "grouped-query-kv-head-h-div-kv-mul".to_owned(),
+            score_scale: "divide-by-sqrt-full-head-size".to_owned(),
+            score_width_policy: "chunks-of-4-floor-head-size-div-4".to_owned(),
+            remainder_policy: "truncate-trailing-head-size-mod-4-dims-from-score".to_owned(),
+            score_accumulation: CERTIFIED_NATIVE_ARITHMETIC_ID.to_owned(),
         }
     }
 
@@ -206,7 +246,14 @@ impl AttentionOperatorParams {
         }
     }
 
-    /// The declared parameters of `learned-absolute-source-attention/1`
+    /// The declared parameters of current
+    /// `learned-absolute-source-attention/2`.
+    pub fn learned_absolute() -> Self {
+        Self::learned_absolute_v2()
+    }
+
+    /// Immutable parameters of historical
+    /// `learned-absolute-source-attention/1`
     /// (#668) — the ACTUAL computation of the GPT-2 executor
     /// (`crate::gpt2::Gpt2Model::layer_forward`):
     ///
@@ -223,13 +270,25 @@ impl AttentionOperatorParams {
     ///   is no unscored remainder at any head width.
     /// - `score_accumulation = "sequential-f32-left-fold"` — one running
     ///   f32 sum over `i = 0..head_size` in order.
-    pub fn learned_absolute() -> Self {
+    pub fn learned_absolute_v1() -> Self {
         Self {
             head_selection: "multi-head-identity-kv-head-equals-query-head".to_owned(),
             score_scale: "multiply-by-reciprocal-sqrt-full-head-size".to_owned(),
             score_width_policy: "full-head-width".to_owned(),
             remainder_policy: "none-every-head-dimension-scored".to_owned(),
             score_accumulation: "sequential-f32-left-fold".to_owned(),
+        }
+    }
+
+    /// Immutable parameters of current
+    /// `learned-absolute-source-attention/2`.
+    pub fn learned_absolute_v2() -> Self {
+        Self {
+            head_selection: "multi-head-identity-kv-head-equals-query-head".to_owned(),
+            score_scale: "multiply-by-reciprocal-sqrt-full-head-size".to_owned(),
+            score_width_policy: "full-head-width".to_owned(),
+            remainder_policy: "none-every-head-dimension-scored".to_owned(),
+            score_accumulation: CERTIFIED_NATIVE_ARITHMETIC_ID.to_owned(),
         }
     }
 }
@@ -295,18 +354,26 @@ pub struct AttentionOperatorSpec {
 impl AttentionOperatorSpec {
     /// Registry id of the standard scaled-dot-product source operator.
     pub const STANDARD_ID: &'static str = "standard-source-attention";
-    /// Registry version of the standard operator currently implemented
+    /// Immutable historical version using sequential f32 Q·K/value folds.
+    pub const STANDARD_V1_VERSION: u32 = 1;
+    /// Current certified-native Q·K/value registry version implemented
     /// by [`standard_head_attention_weights`] +
     /// [`head_attention_value_aggregate`].
-    pub const STANDARD_VERSION: u32 = 1;
+    pub const STANDARD_V2_VERSION: u32 = 2;
+    /// Current standard registry version.
+    pub const STANDARD_VERSION: u32 = Self::STANDARD_V2_VERSION;
     /// Registry id of the experimental `r4_attention`-gated operator,
     /// named for what it computes (a chunked dot product with the same
     /// softmax selector), not for the historical description.
     pub const EXPERIMENTAL_R4_ID: &'static str = "experimental-r4-source-attention";
-    /// Registry version of the experimental operator currently
+    /// Immutable historical version using chunked f32 Q·K/value folds.
+    pub const EXPERIMENTAL_R4_V1_VERSION: u32 = 1;
+    /// Current certified-native Q·K/value registry version
     /// implemented by [`experimental_r4_head_attention_weights`] +
     /// [`head_attention_value_aggregate`].
-    pub const EXPERIMENTAL_R4_VERSION: u32 = 1;
+    pub const EXPERIMENTAL_R4_V2_VERSION: u32 = 2;
+    /// Current experimental registry version.
+    pub const EXPERIMENTAL_R4_VERSION: u32 = Self::EXPERIMENTAL_R4_V2_VERSION;
     /// Registry id of the `R4RouteAttentionV1` TARGET operator (#604) —
     /// the same id string as
     /// `uor-r4-graph-format::route_attention::ROUTE_ATTENTION_OPERATOR_ID`;
@@ -324,16 +391,24 @@ impl AttentionOperatorSpec {
     /// positional action, the field that distinguishes it from
     /// `standard-source-attention`.
     pub const LEARNED_ABSOLUTE_ID: &'static str = "learned-absolute-source-attention";
-    /// Registry version of the learned-absolute operator currently
+    /// Immutable historical version using sequential f32 Q·K/value folds.
+    pub const LEARNED_ABSOLUTE_V1_VERSION: u32 = 1;
+    /// Current certified-native Q·K/value registry version
     /// computed by the GPT-2 executor (`crate::gpt2::Gpt2Model`).
-    pub const LEARNED_ABSOLUTE_VERSION: u32 = 1;
+    pub const LEARNED_ABSOLUTE_V2_VERSION: u32 = 2;
+    /// Current learned-absolute registry version.
+    pub const LEARNED_ABSOLUTE_VERSION: u32 = Self::LEARNED_ABSOLUTE_V2_VERSION;
 
-    /// The `standard-source-attention/1` record — the operator the
-    /// default-off `r4_attention` switch has always computed.
+    /// The current `standard-source-attention/2` record.
     pub fn standard() -> Self {
+        Self::standard_v2()
+    }
+
+    /// Immutable historical `standard-source-attention/1` registry entry.
+    pub fn standard_v1() -> Self {
         let mut record = Self {
             id: Self::STANDARD_ID.to_owned(),
-            version: Self::STANDARD_VERSION,
+            version: Self::STANDARD_V1_VERSION,
             projections: "per-layer-dense-f32-wq-wk-wv".to_owned(),
             positional_action: "rope-rotation-of-q-and-k-before-scoring".to_owned(),
             compatibility_relation: "scaled-dot-product".to_owned(),
@@ -343,22 +418,54 @@ impl AttentionOperatorSpec {
             runtime_state: "growing-kv-cache-full-prefix".to_owned(),
             tie_breaking: "first-maximum-softmax-stabilizer-value-identical".to_owned(),
             permitted_operation_class: "host-source-f32".to_owned(),
-            params: AttentionOperatorParams::standard(),
+            params: AttentionOperatorParams::standard_v1(),
             implementation_digest: String::new(),
         };
         record.implementation_digest = record.declared_digest();
         record
     }
 
-    /// The `experimental-r4-source-attention/1` record — the ACTUAL
+    /// Immutable current `standard-source-attention/2` registry entry.
+    pub fn standard_v2() -> Self {
+        let mut record = Self {
+            id: Self::STANDARD_ID.to_owned(),
+            version: Self::STANDARD_V2_VERSION,
+            projections: "per-layer-dense-f32-wq-wk-wv".to_owned(),
+            positional_action: "rope-rotation-of-q-and-k-before-scoring".to_owned(),
+            compatibility_relation:
+                "correctly-rounded-binary32-exact-real-full-width-dot".to_owned(),
+            selector_normalization:
+                "divide-by-sqrt-full-head-size-then-softmax-max-subtracted-exp-sum-per-weight-divide"
+                    .to_owned(),
+            value_aggregation:
+                "correctly-rounded-binary32-exact-real-position-weighted-sum-certified-native-f64-outward-cell-or-pinned-uor-matmul-exact-fallback"
+                    .to_owned(),
+            output_projection: "per-layer-dense-f32-wo".to_owned(),
+            runtime_state: "growing-kv-cache-full-prefix".to_owned(),
+            tie_breaking: "first-maximum-softmax-stabilizer-value-identical".to_owned(),
+            permitted_operation_class:
+                "host-source-f32-f64-certified-plus-pinned-uor-matmul-exact-fallback".to_owned(),
+            params: AttentionOperatorParams::standard_v2(),
+            implementation_digest: String::new(),
+        };
+        record.implementation_digest = record.declared_digest();
+        record
+    }
+
+    /// The current `experimental-r4-source-attention/2` record.
+    pub fn experimental_r4() -> Self {
+        Self::experimental_r4_v2()
+    }
+
+    /// Immutable historical `experimental-r4-source-attention/1` record — the ACTUAL
     /// computation of the `r4_attention = true` branch: a 4-wide-chunked
     /// dot product (truncating the trailing `head_size mod 4`
     /// dimensions from the score) followed by the SAME max-subtracted
     /// softmax the standard operator uses.
-    pub fn experimental_r4() -> Self {
+    pub fn experimental_r4_v1() -> Self {
         let mut record = Self {
             id: Self::EXPERIMENTAL_R4_ID.to_owned(),
-            version: Self::EXPERIMENTAL_R4_VERSION,
+            version: Self::EXPERIMENTAL_R4_V1_VERSION,
             projections: "per-layer-dense-f32-wq-wk-wv".to_owned(),
             positional_action: "rope-rotation-of-q-and-k-before-scoring".to_owned(),
             compatibility_relation: "chunked-4-wide-dot-product".to_owned(),
@@ -368,7 +475,36 @@ impl AttentionOperatorSpec {
             runtime_state: "growing-kv-cache-full-prefix".to_owned(),
             tie_breaking: "first-maximum-softmax-stabilizer-value-identical".to_owned(),
             permitted_operation_class: "host-source-f32".to_owned(),
-            params: AttentionOperatorParams::experimental_r4(),
+            params: AttentionOperatorParams::experimental_r4_v1(),
+            implementation_digest: String::new(),
+        };
+        record.implementation_digest = record.declared_digest();
+        record
+    }
+
+    /// Immutable current `experimental-r4-source-attention/2` entry. Its
+    /// historical truncated score domain and full-head-size divide remain.
+    pub fn experimental_r4_v2() -> Self {
+        let mut record = Self {
+            id: Self::EXPERIMENTAL_R4_ID.to_owned(),
+            version: Self::EXPERIMENTAL_R4_V2_VERSION,
+            projections: "per-layer-dense-f32-wq-wk-wv".to_owned(),
+            positional_action: "rope-rotation-of-q-and-k-before-scoring".to_owned(),
+            compatibility_relation:
+                "correctly-rounded-binary32-exact-real-floor-multiple-of-4-width-dot"
+                    .to_owned(),
+            selector_normalization:
+                "divide-by-sqrt-full-head-size-then-softmax-max-subtracted-exp-sum-per-weight-divide"
+                    .to_owned(),
+            value_aggregation:
+                "correctly-rounded-binary32-exact-real-position-weighted-sum-certified-native-f64-outward-cell-or-pinned-uor-matmul-exact-fallback"
+                    .to_owned(),
+            output_projection: "per-layer-dense-f32-wo".to_owned(),
+            runtime_state: "growing-kv-cache-full-prefix".to_owned(),
+            tie_breaking: "first-maximum-softmax-stabilizer-value-identical".to_owned(),
+            permitted_operation_class:
+                "host-source-f32-f64-certified-plus-pinned-uor-matmul-exact-fallback".to_owned(),
+            params: AttentionOperatorParams::experimental_r4_v2(),
             implementation_digest: String::new(),
         };
         record.implementation_digest = record.declared_digest();
@@ -419,7 +555,12 @@ impl AttentionOperatorSpec {
         record
     }
 
-    /// The `learned-absolute-source-attention/1` record (#668) — the
+    /// The current `learned-absolute-source-attention/2` record (#668).
+    pub fn learned_absolute_source_attention() -> Self {
+        Self::learned_absolute_v2()
+    }
+
+    /// Immutable historical `learned-absolute-source-attention/1` record — the
     /// GPT-2-family source operator computed by the executor in
     /// [`crate::gpt2`] (`Gpt2Model::layer_forward`), the way
     /// `r4-route-attention/1`'s record names an operator whose
@@ -446,10 +587,10 @@ impl AttentionOperatorSpec {
     ///   bias.
     /// - head selection is plain multi-head (kv heads == query heads);
     ///   no grouped-query arithmetic exists.
-    pub fn learned_absolute_source_attention() -> Self {
+    pub fn learned_absolute_v1() -> Self {
         let mut record = Self {
             id: Self::LEARNED_ABSOLUTE_ID.to_owned(),
-            version: Self::LEARNED_ABSOLUTE_VERSION,
+            version: Self::LEARNED_ABSOLUTE_V1_VERSION,
             projections: "fused-c-attn-conv1d-qkv-with-bias".to_owned(),
             positional_action: "none-learned-absolute-positions-added-to-input-embeddings"
                 .to_owned(),
@@ -460,7 +601,38 @@ impl AttentionOperatorSpec {
             runtime_state: "growing-kv-cache-full-prefix".to_owned(),
             tie_breaking: "first-maximum-softmax-stabilizer-value-identical".to_owned(),
             permitted_operation_class: "host-source-f32".to_owned(),
-            params: AttentionOperatorParams::learned_absolute(),
+            params: AttentionOperatorParams::learned_absolute_v1(),
+            implementation_digest: String::new(),
+        };
+        record.implementation_digest = record.declared_digest();
+        record
+    }
+
+    /// Immutable current `learned-absolute-source-attention/2` entry. GPT-2's
+    /// projections stay conventional; Q·K/value use certified-native cells
+    /// with the pinned exact fallback, and normalization retains reciprocal
+    /// multiplication rather than Llama's divisions.
+    pub fn learned_absolute_v2() -> Self {
+        let mut record = Self {
+            id: Self::LEARNED_ABSOLUTE_ID.to_owned(),
+            version: Self::LEARNED_ABSOLUTE_V2_VERSION,
+            projections: "fused-c-attn-conv1d-qkv-with-bias".to_owned(),
+            positional_action: "none-learned-absolute-positions-added-to-input-embeddings"
+                .to_owned(),
+            compatibility_relation:
+                "correctly-rounded-binary32-exact-real-full-width-dot".to_owned(),
+            selector_normalization:
+                "multiply-by-reciprocal-sqrt-full-head-size-then-softmax-max-subtracted-exp-sum-reciprocal-multiply"
+                    .to_owned(),
+            value_aggregation:
+                "correctly-rounded-binary32-exact-real-position-weighted-sum-certified-native-f64-outward-cell-or-pinned-uor-matmul-exact-fallback"
+                    .to_owned(),
+            output_projection: "dense-c-proj-conv1d-with-bias".to_owned(),
+            runtime_state: "growing-kv-cache-full-prefix".to_owned(),
+            tie_breaking: "first-maximum-softmax-stabilizer-value-identical".to_owned(),
+            permitted_operation_class:
+                "host-source-f32-f64-certified-plus-pinned-uor-matmul-exact-fallback".to_owned(),
+            params: AttentionOperatorParams::learned_absolute_v2(),
             implementation_digest: String::new(),
         };
         record.implementation_digest = record.declared_digest();
@@ -521,9 +693,10 @@ impl AttentionOperatorSpec {
 }
 
 /// The typed record the boolean `Config::r4_attention` switch selects:
-/// `false` has always computed `standard-source-attention/1`, `true` the
-/// `experimental-r4-source-attention/1` branch. This is the one boundary
-/// mapping from the legacy switch to the versioned operator identity.
+/// `false` selects current `standard-source-attention/2`, `true` current
+/// `experimental-r4-source-attention/2`. This is the one boundary mapping
+/// from the legacy switch to the versioned operator identity; explicit v1
+/// registry entries remain readable but are never selected as current.
 pub fn operator_for_r4_switch(r4_attention: bool) -> AttentionOperatorSpec {
     if r4_attention {
         AttentionOperatorSpec::experimental_r4()
@@ -547,19 +720,30 @@ pub fn operator_spec(
     version: u32,
 ) -> Result<AttentionOperatorSpec, crate::SourceUnavailable> {
     match (id, version) {
-        (AttentionOperatorSpec::STANDARD_ID, AttentionOperatorSpec::STANDARD_VERSION) => {
+        (AttentionOperatorSpec::STANDARD_ID, AttentionOperatorSpec::STANDARD_V1_VERSION) => {
+            Ok(AttentionOperatorSpec::standard_v1())
+        }
+        (AttentionOperatorSpec::STANDARD_ID, AttentionOperatorSpec::STANDARD_V2_VERSION) => {
             Ok(AttentionOperatorSpec::standard())
         }
         (
             AttentionOperatorSpec::EXPERIMENTAL_R4_ID,
-            AttentionOperatorSpec::EXPERIMENTAL_R4_VERSION,
+            AttentionOperatorSpec::EXPERIMENTAL_R4_V1_VERSION,
+        ) => Ok(AttentionOperatorSpec::experimental_r4_v1()),
+        (
+            AttentionOperatorSpec::EXPERIMENTAL_R4_ID,
+            AttentionOperatorSpec::EXPERIMENTAL_R4_V2_VERSION,
         ) => Ok(AttentionOperatorSpec::experimental_r4()),
         (AttentionOperatorSpec::R4_ROUTE_ID, AttentionOperatorSpec::R4_ROUTE_VERSION) => {
             Ok(AttentionOperatorSpec::r4_route_attention_v1())
         }
         (
             AttentionOperatorSpec::LEARNED_ABSOLUTE_ID,
-            AttentionOperatorSpec::LEARNED_ABSOLUTE_VERSION,
+            AttentionOperatorSpec::LEARNED_ABSOLUTE_V1_VERSION,
+        ) => Ok(AttentionOperatorSpec::learned_absolute_v1()),
+        (
+            AttentionOperatorSpec::LEARNED_ABSOLUTE_ID,
+            AttentionOperatorSpec::LEARNED_ABSOLUTE_V2_VERSION,
         ) => Ok(AttentionOperatorSpec::learned_absolute_source_attention()),
         _ => Err(crate::SourceIngestKind::UnknownAttentionOperator {
             id: id.to_owned(),
@@ -569,18 +753,453 @@ pub fn operator_spec(
     }
 }
 
-/// The `standard-source-attention/1` weight computation, factored
-/// verbatim out of `Llama::layer_forward`/`Llama::forward_batch` (#602):
+/// Arithmetic owner for source-attention execution and its controls.
+///
+/// Current production entry points select [`Self::CertifiedNative`]. The
+/// historical conventional fold and always-exact owner remain explicit for
+/// differential tests and matched measurement in one binary.
+#[doc(hidden)]
+#[cfg_attr(target_arch = "wasm32", allow(dead_code))]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(crate) enum AttentionArithmetic {
+    #[default]
+    Conventional,
+    Exact,
+    CertifiedNative,
+}
+
+/// Per-dot verdict census for the #704 attention controls.
+#[doc(hidden)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(crate) struct AttentionDotCensus {
+    pub(crate) lanes: usize,
+    pub(crate) conventional: usize,
+    pub(crate) exact_control: usize,
+    pub(crate) certified: usize,
+    pub(crate) fallback_nonfinite: usize,
+    pub(crate) fallback_zero: usize,
+    pub(crate) fallback_overflow: usize,
+    pub(crate) fallback_cell: usize,
+}
+
+impl AttentionDotCensus {
+    pub(crate) const fn fallbacks(self) -> usize {
+        self.fallback_nonfinite + self.fallback_zero + self.fallback_overflow + self.fallback_cell
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    pub(crate) fn merge(&mut self, other: Self) {
+        self.lanes += other.lanes;
+        self.conventional += other.conventional;
+        self.exact_control += other.exact_control;
+        self.certified += other.certified;
+        self.fallback_nonfinite += other.fallback_nonfinite;
+        self.fallback_zero += other.fallback_zero;
+        self.fallback_overflow += other.fallback_overflow;
+        self.fallback_cell += other.fallback_cell;
+    }
+}
+
+/// Q·K and weighted-value verdicts accumulated across an attention run.
+#[doc(hidden)]
+#[cfg(not(target_arch = "wasm32"))]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(crate) struct AttentionArithmeticCensus {
+    pub(crate) qk: AttentionDotCensus,
+    pub(crate) value: AttentionDotCensus,
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+impl AttentionArithmeticCensus {
+    pub(crate) fn merge(&mut self, other: Self) {
+        self.qk.merge(other.qk);
+        self.value.merge(other.value);
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum CertificationRejection {
+    Nonfinite,
+    Zero,
+    Overflow,
+    Cell,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+enum CertificationVerdict {
+    Certified(f32),
+    Rejected(CertificationRejection),
+}
+
+impl AttentionDotCensus {
+    fn zero_dot(lanes: usize, arithmetic: AttentionArithmetic) -> Self {
+        match arithmetic {
+            AttentionArithmetic::Conventional => Self {
+                lanes,
+                conventional: lanes,
+                ..Self::default()
+            },
+            AttentionArithmetic::Exact => Self {
+                lanes,
+                exact_control: lanes,
+                ..Self::default()
+            },
+            AttentionArithmetic::CertifiedNative => Self {
+                lanes,
+                fallback_zero: lanes,
+                ..Self::default()
+            },
+        }
+    }
+
+    fn reject(&mut self, reason: CertificationRejection) {
+        match reason {
+            CertificationRejection::Nonfinite => self.fallback_nonfinite += 1,
+            CertificationRejection::Zero => self.fallback_zero += 1,
+            CertificationRejection::Overflow => self.fallback_overflow += 1,
+            CertificationRejection::Cell => self.fallback_cell += 1,
+        }
+    }
+}
+
+#[inline]
+fn next_up_f64(value: f64) -> f64 {
+    if value.is_nan() || value == f64::INFINITY {
+        return value;
+    }
+    if value == 0.0 {
+        return f64::from_bits(1);
+    }
+    let bits = value.to_bits();
+    f64::from_bits(if value > 0.0 { bits + 1 } else { bits - 1 })
+}
+
+#[inline]
+fn next_down_f64(value: f64) -> f64 {
+    if value.is_nan() || value == f64::NEG_INFINITY {
+        return value;
+    }
+    if value == 0.0 {
+        return f64::from_bits((1u64 << 63) | 1);
+    }
+    let bits = value.to_bits();
+    f64::from_bits(if value > 0.0 { bits - 1 } else { bits + 1 })
+}
+
+#[inline]
+fn next_up_f32(value: f32) -> f32 {
+    if value.is_nan() || value == f32::INFINITY {
+        return value;
+    }
+    if value == 0.0 {
+        return f32::from_bits(1);
+    }
+    let bits = value.to_bits();
+    f32::from_bits(if value > 0.0 { bits + 1 } else { bits - 1 })
+}
+
+#[inline]
+fn next_down_f32(value: f32) -> f32 {
+    if value.is_nan() || value == f32::NEG_INFINITY {
+        return value;
+    }
+    if value == 0.0 {
+        return f32::from_bits((1u32 << 31) | 1);
+    }
+    let bits = value.to_bits();
+    f32::from_bits(if value > 0.0 { bits - 1 } else { bits + 1 })
+}
+
+/// Certify the correctly-rounded binary32 value of one exact real dot.
+///
+/// Every finite binary32 product is exact in binary64: it has at most 48
+/// significand bits and its exponent remains within the binary64 range. Only
+/// the sequential binary64 additions round. For `u = 2^-53`, their error is
+/// bounded by `gamma_k * sum(abs(products))`, here conservatively replaced by
+/// `gamma_k * k * max(abs(product))`. Every bound and interval operation is
+/// rounded outward. A native candidate is returned only when the resulting
+/// interval is strictly inside the exact midpoints to its adjacent binary32
+/// values; strictness rejects ties without needing a parity case. Nonfinite,
+/// zero, overflow-adjacent, and uncertain cells use the pinned exact owner.
+/// Exact products and partial sums lie on the `2^-298` grid, so nonzero
+/// accumulation cannot underflow binary64; with `k <= 2^53`, even
+/// `k * f32::MAX^2` remains far below binary64 overflow.
+#[inline]
+fn certify_dot(approximate: f64, max_product_abs: f64, k: usize) -> CertificationVerdict {
+    if !approximate.is_finite() || !max_product_abs.is_finite() {
+        return CertificationVerdict::Rejected(CertificationRejection::Nonfinite);
+    }
+    let candidate = approximate as f32;
+    if candidate == 0.0 {
+        return CertificationVerdict::Rejected(CertificationRejection::Zero);
+    }
+    if !candidate.is_finite() || candidate.abs() == f32::MAX {
+        return CertificationVerdict::Rejected(CertificationRejection::Overflow);
+    }
+    if (k as u128) > (1u128 << f64::MANTISSA_DIGITS) {
+        return CertificationVerdict::Rejected(CertificationRejection::Cell);
+    }
+
+    const UNIT_ROUNDOFF: f64 = 1.0 / ((1u64 << 53) as f64);
+    let mu = next_up_f64((k as f64) * UNIT_ROUNDOFF);
+    if mu >= 1.0 {
+        return CertificationVerdict::Rejected(CertificationRejection::Cell);
+    }
+    let denominator = next_down_f64(1.0 - mu);
+    let gamma = next_up_f64(mu / denominator);
+    let sum_abs = next_up_f64((k as f64) * max_product_abs);
+    let error = next_up_f64(gamma * sum_abs);
+    if !error.is_finite() {
+        return CertificationVerdict::Rejected(CertificationRejection::Cell);
+    }
+    let lower = next_down_f64(approximate - error);
+    let upper = next_up_f64(approximate + error);
+
+    let previous = next_down_f32(candidate);
+    let next = next_up_f32(candidate);
+    if !previous.is_finite() || !next.is_finite() {
+        return CertificationVerdict::Rejected(CertificationRejection::Overflow);
+    }
+    let cell_lower = (f64::from(previous) + f64::from(candidate)) * 0.5;
+    let cell_upper = (f64::from(candidate) + f64::from(next)) * 0.5;
+    if lower > cell_lower && upper < cell_upper {
+        CertificationVerdict::Certified(candidate)
+    } else {
+        CertificationVerdict::Rejected(CertificationRejection::Cell)
+    }
+}
+
+fn exact_strided_matrix_vector(
+    out: &mut [f32],
+    matrix: &[f32],
+    columns: usize,
+    row_stride: usize,
+    column_stride: usize,
+    vector: &[f32],
+) {
+    if columns == 0 || out.is_empty() {
+        out.fill(0.0);
+        return;
+    }
+    let matrix = uor_matmul::MatView::new(
+        matrix,
+        out.len(),
+        columns,
+        uor_matmul::Strides {
+            rs: isize::try_from(row_stride).expect("attention row stride fits isize"),
+            cs: isize::try_from(column_stride).expect("attention column stride fits isize"),
+        },
+    )
+    .expect("attention cache view is within its validated model state");
+    let vector = uor_matmul::MatView::row_major(vector, columns, 1)
+        .expect("attention vector shape is exact");
+    let rows = out.len();
+    let output =
+        uor_matmul::MatViewMut::row_major(out, rows, 1).expect("attention output shape is exact");
+    let mut product = uor_matmul::Triple::new(matrix, vector, output)
+        .expect("attention matrix-vector product is conformant");
+    uor_matmul::driver::gemm_float(
+        &mut product,
+        &uor_matmul::Linear::OVERWRITE,
+        uor_matmul::GemmOptions::default(),
+    );
+}
+
+fn exact_strided_dot(
+    matrix: &[f32],
+    row: usize,
+    columns: usize,
+    row_stride: usize,
+    column_stride: usize,
+    vector: &[f32],
+) -> f32 {
+    if columns == 0 {
+        return 0.0;
+    }
+    let offset = row
+        .checked_mul(row_stride)
+        .expect("attention row offset is addressable");
+    let mut value = [0.0f32];
+    exact_strided_matrix_vector(
+        &mut value,
+        &matrix[offset..],
+        columns,
+        row_stride,
+        column_stride,
+        vector,
+    );
+    value[0]
+}
+
+fn controlled_strided_matrix_vector(
+    out: &mut [f32],
+    matrix: &[f32],
+    columns: usize,
+    row_stride: usize,
+    column_stride: usize,
+    vector: &[f32],
+    arithmetic: AttentionArithmetic,
+) -> AttentionDotCensus {
+    assert!(
+        isize::try_from(row_stride).is_ok() && isize::try_from(column_stride).is_ok(),
+        "attention strides must fit the exact owner's isize layout"
+    );
+    let mut census = AttentionDotCensus {
+        lanes: out.len(),
+        ..AttentionDotCensus::default()
+    };
+    match arithmetic {
+        AttentionArithmetic::Conventional => {
+            unreachable!("the caller owns its historical conventional fold")
+        }
+        AttentionArithmetic::Exact => {
+            exact_strided_matrix_vector(out, matrix, columns, row_stride, column_stride, vector);
+            census.exact_control = out.len();
+        }
+        AttentionArithmetic::CertifiedNative => {
+            for (row, output) in out.iter_mut().enumerate() {
+                let mut sum = 0.0f64;
+                let mut max_product_abs = 0.0f64;
+                let mut finite = true;
+                for column in 0..columns {
+                    let left = matrix[row * row_stride + column * column_stride];
+                    let right = vector[column];
+                    if !left.is_finite() || !right.is_finite() {
+                        finite = false;
+                        break;
+                    }
+                    let product = f64::from(left) * f64::from(right);
+                    sum += product;
+                    max_product_abs = max_product_abs.max(product.abs());
+                }
+                let verdict = if finite {
+                    certify_dot(sum, max_product_abs, columns)
+                } else {
+                    CertificationVerdict::Rejected(CertificationRejection::Nonfinite)
+                };
+                match verdict {
+                    CertificationVerdict::Certified(value) => {
+                        *output = value;
+                        census.certified += 1;
+                    }
+                    CertificationVerdict::Rejected(reason) => {
+                        census.reject(reason);
+                        *output = exact_strided_dot(
+                            matrix,
+                            row,
+                            columns,
+                            row_stride,
+                            column_stride,
+                            vector,
+                        );
+                    }
+                }
+            }
+            debug_assert_eq!(census.certified + census.fallbacks(), census.lanes);
+        }
+    }
+    census
+}
+
+#[inline]
+fn strided_span_fits(
+    storage_len: usize,
+    offset: usize,
+    rows: usize,
+    columns: usize,
+    row_stride: usize,
+    column_stride: usize,
+) -> bool {
+    if rows == 0 {
+        return offset <= storage_len;
+    }
+    if columns == 0 {
+        return (rows - 1)
+            .checked_mul(row_stride)
+            .and_then(|last_row| offset.checked_add(last_row))
+            .is_some_and(|last_origin| last_origin <= storage_len);
+    }
+    (rows - 1)
+        .checked_mul(row_stride)
+        .and_then(|last_row| {
+            (columns - 1)
+                .checked_mul(column_stride)
+                .and_then(|last_column| last_row.checked_add(last_column))
+        })
+        .and_then(|last_index| offset.checked_add(last_index))
+        .and_then(|last_index| last_index.checked_add(1))
+        .is_some_and(|end| end <= storage_len)
+}
+
+/// Raw Q·K control used by the GPT-2 proof seam before its distinct scalar
+/// reciprocal-scale and reciprocal-sum normalization stages.
+#[doc(hidden)]
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn head_dot_products_with_arithmetic(
+    out: &mut [f32],
+    q: &[f32],
+    keys: &[f32],
+    key_offset: usize,
+    key_stride: usize,
+    scored_width: usize,
+    arithmetic: AttentionArithmetic,
+) -> AttentionDotCensus {
+    assert!(q.len() >= scored_width, "Q is shorter than scored width");
+    assert!(
+        isize::try_from(key_stride).is_ok(),
+        "key stride must fit the exact owner's isize layout"
+    );
+    assert!(
+        strided_span_fits(
+            keys.len(),
+            key_offset,
+            out.len(),
+            scored_width,
+            key_stride,
+            1,
+        ),
+        "key-cache layout does not contain every requested QK row"
+    );
+    match arithmetic {
+        AttentionArithmetic::Conventional => {
+            for (position, output) in out.iter_mut().enumerate() {
+                let key = &keys[position * key_stride + key_offset..][..scored_width];
+                let mut dot = 0.0f32;
+                for i in 0..scored_width {
+                    dot += q[i] * key[i];
+                }
+                *output = dot;
+            }
+            AttentionDotCensus {
+                lanes: out.len(),
+                conventional: out.len(),
+                ..AttentionDotCensus::default()
+            }
+        }
+        AttentionArithmetic::Exact | AttentionArithmetic::CertifiedNative => {
+            controlled_strided_matrix_vector(
+                out,
+                &keys[key_offset..],
+                scored_width,
+                key_stride,
+                1,
+                &q[..scored_width],
+                arithmetic,
+            )
+        }
+    }
+}
+
+/// Current `standard-source-attention/2` weight computation shared by
+/// `Llama::layer_forward` and `Llama::forward_batch`:
 /// fill `att` (one slot per cached position `t = 0..att.len()`) with the
 /// softmax-normalized scaled dot products of `q` against the cached keys.
 /// `keys` is the layer's key-cache region; position `t`'s key head starts
 /// at `t * key_stride + key_offset` (grouped query: `key_offset =
-/// (h / kv_mul) * head_size`). Iteration order and arithmetic — one
-/// sequential f32 left fold per score over the FULL head width, one
-/// divide by `sqrt(head_size)`, then the shared max-subtracted softmax —
-/// are bit-identical to the pre-#602 in-line loop. Deterministic and
-/// free of hidden state; `canonical` selects the D2 libm math path
-/// exactly as the executor does.
+/// (h / kv_mul) * head_size`). The full-width exact-real dot rounds once to
+/// f32 through the certified-native/exact-fallback owner, followed by Llama's
+/// historical divide by `sqrt(head_size)` and shared max-subtracted softmax.
+/// `canonical` selects the D2 libm math path exactly as the executor does.
 pub fn standard_head_attention_weights(
     att: &mut [f32],
     q: &[f32],
@@ -589,29 +1208,65 @@ pub fn standard_head_attention_weights(
     key_stride: usize,
     canonical: bool,
 ) {
-    let head_size = q.len();
-    for (t, attention) in att.iter_mut().enumerate() {
-        let k = &keys[t * key_stride + key_offset..][..head_size];
-        let mut score = 0.0f32;
-        for i in 0..head_size {
-            score += q[i] * k[i];
-        }
-        score /= crate::sqrtf(head_size as f32, canonical);
-        *attention = score;
-    }
-    crate::softmax_with_mode(att, canonical);
+    let _ = standard_head_attention_weights_with_arithmetic(
+        att,
+        q,
+        keys,
+        key_offset,
+        key_stride,
+        canonical,
+        AttentionArithmetic::CertifiedNative,
+    );
 }
 
-/// The `experimental-r4-source-attention/1` weight computation, factored
-/// verbatim out of the `r4_attention` branch (#602): the dot product is
-/// computed in 4-wide chunks over dimensions `0..4*(head_size/4)` — the
+/// Explicit standard-attention Q·K owner for differential evidence.
+/// Llama's historical per-score division and softmax order are shared by all
+/// three variants and occur only after the raw dot has rounded to `f32`.
+#[doc(hidden)]
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn standard_head_attention_weights_with_arithmetic(
+    att: &mut [f32],
+    q: &[f32],
+    keys: &[f32],
+    key_offset: usize,
+    key_stride: usize,
+    canonical: bool,
+    arithmetic: AttentionArithmetic,
+) -> AttentionDotCensus {
+    let head_size = q.len();
+    if att.is_empty() {
+        return AttentionDotCensus::zero_dot(0, arithmetic);
+    }
+    if head_size == 0 {
+        let census = AttentionDotCensus::zero_dot(att.len(), arithmetic);
+        // The exact dot over an empty dimension is zero. Scaling by sqrt(0)
+        // is undefined, so take the well-defined selector limit: equal zero
+        // scores normalized by the existing softmax owner.
+        att.fill(0.0);
+        crate::softmax_with_mode(att, canonical);
+        return census;
+    }
+    let mut census = head_dot_products_with_arithmetic(
+        att, q, keys, key_offset, key_stride, head_size, arithmetic,
+    );
+    let divisor = crate::sqrtf(head_size as f32, canonical);
+    for score in att.iter_mut() {
+        *score /= divisor;
+    }
+    crate::softmax_with_mode(att, canonical);
+    debug_assert_eq!(census.lanes, att.len());
+    census.lanes = att.len();
+    census
+}
+
+/// Current `experimental-r4-source-attention/2` weight computation: one
+/// correctly-rounded exact-real dot over dimensions
+/// `0..4*(head_size/4)` — the
 /// trailing `head_size mod 4` q/k dimensions are never read — divided by
 /// `sqrt(head_size)` over the FULL head width, then normalized by the
 /// SAME max-subtracted softmax as the standard operator. For
-/// `head_size < 4` every score is 0 and the weights are uniform.
-/// Iteration order and arithmetic are bit-identical to the pre-#602
-/// in-line loop. Still gated by `Config::r4_attention` at both call
-/// sites; factoring changes no selection.
+/// `head_size < 4` every score is 0 and the weights are uniform. The operator
+/// remains gated by `Config::r4_attention` at serial and batched call sites.
 pub fn experimental_r4_head_attention_weights(
     att: &mut [f32],
     q: &[f32],
@@ -620,33 +1275,122 @@ pub fn experimental_r4_head_attention_weights(
     key_stride: usize,
     canonical: bool,
 ) {
-    let head_size = q.len();
-    for (t, attention) in att.iter_mut().enumerate() {
-        let k = &keys[t * key_stride + key_offset..][..head_size];
-        let mut head_score = 0.0f32;
-        let chunks = head_size / 4;
-        for chunk_idx in 0..chunks {
-            let q_chunk = &q[chunk_idx * 4..(chunk_idx + 1) * 4];
-            let k_chunk = &k[chunk_idx * 4..(chunk_idx + 1) * 4];
-            head_score += q_chunk[0] * k_chunk[0]
-                + q_chunk[1] * k_chunk[1]
-                + q_chunk[2] * k_chunk[2]
-                + q_chunk[3] * k_chunk[3];
-        }
-        head_score /= crate::sqrtf(head_size as f32, canonical);
-        *attention = head_score;
-    }
-    crate::softmax_with_mode(att, canonical);
+    let _ = experimental_r4_head_attention_weights_with_arithmetic(
+        att,
+        q,
+        keys,
+        key_offset,
+        key_stride,
+        canonical,
+        AttentionArithmetic::CertifiedNative,
+    );
 }
 
-/// The value aggregation both operators share, factored verbatim out of
-/// the executor (#602): zero `out` (one head width), then accumulate the
-/// position-ascending weighted sum `out[i] += att[t] * v_t[i]` over the
+/// Explicit experimental-attention Q·K owner for differential evidence.
+/// The historical truncated score domain and full-head-size divide are
+/// preserved in all modes.
+#[doc(hidden)]
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn experimental_r4_head_attention_weights_with_arithmetic(
+    att: &mut [f32],
+    q: &[f32],
+    keys: &[f32],
+    key_offset: usize,
+    key_stride: usize,
+    canonical: bool,
+    arithmetic: AttentionArithmetic,
+) -> AttentionDotCensus {
+    let head_size = q.len();
+    if att.is_empty() {
+        return AttentionDotCensus::zero_dot(0, arithmetic);
+    }
+    if head_size == 0 {
+        let census = AttentionDotCensus::zero_dot(att.len(), arithmetic);
+        // This is the H < 4 truncated-domain rule at H = 0: every raw score
+        // is the exact empty dot, hence the selector is uniform.
+        att.fill(0.0);
+        crate::softmax_with_mode(att, canonical);
+        return census;
+    }
+    let scored_width = 4 * (head_size / 4);
+    if scored_width == 0 && arithmetic != AttentionArithmetic::Conventional {
+        let census = AttentionDotCensus::zero_dot(att.len(), arithmetic);
+        // Version 2's truncated score domain reads no q/key dimensions when
+        // H < 4. Normalize the exact zero scores without imposing a cache
+        // layout for bytes this operator cannot observe.
+        att.fill(0.0);
+        crate::softmax_with_mode(att, canonical);
+        return census;
+    }
+    assert!(
+        isize::try_from(key_stride).is_ok(),
+        "key stride must fit the exact owner's isize layout"
+    );
+    let required_width = if arithmetic == AttentionArithmetic::Conventional {
+        head_size
+    } else {
+        scored_width
+    };
+    assert!(
+        strided_span_fits(
+            keys.len(),
+            key_offset,
+            att.len(),
+            required_width,
+            key_stride,
+            1,
+        ),
+        "key-cache layout does not contain every requested experimental QK row"
+    );
+    let census = match arithmetic {
+        AttentionArithmetic::Conventional => {
+            for (t, attention) in att.iter_mut().enumerate() {
+                let k = &keys[t * key_stride + key_offset..][..head_size];
+                let mut head_score = 0.0f32;
+                let chunks = head_size / 4;
+                for chunk_idx in 0..chunks {
+                    let q_chunk = &q[chunk_idx * 4..(chunk_idx + 1) * 4];
+                    let k_chunk = &k[chunk_idx * 4..(chunk_idx + 1) * 4];
+                    head_score += q_chunk[0] * k_chunk[0]
+                        + q_chunk[1] * k_chunk[1]
+                        + q_chunk[2] * k_chunk[2]
+                        + q_chunk[3] * k_chunk[3];
+                }
+                *attention = head_score;
+            }
+            AttentionDotCensus {
+                lanes: att.len(),
+                conventional: att.len(),
+                ..AttentionDotCensus::default()
+            }
+        }
+        AttentionArithmetic::Exact | AttentionArithmetic::CertifiedNative => {
+            controlled_strided_matrix_vector(
+                att,
+                &keys[key_offset..],
+                scored_width,
+                key_stride,
+                1,
+                &q[..scored_width],
+                arithmetic,
+            )
+        }
+    };
+    let divisor = crate::sqrtf(head_size as f32, canonical);
+    for score in att.iter_mut() {
+        *score /= divisor;
+    }
+    crate::softmax_with_mode(att, canonical);
+    census
+}
+
+/// Current version-2 value aggregation shared by all source operators: zero
+/// `out` (one head width), then compute the correctly-rounded exact-real
+/// position-weighted dot for each output lane over the
 /// cached values. `values` is the layer's value-cache region; position
 /// `t`'s value head starts at `t * value_stride + value_offset`. Every
-/// head dimension participates regardless of the scoring operator's
-/// width policy. Arithmetic order is bit-identical to the pre-#602
-/// in-line loop.
+/// head dimension participates regardless of the scoring operator's width
+/// policy; uncertified native lanes use the pinned exact fallback.
 pub fn head_attention_value_aggregate(
     out: &mut [f32],
     att: &[f32],
@@ -654,12 +1398,90 @@ pub fn head_attention_value_aggregate(
     value_offset: usize,
     value_stride: usize,
 ) {
+    let _ = head_attention_value_aggregate_with_arithmetic(
+        out,
+        att,
+        values,
+        value_offset,
+        value_stride,
+        AttentionArithmetic::CertifiedNative,
+    );
+}
+
+/// Explicit weighted-value owner for differential evidence.
+#[doc(hidden)]
+pub(crate) fn head_attention_value_aggregate_with_arithmetic(
+    out: &mut [f32],
+    att: &[f32],
+    values: &[f32],
+    value_offset: usize,
+    value_stride: usize,
+    arithmetic: AttentionArithmetic,
+) -> AttentionDotCensus {
     let head_size = out.len();
-    out.iter_mut().for_each(|v| *v = 0.0);
-    for (t, &attention) in att.iter().enumerate() {
-        let v = &values[t * value_stride + value_offset..][..head_size];
-        for i in 0..head_size {
-            out[i] += attention * v[i];
+    if out.is_empty() {
+        return AttentionDotCensus::zero_dot(0, arithmetic);
+    }
+    if att.is_empty() {
+        out.fill(0.0);
+        return match arithmetic {
+            AttentionArithmetic::Conventional => AttentionDotCensus {
+                lanes: head_size,
+                conventional: head_size,
+                ..AttentionDotCensus::default()
+            },
+            AttentionArithmetic::Exact => AttentionDotCensus {
+                lanes: head_size,
+                exact_control: head_size,
+                ..AttentionDotCensus::default()
+            },
+            AttentionArithmetic::CertifiedNative => AttentionDotCensus {
+                lanes: head_size,
+                fallback_zero: head_size,
+                ..AttentionDotCensus::default()
+            },
+        };
+    }
+    assert!(
+        isize::try_from(value_stride).is_ok(),
+        "value stride must fit the exact owner's isize layout"
+    );
+    assert!(
+        strided_span_fits(
+            values.len(),
+            value_offset,
+            head_size,
+            att.len(),
+            1,
+            value_stride,
+        ),
+        "value-cache layout does not contain every requested weighted-value lane"
+    );
+    match arithmetic {
+        AttentionArithmetic::Conventional => {
+            out.iter_mut().for_each(|value| *value = 0.0);
+            for (t, &attention) in att.iter().enumerate() {
+                let value = &values[t * value_stride + value_offset..][..head_size];
+                for i in 0..head_size {
+                    out[i] += attention * value[i];
+                }
+            }
+            AttentionDotCensus {
+                lanes: head_size,
+                conventional: head_size,
+                ..AttentionDotCensus::default()
+            }
+        }
+        AttentionArithmetic::Exact | AttentionArithmetic::CertifiedNative => {
+            controlled_strided_matrix_vector(
+                out,
+                &values[value_offset..],
+                att.len(),
+                1,
+                value_stride,
+                att,
+                arithmetic,
+            )
         }
     }
 }
@@ -667,6 +1489,77 @@ pub fn head_attention_value_aggregate(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::alloc::{GlobalAlloc, Layout, System};
+    use std::cell::Cell;
+
+    struct CountingAllocator;
+
+    thread_local! {
+        static COUNT_ALLOCATIONS: Cell<bool> = const { Cell::new(false) };
+        static ALLOCATIONS: Cell<usize> = const { Cell::new(0) };
+    }
+
+    fn record_allocation(pointer: *mut u8) {
+        if !pointer.is_null() {
+            let _ = COUNT_ALLOCATIONS.try_with(|gate| {
+                if gate.get() {
+                    let _ = ALLOCATIONS.try_with(|count| count.set(count.get() + 1));
+                }
+            });
+        }
+    }
+
+    // SAFETY: every request is forwarded unchanged to `System`; the
+    // thread-local cells are observational and never participate in allocation.
+    unsafe impl GlobalAlloc for CountingAllocator {
+        unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
+            // SAFETY: the backing allocator receives the original request.
+            let pointer = unsafe { System.alloc(layout) };
+            record_allocation(pointer);
+            pointer
+        }
+
+        unsafe fn dealloc(&self, pointer: *mut u8, layout: Layout) {
+            // SAFETY: the allocation came from `System` with this layout.
+            unsafe { System.dealloc(pointer, layout) }
+        }
+
+        unsafe fn alloc_zeroed(&self, layout: Layout) -> *mut u8 {
+            // SAFETY: the backing allocator receives the original request.
+            let pointer = unsafe { System.alloc_zeroed(layout) };
+            record_allocation(pointer);
+            pointer
+        }
+
+        unsafe fn realloc(&self, pointer: *mut u8, layout: Layout, size: usize) -> *mut u8 {
+            // SAFETY: the backing allocator receives the original request.
+            let resized = unsafe { System.realloc(pointer, layout, size) };
+            record_allocation(resized);
+            resized
+        }
+    }
+
+    #[global_allocator]
+    static GLOBAL_ALLOCATOR: CountingAllocator = CountingAllocator;
+
+    struct AllocationMeasurement;
+
+    impl Drop for AllocationMeasurement {
+        fn drop(&mut self) {
+            COUNT_ALLOCATIONS.with(|gate| gate.set(false));
+        }
+    }
+
+    fn counted_allocations<T>(operation: impl FnOnce() -> T) -> (T, usize) {
+        ALLOCATIONS.with(|count| count.set(0));
+        COUNT_ALLOCATIONS.with(|gate| {
+            assert!(!gate.replace(true), "nested allocation measurement");
+        });
+        let measurement = AllocationMeasurement;
+        let result = operation();
+        drop(measurement);
+        (result, ALLOCATIONS.with(Cell::get))
+    }
 
     fn ramp(len: usize, seed: usize) -> Vec<f32> {
         (0..len)
@@ -687,6 +1580,521 @@ mod tests {
     /// `kv_heads` heads of width `head_size` each.
     fn cache(positions: usize, kv_heads: usize, head_size: usize, seed: usize) -> Vec<f32> {
         ramp(positions * kv_heads * head_size, seed)
+    }
+
+    fn assert_pinned_record(record: &AttentionOperatorSpec, pinned: &str) {
+        assert_eq!(record.canonical_bytes(), pinned.as_bytes());
+        let expected = format!("blake3:{}", blake3::hash(pinned.as_bytes()).to_hex());
+        assert_eq!(record.implementation_digest, expected);
+        assert_eq!(record.declared_digest(), expected);
+    }
+
+    fn assert_pinned_digest(record: &AttentionOperatorSpec, expected: &str) {
+        assert_eq!(record.implementation_digest, expected);
+        assert_eq!(record.declared_digest(), expected);
+    }
+
+    #[test]
+    fn raw_control_layout_rejection_is_failure_atomic() {
+        let poison = f32::from_bits(0x7fc0_704a);
+
+        let mut zero_width = [poison; 2];
+        let zero_width_before = zero_width.map(f32::to_bits);
+        let zero_width_error = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            head_dot_products_with_arithmetic(
+                &mut zero_width,
+                &[],
+                &[],
+                0,
+                1,
+                0,
+                AttentionArithmetic::Conventional,
+            )
+        }));
+        assert!(zero_width_error.is_err());
+        assert_eq!(zero_width.map(f32::to_bits), zero_width_before);
+
+        let mut qk = [poison; 2];
+        let qk_before = qk.map(f32::to_bits);
+        let qk_error = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            head_dot_products_with_arithmetic(
+                &mut qk,
+                &[1.0, 2.0, 3.0, 4.0],
+                &[1.0, 2.0, 3.0, 4.0],
+                0,
+                4,
+                4,
+                AttentionArithmetic::CertifiedNative,
+            )
+        }));
+        assert!(qk_error.is_err());
+        assert_eq!(qk.map(f32::to_bits), qk_before);
+
+        let mut experimental = [poison; 2];
+        let experimental_before = experimental.map(f32::to_bits);
+        let experimental_error = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            experimental_r4_head_attention_weights_with_arithmetic(
+                &mut experimental,
+                &[1.0, 2.0, 3.0, 4.0],
+                &[1.0, 2.0, 3.0, 4.0],
+                0,
+                4,
+                false,
+                AttentionArithmetic::Conventional,
+            )
+        }));
+        assert!(experimental_error.is_err());
+        assert_eq!(experimental.map(f32::to_bits), experimental_before);
+
+        let mut value = [poison; 2];
+        let value_before = value.map(f32::to_bits);
+        let value_error = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            head_attention_value_aggregate_with_arithmetic(
+                &mut value,
+                &[0.25, 0.75],
+                &[1.0, 2.0],
+                0,
+                2,
+                AttentionArithmetic::CertifiedNative,
+            )
+        }));
+        assert!(value_error.is_err());
+        assert_eq!(value.map(f32::to_bits), value_before);
+
+        let oversized_stride = (isize::MAX as usize) + 1;
+        let mut oversized_row = [poison; 1];
+        let oversized_row_before = oversized_row.map(f32::to_bits);
+        let oversized_row_error = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            head_dot_products_with_arithmetic(
+                &mut oversized_row,
+                &[1.0],
+                &[1.0],
+                0,
+                oversized_stride,
+                1,
+                AttentionArithmetic::CertifiedNative,
+            )
+        }));
+        assert!(oversized_row_error.is_err());
+        assert_eq!(oversized_row.map(f32::to_bits), oversized_row_before);
+
+        let mut oversized_column = [poison; 2];
+        let oversized_column_before = oversized_column.map(f32::to_bits);
+        let oversized_column_error = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            head_attention_value_aggregate_with_arithmetic(
+                &mut oversized_column,
+                &[1.0],
+                &[1.0, f32::NAN],
+                0,
+                oversized_stride,
+                AttentionArithmetic::CertifiedNative,
+            )
+        }));
+        assert!(oversized_column_error.is_err());
+        assert_eq!(oversized_column.map(f32::to_bits), oversized_column_before);
+    }
+
+    #[test]
+    fn certified_and_forced_fallback_raw_controls_allocate_nothing() {
+        let safe_query = [1.0f32, -2.0, 0.25, 4.0];
+        let safe_keys = [0.5f32, 0.75, -2.0, 0.25, -0.25, 0.5, 4.0, -0.5];
+        let mut safe_output = [0.0f32; 2];
+        let (safe, allocations) = counted_allocations(|| {
+            head_dot_products_with_arithmetic(
+                &mut safe_output,
+                &safe_query,
+                &safe_keys,
+                0,
+                4,
+                4,
+                AttentionArithmetic::CertifiedNative,
+            )
+        });
+        assert_eq!(allocations, 0, "certified QK allocated");
+        assert!(safe.certified > 0);
+
+        let tie_term = f32::from_bits(115 << 23);
+        let mut fallback_output = [0.0f32; 1];
+        let (fallback, allocations) = counted_allocations(|| {
+            head_dot_products_with_arithmetic(
+                &mut fallback_output,
+                &[1.0, tie_term],
+                &[1.0, tie_term],
+                0,
+                2,
+                2,
+                AttentionArithmetic::CertifiedNative,
+            )
+        });
+        assert_eq!(allocations, 0, "exact QK fallback allocated");
+        assert_eq!(fallback.fallback_cell, 1);
+
+        let mut value_output = [0.0f32; 1];
+        let (value, allocations) = counted_allocations(|| {
+            head_attention_value_aggregate_with_arithmetic(
+                &mut value_output,
+                &[1.0, tie_term],
+                &[1.0, tie_term],
+                0,
+                1,
+                AttentionArithmetic::CertifiedNative,
+            )
+        });
+        assert_eq!(allocations, 0, "exact value fallback allocated");
+        assert_eq!(value.fallback_cell, 1);
+    }
+
+    #[test]
+    fn current_llama_wrappers_materially_dispatch_certified_native() {
+        let query = [1.0e20f32, 1.0, -1.0e20];
+        let keys = [1.0f32, 1.0, 1.0, 1.0, 0.0, 1.0];
+        let mut shipped = [0.0; 2];
+        let mut certified = [0.0; 2];
+        let mut historical = [0.0; 2];
+        standard_head_attention_weights(&mut shipped, &query, &keys, 0, 3, false);
+        standard_head_attention_weights_with_arithmetic(
+            &mut certified,
+            &query,
+            &keys,
+            0,
+            3,
+            false,
+            AttentionArithmetic::CertifiedNative,
+        );
+        standard_head_attention_weights_with_arithmetic(
+            &mut historical,
+            &query,
+            &keys,
+            0,
+            3,
+            false,
+            AttentionArithmetic::Conventional,
+        );
+        assert_exact_bits(&shipped, &certified, "standard wrapper");
+        assert_ne!(shipped.map(f32::to_bits), historical.map(f32::to_bits));
+
+        let query = [1.0e20f32, 1.0, -1.0e20, 0.0];
+        let keys = [1.0f32, 1.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0];
+        let mut shipped = [0.0; 2];
+        let mut certified = [0.0; 2];
+        let mut historical = [0.0; 2];
+        experimental_r4_head_attention_weights(&mut shipped, &query, &keys, 0, 4, false);
+        experimental_r4_head_attention_weights_with_arithmetic(
+            &mut certified,
+            &query,
+            &keys,
+            0,
+            4,
+            false,
+            AttentionArithmetic::CertifiedNative,
+        );
+        experimental_r4_head_attention_weights_with_arithmetic(
+            &mut historical,
+            &query,
+            &keys,
+            0,
+            4,
+            false,
+            AttentionArithmetic::Conventional,
+        );
+        assert_exact_bits(&shipped, &certified, "experimental wrapper");
+        assert_ne!(shipped.map(f32::to_bits), historical.map(f32::to_bits));
+
+        let attention = [1.0e20f32, 1.0, -1.0e20];
+        let values = [1.0f32, 1.0, 1.0];
+        let mut shipped = [0.0; 1];
+        let mut certified = [0.0; 1];
+        let mut historical = [0.0; 1];
+        head_attention_value_aggregate(&mut shipped, &attention, &values, 0, 1);
+        head_attention_value_aggregate_with_arithmetic(
+            &mut certified,
+            &attention,
+            &values,
+            0,
+            1,
+            AttentionArithmetic::CertifiedNative,
+        );
+        head_attention_value_aggregate_with_arithmetic(
+            &mut historical,
+            &attention,
+            &values,
+            0,
+            1,
+            AttentionArithmetic::Conventional,
+        );
+        assert_exact_bits(&shipped, &certified, "value wrapper");
+        assert_ne!(shipped.map(f32::to_bits), historical.map(f32::to_bits));
+    }
+
+    fn assert_exact_bits(got: &[f32], expected: &[f32], context: &str) {
+        assert_eq!(got.len(), expected.len(), "{context}: length");
+        for (lane, (&got, &expected)) in got.iter().zip(expected).enumerate() {
+            assert_eq!(
+                got.to_bits(),
+                expected.to_bits(),
+                "{context}: lane {lane}: got={got:?} expected={expected:?}"
+            );
+        }
+    }
+
+    fn independent_exact_dot(left: &[f32], right: &[f32]) -> f32 {
+        assert_eq!(left.len(), right.len());
+        if left.is_empty() {
+            return 0.0;
+        }
+        let mut output = [f32::from_bits(0x7fc0_704a)];
+        let mut packed_left = vec![uor_matmul::PackedCode::default(); left.len()];
+        let mut packed_right = vec![uor_matmul::PackedCode::default(); right.len()];
+        uor_matmul::slice::gemm_float(
+            1,
+            left.len(),
+            1,
+            left,
+            right,
+            &mut output,
+            &mut packed_left,
+            &mut packed_right,
+        )
+        .expect("independently gathered operands form one exact dot");
+        output[0]
+    }
+
+    fn verify_qk_exact(
+        context: &str,
+        rows: usize,
+        width: usize,
+        query: &[f32],
+        keys: &[f32],
+        key_offset: usize,
+        key_stride: usize,
+    ) -> AttentionDotCensus {
+        let independent: Vec<f32> = (0..rows)
+            .map(|row| {
+                let key: Vec<f32> = (0..width)
+                    .map(|column| keys[row * key_stride + key_offset + column])
+                    .collect();
+                independent_exact_dot(&query[..width], &key)
+            })
+            .collect();
+        let mut exact = vec![f32::NAN; rows];
+        let exact_census = head_dot_products_with_arithmetic(
+            &mut exact,
+            query,
+            keys,
+            key_offset,
+            key_stride,
+            width,
+            AttentionArithmetic::Exact,
+        );
+        assert_eq!(exact_census.exact_control, rows);
+        assert_exact_bits(&exact, &independent, context);
+
+        let mut candidate = vec![f32::NAN; rows];
+        let census = head_dot_products_with_arithmetic(
+            &mut candidate,
+            query,
+            keys,
+            key_offset,
+            key_stride,
+            width,
+            AttentionArithmetic::CertifiedNative,
+        );
+        assert_exact_bits(&candidate, &exact, context);
+        assert_eq!(census.certified + census.fallbacks(), rows);
+        census
+    }
+
+    fn verify_value_exact(
+        context: &str,
+        head_size: usize,
+        attention: &[f32],
+        values: &[f32],
+        value_offset: usize,
+        value_stride: usize,
+    ) -> AttentionDotCensus {
+        let independent: Vec<f32> = (0..head_size)
+            .map(|lane| {
+                let value_lane: Vec<f32> = (0..attention.len())
+                    .map(|position| values[position * value_stride + value_offset + lane])
+                    .collect();
+                independent_exact_dot(attention, &value_lane)
+            })
+            .collect();
+        let mut exact = vec![f32::NAN; head_size];
+        let exact_census = head_attention_value_aggregate_with_arithmetic(
+            &mut exact,
+            attention,
+            values,
+            value_offset,
+            value_stride,
+            AttentionArithmetic::Exact,
+        );
+        assert_eq!(exact_census.exact_control, head_size);
+        assert_exact_bits(&exact, &independent, context);
+
+        let mut candidate = vec![f32::NAN; head_size];
+        let census = head_attention_value_aggregate_with_arithmetic(
+            &mut candidate,
+            attention,
+            values,
+            value_offset,
+            value_stride,
+            AttentionArithmetic::CertifiedNative,
+        );
+        assert_exact_bits(&candidate, &exact, context);
+        assert_eq!(census.certified + census.fallbacks(), head_size);
+        census
+    }
+
+    fn splitmix(seed: &mut u64) -> u64 {
+        *seed = seed.wrapping_add(0x9e37_79b9_7f4a_7c15);
+        let mut value = *seed;
+        value = (value ^ (value >> 30)).wrapping_mul(0xbf58_476d_1ce4_e5b9);
+        value = (value ^ (value >> 27)).wrapping_mul(0x94d0_49bb_1331_11eb);
+        value ^ (value >> 31)
+    }
+
+    fn moderate_finite(seed: &mut u64) -> f32 {
+        let bits = splitmix(seed);
+        let sign = ((bits >> 63) as u32) << 31;
+        let exponent = 104 + ((bits >> 32) as u32 % 48);
+        let fraction = bits as u32 & 0x007f_ffff;
+        f32::from_bits(sign | (exponent << 23) | fraction)
+    }
+
+    #[test]
+    fn certified_controls_match_independently_gathered_exact_dots() {
+        let tie_term = f32::from_bits(115 << 23);
+        let mut qk = AttentionDotCensus::default();
+        let mut value = AttentionDotCensus::default();
+
+        for part in [
+            verify_qk_exact(
+                "ordinary strided QK",
+                2,
+                4,
+                &[1.0, -2.0, 0.25, 4.0],
+                &[
+                    99.0, 0.5, 0.75, -2.0, 0.25, 77.0, 98.0, -0.25, 0.5, 4.0, -0.5, 76.0,
+                ],
+                1,
+                6,
+            ),
+            verify_qk_exact(
+                "positive RNE tie",
+                1,
+                2,
+                &[1.0, tie_term],
+                &[1.0, tie_term],
+                0,
+                2,
+            ),
+            verify_qk_exact(
+                "exact cancellation to zero",
+                1,
+                2,
+                &[1.0, 1.0],
+                &[1.0, -1.0],
+                0,
+                2,
+            ),
+            verify_qk_exact(
+                "large cancellation residue",
+                1,
+                3,
+                &[1.0e20, 1.0, -1.0e20],
+                &[1.0, 1.0, 1.0],
+                0,
+                3,
+            ),
+            verify_qk_exact("overflow", 1, 1, &[f32::MAX], &[f32::MAX], 0, 1),
+            verify_qk_exact("nonfinite", 1, 1, &[f32::INFINITY], &[1.0], 0, 1),
+        ] {
+            qk.merge(part);
+        }
+        for part in [
+            verify_value_exact(
+                "ordinary strided values",
+                2,
+                &[0.25, -0.5, 0.75],
+                &[99.0, 1.0, 2.0, 98.0, -2.0, 4.0, 97.0, 0.25, -1.0],
+                1,
+                3,
+            ),
+            verify_value_exact("value RNE tie", 1, &[1.0, tie_term], &[1.0, tie_term], 0, 1),
+            verify_value_exact(
+                "value cancellation",
+                1,
+                &[1.0e20, 1.0, -1.0e20],
+                &[1.0, 1.0, 1.0],
+                0,
+                1,
+            ),
+            verify_value_exact("value zero", 1, &[1.0, -1.0], &[1.0, 1.0], 0, 1),
+            verify_value_exact("value overflow", 1, &[f32::MAX], &[f32::MAX], 0, 1),
+            verify_value_exact("value nonfinite", 1, &[f32::NAN], &[1.0], 0, 1),
+        ] {
+            value.merge(part);
+        }
+
+        let mut seed = 0x704a_77e5_d1a5_beef;
+        for case in 0..256usize {
+            let rows = 1 + splitmix(&mut seed) as usize % 12;
+            let width = 1 + splitmix(&mut seed) as usize % 64;
+            let key_offset = splitmix(&mut seed) as usize % 3;
+            let key_stride = key_offset + width + splitmix(&mut seed) as usize % 4;
+            let query: Vec<f32> = (0..width).map(|_| moderate_finite(&mut seed)).collect();
+            let mut keys = vec![0.0; rows * key_stride];
+            for row in 0..rows {
+                for column in 0..width {
+                    keys[row * key_stride + key_offset + column] = moderate_finite(&mut seed);
+                }
+            }
+            if case % 61 == 0 {
+                keys[key_offset] = f32::NEG_INFINITY;
+            }
+            qk.merge(verify_qk_exact(
+                &format!("random QK {case}"),
+                rows,
+                width,
+                &query,
+                &keys,
+                key_offset,
+                key_stride,
+            ));
+
+            let head_size = 1 + splitmix(&mut seed) as usize % 32;
+            let value_offset = splitmix(&mut seed) as usize % 3;
+            let value_stride = value_offset + head_size + splitmix(&mut seed) as usize % 4;
+            let attention: Vec<f32> = (0..rows).map(|_| moderate_finite(&mut seed)).collect();
+            let mut values = vec![0.0; rows * value_stride];
+            for position in 0..rows {
+                for lane in 0..head_size {
+                    values[position * value_stride + value_offset + lane] =
+                        moderate_finite(&mut seed);
+                }
+            }
+            if case % 67 == 0 {
+                values[value_offset] = f32::INFINITY;
+            }
+            value.merge(verify_value_exact(
+                &format!("random value {case}"),
+                head_size,
+                &attention,
+                &values,
+                value_offset,
+                value_stride,
+            ));
+        }
+
+        for (kind, census) in [("QK", qk), ("value", value)] {
+            assert!(census.certified > 0, "{kind}: no certified lane");
+            assert!(census.fallback_nonfinite > 0, "{kind}: nonfinite arm");
+            assert!(census.fallback_zero > 0, "{kind}: zero arm");
+            assert!(census.fallback_overflow > 0, "{kind}: overflow arm");
+            assert!(census.fallback_cell > 0, "{kind}: cell arm");
+        }
+        eprintln!("CERTIFIED_ATTENTION_PARITY qk={qk:?} value={value:?}");
     }
 
     #[test]
@@ -870,12 +2278,154 @@ mod tests {
         let value_offset = head_size;
         let mut out = vec![7.0f32; head_size]; // pre-dirtied: must be zeroed
         head_attention_value_aggregate(&mut out, &att, &values, value_offset, value_stride);
-        for i in 0..head_size {
-            let mut expected = 0.0f32;
-            for (t, &weight) in att.iter().enumerate() {
-                expected += weight * values[t * value_stride + value_offset + i];
+        let mut expected = vec![f32::NAN; head_size];
+        let census = head_attention_value_aggregate_with_arithmetic(
+            &mut expected,
+            &att,
+            &values,
+            value_offset,
+            value_stride,
+            AttentionArithmetic::Exact,
+        );
+        assert_eq!(census.exact_control, head_size);
+        assert_eq!(
+            out.iter().map(|value| value.to_bits()).collect::<Vec<_>>(),
+            expected
+                .iter()
+                .map(|value| value.to_bits())
+                .collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
+    fn empty_attention_is_the_zero_weighted_sum_for_every_arithmetic_owner() {
+        let mut public = [7.0f32, 7.0];
+        head_attention_value_aggregate(&mut public, &[], &[], 0, 1);
+        assert_eq!(public.map(f32::to_bits), [0.0f32.to_bits(); 2]);
+
+        for arithmetic in [
+            AttentionArithmetic::Conventional,
+            AttentionArithmetic::Exact,
+            AttentionArithmetic::CertifiedNative,
+        ] {
+            let mut output = [7.0f32, 7.0];
+            let census = head_attention_value_aggregate_with_arithmetic(
+                &mut output,
+                &[],
+                &[],
+                usize::MAX,
+                usize::MAX,
+                arithmetic,
+            );
+            assert_eq!(output.map(f32::to_bits), [0.0f32.to_bits(); 2]);
+            assert_eq!(census.lanes, 2);
+            match arithmetic {
+                AttentionArithmetic::Conventional => {
+                    assert_eq!(census.conventional, 2);
+                    assert_eq!(census.exact_control, 0);
+                    assert_eq!(census.fallbacks(), 0);
+                }
+                AttentionArithmetic::Exact => {
+                    assert_eq!(census.conventional, 0);
+                    assert_eq!(census.exact_control, 2);
+                    assert_eq!(census.fallbacks(), 0);
+                }
+                AttentionArithmetic::CertifiedNative => {
+                    assert_eq!(census.conventional, 0);
+                    assert_eq!(census.exact_control, 0);
+                    assert_eq!(census.certified, 0);
+                    assert_eq!(census.fallback_zero, 2);
+                    assert_eq!(census.fallbacks(), 2);
+                }
             }
-            assert_eq!(out[i].to_bits(), expected.to_bits(), "dimension {i}");
+        }
+    }
+
+    #[test]
+    fn zero_extent_public_attention_weights_are_total_and_uniform() {
+        for weights in [
+            standard_head_attention_weights as fn(&mut [f32], &[f32], &[f32], usize, usize, bool),
+            experimental_r4_head_attention_weights,
+        ] {
+            let mut empty = [];
+            weights(&mut empty, &[], &[], usize::MAX, usize::MAX, false);
+            weights(
+                &mut empty,
+                &[1.0, 2.0, 3.0, 4.0],
+                &[],
+                usize::MAX,
+                usize::MAX,
+                false,
+            );
+
+            let mut singleton = [123.0f32];
+            weights(&mut singleton, &[], &[], usize::MAX, usize::MAX, false);
+            assert_eq!(singleton.map(f32::to_bits), [1.0f32.to_bits()]);
+
+            let mut weights3 = [123.0f32; 3];
+            weights(&mut weights3, &[], &[], usize::MAX, usize::MAX, true);
+            assert!(weights3.iter().all(|weight| weight.is_finite()));
+            assert_eq!(weights3[0].to_bits(), weights3[1].to_bits());
+            assert_eq!(weights3[1].to_bits(), weights3[2].to_bits());
+        }
+
+        for head_size in 1..4 {
+            let mut below_chunk = [123.0f32; 3];
+            experimental_r4_head_attention_weights(
+                &mut below_chunk,
+                &vec![1.0; head_size],
+                &[],
+                usize::MAX,
+                usize::MAX,
+                false,
+            );
+            assert!(below_chunk.iter().all(|weight| weight.is_finite()));
+            assert_eq!(below_chunk[0].to_bits(), below_chunk[1].to_bits());
+            assert_eq!(below_chunk[1].to_bits(), below_chunk[2].to_bits());
+
+            let mut exact = [123.0f32; 2];
+            let census = experimental_r4_head_attention_weights_with_arithmetic(
+                &mut exact,
+                &vec![1.0; head_size],
+                &[],
+                usize::MAX,
+                usize::MAX,
+                true,
+                AttentionArithmetic::Exact,
+            );
+            assert_eq!(exact[0].to_bits(), exact[1].to_bits());
+            assert_eq!(census.exact_control, exact.len());
+        }
+
+        let mut no_value_lanes = [];
+        head_attention_value_aggregate(&mut no_value_lanes, &[1.0], &[], usize::MAX, usize::MAX);
+
+        for arithmetic in [
+            AttentionArithmetic::Conventional,
+            AttentionArithmetic::Exact,
+            AttentionArithmetic::CertifiedNative,
+        ] {
+            let mut output = [123.0f32; 2];
+            let census = standard_head_attention_weights_with_arithmetic(
+                &mut output,
+                &[],
+                &[],
+                usize::MAX,
+                usize::MAX,
+                false,
+                arithmetic,
+            );
+            assert_eq!(output[0].to_bits(), output[1].to_bits());
+            assert_eq!(census.lanes, output.len());
+            match arithmetic {
+                AttentionArithmetic::Conventional => {
+                    assert_eq!(census.conventional, output.len())
+                }
+                AttentionArithmetic::Exact => assert_eq!(census.exact_control, output.len()),
+                AttentionArithmetic::CertifiedNative => {
+                    assert_eq!(census.fallback_zero, output.len())
+                }
+            }
         }
     }
 
@@ -900,11 +2450,11 @@ mod tests {
     }
 
     #[test]
-    fn canonical_serialization_is_byte_stable() {
+    fn legacy_standard_and_experimental_v1_canonical_bytes_remain_immutable() {
         // The canonical forms are pinned byte-for-byte: any drift in
         // field order, separators, or parameter tokens fails here — the
         // digest identity must not move silently.
-        let standard = AttentionOperatorSpec::standard();
+        let standard = AttentionOperatorSpec::standard_v1();
         let pinned_standard = "uor-r4-attention-operator/1\n\
              id=standard-source-attention\n\
              version=1\n\
@@ -923,14 +2473,13 @@ mod tests {
              param.remainder_policy=none-every-head-dimension-scored\n\
              param.score_accumulation=sequential-f32-left-fold\n";
         assert_eq!(standard.canonical_bytes(), pinned_standard.as_bytes());
-        let expected = format!(
-            "blake3:{}",
-            blake3::hash(pinned_standard.as_bytes()).to_hex()
+        assert_pinned_record(&standard, pinned_standard);
+        assert_pinned_digest(
+            &standard,
+            "blake3:d9520065caf35261af680b3b35c9893351166a739f04739df5216882ab5f3437",
         );
-        assert_eq!(standard.implementation_digest, expected);
-        assert_eq!(standard.declared_digest(), expected);
 
-        let experimental = AttentionOperatorSpec::experimental_r4();
+        let experimental = AttentionOperatorSpec::experimental_r4_v1();
         let pinned_experimental = "uor-r4-attention-operator/1\n\
              id=experimental-r4-source-attention\n\
              version=1\n\
@@ -948,29 +2497,174 @@ mod tests {
              param.score_width_policy=chunks-of-4-floor-head-size-div-4\n\
              param.remainder_policy=truncate-trailing-head-size-mod-4-dims-from-score\n\
              param.score_accumulation=per-4-chunk-left-fold-then-chunk-sum\n";
-        assert_eq!(
-            experimental.canonical_bytes(),
-            pinned_experimental.as_bytes()
-        );
-        assert_eq!(
-            experimental.declared_digest(),
-            experimental.implementation_digest
+        assert_pinned_record(&experimental, pinned_experimental);
+        assert_pinned_digest(
+            &experimental,
+            "blake3:aedf1e7732b4a8396f8e3439a7d375fea269c5cb632ca014ff1fdd8c592a3bab",
         );
         assert_ne!(
             standard.implementation_digest, experimental.implementation_digest,
             "the two operators are distinct identities"
         );
         // Rebuilding reproduces the records bit-for-bit.
-        assert_eq!(standard, AttentionOperatorSpec::standard());
-        assert_eq!(experimental, AttentionOperatorSpec::experimental_r4());
+        assert_eq!(standard, AttentionOperatorSpec::standard_v1());
+        assert_eq!(experimental, AttentionOperatorSpec::experimental_r4_v1());
+    }
+
+    #[test]
+    fn current_source_v2_canonical_bytes_and_digests_are_pinned() {
+        let standard = AttentionOperatorSpec::standard_v2();
+        let pinned_standard = "uor-r4-attention-operator/1\n\
+             id=standard-source-attention\n\
+             version=2\n\
+             projections=per-layer-dense-f32-wq-wk-wv\n\
+             positional_action=rope-rotation-of-q-and-k-before-scoring\n\
+             compatibility_relation=correctly-rounded-binary32-exact-real-full-width-dot\n\
+             selector_normalization=divide-by-sqrt-full-head-size-then-softmax-max-subtracted-exp-sum-per-weight-divide\n\
+             value_aggregation=correctly-rounded-binary32-exact-real-position-weighted-sum-certified-native-f64-outward-cell-or-pinned-uor-matmul-exact-fallback\n\
+             output_projection=per-layer-dense-f32-wo\n\
+             runtime_state=growing-kv-cache-full-prefix\n\
+             tie_breaking=first-maximum-softmax-stabilizer-value-identical\n\
+             permitted_operation_class=host-source-f32-f64-certified-plus-pinned-uor-matmul-exact-fallback\n\
+             param.head_selection=grouped-query-kv-head-h-div-kv-mul\n\
+             param.score_scale=divide-by-sqrt-full-head-size\n\
+             param.score_width_policy=full-head-width\n\
+             param.remainder_policy=none-every-head-dimension-scored\n\
+             param.score_accumulation=correctly-rounded-binary32-exact-real-dot-certified-native-f64-outward-cell-or-pinned-uor-matmul-exact-fallback\n";
+        assert_eq!(pinned_standard.len(), 1_075);
+        assert_pinned_record(&standard, pinned_standard);
+        assert_pinned_digest(
+            &standard,
+            "blake3:fa4c8f233e217d3903678b7690de5cdfb27d83a4b68c52436cfabbc6ca6cfc59",
+        );
+
+        let experimental = AttentionOperatorSpec::experimental_r4_v2();
+        let pinned_experimental = "uor-r4-attention-operator/1\n\
+             id=experimental-r4-source-attention\n\
+             version=2\n\
+             projections=per-layer-dense-f32-wq-wk-wv\n\
+             positional_action=rope-rotation-of-q-and-k-before-scoring\n\
+             compatibility_relation=correctly-rounded-binary32-exact-real-floor-multiple-of-4-width-dot\n\
+             selector_normalization=divide-by-sqrt-full-head-size-then-softmax-max-subtracted-exp-sum-per-weight-divide\n\
+             value_aggregation=correctly-rounded-binary32-exact-real-position-weighted-sum-certified-native-f64-outward-cell-or-pinned-uor-matmul-exact-fallback\n\
+             output_projection=per-layer-dense-f32-wo\n\
+             runtime_state=growing-kv-cache-full-prefix\n\
+             tie_breaking=first-maximum-softmax-stabilizer-value-identical\n\
+             permitted_operation_class=host-source-f32-f64-certified-plus-pinned-uor-matmul-exact-fallback\n\
+             param.head_selection=grouped-query-kv-head-h-div-kv-mul\n\
+             param.score_scale=divide-by-sqrt-full-head-size\n\
+             param.score_width_policy=chunks-of-4-floor-head-size-div-4\n\
+             param.remainder_policy=truncate-trailing-head-size-mod-4-dims-from-score\n\
+             param.score_accumulation=correctly-rounded-binary32-exact-real-dot-certified-native-f64-outward-cell-or-pinned-uor-matmul-exact-fallback\n";
+        assert_eq!(pinned_experimental.len(), 1_132);
+        assert_pinned_record(&experimental, pinned_experimental);
+        assert_pinned_digest(
+            &experimental,
+            "blake3:a71d3a9fbfd951528652b837a23d5bfd7742ba79d5082337c19db3a17776e654",
+        );
+
+        let learned = AttentionOperatorSpec::learned_absolute_v2();
+        let pinned_learned = "uor-r4-attention-operator/1\n\
+             id=learned-absolute-source-attention\n\
+             version=2\n\
+             projections=fused-c-attn-conv1d-qkv-with-bias\n\
+             positional_action=none-learned-absolute-positions-added-to-input-embeddings\n\
+             compatibility_relation=correctly-rounded-binary32-exact-real-full-width-dot\n\
+             selector_normalization=multiply-by-reciprocal-sqrt-full-head-size-then-softmax-max-subtracted-exp-sum-reciprocal-multiply\n\
+             value_aggregation=correctly-rounded-binary32-exact-real-position-weighted-sum-certified-native-f64-outward-cell-or-pinned-uor-matmul-exact-fallback\n\
+             output_projection=dense-c-proj-conv1d-with-bias\n\
+             runtime_state=growing-kv-cache-full-prefix\n\
+             tie_breaking=first-maximum-softmax-stabilizer-value-identical\n\
+             permitted_operation_class=host-source-f32-f64-certified-plus-pinned-uor-matmul-exact-fallback\n\
+             param.head_selection=multi-head-identity-kv-head-equals-query-head\n\
+             param.score_scale=multiply-by-reciprocal-sqrt-full-head-size\n\
+             param.score_width_policy=full-head-width\n\
+             param.remainder_policy=none-every-head-dimension-scored\n\
+             param.score_accumulation=correctly-rounded-binary32-exact-real-dot-certified-native-f64-outward-cell-or-pinned-uor-matmul-exact-fallback\n";
+        assert_eq!(pinned_learned.len(), 1_152);
+        assert_pinned_record(&learned, pinned_learned);
+        assert_pinned_digest(
+            &learned,
+            "blake3:ba36fd1fef53a2e3744e1fee60e72677870d1cd2f2b484db755c0a5a74727231",
+        );
+
+        assert_eq!(AttentionOperatorSpec::standard(), standard);
+        assert_eq!(AttentionOperatorSpec::experimental_r4(), experimental);
+        assert_eq!(
+            AttentionOperatorSpec::learned_absolute_source_attention(),
+            learned
+        );
+        assert_eq!(
+            AttentionOperatorParams::standard(),
+            AttentionOperatorParams::standard_v2()
+        );
+        assert_eq!(
+            AttentionOperatorParams::experimental_r4(),
+            AttentionOperatorParams::experimental_r4_v2()
+        );
+        assert_eq!(
+            AttentionOperatorParams::learned_absolute(),
+            AttentionOperatorParams::learned_absolute_v2()
+        );
+        for record in [&standard, &experimental, &learned] {
+            assert_eq!(
+                record.params.score_accumulation,
+                CERTIFIED_NATIVE_ARITHMETIC_ID
+            );
+        }
+    }
+
+    #[test]
+    fn source_v2_keeps_model_family_semantics_but_mismatches_v1() {
+        for (v1, v2) in [
+            (
+                AttentionOperatorSpec::standard_v1(),
+                AttentionOperatorSpec::standard_v2(),
+            ),
+            (
+                AttentionOperatorSpec::experimental_r4_v1(),
+                AttentionOperatorSpec::experimental_r4_v2(),
+            ),
+            (
+                AttentionOperatorSpec::learned_absolute_v1(),
+                AttentionOperatorSpec::learned_absolute_v2(),
+            ),
+        ] {
+            assert_eq!(v2.id, v1.id);
+            assert_eq!(v2.projections, v1.projections);
+            assert_eq!(v2.positional_action, v1.positional_action);
+            assert_eq!(v2.output_projection, v1.output_projection);
+            assert_eq!(v2.runtime_state, v1.runtime_state);
+            assert_eq!(v2.tie_breaking, v1.tie_breaking);
+            assert_eq!(v2.params.head_selection, v1.params.head_selection);
+            assert_eq!(v2.params.score_scale, v1.params.score_scale);
+            assert_eq!(v2.params.score_width_policy, v1.params.score_width_policy);
+            assert_eq!(v2.params.remainder_policy, v1.params.remainder_policy);
+            assert_ne!(v2.version, v1.version);
+            assert_ne!(v2.implementation_digest, v1.implementation_digest);
+            assert_ne!(v2, v1, "same-id source eras must fail equality checks");
+        }
+        assert!(AttentionOperatorSpec::standard_v2()
+            .selector_normalization
+            .contains("per-weight-divide"));
+        assert!(AttentionOperatorSpec::experimental_r4_v2()
+            .params
+            .remainder_policy
+            .contains("truncate-trailing"));
+        assert!(AttentionOperatorSpec::learned_absolute_v2()
+            .selector_normalization
+            .contains("reciprocal-multiply"));
     }
 
     #[test]
     fn record_round_trips_through_serde_json() {
         for record in [
+            AttentionOperatorSpec::standard_v1(),
             AttentionOperatorSpec::standard(),
+            AttentionOperatorSpec::experimental_r4_v1(),
             AttentionOperatorSpec::experimental_r4(),
             AttentionOperatorSpec::r4_route_attention_v1(),
+            AttentionOperatorSpec::learned_absolute_v1(),
             AttentionOperatorSpec::learned_absolute_source_attention(),
         ] {
             let json = serde_json::to_string(&record).expect("serializes");
@@ -1014,33 +2708,48 @@ mod tests {
 
     #[test]
     fn registry_resolves_all_registered_operators() {
-        let standard = operator_spec(
-            AttentionOperatorSpec::STANDARD_ID,
-            AttentionOperatorSpec::STANDARD_VERSION,
-        )
-        .expect("registered standard operator");
-        assert_eq!(standard, AttentionOperatorSpec::standard());
-        let experimental = operator_spec(
-            AttentionOperatorSpec::EXPERIMENTAL_R4_ID,
-            AttentionOperatorSpec::EXPERIMENTAL_R4_VERSION,
-        )
-        .expect("registered experimental operator");
-        assert_eq!(experimental, AttentionOperatorSpec::experimental_r4());
-        let target = operator_spec(
-            AttentionOperatorSpec::R4_ROUTE_ID,
-            AttentionOperatorSpec::R4_ROUTE_VERSION,
-        )
-        .expect("registered target route operator");
-        assert_eq!(target, AttentionOperatorSpec::r4_route_attention_v1());
-        let learned = operator_spec(
-            AttentionOperatorSpec::LEARNED_ABSOLUTE_ID,
-            AttentionOperatorSpec::LEARNED_ABSOLUTE_VERSION,
-        )
-        .expect("registered learned-absolute operator");
-        assert_eq!(
-            learned,
-            AttentionOperatorSpec::learned_absolute_source_attention()
-        );
+        for (id, version, expected) in [
+            (
+                AttentionOperatorSpec::STANDARD_ID,
+                AttentionOperatorSpec::STANDARD_V1_VERSION,
+                AttentionOperatorSpec::standard_v1(),
+            ),
+            (
+                AttentionOperatorSpec::STANDARD_ID,
+                AttentionOperatorSpec::STANDARD_V2_VERSION,
+                AttentionOperatorSpec::standard_v2(),
+            ),
+            (
+                AttentionOperatorSpec::EXPERIMENTAL_R4_ID,
+                AttentionOperatorSpec::EXPERIMENTAL_R4_V1_VERSION,
+                AttentionOperatorSpec::experimental_r4_v1(),
+            ),
+            (
+                AttentionOperatorSpec::EXPERIMENTAL_R4_ID,
+                AttentionOperatorSpec::EXPERIMENTAL_R4_V2_VERSION,
+                AttentionOperatorSpec::experimental_r4_v2(),
+            ),
+            (
+                AttentionOperatorSpec::LEARNED_ABSOLUTE_ID,
+                AttentionOperatorSpec::LEARNED_ABSOLUTE_V1_VERSION,
+                AttentionOperatorSpec::learned_absolute_v1(),
+            ),
+            (
+                AttentionOperatorSpec::LEARNED_ABSOLUTE_ID,
+                AttentionOperatorSpec::LEARNED_ABSOLUTE_V2_VERSION,
+                AttentionOperatorSpec::learned_absolute_v2(),
+            ),
+            (
+                AttentionOperatorSpec::R4_ROUTE_ID,
+                AttentionOperatorSpec::R4_ROUTE_VERSION,
+                AttentionOperatorSpec::r4_route_attention_v1(),
+            ),
+        ] {
+            assert_eq!(
+                operator_spec(id, version).expect("registered entry"),
+                expected
+            );
+        }
     }
 
     #[test]
@@ -1067,9 +2776,11 @@ mod tests {
              param.remainder_policy=unmasked-bits-never-scored\n\
              param.score_accumulation=per-byte-popcount-table-add-left-fold\n";
         assert_eq!(target.canonical_bytes(), pinned.as_bytes());
-        let expected = format!("blake3:{}", blake3::hash(pinned.as_bytes()).to_hex());
-        assert_eq!(target.implementation_digest, expected);
-        assert_eq!(target.declared_digest(), expected);
+        assert_eq!(target.canonical_bytes().len(), 860);
+        assert_pinned_digest(
+            &target,
+            "blake3:33e5e5c58d4a33caea0409f1263df4213419e52bb5999144570dd959e5ee151d",
+        );
         // Distinct identity from both source operators.
         assert_ne!(
             target.implementation_digest,
@@ -1086,19 +2797,23 @@ mod tests {
             "deployed-integer-xor-popcount-add-compare-table-read"
         );
         assert_eq!(
-            AttentionOperatorSpec::standard().permitted_operation_class,
+            AttentionOperatorSpec::standard_v1().permitted_operation_class,
             "host-source-f32"
+        );
+        assert_eq!(
+            AttentionOperatorSpec::standard().permitted_operation_class,
+            "host-source-f32-f64-certified-plus-pinned-uor-matmul-exact-fallback"
         );
         // Rebuilding reproduces the record bit-for-bit.
         assert_eq!(target, AttentionOperatorSpec::r4_route_attention_v1());
     }
 
     #[test]
-    fn learned_absolute_canonical_serialization_is_byte_stable() {
+    fn legacy_learned_absolute_v1_canonical_bytes_remain_immutable() {
         // #668: the GPT-2-family operator's declared identity, pinned
         // byte-for-byte. Any drift in a field token is a version bump,
         // never a silent edit.
-        let learned = AttentionOperatorSpec::learned_absolute_source_attention();
+        let learned = AttentionOperatorSpec::learned_absolute_v1();
         let pinned = "uor-r4-attention-operator/1\n\
              id=learned-absolute-source-attention\n\
              version=1\n\
@@ -1117,14 +2832,16 @@ mod tests {
              param.remainder_policy=none-every-head-dimension-scored\n\
              param.score_accumulation=sequential-f32-left-fold\n";
         assert_eq!(learned.canonical_bytes(), pinned.as_bytes());
-        let expected = format!("blake3:{}", blake3::hash(pinned.as_bytes()).to_hex());
-        assert_eq!(learned.implementation_digest, expected);
-        assert_eq!(learned.declared_digest(), expected);
+        assert_pinned_record(&learned, pinned);
+        assert_pinned_digest(
+            &learned,
+            "blake3:00088e46d2b68616f8e58c33ce6b621925f82be5b22607f080e5f142e753796f",
+        );
 
         // It shares the standard operator's compatibility relation and
         // softmax selector, but is a DISTINCT identity: the positional
         // action and projections differ, so the declared digest differs.
-        let standard = AttentionOperatorSpec::standard();
+        let standard = AttentionOperatorSpec::standard_v1();
         assert_eq!(
             learned.compatibility_relation,
             standard.compatibility_relation
@@ -1143,21 +2860,19 @@ mod tests {
         );
         assert_ne!(
             learned.implementation_digest,
-            AttentionOperatorSpec::experimental_r4().implementation_digest
+            AttentionOperatorSpec::experimental_r4_v1().implementation_digest
         );
         // Rebuilding reproduces the record bit-for-bit.
-        assert_eq!(
-            learned,
-            AttentionOperatorSpec::learned_absolute_source_attention()
-        );
+        assert_eq!(learned, AttentionOperatorSpec::learned_absolute_v1());
     }
 
     #[test]
     fn registry_refuses_unknown_id_and_version_by_name() {
         for (id, version) in [
-            ("standard-source-attention", 2u32),
-            ("experimental-r4-source-attention", 9),
-            ("learned-absolute-source-attention", 2),
+            ("standard-source-attention", 3u32),
+            ("experimental-r4-source-attention", 3),
+            ("learned-absolute-source-attention", 3),
+            ("r4-route-attention", 2),
             ("mystery-attention", 1),
         ] {
             let error =

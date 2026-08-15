@@ -833,12 +833,12 @@ mod tests {
         assert_eq!(with.len(), without.len() + 2);
     }
 
-    /// #602/#704 plumbing seam: stage B forwards the registry-validated
-    /// stage-A binding independently of the request switch. In particular,
-    /// an auto-detected GPT-2 teacher remains learned-absolute rather than
-    /// being relabelled standard because `r4_attention` is false.
+    /// #602/#704 plumbing seam: stage B forwards each registry-validated
+    /// stage-A record independently of the request switch. Explicit immutable
+    /// v1 records must remain their exact identities after the current aliases
+    /// advance, and every current v2 family must traverse the same seam.
     #[test]
-    fn attention_operator_is_threaded_into_cover_stage_flags() {
+    fn all_source_attention_records_are_threaded_into_cover_stage_flags() {
         use uor_r4_model_source::attention::AttentionOperatorSpec;
         let flag_value = |flags: &[String]| -> AttentionOperatorSpec {
             let index = flags
@@ -849,12 +849,12 @@ mod tests {
         };
 
         for (mut request, operator) in [
-            (request(None), AttentionOperatorSpec::standard()),
-            (request(None), AttentionOperatorSpec::experimental_r4()),
-            (
-                request(None),
-                AttentionOperatorSpec::learned_absolute_source_attention(),
-            ),
+            (request(None), AttentionOperatorSpec::standard_v1()),
+            (request(None), AttentionOperatorSpec::standard_v2()),
+            (request(None), AttentionOperatorSpec::experimental_r4_v1()),
+            (request(None), AttentionOperatorSpec::experimental_r4_v2()),
+            (request(None), AttentionOperatorSpec::learned_absolute_v1()),
+            (request(None), AttentionOperatorSpec::learned_absolute_v2()),
         ] {
             // Deliberately contradict the supplied record where possible:
             // the stage-A binding, not this policy bit, is authoritative.

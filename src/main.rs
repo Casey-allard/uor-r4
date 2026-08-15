@@ -230,12 +230,15 @@ struct CompileArgs {
     /// Teacher context allocation and story length.
     #[arg(long, default_value_t = 128)]
     sequence_length: usize,
-    /// Enable the experimental teacher attention variant (#602 operator
-    /// `experimental-r4-source-attention/1`: a 4-wide-chunked dot product with
-    /// the same softmax selector as the standard operator) during compilation.
+    /// Enable the current experimental Llama teacher attention variant (#704
+    /// operator `experimental-r4-source-attention/2`: certified-exact Q·K over
+    /// the leading 4-wide domain and certified-exact value aggregation, with
+    /// the standard max-subtracted softmax) during compilation. GPT-2 ignores
+    /// this legacy switch and uses its architecture-owned
+    /// `learned-absolute-source-attention/2` record.
     #[arg(long, default_value_t = false)]
     r4_attention: bool,
-    /// Force exact scalar CPU math instead of Apple Accelerate / SIMD hardware matrix acceleration.
+    /// Deprecated compatibility flag; no longer selects a different Llama matmul owner.
     #[arg(long, default_value_t = false)]
     exact_scalar: bool,
     /// Use the portable libm teacher path and scalar reductions for certificate-bearing builds.
@@ -883,15 +886,23 @@ fn audit_command(log_file: &PathBuf) -> Result<(), RunError> {
     let records: serde_json::Value = serde_json::from_str(&content)
         .map_err(|e| RunError::Command(format!("Failed to parse audit log: {}", e)))?;
 
-    println!("\n\x1b[1;36m┌─────────────────────────────────────────────────────────────────────────────┐\x1b[0m");
-    println!("\x1b[1;36m│  R⁴ UOR Auditability & Tracing Log Inspector                                │\x1b[0m");
-    println!("\x1b[1;36m├─────────────────────────────────────────────────────────────────────────────┤\x1b[0m");
+    println!(
+        "\n\x1b[1;36m┌─────────────────────────────────────────────────────────────────────────────┐\x1b[0m"
+    );
+    println!(
+        "\x1b[1;36m│  R⁴ UOR Auditability & Tracing Log Inspector                                │\x1b[0m"
+    );
+    println!(
+        "\x1b[1;36m├─────────────────────────────────────────────────────────────────────────────┤\x1b[0m"
+    );
     println!("  Audit Log Path: \x1b[1m{}\x1b[0m", log_file.display());
 
     if let Some(arr) = records.as_array() {
         println!("  Total Audited Turns: \x1b[32m{}\x1b[0m", arr.len());
         for (idx, item) in arr.iter().enumerate() {
-            println!("\x1b[1;36m├─────────────────────────────────────────────────────────────────────────────┤\x1b[0m");
+            println!(
+                "\x1b[1;36m├─────────────────────────────────────────────────────────────────────────────┤\x1b[0m"
+            );
             let q = item.get(0).and_then(|v| v.as_str()).unwrap_or("");
             let a = item.get(1).and_then(|v| v.as_str()).unwrap_or("");
             let audit = item.get(2);
@@ -921,11 +932,16 @@ fn audit_command(log_file: &PathBuf) -> Result<(), RunError> {
                     "\x1b[33m[! DRIFT]\x1b[0m"
                 };
 
-                println!("          UOR Address: \x1b[36m{}\x1b[0m | κ: {:.4} {} | mode: \x1b[32m{}\x1b[0m | latency: {:.2}ms", uor_addr, kappa, pass_str, mode, lat);
+                println!(
+                    "          UOR Address: \x1b[36m{}\x1b[0m | κ: {:.4} {} | mode: \x1b[32m{}\x1b[0m | latency: {:.2}ms",
+                    uor_addr, kappa, pass_str, mode, lat
+                );
             }
         }
     }
-    println!("\x1b[1;36m└─────────────────────────────────────────────────────────────────────────────┘\x1b[0m\n");
+    println!(
+        "\x1b[1;36m└─────────────────────────────────────────────────────────────────────────────┘\x1b[0m\n"
+    );
     Ok(())
 }
 

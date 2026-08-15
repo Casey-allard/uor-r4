@@ -746,6 +746,24 @@ pub struct SourceSnapshotInfo {
     pub source_execution_mode: String,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum SourceTreeScope {
+    ManifestAdmitted,
+    ManifestlessAll,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) enum VerifiedSourceTreeEntry {
+    Directory {
+        path: String,
+    },
+    File {
+        path: String,
+        bytes: u64,
+        kappa: String,
+    },
+}
+
 /// Whether a file name is admitted into the snapshot manifest. Mirrors
 /// exactly what [`download_source`] admits: `*.safetensors` (including
 /// sharded weights), `*.json` (config, tokenizer, chat template,
@@ -771,8 +789,15 @@ pub fn build_source_manifest(
     snapshot_dir: &Path,
     info: &SourceSnapshotInfo,
 ) -> Result<SourceManifest, ModelError> {
-    let mut files = Vec::new();
-    collect_admitted_files(snapshot_dir, snapshot_dir, &mut files)?;
+    let mut files = verified_source_tree(snapshot_dir, SourceTreeScope::ManifestAdmitted)?
+        .into_iter()
+        .filter_map(|entry| match entry {
+            VerifiedSourceTreeEntry::File { path, bytes, kappa } => {
+                Some(SourceManifestFile { path, bytes, kappa })
+            }
+            VerifiedSourceTreeEntry::Directory { .. } => None,
+        })
+        .collect::<Vec<_>>();
     files.sort_by(|a, b| a.path.as_bytes().cmp(b.path.as_bytes()));
     Ok(SourceManifest {
         schema: SOURCE_MANIFEST_SCHEMA.to_owned(),
@@ -785,71 +810,429 @@ pub fn build_source_manifest(
     })
 }
 
-fn collect_admitted_files(
-    root: &Path,
-    directory: &Path,
-    files: &mut Vec<SourceManifestFile>,
+pub(crate) fn verified_source_tree(
+    snapshot_dir: &Path,
+    scope: SourceTreeScope,
+) -> Result<Vec<VerifiedSourceTreeEntry>, ModelError> {
+    verified_source_tree_with_hook(snapshot_dir, scope, |_| {})
+}
+
+#[cfg(unix)]
+pub(crate) fn verified_source_tree_with_hook<F>(
+    snapshot_dir: &Path,
+    scope: SourceTreeScope,
+    mut before_open: F,
+) -> Result<Vec<VerifiedSourceTreeEntry>, ModelError>
+where
+    F: FnMut(&Path),
+{
+    let root = open_snapshot_directory_nofollow(snapshot_dir)?;
+    let root_metadata = root.metadata()?;
+    let mut entries = Vec::new();
+    walk_source_tree_directory(
+        snapshot_dir,
+        &root,
+        "",
+        scope,
+        &mut before_open,
+        &mut entries,
+    )?;
+    verify_opened_snapshot_entry(snapshot_dir, &root_metadata)?;
+    entries.sort_by(|left, right| {
+        verified_source_tree_entry_path(left)
+            .as_bytes()
+            .cmp(verified_source_tree_entry_path(right).as_bytes())
+    });
+    Ok(entries)
+}
+
+#[cfg(not(unix))]
+pub(crate) fn verified_source_tree_with_hook<F>(
+    snapshot_dir: &Path,
+    _scope: SourceTreeScope,
+    _before_open: F,
+) -> Result<Vec<VerifiedSourceTreeEntry>, ModelError>
+where
+    F: FnMut(&Path),
+{
+    Err(ModelError::Io(std::io::Error::new(
+        std::io::ErrorKind::Unsupported,
+        format!(
+            "handle-bound source snapshot traversal is unavailable on this platform: {}",
+            snapshot_dir.display()
+        ),
+    )))
+}
+
+fn verified_source_tree_entry_path(entry: &VerifiedSourceTreeEntry) -> &str {
+    match entry {
+        VerifiedSourceTreeEntry::Directory { path }
+        | VerifiedSourceTreeEntry::File { path, .. } => path,
+    }
+}
+
+#[cfg(unix)]
+fn open_snapshot_directory_nofollow(path: &Path) -> Result<std::fs::File, ModelError> {
+    use std::os::unix::fs::OpenOptionsExt;
+
+    let mut options = std::fs::OpenOptions::new();
+    options
+        .read(true)
+        .custom_flags(libc::O_CLOEXEC | libc::O_DIRECTORY | libc::O_NOFOLLOW | libc::O_NONBLOCK);
+    let directory = options.open(path)?;
+    if !directory.metadata()?.file_type().is_dir() {
+        return Err(ModelError::Io(std::io::Error::new(
+            std::io::ErrorKind::InvalidData,
+            format!(
+                "source snapshot {} is not a regular non-symlink directory",
+                path.display()
+            ),
+        )));
+    }
+    Ok(directory)
+}
+
+#[cfg(unix)]
+fn same_snapshot_inode(left: &std::fs::Metadata, right: &std::fs::Metadata) -> bool {
+    use std::os::unix::fs::MetadataExt;
+
+    left.dev() == right.dev() && left.ino() == right.ino()
+}
+
+#[cfg(unix)]
+fn same_snapshot_metadata_version(left: &std::fs::Metadata, right: &std::fs::Metadata) -> bool {
+    use std::os::unix::fs::MetadataExt;
+
+    same_snapshot_inode(left, right)
+        && left.mode() == right.mode()
+        && left.len() == right.len()
+        && left.mtime() == right.mtime()
+        && left.mtime_nsec() == right.mtime_nsec()
+        && left.ctime() == right.ctime()
+        && left.ctime_nsec() == right.ctime_nsec()
+}
+
+#[cfg(any(target_os = "linux", target_os = "android"))]
+unsafe fn source_tree_errno_pointer() -> *mut libc::c_int {
+    // SAFETY: caller uses the target libc's thread-local errno accessor.
+    unsafe { libc::__errno_location() }
+}
+
+#[cfg(target_vendor = "apple")]
+unsafe fn source_tree_errno_pointer() -> *mut libc::c_int {
+    // SAFETY: caller uses the target libc's thread-local errno accessor.
+    unsafe { libc::__error() }
+}
+
+#[cfg(all(
+    unix,
+    not(any(target_os = "linux", target_os = "android", target_vendor = "apple"))
+))]
+fn read_opened_directory_names(_directory: &std::fs::File) -> Result<Vec<String>, ModelError> {
+    Err(ModelError::Io(std::io::Error::new(
+        std::io::ErrorKind::Unsupported,
+        "handle-bound directory enumeration is not implemented for this Unix target",
+    )))
+}
+
+#[cfg(any(target_os = "linux", target_os = "android", target_vendor = "apple"))]
+fn read_opened_directory_names(directory: &std::fs::File) -> Result<Vec<String>, ModelError> {
+    use std::os::fd::AsRawFd;
+
+    // SAFETY: `fcntl` duplicates the live directory descriptor. Ownership of
+    // the duplicate is transferred to `fdopendir` below.
+    let duplicate = unsafe { libc::fcntl(directory.as_raw_fd(), libc::F_DUPFD_CLOEXEC, 0) };
+    if duplicate < 0 {
+        return Err(ModelError::Io(std::io::Error::last_os_error()));
+    }
+    // SAFETY: `duplicate` is a fresh owned directory descriptor.
+    let stream = unsafe { libc::fdopendir(duplicate) };
+    if stream.is_null() {
+        // SAFETY: fdopendir did not take ownership on failure.
+        unsafe { libc::close(duplicate) };
+        return Err(ModelError::Io(std::io::Error::last_os_error()));
+    }
+    struct DirectoryStream(*mut libc::DIR);
+    impl Drop for DirectoryStream {
+        fn drop(&mut self) {
+            // SAFETY: this guard uniquely owns the DIR pointer.
+            unsafe { libc::closedir(self.0) };
+        }
+    }
+    let stream = DirectoryStream(stream);
+    let mut names = Vec::new();
+    loop {
+        // SAFETY: the target accessor returns this thread's errno cell.
+        unsafe { *source_tree_errno_pointer() = 0 };
+        // SAFETY: `stream` stays live and uniquely owned during enumeration.
+        let entry = unsafe { libc::readdir(stream.0) };
+        if entry.is_null() {
+            // SAFETY: the target accessor returns this thread's errno cell.
+            let errno = unsafe { *source_tree_errno_pointer() };
+            if errno != 0 {
+                return Err(ModelError::Io(std::io::Error::from_raw_os_error(errno)));
+            }
+            break;
+        }
+        // SAFETY: POSIX dirent d_name is NUL-terminated for a successful
+        // readdir result and remains valid until the next readdir call.
+        let name = unsafe { std::ffi::CStr::from_ptr((*entry).d_name.as_ptr()) }
+            .to_str()
+            .map_err(|_| ModelError::NonPortableSnapshotPath(PathBuf::from("<non-utf8>")))?;
+        if name != "." && name != ".." {
+            names.push(name.to_owned());
+        }
+    }
+    names.sort_by(|left, right| left.as_bytes().cmp(right.as_bytes()));
+    Ok(names)
+}
+
+#[cfg(unix)]
+fn verify_opened_snapshot_entry(
+    path: &Path,
+    opened_metadata: &std::fs::Metadata,
 ) -> Result<(), ModelError> {
-    for entry in std::fs::read_dir(directory)? {
-        let entry = entry?;
-        let path = entry.path();
-        let name = entry.file_name();
-        let Some(name) = name.to_str() else {
-            return Err(ModelError::NonPortableSnapshotPath(path));
-        };
-        if name.starts_with('.') {
-            continue;
-        }
-        let file_type = entry.file_type()?;
-        if file_type.is_dir() {
-            collect_admitted_files(root, &path, files)?;
-        } else if file_type.is_file() && admitted_source_file(name) {
-            let relative = relative_manifest_path(root, &path)?;
-            let (bytes, kappa) = file_length_and_kappa(&path)?;
-            files.push(SourceManifestFile {
-                path: relative,
-                bytes,
-                kappa,
-            });
-        }
+    let current = std::fs::symlink_metadata(path)?;
+    if current.file_type().is_symlink()
+        || !same_snapshot_metadata_version(&current, opened_metadata)
+        || current.file_type().is_dir() != opened_metadata.file_type().is_dir()
+        || current.file_type().is_file() != opened_metadata.file_type().is_file()
+    {
+        return Err(ModelError::Io(std::io::Error::new(
+            std::io::ErrorKind::InvalidData,
+            format!(
+                "source snapshot entry {} changed identity or type during handle-bound traversal",
+                path.display()
+            ),
+        )));
     }
     Ok(())
 }
 
-fn relative_manifest_path(root: &Path, path: &Path) -> Result<String, ModelError> {
-    let relative = path
-        .strip_prefix(root)
-        .map_err(|_| ModelError::NonPortableSnapshotPath(path.to_path_buf()))?;
-    let mut portable = String::new();
-    for component in relative.components() {
-        let Some(part) = component.as_os_str().to_str() else {
-            return Err(ModelError::NonPortableSnapshotPath(path.to_path_buf()));
-        };
-        if !portable.is_empty() {
-            portable.push('/');
-        }
-        portable.push_str(part);
+#[cfg(unix)]
+fn open_snapshot_child_nofollow(
+    parent: &std::fs::File,
+    name: &str,
+    display_path: &Path,
+) -> Result<std::fs::File, ModelError> {
+    use std::os::fd::{AsRawFd, FromRawFd};
+
+    let name = std::ffi::CString::new(name)
+        .map_err(|_| ModelError::NonPortableSnapshotPath(display_path.to_path_buf()))?;
+    // SAFETY: `parent` and `name` remain live for the call, the C string is
+    // NUL-terminated, and a successful descriptor is transferred exactly
+    // once into `File` below.
+    let descriptor = unsafe {
+        libc::openat(
+            parent.as_raw_fd(),
+            name.as_ptr(),
+            libc::O_RDONLY | libc::O_CLOEXEC | libc::O_NOFOLLOW | libc::O_NONBLOCK,
+        )
+    };
+    if descriptor < 0 {
+        let error = std::io::Error::last_os_error();
+        return Err(ModelError::Io(std::io::Error::new(
+            error.kind(),
+            format!(
+                "source snapshot entry {} cannot be opened without following links: {}",
+                display_path.display(),
+                error
+            ),
+        )));
     }
-    Ok(portable)
+    // SAFETY: `openat` returned a new owned descriptor and no other owner is
+    // constructed for it.
+    Ok(unsafe { std::fs::File::from_raw_fd(descriptor) })
 }
 
-/// Streamed raw blake3 of one file's bytes plus its length, as
-/// `blake3:<hex>` (per-file digests stay raw, unlike the manifest root κ).
-fn file_length_and_kappa(path: &Path) -> Result<(u64, String), ModelError> {
-    use std::io::Read as _;
-    let mut file = std::fs::File::open(path)?;
-    let mut hasher = blake3::Hasher::new();
-    let mut buffer = [0u8; 65_536];
-    let mut length = 0u64;
-    loop {
-        let read = file.read(&mut buffer)?;
-        if read == 0 {
-            break;
-        }
-        length += read as u64;
-        hasher.update(&buffer[..read]);
+#[cfg(unix)]
+fn verify_opened_snapshot_child(
+    parent: &std::fs::File,
+    name: &str,
+    display_path: &Path,
+    opened_metadata: &std::fs::Metadata,
+) -> Result<(), ModelError> {
+    use std::mem::MaybeUninit;
+    use std::os::fd::AsRawFd;
+    use std::os::unix::fs::MetadataExt;
+
+    let name = std::ffi::CString::new(name)
+        .map_err(|_| ModelError::NonPortableSnapshotPath(display_path.to_path_buf()))?;
+    let mut status = MaybeUninit::<libc::stat>::uninit();
+    // SAFETY: parent/name are live, status points to writable storage, and
+    // AT_SYMLINK_NOFOLLOW makes the final component itself authoritative.
+    let result = unsafe {
+        libc::fstatat(
+            parent.as_raw_fd(),
+            name.as_ptr(),
+            status.as_mut_ptr(),
+            libc::AT_SYMLINK_NOFOLLOW,
+        )
+    };
+    if result != 0 {
+        let error = std::io::Error::last_os_error();
+        return Err(ModelError::Io(std::io::Error::new(
+            error.kind(),
+            format!(
+                "source snapshot entry {} cannot be rebound after open: {}",
+                display_path.display(),
+                error
+            ),
+        )));
     }
-    Ok((length, format!("blake3:{}", hasher.finalize().to_hex())))
+    // SAFETY: fstatat initialized status on success.
+    let status = unsafe { status.assume_init() };
+    let kind = status.st_mode & libc::S_IFMT;
+    let expected_kind = if opened_metadata.file_type().is_dir() {
+        libc::S_IFDIR
+    } else if opened_metadata.file_type().is_file() {
+        libc::S_IFREG
+    } else {
+        0
+    };
+    // `libc::dev_t` is already `u64` on Linux but is narrower on Darwin;
+    // normalize the platform ABI before comparing it with `MetadataExt::dev`.
+    #[allow(clippy::unnecessary_cast)]
+    let status_device = status.st_dev as u64;
+    if kind != expected_kind
+        || status_device != opened_metadata.dev()
+        || status.st_ino != opened_metadata.ino()
+    {
+        return Err(ModelError::Io(std::io::Error::new(
+            std::io::ErrorKind::InvalidData,
+            format!(
+                "source snapshot entry {} changed identity or type during handle-bound traversal",
+                display_path.display()
+            ),
+        )));
+    }
+    Ok(())
+}
+
+#[cfg(unix)]
+fn walk_source_tree_directory<F>(
+    snapshot_root: &Path,
+    directory: &std::fs::File,
+    relative_directory: &str,
+    scope: SourceTreeScope,
+    before_open: &mut F,
+    output: &mut Vec<VerifiedSourceTreeEntry>,
+) -> Result<(), ModelError>
+where
+    F: FnMut(&Path),
+{
+    use std::io::Read as _;
+
+    let names = read_opened_directory_names(directory)?;
+
+    for name in names {
+        if scope == SourceTreeScope::ManifestAdmitted && name.starts_with('.') {
+            continue;
+        }
+        let relative = if relative_directory.is_empty() {
+            name.clone()
+        } else {
+            format!("{relative_directory}/{name}")
+        };
+        let display_path = snapshot_root.join(&relative);
+        before_open(&display_path);
+        let mut child = open_snapshot_child_nofollow(directory, &name, &display_path)?;
+        let opened_metadata = child.metadata()?;
+        verify_opened_snapshot_child(directory, &name, &display_path, &opened_metadata)?;
+
+        if opened_metadata.file_type().is_dir() {
+            if scope == SourceTreeScope::ManifestlessAll && name == ".cache" {
+                continue;
+            }
+            if scope == SourceTreeScope::ManifestlessAll {
+                output.push(VerifiedSourceTreeEntry::Directory {
+                    path: relative.clone(),
+                });
+            }
+            walk_source_tree_directory(
+                snapshot_root,
+                &child,
+                &relative,
+                scope,
+                before_open,
+                output,
+            )?;
+            let final_metadata = child.metadata()?;
+            if !same_snapshot_metadata_version(&opened_metadata, &final_metadata) {
+                return Err(ModelError::Io(std::io::Error::new(
+                    std::io::ErrorKind::InvalidData,
+                    format!(
+                        "source snapshot directory {} changed while being traversed",
+                        display_path.display()
+                    ),
+                )));
+            }
+            verify_opened_snapshot_child(directory, &name, &display_path, &final_metadata)?;
+            continue;
+        }
+        if !opened_metadata.file_type().is_file() {
+            return Err(ModelError::Io(std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                format!(
+                    "source snapshot entry {} is not a regular non-symlink file or directory",
+                    display_path.display()
+                ),
+            )));
+        }
+        if scope == SourceTreeScope::ManifestlessAll && name == ".cache" {
+            return Err(ModelError::Io(std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                format!(
+                    "source snapshot entry {} uses reserved .cache transport name but is not a directory",
+                    display_path.display()
+                ),
+            )));
+        }
+        if scope == SourceTreeScope::ManifestAdmitted && !admitted_source_file(&name) {
+            verify_opened_snapshot_child(directory, &name, &display_path, &opened_metadata)?;
+            continue;
+        }
+
+        let mut hasher = blake3::Hasher::new();
+        let mut buffer = [0u8; 65_536];
+        let mut length = 0u64;
+        loop {
+            let read = child.read(&mut buffer)?;
+            if read == 0 {
+                break;
+            }
+            length = length.checked_add(read as u64).ok_or_else(|| {
+                ModelError::Io(std::io::Error::new(
+                    std::io::ErrorKind::InvalidData,
+                    format!(
+                        "source snapshot entry {} is too large",
+                        display_path.display()
+                    ),
+                ))
+            })?;
+            hasher.update(&buffer[..read]);
+        }
+        let final_metadata = child.metadata()?;
+        if !same_snapshot_metadata_version(&opened_metadata, &final_metadata)
+            || !final_metadata.file_type().is_file()
+            || final_metadata.len() != length
+        {
+            return Err(ModelError::Io(std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                format!(
+                    "source snapshot entry {} changed while being digested",
+                    display_path.display()
+                ),
+            )));
+        }
+        verify_opened_snapshot_child(directory, &name, &display_path, &final_metadata)?;
+        output.push(VerifiedSourceTreeEntry::File {
+            path: relative,
+            bytes: length,
+            kappa: format!("blake3:{}", hasher.finalize().to_hex()),
+        });
+    }
+    Ok(())
 }
 
 /// Canonical manifest bytes: stable field order (struct declaration
@@ -1162,6 +1545,82 @@ mod tests {
             source_manifest_kappa(&second).unwrap()
         );
         std::fs::remove_dir_all(dir).unwrap();
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn handle_bound_snapshot_walk_refuses_file_symlink_and_fifo_swaps() {
+        use std::os::unix::ffi::OsStrExt;
+        use std::os::unix::fs::symlink;
+
+        fn fifo(path: &Path) {
+            let path = std::ffi::CString::new(path.as_os_str().as_bytes()).unwrap();
+            // SAFETY: the C string is live for the call and mkfifo does not
+            // retain its pointer.
+            assert_eq!(unsafe { libc::mkfifo(path.as_ptr(), 0o600) }, 0);
+        }
+
+        for (scope, scope_name) in [
+            (SourceTreeScope::ManifestAdmitted, "manifest"),
+            (SourceTreeScope::ManifestlessAll, "manifestless"),
+        ] {
+            for kind in ["symlink", "fifo"] {
+                let dir = snapshot_dir(&format!("handle-file-{scope_name}-{kind}"));
+                let target = dir.join("config.json");
+                let original = dir.join("config.original");
+                let mut swapped = false;
+                let result = verified_source_tree_with_hook(&dir, scope, |path| {
+                    if !swapped && path == target {
+                        std::fs::rename(&target, &original).unwrap();
+                        match kind {
+                            "symlink" => symlink(&original, &target).unwrap(),
+                            "fifo" => fifo(&target),
+                            _ => unreachable!(),
+                        }
+                        swapped = true;
+                    }
+                });
+                let error = result.expect_err("a post-enumeration file swap is terminal");
+                assert!(error.to_string().contains("config.json"), "{error}");
+                assert_eq!(
+                    std::fs::read(&original).expect("original file remains bound"),
+                    b"{\"hidden_size\":576}"
+                );
+                let _ = std::fs::remove_dir_all(dir);
+            }
+        }
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn handle_bound_snapshot_walk_refuses_directory_symlink_escape_and_cycle() {
+        use std::os::unix::fs::symlink;
+
+        for kind in ["outside", "cycle"] {
+            let dir = snapshot_dir(&format!("handle-directory-{kind}"));
+            let child = dir.join("nested");
+            let original = dir.join("nested-original");
+            let outside = snapshot_dir(&format!("handle-directory-{kind}-outside"));
+            std::fs::write(outside.join("escaped.json"), b"outside").unwrap();
+            let mut swapped = false;
+            let result =
+                verified_source_tree_with_hook(&dir, SourceTreeScope::ManifestlessAll, |path| {
+                    if !swapped && path == child {
+                        std::fs::rename(&child, &original).unwrap();
+                        match kind {
+                            "outside" => symlink(&outside, &child).unwrap(),
+                            "cycle" => symlink(&dir, &child).unwrap(),
+                            _ => unreachable!(),
+                        }
+                        swapped = true;
+                    }
+                });
+            let error = result.expect_err("a directory link swap cannot escape or cycle");
+            assert!(error.to_string().contains("nested"), "{error}");
+            assert!(outside.join("escaped.json").is_file());
+            let _ = std::fs::remove_dir_all(dir);
+            let _ = std::fs::remove_dir_all(outside);
+        }
     }
 
     #[test]

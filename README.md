@@ -256,6 +256,25 @@ operator that produced the rows; resume fails closed when an existing payload
 has a missing or different binding. `compile-recorded` propagates an explicit
 operator from an observation manifest, while a genuinely absent historical
 record retains the documented implicit `standard-source-attention/1` meaning.
+The current standard, experimental, and GPT-2 learned-absolute source records
+are version 2; their v1 records remain immutable accepted history. Version 2
+uses certified-native Q·K/value folds only when a mechanical rounding-cell
+witness proves the exact bit returned by pinned `uor-matmul`, with that exact
+kernel as the fallback. When the browser compile endpoint finds a populated v1
+bundle at the conventional model root, it preserves that root byte-for-byte and
+writes/resumes v2 at the deterministic `<name>-attention-v2` root instead.
+The managed server reserves that suffix: downloaded source basenames ending in
+it are rejected before output mutation. Compile, automatic restart discovery,
+reload, model listing, and status all inspect the conventional and suffixed
+roots as one logical pair. Reloading either `<name>` or the exact suffix alias
+selects the same physical bundle and maps its host encoder to
+`sources/<name>`; `/uor/v1/status` reports both the logical model name and
+the selected `physical_root`. A genuinely absent source keeps the #718
+decode-only behavior, while a present-invalid source or preferred bundle is
+terminal. Current-v2 serving additionally requires exact agreement among the
+root sidecar, canonical corpus/observation provenance, and
+`graph-cover/cover_report.json`; legacy v1 bundles remain compatible when the
+supporting records are genuinely absent.
 
 **Graph pipeline**
 
@@ -347,8 +366,8 @@ Anything else is served as a static file from the working directory; `/` serves
 |---|---|
 | `transformerless` | Allocation-free table-native codebook retrieval, sub-millisecond on CPU |
 | `r4g1` | The validated R4G1 graph scorer; needs a loaded `score.r4g1` |
-| `attention` | Standard scaled dot-product attention on the loaded teacher (up to 256 tokens) |
-| `r4-attention` | Experimental teacher attention variant (#602 operator `experimental-r4-source-attention/1`: a 4-wide-chunked dot product with the same softmax selector as `attention`; never measured against it — see `docs/deferral_record_2026_08_05.md`) |
+| `attention` | Llama uses current standard scaled-dot-product teacher attention (`standard-source-attention/2`, up to 256 tokens); GPT-2 uses `learned-absolute-source-attention/2` |
+| `r4-attention` | Llama uses the current experimental variant (`experimental-r4-source-attention/2`): a certified-exact dot over the leading 4-wide domain with the same softmax selector as `attention`; GPT-2 still uses `learned-absolute-source-attention/2` because the legacy switch does not alter its operator. The Llama variant has never been measured against standard attention — see `docs/deferral_record_2026_08_05.md` |
 | `geometric` | Route purely geometrically and decode from manifold resonance |
 
 Omitting `engine` runs the **full cascade, r4g1-first** — it does *not* mean
@@ -380,7 +399,8 @@ owning modules is in [docs/CONFIGURATION.md](docs/CONFIGURATION.md).
 `UOR_R4_HOST`, `UOR_R4_PORT`.
 
 **Determinism and teacher math** — `TLESS_CANONICAL_DETERMINISTIC` (required for
-the cross-platform Gate E claim), `TLESS_EXACT_SCALAR`, `R4_TLESS_TLA6`,
+the cross-platform Gate E claim), `TLESS_EXACT_SCALAR` (deprecated no-op kept
+for script compatibility), `R4_TLESS_TLA6`,
 `R4_TLESS_TLA7`, `TLESS_REPIN_WRITE` (maintainer-only).
 
 **Measurement** — `R4_GATE_C_SAMPLE` (deterministic stride subsample; the sample

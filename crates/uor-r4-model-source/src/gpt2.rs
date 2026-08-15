@@ -265,6 +265,18 @@ impl Gpt2 {
             source_bytes: snapshot.source_bytes(),
         })
     }
+
+    /// Loaded model digest exposed only for hard-binding the #704 canary.
+    #[doc(hidden)]
+    pub fn attention_control_source_kappa(&self) -> &str {
+        &self.kappa
+    }
+
+    /// Loaded model byte count exposed only for hard-binding the #704 canary.
+    #[doc(hidden)]
+    pub fn attention_control_source_bytes(&self) -> usize {
+        self.source_bytes
+    }
 }
 
 /// GPT-2's `gelu_new` (the tanh approximation the checkpoint was trained
@@ -339,8 +351,55 @@ fn conv1d_batched(
     }
 }
 
+/// Preserve GPT-2's scalar post-dot order: multiply every raw Q·K result by
+/// one precomputed reciprocal square-root, then use one reciprocal of the
+/// softmax sum and multiply every normalized weight by it.
+fn scale_and_normalize_attention_scores(scores: &mut [f32], scale: f32) {
+    let mut max = f32::NEG_INFINITY;
+    for score in scores.iter_mut() {
+        *score *= scale;
+        if *score > max {
+            max = *score;
+        }
+    }
+    let mut sum = 0.0f32;
+    for score in scores.iter_mut() {
+        *score = (*score - max).exp();
+        sum += *score;
+    }
+    let inverse = 1.0 / sum;
+    for score in scores.iter_mut() {
+        *score *= inverse;
+    }
+}
+
+/// GPT-2 Q·K control preserving its reciprocal-multiply normalization order.
+#[doc(hidden)]
+pub(crate) fn attention_weights_with_arithmetic(
+    scores: &mut [f32],
+    q: &[f32],
+    keys: &[f32],
+    key_offset: usize,
+    key_stride: usize,
+    arithmetic: crate::attention::AttentionArithmetic,
+) -> crate::attention::AttentionDotCensus {
+    let census = crate::attention::head_dot_products_with_arithmetic(
+        scores,
+        q,
+        keys,
+        key_offset,
+        key_stride,
+        q.len(),
+        arithmetic,
+    );
+    let scale = 1.0 / (q.len() as f32).sqrt();
+    scale_and_normalize_attention_scores(scores, scale);
+    census
+}
+
 /// Recurrent decode state: per-layer key/value caches, the working
 /// residual, the final hidden state, and the last step's logits.
+#[derive(Clone, Debug, PartialEq)]
 pub struct Gpt2State {
     k_cache: Vec<f32>,
     v_cache: Vec<f32>,
@@ -349,6 +408,135 @@ pub struct Gpt2State {
     /// Final hidden state (post `ln_f`) of the last step (`n_embd`).
     pub hidden: Vec<f32>,
     x: Vec<f32>,
+}
+
+/// Arithmetic arm selected by the checked, evidence-only GPT-2 attention
+/// canary façade. Raw strided attention controls remain crate-private.
+#[doc(hidden)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Gpt2AttentionCanaryMode {
+    Conventional,
+    Exact,
+    CertifiedNative,
+}
+
+/// Certified-lane and exact-fallback counts returned by the checked canary
+/// façade. Unlike the crate-private proof census, this report exposes no raw
+/// layout control.
+#[doc(hidden)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct Gpt2AttentionCanaryDotCensus {
+    lanes: usize,
+    certified: usize,
+    fallback_nonfinite: usize,
+    fallback_zero: usize,
+    fallback_overflow: usize,
+    fallback_cell: usize,
+}
+
+impl Gpt2AttentionCanaryDotCensus {
+    pub const fn lanes(self) -> usize {
+        self.lanes
+    }
+
+    pub const fn certified(self) -> usize {
+        self.certified
+    }
+
+    pub const fn fallback_nonfinite(self) -> usize {
+        self.fallback_nonfinite
+    }
+
+    pub const fn fallback_zero(self) -> usize {
+        self.fallback_zero
+    }
+
+    pub const fn fallback_overflow(self) -> usize {
+        self.fallback_overflow
+    }
+
+    pub const fn fallback_cell(self) -> usize {
+        self.fallback_cell
+    }
+
+    /// Total fallback count, or `None` when the private counters do not form a
+    /// `usize` product.
+    pub fn fallbacks(self) -> Option<usize> {
+        checked_canary_count(self.fallback_nonfinite, self.fallback_zero)
+            .and_then(|total| checked_canary_count(total, self.fallback_overflow))
+            .and_then(|total| checked_canary_count(total, self.fallback_cell))
+    }
+
+    fn checked_merge(self, other: Self) -> Option<Self> {
+        Some(Self {
+            lanes: checked_canary_count(self.lanes, other.lanes)?,
+            certified: checked_canary_count(self.certified, other.certified)?,
+            fallback_nonfinite: checked_canary_count(
+                self.fallback_nonfinite,
+                other.fallback_nonfinite,
+            )?,
+            fallback_zero: checked_canary_count(self.fallback_zero, other.fallback_zero)?,
+            fallback_overflow: checked_canary_count(
+                self.fallback_overflow,
+                other.fallback_overflow,
+            )?,
+            fallback_cell: checked_canary_count(self.fallback_cell, other.fallback_cell)?,
+        })
+    }
+}
+
+impl From<crate::attention::AttentionDotCensus> for Gpt2AttentionCanaryDotCensus {
+    fn from(value: crate::attention::AttentionDotCensus) -> Self {
+        Self {
+            lanes: value.lanes,
+            certified: value.certified,
+            fallback_nonfinite: value.fallback_nonfinite,
+            fallback_zero: value.fallback_zero,
+            fallback_overflow: value.fallback_overflow,
+            fallback_cell: value.fallback_cell,
+        }
+    }
+}
+
+/// Aggregate QK and weighted-value census for a checked GPT-2 canary story.
+#[doc(hidden)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct Gpt2AttentionCanaryCensus {
+    qk: Gpt2AttentionCanaryDotCensus,
+    value: Gpt2AttentionCanaryDotCensus,
+}
+
+impl Gpt2AttentionCanaryCensus {
+    pub const fn qk(self) -> Gpt2AttentionCanaryDotCensus {
+        self.qk
+    }
+
+    pub const fn value(self) -> Gpt2AttentionCanaryDotCensus {
+        self.value
+    }
+
+    /// Merge a story census atomically. `None` means the combined counters do
+    /// not form a `usize` product and leaves `self` byte-identical.
+    pub fn merge(&mut self, other: Self) -> Option<()> {
+        let qk = self.qk.checked_merge(other.qk)?;
+        let value = self.value.checked_merge(other.value)?;
+        self.qk = qk;
+        self.value = value;
+        Some(())
+    }
+}
+
+impl From<crate::attention::AttentionArithmeticCensus> for Gpt2AttentionCanaryCensus {
+    fn from(value: crate::attention::AttentionArithmeticCensus) -> Self {
+        Self {
+            qk: value.qk.into(),
+            value: value.value.into(),
+        }
+    }
+}
+
+fn checked_canary_count(left: usize, right: usize) -> Option<usize> {
+    left.checked_add(right)
 }
 
 impl Gpt2State {
@@ -373,7 +561,203 @@ impl Gpt2State {
     }
 }
 
+/// Opaque caller-owned scratch for the checked #704 attention canary façade.
+/// Construction is outside the hot path; every checked step validates and
+/// reuses these buffers without allocation.
+#[doc(hidden)]
+#[derive(Clone, Debug, PartialEq)]
+pub struct Gpt2AttentionCanaryWorkspace {
+    normed: Vec<f32>,
+    qkv: Vec<f32>,
+    attn: Vec<f32>,
+    proj: Vec<f32>,
+    inner: Vec<f32>,
+    mlp_out: Vec<f32>,
+    scores: Vec<f32>,
+}
+
+impl Gpt2AttentionCanaryWorkspace {
+    fn new(config: &Gpt2Config) -> Self {
+        Self {
+            normed: vec![0.0; config.n_embd],
+            qkv: vec![0.0; 3 * config.n_embd],
+            attn: vec![0.0; config.n_embd],
+            proj: vec![0.0; config.n_embd],
+            inner: vec![0.0; config.n_inner],
+            mlp_out: vec![0.0; config.n_embd],
+            scores: vec![0.0; config.seq_len],
+        }
+    }
+}
+
+fn canary_product(component: &'static str, factors: &[usize]) -> Result<usize, SourceUnavailable> {
+    factors
+        .iter()
+        .try_fold(1usize, |product, &factor| product.checked_mul(factor))
+        .ok_or_else(|| {
+            SourceUnavailable::new(format!(
+                "GPT-2 attention canary geometry overflows usize: {component}"
+            ))
+        })
+}
+
+fn require_canary_length(
+    component: &'static str,
+    layer: Option<usize>,
+    actual: usize,
+    expected: usize,
+) -> Result<(), SourceUnavailable> {
+    if actual == expected {
+        Ok(())
+    } else {
+        let layer = layer.map_or_else(String::new, |layer| format!(" layer {layer}"));
+        Err(SourceUnavailable::new(format!(
+            "GPT-2 attention canary{layer} {component} length {actual}, expected {expected}"
+        )))
+    }
+}
+
 impl Gpt2 {
+    fn validate_attention_canary_model(&self) -> Result<(), SourceUnavailable> {
+        let config = &self.cfg;
+        if config.n_embd == 0 {
+            return Err(SourceUnavailable::new(
+                "invalid GPT-2 attention canary geometry: n_embd must be nonzero",
+            ));
+        }
+        if config.n_layer == 0 {
+            return Err(SourceUnavailable::new(
+                "invalid GPT-2 attention canary geometry: n_layer must be nonzero",
+            ));
+        }
+        if config.vocab == 0 {
+            return Err(SourceUnavailable::new(
+                "invalid GPT-2 attention canary geometry: vocab must be nonzero",
+            ));
+        }
+        if config.n_head == 0 || !config.n_embd.is_multiple_of(config.n_head) {
+            return Err(SourceUnavailable::new(
+                "invalid GPT-2 attention canary geometry: n_head must be nonzero and divide n_embd",
+            ));
+        }
+        if config.seq_len == 0 || config.seq_len > config.n_positions {
+            return Err(SourceUnavailable::new(
+                "invalid GPT-2 attention canary geometry: seq_len must be in 1..=n_positions",
+            ));
+        }
+
+        let d = config.n_embd;
+        let three_d = canary_product("3 * n_embd", &[3, d])?;
+        let token_table = canary_product("vocab * n_embd", &[config.vocab, d])?;
+        let position_table = canary_product("n_positions * n_embd", &[config.n_positions, d])?;
+        let square = canary_product("n_embd * n_embd", &[d, d])?;
+        let attention_projection = canary_product("n_embd * 3 * n_embd", &[d, three_d])?;
+        let feed_forward = canary_product("n_embd * n_inner", &[d, config.n_inner])?;
+        canary_product(
+            "n_layer * seq_len * n_embd",
+            &[config.n_layer, config.seq_len, d],
+        )?;
+
+        require_canary_length("model.wte", None, self.wte.len(), token_table)?;
+        require_canary_length("model.wpe", None, self.wpe.len(), position_table)?;
+        require_canary_length("model.layers", None, self.layers.len(), config.n_layer)?;
+        require_canary_length("model.ln_f_w", None, self.ln_f_w.len(), d)?;
+        require_canary_length("model.ln_f_b", None, self.ln_f_b.len(), d)?;
+        for layer_index in 0..self.layers.len() {
+            let layer = Some(layer_index);
+            require_canary_length("ln1_w", layer, self.layers[layer_index].ln1_w.len(), d)?;
+            require_canary_length("ln1_b", layer, self.layers[layer_index].ln1_b.len(), d)?;
+            require_canary_length(
+                "c_attn_w",
+                layer,
+                self.layers[layer_index].c_attn_w.len(),
+                attention_projection,
+            )?;
+            require_canary_length(
+                "c_attn_b",
+                layer,
+                self.layers[layer_index].c_attn_b.len(),
+                three_d,
+            )?;
+            require_canary_length(
+                "c_proj_w",
+                layer,
+                self.layers[layer_index].c_proj_w.len(),
+                square,
+            )?;
+            require_canary_length(
+                "c_proj_b",
+                layer,
+                self.layers[layer_index].c_proj_b.len(),
+                d,
+            )?;
+            require_canary_length("ln2_w", layer, self.layers[layer_index].ln2_w.len(), d)?;
+            require_canary_length("ln2_b", layer, self.layers[layer_index].ln2_b.len(), d)?;
+            require_canary_length(
+                "fc_w",
+                layer,
+                self.layers[layer_index].fc_w.len(),
+                feed_forward,
+            )?;
+            require_canary_length(
+                "fc_b",
+                layer,
+                self.layers[layer_index].fc_b.len(),
+                config.n_inner,
+            )?;
+            require_canary_length(
+                "mlp_w",
+                layer,
+                self.layers[layer_index].mlp_w.len(),
+                feed_forward,
+            )?;
+            require_canary_length("mlp_b", layer, self.layers[layer_index].mlp_b.len(), d)?;
+        }
+        Ok(())
+    }
+
+    fn validate_attention_canary_inputs(
+        &self,
+        state: &Gpt2State,
+        workspace: &Gpt2AttentionCanaryWorkspace,
+        token: usize,
+        pos: usize,
+    ) -> Option<()> {
+        self.validate_attention_canary_model().ok()?;
+        let config = &self.cfg;
+        if token >= config.vocab {
+            return None;
+        }
+        if pos >= config.seq_len {
+            return None;
+        }
+
+        let d = config.n_embd;
+        let three_d = canary_product("3 * n_embd", &[3, d]).ok()?;
+        let cache = canary_product(
+            "n_layer * seq_len * n_embd",
+            &[config.n_layer, config.seq_len, d],
+        )
+        .ok()?;
+        [
+            (state.k_cache.len(), cache),
+            (state.v_cache.len(), cache),
+            (state.logits.len(), config.vocab),
+            (state.hidden.len(), d),
+            (state.x.len(), d),
+            (workspace.normed.len(), d),
+            (workspace.qkv.len(), three_d),
+            (workspace.attn.len(), d),
+            (workspace.proj.len(), d),
+            (workspace.inner.len(), config.n_inner),
+            (workspace.mlp_out.len(), d),
+            (workspace.scores.len(), config.seq_len),
+        ]
+        .into_iter()
+        .all(|(actual, expected)| actual == expected)
+        .then_some(())
+    }
+
     /// One teacher-forced forward step at `pos` (0-based), leaving logits
     /// and the final hidden state in `st`. `capture` receives the
     /// post-block residual stream for each declared layer index, in
@@ -418,6 +802,97 @@ impl Gpt2 {
             }
         }
         self.finish_forward(st);
+    }
+
+    fn forward_with_attention_arithmetic_unchecked(
+        &self,
+        st: &mut Gpt2State,
+        workspace: &mut Gpt2AttentionCanaryWorkspace,
+        token: usize,
+        pos: usize,
+        arithmetic: crate::attention::AttentionArithmetic,
+    ) -> crate::attention::AttentionArithmeticCensus {
+        let d = self.cfg.n_embd;
+        for i in 0..d {
+            st.x[i] = self.wte[token * d + i] + self.wpe[pos * d + i];
+        }
+        let mut census = crate::attention::AttentionArithmeticCensus::default();
+        for layer in 0..self.cfg.n_layer {
+            let block = self.block_forward_with_attention_arithmetic(
+                st,
+                layer,
+                pos,
+                &mut workspace.normed,
+                &mut workspace.qkv,
+                &mut workspace.attn,
+                &mut workspace.proj,
+                &mut workspace.inner,
+                &mut workspace.mlp_out,
+                &mut workspace.scores[..=pos],
+                arithmetic,
+            );
+            census.merge(block);
+        }
+        self.finish_forward_without_allocation(st);
+        census
+    }
+
+    /// Allocate opaque scratch for the checked attention canary façade.
+    #[doc(hidden)]
+    pub fn attention_canary_workspace(
+        &self,
+    ) -> Result<Gpt2AttentionCanaryWorkspace, SourceUnavailable> {
+        self.validate_attention_canary_model()?;
+        Ok(Gpt2AttentionCanaryWorkspace::new(&self.cfg))
+    }
+
+    /// Execute one matched attention-canary step after validating every model,
+    /// state, workspace, token, position, and derived slice extent. Validation
+    /// completes before any mutable byte is touched, so `None` is failure
+    /// atomic. Production [`Self::forward`] remains the normal executor.
+    #[doc(hidden)]
+    pub fn forward_attention_canary(
+        &self,
+        st: &mut Gpt2State,
+        workspace: &mut Gpt2AttentionCanaryWorkspace,
+        token: usize,
+        pos: usize,
+        mode: Gpt2AttentionCanaryMode,
+    ) -> Option<Gpt2AttentionCanaryCensus> {
+        self.validate_attention_canary_inputs(st, workspace, token, pos)?;
+        let arithmetic = match mode {
+            Gpt2AttentionCanaryMode::Conventional => {
+                crate::attention::AttentionArithmetic::Conventional
+            }
+            Gpt2AttentionCanaryMode::Exact => crate::attention::AttentionArithmetic::Exact,
+            Gpt2AttentionCanaryMode::CertifiedNative => {
+                crate::attention::AttentionArithmetic::CertifiedNative
+            }
+        };
+        Some(
+            self.forward_with_attention_arithmetic_unchecked(st, workspace, token, pos, arithmetic)
+                .into(),
+        )
+    }
+
+    fn finish_forward_without_allocation(&self, st: &mut Gpt2State) {
+        let d = self.cfg.n_embd;
+        layer_norm(
+            &st.x,
+            &self.ln_f_w,
+            &self.ln_f_b,
+            self.cfg.layer_norm_eps,
+            &mut st.hidden,
+        );
+        let hidden = &st.hidden;
+        for (vocabulary_index, output) in st.logits.iter_mut().enumerate() {
+            let row = &self.wte[vocabulary_index * d..(vocabulary_index + 1) * d];
+            let mut accumulator = 0.0f32;
+            for i in 0..d {
+                accumulator += hidden[i] * row[i];
+            }
+            *output = accumulator;
+        }
     }
 
     /// Final `ln_f` LayerNorm into `st.hidden` and the tied lm-head into
@@ -493,6 +968,64 @@ impl Gpt2 {
     }
 
     #[allow(clippy::too_many_arguments)]
+    fn block_forward_with_attention_arithmetic(
+        &self,
+        st: &mut Gpt2State,
+        layer_index: usize,
+        pos: usize,
+        normed: &mut [f32],
+        qkv: &mut [f32],
+        attn: &mut [f32],
+        proj: &mut [f32],
+        inner: &mut [f32],
+        mlp_out: &mut [f32],
+        scores: &mut [f32],
+        arithmetic: crate::attention::AttentionArithmetic,
+    ) -> crate::attention::AttentionArithmeticCensus {
+        let d = self.cfg.n_embd;
+        let layer = &self.layers[layer_index];
+
+        layer_norm(
+            &st.x,
+            &layer.ln1_w,
+            &layer.ln1_b,
+            self.cfg.layer_norm_eps,
+            normed,
+        );
+        conv1d(normed, &layer.c_attn_w, &layer.c_attn_b, 3 * d, qkv);
+        let census = self.block_attention_with_arithmetic(
+            st,
+            layer_index,
+            pos,
+            qkv,
+            attn,
+            scores,
+            arithmetic,
+        );
+        conv1d(attn, &layer.c_proj_w, &layer.c_proj_b, d, proj);
+        for (value, &projection) in st.x.iter_mut().zip(&proj[..d]) {
+            *value += projection;
+        }
+
+        layer_norm(
+            &st.x,
+            &layer.ln2_w,
+            &layer.ln2_b,
+            self.cfg.layer_norm_eps,
+            normed,
+        );
+        conv1d(normed, &layer.fc_w, &layer.fc_b, self.cfg.n_inner, inner);
+        for value in inner.iter_mut() {
+            *value = gelu_new(*value);
+        }
+        conv1d(inner, &layer.mlp_w, &layer.mlp_b, d, mlp_out);
+        for (value, &mlp) in st.x.iter_mut().zip(&mlp_out[..d]) {
+            *value += mlp;
+        }
+        census
+    }
+
+    #[allow(clippy::too_many_arguments)]
     fn block_forward(
         &self,
         st: &mut Gpt2State,
@@ -543,6 +1076,54 @@ impl Gpt2 {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
+    fn block_attention_with_arithmetic(
+        &self,
+        st: &mut Gpt2State,
+        layer: usize,
+        pos: usize,
+        qkv: &[f32],
+        attn: &mut [f32],
+        scores: &mut [f32],
+        arithmetic: crate::attention::AttentionArithmetic,
+    ) -> crate::attention::AttentionArithmeticCensus {
+        let d = self.cfg.n_embd;
+        let head_size = self.cfg.head_size();
+        let sequence_length = self.cfg.seq_len;
+        let base = (layer * sequence_length + pos) * d;
+        st.k_cache[base..base + d].copy_from_slice(&qkv[d..2 * d]);
+        st.v_cache[base..base + d].copy_from_slice(&qkv[2 * d..3 * d]);
+
+        debug_assert_eq!(scores.len(), pos + 1);
+        let mut census = crate::attention::AttentionArithmeticCensus::default();
+        let key_cache = &st.k_cache[layer * sequence_length * d..(layer + 1) * sequence_length * d];
+        let value_cache =
+            &st.v_cache[layer * sequence_length * d..(layer + 1) * sequence_length * d];
+        for head in 0..self.cfg.n_head {
+            let query = &qkv[head * head_size..(head + 1) * head_size];
+            census.qk.merge(attention_weights_with_arithmetic(
+                scores,
+                query,
+                key_cache,
+                head * head_size,
+                d,
+                arithmetic,
+            ));
+            let output = &mut attn[head * head_size..(head + 1) * head_size];
+            census.value.merge(
+                crate::attention::head_attention_value_aggregate_with_arithmetic(
+                    output,
+                    scores,
+                    value_cache,
+                    head * head_size,
+                    d,
+                    arithmetic,
+                ),
+            );
+        }
+        census
+    }
+
     /// The per-sequence attention sub-block shared by [`Gpt2::block_forward`]
     /// (serial) and [`Gpt2::forward_batch`] (batched): cache this position's
     /// k/v from the fused `qkv` projection, then for each head compute the
@@ -564,7 +1145,6 @@ impl Gpt2 {
     ) {
         let d = self.cfg.n_embd;
         let hs = self.cfg.head_size();
-        let scale = 1.0 / (hs as f32).sqrt();
         let seq = self.cfg.seq_len;
         // store this position's k, v (thirds 1 and 2 of the fused qkv).
         let base = (l * seq + pos) * d;
@@ -581,36 +1161,18 @@ impl Gpt2 {
             }
         }
         let mut scores = vec![0.0f32; pos + 1];
+        let key_cache = &st.k_cache[l * seq * d..(l + 1) * seq * d];
+        let value_cache = &st.v_cache[l * seq * d..(l + 1) * seq * d];
         for h in 0..self.cfg.n_head {
             let qh = &qkv[h * hs..(h + 1) * hs];
-            // scaled dot-product scores against every key up to pos.
-            let mut max = f32::NEG_INFINITY;
-            for (t, score) in scores.iter_mut().enumerate() {
-                let koff = (l * seq + t) * d + h * hs;
-                let kh = &st.k_cache[koff..koff + hs];
-                let mut dot = 0.0f32;
-                for i in 0..hs {
-                    dot += qh[i] * kh[i];
-                }
-                *score = dot * scale;
-                if *score > max {
-                    max = *score;
-                }
-            }
-            // softmax over positions 0..=pos.
-            let mut sum = 0.0f32;
-            for score in scores.iter_mut() {
-                *score = (*score - max).exp();
-                sum += *score;
-            }
-            let inv = 1.0 / sum;
-            // Normalize the softmax weights in place. `score * inv` is the
-            // exact per-position weight the value aggregation used before,
-            // so the executor arithmetic stays bit-identical — and `scores`
-            // now holds the per-head weights the #603 attention tap emits.
-            for score in scores.iter_mut() {
-                *score *= inv;
-            }
+            let _ = attention_weights_with_arithmetic(
+                &mut scores,
+                qh,
+                key_cache,
+                h * hs,
+                d,
+                crate::attention::AttentionArithmetic::CertifiedNative,
+            );
             // #603 per-head attention-weight tap over positions 0..=pos.
             if let Some(request) = request {
                 if request.attention_layers.contains(&l) {
@@ -619,16 +1181,15 @@ impl Gpt2 {
                     }
                 }
             }
-            // weighted sum of values into this head's attention output.
             let ao = &mut attn[h * hs..(h + 1) * hs];
-            ao.fill(0.0);
-            for (t, &weight) in scores.iter().enumerate() {
-                let voff = (l * seq + t) * d + h * hs;
-                let vh = &st.v_cache[voff..voff + hs];
-                for i in 0..hs {
-                    ao[i] += weight * vh[i];
-                }
-            }
+            let _ = crate::attention::head_attention_value_aggregate_with_arithmetic(
+                ao,
+                &scores,
+                value_cache,
+                h * hs,
+                d,
+                crate::attention::AttentionArithmetic::CertifiedNative,
+            );
         }
     }
 
@@ -785,6 +1346,236 @@ mod tests {
         PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/gpt2-tiny")
     }
 
+    fn assert_canary_unchanged(
+        state: &Gpt2State,
+        state_before: &Gpt2State,
+        workspace: &Gpt2AttentionCanaryWorkspace,
+        workspace_before: &Gpt2AttentionCanaryWorkspace,
+    ) {
+        assert_eq!(state, state_before, "invalid canary call mutated state");
+        assert_eq!(
+            workspace, workspace_before,
+            "invalid canary call mutated workspace"
+        );
+    }
+
+    #[test]
+    fn attention_control_preserves_gpt2_reciprocal_normalization_order() {
+        let raw = [
+            f32::from_bits(0xc2b3_f6f4),
+            f32::from_bits(0xc2bc_870f),
+            f32::from_bits(0xc213_2cb3),
+            f32::from_bits(0x416b_d2a8),
+            f32::from_bits(0xc15f_22ae),
+        ];
+        let query = [1.0f32, 0.0];
+        let keys: Vec<f32> = raw.iter().flat_map(|&score| [score, 0.0]).collect();
+        let mut exact = [0.0f32; 5];
+        attention_weights_with_arithmetic(
+            &mut exact,
+            &query,
+            &keys,
+            0,
+            2,
+            crate::attention::AttentionArithmetic::Exact,
+        );
+        let mut certified = [0.0f32; 5];
+        attention_weights_with_arithmetic(
+            &mut certified,
+            &query,
+            &keys,
+            0,
+            2,
+            crate::attention::AttentionArithmetic::CertifiedNative,
+        );
+
+        let reciprocal = 1.0 / 2.0f32.sqrt();
+        let mut expected = raw;
+        let mut max = f32::NEG_INFINITY;
+        for score in &mut expected {
+            *score *= reciprocal;
+            if *score > max {
+                max = *score;
+            }
+        }
+        let mut sum = 0.0f32;
+        for score in &mut expected {
+            *score = (*score - max).exp();
+            sum += *score;
+        }
+        let inverse = 1.0 / sum;
+        for score in &mut expected {
+            *score *= inverse;
+        }
+        assert_eq!(exact.map(f32::to_bits), expected.map(f32::to_bits));
+        assert_eq!(certified.map(f32::to_bits), exact.map(f32::to_bits));
+    }
+
+    #[test]
+    fn checked_attention_canary_rejects_every_invalid_input_before_mutation() {
+        let mut model = Gpt2::load(fixture_dir(), None).expect("load tiny GPT-2 fixture");
+
+        let mut state = Gpt2State::new(&model.cfg);
+        let mut workspace = model
+            .attention_canary_workspace()
+            .expect("valid model admits canary scratch");
+        let state_before = state.clone();
+        let workspace_before = workspace.clone();
+        let result = model.forward_attention_canary(
+            &mut state,
+            &mut workspace,
+            model.cfg.vocab,
+            0,
+            Gpt2AttentionCanaryMode::CertifiedNative,
+        );
+        assert_eq!(result, None, "out-of-range token must have no product");
+        assert_canary_unchanged(&state, &state_before, &workspace, &workspace_before);
+
+        let result = model.forward_attention_canary(
+            &mut state,
+            &mut workspace,
+            0,
+            model.cfg.seq_len,
+            Gpt2AttentionCanaryMode::CertifiedNative,
+        );
+        assert_eq!(result, None, "out-of-range position must have no product");
+        assert_canary_unchanged(&state, &state_before, &workspace, &workspace_before);
+
+        state.logits.pop();
+        let state_before = state.clone();
+        let workspace_before = workspace.clone();
+        let result = model.forward_attention_canary(
+            &mut state,
+            &mut workspace,
+            0,
+            0,
+            Gpt2AttentionCanaryMode::CertifiedNative,
+        );
+        assert_eq!(result, None, "invalid state must have no canary product");
+        assert_canary_unchanged(&state, &state_before, &workspace, &workspace_before);
+
+        state = Gpt2State::new(&model.cfg);
+        workspace.scores.pop();
+        let state_before = state.clone();
+        let workspace_before = workspace.clone();
+        let result = model.forward_attention_canary(
+            &mut state,
+            &mut workspace,
+            0,
+            0,
+            Gpt2AttentionCanaryMode::CertifiedNative,
+        );
+        assert_eq!(
+            result, None,
+            "invalid workspace must have no canary product"
+        );
+        assert_canary_unchanged(&state, &state_before, &workspace, &workspace_before);
+
+        workspace = Gpt2AttentionCanaryWorkspace::new(&model.cfg);
+        let state_before = state.clone();
+        let workspace_before = workspace.clone();
+        let original_head_count = model.cfg.n_head;
+        model.cfg.n_head = 0;
+        let error = model
+            .attention_canary_workspace()
+            .expect_err("invalid model geometry must refuse workspace construction");
+        assert_eq!(
+            error.reason,
+            "invalid GPT-2 attention canary geometry: n_head must be nonzero and divide n_embd"
+        );
+        let result = model.forward_attention_canary(
+            &mut state,
+            &mut workspace,
+            0,
+            0,
+            Gpt2AttentionCanaryMode::CertifiedNative,
+        );
+        assert_eq!(result, None, "invalid model must have no canary product");
+        assert_canary_unchanged(&state, &state_before, &workspace, &workspace_before);
+
+        model.cfg.n_head = original_head_count;
+        let original_layer_count = model.cfg.n_layer;
+        model.cfg.n_layer = 0;
+        let error = model
+            .attention_canary_workspace()
+            .expect_err("zero-layer model must refuse workspace construction");
+        assert_eq!(
+            error.reason,
+            "invalid GPT-2 attention canary geometry: n_layer must be nonzero"
+        );
+        let result = model.forward_attention_canary(
+            &mut state,
+            &mut workspace,
+            0,
+            0,
+            Gpt2AttentionCanaryMode::CertifiedNative,
+        );
+        assert_eq!(
+            result, None,
+            "zero-layer canary must be non-vacuously absent"
+        );
+        assert_canary_unchanged(&state, &state_before, &workspace, &workspace_before);
+
+        model.cfg.n_layer = original_layer_count;
+        model.cfg.vocab = 0;
+        let error = model
+            .attention_canary_workspace()
+            .expect_err("zero-vocabulary model must refuse workspace construction");
+        assert_eq!(
+            error.reason,
+            "invalid GPT-2 attention canary geometry: vocab must be nonzero"
+        );
+        let result = model.forward_attention_canary(
+            &mut state,
+            &mut workspace,
+            0,
+            0,
+            Gpt2AttentionCanaryMode::CertifiedNative,
+        );
+        assert_eq!(
+            result, None,
+            "zero-vocabulary canary must be non-vacuously absent"
+        );
+        assert_canary_unchanged(&state, &state_before, &workspace, &workspace_before);
+    }
+
+    #[test]
+    fn public_canary_census_overflow_fails_closed_and_atomically() {
+        let overflowing_fallbacks = Gpt2AttentionCanaryDotCensus {
+            fallback_nonfinite: usize::MAX,
+            fallback_zero: 1,
+            ..Gpt2AttentionCanaryDotCensus::default()
+        };
+        assert_eq!(overflowing_fallbacks.fallbacks(), None);
+
+        let mut census = Gpt2AttentionCanaryCensus {
+            qk: Gpt2AttentionCanaryDotCensus {
+                lanes: 7,
+                certified: 7,
+                ..Gpt2AttentionCanaryDotCensus::default()
+            },
+            value: Gpt2AttentionCanaryDotCensus {
+                lanes: usize::MAX,
+                certified: 11,
+                ..Gpt2AttentionCanaryDotCensus::default()
+            },
+        };
+        let before = census;
+        let other = Gpt2AttentionCanaryCensus {
+            qk: Gpt2AttentionCanaryDotCensus {
+                lanes: 1,
+                certified: 1,
+                ..Gpt2AttentionCanaryDotCensus::default()
+            },
+            value: Gpt2AttentionCanaryDotCensus {
+                lanes: 1,
+                ..Gpt2AttentionCanaryDotCensus::default()
+            },
+        };
+        assert_eq!(census.merge(other), None);
+        assert_eq!(census, before, "failed merge mutated the public census");
+    }
+
     fn f32_vec(value: &serde_json::Value) -> Vec<f32> {
         value
             .as_array()
@@ -873,7 +1664,7 @@ mod tests {
     /// #668: the GPT-2 oracle reports the truthful learned-absolute
     /// operator record, and it resolves through the versioned registry.
     /// Its positional action is NOT RoPE, so it is a distinct identity
-    /// from `standard-source-attention/1` — reusing that record would be
+    /// from current `standard-source-attention/2` — reusing that record would be
     /// a false operator identity.
     #[test]
     fn gpt2_oracle_reports_learned_absolute_operator() {
@@ -1269,7 +2060,7 @@ impl crate::TeacherOracle for HuggingFaceGpt2Oracle {
         // (this module) is its implementation — a scaled dot product with the
         // standard max-subtracted softmax, but learned absolute positions (no
         // RoPE on q/k) and GPT-2's fused-`c_attn`/`c_proj` Conv1D projections.
-        // Reusing `standard-source-attention/1` would misdeclare the positional
+        // Reusing `standard-source-attention/2` would misdeclare the positional
         // action, so this is its own registered `(id, version)`.
         Some(crate::attention::AttentionOperatorSpec::learned_absolute_source_attention())
     }

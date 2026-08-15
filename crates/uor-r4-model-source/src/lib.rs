@@ -2,9 +2,11 @@
 //! Arithmetic order mirrors the C exactly: sequential adds in matmul rows,
 //! rmsnorm/softmax/RoPE/SwiGLU op-for-op, libm via glibc on gnu targets.
 //! The Safetensors adapter also loads pinned Hugging Face SmolLM2 weights
-//! into this same source-only teacher surface. The pinned legacy teacher keeps
-//! the original reduction order; native Hugging Face compilation may use an
-//! optimized CPU matrix-vector backend.
+//! into this same source-only teacher surface. Llama/shared projections use the
+//! pinned portable exact `uor-matmul` owner. GPT-2 keeps its declared
+//! conventional dense sites and uses certified-native/exact-fallback current
+//! attention; canonical mode separately selects the remaining libm and
+//! ordered-reduction family.
 
 pub mod attention;
 pub mod conformance;
@@ -232,8 +234,9 @@ fn matmul_batched(xout: &mut [f32], x: &[f32], w: &[f32], n: usize, batch: usize
 }
 
 /// The teacher's matrix-operation backend, for the "teacher model ready"
-/// diagnostic. Since #655-B2 every teacher weight matmul is the pinned,
-/// portable `uor-matmul` exact GEMM — no per-machine SIMD/Accelerate path.
+/// diagnostic. Since #655-B2 every Llama/shared weight projection is the
+/// pinned portable `uor-matmul` exact GEMM — no per-machine SIMD/Accelerate
+/// path. GPT-2 owns its separate declared dense implementation.
 fn fast_matmul_backend() -> &'static str {
     "uor-matmul exact GEMM"
 }
@@ -576,12 +579,12 @@ impl Llama {
 
             // multihead attention (serial over heads; per-head work is
             // independent of order). The per-head weight computation and
-            // value aggregation are the free #602 reference functions in
-            // [`attention`], factored out of this loop unchanged; the
+            // value aggregation are the current #602/#704 functions in
+            // [`attention`]; the
             // `r4_attention` switch selects between exactly the two
-            // registered operators (`standard-source-attention/1` and
-            // `experimental-r4-source-attention/1`, a chunked dot
-            // product with the same softmax selector).
+            // registered operators (`standard-source-attention/2` and
+            // `experimental-r4-source-attention/2`, whose exact-real dot
+            // uses the historical floor-multiple-of-four domain).
             for h in 0..c.n_heads {
                 let q = &st.q[h * head_size..(h + 1) * head_size];
                 let att = &mut st.att[h * c.seq_len..h * c.seq_len + pos + 1];
@@ -689,10 +692,10 @@ impl Llama {
     /// instead of once per sequence, so B sequences cost one weight sweep — the
     /// amortization that lifts the teacher off the per-token memory-bandwidth
     /// wall. Every per-sequence op (rmsnorm, RoPE, attention, SwiGLU, residual)
-    /// mirrors [`Llama::forward`] exactly, and off macOS `matmul_batched` reuses
-    /// the same `dot_fast`, so this is bit-identical to calling `forward` on
-    /// each sequence with `fast_matmul = true`. `fast_matmul` is accepted for
-    /// signature parity; the batched path always takes the amortized kernel.
+    /// mirrors [`Llama::forward`] exactly. `matmul_batched` and the serial path
+    /// share the pinned exact `uor-matmul` owner, so their projection bits agree
+    /// on every target. `fast_matmul` is a compatibility parameter and does not
+    /// select another arithmetic owner.
     pub fn forward_batch(
         &self,
         states: &mut [State],
@@ -990,8 +993,8 @@ pub trait TeacherOracle: RepresentationSource + BehaviorSource {
     /// source executor computes during [`BehaviorSource::step`], when the
     /// oracle declares one. The boolean `r4_attention` switch maps to
     /// exactly the two registered operators
-    /// (`standard-source-attention/1` when off,
-    /// `experimental-r4-source-attention/1` when on — see
+    /// (`standard-source-attention/2` when off,
+    /// `experimental-r4-source-attention/2` when on — see
     /// [`attention::operator_for_r4_switch`]). `None` means the oracle
     /// predates the record (the legacy interpretation documented in
     /// `docs/MODEL_LIFECYCLE.md`); the default keeps every existing
@@ -1208,8 +1211,8 @@ impl TeacherOracle for LlamaOracle {
         request: &TraceCaptureRequest<'_>,
         sinks: &mut TraceCaptureSinks<'_, '_>,
     ) -> bool {
-        // Same matmul selection as `step` (the legacy exact scalar path),
-        // so a traced step and a plain step produce identical bits.
+        // Same pinned exact matmul owner as `step`, so a traced step and a
+        // plain step produce identical bits.
         self.model
             .forward_capturing_trace(&mut self.state, token, pos, false, request, sinks);
         logits.copy_from_slice(&self.state.logits);
@@ -1698,13 +1701,20 @@ impl std::fmt::Display for SourceIngestKind {
             Self::UnknownAttentionOperator { id, version } => write!(
                 f,
                 "attention operator {id}/{version} is not in the versioned operator \
-                 registry (registered entries include {}/{}, {}/{}, {}/{}, and {}/{})",
+                 registry (registered entries include {}/{}, {}/{}, {}/{}, {}/{}, \
+                 {}/{}, {}/{}, and {}/{})",
                 attention::AttentionOperatorSpec::STANDARD_ID,
-                attention::AttentionOperatorSpec::STANDARD_VERSION,
+                attention::AttentionOperatorSpec::STANDARD_V1_VERSION,
+                attention::AttentionOperatorSpec::STANDARD_ID,
+                attention::AttentionOperatorSpec::STANDARD_V2_VERSION,
                 attention::AttentionOperatorSpec::EXPERIMENTAL_R4_ID,
-                attention::AttentionOperatorSpec::EXPERIMENTAL_R4_VERSION,
+                attention::AttentionOperatorSpec::EXPERIMENTAL_R4_V1_VERSION,
+                attention::AttentionOperatorSpec::EXPERIMENTAL_R4_ID,
+                attention::AttentionOperatorSpec::EXPERIMENTAL_R4_V2_VERSION,
                 attention::AttentionOperatorSpec::LEARNED_ABSOLUTE_ID,
-                attention::AttentionOperatorSpec::LEARNED_ABSOLUTE_VERSION,
+                attention::AttentionOperatorSpec::LEARNED_ABSOLUTE_V1_VERSION,
+                attention::AttentionOperatorSpec::LEARNED_ABSOLUTE_ID,
+                attention::AttentionOperatorSpec::LEARNED_ABSOLUTE_V2_VERSION,
                 attention::AttentionOperatorSpec::R4_ROUTE_ID,
                 attention::AttentionOperatorSpec::R4_ROUTE_VERSION,
             ),
@@ -2309,17 +2319,17 @@ impl HuggingFaceLlamaOracle {
     }
 
     /// Enable or disable the experimental attention variant
-    /// (`experimental-r4-source-attention/1`, #602): a 4-wide-chunked
-    /// dot product — truncating the trailing `head_size mod 4`
-    /// dimensions from the score — followed by the same softmax the
-    /// standard operator applies. Despite the flag's historical name it
-    /// is neither quaternionic nor softmax-bypassing (#515 audit).
+    /// (`experimental-r4-source-attention/2`, #602/#704): a correctly-rounded
+    /// exact-real dot over the floor-multiple-of-four head prefix — truncating
+    /// the trailing `head_size mod 4` dimensions — followed by the same
+    /// softmax the standard operator applies. Despite the flag's historical
+    /// name it is neither quaternionic nor softmax-bypassing (#515 audit).
     pub fn set_r4_attention(&mut self, enable: bool) {
         self.model.cfg.r4_attention = enable;
     }
 
     /// Check if the experimental attention variant
-    /// (`experimental-r4-source-attention/1`) is enabled.
+    /// (`experimental-r4-source-attention/2`) is enabled.
     pub fn r4_attention(&self) -> bool {
         self.model.cfg.r4_attention
     }
@@ -2477,11 +2487,9 @@ impl HuggingFaceLlamaOracle {
         let state = State::new(&model.cfg);
         let fast_matmul = !canonical_math && std::env::var("TLESS_EXACT_SCALAR").is_err();
         let backend = if canonical_math {
-            "canonical libm scalar (D2)"
-        } else if fast_matmul {
-            fast_matmul_backend()
+            "uor-matmul exact GEMM + canonical libm scalar (D2)"
         } else {
-            "exact scalar (deterministic)"
+            fast_matmul_backend()
         };
         eprintln!("teacher model ready (κ {kappa}, matmul={backend})");
         Ok(Self {
@@ -2728,7 +2736,7 @@ mod tests {
     }
 
     #[test]
-    fn fast_matmul_tracks_exact_cpu_result() {
+    fn matmul_flag_is_a_bit_exact_compatibility_noop() {
         const ROWS: usize = 67;
         const COLUMNS: usize = 73;
         let input: Vec<f32> = (0..COLUMNS)
@@ -2741,14 +2749,15 @@ mod tests {
         let mut fast = [0.0f32; ROWS];
         matmul(&mut exact, &input, &weights, COLUMNS, false);
         matmul(&mut fast, &input, &weights, COLUMNS, true);
-        for (expected, actual) in exact.into_iter().zip(fast) {
-            let tolerance = 1e-5f32.max(expected.abs() * 1e-5);
-            assert!((expected - actual).abs() <= tolerance);
-        }
+        assert_eq!(
+            exact.map(f32::to_bits),
+            fast.map(f32::to_bits),
+            "the compatibility flag must not select another matmul owner"
+        );
     }
 
     #[test]
-    fn matmul_batched_matches_serial_fast() {
+    fn matmul_batched_matches_serial_exact_bits() {
         const N: usize = 73;
         const ROWS: usize = 40;
         const BATCH: usize = 6;
@@ -2766,19 +2775,13 @@ mod tests {
             for row in 0..ROWS {
                 let want = serial[row];
                 let got = batched[bi * ROWS + row];
-                // Off macOS the batched kernel reuses the exact same dot_fast as
-                // the serial fast path, so it is bit-identical. On macOS it is
-                // Accelerate sgemm vs sgemv — deterministic, within tolerance.
-                #[cfg(not(target_os = "macos"))]
-                assert_eq!(got, want, "batched != serial at b{bi} row{row}");
-                #[cfg(target_os = "macos")]
-                {
-                    let tolerance = 1e-4f32.max(want.abs() * 1e-4);
-                    assert!(
-                        (got - want).abs() <= tolerance,
-                        "batched vs serial b{bi} row{row}"
-                    );
-                }
+                // Both shapes use the pinned exact owner and must agree in
+                // symbol bits on every target.
+                assert_eq!(
+                    got.to_bits(),
+                    want.to_bits(),
+                    "batched != serial at b{bi} row{row}"
+                );
             }
         }
     }

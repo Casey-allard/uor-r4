@@ -3569,11 +3569,11 @@ mod tests {
         let mixed_dir = unique_path("operator-binding-mixed-workers");
         let mut mixed_pool: Vec<Box<dyn TeacherOracle + Send>> = vec![
             Box::new(DeclaredFakeOracle {
-                operator: Some(standard),
+                operator: Some(AttentionOperatorSpec::standard_v1()),
                 geometry: None,
             }),
             Box::new(DeclaredFakeOracle {
-                operator: Some(experimental),
+                operator: Some(AttentionOperatorSpec::standard_v2()),
                 geometry: None,
             }),
         ];
@@ -3587,7 +3587,7 @@ mod tests {
             SHARD_BITS,
             false,
         )
-        .expect_err("mixed serial worker operators must fail before output");
+        .expect_err("same-family v1/v2 serial workers must fail before output");
         assert!(!mixed_dir.exists());
 
         let mixed_geometry_dir = unique_path("operator-binding-mixed-geometries");
@@ -3633,7 +3633,7 @@ mod tests {
 
         let standard = FakeBatchedOracle {
             cfg: fake_batched_config(),
-            attention_operator: Some(AttentionOperatorSpec::standard()),
+            attention_operator: Some(AttentionOperatorSpec::standard_v1()),
             geometry: None,
         };
         observe_text_corpus_batched(
@@ -3652,7 +3652,7 @@ mod tests {
 
         let projected = FakeBatchedOracle {
             cfg: fake_batched_config(),
-            attention_operator: Some(AttentionOperatorSpec::standard()),
+            attention_operator: Some(AttentionOperatorSpec::standard_v1()),
             geometry: Some(GeometryProjection::bucket_average(4, 2)),
         };
         let error = observe_text_corpus_batched(
@@ -3670,13 +3670,13 @@ mod tests {
         assert!(error.reason.contains("geometry"), "{error}");
         assert_eq!(directory_fingerprint(&dir), before);
 
-        let experimental = FakeBatchedOracle {
+        let current_v2 = FakeBatchedOracle {
             cfg: fake_batched_config(),
-            attention_operator: Some(AttentionOperatorSpec::experimental_r4()),
+            attention_operator: Some(AttentionOperatorSpec::standard_v2()),
             geometry: None,
         };
         let error = observe_text_corpus_batched(
-            &experimental,
+            &current_v2,
             2,
             60,
             &tokenizer,
@@ -3686,7 +3686,7 @@ mod tests {
             SHARD_BITS,
             true,
         )
-        .expect_err("different operator cannot resume completed corpus");
+        .expect_err("same-family v2 cannot resume a completed v1 corpus");
         assert!(error.reason.contains("incompatible observation resume"));
         assert_eq!(directory_fingerprint(&dir), before);
 

@@ -2565,13 +2565,13 @@ pub struct CoverReport {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub geometry: Option<uor_r4_model_source::geometry::GeometryProjection>,
     /// #602 typed record of the source attention operator the teacher
-    /// computed while producing the compiled inputs
-    /// (`standard-source-attention/1`, or
-    /// `experimental-r4-source-attention/1` when the `r4_attention`
-    /// switch was on), when the invoking pipeline knows it
-    /// (`--attention-operator`). Optional so every legacy report and
-    /// its bytes stay unchanged when unset; callers set the public
-    /// field after [`build_report`].
+    /// computed while producing the compiled inputs. Current source families
+    /// declare their `/2` records; immutable `/1` records remain valid, and
+    /// absence retains the implicit historical standard/1 meaning. The
+    /// invoking pipeline supplies the full record with
+    /// `--attention-operator`. Optional so every legacy report and its bytes
+    /// stay unchanged when unset; callers set the public field after
+    /// [`build_report`].
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub attention_operator: Option<uor_r4_model_source::attention::AttentionOperatorSpec>,
     pub config: CoverReportConfig,

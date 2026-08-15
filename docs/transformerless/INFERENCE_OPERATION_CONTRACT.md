@@ -68,14 +68,20 @@ This contract does **not** restrict:
 
 Compilation and training are explicitly unrestricted by this contract.
 
-Note (non-normative cross-reference, #602): the source attention operator
-specifications in `uor-r4-model-source::attention`
-(`standard-source-attention/1`, `experimental-r4-source-attention/1`, and
-GPT-2's `learned-absolute-source-attention/1`) are host-side provenance
-records of teacher execution — an activity this section already excludes.
-They are distinct from this deployed contract, describe floating-point source
-computation the deployed hot path never performs, and change none of the
-operation lists or obligations above.
+Note (non-normative cross-reference, #602 and #704): the source attention
+operator specifications in `uor-r4-model-source::attention` are host-side
+provenance records of teacher execution — an activity this section already
+excludes.
+The registry contains immutable historical and current records for all three
+source families: `standard-source-attention/{1,2}`,
+`experimental-r4-source-attention/{1,2}`, and GPT-2's
+`learned-absolute-source-attention/{1,2}`. Version 2 changes only source-teacher
+Q·K and weighted-value folds: native results are used only when a mechanical
+witness proves the exact pinned-`uor-matmul` f32 bit, with that exact kernel as
+the fallback. GPT-2's dense `c_attn`, `c_proj`, MLP, and `lm_head` remain
+conventional. These records are distinct from this deployed contract, describe
+floating-point source computation the deployed hot path never performs, and
+change none of the operation lists or obligations above.
 
 Note (non-normative cross-reference, #604): `r4-route-attention/1`
 (`R4RouteAttentionV1`, documented in `docs/MODEL_LIFECYCLE.md`) is a

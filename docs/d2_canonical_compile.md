@@ -12,16 +12,18 @@ cargo run --release --bin r4 -- compile \
 The mode is selected by `TLESS_CANONICAL_DETERMINISTIC=1` and currently does
 the following:
 
-- disables Accelerate/NEON/AVX2 teacher matmul in favor of the ordered scalar
-  path;
+- keeps Llama/shared teacher projections on the always-enabled pinned exact
+  `uor-matmul` owner; GPT-2's deliberately conventional dense sites are
+  outside this legacy D2 switch;
 - routes teacher `sqrt`, `exp`, `pow`, `sin`, and `cos` through the portable
   pure-Rust `libm` implementation;
 - routes transformerless compiler softmax, power-of-two packing, projection
   normalization, and graph-cover normalization/entropy through the same
   portable math family.
 
-`--exact-scalar` remains the faster local-iteration switch. It selects scalar
-matmul only and does not claim cross-platform byte reproducibility.
+`--exact-scalar` is a deprecated compatibility input. It no longer changes
+Llama/shared projection arithmetic and does not select a GPT-2 Conv1D or
+`lm_head` implementation.
 
 The mode is compiler-side only; the deployed runtime contract is unchanged.
 CI now runs a macOS/Linux differential compile of the pinned
@@ -35,5 +37,6 @@ The 500k/TLA7 fixture was re-run under `TLESS_CANONICAL_DETERMINISTIC=1` on
 2026-08-02. It produced the existing 1,346,836-byte container and every
 recorded κ unchanged, so the re-pin is an explicit canonical-mode adoption
 with no artifact-byte delta. Gate E now invokes that mode and is required on
-Linux as well as macOS; accelerated legacy teacher builds remain a separate,
-non-canonical local-iteration path.
+Linux as well as macOS; canonical mode continues to own the remaining libm and
+scalar-reduction choices rather than selecting a different weight-matmul
+backend.
