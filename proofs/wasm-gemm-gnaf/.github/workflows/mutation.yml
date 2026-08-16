@@ -1,0 +1,11 @@
+name: mutation
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  falsifiers:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: planted faults must be rejected (SPEC 18)
+        run: python3 Tools/mutation.py

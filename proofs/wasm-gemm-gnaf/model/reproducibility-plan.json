@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "description": "Frozen reproducibility plan. SPEC 4 stage 4 and 20.2 condition 12.",
+  "plan": {
+    "cleanTreeBuilds": 2,
+    "networkDisabled": true,
+    "comparedOutputs": [
+      "artifacts/wasm-gemm-gnaf.wasm",
+      "artifacts/atlas-seal.bin",
+      "artifacts/proof-manifest.json",
+      "MANIFEST.json",
+      "CONFORMANCE.md"
+    ],
+    "attestation": {
+      "body": "ReproducibilityAttestationBody",
+      "emittedBy": "CI, after both clean builds complete",
+      "excludedFromItsOwnComparisonSet": true,
+      "isInputToLeanTheorem": false,
+      "checkedIntoSourceTree": false
+    },
+    "currentlyReproducible": [
+      "CONFORMANCE.md"
+    ],
+    "blocked": {
+      "artifact": "gated on WS-001 and LB-001",
+      "seal": "gated on Atlas seal construction"
+    }
+  }
+}

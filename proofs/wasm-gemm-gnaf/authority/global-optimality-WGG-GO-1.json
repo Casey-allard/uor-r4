@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "propositionId": "WGG-GO-1",
+  "domain": "authority",
+  "title": "Frozen canonical proposition schema for released_wasm_gemm_gnaf_global_optimal",
+  "normativeSource": "SPEC.md section 1",
+  "statement": "GlobalOptimal Release.wasmProfile Release.gemmProblem Release.costObjective Release.artifactBytes",
+  "scopeCriticalDefinitions": [
+    "GlobalOptimal",
+    "Universal.ProfileValid",
+    "Universal.SemanticCorrect",
+    "Universal.SemanticWithinResources",
+    "Universal.SystemEvaluation",
+    "Universal.SystemEvaluationRel",
+    "Universal.Correct",
+    "Universal.Feasible",
+    "Cost.ProperObjective",
+    "Cost.ProperObjective.score",
+    "CanonicalBytesLE",
+    "Gemm.Reference.Accepts",
+    "Wasm.Profile",
+    "Gemm.Problem"
+  ],
+  "unfoldedPropositionSchema": {
+    "conjuncts": [
+      "Universal.ProfileValid P releasedBytes",
+      "Universal.SemanticCorrect P G releasedBytes",
+      "Universal.SemanticWithinResources P G releasedBytes",
+      "exists releasedEval : Universal.SystemEvaluation P G releasedBytes, ( Universal.SystemEvaluationRel P G releasedBytes releasedEval AND Universal.Correct G releasedEval AND Universal.Feasible G releasedEval AND lowerBoundClause AND tieBreakClause )"
+    ],
+    "lowerBoundClause": "forall competitorBytes : ByteArray, Universal.ProfileValid P competitorBytes -> Universal.SemanticCorrect P G competitorBytes -> Universal.SemanticWithinResources P G competitorBytes -> forall competitorEval : Universal.SystemEvaluation P G competitorBytes, ( Universal.SystemEvaluationRel P G competitorBytes competitorEval AND O.score releasedEval.cost <= O.score competitorEval.cost )",
+    "tieBreakClause": "forall competitorBytes : ByteArray, Universal.ProfileValid P competitorBytes -> Universal.SemanticCorrect P G competitorBytes -> Universal.SemanticWithinResources P G competitorBytes -> forall competitorEval : Universal.SystemEvaluation P G competitorBytes, Universal.SystemEvaluationRel P G competitorBytes competitorEval -> O.score releasedEval.cost = O.score competitorEval.cost -> CanonicalBytesLE releasedBytes competitorBytes",
+    "quantifierDomain": "ALL finite byte sequences. Not GNAF plans, not registered kernels, not attention-indexed candidates.",
+    "forbiddenSubstitute": "forall raw, exists module, InvocationConforms P G module raw"
+  },
+  "gateRule": "The conformance tool SHALL compare compiled unfolded declaration bodies against this schema. A self-recorded proposition matching only itself MUST fail.",
+  "status": "NOT CLOSED. No Lean declaration currently discharges this proposition. See CERTIFICATION.md."
+}

@@ -1,0 +1,44 @@
+# Lake build output and fetched dependencies. Everything here is derived from
+# tracked sources plus the pinned toolchain, so it is reproducible rather than
+# archival.
+/.lake/
+**/*.olean
+**/*.ilean
+**/*.trace
+**/*.hash
+
+# `lean-toolchain` and `lake-manifest.json` are NOT ignored. SPEC section 4 pins
+# the exact Lean commit and every package revision, and the release gate
+# recomputes those identities from the checked-in files. Ignoring either would
+# make offline verification trust the environment instead of the tree.
+
+# `artifacts/` is NOT ignored. SPEC section 5 requires the committed
+# `wasm-gemm-gnaf.wasm`, the Atlas seal, and the proof manifest to be in the
+# tree; `artifact-check` compares every committed byte against
+# `Release.committedArtifactBytes`.
+
+# `CONFORMANCE.md` is NOT ignored. It is generated from `model/claims.json`, and
+# `reproducible.yml` asserts it is byte-clean after regeneration -- which
+# requires it to be tracked.
+
+# Scratch written by the gate and the axiom auditor. Both delete their probe on
+# the success path; these entries cover an interrupted run.
+/.gate_axioms.lean
+/.axioms_probe.lean
+
+# Scratch Lean. Anything under `WasmGemmGnaf/` that belongs to no SPEC section 5
+# layer is rejected by `just root-check` rather than ignored here -- a scratch
+# module in the proof path is a defect to surface, not to hide.
+/scratch/
+/tmp/
+
+# Editor and OS noise.
+.DS_Store
+*.swp
+*~
+.idea/
+.vscode/
+
+# Python bytecode from the gate tools.
+__pycache__/
+*.pyc

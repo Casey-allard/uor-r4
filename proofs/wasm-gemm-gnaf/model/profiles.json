@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "description": "Released profile decisions. SPEC 7.2. No feature default is permitted.",
+  "release": {
+    "revision": "wg-3.0",
+    "revisionCommit": "9d36019973201a19f9c9ebb0f10828b2fe2374aa",
+    "addressModel": "wasm32",
+    "addressBits": 32,
+    "maxPages": 65536,
+    "maxInvocationBytes": 4294967295,
+    "maxTableElements": 4294967295,
+    "maxGcLiveBytes": 4294967295,
+    "maxPeakStackValues": 18446744073709551615,
+    "maxStepsPerRawInvocation": "2^320",
+    "imports": [],
+    "workloadRepetitions": 1,
+    "requiredExports": [
+      {
+        "kind": "memory",
+        "name": "memory"
+      },
+      {
+        "kind": "func",
+        "name": "gemm",
+        "type": "(i32, i32) -> i32"
+      }
+    ],
+    "featureMatrix": {
+      "scalarNumericControlVariablesFunctions": "enabled",
+      "multiValueAndExtendedConstExprs": "enabled",
+      "bulkMemoryMultipleMemoriesTables": "enabled",
+      "standardFixed128BitSimd": "enabled",
+      "referenceTypesTypedFuncRefsAndGc": "enabled",
+      "tailCalls": "enabled",
+      "exceptionHandling": "enabled",
+      "memory64": "rejected",
+      "sharedMemoriesAtomicsThreads": "rejected",
+      "relaxedSimd": "rejected",
+      "componentModelAndPostCore3": "rejected"
+    },
+    "absentFromProfile": [
+      "host identity",
+      "engine tier",
+      "cache warmth",
+      "ISA",
+      "wall-clock time"
+    ],
+    "gcCostWidths": {
+      "reference": 4,
+      "i32": 4,
+      "f32": 4,
+      "i64": 8,
+      "f64": 8,
+      "v128": 16,
+      "packedI8": 1,
+      "packedI16": 2,
+      "structHeader": 8,
+      "arrayHeader": 16,
+      "exceptionHeader": 16,
+      "fieldAlignment": "min(fieldWidth, 8)",
+      "totalRounding": 8
+    }
+  }
+}

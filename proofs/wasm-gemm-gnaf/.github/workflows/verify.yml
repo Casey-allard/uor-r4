@@ -1,0 +1,43 @@
+# SPEC 20.3: actions pinned to commit hashes, exact checked-in toolchain,
+# no mutable selector, and one final job running the same `just vv` used locally.
+name: verify
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  gate:
+    runs-on: ubuntu-24.04
+    steps:
+      # actions/checkout v4.2.2
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: install pinned Lean toolchain
+        run: |
+          set -euo pipefail
+          curl -sSfL https://github.com/leanprover/elan/releases/download/v3.1.1/elan-x86_64-unknown-linux-gnu.tar.gz \
+            | tar xz
+          ./elan-init -y --default-toolchain "$(cat lean-toolchain)"
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - name: assert toolchain identity matches the SPEC 4 pin
+        run: |
+          set -euo pipefail
+          lean --version
+          lean --version | grep -q 'd024af099ca4bf2c86f649261ebf59565dc8c622'
+      - name: assert authority digests recomputed from content
+        run: |
+          set -euo pipefail
+          # The checksum file names the authority without a directory prefix, so
+          # it must be checked from inside authority/. Running it from the repo
+          # root silently failed the whole workflow before `lake build`.
+          cd authority && sha256sum -c uor-gnaf.sha256
+      - name: build
+        run: lake build
+      - name: release gate (the same `just vv` used locally)
+        # Runs root-check, firewall, manifest-check, releasepath, build,
+        # required, claims, axioms and then Tools/gate.py. Invoking a hand-picked
+        # subset here is how the noncomputable release path went undetected.
+        # Expected to FAIL while WGG-GO-1 is outstanding (UOR-GNAF 13.3); do not
+        # add continue-on-error.
+        run: |
+          set -euo pipefail
+          curl -sSfL https://github.com/casey/just/releases/download/1.36.0/just-1.36.0-x86_64-unknown-linux-musl.tar.gz | tar xz just
+          ./just vv

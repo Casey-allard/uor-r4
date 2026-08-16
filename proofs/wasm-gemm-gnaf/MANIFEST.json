@@ -1,0 +1,783 @@
+{
+  "schemaVersion": 1,
+  "description": "Ordered acyclic identity stages. SPEC sections 4 and 5.",
+  "acyclicity": "Each stage binds only EARLIER stage identities. No stage contains its own identity. MANIFEST.json is the canonical encoding of OutputManifestBody and its own digest is never in its own preimage.",
+  "sourceManifestCore": {
+    "schemaVersion": 1,
+    "stage": "SourceManifestCore",
+    "excludes": [
+      "every manifest",
+      "every generated output",
+      "artifacts/"
+    ],
+    "files": [
+      {
+        "path": ".github/workflows/mutation.yml",
+        "sha256": "ccd8f45ed52f97ac89c5bfb600a5a34bc2d9be5ae1853178f07c6147491c53de",
+        "bytes": 294
+      },
+      {
+        "path": ".github/workflows/reproducible.yml",
+        "sha256": "cbb47da281c2556bf5247865fc88a891ee8c1174d5a45de0309460f43e885900",
+        "bytes": 517
+      },
+      {
+        "path": ".github/workflows/verify.yml",
+        "sha256": "4f66b3300225fe4672d4479bbbf076dbe050795df4af26e9ed373ec673ad9352",
+        "bytes": 1980
+      },
+      {
+        "path": ".gitignore",
+        "sha256": "89acb4c54cd738be814c93d007e3b2ff891b73bfa10d2f1864d197989e3912a5",
+        "bytes": 1495
+      },
+      {
+        "path": "AGENTS.md",
+        "sha256": "c1167fc03deaf12de08d4648134ac3ffae4aeed2eddaece538454709bdca5f27",
+        "bytes": 4128
+      },
+      {
+        "path": "CERTIFICATION.md",
+        "sha256": "3d4cf5916d9aaf16f98929ba1f81b2da5fa1f33d221d7ded24a7601cb0ffd93a",
+        "bytes": 26686
+      },
+      {
+        "path": "Justfile",
+        "sha256": "923cdbfd3925705f7a2291b1a39ac3f450ac4e79c3ed12c9191ebc8bf68f8d16",
+        "bytes": 1909
+      },
+      {
+        "path": "LICENSE-APACHE",
+        "sha256": "62c7a1e35f56406896d7aa7ca52d0cc0d272ac022b5d2796e7d6905db8a3636a",
+        "bytes": 9723
+      },
+      {
+        "path": "LICENSE-MIT",
+        "sha256": "b65b82603a4875244eaecc241d1666217ae7d9f8bf4ad3e7b1ac88d8888126ee",
+        "bytes": 1075
+      },
+      {
+        "path": "README.md",
+        "sha256": "1595f74c4a458b8a6edf55414e61573e67743bc4760804162b5b398bdf0acdbe",
+        "bytes": 5167
+      },
+      {
+        "path": "SPEC.md",
+        "sha256": "47c3ebaea958fbbdce2e75f7ba5ca67a1320f9f05666c5ea5aaac02f5970e570",
+        "bytes": 150174
+      },
+      {
+        "path": "Tests/README.md",
+        "sha256": "ded20b7caa4c47f1aabea4d5cda6ce40305b01813bd3b2a89bf5361ede2ee638",
+        "bytes": 644
+      },
+      {
+        "path": "Tools/__pycache__/scan.cpython-312.pyc",
+        "sha256": "c5ed67d60f92fe2f57159c28207f75fc275d678993c33ecf9a3e3e63616a2ea4",
+        "bytes": 4831
+      },
+      {
+        "path": "Tools/axioms.py",
+        "sha256": "f6b0cf280bdcebc31f427416feb99a0df70903cce43de4ef37ec3474f248a997",
+        "bytes": 1291
+      },
+      {
+        "path": "Tools/firewall.py",
+        "sha256": "d90f08e3ae6e3514f9415efa068ee8b8578090bfe097a41f6196aa014eb0af15",
+        "bytes": 2289
+      },
+      {
+        "path": "Tools/gate.py",
+        "sha256": "0b8ffbc4390043111586a1c6feb0f9d837183219e8d8a8047021504b99be4231",
+        "bytes": 9516
+      },
+      {
+        "path": "Tools/gen_conformance.py",
+        "sha256": "44b8c26c2e8e39192a8d297e441b18414f3baf86f1b117009333356bb1b456a1",
+        "bytes": 2967
+      },
+      {
+        "path": "Tools/manifest.py",
+        "sha256": "79a8791610f29640c994e66a2bc6fc808df9dc1a01b35e2428021bb96b8da65e",
+        "bytes": 9059
+      },
+      {
+        "path": "Tools/mutation.py",
+        "sha256": "6e2be84db4408b3211834f453d0b229beb07d7e789b504f3b793a8a655a35580",
+        "bytes": 7207
+      },
+      {
+        "path": "Tools/releasepath.py",
+        "sha256": "83931d4f15824af12012883dcd91be63d159ecb5307b56ca44ad0782b129b055",
+        "bytes": 1759
+      },
+      {
+        "path": "Tools/required.py",
+        "sha256": "6e23f3fd406cd49b98e222634eaf03457b146951aba385aaf23c0d7108934976",
+        "bytes": 1986
+      },
+      {
+        "path": "Tools/root.py",
+        "sha256": "ae0887199bac3e06cd936ab726fe03829cd10789408b5b9945656a92444963c5",
+        "bytes": 1906
+      },
+      {
+        "path": "Tools/scan.py",
+        "sha256": "f1c3ebfb15de95aa0e356b1de3e4fbe9053715d40023da273b1aea4e23ddc496",
+        "bytes": 3089
+      },
+      {
+        "path": "VERIFICATION.md",
+        "sha256": "d3a9ea298c326fcee4eb2c70bf7ca868fb3f05220a7dc3fb18f4247f144b1930",
+        "bytes": 3534
+      },
+      {
+        "path": "WasmGemmGnaf/Artifact/Baseline.lean",
+        "sha256": "eb39757182f0025f5e5a9108a5b2a4da4009c23a29a5cd3eeaadefd8651df476",
+        "bytes": 19686
+      },
+      {
+        "path": "WasmGemmGnaf/Artifact/Emit.lean",
+        "sha256": "51b0fd8ba7a0d325674030c12ec20ef372896d0a7b6487ed536041443a2edc5a",
+        "bytes": 2834
+      },
+      {
+        "path": "WasmGemmGnaf/Artifact/Release.lean",
+        "sha256": "bffbfc7d3d0325739bfb2efa08f5b342e2b5a0d425dad72515997a38127d55ac",
+        "bytes": 99783
+      },
+      {
+        "path": "WasmGemmGnaf/Atlas/Attention.lean",
+        "sha256": "a724027b7721fab526e590bd0138399c8d4919f4d966620032da8a99704cbfcd",
+        "bytes": 14443
+      },
+      {
+        "path": "WasmGemmGnaf/Atlas/Certificate.lean",
+        "sha256": "142abf9d4b90181867ecc4a76cf39a420861a24edc2ab980bcd6698a345eafef",
+        "bytes": 38920
+      },
+      {
+        "path": "WasmGemmGnaf/Atlas/CostSurface.lean",
+        "sha256": "9ea2e7f8154006766918c87747d619b384d165a164ed6bfc0502975f07bf4c4e",
+        "bytes": 16133
+      },
+      {
+        "path": "WasmGemmGnaf/Atlas/CoverageScope.lean",
+        "sha256": "790a8b449f35dcf40cdc206c425c890434310d598ffdf459a157b1693c4e806b",
+        "bytes": 3137
+      },
+      {
+        "path": "WasmGemmGnaf/Atlas/Delta.lean",
+        "sha256": "d88c4549caf88357f339fd6feca77f64301f6b5303799cd36d672dfd89d5c743",
+        "bytes": 27584
+      },
+      {
+        "path": "WasmGemmGnaf/Atlas/Dependency.lean",
+        "sha256": "a913613b2dc1f006dbd3fdb502dd57ff6813295bb1e205dfda637946cbbebc1c",
+        "bytes": 18131
+      },
+      {
+        "path": "WasmGemmGnaf/Atlas/Envelope.lean",
+        "sha256": "5befa5e2e7e6e648551c7f8cefd68efd49ab00489b08c2f0737575e6341fb141",
+        "bytes": 21667
+      },
+      {
+        "path": "WasmGemmGnaf/Atlas/Lifecycle.lean",
+        "sha256": "ea9b4397f4174291d04d1a58ebfbc3c64e33059a8ac862d6835ddf86f068142d",
+        "bytes": 43044
+      },
+      {
+        "path": "WasmGemmGnaf/Atlas/Query.lean",
+        "sha256": "13de4901fa5638b318b7ad989219dfd8416d4cd1078584f4c4bc50efb1e32820",
+        "bytes": 18219
+      },
+      {
+        "path": "WasmGemmGnaf/Atlas/Rebuild.lean",
+        "sha256": "9ed035fe0f0c1f47cbed62195051774fcc9eff0880ca8429adf3d365479be75a",
+        "bytes": 18389
+      },
+      {
+        "path": "WasmGemmGnaf/Atlas/Seal.lean",
+        "sha256": "bff85aeb6ef96ec5441c804250394cb14fa42333d8dad33c0d9c4922cf36a160",
+        "bytes": 25315
+      },
+      {
+        "path": "WasmGemmGnaf/Atlas/SemanticClosure.lean",
+        "sha256": "f360bd27d064b661134836fcb1b8146df17c538f1a43c94e470351f3ffe955b5",
+        "bytes": 35533
+      },
+      {
+        "path": "WasmGemmGnaf/Atlas/State.lean",
+        "sha256": "1a22a872a49b95e5f2b587dc80cc39006db9d05e389957b9e9b9d01dd7d2815f",
+        "bytes": 40187
+      },
+      {
+        "path": "WasmGemmGnaf/Atlas/Update.lean",
+        "sha256": "2c01d368c0cdd884eabd37a5ae300e707dc4b274e6465c135e736235a798e894",
+        "bytes": 28435
+      },
+      {
+        "path": "WasmGemmGnaf/Conformance/AxiomAudit.lean",
+        "sha256": "7f9c6c01d8967aff5e3d8656e451de04e58cd7703d5fbb128669f5cc301c7095",
+        "bytes": 10256
+      },
+      {
+        "path": "WasmGemmGnaf/Conformance/Claim.lean",
+        "sha256": "a22b2c3c8a817f256fe5daad55e293db63d8dda03c0063a4deb6e0f6aa7c954e",
+        "bytes": 8890
+      },
+      {
+        "path": "WasmGemmGnaf/Conformance/Manifest.lean",
+        "sha256": "a6534fd1e29d5319d52eb5e9963e7e5f950a7b6657788f6c3c97c48fde131a0f",
+        "bytes": 15574
+      },
+      {
+        "path": "WasmGemmGnaf/Conformance/Registry.lean",
+        "sha256": "a7199bedc911474778a202aa0a4bb8a2e11e16b8c7abd1a3692d319f65f22046",
+        "bytes": 26903
+      },
+      {
+        "path": "WasmGemmGnaf/Conformance/ReleaseGate.lean",
+        "sha256": "d8354843cbe96bfcb1537919ef4ab36fb45bb64dd446092ff9c8a9b4bdbd6f93",
+        "bytes": 16624
+      },
+      {
+        "path": "WasmGemmGnaf/Conformance/Schema.lean",
+        "sha256": "ac9d2a71843e0638d9f9dd0f7e611f26a87e0d439687dd15c71b981539361da3",
+        "bytes": 4507
+      },
+      {
+        "path": "WasmGemmGnaf/Cost/Aggregate.lean",
+        "sha256": "a806006eb6c0ba81a500230992833b8ee5a6bb206fd8783eb63f8c3e859d3309",
+        "bytes": 16062
+      },
+      {
+        "path": "WasmGemmGnaf/Cost/CanonicalObjective.lean",
+        "sha256": "7295eeae9de2bbe6ec628bf4d9b14e4162db0c84454162386ba96a547bc496d2",
+        "bytes": 5178
+      },
+      {
+        "path": "WasmGemmGnaf/Cost/Event.lean",
+        "sha256": "045e36e2185e0f068b5bfe00ebe882701808277f1baf8e3b36e4082db8caa582",
+        "bytes": 5680
+      },
+      {
+        "path": "WasmGemmGnaf/Cost/Lifecycle.lean",
+        "sha256": "80be170c3a5505ce8618d997f152383c4afc15e307d0c7d24f536eb36ab9486e",
+        "bytes": 25106
+      },
+      {
+        "path": "WasmGemmGnaf/Cost/Objective.lean",
+        "sha256": "4b300511259b3d8a964c947ed07d504ff2f9a507a7290b74472e9e1ca23b78fe",
+        "bytes": 10412
+      },
+      {
+        "path": "WasmGemmGnaf/Cost/Proper.lean",
+        "sha256": "2f448fed8170800c4684633de1a6d2af10bc99171e87f51c8f5596c63c7bcd4c",
+        "bytes": 11321
+      },
+      {
+        "path": "WasmGemmGnaf/Cost/Trace.lean",
+        "sha256": "e98e5618477eab3beaa232c662eae2d892059f65b0a385477a88fa4602fea013",
+        "bytes": 5661
+      },
+      {
+        "path": "WasmGemmGnaf/Cost/Vector.lean",
+        "sha256": "06d2af6de9b3fc8e9233f98233fdca174404d5c9d64be3512ac3ef0033ffc75b",
+        "bytes": 23121
+      },
+      {
+        "path": "WasmGemmGnaf/Foundation/Bytes.lean",
+        "sha256": "263bb369a2d9cc1949f8a8381938d1785e4177bcb377b007b99ae1190c954c62",
+        "bytes": 19137
+      },
+      {
+        "path": "WasmGemmGnaf/Foundation/Canonical.lean",
+        "sha256": "1025ee26b45701d3d5ac7c947090d3b4fea8c63ecfe83d9de7262eb0bfa3be2c",
+        "bytes": 7983
+      },
+      {
+        "path": "WasmGemmGnaf/Foundation/Finite.lean",
+        "sha256": "cbf2e8c28695390a727d9ad0326e1ae7162ce311d431089567027acc0770cd32",
+        "bytes": 12766
+      },
+      {
+        "path": "WasmGemmGnaf/Foundation/Identity.lean",
+        "sha256": "a0cc9503f70a7770982860b7cb9af34650e48158f930fb584b5ce799e6b62d12",
+        "bytes": 5817
+      },
+      {
+        "path": "WasmGemmGnaf/Foundation/Order.lean",
+        "sha256": "3d6fdd77c694443ca514c939cc7eca6bccaa0b381cf8f41749710fa286359f7b",
+        "bytes": 6817
+      },
+      {
+        "path": "WasmGemmGnaf/Foundation/Result.lean",
+        "sha256": "35fb5c9ae714701de0b6e258cc60c8724a3cb7dde47e5bdf4a117b2ac4eeb886",
+        "bytes": 10135
+      },
+      {
+        "path": "WasmGemmGnaf/Foundation/SchemaRegistry.lean",
+        "sha256": "d9acc48051a4a5fd75f135e94458d116048ec8862a0802b9fffc958e423df892",
+        "bytes": 11463
+      },
+      {
+        "path": "WasmGemmGnaf/Foundation/Termination.lean",
+        "sha256": "77602e1e2ff1f8d9f18b1fb9911761f0ab78ae4331dab758b77101d28adbd736",
+        "bytes": 7438
+      },
+      {
+        "path": "WasmGemmGnaf/GNAF/Compile.lean",
+        "sha256": "589fd2c57104cb37ff72858b4cd78604c371fcd06d44017acc5b7f3f07e797c0",
+        "bytes": 82338
+      },
+      {
+        "path": "WasmGemmGnaf/GNAF/CompileCorrect.lean",
+        "sha256": "6327351aefbbe6c11e9430958b2e2e670da0c4e6d368d9cbb8922d36d7b5a081",
+        "bytes": 87106
+      },
+      {
+        "path": "WasmGemmGnaf/GNAF/Edge.lean",
+        "sha256": "e2106bf37dc44c8e787880bcc17746a421a4d846eb2364c468ccc682bce8a86d",
+        "bytes": 9448
+      },
+      {
+        "path": "WasmGemmGnaf/GNAF/Normalize.lean",
+        "sha256": "518282894d92fc191b326f536a654aef53d51e37903d34b26f2cc2653a8f30a4",
+        "bytes": 21250
+      },
+      {
+        "path": "WasmGemmGnaf/GNAF/Object.lean",
+        "sha256": "166828891092ff26d9c784e2a36b47102e6c5e8b55f515eb96fbbf060745ddcc",
+        "bytes": 17556
+      },
+      {
+        "path": "WasmGemmGnaf/GNAF/Plan.lean",
+        "sha256": "470ab7b068aa56b44ba1825ef3b7d1979f7016feee2e6c42acab53ca8dd281bb",
+        "bytes": 26389
+      },
+      {
+        "path": "WasmGemmGnaf/GNAF/Resource.lean",
+        "sha256": "4cc7ad9b199184304d2420ee2b56cb62947be5e97bdb972c6fde03bb887bbf8e",
+        "bytes": 20503
+      },
+      {
+        "path": "WasmGemmGnaf/GNAF/Semantics.lean",
+        "sha256": "8ee947a88298ffc25b1a1cfb9a73ad6a2a591c5d0b2aac4bfca3966025a5d59d",
+        "bytes": 38298
+      },
+      {
+        "path": "WasmGemmGnaf/GNAF/Shape.lean",
+        "sha256": "900d84f52a94bc99af97da479d2a4add417763f6cd62c3ed0e43303533a99860",
+        "bytes": 14605
+      },
+      {
+        "path": "WasmGemmGnaf/GNAF/Typing.lean",
+        "sha256": "51084b4ed0ad7c42cdb4fc93771e9109ccd3d34dd7612fe6ffc6869472da22c5",
+        "bytes": 25494
+      },
+      {
+        "path": "WasmGemmGnaf/Gemm/ABI.lean",
+        "sha256": "ff2933545b2a9b401c66cac04b63e220b4531b0c82400dd026edfec14afb197f",
+        "bytes": 33662
+      },
+      {
+        "path": "WasmGemmGnaf/Gemm/Aliasing.lean",
+        "sha256": "58e98d9374ae62e29a3b3958a31cabdb05f9e1c4675d896619465943a08e2edd",
+        "bytes": 12332
+      },
+      {
+        "path": "WasmGemmGnaf/Gemm/Arithmetic.lean",
+        "sha256": "89ce4e3464caa4ecd2ff410c602716906cc4cc2a73aa5ca527122840c3e54af0",
+        "bytes": 33725
+      },
+      {
+        "path": "WasmGemmGnaf/Gemm/Classify.lean",
+        "sha256": "963863c22555131addb3f4e41a32761cb2393dae88d2688938e3454970f4a78d",
+        "bytes": 29253
+      },
+      {
+        "path": "WasmGemmGnaf/Gemm/Descriptor.lean",
+        "sha256": "b6b77415fe2e16b8443221862695f305fa1680493f8629b239332cfa06a8479b",
+        "bytes": 12249
+      },
+      {
+        "path": "WasmGemmGnaf/Gemm/FloatBits.lean",
+        "sha256": "677fb225adcccde7e6ab22bb710577c8903866ab1560d27dc9a5302715c438b4",
+        "bytes": 18493
+      },
+      {
+        "path": "WasmGemmGnaf/Gemm/Layout.lean",
+        "sha256": "b7cf3068645dcfcada17ea5f41644b8e1e424a8bf48a6d80bc3bfdf05f331b25",
+        "bytes": 15545
+      },
+      {
+        "path": "WasmGemmGnaf/Gemm/Observe.lean",
+        "sha256": "88277827d883c7f6b6e51ed9abcefb536be36460a02dbd9084a750a41867a134",
+        "bytes": 13853
+      },
+      {
+        "path": "WasmGemmGnaf/Gemm/Problem.lean",
+        "sha256": "a03bcc75d67e05344bd2d03e211ea3ae11f0792cc10f065cfca06ccd4c617a9b",
+        "bytes": 21030
+      },
+      {
+        "path": "WasmGemmGnaf/Gemm/Reference.lean",
+        "sha256": "5247d77edccd213685e744f0facf0e446f0422a17c6d73068ce54d90b4c90239",
+        "bytes": 85053
+      },
+      {
+        "path": "WasmGemmGnaf/Gemm/Scalar.lean",
+        "sha256": "1b599c503fabd7fba861635a6347a41cdcae1eaa2781ee121318e2ec42048aa1",
+        "bytes": 7410
+      },
+      {
+        "path": "WasmGemmGnaf/Gemm/Shape.lean",
+        "sha256": "abf752140139d0579e6c185fc340726fb01229f61295e570da7ef52e5bd5ecfe",
+        "bytes": 7672
+      },
+      {
+        "path": "WasmGemmGnaf/Theorems/AtlasLaws.lean",
+        "sha256": "ee9c49ff7e068f0c56487b7467c4c7a5830ff59d9bd592549fd4df71830fbb35",
+        "bytes": 10839
+      },
+      {
+        "path": "WasmGemmGnaf/Theorems/CostModel.lean",
+        "sha256": "b6760f0d9bae7fd179c97f7611c50e662b82906133c243a31668a4a364efc4ec",
+        "bytes": 12926
+      },
+      {
+        "path": "WasmGemmGnaf/Theorems/GemmTotal.lean",
+        "sha256": "639a2cd1588828c8bbf986b3f367bca3ca9d48e2e1b0f2957885bad24e2e70db",
+        "bytes": 13800
+      },
+      {
+        "path": "WasmGemmGnaf/Theorems/Release.lean",
+        "sha256": "b842e90d12fb88123a76cb13ef5e96cd54344f86269b4c962a6669e8ee0de4d2",
+        "bytes": 31104
+      },
+      {
+        "path": "WasmGemmGnaf/Theorems/Status.lean",
+        "sha256": "9bd0c7a7fba5b5dd98b922cfcaf463323b4c5fc61b4d2608c9a3c037ea42c5d1",
+        "bytes": 28470
+      },
+      {
+        "path": "WasmGemmGnaf/Theorems/WasmModel.lean",
+        "sha256": "bb444454b93936a622a35382da5a2da5e3676483eaa620818f4f4e6122bb1ca4",
+        "bytes": 7873
+      },
+      {
+        "path": "WasmGemmGnaf/Universal/Argmin.lean",
+        "sha256": "3a5931347b8bd751bbac578d5ad8e6ac46359ee4dee44794c78b6494f7db2247",
+        "bytes": 23837
+      },
+      {
+        "path": "WasmGemmGnaf/Universal/BilinearLowerBound.lean",
+        "sha256": "30f0f99b0e22423d81bf257874c6ddc1cda9244d76391967fbff5891398f77f8",
+        "bytes": 4946
+      },
+      {
+        "path": "WasmGemmGnaf/Universal/Competitor.lean",
+        "sha256": "a19ee6aa2efe7aec6b5a11ace696f609d6863a301ed138c314e58f4caebbd115",
+        "bytes": 27132
+      },
+      {
+        "path": "WasmGemmGnaf/Universal/Correct.lean",
+        "sha256": "5324d8bd7260ef7d95f390cf25b5bfea72c7df99d1b00aee694d03eca46e5822",
+        "bytes": 4656
+      },
+      {
+        "path": "WasmGemmGnaf/Universal/EnumerateInputs.lean",
+        "sha256": "38d14817f280ec512563185bfead2ec1b4eb2075cab5cd332c9d0eff3a4b6f3a",
+        "bytes": 22005
+      },
+      {
+        "path": "WasmGemmGnaf/Universal/Feasible.lean",
+        "sha256": "74701b6f32e3cd422285fec55fd760ddc4d8f448f20c4e2098579dc969cf3d30",
+        "bytes": 5275
+      },
+      {
+        "path": "WasmGemmGnaf/Universal/LowerBound.lean",
+        "sha256": "1756680c50fb76c92e710ac617f4afaa6b3f48558d81b54e78a18de4466c97b3",
+        "bytes": 5345
+      },
+      {
+        "path": "WasmGemmGnaf/Universal/Partition.lean",
+        "sha256": "b2a7afc5032e21ff4368c547f3180bd18ed1720c078de9b0e1b3616fd06d8111",
+        "bytes": 52140
+      },
+      {
+        "path": "WasmGemmGnaf/Universal/Sublevel.lean",
+        "sha256": "a7b3c70f6e0bcd1a49221efc0c843dbef6eba527d71391670ce007698ffe1ecf",
+        "bytes": 18450
+      },
+      {
+        "path": "WasmGemmGnaf/Wasm/Adequacy.lean",
+        "sha256": "5c1254ec69d182dd32dda104cfdfe32d557bfec896a97f10e5702ddfd79d4651",
+        "bytes": 40743
+      },
+      {
+        "path": "WasmGemmGnaf/Wasm/Binary.lean",
+        "sha256": "c067ed93209369984b911951054becb78bceadcc4e37b36d024be9037c839a88",
+        "bytes": 121960
+      },
+      {
+        "path": "WasmGemmGnaf/Wasm/Config.lean",
+        "sha256": "4074c51224b2f07eb92eef91c7d2ed24a64ae95c476281821d0f20b89ded43ec",
+        "bytes": 13282
+      },
+      {
+        "path": "WasmGemmGnaf/Wasm/Costed.lean",
+        "sha256": "a36427c0abf8d6b4b2d42f101435aed6413ac99d8fa13c8ba188eef65b4f7f96",
+        "bytes": 92882
+      },
+      {
+        "path": "WasmGemmGnaf/Wasm/CostedExplore.lean",
+        "sha256": "c6cf2044711a8ae807700b0b7e97cc289ddd4eac02077c2a22d52d130a04b2ef",
+        "bytes": 57772
+      },
+      {
+        "path": "WasmGemmGnaf/Wasm/Erasure.lean",
+        "sha256": "332ec87bec1e4128139e1ecf1ee628110e4ec81703c1d3a530d5a9f5e3d8ed64",
+        "bytes": 16875
+      },
+      {
+        "path": "WasmGemmGnaf/Wasm/Fault.lean",
+        "sha256": "81e619729949164c5ce4d754127a1b4e874edb7f8942fb5f091d5387d7905857",
+        "bytes": 2269
+      },
+      {
+        "path": "WasmGemmGnaf/Wasm/Feature.lean",
+        "sha256": "3728ca6ea7e03a7e4381dfd8fe8f3b9f60277985e1bf8c6f2305a5e88ec6630c",
+        "bytes": 14350
+      },
+      {
+        "path": "WasmGemmGnaf/Wasm/Fuel.lean",
+        "sha256": "2b25b5141f2ad4eddcf0479f1c5fed0e7320780699d64597ad1ac19aaddc992c",
+        "bytes": 14397
+      },
+      {
+        "path": "WasmGemmGnaf/Wasm/Memory.lean",
+        "sha256": "daf5366d64a3d516a295771498bac1c552bbc76a76728017b01e2bc8e8e85d07",
+        "bytes": 17822
+      },
+      {
+        "path": "WasmGemmGnaf/Wasm/Numeric.lean",
+        "sha256": "93421e03c7f50ac6b382708719c591d661e4528193b8f3078562b9fec09e92f8",
+        "bytes": 16088
+      },
+      {
+        "path": "WasmGemmGnaf/Wasm/Profile.lean",
+        "sha256": "6c05da6890eb70981955973cc5907d6de385f3228e626928dabc2ade9779cb08",
+        "bytes": 77925
+      },
+      {
+        "path": "WasmGemmGnaf/Wasm/Revision.lean",
+        "sha256": "97d86aff55634e29e1baadbcab6f3cf42d88a595d8b5078cf2da0857f3f6fc7c",
+        "bytes": 6101
+      },
+      {
+        "path": "WasmGemmGnaf/Wasm/Run.lean",
+        "sha256": "d2abaac970f87d18f07ef247cc82c8a0866ac9cd6157d9a9c51beb97d7eed422",
+        "bytes": 19612
+      },
+      {
+        "path": "WasmGemmGnaf/Wasm/Step.lean",
+        "sha256": "9e511bd5341046dcdc33ecd7949bd2b5908e4dbc256bdb9a2187181f86ae019c",
+        "bytes": 33668
+      },
+      {
+        "path": "WasmGemmGnaf/Wasm/Store.lean",
+        "sha256": "6821a1a0cf012421e7d985317860a436adcecc99b2a079c8aa5e0223d7f8b5fc",
+        "bytes": 10420
+      },
+      {
+        "path": "WasmGemmGnaf/Wasm/Syntax.lean",
+        "sha256": "7c29535fa6e41c385c0be3eef07101d3e5212d42a37ba389493b061b35ee6b0b",
+        "bytes": 17343
+      },
+      {
+        "path": "WasmGemmGnaf/Wasm/Table.lean",
+        "sha256": "4c0a37f88ee04b0b1c6fc1534b7e3eb781c2f9bd8de611a545fb5b05e9faba5d",
+        "bytes": 43441
+      },
+      {
+        "path": "WasmGemmGnaf/Wasm/Types.lean",
+        "sha256": "af8ab4b0fd4286355f63fe53c76b3d1aacac36a4de7494d4707d629db28580d2",
+        "bytes": 22712
+      },
+      {
+        "path": "WasmGemmGnaf/Wasm/Validate.lean",
+        "sha256": "8bfb18608842d691edb2824e088dc00f95ed348d259c7907e7cfa9cb8ca60a97",
+        "bytes": 32025
+      },
+      {
+        "path": "WasmGemmGnaf/Wasm/Vector.lean",
+        "sha256": "c9387245542670ff91a34745351efe05f52a167763a5fb7abcba2815be3c50c8",
+        "bytes": 25395
+      },
+      {
+        "path": "authority/UOR-GNAF-v1-draft.2.md",
+        "sha256": "5c342373b2ff809bfd607c413cafd0582d32bb097544c6597ff7d674fe99200a",
+        "bytes": 677091
+      },
+      {
+        "path": "authority/global-optimality-WGG-GO-1.json",
+        "sha256": "00b522ba3d07bc05bfcb72d66bdec09badd02eec3198eaf25dd5d48c8216f9ba",
+        "bytes": 2621
+      },
+      {
+        "path": "authority/manifest.json",
+        "sha256": "0bde19f5bd8e4059414a7c20d3af0dae9bbbf7a734522fd92a10821e123853e4",
+        "bytes": 1255
+      },
+      {
+        "path": "authority/uor-gnaf.sha256",
+        "sha256": "ef34f5945289af6fbd13b5ea0523ed74f879b681525623813c0bd2a83fb99526",
+        "bytes": 89
+      },
+      {
+        "path": "authority/wasm-core-wg-3.0.sha256",
+        "sha256": "9bdc0775d6cfef77417c2f75824acecd0cbc18da261f7e793f37901365f1b3a3",
+        "bytes": 66
+      },
+      {
+        "path": "fixtures/README.md",
+        "sha256": "4beeb0c463da3643b3b384338d6a3898fc7271cca98654514a04f5f76c01a4c6",
+        "bytes": 330
+      },
+      {
+        "path": "lake-manifest.json",
+        "sha256": "a830093b61f394925914b0a66eb3ad232b1b92bb3b04ed3b47d9a1d4337999c6",
+        "bytes": 150
+      },
+      {
+        "path": "lakefile.lean",
+        "sha256": "7a4f74b445f4ee05849c9f506753350a8badc7866b9d8d8afb44d9f6e86d21b3",
+        "bytes": 400
+      },
+      {
+        "path": "lean-toolchain",
+        "sha256": "54727eec5cba149c18842e6deb5c41b369d66455c93ce135d7d5347c782b2325",
+        "bytes": 25
+      },
+      {
+        "path": "model/claims.json",
+        "sha256": "e6607ea3237998e70cc7a9dcacf7ff93afdfe741eba4902039019f4532ea213e",
+        "bytes": 47399
+      },
+      {
+        "path": "model/dependencies.json",
+        "sha256": "98c2f57a070bd80b6112d50299596ec77b8fd7b79cf22ec4fa0e928e13a8f048",
+        "bytes": 2634
+      },
+      {
+        "path": "model/falsifiers.json",
+        "sha256": "ec5a99d48a95fb498818e69a5c4a9d3183bc661eca7ccca120d0cab6fc5da069",
+        "bytes": 3258
+      },
+      {
+        "path": "model/profiles.json",
+        "sha256": "0caa6fb12235d39c3e1f3c51a46ba2bbccccfad3fbb308cbfe576a4e0793b3c2",
+        "bytes": 1730
+      },
+      {
+        "path": "model/reproducibility-plan.json",
+        "sha256": "d2e935ffc38f5d4b8def1c3bed7f185ab8a6ec56aa6f6bfb48a89cf432173eb1",
+        "bytes": 810
+      },
+      {
+        "path": "model/spec-deviations.json",
+        "sha256": "b454f22a983d789f54b83bcdbbf84a6404083d766fa0d92f1116190f142a36a7",
+        "bytes": 3739
+      }
+    ]
+  },
+  "sourceManifestCoreIdentity": "f09c9da545b462e8a37507e519133a4716c3047caadcdf9fffbad372d917a441",
+  "generatedProofInputBody": {
+    "schemaVersion": 1,
+    "stage": "GeneratedProofInputBody",
+    "sourceManifestCoreIdentity": "f09c9da545b462e8a37507e519133a4716c3047caadcdf9fffbad372d917a441",
+    "excludes": [
+      "its own JSON encoding",
+      "every later output"
+    ],
+    "generatedLeanSources": [
+      {
+        "path": "WasmGemmGnaf.lean",
+        "sha256": "6d63bfcbb92e1ca3f74fb07a06dcd2de2cab2a471c7df053a5efb9ef3e5bb71f",
+        "bytes": 3697
+      }
+    ],
+    "note": "Artifact/Bytes.lean is NOT present: no artifact has been emitted, because emission requires WS-001 and BI-002. SPEC 13 Phase F step 4 is therefore not reached."
+  },
+  "generatedProofInputIdentity": "d722d92a66570eec1cbc59225e3ef0dd8282fdfaf1bd287c2ea435dbfc3572c5",
+  "preFinalEnvironmentBody": {
+    "schemaVersion": 1,
+    "stage": "PreFinalEnvironmentBody",
+    "generatedProofInputIdentity": "d722d92a66570eec1cbc59225e3ef0dd8282fdfaf1bd287c2ea435dbfc3572c5",
+    "leanToolchain": "leanprover/lean4:v4.30.0",
+    "leanCommit": "d024af099ca4bf2c86f649261ebf59565dc8c622",
+    "dependencies": [],
+    "compiledEnvironmentDigest": null,
+    "note": "compiledEnvironmentDigest is null: SPEC 13 Phase F step 5 records the checked final declaration-environment digest, which is only meaningful once the final theorem is on the path. GO-001 is outstanding."
+  },
+  "preFinalEnvironmentIdentity": "a8e4cf766c20294877f71daeb424cf584002d1029417cbc3064faec80c9349d1",
+  "outputManifestBody": {
+    "schemaVersion": 1,
+    "stage": "OutputManifestBody",
+    "sourceManifestCoreIdentity": "f09c9da545b462e8a37507e519133a4716c3047caadcdf9fffbad372d917a441",
+    "generatedProofInputIdentity": "d722d92a66570eec1cbc59225e3ef0dd8282fdfaf1bd287c2ea435dbfc3572c5",
+    "preFinalEnvironmentIdentity": "a8e4cf766c20294877f71daeb424cf584002d1029417cbc3064faec80c9349d1",
+    "excludes": [
+      "MANIFEST.json itself"
+    ],
+    "artifact": [],
+    "atlasSeal": null,
+    "proofRegistry": {
+      "path": "model/claims.json",
+      "sha256": "e6607ea3237998e70cc7a9dcacf7ff93afdfe741eba4902039019f4532ea213e"
+    },
+    "generatedDocumentation": [
+      {
+        "path": "CONFORMANCE.md",
+        "sha256": "6d64738428c590e946d667606c6587baeb8f8a6338f0fbcfe7d0c280a09c06fc"
+      }
+    ],
+    "reproducibilityPlan": {
+      "path": "model/reproducibility-plan.json",
+      "sha256": "d2e935ffc38f5d4b8def1c3bed7f185ab8a6ec56aa6f6bfb48a89cf432173eb1"
+    },
+    "releaseStatus": {
+      "GO-001": "outstanding",
+      "answerClass": "WorkloadIncomplete",
+      "authority": "UOR-GNAF v1-draft.2 section 10.9"
+    },
+    "extraFilesBeyondSpecTree": {
+      "rule": "SPEC 5: additional files permitted only when owned by a layer and listed here.",
+      "files": [
+        {
+          "path": "WasmGemmGnaf/Wasm/Fault.lean",
+          "layer": "Wasm",
+          "justification": "SPEC 7.1's SpecMachine exposes ONE Fault used by both decode and initial. Binary and Config own genuinely different failure sets under SPEC 7.1's ownership rule, so the unified type needs its own module. Both injections proved injective, images proved disjoint."
+        },
+        {
+          "path": "WasmGemmGnaf/Foundation/SchemaRegistry.lean",
+          "layer": "Foundation",
+          "justification": "Required verbatim by SPEC 6.2 ('Foundation/SchemaRegistry.lean SHALL retain the finite registry'), which the SPEC 5 tree omits."
+        },
+        {
+          "path": "WasmGemmGnaf/Atlas/CoverageScope.lean",
+          "layer": "Atlas",
+          "justification": "Hardening. Proves the seal's cover check is blind to the byte universe, so it cannot be cited as universal coverage (claim AT-001, falsifier M7)."
+        },
+        {
+          "path": "WasmGemmGnaf/Universal/BilinearLowerBound.lean",
+          "layer": "Universal",
+          "justification": "Proved partial lower bound (claim LB-002); establishes that the open tensor-rank problem does not gate the release theorem."
+        }
+      ]
+    }
+  },
+  "reproducibilityAttestation": null
+}

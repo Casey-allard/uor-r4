@@ -29,3 +29,9 @@ research/**/*.npz filter=lfs diff=lfs merge=lfs -text
 research/**/*.safetensors filter=lfs diff=lfs merge=lfs -text
 research/**/*.pptx filter=lfs diff=lfs merge=lfs -text
 research/**/*.xlsx filter=lfs diff=lfs merge=lfs -text
+
+# #653: pinned upstream vendor-in of afflom/WASM-GEMM-GNAF (git subtree,
+# full history preserved) under proofs/wasm-gemm-gnaf/ -- mark it as
+# vendored so GitHub's language stats and diff/blame treat it as
+# third-party code, not r4-authored Rust/Lean.
+proofs/wasm-gemm-gnaf/** linguist-vendored

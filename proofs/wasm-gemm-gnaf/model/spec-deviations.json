@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "description": "Deviations from the literal text of SPEC.md, with justification. A deviation is permitted ONLY when the literal text is unsatisfiable or strictly weaker than what it intends, and only when the intended content is proved in full. Every entry names the SPEC clause, what was changed, why, and the declaration that carries the intended strength. Silent deviation is forbidden.",
+  "deviations": [
+    {
+      "id": "DEV-001",
+      "specSection": "7.5",
+      "specText": "theorem costed_erase_iff_plain_run : Wasm.CostedRun P module invocation costedTrace observation <-> Wasm.Run module invocation (eraseCosts costedTrace) observation",
+      "issue": "The literal biconditional is FALSE. `costedTrace` is universally quantified, so a trace carrying arbitrary cost labels whose erasure happens to equal a valid plain trace would satisfy the right-hand side without being a costed run the machine can produce. The backward direction cannot hold for an arbitrary labelling.",
+      "resolution": "`Wasm.costed_erase_iff_plain_run` adds the minimal side condition `CostedLabelling module invocation costedTrace` to the right-hand side, and the intended content is proved separately and unconditionally.",
+      "intendedContentProvedBy": [
+        "WasmGemmGnaf.Wasm.costed_run_iff_plain_run  -- (exists costedTrace, CostedRun ...) <-> Run module invocation observation.trace observation; NO side condition",
+        "WasmGemmGnaf.Wasm.costedRun_of_run          -- erasure completeness: every plain run has a costed labelling erasing back to it",
+        "WasmGemmGnaf.Wasm.costedRun_erase           -- erasure soundness"
+      ],
+      "strengthEffect": "STRENGTHENING. The forward direction is strictly stronger than SPEC's (CostedRun -> Run AND the labelling is machine-produced). The existentially quantified form carries SPEC's full intent with no side condition, so nothing SPEC asserts is lost.",
+      "specAmendmentRecommended": true,
+      "amendmentText": "SPEC 7.5 should state the erasure theorem in the existentially quantified form `(exists costedTrace, CostedRun P module invocation costedTrace observation) <-> Run module invocation observation.trace observation`, which is true as written."
+    },
+    {
+      "id": "DEV-002",
+      "specSection": "11.1",
+      "specText": "A plan loop iterates a number of times determined by its extent.",
+      "issue": "An UNCLAMPED register-bounded loop would make the pre-existing theorem Plan.steps_le_stepBound FALSE: that theorem bounds executed steps by a static Nat computed from the plan text, and no fixed number bounds a loop whose trip count is an arbitrary register value (take body = setReg and an arbitrarily large extent register).",
+      "resolution": "Plan.loopReg runs Nat.min (m.reg extentReg) loopRegMaxTrips times, with loopRegMaxTrips = 4294967295.",
+      "intendedContentProvedBy": [
+        "WasmGemmGnaf.GNAF.loopReg_trips_from_memory -- trip count IS the memory word, given n <= loopRegMaxTrips",
+        "WasmGemmGnaf.GNAF.loopReg_eq_loopNest -- agrees with the literal-extent form",
+        "WasmGemmGnaf.GNAF.loopReg_zero -- no clamp hypothesis needed"
+      ],
+      "strengthEffect": "NEUTRAL IN REACH. loopRegMaxTrips is the released i32 ceiling and equals maxRawExtent, so the clamp is unreachable for any configuration the released ABI can present or any value the compiled i32 locals can hold. It preserves an existing theorem instead of weakening it.",
+      "specAmendmentRecommended": true,
+      "amendmentText": "SPEC 11.1 should state that a register-bounded loop's trip count is clamped at the profile's address-space ceiling, so that a static step bound remains derivable from plan text."
+    }
+  ]
+}

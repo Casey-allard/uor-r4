@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 1,
+  "description": "Planted falsifiers. SPEC 18: at least one defect per proof family, and the corresponding checker must fail.",
+  "runner": "Tools/mutation.py",
+  "falsifiers": [
+    {
+      "id": "M1",
+      "family": "CM",
+      "plants": "mutated authority bytes",
+      "expectedRejector": "content digest recomputation",
+      "status": "rejects"
+    },
+    {
+      "id": "M2",
+      "family": "CM",
+      "plants": "duplicate claim id",
+      "expectedRejector": "registry uniqueness check",
+      "status": "rejects"
+    },
+    {
+      "id": "M3",
+      "family": "CM",
+      "plants": "orphan claim dependency",
+      "expectedRejector": "registry dependency check",
+      "status": "rejects"
+    },
+    {
+      "id": "M4",
+      "family": "GO",
+      "plants": "formalProof level without a Lean declaration",
+      "expectedRejector": "claim-level rule (SPEC 17.1)",
+      "status": "rejects"
+    },
+    {
+      "id": "M5",
+      "family": "LF",
+      "plants": "sorry on the proof path",
+      "expectedRejector": "forbidden-construct scan",
+      "status": "rejects"
+    },
+    {
+      "id": "M6",
+      "family": "GO",
+      "plants": "green gate while GO-001 outstanding",
+      "expectedRejector": "release gate step 9",
+      "status": "rejects"
+    },
+    {
+      "id": "M7",
+      "family": "AT",
+      "plants": "citing the Atlas seal's cover check as universal coverage",
+      "expectedRejector": "AT-001 scope-blindness lemma plus AT-002 absence check",
+      "status": "rejects",
+      "note": "Fails if Atlas.seal_implies_universal_coverage is supplied without a real proof, or if the blindness lemma that makes its absence principled is removed."
+    },
+    {
+      "id": "M8",
+      "family": "CM",
+      "plants": "a stale .olean masking a root module that does not elaborate",
+      "expectedRejector": "direct `lean WasmGemmGnaf.lean` elaboration",
+      "status": "rejects",
+      "note": "Regression guard. This defect really occurred: lakefile used globs .submodules, which never builds the root, so `lake build` reported green while two modules declared clashing Fault types."
+    },
+    {
+      "id": "M9",
+      "family": "UV",
+      "plants": "a forbidden import (Artifact) into Universal/Competitor.lean",
+      "expectedRejector": "Tools/firewall.py, SPEC 10.1 dependency firewall",
+      "status": "rejects",
+      "note": "Guards the property that makes GlobalOptimal meaningful: the competitor universe must be defined without reference to the artifact it will be compared against. Otherwise the theorem is a statement about a universe built around its own answer."
+    },
+    {
+      "id": "M10",
+      "family": "CM",
+      "plants": "a manifest stage containing its own identity, or a backward reference between stages",
+      "expectedRejector": "Tools/mutation.py M10 acyclicity check",
+      "status": "rejects",
+      "note": "SPEC 4 requires the identity stages be acyclic: no manifest contains its own identity and no two stages hash each other. A cyclic manifest could be made to attest to itself."
+    }
+  ],
+  "note": "A mutation suite that merely expects runtime output differences does not test universal-coverage integrity (SPEC 18). M4 and M6 target claim integrity directly."
+}

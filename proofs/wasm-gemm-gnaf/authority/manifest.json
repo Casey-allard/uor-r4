@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "domain": "authority",
+  "description": "Pinned immutable authorities for WASM-GEMM-GNAF. SPEC.md section 4.",
+  "pins": {
+    "repositoryBaseline": {
+      "commit": "fdd58db98edf5b0a28c04bada3e78cef99adece4"
+    },
+    "uorGnaf": {
+      "path": "authority/UOR-GNAF-v1-draft.2.md",
+      "sha256": "5c342373b2ff809bfd607c413cafd0582d32bb097544c6597ff7d674fe99200a",
+      "pinnedSha256": "5c342373b2ff809bfd607c413cafd0582d32bb097544c6597ff7d674fe99200a",
+      "verified": true
+    },
+    "wasmCore": {
+      "source": "official wg-3.0",
+      "commit": "9d36019973201a19f9c9ebb0f10828b2fe2374aa",
+      "vendored": false,
+      "vendorPath": "vendor/wasm-spec/",
+      "note": "NOT VENDORED. Release gate step 1 fails until the pinned tree is vendored and every file digest recomputed from content."
+    },
+    "lean": {
+      "toolchain": "leanprover/lean4:v4.30.0",
+      "commit": "d024af099ca4bf2c86f649261ebf59565dc8c622",
+      "verifiedLocally": true,
+      "note": "elan-installed toolchain reports exactly this commit."
+    },
+    "leanPackages": {
+      "manifest": "lake-manifest.json",
+      "dependencies": [],
+      "note": "Proof core uses only Lean core and Std. No network-fetched proof inputs."
+    }
+  }
+}

@@ -1,0 +1,17 @@
+name: reproducible
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  twice:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: generated documentation is deterministic and byte-clean
+        run: |
+          set -euo pipefail
+          python3 Tools/gen_conformance.py
+          cp CONFORMANCE.md /tmp/a
+          python3 Tools/gen_conformance.py
+          cmp /tmp/a CONFORMANCE.md
+          git diff --exit-code -- CONFORMANCE.md

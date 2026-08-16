@@ -1,0 +1,144 @@
+{
+  "schemaVersion": 1,
+  "description": "Proof dependency graph. SPEC 14. Must be acyclic; no lower node may be a field of an upper node whose purpose is to prove it.",
+  "nodes": [
+    {
+      "id": "authority",
+      "depends": []
+    },
+    {
+      "id": "wasm-semantics",
+      "depends": [
+        "authority"
+      ]
+    },
+    {
+      "id": "costed-semantics",
+      "depends": [
+        "wasm-semantics"
+      ]
+    },
+    {
+      "id": "plain-semantics",
+      "depends": [
+        "costed-semantics"
+      ],
+      "via": "erasure"
+    },
+    {
+      "id": "gemm-abi",
+      "depends": [
+        "wasm-semantics"
+      ]
+    },
+    {
+      "id": "exact-trace-costs",
+      "depends": [
+        "costed-semantics"
+      ]
+    },
+    {
+      "id": "baseline-correctness",
+      "depends": [
+        "gemm-abi",
+        "exact-trace-costs"
+      ]
+    },
+    {
+      "id": "attained-upper-bound",
+      "depends": [
+        "baseline-correctness"
+      ]
+    },
+    {
+      "id": "proper-objective-bounds",
+      "depends": [
+        "attained-upper-bound"
+      ]
+    },
+    {
+      "id": "sublevel-coverage",
+      "depends": [
+        "proper-objective-bounds"
+      ]
+    },
+    {
+      "id": "survivor-costs",
+      "depends": [
+        "sublevel-coverage"
+      ]
+    },
+    {
+      "id": "finite-argmin",
+      "depends": [
+        "survivor-costs"
+      ]
+    },
+    {
+      "id": "universal-lower-bound",
+      "depends": [
+        "finite-argmin"
+      ]
+    },
+    {
+      "id": "attainment",
+      "depends": [
+        "finite-argmin"
+      ]
+    },
+    {
+      "id": "artifact-correctness",
+      "depends": [
+        "universal-lower-bound",
+        "attainment"
+      ]
+    },
+    {
+      "id": "release-theorem",
+      "depends": [
+        "artifact-correctness"
+      ]
+    }
+  ],
+  "firewall": {
+    "rule": "SPEC 10.1 dependency firewall",
+    "mustNotImport": {
+      "from": [
+        "Foundation",
+        "Wasm",
+        "Gemm",
+        "Cost",
+        "Universal/Competitor",
+        "Universal/Correct",
+        "Universal/Feasible"
+      ],
+      "to": [
+        "GNAF",
+        "Atlas",
+        "Artifact",
+        "Universal/LowerBound",
+        "Universal/Argmin",
+        "Theorems"
+      ]
+    }
+  },
+  "discharged": [
+    "authority"
+  ],
+  "outstanding": [
+    "wasm-semantics",
+    "costed-semantics",
+    "plain-semantics",
+    "gemm-abi",
+    "exact-trace-costs",
+    "baseline-correctness",
+    "attained-upper-bound",
+    "sublevel-coverage",
+    "survivor-costs",
+    "finite-argmin",
+    "universal-lower-bound",
+    "attainment",
+    "artifact-correctness",
+    "release-theorem"
+  ]
+}
