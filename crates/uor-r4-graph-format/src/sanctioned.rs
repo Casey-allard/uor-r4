@@ -45,6 +45,8 @@ pub enum ObjectKind {
     /// A route-attention step result (#604): the query the step was
     /// asked to score is not a route code of the instance's width.
     RouteAttentionStep,
+    /// An MSA-selector operator instance (#643, `msa_selector`).
+    MsaSelectorInstance,
 }
 
 impl fmt::Display for ObjectKind {
@@ -63,6 +65,7 @@ impl fmt::Display for ObjectKind {
             ObjectKind::Artifact => "artifact",
             ObjectKind::RouteAttentionInstance => "route-attention instance",
             ObjectKind::RouteAttentionStep => "route-attention step",
+            ObjectKind::MsaSelectorInstance => "msa-selector instance",
         };
         f.write_str(s)
     }

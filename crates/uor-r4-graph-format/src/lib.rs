@@ -72,6 +72,7 @@ mod head;
 mod header;
 pub mod inference_contract;
 pub mod invariant_ownership;
+mod msa_selector;
 mod ngram;
 mod prov;
 #[cfg(feature = "alloc")]
@@ -115,6 +116,14 @@ pub use invariant_ownership::{
     GraphInvariantId, GraphInvariantOwnershipMatrix, InvariantOwner, InvariantOwnershipEntry,
     InvariantOwnershipRow, InvariantValidationError, INVARIANT_OWNERSHIP_ROWS, MATRIX_VERSION,
     OPERATION_SET_CONFORMANCE_ROW,
+};
+#[cfg(feature = "alloc")]
+pub use msa_selector::build_msa_selector_instance;
+pub use msa_selector::{
+    msa_selector_instance_digest, MsaSelectorOpCensus, MsaSelectorView, CASCADE_SENTINEL_POSITION,
+    MSA_CANDIDATE_ROW_BYTES, MSA_INSTANCE_HEADER_LEN, MSA_INSTANCE_MAGIC, MSA_INSTANCE_VERSION,
+    MSA_MAX_CANDIDATES, MSA_MAX_TOP_M, MSA_SELECTOR_OPERATOR_ID, MSA_SELECTOR_OPERATOR_VERSION,
+    ROLE_GEN, ROLE_MAN, ROLE_MED, ROLE_ZERO,
 };
 pub use ngram::{
     NgramEntries, NgramEntry, NgramRow, NgramRows, NgramTable, NGRAM_ENTRY_LEN, NGRAM_HEADER_LEN,

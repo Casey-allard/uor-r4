@@ -1,10 +1,13 @@
 //! `MsaStructuredSelectorV1` grounding, reference, and witness tests
 //! (#643).
 //!
-//! The operator under test is DORMANT: these tests construct it
-//! directly through `uor-r4-graph-certify::msa_selector`; no serving
-//! path is exercised or changed, and no packed R4G1 lowering exists yet
-//! (#604's own two-stage plan: reference semantics land first).
+//! The operator under test is DORMANT (`msa-structured-selector-dormant`
+//! in `model/ledger.toml`): these tests construct it directly through
+//! `uor-r4-graph-certify::msa_selector` (scalar reference) and
+//! `uor-r4-graph-runtime::msa_selector` (packed R4G1 lowering, via the
+//! certify crate's `run_packed`); no serving path is exercised or
+//! changed. The canonical instance substrate lives in
+//! `uor-r4-graph-format::msa_selector`.
 //!
 //! # Pre-registered exit rule (issue #643 — binding)
 //!
@@ -26,17 +29,24 @@
 //! negative result.
 //!
 //! This criterion is posted before any run, per the #626 convention.
-//! Running it requires wiring `msa-structured-selector/1` into the same
-//! held-out evaluation loop `r4-route-attention/1` uses (a packed
-//! lowering, or at minimum a harness adapter) — that wiring is
-//! explicitly OUT OF SCOPE for this slice (see #643's pinned scope
-//! comment) and is the next concrete action once this reference lands.
+//! The packed R4G1 lowering now exists (`uor-r4-graph-runtime::msa_selector`,
+//! differentially tested against the reference below), which was the
+//! precondition this comment originally named. Running the actual A/B
+//! still requires wiring `msa-structured-selector/1` into the same
+//! held-out evaluation loop `r4-route-attention/1` uses (a harness
+//! adapter) — that wiring remains OUT OF SCOPE for this slice and is
+//! the next concrete action once it lands.
 
 use uor_r4_graph_certify::msa_selector::{
-    classify, expected_msa_selector_census, replay_msa_selector_witness, MsaClassification,
-    MsaSelectorReference, ROLE_GEN, ROLE_MAN, ROLE_MED, ROLE_ZERO,
+    classify, expected_msa_selector_census, replay_msa_selector_witness, run_packed,
+    MsaClassification, MsaSelectorOpCensus, MsaSelectorReference, ROLE_GEN, ROLE_MAN, ROLE_MED,
+    ROLE_ZERO,
 };
-use uor_r4_graph_format::ScoreQ;
+use uor_r4_graph_format::{
+    FormatError, MsaSelectorView, NotAProduct, ObjectKind, ScoreQ, MSA_MAX_CANDIDATES,
+    MSA_MAX_TOP_M,
+};
+use uor_r4_graph_runtime::msa_selector::{msa_selector_step, MsaSelectorState};
 use uor_r4_model_source::attention::{operator_spec, AttentionOperatorSpec};
 
 // ------------------------------------------------------- grounding tests --
@@ -316,11 +326,423 @@ fn top_m_equal_to_candidate_count_selects_every_candidate() {
     assert_eq!(records[0].selected.len(), 6);
 }
 
-/// Malformed instances are refused before any reference construction.
+/// Malformed instances are refused before any reference construction,
+/// on the sanctioned R5 surface (the same `NotAProduct` shape
+/// `run_packed` and `MsaSelectorView::parse` refuse with).
 #[test]
 fn malformed_instances_are_refused() {
-    assert!(MsaSelectorReference::new(vec![], vec![], 1).is_none());
-    assert!(MsaSelectorReference::new(vec![1, 2], vec![ScoreQ::ZERO], 1).is_none());
-    assert!(MsaSelectorReference::new(vec![1, 2], vec![ScoreQ::ZERO, ScoreQ::ZERO], 0).is_none());
-    assert!(MsaSelectorReference::new(vec![1, 2], vec![ScoreQ::ZERO, ScoreQ::ZERO], 3).is_none());
+    assert!(MsaSelectorReference::new(vec![], vec![], 1).is_err());
+    assert!(MsaSelectorReference::new(vec![1, 2], vec![ScoreQ::ZERO], 1).is_err());
+    assert!(MsaSelectorReference::new(vec![1, 2], vec![ScoreQ::ZERO, ScoreQ::ZERO], 0).is_err());
+    assert!(MsaSelectorReference::new(vec![1, 2], vec![ScoreQ::ZERO, ScoreQ::ZERO], 3).is_err());
+    assert!(matches!(
+        MsaSelectorReference::new(vec![], vec![], 1),
+        Err(NotAProduct {
+            object: ObjectKind::MsaSelectorInstance,
+            reason: FormatError::MsaCandidateCountOutOfBounds {
+                declared: 0,
+                max: 64
+            },
+        })
+    ));
+}
+
+// -------------------------------------------------- packed differential --
+
+/// Deterministic synthetic fixture (no RNG): ramp candidate ids and
+/// contributions, spanning multiple residue classes — the packed-lowering
+/// counterpart of `synthetic_fixture` above, parameterized identically
+/// so the same shapes drive both the reference-only tests and the
+/// differential tests below.
+fn packed_fixture(candidate_count: u32, top_m: u16) -> (Vec<u32>, Vec<ScoreQ>) {
+    let candidate_ids: Vec<u32> = (0..candidate_count).map(|i| i * 13 + 5).collect();
+    let contributions: Vec<ScoreQ> = (0..candidate_count)
+        .map(|i| ScoreQ::from_raw(((i * 917) % 40_000) as i32 - 20_000))
+        .collect();
+    let _ = top_m;
+    (candidate_ids, contributions)
+}
+
+/// Reference and packed paths agree bit-for-bit on selections,
+/// aggregates, the census, and the whole witness, over the SAME
+/// canonical instance bytes.
+#[test]
+fn reference_and_packed_agree_bit_for_bit_on_the_pinned_fixture() {
+    let (candidate_ids, contributions) = packed_fixture(20, 4);
+    let reference = MsaSelectorReference::new(candidate_ids.clone(), contributions.clone(), 4)
+        .expect("fixture is a valid instance");
+    let (reference_records, reference_witness) = reference.run(5);
+    let (packed_records, packed_witness) =
+        run_packed(&candidate_ids, &contributions, 4, 5).expect("packed run succeeds");
+
+    assert_eq!(
+        reference_records, packed_records,
+        "selections and aggregates must agree bit-for-bit"
+    );
+    assert_eq!(
+        reference_witness, packed_witness,
+        "the whole witness must agree bit-for-bit"
+    );
+    let mut reference_bytes = Vec::new();
+    ciborium::into_writer(&reference_witness, &mut reference_bytes).expect("witness serializes");
+    let mut packed_bytes = Vec::new();
+    ciborium::into_writer(&packed_witness, &mut packed_bytes).expect("witness serializes");
+    assert_eq!(reference_bytes, packed_bytes);
+
+    assert_eq!(
+        reference_witness.census,
+        expected_msa_selector_census(20, 4, 5)
+    );
+    assert_eq!(
+        replay_msa_selector_witness(&candidate_ids, &contributions, 4, 5, &reference_witness),
+        None,
+        "the reference witness replays"
+    );
+    assert_eq!(
+        replay_msa_selector_witness(&candidate_ids, &contributions, 4, 5, &packed_witness),
+        None,
+        "the packed witness replays too — it is bit-identical to the reference witness"
+    );
+}
+
+/// Differential agreement holds across a deterministic grid of shapes
+/// (every N/M corner: N = 1, N = M, N at the cap, M at the cap).
+#[test]
+fn reference_and_packed_agree_across_the_shape_grid() {
+    for (candidate_count, top_m, steps) in [
+        (1u32, 1u16, 2usize),
+        (2, 2, 2),
+        (5, 1, 3),
+        (8, 8, 2),
+        (MSA_MAX_CANDIDATES as u32, MSA_MAX_TOP_M as u16, 2),
+        (MSA_MAX_CANDIDATES as u32, 1, 1),
+        (9, 4, 4),
+    ] {
+        let (candidate_ids, contributions) = packed_fixture(candidate_count, top_m);
+        let reference =
+            MsaSelectorReference::new(candidate_ids.clone(), contributions.clone(), top_m as usize)
+                .expect("grid fixture is a valid instance");
+        let (reference_records, reference_witness) = reference.run(steps);
+        let (packed_records, packed_witness) =
+            run_packed(&candidate_ids, &contributions, top_m, steps).expect("packed run succeeds");
+        assert_eq!(
+            reference_records, packed_records,
+            "grid shape N={candidate_count} M={top_m}"
+        );
+        assert_eq!(
+            reference_witness, packed_witness,
+            "grid shape N={candidate_count} M={top_m}"
+        );
+        assert_eq!(
+            reference_witness.census,
+            expected_msa_selector_census(candidate_count, top_m, steps),
+            "closed-form census, grid shape N={candidate_count} M={top_m}"
+        );
+    }
+}
+
+/// The caller-owned packed state is reusable across steps and instances
+/// (the epoch stamp advances once per step), and every step examines
+/// exactly the declared `top_m` slots.
+#[test]
+fn packed_state_epoch_advances_and_state_is_reusable() {
+    let (candidate_ids, contributions) = packed_fixture(12, 3);
+    let instance =
+        uor_r4_graph_format::build_msa_selector_instance(&candidate_ids, &contributions, 3)
+            .expect("fixture builds");
+    let view = MsaSelectorView::parse(&instance).expect("parses");
+    let mut state = MsaSelectorState::new();
+    let mut census = MsaSelectorOpCensus::default();
+    assert_eq!(state.epoch(), 0);
+    for step in 1..=4u64 {
+        let _ = msa_selector_step(&view, &mut state, &mut census);
+        assert_eq!(state.epoch(), step, "epoch stamps each step");
+        assert_eq!(state.selected_len(), 3);
+        assert!(state.selected(3).is_none());
+    }
+    // Reuse the same state on a different instance shape.
+    let (other_ids, other_contributions) = packed_fixture(5, 1);
+    let other_instance =
+        uor_r4_graph_format::build_msa_selector_instance(&other_ids, &other_contributions, 1)
+            .expect("fixture builds");
+    let other_view = MsaSelectorView::parse(&other_instance).expect("parses");
+    let _ = msa_selector_step(&other_view, &mut state, &mut census);
+    assert_eq!(state.epoch(), 5);
+    assert_eq!(state.selected_len(), 1);
+}
+
+/// Deterministic tie-breaking: candidates whose ids share a residue mod
+/// 11 (so identical role_rank/cascade_position) select the LOWEST
+/// index first, both on the reference and the packed path.
+#[test]
+fn property_ties_break_to_the_lowest_index_and_runs_are_deterministic() {
+    // Every candidate id congruent to 2 mod 11 (role Gen, cascade
+    // position 0) — every classification is identical, so ties are the
+    // only thing that can order the selection.
+    let candidate_ids: Vec<u32> = (0..10).map(|i| 2 + i * 11).collect();
+    let contributions: Vec<ScoreQ> = (0..10).map(|i| ScoreQ::from_raw(i * 1000)).collect();
+    let (records, witness) =
+        run_packed(&candidate_ids, &contributions, 5, 1).expect("tie fixture runs");
+    let selected: Vec<u32> = records[0]
+        .selected
+        .iter()
+        .map(|selection| selection.candidate)
+        .collect();
+    assert_eq!(
+        selected,
+        vec![0, 1, 2, 3, 4],
+        "equal classification selects the lowest indices, ascending"
+    );
+    assert_eq!(records[0].aggregate.raw(), 1000 + 2000 + 3000 + 4000);
+
+    let (again_records, again_witness) =
+        run_packed(&candidate_ids, &contributions, 5, 1).expect("second run");
+    assert_eq!(records, again_records);
+    assert_eq!(witness, again_witness);
+    let reference =
+        MsaSelectorReference::new(candidate_ids, contributions, 5).expect("tie instance is valid");
+    let (reference_records, reference_witness) = reference.run(1);
+    assert_eq!(records, reference_records);
+    assert_eq!(witness, reference_witness);
+}
+
+/// `ScoreQ` saturation: contributions at the rails saturate instead of
+/// wrapping, in the pinned selection-order fold, identically on both
+/// paths.
+#[test]
+fn property_scoreq_aggregation_saturates() {
+    // Three candidates, each in a DISTINCT role class so the selection
+    // order is fixed by classification, not by tie-breaking: id 2 (Gen,
+    // position 0), id 4 (Med, position 1), id 8 (Man, position 2).
+    let candidate_ids = vec![2u32, 4, 8];
+    let contributions = vec![
+        ScoreQ::from_raw(i32::MAX),
+        ScoreQ::from_raw(i32::MAX),
+        ScoreQ::from_raw(i32::MIN),
+    ];
+    let (records, _) = run_packed(&candidate_ids, &contributions, 3, 1).expect("run succeeds");
+    // Fold order: id 2 (Gen) first, then id 4 (Med), then id 8 (Man).
+    // MAX +sat MAX = MAX; MAX +sat MIN = -1.
+    assert_eq!(records[0].aggregate.raw(), -1);
+    let reference = MsaSelectorReference::new(candidate_ids, contributions, 3)
+        .expect("saturation fixture is valid");
+    let mut census = MsaSelectorOpCensus::default();
+    let reference_record = reference.reference_step(&mut census);
+    assert_eq!(reference_record.aggregate.raw(), -1);
+}
+
+/// Hard caps refuse with the sanctioned error naming the observed value
+/// and the bound (R5).
+#[test]
+fn property_caps_refuse_with_sanctioned_errors() {
+    let ids_over_cap: Vec<u32> = (0..(MSA_MAX_CANDIDATES as u32 + 1)).collect();
+    let contributions_over_cap = vec![ScoreQ::ZERO; MSA_MAX_CANDIDATES + 1];
+    assert!(matches!(
+        run_packed(&ids_over_cap, &contributions_over_cap, 1, 1),
+        Err(NotAProduct {
+            object: ObjectKind::MsaSelectorInstance,
+            reason: FormatError::MsaCandidateCountOutOfBounds {
+                declared,
+                max: 64,
+            },
+        }) if declared == MSA_MAX_CANDIDATES as u32 + 1
+    ));
+    let ids = vec![2u32; 10];
+    let contributions = vec![ScoreQ::ZERO; 10];
+    assert!(matches!(
+        run_packed(&ids, &contributions, MSA_MAX_TOP_M as u16 + 1, 1),
+        Err(NotAProduct {
+            reason: FormatError::MsaTopMOutOfBounds {
+                declared: 9,
+                max: 8,
+            },
+            ..
+        })
+    ));
+    let ids = vec![2u32; 2];
+    let contributions = vec![ScoreQ::ZERO; 2];
+    assert!(matches!(
+        run_packed(&ids, &contributions, 3, 1),
+        Err(NotAProduct {
+            reason: FormatError::MsaTopMOutOfBounds {
+                declared: 3,
+                max: 2,
+            },
+            ..
+        })
+    ));
+}
+
+// -------------------------------------------------------- source scans --
+
+/// Comment- and string-stripped source scan for value `*` `/` `%`
+/// operators and float types on the packed lowering — the by-
+/// construction zero-float/zero-multiply/zero-divide/zero-modulo claim,
+/// machine-checked on every test run. This mirrors
+/// `route_attention_604.rs`'s equivalent scan and the P-4 extension in
+/// `uor-r4-core::transformerless::mod.rs` (which also covers this file
+/// as a contract-owned graph-runtime module).
+fn scan_source_for_forbidden_ops(source: &str) -> Vec<String> {
+    let mut offenders = Vec::new();
+    for (line_number, raw_line) in source.lines().enumerate() {
+        let mut stripped = String::with_capacity(raw_line.len());
+        let mut in_string = false;
+        let mut escaped = false;
+        for ch in raw_line.chars() {
+            if escaped {
+                escaped = false;
+                continue;
+            }
+            if in_string {
+                if ch == '\\' {
+                    escaped = true;
+                } else if ch == '"' {
+                    in_string = false;
+                }
+                continue;
+            }
+            if ch == '"' {
+                in_string = true;
+                continue;
+            }
+            stripped.push(ch);
+        }
+        let code = match stripped.find("//") {
+            Some(comment_start) => &stripped[..comment_start],
+            None => stripped.as_str(),
+        };
+        if code.trim().is_empty() {
+            continue;
+        }
+        if code.contains("f32") || code.contains("f64") {
+            offenders.push(format!("line {}: float type: {}", line_number + 1, code));
+            continue;
+        }
+        for needle in [
+            "wrapping_mul(",
+            "saturating_mul(",
+            "checked_mul(",
+            ".mul(",
+            "wrapping_div(",
+            "saturating_div(",
+            "checked_div(",
+            ".div(",
+            "wrapping_rem(",
+            "saturating_rem(",
+            "checked_rem(",
+            ".rem(",
+        ] {
+            if code.contains(needle) {
+                offenders.push(format!("line {}: {}", line_number + 1, code));
+            }
+        }
+        let bytes = code.as_bytes();
+        for (index, &byte) in bytes.iter().enumerate() {
+            if byte != b'*' && byte != b'/' && byte != b'%' {
+                continue;
+            }
+            let operand = |c: u8| c.is_ascii_alphanumeric() || c == b'_' || c == b')' || c == b']';
+            let operand_right = |c: u8| c.is_ascii_alphanumeric() || c == b'_' || c == b'(';
+            let prev = if index >= 2 && bytes[index - 1] == b' ' {
+                bytes[index - 2]
+            } else if index >= 1 {
+                bytes[index - 1]
+            } else {
+                b' '
+            };
+            let next = if index + 2 < bytes.len() && bytes[index + 1] == b' ' {
+                bytes[index + 2]
+            } else if index + 1 < bytes.len() {
+                bytes[index + 1]
+            } else {
+                b' '
+            };
+            if operand(prev) && operand_right(next) {
+                offenders.push(format!("line {}: {}", line_number + 1, code));
+                break;
+            }
+        }
+    }
+    offenders
+}
+
+/// The packed lowering carries no float type and no value
+/// multiplication/division/modulo. (The P-4 extension scan in
+/// `uor-r4-core::transformerless::mod.rs` also covers this file for
+/// mul/div/mod as a contract-owned graph-runtime module; the float scan
+/// here is additional.)
+#[test]
+fn packed_source_is_integer_only_by_construction() {
+    let source = include_str!("../../uor-r4-graph-runtime/src/msa_selector.rs");
+    let offenders = scan_source_for_forbidden_ops(source);
+    assert!(
+        offenders.is_empty(),
+        "forbidden arithmetic in the #643 packed lowering:\n{}",
+        offenders.join("\n")
+    );
+}
+
+/// The format-crate substrate's `MsaSelectorView` (the packed lowering's
+/// entire read path — [`MsaSelectorView::parse`] and its accessors) is
+/// float-free and integer-only. `#[cfg(feature = "alloc")]`-gated
+/// BUILD-time code above it (`cascade_position`, `role_rank`,
+/// `classify_at_build_time`, `build_msa_selector_instance`) legitimately
+/// computes `candidate_id % 11` and a capacity-sizing multiply — the
+/// module docs explain why this is the one place the crate computes a
+/// modulus, and it is never reached from the packed lowering's read
+/// path (`uor-r4-graph-runtime`, P-4-scanned separately). This test
+/// scans only from `MsaSelectorOpCensus` onward — the census, the view,
+/// and its `parse`/accessors — excluding the alloc-gated build-time
+/// helpers above it.
+#[test]
+fn view_and_census_source_is_integer_only_by_construction() {
+    let source = include_str!("../../uor-r4-graph-format/src/msa_selector.rs");
+    let view_onward = source
+        .split("pub struct MsaSelectorOpCensus")
+        .nth(1)
+        .expect("module defines MsaSelectorOpCensus");
+    // Stop before `build_msa_selector_instance` (alloc-gated build-time
+    // code with the documented capacity-sizing multiply) and before the
+    // `#[cfg(test)]` module (ordinary test fixture data).
+    let view_only = view_onward
+        .split("pub fn build_msa_selector_instance")
+        .next()
+        .expect("module defines build_msa_selector_instance after the view");
+    let non_test = view_only
+        .split("#[cfg(test)]")
+        .next()
+        .expect("module has a body after the census struct");
+    let offenders = scan_source_for_forbidden_ops(non_test);
+    assert!(
+        offenders.is_empty(),
+        "forbidden arithmetic in the #643 view/census substrate:\n{}",
+        offenders.join("\n")
+    );
+}
+
+/// The #602 registry entry and the #643 substrate agree on the operator
+/// identity, and the registry resolves it with the truthful deployed
+/// integer class.
+#[test]
+fn registry_identity_matches_the_substrate() {
+    use uor_r4_graph_format::{MSA_SELECTOR_OPERATOR_ID, MSA_SELECTOR_OPERATOR_VERSION};
+    assert_eq!(
+        AttentionOperatorSpec::MSA_STRUCTURED_SELECTOR_ID,
+        MSA_SELECTOR_OPERATOR_ID
+    );
+    assert_eq!(
+        AttentionOperatorSpec::MSA_STRUCTURED_SELECTOR_VERSION,
+        MSA_SELECTOR_OPERATOR_VERSION
+    );
+    let record = operator_spec(MSA_SELECTOR_OPERATOR_ID, MSA_SELECTOR_OPERATOR_VERSION)
+        .expect("the target operator is registered");
+    assert_eq!(
+        record.permitted_operation_class,
+        "deployed-integer-table-read-compare-add-no-runtime-modulo"
+    );
+    assert!(record.implementation_digest.starts_with("blake3:"));
+    let (candidate_ids, contributions) = packed_fixture(10, 3);
+    let (_, witness) = run_packed(&candidate_ids, &contributions, 3, 1).expect("run succeeds");
+    assert_eq!(witness.operator_id, record.id);
+    assert_eq!(witness.operator_version, record.version);
 }

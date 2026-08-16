@@ -71,13 +71,27 @@
 //!    adds — identical convention to `r4-route-attention/1`, so the two
 //!    operators are plug-compatible for the A/B harness.
 //!
+//! # Packed lowering (added in the follow-up slice)
+//!
+//! The packed R4G1 lowering lives in
+//! `uor-r4-graph-runtime::msa_selector` (P-4-scanned), over the shared
+//! canonical instance substrate in `uor-r4-graph-format::msa_selector`
+//! — classification is precomputed at instance-build time (see that
+//! module's docs for why the packed path cannot recompute `mod 11`).
+//! [`MsaSelectorReference::new`] now builds through that same shared
+//! substrate (`uor_r4_graph_format::build_msa_selector_instance`), so
+//! the reference and [`run_packed`] operate on byte-identical
+//! instances; the differential test suite in
+//! `tests/msa_selector_643.rs` requires the two paths to agree
+//! bit-for-bit on selections, aggregates, and census.
+//!
 //! # Non-goals of this slice
 //!
-//! No packed R4G1 lowering exists yet (mirrors #604's own two-stage
-//! plan: reference semantics first). No A/B run has happened — the
-//! exit rule is pre-registered on #643 before any run, per the #626
-//! convention. No wire-format/artifact carriage exists (same dormant
-//! posture as `r4-route-attention/1`).
+//! No A/B run has happened — the exit rule is pre-registered on #643
+//! before any run, per the #626 convention. No artifact carriage
+//! exists (same dormant posture as `r4-route-attention/1`): the
+//! instance wire format exists but is never embedded in an R4G1
+//! section.
 //!
 //! # Census (per step, closed form)
 //!
@@ -91,14 +105,15 @@
 
 use serde::{Deserialize, Serialize};
 
-use uor_r4_graph_format::ScoreQ;
+use uor_r4_graph_format::{
+    build_msa_selector_instance, msa_selector_instance_digest, MsaSelectorView, NotAProduct, ScoreQ,
+};
+use uor_r4_graph_runtime::msa_selector::{msa_selector_step, MsaSelectorState};
 
 /// Format tag of the witness record.
 pub const MSA_SELECTOR_WITNESS_FORMAT: &str = "uor-r4-msa-selector-witness/1";
 /// Domain-separation prefix of the inputs digest.
 pub const MSA_SELECTOR_INPUTS_DOMAIN: &str = "uor-r4-msa-selector-inputs/1";
-/// Domain-separation prefix of the instance bytes.
-const MSA_SELECTOR_INSTANCE_TAG: &[u8] = b"uor-r4-msa-selector-instance/1\n";
 
 /// Theorem M4 ("The 11-Cascade Theorem"): the doubling cascade starting
 /// at 2 in `(ℤ/11ℤ)*`, in orbit order. Position 0 = γ's residue (2,
@@ -170,23 +185,14 @@ pub fn classify(candidate_id: u32) -> MsaClassification {
 }
 
 /// The op census (witness): every field a closed form of `(N, M,
-/// steps)` (module docs table), deliberately data-independent.
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
-pub struct MsaSelectorOpCensus {
-    /// Table reads: one classification per candidate, one contribution
-    /// per selected slot.
-    #[serde(default)]
-    pub table_reads: u64,
-    /// Ordered slot comparisons during top-M insertion.
-    #[serde(default)]
-    pub compares: u64,
-    /// Saturating adds during the aggregate fold.
-    #[serde(default)]
-    pub adds: u64,
-    /// Candidates classified.
-    #[serde(default)]
-    pub candidates_examined: u64,
-}
+/// steps)` (module docs table), deliberately data-independent. The
+/// SAME type `uor_r4_graph_runtime::msa_selector::msa_selector_step`
+/// increments — a single shared definition in
+/// `uor_r4_graph_format::msa_selector`, not a lookalike duplicate (the
+/// `route_attention` split: this crate has no other place to share a
+/// census type with the packed lowering than the format crate both
+/// depend on).
+pub use uor_r4_graph_format::MsaSelectorOpCensus;
 
 /// The census closed form for `steps` steps over an instance with
 /// `candidate_count` candidates selecting `top_m` (module docs table).
@@ -290,24 +296,6 @@ pub fn digest_string(digest: &[u8; 32]) -> String {
     format!("blake3:{}", blake3::Hash::from_bytes(*digest).to_hex())
 }
 
-/// Canonical instance bytes: format tag, candidate count, `top_m`, then
-/// every `(candidate_id, contribution)` pair in declared order. Fixed
-/// line/field layout, not derived from any serializer, so the digest
-/// over these bytes is reproducible everywhere — same convention as
-/// `AttentionOperatorSpec::canonical_bytes`.
-pub fn msa_instance_bytes(candidate_ids: &[u32], contributions: &[ScoreQ], top_m: u16) -> Vec<u8> {
-    let mut bytes =
-        Vec::with_capacity(MSA_SELECTOR_INSTANCE_TAG.len() + 8 + candidate_ids.len() * 8);
-    bytes.extend_from_slice(MSA_SELECTOR_INSTANCE_TAG);
-    bytes.extend_from_slice(&(candidate_ids.len() as u32).to_le_bytes());
-    bytes.extend_from_slice(&top_m.to_le_bytes());
-    for (&candidate_id, &contribution) in candidate_ids.iter().zip(contributions.iter()) {
-        bytes.extend_from_slice(&candidate_id.to_le_bytes());
-        bytes.extend_from_slice(&contribution.raw().to_le_bytes());
-    }
-    bytes
-}
-
 /// The inputs digest: blake3 over the domain tag, the instance digest,
 /// and the step count (u32 LE). Binds the witness to exactly one
 /// (instance, step-count) pair — there is no query sequence to bind
@@ -333,22 +321,21 @@ pub struct MsaSelectorReference {
 
 impl MsaSelectorReference {
     /// Build the reference from declared candidate ids and their
-    /// contributions. `None` when the instance is malformed: empty,
-    /// mismatched lengths, or `top_m` outside `1..=candidate_ids.len()`
-    /// — the same fail-closed posture as
-    /// `RouteAttentionReference::from_instance_bytes`, expressed as
-    /// `Option` here since there is no wire format to name a
-    /// `NotAProduct` violation against yet (module docs: no artifact
-    /// carriage in this slice).
-    pub fn new(candidate_ids: Vec<u32>, contributions: Vec<ScoreQ>, top_m: usize) -> Option<Self> {
-        if candidate_ids.is_empty() || candidate_ids.len() != contributions.len() {
-            return None;
-        }
-        if top_m == 0 || top_m > candidate_ids.len() {
-            return None;
-        }
-        let instance_bytes = msa_instance_bytes(&candidate_ids, &contributions, top_m as u16);
-        Some(Self {
+    /// contributions, through the SAME shared canonical instance
+    /// substrate [`run_packed`] uses
+    /// (`uor_r4_graph_format::build_msa_selector_instance`) — the same
+    /// fail-closed R5-sanctioned posture as
+    /// `RouteAttentionReference::from_instance_bytes`. `Err` when the
+    /// instance is malformed: empty, mismatched lengths, or `top_m`
+    /// outside `1..=min(8, candidate_ids.len())`.
+    pub fn new(
+        candidate_ids: Vec<u32>,
+        contributions: Vec<ScoreQ>,
+        top_m: usize,
+    ) -> Result<Self, NotAProduct> {
+        let instance_bytes =
+            build_msa_selector_instance(&candidate_ids, &contributions, top_m as u32)?;
+        Ok(Self {
             candidate_ids,
             contributions,
             top_m,
@@ -443,7 +430,7 @@ impl MsaSelectorReference {
             });
             records.push(record);
         }
-        let instance_digest = *blake3::hash(&self.instance_bytes).as_bytes();
+        let instance_digest = msa_selector_instance_digest(&self.instance_bytes);
         let witness = MsaSelectorWitness {
             format: MSA_SELECTOR_WITNESS_FORMAT.to_owned(),
             operator_id: uor_r4_model_source::attention::AttentionOperatorSpec::MSA_STRUCTURED_SELECTOR_ID
@@ -457,6 +444,66 @@ impl MsaSelectorReference {
         };
         (records, witness)
     }
+}
+
+/// Drive the PACKED lowering (`uor_r4_graph_runtime::msa_selector`)
+/// with the same interface [`MsaSelectorReference::run`] uses, over
+/// the SAME shared canonical instance bytes
+/// (`uor_r4_graph_format::build_msa_selector_instance`) — so a
+/// differential test comparing this function's output against
+/// `MsaSelectorReference::run`'s is a true bit-for-bit comparison of
+/// two independent implementations reading identical bytes, not two
+/// different encodings that happen to agree. `Err` under the same
+/// conditions [`MsaSelectorReference::new`] refuses.
+pub fn run_packed(
+    candidate_ids: &[u32],
+    contributions: &[ScoreQ],
+    top_m: u16,
+    steps: usize,
+) -> Result<(Vec<MsaSelectorStepRecord>, MsaSelectorWitness), NotAProduct> {
+    let instance_bytes =
+        build_msa_selector_instance(candidate_ids, contributions, u32::from(top_m))?;
+    let view = MsaSelectorView::parse(&instance_bytes)?;
+    let mut state = MsaSelectorState::new();
+    let mut census = MsaSelectorOpCensus::default();
+    let mut records = Vec::with_capacity(steps);
+    let mut witness_steps = Vec::with_capacity(steps);
+    for _ in 0..steps {
+        let aggregate = msa_selector_step(&view, &mut state, &mut census);
+        let mut selected = Vec::with_capacity(state.selected_len());
+        let mut slot = 0usize;
+        while let Some((candidate, role_rank, cascade_position)) = state.selected(slot) {
+            selected.push(MsaSelection {
+                candidate,
+                candidate_id: candidate_ids[candidate as usize],
+                role_rank,
+                cascade_position,
+            });
+            slot += 1;
+        }
+        witness_steps.push(MsaSelectorWitnessStep {
+            selected: selected.clone(),
+            aggregate_raw: aggregate.raw(),
+        });
+        records.push(MsaSelectorStepRecord {
+            selected,
+            aggregate,
+        });
+    }
+    let instance_digest = msa_selector_instance_digest(&instance_bytes);
+    let witness = MsaSelectorWitness {
+        format: MSA_SELECTOR_WITNESS_FORMAT.to_owned(),
+        operator_id:
+            uor_r4_model_source::attention::AttentionOperatorSpec::MSA_STRUCTURED_SELECTOR_ID
+                .to_owned(),
+        operator_version:
+            uor_r4_model_source::attention::AttentionOperatorSpec::MSA_STRUCTURED_SELECTOR_VERSION,
+        instance_digest: digest_string(&instance_digest),
+        inputs_digest: digest_string(&msa_inputs_digest(&instance_digest, steps)),
+        steps: witness_steps,
+        census,
+    };
+    Ok((records, witness))
 }
 
 /// Independent witness replay: verify `witness` against the fixture
@@ -486,8 +533,16 @@ pub fn replay_msa_selector_witness(
     if candidate_ids.len() != contributions.len() {
         return Some("candidate_ids and contributions lengths differ".to_owned());
     }
-    let instance_bytes = msa_instance_bytes(candidate_ids, contributions, top_m);
-    let instance_digest = *blake3::hash(&instance_bytes).as_bytes();
+    let instance_bytes = match build_msa_selector_instance(candidate_ids, contributions, u32::from(top_m)) {
+        Ok(bytes) => bytes,
+        Err(_) => {
+            return Some(
+                "fixture parameters (candidate_ids, contributions, top_m) are outside the declared instance bounds"
+                    .to_owned(),
+            )
+        }
+    };
+    let instance_digest = msa_selector_instance_digest(&instance_bytes);
     if witness.instance_digest != digest_string(&instance_digest) {
         return Some("recorded instance digest does not match the fixture".to_owned());
     }

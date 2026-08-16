@@ -550,6 +550,50 @@ pub enum FormatError {
         /// Actual query length in bytes.
         actual: u64,
     },
+    /// MSA-selector instance shorter than its fixed header (#643,
+    /// `msa_selector` module).
+    MsaInstanceTooShort {
+        /// Actual buffer length.
+        actual: u64,
+    },
+    /// MSA-selector instance does not begin with `MSA1`.
+    MsaInstanceBadMagic,
+    /// MSA-selector instance version is not supported by this reader.
+    MsaInstanceUnsupportedVersion(u16),
+    /// MSA-selector `candidate_count` is outside `1..=64` — the
+    /// declared candidate hard cap, shared with `r4-route-attention/1`.
+    MsaCandidateCountOutOfBounds {
+        /// Declared candidate count.
+        declared: u32,
+        /// Permitted maximum.
+        max: u32,
+    },
+    /// MSA-selector `top_m` is outside `1..=min(8, candidate_count)` —
+    /// the declared selection hard cap.
+    MsaTopMOutOfBounds {
+        /// Declared top-M.
+        declared: u32,
+        /// Permitted maximum.
+        max: u32,
+    },
+    /// MSA-selector reserved header bytes are non-zero.
+    MsaNonZeroReserved,
+    /// MSA-selector instance length does not equal the exact layout
+    /// implied by its declared candidate count.
+    MsaInstanceLengthMismatch {
+        /// Expected byte length.
+        expected: u64,
+        /// Actual byte length.
+        actual: u64,
+    },
+    /// MSA-selector builder inputs declare differing candidate counts
+    /// (id table vs contribution table).
+    MsaTableShapeMismatch {
+        /// Candidate-id-table candidate count.
+        candidate_ids: u64,
+        /// Contribution-table candidate count.
+        contributions: u64,
+    },
 }
 
 impl fmt::Display for FormatError {
@@ -882,6 +926,37 @@ impl fmt::Display for FormatError {
             FormatError::RouteQueryWidthMismatch { actual } => write!(
                 f,
                 "route-attention query is {actual} bytes, not one 36-byte route code"
+            ),
+            FormatError::MsaInstanceTooShort { actual } => write!(
+                f,
+                "msa-selector instance shorter than its fixed header: {actual} bytes"
+            ),
+            FormatError::MsaInstanceBadMagic => {
+                write!(f, "msa-selector instance magic is not MSA1")
+            }
+            FormatError::MsaInstanceUnsupportedVersion(version) => {
+                write!(f, "unsupported msa-selector instance version {version}")
+            }
+            FormatError::MsaCandidateCountOutOfBounds { declared, max } => write!(
+                f,
+                "msa-selector candidate count {declared} outside 1..={max}"
+            ),
+            FormatError::MsaTopMOutOfBounds { declared, max } => {
+                write!(f, "msa-selector top-M {declared} outside 1..={max}")
+            }
+            FormatError::MsaNonZeroReserved => {
+                write!(f, "msa-selector reserved header bytes are non-zero")
+            }
+            FormatError::MsaInstanceLengthMismatch { expected, actual } => write!(
+                f,
+                "msa-selector instance length mismatch: expected {expected} bytes, got {actual}"
+            ),
+            FormatError::MsaTableShapeMismatch {
+                candidate_ids,
+                contributions,
+            } => write!(
+                f,
+                "msa-selector tables disagree: {candidate_ids} ids vs {contributions} contributions"
             ),
         }
     }
