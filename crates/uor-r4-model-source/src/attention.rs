@@ -246,6 +246,21 @@ impl AttentionOperatorParams {
         }
     }
 
+    /// The declared parameters of `msa-structured-selector/1` (#643): no
+    /// query/key score is computed at all — candidates rank by a fixed
+    /// modular classification of their own declared id, independent of
+    /// any query.
+    pub fn msa_structured_selector() -> Self {
+        Self {
+            head_selection: "single-selector-lane".to_owned(),
+            score_scale: "none-ordinal-classification-key-not-a-scalar-score".to_owned(),
+            score_width_policy: "candidate-id-residue-mod-11-only".to_owned(),
+            remainder_policy: "none-no-remainder-every-candidate-id-classified".to_owned(),
+            score_accumulation: "role-rank-then-cascade-position-then-candidate-id-sort-key"
+                .to_owned(),
+        }
+    }
+
     /// The declared parameters of current
     /// `learned-absolute-source-attention/2`.
     pub fn learned_absolute() -> Self {
@@ -398,6 +413,17 @@ impl AttentionOperatorSpec {
     pub const LEARNED_ABSOLUTE_V2_VERSION: u32 = 2;
     /// Current learned-absolute registry version.
     pub const LEARNED_ABSOLUTE_VERSION: u32 = Self::LEARNED_ABSOLUTE_V2_VERSION;
+    /// Registry id of the `MsaStructuredSelectorV1` TARGET operator
+    /// (#643) — a second, independent target operator alongside
+    /// `r4-route-attention/1`, pre-registered for an A/B evaluation
+    /// under the same #626-style exit-rule convention. Reference
+    /// semantics live in `uor-r4-graph-certify::msa_selector`, the
+    /// same layering `r4-route-attention/1` uses.
+    pub const MSA_STRUCTURED_SELECTOR_ID: &'static str = "msa-structured-selector";
+    /// Registry version of the target operator implemented by
+    /// `uor-r4-graph-certify::msa_selector` (reference only in this
+    /// slice; no packed lowering exists yet).
+    pub const MSA_STRUCTURED_SELECTOR_VERSION: u32 = 1;
 
     /// The current `standard-source-attention/2` record.
     pub fn standard() -> Self {
@@ -549,6 +575,61 @@ impl AttentionOperatorSpec {
             permitted_operation_class: "deployed-integer-xor-popcount-add-compare-table-read"
                 .to_owned(),
             params: AttentionOperatorParams::r4_route_attention(),
+            implementation_digest: String::new(),
+        };
+        record.implementation_digest = record.declared_digest();
+        record
+    }
+
+    /// The `msa-structured-selector/1` record (#643): `MsaStructuredSelectorV1`,
+    /// a second TARGET operator alongside `r4-route-attention/1` —
+    /// deployed integer class, dormant, pre-registered for an A/B
+    /// evaluation against it. Grounded in two proven theorems of the
+    /// (now-published, per Casey's 2026-08-16 direction) "Modular
+    /// Structural Arithmetic" paper: the 11-Theorem (`DP(11)` with role
+    /// anchors `mod_11(γ)=2, mod_11(μ)=4, mod_11(ε)=8`) and the maximal
+    /// doubling-cascade period in ℤ/11ℤ. Truthful inventory of what
+    /// `uor-r4-graph-certify::msa_selector` computes:
+    ///
+    /// - no projections and no positional action: a candidate's
+    ///   classification depends only on its own declared id, never on a
+    ///   query or a learned weight;
+    /// - compatibility relation `modular-role-then-cascade-position`:
+    ///   `residue = candidate_id mod 11`; `role_rank` is the residue's
+    ///   position in the doubling-cascade orbit `(2,4,8,5,10,9,7,3,6,1)`
+    ///   taken mod 3 (residue 0 — outside the multiplicative group — is
+    ///   its own fourth "zero" class). **Only the three anchor residues
+    ///   {2,4,8} → {Gen,Med,Man} are a theorem of the paper (the
+    ///   11-Theorem); the mod-3 extension covering the other 7 nonzero
+    ///   residues is this operator's own design choice, confirmed by
+    ///   Casey (2026-08-16), not itself a proven MSA result**;
+    /// - selector: NONE — no softmax; a bounded top-M selection by
+    ///   ascending `(role_rank, cascade_position, candidate_index)`;
+    /// - tie-breaking: lowest candidate index (into the declared id/
+    ///   contribution tables) on equal role and cascade position,
+    ///   deterministic by construction, same shape as
+    ///   `r4-route-attention/1`;
+    /// - value aggregation: the selected ScoreQ contributions fold in
+    ///   selection order with saturating integer adds — identical
+    ///   convention to `r4-route-attention/1`, so the two operators are
+    ///   plug-compatible for the pre-registered A/B;
+    /// - runtime state: none — the classification is query-independent,
+    ///   so nothing carries across steps.
+    pub fn msa_structured_selector_v1() -> Self {
+        let mut record = Self {
+            id: Self::MSA_STRUCTURED_SELECTOR_ID.to_owned(),
+            version: Self::MSA_STRUCTURED_SELECTOR_VERSION,
+            projections: "none-declared-candidate-id-table-no-qkv-reuse".to_owned(),
+            positional_action: "none-classification-carries-no-positional-action".to_owned(),
+            compatibility_relation: "modular-role-then-cascade-position".to_owned(),
+            selector_normalization: "none-bounded-top-m-selection".to_owned(),
+            value_aggregation: "selection-order-saturating-scoreq-add".to_owned(),
+            output_projection: "none-aggregate-scoreq-only".to_owned(),
+            runtime_state: "none-query-independent-classification".to_owned(),
+            tie_breaking: "lowest-candidate-index-on-equal-role-and-cascade-position".to_owned(),
+            permitted_operation_class: "deployed-integer-table-read-compare-add-no-runtime-modulo"
+                .to_owned(),
+            params: AttentionOperatorParams::msa_structured_selector(),
             implementation_digest: String::new(),
         };
         record.implementation_digest = record.declared_digest();
@@ -738,6 +819,10 @@ pub fn operator_spec(
         (AttentionOperatorSpec::R4_ROUTE_ID, AttentionOperatorSpec::R4_ROUTE_VERSION) => {
             Ok(AttentionOperatorSpec::r4_route_attention_v1())
         }
+        (
+            AttentionOperatorSpec::MSA_STRUCTURED_SELECTOR_ID,
+            AttentionOperatorSpec::MSA_STRUCTURED_SELECTOR_VERSION,
+        ) => Ok(AttentionOperatorSpec::msa_structured_selector_v1()),
         (
             AttentionOperatorSpec::LEARNED_ABSOLUTE_ID,
             AttentionOperatorSpec::LEARNED_ABSOLUTE_V1_VERSION,
