@@ -122,7 +122,10 @@ pub use ngram::{
 };
 #[cfg(feature = "alloc")]
 pub use prov::{build as build_prov, ProvComponents};
-pub use prov::{EvidenceRoots, Prov, PROV_DIGEST_LEN, PROV_HEADER_LEN, PROV_MAGIC, PROV_VERSION};
+pub use prov::{
+    parse_digest_hex, EvidenceRoots, Prov, PROV_DIGEST_LEN, PROV_HEADER_LEN, PROV_MAGIC,
+    PROV_VERSION,
+};
 pub use records::{
     EdgeKind, PackedEdge, PackedNode, StorageDescriptor, EDGE_KIND_OPTIONAL_BIT, PACKED_EDGE_LEN,
     PACKED_NODE_LEN, STORAGE_DESCRIPTOR_LEN,

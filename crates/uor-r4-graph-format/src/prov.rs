@@ -83,6 +83,30 @@ const SLOTS: [(u8, usize); 5] = [
     (PRESENCE_DENSE_OPERATOR, SLOT_DENSE_OPERATOR),
 ];
 
+/// Parse a canonical digest string into its raw 32 bytes.
+///
+/// Accepts the `blake3:<64 lowercase hex>` form this workspace's typed
+/// identity records declare via their `implementation_digest` field
+/// (#600 geometry projection, #602 attention operator, #704 dense
+/// operator) or `adapter_digest` field (#601 tokenizer adapter), and a
+/// bare 64-hex-char form for producers that carry a raw κ without the
+/// scheme prefix (e.g. #597's `--source-manifest-kappa`). Hex digits may
+/// be upper or lower case. Returns `None` for anything else — a producer
+/// deciding whether an unparseable digest is a hard error is a caller
+/// concern, not this parser's.
+pub fn parse_digest_hex(value: &str) -> Option<[u8; PROV_DIGEST_LEN]> {
+    let hex = value.strip_prefix("blake3:").unwrap_or(value);
+    if hex.len() != PROV_DIGEST_LEN * 2 || !hex.bytes().all(|byte| byte.is_ascii_hexdigit()) {
+        return None;
+    }
+    let mut out = [0u8; PROV_DIGEST_LEN];
+    for (index, slot) in out.iter_mut().enumerate() {
+        let byte_hex = &hex[index * 2..index * 2 + 2];
+        *slot = u8::from_str_radix(byte_hex, 16).ok()?;
+    }
+    Some(out)
+}
+
 /// Borrowed, validated view of one PROV/1 section's bytes.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Prov<'a> {
@@ -344,4 +368,64 @@ pub fn build(components: &ProvComponents<'_>) -> Result<alloc::vec::Vec<u8>, Not
         out.extend_from_slice(root);
     }
     Ok(out)
+}
+
+#[cfg(test)]
+mod digest_hex_tests {
+    use super::parse_digest_hex;
+
+    // 32 bytes, values 0x01..=0x20, no alloc needed: every case below is a
+    // literal so this module compiles regardless of the `alloc` feature.
+    const HEX_LOWER: &str = "0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20";
+    const HEX_UPPER: &str = "0102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F20";
+    const PREFIXED_LOWER: &str =
+        "blake3:0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20";
+    const PREFIXED_UPPER: &str =
+        "blake3:0102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F20";
+
+    fn expected() -> [u8; 32] {
+        let mut out = [0u8; 32];
+        for (index, slot) in out.iter_mut().enumerate() {
+            *slot = (index + 1) as u8;
+        }
+        out
+    }
+
+    #[test]
+    fn parses_blake3_prefixed_form() {
+        assert_eq!(parse_digest_hex(PREFIXED_LOWER), Some(expected()));
+    }
+
+    #[test]
+    fn parses_bare_hex_form() {
+        assert_eq!(parse_digest_hex(HEX_LOWER), Some(expected()));
+    }
+
+    #[test]
+    fn parses_uppercase_hex() {
+        assert_eq!(parse_digest_hex(PREFIXED_UPPER), Some(expected()));
+        assert_eq!(parse_digest_hex(HEX_UPPER), Some(expected()));
+    }
+
+    #[test]
+    fn rejects_wrong_length() {
+        assert_eq!(parse_digest_hex("blake3:ab"), None);
+        assert_eq!(parse_digest_hex(""), None);
+    }
+
+    #[test]
+    fn rejects_non_hex_characters() {
+        const NOT_HEX: &str =
+            "blake3:gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg";
+        assert_eq!(parse_digest_hex(NOT_HEX), None);
+    }
+
+    #[test]
+    fn rejects_odd_scheme_prefix() {
+        // A different scheme prefix is not stripped, so the remaining
+        // string is too long to be 64 hex chars and parsing fails closed.
+        const SHA256_PREFIXED: &str =
+            "sha256:0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20";
+        assert_eq!(parse_digest_hex(SHA256_PREFIXED), None);
+    }
 }

@@ -940,6 +940,143 @@ fn r4g1_artifact_validates_and_reproduces() {
     assert!(view.section(SectionId::EXCT).is_none());
 }
 
+/// #637 phase 2: `emit_r4g1_with_provenance` is additive-only. Its `None`
+/// sibling ([`cover::emit_r4g1_with_tokenizer_cid`]) stays byte-identical
+/// (no PROV section, no pinned κ fixture affected); a caller that opts in
+/// gets a real PROV/1 section whose digests round-trip and whose presence
+/// changes the artifact bytes deterministically -- same components, same
+/// bytes; a changed component, different bytes.
+#[test]
+fn emit_r4g1_with_provenance_binds_a_prov_section_without_disturbing_the_unbound_path() {
+    let (observations, _) = synthetic_observations();
+    let induced = induce_synthetic(&observations, &synthetic_config());
+    let cover = &induced.cover;
+    let reference = cover::ReferenceClassifier::freeze(cover);
+    let edges = cover::build_edges(cover, &reference, &observations, &vec![0; 10000]);
+    let prior = cover::root_prior(&observations);
+
+    let (unbound_bytes, _) = cover::emit_r4g1_with_tokenizer_cid(
+        b"synthetic-artifact-container",
+        (b"synthetic-meta", b"synthetic-recs"),
+        64,
+        cover,
+        &edges,
+        &prior,
+        &[],
+        [0; 32],
+    )
+    .expect("unbound emit succeeds");
+
+    let empty_components = uor_r4_graph_format::ProvComponents::default();
+    let (empty_prov_bytes, _) = cover::emit_r4g1_with_provenance(
+        b"synthetic-artifact-container",
+        (b"synthetic-meta", b"synthetic-recs"),
+        64,
+        cover,
+        &edges,
+        &prior,
+        &[],
+        [0; 32],
+        &empty_components,
+    )
+    .expect("empty-provenance emit succeeds");
+
+    assert_ne!(
+        unbound_bytes.len(),
+        empty_prov_bytes.len(),
+        "a present-but-empty PROV section still adds bytes over no PROV section at all"
+    );
+    let empty_view = GraphView::parse(&empty_prov_bytes).expect("stage-1+2 validation");
+    empty_view.verify_cids().expect("integrity CIDs");
+    assert_eq!(
+        empty_view.head().expect("HEAD present").node_count(),
+        GraphView::parse(&unbound_bytes)
+            .expect("unbound view")
+            .head()
+            .expect("unbound HEAD")
+            .node_count(),
+        "HEAD content is unaffected by the PROV section"
+    );
+    let empty_prov_section = empty_view
+        .section(SectionId::PROV)
+        .expect("PROV section present when provenance is Some(..)");
+    let empty_prov = uor_r4_graph_format::Prov::parse(empty_prov_section).expect("PROV/1 parses");
+    assert_eq!(empty_prov.source_manifest_kappa(), None);
+    assert_eq!(empty_prov.geometry_digest(), None);
+    assert_eq!(empty_prov.attention_operator_digest(), None);
+    assert_eq!(empty_prov.dense_operator_digest(), None);
+    assert_eq!(empty_prov.evidence_root_count(), 0);
+
+    // Determinism: same components, same bytes.
+    let (empty_prov_bytes2, _) = cover::emit_r4g1_with_provenance(
+        b"synthetic-artifact-container",
+        (b"synthetic-meta", b"synthetic-recs"),
+        64,
+        cover,
+        &edges,
+        &prior,
+        &[],
+        [0; 32],
+        &empty_components,
+    )
+    .expect("repeat empty-provenance emit succeeds");
+    assert_eq!(
+        empty_prov_bytes, empty_prov_bytes2,
+        "identical provenance components reproduce identical bytes"
+    );
+
+    // A populated component set round-trips and, because it changes the
+    // PROV section body, changes the artifact bytes and artifact_cid --
+    // but not head_cid, since HEAD's own bytes are untouched.
+    let geometry_digest = *blake3::hash(b"#600 geometry projection fixture").as_bytes();
+    let source_manifest_kappa = *blake3::hash(b"#597 source manifest fixture").as_bytes();
+    let populated_components = uor_r4_graph_format::ProvComponents {
+        source_manifest_kappa: Some(source_manifest_kappa),
+        geometry_digest: Some(geometry_digest),
+        tokenizer_adapter_digest: None,
+        attention_operator_digest: None,
+        dense_operator_digest: None,
+        license: None,
+        evidence_roots: &[],
+    };
+    let (populated_bytes, _) = cover::emit_r4g1_with_provenance(
+        b"synthetic-artifact-container",
+        (b"synthetic-meta", b"synthetic-recs"),
+        64,
+        cover,
+        &edges,
+        &prior,
+        &[],
+        [0; 32],
+        &populated_components,
+    )
+    .expect("populated-provenance emit succeeds");
+    assert_ne!(
+        populated_bytes, empty_prov_bytes,
+        "a changed provenance component changes the emitted artifact bytes"
+    );
+    let populated_view = GraphView::parse(&populated_bytes).expect("stage-1+2 validation");
+    populated_view.verify_cids().expect("integrity CIDs");
+    assert_eq!(
+        populated_view.header().head_cid,
+        empty_view.header().head_cid,
+        "head_cid is unaffected by which components PROV carries"
+    );
+    let populated_prov = uor_r4_graph_format::Prov::parse(
+        populated_view
+            .section(SectionId::PROV)
+            .expect("PROV section present"),
+    )
+    .expect("PROV/1 parses");
+    assert_eq!(
+        populated_prov.source_manifest_kappa(),
+        Some(source_manifest_kappa)
+    );
+    assert_eq!(populated_prov.geometry_digest(), Some(geometry_digest));
+    assert_eq!(populated_prov.attention_operator_digest(), None);
+    assert_eq!(populated_prov.dense_operator_digest(), None);
+}
+
 // ------------------------------------------------------------ primitives --
 
 #[test]

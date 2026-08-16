@@ -2277,6 +2277,82 @@ pub fn emit_r4g1_with_tokenizer_cid(
     observations: &[Observation],
     tokenizer_cid: [u8; 32],
 ) -> Result<(Vec<u8>, CoverArtifactInfo), uor_r4_graph_format::ObservedBound> {
+    emit_r4g1_inner(
+        artifact_container,
+        corpus_cid_material,
+        vocab_size,
+        cover,
+        edges,
+        prior,
+        observations,
+        tokenizer_cid,
+        None,
+    )
+}
+
+/// Emit the induced cover bound to a #637 PROV/1 provenance-roots section
+/// carrying the identity components the caller's pipeline knows
+/// (#597 source-manifest κ, #600 geometry projection, #601 tokenizer
+/// adapter, #602 attention operator, #704 dense operator, an SPDX license,
+/// and/or evidence-root κ).
+///
+/// Always adds a PROV section, even when every field of `provenance` is
+/// `None`/empty — call [`emit_r4g1_with_tokenizer_cid`] instead when the
+/// artifact should carry no PROV section at all (its bytes stay
+/// unchanged for identical other arguments; no pinned κ fixture is
+/// affected by this function's addition). A present-but-empty PROV
+/// section is a deliberate, valid PROV/1 record (round-trips through
+/// [`Prov::parse`][parse]), not a legacy omission.
+///
+/// A `provenance.license` that is not ASCII, or a duplicate entry in
+/// `provenance.evidence_roots`, panics rather than returning an error
+/// (see the fail-closed note at this function's PROV-building call
+/// site) — validate those two caller-supplied fields before calling this
+/// function if they come from an untrusted source.
+///
+/// [parse]: uor_r4_graph_format::Prov::parse
+#[allow(clippy::too_many_arguments)]
+pub fn emit_r4g1_with_provenance(
+    artifact_container: &[u8],
+    corpus_cid_material: (&[u8], &[u8]),
+    vocab_size: u32,
+    cover: &Cover,
+    edges: &[CoverEdge],
+    prior: &BTreeMap<u32, u32>,
+    observations: &[Observation],
+    tokenizer_cid: [u8; 32],
+    provenance: &uor_r4_graph_format::ProvComponents<'_>,
+) -> Result<(Vec<u8>, CoverArtifactInfo), uor_r4_graph_format::ObservedBound> {
+    emit_r4g1_inner(
+        artifact_container,
+        corpus_cid_material,
+        vocab_size,
+        cover,
+        edges,
+        prior,
+        observations,
+        tokenizer_cid,
+        Some(provenance),
+    )
+}
+
+/// Shared body of [`emit_r4g1_with_tokenizer_cid`] and
+/// [`emit_r4g1_with_provenance`]. `provenance` is `None` for the former
+/// (no PROV section, byte-identical to every pre-#637 caller) and
+/// `Some(components)` for the latter (builds and appends one PROV/1
+/// section from `components`).
+#[allow(clippy::too_many_arguments)]
+fn emit_r4g1_inner(
+    artifact_container: &[u8],
+    corpus_cid_material: (&[u8], &[u8]),
+    vocab_size: u32,
+    cover: &Cover,
+    edges: &[CoverEdge],
+    prior: &BTreeMap<u32, u32>,
+    observations: &[Observation],
+    tokenizer_cid: [u8; 32],
+    provenance: Option<&uor_r4_graph_format::ProvComponents<'_>>,
+) -> Result<(Vec<u8>, CoverArtifactInfo), uor_r4_graph_format::ObservedBound> {
     let node_count = 1 + cover.regions.len() as u32;
     let depth_count = (cover.max_depth + 1) as u8;
     let edge_count = edges.len() as u32;
@@ -2512,6 +2588,27 @@ pub fn emit_r4g1_with_tokenizer_cid(
     builder.add_section(uor_r4_graph_format::SectionId::EDGE, 0, &edge_section);
     builder.add_section(uor_r4_graph_format::SectionId::ROUT, 0, &rout);
     builder.add_section(uor_r4_graph_format::SectionId::EMIT, 0, &emit);
+    // #637 phase 2: a caller-supplied provenance-roots record becomes one
+    // PROV section, built with the same fail-closed convention as the
+    // rest of this constructor: `build_prov` can only reject a
+    // non-ASCII license or duplicate evidence roots
+    // (`uor_r4_graph_format::NotAProduct`), and this crate's own current
+    // producers (graph-cli's cover command, #637 phase 2a) never
+    // populate those two fields, so a rejection here means a future
+    // caller passed a malformed `ProvComponents` -- a caller-input
+    // defect this emitter reports by panicking, exactly like the
+    // `builder.build()`/`GraphView::parse`/`verify_cids` invariants
+    // below. A caller that needs a typed error instead of a panic for a
+    // free-form license/evidence-root set is a real but distinct need;
+    // validate `components` before calling this function until then.
+    let prov_section = provenance.map(|components| {
+        uor_r4_graph_format::build_prov(components).unwrap_or_else(|error| {
+            panic!("the caller's ProvComponents failed to encode as PROV/1: {error}")
+        })
+    });
+    if let Some(prov_bytes) = &prov_section {
+        builder.add_section(uor_r4_graph_format::SectionId::PROV, 0, prov_bytes);
+    }
     // These bytes were just serialized from the compiler's own cover; a
     // serialization or re-validation failure is a defect in this emitter or the
     // format layer, never a property of the caller's input, so it is an
