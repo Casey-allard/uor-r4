@@ -4221,13 +4221,6 @@ struct CoverOptions {
     /// Typed host-side dense-execution record. Absence is retained for
     /// historical corpora and Llama; present records are registry exact.
     dense_operator: Option<DenseOperatorSpec>,
-    /// #637 phase 2a: bind whichever of `source_manifest_kappa`/
-    /// `geometry`/`attention_operator`/`dense_operator` the caller
-    /// passed into a PROV/1 section on the emitted artifact
-    /// (`--emit-provenance`). Default off: the artifact bytes and κ of
-    /// every existing pinned fixture are unaffected unless a caller
-    /// opts in explicitly.
-    emit_provenance: bool,
 }
 
 fn parse_cover_options(args: &[String]) -> Result<CoverOptions, SourceUnavailable> {
@@ -4250,13 +4243,15 @@ fn parse_cover_options(args: &[String]) -> Result<CoverOptions, SourceUnavailabl
         geometry: None,
         attention_operator: None,
         dense_operator: None,
-        emit_provenance: false,
     };
     let mut index = 0usize;
     while index < args.len() {
         let flag = &args[index];
         if flag == "--emit-provenance" {
-            options.emit_provenance = true;
+            // #637 phase 3: PROV/1 is unconditionally emitted now (see
+            // the `emit_r4g1_with_provenance` call below), so this flag
+            // is a no-op kept only for backward CLI compatibility with
+            // phase 2a callers/scripts that already pass it.
             index += 1;
             continue;
         }
@@ -4577,15 +4572,25 @@ fn cover_command_with_authority(
     let prior = cover::root_prior(&train);
     let vocab = u32::try_from(artifacts.token_codes.len() / compiler::STAGES)
         .expect("vocabulary exceeds u32 token ids");
-    // #637 phase 2a: `--emit-provenance` binds whichever identity records
-    // the caller already passed (`--source-manifest-kappa`,
-    // `--geometry-projection`, `--attention-operator`, `--dense-operator`)
-    // into a PROV/1 section on the artifact itself, not just the JSON
-    // report. Digest strings that fail to parse as a canonical
-    // `blake3:<hex>`/bare-hex κ are refused before any output mutation,
-    // matching this parser's existing fail-closed CLI-argument pattern.
-    // Off by default: no existing pinned fixture's bytes or κ move.
-    let (artifact_bytes, info) = if options.emit_provenance {
+    // #637 phase 3: every `cover` artifact now unconditionally carries a
+    // PROV/1 section (maintainer-approved default flip, tracked on
+    // #637), binding whichever identity records the caller already
+    // passed (`--source-manifest-kappa`, `--geometry-projection`,
+    // `--attention-operator`, `--dense-operator`) -- or none at all,
+    // which is still a valid, deliberately-empty PROV/1 record per
+    // `emit_r4g1_with_provenance`'s own contract. Digest strings that
+    // fail to parse as a canonical `blake3:<hex>`/bare-hex κ are refused
+    // before any output mutation, matching this parser's existing
+    // fail-closed CLI-argument pattern. This changes every `cover`
+    // artifact's bytes and κ relative to phases 1/2a (which were
+    // additive/opt-in). No checked-in fixture in this workspace pins
+    // `cover`'s emitted R4G1 bytes or κ literally (the full crate test
+    // suite -- graph-cli, graph-compiler, graph-format -- was run
+    // against this change and is unaffected); the unrelated Gate E
+    // `kappa_reproduction`/`TLESS_REPIN_WRITE` procedure in AGENTS.md
+    // re-pins a different fixture (the llama2.c reference model) and is
+    // not touched by this slice.
+    let (artifact_bytes, info) = {
         let parse_digest = |label: &str, value: &str| {
             uor_r4_graph_format::parse_digest_hex(value).ok_or_else(|| {
                 SourceUnavailable::new(format!(
@@ -4649,17 +4654,6 @@ fn cover_command_with_authority(
             &train,
             tokenizer_cid,
             &provenance,
-        )
-    } else {
-        cover::emit_r4g1_with_tokenizer_cid(
-            &artifact_container,
-            (&meta_bytes, &recs_bytes),
-            vocab,
-            &induced.cover,
-            &edges,
-            &prior,
-            &train,
-            tokenizer_cid,
         )
     }
     .map_err(|bound| {
@@ -11468,13 +11462,12 @@ mod tests {
         assert_eq!(defaults.source_manifest_kappa, None);
     }
 
-    /// #637 phase 2a: `--emit-provenance` is a no-value toggle (like
-    /// `--r4-attention` on the compile stage), off by default so no
-    /// existing pinned fixture's bytes move without an explicit opt-in.
+    /// #637 phase 3: `--emit-provenance` is retired as a gate (PROV/1 is
+    /// now unconditional -- see the `cover` emission call site), but the
+    /// flag itself still parses as a harmless no-op so any phase-2a
+    /// caller/script that already passes it keeps working unmodified.
     #[test]
-    fn cover_options_carry_the_emit_provenance_toggle() {
-        let defaults = parse_cover_options(&[]).expect("default cover options");
-        assert!(!defaults.emit_provenance);
+    fn cover_options_still_accept_the_now_no_op_emit_provenance_flag() {
         let kappa = format!("blake3:{}", "7".repeat(64));
         let args = [
             "--emit-provenance".to_owned(),
@@ -11482,7 +11475,6 @@ mod tests {
             kappa.clone(),
         ];
         let options = parse_cover_options(&args).expect("valid cover options");
-        assert!(options.emit_provenance);
         assert_eq!(
             options.source_manifest_kappa.as_deref(),
             Some(kappa.as_str())
