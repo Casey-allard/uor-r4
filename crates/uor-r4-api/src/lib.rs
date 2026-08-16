@@ -17,12 +17,18 @@
 //! - [`serving_eval`]: held-out evaluation of the serving surface —
 //!   the certify C row (issue #280) — measuring [`engine::R4Engine`]
 //!   with the D4 policy on a compiled bundle's own held-out split.
+//! - [`release_bundle`]: versioned release-bundle manifest schema
+//!   (#655-C0) — the declared identity a packaged serving bundle carries
+//!   (ABI/contract version, pinned `uor-matmul` provenance, component
+//!   digests, tokenizer identity). Schema and structural validation only;
+//!   no discovery/loading/serving wiring yet (that is #655-C1/D).
 //!
 //! Claim language follows `docs/formal_vocabulary.md`; nothing here
 //! strengthens or weakens the guarantees of the underlying crates.
 
 pub mod compile;
 pub mod engine;
+pub mod release_bundle;
 pub mod serving_eval;
 
 pub use compile::{
@@ -35,6 +41,10 @@ pub use engine::{
     InferenceRequest, InferenceResponse, InferenceWitness, PolicyCounters, PolicyStatus,
     PredictDecision, PredictOutcome, PredictOutput, R4Engine, ResolutionStatus, StatusAction,
     StatusPolicy, WitnessVerificationError,
+};
+pub use release_bundle::{
+    BundleAbi, BundleCapability, BundleComponentDigests, ReleaseBundleManifest,
+    UorMatmulProvenance, RELEASE_BUNDLE_MANIFEST_SCHEMA,
 };
 
 // The bytes-based tokenizer the engine's text helpers use
