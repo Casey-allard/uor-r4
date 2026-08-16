@@ -133,18 +133,32 @@ whole method is measurement.
 
 **Real limitations, stated plainly:**
 
-- **Generation quality is weak.** On out-of-distribution prompts the compiled
-  runtimes score around 1% top-1 against the teacher. On in-distribution corpus
-  replay Gate C measures ~36% top-1 on the 500k fixture. This is a research
-  engine, not a chat model.
+- **Generation quality is weak, and on the best locally compiled bundle it is
+  currently incoherent.** On out-of-distribution prompts the compiled runtimes
+  score around 1% top-1 against the teacher. On in-distribution corpus replay
+  Gate C measures ~36% top-1 on the 500k fixture, and a broader teacher (P3,
+  #509) lifts broad-text held-out top-1 to 10.2–29.0% causal — real,
+  replicated, goal-aligned signal. That signal has **not yet composed into
+  coherent multi-token output**: asked real questions through `r4 ask`, this
+  repository's largest local bundle answers in non-grammatical word-salad, and
+  smaller bundles answer with nothing (#745, open). See
+  [Which track can actually produce coherent text](docs/RESEARCH.md#which-track-can-actually-produce-coherent-text--the-honest-current-answer)
+  for the full picture — this is the project's central open question, not a
+  footnote. This is a research engine, not a chat model.
 - **Instruction following is gated, not solved.** `r4 ask` accepts only an
   imported `instruction-chat` manifest carrying a CID-addressed passing
   evaluation report, precisely so a fast continuation artifact cannot be
   presented as a question-answering model.
 - **Standalone two-pass generation is refuted**, twice, and is not coming back.
-- **The geometric router's retrieval was measured broken**, and the fix sits
-  behind a default-off knob. Until issue #490 clears its gate, the deployed
-  retrieval ranking is word overlap, not geometry.
+- **The geometric router's retrieval was measured broken, and is now fixed and
+  shipping.** #486 found `retrieve_geometric_resonance` compared a *routing*
+  query vector against the stored *content* vector — a category error that put
+  the cosine at chance. #490 (closed 2026-08-08) fixed the query to use the
+  same content-vector construction as storage, landing 0.8542 MRR; #502
+  (closed) then dropped the now-meaningful lexical term to reach the current
+  deployed default of 0.8763 MRR / 0.99 recall. Both are the shipped default
+  today — see [docs/RESEARCH.md](docs/RESEARCH.md#what-works-and-is-load-bearing)
+  for the full record.
 
 Every claim above traces to a merged measurement — see
 [docs/RESEARCH.md](docs/RESEARCH.md).
@@ -165,12 +179,19 @@ crates/
   uor-r4-model-source    teacher forward-pass port + pinned Safetensors adapter
   uor-r4-proof-model     executable proof obligations + proof-status matrix
   uor-r4-api             typed compile + engine library facade for downstream consumers
+  uor-r4-naf             UOR-NAF v1 interchange slice + GNAF claim/status vocabulary (#623)
+  repo-model             typed registries parsed from `model/*.toml`; generates CONFORMANCE.md (R1)
+  repo-conformance       BDD runner + honesty meta-gate cross-checking scenarios/IDs/tests (R2/R3)
+xtask/                   repository gates (`cargo xtask <task>`); enforces the rules in AGENTS.md
 src/                     root package: the `r4` binary, HTTP server, chat, WASM facade
 docs/                    research records, design docs, explainers, formal material
 features/                Cucumber BDD suites (teacher parity, FMM)
 scripts/                 CI gates and corpus tooling
 research/                exploratory notes (290-fmm, 395-e8)
 models/                  pinned model descriptors
+proofs/wasm-gemm-gnaf/   vendored WASM-GEMM-GNAF (#653/#742) — Lean4 proof that a WASM GEMM
+                         kernel is cost-optimal; formal reference material, NOT in the deployed
+                         dependency graph and NOT an LLM engine (see docs/gnaf_import_provenance.md)
 tests/                   root-package integration tests and BDD steps
 index.html, index.css    browser dashboard
 r4_worker.js             dashboard WASM worker
@@ -508,7 +529,8 @@ cd /tmp && unzip -o run.com out/model.bin tokenizer.bin -d ref
 
 **Start here**
 
-- [docs/RESEARCH.md](docs/RESEARCH.md) — what is measured, what is closed, what is open.
+- [docs/RESEARCH.md](docs/RESEARCH.md) — what is measured, what is closed, what is open, and
+  [which track can actually produce coherent text](docs/RESEARCH.md#which-track-can-actually-produce-coherent-text--the-honest-current-answer).
 - [docs/MODEL_LIFECYCLE.md](docs/MODEL_LIFECYCLE.md) — download → compile → cover → score → evaluate → import → serve.
 - [AGENTS.md](AGENTS.md) — contributor manual: gates, normative invariants, κ re-pin, long-run discipline.
 - [CONTRIBUTING.md](CONTRIBUTING.md) — how to open a PR here.
@@ -529,6 +551,8 @@ cd /tmp && unzip -o run.com out/model.bin tokenizer.bin -d ref
 [Formal vocabulary](docs/formal_vocabulary.md) (normative for claim wording) ·
 [Reproducibility](docs/reproducibility.md) ·
 [Performance comparison](docs/transformerless/COMPARISON.md) ·
+[GNAF import provenance](docs/gnaf_import_provenance.md) (vendored formal-verification
+reference material, not an LLM engine — #653) ·
 [Matrix-operation census](docs/matrix_operation_census.md) ·
 [Serving-time model discovery](docs/SERVING_MODEL_DISCOVERY.md)
 

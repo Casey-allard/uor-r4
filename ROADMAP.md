@@ -6,7 +6,38 @@ programme — what has been measured, refuted and left open — lives in
 purpose. Research direction is set by measurement and changes faster than this
 list does.
 
-_Last reviewed: 2026-08-08._
+_Last reviewed: 2026-08-16._
+
+## Next up (recommended sequencing)
+
+Order for the currently open backlog, based on what actually unblocks
+progress toward a working transformerless LLM — not effort or familiarity:
+
+1. **[#744](https://github.com/UOR-Foundation/uor-r4/issues/744)** —
+   reconcile the `instruction_eval_passed` quality gate with real generation
+   quality (two manifests over identical compiled bytes currently report
+   opposite numbers and both pass). Cheap and bounded, and everything
+   downstream — bundle selection, knowing whether a #745 fix actually helped,
+   trusting future compiles — depends on this gate being honest.
+2. **[#745](https://github.com/UOR-Foundation/uor-r4/issues/745)** —
+   root-cause the degenerate word-salad / empty-output generation on the
+   best-available compiled bundle. This is the single open question that
+   decides whether the transformerless/R4G1 track can produce coherent text
+   at all — see
+   [Which track can actually produce coherent text](docs/RESEARCH.md#which-track-can-actually-produce-coherent-text--the-honest-current-answer).
+   Worth evaluating the dormant `#604` route-attention kernel
+   (`R4RouteAttentionV1`, P-4-legal, already built and differentially tested
+   but unused at serving time) as one candidate lever.
+3. **[#653](https://github.com/UOR-Foundation/uor-r4/issues/653) phase 2**
+   (GNAF adapter wiring) — lower priority; strengthens honesty/certification
+   infrastructure but does not itself move generation quality. Phase 1
+   (vendoring, #742) is landed.
+4. **[#740](https://github.com/UOR-Foundation/uor-r4/issues/740)**
+   (OpenAI-compatible API surface gaps) /
+   **[#741](https://github.com/UOR-Foundation/uor-r4/issues/741)**
+   (shipping/distribution) — explicitly deferred until #744/#745 land, per
+   the maintainer's own prior redirect on #655. Shipping a product that does
+   not yet generate coherent text is premature; revisit once it does.
 
 ## Landed
 
@@ -26,11 +57,21 @@ _Last reviewed: 2026-08-08._
 - [x] **Attestable / audit logging / provenance** — UOR attestation envelopes
   (`uor_address`, `artifact_cid`, `store_cid`, `attestation_cid`),
   `POST /api/uor/verify`, per-turn audit log rendered by `r4 audit`.
+- [x] **GNAF vendored (#653 phase 1, PR #742)** — the pinned
+  `WASM-GEMM-GNAF` Lean4 proof project is vendored at
+  `proofs/wasm-gemm-gnaf/` with full provenance
+  (`docs/gnaf_import_provenance.md`). It is a proof that a WASM GEMM kernel
+  is cost-optimal, unrelated to text generation; source and provenance only
+  — not wired into any pipeline, not in the deployed dependency graph. Phase
+  2 (adapter wiring) is open, see Next up above.
 
 ## Capabilities
 
-- [~] Text-based AI — compiles and serves; **generation quality is the open
-  research problem**, see [docs/RESEARCH.md](docs/RESEARCH.md)
+- [~] Text-based AI — compiles and serves; **coherent end-to-end generation is
+  the open research problem** (#745), not just "quality is weak" — the best
+  locally compiled bundle currently answers real questions in non-grammatical
+  word-salad, even though offline per-position metrics show real signal. See
+  [Which track can actually produce coherent text](docs/RESEARCH.md#which-track-can-actually-produce-coherent-text--the-honest-current-answer).
 - [ ] Image
 - [ ] Audio
 

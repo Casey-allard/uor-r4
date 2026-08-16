@@ -198,9 +198,74 @@ top-1 by 5.0pp. Not a counterexample — the resolution levers that failed all
 subdivided structures already resolved enough to be predictive. **Resolution pays
 up to the point where a structure predicts at all, and not past it.**
 
+## Which track can actually produce coherent text — the honest current answer
+
+This project's goal is a serving-time LLM with zero multiply/divide/float in
+the deployed kernel (P-4) — not merely a research artifact that scores well on
+per-position offline metrics. The #655 coherence sweep (2026-08-16, diagnostic
+only, no code changed; findings tracked as #743/#744/#745) is the most direct
+evidence yet on whether that goal is reachable, and it needs both halves
+stated together, because reading either alone is misleading.
+
+**The offline per-position signal is real and P-4-clean.** #509/#320's P3
+result — swapping only the teacher for SmolLM2-360M on a broad Simple-Wiki
+partition — moved held-out top-1 from the narrow-teacher ~0.1% off-distribution
+floor to 10.2% (Rule 1+2) / 29.0% (latent-mix, causal), a ~100–290× lift,
+entirely inside the transformerless/R4G1 table-native kernel. Deployed
+inference is machine-checked matmul-free
+(`p4_contract_owned_graph_runtime_source_scan`,
+[matrix_operation_census.md](matrix_operation_census.md)); only the *offline
+teacher-compile* step performs matrix multiplication, and even that now runs
+through the project's own `uor-matmul` exact GEMM rather than platform BLAS.
+That is genuine, replicated, goal-aligned signal, and it is why the
+broad-corpus programme is licensed rather than abandoned.
+
+**That signal has not yet composed into coherent multi-token generation.** The
+#655 sweep asked the actual best-available locally compiled bundle
+(`smollm2-1-7b-chat`, 34.7% top-1 per its own eval) real questions through
+`r4 ask`. The output was non-grammatical word-salad cycling a small set of
+tokens (`tetra`, `gru`, `gulick`, `chall`, `caption`…) — not "weak English,"
+not close. Smaller bundles produced empty output. **#745** is chartered to
+root-cause this specifically; it is an open, unresolved question whether the
+cause is a fixable defect (bad bundle selection, a broken quality gate per
+**#744**, a decoding bug) or a genuine ceiling of the current cover/store
+design at multi-step generation time — see #745's own text for both
+hypotheses. Separately, **#743** found (and fixed, PR #746) that the serving
+loader panicked instead of failing closed on a stale/mismatched bundle — a
+robustness gap, not itself an explanation for the word-salad output on the
+bundle that *does* load.
+
+**So: which track could work?** Of the tracks that are actually goal-aligned
+(no transformer, no matmul, no float in the deployed kernel), the
+transformerless TLA runtime and the R4G1 graph scorer — the same underlying
+compiled representation viewed through two runtimes — are the only ones with
+any positive, replicated empirical signal at all. Neither is proven to work
+end-to-end yet; #745 is the open question that would settle it either way.
+The **geometric router** is a validated, real component (content-query
+retrieval MRR 0.88+, #486/#490/#502) but it is a retrieval/routing mechanism,
+not itself a generative model, and it runs on `f64` outside the P-4 kernel by
+design (see the project-layout table in [README.md](../README.md)) — it
+strengthens the product, it is not a candidate to *be* the product. The
+**dormant #604 route-attention kernel**
+(`R4RouteAttentionV1`, `crates/uor-r4-graph-runtime/src/route_attention.rs`)
+is worth calling out separately: a fully implemented, differentially-tested,
+P-4-legal integer attention analog (masked-XOR/popcount distance plus bounded
+top-M selection) that is constructible today but wired into **no serving
+path** — registered dormant (`r4-route-attention-dormant`) in
+`model/ledger.toml`. It is the closest thing in this repository to a
+transformer-*shaped* mechanism that is also genuinely goal-aligned, and it has
+not yet been evaluated as a lever for #745's generation-quality question. The
+**`attention`/`r4-attention`** engine modes and **GNAF** (#653) are out of
+scope for this question by the project's own stated goal: the former run the
+teacher's real matmul/float attention purely as a comparison baseline, never
+as the shipped product; GNAF is a Lean4 proof that a WASM GEMM kernel is cost-
+optimal — formal-verification infrastructure unrelated to text generation,
+whose only legitimate integration point is an honesty/claim-vocabulary bridge
+(`uor-r4-naf::claims`, #623), not a generation mechanism.
+
 ## Open, with defined work
 
-*Recently landed and closed (GitHub is the source of truth; this table tracks what is still open): **#502** — dropped the lexical weight (W=0) on the deployed content-query path (+0.022 MRR / +0.032 top-1, a simplification); the #421 rows are invariant under the weight, so the gate was moot the same way #490's was (below). **#488** — phase-timing instrument (DoD met); the at-scale run is now **#503**. **#457** — IPF Arm B landed NEGATIVE, consistency operator reaches only the unigram floor (below). **#486/#490** — the serving path compared a routing vector to a content vector; the content-vector query is now the deployed default (+0.1363 MRR), with the serde-default and blast-radius findings recorded on #490. **#487** — corrected #434's Spectral record (lexical, not geometry). **#493** — the VSA switch made honest; its `0.0000` is a scoring category error, not a wiring gap (below). **#458/#459** — interaction information and the estimation ladder, both landed NEGATIVE/count-limited. **#456** — reconstructability certificate + null arm (below).*
+*Recently landed and closed (GitHub is the source of truth; this table tracks what is still open): **#743** — `R4Engine::load` failed closed with a typed `SourceUnavailable` decline on a teacher_cid pairing mismatch instead of panicking (PR #746); the root cause was data-pairing drift between two independently-sourced bundle files, not format/era drift as first hypothesized. **#502** — dropped the lexical weight (W=0) on the deployed content-query path (+0.022 MRR / +0.032 top-1, a simplification); the #421 rows are invariant under the weight, so the gate was moot the same way #490's was (below). **#488** — phase-timing instrument (DoD met); the at-scale run is now **#503**. **#457** — IPF Arm B landed NEGATIVE, consistency operator reaches only the unigram floor (below). **#486/#490** — the serving path compared a routing vector to a content vector; the content-vector query is now the deployed default (+0.1363 MRR), with the serde-default and blast-radius findings recorded on #490. **#487** — corrected #434's Spectral record (lexical, not geometry). **#493** — the VSA switch made honest; its `0.0000` is a scoring category error, not a wiring gap (below). **#458/#459** — interaction information and the estimation ladder, both landed NEGATIVE/count-limited. **#456** — reconstructability certificate + null arm (below).*
 
 | Issue | Question | State |
 |---|---|---|
@@ -213,6 +278,8 @@ up to the point where a structure predicts at all, and not past it.**
 | #320 | Teacher upgrade (SmolLM2) | P1/P2 rehearsal recorded; **P3 decided POSITIVE** (#509, this record). Repeatedly named the **binding constraint on absolute accuracy** — the stories15M argmax is near-degenerate on broad text (6.4% next==argmax on wiki10k vs 70.2% on its home corpus). P3 tested the prediction directly: swap only the teacher (SmolLM2-360M) on the same Simple-Wiki D3 partition and broad-text held-out top-1 moves from the recorded ~0.1% off-distribution floor to **10.2% (Rule 1+2) / 29.0% (latent-mix #446 M2)**, both causal. Teacher breadth was the constraint; the broad-corpus program is warranted. The baseline re-pin stays a maintainer step per AGENTS.md. [smollm2_teacher_baseline_320.md](smollm2_teacher_baseline_320.md#p3--broad-corpus-program-509-smollm2-360m-observed-on-simple-wiki) |
 | #509 | Broad-corpus decider (P3 for #320) | **Landed POSITIVE & closed** (this record). One end-to-end broad-text pass — observe SmolLM2-360M on Simple-Wiki (3,000 articles → 21,235 records) → recorded compile → cover (46 regions) → score `relative_tla` → Gate C on 4,358 held-out D3 positions. Rule 1+2 **10.2%** / 12.72 bits, latent-mix (#446 M2, causal) **29.0%** / 11.71 bits, vs the narrow-teacher ~0.1% off-distribution floor — a ~100–290× lift on the causal rows, clearing the unigram null and shuffled-class control. Absolute accuracy is still compiler-/data-bound, far below the teacher floor, so this licenses the program, not substrate parity. All native, no GPU. [smollm2_teacher_baseline_320.md](smollm2_teacher_baseline_320.md#p3--broad-corpus-program-509-smollm2-360m-observed-on-simple-wiki) |
 | #273 | Template rebase / claim register | **Landed & closed** (PR #511). Adopted the UOR-Foundation/template register machinery (`repo-model`, `repo-conformance`, `xtask`, `model/`) and brought uor-r4's real BDD under it: 29 feature suites / 101 scenarios tagged `@RF-NN @build`, registered in `model/ids.toml` with explicit marker tests, cucumber unbroken. R1–R3 gates wired and advisory in CI; R4/R5/R6 spun out as **#510**. The r4 scenarios supersede the template's empty scaffolding — the goal was to beef up the BDD, not replace it |
+| #744 | `instruction_eval_passed` quality gate self-consistency | **Open.** The #655 sweep found two manifests over byte-identical compiled artifacts (`smollm2-135m-instruct` vs `smollm2-135m-chat`, and the 360M/1.7B pair) report opposite quality — `grounded_answer_rate`/`repetition_rate` of 0.0/1.0 on one manifest and 0.85/0.01 on the other for the *same bytes* — and both pass the gate. Either the "-instruct" vs "-chat" eval methodology differs substantially, or the gate does not discriminate real output from total failure; `instruction_eval_passed` is the thing `r4 ask` relies on to accept a bundle at all, so a gate that cannot tell the two apart is a live risk of serving a broken bundle as passing |
+| #745 | Root-cause the degenerate small-vocabulary generation on the best-available compiled bundle | **Open.** The #655 sweep asked real questions of every reachable local bundle through `r4 ask`. `smollm2-135m-instruct`/`-chat` (recorded 0.0/1.0 and 0.85/0.01 respectively) both returned empty output. `smollm2-1-7b-chat` — this repo's largest/best-looking local bundle, 34.7% top-1 per its own eval — produced non-grammatical word-salad cycling a small set of nonsense tokens, not degraded-but-recognizable English. Open hypotheses: a specific fixable defect (bundle selection, decoding, the #744 gate feeding a bad "best" choice) vs. a genuine ceiling of the current cover/store design at multi-step generation time. See [Which track can actually produce coherent text](#which-track-can-actually-produce-coherent-text--the-honest-current-answer) above — this is the single open question that would settle it |
 
 ## Measurement infrastructure
 
