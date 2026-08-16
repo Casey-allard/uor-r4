@@ -106,6 +106,16 @@ pub struct R4g1State {
     host_tokenizer: Option<TokenizerKind>,
 }
 
+/// One exact, already-captured standalone artifact generation. The server
+/// uses this for an explicit non-bundle `--r4g1-artifact` so no inferred
+/// ancestor lock or second pathname read can change the generation loaded.
+pub(crate) struct CapturedR4g1Bundle {
+    pub(crate) graph: Vec<u8>,
+    pub(crate) signature_artifact: Vec<u8>,
+    pub(crate) tokenizer: Option<Vec<u8>>,
+    pub(crate) score_report: Option<Vec<u8>>,
+}
+
 impl R4g1State {
     /// The manifest policy in force (D4 defaults or the score-report
     /// override).
@@ -218,7 +228,37 @@ impl R4g1State {
             .map(read_optional_tokenizer)
             .transpose()?
             .flatten();
-        let tokenizer = tokenizer_bytes
+        // Historical behavior: a score report that does not parse is
+        // ignored (D4 defaults), not an error — pre-validate before
+        // handing the bytes to the typed loader.
+        let score_report = graph_path
+            .parent()
+            .and_then(|parent| std::fs::read(parent.join("score_report.json")).ok())
+            .filter(|bytes| serde_json::from_slice::<serde_json::Value>(bytes).is_ok());
+        Self::load_captured_with_source(
+            graph_path,
+            teacher_path,
+            &CapturedR4g1Bundle {
+                graph: graph_bytes,
+                signature_artifact: teacher_bytes,
+                tokenizer: tokenizer_bytes,
+                score_report,
+            },
+            source_dir,
+        )
+    }
+
+    pub(crate) fn load_captured_with_source(
+        graph_path: &Path,
+        teacher_path: &Path,
+        captured: &CapturedR4g1Bundle,
+        source_dir: Option<&Path>,
+    ) -> Result<Self, String> {
+        let tokenizer_path = teacher_path
+            .parent()
+            .map(|parent| parent.join("tokenizer.bin"));
+        let tokenizer = captured
+            .tokenizer
             .as_deref()
             .map(|bytes| {
                 Tokenizer::from_bytes(bytes).ok_or_else(|| {
@@ -232,20 +272,13 @@ impl R4g1State {
                 })
             })
             .transpose()?;
-        // Historical behavior: a score report that does not parse is
-        // ignored (D4 defaults), not an error — pre-validate before
-        // handing the bytes to the typed loader.
-        let score_report = graph_path
-            .parent()
-            .and_then(|parent| std::fs::read(parent.join("score_report.json")).ok())
-            .filter(|bytes| serde_json::from_slice::<serde_json::Value>(bytes).is_ok());
         let engine = R4Engine::load(EngineParts {
-            graph: &graph_bytes,
-            signature_artifact: &teacher_bytes,
+            graph: &captured.graph,
+            signature_artifact: &captured.signature_artifact,
             // Supplying the exact bytes makes the graph header's independent
             // tokenizer.bin CID binding authoritative at this boundary.
-            tokenizer: tokenizer_bytes.as_deref(),
-            score_report: score_report.as_deref(),
+            tokenizer: captured.tokenizer.as_deref(),
+            score_report: captured.score_report.as_deref(),
         })
         .map_err(|error| {
             // The engine loader now returns a single sanctioned

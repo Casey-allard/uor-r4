@@ -22,6 +22,10 @@ rather than driving its CLI.
   resumes from the work-directory checkpoint (detected structurally from
   the corpus metadata done byte — the same gate the corpus loader
   applies — never by parsing stage stdout).
+  `CompiledModel::source_execution_identity()` registry-validates the
+  attention/dense pair persisted in `compile_report.json`;
+  `attention_operator()` and `dense_operator()` are nonbreaking convenience
+  accessors. Dense absence remains `None` for Llama and historical reports.
 - **Typed engine** (`engine::R4Engine`): loads from byte slices only
   (`EngineParts`) — no filesystem access. The graph passes the format
   crate's two-stage structural validation and CID verification before
@@ -76,6 +80,11 @@ validated `TokenizerAdapter` record: family, version, CID of the exact raw
 definition, declared policy, and adapter digest. That raw-definition CID is
 distinct from `provenance.digests.tokenizer`, which addresses the emitted
 runtime `tokenizer.bin` bytes.
+
+Source arithmetic is execution provenance, not a compile knob. The API derives
+the teacher's registered `attention_operator` and optional `dense_operator`
+from the source adapter, forwards both through Stage A and cover, and does not
+add a `CompileOptions` selector that could mislabel model-produced rows.
 
 ## Downstream contract
 

@@ -47,6 +47,16 @@ are shipped:
 - **The two-sided calibration gain** (#446), which is causally legitimate, sits
   at top-1 parity, and grows large at scale in bits.
 
+The offline source-teacher arithmetic migration is also measurement-gated.
+For GPT-2 dense execution (#704), the pre-declared whole-model 11-token gate
+passed: paired median candidate/conventional time was `0.694987183`, with an
+exact one-sided 95% bootstrap upper bound of `0.703876225` against the `≤ 3.0`
+rule, while timed output parity and the allocation/fallback census remained
+clean. That result adopts `gpt2-source-dense/2` for Conv1D, MLP, and tied
+`lm_head` source execution without changing the deployed table runtime. The
+run contract, hashes, negative canaries, and census are in
+[gpt2_dense_704.md](gpt2_dense_704.md).
+
 > **Reading the 0.8948 correctly.** It is a **cosine-ranked** figure. For a long
 > time it did not describe `get_top_resonances_native`, whose ordering is word
 > overlap — and #486 found the reason: that path compared a *routing* vector

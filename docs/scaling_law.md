@@ -174,8 +174,9 @@ promise.
   surfaced a latent bug: `compile-recorded --out $D` re-emits
   `corpus.meta`/`corpus.records` into `$D`, clobbering same-directory inputs.
   The harness now writes each sub-sample as a canonical pair under
-  `$D/input/`, uses `copy-recorded-attention` to preserve its
-  registry-validated source-attention binding, and uses the copied output pair
+  `$D/input/`, uses `copy-recorded-attention` to preserve its complete
+  registry-validated source-execution pair (attention plus optional dense), and
+  uses the copied output pair
   for cover/score. Keeping input and output roots distinct also prevents an
   unrelated same-directory filename pair from inheriting another corpus's
   provenance.
@@ -192,3 +193,54 @@ promise.
   earlier 360M-only sweep (#516, below the knee at 360k) is superseded by this
   past-knee measurement. The law, the calculator, and the harness remain complete
   and mutually consistent; what remains is a resolution metric, not compute.
+
+## 2026-08-16 honesty correction and current runbook (#729)
+
+This section supersedes the interpretation and operational instructions above;
+the earlier text and tables remain as the dated record of what was run and what
+was believed at the time.
+
+The #531 rows were produced with the retired Python prefix writer. That helper
+ended a source prefix at a complete story-run boundary, then wrote the derived
+metadata's `stories` field as `max(kept story id) + 1`. Because the compiler's
+80/20 cutoff is calculated from that field, the cutoff moved with each derived
+corpus instead of retaining the finalized source's train/held partition. The
+rows are still descriptive records of those individual executions, but their
+size-to-size differences confound record count with partition membership.
+
+Consequently, #531 is **not** fixed-partition evidence for a 1.5M-record knee,
+does **not** empirically ground `N_REF = 2,000,000`, and supplies no β estimate.
+`N_REF` and the provisional `BETA = 0.5` remain estimator configuration, not
+parameters certified by that sweep. Issue #729 changes the derivation and
+workflow only; it does not spend another multi-hour run or replace the
+historical rows with new measurements.
+
+The current fixed-partition runbook is:
+
+```bash
+# Defaults: 50k/200k/800k when below the source, then the exact source N.
+scripts/scale_sweep.sh SOURCE/corpus.meta SOURCE/corpus.records 49152
+
+# Or predeclare every requested size explicitly (the exact source is allowed).
+scripts/scale_sweep.sh SOURCE/corpus.meta SOURCE/corpus.records 49152 \
+    50000 200000 800000 1995026
+```
+
+The script validates every requested size against finalized source metadata
+before creating `WORK`; any request above the source size terminates without a
+partial sweep. Every size, including the exact-source case, goes through
+`r4 transformerless subsample-recorded-corpus`. That Rust transaction preserves
+the source `stories`, RNG state, completion marker, execution identity, and
+fixed story partition while selecting deterministic complete story runs. A
+selection may undershoot its request rather than split a run, so the report
+shows both `requested` and `actual`.
+
+Each case has sibling `input/`, `compiled/`, `cover/`, and `score/` roots. The
+reported `actual` count comes from finalized `input/corpus.meta`; `train` and
+`held` come from `cover/cover_report.json`. The script requires
+`actual = train + held` and requires both Gate C's held-out population and the
+score distribution's held-out positions to equal `held` before it prints the
+row. Re-running the same command uses the same case paths and the underlying
+idempotent publication transactions. The historical
+`scripts/mc1_subsample_corpus.py` is now a non-writing tombstone that directs
+callers to the Rust command.

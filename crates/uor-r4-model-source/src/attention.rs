@@ -608,10 +608,11 @@ impl AttentionOperatorSpec {
         record
     }
 
-    /// Immutable current `learned-absolute-source-attention/2` entry. GPT-2's
-    /// projections stay conventional; Q·K/value use certified-native cells
-    /// with the pinned exact fallback, and normalization retains reciprocal
-    /// multiplication rather than Llama's divisions.
+    /// Immutable current `learned-absolute-source-attention/2` entry. Its
+    /// projection fields declare GPT-2 topology; when a dense record is
+    /// present, that separate record owns projection arithmetic. Q·K/value use
+    /// certified-native cells with the pinned exact fallback, and normalization
+    /// retains reciprocal multiplication rather than Llama's divisions.
     pub fn learned_absolute_v2() -> Self {
         let mut record = Self {
             id: Self::LEARNED_ABSOLUTE_ID.to_owned(),

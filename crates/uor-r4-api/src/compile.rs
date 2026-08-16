@@ -25,6 +25,7 @@
 use std::fmt;
 use std::path::{Path, PathBuf};
 
+use serde::Deserialize;
 use uor_r4_core::transformerless::hf_bpe::{adapter_constructor, resolve_source_tokenizer};
 pub use uor_r4_core::transformerless::hf_bpe::{TokenizerAdapter, TokenizerAdapterKey};
 use uor_r4_graph_certify::score::{
@@ -38,6 +39,8 @@ use uor_r4_graph_format::{
     ContractVersion, FORMAT_VERSION_MAJOR, FORMAT_VERSION_MINOR,
     INFERENCE_OPERATION_CONTRACT_VERSION,
 };
+use uor_r4_model_source::attention::AttentionOperatorSpec;
+use uor_r4_model_source::dense::DenseOperatorSpec;
 use uor_r4_model_source::SourceUnavailable;
 
 /// Which compiler stage a progress event or failure belongs to.
@@ -222,6 +225,80 @@ pub struct CompiledModel {
     pub provenance: CompileProvenance,
 }
 
+/// Exact optional host-side source execution records persisted in the cover
+/// report. This is compile evidence, not a deployed-runtime operator choice.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SourceExecutionIdentity {
+    pub attention_operator: Option<AttentionOperatorSpec>,
+    pub dense_operator: Option<DenseOperatorSpec>,
+}
+
+#[derive(Deserialize)]
+struct CompileReportExecutionProjection {
+    #[serde(default)]
+    attention_operator: Option<AttentionOperatorSpec>,
+    #[serde(default)]
+    dense_operator: Option<DenseOperatorSpec>,
+}
+
+impl CompiledModel {
+    /// Parse and registry-validate the source attention/dense pair from the
+    /// immutable `compile_report` bytes returned with this model.
+    pub fn source_execution_identity(&self) -> Result<SourceExecutionIdentity, SourceUnavailable> {
+        let projection: CompileReportExecutionProjection =
+            serde_json::from_slice(&self.compile_report).map_err(|error| {
+                SourceUnavailable::new(format!(
+                    "compile_report.json does not contain readable source execution provenance: {error}"
+                ))
+            })?;
+        if let Some(operator) = projection.attention_operator.as_ref() {
+            let registered =
+                uor_r4_model_source::attention::operator_spec(&operator.id, operator.version)?;
+            if registered != *operator {
+                return Err(SourceUnavailable::new(format!(
+                    "compile report attention operator {}/{} diverges from its immutable registry record",
+                    operator.id, operator.version
+                )));
+            }
+        }
+        if let Some(operator) = projection.dense_operator.as_ref() {
+            let registered =
+                uor_r4_model_source::dense::operator_spec(&operator.id, operator.version)?;
+            if registered != *operator {
+                return Err(SourceUnavailable::new(format!(
+                    "compile report dense operator {}/{} diverges from its immutable registry record",
+                    operator.id, operator.version
+                )));
+            }
+        }
+        uor_r4_model_source::dense::validate_source_execution_pair(
+            projection.attention_operator.as_ref(),
+            projection.dense_operator.as_ref(),
+        )
+        .map_err(|mut error| {
+            error.reason = format!(
+                "compile report source execution provenance: {}",
+                error.reason
+            );
+            error
+        })?;
+        Ok(SourceExecutionIdentity {
+            attention_operator: projection.attention_operator,
+            dense_operator: projection.dense_operator,
+        })
+    }
+
+    /// Exact optional source-attention record from `compile_report.json`.
+    pub fn attention_operator(&self) -> Result<Option<AttentionOperatorSpec>, SourceUnavailable> {
+        Ok(self.source_execution_identity()?.attention_operator)
+    }
+
+    /// Exact optional host-side dense record from `compile_report.json`.
+    pub fn dense_operator(&self) -> Result<Option<DenseOperatorSpec>, SourceUnavailable> {
+        Ok(self.source_execution_identity()?.dense_operator)
+    }
+}
+
 /// The result of one [`compile`] call: either the scored graph is ready,
 /// or the teacher corpus is still incomplete and the same request should
 /// be re-run (the corpus checkpoint in the work directory resumes). The
@@ -294,6 +371,7 @@ pub fn compile(
     })?;
     let tokenizer_adapter = read_stage_a_tokenizer_adapter(work, &preflight_tokenizer_adapter)?;
     let attention_operator = uor_r4_graph_cli::compiled_attention_operator(work)?;
+    let dense_operator = uor_r4_graph_cli::compiled_dense_operator(work)?;
 
     if !corpus_complete(&meta)? {
         return Ok(CompileOutcome::Incomplete {
@@ -312,8 +390,13 @@ pub fn compile(
         percent: 0,
         label: "Inducing multiresolution cover...",
     });
-    uor_r4_graph_compiler::compile(&stage_b_flags(request, &cover_out, &attention_operator)?)
-        .map_err(|error| SourceUnavailable::new(format!("{} stage: {error}", Stage::GraphCover)))?;
+    uor_r4_graph_compiler::compile(&stage_b_flags(
+        request,
+        &cover_out,
+        &attention_operator,
+        dense_operator.as_ref(),
+    )?)
+    .map_err(|error| SourceUnavailable::new(format!("{} stage: {error}", Stage::GraphCover)))?;
     progress(ProgressEvent {
         stage: Stage::GraphCover,
         percent: 100,
@@ -584,6 +667,7 @@ fn stage_b_flags(
     request: &CompileRequest,
     cover_out: &Path,
     operator: &uor_r4_model_source::attention::AttentionOperatorSpec,
+    dense_operator: Option<&uor_r4_model_source::dense::DenseOperatorSpec>,
 ) -> Result<Vec<String>, SourceUnavailable> {
     let options = &request.options;
     let work = &request.work_dir;
@@ -620,6 +704,12 @@ fn stage_b_flags(
         SourceUnavailable::new(format!("attention-operator binding serialization: {error}"))
     })?;
     flags.extend(["--attention-operator".to_owned(), json]);
+    if let Some(operator) = dense_operator {
+        let json = serde_json::to_string(operator).map_err(|error| {
+            SourceUnavailable::new(format!("dense-operator binding serialization: {error}"))
+        })?;
+        flags.extend(["--dense-operator".to_owned(), json]);
+    }
     Ok(flags)
 }
 
@@ -671,6 +761,29 @@ mod tests {
         }
     }
 
+    fn compiled_model_with_report(report: serde_json::Value) -> CompiledModel {
+        CompiledModel {
+            graph: Vec::new(),
+            signature_artifact: Vec::new(),
+            tokenizer: None,
+            score_report: Vec::new(),
+            compile_report: serde_json::to_vec(&report).expect("compile report fixture"),
+            provenance: CompileProvenance {
+                options: CompileOptions::default(),
+                tokenizer_adapter: TokenizerAdapter::default(),
+                format_version: (FORMAT_VERSION_MAJOR, FORMAT_VERSION_MINOR),
+                contract_version: INFERENCE_OPERATION_CONTRACT_VERSION,
+                digests: ComponentDigests {
+                    graph: "blake3:fixture".to_owned(),
+                    signature_artifact: "blake3:fixture".to_owned(),
+                    tokenizer: None,
+                    score_report: "blake3:fixture".to_owned(),
+                    compile_report: "blake3:fixture".to_owned(),
+                },
+            },
+        }
+    }
+
     #[test]
     fn tokenizer_adapter_is_threaded_as_an_atomic_stage_a_pair() {
         let mut request = request(None);
@@ -690,7 +803,7 @@ mod tests {
         let expected = request.work_dir.join("tokenizer.bin").display().to_string();
         let operator = uor_r4_model_source::attention::AttentionOperatorSpec::standard();
         for flags in [
-            stage_b_flags(&request, Path::new("cover"), &operator).expect("cover flags"),
+            stage_b_flags(&request, Path::new("cover"), &operator, None).expect("cover flags"),
             stage_c_flags(&request, Path::new("cover"), Path::new("scored")),
         ] {
             assert!(
@@ -823,12 +936,18 @@ mod tests {
     fn source_manifest_kappa_is_threaded_into_cover_stage_flags() {
         let kappa = format!("blake3:{}", "7".repeat(64));
         let operator = uor_r4_model_source::attention::AttentionOperatorSpec::standard();
-        let with = stage_b_flags(&request(Some(kappa.clone())), Path::new("cover"), &operator)
-            .expect("flags");
+        let with = stage_b_flags(
+            &request(Some(kappa.clone())),
+            Path::new("cover"),
+            &operator,
+            None,
+        )
+        .expect("flags");
         assert!(with
             .windows(2)
             .any(|pair| pair == ["--source-manifest-kappa", kappa.as_str()]));
-        let without = stage_b_flags(&request(None), Path::new("cover"), &operator).expect("flags");
+        let without =
+            stage_b_flags(&request(None), Path::new("cover"), &operator, None).expect("flags");
         assert!(!without.iter().any(|flag| flag == "--source-manifest-kappa"));
         assert_eq!(with.len(), without.len() + 2);
     }
@@ -859,8 +978,85 @@ mod tests {
             // Deliberately contradict the supplied record where possible:
             // the stage-A binding, not this policy bit, is authoritative.
             request.options.r4_attention = operator == AttentionOperatorSpec::standard();
-            let flags = stage_b_flags(&request, Path::new("cover"), &operator).expect("flags");
+            let flags =
+                stage_b_flags(&request, Path::new("cover"), &operator, None).expect("flags");
             assert_eq!(flag_value(&flags), operator);
         }
+    }
+
+    #[test]
+    fn dense_operator_is_exactly_threaded_or_omitted_from_cover_flags() {
+        use uor_r4_model_source::attention::AttentionOperatorSpec;
+        use uor_r4_model_source::dense::DenseOperatorSpec;
+
+        let attention = AttentionOperatorSpec::learned_absolute_v2();
+        let dense = DenseOperatorSpec::gpt2_v2();
+        let with = stage_b_flags(&request(None), Path::new("cover"), &attention, Some(&dense))
+            .expect("dense flags");
+        let index = with
+            .iter()
+            .position(|flag| flag == "--dense-operator")
+            .expect("dense flag present");
+        let round_trip: DenseOperatorSpec =
+            serde_json::from_str(&with[index + 1]).expect("dense record round trip");
+        assert_eq!(round_trip, dense);
+
+        let without = stage_b_flags(&request(None), Path::new("cover"), &attention, None)
+            .expect("dense-absent flags");
+        assert!(!without.iter().any(|flag| flag == "--dense-operator"));
+    }
+
+    #[test]
+    fn compiled_model_exposes_registry_validated_source_execution_identity() {
+        use uor_r4_model_source::attention::AttentionOperatorSpec;
+        use uor_r4_model_source::dense::DenseOperatorSpec;
+
+        let attention = AttentionOperatorSpec::learned_absolute_v2();
+        let dense = DenseOperatorSpec::gpt2_v2();
+        let model = compiled_model_with_report(serde_json::json!({
+            "attention_operator": attention,
+            "dense_operator": dense,
+        }));
+        assert_eq!(
+            model.source_execution_identity().expect("valid identity"),
+            SourceExecutionIdentity {
+                attention_operator: Some(AttentionOperatorSpec::learned_absolute_v2()),
+                dense_operator: Some(DenseOperatorSpec::gpt2_v2()),
+            }
+        );
+        assert_eq!(
+            model.attention_operator().expect("attention accessor"),
+            Some(AttentionOperatorSpec::learned_absolute_v2())
+        );
+        assert_eq!(
+            model.dense_operator().expect("dense accessor"),
+            Some(DenseOperatorSpec::gpt2_v2())
+        );
+
+        let legacy = compiled_model_with_report(serde_json::json!({"schema": 1}));
+        assert_eq!(
+            legacy.source_execution_identity().expect("legacy absence"),
+            SourceExecutionIdentity {
+                attention_operator: None,
+                dense_operator: None,
+            }
+        );
+
+        let cross_era = compiled_model_with_report(serde_json::json!({
+            "attention_operator": AttentionOperatorSpec::learned_absolute_v1(),
+            "dense_operator": DenseOperatorSpec::gpt2_v2(),
+        }));
+        assert!(cross_era.source_execution_identity().is_err());
+
+        let mut drifted = DenseOperatorSpec::gpt2_v2();
+        drifted.implementation_digest = format!("blake3:{}", "0".repeat(64));
+        let drifted = compiled_model_with_report(serde_json::json!({
+            "attention_operator": AttentionOperatorSpec::learned_absolute_v2(),
+            "dense_operator": drifted,
+        }));
+        let error = drifted
+            .source_execution_identity()
+            .expect_err("full-record drift is terminal");
+        assert!(error.reason.contains("diverges"), "{error}");
     }
 }

@@ -13,8 +13,9 @@ The mode is selected by `TLESS_CANONICAL_DETERMINISTIC=1` and currently does
 the following:
 
 - keeps Llama/shared teacher projections on the always-enabled pinned exact
-  `uor-matmul` owner; GPT-2's deliberately conventional dense sites are
-  outside this legacy D2 switch;
+  `uor-matmul` owner; GPT-2 attention/2 and dense/2 use their separately
+  versioned certified-native/exact-fallback owners outside this legacy D2
+  switch;
 - routes teacher `sqrt`, `exp`, `pow`, `sin`, and `cos` through the portable
   pure-Rust `libm` implementation;
 - routes transformerless compiler softmax, power-of-two packing, projection
@@ -22,8 +23,9 @@ the following:
   portable math family.
 
 `--exact-scalar` is a deprecated compatibility input. It no longer changes
-Llama/shared projection arithmetic and does not select a GPT-2 Conv1D or
-`lm_head` implementation.
+Llama/shared projection arithmetic and does not select or relabel GPT-2
+Conv1D/MLP/`lm_head` arithmetic; that dispatch follows the registered dense
+execution record.
 
 The mode is compiler-side only; the deployed runtime contract is unchanged.
 CI now runs a macOS/Linux differential compile of the pinned

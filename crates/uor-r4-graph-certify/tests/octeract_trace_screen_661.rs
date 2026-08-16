@@ -27,6 +27,7 @@ use uor_r4_graph_compiler::route_fit::{
 use uor_r4_graph_compiler::trace_profile::TraceProfile;
 use uor_r4_graph_format::route_attention::ROUTE_CODE_BYTES;
 use uor_r4_model_source::attention::AttentionOperatorSpec;
+use uor_r4_model_source::dense::DenseOperatorSpec;
 use uor_r4_model_source::geometry::GeometryProjection;
 use uor_r4_model_source::TraceCaptureGeometry;
 
@@ -711,6 +712,7 @@ fn instrument_report_is_deterministic_comprehensive_and_nonpromoting() {
                 .as_str()
         )
     );
+    assert_eq!(first.identities.source_dense_operator_digest, None);
     assert_ne!(
         first.identities.target_operator_digest, first.identities.source_attention_operator_digest,
         "the target dormant operator must never be relabeled as the teacher source operator"
@@ -1009,6 +1011,81 @@ fn pinned_real_rejects_unknown_or_tampered_source_provenance_records() {
         "{}",
         report.disposition_reason
     );
+}
+
+#[test]
+fn source_dense_provenance_is_reported_and_impossible_pairs_are_unavailable() {
+    let mut fixture = fixture();
+    let mut observation = bound_observation(&mut fixture);
+    observation.attention_operator = Some(AttentionOperatorSpec::learned_absolute_v2());
+    observation.dense_operator = Some(DenseOperatorSpec::gpt2_v2());
+    fixture.corpus.identity_bundle_digest = observation.identity_bundle_digest();
+    let report = run_octeract_trace_screen(
+        Some(screen_input(&fixture, Some(&observation))),
+        TraceKind::InstrumentConformance,
+    );
+    assert!(
+        report.controls.instrument_valid,
+        "{}",
+        report.disposition_reason
+    );
+    assert_eq!(
+        report.identities.source_dense_operator_digest.as_deref(),
+        Some(DenseOperatorSpec::gpt2_v2().declared_digest().as_str())
+    );
+
+    for (case, attention, dense) in [
+        (
+            "cross-era",
+            Some(AttentionOperatorSpec::learned_absolute_v1()),
+            DenseOperatorSpec::gpt2_v2(),
+        ),
+        ("dense-only", None, DenseOperatorSpec::gpt2_v2()),
+    ] {
+        let (mut fixture, mut observation) = real_shaped_fixture();
+        observation.attention_operator = attention;
+        observation.dense_operator = Some(dense);
+        fixture.corpus.identity_bundle_digest = observation.identity_bundle_digest();
+        let report = run_octeract_trace_screen(
+            Some(screen_input(&fixture, Some(&observation))),
+            TraceKind::PinnedReal,
+        );
+        assert_unavailable(&report);
+        assert!(
+            report
+                .disposition_reason
+                .contains("source execution identity is invalid"),
+            "{case}: {}",
+            report.disposition_reason
+        );
+        assert_eq!(report.identities.source_dense_operator_digest, None);
+    }
+
+    for case in ["unknown", "tampered"] {
+        let (mut fixture, mut observation) = real_shaped_fixture();
+        observation.attention_operator = Some(AttentionOperatorSpec::learned_absolute_v2());
+        let mut dense = DenseOperatorSpec::gpt2_v2();
+        if case == "unknown" {
+            dense.id = "unregistered-dense".to_owned();
+            dense.version = 99;
+            dense.implementation_digest = dense.declared_digest();
+        } else {
+            dense.implementation_digest = format!("blake3:{}", "0".repeat(64));
+        }
+        observation.dense_operator = Some(dense);
+        fixture.corpus.identity_bundle_digest = observation.identity_bundle_digest();
+        let report = run_octeract_trace_screen(
+            Some(screen_input(&fixture, Some(&observation))),
+            TraceKind::PinnedReal,
+        );
+        assert_unavailable(&report);
+        assert!(
+            report.disposition_reason.contains("source dense operator"),
+            "{case}: {}",
+            report.disposition_reason
+        );
+        assert_eq!(report.identities.source_dense_operator_digest, None);
+    }
 }
 
 #[test]

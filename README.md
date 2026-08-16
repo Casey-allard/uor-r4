@@ -250,31 +250,35 @@ r4 import --name N --source-model M --capability continuation|instruction-chat \
           --artifacts F --store F --tokenizer F [--evaluation-report F]
 ```
 
-Source compiles write `attention_operator.json` beside `corpus.meta` and
-`corpus.records`. The registry-validated sidecar binds the source-attention
-operator that produced the rows; resume fails closed when an existing payload
-has a missing or different binding. `compile-recorded` propagates an explicit
-operator from an observation manifest, while a genuinely absent historical
-record retains the documented implicit `standard-source-attention/1` meaning.
-The current standard, experimental, and GPT-2 learned-absolute source records
-are version 2; their v1 records remain immutable accepted history. Version 2
-uses certified-native Q·K/value folds only when a mechanical rounding-cell
-witness proves the exact bit returned by pinned `uor-matmul`, with that exact
-kernel as the fallback. When the browser compile endpoint finds a populated v1
-bundle at the conventional model root, it preserves that root byte-for-byte and
-writes/resumes v2 at the deterministic `<name>-attention-v2` root instead.
-The managed server reserves that suffix: downloaded source basenames ending in
-it are rejected before output mutation. Compile, automatic restart discovery,
-reload, model listing, and status all inspect the conventional and suffixed
-roots as one logical pair. Reloading either `<name>` or the exact suffix alias
-selects the same physical bundle and maps its host encoder to
-`sources/<name>`; `/uor/v1/status` reports both the logical model name and
-the selected `physical_root`. A genuinely absent source keeps the #718
-decode-only behavior, while a present-invalid source or preferred bundle is
-terminal. Current-v2 serving additionally requires exact agreement among the
-root sidecar, canonical corpus/observation provenance, and
-`graph-cover/cover_report.json`; legacy v1 bundles remain compatible when the
-supporting records are genuinely absent.
+Source compiles write `attention_operator.json` and, for GPT-2, the optional
+`dense_operator.json` beside `corpus.meta` and `corpus.records`. These
+registry-validated records bind the host-side arithmetic that produced the
+rows; resume fails closed on a missing, malformed, different, or impossible
+attention+dense pair. `compile-recorded`, cover, evaluation, certification,
+the typed API, and the server propagate and revalidate that pair. Genuine
+historical dense absence remains readable (and Llama declares no dense
+record); it is never synthesized or relabelled.
+
+The current standard, experimental, and GPT-2 learned-absolute attention
+records are version 2. GPT-2 pairs `learned-absolute-source-attention/2` with
+`gpt2-source-dense/2`; the immutable v1/v1 pair remains accepted history.
+Current attention and dense folds use certified-native arithmetic only when a
+mechanical rounding-cell witness proves the pinned `uor-matmul` result, with
+that owner as fallback. This is offline source-teacher execution provenance,
+not a deployed matrix operation.
+
+The managed server resolves three physical roots for one logical model, in
+preference order: `<name>-attention-v2-dense-v2`, `<name>-attention-v2`, then
+`<name>`. A current GPT-2 dense/2 bundle is valid only in the composite root;
+an attention-v2/no-dense bundle may occupy a fresh base or the attention-only
+root, and a historical v1/v1 bundle may remain at the base. Resolver-owned
+suffixes are reserved and stripped by longest match. Malformed preferred
+evidence is terminal, never a reason to fall back. Compile, restart discovery,
+reload, listing, `/uor/v1/status`, and `/api/r4g1/status` use the same resolver
+and expose the selected `physical_root` plus optional attention/dense records.
+Current-v2 serving requires exact agreement among root sidecars, canonical
+corpus/observation provenance, and `graph-cover/cover_report.json`; legacy
+absence remains compatible only where explicitly documented.
 
 **Graph pipeline**
 
@@ -286,14 +290,31 @@ r4 transformerless observe-text \
   [--input PATH] \
   [--source DIR [--tokenizer-family FAMILY --tokenizer-version N] | --checkpoint BIN --tokenizer PATH] \
   [--out obs-text]
-r4 transformerless cover        [--corpus-meta M] [--corpus-recs R] [--artifacts A] [--tokenizer PATH] [--out cover]
+r4 transformerless cover        [--corpus-meta M] [--corpus-recs R] [--artifacts A] [--tokenizer PATH] [--out cover] [--bundle-root ROOT]
 r4 transformerless cover-sweep  [...]
-r4 transformerless score        [--corpus-meta M] [--corpus-recs R] [--artifacts A] [--tokenizer PATH] [--out DIR]
+r4 transformerless score        [--corpus-meta M] [--corpus-recs R] [--artifacts A] [--tokenizer PATH] [--out DIR] [--bundle-root ROOT]
 r4 transformerless convert-r4g1 --artifacts TLA --store TLS1 --out R4G1
 r4 transformerless copy-recorded-attention --corpus-meta M --corpus-recs R --out attention_operator.json
+r4 transformerless subsample-recorded-corpus --src-meta M --src-recs R --out-meta M2 --out-recs R2 --records N
 r4 transformerless compile-recorded --corpus-meta M --corpus-recs R --vocab-size N --out DIR
 r4 graph infill --artifact score.r4g1 --skeleton 12,_,_,_,99,_,_,_,7
 ```
+
+`subsample-recorded-corpus` is the provenance-preserving derivation path for
+scaling controls: it retains complete deterministic story runs from the
+finalized source's fixed train/held partitions and publishes records, hidden
+rows, execution sidecars, and their binding as one transaction. The historical
+`copy-recorded-attention` command is limited to legacy attention-only corpora;
+it refuses a source with dense execution provenance instead of silently
+dropping or relabelling the dense sidecar.
+
+`--bundle-root ROOT` explicitly joins cover/score output publication to that
+managed bundle's producer transaction. Without it, `--out` is an exact
+standalone output root, including a direct child of the corpus root or paths
+whose basename is `graph` or `graph-cover`. Physically present completion,
+owner, or Stage-A-seal evidence is refused at transaction start; later parent
+state never changes an already selected standalone transaction into bundle
+participation.
 
 **Certification and comparison** (need the llama2.c checkpoint — see
 [Troubleshooting](#troubleshooting))

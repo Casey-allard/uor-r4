@@ -26,6 +26,9 @@ use uor_r4_graph_format::route_attention::{
 };
 use uor_r4_graph_format::ScoreQ;
 use uor_r4_model_source::attention::{operator_spec, AttentionOperatorSpec};
+use uor_r4_model_source::dense::{
+    operator_spec as dense_operator_spec, validate_source_execution_pair,
+};
 use uor_r4_model_source::geometry::{projection_implementation, GeometryProjection};
 
 use crate::frame_consistency::{frame_control_default, FrameControl};
@@ -326,6 +329,10 @@ pub struct ScreenIdentities {
     pub target_operator_digest: Option<String>,
     /// Teacher/source attention-operator digest, supplied explicitly.
     pub source_attention_operator_digest: Option<String>,
+    /// Teacher/source dense-operator digest. `None` is typed historical/Llama
+    /// absence, not an inferred arithmetic record.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source_dense_operator_digest: Option<String>,
     /// Compiler identity.
     pub compiler: Option<String>,
     /// Closed evidence-registry id, absent only when no input was supplied.
@@ -1435,6 +1442,7 @@ enum InputCheck<'a> {
         input: OcteractTraceInput<'a>,
         lane_index: usize,
         source_operator_digest: Option<String>,
+        source_dense_operator_digest: Option<String>,
     },
     Unavailable(String),
 }
@@ -1809,6 +1817,40 @@ fn validate_input<'a>(input: OcteractTraceInput<'a>, kind: TraceKind) -> InputCh
             }
         }
     };
+    let source_dense_operator_digest = match input.observation_manifest {
+        None => None,
+        Some(observation) => {
+            let digest = match observation.dense_operator.as_ref() {
+                None => None,
+                Some(source_dense) => {
+                    let registered =
+                        match dense_operator_spec(&source_dense.id, source_dense.version) {
+                            Ok(record) => record,
+                            Err(_) => {
+                                return InputCheck::Unavailable(
+                                    "source dense operator is not a registered record".to_owned(),
+                                );
+                            }
+                        };
+                    if &registered != source_dense {
+                        return InputCheck::Unavailable(
+                            "source dense operator record is tampered".to_owned(),
+                        );
+                    }
+                    Some(source_dense.declared_digest())
+                }
+            };
+            if let Err(error) = validate_source_execution_pair(
+                observation.attention_operator.as_ref(),
+                observation.dense_operator.as_ref(),
+            ) {
+                return InputCheck::Unavailable(format!(
+                    "observation source execution identity is invalid: {error}"
+                ));
+            }
+            digest
+        }
+    };
 
     if kind == TraceKind::PinnedReal {
         let Some(observation) = input.observation_manifest else {
@@ -1917,12 +1959,14 @@ fn validate_input<'a>(input: OcteractTraceInput<'a>, kind: TraceKind) -> InputCh
         input,
         lane_index,
         source_operator_digest,
+        source_dense_operator_digest,
     }
 }
 
 fn report_identities(
     input: Option<OcteractTraceInput<'_>>,
     source_operator_digest: Option<String>,
+    source_dense_operator_digest: Option<String>,
 ) -> ScreenIdentities {
     let mut identities = ScreenIdentities {
         octeract_source_sha256: OCTERACT_CYPHER_SOURCE.sha256.to_owned(),
@@ -1963,6 +2007,7 @@ fn report_identities(
     identities.adapter = input.fit_manifest.adapter.clone();
     identities.target_operator_digest = input.fit_manifest.operator_identity.clone();
     identities.source_attention_operator_digest = source_operator_digest;
+    identities.source_dense_operator_digest = source_dense_operator_digest;
     identities.compiler = input.fit_manifest.compiler.clone();
     identities.trace_evidence_id = Some(input.evidence.id().to_owned());
     identities.trace_evidence_version = Some(input.evidence.version());
@@ -2054,27 +2099,37 @@ pub fn run_octeract_trace_screen(
         return unavailable_report(
             contract,
             kind,
-            report_identities(None, None),
+            report_identities(None, None, None),
             "required explicitly supplied pinned full/1 trace input is absent".to_owned(),
         );
     };
     let checked = validate_input(supplied, kind);
-    let (input, lane_index, source_operator_digest) = match checked {
+    let (input, lane_index, source_operator_digest, source_dense_operator_digest) = match checked {
         InputCheck::Ready {
             input,
             lane_index,
             source_operator_digest,
-        } => (input, lane_index, source_operator_digest),
+            source_dense_operator_digest,
+        } => (
+            input,
+            lane_index,
+            source_operator_digest,
+            source_dense_operator_digest,
+        ),
         InputCheck::Unavailable(reason) => {
             return unavailable_report(
                 contract,
                 kind,
-                report_identities(Some(supplied), None),
+                report_identities(Some(supplied), None, None),
                 reason,
             );
         }
     };
-    let identities = report_identities(Some(input), source_operator_digest);
+    let identities = report_identities(
+        Some(input),
+        source_operator_digest,
+        source_dense_operator_digest,
+    );
     let Some(head) = input.fitted.head(SCREEN_LAYER, SCREEN_HEAD) else {
         return unavailable_report(
             contract,

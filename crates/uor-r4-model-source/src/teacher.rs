@@ -204,6 +204,9 @@ impl TeacherOracle for Teacher {
     fn attention_operator_spec(&self) -> Option<crate::attention::AttentionOperatorSpec> {
         self.as_oracle().attention_operator_spec()
     }
+    fn dense_operator_spec(&self) -> Option<crate::dense::DenseOperatorSpec> {
+        self.as_oracle().dense_operator_spec()
+    }
     fn hidden_state(&self) -> Option<&[f32]> {
         self.as_oracle().hidden_state()
     }
@@ -248,6 +251,18 @@ mod tests {
         ));
         assert!(family_for_model_type(Some("mistral")).is_err());
         assert!(family_for_model_type(Some("")).is_err());
+    }
+
+    #[test]
+    fn teacher_delegates_gpt2_dense_provenance() {
+        let source =
+            std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/gpt2-tiny");
+        let teacher = Teacher::load(source).expect("load tiny GPT-2 through Teacher");
+        assert!(matches!(teacher, Teacher::Gpt2(_)));
+        assert_eq!(
+            teacher.dense_operator_spec(),
+            Some(crate::dense::DenseOperatorSpec::gpt2_source_dense())
+        );
     }
 
     // #657 regression gate: routing a Llama/SmolLM2 source through `Teacher`

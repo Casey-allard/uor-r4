@@ -206,20 +206,18 @@ fn production_attention_identity_is_hard_bound() {
 }
 
 #[test]
-fn checked_canary_facade_matches_production_and_exact_without_allocating() {
+fn checked_attention_canary_matches_exact_without_allocating() {
     let fixture = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/gpt2-tiny");
     let model = Gpt2::load(&fixture, None).expect("load tiny GPT-2 fixture");
     let mut workspace = model
         .attention_canary_workspace()
         .expect("valid tiny model admits canary workspace");
-    let mut production = Gpt2State::new(&model.cfg);
     let mut certified = Gpt2State::new(&model.cfg);
     let mut exact = Gpt2State::new(&model.cfg);
     let mut conventional = Gpt2State::new(&model.cfg);
     let mut census = Gpt2AttentionCanaryCensus::default();
 
     for (position, token) in [1usize, 3, 2].into_iter().enumerate() {
-        model.forward(&mut production, token, position, &[], &mut |_, _| {});
         census
             .merge(
                 model
@@ -251,18 +249,13 @@ fn checked_canary_facade_matches_production_and_exact_without_allocating() {
                 Gpt2AttentionCanaryMode::Conventional,
             )
             .expect("checked conventional step");
-        assert_bits(
-            &certified.logits,
-            &production.logits,
-            "certified/production",
-        );
         assert_bits(&certified.logits, &exact.logits, "certified/exact");
     }
     assert!(census.qk().lanes() > 0);
     assert!(census.value().lanes() > 0);
     assert!(census.qk().certified() > 0);
     assert!(census.value().certified() > 0);
-    assert!(production
+    assert!(exact
         .logits
         .iter()
         .zip(&conventional.logits)
@@ -423,11 +416,10 @@ fn median_five(mut values: [f64; GPT2_PAIRS]) -> f64 {
     values[GPT2_PAIRS / 2]
 }
 
-/// Hard gate only: one real GPT-2 32-token story, five alternating pairs.
-/// Exact is the checked preflight oracle; only conventional and certified are
-/// timed. The `<=1.10x` threshold is the posted #704 Choice-A consumer
-/// contract; this local certified-native path does not claim compliance with
-/// upstream #38's distinct arithmetic policy.
+/// Historical attention-only gate: one real GPT-2 32-token story, five
+/// alternating pairs. Both timed arms intentionally retain conventional dense
+/// arithmetic, so this isolates attention and is not the current whole-model
+/// production default. Exact is the checked attention preflight oracle.
 #[test]
 #[ignore = "release-only, hard-bound real GPT-2 certified-attention canary"]
 #[allow(clippy::assertions_on_constants)]
@@ -445,32 +437,6 @@ fn real_gpt2_certified_attention_32_token_gate() {
     let mut workspace = model
         .attention_canary_workspace()
         .expect("hard-bound model admits checked canary workspace");
-
-    let mut production_state = Gpt2State::new(&model.cfg);
-    let mut production_control_state = Gpt2State::new(&model.cfg);
-    let mut production_control_census = Gpt2AttentionCanaryCensus::default();
-    for (position, &token) in tokens.iter().enumerate() {
-        model.forward(&mut production_state, token, position, &[], &mut |_, _| {});
-        production_control_census
-            .merge(
-                model
-                    .forward_attention_canary(
-                        &mut production_control_state,
-                        &mut workspace,
-                        token,
-                        position,
-                        Gpt2AttentionCanaryMode::CertifiedNative,
-                    )
-                    .expect("production-control canary inputs"),
-            )
-            .expect("production-control census fits usize");
-        assert_bits(
-            &production_control_state.logits,
-            &production_state.logits,
-            &format!("real production/default v2 position {position}"),
-        );
-    }
-    assert_nonvacuous_candidate_census("production-control", production_control_census);
 
     let mut conventional_state = Gpt2State::new(&model.cfg);
     let mut exact_state = Gpt2State::new(&model.cfg);
@@ -600,7 +566,7 @@ fn real_gpt2_certified_attention_32_token_gate() {
     let qk_rate = timed_census.qk().certified() as f64 / timed_census.qk().lanes() as f64;
     let value_rate = timed_census.value().certified() as f64 / timed_census.value().lanes() as f64;
     eprintln!(
-        "CERTIFIED_ATTENTION_RESULT arithmetic_id={CERTIFIED_NATIVE_ARITHMETIC_ID} learned_absolute_v2_digest={learned_absolute_v2_digest} uor_matmul_rev={UOR_MATMUL_REV} steps={GPT2_STEPS} pairs={GPT2_PAIRS} candidate_median_ns={:.0} conventional_median_ns={:.0} paired_median_ratio={median_ratio:.9} raw_ratios={ratios:?} qk_certification_rate={qk_rate:.9} value_certification_rate={value_rate:.9} timed_census={timed_census:?} preflight_census={preflight:?} production_control_census={production_control_census:?} threshold={MAXIMUM_RATIO:.2} threshold_rule=less-than-or-equal",
+        "CERTIFIED_ATTENTION_RESULT arithmetic_id={CERTIFIED_NATIVE_ARITHMETIC_ID} learned_absolute_v2_digest={learned_absolute_v2_digest} uor_matmul_rev={UOR_MATMUL_REV} steps={GPT2_STEPS} pairs={GPT2_PAIRS} candidate_median_ns={:.0} conventional_median_ns={:.0} paired_median_ratio={median_ratio:.9} raw_ratios={ratios:?} qk_certification_rate={qk_rate:.9} value_certification_rate={value_rate:.9} timed_census={timed_census:?} preflight_census={preflight:?} dense_arithmetic=conventional-both-arms threshold={MAXIMUM_RATIO:.2} threshold_rule=less-than-or-equal",
         candidate_median * 1e9,
         conventional_median * 1e9,
     );

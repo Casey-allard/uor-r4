@@ -84,8 +84,17 @@ accept `--source-manifest-kappa`, recording it as the optional
 `source_manifest_kappa` field of the cover/compile report and the observation
 manifest; `uor-r4-api`'s `CompileRequest.source_manifest_kappa` forwards it to
 the cover stage; and the HTTP server's compile job binds it automatically when
-the downloaded snapshot carries a `source_manifest.json`. Legacy inputs
-without a manifest compile exactly as before, with the field absent.
+the downloaded snapshot carries a `source_manifest.json`. Direct legacy inputs
+without a manifest compile with the field absent; the managed-server
+compatibility exception is documented next.
+
+**Known pre-existing type limitation.** The managed-server compatibility path
+also computes a domain-separated tree digest for an admitted manifestless
+source so resume remains byte-bound. Historical server plumbing carries that
+digest through the scalar field named `source_manifest_kappa`; it is **not** a
+κ of a nonexistent `source_manifest.json` and must not be cited as one. A
+separate provenance-schema migration will distinguish `{manifest, tree}`
+without changing #704's pinned observation `/1` and `/2` identity bytes.
 
 **Migration note.** Descriptor κs minted before #597 with
 `source_kappa_scope = "model.safetensors"` (e.g. `source_kappa` in
@@ -94,8 +103,9 @@ the `model.safetensors` bytes and nothing else. They are NOT relabeled and do
 not become snapshot identities; the snapshot-wide identity is only the
 `source_manifest.json` root κ described above. Neither identity includes the
 executor's arithmetic: changing a reduction leaves the source bytes and both
-source κs unchanged. The versioned `attention_operator` record, rather than a
-source κ re-pin, carries that arithmetic-era distinction.
+source κs unchanged. The versioned `attention_operator` and optional
+`dense_operator` execution records, rather than a source κ re-pin, carry that
+arithmetic-era distinction.
 
 #### Sharded snapshots (#598)
 
@@ -186,50 +196,51 @@ everywhere). Hugging Face compilation defaults to
 attention cost and KV memory proportional to the eight-token deployed runtime
 window; increase `--target` or `--sequence-length` explicitly for quality
 experiments. Repeat the same command to resume an incomplete corpus.
-Stage A writes a registry-validated `attention_operator.json` before corpus
-rows. A resume must reproduce that exact operator; an existing payload with a
-missing or different binding is refused before mutation rather than being
-silently relabelled or mixed across arithmetic eras.
+Stage A writes a registry-validated `attention_operator.json` and, when the
+teacher declares one, `dense_operator.json` before corpus rows. A resume must
+reproduce the registered pair; dense-without-attention and cross-era pairs are
+refused before either sidecar or payload is mutated. Llama and historical
+dense-absent records remain explicit compatibility states.
 
-The browser compile endpoint additionally protects the conventional
-`.uor-models/compiled/<name>` root across the v1→v2 transition. If that root is
-populated and carries an explicit source-attention v1 binding (or has legacy
-payload with no binding), the endpoint leaves it byte-for-byte untouched and
-uses `.uor-models/compiled/<name>-attention-v2`. A matching v2 root resumes;
-malformed, nonregular, or conflicting provenance is a hard error rather than a
-reason to route around the evidence. On restart, discovery prefers the exact
-current-v2 sibling for the same base model and maps only that exact suffix back
-to `.uor-models/sources/<name>`. Explicit CLI `--output` paths retain the
-stricter existing behavior: an incompatible era is refused and the caller
-chooses a fresh directory.
+The browser compile endpoint protects `.uor-models/compiled/<name>` across
+arithmetic-era transitions. The resolver inspects, in order,
+`<name>-attention-v2-dense-v2`, `<name>-attention-v2`, and `<name>`. Current
+GPT-2 dense/2 is composite-only; attention-v2 with dense absent may occupy a
+fresh base or the attention-only root, and historical v1/v1 may remain at the
+base. A matching root resumes. Malformed, nonregular, unfinished
+lower-precedence, duplicate, or conflicting provenance is terminal rather than
+a reason to route around the evidence. Explicit CLI `--output` paths retain the
+stricter behavior: an incompatible era is refused and the caller chooses a
+fresh directory.
 
 **Managed resolver hardening addendum (2026-08-15).** The server owns the exact
-`-attention-v2` suffix and rejects a downloaded source basename ending in it
-before creating or resuming output. Compile selection now inspects both roots
-even when the conventional root is already current, so a duplicate current
-root or malformed suffix cannot be hidden. Automatic restart, reload, model
-listing, and status use the same paired-root resolver. It returns the logical
-source name, selected physical root, graph, teacher artifact, and exact
-operator as one value. Base reload and the exact suffix alias therefore choose
-the same bundle and attach `.uor-models/sources/<logical-name>`; status exposes
-the physical root separately.
+`-attention-v2` and `-attention-v2-dense-v2` suffixes and rejects downloaded
+source basenames ending in either before creating or resuming output. Compile
+selection inspects all three roots even when the base is already current, so a
+duplicate identity or malformed preferred root cannot be hidden. Automatic
+restart, reload, model listing, and both status surfaces use the same resolver.
+It returns the logical source name, selected physical root, graph, teacher
+artifact, and optional attention/dense records as one value. Base reload and
+either exact suffix alias therefore choose the same logical model and attach
+`.uor-models/sources/<logical-name>`; status exposes the physical root and
+execution records separately.
 
 A populated preferred root is authoritative: a graph/tokenizer load error does
 not fall through to a historical sibling. A genuinely absent source still
 permits #718 token-window/decode-only loading, while a present-invalid source
-is terminal. Before current-v2 install, the server exact-compares the root
-sidecar with the canonical corpus/observation record and requires the same
-operator in `graph-cover/cover_report.json`, then re-reads the resolved
-binding. Historical v1 bundles retain compatibility when those supporting
-records are genuinely absent. This is a consistency check over recorded
-metadata, not a claim that the score graph bytes themselves carry the operator;
-that R4G1 PROV binding remains tracked by #637.
+is terminal. Before current-v2 install, the server compares both root sidecars
+with the canonical corpus/observation pair and requires the same pair in
+`graph-cover/cover_report.json`, then re-reads the resolved bindings. Historical
+v1 and dense-absent bundles retain compatibility only when those records are
+genuinely absent. This is a consistency check over recorded metadata, not a
+claim that the score graph bytes themselves carry the records; that R4G1 PROV
+binding remains tracked by #637.
 
 Offline Llama/shared teacher projections use the pinned portable exact
 `uor-matmul` owner on every host; there is no alternate Accelerate, NEON,
-AVX2/FMA, or scalar projection route for those sites. GPT-2 Conv1D/MLP and its
-tied `lm_head` remain explicitly conventional, while current-v2 QK/value
-attention uses the certified-native/exact-fallback owner described below.
+AVX2/FMA, or scalar projection route for those sites. Current GPT-2 Conv1D,
+MLP, tied `lm_head`, QK, and weighted-value folds use their separately
+versioned certified-native/exact-fallback owners described below.
 `TLESS_EXACT_SCALAR` remains accepted only so older scripts do not fail and no
 longer changes Llama projection arithmetic. `TLESS_CANONICAL_DETERMINISTIC=1`
 still selects the portable libm/reduction family for the other κ-sensitive
@@ -244,6 +255,7 @@ tless_store.bin           # TLS1 graded continuation evidence
 tokenizer.bin             # deployed token table (tagged decode-only for SentencePiece)
 tokenizer_adapter.json    # full source adapter binding for corpus resume/evaluation
 attention_operator.json   # registered source-attention binding for corpus resume/cover
+dense_operator.json       # optional registered source-dense binding (current GPT-2)
 corpus.meta               # observation-corpus metadata
 corpus.records            # deterministic observation records
 hamming_calibration.json
@@ -609,9 +621,10 @@ resolves all six source records exactly.
   the switch) retains learned absolute positions and the historical GPT-2
   reciprocal-multiply ordering: scores multiply the precomputed
   `1/sqrt(head_size)`, and softmax computes one reciprocal before multiplying
-  each weight. Only Q·K and weighted-value folds are certified-exact. Dense
-  GPT-2 `c_attn`, `c_proj`, MLP projections, and `lm_head` remain conventional;
-  v2 makes no claim that they moved.
+  each weight. Q·K and weighted-value folds are certified-native under the
+  attention/2 record. GPT-2's Conv1D, MLP, and tied `lm_head` arithmetic is
+  named separately by the dense record below; the attention record does not
+  absorb or relabel that evidence.
 
 The current shared seams preserve caller-owned output/scratch storage and keep
 the certified and exact-fallback arms allocation-free after setup. Tests pin
@@ -619,36 +632,61 @@ the full/scored domains, GPT-2's reciprocal order, Llama's per-score division,
 the experimental tail policy, exact-bit parity, forced certificate rejection,
 and the registry's immutable v1/v2 bytes.
 
-The record threads into provenance alongside the #597 manifest κ, the #600
-geometry record, and the #601 tokenizer record. Observe drivers record the
-oracle's exact declaration in the observation manifest (`attention_operator`,
-an optional serde-defaulted field), and all shipped Llama/GPT-2 source oracles
-declare their registered operator. Direct source compilation publishes the
-same record atomically as `attention_operator.json` before corpus bytes; resume
-requires exact equality and refuses a missing, malformed, unregistered, or
-different binding before mutation. The cover stages (`transformerless cover`,
-`graph-compile`) accept `--attention-operator <json>` and bind it as the
-optional `attention_operator` field of the cover/compile report. The typed API
-and HTTP server forward the registry-validated stage-A/recorded binding rather
-than reconstructing it from the `r4_attention` policy bit, which preserves
-GPT-2's learned-absolute identity. `compile-recorded` likewise propagates an
-explicit observation-manifest record. New source compiles and observations
-declare the exact current-v2 record selected by architecture/switch; readers
-continue to accept exact immutable v1 records, but every resume, cover, and
-evaluation seam compares the whole record and refuses cross-era replay.
+#### GPT-2 dense execution identity (#704)
 
-An absent record remains the implicit legacy era: documents produced before
-#602 are not rewritten, and a genuinely operator-less caller-supplied corpus
-may be interpreted as `standard-source-attention/1`. That compatibility does
-not authorize adding current source-teacher rows to unbound bytes; source
-compile/resume requires the explicit sidecar. **Honesty item:** the
-score/certify report structs in
-`uor-r4-graph-certify` carry no attention-operator field — that stage
-reads corpus, cover, and artifact bytes with no teacher oracle in reach
-(the #597 source κ and #600 geometry records are likewise absent there),
-so #602 records the gap instead of inventing plumbing; an
-operator-specific experiment should thread the record through the cover
-report it already consumes.
+GPT-2's fixed-weight Conv1D projections (`c_attn`, `c_proj`, and both MLP
+projections) and tied `lm_head` are a second host-side arithmetic identity.
+`uor-r4-model-source::dense::DenseOperatorSpec` records the weight layouts,
+accumulation semantics, bias placement, arithmetic owner, permitted host
+operation class, and implementation digest. The registry contains immutable
+`gpt2-source-dense/1` (the historical sequential binary32 folds) and current
+`gpt2-source-dense/2` (the correctly-rounded binary32 result of the exact-real
+dot, produced by certified-native preparation/refinement with pinned exact
+fallback). The stable public constructor names v2; v1 remains readable and is
+never rewritten.
+
+Dense provenance is optional because Llama has no separate dense record and
+pre-#704 observations genuinely lack one. When present, it forms one registered
+source-execution pair: learned-absolute attention/1+dense/1 or learned-absolute
+attention/2+dense/2. Dense without attention, a non-GPT-2 attention family, or
+cross-era versions fail before mutation. A present dense record selects
+observation identity bundle `/2`; absence preserves the exact historical `/1`
+byte stream and digest. See [gpt2_dense_704.md](gpt2_dense_704.md) for the
+measurement contract and adoption evidence.
+
+**Pre-1.0 source migration.** Adding optional dense provenance is an
+intentional additive source-level change to public record structs including
+`ObservationManifest`, `GraphCompileOptions`, `CoverReport`,
+`ScreenIdentities`, and the focused `SourceIngestKind` error inventory. Public
+session functions keep their historical positional signatures as dense-absent
+wrappers and expose explicit `*_with_dense` variants. External Rust struct
+literals must add the optional field (normally `None`) or use the available
+constructor/default and then set fields. The records are not marked
+`#[non_exhaustive]` retroactively because doing so would be a separate breaking
+change for existing literals and exhaustive matches.
+
+The execution pair threads into provenance alongside the #597 manifest κ, the
+#600 geometry record, and the #601 tokenizer record. Observe drivers record the
+oracle's declarations as optional serde-defaulted `attention_operator` and
+`dense_operator` fields. Direct source compilation publishes the same records
+atomically as `attention_operator.json` and optional `dense_operator.json`
+before corpus bytes; all pair checks run before either setter. Cover accepts
+`--attention-operator <json>` and `--dense-operator <json>` and persists the
+validated pair in its report. The typed API, `compile-recorded`, evaluation,
+certification, completion inventory, server reload, and both status surfaces
+propagate or expose the same records rather than reconstructing them from a
+policy bit. Readers accept immutable v1/v1 and dense absence, but every current
+resume/cover/evaluation boundary compares the complete available pair and
+refuses cross-era replay.
+
+An absent attention record remains the implicit legacy era: documents produced
+before #602 are not rewritten, and a genuinely operator-less caller-supplied
+corpus may be interpreted as `standard-source-attention/1`. Dense absence is
+typed independently and remains valid for Llama and historical GPT-2 evidence.
+Neither compatibility rule authorizes adding current source-teacher rows to
+unbound bytes. The octeract trace screen registry-validates the pair from the
+observation manifest and persists the optional source dense digest in
+`ScreenIdentities`; it does not invent a teacher identity from artifact bytes.
 
 **Boundary note.** These specs describe HOST-SIDE source-teacher
 computation (f32 dot products, `exp`, division). The deployed inference
@@ -780,14 +818,14 @@ probability rows, trace rows, text `committed.bin`, `state.bin`, merged bytes,
 and public readers keep their historical layouts.
 
 **Bundle identity.** The manifest's identity seam is ONE stable bundle:
-`ObservationManifest::identity_bundle_digest()` computes a canonical
-blake3 over the five existing identity fields (`input_cid`,
-`source_manifest_kappa` #597, `geometry` #600, `tokenizer_adapter`
-#601, `attention_operator` #602) plus the #603 `trace_profile`, in a
-fixed order with explicit `absent` / `present:<value>` markers per
-component — so the digest moves when any component changes, is
-independent of the order the fields were recorded in, and an absent
-component is never confusable with an empty or zero one.
+`ObservationManifest::identity_bundle_digest()` computes a canonical blake3
+over seven components: `input_cid`, `source_manifest_kappa` #597, `geometry`
+#600, `tokenizer_adapter` #601, `attention_operator` #602, optional
+`dense_operator` #704, and `trace_profile` #603. The legacy `/1` stream omits
+the dense component entirely and remains byte-exact when dense is absent; a
+present dense record selects `/2` and is ordered between attention and trace.
+Both versions use explicit `absent` / `present:<value>` markers, so identity is
+setter-order independent and absence is never confusable with an empty value.
 
 **Capture plumbing, bounded.** Richer lanes are captured through the
 surfaces that already exist: the #599 `forward_capturing` discipline
@@ -1180,11 +1218,14 @@ cargo run --release -- evaluate-report \
   --report .uor-models/compiled/smollm2-135m-instruct/instruction-eval.json
 ```
 
-The report file stores an envelope with the held-out D3 metrics (top-1
-accuracy, teacher-argmax agreement, Witten–Bell bits/token vs the teacher
-floor), source/artifact/store/tokenizer/corpus CIDs, and
-`report_cid_of_report_bytes` for the inner metrics payload. Do not mark an
-artifact as passing merely to bypass the chat quality gate.
+Schema 4 stores an envelope with the held-out D3 metrics (top-1 accuracy,
+teacher-argmax agreement, Witten–Bell bits/token vs the teacher floor),
+source/artifact/store/tokenizer/corpus CIDs, the validated attention record,
+the optional dense record, CIDs of both sidecars when present, and
+`report_cid_of_report_bytes` for the inner metrics payload. Typed dense absence
+is persisted for Llama/historical evidence; arithmetic-dependent evaluation
+does not rely on rereading a mutable bundle directory. Do not mark an artifact
+as passing merely to bypass the chat quality gate.
 
 ### 6. Import the evaluated bundle
 

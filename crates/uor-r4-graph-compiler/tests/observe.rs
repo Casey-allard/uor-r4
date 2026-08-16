@@ -1828,13 +1828,14 @@ fn trace_profile_persists_in_the_manifest() {
 }
 
 /// #603 bundle identity: `identity_bundle_digest` moves when ANY of the
-/// six components changes, is independent of the order the components
+/// seven components changes, is independent of the order the components
 /// were recorded in, and distinguishes an ABSENT component from an
 /// empty one (absence is an explicit marker in the digest input, never
 /// a zero/default value).
 #[test]
 fn identity_bundle_digest_covers_components_order_and_absence() {
     use uor_r4_model_source::attention::AttentionOperatorSpec;
+    use uor_r4_model_source::dense::DenseOperatorSpec;
 
     let base = ObservationManifest::new(2);
     let mut digests = vec![base.identity_bundle_digest()];
@@ -1851,9 +1852,23 @@ fn identity_bundle_digest_covers_components_order_and_absence() {
     with_geometry.geometry = Some(GeometryProjection::bucket_average(576, 288));
     digests.push(with_geometry.identity_bundle_digest());
 
+    let tokenizer_json = r#"{
+        "pre_tokenizer": {"type": "ByteLevel", "add_prefix_space": false},
+        "model": {"type": "BPE", "vocab": {"a": 0, "b": 1, "ab": 2}, "merges": ["a b"]}
+    }"#;
+    let tokenizer = fixture_byte_bpe_adapter(tokenizer_json);
+    let mut with_tokenizer = base.clone();
+    with_tokenizer.tokenizer_adapter = Some(tokenizer.clone());
+    digests.push(with_tokenizer.identity_bundle_digest());
+
     let mut with_operator = base.clone();
     with_operator.attention_operator = Some(AttentionOperatorSpec::standard());
     digests.push(with_operator.identity_bundle_digest());
+
+    let mut with_dense = base.clone();
+    with_dense.attention_operator = Some(AttentionOperatorSpec::learned_absolute_v2());
+    with_dense.dense_operator = Some(DenseOperatorSpec::gpt2_v2());
+    digests.push(with_dense.identity_bundle_digest());
 
     let mut with_profile = base.clone();
     with_profile.trace_profile = Some(TraceProfile::layer(&[0]));
@@ -1893,11 +1908,29 @@ fn identity_bundle_digest_covers_components_order_and_absence() {
     let mut writer = ObservationShardWriter::open(&dir_a, 2).expect("writer a");
     writer.set_input_cid(&cid).expect("cid first");
     writer.set_geometry(&geometry).expect("geometry second");
+    writer
+        .set_tokenizer_adapter(&tokenizer)
+        .expect("tokenizer third");
+    writer
+        .set_attention_operator(&AttentionOperatorSpec::learned_absolute_v2())
+        .expect("attention before dense");
+    writer
+        .set_dense_operator(&DenseOperatorSpec::gpt2_v2())
+        .expect("dense last");
     drop(writer);
     let dir_b = unique_path("bundle-order-b");
     let mut writer = ObservationShardWriter::open(&dir_b, 2).expect("writer b");
+    writer
+        .set_tokenizer_adapter(&tokenizer)
+        .expect("tokenizer first");
     writer.set_geometry(&geometry).expect("geometry first");
     writer.set_input_cid(&cid).expect("cid second");
+    writer
+        .set_attention_operator(&AttentionOperatorSpec::learned_absolute_v2())
+        .expect("attention before dense");
+    writer
+        .set_dense_operator(&DenseOperatorSpec::gpt2_v2())
+        .expect("dense after attention");
     drop(writer);
     let manifest_a = ObservationManifest::load(&dir_a)
         .expect("io a")
@@ -1913,6 +1946,123 @@ fn identity_bundle_digest_covers_components_order_and_absence() {
     for dir in [&dir_a, &dir_b] {
         let _ = std::fs::remove_dir_all(dir);
     }
+}
+
+/// Exact checkpoint-identity fixtures. Dense absence must retain the historical
+/// `/1` bytes and digest; a present current GPT-2 dense record selects `/2`
+/// and is ordered between attention and trace.
+#[test]
+fn identity_bundle_exact_legacy_and_dense_fixtures() {
+    use uor_r4_model_source::attention::AttentionOperatorSpec;
+    use uor_r4_model_source::dense::DenseOperatorSpec;
+
+    let tokenizer_json = r#"{
+        "pre_tokenizer": {"type": "ByteLevel", "add_prefix_space": false},
+        "model": {"type": "BPE", "vocab": {"a": 0, "b": 1, "ab": 2}, "merges": ["a b"]}
+    }"#;
+    let mut legacy = ObservationManifest::new(2);
+    legacy.input_cid = Some(format!("blake3:{}", "1".repeat(64)));
+    legacy.source_manifest_kappa = Some(format!("blake3:{}", "2".repeat(64)));
+    legacy.geometry = Some(GeometryProjection::bucket_average(576, 288));
+    legacy.tokenizer_adapter = Some(fixture_byte_bpe_adapter(tokenizer_json));
+    legacy.attention_operator = Some(AttentionOperatorSpec::learned_absolute_v1());
+    legacy.trace_profile = Some(TraceProfile::layer(&[0]));
+
+    let mut current = legacy.clone();
+    current.attention_operator = Some(AttentionOperatorSpec::learned_absolute_v2());
+    current.dense_operator = Some(DenseOperatorSpec::gpt2_v2());
+
+    let expected_legacy = concat!(
+        "uor-r4-observation-identity-bundle/1\n",
+        "input_cid=present:blake3:1111111111111111111111111111111111111111111111111111111111111111\n",
+        "source_manifest_kappa=present:blake3:2222222222222222222222222222222222222222222222222222222222222222\n",
+        "geometry=present:blake3:165f3f926fc96125e19f98341ac5874ce2812054d6f8e55f1e95b602bdc81550\n",
+        "tokenizer_adapter=present:blake3:7f8182ff516eeef7532ba99c2b1619b0b9d7ceaa87b878259480dd1ba7a5705b\n",
+        "attention_operator=present:blake3:00088e46d2b68616f8e58c33ce6b621925f82be5b22607f080e5f142e753796f\n",
+        "trace_profile=present:blake3:6481c41234c9cca7688661242076083630cb559b0afb309ba932875918b236a4\n",
+    );
+    assert_eq!(legacy.identity_bundle_bytes(), expected_legacy.as_bytes());
+    assert_eq!(
+        legacy.identity_bundle_digest(),
+        "blake3:c5ed023f5514b886bca0aa343432930568dffe536974062e4aad93e9b51aa6f9"
+    );
+
+    let expected_current = concat!(
+        "uor-r4-observation-identity-bundle/2\n",
+        "input_cid=present:blake3:1111111111111111111111111111111111111111111111111111111111111111\n",
+        "source_manifest_kappa=present:blake3:2222222222222222222222222222222222222222222222222222222222222222\n",
+        "geometry=present:blake3:165f3f926fc96125e19f98341ac5874ce2812054d6f8e55f1e95b602bdc81550\n",
+        "tokenizer_adapter=present:blake3:7f8182ff516eeef7532ba99c2b1619b0b9d7ceaa87b878259480dd1ba7a5705b\n",
+        "attention_operator=present:blake3:ba36fd1fef53a2e3744e1fee60e72677870d1cd2f2b484db755c0a5a74727231\n",
+        "dense_operator=present:blake3:3a61d92e61b2a322e086162767173aca8439dffd1ddc7443f1d8b44ee1b1eaf6\n",
+        "trace_profile=present:blake3:6481c41234c9cca7688661242076083630cb559b0afb309ba932875918b236a4\n",
+    );
+    assert_eq!(current.identity_bundle_bytes(), expected_current.as_bytes());
+    assert_eq!(
+        current.identity_bundle_digest(),
+        "blake3:3623409e7e50b64024447d687f58a5c599729c856b1bed732a6fe2d563b93d9a"
+    );
+
+    assert_ne!(
+        legacy.identity_bundle_bytes(),
+        current.identity_bundle_bytes()
+    );
+    assert_ne!(
+        legacy.identity_bundle_digest(),
+        current.identity_bundle_digest()
+    );
+}
+
+#[test]
+fn manifest_load_rejects_unregistered_or_impossible_dense_identity_without_mutation() {
+    use uor_r4_model_source::attention::AttentionOperatorSpec;
+    use uor_r4_model_source::dense::DenseOperatorSpec;
+
+    fn assert_rejected(label: &str, manifest: &ObservationManifest) {
+        let dir = unique_path(label);
+        std::fs::create_dir_all(&dir).expect("create manifest fixture directory");
+        std::fs::write(
+            dir.join(MANIFEST_FILE),
+            serde_json::to_vec_pretty(manifest).expect("serialize manifest fixture"),
+        )
+        .expect("write manifest fixture");
+        let before = directory_bytes(&dir);
+        let error = ObservationManifest::load(&dir)
+            .expect_err("invalid dense execution identity must be rejected");
+        assert!(
+            error.reason.contains("dense") || error.reason.contains("source execution pair"),
+            "{label}: focused dense provenance diagnostic: {error}"
+        );
+        assert_eq!(
+            directory_bytes(&dir),
+            before,
+            "{label}: manifest refusal mutated observation bytes"
+        );
+        let _ = std::fs::remove_dir_all(dir);
+    }
+
+    let mut dense_only = ObservationManifest::new(0);
+    dense_only.dense_operator = Some(DenseOperatorSpec::gpt2_v2());
+    assert_rejected("manifest-dense-only", &dense_only);
+
+    let mut cross_era = ObservationManifest::new(0);
+    cross_era.attention_operator = Some(AttentionOperatorSpec::learned_absolute_v1());
+    cross_era.dense_operator = Some(DenseOperatorSpec::gpt2_v2());
+    assert_rejected("manifest-cross-era-dense", &cross_era);
+
+    let mut unknown = ObservationManifest::new(0);
+    unknown.attention_operator = Some(AttentionOperatorSpec::learned_absolute_v2());
+    let mut unknown_dense = DenseOperatorSpec::gpt2_v2();
+    unknown_dense.version = u32::MAX;
+    unknown.dense_operator = Some(unknown_dense);
+    assert_rejected("manifest-unknown-dense", &unknown);
+
+    let mut tampered = ObservationManifest::new(0);
+    tampered.attention_operator = Some(AttentionOperatorSpec::learned_absolute_v2());
+    let mut tampered_dense = DenseOperatorSpec::gpt2_v2();
+    tampered_dense.implementation_digest = "blake3:tampered".to_owned();
+    tampered.dense_operator = Some(tampered_dense);
+    assert_rejected("manifest-tampered-dense", &tampered);
 }
 
 /// A deterministic capture-capable oracle: logits, hidden state, and

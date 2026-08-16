@@ -2574,6 +2574,10 @@ pub struct CoverReport {
     /// [`build_report`].
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub attention_operator: Option<uor_r4_model_source::attention::AttentionOperatorSpec>,
+    /// Host-side dense execution provenance, when the source oracle declares
+    /// one. Optional so legacy and Llama report bytes remain unchanged.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub dense_operator: Option<uor_r4_model_source::dense::DenseOperatorSpec>,
     pub config: CoverReportConfig,
     pub inputs: CoverReportInputs,
     pub objective: CoverReportObjective,
@@ -2796,6 +2800,7 @@ pub fn build_report(config: &CoverConfig, induced: &InducedCover, data: ReportDa
         // stages do not see the teacher.
         geometry: None,
         attention_operator: None,
+        dense_operator: None,
         config: CoverReportConfig {
             depths: config.depths,
             k0: config.k0,

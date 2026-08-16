@@ -21,6 +21,8 @@ pub mod perturbation;
 pub mod probability_calibration;
 pub mod quantum_cover;
 pub mod rate_distortion_compression;
+#[cfg(not(target_arch = "wasm32"))]
+pub mod recorded_corpus;
 pub mod reference_compiler_ir;
 pub mod reproducibility;
 pub mod residual;
@@ -75,6 +77,9 @@ pub struct GraphCompileOptions {
     /// record itself; the pipeline that held the oracle (or its
     /// `r4_attention` switch) passes it.
     pub attention_operator: Option<uor_r4_model_source::attention::AttentionOperatorSpec>,
+    /// Typed host-side dense execution record (`--dense-operator`). This is
+    /// source provenance derived from the oracle, never a compiler knob.
+    pub dense_operator: Option<uor_r4_model_source::dense::DenseOperatorSpec>,
 }
 
 /// Parse graph-compile CLI arguments. `None` when the arguments do not name a
@@ -98,6 +103,7 @@ pub fn parse_options(args: &[String]) -> Option<GraphCompileOptions> {
         source_manifest_kappa: None,
         geometry: None,
         attention_operator: None,
+        dense_operator: None,
     };
     let mut index = 0usize;
     while index < args.len() {
@@ -149,10 +155,22 @@ pub fn parse_options(args: &[String]) -> Option<GraphCompileOptions> {
                 observation::validate_registered_source_attention_operator(&operator).ok()?;
                 options.attention_operator = Some(operator);
             }
+            "--dense-operator" => {
+                let operator: uor_r4_model_source::dense::DenseOperatorSpec =
+                    serde_json::from_str(value).ok()?;
+                observation::validate_registered_source_dense_operator(&operator).ok()?;
+                options.dense_operator = Some(operator);
+            }
             _ => return None,
         }
         index += 2;
     }
+    observation::validate_source_execution_identity(
+        options.attention_operator.as_ref(),
+        options.dense_operator.as_ref(),
+        "graph-compile provenance",
+    )
+    .ok()?;
     Some(options)
 }
 
@@ -174,6 +192,83 @@ fn explicit_tokenizer_cid(path: Option<&std::path::Path>) -> Result<[u8; 32], So
     Ok(*blake3::hash(&bytes).as_bytes())
 }
 
+#[cfg(not(target_arch = "wasm32"))]
+struct PreparedGraphCompileCorpus {
+    meta_bytes: Vec<u8>,
+    records_bytes: Vec<u8>,
+    corpus: compiler::Corpus,
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn preflight_graph_compile_corpus(
+    options: &GraphCompileOptions,
+) -> Result<PreparedGraphCompileCorpus, SourceUnavailable> {
+    let (mut snapshot, _source_guard) =
+        recorded_corpus::open_stream_for_derivation(&options.corpus_meta, &options.corpus_recs)?;
+    recorded_corpus::require_execution_identity(
+        &snapshot.execution,
+        options.attention_operator.as_ref(),
+        options.dense_operator.as_ref(),
+        "graph-compile provenance",
+    )?;
+    let (records_bytes, hidden_bytes) = snapshot.materialize_compiler_corpus_bytes()?;
+    let meta_bytes = snapshot.meta_bytes.clone();
+    let corpus = compiler::load_corpus_bytes(&meta_bytes, &records_bytes, hidden_bytes.as_deref())
+        .ok_or_else(|| {
+            SourceUnavailable::new(format!(
+                "corpus is incomplete at {}/{}; run compile until it is complete",
+                options.corpus_meta.display(),
+                options.corpus_recs.display()
+            ))
+        })?;
+    Ok(PreparedGraphCompileCorpus {
+        meta_bytes,
+        records_bytes,
+        corpus,
+    })
+}
+
+#[cfg(all(not(target_arch = "wasm32"), test))]
+fn preflight_graph_compile_corpus_with_hooks<F, G>(
+    options: &GraphCompileOptions,
+    after_provenance_capture: F,
+    after_corpus_capture: G,
+) -> Result<PreparedGraphCompileCorpus, SourceUnavailable>
+where
+    F: FnOnce(),
+    G: FnOnce(),
+{
+    let snapshot = recorded_corpus::capture_with_hooks(
+        &options.corpus_meta,
+        &options.corpus_recs,
+        after_provenance_capture,
+        after_corpus_capture,
+    )?;
+    recorded_corpus::require_execution_identity(
+        &snapshot.execution,
+        options.attention_operator.as_ref(),
+        options.dense_operator.as_ref(),
+        "graph-compile provenance",
+    )?;
+    let corpus = compiler::load_corpus_bytes(
+        &snapshot.meta_bytes,
+        &snapshot.records_bytes,
+        snapshot.hidden_bytes.as_deref(),
+    )
+    .ok_or_else(|| {
+        SourceUnavailable::new(format!(
+            "corpus is incomplete at {}/{}; run compile until it is complete",
+            options.corpus_meta.display(),
+            options.corpus_recs.display()
+        ))
+    })?;
+    Ok(PreparedGraphCompileCorpus {
+        meta_bytes: snapshot.meta_bytes,
+        records_bytes: snapshot.records_bytes,
+        corpus,
+    })
+}
+
 /// Run the full multiresolution graph compilation pipeline (Option 1).
 #[cfg(not(target_arch = "wasm32"))]
 pub fn compile(args: &[String]) -> Result<(), SourceUnavailable> {
@@ -188,6 +283,11 @@ pub fn compile(args: &[String]) -> Result<(), SourceUnavailable> {
     // mutation. A missing, dangling, directory, or other non-regular path is a
     // hard error; only flag absence selects the legacy zero-CID contract.
     let tokenizer_cid = explicit_tokenizer_cid(options.tokenizer.as_deref())?;
+    // Capture corpus bytes and their exact attention+dense execution identity
+    // as one no-following transaction. This lower boundary rejects caller
+    // relabeling and inter-phase generation swaps before output mutation.
+    let recorded_corpus = preflight_graph_compile_corpus(&options)?;
+    let corpus = &recorded_corpus.corpus;
     let env_jobs = std::env::var("R4_COMPILER_THREADS").ok();
     let jobs_config = jobs_config::CompilerJobsConfig::resolve(options.jobs, env_jobs.as_deref())
         .ok_or_else(|| {
@@ -200,14 +300,6 @@ pub fn compile(args: &[String]) -> Result<(), SourceUnavailable> {
         "graph-compiler: initialized dedicated thread pool ({} workers, source: {:?})",
         jobs_config.jobs, jobs_config.source
     );
-    let corpus_meta = options
-        .corpus_meta
-        .to_str()
-        .ok_or_else(|| SourceUnavailable::new("corpus metadata path is not UTF-8"))?;
-    let corpus_recs = options
-        .corpus_recs
-        .to_str()
-        .ok_or_else(|| SourceUnavailable::new("corpus records path is not UTF-8"))?;
     // #450: announce the resolved containers before the long work.
     let artifact_container = std::fs::read(&options.artifacts).map_err(|error| {
         SourceUnavailable::new(format!("{}: {error}", options.artifacts.display()))
@@ -220,21 +312,10 @@ pub fn compile(args: &[String]) -> Result<(), SourceUnavailable> {
     })?;
     let artifact_kappa = reproducibility::container_kappa(&artifact_container);
     reproducibility::announce_teacher_container(&options.artifacts, &artifact_kappa);
-    let meta_bytes = std::fs::read(&options.corpus_meta).map_err(|error| {
-        SourceUnavailable::new(format!("{}: {error}", options.corpus_meta.display()))
-    })?;
-    let recs_bytes = std::fs::read(&options.corpus_recs).map_err(|error| {
-        SourceUnavailable::new(format!("{}: {error}", options.corpus_recs.display()))
-    })?;
-    let corpus_kappa = reproducibility::corpus_stream_kappa(&meta_bytes, &recs_bytes);
+    let meta_bytes = &recorded_corpus.meta_bytes;
+    let recs_bytes = &recorded_corpus.records_bytes;
+    let corpus_kappa = reproducibility::corpus_stream_kappa(meta_bytes, recs_bytes);
     reproducibility::announce_corpus(&options.corpus_meta, &options.corpus_recs, &corpus_kappa);
-    let corpus = compiler::load_corpus_from(corpus_meta, corpus_recs).ok_or_else(|| {
-        SourceUnavailable::new(format!(
-            "corpus is incomplete at {}/{}; run compile until it is complete",
-            options.corpus_meta.display(),
-            options.corpus_recs.display()
-        ))
-    })?;
 
     let config = induction::CoverConfig {
         depths: options.depths,
@@ -247,9 +328,9 @@ pub fn compile(args: &[String]) -> Result<(), SourceUnavailable> {
         "graph-compiler: inducing (depths {}, k0 {}, regions budget {}, memory budget {} MiB)...",
         config.depths, config.k0, config.regions_budget, options.memory_budget_mb
     );
-    let (train_positions, held_out_positions) = induction::split_positions(&corpus);
-    let train = induction::build_observations(&artifacts, &corpus, &train_positions);
-    let held_out = induction::build_observations(&artifacts, &corpus, &held_out_positions);
+    let (train_positions, held_out_positions) = induction::split_positions(corpus);
+    let train = induction::build_observations(&artifacts, corpus, &train_positions);
+    let held_out = induction::build_observations(&artifacts, corpus, &held_out_positions);
     let induced = induction::induce_cover(&train, &config, &artifact_kappa, &corpus_kappa)
         .ok_or_else(|| {
             SourceUnavailable::new("cover induction needs at least one train observation")
@@ -268,7 +349,7 @@ pub fn compile(args: &[String]) -> Result<(), SourceUnavailable> {
         .map_err(|_| SourceUnavailable::new("vocabulary exceeds u32 token ids"))?;
     let (artifact_bytes, info) = induction::emit_r4g1_with_tokenizer_cid(
         &artifact_container,
-        (&meta_bytes, &recs_bytes),
+        (meta_bytes, recs_bytes),
         vocab,
         &induced.cover,
         &edges,
@@ -302,6 +383,7 @@ pub fn compile(args: &[String]) -> Result<(), SourceUnavailable> {
     // #602: bind the teacher's attention-operator record when the caller
     // passed it (`--attention-operator`).
     report.attention_operator = options.attention_operator.clone();
+    report.dense_operator = options.dense_operator.clone();
 
     std::fs::create_dir_all(&options.output)?;
     let artifact_path = options.output.join("compiled.r4g1");
@@ -545,6 +627,7 @@ fn preflight_observation_metadata(
     source_manifest_kappa: Option<&str>,
     geometry: Option<&uor_r4_model_source::geometry::GeometryProjection>,
     attention_operator: Option<&uor_r4_model_source::attention::AttentionOperatorSpec>,
+    dense_operator: Option<&uor_r4_model_source::dense::DenseOperatorSpec>,
     trace_profile: Option<&trace_profile::TraceProfile>,
 ) -> Result<(), SourceUnavailable> {
     let existing = observation::ObservationManifest::load(output)?;
@@ -563,6 +646,7 @@ fn preflight_observation_metadata(
         source_manifest_kappa,
         geometry,
         attention_operator,
+        dense_operator,
         trace_profile,
     )
 }
@@ -576,6 +660,7 @@ fn preflight_observation_metadata_for_manifest(
     source_manifest_kappa: Option<&str>,
     geometry: Option<&uor_r4_model_source::geometry::GeometryProjection>,
     attention_operator: Option<&uor_r4_model_source::attention::AttentionOperatorSpec>,
+    dense_operator: Option<&uor_r4_model_source::dense::DenseOperatorSpec>,
     trace_profile: Option<&trace_profile::TraceProfile>,
 ) -> Result<(), SourceUnavailable> {
     let payload_present =
@@ -586,6 +671,22 @@ fn preflight_observation_metadata_for_manifest(
     if let Some(operator) = attention_operator {
         observation::validate_registered_source_attention_operator(operator)?;
     }
+    if let Some(operator) = recorded.dense_operator.as_ref() {
+        observation::validate_registered_source_dense_operator(operator)?;
+    }
+    if let Some(operator) = dense_operator {
+        observation::validate_registered_source_dense_operator(operator)?;
+    }
+    observation::validate_source_execution_identity(
+        recorded.attention_operator.as_ref(),
+        recorded.dense_operator.as_ref(),
+        "recorded observation provenance",
+    )?;
+    observation::validate_source_execution_identity(
+        attention_operator,
+        dense_operator,
+        "requested observation provenance",
+    )?;
     match (
         recorded.source_manifest_kappa.as_deref(),
         source_manifest_kappa,
@@ -682,6 +783,39 @@ fn preflight_observation_metadata_for_manifest(
         }
         _ => {}
     }
+    match (recorded.dense_operator.as_ref(), dense_operator) {
+        (Some(existing), Some(requested)) if existing != requested => {
+            return Err(SourceUnavailable::new(format!(
+                "{} is pinned to dense operator {}/{} digest {}; requested {}/{} digest {}; incompatible observation resume refused before mutation",
+                output.display(),
+                existing.id,
+                existing.version,
+                existing.declared_digest(),
+                requested.id,
+                requested.version,
+                requested.declared_digest(),
+            )));
+        }
+        (Some(existing), None) => {
+            return Err(SourceUnavailable::new(format!(
+                "{} is pinned to dense operator {}/{} digest {}; the requested producer declares none; incompatible observation resume refused before mutation",
+                output.display(),
+                existing.id,
+                existing.version,
+                existing.declared_digest(),
+            )));
+        }
+        (None, Some(requested)) if payload_present => {
+            return Err(SourceUnavailable::new(format!(
+                "{} has no recorded dense operator but already contains observation payload; refusing to relabel those bytes as {}/{} digest {} before mutation",
+                output.display(),
+                requested.id,
+                requested.version,
+                requested.declared_digest(),
+            )));
+        }
+        _ => {}
+    }
     match (recorded.trace_profile.as_ref(), trace_profile) {
         (None, None) => {}
         (Some(recorded), Some(requested)) if recorded == requested => {}
@@ -726,6 +860,7 @@ fn preflight_observation_identities(
     source_manifest_kappa: Option<&str>,
     geometry: Option<&uor_r4_model_source::geometry::GeometryProjection>,
     attention_operator: Option<&uor_r4_model_source::attention::AttentionOperatorSpec>,
+    dense_operator: Option<&uor_r4_model_source::dense::DenseOperatorSpec>,
     trace_profile: Option<&trace_profile::TraceProfile>,
     tokenizer_adapter: Option<&TokenizerAdapter>,
 ) -> Result<(), SourceUnavailable> {
@@ -735,6 +870,7 @@ fn preflight_observation_identities(
         source_manifest_kappa,
         geometry,
         attention_operator,
+        dense_operator,
         trace_profile,
     )?;
     preflight_observation_tokenizer(output, shard_bits, tokenizer_adapter)
@@ -817,16 +953,18 @@ pub fn observe(args: &[String]) -> Result<(), SourceUnavailable> {
     // loads and preserves the stored fields).
     let geometry = oracle.geometry_projection();
     let attention_operator = oracle.attention_operator_spec();
+    let dense_operator = oracle.dense_operator_spec();
     let session = observation::ObservationSession::acquire(&options.output, options.shards)?;
     let tokenizer_adapter = registered_tokenizer
         .as_ref()
         .map(|resolved| &resolved.adapter);
-    observation::preflight_observation_identities_in_session(
+    observation::preflight_observation_identities_in_session_with_dense(
         &session,
         options.source_manifest_kappa.as_deref(),
         geometry.as_ref(),
         tokenizer_adapter,
         attention_operator.as_ref(),
+        dense_operator.as_ref(),
         requested_trace_profile.as_ref(),
     )?;
     observation::preflight_observation_trace_layout_in_session(
@@ -834,12 +972,13 @@ pub fn observe(args: &[String]) -> Result<(), SourceUnavailable> {
         &*oracle,
         requested_trace_profile.as_ref(),
     )?;
-    observation::pin_observation_identities_in_session(
+    observation::pin_observation_identities_in_session_with_dense(
         &session,
         options.source_manifest_kappa.as_deref(),
         geometry.as_ref(),
         tokenizer_adapter,
         attention_operator.as_ref(),
+        dense_operator.as_ref(),
         requested_trace_profile.as_ref(),
     )?;
 
@@ -1043,6 +1182,158 @@ mod tokenizer_observe_tests {
 
         let _ = std::fs::remove_file(tokenizer);
         let _ = std::fs::remove_dir_all(directory);
+    }
+
+    fn write_execution_sidecar<T: serde::Serialize>(path: &Path, record: &T) {
+        let mut bytes = serde_json::to_vec_pretty(record).expect("execution sidecar JSON");
+        bytes.push(b'\n');
+        std::fs::write(path, bytes).expect("write execution sidecar");
+    }
+
+    fn graph_compile_corpus_options(
+        root: &Path,
+        output: &Path,
+        attention: &uor_r4_model_source::attention::AttentionOperatorSpec,
+        dense: Option<&uor_r4_model_source::dense::DenseOperatorSpec>,
+    ) -> GraphCompileOptions {
+        let mut args = vec![
+            "--corpus-meta".to_owned(),
+            root.join("corpus.meta").display().to_string(),
+            "--corpus-recs".to_owned(),
+            root.join("corpus.records").display().to_string(),
+            "--out".to_owned(),
+            output.display().to_string(),
+            "--attention-operator".to_owned(),
+            serde_json::to_string(attention).expect("attention JSON"),
+        ];
+        if let Some(dense) = dense {
+            args.extend([
+                "--dense-operator".to_owned(),
+                serde_json::to_string(dense).expect("dense JSON"),
+            ]);
+        }
+        parse_options(&args).expect("valid graph-compile options")
+    }
+
+    #[test]
+    fn graph_compile_preflight_rejects_dense_absence_and_wrong_era_before_mutation() {
+        let root = unique_path("graph-compile-recorded-dense-v2");
+        std::fs::create_dir_all(&root).expect("corpus root");
+        let meta = root.join("corpus.meta");
+        let records = root.join("corpus.records");
+        let mut meta_bytes = [0u8; 25];
+        meta_bytes[0..8].copy_from_slice(&1u64.to_le_bytes());
+        meta_bytes[8..16].copy_from_slice(&1u64.to_le_bytes());
+        meta_bytes[24] = 1;
+        std::fs::write(&meta, meta_bytes).expect("metadata");
+        std::fs::write(&records, [0u8; 48]).expect("records");
+        write_execution_sidecar(
+            &root.join(recorded_corpus::ATTENTION_OPERATOR_BINDING_FILE),
+            &uor_r4_model_source::attention::AttentionOperatorSpec::learned_absolute_v2(),
+        );
+        write_execution_sidecar(
+            &root.join(recorded_corpus::DENSE_OPERATOR_BINDING_FILE),
+            &uor_r4_model_source::dense::DenseOperatorSpec::gpt2_v2(),
+        );
+        let guard =
+            recorded_corpus::RecordedCorpusProducerGuard::try_acquire(&root).expect("source guard");
+        guard.begin_compile_attempt().expect("source attempt");
+        recorded_corpus::publish_binding(&guard, &meta, &records).expect("source binding");
+        guard.finish_compile_attempt().expect("finish source");
+        drop(guard);
+        let output = unique_path("graph-compile-recorded-dense-output");
+        std::fs::create_dir_all(&output).expect("output root");
+        std::fs::write(output.join("sentinel"), b"last-good output").expect("sentinel");
+        let output_before = directory_bytes(&output);
+
+        let absent_dense = graph_compile_corpus_options(
+            &root,
+            &output,
+            &uor_r4_model_source::attention::AttentionOperatorSpec::learned_absolute_v2(),
+            None,
+        );
+        let error = preflight_graph_compile_corpus(&absent_dense)
+            .err()
+            .expect("omitted dense identity cannot relabel a dense/v2 corpus");
+        assert!(error.reason.contains("dense execution identity"), "{error}");
+        assert_eq!(directory_bytes(&output), output_before);
+
+        let wrong_era = graph_compile_corpus_options(
+            &root,
+            &output,
+            &uor_r4_model_source::attention::AttentionOperatorSpec::learned_absolute_v1(),
+            Some(&uor_r4_model_source::dense::DenseOperatorSpec::gpt2_v1()),
+        );
+        let error = preflight_graph_compile_corpus(&wrong_era)
+            .err()
+            .expect("v1 execution flags cannot relabel a v2 corpus");
+        assert!(
+            error.reason.contains("attention execution identity"),
+            "{error}"
+        );
+        assert_eq!(directory_bytes(&output), output_before);
+
+        let _ = std::fs::remove_dir_all(root);
+        let _ = std::fs::remove_dir_all(output);
+    }
+
+    #[test]
+    fn graph_compile_preflight_rejects_inter_phase_generation_swap_before_mutation() {
+        let root = unique_path("graph-compile-inter-phase-swap");
+        std::fs::create_dir_all(&root).expect("corpus root");
+        let meta = root.join("corpus.meta");
+        let records = root.join("corpus.records");
+        let attention_path = root.join(recorded_corpus::ATTENTION_OPERATOR_BINDING_FILE);
+        let dense_path = root.join(recorded_corpus::DENSE_OPERATOR_BINDING_FILE);
+        std::fs::write(&meta, b"corpus A metadata").expect("metadata A");
+        std::fs::write(&records, b"corpus A records").expect("records A");
+        write_execution_sidecar(
+            &attention_path,
+            &uor_r4_model_source::attention::AttentionOperatorSpec::learned_absolute_v1(),
+        );
+        write_execution_sidecar(
+            &dense_path,
+            &uor_r4_model_source::dense::DenseOperatorSpec::gpt2_v1(),
+        );
+        let output = unique_path("graph-compile-inter-phase-output");
+        std::fs::create_dir_all(&output).expect("output root");
+        std::fs::write(output.join("sentinel"), b"last-good output").expect("sentinel");
+        let output_before = directory_bytes(&output);
+        let options = graph_compile_corpus_options(
+            &root,
+            &output,
+            &uor_r4_model_source::attention::AttentionOperatorSpec::learned_absolute_v1(),
+            Some(&uor_r4_model_source::dense::DenseOperatorSpec::gpt2_v1()),
+        );
+
+        let error = preflight_graph_compile_corpus_with_hooks(
+            &options,
+            || {
+                write_execution_sidecar(
+                    &attention_path,
+                    &uor_r4_model_source::attention::AttentionOperatorSpec::learned_absolute_v2(),
+                );
+                write_execution_sidecar(
+                    &dense_path,
+                    &uor_r4_model_source::dense::DenseOperatorSpec::gpt2_v2(),
+                );
+                std::fs::write(&meta, b"corpus B metadata").expect("metadata B");
+                std::fs::write(&records, b"corpus B records").expect("records B");
+            },
+            || {},
+        )
+        .err()
+        .expect("provenance A cannot label corpus B");
+        assert!(
+            error
+                .reason
+                .contains("changed identity, type, or length after capture"),
+            "{error}"
+        );
+        assert_eq!(directory_bytes(&output), output_before);
+
+        let _ = std::fs::remove_dir_all(root);
+        let _ = std::fs::remove_dir_all(output);
     }
 
     #[test]
@@ -1291,6 +1582,7 @@ mod tokenizer_observe_tests {
             None,
             None,
             None,
+            None,
             Some(&first.adapter),
         )
         .expect_err("registered request cannot relabel adapterless payload");
@@ -1311,6 +1603,7 @@ mod tokenizer_observe_tests {
             Some(&requested_source_kappa),
             Some(&geometry),
             Some(&attention),
+            None,
             None,
             None,
         )
@@ -1378,6 +1671,7 @@ mod tokenizer_observe_tests {
             None,
             Some(&requested_geometry),
             Some(&attention),
+            None,
             Some(&trace),
             Some(&resolved.adapter),
         )
@@ -1396,6 +1690,7 @@ mod tokenizer_observe_tests {
             None,
             Some(&recorded_geometry),
             None,
+            None,
             Some(&trace),
             Some(&resolved.adapter),
         )
@@ -1412,6 +1707,7 @@ mod tokenizer_observe_tests {
             None,
             Some(&recorded_geometry),
             Some(&attention),
+            None,
             None,
             Some(&resolved.adapter),
         )

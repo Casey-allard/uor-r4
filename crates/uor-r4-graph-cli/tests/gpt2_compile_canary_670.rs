@@ -34,8 +34,11 @@
 use std::path::{Path, PathBuf};
 
 use uor_r4_core::transformerless::compiler;
-use uor_r4_graph_cli::{compile_hugging_face_with_progress, cover_command};
+use uor_r4_graph_cli::{
+    compile_hugging_face_with_progress, compiled_dense_operator, cover_command,
+};
 use uor_r4_model_source::attention::AttentionOperatorSpec;
+use uor_r4_model_source::dense::DenseOperatorSpec;
 use uor_r4_model_source::geometry::{self, GeometryProjection};
 
 /// GPT-2 (124M) source hidden width; the geometry projection the oracle
@@ -141,6 +144,7 @@ fn cover_args(
     kappa: &str,
     geometry_json: &str,
     operator_json: &str,
+    dense_operator_json: &str,
 ) -> Vec<String> {
     vec![
         "--artifacts".to_owned(),
@@ -163,6 +167,8 @@ fn cover_args(
         geometry_json.to_owned(),
         "--attention-operator".to_owned(),
         operator_json.to_owned(),
+        "--dense-operator".to_owned(),
+        dense_operator_json.to_owned(),
         "--regions-budget".to_owned(),
         "16".to_owned(),
         "--memory-budget".to_owned(),
@@ -200,8 +206,11 @@ fn gpt2_cover_certifies_source_parity_rows() {
     // The source rows the GPT-2 oracle declares (see `uor-r4-model-source`
     // gpt2.rs `attention_operator_spec` / `geometry_projection`).
     let operator = AttentionOperatorSpec::learned_absolute_source_attention();
+    let dense_operator = DenseOperatorSpec::gpt2_source_dense();
     let geometry_proj = GeometryProjection::bucket_average(GPT2_N_EMBD, geometry::COMPILED_WIDTH);
     let operator_json = serde_json::to_string(&operator).expect("operator serializes");
+    let dense_operator_json =
+        serde_json::to_string(&dense_operator).expect("dense operator serializes");
     let geometry_json = serde_json::to_string(&geometry_proj).expect("geometry serializes");
 
     let compiled = unique_out("cover-src");
@@ -217,6 +226,11 @@ fn gpt2_cover_certifies_source_parity_rows() {
         compiled.join("corpus.meta").is_file() && compiled.join("corpus.records").is_file(),
         "compile emits the teacher corpus streams for cover"
     );
+    assert_eq!(
+        compiled_dense_operator(&compiled).expect("compiled dense binding"),
+        Some(dense_operator.clone()),
+        "GPT-2 stage A pins the current certified dense execution record"
+    );
 
     cover_command(&cover_args(
         &compiled,
@@ -224,6 +238,7 @@ fn gpt2_cover_certifies_source_parity_rows() {
         &source_kappa,
         &geometry_json,
         &operator_json,
+        &dense_operator_json,
     ))
     .expect("cover induction over the GPT-2 teacher");
 
@@ -250,6 +265,12 @@ fn gpt2_cover_certifies_source_parity_rows() {
     assert_eq!(
         report_operator, operator,
         "the report's operator is the GPT-2 learned-absolute source attention"
+    );
+    let report_dense: DenseOperatorSpec = serde_json::from_value(report["dense_operator"].clone())
+        .expect("report carries a dense-operator row");
+    assert_eq!(
+        report_dense, dense_operator,
+        "the report's dense operator is the certified GPT-2 source implementation"
     );
     // #600: the geometry row round-trips to bucket-average(768 → compiled).
     let report_geometry: GeometryProjection =
@@ -279,6 +300,7 @@ fn gpt2_cover_certifies_source_parity_rows() {
         &source_kappa,
         &geometry_json,
         &operator_json,
+        &dense_operator_json,
     ))
     .expect("cover induction (second run)");
     let bytes_b = std::fs::read(cover_b.join("cover.r4g1")).expect("read second-run cover.r4g1");

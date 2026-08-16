@@ -159,6 +159,11 @@ pub struct Gpt2 {
     pub(crate) ln_f_b: Vec<f32>,
     pub(crate) kappa: String,
     pub(crate) source_bytes: usize,
+    /// Immutable once-prepared dense bounds and tied-head transpose. All
+    /// mutable proof/intermediate storage belongs to `Gpt2State`, so one
+    /// loaded model may be shared across independent callers without a
+    /// mutable-model race.
+    dense_prepared: Gpt2ProductionDensePrepared,
 }
 
 /// The tensors the GPT-2 geometry requires, with the shapes `config.json`
@@ -254,6 +259,8 @@ impl Gpt2 {
         }
         let ln_f_w = load("ln_f.weight")?;
         let ln_f_b = load("ln_f.bias")?;
+        let dense_prepared = Gpt2ProductionDensePrepared::prepare(&cfg, &wte, &layers)
+            .ok_or_else(|| SourceUnavailable::new("GPT-2 dense preparation geometry overflow"))?;
         Ok(Self {
             cfg,
             wte,
@@ -263,6 +270,7 @@ impl Gpt2 {
             ln_f_b,
             kappa: snapshot.kappa().to_owned(),
             source_bytes: snapshot.source_bytes(),
+            dense_prepared,
         })
     }
 
@@ -310,6 +318,617 @@ fn conv1d(x: &[f32], w: &[f32], bias: &[f32], out_dim: usize, out: &mut [f32]) {
         let row = &w[i * out_dim..(i + 1) * out_dim];
         for o in 0..out_dim {
             out[o] += xi * row[o];
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum DenseCertificationRejection {
+    Nonfinite,
+    Zero,
+    Overflow,
+    Cell,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+enum DenseCertificationOutcome {
+    Certified(f32),
+    Rejected(DenseCertificationRejection),
+}
+
+#[inline]
+fn dense_next_up_f64(value: f64) -> f64 {
+    if value.is_nan() || value == f64::INFINITY {
+        return value;
+    }
+    if value == 0.0 {
+        return f64::from_bits(1);
+    }
+    let bits = value.to_bits();
+    f64::from_bits(if value > 0.0 { bits + 1 } else { bits - 1 })
+}
+
+#[inline]
+fn dense_next_down_f64(value: f64) -> f64 {
+    if value.is_nan() || value == f64::NEG_INFINITY {
+        return value;
+    }
+    if value == 0.0 {
+        return f64::from_bits((1u64 << 63) | 1);
+    }
+    let bits = value.to_bits();
+    f64::from_bits(if value > 0.0 { bits - 1 } else { bits + 1 })
+}
+
+#[inline]
+fn dense_next_up_f32(value: f32) -> f32 {
+    if value.is_nan() || value == f32::INFINITY {
+        return value;
+    }
+    if value == 0.0 {
+        return f32::from_bits(1);
+    }
+    let bits = value.to_bits();
+    f32::from_bits(if value > 0.0 { bits + 1 } else { bits - 1 })
+}
+
+#[inline]
+fn dense_next_down_f32(value: f32) -> f32 {
+    if value.is_nan() || value == f32::NEG_INFINITY {
+        return value;
+    }
+    if value == 0.0 {
+        return f32::from_bits((1u32 << 31) | 1);
+    }
+    let bits = value.to_bits();
+    f32::from_bits(if value > 0.0 { bits - 1 } else { bits + 1 })
+}
+
+/// Outward `gamma_k = ku / (1-ku)` for binary64 round-to-nearest addition.
+#[inline]
+fn dense_gamma(k: usize) -> Option<f64> {
+    if (k as u128) > (1u128 << f64::MANTISSA_DIGITS) {
+        return None;
+    }
+    const UNIT_ROUNDOFF: f64 = 1.0 / ((1u64 << 53) as f64);
+    let mu = dense_next_up_f64((k as f64) * UNIT_ROUNDOFF);
+    if mu >= 1.0 {
+        return None;
+    }
+    let denominator = dense_next_down_f64(1.0 - mu);
+    (denominator > 0.0).then(|| dense_next_up_f64(mu / denominator))
+}
+
+/// Convert a rounded nonnegative binary64 sum into an outward upper bound on
+/// its exact sum. For `Ahat = fl(sum a_i)`, `|Ahat-A| <= gamma_k A`, hence
+/// `A <= Ahat/(1-gamma_k)`.
+#[inline]
+fn dense_positive_sum_upper(approximate: f64, k: usize) -> Option<f64> {
+    if !approximate.is_finite() || approximate < 0.0 {
+        return None;
+    }
+    let gamma = dense_gamma(k)?;
+    let denominator = dense_next_down_f64(1.0 - gamma);
+    if denominator <= 0.0 {
+        return None;
+    }
+    let upper = dense_next_up_f64(approximate / denominator);
+    upper.is_finite().then_some(upper)
+}
+
+#[inline]
+fn dense_rounding_cell_contains(
+    approximate: f64,
+    lower: f64,
+    upper: f64,
+) -> DenseCertificationOutcome {
+    if !approximate.is_finite() || !lower.is_finite() || !upper.is_finite() {
+        return DenseCertificationOutcome::Rejected(DenseCertificationRejection::Nonfinite);
+    }
+    let candidate = approximate as f32;
+    if candidate == 0.0 {
+        return DenseCertificationOutcome::Rejected(DenseCertificationRejection::Zero);
+    }
+    if !candidate.is_finite() || candidate.abs() == f32::MAX {
+        return DenseCertificationOutcome::Rejected(DenseCertificationRejection::Overflow);
+    }
+    let previous = dense_next_down_f32(candidate);
+    let next = dense_next_up_f32(candidate);
+    if !previous.is_finite() || !next.is_finite() {
+        return DenseCertificationOutcome::Rejected(DenseCertificationRejection::Overflow);
+    }
+    // Both binary32 values and their midpoint are represented exactly in
+    // binary64. Strict containment rejects midpoint ties without a parity arm.
+    let cell_lower = (f64::from(previous) + f64::from(candidate)) * 0.5;
+    let cell_upper = (f64::from(candidate) + f64::from(next)) * 0.5;
+    if lower > cell_lower && upper < cell_upper {
+        DenseCertificationOutcome::Certified(candidate)
+    } else {
+        DenseCertificationOutcome::Rejected(DenseCertificationRejection::Cell)
+    }
+}
+
+/// Certify a binary64 left fold using an independently supplied outward upper
+/// bound on `sum_i |x_i*w_i|`.
+#[inline]
+fn certify_dense_sum(approximate: f64, sum_abs_upper: f64, k: usize) -> DenseCertificationOutcome {
+    if !approximate.is_finite() || !sum_abs_upper.is_finite() {
+        return DenseCertificationOutcome::Rejected(DenseCertificationRejection::Nonfinite);
+    }
+    let Some(gamma) = dense_gamma(k) else {
+        return DenseCertificationOutcome::Rejected(DenseCertificationRejection::Cell);
+    };
+    let error = dense_next_up_f64(gamma * sum_abs_upper);
+    if !error.is_finite() {
+        return DenseCertificationOutcome::Rejected(DenseCertificationRejection::Cell);
+    }
+    let lower = dense_next_down_f64(approximate - error);
+    let upper = dense_next_up_f64(approximate + error);
+    dense_rounding_cell_contains(approximate, lower, upper)
+}
+
+/// Knuth TwoSum: absent overflow, `sum + error == left + right` exactly.
+#[inline]
+fn dense_two_sum(left: f64, right: f64) -> (f64, f64) {
+    let sum = left + right;
+    let right_virtual = sum - left;
+    let left_virtual = sum - right_virtual;
+    let right_error = right - right_virtual;
+    let left_error = left - left_virtual;
+    (sum, left_error + right_error)
+}
+
+/// Scalar refinement for a lane rejected by the coarse weight-magnitude
+/// bound. TwoSum records every primary-fold error exactly. Only the secondary
+/// fold of those errors rounds, so its much smaller residual is bounded with a
+/// second gamma enclosure before the same strict binary32 cell test.
+fn refine_dense_lane(
+    x: &[f32],
+    w: &[f32],
+    out_dim: usize,
+    lane: usize,
+) -> DenseCertificationOutcome {
+    let mut high = 0.0f64;
+    let mut correction = 0.0f64;
+    let mut correction_abs = 0.0f64;
+    for (input_index, &activation) in x.iter().enumerate() {
+        let weight = w[input_index * out_dim + lane];
+        if !activation.is_finite() || !weight.is_finite() {
+            return DenseCertificationOutcome::Rejected(DenseCertificationRejection::Nonfinite);
+        }
+        // A finite binary32 product has at most 48 significant bits and is
+        // therefore exact in binary64.
+        let product = f64::from(activation) * f64::from(weight);
+        let (next, error) = dense_two_sum(high, product);
+        high = next;
+        correction += error;
+        correction_abs += error.abs();
+    }
+    if !high.is_finite() || !correction.is_finite() || !correction_abs.is_finite() {
+        return DenseCertificationOutcome::Rejected(DenseCertificationRejection::Nonfinite);
+    }
+    let Some(correction_abs_upper) = dense_positive_sum_upper(correction_abs, x.len()) else {
+        return DenseCertificationOutcome::Rejected(DenseCertificationRejection::Cell);
+    };
+    let Some(gamma) = dense_gamma(x.len()) else {
+        return DenseCertificationOutcome::Rejected(DenseCertificationRejection::Cell);
+    };
+    let error = dense_next_up_f64(gamma * correction_abs_upper);
+    if !error.is_finite() {
+        return DenseCertificationOutcome::Rejected(DenseCertificationRejection::Cell);
+    }
+
+    // `high + correction` itself is represented as a TwoSum pair. Outward
+    // evaluation of that exact pair avoids silently losing its low word.
+    let (center_high, center_low) = dense_two_sum(high, correction);
+    let approximate = center_high + center_low;
+    let tail_lower = dense_next_down_f64(center_low - error);
+    let tail_upper = dense_next_up_f64(center_low + error);
+    let lower = dense_next_down_f64(center_high + tail_lower);
+    let upper = dense_next_up_f64(center_high + tail_upper);
+    dense_rounding_cell_contains(approximate, lower, upper)
+}
+
+fn exact_dense_lane(x: &[f32], w: &[f32], out_dim: usize, lane: usize) -> f32 {
+    if x.is_empty() {
+        return 0.0;
+    }
+    let stride = isize::try_from(out_dim).expect("validated dense row stride fits isize");
+    let left = uor_matmul::MatView::row_major(x, 1, x.len())
+        .expect("validated dense activation row has its declared extent");
+    let right = uor_matmul::MatView::new(
+        &w[lane..],
+        x.len(),
+        1,
+        uor_matmul::Strides { rs: stride, cs: 1 },
+    )
+    .expect("validated immutable dense weight column has its declared extent");
+    let mut value = [0.0f32];
+    let sink = uor_matmul::MatViewMut::row_major(&mut value, 1, 1)
+        .expect("one dense output cell has its declared extent");
+    let mut product = uor_matmul::Triple::new(left, right, sink)
+        .expect("validated dense row and column form a product");
+    uor_matmul::driver::gemm_float(
+        &mut product,
+        &uor_matmul::Linear::OVERWRITE,
+        uor_matmul::GemmOptions::default(),
+    );
+    value[0]
+}
+
+fn exact_dense_projection(out: &mut [f32], x: &[f32], w: &[f32], out_dim: usize) {
+    uor_matmul::slice::gemm_float(1, x.len(), out_dim, x, w, out, &mut [], &mut [])
+        .expect("validated contiguous dense operands form a product");
+}
+
+fn certified_dense_dots_with_scratch(
+    out: &mut [f32],
+    x: &[f32],
+    w: &[f32],
+    out_dim: usize,
+    sums: &mut [f64],
+    sum_abs_weight_upper: &[f64],
+) -> Gpt2DenseCanaryCensus {
+    sums.fill(0.0);
+    let mut max_activation_abs = 0.0f64;
+    for (input_index, &activation) in x.iter().enumerate() {
+        let activation = f64::from(activation);
+        max_activation_abs = max_activation_abs.max(activation.abs());
+        let row = &w[input_index * out_dim..(input_index + 1) * out_dim];
+        for output_index in 0..out_dim {
+            sums[output_index] += activation * f64::from(row[output_index]);
+        }
+    }
+
+    let mut census = Gpt2DenseCanaryCensus {
+        lanes: out_dim,
+        ..Gpt2DenseCanaryCensus::default()
+    };
+    for lane in 0..out_dim {
+        let sum_abs_upper = dense_next_up_f64(max_activation_abs * sum_abs_weight_upper[lane]);
+        let dot = match certify_dense_sum(sums[lane], sum_abs_upper, x.len()) {
+            DenseCertificationOutcome::Certified(value) => {
+                census.fast_certified += 1;
+                value
+            }
+            DenseCertificationOutcome::Rejected(DenseCertificationRejection::Nonfinite) => {
+                census.reject(DenseCertificationRejection::Nonfinite);
+                exact_dense_lane(x, w, out_dim, lane)
+            }
+            DenseCertificationOutcome::Rejected(_) => {
+                match refine_dense_lane(x, w, out_dim, lane) {
+                    DenseCertificationOutcome::Certified(value) => {
+                        census.refined_certified += 1;
+                        value
+                    }
+                    DenseCertificationOutcome::Rejected(reason) => {
+                        census.reject(reason);
+                        exact_dense_lane(x, w, out_dim, lane)
+                    }
+                }
+            }
+        };
+        out[lane] = dot;
+    }
+    debug_assert_eq!(
+        census.fast_certified + census.refined_certified + census.fallbacks().unwrap_or(usize::MAX),
+        census.lanes
+    );
+    census
+}
+
+fn certified_dense_projection(
+    out: &mut [f32],
+    x: &[f32],
+    w: &[f32],
+    bias: &[f32],
+    workspace: &mut Gpt2DenseCanaryWorkspace,
+) -> Gpt2DenseCanaryCensus {
+    let census = certified_dense_dots_with_scratch(
+        out,
+        x,
+        w,
+        workspace.out_dim,
+        &mut workspace.sums,
+        &workspace.sum_abs_weight_upper,
+    );
+    // #704's Conv1D semantics are one correctly-rounded dot followed by the
+    // historical single binary32 bias addition.
+    for (value, &addend) in out.iter_mut().zip(bias) {
+        *value += addend;
+    }
+    census
+}
+
+fn conventional_dense_dots(out: &mut [f32], x: &[f32], w: &[f32], out_dim: usize) {
+    out[..out_dim].fill(0.0);
+    for (input_index, &activation) in x.iter().enumerate() {
+        if activation == 0.0 {
+            continue;
+        }
+        let row = &w[input_index * out_dim..(input_index + 1) * out_dim];
+        for output_index in 0..out_dim {
+            out[output_index] += activation * row[output_index];
+        }
+    }
+}
+
+fn conventional_lm_head(out: &mut [f32], hidden: &[f32], wte: &[f32], width: usize) {
+    for (vocabulary_index, output) in out.iter_mut().enumerate() {
+        let row = &wte[vocabulary_index * width..(vocabulary_index + 1) * width];
+        let mut accumulator = 0.0f32;
+        for input_index in 0..width {
+            accumulator += hidden[input_index] * row[input_index];
+        }
+        *output = accumulator;
+    }
+}
+
+fn controlled_dense_projection(
+    out: &mut [f32],
+    x: &[f32],
+    weights: &[f32],
+    bias: Option<&[f32]>,
+    prepared: &mut DensePreparedMatrix,
+    mode: Gpt2DenseCanaryMode,
+) -> Gpt2DenseCanaryCensus {
+    let out_dim = prepared.out_dim;
+    let mut census = Gpt2DenseCanaryCensus {
+        lanes: out_dim,
+        ..Gpt2DenseCanaryCensus::default()
+    };
+    match mode {
+        Gpt2DenseCanaryMode::Conventional => {
+            if let Some(bias) = bias {
+                conv1d(x, weights, bias, out_dim, out);
+            } else {
+                conventional_dense_dots(out, x, weights, out_dim);
+            }
+            census.conventional = out_dim;
+        }
+        Gpt2DenseCanaryMode::Exact => {
+            exact_dense_projection(out, x, weights, out_dim);
+            if let Some(bias) = bias {
+                for (value, &addend) in out.iter_mut().zip(bias) {
+                    *value += addend;
+                }
+            }
+            census.exact_control = out_dim;
+        }
+        Gpt2DenseCanaryMode::CertifiedNative => {
+            census = certified_dense_dots_with_scratch(
+                out,
+                x,
+                weights,
+                out_dim,
+                &mut prepared.sums,
+                &prepared.sum_abs_weight_upper,
+            );
+            if let Some(bias) = bias {
+                for (value, &addend) in out.iter_mut().zip(bias) {
+                    *value += addend;
+                }
+            }
+        }
+    }
+    census
+}
+
+#[allow(clippy::too_many_arguments)]
+fn certified_dense_dots_batched_with_scratch(
+    out: &mut [f32],
+    x: &[f32],
+    weights: &[f32],
+    batch: usize,
+    in_dim: usize,
+    out_dim: usize,
+    sums: &mut [f64],
+    max_activation_abs: &mut [f64],
+    sum_abs_weight_upper: &[f64],
+) -> Gpt2DenseCanaryCensus {
+    sums[..batch * out_dim].fill(0.0);
+    max_activation_abs[..batch].fill(0.0);
+    for input_index in 0..in_dim {
+        let row = &weights[input_index * out_dim..(input_index + 1) * out_dim];
+        for batch_index in 0..batch {
+            let activation = f64::from(x[batch_index * in_dim + input_index]);
+            max_activation_abs[batch_index] = max_activation_abs[batch_index].max(activation.abs());
+            let output = &mut sums[batch_index * out_dim..(batch_index + 1) * out_dim];
+            for output_index in 0..out_dim {
+                output[output_index] += activation * f64::from(row[output_index]);
+            }
+        }
+    }
+
+    let mut census = Gpt2DenseCanaryCensus {
+        lanes: batch * out_dim,
+        ..Gpt2DenseCanaryCensus::default()
+    };
+    for batch_index in 0..batch {
+        let input = &x[batch_index * in_dim..(batch_index + 1) * in_dim];
+        for (lane, &weight_bound) in sum_abs_weight_upper.iter().enumerate().take(out_dim) {
+            let index = batch_index * out_dim + lane;
+            let sum_abs_upper = dense_next_up_f64(max_activation_abs[batch_index] * weight_bound);
+            let dot = match certify_dense_sum(sums[index], sum_abs_upper, in_dim) {
+                DenseCertificationOutcome::Certified(value) => {
+                    census.fast_certified += 1;
+                    value
+                }
+                DenseCertificationOutcome::Rejected(DenseCertificationRejection::Nonfinite) => {
+                    census.reject(DenseCertificationRejection::Nonfinite);
+                    exact_dense_lane(input, weights, out_dim, lane)
+                }
+                DenseCertificationOutcome::Rejected(_) => {
+                    match refine_dense_lane(input, weights, out_dim, lane) {
+                        DenseCertificationOutcome::Certified(value) => {
+                            census.refined_certified += 1;
+                            value
+                        }
+                        DenseCertificationOutcome::Rejected(reason) => {
+                            census.reject(reason);
+                            exact_dense_lane(input, weights, out_dim, lane)
+                        }
+                    }
+                }
+            };
+            out[index] = dot;
+        }
+    }
+    debug_assert_eq!(
+        census.fast_certified + census.refined_certified + census.fallbacks().unwrap_or(usize::MAX),
+        census.lanes
+    );
+    census
+}
+
+#[allow(clippy::too_many_arguments)]
+fn controlled_dense_projection_batched(
+    out: &mut [f32],
+    x: &[f32],
+    weights: &[f32],
+    bias: Option<&[f32]>,
+    batch: usize,
+    prepared: &DensePreparedMatrix,
+    sums: &mut [f64],
+    max_activation_abs: &mut [f64],
+    mode: Gpt2DenseCanaryMode,
+) -> Gpt2DenseCanaryCensus {
+    let in_dim = prepared.in_dim;
+    let out_dim = prepared.out_dim;
+    let lanes = batch * out_dim;
+    let mut census = Gpt2DenseCanaryCensus {
+        lanes,
+        batch_rows: batch,
+        ..Gpt2DenseCanaryCensus::default()
+    };
+    match mode {
+        Gpt2DenseCanaryMode::Conventional => {
+            if let Some(bias) = bias {
+                conv1d_batched(out, x, weights, bias, out_dim, in_dim, batch);
+            } else {
+                out[..lanes].fill(0.0);
+                for input_index in 0..in_dim {
+                    let row = &weights[input_index * out_dim..(input_index + 1) * out_dim];
+                    for batch_index in 0..batch {
+                        let activation = x[batch_index * in_dim + input_index];
+                        if activation == 0.0 {
+                            continue;
+                        }
+                        let output = &mut out[batch_index * out_dim..(batch_index + 1) * out_dim];
+                        for output_index in 0..out_dim {
+                            output[output_index] += activation * row[output_index];
+                        }
+                    }
+                }
+            }
+            census.conventional = lanes;
+        }
+        Gpt2DenseCanaryMode::Exact => {
+            for batch_index in 0..batch {
+                let input = &x[batch_index * in_dim..(batch_index + 1) * in_dim];
+                for lane in 0..out_dim {
+                    out[batch_index * out_dim + lane] =
+                        exact_dense_lane(input, weights, out_dim, lane);
+                }
+            }
+            if let Some(bias) = bias {
+                for output in out[..lanes].chunks_exact_mut(out_dim) {
+                    for (value, &addend) in output.iter_mut().zip(bias) {
+                        *value += addend;
+                    }
+                }
+            }
+            census.exact_control = lanes;
+        }
+        Gpt2DenseCanaryMode::CertifiedNative => {
+            census = certified_dense_dots_batched_with_scratch(
+                out,
+                x,
+                weights,
+                batch,
+                in_dim,
+                out_dim,
+                sums,
+                max_activation_abs,
+                &prepared.sum_abs_weight_upper,
+            );
+            census.batch_rows = batch;
+            if let Some(bias) = bias {
+                for output in out[..lanes].chunks_exact_mut(out_dim) {
+                    for (value, &addend) in output.iter_mut().zip(bias) {
+                        *value += addend;
+                    }
+                }
+            }
+        }
+    }
+    census
+}
+
+/// Production-shaped certified projection over caller-owned state lanes.
+/// Each immutable weight row is fetched once, then reused across the batch;
+/// within every lane the f64 accumulation still visits input indices in the
+/// same ascending order as the serial one-row call.
+fn production_dense_projection_batched(
+    states: &mut [Gpt2State],
+    weights: &[f32],
+    bias: Option<&[f32]>,
+    metadata: &DenseWeightMetadata,
+) {
+    let in_dim = metadata.in_dim;
+    let out_dim = metadata.out_dim;
+    debug_assert_eq!(weights.len(), in_dim * out_dim);
+    debug_assert_eq!(metadata.sum_abs_weight_upper.len(), out_dim);
+    debug_assert!(bias.is_none_or(|bias| bias.len() >= out_dim));
+
+    for state in states.iter_mut() {
+        debug_assert!(state.dense_scratch.input.len() >= in_dim);
+        debug_assert!(state.dense_scratch.output.len() >= out_dim);
+        debug_assert!(state.dense_scratch.sums.len() >= out_dim);
+        state.dense_scratch.sums[..out_dim].fill(0.0);
+        state.dense_scratch.max_activation_abs = 0.0;
+    }
+
+    for input_index in 0..in_dim {
+        let row = &weights[input_index * out_dim..(input_index + 1) * out_dim];
+        for state in states.iter_mut() {
+            let activation = f64::from(state.dense_scratch.input[input_index]);
+            state.dense_scratch.max_activation_abs =
+                state.dense_scratch.max_activation_abs.max(activation.abs());
+            let sums = &mut state.dense_scratch.sums[..out_dim];
+            for output_index in 0..out_dim {
+                sums[output_index] += activation * f64::from(row[output_index]);
+            }
+        }
+    }
+
+    for state in states {
+        let Gpt2ProductionDenseScratch {
+            input,
+            output,
+            sums,
+            max_activation_abs,
+            ..
+        } = &mut state.dense_scratch;
+        let input = &input[..in_dim];
+        for lane in 0..out_dim {
+            let sum_abs_upper =
+                dense_next_up_f64(*max_activation_abs * metadata.sum_abs_weight_upper[lane]);
+            let dot = match certify_dense_sum(sums[lane], sum_abs_upper, in_dim) {
+                DenseCertificationOutcome::Certified(value) => value,
+                DenseCertificationOutcome::Rejected(DenseCertificationRejection::Nonfinite) => {
+                    exact_dense_lane(input, weights, out_dim, lane)
+                }
+                DenseCertificationOutcome::Rejected(_) => {
+                    match refine_dense_lane(input, weights, out_dim, lane) {
+                        DenseCertificationOutcome::Certified(value) => value,
+                        DenseCertificationOutcome::Rejected(_) => {
+                            exact_dense_lane(input, weights, out_dim, lane)
+                        }
+                    }
+                }
+            };
+            output[lane] = bias.map_or(dot, |bias| dot + bias[lane]);
         }
     }
 }
@@ -399,7 +1018,7 @@ pub(crate) fn attention_weights_with_arithmetic(
 
 /// Recurrent decode state: per-layer key/value caches, the working
 /// residual, the final hidden state, and the last step's logits.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug)]
 pub struct Gpt2State {
     k_cache: Vec<f32>,
     v_cache: Vec<f32>,
@@ -408,6 +1027,61 @@ pub struct Gpt2State {
     /// Final hidden state (post `ln_f`) of the last step (`n_embd`).
     pub hidden: Vec<f32>,
     x: Vec<f32>,
+    dense_scratch: Gpt2ProductionDenseScratch,
+}
+
+// `Gpt2State` exposed logical equality before production dense scratch became
+// state-local. Preserve that public contract: opaque workspace residue is not
+// recurrent model state and must not make two otherwise identical states
+// unequal.
+impl PartialEq for Gpt2State {
+    fn eq(&self, other: &Self) -> bool {
+        self.k_cache == other.k_cache
+            && self.v_cache == other.v_cache
+            && self.logits == other.logits
+            && self.hidden == other.hidden
+            && self.x == other.x
+    }
+}
+
+/// Per-state production scratch. Keeping it with the recurrent state makes
+/// the shared model immutable and gives an arbitrary-size batch one scratch
+/// lane per caller-owned sequence without a shared capacity or lock.
+#[derive(Clone, Debug)]
+struct Gpt2ProductionDenseScratch {
+    input: Vec<f32>,
+    output: Vec<f32>,
+    sums: Vec<f64>,
+    max_activation_abs: f64,
+    attention: Vec<f32>,
+    scores: Vec<f32>,
+}
+
+impl Gpt2ProductionDenseScratch {
+    fn new(cfg: &Gpt2Config) -> Self {
+        let maximum_input = cfg.n_inner.max(cfg.n_embd);
+        let maximum_output = cfg
+            .vocab
+            .max(cfg.n_inner)
+            .max(3usize.saturating_mul(cfg.n_embd));
+        Self {
+            input: vec![0.0; maximum_input],
+            output: vec![0.0; maximum_output],
+            sums: vec![0.0; maximum_output],
+            max_activation_abs: 0.0,
+            attention: vec![0.0; cfg.n_embd],
+            scores: vec![0.0; cfg.seq_len],
+        }
+    }
+
+    fn reset(&mut self) {
+        self.input.fill(0.0);
+        self.output.fill(0.0);
+        self.sums.fill(0.0);
+        self.max_activation_abs = 0.0;
+        self.attention.fill(0.0);
+        self.scores.fill(0.0);
+    }
 }
 
 /// Arithmetic arm selected by the checked, evidence-only GPT-2 attention
@@ -506,6 +1180,196 @@ pub struct Gpt2AttentionCanaryCensus {
     value: Gpt2AttentionCanaryDotCensus,
 }
 
+/// Arithmetic arm selected by the checked GPT-2 dense differential controls.
+/// Production executes the certified-native v2 arm; conventional and exact
+/// remain explicit comparison owners.
+#[doc(hidden)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Gpt2DenseCanaryMode {
+    /// Historical bias-seeded sequential binary32 Conv1D.
+    Conventional,
+    /// Pinned correctly-rounded exact dot, followed by one binary32 bias add.
+    Exact,
+    /// Native binary64 candidate with a proof/refinement/exact-fallback chain.
+    CertifiedNative,
+}
+
+/// Per-output verdict census for the checked #704 dense canary.
+#[doc(hidden)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct Gpt2DenseCanaryCensus {
+    lanes: usize,
+    batch_rows: usize,
+    conventional: usize,
+    exact_control: usize,
+    fast_certified: usize,
+    refined_certified: usize,
+    fallback_nonfinite: usize,
+    fallback_zero: usize,
+    fallback_overflow: usize,
+    fallback_cell: usize,
+}
+
+impl Gpt2DenseCanaryCensus {
+    pub const fn lanes(self) -> usize {
+        self.lanes
+    }
+
+    /// Sequence rows processed by the production-shaped row-reuse batch
+    /// kernel. Serial controls report zero.
+    pub const fn batch_rows(self) -> usize {
+        self.batch_rows
+    }
+
+    pub const fn conventional(self) -> usize {
+        self.conventional
+    }
+
+    pub const fn exact_control(self) -> usize {
+        self.exact_control
+    }
+
+    pub const fn fast_certified(self) -> usize {
+        self.fast_certified
+    }
+
+    pub const fn refined_certified(self) -> usize {
+        self.refined_certified
+    }
+
+    pub const fn fallback_nonfinite(self) -> usize {
+        self.fallback_nonfinite
+    }
+
+    pub const fn fallback_zero(self) -> usize {
+        self.fallback_zero
+    }
+
+    pub const fn fallback_overflow(self) -> usize {
+        self.fallback_overflow
+    }
+
+    pub const fn fallback_cell(self) -> usize {
+        self.fallback_cell
+    }
+
+    pub fn fallbacks(self) -> Option<usize> {
+        self.fallback_nonfinite
+            .checked_add(self.fallback_zero)?
+            .checked_add(self.fallback_overflow)?
+            .checked_add(self.fallback_cell)
+    }
+
+    /// Merge a projection census atomically. `None` leaves `self` unchanged.
+    pub fn merge(&mut self, other: Self) -> Option<()> {
+        let merged = Self {
+            lanes: self.lanes.checked_add(other.lanes)?,
+            batch_rows: self.batch_rows.checked_add(other.batch_rows)?,
+            conventional: self.conventional.checked_add(other.conventional)?,
+            exact_control: self.exact_control.checked_add(other.exact_control)?,
+            fast_certified: self.fast_certified.checked_add(other.fast_certified)?,
+            refined_certified: self
+                .refined_certified
+                .checked_add(other.refined_certified)?,
+            fallback_nonfinite: self
+                .fallback_nonfinite
+                .checked_add(other.fallback_nonfinite)?,
+            fallback_zero: self.fallback_zero.checked_add(other.fallback_zero)?,
+            fallback_overflow: self
+                .fallback_overflow
+                .checked_add(other.fallback_overflow)?,
+            fallback_cell: self.fallback_cell.checked_add(other.fallback_cell)?,
+        };
+        *self = merged;
+        Some(())
+    }
+
+    fn reject(&mut self, reason: DenseCertificationRejection) {
+        match reason {
+            DenseCertificationRejection::Nonfinite => self.fallback_nonfinite += 1,
+            DenseCertificationRejection::Zero => self.fallback_zero += 1,
+            DenseCertificationRejection::Overflow => self.fallback_overflow += 1,
+            DenseCertificationRejection::Cell => self.fallback_cell += 1,
+        }
+    }
+}
+
+/// Dense owner selected by the checked matrix-level and whole-model controls.
+#[doc(hidden)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Gpt2DenseControlSite {
+    CAttn,
+    AttentionCProj,
+    MlpCFc,
+    MlpCProj,
+    LmHead,
+}
+
+/// Four projection censuses for one GPT-2 transformer layer.
+#[doc(hidden)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct Gpt2DenseLayerCensus {
+    c_attn: Gpt2DenseCanaryCensus,
+    attention_c_proj: Gpt2DenseCanaryCensus,
+    mlp_c_fc: Gpt2DenseCanaryCensus,
+    mlp_c_proj: Gpt2DenseCanaryCensus,
+}
+
+impl Gpt2DenseLayerCensus {
+    pub const fn c_attn(self) -> Gpt2DenseCanaryCensus {
+        self.c_attn
+    }
+
+    pub const fn attention_c_proj(self) -> Gpt2DenseCanaryCensus {
+        self.attention_c_proj
+    }
+
+    pub const fn mlp_c_fc(self) -> Gpt2DenseCanaryCensus {
+        self.mlp_c_fc
+    }
+
+    pub const fn mlp_c_proj(self) -> Gpt2DenseCanaryCensus {
+        self.mlp_c_proj
+    }
+
+    pub fn merge(&mut self, other: Self) -> Option<()> {
+        let mut c_attn = self.c_attn;
+        let mut attention_c_proj = self.attention_c_proj;
+        let mut mlp_c_fc = self.mlp_c_fc;
+        let mut mlp_c_proj = self.mlp_c_proj;
+        c_attn.merge(other.c_attn)?;
+        attention_c_proj.merge(other.attention_c_proj)?;
+        mlp_c_fc.merge(other.mlp_c_fc)?;
+        mlp_c_proj.merge(other.mlp_c_proj)?;
+        *self = Self {
+            c_attn,
+            attention_c_proj,
+            mlp_c_fc,
+            mlp_c_proj,
+        };
+        Some(())
+    }
+}
+
+/// Borrowed, allocation-free census from one checked serial, trace, or batch
+/// control call. The slice has exactly one row per model layer.
+#[doc(hidden)]
+#[derive(Clone, Copy, Debug)]
+pub struct Gpt2DenseControlCensus<'a> {
+    layers: &'a [Gpt2DenseLayerCensus],
+    lm_head: Gpt2DenseCanaryCensus,
+}
+
+impl<'a> Gpt2DenseControlCensus<'a> {
+    pub const fn layers(self) -> &'a [Gpt2DenseLayerCensus] {
+        self.layers
+    }
+
+    pub const fn lm_head(self) -> Gpt2DenseCanaryCensus {
+        self.lm_head
+    }
+}
+
 impl Gpt2AttentionCanaryCensus {
     pub const fn qk(self) -> Gpt2AttentionCanaryDotCensus {
         self.qk
@@ -548,6 +1412,7 @@ impl Gpt2State {
             logits: vec![0.0; cfg.vocab],
             hidden: vec![0.0; cfg.n_embd],
             x: vec![0.0; cfg.n_embd],
+            dense_scratch: Gpt2ProductionDenseScratch::new(cfg),
         }
     }
 
@@ -558,6 +1423,58 @@ impl Gpt2State {
         self.logits.fill(0.0);
         self.hidden.fill(0.0);
         self.x.fill(0.0);
+        self.dense_scratch.reset();
+    }
+
+    /// Bitwise comparison for the evidence-only dense controls, including
+    /// recurrent caches and the private residual buffer.
+    #[doc(hidden)]
+    pub fn dense_control_bit_identical(&self, other: &Self) -> bool {
+        let bits_equal = |left: &[f32], right: &[f32]| {
+            left.len() == right.len()
+                && left
+                    .iter()
+                    .zip(right)
+                    .all(|(left, right)| left.to_bits() == right.to_bits())
+        };
+        bits_equal(&self.k_cache, &other.k_cache)
+            && bits_equal(&self.v_cache, &other.v_cache)
+            && bits_equal(&self.logits, &other.logits)
+            && bits_equal(&self.hidden, &other.hidden)
+            && bits_equal(&self.x, &other.x)
+    }
+
+    /// Test-only comparison of every logical and scratch bit. Public
+    /// [`PartialEq`] deliberately excludes the opaque production workspace,
+    /// while failure-atomicity tests must still prove that rejected calls do
+    /// not alter it.
+    #[cfg(test)]
+    fn full_storage_bit_identical(&self, other: &Self) -> bool {
+        let f32_bits_equal = |left: &[f32], right: &[f32]| {
+            left.len() == right.len()
+                && left
+                    .iter()
+                    .zip(right)
+                    .all(|(left, right)| left.to_bits() == right.to_bits())
+        };
+        let f64_bits_equal = |left: &[f64], right: &[f64]| {
+            left.len() == right.len()
+                && left
+                    .iter()
+                    .zip(right)
+                    .all(|(left, right)| left.to_bits() == right.to_bits())
+        };
+        self.dense_control_bit_identical(other)
+            && f32_bits_equal(&self.dense_scratch.input, &other.dense_scratch.input)
+            && f32_bits_equal(&self.dense_scratch.output, &other.dense_scratch.output)
+            && f64_bits_equal(&self.dense_scratch.sums, &other.dense_scratch.sums)
+            && self.dense_scratch.max_activation_abs.to_bits()
+                == other.dense_scratch.max_activation_abs.to_bits()
+            && f32_bits_equal(
+                &self.dense_scratch.attention,
+                &other.dense_scratch.attention,
+            )
+            && f32_bits_equal(&self.dense_scratch.scores, &other.dense_scratch.scores)
     }
 }
 
@@ -574,6 +1491,314 @@ pub struct Gpt2AttentionCanaryWorkspace {
     inner: Vec<f32>,
     mlp_out: Vec<f32>,
     scores: Vec<f32>,
+}
+
+/// Opaque caller-owned scratch for #704's layer-0 fused-QKV experiment.
+/// Construction scans the immutable weight once and is outside the measured
+/// hot path. A checked call then reuses the single binary64 sum vector without
+/// allocation or weight rewriting.
+#[doc(hidden)]
+#[derive(Clone, Debug, PartialEq)]
+pub struct Gpt2DenseCanaryWorkspace {
+    weight_address: usize,
+    weight_len: usize,
+    source_kappa: String,
+    in_dim: usize,
+    out_dim: usize,
+    sums: Vec<f64>,
+    sum_abs_weight_upper: Vec<f64>,
+}
+
+const DENSE_CONTROL_SITES_PER_LAYER: usize = 4;
+
+/// Immutable proof metadata for one production `[in,out]` dense weight.
+#[derive(Debug)]
+struct DenseWeightMetadata {
+    in_dim: usize,
+    out_dim: usize,
+    sum_abs_weight_upper: Vec<f64>,
+}
+
+impl DenseWeightMetadata {
+    fn prepare(weights: &[f32], in_dim: usize, out_dim: usize) -> Option<Self> {
+        if weights.len() != in_dim.checked_mul(out_dim)? {
+            return None;
+        }
+        let mut sum_abs_weight_upper = vec![0.0f64; out_dim];
+        for input_index in 0..in_dim {
+            let row = &weights[input_index * out_dim..(input_index + 1) * out_dim];
+            for output_index in 0..out_dim {
+                sum_abs_weight_upper[output_index] += f64::from(row[output_index]).abs();
+            }
+        }
+        for bound in &mut sum_abs_weight_upper {
+            *bound = dense_positive_sum_upper(*bound, in_dim).unwrap_or(f64::INFINITY);
+        }
+        Some(Self {
+            in_dim,
+            out_dim,
+            sum_abs_weight_upper,
+        })
+    }
+}
+
+/// Immutable production preparation for all 48 Conv1Ds and the tied head.
+#[derive(Debug)]
+struct Gpt2ProductionDensePrepared {
+    geometry: Gpt2ProductionGeometry,
+    matrices: Vec<DenseWeightMetadata>,
+    lm_head_transposed: Vec<f32>,
+    lm_head: DenseWeightMetadata,
+}
+
+/// Load-time geometry bound to immutable weights and dense preparation.
+/// `Gpt2::cfg` predates the prepared executor and remains public for API
+/// compatibility, so every production call compares it with this snapshot
+/// before touching caller state.
+#[derive(Clone, Copy, Debug)]
+struct Gpt2ProductionGeometry {
+    n_embd: usize,
+    n_head: usize,
+    n_layer: usize,
+    n_positions: usize,
+    n_inner: usize,
+    vocab: usize,
+    layer_norm_eps_bits: u32,
+}
+
+impl Gpt2ProductionGeometry {
+    fn from_config(cfg: &Gpt2Config) -> Self {
+        Self {
+            n_embd: cfg.n_embd,
+            n_head: cfg.n_head,
+            n_layer: cfg.n_layer,
+            n_positions: cfg.n_positions,
+            n_inner: cfg.n_inner,
+            vocab: cfg.vocab,
+            layer_norm_eps_bits: cfg.layer_norm_eps.to_bits(),
+        }
+    }
+
+    fn matches_config(self, cfg: &Gpt2Config) -> bool {
+        self.n_embd == cfg.n_embd
+            && self.n_head == cfg.n_head
+            && self.n_layer == cfg.n_layer
+            && self.n_positions == cfg.n_positions
+            && self.n_inner == cfg.n_inner
+            && self.vocab == cfg.vocab
+            && self.layer_norm_eps_bits == cfg.layer_norm_eps.to_bits()
+    }
+}
+
+impl Gpt2ProductionDensePrepared {
+    fn prepare(cfg: &Gpt2Config, wte: &[f32], layers: &[Gpt2Layer]) -> Option<Self> {
+        let d = cfg.n_embd;
+        let expected_layers = cfg.n_layer;
+        if layers.len() != expected_layers || wte.len() != cfg.vocab.checked_mul(d)? {
+            return None;
+        }
+        let mut matrices =
+            Vec::with_capacity(expected_layers.checked_mul(DENSE_CONTROL_SITES_PER_LAYER)?);
+        for layer in layers {
+            matrices.push(DenseWeightMetadata::prepare(
+                &layer.c_attn_w,
+                d,
+                3usize.checked_mul(d)?,
+            )?);
+            matrices.push(DenseWeightMetadata::prepare(&layer.c_proj_w, d, d)?);
+            matrices.push(DenseWeightMetadata::prepare(&layer.fc_w, d, cfg.n_inner)?);
+            matrices.push(DenseWeightMetadata::prepare(&layer.mlp_w, cfg.n_inner, d)?);
+        }
+
+        let mut lm_head_transposed = vec![0.0f32; d.checked_mul(cfg.vocab)?];
+        for vocabulary_index in 0..cfg.vocab {
+            let row = &wte[vocabulary_index * d..(vocabulary_index + 1) * d];
+            for input_index in 0..d {
+                lm_head_transposed[input_index * cfg.vocab + vocabulary_index] = row[input_index];
+            }
+        }
+        let lm_head = DenseWeightMetadata::prepare(&lm_head_transposed, d, cfg.vocab)?;
+        Some(Self {
+            geometry: Gpt2ProductionGeometry::from_config(cfg),
+            matrices,
+            lm_head_transposed,
+            lm_head,
+        })
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+struct DensePreparedMatrix {
+    in_dim: usize,
+    out_dim: usize,
+    sums: Vec<f64>,
+    sum_abs_weight_upper: Vec<f64>,
+}
+
+impl DensePreparedMatrix {
+    fn prepare(weights: &[f32], in_dim: usize, out_dim: usize) -> Option<Self> {
+        if weights.len() != in_dim.checked_mul(out_dim)? {
+            return None;
+        }
+        let mut sum_abs_weight_upper = vec![0.0f64; out_dim];
+        for input_index in 0..in_dim {
+            let row = &weights[input_index * out_dim..(input_index + 1) * out_dim];
+            for output_index in 0..out_dim {
+                sum_abs_weight_upper[output_index] += f64::from(row[output_index]).abs();
+            }
+        }
+        for bound in &mut sum_abs_weight_upper {
+            *bound = dense_positive_sum_upper(*bound, in_dim).unwrap_or(f64::INFINITY);
+        }
+        Some(Self {
+            in_dim,
+            out_dim,
+            sums: vec![0.0; out_dim],
+            sum_abs_weight_upper,
+        })
+    }
+
+    fn has_shape(&self, in_dim: usize, out_dim: usize) -> bool {
+        self.in_dim == in_dim
+            && self.out_dim == out_dim
+            && self.sums.len() == out_dim
+            && self.sum_abs_weight_upper.len() == out_dim
+    }
+}
+
+/// Caller-owned, model-bound scratch for the evidence-only whole-GPT-2 dense
+/// control. Every projection bound and the tied-lm-head transpose are prepared
+/// once at construction; serial, trace, and batch hot calls allocate nothing.
+#[doc(hidden)]
+#[derive(Debug)]
+pub struct Gpt2DenseControlWorkspace {
+    source_kappa: String,
+    max_batch: usize,
+    model_weight_addresses: Vec<usize>,
+    model_weight_lengths: Vec<usize>,
+    wte_address: usize,
+    wte_len: usize,
+    prepared: Vec<DensePreparedMatrix>,
+    lm_head_transposed: Vec<f32>,
+    lm_head: DensePreparedMatrix,
+    normed: Vec<f32>,
+    qkv: Vec<f32>,
+    attn: Vec<f32>,
+    proj: Vec<f32>,
+    inner: Vec<f32>,
+    mlp_out: Vec<f32>,
+    scores: Vec<f32>,
+    batch_normed: Vec<f32>,
+    batch_qkv: Vec<f32>,
+    batch_attn: Vec<f32>,
+    batch_proj: Vec<f32>,
+    batch_inner: Vec<f32>,
+    batch_mlp_out: Vec<f32>,
+    batch_logits: Vec<f32>,
+    batch_sums: Vec<f64>,
+    batch_max_activation_abs: Vec<f64>,
+    step_layers: Vec<Gpt2DenseLayerCensus>,
+    step_lm_head: Gpt2DenseCanaryCensus,
+    batch_layers: Vec<Gpt2DenseLayerCensus>,
+    batch_lm_head: Gpt2DenseCanaryCensus,
+}
+
+/// Logical owned-capacity accounting for a prepared whole-model dense
+/// workspace. Allocator bookkeeping and the caller's recurrent state are not
+/// included; the reported total is the workspace value plus every heap byte
+/// its vectors and string have reserved.
+#[doc(hidden)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct Gpt2DenseControlWorkspaceBytes {
+    lm_head_transpose: usize,
+    matrix_bounds: usize,
+    f64_sum_scratch: usize,
+    intermediate_scratch: usize,
+    metadata: usize,
+    total: usize,
+}
+
+impl Gpt2DenseControlWorkspaceBytes {
+    pub const fn lm_head_transpose(self) -> usize {
+        self.lm_head_transpose
+    }
+
+    pub const fn matrix_bounds(self) -> usize {
+        self.matrix_bounds
+    }
+
+    pub const fn f64_sum_scratch(self) -> usize {
+        self.f64_sum_scratch
+    }
+
+    pub const fn intermediate_scratch(self) -> usize {
+        self.intermediate_scratch
+    }
+
+    pub const fn metadata(self) -> usize {
+        self.metadata
+    }
+
+    pub const fn total(self) -> usize {
+        self.total
+    }
+}
+
+/// Deterministic digest over every logical workspace field and vector
+/// capacity. This permits failure-atomicity checks without cloning the
+/// 154-MB-class tied-head transpose.
+#[doc(hidden)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Gpt2DenseControlWorkspaceFingerprint([u8; 32]);
+
+impl Gpt2DenseControlWorkspaceFingerprint {
+    pub const fn bytes(self) -> [u8; 32] {
+        self.0
+    }
+}
+
+fn dense_fingerprint_usize(hasher: &mut blake3::Hasher, value: usize) {
+    hasher.update(&value.to_le_bytes());
+}
+
+fn dense_fingerprint_f32_slice(hasher: &mut blake3::Hasher, values: &[f32], capacity: usize) {
+    dense_fingerprint_usize(hasher, values.len());
+    dense_fingerprint_usize(hasher, capacity);
+    for value in values {
+        hasher.update(&value.to_bits().to_le_bytes());
+    }
+}
+
+fn dense_fingerprint_f64_slice(hasher: &mut blake3::Hasher, values: &[f64], capacity: usize) {
+    dense_fingerprint_usize(hasher, values.len());
+    dense_fingerprint_usize(hasher, capacity);
+    for value in values {
+        hasher.update(&value.to_bits().to_le_bytes());
+    }
+}
+
+fn dense_fingerprint_census(hasher: &mut blake3::Hasher, census: Gpt2DenseCanaryCensus) {
+    for value in [
+        census.lanes,
+        census.batch_rows,
+        census.conventional,
+        census.exact_control,
+        census.fast_certified,
+        census.refined_certified,
+        census.fallback_nonfinite,
+        census.fallback_zero,
+        census.fallback_overflow,
+        census.fallback_cell,
+    ] {
+        dense_fingerprint_usize(hasher, value);
+    }
+}
+
+fn dense_fingerprint_layer_census(hasher: &mut blake3::Hasher, layer: Gpt2DenseLayerCensus) {
+    dense_fingerprint_census(hasher, layer.c_attn);
+    dense_fingerprint_census(hasher, layer.attention_c_proj);
+    dense_fingerprint_census(hasher, layer.mlp_c_fc);
+    dense_fingerprint_census(hasher, layer.mlp_c_proj);
 }
 
 impl Gpt2AttentionCanaryWorkspace {
@@ -758,11 +1983,177 @@ impl Gpt2 {
         .then_some(())
     }
 
+    #[allow(clippy::too_many_arguments)]
+    fn block_attention_production(
+        &self,
+        key_cache: &mut [f32],
+        value_cache: &mut [f32],
+        layer_index: usize,
+        position: usize,
+        qkv: &[f32],
+        attention: &mut [f32],
+        scores: &mut [f32],
+        request: Option<&crate::TraceCaptureRequest<'_>>,
+        mut sinks: Option<&mut crate::TraceCaptureSinks<'_, '_>>,
+    ) {
+        let d = self.cfg.n_embd;
+        let head_size = self.cfg.head_size();
+        let sequence_length = self.cfg.seq_len;
+        let base = (layer_index * sequence_length + position) * d;
+        key_cache[base..base + d].copy_from_slice(&qkv[d..2 * d]);
+        value_cache[base..base + d].copy_from_slice(&qkv[2 * d..3 * d]);
+
+        if request.is_some_and(|request| request.qkv_layers.contains(&layer_index)) {
+            if let Some(sinks) = sinks.as_deref_mut() {
+                (sinks.qkv)(layer_index, &qkv[..d], &qkv[d..2 * d], &qkv[2 * d..3 * d]);
+            }
+        }
+
+        debug_assert_eq!(scores.len(), position + 1);
+        let layer_keys =
+            &key_cache[layer_index * sequence_length * d..(layer_index + 1) * sequence_length * d];
+        let layer_values = &value_cache
+            [layer_index * sequence_length * d..(layer_index + 1) * sequence_length * d];
+        for head in 0..self.cfg.n_head {
+            let query = &qkv[head * head_size..(head + 1) * head_size];
+            let _ = attention_weights_with_arithmetic(
+                scores,
+                query,
+                layer_keys,
+                head * head_size,
+                d,
+                crate::attention::AttentionArithmetic::CertifiedNative,
+            );
+            if request.is_some_and(|request| request.attention_layers.contains(&layer_index)) {
+                if let Some(sinks) = sinks.as_deref_mut() {
+                    (sinks.attention)(layer_index, head, scores);
+                }
+            }
+            let output = &mut attention[head * head_size..(head + 1) * head_size];
+            let _ = crate::attention::head_attention_value_aggregate_with_arithmetic(
+                output,
+                scores,
+                layer_values,
+                head * head_size,
+                d,
+                crate::attention::AttentionArithmetic::CertifiedNative,
+            );
+        }
+    }
+
+    fn block_forward_production(
+        &self,
+        state: &mut Gpt2State,
+        layer_index: usize,
+        position: usize,
+        request: Option<&crate::TraceCaptureRequest<'_>>,
+        sinks: Option<&mut crate::TraceCaptureSinks<'_, '_>>,
+    ) {
+        let d = self.cfg.n_embd;
+        let inner_dim = self.cfg.n_inner;
+        let layer = &self.layers[layer_index];
+        let base = layer_index * DENSE_CONTROL_SITES_PER_LAYER;
+
+        layer_norm(
+            &state.x,
+            &layer.ln1_w,
+            &layer.ln1_b,
+            self.cfg.layer_norm_eps,
+            &mut state.dense_scratch.input[..d],
+        );
+        production_dense_projection_batched(
+            std::slice::from_mut(state),
+            &layer.c_attn_w,
+            Some(&layer.c_attn_b),
+            &self.dense_prepared.matrices[base],
+        );
+        {
+            let Gpt2State {
+                k_cache,
+                v_cache,
+                dense_scratch,
+                ..
+            } = state;
+            self.block_attention_production(
+                k_cache,
+                v_cache,
+                layer_index,
+                position,
+                &dense_scratch.output[..3 * d],
+                &mut dense_scratch.attention[..d],
+                &mut dense_scratch.scores[..=position],
+                request,
+                sinks,
+            );
+        }
+
+        state.dense_scratch.input[..d].copy_from_slice(&state.dense_scratch.attention[..d]);
+        production_dense_projection_batched(
+            std::slice::from_mut(state),
+            &layer.c_proj_w,
+            Some(&layer.c_proj_b),
+            &self.dense_prepared.matrices[base + 1],
+        );
+        for input_index in 0..d {
+            state.x[input_index] += state.dense_scratch.output[input_index];
+        }
+
+        layer_norm(
+            &state.x,
+            &layer.ln2_w,
+            &layer.ln2_b,
+            self.cfg.layer_norm_eps,
+            &mut state.dense_scratch.input[..d],
+        );
+        production_dense_projection_batched(
+            std::slice::from_mut(state),
+            &layer.fc_w,
+            Some(&layer.fc_b),
+            &self.dense_prepared.matrices[base + 2],
+        );
+        for value in &mut state.dense_scratch.output[..inner_dim] {
+            *value = gelu_new(*value);
+        }
+        state.dense_scratch.input[..inner_dim]
+            .copy_from_slice(&state.dense_scratch.output[..inner_dim]);
+        production_dense_projection_batched(
+            std::slice::from_mut(state),
+            &layer.mlp_w,
+            Some(&layer.mlp_b),
+            &self.dense_prepared.matrices[base + 3],
+        );
+        for input_index in 0..d {
+            state.x[input_index] += state.dense_scratch.output[input_index];
+        }
+    }
+
+    fn finish_forward_production(&self, state: &mut Gpt2State) {
+        let d = self.cfg.n_embd;
+        layer_norm(
+            &state.x,
+            &self.ln_f_w,
+            &self.ln_f_b,
+            self.cfg.layer_norm_eps,
+            &mut state.hidden,
+        );
+        state.dense_scratch.input[..d].copy_from_slice(&state.hidden);
+        production_dense_projection_batched(
+            std::slice::from_mut(state),
+            &self.dense_prepared.lm_head_transposed,
+            None,
+            &self.dense_prepared.lm_head,
+        );
+        state
+            .logits
+            .copy_from_slice(&state.dense_scratch.output[..self.cfg.vocab]);
+    }
+
     /// One teacher-forced forward step at `pos` (0-based), leaving logits
     /// and the final hidden state in `st`. `capture` receives the
     /// post-block residual stream for each declared layer index, in
     /// ascending order — the #599 conformance-trace tap (a no-op closure
-    /// captures nothing).
+    /// captures nothing). Invalid state/token/position/capture extents are
+    /// rejected before mutation or a sink call.
     pub fn forward(
         &self,
         st: &mut Gpt2State,
@@ -771,37 +2162,23 @@ impl Gpt2 {
         capture: &[usize],
         sink: &mut dyn FnMut(usize, &[f32]),
     ) {
+        if self.validate_production_step(st, token, pos).is_none()
+            || capture.iter().any(|&layer| layer >= self.cfg.n_layer)
+        {
+            return;
+        }
         let d = self.cfg.n_embd;
         // token + learned absolute position embedding.
         for i in 0..d {
             st.x[i] = self.wte[token * d + i] + self.wpe[pos * d + i];
         }
-        // scratch buffers reused across layers.
-        let mut normed = vec![0.0f32; d];
-        let mut qkv = vec![0.0f32; 3 * d];
-        let mut attn = vec![0.0f32; d];
-        let mut proj = vec![0.0f32; d];
-        let mut inner = vec![0.0f32; self.cfg.n_inner];
-        let mut mlp_out = vec![0.0f32; d];
         for l in 0..self.cfg.n_layer {
-            self.block_forward(
-                st,
-                l,
-                pos,
-                &mut normed,
-                &mut qkv,
-                &mut attn,
-                &mut proj,
-                &mut inner,
-                &mut mlp_out,
-                None,
-                None,
-            );
+            self.block_forward_production(st, l, pos, None, None);
             if capture.contains(&l) {
                 sink(l, &st.x);
             }
         }
-        self.finish_forward(st);
+        self.finish_forward_production(st);
     }
 
     fn forward_with_attention_arithmetic_unchecked(
@@ -846,10 +2223,1128 @@ impl Gpt2 {
         Ok(Gpt2AttentionCanaryWorkspace::new(&self.cfg))
     }
 
+    /// Prepare model-bound scratch and an outward per-column
+    /// `sum_i |weight_i|` bound for the real layer-0 fused QKV projection.
+    /// This one-time weight scan is deliberately outside the candidate hot
+    /// path. The returned workspace cannot be reused with another model.
+    #[doc(hidden)]
+    pub fn dense_canary_workspace(&self) -> Option<Gpt2DenseCanaryWorkspace> {
+        self.validate_production_geometry()?;
+        self.validate_attention_canary_model().ok()?;
+        let in_dim = self.cfg.n_embd;
+        let out_dim = canary_product("3 * n_embd", &[3, in_dim]).ok()?;
+        let layer = self.layers.first()?;
+        let mut sum_abs_weight_upper = vec![0.0f64; out_dim];
+        for input_index in 0..in_dim {
+            let row = &layer.c_attn_w[input_index * out_dim..(input_index + 1) * out_dim];
+            for output_index in 0..out_dim {
+                sum_abs_weight_upper[output_index] += f64::from(row[output_index]).abs();
+            }
+        }
+        for bound in &mut sum_abs_weight_upper {
+            *bound = dense_positive_sum_upper(*bound, in_dim).unwrap_or(f64::INFINITY);
+        }
+        Some(Gpt2DenseCanaryWorkspace {
+            weight_address: layer.c_attn_w.as_ptr() as usize,
+            weight_len: layer.c_attn_w.len(),
+            source_kappa: self.kappa.clone(),
+            in_dim,
+            out_dim,
+            sums: vec![0.0; out_dim],
+            sum_abs_weight_upper,
+        })
+    }
+
+    fn validate_dense_canary_inputs(
+        &self,
+        input: &[f32],
+        output: &[f32],
+        workspace: &Gpt2DenseCanaryWorkspace,
+    ) -> Option<()> {
+        self.validate_production_geometry()?;
+        self.validate_attention_canary_model().ok()?;
+        let layer = self.layers.first()?;
+        let in_dim = self.cfg.n_embd;
+        let out_dim = canary_product("3 * n_embd", &[3, in_dim]).ok()?;
+        (input.len() == in_dim
+            && output.len() == out_dim
+            && workspace.weight_address == layer.c_attn_w.as_ptr() as usize
+            && workspace.weight_len == layer.c_attn_w.len()
+            && workspace.source_kappa == self.kappa
+            && workspace.in_dim == in_dim
+            && workspace.out_dim == out_dim
+            && workspace.sums.len() == out_dim
+            && workspace.sum_abs_weight_upper.len() == out_dim)
+            .then_some(())
+    }
+
+    /// Materialize the real token-plus-position then layer-0 LayerNorm input
+    /// consumed by fused `c_attn`. Validation completes before `out` changes.
+    #[doc(hidden)]
+    pub fn layer0_c_attn_canary_input(
+        &self,
+        token: usize,
+        position: usize,
+        out: &mut [f32],
+    ) -> Option<()> {
+        self.validate_production_geometry()?;
+        self.validate_attention_canary_model().ok()?;
+        let layer = self.layers.first()?;
+        let d = self.cfg.n_embd;
+        if token >= self.cfg.vocab || position >= self.cfg.n_positions || out.len() != d {
+            return None;
+        }
+        for (index, value) in out.iter_mut().enumerate() {
+            *value = self.wte[token * d + index] + self.wpe[position * d + index];
+        }
+        // LayerNorm cannot be safely in-place because it reads the complete
+        // input to determine mean and variance. Reproduce its scalar order
+        // directly while retaining the embedding vector in caller scratch.
+        let n = d as f32;
+        let mean = out.iter().sum::<f32>() / n;
+        let variance = out
+            .iter()
+            .map(|value| (*value - mean) * (*value - mean))
+            .sum::<f32>()
+            / n;
+        let inverse = 1.0 / (variance + self.cfg.layer_norm_eps).sqrt();
+        for (index, value) in out.iter_mut().enumerate() {
+            *value = (*value - mean) * inverse * layer.ln1_w[index] + layer.ln1_b[index];
+        }
+        Some(())
+    }
+
+    /// Execute one checked real layer-0 fused-QKV projection. Caller shape,
+    /// model/workspace binding, and all derived extents are validated before
+    /// either output or workspace is mutated; invalid input returns `None`.
+    #[doc(hidden)]
+    pub fn layer0_c_attn_canary(
+        &self,
+        input: &[f32],
+        output: &mut [f32],
+        workspace: &mut Gpt2DenseCanaryWorkspace,
+        mode: Gpt2DenseCanaryMode,
+    ) -> Option<Gpt2DenseCanaryCensus> {
+        self.validate_dense_canary_inputs(input, output, workspace)?;
+        let layer = self.layers.first()?;
+        let out_dim = workspace.out_dim;
+        let mut census = Gpt2DenseCanaryCensus {
+            lanes: out_dim,
+            ..Gpt2DenseCanaryCensus::default()
+        };
+        match mode {
+            Gpt2DenseCanaryMode::Conventional => {
+                conv1d(input, &layer.c_attn_w, &layer.c_attn_b, out_dim, output);
+                census.conventional = out_dim;
+            }
+            Gpt2DenseCanaryMode::Exact => {
+                exact_dense_projection(output, input, &layer.c_attn_w, out_dim);
+                for (value, &bias) in output.iter_mut().zip(&layer.c_attn_b) {
+                    *value += bias;
+                }
+                census.exact_control = out_dim;
+            }
+            Gpt2DenseCanaryMode::CertifiedNative => {
+                census = certified_dense_projection(
+                    output,
+                    input,
+                    &layer.c_attn_w,
+                    &layer.c_attn_b,
+                    workspace,
+                );
+            }
+        }
+        Some(census)
+    }
+
+    fn dense_control_layer_matrix(
+        &self,
+        layer_index: usize,
+        site_offset: usize,
+    ) -> Option<(&[f32], &[f32], usize, usize)> {
+        let layer = self.layers.get(layer_index)?;
+        let d = self.cfg.n_embd;
+        match site_offset {
+            0 => Some((&layer.c_attn_w, &layer.c_attn_b, d, 3 * d)),
+            1 => Some((&layer.c_proj_w, &layer.c_proj_b, d, d)),
+            2 => Some((&layer.fc_w, &layer.fc_b, d, self.cfg.n_inner)),
+            3 => Some((&layer.mlp_w, &layer.mlp_b, self.cfg.n_inner, d)),
+            _ => None,
+        }
+    }
+
+    fn dense_control_prepared_index(layer_index: usize, site_offset: usize) -> Option<usize> {
+        layer_index
+            .checked_mul(DENSE_CONTROL_SITES_PER_LAYER)?
+            .checked_add(site_offset)
+    }
+
+    /// Prepare every remaining GPT-2 dense owner for a serial checked control.
+    #[doc(hidden)]
+    pub fn dense_control_workspace(&self) -> Option<Gpt2DenseControlWorkspace> {
+        self.dense_control_workspace_for_batch(1)
+    }
+
+    /// Prepare every dense owner and caller scratch for up to `max_batch`
+    /// sequence-major rows. This includes a `[n_embd, vocab]` transpose of
+    /// tied `wte`, so the exact and certified lm-heads use the same `[in,out]`
+    /// row-reuse kernel without a hot-path gather or weight rewrite.
+    #[doc(hidden)]
+    pub fn dense_control_workspace_for_batch(
+        &self,
+        max_batch: usize,
+    ) -> Option<Gpt2DenseControlWorkspace> {
+        self.validate_production_geometry()?;
+        self.validate_attention_canary_model().ok()?;
+        if max_batch == 0 {
+            return None;
+        }
+        let d = self.cfg.n_embd;
+        let matrix_count = self
+            .cfg
+            .n_layer
+            .checked_mul(DENSE_CONTROL_SITES_PER_LAYER)?;
+        let mut prepared = Vec::with_capacity(matrix_count);
+        let mut model_weight_addresses = Vec::with_capacity(matrix_count);
+        let mut model_weight_lengths = Vec::with_capacity(matrix_count);
+        for layer_index in 0..self.cfg.n_layer {
+            for site_offset in 0..DENSE_CONTROL_SITES_PER_LAYER {
+                let (weights, _, in_dim, out_dim) =
+                    self.dense_control_layer_matrix(layer_index, site_offset)?;
+                prepared.push(DensePreparedMatrix::prepare(weights, in_dim, out_dim)?);
+                model_weight_addresses.push(weights.as_ptr() as usize);
+                model_weight_lengths.push(weights.len());
+            }
+        }
+
+        let transpose_len = d.checked_mul(self.cfg.vocab)?;
+        let mut lm_head_transposed = vec![0.0f32; transpose_len];
+        for vocabulary_index in 0..self.cfg.vocab {
+            let row = &self.wte[vocabulary_index * d..(vocabulary_index + 1) * d];
+            for input_index in 0..d {
+                lm_head_transposed[input_index * self.cfg.vocab + vocabulary_index] =
+                    row[input_index];
+            }
+        }
+        let lm_head = DensePreparedMatrix::prepare(&lm_head_transposed, d, self.cfg.vocab)?;
+        let maximum_output = self
+            .cfg
+            .vocab
+            .max(self.cfg.n_inner)
+            .max(3usize.checked_mul(d)?);
+
+        Some(Gpt2DenseControlWorkspace {
+            source_kappa: self.kappa.clone(),
+            max_batch,
+            model_weight_addresses,
+            model_weight_lengths,
+            wte_address: self.wte.as_ptr() as usize,
+            wte_len: self.wte.len(),
+            prepared,
+            lm_head_transposed,
+            lm_head,
+            normed: vec![0.0; d],
+            qkv: vec![0.0; 3 * d],
+            attn: vec![0.0; d],
+            proj: vec![0.0; d],
+            inner: vec![0.0; self.cfg.n_inner],
+            mlp_out: vec![0.0; d],
+            scores: vec![0.0; self.cfg.seq_len],
+            batch_normed: vec![0.0; max_batch.checked_mul(d)?],
+            batch_qkv: vec![0.0; max_batch.checked_mul(3usize.checked_mul(d)?)?],
+            batch_attn: vec![0.0; max_batch.checked_mul(d)?],
+            batch_proj: vec![0.0; max_batch.checked_mul(d)?],
+            batch_inner: vec![0.0; max_batch.checked_mul(self.cfg.n_inner)?],
+            batch_mlp_out: vec![0.0; max_batch.checked_mul(d)?],
+            batch_logits: vec![0.0; max_batch.checked_mul(self.cfg.vocab)?],
+            batch_sums: vec![0.0; max_batch.checked_mul(maximum_output)?],
+            batch_max_activation_abs: vec![0.0; max_batch],
+            step_layers: vec![Gpt2DenseLayerCensus::default(); self.cfg.n_layer],
+            step_lm_head: Gpt2DenseCanaryCensus::default(),
+            batch_layers: vec![Gpt2DenseLayerCensus::default(); self.cfg.n_layer],
+            batch_lm_head: Gpt2DenseCanaryCensus::default(),
+        })
+    }
+
+    /// Report the prepared workspace's owned capacity by purpose. This is a
+    /// deterministic byte census for the transpose tradeoff, not an RSS or
+    /// allocator-overhead measurement.
+    #[doc(hidden)]
+    pub fn dense_control_workspace_bytes(
+        &self,
+        workspace: &Gpt2DenseControlWorkspace,
+    ) -> Option<Gpt2DenseControlWorkspaceBytes> {
+        self.validate_dense_control_workspace(workspace)?;
+        let bytes = |count: usize, element: usize| count.checked_mul(element);
+        let add = |left: usize, right: usize| left.checked_add(right);
+
+        let mut bound_elements = workspace.lm_head.sum_abs_weight_upper.capacity();
+        let mut sum_elements = workspace.lm_head.sums.capacity();
+        for matrix in &workspace.prepared {
+            bound_elements = bound_elements.checked_add(matrix.sum_abs_weight_upper.capacity())?;
+            sum_elements = sum_elements.checked_add(matrix.sums.capacity())?;
+        }
+        let matrix_bounds = bytes(bound_elements, std::mem::size_of::<f64>())?;
+        sum_elements = sum_elements
+            .checked_add(workspace.batch_sums.capacity())?
+            .checked_add(workspace.batch_max_activation_abs.capacity())?;
+        let f64_sum_scratch = bytes(sum_elements, std::mem::size_of::<f64>())?;
+        let lm_head_transpose = bytes(
+            workspace.lm_head_transposed.capacity(),
+            std::mem::size_of::<f32>(),
+        )?;
+
+        let intermediate_elements = workspace
+            .normed
+            .capacity()
+            .checked_add(workspace.qkv.capacity())?
+            .checked_add(workspace.attn.capacity())?
+            .checked_add(workspace.proj.capacity())?
+            .checked_add(workspace.inner.capacity())?
+            .checked_add(workspace.mlp_out.capacity())?
+            .checked_add(workspace.scores.capacity())?
+            .checked_add(workspace.batch_normed.capacity())?
+            .checked_add(workspace.batch_qkv.capacity())?
+            .checked_add(workspace.batch_attn.capacity())?
+            .checked_add(workspace.batch_proj.capacity())?
+            .checked_add(workspace.batch_inner.capacity())?
+            .checked_add(workspace.batch_mlp_out.capacity())?
+            .checked_add(workspace.batch_logits.capacity())?;
+        let intermediate_scratch = bytes(intermediate_elements, std::mem::size_of::<f32>())?;
+
+        let mut metadata = std::mem::size_of::<Gpt2DenseControlWorkspace>();
+        metadata = add(metadata, workspace.source_kappa.capacity())?;
+        metadata = add(
+            metadata,
+            bytes(
+                workspace.model_weight_addresses.capacity(),
+                std::mem::size_of::<usize>(),
+            )?,
+        )?;
+        metadata = add(
+            metadata,
+            bytes(
+                workspace.model_weight_lengths.capacity(),
+                std::mem::size_of::<usize>(),
+            )?,
+        )?;
+        metadata = add(
+            metadata,
+            bytes(
+                workspace.prepared.capacity(),
+                std::mem::size_of::<DensePreparedMatrix>(),
+            )?,
+        )?;
+        metadata = add(
+            metadata,
+            bytes(
+                workspace.step_layers.capacity(),
+                std::mem::size_of::<Gpt2DenseLayerCensus>(),
+            )?,
+        )?;
+        metadata = add(
+            metadata,
+            bytes(
+                workspace.batch_layers.capacity(),
+                std::mem::size_of::<Gpt2DenseLayerCensus>(),
+            )?,
+        )?;
+        let total = lm_head_transpose
+            .checked_add(matrix_bounds)?
+            .checked_add(f64_sum_scratch)?
+            .checked_add(intermediate_scratch)?
+            .checked_add(metadata)?;
+        Some(Gpt2DenseControlWorkspaceBytes {
+            lm_head_transpose,
+            matrix_bounds,
+            f64_sum_scratch,
+            intermediate_scratch,
+            metadata,
+            total,
+        })
+    }
+
+    /// Fingerprint all prepared metadata, proof scratch, batch scratch, and
+    /// census storage without allocating or copying the tied-head transpose.
+    #[doc(hidden)]
+    pub fn dense_control_workspace_fingerprint(
+        &self,
+        workspace: &Gpt2DenseControlWorkspace,
+    ) -> Option<Gpt2DenseControlWorkspaceFingerprint> {
+        self.validate_dense_control_workspace(workspace)?;
+        let mut hasher = blake3::Hasher::new();
+        dense_fingerprint_usize(&mut hasher, workspace.source_kappa.len());
+        dense_fingerprint_usize(&mut hasher, workspace.source_kappa.capacity());
+        hasher.update(workspace.source_kappa.as_bytes());
+        dense_fingerprint_usize(&mut hasher, workspace.max_batch);
+        dense_fingerprint_usize(&mut hasher, workspace.model_weight_addresses.len());
+        dense_fingerprint_usize(&mut hasher, workspace.model_weight_addresses.capacity());
+        for &value in &workspace.model_weight_addresses {
+            dense_fingerprint_usize(&mut hasher, value);
+        }
+        dense_fingerprint_usize(&mut hasher, workspace.model_weight_lengths.len());
+        dense_fingerprint_usize(&mut hasher, workspace.model_weight_lengths.capacity());
+        for &value in &workspace.model_weight_lengths {
+            dense_fingerprint_usize(&mut hasher, value);
+        }
+        dense_fingerprint_usize(&mut hasher, workspace.wte_address);
+        dense_fingerprint_usize(&mut hasher, workspace.wte_len);
+        dense_fingerprint_usize(&mut hasher, workspace.prepared.len());
+        dense_fingerprint_usize(&mut hasher, workspace.prepared.capacity());
+        for matrix in &workspace.prepared {
+            dense_fingerprint_usize(&mut hasher, matrix.in_dim);
+            dense_fingerprint_usize(&mut hasher, matrix.out_dim);
+            dense_fingerprint_f64_slice(&mut hasher, &matrix.sums, matrix.sums.capacity());
+            dense_fingerprint_f64_slice(
+                &mut hasher,
+                &matrix.sum_abs_weight_upper,
+                matrix.sum_abs_weight_upper.capacity(),
+            );
+        }
+        dense_fingerprint_f32_slice(
+            &mut hasher,
+            &workspace.lm_head_transposed,
+            workspace.lm_head_transposed.capacity(),
+        );
+        dense_fingerprint_usize(&mut hasher, workspace.lm_head.in_dim);
+        dense_fingerprint_usize(&mut hasher, workspace.lm_head.out_dim);
+        dense_fingerprint_f64_slice(
+            &mut hasher,
+            &workspace.lm_head.sums,
+            workspace.lm_head.sums.capacity(),
+        );
+        dense_fingerprint_f64_slice(
+            &mut hasher,
+            &workspace.lm_head.sum_abs_weight_upper,
+            workspace.lm_head.sum_abs_weight_upper.capacity(),
+        );
+        for values in [
+            &workspace.normed,
+            &workspace.qkv,
+            &workspace.attn,
+            &workspace.proj,
+            &workspace.inner,
+            &workspace.mlp_out,
+            &workspace.scores,
+            &workspace.batch_normed,
+            &workspace.batch_qkv,
+            &workspace.batch_attn,
+            &workspace.batch_proj,
+            &workspace.batch_inner,
+            &workspace.batch_mlp_out,
+            &workspace.batch_logits,
+        ] {
+            dense_fingerprint_f32_slice(&mut hasher, values, values.capacity());
+        }
+        dense_fingerprint_f64_slice(
+            &mut hasher,
+            &workspace.batch_sums,
+            workspace.batch_sums.capacity(),
+        );
+        dense_fingerprint_f64_slice(
+            &mut hasher,
+            &workspace.batch_max_activation_abs,
+            workspace.batch_max_activation_abs.capacity(),
+        );
+        dense_fingerprint_usize(&mut hasher, workspace.step_layers.len());
+        dense_fingerprint_usize(&mut hasher, workspace.step_layers.capacity());
+        for &layer in &workspace.step_layers {
+            dense_fingerprint_layer_census(&mut hasher, layer);
+        }
+        dense_fingerprint_census(&mut hasher, workspace.step_lm_head);
+        dense_fingerprint_usize(&mut hasher, workspace.batch_layers.len());
+        dense_fingerprint_usize(&mut hasher, workspace.batch_layers.capacity());
+        for &layer in &workspace.batch_layers {
+            dense_fingerprint_layer_census(&mut hasher, layer);
+        }
+        dense_fingerprint_census(&mut hasher, workspace.batch_lm_head);
+        Some(Gpt2DenseControlWorkspaceFingerprint(
+            *hasher.finalize().as_bytes(),
+        ))
+    }
+
+    fn validate_dense_control_workspace(
+        &self,
+        workspace: &Gpt2DenseControlWorkspace,
+    ) -> Option<()> {
+        self.validate_production_geometry()?;
+        self.validate_attention_canary_model().ok()?;
+        let d = self.cfg.n_embd;
+        let matrix_count = self
+            .cfg
+            .n_layer
+            .checked_mul(DENSE_CONTROL_SITES_PER_LAYER)?;
+        let maximum_output = self
+            .cfg
+            .vocab
+            .max(self.cfg.n_inner)
+            .max(3usize.checked_mul(d)?);
+        if workspace.source_kappa != self.kappa
+            || workspace.max_batch == 0
+            || workspace.model_weight_addresses.len() != matrix_count
+            || workspace.model_weight_lengths.len() != matrix_count
+            || workspace.prepared.len() != matrix_count
+            || workspace.wte_address != self.wte.as_ptr() as usize
+            || workspace.wte_len != self.wte.len()
+            || workspace.lm_head_transposed.len() != d.checked_mul(self.cfg.vocab)?
+            || !workspace.lm_head.has_shape(d, self.cfg.vocab)
+            || workspace.normed.len() != d
+            || workspace.qkv.len() != 3usize.checked_mul(d)?
+            || workspace.attn.len() != d
+            || workspace.proj.len() != d
+            || workspace.inner.len() != self.cfg.n_inner
+            || workspace.mlp_out.len() != d
+            || workspace.scores.len() != self.cfg.seq_len
+            || workspace.batch_normed.len() != workspace.max_batch.checked_mul(d)?
+            || workspace.batch_qkv.len()
+                != workspace.max_batch.checked_mul(3usize.checked_mul(d)?)?
+            || workspace.batch_attn.len() != workspace.max_batch.checked_mul(d)?
+            || workspace.batch_proj.len() != workspace.max_batch.checked_mul(d)?
+            || workspace.batch_inner.len() != workspace.max_batch.checked_mul(self.cfg.n_inner)?
+            || workspace.batch_mlp_out.len() != workspace.max_batch.checked_mul(d)?
+            || workspace.batch_logits.len() != workspace.max_batch.checked_mul(self.cfg.vocab)?
+            || workspace.batch_sums.len() != workspace.max_batch.checked_mul(maximum_output)?
+            || workspace.batch_max_activation_abs.len() != workspace.max_batch
+            || workspace.step_layers.len() != self.cfg.n_layer
+            || workspace.batch_layers.len() != self.cfg.n_layer
+        {
+            return None;
+        }
+        for layer_index in 0..self.cfg.n_layer {
+            for site_offset in 0..DENSE_CONTROL_SITES_PER_LAYER {
+                let index = Self::dense_control_prepared_index(layer_index, site_offset)?;
+                let (weights, _, in_dim, out_dim) =
+                    self.dense_control_layer_matrix(layer_index, site_offset)?;
+                if workspace.model_weight_addresses[index] != weights.as_ptr() as usize
+                    || workspace.model_weight_lengths[index] != weights.len()
+                    || !workspace.prepared[index].has_shape(in_dim, out_dim)
+                {
+                    return None;
+                }
+            }
+        }
+        Some(())
+    }
+
+    fn validate_dense_control_state(&self, state: &Gpt2State) -> Option<()> {
+        let d = self.cfg.n_embd;
+        let cache = canary_product(
+            "n_layer * seq_len * n_embd",
+            &[self.cfg.n_layer, self.cfg.seq_len, d],
+        )
+        .ok()?;
+        (state.k_cache.len() == cache
+            && state.v_cache.len() == cache
+            && state.logits.len() == self.cfg.vocab
+            && state.hidden.len() == d
+            && state.x.len() == d)
+            .then_some(())
+    }
+
+    /// O(1) load-geometry binding for the production executor. The public
+    /// config remains mutable for source compatibility, but weights and dense
+    /// proof preparation are immutable products of the load-time geometry.
+    /// Reject any drift before cfg-derived indexing or arithmetic can run.
+    fn validate_production_geometry(&self) -> Option<()> {
+        let geometry = self.dense_prepared.geometry;
+        if !geometry.matches_config(&self.cfg) {
+            return None;
+        }
+        let embedding_values = geometry.vocab.checked_mul(geometry.n_embd)?;
+        let position_values = geometry.n_positions.checked_mul(geometry.n_embd)?;
+        let prepared_matrices = geometry
+            .n_layer
+            .checked_mul(DENSE_CONTROL_SITES_PER_LAYER)?;
+        (geometry.n_head != 0
+            && geometry.n_embd.is_multiple_of(geometry.n_head)
+            && self.cfg.seq_len != 0
+            && self.cfg.seq_len <= geometry.n_positions
+            && self.wte.len() == embedding_values
+            && self.wpe.len() == position_values
+            && self.layers.len() == geometry.n_layer
+            && self.ln_f_w.len() == geometry.n_embd
+            && self.ln_f_b.len() == geometry.n_embd
+            && self.dense_prepared.matrices.len() == prepared_matrices
+            && self.dense_prepared.lm_head_transposed.len() == embedding_values
+            && self.dense_prepared.lm_head.in_dim == geometry.n_embd
+            && self.dense_prepared.lm_head.out_dim == geometry.vocab
+            && self.dense_prepared.lm_head.sum_abs_weight_upper.len() == geometry.vocab)
+            .then_some(())
+    }
+
+    fn validate_production_state(&self, state: &Gpt2State) -> Option<()> {
+        self.validate_production_geometry()?;
+        self.validate_dense_control_state(state)?;
+        let d = self.cfg.n_embd;
+        let maximum_input = self.cfg.n_inner.max(d);
+        let maximum_output = self
+            .cfg
+            .vocab
+            .max(self.cfg.n_inner)
+            .max(3usize.checked_mul(d)?);
+        (state.dense_scratch.input.len() == maximum_input
+            && state.dense_scratch.output.len() == maximum_output
+            && state.dense_scratch.sums.len() == maximum_output
+            && state.dense_scratch.attention.len() == d
+            && state.dense_scratch.scores.len() == self.cfg.seq_len)
+            .then_some(())
+    }
+
+    fn validate_production_step(
+        &self,
+        state: &Gpt2State,
+        token: usize,
+        position: usize,
+    ) -> Option<()> {
+        self.validate_production_state(state)?;
+        (token < self.cfg.vocab && position < self.cfg.seq_len).then_some(())
+    }
+
+    fn validate_dense_control_step(
+        &self,
+        state: &Gpt2State,
+        workspace: &Gpt2DenseControlWorkspace,
+        token: usize,
+        position: usize,
+    ) -> Option<()> {
+        self.validate_dense_control_workspace(workspace)?;
+        self.validate_dense_control_state(state)?;
+        (token < self.cfg.vocab && position < self.cfg.seq_len).then_some(())
+    }
+
+    fn validate_dense_trace_request(&self, request: &crate::TraceCaptureRequest<'_>) -> Option<()> {
+        request
+            .residual_layers
+            .iter()
+            .chain(request.qkv_layers)
+            .chain(request.attention_layers)
+            .all(|&layer| layer < self.cfg.n_layer)
+            .then_some(())
+    }
+
+    /// Checked matrix-level seam used to differentially exercise every real
+    /// projection shape through the same arithmetic owner as the whole-model
+    /// serial, trace, and batch controls.
+    #[doc(hidden)]
+    pub fn dense_control_matrix_canary(
+        &self,
+        workspace: &mut Gpt2DenseControlWorkspace,
+        layer_index: Option<usize>,
+        site: Gpt2DenseControlSite,
+        input: &[f32],
+        output: &mut [f32],
+        mode: Gpt2DenseCanaryMode,
+    ) -> Option<Gpt2DenseCanaryCensus> {
+        self.validate_dense_control_workspace(workspace)?;
+        match site {
+            Gpt2DenseControlSite::LmHead => {
+                if layer_index.is_some()
+                    || input.len() != self.cfg.n_embd
+                    || output.len() != self.cfg.vocab
+                {
+                    return None;
+                }
+                if mode == Gpt2DenseCanaryMode::Conventional {
+                    conventional_lm_head(output, input, &self.wte, self.cfg.n_embd);
+                    Some(Gpt2DenseCanaryCensus {
+                        lanes: self.cfg.vocab,
+                        conventional: self.cfg.vocab,
+                        ..Gpt2DenseCanaryCensus::default()
+                    })
+                } else {
+                    Some(controlled_dense_projection(
+                        output,
+                        input,
+                        &workspace.lm_head_transposed,
+                        None,
+                        &mut workspace.lm_head,
+                        mode,
+                    ))
+                }
+            }
+            _ => {
+                let layer_index = layer_index?;
+                let site_offset = match site {
+                    Gpt2DenseControlSite::CAttn => 0,
+                    Gpt2DenseControlSite::AttentionCProj => 1,
+                    Gpt2DenseControlSite::MlpCFc => 2,
+                    Gpt2DenseControlSite::MlpCProj => 3,
+                    Gpt2DenseControlSite::LmHead => unreachable!(),
+                };
+                let index = Self::dense_control_prepared_index(layer_index, site_offset)?;
+                let (weights, bias, in_dim, out_dim) =
+                    self.dense_control_layer_matrix(layer_index, site_offset)?;
+                if input.len() != in_dim || output.len() != out_dim {
+                    return None;
+                }
+                Some(controlled_dense_projection(
+                    output,
+                    input,
+                    weights,
+                    Some(bias),
+                    &mut workspace.prepared[index],
+                    mode,
+                ))
+            }
+        }
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn block_attention_dense_control(
+        &self,
+        state: &mut Gpt2State,
+        layer_index: usize,
+        position: usize,
+        qkv: &[f32],
+        attention: &mut [f32],
+        scores: &mut [f32],
+        request: Option<&crate::TraceCaptureRequest<'_>>,
+        mut sinks: Option<&mut crate::TraceCaptureSinks<'_, '_>>,
+    ) {
+        let d = self.cfg.n_embd;
+        let head_size = self.cfg.head_size();
+        let sequence_length = self.cfg.seq_len;
+        let base = (layer_index * sequence_length + position) * d;
+        state.k_cache[base..base + d].copy_from_slice(&qkv[d..2 * d]);
+        state.v_cache[base..base + d].copy_from_slice(&qkv[2 * d..3 * d]);
+
+        if request.is_some_and(|request| request.qkv_layers.contains(&layer_index)) {
+            if let Some(sinks) = sinks.as_deref_mut() {
+                (sinks.qkv)(layer_index, &qkv[..d], &qkv[d..2 * d], &qkv[2 * d..3 * d]);
+            }
+        }
+
+        debug_assert_eq!(scores.len(), position + 1);
+        let key_cache = &state.k_cache
+            [layer_index * sequence_length * d..(layer_index + 1) * sequence_length * d];
+        let value_cache = &state.v_cache
+            [layer_index * sequence_length * d..(layer_index + 1) * sequence_length * d];
+        for head in 0..self.cfg.n_head {
+            let query = &qkv[head * head_size..(head + 1) * head_size];
+            let _ = attention_weights_with_arithmetic(
+                scores,
+                query,
+                key_cache,
+                head * head_size,
+                d,
+                crate::attention::AttentionArithmetic::CertifiedNative,
+            );
+            if request.is_some_and(|request| request.attention_layers.contains(&layer_index)) {
+                if let Some(sinks) = sinks.as_deref_mut() {
+                    (sinks.attention)(layer_index, head, scores);
+                }
+            }
+            let output = &mut attention[head * head_size..(head + 1) * head_size];
+            let _ = crate::attention::head_attention_value_aggregate_with_arithmetic(
+                output,
+                scores,
+                value_cache,
+                head * head_size,
+                d,
+                crate::attention::AttentionArithmetic::CertifiedNative,
+            );
+        }
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn forward_dense_control_unchecked(
+        &self,
+        state: &mut Gpt2State,
+        workspace: &mut Gpt2DenseControlWorkspace,
+        token: usize,
+        position: usize,
+        mode: Gpt2DenseCanaryMode,
+        request: Option<&crate::TraceCaptureRequest<'_>>,
+        mut sinks: Option<&mut crate::TraceCaptureSinks<'_, '_>>,
+    ) {
+        let d = self.cfg.n_embd;
+        workspace.step_layers.fill(Gpt2DenseLayerCensus::default());
+        workspace.step_lm_head = Gpt2DenseCanaryCensus::default();
+
+        for input_index in 0..d {
+            state.x[input_index] =
+                self.wte[token * d + input_index] + self.wpe[position * d + input_index];
+        }
+
+        for layer_index in 0..self.cfg.n_layer {
+            let layer = &self.layers[layer_index];
+            layer_norm(
+                &state.x,
+                &layer.ln1_w,
+                &layer.ln1_b,
+                self.cfg.layer_norm_eps,
+                &mut workspace.normed,
+            );
+
+            let c_attn_index = layer_index * DENSE_CONTROL_SITES_PER_LAYER;
+            workspace.step_layers[layer_index].c_attn = controlled_dense_projection(
+                &mut workspace.qkv,
+                &workspace.normed,
+                &layer.c_attn_w,
+                Some(&layer.c_attn_b),
+                &mut workspace.prepared[c_attn_index],
+                mode,
+            );
+            self.block_attention_dense_control(
+                state,
+                layer_index,
+                position,
+                &workspace.qkv,
+                &mut workspace.attn,
+                &mut workspace.scores[..=position],
+                request,
+                sinks.as_deref_mut(),
+            );
+
+            let attention_projection_index = layer_index * DENSE_CONTROL_SITES_PER_LAYER + 1;
+            workspace.step_layers[layer_index].attention_c_proj = controlled_dense_projection(
+                &mut workspace.proj,
+                &workspace.attn,
+                &layer.c_proj_w,
+                Some(&layer.c_proj_b),
+                &mut workspace.prepared[attention_projection_index],
+                mode,
+            );
+            for (value, &projection) in state.x.iter_mut().zip(&workspace.proj) {
+                *value += projection;
+            }
+
+            layer_norm(
+                &state.x,
+                &layer.ln2_w,
+                &layer.ln2_b,
+                self.cfg.layer_norm_eps,
+                &mut workspace.normed,
+            );
+            let fc_index = layer_index * DENSE_CONTROL_SITES_PER_LAYER + 2;
+            workspace.step_layers[layer_index].mlp_c_fc = controlled_dense_projection(
+                &mut workspace.inner,
+                &workspace.normed,
+                &layer.fc_w,
+                Some(&layer.fc_b),
+                &mut workspace.prepared[fc_index],
+                mode,
+            );
+            for value in &mut workspace.inner {
+                *value = gelu_new(*value);
+            }
+
+            let mlp_projection_index = layer_index * DENSE_CONTROL_SITES_PER_LAYER + 3;
+            workspace.step_layers[layer_index].mlp_c_proj = controlled_dense_projection(
+                &mut workspace.mlp_out,
+                &workspace.inner,
+                &layer.mlp_w,
+                Some(&layer.mlp_b),
+                &mut workspace.prepared[mlp_projection_index],
+                mode,
+            );
+            for (value, &projection) in state.x.iter_mut().zip(&workspace.mlp_out) {
+                *value += projection;
+            }
+            if request.is_some_and(|request| request.residual_layers.contains(&layer_index)) {
+                if let Some(sinks) = sinks.as_deref_mut() {
+                    (sinks.residual)(layer_index, &state.x);
+                }
+            }
+        }
+
+        layer_norm(
+            &state.x,
+            &self.ln_f_w,
+            &self.ln_f_b,
+            self.cfg.layer_norm_eps,
+            &mut state.hidden,
+        );
+        workspace.step_lm_head = if mode == Gpt2DenseCanaryMode::Conventional {
+            conventional_lm_head(&mut state.logits, &state.hidden, &self.wte, d);
+            Gpt2DenseCanaryCensus {
+                lanes: self.cfg.vocab,
+                conventional: self.cfg.vocab,
+                ..Gpt2DenseCanaryCensus::default()
+            }
+        } else {
+            controlled_dense_projection(
+                &mut state.logits,
+                &state.hidden,
+                &workspace.lm_head_transposed,
+                None,
+                &mut workspace.lm_head,
+                mode,
+            )
+        };
+    }
+
+    /// Run one evidence-only whole-model dense control. Attention arithmetic
+    /// is hard-bound to the production certified-native path for every arm;
+    /// only the five dense owner classes vary.
+    #[doc(hidden)]
+    pub fn forward_dense_control<'workspace>(
+        &self,
+        state: &mut Gpt2State,
+        workspace: &'workspace mut Gpt2DenseControlWorkspace,
+        token: usize,
+        position: usize,
+        mode: Gpt2DenseCanaryMode,
+    ) -> Option<Gpt2DenseControlCensus<'workspace>> {
+        self.validate_dense_control_step(state, workspace, token, position)?;
+        self.forward_dense_control_unchecked(state, workspace, token, position, mode, None, None);
+        Some(Gpt2DenseControlCensus {
+            layers: &workspace.step_layers,
+            lm_head: workspace.step_lm_head,
+        })
+    }
+
+    /// Trace-capable form of [`Self::forward_dense_control`]. All requested
+    /// layer extents are validated before state, workspace, or any sink is
+    /// touched.
+    #[doc(hidden)]
+    #[allow(clippy::too_many_arguments)]
+    pub fn forward_dense_control_capturing_trace<'workspace>(
+        &self,
+        state: &mut Gpt2State,
+        workspace: &'workspace mut Gpt2DenseControlWorkspace,
+        token: usize,
+        position: usize,
+        mode: Gpt2DenseCanaryMode,
+        request: &crate::TraceCaptureRequest<'_>,
+        sinks: &mut crate::TraceCaptureSinks<'_, '_>,
+    ) -> Option<Gpt2DenseControlCensus<'workspace>> {
+        self.validate_dense_control_step(state, workspace, token, position)?;
+        self.validate_dense_trace_request(request)?;
+        self.forward_dense_control_unchecked(
+            state,
+            workspace,
+            token,
+            position,
+            mode,
+            Some(request),
+            Some(sinks),
+        );
+        Some(Gpt2DenseControlCensus {
+            layers: &workspace.step_layers,
+            lm_head: workspace.step_lm_head,
+        })
+    }
+
+    /// Differential row-reuse batch control. Every projection visits inputs
+    /// in the serial order for each sequence while sharing each immutable
+    /// weight row across the batch. The production batch uses the same
+    /// certified projection owner with state-local scratch.
+    #[doc(hidden)]
+    // Indexed sequence-major loops keep every residual/cache/scratch row in
+    // lockstep while each projection reuses immutable weight rows.
+    #[allow(clippy::needless_range_loop)]
+    pub fn forward_batch_dense_control<'workspace>(
+        &self,
+        states: &mut [Gpt2State],
+        tokens: &[usize],
+        positions: &[usize],
+        workspace: &'workspace mut Gpt2DenseControlWorkspace,
+        mode: Gpt2DenseCanaryMode,
+    ) -> Option<Gpt2DenseControlCensus<'workspace>> {
+        self.validate_dense_control_workspace(workspace)?;
+        if states.len() != tokens.len() || states.len() != positions.len() {
+            return None;
+        }
+        if states.len() > workspace.max_batch {
+            return None;
+        }
+        for ((state, &token), &position) in states.iter().zip(tokens).zip(positions) {
+            self.validate_dense_control_state(state)?;
+            if token >= self.cfg.vocab || position >= self.cfg.seq_len {
+                return None;
+            }
+        }
+        for layer_index in 0..self.cfg.n_layer {
+            for site_offset in 0..DENSE_CONTROL_SITES_PER_LAYER {
+                let (_, _, _, out_dim) =
+                    self.dense_control_layer_matrix(layer_index, site_offset)?;
+                out_dim.checked_mul(states.len())?;
+            }
+        }
+        self.cfg.vocab.checked_mul(states.len())?;
+
+        let batch = states.len();
+        let d = self.cfg.n_embd;
+        let inner_dim = self.cfg.n_inner;
+        workspace.batch_layers.fill(Gpt2DenseLayerCensus::default());
+        workspace.batch_lm_head = Gpt2DenseCanaryCensus::default();
+        if batch == 0 {
+            return Some(Gpt2DenseControlCensus {
+                layers: &workspace.batch_layers,
+                lm_head: workspace.batch_lm_head,
+            });
+        }
+
+        for batch_index in 0..batch {
+            for input_index in 0..d {
+                states[batch_index].x[input_index] = self.wte
+                    [tokens[batch_index] * d + input_index]
+                    + self.wpe[positions[batch_index] * d + input_index];
+            }
+        }
+
+        for layer_index in 0..self.cfg.n_layer {
+            let layer = &self.layers[layer_index];
+            for batch_index in 0..batch {
+                layer_norm(
+                    &states[batch_index].x,
+                    &layer.ln1_w,
+                    &layer.ln1_b,
+                    self.cfg.layer_norm_eps,
+                    &mut workspace.batch_normed[batch_index * d..(batch_index + 1) * d],
+                );
+            }
+
+            let c_attn_index = layer_index * DENSE_CONTROL_SITES_PER_LAYER;
+            workspace.batch_layers[layer_index].c_attn = controlled_dense_projection_batched(
+                &mut workspace.batch_qkv[..batch * 3 * d],
+                &workspace.batch_normed[..batch * d],
+                &layer.c_attn_w,
+                Some(&layer.c_attn_b),
+                batch,
+                &workspace.prepared[c_attn_index],
+                &mut workspace.batch_sums[..batch * 3 * d],
+                &mut workspace.batch_max_activation_abs[..batch],
+                mode,
+            );
+            for batch_index in 0..batch {
+                self.block_attention_dense_control(
+                    &mut states[batch_index],
+                    layer_index,
+                    positions[batch_index],
+                    &workspace.batch_qkv[batch_index * 3 * d..(batch_index + 1) * 3 * d],
+                    &mut workspace.batch_attn[batch_index * d..(batch_index + 1) * d],
+                    &mut workspace.scores[..=positions[batch_index]],
+                    None,
+                    None,
+                );
+            }
+
+            let attention_projection_index = layer_index * DENSE_CONTROL_SITES_PER_LAYER + 1;
+            workspace.batch_layers[layer_index].attention_c_proj =
+                controlled_dense_projection_batched(
+                    &mut workspace.batch_proj[..batch * d],
+                    &workspace.batch_attn[..batch * d],
+                    &layer.c_proj_w,
+                    Some(&layer.c_proj_b),
+                    batch,
+                    &workspace.prepared[attention_projection_index],
+                    &mut workspace.batch_sums[..batch * d],
+                    &mut workspace.batch_max_activation_abs[..batch],
+                    mode,
+                );
+            for batch_index in 0..batch {
+                for input_index in 0..d {
+                    states[batch_index].x[input_index] +=
+                        workspace.batch_proj[batch_index * d + input_index];
+                }
+                layer_norm(
+                    &states[batch_index].x,
+                    &layer.ln2_w,
+                    &layer.ln2_b,
+                    self.cfg.layer_norm_eps,
+                    &mut workspace.batch_normed[batch_index * d..(batch_index + 1) * d],
+                );
+            }
+
+            let fc_index = layer_index * DENSE_CONTROL_SITES_PER_LAYER + 2;
+            workspace.batch_layers[layer_index].mlp_c_fc = controlled_dense_projection_batched(
+                &mut workspace.batch_inner[..batch * inner_dim],
+                &workspace.batch_normed[..batch * d],
+                &layer.fc_w,
+                Some(&layer.fc_b),
+                batch,
+                &workspace.prepared[fc_index],
+                &mut workspace.batch_sums[..batch * inner_dim],
+                &mut workspace.batch_max_activation_abs[..batch],
+                mode,
+            );
+            for value in &mut workspace.batch_inner[..batch * inner_dim] {
+                *value = gelu_new(*value);
+            }
+
+            let mlp_projection_index = layer_index * DENSE_CONTROL_SITES_PER_LAYER + 3;
+            workspace.batch_layers[layer_index].mlp_c_proj = controlled_dense_projection_batched(
+                &mut workspace.batch_mlp_out[..batch * d],
+                &workspace.batch_inner[..batch * inner_dim],
+                &layer.mlp_w,
+                Some(&layer.mlp_b),
+                batch,
+                &workspace.prepared[mlp_projection_index],
+                &mut workspace.batch_sums[..batch * d],
+                &mut workspace.batch_max_activation_abs[..batch],
+                mode,
+            );
+            for batch_index in 0..batch {
+                for input_index in 0..d {
+                    states[batch_index].x[input_index] +=
+                        workspace.batch_mlp_out[batch_index * d + input_index];
+                }
+            }
+        }
+
+        for batch_index in 0..batch {
+            layer_norm(
+                &states[batch_index].x,
+                &self.ln_f_w,
+                &self.ln_f_b,
+                self.cfg.layer_norm_eps,
+                &mut workspace.batch_normed[batch_index * d..(batch_index + 1) * d],
+            );
+            states[batch_index]
+                .hidden
+                .copy_from_slice(&workspace.batch_normed[batch_index * d..(batch_index + 1) * d]);
+        }
+        workspace.batch_lm_head = if mode == Gpt2DenseCanaryMode::Conventional {
+            for vocabulary_index in 0..self.cfg.vocab {
+                let row = &self.wte[vocabulary_index * d..(vocabulary_index + 1) * d];
+                for batch_index in 0..batch {
+                    let hidden = &workspace.batch_normed[batch_index * d..(batch_index + 1) * d];
+                    let mut accumulator = 0.0f32;
+                    for input_index in 0..d {
+                        accumulator += hidden[input_index] * row[input_index];
+                    }
+                    workspace.batch_logits[batch_index * self.cfg.vocab + vocabulary_index] =
+                        accumulator;
+                }
+            }
+            Gpt2DenseCanaryCensus {
+                lanes: batch * self.cfg.vocab,
+                batch_rows: batch,
+                conventional: batch * self.cfg.vocab,
+                ..Gpt2DenseCanaryCensus::default()
+            }
+        } else {
+            controlled_dense_projection_batched(
+                &mut workspace.batch_logits[..batch * self.cfg.vocab],
+                &workspace.batch_normed[..batch * d],
+                &workspace.lm_head_transposed,
+                None,
+                batch,
+                &workspace.lm_head,
+                &mut workspace.batch_sums[..batch * self.cfg.vocab],
+                &mut workspace.batch_max_activation_abs[..batch],
+                mode,
+            )
+        };
+        for batch_index in 0..batch {
+            states[batch_index].logits.copy_from_slice(
+                &workspace.batch_logits
+                    [batch_index * self.cfg.vocab..(batch_index + 1) * self.cfg.vocab],
+            );
+        }
+        Some(Gpt2DenseControlCensus {
+            layers: &workspace.batch_layers,
+            lm_head: workspace.batch_lm_head,
+        })
+    }
+
     /// Execute one matched attention-canary step after validating every model,
     /// state, workspace, token, position, and derived slice extent. Validation
     /// completes before any mutable byte is touched, so `None` is failure
-    /// atomic. Production [`Self::forward`] remains the normal executor.
+    /// atomic. Its dense arithmetic intentionally stays conventional so the
+    /// historical attention-only experiment continues to vary attention only.
     #[doc(hidden)]
     pub fn forward_attention_canary(
         &self,
@@ -895,38 +3390,15 @@ impl Gpt2 {
         }
     }
 
-    /// Final `ln_f` LayerNorm into `st.hidden` and the tied lm-head into
-    /// `st.logits`. Shared by [`Gpt2::forward`] and
-    /// [`Gpt2::forward_capturing_trace`] so a traced step finishes through
-    /// the exact same arithmetic.
-    fn finish_forward(&self, st: &mut Gpt2State) {
-        let d = self.cfg.n_embd;
-        layer_norm(
-            &st.x,
-            &self.ln_f_w,
-            &self.ln_f_b,
-            self.cfg.layer_norm_eps,
-            &mut st.hidden,
-        );
-        let hidden = st.hidden.clone();
-        for v in 0..self.cfg.vocab {
-            let row = &self.wte[v * d..(v + 1) * d];
-            let mut acc = 0.0f32;
-            for i in 0..d {
-                acc += hidden[i] * row[i];
-            }
-            st.logits[v] = acc;
-        }
-    }
-
     /// One teacher-forced forward step at `pos` with the #603 trace lanes
-    /// captured through the exact executor path: the post-block residual
+    /// captured through the production v2 executor path: the post-block residual
     /// stream, the current-position q/k/v, and the per-head softmax
     /// attention weights, each for the layer indices `request` declares.
     /// A traced step leaves the same logits, hidden state, and k/v caches
     /// as [`Gpt2::forward`] — the taps read the executor's own
     /// intermediates, they never recompute. Sinks fire in ascending layer
-    /// order (heads ascending within a layer for the attention lane).
+    /// order (heads ascending within a layer for the attention lane). Invalid
+    /// caller extents leave state and sinks untouched.
     pub fn forward_capturing_trace(
         &self,
         st: &mut Gpt2State,
@@ -935,36 +3407,23 @@ impl Gpt2 {
         request: &crate::TraceCaptureRequest<'_>,
         sinks: &mut crate::TraceCaptureSinks<'_, '_>,
     ) {
+        if self.validate_production_step(st, token, pos).is_none()
+            || self.validate_dense_trace_request(request).is_none()
+        {
+            return;
+        }
         let d = self.cfg.n_embd;
         // token + learned absolute position embedding.
         for i in 0..d {
             st.x[i] = self.wte[token * d + i] + self.wpe[pos * d + i];
         }
-        let mut normed = vec![0.0f32; d];
-        let mut qkv = vec![0.0f32; 3 * d];
-        let mut attn = vec![0.0f32; d];
-        let mut proj = vec![0.0f32; d];
-        let mut inner = vec![0.0f32; self.cfg.n_inner];
-        let mut mlp_out = vec![0.0f32; d];
         for l in 0..self.cfg.n_layer {
-            self.block_forward(
-                st,
-                l,
-                pos,
-                &mut normed,
-                &mut qkv,
-                &mut attn,
-                &mut proj,
-                &mut inner,
-                &mut mlp_out,
-                Some(request),
-                Some(&mut *sinks),
-            );
+            self.block_forward_production(st, l, pos, Some(request), Some(&mut *sinks));
             if request.residual_layers.contains(&l) {
                 (sinks.residual)(l, &st.x);
             }
         }
-        self.finish_forward(st);
+        self.finish_forward_production(st);
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -1026,57 +3485,6 @@ impl Gpt2 {
     }
 
     #[allow(clippy::too_many_arguments)]
-    fn block_forward(
-        &self,
-        st: &mut Gpt2State,
-        l: usize,
-        pos: usize,
-        normed: &mut [f32],
-        qkv: &mut [f32],
-        attn: &mut [f32],
-        proj: &mut [f32],
-        inner: &mut [f32],
-        mlp_out: &mut [f32],
-        request: Option<&crate::TraceCaptureRequest<'_>>,
-        sinks: Option<&mut crate::TraceCaptureSinks<'_, '_>>,
-    ) {
-        let d = self.cfg.n_embd;
-        let layer = &self.layers[l];
-
-        // --- attention ---
-        layer_norm(
-            &st.x,
-            &layer.ln1_w,
-            &layer.ln1_b,
-            self.cfg.layer_norm_eps,
-            normed,
-        );
-        conv1d(normed, &layer.c_attn_w, &layer.c_attn_b, 3 * d, qkv);
-        self.block_attention(st, l, pos, qkv, attn, request, sinks);
-        conv1d(attn, &layer.c_proj_w, &layer.c_proj_b, d, proj);
-        for (xi, &p) in st.x.iter_mut().zip(&proj[..d]) {
-            *xi += p;
-        }
-
-        // --- MLP ---
-        layer_norm(
-            &st.x,
-            &layer.ln2_w,
-            &layer.ln2_b,
-            self.cfg.layer_norm_eps,
-            normed,
-        );
-        conv1d(normed, &layer.fc_w, &layer.fc_b, self.cfg.n_inner, inner);
-        for v in inner.iter_mut() {
-            *v = gelu_new(*v);
-        }
-        conv1d(inner, &layer.mlp_w, &layer.mlp_b, d, mlp_out);
-        for (xi, &m) in st.x.iter_mut().zip(&mlp_out[..d]) {
-            *xi += m;
-        }
-    }
-
-    #[allow(clippy::too_many_arguments)]
     fn block_attention_with_arithmetic(
         &self,
         st: &mut Gpt2State,
@@ -1124,86 +3532,12 @@ impl Gpt2 {
         census
     }
 
-    /// The per-sequence attention sub-block shared by [`Gpt2::block_forward`]
-    /// (serial) and [`Gpt2::forward_batch`] (batched): cache this position's
-    /// k/v from the fused `qkv` projection, then for each head compute the
-    /// scaled dot-product scores, the max-subtracted softmax (normalized in
-    /// place), and the value aggregation into `attn`. Optional #603 taps
-    /// (q/k/v and the per-head weights) fire for a requested layer. Sharing
-    /// it keeps the serial and batched executors bit-identical by
-    /// construction.
-    #[allow(clippy::too_many_arguments)]
-    fn block_attention(
-        &self,
-        st: &mut Gpt2State,
-        l: usize,
-        pos: usize,
-        qkv: &[f32],
-        attn: &mut [f32],
-        request: Option<&crate::TraceCaptureRequest<'_>>,
-        mut sinks: Option<&mut crate::TraceCaptureSinks<'_, '_>>,
-    ) {
-        let d = self.cfg.n_embd;
-        let hs = self.cfg.head_size();
-        let seq = self.cfg.seq_len;
-        // store this position's k, v (thirds 1 and 2 of the fused qkv).
-        let base = (l * seq + pos) * d;
-        st.k_cache[base..base + d].copy_from_slice(&qkv[d..2 * d]);
-        st.v_cache[base..base + d].copy_from_slice(&qkv[2 * d..3 * d]);
-        // #603 q/k/v tap at this position (q = all heads, then the just-cached
-        // k and v rows), emitted only for a requested layer. GPT-2 is plain
-        // MHA (kv heads == query heads), so every row is `d` wide.
-        if let Some(request) = request {
-            if request.qkv_layers.contains(&l) {
-                if let Some(sinks) = sinks.as_deref_mut() {
-                    (sinks.qkv)(l, &qkv[..d], &qkv[d..2 * d], &qkv[2 * d..3 * d]);
-                }
-            }
-        }
-        let mut scores = vec![0.0f32; pos + 1];
-        let key_cache = &st.k_cache[l * seq * d..(l + 1) * seq * d];
-        let value_cache = &st.v_cache[l * seq * d..(l + 1) * seq * d];
-        for h in 0..self.cfg.n_head {
-            let qh = &qkv[h * hs..(h + 1) * hs];
-            let _ = attention_weights_with_arithmetic(
-                &mut scores,
-                qh,
-                key_cache,
-                h * hs,
-                d,
-                crate::attention::AttentionArithmetic::CertifiedNative,
-            );
-            // #603 per-head attention-weight tap over positions 0..=pos.
-            if let Some(request) = request {
-                if request.attention_layers.contains(&l) {
-                    if let Some(sinks) = sinks.as_deref_mut() {
-                        (sinks.attention)(l, h, &scores);
-                    }
-                }
-            }
-            let ao = &mut attn[h * hs..(h + 1) * hs];
-            let _ = crate::attention::head_attention_value_aggregate_with_arithmetic(
-                ao,
-                &scores,
-                value_cache,
-                h * hs,
-                d,
-                crate::attention::AttentionArithmetic::CertifiedNative,
-            );
-        }
-    }
-
     /// Batched forward: advance `states.len()` independent sequences by one
     /// position each — sequence `bi` steps `tokens[bi]` at `positions[bi]`
-    /// against its own k/v cache in `states[bi]`. The projection Conv1Ds
-    /// (`c_attn`, `c_proj`, `fc`, `mlp`) run once over the whole batch via
-    /// the amortized [`conv1d_batched`], and the tied lm-head reuses each
-    /// `wte` row across the batch — the same memory-amortization Llama's
-    /// `forward_batch` gets from `matmul_batched`. Every per-sequence op
-    /// (embedding, LayerNorm, attention via the shared
-    /// [`Gpt2::block_attention`], GELU, residual) mirrors [`Gpt2::forward`]
-    /// and keeps the serial accumulation order, so this is bit-identical to
-    /// calling `forward` on each sequence.
+    /// against its own k/v cache in `states[bi]`. Every projection, including
+    /// the tied lm-head, runs through the certified row-reuse kernel while
+    /// preserving each sequence's serial input-index accumulation order. The
+    /// complete batch is validated before the first state byte changes.
     // Sequence-major index loops are deliberate here: the accumulation order
     // must match the serial `forward` byte-for-byte, and the offsets index
     // several stacked scratch buffers in lockstep.
@@ -1212,18 +3546,22 @@ impl Gpt2 {
         let d = self.cfg.n_embd;
         let inner_dim = self.cfg.n_inner;
         let b = states.len();
-        debug_assert_eq!(tokens.len(), b);
-        debug_assert_eq!(positions.len(), b);
+        if tokens.len() != b
+            || positions.len() != b
+            || states
+                .iter()
+                .zip(tokens)
+                .zip(positions)
+                .any(|((state, &token), &position)| {
+                    self.validate_production_step(state, token, position)
+                        .is_none()
+                })
+        {
+            return;
+        }
         if b == 0 {
             return;
         }
-
-        let mut normed = vec![0.0f32; b * d];
-        let mut qkv = vec![0.0f32; b * 3 * d];
-        let mut attn = vec![0.0f32; b * d];
-        let mut proj = vec![0.0f32; b * d];
-        let mut inner = vec![0.0f32; b * inner_dim];
-        let mut mlp_out = vec![0.0f32; b * d];
 
         // token + learned absolute position embedding, per sequence.
         for bi in 0..b {
@@ -1236,40 +3574,52 @@ impl Gpt2 {
 
         for l in 0..self.cfg.n_layer {
             let layer = &self.layers[l];
+            let base = l * DENSE_CONTROL_SITES_PER_LAYER;
             for bi in 0..b {
                 layer_norm(
                     &states[bi].x,
                     &layer.ln1_w,
                     &layer.ln1_b,
                     self.cfg.layer_norm_eps,
-                    &mut normed[bi * d..(bi + 1) * d],
+                    &mut states[bi].dense_scratch.input[..d],
                 );
             }
-            conv1d_batched(
-                &mut qkv,
-                &normed,
+            production_dense_projection_batched(
+                states,
                 &layer.c_attn_w,
-                &layer.c_attn_b,
-                3 * d,
-                d,
-                b,
+                Some(&layer.c_attn_b),
+                &self.dense_prepared.matrices[base],
             );
             for bi in 0..b {
-                self.block_attention(
-                    &mut states[bi],
+                let Gpt2State {
+                    k_cache,
+                    v_cache,
+                    dense_scratch,
+                    ..
+                } = &mut states[bi];
+                self.block_attention_production(
+                    k_cache,
+                    v_cache,
                     l,
                     positions[bi],
-                    &qkv[bi * 3 * d..(bi + 1) * 3 * d],
-                    &mut attn[bi * d..(bi + 1) * d],
+                    &dense_scratch.output[..3 * d],
+                    &mut dense_scratch.attention[..d],
+                    &mut dense_scratch.scores[..=positions[bi]],
                     None,
                     None,
                 );
+                dense_scratch.input[..d].copy_from_slice(&dense_scratch.attention[..d]);
             }
-            conv1d_batched(&mut proj, &attn, &layer.c_proj_w, &layer.c_proj_b, d, d, b);
+            production_dense_projection_batched(
+                states,
+                &layer.c_proj_w,
+                Some(&layer.c_proj_b),
+                &self.dense_prepared.matrices[base + 1],
+            );
             for bi in 0..b {
                 let x = &mut states[bi].x;
                 for i in 0..d {
-                    x[i] += proj[bi * d + i];
+                    x[i] += states[bi].dense_scratch.output[i];
                 }
             }
             for bi in 0..b {
@@ -1278,41 +3628,38 @@ impl Gpt2 {
                     &layer.ln2_w,
                     &layer.ln2_b,
                     self.cfg.layer_norm_eps,
-                    &mut normed[bi * d..(bi + 1) * d],
+                    &mut states[bi].dense_scratch.input[..d],
                 );
             }
-            conv1d_batched(
-                &mut inner,
-                &normed,
+            production_dense_projection_batched(
+                states,
                 &layer.fc_w,
-                &layer.fc_b,
-                inner_dim,
-                d,
-                b,
+                Some(&layer.fc_b),
+                &self.dense_prepared.matrices[base + 2],
             );
-            for v in inner.iter_mut() {
-                *v = gelu_new(*v);
+            for state in states.iter_mut() {
+                for value in &mut state.dense_scratch.output[..inner_dim] {
+                    *value = gelu_new(*value);
+                }
+                state.dense_scratch.input[..inner_dim]
+                    .copy_from_slice(&state.dense_scratch.output[..inner_dim]);
             }
-            conv1d_batched(
-                &mut mlp_out,
-                &inner,
+            production_dense_projection_batched(
+                states,
                 &layer.mlp_w,
-                &layer.mlp_b,
-                d,
-                inner_dim,
-                b,
+                Some(&layer.mlp_b),
+                &self.dense_prepared.matrices[base + 3],
             );
             for bi in 0..b {
                 let x = &mut states[bi].x;
                 for i in 0..d {
-                    x[i] += mlp_out[bi * d + i];
+                    x[i] += states[bi].dense_scratch.output[i];
                 }
             }
         }
 
-        // final ln_f into each state's hidden, then the tied lm-head with
-        // each wte row reused across the batch (naive sequential dot per
-        // sequence — bit-identical to `finish_forward`).
+        // Final LayerNorm followed by the same row-reuse certified kernel over
+        // the immutable input-major tied-head preparation.
         for bi in 0..b {
             let st = &mut states[bi];
             layer_norm(
@@ -1322,17 +3669,18 @@ impl Gpt2 {
                 self.cfg.layer_norm_eps,
                 &mut st.hidden,
             );
+            st.dense_scratch.input[..d].copy_from_slice(&st.hidden);
         }
-        for v in 0..self.cfg.vocab {
-            let row = &self.wte[v * d..(v + 1) * d];
-            for bi in 0..b {
-                let st = &mut states[bi];
-                let mut acc = 0.0f32;
-                for i in 0..d {
-                    acc += st.hidden[i] * row[i];
-                }
-                st.logits[v] = acc;
-            }
+        production_dense_projection_batched(
+            states,
+            &self.dense_prepared.lm_head_transposed,
+            None,
+            &self.dense_prepared.lm_head,
+        );
+        for state in states {
+            state
+                .logits
+                .copy_from_slice(&state.dense_scratch.output[..self.cfg.vocab]);
         }
     }
 }
@@ -1357,6 +3705,645 @@ mod tests {
             workspace, workspace_before,
             "invalid canary call mutated workspace"
         );
+    }
+
+    fn assert_production_geometry_rejected_without_mutation(
+        model: &Gpt2,
+        template: &Gpt2State,
+        context: &str,
+    ) {
+        let mut serial = template.clone();
+        let serial_before = serial.clone();
+        let serial_sink_hits = std::cell::Cell::new(0usize);
+        let mut serial_sink = |_: usize, _: &[f32]| {
+            serial_sink_hits.set(serial_sink_hits.get() + 1);
+        };
+        model.forward(&mut serial, 0, 0, &[0], &mut serial_sink);
+        assert_eq!(serial_sink_hits.get(), 0, "{context}: serial sink fired");
+        assert!(
+            serial.full_storage_bit_identical(&serial_before),
+            "{context}: rejected serial call changed logical or scratch state"
+        );
+
+        let mut traced = template.clone();
+        let traced_before = traced.clone();
+        let trace_sink_hits = std::cell::Cell::new(0usize);
+        let mut residual = |_: usize, _: &[f32]| {
+            trace_sink_hits.set(trace_sink_hits.get() + 1);
+        };
+        let mut qkv = |_: usize, _: &[f32], _: &[f32], _: &[f32]| {
+            trace_sink_hits.set(trace_sink_hits.get() + 1);
+        };
+        let mut attention = |_: usize, _: usize, _: &[f32]| {
+            trace_sink_hits.set(trace_sink_hits.get() + 1);
+        };
+        let request = crate::TraceCaptureRequest {
+            residual_layers: &[0],
+            qkv_layers: &[0],
+            attention_layers: &[0],
+        };
+        let mut sinks = crate::TraceCaptureSinks {
+            residual: &mut residual,
+            qkv: &mut qkv,
+            attention: &mut attention,
+        };
+        model.forward_capturing_trace(&mut traced, 0, 0, &request, &mut sinks);
+        assert_eq!(trace_sink_hits.get(), 0, "{context}: trace sink fired");
+        assert!(
+            traced.full_storage_bit_identical(&traced_before),
+            "{context}: rejected trace call changed logical or scratch state"
+        );
+
+        let mut batch = vec![template.clone(), template.clone()];
+        let batch_before = batch.clone();
+        model.forward_batch(&mut batch, &[0, 0], &[0, 0]);
+        assert!(
+            batch
+                .iter()
+                .zip(&batch_before)
+                .all(|(state, before)| state.full_storage_bit_identical(before)),
+            "{context}: rejected batch call changed logical or scratch state"
+        );
+    }
+
+    #[test]
+    fn state_partial_eq_excludes_only_opaque_production_scratch() {
+        let model = Gpt2::load(fixture_dir(), None).unwrap();
+        let state = Gpt2State::new(&model.cfg);
+        let mut scratch_changed = state.clone();
+        scratch_changed.dense_scratch.input[0] = 1.0;
+        scratch_changed.dense_scratch.output[0] = -2.0;
+        scratch_changed.dense_scratch.sums[0] = 3.0;
+        scratch_changed.dense_scratch.max_activation_abs = 4.0;
+        scratch_changed.dense_scratch.attention[0] = -5.0;
+        scratch_changed.dense_scratch.scores[0] = 6.0;
+        assert_eq!(
+            state, scratch_changed,
+            "opaque dense workspace residue changed logical state equality"
+        );
+        assert!(
+            !state.full_storage_bit_identical(&scratch_changed),
+            "full-storage test helper did not observe scratch drift"
+        );
+
+        for logical_field in 0..5 {
+            let mut changed = state.clone();
+            match logical_field {
+                0 => changed.k_cache[0] = 1.0,
+                1 => changed.v_cache[0] = 1.0,
+                2 => changed.logits[0] = 1.0,
+                3 => changed.hidden[0] = 1.0,
+                4 => changed.x[0] = 1.0,
+                _ => unreachable!(),
+            }
+            assert_ne!(
+                state, changed,
+                "historical logical field {logical_field} was omitted from equality"
+            );
+        }
+    }
+
+    #[test]
+    fn production_preflight_binds_load_geometry_before_all_mutation() {
+        let mut zero_head = Gpt2::load(fixture_dir(), None).unwrap();
+        let mut existing_state = Gpt2State::new(&zero_head.cfg);
+        zero_head.forward(&mut existing_state, 1, 0, &[], &mut |_, _| {});
+        zero_head.cfg.n_head = 0;
+        assert_production_geometry_rejected_without_mutation(
+            &zero_head,
+            &existing_state,
+            "zero-head drift",
+        );
+
+        let mut layer_drift = Gpt2::load(fixture_dir(), None).unwrap();
+        let mut existing_state = Gpt2State::new(&layer_drift.cfg);
+        layer_drift.forward(&mut existing_state, 1, 0, &[], &mut |_, _| {});
+        layer_drift.cfg.n_layer += 1;
+        assert_production_geometry_rejected_without_mutation(
+            &layer_drift,
+            &existing_state,
+            "layer-count drift",
+        );
+
+        let mut width_drift = Gpt2::load(fixture_dir(), None).unwrap();
+        width_drift.cfg.n_embd += width_drift.cfg.n_head;
+        let newly_constructed_for_mutated_cfg = Gpt2State::new(&width_drift.cfg);
+        assert_production_geometry_rejected_without_mutation(
+            &width_drift,
+            &newly_constructed_for_mutated_cfg,
+            "width drift with newly constructed state",
+        );
+
+        // BOS/EOS are caller token-selection policy, not executor geometry.
+        // Preserve the historical ability to adjust them without disabling a
+        // direct explicit-token forward call.
+        let baseline = Gpt2::load(fixture_dir(), None).unwrap();
+        let mut policy_adjusted = Gpt2::load(fixture_dir(), None).unwrap();
+        policy_adjusted.cfg.bos = (policy_adjusted.cfg.bos + 1) % policy_adjusted.cfg.vocab;
+        policy_adjusted.cfg.eos = (policy_adjusted.cfg.eos + 2) % policy_adjusted.cfg.vocab;
+        let mut baseline_state = Gpt2State::new(&baseline.cfg);
+        let mut policy_state = Gpt2State::new(&policy_adjusted.cfg);
+        baseline.forward(&mut baseline_state, 1, 0, &[], &mut |_, _| {});
+        policy_adjusted.forward(&mut policy_state, 1, 0, &[], &mut |_, _| {});
+        assert!(
+            policy_state.full_storage_bit_identical(&baseline_state),
+            "BOS/EOS policy changes altered explicit-token production execution"
+        );
+
+        // The working context is caller-selected execution capacity rather
+        // than checkpoint geometry. A safe in-range adjustment with a newly
+        // sized state must behave exactly like loading at that context length.
+        let full_context = Gpt2::load(fixture_dir(), None).unwrap();
+        let shorter_context = (full_context.cfg.seq_len / 2).max(1);
+        assert!(shorter_context < full_context.cfg.seq_len);
+        let reference_short = Gpt2::load(fixture_dir(), Some(shorter_context)).unwrap();
+        let mut adjusted_context = full_context;
+        adjusted_context.cfg.seq_len = shorter_context;
+        let mut reference_state = Gpt2State::new(&reference_short.cfg);
+        let mut adjusted_state = Gpt2State::new(&adjusted_context.cfg);
+        reference_short.forward(&mut reference_state, 1, 0, &[], &mut |_, _| {});
+        adjusted_context.forward(&mut adjusted_state, 1, 0, &[], &mut |_, _| {});
+        assert!(
+            adjusted_state.full_storage_bit_identical(&reference_state),
+            "safe working-context adjustment diverged from bounded load"
+        );
+    }
+
+    fn assert_dense_evidence_rejects_post_workspace_geometry_drift(
+        mut model: Gpt2,
+        drift: impl FnOnce(&mut Gpt2Config),
+        context: &str,
+    ) {
+        let original_cfg = model.cfg.clone();
+        let mut layer0_workspace = model.dense_canary_workspace().unwrap();
+        let layer0_workspace_before = layer0_workspace.clone();
+        let mut whole_workspace = model.dense_control_workspace_for_batch(2).unwrap();
+        let whole_workspace_before = model
+            .dense_control_workspace_fingerprint(&whole_workspace)
+            .unwrap();
+
+        let mut state = Gpt2State::new(&model.cfg);
+        model.forward(&mut state, 1, 0, &[], &mut |_, _| {});
+        let state_before = state.clone();
+        let mut traced = state.clone();
+        let traced_before = traced.clone();
+        let mut batch = vec![state.clone(), state.clone()];
+        let batch_before = batch.clone();
+
+        let d = model.cfg.n_embd;
+        let mut layer0_input = vec![f32::from_bits(0x7fc0_0704); d];
+        let layer0_input_before = layer0_input.clone();
+        let dense_input = vec![0.25f32; d];
+        let mut dense_output = vec![f32::from_bits(0x7fc0_0704); 3 * d];
+        let dense_output_before = dense_output.clone();
+
+        drift(&mut model.cfg);
+
+        assert!(
+            model.dense_canary_workspace().is_none(),
+            "{context}: layer-0 workspace construction accepted cfg drift"
+        );
+        assert!(
+            model.dense_control_workspace().is_none(),
+            "{context}: whole workspace construction accepted cfg drift"
+        );
+        assert!(
+            model
+                .layer0_c_attn_canary_input(1, 0, &mut layer0_input)
+                .is_none(),
+            "{context}: layer-0 input helper accepted cfg drift"
+        );
+        assert_dense_bits(
+            &layer0_input,
+            &layer0_input_before,
+            &format!("{context}: rejected layer-0 input helper"),
+        );
+        assert!(
+            model
+                .layer0_c_attn_canary(
+                    &dense_input,
+                    &mut dense_output,
+                    &mut layer0_workspace,
+                    Gpt2DenseCanaryMode::CertifiedNative,
+                )
+                .is_none(),
+            "{context}: layer-0 projection accepted cfg drift"
+        );
+        assert_dense_bits(
+            &dense_output,
+            &dense_output_before,
+            &format!("{context}: rejected layer-0 projection"),
+        );
+        assert_eq!(
+            layer0_workspace, layer0_workspace_before,
+            "{context}: rejected layer-0 projection mutated workspace"
+        );
+
+        assert!(
+            model
+                .forward_dense_control(
+                    &mut state,
+                    &mut whole_workspace,
+                    1,
+                    1,
+                    Gpt2DenseCanaryMode::CertifiedNative,
+                )
+                .is_none(),
+            "{context}: serial dense control accepted cfg drift"
+        );
+        assert!(
+            state.full_storage_bit_identical(&state_before),
+            "{context}: rejected serial dense control mutated state"
+        );
+
+        let sink_hits = std::cell::Cell::new(0usize);
+        let mut residual = |_: usize, _: &[f32]| sink_hits.set(sink_hits.get() + 1);
+        let mut qkv = |_: usize, _: &[f32], _: &[f32], _: &[f32]| {
+            sink_hits.set(sink_hits.get() + 1);
+        };
+        let mut attention = |_: usize, _: usize, _: &[f32]| {
+            sink_hits.set(sink_hits.get() + 1);
+        };
+        let request = crate::TraceCaptureRequest {
+            residual_layers: &[0],
+            qkv_layers: &[0],
+            attention_layers: &[0],
+        };
+        let mut sinks = crate::TraceCaptureSinks {
+            residual: &mut residual,
+            qkv: &mut qkv,
+            attention: &mut attention,
+        };
+        assert!(
+            model
+                .forward_dense_control_capturing_trace(
+                    &mut traced,
+                    &mut whole_workspace,
+                    1,
+                    1,
+                    Gpt2DenseCanaryMode::CertifiedNative,
+                    &request,
+                    &mut sinks,
+                )
+                .is_none(),
+            "{context}: traced dense control accepted cfg drift"
+        );
+        assert_eq!(sink_hits.get(), 0, "{context}: trace sink fired");
+        assert!(
+            traced.full_storage_bit_identical(&traced_before),
+            "{context}: rejected traced dense control mutated state"
+        );
+
+        assert!(
+            model
+                .forward_batch_dense_control(
+                    &mut batch,
+                    &[1, 2],
+                    &[1, 1],
+                    &mut whole_workspace,
+                    Gpt2DenseCanaryMode::CertifiedNative,
+                )
+                .is_none(),
+            "{context}: batch dense control accepted cfg drift"
+        );
+        assert!(
+            batch
+                .iter()
+                .zip(&batch_before)
+                .all(|(state, before)| state.full_storage_bit_identical(before)),
+            "{context}: rejected batch dense control mutated state"
+        );
+
+        assert!(
+            model
+                .dense_control_workspace_fingerprint(&whole_workspace)
+                .is_none(),
+            "{context}: workspace validator accepted cfg drift"
+        );
+        model.cfg = original_cfg;
+        assert_eq!(
+            model
+                .dense_control_workspace_fingerprint(&whole_workspace)
+                .unwrap(),
+            whole_workspace_before,
+            "{context}: rejected dense controls mutated whole workspace"
+        );
+    }
+
+    #[test]
+    fn dense_evidence_workspaces_bind_frozen_arithmetic_geometry() {
+        assert_dense_evidence_rejects_post_workspace_geometry_drift(
+            Gpt2::load(fixture_dir(), None).unwrap(),
+            |cfg| cfg.layer_norm_eps = f32::from_bits(cfg.layer_norm_eps.to_bits() ^ 1),
+            "layer-norm epsilon drift",
+        );
+        assert_dense_evidence_rejects_post_workspace_geometry_drift(
+            Gpt2::load(fixture_dir(), None).unwrap(),
+            |cfg| {
+                cfg.n_head = (1..=cfg.n_embd)
+                    .find(|&heads| heads != cfg.n_head && cfg.n_embd.is_multiple_of(heads))
+                    .expect("tiny fixture has an alternate valid head count");
+            },
+            "alternate valid head-count drift",
+        );
+    }
+
+    fn dense_test_workspace(
+        weights: &[f32],
+        in_dim: usize,
+        out_dim: usize,
+    ) -> Gpt2DenseCanaryWorkspace {
+        let mut sum_abs_weight_upper = vec![0.0f64; out_dim];
+        for input_index in 0..in_dim {
+            for output_index in 0..out_dim {
+                sum_abs_weight_upper[output_index] +=
+                    f64::from(weights[input_index * out_dim + output_index]).abs();
+            }
+        }
+        for bound in &mut sum_abs_weight_upper {
+            *bound = dense_positive_sum_upper(*bound, in_dim).expect("finite test weight bound");
+        }
+        Gpt2DenseCanaryWorkspace {
+            weight_address: weights.as_ptr() as usize,
+            weight_len: weights.len(),
+            source_kappa: "test".to_owned(),
+            in_dim,
+            out_dim,
+            sums: vec![0.0; out_dim],
+            sum_abs_weight_upper,
+        }
+    }
+
+    fn assert_dense_bits(got: &[f32], expected: &[f32], context: &str) {
+        for (lane, (&got, &expected)) in got.iter().zip(expected).enumerate() {
+            assert_eq!(got.to_bits(), expected.to_bits(), "{context}: lane {lane}");
+        }
+    }
+
+    #[test]
+    fn dense_refinement_and_exact_fallback_are_bit_identical_to_exact_owner() {
+        let input = [1.0f32, -2.0, 0.25, 4.0];
+        let weights = [
+            0.5f32, -0.25, 2.0, 0.75, 0.5, -1.0, -2.0, 4.0, 0.125, 0.25, -0.5, 0.75,
+        ];
+        let bias = [0.125f32, -0.25, 0.5];
+        let mut workspace = dense_test_workspace(&weights, input.len(), bias.len());
+        // A deliberately loose but still valid upper bound forces every fast
+        // lane through the TwoSum refinement without changing the proof.
+        workspace.sum_abs_weight_upper.fill(1.0e300);
+        let mut candidate = [0.0f32; 3];
+        let census =
+            certified_dense_projection(&mut candidate, &input, &weights, &bias, &mut workspace);
+        let mut exact = [0.0f32; 3];
+        exact_dense_projection(&mut exact, &input, &weights, bias.len());
+        for (value, addend) in exact.iter_mut().zip(bias) {
+            *value += addend;
+        }
+        assert_dense_bits(&candidate, &exact, "TwoSum refinement");
+        assert_eq!(census.fast_certified, 0);
+        assert_eq!(census.refined_certified, bias.len());
+        assert_eq!(census.fallbacks(), Some(0));
+
+        // 1 + 2^-24 is exactly the midpoint between 1 and its successor.
+        // Strict containment must refuse both cells and delegate ties-to-even
+        // to the pinned exact owner.
+        let tie_term = f32::from_bits(115 << 23);
+        let tie_input = [1.0f32, tie_term];
+        let tie_weights = [1.0f32, tie_term];
+        let tie_bias = [f32::from_bits(0x3380_0000)];
+        let mut tie_workspace = dense_test_workspace(&tie_weights, 2, 1);
+        let mut tie_candidate = [0.0f32];
+        let tie_census = certified_dense_projection(
+            &mut tie_candidate,
+            &tie_input,
+            &tie_weights,
+            &tie_bias,
+            &mut tie_workspace,
+        );
+        let mut tie_exact = [0.0f32];
+        exact_dense_projection(&mut tie_exact, &tie_input, &tie_weights, 1);
+        tie_exact[0] += tie_bias[0];
+        assert_dense_bits(&tie_candidate, &tie_exact, "midpoint fallback");
+        assert_eq!(tie_census.fallback_cell, 1);
+
+        let zero_input = [0.0f32, 0.0];
+        let mut zero_candidate = [0.0f32];
+        let zero_census = certified_dense_projection(
+            &mut zero_candidate,
+            &zero_input,
+            &tie_weights,
+            &tie_bias,
+            &mut tie_workspace,
+        );
+        assert_eq!(zero_candidate.map(f32::to_bits), tie_bias.map(f32::to_bits));
+        assert_eq!(zero_census.fallback_zero, 1);
+
+        let overflow_input = [f32::MAX];
+        let overflow_weights = [f32::MAX];
+        let overflow_bias = [0.0f32];
+        let mut overflow_workspace = dense_test_workspace(&overflow_weights, 1, 1);
+        let mut overflow_candidate = [0.0f32];
+        let overflow_census = certified_dense_projection(
+            &mut overflow_candidate,
+            &overflow_input,
+            &overflow_weights,
+            &overflow_bias,
+            &mut overflow_workspace,
+        );
+        let mut overflow_exact = [0.0f32];
+        exact_dense_projection(&mut overflow_exact, &overflow_input, &overflow_weights, 1);
+        assert_dense_bits(&overflow_candidate, &overflow_exact, "overflow fallback");
+        assert_eq!(overflow_census.fallback_overflow, 1);
+    }
+
+    #[test]
+    fn dense_row_reuse_batch_dispatch_preserves_cancellation_bits() {
+        let in_dim = 3;
+        let out_dim = 2;
+        let batch = 3;
+        let weights = [
+            1.0f32,
+            -1.0,
+            f32::from_bits(0x3380_0000),
+            f32::from_bits(0xb380_0000),
+            -1.0,
+            1.0,
+        ];
+        let bias = [0.25f32, -0.5];
+        let inputs = [1.0f32, 1.0, 1.0, 1.0, -1.0, 0.5, 0.0, 0.0, 0.0];
+        let prepared = DensePreparedMatrix::prepare(&weights, in_dim, out_dim).unwrap();
+        let mut batch_sums = vec![0.0f64; batch * out_dim];
+        let mut batch_max = vec![0.0f64; batch];
+        let mut batched = vec![0.0f32; batch * out_dim];
+        let batch_census = controlled_dense_projection_batched(
+            &mut batched,
+            &inputs,
+            &weights,
+            Some(&bias),
+            batch,
+            &prepared,
+            &mut batch_sums,
+            &mut batch_max,
+            Gpt2DenseCanaryMode::CertifiedNative,
+        );
+        assert_eq!(batch_census.batch_rows, batch);
+        assert_eq!(batch_census.lanes, batch * out_dim);
+        assert!(batch_census.fallback_zero > 0);
+
+        let mut serial_prepared = prepared.clone();
+        for batch_index in 0..batch {
+            let mut serial = [0.0f32; 2];
+            let serial_census = controlled_dense_projection(
+                &mut serial,
+                &inputs[batch_index * in_dim..(batch_index + 1) * in_dim],
+                &weights,
+                Some(&bias),
+                &mut serial_prepared,
+                Gpt2DenseCanaryMode::CertifiedNative,
+            );
+            assert_eq!(serial_census.batch_rows, 0);
+            assert_dense_bits(
+                &batched[batch_index * out_dim..(batch_index + 1) * out_dim],
+                &serial,
+                "row-reuse batch/serial cancellation",
+            );
+        }
+
+        let mut exact = vec![0.0f32; batch * out_dim];
+        let mut exact_sums = vec![0.0f64; batch * out_dim];
+        let mut exact_max = vec![0.0f64; batch];
+        let exact_census = controlled_dense_projection_batched(
+            &mut exact,
+            &inputs,
+            &weights,
+            Some(&bias),
+            batch,
+            &prepared,
+            &mut exact_sums,
+            &mut exact_max,
+            Gpt2DenseCanaryMode::Exact,
+        );
+        assert_eq!(exact_census.batch_rows, batch);
+        assert_dense_bits(&batched, &exact, "row-reuse batch/exact cancellation");
+    }
+
+    #[test]
+    fn dense_census_overflow_is_atomic_and_full_controls_leave_weights_immutable() {
+        let mut census = Gpt2DenseCanaryCensus {
+            lanes: usize::MAX,
+            ..Gpt2DenseCanaryCensus::default()
+        };
+        let before = census;
+        assert_eq!(
+            census.merge(Gpt2DenseCanaryCensus {
+                lanes: 1,
+                ..Gpt2DenseCanaryCensus::default()
+            }),
+            None
+        );
+        assert_eq!(census, before, "overflowing census merge was not atomic");
+        let mut layer_census = Gpt2DenseLayerCensus {
+            c_attn: before,
+            ..Gpt2DenseLayerCensus::default()
+        };
+        let layer_before = layer_census;
+        assert_eq!(
+            layer_census.merge(Gpt2DenseLayerCensus {
+                c_attn: Gpt2DenseCanaryCensus {
+                    lanes: 1,
+                    ..Gpt2DenseCanaryCensus::default()
+                },
+                ..Gpt2DenseLayerCensus::default()
+            }),
+            None
+        );
+        assert_eq!(
+            layer_census, layer_before,
+            "overflowing layer census merge was not atomic"
+        );
+
+        let model = Gpt2::load(fixture_dir(), None).unwrap();
+        assert!(model.dense_control_workspace_for_batch(0).is_none());
+        let wte = model.wte.clone();
+        let layer_weights: Vec<_> = model
+            .layers
+            .iter()
+            .map(|layer| {
+                (
+                    layer.c_attn_w.clone(),
+                    layer.c_proj_w.clone(),
+                    layer.fc_w.clone(),
+                    layer.mlp_w.clone(),
+                )
+            })
+            .collect();
+        let production_transpose = model.dense_prepared.lm_head_transposed.clone();
+        let production_bounds: Vec<Vec<f64>> = model
+            .dense_prepared
+            .matrices
+            .iter()
+            .map(|matrix| matrix.sum_abs_weight_upper.clone())
+            .chain(std::iter::once(
+                model.dense_prepared.lm_head.sum_abs_weight_upper.clone(),
+            ))
+            .collect();
+        let mut workspace = model.dense_control_workspace_for_batch(2).unwrap();
+        let mut serial = Gpt2State::new(&model.cfg);
+        let _ = model
+            .forward_dense_control(
+                &mut serial,
+                &mut workspace,
+                1,
+                0,
+                Gpt2DenseCanaryMode::CertifiedNative,
+            )
+            .unwrap();
+        let mut states = vec![Gpt2State::new(&model.cfg); 2];
+        let _ = model
+            .forward_batch_dense_control(
+                &mut states,
+                &[1, 2],
+                &[0, 0],
+                &mut workspace,
+                Gpt2DenseCanaryMode::CertifiedNative,
+            )
+            .unwrap();
+        let mut production = Gpt2State::new(&model.cfg);
+        model.forward(&mut production, 1, 0, &[], &mut |_, _| {});
+        let mut production_batch = vec![Gpt2State::new(&model.cfg); 2];
+        model.forward_batch(&mut production_batch, &[1, 2], &[0, 0]);
+        assert_dense_bits(&model.wte, &wte, "tied embedding weights");
+        for (layer, expected) in model.layers.iter().zip(layer_weights) {
+            assert_dense_bits(&layer.c_attn_w, &expected.0, "c_attn weights");
+            assert_dense_bits(&layer.c_proj_w, &expected.1, "attention c_proj weights");
+            assert_dense_bits(&layer.fc_w, &expected.2, "MLP c_fc weights");
+            assert_dense_bits(&layer.mlp_w, &expected.3, "MLP c_proj weights");
+        }
+        assert_dense_bits(
+            &model.dense_prepared.lm_head_transposed,
+            &production_transpose,
+            "production tied-head preparation",
+        );
+        for (matrix, expected) in model
+            .dense_prepared
+            .matrices
+            .iter()
+            .chain(std::iter::once(&model.dense_prepared.lm_head))
+            .zip(production_bounds)
+        {
+            assert_eq!(
+                matrix
+                    .sum_abs_weight_upper
+                    .iter()
+                    .map(|value| value.to_bits())
+                    .collect::<Vec<_>>(),
+                expected
+                    .iter()
+                    .map(|value| value.to_bits())
+                    .collect::<Vec<_>>(),
+                "production dense bounds mutated",
+            );
+        }
     }
 
     #[test]
@@ -1482,6 +4469,11 @@ mod tests {
         assert_eq!(
             error.reason,
             "invalid GPT-2 attention canary geometry: n_head must be nonzero and divide n_embd"
+        );
+        assert_eq!(
+            model.dense_canary_workspace(),
+            None,
+            "dense workspace construction uses the checked Option seam"
         );
         let result = model.forward_attention_canary(
             &mut state,
@@ -1661,19 +4653,19 @@ mod tests {
         }
     }
 
-    /// #668: the GPT-2 oracle reports the truthful learned-absolute
-    /// operator record, and it resolves through the versioned registry.
+    /// The GPT-2 oracle reports the truthful learned-absolute attention and
+    /// dense-v2 execution pair, and both resolve through their registries.
     /// Its positional action is NOT RoPE, so it is a distinct identity
     /// from current `standard-source-attention/2` — reusing that record would be
     /// a false operator identity.
     #[test]
-    fn gpt2_oracle_reports_learned_absolute_operator() {
+    fn gpt2_oracle_reports_registered_source_execution_pair() {
         use crate::attention::{operator_spec, AttentionOperatorSpec};
-        use crate::TeacherOracle;
+        use crate::dense::{self, DenseOperatorSpec};
+        use crate::{BatchedTeacher, TeacherOracle};
 
         let oracle = HuggingFaceGpt2Oracle::load(fixture_dir()).expect("load tiny gpt2 oracle");
-        let spec = oracle
-            .attention_operator_spec()
+        let spec = TeacherOracle::attention_operator_spec(&oracle)
             .expect("gpt2 oracle declares an attention operator");
 
         assert_eq!(
@@ -1696,6 +4688,20 @@ mod tests {
         let standard = AttentionOperatorSpec::standard();
         assert_ne!(spec.positional_action, standard.positional_action);
         assert_ne!(spec.implementation_digest, standard.implementation_digest);
+
+        let dense_spec = TeacherOracle::dense_operator_spec(&oracle)
+            .expect("gpt2 oracle declares dense provenance");
+        assert_eq!(dense_spec, DenseOperatorSpec::gpt2_source_dense());
+        assert_eq!(
+            <HuggingFaceGpt2Oracle as BatchedTeacher>::dense_operator_spec(&oracle),
+            Some(dense_spec.clone())
+        );
+        assert_eq!(
+            dense::operator_spec(&dense_spec.id, dense_spec.version).expect("registered dense"),
+            dense_spec
+        );
+        dense::validate_source_execution_pair(Some(&spec), Some(&dense_spec))
+            .expect("current GPT-2 execution pair is registered");
     }
 
     /// #601 (item 4 of #657): the GPT-2 oracle declares the byte-level BPE
@@ -2064,6 +5070,9 @@ impl crate::TeacherOracle for HuggingFaceGpt2Oracle {
         // action, so this is its own registered `(id, version)`.
         Some(crate::attention::AttentionOperatorSpec::learned_absolute_source_attention())
     }
+    fn dense_operator_spec(&self) -> Option<crate::dense::DenseOperatorSpec> {
+        Some(crate::dense::DenseOperatorSpec::gpt2_source_dense())
+    }
     fn hidden_state(&self) -> Option<&[f32]> {
         Some(&self.state.hidden)
     }
@@ -2090,7 +5099,7 @@ impl crate::TeacherOracle for HuggingFaceGpt2Oracle {
         request: &crate::TraceCaptureRequest<'_>,
         sinks: &mut crate::TraceCaptureSinks<'_, '_>,
     ) -> bool {
-        // #603: capture through the exact executor path — a traced step
+        // #603: capture through the production v2 path — a traced step
         // leaves the same logits as the plain `step`.
         self.model
             .forward_capturing_trace(&mut self.state, token, pos, request, sinks);
@@ -2121,6 +5130,9 @@ impl crate::BatchedTeacher for HuggingFaceGpt2Oracle {
     }
     fn attention_operator_spec(&self) -> Option<crate::attention::AttentionOperatorSpec> {
         <Self as crate::TeacherOracle>::attention_operator_spec(self)
+    }
+    fn dense_operator_spec(&self) -> Option<crate::dense::DenseOperatorSpec> {
+        <Self as crate::TeacherOracle>::dense_operator_spec(self)
     }
     fn forward_batch_into(&self, states: &mut [Gpt2State], tokens: &[usize], positions: &[usize]) {
         self.model.forward_batch(states, tokens, positions);

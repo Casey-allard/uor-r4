@@ -141,6 +141,24 @@ fn find_result_type(line: &str) -> Option<usize> {
     None
 }
 
+/// Whether this is one of the exact `std::io` trait signatures whose error
+/// type is fixed by the external trait contract.
+///
+/// Keep this carve-out adjacent and fully qualified: an ordinary helper named
+/// `read` or `seek` must still be rejected, as must an implementation of a
+/// repository-local trait with the same method name.
+fn is_std_io_trait_result(previous: Option<&str>, line: &str, tail: &str) -> bool {
+    let Some(previous) = previous else {
+        return false;
+    };
+    (previous.starts_with("impl std::io::Read for ")
+        && line.starts_with("fn read(&mut self, buffer: &mut [u8]) -> std::io::Result<usize>")
+        && tail.starts_with("Result<usize>"))
+        || (previous.starts_with("impl std::io::Seek for ")
+            && line.starts_with("fn seek(&mut self, position: SeekFrom) -> std::io::Result<u64>")
+            && tail.starts_with("Result<u64>"))
+}
+
 /// R5: no arbitrary limitation. Every bound is a property of the caller's
 /// chosen instantiation, never of the code.
 ///
@@ -237,6 +255,18 @@ pub fn audit_limits(root: &Path) -> Result<(), Fail> {
             // imposes --- and neither signature can name a sanctioned type, so
             // they are carved out exactly like the serde associated types.
             if tail.contains("ShapeViolation") || tail.contains("PipelineFailure") {
+                continue;
+            }
+            // `std::io::Read` and `std::io::Seek` fix their method return types
+            // to `std::io::Result`, just as serde fixes its associated error
+            // types above. Require the fully-qualified trait implementation on
+            // the immediately preceding effective line so this exemption
+            // cannot conceal an inherent or repository-local helper.
+            let previous = idx
+                .checked_sub(1)
+                .and_then(|previous| lines.get(previous))
+                .map(|(_, line)| *line);
+            if is_std_io_trait_result(previous, line, tail) {
                 continue;
             }
             violations.push(format!("{}:{line_no}:{}", src.rel, line.trim()));
@@ -398,4 +428,37 @@ fn gather_all(dir: &Path, out: &mut Vec<PathBuf>) -> Result<(), Fail> {
         }
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::is_std_io_trait_result;
+
+    #[test]
+    fn std_io_result_carve_out_requires_adjacent_fully_qualified_trait_impl() {
+        let read = "fn read(&mut self, buffer: &mut [u8]) -> std::io::Result<usize> {";
+        assert!(is_std_io_trait_result(
+            Some("impl std::io::Read for Member {"),
+            read,
+            "Result<usize> {"
+        ));
+        assert!(!is_std_io_trait_result(None, read, "Result<usize> {"));
+        assert!(!is_std_io_trait_result(
+            Some("impl Member {"),
+            read,
+            "Result<usize> {"
+        ));
+        assert!(!is_std_io_trait_result(
+            Some("impl Read for Member {"),
+            read,
+            "Result<usize> {"
+        ));
+
+        let seek = "fn seek(&mut self, position: SeekFrom) -> std::io::Result<u64> {";
+        assert!(is_std_io_trait_result(
+            Some("impl std::io::Seek for Member {"),
+            seek,
+            "Result<u64> {"
+        ));
+    }
 }

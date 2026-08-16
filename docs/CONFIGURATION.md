@@ -170,25 +170,27 @@ Written under `.uor-models/` (or `UOR_MODEL_STORE`):
 | `last_model.txt` / `last_model_name.txt` | Orchestrator's last model selection |
 | `last_engine.txt` | Persisted engine preference; **silently pins the cascade** for requests that omit `engine` |
 | `sources/<name>/` | Downloaded Hugging Face teacher sources |
-| `compiled/<name>/` | Compiled bundles: `score.r4g1`, `tless_artifacts.bin`, `tless_store.bin`, deployed `tokenizer.bin`, full source binding `tokenizer_adapter.json`, source-attention binding `attention_operator.json` (both used to fail-close corpus resume/evaluation), `corpus.meta`, and `corpus.records` |
-| `compiled/<name>-attention-v2/` | Browser-compile output when `compiled/<name>/` is already populated by the implicit or explicit source-attention v1 era. The server preserves the v1 root byte-for-byte and deterministically writes/resumes v2 here; restart discovery prefers this exact current-v2 sibling and maps the exact suffix back to `sources/<name>/`. Malformed, nonregular, conflicting, or unbound-populated v2 provenance is a hard error. Explicit CLI `--output` paths are never auto-rerouted. |
+| `compiled/<name>/` | Base compiled bundle. It may hold legacy absence, an explicit historical attention/1+dense/1 pair, or a fresh current attention/2 bundle with dense absent. Inventory includes graph/artifact outputs, `tokenizer.bin`, `tokenizer_adapter.json`, `attention_operator.json`, optional `dense_operator.json`, `corpus.meta`, and `corpus.records`. |
+| `compiled/<name>-attention-v2/` | Resolver-owned current attention/2 root with dense absent, used when a historical base must remain immutable. |
+| `compiled/<name>-attention-v2-dense-v2/` | Resolver-owned current GPT-2 root. It must carry learned-absolute attention/2 plus `gpt2-source-dense/2`; current dense provenance is invalid in either lower-precedence root. |
 | `corpora/` | Observation corpora |
 
-### Managed attention-era resolver (2026-08-15)
+### Managed source-execution-era resolver (2026-08-15)
 
-`-attention-v2` is reserved for the server's physical era root; a downloaded
-source basename ending in that token is refused before compilation mutates an
-output. The base and exact-suffix reload names are aliases for one logical
-model. Both attach to `sources/<logical-name>/`, and status reports the
-selected physical root separately. A missing source is allowed for the #718
-decode-only path; a source entry that exists but is not a usable directory is
-an error.
+`-attention-v2` and `-attention-v2-dense-v2` are reserved physical-root
+suffixes; downloaded source basenames ending in either are refused before
+mutation. Suffix stripping uses longest match. The base and exact-suffix reload
+names are aliases for one logical model, attach to `sources/<logical-name>/`,
+and report the selected physical root plus optional attention/dense records.
+A missing source is allowed for the #718 decode-only path; a present-invalid
+source is terminal.
 
-Every managed operation inspects both physical roots before choosing either
-one. A malformed/nonregular binding, an unbound populated suffix, a future
-version, conflicting operator families, or two current roots is terminal.
-Current-v2 startup/reload also requires the canonical corpus pair and
-`graph-cover/cover_report.json` to carry the same registry-exact operator as
-the root sidecar. Historical v1 remains readable when those newer supporting
-records are genuinely absent. These checks reconcile the available metadata;
-they do not add the graph-byte provenance section tracked separately by #637.
+Every managed operation inspects all three roots before choosing one. A
+malformed/nonregular binding, an unbound populated suffix, a future version,
+an impossible attention+dense pair, duplicate semantic identities, or an
+unfinished lower-precedence identity is terminal and byte-preserving. Current
+startup/reload also requires the canonical corpus pair and
+`graph-cover/cover_report.json` to carry the same registry-exact execution pair
+as the root sidecars. Historical v1 and dense absence remain readable where
+documented. These checks reconcile metadata; they do not add the graph-byte
+PROV section tracked separately by #637.

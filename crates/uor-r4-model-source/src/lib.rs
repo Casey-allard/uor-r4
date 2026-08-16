@@ -3,13 +3,13 @@
 //! rmsnorm/softmax/RoPE/SwiGLU op-for-op, libm via glibc on gnu targets.
 //! The Safetensors adapter also loads pinned Hugging Face SmolLM2 weights
 //! into this same source-only teacher surface. Llama/shared projections use the
-//! pinned portable exact `uor-matmul` owner. GPT-2 keeps its declared
-//! conventional dense sites and uses certified-native/exact-fallback current
-//! attention; canonical mode separately selects the remaining libm and
-//! ordered-reduction family.
+//! pinned portable exact `uor-matmul` owner. GPT-2 uses its declared
+//! certified-native/exact-fallback dense and attention owners; canonical mode
+//! separately selects the remaining libm and ordered-reduction family.
 
 pub mod attention;
 pub mod conformance;
+pub mod dense;
 pub mod geometry;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod gpt2;
@@ -1004,6 +1004,14 @@ pub trait TeacherOracle: RepresentationSource + BehaviorSource {
         None
     }
 
+    /// Typed identity of the source-dense arithmetic executed by
+    /// [`BehaviorSource::step`], when the oracle declares one. `None` keeps
+    /// historical and non-dense-registry teachers compatible without
+    /// relabelling them.
+    fn dense_operator_spec(&self) -> Option<dense::DenseOperatorSpec> {
+        None
+    }
+
     /// Optional compiler-only trace surface (graph-compiler plan §5 Phase
     /// 2): the final hidden state (post-final-rmsnorm activation) of the
     /// last `step`, if the oracle retains it. Defaults to `None` so
@@ -1034,7 +1042,7 @@ pub trait TeacherOracle: RepresentationSource + BehaviorSource {
     }
 
     /// Optional compiler-only #603 trace-capture step: one forward step
-    /// with the declared lanes captured through the exact executor path
+    /// with the declared lanes captured through the production executor path
     /// (`Llama::forward_capturing_trace`, the #599 `forward_capturing`
     /// discipline extended with the q/k/v and per-head attention taps).
     /// Returns `true` when the oracle captured through its executor;
@@ -1619,6 +1627,15 @@ pub enum SourceIngestKind {
         /// The requested operator version.
         version: u32,
     },
+    /// Source-dense operator registry: a caller named an `(id, version)`
+    /// outside [`dense::operator_spec`]. Unknown entries are never
+    /// approximated by a nearby arithmetic version.
+    UnknownDenseOperator {
+        /// The requested dense operator id.
+        id: String,
+        /// The requested dense operator version.
+        version: u32,
+    },
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -1717,6 +1734,15 @@ impl std::fmt::Display for SourceIngestKind {
                 attention::AttentionOperatorSpec::LEARNED_ABSOLUTE_V2_VERSION,
                 attention::AttentionOperatorSpec::R4_ROUTE_ID,
                 attention::AttentionOperatorSpec::R4_ROUTE_VERSION,
+            ),
+            Self::UnknownDenseOperator { id, version } => write!(
+                f,
+                "dense operator {id}/{version} is not in the versioned operator registry \
+                 (registered entries: {}/{}, {}/{})",
+                dense::DenseOperatorSpec::GPT2_ID,
+                dense::DenseOperatorSpec::GPT2_V1_VERSION,
+                dense::DenseOperatorSpec::GPT2_ID,
+                dense::DenseOperatorSpec::GPT2_V2_VERSION,
             ),
         }
     }
@@ -2255,6 +2281,11 @@ pub trait BatchedTeacher {
     fn attention_operator_spec(&self) -> Option<attention::AttentionOperatorSpec> {
         None
     }
+    /// Registered source-dense identity executed by this batched producer.
+    /// `None` denotes an unbound or inapplicable source family.
+    fn dense_operator_spec(&self) -> Option<dense::DenseOperatorSpec> {
+        None
+    }
     /// Advance `states.len()` sequences one position each: sequence `b` steps
     /// `tokens[b]` at `positions[b]`, leaving its logits reachable through
     /// [`BatchedTeacher::logits_mut`].
@@ -2283,6 +2314,9 @@ impl BatchedTeacher for HuggingFaceLlamaOracle {
     }
     fn attention_operator_spec(&self) -> Option<attention::AttentionOperatorSpec> {
         <Self as TeacherOracle>::attention_operator_spec(self)
+    }
+    fn dense_operator_spec(&self) -> Option<dense::DenseOperatorSpec> {
+        <Self as TeacherOracle>::dense_operator_spec(self)
     }
     fn forward_batch_into(&self, states: &mut [State], tokens: &[usize], positions: &[usize]) {
         self.model
@@ -2857,11 +2891,13 @@ mod tests {
             oracle.attention_operator_spec(),
             Some(attention::AttentionOperatorSpec::standard())
         );
+        assert_eq!(oracle.dense_operator_spec(), None);
         oracle.model.cfg.r4_attention = true;
         assert_eq!(
             oracle.attention_operator_spec(),
             Some(attention::AttentionOperatorSpec::experimental_r4())
         );
+        assert_eq!(oracle.dense_operator_spec(), None);
     }
 
     /// #603: the traced forward IS the exact executor — a

@@ -75,9 +75,10 @@ Recorded in the R4G1 RFC in Phase 0; implemented as a compiler mode in Phase 2.
 Implementation update (2026-08-15): #655-B2 removed the historical
 Accelerate/NEON/AVX2 split from Llama/shared teacher projections, which now use
 the pinned portable exact `uor-matmul` owner. GPT-2 Conv1D/MLP and tied
-`lm_head` remain conventional; current-v2 QK/value attention has its own
-certified-native/exact-fallback owner. Canonical mode continues to govern the
-remaining libm and ordered-reduction choices.
+`lm_head` now use the separately versioned dense/2 certified-native/exact-
+fallback owner; current-v2 QK/value attention retains its own execution record
+and owner. Canonical mode continues to govern the remaining libm and
+ordered-reduction choices.
 
 ### D3 — Evaluation distribution and corpora
 
@@ -242,9 +243,9 @@ only; it must never become a dependency of format/runtime/proof-model. Per-stage
 2. No naive parallel FP reductions: FP addition is non-associative, so all reductions are ordered
    (shard-ID order) with f64 or fixed-point accumulators.
 3. Llama/shared weight projections use pinned exact `uor-matmul`. Certificate-bearing compiles
-   additionally select the canonical libm and ordered-reduction family; GPT-2's conventional
-   dense sites and certified-exact current attention are recorded separately rather than being
-   relabeled by this historical D2 switch.
+   additionally select the canonical libm and ordered-reduction family; GPT-2's certified-exact
+   dense/2 and current attention/2 sites are recorded separately rather than being relabeled by
+   this historical D2 switch.
 4. Seeds pinned; any shuffling derives from a seeded PRNG over sample IDs, never iteration order.
 
 **Memory budget.** See [compiler_memory_budget.md](file:///Users/casey.allard/uor-r4/docs/compiler_memory_budget.md) (Issue #169) for the normative concurrency-aware memory budget and backpressure model. A `--memory-budget` flag derives shard sizes from

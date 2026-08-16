@@ -53,6 +53,9 @@ use uor_r4_model_source::TeacherOracle;
 use uor_r4_model_source::attention::AttentionOperatorSpec;
 #[cfg(not(target_arch = "wasm32"))]
 use uor_r4_model_source::attention::operator_spec;
+use uor_r4_model_source::dense::DenseOperatorSpec;
+#[cfg(not(target_arch = "wasm32"))]
+use uor_r4_model_source::dense::operator_spec as dense_operator_spec;
 use uor_r4_model_source::geometry::GeometryProjection;
 #[cfg(not(target_arch = "wasm32"))]
 use uor_r4_model_source::geometry::projection_implementation;
@@ -138,7 +141,7 @@ pub const MANIFEST_FILE: &str = "manifest.json";
 /// writer lock. It is not observation payload and is never removed as a lease,
 /// so process death releases the lock without leaving a stale-lock state.
 #[cfg(not(target_arch = "wasm32"))]
-const OBSERVATION_SESSION_LOCK_PREFIX: &str = ".uor-r4-observation-session-";
+const OBSERVATION_SESSION_COORDINATION_DIR: &str = ".uor-r4-observation-sessions";
 
 #[cfg(not(target_arch = "wasm32"))]
 const OBSERVATION_PAYLOAD_FILES: [&str; 8] = [
@@ -647,6 +650,41 @@ pub(crate) fn validate_registered_source_attention_operator(
     Ok(())
 }
 
+/// Validate that a dense-execution provenance record is exactly one immutable
+/// entry from the model-source registry. Dense records describe host-side
+/// teacher execution; they are never deployed runtime operators.
+#[cfg(not(target_arch = "wasm32"))]
+pub(crate) fn validate_registered_source_dense_operator(
+    operator: &DenseOperatorSpec,
+) -> Result<(), SourceUnavailable> {
+    let registered = dense_operator_spec(&operator.id, operator.version)?;
+    if registered != *operator {
+        return Err(invalid_input(format!(
+            "dense operator {}/{} diverges from its immutable registry record; refusing provenance before mutation",
+            operator.id, operator.version
+        )));
+    }
+    Ok(())
+}
+
+/// Validate the composite host-execution identity, after each present record
+/// has independently matched its immutable registry entry. Dense provenance
+/// is GPT-2-specific: it is meaningless without learned-absolute attention,
+/// and an explicit dense era must agree with the corresponding attention era.
+#[cfg(not(target_arch = "wasm32"))]
+pub(crate) fn validate_source_execution_identity(
+    attention: Option<&AttentionOperatorSpec>,
+    dense: Option<&DenseOperatorSpec>,
+    context: &str,
+) -> Result<(), SourceUnavailable> {
+    uor_r4_model_source::dense::validate_source_execution_pair(attention, dense).map_err(
+        |mut error| {
+            error.reason = format!("{context}: {}", error.reason);
+            error
+        },
+    )
+}
+
 #[cfg(not(target_arch = "wasm32"))]
 fn validate_registered_tokenizer_adapter(
     adapter: &TokenizerAdapter,
@@ -789,6 +827,29 @@ pub fn shard_file_name(shard_bits: u8, shard: u32) -> String {
     format!("shard-{shard:0width$}.bin")
 }
 
+/// Filename-only discriminator for payload/checkpoint evidence owned
+/// exclusively by an observation session. Compile-style corpus producers use
+/// this at their shared lower preflight so a torn or stripped observation
+/// root cannot be mistaken for a fresh compile destination.
+pub(crate) fn is_observation_exclusive_entry_name(name: &str) -> bool {
+    matches!(
+        name,
+        MANIFEST_FILE
+            | STATE_FILE
+            | RAW_COMMITTED_FILE
+            | "merged.bin"
+            | "committed.bin"
+            | ".committed.bin.tmp"
+            | "stories.jsonl"
+            | "stories.tmp"
+    ) || name.starts_with("shard-")
+        || name.starts_with("stories.tmp-")
+        || name.starts_with(".manifest.json.tmp")
+        || name.starts_with(".raw-committed.bin.tmp")
+        || name.starts_with(".state.bin.tmp")
+        || name.starts_with(".committed.bin.tmp")
+}
+
 /// R5: the host-ingestion boundary reports exactly one condition — a declared
 /// external source or sink could not be ingested or persisted. These helpers
 /// keep the observed malformation as the reason.
@@ -927,6 +988,12 @@ pub struct ObservationManifest {
     /// manifest bytes are unchanged when unset.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub attention_operator: Option<AttentionOperatorSpec>,
+    /// Typed record of the host-side dense arithmetic the teacher executed.
+    /// GPT-2 current sources declare `gpt2-source-dense/2`; Llama and legacy
+    /// corpora declare none. Absence stays typed absence rather than being
+    /// guessed as a GPT-2 historical version.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub dense_operator: Option<DenseOperatorSpec>,
     /// #603 typed record of the teacher-trace profile the producing pass
     /// captured under (which lanes, which declared layer indices, which
     /// caps), when a non-minimal profile was active. `None` marks the
@@ -959,6 +1026,7 @@ impl ObservationManifest {
             geometry: None,
             tokenizer_adapter: None,
             attention_operator: None,
+            dense_operator: None,
             trace_profile: None,
             trace_row_bytes: None,
             completed: BTreeMap::new(),
@@ -967,10 +1035,12 @@ impl ObservationManifest {
     }
 
     /// Canonical serialization of the manifest's identity BUNDLE (#603):
-    /// the five identity fields (`input_cid`, `source_manifest_kappa`,
+    /// the seven identity fields (`input_cid`, `source_manifest_kappa`,
     /// `geometry` #600, `tokenizer_adapter` #601, `attention_operator`
-    /// #602) plus the #603 `trace_profile`, in that fixed order, one
-    /// line per component. Absence is part of the digest input as an
+    /// #602, optional `dense_operator` #704, and the #603 `trace_profile`),
+    /// in that fixed order, one line per component. The legacy `/1` stream
+    /// omits the later dense component entirely; `/2` is selected only when
+    /// dense provenance is present. Absence is part of the digest input as an
     /// EXPLICIT marker: an unset component serializes as
     /// `<name>=absent`, a set component as `<name>=present:<value>`
     /// (the raw string for the κ/CID fields, the declared-identity
@@ -985,7 +1055,14 @@ impl ObservationManifest {
                 Some(value) => text.push_str(&format!("{name}=present:{value}\n")),
             }
         }
-        let mut text = String::from("uor-r4-observation-identity-bundle/1\n");
+        // The legacy `/1` byte stream is immutable. Merely teaching this
+        // manifest about an optional dense identity must not change any old
+        // checkpoint digest. A present dense record alone selects `/2`.
+        let mut text = if self.dense_operator.is_some() {
+            String::from("uor-r4-observation-identity-bundle/2\n")
+        } else {
+            String::from("uor-r4-observation-identity-bundle/1\n")
+        };
         line(&mut text, "input_cid", self.input_cid.clone());
         line(
             &mut text,
@@ -1013,6 +1090,15 @@ impl ObservationManifest {
                 .as_ref()
                 .map(|record| record.declared_digest()),
         );
+        if self.dense_operator.is_some() {
+            line(
+                &mut text,
+                "dense_operator",
+                self.dense_operator
+                    .as_ref()
+                    .map(|record| record.declared_digest()),
+            );
+        }
         line(
             &mut text,
             "trace_profile",
@@ -1140,6 +1226,61 @@ impl ObservationManifest {
         Ok(())
     }
 
+    /// Parse and registry-validate one manifest generation already captured
+    /// by a caller-owned filesystem snapshot. Unlike [`Self::load`], this
+    /// never reopens `manifest.json`; recorded-corpus consumers can therefore
+    /// bind the returned execution identity to the exact captured manifest
+    /// bytes. It deliberately preserves [`Self::load`]'s validation of every
+    /// manifest-referenced shard payload and trace layout.
+    #[cfg(not(target_arch = "wasm32"))]
+    pub(crate) fn parse_captured_execution_identity(
+        dir: &Path,
+        path: &Path,
+        bytes: &[u8],
+    ) -> Result<Self, SourceUnavailable> {
+        let manifest: Self = serde_json::from_slice(bytes).map_err(|error| {
+            invalid_data(format!(
+                "invalid observation manifest {}: {error}",
+                path.display()
+            ))
+        })?;
+        manifest.validate_loaded_semantics()?;
+        validate_canonical_shard_payload_names(dir, &manifest)?;
+        validate_completed_payloads(dir, &manifest)?;
+        if manifest.trace_profile.is_some()
+            && manifest.trace_row_bytes.is_none()
+            && (regular_file_present(&dir.join(RAW_COMMITTED_FILE), "trace-layout")?
+                || regular_file_present(&dir.join(STATE_FILE), "trace-layout")?
+                || observation_shard_payload_present(dir)?)
+        {
+            return Err(invalid_data(format!(
+                "observation manifest records a trace profile but no trace row width despite existing raw stream payload in {}",
+                dir.display()
+            )));
+        }
+        if let Some(geometry) = manifest.geometry.as_ref() {
+            validate_registered_geometry_projection(geometry)?;
+        }
+        if let Some(adapter) = manifest.tokenizer_adapter.as_ref() {
+            validate_registered_tokenizer_adapter(adapter)?;
+        }
+        if let Some(operator) = manifest.attention_operator.as_ref() {
+            validate_registered_source_attention_operator(operator)?;
+        }
+        if let Some(operator) = manifest.dense_operator.as_ref() {
+            validate_registered_source_dense_operator(operator)?;
+        }
+        validate_source_execution_identity(
+            manifest.attention_operator.as_ref(),
+            manifest.dense_operator.as_ref(),
+            &format!("observation manifest {}", path.display()),
+        )?;
+        if let Some(profile) = manifest.trace_profile.as_ref() {
+            validate_registered_trace_profile(profile)?;
+        }
+        Ok(manifest)
+    }
+
     /// Load the manifest of an observation directory, if present.
     #[cfg(not(target_arch = "wasm32"))]
     pub fn load(dir: &Path) -> Result<Option<Self>, SourceUnavailable> {
@@ -1180,6 +1321,14 @@ impl ObservationManifest {
                     if let Some(operator) = manifest.attention_operator.as_ref() {
                         validate_registered_source_attention_operator(operator)?;
                     }
+                    if let Some(operator) = manifest.dense_operator.as_ref() {
+                        validate_registered_source_dense_operator(operator)?;
+                    }
+                    validate_source_execution_identity(
+                        manifest.attention_operator.as_ref(),
+                        manifest.dense_operator.as_ref(),
+                        &format!("observation manifest {}", path.display()),
+                    )?;
                     if let Some(profile) = manifest.trace_profile.as_ref() {
                         validate_registered_trace_profile(profile)?;
                     }
@@ -1505,26 +1654,65 @@ fn recover_manifest_temp_residue(dir: &Path) -> Result<(), SourceUnavailable> {
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-fn prepare_observation_root(dir: &Path) -> Result<(), SourceUnavailable> {
-    match fs::symlink_metadata(dir) {
-        Ok(metadata) if metadata.file_type().is_dir() => {}
-        Ok(_) => {
-            return Err(invalid_input(format!(
-                "observation output root {} is not a directory; symlink and non-directory roots are refused",
-                dir.display()
-            )));
-        }
-        Err(error) if error.kind() == io::ErrorKind::NotFound => fs::create_dir_all(dir)?,
-        Err(error) => return Err(error.into()),
-    }
-    match fs::symlink_metadata(dir) {
+fn prepare_observation_parent(dir: &Path) -> Result<(), SourceUnavailable> {
+    let parent = dir
+        .parent()
+        .filter(|parent| !parent.as_os_str().is_empty())
+        .unwrap_or_else(|| Path::new("."));
+    fs::create_dir_all(parent)?;
+    match fs::symlink_metadata(parent) {
         Ok(metadata) if metadata.file_type().is_dir() => Ok(()),
         Ok(_) => Err(invalid_input(format!(
-            "observation output root {} ceased to be a directory",
-            dir.display()
+            "observation output parent {} is not a real directory",
+            parent.display()
         ))),
         Err(error) => Err(error.into()),
     }
+}
+
+#[cfg(all(not(target_arch = "wasm32"), unix))]
+fn observation_metadata_identity_matches(left: &fs::Metadata, right: &fs::Metadata) -> bool {
+    use std::os::unix::fs::MetadataExt;
+    left.dev() == right.dev() && left.ino() == right.ino()
+}
+
+#[cfg(all(not(target_arch = "wasm32"), not(unix)))]
+fn observation_metadata_identity_matches(_left: &fs::Metadata, _right: &fs::Metadata) -> bool {
+    true
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn open_observation_directory_nofollow(
+    path: &Path,
+    context: &str,
+) -> Result<fs::File, SourceUnavailable> {
+    let mut options = fs::OpenOptions::new();
+    options.read(true);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt;
+        options.custom_flags(
+            libc::O_CLOEXEC | libc::O_DIRECTORY | libc::O_NOFOLLOW | libc::O_NONBLOCK,
+        );
+    }
+    let file = options.open(path).map_err(|error| {
+        invalid_input(format!(
+            "{context} {} cannot be opened without following links: {error}",
+            path.display()
+        ))
+    })?;
+    let path_metadata = fs::symlink_metadata(path)?;
+    let file_metadata = file.metadata()?;
+    if !path_metadata.file_type().is_dir()
+        || !file_metadata.file_type().is_dir()
+        || !observation_metadata_identity_matches(&path_metadata, &file_metadata)
+    {
+        return Err(invalid_input(format!(
+            "{context} {} is not one stable real directory",
+            path.display()
+        )));
+    }
+    Ok(file)
 }
 
 /// Acquire the process-crash-safe, full-session writer lock. The permanent
@@ -1533,63 +1721,115 @@ fn prepare_observation_root(dir: &Path) -> Result<(), SourceUnavailable> {
 /// after process death, so no stale-lock recovery protocol is needed.
 #[cfg(not(target_arch = "wasm32"))]
 fn acquire_observation_session_lock(dir: &Path) -> Result<fs::File, SourceUnavailable> {
-    // Keep coordination outside the observation directory so even the first
-    // refused resume leaves that directory byte-identical. Hash the canonical
-    // output path so aliases contend on one permanent sibling inode without
-    // exposing arbitrary path bytes in its file name.
-    let canonical = fs::canonicalize(dir)?;
-    let parent = canonical.parent().ok_or_else(|| {
+    // Keep coordination outside the observation directory so an absent root
+    // remains absent when another producer owns the common logical-path
+    // guard. The exact basename lives inside a protected sibling directory;
+    // filesystem collation therefore makes case/Unicode aliases contend on
+    // the same inode without needing a lossy path hash.
+    let root_name = dir.file_name().ok_or_else(|| {
         invalid_input(format!(
-            "observation output {} has no parent for its coordination lock",
-            canonical.display()
+            "observation output {} has no final component for its coordination lock",
+            dir.display()
         ))
     })?;
-    let digest = blake3::hash(canonical.to_string_lossy().as_bytes());
-    let path = parent.join(format!(
-        "{OBSERVATION_SESSION_LOCK_PREFIX}{}.lock",
-        digest.to_hex()
-    ));
-    let file = loop {
-        match fs::OpenOptions::new()
-            .read(true)
-            .write(true)
-            .create_new(true)
-            .open(&path)
-        {
-            Ok(file) => break file,
-            Err(error) if error.kind() == io::ErrorKind::AlreadyExists => {
-                match fs::symlink_metadata(&path) {
-                    Ok(metadata) if metadata.file_type().is_file() => {}
-                    Ok(_) => {
-                        return Err(invalid_input(format!(
-                            "observation session lock {} is not a regular file; symlinks and non-file entries are refused",
-                            path.display()
-                        )));
-                    }
-                    Err(error) if error.kind() == io::ErrorKind::NotFound => continue,
-                    Err(error) => return Err(error.into()),
-                }
-                let file = fs::OpenOptions::new().read(true).write(true).open(&path)?;
-                if !file.metadata()?.file_type().is_file() {
-                    return Err(invalid_input(format!(
-                        "observation session lock {} is not a regular file",
-                        path.display()
-                    )));
-                }
-                break file;
-            }
-            Err(error) => return Err(error.into()),
-        }
-    };
-    file.lock()?;
-    match fs::symlink_metadata(&path) {
-        Ok(metadata) if metadata.file_type().is_file() => Ok(file),
-        Ok(_) => Err(invalid_input(format!(
-            "observation session lock {} ceased to be a regular file while acquiring it",
-            path.display()
-        ))),
-        Err(error) => Err(error.into()),
+    if root_name == std::ffi::OsStr::new(".") || root_name == std::ffi::OsStr::new("..") {
+        return Err(invalid_input(
+            "observation output cannot be '.' or '..'".to_owned(),
+        ));
     }
+    let requested_parent = dir
+        .parent()
+        .filter(|parent| !parent.as_os_str().is_empty())
+        .unwrap_or_else(|| Path::new("."));
+    let canonical_parent = fs::canonicalize(requested_parent)?;
+    let parent_file = open_observation_directory_nofollow(
+        &canonical_parent,
+        "observation session canonical parent",
+    )?;
+    let coordination = canonical_parent.join(OBSERVATION_SESSION_COORDINATION_DIR);
+    match fs::create_dir(&coordination) {
+        Ok(()) => parent_file.sync_all()?,
+        Err(error) if error.kind() == io::ErrorKind::AlreadyExists => {}
+        Err(error) => return Err(error.into()),
+    }
+    let coordination_file = open_observation_directory_nofollow(
+        &coordination,
+        "observation session coordination directory",
+    )?;
+    let path = coordination.join(root_name);
+    let mut options = fs::OpenOptions::new();
+    options.read(true).write(true).create(true).truncate(false);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt;
+        options
+            .mode(0o600)
+            .custom_flags(libc::O_CLOEXEC | libc::O_NOFOLLOW | libc::O_NONBLOCK);
+    }
+    let file = options.open(&path).map_err(|error| {
+        invalid_input(format!(
+            "observation session lock {} cannot be opened without following links: {error}",
+            path.display()
+        ))
+    })?;
+    let initial_path = fs::symlink_metadata(&path)?;
+    let initial_file = file.metadata()?;
+    if !initial_path.file_type().is_file()
+        || !initial_file.file_type().is_file()
+        || !observation_metadata_identity_matches(&initial_path, &initial_file)
+    {
+        return Err(invalid_input(format!(
+            "observation session lock {} is not one stable regular non-symlink inode",
+            path.display()
+        )));
+    }
+    file.lock()?;
+    let final_path = fs::symlink_metadata(&path)?;
+    let final_file = file.metadata()?;
+    if !final_path.file_type().is_file()
+        || !final_file.file_type().is_file()
+        || !observation_metadata_identity_matches(&initial_file, &final_file)
+        || !observation_metadata_identity_matches(&final_path, &final_file)
+    {
+        return Err(invalid_input(format!(
+            "observation session lock {} changed identity or type while acquired",
+            path.display()
+        )));
+    }
+    let final_parent = parent_file.metadata()?;
+    let path_parent = fs::symlink_metadata(&canonical_parent)?;
+    let final_coordination = coordination_file.metadata()?;
+    let path_coordination = fs::symlink_metadata(&coordination)?;
+    if !observation_metadata_identity_matches(&final_parent, &path_parent)
+        || !observation_metadata_identity_matches(&final_coordination, &path_coordination)
+    {
+        return Err(invalid_input(
+            "observation session coordination directories changed identity while acquired"
+                .to_owned(),
+        ));
+    }
+    Ok(file)
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn acquire_observation_session_guards_with_hook<F>(
+    dir: &Path,
+    after_outer_lock: F,
+) -> Result<
+    (
+        crate::recorded_corpus::RecordedCorpusProducerGuard,
+        fs::File,
+    ),
+    SourceUnavailable,
+>
+where
+    F: FnOnce(),
+{
+    let observation_lock = acquire_observation_session_lock(dir)?;
+    after_outer_lock();
+    let recorded_corpus_guard =
+        crate::recorded_corpus::RecordedCorpusProducerGuard::try_acquire(dir)?;
+    Ok((recorded_corpus_guard, observation_lock))
 }
 
 /// Name of one shard's #603 trace sidecar: `<shard file>.trace`,
@@ -1993,7 +2233,7 @@ fn apply_raw_recovery(dir: &Path, plan: &RawRecoveryPlan) -> Result<(), SourceUn
 pub fn preflight_raw_observation_in_session(
     session: &ObservationSession,
 ) -> Result<RawResumeStatus, SourceUnavailable> {
-    let writer = session.writer()?;
+    let writer = session.writer_for_preflight()?;
     let plan = preflight_raw_resume(session.dir(), writer.manifest())?;
     Ok(status_from_plan(&plan))
 }
@@ -2005,8 +2245,10 @@ pub fn preflight_raw_observation_in_session(
 pub fn recover_raw_observation_in_session(
     session: &ObservationSession,
 ) -> Result<RawResumeStatus, SourceUnavailable> {
-    let writer = session.writer()?;
+    let writer = session.writer_for_preflight()?;
     let plan = preflight_raw_resume(session.dir(), writer.manifest())?;
+    drop(writer);
+    session.recover_recorded_corpus_binding_after_preflight()?;
     if let RawResumePlan::Authoritative(recovery) = &plan {
         apply_raw_recovery(session.dir(), recovery)?;
     }
@@ -2044,7 +2286,9 @@ pub struct ObservationSession {
 
 #[cfg(not(target_arch = "wasm32"))]
 struct ObservationSessionState {
+    _recorded_corpus_guard: crate::recorded_corpus::RecordedCorpusProducerGuard,
     _lock: fs::File,
+    binding_recovery_needed: std::sync::atomic::AtomicBool,
     writer_active: std::sync::atomic::AtomicBool,
 }
 
@@ -2072,23 +2316,62 @@ impl ObservationSession {
                 "shard_bits {shard_bits} exceeds the writer maximum {MAX_SHARD_BITS}"
             )));
         }
-        let dir = dir.as_ref().to_path_buf();
-        prepare_observation_root(&dir)?;
-        validate_observation_entry_types(&dir)?;
+        let requested_dir = dir.as_ref().to_path_buf();
+        prepare_observation_parent(&requested_dir)?;
         // Fail static semantic refusals before creating the permanent
         // coordination inode. This snapshot is only an optimization for
         // failure atomicity; `load_manifest` repeats it authoritatively after
         // the lock is acquired.
-        if let Some(manifest) = ObservationManifest::load(&dir)?
-            && manifest.shard_bits != shard_bits
-        {
-            return Err(invalid_input(format!(
-                "manifest shard_bits {} does not match requested {shard_bits}",
-                manifest.shard_bits
-            )));
+        match fs::symlink_metadata(&requested_dir) {
+            Ok(metadata) if metadata.file_type().is_dir() => {
+                validate_observation_entry_types(&requested_dir)?;
+                if let Some(manifest) = ObservationManifest::load(&requested_dir)?
+                    && manifest.shard_bits != shard_bits
+                {
+                    return Err(invalid_input(format!(
+                        "manifest shard_bits {} does not match requested {shard_bits}",
+                        manifest.shard_bits
+                    )));
+                }
+            }
+            Ok(_) => {
+                return Err(invalid_input(format!(
+                    "observation output root {} is not a real directory",
+                    requested_dir.display()
+                )));
+            }
+            Err(error) if error.kind() == io::ErrorKind::NotFound => {}
+            Err(error) => return Err(error.into()),
         }
+        // Global acquisition order is writer-specific outer session before
+        // the common recorded-corpus guard. Every public raw/text/batched
+        // session therefore owns both for its complete mutable lifetime. A
+        // common-guard BUSY refusal drops the just-acquired outer file before
+        // returning, so no path can retain a prefix of the lock order.
+        let (mut recorded_corpus_guard, observation_lock) =
+            acquire_observation_session_guards_with_hook(&requested_dir, || {})?;
+        if recorded_corpus_guard.root_exists() {
+            recorded_corpus_guard.preflight_planned_output_scope(&[])?;
+            let _ = recorded_corpus_guard.preflight_publication_namespace_for(
+                crate::recorded_corpus::RecordedCorpusRole::Observation,
+            )?;
+        }
+        recorded_corpus_guard.ensure_root()?;
+        let dir = recorded_corpus_guard.root().to_path_buf();
+        validate_observation_entry_types(&dir)?;
+        // Namespace validation is read-only at generic acquisition. A
+        // command may not promote an exact `.tmp` until its requested
+        // tokenizer/geometry/attention/dense/text identities have all passed
+        // under this session; otherwise a mismatched invocation could mutate
+        // a directory it must reject byte-for-byte.
+        recorded_corpus_guard.preflight_planned_output_scope(&[])?;
+        let binding_recovery_needed = recorded_corpus_guard.preflight_publication_namespace_for(
+            crate::recorded_corpus::RecordedCorpusRole::Observation,
+        )?;
         let state = Arc::new(ObservationSessionState {
-            _lock: acquire_observation_session_lock(&dir)?,
+            _recorded_corpus_guard: recorded_corpus_guard,
+            _lock: observation_lock,
+            binding_recovery_needed: std::sync::atomic::AtomicBool::new(binding_recovery_needed),
             writer_active: std::sync::atomic::AtomicBool::new(false),
         });
         let session = Self {
@@ -2113,9 +2396,52 @@ impl ObservationSession {
         self.shard_bits
     }
 
+    /// Common recorded-corpus producer guard held for this session's full
+    /// provenance, shard, checkpoint, merge, and binding-publication lifetime.
+    pub fn recorded_corpus_guard(&self) -> &crate::recorded_corpus::RecordedCorpusProducerGuard {
+        &self.state._recorded_corpus_guard
+    }
+
+    /// Promote an exact crash temporary only after the caller's complete
+    /// command-specific identity preflight has succeeded under this session.
+    pub(crate) fn recover_recorded_corpus_binding_after_preflight(
+        &self,
+    ) -> Result<(), SourceUnavailable> {
+        if !self
+            .state
+            .binding_recovery_needed
+            .load(std::sync::atomic::Ordering::Acquire)
+        {
+            return Ok(());
+        }
+        crate::recorded_corpus::publish_binding(
+            self.recorded_corpus_guard(),
+            &self.dir.join(STATE_FILE),
+            &self.dir.join("merged.bin"),
+        )?;
+        self.state
+            .binding_recovery_needed
+            .store(false, std::sync::atomic::Ordering::Release);
+        Ok(())
+    }
+
     /// Open a writer that shares this session's already-held exclusive lock.
     /// The manifest and payload entry types are reloaded under the lock.
     pub fn writer(&self) -> Result<ObservationShardWriter, SourceUnavailable> {
+        if self
+            .state
+            .binding_recovery_needed
+            .load(std::sync::atomic::Ordering::Acquire)
+        {
+            return Err(invalid_input(format!(
+                "observation session for {} has an unpublished canonical corpus binding temporary; complete command-specific identity preflight and recovery before mutation",
+                self.dir.display()
+            )));
+        }
+        self.writer_for_preflight()
+    }
+
+    pub(crate) fn writer_for_preflight(&self) -> Result<ObservationShardWriter, SourceUnavailable> {
         if self
             .state
             .writer_active
@@ -2178,18 +2504,57 @@ fn preflight_writer_identity_bundle(
     geometry: Option<&GeometryProjection>,
     tokenizer_adapter: Option<&TokenizerAdapter>,
     attention_operator: Option<&AttentionOperatorSpec>,
+    dense_operator: Option<&DenseOperatorSpec>,
     trace_profile: Option<&TraceProfile>,
 ) -> Result<(), SourceUnavailable> {
+    validate_source_execution_identity(
+        writer.manifest().attention_operator.as_ref(),
+        writer.manifest().dense_operator.as_ref(),
+        &format!("observation manifest {}", writer.dir.display()),
+    )?;
+    validate_source_execution_identity(
+        attention_operator,
+        dense_operator,
+        "requested observation source execution",
+    )?;
     writer.preflight_source_manifest_kappa(source_manifest_kappa)?;
     writer.preflight_geometry(geometry)?;
     writer.preflight_tokenizer_adapter(tokenizer_adapter)?;
     writer.preflight_attention_operator(attention_operator)?;
+    writer.preflight_dense_operator(dense_operator)?;
     writer.preflight_trace_profile(trace_profile)
 }
 
 /// Joint, read-only provenance preflight under a caller-held observation
 /// session. Commands call this before tokenizer export or any identity setter;
 /// the lower driver repeats the checks before reconciliation and row writes.
+#[cfg(not(target_arch = "wasm32"))]
+#[allow(clippy::too_many_arguments)]
+pub fn preflight_observation_identities_in_session_with_dense(
+    session: &ObservationSession,
+    source_manifest_kappa: Option<&str>,
+    geometry: Option<&GeometryProjection>,
+    tokenizer_adapter: Option<&TokenizerAdapter>,
+    attention_operator: Option<&AttentionOperatorSpec>,
+    dense_operator: Option<&DenseOperatorSpec>,
+    trace_profile: Option<&TraceProfile>,
+) -> Result<(), SourceUnavailable> {
+    let writer = session.writer_for_preflight()?;
+    let _ = preflight_observation_state(session.dir(), writer.manifest())?;
+    preflight_writer_identity_bundle(
+        &writer,
+        source_manifest_kappa,
+        geometry,
+        tokenizer_adapter,
+        attention_operator,
+        dense_operator,
+        trace_profile,
+    )
+}
+
+/// Compatibility entry point for producers from the dense-operator-absent
+/// era. New source-aware callers should use
+/// [`preflight_observation_identities_in_session_with_dense`].
 #[cfg(not(target_arch = "wasm32"))]
 #[allow(clippy::too_many_arguments)]
 pub fn preflight_observation_identities_in_session(
@@ -2200,14 +2565,13 @@ pub fn preflight_observation_identities_in_session(
     attention_operator: Option<&AttentionOperatorSpec>,
     trace_profile: Option<&TraceProfile>,
 ) -> Result<(), SourceUnavailable> {
-    let writer = session.writer()?;
-    let _ = preflight_observation_state(session.dir(), writer.manifest())?;
-    preflight_writer_identity_bundle(
-        &writer,
+    preflight_observation_identities_in_session_with_dense(
+        session,
         source_manifest_kappa,
         geometry,
         tokenizer_adapter,
         attention_operator,
+        None,
         trace_profile,
     )
 }
@@ -2229,13 +2593,54 @@ pub fn preflight_observation_trace_layout_in_session(
         Some(profile) if !profile.is_minimal() => Some(TraceCapture::new(profile, oracle)?),
         Some(_) | None => None,
     };
-    let writer = session.writer()?;
+    let writer = session.writer_for_preflight()?;
     writer.preflight_trace_row_bytes(trace.as_ref().map(|trace| trace.row_bytes as u64))
 }
 
 /// Jointly preflight, then publish all present identity records under one
 /// exclusive session. No setter runs until every requested/recorded identity
 /// has passed the read-only bundle check.
+#[cfg(not(target_arch = "wasm32"))]
+#[allow(clippy::too_many_arguments)]
+pub fn pin_observation_identities_in_session_with_dense(
+    session: &ObservationSession,
+    source_manifest_kappa: Option<&str>,
+    geometry: Option<&GeometryProjection>,
+    tokenizer_adapter: Option<&TokenizerAdapter>,
+    attention_operator: Option<&AttentionOperatorSpec>,
+    dense_operator: Option<&DenseOperatorSpec>,
+    trace_profile: Option<&TraceProfile>,
+) -> Result<(), SourceUnavailable> {
+    let mut writer = session.writer_for_preflight()?;
+    let _ = preflight_observation_state(session.dir(), writer.manifest())?;
+    preflight_writer_identity_bundle(
+        &writer,
+        source_manifest_kappa,
+        geometry,
+        tokenizer_adapter,
+        attention_operator,
+        dense_operator,
+        trace_profile,
+    )?;
+    session.recover_recorded_corpus_binding_after_preflight()?;
+    if let Some(adapter) = tokenizer_adapter {
+        writer.set_tokenizer_adapter(adapter)?;
+    }
+    if let Some(kappa) = source_manifest_kappa {
+        writer.set_source_manifest_kappa(kappa)?;
+    }
+    if let Some(geometry) = geometry {
+        writer.set_geometry(geometry)?;
+    }
+    writer.set_source_execution_pair(attention_operator, dense_operator)?;
+    if let Some(profile) = trace_profile {
+        writer.set_trace_profile(profile)?;
+    }
+    Ok(())
+}
+
+/// Compatibility entry point preserving the pre-#704 positional API and
+/// exact dense-absent semantics.
 #[cfg(not(target_arch = "wasm32"))]
 #[allow(clippy::too_many_arguments)]
 pub fn pin_observation_identities_in_session(
@@ -2246,32 +2651,15 @@ pub fn pin_observation_identities_in_session(
     attention_operator: Option<&AttentionOperatorSpec>,
     trace_profile: Option<&TraceProfile>,
 ) -> Result<(), SourceUnavailable> {
-    let mut writer = session.writer()?;
-    let _ = preflight_observation_state(session.dir(), writer.manifest())?;
-    preflight_writer_identity_bundle(
-        &writer,
+    pin_observation_identities_in_session_with_dense(
+        session,
         source_manifest_kappa,
         geometry,
         tokenizer_adapter,
         attention_operator,
+        None,
         trace_profile,
-    )?;
-    if let Some(adapter) = tokenizer_adapter {
-        writer.set_tokenizer_adapter(adapter)?;
-    }
-    if let Some(kappa) = source_manifest_kappa {
-        writer.set_source_manifest_kappa(kappa)?;
-    }
-    if let Some(geometry) = geometry {
-        writer.set_geometry(geometry)?;
-    }
-    if let Some(operator) = attention_operator {
-        writer.set_attention_operator(operator)?;
-    }
-    if let Some(profile) = trace_profile {
-        writer.set_trace_profile(profile)?;
-    }
-    Ok(())
+    )
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -2305,7 +2693,9 @@ impl ObservationShardWriter {
     /// manifest pins the fan-out; requesting a different `shard_bits` for
     /// the same directory is an error.
     pub fn open(dir: impl AsRef<Path>, shard_bits: u8) -> Result<Self, SourceUnavailable> {
-        ObservationSession::acquire(dir, shard_bits)?.writer()
+        let session = ObservationSession::acquire(dir, shard_bits)?;
+        session.recover_recorded_corpus_binding_after_preflight()?;
+        session.writer()
     }
 
     pub fn manifest(&self) -> &ObservationManifest {
@@ -2586,6 +2976,112 @@ impl ObservationShardWriter {
         }
         let mut candidate = self.manifest.clone();
         candidate.attention_operator = Some(operator.clone());
+        validate_source_execution_identity(
+            candidate.attention_operator.as_ref(),
+            candidate.dense_operator.as_ref(),
+            "proposed observation manifest",
+        )?;
+        candidate.store(&self.dir)?;
+        self.manifest = candidate;
+        Ok(())
+    }
+
+    /// Read-only symmetric compatibility check for the host-side dense
+    /// execution era. An explicit producer may not relabel payload created
+    /// before dense provenance existed, and an operatorless producer may not
+    /// resume bytes already pinned to one.
+    pub fn preflight_dense_operator(
+        &self,
+        requested: Option<&DenseOperatorSpec>,
+    ) -> Result<(), SourceUnavailable> {
+        if let Some(recorded) = self.manifest.dense_operator.as_ref() {
+            validate_registered_source_dense_operator(recorded)?;
+        }
+        if let Some(requested) = requested {
+            validate_registered_source_dense_operator(requested)?;
+        }
+        let payload_present =
+            observation_payload_present(&self.dir, &self.manifest, "dense-operator")?;
+
+        match (self.manifest.dense_operator.as_ref(), requested) {
+            (Some(recorded), Some(requested)) if recorded == requested => Ok(()),
+            (Some(recorded), Some(requested)) => Err(invalid_input(format!(
+                "{} is pinned to dense operator {}/{} digest {}; requested {}/{} digest {}; incompatible observation resume refused before mutation",
+                self.dir.display(),
+                recorded.id,
+                recorded.version,
+                recorded.declared_digest(),
+                requested.id,
+                requested.version,
+                requested.declared_digest(),
+            ))),
+            (Some(recorded), None) => Err(invalid_input(format!(
+                "{} is pinned to dense operator {}/{} digest {}; the requested producer declares none; incompatible observation resume refused before mutation",
+                self.dir.display(),
+                recorded.id,
+                recorded.version,
+                recorded.declared_digest(),
+            ))),
+            (None, Some(requested)) if payload_present => Err(invalid_input(format!(
+                "{} has no recorded dense operator but already contains observation payload from a legacy execution era; refusing to relabel those bytes as {}/{} digest {} before mutation",
+                self.dir.display(),
+                requested.id,
+                requested.version,
+                requested.declared_digest(),
+            ))),
+            (None, Some(_)) | (None, None) => Ok(()),
+        }
+    }
+
+    /// Atomically record the exact dense execution owner declared by the
+    /// teacher oracle. Registry equality and payload compatibility are checked
+    /// again immediately before publication.
+    pub fn set_dense_operator(
+        &mut self,
+        operator: &DenseOperatorSpec,
+    ) -> Result<(), SourceUnavailable> {
+        self.preflight_dense_operator(Some(operator))?;
+        recover_manifest_temp_residue(&self.dir)?;
+        if self.manifest.dense_operator.as_ref() == Some(operator) {
+            return Ok(());
+        }
+        let mut candidate = self.manifest.clone();
+        candidate.dense_operator = Some(operator.clone());
+        validate_source_execution_identity(
+            candidate.attention_operator.as_ref(),
+            candidate.dense_operator.as_ref(),
+            "proposed observation manifest",
+        )?;
+        candidate.store(&self.dir)?;
+        self.manifest = candidate;
+        Ok(())
+    }
+
+    /// Atomically publish the complete source-execution pair in one manifest
+    /// replacement. Dense-aware producers use this instead of two setters so
+    /// no crash prefix can expose learned-attention/current-dense as a
+    /// plausible markerless attention-only generation.
+    pub fn set_source_execution_pair(
+        &mut self,
+        attention_operator: Option<&AttentionOperatorSpec>,
+        dense_operator: Option<&DenseOperatorSpec>,
+    ) -> Result<(), SourceUnavailable> {
+        validate_source_execution_identity(
+            attention_operator,
+            dense_operator,
+            "proposed observation manifest source execution",
+        )?;
+        self.preflight_attention_operator(attention_operator)?;
+        self.preflight_dense_operator(dense_operator)?;
+        if self.manifest.attention_operator.as_ref() == attention_operator
+            && self.manifest.dense_operator.as_ref() == dense_operator
+        {
+            return Ok(());
+        }
+        recover_manifest_temp_residue(&self.dir)?;
+        let mut candidate = self.manifest.clone();
+        candidate.attention_operator = attention_operator.cloned();
+        candidate.dense_operator = dense_operator.cloned();
         candidate.store(&self.dir)?;
         self.manifest = candidate;
         Ok(())
@@ -3982,12 +4478,22 @@ fn observe_sharded_inner(
     if let Some(operator) = attention_operator.as_ref() {
         validate_registered_source_attention_operator(operator)?;
     }
+    let dense_operator = oracle.dense_operator_spec();
+    if let Some(operator) = dense_operator.as_ref() {
+        validate_registered_source_dense_operator(operator)?;
+    }
+    validate_source_execution_identity(
+        attention_operator.as_ref(),
+        dense_operator.as_ref(),
+        "teacher-declared observation source execution",
+    )?;
     let mut writer = match session {
         Some(session) => session.writer()?,
         None => ObservationShardWriter::open(out, shard_bits)?,
     };
     writer.preflight_geometry(geometry.as_ref())?;
     writer.preflight_attention_operator(attention_operator.as_ref())?;
+    writer.preflight_dense_operator(dense_operator.as_ref())?;
     let preflight_state = preflight_observation_state(out, writer.manifest())?;
     let requested_target = u64::try_from(target).unwrap_or(u64::MAX);
     if preflight_state.is_some_and(|(n, _, _, _)| n < requested_target)
@@ -4035,6 +4541,9 @@ fn observe_sharded_inner(
     }
     if let Some(operator) = attention_operator.as_ref() {
         writer.set_attention_operator(operator)?;
+    }
+    if let Some(operator) = dense_operator.as_ref() {
+        writer.set_dense_operator(operator)?;
     }
     if let Some(profile) = trace_profile_to_set.as_ref() {
         writer.set_trace_profile(profile)?;
@@ -4973,6 +5482,26 @@ mod attention_operator_resume_tests {
     }
 
     #[test]
+    fn observation_session_rejects_any_planned_output_residue_before_root_mutation() {
+        let dir = TestDir::new("observation-planned-output-preflight");
+        let residue = dir.path().join(format!(
+            "{}{}--77.3.writing",
+            crate::recorded_corpus::PLANNED_OUTPUT_RESERVED_PREFIX,
+            crate::recorded_corpus::PlannedOutputMember::Records.stable_name()
+        ));
+        fs::write(&residue, b"partial compile output").expect("planned-output residue");
+        let before = dir.bytes();
+
+        let error = match ObservationSession::acquire(dir.path(), 1) {
+            Ok(_) => panic!("observation sessions own an empty planned-output scope"),
+            Err(error) => error,
+        };
+        assert!(error.reason.contains("foreign member"), "{error}");
+        assert_eq!(dir.bytes(), before, "preflight refusal mutated the root");
+        assert!(!dir.path().join(MANIFEST_FILE).exists());
+    }
+
+    #[test]
     fn one_session_never_issues_stale_or_concurrent_writers() {
         let dir = TestDir::new("single-writer-lease");
         let session = ObservationSession::acquire(dir.path(), 1).expect("acquire session");
@@ -5110,6 +5639,38 @@ mod attention_operator_resume_tests {
             !dir.path().join("tokenizer.bin").exists(),
             "loser exported tokenizer bytes"
         );
+    }
+
+    #[test]
+    fn observation_outer_lock_precedes_common_guard_and_busy_unwinds_outer() {
+        let dir = TestDir::new("outer-before-common-order");
+        let thread_dir = dir.path().to_path_buf();
+        let (outer_held_tx, outer_held_rx) = mpsc::channel();
+        let release = std::sync::Arc::new(Barrier::new(2));
+        let thread_release = std::sync::Arc::clone(&release);
+        let worker = std::thread::spawn(move || {
+            acquire_observation_session_guards_with_hook(&thread_dir, || {
+                outer_held_tx.send(()).expect("announce outer lock");
+                thread_release.wait();
+            })
+        });
+
+        outer_held_rx
+            .recv_timeout(Duration::from_secs(3))
+            .expect("worker acquired outer observation lock");
+        let common = crate::recorded_corpus::RecordedCorpusProducerGuard::try_acquire(dir.path())
+            .expect("worker has not inverted order by acquiring common first");
+        release.wait();
+        let error = worker
+            .join()
+            .expect("worker joins")
+            .expect_err("common contender is BUSY");
+        assert!(error.reason.contains("BUSY"), "{error}");
+        drop(common);
+
+        let outer_retry = acquire_observation_session_lock(dir.path())
+            .expect("BUSY path unwound its outer observation lock");
+        drop(outer_retry);
     }
 
     struct DeclaredOperatorOracle {

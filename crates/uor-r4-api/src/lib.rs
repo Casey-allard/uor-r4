@@ -27,8 +27,8 @@ pub mod serving_eval;
 
 pub use compile::{
     compile, CompileOptions, CompileOutcome, CompileProvenance, CompileRequest, CompiledModel,
-    ComponentDigests, ProgressEvent, QualityProfile, ResumeHint, ScoringOptions, Stage,
-    TokenizerAdapter, TokenizerAdapterKey,
+    ComponentDigests, ProgressEvent, QualityProfile, ResumeHint, ScoringOptions,
+    SourceExecutionIdentity, Stage, TokenizerAdapter, TokenizerAdapterKey,
 };
 pub use engine::{
     validate_quality_report, AbiVersion, AbstainOutcome, EngineParts, GenerateStatus,

@@ -10,18 +10,22 @@ There are two separate offline workflows:
    work and may use matrix operations internally.
 2. Compile recorded observations. The command's data inputs are
    `corpus.meta` and `corpus.records` plus an explicit vocabulary size; it also
-   validates their sibling attention-provenance record when present. It does
+   validates their sibling attention+dense execution records when present. It does
    not construct a teacher, load model weights, call the model-source forward
    path, or use GPU backends. The representation is a deterministic signed
    hash projection of the recorded top-k next-token distributions. Calibration
    and store construction use ordered worker reductions, so output bytes do
    not depend on worker count.
 
-`compile-recorded` resolves source-attention provenance from the recorded
-corpus directory: an explicit `attention_operator.json` and a sibling
-observation `manifest.json` are registry-validated, must agree when both are
-present, and are propagated into the compiled output. Genuine historical
-absence retains the implicit `standard-source-attention/1` interpretation.
+`compile-recorded` resolves one source-execution snapshot from the recorded
+corpus directory: explicit `attention_operator.json`, optional
+`dense_operator.json`, and the sibling observation `manifest.json` are
+registry-validated, must agree when multiple records are present, and are
+propagated into the compiled output. The resolver snapshots and rechecks the
+manifest plus both sidecars jointly so disappearance or cross-era mixing fails
+before output mutation. Genuine historical attention absence retains the
+implicit `standard-source-attention/1` interpretation; dense absence remains a
+typed compatibility state for Llama and pre-#704 corpora.
 The command still does not accept a runtime tokenizer as input, propagate a
 registered tokenizer identity, or emit `tokenizer.bin`. It must therefore not
 be treated as a self-contained text-serving bundle or used to infer/relabel the

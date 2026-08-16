@@ -19,6 +19,9 @@ serde_json = { version = "1.0", features = ["float_roundtrip"] }
 blake3 = "1.5.0"
 uor-r4-graph-format = { version = "0.1.0", path = "../uor-r4-graph-format" }
 
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
 [dev-dependencies]
 # #622/#626: dev-only ecosystem reference for tropical (max-plus) semantics.
 # The tropical_2hop_626 harness's fold must byte-agree with

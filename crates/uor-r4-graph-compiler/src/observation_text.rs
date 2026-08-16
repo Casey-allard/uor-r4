@@ -55,6 +55,7 @@ use uor_r4_model_source::BatchedTeacher;
 use uor_r4_model_source::SourceUnavailable;
 use uor_r4_model_source::TeacherOracle;
 use uor_r4_model_source::attention::AttentionOperatorSpec;
+use uor_r4_model_source::dense::DenseOperatorSpec;
 use uor_r4_model_source::geometry::GeometryProjection;
 use uor_r4_model_source::progress::Progress;
 
@@ -995,9 +996,20 @@ fn preflight_text_observation_identities(
     input_cid: &str,
     geometry: Option<&GeometryProjection>,
     attention_operator: Option<&AttentionOperatorSpec>,
+    dense_operator: Option<&DenseOperatorSpec>,
     tokenizer_adapter: Option<&TokenizerAdapter>,
 ) -> Result<(), SourceUnavailable> {
     let manifest = writer.manifest();
+    observe::validate_source_execution_identity(
+        manifest.attention_operator.as_ref(),
+        manifest.dense_operator.as_ref(),
+        "recorded text-observation execution provenance",
+    )?;
+    observe::validate_source_execution_identity(
+        attention_operator,
+        dense_operator,
+        "requested text-observation execution provenance",
+    )?;
     let payload_present = observe::observation_payload_present(out_dir, manifest, "text-identity")?;
     match manifest.partition_rule.as_deref() {
         Some(PARTITION_RULE) => {}
@@ -1033,7 +1045,8 @@ fn preflight_text_observation_identities(
     }
     writer.preflight_geometry(geometry)?;
     writer.preflight_tokenizer_adapter(tokenizer_adapter)?;
-    writer.preflight_attention_operator(attention_operator)
+    writer.preflight_attention_operator(attention_operator)?;
+    writer.preflight_dense_operator(dense_operator)
 }
 
 struct TextObservationPreflight {
@@ -1053,6 +1066,7 @@ fn inspect_text_observation(
     writer: &ObservationShardWriter,
     geometry: Option<&GeometryProjection>,
     attention_operator: Option<&AttentionOperatorSpec>,
+    dense_operator: Option<&DenseOperatorSpec>,
     tokenizer_adapter: Option<&TokenizerAdapter>,
 ) -> Result<TextObservationPreflight, SourceUnavailable> {
     let raw_checkpoint = out_dir.join(observe::RAW_COMMITTED_FILE);
@@ -1132,6 +1146,7 @@ fn inspect_text_observation(
         &input_cid,
         geometry,
         attention_operator,
+        dense_operator,
         tokenizer_adapter,
     )?;
     let (_, story_entries) = preflight_stories_prefix(&stories_path, checkpoint.stories)?;
@@ -1206,15 +1221,16 @@ fn inspect_text_observation(
 /// geometry, tokenizer, and attention before a command exports tokenizer
 /// bytes or invokes reconciliation.
 #[allow(clippy::too_many_arguments)]
-pub fn preflight_text_observation_in_session(
+pub fn preflight_text_observation_in_session_with_dense(
     session: &observe::ObservationSession,
     articles_path: &Path,
     resume: bool,
     geometry: Option<&GeometryProjection>,
     attention_operator: Option<&AttentionOperatorSpec>,
+    dense_operator: Option<&DenseOperatorSpec>,
     tokenizer_adapter: Option<&TokenizerAdapter>,
 ) -> Result<(), SourceUnavailable> {
-    let writer = session.writer()?;
+    let writer = session.writer_for_preflight()?;
     inspect_text_observation(
         session.dir(),
         articles_path,
@@ -1223,15 +1239,14 @@ pub fn preflight_text_observation_in_session(
         &writer,
         geometry,
         attention_operator,
+        dense_operator,
         tokenizer_adapter,
     )?;
     Ok(())
 }
 
-/// Repeat the joint text preflight, then publish every text identity before
-/// tokenizer export. No setter runs until the whole bundle agrees.
-#[allow(clippy::too_many_arguments)]
-pub fn pin_text_observation_identities_in_session(
+/// Compatibility entry point preserving the pre-#704 dense-absent API.
+pub fn preflight_text_observation_in_session(
     session: &observe::ObservationSession,
     articles_path: &Path,
     resume: bool,
@@ -1239,7 +1254,30 @@ pub fn pin_text_observation_identities_in_session(
     attention_operator: Option<&AttentionOperatorSpec>,
     tokenizer_adapter: Option<&TokenizerAdapter>,
 ) -> Result<(), SourceUnavailable> {
-    let mut writer = session.writer()?;
+    preflight_text_observation_in_session_with_dense(
+        session,
+        articles_path,
+        resume,
+        geometry,
+        attention_operator,
+        None,
+        tokenizer_adapter,
+    )
+}
+
+/// Repeat the joint text preflight, then publish every text identity before
+/// tokenizer export. No setter runs until the whole bundle agrees.
+#[allow(clippy::too_many_arguments)]
+pub fn pin_text_observation_identities_in_session_with_dense(
+    session: &observe::ObservationSession,
+    articles_path: &Path,
+    resume: bool,
+    geometry: Option<&GeometryProjection>,
+    attention_operator: Option<&AttentionOperatorSpec>,
+    dense_operator: Option<&DenseOperatorSpec>,
+    tokenizer_adapter: Option<&TokenizerAdapter>,
+) -> Result<(), SourceUnavailable> {
+    let mut writer = session.writer_for_preflight()?;
     let inspected = inspect_text_observation(
         session.dir(),
         articles_path,
@@ -1248,8 +1286,10 @@ pub fn pin_text_observation_identities_in_session(
         &writer,
         geometry,
         attention_operator,
+        dense_operator,
         tokenizer_adapter,
     )?;
+    session.recover_recorded_corpus_binding_after_preflight()?;
     if let Some(adapter) = tokenizer_adapter {
         writer.set_tokenizer_adapter(adapter)?;
     }
@@ -1258,13 +1298,31 @@ pub fn pin_text_observation_identities_in_session(
     if let Some(geometry) = geometry {
         writer.set_geometry(geometry)?;
     }
-    if let Some(operator) = attention_operator {
-        writer.set_attention_operator(operator)?;
-    }
+    writer.set_source_execution_pair(attention_operator, dense_operator)?;
     if inspected.repair_state_mirror {
         repair_state_mirror(session.dir(), &inspected.checkpoint)?;
     }
     Ok(())
+}
+
+/// Compatibility entry point preserving the pre-#704 dense-absent API.
+pub fn pin_text_observation_identities_in_session(
+    session: &observe::ObservationSession,
+    articles_path: &Path,
+    resume: bool,
+    geometry: Option<&GeometryProjection>,
+    attention_operator: Option<&AttentionOperatorSpec>,
+    tokenizer_adapter: Option<&TokenizerAdapter>,
+) -> Result<(), SourceUnavailable> {
+    pin_text_observation_identities_in_session_with_dense(
+        session,
+        articles_path,
+        resume,
+        geometry,
+        attention_operator,
+        None,
+        tokenizer_adapter,
+    )
 }
 
 /// Open an observation directory: validate/resume the checkpoint, reconcile any
@@ -1280,6 +1338,7 @@ fn prepare_text_observation(
     resume: bool,
     geometry: Option<&GeometryProjection>,
     attention_operator: Option<&AttentionOperatorSpec>,
+    dense_operator: Option<&DenseOperatorSpec>,
     tokenizer_adapter: Option<&TokenizerAdapter>,
 ) -> Result<Prepared, SourceUnavailable> {
     let mut writer = match session {
@@ -1295,6 +1354,7 @@ fn prepare_text_observation(
         &writer,
         geometry,
         attention_operator,
+        dense_operator,
         tokenizer_adapter,
     )?;
     let input_cid = inspected.input_cid;
@@ -1317,6 +1377,9 @@ fn prepare_text_observation(
     }
     if let Some(operator) = attention_operator {
         writer.set_attention_operator(operator)?;
+    }
+    if let Some(operator) = dense_operator {
+        writer.set_dense_operator(operator)?;
     }
     if repair_checkpoint_mirror {
         repair_state_mirror(out_dir, &checkpoint)?;
@@ -1455,6 +1518,15 @@ fn observe_text_corpus_inner(
     if let Some(operator) = attention_operator.as_ref() {
         observe::validate_registered_source_attention_operator(operator)?;
     }
+    let dense_operator = oracles[0].dense_operator_spec();
+    if let Some(operator) = dense_operator.as_ref() {
+        observe::validate_registered_source_dense_operator(operator)?;
+    }
+    observe::validate_source_execution_identity(
+        attention_operator.as_ref(),
+        dense_operator.as_ref(),
+        "serial observation worker execution provenance",
+    )?;
     for oracle in &oracles[1..] {
         let candidate_geometry = oracle.geometry_projection();
         if let Some(candidate) = candidate_geometry.as_ref() {
@@ -1465,13 +1537,27 @@ fn observe_text_corpus_inner(
                 "serial observation workers declare different source geometries; refusing mixed projection eras before mutation",
             ));
         }
-        let candidate = oracle.attention_operator_spec();
-        if let Some(operator) = candidate.as_ref() {
+        let candidate_attention = oracle.attention_operator_spec();
+        if let Some(operator) = candidate_attention.as_ref() {
             observe::validate_registered_source_attention_operator(operator)?;
         }
-        if candidate != attention_operator {
+        let candidate_dense = oracle.dense_operator_spec();
+        if let Some(operator) = candidate_dense.as_ref() {
+            observe::validate_registered_source_dense_operator(operator)?;
+        }
+        observe::validate_source_execution_identity(
+            candidate_attention.as_ref(),
+            candidate_dense.as_ref(),
+            "serial observation worker execution provenance",
+        )?;
+        if candidate_attention != attention_operator {
             return Err(SourceUnavailable::new(
                 "serial observation workers declare different attention operators; refusing mixed arithmetic eras before mutation",
+            ));
+        }
+        if candidate_dense != dense_operator {
+            return Err(SourceUnavailable::new(
+                "serial observation workers declare different dense operators; refusing mixed execution eras before mutation",
             ));
         }
     }
@@ -1484,6 +1570,7 @@ fn observe_text_corpus_inner(
         resume,
         geometry.as_ref(),
         attention_operator.as_ref(),
+        dense_operator.as_ref(),
         adapter.as_ref(),
     )? {
         Prepared::Done(report) => return Ok(report),
@@ -1769,6 +1856,15 @@ fn observe_text_corpus_batched_inner<T: BatchedTeacher>(
     if let Some(operator) = attention_operator.as_ref() {
         observe::validate_registered_source_attention_operator(operator)?;
     }
+    let dense_operator = oracle.dense_operator_spec();
+    if let Some(operator) = dense_operator.as_ref() {
+        observe::validate_registered_source_dense_operator(operator)?;
+    }
+    observe::validate_source_execution_identity(
+        attention_operator.as_ref(),
+        dense_operator.as_ref(),
+        "batched observation worker execution provenance",
+    )?;
     let adapter = tokenizer.adapter();
     let (mut writer, mut checkpoint, articles_total, stories_path) = match prepare_text_observation(
         session,
@@ -1778,6 +1874,7 @@ fn observe_text_corpus_batched_inner<T: BatchedTeacher>(
         resume,
         geometry.as_ref(),
         attention_operator.as_ref(),
+        dense_operator.as_ref(),
         adapter.as_ref(),
     )? {
         Prepared::Done(report) => return Ok(report),
@@ -2113,6 +2210,7 @@ mod tests {
 
     struct DeclaredFakeOracle {
         operator: Option<AttentionOperatorSpec>,
+        dense_operator: Option<DenseOperatorSpec>,
         geometry: Option<GeometryProjection>,
     }
 
@@ -2167,6 +2265,9 @@ mod tests {
         }
         fn attention_operator_spec(&self) -> Option<AttentionOperatorSpec> {
             self.operator.clone()
+        }
+        fn dense_operator_spec(&self) -> Option<DenseOperatorSpec> {
+            self.dense_operator.clone()
         }
         fn geometry_projection(&self) -> Option<GeometryProjection> {
             self.geometry.clone()
@@ -3212,6 +3313,7 @@ mod tests {
     struct FakeBatchedOracle {
         cfg: uor_r4_model_source::Config,
         attention_operator: Option<AttentionOperatorSpec>,
+        dense_operator: Option<DenseOperatorSpec>,
         geometry: Option<GeometryProjection>,
     }
 
@@ -3234,6 +3336,9 @@ mod tests {
         }
         fn attention_operator_spec(&self) -> Option<AttentionOperatorSpec> {
             self.attention_operator.clone()
+        }
+        fn dense_operator_spec(&self) -> Option<DenseOperatorSpec> {
+            self.dense_operator.clone()
         }
         fn geometry_projection(&self) -> Option<GeometryProjection> {
             self.geometry.clone()
@@ -3301,6 +3406,7 @@ mod tests {
         let fake = FakeBatchedOracle {
             cfg: fake_batched_config(),
             attention_operator: None,
+            dense_operator: None,
             geometry: None,
         };
         let batched = observe_text_corpus_batched(
@@ -3342,6 +3448,146 @@ mod tests {
     }
 
     #[test]
+    fn serial_and_batched_reject_cross_era_dense_before_any_output_mutation() {
+        let tokenizer = fixture_tokenizer();
+        let lengths = fixture_token_byte_lengths();
+        let input = unique_path("cross-era-dense-articles.jsonl");
+        write_articles(&input, &[("cross-era", "ab")]);
+
+        let serial_dir = unique_path("cross-era-dense-serial");
+        fs::create_dir_all(&serial_dir).expect("create serial output");
+        fs::write(serial_dir.join("sentinel"), b"serial-before").expect("write serial sentinel");
+        let serial_before = directory_fingerprint(&serial_dir);
+        let mut serial_pool: Vec<Box<dyn TeacherOracle + Send>> =
+            vec![Box::new(DeclaredFakeOracle {
+                operator: Some(AttentionOperatorSpec::learned_absolute_v1()),
+                dense_operator: Some(DenseOperatorSpec::gpt2_v2()),
+                geometry: None,
+            })];
+        let error = observe_text_corpus(
+            &mut serial_pool,
+            60,
+            &tokenizer,
+            Some(&lengths),
+            &input,
+            &serial_dir,
+            SHARD_BITS,
+            false,
+        )
+        .expect_err("serial cross-era source execution pair must fail");
+        assert!(error.reason.contains("source execution pair"), "{error}");
+        assert_eq!(
+            directory_fingerprint(&serial_dir),
+            serial_before,
+            "serial refusal mutated the output directory"
+        );
+
+        let batched_dir = unique_path("cross-era-dense-batched");
+        fs::create_dir_all(&batched_dir).expect("create batched output");
+        fs::write(batched_dir.join("sentinel"), b"batched-before").expect("write batched sentinel");
+        let batched_before = directory_fingerprint(&batched_dir);
+        let batched = FakeBatchedOracle {
+            cfg: fake_batched_config(),
+            attention_operator: Some(AttentionOperatorSpec::learned_absolute_v1()),
+            dense_operator: Some(DenseOperatorSpec::gpt2_v2()),
+            geometry: None,
+        };
+        let error = observe_text_corpus_batched(
+            &batched,
+            2,
+            60,
+            &tokenizer,
+            Some(&lengths),
+            &input,
+            &batched_dir,
+            SHARD_BITS,
+            false,
+        )
+        .expect_err("batched cross-era source execution pair must fail");
+        assert!(error.reason.contains("source execution pair"), "{error}");
+        assert_eq!(
+            directory_fingerprint(&batched_dir),
+            batched_before,
+            "batched refusal mutated the output directory"
+        );
+
+        let _ = fs::remove_dir_all(serial_dir);
+        let _ = fs::remove_dir_all(batched_dir);
+        let _ = fs::remove_file(input);
+    }
+
+    #[test]
+    fn serial_and_batched_propagate_current_gpt2_execution_identity() {
+        let tokenizer = fixture_tokenizer();
+        let lengths = fixture_token_byte_lengths();
+        let input = unique_path("current-dense-articles.jsonl");
+        write_articles(&input, &[("current", "ab")]);
+        let attention = AttentionOperatorSpec::learned_absolute_v2();
+        let dense = DenseOperatorSpec::gpt2_v2();
+
+        let serial_dir = unique_path("current-dense-serial");
+        let mut serial_pool: Vec<Box<dyn TeacherOracle + Send>> =
+            vec![Box::new(DeclaredFakeOracle {
+                operator: Some(attention.clone()),
+                dense_operator: Some(dense.clone()),
+                geometry: None,
+            })];
+        let serial = observe_text_corpus(
+            &mut serial_pool,
+            60,
+            &tokenizer,
+            Some(&lengths),
+            &input,
+            &serial_dir,
+            SHARD_BITS,
+            false,
+        )
+        .expect("serial current GPT-2 observation");
+
+        let batched_dir = unique_path("current-dense-batched");
+        let batched_oracle = FakeBatchedOracle {
+            cfg: fake_batched_config(),
+            attention_operator: Some(attention.clone()),
+            dense_operator: Some(dense.clone()),
+            geometry: None,
+        };
+        let batched = observe_text_corpus_batched(
+            &batched_oracle,
+            2,
+            60,
+            &tokenizer,
+            Some(&lengths),
+            &input,
+            &batched_dir,
+            SHARD_BITS,
+            false,
+        )
+        .expect("batched current GPT-2 observation");
+
+        assert!(serial.done && batched.done);
+        assert_eq!(
+            merge_shards(&serial_dir).expect("merge serial"),
+            merge_shards(&batched_dir).expect("merge batched")
+        );
+        for dir in [&serial_dir, &batched_dir] {
+            let manifest = ObservationManifest::load(dir)
+                .expect("read observation manifest")
+                .expect("observation manifest exists");
+            assert_eq!(manifest.attention_operator.as_ref(), Some(&attention));
+            assert_eq!(manifest.dense_operator.as_ref(), Some(&dense));
+            assert!(
+                manifest
+                    .identity_bundle_bytes()
+                    .starts_with(b"uor-r4-observation-identity-bundle/2\n")
+            );
+        }
+
+        let _ = fs::remove_dir_all(serial_dir);
+        let _ = fs::remove_dir_all(batched_dir);
+        let _ = fs::remove_file(input);
+    }
+
+    #[test]
     fn registered_adapter_is_identical_on_serial_and_batched_manifests() {
         let tokenizer = fixture_registered_tokenizer("serial-batched");
         let adapter = tokenizer.adapter().expect("registered adapter");
@@ -3371,6 +3617,7 @@ mod tests {
         let fake = FakeBatchedOracle {
             cfg: fake_batched_config(),
             attention_operator: None,
+            dense_operator: None,
             geometry: None,
         };
         let batched = observe_text_corpus_batched(
@@ -3500,6 +3747,7 @@ mod tests {
         let mut serial_pool: Vec<Box<dyn TeacherOracle + Send>> =
             vec![Box::new(DeclaredFakeOracle {
                 operator: Some(standard.clone()),
+                dense_operator: None,
                 geometry: Some(geometry.clone()),
             })];
         observe_text_corpus(
@@ -3522,6 +3770,7 @@ mod tests {
         let mut pass_through_pool: Vec<Box<dyn TeacherOracle + Send>> =
             vec![Box::new(DeclaredFakeOracle {
                 operator: Some(standard.clone()),
+                dense_operator: None,
                 geometry: None,
             })];
         let error = observe_text_corpus(
@@ -3543,6 +3792,7 @@ mod tests {
         let batched = FakeBatchedOracle {
             cfg: fake_batched_config(),
             attention_operator: Some(experimental.clone()),
+            dense_operator: None,
             geometry: Some(geometry.clone()),
         };
         observe_text_corpus_batched(
@@ -3570,10 +3820,12 @@ mod tests {
         let mut mixed_pool: Vec<Box<dyn TeacherOracle + Send>> = vec![
             Box::new(DeclaredFakeOracle {
                 operator: Some(AttentionOperatorSpec::standard_v1()),
+                dense_operator: None,
                 geometry: None,
             }),
             Box::new(DeclaredFakeOracle {
                 operator: Some(AttentionOperatorSpec::standard_v2()),
+                dense_operator: None,
                 geometry: None,
             }),
         ];
@@ -3594,10 +3846,12 @@ mod tests {
         let mut mixed_geometry_pool: Vec<Box<dyn TeacherOracle + Send>> = vec![
             Box::new(DeclaredFakeOracle {
                 operator: Some(AttentionOperatorSpec::standard()),
+                dense_operator: None,
                 geometry: Some(geometry),
             }),
             Box::new(DeclaredFakeOracle {
                 operator: Some(AttentionOperatorSpec::standard()),
+                dense_operator: None,
                 geometry: None,
             }),
         ];
@@ -3634,6 +3888,7 @@ mod tests {
         let standard = FakeBatchedOracle {
             cfg: fake_batched_config(),
             attention_operator: Some(AttentionOperatorSpec::standard_v1()),
+            dense_operator: None,
             geometry: None,
         };
         observe_text_corpus_batched(
@@ -3653,6 +3908,7 @@ mod tests {
         let projected = FakeBatchedOracle {
             cfg: fake_batched_config(),
             attention_operator: Some(AttentionOperatorSpec::standard_v1()),
+            dense_operator: None,
             geometry: Some(GeometryProjection::bucket_average(4, 2)),
         };
         let error = observe_text_corpus_batched(
@@ -3673,6 +3929,7 @@ mod tests {
         let current_v2 = FakeBatchedOracle {
             cfg: fake_batched_config(),
             attention_operator: Some(AttentionOperatorSpec::standard_v2()),
+            dense_operator: None,
             geometry: None,
         };
         let error = observe_text_corpus_batched(
@@ -3693,6 +3950,7 @@ mod tests {
         let undeclared = FakeBatchedOracle {
             cfg: fake_batched_config(),
             attention_operator: None,
+            dense_operator: None,
             geometry: None,
         };
         let error = observe_text_corpus_batched(
@@ -3725,6 +3983,7 @@ mod tests {
         let legacy = FakeBatchedOracle {
             cfg: fake_batched_config(),
             attention_operator: None,
+            dense_operator: None,
             geometry: None,
         };
         observe_text_corpus_batched(
@@ -3755,6 +4014,7 @@ mod tests {
         let current = FakeBatchedOracle {
             cfg: fake_batched_config(),
             attention_operator: Some(AttentionOperatorSpec::standard()),
+            dense_operator: None,
             geometry: None,
         };
         let error = observe_text_corpus_batched(
@@ -3792,6 +4052,7 @@ mod tests {
         let standard = FakeBatchedOracle {
             cfg: fake_batched_config(),
             attention_operator: Some(AttentionOperatorSpec::standard()),
+            dense_operator: None,
             geometry: None,
         };
         observe_text_corpus_batched(

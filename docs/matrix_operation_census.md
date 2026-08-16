@@ -53,10 +53,10 @@ conventional arithmetic is a migration target for #655-B.
 The shared Llama teacher **weight matmuls** now call the pinned `uor-matmul`
 exact GEMM (`uor_matmul::slice::gemm_float`). The Accelerate `cblas_sgemv` /
 `cblas_sgemm` FFI and all hand-rolled SIMD dot helpers are removed. GPT-2's
-tied lm-head is a distinct hand-rolled fold and remains conventional below.
+separate dense sites are covered by their own certified-exact row below.
 The migrated Llama result is correctly-rounded exact and byte-identical across
 targets (no per-machine Accelerate variance) — a determinism improvement for
-teacher-side κ.
+teacher outputs and the derived corpus/artifact bytes that bind those outputs.
 
 | Site | Operation | Backend | Classification |
 |---|---|---|---|
@@ -67,50 +67,43 @@ No `cblas_*` symbol remains anywhere in the production chain; the CI guard now
 enforces zero library-BLAS use (only the two dependency-audit files, which list
 BLAS crate names as denylist data, are exempt).
 
-### certified-exact (migrated by #704 A2)
+### certified-exact (migrated by #704)
 
-Current-v2 source attention uses caller-owned output/scratch storage. For each
-Q·K row or weighted-value column it forms exact binary32 products in binary64,
-computes an outward roundoff enclosure, and accepts the native result only when
-the full enclosure lies strictly inside one binary32 rounding cell. The pinned
-`uor-matmul` exact GEMM is the control and fallback, so every accepted or
-fallback lane returns the same correctly-rounded f32 bit. This is host-side
-teacher arithmetic; it does not enter the deployed kernel.
+Current-v2 source attention and GPT-2 dense execution use caller-owned
+output/scratch storage. The certified-native path prepares a binary64 result,
+refines ambiguous lanes, and falls back to the pinned exact owner whenever its
+rounding certificate cannot establish the declared binary32 result. This is
+host-side teacher arithmetic; it does not enter the deployed kernel.
 
 | Site | Operation | Backend | Classification |
 |---|---|---|---|
 | `uor-r4-model-source/src/attention.rs` source-attention helpers | per-head Q·K and weighted-value column folds for standard, experimental, and GPT-2 learned-absolute v2 | certified-native f64 fold + mechanical cell witness; pinned `uor-matmul` exact fallback | certified-exact |
+| `uor-r4-model-source/src/gpt2.rs` `conv1d` / `conv1d_batched` | fixed-weight Conv1D `x@W` for `c_attn`, `c_proj`, and MLP projections | certified-native prepared/refined exact-real dot; pinned exact fallback | certified-exact |
+| `uor-r4-model-source/src/gpt2.rs` `finish_forward` / `forward_batch` | tied `lm_head` projection | certified-native prepared/refined exact-real dot; pinned exact fallback | certified-exact |
 
-### conventional-to-migrate (remaining — #655-B3)
+### conventional-to-migrate
 
-GPT-2 keeps conventional dense Conv1D arithmetic, a separate fixed-weight
-follow-up. Its current-v2 attention Q·K/value folds are certified-exact above:
-
-| Site | Operation | Backend today | Classification |
-|---|---|---|---|
-| `uor-r4-model-source/src/gpt2.rs` `conv1d` / `conv1d_batched` | fixed-weight Conv1D `x@W` for `c_attn`, `c_proj`, and MLP projections | hand-rolled f32 | conventional-to-migrate |
-| `uor-r4-model-source/src/gpt2.rs` `finish_forward` / `forward_batch` | tied `lm_head` projection | hand-rolled f32 | conventional-to-migrate |
-
-These are not library-BLAS (no `cblas_*`), so the mechanical guard does not flag
-them; they are tracked here for #655-B3.
+No matrix-like production-chain site remains in this class after #704. The
+historical GPT-2 binary32 left folds remain reproducible under
+`gpt2-source-dense/1`; they are provenance history, not a current dispatch.
 
 ## Teacher-arithmetic eras (#655-B2, #704 A2)
 
-Switching the teacher weight matmuls from Accelerate/hand-rolled f32 to the exact
-`uor-matmul` GEMM changes teacher output bytes, so compiled artifacts produced
-after B2 have different CIDs than pre-B2 ones. This is recorded by the teacher's
-own κ (blake3 over teacher output), which changes accordingly, and surfaced in
-the "teacher model ready" diagnostic (`matmul=uor-matmul exact GEMM`). No test
-pins a pre-B2 teacher-derived κ as a constant (verified across the full suite),
-so no fixture re-pin is required; post-B2 CIDs are a new teacher-arithmetic era
-and are never retroactively assigned to pre-B2 artifacts.
+Changing teacher arithmetic can change observation rows and derived artifact
+CIDs. It does **not** change the source-file/snapshot κ: those addresses cover
+source bytes, not teacher output, and there is no separate "teacher output κ"
+with that meaning. Arithmetic eras are recorded by the typed attention/dense
+records; downstream corpus, report, and artifact identities move when their
+actual bytes move. No source κ is re-pinned for an executor-only change.
 
-#704 A2 appends a second explicit era for source attention. The current
+#704 appends second explicit eras for source attention and GPT-2 dense
+execution. The current
 `standard-source-attention/2`, `experimental-r4-source-attention/2`, and
 `learned-absolute-source-attention/2` records use the certified-exact Q·K and
-weighted-value folds described above. The immutable `/1` records continue to
-identify the prior sequential/chunked f32 bytes; existing v1 bundles are never
-relabelled or resumed as v2.
+weighted-value folds described above. `gpt2-source-dense/2` names current
+Conv1D, MLP, and tied-lm-head semantics. The immutable attention/1 and dense/1
+records continue to identify prior bytes; existing bundles are never relabelled
+or resumed across eras.
 
 ## Out of census scope
 
@@ -134,11 +127,11 @@ the crate-dependency audits confirm it pulls in no BLAS/GPU crate.
   (#701). No behavior/CID change.
 - #655-B2: Llama teacher weight matmuls (`matmul`, `matmul_batched`) migrated
   to `uor_matmul::slice::gemm_float`; `cblas_*` FFI + SIMD dot helpers removed;
-  census guard tightened to zero library-BLAS. GPT-2's separate tied `lm_head`
-  fold did not migrate and remains in the conventional table above.
-  Teacher-arithmetic era change (see above); no fixture re-pin required.
+  census guard tightened to zero library-BLAS. Teacher-arithmetic era change
+  (see above); no source-κ re-pin required.
 - #704 A2 (2026-08-15): source-attention Q·K and weighted-value folds migrated to the
   certified-exact path for all current `/2` families; `/1` provenance remains
   immutable.
-- #655-B3 remaining: migrate GPT-2 fixed-weight `conv1d` / `conv1d_batched`
-  and tied `lm_head` folds.
+- #704 dense (2026-08-15): GPT-2 fixed-weight `conv1d` / `conv1d_batched`,
+  MLP, and tied `lm_head` folds migrated under `gpt2-source-dense/2`; dense/1
+  remains immutable history. #655-B3 is closed by this row.

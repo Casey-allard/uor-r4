@@ -551,6 +551,33 @@ pub fn corpus_paths() -> (&'static str, &'static str) {
     ("/tmp/c_meta.bin", "/tmp/c_recs.bin")
 }
 
+/// Derive the optional hidden-row stream beside a corpus record stream.
+///
+/// Only the record file name participates in the historical
+/// `_recs.bin` -> `_hidden.bin` convention. Replacing that substring in the
+/// complete path can silently redirect the hidden stream when a parent
+/// directory happens to contain `_recs.bin`.
+#[cfg(not(target_arch = "wasm32"))]
+pub fn corpus_hidden_path(records: &std::path::Path) -> std::path::PathBuf {
+    let Some(file_name) = records.file_name() else {
+        let mut path = records.as_os_str().to_os_string();
+        path.push(".hidden");
+        return std::path::PathBuf::from(path);
+    };
+    let hidden_name = match file_name
+        .to_str()
+        .and_then(|name| name.strip_suffix("_recs.bin"))
+    {
+        Some(stem) => std::ffi::OsString::from(format!("{stem}_hidden.bin")),
+        None => {
+            let mut name = file_name.to_os_string();
+            name.push(".hidden");
+            name
+        }
+    };
+    records.with_file_name(hidden_name)
+}
+
 #[cfg(not(target_arch = "wasm32"))]
 pub fn load_corpus() -> Option<Corpus> {
     // Keep the historical defaults for normal certification, but allow
@@ -568,13 +595,22 @@ pub fn load_corpus() -> Option<Corpus> {
 #[cfg(not(target_arch = "wasm32"))]
 pub fn load_corpus_from(mp: &str, rp: &str) -> Option<Corpus> {
     let meta = std::fs::read(mp).ok()?;
+    let records = std::fs::read(rp).ok()?;
+    let hidden = std::fs::read(corpus_hidden_path(std::path::Path::new(rp))).ok();
+    load_corpus_bytes(&meta, &records, hidden.as_deref())
+}
+
+/// Parse one exact captured corpus generation. Callers that already hold
+/// provenance-bound bytes use this seam so parsing cannot reopen a different
+/// path generation. `hidden` retains the same optional 288-wide f32 layout as
+/// [`load_corpus_from`].
+pub fn load_corpus_bytes(meta: &[u8], rb_full: &[u8], hidden: Option<&[u8]>) -> Option<Corpus> {
     if meta.len() != 25 || meta[24] != 1 {
         return None;
     }
     let n = u64::from_le_bytes(meta[0..8].try_into().unwrap()) as usize;
     let stories = u64::from_le_bytes(meta[8..16].try_into().unwrap());
-    let rb_full = std::fs::read(rp).ok()?;
-    let record_size = if rb_full.len() >= n * 88 && (n > 0 && rb_full.len() % 88 == 0) {
+    let record_size = if rb_full.len() >= n * 88 && (n > 0 && rb_full.len().is_multiple_of(88)) {
         88usize
     } else if rb_full.len() >= n * 48 {
         48usize
@@ -703,14 +739,7 @@ pub fn load_corpus_from(mp: &str, rp: &str) -> Option<Corpus> {
         hidden: None,
     };
 
-    let mut hidden_path = String::from(rp);
-    if hidden_path.ends_with("_recs.bin") {
-        hidden_path = hidden_path.replace("_recs.bin", "_hidden.bin");
-    } else {
-        hidden_path.push_str(".hidden");
-    }
-
-    if let Ok(hb) = std::fs::read(&hidden_path) {
+    if let Some(hb) = hidden {
         // Teacher hidden state is dimension 288 (D)
         if hb.len() == n * D * 4 {
             let mut hidden = Vec::with_capacity(n);
@@ -996,12 +1025,7 @@ pub fn generate_to_with_token_byte_lengths(
     rp: &str,
     token_byte_lengths: Option<&[u32]>,
 ) {
-    let mut hidden_path = String::from(rp);
-    if hidden_path.ends_with("_recs.bin") {
-        hidden_path = hidden_path.replace("_recs.bin", "_hidden.bin");
-    } else {
-        hidden_path.push_str(".hidden");
-    }
+    let hidden_path = corpus_hidden_path(std::path::Path::new(rp));
 
     let (mut n, mut stories, mut rng, mut done) = match std::fs::read(mp) {
         Ok(b) if b.len() == 25 => (
@@ -1018,17 +1042,21 @@ pub fn generate_to_with_token_byte_lengths(
             return;
         }
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
-            for path in [rp, hidden_path.as_str()] {
+            for path in [std::path::Path::new(rp), hidden_path.as_path()] {
                 match std::fs::symlink_metadata(path) {
                     Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
                     Ok(_) => {
                         eprintln!(
-                            "corpus metadata cannot be initialized: {path} exists without the authoritative zero checkpoint {mp}"
+                            "corpus metadata cannot be initialized: {} exists without the authoritative zero checkpoint {mp}",
+                            path.display()
                         );
                         return;
                     }
                     Err(error) => {
-                        eprintln!("corpus stream {path} cannot be inspected: {error}");
+                        eprintln!(
+                            "corpus stream {} cannot be inspected: {error}",
+                            path.display()
+                        );
                         return;
                     }
                 }
@@ -2267,8 +2295,9 @@ pub fn induce_hierarchical_codes(
 #[cfg(test)]
 mod capacity_override_tests {
     use super::{
-        capacity_override_f64, capacity_override_usize, is_source_corpus_checkpoint_temporary_name,
-        publish_source_corpus_checkpoint, source_corpus_checkpoint_bytes,
+        capacity_override_f64, capacity_override_usize, corpus_hidden_path,
+        is_source_corpus_checkpoint_temporary_name, publish_source_corpus_checkpoint,
+        source_corpus_checkpoint_bytes,
     };
     use std::sync::atomic::{AtomicU64, Ordering};
 
@@ -2348,5 +2377,19 @@ mod capacity_override_tests {
             ));
         }
         let _ = std::fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn hidden_stream_suffix_changes_only_the_record_file_name() {
+        let nested = std::path::Path::new("/tmp/parent_recs.bin/corpus.records");
+        assert_eq!(
+            corpus_hidden_path(nested),
+            std::path::PathBuf::from("/tmp/parent_recs.bin/corpus.records.hidden")
+        );
+        let legacy = std::path::Path::new("/tmp/parent_recs.bin/corpus_recs.bin");
+        assert_eq!(
+            corpus_hidden_path(legacy),
+            std::path::PathBuf::from("/tmp/parent_recs.bin/corpus_hidden.bin")
+        );
     }
 }

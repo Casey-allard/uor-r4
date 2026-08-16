@@ -1964,6 +1964,7 @@ name = "uor-r4-graph-cli"
 version = "0.1.0"
 dependencies = [
  "blake3",
+ "libc",
  "serde",
  "serde_json",
  "uor-matmul-core",
@@ -1981,6 +1982,7 @@ version = "0.1.0"
 dependencies = [
  "blake3",
  "env_logger",
+ "libc",
  "libm",
  "log",
  "rayon",
