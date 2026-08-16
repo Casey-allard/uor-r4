@@ -1286,6 +1286,19 @@ println!("{}", answer.text);
 Chat is an application of transformerless R⁴, not a separate crate or
 inference layer.
 
+### 8. Serve over HTTP
+
+`ask`/`chat` above go through `ModelStore`, the mechanism this page
+documents. The HTTP server (`src/server.rs`) is a **separate, independent**
+model-discovery path — it does not use `ModelStore` at all, instead running
+its own per-engine "#248 cascade" (`r4g1 → transformerless → teacher-oracle
+→ geometric`) with its own file-discovery conventions. See
+[`SERVING_MODEL_DISCOVERY.md`](SERVING_MODEL_DISCOVERY.md) for the full map
+of that cascade, `.uor-models/last_engine.txt`'s semantics, and how (or
+whether) it currently relates to `ModelStore` and to the #655-C0
+`ReleaseBundleManifest` schema — tracked under #655 ("ship a ready-by-default
+R4 model"), still open as of this writing.
+
 
 ## Legacy benchmark and certification workflow
 

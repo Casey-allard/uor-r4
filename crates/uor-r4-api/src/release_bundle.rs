@@ -7,12 +7,20 @@
 //! (#655-B), component digests, and tokenizer identity.
 //!
 //! It does **not** discover, load, or serve a bundle (that is #655-C1, the
-//! shared startup loader), does not produce bundle contents (#655-D), and
-//! does not change any default engine selection (#655-E/F). No existing
-//! `src/server.rs`, `src/chat.rs`, or CLI code reads or writes this
-//! manifest yet — landing the schema first, consumed by a loader in a
-//! later focused PR, mirrors the issue's own proposed implementation
-//! shape.
+//! shared startup loader), does not package bundle contents to a
+//! directory or on-disk layout (#655-D), and does not change any default
+//! engine selection (#655-E/F). No existing `src/server.rs`, `src/chat.rs`,
+//! or CLI code reads or writes this manifest yet — landing the schema
+//! first, consumed by a loader in a later focused PR, mirrors the issue's
+//! own proposed implementation shape.
+//!
+//! [`ReleaseBundleManifest::from_compiled_model`] is the one bridge this
+//! slice adds: a pure, in-memory constructor from `crate::compile`'s
+//! already-computed [`CompiledModel`] output, so a future #655-D
+//! packaging step (or this crate's own tests) has a checked way to turn a
+//! real compile's digests/provenance into this schema instead of
+//! hand-assembling one field by field. It performs no filesystem I/O and
+//! discovers nothing.
 //!
 //! Field shapes mirror existing manifest conventions in this workspace
 //! (`uor_r4_graph_compiler::observation::ObservationManifest`): a
@@ -23,7 +31,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::compile::TokenizerAdapter;
+use crate::compile::{CompiledModel, TokenizerAdapter};
 use crate::engine::AbiVersion;
 
 /// Current schema version this crate writes and accepts. A field change
@@ -150,6 +158,63 @@ fn is_git_rev(value: &str) -> bool {
 }
 
 impl ReleaseBundleManifest {
+    /// Build a release-bundle manifest for one completed compile's output
+    /// components (the #655-C0 → #655-D bridge). Pure, in-memory
+    /// construction: copies `compiled`'s already-computed digests and ABI
+    /// provenance field-for-field into this schema. Touches no
+    /// filesystem, discovers no bundle directory, and validates nothing
+    /// against bytes on disk — packaging bundle contents to a directory
+    /// is #655-D; loading one back is #655-C1.
+    ///
+    /// `model_id`, `capability`, `uor_matmul`, and `provenance_note` are
+    /// caller-supplied because [`CompiledModel`] carries none of them: a
+    /// public model identity and a serving-capability policy are
+    /// application decisions this schema crate does not make on a
+    /// caller's behalf, and `uor-matmul` provenance is not yet computed
+    /// anywhere in the compile pipeline (see [`UorMatmulProvenance`]'s
+    /// `source_digest` field doc) — the caller supplies whatever it
+    /// already has pinned (e.g. from `docs/matrix_operation_census.md`)
+    /// until a future slice wires an automatic digest.
+    ///
+    /// The result is a field copy, not a validating constructor: an
+    /// empty `model_id` or a malformed `uor_matmul.rev` the caller passed
+    /// in still round-trips into the output unchanged. Callers that need
+    /// a checked manifest call [`Self::validate`] on the result.
+    pub fn from_compiled_model(
+        model_id: impl Into<String>,
+        capability: BundleCapability,
+        compiled: &CompiledModel,
+        uor_matmul: UorMatmulProvenance,
+        provenance_note: Option<String>,
+    ) -> Self {
+        let provenance = &compiled.provenance;
+        let (contract_major, contract_minor, contract_patch) =
+            provenance.contract_version.as_tuple();
+        Self {
+            schema: RELEASE_BUNDLE_MANIFEST_SCHEMA,
+            model_id: model_id.into(),
+            capability,
+            abi: BundleAbi {
+                format_major: provenance.format_version.0,
+                format_minor: provenance.format_version.1,
+                contract_major,
+                contract_minor,
+                contract_patch,
+                api_crate_version: env!("CARGO_PKG_VERSION").to_string(),
+            },
+            uor_matmul,
+            components: BundleComponentDigests {
+                graph: provenance.digests.graph.clone(),
+                signature_artifact: provenance.digests.signature_artifact.clone(),
+                tokenizer: provenance.digests.tokenizer.clone(),
+                score_report: provenance.digests.score_report.clone(),
+                compile_report: provenance.digests.compile_report.clone(),
+            },
+            tokenizer_adapter: provenance.tokenizer_adapter.clone(),
+            provenance_note,
+        }
+    }
+
     /// Structural validation: schema support, non-empty identity fields,
     /// well-formed component digests, and a plausible pinned `uor-matmul`
     /// revision. Returns the first violation found as a human-readable
@@ -268,6 +333,124 @@ mod tests {
             },
             provenance_note: None,
         }
+    }
+
+    /// A minimal but fully-provenanced [`CompiledModel`] fixture, mirroring
+    /// `crate::compile`'s own private `compiled_model_with_report` test
+    /// helper (that one is not `pub(crate)`, so this module builds its own
+    /// rather than reaching into a sibling module's test internals).
+    fn compiled_model_fixture() -> CompiledModel {
+        use crate::compile::{CompileOptions, CompileProvenance, ComponentDigests};
+        use uor_r4_graph_format::{
+            FORMAT_VERSION_MAJOR, FORMAT_VERSION_MINOR, INFERENCE_OPERATION_CONTRACT_VERSION,
+        };
+        CompiledModel {
+            graph: b"graph bytes".to_vec(),
+            signature_artifact: b"signature bytes".to_vec(),
+            tokenizer: Some(b"tokenizer bytes".to_vec()),
+            score_report: b"{}".to_vec(),
+            compile_report: b"{}".to_vec(),
+            provenance: CompileProvenance {
+                options: CompileOptions::default(),
+                tokenizer_adapter: TokenizerAdapter {
+                    family: "hf-byte-bpe".to_string(),
+                    ..Default::default()
+                },
+                format_version: (FORMAT_VERSION_MAJOR, FORMAT_VERSION_MINOR),
+                contract_version: INFERENCE_OPERATION_CONTRACT_VERSION,
+                digests: ComponentDigests {
+                    graph: VALID_DIGEST.to_string(),
+                    signature_artifact: VALID_DIGEST.to_string(),
+                    tokenizer: Some(VALID_DIGEST.to_string()),
+                    score_report: VALID_DIGEST.to_string(),
+                    compile_report: VALID_DIGEST.to_string(),
+                },
+            },
+        }
+    }
+
+    fn valid_uor_matmul_provenance() -> UorMatmulProvenance {
+        UorMatmulProvenance {
+            rev: VALID_REV.to_string(),
+            operation_profile: "exact-gemm-float".to_string(),
+            license: "MIT".to_string(),
+            source_digest: None,
+        }
+    }
+
+    #[test]
+    fn from_compiled_model_copies_digests_and_abi_and_passes_validation() {
+        let compiled = compiled_model_fixture();
+        let manifest = ReleaseBundleManifest::from_compiled_model(
+            "r4",
+            BundleCapability::InstructionChat,
+            &compiled,
+            valid_uor_matmul_provenance(),
+            Some("built from a fixture compile".to_string()),
+        );
+        assert_eq!(manifest.model_id, "r4");
+        assert_eq!(manifest.components.graph, compiled.provenance.digests.graph);
+        assert_eq!(
+            manifest.components.signature_artifact,
+            compiled.provenance.digests.signature_artifact
+        );
+        assert_eq!(
+            manifest.components.tokenizer,
+            compiled.provenance.digests.tokenizer
+        );
+        assert_eq!(
+            manifest.components.score_report,
+            compiled.provenance.digests.score_report
+        );
+        assert_eq!(
+            manifest.components.compile_report,
+            compiled.provenance.digests.compile_report
+        );
+        assert_eq!(
+            manifest.tokenizer_adapter,
+            compiled.provenance.tokenizer_adapter
+        );
+        let (major, minor, patch) = compiled.provenance.contract_version.as_tuple();
+        assert_eq!(
+            manifest.abi.format_major,
+            compiled.provenance.format_version.0
+        );
+        assert_eq!(
+            manifest.abi.format_minor,
+            compiled.provenance.format_version.1
+        );
+        assert_eq!(manifest.abi.contract_major, major);
+        assert_eq!(manifest.abi.contract_minor, minor);
+        assert_eq!(manifest.abi.contract_patch, patch);
+        assert_eq!(manifest.abi.api_crate_version, env!("CARGO_PKG_VERSION"));
+        assert_eq!(
+            manifest.provenance_note.as_deref(),
+            Some("built from a fixture compile")
+        );
+        assert_eq!(manifest.validate(), None, "fixture builds a valid manifest");
+    }
+
+    #[test]
+    fn from_compiled_model_does_not_validate_a_caller_supplied_bad_field() {
+        // The constructor is a field copy, not a validating constructor:
+        // a malformed caller-supplied `uor_matmul.rev` still round-trips
+        // into the output unchanged, and `.validate()` (called
+        // separately) is what catches it.
+        let compiled = compiled_model_fixture();
+        let mut bad_provenance = valid_uor_matmul_provenance();
+        bad_provenance.rev = "not-a-rev".to_string();
+        let manifest = ReleaseBundleManifest::from_compiled_model(
+            "r4",
+            BundleCapability::InstructionChat,
+            &compiled,
+            bad_provenance,
+            None,
+        );
+        assert_eq!(manifest.uor_matmul.rev, "not-a-rev");
+        let reason = manifest
+            .validate()
+            .expect("the malformed rev is still caught by validate()");
+        assert!(reason.contains("uor_matmul.rev"), "reason was: {reason}");
     }
 
     #[test]
