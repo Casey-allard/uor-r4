@@ -220,6 +220,29 @@ pub enum FormatError {
     FwdaEntriesNotSorted,
     /// FWDA row metadata is invalid.
     FwdaInvalidRow,
+    /// PROV has no complete fixed header (#637 PROV/1).
+    ProvTooShort,
+    /// PROV magic is not `PRV1`.
+    ProvBadMagic,
+    /// PROV version is not supported.
+    ProvUnsupportedVersion,
+    /// PROV reserved byte or unused presence bits are non-zero.
+    ProvNonZeroReserved,
+    /// A PROV presence bit is clear but its digest slot is non-zero, or
+    /// set but the slot is all-zero — the declared presence and the slot
+    /// contents disagree.
+    ProvPresenceMismatch,
+    /// PROV license/evidence-root offset or length arithmetic is invalid,
+    /// out of bounds, or leaves trailing bytes unaccounted for.
+    ProvBounds,
+    /// PROV license length is non-zero while the license presence bit is
+    /// clear, or zero while it is set.
+    ProvInvalidLicenseLength,
+    /// PROV license bytes are not valid ASCII.
+    ProvLicenseNotAscii,
+    /// PROV evidence roots are not strictly ascending (canonical order;
+    /// duplicates rejected by the same check).
+    ProvEvidenceRootsNotSorted,
     /// A packed-node range field does not resolve within its target
     /// section under checked arithmetic (RFC §6 item 4). For
     /// `Prototype`/`Mask` the full W-word extent from the word start
@@ -645,6 +668,27 @@ impl fmt::Display for FormatError {
                 write!(f, "FWDA entries are not canonically sorted")
             }
             FormatError::FwdaInvalidRow => write!(f, "FWDA row metadata is invalid"),
+            FormatError::ProvTooShort => write!(f, "PROV section is shorter than its header"),
+            FormatError::ProvBadMagic => write!(f, "PROV magic is not PRV1"),
+            FormatError::ProvUnsupportedVersion => write!(f, "PROV version is unsupported"),
+            FormatError::ProvNonZeroReserved => {
+                write!(f, "PROV reserved byte or unused presence bits are non-zero")
+            }
+            FormatError::ProvPresenceMismatch => write!(
+                f,
+                "PROV presence bit and digest-slot contents disagree"
+            ),
+            FormatError::ProvBounds => {
+                write!(f, "PROV license or evidence-root range is out of bounds")
+            }
+            FormatError::ProvInvalidLicenseLength => write!(
+                f,
+                "PROV license length is inconsistent with the license presence bit"
+            ),
+            FormatError::ProvLicenseNotAscii => write!(f, "PROV license bytes are not ASCII"),
+            FormatError::ProvEvidenceRootsNotSorted => {
+                write!(f, "PROV evidence roots are not canonically sorted")
+            }
             FormatError::RangeOutOfBounds { node, field } => write!(
                 f,
                 "node {node}: {field} range does not resolve within its target section"

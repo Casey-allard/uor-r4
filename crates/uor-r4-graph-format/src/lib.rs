@@ -73,6 +73,7 @@ mod header;
 pub mod inference_contract;
 pub mod invariant_ownership;
 mod ngram;
+mod prov;
 #[cfg(feature = "alloc")]
 pub mod r4g1;
 pub mod records;
@@ -119,6 +120,9 @@ pub use ngram::{
     NgramEntries, NgramEntry, NgramRow, NgramRows, NgramTable, NGRAM_ENTRY_LEN, NGRAM_HEADER_LEN,
     NGRAM_MAGIC, NGRAM_ROW_LEN, NGRAM_VERSION,
 };
+#[cfg(feature = "alloc")]
+pub use prov::{build as build_prov, ProvComponents};
+pub use prov::{EvidenceRoots, Prov, PROV_DIGEST_LEN, PROV_HEADER_LEN, PROV_MAGIC, PROV_VERSION};
 pub use records::{
     EdgeKind, PackedEdge, PackedNode, StorageDescriptor, EDGE_KIND_OPTIONAL_BIT, PACKED_EDGE_LEN,
     PACKED_NODE_LEN, STORAGE_DESCRIPTOR_LEN,
