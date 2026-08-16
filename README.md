@@ -528,7 +528,8 @@ cd /tmp && unzip -o run.com out/model.bin tokenizer.bin -d ref
 [Scoring semantics](docs/scoring_semantics.md) ·
 [Formal vocabulary](docs/formal_vocabulary.md) (normative for claim wording) ·
 [Reproducibility](docs/reproducibility.md) ·
-[Performance comparison](docs/transformerless/COMPARISON.md)
+[Performance comparison](docs/transformerless/COMPARISON.md) ·
+[Matrix-operation census](docs/matrix_operation_census.md)
 
 **Plan** — [R⁴ graph compiler implementation plan](docs/r4_graph_compiler_implementation_plan.md) ·
 [ROADMAP.md](ROADMAP.md) · [Minimal client](docs/minimal_client.md)

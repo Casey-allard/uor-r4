@@ -144,6 +144,46 @@ graph term is normative for new work. See the terminology bridge in the plan (§
   P2/P3 era notes and `baseline_kappa.json`. Gate C compares the graph against this baseline
   before replacement.
 
+## Target operators and dormant lanes (Epic #602)
+
+- **TARGET operator** — a versioned, registered `(id, version)` selection/attention mechanism
+  candidate for the deployed R4G1 runtime, following the two-stage template established by #604
+  and reused by #643: compiler/certify-side reference semantics + a replayable operation-count
+  witness land first, a P-4-scanned packed R4G1 lowering (table read / integer compare /
+  saturating add only, no runtime multiply/divide/modulo/float) lands second. Registered in
+  `uor-r4-model-source::attention::operator_spec`.
+- **Dormant lane (#515 "preserve-and-gate")** — an operator implementation that is
+  constructible, differentially tested (reference vs. packed kernel agree bit-for-bit), and
+  registered as an `open`-level claim in `model/ledger.toml`, but referenced by no serving path.
+  Each claim's `statement` names an explicit activation gate (e.g. a pre-registered A/B exit
+  rule) that must clear before the operator can be wired into serving.
+- **`r4-route-attention/1`** (#604) — masked XOR+popcount route-code distance, bounded top-M
+  selection, saturating `ScoreQ` aggregation. Dormant (`r4-route-attention-dormant`); an offline
+  `route-fit/1` method (#605, `uor-r4-graph-compiler::route_fit`) fits route codes from teacher
+  query/key vectors via the `bucket-average/1` projection for evaluation on a synthetic held-out
+  corpus.
+- **`msa-structured-selector/1`** (#643) — Modular Structural Arithmetic role-class + cascade-orbit
+  selection: candidates classify by `candidate_id mod 11` into a paper-proven 3-anchor role table
+  (MSA7's "11-Theorem") plus this project's own cascade-position-mod-3 extension for the
+  remaining residues; selection and aggregation are plug-compatible with `r4-route-attention/1`
+  (same top-M/tie-break/`ScoreQ`-fold shape) for a shared A/B harness. Classification is
+  position-only (no fitting step). Measured NEGATIVE against `r4-route-attention/1` on the #605
+  synthetic corpus (`msa-structured-selector-dormant`, `uor-r4-graph-certify::msa_ab_harness`):
+  clears the unigram floor by a wide margin but falls well short of the fitted, content-aware
+  route-attention arm.
+- **PROV/1** (#637 phase 1, `crates/uor-r4-graph-format/src/prov.rs`) — the canonical bounded
+  provenance-identity envelope for R4G1's PROV section: a presence-bitmapped set of digest slots
+  (source-manifest κ, geometry, tokenizer-adapter, attention-operator, dense-operator, license)
+  plus a strictly-ascending evidence-root list. Frozen as a format (parser + builder + RFC row);
+  wired into the real producer path as an additive, opt-in `cover --emit-provenance` flag (phase
+  2a, #733) — no existing artifact's bytes or κ moved. Not yet the default; the default-flip and
+  consumer/era adoption are phases 2b/3, open pending format-governance review.
+- **Release-bundle manifest** (#655-C0, `crates/uor-r4-api/src/release_bundle.rs`) — the versioned
+  `ReleaseBundleManifest` schema a packaged serving bundle declares: schema version, public model
+  id, instruction-chat capability, ABI/contract version, pinned `uor-matmul` provenance,
+  component digests, tokenizer identity. Schema and structural validation only as of #655-C0; no
+  discovery/loading/serving code reads it yet (that is #655-C1).
+
 ## Recent Architecture & Engine Additions (Epic #201)
 
 - **`tokenizer_cid`** — BLAKE3 hash of the loaded `tokenizer.bin` checked against `R4G1Header::tokenizer_cid` in `uor-r4-graph-format` (`verify_tokenizer_cid`), guaranteeing that loaded tokenizers match compiled graph artifacts and preventing silent index shifts.
