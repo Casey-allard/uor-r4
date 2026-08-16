@@ -310,6 +310,101 @@ fn engine_load_rejects_a_tagged_tokenizer_when_the_head_cid_is_zero() {
     let _ = std::fs::remove_dir_all(dir);
 }
 
+fn minimal_graph_with_teacher_cid_and_exct(teacher_cid: [u8; 32]) -> Vec<u8> {
+    let mut head = Vec::with_capacity(224);
+    head.extend_from_slice(&teacher_cid); // teacher CID
+    head.extend_from_slice(&[0; 32]); // tokenizer CID: zero, no binding required
+    head.extend_from_slice(&[0x33; 32]); // corpus-construction CID
+    head.extend_from_slice(&[0x44; 32]); // corpus-certification CID
+    head.extend_from_slice(b"0123456789abcdef0123"); // HF revision
+    head.extend_from_slice(&[0x55; 32]); // compiler-version CID
+    head.extend_from_slice(&32u16.to_le_bytes()); // max frontier width
+    head.extend_from_slice(&16u16.to_le_bytes()); // max candidates
+    head.extend_from_slice(&8u16.to_le_bytes()); // signature words
+    head.extend_from_slice(&8u16.to_le_bytes()); // shortlist size
+    head.extend_from_slice(&64u32.to_le_bytes()); // max emission entries
+    head.extend_from_slice(&64u32.to_le_bytes()); // max program steps
+    head.extend_from_slice(&0u32.to_le_bytes()); // node count
+    head.extend_from_slice(&0u32.to_le_bytes()); // edge count
+    head.push(1); // depth count
+    head.extend_from_slice(&[0; 5]); // fallback policies
+    head.extend_from_slice(&[0; 2]); // reserved
+    head.extend_from_slice(&64u16.to_le_bytes()); // signature bytes
+    head.extend_from_slice(&1u16.to_le_bytes()); // minimum runtime major
+    head.extend_from_slice(&0u16.to_le_bytes()); // minimum runtime minor
+    head.extend_from_slice(&0u16.to_le_bytes()); // required feature bits
+    head.extend_from_slice(&100u32.to_le_bytes()); // vocabulary size
+    assert_eq!(head.len(), 224);
+
+    let mut builder = ArtifactBuilder::new(3);
+    builder.add_section(SectionId::HEAD, 0, &head);
+    // Any EXCT section triggers the teacher-pairing requirement; its
+    // internal content is irrelevant to `check_teacher_pairing`, which
+    // checks section presence and HEAD.teacher_cid only, matching
+    // `from_artifact`'s own condition for consulting `teacher_cid`
+    // (crates/uor-r4-graph-certify/src/score_runtime.rs).
+    builder.add_section(SectionId::EXCT, 0, &[2, 0, 0, 0]);
+    builder.build().expect("minimal graph with EXCT")
+}
+
+// #743: `R4Engine::load` used to `.expect()`-panic when the graph and
+// teacher/signature artifact were parsed and CID-verified individually but
+// did not pair (mismatched `teacher_cid`) -- reproduced against a real
+// locally compiled bundle whose `tless_artifacts.bin` no longer matched its
+// `score.r4g1` (see the #743 issue body for the full repro). `load` now
+// checks pairing explicitly via `GraphScorer::check_teacher_pairing` and
+// reports a typed decline instead.
+#[test]
+fn engine_load_declines_instead_of_panicking_on_a_teacher_cid_mismatch() {
+    let expected_teacher = *blake3::hash(b"the real paired teacher bytes").as_bytes();
+    let graph = minimal_graph_with_teacher_cid_and_exct(expected_teacher);
+    let result = R4Engine::load(EngineParts {
+        graph: &graph,
+        signature_artifact: b"a completely different teacher artifact",
+        tokenizer: None,
+        score_report: None,
+    });
+    let error = match result {
+        Err(error) => error,
+        Ok(_) => panic!("a mismatched teacher_cid must not load"),
+    };
+    assert!(
+        error.reason.contains("teacher artifact mismatch"),
+        "{error}"
+    );
+    assert!(
+        error
+            .reason
+            .contains(&blake3::Hash::from(expected_teacher).to_hex().to_string()),
+        "expected digest must be named in the decline: {error}"
+    );
+    assert_eq!(error.reason.matches("blake3:").count(), 2, "{error}");
+}
+
+#[test]
+fn engine_load_accepts_a_correctly_paired_teacher_cid_past_the_exct_gate() {
+    let teacher = b"the real paired teacher bytes";
+    let graph = minimal_graph_with_teacher_cid_and_exct(*blake3::hash(teacher).as_bytes());
+    let result = R4Engine::load(EngineParts {
+        graph: &graph,
+        signature_artifact: teacher,
+        tokenizer: None,
+        score_report: None,
+    });
+    // The correctly-paired teacher clears the #743 pairing gate; this
+    // minimal fixture's EXCT body is not a real residual/TLS1 table, so
+    // `from_artifact` itself still declines further in — that failure is
+    // out of scope for this test (it is not a panic, and not the pairing
+    // check this test exists to cover).
+    match result {
+        Ok(_) => {}
+        Err(error) => assert!(
+            !error.reason.contains("teacher artifact mismatch"),
+            "a correctly paired teacher must clear the #743 gate: {error}"
+        ),
+    }
+}
+
 #[test]
 fn engine_errors_implement_std_error() {
     let parts = EngineParts {

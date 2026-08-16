@@ -1059,6 +1059,39 @@ impl R4Engine {
                 "tokenizer binding unavailable: a tagged tokenizer requires a nonzero R4G1 header tokenizer CID",
             ));
         }
+        // `parts.graph` and `parts.signature_artifact` are two
+        // independently-sourced inputs when loading a persisted bundle
+        // from disk (as opposed to freshly self-compiled, same-process
+        // bytes) — they can legitimately drift out of pairing (for
+        // example, a bundle directory reused across multiple compile runs,
+        // so `score.r4g1` and its accompanying teacher file no longer
+        // belong to the same generation). Check that explicitly, before
+        // spending effort parsing `signature_artifact` as a TLA artifact,
+        // and report a typed `SourceUnavailable` decline — rather than
+        // let `from_artifact`'s internal self-produced-defect panic fire
+        // further down on a condition that is not actually a code defect
+        // (#743). `from_artifact` only consults `HEAD.teacher_cid` when
+        // the graph carries an EXCT section
+        // (uor-r4-graph-certify/src/score_runtime.rs); no EXCT section
+        // means no pairing is required here either.
+        if view.section(SectionId::EXCT).is_some() {
+            let expected_teacher_cid = view
+                .head()
+                .ok_or_else(|| {
+                    SourceUnavailable::new(format!(
+                        "invalid R4G1 graph: {}",
+                        FormatError::MissingHead
+                    ))
+                })?
+                .teacher_cid();
+            let actual_teacher_cid = blake3::hash(parts.signature_artifact);
+            if expected_teacher_cid.0 != *actual_teacher_cid.as_bytes() {
+                return Err(SourceUnavailable::new(format!(
+                    "teacher artifact mismatch: R4G1 header requires teacher blake3:{}, loaded teacher hashes to blake3:{actual_teacher_cid}",
+                    blake3::Hash::from(expected_teacher_cid.0).to_hex()
+                )));
+            }
+        }
         let artifacts = compiler::parse_artifacts(parts.signature_artifact)
             .ok_or_else(|| SourceUnavailable::new("not a TLA3/TLA4/TLA5 teacher artifact"))?;
         let score_report = parts
@@ -1086,13 +1119,17 @@ impl R4Engine {
         // The compiled RX1 EXCT table contains integer residuals. Supplying
         // the teacher artifact here is only for integer class-code lookup;
         // no probe-time log quantization occurs in the deployed path.
+        // Pairing was already checked above (#743); anything else that
+        // makes `from_artifact` decline here is an unanticipated defect
+        // in the already-CID-verified, now teacher-paired graph bytes,
+        // and remains the original self-produced-defect panic (R5, #510).
         let scorer = GraphScorer::from_artifact(
             parts.graph,
             Some(parts.signature_artifact),
             root_top_b,
             exct_top_x,
         )
-        .expect("engine load: scorer rebuild from the parsed and CID-verified graph bytes");
+        .expect("engine load: scorer rebuild from the parsed, CID-verified, and teacher-paired graph bytes");
         if let Some(report) = score_report.as_ref() {
             if let Some(message) = validate_quality_report(report) {
                 return Err(SourceUnavailable::new(message));
