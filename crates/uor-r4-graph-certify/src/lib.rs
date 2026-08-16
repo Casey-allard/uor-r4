@@ -14,6 +14,8 @@ pub mod frame_consistency;
 #[cfg(feature = "holographic-encoding")]
 pub mod holographic_encoding;
 pub mod long_context;
+#[cfg(not(target_arch = "wasm32"))]
+pub mod msa_ab_harness;
 pub mod msa_selector;
 pub mod octeract;
 #[cfg(not(target_arch = "wasm32"))]

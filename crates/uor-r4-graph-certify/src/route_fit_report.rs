@@ -840,11 +840,16 @@ fn binomial_standard_error(p: f64, n: usize) -> f64 {
     (p * (1.0 - p) / n as f64).sqrt()
 }
 
-struct ScopeMetrics {
-    teacher: GateCMetrics,
-    replaced: GateCMetrics,
-    top_k_agreement: f64,
-    bits_ratio: f64,
+/// Teacher/replaced parity numbers of one evaluated scope. `pub(crate)`
+/// (rather than a new struct) so #643's A/B harness
+/// (`crate::msa_ab_harness`) can reuse the SAME metric computation this
+/// module's ladder uses, never a reimplementation.
+pub(crate) struct ScopeMetrics {
+    pub(crate) teacher: GateCMetrics,
+    pub(crate) replaced: GateCMetrics,
+    #[allow(dead_code)]
+    pub(crate) top_k_agreement: f64,
+    pub(crate) bits_ratio: f64,
 }
 
 /// Teacher-forced evaluation of one replaced scope: run the replaced
@@ -852,7 +857,7 @@ struct ScopeMetrics {
 /// measure top-1/top-k agreement against the RECORDED teacher argmax
 /// and base-2 cross-entropy against the recorded targets. The teacher
 /// row's bits come from the production `.prob` sidecar.
-fn scope_metrics(
+pub(crate) fn scope_metrics(
     teacher: &mut SyntheticRouteTeacher,
     corpus: &RouteTraceCorpus,
     scope: &[ReplacedHead],
