@@ -715,6 +715,45 @@ pub fn load_corpus_bytes(meta: &[u8], rb_full: &[u8], hidden: Option<&[u8]>) -> 
         byte_end.push(u32::MAX);
         position_in_story = position_in_story.saturating_add(1);
     }
+    // #755: records are not guaranteed to arrive in per-story-contiguous
+    // order. The content-addressed sharded observation pipeline
+    // (`observation.rs`/`observation_text.rs`) routes each record to a
+    // shard by a hash of its local context, which has no relationship to
+    // story or position, and at least one locally compiled bundle was
+    // measured with 99.93% of consecutive on-disk records crossing a story
+    // boundary. `input[i]`/`history_token`'s deeper-context walk both infer
+    // "the previous token in this story" from physical array adjacency
+    // (`story[i-1] == story[i]`), so on out-of-order input they collapse to
+    // BOS almost everywhere instead of reflecting true depth into the
+    // source document. When independent span data exists (`has_anchors`),
+    // recover the intended per-story sequence by sorting a permutation of
+    // record indices on `(story, span_start)` before anything below
+    // assumes adjacency means sequence. Legacy record formats without span
+    // data (`record_size` 12 or 32) have no independent ordering signal to
+    // sort by, so their historical on-disk-order behavior is unchanged.
+    let order: Option<Vec<usize>> = if has_anchors {
+        let mut order: Vec<usize> = (0..n).collect();
+        order.sort_by_key(|&i| (story[i], span_start[i]));
+        let permute_u32 = |values: &[u32], order: &[usize]| -> Vec<u32> {
+            order.iter().map(|&i| values[i]).collect()
+        };
+        let permute_u32x8 = |values: &[[u32; 8]], order: &[usize]| -> Vec<[u32; 8]> {
+            order.iter().map(|&i| values[i]).collect()
+        };
+        story = permute_u32(&story, &order);
+        next = permute_u32(&next, &order);
+        t_argmax = permute_u32(&t_argmax, &order);
+        top_tokens = permute_u32x8(&top_tokens, &order);
+        top_weights = permute_u32x8(&top_weights, &order);
+        span_start = permute_u32(&span_start, &order);
+        span_end = permute_u32(&span_end, &order);
+        byte_start = permute_u32(&byte_start, &order);
+        byte_end = permute_u32(&byte_end, &order);
+        Some(order)
+    } else {
+        None
+    };
+
     let mut input = Vec::with_capacity(n);
     for i in 0..n {
         if i == 0 || story[i] != story[i - 1] {
@@ -742,7 +781,7 @@ pub fn load_corpus_bytes(meta: &[u8], rb_full: &[u8], hidden: Option<&[u8]>) -> 
     if let Some(hb) = hidden {
         // Teacher hidden state is dimension 288 (D)
         if hb.len() == n * D * 4 {
-            let mut hidden = Vec::with_capacity(n);
+            let mut hidden_by_file_order = Vec::with_capacity(n);
             let mut offset = 0;
             for _ in 0..n {
                 let mut v = Vec::with_capacity(D);
@@ -752,9 +791,20 @@ pub fn load_corpus_bytes(meta: &[u8], rb_full: &[u8], hidden: Option<&[u8]>) -> 
                     v.push(f32::from_le_bytes(b));
                     offset += 4;
                 }
-                hidden.push(v);
+                hidden_by_file_order.push(v);
             }
-            c.hidden = Some(hidden);
+            // Hidden rows are read above in the file's original record
+            // order, aligned 1:1 with `rb`'s on-disk record index — the
+            // same permutation applied to story/next/... above must be
+            // applied here too, or hidden[i] would no longer describe the
+            // teacher state for the record now at position i.
+            c.hidden = Some(match &order {
+                Some(order) => order
+                    .iter()
+                    .map(|&i| hidden_by_file_order[i].clone())
+                    .collect(),
+                None => hidden_by_file_order,
+            });
         }
     }
 

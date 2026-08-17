@@ -3211,16 +3211,42 @@ mod tests {
         .expect("merged observation records must parse as a v3 corpus");
         assert_eq!(corpus.n, report.records as usize);
         // Cross-check story/span/anchor fields against the replication.
+        // Record order in the merged corpus.records is shard order (by
+        // content hash of local context), not story order -- #755 fixed
+        // `load_corpus_bytes` to reconstruct per-story sequence from the
+        // (story, span_start) anchors rather than trusting on-disk
+        // adjacency, so the parsed corpus's array order need not (and
+        // generally will not) match the merged file's on-disk order.
+        // Compare by (story, span_start) identity instead of raw index.
         let (shards, _) =
             expected_shards(&articles_ref, &tokenizer, Some(&lengths), articles.len());
         let expected = shards.concat();
-        for (index, record) in expected.concat().chunks_exact(RECORD_SIZE).enumerate() {
+        let mut expected_by_key: std::collections::BTreeMap<(u32, u32), (u32, u32)> =
+            std::collections::BTreeMap::new();
+        for record in &expected {
             let story = u32::from_le_bytes(record[0..4].try_into().unwrap());
             let next = u32::from_le_bytes(record[4..8].try_into().unwrap());
+            let span_start = u32::from_le_bytes(record[72..76].try_into().unwrap());
             let byte_start = u32::from_le_bytes(record[80..84].try_into().unwrap());
-            assert_eq!(corpus.story[index], story);
-            assert_eq!(corpus.next[index], next);
-            assert_eq!(corpus.byte_start[index], byte_start);
+            let previous = expected_by_key.insert((story, span_start), (next, byte_start));
+            assert!(
+                previous.is_none(),
+                "duplicate (story, span_start) in the expected fixture"
+            );
+        }
+        assert_eq!(
+            expected_by_key.len(),
+            corpus.n,
+            "corpus record count must match the expected fixture"
+        );
+        for index in 0..corpus.n {
+            let key = (corpus.story[index], corpus.span_start[index]);
+            let &(expected_next, expected_byte_start) =
+                expected_by_key.get(&key).unwrap_or_else(|| {
+                    panic!("parsed corpus has record {key:?} not present in the expected fixture")
+                });
+            assert_eq!(corpus.next[index], expected_next);
+            assert_eq!(corpus.byte_start[index], expected_byte_start);
         }
         let _ = fs::remove_dir_all(&dir);
         let _ = fs::remove_file(&input);
