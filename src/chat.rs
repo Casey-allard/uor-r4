@@ -1926,33 +1926,17 @@ pub fn remote_interactive_chat(
                                     }
                                 }
                                 2 => {
-                                    writeln!(
+                                    write!(
                                         output,
-                                        "\x1b[1mPaste plain text content to index into R⁴ geometric manifold:\x1b[0m"
+                                        "\x1b[1mEnter or paste text content to index into R⁴ geometric manifold:\x1b[0m\n\x1b[1;36mcorpus-text > \x1b[0m"
                                     )?;
-                                    writeln!(output, "(Type 'END' or press Enter on an empty line when finished)\n")?;
                                     output.flush()?;
 
-                                    let mut lines = Vec::new();
-                                    let stdin = std::io::stdin();
-                                    let stdin_handle = stdin.lock();
-                                    use std::io::BufRead;
-                                    for line_res in stdin_handle.lines() {
-                                        let line = match line_res {
-                                            Ok(l) => l,
-                                            Err(e) => {
-                                                writeln!(output, "[!] Error reading stdin: {}", e)?;
-                                                break;
-                                            }
-                                        };
-                                        let trimmed = line.trim();
-                                        if trimmed == "END" || trimmed.is_empty() {
-                                            break;
-                                        }
-                                        lines.push(line);
-                                    }
-                                    if !lines.is_empty() {
-                                        let content = lines.join("\n");
+                                    let mut input_buf = String::new();
+                                    std::io::stdin().read_line(&mut input_buf).ok();
+                                    let content = input_buf.trim().to_string();
+
+                                    if !content.is_empty() {
                                         let ts = std::time::SystemTime::now()
                                             .duration_since(std::time::UNIX_EPOCH)
                                             .unwrap_or_default()
