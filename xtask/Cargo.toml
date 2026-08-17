@@ -9,3 +9,14 @@ publish = false
 [dependencies]
 repo-model = { version = "0.1.0", path = "../crates/repo-model" }
 blake3 = "=1.5.0"
+# Already vendored and used by several workspace crates (uor-r4-core,
+# uor-r4-naf, uor-r4-router); reused here (not newly introduced) for
+# gnaf-manifest's SHA-256 file hashing, matching Tools/manifest.py's
+# hashlib.sha256 exactly.
+sha2 = "0.10.8"
+# Already vendored and used by several workspace crates. gnaf-manifest
+# uses this ONLY to parse an existing MANIFEST.json in --check mode (an
+# ordinary read of arbitrary JSON, no fidelity stakes); the file it
+# *writes* goes through a hand-rolled canonical/pretty serializer (see
+# gnaf_manifest.rs's module doc for why).
+serde_json = "1.0"

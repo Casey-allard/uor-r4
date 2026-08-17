@@ -2306,6 +2306,8 @@ version = "0.1.0"
 dependencies = [
  "blake3",
  "repo-model",
+ "serde_json",
+ "sha2",
 ]
 
 [[package]]
