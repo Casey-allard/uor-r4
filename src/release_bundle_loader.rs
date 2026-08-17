@@ -28,9 +28,10 @@ use std::path::Path;
 use uor_r4_api::ReleaseBundleManifest;
 
 /// Sidecar file name a packaged bundle directory may place next to its
-/// R4G1 artifacts. Nothing writes this file yet (#655-D is still open);
-/// reading it here is purely additive.
-pub(crate) const RELEASE_BUNDLE_SIDECAR_FILE_NAME: &str = "release-bundle.json";
+/// R4G1 artifacts. `pub` (not `pub(crate)`) since #655-D2's
+/// `r4 package-release-bundle` CLI command (`src/main.rs`) writes to
+/// this exact path.
+pub const RELEASE_BUNDLE_SIDECAR_FILE_NAME: &str = "release-bundle.json";
 
 /// Look for, parse, and verify a `release-bundle.json` sidecar next to a
 /// resolved bundle's `physical_root`. Returns `Some` only when the

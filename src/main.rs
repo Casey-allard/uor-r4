@@ -3,12 +3,16 @@ use std::fmt;
 use std::io::{self, BufRead, Write};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
+use uor_r4_api::{BundleCapability, TokenizerAdapter, UorMatmulProvenance};
+use uor_r4_core::transformerless::hf_bpe::{resolve_source_tokenizer, TokenizerAdapterKey};
 use uor_r4_graph_cli as transformerless_command;
 use uor_r4_wasm_router::chat::{ChatAnswer, ChatEngine, ChatError};
 use uor_r4_wasm_router::model::{
     default_model_reference, download_source, evaluate_live_quality, ModelCapability, ModelError,
     ModelManifest, ModelStore, QualityAttestation, SourceDownload,
 };
+use uor_r4_wasm_router::release_bundle_loader::RELEASE_BUNDLE_SIDECAR_FILE_NAME;
+use uor_r4_wasm_router::release_bundle_packager::{self, PackageInputs};
 use uor_r4_wasm_router::server::{self, ServerConfig};
 use uor_r4_wasm_router::tless_uor;
 
@@ -99,6 +103,10 @@ enum Command {
     Download(DownloadArgs),
     /// Import an evaluated compiled bundle into the UOR CID store.
     Import(ImportArgs),
+    /// #655-D2: package a compiled R4G1 bundle's release-bundle.json
+    /// sidecar, giving `release_bundle_loader::verify_release_bundle_sidecar`
+    /// (#655-C1c) a real manifest to verify.
+    PackageReleaseBundle(PackageReleaseBundleArgs),
     /// Evaluate an HF-compiled bundle and emit an instruction-quality report.
     EvaluateReport(EvaluateReportArgs),
     /// Print legacy proof-workflow prerequisites.
@@ -325,6 +333,63 @@ struct ImportArgs {
     /// provenance of the offline top-1/agreement/bits measurement.
     #[arg(long)]
     evaluation_report: Option<PathBuf>,
+}
+
+#[derive(Args, Debug)]
+struct PackageReleaseBundleArgs {
+    /// Compiled bundle directory to package (its physical_root, e.g.
+    /// .uor-models/compiled/<name>).
+    #[arg(long)]
+    compiled: PathBuf,
+    /// Public model identity this bundle serves.
+    #[arg(long, default_value = "r4")]
+    model_id: String,
+    /// Declared serving capability.
+    #[arg(long, value_enum)]
+    capability: Capability,
+    /// Original Hugging Face source snapshot this bundle was compiled
+    /// from. Required for `--capability instruction-chat`: physical_root
+    /// alone cannot supply a real tokenizer_adapter (see the
+    /// release_bundle_packager module docs -- tokenizer.bin is a
+    /// different format from the tokenizer.json/spiece.model a
+    /// TokenizerAdapter is derived from). Ignored for `--capability
+    /// continuation`, which packages with an empty tokenizer_adapter
+    /// (valid: `ReleaseBundleManifest::validate` only requires a real
+    /// adapter family for instruction-chat bundles).
+    #[arg(long)]
+    source: Option<PathBuf>,
+    /// Registered source-tokenizer family. Required together with
+    /// --tokenizer-version whenever --source is given: this project
+    /// never infers tokenizer identity (#718), the same policy `r4
+    /// compile`'s own --tokenizer-family/--tokenizer-version pair
+    /// enforces.
+    #[arg(long, requires = "tokenizer_version")]
+    tokenizer_family: Option<String>,
+    /// Registered source-tokenizer adapter version. Must be supplied
+    /// atomically with --tokenizer-family.
+    #[arg(long, requires = "tokenizer_family")]
+    tokenizer_version: Option<u32>,
+    /// uor-matmul git revision the bundle's compile-time arithmetic ran
+    /// against [default: the project's standing #655 pin].
+    #[arg(long, default_value = "b13c98449948174f590e337c4dc25dfc394a07d0")]
+    uor_matmul_rev: String,
+    /// uor-matmul operation/codec profile name.
+    #[arg(long, default_value = "exact-gemm-float")]
+    uor_matmul_operation_profile: String,
+    /// SPDX license identifier of the pinned uor-matmul source. NOTE: as
+    /// of the standing pin, upstream's own Cargo.toml declares
+    /// "Apache-2.0" while its checked-in LICENSE file text is an MIT
+    /// license -- this default matches the LICENSE file; override once
+    /// that upstream inconsistency is resolved.
+    #[arg(long, default_value = "MIT")]
+    uor_matmul_license: String,
+    /// Free-text provenance pointer (e.g. an issue/PR reference).
+    #[arg(long)]
+    provenance_note: Option<String>,
+    /// Write the manifest JSON here instead of
+    /// `<compiled>/release-bundle.json`.
+    #[arg(long)]
+    output: Option<PathBuf>,
 }
 
 #[derive(Args, Debug)]
@@ -639,6 +704,78 @@ fn import(args: &ImportArgs) -> Result<(), RunError> {
     Ok(())
 }
 
+/// #655-D2: resolve a real `tokenizer_adapter` (for `--capability
+/// instruction-chat`, from `--source`) or an empty one (for `--capability
+/// continuation`, valid since `ReleaseBundleManifest::validate` only
+/// requires a real adapter family for instruction-chat bundles), then
+/// call `release_bundle_packager::package_release_bundle` and write its
+/// result to `--output` (default `<compiled>/release-bundle.json`).
+fn package_release_bundle_command(args: &PackageReleaseBundleArgs) -> Result<(), RunError> {
+    let capability = match args.capability {
+        Capability::Continuation => BundleCapability::Continuation,
+        Capability::InstructionChat => BundleCapability::InstructionChat,
+    };
+    let tokenizer_adapter = match &args.source {
+        Some(source) => {
+            let key = match (&args.tokenizer_family, args.tokenizer_version) {
+                (Some(family), Some(version)) => TokenizerAdapterKey::new(family.clone(), version),
+                _ => {
+                    return Err(RunError::Command(
+                        "--tokenizer-family and --tokenizer-version are required together with \
+                         --source (this project never infers tokenizer identity, #718)"
+                            .to_owned(),
+                    ));
+                }
+            };
+            let resolved = resolve_source_tokenizer(source, Some(&key))
+                .map_err(|error| RunError::Command(format!("--source: {}", error.reason)))?;
+            resolved.adapter().ok_or_else(|| {
+                RunError::Command(format!(
+                    "{} resolved to an adapterless tokenizer for {}/{}",
+                    source.display(),
+                    key.family,
+                    key.version
+                ))
+            })?
+        }
+        None if capability == BundleCapability::InstructionChat => {
+            return Err(RunError::Command(
+                "--source is required for --capability instruction-chat: physical_root alone \
+                 cannot supply a real tokenizer_adapter"
+                    .to_owned(),
+            ));
+        }
+        None => TokenizerAdapter::default(),
+    };
+
+    let inputs = PackageInputs {
+        model_id: args.model_id.clone(),
+        capability,
+        uor_matmul: UorMatmulProvenance {
+            rev: args.uor_matmul_rev.clone(),
+            operation_profile: args.uor_matmul_operation_profile.clone(),
+            license: args.uor_matmul_license.clone(),
+            source_digest: None,
+        },
+        tokenizer_adapter,
+        provenance_note: args.provenance_note.clone(),
+    };
+
+    let manifest = release_bundle_packager::package_release_bundle(&args.compiled, inputs)
+        .map_err(|error| RunError::Command(error.to_string()))?;
+
+    let output_path = args
+        .output
+        .clone()
+        .unwrap_or_else(|| args.compiled.join(RELEASE_BUNDLE_SIDECAR_FILE_NAME));
+    let json = serde_json::to_vec_pretty(&manifest).map_err(|error| {
+        RunError::Command(format!("serialize release-bundle manifest: {error}"))
+    })?;
+    std::fs::write(&output_path, json)?;
+    println!("{}", output_path.display());
+    Ok(())
+}
+
 fn evaluate_report(args: &EvaluateReportArgs) -> Result<(), RunError> {
     if args.sequence_length == 0 {
         return Err(RunError::Command(
@@ -737,6 +874,7 @@ fn run(cli: &Cli) -> Result<(), RunError> {
         Some(Command::Compile(args)) => compile(args),
         Some(Command::Download(args)) => download(args),
         Some(Command::Import(args)) => import(args),
+        Some(Command::PackageReleaseBundle(args)) => package_release_bundle_command(args),
         Some(Command::EvaluateReport(args)) => evaluate_report(args),
         Some(Command::Setup) => run_core("setup", &[]),
         Some(Command::Gen { seconds, target }) => {

@@ -34,10 +34,17 @@ pub mod chat;
 pub mod model;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod r4g1;
+/// #655-D2: `release-bundle.json`'s shared filename constant is `pub`
+/// (rather than `pub(crate)`) because the CLI packaging command in the
+/// `r4` binary crate (`src/main.rs`) needs to write to the exact path
+/// this module's own loader reads from.
 #[cfg(not(target_arch = "wasm32"))]
-pub(crate) mod release_bundle_loader;
+pub mod release_bundle_loader;
+/// #655-D2: `pub` (rather than `pub(crate)`) so the `r4` binary crate's
+/// `package-release-bundle` CLI command can call
+/// [`release_bundle_packager::package_release_bundle`].
 #[cfg(not(target_arch = "wasm32"))]
-pub(crate) mod release_bundle_packager;
+pub mod release_bundle_packager;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod telemetry;
 

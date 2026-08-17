@@ -24,14 +24,14 @@
 //! requires the original Hugging Face source snapshot, which does not
 //! live in a compiled bundle's `physical_root`.
 //!
-//! Nothing calls [`package_release_bundle`] outside this module's own
-//! tests yet -- #655-D2 is the CLI subcommand that will. Until then this
-//! whole module is unreachable from any live root in a non-test build,
-//! so it is allowed dead code rather than split across a dozen per-item
-//! annotations; this mirrors landing `release_bundle.rs` (#655-C0) and
-//! `release_bundle_loader.rs` (#655-C1c) each before their own consumer
-//! existed.
-#![allow(dead_code)]
+//! #655-D2 (`src/main.rs`'s `r4 package-release-bundle` command) is the
+//! caller: it resolves a real `tokenizer_adapter` from an explicit
+//! `--source` HF snapshot for `InstructionChat` bundles (using
+//! `uor_r4_core::transformerless::hf_bpe::resolve_source_tokenizer`,
+//! outside this module's own responsibility), builds [`PackageInputs`],
+//! and writes this function's returned manifest to
+//! `release_bundle_loader::RELEASE_BUNDLE_SIDECAR_FILE_NAME` next to
+//! `physical_root`.
 
 use std::path::{Path, PathBuf};
 
@@ -43,7 +43,7 @@ use uor_r4_api::{
 /// Standing #655 `uor-matmul` pin (`serving_655.md` project memory,
 /// mirroring `docs/matrix_operation_census.md`). Bump only via the
 /// project's κ/artifact-era re-pin process.
-pub(crate) const UOR_MATMUL_REVISION: &str = "b13c98449948174f590e337c4dc25dfc394a07d0";
+pub const UOR_MATMUL_REVISION: &str = "b13c98449948174f590e337c4dc25dfc394a07d0";
 
 /// Relative paths within a resolved R4G1 bundle's `physical_root`, per
 /// `docs/serving_release_packaging_655_d.md`'s field-to-file mapping.
@@ -59,7 +59,7 @@ const COMPILE_REPORT_RELATIVE_PATH: &str = "graph-cover/cover_report.json";
 /// Caller-supplied policy `package_release_bundle` does not derive from
 /// `physical_root` -- see the module docs for why each field has no
 /// on-disk producer today.
-pub(crate) struct PackageInputs {
+pub struct PackageInputs {
     pub model_id: String,
     pub capability: BundleCapability,
     pub uor_matmul: UorMatmulProvenance,
@@ -69,7 +69,7 @@ pub(crate) struct PackageInputs {
 
 /// Why [`package_release_bundle`] could not build a manifest.
 #[derive(Debug)]
-pub(crate) enum PackageBundleError {
+pub enum PackageBundleError {
     /// A required component file could not be read (missing, permission
     /// denied, not a regular file, etc). The tokenizer is the one
     /// optional component (`BundleComponentDigests::tokenizer`) -- its
@@ -109,7 +109,7 @@ impl std::error::Error for PackageBundleError {}
 /// (#655-D2) and runs no compile/cover/score stage. The returned
 /// manifest has already passed [`ReleaseBundleManifest::validate`] --
 /// `Ok` never carries a structurally invalid manifest.
-pub(crate) fn package_release_bundle(
+pub fn package_release_bundle(
     physical_root: &Path,
     inputs: PackageInputs,
 ) -> Result<ReleaseBundleManifest, PackageBundleError> {
