@@ -86,7 +86,52 @@ fn startup_source_candidates(last_model_name: &str) -> Vec<PathBuf> {
 #[derive(Debug, Deserialize)]
 pub struct ChatMessage {
     pub role: String,
+    #[serde(deserialize_with = "deserialize_chat_content")]
     pub content: String,
+}
+
+/// `content` accepts either a plain string (the original supported shape)
+/// or an OpenAI content-parts array (`[{"type":"text","text":"..."}]`) --
+/// increasingly a default some SDKs send even for plain-text-only messages
+/// (#740). Text parts are concatenated in order; a part of any other
+/// `type` (`image_url`, `input_audio`, ...) fails closed with a clear
+/// `invalid_request_error` rather than silently dropping content this
+/// server has no way to actually see, consistent with this file's existing
+/// "support is never implied by omission" convention.
+fn deserialize_chat_content<'de, D>(deserializer: D) -> Result<String, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    #[derive(Deserialize)]
+    #[serde(untagged)]
+    enum ContentValue {
+        Text(String),
+        Parts(Vec<ContentPart>),
+    }
+    #[derive(Deserialize)]
+    struct ContentPart {
+        #[serde(rename = "type")]
+        kind: String,
+        #[serde(default)]
+        text: Option<String>,
+    }
+
+    match ContentValue::deserialize(deserializer)? {
+        ContentValue::Text(text) => Ok(text),
+        ContentValue::Parts(parts) => {
+            let mut combined = String::new();
+            for part in parts {
+                if part.kind != "text" {
+                    return Err(serde::de::Error::custom(format!(
+                        "unsupported message content part type '{}': only 'text' parts are supported",
+                        part.kind
+                    )));
+                }
+                combined.push_str(part.text.as_deref().unwrap_or_default());
+            }
+            Ok(combined)
+        }
+    }
 }
 
 /// The supported subset of the OpenAI Chat Completions request. `#654`
@@ -17086,6 +17131,25 @@ fn handle_connection(
         return;
     }
 
+    // #740: an unmatched `/v1/*` path is an API call to a route that
+    // doesn't exist (legacy `/v1/completions`, `/v1/embeddings`, a typo,
+    // etc.), not a missing dashboard asset -- it must fail with the same
+    // OpenAI error envelope every other API error on this server uses, not
+    // fall through to the static-file 404 below (empty body, no
+    // `Content-Type: application/json`), which breaks any client that
+    // tries to JSON-parse the 404 response.
+    if clean_path.starts_with("/v1/") {
+        send_openai_error(
+            stream,
+            404,
+            "invalid_request_error",
+            &format!("Unknown request URL: {method} {clean_path}."),
+            None,
+            Some("unknown_url"),
+        );
+        return;
+    }
+
     // Serve static files fallback
     let mut relative_path = clean_path.trim_start_matches('/');
     if relative_path.is_empty() {
@@ -26451,6 +26515,41 @@ mod tests {
         assert!(
             denied.is_err(),
             "unsupported parameter top_p is rejected, not ignored"
+        );
+    }
+
+    // ---- #740: OpenAI-compatible surface gaps ----
+
+    #[test]
+    fn chat_message_content_still_accepts_a_plain_string() {
+        let req: super::VendorChatCompletionsRequest =
+            serde_json::from_str(r#"{"messages":[{"role":"user","content":"hi"}]}"#)
+                .expect("plain string content must still parse");
+        assert_eq!(req.messages[0].content, "hi");
+    }
+
+    #[test]
+    fn chat_message_content_accepts_the_openai_content_parts_array_shape() {
+        // Several SDKs default every message to this shape, even for
+        // plain text — rejecting it broke real, otherwise-compliant
+        // clients for no capability reason (#740).
+        let req: super::VendorChatCompletionsRequest = serde_json::from_str(
+            r#"{"messages":[{"role":"user","content":[{"type":"text","text":"hello "},{"type":"text","text":"world"}]}]}"#,
+        )
+        .expect("content-parts array must parse");
+        assert_eq!(req.messages[0].content, "hello world");
+    }
+
+    #[test]
+    fn chat_message_content_rejects_non_text_parts_instead_of_dropping_them() {
+        let req: Result<super::VendorChatCompletionsRequest, _> = serde_json::from_str(
+            r#"{"messages":[{"role":"user","content":[{"type":"image_url","image_url":{"url":"https://example.com/x.png"}}]}]}"#,
+        );
+        assert!(
+            req.is_err(),
+            "a non-text content part must fail closed, not be silently dropped -- \
+             this server cannot see images, so pretending to accept one and then \
+             answering as if it weren't there would be worse than refusing"
         );
     }
 
