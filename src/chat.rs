@@ -15,12 +15,36 @@ const MAX_CHAT_HISTORY: usize = 4096;
 const MAX_ANSWER_BYTES: usize = 16 * 1024;
 
 /// A completed local chat turn.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct ChatAnswer {
     /// Generated assistant text.
     pub text: String,
     /// Number of tokens generated for this turn.
     pub generated_tokens: usize,
+    /// Fraction of generated tokens that already appeared earlier in
+    /// this same generation (see [`recent_window_repetition_rate`],
+    /// called with the full generated length as its window — a bounded
+    /// chat turn is short enough that "recent" can mean "the whole
+    /// answer so far"). A fixed 32-token window, the convention Gate C's
+    /// `generate_greedy_repetition_rate` uses for its much longer
+    /// generations, empirically under-detects real degenerate output
+    /// here: `#744`'s own verification against the actual `#745`
+    /// word-salad bundle measured only 0.10-0.25 at window 32, because
+    /// the small pool of recurring fragments (`tetra`/`gru`/`caption`/…)
+    /// mixes with enough distinct short filler subword pieces that few
+    /// *exact same-token* recurrences land inside any single 32-token
+    /// slice, even though the visible vocabulary is obviously collapsed
+    /// to a human reader. Widening the window to the full answer raised
+    /// the same transcripts to 0.31-0.41, which is why
+    /// [`crate::model::evaluate_live_quality`]'s repetition bar was
+    /// recalibrated down from 0.5 to 0.25 alongside this change — see
+    /// that function's bar constant for the honest caveat on how that
+    /// number was chosen. Unlike
+    /// [`repeated_suffix`]'s exact-block detector (this module's other
+    /// repetition guard), this also catches small-vocabulary cycling
+    /// through several distinct tokens in varying order, which never
+    /// forms an identical repeated block.
+    pub repeated_token_rate: f64,
 }
 
 /// Failure to load or run the local transformerless chat engine.
@@ -416,6 +440,7 @@ fn hologram_answer(
             return Ok(ChatAnswer {
                 text,
                 generated_tokens: generated.len(),
+                repeated_token_rate: recent_window_repetition_rate(generated, generated.len()),
             });
         }
     }
@@ -459,6 +484,7 @@ fn hologram_answer(
     Ok(ChatAnswer {
         text,
         generated_tokens: generated.len(),
+        repeated_token_rate: recent_window_repetition_rate(generated, generated.len()),
     })
 }
 
@@ -626,6 +652,66 @@ fn repeated_suffix(tokens: &[u32], width: usize) -> bool {
     tokens[..tokens.len() - width]
         .windows(width)
         .any(|window| window == suffix)
+}
+
+/// Fraction of `tokens` that already appeared among the preceding
+/// `window` tokens of the same generation — the same recent-window
+/// repetition definition Gate C's `generate_greedy_repetition_rate` uses
+/// (`uor-r4-graph-certify::score`), reimplemented here for the live
+/// serving path (`chat`'s `Compiled`/`Store` types are private to
+/// `uor-r4-core::transformerless`, a different crate boundary than
+/// graph-certify's `GraphScorer`, so the definition is duplicated rather
+/// than shared code — see `#744`). Empty input is defined as
+/// non-repetitive (`0.0`), matching the natural reading of "no
+/// repetition observed" rather than the alternative "undefined".
+fn recent_window_repetition_rate(tokens: &[u32], window: usize) -> f64 {
+    if tokens.is_empty() {
+        return 0.0;
+    }
+    let mut recent: std::collections::VecDeque<u32> =
+        std::collections::VecDeque::with_capacity(window);
+    let mut duplicate_count = 0usize;
+    for &token in tokens {
+        if recent.contains(&token) {
+            duplicate_count += 1;
+        }
+        if recent.len() == window {
+            recent.pop_front();
+        }
+        recent.push_back(token);
+    }
+    duplicate_count as f64 / tokens.len() as f64
+}
+
+/// Build a chat engine directly from raw artifact/store/tokenizer bytes,
+/// bypassing manifest lookup and the on-disk compiled-bundle directory
+/// convention (`build_local_compiled_engine`'s fixed file names). Used by
+/// `model::evaluate_live_quality` (`#744`) to measure generation quality
+/// against the exact bytes being imported, before any manifest or
+/// `.uor-models/compiled/<name>` directory exists for them. No R4G1
+/// graph is attempted (`r4g1_bytes: None`) — this always exercises the
+/// plain TLA/TLS1 runtime path, the common baseline every bundle must
+/// clear regardless of which runtime ultimately serves it, and the one
+/// whose repetition guard (`repeated_suffix`) is weaker, making it the
+/// conservative choice for a pass/fail gate.
+pub fn engine_from_bytes(
+    artifact_bytes: &[u8],
+    store_bytes: &[u8],
+    tokenizer_bytes: &[u8],
+    max_tokens: usize,
+) -> Result<ChatEngine, ChatError> {
+    let artifacts = compiler::parse_artifacts(artifact_bytes).ok_or(ChatError::InvalidArtifacts)?;
+    let store = runtime::parse_store(store_bytes).ok_or(ChatError::InvalidStore)?;
+    let tokenizer = parse_chat_tokenizer(tokenizer_bytes)?;
+    Ok(ChatEngine {
+        artifacts,
+        store,
+        r4g1_bytes: None,
+        tokenizer,
+        history: [0; MAX_CHAT_HISTORY],
+        history_len: 0,
+        max_tokens: max_tokens.clamp(1, MAX_CHAT_TOKENS),
+    })
 }
 
 fn parse_chat_tokenizer(bytes: &[u8]) -> Result<Tokenizer, ChatError> {
@@ -2493,8 +2579,8 @@ fn render_audit_trace_record(
 #[cfg(test)]
 mod tests {
     use super::{
-        bind_chat_r4g1, ensure_chat_prompt_encoder, parse_remote_url, repeated_suffix,
-        select_chat_tokenizer_bytes, ChatError,
+        bind_chat_r4g1, ensure_chat_prompt_encoder, parse_remote_url,
+        recent_window_repetition_rate, repeated_suffix, select_chat_tokenizer_bytes, ChatError,
     };
     use uor_r4_core::transformerless::scenarios::{
         export_runtime_tokenizer_table, RuntimeTokenizerDecodePolicy, RuntimeTokenizerDecodeTable,
@@ -2538,6 +2624,37 @@ mod tests {
     fn repetition_guard_detects_repeated_token_windows() {
         assert!(repeated_suffix(&[1, 2, 3, 4, 1, 2, 3, 4], 4));
         assert!(!repeated_suffix(&[1, 2, 3, 4, 1, 2, 3, 5], 4));
+    }
+
+    /// `repeated_suffix`'s exact-block detector is blind to the #745
+    /// failure mode: cycling through a handful of distinct tokens in
+    /// varying (non-block-repeating) order. `recent_window_repetition_rate`
+    /// (#744) is built specifically to catch it.
+    #[test]
+    fn recent_window_repetition_rate_catches_small_vocabulary_cycling_that_repeated_suffix_misses()
+    {
+        let cycling = [1u32, 2, 3, 1, 2, 3, 1, 2, 3, 1, 2, 3];
+        assert!(
+            !repeated_suffix(&cycling, 8),
+            "too short for the exact 8-token block detector to see anything"
+        );
+        assert!(
+            recent_window_repetition_rate(&cycling, 8) > 0.5,
+            "but a small-vocabulary cycle is mostly recently-seen tokens"
+        );
+
+        let varied: Vec<u32> = (0..40).collect();
+        assert_eq!(
+            recent_window_repetition_rate(&varied, 8),
+            0.0,
+            "monotonically novel tokens carry no repetition"
+        );
+
+        assert_eq!(
+            recent_window_repetition_rate(&[], 8),
+            0.0,
+            "empty generation is defined as non-repetitive, not undefined"
+        );
     }
 
     #[test]

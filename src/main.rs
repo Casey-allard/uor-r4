@@ -6,8 +6,8 @@ use std::sync::Arc;
 use uor_r4_graph_cli as transformerless_command;
 use uor_r4_wasm_router::chat::{ChatAnswer, ChatEngine, ChatError};
 use uor_r4_wasm_router::model::{
-    default_model_reference, download_source, ModelCapability, ModelError, ModelManifest,
-    ModelStore, QualityAttestation, SourceDownload,
+    default_model_reference, download_source, evaluate_live_quality, ModelCapability, ModelError,
+    ModelManifest, ModelStore, QualityAttestation, SourceDownload,
 };
 use uor_r4_wasm_router::server::{self, ServerConfig};
 use uor_r4_wasm_router::tless_uor;
@@ -295,14 +295,13 @@ struct ImportArgs {
     store: PathBuf,
     #[arg(long)]
     tokenizer: PathBuf,
+    /// Offline held-out evaluation report from `r4 evaluate-report`.
+    /// Required for `--capability instruction-chat`: not consulted for
+    /// the pass/fail decision (that's `evaluate_live_quality`, run
+    /// against the exact bytes below), but retained as CID-addressed
+    /// provenance of the offline top-1/agreement/bits measurement.
     #[arg(long)]
     evaluation_report: Option<PathBuf>,
-    #[arg(long, default_value_t = false)]
-    instruction_eval_passed: bool,
-    #[arg(long, default_value_t = 0.0)]
-    grounded_answer_rate: f32,
-    #[arg(long, default_value_t = 1.0)]
-    repetition_rate: f32,
 }
 
 #[derive(Args, Debug)]
@@ -555,9 +554,30 @@ fn descriptor_license(name: &str, repository: &str, revision: &str) -> Option<St
 
 fn import(args: &ImportArgs) -> Result<(), RunError> {
     let model_store = ModelStore::from_env();
-    let artifacts = model_store.put(&std::fs::read(&args.artifacts)?)?;
-    let store = model_store.put(&std::fs::read(&args.store)?)?;
-    let tokenizer = model_store.put(&std::fs::read(&args.tokenizer)?)?;
+    let artifact_bytes = std::fs::read(&args.artifacts)?;
+    let store_bytes = std::fs::read(&args.store)?;
+    let tokenizer_bytes = std::fs::read(&args.tokenizer)?;
+    // Quality is DERIVED, not accepted as operator input (#744): a
+    // manually-typed `--grounded-answer-rate`/`--repetition-rate` could
+    // (and did) disagree with the actual compiled bytes and with itself
+    // across re-imports of the same artifact. Continuation-capability
+    // bundles are never chat-gated (`validate_for_chat` below), so there
+    // is nothing honest to compute for them; they get a fixed
+    // not-evaluated attestation instead of running probes that would
+    // never be consulted.
+    let quality = match args.capability {
+        Capability::InstructionChat => {
+            evaluate_live_quality(&artifact_bytes, &store_bytes, &tokenizer_bytes)?
+        }
+        Capability::Continuation => QualityAttestation {
+            instruction_eval_passed: false,
+            grounded_answer_rate: 0.0,
+            repetition_rate: 1.0,
+        },
+    };
+    let artifacts = model_store.put(&artifact_bytes)?;
+    let store = model_store.put(&store_bytes)?;
+    let tokenizer = model_store.put(&tokenizer_bytes)?;
     let evaluation_report = args
         .evaluation_report
         .as_ref()
@@ -574,11 +594,7 @@ fn import(args: &ImportArgs) -> Result<(), RunError> {
         store,
         tokenizer,
         evaluation_report,
-        quality: QualityAttestation {
-            instruction_eval_passed: args.instruction_eval_passed,
-            grounded_answer_rate: args.grounded_answer_rate,
-            repetition_rate: args.repetition_rate,
-        },
+        quality,
     };
     manifest.validate_for_chat().or_else(|error| {
         (manifest.capability == ModelCapability::Continuation)
@@ -978,6 +994,7 @@ mod tests {
             Ok(ChatAnswer {
                 text: self.answers.pop_front().unwrap_or_default(),
                 generated_tokens: 1,
+                repeated_token_rate: 0.0,
             })
         }
     }

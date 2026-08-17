@@ -1237,11 +1237,36 @@ cargo run -- import \
   --artifacts .uor-models/compiled/smollm2-135m-instruct/tless_artifacts.bin \
   --store .uor-models/compiled/smollm2-135m-instruct/tless_store.bin \
   --tokenizer .uor-models/compiled/smollm2-135m-instruct/tokenizer.bin \
-  --evaluation-report /path/to/instruction-eval.json \
-  --instruction-eval-passed \
-  --grounded-answer-rate 0.80 \
-  --repetition-rate 0.01
+  --evaluation-report /path/to/instruction-eval.json
 ```
+
+`instruction_eval_passed`, `grounded_answer_rate`, and `repetition_rate` are
+**not** CLI flags and cannot be supplied by the operator. For
+`--capability instruction-chat`, `import` derives them itself by loading the
+exact `--artifacts`/`--store`/`--tokenizer` bytes being imported and running
+them through a fixed probe set of ordinary questions on the live `ask` code
+path, then scoring each answer's repetition rate the same way Gate C does
+(`crates/uor-r4-graph-certify`'s greedy-repetition metric, applied over the
+full generated span). `--evaluation-report` is still accepted and stored
+content-addressed as provenance of the offline D3 top-1/agreement/bits
+measurement from step 5, but it is not read back or trusted for the
+pass/fail decision — only the live probe run decides that. This closes the
+gap (#744) where two manifests over byte-identical compiled bytes could
+carry hand-typed, disagreeing quality numbers and both pass.
+
+Known limitation: the live probe run always exercises the plain TLA/TLS1
+generation path, the same one `engine_from_bytes` builds. It does not load
+or probe an R4G1 graph (`compiled.r4g1`), even though `ask`/`chat` will
+transparently prefer an R4G1 graph over the plain path at serving time if
+one exists at the manifest-name-keyed convention path
+(`.uor-models/compiled/<manifest name>/compiled.r4g1`). The two paths can
+disagree sharply — on at least one real local bundle the R4G1 beam-search
+path produced single-token degenerate repetition ("cut cut cut ...") where
+the plain path produced word-salad, i.e. both paths were bad but not
+identically bad. A manifest that passes today's gate is only guaranteed
+non-degenerate on the plain path; if that same bundle also has a
+same-name-keyed `compiled.r4g1` file, `ask` may still serve degenerate
+output despite the gate having passed. Tracked as a follow-up.
 
 The model store defaults to `.uor-models`; set `UOR_MODEL_STORE` to relocate
 it. Objects are stored once under `objects/blake3/<digest>`. Reads verify both

@@ -48,11 +48,166 @@ pub struct ModelObject {
     pub bytes: u64,
 }
 
+/// Whether an imported bundle may serve `r4 ask`, and how it earned that.
+///
+/// Before `#744`, these three fields were plain CLI floats on `r4 import`
+/// (`--instruction-eval-passed`, `--grounded-answer-rate`,
+/// `--repetition-rate`) — an operator-typed attestation with no
+/// connection to any computation. Two manifests over byte-identical
+/// compiled artifacts could (and did) carry opposite numbers, both
+/// "passing". [`evaluate_live_quality`] replaces that: for
+/// instruction-chat imports, these fields are now derived from actually
+/// running the exact bytes being imported against a fixed probe set
+/// through the same generation path `r4 ask` uses (see
+/// `chat::engine_from_bytes`), not accepted as operator input.
+///
+/// `grounded_answer_rate` measures **non-degeneracy**, not semantic fact-
+/// checking — this codebase has no mechanism to verify an answer's
+/// factual content, so the honest thing is not to claim it does. A probe
+/// counts toward `grounded_answer_rate` when it produces a non-empty
+/// answer whose [`repeated_token_rate`](crate::chat::ChatAnswer::repeated_token_rate)
+/// stays at or below [`LIVE_QUALITY_REPETITION_BAR`] — i.e. the answer is
+/// not empty and not dominated by recently-repeated tokens, the failure
+/// mode observed in `#745`'s word-salad transcripts.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct QualityAttestation {
     pub instruction_eval_passed: bool,
     pub grounded_answer_rate: f32,
     pub repetition_rate: f32,
+}
+
+/// Fixed probe set for [`evaluate_live_quality`] (`#744`): ordinary
+/// questions with no single expected answer string, used only to check
+/// that generation is non-degenerate — not to verify factual
+/// correctness, which nothing in this codebase currently checks. Kept
+/// small and fixed so the gate stays fast and its verdict reproducible
+/// run to run on the same bytes.
+const LIVE_QUALITY_PROBES: &[&str] = &[
+    "What is the capital of France?",
+    "Why is the sky blue?",
+    "What is two plus two?",
+    "Name a primary color.",
+    "What day comes after Monday?",
+    "What is water made of?",
+    "How many legs does a dog have?",
+    "What is the opposite of hot?",
+];
+
+/// A probe answer counts as non-degenerate when its full-generation
+/// repetition rate ([`chat::ChatAnswer::repeated_token_rate`]) stays at
+/// or below this bar.
+///
+/// Calibrated empirically against the real `#745` bundle
+/// (`smollm2-1-7b-instruct`, artifact `blake3:fca5bdfb…` — the same
+/// bytes the `#655` sweep found producing word-salad): its actual probe
+/// answers measured 0.31-0.41 on this metric, well above ordinary
+/// short-answer word reuse. `0.25` catches that entire observed range
+/// with margin.
+///
+/// Honest limitation, stated plainly: this bar is calibrated only
+/// against known-*bad* evidence. No genuinely coherent local bundle
+/// exists yet to confirm it does not also reject good output — that
+/// positive calibration point does not exist until `#745` produces one.
+/// Revisit this constant against real positive evidence once it does,
+/// rather than treating `0.25` as load-bearing precision.
+const LIVE_QUALITY_REPETITION_BAR: f64 = 0.25;
+
+/// An imported bundle passes when at least this fraction of the probe
+/// set produces a non-degenerate answer. A bar below `1.0` tolerates an
+/// occasional empty/degenerate probe without failing an otherwise-working
+/// bundle outright; `0.5` requires a majority.
+const LIVE_QUALITY_PASS_BAR: f32 = 0.5;
+
+/// One probe's live-generation outcome, reduced to just what the gate
+/// needs. Kept separate from `chat::ChatAnswer`/`ChatError` so
+/// [`aggregate_probe_outcomes`] — the actual pass/fail policy — can be
+/// exercised by a fast, deterministic unit test (`#744`'s falsifier)
+/// without loading a real compiled bundle.
+#[derive(Debug, Clone, Copy, PartialEq)]
+enum ProbeOutcome {
+    /// Generation produced some text.
+    Answered {
+        non_empty: bool,
+        repeated_token_rate: f64,
+    },
+    /// `ask` returned an error (empty/repetitive generation, or a load
+    /// failure) — scored as the worst case (maximal repetition) so it
+    /// cannot be diluted by averaging with healthier probes.
+    Failed,
+}
+
+fn aggregate_probe_outcomes(outcomes: &[ProbeOutcome]) -> QualityAttestation {
+    debug_assert!(!outcomes.is_empty(), "probe set must be non-empty");
+    let mut non_degenerate = 0usize;
+    let mut repetition_sum = 0.0f64;
+    for outcome in outcomes {
+        match outcome {
+            ProbeOutcome::Answered {
+                non_empty: true,
+                repeated_token_rate,
+            } if *repeated_token_rate <= LIVE_QUALITY_REPETITION_BAR => {
+                non_degenerate += 1;
+                repetition_sum += repeated_token_rate;
+            }
+            ProbeOutcome::Answered {
+                repeated_token_rate,
+                ..
+            } => repetition_sum += repeated_token_rate,
+            ProbeOutcome::Failed => repetition_sum += 1.0,
+        }
+    }
+    let probe_count = outcomes.len().max(1);
+    let grounded_answer_rate = non_degenerate as f32 / probe_count as f32;
+    let repetition_rate = (repetition_sum / probe_count as f64) as f32;
+    QualityAttestation {
+        instruction_eval_passed: grounded_answer_rate >= LIVE_QUALITY_PASS_BAR,
+        grounded_answer_rate,
+        repetition_rate,
+    }
+}
+
+/// Run [`LIVE_QUALITY_PROBES`] against the exact bytes being imported and
+/// derive a [`QualityAttestation`] from the results (`#744`). Fails fast
+/// with a real error if the bytes cannot even be loaded, rather than
+/// scoring repeated identical load failures into the metrics below — an
+/// unloadable bundle is a defect in the import inputs, not a
+/// generation-quality signal for this gate to describe.
+///
+/// A fresh engine is built per probe: the probes are independent
+/// ordinary questions, not turns of one conversation, so no chat history
+/// should carry between them.
+pub fn evaluate_live_quality(
+    artifact_bytes: &[u8],
+    store_bytes: &[u8],
+    tokenizer_bytes: &[u8],
+) -> Result<QualityAttestation, ModelError> {
+    const PROBE_MAX_TOKENS: usize = 64;
+    crate::chat::engine_from_bytes(
+        artifact_bytes,
+        store_bytes,
+        tokenizer_bytes,
+        PROBE_MAX_TOKENS,
+    )
+    .map_err(|error| ModelError::Io(std::io::Error::other(error.to_string())))?;
+
+    let mut outcomes = Vec::with_capacity(LIVE_QUALITY_PROBES.len());
+    for probe in LIVE_QUALITY_PROBES {
+        let mut engine = crate::chat::engine_from_bytes(
+            artifact_bytes,
+            store_bytes,
+            tokenizer_bytes,
+            PROBE_MAX_TOKENS,
+        )
+        .map_err(|error| ModelError::Io(std::io::Error::other(error.to_string())))?;
+        outcomes.push(match engine.ask(probe) {
+            Ok(answer) => ProbeOutcome::Answered {
+                non_empty: !answer.text.trim().is_empty(),
+                repeated_token_rate: answer.repeated_token_rate,
+            },
+            Err(_) => ProbeOutcome::Failed,
+        });
+    }
+    Ok(aggregate_probe_outcomes(&outcomes))
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -1299,6 +1454,81 @@ pub fn write_source_manifest(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Falsifier for `#744`'s live quality gate: demonstrates
+    /// `aggregate_probe_outcomes` correctly rejects the two known-bad
+    /// cases the `#655` coherence sweep actually observed (all-empty
+    /// output, and small-vocabulary word-salad), and accepts a
+    /// genuinely healthy probe set. Exercises the pass/fail policy
+    /// directly, without loading a real compiled bundle, so it stays
+    /// fast and deterministic in CI.
+    #[test]
+    fn live_quality_gate_rejects_known_bad_probe_sets_and_accepts_a_healthy_one() {
+        let probe_count = LIVE_QUALITY_PROBES.len();
+
+        // Every probe fails outright -- mirrors `smollm2-135m-instruct`'s
+        // observed empty `<|im_end|>` output in the #655 sweep.
+        let all_failed = vec![ProbeOutcome::Failed; probe_count];
+        let quality = aggregate_probe_outcomes(&all_failed);
+        assert!(!quality.instruction_eval_passed);
+        assert_eq!(quality.grounded_answer_rate, 0.0);
+        assert_eq!(quality.repetition_rate, 1.0);
+
+        // Every probe "answers" but collapses into a small repeated-token
+        // cycle -- mirrors the #745 word-salad transcripts.
+        let all_degenerate = vec![
+            ProbeOutcome::Answered {
+                non_empty: true,
+                repeated_token_rate: 0.9,
+            };
+            probe_count
+        ];
+        let quality = aggregate_probe_outcomes(&all_degenerate);
+        assert!(!quality.instruction_eval_passed);
+        assert_eq!(quality.grounded_answer_rate, 0.0);
+        assert!((quality.repetition_rate - 0.9).abs() < 1e-6);
+
+        // A genuinely healthy probe set passes.
+        let all_healthy = vec![
+            ProbeOutcome::Answered {
+                non_empty: true,
+                repeated_token_rate: 0.1,
+            };
+            probe_count
+        ];
+        let quality = aggregate_probe_outcomes(&all_healthy);
+        assert!(quality.instruction_eval_passed);
+        assert_eq!(quality.grounded_answer_rate, 1.0);
+
+        // Confirm the documented 0.5 pass bar is exactly where it's
+        // declared to be: exactly half non-degenerate passes (`>=`), one
+        // probe fewer does not.
+        let outcomes_with_healthy_count = |healthy: usize| -> Vec<ProbeOutcome> {
+            (0..probe_count)
+                .map(|i| {
+                    if i < healthy {
+                        ProbeOutcome::Answered {
+                            non_empty: true,
+                            repeated_token_rate: 0.1,
+                        }
+                    } else {
+                        ProbeOutcome::Failed
+                    }
+                })
+                .collect()
+        };
+        let half = probe_count / 2;
+        let at_bar = aggregate_probe_outcomes(&outcomes_with_healthy_count(half));
+        assert!(
+            at_bar.instruction_eval_passed,
+            "exactly half non-degenerate should clear the >= 0.5 bar"
+        );
+        let below_bar = aggregate_probe_outcomes(&outcomes_with_healthy_count(half - 1));
+        assert!(
+            !below_bar.instruction_eval_passed,
+            "one fewer non-degenerate probe should miss the 0.5 bar"
+        );
+    }
 
     fn manifest(capability: ModelCapability, passed: bool) -> ModelManifest {
         let object = ModelObject {
