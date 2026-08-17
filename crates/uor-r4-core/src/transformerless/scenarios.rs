@@ -381,6 +381,34 @@ pub struct Tokenizer {
     pub vocab: Vec<Vec<u8>>,
     map: BTreeMap<Vec<u8>, u32>,
     mode: RuntimeTokenizerMode,
+    /// Whether this vocab's own bytes use the GPT2 byte-level remap
+    /// (space stored as the two UTF-8 bytes of `'Ġ'`, `0xC4 0xA0`, `\n`
+    /// as `'Ċ'`, etc.) rather than literal raw bytes. Detected once at
+    /// parse time (see [`detect_gpt2_byte_remap`]) and consulted by
+    /// [`encode_into`](Self::encode_into) before applying that
+    /// substitution — some real byte-BPE `tokenizer.bin` exports use the
+    /// remap, others store literal bytes, and applying the remap to a
+    /// vocab that doesn't use it means no merged word token can ever
+    /// match, so every space is split into two spurious single-byte
+    /// tokens (issue #751). Unused (always `false`) for `DecodeOnly`
+    /// mode, which never encodes.
+    gpt2_byte_remap: bool,
+}
+
+/// Whether `vocab`'s own byte content uses the GPT2 byte-level remap
+/// convention: detected by checking for at least one entry starting with
+/// the two-byte UTF-8 encoding of `'Ġ'` (`0xC4 0xA0`). A vocab that never
+/// stores that byte pair (i.e. spaces are literal `0x20` bytes) must not
+/// have the remap applied during encoding, or no merged token can ever be
+/// found and the encoder falls back to spurious per-byte tokens at every
+/// word boundary (#751). This is a real, load-bearing distinction between
+/// tokenizer.bin exports, not a hypothetical: `smollm2-1-7b-instruct`'s
+/// tokenizer.bin (49152 entries) is entirely literal-byte, with zero
+/// vocab entries containing the `0xC4 0xA0` pair anywhere.
+fn detect_gpt2_byte_remap(vocab: &[Vec<u8>]) -> bool {
+    vocab
+        .iter()
+        .any(|piece| piece.len() >= 2 && piece[0] == 0xC4 && piece[1] == 0xA0)
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -493,10 +521,12 @@ impl Tokenizer {
                             vocab[id as usize] = k_bytes.clone();
                             map.insert(k_bytes, id);
                         }
+                        let gpt2_byte_remap = detect_gpt2_byte_remap(&vocab);
                         return Ok(Tokenizer {
                             vocab,
                             map,
                             mode: RuntimeTokenizerMode::Untagged,
+                            gpt2_byte_remap,
                         });
                     }
                 }
@@ -540,10 +570,12 @@ impl Tokenizer {
             let id = index as u32;
             map.entry(token.clone()).or_insert(id);
         }
+        let gpt2_byte_remap = detect_gpt2_byte_remap(&vocab);
         Some(Tokenizer {
             vocab,
             map,
             mode: RuntimeTokenizerMode::Untagged,
+            gpt2_byte_remap,
         })
     }
 
@@ -627,6 +659,11 @@ impl Tokenizer {
                 },
                 decode_policy,
             },
+            // DecodeOnly tokenizers never encode (see `encode_into`'s
+            // early `None` return for this mode), so this is unused;
+            // `false` keeps the field's meaning honest rather than
+            // implying an encode convention that's never consulted.
+            gpt2_byte_remap: false,
         })
     }
 
@@ -716,10 +753,16 @@ impl Tokenizer {
             let mut encoded_str = String::with_capacity(text.len() * 2);
             for ch in text.chars() {
                 match ch {
-                    ' ' => encoded_str.push('Ġ'),
-                    '\n' => encoded_str.push('Ċ'),
-                    '\r' => encoded_str.push('Ĉ'),
-                    '\t' => encoded_str.push('ĉ'),
+                    // Only remap to the GPT2 byte-level stand-ins when
+                    // this vocab's own bytes actually use that
+                    // convention (#751) — otherwise these substitutions
+                    // can never match a real merged token, and every
+                    // occurrence gets split into spurious per-byte
+                    // fallback tokens instead.
+                    ' ' if self.gpt2_byte_remap => encoded_str.push('Ġ'),
+                    '\n' if self.gpt2_byte_remap => encoded_str.push('Ċ'),
+                    '\r' if self.gpt2_byte_remap => encoded_str.push('Ĉ'),
+                    '\t' if self.gpt2_byte_remap => encoded_str.push('ĉ'),
                     c => encoded_str.push(c),
                 }
             }
@@ -1313,6 +1356,58 @@ mod tests {
         assert_eq!(tokenizer.adapter_identity(), None);
         assert!(!tokenizer.is_decode_only());
         assert_eq!(tokenizer.decode(&[2]), "ab");
+    }
+
+    fn untagged_bytes_from_pieces(pieces: &[&[u8]]) -> Vec<u8> {
+        let mut bytes = Vec::new();
+        for piece in pieces {
+            bytes.extend_from_slice(&(piece.len() as i32).to_le_bytes());
+            bytes.extend_from_slice(piece);
+        }
+        bytes
+    }
+
+    /// #751: a byte-BPE vocab (triggered here via `vocab[1] ==
+    /// "<|im_start|>"`, the same heuristic real bundles hit) whose own
+    /// bytes are literal (a real 0x20 space, no GPT2 remap) must encode
+    /// a space-prefixed word as its single merged token, not split the
+    /// (wrongly-inserted) remap character into spurious per-byte
+    /// fallback tokens. This is the exact failure mode found on
+    /// `smollm2-1-7b-instruct`'s real tokenizer.bin.
+    #[test]
+    fn encode_into_uses_literal_bytes_when_vocab_has_no_gpt2_remap() {
+        let bytes = untagged_bytes_from_pieces(&[
+            b"<|endoftext|>",
+            b"<|im_start|>",
+            b" how", // merged, literal bytes: space + "how"
+            b" ",
+            b"h",
+            b"o",
+            b"w",
+        ]);
+        let tokenizer = Tokenizer::from_bytes(&bytes).expect("literal-byte vocab parses");
+        assert_eq!(
+            tokenizer.encode(" how"),
+            vec![2],
+            "must match the single merged token, not split into byte-remap fallback pieces"
+        );
+    }
+
+    /// Companion to the test above: a vocab that genuinely uses the GPT2
+    /// byte-level remap (its own bytes contain the `'Ġ'` two-byte
+    /// sequence) must still have the remap applied during encoding —
+    /// #751's fix is convention-detection, not convention-removal.
+    #[test]
+    fn encode_into_still_applies_gpt2_remap_when_vocab_uses_it() {
+        let mut g_how = vec![0xC4u8, 0xA0]; // 'Ġ' UTF-8
+        g_how.extend_from_slice(b"how");
+        let bytes = untagged_bytes_from_pieces(&[b"<|endoftext|>", b"<|im_start|>", &g_how]);
+        let tokenizer = Tokenizer::from_bytes(&bytes).expect("gpt2-remap vocab parses");
+        assert_eq!(
+            tokenizer.encode(" how"),
+            vec![2],
+            "a vocab that stores the GPT2 remap convention must still have it applied"
+        );
     }
 
     #[test]
