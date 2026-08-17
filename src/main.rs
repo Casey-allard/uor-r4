@@ -295,6 +295,13 @@ struct ImportArgs {
     store: PathBuf,
     #[arg(long)]
     tokenizer: PathBuf,
+    /// Optional compiled R4G1 graph (`compiled.r4g1`). When present, the
+    /// live quality gate (#750) probes this path in addition to the plain
+    /// TLA path and requires both to pass, since `r4 ask`/`r4 chat` will
+    /// transparently prefer this graph over the plain path at serving time
+    /// if one exists at the manifest-name-keyed convention path.
+    #[arg(long)]
+    r4g1: Option<PathBuf>,
     /// Offline held-out evaluation report from `r4 evaluate-report`.
     /// Required for `--capability instruction-chat`: not consulted for
     /// the pass/fail decision (that's `evaluate_live_quality`, run
@@ -557,6 +564,7 @@ fn import(args: &ImportArgs) -> Result<(), RunError> {
     let artifact_bytes = std::fs::read(&args.artifacts)?;
     let store_bytes = std::fs::read(&args.store)?;
     let tokenizer_bytes = std::fs::read(&args.tokenizer)?;
+    let r4g1_bytes = args.r4g1.as_ref().map(std::fs::read).transpose()?;
     // Quality is DERIVED, not accepted as operator input (#744): a
     // manually-typed `--grounded-answer-rate`/`--repetition-rate` could
     // (and did) disagree with the actual compiled bytes and with itself
@@ -564,15 +572,22 @@ fn import(args: &ImportArgs) -> Result<(), RunError> {
     // bundles are never chat-gated (`validate_for_chat` below), so there
     // is nothing honest to compute for them; they get a fixed
     // not-evaluated attestation instead of running probes that would
-    // never be consulted.
+    // never be consulted. When `--r4g1` is supplied, #750 requires that
+    // path to independently pass too, since `ask`/`chat` will prefer it
+    // over the plain path at serving time.
     let quality = match args.capability {
-        Capability::InstructionChat => {
-            evaluate_live_quality(&artifact_bytes, &store_bytes, &tokenizer_bytes)?
-        }
+        Capability::InstructionChat => evaluate_live_quality(
+            &artifact_bytes,
+            &store_bytes,
+            &tokenizer_bytes,
+            r4g1_bytes.as_deref(),
+        )?,
         Capability::Continuation => QualityAttestation {
             instruction_eval_passed: false,
             grounded_answer_rate: 0.0,
             repetition_rate: 1.0,
+            r4g1_grounded_answer_rate: None,
+            r4g1_repetition_rate: None,
         },
     };
     let artifacts = model_store.put(&artifact_bytes)?;

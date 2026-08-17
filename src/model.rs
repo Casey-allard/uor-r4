@@ -69,11 +69,28 @@ pub struct ModelObject {
 /// stays at or below [`LIVE_QUALITY_REPETITION_BAR`] — i.e. the answer is
 /// not empty and not dominated by recently-repeated tokens, the failure
 /// mode observed in `#745`'s word-salad transcripts.
+///
+/// `grounded_answer_rate`/`repetition_rate` are always the **plain
+/// TLA/TLS1 path**'s results, the baseline every bundle must clear
+/// regardless of which runtime ultimately serves it. `#750`: when the
+/// import also supplies an R4G1 graph (`--r4g1`), that path is probed
+/// too and its results land in `r4g1_grounded_answer_rate`/
+/// `r4g1_repetition_rate` — `None` when no R4G1 graph was supplied,
+/// distinct from a probed-and-degenerate `Some(0.0)`.
+/// `instruction_eval_passed` requires **both** paths to independently
+/// clear the bar when both were probed (see `combine_path_quality`) —
+/// `ask`/`chat` will actually serve whichever path is available at
+/// runtime for a given manifest name, so a pass on one path cannot
+/// paper over a fail on the other.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct QualityAttestation {
     pub instruction_eval_passed: bool,
     pub grounded_answer_rate: f32,
     pub repetition_rate: f32,
+    #[serde(default)]
+    pub r4g1_grounded_answer_rate: Option<f32>,
+    #[serde(default)]
+    pub r4g1_repetition_rate: Option<f32>,
 }
 
 /// Fixed probe set for [`evaluate_live_quality`] (`#744`): ordinary
@@ -136,7 +153,20 @@ enum ProbeOutcome {
     Failed,
 }
 
-fn aggregate_probe_outcomes(outcomes: &[ProbeOutcome]) -> QualityAttestation {
+/// One code path's reduced probe results, before combination across
+/// paths (`#750`). Kept separate from the final [`QualityAttestation`]
+/// so [`combine_path_quality`] — the actual cross-path pass/fail policy
+/// — can be exercised by a fast, deterministic unit test without
+/// loading a real compiled bundle, the same discipline
+/// `aggregate_probe_outcomes`'s `#744` falsifier already established.
+#[derive(Debug, Clone, Copy, PartialEq)]
+struct PathQuality {
+    passed: bool,
+    grounded_answer_rate: f32,
+    repetition_rate: f32,
+}
+
+fn aggregate_probe_outcomes(outcomes: &[ProbeOutcome]) -> PathQuality {
     debug_assert!(!outcomes.is_empty(), "probe set must be non-empty");
     let mut non_degenerate = 0usize;
     let mut repetition_sum = 0.0f64;
@@ -159,43 +189,65 @@ fn aggregate_probe_outcomes(outcomes: &[ProbeOutcome]) -> QualityAttestation {
     let probe_count = outcomes.len().max(1);
     let grounded_answer_rate = non_degenerate as f32 / probe_count as f32;
     let repetition_rate = (repetition_sum / probe_count as f64) as f32;
-    QualityAttestation {
-        instruction_eval_passed: grounded_answer_rate >= LIVE_QUALITY_PASS_BAR,
+    PathQuality {
+        passed: grounded_answer_rate >= LIVE_QUALITY_PASS_BAR,
         grounded_answer_rate,
         repetition_rate,
     }
 }
 
-/// Run [`LIVE_QUALITY_PROBES`] against the exact bytes being imported and
-/// derive a [`QualityAttestation`] from the results (`#744`). Fails fast
-/// with a real error if the bytes cannot even be loaded, rather than
-/// scoring repeated identical load failures into the metrics below — an
-/// unloadable bundle is a defect in the import inputs, not a
-/// generation-quality signal for this gate to describe.
+/// Combine the plain-path and (when a bundle carries a `compiled.r4g1`
+/// graph) R4G1-path probe results into the manifest's final
+/// [`QualityAttestation`] (`#750`). `ask`/`chat` will actually serve
+/// whichever path is available at runtime for a given manifest name, so
+/// silently averaging the two paths, or taking whichever is better,
+/// would let a bundle that is degenerate under one of them still pass —
+/// both paths must independently clear the bar when both were probed.
+fn combine_path_quality(plain: PathQuality, r4g1: Option<PathQuality>) -> QualityAttestation {
+    QualityAttestation {
+        instruction_eval_passed: plain.passed && r4g1.is_none_or(|path| path.passed),
+        grounded_answer_rate: plain.grounded_answer_rate,
+        repetition_rate: plain.repetition_rate,
+        r4g1_grounded_answer_rate: r4g1.map(|path| path.grounded_answer_rate),
+        r4g1_repetition_rate: r4g1.map(|path| path.repetition_rate),
+    }
+}
+
+/// Run [`LIVE_QUALITY_PROBES`] against the exact bytes being imported,
+/// through the plain TLA/TLS1 path (`r4g1_bytes: None`) or through the
+/// R4G1 beam-search path when `r4g1_bytes` is supplied, and reduce the
+/// results to a [`PathQuality`] (`#744`, path parameter added `#750`).
+/// Fails fast with a real error if the bytes cannot even be loaded,
+/// rather than scoring repeated identical load failures into the
+/// metrics below — an unloadable bundle is a defect in the import
+/// inputs, not a generation-quality signal for this gate to describe.
 ///
 /// A fresh engine is built per probe: the probes are independent
 /// ordinary questions, not turns of one conversation, so no chat history
 /// should carry between them.
-pub fn evaluate_live_quality(
+fn run_live_quality_probe_set(
     artifact_bytes: &[u8],
     store_bytes: &[u8],
     tokenizer_bytes: &[u8],
-) -> Result<QualityAttestation, ModelError> {
+    r4g1_bytes: Option<&[u8]>,
+) -> Result<PathQuality, ModelError> {
     const PROBE_MAX_TOKENS: usize = 64;
-    crate::chat::engine_from_bytes(
+    crate::chat::engine_from_bytes_with_r4g1(
         artifact_bytes,
         store_bytes,
         tokenizer_bytes,
+        r4g1_bytes,
         PROBE_MAX_TOKENS,
     )
     .map_err(|error| ModelError::Io(std::io::Error::other(error.to_string())))?;
 
     let mut outcomes = Vec::with_capacity(LIVE_QUALITY_PROBES.len());
     for probe in LIVE_QUALITY_PROBES {
-        let mut engine = crate::chat::engine_from_bytes(
+        let mut engine = crate::chat::engine_from_bytes_with_r4g1(
             artifact_bytes,
             store_bytes,
             tokenizer_bytes,
+            r4g1_bytes,
             PROBE_MAX_TOKENS,
         )
         .map_err(|error| ModelError::Io(std::io::Error::other(error.to_string())))?;
@@ -208,6 +260,35 @@ pub fn evaluate_live_quality(
         });
     }
     Ok(aggregate_probe_outcomes(&outcomes))
+}
+
+/// Derive a [`QualityAttestation`] for the exact bytes being imported
+/// (`#744`). When `r4g1_bytes` is supplied (`#750`, `r4 import --r4g1
+/// <path>`), the probe set is run a second time through the R4G1
+/// beam-search path and both paths must independently pass — see
+/// [`combine_path_quality`] — since `ask`/`chat` will transparently
+/// prefer an R4G1 graph over the plain path at serving time when one
+/// exists at the manifest-name-keyed convention path, and the two paths
+/// have been observed to diverge sharply on the same underlying bytes
+/// (one bundle: `"cut cut cut ..."` under R4G1 vs. word-salad on the
+/// plain path).
+pub fn evaluate_live_quality(
+    artifact_bytes: &[u8],
+    store_bytes: &[u8],
+    tokenizer_bytes: &[u8],
+    r4g1_bytes: Option<&[u8]>,
+) -> Result<QualityAttestation, ModelError> {
+    let plain = run_live_quality_probe_set(artifact_bytes, store_bytes, tokenizer_bytes, None)?;
+    let r4g1 = match r4g1_bytes {
+        Some(bytes) => Some(run_live_quality_probe_set(
+            artifact_bytes,
+            store_bytes,
+            tokenizer_bytes,
+            Some(bytes),
+        )?),
+        None => None,
+    };
+    Ok(combine_path_quality(plain, r4g1))
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -241,6 +322,16 @@ impl ModelManifest {
             || !(0.0..=1.0).contains(&self.quality.repetition_rate)
         {
             return Err(ModelError::InvalidQualityMetrics);
+        }
+        if let Some(rate) = self.quality.r4g1_grounded_answer_rate {
+            if !(0.0..=1.0).contains(&rate) {
+                return Err(ModelError::InvalidQualityMetrics);
+            }
+        }
+        if let Some(rate) = self.quality.r4g1_repetition_rate {
+            if !(0.0..=1.0).contains(&rate) {
+                return Err(ModelError::InvalidQualityMetrics);
+            }
         }
         Ok(())
     }
@@ -1470,7 +1561,7 @@ mod tests {
         // observed empty `<|im_end|>` output in the #655 sweep.
         let all_failed = vec![ProbeOutcome::Failed; probe_count];
         let quality = aggregate_probe_outcomes(&all_failed);
-        assert!(!quality.instruction_eval_passed);
+        assert!(!quality.passed);
         assert_eq!(quality.grounded_answer_rate, 0.0);
         assert_eq!(quality.repetition_rate, 1.0);
 
@@ -1484,7 +1575,7 @@ mod tests {
             probe_count
         ];
         let quality = aggregate_probe_outcomes(&all_degenerate);
-        assert!(!quality.instruction_eval_passed);
+        assert!(!quality.passed);
         assert_eq!(quality.grounded_answer_rate, 0.0);
         assert!((quality.repetition_rate - 0.9).abs() < 1e-6);
 
@@ -1497,7 +1588,7 @@ mod tests {
             probe_count
         ];
         let quality = aggregate_probe_outcomes(&all_healthy);
-        assert!(quality.instruction_eval_passed);
+        assert!(quality.passed);
         assert_eq!(quality.grounded_answer_rate, 1.0);
 
         // Confirm the documented 0.5 pass bar is exactly where it's
@@ -1520,14 +1611,67 @@ mod tests {
         let half = probe_count / 2;
         let at_bar = aggregate_probe_outcomes(&outcomes_with_healthy_count(half));
         assert!(
-            at_bar.instruction_eval_passed,
+            at_bar.passed,
             "exactly half non-degenerate should clear the >= 0.5 bar"
         );
         let below_bar = aggregate_probe_outcomes(&outcomes_with_healthy_count(half - 1));
         assert!(
-            !below_bar.instruction_eval_passed,
+            !below_bar.passed,
             "one fewer non-degenerate probe should miss the 0.5 bar"
         );
+    }
+
+    /// Falsifier for `#750`'s cross-path combination policy: a bundle
+    /// that is healthy on the plain path but degenerate on R4G1 (the
+    /// exact divergence observed on a real local bundle -- "cut cut
+    /// cut ..." under R4G1 vs. word-salad on plain, both bad but not
+    /// identically bad) must NOT pass overall, since `ask`/`chat` will
+    /// serve the R4G1 path whenever one is present. Exercises
+    /// `combine_path_quality` directly, without loading a real compiled
+    /// bundle, following the same discipline as `#744`'s falsifier
+    /// above.
+    #[test]
+    fn combine_path_quality_requires_both_probed_paths_to_pass() {
+        let healthy = PathQuality {
+            passed: true,
+            grounded_answer_rate: 0.9,
+            repetition_rate: 0.05,
+        };
+        let degenerate = PathQuality {
+            passed: false,
+            grounded_answer_rate: 0.0,
+            repetition_rate: 0.95,
+        };
+
+        // No R4G1 graph supplied: only the plain path's verdict matters,
+        // and the r4g1_* fields stay None (not a probed-and-degenerate
+        // Some(0.0)) so a manifest without a graph is distinguishable
+        // from one that was probed and found wanting.
+        let plain_only = combine_path_quality(healthy, None);
+        assert!(plain_only.instruction_eval_passed);
+        assert_eq!(plain_only.r4g1_grounded_answer_rate, None);
+        assert_eq!(plain_only.r4g1_repetition_rate, None);
+
+        // Plain healthy, R4G1 degenerate: must fail overall -- this is
+        // the exact scenario #750 exists to catch, since #744's gate
+        // alone would have looked only at the plain path and passed it.
+        let plain_healthy_r4g1_degenerate = combine_path_quality(healthy, Some(degenerate));
+        assert!(!plain_healthy_r4g1_degenerate.instruction_eval_passed);
+        assert_eq!(
+            plain_healthy_r4g1_degenerate.r4g1_grounded_answer_rate,
+            Some(0.0)
+        );
+
+        // Both paths healthy: passes.
+        let both_healthy = combine_path_quality(healthy, Some(healthy));
+        assert!(both_healthy.instruction_eval_passed);
+
+        // Plain degenerate, R4G1 healthy: still fails -- a healthy R4G1
+        // graph cannot paper over a degenerate plain path either, since
+        // a manifest without an R4G1 graph present at serving time (or
+        // one that's later removed) falls back to the plain path.
+        let plain_degenerate_r4g1_healthy = combine_path_quality(degenerate, Some(healthy));
+        assert!(!plain_degenerate_r4g1_healthy.instruction_eval_passed);
     }
 
     fn manifest(capability: ModelCapability, passed: bool) -> ModelManifest {
@@ -1555,6 +1699,8 @@ mod tests {
                 instruction_eval_passed: passed,
                 grounded_answer_rate: 0.8,
                 repetition_rate: 0.01,
+                r4g1_grounded_answer_rate: None,
+                r4g1_repetition_rate: None,
             },
         }
     }

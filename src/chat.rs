@@ -694,19 +694,50 @@ fn recent_window_repetition_rate(tokens: &[u32], window: usize) -> f64 {
 /// clear regardless of which runtime ultimately serves it, and the one
 /// whose repetition guard (`repeated_suffix`) is weaker, making it the
 /// conservative choice for a pass/fail gate.
+///
+/// Thin wrapper over [`engine_from_bytes_with_r4g1`] with `r4g1_bytes:
+/// None` — kept as its own function so existing callers that only ever
+/// want the plain path (and any external callers of this crate) are
+/// unaffected by #750's addition of R4G1-path probing.
 pub fn engine_from_bytes(
     artifact_bytes: &[u8],
     store_bytes: &[u8],
     tokenizer_bytes: &[u8],
     max_tokens: usize,
 ) -> Result<ChatEngine, ChatError> {
+    engine_from_bytes_with_r4g1(
+        artifact_bytes,
+        store_bytes,
+        tokenizer_bytes,
+        None,
+        max_tokens,
+    )
+}
+
+/// Same as [`engine_from_bytes`], but accepts an optional R4G1 graph
+/// (`compiled.r4g1` bytes) so a caller — currently only
+/// `model::evaluate_live_quality` (#750) — can construct an engine that
+/// exercises the R4G1 beam-search path (`hologram_answer`'s `r4g1_bytes:
+/// Some(...)` branch) instead of the plain TLA/TLS1 path, the same
+/// validation and CID-binding `ChatEngineBuilder::build()` and
+/// `build_local_compiled_engine` apply to a discovered
+/// `compiled.r4g1` file.
+pub fn engine_from_bytes_with_r4g1(
+    artifact_bytes: &[u8],
+    store_bytes: &[u8],
+    tokenizer_bytes: &[u8],
+    r4g1_bytes: Option<&[u8]>,
+    max_tokens: usize,
+) -> Result<ChatEngine, ChatError> {
     let artifacts = compiler::parse_artifacts(artifact_bytes).ok_or(ChatError::InvalidArtifacts)?;
     let store = runtime::parse_store(store_bytes).ok_or(ChatError::InvalidStore)?;
+    validate_chat_r4g1_structure(r4g1_bytes)?;
+    let r4g1_bytes = bind_chat_r4g1(r4g1_bytes.map(<[u8]>::to_vec), tokenizer_bytes)?;
     let tokenizer = parse_chat_tokenizer(tokenizer_bytes)?;
     Ok(ChatEngine {
         artifacts,
         store,
-        r4g1_bytes: None,
+        r4g1_bytes,
         tokenizer,
         history: [0; MAX_CHAT_HISTORY],
         history_len: 0,
@@ -2579,7 +2610,7 @@ fn render_audit_trace_record(
 #[cfg(test)]
 mod tests {
     use super::{
-        bind_chat_r4g1, ensure_chat_prompt_encoder, parse_remote_url,
+        bind_chat_r4g1, engine_from_bytes_with_r4g1, ensure_chat_prompt_encoder, parse_remote_url,
         recent_window_repetition_rate, repeated_suffix, select_chat_tokenizer_bytes, ChatError,
     };
     use uor_r4_core::transformerless::scenarios::{
@@ -2750,6 +2781,67 @@ mod tests {
                 .as_deref(),
             Some(legacy.as_slice())
         );
+    }
+
+    /// #750 falsifier: `engine_from_bytes_with_r4g1` must actually thread
+    /// the supplied graph bytes into the resulting `ChatEngine` (bound and
+    /// validated the same way `ChatEngineBuilder::build()` does), not
+    /// silently drop them the way `engine_from_bytes` always has. A
+    /// plumbing bug here would defeat #750's entire point: the quality
+    /// gate could believe it probed the R4G1 path while actually still
+    /// only exercising the plain path.
+    #[test]
+    fn engine_from_bytes_with_r4g1_actually_threads_the_graph_bytes_through() {
+        use uor_r4_core::transformerless::{compiler, runtime};
+
+        let art_bytes = std::fs::read("crates/uor-r4-core/tests/fixtures/tless_artifacts.bin")
+            .expect("fixture artifacts present");
+        let mut store: runtime::Store =
+            (0..=compiler::STAGES).map(|_| Default::default()).collect();
+        runtime::add_evidence(&mut store, &[3, 1, 4, 1], 7, 5);
+        let store_bytes = runtime::store_bytes(&store);
+
+        let mut tokenizer_bytes = Vec::new();
+        for piece in [b"<unk>".as_slice(), b"a".as_slice(), b"b".as_slice()] {
+            tokenizer_bytes.extend_from_slice(&(piece.len() as i32).to_le_bytes());
+            tokenizer_bytes.extend_from_slice(piece);
+        }
+
+        // No graph supplied: behaves exactly like the original
+        // `engine_from_bytes` (r4g1_bytes stays None).
+        let plain_only =
+            engine_from_bytes_with_r4g1(&art_bytes, &store_bytes, &tokenizer_bytes, None, 8)
+                .expect("plain engine builds");
+        assert!(plain_only.r4g1_bytes.is_none());
+
+        // A graph is supplied: it must survive validation/binding and end
+        // up populated on the engine, so `ask()` actually takes the R4G1
+        // branch of `hologram_answer` rather than silently falling back.
+        let graph = minimal_graph([0; 32]);
+        let with_graph = engine_from_bytes_with_r4g1(
+            &art_bytes,
+            &store_bytes,
+            &tokenizer_bytes,
+            Some(&graph),
+            8,
+        )
+        .expect("engine with graph builds");
+        assert_eq!(with_graph.r4g1_bytes.as_deref(), Some(graph.as_slice()));
+
+        // A structurally invalid graph is rejected up front rather than
+        // silently ignored (mirrors `ChatEngineBuilder::build()`'s own
+        // `validate_chat_r4g1_structure` gate).
+        let result = engine_from_bytes_with_r4g1(
+            &art_bytes,
+            &store_bytes,
+            &tokenizer_bytes,
+            Some(&[0u8; 4]),
+            8,
+        );
+        match result {
+            Err(error) => assert!(matches!(error, ChatError::Io(_))),
+            Ok(_) => panic!("truncated graph bytes must be rejected"),
+        }
     }
 
     #[test]
