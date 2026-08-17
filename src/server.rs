@@ -17,6 +17,7 @@ use std::sync::{
 use std::time::{Duration, Instant};
 use uor_foundation::pipeline::PrismModel;
 
+use uor_r4_api::ReleaseBundleManifest;
 use uor_r4_core::transformerless::hf_bpe::{
     adapter_constructor, resolve_source_tokenizer, TokenizerAdapter, TokenizerAdapterKey,
     TokenizerKind,
@@ -29,6 +30,8 @@ use uor_r4_model_source::{BehaviorSource, TeacherOracle};
 use uor_r4_router::fallback::{
     run_cascade, CascadeOutcome, EngineStatus, TierFn, TierOutcome, TierResult,
 };
+
+use crate::release_bundle_loader;
 
 // The browser-triggered build must have enough teacher evidence and graph
 // capacity to be a meaningful quality attempt. These are still bounded,
@@ -1558,7 +1561,7 @@ struct CompiledModelPair {
 /// One logical source resolved to the exact physical bundle selected for
 /// serving. Keeping all of these fields together prevents reload/status from
 /// reconstructing a source name from the resolver-owned era suffix.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq)]
 struct ResolvedCompiledBundle {
     logical_name: String,
     physical_root: PathBuf,
@@ -1569,6 +1572,11 @@ struct ResolvedCompiledBundle {
     /// Exact source snapshot root recorded by the selected cover report.
     /// `None` is the historical pre-#597 state, not an inferred identity.
     source_manifest_kappa: Option<String>,
+    /// #655-C1c: additive, best-effort verification against an optional
+    /// `release-bundle.json` sidecar next to `physical_root`. `None` is the
+    /// common case today (no packaging step writes this file yet, #655-D) --
+    /// it never changes which bundle loads. See `release_bundle_loader`.
+    release_bundle: Option<ReleaseBundleManifest>,
 }
 
 /// The complete serving identity committed by startup, reload, or background
@@ -2267,6 +2275,8 @@ fn resolve_loadable_compiled_bundle_with_authority(
         current_version,
         authority,
     )?;
+    let release_bundle =
+        release_bundle_loader::verify_release_bundle_sidecar(physical_root, &graph, &teacher);
     Ok(Some(ResolvedCompiledBundle {
         logical_name: pair.logical_name.clone(),
         physical_root: physical_root.to_path_buf(),
@@ -2275,6 +2285,7 @@ fn resolve_loadable_compiled_bundle_with_authority(
         attention_operator: identity.attention.clone(),
         dense_operator: identity.dense.clone(),
         source_manifest_kappa,
+        release_bundle,
     }))
 }
 
@@ -2330,7 +2341,7 @@ fn reject_requested_suffix_source_collision(
 }
 
 #[cfg(test)]
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq)]
 enum ConfiguredManagedBundle {
     External,
     Absent,
@@ -22911,6 +22922,7 @@ mod tests {
             ),
             dense_operator: None,
             source_manifest_kappa: Some(m1.content_kappa.clone()),
+            release_bundle: None,
         };
         let error = super::validate_resolved_source_snapshot_binding(&resolved, Some(&m2), 2)
             .expect_err("serving cannot attach M2 teacher bytes to M1 graph provenance");
@@ -24305,6 +24317,7 @@ mod tests {
                 attention_operator: AttentionOperatorSpec::standard_v1(),
                 dense_operator: None,
                 source_manifest_kappa: None,
+                release_bundle: None,
             }),
             ..super::ServingModelState::default()
         };
@@ -24512,6 +24525,7 @@ mod tests {
             attention_operator: AttentionOperatorSpec::standard_v2(),
             dense_operator: None,
             source_manifest_kappa: None,
+            release_bundle: None,
         };
         let serving = Arc::new(Mutex::new(super::ServingModelState {
             active_bundle: Some(active.clone()),
@@ -24599,6 +24613,7 @@ mod tests {
                 attention_operator: attention.clone(),
                 dense_operator: Some(dense.clone()),
                 source_manifest_kappa: None,
+                release_bundle: None,
             }),
             ..super::ServingModelState::default()
         };
