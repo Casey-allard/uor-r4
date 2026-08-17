@@ -12,6 +12,7 @@ use repo_model::{codegen, Model};
 
 mod audit;
 mod gate;
+mod gnaf_conformance;
 mod gnaf_firewall;
 mod gnaf_manifest;
 mod gnaf_release_path;
@@ -44,6 +45,7 @@ fn main() -> ExitCode {
         "gnaf-scan" => gnaf_scan::gnaf_scan(&root),
         "gnaf-release-path" => gnaf_release_path::gnaf_release_path(&root),
         "gnaf-manifest" => gnaf_manifest::gnaf_manifest(&root, !write),
+        "gnaf-conformance" => gnaf_conformance::gnaf_conformance(&root, !write),
         "kappa" => kappa::run(&std::env::args().skip(2).collect::<Vec<_>>()),
         _ => {
             eprintln!(
@@ -60,9 +62,10 @@ fn main() -> ExitCode {
                  gnaf-scan         #653 SPEC 19: no sorry/admit/native_decide/axiom/unsafe/partial in GNAF code\n\
                  gnaf-release-path #653 SPEC 19/6.3: no noncomputable def/abbrev/instance on the GNAF release path (currently red: WGG-GO-1 outstanding; not in `validate`)\n\
                  gnaf-manifest     #653 SPEC 4/5: MANIFEST.json's 3 identity stages are current and acyclic (currently red: pre-existing staleness; not in `validate`)\n\
+                 gnaf-conformance  #653 SPEC 17.3: CONFORMANCE.md is deterministically generated from model/claims.json and current\n\
                  kappa <cmd>       #624: publish/fetch/tag against a kappa-registry (R4_KAPPA_REGISTRY)\n\
                  \n\
-                 --write           check-model/gnaf-root/gnaf-manifest: rewrite the generated file instead of checking it"
+                 --write           check-model/gnaf-root/gnaf-manifest/gnaf-conformance: rewrite the generated file instead of checking it"
             );
             return ExitCode::from(2);
         }
@@ -119,16 +122,25 @@ fn check_model(root: &Path, write: bool) -> Result<(), Fail> {
 
 /// The whole normative acceptance gate, in one place.
 ///
-/// `gnaf-release-path` is deliberately NOT included here: unlike the other
-/// three GNAF checks, it currently and expectedly fails against the real
-/// vendored tree (two `noncomputable def`s in `Artifact/Release.lean`,
-/// gated on WGG-GO-1 -- the same outstanding condition `Tools/gate.py`
-/// itself documents as "expected to fail... that failure is the
-/// conforming behavior"). Folding a currently-red check into the gate
-/// this repository expects to always pass would either break `validate`
-/// for everyone or -- worse -- get quietly worked around, which defeats
-/// the point of a gate that's supposed to say what's really true. It
-/// stays available as its own `cargo xtask gnaf-release-path` command.
+/// `gnaf-release-path` and `gnaf-manifest` are deliberately NOT included
+/// here: unlike the other four GNAF checks, they currently and expectedly
+/// fail against the real vendored tree. `gnaf-release-path` hits two
+/// `noncomputable def`s in `Artifact/Release.lean`, gated on WGG-GO-1 --
+/// the same outstanding condition `Tools/gate.py` itself documents as
+/// "expected to fail... that failure is the conforming behavior".
+/// `gnaf-manifest` reports the checked-in `MANIFEST.json` as stale
+/// (predates recent tree changes; see `gnaf_manifest.rs`'s module doc).
+/// Folding a currently-red check into the gate this repository expects to
+/// always pass would either break `validate` for everyone or -- worse --
+/// get quietly worked around, which defeats the point of a gate that's
+/// supposed to say what's really true. Both stay available as their own
+/// `cargo xtask gnaf-release-path` / `cargo xtask gnaf-manifest` commands.
+///
+/// `gnaf-conformance` IS included: the real vendored tree's
+/// `CONFORMANCE.md` is currently current against `model/claims.json`
+/// (verified by cross-tool round trip against `Tools/gen_conformance.py`
+/// at port time), so this check is green today and belongs in the gate
+/// that's supposed to stay green.
 fn validate(root: &Path) -> Result<(), Fail> {
     check_model(root, false)?;
     audit::audit_limits(root)?;
@@ -136,6 +148,7 @@ fn validate(root: &Path) -> Result<(), Fail> {
     gnaf_firewall::gnaf_firewall(root)?;
     gnaf_root::gnaf_root(root, true)?;
     gnaf_scan::gnaf_scan(root)?;
+    gnaf_conformance::gnaf_conformance(root, true)?;
     println!("validate: every gate passed");
     Ok(())
 }
