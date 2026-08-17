@@ -133,18 +133,32 @@ whole method is measurement.
 
 **Real limitations, stated plainly:**
 
-- **Generation quality is weak.** On out-of-distribution prompts the compiled
-  runtimes score around 1% top-1 against the teacher. On in-distribution corpus
-  replay Gate C measures ~36% top-1 on the 500k fixture. This is a research
-  engine, not a chat model.
+- **Generation quality is weak, and on the best locally compiled bundle it is
+  currently incoherent.** On out-of-distribution prompts the compiled runtimes
+  score around 1% top-1 against the teacher. On in-distribution corpus replay
+  Gate C measures ~36% top-1 on the 500k fixture, and a broader teacher (P3,
+  #509) lifts broad-text held-out top-1 to 10.2–29.0% causal — real,
+  replicated, goal-aligned signal. That signal has **not yet composed into
+  coherent multi-token output**: asked real questions through `r4 ask`, this
+  repository's largest local bundle answers in non-grammatical word-salad, and
+  smaller bundles answer with nothing (#745, open). See
+  [Which track can actually produce coherent text](docs/RESEARCH.md#which-track-can-actually-produce-coherent-text--the-honest-current-answer)
+  for the full picture — this is the project's central open question, not a
+  footnote. This is a research engine, not a chat model.
 - **Instruction following is gated, not solved.** `r4 ask` accepts only an
   imported `instruction-chat` manifest carrying a CID-addressed passing
   evaluation report, precisely so a fast continuation artifact cannot be
   presented as a question-answering model.
 - **Standalone two-pass generation is refuted**, twice, and is not coming back.
-- **The geometric router's retrieval was measured broken**, and the fix sits
-  behind a default-off knob. Until issue #490 clears its gate, the deployed
-  retrieval ranking is word overlap, not geometry.
+- **The geometric router's retrieval was measured broken, and is now fixed and
+  shipping.** #486 found `retrieve_geometric_resonance` compared a *routing*
+  query vector against the stored *content* vector — a category error that put
+  the cosine at chance. #490 (closed 2026-08-08) fixed the query to use the
+  same content-vector construction as storage, landing 0.8542 MRR; #502
+  (closed) then dropped the now-meaningful lexical term to reach the current
+  deployed default of 0.8763 MRR / 0.99 recall. Both are the shipped default
+  today — see [docs/RESEARCH.md](docs/RESEARCH.md#what-works-and-is-load-bearing)
+  for the full record.
 
 Every claim above traces to a merged measurement — see
 [docs/RESEARCH.md](docs/RESEARCH.md).
@@ -165,12 +179,19 @@ crates/
   uor-r4-model-source    teacher forward-pass port + pinned Safetensors adapter
   uor-r4-proof-model     executable proof obligations + proof-status matrix
   uor-r4-api             typed compile + engine library facade for downstream consumers
+  uor-r4-naf             UOR-NAF v1 interchange slice + GNAF claim/status vocabulary (#623)
+  repo-model             typed registries parsed from `model/*.toml`; generates CONFORMANCE.md (R1)
+  repo-conformance       BDD runner + honesty meta-gate cross-checking scenarios/IDs/tests (R2/R3)
+xtask/                   repository gates (`cargo xtask <task>`); enforces the rules in AGENTS.md
 src/                     root package: the `r4` binary, HTTP server, chat, WASM facade
 docs/                    research records, design docs, explainers, formal material
 features/                Cucumber BDD suites (teacher parity, FMM)
 scripts/                 CI gates and corpus tooling
 research/                exploratory notes (290-fmm, 395-e8)
 models/                  pinned model descriptors
+proofs/wasm-gemm-gnaf/   vendored WASM-GEMM-GNAF (#653/#742) — Lean4 proof that a WASM GEMM
+                         kernel is cost-optimal; formal reference material, NOT in the deployed
+                         dependency graph and NOT an LLM engine (see docs/gnaf_import_provenance.md)
 tests/                   root-package integration tests and BDD steps
 index.html, index.css    browser dashboard
 r4_worker.js             dashboard WASM worker
@@ -250,6 +271,36 @@ r4 import --name N --source-model M --capability continuation|instruction-chat \
           --artifacts F --store F --tokenizer F [--evaluation-report F]
 ```
 
+Source compiles write `attention_operator.json` and, for GPT-2, the optional
+`dense_operator.json` beside `corpus.meta` and `corpus.records`. These
+registry-validated records bind the host-side arithmetic that produced the
+rows; resume fails closed on a missing, malformed, different, or impossible
+attention+dense pair. `compile-recorded`, cover, evaluation, certification,
+the typed API, and the server propagate and revalidate that pair. Genuine
+historical dense absence remains readable (and Llama declares no dense
+record); it is never synthesized or relabelled.
+
+The current standard, experimental, and GPT-2 learned-absolute attention
+records are version 2. GPT-2 pairs `learned-absolute-source-attention/2` with
+`gpt2-source-dense/2`; the immutable v1/v1 pair remains accepted history.
+Current attention and dense folds use certified-native arithmetic only when a
+mechanical rounding-cell witness proves the pinned `uor-matmul` result, with
+that owner as fallback. This is offline source-teacher execution provenance,
+not a deployed matrix operation.
+
+The managed server resolves three physical roots for one logical model, in
+preference order: `<name>-attention-v2-dense-v2`, `<name>-attention-v2`, then
+`<name>`. A current GPT-2 dense/2 bundle is valid only in the composite root;
+an attention-v2/no-dense bundle may occupy a fresh base or the attention-only
+root, and a historical v1/v1 bundle may remain at the base. Resolver-owned
+suffixes are reserved and stripped by longest match. Malformed preferred
+evidence is terminal, never a reason to fall back. Compile, restart discovery,
+reload, listing, `/uor/v1/status`, and `/api/r4g1/status` use the same resolver
+and expose the selected `physical_root` plus optional attention/dense records.
+Current-v2 serving requires exact agreement among root sidecars, canonical
+corpus/observation provenance, and `graph-cover/cover_report.json`; legacy
+absence remains compatible only where explicitly documented.
+
 **Graph pipeline**
 
 ```bash
@@ -260,13 +311,31 @@ r4 transformerless observe-text \
   [--input PATH] \
   [--source DIR [--tokenizer-family FAMILY --tokenizer-version N] | --checkpoint BIN --tokenizer PATH] \
   [--out obs-text]
-r4 transformerless cover        [--corpus-meta M] [--corpus-recs R] [--artifacts A] [--tokenizer PATH] [--out cover]
+r4 transformerless cover        [--corpus-meta M] [--corpus-recs R] [--artifacts A] [--tokenizer PATH] [--out cover] [--bundle-root ROOT]
 r4 transformerless cover-sweep  [...]
-r4 transformerless score        [--corpus-meta M] [--corpus-recs R] [--artifacts A] [--tokenizer PATH] [--out DIR]
+r4 transformerless score        [--corpus-meta M] [--corpus-recs R] [--artifacts A] [--tokenizer PATH] [--out DIR] [--bundle-root ROOT]
 r4 transformerless convert-r4g1 --artifacts TLA --store TLS1 --out R4G1
+r4 transformerless copy-recorded-attention --corpus-meta M --corpus-recs R --out attention_operator.json
+r4 transformerless subsample-recorded-corpus --src-meta M --src-recs R --out-meta M2 --out-recs R2 --records N
 r4 transformerless compile-recorded --corpus-meta M --corpus-recs R --vocab-size N --out DIR
 r4 graph infill --artifact score.r4g1 --skeleton 12,_,_,_,99,_,_,_,7
 ```
+
+`subsample-recorded-corpus` is the provenance-preserving derivation path for
+scaling controls: it retains complete deterministic story runs from the
+finalized source's fixed train/held partitions and publishes records, hidden
+rows, execution sidecars, and their binding as one transaction. The historical
+`copy-recorded-attention` command is limited to legacy attention-only corpora;
+it refuses a source with dense execution provenance instead of silently
+dropping or relabelling the dense sidecar.
+
+`--bundle-root ROOT` explicitly joins cover/score output publication to that
+managed bundle's producer transaction. Without it, `--out` is an exact
+standalone output root, including a direct child of the corpus root or paths
+whose basename is `graph` or `graph-cover`. Physically present completion,
+owner, or Stage-A-seal evidence is refused at transaction start; later parent
+state never changes an already selected standalone transaction into bundle
+participation.
 
 **Certification and comparison** (need the llama2.c checkpoint — see
 [Troubleshooting](#troubleshooting))
@@ -339,8 +408,8 @@ Anything else is served as a static file from the working directory; `/` serves
 |---|---|
 | `transformerless` | Allocation-free table-native codebook retrieval, sub-millisecond on CPU |
 | `r4g1` | The validated R4G1 graph scorer; needs a loaded `score.r4g1` |
-| `attention` | Standard scaled dot-product attention on the loaded teacher (up to 256 tokens) |
-| `r4-attention` | Experimental teacher attention variant (#602 operator `experimental-r4-source-attention/1`: a 4-wide-chunked dot product with the same softmax selector as `attention`; never measured against it — see `docs/deferral_record_2026_08_05.md`) |
+| `attention` | Llama uses current standard scaled-dot-product teacher attention (`standard-source-attention/2`, up to 256 tokens); GPT-2 uses `learned-absolute-source-attention/2` |
+| `r4-attention` | Llama uses the current experimental variant (`experimental-r4-source-attention/2`): a certified-exact dot over the leading 4-wide domain with the same softmax selector as `attention`; GPT-2 still uses `learned-absolute-source-attention/2` because the legacy switch does not alter its operator. The Llama variant has never been measured against standard attention — see `docs/deferral_record_2026_08_05.md` |
 | `geometric` | Route purely geometrically and decode from manifold resonance |
 
 Omitting `engine` runs the **full cascade, r4g1-first** — it does *not* mean
@@ -372,7 +441,8 @@ owning modules is in [docs/CONFIGURATION.md](docs/CONFIGURATION.md).
 `UOR_R4_HOST`, `UOR_R4_PORT`.
 
 **Determinism and teacher math** — `TLESS_CANONICAL_DETERMINISTIC` (required for
-the cross-platform Gate E claim), `TLESS_EXACT_SCALAR`, `R4_TLESS_TLA6`,
+the cross-platform Gate E claim), `TLESS_EXACT_SCALAR` (deprecated no-op kept
+for script compatibility), `R4_TLESS_TLA6`,
 `R4_TLESS_TLA7`, `TLESS_REPIN_WRITE` (maintainer-only).
 
 **Measurement** — `R4_GATE_C_SAMPLE` (deterministic stride subsample; the sample
@@ -459,7 +529,8 @@ cd /tmp && unzip -o run.com out/model.bin tokenizer.bin -d ref
 
 **Start here**
 
-- [docs/RESEARCH.md](docs/RESEARCH.md) — what is measured, what is closed, what is open.
+- [docs/RESEARCH.md](docs/RESEARCH.md) — what is measured, what is closed, what is open, and
+  [which track can actually produce coherent text](docs/RESEARCH.md#which-track-can-actually-produce-coherent-text--the-honest-current-answer).
 - [docs/MODEL_LIFECYCLE.md](docs/MODEL_LIFECYCLE.md) — download → compile → cover → score → evaluate → import → serve.
 - [AGENTS.md](AGENTS.md) — contributor manual: gates, normative invariants, κ re-pin, long-run discipline.
 - [CONTRIBUTING.md](CONTRIBUTING.md) — how to open a PR here.
@@ -479,7 +550,11 @@ cd /tmp && unzip -o run.com out/model.bin tokenizer.bin -d ref
 [Scoring semantics](docs/scoring_semantics.md) ·
 [Formal vocabulary](docs/formal_vocabulary.md) (normative for claim wording) ·
 [Reproducibility](docs/reproducibility.md) ·
-[Performance comparison](docs/transformerless/COMPARISON.md)
+[Performance comparison](docs/transformerless/COMPARISON.md) ·
+[GNAF import provenance](docs/gnaf_import_provenance.md) (vendored formal-verification
+reference material, not an LLM engine — #653) ·
+[Matrix-operation census](docs/matrix_operation_census.md) ·
+[Serving-time model discovery](docs/SERVING_MODEL_DISCOVERY.md)
 
 **Plan** — [R⁴ graph compiler implementation plan](docs/r4_graph_compiler_implementation_plan.md) ·
 [ROADMAP.md](ROADMAP.md) · [Minimal client](docs/minimal_client.md)
