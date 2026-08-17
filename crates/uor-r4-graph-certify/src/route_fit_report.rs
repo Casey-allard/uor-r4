@@ -70,6 +70,7 @@ use uor_r4_model_source::SourceUnavailable;
 use crate::route_attention::{
     expected_route_census, replay_route_witness, run_packed, RouteAttentionReference,
 };
+use crate::route_cost::{compute_route_cost_witness, RouteCostVector};
 use crate::score::GateCMetrics;
 
 /// Schema tag of the canonical route-fit report.
@@ -387,6 +388,15 @@ pub struct RuntimeChecks {
     pub allocation_note: String,
     /// Conjunction of the checks above.
     pub pass: bool,
+    /// #653 phase-3 typed cost/resource witness (`route_cost`),
+    /// accumulated from this scope's own deployed-kernel op census.
+    /// Additive and informational: absent on records built before this
+    /// field existed (`#[serde(default)]`), and deliberately NOT part
+    /// of `pass` above or of `#606`'s quality derivation — see
+    /// `route_cost`'s module doc for why promoting it to a hard gate
+    /// is a separate, version-bumped follow-up.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cost: Option<crate::route_cost::RouteCostWitness>,
 }
 
 /// Source-parity preflight of the run: the #603 trace corpus replayed
@@ -565,6 +575,12 @@ struct HeadEvidence {
     census_mismatches: u64,
     crosscheck_failures: u64,
     epoch_failures: u64,
+    /// This head's own accumulated #653 phase-3 cost vector, folded
+    /// step by step from the deployed packed kernel's own per-step
+    /// census (not the witness/reference cross-check censuses, which
+    /// exist only to verify agreement -- see `route_cost`'s module
+    /// doc for why this is a real accounting, not a re-derivation).
+    cost: RouteCostVector,
 }
 
 const FULL_MASK: [u8; ROUTE_CODE_BYTES] = [0xff; ROUTE_CODE_BYTES];
@@ -590,6 +606,7 @@ fn packed_selection_evidence(
         census_mismatches: 0,
         crosscheck_failures: 0,
         epoch_failures: 0,
+        cost: RouteCostVector::zero(),
     };
     // ONE caller-owned state reused across every step of the head — the
     // deployed usage pattern; its epoch must advance once per step.
@@ -614,6 +631,11 @@ fn packed_selection_evidence(
             route_attention_step(&view, query, &mut state, &mut census).map_err(|error| {
                 SourceUnavailable::new(format!("packed route step failed at pos {pos}: {error}"))
             })?;
+            // #653 phase-3: fold this step's real deployed-kernel
+            // census into the head's cost accounting -- the same
+            // census the closed-form/witness checks below verify
+            // agreement against, not a separate measurement.
+            evidence.cost.accumulate_step(census);
             expected_epoch += 1;
             if state.epoch() != expected_epoch || state.selected_len() != m as usize {
                 evidence.epoch_failures += 1;
@@ -1107,7 +1129,9 @@ fn aggregate_runtime(heads: &[&HeadEvidence]) -> RuntimeChecks {
         state_epoch_pass: true,
         allocation_note: ALLOCATION_NOTE.to_owned(),
         pass: true,
+        cost: None,
     };
+    let mut combined_cost = RouteCostVector::zero();
     for evidence in heads {
         checks.steps += evidence.steps;
         if evidence.replay_failures > 0 {
@@ -1125,11 +1149,16 @@ fn aggregate_runtime(heads: &[&HeadEvidence]) -> RuntimeChecks {
         if evidence.epoch_failures > 0 {
             checks.state_epoch_pass = false;
         }
+        combined_cost = combined_cost.combine(&evidence.cost);
     }
     checks.pass = checks.witness_replay_pass
         && checks.census_closed_form_pass
         && checks.reference_crosscheck_pass
         && checks.state_epoch_pass;
+    // #653 phase-3: attach the cross-head combined cost witness.
+    // Additive/informational only -- deliberately not folded into
+    // `checks.pass` above; see `route_cost`'s module doc.
+    checks.cost = Some(compute_route_cost_witness(combined_cost));
     checks
 }
 

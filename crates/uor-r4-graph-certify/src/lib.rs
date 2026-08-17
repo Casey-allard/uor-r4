@@ -27,6 +27,8 @@ pub mod performance_certificate;
 pub mod predictive_sufficiency;
 pub mod route_attention;
 #[cfg(not(target_arch = "wasm32"))]
+pub mod route_cost;
+#[cfg(not(target_arch = "wasm32"))]
 pub mod route_fit_report;
 pub mod score;
 pub mod score_runtime;

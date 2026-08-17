@@ -449,6 +449,7 @@ fn passing_fixture() -> TargetOperatorCertificate {
         state_epoch_pass: true,
         allocation_note: "owned by the repository allocation census".to_owned(),
         pass: true,
+        cost: None,
     };
     let scopes = CERTIFICATE_SCOPES
         .iter()
