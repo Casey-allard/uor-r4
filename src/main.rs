@@ -156,6 +156,14 @@ struct AskArgs {
     /// CID manifest name/CID, or a locally compiled bundle name.
     #[arg(long, env = "TLESS_MODEL")]
     model: Option<String>,
+    /// Opt into issue #762 lever-2 weighted sampling (instead of the
+    /// default greedy argmax) on the legacy, non-R4G1 generation path,
+    /// seeded for reproducibility. Has no effect when the resolved model
+    /// carries a `compiled.r4g1` graph, since that beam-search path is
+    /// unaffected by this flag (out of #762's scope; see
+    /// `chat::ChatEngineBuilder::sample_seed`).
+    #[arg(long, value_name = "SEED")]
+    sample: Option<u32>,
     /// Question to ask. Multiple unquoted words are accepted.
     #[arg(required = true, num_args = 1..)]
     question: Vec<String>,
@@ -169,6 +177,14 @@ struct ChatArgs {
     /// Remote HTTP server URL (e.g. http://127.0.0.1:8000/v1) for client mode.
     #[arg(long)]
     remote: Option<String>,
+    /// Opt into issue #762 lever-2 weighted sampling (instead of the
+    /// default greedy argmax) on the legacy, non-R4G1 generation path,
+    /// seeded for reproducibility; the seed advances turn to turn so the
+    /// whole session is reproducible from it. Has no effect in `--remote`
+    /// client mode or when the resolved model carries a `compiled.r4g1`
+    /// graph (out of #762's scope).
+    #[arg(long, value_name = "SEED")]
+    sample: Option<u32>,
 }
 
 #[derive(Args, Debug)]
@@ -444,10 +460,13 @@ fn interactive_chat(
     Ok(())
 }
 
-fn build_chat_engine(model: Option<&str>) -> Result<ChatEngine, ChatError> {
-    ChatEngine::builder()
-        .model(model.map_or_else(default_model_reference, ToOwned::to_owned))
-        .build()
+fn build_chat_engine(model: Option<&str>, sample: Option<u32>) -> Result<ChatEngine, ChatError> {
+    let mut builder =
+        ChatEngine::builder().model(model.map_or_else(default_model_reference, ToOwned::to_owned));
+    if let Some(seed) = sample {
+        builder = builder.sample_seed(seed);
+    }
+    builder.build()
 }
 
 fn compile(args: &CompileArgs) -> Result<(), RunError> {
@@ -684,7 +703,7 @@ fn run(cli: &Cli) -> Result<(), RunError> {
     cli.configure_tless();
     match cli.command.as_ref() {
         Some(Command::Ask(args)) => {
-            let mut chat = build_chat_engine(args.model.as_deref())?;
+            let mut chat = build_chat_engine(args.model.as_deref(), args.sample)?;
             answer_once(
                 &mut chat,
                 &args.question.join(" "),
@@ -701,7 +720,7 @@ fn run(cli: &Cli) -> Result<(), RunError> {
                 )?;
                 Ok(())
             } else {
-                let mut chat = build_chat_engine(args.model.as_deref())?;
+                let mut chat = build_chat_engine(args.model.as_deref(), args.sample)?;
                 interactive_chat(&mut chat, &mut io::stdin().lock(), &mut io::stdout().lock())?;
                 Ok(())
             }

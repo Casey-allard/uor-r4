@@ -7,7 +7,7 @@ use std::io::{BufRead, Read, Write};
 
 use crate::model::{default_model_reference, ModelError, ModelObject, ModelStore};
 use uor_r4_core::transformerless::compiler::{self, Compiled};
-use uor_r4_core::transformerless::runtime::{self, Runtime, Store};
+use uor_r4_core::transformerless::runtime::{self, Runtime, SampleRng, Store};
 use uor_r4_core::transformerless::scenarios::Tokenizer;
 
 const MAX_CHAT_TOKENS: usize = 256;
@@ -125,6 +125,7 @@ impl From<ModelError> for ChatError {
 pub struct ChatEngineBuilder {
     max_tokens: usize,
     model: Option<String>,
+    sample_seed: Option<u32>,
 }
 
 impl Default for ChatEngineBuilder {
@@ -132,6 +133,7 @@ impl Default for ChatEngineBuilder {
         Self {
             max_tokens: 96,
             model: Some(default_model_reference()),
+            sample_seed: None,
         }
     }
 }
@@ -141,6 +143,22 @@ impl ChatEngineBuilder {
     #[must_use]
     pub fn max_tokens(mut self, max_tokens: usize) -> Self {
         self.max_tokens = max_tokens.clamp(1, MAX_CHAT_TOKENS);
+        self
+    }
+
+    /// Opt into issue #762 lever-2 weighted sampling on the legacy
+    /// (non-R4G1) generation path, seeded for reproducibility. Strictly
+    /// additive: omitting this call (the default) keeps every turn on the
+    /// existing deterministic `generate_greedy_into` path, byte-for-byte
+    /// unchanged. When set, the R4G1 beam-search path (used automatically
+    /// whenever a manifest carries a `compiled.r4g1` graph) is NOT
+    /// affected -- lever 2 only reaches the legacy plain-TLA path, since
+    /// that's what issue #762 measured and scoped. The seeded RNG persists
+    /// and advances across turns within one `ChatEngine`, so a fixed seed
+    /// reproduces an entire session's sampled output, not just one turn.
+    #[must_use]
+    pub fn sample_seed(mut self, seed: u32) -> Self {
+        self.sample_seed = Some(seed);
         self
     }
 
@@ -163,6 +181,7 @@ impl ChatEngineBuilder {
                     &path,
                     reference,
                     self.max_tokens,
+                    self.sample_seed,
                 );
             }
             Err(error) => return Err(error.into()),
@@ -210,6 +229,7 @@ impl ChatEngineBuilder {
             history: [0; MAX_CHAT_HISTORY],
             history_len: 0,
             max_tokens: self.max_tokens,
+            sample_rng: self.sample_seed.map(SampleRng::new),
         })
     }
 }
@@ -219,6 +239,7 @@ fn build_local_compiled_engine(
     directory: &std::path::Path,
     reference: &str,
     max_tokens: usize,
+    sample_seed: Option<u32>,
 ) -> Result<ChatEngine, ChatError> {
     let artifact_bytes = std::fs::read(directory.join("tless_artifacts.bin"))?;
     let store_bytes = std::fs::read(directory.join("tless_store.bin"))?;
@@ -255,6 +276,7 @@ fn build_local_compiled_engine(
         history: [0; MAX_CHAT_HISTORY],
         history_len: 0,
         max_tokens,
+        sample_rng: sample_seed.map(SampleRng::new),
     })
 }
 
@@ -267,6 +289,12 @@ pub struct ChatEngine {
     history: [u32; MAX_CHAT_HISTORY],
     history_len: usize,
     max_tokens: usize,
+    /// Issue #762 lever 2: `Some` opts every turn's legacy-path generation
+    /// into weighted sampling (see `ChatEngineBuilder::sample_seed`); the
+    /// RNG advances turn to turn so a session is reproducible end to end
+    /// from its initial seed. `None` (the default) leaves the existing
+    /// deterministic `generate_greedy_into` path completely untouched.
+    sample_rng: Option<SampleRng>,
 }
 
 impl ChatEngine {
@@ -289,6 +317,7 @@ impl ChatEngine {
             &mut self.history_len,
             question,
             self.max_tokens,
+            self.sample_rng.as_mut(),
         )
     }
 }
@@ -303,6 +332,7 @@ fn hologram_answer(
     history_len: &mut usize,
     question: &str,
     max_tokens: usize,
+    sample_rng: Option<&mut SampleRng>,
 ) -> Result<ChatAnswer, ChatError> {
     ensure_chat_prompt_encoder(tokenizer)?;
     let mut question_tokens = [0u32; MAX_CHAT_HISTORY];
@@ -447,11 +477,23 @@ fn hologram_answer(
 
     let mut runtime = Runtime::new(artifacts);
     let mut predictions = [runtime::Prediction::default(); MAX_CHAT_TOKENS];
-    let prediction_count = runtime.generate_greedy_into(
-        store,
-        &history[..*history_len],
-        &mut predictions[..max_tokens.min(MAX_CHAT_TOKENS)],
-    );
+    let prediction_count = match sample_rng {
+        // Issue #762 lever 2: opt-in weighted sampling on this legacy
+        // path only -- the R4G1 beam-search path above returns before
+        // this point whenever a graph is present, so `sample_rng` never
+        // applies there (out of scope; see the builder doc comment).
+        Some(rng) => runtime.generate_sampled_into(
+            store,
+            &history[..*history_len],
+            rng,
+            &mut predictions[..max_tokens.min(MAX_CHAT_TOKENS)],
+        ),
+        None => runtime.generate_greedy_into(
+            store,
+            &history[..*history_len],
+            &mut predictions[..max_tokens.min(MAX_CHAT_TOKENS)],
+        ),
+    };
     let mut generated = [0u32; MAX_CHAT_TOKENS];
     let mut generated_count = 0usize;
     for prediction in &predictions[..prediction_count] {
@@ -742,6 +784,9 @@ pub fn engine_from_bytes_with_r4g1(
         history: [0; MAX_CHAT_HISTORY],
         history_len: 0,
         max_tokens: max_tokens.clamp(1, MAX_CHAT_TOKENS),
+        // The live quality gate (#750) must stay fully deterministic --
+        // this constructor has no seed input, so sampling is never on.
+        sample_rng: None,
     })
 }
 

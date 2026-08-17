@@ -929,6 +929,77 @@ fn fallback_prediction(store: &Store) -> Prediction {
     Prediction::default()
 }
 
+/// Division-free xorshift32 PRNG (issue #762 lever 2 prototype): the same
+/// bit-mixing shape already used as a test-only fixture elsewhere in this
+/// crate (`p2_hamming_exact` in `mod.rs`), reused here as a real runtime
+/// primitive. Shift and xor only — no multiply/divide/modulo — so it stays
+/// inside this file's P-4 scan (`p4_runtime_source_scan` in `mod.rs`).
+#[derive(Debug, Clone, Copy)]
+pub struct SampleRng(u32);
+
+impl SampleRng {
+    /// A zero seed would make xorshift32 output zero forever; substitute a
+    /// fixed nonzero constant so every caller-supplied seed (including 0)
+    /// still produces a real sequence.
+    pub fn new(seed: u32) -> Self {
+        SampleRng(if seed == 0 { 0xACE1_u32 } else { seed })
+    }
+
+    fn next_u32(&mut self) -> u32 {
+        let mut x = self.0;
+        x ^= x << 13;
+        x ^= x >> 17;
+        x ^= x << 5;
+        self.0 = x;
+        x
+    }
+}
+
+/// Reduce `value` into `[0, bound)` using shift/compare/subtract only —
+/// the classic restoring binary long-division remainder algorithm, spelled
+/// out by hand because this file's P-4 contract forbids the native `/`,
+/// `%`, and `*` operators (see `p4_runtime_source_scan` in `mod.rs`, which
+/// scans this whole file including its own test code). `bound == 0`
+/// returns 0 rather than panicking; callers are not expected to sample
+/// against an empty candidate set (mirrors `predict_witness`'s own
+/// empty-`dist` handling). Exhaustively checked against the real `%`
+/// operator in `crates/uor-r4-core/tests/sampling_reduction_762.rs` —
+/// that verification lives outside this file for the same reason
+/// `dot_assignment_tests` lives in `mod.rs` rather than here. `pub` (not
+/// `pub(crate)`) because that external test file is compiled as a
+/// separate crate and can only see this crate's public API.
+pub fn reduce_into_range(mut value: u32, bound: u32) -> u32 {
+    if bound == 0 {
+        return 0;
+    }
+    if value < bound {
+        return value;
+    }
+    // Align: find the largest `shift` such that `bound << shift` does not
+    // overflow past 32 bits and is still <= value.
+    let mut shift = 0u32;
+    while bound.leading_zeros() > shift {
+        let candidate = bound << (shift + 1);
+        if candidate > value {
+            break;
+        }
+        shift += 1;
+    }
+    // Restoring division: subtract the aligned divisor at each bit
+    // position from high to low.
+    loop {
+        let divisor = bound << shift;
+        if divisor <= value {
+            value -= divisor;
+        }
+        if shift == 0 {
+            break;
+        }
+        shift -= 1;
+    }
+    value
+}
+
 /// Plain-form prediction with witness: deepest populated class argmax with
 /// backoff; canonical rule — highest count, ties to smallest token id
 /// (first in B-tree order) — identical to the kernel path.
@@ -1326,6 +1397,71 @@ impl<'a> Runtime<'a> {
         fallback
     }
 
+    /// Sampling sibling of `predict_witness` (issue #762 lever 2
+    /// prototype): draws one candidate from the resolved depth's full
+    /// distribution with probability proportional to its
+    /// repetition-penalized score, instead of always taking the argmax.
+    /// Strictly additive and opt-in — `predict_witness` and every existing
+    /// caller (`generate_greedy_into`, `r4 ask`/`r4 chat`'s default path)
+    /// are completely unchanged; nothing reaches this function unless a
+    /// caller explicitly calls it or `generate_sampled_into` below. Uses
+    /// `SampleRng`/`reduce_into_range` (below `fallback_prediction`) so no
+    /// `/`, `%`, or `*` operator appears anywhere in the selection path,
+    /// keeping this file's P-4 contract intact for the new code too — see
+    /// `p4_runtime_source_scan` in `mod.rs`, which covers this whole file.
+    pub fn predict_witness_sampled(
+        &mut self,
+        store: &Store,
+        code: &[u8; STAGES],
+        rng: &mut SampleRng,
+    ) -> Prediction {
+        for d in (0..=STAGES).rev() {
+            if let Some(dist) = store[d].get(&code[..d]) {
+                if dist.is_empty() {
+                    continue;
+                }
+                let mut total_weight = 0u32;
+                let mut candidates: Vec<(u32, u32, u32)> = Vec::with_capacity(dist.len());
+                for (&t, &cnt) in dist {
+                    self.kernel.candidate_scan();
+                    let mut score = cnt as i64;
+                    let occurrences = self.state.token_occurrences(t);
+                    if occurrences > 0 {
+                        let val = occurrences as i64;
+                        score -= (val << 10) - (val << 4) - (val << 3);
+                    }
+                    // Every candidate keeps at least weight 1 so a
+                    // heavily repetition-penalized token remains reachable
+                    // (small chance) rather than being excluded outright —
+                    // a soft version of today's deterministic policy, not
+                    // a different one.
+                    let weight = if score > 0 { score as u32 } else { 1 };
+                    total_weight = total_weight.saturating_add(weight);
+                    candidates.push((t, weight, cnt));
+                }
+                let draw = reduce_into_range(rng.next_u32(), total_weight);
+                let mut acc = 0u32;
+                let mut chosen = candidates[0];
+                for &(t, w, cnt) in &candidates {
+                    acc = acc.saturating_add(w);
+                    if draw < acc {
+                        chosen = (t, w, cnt);
+                        break;
+                    }
+                }
+                self.state.record_token(chosen.0);
+                return Prediction {
+                    token: chosen.0,
+                    depth: d as u8,
+                    count: chosen.2,
+                };
+            }
+        }
+        let fallback = fallback_prediction(store);
+        self.state.record_token(fallback.token);
+        fallback
+    }
+
     /// Kernel-counted beam prediction (issue #281): deepest level where
     /// any membership prefix has evidence; merged-distribution argmax with
     /// the same repetition-penalty state as `predict_witness`. Merging is
@@ -1493,6 +1629,38 @@ impl<'a> Runtime<'a> {
         for slot in out.iter_mut() {
             let code = self.assign_window(&window[..window_len]);
             let p = self.predict_witness(store, &code);
+            if window_len < WINDOW {
+                window[window_len] = p.token;
+                window_len += 1;
+            } else {
+                window.copy_within(1.., 0);
+                window[WINDOW - 1] = p.token;
+            }
+            *slot = p;
+        }
+        out.len()
+    }
+
+    /// Sampling sibling of `generate_greedy_into` (issue #762 lever 2
+    /// prototype): identical rolling-window mechanics, but selects each
+    /// step's token via `predict_witness_sampled` instead of
+    /// `predict_witness`. Strictly opt-in — nothing in the default
+    /// `r4 ask`/`r4 chat` path calls this; a caller must explicitly choose
+    /// it (and a seed) to get sampled generation.
+    pub fn generate_sampled_into(
+        &mut self,
+        store: &Store,
+        seed: &[u32],
+        rng: &mut SampleRng,
+        out: &mut [Prediction],
+    ) -> usize {
+        let mut window = [0u32; WINDOW];
+        let seed = &seed[seed.len().saturating_sub(WINDOW)..];
+        let mut window_len = seed.len();
+        window[..window_len].copy_from_slice(seed);
+        for slot in out.iter_mut() {
+            let code = self.assign_window(&window[..window_len]);
+            let p = self.predict_witness_sampled(store, &code, rng);
             if window_len < WINDOW {
                 window[window_len] = p.token;
                 window_len += 1;
