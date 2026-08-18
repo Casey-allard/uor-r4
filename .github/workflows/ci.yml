@@ -104,7 +104,11 @@ jobs:
       - name: Claim-wording gate (docs/formal_vocabulary.md §2.1, issue #123)
         run: python3 scripts/check_claim_wording.py
 
-      - name: Inference contract machine-code & dependency audit (issue #160)
+      # #787: honest name — this exercises the audit ENGINE against
+      # reference fixtures; the real #160 disassembly/dependency audit of
+      # the release binary has not landed, and the operation-set guarantee
+      # rests on the P-4 source-scan witnesses until it does.
+      - name: Inference audit engine self-test (source-witness level; #160 disassembly audit pending)
         run: cargo test -p uor-r4-proof-model --lib inference_audit
 
       - name: cargo fmt --check

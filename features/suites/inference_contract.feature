@@ -6,7 +6,7 @@ Feature: Normative CPU-only, multiplication-free, zero-allocation inference cont
   Scenario: Validate inference contract document and module parity
     Given the normative inference contract specification
     When audited by the inference contract verifier
-    Then contract version "1.0.0" is verified with 0 steady-state allocations
+    Then the reported contract version matches the canonical constant
     And the contract audit certification status is verified
 
   @RF-10 @build

@@ -575,95 +575,21 @@ fn property_caps_refuse_with_sanctioned_errors() {
 
 // -------------------------------------------------------- source scans --
 
-/// Comment- and string-stripped source scan for value `*` `/` `%`
-/// operators and float types on the packed lowering — the by-
-/// construction zero-float/zero-multiply/zero-divide/zero-modulo claim,
-/// machine-checked on every test run. This mirrors
-/// `route_attention_604.rs`'s equivalent scan and the P-4 extension in
-/// `uor-r4-core::transformerless::mod.rs` (which also covers this file
-/// as a contract-owned graph-runtime module).
+/// Source scan for value `*` `/` `%` operators and float types on the
+/// packed lowering — the by-construction zero-float/zero-multiply/
+/// zero-divide/zero-modulo claim, machine-checked on every test run.
+/// #787 E-c: delegates to the shared canonical scanner
+/// (`uor_r4_core::transformerless::source_scan`) instead of carrying its
+/// own divergent copy; this scan sanctions no allowances.
 fn scan_source_for_forbidden_ops(source: &str) -> Vec<String> {
-    let mut offenders = Vec::new();
-    for (line_number, raw_line) in source.lines().enumerate() {
-        let mut stripped = String::with_capacity(raw_line.len());
-        let mut in_string = false;
-        let mut escaped = false;
-        for ch in raw_line.chars() {
-            if escaped {
-                escaped = false;
-                continue;
-            }
-            if in_string {
-                if ch == '\\' {
-                    escaped = true;
-                } else if ch == '"' {
-                    in_string = false;
-                }
-                continue;
-            }
-            if ch == '"' {
-                in_string = true;
-                continue;
-            }
-            stripped.push(ch);
-        }
-        let code = match stripped.find("//") {
-            Some(comment_start) => &stripped[..comment_start],
-            None => stripped.as_str(),
-        };
-        if code.trim().is_empty() {
-            continue;
-        }
-        if code.contains("f32") || code.contains("f64") {
-            offenders.push(format!("line {}: float type: {}", line_number + 1, code));
-            continue;
-        }
-        for needle in [
-            "wrapping_mul(",
-            "saturating_mul(",
-            "checked_mul(",
-            ".mul(",
-            "wrapping_div(",
-            "saturating_div(",
-            "checked_div(",
-            ".div(",
-            "wrapping_rem(",
-            "saturating_rem(",
-            "checked_rem(",
-            ".rem(",
-        ] {
-            if code.contains(needle) {
-                offenders.push(format!("line {}: {}", line_number + 1, code));
-            }
-        }
-        let bytes = code.as_bytes();
-        for (index, &byte) in bytes.iter().enumerate() {
-            if byte != b'*' && byte != b'/' && byte != b'%' {
-                continue;
-            }
-            let operand = |c: u8| c.is_ascii_alphanumeric() || c == b'_' || c == b')' || c == b']';
-            let operand_right = |c: u8| c.is_ascii_alphanumeric() || c == b'_' || c == b'(';
-            let prev = if index >= 2 && bytes[index - 1] == b' ' {
-                bytes[index - 2]
-            } else if index >= 1 {
-                bytes[index - 1]
-            } else {
-                b' '
-            };
-            let next = if index + 2 < bytes.len() && bytes[index + 1] == b' ' {
-                bytes[index + 2]
-            } else if index + 1 < bytes.len() {
-                bytes[index + 1]
-            } else {
-                b' '
-            };
-            if operand(prev) && operand_right(next) {
-                offenders.push(format!("line {}: {}", line_number + 1, code));
-                break;
-            }
-        }
-    }
-    offenders
+    let outcome =
+        uor_r4_core::transformerless::source_scan::scan_for_forbidden_arith_and_floats(source);
+    assert!(
+        outcome.allowed.is_empty(),
+        "no p4-allow markers are sanctioned in the #643 scans:\n{}",
+        outcome.allowed.join("\n")
+    );
+    outcome.offenders
 }
 
 /// The packed lowering carries no float type and no value

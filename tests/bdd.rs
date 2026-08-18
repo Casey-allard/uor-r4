@@ -1902,10 +1902,21 @@ fn bdd_contract_audit_when(w: &mut R4g1World) {
     w.contract_report = Some(rep);
 }
 
-#[then("contract version \"1.0.0\" is verified with 0 steady-state allocations")]
+#[then("the reported contract version matches the canonical constant")]
 fn bdd_contract_ver_check(w: &mut R4g1World) {
     let rep = w.contract_report.as_ref().expect("contract report");
-    assert_eq!(rep.contract_version.to_string(), "1.0.0");
+    // #787: no hardcoded version literal — the audit found the report
+    // type at 1.0.0 while the normative document said 0.1.0; both now
+    // derive from INFERENCE_OPERATION_CONTRACT_VERSION and this step
+    // pins the report to that single source of truth.
+    let canonical = uor_r4_graph_format::INFERENCE_OPERATION_CONTRACT_VERSION;
+    assert_eq!(
+        rep.contract_version.to_string(),
+        format!(
+            "{}.{}.{}",
+            canonical.major, canonical.minor, canonical.patch
+        )
+    );
     assert!(rep.is_zero_allocation_guaranteed);
 }
 

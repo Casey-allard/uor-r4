@@ -190,55 +190,23 @@ mod tests {
     }
 
     /// P-4-style self scan: the update path uses no multiplication,
-    /// division, or modulo operator on values. Doc/comment lines are
-    /// stripped; dereference `*x` (star not preceded by an operand) is
-    /// not an arithmetic operator and does not match.
+    /// division, or modulo operator on values. #787 E-c: delegates to the
+    /// shared `source_scan` implementation instead of carrying its own
+    /// weaker copy (the old inline scanner lacked string-aware comment
+    /// stripping and the method-form needles).
     #[test]
     fn p4_update_source_scan() {
         let src = include_str!("bott_fock.rs");
-        let mut offenders = Vec::new();
-        for (ln, line) in src.lines().enumerate() {
-            let code = line.trim_start();
-            if code.starts_with("//") {
-                continue;
-            }
-            let b = code.as_bytes();
-            for (i, &ch) in b.iter().enumerate() {
-                if ch != b'*' && ch != b'/' && ch != b'%' {
-                    continue;
-                }
-                if ch == b'/'
-                    && ((i + 1 < b.len() && b[i + 1] == b'/') || (i >= 1 && b[i - 1] == b'/'))
-                {
-                    continue; // comment slashes
-                }
-                let prev = if i >= 2 && b[i - 1] == b' ' {
-                    b[i - 2]
-                } else if i >= 1 {
-                    b[i - 1]
-                } else {
-                    b' '
-                };
-                let next = if i + 2 < b.len() && b[i + 1] == b' ' {
-                    b[i + 2]
-                } else if i + 1 < b.len() {
-                    b[i + 1]
-                } else {
-                    b' '
-                };
-                let operand_l =
-                    |c: u8| c.is_ascii_alphanumeric() || c == b'_' || c == b')' || c == b']';
-                let operand_r = |c: u8| c.is_ascii_alphanumeric() || c == b'_' || c == b'(';
-                if operand_l(prev) && operand_r(next) {
-                    offenders.push(format!("line {}: {}", ln + 1, code));
-                    break;
-                }
-            }
-        }
+        let outcome = crate::transformerless::source_scan::scan_for_forbidden_arith(src);
         assert!(
-            offenders.is_empty(),
+            outcome.offenders.is_empty(),
             "arithmetic operators in the update path:\n{}",
-            offenders.join("\n")
+            outcome.offenders.join("\n")
+        );
+        assert!(
+            outcome.allowed.is_empty(),
+            "bott_fock has no sanctioned allowances:\n{}",
+            outcome.allowed.join("\n")
         );
     }
 }

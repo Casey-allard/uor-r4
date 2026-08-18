@@ -40,10 +40,12 @@ fn test_ci_audit_proof_matrix_entries() {
     );
     assert!(report_rev.verified);
 
+    // #787: Operation-Set Conformance is honestly Witnessed (source-scan
+    // evidence) until the #160 disassembly audit lands.
     let report_ops = StructuralGuaranteeVerifier::audit_proof_matrix_entry(
         &matrix,
         "Operation-Set Conformance",
-        ProofStatus::Verified,
+        ProofStatus::Witnessed,
     );
     assert!(report_ops.verified);
 }
@@ -63,6 +65,7 @@ fn test_606_certificate_obligation_links_mirror_the_matrix() {
             ProofStatus::Verified => "Verified",
             ProofStatus::ExecutableSpec => "ExecutableSpec",
             ProofStatus::DifferentialPass => "DifferentialPass",
+            ProofStatus::Witnessed => "Witnessed",
             ProofStatus::Unverified => "Unverified",
         }
     }

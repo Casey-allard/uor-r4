@@ -40,139 +40,11 @@ pub use uor_r4_graph_runtime::runtime_state::{
 mod witnesses {
     use super::runtime::{derive_popcount_table, hamming, sign_signature, OpKernel};
 
-    fn scan_for_forbidden_arith(src: &str) -> Vec<String> {
-        fn strip_line_comment(line: &str) -> &str {
-            let bytes = line.as_bytes();
-            let mut i = 0usize;
-            let mut in_string = false;
-            let mut in_char = false;
-            let mut escaped = false;
-
-            while i + 1 < bytes.len() {
-                let ch = bytes[i];
-                if escaped {
-                    escaped = false;
-                    i += 1;
-                    continue;
-                }
-                if (in_string || in_char) && ch == b'\\' {
-                    escaped = true;
-                    i += 1;
-                    continue;
-                }
-                if !in_char && ch == b'"' {
-                    in_string = !in_string;
-                    i += 1;
-                    continue;
-                }
-                if !in_string && ch == b'\'' {
-                    in_char = !in_char;
-                    i += 1;
-                    continue;
-                }
-                if !in_string && !in_char && ch == b'/' && bytes[i + 1] == b'/' {
-                    return &line[..i];
-                }
-                i += 1;
-            }
-            line
-        }
-
-        fn prev_ident(code: &str, idx: usize) -> Option<&str> {
-            let bytes = code.as_bytes();
-            if idx == 0 {
-                return None;
-            }
-            let mut j = idx;
-            while j > 0 && bytes[j - 1] == b' ' {
-                j -= 1;
-            }
-            let end = j;
-            while j > 0 && (bytes[j - 1].is_ascii_alphanumeric() || bytes[j - 1] == b'_') {
-                j -= 1;
-            }
-            if j == end {
-                None
-            } else {
-                code.get(j..end)
-            }
-        }
-
-        let mut offenders = Vec::new();
-        for (ln, line) in src.lines().enumerate() {
-            let code = strip_line_comment(line).trim_start();
-            if code.is_empty() {
-                continue;
-            }
-            let b = code.as_bytes();
-            for (i, &ch) in b.iter().enumerate() {
-                if ch != b'*' && ch != b'/' && ch != b'%' {
-                    continue;
-                }
-                if ch == b'/'
-                    && ((i + 1 < b.len() && b[i + 1] == b'/') || (i >= 1 && b[i - 1] == b'/'))
-                {
-                    continue; // comment slashes
-                }
-                let prev = if i >= 2 && b[i - 1] == b' ' {
-                    b[i - 2]
-                } else if i >= 1 {
-                    b[i - 1]
-                } else {
-                    b' '
-                };
-                let next = if i + 2 < b.len() && b[i + 1] == b' ' {
-                    b[i + 2]
-                } else if i + 1 < b.len() {
-                    b[i + 1]
-                } else {
-                    b' '
-                };
-                let operand_l =
-                    |c: u8| c.is_ascii_alphanumeric() || c == b'_' || c == b')' || c == b']';
-                let operand_r = |c: u8| c.is_ascii_alphanumeric() || c == b'_' || c == b'(';
-                if ch == b'*'
-                    && operand_r(next)
-                    && matches!(
-                        prev_ident(code, i),
-                        None | Some("if")
-                            | Some("while")
-                            | Some("for")
-                            | Some("loop")
-                            | Some("match")
-                            | Some("return")
-                            | Some("let")
-                    )
-                {
-                    continue; // pointer deref
-                }
-                if operand_l(prev) && operand_r(next) {
-                    offenders.push(format!("line {}: {}", ln + 1, code));
-                    break;
-                }
-            }
-            for needle in [
-                "wrapping_mul(",
-                "saturating_mul(",
-                "checked_mul(",
-                ".mul(",
-                "wrapping_div(",
-                "saturating_div(",
-                "checked_div(",
-                ".div(",
-                "wrapping_rem(",
-                "saturating_rem(",
-                "checked_rem(",
-                ".rem(",
-            ] {
-                if code.contains(needle) {
-                    offenders.push(format!("line {}: {}", ln + 1, code));
-                    break;
-                }
-            }
-        }
-        offenders
-    }
+    // #787 E-c: the scanner implementation moved to the shared
+    // `super::source_scan` module (one canonical copy, with falsifiers
+    // and the explicit allowance mechanism); these witnesses now consume
+    // it instead of carrying their own copy.
+    use super::source_scan::scan_for_forbidden_arith;
 
     /// P-1: the popcount table matches its definition on all 256 bytes and
     /// carries the stratum partition sizes C(8,k).
@@ -220,17 +92,52 @@ mod witnesses {
     #[test]
     fn p4_runtime_source_scan() {
         let src = include_str!("runtime.rs");
-        let offenders = scan_for_forbidden_arith(src);
+        let outcome = scan_for_forbidden_arith(src);
         assert!(
-            offenders.is_empty(),
+            outcome.offenders.is_empty(),
             "value arithmetic in runtime.rs:\n{}",
-            offenders.join("\n")
+            outcome.offenders.join("\n")
+        );
+        assert!(
+            outcome.allowed.is_empty(),
+            "runtime.rs is deployed hot path — no allowances:\n{}",
+            outcome.allowed.join("\n")
         );
     }
 
-    /// P-4 extension: all contract-owned graph-runtime modules are scanned
-    /// with the same arithmetic restrictions until machine-code audit (issue
-    /// #160) supersedes source-level witnessing.
+    /// #787 E-b: `runtime.rs` delegates its SIMD dispatch to `simd.rs`,
+    /// which is deliberately NOT arithmetic-scanned — it holds the
+    /// vectorized kernels whose intrinsics necessarily encode multiply
+    /// semantics. Its exclusion is sanctioned by per-kernel
+    /// scalar-equivalence witnesses instead: `test_simd_hamming_equivalence`
+    /// and `simd_dot_argmax_matches_scalar_reference` pin every dispatcher
+    /// to the scalar reference the P-4 scan DOES cover. This test pins the
+    /// exclusion itself: the set of runtime→simd delegation points must
+    /// not grow without this witness being revisited.
+    #[test]
+    fn p4_simd_exclusion_is_pinned_to_its_equivalence_witnesses() {
+        let src = include_str!("runtime.rs");
+        let delegations = src.matches("simd::").count();
+        assert!(
+            delegations > 0,
+            "runtime.rs no longer delegates to simd.rs — remove this pin"
+        );
+        assert_eq!(
+            delegations, 11,
+            "the runtime.rs simd:: reference count changed ({delegations} vs 11); \
+             add or revisit the scalar-equivalence witnesses for the affected \
+             kernels, then re-pin this count deliberately"
+        );
+    }
+
+    /// P-4 extension: ALL graph-runtime modules are scanned with the same
+    /// arithmetic restrictions until machine-code audit (issue #160)
+    /// supersedes source-level witnessing. #787 E-b closed the gap the
+    /// 2026-08-18 audit found: `lib.rs`, `packed_kernels.rs`,
+    /// `patch_chain.rs`, `scoring.rs`, and `vp_tree.rs` were previously
+    /// unscanned. Load-time construction code inside scanned modules may
+    /// carry an explicit `p4-allow(load-time)` marker; the exact allowance
+    /// list is pinned below so it can never grow silently.
     #[test]
     fn p4_contract_owned_graph_runtime_source_scan() {
         let modules = [
@@ -239,12 +146,24 @@ mod witnesses {
                 include_str!("../../../uor-r4-graph-runtime/src/engine.rs"),
             ),
             (
-                "route_attention.rs",
-                include_str!("../../../uor-r4-graph-runtime/src/route_attention.rs"),
+                "lib.rs",
+                include_str!("../../../uor-r4-graph-runtime/src/lib.rs"),
             ),
             (
                 "msa_selector.rs",
                 include_str!("../../../uor-r4-graph-runtime/src/msa_selector.rs"),
+            ),
+            (
+                "packed_kernels.rs",
+                include_str!("../../../uor-r4-graph-runtime/src/packed_kernels.rs"),
+            ),
+            (
+                "patch_chain.rs",
+                include_str!("../../../uor-r4-graph-runtime/src/patch_chain.rs"),
+            ),
+            (
+                "route_attention.rs",
+                include_str!("../../../uor-r4-graph-runtime/src/route_attention.rs"),
             ),
             (
                 "routing.rs",
@@ -255,20 +174,61 @@ mod witnesses {
                 include_str!("../../../uor-r4-graph-runtime/src/runtime_state.rs"),
             ),
             (
+                "scoring.rs",
+                include_str!("../../../uor-r4-graph-runtime/src/scoring.rs"),
+            ),
+            (
                 "status.rs",
                 include_str!("../../../uor-r4-graph-runtime/src/status.rs"),
             ),
+            (
+                "vp_tree.rs",
+                include_str!("../../../uor-r4-graph-runtime/src/vp_tree.rs"),
+            ),
+            // #787 E-b: the two ACTIVITY_OWNERS modules the audit found
+            // unscanned — the active-frontier owner in this crate and the
+            // wasm-router decode-support owner.
+            ("reference_state.rs", include_str!("reference_state.rs")),
+            (
+                "wasm-router/r4g1.rs",
+                include_str!("../../../../src/r4g1.rs"),
+            ),
         ];
-        let mut all = Vec::new();
+        let mut offenders = Vec::new();
+        let mut allowed = Vec::new();
         for (name, src) in modules {
-            for offender in scan_for_forbidden_arith(src) {
-                all.push(format!("{name}: {offender}"));
+            let outcome = scan_for_forbidden_arith(src);
+            for offender in outcome.offenders {
+                offenders.push(format!("{name}: {offender}"));
+            }
+            for allowance in outcome.allowed {
+                allowed.push(format!("{name}: {allowance}"));
             }
         }
         assert!(
-            all.is_empty(),
+            offenders.is_empty(),
             "value arithmetic in contract modules:\n{}",
-            all.join("\n")
+            offenders.join("\n")
+        );
+        // The complete, reviewed allowance set. Adding a `p4-allow` marker
+        // anywhere in these modules fails this witness until the new line
+        // is justified here. All three sites are VP-tree CONSTRUCTION code
+        // that runs at graph load, before the steady-state boundary: two
+        // overflow-checked word-to-byte conversions (the query path uses
+        // shifts for the same conversion) and the median split. The query
+        // path is division- and multiplication-free.
+        let expected_allowed = vec![
+            "vp_tree.rs: line 59: let proto_start = \
+             (node.prototype_word_start as usize).checked_mul(8)?; "
+                .to_string(),
+            "vp_tree.rs: line 60: let mask_start = \
+             (node.mask_word_start as usize).checked_mul(8)?; "
+                .to_string(),
+            "vp_tree.rs: line 142: let split = distances.len() / 2; ".to_string(),
+        ];
+        assert_eq!(
+            allowed, expected_allowed,
+            "the p4-allow allowance set changed — review and re-pin it"
         );
     }
 
@@ -302,6 +262,7 @@ pub mod resolution_status;
 pub mod runtime;
 pub mod scenarios;
 pub mod score_q;
+pub mod source_scan;
 // Host/compile-side tokenizer source adapter: parses `spiece.model` and
 // reports refusals on the `SourceUnavailable` surface, which is itself
 // gated off wasm32 (the deployed wasm runtime uses the exported tokenizer,

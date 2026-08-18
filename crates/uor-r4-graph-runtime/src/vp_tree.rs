@@ -56,8 +56,8 @@ impl VpTree {
             if node_id == 0 {
                 continue;
             }
-            let proto_start = (node.prototype_word_start as usize).checked_mul(8)?;
-            let mask_start = (node.mask_word_start as usize).checked_mul(8)?;
+            let proto_start = (node.prototype_word_start as usize).checked_mul(8)?; // p4-allow(load-time): overflow-checked word-to-byte conversion during VP-tree construction; the query path uses shifts
+            let mask_start = (node.mask_word_start as usize).checked_mul(8)?; // p4-allow(load-time): same load-time conversion as above
             let proto_end = proto_start.checked_add(signature_bytes)?;
             let mask_end = mask_start.checked_add(signature_bytes)?;
             let prototype = rout.get(proto_start..proto_end)?;
@@ -139,7 +139,7 @@ impl VpTree {
                 .then_with(|| points[*left_id].node_id.cmp(&points[*right_id].node_id))
         });
 
-        let split = distances.len() / 2;
+        let split = distances.len() / 2; // p4-allow(load-time): VP-tree construction split; query path is division-free
         let threshold = distances[split].1;
         for (slot, &(candidate, _)) in distances.iter().enumerate() {
             indices[slot + 1] = candidate;

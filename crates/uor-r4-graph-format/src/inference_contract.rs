@@ -181,10 +181,15 @@ pub struct InferenceContractVersion {
 }
 
 impl InferenceContractVersion {
-    pub const V1_0_0: Self = Self {
-        major: 1,
-        minor: 0,
-        patch: 0,
+    /// #787 (AUD-INV-002): derived from the one canonical contract
+    /// version, so the two version types can never drift again — the
+    /// audit found this constant at 1.0.0 while the normative document
+    /// and [`INFERENCE_OPERATION_CONTRACT_VERSION`] both said 0.1.0
+    /// (the §7 synchronization obligation covered only the latter).
+    pub const CURRENT: Self = Self {
+        major: INFERENCE_OPERATION_CONTRACT_VERSION.major,
+        minor: INFERENCE_OPERATION_CONTRACT_VERSION.minor,
+        patch: INFERENCE_OPERATION_CONTRACT_VERSION.patch,
     };
 }
 
@@ -209,7 +214,7 @@ pub struct InferenceContractVerifier;
 
 impl InferenceContractVerifier {
     pub const fn version() -> InferenceContractVersion {
-        InferenceContractVersion::V1_0_0
+        InferenceContractVersion::CURRENT
     }
 
     pub fn audit_operation(
@@ -375,6 +380,35 @@ mod tests {
         InferenceContractVerifier, OperationClass, ACTIVITY_OWNERS, BOUNDARY_ACTIVITIES,
         INFERENCE_OPERATION_CONTRACT_VERSION,
     };
+
+    /// #787 (AUD-INV-002): the three version statements — the normative
+    /// document, the canonical machine constant, and the audit-report
+    /// version type — must all agree; §7 demands the sync and this test
+    /// enforces it for all three at once. Falsifier: bump any one of them
+    /// alone and this fails.
+    #[test]
+    fn contract_versions_agree_across_document_constant_and_report_type() {
+        let doc = include_str!("../../../docs/transformerless/INFERENCE_OPERATION_CONTRACT.md");
+        let doc_version = doc
+            .lines()
+            .find_map(|line| line.trim().strip_prefix("- **Version:** "))
+            .expect("the normative document declares its version")
+            .trim();
+        let canonical = INFERENCE_OPERATION_CONTRACT_VERSION;
+        assert_eq!(
+            doc_version,
+            format!(
+                "{}.{}.{}",
+                canonical.major, canonical.minor, canonical.patch
+            ),
+            "document vs canonical constant"
+        );
+        assert_eq!(
+            InferenceContractVerifier::version().to_string(),
+            doc_version,
+            "audit-report version type vs document"
+        );
+    }
 
     #[test]
     fn every_boundary_activity_has_owner_mapping() {

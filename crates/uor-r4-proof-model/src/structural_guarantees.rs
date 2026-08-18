@@ -368,15 +368,17 @@ impl StructuralGuaranteeVerifier {
                     .to_string(),
         }
     }
-    /// Verify machine-code, allocator, and dependency CI audit compliance (#160).
+    /// Verify the inference audit ENGINE's fixture self-test (#787: this is
+    /// not the #160 machine-code audit — until that lands, the report is
+    /// honestly `Witnessed`-tier engine evidence, never `Verified`).
     pub fn verify_inference_audit_compliance(obligation_id: &str) -> ProofVerificationReport {
         use crate::inference_audit::InferenceAuditVerifier;
-        // `audit_all` is total: it always produces a report whose verdict/
-        // is_certified carry the finding (R5).
-        let report = InferenceAuditVerifier::audit_all();
+        // `audit_reference_fixtures` is total: it always produces a report
+        // whose verdict/fixtures_clean carry the finding (R5).
+        let report = InferenceAuditVerifier::audit_reference_fixtures();
 
-        let status = if report.is_certified {
-            ProofStatus::Verified
+        let status = if report.fixtures_clean {
+            ProofStatus::Witnessed
         } else {
             ProofStatus::Unverified
         };
@@ -385,9 +387,9 @@ impl StructuralGuaranteeVerifier {
             obligation_id: obligation_id.to_string(),
             kind: StructuralObligationKind::BoundedResource,
             status,
-            verified: report.is_certified,
+            verified: report.fixtures_clean,
             details: format!(
-                "Inference audit verified (verdict: {}, scanned_inst: {}, scanned_deps: {})",
+                "Inference audit engine self-test (fixture-level; #160 pending) — verdict: {}, scanned_inst: {}, scanned_deps: {}",
                 report.verdict, report.instructions_scanned, report.dependencies_scanned
             ),
         }

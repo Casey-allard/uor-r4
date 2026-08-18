@@ -7,6 +7,13 @@ pub enum ProofStatus {
     Verified,
     ExecutableSpec,
     DifferentialPass,
+    /// #787 (AUD-INV-001): the honest tier between `Verified` and
+    /// `Unverified` — the property is enforced by source-scan witnesses
+    /// (Witnessed evidence per `INFERENCE_OPERATION_CONTRACT.md` §6/§8),
+    /// not yet by the #160 machine-code audit. A `Witnessed` row passes
+    /// `verify_all` but is visibly not `Verified`, so the matrix can no
+    /// longer overclaim structural evidence it does not have.
+    Witnessed,
     Unverified,
 }
 
@@ -38,7 +45,10 @@ impl Default for ProofStatusMatrix {
                 TheoremEntry {
                     name: "Operation-Set Conformance".to_string(),
                     theorem_id: "Plan §6 / PDF §17".to_string(),
-                    status: ProofStatus::Verified,
+                    // #787: the description was always accurate; the status
+                    // overclaimed. Witnessed until the #160 disassembly
+                    // audit lands.
+                    status: ProofStatus::Witnessed,
                     description:
                         "Witnessed source scans enforce the multiplication-free inference operation contract until disassembly audit lands".to_string(),
                 },
@@ -112,6 +122,40 @@ mod tests {
     #[test]
     fn test_proof_matrix_all_verified() {
         let matrix = ProofStatusMatrix::new();
+        assert!(matrix.verify_all().is_none());
+    }
+
+    /// #787 falsifier: the matrix instrument must be able to fail — a
+    /// seeded `Unverified` entry makes `verify_all` report it. Before this
+    /// issue the default matrix hardcoded 8/8 `Verified` and no code path
+    /// ever constructed the failing status, making the instrument
+    /// indistinguishable from one that always passes.
+    #[test]
+    fn verify_all_fails_on_a_seeded_unverified_entry() {
+        let mut matrix = ProofStatusMatrix::new();
+        matrix.entries.push(TheoremEntry {
+            name: "Seeded violation".to_string(),
+            theorem_id: "TEST-787".to_string(),
+            status: ProofStatus::Unverified,
+            description: "instrument falsifier".to_string(),
+        });
+        let reason = matrix.verify_all().expect("seeded violation must fail");
+        assert!(reason.contains("TEST-787"));
+    }
+
+    /// #787: the honest tier is visible — Operation-Set Conformance is
+    /// `Witnessed` (source-scan evidence), not `Verified`, until the #160
+    /// disassembly audit lands; `verify_all` accepts it without erasing
+    /// the distinction.
+    #[test]
+    fn operation_set_conformance_is_witnessed_not_verified() {
+        let matrix = ProofStatusMatrix::new();
+        let row = matrix
+            .entries
+            .iter()
+            .find(|entry| entry.name == "Operation-Set Conformance")
+            .expect("row present");
+        assert_eq!(row.status, ProofStatus::Witnessed);
         assert!(matrix.verify_all().is_none());
     }
 }

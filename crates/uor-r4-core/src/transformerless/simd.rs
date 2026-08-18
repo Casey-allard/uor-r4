@@ -272,7 +272,7 @@ impl DotTables {
     }
 }
 
-#[cfg(not(target_arch = "aarch64"))]
+#[cfg_attr(target_arch = "aarch64", allow(dead_code))] // #787: scalar-reference helper, all targets
 #[inline]
 fn dot_term_scalar_decoded(work: i64, shift: i64, negative: i64) -> i64 {
     if shift == 64 {
@@ -290,7 +290,7 @@ fn dot_term_scalar_decoded(work: i64, shift: i64, negative: i64) -> i64 {
     }
 }
 
-#[cfg(not(target_arch = "aarch64"))]
+#[cfg_attr(target_arch = "aarch64", allow(dead_code))] // #787: scalar-reference helper, all targets
 #[inline]
 fn dot_term_scalar(work: i64, term: &DotTermVector, lane: usize) -> i64 {
     if term.active[lane] == 0 {
@@ -299,7 +299,13 @@ fn dot_term_scalar(work: i64, term: &DotTermVector, lane: usize) -> i64 {
     dot_term_scalar_decoded(work, term.shifts[lane], term.negative[lane])
 }
 
-#[cfg(not(target_arch = "aarch64"))]
+// #787 E-b: compiled on EVERY target — this is the normative scalar
+// reference the per-kernel equivalence witnesses compare the SIMD
+// dispatchers against (`simd_dot_argmax_matches_scalar_reference`).
+// It was previously cfg'd off aarch64, which is exactly why no scalar
+// witness for the NEON dot path could exist. On aarch64 the dispatcher
+// itself never calls it outside tests, hence the allow.
+#[cfg_attr(target_arch = "aarch64", allow(dead_code))]
 pub(crate) fn dot_argmax_scalar(stage: &DotStage, work: &[i64; D]) -> u8 {
     let mut scores = [0i64; K];
     match &stage.data {
@@ -692,6 +698,46 @@ mod tests {
             prop_assert_eq!(
                 dot_argmax(&compact.stages[0], &work),
                 dot_argmax(&legacy.stages[0], &work)
+            );
+        }
+
+        /// #787 E-b: the missing scalar witness for the `dot_argmax`
+        /// dispatcher. The layouts test above compares two layouts through
+        /// the SAME dispatcher — on an AVX2/NEON host neither side is
+        /// scalar, so it cannot catch a vectorized-kernel divergence. This
+        /// pins the dispatcher (whatever backend it selects on the running
+        /// host) to `dot_argmax_scalar`, the P-4-scanned reference — the
+        /// same shape as `test_simd_hamming_equivalence`, completing the
+        /// per-kernel equivalence set that sanctions `simd.rs`'s exclusion
+        /// from the arithmetic source scan.
+        #[test]
+        fn simd_dot_argmax_matches_scalar_reference(
+            weights in proptest::collection::vec(-1.0f32..1.0, K),
+            work_seed in proptest::collection::vec(-4096i64..4096, D),
+        ) {
+            let mut table = vec![0u16; D * K];
+            for class in 0..K {
+                for dimension in 0..D {
+                    table[class * D + dimension] =
+                        compiler::pack_dot_entry(weights[class] * ((dimension % 5) as f32 - 2.0));
+                }
+            }
+            let packed = vec![table];
+
+            let compact = DotTables::from_packed(&packed).expect("valid dot table");
+            let legacy =
+                DotTables::from_packed_forced_two_term(&packed).expect("valid dot table");
+
+            let mut work = [0i64; D];
+            work.copy_from_slice(&work_seed);
+
+            prop_assert_eq!(
+                dot_argmax(&compact.stages[0], &work),
+                dot_argmax_scalar(&compact.stages[0], &work)
+            );
+            prop_assert_eq!(
+                dot_argmax(&legacy.stages[0], &work),
+                dot_argmax_scalar(&legacy.stages[0], &work)
             );
         }
 

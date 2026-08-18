@@ -267,22 +267,23 @@ fn ngram_lookup_kernel_is_integer_only_by_source_scan() {
     let end = source
         .find("impl<'a> R4G1Runtime")
         .expect("runtime implementation follows lookup helpers");
-    // Strip line comments before scanning so the kernel functions can carry
-    // doc comments (which necessarily contain '/') without weakening the
-    // check on the code itself. No string literal in this region contains
-    // "//", so the naive split is exact here (#785; scanner consolidation
-    // tracked by #787).
-    let kernel = source[start..end]
-        .lines()
-        .map(|line| line.split("//").next().unwrap_or(""))
-        .collect::<Vec<_>>()
-        .join("\n");
-    for forbidden in ["*", "/", "f32", "f64"] {
-        assert!(
-            !kernel.contains(forbidden),
-            "NGRAM lookup kernel contains forbidden operation/type {forbidden:?}"
-        );
-    }
+    // #787 E-c: the naive per-file scan this test carried was consolidated
+    // onto the shared canonical scanner (comment- and literal-aware value
+    // `*` `/` `%` detection, method-form needles, float tokens). The
+    // kernel region sanctions no allowances.
+    let outcome = uor_r4_core::transformerless::source_scan::scan_for_forbidden_arith_and_floats(
+        &source[start..end],
+    );
+    assert!(
+        outcome.offenders.is_empty(),
+        "NGRAM lookup kernel contains forbidden operations/types:\n{}",
+        outcome.offenders.join("\n")
+    );
+    assert!(
+        outcome.allowed.is_empty(),
+        "no p4-allow markers are sanctioned in the NGRAM kernel:\n{}",
+        outcome.allowed.join("\n")
+    );
 }
 
 #[test]

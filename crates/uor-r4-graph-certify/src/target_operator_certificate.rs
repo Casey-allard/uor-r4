@@ -478,7 +478,9 @@ pub fn route_attention_obligation_links() -> Vec<ObligationLink> {
         link(
             "Plan §6 / PDF §17",
             "Operation-Set Conformance",
-            "Verified",
+            // #787: mirrors the proof matrix's honest Witnessed status —
+            // source-scan evidence until the #160 disassembly audit lands.
+            "Witnessed",
             "the multiplication-free operation contract the packed lowering runs under \
              (P-4 source scan; XOR/popcount/add/compare/table-read)",
         ),
