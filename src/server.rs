@@ -3783,22 +3783,20 @@ fn persisted_engine_preference() -> Option<String> {
 /// specifically and not the separately-pathed `TIER_TRANSFORMERLESS`
 /// tier of the same colloquial adjective.
 ///
-/// **Dormant for #655-E1**: this type, [`EngineProfile::from_persisted`],
-/// and [`engine_profile_preference`] are additive only — nothing in
-/// [`run_serving_cascade`] consults them yet, so no existing install's
-/// behavior changes by this landing. Wiring a profile into the cascade's
-/// tier construction is #655-E2, which the design doc flags as needing
-/// its own confirmation before it merges, since (unlike this dormant
-/// slice) it changes default runtime tier reachability for any install
-/// without a persisted `engine_profile.txt`.
-#[allow(dead_code)] // #655-E1: dormant until #655-E2 wires it into run_serving_cascade
+/// **Wired since #655-E2**: [`run_serving_cascade`] now takes an
+/// `EngineProfile` and restricts tier admission to `TIER_R4G1` alone under
+/// `Production` (see `tier_admitted`/`profile_restricts_to_r4g1`); an
+/// explicit non-r4g1 request under `Production` is a typed decline
+/// (`production_profile_decline`), while a merely-persisted preference for
+/// a disallowed tier stays silently inert. Installs with no persisted
+/// `engine_profile.txt` fail safe to `Production` (only r4g1 reachable).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum EngineProfile {
-    /// Only `TIER_R4G1` may ever serve. #655-E2 is expected to make this
-    /// the fail-safe default for installs with no persisted preference.
+    /// Only `TIER_R4G1` may ever serve — the default for installs with no
+    /// persisted preference (fail-safe).
     Production,
     /// Today's exact issue-#248 cascade behavior, byte for byte
-    /// unchanged — the "else" branch of any future profile check.
+    /// unchanged — the "else" branch of every profile check.
     Experimental,
 }
 
@@ -3809,7 +3807,6 @@ impl EngineProfile {
     /// `Production` — fail-safe: a missing, empty, or corrupt file must
     /// never silently grant broader tier reach than intended. Mirrors
     /// `resolve_pinned_tier`'s own unknown-value-falls-back convention.
-    #[allow(dead_code)] // #655-E1: dormant until #655-E2 wires it into run_serving_cascade
     fn from_persisted(raw: Option<&str>) -> Self {
         match raw.map(str::trim) {
             Some("experimental") => EngineProfile::Experimental,
@@ -3826,7 +3823,6 @@ impl EngineProfile {
 /// the active profile should pass this straight to
 /// [`EngineProfile::from_persisted`], which already treats `None` the
 /// same as any other non-`"experimental"` value.
-#[allow(dead_code)] // #655-E1: dormant until #655-E2 wires it into run_serving_cascade
 fn engine_profile_preference() -> Option<String> {
     let raw = fs::read_to_string(".uor-models/engine_profile.txt").ok()?;
     let trimmed = raw.trim();
@@ -3853,14 +3849,82 @@ fn resolve_pinned_tier(requested: Option<&str>) -> Option<&'static str> {
         Some(value) if !value.is_empty() => Some(value.to_owned()),
         _ => persisted_engine_preference(),
     };
-    match requested.as_deref() {
-        Some("transformerless" | "transformerless-legacy") => Some(TIER_TRANSFORMERLESS),
-        Some("attention") => Some(TIER_ATTENTION),
-        Some("r4-attention") => Some(TIER_R4_ATTENTION),
-        Some("geometric") => Some(TIER_GEOMETRIC),
-        // "r4g1" (the persisted CLI default) and "auto"/unknown: full cascade.
+    requested.as_deref().and_then(tier_for_engine_name)
+}
+
+/// Map a recognized non-default engine name to its cascade tier. "r4g1"
+/// (the persisted CLI default) and "auto"/empty/unknown/"ollama" all map to
+/// `None` here, same as `resolve_pinned_tier`. Factored out of
+/// `resolve_pinned_tier` so #655-E2 can judge an *explicit* per-request
+/// `engine` value on its own, without `resolve_pinned_tier`'s persisted-file
+/// fallback folding it into the same case as a stale `last_engine.txt`
+/// selection — the two need different treatment under the `production`
+/// profile (see `production_profile_decline`).
+fn tier_for_engine_name(name: &str) -> Option<&'static str> {
+    match name {
+        "transformerless" | "transformerless-legacy" => Some(TIER_TRANSFORMERLESS),
+        "attention" => Some(TIER_ATTENTION),
+        "r4-attention" => Some(TIER_R4_ATTENTION),
+        "geometric" => Some(TIER_GEOMETRIC),
         _ => None,
     }
+}
+
+/// #655-E2: whether `profile` restricts the serving cascade to `TIER_R4G1`
+/// alone. The single source of truth both `tier_admitted` and
+/// `run_serving_cascade`'s teacher/attention lane consult, so the two
+/// checks can never drift apart.
+fn profile_restricts_to_r4g1(profile: EngineProfile) -> bool {
+    matches!(profile, EngineProfile::Production)
+}
+
+/// #655-E2: whether `tier` may enter the serving cascade's tier list,
+/// given the resolved pin and the active engine profile. Under
+/// `Production`, only `TIER_R4G1` is ever admitted — regardless of what
+/// `pinned` names, so a *persisted* preference for a disallowed tier is
+/// silently inert (r4g1 still runs normally) rather than erroring; only an
+/// *explicit* per-request ask for a disallowed tier is treated
+/// differently, and that's handled before `run_serving_cascade` is even
+/// called (`production_profile_decline`), not here. Under `Experimental`
+/// this reproduces `run_serving_cascade`'s pre-#655-E2 `include` closure
+/// exactly: unpinned admits every tier, pinned admits only its own tier.
+fn tier_admitted(tier: &'static str, pinned: Option<&'static str>, profile: EngineProfile) -> bool {
+    if profile_restricts_to_r4g1(profile) {
+        tier == TIER_R4G1
+    } else {
+        pinned.is_none() || pinned == Some(tier)
+    }
+}
+
+/// #655-E2: the honest terminal for an *explicit*, per-request `engine`
+/// value naming a non-r4g1 tier while the `Production` profile is active.
+/// Declined plainly rather than silently substituting r4g1 for what was
+/// actually asked — matching this project's typed-decline-over-silent-
+/// substitution convention (#655-E0's decision record, and the same
+/// existing D4-abstention-policy spirit `declined_by_all_response` already
+/// follows). Reuses that exact JSON shape (no new terminal state) via an
+/// empty-trail `ServingCascade`, so callers get the identical
+/// `"outcome": "declined_by_all"` contract regardless of which reason
+/// produced it. A *persisted* (non-explicit) preference for a disallowed
+/// tier never reaches this function — see `tier_admitted`.
+fn production_profile_decline(tier: &'static str) -> (u16, serde_json::Value) {
+    let cascade = ServingCascade {
+        outcome: CascadeOutcome {
+            text: None,
+            served_by: None,
+            trail: Vec::new(),
+        },
+        r4g1: R4g1Signal {
+            error: Some(format!(
+                "engine \"{tier}\" is unavailable under the production engine profile"
+            )),
+            ..R4g1Signal::default()
+        },
+        geometric: None,
+        usage: None,
+    };
+    let generation_mode = derive_generation_mode(&cascade, Some(tier));
+    declined_by_all_response(&cascade, Some(tier), &generation_mode)
 }
 
 /// R4G1 tier: a D4 policy abstention is typed `Abstained` — a declared
@@ -4010,6 +4074,14 @@ fn tokenizer_unavailable_is_terminal(
 /// lands in the trail; a run where no tier serves returns `text: None` so
 /// the caller can answer with an honest `declined_by_all` terminal instead
 /// of serving a placeholder string as if it were generated.
+///
+/// #655-E2: `profile` additionally gates tier admission via
+/// `tier_admitted`/`profile_restricts_to_r4g1` — under `Production`, only
+/// `TIER_R4G1` ever enters the tier list, regardless of `pinned` (an
+/// explicit non-r4g1 request under `Production` is intercepted by the
+/// caller before this function is even called; see
+/// `production_profile_decline`). Under `Experimental` this function's
+/// behavior is byte-for-byte unchanged from before #655-E2.
 #[allow(clippy::too_many_arguments)]
 fn run_serving_cascade(
     router: &mut UorR4Router,
@@ -4022,6 +4094,7 @@ fn run_serving_cascade(
     gamma: f64,
     session_signature: Option<&[u8]>,
     pinned: Option<&'static str>,
+    profile: EngineProfile,
 ) -> ServingCascade {
     let ServingModelState {
         r4g1,
@@ -4048,7 +4121,7 @@ fn run_serving_cascade(
         let signal_ref = &mut signal;
         let geometric_ref = &mut geometric;
         let usage_ref = &usage;
-        let include = |tier: &'static str| pinned.is_none() || pinned == Some(tier);
+        let include = |tier: &'static str| tier_admitted(tier, pinned, profile);
         let mut tiers: Vec<(&'static str, TierFn<'_>)> = Vec::new();
         if include(TIER_R4G1) {
             tiers.push((
@@ -4073,54 +4146,60 @@ fn run_serving_cascade(
                 }),
             ));
         }
-        if pinned.is_none() && !tokenizer_terminal {
-            tiers.push((
-                TIER_TEACHER_ORACLE,
-                Box::new(move || {
-                    attention_tier(
-                        oracle,
-                        source_tokenizer,
-                        prompt,
-                        max_tokens.max(128),
-                        teacher_r4_attention_for_request(None, *teacher_default_r4_attention),
-                        usage_ref,
-                    )
-                }),
-            ));
-        } else if pinned == Some(TIER_ATTENTION) {
-            tiers.push((
-                TIER_ATTENTION,
-                Box::new(move || {
-                    attention_tier(
-                        oracle,
-                        source_tokenizer,
-                        prompt,
-                        max_tokens.max(256),
-                        teacher_r4_attention_for_request(
-                            Some(TIER_ATTENTION),
-                            *teacher_default_r4_attention,
-                        ),
-                        usage_ref,
-                    )
-                }),
-            ));
-        } else if pinned == Some(TIER_R4_ATTENTION) {
-            tiers.push((
-                TIER_R4_ATTENTION,
-                Box::new(move || {
-                    attention_tier(
-                        oracle,
-                        source_tokenizer,
-                        prompt,
-                        max_tokens.max(256),
-                        teacher_r4_attention_for_request(
-                            Some(TIER_R4_ATTENTION),
-                            *teacher_default_r4_attention,
-                        ),
-                        usage_ref,
-                    )
-                }),
-            ));
+        // #655-E2: the teacher/attention lane is entirely off-limits under
+        // `Production` — not just gated per-tier like `include` above, since
+        // none of TIER_TEACHER_ORACLE/TIER_ATTENTION/TIER_R4_ATTENTION are
+        // ever `TIER_R4G1`.
+        if !profile_restricts_to_r4g1(profile) {
+            if pinned.is_none() && !tokenizer_terminal {
+                tiers.push((
+                    TIER_TEACHER_ORACLE,
+                    Box::new(move || {
+                        attention_tier(
+                            oracle,
+                            source_tokenizer,
+                            prompt,
+                            max_tokens.max(128),
+                            teacher_r4_attention_for_request(None, *teacher_default_r4_attention),
+                            usage_ref,
+                        )
+                    }),
+                ));
+            } else if pinned == Some(TIER_ATTENTION) {
+                tiers.push((
+                    TIER_ATTENTION,
+                    Box::new(move || {
+                        attention_tier(
+                            oracle,
+                            source_tokenizer,
+                            prompt,
+                            max_tokens.max(256),
+                            teacher_r4_attention_for_request(
+                                Some(TIER_ATTENTION),
+                                *teacher_default_r4_attention,
+                            ),
+                            usage_ref,
+                        )
+                    }),
+                ));
+            } else if pinned == Some(TIER_R4_ATTENTION) {
+                tiers.push((
+                    TIER_R4_ATTENTION,
+                    Box::new(move || {
+                        attention_tier(
+                            oracle,
+                            source_tokenizer,
+                            prompt,
+                            max_tokens.max(256),
+                            teacher_r4_attention_for_request(
+                                Some(TIER_R4_ATTENTION),
+                                *teacher_default_r4_attention,
+                            ),
+                            usage_ref,
+                        )
+                    }),
+                ));
+            }
         }
         if include(TIER_GEOMETRIC) && !tokenizer_terminal {
             tiers.push((
@@ -14783,6 +14862,22 @@ fn generate_serving_completion(
     // Issue #248: the single serving cascade, honoring an engine pin from the
     // request or the persisted `/engine` selection.
     let pinned = resolve_pinned_tier(engine);
+    // #655-E2: an explicit, per-request `engine` naming a disallowed tier
+    // under the `production` profile is a typed decline, not a silent
+    // r4g1 substitution — checked against the raw request field directly
+    // (never the persisted-fallback-collapsed `pinned` above), so a stale
+    // persisted preference stays silently inert instead of erroring.
+    let profile = EngineProfile::from_persisted(engine_profile_preference().as_deref());
+    let explicit_disallowed_tier = engine
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .and_then(tier_for_engine_name);
+    if profile_restricts_to_r4g1(profile) {
+        if let Some(tier) = explicit_disallowed_tier {
+            let (status, body) = production_profile_decline(tier);
+            return GenerationOutcome::Declined { status, body };
+        }
+    }
     // One serving-state guard spans the complete request. Reload and
     // background compilation prepare off-lock and wait to swap until routing
     // and generation finish against one internally consistent tuple.
@@ -14797,6 +14892,7 @@ fn generate_serving_completion(
         gamma,
         Some(&session_signature),
         pinned,
+        profile,
     );
     let generation_mode = derive_generation_mode(&cascade, pinned);
     let Some(final_response_text) = cascade.outcome.text.clone() else {
@@ -15848,6 +15944,26 @@ fn handle_connection(
         // `/engine` selection) pins the cascade to that single tier;
         // "auto"/empty and the legacy `ollama` alias run the full cascade.
         let pinned = resolve_pinned_tier(payload.engine.as_deref());
+        // #655-E2: an explicit, per-request `engine` naming a disallowed
+        // tier under the `production` profile is a typed decline, not a
+        // silent r4g1 substitution — checked against the raw request field
+        // directly (never the persisted-fallback-collapsed `pinned` above),
+        // so a stale persisted preference stays silently inert instead of
+        // erroring.
+        let profile = EngineProfile::from_persisted(engine_profile_preference().as_deref());
+        let explicit_disallowed_tier = payload
+            .engine
+            .as_deref()
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .and_then(tier_for_engine_name);
+        if profile_restricts_to_r4g1(profile) {
+            if let Some(tier) = explicit_disallowed_tier {
+                let (status, body) = production_profile_decline(tier);
+                send_json_response(stream, status, &body.to_string());
+                return;
+            }
+        }
 
         let mut installed = serving.lock().unwrap();
         let mut router_guard = router.lock().unwrap();
@@ -15940,6 +16056,7 @@ fn handle_connection(
             gamma,
             Some(&session_signature),
             pinned,
+            profile,
         );
 
         // Legacy response fields, derived from the trail so consumers keep
@@ -26360,9 +26477,8 @@ mod tests {
         );
     }
 
-    /// #655-E1: `EngineProfile::from_persisted` is dormant (nothing calls
-    /// it from `run_serving_cascade` yet, per the design doc), but its
-    /// parsing logic is real and must fail safe. Mirrors
+    /// `EngineProfile::from_persisted`'s parsing logic must fail safe.
+    /// Mirrors
     /// `r4g1_default_selection_never_pins_but_explicit_engines_do`'s own
     /// style of testing the pure decision function directly rather than
     /// the filesystem read around it — `persisted_engine_preference`
@@ -26413,6 +26529,155 @@ mod tests {
             EngineProfile::Production,
             "exact match only -- 'Experimental' with different casing fails safe, it does not \
              opt in by accident"
+        );
+    }
+
+    /// #655-E2: `tier_for_engine_name` recognizes exactly the pinnable
+    /// tiers and nothing else — the same set `resolve_pinned_tier` maps,
+    /// minus its persisted-file fallback (that split is the whole point:
+    /// #655-E2 needs to judge an explicit request on its own).
+    #[test]
+    fn tier_for_engine_name_recognizes_exactly_the_pinnable_tiers() {
+        use super::tier_for_engine_name;
+
+        assert_eq!(
+            tier_for_engine_name("transformerless"),
+            Some(super::TIER_TRANSFORMERLESS)
+        );
+        assert_eq!(
+            tier_for_engine_name("transformerless-legacy"),
+            Some(super::TIER_TRANSFORMERLESS)
+        );
+        assert_eq!(
+            tier_for_engine_name("attention"),
+            Some(super::TIER_ATTENTION)
+        );
+        assert_eq!(
+            tier_for_engine_name("r4-attention"),
+            Some(super::TIER_R4_ATTENTION)
+        );
+        assert_eq!(
+            tier_for_engine_name("geometric"),
+            Some(super::TIER_GEOMETRIC)
+        );
+        // "r4g1" is the allowed tier itself, not a "disallowed pin" --
+        // never resolved by this function (mirrors resolve_pinned_tier).
+        assert_eq!(tier_for_engine_name("r4g1"), None);
+        assert_eq!(tier_for_engine_name("auto"), None);
+        assert_eq!(tier_for_engine_name("ollama"), None);
+        assert_eq!(tier_for_engine_name(""), None);
+        assert_eq!(tier_for_engine_name("garbage-value"), None);
+    }
+
+    /// #655-E2: `profile_restricts_to_r4g1` is the single source of truth
+    /// for what "production" means structurally -- true only for
+    /// `Production`, false for `Experimental`.
+    #[test]
+    fn profile_restricts_to_r4g1_true_only_for_production() {
+        use super::{profile_restricts_to_r4g1, EngineProfile};
+
+        assert!(profile_restricts_to_r4g1(EngineProfile::Production));
+        assert!(!profile_restricts_to_r4g1(EngineProfile::Experimental));
+    }
+
+    /// #655-E2's core enforcement decision, proven directly without
+    /// constructing a real `ServingModelState`/router/tless triple:
+    /// under `Production`, only `TIER_R4G1` is ever admitted, regardless
+    /// of what `pinned` names -- this is exactly decision #3 from
+    /// `docs/serving_engine_profiles_655_e.md` ("a persisted preference
+    /// for a disallowed tier stays silently inert"): a stale
+    /// `last_engine.txt="attention"` reaching `run_serving_cascade` as
+    /// `pinned = Some(TIER_ATTENTION)` still admits r4g1 and nothing else.
+    #[test]
+    fn tier_admitted_restricts_every_tier_but_r4g1_under_production() {
+        use super::{tier_admitted, EngineProfile, TIER_ATTENTION, TIER_R4_ATTENTION};
+
+        let all_tiers = [
+            super::TIER_R4G1,
+            super::TIER_TRANSFORMERLESS,
+            super::TIER_TEACHER_ORACLE,
+            super::TIER_GEOMETRIC,
+            TIER_ATTENTION,
+            TIER_R4_ATTENTION,
+        ];
+        // Unpinned (the ordinary-request case): only r4g1 admitted.
+        for tier in all_tiers {
+            let admitted = tier_admitted(tier, None, EngineProfile::Production);
+            assert_eq!(
+                admitted,
+                tier == super::TIER_R4G1,
+                "tier {tier} admitted={admitted} under Production with no pin"
+            );
+        }
+        // Pinned to a disallowed tier (e.g. a stale persisted preference):
+        // r4g1 is STILL admitted (silently inert, decision #3) and the
+        // pinned-for tier is NOT specially admitted either.
+        for tier in all_tiers {
+            let admitted = tier_admitted(tier, Some(TIER_ATTENTION), EngineProfile::Production);
+            assert_eq!(
+                admitted,
+                tier == super::TIER_R4G1,
+                "tier {tier} admitted={admitted} under Production pinned to attention"
+            );
+        }
+    }
+
+    /// #655-E2 must not change `Experimental` behavior at all --
+    /// `tier_admitted` under `Experimental` reproduces
+    /// `run_serving_cascade`'s pre-#655-E2 `include` closure exactly:
+    /// unpinned admits every tier, pinned admits only its own tier.
+    #[test]
+    fn tier_admitted_matches_pre_e2_include_closure_under_experimental() {
+        use super::{tier_admitted, EngineProfile, TIER_ATTENTION, TIER_R4_ATTENTION};
+
+        let all_tiers = [
+            super::TIER_R4G1,
+            super::TIER_TRANSFORMERLESS,
+            super::TIER_TEACHER_ORACLE,
+            super::TIER_GEOMETRIC,
+            TIER_ATTENTION,
+            TIER_R4_ATTENTION,
+        ];
+        for tier in all_tiers {
+            assert!(
+                tier_admitted(tier, None, EngineProfile::Experimental),
+                "tier {tier} must be admitted when unpinned under Experimental"
+            );
+        }
+        for pinned_tier in all_tiers {
+            for tier in all_tiers {
+                let admitted = tier_admitted(tier, Some(pinned_tier), EngineProfile::Experimental);
+                assert_eq!(
+                    admitted,
+                    tier == pinned_tier,
+                    "tier {tier} admitted={admitted} under Experimental pinned to {pinned_tier}"
+                );
+            }
+        }
+    }
+
+    /// #655-E2: the typed decline for an explicit non-r4g1 request under
+    /// `production` names the disabled tier, reuses the existing
+    /// `declined_by_all` JSON contract (no new terminal state -- #655-E0's
+    /// decision record), and is a 503 (no tier was even attempted, so
+    /// there is nothing to have declared an abstention).
+    #[test]
+    fn production_profile_decline_names_the_disabled_tier_and_declines() {
+        let (status, body) = super::production_profile_decline(super::TIER_ATTENTION);
+
+        assert_eq!(status, 503);
+        assert_eq!(body["outcome"], "declined_by_all");
+        assert_eq!(body["pinned_engine"], "attention");
+        assert_eq!(body["engine"], "attention");
+        assert_eq!(body["text"], "");
+        let error = body["error"].as_str().expect("error is a string");
+        assert!(
+            error.contains("attention") && error.contains("production engine profile"),
+            "error message should name the disabled tier and the profile that disabled it: {error}"
+        );
+        assert!(
+            body["cascade_trail"].as_array().is_some_and(Vec::is_empty),
+            "no tier was ever attempted for an explicit-request decline"
         );
     }
 
