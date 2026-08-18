@@ -59,7 +59,8 @@ pub struct ChatAnswer {
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct DecodeWitness {
     /// Which decode surface produced the answer: `"r4g1-beam"`,
-    /// `"tla-plain-greedy"`, or `"tla-plain-sampled"`. Empty only for
+    /// `"r4g1-sampled"`, `"tla-plain-greedy"`, or `"tla-plain-sampled"`.
+    /// Empty only for
     /// answers constructed outside [`hologram_answer`] (test stubs).
     pub engine: &'static str,
     /// R4G1 path: candidate queries that resolved **without** consulting
@@ -178,16 +179,17 @@ impl ChatEngineBuilder {
         self
     }
 
-    /// Opt into issue #762 lever-2 weighted sampling on the legacy
-    /// (non-R4G1) generation path, seeded for reproducibility. Strictly
-    /// additive: omitting this call (the default) keeps every turn on the
-    /// existing deterministic `generate_greedy_into` path, byte-for-byte
-    /// unchanged. When set, the R4G1 beam-search path (used automatically
-    /// whenever a manifest carries a `compiled.r4g1` graph) is NOT
-    /// affected -- lever 2 only reaches the legacy plain-TLA path, since
-    /// that's what issue #762 measured and scoped. The seeded RNG persists
-    /// and advances across turns within one `ChatEngine`, so a fixed seed
-    /// reproduces an entire session's sampled output, not just one turn.
+    /// Opt into seeded weighted sampling instead of the default
+    /// deterministic decode, on both generation paths. Strictly additive:
+    /// omitting this call (the default) keeps every turn on the existing
+    /// deterministic paths (`generate_greedy_into` on the plain path, the
+    /// greedy beam on the R4G1 path), byte-for-byte unchanged. When set,
+    /// the plain path samples per issue #762 lever 2, and the R4G1 path
+    /// samples one seeded trajectory over the same candidate queries the
+    /// beam uses with the same #762 weighting scheme (#785-C2,
+    /// maintainer-approved parity). The seeded RNG persists and advances
+    /// across turns within one `ChatEngine`, so a fixed seed reproduces
+    /// an entire session's sampled output, not just one turn.
     #[must_use]
     pub fn sample_seed(mut self, seed: u32) -> Self {
         self.sample_seed = Some(seed);
@@ -318,11 +320,12 @@ pub struct ChatEngine {
     history: [u32; MAX_CHAT_HISTORY],
     history_len: usize,
     max_tokens: usize,
-    /// Issue #762 lever 2: `Some` opts every turn's legacy-path generation
-    /// into weighted sampling (see `ChatEngineBuilder::sample_seed`); the
-    /// RNG advances turn to turn so a session is reproducible end to end
-    /// from its initial seed. `None` (the default) leaves the existing
-    /// deterministic `generate_greedy_into` path completely untouched.
+    /// `Some` opts every turn into weighted sampling on whichever path
+    /// serves it — #762 lever 2 on the plain path, the #785-C2 sampled
+    /// decode on the R4G1 path (see `ChatEngineBuilder::sample_seed`);
+    /// the RNG advances turn to turn so a session is reproducible end to
+    /// end from its initial seed. `None` (the default) leaves both
+    /// deterministic paths completely untouched.
     sample_rng: Option<SampleRng>,
 }
 
@@ -361,7 +364,7 @@ fn hologram_answer(
     history_len: &mut usize,
     question: &str,
     max_tokens: usize,
-    sample_rng: Option<&mut SampleRng>,
+    mut sample_rng: Option<&mut SampleRng>,
 ) -> Result<ChatAnswer, ChatError> {
     ensure_chat_prompt_encoder(tokenizer)?;
     let mut question_tokens = [0u32; MAX_CHAT_HISTORY];
@@ -391,10 +394,119 @@ fn hologram_answer(
                 );
             }
             Ok(r4g1) => {
+                use uor_r4_core::transformerless::score_q::ScoreQ;
                 let rot = compiler::derive_rotations();
                 let num_nodes = r4g1.node_count() as usize;
-                let mut node_scores =
-                    vec![uor_r4_core::transformerless::score_q::ScoreQ::MIN; num_nodes];
+                let mut node_scores = vec![ScoreQ::MIN; num_nodes];
+
+                // #785-C2 (maintainer-approved 2026-08-18): opt-in sampling
+                // parity on the R4G1 path. One seeded trajectory over the
+                // same candidate queries the beam uses, weighted by the
+                // #762 plain-path sampler's exact scheme — order-preserving
+                // shift to positive weights, the same ~1000-per-occurrence
+                // soft repetition penalty with floor 1 (a penalized token
+                // stays reachable, never excluded), and the shared
+                // division-free `SampleRng::draw`. Greedy beam decoding
+                // below remains byte-identical when no seed is supplied.
+                if let Some(rng) = sample_rng.as_deref_mut() {
+                    let mut generated: Vec<u32> = Vec::new();
+                    let mut non_node_queries = 0usize;
+                    let mut node_path_queries = 0usize;
+                    let steps = max_tokens.min(MAX_CHAT_TOKENS);
+                    for _ in 0..steps {
+                        for slot in node_scores.iter_mut() {
+                            *slot = ScoreQ::MIN;
+                        }
+                        let mut context = history[..*history_len].to_vec();
+                        context.extend_from_slice(&generated);
+                        let len = core::cmp::min(context.len(), compiler::WINDOW);
+                        let window = &context[context.len() - len..];
+                        let bundle = runtime::bundle_window_plain(artifacts, &rot, window);
+                        let sig = runtime::sig_plain(artifacts, &bundle);
+                        let mut cands = [(0u32, ScoreQ::ZERO); 8];
+                        let count = r4g1.predict_candidates_with_signature_lanes(
+                            &context,
+                            Some(&sig),
+                            Some(&session_signature),
+                            &mut node_scores,
+                            &mut cands,
+                        );
+                        if node_scores.iter().all(|s| s.raw() == ScoreQ::MIN.raw()) {
+                            non_node_queries += 1;
+                        } else {
+                            node_path_queries += 1;
+                        }
+                        if count == 0 {
+                            break;
+                        }
+                        let min_raw = cands[..count]
+                            .iter()
+                            .map(|&(_, score)| score.raw() as i64)
+                            .min()
+                            .unwrap_or(0);
+                        let mut weights = [0u32; 8];
+                        let mut total = 0u32;
+                        for (i, &(token, score)) in cands[..count].iter().enumerate() {
+                            let occurrences =
+                                generated.iter().filter(|&&t| t == token).count() as i64;
+                            let mut weight = score.raw() as i64 - min_raw + 1;
+                            weight -= (occurrences << 10) - (occurrences << 4) - (occurrences << 3);
+                            weights[i] = weight.clamp(1, i64::from(u32::MAX)) as u32;
+                            total = total.saturating_add(weights[i]);
+                        }
+                        let draw = rng.draw(total);
+                        let mut accumulated = 0u32;
+                        let mut chosen = cands[0].0;
+                        for (i, &(token, _)) in cands[..count].iter().enumerate() {
+                            accumulated = accumulated.saturating_add(weights[i]);
+                            if draw < accumulated {
+                                chosen = token;
+                                break;
+                            }
+                        }
+                        if chosen == 0 || chosen == 2 {
+                            // End-of-sequence: stop without emitting the
+                            // terminal token into the visible answer.
+                            break;
+                        }
+                        generated.push(chosen);
+                    }
+                    if generated.is_empty() {
+                        return Err(ChatError::EmptyGeneration);
+                    }
+                    append_history(history, history_len, &generated);
+                    let mut answer_bytes = [0u8; MAX_ANSWER_BYTES];
+                    let answer_len = tokenizer
+                        .decode_into(&generated, &mut answer_bytes)
+                        .ok_or(ChatError::EmptyGeneration)?;
+                    let text = String::from_utf8_lossy(&answer_bytes[..answer_len])
+                        .trim()
+                        .to_owned();
+                    if text.is_empty() {
+                        return Err(ChatError::EmptyGeneration);
+                    }
+                    let witness = DecodeWitness {
+                        engine: "r4g1-sampled",
+                        non_node_queries,
+                        node_path_queries,
+                        plain_depths: Vec::new(),
+                    };
+                    tracing::info!(
+                        engine = witness.engine,
+                        non_node_queries,
+                        node_path_queries,
+                        "decode witness (#785 C3)"
+                    );
+                    return Ok(ChatAnswer {
+                        text,
+                        generated_tokens: generated.len(),
+                        repeated_token_rate: recent_window_repetition_rate(
+                            &generated,
+                            generated.len(),
+                        ),
+                        witness,
+                    });
+                }
 
                 struct BeamHypothesis {
                     tokens: Vec<u32>,
@@ -558,10 +670,11 @@ fn hologram_answer(
     let mut predictions = [runtime::Prediction::default(); MAX_CHAT_TOKENS];
     let sampled = sample_rng.is_some();
     let prediction_count = match sample_rng {
-        // Issue #762 lever 2: opt-in weighted sampling on this legacy
-        // path only -- the R4G1 beam-search path above returns before
-        // this point whenever a graph is present, so `sample_rng` never
-        // applies there (out of scope; see the builder doc comment).
+        // Issue #762 lever 2: opt-in weighted sampling on this plain
+        // path. The R4G1 path above applies the same seed via its own
+        // #785-C2 sampled decode and always returns before this point
+        // when a graph is present, so a given turn samples on exactly
+        // one path (see the builder doc comment).
         Some(rng) => runtime.generate_sampled_into(
             store,
             &history[..*history_len],
@@ -3138,6 +3251,92 @@ mod tests {
         assert_eq!(answer.witness.plain_depths.len(), answer.generated_tokens);
         assert_eq!(answer.witness.non_node_queries, 0);
         assert_eq!(answer.witness.node_path_queries, 0);
+    }
+
+    /// #785-C2: the sampled R4G1 decode is seed-reproducible, names
+    /// itself in the witness, and leaves the no-seed greedy beam
+    /// untouched. Two engines with the same seed must produce identical
+    /// answers; the unseeded engine keeps the `r4g1-beam` tag.
+    #[test]
+    fn sampled_r4g1_decode_is_seeded_and_witnessed() {
+        use uor_r4_core::transformerless::{compiler, convert_r4g1, runtime};
+
+        let art_bytes = std::fs::read("crates/uor-r4-core/tests/fixtures/tless_artifacts.bin")
+            .expect("fixture artifacts present");
+        let artifacts = compiler::parse_artifacts(&art_bytes).expect("fixture artifacts parse");
+        let mut store: runtime::Store =
+            (0..=compiler::STAGES).map(|_| Default::default()).collect();
+        let codes: [[u8; 4]; 6] = [
+            [3, 1, 4, 1],
+            [3, 1, 4, 2],
+            [3, 5, 9, 2],
+            [7, 5, 9, 2],
+            [7, 5, 8, 2],
+            [11, 5, 8, 7],
+        ];
+        for (i, code) in codes.iter().enumerate() {
+            runtime::add_evidence(&mut store, code, (i + 1) as u32, 1);
+        }
+        runtime::add_evidence(&mut store, &[3, 1, 4, 2], 3, 9);
+        let store_bytes = runtime::store_bytes(&store);
+        let mut tokenizer_bytes = Vec::new();
+        for piece in [
+            b"<unk>".as_slice(),
+            b" ".as_slice(),
+            b"a".as_slice(),
+            b"b".as_slice(),
+            b"c".as_slice(),
+            b"d".as_slice(),
+            b"e".as_slice(),
+            b"f".as_slice(),
+            b"g".as_slice(),
+        ] {
+            tokenizer_bytes.extend_from_slice(&(piece.len() as i32).to_le_bytes());
+            tokenizer_bytes.extend_from_slice(piece);
+        }
+        let (graph, _) = convert_r4g1::convert(&art_bytes, &artifacts, &store, &store_bytes, None)
+            .expect("convert fixture graph");
+
+        let ask_sampled = |seed: u32| {
+            let mut engine = engine_from_bytes_with_r4g1(
+                &art_bytes,
+                &store_bytes,
+                &tokenizer_bytes,
+                Some(&graph),
+                8,
+            )
+            .expect("sampled engine builds");
+            // In-module test: seed the same field ChatEngineBuilder::
+            // sample_seed sets.
+            engine.sample_rng = Some(super::SampleRng::new(seed));
+            engine.ask("g").expect("sampled ask serves")
+        };
+        let first = ask_sampled(41);
+        let second = ask_sampled(41);
+        assert_eq!(first.witness.engine, "r4g1-sampled");
+        assert_eq!(
+            first.text, second.text,
+            "one seed must reproduce one answer"
+        );
+        assert_eq!(first.witness, second.witness);
+        assert!(
+            first.witness.non_node_queries + first.witness.node_path_queries > 0,
+            "sampled queries are classified like beam queries"
+        );
+
+        // No seed: the greedy beam is untouched and says so.
+        let mut greedy = engine_from_bytes_with_r4g1(
+            &art_bytes,
+            &store_bytes,
+            &tokenizer_bytes,
+            Some(&graph),
+            8,
+        )
+        .expect("greedy engine builds");
+        assert_eq!(
+            greedy.ask("g").expect("greedy ask serves").witness.engine,
+            "r4g1-beam"
+        );
     }
 
     /// #790 item 8: state-file persists are atomic (no temp residue, full

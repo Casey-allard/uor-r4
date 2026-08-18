@@ -164,11 +164,10 @@ struct AskArgs {
     /// CID manifest name/CID, or a locally compiled bundle name.
     #[arg(long, env = "TLESS_MODEL")]
     model: Option<String>,
-    /// Opt into issue #762 lever-2 weighted sampling (instead of the
-    /// default greedy argmax) on the legacy, non-R4G1 generation path,
-    /// seeded for reproducibility. Has no effect when the resolved model
-    /// carries a `compiled.r4g1` graph, since that beam-search path is
-    /// unaffected by this flag (out of #762's scope; see
+    /// Opt into seeded weighted sampling instead of the default
+    /// deterministic decode, on both generation paths: issue #762 lever 2
+    /// on the plain path, and the same weighting over the R4G1 candidate
+    /// walk (#785-C2 parity). Reproducible from the seed (see
     /// `chat::ChatEngineBuilder::sample_seed`).
     #[arg(long, value_name = "SEED")]
     sample: Option<u32>,
@@ -185,12 +184,11 @@ struct ChatArgs {
     /// Remote HTTP server URL (e.g. http://127.0.0.1:8000/v1) for client mode.
     #[arg(long)]
     remote: Option<String>,
-    /// Opt into issue #762 lever-2 weighted sampling (instead of the
-    /// default greedy argmax) on the legacy, non-R4G1 generation path,
-    /// seeded for reproducibility; the seed advances turn to turn so the
-    /// whole session is reproducible from it. Has no effect in `--remote`
-    /// client mode or when the resolved model carries a `compiled.r4g1`
-    /// graph (out of #762's scope).
+    /// Opt into seeded weighted sampling instead of the default
+    /// deterministic decode, on both generation paths (#762 lever 2 on
+    /// the plain path, #785-C2 parity on the R4G1 candidate walk); the
+    /// seed advances turn to turn so the whole session is reproducible
+    /// from it. Has no effect in `--remote` client mode.
     #[arg(long, value_name = "SEED")]
     sample: Option<u32>,
 }

@@ -953,6 +953,16 @@ impl SampleRng {
         self.0 = x;
         x
     }
+
+    /// Draw a value in `[0, bound)`, advancing the generator once.
+    ///
+    /// #785-C2: the public sampling primitive for callers outside this
+    /// file (the CLI's R4G1 sampled decode), composing the xorshift step
+    /// with [`reduce_into_range`] so external samplers share the exact
+    /// division-free draw the #762 plain-path sampler uses.
+    pub fn draw(&mut self, bound: u32) -> u32 {
+        reduce_into_range(self.next_u32(), bound)
+    }
 }
 
 /// Reduce `value` into `[0, bound)` using shift/compare/subtract only —
