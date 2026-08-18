@@ -101,7 +101,9 @@ client at the end:
 
 UOR standards (`uor-addr`, `UOR-Framework`) are **pinned git dependencies** — a
 fresh clone builds with no extra checkouts. The `uor_standards/` directory is
-gitignored legacy material and is not required to build.
+legacy material excluded from the workspace build; its `.gitignore` entry
+blocks new additions, though ~1,100 legacy files remain tracked in the tree
+(recorded 2026-08-18, baseline audit).
 
 ---
 
@@ -141,7 +143,10 @@ whole method is measurement.
   replicated, goal-aligned signal. That signal has **not yet composed into
   coherent multi-token output**: asked real questions through `r4 ask`, this
   repository's largest local bundle answers in non-grammatical word-salad, and
-  smaller bundles answer with nothing (#745, open). See
+  smaller bundles answer with nothing (#745 — closed 2026-08-17: the root cause
+  was found and fixed in the compiler (#755, corpus record ordering), but the
+  canonical local bundles have not yet been recompiled with the fix, so
+  baseline output is unchanged as of 2026-08-18). See
   [Which track can actually produce coherent text](docs/RESEARCH.md#which-track-can-actually-produce-coherent-text--the-honest-current-answer)
   for the full picture — this is the project's central open question, not a
   footnote. This is a research engine, not a chat model.
@@ -224,10 +229,15 @@ flowchart LR
     Runtime --> Apps["r4 ask / r4 chat / HTTP API"]
 ```
 
-**Serving order.** The stack consults packed NGRAM context rows (trigram with
-bigram backoff), then the graph chain with D4 exact-context precedence, then the
-root prior. A `FallbackRouter` cascades from primary `r4g1-graph` to secondary
-`transformerless-tla5` on unmapped or pathological states.
+**Serving order.** Within the R4G1 scorer, prediction consults packed NGRAM
+context rows (trigram with bigram backoff), then the graph chain with D4
+exact-context precedence, then the root prior. Across engines, the HTTP server
+runs the #248 tier cascade (`r4g1 → transformerless → teacher-oracle →
+geometric`), filtered by the persisted **engine profile** (#655-E2): under the
+default `production` profile only the `r4g1` tier is admitted, and a request no
+admitted tier can serve returns a typed `declined_by_all` response rather than
+a silent fallback. (`uor-r4-router::fallback::FallbackRouter` is a legacy type
+with no serving callers — corrected 2026-08-18, baseline audit.)
 
 **Artifact format eras.** Deployed compiles emit **TLA7** by default (per-stage
 i8 centroid copies, a norm-fold constant, per-stage decode shifts). TLA6 (packed
@@ -313,7 +323,7 @@ r4 transformerless observe-text \
   [--out obs-text]
 r4 transformerless cover        [--corpus-meta M] [--corpus-recs R] [--artifacts A] [--tokenizer PATH] [--out cover] [--bundle-root ROOT]
 r4 transformerless cover-sweep  [...]
-r4 transformerless score        [--corpus-meta M] [--corpus-recs R] [--artifacts A] [--tokenizer PATH] [--out DIR] [--bundle-root ROOT]
+r4 transformerless score        [--corpus-meta M] [--corpus-recs R] [--artifacts A] [--tokenizer PATH] [--out DIR] [--bundle-root ROOT] [--quality-profile pinned|relative_tla]
 r4 transformerless convert-r4g1 --artifacts TLA --store TLS1 --out R4G1
 r4 transformerless copy-recorded-attention --corpus-meta M --corpus-recs R --out attention_operator.json
 r4 transformerless subsample-recorded-corpus --src-meta M --src-recs R --out-meta M2 --out-recs R2 --records N
@@ -349,7 +359,9 @@ r4 setup            # prints the prerequisite commands
 
 > `r4 transformerless compare` and `compare-report` appear in the subcommand
 > help but are not implemented there. The working spellings are the root
-> `r4 compare` and `r4 compare-report`.
+> `r4 compare` and `r4 compare-report`. As of `aea30bae`, any unknown
+> `transformerless` subcommand (these two included) prints the usage banner
+> and exits **0** — a silent no-op, recorded by the 2026-08-18 baseline audit.
 
 ---
 
@@ -412,11 +424,18 @@ Anything else is served as a static file from the working directory; `/` serves
 | `r4-attention` | Llama uses the current experimental variant (`experimental-r4-source-attention/2`): a certified-exact dot over the leading 4-wide domain with the same softmax selector as `attention`; GPT-2 still uses `learned-absolute-source-attention/2` because the legacy switch does not alter its operator. The Llama variant has never been measured against standard attention — see `docs/deferral_record_2026_08_05.md` |
 | `geometric` | Route purely geometrically and decode from manifold resonance |
 
-Omitting `engine` runs the **full cascade, r4g1-first** — it does *not* mean
-`transformerless`. The dashboard's engine selector sets this, and
-`.uor-models/last_engine.txt` persists the preference across requests that omit
-it. The dashboard also shows a tokens/sec **Speed** metric that persists after
-generation, for profiling across the attention and transformerless paths.
+Which values are *reachable* depends on the persisted engine profile
+(`.uor-models/engine_profile.txt`, #655-E2). Under the default **`production`**
+profile only `r4g1` is served: omitting `engine` runs r4g1 alone, an explicit
+non-r4g1 value above returns a typed `declined_by_all` response, and a
+persisted non-r4g1 preference is silently inert. Under **`experimental`**,
+omitting `engine` runs the **full cascade, r4g1-first** — it does *not* mean
+`transformerless` — and `.uor-models/last_engine.txt` pins the cascade for
+requests that omit it. The per-tier `POST /api/tless/*` and `POST /api/r4g1/*`
+endpoints bypass the cascade and its profile filter. The dashboard's engine
+selector sets `engine`, and the dashboard also shows a tokens/sec **Speed**
+metric that persists after generation, for profiling across the attention and
+transformerless paths.
 
 Example:
 
