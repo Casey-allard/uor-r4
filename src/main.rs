@@ -1167,6 +1167,7 @@ mod tests {
                 text: self.answers.pop_front().unwrap_or_default(),
                 generated_tokens: 1,
                 repeated_token_rate: 0.0,
+                witness: Default::default(),
             })
         }
     }

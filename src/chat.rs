@@ -45,6 +45,38 @@ pub struct ChatAnswer {
     /// through several distinct tokens in varying order, which never
     /// forms an identical repeated block.
     pub repeated_token_rate: f64,
+    /// #785 C3: which decode surface served this turn and how the
+    /// context resolved — the observability the #759 scoping asked for.
+    pub witness: DecodeWitness,
+}
+
+/// #785 C3: the depth/fallback-tier witness for one chat turn.
+///
+/// `ask`/`chat` previously discarded which engine served an answer and
+/// how the context resolved, so degenerate output could not be
+/// attributed to a tier from the outside. The fields are additive
+/// observability — they change no decode behavior.
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct DecodeWitness {
+    /// Which decode surface produced the answer: `"r4g1-beam"`,
+    /// `"tla-plain-greedy"`, or `"tla-plain-sampled"`. Empty only for
+    /// answers constructed outside [`hologram_answer`] (test stubs).
+    pub engine: &'static str,
+    /// R4G1 path: candidate queries that resolved **without** consulting
+    /// node evidence — the node-score buffer stayed all-MIN (the #785-C1
+    /// contract). On a scored graph this means a context-row hit (the
+    /// converter-flavor last resort is gated off); on a converter-flavor
+    /// graph it can also be the global last-resort table or no candidate
+    /// at all. Finer attribution needs an engine-level tier tag
+    /// (recorded limitation, #785-C3). Zero on the plain path.
+    pub non_node_queries: usize,
+    /// R4G1 path: candidate queries resolved through node evidence (the
+    /// engine published at least one node score). Zero on the plain path.
+    pub node_path_queries: usize,
+    /// Plain path: per-emitted-token resolution depth (0..=STAGES) from
+    /// [`runtime::Prediction`]. Empty on the R4G1 path, whose engine does
+    /// not report per-tier depth (recorded limitation, #785-C3).
+    pub plain_depths: Vec<u8>,
 }
 
 /// Failure to load or run the local transformerless chat engine.
@@ -345,142 +377,186 @@ fn hologram_answer(
     let session_signature = uor_r4_router::session_signature_from_tokens(&history[..*history_len]);
 
     if let Some(bytes) = r4g1_bytes {
-        if let Ok(r4g1) = uor_r4_graph_runtime::R4G1Runtime::parse(bytes) {
-            let rot = compiler::derive_rotations();
-            let num_nodes = r4g1.node_count() as usize;
-            let mut node_scores =
-                vec![uor_r4_core::transformerless::score_q::ScoreQ::MIN; num_nodes];
-
-            struct BeamHypothesis {
-                tokens: Vec<u32>,
-                score: i32,
-                terminated: bool,
+        match uor_r4_graph_runtime::R4G1Runtime::parse(bytes) {
+            Err(error) => {
+                // #790 item 7: a graph that was present but unusable used
+                // to fall through to the plain path with no trace at all —
+                // after import required both paths to pass, that silence
+                // hid a real regression. The downgrade is now named, and
+                // the served answer's witness says which engine ran.
+                tracing::warn!(
+                    ?error,
+                    "compiled R4G1 graph failed to parse at ask time; \
+                     serving from the plain transformerless path instead"
+                );
             }
+            Ok(r4g1) => {
+                let rot = compiler::derive_rotations();
+                let num_nodes = r4g1.node_count() as usize;
+                let mut node_scores =
+                    vec![uor_r4_core::transformerless::score_q::ScoreQ::MIN; num_nodes];
 
-            let mut beams = vec![BeamHypothesis {
-                tokens: Vec::new(),
-                score: 0,
-                terminated: false,
-            }];
-
-            let steps = max_tokens.min(MAX_CHAT_TOKENS);
-            for _ in 0..steps {
-                let mut all_candidates = Vec::new();
-                let mut any_active = false;
-
-                for beam in &beams {
-                    if beam.terminated {
-                        all_candidates.push(BeamHypothesis {
-                            tokens: beam.tokens.clone(),
-                            score: beam.score,
-                            terminated: true,
-                        });
-                        continue;
-                    }
-                    any_active = true;
-
-                    let mut beam_history = history[..*history_len].to_vec();
-                    beam_history.extend_from_slice(&beam.tokens);
-
-                    let len = core::cmp::min(beam_history.len(), compiler::WINDOW);
-                    let window = &beam_history[beam_history.len() - len..];
-                    let bundle = runtime::bundle_window_plain(artifacts, &rot, window);
-                    let sig = runtime::sig_plain(artifacts, &bundle);
-
-                    // #785 C1: reset the per-step node-score buffer so one
-                    // beam's active-node evidence never leaks into another
-                    // beam or a later step (the engine only ever raises
-                    // entries within a single call).
-                    for slot in node_scores.iter_mut() {
-                        *slot = uor_r4_core::transformerless::score_q::ScoreQ::MIN;
-                    }
-                    let mut cands =
-                        [(0u32, uor_r4_core::transformerless::score_q::ScoreQ::ZERO); 8];
-                    let num_cands = r4g1.predict_candidates_with_signature_lanes(
-                        &beam_history,
-                        Some(&sig),
-                        Some(&session_signature),
-                        &mut node_scores,
-                        &mut cands,
-                    );
-
-                    for &(cand_tok, cand_score) in &cands[..num_cands] {
-                        let is_eos = cand_tok == 0 || cand_tok == 2;
-                        let mut new_tokens = beam.tokens.clone();
-
-                        let mut repeat_count = 0i32;
-                        for &t in new_tokens.iter().rev() {
-                            if t == cand_tok {
-                                repeat_count += 1;
-                            } else {
-                                break;
-                            }
-                        }
-                        let repeat_penalty = if repeat_count > 0 {
-                            repeat_count * 3000
-                        } else {
-                            0
-                        };
-
-                        let adjusted_score = beam
-                            .score
-                            .saturating_add(cand_score.raw())
-                            .saturating_sub(repeat_penalty);
-                        new_tokens.push(cand_tok);
-
-                        all_candidates.push(BeamHypothesis {
-                            tokens: new_tokens,
-                            score: adjusted_score,
-                            terminated: is_eos,
-                        });
-                    }
+                struct BeamHypothesis {
+                    tokens: Vec<u32>,
+                    score: i32,
+                    terminated: bool,
                 }
 
-                if !any_active || all_candidates.is_empty() {
-                    break;
-                }
-
-                all_candidates.sort_by_key(|b| std::cmp::Reverse(b.score));
-                all_candidates.truncate(4);
-                beams = all_candidates;
-            }
-
-            let best_beam = beams
-                .into_iter()
-                .max_by_key(|b| b.score)
-                .unwrap_or_else(|| BeamHypothesis {
+                let mut beams = vec![BeamHypothesis {
                     tokens: Vec::new(),
                     score: 0,
                     terminated: false,
-                });
+                }];
 
-            let generated_tokens_buf = best_beam.tokens;
-            let generated = generated_tokens_buf.as_slice();
-            append_history(history, history_len, generated);
-            if generated.is_empty() {
-                return Err(ChatError::EmptyGeneration);
+                // #785 C3 witness counters, classified per candidate query
+                // by the #785-C1 buffer contract: node-evidence tiers
+                // publish at least one node score; everything else (row
+                // hit, converter last resort, or no candidate) leaves the
+                // buffer all-MIN.
+                let mut non_node_queries = 0usize;
+                let mut node_path_queries = 0usize;
+
+                let steps = max_tokens.min(MAX_CHAT_TOKENS);
+                for _ in 0..steps {
+                    let mut all_candidates = Vec::new();
+                    let mut any_active = false;
+
+                    for beam in &beams {
+                        if beam.terminated {
+                            all_candidates.push(BeamHypothesis {
+                                tokens: beam.tokens.clone(),
+                                score: beam.score,
+                                terminated: true,
+                            });
+                            continue;
+                        }
+                        any_active = true;
+
+                        let mut beam_history = history[..*history_len].to_vec();
+                        beam_history.extend_from_slice(&beam.tokens);
+
+                        let len = core::cmp::min(beam_history.len(), compiler::WINDOW);
+                        let window = &beam_history[beam_history.len() - len..];
+                        let bundle = runtime::bundle_window_plain(artifacts, &rot, window);
+                        let sig = runtime::sig_plain(artifacts, &bundle);
+
+                        // #785 C1: reset the per-step node-score buffer so one
+                        // beam's active-node evidence never leaks into another
+                        // beam or a later step (the engine only ever raises
+                        // entries within a single call).
+                        for slot in node_scores.iter_mut() {
+                            *slot = uor_r4_core::transformerless::score_q::ScoreQ::MIN;
+                        }
+                        let mut cands =
+                            [(0u32, uor_r4_core::transformerless::score_q::ScoreQ::ZERO); 8];
+                        let num_cands = r4g1.predict_candidates_with_signature_lanes(
+                            &beam_history,
+                            Some(&sig),
+                            Some(&session_signature),
+                            &mut node_scores,
+                            &mut cands,
+                        );
+
+                        if node_scores.iter().all(|s| {
+                            s.raw() == uor_r4_core::transformerless::score_q::ScoreQ::MIN.raw()
+                        }) {
+                            non_node_queries += 1;
+                        } else {
+                            node_path_queries += 1;
+                        }
+
+                        for &(cand_tok, cand_score) in &cands[..num_cands] {
+                            let is_eos = cand_tok == 0 || cand_tok == 2;
+                            let mut new_tokens = beam.tokens.clone();
+
+                            let mut repeat_count = 0i32;
+                            for &t in new_tokens.iter().rev() {
+                                if t == cand_tok {
+                                    repeat_count += 1;
+                                } else {
+                                    break;
+                                }
+                            }
+                            let repeat_penalty = if repeat_count > 0 {
+                                repeat_count * 3000
+                            } else {
+                                0
+                            };
+
+                            let adjusted_score = beam
+                                .score
+                                .saturating_add(cand_score.raw())
+                                .saturating_sub(repeat_penalty);
+                            new_tokens.push(cand_tok);
+
+                            all_candidates.push(BeamHypothesis {
+                                tokens: new_tokens,
+                                score: adjusted_score,
+                                terminated: is_eos,
+                            });
+                        }
+                    }
+
+                    if !any_active || all_candidates.is_empty() {
+                        break;
+                    }
+
+                    all_candidates.sort_by_key(|b| std::cmp::Reverse(b.score));
+                    all_candidates.truncate(4);
+                    beams = all_candidates;
+                }
+
+                let best_beam = beams
+                    .into_iter()
+                    .max_by_key(|b| b.score)
+                    .unwrap_or_else(|| BeamHypothesis {
+                        tokens: Vec::new(),
+                        score: 0,
+                        terminated: false,
+                    });
+
+                let generated_tokens_buf = best_beam.tokens;
+                let generated = generated_tokens_buf.as_slice();
+                append_history(history, history_len, generated);
+                if generated.is_empty() {
+                    return Err(ChatError::EmptyGeneration);
+                }
+                let mut answer_bytes = [0u8; MAX_ANSWER_BYTES];
+                let answer_len = tokenizer
+                    .decode_into(generated, &mut answer_bytes)
+                    .ok_or(ChatError::EmptyGeneration)?;
+                let text = String::from_utf8_lossy(&answer_bytes[..answer_len])
+                    .trim()
+                    .to_owned();
+                if text.is_empty() {
+                    return Err(ChatError::EmptyGeneration);
+                }
+                let witness = DecodeWitness {
+                    engine: "r4g1-beam",
+                    non_node_queries,
+                    node_path_queries,
+                    plain_depths: Vec::new(),
+                };
+                tracing::info!(
+                    engine = witness.engine,
+                    non_node_queries,
+                    node_path_queries,
+                    "decode witness (#785 C3)"
+                );
+                tracing::debug!(generated_tokens = generated.len(), "R4G1 answer generated");
+                return Ok(ChatAnswer {
+                    text,
+                    generated_tokens: generated.len(),
+                    repeated_token_rate: recent_window_repetition_rate(generated, generated.len()),
+                    witness,
+                });
             }
-            let mut answer_bytes = [0u8; MAX_ANSWER_BYTES];
-            let answer_len = tokenizer
-                .decode_into(generated, &mut answer_bytes)
-                .ok_or(ChatError::EmptyGeneration)?;
-            let text = String::from_utf8_lossy(&answer_bytes[..answer_len])
-                .trim()
-                .to_owned();
-            if text.is_empty() {
-                return Err(ChatError::EmptyGeneration);
-            }
-            tracing::debug!(generated_tokens = generated.len(), "R4G1 answer generated");
-            return Ok(ChatAnswer {
-                text,
-                generated_tokens: generated.len(),
-                repeated_token_rate: recent_window_repetition_rate(generated, generated.len()),
-            });
         }
     }
 
     let mut runtime = Runtime::new(artifacts);
     let mut predictions = [runtime::Prediction::default(); MAX_CHAT_TOKENS];
+    let sampled = sample_rng.is_some();
     let prediction_count = match sample_rng {
         // Issue #762 lever 2: opt-in weighted sampling on this legacy
         // path only -- the R4G1 beam-search path above returns before
@@ -526,11 +602,33 @@ fn hologram_answer(
         return Err(ChatError::EmptyGeneration);
     }
     append_history(history, history_len, generated);
+    // #785 C3: the per-token resolution depths were always computed by
+    // the plain runtime and then discarded here; carry them out.
+    let witness = DecodeWitness {
+        engine: if sampled {
+            "tla-plain-sampled"
+        } else {
+            "tla-plain-greedy"
+        },
+        non_node_queries: 0,
+        node_path_queries: 0,
+        plain_depths: predictions[..generated.len()]
+            .iter()
+            .map(|prediction| prediction.depth)
+            .collect(),
+    };
+    tracing::info!(
+        engine = witness.engine,
+        depth_min = witness.plain_depths.iter().min().copied().unwrap_or(0),
+        depth_max = witness.plain_depths.iter().max().copied().unwrap_or(0),
+        "decode witness (#785 C3)"
+    );
     tracing::debug!(generated_tokens = generated.len(), "answer generated");
     Ok(ChatAnswer {
         text,
         generated_tokens: generated.len(),
         repeated_token_rate: recent_window_repetition_rate(generated, generated.len()),
+        witness,
     })
 }
 
@@ -2897,6 +2995,88 @@ mod tests {
             Err(error) => assert!(matches!(error, ChatError::Io(_))),
             Ok(_) => panic!("truncated graph bytes must be rejected"),
         }
+    }
+
+    /// #785 C3: the decode witness names the engine that actually served
+    /// and carries the tier evidence each path really produced — the
+    /// R4G1 beam classifies every candidate query by the #785-C1 buffer
+    /// contract, and the plain path finally carries out the per-token
+    /// resolution depths it always computed.
+    #[test]
+    fn decode_witness_names_the_serving_engine() {
+        use uor_r4_core::transformerless::{compiler, convert_r4g1, runtime};
+
+        let art_bytes = std::fs::read("crates/uor-r4-core/tests/fixtures/tless_artifacts.bin")
+            .expect("fixture artifacts present");
+        let artifacts = compiler::parse_artifacts(&art_bytes).expect("fixture artifacts parse");
+        let mut store: runtime::Store =
+            (0..=compiler::STAGES).map(|_| Default::default()).collect();
+        // Mirror the graph-runtime tests' synthetic store: six codes whose
+        // evidence tokens (1..=6) give the converted graph a real root
+        // prior to emit from.
+        let codes: [[u8; 4]; 6] = [
+            [3, 1, 4, 1],
+            [3, 1, 4, 2],
+            [3, 5, 9, 2],
+            [7, 5, 9, 2],
+            [7, 5, 8, 2],
+            [11, 5, 8, 7],
+        ];
+        for (i, code) in codes.iter().enumerate() {
+            runtime::add_evidence(&mut store, code, (i + 1) as u32, 1);
+        }
+        // One dominant non-reserved token so both decode paths have an
+        // unambiguous, non-terminating winner to emit.
+        runtime::add_evidence(&mut store, &[3, 1, 4, 2], 3, 9);
+        let store_bytes = runtime::store_bytes(&store);
+        let mut tokenizer_bytes = Vec::new();
+        // The non-BPE encoder prepends a space, so the vocab needs a " "
+        // piece; ids stay small and in-range for the store's tokens.
+        for piece in [
+            b"<unk>".as_slice(),
+            b" ".as_slice(),
+            b"a".as_slice(),
+            b"b".as_slice(),
+            b"c".as_slice(),
+            b"d".as_slice(),
+            b"e".as_slice(),
+            b"f".as_slice(),
+            b"g".as_slice(),
+        ] {
+            tokenizer_bytes.extend_from_slice(&(piece.len() as i32).to_le_bytes());
+            tokenizer_bytes.extend_from_slice(piece);
+        }
+
+        let (graph, _) = convert_r4g1::convert(&art_bytes, &artifacts, &store, &store_bytes, None)
+            .expect("convert fixture graph");
+        let mut engine = engine_from_bytes_with_r4g1(
+            &art_bytes,
+            &store_bytes,
+            &tokenizer_bytes,
+            Some(&graph),
+            8,
+        )
+        .expect("engine with runnable graph");
+        let answer = engine.ask("g").expect("graph-backed ask serves");
+        assert_eq!(answer.witness.engine, "r4g1-beam");
+        assert!(
+            answer.witness.non_node_queries + answer.witness.node_path_queries > 0,
+            "every candidate query is classified into exactly one bucket"
+        );
+        // This converter fixture resolves through the global last-resort
+        // table (its leaf collection yields empty per-node lists), so the
+        // queries land in the non-node bucket.
+        assert!(answer.witness.non_node_queries > 0);
+        assert!(answer.witness.plain_depths.is_empty());
+
+        let mut plain =
+            engine_from_bytes_with_r4g1(&art_bytes, &store_bytes, &tokenizer_bytes, None, 8)
+                .expect("plain engine builds");
+        let answer = plain.ask("g").expect("plain ask serves");
+        assert_eq!(answer.witness.engine, "tla-plain-greedy");
+        assert_eq!(answer.witness.plain_depths.len(), answer.generated_tokens);
+        assert_eq!(answer.witness.non_node_queries, 0);
+        assert_eq!(answer.witness.node_path_queries, 0);
     }
 
     #[test]
