@@ -3776,6 +3776,67 @@ fn persisted_engine_preference() -> Option<String> {
     }
 }
 
+/// #655-E: whether ordinary requests may reach any tier beyond r4g1
+/// (`Production`), or the full issue-#248 cascade as it exists today
+/// (`Experimental`). See `docs/serving_engine_profiles_655_e.md` for the
+/// full design record, including why "Production" means `TIER_R4G1`
+/// specifically and not the separately-pathed `TIER_TRANSFORMERLESS`
+/// tier of the same colloquial adjective.
+///
+/// **Dormant for #655-E1**: this type, [`EngineProfile::from_persisted`],
+/// and [`engine_profile_preference`] are additive only — nothing in
+/// [`run_serving_cascade`] consults them yet, so no existing install's
+/// behavior changes by this landing. Wiring a profile into the cascade's
+/// tier construction is #655-E2, which the design doc flags as needing
+/// its own confirmation before it merges, since (unlike this dormant
+/// slice) it changes default runtime tier reachability for any install
+/// without a persisted `engine_profile.txt`.
+#[allow(dead_code)] // #655-E1: dormant until #655-E2 wires it into run_serving_cascade
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum EngineProfile {
+    /// Only `TIER_R4G1` may ever serve. #655-E2 is expected to make this
+    /// the fail-safe default for installs with no persisted preference.
+    Production,
+    /// Today's exact issue-#248 cascade behavior, byte for byte
+    /// unchanged — the "else" branch of any future profile check.
+    Experimental,
+}
+
+impl EngineProfile {
+    /// Parses a persisted `.uor-models/engine_profile.txt` value.
+    /// Anything other than exactly `"experimental"` (after trimming,
+    /// including `None` for an absent or empty file) resolves to
+    /// `Production` — fail-safe: a missing, empty, or corrupt file must
+    /// never silently grant broader tier reach than intended. Mirrors
+    /// `resolve_pinned_tier`'s own unknown-value-falls-back convention.
+    #[allow(dead_code)] // #655-E1: dormant until #655-E2 wires it into run_serving_cascade
+    fn from_persisted(raw: Option<&str>) -> Self {
+        match raw.map(str::trim) {
+            Some("experimental") => EngineProfile::Experimental,
+            _ => EngineProfile::Production,
+        }
+    }
+}
+
+/// The persisted `.uor-models/engine_profile.txt` preference (#655-E),
+/// read fresh per call — no caching, no admin/reload gate — mirroring
+/// [`persisted_engine_preference`]'s own read pattern immediately above,
+/// for the same reason: an operator can flip profiles without a server
+/// restart. `None` when the file is absent or empty; callers resolving
+/// the active profile should pass this straight to
+/// [`EngineProfile::from_persisted`], which already treats `None` the
+/// same as any other non-`"experimental"` value.
+#[allow(dead_code)] // #655-E1: dormant until #655-E2 wires it into run_serving_cascade
+fn engine_profile_preference() -> Option<String> {
+    let raw = fs::read_to_string(".uor-models/engine_profile.txt").ok()?;
+    let trimmed = raw.trim();
+    if trimmed.is_empty() {
+        None
+    } else {
+        Some(trimmed.to_owned())
+    }
+}
+
 /// Resolve issue-#248 engine pinning. An engine named by the request — or,
 /// when the request is silent, by the persisted `/engine` selection — pins
 /// the cascade to that single tier, with one deliberate exception:
@@ -26296,6 +26357,62 @@ mod tests {
         assert_eq!(
             super::resolve_pinned_tier(Some("transformerless")),
             Some(super::TIER_TRANSFORMERLESS)
+        );
+    }
+
+    /// #655-E1: `EngineProfile::from_persisted` is dormant (nothing calls
+    /// it from `run_serving_cascade` yet, per the design doc), but its
+    /// parsing logic is real and must fail safe. Mirrors
+    /// `r4g1_default_selection_never_pins_but_explicit_engines_do`'s own
+    /// style of testing the pure decision function directly rather than
+    /// the filesystem read around it — `persisted_engine_preference`
+    /// (the existing, non-dormant sibling this mirrors) has no direct
+    /// unit test of its own file I/O either; only its parsing/decision
+    /// consumers are tested that way in this module.
+    #[test]
+    fn engine_profile_from_persisted_fails_safe_to_production() {
+        use super::EngineProfile;
+
+        assert_eq!(
+            EngineProfile::from_persisted(None),
+            EngineProfile::Production
+        );
+        assert_eq!(
+            EngineProfile::from_persisted(Some("")),
+            EngineProfile::Production
+        );
+        assert_eq!(
+            EngineProfile::from_persisted(Some("   ")),
+            EngineProfile::Production
+        );
+        assert_eq!(
+            EngineProfile::from_persisted(Some("production")),
+            EngineProfile::Production
+        );
+        assert_eq!(
+            EngineProfile::from_persisted(Some("PRODUCTION")),
+            EngineProfile::Production,
+            "no case-folding, matching resolve_pinned_tier's own exact-match convention -- \
+             an unrecognized value still fails safe to Production rather than erroring"
+        );
+        assert_eq!(
+            EngineProfile::from_persisted(Some("garbage-value")),
+            EngineProfile::Production
+        );
+        assert_eq!(
+            EngineProfile::from_persisted(Some("experimental")),
+            EngineProfile::Experimental
+        );
+        assert_eq!(
+            EngineProfile::from_persisted(Some("  experimental  ")),
+            EngineProfile::Experimental,
+            "surrounding whitespace is trimmed, matching persisted_engine_preference's own trim"
+        );
+        assert_eq!(
+            EngineProfile::from_persisted(Some("EXPERIMENTAL")),
+            EngineProfile::Production,
+            "exact match only -- 'Experimental' with different casing fails safe, it does not \
+             opt in by accident"
         );
     }
 
