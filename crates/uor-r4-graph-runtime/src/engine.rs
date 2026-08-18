@@ -461,14 +461,9 @@ impl<'a> R4G1Runtime<'a> {
         &self,
         context_tokens: &[u32],
         signature: Option<&[u8]>,
-        _node_scores: &mut [ScoreQ],
+        node_scores: &mut [ScoreQ],
     ) -> (u32, ScoreQ) {
-        self.predict_distribution_with_signature_lanes(
-            context_tokens,
-            signature,
-            None,
-            _node_scores,
-        )
+        self.predict_distribution_with_signature_lanes(context_tokens, signature, None, node_scores)
     }
 
     /// Predict with separate context and session signatures.
@@ -481,12 +476,23 @@ impl<'a> R4G1Runtime<'a> {
     /// probe admits nothing within any calibrated radius. The session
     /// signature also participates in the emission affinity bonus below,
     /// unchanged.
+    ///
+    /// `node_scores` (#785 C1): the caller provides a buffer it has reset to
+    /// `ScoreQ::MIN`; when the node-emission path executes, every target
+    /// node whose emissions were scored receives its best final score
+    /// (bounds-checked, so a short buffer simply records fewer nodes). An
+    /// n-gram context-row hit returns before any node is consulted and
+    /// leaves the buffer untouched — absence of node evidence stays
+    /// visible, never fabricated. `predict_candidates_with_signature_lanes`
+    /// reads exactly these entries to expand beyond the single distribution
+    /// winner; before this contract existed the buffer was never written and
+    /// the candidate walk could not return more than one token.
     pub fn predict_distribution_with_signature_lanes(
         &self,
         context_tokens: &[u32],
         context_signature: Option<&[u8]>,
         session_signature: Option<&[u8]>,
-        _node_scores: &mut [ScoreQ],
+        node_scores: &mut [ScoreQ],
     ) -> (u32, ScoreQ) {
         let num_nodes = self.node_count();
         if num_nodes == 0 || context_tokens.is_empty() {
@@ -766,6 +772,16 @@ impl<'a> R4G1Runtime<'a> {
                             .saturating_add(sig_bonus)
                             .saturating_sub(penalty);
                         emit_score = ScoreQ::from_raw(final_score);
+
+                        // #785 C1: publish this node's best final score so
+                        // the top-k candidate walk can expand genuinely
+                        // active nodes instead of gating on a never-written
+                        // buffer.
+                        if let Some(slot) = node_scores.get_mut(target_id as usize)
+                            && emit_score.raw() > slot.raw()
+                        {
+                            *slot = emit_score;
+                        }
 
                         if emit_score.raw() > best_score.raw()
                             || (best_token != 0

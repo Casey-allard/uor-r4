@@ -390,6 +390,13 @@ fn hologram_answer(
                     let bundle = runtime::bundle_window_plain(artifacts, &rot, window);
                     let sig = runtime::sig_plain(artifacts, &bundle);
 
+                    // #785 C1: reset the per-step node-score buffer so one
+                    // beam's active-node evidence never leaks into another
+                    // beam or a later step (the engine only ever raises
+                    // entries within a single call).
+                    for slot in node_scores.iter_mut() {
+                        *slot = uor_r4_core::transformerless::score_q::ScoreQ::MIN;
+                    }
                     let mut cands =
                         [(0u32, uor_r4_core::transformerless::score_q::ScoreQ::ZERO); 8];
                     let num_cands = r4g1.predict_candidates_with_signature_lanes(

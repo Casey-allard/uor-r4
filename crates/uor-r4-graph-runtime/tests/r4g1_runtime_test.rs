@@ -280,3 +280,60 @@ fn ngram_lookup_kernel_is_integer_only_by_source_scan() {
 fn ngram_artifact_bytes_are_deterministic() {
     assert_eq!(artifact_with_ngram(true), artifact_with_ngram(true));
 }
+
+#[test]
+fn node_path_prediction_publishes_node_scores_for_candidate_expansion() {
+    // #785 C1: the distribution pass writes each scored target node's best
+    // final emission score into the caller's node_scores buffer, so the
+    // top-k candidate walk can expand genuinely active nodes. Before this
+    // contract the buffer was never written and predict_candidates could
+    // never return more than the single distribution winner.
+    let (art_bytes, artifacts) = fixture_artifacts();
+    let store = synthetic_store();
+    let store_bytes = runtime::store_bytes(&store);
+    let (r4g1_bytes, _) =
+        convert_r4g1::convert(&art_bytes, &artifacts, &store, &store_bytes, None).unwrap();
+    let rt = R4G1Runtime::parse(&r4g1_bytes).unwrap();
+
+    let mut node_scores = vec![ScoreQ::MIN; rt.node_count() as usize];
+    let (best_token, best_score) = rt.predict_distribution(&[1, 2, 3], None, &mut node_scores);
+    assert!(best_token != 0);
+    assert!(best_score > ScoreQ::MIN);
+    let written = node_scores
+        .iter()
+        .filter(|s| s.raw() != ScoreQ::MIN.raw())
+        .count();
+    assert!(
+        written > 0,
+        "node-path prediction must publish at least one node score"
+    );
+
+    // A zero-length buffer reproduces the pre-fix gate: nothing can be
+    // published, so only the distribution winner survives.
+    let mut no_scores: [ScoreQ; 0] = [];
+    let mut gated = [(0u32, ScoreQ::ZERO); 8];
+    let gated_count = rt.predict_candidates(&[1, 2, 3], None, &mut no_scores, &mut gated);
+    assert!(gated_count <= 1);
+
+    let mut full_scores = vec![ScoreQ::MIN; rt.node_count() as usize];
+    let mut cands = [(0u32, ScoreQ::ZERO); 8];
+    let count = rt.predict_candidates(&[1, 2, 3], None, &mut full_scores, &mut cands);
+    assert!(count >= 1);
+    assert!(
+        count >= gated_count,
+        "published node scores must never shrink the candidate set"
+    );
+}
+
+#[test]
+fn ngram_hit_leaves_node_scores_untouched() {
+    // A context-row hit returns before any node is consulted; the buffer
+    // stays all-MIN and the candidate walk stays single-winner. Absence of
+    // node evidence is left visible, never fabricated.
+    let trigram_bytes = artifact_with_ngram(true);
+    let rt = R4G1Runtime::parse(&trigram_bytes).unwrap();
+    let mut scores = vec![ScoreQ::MIN; rt.node_count() as usize];
+    let prediction = rt.predict_distribution(&[1, 10, 20], None, &mut scores);
+    assert_eq!(prediction, (8, ScoreQ::from_raw(200)));
+    assert!(scores.iter().all(|s| s.raw() == ScoreQ::MIN.raw()));
+}
