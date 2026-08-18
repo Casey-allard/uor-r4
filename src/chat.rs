@@ -1414,10 +1414,15 @@ fn handle_model_switch_with_remediation<W: Write>(
         Ok(res) => {
             if res["status"] == "success" {
                 *current_active_model = target_model.to_string();
-                let _ = std::fs::write(
-                    ".uor-models/last_model_name.txt",
+                if let Err(error) = persist_state_file(
+                    std::path::Path::new(".uor-models/last_model_name.txt"),
                     current_active_model.as_str(),
-                );
+                ) {
+                    writeln!(
+                        output,
+                        "\x1b[33m[-] model preference not persisted: {error}\x1b[0m"
+                    )?;
+                }
                 writeln!(
                     output,
                     "\x1b[32m[+] {}\x1b[0m\n",
@@ -1486,22 +1491,34 @@ fn handle_model_switch_with_remediation<W: Write>(
                             {
                                 *current_active_model = target_model.to_string();
                                 *current_active_engine = "r4g1".to_string();
-                                let _ = std::fs::write(
-                                    ".uor-models/last_model_name.txt",
+                                if let Err(error) = persist_state_file(
+                                    std::path::Path::new(".uor-models/last_model_name.txt"),
                                     current_active_model.as_str(),
-                                );
-                                let _ = std::fs::write(
-                                    ".uor-models/last_engine.txt",
-                                    current_active_engine.as_str(),
-                                );
+                                )
+                                .and_then(|()| {
+                                    persist_state_file(
+                                        std::path::Path::new(".uor-models/last_engine.txt"),
+                                        current_active_engine.as_str(),
+                                    )
+                                }) {
+                                    writeln!(
+                                        output,
+                                        "\x1b[33m[-] preference not persisted: {error}\x1b[0m"
+                                    )?;
+                                }
                             }
                         }
                         1 => {
                             *current_active_engine = "attention".to_string();
-                            let _ = std::fs::write(
-                                ".uor-models/last_engine.txt",
+                            if let Err(error) = persist_state_file(
+                                std::path::Path::new(".uor-models/last_engine.txt"),
                                 current_active_engine.as_str(),
-                            );
+                            ) {
+                                writeln!(
+                                    output,
+                                    "\x1b[33m[-] engine preference not persisted: {error}\x1b[0m"
+                                )?;
+                            }
                             writeln!(
                                 output,
                                 "\x1b[32m[+] Engine switched to 'attention' oracle fallback mode.\x1b[0m\n"
@@ -1523,6 +1540,35 @@ fn handle_model_switch_with_remediation<W: Write>(
         }
     }
     Ok(())
+}
+
+/// #790 item 8: persist a small CLI state file atomically and surface the
+/// outcome instead of swallowing it.
+///
+/// The previous `let _ = std::fs::write(...)` sites reported success in
+/// the UI while nothing persisted (read-only store, missing directory,
+/// full disk), and a crash mid-write could leave a half-written
+/// preference for every later request to read. Writes go to a
+/// same-directory temp file and rename over the target (atomic on one
+/// filesystem); callers report a failure to the user.
+fn persist_state_file(path: &std::path::Path, contents: &str) -> std::io::Result<()> {
+    let directory = path.parent().filter(|p| !p.as_os_str().is_empty());
+    if let Some(directory) = directory {
+        std::fs::create_dir_all(directory)?;
+    }
+    let file_name = path
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or("state");
+    let temp = path.with_file_name(format!(".{file_name}.tmp-{}", std::process::id()));
+    std::fs::write(&temp, contents)?;
+    match std::fs::rename(&temp, path) {
+        Ok(()) => Ok(()),
+        Err(error) => {
+            let _ = std::fs::remove_file(&temp);
+            Err(error)
+        }
+    }
 }
 
 /// Run an interactive client chat session against a remote local HTTP vendor endpoint.
@@ -1833,7 +1879,15 @@ pub fn remote_interactive_chat(
                     };
 
                     current_active_engine = target_engine.clone();
-                    let _ = std::fs::write(".uor-models/last_engine.txt", &current_active_engine);
+                    if let Err(error) = persist_state_file(
+                        std::path::Path::new(".uor-models/last_engine.txt"),
+                        &current_active_engine,
+                    ) {
+                        writeln!(
+                            output,
+                            "\x1b[33m[-] engine preference not persisted: {error}\x1b[0m"
+                        )?;
+                    }
                     writeln!(
                         output,
                         "\x1b[32m[+] Active synthesis engine set to '{}'\x1b[0m\n",
@@ -2168,14 +2222,21 @@ pub fn remote_interactive_chat(
                         {
                             current_active_model = target_model.to_string();
                             current_active_engine = "r4g1".to_string();
-                            let _ = std::fs::write(
-                                ".uor-models/last_model_name.txt",
+                            if let Err(error) = persist_state_file(
+                                std::path::Path::new(".uor-models/last_model_name.txt"),
                                 &current_active_model,
-                            );
-                            let _ = std::fs::write(
-                                ".uor-models/last_engine.txt",
-                                &current_active_engine,
-                            );
+                            )
+                            .and_then(|()| {
+                                persist_state_file(
+                                    std::path::Path::new(".uor-models/last_engine.txt"),
+                                    &current_active_engine,
+                                )
+                            }) {
+                                writeln!(
+                                    output,
+                                    "\x1b[33m[-] preference not persisted: {error}\x1b[0m"
+                                )?;
+                            }
                         }
                     }
                     output.flush()?;
@@ -3077,6 +3138,37 @@ mod tests {
         assert_eq!(answer.witness.plain_depths.len(), answer.generated_tokens);
         assert_eq!(answer.witness.non_node_queries, 0);
         assert_eq!(answer.witness.node_path_queries, 0);
+    }
+
+    /// #790 item 8: state-file persists are atomic (no temp residue, full
+    /// content lands) and failures are surfaced, not swallowed — the
+    /// falsifier drives a parent path that is a file, which the old
+    /// `let _ = std::fs::write` sites would have silently ignored.
+    #[test]
+    fn persist_state_file_is_atomic_and_fails_loudly() {
+        let dir = std::env::temp_dir().join(format!("uor-r4-790-8-persist-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).expect("fixture dir");
+
+        let target = dir.join("nested/last_engine.txt");
+        super::persist_state_file(&target, "r4g1").expect("persist succeeds");
+        assert_eq!(std::fs::read_to_string(&target).unwrap(), "r4g1");
+        super::persist_state_file(&target, "attention").expect("overwrite succeeds");
+        assert_eq!(std::fs::read_to_string(&target).unwrap(), "attention");
+        let residue: Vec<_> = std::fs::read_dir(target.parent().unwrap())
+            .unwrap()
+            .filter_map(Result::ok)
+            .filter(|e| e.file_name().to_string_lossy().contains(".tmp-"))
+            .collect();
+        assert!(residue.is_empty(), "no temp files may remain: {residue:?}");
+
+        let blocker = dir.join("blocker");
+        std::fs::write(&blocker, b"file, not a directory").unwrap();
+        let err = super::persist_state_file(&blocker.join("x.txt"), "y")
+            .expect_err("a file in the parent path must surface an error");
+        assert!(!err.to_string().is_empty());
+
+        let _ = std::fs::remove_dir_all(&dir);
     }
 
     #[test]
