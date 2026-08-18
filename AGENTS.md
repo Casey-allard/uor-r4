@@ -271,3 +271,14 @@ never sit between two pieces of code work.
 - The on-disk compiled store in `.uor-models/` predates the u32 token
   migration (TLS1-u16); `runtime::parse_store_legacy_u16` reads it, and a full
   recompile is needed to refresh it.
+- After deleting a git worktree, cached rlibs in the shared `target/` can
+  carry the dead worktree's baked paths and poison the local register gates
+  (#788, AUD-VER-001). `repo_root()` now resolves at runtime, but any other
+  compile-time `env!("CARGO_MANIFEST_DIR")` user (fixture-loading tests) has
+  the same hazard — `cargo clean -p repo-model -p repo-conformance -p xtask`
+  clears the register gates; when in doubt, clean the crate whose test reads
+  a repo path.
+- `cargo test` is fail-fast at the test-binary level: one poisoned binary
+  hides every suite after it. Use `cargo test --workspace --no-fail-fast`
+  for local gate runs so a single bad binary cannot mask the rest
+  (AUD-VER-002).

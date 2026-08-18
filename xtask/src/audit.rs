@@ -55,6 +55,20 @@ fn shipped_sources(root: &Path) -> Result<Vec<Source>, Fail> {
         }
         collect(&dir, root, &mut out)?;
     }
+    // #788: an empty scan set must fail, never vacuously pass. A stale or
+    // wrong repository root (e.g. a path baked into a cached build from a
+    // since-deleted worktree, AUD-VER-001) previously made the R4/R5
+    // audits report success while checking nothing — "no violations" and
+    // "no files" must not share a representation.
+    if out.is_empty() {
+        return Err(format!(
+            "audit walk found zero shipped source files under {} — refusing \
+             the vacuous pass (#788): the repository root is wrong or the \
+             shipped-crate set is unreadable",
+            root.display()
+        )
+        .into());
+    }
     Ok(out)
 }
 
@@ -347,6 +361,16 @@ pub fn audit_deferral(root: &Path) -> Result<(), Fail> {
             files.push(p);
         }
     }
+    // #788: same empty-walk refusal as `shipped_sources` — a wrong root
+    // that happens to exist must not scan nothing and report success.
+    if files.is_empty() {
+        return Err(format!(
+            "deferral walk found zero files under {} — refusing the vacuous \
+             pass (#788): the repository root is wrong",
+            root.display()
+        )
+        .into());
+    }
 
     for path in files {
         let Ok(text) = std::fs::read_to_string(&path) else {
@@ -460,5 +484,40 @@ mod tests {
             seek,
             "Result<u64> {"
         ));
+    }
+}
+
+#[cfg(test)]
+mod empty_walk_tests {
+    use super::*;
+
+    // #788 falsifiers: both audit walkers must refuse an empty scan set.
+    // Each fixture root exists and is readable — the pre-#788 behavior on
+    // such a root was a 0-second vacuous PASS (AUD-VER-001).
+
+    #[test]
+    fn audit_limits_refuses_an_empty_walk() {
+        let dir = std::env::temp_dir().join("xtask-788-empty-walk-limits");
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(dir.join("crates")).expect("fixture root");
+        let err = audit_limits(&dir).expect_err("an empty walk must fail, not pass");
+        assert!(
+            err.to_string().contains("zero shipped source files"),
+            "refusal must name the empty walk, got: {err}"
+        );
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn audit_deferral_refuses_an_empty_walk() {
+        let dir = std::env::temp_dir().join("xtask-788-empty-walk-deferral");
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(dir.join("crates")).expect("fixture root");
+        let err = audit_deferral(&dir).expect_err("an empty walk must fail, not pass");
+        assert!(
+            err.to_string().contains("zero files"),
+            "refusal must name the empty walk, got: {err}"
+        );
+        let _ = std::fs::remove_dir_all(&dir);
     }
 }

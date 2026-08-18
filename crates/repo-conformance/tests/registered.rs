@@ -10,11 +10,13 @@ use repo_conformance::scenarios_in;
 use std::path::PathBuf;
 
 fn root() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .ancestors()
-        .nth(2)
-        .expect("crates/repo-conformance is two below the root")
-        .to_path_buf()
+    // #788: runtime resolution, never compile-time env!() — a cached test
+    // binary carries the baked path of whatever checkout built it, which
+    // made all 29 markers fail (`features/suites` NotFound) after a
+    // sibling worktree was deleted (AUD-VER-001). repo_model::repo_root
+    // walks up from the runtime CARGO_MANIFEST_DIR (cwd fallback) to the
+    // ancestor holding model/ledger.toml.
+    repo_model::repo_root()
 }
 
 fn check(id: &str, suite: &str) {

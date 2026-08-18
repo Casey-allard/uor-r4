@@ -12,11 +12,10 @@ use repo_conformance::{check_honesty, scenarios_in};
 use repo_model::{Level, Model};
 
 fn root() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .ancestors()
-        .nth(2)
-        .expect("crates/conformance is two below the root")
-        .to_path_buf()
+    // #788: runtime resolution, never compile-time env!() — see
+    // registered.rs; a cached test binary with a baked worktree path made
+    // this suite read a nonexistent tree (AUD-VER-001).
+    repo_model::repo_root()
 }
 
 /// Every `#[test]` function name in the workspace.
