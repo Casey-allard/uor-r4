@@ -1084,7 +1084,13 @@ fn trigger_in_client_compilation<W: Write>(
             "HuggingFaceTB/SmolLM2-360M-Instruct",
             "9d9ff7299a9a3b6d289ff100d0246a48d88c0326",
         ),
-        "smollm2-1-7b-instruct" => ("HuggingFaceTB/SmolLM2-1.7B-Instruct", "main"),
+        // #790: pinned 40-hex revision — the download path refuses branch
+        // names by design, so "main" made this arm unreachable on a fresh
+        // machine. Resolved from the repo's main on 2026-08-18.
+        "smollm2-1-7b-instruct" => (
+            "HuggingFaceTB/SmolLM2-1.7B-Instruct",
+            "31b70e2e869a7173562077fd711b654946d38674",
+        ),
         _ => (
             "HuggingFaceTB/SmolLM2-135M-Instruct",
             "7e27bd9f95328f0f3b08261d1252705110c806f8",

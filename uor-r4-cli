@@ -96,7 +96,9 @@ case "$MODEL_CHOICE" in
     3)
         MODEL_NAME="smollm2-1-7b-instruct"
         HF_REPO="HuggingFaceTB/SmolLM2-1.7B-Instruct"
-        HF_REV="main"
+        # #790: pinned 40-hex revision (the downloader refuses branch names
+        # by design). Resolved from the repo's main on 2026-08-18.
+        HF_REV="31b70e2e869a7173562077fd711b654946d38674"
         TARGET_TOKENS="1768000"
         COMPILE_SECS="1200"
         ;;

@@ -9738,10 +9738,30 @@ pub fn run(args: &[String]) -> Result<(), SourceUnavailable> {
         Some("graph") => graph_command(&args[1..])?,
         Some("cd-compile") => cd_compile_command(&args[1..]),
         Some("quantum-eval") => quantum_eval_command(&args[1..]),
+        // #790 item 2: `help`/no-args prints usage and succeeds; an
+        // UNKNOWN subcommand prints usage and fails — previously any typo
+        // (or the removed `compare`/`compare-report`, which are top-level
+        // `r4` commands, not transformerless subcommands) exited 0 as a
+        // silent no-op, so a broken pipeline stage reported success.
+        Some(unknown) if unknown != "help" => {
+            println!("{}", transformerless_usage());
+            return Err(SourceUnavailable::new(format!(
+                "unknown transformerless subcommand `{unknown}`"
+            )));
+        }
         _ => {
-            println!(
-                "R4 transformerless — compile a mul-free table artifact\n\
-                 commands: setup | gen [secs] [target] | compile [--model REPO --revision SHA | --source DIR] [--tokenizer-family FAMILY --tokenizer-version N] [--output DIR] [--seconds N] [--target N] [--sequence-length N] | store | compare | compare-report | scenarios | teacher-kappa | convert-r4g1 --artifacts <TLA> --store <TLS1> [--calibration <hamming_calibration.json>] --out <R4G1>\n\
+            println!("{}", transformerless_usage());
+        }
+    }
+    Ok(())
+}
+
+/// Usage banner for the `transformerless` command family. Lists exactly
+/// the subcommands `run` dispatches (#790: it previously advertised
+/// `compare`/`compare-report`, which live on the top-level `r4` CLI).
+fn transformerless_usage() -> &'static str {
+    "R4 transformerless — compile a mul-free table artifact\n\
+                 commands: setup | gen [secs] [target] | compile [--model REPO --revision SHA | --source DIR] [--tokenizer-family FAMILY --tokenizer-version N] [--output DIR] [--seconds N] [--target N] [--sequence-length N] | store | scenarios | teacher-kappa | convert-r4g1 --artifacts <TLA> --store <TLS1> [--calibration <hamming_calibration.json>] --out <R4G1>\n\
                  recorded compile (no transformer): compile-recorded --corpus-meta <META> --corpus-recs <RECS> --vocab-size <N> --out <DIR>\n\
                  markerless legacy attention copy (dense-present derivations are refused): copy-recorded-attention --corpus-meta <META> --corpus-recs <RECS> --out <attention_operator.json>\n\
                  guarded streaming corpus derivation (N <= source; complete runs may undershoot): subsample-recorded-corpus --src-meta <META> --src-recs <RECS> --out-meta <corpus.meta> --out-recs <corpus.records> --records <N>\n\
@@ -9756,10 +9776,6 @@ pub fn run(args: &[String]) -> Result<(), SourceUnavailable> {
                  hf evaluation: evaluate-report [--source DIR] [--tokenizer-family FAMILY --tokenizer-version N] [--compiled DIR] [--report PATH] [--sequence-length N] [--bos] [--max-held-out-stories N]\n\
                  scale sizing (#514): recommend-scale (--config <hf dir> | --d-model N --n-layers N --vocab N) [--corpus wiki|stories] [--beta B]\n\
                  docs: docs/transformerless/TRANSFORMERLESS.md (extrapolation), docs/transformerless/PROOF.md (proof + certificate)"
-            );
-        }
-    }
-    Ok(())
 }
 
 pub fn cd_compile_command(args: &[String]) {
@@ -15188,5 +15204,48 @@ mod tests {
         assert_eq!(parse("none"), score::EmissionShrinkage::None);
         assert_eq!(parse("witten-bell"), score::EmissionShrinkage::WittenBell);
         assert!(parse_score_options(&["--emission-shrinkage", "bad"].map(str::to_owned)).is_err());
+    }
+}
+
+#[cfg(test)]
+mod transformerless_dispatch_790 {
+    // #790 item 2 falsifier: an unknown subcommand must be a nonzero-exit
+    // error, never a banner-printing silent success; `help`/no-args stays
+    // a successful usage print; the banner only advertises subcommands
+    // this dispatcher actually handles.
+    #[test]
+    fn unknown_subcommand_is_an_error_and_help_is_not() {
+        let unknown = super::run(&["definitely-not-a-subcommand".to_string()]);
+        assert!(unknown.is_err(), "unknown subcommand must fail loudly");
+        assert!(
+            unknown
+                .unwrap_err()
+                .to_string()
+                .contains("definitely-not-a-subcommand"),
+            "the error must name the unknown subcommand"
+        );
+        assert!(super::run(&["help".to_string()]).is_ok());
+        assert!(super::run(&[]).is_ok());
+    }
+
+    #[test]
+    fn usage_banner_lists_only_dispatched_subcommands() {
+        let usage = super::transformerless_usage();
+        assert!(
+            !usage.contains("compare"),
+            "compare/compare-report are top-level r4 commands, not transformerless subcommands"
+        );
+        for advertised in [
+            "setup",
+            "store",
+            "scenarios",
+            "teacher-kappa",
+            "convert-r4g1",
+        ] {
+            assert!(
+                usage.contains(advertised),
+                "banner must keep `{advertised}`"
+            );
+        }
     }
 }

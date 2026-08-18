@@ -24,10 +24,14 @@ pub const SOURCE_EXECUTION_MODE_OFFLINE_COMPILER_INPUT: &str = "offline-compiler
 /// Default CID-manifest name selected when neither CLI nor environment chooses one.
 pub const DEFAULT_CHAT_MODEL: &str = "smollm2-135m-instruct";
 
-/// Select the most recently modified model descriptor in `models/`.
+/// Select the default chat model from the descriptors in `models/`.
 ///
-/// `TLESS_MODEL` always wins. The static default is used when discovery is
-/// unavailable, such as when a binary runs outside the repository checkout.
+/// `TLESS_MODEL` always wins. Discovery considers only chat-capable
+/// descriptors (declaring `architecture` + `weight_format`; tokenizer-only
+/// pins are skipped), prefers one whose compiled bundle exists locally,
+/// then newest, then name (#790). The static default is used when
+/// discovery is unavailable, such as when a binary runs outside the
+/// repository checkout.
 pub fn default_model_reference() -> String {
     std::env::var("TLESS_MODEL")
         .ok()
@@ -725,6 +729,14 @@ fn safe_name(name: &str) -> String {
 }
 
 fn latest_descriptor_name(directory: &Path) -> Option<String> {
+    // #790 item 3: only chat-capable model descriptors participate in
+    // default-model discovery. The mtime-newest-json rule used to pick the
+    // tokenizer-only `t5-base-tokenizer.json`, breaking bare `r4 ask` with
+    // "compiled model manifest 't5-base-tokenizer' was not found". A
+    // descriptor is chat-capable when it declares both `architecture` and
+    // `weight_format`; tokenizer pins declare neither. Newest still wins,
+    // with the name as a deterministic tiebreak (a fresh clone gives every
+    // descriptor the same mtime, which made the old pick arbitrary).
     std::fs::read_dir(directory)
         .ok()?
         .filter_map(Result::ok)
@@ -735,12 +747,28 @@ fn latest_descriptor_name(directory: &Path) -> Option<String> {
                 .is_some_and(|extension| extension == "json")
         })
         .filter_map(|entry| {
+            let path = entry.path();
+            let descriptor: serde_json::Value =
+                serde_json::from_str(&std::fs::read_to_string(&path).ok()?).ok()?;
+            if descriptor.get("architecture").is_none() || descriptor.get("weight_format").is_none()
+            {
+                return None;
+            }
             let modified = entry.metadata().ok()?.modified().ok()?;
-            let name = entry.path().file_stem()?.to_str()?.to_owned();
-            Some((modified, name))
+            let name = path.file_stem()?.to_str()?.to_owned();
+            // A descriptor whose bundle is actually compiled locally beats
+            // any uncompiled one: bare `r4 ask` should reach a servable
+            // model when one exists rather than erroring on the newest pin.
+            let compiled = ModelStore::from_env()
+                .root
+                .join("compiled")
+                .join(safe_name(&name))
+                .join("tless_artifacts.bin")
+                .is_file();
+            Some((compiled, modified, name))
         })
-        .max_by_key(|(modified, _)| *modified)
-        .map(|(_, name)| name)
+        .max()
+        .map(|(_, _, name)| name)
 }
 
 /// A pinned open-weight model source used only by offline compilation.
@@ -1545,6 +1573,36 @@ pub fn write_source_manifest(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// #790 item 3 falsifier: a tokenizer-only descriptor must never win
+    /// default-model discovery, even when it is the mtime-newest json —
+    /// the pre-fix rule picked `t5-base-tokenizer` and broke bare
+    /// `r4 ask` ("compiled model manifest 't5-base-tokenizer' was not
+    /// found", verified live in the 2026-08-18 audit).
+    #[test]
+    fn default_model_discovery_skips_tokenizer_only_descriptors() {
+        let dir = std::env::temp_dir().join("uor-r4-790-descriptor-pick");
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).expect("fixture dir");
+        std::fs::write(
+            dir.join("aaa-chat-model.json"),
+            r#"{"architecture":"LlamaForCausalLM","weight_format":"safetensors"}"#,
+        )
+        .expect("chat descriptor");
+        // Written second, so it is at least as new as the chat descriptor.
+        std::fs::write(
+            dir.join("zzz-tokenizer-only.json"),
+            r#"{"tokenizer_family":"sentencepiece-unigram"}"#,
+        )
+        .expect("tokenizer descriptor");
+        assert_eq!(
+            latest_descriptor_name(&dir).as_deref(),
+            Some("aaa-chat-model")
+        );
+        // Deterministic across repeated calls.
+        assert_eq!(latest_descriptor_name(&dir), latest_descriptor_name(&dir));
+        let _ = std::fs::remove_dir_all(&dir);
+    }
 
     /// Falsifier for `#744`'s live quality gate: demonstrates
     /// `aggregate_probe_outcomes` correctly rejects the two known-bad
