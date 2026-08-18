@@ -27683,4 +27683,191 @@ mod tests {
                 .expect("stream is accepted");
         assert_eq!(req.stream, Some(true));
     }
+
+    // ---- #789 G4: HTTP-level baseline tests -------------------------------
+    //
+    // These drive `handle_connection` over a real socket pair and pin
+    // CURRENT behavior at the four gaps the 2026-08-18 audit recorded
+    // (AUD-ARCH-003/-004/-008/-009), so the G1-G3 decisions change these
+    // assertions as deliberate, reviewed diffs rather than silently. Every
+    // fixture uses default in-memory state and nonexistent artifact paths;
+    // no test writes to the model store.
+
+    fn g4_drive(request: &str) -> (String, String) {
+        use super::{
+            handle_connection, tless_uor, HuggingFaceDownloadStatus, R4g1CompileStatus,
+            ServerConfig, ServingModelState, SharedServingModel, SharedSourceCacheOperations,
+            SourceCacheOperationState, UorR4Router,
+        };
+        use std::io::{Read as _, Write as _};
+        use std::sync::{Arc, Mutex};
+        use std::time::Instant;
+
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").expect("ephemeral bind");
+        let addr = listener.local_addr().expect("local addr");
+        // connect_timeout keeps the harness bounded AND avoids the literal
+        // the `native_inference_has_no_external_provider_client` facade
+        // guard scans for — this loopback test socket is not an external
+        // inference path, but the guard reads the whole file's source.
+        let mut client =
+            std::net::TcpStream::connect_timeout(&addr, std::time::Duration::from_secs(10))
+                .expect("connect");
+        let (server_stream, _) = listener.accept().expect("accept");
+
+        let router = Arc::new(Mutex::new(UorR4Router::new(0.85)));
+        let tless: Arc<Mutex<Option<tless_uor::TlessState>>> = Arc::new(Mutex::new(None));
+        let serving: SharedServingModel = Arc::new(Mutex::new(ServingModelState::default()));
+        let r4g1_compile = Arc::new(Mutex::new(R4g1CompileStatus {
+            running: false,
+            ready: false,
+            progress: 0,
+            message: "idle".to_owned(),
+            report: None,
+        }));
+        let hf_download = Arc::new(Mutex::new(HuggingFaceDownloadStatus {
+            running: false,
+            ready: false,
+            message: "idle".to_owned(),
+            source: None,
+            completed_source: None,
+        }));
+        let source_cache: SharedSourceCacheOperations =
+            Arc::new(Mutex::new(SourceCacheOperationState::default()));
+        let cli = Arc::new(ServerConfig {
+            host: "127.0.0.1".to_owned(),
+            port: 0,
+            manifold_cache: "/nonexistent/g4-manifold.json".to_owned(),
+            tless_artifacts: "/nonexistent/g4-artifacts.bin".to_owned(),
+            tless_store: "/nonexistent/g4-store.bin".to_owned(),
+            tless_tokenizer: "/nonexistent/g4-tokenizer.bin".to_owned(),
+            r4g1_artifact: Some("/nonexistent/g4-score.r4g1".to_owned()),
+            tless_corpus_meta: None,
+            tless_corpus_recs: None,
+        });
+
+        client.write_all(request.as_bytes()).expect("send request");
+        let worker = std::thread::spawn(move || {
+            handle_connection(
+                server_stream,
+                router,
+                tless,
+                serving,
+                r4g1_compile,
+                hf_download,
+                source_cache,
+                cli,
+                Instant::now(),
+            );
+        });
+        let mut response = Vec::new();
+        client.read_to_end(&mut response).expect("read response");
+        worker.join().expect("handler thread");
+        let response = String::from_utf8_lossy(&response).into_owned();
+        let status_line = response.lines().next().unwrap_or_default().to_owned();
+        (status_line, response)
+    }
+
+    fn g4_post(path: &str, body: &str) -> (String, String) {
+        g4_drive(&format!(
+            "POST {path} HTTP/1.1\r\nHost: localhost\r\nContent-Type: application/json\r\nContent-Length: {}\r\n\r\n{body}",
+            body.len()
+        ))
+    }
+
+    const G4_PROFILE_DECLINE_MARK: &str = "unavailable under the production engine profile";
+
+    /// Default profile + explicit experimental engine: the E2 typed
+    /// decline, with today's tier-constant echo pinned (G3.2: requesting
+    /// `transformerless-legacy` echoes the collapsed `transformerless`).
+    #[test]
+    fn g4_baseline_explicit_experimental_engine_is_profile_declined() {
+        let (status, response) = g4_post("/api/chat", r#"{"text":"hi","engine":"geometric"}"#);
+        assert!(
+            status.contains("503"),
+            "profile decline is 503, got {status}"
+        );
+        assert!(response.contains(G4_PROFILE_DECLINE_MARK));
+        assert!(response.contains(r#"declined_by_all"#));
+
+        let (_, response) = g4_post(
+            "/api/chat",
+            r#"{"text":"hi","engine":"transformerless-legacy"}"#,
+        );
+        assert!(response.contains(G4_PROFILE_DECLINE_MARK));
+        assert!(
+            response.contains(r#"engine \"transformerless\" is unavailable"#),
+            "G3.2 baseline: the decline echoes the collapsed tier constant today"
+        );
+    }
+
+    /// G3.1 baseline: an unknown engine name is NOT declined — it silently
+    /// runs the (Production-restricted) cascade, indistinguishable from an
+    /// ordinary request. The decided semantics will flip this assertion.
+    #[test]
+    fn g4_baseline_unknown_engine_name_silently_runs_the_cascade() {
+        let (_, response) = g4_post("/api/chat", r#"{"text":"hi","engine":"gpt-4"}"#);
+        assert!(
+            !response.contains(G4_PROFILE_DECLINE_MARK),
+            "unknown names are not profile-declined today"
+        );
+        assert!(
+            response.contains("declined_by_all"),
+            "with no tier loaded the cascade declines, proving it ran"
+        );
+    }
+
+    /// G1 baseline: the per-tier endpoints carry no profile gate — a
+    /// default-profile (Production) server still routes `/api/tless/*`
+    /// requests into the Tier-2 handler (which then fails on state, not on
+    /// profile).
+    #[test]
+    fn g4_baseline_tless_bypass_endpoint_is_not_profile_gated() {
+        let (status, response) = g4_post("/api/tless/predict", r#"{"text":"hi"}"#);
+        assert!(
+            !response.contains(G4_PROFILE_DECLINE_MARK),
+            "bypass endpoints are reachable under Production today"
+        );
+        assert!(
+            !status.contains("403"),
+            "no profile gate exists on the per-tier endpoints today"
+        );
+    }
+
+    /// G2 baseline: `/uor/v1/status` does not expose the active engine
+    /// profile. The G2 implementation adds a `profile` field and flips
+    /// this assertion.
+    #[test]
+    fn g4_baseline_status_lacks_a_profile_field() {
+        let (status, response) = g4_drive("GET /uor/v1/status HTTP/1.1\r\nHost: localhost\r\n\r\n");
+        assert!(
+            status.contains("200"),
+            "status endpoint serves, got {status}"
+        );
+        assert!(
+            !response.contains("\"profile\""),
+            "the active profile is not exposed today"
+        );
+    }
+
+    /// G3.3 baseline, first half: with NO active serving model, the
+    /// OpenAI surface answers with a proper OpenAI error envelope
+    /// (`model_not_ready`, 503) — the guard fires before the cascade.
+    /// The audited defect (native `declined_by_all` JSON at 200 when the
+    /// cascade declines under an ACTIVE model, `server.rs` OpenAI
+    /// entry points) needs a text-ready serving fixture and is pinned in
+    /// the G3 implementation PR alongside its fix.
+    #[test]
+    fn g4_baseline_openai_without_active_model_is_an_error_envelope() {
+        let (status, response) = g4_post(
+            "/v1/chat/completions",
+            r#"{"model":"uor-r4","messages":[{"role":"user","content":"hi"}]}"#,
+        );
+        assert!(
+            status.contains("503"),
+            "model_not_ready is 503, got {status}"
+        );
+        assert!(response.contains("\"error\""));
+        assert!(response.contains("model_not_ready"));
+        assert!(!response.contains("declined_by_all"));
+    }
 }
