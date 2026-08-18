@@ -267,7 +267,16 @@ fn ngram_lookup_kernel_is_integer_only_by_source_scan() {
     let end = source
         .find("impl<'a> R4G1Runtime")
         .expect("runtime implementation follows lookup helpers");
-    let kernel = &source[start..end];
+    // Strip line comments before scanning so the kernel functions can carry
+    // doc comments (which necessarily contain '/') without weakening the
+    // check on the code itself. No string literal in this region contains
+    // "//", so the naive split is exact here (#785; scanner consolidation
+    // tracked by #787).
+    let kernel = source[start..end]
+        .lines()
+        .map(|line| line.split("//").next().unwrap_or(""))
+        .collect::<Vec<_>>()
+        .join("\n");
     for forbidden in ["*", "/", "f32", "f64"] {
         assert!(
             !kernel.contains(forbidden),
@@ -336,4 +345,134 @@ fn ngram_hit_leaves_node_scores_untouched() {
     let prediction = rt.predict_distribution(&[1, 10, 20], None, &mut scores);
     assert_eq!(prediction, (8, ScoreQ::from_raw(200)));
     assert!(scores.iter().all(|s| s.raw() == ScoreQ::MIN.raw()));
+}
+
+#[test]
+fn ngram_hit_surfaces_row_alternatives_as_candidates() {
+    // #785 C1: on a context-row hit the winning row's alternative entries
+    // become candidates, so multi-candidate decoding exists on the n-gram
+    // tier too. The fixture trigram row holds (8, 200) and (9, 200); the
+    // single-winner distribution keeps 8 (tie broken by lower token), and
+    // the candidate walk must now surface 9 as well.
+    let trigram_bytes = artifact_with_ngram(true);
+    let rt = R4G1Runtime::parse(&trigram_bytes).unwrap();
+    let mut scores = vec![ScoreQ::MIN; rt.node_count() as usize];
+    let mut cands = [(0u32, ScoreQ::ZERO); 8];
+    let count = rt.predict_candidates(&[1, 10, 20], None, &mut scores, &mut cands);
+    assert!(count >= 2, "row alternatives must be surfaced, got {count}");
+    assert_eq!(cands[0], (8, ScoreQ::from_raw(200)));
+    assert!(
+        cands[..count].iter().any(|&(token, _)| token == 9),
+        "the row's alternative continuation must appear"
+    );
+    // The buffer contract is unchanged: a row hit still consults no nodes.
+    assert!(scores.iter().all(|s| s.raw() == ScoreQ::MIN.raw()));
+}
+
+/// Rebuild the base converter artifact with selected section payloads
+/// replaced, preserving section order and alignment.
+fn artifact_with_replaced_sections(replacements: &[(SectionId, Vec<u8>)]) -> Vec<u8> {
+    let base = base_r4g1_artifact();
+    let view = GraphView::parse(&base).expect("base artifact parses");
+    let mut builder = ArtifactBuilder::new(view.header().alignment_log2);
+    for section in view.sections() {
+        match replacements.iter().find(|(id, _)| *id == section.id) {
+            Some((_, payload)) => {
+                builder.add_section(section.id, section.flags, payload);
+            }
+            None => {
+                builder.add_section(section.id, section.flags, section.payload);
+            }
+        }
+    }
+    builder.build().expect("rebuilt artifact builds")
+}
+
+#[test]
+fn exct_container_bytes_are_never_scored_as_emission_pairs() {
+    // #785 C1c seeded violation: EXCT is a storage descriptor plus a raw
+    // store container, never a (token, score_q) pair list. The old
+    // node-0 fallback preferred EXCT and pair-scanned it, so a byte
+    // pattern that happens to decode as a valid token id with a
+    // near-saturated score would win every step — exactly the failure
+    // observed live on converter bundles carrying a multi-megabyte TLS1
+    // container. Seed one such pattern and prove it can never surface.
+    let mut poisoned_exct = vec![2u8, 0, 0, 0];
+    poisoned_exct.extend_from_slice(&4242u32.to_le_bytes());
+    poisoned_exct.extend_from_slice(&(i32::MAX - 1).to_le_bytes());
+    let bytes = artifact_with_replaced_sections(&[(SectionId::EXCT, poisoned_exct)]);
+    let rt = R4G1Runtime::parse(&bytes).expect("poisoned-EXCT artifact parses");
+
+    let mut scores = vec![ScoreQ::MIN; rt.node_count() as usize];
+    let (token, score) = rt.predict_distribution(&[1, 2, 3], None, &mut scores);
+    assert_ne!(token, 4242, "EXCT container bytes must never be emitted");
+    assert!(
+        score.raw() < 1_000_000,
+        "no near-saturated garbage score may survive, got {}",
+        score.raw()
+    );
+
+    let mut scores = vec![ScoreQ::MIN; rt.node_count() as usize];
+    let mut cands = [(0u32, ScoreQ::ZERO); 8];
+    let count = rt.predict_candidates(&[1, 2, 3], None, &mut scores, &mut cands);
+    assert!(
+        cands[..count].iter().all(|&(t, _)| t != 4242),
+        "EXCT container bytes must never enter the candidate walk"
+    );
+}
+
+#[test]
+fn scored_flavor_reads_only_per_node_emission_ranges() {
+    // #785 C1c seeded violation, scored flavor: when any node carries a
+    // per-node emission range, the EMIT remainder is a root-prior block
+    // plus per-region lists — whole-remainder reads (old node-0 and
+    // last-resort fallbacks) would score arbitrary header bytes. Craft a
+    // remainder whose first pseudo-pair is a valid-looking token at a
+    // near-saturated score, wire node 1's range past it, and prove only
+    // the ranged entry is ever read.
+    let base = base_r4g1_artifact();
+    let base_view = GraphView::parse(&base).expect("base artifact parses");
+    let mut node_payload = base_view
+        .section(SectionId::NODE)
+        .expect("NODE section present")
+        .to_vec();
+    // Node 1's record starts at PACKED_NODE_LEN; emission_start is at
+    // record offset 12 (u32), emission_len at 16 (u16).
+    let record = uor_r4_graph_format::PACKED_NODE_LEN;
+    node_payload[record + 12..record + 16].copy_from_slice(&8u32.to_le_bytes());
+    node_payload[record + 16..record + 18].copy_from_slice(&8u16.to_le_bytes());
+
+    let mut emit = vec![2u8, 0, 0, 0];
+    emit.extend_from_slice(&49000u32.to_le_bytes()); // poison pseudo-pair
+    emit.extend_from_slice(&(i32::MAX - 1).to_le_bytes());
+    emit.extend_from_slice(&7u32.to_le_bytes()); // node 1's real entry
+    emit.extend_from_slice(&500i32.to_le_bytes());
+
+    let mut poisoned_exct = vec![2u8, 0, 0, 0];
+    poisoned_exct.extend_from_slice(&49000u32.to_le_bytes());
+    poisoned_exct.extend_from_slice(&(i32::MAX - 1).to_le_bytes());
+
+    let bytes = artifact_with_replaced_sections(&[
+        (SectionId::NODE, node_payload),
+        (SectionId::EMIT, emit),
+        (SectionId::EXCT, poisoned_exct),
+    ]);
+    let rt = R4G1Runtime::parse(&bytes).expect("scored-flavor artifact parses");
+
+    let mut scores = vec![ScoreQ::MIN; rt.node_count() as usize];
+    let (token, score) = rt.predict_distribution(&[1, 2, 3], None, &mut scores);
+    assert_ne!(token, 49000, "whole-remainder reads must be gated off");
+    assert!(
+        score.raw() < 1_000_000,
+        "no near-saturated garbage score may survive, got {}",
+        score.raw()
+    );
+
+    let mut scores = vec![ScoreQ::MIN; rt.node_count() as usize];
+    let mut cands = [(0u32, ScoreQ::ZERO); 8];
+    let count = rt.predict_candidates(&[1, 2, 3], None, &mut scores, &mut cands);
+    assert!(
+        cands[..count].iter().all(|&(t, _)| t != 49000),
+        "poison pseudo-pair must never enter the candidate walk"
+    );
 }

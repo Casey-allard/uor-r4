@@ -195,11 +195,8 @@ impl ChatEngineBuilder {
             compiler::parse_artifacts(&artifact_bytes).ok_or(ChatError::InvalidArtifacts)?;
         let store_bytes = model_store.get(&manifest.store)?;
         let store = runtime::parse_store(&store_bytes).ok_or(ChatError::InvalidStore)?;
-        let r4g1_path = std::path::PathBuf::from(format!(
-            ".uor-models/compiled/{}/compiled.r4g1",
-            manifest.name
-        ));
-        let r4g1_bytes = read_optional_chat_file(&r4g1_path)?;
+        let model_dir = std::path::PathBuf::from(format!(".uor-models/compiled/{}", manifest.name));
+        let r4g1_bytes = read_preferred_chat_graph(&model_dir)?;
         validate_chat_r4g1_structure(r4g1_bytes.as_deref())?;
         let bundled_tokenizer = match model_store.get(&manifest.tokenizer) {
             Ok(bytes) => bytes,
@@ -243,7 +240,7 @@ fn build_local_compiled_engine(
 ) -> Result<ChatEngine, ChatError> {
     let artifact_bytes = std::fs::read(directory.join("tless_artifacts.bin"))?;
     let store_bytes = std::fs::read(directory.join("tless_store.bin"))?;
-    let r4g1_bytes = read_optional_chat_file(&directory.join("compiled.r4g1"))?;
+    let r4g1_bytes = read_preferred_chat_graph(directory)?;
     validate_chat_r4g1_structure(r4g1_bytes.as_deref())?;
     let tok_file = directory.join("tokenizer.bin");
     tracing::debug!(?tok_file, "resolved chat tokenizer path");
@@ -554,6 +551,22 @@ fn invalid_chat_data(message: impl Into<String>) -> ChatError {
         std::io::ErrorKind::InvalidData,
         message.into(),
     ))
+}
+
+/// Resolve the model directory's servable R4G1 graph, preferring the
+/// scored artifact over the converter carryover.
+///
+/// `graph/score.r4g1` is the graph the HTTP server (`primary_graph`) and
+/// the release-bundle packager (`GRAPH_RELATIVE_PATH`) already treat as
+/// the servable one: it carries per-node emissions, context rows, and
+/// residual EXCT tables. `compiled.r4g1` is the converter carryover
+/// (empty per-node emissions, raw TLS1 EXCT) and stays as the fallback
+/// for bundles that never ran score (#785 C1c).
+fn read_preferred_chat_graph(directory: &std::path::Path) -> Result<Option<Vec<u8>>, ChatError> {
+    if let Some(bytes) = read_optional_chat_file(&directory.join("graph/score.r4g1"))? {
+        return Ok(Some(bytes));
+    }
+    read_optional_chat_file(&directory.join("compiled.r4g1"))
 }
 
 fn read_optional_chat_file(path: &std::path::Path) -> Result<Option<Vec<u8>>, ChatError> {

@@ -37,32 +37,8 @@ fn signature_affinity_bonus(prototype: &[u8], mask: &[u8], signature: &[u8]) -> 
 /// The first non-empty row wins: trigram, then bigram, then the EMIT
 /// unigram path (represented by `None`).
 fn context_backoff(view: &GraphView<'_>, context_tokens: &[u32]) -> Option<(u32, ScoreQ)> {
-    let table = view.ngram_table().ok().flatten()?;
-    let tokens = if context_tokens.first().is_some_and(|&token| token <= 1) {
-        &context_tokens[1..]
-    } else {
-        context_tokens
-    };
-    let mut best = None;
-    if tokens.len() >= 2
-        && let Some(row) = table.find(2, tokens[tokens.len() - 2], tokens[tokens.len() - 1])
-    {
-        best = best_context_entry(row.entries());
-    }
-    if best.is_none()
-        && let Some(&previous) = tokens.last()
-        && let Some(row) = table.find(1, previous, 0)
-    {
-        best = best_context_entry(row.entries());
-    }
-    best
-}
-
-fn best_context_entry(
-    entries: impl Iterator<Item = uor_r4_graph_format::NgramEntry>,
-) -> Option<(u32, ScoreQ)> {
-    let mut best = None;
-    for entry in entries {
+    let mut best: Option<(u32, ScoreQ)> = None;
+    with_context_row_entries(view, context_tokens, |entry| {
         let candidate = (entry.token, entry.score_q);
         if best.is_none_or(|(token, score): (u32, ScoreQ)| {
             candidate.1.raw() > score.raw()
@@ -70,8 +46,51 @@ fn best_context_entry(
         }) {
             best = Some(candidate);
         }
-    }
+    });
     best
+}
+
+/// Visit every entry of the winning explicit context row for
+/// `context_tokens` — the identical trigram-then-bigram resolution and
+/// leading-BOS skip `context_backoff` applies — so single-winner backoff
+/// and the top-k candidate walk read the same row instead of drifting.
+/// Returns true when a non-empty row was found.
+fn with_context_row_entries<F: FnMut(uor_r4_graph_format::NgramEntry)>(
+    view: &GraphView<'_>,
+    context_tokens: &[u32],
+    mut visit: F,
+) -> bool {
+    let Some(table) = view.ngram_table().ok().flatten() else {
+        return false;
+    };
+    let tokens = if context_tokens.first().is_some_and(|&token| token <= 1) {
+        &context_tokens[1..]
+    } else {
+        context_tokens
+    };
+    if tokens.len() >= 2
+        && let Some(row) = table.find(2, tokens[tokens.len() - 2], tokens[tokens.len() - 1])
+    {
+        let mut any = false;
+        for entry in row.entries() {
+            any = true;
+            visit(entry);
+        }
+        if any {
+            return true;
+        }
+    }
+    if let Some(&previous) = tokens.last()
+        && let Some(row) = table.find(1, previous, 0)
+    {
+        let mut any = false;
+        for entry in row.entries() {
+            any = true;
+            visit(entry);
+        }
+        return any;
+    }
+    false
 }
 
 impl<'a> R4G1Runtime<'a> {
@@ -287,12 +306,32 @@ impl<'a> R4G1Runtime<'a> {
     }
 }
 
+/// Whether any node in `base_graph` carries a per-node emission list.
+///
+/// The two graph writers differ here: the certify score writer wires
+/// per-node `emission_start`/`emission_len` ranges over the EMIT
+/// remainder, while the converter carryover writes every node with an
+/// empty range and stores a single global root-prior (token, count)
+/// table as the whole EMIT remainder. The fallback readers below must
+/// know which flavor they are looking at before treating a section
+/// remainder as a pair list (#785).
+fn has_per_node_emissions(base_graph: &GraphView<'_>) -> bool {
+    let count = base_graph.node_count().unwrap_or(0);
+    for n in 0..count {
+        if let Some(node) = base_graph.node(n)
+            && node.emission_len > 0
+        {
+            return true;
+        }
+    }
+    false
+}
+
 fn check_node_emits(
     base_graph: &uor_r4_graph_format::GraphView,
     node_id: u32,
     target_token: u32,
     emit_remainder: Option<&[u8]>,
-    exct_remainder: Option<&[u8]>,
 ) -> (bool, ScoreQ) {
     let mut stack = [0u32; 128];
     let mut visited = [0u32; 128];
@@ -362,34 +401,12 @@ fn check_node_emits(
         }
     }
 
-    if let Some(exct_bytes) = exct_remainder {
-        for i in 0..(exct_bytes.len() >> 3) {
-            let offset = i << 3;
-            let cand = u32::from_le_bytes([
-                exct_bytes[offset],
-                exct_bytes[offset + 1],
-                exct_bytes[offset + 2],
-                exct_bytes[offset + 3],
-            ]);
-            if cand == target_token {
-                let raw = i32::from_le_bytes([
-                    exct_bytes[offset + 4],
-                    exct_bytes[offset + 5],
-                    exct_bytes[offset + 6],
-                    exct_bytes[offset + 7],
-                ]);
-                return (
-                    true,
-                    if raw > 0 {
-                        ScoreQ::from_raw(raw)
-                    } else {
-                        ScoreQ::from_raw(1)
-                    },
-                );
-            }
-        }
-    }
-
+    // #785 C1c: no EXCT fallback here. EXCT is a storage descriptor
+    // followed by a raw store container (TLS1 carryover from the
+    // converter, RX1 residual tables from the score writer), never a
+    // (token, score_q) pair list — scanning it as pairs manufactured
+    // garbage matches at garbage scores and paid a multi-megabyte
+    // linear walk per query doing it.
     (false, ScoreQ::ZERO)
 }
 
@@ -507,9 +524,13 @@ impl<'a> R4G1Runtime<'a> {
         let emit_remainder = base_graph
             .section(SectionId::EMIT)
             .and_then(|b| if b.len() >= 4 { Some(&b[4..]) } else { None });
-        let exct_remainder = base_graph
-            .section(SectionId::EXCT)
-            .and_then(|b| if b.len() >= 12 { Some(&b[4..]) } else { None });
+        // #785 C1c: EXCT is deliberately not read anywhere in this
+        // engine. Both writers emit it as a storage descriptor followed
+        // by a raw store container (TLS1 carryover / RX1 residual
+        // tables); no artifact carries a pair-list EXCT, so the old
+        // pair-scan fallbacks over it only ever produced near-saturated
+        // garbage scores that drowned every real tier.
+        let per_node_emissions = has_per_node_emissions(base_graph);
 
         let mut active_nodes = [0u32; 64];
         let mut active_len = 0usize;
@@ -531,8 +552,7 @@ impl<'a> R4G1Runtime<'a> {
             let mut current = [0u32; 64];
             let mut current_len = 0usize;
             for n in 0..num_nodes {
-                if check_node_emits(base_graph, n, suffix[0], emit_remainder, exct_remainder).0
-                    && current_len < 64
+                if check_node_emits(base_graph, n, suffix[0], emit_remainder).0 && current_len < 64
                 {
                     current[current_len] = n;
                     current_len += 1;
@@ -559,14 +579,8 @@ impl<'a> R4G1Runtime<'a> {
                                     } // EDGE_KIND_TRANSITION
 
                                     let dst = edge.dst.0;
-                                    if check_node_emits(
-                                        base_graph,
-                                        dst,
-                                        t,
-                                        emit_remainder,
-                                        exct_remainder,
-                                    )
-                                    .0 && !next_current[..next_len].contains(&dst)
+                                    if check_node_emits(base_graph, dst, t, emit_remainder).0
+                                        && !next_current[..next_len].contains(&dst)
                                         && next_len < 64
                                     {
                                         next_current[next_len] = dst;
@@ -686,8 +700,14 @@ impl<'a> R4G1Runtime<'a> {
                     };
 
                     let sl = if target_node.emission_len == 0 {
-                        if target_id == 0 {
-                            exct_remainder.or(emit_remainder).unwrap_or(&[])
+                        if target_id == 0 && !per_node_emissions {
+                            // Converter-flavor graph: the whole EMIT
+                            // remainder is the root prior (token, count)
+                            // table, served as node 0's list. On a scored
+                            // graph the remainder is a root-prior block
+                            // plus per-region lists and must only be read
+                            // through per-node ranges (#785 C1c).
+                            emit_remainder.unwrap_or(&[])
                         } else {
                             &[][..]
                         }
@@ -796,8 +816,12 @@ impl<'a> R4G1Runtime<'a> {
             }
         }
 
-        if best_token == 0 {
-            // If best_token is still 0, emit the first non-zero token from Node 0's emission list
+        if best_token == 0 && !per_node_emissions {
+            // Converter-flavor last resort: emit the first usable token
+            // from the global root-prior table. A scored graph's EMIT
+            // remainder starts with the root-prior block header, which is
+            // not a pair list — an unmatched scored-graph query returns
+            // (0, ...) honestly instead (#785 C1c).
             if let Some(remainder) = emit_remainder {
                 for i in 0..(remainder.len() >> 3) {
                     let offset = i << 3;
@@ -857,6 +881,23 @@ impl<'a> R4G1Runtime<'a> {
             out_candidates[0] = (top_tok, top_score);
             count = 1;
         }
+
+        // #785 C1: a context-row hit resolves before any node is consulted,
+        // so `node_scores` stays empty on those steps — but the winning row
+        // itself carries the alternative continuations. Surface them here so
+        // the candidate walk is real on the n-gram tier too, not only the
+        // node path. Same reserved-token guard and dedup as the node walk.
+        with_context_row_entries(self.chain.base_graph(), context_tokens, |entry| {
+            if count >= 8 {
+                return;
+            }
+            let cand = entry.token;
+            if cand > 2 && cand < 49152 && !out_candidates[..count].iter().any(|(c, _)| *c == cand)
+            {
+                out_candidates[count] = (cand, entry.score_q);
+                count += 1;
+            }
+        });
 
         // Iterate over the top active nodes in node_scores to collect candidate tokens
         let emit_remainder = self.view().section(SectionId::EMIT);
