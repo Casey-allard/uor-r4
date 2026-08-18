@@ -46,6 +46,7 @@ use super::compiler;
 use crate::observation::{
     self as observe, ObservationShardWriter, PartitionCounts, RECORD_SIZE, RecordPartition,
 };
+use crate::trace_profile::TraceProfile;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::io::{self, BufRead, BufReader, Write};
@@ -782,6 +783,10 @@ fn build_report(
 struct ArticleProduced {
     ordinal: u64,
     records: Vec<(u32, [u8; RECORD_SIZE], observe::ProbabilityMetadata)>,
+    /// #603 trace-sidecar rows aligned index-for-index with `records`
+    /// when the pass runs under a non-minimal trace profile; empty for
+    /// minimal (untraced) passes. Absence is absence — never zero rows.
+    trace_rows: Vec<Vec<u8>>,
     story_entry: StoryEntry,
     truncated: bool,
     replaced: u64,
@@ -876,6 +881,7 @@ fn produce_article_records(
     token_byte_lengths: Option<&[u32]>,
     shard_bits: u8,
     rng: &mut u64,
+    mut trace: Option<&mut observe::TraceCapture>,
 ) -> Result<ArticleProduced, SourceUnavailable> {
     let story = u32::try_from(ordinal)
         .map_err(|_| SourceUnavailable::new("article ordinal exceeds the u32 story field"))?;
@@ -887,11 +893,23 @@ fn produce_article_records(
     let mut logits = vec![0f32; oracle.vocab()];
     let mut window: Vec<u32> = Vec::with_capacity(compiler::WINDOW);
     let mut records = Vec::with_capacity(positions);
+    let mut trace_rows: Vec<Vec<u8>> =
+        Vec::with_capacity(if trace.is_some() { positions } else { 0 });
     let mut story_byte_offset = 0u32;
     oracle.reset();
     for pos in 0..positions {
         let token = tokens[pos];
-        oracle.step(token as usize, pos, &mut logits);
+        // #603/#605 S1: a traced pass steps through the capture assembler
+        // (the oracle's exact-executor taps) so the recorded logits and
+        // the sidecar row come from the same forward; an untraced pass is
+        // byte-for-byte the original plain step.
+        match trace.as_deref_mut() {
+            None => oracle.step(token as usize, pos, &mut logits),
+            Some(capture) => {
+                capture.step(oracle, token as usize, pos, &mut logits)?;
+                trace_rows.push(capture.row.clone());
+            }
+        }
         let next = tokens[pos + 1];
         let (encoded, advanced) = encode_position(
             &mut logits,
@@ -911,6 +929,7 @@ fn produce_article_records(
     Ok(ArticleProduced {
         ordinal,
         records,
+        trace_rows,
         story_entry: StoryEntry {
             story,
             id: article.id.clone(),
@@ -921,6 +940,56 @@ fn produce_article_records(
         truncated,
         replaced,
     })
+}
+
+/// #603/#605 S1: align every trace sidecar to the checkpoint-committed
+/// record count after the shard/probability preflights truncated the
+/// primary files. Truncate-only — record files are owned by the
+/// checkpoint. A sidecar SHORTER than its committed records is a typed
+/// error rather than a healable crash artifact: `commit_article` flushes
+/// trace bytes before the checkpoint advances, so a shortfall means the
+/// sidecar was externally modified or lost.
+fn trim_trace_sidecars_to_checkpoint(
+    out_dir: &Path,
+    shard_bits: u8,
+    checkpoint: &Checkpoint,
+    trace_row_bytes: u64,
+) -> Result<(), SourceUnavailable> {
+    for (shard, state) in checkpoint.shards.iter().enumerate() {
+        let records = state.bytes / RECORD_SIZE as u64;
+        let path = out_dir.join(observe::trace_sidecar_name(shard_bits, shard as u32));
+        let metadata = match fs::metadata(&path) {
+            Ok(metadata) => metadata,
+            Err(error) if error.kind() == io::ErrorKind::NotFound => {
+                if records > 0 {
+                    return Err(SourceUnavailable::new(format!(
+                        "shard {shard} has {records} committed records but no trace \
+                         sidecar; the trace profile cannot change mid-corpus"
+                    )));
+                }
+                continue;
+            }
+            Err(error) => return Err(error.into()),
+        };
+        let want = records
+            .checked_mul(trace_row_bytes)
+            .ok_or_else(|| SourceUnavailable::new("trace sidecar size overflows u64"))?;
+        if metadata.len() < want {
+            return Err(SourceUnavailable::new(format!(
+                "trace sidecar {} holds {} bytes but the checkpoint commits {want}; \
+                 refusing a sidecar shorter than its committed records",
+                path.display(),
+                metadata.len()
+            )));
+        }
+        if metadata.len() > want {
+            fs::OpenOptions::new()
+                .write(true)
+                .open(&path)?
+                .set_len(want)?;
+        }
+    }
+    Ok(())
 }
 
 /// Commit one produced article's records in order: append them to their
@@ -944,17 +1013,38 @@ fn commit_article(
         *truncated += 1;
     }
     *replaced += produced.replaced;
+    let traced = !produced.trace_rows.is_empty();
+    if traced && produced.trace_rows.len() != produced.records.len() {
+        return Err(SourceUnavailable::new(format!(
+            "article {} produced {} records but {} trace rows; refusing a \
+             misaligned sidecar",
+            produced.ordinal,
+            produced.records.len(),
+            produced.trace_rows.len()
+        )));
+    }
     checkpoint.n += produced.records.len() as u64;
     // Per-article checkpoint: shard bytes first (flush), then the story
     // mapping line, then the atomic committed checkpoint and its state.bin
     // mirror.
-    for (shard, record, probability) in &produced.records {
-        if writer.write_record_with_probability_in_partition(
-            record,
-            *probability,
-            *shard,
-            produced.story_entry.partition,
-        )? {
+    for (index, (shard, record, probability)) in produced.records.iter().enumerate() {
+        let wrote = if traced {
+            writer.write_record_with_probability_and_trace_in_partition(
+                record,
+                *probability,
+                &produced.trace_rows[index],
+                *shard,
+                produced.story_entry.partition,
+            )?
+        } else {
+            writer.write_record_with_probability_in_partition(
+                record,
+                *probability,
+                *shard,
+                produced.story_entry.partition,
+            )?
+        };
+        if wrote {
             *written += 1;
             checkpoint.shards[*shard as usize].bytes += RECORD_SIZE as u64;
         }
@@ -1466,6 +1556,7 @@ pub fn observe_text_corpus(
         out_dir,
         shard_bits,
         resume,
+        None,
     )
 }
 
@@ -1491,6 +1582,82 @@ pub fn observe_text_corpus_in_session(
         session.dir(),
         session.shard_bits(),
         resume,
+        None,
+    )
+}
+
+/// [`observe_text_corpus`] under a non-minimal #603 trace profile — the
+/// session-less twin of [`observe_text_corpus_traced_in_session`], with
+/// identical semantics.
+#[allow(clippy::too_many_arguments)]
+pub fn observe_text_corpus_traced(
+    oracles: &mut [Box<dyn TeacherOracle + Send>],
+    budget_s: u64,
+    tokenizer: &TokenizerKind,
+    token_byte_lengths: Option<&[u32]>,
+    articles_path: &Path,
+    out_dir: &Path,
+    shard_bits: u8,
+    resume: bool,
+    profile: &TraceProfile,
+) -> Result<ObservationReport, SourceUnavailable> {
+    if profile.is_minimal() {
+        return Err(SourceUnavailable::new(
+            "the minimal profile captures no richer lanes; use \
+             observe_text_corpus for untraced passes",
+        ));
+    }
+    observe_text_corpus_inner(
+        None,
+        oracles,
+        budget_s,
+        tokenizer,
+        token_byte_lengths,
+        articles_path,
+        out_dir,
+        shard_bits,
+        resume,
+        Some(profile),
+    )
+}
+
+/// [`observe_text_corpus_in_session`] under a non-minimal #603 trace
+/// profile (#605 S1): every teacher-forced position additionally captures
+/// the profile's declared lanes through the oracle's exact-executor taps
+/// into per-shard `.trace` sidecars, with the profile and row width
+/// pinned in the manifest before any record is written. Resume follows
+/// the text pipeline's whole-article checkpoint: sidecars are trimmed to
+/// the committed record count on open, and a minimal resume of a traced
+/// corpus (or a profile change mid-corpus) is a typed refusal. Passing a
+/// minimal profile is refused — call the untraced entry instead.
+#[allow(clippy::too_many_arguments)]
+pub fn observe_text_corpus_traced_in_session(
+    session: &observe::ObservationSession,
+    oracles: &mut [Box<dyn TeacherOracle + Send>],
+    budget_s: u64,
+    tokenizer: &TokenizerKind,
+    token_byte_lengths: Option<&[u32]>,
+    articles_path: &Path,
+    resume: bool,
+    profile: &TraceProfile,
+) -> Result<ObservationReport, SourceUnavailable> {
+    if profile.is_minimal() {
+        return Err(SourceUnavailable::new(
+            "the minimal profile captures no richer lanes; use \
+             observe_text_corpus_in_session for untraced passes",
+        ));
+    }
+    observe_text_corpus_inner(
+        Some(session),
+        oracles,
+        budget_s,
+        tokenizer,
+        token_byte_lengths,
+        articles_path,
+        session.dir(),
+        session.shard_bits(),
+        resume,
+        Some(profile),
     )
 }
 
@@ -1505,6 +1672,7 @@ fn observe_text_corpus_inner(
     out_dir: &Path,
     shard_bits: u8,
     resume: bool,
+    trace_profile: Option<&TraceProfile>,
 ) -> Result<ObservationReport, SourceUnavailable> {
     assert!(
         !oracles.is_empty(),
@@ -1582,6 +1750,31 @@ fn observe_text_corpus_inner(
         } => (writer, checkpoint, articles_total, stories_path),
     };
 
+    // #603/#605 S1: traced text observation. One capture assembler per
+    // worker oracle (each validates the profile against its own declared
+    // geometry — a mixed pool already refused above); the profile and row
+    // width pin into the manifest through the same shared helper the
+    // generation driver uses, so a minimal resume of a traced corpus (or
+    // any profile change) refuses before a single record is appended; and
+    // every sidecar is trimmed to the checkpoint-committed record count,
+    // matching the whole-article truncation `prepare_text_observation`
+    // just applied to the primary shards.
+    let mut captures: Vec<observe::TraceCapture> = Vec::new();
+    if let Some(profile) = trace_profile {
+        for oracle in oracles.iter() {
+            captures.push(observe::TraceCapture::new(profile, oracle.as_ref())?);
+        }
+    }
+    observe::pin_writer_trace_profile(&mut writer, captures.first(), out_dir)?;
+    if let Some(capture) = captures.first() {
+        trim_trace_sidecars_to_checkpoint(
+            out_dir,
+            shard_bits,
+            &checkpoint,
+            capture.row_bytes as u64,
+        )?;
+    }
+
     let workers = oracles.len();
     let seq_len = oracles[0].seq_len();
     let mut progress = Progress::new("text observations", articles_total as usize);
@@ -1649,11 +1842,17 @@ fn observe_text_corpus_inner(
                     token_byte_lengths,
                     shard_bits,
                     &mut checkpoint.rng,
+                    captures.get_mut(0),
                 )?]
             } else {
+                // A traced pool pairs each worker oracle with its own
+                // capture assembler; `captures` is either empty (untraced
+                // — every worker gets `None`) or exactly oracle-aligned.
+                let mut capture_iter = captures.iter_mut();
                 std::thread::scope(|scope| -> Result<Vec<ArticleProduced>, SourceUnavailable> {
                     let mut handles = Vec::with_capacity(batch.len());
                     for ((ord, article), oracle) in batch.iter().zip(oracles.iter_mut()) {
+                        let capture = capture_iter.next();
                         handles.push(scope.spawn(move || {
                             let mut rng = RNG_SEED;
                             produce_article_records(
@@ -1665,6 +1864,7 @@ fn observe_text_corpus_inner(
                                 token_byte_lengths,
                                 shard_bits,
                                 &mut rng,
+                                capture,
                             )
                         }));
                     }
@@ -1999,6 +2199,10 @@ fn observe_text_corpus_batched_inner<T: BatchedTeacher>(
             let produced = ArticleProduced {
                 ordinal: slot.ordinal,
                 records: slot.records.clone(),
+                // The batched driver has no trace-capture surface
+                // (BatchedTeacher exposes no per-head taps); traced
+                // passes run the serial driver.
+                trace_rows: Vec::new(),
                 story_entry: StoryEntry {
                     story,
                     id: slot.article.id.clone(),
@@ -3331,6 +3535,441 @@ mod tests {
         let _ = fs::remove_dir_all(&dir1);
         let _ = fs::remove_dir_all(&dir3);
         let _ = fs::remove_file(&input);
+    }
+
+    /// Deterministic capture-capable oracle for #603 traced text passes:
+    /// logits identical to `FakeOracle`'s formula; every capture lane is
+    /// a pure function of (token, pos, layer, head), so sidecar bytes
+    /// are content-stable across restarts and worker counts. The hidden
+    /// buffer starts allocated (the capture constructor requires a
+    /// retained hidden state for the declared final-hidden lane) and is
+    /// overwritten deterministically on every traced step before capture.
+    struct TracedFakeOracle {
+        hidden: Vec<f32>,
+    }
+
+    impl Default for TracedFakeOracle {
+        fn default() -> Self {
+            Self {
+                hidden: vec![0.0; 4],
+            }
+        }
+    }
+
+    impl RepresentationSource for TracedFakeOracle {
+        fn vocab_size(&self) -> usize {
+            FAKE_VOCAB
+        }
+        fn source_dimension(&self) -> usize {
+            4
+        }
+        fn tokenizer_address(&self) -> &str {
+            "fake-tokenizer"
+        }
+        fn read_embedding_rows(
+            &self,
+            _range: std::ops::Range<usize>,
+            output: &mut [f32],
+        ) -> Option<()> {
+            output.fill(0.0);
+            Some(())
+        }
+    }
+
+    impl BehaviorSource for TracedFakeOracle {
+        fn reset(&mut self) {}
+        fn step(&mut self, token: usize, pos: usize, logits: &mut [f32]) {
+            for (index, logit) in logits.iter_mut().enumerate() {
+                let value = (token as u64 * 31 + pos as u64 * 7 + index as u64 * 13) % 29;
+                *logit = value as f32 * 0.25 - 3.0;
+            }
+        }
+    }
+
+    impl TeacherOracle for TracedFakeOracle {
+        fn vocab(&self) -> usize {
+            FAKE_VOCAB
+        }
+        fn dim(&self) -> usize {
+            4
+        }
+        fn seq_len(&self) -> usize {
+            FAKE_SEQ_LEN
+        }
+        fn kappa(&self) -> String {
+            "blake3:fake-traced".to_owned()
+        }
+        fn source_bytes(&self) -> usize {
+            0
+        }
+        fn embedding(&self, _token: usize, out: &mut [f32]) {
+            out.fill(0.0);
+        }
+        fn hidden_state(&self) -> Option<&[f32]> {
+            Some(&self.hidden)
+        }
+        fn trace_capture_geometry(&self) -> Option<uor_r4_model_source::TraceCaptureGeometry> {
+            Some(uor_r4_model_source::TraceCaptureGeometry {
+                layers: 2,
+                heads: 2,
+                kv_heads: 1,
+                residual_width: 4,
+            })
+        }
+        fn step_with_trace_capture(
+            &mut self,
+            token: usize,
+            pos: usize,
+            logits: &mut [f32],
+            request: &uor_r4_model_source::TraceCaptureRequest<'_>,
+            sinks: &mut uor_r4_model_source::TraceCaptureSinks<'_, '_>,
+        ) -> bool {
+            self.step(token, pos, logits);
+            for &layer in request.residual_layers {
+                let x: Vec<f32> = (0..4)
+                    .map(|i| (token * 3 + pos * 5 + layer * 7 + i) as f32)
+                    .collect();
+                (sinks.residual)(layer, &x);
+            }
+            for &layer in request.qkv_layers {
+                let q: Vec<f32> = (0..4)
+                    .map(|i| (token + pos * 2 + layer * 11 + i) as f32)
+                    .collect();
+                let k: Vec<f32> = (0..2)
+                    .map(|i| (token * 2 + pos + layer * 13 + i) as f32)
+                    .collect();
+                let v: Vec<f32> = (0..2)
+                    .map(|i| (token * 5 + pos * 3 + layer * 17 + i) as f32)
+                    .collect();
+                (sinks.qkv)(layer, &q, &k, &v);
+            }
+            for &layer in request.attention_layers {
+                for head in 0..2usize {
+                    let weights: Vec<f32> = (0..=pos)
+                        .map(|p| 1.0 / (1.0 + (pos - p) as f32 + head as f32 + layer as f32))
+                        .collect();
+                    (sinks.attention)(layer, head, &weights);
+                }
+            }
+            self.hidden = (0..4).map(|i| (token * 7 + pos + i) as f32).collect();
+            true
+        }
+    }
+
+    /// The `full/1` fixture profile: both layers declared on every lane,
+    /// per-head support cap 2. Row width for the fixture geometry
+    /// (residual 4, heads 2, kv 1 → kv width 2):
+    /// residuals (2+1)·4·4 = 48 + q/k/v 2·(4+2+2)·4 = 64 + support
+    /// 2·2·2·8 = 64 → 176 bytes.
+    fn traced_profile() -> TraceProfile {
+        crate::trace_profile::profile_spec(
+            crate::trace_profile::FULL_PROFILE,
+            1,
+            &crate::trace_profile::TraceCaptureBounds {
+                layer_indices: vec![0, 1],
+                support_size: 2,
+            },
+        )
+        .expect("registered full/1 fixture profile")
+    }
+
+    const TRACED_ROW_BYTES: u64 = 176;
+
+    fn traced_pool() -> Vec<Box<dyn TeacherOracle + Send>> {
+        vec![Box::new(TracedFakeOracle::default())]
+    }
+
+    fn shard_trace_lengths(dir: &Path) -> Vec<(u64, u64)> {
+        (0..SHARD_COUNT)
+            .map(|shard| {
+                let base = dir
+                    .join(shard_file_name(SHARD_BITS, shard))
+                    .metadata()
+                    .map(|meta| meta.len())
+                    .unwrap_or(0);
+                let trace = dir
+                    .join(observe::trace_sidecar_name(SHARD_BITS, shard))
+                    .metadata()
+                    .map(|meta| meta.len())
+                    .unwrap_or(0);
+                (base, trace)
+            })
+            .collect()
+    }
+
+    #[test]
+    fn traced_text_observation_pins_the_profile_and_aligns_every_sidecar() {
+        let tokenizer = fixture_tokenizer();
+        let lengths = fixture_token_byte_lengths();
+        let articles = test_articles();
+        let article_refs: Vec<(&str, &str)> = articles
+            .iter()
+            .map(|(id, text)| (id.as_str(), text.as_str()))
+            .collect();
+        let input = unique_path("traced-articles.jsonl");
+        write_articles(&input, &article_refs);
+        let profile = traced_profile();
+
+        let dir_a = unique_path("traced-a");
+        observe_text_corpus_traced(
+            &mut traced_pool(),
+            60,
+            &tokenizer,
+            Some(&lengths),
+            &input,
+            &dir_a,
+            SHARD_BITS,
+            false,
+            &profile,
+        )
+        .expect("traced pass completes");
+
+        let manifest = ObservationManifest::load(&dir_a)
+            .expect("manifest readable")
+            .expect("manifest present");
+        assert_eq!(
+            manifest.trace_profile.as_ref(),
+            Some(&profile),
+            "the profile is pinned in the manifest"
+        );
+        assert_eq!(manifest.trace_row_bytes, Some(TRACED_ROW_BYTES));
+        let mut nonempty = 0;
+        for (base, trace) in shard_trace_lengths(&dir_a) {
+            let records = base / RECORD_SIZE as u64;
+            assert_eq!(
+                trace,
+                records * TRACED_ROW_BYTES,
+                "every shard's sidecar is record-aligned"
+            );
+            if records > 0 {
+                nonempty += 1;
+            }
+        }
+        assert!(nonempty > 0, "the fixture corpus produced records");
+
+        // Determinism: a second fresh traced pass produces byte-identical
+        // sidecars.
+        let dir_b = unique_path("traced-b");
+        observe_text_corpus_traced(
+            &mut traced_pool(),
+            60,
+            &tokenizer,
+            Some(&lengths),
+            &input,
+            &dir_b,
+            SHARD_BITS,
+            false,
+            &profile,
+        )
+        .expect("second traced pass completes");
+        for shard in 0..SHARD_COUNT {
+            let name = observe::trace_sidecar_name(SHARD_BITS, shard);
+            let a = fs::read(dir_a.join(&name)).unwrap_or_default();
+            let b = fs::read(dir_b.join(&name)).unwrap_or_default();
+            assert_eq!(a, b, "sidecar {name} is content-stable");
+        }
+
+        // Multi-worker parity: two capture-paired workers, same bytes.
+        let dir_c = unique_path("traced-c");
+        let mut pool: Vec<Box<dyn TeacherOracle + Send>> = vec![
+            Box::new(TracedFakeOracle::default()),
+            Box::new(TracedFakeOracle::default()),
+        ];
+        observe_text_corpus_traced(
+            &mut pool,
+            60,
+            &tokenizer,
+            Some(&lengths),
+            &input,
+            &dir_c,
+            SHARD_BITS,
+            false,
+            &profile,
+        )
+        .expect("two-worker traced pass completes");
+        for shard in 0..SHARD_COUNT {
+            let name = observe::trace_sidecar_name(SHARD_BITS, shard);
+            let a = fs::read(dir_a.join(&name)).unwrap_or_default();
+            let c = fs::read(dir_c.join(&name)).unwrap_or_default();
+            assert_eq!(a, c, "worker count does not change sidecar {name}");
+        }
+
+        let _ = fs::remove_file(&input);
+        for dir in [&dir_a, &dir_b, &dir_c] {
+            let _ = fs::remove_dir_all(dir);
+        }
+    }
+
+    /// #603 profile pinning on the text path, via the shared helper: a
+    /// traced corpus refuses a minimal resume AND any profile change
+    /// (including a bounds-only change) with the same typed errors the
+    /// generation driver produces, while a same-profile reopen pins
+    /// cleanly.
+    #[test]
+    fn trace_profile_pin_refuses_minimal_resume_and_profile_changes() {
+        let dir = unique_path("trace-pin");
+        fs::create_dir_all(&dir).expect("pin dir");
+        let profile = traced_profile();
+        let oracle = TracedFakeOracle::default();
+        let capture = observe::TraceCapture::new(&profile, &oracle).expect("capture resolves");
+        {
+            let mut writer = ObservationShardWriter::open(&dir, SHARD_BITS).expect("writer opens");
+            observe::pin_writer_trace_profile(&mut writer, Some(&capture), &dir)
+                .expect("fresh traced pin records the profile");
+        }
+        {
+            let mut writer =
+                ObservationShardWriter::open(&dir, SHARD_BITS).expect("writer reopens");
+            let error = observe::pin_writer_trace_profile(&mut writer, None, &dir)
+                .expect_err("a traced corpus refuses a minimal resume");
+            assert!(
+                error
+                    .to_string()
+                    .contains("requested the minimal/absent profile"),
+                "unexpected error: {error}"
+            );
+        }
+        {
+            let other = crate::trace_profile::profile_spec(
+                crate::trace_profile::FULL_PROFILE,
+                1,
+                &crate::trace_profile::TraceCaptureBounds {
+                    layer_indices: vec![0],
+                    support_size: 2,
+                },
+            )
+            .expect("registered narrower variant");
+            let other_capture =
+                observe::TraceCapture::new(&other, &oracle).expect("capture resolves");
+            let mut writer =
+                ObservationShardWriter::open(&dir, SHARD_BITS).expect("writer reopens");
+            let error = observe::pin_writer_trace_profile(&mut writer, Some(&other_capture), &dir)
+                .expect_err("a bounds change is a profile change");
+            assert!(
+                error.to_string().contains("is pinned to trace profile"),
+                "unexpected error: {error}"
+            );
+        }
+        {
+            let same = observe::TraceCapture::new(&profile, &oracle).expect("capture resolves");
+            let mut writer =
+                ObservationShardWriter::open(&dir, SHARD_BITS).expect("writer reopens");
+            observe::pin_writer_trace_profile(&mut writer, Some(&same), &dir)
+                .expect("same-profile resume pins cleanly");
+        }
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    /// The resume-side sidecar alignment: uncommitted (or torn) tail rows
+    /// beyond the committed checkpoint are trimmed exactly; a sidecar
+    /// shorter than its committed records, or absent while records exist,
+    /// is a typed refusal — never healed silently.
+    #[test]
+    fn sidecar_trim_matches_the_committed_checkpoint_and_names_shortfalls() {
+        let dir = unique_path("trace-trim");
+        fs::create_dir_all(&dir).expect("trim dir");
+        let mut checkpoint = Checkpoint::fresh(SHARD_COUNT, [0u8; INPUT_KAPPA_SIZE]);
+        checkpoint.shards[0].bytes = 2 * RECORD_SIZE as u64;
+
+        let sidecar = dir.join(observe::trace_sidecar_name(SHARD_BITS, 0));
+        fs::write(&sidecar, vec![0x5A; 3 * TRACED_ROW_BYTES as usize + 1])
+            .expect("write long sidecar with a torn tail byte");
+        trim_trace_sidecars_to_checkpoint(&dir, SHARD_BITS, &checkpoint, TRACED_ROW_BYTES)
+            .expect("trim succeeds");
+        assert_eq!(
+            fs::metadata(&sidecar).expect("sidecar").len(),
+            2 * TRACED_ROW_BYTES,
+            "the tail (including the torn byte) trims to the committed rows"
+        );
+
+        fs::write(&sidecar, vec![0x5A; TRACED_ROW_BYTES as usize]).expect("write short sidecar");
+        let error =
+            trim_trace_sidecars_to_checkpoint(&dir, SHARD_BITS, &checkpoint, TRACED_ROW_BYTES)
+                .expect_err("a shortfall refuses");
+        assert!(
+            error
+                .to_string()
+                .contains("shorter than its committed records"),
+            "unexpected error: {error}"
+        );
+
+        let _ = fs::remove_file(&sidecar);
+        let error =
+            trim_trace_sidecars_to_checkpoint(&dir, SHARD_BITS, &checkpoint, TRACED_ROW_BYTES)
+                .expect_err("a missing sidecar with committed records refuses");
+        assert!(
+            error.to_string().contains("no trace sidecar"),
+            "unexpected error: {error}"
+        );
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn commit_refuses_a_misaligned_trace_sidecar_batch() {
+        let tokenizer = fixture_tokenizer();
+        let lengths = fixture_token_byte_lengths();
+        let profile = traced_profile();
+        let mut oracle = TracedFakeOracle::default();
+        let mut capture = observe::TraceCapture::new(&profile, &oracle).expect("capture resolves");
+        let article = Article {
+            id: "1".to_owned(),
+            url: "https://example.test/1".to_owned(),
+            title: "Title 1".to_owned(),
+            text: "abcd".to_owned(),
+        };
+        let mut rng = RNG_SEED;
+        let mut produced = produce_article_records(
+            &mut oracle,
+            0,
+            &article,
+            FAKE_SEQ_LEN,
+            &tokenizer,
+            Some(&lengths),
+            SHARD_BITS,
+            &mut rng,
+            Some(&mut capture),
+        )
+        .expect("traced article produces");
+        assert_eq!(
+            produced.trace_rows.len(),
+            produced.records.len(),
+            "a traced article is row-aligned by construction"
+        );
+        assert!(
+            produced
+                .trace_rows
+                .iter()
+                .all(|row| row.len() as u64 == TRACED_ROW_BYTES),
+            "every row carries the layout width"
+        );
+
+        // Falsifier: drop one row and the commit refuses before writing.
+        produced.trace_rows.pop();
+        let dir = unique_path("misaligned-commit");
+        fs::create_dir_all(&dir).expect("commit dir");
+        let mut writer = ObservationShardWriter::open(&dir, SHARD_BITS).expect("writer opens");
+        let mut checkpoint = Checkpoint::fresh(SHARD_COUNT, [0u8; INPUT_KAPPA_SIZE]);
+        let stories_path = dir.join(STORIES_FILE);
+        let mut written = 0u64;
+        let mut truncated = 0u64;
+        let mut replaced = 0u64;
+        let error = commit_article(
+            &mut writer,
+            &mut checkpoint,
+            &dir,
+            &stories_path,
+            &produced,
+            1,
+            &mut written,
+            &mut truncated,
+            &mut replaced,
+        )
+        .expect_err("misaligned sidecar batch refuses");
+        assert!(
+            error.to_string().contains("misaligned sidecar"),
+            "unexpected error: {error}"
+        );
+        let _ = fs::remove_dir_all(&dir);
     }
 
     /// A batched teacher whose per-position logits match `FakeOracle::step`

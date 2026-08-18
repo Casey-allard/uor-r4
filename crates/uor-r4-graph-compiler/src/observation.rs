@@ -3415,6 +3415,28 @@ impl ObservationShardWriter {
         Ok(written)
     }
 
+    /// Partition-counting variant of
+    /// [`ObservationShardWriter::write_record_with_probability_and_trace`]
+    /// — one append carrying the record, its probability metadata, its
+    /// #603 trace-sidecar row, AND the D3 partition count, for the
+    /// teacher-forced text pipeline's traced passes (#605 S1).
+    pub fn write_record_with_probability_and_trace_in_partition(
+        &mut self,
+        record: &[u8; RECORD_SIZE],
+        probability: ProbabilityMetadata,
+        trace_row: &[u8],
+        shard: u32,
+        partition: RecordPartition,
+    ) -> Result<bool, SourceUnavailable> {
+        let written =
+            self.write_record_with_probability_and_trace(record, probability, trace_row, shard)?;
+        if written {
+            self.partition_counts[shard as usize].add(partition);
+            self.partitions_active = true;
+        }
+        Ok(written)
+    }
+
     /// Flush every open shard handle. Called at whole-story checkpoints so
     /// the on-disk shard bytes always cover exactly the completed stories
     /// of the deterministic stream.
@@ -4134,16 +4156,16 @@ impl TraceRowLayout {
 /// f32/u32 bytes; the row width is a pure function of (profile,
 /// geometry), pinned into the manifest at the first write.
 #[cfg(not(target_arch = "wasm32"))]
-struct TraceCapture {
-    profile: TraceProfile,
+pub(crate) struct TraceCapture {
+    pub(crate) profile: TraceProfile,
     residual_layers: Vec<usize>,
     qkv_layers: Vec<usize>,
     attention_layers: Vec<usize>,
     support: usize,
     final_hidden: bool,
     residual_width: usize,
-    row_bytes: usize,
-    row: Vec<u8>,
+    pub(crate) row_bytes: usize,
+    pub(crate) row: Vec<u8>,
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -4152,7 +4174,10 @@ impl TraceCapture {
     /// Refused — never zero-filled — when the oracle exposes no capture
     /// surface, no hidden state for a declared final-hidden lane, or a
     /// declared layer index outside its layer range.
-    fn new(profile: &TraceProfile, oracle: &dyn TeacherOracle) -> Result<Self, SourceUnavailable> {
+    pub(crate) fn new(
+        profile: &TraceProfile,
+        oracle: &dyn TeacherOracle,
+    ) -> Result<Self, SourceUnavailable> {
         validate_registered_trace_profile(profile)?;
         let geometry = oracle.trace_capture_geometry().ok_or_else(|| {
             invalid_input(format!(
@@ -4222,7 +4247,7 @@ impl TraceCapture {
     /// oracle's exact-executor capture path and assemble this position's
     /// trace-sidecar row into `self.row`. Deterministic: the row is a
     /// pure function of (oracle state, token, pos, profile).
-    fn step(
+    pub(crate) fn step(
         &mut self,
         oracle: &mut dyn TeacherOracle,
         token: usize,
@@ -4326,6 +4351,62 @@ impl TraceCapture {
         }
         Ok(())
     }
+}
+
+/// #603 profile pinning, read-only half: a corpus is captured under ONE
+/// profile. A recorded profile must match the requested one (minimal
+/// requests refuse traced corpora and vice versa once bytes exist); a
+/// fresh traced pass returns the profile to record before any record is
+/// written. Shared by the generation driver and the teacher-forced text
+/// driver so the two cannot drift.
+#[cfg(not(target_arch = "wasm32"))]
+fn preflight_trace_profile_pin(
+    writer: &ObservationShardWriter,
+    trace: Option<&TraceCapture>,
+    out: &Path,
+) -> Result<Option<TraceProfile>, SourceUnavailable> {
+    writer.preflight_trace_profile(trace.map(|trace| &trace.profile))?;
+    writer.preflight_trace_row_bytes(trace.map(|trace| trace.row_bytes as u64))?;
+    let recorded = writer.manifest().trace_profile.clone();
+    match (&recorded, trace) {
+        (None, None) => Ok(None),
+        (Some(recorded), Some(trace)) if *recorded == trace.profile => Ok(None),
+        (None, Some(trace)) => Ok(Some(trace.profile.clone())),
+        (Some(recorded), Some(trace)) => Err(invalid_input(format!(
+            "{} is pinned to trace profile {}/{}; requested {}/{}",
+            out.display(),
+            recorded.id,
+            recorded.version,
+            trace.profile.id,
+            trace.profile.version
+        ))),
+        (Some(recorded), None) => Err(invalid_input(format!(
+            "{} is pinned to trace profile {}/{}; pass the same profile to resume",
+            out.display(),
+            recorded.id,
+            recorded.version
+        ))),
+    }
+}
+
+/// [`preflight_trace_profile_pin`] plus the write half — record the
+/// profile and pin the row width — in one call, for drivers (the
+/// teacher-forced text pipeline) whose other identity records are
+/// published elsewhere.
+#[cfg(not(target_arch = "wasm32"))]
+pub(crate) fn pin_writer_trace_profile(
+    writer: &mut ObservationShardWriter,
+    trace: Option<&TraceCapture>,
+    out: &Path,
+) -> Result<(), SourceUnavailable> {
+    let to_set = preflight_trace_profile_pin(writer, trace, out)?;
+    if let Some(profile) = to_set.as_ref() {
+        writer.set_trace_profile(profile)?;
+    }
+    if let Some(trace) = trace {
+        writer.set_trace_row_bytes(trace.row_bytes as u64)?;
+    }
+    Ok(())
 }
 
 /// Run the teacher generation of `compile_hugging_face`'s corpus step,
@@ -4504,36 +4585,11 @@ fn observe_sharded_inner(
             out.display()
         )));
     }
-    // #603 profile pinning: a corpus is captured under ONE profile. A
-    // recorded profile must match the requested one (minimal requests
-    // refuse traced corpora and vice versa once bytes exist); a fresh
-    // traced pass records its profile before any record is written.
-    writer.preflight_trace_profile(trace.as_ref().map(|trace| &trace.profile))?;
-    writer.preflight_trace_row_bytes(trace.as_ref().map(|trace| trace.row_bytes as u64))?;
-    let recorded = writer.manifest().trace_profile.clone();
-    let trace_profile_to_set = match (&recorded, trace.as_ref()) {
-        (None, None) => None,
-        (Some(recorded), Some(trace)) if *recorded == trace.profile => None,
-        (None, Some(trace)) => Some(trace.profile.clone()),
-        (Some(recorded), Some(trace)) => {
-            return Err(invalid_input(format!(
-                "{} is pinned to trace profile {}/{}; requested {}/{}",
-                out.display(),
-                recorded.id,
-                recorded.version,
-                trace.profile.id,
-                trace.profile.version
-            )));
-        }
-        (Some(recorded), None) => {
-            return Err(invalid_input(format!(
-                "{} is pinned to trace profile {}/{}; pass the same profile to resume",
-                out.display(),
-                recorded.id,
-                recorded.version
-            )));
-        }
-    };
+    // #603 profile pinning (shared with the teacher-forced text driver via
+    // `preflight_trace_profile_pin`, so the two drivers cannot drift): a
+    // corpus is captured under ONE profile; mismatches refuse before any
+    // stateful operation.
+    let trace_profile_to_set = preflight_trace_profile_pin(&writer, trace.as_ref(), out)?;
     // Every identity check above is read-only. Only after all of them agree do
     // we publish either missing record.
     if let Some(geometry) = geometry.as_ref() {

@@ -3778,6 +3778,15 @@ struct ObserveTextOptions {
     workers: usize,
     batch: usize,
     tokenizer_adapter: Option<TokenizerAdapterKey>,
+    /// #603/#605 S1: a registered non-minimal trace profile as
+    /// `<id>/<version>` (e.g. `full/1`), captured into per-shard
+    /// `.trace` sidecars through the teacher's exact-executor taps.
+    trace_profile: Option<(String, u32)>,
+    /// Declared capture layer indices for the trace profile's lanes.
+    trace_layers: Vec<u32>,
+    /// Per-head attention-support cap (defaults to the registry's
+    /// `PRIMARY_TOP_K` when omitted).
+    trace_support: Option<u32>,
 }
 
 fn parse_observe_text_options(args: &[String]) -> Result<ObserveTextOptions, SourceUnavailable> {
@@ -3794,6 +3803,9 @@ fn parse_observe_text_options(args: &[String]) -> Result<ObserveTextOptions, Sou
         workers: 1,
         batch: 1,
         tokenizer_adapter: None,
+        trace_profile: None,
+        trace_layers: Vec::new(),
+        trace_support: None,
     };
     let mut index = 0usize;
     while index < args.len() {
@@ -3856,6 +3868,53 @@ fn parse_observe_text_options(args: &[String]) -> Result<ObserveTextOptions, Sou
                     return Err(SourceUnavailable::new("--batch must be greater than zero"));
                 }
             }
+            "--trace-profile" => {
+                // #603/#605 S1: `<id>/<version>` against the immutable
+                // profile registry (e.g. `full/1`). Unknown pairs are
+                // refused by the registry, never approximated.
+                let (id, version) = value.split_once('/').ok_or_else(|| {
+                    SourceUnavailable::new(format!(
+                        "invalid --trace-profile value: {value} (expected <id>/<version>, e.g. full/1)"
+                    ))
+                })?;
+                let version: u32 = version.parse().map_err(|_| {
+                    SourceUnavailable::new(format!(
+                        "invalid --trace-profile version in {value}: expected an integer"
+                    ))
+                })?;
+                options.trace_profile = Some((id.to_owned(), version));
+            }
+            "--trace-layers" => {
+                let mut layers = Vec::new();
+                for part in value.split(',') {
+                    let part = part.trim();
+                    if part.is_empty() {
+                        continue;
+                    }
+                    layers.push(part.parse::<u32>().map_err(|_| {
+                        SourceUnavailable::new(format!(
+                            "invalid --trace-layers entry: {part} (expected comma-separated layer indices)"
+                        ))
+                    })?);
+                }
+                if layers.is_empty() {
+                    return Err(SourceUnavailable::new(
+                        "--trace-layers must name at least one layer index",
+                    ));
+                }
+                options.trace_layers = layers;
+            }
+            "--trace-support" => {
+                let support: u32 = value.parse().map_err(|_| {
+                    SourceUnavailable::new(format!("invalid --trace-support value: {value}"))
+                })?;
+                if support == 0 {
+                    return Err(SourceUnavailable::new(
+                        "--trace-support must be greater than zero",
+                    ));
+                }
+                options.trace_support = Some(support);
+            }
             flag if tokenizer_adapter.parse(flag, value)? => {}
             _ => {
                 return Err(SourceUnavailable::new(format!(
@@ -3876,7 +3935,55 @@ fn parse_observe_text_options(args: &[String]) -> Result<ObserveTextOptions, Sou
             "--tokenizer is the legacy llama2.c tokenizer and requires --checkpoint",
         ));
     }
+    // #603/#605 S1 trace-flag coherence: the capture surface is the
+    // single-stream Hugging Face exact executor, so traced passes refuse
+    // the batched driver and the legacy checkpoint path with typed
+    // errors instead of failing later mid-load; bounds flags without a
+    // profile are a mistake worth naming.
+    if options.trace_profile.is_some() {
+        if options.batch > 1 {
+            return Err(SourceUnavailable::new(
+                "--trace-profile capture is single-stream (per-oracle exact-executor taps); \
+                 it cannot run under --batch — use --workers for parallelism",
+            ));
+        }
+        if options.checkpoint.is_some() {
+            return Err(SourceUnavailable::new(
+                "--trace-profile requires the Hugging Face teacher path; the legacy \
+                 --checkpoint oracle declares no capture surface",
+            ));
+        }
+        if options.trace_layers.is_empty() {
+            return Err(SourceUnavailable::new(
+                "--trace-profile requires --trace-layers naming the declared capture layers",
+            ));
+        }
+    } else if !options.trace_layers.is_empty() || options.trace_support.is_some() {
+        return Err(SourceUnavailable::new(
+            "--trace-layers/--trace-support declare capture bounds for --trace-profile; \
+             pass a profile or drop them",
+        ));
+    }
     Ok(options)
+}
+
+/// Resolve the parsed `--trace-*` flags against the immutable #603 profile
+/// registry: `(id, version)` plus the declared bounds map to the typed
+/// record, or a typed refusal for unknown pairs and out-of-bound
+/// declarations.
+fn resolve_observe_text_trace_profile(
+    options: &ObserveTextOptions,
+) -> Result<Option<uor_r4_graph_compiler::trace_profile::TraceProfile>, SourceUnavailable> {
+    let Some((id, version)) = options.trace_profile.as_ref() else {
+        return Ok(None);
+    };
+    let bounds = uor_r4_graph_compiler::trace_profile::TraceCaptureBounds {
+        layer_indices: options.trace_layers.clone(),
+        support_size: options
+            .trace_support
+            .unwrap_or(uor_r4_graph_compiler::trace_profile::PRIMARY_TOP_K),
+    };
+    uor_r4_graph_compiler::trace_profile::profile_spec(id, *version, &bounds).map(Some)
 }
 
 fn resolve_registered_observation_tokenizer(
@@ -3916,6 +4023,10 @@ pub fn observe_text_command(args: &[String]) -> Result<(), SourceUnavailable> {
         "warning: debug builds make teacher generation much slower; use `cargo run --release -- observe-text ...`"
     );
     let options = parse_observe_text_options(args)?;
+    // Resolve the trace profile against the registry BEFORE loading an
+    // expensive teacher or touching resumable output — same discipline as
+    // the tokenizer resolution below.
+    let trace_profile = resolve_observe_text_trace_profile(&options)?;
     // Batched teacher path: one shared weight copy, B articles per forward. This
     // is the throughput lever (measured ~15× at batch 32) and supersedes
     // --workers for the Hugging Face teacher.
@@ -4035,16 +4146,40 @@ pub fn observe_text_command(args: &[String]) -> Result<(), SourceUnavailable> {
     if options.workers > 1 {
         eprintln!("observing with {} teacher workers", options.workers);
     }
-    let report = observe_text::observe_text_corpus_in_session(
-        &session,
-        &mut pool,
-        options.seconds,
-        &tokenizer,
-        token_byte_lengths.as_deref(),
-        &options.input,
-        true,
-    )
-    .map_err(SourceUnavailable::new)?;
+    let report = match trace_profile.as_ref() {
+        Some(profile) => {
+            eprintln!(
+                "observing under trace profile {}/{} ({} declared layers, support cap {})",
+                profile.id,
+                profile.version,
+                options.trace_layers.len(),
+                options
+                    .trace_support
+                    .unwrap_or(uor_r4_graph_compiler::trace_profile::PRIMARY_TOP_K)
+            );
+            observe_text::observe_text_corpus_traced_in_session(
+                &session,
+                &mut pool,
+                options.seconds,
+                &tokenizer,
+                token_byte_lengths.as_deref(),
+                &options.input,
+                true,
+                profile,
+            )
+            .map_err(SourceUnavailable::new)?
+        }
+        None => observe_text::observe_text_corpus_in_session(
+            &session,
+            &mut pool,
+            options.seconds,
+            &tokenizer,
+            token_byte_lengths.as_deref(),
+            &options.input,
+            true,
+        )
+        .map_err(SourceUnavailable::new)?,
+    };
     let result = finish_observe_text_report(&report, &session);
     drop(session);
     result
@@ -9770,7 +9905,7 @@ fn transformerless_usage() -> &'static str {
                  graph score: score --corpus-meta <META> --corpus-recs <RECS> --artifacts <TLA> --out <DIR> [--bundle-root <ROOT>]\n\
                    --bundle-root explicitly declares one managed/canonical bundle authority; without it, --out is an exact standalone root fixed at transaction start\n\
                  observation pipeline: observe [--source DIR [--tokenizer-family FAMILY --tokenizer-version N] | --checkpoint BIN] [--seconds N] [--target N] [--shards N] [--out DIR] [--sequence-length N]\n\
-                 text observations (D3): observe-text [--input PATH] [--out DIR] [--shards N] [--seconds N] [--source DIR [--tokenizer-family FAMILY --tokenizer-version N] | --checkpoint BIN --tokenizer PATH] [--sequence-length N]\n\
+                 text observations (D3): observe-text [--input PATH] [--out DIR] [--shards N] [--seconds N] [--source DIR [--tokenizer-family FAMILY --tokenizer-version N] | --checkpoint BIN --tokenizer PATH] [--sequence-length N] [--trace-profile ID/V --trace-layers I,J,... [--trace-support S]]\n\
                  A-mode infill serving: graph infill --artifact <scored R4G1> --skeleton <token ids, _ for free> [--teacher <TLA container>]\n\
                  quantum operations: cd-compile | quantum-eval\n\
                  hf evaluation: evaluate-report [--source DIR] [--tokenizer-family FAMILY --tokenizer-version N] [--compiled DIR] [--report PATH] [--sequence-length N] [--bos] [--max-held-out-stories N]\n\
@@ -14979,6 +15114,77 @@ mod tests {
         }
         let missing = ["--out"].map(str::to_owned);
         assert!(parse_observe_text_options(&missing).is_err());
+    }
+
+    /// #603/#605 S1: the traced observe-text flags parse, resolve against
+    /// the immutable registry, and refuse incoherent combinations with
+    /// typed errors (batch, legacy checkpoint, missing layers, orphan
+    /// bounds, unknown profile).
+    #[test]
+    fn observe_text_trace_flags_parse_and_refuse_incoherent_combinations() {
+        let traced = [
+            "--trace-profile",
+            "full/1",
+            "--trace-layers",
+            "0,4,9,13,18,22,27,31",
+            "--trace-support",
+            "8",
+        ]
+        .map(str::to_owned);
+        let options = parse_observe_text_options(&traced).expect("traced flags parse");
+        assert_eq!(options.trace_profile, Some(("full".to_owned(), 1)));
+        assert_eq!(options.trace_layers, vec![0, 4, 9, 13, 18, 22, 27, 31]);
+        assert_eq!(options.trace_support, Some(8));
+        let profile = resolve_observe_text_trace_profile(&options)
+            .expect("full/1 resolves against the registry")
+            .expect("a profile is produced");
+        assert_eq!(profile.id, "full");
+        assert_eq!(profile.version, 1);
+
+        let unknown = parse_observe_text_options(
+            &["--trace-profile", "imagined/9", "--trace-layers", "0"].map(str::to_owned),
+        )
+        .expect("shape parses");
+        assert!(
+            resolve_observe_text_trace_profile(&unknown).is_err(),
+            "unknown registry pairs are refused, never approximated"
+        );
+
+        for args in [
+            // batched capture is refused (single-stream taps)
+            vec![
+                "--trace-profile",
+                "full/1",
+                "--trace-layers",
+                "0",
+                "--batch",
+                "8",
+            ],
+            // legacy checkpoint oracle has no capture surface
+            vec![
+                "--trace-profile",
+                "full/1",
+                "--trace-layers",
+                "0",
+                "--checkpoint",
+                "/tmp/model.bin",
+            ],
+            // a profile without declared layers is refused
+            vec!["--trace-profile", "full/1"],
+            // bounds without a profile are a named mistake
+            vec!["--trace-layers", "0,1"],
+            vec!["--trace-support", "8"],
+            // malformed values
+            vec!["--trace-profile", "full"],
+            vec!["--trace-layers", "a,b"],
+            vec!["--trace-support", "0"],
+        ] {
+            let args: Vec<String> = args.iter().map(|arg| (*arg).to_owned()).collect();
+            assert!(
+                parse_observe_text_options(&args).is_err(),
+                "{args:?} rejected"
+            );
+        }
     }
 
     #[test]
