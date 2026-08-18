@@ -4,14 +4,44 @@
 let router = null;
 let wasmInitialized = false;
 
+// #790 item 5: try to install a static-mode R4G1 bundle (scored graph
+// preferred, converter carryover fallback — the same preference order the
+// CLI and server use) so r4g1/transformerless selections can actually
+// serve through generate_r4g1_response. Missing files keep the honest
+// geometric fallback; a typed installer refusal is logged, never hidden.
+async function tryInstallStaticR4g1Bundle(scope, wasmModule) {
+    if (typeof wasmModule.set_r4g1_bundle !== 'function') return;
+    try {
+        for (const graphPath of ['./graph/score.r4g1', './compiled.r4g1']) {
+            const graphRes = await fetch(graphPath);
+            if (!graphRes.ok) continue;
+            const tokRes = await fetch('./tokenizer.bin');
+            if (!tokRes.ok) break;
+            const graph = new Uint8Array(await graphRes.arrayBuffer());
+            const tokenizer = new Uint8Array(await tokRes.arrayBuffer());
+            wasmModule.set_r4g1_bundle(graph, tokenizer);
+            console.log(`[${scope}] R4G1 bundle installed from ${graphPath}`);
+            return;
+        }
+        console.log(`[${scope}] no static R4G1 bundle found; geometric fallback stays active`);
+    } catch (err) {
+        console.warn(`[${scope}] R4G1 bundle install refused:`, err);
+    }
+}
+
 self.onmessage = async function (e) {
     const { type, id, payload } = e.data || {};
     
     switch (type) {
         case 'INIT_ENGINE': {
             try {
-                const { default: init, UorR4Router } = await import('./pkg/uor_r4_wasm_router.js');
+                const wasmModule = await import('./pkg/uor_r4_wasm_router.js');
+                const { default: init, UorR4Router } = wasmModule;
                 await init();
+                // #790 item 5: this global was never assigned before, so
+                // the r4g1/transformerless branches below could never run.
+                self.wasm_module = wasmModule;
+                await tryInstallStaticR4g1Bundle('r4_worker', wasmModule);
                 router = new UorR4Router(1.2);
                 wasmInitialized = true;
                 if (router.get_vocab_size() === 0) {

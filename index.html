@@ -1528,12 +1528,40 @@ function runWorkerGeneration(payload) {
     });
 }
 
+// #790 item 5: same static-mode bundle install as r4_worker.js — scored
+// graph preferred, converter carryover fallback; missing files keep the
+// honest geometric fallback, and a typed installer refusal is logged.
+async function tryInstallStaticR4g1Bundle(scope, wasmModule) {
+    if (typeof wasmModule.set_r4g1_bundle !== 'function') return;
+    try {
+        for (const graphPath of ['./graph/score.r4g1', './compiled.r4g1']) {
+            const graphRes = await fetch(graphPath);
+            if (!graphRes.ok) continue;
+            const tokRes = await fetch('./tokenizer.bin');
+            if (!tokRes.ok) break;
+            const graph = new Uint8Array(await graphRes.arrayBuffer());
+            const tokenizer = new Uint8Array(await tokRes.arrayBuffer());
+            wasmModule.set_r4g1_bundle(graph, tokenizer);
+            console.log(`[${scope}] R4G1 bundle installed from ${graphPath}`);
+            return;
+        }
+        console.log(`[${scope}] no static R4G1 bundle found; geometric fallback stays active`);
+    } catch (err) {
+        console.warn(`[${scope}] R4G1 bundle install refused:`, err);
+    }
+}
+
 async function tryInitLocalWasm() {
     initR4Worker();
     if (wasmInitialized) return true;
     try {
-        const { default: init, UorR4Router } = await import('./pkg/uor_r4_wasm_router.js');
+        const wasmModule = await import('./pkg/uor_r4_wasm_router.js');
+        const { default: init, UorR4Router } = wasmModule;
         await init();
+        // #790 item 5: previously never assigned, so the main-thread
+        // r4g1/transformerless generation branch could never run.
+        window.wasm_module = wasmModule;
+        await tryInstallStaticR4g1Bundle('dashboard', wasmModule);
         router = new UorR4Router(1.2);
         wasmInitialized = true;
         console.log("Local WebAssembly Router Initialized Successfully!");

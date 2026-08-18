@@ -64,6 +64,20 @@ pub fn generate_r4g1_response(prompt: &str, max_tokens: usize) -> Option<String>
     tless_uor::generate_r4g1_response(prompt, max_tokens)
 }
 
+/// #790 item 5: install a graph and its exact tokenizer into the wasm
+/// runtime so the dashboard's r4g1/transformerless selections can
+/// actually serve through [`generate_r4g1_response`] in static mode.
+/// Previously that export was unreachable — no installer was exported
+/// and neither frontend assigned the `wasm_module` global it is gated
+/// on, so those selections silently took the geometric fallback. Throws
+/// the installer's typed refusal (CID mismatch, malformed bytes) without
+/// replacing a previously active bundle.
+#[cfg(target_arch = "wasm32")]
+#[wasm_bindgen]
+pub fn set_r4g1_bundle(graph: Vec<u8>, tokenizer: Vec<u8>) -> Result<(), JsValue> {
+    tless_uor::set_r4g1_bundle(graph, tokenizer).map_err(|error| JsValue::from_str(&error))
+}
+
 /// The one-import surface for library users.
 pub mod prelude {
     pub use crate::tless_uor;
