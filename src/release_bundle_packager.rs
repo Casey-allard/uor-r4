@@ -32,6 +32,13 @@
 //! and writes this function's returned manifest to
 //! `release_bundle_loader::RELEASE_BUNDLE_SIDECAR_FILE_NAME` next to
 //! `physical_root`.
+//!
+//! #655-D3 (this module's own test suite, see
+//! `packaged_bundle_is_accepted_by_the_loaders_sidecar_verifier`) closes
+//! the loop: a golden test that packages a bundle, writes the sidecar
+//! exactly as #655-D2's CLI command does, and asserts
+//! `release_bundle_loader::verify_release_bundle_sidecar` accepts it --
+//! proving the two independently-tested halves actually compose.
 
 use std::path::{Path, PathBuf};
 
@@ -353,7 +360,83 @@ mod tests {
         let _ = std::fs::remove_dir_all(&dir);
     }
 
-    /// #655-D1/D3 preview: confirms `package_release_bundle` works
+    /// #655-D3: closes the loop from "D1/D2 can produce a sidecar" to
+    /// "C1c's verifier actually accepts what D2 produces" -- the two
+    /// halves are each independently well-tested (this module's own
+    /// tests above; `release_bundle_loader`'s synthetic-fixture tests)
+    /// but neither proves they compose against the exact bytes/paths
+    /// the other side expects. This test writes a real
+    /// `release-bundle.json` the same way #655-D2's CLI command does
+    /// (`serde_json::to_vec_pretty` to
+    /// `release_bundle_loader::RELEASE_BUNDLE_SIDECAR_FILE_NAME` next to
+    /// `physical_root`) and asserts
+    /// `release_bundle_loader::verify_release_bundle_sidecar` returns
+    /// `Some` of that exact manifest, unblocking #655-C1d.
+    #[test]
+    fn packaged_bundle_is_accepted_by_the_loaders_sidecar_verifier() {
+        use crate::release_bundle_loader::{
+            verify_release_bundle_sidecar, RELEASE_BUNDLE_SIDECAR_FILE_NAME,
+        };
+
+        let dir = scratch_dir("d3-golden-round-trip");
+        write_full_bundle(&dir);
+        let manifest = package_release_bundle(&dir, valid_inputs()).expect("full bundle packages");
+        std::fs::write(
+            dir.join(RELEASE_BUNDLE_SIDECAR_FILE_NAME),
+            serde_json::to_vec_pretty(&manifest).expect("serialize manifest"),
+        )
+        .expect("write sidecar, mirroring main.rs's package_release_bundle_command");
+
+        let graph_path = dir.join(GRAPH_RELATIVE_PATH);
+        let teacher_path = dir.join(SIGNATURE_ARTIFACT_RELATIVE_PATH);
+        let verified = verify_release_bundle_sidecar(&dir, &graph_path, &teacher_path);
+        assert_eq!(
+            verified,
+            Some(manifest),
+            "the loader must accept exactly what the packager just wrote"
+        );
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// #655-D3 companion: the same round trip, but for an
+    /// `InstructionChat` bundle carrying a real (non-default)
+    /// `tokenizer_adapter`, mirroring #655-D2's `--source` +
+    /// `--tokenizer-family`/`--tokenizer-version` path rather than only
+    /// the simpler `Continuation` default-adapter case above.
+    #[test]
+    fn instruction_chat_bundle_with_real_tokenizer_adapter_round_trips_through_the_loader() {
+        use crate::release_bundle_loader::{
+            verify_release_bundle_sidecar, RELEASE_BUNDLE_SIDECAR_FILE_NAME,
+        };
+
+        let dir = scratch_dir("d3-golden-instruction-chat");
+        write_full_bundle(&dir);
+        let mut inputs = valid_inputs();
+        inputs.capability = BundleCapability::InstructionChat;
+        inputs.tokenizer_adapter = TokenizerAdapter {
+            family: "hf-byte-bpe".to_string(),
+            ..Default::default()
+        };
+        let manifest =
+            package_release_bundle(&dir, inputs).expect("instruction-chat bundle packages");
+        std::fs::write(
+            dir.join(RELEASE_BUNDLE_SIDECAR_FILE_NAME),
+            serde_json::to_vec_pretty(&manifest).expect("serialize manifest"),
+        )
+        .expect("write sidecar, mirroring main.rs's package_release_bundle_command");
+
+        let graph_path = dir.join(GRAPH_RELATIVE_PATH);
+        let teacher_path = dir.join(SIGNATURE_ARTIFACT_RELATIVE_PATH);
+        let verified = verify_release_bundle_sidecar(&dir, &graph_path, &teacher_path);
+        assert_eq!(
+            verified,
+            Some(manifest),
+            "the loader must accept an InstructionChat sidecar with a real tokenizer_adapter too"
+        );
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// #655-D1 preview: confirms `package_release_bundle` works
     /// end-to-end against a real local compiled bundle directory, not
     /// just a synthetic fixture. `#[ignore]`d by default and
     /// environment-gated (mirrors `crates/uor-r4-api/tests/api.rs`'s own
