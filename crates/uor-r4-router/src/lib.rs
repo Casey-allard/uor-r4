@@ -20,11 +20,9 @@ pub use session_signature::{
     from_tokens as session_signature_from_tokens, MULTI_TURN_FIXTURE,
 };
 
-pub use fallback::{
-    run_cascade, run_cascade_with_policy, AbstainPolicy, CascadeOutcome, EngineResponse,
-    EngineStatus, FallbackResult, FallbackRouter, TierFn, TierOutcome, TierResult,
-    SERVING_ABSTAIN_POLICY,
-};
+// #790 item 4: only the live cascade surface is exported — the dead
+// FallbackRouter pipeline and its satellite types were removed.
+pub use fallback::{run_cascade, CascadeOutcome, EngineStatus, TierFn, TierOutcome, TierResult};
 
 /// A content-addressed identifier derived via the 3/8 Resonance Hashing Law.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]

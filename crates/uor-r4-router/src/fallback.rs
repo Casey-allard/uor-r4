@@ -1,16 +1,22 @@
-//! Dynamic Fallback Engine Pipeline (`FallbackRouter`).
+//! The N-tier serving cascade (issue #248).
 //!
-//! Formalizes dynamic engine fallback: when primary `R4G1` graph inference
-//! encounters an unmapped region, pathological loop, or `Novel`/`Contradictory`
-//! state status, `FallbackRouter` seamlessly cascades to secondary `transformerless`
-//! (TLA5/TLS1) engine generation, returning a valid response without dropping HTTP/WS payloads.
+//! [`run_cascade`] walks an ordered list of named tier closures, serves
+//! the first [`EngineStatus::Success`] with non-empty text, and records
+//! every attempted tier's typed outcome in a [`CascadeOutcome::trail`].
+//! A declared abstention is a recorded event the cascade continues past
+//! (PR #223 semantics: recording, not refusing), and a run where no tier
+//! serves ends with an honest empty outcome the caller types as
+//! `declined_by_all`.
 //!
-//! Issue #248 adds the generalized N-tier serving cascade: [`run_cascade`]
-//! walks an ordered list of named tier closures, serves the first
-//! [`EngineStatus::Success`], records every attempted tier's typed outcome
-//! in a [`CascadeOutcome::trail`], and — under the central
-//! [`SERVING_ABSTAIN_POLICY`] — treats a declared abstention as a recorded
-//! event the cascade continues past, not a refusal to try later tiers.
+//! #790 item 4 (2026-08-18 audit finding): the original
+//! `FallbackRouter` two-engine pipeline that founded this module — plus
+//! its `EngineResponse`/`FallbackResult` types, the never-selected
+//! `AbstainPolicy::Terminal` parameterization, the never-constructed
+//! `UnmappedRegion` status, and the `r4g1-graph`/`transformerless-tla5`
+//! engine names — had zero callers outside its own tests while the docs
+//! presented it as the live serving path. It was removed rather than
+//! kept as dead weight; `run_cascade` and its typed outcome records are
+//! the one serving surface.
 
 use serde::{Deserialize, Serialize};
 
@@ -19,8 +25,6 @@ use serde::{Deserialize, Serialize};
 pub enum EngineStatus {
     /// Successful inference generation.
     Success,
-    /// Primary engine encountered an unmapped region or novel context.
-    UnmappedRegion,
     /// Primary engine encountered a pathological loop or cycle.
     Pathological,
     /// Unrecoverable engine failure.
@@ -35,7 +39,6 @@ impl std::fmt::Display for EngineStatus {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             EngineStatus::Success => write!(f, "success"),
-            EngineStatus::UnmappedRegion => write!(f, "unmapped_region"),
             EngineStatus::Pathological => write!(f, "pathological"),
             EngineStatus::Failed => write!(f, "failed"),
             EngineStatus::Abstained => write!(f, "abstained"),
@@ -109,40 +112,19 @@ pub struct CascadeOutcome {
     pub trail: Vec<TierOutcome>,
 }
 
-/// Whether a declared tier abstention ends the cascade or is recorded
-/// while later tiers still get to attempt.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum AbstainPolicy {
-    /// Record the abstention in the trail and continue to the next tier
-    /// (PR #223 semantics: recording, not refusing).
-    Cascade,
-    /// Record the abstention and end the cascade with no text.
-    Terminal,
-}
-
-/// The centralized serving policy for abstentions (issue #248). Both HTTP
-/// serving endpoints route through this one constant, so flipping the
-/// abstention semantics later is a one-line change.
-pub const SERVING_ABSTAIN_POLICY: AbstainPolicy = AbstainPolicy::Cascade;
-
 /// A named cascade tier's generation closure.
 pub type TierFn<'a> = Box<dyn FnMut() -> TierResult + 'a>;
 
-/// Run an ordered serving cascade under [`SERVING_ABSTAIN_POLICY`].
+/// Run an ordered serving cascade.
 ///
 /// The first tier returning [`EngineStatus::Success`] with non-empty text
-/// serves; every attempted tier's outcome is recorded in the trail. A
-/// `Success` without text is downgraded to a recorded `Failed` so a
-/// contradictory tier cannot serve emptiness.
+/// serves; every attempted tier's outcome is recorded in the trail, and a
+/// declared abstention is recorded while later tiers still attempt (the
+/// PR #223 record-and-continue semantics — previously a
+/// policy parameter whose alternative was never selected, inlined by
+/// #790 item 4). A `Success` without text is downgraded to a recorded
+/// `Failed` so a contradictory tier cannot serve emptiness.
 pub fn run_cascade(tiers: Vec<(&'static str, TierFn<'_>)>) -> CascadeOutcome {
-    run_cascade_with_policy(tiers, SERVING_ABSTAIN_POLICY)
-}
-
-/// [`run_cascade`] with an explicit abstention policy.
-pub fn run_cascade_with_policy(
-    tiers: Vec<(&'static str, TierFn<'_>)>,
-    policy: AbstainPolicy,
-) -> CascadeOutcome {
     let mut trail = Vec::with_capacity(tiers.len());
     for (tier, mut run) in tiers {
         let mut result = run();
@@ -177,16 +159,11 @@ pub fn run_cascade_with_policy(
             detail = result.detail.as_deref().unwrap_or(""),
             "Cascade tier declined"
         );
-        let terminal =
-            result.status == EngineStatus::Abstained && policy == AbstainPolicy::Terminal;
         trail.push(TierOutcome {
             tier,
             status: result.status,
             detail: result.detail,
         });
-        if terminal {
-            break;
-        }
     }
     CascadeOutcome {
         text: None,
@@ -195,180 +172,9 @@ pub fn run_cascade_with_policy(
     }
 }
 
-/// Response returned by an individual engine step/generation call.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct EngineResponse {
-    pub text: String,
-    pub status: EngineStatus,
-    pub engine: String,
-    pub tokens_generated: usize,
-}
-
-/// Consolidated result from `FallbackRouter::execute`.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct FallbackResult {
-    pub text: String,
-    pub primary_status: EngineStatus,
-    pub fallback_triggered: bool,
-    pub active_engine: String,
-    pub tokens_generated: usize,
-}
-
-/// A dynamic fallback router managing primary (R4G1) and secondary (TLA5) inference engines.
-#[derive(Debug, Clone)]
-pub struct FallbackRouter {
-    primary_name: String,
-    secondary_name: String,
-}
-
-impl Default for FallbackRouter {
-    fn default() -> Self {
-        Self {
-            primary_name: "r4g1-graph".to_string(),
-            secondary_name: "transformerless-tla5".to_string(),
-        }
-    }
-}
-
-impl FallbackRouter {
-    /// Create a new `FallbackRouter` with custom engine identifiers.
-    pub fn new(primary_name: impl Into<String>, secondary_name: impl Into<String>) -> Self {
-        Self {
-            primary_name: primary_name.into(),
-            secondary_name: secondary_name.into(),
-        }
-    }
-
-    /// Primary engine name.
-    pub fn primary_name(&self) -> &str {
-        &self.primary_name
-    }
-
-    /// Secondary engine name.
-    pub fn secondary_name(&self) -> &str {
-        &self.secondary_name
-    }
-
-    /// Execute inference generation with automatic fallback cascading.
-    ///
-    /// Evaluates `primary_fn`. If it returns [`EngineStatus::Success`], returns
-    /// that result directly. For any other status (`UnmappedRegion`,
-    /// `Pathological`, `Failed`, `Abstained`) it logs a `tracing::info!`
-    /// fallback event and invokes `secondary_fn`, returning a clean
-    /// [`FallbackResult`].
-    ///
-    /// Each engine closure returns an [`EngineResponse`] directly: the outcome
-    /// — success or otherwise — is carried in the response's own
-    /// [`EngineStatus`], not a separate error channel. A failed engine reports
-    /// `EngineStatus::Failed` with its explanatory text, so there is no bound
-    /// on how an engine may report (R5 — the closures are total).
-    pub fn execute<FPrimary, FSecondary>(
-        &self,
-        mut primary_fn: FPrimary,
-        mut secondary_fn: FSecondary,
-    ) -> FallbackResult
-    where
-        FPrimary: FnMut() -> EngineResponse,
-        FSecondary: FnMut() -> EngineResponse,
-    {
-        let primary_res = primary_fn();
-        if primary_res.status == EngineStatus::Success {
-            return FallbackResult {
-                text: primary_res.text,
-                primary_status: EngineStatus::Success,
-                fallback_triggered: false,
-                active_engine: primary_res.engine,
-                tokens_generated: primary_res.tokens_generated,
-            };
-        }
-        tracing::info!(
-            target: "uor_r4_router::fallback",
-            primary = %self.primary_name,
-            secondary = %self.secondary_name,
-            primary_status = %primary_res.status,
-            "Primary engine status requiring fallback; cascading to secondary engine"
-        );
-        let sec_res = secondary_fn();
-        FallbackResult {
-            text: sec_res.text,
-            primary_status: primary_res.status,
-            fallback_triggered: true,
-            active_engine: sec_res.engine,
-            tokens_generated: sec_res.tokens_generated,
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn test_fallback_router_primary_success() {
-        let router = FallbackRouter::default();
-        let res = router.execute(
-            || EngineResponse {
-                text: "Primary clean output".to_string(),
-                status: EngineStatus::Success,
-                engine: "r4g1-graph".to_string(),
-                tokens_generated: 10,
-            },
-            || panic!("secondary should not be called"),
-        );
-
-        assert!(!res.fallback_triggered);
-        assert_eq!(res.primary_status, EngineStatus::Success);
-        assert_eq!(res.active_engine, "r4g1-graph");
-        assert_eq!(res.text, "Primary clean output");
-    }
-
-    #[test]
-    fn test_fallback_router_unmapped_region_triggers_fallback() {
-        let router = FallbackRouter::default();
-        let res = router.execute(
-            || EngineResponse {
-                text: "".to_string(),
-                status: EngineStatus::UnmappedRegion,
-                engine: "r4g1-graph".to_string(),
-                tokens_generated: 0,
-            },
-            || EngineResponse {
-                text: "Secondary fallback output".to_string(),
-                status: EngineStatus::Success,
-                engine: "transformerless-tla5".to_string(),
-                tokens_generated: 8,
-            },
-        );
-
-        assert!(res.fallback_triggered);
-        assert_eq!(res.primary_status, EngineStatus::UnmappedRegion);
-        assert_eq!(res.active_engine, "transformerless-tla5");
-        assert_eq!(res.text, "Secondary fallback output");
-    }
-
-    #[test]
-    fn test_fallback_router_pathological_loop_triggers_fallback() {
-        let router = FallbackRouter::default();
-        let res = router.execute(
-            || EngineResponse {
-                text: "Loop detected".to_string(),
-                status: EngineStatus::Pathological,
-                engine: "r4g1-graph".to_string(),
-                tokens_generated: 2,
-            },
-            || EngineResponse {
-                text: "Secondary fallback recovery".to_string(),
-                status: EngineStatus::Success,
-                engine: "transformerless-tla5".to_string(),
-                tokens_generated: 12,
-            },
-        );
-
-        assert!(res.fallback_triggered);
-        assert_eq!(res.primary_status, EngineStatus::Pathological);
-        assert_eq!(res.active_engine, "transformerless-tla5");
-        assert_eq!(res.text, "Secondary fallback recovery");
-    }
 
     #[test]
     fn test_run_cascade_first_success_wins() {
@@ -407,7 +213,7 @@ mod tests {
                 Box::new(|| TierResult::success("served after abstention".to_owned())),
             ),
         ];
-        let outcome = run_cascade_with_policy(tiers, AbstainPolicy::Cascade);
+        let outcome = run_cascade(tiers);
         assert_eq!(outcome.text.as_deref(), Some("served after abstention"));
         assert_eq!(outcome.served_by, Some("transformerless"));
         assert_eq!(outcome.trail.len(), 2);
@@ -417,27 +223,6 @@ mod tests {
             Some("R4G1 policy abstained (status: novel)")
         );
         assert_eq!(outcome.trail[1].status, EngineStatus::Success);
-    }
-
-    #[test]
-    fn test_run_cascade_terminal_policy_stops_at_abstention() {
-        let mut later_tier_called = false;
-        let tiers: Vec<(&'static str, TierFn<'_>)> = vec![
-            ("r4g1", Box::new(|| TierResult::abstained("novel input"))),
-            (
-                "transformerless",
-                Box::new(|| {
-                    later_tier_called = true;
-                    TierResult::success("never attempted".to_owned())
-                }),
-            ),
-        ];
-        let outcome = run_cascade_with_policy(tiers, AbstainPolicy::Terminal);
-        assert!(outcome.text.is_none());
-        assert!(outcome.served_by.is_none());
-        assert_eq!(outcome.trail.len(), 1);
-        assert_eq!(outcome.trail[0].status, EngineStatus::Abstained);
-        assert!(!later_tier_called);
     }
 
     #[test]

@@ -3683,18 +3683,18 @@ pub fn validate_r4g1_corpus_inputs(meta: &Path, records: &Path) -> Result<(), St
     Ok(())
 }
 
-/// Resolve the synthesis engine. R4G1 is the active default; legacy and
-/// geometric paths are reachable only through explicit engine values.
-pub fn select_synthesis_engine(requested: Option<&str>) -> &'static str {
-    match requested {
-        Some("r4g1") => "r4g1",
-        Some("geometric") => "geometric",
-        Some("attention") => "attention",
-        Some("r4-attention") => "r4-attention",
-        Some("transformerless-legacy") => "transformerless-legacy",
-        Some("auto" | "ollama" | "transformerless") | None => "r4g1",
-        Some(_) => "r4g1",
-    }
+/// #790 item 4: the live single-value engine resolution the BDD
+/// scenarios pin — an explicit KNOWN engine name resolves to its cascade
+/// tier constant (via `tier_for_engine_name`, the same mapping serving
+/// uses), and everything else (none, "auto", "r4g1", unknown) resolves
+/// to the cascade default, whose first tier is r4g1. Replaces the
+/// removed legacy `select_synthesis_engine`, which disagreed with
+/// serving on "transformerless" (it collapsed the tier to "r4g1" while
+/// the live cascade pins the transformerless tier).
+pub fn default_resolved_tier(requested: Option<&str>) -> &'static str {
+    requested
+        .and_then(tier_for_engine_name)
+        .unwrap_or(TIER_R4G1)
 }
 
 /// The explicit failure contract for an unavailable R4G1 runtime. Keeping
@@ -3725,8 +3725,9 @@ fn r4g1_unavailable_response_with_reason(reason: Option<&str>) -> (u16, serde_js
 
 // ---------------------------------------------------------------------------
 // The single serving cascade (issue #248). Both HTTP chat endpoints route
-// through `run_serving_cascade`; the abstention policy is centralized in
-// `uor_r4_router::fallback::SERVING_ABSTAIN_POLICY`.
+// through `run_serving_cascade`; abstentions are recorded in the trail
+// while later tiers still attempt (PR #223 record-and-continue, the one
+// policy `run_cascade` implements — #790 item 4).
 // ---------------------------------------------------------------------------
 
 /// Serving-cascade tier identifiers, in full-cascade order.
@@ -3842,8 +3843,8 @@ fn engine_profile_preference() -> Option<String> {
 /// full cascade's order, so the choice loses nothing by cascading.
 /// Explicit non-default selections (attention, geometric, transformerless,
 /// r4-attention) pin. "auto"/empty/unknown and the legacy "ollama" alias
-/// run the full cascade. `select_synthesis_engine` remains the legacy
-/// single-value resolver for existing consumers.
+/// run the full cascade. `default_resolved_tier` is the single-value
+/// view of the same mapping (#790 item 4).
 fn resolve_pinned_tier(requested: Option<&str>) -> Option<&'static str> {
     let requested = match requested.map(str::trim) {
         Some(value) if !value.is_empty() => Some(value.to_owned()),
@@ -16043,7 +16044,8 @@ fn handle_connection(
         // 5. Decode response through the single serving cascade (issue
         // #248). A D4 abstention no longer refuses fallback outright: it is
         // RECORDED in the per-tier trail while later tiers still attempt
-        // (PR #223 semantics, centralized in `SERVING_ABSTAIN_POLICY`).
+        // (PR #223 record-and-continue semantics, implemented directly by
+        // `run_cascade` — #790 item 4).
         let t_gen = Instant::now();
         let mut cascade = run_serving_cascade(
             &mut router_guard,

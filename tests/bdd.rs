@@ -22,7 +22,7 @@ use uor_r4_graph_format::INFERENCE_OPERATION_CONTRACT_VERSION;
 use uor_r4_wasm_router::cd_space_fold;
 use uor_r4_wasm_router::r4g1::validate_quality_report;
 use uor_r4_wasm_router::server::{
-    is_usable_generated_text, r4g1_unavailable_response, select_synthesis_engine,
+    default_resolved_tier, is_usable_generated_text, r4g1_unavailable_response,
     validate_r4g1_corpus_inputs,
 };
 
@@ -236,7 +236,12 @@ fn no_saved_engine(_w: &mut R4g1World) {}
 
 #[when("the server resolves the synthesis engine")]
 fn resolve_engine(w: &mut R4g1World) {
-    w.selected_engine = Some(select_synthesis_engine(w.requested_engine));
+    // #790 item 4: repointed at the live resolver (the same
+    // tier_for_engine_name mapping serving uses, with the cascade
+    // r4g1-first default) instead of the removed legacy
+    // select_synthesis_engine, which disagreed with serving on
+    // "transformerless".
+    w.selected_engine = Some(default_resolved_tier(w.requested_engine));
 }
 
 #[then("the selected engine is R4G1")]
@@ -251,7 +256,10 @@ fn explicit_legacy(w: &mut R4g1World) {
 
 #[then("the selected engine is Legacy TLA/TLS")]
 fn selected_engine_is_legacy(w: &mut R4g1World) {
-    assert_eq!(w.selected_engine, Some("transformerless-legacy"));
+    // The live cascade pins the transformerless TIER for the legacy
+    // alias — the tier constant, not the requested alias string (the
+    // request-echo question is #789-G3.2, about decline messages).
+    assert_eq!(w.selected_engine, Some("transformerless"));
 }
 
 #[then("the browser UI selects R4G1 and does not offer automatic fallback")]
