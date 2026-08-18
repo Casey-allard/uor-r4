@@ -481,9 +481,7 @@ impl ModelStore {
     }
 
     pub fn from_env() -> Self {
-        let root = std::env::var_os("UOR_MODEL_STORE")
-            .map_or_else(|| PathBuf::from(".uor-models"), PathBuf::from);
-        Self::new(root)
+        Self::new(model_store_root())
     }
 
     pub fn put(&self, bytes: &[u8]) -> Result<ModelObject, ModelError> {
@@ -714,6 +712,30 @@ fn cbor_byte_string_header(length: usize, out: &mut [u8; 9]) -> usize {
         out[1..9].copy_from_slice(&(length as u64).to_be_bytes());
         9
     }
+}
+
+/// The model-store root every artifact and state path resolves against
+/// (#790 item 6): `UOR_MODEL_STORE` when set, `.uor-models` otherwise.
+/// Previously the manifest store honored the env var while artifact
+/// preferences and the persisted engine/model state files hardcoded the
+/// default — a split root whenever the operator relocated the store.
+pub fn model_store_root() -> PathBuf {
+    std::env::var_os("UOR_MODEL_STORE").map_or_else(|| PathBuf::from(".uor-models"), PathBuf::from)
+}
+
+/// A small persisted state file (`last_engine.txt`,
+/// `last_model_name.txt`, `engine_profile.txt`) under the store root —
+/// the single path rule for every reader and writer (#790 item 6).
+pub fn store_state_file(name: &str) -> PathBuf {
+    model_store_root().join(name)
+}
+
+/// A compiled-bundle directory under the store root, with the same name
+/// sanitization the manifest reads apply (#790 item 6: raw manifest
+/// names were previously interpolated into the path unsanitized, so a
+/// name with separators could escape the store).
+pub fn compiled_model_dir(name: &str) -> PathBuf {
+    model_store_root().join("compiled").join(safe_name(name))
 }
 
 fn safe_name(name: &str) -> String {
@@ -1573,6 +1595,36 @@ pub fn write_source_manifest(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// #790 item 6: every store path resolves against the one store root,
+    /// and compiled-bundle names are sanitized the same way manifest reads
+    /// are — a name carrying separators cannot escape the store (the old
+    /// interpolation `format!(".uor-models/compiled/{name}")` could).
+    /// Default-root behavior only: the env override is exercised by
+    /// `ModelStore::from_env` callers and is process-global, so mutating it
+    /// here would race parallel tests.
+    #[test]
+    fn store_paths_share_one_root_and_sanitize_names() {
+        if std::env::var_os("UOR_MODEL_STORE").is_none() {
+            assert_eq!(model_store_root(), PathBuf::from(".uor-models"));
+            assert_eq!(
+                store_state_file("last_engine.txt"),
+                PathBuf::from(".uor-models/last_engine.txt")
+            );
+            assert_eq!(
+                compiled_model_dir("smollm2-135m-instruct"),
+                PathBuf::from(".uor-models/compiled/smollm2-135m-instruct")
+            );
+        }
+        let escaped = compiled_model_dir("../evil/../../name");
+        assert!(escaped.starts_with(model_store_root().join("compiled")));
+        assert!(
+            !escaped
+                .components()
+                .any(|component| matches!(component, std::path::Component::ParentDir)),
+            "sanitized names must not traverse upward: {escaped:?}"
+        );
+    }
 
     /// #790 item 3 falsifier: a tokenizer-only descriptor must never win
     /// default-model discovery, even when it is the mtime-newest json —

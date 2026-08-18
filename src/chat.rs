@@ -229,7 +229,11 @@ impl ChatEngineBuilder {
             compiler::parse_artifacts(&artifact_bytes).ok_or(ChatError::InvalidArtifacts)?;
         let store_bytes = model_store.get(&manifest.store)?;
         let store = runtime::parse_store(&store_bytes).ok_or(ChatError::InvalidStore)?;
-        let model_dir = std::path::PathBuf::from(format!(".uor-models/compiled/{}", manifest.name));
+        // #790 item 6: resolve against the store root with the same name
+        // sanitization the manifest read applied — the raw name was
+        // previously interpolated into a hardcoded `.uor-models` path, so
+        // it could disagree with an env-relocated store or escape it.
+        let model_dir = crate::model::compiled_model_dir(&manifest.name);
         let r4g1_bytes = read_preferred_chat_graph(&model_dir)?;
         validate_chat_r4g1_structure(r4g1_bytes.as_deref())?;
         let bundled_tokenizer = match model_store.get(&manifest.tokenizer) {
@@ -1528,7 +1532,7 @@ fn handle_model_switch_with_remediation<W: Write>(
             if res["status"] == "success" {
                 *current_active_model = target_model.to_string();
                 if let Err(error) = persist_state_file(
-                    std::path::Path::new(".uor-models/last_model_name.txt"),
+                    &crate::model::store_state_file("last_model_name.txt"),
                     current_active_model.as_str(),
                 ) {
                     writeln!(
@@ -1605,12 +1609,12 @@ fn handle_model_switch_with_remediation<W: Write>(
                                 *current_active_model = target_model.to_string();
                                 *current_active_engine = "r4g1".to_string();
                                 if let Err(error) = persist_state_file(
-                                    std::path::Path::new(".uor-models/last_model_name.txt"),
+                                    &crate::model::store_state_file("last_model_name.txt"),
                                     current_active_model.as_str(),
                                 )
                                 .and_then(|()| {
                                     persist_state_file(
-                                        std::path::Path::new(".uor-models/last_engine.txt"),
+                                        &crate::model::store_state_file("last_engine.txt"),
                                         current_active_engine.as_str(),
                                     )
                                 }) {
@@ -1624,7 +1628,7 @@ fn handle_model_switch_with_remediation<W: Write>(
                         1 => {
                             *current_active_engine = "attention".to_string();
                             if let Err(error) = persist_state_file(
-                                std::path::Path::new(".uor-models/last_engine.txt"),
+                                &crate::model::store_state_file("last_engine.txt"),
                                 current_active_engine.as_str(),
                             ) {
                                 writeln!(
@@ -1694,20 +1698,21 @@ pub fn remote_interactive_chat(
     let (host, port, path) = parse_remote_url(remote_url);
 
     // Read initial active model and engine from disk if present
-    let mut current_active_model =
-        if let Ok(m) = std::fs::read_to_string(".uor-models/last_model_name.txt") {
-            let trimmed = m.trim().to_string();
-            if !trimmed.is_empty() {
-                trimmed
-            } else {
-                model.to_string()
-            }
+    let mut current_active_model = if let Ok(m) =
+        std::fs::read_to_string(crate::model::store_state_file("last_model_name.txt"))
+    {
+        let trimmed = m.trim().to_string();
+        if !trimmed.is_empty() {
+            trimmed
         } else {
             model.to_string()
-        };
+        }
+    } else {
+        model.to_string()
+    };
 
     let mut current_active_engine =
-        if let Ok(e) = std::fs::read_to_string(".uor-models/last_engine.txt") {
+        if let Ok(e) = std::fs::read_to_string(crate::model::store_state_file("last_engine.txt")) {
             let trimmed = e.trim().to_string();
             if !trimmed.is_empty() {
                 trimmed
@@ -1993,7 +1998,7 @@ pub fn remote_interactive_chat(
 
                     current_active_engine = target_engine.clone();
                     if let Err(error) = persist_state_file(
-                        std::path::Path::new(".uor-models/last_engine.txt"),
+                        &crate::model::store_state_file("last_engine.txt"),
                         &current_active_engine,
                     ) {
                         writeln!(
@@ -2336,12 +2341,12 @@ pub fn remote_interactive_chat(
                             current_active_model = target_model.to_string();
                             current_active_engine = "r4g1".to_string();
                             if let Err(error) = persist_state_file(
-                                std::path::Path::new(".uor-models/last_model_name.txt"),
+                                &crate::model::store_state_file("last_model_name.txt"),
                                 &current_active_model,
                             )
                             .and_then(|()| {
                                 persist_state_file(
-                                    std::path::Path::new(".uor-models/last_engine.txt"),
+                                    &crate::model::store_state_file("last_engine.txt"),
                                     &current_active_engine,
                                 )
                             }) {

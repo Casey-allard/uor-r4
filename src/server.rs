@@ -632,7 +632,8 @@ pub fn run_server(cli: Arc<ServerConfig>) {
     let tless: Arc<Mutex<Option<tless_uor::TlessState>>> = Arc::new(Mutex::new(None));
     let serving: SharedServingModel = Arc::new(Mutex::new(ServingModelState::default()));
 
-    let last_model = std::fs::read_to_string(".uor-models/last_model_name.txt").unwrap_or_default();
+    let last_model = std::fs::read_to_string(crate::model::store_state_file("last_model_name.txt"))
+        .unwrap_or_default();
     let last_model_name = last_model.trim();
 
     let candidates = startup_source_candidates(last_model_name);
@@ -3768,7 +3769,7 @@ struct ServingCascade {
 /// The persisted `/engine` selection written by the terminal chat client
 /// (`.uor-models/last_engine.txt`), if any.
 fn persisted_engine_preference() -> Option<String> {
-    let raw = fs::read_to_string(".uor-models/last_engine.txt").ok()?;
+    let raw = fs::read_to_string(crate::model::store_state_file("last_engine.txt")).ok()?;
     let trimmed = raw.trim();
     if trimmed.is_empty() {
         None
@@ -3825,7 +3826,7 @@ impl EngineProfile {
 /// [`EngineProfile::from_persisted`], which already treats `None` the
 /// same as any other non-`"experimental"` value.
 fn engine_profile_preference() -> Option<String> {
-    let raw = fs::read_to_string(".uor-models/engine_profile.txt").ok()?;
+    let raw = fs::read_to_string(crate::model::store_state_file("engine_profile.txt")).ok()?;
     let trimmed = raw.trim();
     if trimmed.is_empty() {
         None
