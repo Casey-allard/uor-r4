@@ -249,3 +249,40 @@ behavior as of `146a976e`. Since #655-E2 (PR #781, merged `cd6bce6d`):
 
 Full evidence: `docs/project_baseline_audit_2026_08_18.md` §8 (reachability
 matrix), findings AUD-ARCH-002/-003/-004/-005.
+
+## Addendum 2026-08-18 (#789: profile gaps closed)
+
+The two audit gaps the previous addendum records are closed by #789, per
+maintainer decisions on that issue. As of the #789 implementation PR:
+
+- **Bypass endpoints (G1, decision (c)):** `POST /api/tless/{predict,index,
+  generate}` is profile-gated — under `production` (including the fail-safe
+  default) each returns the typed 503 `declined_by_all` decline *before*
+  parsing the request body. `POST /api/r4g1/*` deliberately stays open: it
+  reaches the exact tier `production` serves. Tier 2 is therefore no longer
+  HTTP-reachable on a default-profile server by any route.
+- **Discovery agrees with serving (G2):** `active_canonical_model_name` is
+  profile-aware — under `production` only a **text-ready R4G1 graph** makes
+  a model active, so a teacher-only install lists nothing on `/v1/models`,
+  404s on `/v1/models/{id}`, answers OpenAI completions with the
+  `model_not_ready` envelope, and reports `engine_active: false`. Under
+  `experimental` the teacher lane still counts, exactly as before.
+  `/uor/v1/status` now carries a `"profile"` field (`"production"` |
+  `"experimental"`, the same strings the file parses); `teacher_ready`
+  stays reported as the pipeline fact it is.
+- **Decline semantics (G3):** the typed decline echoes the *requested*
+  engine string (`transformerless-legacy` is answered as
+  `transformerless-legacy`, G3.2); an explicit engine name outside the
+  recognized vocabulary (`r4g1`, the four pinnable tier names, `auto`,
+  legacy `ollama`) is a typed decline on **every** profile — never a silent
+  full-cascade run (G3.1); on the OpenAI surfaces (`/v1/*`) every serving
+  decline is a **503 OpenAI error envelope** (`"type": "engine_declined"`),
+  never the native `declined_by_all` JSON and never the native
+  200-on-abstain (G3.3); and both entry paths decline before any
+  router/brain mutation (G3.4). The native `/api/chat` surface keeps its
+  documented `declined_by_all` contract (200 when a tier abstained,
+  #223 semantics) — the envelope rule is OpenAI-surface-only.
+
+Proven at HTTP level by the `g4_*` tests in `src/server.rs` (they first
+landed pinning the pre-decision behavior in PR #798; the flipped
+assertions are the before/after record).

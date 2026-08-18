@@ -468,7 +468,7 @@ struct PinnedSourceManifest {
 }
 
 impl R4g1CompileStatus {
-    fn json(&self, serving: &ServingModelState) -> serde_json::Value {
+    fn json(&self, serving: &ServingModelState, profile: EngineProfile) -> serde_json::Value {
         let graph_loaded = serving.r4g1.is_some();
         let text_ready = graph_text_ready(serving);
         serde_json::json!({
@@ -479,7 +479,7 @@ impl R4g1CompileStatus {
             "progress": self.progress,
             "message": self.message,
             "report": self.report,
-            "model_name": active_canonical_model_name(serving),
+            "model_name": active_canonical_model_name(serving, profile),
             "physical_root": status_physical_root(serving.active_bundle.as_ref()),
             "attention_operator": serving.active_bundle.as_ref().map(|bundle| &bundle.attention_operator),
             "dense_operator": serving.active_bundle.as_ref().and_then(|bundle| bundle.dense_operator.as_ref()),
@@ -512,16 +512,26 @@ fn active_bundle_verified(bundle: Option<&ResolvedCompiledBundle>) -> bool {
     bundle.is_some_and(|bundle| bundle.release_bundle.is_some())
 }
 
-fn uor_status_json(installed: &ServingModelState) -> serde_json::Value {
+fn uor_status_json(installed: &ServingModelState, profile: EngineProfile) -> serde_json::Value {
     let graph_loaded = installed.r4g1.is_some();
     let graph_ready = graph_text_ready(installed);
     let decode_only = graph_loaded && !graph_ready;
     let teacher_ready = teacher_text_ready(installed);
-    let engine_active = graph_ready || teacher_ready;
+    // #789-G2: under `Production` the engine is active only when the
+    // servable R4G1 artifact is text-ready — a teacher-only install must
+    // not report `engine_active: true` for an engine whose every
+    // Production completion would 503 `declined_by_all`. `teacher_ready`
+    // stays reported as the pipeline fact it is.
+    let engine_active = if profile_restricts_to_r4g1(profile) {
+        graph_ready
+    } else {
+        graph_ready || teacher_ready
+    };
     let logical_name = installed_logical_model_name(installed);
     let bundle_compiled = installed.active_bundle.is_some();
 
     serde_json::json!({
+        "profile": profile.label(),
         "model_name": logical_name,
         "physical_root": status_physical_root(installed.active_bundle.as_ref()),
         "attention_operator": installed.active_bundle.as_ref().map(|bundle| &bundle.attention_operator),
@@ -2660,8 +2670,21 @@ fn installed_logical_model_name(state: &ServingModelState) -> String {
         .unwrap_or_else(|| "uor-r4".to_owned())
 }
 
-fn active_canonical_model_name(state: &ServingModelState) -> Option<String> {
-    if !graph_text_ready(state) && !teacher_text_ready(state) {
+/// #789-G2: discovery agrees with serving. Under `Production` only a
+/// text-ready R4G1 graph makes a model active — a teacher-only install
+/// must not advertise a model the Production cascade can never serve
+/// (every completion would 503 `declined_by_all`). Under `Experimental`
+/// the teacher lane still counts toward activity, exactly as before.
+fn active_canonical_model_name(
+    state: &ServingModelState,
+    profile: EngineProfile,
+) -> Option<String> {
+    let servable = if profile_restricts_to_r4g1(profile) {
+        graph_text_ready(state)
+    } else {
+        graph_text_ready(state) || teacher_text_ready(state)
+    };
+    if !servable {
         return None;
     }
     Some(installed_logical_model_name(state))
@@ -2672,9 +2695,10 @@ fn active_canonical_model_name(state: &ServingModelState) -> Option<String> {
 /// always report the canonical active identity rather than echoing the alias.
 fn resolve_active_request_model(
     state: &ServingModelState,
+    profile: EngineProfile,
     requested: Option<&str>,
 ) -> Result<String, String> {
-    let active = active_canonical_model_name(state);
+    let active = active_canonical_model_name(state, profile);
     resolve_request_model_name(active.as_deref(), requested)
 }
 
@@ -2692,8 +2716,8 @@ fn resolve_request_model_name(
     }
 }
 
-fn active_models(state: &ServingModelState) -> Vec<(String, u64, bool)> {
-    let Some(name) = active_canonical_model_name(state) else {
+fn active_models(state: &ServingModelState, profile: EngineProfile) -> Vec<(String, u64, bool)> {
+    let Some(name) = active_canonical_model_name(state, profile) else {
         return Vec::new();
     };
     let created = state
@@ -3815,6 +3839,16 @@ impl EngineProfile {
             _ => EngineProfile::Production,
         }
     }
+
+    /// The wire label reported on `/uor/v1/status` (#789-G2) — the same
+    /// strings `from_persisted` parses, so the reported value round-trips
+    /// into `.uor-models/engine_profile.txt` verbatim.
+    fn label(self) -> &'static str {
+        match self {
+            EngineProfile::Production => "production",
+            EngineProfile::Experimental => "experimental",
+        }
+    }
 }
 
 /// The persisted `.uor-models/engine_profile.txt` preference (#655-E),
@@ -3909,7 +3943,12 @@ fn tier_admitted(tier: &'static str, pinned: Option<&'static str>, profile: Engi
 /// `"outcome": "declined_by_all"` contract regardless of which reason
 /// produced it. A *persisted* (non-explicit) preference for a disallowed
 /// tier never reaches this function — see `tier_admitted`.
-fn production_profile_decline(tier: &'static str) -> (u16, serde_json::Value) {
+///
+/// #789-G3.2: the decline echoes the *requested* engine string, not the
+/// collapsed tier constant — a client asking for `transformerless-legacy`
+/// is told `transformerless-legacy` is unavailable (the tier constant
+/// still drives `generation_mode` internally).
+fn production_profile_decline(requested: &str, tier: &'static str) -> (u16, serde_json::Value) {
     let cascade = ServingCascade {
         outcome: CascadeOutcome {
             text: None,
@@ -3918,7 +3957,7 @@ fn production_profile_decline(tier: &'static str) -> (u16, serde_json::Value) {
         },
         r4g1: R4g1Signal {
             error: Some(format!(
-                "engine \"{tier}\" is unavailable under the production engine profile"
+                "engine \"{requested}\" is unavailable under the production engine profile"
             )),
             ..R4g1Signal::default()
         },
@@ -3927,6 +3966,68 @@ fn production_profile_decline(tier: &'static str) -> (u16, serde_json::Value) {
     };
     let generation_mode = derive_generation_mode(&cascade, Some(tier));
     declined_by_all_response(&cascade, Some(tier), &generation_mode)
+}
+
+/// #789-G3.1: the complete explicit-request engine vocabulary. The
+/// pinnable tier names (`tier_for_engine_name`), the cascade's own default
+/// `"r4g1"`, and the documented run-the-full-cascade values (`"auto"` and
+/// the legacy `"ollama"` alias) are recognized; everything else — e.g.
+/// `"gpt-4"` — is not an engine this server has, and an explicit request
+/// for it is a typed decline (`unknown_engine_decline`) on *every*
+/// profile, never a silent full-cascade run. Persisted `last_engine.txt`
+/// values are exempt by design: a stale persisted preference stays
+/// silently inert (#655-E0 §3), only per-request asks are judged.
+fn engine_name_recognized(name: &str) -> bool {
+    matches!(name, "r4g1" | "auto" | "ollama") || tier_for_engine_name(name).is_some()
+}
+
+/// #789-G3.1: the honest terminal for an *explicit* `engine` value naming
+/// something this server does not have, on any profile — the same
+/// decline-over-silent-substitution convention as
+/// [`production_profile_decline`] (and the #790-2 CLI precedent), through
+/// the same empty-trail `declined_by_all` contract. The message names the
+/// requested string and the recognized vocabulary, so the decline is
+/// actionable rather than mysterious.
+fn unknown_engine_decline(requested: &str) -> (u16, serde_json::Value) {
+    let cascade = ServingCascade {
+        outcome: CascadeOutcome {
+            text: None,
+            served_by: None,
+            trail: Vec::new(),
+        },
+        r4g1: R4g1Signal {
+            error: Some(format!(
+                "engine \"{requested}\" is not a recognized engine name; recognized: \
+                 r4g1, transformerless, transformerless-legacy, attention, r4-attention, \
+                 geometric, auto (and the legacy \"ollama\" alias for auto)"
+            )),
+            ..R4g1Signal::default()
+        },
+        geometric: None,
+        usage: None,
+    };
+    let generation_mode = derive_generation_mode(&cascade, None);
+    declined_by_all_response(&cascade, None, &generation_mode)
+}
+
+/// #789-G1 (decision (c)): whether the per-tier `/api/tless/*` bypass
+/// endpoints are declined under the active profile. These endpoints reach
+/// the Tier-2 transformerless runtime directly, so a `Production` server
+/// declines them with the same typed decline the cascade uses — the
+/// E-acceptance "unreachable by default" now holds for the bypass surface
+/// too, not only the cascade. `/api/r4g1/*` is deliberately NOT gated:
+/// it reaches the exact tier `Production` already serves. Reads the
+/// profile fresh per request, like every other profile consumer.
+fn tless_bypass_profile_decline() -> Option<(u16, serde_json::Value)> {
+    let profile = EngineProfile::from_persisted(engine_profile_preference().as_deref());
+    if profile_restricts_to_r4g1(profile) {
+        Some(production_profile_decline(
+            "transformerless",
+            TIER_TRANSFORMERLESS,
+        ))
+    } else {
+        None
+    }
 }
 
 /// R4G1 tier: a D4 policy abstention is typed `Abstained` — a declared
@@ -14765,6 +14866,33 @@ enum GenerationOutcome {
     },
 }
 
+/// #789-G3.3: fold a native decline body into the OpenAI error envelope.
+/// Always 503: the native `declined_by_all` contract returns 200 when a
+/// tier *abstained* (abstention is a declared outcome, #223) — that
+/// contract belongs to `/api/chat`, but an OpenAI client reading 200
+/// expects `choices`, so on `/v1/*` a request that produced no text is an
+/// error envelope whatever the native status was. The native body's own
+/// reason text is preserved as the message.
+fn openai_engine_declined(
+    native: &serde_json::Value,
+    param: Option<&str>,
+    code: Option<&str>,
+) -> GenerationOutcome {
+    let message = native
+        .get("error")
+        .and_then(serde_json::Value::as_str)
+        .or_else(|| {
+            native
+                .get("description")
+                .and_then(serde_json::Value::as_str)
+        })
+        .unwrap_or("serving cascade declined; no text was generated");
+    GenerationOutcome::Declined {
+        status: 503,
+        body: openai_error_body("engine_declined", message, param, code),
+    }
+}
+
 /// The generation cascade shared by `/v1/chat/completions` and `/v1/responses`
 /// (`#654` phase E). Both wire surfaces route the flattened prompt through this
 /// one internal adapter — routing, autotune, the #248 serving cascade, and the
@@ -14787,8 +14915,34 @@ fn generate_serving_completion(
 ) -> GenerationOutcome {
     let identity = "tenant-alpha".to_string();
 
+    // #789-G3.4: every engine-name decline is judged BEFORE any lock or
+    // router/brain mutation — this path previously evolved brain state and
+    // ran routing before evaluating the decline, diverging from
+    // `/api/chat`'s decline-first ordering. #789-G3.1/G3.3: an
+    // unrecognized explicit name is declined on every profile, and on the
+    // OpenAI surfaces every decline is the OpenAI error envelope (503,
+    // `engine_declined`), never the native `declined_by_all` JSON.
+    let profile = EngineProfile::from_persisted(engine_profile_preference().as_deref());
+    let explicit_engine = engine.map(str::trim).filter(|value| !value.is_empty());
+    if let Some(name) = explicit_engine {
+        if !engine_name_recognized(name) {
+            let (_, native) = unknown_engine_decline(name);
+            return openai_engine_declined(&native, Some("engine"), Some("engine_unrecognized"));
+        }
+        if profile_restricts_to_r4g1(profile) {
+            if let Some(tier) = tier_for_engine_name(name) {
+                let (_, native) = production_profile_decline(name, tier);
+                return openai_engine_declined(
+                    &native,
+                    Some("engine"),
+                    Some("engine_profile_declined"),
+                );
+            }
+        }
+    }
+
     let mut serving_guard = serving.lock().unwrap();
-    if active_canonical_model_name(&serving_guard).as_deref() != Some(expected_model) {
+    if active_canonical_model_name(&serving_guard, profile).as_deref() != Some(expected_model) {
         return GenerationOutcome::Declined {
             status: 409,
             body: openai_error_body(
@@ -14862,24 +15016,10 @@ fn generate_serving_completion(
     });
 
     // Issue #248: the single serving cascade, honoring an engine pin from the
-    // request or the persisted `/engine` selection.
+    // request or the persisted `/engine` selection. The explicit-engine
+    // declines already fired at the top of this function, before any
+    // router/brain mutation (#789-G3.4).
     let pinned = resolve_pinned_tier(engine);
-    // #655-E2: an explicit, per-request `engine` naming a disallowed tier
-    // under the `production` profile is a typed decline, not a silent
-    // r4g1 substitution — checked against the raw request field directly
-    // (never the persisted-fallback-collapsed `pinned` above), so a stale
-    // persisted preference stays silently inert instead of erroring.
-    let profile = EngineProfile::from_persisted(engine_profile_preference().as_deref());
-    let explicit_disallowed_tier = engine
-        .map(str::trim)
-        .filter(|value| !value.is_empty())
-        .and_then(tier_for_engine_name);
-    if profile_restricts_to_r4g1(profile) {
-        if let Some(tier) = explicit_disallowed_tier {
-            let (status, body) = production_profile_decline(tier);
-            return GenerationOutcome::Declined { status, body };
-        }
-    }
     // One serving-state guard spans the complete request. Reload and
     // background compilation prepare off-lock and wait to swap until routing
     // and generation finish against one internally consistent tuple.
@@ -14899,9 +15039,11 @@ fn generate_serving_completion(
     let generation_mode = derive_generation_mode(&cascade, pinned);
     let Some(final_response_text) = cascade.outcome.text.clone() else {
         // Declined by all: an honest terminal instead of serving the sparse-
-        // string placeholder as if it were generated.
-        let (status, body) = declined_by_all_response(&cascade, pinned, &generation_mode);
-        return GenerationOutcome::Declined { status, body };
+        // string placeholder as if it were generated. #789-G3.3: enveloped
+        // for the OpenAI surface — and always 503 here, never the native
+        // 200-on-abstain contract (an OpenAI 200 promises `choices`).
+        let (_, native) = declined_by_all_response(&cascade, pinned, &generation_mode);
+        return openai_engine_declined(&native, None, Some("declined_by_all"));
     };
 
     router_guard.index_sentence(prompt_text, &identity);
@@ -15071,9 +15213,13 @@ fn handle_connection(
 
     // Vendor API endpoints
     if clean_path == "/v1/models" && method == "GET" {
-        // Advertise only the text-ready model this process can actually run.
-        // Disk inventory is not request-time model selection.
-        let models = active_models(&serving.lock().unwrap());
+        // Advertise only the text-ready model this process can actually run
+        // — under the active profile (#789-G2): a Production server lists
+        // nothing for a teacher-only install, agreeing with what its
+        // cascade can actually serve. Disk inventory is not request-time
+        // model selection.
+        let profile = EngineProfile::from_persisted(engine_profile_preference().as_deref());
+        let models = active_models(&serving.lock().unwrap(), profile);
         send_json_response(stream, 200, &models_list_body(&models).to_string());
         return;
     }
@@ -15082,7 +15228,8 @@ fn handle_connection(
     // absent from the loadable set is a 404 with the standard error envelope.
     if method == "GET" {
         if let Some(model_id) = clean_path.strip_prefix("/v1/models/") {
-            let models = active_models(&serving.lock().unwrap());
+            let profile = EngineProfile::from_persisted(engine_profile_preference().as_deref());
+            let models = active_models(&serving.lock().unwrap(), profile);
             match models.iter().find(|(id, _, _)| id == model_id) {
                 Some((id, created, verified)) => send_json_response(
                     stream,
@@ -15106,8 +15253,9 @@ fn handle_connection(
         // #654 phase G: canonical /uor/v1/status; /v1/status stays a deprecated
         // alias (Deprecation header) so /v1 is OpenAI-only without losing this.
         let dep = deprecation_headers(clean_path);
+        let profile = EngineProfile::from_persisted(engine_profile_preference().as_deref());
         let installed = serving.lock().unwrap();
-        let body = uor_status_json(&installed);
+        let body = uor_status_json(&installed, profile);
         send_json_response_ext(stream, 200, &body.to_string(), &dep);
         return;
     }
@@ -15689,32 +15837,36 @@ fn handle_connection(
             }
         };
 
-        let model_name =
-            match resolve_active_request_model(&serving.lock().unwrap(), req.model.as_deref()) {
-                Ok(model) => model,
-                Err(error) if error.starts_with("no text-ready") => {
-                    send_openai_error(
-                        stream,
-                        503,
-                        "server_error",
-                        &error,
-                        Some("model"),
-                        Some("model_not_ready"),
-                    );
-                    return;
-                }
-                Err(error) => {
-                    send_openai_error(
-                        stream,
-                        404,
-                        "invalid_request_error",
-                        &error,
-                        Some("model"),
-                        Some("model_not_found"),
-                    );
-                    return;
-                }
-            };
+        let profile = EngineProfile::from_persisted(engine_profile_preference().as_deref());
+        let model_name = match resolve_active_request_model(
+            &serving.lock().unwrap(),
+            profile,
+            req.model.as_deref(),
+        ) {
+            Ok(model) => model,
+            Err(error) if error.starts_with("no text-ready") => {
+                send_openai_error(
+                    stream,
+                    503,
+                    "server_error",
+                    &error,
+                    Some("model"),
+                    Some("model_not_ready"),
+                );
+                return;
+            }
+            Err(error) => {
+                send_openai_error(
+                    stream,
+                    404,
+                    "invalid_request_error",
+                    &error,
+                    Some("model"),
+                    Some("model_not_found"),
+                );
+                return;
+            }
+        };
 
         // #654 phase C: flatten the supported roles (system/developer/user/
         // assistant); an unsupported role fails closed with the envelope
@@ -15839,32 +15991,36 @@ fn handle_connection(
             }
         };
 
-        let model_name =
-            match resolve_active_request_model(&serving.lock().unwrap(), req.model.as_deref()) {
-                Ok(model) => model,
-                Err(error) if error.starts_with("no text-ready") => {
-                    send_openai_error(
-                        stream,
-                        503,
-                        "server_error",
-                        &error,
-                        Some("model"),
-                        Some("model_not_ready"),
-                    );
-                    return;
-                }
-                Err(error) => {
-                    send_openai_error(
-                        stream,
-                        404,
-                        "invalid_request_error",
-                        &error,
-                        Some("model"),
-                        Some("model_not_found"),
-                    );
-                    return;
-                }
-            };
+        let profile = EngineProfile::from_persisted(engine_profile_preference().as_deref());
+        let model_name = match resolve_active_request_model(
+            &serving.lock().unwrap(),
+            profile,
+            req.model.as_deref(),
+        ) {
+            Ok(model) => model,
+            Err(error) if error.starts_with("no text-ready") => {
+                send_openai_error(
+                    stream,
+                    503,
+                    "server_error",
+                    &error,
+                    Some("model"),
+                    Some("model_not_ready"),
+                );
+                return;
+            }
+            Err(error) => {
+                send_openai_error(
+                    stream,
+                    404,
+                    "invalid_request_error",
+                    &error,
+                    Some("model"),
+                    Some("model_not_found"),
+                );
+                return;
+            }
+        };
 
         let prompt_text = match flatten_responses_input(&req.input, req.instructions.as_deref()) {
             Ok(text) => text,
@@ -15951,19 +16107,28 @@ fn handle_connection(
         // silent r4g1 substitution — checked against the raw request field
         // directly (never the persisted-fallback-collapsed `pinned` above),
         // so a stale persisted preference stays silently inert instead of
-        // erroring.
+        // erroring. #789-G3.1: an explicit name outside the recognized
+        // vocabulary is likewise a typed decline, on every profile —
+        // never a silent full-cascade run. #789-G3.2: both declines echo
+        // the requested string, not the collapsed tier constant.
         let profile = EngineProfile::from_persisted(engine_profile_preference().as_deref());
-        let explicit_disallowed_tier = payload
+        let explicit_engine = payload
             .engine
             .as_deref()
             .map(str::trim)
-            .filter(|value| !value.is_empty())
-            .and_then(tier_for_engine_name);
-        if profile_restricts_to_r4g1(profile) {
-            if let Some(tier) = explicit_disallowed_tier {
-                let (status, body) = production_profile_decline(tier);
+            .filter(|value| !value.is_empty());
+        if let Some(name) = explicit_engine {
+            if !engine_name_recognized(name) {
+                let (status, body) = unknown_engine_decline(name);
                 send_json_response(stream, status, &body.to_string());
                 return;
+            }
+            if profile_restricts_to_r4g1(profile) {
+                if let Some(tier) = tier_for_engine_name(name) {
+                    let (status, body) = production_profile_decline(name, tier);
+                    send_json_response(stream, status, &body.to_string());
+                    return;
+                }
             }
         }
 
@@ -16250,6 +16415,12 @@ fn handle_connection(
     }
 
     if clean_path == "/api/tless/predict" && method == "POST" {
+        // #789-G1 (decision (c)): Tier-2 bypass endpoints are profile-gated
+        // — declined before any parse or state touch under `Production`.
+        if let Some((status, body)) = tless_bypass_profile_decline() {
+            send_json_response(stream, status, &body.to_string());
+            return;
+        }
         let payload: serde_json::Value = match serde_json::from_slice(&body) {
             Ok(p) => p,
             Err(e) => {
@@ -16384,6 +16555,12 @@ fn handle_connection(
     }
 
     if clean_path == "/api/tless/index" && method == "POST" {
+        // #789-G1 (decision (c)): Tier-2 bypass endpoints are profile-gated
+        // — declined before any parse or state touch under `Production`.
+        if let Some((status, body)) = tless_bypass_profile_decline() {
+            send_json_response(stream, status, &body.to_string());
+            return;
+        }
         let payload: serde_json::Value = match serde_json::from_slice(&body) {
             Ok(p) => p,
             Err(e) => {
@@ -16432,6 +16609,12 @@ fn handle_connection(
     }
 
     if clean_path == "/api/tless/generate" && method == "POST" {
+        // #789-G1 (decision (c)): Tier-2 bypass endpoints are profile-gated
+        // — declined before any parse or state touch under `Production`.
+        if let Some((status, body)) = tless_bypass_profile_decline() {
+            send_json_response(stream, status, &body.to_string());
+            return;
+        }
         let payload: serde_json::Value = match serde_json::from_slice(&body) {
             Ok(p) => p,
             Err(e) => {
@@ -16609,9 +16792,10 @@ fn handle_connection(
     }
 
     if clean_path == "/api/r4g1/status" && method == "GET" {
+        let profile = EngineProfile::from_persisted(engine_profile_preference().as_deref());
         let installed = serving.lock().unwrap();
         let status = r4g1_compile.lock().unwrap().clone();
-        send_json_response(stream, 200, &status.json(&installed).to_string());
+        send_json_response(stream, 200, &status.json(&installed, profile).to_string());
         return;
     }
 
@@ -24538,13 +24722,19 @@ mod tests {
         assert!(super::graph_text_ready(&serving));
         assert!(!super::teacher_text_ready(&serving));
         assert_eq!(
-            super::active_canonical_model_name(&serving).as_deref(),
+            super::active_canonical_model_name(&serving, super::EngineProfile::Production)
+                .as_deref(),
             Some("teacher"),
-            "a host-encoded historical graph remains advertised"
+            "a host-encoded historical graph remains advertised (it IS the \
+             servable R4G1 artifact, so Production counts it, #789-G2)"
         );
         assert_eq!(
-            super::resolve_active_request_model(&serving, Some("uor-r4"))
-                .expect("legacy alias resolves to the graph"),
+            super::resolve_active_request_model(
+                &serving,
+                super::EngineProfile::Production,
+                Some("uor-r4")
+            )
+            .expect("legacy alias resolves to the graph"),
             "teacher"
         );
         let _ = std::fs::remove_dir_all(root);
@@ -24805,7 +24995,7 @@ mod tests {
         };
         assert_eq!(super::installed_logical_model_name(&state), "teacher-beta");
         assert_eq!(
-            super::active_canonical_model_name(&state),
+            super::active_canonical_model_name(&state, super::EngineProfile::Experimental),
             None,
             "a source path alone is not a text-ready engine"
         );
@@ -24840,8 +25030,14 @@ mod tests {
         };
 
         for (surface, status) in [
-            ("/uor/v1/status", super::uor_status_json(&serving)),
-            ("/api/r4g1/status", compile.json(&serving)),
+            (
+                "/uor/v1/status",
+                super::uor_status_json(&serving, super::EngineProfile::Production),
+            ),
+            (
+                "/api/r4g1/status",
+                compile.json(&serving, super::EngineProfile::Production),
+            ),
         ] {
             assert_eq!(
                 status.get("attention_operator"),
@@ -24856,7 +25052,10 @@ mod tests {
         }
 
         let absent = super::ServingModelState::default();
-        for status in [super::uor_status_json(&absent), compile.json(&absent)] {
+        for status in [
+            super::uor_status_json(&absent, super::EngineProfile::Production),
+            compile.json(&absent, super::EngineProfile::Production),
+        ] {
             assert_eq!(
                 status.get("attention_operator"),
                 Some(&serde_json::Value::Null)
@@ -26663,10 +26862,14 @@ mod tests {
     /// `production` names the disabled tier, reuses the existing
     /// `declined_by_all` JSON contract (no new terminal state -- #655-E0's
     /// decision record), and is a 503 (no tier was even attempted, so
-    /// there is nothing to have declared an abstention).
+    /// there is nothing to have declared an abstention). #789-G3.2: the
+    /// error echoes the *requested* string — `transformerless-legacy`
+    /// stays `transformerless-legacy` in the message even though its tier
+    /// constant (and the derived `generation_mode`) is the collapsed
+    /// `transformerless`.
     #[test]
     fn production_profile_decline_names_the_disabled_tier_and_declines() {
-        let (status, body) = super::production_profile_decline(super::TIER_ATTENTION);
+        let (status, body) = super::production_profile_decline("attention", super::TIER_ATTENTION);
 
         assert_eq!(status, 503);
         assert_eq!(body["outcome"], "declined_by_all");
@@ -26681,6 +26884,113 @@ mod tests {
         assert!(
             body["cascade_trail"].as_array().is_some_and(Vec::is_empty),
             "no tier was ever attempted for an explicit-request decline"
+        );
+
+        // The legacy-alias echo (#789-G3.2): requested string, not the
+        // collapsed tier constant, in the message.
+        let (_, body) = super::production_profile_decline(
+            "transformerless-legacy",
+            super::TIER_TRANSFORMERLESS,
+        );
+        let error = body["error"].as_str().expect("error is a string");
+        assert!(
+            error.contains("\"transformerless-legacy\""),
+            "the decline echoes the requested string: {error}"
+        );
+    }
+
+    /// #789-G3.1: an explicit engine name outside the recognized
+    /// vocabulary is a typed decline naming the requested string and the
+    /// vocabulary — on every profile — while the documented
+    /// run-the-cascade values stay recognized.
+    #[test]
+    fn unknown_engine_names_are_typed_declines_and_the_vocabulary_is_closed() {
+        for known in [
+            "r4g1",
+            "auto",
+            "ollama",
+            "transformerless",
+            "transformerless-legacy",
+            "attention",
+            "r4-attention",
+            "geometric",
+        ] {
+            assert!(
+                super::engine_name_recognized(known),
+                "{known} is part of the request vocabulary"
+            );
+        }
+        for unknown in ["gpt-4", "GPT-4", "llama", "r4g2", " r4g1"] {
+            assert!(
+                !super::engine_name_recognized(unknown),
+                "{unknown:?} is not a recognized engine name (matching is exact)"
+            );
+        }
+
+        let (status, body) = super::unknown_engine_decline("gpt-4");
+        assert_eq!(status, 503, "nothing was attempted, nothing abstained");
+        assert_eq!(body["outcome"], "declined_by_all");
+        let error = body["error"].as_str().expect("error is a string");
+        assert!(
+            error.contains("\"gpt-4\"") && error.contains("not a recognized engine name"),
+            "the decline names the requested string: {error}"
+        );
+        assert!(
+            body["cascade_trail"].as_array().is_some_and(Vec::is_empty),
+            "no tier ran for an unrecognized name"
+        );
+    }
+
+    /// #789-G3.3: the OpenAI envelope wrapper never forwards the native
+    /// status — in particular not the native 200-on-abstain (#223's
+    /// abstention-is-a-declared-outcome contract, which belongs to
+    /// `/api/chat`): on `/v1/*` a request that produced no text is always
+    /// a 503 `engine_declined` error envelope, with the native reason
+    /// text preserved as the message.
+    #[test]
+    fn openai_decline_wrapper_never_forwards_the_native_200() {
+        use uor_r4_router::fallback::{CascadeOutcome, EngineStatus, TierOutcome};
+
+        let abstained = super::ServingCascade {
+            outcome: CascadeOutcome {
+                text: None,
+                served_by: None,
+                trail: vec![TierOutcome {
+                    tier: super::TIER_R4G1,
+                    status: EngineStatus::Abstained,
+                    detail: Some("R4G1 policy abstained (status: novel)".to_owned()),
+                }],
+            },
+            r4g1: super::R4g1Signal {
+                status: Some("novel"),
+                widened: false,
+                abstained: true,
+                error: None,
+            },
+            geometric: None,
+            usage: None,
+        };
+        let generation_mode = super::derive_generation_mode(&abstained, None);
+        let (native_status, native) =
+            super::declined_by_all_response(&abstained, None, &generation_mode);
+        assert_eq!(
+            native_status, 200,
+            "the native contract really is 200 on abstain — the exact value \
+             the OpenAI surface must not forward"
+        );
+
+        let super::GenerationOutcome::Declined { status, body } =
+            super::openai_engine_declined(&native, None, Some("declined_by_all"))
+        else {
+            panic!("a decline wraps to a decline");
+        };
+        assert_eq!(status, 503);
+        assert_eq!(body["error"]["type"], "engine_declined");
+        assert_eq!(body["error"]["code"], "declined_by_all");
+        let message = body["error"]["message"].as_str().expect("message");
+        assert!(
+            message.contains("Declined by all attempted tiers"),
+            "the native reason text is preserved: {message}"
         );
     }
 
@@ -26926,16 +27236,25 @@ mod tests {
             ))),
             ..super::ServingModelState::default()
         };
-        assert_eq!(super::uor_status_json(&verified_state)["verified"], true);
+        assert_eq!(
+            super::uor_status_json(&verified_state, super::EngineProfile::Production)["verified"],
+            true
+        );
 
         let unverified_state = super::ServingModelState {
             active_bundle: Some(sample_resolved_compiled_bundle(None)),
             ..super::ServingModelState::default()
         };
-        assert_eq!(super::uor_status_json(&unverified_state)["verified"], false);
+        assert_eq!(
+            super::uor_status_json(&unverified_state, super::EngineProfile::Production)["verified"],
+            false
+        );
 
         assert_eq!(
-            super::uor_status_json(&super::ServingModelState::default())["verified"],
+            super::uor_status_json(
+                &super::ServingModelState::default(),
+                super::EngineProfile::Production
+            )["verified"],
             false,
             "no active bundle at all"
         );
@@ -27687,20 +28006,27 @@ mod tests {
         assert_eq!(req.stream, Some(true));
     }
 
-    // ---- #789 G4: HTTP-level baseline tests -------------------------------
+    // ---- #789 G4: HTTP-level profile tests --------------------------------
     //
-    // These drive `handle_connection` over a real socket pair and pin
-    // CURRENT behavior at the four gaps the 2026-08-18 audit recorded
-    // (AUD-ARCH-003/-004/-008/-009), so the G1-G3 decisions change these
-    // assertions as deliberate, reviewed diffs rather than silently. Every
-    // fixture uses default in-memory state and nonexistent artifact paths;
-    // no test writes to the model store.
+    // These drive `handle_connection` over a real socket pair and pin the
+    // DECIDED semantics at the four gaps the 2026-08-18 audit recorded
+    // (AUD-ARCH-003/-004/-008/-009). They first landed as baselines
+    // pinning the pre-decision behavior (PR #798); the assertions were
+    // then flipped alongside the G1-G3 implementation as deliberate,
+    // reviewed diffs — the before/after pair is the record. Fixtures use
+    // in-memory state and nonexistent artifact paths; no test writes to
+    // the model store.
 
     fn g4_drive(request: &str) -> (String, String) {
+        let serving: super::SharedServingModel =
+            std::sync::Arc::new(std::sync::Mutex::new(super::ServingModelState::default()));
+        g4_drive_with(serving, request)
+    }
+
+    fn g4_drive_with(serving: super::SharedServingModel, request: &str) -> (String, String) {
         use super::{
             handle_connection, tless_uor, HuggingFaceDownloadStatus, R4g1CompileStatus,
-            ServerConfig, ServingModelState, SharedServingModel, SharedSourceCacheOperations,
-            SourceCacheOperationState, UorR4Router,
+            ServerConfig, SharedSourceCacheOperations, SourceCacheOperationState, UorR4Router,
         };
         use std::io::{Read as _, Write as _};
         use std::sync::{Arc, Mutex};
@@ -27719,7 +28045,6 @@ mod tests {
 
         let router = Arc::new(Mutex::new(UorR4Router::new(0.85)));
         let tless: Arc<Mutex<Option<tless_uor::TlessState>>> = Arc::new(Mutex::new(None));
-        let serving: SharedServingModel = Arc::new(Mutex::new(ServingModelState::default()));
         let r4g1_compile = Arc::new(Mutex::new(R4g1CompileStatus {
             running: false,
             ready: false,
@@ -27777,13 +28102,28 @@ mod tests {
         ))
     }
 
+    fn g4_post_with(
+        serving: super::SharedServingModel,
+        path: &str,
+        body: &str,
+    ) -> (String, String) {
+        g4_drive_with(
+            serving,
+            &format!(
+                "POST {path} HTTP/1.1\r\nHost: localhost\r\nContent-Type: application/json\r\nContent-Length: {}\r\n\r\n{body}",
+                body.len()
+            ),
+        )
+    }
+
     const G4_PROFILE_DECLINE_MARK: &str = "unavailable under the production engine profile";
 
     /// Default profile + explicit experimental engine: the E2 typed
-    /// decline, with today's tier-constant echo pinned (G3.2: requesting
-    /// `transformerless-legacy` echoes the collapsed `transformerless`).
+    /// decline. #789-G3.2 (flipped from the baseline): the decline echoes
+    /// the *requested* string — `transformerless-legacy` is answered as
+    /// `transformerless-legacy`, never collapsed to the tier constant.
     #[test]
-    fn g4_baseline_explicit_experimental_engine_is_profile_declined() {
+    fn g4_explicit_experimental_engine_is_profile_declined_echoing_the_request() {
         let (status, response) = g4_post("/api/chat", r#"{"text":"hi","engine":"geometric"}"#);
         assert!(
             status.contains("503"),
@@ -27798,69 +28138,87 @@ mod tests {
         );
         assert!(response.contains(G4_PROFILE_DECLINE_MARK));
         assert!(
-            response.contains(r#"engine \"transformerless\" is unavailable"#),
-            "G3.2 baseline: the decline echoes the collapsed tier constant today"
+            response.contains(r#"engine \"transformerless-legacy\" is unavailable"#),
+            "G3.2: the decline echoes the requested string, not the collapsed tier constant: {response}"
         );
     }
 
-    /// G3.1 baseline: an unknown engine name is NOT declined — it silently
-    /// runs the (Production-restricted) cascade, indistinguishable from an
-    /// ordinary request. The decided semantics will flip this assertion.
+    /// #789-G3.1 (decided, flipped from the baseline): an unknown explicit
+    /// engine name is a typed decline naming the requested string — the
+    /// cascade never runs (empty trail), on every profile. The baseline
+    /// pinned the silent full-cascade run this replaces.
     #[test]
-    fn g4_baseline_unknown_engine_name_silently_runs_the_cascade() {
-        let (_, response) = g4_post("/api/chat", r#"{"text":"hi","engine":"gpt-4"}"#);
+    fn g4_unknown_engine_name_is_a_typed_decline() {
+        let (status, response) = g4_post("/api/chat", r#"{"text":"hi","engine":"gpt-4"}"#);
+        assert!(status.contains("503"), "typed decline is 503, got {status}");
+        assert!(
+            response.contains(r#"engine \"gpt-4\" is not a recognized engine name"#),
+            "the decline names the requested string: {response}"
+        );
+        assert!(
+            response.contains(r#""cascade_trail":[]"#),
+            "no tier ran — the decline fires before the cascade: {response}"
+        );
+    }
+
+    /// #789-G1 (decision (c), flipped from the baseline): `/api/tless/*`
+    /// — cross-tier reach into the Tier-2 runtime — is profile-gated: a
+    /// default-profile (Production) server declines it before parsing the
+    /// body. `/api/r4g1/*` deliberately stays open: it reaches the exact
+    /// tier Production already serves.
+    #[test]
+    fn g4_tless_bypass_is_profile_gated_and_r4g1_stays_open() {
+        for path in [
+            "/api/tless/predict",
+            "/api/tless/index",
+            "/api/tless/generate",
+        ] {
+            let (status, response) = g4_post(path, r#"{"text":"hi"}"#);
+            assert!(
+                status.contains("503"),
+                "{path}: profile decline is 503, got {status}"
+            );
+            assert!(
+                response.contains(G4_PROFILE_DECLINE_MARK),
+                "{path} is declined under Production: {response}"
+            );
+        }
+
+        let (_, response) = g4_post("/api/r4g1/predict", r#"{"text":"hi"}"#);
         assert!(
             !response.contains(G4_PROFILE_DECLINE_MARK),
-            "unknown names are not profile-declined today"
-        );
-        assert!(
-            response.contains("declined_by_all"),
-            "with no tier loaded the cascade declines, proving it ran"
+            "the r4g1 endpoints are deliberately not profile-gated (decision (c)): {response}"
         );
     }
 
-    /// G1 baseline: the per-tier endpoints carry no profile gate — a
-    /// default-profile (Production) server still routes `/api/tless/*`
-    /// requests into the Tier-2 handler (which then fails on state, not on
-    /// profile).
+    /// #789-G2 (flipped from the baseline): `/uor/v1/status` reports the
+    /// active engine profile, and a bare default install reports the
+    /// fail-safe `production` with an inactive engine (no servable R4G1
+    /// artifact — nothing is advertised that the cascade cannot serve).
     #[test]
-    fn g4_baseline_tless_bypass_endpoint_is_not_profile_gated() {
-        let (status, response) = g4_post("/api/tless/predict", r#"{"text":"hi"}"#);
-        assert!(
-            !response.contains(G4_PROFILE_DECLINE_MARK),
-            "bypass endpoints are reachable under Production today"
-        );
-        assert!(
-            !status.contains("403"),
-            "no profile gate exists on the per-tier endpoints today"
-        );
-    }
-
-    /// G2 baseline: `/uor/v1/status` does not expose the active engine
-    /// profile. The G2 implementation adds a `profile` field and flips
-    /// this assertion.
-    #[test]
-    fn g4_baseline_status_lacks_a_profile_field() {
+    fn g4_status_reports_the_active_profile() {
         let (status, response) = g4_drive("GET /uor/v1/status HTTP/1.1\r\nHost: localhost\r\n\r\n");
         assert!(
             status.contains("200"),
             "status endpoint serves, got {status}"
         );
         assert!(
-            !response.contains("\"profile\""),
-            "the active profile is not exposed today"
+            response.contains(r#""profile":"production""#),
+            "the fail-safe default profile is reported: {response}"
+        );
+        assert!(
+            response.contains(r#""engine_active":false"#),
+            "no servable R4G1 artifact means inactive under Production: {response}"
         );
     }
 
-    /// G3.3 baseline, first half: with NO active serving model, the
-    /// OpenAI surface answers with a proper OpenAI error envelope
-    /// (`model_not_ready`, 503) — the guard fires before the cascade.
-    /// The audited defect (native `declined_by_all` JSON at 200 when the
-    /// cascade declines under an ACTIVE model, `server.rs` OpenAI
-    /// entry points) needs a text-ready serving fixture and is pinned in
-    /// the G3 implementation PR alongside its fix.
+    /// G3.3, first half: with NO active serving model, the OpenAI surface
+    /// answers with a proper OpenAI error envelope (`model_not_ready`,
+    /// 503) — the guard fires before the cascade. The active-model flavor
+    /// of the audited defect is pinned by
+    /// `g4_openai_decline_under_an_active_model_is_an_engine_declined_envelope`.
     #[test]
-    fn g4_baseline_openai_without_active_model_is_an_error_envelope() {
+    fn g4_openai_without_active_model_is_an_error_envelope() {
         let (status, response) = g4_post(
             "/v1/chat/completions",
             r#"{"model":"uor-r4","messages":[{"role":"user","content":"hi"}]}"#,
@@ -27872,5 +28230,60 @@ mod tests {
         assert!(response.contains("\"error\""));
         assert!(response.contains("model_not_ready"));
         assert!(!response.contains("declined_by_all"));
+    }
+
+    /// #789-G3.3, second half — the audited defect (AUD-ARCH-008): with
+    /// an ACTIVE text-ready model whose cascade nevertheless produces no
+    /// text, the OpenAI surface used to forward the native
+    /// `declined_by_all` JSON (HTTP 200 whenever a tier abstained). Now it
+    /// is always a 503 `engine_declined` OpenAI error envelope. The
+    /// out-of-vocabulary prompt makes the R4G1 tier decline
+    /// deterministically on the tiny fixture graph;
+    /// `openai_decline_wrapper_never_forwards_the_native_200` covers the
+    /// abstained-at-200 flavor at unit level.
+    #[test]
+    fn g4_openai_decline_under_an_active_model_is_an_engine_declined_envelope() {
+        use uor_r4_model_source::attention::AttentionOperatorSpec;
+
+        let root = attention_provenance_test_dir("g4-active-model-decline");
+        let graph = graph_state_with_exact_host_encoder(&root);
+        let serving: super::SharedServingModel =
+            std::sync::Arc::new(std::sync::Mutex::new(super::ServingModelState {
+                r4g1: Some(graph),
+                active_bundle: Some(super::ResolvedCompiledBundle {
+                    logical_name: "teacher".to_owned(),
+                    physical_root: root.join("compiled/teacher"),
+                    graph: root.join("compiled/teacher/graph/score.r4g1"),
+                    teacher: root.join("compiled/teacher/tless_artifacts.bin"),
+                    attention_operator: AttentionOperatorSpec::standard_v1(),
+                    dense_operator: None,
+                    source_manifest_kappa: None,
+                    release_bundle: None,
+                }),
+                ..super::ServingModelState::default()
+            }));
+        assert!(
+            super::graph_text_ready(&serving.lock().unwrap()),
+            "the fixture is a text-ready ACTIVE model — the model_not_ready guard passes"
+        );
+
+        let (status, response) = g4_post_with(
+            serving,
+            "/v1/chat/completions",
+            r#"{"model":"uor-r4","messages":[{"role":"user","content":"zq"}]}"#,
+        );
+        assert!(
+            status.contains("503"),
+            "an OpenAI request that produced no text is 503, got {status}"
+        );
+        assert!(
+            response.contains(r#""type":"engine_declined""#),
+            "the decline is the OpenAI error envelope: {response}"
+        );
+        assert!(
+            !response.contains(r#""outcome":"declined_by_all""#),
+            "the native JSON shape never reaches the OpenAI surface: {response}"
+        );
+        let _ = std::fs::remove_dir_all(root);
     }
 }
