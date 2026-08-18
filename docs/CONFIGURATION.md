@@ -159,6 +159,8 @@ All follow the override contract above.
 | `R4_FMM_POSITIONS` / `R4_FMM_RANK` / `R4_FMM_TOLERANCE` | 256 / — / — | BDD FMM |
 | `SMOLLM2_SOURCE` | — | `smollm2_adapter` tests |
 | `UOR_R4_API_E2E_SOURCE` | — | `uor-r4-api` E2E test |
+| `UOR_R4_RELEASE_BUNDLE_PATH` | — | `release_bundle_packager` real-local-bundle test (`#[ignore]`d; mirrors the `UOR_R4_API_E2E_SOURCE` convention) |
+| `PORT` | 8000 | `./uor-r4-cli` orchestrator only (shell script; the `r4` binary itself reads `UOR_R4_PORT`) |
 
 ## Runtime state files
 
@@ -168,7 +170,8 @@ Written under `.uor-models/` (or `UOR_MODEL_STORE`):
 |---|---|
 | `audit_log.json` | Per-turn question, answer, UOR address, κ + PASS/DRIFT, generation mode, latency. Rendered by `r4 audit` |
 | `last_model.txt` / `last_model_name.txt` | Orchestrator's last model selection |
-| `last_engine.txt` | Persisted engine preference; **silently pins the cascade** for requests that omit `engine` |
+| `last_engine.txt` | Persisted engine preference. Under the `experimental` profile it **silently pins the cascade** for requests that omit `engine`; under `production` (the default) a non-r4g1 value is silently inert |
+| `engine_profile.txt` | Serving profile (#655-E2): `production` or `experimental`. Absent, empty, or unparseable ⇒ `production` (fail-safe), under which only the r4g1 tier is admitted on the cascade endpoints and an explicit non-r4g1 `engine` request returns a typed decline. Read fresh on every request; note both this file and `last_engine.txt` are read from the working directory, not `UOR_MODEL_STORE` (2026-08-18 audit) |
 | `sources/<name>/` | Downloaded Hugging Face teacher sources |
 | `compiled/<name>/` | Base compiled bundle. It may hold legacy absence, an explicit historical attention/1+dense/1 pair, or a fresh current attention/2 bundle with dense absent. Inventory includes graph/artifact outputs, `tokenizer.bin`, `tokenizer_adapter.json`, `attention_operator.json`, optional `dense_operator.json`, `corpus.meta`, and `corpus.records`. |
 | `compiled/<name>-attention-v2/` | Resolver-owned current attention/2 root with dense absent, used when a historical base must remain immutable. |
@@ -192,5 +195,7 @@ unfinished lower-precedence identity is terminal and byte-preserving. Current
 startup/reload also requires the canonical corpus pair and
 `graph-cover/cover_report.json` to carry the same registry-exact execution pair
 as the root sidecars. Historical v1 and dense absence remain readable where
-documented. These checks reconcile metadata; they do not add the graph-byte
-PROV section tracked separately by #637.
+documented. These checks reconcile metadata. The cover-graph PROV/1 byte section itself
+landed with #637 phase 3 (PR #738): `cover` now emits a PROV/1 section
+unconditionally (a deliberately-empty record when no identity flags are
+supplied).

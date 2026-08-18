@@ -232,9 +232,10 @@ is terminal. Before current-v2 install, the server compares both root sidecars
 with the canonical corpus/observation pair and requires the same pair in
 `graph-cover/cover_report.json`, then re-reads the resolved bindings. Historical
 v1 and dense-absent bundles retain compatibility only when those records are
-genuinely absent. This is a consistency check over recorded metadata, not a
-claim that the score graph bytes themselves carry the records; that R4G1 PROV
-binding remains tracked by #637.
+genuinely absent. This is a consistency check over recorded metadata. The
+cover-graph byte-level binding landed with #637 phase 3 (PR #738): `cover`
+emits a PROV/1 section unconditionally (empty when no identity flags are
+supplied); this paragraph's metadata reconciliation is unchanged by that.
 
 Offline Llama/shared teacher projections use the pinned portable exact
 `uor-matmul` owner on every host; there is no alternate Accelerate, NEON,
@@ -1447,13 +1448,24 @@ features, faithfully to an independent reference, with all family logic
 confined to the adapter crate. This is **not** a claim of architecture
 universality.
 
-### Follow-up: compile-path dispatch
+### Compile-path dispatch (landed — #657; section corrected 2026-08-18)
 
-Emitting a *compiled* R4 artifact from a GPT-2 source is a separate step.
-The graph-cli/graph-compiler/server compile entry points currently bind the
-concrete `HuggingFaceLlamaOracle` type (≈9 sites) and call its Llama-only
-inherent methods, rather than dispatching over `TeacherOracle` by
-architecture. Wiring GPT-2 through `compile`/`observe`/`score` therefore
-requires generalizing those call sites to the trait plus an
-architecture-keyed teacher factory — tracked as the #607 follow-up. The
-adapter and its parity evidence in this change do not depend on that wiring.
+The follow-up this section used to track is done. The architecture-keyed
+teacher factory is `uor-r4-model-source::Teacher`
+(`crates/uor-r4-model-source/src/teacher.rs`): an enum over
+`HuggingFaceLlamaOracle` / `HuggingFaceGpt2Oracle`, keyed by `config.json`'s
+`model_type` through the #599 `AdapterFeatures` declarations (absent
+`model_type` ⇒ Llama, preserving pre-#657 behavior; unknown labels fail
+closed). All nine former concrete-Llama call sites — `observe_command`,
+`observe_text_command` (+ batched), `evaluate_report`,
+`compile_hugging_face_with_progress_and_session` (graph-cli),
+`observe` (graph-compiler), and the two server sites — now load through
+`Teacher::load(_with_sequence_length)`; no `HuggingFaceLlamaOracle` binding
+remains outside the adapter crate. `score` operates on the compiled corpus
+and never bound a teacher in the first place. GPT-2 therefore compiles
+end-to-end through the same `compile`/`observe`/cover/score chain; the
+presence-gated canary `crates/uor-r4-graph-cli/tests/gpt2_compile_canary_670.rs`
+drives the full compile→cover→source-parity path against the pinned real
+snapshot (byte-deterministic compile asserted; cover determinism asserted on
+induced structure). The batched executor dispatches per-variant
+(`BatchedTeacher` impls for both oracles, #675/#657 item 2b).

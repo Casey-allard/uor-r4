@@ -226,3 +226,26 @@ dormant, per #515's convention, exactly like #655-C0 itself.
    probably be sequenced before the loader's file-discovery half is built,
    even though the loader's manifest-parsing half (this slice feeds that)
    can be developed and tested independently now.
+
+## Addendum 2026-08-18 (post-E2; baseline audit)
+
+This document's cascade description above is the **Experimental**-profile
+behavior as of `146a976e`. Since #655-E2 (PR #781, merged `cd6bce6d`):
+
+- `.uor-models/engine_profile.txt` selects `production` | `experimental`;
+  absent/empty/unparseable ⇒ **`production`** (fail-safe). Under `production`,
+  `run_serving_cascade` admits **only** `TIER_R4G1`; an explicit non-r4g1
+  `engine` request returns a typed `declined_by_all` response, and a persisted
+  non-r4g1 `last_engine.txt` preference is silently inert.
+- The per-tier HTTP surfaces `POST /api/tless/*` and `POST /api/r4g1/*`
+  (§6 above) are **not** filtered by the profile — Tier 2 remains directly
+  reachable on a `production` server through them.
+- Correction to §6: `/v1/models` and `/uor/v1/status` reflect Tier-1 **or
+  Tier-3 (teacher)** readiness (`active_canonical_model_name` requires either),
+  so a teacher-only install advertises an active model that the `production`
+  cascade cannot serve; neither surface exposes the active profile.
+- §6's `select_synthesis_engine` question is answered: its only remaining
+  caller is the BDD suite (`tests/bdd.rs`) — no serving path uses it.
+
+Full evidence: `docs/project_baseline_audit_2026_08_18.md` §8 (reachability
+matrix), findings AUD-ARCH-002/-003/-004/-005.

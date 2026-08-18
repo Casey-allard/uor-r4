@@ -66,6 +66,7 @@ formally committed. Full text: plan §2.
 | **Gate C: graph formula v1 (Σ-over-cloud)** | **0.3% / 70.47 bits-token** | fresh, unfavorable | correlated sibling-subtree residual stacking (issue #64, redesign in flight) |
 | **Gate C: Rule 1+2 (chain+precedence)** | **31.7% / 9.86 bits-token** | fresh, 2026-07-22 | argmax-identical to baseline on all 30,036 positions, better bits; redesign landed (#64 closed) |
 | **Gate C: broad-corpus 360M (PINNED, #516)** | **24.30% / 11.94 bits** (best live arm 31.48% / 10.43) | fresh, 2026-08-09 | **broad** D3 (Simple-Wiki), SmolLM2-360M-Instruct teacher, 360,924 records / 2,994 stories, 72,864 held-out, EXCT-miss 25.7%, teacher floor 3.6015 bits, 64/0 witness replays; `docs/smollm2_teacher_baseline_320.md` #516. Distinct distribution from the stories15M home rows above — this is the canonical baseline for **broad-text** claims; stories15M is retained for the home distribution. |
+| **Gate C re-run at `aea30bae` (baseline audit)** | rule12 **36.55% / 8.3222**; TLA3 baseline 39.17% / 8.4985; EXCT-miss-slice generalization **1.81% / 16.89** (n=14,943) | fresh, 2026-08-18 | committed 500k/TLA7 fixtures, full census n=100,306, `positions_sampled: 0`, witness replay 64/64, EXCT resolves 85.1%; trend alarm PASS vs the 2026-07-30 pin (31.63%/9.1181). Same-machine live probes the same day: all three loadable local bundles (pre-#755 bytes) produce deterministic, prompt-invariant degenerate output through the R4G1 ask path — `docs/project_baseline_audit_2026_08_18.md` §13. |
 
 **Canonical bits/token (issue #76, resolved 2026-07-22):** one definition — mean cross-entropy of
 the true next token under a scorer's predicted distribution, `(1/N) Σ −log2 P_scorer(v_i|c_i)`
@@ -305,4 +306,4 @@ suites, separation of semantic routes from cryptographic identity.
 - [~] Baseline measurements: artifact sizes, allocation census, and op census fresh
   (`tests/allocation_census.rs`); fidelity pending issue #34; bytes-read/latency pending bench setup
 - [x] Threat model written (`docs/transformerless/THREAT_MODEL.md`)
-- [ ] M.V.G. targets confirmed by maintainer (§4)
+- [x] M.V.G. targets confirmed by maintainer (§4; confirmed 2026-07-22 — checkbox reconciled 2026-08-18, baseline audit)

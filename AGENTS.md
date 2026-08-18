@@ -46,8 +46,10 @@ is part of the evidence.
 
 UOR standards (`uor-addr`, `UOR-Framework`) are **pinned git dependencies** in
 `Cargo.toml` — a fresh clone builds with no extra checkouts. The
-`uor_standards/` directory is legacy local material (gitignored; not required
-to build).
+`uor_standards/` directory is legacy material excluded from the workspace
+build (`Cargo.toml` `exclude`); its `.gitignore` entry blocks new additions,
+but ~1,100 legacy files remain tracked in the tree (recorded 2026-08-18,
+baseline audit).
 
 ## Commands (daily drivers)
 

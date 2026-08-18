@@ -271,3 +271,16 @@ certificate is same-distribution at ~10^5 store entries against a
 15M-parameter source; convergence beyond that scale and on distributions
 where long-range structure dominates is the open measurement, stated as
 such here and in the parent report.
+
+## Scope note appended 2026-08-18 (baseline audit)
+
+P1's witness-scope sentence above ("the scanned file contains the COMPLETE
+runtime arithmetic surface") is narrower in fact: `runtime.rs` delegates to
+`transformerless::simd.rs` at five call sites (`hamming_distance_36`,
+`dot_argmax`, `DotTables::from_packed`), and `simd.rs` is outside the P-4 scan
+list. The SIMD Hamming path carries a scalar-equivalence witness
+(`test_simd_hamming_equivalence`); the `dot_argmax` path currently does not.
+The #160 machine-code (disassembly) audit has not landed, so operation-set
+conformance remains **Witnessed** (source scan + census + construction), not
+Structural — matching `INFERENCE_OPERATION_CONTRACT.md` §6/§8. Findings
+AUD-INV-001/-002 in `docs/project_baseline_audit_2026_08_18.md`.

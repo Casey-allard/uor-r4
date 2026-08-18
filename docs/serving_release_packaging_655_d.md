@@ -158,3 +158,14 @@ not unify `uor-r4-api::compile`'s divergent cover-stage/work_dir layout
 with the real CLI pipeline. Does not distribute the packaged bundle as
 part of any release/install artifact yet (later D work, once at least one
 bundle can be packaged at all).
+
+## Implementation note appended 2026-08-18 (baseline audit)
+
+D3 as implemented is a **synthetic-fixture** golden round-trip that runs in CI
+(`src/release_bundle_packager.rs::packaged_bundle_is_accepted_by_the_loaders_sidecar_verifier`,
+plus the instruction-chat variant); the "real local bundle" arm this document
+sketched is the `#[ignore]`d, env-gated test `packages_the_real_local_bundle`
+(`UOR_R4_RELEASE_BUNDLE_PATH`, mirroring the `UOR_R4_API_E2E_SOURCE`
+convention). C1c's sidecar verifier is called on the server's bundle-resolution
+path and surfaces as `verified` on `/v1/models` + `/uor/v1/status` (C1d);
+it is advisory — never consulted by a load/serve decision.
