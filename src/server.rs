@@ -489,6 +489,29 @@ impl R4g1CompileStatus {
     }
 }
 
+/// Whether the active bundle's optional #655-D `release-bundle.json`
+/// sidecar was present and its declared component digests matched the
+/// bundle's actual on-disk files
+/// (`release_bundle_loader::verify_release_bundle_sidecar`, #655-C1c).
+/// `false` covers every negative case uniformly -- no active bundle, no
+/// sidecar, or a digest mismatch -- matching this module's existing
+/// readiness-boolean convention (`r4g1_ready`, `teacher_ready`, etc.)
+/// rather than `terminal_error`'s `Option<&str>` "nothing to report"
+/// convention. Purely informational: this value is never consulted by
+/// any load/serve decision, only reported. #655-C1d: a single shared
+/// helper so `/v1/models` (`active_models`) and `/uor/v1/status`
+/// (`uor_status_json`) cannot silently drift from each other.
+///
+/// `verified: true` reflects only the two components
+/// `verify_release_bundle_sidecar` actually re-hashes against disk today
+/// (`components.graph`, `components.signature_artifact`) -- it does not
+/// mean every declared component (`score_report`, `compile_report`, the
+/// optional `tokenizer`) was independently re-verified. See
+/// `release_bundle_loader`'s module docs for the current scope.
+fn active_bundle_verified(bundle: Option<&ResolvedCompiledBundle>) -> bool {
+    bundle.is_some_and(|bundle| bundle.release_bundle.is_some())
+}
+
 fn uor_status_json(installed: &ServingModelState) -> serde_json::Value {
     let graph_loaded = installed.r4g1.is_some();
     let graph_ready = graph_text_ready(installed);
@@ -503,6 +526,7 @@ fn uor_status_json(installed: &ServingModelState) -> serde_json::Value {
         "physical_root": status_physical_root(installed.active_bundle.as_ref()),
         "attention_operator": installed.active_bundle.as_ref().map(|bundle| &bundle.attention_operator),
         "dense_operator": installed.active_bundle.as_ref().and_then(|bundle| bundle.dense_operator.as_ref()),
+        "verified": active_bundle_verified(installed.active_bundle.as_ref()),
         "r4g1_loaded": graph_loaded,
         "r4g1_ready": graph_ready,
         "decode_only": decode_only,
@@ -2667,7 +2691,7 @@ fn resolve_request_model_name(
     }
 }
 
-fn active_models(state: &ServingModelState) -> Vec<(String, u64)> {
+fn active_models(state: &ServingModelState) -> Vec<(String, u64, bool)> {
     let Some(name) = active_canonical_model_name(state) else {
         return Vec::new();
     };
@@ -2679,7 +2703,8 @@ fn active_models(state: &ServingModelState) -> Vec<(String, u64)> {
         .and_then(|time| time.duration_since(std::time::UNIX_EPOCH).ok())
         .map(|delta| delta.as_secs())
         .unwrap_or(0);
-    vec![(name, created)]
+    let verified = active_bundle_verified(state.active_bundle.as_ref());
+    vec![(name, created, verified)]
 }
 
 #[cfg(test)]
@@ -14899,10 +14924,12 @@ fn handle_connection(
     if method == "GET" {
         if let Some(model_id) = clean_path.strip_prefix("/v1/models/") {
             let models = active_models(&serving.lock().unwrap());
-            match models.iter().find(|(id, _)| id == model_id) {
-                Some((id, created)) => {
-                    send_json_response(stream, 200, &openai_model_object(id, *created).to_string())
-                }
+            match models.iter().find(|(id, _, _)| id == model_id) {
+                Some((id, created, verified)) => send_json_response(
+                    stream,
+                    200,
+                    &openai_model_object(id, *created, *verified).to_string(),
+                ),
                 None => send_openai_error(
                     stream,
                     404,
@@ -17237,14 +17264,19 @@ fn send_openai_error(
     );
 }
 
-/// One OpenAI `Model` object with every field the pinned schema requires:
-/// `id`, `object`, `created` (unix seconds), and `owned_by`.
-fn openai_model_object(id: &str, created: u64) -> serde_json::Value {
+/// One OpenAI `Model` object with every field the pinned schema requires
+/// (`id`, `object`, `created` unix seconds, `owned_by`), plus one additive
+/// field: `verified` (#655-C1d, `active_bundle_verified`) -- not part of
+/// the pinned OpenAI schema itself, so a conforming OpenAI client ignores
+/// it, but a `uor-r4`-aware caller can use it to tell a provenance-checked
+/// bundle apart from one running without a `release-bundle.json` sidecar.
+fn openai_model_object(id: &str, created: u64, verified: bool) -> serde_json::Value {
     serde_json::json!({
         "id": id,
         "object": "model",
         "created": created,
         "owned_by": "uor-foundation",
+        "verified": verified,
     })
 }
 
@@ -17253,7 +17285,7 @@ fn openai_model_object(id: &str, created: u64) -> serde_json::Value {
 /// siblings are an inventory error, and a v2 physical suffix is never exposed
 /// as a second OpenAI model id.
 #[cfg(test)]
-fn loadable_models_in(compiled_dir: &Path) -> Result<Vec<(String, u64)>, String> {
+fn loadable_models_in(compiled_dir: &Path) -> Result<Vec<(String, u64, bool)>, String> {
     let mut models = Vec::new();
     let current_version = current_source_attention_era_version()?;
     for resolved in discover_compiled_r4g1_candidates_in(compiled_dir, current_version)? {
@@ -17263,19 +17295,20 @@ fn loadable_models_in(compiled_dir: &Path) -> Result<Vec<(String, u64)>, String>
             .and_then(|time| time.duration_since(std::time::UNIX_EPOCH).ok())
             .map(|delta| delta.as_secs())
             .unwrap_or(0);
-        models.push((resolved.logical_name, created));
+        let verified = active_bundle_verified(Some(&resolved));
+        models.push((resolved.logical_name, created, verified));
     }
     models.sort_by(|a, b| a.0.cmp(&b.0));
     Ok(models)
 }
 
 /// The `GET /v1/models` list body over the loadable models.
-fn models_list_body(models: &[(String, u64)]) -> serde_json::Value {
+fn models_list_body(models: &[(String, u64, bool)]) -> serde_json::Value {
     serde_json::json!({
         "object": "list",
         "data": models
             .iter()
-            .map(|(id, created)| openai_model_object(id, *created))
+            .map(|(id, created, verified)| openai_model_object(id, *created, *verified))
             .collect::<Vec<_>>(),
     })
 }
@@ -24486,7 +24519,7 @@ mod tests {
         assert_eq!(
             advertised
                 .iter()
-                .map(|(name, _)| name.as_str())
+                .map(|(name, _, _)| name.as_str())
                 .collect::<Vec<_>>(),
             vec!["teacher"],
             "model listing exposes the logical id once, never the physical suffix"
@@ -26406,11 +26439,121 @@ mod tests {
 
     #[test]
     fn openai_model_object_carries_every_required_field() {
-        let model = super::openai_model_object("smollm2-135m-instruct", 1_700_000_000);
+        let model = super::openai_model_object("smollm2-135m-instruct", 1_700_000_000, true);
         assert_eq!(model["id"], "smollm2-135m-instruct");
         assert_eq!(model["object"], "model");
         assert_eq!(model["created"], 1_700_000_000u64);
         assert!(model["owned_by"].as_str().is_some(), "owned_by is present");
+        assert_eq!(
+            model["verified"], true,
+            "#655-C1d: verified is additive, not part of the pinned OpenAI schema"
+        );
+    }
+
+    #[test]
+    fn openai_model_object_verified_field_reflects_the_caller_supplied_flag() {
+        assert_eq!(super::openai_model_object("m", 1, false)["verified"], false);
+        assert_eq!(super::openai_model_object("m", 1, true)["verified"], true);
+    }
+
+    /// A hand-built `ReleaseBundleManifest` for tests that only care
+    /// whether `ResolvedCompiledBundle.release_bundle` is `Some`/`None`
+    /// (#655-C1d) -- content is realistic-shaped but its digests are not
+    /// computed from any real file, so it must never be used to assert
+    /// anything about digest *matching*, only about presence.
+    fn sample_release_bundle_manifest() -> uor_r4_api::ReleaseBundleManifest {
+        uor_r4_api::ReleaseBundleManifest {
+            schema: uor_r4_api::RELEASE_BUNDLE_MANIFEST_SCHEMA,
+            model_id: "r4".to_owned(),
+            capability: uor_r4_api::BundleCapability::Continuation,
+            abi: uor_r4_api::BundleAbi {
+                format_major: 1,
+                format_minor: 0,
+                contract_major: 1,
+                contract_minor: 0,
+                contract_patch: 0,
+                api_crate_version: "0.1.0".to_owned(),
+            },
+            uor_matmul: uor_r4_api::UorMatmulProvenance {
+                rev: "b13c98449948174f590e337c4dc25dfc394a07d0".to_owned(),
+                operation_profile: "exact-gemm-float".to_owned(),
+                license: "MIT".to_owned(),
+                source_digest: None,
+            },
+            components: uor_r4_api::BundleComponentDigests {
+                graph: "blake3:0000000000000000000000000000000000000000000000000000000000000001"
+                    .to_owned(),
+                signature_artifact:
+                    "blake3:0000000000000000000000000000000000000000000000000000000000000002"
+                        .to_owned(),
+                tokenizer: None,
+                score_report:
+                    "blake3:0000000000000000000000000000000000000000000000000000000000000003"
+                        .to_owned(),
+                compile_report:
+                    "blake3:0000000000000000000000000000000000000000000000000000000000000004"
+                        .to_owned(),
+            },
+            tokenizer_adapter: uor_r4_api::TokenizerAdapter::default(),
+            provenance_note: None,
+        }
+    }
+
+    fn sample_resolved_compiled_bundle(
+        release_bundle: Option<uor_r4_api::ReleaseBundleManifest>,
+    ) -> super::ResolvedCompiledBundle {
+        super::ResolvedCompiledBundle {
+            logical_name: "r4".to_owned(),
+            physical_root: "/compiled/r4".into(),
+            graph: "/compiled/r4/graph/score.r4g1".into(),
+            teacher: "/compiled/r4/tless_artifacts.bin".into(),
+            attention_operator:
+                uor_r4_model_source::attention::AttentionOperatorSpec::learned_absolute_v2(),
+            dense_operator: None,
+            source_manifest_kappa: None,
+            release_bundle,
+        }
+    }
+
+    #[test]
+    fn active_bundle_verified_reflects_the_cached_release_bundle_state() {
+        assert!(
+            !super::active_bundle_verified(None),
+            "no active bundle at all is not verified"
+        );
+        let unverified = sample_resolved_compiled_bundle(None);
+        assert!(
+            !super::active_bundle_verified(Some(&unverified)),
+            "an active bundle with no release_bundle is not verified"
+        );
+        let verified = sample_resolved_compiled_bundle(Some(sample_release_bundle_manifest()));
+        assert!(
+            super::active_bundle_verified(Some(&verified)),
+            "an active bundle with a release_bundle is verified"
+        );
+    }
+
+    #[test]
+    fn uor_status_json_reports_verified_from_the_active_bundles_release_bundle() {
+        let verified_state = super::ServingModelState {
+            active_bundle: Some(sample_resolved_compiled_bundle(Some(
+                sample_release_bundle_manifest(),
+            ))),
+            ..super::ServingModelState::default()
+        };
+        assert_eq!(super::uor_status_json(&verified_state)["verified"], true);
+
+        let unverified_state = super::ServingModelState {
+            active_bundle: Some(sample_resolved_compiled_bundle(None)),
+            ..super::ServingModelState::default()
+        };
+        assert_eq!(super::uor_status_json(&unverified_state)["verified"], false);
+
+        assert_eq!(
+            super::uor_status_json(&super::ServingModelState::default())["verified"],
+            false,
+            "no active bundle at all"
+        );
     }
 
     #[test]
@@ -26429,7 +26572,7 @@ mod tests {
         assert!(super::resolve_request_model_name(Some("alpha"), Some("beta")).is_err());
         assert!(super::resolve_request_model_name(None, Some("uor-r4")).is_err());
 
-        let listed = super::models_list_body(&[(canonical.clone(), 7)]);
+        let listed = super::models_list_body(&[(canonical.clone(), 7, false)]);
         assert_eq!(listed["data"].as_array().unwrap().len(), 1);
         assert_eq!(listed["data"][0]["id"], "alpha");
 
@@ -26486,15 +26629,19 @@ mod tests {
         std::fs::create_dir_all(dir.join("no-bundle")).unwrap();
 
         let models = super::loadable_models_in(&dir).expect("valid model inventory");
-        let ids: Vec<&str> = models.iter().map(|(id, _)| id.as_str()).collect();
+        let ids: Vec<&str> = models.iter().map(|(id, _, _)| id.as_str()).collect();
         assert_eq!(
             ids,
             vec!["alpha-model", "beta-model"],
             "only bundles with an artifact, sorted by id"
         );
         assert!(
-            models.iter().all(|(_, created)| *created > 0),
+            models.iter().all(|(_, created, _)| *created > 0),
             "created is the bundle mtime"
+        );
+        assert!(
+            models.iter().all(|(_, _, verified)| !verified),
+            "#655-C1d: neither synthetic bundle has a release-bundle.json sidecar"
         );
 
         let body = super::models_list_body(&models);
@@ -26502,6 +26649,54 @@ mod tests {
         assert_eq!(body["data"].as_array().unwrap().len(), 2);
         assert_eq!(body["data"][0]["id"], "alpha-model");
         assert_eq!(body["data"][0]["object"], "model");
+        assert_eq!(
+            body["data"][0]["verified"], false,
+            "verified flows through to the JSON model object"
+        );
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// #655-C1d golden path: proves `verified` flows all the way from a
+    /// real `release-bundle.json` sidecar (written the same way #655-D2's
+    /// CLI command does) through `resolve_loadable_compiled_bundle_with_authority`
+    /// -> `verify_release_bundle_sidecar` (#655-C1c) -> `active_bundle_verified`
+    /// -> `loadable_models_in` -> `models_list_body`'s JSON, not just by
+    /// construction. Mirrors #655-D3's own golden-round-trip test but at
+    /// this module's inventory layer.
+    #[test]
+    fn loadable_models_reports_verified_true_for_a_bundle_with_a_matching_sidecar() {
+        let dir =
+            std::env::temp_dir().join(format!("uor-r4-models-c1d-verified-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        let bundle = dir.join("verified-model");
+        write_loadable_graph_bundle(&bundle, None);
+
+        let graph_bytes = std::fs::read(bundle.join("graph/score.r4g1")).expect("read graph");
+        let teacher_bytes =
+            std::fs::read(bundle.join("tless_artifacts.bin")).expect("read teacher");
+        let mut manifest = sample_release_bundle_manifest();
+        manifest.components.graph = format!("blake3:{}", blake3::hash(&graph_bytes).to_hex());
+        manifest.components.signature_artifact =
+            format!("blake3:{}", blake3::hash(&teacher_bytes).to_hex());
+        std::fs::write(
+            bundle.join(crate::release_bundle_loader::RELEASE_BUNDLE_SIDECAR_FILE_NAME),
+            serde_json::to_vec_pretty(&manifest).expect("serialize manifest"),
+        )
+        .expect("write release-bundle.json sidecar, mirroring #655-D2's CLI command");
+
+        let models = super::loadable_models_in(&dir).expect("valid model inventory");
+        assert_eq!(models.len(), 1);
+        assert!(
+            models[0].2,
+            "verified must be true once a matching sidecar is present"
+        );
+
+        let body = super::models_list_body(&models);
+        assert_eq!(
+            body["data"][0]["verified"], true,
+            "verified flows through to the JSON model object"
+        );
 
         let _ = std::fs::remove_dir_all(&dir);
     }
