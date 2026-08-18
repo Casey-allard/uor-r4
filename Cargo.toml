@@ -40,6 +40,16 @@ crate-type = ["cdylib", "rlib"]
 name = "r4"
 path = "src/main.rs"
 
+[features]
+# #804 measurement-only exception passthrough (maintainer-approved
+# 2026-08-18) — see uor-r4-model-source's feature of the same name.
+# Never a default; observation builds opt in explicitly:
+#   cargo build --release --features observation-blas-exception
+observation-blas-exception = [
+    "uor-r4-model-source/observation-blas-exception",
+    "uor-r4-graph-cli/observation-blas-exception",
+]
+
 [dependencies]
 uor-r4-core = { version = "0.1.0", path = "crates/uor-r4-core" }
 uor-r4-graph-format = { version = "0.1.0", path = "crates/uor-r4-graph-format" }

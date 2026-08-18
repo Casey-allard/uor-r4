@@ -39,6 +39,15 @@ const BLAS_MATRIX_MARKERS: &[&str] =
 const SANCTIONED_SUFFIXES: &[&str] = &[
     "uor-r4-graph-compiler/src/dependency_audit.rs",
     "uor-r4-proof-model/src/inference_audit.rs",
+    // #804 measurement-only BLAS exception (maintainer-approved
+    // 2026-08-18): the ONE sanctioned library-BLAS use site, compiled
+    // only under the opt-in `observation-blas-exception` feature on
+    // macOS, for teacher-forced observation passes. Its gating and its
+    // single dispatch site are pinned by
+    // `observation_blas_exception_is_opt_in_and_never_default` below —
+    // adding this suffix does NOT exempt default builds from anything,
+    // because the pin test fails if the cfg gates ever loosen.
+    "uor-r4-model-source/src/observation_blas_exception.rs",
 ];
 
 /// Workspace root: `CARGO_MANIFEST_DIR` = `<root>/crates/uor-r4-model-source`.
@@ -155,4 +164,88 @@ fn teacher_site_owns_no_blas_matrix_ffi() {
          uor-matmul-owned (#655-B2)",
         lib.display()
     );
+}
+
+/// #804: the measurement-only BLAS exception stays exactly what the
+/// maintainer approved — an opt-in, macOS-only, observation-side escape
+/// hatch — and can never silently widen:
+///
+/// - the exception module and every dispatch to it in `lib.rs` sit behind
+///   `cfg(all(feature = "observation-blas-exception", target_os = "macos"))`
+///   (pinned by exact gate-string counting against the dispatch count);
+/// - no Cargo manifest in the workspace enables the feature by default
+///   (`default = [...]` never names it, and no dependency edge turns it
+///   on unconditionally);
+/// - the `cblas_` FFI itself lives ONLY in the sanctioned exception file.
+#[test]
+fn observation_blas_exception_is_opt_in_and_never_default() {
+    let root = workspace_root();
+    const GATE: &str =
+        r#"#[cfg(all(feature = "observation-blas-exception", target_os = "macos"))]"#;
+    const ANTI_GATE: &str =
+        r#"#[cfg(not(all(feature = "observation-blas-exception", target_os = "macos")))]"#;
+
+    let lib = root.join("crates/uor-r4-model-source/src/lib.rs");
+    let lib_text = std::fs::read_to_string(&lib).expect("read the teacher executor source");
+    let dispatches = lib_text.matches("observation_blas_exception::").count();
+    assert_eq!(
+        dispatches, 2,
+        "the exception has exactly two dispatch sites (matmul, matmul_batched); \
+         a new one needs its own maintainer sign-off and this pin updated"
+    );
+    let gates = lib_text.matches(GATE).count();
+    let anti_gates = lib_text.matches(ANTI_GATE).count();
+    assert_eq!(
+        gates, 4,
+        "lib.rs carries exactly four exception gates (module decl, two \
+         dispatches, backend label); found {gates}"
+    );
+    assert_eq!(
+        anti_gates, 3,
+        "every gated dispatch keeps its default-path twin (two matmuls + \
+         backend label); found {anti_gates}"
+    );
+
+    let exception = root.join("crates/uor-r4-model-source/src/observation_blas_exception.rs");
+    let exception_text =
+        std::fs::read_to_string(&exception).expect("read the exception module source");
+    assert!(
+        exception_text.contains("#[link(name = \"Accelerate\", kind = \"framework\")]"),
+        "the exception file is where the Accelerate FFI lives"
+    );
+
+    // No manifest may default-enable the feature: a `default = [...]` list
+    // naming it, or a plain dependency edge activating it outside the
+    // named passthrough features, would make the exception silent.
+    let mut manifests = vec![root.join("Cargo.toml")];
+    if let Ok(entries) = std::fs::read_dir(root.join("crates")) {
+        for entry in entries.flatten() {
+            let manifest = entry.path().join("Cargo.toml");
+            if manifest.is_file() {
+                manifests.push(manifest);
+            }
+        }
+    }
+    for manifest in manifests {
+        let Ok(text) = std::fs::read_to_string(&manifest) else {
+            continue;
+        };
+        for line in text.lines() {
+            let trimmed = line.trim();
+            if trimmed.starts_with("default") && trimmed.contains("observation-blas-exception") {
+                panic!(
+                    "{} default-enables the #804 exception feature — it must stay opt-in",
+                    manifest.display()
+                );
+            }
+            // A dependency edge like `features = ["observation-blas-exception"]`
+            // outside a `[features]` passthrough would hard-enable it.
+            if trimmed.contains("path = ") && trimmed.contains("observation-blas-exception") {
+                panic!(
+                    "{} hard-enables the #804 exception feature on a dependency edge",
+                    manifest.display()
+                );
+            }
+        }
+    }
 }

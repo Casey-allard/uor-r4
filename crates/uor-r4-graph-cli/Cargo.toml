@@ -4,6 +4,11 @@ license = "MIT"
 version = "0.1.0"
 edition = "2024"
 
+[features]
+# #804 measurement-only exception passthrough — see uor-r4-model-source's
+# feature of the same name. Never a default.
+observation-blas-exception = ["uor-r4-model-source/observation-blas-exception"]
+
 [dependencies]
 uor-r4-core = { version = "0.1.0", path = "../uor-r4-core" }
 uor-r4-graph-compiler = { version = "0.1.0", path = "../uor-r4-graph-compiler" }

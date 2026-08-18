@@ -13,6 +13,10 @@ pub mod dense;
 pub mod geometry;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod gpt2;
+/// #804 measurement-only BLAS exception — opt-in feature, macOS only,
+/// pinned by the `matrix_operation_census` gate. See the module docs.
+#[cfg(all(feature = "observation-blas-exception", target_os = "macos"))]
+mod observation_blas_exception;
 pub mod progress;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod teacher;
@@ -198,12 +202,23 @@ pub(crate) fn softmax_with_mode(x: &mut [f32], canonical: bool) {
 /// `fast` (Accelerate BLAS `sgemv`) / hand-rolled canonical paths are gone;
 /// `_fast` is retained in the signature only so callers need not change.
 fn matmul(xout: &mut [f32], x: &[f32], w: &[f32], n: usize, _fast: bool) {
-    // xout[d] = W[d, n] · x[n]  ==>  C[d, 1] = A[d, n] · B[n, 1].
-    let d = xout.len();
-    let mut pa = vec![uor_matmul::PackedCode::default(); n];
-    let mut pb = vec![uor_matmul::PackedCode::default(); n];
-    uor_matmul::slice::gemm_float(d, n, 1, w, x, xout, &mut pa, &mut pb)
-        .expect("teacher matrix-vector product is total over finite f32 operands");
+    // #804 measurement-only exception (maintainer-approved 2026-08-18):
+    // under the opt-in feature, observation builds route through Apple
+    // Accelerate — see `observation_blas_exception`'s module docs. Every
+    // default build takes the owned exact GEMM below.
+    #[cfg(all(feature = "observation-blas-exception", target_os = "macos"))]
+    {
+        observation_blas_exception::matmul(xout, x, w, n);
+    }
+    #[cfg(not(all(feature = "observation-blas-exception", target_os = "macos")))]
+    {
+        // xout[d] = W[d, n] · x[n]  ==>  C[d, 1] = A[d, n] · B[n, 1].
+        let d = xout.len();
+        let mut pa = vec![uor_matmul::PackedCode::default(); n];
+        let mut pb = vec![uor_matmul::PackedCode::default(); n];
+        uor_matmul::slice::gemm_float(d, n, 1, w, x, xout, &mut pa, &mut pb)
+            .expect("teacher matrix-vector product is total over finite f32 operands");
+    }
 }
 
 /// Batched matmul: `batch` input vectors of length `n` through weight
@@ -219,18 +234,27 @@ fn matmul_batched(xout: &mut [f32], x: &[f32], w: &[f32], n: usize, batch: usize
     let rows = xout.len() / batch;
     debug_assert!(w.len() >= rows * n);
     debug_assert_eq!(x.len(), batch * n);
-    // gemm_float is C = A·B (no transpose), so transpose W[rows, n] → Wt[n, rows]
-    // and compute X[batch, n] · Wt[n, rows] into the sequence-major `xout`.
-    let mut wt = vec![0f32; n * rows];
-    for r in 0..rows {
-        for j in 0..n {
-            wt[j * rows + r] = w[r * n + j];
-        }
+    // #804 measurement-only exception — see `matmul` above and the
+    // `observation_blas_exception` module docs.
+    #[cfg(all(feature = "observation-blas-exception", target_os = "macos"))]
+    {
+        observation_blas_exception::matmul_batched(xout, x, w, n, batch);
     }
-    let mut pa = vec![uor_matmul::PackedCode::default(); n];
-    let mut pb = vec![uor_matmul::PackedCode::default(); n * rows];
-    uor_matmul::slice::gemm_float(batch, n, rows, x, &wt, xout, &mut pa, &mut pb)
-        .expect("batched teacher product is total over finite f32 operands");
+    #[cfg(not(all(feature = "observation-blas-exception", target_os = "macos")))]
+    {
+        // gemm_float is C = A·B (no transpose), so transpose W[rows, n] → Wt[n, rows]
+        // and compute X[batch, n] · Wt[n, rows] into the sequence-major `xout`.
+        let mut wt = vec![0f32; n * rows];
+        for r in 0..rows {
+            for j in 0..n {
+                wt[j * rows + r] = w[r * n + j];
+            }
+        }
+        let mut pa = vec![uor_matmul::PackedCode::default(); n];
+        let mut pb = vec![uor_matmul::PackedCode::default(); n * rows];
+        uor_matmul::slice::gemm_float(batch, n, rows, x, &wt, xout, &mut pa, &mut pb)
+            .expect("batched teacher product is total over finite f32 operands");
+    }
 }
 
 /// The teacher's matrix-operation backend, for the "teacher model ready"
@@ -238,7 +262,16 @@ fn matmul_batched(xout: &mut [f32], x: &[f32], w: &[f32], n: usize, batch: usize
 /// pinned portable `uor-matmul` exact GEMM — no per-machine SIMD/Accelerate
 /// path. GPT-2 owns its separate declared dense implementation.
 fn fast_matmul_backend() -> &'static str {
-    "uor-matmul exact GEMM"
+    #[cfg(all(feature = "observation-blas-exception", target_os = "macos"))]
+    {
+        // Loud per-run provenance: every "teacher model ready" line names
+        // the exception so no corpus can be produced under it silently.
+        "Accelerate cblas (observation-only exception #804)"
+    }
+    #[cfg(not(all(feature = "observation-blas-exception", target_os = "macos")))]
+    {
+        "uor-matmul exact GEMM"
+    }
 }
 
 impl Llama {

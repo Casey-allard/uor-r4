@@ -63,9 +63,29 @@ teacher outputs and the derived corpus/artifact bytes that bind those outputs.
 | `uor-r4-model-source/src/lib.rs` `matmul` | matrix–vector (`W·x`) | `uor_matmul::slice::gemm_float` | uor-matmul-owned |
 | `uor-r4-model-source/src/lib.rs` `matmul_batched` | matrix–matrix (`X·Wᵀ`) | `uor_matmul::slice::gemm_float` | uor-matmul-owned |
 
-No `cblas_*` symbol remains anywhere in the production chain; the CI guard now
-enforces zero library-BLAS use (only the two dependency-audit files, which list
-BLAS crate names as denylist data, are exempt).
+No `cblas_*` symbol remains anywhere in the default production chain; the CI
+guard now enforces zero library-BLAS use (only the two dependency-audit files,
+which list BLAS crate names as denylist data, are exempt).
+
+### #804 measurement-only BLAS exception (maintainer-approved 2026-08-18)
+
+One additional, **opt-in** sanctioned site exists:
+`uor-r4-model-source/src/observation_blas_exception.rs` routes the teacher
+weight matmuls through Apple Accelerate (`cblas_sgemv`/`cblas_sgemm`) — but
+ONLY when a build explicitly passes `--features observation-blas-exception`
+on macOS, for corpus-scale teacher-forced **observation** passes whose
+wall-clock is infeasible under the exact GEMM (~50–100× slower on the pinned
+measurement Mac). Every default build keeps the uor-matmul owner everywhere;
+the census gate (`observation_blas_exception_is_opt_in_and_never_default`)
+pins the file, its cfg gating, its exact two dispatch sites, and that no
+manifest default-enables the feature. Runtime provenance is loud: the
+"teacher model ready" line reports
+`Accelerate cblas (observation-only exception #804)` for every run built with
+the feature, and any corpus produced under it must record the backend in its
+run log / contract amendment (see #804/#605). Accelerate accumulation order
+is machine-tuned, so logits differ from the exact GEMM in low-order bits —
+corpora produced under the exception are compared against traces from the
+SAME backend, never mixed silently with exact-GEMM corpora.
 
 ### certified-exact (migrated by #704)
 
