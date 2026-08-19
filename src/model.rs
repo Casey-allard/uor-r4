@@ -675,11 +675,28 @@ impl uor_r4_core::transformerless::region_store::RegionResolver for ModelStore {
     }
 }
 
-fn is_compiled_bundle(path: &Path) -> bool {
-    path.is_dir()
-        && ["tless_artifacts.bin", "tless_store.bin", "tokenizer.bin"]
-            .iter()
-            .all(|name| path.join(name).is_file())
+/// One predicate for "this directory is a locally compiled bundle",
+/// recognizing BOTH bundle eras (#655-C1e decision record in
+/// `docs/serving_shared_loader_655_c1.md`):
+///
+/// - the legacy plain-path shape: `tless_artifacts.bin` +
+///   `tless_store.bin` + `tokenizer.bin` (unchanged);
+/// - the R4G1-era shape: `tless_artifacts.bin` + `tokenizer.bin` + a
+///   compiled graph (`graph/score.r4g1` or `compiled.r4g1`) — exactly
+///   the component set `release-bundle.json` packages (#655-D), with
+///   the plain-path store optional.
+///
+/// Crate-visible so the CLI's compiled-presence probe uses the same
+/// recognition instead of its own drifted copy (the pre-C1e state).
+pub(crate) fn is_compiled_bundle(path: &Path) -> bool {
+    if !path.is_dir() {
+        return false;
+    }
+    let has = |name: &str| path.join(name).is_file();
+    if !(has("tless_artifacts.bin") && has("tokenizer.bin")) {
+        return false;
+    }
+    has("tless_store.bin") || path.join("graph/score.r4g1").is_file() || has("compiled.r4g1")
 }
 
 fn address_container(bytes: &[u8]) -> String {
@@ -1905,6 +1922,62 @@ mod tests {
             .read_manifest("compiled-model")
             .unwrap_err();
         assert!(matches!(error, ModelError::CompiledNotImported(path) if path == compiled));
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
+    /// #655-C1e: bundle recognition covers BOTH eras — the legacy triple
+    /// and the R4G1-era release-component shape (graph + signature
+    /// artifact + tokenizer, store optional) — while partial directories
+    /// stay unrecognized (falsifiers), and an R4G1-era compiled directory
+    /// gets the correct `CompiledNotImported` diagnosis instead of the
+    /// misleading `SourceNotCompiled`/`ManifestNotFound`.
+    #[test]
+    fn compiled_bundle_recognition_covers_both_eras() {
+        let root = std::env::temp_dir().join(format!("uor-r4-c1e-shapes-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+
+        let legacy = root.join("compiled").join("legacy-era");
+        std::fs::create_dir_all(&legacy).unwrap();
+        for name in ["tless_artifacts.bin", "tless_store.bin", "tokenizer.bin"] {
+            std::fs::write(legacy.join(name), []).unwrap();
+        }
+        assert!(super::is_compiled_bundle(&legacy), "legacy triple");
+
+        let modern = root.join("compiled").join("r4g1-era");
+        std::fs::create_dir_all(modern.join("graph")).unwrap();
+        std::fs::write(modern.join("tless_artifacts.bin"), []).unwrap();
+        std::fs::write(modern.join("tokenizer.bin"), []).unwrap();
+        std::fs::write(modern.join("graph").join("score.r4g1"), []).unwrap();
+        assert!(
+            super::is_compiled_bundle(&modern),
+            "R4G1-era shape without a plain-path store"
+        );
+        let error = ModelStore::new(&root)
+            .read_manifest("r4g1-era")
+            .unwrap_err();
+        assert!(
+            matches!(error, ModelError::CompiledNotImported(ref path) if *path == modern),
+            "an R4G1-era bundle is diagnosed as compiled-not-imported: {error:?}"
+        );
+
+        // Falsifiers: a graph without a tokenizer, a lone signature
+        // artifact, and a lone store are NOT bundles.
+        let no_tokenizer = root.join("compiled").join("no-tokenizer");
+        std::fs::create_dir_all(no_tokenizer.join("graph")).unwrap();
+        std::fs::write(no_tokenizer.join("tless_artifacts.bin"), []).unwrap();
+        std::fs::write(no_tokenizer.join("graph").join("score.r4g1"), []).unwrap();
+        assert!(!super::is_compiled_bundle(&no_tokenizer));
+
+        let partial = root.join("compiled").join("partial");
+        std::fs::create_dir_all(&partial).unwrap();
+        std::fs::write(partial.join("tless_artifacts.bin"), []).unwrap();
+        assert!(!super::is_compiled_bundle(&partial));
+
+        let store_only = root.join("compiled").join("store-only");
+        std::fs::create_dir_all(&store_only).unwrap();
+        std::fs::write(store_only.join("tless_store.bin"), []).unwrap();
+        assert!(!super::is_compiled_bundle(&store_only));
+
         std::fs::remove_dir_all(root).unwrap();
     }
 

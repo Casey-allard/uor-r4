@@ -125,3 +125,34 @@ or block on #655-D landing first (C1c is independently testable). Does not
 migrate `ModelStore` (Q2/C1e). Does not make manifest presence mandatory
 for a bundle to load — a missing or invalid sidecar is exactly as loadable
 as it is today, never a new hard failure mode.
+
+## C1e decision record (2026-08-19) — Q2 resolved: recognize, don't migrate
+
+Q2 deferred the `ModelStore`/cascade reconciliation because migrating the
+store to `ReleaseBundleManifest` would break every existing local
+`.uor-models` compatibility contract. C1e resolves it the additive way:
+
+- **Recognition, not migration.** `is_compiled_bundle` now recognizes BOTH
+  bundle eras: the legacy plain-path triple (`tless_artifacts.bin` +
+  `tless_store.bin` + `tokenizer.bin`, unchanged) and the R4G1-era shape
+  (`tless_artifacts.bin` + `tokenizer.bin` + `graph/score.r4g1` or
+  `compiled.r4g1` — exactly the component set `release-bundle.json`
+  packages under #655-D, with the plain-path store optional). No existing
+  store changes behavior; R4G1-era directories stop being misdiagnosed as
+  `SourceNotCompiled`.
+- **The CLI local engine degrades honestly.** `build_local_compiled_engine`
+  treats `tless_store.bin` as optional when a compiled graph is present:
+  the plain fallback tier loads EMPTY (it declines instead of serving; the
+  #785-C3 decode witness still names whichever engine ran) and the
+  degradation is logged loudly. A store-less, graph-less directory keeps
+  the legacy required-file error — it serves nothing and must not build.
+  `tless_artifacts.bin` stays required in both eras (it is the packaged
+  signature artifact).
+- **One predicate, no drift.** The CLI's compiled-presence probe
+  (`chat.rs`) previously accepted any single bundle file — looser than the
+  store's own triple. Both now call the one crate-visible predicate, the
+  same consolidation discipline #787 applied to the source scanners.
+- **`ReleaseBundleManifest` stays optional metadata** (C1c semantics
+  unchanged): recognition is by component files, verification is by the
+  sidecar when present. Making the manifest mandatory remains a #741-era
+  product decision, not a loader default.

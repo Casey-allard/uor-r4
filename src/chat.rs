@@ -277,9 +277,27 @@ fn build_local_compiled_engine(
     sample_seed: Option<u32>,
 ) -> Result<ChatEngine, ChatError> {
     let artifact_bytes = std::fs::read(directory.join("tless_artifacts.bin"))?;
-    let store_bytes = std::fs::read(directory.join("tless_store.bin"))?;
     let r4g1_bytes = read_preferred_chat_graph(directory)?;
     validate_chat_r4g1_structure(r4g1_bytes.as_deref())?;
+    // #655-C1e: the plain-path store is optional for an R4G1-era bundle —
+    // the release-packaged component set (#655-D) is graph + signature
+    // artifact + tokenizer. Absent store with a present graph leaves the
+    // plain fallback tier EMPTY (it declines honestly instead of serving;
+    // the decode witness still names whichever engine ran, #785-C3).
+    // Absent store with NO graph stays the required-file error it always
+    // was — that directory serves nothing.
+    let store_bytes = match std::fs::read(directory.join("tless_store.bin")) {
+        Ok(bytes) => Some(bytes),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound && r4g1_bytes.is_some() => {
+            tracing::warn!(
+                directory = %directory.display(),
+                "R4G1-era bundle without a plain-path store (tless_store.bin); \
+                 the plain fallback tier is empty and will decline honestly (#655-C1e)"
+            );
+            None
+        }
+        Err(error) => return Err(error.into()),
+    };
     let tok_file = directory.join("tokenizer.bin");
     tracing::debug!(?tok_file, "resolved chat tokenizer path");
     let bundled_tokenizer = std::fs::read(&tok_file)?;
@@ -287,19 +305,25 @@ fn build_local_compiled_engine(
     let r4g1_bytes = bind_chat_r4g1(r4g1_bytes, &tokenizer_bytes)?;
     let artifacts =
         compiler::parse_artifacts(&artifact_bytes).ok_or(ChatError::InvalidArtifacts)?;
-    let store = runtime::parse_store(&store_bytes).ok_or(ChatError::InvalidStore)?;
+    let store = match store_bytes.as_deref() {
+        Some(bytes) => runtime::parse_store(bytes).ok_or(ChatError::InvalidStore)?,
+        None => (0..=compiler::STAGES).map(|_| Default::default()).collect(),
+    };
 
     // Content-address all local compiler outputs immediately. A manifest and
     // quality report remain optional metadata; integrity does not.
     let artifact_object = model_store.put(&artifact_bytes)?;
-    let store_object = model_store.put(&store_bytes)?;
+    let store_cid = match store_bytes.as_deref() {
+        Some(bytes) => model_store.put(bytes)?.cid,
+        None => "absent (R4G1-era bundle, #655-C1e)".to_owned(),
+    };
     let tokenizer_object = model_store.put(&tokenizer_bytes)?;
     let tokenizer = parse_chat_tokenizer(&tokenizer_bytes)?;
     tracing::warn!(
         model = reference,
         directory = %directory.display(),
         artifact_cid = %artifact_object.cid,
-        store_cid = %store_object.cid,
+        store_cid = %store_cid,
         tokenizer_cid = %tokenizer_object.cid,
         "using a locally compiled bundle without an instruction-quality attestation"
     );
@@ -1275,11 +1299,11 @@ fn check_model_artifact_status(model_id: &str) -> (bool, bool) {
         entries.filter_map(|e| e.ok()).any(|entry| {
             let path = entry.path();
             let name = entry.file_name().to_string_lossy().to_lowercase();
-            path.is_dir()
-                && name.contains(target_key)
-                && (path.join("tless_artifacts.bin").is_file()
-                    || path.join("graph/score.r4g1").is_file()
-                    || path.join("compiled.r4g1").is_file())
+            // #655-C1e: one recognition predicate, shared with the model
+            // store — this probe's previous any-single-file check drifted
+            // from `ModelStore`'s triple (a dir with only
+            // `tless_artifacts.bin` counted here but served nothing).
+            name.contains(target_key) && crate::model::is_compiled_bundle(&path)
         })
     } else {
         false
@@ -3072,6 +3096,63 @@ mod tests {
         .expect("nonzero exact tagged binding")
         .is_some());
         let _ = std::fs::remove_file(path);
+    }
+
+    /// #655-C1e: an R4G1-era bundle (graph + signature artifact +
+    /// tokenizer, NO `tless_store.bin`) builds a working engine with the
+    /// graph preferred and an EMPTY plain-fallback store — while removing
+    /// the graph too restores the legacy required-file error (falsifier:
+    /// a store-less, graph-less directory serves nothing and must not
+    /// silently build).
+    #[test]
+    fn r4g1_era_bundle_without_plain_store_builds_and_prefers_the_graph() {
+        let root =
+            std::env::temp_dir().join(format!("uor-r4-c1e-modern-bundle-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        let dir = root.join("bundle");
+        std::fs::create_dir_all(dir.join("graph")).unwrap();
+
+        let artifact_bytes = std::fs::read("crates/uor-r4-core/tests/fixtures/tless_artifacts.bin")
+            .expect("fixture artifacts");
+        std::fs::write(dir.join("tless_artifacts.bin"), &artifact_bytes).unwrap();
+
+        let mut tokenizer_bytes = Vec::new();
+        for piece in [
+            b"<unk>".as_slice(),
+            b"<s>".as_slice(),
+            b"</s>".as_slice(),
+            b"a".as_slice(),
+        ] {
+            tokenizer_bytes.extend_from_slice(&(piece.len() as i32).to_le_bytes());
+            tokenizer_bytes.extend_from_slice(piece);
+        }
+        std::fs::write(dir.join("tokenizer.bin"), &tokenizer_bytes).unwrap();
+
+        let graph = minimal_graph(*blake3::hash(&tokenizer_bytes).as_bytes());
+        std::fs::write(dir.join("graph").join("score.r4g1"), &graph).unwrap();
+
+        let model_store = crate::model::ModelStore::new(root.join("store-root"));
+        let engine = super::build_local_compiled_engine(&model_store, &dir, "c1e-modern", 8, None)
+            .expect("an R4G1-era bundle builds without tless_store.bin");
+        assert_eq!(
+            engine.r4g1_bytes.as_deref(),
+            Some(graph.as_slice()),
+            "the graph is preferred and bound"
+        );
+        assert!(
+            engine.store.iter().all(|stage| stage.is_empty()),
+            "the plain fallback store is empty, never fabricated"
+        );
+
+        // Falsifier: no store AND no graph — the directory serves nothing
+        // and the legacy required-file error returns.
+        std::fs::remove_file(dir.join("graph").join("score.r4g1")).unwrap();
+        assert!(
+            super::build_local_compiled_engine(&model_store, &dir, "c1e-modern", 8, None).is_err(),
+            "a store-less, graph-less directory must not build"
+        );
+
+        let _ = std::fs::remove_dir_all(&root);
     }
 
     #[test]
