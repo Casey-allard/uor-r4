@@ -51,8 +51,15 @@ pub struct InferenceRequest {
     pub engine: Option<String>,
     /// Maximum continuation tokens to generate.
     pub max_tokens: Option<usize>,
-    /// Temperature for geometric sampling.
+    /// Temperature for geometric sampling; `0` additionally opts the
+    /// R4G1 tier into deterministic greedy decode (#655 decode-default
+    /// decision, 2026-08-19 — sampled decode is otherwise the default).
     pub temperature: Option<f64>,
+    /// Sampling seed override for the R4G1 tier's default sampled
+    /// decode; absent requests use the pinned default seed so default
+    /// serving stays reproducible. Ignored under `temperature: 0`.
+    #[serde(default)]
+    pub seed: Option<u32>,
     /// Ask a serving endpoint to include a replayable proof summary.
     /// Witness assembly is opt-in and remains outside the default hot path.
     #[serde(default)]
@@ -1484,6 +1491,7 @@ mod tests {
             engine: Some("r4g1".to_string()),
             max_tokens: Some(32),
             temperature: Some(0.7),
+            seed: None,
             include_witness: false,
         };
         let json = serde_json::to_string(&req).expect("serialize InferenceRequest");

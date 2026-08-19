@@ -169,6 +169,26 @@ impl R4g1State {
             .map_err(|error| error.to_string())
     }
 
+    /// #655 decode-default decision (2026-08-19): seeded weighted
+    /// sampling over the deployed step scorer's own candidates, through
+    /// the same D4 policy path as [`Self::generate_into_status`] —
+    /// abstention semantics identical by construction (see
+    /// `R4Engine::generate_sampled_into`). This is the server tier's
+    /// default decode; greedy remains the `temperature: 0` opt-in and
+    /// the witness path's decode (witness claims bind the greedy
+    /// selection).
+    pub fn generate_sampled_into_status(
+        &self,
+        seed: &[u32],
+        out: &mut [u32],
+        rng: &mut uor_r4_core::transformerless::runtime::SampleRng,
+    ) -> Result<GenerateStatus, String> {
+        self.engine
+            .borrow_mut()
+            .generate_sampled_into(seed, out, rng)
+            .map_err(|error| error.to_string())
+    }
+
     /// Witness-enabled generation for the opt-in proof-carrying response
     /// envelope. The ordinary generation method remains allocation-free.
     pub fn generate_into_status_with_witness(

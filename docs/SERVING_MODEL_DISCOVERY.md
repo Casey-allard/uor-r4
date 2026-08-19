@@ -54,6 +54,19 @@ functionally the cascade's terminal "always something" tier).
   present or the whole bundle is refused (`2200-2213`).
 - State type: `r4g1::R4g1State`, held in `ServingModelState.r4g1`.
 - Availability: `installed.r4g1.is_some()` after startup load succeeds.
+- Decode (#655 decode-default decision, 2026-08-19): **seeded weighted
+  sampling is the default** on every serving surface (native `/api/chat`,
+  OpenAI chat-completions and responses, and the CLI `ask`/`chat`),
+  weighting the deployed step scorer's own top-K candidates through the
+  identical D4 policy path — abstention behavior is decode-mode
+  independent by construction, and the seed is pinned
+  (`chat::DEFAULT_SAMPLE_SEED`) so identical requests reproduce
+  identical completions. `temperature: 0` on the wire (or `--greedy` on
+  the CLI) is the deterministic opt-out; a request `seed` field
+  overrides the pinned seed; the opt-in witness envelope decodes greedy
+  (witness claims bind the greedy selection). See
+  `r4g1_decode_from_request` (`src/server.rs`) and
+  `R4Engine::generate_sampled_into` (`crates/uor-r4-api/src/engine.rs`).
 
 ### Tier 2 — `transformerless`
 

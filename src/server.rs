@@ -150,8 +150,16 @@ pub struct VendorChatCompletionsRequest {
     pub messages: Vec<ChatMessage>,
     #[serde(default)]
     pub max_tokens: Option<usize>,
+    /// `temperature: 0` opts the R4G1 tier into deterministic greedy
+    /// decode (#655 decode-default decision, 2026-08-19); any other
+    /// value (or absence) keeps the default seeded sampled decode.
     #[serde(default)]
     pub temperature: Option<f64>,
+    /// Sampling seed override for the R4G1 tier's default sampled
+    /// decode (OpenAI `seed` compatibility); absent requests use the
+    /// pinned default seed, so identical requests stay reproducible.
+    #[serde(default)]
+    pub seed: Option<u32>,
     /// Optional engine pin ("r4g1", "transformerless", "attention",
     /// "r4-attention", "geometric"); absent/"auto" runs the full cascade,
     /// falling back to the persisted `/engine` selection (issue #248).
@@ -192,8 +200,15 @@ pub struct VendorResponsesRequest {
     pub instructions: Option<String>,
     #[serde(default)]
     pub max_output_tokens: Option<usize>,
+    /// `temperature: 0` opts the R4G1 tier into deterministic greedy
+    /// decode (#655); any other value or absence keeps the default
+    /// seeded sampled decode.
     #[serde(default)]
     pub temperature: Option<f64>,
+    /// Sampling seed override for the R4G1 tier's default sampled
+    /// decode; absent requests use the pinned default seed.
+    #[serde(default)]
+    pub seed: Option<u32>,
     /// When `true`, the completion is delivered as the Responses
     /// `text/event-stream` event sequence terminating on `response.completed`.
     #[serde(default)]
@@ -3116,11 +3131,14 @@ struct R4g1Text {
 
 /// Generate directly from the validated R4G1 graph runtime. Tokenization and
 /// decoding intentionally use the same tokenizer as the compiled teacher
-/// artifact; R4G1 stores token ids, not user-facing text.
+/// artifact; R4G1 stores token ids, not user-facing text. `decode` selects
+/// the #655 decode mode: sampled (the default, pinned seed) or the
+/// `temperature: 0` greedy opt-in — the D4 policy path is identical.
 fn generate_r4g1_text(
     state: Option<&R4g1State>,
     prompt: &str,
     max_tokens: usize,
+    decode: R4g1Decode,
 ) -> Result<Option<R4g1Text>, String> {
     const MAX_SERVER_TOKENS: usize = 256;
     const MAX_SERVER_TEXT_BYTES: usize = 16 * 1024;
@@ -3148,12 +3166,24 @@ fn generate_r4g1_text(
         if seed_len == 0 {
             return Err("R4G1 tokenizer produced an empty prompt".to_owned());
         }
-        let outcome = state
-            .generate_into_status(
-                &seed[..seed_len],
-                &mut generated[..max_tokens.min(MAX_SERVER_TOKENS)],
-            )
-            .map_err(|error| format!("R4G1 graph scoring failed: {error}"))?;
+        let outcome = match decode {
+            R4g1Decode::Greedy => state
+                .generate_into_status(
+                    &seed[..seed_len],
+                    &mut generated[..max_tokens.min(MAX_SERVER_TOKENS)],
+                )
+                .map_err(|error| format!("R4G1 graph scoring failed: {error}"))?,
+            R4g1Decode::Sampled { seed: rng_seed } => {
+                let mut rng = uor_r4_core::transformerless::runtime::SampleRng::new(rng_seed);
+                state
+                    .generate_sampled_into_status(
+                        &seed[..seed_len],
+                        &mut generated[..max_tokens.min(MAX_SERVER_TOKENS)],
+                        &mut rng,
+                    )
+                    .map_err(|error| format!("R4G1 graph scoring failed: {error}"))?
+            }
+        };
         // On an abstention no text is produced: the tokens generated before
         // the abstaining step are dropped rather than served, so an
         // out-of-distribution prompt never surfaces partial output.
@@ -3768,6 +3798,39 @@ const TIER_R4_ATTENTION: &str = "r4-attention";
 /// abstention (issue #248) — never served as if it were generated prose.
 const SPARSE_RESONANCE_MESSAGE: &str = "Manifold resonance too sparse for synthesis.";
 
+/// #655 decode-default decision (2026-08-19): how the R4G1 tier decodes
+/// one request. `Sampled` with the pinned default seed is the default on
+/// every serving surface; `Greedy` is the explicit `temperature: 0`
+/// opt-in. Both run the identical D4 policy path — sampling only
+/// replaces which served candidate is emitted (never whether a step
+/// serves or abstains), so Novel/OOD abstention behavior is decode-mode
+/// independent by construction.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum R4g1Decode {
+    /// Deterministic beam/argmax walk (opt-in via `temperature: 0`;
+    /// also what the opt-in witness envelope decodes with, since
+    /// witness claims bind the greedy selection).
+    Greedy,
+    /// Seeded weighted sampling over the serving probe's own candidate
+    /// list — the default. The seed is pinned per request so default
+    /// serving stays reproducible: identical requests produce identical
+    /// completions.
+    Sampled { seed: u32 },
+}
+
+/// Map one request's raw decode-relevant fields to the tier decode mode:
+/// an explicit `temperature` of zero (or below) opts into greedy; every
+/// other request samples, seeded by the request's `seed` override or
+/// the pinned [`crate::chat::DEFAULT_SAMPLE_SEED`].
+fn r4g1_decode_from_request(temperature: Option<f64>, seed: Option<u32>) -> R4g1Decode {
+    match temperature {
+        Some(value) if value <= 0.0 => R4g1Decode::Greedy,
+        _ => R4g1Decode::Sampled {
+            seed: seed.unwrap_or(crate::chat::DEFAULT_SAMPLE_SEED),
+        },
+    }
+}
+
 /// R4G1 policy metadata surfaced alongside the cascade outcome so the
 /// legacy `r4g1` response block keeps its exact shape.
 #[derive(Debug, Default)]
@@ -4035,6 +4098,7 @@ fn tless_bypass_profile_decline() -> Option<(u16, serde_json::Value)> {
 /// the central policy (recording, not refusing; PR #223 semantics).
 /// Unusable text is `Pathological` with the reason; an unavailable runtime
 /// or scoring error is `Failed`.
+#[allow(clippy::too_many_arguments)]
 fn r4g1_tier(
     state: Option<&R4g1State>,
     prompt: &str,
@@ -4042,8 +4106,9 @@ fn r4g1_tier(
     signal: &mut R4g1Signal,
     load_error: Option<&str>,
     usage: &Cell<Option<ServingUsage>>,
+    decode: R4g1Decode,
 ) -> TierResult {
-    match generate_r4g1_text(state, prompt, max_tokens.max(32)) {
+    match generate_r4g1_text(state, prompt, max_tokens.max(32), decode) {
         Ok(Some(gen)) if gen.abstained => {
             signal.status = gen.status.map(r4g1::PolicyStatus::from).map(|s| s.label());
             signal.widened = gen.widened;
@@ -4198,6 +4263,7 @@ fn run_serving_cascade(
     session_signature: Option<&[u8]>,
     pinned: Option<&'static str>,
     profile: EngineProfile,
+    r4g1_decode: R4g1Decode,
 ) -> ServingCascade {
     let ServingModelState {
         r4g1,
@@ -4237,6 +4303,7 @@ fn run_serving_cascade(
                         signal_ref,
                         load_error.as_deref(),
                         usage_ref,
+                        r4g1_decode,
                     )
                 }),
             ));
@@ -14912,8 +14979,12 @@ fn generate_serving_completion(
     engine: Option<&str>,
     max_tokens: usize,
     temperature_override: Option<f64>,
+    seed: Option<u32>,
 ) -> GenerationOutcome {
     let identity = "tenant-alpha".to_string();
+    // #655 decode default: derived from the RAW request fields (an
+    // autotuned nonzero temperature must never read as a greedy opt-in).
+    let r4g1_decode = r4g1_decode_from_request(temperature_override, seed);
 
     // #789-G3.4: every engine-name decline is judged BEFORE any lock or
     // router/brain mutation — this path previously evolved brain state and
@@ -15035,6 +15106,7 @@ fn generate_serving_completion(
         Some(&session_signature),
         pinned,
         profile,
+        r4g1_decode,
     );
     let generation_mode = derive_generation_mode(&cascade, pinned);
     let Some(final_response_text) = cascade.outcome.text.clone() else {
@@ -15902,6 +15974,7 @@ fn handle_connection(
             req.engine.as_deref(),
             max_tokens,
             req.temperature,
+            req.seed,
         ) {
             GenerationOutcome::Declined { status, body } => {
                 send_json_response(stream, status, &body.to_string());
@@ -16049,6 +16122,7 @@ fn handle_connection(
             req.engine.as_deref(),
             max_tokens,
             req.temperature,
+            req.seed,
         ) {
             GenerationOutcome::Declined { status, body } => {
                 send_json_response(stream, status, &body.to_string());
@@ -16213,6 +16287,10 @@ fn handle_connection(
         // (PR #223 record-and-continue semantics, implemented directly by
         // `run_cascade` — #790 item 4).
         let t_gen = Instant::now();
+        // #655 decode default: derived from the RAW request fields — the
+        // autotuned geometric temperature above must never read as a
+        // greedy opt-in.
+        let r4g1_decode = r4g1_decode_from_request(payload.temperature, payload.seed);
         let mut cascade = run_serving_cascade(
             &mut router_guard,
             &mut installed,
@@ -16225,6 +16303,7 @@ fn handle_connection(
             Some(&session_signature),
             pinned,
             profile,
+            r4g1_decode,
         );
 
         // Legacy response fields, derived from the trail so consumers keep
@@ -18520,6 +18599,50 @@ mod tests {
             path: path.to_path_buf(),
             identity,
         }
+    }
+
+    /// #655 decode-default decision (2026-08-19): the request-field →
+    /// decode-mode mapping. Sampled with the pinned default seed is the
+    /// default; `temperature: 0` (or below) is the greedy opt-in; a
+    /// request `seed` overrides the pinned default; and a greedy opt-in
+    /// wins over a supplied seed (the seed only parameterizes sampling).
+    #[test]
+    fn r4g1_decode_defaults_to_pinned_seed_sampling_with_greedy_opt_in() {
+        use super::R4g1Decode;
+        assert_eq!(
+            super::r4g1_decode_from_request(None, None),
+            R4g1Decode::Sampled {
+                seed: crate::chat::DEFAULT_SAMPLE_SEED
+            },
+            "an ordinary request samples with the pinned default seed"
+        );
+        assert_eq!(
+            super::r4g1_decode_from_request(Some(0.7), None),
+            R4g1Decode::Sampled {
+                seed: crate::chat::DEFAULT_SAMPLE_SEED
+            },
+            "a nonzero temperature keeps the default sampled decode"
+        );
+        assert_eq!(
+            super::r4g1_decode_from_request(None, Some(7)),
+            R4g1Decode::Sampled { seed: 7 },
+            "a request seed overrides the pinned default"
+        );
+        assert_eq!(
+            super::r4g1_decode_from_request(Some(0.0), None),
+            R4g1Decode::Greedy,
+            "temperature zero is the greedy opt-in"
+        );
+        assert_eq!(
+            super::r4g1_decode_from_request(Some(-1.0), None),
+            R4g1Decode::Greedy,
+            "a negative temperature never samples"
+        );
+        assert_eq!(
+            super::r4g1_decode_from_request(Some(0.0), Some(7)),
+            R4g1Decode::Greedy,
+            "the greedy opt-in wins over a supplied seed"
+        );
     }
 
     #[test]

@@ -14,6 +14,15 @@ const MAX_CHAT_TOKENS: usize = 256;
 const MAX_CHAT_HISTORY: usize = 4096;
 const MAX_ANSWER_BYTES: usize = 16 * 1024;
 
+/// The pinned default sampling seed (#655 decode-default decision,
+/// 2026-08-19): sampled decode is the CLI/serving default everywhere,
+/// seeded with this constant so default behavior stays reproducible run
+/// to run; greedy decode is the explicit opt-in (`--greedy` on the CLI,
+/// `temperature: 0` on the wire). 42 is the seed the #655 F-p2 canary
+/// measured 15/15 valid completions with (vs 0/15 greedy,
+/// issuecomment-5335796517).
+pub const DEFAULT_SAMPLE_SEED: u32 = 42;
+
 /// A completed local chat turn.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ChatAnswer {

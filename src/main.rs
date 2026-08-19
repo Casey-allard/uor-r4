@@ -6,7 +6,7 @@ use std::sync::Arc;
 use uor_r4_api::{BundleCapability, TokenizerAdapter, UorMatmulProvenance};
 use uor_r4_core::transformerless::hf_bpe::{resolve_source_tokenizer, TokenizerAdapterKey};
 use uor_r4_graph_cli as transformerless_command;
-use uor_r4_wasm_router::chat::{ChatAnswer, ChatEngine, ChatError};
+use uor_r4_wasm_router::chat::{ChatAnswer, ChatEngine, ChatError, DEFAULT_SAMPLE_SEED};
 use uor_r4_wasm_router::model::{
     default_model_reference, download_source, evaluate_live_quality, ModelCapability, ModelError,
     ModelManifest, ModelStore, QualityAttestation, SourceDownload,
@@ -164,13 +164,19 @@ struct AskArgs {
     /// CID manifest name/CID, or a locally compiled bundle name.
     #[arg(long, env = "TLESS_MODEL")]
     model: Option<String>,
-    /// Opt into seeded weighted sampling instead of the default
-    /// deterministic decode, on both generation paths: issue #762 lever 2
-    /// on the plain path, and the same weighting over the R4G1 candidate
-    /// walk (#785-C2 parity). Reproducible from the seed (see
-    /// `chat::ChatEngineBuilder::sample_seed`).
-    #[arg(long, value_name = "SEED")]
+    /// Override the pinned default sampling seed (#655 decode-default
+    /// decision, 2026-08-19: seeded weighted sampling IS the default on
+    /// both generation paths — issue #762 lever 2 on the plain path, the
+    /// same weighting over the R4G1 candidate walk per #785-C2). Absent,
+    /// the pinned `chat::DEFAULT_SAMPLE_SEED` keeps default runs
+    /// reproducible. Reproducible from the seed either way.
+    #[arg(long, value_name = "SEED", conflicts_with = "greedy")]
     sample: Option<u32>,
+    /// Opt into the deterministic decode (greedy beam on the R4G1 path,
+    /// greedy argmax on the plain path) instead of the default seeded
+    /// sampling.
+    #[arg(long, conflicts_with = "sample")]
+    greedy: bool,
     /// Question to ask. Multiple unquoted words are accepted.
     #[arg(required = true, num_args = 1..)]
     question: Vec<String>,
@@ -184,13 +190,17 @@ struct ChatArgs {
     /// Remote HTTP server URL (e.g. http://127.0.0.1:8000/v1) for client mode.
     #[arg(long)]
     remote: Option<String>,
-    /// Opt into seeded weighted sampling instead of the default
-    /// deterministic decode, on both generation paths (#762 lever 2 on
-    /// the plain path, #785-C2 parity on the R4G1 candidate walk); the
-    /// seed advances turn to turn so the whole session is reproducible
-    /// from it. Has no effect in `--remote` client mode.
-    #[arg(long, value_name = "SEED")]
+    /// Override the pinned default sampling seed (#655: seeded weighted
+    /// sampling IS the default on both generation paths — #762 lever 2
+    /// plain, #785-C2 R4G1); the seed advances turn to turn so the whole
+    /// session is reproducible from it. Has no effect in `--remote`
+    /// client mode.
+    #[arg(long, value_name = "SEED", conflicts_with = "greedy")]
     sample: Option<u32>,
+    /// Opt into the deterministic decode instead of the default seeded
+    /// sampling. Has no effect in `--remote` client mode.
+    #[arg(long, conflicts_with = "sample")]
+    greedy: bool,
 }
 
 #[derive(Args, Debug)]
@@ -523,11 +533,21 @@ fn interactive_chat(
     Ok(())
 }
 
-fn build_chat_engine(model: Option<&str>, sample: Option<u32>) -> Result<ChatEngine, ChatError> {
+/// Build the local chat engine under the #655 decode default
+/// (2026-08-19): seeded weighted sampling unless `--greedy` opts out,
+/// with `--sample <SEED>` overriding the pinned default seed. The
+/// library builder itself stays explicit (`sample_seed` opt-in); the
+/// default is applied here, at the product surface, exactly like the
+/// server's request mapping.
+fn build_chat_engine(
+    model: Option<&str>,
+    sample: Option<u32>,
+    greedy: bool,
+) -> Result<ChatEngine, ChatError> {
     let mut builder =
         ChatEngine::builder().model(model.map_or_else(default_model_reference, ToOwned::to_owned));
-    if let Some(seed) = sample {
-        builder = builder.sample_seed(seed);
+    if !greedy {
+        builder = builder.sample_seed(sample.unwrap_or(DEFAULT_SAMPLE_SEED));
     }
     builder.build()
 }
@@ -838,7 +858,7 @@ fn run(cli: &Cli) -> Result<(), RunError> {
     cli.configure_tless();
     match cli.command.as_ref() {
         Some(Command::Ask(args)) => {
-            let mut chat = build_chat_engine(args.model.as_deref(), args.sample)?;
+            let mut chat = build_chat_engine(args.model.as_deref(), args.sample, args.greedy)?;
             answer_once(
                 &mut chat,
                 &args.question.join(" "),
@@ -855,7 +875,7 @@ fn run(cli: &Cli) -> Result<(), RunError> {
                 )?;
                 Ok(())
             } else {
-                let mut chat = build_chat_engine(args.model.as_deref(), args.sample)?;
+                let mut chat = build_chat_engine(args.model.as_deref(), args.sample, args.greedy)?;
                 interactive_chat(&mut chat, &mut io::stdin().lock(), &mut io::stdout().lock())?;
                 Ok(())
             }
