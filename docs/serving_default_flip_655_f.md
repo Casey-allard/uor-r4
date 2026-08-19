@@ -232,3 +232,39 @@ Does not change `run_serving_cascade`, `resolve_pinned_tier`, or any
 `EngineProfile` mechanics landed in E — F operates one layer up, on
 canonical identity, not tier reachability, and E's own work already
 stands on its own regardless of F's timeline.
+
+## Addendum 2026-08-19 — the flip executed
+
+Both preconditions cleared and the maintainer gave the fresh explicit
+approval this document required, so the flip shipped:
+
+- **Precondition 1 (distributed bundle): met.** Release v0.1 is
+  published with the packaged `smollm2-360m-broad` bundle and attested
+  manifest as GitHub Release assets; `r4 install-release --tag v0.1` is
+  the explicit hard-verified fetch, proven end to end against the live
+  release (#741 closed; `docs/RELEASE_PIPELINE.md`).
+- **Precondition 2 (baseline-quality canary): met.** The sampled decode
+  became the serving/CLI default (#813/#814) and the default path is
+  byte-identical to the measured 15/15-valid canary arm; the F-p2
+  acceptance probes now pass through the same deployed D4 policy on the
+  CLI as on the server (#811/PR #816). Distinctness remains open as
+  #784 and is disclosed on the release.
+- **Authorization**: maintainer decisions of 2026-08-19 (~01:50Z,
+  recorded #655 issuecomment-5336515423) — flip authorized, sequenced
+  after the release publish and #811; both held before this change.
+
+What shipped (per `docs/serving_rename_inventory_655_f.md`, section by
+section): `CANONICAL_MODEL_ID = "r4"` served on every surface with
+`uor-r4` retained as the deprecated request alias;
+`active_canonical_model_name` reports the canonical id (physical names
+stay metadata); OpenAI wire ids and `system_fingerprint` are
+`r4`-prefixed; CLI `client --model` defaults to `r4` and the remote
+client parses both fingerprint prefixes for the deprecation window;
+README/CONFIGURATION carry the identity contract. Deliberate
+exclusions, unchanged from the inventory: crate names, schema strings,
+staging dirs, the `uor-r4-cli` orchestrator script file name, and the
+four source-verification logical-name fallbacks (infrastructure
+identifiers, not served identity). **The threat-model doc F's list
+names does not exist in this repository**; creating one remains a
+separate product decision, recorded here rather than improvised at
+flip time.

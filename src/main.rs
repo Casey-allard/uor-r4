@@ -93,7 +93,7 @@ enum Command {
     Ask(AskArgs),
     /// Start an interactive, stateful local chat.
     Chat(ChatArgs),
-    /// Connect to a local uor-r4 server endpoint as a remote interactive client.
+    /// Connect to a local r4 server endpoint as a remote interactive client.
     Client(ClientArgs),
     /// View or export UOR Q&A audit traces and geometry metrics.
     Audit(AuditArgs),
@@ -216,7 +216,7 @@ struct ClientArgs {
     #[arg(long, default_value = "http://127.0.0.1:8000/v1")]
     remote: String,
     /// Model name to send in chat completions payload.
-    #[arg(long, default_value = "uor-r4")]
+    #[arg(long, default_value = "r4")]
     model: String,
 }
 
@@ -948,7 +948,7 @@ fn run(cli: &Cli) -> Result<(), RunError> {
             if let Some(remote) = &args.remote {
                 uor_r4_wasm_router::chat::remote_interactive_chat(
                     remote,
-                    args.model.as_deref().unwrap_or("uor-r4"),
+                    args.model.as_deref().unwrap_or("r4"),
                     &mut io::stdin().lock(),
                     &mut io::stdout().lock(),
                 )?;
@@ -1163,9 +1163,7 @@ fn audit_command(log_file: &PathBuf) -> Result<(), RunError> {
             "\x1b[33m[!] No audit log file found at {}\x1b[0m",
             log_file.display()
         );
-        println!(
-            "    Run the interactive client ('./uor-r4-cli' or 'r4 client') and ask questions first.\n"
-        );
+        println!("    Run the interactive client ('r4 client') and ask questions first.\n");
         return Ok(());
     }
     let content = std::fs::read_to_string(log_file)?;

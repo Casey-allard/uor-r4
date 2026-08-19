@@ -547,6 +547,9 @@ fn uor_status_json(installed: &ServingModelState, profile: EngineProfile) -> ser
 
     serde_json::json!({
         "profile": profile.label(),
+        // #655-F: the served identity is the canonical id; `model_name`
+        // below remains the PHYSICAL installed name (metadata).
+        "canonical_model": CANONICAL_MODEL_ID,
         "model_name": logical_name,
         "physical_root": status_physical_root(installed.active_bundle.as_ref()),
         "attention_operator": installed.active_bundle.as_ref().map(|bundle| &bundle.attention_operator),
@@ -2669,6 +2672,22 @@ fn teacher_text_ready(state: &ServingModelState) -> bool {
         && state.active_teacher_source.is_some()
 }
 
+/// #655-F (maintainer-approved flip, 2026-08-19): the canonical served
+/// model identity across every serving surface — a product name, not a
+/// directory name. Per-bundle logical/physical names remain visible as
+/// metadata (`/uor/v1/status` `physical_root`, bundle fields,
+/// [`installed_logical_model_name`]), never as the served identity.
+const CANONICAL_MODEL_ID: &str = "r4";
+
+/// The pre-flip identity, retained as a deprecated request-side alias
+/// for a compatibility window (#655-F). Responses always report
+/// [`CANONICAL_MODEL_ID`], never this alias.
+const DEPRECATED_MODEL_ALIAS: &str = "uor-r4";
+
+/// The *physical* installed name — bundle logical name or teacher-source
+/// basename — used for metadata and provenance surfaces. Since #655-F
+/// this is no longer the served identity ([`CANONICAL_MODEL_ID`] is);
+/// its own final fallback follows the canonical name.
 fn installed_logical_model_name(state: &ServingModelState) -> String {
     state
         .active_bundle
@@ -2682,7 +2701,7 @@ fn installed_logical_model_name(state: &ServingModelState) -> String {
                 .and_then(|name| name.to_str())
                 .map(str::to_owned)
         })
-        .unwrap_or_else(|| "uor-r4".to_owned())
+        .unwrap_or_else(|| CANONICAL_MODEL_ID.to_owned())
 }
 
 /// #789-G2: discovery agrees with serving. Under `Production` only a
@@ -2690,6 +2709,8 @@ fn installed_logical_model_name(state: &ServingModelState) -> String {
 /// must not advertise a model the Production cascade can never serve
 /// (every completion would 503 `declined_by_all`). Under `Experimental`
 /// the teacher lane still counts toward activity, exactly as before.
+/// #655-F: when a model IS active, its served identity is the canonical
+/// [`CANONICAL_MODEL_ID`] — the physical name stays metadata.
 fn active_canonical_model_name(
     state: &ServingModelState,
     profile: EngineProfile,
@@ -2702,12 +2723,13 @@ fn active_canonical_model_name(
     if !servable {
         return None;
     }
-    Some(installed_logical_model_name(state))
+    Some(CANONICAL_MODEL_ID.to_owned())
 }
 
 /// Resolve the OpenAI request model before any routing or generation side
-/// effects. `uor-r4` is the one intentional compatibility alias; responses
-/// always report the canonical active identity rather than echoing the alias.
+/// effects. #655-F: `r4` is the canonical identity; `uor-r4` is the
+/// deprecated pre-flip alias, accepted for a compatibility window.
+/// Responses always report the canonical identity, never an alias.
 fn resolve_active_request_model(
     state: &ServingModelState,
     profile: EngineProfile,
@@ -2723,7 +2745,7 @@ fn resolve_request_model_name(
 ) -> Result<String, String> {
     let active = active.ok_or_else(|| "no text-ready serving model is active".to_owned())?;
     match requested.map(str::trim).filter(|name| !name.is_empty()) {
-        None | Some("uor-r4") => Ok(active.to_owned()),
+        None | Some(CANONICAL_MODEL_ID) | Some(DEPRECATED_MODEL_ALIAS) => Ok(active.to_owned()),
         Some(name) if name == active => Ok(active.to_owned()),
         Some(name) => Err(format!(
             "The model '{name}' is not active; the active model is '{active}'."
@@ -15984,8 +16006,8 @@ fn handle_connection(
         };
 
         // Values shared by the single-JSON and the streaming surfaces.
-        let response_id = format!("chatcmpl-uor-r4-{}", gen.created_ts);
-        let system_fingerprint = format!("uor-r4-{}", gen.generation_mode);
+        let response_id = format!("chatcmpl-r4-{}", gen.created_ts);
+        let system_fingerprint = format!("r4-{}", gen.generation_mode);
         // #654 phase C: `length` when the served completion reached the
         // effective token budget, otherwise `stop`.
         let finish_reason = completion_finish_reason(gen.completion_tokens, max_tokens).to_string();
@@ -16135,7 +16157,7 @@ fn handle_connection(
         // the Responses typed-event sequence (created → … → response.completed;
         // no `[DONE]` sentinel). The wire format is streaming, not the generation.
         if req.stream == Some(true) {
-            let response_id = format!("resp-uor-r4-{}", gen.created_ts);
+            let response_id = format!("resp-r4-{}", gen.created_ts);
             let created_at = gen.created_ts;
             let content = gen.text.clone();
             let completed = build_responses_body(gen, &model_name, max_tokens);
@@ -17933,14 +17955,14 @@ fn build_responses_body(
     };
     let audit = serde_json::to_value(&gen.uor_audit).unwrap_or(serde_json::Value::Null);
     let mut body = serde_json::json!({
-        "id": format!("resp-uor-r4-{}", gen.created_ts),
+        "id": format!("resp-r4-{}", gen.created_ts),
         "object": "response",
         "created_at": gen.created_ts,
         "model": model,
         "status": status,
         "output": [{
             "type": "message",
-            "id": format!("msg-uor-r4-{}", gen.created_ts),
+            "id": format!("msg-r4-{}", gen.created_ts),
             "status": "completed",
             "role": "assistant",
             "content": [{
@@ -17987,7 +18009,7 @@ fn build_responses_stream_frames(
     content: &str,
     completed: serde_json::Value,
 ) -> Vec<String> {
-    let item_id = format!("msg-uor-r4-{created_at}");
+    let item_id = format!("msg-r4-{created_at}");
     let in_progress = serde_json::json!({
         "id": id,
         "object": "response",
@@ -24847,9 +24869,15 @@ mod tests {
         assert_eq!(
             super::active_canonical_model_name(&serving, super::EngineProfile::Production)
                 .as_deref(),
-            Some("teacher"),
+            Some(super::CANONICAL_MODEL_ID),
             "a host-encoded historical graph remains advertised (it IS the \
-             servable R4G1 artifact, so Production counts it, #789-G2)"
+             servable R4G1 artifact, so Production counts it, #789-G2) — \
+             under the canonical identity, not the physical name (#655-F)"
+        );
+        assert_eq!(
+            super::installed_logical_model_name(&serving),
+            "teacher",
+            "the physical name stays visible as metadata (#655-F)"
         );
         assert_eq!(
             super::resolve_active_request_model(
@@ -24857,8 +24885,17 @@ mod tests {
                 super::EngineProfile::Production,
                 Some("uor-r4")
             )
-            .expect("legacy alias resolves to the graph"),
-            "teacher"
+            .expect("the deprecated alias resolves to the canonical identity"),
+            super::CANONICAL_MODEL_ID
+        );
+        assert_eq!(
+            super::resolve_active_request_model(
+                &serving,
+                super::EngineProfile::Production,
+                Some("r4")
+            )
+            .expect("the canonical identity resolves to itself"),
+            super::CANONICAL_MODEL_ID
         );
         let _ = std::fs::remove_dir_all(root);
     }
@@ -27383,11 +27420,43 @@ mod tests {
         );
     }
 
+    /// #655-F: the native status surface (which `/api/chat`'s shared
+    /// serving state also reports through) carries the canonical served
+    /// identity alongside the physical name as metadata — the B-item
+    /// verify of the rename inventory.
+    #[test]
+    fn status_reports_the_canonical_identity_with_the_physical_name_as_metadata() {
+        let state = super::ServingModelState {
+            active_bundle: Some(sample_resolved_compiled_bundle(None)),
+            ..super::ServingModelState::default()
+        };
+        for profile in [
+            super::EngineProfile::Production,
+            super::EngineProfile::Experimental,
+        ] {
+            let status = super::uor_status_json(&state, profile);
+            assert_eq!(status["canonical_model"], super::CANONICAL_MODEL_ID);
+            assert_eq!(
+                status["model_name"],
+                super::installed_logical_model_name(&state),
+                "the physical name stays visible as metadata"
+            );
+        }
+    }
+
     #[test]
     fn openai_model_alias_and_wire_surfaces_report_only_the_active_canonical_id() {
+        // #655-F deprecation window: both the canonical `r4` and the
+        // pre-flip `uor-r4` alias resolve to the active canonical id;
+        // an unknown name still declines; no active model still errors.
         let canonical = super::resolve_request_model_name(Some("alpha"), Some("uor-r4"))
-            .expect("legacy alias intentionally maps to active");
+            .expect("deprecated alias intentionally maps to active");
         assert_eq!(canonical, "alpha");
+        assert_eq!(
+            super::resolve_request_model_name(Some("alpha"), Some("r4")).unwrap(),
+            "alpha",
+            "the canonical id is accepted regardless of the active string (#655-F)"
+        );
         assert_eq!(
             super::resolve_request_model_name(Some("alpha"), None).unwrap(),
             "alpha"
@@ -27398,6 +27467,7 @@ mod tests {
         );
         assert!(super::resolve_request_model_name(Some("alpha"), Some("beta")).is_err());
         assert!(super::resolve_request_model_name(None, Some("uor-r4")).is_err());
+        assert!(super::resolve_request_model_name(None, Some("r4")).is_err());
 
         let listed = super::models_list_body(&[(canonical.clone(), 7, false)]);
         assert_eq!(listed["data"].as_array().unwrap().len(), 1);
@@ -27687,7 +27757,7 @@ mod tests {
     #[test]
     fn stream_frames_have_role_first_content_then_terminal_done() {
         let frames = super::build_chat_stream_frames(
-            "chatcmpl-uor-r4-1",
+            "chatcmpl-r4-1",
             1,
             "uor-r4",
             "uor-r4-r4g1",
@@ -27705,7 +27775,7 @@ mod tests {
         // Every chunk is a chat.completion.chunk carrying the shared id.
         for chunk in &chunks {
             assert_eq!(chunk["object"], "chat.completion.chunk");
-            assert_eq!(chunk["id"], "chatcmpl-uor-r4-1");
+            assert_eq!(chunk["id"], "chatcmpl-r4-1");
         }
         // First chunk carries the assistant role and no finish_reason.
         assert_eq!(chunks[0]["choices"][0]["delta"]["role"], "assistant");
@@ -27739,7 +27809,7 @@ mod tests {
             total_tokens: 5,
         };
         let frames = super::build_chat_stream_frames(
-            "chatcmpl-uor-r4-2",
+            "chatcmpl-r4-2",
             2,
             "uor-r4",
             "uor-r4-r4g1",
@@ -27955,7 +28025,7 @@ mod tests {
         // The SDK reads choices[0].message.{role,content}, choices[0].
         // finish_reason, usage.{prompt,completion,total}_tokens, and id/object.
         let resp = super::VendorChatCompletionsResponse {
-            id: "chatcmpl-uor-r4-1".to_string(),
+            id: "chatcmpl-r4-1".to_string(),
             object: "chat.completion".to_string(),
             created: 1,
             model: "uor-r4".to_string(),
@@ -28077,7 +28147,7 @@ mod tests {
         let completed =
             super::build_responses_body(dummy_generation("hello world", 2, 7), "uor-r4", 64);
         let frames = super::build_responses_stream_frames(
-            "resp-uor-r4-7",
+            "resp-r4-7",
             7,
             "uor-r4",
             "hello world",

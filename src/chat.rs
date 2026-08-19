@@ -2016,7 +2016,7 @@ pub fn remote_interactive_chat(
 
     loop {
         let prompt_lbl = format!(
-            "\x1b[1;36muor-r4\x1b[0m \x1b[33m[model: {} | engine: {}]\x1b[0m \x1b[1;32m>\x1b[0m ",
+            "\x1b[1;36mr4\x1b[0m \x1b[33m[model: {} | engine: {}]\x1b[0m \x1b[1;32m>\x1b[0m ",
             current_active_model, current_active_engine
         );
         let line_opt = match read_line_with_history(&prompt_lbl, &mut history, input, output) {
@@ -2925,11 +2925,14 @@ fn send_vendor_chat_completion(
         .as_u64()
         .unwrap_or_else(|| content.split_whitespace().count() as u64)
         as usize;
-    let mode = parsed["system_fingerprint"]
-        .as_str()
-        .unwrap_or("uor-r4")
-        .strip_prefix("uor-r4-")
-        .unwrap_or_else(|| parsed["system_fingerprint"].as_str().unwrap_or("uor-r4"))
+    // #655-F: fingerprints are `r4-{mode}` post-flip; the pre-flip
+    // `uor-r4-{mode}` prefix stays parseable for the deprecation window
+    // (an old server behind a new client).
+    let fingerprint = parsed["system_fingerprint"].as_str().unwrap_or("r4");
+    let mode = fingerprint
+        .strip_prefix("r4-")
+        .or_else(|| fingerprint.strip_prefix("uor-r4-"))
+        .unwrap_or(fingerprint)
         .to_string();
 
     let uor_audit: Option<crate::server::UorAuditTrace> = parsed

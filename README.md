@@ -373,6 +373,12 @@ responses carry permissive CORS.
 **OpenAI-compatible (`/v1`)** — this is what `r4 client` and `r4 chat --remote`
 speak; `/v1` is kept a pure OpenAI surface (see `profiles/openai/`):
 
+The canonical served model id is **`r4`** (#655-F): requests may omit
+`model`, send `r4`, or send the deprecated pre-flip alias `uor-r4`
+(accepted for a compatibility window); responses, `/v1/models`, and wire
+ids (`chatcmpl-r4-…`, `system_fingerprint: r4-…`) always report `r4`.
+Per-bundle physical names remain visible as metadata on `/uor/v1/status`.
+
 | Endpoint | Purpose |
 |---|---|
 | `POST /v1/chat/completions` | Chat completion (non-streaming and SSE streaming) |

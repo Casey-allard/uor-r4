@@ -162,6 +162,19 @@ All follow the override contract above.
 | `UOR_R4_RELEASE_BUNDLE_PATH` | — | `release_bundle_packager` real-local-bundle test (`#[ignore]`d; mirrors the `UOR_R4_API_E2E_SOURCE` convention) |
 | `PORT` | 8000 | `./uor-r4-cli` orchestrator only (shell script; the `r4` binary itself reads `UOR_R4_PORT`) |
 
+## Served model identity (#655-F)
+
+The canonical served model id on every serving surface (OpenAI `/v1`
+routes, native `/api/chat`, WS, WASM) is **`r4`**. Requests may omit
+`model`, send `r4`, or send the deprecated pre-flip alias `uor-r4`
+(accepted for a compatibility window); responses and `/v1/models`
+always report `r4`, and OpenAI wire ids are `r4`-prefixed
+(`chatcmpl-r4-…`, `resp-r4-…`, `msg-r4-…`, `system_fingerprint:
+r4-{mode}`). The CLI `client` subcommand's `--model` default is `r4`.
+Per-bundle logical/physical names are metadata (`/uor/v1/status`), not
+the served identity. Engine/tier names (`r4g1`, …) are unrelated to the
+model id and unchanged.
+
 ## Runtime state files
 
 Written under `.uor-models/` (or `UOR_MODEL_STORE`):
