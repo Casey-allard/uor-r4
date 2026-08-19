@@ -278,6 +278,27 @@ and #755's decisive fix-and-retest (detailed above) substantially advanced
 that answer — real, grammatical English where the same corpus previously
 produced garbage or a hang — though the residual prompt-insensitivity means
 it is not fully settled.
+
+**Continuation (2026-08-19, the #655 close-out measurements).** The
+prompt-insensitivity question got sharper and partially decomposed. The F-p2
+canary (#655, 20 declared prompts × 2 passes on `smollm2-360m-broad`)
+separated *validity* from *distinctness*: under greedy decode, **0/15**
+in-domain prompts produced valid completions (every one collapsed into a
+digit-attractor); under seeded weighted sampling, **15/15** were valid
+English sentences — so the validity failure was decode-policy-bound, and
+seeded sampling (pinned seed, reproducible) is now the serving/CLI default
+(#813/#814, byte-identical to the measured arm). *Distinctness* did not
+move: 5/15 distinct outputs with an 8-identical group, and the convergence
+sits upstream of decode in the context-code path — tracked as **#784**, the
+current sharpest statement of the prompt-conditioning question. Relatedly,
+wiring the deployed D4 policy into the CLI ask path (#811) measured that
+none of the five out-of-distribution probes resolves Novel — semantic OOD
+does not present as signature-space novelty on a broad corpus, so honest
+"I don't know" behavior for such prompts is also gated on the same
+substrate question, not on serving wiring. The #784 next step is
+deliberately held for the **#604/#605 S1 verdict** (the route-attention
+real-teacher fit, running under the amended contract as of this note),
+per the standing maintainer decision.
 The **geometric router** is a validated, real component (content-query
 retrieval MRR 0.88+, #486/#490/#502) but it is a retrieval/routing mechanism,
 not itself a generative model, and it runs on `f64` outside the P-4 kernel by
@@ -290,8 +311,12 @@ P-4-legal integer attention analog (masked-XOR/popcount distance plus bounded
 top-M selection) that is constructible today but wired into **no serving
 path** — registered dormant (`r4-route-attention-dormant`) in
 `model/ledger.toml`. It is the closest thing in this repository to a
-transformer-*shaped* mechanism that is also genuinely goal-aligned, and it has
-not yet been evaluated as a lever for #745's generation-quality question. The
+transformer-*shaped* mechanism that is also genuinely goal-aligned, and its
+first real-teacher evaluation is now **in progress**: #804/#605's S1 fits
+route codes against a traced SmolLM2-360M teacher on a broad corpus under a
+pre-registered overlap-gate contract (amendments on #605), with the verdict
+deciding whether the operator advances (S1-2 restricted-forward parity,
+then the #643 A/B) or retires with a negative record. The
 **`attention`/`r4-attention`** engine modes and **GNAF** (#653) are out of
 scope for this question by the project's own stated goal: the former run the
 teacher's real matmul/float attention purely as a comparison baseline, never

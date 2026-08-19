@@ -1,35 +1,87 @@
 # R⁴ — Local Transformerless AI
 
 [![CI](https://github.com/UOR-Foundation/uor-r4/actions/workflows/ci.yml/badge.svg)](https://github.com/UOR-Foundation/uor-r4/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/UOR-Foundation/uor-r4)](https://github.com/UOR-Foundation/uor-r4/releases/latest)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Rust 1.97.1](https://img.shields.io/badge/rust-1.97.1-orange.svg)](rust-toolchain.toml)
 
-R⁴ cross-compiles a pinned Hugging Face model into a **table-native artifact that
-runs inference with no multiplication, no floating point, and no allocation in
-the hot path** — on a CPU, locally, with a content-addressed witness for every
-prediction. It also contains a geometric text router and a browser dashboard.
+## What is this?
 
-No Ollama, llama.cpp, OpenAI, or Anthropic at runtime. Nothing leaves the
-machine.
+Modern AI models answer questions by doing billions of floating-point
+multiplications per word, which is why they want GPUs, datacenters, and a
+power budget. **R⁴ asks whether the expensive math can be paid once, ahead
+of time, instead of on every single question.**
 
-R⁴ is aligned with the
+It takes an ordinary open language model (the *teacher*), watches how it
+behaves on a corpus, and **compiles** that behavior into integer lookup
+structures — packed tables and a scored graph. Answering then needs only
+bit operations, integer adds, compares, and table reads: **no
+multiplication, no floating point, no GPU, no allocation in the hot path**,
+on an ordinary CPU. Every answer carries a content-addressed witness — a
+verifiable receipt of exactly which evidence produced it — and when the
+engine doesn't have grounded evidence for a prompt, it says so with a typed
+abstention instead of guessing confidently.
+
+Everything runs locally. No Ollama, llama.cpp, OpenAI, or Anthropic at
+runtime; nothing leaves the machine, and nothing downloads unless you
+explicitly ask it to.
+
+**Who this is for.** Researchers and engineers curious whether serving-time
+AI can shed the GPU/energy footprint — and anyone who wants to watch a
+measurement-driven research programme happen in the open. It is **not** a
+ChatGPT replacement: output quality is research-grade and honestly
+disclosed ([What actually works](#what-actually-works)). If you are
+completely new, the [ELI5](docs/explainers/ELI5.md) and
+[undergraduate](docs/explainers/UNDERGRADUATE.md) explainers are written
+for you.
+
+R⁴ is part of the [UOR Foundation](https://github.com/UOR-Foundation)'s
+work, aligned with the
 [Universal Object Reference Framework](https://github.com/UOR-Foundation/UOR-Framework),
 [Prism](https://github.com/UOR-Foundation/prism) and
 [uor-addr](https://github.com/UOR-Foundation/uor-addr).
 
-> **Status: research project, v0.1.0.** The compiler, runtime, artifact format
-> and measurement harnesses work and are exercised by CI. Generation quality is
-> *not* competitive with the teacher models it compiles — see
-> [What actually works](#what-actually-works) for honest numbers. This repository
-> is run as a measured research programme; [docs/RESEARCH.md](docs/RESEARCH.md)
-> records what has been established and what has been refuted.
+## The idea in one picture
+
+```mermaid
+flowchart LR
+    subgraph offline["OFFLINE — paid once, hours on a CPU"]
+        direction LR
+        Teacher["Open teacher model<br/>(e.g. SmolLM2)"] -->|"teacher-forced<br/>observation"| Corpus["Deterministic<br/>corpus"]
+        Corpus -->|"compile +<br/>score"| Bundle["Integer bundle<br/>tables + scored graph<br/>(content-addressed)"]
+    end
+    subgraph online["ONLINE — every question, milliseconds on a CPU"]
+        direction LR
+        Q["Your question"] --> Kernel["Integer kernel<br/>XOR · popcount · add ·<br/>compare · table reads"]
+        Kernel --> A["Answer + verifiable witness<br/>(or an honest typed abstention)"]
+    end
+    Bundle ==>|"ships as a verified<br/>release asset"| Kernel
+```
+
+The heavy math (the teacher's matrix multiplications) happens only in the
+offline compile — and even there it runs through the project's own pinned
+exact-arithmetic library, not platform BLAS. The deployed answer path is
+enforced multiplication-free by a machine-checked source scan and an
+operation census, not by convention.
+
+> **Status: research project.** [Release v0.1](https://github.com/UOR-Foundation/uor-r4/releases/tag/v0.1)
+> ships working binaries and a compiled model bundle you can install and
+> query in one verified command. The compiler, runtime, artifact format and
+> measurement harnesses are exercised by CI. Generation quality is *not*
+> competitive with the teacher models it compiles — answers are valid
+> English with weak prompt-conditioning and research-grade factuality; see
+> [What actually works](#what-actually-works) for honest numbers. This
+> repository is run as a measured research programme;
+> [docs/RESEARCH.md](docs/RESEARCH.md) records what has been established
+> and what has been refuted.
 
 ---
 
 ## Contents
 
 - [Quick start](#quick-start) · [Requirements](#requirements) · [What actually works](#what-actually-works)
-- [Project layout](#project-layout) · [Architecture](#architecture)
+- [Project layout](#project-layout) · [Architecture](#architecture) · [How a request is served](#how-a-request-is-served)
+- [Releases and verified install](#releases-and-verified-install)
 - [CLI reference](#cli-reference) · [HTTP API](#http-api) · [Configuration](#configuration)
 - [Testing and quality gates](#testing-and-quality-gates) · [Troubleshooting](#troubleshooting)
 - [Documentation map](#documentation-map) · [Contributing](#contributing) · [License](#license)
@@ -50,6 +102,26 @@ Open <http://127.0.0.1:8000>. The geometric router, the 96-vertex W(3,3)
 phase-field canvas and the semantic map all work with no model, no download and
 no compile. This is the fastest way to confirm the repository builds and runs on
 your machine.
+
+### 2 minutes — install the released model and ask it something
+
+Skip the multi-hour compile entirely: [release v0.1](https://github.com/UOR-Foundation/uor-r4/releases/tag/v0.1)
+ships a compiled bundle as an attested asset.
+
+```bash
+cargo build --release
+./target/release/r4 install-release --tag v0.1   # explicit, digest-verified fetch (~16 MB)
+./target/release/r4 ask --model r4 "Tell me a fact about the ocean."
+```
+
+`install-release` verifies every component's blake3 digest against the
+release's attested manifest before anything lands on disk, and refuses
+archives containing anything unattested. The answer will be valid English
+of research-grade quality — read the honest release notes and
+[What actually works](#what-actually-works) before judging it as a
+chatbot. Decode defaults to seeded sampling with a pinned seed, so the
+same question reproduces the same answer; `--greedy` opts into the
+deterministic beam.
 
 ### 5 minutes — run the measurement pipeline on the committed fixtures
 
@@ -90,6 +162,7 @@ client at the end:
 | **Rust** | Pinned to **1.97.1** by `rust-toolchain.toml`. rustup resolves it automatically. |
 | **Python 3** | For `scripts/*.py` — two of them are CI gates. |
 | **`hf`** (Hugging Face CLI) | Only for downloading teacher models. |
+| **`curl` + `tar`** | Only for `r4 install-release` (fetching released bundle assets). Present by default on macOS and most Linux. |
 | **`wasm-pack`** | Only to rebuild the browser WASM bundle. |
 | **`cargo-nextest`** | Only to mirror CI's test runner locally. |
 | **Nightly Rust** | Only for `cargo fuzz`. |
@@ -129,31 +202,47 @@ whole method is measurement.
 - **UOR attestation**: content-addressed model objects and manifests, witnessed
   prediction, and a `POST /api/uor/verify` validation endpoint.
 - The **geometric router**, browser dashboard and OpenAI-compatible server.
+- **Honest serving semantics, by construction.** The default `production`
+  profile admits only the audited r4g1 tier; a request nothing can serve gets
+  a typed `declined_by_all`, never a silent fallback; out-of-distribution
+  resolution triggers the D4 policy (serve / widen-once / abstain) on both
+  the HTTP and CLI surfaces, and an abstention serves *no* tokens rather
+  than a guess. Decode defaults to seeded sampling with a pinned seed —
+  identical requests reproduce identical completions.
+- **A shipped, verifiable release.** `v*` tags build both frontends and bind
+  code SHA + inference-contract version; the model bundle ships as an
+  attested asset, and `r4 install-release` refuses anything whose digests
+  don't match the manifest ([docs/RELEASE_PIPELINE.md](docs/RELEASE_PIPELINE.md)).
 - A **measurement apparatus**: 34 harnesses with pre-declared exit rules, null
   baselines and falsifiers, plus a Gate C trend alarm that fails CI on
   regression.
 
 **Real limitations, stated plainly:**
 
-- **Generation quality is weak, and on the best locally compiled bundle it is
-  currently incoherent.** On out-of-distribution prompts the compiled runtimes
-  score around 1% top-1 against the teacher. On in-distribution corpus replay
-  Gate C measures ~36% top-1 on the 500k fixture, and a broader teacher (P3,
-  #509) lifts broad-text held-out top-1 to 10.2–29.0% causal — real,
-  replicated, goal-aligned signal. That signal has **not yet composed into
-  coherent multi-token output**: asked real questions through `r4 ask`, this
-  repository's largest local bundle answers in non-grammatical word-salad, and
-  smaller bundles answer with nothing (#745 — closed 2026-08-17: the root cause
-  was found and fixed in the compiler (#755, corpus record ordering), but the
-  canonical local bundles have not yet been recompiled with the fix, so
-  baseline output is unchanged as of 2026-08-18). See
+- **Generation quality is the central open research question.** The offline
+  per-position signal is real: on in-distribution corpus replay Gate C
+  measures ~36% top-1 on the 500k fixture, and a broader teacher (P3, #509)
+  lifts broad-text held-out top-1 to 10.2–29.0% causal — replicated,
+  goal-aligned, entirely inside the integer kernel. End-to-end answers have
+  improved in *kind* but remain research-grade: the #755 corpus-ordering fix
+  turned word-salad into real English, and the 2026-08-19 decode-default
+  change (seeded sampling replacing greedy) took the declared 15-prompt
+  in-domain canary from **0/15 valid completions to 15/15** — but
+  **prompt-conditioning is still weak**: distinct prompts converge onto
+  similar completions (5/15 distinct, tracked as #784), factual content
+  wanders, and the canonical local bundles still predate the #755 recompile.
+  Semantically unanswerable prompts ("what did I eat for breakfast?") are
+  served rather than abstained, because they do not present as
+  signature-space novelty to the D4 policy — a measured substrate property
+  (#811), same family as #784. See
   [Which track can actually produce coherent text](docs/RESEARCH.md#which-track-can-actually-produce-coherent-text--the-honest-current-answer)
-  for the full picture — this is the project's central open question, not a
-  footnote. This is a research engine, not a chat model.
-- **Instruction following is gated, not solved.** `r4 ask` accepts only an
-  imported `instruction-chat` manifest carrying a CID-addressed passing
-  evaluation report, precisely so a fast continuation artifact cannot be
-  presented as a question-answering model.
+  for the full picture. This is a research engine, not a chat model.
+- **Instruction following is gated, not solved.** An *imported* manifest is
+  accepted by `r4 ask` only with a CID-addressed passing evaluation report,
+  precisely so a fast continuation artifact cannot be presented as a
+  question-answering model; a locally compiled (or release-installed) bundle
+  is served directly but logs a loud
+  "without an instruction-quality attestation" warning every time.
 - **Standalone two-pass generation is refuted**, twice, and is not coming back.
 - **The geometric router's retrieval was measured broken, and is now fixed and
   shipping.** #486 found `retrieve_geometric_resonance` compared a *routing*
@@ -251,6 +340,58 @@ legacy u16 stores are readable but want a recompile.
 
 ---
 
+## How a request is served
+
+Serving is built so that every outcome is a *typed, honest* one — served
+text with a witness, a typed decline, or a typed abstention. Nothing falls
+back silently and nothing is guessed:
+
+```mermaid
+flowchart TD
+    Req["Request<br/>(model: r4 · optional engine, temperature, seed)"] --> Profile{"Engine profile<br/>(.uor-models/engine_profile.txt)"}
+    Profile -->|"production (default):<br/>r4g1 only"| Tier["r4g1 tier<br/>validated scored graph"]
+    Profile -->|"explicit non-r4g1 engine<br/>under production"| Decline["Typed decline<br/>(echoes the requested engine)"]
+    Profile -->|"experimental:<br/>full cascade, r4g1 first"| Tier
+    Tier --> D4{"D4 policy, per step<br/>(resolution status)"}
+    D4 -->|"exact-context / graph"| Decode["Decode<br/>default: seeded sampling, pinned seed<br/>(temperature: 0 → greedy)"]
+    D4 -->|"novel → widen once<br/>→ still novel"| Abstain["Typed abstention<br/>no tokens served,<br/>partial output dropped"]
+    Decode --> Resp["Response as model 'r4'<br/>+ decode witness"]
+    Tier -->|"nothing can serve"| DBA["Typed declined_by_all"]
+```
+
+The same D4 policy runs on the HTTP server and the CLI `ask`/`chat` paths —
+one implementation, not two approximations of each other. The `uor-r4`
+request alias from before the identity flip is still accepted for a
+deprecation window; responses always report `r4`.
+
+---
+
+## Releases and verified install
+
+A version tag `vX.Y` binds three identities in one place: the **code** (the
+tag's commit SHA), the **contract** (the inference-contract version), and
+the **model bundle** (blake3 digests of every component, declared in the
+attested `release-bundle.json`). CI builds and attaches both frontends;
+the bundle is packaged and attached by the maintainer; nothing publishes
+without an explicit tag cut. Full convention:
+[docs/RELEASE_PIPELINE.md](docs/RELEASE_PIPELINE.md).
+
+```mermaid
+flowchart LR
+    Tag["git tag vX.Y"] --> CI["CI: draft release<br/>CLI (linux x86_64, macOS arm64)<br/>+ wasm frontend + sha256s"]
+    CI --> Rel["Published GitHub Release<br/>+ attested bundle manifest"]
+    Rel --> Fetch["r4 install-release --tag vX.Y<br/>(explicit — nothing auto-downloads)"]
+    Fetch --> Verify{"every component digest<br/>== attested manifest?<br/>nothing unattested?"}
+    Verify -->|yes| Install["Atomic install under<br/>.uor-models/compiled/<br/>manifest kept beside bundle"]
+    Verify -->|no| Refuse["Refuse — nothing<br/>touches the store"]
+```
+
+The install never overwrites an existing bundle, refuses archives carrying
+unattested files or symlinks, and leaves the manifest beside the bundle so
+serving-time verification sees the same attestation.
+
+---
+
 ## CLI reference
 
 Everything below supports `--help`. Global flags (`--host`, `--port`,
@@ -262,15 +403,23 @@ no subcommand is `r4 serve`.
 
 ```bash
 r4 serve                                    # HTTP server + dashboard
-r4 ask [--model NAME|CID] <question...>     # one-shot; prints only the answer
-r4 chat [--model NAME|CID] [--remote URL]   # REPL, local or against a remote /v1
-r4 client [--remote http://127.0.0.1:8000/v1]
+r4 ask [--model NAME|CID] [--greedy | --sample SEED] <question...>
+r4 chat [--model NAME|CID] [--remote URL] [--greedy | --sample SEED]
+r4 client [--remote http://127.0.0.1:8000/v1]   # --model defaults to r4
 r4 audit [--log-file .uor-models/audit_log.json]
 ```
+
+`ask`/`chat` decode with seeded sampling by default (pinned seed —
+reproducible); `--sample SEED` overrides the seed, `--greedy` opts into the
+deterministic beam. A typed D4 abstention prints as an explicit
+`[abstained: …]` line, never as empty output.
 
 **Model lifecycle** — full guide in [docs/MODEL_LIFECYCLE.md](docs/MODEL_LIFECYCLE.md)
 
 ```bash
+r4 install-release --tag vX.Y [--repo OWNER/REPO] [--name NAME]   # verified fetch of a released bundle
+r4 package-release-bundle --compiled DIR --model-id r4 --capability instruction-chat \
+                          --source DIR --tokenizer-family FAMILY --tokenizer-version N
 r4 download --repository OWNER/REPO --revision <40-char SHA> --name NAME
 r4 compile --source DIR [--tokenizer-family FAMILY --tokenizer-version N] \
            [--output DIR] [--seconds N] [--target N] [--sequence-length N]
@@ -378,6 +527,9 @@ The canonical served model id is **`r4`** (#655-F): requests may omit
 (accepted for a compatibility window); responses, `/v1/models`, and wire
 ids (`chatcmpl-r4-…`, `system_fingerprint: r4-…`) always report `r4`.
 Per-bundle physical names remain visible as metadata on `/uor/v1/status`.
+Decode is seeded sampling by default: `temperature: 0` opts a request into
+the deterministic greedy decode, and an optional integer `seed` overrides
+the pinned default so identical requests stay reproducible either way.
 
 | Endpoint | Purpose |
 |---|---|
@@ -534,7 +686,8 @@ harness inventory is in [docs/RESEARCH.md](docs/RESEARCH.md).
 | κ tests pass suspiciously fast | `/tmp/ref/out/model.bin` is missing, so they **skip silently and report vacuous green**. `/tmp` cleanup deletes it. Re-fetch (below) and confirm the file exists before trusting a pass. |
 | fmt/clippy disagree with CI | A non-rustup Rust earlier in `PATH` ignores the toolchain pin. Check `which cargo`. |
 | clippy passes locally, fails in CI | You omitted `--all-features`. Use the exact invocation above. |
-| `r4 ask` refuses to run | The bundle has no CID-addressed passing evaluation report. Run `r4 evaluate-report`, then `r4 import`. |
+| `r4 ask` refuses to run | An *imported* manifest needs a CID-addressed passing evaluation report — run `r4 evaluate-report`, then `r4 import`. Locally compiled or release-installed bundles serve directly (with an attestation warning). |
+| `install-release` refuses | That's it working: a digest mismatch, an unattested archive entry, or an existing install at the target name all refuse with nothing written. The error names the exact cause. |
 | Port 8000 already in use | Use `--port` / `UOR_R4_PORT`, or `PORT=9000 ./uor-r4-cli`. |
 | Compiled bundle behaves oddly after an upgrade | The on-disk store in `.uor-models/` may predate the u32 token migration. A full recompile refreshes it. |
 | `--revision` rejected | It must be a full 40-character commit hash; the server refuses unpinned revisions. |
@@ -554,12 +707,14 @@ cd /tmp && unzip -o run.com out/model.bin tokenizer.bin -d ref
 
 **Start here**
 
+- [docs/explainers/ELI5.md](docs/explainers/ELI5.md) · [docs/explainers/UNDERGRADUATE.md](docs/explainers/UNDERGRADUATE.md) — if you're new, start with these.
 - [docs/RESEARCH.md](docs/RESEARCH.md) — what is measured, what is closed, what is open, and
   [which track can actually produce coherent text](docs/RESEARCH.md#which-track-can-actually-produce-coherent-text--the-honest-current-answer).
-- [docs/MODEL_LIFECYCLE.md](docs/MODEL_LIFECYCLE.md) — download → compile → cover → score → evaluate → import → serve.
+- [docs/MODEL_LIFECYCLE.md](docs/MODEL_LIFECYCLE.md) — install a released bundle, or download → compile → cover → score → evaluate → import → serve.
+- [docs/RELEASE_PIPELINE.md](docs/RELEASE_PIPELINE.md) — the vX.Y convention, cutting a release, and the verified install.
 - [AGENTS.md](AGENTS.md) — contributor manual: gates, normative invariants, κ re-pin, long-run discipline.
 - [CONTRIBUTING.md](CONTRIBUTING.md) — how to open a PR here.
-- [docs/CONFIGURATION.md](docs/CONFIGURATION.md) — every environment knob.
+- [docs/CONFIGURATION.md](docs/CONFIGURATION.md) — every environment knob, and the served-identity contract.
 
 **Explainers** — [ELI5](docs/explainers/ELI5.md) ·
 [Undergraduate](docs/explainers/UNDERGRADUATE.md) ·

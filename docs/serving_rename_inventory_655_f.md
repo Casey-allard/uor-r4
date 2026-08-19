@@ -74,7 +74,7 @@ effect. F does not touch them.
 | `docs/RESEARCH.md` | 9 | historical mentions stay (records); forward-looking identity lines change |
 | `docs/MODEL_LIFECYCLE.md` | 45 | the big one: lifecycle examples all use `uor-r4` |
 | `docs/CONFIGURATION.md` | 2 | alias + default rows |
-| threat-model | **no `THREAT_MODEL.md` exists in `docs/`** | F's list references a doc this repo does not have; the flip PR either creates it (product decision) or records the absence — flag for the maintainer at flip time |
+| threat-model | **CORRECTED 2026-08-19**: this row originally said no `THREAT_MODEL.md` exists — wrong; it lives at `docs/transformerless/THREAT_MODEL.md` (this table's grep only covered `docs/` root) | Updated in the post-flip docs review: a release-asset supply-chain row was added for the distribution surface the flip introduced; the doc had no identity mentions to rename |
 | `docs/SERVING_MODEL_DISCOVERY.md` (not on F's list) | 3 | update anyway — it documents the alias |
 
 ## Execution shape (when authorized)

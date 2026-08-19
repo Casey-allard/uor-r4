@@ -35,6 +35,7 @@ from untrusted storage or networks.
 | Bias amplification / rare-group erasure | compression strengthens source-model failures or drops rare behavior | amplification/erasure metrics, worst-group slices in certificates, provenance at membership-edge granularity enabling deletion (PDF §14) |
 | Patch-chain abuse | forks, unbounded layers, replayed old layers | immutable ordered layers, newest-valid precedence, bounded lookup, chain validation, canonical compaction (Theorem 11) |
 | Witness forgery | fabricated prediction witnesses | independent replay verifier recomputes every step from validated bytes; CID inclusion checks (Theorem 6) |
+| Release-asset tampering (supply chain) | swapped or modified bundle assets on the distribution channel; archives smuggling unattested files or symlinks | `r4 install-release` (#741, since v0.1) verifies **every** component's blake3 digest against the release's attested `release-bundle.json` before anything is installed; archives containing any unattested entry or any symlink are refused outright; existing installs are never overwritten; the fetch is explicit-only — no serving path or first request ever downloads (`docs/RELEASE_PIPELINE.md`). The manifest binds the bundle to the release tag, which binds the code SHA and contract version |
 
 ## 4. Explicit non-defenses (documented limits)
 

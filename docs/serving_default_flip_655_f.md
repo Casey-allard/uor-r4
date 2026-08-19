@@ -264,7 +264,13 @@ README/CONFIGURATION carry the identity contract. Deliberate
 exclusions, unchanged from the inventory: crate names, schema strings,
 staging dirs, the `uor-r4-cli` orchestrator script file name, and the
 four source-verification logical-name fallbacks (infrastructure
-identifiers, not served identity). **The threat-model doc F's list
-names does not exist in this repository**; creating one remains a
-separate product decision, recorded here rather than improvised at
-flip time.
+identifiers, not served identity).
+
+**Correction (2026-08-19, docs review):** the addendum above and the
+inventory originally recorded "no THREAT_MODEL.md exists" — that was
+wrong. The threat model lives at
+`docs/transformerless/THREAT_MODEL.md` (README-linked); the inventory's
+grep only covered `docs/` root. F's threat-model doc obligation was
+satisfied in the same docs-review pass by adding the release-asset
+supply-chain row (the surface the flip's distribution channel
+introduced); no identity mentions existed there to rename.

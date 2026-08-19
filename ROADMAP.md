@@ -6,32 +6,40 @@ programme — what has been measured, refuted and left open — lives in
 purpose. Research direction is set by measurement and changes faster than this
 list does.
 
-_Last reviewed: 2026-08-18 (baseline audit; issue states reconciled to GitHub)._
+_Last reviewed: 2026-08-19 (post-#655 close; issue states reconciled to GitHub)._
 
 ## Next up (recommended sequencing)
 
-Open issues are now exactly **#655** (serving epic; A–E and F0 complete, the
-F flip blocked on #741 + a fresh quality read) and **#741** (distribution,
-maintainer-deferred). The previously listed items #744, #745, #740, and #653
-have all **closed** — see `docs/RESEARCH.md` and
-`docs/project_baseline_audit_2026_08_18.md`. Recommended order now:
+The serving epic is **done**: **#655 closed 2026-08-19** (A–F complete; `r4`
+is the canonical served identity, seeded sampling is the decode default, the
+ask path applies the deployed D4 policy) along with **#741** (release **v0.1
+is published**, with the tag-triggered pipeline and the verified
+`r4 install-release` fetch — `docs/RELEASE_PIPELINE.md`) and **#811**. The
+only open issue repo-wide is **#804** (the route-attention decision; its S1
+real-teacher evidence run is executing under the amended #605 contract).
+Recommended order now:
 
-1. **Recompile the canonical local bundles with the #755 fix and take a fresh
-   quality read** (no open issue yet — the audit's E-1 run contract). The
-   compiler fix is merged and regression-tested, but every canonical bundle
-   still predates it and remains degenerate at baseline (reproduced
-   2026-08-18). This is the cheapest action that can move #655-F
-   precondition 2, and it decides whether the #460-lineage codebook-collision
-   work needs its own new issue.
-2. **[#655](https://github.com/UOR-Foundation/uor-r4/issues/655)** — the
-   remaining epic itself: C1e (loader reconciliation) and the F identity flip
-   stay blocked per `docs/serving_default_flip_655_f.md`.
-3. **[#741](https://github.com/UOR-Foundation/uor-r4/issues/741)** —
-   explicitly deferred until the model-quality work lands; unchanged.
-4. **Untracked remnants worth new issues when picked up:** the #653 phase-2
+1. **[#804](https://github.com/UOR-Foundation/uor-r4/issues/804)** — land the
+   S1 verdict (fit + pre-registered overlap gates on the traced broad
+   corpus). PASS → S1-2 restricted-forward parity, then the #643 A/B; FAIL →
+   negative record, operator retained. Either way the verdict decides the
+   next step for the **#784 family** (output distinctness; the D4
+   semantic-OOD finding recorded on #811) per the standing maintainer
+   decision.
+2. **Recompile the canonical local bundles with the #755 fix and take a fresh
+   quality read** (no open issue yet — the audit's E-1 run contract). Every
+   canonical bundle still predates the fix; the decode-default change made
+   baseline output *valid* (15/15 on the declared canary) but distinctness
+   and factual quality remain research-grade, and the v0.1 bundle's own
+   score report keeps it below the serving-admission quality bar (CLI-served
+   today, refused by the server's r4g1 tier). A post-#755 recompile that
+   clears its own bar is the path to a **server-admissible release bundle**,
+   and it decides whether the #460-lineage codebook-collision work needs its
+   own new issue.
+3. **Untracked remnants worth new issues when picked up:** the #653 phase-2
    "defer-open" items (GNAF cost/witness seam, xtask proof-integrity ports,
-   Lean CI policy) and the #759→#460 codebook-collision root cause, both of
-   whose parent issues are closed.
+   Lean CI policy), the #759→#460 codebook-collision root cause, and the
+   eventual `uor-r4` alias-removal cleanup (deprecation window, #655-F).
 
 ## Landed
 
@@ -58,16 +66,34 @@ have all **closed** — see `docs/RESEARCH.md` and
   is cost-optimal, unrelated to text generation; source and provenance only
   — not wired into any pipeline, not in the deployed dependency graph. Phase
   2 (integration matrix, PR #765) landed and #653 closed 2026-08-17; its
-  "defer-open" items are currently untracked (see Next up item 4).
+  "defer-open" items are currently untracked (see Next up item 3).
+- [x] **Ready-by-default serving epic (#655, closed 2026-08-19)** — A–F
+  complete: uor-matmul-owned compile arithmetic; shared bundle loader +
+  sidecar manifest/verifier; Production/Experimental engine profiles
+  (Production default, r4g1-only admission, typed declines); **`r4` as the
+  canonical served identity** on every surface (`uor-r4` a deprecated request
+  alias); **seeded sampling as the decode default** (pinned seed, greedy
+  opt-out; 15/15 valid on the declared in-domain canary vs 0/15 greedy); the
+  CLI ask path applying the **same deployed D4 abstention policy** as the
+  server tier (#811). Execution records:
+  `docs/serving_default_flip_655_f.md` + the #655 close comment.
+- [x] **Release v0.1 + pipeline (#741, closed 2026-08-19)** — tag-triggered
+  workflow (draft release binding code SHA + contract version; native CLI for
+  linux x86_64 + macOS arm64; wasm frontend), the packaged model bundle as an
+  attested GitHub Release asset, and the explicit hard-verified
+  `r4 install-release --tag v0.1` fetch, proven end to end against the live
+  release. `docs/RELEASE_PIPELINE.md`.
 
 ## Capabilities
 
-- [~] Text-based AI — compiles and serves; **coherent end-to-end generation
-  remains the central research problem** (#745 closed 2026-08-17 with the root
-  cause fixed in the compiler, #755; the canonical local bundles still predate
-  the fix and answer real questions in non-grammatical word-salad at baseline,
-  reproduced 2026-08-18, even though offline per-position metrics show real
-  signal). See
+- [~] Text-based AI — compiles, serves, and ships as a verified release;
+  **output quality remains the central research problem**. The #755 corpus-
+  ordering fix plus the seeded-sampling decode default moved baseline answers
+  from word-salad/digit-attractors to valid English sentences (15/15 on the
+  declared canary, 2026-08-19), but distinctness is weak (#784: distinct
+  prompts converge onto similar completions) and factual quality is
+  research-grade; the canonical local bundles still predate the #755
+  recompile. See
   [Which track can actually produce coherent text](docs/RESEARCH.md#which-track-can-actually-produce-coherent-text--the-honest-current-answer).
 - [ ] Image
 - [ ] Audio

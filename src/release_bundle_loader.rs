@@ -8,9 +8,11 @@
 //! never changes which bundle loads: a missing sidecar, a parse or
 //! structural-validation failure, or a digest mismatch against the
 //! bundle's actual files on disk all resolve to `None`, exactly as if no
-//! sidecar existed. Per the design doc's Q3, `None` is the common case
-//! today -- no shipped bundle produces a sidecar yet (#655-D is still
-//! open).
+//! sidecar existed. Sidecars now exist in the wild: `r4
+//! package-release-bundle` (#655-D2) writes one, and `r4 install-release`
+//! (#741) installs a hard-verified copy beside every released bundle --
+//! locally compiled bundles that never ran packaging still have none,
+//! and remain the `None` case.
 //!
 //! Scope: this slice verifies exactly the two components the caller
 //! already has resolved file paths for -- `components.graph` against the

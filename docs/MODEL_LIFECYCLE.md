@@ -8,6 +8,22 @@ For a zero-setup path that needs none of this, see the
 [Quick start](../README.md#quick-start) in the README: the router and dashboard
 run with no model at all, and the Gate C harness runs on committed fixtures.
 
+**Skipping the pipeline entirely: install a released bundle.** Since v0.1
+(#741, `docs/RELEASE_PIPELINE.md`) a compiled bundle ships as an attested
+GitHub Release asset, and
+
+```bash
+r4 install-release --tag v0.1
+```
+
+downloads it, hard-verifies every component digest against the release's
+attested manifest, and installs it under the model store — no teacher
+download, no compile, no silent network access on any serving path. The
+install is explicit-only and never overwrites an existing bundle. Released
+bundles are research-grade (the release notes disclose measured quality);
+compiling your own via the stages below remains the path to a current-fix
+bundle.
+
 The single-command orchestrator (`./uor-r4-cli`) runs stages 1-3 and then serves,
 if you would rather not drive them individually.
 
@@ -1330,10 +1346,13 @@ model-discovery path — it does not use `ModelStore` at all, instead running
 its own per-engine "#248 cascade" (`r4g1 → transformerless → teacher-oracle
 → geometric`) with its own file-discovery conventions. See
 [`SERVING_MODEL_DISCOVERY.md`](SERVING_MODEL_DISCOVERY.md) for the full map
-of that cascade, `.uor-models/last_engine.txt`'s semantics, and how (or
-whether) it currently relates to `ModelStore` and to the #655-C0
-`ReleaseBundleManifest` schema — tracked under #655 ("ship a ready-by-default
-R4 model"), still open as of this writing.
+of that cascade, `.uor-models/last_engine.txt`'s semantics, and how it
+relates to `ModelStore` and the #655-C0 `ReleaseBundleManifest` schema.
+The #655 epic ("ship a ready-by-default R4 model") **closed 2026-08-19**:
+the server's canonical served identity is `r4` (with `uor-r4` a deprecated
+request alias), the default engine profile is `production` (r4g1-only
+admission), and seeded sampling is the decode default on both the HTTP and
+CLI surfaces.
 
 
 ## Legacy benchmark and certification workflow
