@@ -57,6 +57,24 @@ pub struct ChatAnswer {
     /// #785 C3: which decode surface served this turn and how the
     /// context resolved — the observability the #759 scoping asked for.
     pub witness: DecodeWitness,
+    /// #811: `Some` when this turn ended in a typed D4 abstention
+    /// instead of served text — `text` is empty, no token is served,
+    /// and any partially generated tokens were dropped (the server
+    /// tier's exact contract). `None` on every served answer.
+    pub abstention: Option<ChatAbstention>,
+}
+
+/// #811: the CLI's typed honest abstention — the same D4 outcome the
+/// server's R4G1 tier surfaces (issue #78 decision D4), produced by the
+/// same deployed policy engine. No token is guessed; the status names
+/// how the context resolved.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ChatAbstention {
+    /// The abstaining resolution status label (`"novel"`,
+    /// `"contradictory"`, …) from the deployed policy.
+    pub status: String,
+    /// Whether the policy widened once before abstaining.
+    pub widened: bool,
 }
 
 /// #785 C3: the depth/fallback-tier witness for one chat turn.
@@ -265,6 +283,12 @@ impl ChatEngineBuilder {
             max_tokens = self.max_tokens,
             "transformerless chat engine loaded"
         );
+        let policy_engine = load_chat_policy_engine(
+            r4g1_bytes.as_deref(),
+            &artifact_bytes,
+            &tokenizer_bytes,
+            read_chat_score_report(&model_dir).as_deref(),
+        );
         Ok(ChatEngine {
             artifacts,
             store,
@@ -274,7 +298,80 @@ impl ChatEngineBuilder {
             history_len: 0,
             max_tokens: self.max_tokens,
             sample_rng: self.sample_seed.map(SampleRng::new),
+            policy_engine,
         })
+    }
+}
+
+/// #811: the optional D4 policy override beside the graph
+/// (`graph/score_report.json`), pre-validated as JSON exactly like the
+/// server-side loader (`src/r4g1.rs`): an unparseable report is ignored
+/// (D4 defaults apply), never an error.
+fn read_chat_score_report(model_dir: &std::path::Path) -> Option<Vec<u8>> {
+    let bytes = std::fs::read(model_dir.join("graph").join("score_report.json")).ok()?;
+    serde_json::from_slice::<serde_json::Value>(&bytes).ok()?;
+    Some(bytes)
+}
+
+/// #811: build the deployed D4 policy engine over the same bundle bytes
+/// the CLI graph walk decodes from, so `ask`/`chat` share the server
+/// tier's exact abstention policy — one implementation (`R4Engine`'s
+/// serve / widen-once / abstain path, novel-seen FIFO included), never
+/// a re-derivation. `None` (with a loud warn) when the engine cannot
+/// load these bytes: the walk then runs ungated, exactly the pre-#811
+/// behavior — and since the serving tier would refuse the same bundle,
+/// the warn names a real bundle divergence rather than silencing one.
+fn load_chat_policy_engine(
+    r4g1_bytes: Option<&[u8]>,
+    artifact_bytes: &[u8],
+    tokenizer_bytes: &[u8],
+    score_report: Option<&[u8]>,
+) -> Option<uor_r4_api::engine::R4Engine> {
+    let graph = r4g1_bytes?;
+    // The deployed scorer itself must accept these bytes first: the
+    // engine's own load treats a scorer-rebuild refusal on CID-verified
+    // bytes as a self-produced-defect panic (R5, #510) — correct for the
+    // pipeline's own artifacts, but the chat walk also serves
+    // converter-era/legacy graphs the deployed engine has no scorer for
+    // (#655-C1e recognize-don't-migrate). Probe first so those bundles
+    // get the documented gate-absent warn instead of that panic.
+    if uor_r4_graph_certify::GraphScorer::from_artifact(
+        graph,
+        Some(artifact_bytes),
+        uor_r4_graph_certify::DEFAULT_ROOT_TOP_B,
+        uor_r4_graph_certify::DEFAULT_EXCT_TOP_X,
+    )
+    .is_none()
+    {
+        tracing::warn!(
+            "the deployed scorer does not rebuild from this graph (legacy/converter-era \
+             bundle); the ask-path D4 abstention gate (#811) is ABSENT this session and \
+             the graph walk runs ungated"
+        );
+        return None;
+    }
+    // `load_accepting_quality`, not `load`: the bundle's recorded
+    // quality verdict is a SERVING-admission concern — this chat path
+    // has already decided (with its own recorded warning) to decode the
+    // bundle, and the D4 policy is well-defined regardless of that
+    // verdict. The report still supplies the status-policy override and
+    // scorer widths exactly as it does for serving.
+    match uor_r4_api::engine::R4Engine::load_accepting_quality(uor_r4_api::engine::EngineParts {
+        graph,
+        signature_artifact: artifact_bytes,
+        tokenizer: Some(tokenizer_bytes),
+        score_report,
+    }) {
+        Ok(engine) => Some(engine),
+        Err(error) => {
+            tracing::warn!(
+                %error,
+                "deployed policy engine could not load this bundle; the ask-path \
+                 D4 abstention gate (#811) is ABSENT this session and the graph \
+                 walk runs ungated (the serving tier would refuse this bundle)"
+            );
+            None
+        }
     }
 }
 
@@ -336,6 +433,12 @@ fn build_local_compiled_engine(
         tokenizer_cid = %tokenizer_object.cid,
         "using a locally compiled bundle without an instruction-quality attestation"
     );
+    let policy_engine = load_chat_policy_engine(
+        r4g1_bytes.as_deref(),
+        &artifact_bytes,
+        &tokenizer_bytes,
+        read_chat_score_report(directory).as_deref(),
+    );
     Ok(ChatEngine {
         artifacts,
         store,
@@ -345,6 +448,7 @@ fn build_local_compiled_engine(
         history_len: 0,
         max_tokens,
         sample_rng: sample_seed.map(SampleRng::new),
+        policy_engine,
     })
 }
 
@@ -364,6 +468,12 @@ pub struct ChatEngine {
     /// end from its initial seed. `None` (the default) leaves both
     /// deterministic paths completely untouched.
     sample_rng: Option<SampleRng>,
+    /// #811: the deployed D4 policy engine over this same bundle — the
+    /// ask-path abstention gate. Stateful across turns (widen-once
+    /// bookkeeping, novel-seen FIFO), like the server tier's own engine.
+    /// `None` only when the bundle has no graph or the engine refused
+    /// the bytes (loudly warned at build).
+    policy_engine: Option<uor_r4_api::engine::R4Engine>,
 }
 
 impl ChatEngine {
@@ -387,7 +497,67 @@ impl ChatEngine {
             question,
             self.max_tokens,
             self.sample_rng.as_mut(),
+            self.policy_engine.as_mut(),
         )
+    }
+}
+
+/// #811: one D4 gate decision for the window about to be decoded. The
+/// deployed policy engine decides serve / widen-once / abstain exactly
+/// as the server tier does; the walk's own candidate selection is
+/// untouched on Serve, so served output stays byte-identical to the
+/// ungated walk. An out-of-vocabulary window (a bounds edge the walk
+/// itself tolerates) serves ungated with a warn rather than turning a
+/// previously-answerable prompt into an error.
+fn d4_gate(
+    policy_engine: &mut Option<&mut uor_r4_api::engine::R4Engine>,
+    window: &[u32],
+) -> Option<ChatAbstention> {
+    use uor_r4_api::engine::{PolicyStatus, PredictDecision};
+    let engine = policy_engine.as_deref_mut()?;
+    match engine.predict_decision(window) {
+        Ok(PredictDecision::Serve(_)) => None,
+        Ok(PredictDecision::Abstain(outcome)) => Some(ChatAbstention {
+            status: PolicyStatus::from(outcome.status).label().to_owned(),
+            widened: outcome.widened,
+        }),
+        Err(bound) => {
+            tracing::warn!(
+                %bound,
+                "D4 gate skipped an out-of-vocabulary window (#811); this step serves ungated"
+            );
+            None
+        }
+    }
+}
+
+/// #811: the typed abstention answer — empty text, zero tokens served,
+/// partial generation dropped (the server tier's exact contract), the
+/// decode witness naming which surface the gate fired on.
+fn abstention_answer(
+    engine: &'static str,
+    non_node_queries: usize,
+    node_path_queries: usize,
+    abstention: ChatAbstention,
+) -> ChatAnswer {
+    let witness = DecodeWitness {
+        engine,
+        non_node_queries,
+        node_path_queries,
+        plain_depths: Vec::new(),
+    };
+    tracing::info!(
+        engine = witness.engine,
+        status = %abstention.status,
+        widened = abstention.widened,
+        "D4 abstention on the ask path (#811): no token served"
+    );
+    ChatAnswer {
+        text: String::new(),
+        generated_tokens: 0,
+        repeated_token_rate: 0.0,
+        witness,
+        abstention: Some(abstention),
     }
 }
 
@@ -402,6 +572,7 @@ fn hologram_answer(
     question: &str,
     max_tokens: usize,
     mut sample_rng: Option<&mut SampleRng>,
+    mut policy_engine: Option<&mut uor_r4_api::engine::R4Engine>,
 ) -> Result<ChatAnswer, ChatError> {
     ensure_chat_prompt_encoder(tokenizer)?;
     let mut question_tokens = [0u32; MAX_CHAT_HISTORY];
@@ -458,6 +629,18 @@ fn hologram_answer(
                         context.extend_from_slice(&generated);
                         let len = core::cmp::min(context.len(), compiler::WINDOW);
                         let window = &context[context.len() - len..];
+                        // #811: the same per-step D4 decision the server
+                        // tier makes, BEFORE this step's candidate query.
+                        // On an abstention the tokens generated so far are
+                        // dropped, never served (the server contract).
+                        if let Some(abstention) = d4_gate(&mut policy_engine, window) {
+                            return Ok(abstention_answer(
+                                "r4g1-sampled",
+                                non_node_queries,
+                                node_path_queries,
+                                abstention,
+                            ));
+                        }
                         let bundle = runtime::bundle_window_plain(artifacts, &rot, window);
                         let sig = runtime::sig_plain(artifacts, &bundle);
                         let mut cands = [(0u32, ScoreQ::ZERO); 8];
@@ -542,7 +725,21 @@ fn hologram_answer(
                             generated.len(),
                         ),
                         witness,
+                        abstention: None,
                     });
+                }
+
+                // #811: the greedy beam gets the D4 gate at the question
+                // boundary — its per-hypothesis windows are speculative
+                // and would pollute the policy's widen-once bookkeeping,
+                // so per-step gating belongs to the single-trajectory
+                // default (sampled) path above. An abstaining question
+                // context never reaches the beam. Recorded limitation:
+                // mid-generation windows of the opt-in beam are ungated.
+                let question_len = core::cmp::min(*history_len, compiler::WINDOW);
+                let question_window = history[*history_len - question_len..*history_len].to_vec();
+                if let Some(abstention) = d4_gate(&mut policy_engine, &question_window) {
+                    return Ok(abstention_answer("r4g1-beam", 0, 0, abstention));
                 }
 
                 struct BeamHypothesis {
@@ -698,6 +895,7 @@ fn hologram_answer(
                     generated_tokens: generated.len(),
                     repeated_token_rate: recent_window_repetition_rate(generated, generated.len()),
                     witness,
+                    abstention: None,
                 });
             }
         }
@@ -779,6 +977,7 @@ fn hologram_answer(
         generated_tokens: generated.len(),
         repeated_token_rate: recent_window_repetition_rate(generated, generated.len()),
         witness,
+        abstention: None,
     })
 }
 
@@ -1055,6 +1254,12 @@ pub fn engine_from_bytes_with_r4g1(
         // The live quality gate (#750) must stay fully deterministic --
         // this constructor has no seed input, so sampling is never on.
         sample_rng: None,
+        // #811: deliberately ungated. This constructor exists for the
+        // #750 live quality gate, which measures the raw decode; wiring
+        // the D4 abstention gate here would silently change what that
+        // gate measures. The product ask/chat surfaces (builder +
+        // local-compiled paths) are the gated ones.
+        policy_engine: None,
     })
 }
 
@@ -3494,5 +3699,310 @@ mod tests {
             session_signature_from_tokens(&first_history),
             session_signature_from_tokens(&second_history)
         );
+    }
+
+    /// #811: end-to-end ask-path D4 abstention over a real scored
+    /// two-region bundle (the `tests/status_policy_common` fixture
+    /// shape, rebuilt in-module because integration fixtures cannot be
+    /// imported here). Questions go through the real chat tokenizer
+    /// (whose encoder prepends BOS + a leading space), so the gated
+    /// windows are exactly what `ask` derives: a Novel question
+    /// abstains with a typed outcome on both decode paths, a covered
+    /// question serves byte-identically to the ungated engine, and an
+    /// engine without a policy engine keeps the pre-#811 behavior.
+    mod d4_gate_tests {
+        use crate::chat::{ChatEngine, SampleRng, MAX_CHAT_HISTORY};
+        use uor_r4_core::transformerless::compiler::{self, D, K, SIG_BYTES, STAGES};
+        use uor_r4_core::transformerless::runtime;
+        use uor_r4_core::transformerless::scenarios::Tokenizer;
+        use uor_r4_graph_certify::{
+            self as score, ContextRow, EmissionTables, RegionParams, Smoothing, StructuralEdge,
+        };
+        use uor_r4_graph_format::ScoreQ;
+
+        fn xorshift(state: &mut u64) -> u64 {
+            let mut x = *state;
+            x ^= x << 13;
+            x ^= x >> 7;
+            x ^= x << 17;
+            *state = x;
+            x
+        }
+
+        /// A minimal deterministic `Compiled` (mirrors
+        /// `tests/status_policy_common::synthetic_compiled`).
+        fn synthetic_compiled() -> compiler::Compiled {
+            let vocab = 64usize;
+            let mut rng = 0xC0DE42u64;
+            let mut rand_bytes = |n: usize| -> Vec<u8> {
+                (0..n).map(|_| (xorshift(&mut rng) & 0xff) as u8).collect()
+            };
+            compiler::Compiled {
+                token_codes: rand_bytes(vocab * STAGES),
+                stage_books: (0..STAGES)
+                    .map(|_| rand_bytes(K * D).iter().map(|&b| b as i8).collect())
+                    .collect(),
+                stage_shifts: vec![0; STAGES],
+                thresholds: vec![0; D],
+                class_sigs: (0..STAGES).map(|_| rand_bytes(K * SIG_BYTES)).collect(),
+                ctx_cb: Vec::new(),
+                token_stage_kappas: Vec::new(),
+                dot_cb: Vec::new(),
+                resid_cb: Vec::new(),
+                resid_scale_shifts: Vec::new(),
+                norm_fold_const: 0,
+            }
+        }
+
+        /// The 64-piece chat tokenizer: `<unk>`/`<s>`/`</s>`, a space
+        /// piece (the encoder prepends BOS + one space), then 60 unique
+        /// single characters at ids 4..=63.
+        fn fixture_tokenizer_bytes() -> Vec<u8> {
+            let alphabet: Vec<u8> = (b'A'..=b'Z')
+                .chain(b'a'..=b'z')
+                .chain(b'0'..=b'7')
+                .collect();
+            assert_eq!(alphabet.len(), 60);
+            let mut bytes = Vec::new();
+            for piece in [
+                b"<unk>".as_slice(),
+                b"<s>".as_slice(),
+                b"</s>".as_slice(),
+                b" ".as_slice(),
+            ] {
+                bytes.extend_from_slice(&(piece.len() as i32).to_le_bytes());
+                bytes.extend_from_slice(piece);
+            }
+            for &ch in &alphabet {
+                bytes.extend_from_slice(&1i32.to_le_bytes());
+                bytes.push(ch);
+            }
+            bytes
+        }
+
+        /// Encode a question exactly as the chat path will (BOS + space
+        /// prepended by the encoder itself).
+        fn encode_question(tokenizer: &Tokenizer, question: &str) -> Vec<u32> {
+            let mut buffer = [0u32; 16];
+            let count = tokenizer
+                .encode_into(question, &mut buffer)
+                .expect("fixture question encodes");
+            buffer[..count].to_vec()
+        }
+
+        fn policy_engine(graph: &[u8], teacher: &[u8]) -> uor_r4_api::engine::R4Engine {
+            uor_r4_api::engine::R4Engine::load(uor_r4_api::engine::EngineParts {
+                graph,
+                signature_artifact: teacher,
+                tokenizer: None,
+                score_report: None,
+            })
+            .expect("the deployed policy engine loads the scored fixture")
+        }
+
+        /// The complete fixture: a scored graph whose region 0 is
+        /// anchored at the derived signature of the COVERED question's
+        /// real encoded window, a bigram context row so the packed
+        /// walk has candidates to serve on that window, and a scanned
+        /// NOVEL question whose encoded window the deployed policy
+        /// abstains on. Returns
+        /// `(graph, teacher, covered question, novel question)`.
+        fn fixture() -> (Vec<u8>, Vec<u8>, String, String) {
+            let artifacts = synthetic_compiled();
+            let teacher = compiler::artifact_bytes(&artifacts);
+            let tokenizer =
+                Tokenizer::from_bytes(&fixture_tokenizer_bytes()).expect("fixture tokenizer");
+            let covered_question = "C".to_owned();
+            let covered_window = encode_question(&tokenizer, &covered_question);
+            let covered_last = *covered_window.last().expect("nonempty window");
+            let rotations = compiler::derive_rotations();
+            let window_tail =
+                &covered_window[covered_window.len().saturating_sub(compiler::WINDOW)..];
+            let bundle = runtime::bundle_window_plain(&artifacts, &rotations, window_tail);
+            let covered_sig = runtime::sig_plain(&artifacts, &bundle);
+
+            let emissions = EmissionTables {
+                root_prior: [(10u32, 100i32), (20, 200), (30, 300), (40, 50)]
+                    .into_iter()
+                    .map(|(token, raw)| (token, ScoreQ::from_raw(raw)))
+                    .collect(),
+                root_floor: ScoreQ::from_raw(-7000),
+                root_total: 1000,
+                region_lists: vec![
+                    vec![(10, ScoreQ::from_raw(1000)), (20, ScoreQ::from_raw(-500))],
+                    vec![(20, ScoreQ::from_raw(2000)), (30, ScoreQ::from_raw(100))],
+                ],
+                smoothing: Smoothing::AddOne,
+                root_prior_quantization: score::QuantizationErrorStats::default(),
+                emission_quantization: score::QuantizationErrorStats::default(),
+                selection_stats: score::EmissionSelectionStats::default(),
+            };
+            let regions = [
+                RegionParams {
+                    node: 1,
+                    depth: 1,
+                    radius: 4,
+                    sig: covered_sig,
+                    parent: None,
+                },
+                RegionParams {
+                    node: 2,
+                    depth: 1,
+                    radius: 4,
+                    sig: [0xFF; SIG_BYTES],
+                    parent: None,
+                },
+            ];
+            // The packed walk on a scored graph serves candidates from
+            // context rows (the canary's own witness: non-node queries);
+            // one bigram row keyed on the covered question's last token
+            // gives the walk something real to emit.
+            let context_rows = [ContextRow {
+                context_len: 1,
+                key0: covered_last,
+                key1: 0,
+                entries: vec![(10, ScoreQ::from_raw(900)), (20, ScoreQ::from_raw(400))],
+            }];
+            let store: runtime::Store = (0..=STAGES).map(|_| Default::default()).collect();
+            let tls1 = runtime::store_bytes(&store);
+            let (graph, _) = score::emit_scored_r4g1(
+                &teacher,
+                (b"chat-d4-meta", b"chat-d4-recs"),
+                64,
+                &score::ScoredGraphSections {
+                    regions: &regions,
+                    structural: &[
+                        StructuralEdge {
+                            src: 0,
+                            kind: 0,
+                            dst: 1,
+                            score_q: ScoreQ::ZERO,
+                        },
+                        StructuralEdge {
+                            src: 0,
+                            kind: 0,
+                            dst: 2,
+                            score_q: ScoreQ::ZERO,
+                        },
+                    ],
+                    transitions: &[],
+                    transition_quantization: score::QuantizationErrorStats::default(),
+                    emissions: &emissions,
+                    context_rows: &context_rows,
+                    fwd_rows: &[],
+                    exct_tls1: &tls1,
+                    exct_top_x: score::ScoreConfig::default().exct_top_x,
+                },
+            );
+            uor_r4_graph_runtime::R4G1Runtime::parse(&graph)
+                .expect("the packed runtime parses the scored fixture");
+
+            // Sanity + scan with a throwaway policy engine (probing
+            // pollutes widen-once bookkeeping; test engines are fresh).
+            use uor_r4_api::engine::PredictDecision;
+            let mut scan = policy_engine(&graph, &teacher);
+            assert!(
+                matches!(
+                    scan.predict_decision(&covered_window),
+                    Ok(PredictDecision::Serve(_))
+                ),
+                "the covered question's own window must resolve Serve"
+            );
+            let alphabet: Vec<u8> = (b'A'..=b'Z')
+                .chain(b'a'..=b'z')
+                .chain(b'0'..=b'7')
+                .collect();
+            let novel_question = alphabet
+                .iter()
+                .map(|&ch| (ch as char).to_string())
+                .filter(|question| question != &covered_question)
+                .find(|question| {
+                    let window = encode_question(&tokenizer, question);
+                    matches!(
+                        scan.predict_decision(&window),
+                        Ok(PredictDecision::Abstain(_))
+                    )
+                })
+                .expect("some single-character question resolves Novel");
+            (graph, teacher, covered_question, novel_question)
+        }
+
+        fn chat_engine(
+            graph: &[u8],
+            teacher: &[u8],
+            gated: bool,
+            seed: Option<u32>,
+            max_tokens: usize,
+        ) -> ChatEngine {
+            ChatEngine {
+                artifacts: compiler::parse_artifacts(teacher).expect("fixture artifacts parse"),
+                store: (0..=STAGES).map(|_| Default::default()).collect(),
+                r4g1_bytes: Some(graph.to_vec()),
+                tokenizer: Tokenizer::from_bytes(&fixture_tokenizer_bytes())
+                    .expect("fixture tokenizer parses"),
+                history: [0; MAX_CHAT_HISTORY],
+                history_len: 0,
+                max_tokens,
+                sample_rng: seed.map(SampleRng::new),
+                policy_engine: gated.then(|| policy_engine(graph, teacher)),
+            }
+        }
+
+        #[test]
+        fn novel_question_abstains_on_both_decode_paths_and_serves_ungated() {
+            let (graph, teacher, _, novel_question) = fixture();
+
+            // Default (sampled) path: typed abstention, no token served.
+            let mut sampled = chat_engine(&graph, &teacher, true, Some(42), 8);
+            let answer = sampled
+                .ask(&novel_question)
+                .expect("abstention is an answer, not an error");
+            let abstention = answer.abstention.expect("novel question abstains");
+            assert_eq!(abstention.status, "novel");
+            assert!(answer.text.is_empty(), "no text on abstention");
+            assert_eq!(answer.generated_tokens, 0, "no token served");
+            assert_eq!(answer.witness.engine, "r4g1-sampled");
+
+            // Greedy beam opt-out: the question-boundary gate fires too.
+            let mut beam = chat_engine(&graph, &teacher, true, None, 8);
+            let answer = beam.ask(&novel_question).expect("abstention is an answer");
+            assert!(answer.abstention.is_some(), "beam question gate fires");
+            assert_eq!(answer.witness.engine, "r4g1-beam");
+
+            // No policy engine (pre-#811 shape): the same question runs
+            // ungated — whatever the walk did before, it still does.
+            let mut ungated = chat_engine(&graph, &teacher, false, Some(42), 8);
+            if let Ok(answer) = ungated.ask(&novel_question) {
+                assert!(
+                    answer.abstention.is_none(),
+                    "no gate without a policy engine"
+                );
+            }
+        }
+
+        #[test]
+        fn covered_question_serves_byte_identically_to_the_ungated_walk() {
+            let (graph, teacher, covered_question, _) = fixture();
+
+            // One served step (max_tokens 1): the gate decides Serve and
+            // the walk's own selection is untouched — gated and ungated
+            // engines produce the identical answer under the same seed.
+            let mut gated = chat_engine(&graph, &teacher, true, Some(42), 1);
+            let mut ungated = chat_engine(&graph, &teacher, false, Some(42), 1);
+            let gated_answer = gated
+                .ask(&covered_question)
+                .expect("covered question serves");
+            let ungated_answer = ungated
+                .ask(&covered_question)
+                .expect("covered question serves ungated");
+            assert!(gated_answer.abstention.is_none());
+            assert_eq!(gated_answer.text, ungated_answer.text);
+            assert_eq!(
+                gated_answer.generated_tokens,
+                ungated_answer.generated_tokens
+            );
+            assert_eq!(gated_answer.witness, ungated_answer.witness);
+            assert!(!gated_answer.text.is_empty(), "a real token was served");
+        }
     }
 }

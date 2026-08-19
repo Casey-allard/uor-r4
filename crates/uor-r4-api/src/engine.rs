@@ -1223,6 +1223,27 @@ impl R4Engine {
     /// signatures. EXCT is not enabled because its reference
     /// implementation performs probe-time floating-point quantization.
     pub fn load(parts: EngineParts<'_>) -> Result<Self, SourceUnavailable> {
+        Self::load_with_quality_gate(parts, true)
+    }
+
+    /// [`Self::load`] minus the serving-admission quality gate: the
+    /// bundle's recorded quality verdict (`validate_quality_report`)
+    /// does not change what the D4 policy resolves, and a caller that
+    /// has already decided — with its own recorded warning — to decode
+    /// a below-baseline bundle (the CLI's local-bundle path, #655-C1e)
+    /// still needs the deployed policy engine over it for the ask-path
+    /// abstention gate (#811). Everything else — CID verification,
+    /// tokenizer binding, teacher pairing, scorer rebuild, the
+    /// status-policy/report parsing — is identical to [`Self::load`].
+    /// Serving admission continues to use [`Self::load`] unchanged.
+    pub fn load_accepting_quality(parts: EngineParts<'_>) -> Result<Self, SourceUnavailable> {
+        Self::load_with_quality_gate(parts, false)
+    }
+
+    fn load_with_quality_gate(
+        parts: EngineParts<'_>,
+        enforce_quality: bool,
+    ) -> Result<Self, SourceUnavailable> {
         // Fail fast with the format crate's focused reason before any scorer
         // state is built (the scorer re-validates internally). Every part is
         // an external byte source; a malformed part is reported as a
@@ -1334,9 +1355,11 @@ impl R4Engine {
             exct_top_x,
         )
         .expect("engine load: scorer rebuild from the parsed, CID-verified, and teacher-paired graph bytes");
-        if let Some(report) = score_report.as_ref() {
-            if let Some(message) = validate_quality_report(report) {
-                return Err(SourceUnavailable::new(message));
+        if enforce_quality {
+            if let Some(report) = score_report.as_ref() {
+                if let Some(message) = validate_quality_report(report) {
+                    return Err(SourceUnavailable::new(message));
+                }
             }
         }
         let tokenizer = parts

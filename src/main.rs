@@ -516,12 +516,32 @@ impl From<io::Error> for RunError {
     }
 }
 
+/// #811: render one turn honestly — served text as before, and a typed
+/// D4 abstention as an explicit line instead of empty output or a
+/// confidently served guess.
+fn rendered_answer(answer: &ChatAnswer) -> String {
+    match &answer.abstention {
+        None => answer.text.clone(),
+        Some(abstention) => format!(
+            "[abstained: {} context{}] no answer served — the model's D4 policy \
+             declined this prompt as outside its certified context.",
+            abstention.status,
+            if abstention.widened {
+                ", widened once"
+            } else {
+                ""
+            }
+        ),
+    }
+}
+
 fn answer_once(
     chat: &mut impl Chat,
     question: &str,
     output: &mut impl Write,
 ) -> Result<(), RunError> {
-    writeln!(output, "{}", chat.ask(question)?.text)?;
+    let answer = chat.ask(question)?;
+    writeln!(output, "{}", rendered_answer(&answer))?;
     Ok(())
 }
 
@@ -547,7 +567,7 @@ fn interactive_chat(
             continue;
         }
         match chat.ask(question) {
-            Ok(answer) => writeln!(output, "r4> {}\n", answer.text)?,
+            Ok(answer) => writeln!(output, "r4> {}\n", rendered_answer(&answer))?,
             Err(error) => tracing::error!(%error, "chat response failed"),
         }
     }
@@ -1246,6 +1266,7 @@ mod tests {
                 generated_tokens: 1,
                 repeated_token_rate: 0.0,
                 witness: Default::default(),
+                abstention: None,
             })
         }
     }
