@@ -3967,6 +3967,144 @@ fn parse_observe_text_options(args: &[String]) -> Result<ObserveTextOptions, Sou
     Ok(options)
 }
 
+/// #605 amendment 2 (S1-1): fit packed route codes on a REAL traced
+/// corpus and judge the pre-registered overlap gates — the
+/// teacher-agnostic half of the real-teacher stage. Geometry and the BOS
+/// id come from the teacher source's `config.json`; the corpus loads
+/// through the pre-declared streamed subset rule (first `--stories`
+/// ordinals, first `--positions` positions each — the deployed
+/// operator's own candidate bound). Writes the typed
+/// `RealArmOverlapReport` JSON and prints the verdict; a FAIL verdict is
+/// a recorded outcome, not a command error.
+fn route_fit_real_command(args: &[String]) -> Result<(), SourceUnavailable> {
+    use uor_r4_graph_certify::route_fit_report::{
+        preregistered_route_fit_contract, run_real_arm_overlap_gates,
+    };
+    use uor_r4_graph_compiler::route_fit::{
+        RouteTraceSubset, fit_route_codes, load_route_trace_corpus_subset,
+    };
+    use uor_r4_model_source::TraceCaptureGeometry;
+
+    let mut corpus_dir: Option<PathBuf> = None;
+    let mut source_dir: Option<PathBuf> = None;
+    let mut max_stories: u32 = 1000;
+    let mut max_positions: u32 = 64;
+    let mut out: Option<PathBuf> = None;
+    let mut index = 0usize;
+    while index < args.len() {
+        let flag = &args[index];
+        let value = args
+            .get(index + 1)
+            .ok_or_else(|| SourceUnavailable::new(format!("missing value for {flag}")))?;
+        match flag.as_str() {
+            "--corpus" => corpus_dir = Some(PathBuf::from(value)),
+            "--source" => source_dir = Some(PathBuf::from(value)),
+            "--stories" => {
+                max_stories = value.parse().map_err(|_| {
+                    SourceUnavailable::new(format!("invalid --stories value: {value}"))
+                })?;
+            }
+            "--positions" => {
+                max_positions = value.parse().map_err(|_| {
+                    SourceUnavailable::new(format!("invalid --positions value: {value}"))
+                })?;
+            }
+            "--out" => out = Some(PathBuf::from(value)),
+            _ => {
+                return Err(SourceUnavailable::new(format!(
+                    "unknown route-fit-real option: {flag}"
+                )));
+            }
+        }
+        index += 2;
+    }
+    let corpus_dir = corpus_dir
+        .ok_or_else(|| SourceUnavailable::new("route-fit-real requires --corpus <DIR>"))?;
+    let source_dir = source_dir.ok_or_else(|| {
+        SourceUnavailable::new(
+            "route-fit-real requires --source <teacher dir> (geometry + BOS come from its \
+             config.json)",
+        )
+    })?;
+    let config_path = source_dir.join("config.json");
+    let config_bytes = std::fs::read(&config_path)
+        .map_err(|error| SourceUnavailable::new(format!("{}: {error}", config_path.display())))?;
+    let config: serde_json::Value = serde_json::from_slice(&config_bytes).map_err(|error| {
+        SourceUnavailable::new(format!("{}: invalid JSON: {error}", config_path.display()))
+    })?;
+    let field = |name: &str| -> Result<usize, SourceUnavailable> {
+        config
+            .get(name)
+            .and_then(serde_json::Value::as_u64)
+            .map(|value| value as usize)
+            .ok_or_else(|| {
+                SourceUnavailable::new(format!(
+                    "{} carries no numeric {name}; cannot derive the capture geometry",
+                    config_path.display()
+                ))
+            })
+    };
+    let geometry = TraceCaptureGeometry {
+        layers: field("num_hidden_layers")?,
+        heads: field("num_attention_heads")?,
+        kv_heads: field("num_key_value_heads")?,
+        residual_width: field("hidden_size")?,
+    };
+    let bos_token = config
+        .get("bos_token_id")
+        .and_then(serde_json::Value::as_u64)
+        .unwrap_or(1) as u32;
+
+    eprintln!(
+        "route-fit-real: loading subset (stories < {max_stories}, positions < {max_positions}) \
+         from {} under geometry {}L/{}H/{}KV/{}D, bos {bos_token}",
+        corpus_dir.display(),
+        geometry.layers,
+        geometry.heads,
+        geometry.kv_heads,
+        geometry.residual_width
+    );
+    let corpus = load_route_trace_corpus_subset(
+        &corpus_dir,
+        geometry,
+        bos_token,
+        RouteTraceSubset {
+            max_stories,
+            max_positions,
+        },
+    )?;
+    eprintln!(
+        "route-fit-real: {} records across {} stories loaded (records κ {}, trace κ {})",
+        corpus.records,
+        corpus.stories.len(),
+        corpus.records_kappa,
+        corpus.trace_kappa
+    );
+    eprintln!("route-fit-real: fitting packed route codes...");
+    let fitted = fit_route_codes(&corpus)?;
+    eprintln!(
+        "route-fit-real: fitted {} heads (top_m {}, params κ {}); judging the \
+         pre-registered overlap gates...",
+        fitted.heads.len(),
+        fitted.top_m,
+        fitted.kappa()
+    );
+    let contract = preregistered_route_fit_contract();
+    let report = run_real_arm_overlap_gates(&corpus, &fitted, &contract)?;
+    let out = out.unwrap_or_else(|| corpus_dir.join("route_fit_real_report.json"));
+    let mut bytes = serde_json::to_vec_pretty(&report)
+        .map_err(|error| SourceUnavailable::new(format!("serialize real-arm report: {error}")))?;
+    bytes.push(b'\n');
+    write_regular_file_synced(&out, &bytes, "real-arm overlap report")?;
+    println!(
+        "route-fit-real verdict: {:?}\n  {}\n  report: {}",
+        report.verdict,
+        report.reason,
+        out.display()
+    );
+    Ok(())
+}
+
 /// Resolve the parsed `--trace-*` flags against the immutable #603 profile
 /// registry: `(id, version)` plus the declared bounds map to the typed
 /// record, or a typed refusal for unknown pairs and out-of-bound
@@ -9865,6 +10003,7 @@ pub fn run(args: &[String]) -> Result<(), SourceUnavailable> {
             Err(_) => println!("source checkpoint not found; see `setup`"),
         },
         Some("convert-r4g1") => convert_r4g1::run(&args[1..])?,
+        Some("route-fit-real") => route_fit_real_command(&args[1..])?,
         Some("runtime-corpus") => runtime_corpus::run(&args[1..])?,
         Some("cover") => cover_command(&args[1..])?,
         Some("cover-sweep") => cover_sweep::cover_sweep_command(&args[1..])?,
@@ -9906,6 +10045,7 @@ fn transformerless_usage() -> &'static str {
                    --bundle-root explicitly declares one managed/canonical bundle authority; without it, --out is an exact standalone root fixed at transaction start\n\
                  observation pipeline: observe [--source DIR [--tokenizer-family FAMILY --tokenizer-version N] | --checkpoint BIN] [--seconds N] [--target N] [--shards N] [--out DIR] [--sequence-length N]\n\
                  text observations (D3): observe-text [--input PATH] [--out DIR] [--shards N] [--seconds N] [--source DIR [--tokenizer-family FAMILY --tokenizer-version N] | --checkpoint BIN --tokenizer PATH] [--sequence-length N] [--trace-profile ID/V --trace-layers I,J,... [--trace-support S]]\n\
+                 route-attention real arm (#605 S1-1): route-fit-real --corpus DIR --source DIR [--stories N] [--positions N] [--out PATH]\n\
                  A-mode infill serving: graph infill --artifact <scored R4G1> --skeleton <token ids, _ for free> [--teacher <TLA container>]\n\
                  quantum operations: cd-compile | quantum-eval\n\
                  hf evaluation: evaluate-report [--source DIR] [--tokenizer-family FAMILY --tokenizer-version N] [--compiled DIR] [--report PATH] [--sequence-length N] [--bos] [--max-held-out-stories N]\n\

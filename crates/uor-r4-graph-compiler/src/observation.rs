@@ -3746,6 +3746,30 @@ pub fn reconcile_probability_pair(
     Ok(())
 }
 
+/// Decode one probability sidecar's raw bytes into its aligned metadata
+/// rows — the per-shard building block `merge_probability_metadata`
+/// applies corpus-wide, exposed for streamed (shard-at-a-time) readers
+/// like the #605 route-fit subset loader.
+#[cfg(not(target_arch = "wasm32"))]
+pub fn decode_probability_metadata(
+    bytes: &[u8],
+) -> Result<Vec<ProbabilityMetadata>, SourceUnavailable> {
+    if !bytes.len().is_multiple_of(PROBABILITY_METADATA_SIZE) {
+        return Err(invalid_data(format!(
+            "probability sidecar bytes are torn ({} bytes; rows are {} bytes)",
+            bytes.len(),
+            PROBABILITY_METADATA_SIZE
+        )));
+    }
+    bytes
+        .chunks_exact(PROBABILITY_METADATA_SIZE)
+        .map(|row| {
+            ProbabilityMetadata::decode(row)
+                .ok_or_else(|| invalid_data("invalid probability metadata row".to_owned()))
+        })
+        .collect()
+}
+
 /// Merge aligned #603 trace-sidecar rows in the same deterministic shard
 /// order as [`merge_shards`]. The result depends only on shard contents,
 /// never on completion order; rows are returned as raw bytes (the lane

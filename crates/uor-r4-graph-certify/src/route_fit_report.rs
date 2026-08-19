@@ -1513,3 +1513,336 @@ pub fn run_route_fit_ladder(
         },
     })
 }
+
+// ---------------------------------------------------------------------------
+// #605 amendment 2 (2026-08-19): the S1-1 real-arm overlap stage.
+// ---------------------------------------------------------------------------
+
+/// One head's overlap numbers in the S1-1 report.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct RealArmOverlapHeadRecord {
+    /// Source layer index.
+    pub layer: u32,
+    /// Head index within the layer.
+    pub head: u32,
+    /// Mean fitted-vs-teacher support overlap over eligible steps.
+    pub fitted: f64,
+    /// Mean N1 (permuted-code null) overlap.
+    pub n1: f64,
+    /// Mean N2 (deranged-support null) overlap.
+    pub n2: f64,
+    /// Eligible steps (strictly more candidates than `top_m`).
+    pub eligible_steps: u64,
+}
+
+/// The S1-1 report: the teacher-agnostic half of the pre-registered
+/// real-teacher stage, per #605's declared amendment 2 — fit the packed
+/// route codes on a REAL trace corpus, drive the DEPLOYED kernel over
+/// them (witness replay, closed-form census, certify cross-check, epoch
+/// discipline, #653 cost), and judge the pre-registered overlap gates
+/// (fitted support overlap vs the N1/N2 nulls, anti-vacuity) at
+/// whole-artifact scope. The replaced-forward parity gates
+/// (teacher-forced top-1, bits ratio) require the real executor's
+/// restricted forward — S1-2, built only on a PASS here (the
+/// stop-at-first-fail ordering makes this stage the cheapest falsifier).
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct RealArmOverlapReport {
+    /// `uor-r4-real-arm-overlap/1`.
+    pub format: String,
+    /// Records evaluated (after any pre-declared subset rule).
+    pub corpus_records: usize,
+    /// Stories evaluated.
+    pub corpus_stories: usize,
+    /// Declared capture layers.
+    pub declared_layers: Vec<u32>,
+    /// Declared per-head support cap.
+    pub support_size: u32,
+    /// Corpus record identity (subset digest for a subset load).
+    pub records_kappa: String,
+    /// Corpus trace identity (subset digest for a subset load).
+    pub trace_kappa: String,
+    /// The parent observation manifest's identity-bundle digest.
+    pub identity_bundle_digest: String,
+    /// κ of the fitted parameters' canonical bytes.
+    pub fitted_params_kappa: String,
+    /// The declared selection width the kernel was driven with.
+    pub top_m: u32,
+    /// The pre-registered contract judged against (gates unchanged).
+    pub contract: RunContract,
+    /// Aggregated deployed-kernel runtime checks across every head.
+    pub runtime: RuntimeChecks,
+    /// Whole-artifact overlap record (every fitted head).
+    pub overlap: OverlapRecord,
+    /// Per-head overlap breakdown.
+    pub heads: Vec<RealArmOverlapHeadRecord>,
+    /// PASS / FAIL for this stage.
+    pub verdict: StageVerdict,
+    /// The gate that decided the verdict, with its numbers.
+    pub reason: String,
+}
+
+/// Run the S1-1 real-arm overlap stage. Deterministic: the same corpus
+/// and contract produce a byte-identical report. Gate values and order
+/// mirror the synthetic ladder exactly (vacuity → runtime → overlap
+/// bar); only the teacher-forced parity gates are absent, by the
+/// declared amendment.
+pub fn run_real_arm_overlap_gates(
+    corpus: &RouteTraceCorpus,
+    fitted: &FittedRouteCodes,
+    contract: &RunContract,
+) -> Result<RealArmOverlapReport, SourceUnavailable> {
+    for head in &fitted.heads {
+        if head.query_codes.len() != corpus.stories.len()
+            || head.key_codes.len() != corpus.stories.len()
+        {
+            return Err(SourceUnavailable::new(
+                "fitted code tables do not align with the corpus stories",
+            ));
+        }
+    }
+    let null_codes = null_n1_codes(fitted, contract.nulls.n1_seed);
+    let mut evidence: Vec<HeadEvidence> = Vec::with_capacity(fitted.heads.len());
+    let mut per_head: Vec<HeadOverlaps> = Vec::with_capacity(fitted.heads.len());
+    let mut head_records: Vec<RealArmOverlapHeadRecord> = Vec::with_capacity(fitted.heads.len());
+    for (head_index, head) in fitted.heads.iter().enumerate() {
+        let lane_index = corpus
+            .declared_layers
+            .iter()
+            .position(|&layer| layer == head.layer)
+            .ok_or_else(|| {
+                SourceUnavailable::new(format!(
+                    "fitted layer {} is not a declared trace layer",
+                    head.layer
+                ))
+            })?;
+        let head_evidence = packed_selection_evidence(head, fitted.top_m, true)
+            .map_err(|error| SourceUnavailable::new(format!("selection evidence: {error}")))?;
+        let n1_evidence = packed_selection_evidence(&null_codes[head_index], fitted.top_m, false)
+            .map_err(|error| {
+            SourceUnavailable::new(format!("null selection evidence: {error}"))
+        })?;
+        let overlaps = head_overlaps(
+            corpus,
+            lane_index,
+            head.head,
+            &head_evidence.selected,
+            &n1_evidence.selected,
+            fitted.top_m,
+        );
+        let denominator = overlaps.eligible.max(1) as f64;
+        head_records.push(RealArmOverlapHeadRecord {
+            layer: head.layer,
+            head: head.head,
+            fitted: overlaps.fitted_sum / denominator,
+            n1: overlaps.n1_sum / denominator,
+            n2: overlaps.n2_sum / denominator,
+            eligible_steps: overlaps.eligible,
+        });
+        evidence.push(head_evidence);
+        per_head.push(overlaps);
+    }
+    let runtime = aggregate_runtime(&evidence.iter().collect::<Vec<_>>());
+    let overlap = overlap_record(&per_head, contract.gates.n2_vacuity_fraction);
+
+    let verdict;
+    let reason;
+    if overlap.vacuous {
+        verdict = StageVerdict::Fail;
+        reason = format!(
+            "instrument VACUOUS: N2 overlap {:.6} is not below {:.2} x fitted overlap {:.6}; \
+             a vacuous instrument fails the run regardless of other numbers",
+            overlap.n2, contract.gates.n2_vacuity_fraction, overlap.fitted
+        );
+    } else if !runtime.pass {
+        verdict = StageVerdict::Fail;
+        reason = format!(
+            "deployed-kernel runtime checks FAILED (witness replay {}, census {}, reference \
+             cross-check {}, state epoch {})",
+            runtime.witness_replay_pass,
+            runtime.census_closed_form_pass,
+            runtime.reference_crosscheck_pass,
+            runtime.state_epoch_pass
+        );
+    } else {
+        let overlap_bar = (contract.gates.overlap_null_factor * overlap.best_null)
+            .max(contract.gates.overlap_floor);
+        if overlap.fitted < overlap_bar {
+            verdict = StageVerdict::Fail;
+            reason = format!(
+                "fitted support overlap {:.6} is below the pre-registered bar \
+                 max({:.1} x best null {:.6}, {:.2}) = {:.6}",
+                overlap.fitted,
+                contract.gates.overlap_null_factor,
+                overlap.best_null,
+                contract.gates.overlap_floor,
+                overlap_bar
+            );
+        } else {
+            verdict = StageVerdict::Pass;
+            reason = format!(
+                "overlap gates held at whole-artifact scope (fitted {:.6}, nulls n1 {:.6} / \
+                 n2 {:.6}, bar {:.6}, eligible steps {}); the replaced-forward parity gates \
+                 await S1-2 per the declared amendment",
+                overlap.fitted, overlap.n1, overlap.n2, overlap_bar, overlap.eligible_steps
+            );
+        }
+    }
+
+    Ok(RealArmOverlapReport {
+        format: "uor-r4-real-arm-overlap/1".to_owned(),
+        corpus_records: corpus.records,
+        corpus_stories: corpus.stories.len(),
+        declared_layers: corpus.declared_layers.clone(),
+        support_size: corpus.support_size,
+        records_kappa: corpus.records_kappa.clone(),
+        trace_kappa: corpus.trace_kappa.clone(),
+        identity_bundle_digest: corpus.identity_bundle_digest.clone(),
+        fitted_params_kappa: fitted.kappa(),
+        top_m: fitted.top_m,
+        contract: contract.clone(),
+        runtime,
+        overlap,
+        heads: head_records,
+        verdict,
+        reason,
+    })
+}
+
+#[cfg(test)]
+mod real_arm_tests {
+    use super::*;
+    use std::time::{SystemTime, UNIX_EPOCH};
+    use uor_r4_graph_compiler::route_fit::{
+        fit_route_codes, generate_synthetic_route_trace, load_route_trace_corpus,
+        load_route_trace_corpus_subset, synthetic_capture_geometry, RouteTraceSubset,
+        SyntheticRouteTeacher,
+    };
+    use uor_r4_model_source::TeacherOracle as _;
+
+    fn synth_bos() -> u32 {
+        SyntheticRouteTeacher::new().bos_token() as u32
+    }
+
+    fn unique_dir(label: &str) -> std::path::PathBuf {
+        let nanos = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("clock")
+            .as_nanos();
+        std::env::temp_dir().join(format!("uor-r4-real-arm-{label}-{nanos}"))
+    }
+
+    /// The S1-1 stage machinery end to end on the synthetic trace corpus
+    /// (produced through the PRODUCTION #603 pipeline): the fit clears
+    /// the pre-registered overlap gates, and the same report FAILS by
+    /// name under a seeded impossible floor and a seeded zero vacuity
+    /// fraction (falsifiers) — the instrument can fail.
+    #[test]
+    fn real_arm_overlap_gates_pass_on_synthetic_and_fail_on_seeded_gates() {
+        let dir = unique_dir("gates");
+        generate_synthetic_route_trace(&dir).expect("synthetic trace corpus");
+        let corpus = load_route_trace_corpus(&dir, synthetic_capture_geometry(), synth_bos())
+            .expect("load synthetic corpus");
+        let fitted = fit_route_codes(&corpus).expect("fit");
+        let contract = preregistered_route_fit_contract();
+
+        let report = run_real_arm_overlap_gates(&corpus, &fitted, &contract).expect("stage runs");
+        assert_eq!(
+            report.verdict,
+            StageVerdict::Pass,
+            "synthetic overlap gates hold: {}",
+            report.reason
+        );
+        assert!(report.runtime.pass, "deployed-kernel checks hold");
+        assert_eq!(report.heads.len(), fitted.heads.len());
+        assert!(report.overlap.fitted > report.overlap.best_null);
+
+        // Determinism: a second run is identical field for field.
+        let again = run_real_arm_overlap_gates(&corpus, &fitted, &contract).expect("second run");
+        assert_eq!(report, again, "the report is deterministic");
+
+        // Falsifier 1: an impossible overlap floor fails by name.
+        let mut impossible = contract.clone();
+        impossible.gates.overlap_floor = 1.1;
+        let failed =
+            run_real_arm_overlap_gates(&corpus, &fitted, &impossible).expect("stage still runs");
+        assert_eq!(failed.verdict, StageVerdict::Fail);
+        assert!(
+            failed.reason.contains("below the pre-registered bar"),
+            "{}",
+            failed.reason
+        );
+
+        // Falsifier 2: a zero vacuity fraction declares the instrument
+        // vacuous and fails the run outright.
+        let mut vacuous = contract.clone();
+        vacuous.gates.n2_vacuity_fraction = 0.0;
+        let failed =
+            run_real_arm_overlap_gates(&corpus, &fitted, &vacuous).expect("stage still runs");
+        assert_eq!(failed.verdict, StageVerdict::Fail);
+        assert!(failed.reason.contains("VACUOUS"), "{}", failed.reason);
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// The subset loader agrees with the full loader when the subset
+    /// covers everything, truncates stories at the declared position
+    /// bound (the deployed `ROUTE_MAX_CANDIDATES` window), and carries
+    /// domain-tagged subset κs distinct from the full-corpus κs.
+    #[test]
+    fn subset_loader_matches_full_load_and_truncates_at_the_declared_bound() {
+        let dir = unique_dir("subset");
+        generate_synthetic_route_trace(&dir).expect("synthetic trace corpus");
+        let geometry = synthetic_capture_geometry();
+        let full = load_route_trace_corpus(&dir, geometry, synth_bos()).expect("full load");
+        let all = load_route_trace_corpus_subset(
+            &dir,
+            geometry,
+            synth_bos(),
+            RouteTraceSubset {
+                max_stories: u32::MAX,
+                max_positions: u32::MAX,
+            },
+        )
+        .expect("covering subset load");
+        assert_eq!(all.records, full.records);
+        assert_eq!(all.stories.len(), full.stories.len());
+        for (a, b) in all.stories.iter().zip(full.stories.iter()) {
+            assert_eq!(a.story, b.story);
+            assert_eq!(a.tokens, b.tokens);
+            assert_eq!(a.steps.len(), b.steps.len());
+        }
+        assert_ne!(
+            all.records_kappa, full.records_kappa,
+            "subset κs are domain-tagged, never confusable with full-corpus κs"
+        );
+        assert_eq!(all.identity_bundle_digest, full.identity_bundle_digest);
+
+        let truncated = load_route_trace_corpus_subset(
+            &dir,
+            geometry,
+            synth_bos(),
+            RouteTraceSubset {
+                max_stories: 2,
+                max_positions: 3,
+            },
+        )
+        .expect("truncating subset load");
+        assert_eq!(truncated.stories.len(), 2.min(full.stories.len()));
+        for story in &truncated.stories {
+            assert!(story.steps.len() <= 3, "positions truncate at the bound");
+            for (expected, step) in story.steps.iter().enumerate() {
+                assert_eq!(step.pos as usize, expected, "kept window stays contiguous");
+            }
+        }
+        // The truncated corpus still fits and judges.
+        let fitted = fit_route_codes(&truncated).expect("fit on the truncated subset");
+        assert_eq!(
+            fitted.heads.len(),
+            truncated.declared_layers.len() * geometry.heads
+        );
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+}

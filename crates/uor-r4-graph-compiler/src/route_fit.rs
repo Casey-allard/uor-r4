@@ -1109,6 +1109,242 @@ pub fn load_route_trace_corpus(
     })
 }
 
+/// The pre-declared subset rule for a memory-bound real-corpus load
+/// (#605 amendment 2, 2026-08-19): keep the first `max_stories` story
+/// ordinals, truncated to the first `max_positions` positions each.
+/// `max_positions` exists because the deployed operator's own instance
+/// bound (`ROUTE_MAX_CANDIDATES`) caps the candidate table — a prefix
+/// window is exactly what the packed operator could ever serve, and
+/// supports are self-contained within a prefix.
+#[cfg(not(target_arch = "wasm32"))]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct RouteTraceSubset {
+    /// Keep stories with `story < max_stories`.
+    pub max_stories: u32,
+    /// Keep positions with `pos < max_positions` within each kept story.
+    pub max_positions: u32,
+}
+
+/// [`load_route_trace_corpus`] for corpora too large to merge in memory:
+/// streams shard-by-shard (one shard's record/probability/trace files
+/// resident at a time) and keeps only the pre-declared
+/// [`RouteTraceSubset`]. Kept stories must still be position-contiguous
+/// from 0 up to their (possibly truncated) length — a gap inside the
+/// kept window is refused exactly like the full loader refuses it.
+///
+/// Subset identity: the full-corpus κs cannot be quoted for a partial
+/// read, so `records_kappa`/`trace_kappa` carry a canonical SUBSET
+/// digest instead — blake3 over the kept records' (respectively kept
+/// trace rows') per-record blake3 hashes in ascending `(story, pos)`
+/// order under a domain tag naming the rule. Deterministic for the same
+/// corpus + subset; distinct from any full-corpus κ by construction
+/// (domain-tagged). The parent corpus stays identified by
+/// `identity_bundle_digest` (the observation manifest's own digest).
+#[cfg(not(target_arch = "wasm32"))]
+pub fn load_route_trace_corpus_subset(
+    dir: &Path,
+    geometry: TraceCaptureGeometry,
+    bos_token: u32,
+    subset: RouteTraceSubset,
+) -> Result<RouteTraceCorpus, SourceUnavailable> {
+    if subset.max_stories == 0 || subset.max_positions == 0 {
+        return Err(SourceUnavailable::new(
+            "an empty subset rule loads nothing; declare at least one story and position",
+        ));
+    }
+    let manifest = ObservationManifest::load(dir)?.ok_or_else(|| {
+        SourceUnavailable::new(format!("no observation manifest in {}", dir.display()))
+    })?;
+    let profile = manifest.trace_profile.clone().ok_or_else(|| {
+        SourceUnavailable::new(format!(
+            "{} was captured under the minimal profile; the route fit needs \
+             the q/k and attention-support lanes",
+            dir.display()
+        ))
+    })?;
+    let qkv_lane = profile.qkv_lane.clone().ok_or_else(|| {
+        SourceUnavailable::new("trace profile declares no q/k lane; the route fit needs it")
+    })?;
+    let support_lane = profile.attention_support_lane.clone().ok_or_else(|| {
+        SourceUnavailable::new(
+            "trace profile declares no attention-support lane; the route fit needs it",
+        )
+    })?;
+    let declared_layers = qkv_lane.layer_indices.clone();
+    if support_lane.layer_indices != declared_layers {
+        return Err(SourceUnavailable::new(
+            "q/k and attention-support lanes declare different layer lists; \
+             the route fit reads one aligned layer list",
+        ));
+    }
+    let layout = crate::observation::TraceRowLayout::new(&profile, &geometry);
+    let row_bytes = layout.row_bytes;
+    if manifest.trace_row_bytes != Some(row_bytes as u64) {
+        return Err(SourceUnavailable::new(format!(
+            "trace row width mismatch: manifest pins {:?}, geometry + profile imply {row_bytes}",
+            manifest.trace_row_bytes
+        )));
+    }
+
+    struct KeptStep {
+        pos: u32,
+        step: StepTrace,
+        record_hash: [u8; 32],
+        trace_hash: [u8; 32],
+    }
+    let mut by_story: BTreeMap<u32, Vec<KeptStep>> = BTreeMap::new();
+    let mut records = 0usize;
+    for shard in 0..manifest.shard_count() {
+        let Some(entry) = manifest.completed.get(&shard) else {
+            continue;
+        };
+        if entry.records == 0 {
+            continue;
+        }
+        let record_path = dir.join(crate::observation::shard_file_name(
+            manifest.shard_bits,
+            shard,
+        ));
+        let record_bytes = std::fs::read(&record_path)?;
+        if record_bytes.len() % RECORD_SIZE != 0 {
+            return Err(SourceUnavailable::new(format!(
+                "shard file {} has a torn record ({} bytes)",
+                record_path.display(),
+                record_bytes.len()
+            )));
+        }
+        let shard_records = record_bytes.len() / RECORD_SIZE;
+        let prob_path = dir.join(format!(
+            "{}.prob",
+            crate::observation::shard_file_name(manifest.shard_bits, shard)
+        ));
+        let prob_bytes = std::fs::read(&prob_path)?;
+        let trace_path = dir.join(crate::observation::trace_sidecar_name(
+            manifest.shard_bits,
+            shard,
+        ));
+        let trace_bytes = std::fs::read(&trace_path)?;
+        if trace_bytes.len() != shard_records * row_bytes {
+            return Err(SourceUnavailable::new(format!(
+                "trace sidecar {} is not record-aligned ({} bytes for {} records of {} each)",
+                trace_path.display(),
+                trace_bytes.len(),
+                shard_records,
+                row_bytes
+            )));
+        }
+        let probabilities = crate::observation::decode_probability_metadata(&prob_bytes)
+            .map_err(|error| SourceUnavailable::new(format!("{}: {error}", prob_path.display())))?;
+        if probabilities.len() != shard_records {
+            return Err(SourceUnavailable::new(format!(
+                "probability sidecar {} is not record-aligned",
+                prob_path.display()
+            )));
+        }
+        for index in 0..shard_records {
+            let record = &record_bytes[index * RECORD_SIZE..(index + 1) * RECORD_SIZE];
+            let story = read_u32(record, 0);
+            let pos = read_u32(record, 72);
+            if story >= subset.max_stories || pos >= subset.max_positions {
+                continue;
+            }
+            records += 1;
+            let next = read_u32(record, 4);
+            let mut top_tokens = [0u32; 8];
+            for (slot, token) in top_tokens.iter_mut().enumerate() {
+                *token = read_u32(record, 8 + slot * 4);
+            }
+            let row = &trace_bytes[index * row_bytes..(index + 1) * row_bytes];
+            let decoded = layout.read_row(row)?;
+            let q_rows: Vec<Vec<f32>> = decoded.qkv.iter().map(|(q, _, _)| q.clone()).collect();
+            let k_rows: Vec<Vec<f32>> = decoded.qkv.iter().map(|(_, k, _)| k.clone()).collect();
+            by_story.entry(story).or_default().push(KeptStep {
+                pos,
+                step: StepTrace {
+                    pos,
+                    input_token: 0,
+                    next,
+                    top_tokens,
+                    target_logprob_nats: probabilities[index].target_logprob_nats,
+                    q_rows,
+                    k_rows,
+                    supports: decoded.support,
+                },
+                record_hash: *blake3::hash(record).as_bytes(),
+                trace_hash: *blake3::hash(row).as_bytes(),
+            });
+        }
+    }
+    if by_story.is_empty() {
+        return Err(SourceUnavailable::new(format!(
+            "the declared subset (stories < {}, positions < {}) matched no records in {}",
+            subset.max_stories,
+            subset.max_positions,
+            dir.display()
+        )));
+    }
+
+    let mut record_digest = blake3::Hasher::new();
+    record_digest.update(
+        format!(
+            "uor-r4-route-trace-subset/1 records stories<{} positions<{}\n",
+            subset.max_stories, subset.max_positions
+        )
+        .as_bytes(),
+    );
+    let mut trace_digest = blake3::Hasher::new();
+    trace_digest.update(
+        format!(
+            "uor-r4-route-trace-subset/1 trace stories<{} positions<{}\n",
+            subset.max_stories, subset.max_positions
+        )
+        .as_bytes(),
+    );
+    let mut stories = Vec::with_capacity(by_story.len());
+    for (story, mut kept) in by_story {
+        kept.sort_by_key(|step| step.pos);
+        for (expected, step) in kept.iter().enumerate() {
+            if step.pos as usize != expected {
+                return Err(SourceUnavailable::new(format!(
+                    "story {story} has non-contiguous positions inside the kept window \
+                     (expected {expected}, found {})",
+                    step.pos
+                )));
+            }
+        }
+        let mut steps = Vec::with_capacity(kept.len());
+        for step in kept {
+            record_digest.update(&step.record_hash);
+            trace_digest.update(&step.trace_hash);
+            steps.push(step.step);
+        }
+        let mut tokens = Vec::with_capacity(steps.len());
+        let mut fed = bos_token;
+        for step in steps.iter_mut() {
+            step.input_token = fed;
+            tokens.push(fed);
+            fed = step.next;
+        }
+        stories.push(StoryTrace {
+            story,
+            tokens,
+            steps,
+        });
+    }
+
+    Ok(RouteTraceCorpus {
+        geometry,
+        declared_layers,
+        support_size: support_lane.support_size,
+        trace_profile: profile,
+        stories,
+        records,
+        records_kappa: format!("blake3:{}", record_digest.finalize().to_hex()),
+        trace_kappa: format!("blake3:{}", trace_digest.finalize().to_hex()),
+        identity_bundle_digest: manifest.identity_bundle_digest(),
+    })
+}
+
 // ---------------------------------------------------------------------------
 // The fit itself.
 // ---------------------------------------------------------------------------
