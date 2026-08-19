@@ -561,6 +561,29 @@ export function init_wasm() {
 }
 
 /**
+ * #790 item 5: install a graph and its exact tokenizer into the wasm
+ * runtime so the dashboard's r4g1/transformerless selections can
+ * actually serve through [`generate_r4g1_response`] in static mode.
+ * Previously that export was unreachable — no installer was exported
+ * and neither frontend assigned the `wasm_module` global it is gated
+ * on, so those selections silently took the geometric fallback. Throws
+ * the installer's typed refusal (CID mismatch, malformed bytes) without
+ * replacing a previously active bundle.
+ * @param {Uint8Array} graph
+ * @param {Uint8Array} tokenizer
+ */
+export function set_r4g1_bundle(graph, tokenizer) {
+    const ptr0 = passArray8ToWasm0(graph, wasm.__wbindgen_malloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ptr1 = passArray8ToWasm0(tokenizer, wasm.__wbindgen_malloc);
+    const len1 = WASM_VECTOR_LEN;
+    const ret = wasm.set_r4g1_bundle(ptr0, len0, ptr1, len1);
+    if (ret[1]) {
+        throw takeFromExternrefTable0(ret[0]);
+    }
+}
+
+/**
  * @param {string} subj
  * @param {string} act
  * @param {string} time
@@ -777,6 +800,13 @@ function getUint8ArrayMemory0() {
     return cachedUint8ArrayMemory0;
 }
 
+function passArray8ToWasm0(arg, malloc) {
+    const ptr = malloc(arg.length * 1, 1) >>> 0;
+    getUint8ArrayMemory0().set(arg, ptr / 1);
+    WASM_VECTOR_LEN = arg.length;
+    return ptr;
+}
+
 function passArrayF64ToWasm0(arg, malloc) {
     const ptr = malloc(arg.length * 8, 8) >>> 0;
     getFloat64ArrayMemory0().set(arg, ptr / 8);
@@ -819,6 +849,12 @@ function passStringToWasm0(arg, malloc, realloc) {
 
     WASM_VECTOR_LEN = offset;
     return ptr;
+}
+
+function takeFromExternrefTable0(idx) {
+    const value = wasm.__wbindgen_externrefs.get(idx);
+    wasm.__externref_table_dealloc(idx);
+    return value;
 }
 
 let cachedTextDecoder = new TextDecoder('utf-8', { ignoreBOM: true, fatal: true });

@@ -213,6 +213,18 @@ export function generate_r4g1_response(prompt: string, max_tokens: number): stri
 
 export function init_wasm(): void;
 
+/**
+ * #790 item 5: install a graph and its exact tokenizer into the wasm
+ * runtime so the dashboard's r4g1/transformerless selections can
+ * actually serve through [`generate_r4g1_response`] in static mode.
+ * Previously that export was unreachable — no installer was exported
+ * and neither frontend assigned the `wasm_module` global it is gated
+ * on, so those selections silently took the geometric fallback. Throws
+ * the installer's typed refusal (CID mismatch, malformed bytes) without
+ * replacing a previously active bundle.
+ */
+export function set_r4g1_bundle(graph: Uint8Array, tokenizer: Uint8Array): void;
+
 export function vsa_encode_event(subj: string, act: string, time: string, loc: string, space: string): Uint8Array;
 
 export function vsa_encode_graph_edge(src: string, rel: string, tgt: string, space: string): Uint8Array;
@@ -224,6 +236,7 @@ export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembl
 export interface InitOutput {
     readonly memory: WebAssembly.Memory;
     readonly generate_r4g1_response: (a: number, b: number, c: number) => [number, number];
+    readonly set_r4g1_bundle: (a: number, b: number, c: number, d: number) => [number, number];
     readonly __wbg_get_uorr4router_geometry_type: (a: number) => number;
     readonly __wbg_set_uorr4router_geometry_type: (a: number, b: number) => void;
     readonly __wbg_uorr4router_free: (a: number, b: number) => void;
@@ -280,6 +293,7 @@ export interface InitOutput {
     readonly __wbindgen_malloc: (a: number, b: number) => number;
     readonly __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;
     readonly __wbindgen_externrefs: WebAssembly.Table;
+    readonly __externref_table_dealloc: (a: number) => void;
     readonly __wbindgen_start: () => void;
 }
 

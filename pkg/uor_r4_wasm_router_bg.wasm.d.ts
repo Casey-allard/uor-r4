@@ -2,6 +2,7 @@
 /* eslint-disable */
 export const memory: WebAssembly.Memory;
 export const generate_r4g1_response: (a: number, b: number, c: number) => [number, number];
+export const set_r4g1_bundle: (a: number, b: number, c: number, d: number) => [number, number];
 export const __wbg_get_uorr4router_geometry_type: (a: number) => number;
 export const __wbg_set_uorr4router_geometry_type: (a: number, b: number) => void;
 export const __wbg_uorr4router_free: (a: number, b: number) => void;
@@ -58,4 +59,5 @@ export const __wbindgen_free: (a: number, b: number, c: number) => void;
 export const __wbindgen_malloc: (a: number, b: number) => number;
 export const __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;
 export const __wbindgen_externrefs: WebAssembly.Table;
+export const __externref_table_dealloc: (a: number) => void;
 export const __wbindgen_start: () => void;
