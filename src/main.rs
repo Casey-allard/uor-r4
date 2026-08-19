@@ -107,6 +107,13 @@ enum Command {
     /// sidecar, giving `release_bundle_loader::verify_release_bundle_sidecar`
     /// (#655-C1c) a real manifest to verify.
     PackageReleaseBundle(PackageReleaseBundleArgs),
+    /// #741: explicitly fetch a published release's packaged bundle from
+    /// its GitHub Release and install it — only after every component
+    /// digest matches the release's attested `release-bundle.json`
+    /// manifest. Never runs implicitly; a digest mismatch, an unattested
+    /// archive entry, or an existing install refuses with nothing
+    /// written.
+    InstallRelease(InstallReleaseArgs),
     /// Evaluate an HF-compiled bundle and emit an instruction-quality report.
     EvaluateReport(EvaluateReportArgs),
     /// Print legacy proof-workflow prerequisites.
@@ -398,6 +405,20 @@ struct PackageReleaseBundleArgs {
     /// `<compiled>/release-bundle.json`.
     #[arg(long)]
     output: Option<PathBuf>,
+}
+
+#[derive(Args, Debug)]
+struct InstallReleaseArgs {
+    /// Release tag to install (e.g. v0.1).
+    #[arg(long)]
+    tag: String,
+    /// GitHub repository the release lives in.
+    #[arg(long, default_value = "UOR-Foundation/uor-r4")]
+    repo: String,
+    /// Install name under the model store's compiled/ inventory
+    /// [default: the release manifest's own model_id].
+    #[arg(long)]
+    name: Option<String>,
 }
 
 #[derive(Args, Debug)]
@@ -794,6 +815,44 @@ fn package_release_bundle_command(args: &PackageReleaseBundleArgs) -> Result<(),
     Ok(())
 }
 
+/// #741: the explicit verified fetch. All verification lives in
+/// `release_install::install_release`; this handler supplies the real
+/// curl fetcher and the model-store root, then reports the installed
+/// identity so the user can bind what they fetched to the release tag.
+fn install_release_command(args: &InstallReleaseArgs) -> Result<(), RunError> {
+    let store_root = uor_r4_wasm_router::model::model_store_root();
+    let request = uor_r4_wasm_router::release_install::InstallReleaseRequest {
+        repo: args.repo.clone(),
+        tag: args.tag.clone(),
+        name: args.name.clone(),
+    };
+    let installed = uor_r4_wasm_router::release_install::install_release(
+        &store_root,
+        &request,
+        &mut uor_r4_wasm_router::release_install::CurlFetcher,
+    )
+    .map_err(RunError::Command)?;
+    println!("installed: {}", installed.destination.display());
+    println!("release: {} @ {}", args.repo, args.tag);
+    println!(
+        "model_id: {} ({:?})",
+        installed.manifest.model_id, installed.manifest.capability
+    );
+    println!("graph: {}", installed.manifest.components.graph);
+    println!(
+        "signature_artifact: {}",
+        installed.manifest.components.signature_artifact
+    );
+    if let Some(tokenizer) = installed.manifest.components.tokenizer.as_deref() {
+        println!("tokenizer: {tokenizer}");
+    }
+    println!(
+        "every component digest verified against the release's attested manifest; \
+         the sidecar is installed beside the bundle for serving-time verification"
+    );
+    Ok(())
+}
+
 fn evaluate_report(args: &EvaluateReportArgs) -> Result<(), RunError> {
     if args.sequence_length == 0 {
         return Err(RunError::Command(
@@ -893,6 +952,7 @@ fn run(cli: &Cli) -> Result<(), RunError> {
         Some(Command::Download(args)) => download(args),
         Some(Command::Import(args)) => import(args),
         Some(Command::PackageReleaseBundle(args)) => package_release_bundle_command(args),
+        Some(Command::InstallRelease(args)) => install_release_command(args),
         Some(Command::EvaluateReport(args)) => evaluate_report(args),
         Some(Command::Setup) => run_core("setup", &[]),
         Some(Command::Gen { seconds, target }) => {

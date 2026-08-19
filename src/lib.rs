@@ -45,6 +45,12 @@ pub mod release_bundle_loader;
 /// [`release_bundle_packager::package_release_bundle`].
 #[cfg(not(target_arch = "wasm32"))]
 pub mod release_bundle_packager;
+/// #741: the explicit, verified release-bundle fetch (`r4
+/// install-release`) — downloads a published GitHub Release's bundle
+/// assets and installs them only after every declared component digest
+/// matches (`docs/RELEASE_PIPELINE.md`).
+#[cfg(not(target_arch = "wasm32"))]
+pub mod release_install;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod telemetry;
 

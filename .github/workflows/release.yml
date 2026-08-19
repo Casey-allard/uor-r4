@@ -1,0 +1,94 @@
+name: release
+
+# #741 release pipeline (maintainer decision 2026-08-19, recorded on
+# #741/#655): a pushed `v*` tag builds BOTH frontends — the native `r4`
+# CLI (linux x86_64 + macOS arm64) and the wasm frontend — and attaches
+# them to a DRAFT GitHub Release whose notes bind the tag to the exact
+# code SHA and inference-contract version. Nothing is published by this
+# workflow: the maintainer attaches the packaged model bundle
+# (`release-bundle.tar.gz` + `release-bundle.json`, produced locally by
+# `r4 package-release-bundle` — CI cannot compile the model) and then
+# publishes the draft by hand. Consumers fetch with the explicit
+# verified command: `r4 install-release --tag <tag>`.
+# See docs/RELEASE_PIPELINE.md for the full convention.
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  draft-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create the draft release (idempotent)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            echo "release $TAG already exists; leaving it as-is"
+            exit 0
+          fi
+          CONTRACT=$(grep -m1 '^\*\*Version:\*\*' docs/inference_contract.md | sed 's/[^0-9.]//g' || echo unknown)
+          gh release create "$TAG" --draft --verify-tag \
+            --title "uor-r4 $TAG" \
+            --notes "$(printf 'code: %s\ninference contract: %s\n\nAssets: r4 CLI (linux x86_64, macos arm64), wasm frontend.\nThe model bundle (release-bundle.tar.gz + release-bundle.json) is attached by the maintainer from a locally packaged compiled bundle before publishing; its manifest binds the bundle component digests to this tag.\n\nVerified install: r4 install-release --tag %s\n' "$GITHUB_SHA" "$CONTRACT" "$TAG")"
+
+  cli:
+    needs: draft-release
+    strategy:
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+          - runner: macos-14
+            target: aarch64-apple-darwin
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build the r4 CLI
+        run: cargo build --release --locked
+      - name: Package and attach
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          NAME="r4-${TAG}-${{ matrix.target }}"
+          mkdir -p "dist/$NAME"
+          cp target/release/r4 "dist/$NAME/"
+          cp LICENSE* "dist/$NAME/" 2>/dev/null || true
+          tar -C dist -czf "dist/$NAME.tar.gz" "$NAME"
+          shasum -a 256 "dist/$NAME.tar.gz" | awk '{print $1}' > "dist/$NAME.tar.gz.sha256"
+          gh release upload "$TAG" "dist/$NAME.tar.gz" "dist/$NAME.tar.gz.sha256" --clobber
+
+  wasm:
+    needs: draft-release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - name: Install wasm-pack
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+      - name: Build the wasm frontend
+        run: wasm-pack build --target web
+      - name: Package and attach
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          NAME="r4-wasm-${TAG}"
+          mkdir -p dist
+          tar -czf "dist/$NAME.tar.gz" pkg
+          shasum -a 256 "dist/$NAME.tar.gz" | awk '{print $1}' > "dist/$NAME.tar.gz.sha256"
+          gh release upload "$TAG" "dist/$NAME.tar.gz" "dist/$NAME.tar.gz.sha256" --clobber
