@@ -6,40 +6,39 @@ programme — what has been measured, refuted and left open — lives in
 purpose. Research direction is set by measurement and changes faster than this
 list does.
 
-_Last reviewed: 2026-08-19 (post-#655 close; issue states reconciled to GitHub)._
+_Last reviewed: 2026-08-19 (post-S1 verdict; issue states reconciled to GitHub)._
 
 ## Next up (recommended sequencing)
 
-The serving epic is **done**: **#655 closed 2026-08-19** (A–F complete; `r4`
-is the canonical served identity, seeded sampling is the decode default, the
-ask path applies the deployed D4 policy) along with **#741** (release **v0.1
-is published**, with the tag-triggered pipeline and the verified
-`r4 install-release` fetch — `docs/RELEASE_PIPELINE.md`) and **#811**. The
-only open issue repo-wide is **#804** (the route-attention decision; its S1
-real-teacher evidence run is executing under the amended #605 contract).
-Recommended order now:
+**The issue tracker is at zero open issues** — a first for this repository.
+The serving epic (**#655**), distribution (**#741**, release **v0.1**
+published), the ask-path abstention gate (**#811**), and the route-attention
+decision (**#804**, S1 verdict: FAIL — instrument vacuous; operator retained
+dormant with the record on #605) all closed 2026-08-19. What remains is
+maintainer-decision work, each item needing its own new issue + contract
+when picked up:
 
-1. **[#804](https://github.com/UOR-Foundation/uor-r4/issues/804)** — land the
-   S1 verdict (fit + pre-registered overlap gates on the traced broad
-   corpus). PASS → S1-2 restricted-forward parity, then the #643 A/B; FAIL →
-   negative record, operator retained. Either way the verdict decides the
-   next step for the **#784 family** (output distinctness; the D4
-   semantic-OOD finding recorded on #811) per the standing maintainer
-   decision.
-2. **Recompile the canonical local bundles with the #755 fix and take a fresh
-   quality read** (no open issue yet — the audit's E-1 run contract). Every
-   canonical bundle still predates the fix; the decode-default change made
-   baseline output *valid* (15/15 on the declared canary) but distinctness
-   and factual quality remain research-grade, and the v0.1 bundle's own
-   score report keeps it below the serving-admission quality bar (CLI-served
-   today, refused by the server's r4g1 tier). A post-#755 recompile that
-   clears its own bar is the path to a **server-admissible release bundle**,
-   and it decides whether the #460-lineage codebook-collision work needs its
-   own new issue.
-3. **Untracked remnants worth new issues when picked up:** the #653 phase-2
-   "defer-open" items (GNAF cost/witness seam, xtask proof-integrity ports,
-   Lean CI policy), the #759→#460 codebook-collision root cause, and the
-   eventual `uor-r4` alias-removal cleanup (deprecation window, #655-F).
+1. **Recompile the canonical local bundles with the #755 fix and take a
+   fresh quality read** (the audit's E-1 run contract; the standing next
+   action). The decode-default change made baseline output *valid* (15/15
+   on the declared canary) but distinctness and factual quality remain
+   research-grade, and the v0.1 bundle's own score report keeps it below
+   the serving-admission quality bar (CLI-served today, refused by the
+   server's r4g1 tier). A post-#755 recompile that clears its own bar is
+   the path to a **server-admissible release bundle**, and it decides
+   whether the #460-lineage codebook-collision work needs its own issue.
+2. **The #784 family** — output distinctness (context-code convergence)
+   plus the D4 semantic-OOD finding (#811): the sharpest open quality
+   question now that route-attention is measured and closed. Needs a
+   maintainer-approved pre-registered contract; the S1 verdict's
+   temporal-smoothness finding (#605) is directly relevant input.
+3. **Untracked remnants worth new issues when picked up:** the #653
+   phase-2 "defer-open" items (GNAF cost/witness seam, xtask
+   proof-integrity ports, Lean CI policy), the #759→#460
+   codebook-collision root cause, a future vacuity-robust route-attention
+   contract (excess-over-N2 primary, or restricted-forward parity — #605
+   verdict), and the eventual `uor-r4` alias-removal cleanup (#655-F
+   deprecation window).
 
 ## Landed
 

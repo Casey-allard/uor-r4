@@ -295,10 +295,12 @@ wiring the deployed D4 policy into the CLI ask path (#811) measured that
 none of the five out-of-distribution probes resolves Novel — semantic OOD
 does not present as signature-space novelty on a broad corpus, so honest
 "I don't know" behavior for such prompts is also gated on the same
-substrate question, not on serving wiring. The #784 next step is
-deliberately held for the **#604/#605 S1 verdict** (the route-attention
-real-teacher fit, running under the amended contract as of this note),
-per the standing maintainer decision.
+substrate question, not on serving wiring. The route-attention alternative
+was then measured directly and closed: see the S1 verdict below. With that
+verdict in, the **#784 family** (context-code convergence + the D4
+semantic-OOD finding) is the open quality question, awaiting its own
+maintainer-approved contract; the standing first step is the roadmap's
+recompile-with-#755 + fresh quality read.
 The **geometric router** is a validated, real component (content-query
 retrieval MRR 0.88+, #486/#490/#502) but it is a retrieval/routing mechanism,
 not itself a generative model, and it runs on `f64` outside the P-4 kernel by
@@ -312,11 +314,21 @@ top-M selection) that is constructible today but wired into **no serving
 path** — registered dormant (`r4-route-attention-dormant`) in
 `model/ledger.toml`. It is the closest thing in this repository to a
 transformer-*shaped* mechanism that is also genuinely goal-aligned, and its
-first real-teacher evaluation is now **in progress**: #804/#605's S1 fits
-route codes against a traced SmolLM2-360M teacher on a broad corpus under a
-pre-registered overlap-gate contract (amendments on #605), with the verdict
-deciding whether the operator advances (S1-2 restricted-forward parity,
-then the #643 A/B) or retires with a negative record. The
+first real-teacher evaluation is now **done and recorded (2026-08-19,
+#804/#605 S1): FAIL — instrument vacuous.** Route codes fitted against a
+traced SmolLM2-360M teacher on 62,875 broad-corpus records recovered real
+structure over the permuted-code null (support overlap 0.396 vs 0.192)
+across 6.6M eligible steps with every deployed-kernel runtime check
+passing — but the pre-registered anti-vacuity null (supports shifted one
+position) reached 0.292, because **teacher attention supports are
+temporally smooth** at this scale: the instrument cannot attribute fitted
+structure to genuine per-position routing, so by contract the run fails
+and licenses nothing. 119/120 heads individually vacuous. The operator
+stays dormant behind its unchanged ledger gate; any future attempt needs
+a new pre-registered contract with a vacuity-robust instrument
+(excess-over-N2 as the primary metric, or restricted-forward parity
+directly). Full record: #605 (corpus issuecomment-5337863280, verdict
+issuecomment-5337903765) and the #804 close. The
 **`attention`/`r4-attention`** engine modes and **GNAF** (#653) are out of
 scope for this question by the project's own stated goal: the former run the
 teacher's real matmul/float attention purely as a comparison baseline, never
