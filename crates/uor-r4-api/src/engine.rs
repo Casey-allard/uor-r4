@@ -112,8 +112,8 @@ pub struct InferenceResponse {
 }
 use uor_r4_core::transformerless::scenarios::{RuntimeTokenizerIdentity, Tokenizer};
 use uor_r4_graph_certify::{
-    GraphScorer, ScoreStatus, StepState, DEFAULT_EXCT_TOP_X, DEFAULT_ROOT_TOP_B, TOP_M,
-    WIDENED_TOP_M,
+    GraphScorer, ScoreStatus, StepCandidates, StepState, DEFAULT_EXCT_TOP_X, DEFAULT_ROOT_TOP_B,
+    TOP_M, WIDENED_TOP_M,
 };
 use uor_r4_graph_format::{
     ContractVersion, FormatError, GraphView, ObservedBound, FORMAT_VERSION_MAJOR,
@@ -579,18 +579,43 @@ impl R4Engine {
     /// with legacy TLS1 exact-context evidence stay on the reference
     /// scorer (the deployed step requires residualized RX1 evidence);
     /// that path ignores the width — widening is unavailable there.
-    fn score_sig(
+    /// A supplied sink additionally receives the step's bounded top-K
+    /// candidate list. Selection and status are identical either way;
+    /// on the legacy reference path the list is rebuilt from the
+    /// reference outcome's own candidate vector under the same
+    /// canonical order.
+    fn score_sig_with_candidates(
         &mut self,
         sig: &[u8; SIG_BYTES],
         input_code: Option<&[u8; compiler::STAGES]>,
         top_m: usize,
         recent_tokens: &[u32],
+        candidates: Option<&mut StepCandidates>,
     ) -> ScoredProbe {
         if self.step_supported {
-            let outcome = self
-                .scorer
-                .score_step_coded_with_recent(sig, input_code, top_m, &mut self.step, recent_tokens)
-                .expect("serving: scorer produced no candidates for a validated sig");
+            let outcome = match candidates {
+                Some(list) => self
+                    .scorer
+                    .score_step_candidates_coded_with_recent(
+                        sig,
+                        input_code,
+                        top_m,
+                        &mut self.step,
+                        recent_tokens,
+                        list,
+                    )
+                    .expect("serving: scorer produced no candidates for a validated sig"),
+                None => self
+                    .scorer
+                    .score_step_coded_with_recent(
+                        sig,
+                        input_code,
+                        top_m,
+                        &mut self.step,
+                        recent_tokens,
+                    )
+                    .expect("serving: scorer produced no candidates for a validated sig"),
+            };
             ScoredProbe {
                 token: outcome.selected,
                 status: outcome.status,
@@ -602,6 +627,12 @@ impl R4Engine {
                 .scorer
                 .score_candidates_coded(sig, input_code, recent_tokens)
                 .expect("serving: scorer produced no candidates for a validated sig");
+            if let Some(list) = candidates {
+                list.len = 0;
+                for &(token, score) in &outcome.candidates {
+                    list.push_ranked(token, score);
+                }
+            }
             ScoredProbe {
                 token: outcome.selected,
                 status: outcome.witness.status,
@@ -645,8 +676,29 @@ impl R4Engine {
         input_code: Option<&[u8; compiler::STAGES]>,
         recent_tokens: &[u32],
     ) -> PredictDecision {
+        self.predict_signature_status_with_recent_candidates(sig, input_code, recent_tokens, None)
+    }
+
+    /// The same policy path with an optional candidate sink: when the
+    /// decision serves, the sink holds the bounded top-K list of the
+    /// exact probe that served (the widened probe when widening served).
+    /// Policy bookkeeping — counters, widen-once, the novel-seen FIFO —
+    /// is this one implementation either way.
+    fn predict_signature_status_with_recent_candidates(
+        &mut self,
+        sig: &[u8; SIG_BYTES],
+        input_code: Option<&[u8; compiler::STAGES]>,
+        recent_tokens: &[u32],
+        mut candidates: Option<&mut StepCandidates>,
+    ) -> PredictDecision {
         self.counters.predicts += 1;
-        let first = self.score_sig(sig, input_code, TOP_M, recent_tokens);
+        let first = self.score_sig_with_candidates(
+            sig,
+            input_code,
+            TOP_M,
+            recent_tokens,
+            candidates.as_deref_mut(),
+        );
         match self.policy.action(first.status.into()) {
             StatusAction::Serve => {
                 self.counters.serves += 1;
@@ -686,7 +738,13 @@ impl R4Engine {
                     });
                 }
                 self.counters.widen_attempts += 1;
-                let second = self.score_sig(sig, input_code, WIDENED_TOP_M, recent_tokens);
+                let second = self.score_sig_with_candidates(
+                    sig,
+                    input_code,
+                    WIDENED_TOP_M,
+                    recent_tokens,
+                    candidates,
+                );
                 if second.status == ScoreStatus::Novel {
                     self.novel_seen.insert(sig);
                 }
@@ -853,6 +911,145 @@ impl R4Engine {
                     last_status = Some(outcome.status);
                     widened = widened || outcome.widened;
                     *token = next;
+                    if next == 1 || next == 2 {
+                        return Ok(GenerateStatus {
+                            count: generated,
+                            status: last_status,
+                            widened,
+                            abstained: false,
+                        });
+                    }
+                    if window_len < WINDOW {
+                        window[window_len] = next;
+                        window_len += 1;
+                    } else {
+                        window.copy_within(1.., 0);
+                        window[WINDOW - 1] = next;
+                    }
+                }
+                PredictDecision::Abstain(outcome) => {
+                    return Ok(GenerateStatus {
+                        count: generated,
+                        status: Some(outcome.status),
+                        widened: widened || outcome.widened,
+                        abstained: true,
+                    });
+                }
+            }
+        }
+        Ok(GenerateStatus {
+            count: out.len(),
+            status: last_status,
+            widened,
+            abstained: false,
+        })
+    }
+
+    /// The status-aware decision for one token window, additionally
+    /// filling `candidates` with the bounded top-K list of the exact
+    /// probe that decided (the widened probe when widening served).
+    fn predict_decision_candidates(
+        &mut self,
+        window: &[u32],
+        candidates: &mut StepCandidates,
+    ) -> Result<PredictDecision, ObservedBound> {
+        self.check_window(window)?;
+        let (sig, code) = self.derive_sig_code(window);
+        Ok(self.predict_signature_status_with_recent_candidates(
+            &sig,
+            Some(&code),
+            window,
+            Some(candidates),
+        ))
+    }
+
+    /// One #762-scheme draw over a served step's ranked candidates:
+    /// order-preserving shift to positive weights, the soft
+    /// ~1000-per-occurrence penalty over tokens already emitted this
+    /// generation with floor 1 (a penalized candidate stays reachable,
+    /// never excluded), and the shared division-free
+    /// [`runtime::SampleRng::draw`]. `served` is returned when the list
+    /// is degenerate so the policy's served selection is never
+    /// overridden by an unweighable list.
+    fn sample_step_candidate(
+        candidates: &StepCandidates,
+        emitted: &[u32],
+        served: u32,
+        rng: &mut runtime::SampleRng,
+    ) -> u32 {
+        let ranked = candidates.ranked();
+        if ranked.is_empty() {
+            return served;
+        }
+        let min_raw = ranked
+            .iter()
+            .map(|&(_, score)| i64::from(score.raw()))
+            .min()
+            .unwrap_or(0);
+        let mut weights = [0u32; uor_r4_graph_certify::STEP_TOP_CANDIDATES];
+        let mut total = 0u32;
+        for (index, &(token, score)) in ranked.iter().enumerate() {
+            let occurrences = emitted.iter().filter(|&&t| t == token).count() as i64;
+            let mut weight = i64::from(score.raw()) - min_raw + 1;
+            weight -= (occurrences << 10) - (occurrences << 4) - (occurrences << 3);
+            weights[index] = weight.clamp(1, i64::from(u32::MAX)) as u32;
+            total = total.saturating_add(weights[index]);
+        }
+        if total == 0 {
+            return served;
+        }
+        let draw = rng.draw(total);
+        let mut accumulated = 0u32;
+        for (index, &(token, _)) in ranked.iter().enumerate() {
+            accumulated = accumulated.saturating_add(weights[index]);
+            if draw < accumulated {
+                return token;
+            }
+        }
+        served
+    }
+
+    /// Seeded weighted sampling over the deployed step scorer's own
+    /// top-K candidates, through the same D4 policy path as
+    /// [`Self::generate_into`] (#655 decode-default decision 2026-08-19;
+    /// #785-C2/#762 scheme parity).
+    ///
+    /// Per step the policy decision — Serve / WidenOnce / Abstain, the
+    /// novel-seen FIFO, every counter — is computed exactly as the
+    /// greedy path computes it; sampling only replaces WHICH served
+    /// candidate is emitted, weighting the serving probe's own candidate
+    /// scores (deployed recent-window repetition penalty included).
+    /// Abstention semantics are identical by construction: a step that
+    /// abstains under greedy abstains here with the same status, and no
+    /// token is guessed. A `(seed tokens, rng seed)` pair is
+    /// reproducible end to end.
+    pub fn generate_sampled_into(
+        &mut self,
+        seed: &[u32],
+        out: &mut [u32],
+        rng: &mut runtime::SampleRng,
+    ) -> Result<GenerateStatus, ObservedBound> {
+        self.check_window(seed)?;
+        let mut window = [0u32; WINDOW];
+        let seed = &seed[seed.len().saturating_sub(WINDOW)..];
+        let mut window_len = seed.len();
+        window[..window_len].copy_from_slice(seed);
+
+        let mut candidates = StepCandidates::default();
+        let mut last_status = None;
+        let mut widened = false;
+        for generated in 0..out.len() {
+            match self.predict_decision_candidates(&window[..window_len], &mut candidates)? {
+                PredictDecision::Serve(outcome) => {
+                    last_status = Some(outcome.status);
+                    widened = widened || outcome.widened;
+                    let next = Self::sample_step_candidate(
+                        &candidates,
+                        &out[..generated],
+                        outcome.token,
+                        rng,
+                    );
+                    out[generated] = next;
                     if next == 1 || next == 2 {
                         return Ok(GenerateStatus {
                             count: generated,

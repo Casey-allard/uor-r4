@@ -1891,6 +1891,73 @@ pub struct StepOutcome {
     pub exact_context_source: Option<ExactContextSource>,
 }
 
+/// Capacity of the bounded per-step candidate list
+/// ([`GraphScorer::score_step_candidates_coded_with_recent`]): the same
+/// eight-wide bound the R4G1 packed runtime's candidate surface and the
+/// #785-C2 CLI sampled decode already use.
+pub const STEP_TOP_CANDIDATES: usize = 8;
+
+/// The bounded top-K candidate list of one deployed scoring step,
+/// ordered by the canonical selection rule (score descending, then
+/// token id ascending) so `ranked()[0]` is exactly the step's greedy
+/// selection. Fixed capacity; assembling it performs no allocation.
+/// List assembly is selection bookkeeping outside the op census — the
+/// same convention the reference scorer applies to its ranking sort.
+#[derive(Debug, Clone)]
+pub struct StepCandidates {
+    /// The ranked `(token, score)` entries; only `..len` are valid.
+    pub entries: [(u32, ScoreQ); STEP_TOP_CANDIDATES],
+    /// Number of valid entries.
+    pub len: usize,
+}
+
+impl Default for StepCandidates {
+    fn default() -> Self {
+        Self {
+            entries: [(0, ScoreQ::ZERO); STEP_TOP_CANDIDATES],
+            len: 0,
+        }
+    }
+}
+
+impl StepCandidates {
+    /// The valid ranked entries.
+    pub fn ranked(&self) -> &[(u32, ScoreQ)] {
+        &self.entries[..self.len]
+    }
+
+    /// Bounded rank insertion under the canonical selection rule (score
+    /// descending, then token id ascending); entries past capacity fall
+    /// off the tail. Shift/compare only — no allocation, no division.
+    /// Public so engine-layer assemblers (the legacy reference path)
+    /// can rebuild the same ranked list from reference candidates.
+    pub fn push_ranked(&mut self, token: u32, score: ScoreQ) {
+        let mut pos = self.len;
+        while pos > 0 {
+            let (held_token, held_score) = self.entries[pos - 1];
+            if score.raw() > held_score.raw()
+                || (score.raw() == held_score.raw() && token < held_token)
+            {
+                pos -= 1;
+            } else {
+                break;
+            }
+        }
+        if pos >= STEP_TOP_CANDIDATES {
+            return;
+        }
+        let mut slot = self.len.min(STEP_TOP_CANDIDATES - 1);
+        while slot > pos {
+            self.entries[slot] = self.entries[slot - 1];
+            slot -= 1;
+        }
+        self.entries[pos] = (token, score);
+        if self.len < STEP_TOP_CANDIDATES {
+            self.len += 1;
+        }
+    }
+}
+
 /// Advance the step state's epoch, re-zeroing the stamp buffers on the
 /// (practically unreachable) u64 wrap so a stale stamp can never alias
 /// the fresh epoch.
@@ -2190,6 +2257,45 @@ impl GraphScorer {
         state: &mut StepState,
         recent_tokens: &[u32],
     ) -> Option<StepOutcome> {
+        self.score_step_impl(sig, input_code, top_m, state, recent_tokens, None)
+    }
+
+    /// [`GraphScorer::score_step_coded_with_recent`] that additionally
+    /// assembles the bounded top-K candidate list of the same step.
+    /// Selection, status, census, and candidate count are byte-identical
+    /// to the plain step — `candidates.ranked()[0]` IS the selection —
+    /// so a caller sampling among candidates (the #655 sampled decode)
+    /// shares the exact deployed scoring path the greedy step serves
+    /// from, including the bounded recent-window repetition penalty.
+    pub fn score_step_candidates_coded_with_recent(
+        &self,
+        sig: &[u8; SIG_BYTES],
+        input_code: Option<&[u8; STAGES]>,
+        top_m: usize,
+        state: &mut StepState,
+        recent_tokens: &[u32],
+        candidates: &mut StepCandidates,
+    ) -> Option<StepOutcome> {
+        candidates.len = 0;
+        self.score_step_impl(
+            sig,
+            input_code,
+            top_m,
+            state,
+            recent_tokens,
+            Some(candidates),
+        )
+    }
+
+    fn score_step_impl(
+        &self,
+        sig: &[u8; SIG_BYTES],
+        input_code: Option<&[u8; STAGES]>,
+        top_m: usize,
+        state: &mut StepState,
+        recent_tokens: &[u32],
+        mut candidates: Option<&mut StepCandidates>,
+    ) -> Option<StepOutcome> {
         if top_m == 0 || top_m > state.max_top_m {
             return None;
         }
@@ -2209,6 +2315,12 @@ impl GraphScorer {
         }
         if let Some(entries) = self.context_row(recent_tokens) {
             let (selected, selected_score) = Self::context_row_argmax(entries);
+            if let Some(list) = candidates.as_deref_mut() {
+                list.len = 0;
+                for &(token, score) in entries {
+                    list.push_ranked(token, score);
+                }
+            }
             let census = OpKernel {
                 table_reads: 1,
                 ..Default::default()
@@ -2379,6 +2491,10 @@ impl GraphScorer {
             best_score = best_score.saturating_add(ScoreQ::from_raw(self.repetition_penalty_raw));
             k.adds += 1;
         }
+        if let Some(list) = candidates.as_deref_mut() {
+            list.len = 0;
+            list.push_ranked(best, best_score);
+        }
         for &token in state.touched.iter().skip(1) {
             k.candidate_scans += 1;
             k.compares += 1;
@@ -2389,6 +2505,9 @@ impl GraphScorer {
             if recent_tokens.contains(&token) {
                 score = score.saturating_add(ScoreQ::from_raw(self.repetition_penalty_raw));
                 k.adds += 1;
+            }
+            if let Some(list) = candidates.as_deref_mut() {
+                list.push_ranked(token, score);
             }
             if score > best_score || (score == best_score && token < best) {
                 best = token;

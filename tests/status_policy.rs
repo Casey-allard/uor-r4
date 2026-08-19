@@ -22,11 +22,14 @@ mod status_policy_common;
 
 use status_policy_common as fixture;
 
-use uor_r4_api::engine::WitnessVerificationError;
-use uor_r4_graph_certify::{ScoreStatus, TOP_M, WIDENED_TOP_M};
+use uor_r4_api::engine::{EngineParts, R4Engine, WitnessVerificationError};
+use uor_r4_graph_certify::{
+    ScoreStatus, StepCandidates, STEP_TOP_CANDIDATES, TOP_M, WIDENED_TOP_M,
+};
 use uor_r4_wasm_router::r4g1::{
     AbstainOutcome, PolicyStatus, PredictDecision, PredictOutcome, StatusAction, StatusPolicy,
 };
+use uor_r4_wasm_router::transformerless::runtime::SampleRng;
 
 // ------------------------------------------------------- (a) OOD probe --
 
@@ -309,6 +312,135 @@ fn generation_stops_at_the_first_abstain() {
         .expect("legacy generate");
     assert_eq!(legacy_count, outcome.count);
     assert_eq!(legacy_out[..legacy_count], out[..outcome.count]);
+}
+
+// ---------------------------------------------- sampled decode (#655) --
+
+/// The candidates-reporting step is the plain deployed step: selection,
+/// score, status, and candidate count are identical on every probe
+/// signature at both membership widths, with and without the deployed
+/// recent-window penalty; the ranked list leads with the selection,
+/// is strictly ordered under the canonical rule (score descending,
+/// token ascending), and is bounded by the candidate count.
+#[test]
+fn step_candidates_match_the_plain_step_and_rank_the_selection_first() {
+    let fixture = fixture::signature_fixture(None);
+    let scorer = fixture.reference_scorer();
+    let mut step_state = scorer.step_state(WIDENED_TOP_M).expect("step state");
+    let mut candidates = StepCandidates::default();
+    for sig in [fixture.covered_sig, fixture.graph_sig, fixture.ood_sig] {
+        for top_m in [TOP_M, WIDENED_TOP_M] {
+            for recent in [&[][..], &[10u32][..]] {
+                let plain = scorer
+                    .score_step_with_recent(&sig, top_m, &mut step_state, recent)
+                    .expect("plain step");
+                let listed = scorer
+                    .score_step_candidates_coded_with_recent(
+                        &sig,
+                        None,
+                        top_m,
+                        &mut step_state,
+                        recent,
+                        &mut candidates,
+                    )
+                    .expect("candidates step");
+                assert_eq!(listed.selected, plain.selected);
+                assert_eq!(listed.selected_score, plain.selected_score);
+                assert_eq!(listed.status, plain.status);
+                assert_eq!(listed.candidate_count, plain.candidate_count);
+                let ranked = candidates.ranked();
+                assert_eq!(
+                    ranked.len(),
+                    (plain.candidate_count as usize).min(STEP_TOP_CANDIDATES)
+                );
+                assert_eq!(ranked[0], (plain.selected, plain.selected_score));
+                for pair in ranked.windows(2) {
+                    let (prev_token, prev_score) = pair[0];
+                    let (next_token, next_score) = pair[1];
+                    assert!(
+                        prev_score.raw() > next_score.raw()
+                            || (prev_score.raw() == next_score.raw() && prev_token < next_token),
+                        "ranked list must be strictly ordered under the canonical rule"
+                    );
+                }
+            }
+        }
+    }
+}
+
+/// The #655 sampled decode (`R4Engine::generate_sampled_into`) shares
+/// the greedy path's D4 policy decisions by construction: an OOD seed
+/// abstains with the same typed outcome (no token guessed under
+/// sampling either), a served run is byte-reproducible from its rng
+/// seed, every emitted token stays inside the fixture's declared
+/// emission universe, and the policy counters show each emitted token
+/// paid one served policy decision.
+#[test]
+fn sampled_decode_is_seeded_and_abstains_exactly_like_greedy() {
+    let fixture = fixture::window_fixture();
+    let load_engine = || {
+        R4Engine::load(EngineParts {
+            graph: &fixture.bytes,
+            signature_artifact: &fixture.teacher,
+            tokenizer: None,
+            score_report: None,
+        })
+        .expect("fixture engine loads")
+    };
+    let ood_window = fixture::find_window_by_status(&fixture, ScoreStatus::Novel);
+
+    // OOD seed: identical abstention under greedy and sampled decode.
+    let mut greedy_engine = load_engine();
+    let greedy = greedy_engine
+        .generate_into(&ood_window, &mut [0u32; 8])
+        .expect("greedy generate");
+    let mut sampled_engine = load_engine();
+    let mut rng = SampleRng::new(42);
+    let mut sampled_out = [0u32; 8];
+    let sampled = sampled_engine
+        .generate_sampled_into(&ood_window, &mut sampled_out, &mut rng)
+        .expect("sampled generate");
+    assert!(greedy.abstained, "fixture OOD seed abstains under greedy");
+    assert!(sampled.abstained, "the sampled path preserves abstention");
+    assert_eq!(sampled.count, 0, "no token guessed under sampling");
+    assert_eq!(sampled.status, greedy.status);
+
+    // Served seed: same rng seed → identical run, end to end.
+    let run = |seed: u32| {
+        let mut engine = load_engine();
+        let mut rng = SampleRng::new(seed);
+        let mut out = [0u32; 8];
+        let outcome = engine
+            .generate_sampled_into(&fixture.covered_window, &mut out, &mut rng)
+            .expect("sampled generate");
+        let counters = engine.policy_counters();
+        (
+            outcome.count,
+            outcome.status,
+            outcome.abstained,
+            out,
+            counters.serves,
+        )
+    };
+    let (count, status, abstained, tokens, serves) = run(41);
+    assert_eq!(
+        (count, status, abstained, tokens, serves),
+        run(41),
+        "same seed reproduces the run end to end"
+    );
+    assert!(count >= 1, "the covered seed serves at least one token");
+    // Every emitted token draws from a serving probe's own candidate
+    // list; the fixture's whole emission universe (root prior + region
+    // lists) is {10, 20, 30, 40}.
+    for &token in &tokens[..count] {
+        assert!(
+            matches!(token, 10 | 20 | 30 | 40),
+            "sampled token {token} escaped the fixture's emission universe"
+        );
+    }
+    // No EOS ids exist in that universe, so every emitted token paid
+    // exactly one served policy decision.
+    assert_eq!(serves as usize, count, "one serve per emitted token");
 }
 
 #[test]
