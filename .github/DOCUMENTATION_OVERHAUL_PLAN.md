@@ -1,10 +1,31 @@
 # Master Documentation Overhaul & Architectural Alignment Plan
 
-> **Status:** Draft / Active  
+> **Status:** SUPERSEDED (2026-08-19, #829) — retained as history  
 > **Relates to:** Epic #201, PRs #206–#215  
 > **Author:** Antigravity / AI Agent Pair  
 
 ---
+
+> **Superseded (2026-08-19, issue #829).** This is a **point-in-time** (≈2026-07-26)
+> documentation-alignment plan tied to Epic #201 / PRs #206–#215. It is retained as history
+> and is **no longer authoritative**. For current architecture and direction see
+> [`README.md`](../README.md), [`AGENTS.md`](../AGENTS.md),
+> [`docs/RESEARCH.md`](../docs/RESEARCH.md), and
+> [`docs/r4_intelligence_completion_plan.md`](../docs/r4_intelligence_completion_plan.md).
+>
+> **Live-assertion corrections** (the "Ground-Truth Architectural Findings" in §2 are
+> point-in-time; some have since drifted — the history below is not rewritten):
+> - **Served identity:** `r4` is now the canonical served model identity (#655-F / #817),
+>   with `uor-r4` a **deprecated request alias** — this plan predates that flip.
+> - **Normative path:** the `FallbackRouter`→`TLA5` cascade (§2.3) and the `W(3,3)` phase-field
+>   canvas (§2.5) are **exploratory / visualization** constructs, not the normative production
+>   path. Designating the **one** normative R4G1 scorer is S0 work (#831); the `f64` router and
+>   dashboard stay out of the graph-migration path.
+> - **Store parsing:** `AGENTS.md` records that the on-disk compiled store predates the u32
+>   token migration and a legacy reader (`runtime::parse_store_legacy_u16`) still loads it, so
+>   §2.1's "strictly 32-bit" phrasing is aspirational/point-in-time, not an invariant.
+> - **#784 / #811:** per the current summaries — #784 is continuation-distribution convergence
+>   (not a full-depth context-code collision); #811 did not establish semantic abstention.
 
 ## 1. Executive Summary & Code Baseline Audit
 

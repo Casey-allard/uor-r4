@@ -1,9 +1,14 @@
 # AGENTS.md — uor-r4
 
-Guidance for agents (human or otherwise) working in this repository. Project
-direction lives in `docs/r4_graph_compiler_implementation_plan.md`; terminology
-in `docs/transformerless/GLOSSARY.md`. Keep this file current when conventions
-change.
+Guidance for agents (human or otherwise) working in this repository.
+**Post-v0.1 intelligence sequencing is authoritative in
+[`docs/r4_intelligence_completion_plan.md`](docs/r4_intelligence_completion_plan.md)**
+— the readable mirror of the GitHub programme root #820 (stages S0–S7 plus the
+cross-cutting F0 formal lane). The original graph-compiler engineering plan,
+`docs/r4_graph_compiler_implementation_plan.md`, is **retained** and still
+describes the compiler/runtime engineering direction; it is superseded only for
+post-v0.1 *sequencing*. Terminology lives in `docs/transformerless/GLOSSARY.md`.
+Keep this file current when conventions change.
 
 ## What this repo is
 

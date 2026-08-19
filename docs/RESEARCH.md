@@ -7,6 +7,18 @@ closed, which are load-bearing, and which are still open. Every claim here trace
 to a merged measurement with a pre-declared exit rule; the issue numbers are the
 durable references.
 
+> **Forward sequencing** for the post-v0.1 intelligence programme lives in the
+> [R4 Intelligence Completion Plan](r4_intelligence_completion_plan.md) — the
+> readable mirror of GitHub programme root #820 (stages S0–S7 plus the
+> cross-cutting F0 formal lane). Two current-summary corrections it pins, restated
+> here so this document stays true: **#784** found **continuation-distribution
+> convergence**, not a full-depth context-code collision (0.0% full-depth
+> collisions at k = 2/4/6/8; distinct codes still favor a shared continuation);
+> and **#811** wired the deployed D4 abstention policy but did **not** establish
+> semantic abstention (all five semantic-OOD probes stayed `SERVABLE`). Per the
+> repository rule, the per-issue measurement records are appended, never rewritten;
+> only these live summaries are reconciled.
+
 ## Measurement discipline
 
 Every substantive claim in this repo arrives with a **pre-declared exit rule, a

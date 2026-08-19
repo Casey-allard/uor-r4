@@ -1,0 +1,107 @@
+name: Research / experiment
+description: Propose a measurement with a pre-registered contract (hypothesis, nulls, cheap instrument, thresholds, outcome branches).
+title: "[research] <one-line hypothesis>"
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Evidence-first research intake. This form encodes the repository run contract
+        (`AGENTS.md` → Long-run discipline) and claim discipline
+        (`docs/formal_vocabulary.md`). Fill every field before any run measured in hours.
+        Unavailable fixtures are `UNAVAILABLE`, never a vacuous PASS.
+  - type: input
+    id: parent
+    attributes:
+      label: Parent tracker / stage
+      description: Native parent issue and stage lane (e.g. "#822 — S1"). See docs/r4_intelligence_completion_plan.md.
+      placeholder: "#822 — S1"
+    validations:
+      required: true
+  - type: textarea
+    id: hypothesis
+    attributes:
+      label: Hypothesis
+      description: The single falsifiable claim under test, stated so a negative result is meaningful.
+    validations:
+      required: true
+  - type: textarea
+    id: pinned-identities
+    attributes:
+      label: Pinned identities
+      description: Content-bound identities — corpus, teacher (HF revision), tokenizer, compiler, benchmark, decoder, report. Give CIDs/κ where they exist.
+      placeholder: |
+        corpus: <name / CID>
+        teacher: <HF repo @ pinned revision>
+        tokenizer: <CID>
+        compiler / decoder / report: <SHAs / CIDs>
+    validations:
+      required: true
+  - type: textarea
+    id: reachability
+    attributes:
+      label: Reachability arithmetic
+      description: From numbers already in hand, compute the ceiling on the metric this run can move. If the ceiling is below the effect you need, do not launch.
+      placeholder: "e.g. 97.9% of held-out positions resolve ExactContext, so ≤2.1% touch the graph path → any cover-side change caps at ~2.1pp headline movement."
+    validations:
+      required: true
+  - type: textarea
+    id: null-and-controls
+    attributes:
+      label: Null baseline and negative controls
+      description: The non-degenerate null and any negative controls (shuffled class, permuted codes, deranged tables, identity probe). Document-disjoint data where causal.
+    validations:
+      required: true
+  - type: textarea
+    id: cheap-instrument
+    attributes:
+      label: Binding cheap instrument and required verdict
+      description: The cheap test that runs FIRST and gates the expensive run, plus exactly what it must report to proceed (e.g. capacity_scaling must not report SATURATED on the target structure).
+    validations:
+      required: true
+  - type: textarea
+    id: thresholds-and-branches
+    attributes:
+      label: Predeclared thresholds and outcome branches
+      description: The exit rule (threshold, pre-declared) AND the distinct next action for each of the positive and negative outcomes. If both branches lead to the same action, the run has no decision value.
+      placeholder: |
+        exit rule: positive if ≥ +2pp top-1 (causal row), else negative
+        if positive: <next action>
+        if negative: <different next action>
+    validations:
+      required: true
+  - type: input
+    id: cost
+    attributes:
+      label: Cost estimate
+      description: Wall-clock, resources, and what else the run blocks.
+      placeholder: "~4h on the Mac; blocks the S1 measurement lane while running"
+    validations:
+      required: true
+  - type: input
+    id: evidence-record
+    attributes:
+      label: Evidence record path
+      description: The per-issue record this will append to (docs/<topic>_<issue>.md). Records are append-only; live summaries are reconciled separately.
+      placeholder: "docs/<topic>_<issue>.md"
+    validations:
+      required: true
+  - type: dropdown
+    id: claim-status
+    attributes:
+      label: Claim status (docs/formal_vocabulary.md §2)
+      description: The evidence class the result would carry if positive.
+      options:
+        - Empirical (measured on a pinned corpus with protocol + CIs + provenance)
+        - Structural (construction / machine-checked test / fuzz / CI proof artifact)
+        - Witnessed (per-execution replayable witness)
+        - Assumed (required by a proof/certificate, not established here)
+        - Unproven (goal asserted, no evidence yet)
+    validations:
+      required: true
+  - type: textarea
+    id: execution-scope
+    attributes:
+      label: Execution scope
+      description: Which surface the evidence speaks to — reference, offline/compiler, certifier, dormant portable-runtime, normative runtime, or deployed-serving. These are never conflated.
+    validations:
+      required: true

@@ -1,0 +1,120 @@
+name: Implementation
+description: Propose a concrete, scoped code/docs work item with acceptance criteria, conformance mapping, and verification.
+title: "[impl] <concrete work item>"
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Scoped implementation intake. A new **built** capability lands in this order:
+        `model/ids.toml` row → tagged Gherkin → failing marker/behavior test → implementation →
+        regenerated `CONFORMANCE.md`. `CONFORMANCE.md` is generated and never edited directly.
+        Preserve the normative invariants (`AGENTS.md`). See `docs/r4_intelligence_completion_plan.md`.
+  - type: input
+    id: parent
+    attributes:
+      label: Parent tracker / stage
+      description: Native parent issue and stage lane (e.g. "#821 — S0").
+      placeholder: "#821 — S0"
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem and intended outcome
+      description: Current state and the concrete outcome this delivers.
+    validations:
+      required: true
+  - type: dropdown
+    id: execution-scope
+    attributes:
+      label: Execution scope
+      description: The surface this work changes. Evidence outside this scope is not credited as a deployed-serving result.
+      options:
+        - Documentation / governance
+        - Reference / exploratory (out of the migration path)
+        - Offline / compiler
+        - Certifier / measurement (never participates in inference)
+        - Dormant portable runtime (ledger-gated, no serving path)
+        - Normative runtime / serving path
+        - Deployed-serving (release binaries + reachable production call graph)
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Exact scope and non-goals
+      description: What is in scope as a checklist, and an explicit non-goals list. Do not silently omit difficult acceptance criteria.
+      value: |
+        Scope:
+        - [ ]
+
+        Non-goals:
+        -
+    validations:
+      required: true
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependencies / blockers
+      description: Native blockers (blockedBy), branches, or PRs this depends on. "None" is a valid answer.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: Checkable conditions for done. Each maps to a verification step below.
+      value: |
+        - [ ]
+    validations:
+      required: true
+  - type: textarea
+    id: compatibility
+    attributes:
+      label: Compatibility and migration
+      description: Preserve compatibility or document an explicit versioned migration. Note any artifact-format, CLI, or serving-identity effect.
+    validations:
+      required: true
+  - type: textarea
+    id: conformance
+    attributes:
+      label: Conformance mapping
+      description: Existing RF capability IDs (RF-01…RF-29) this maps to, or the justification for a new capability ID. If a new built capability, confirm the model/ids.toml → Gherkin → failing test → impl → regenerated CONFORMANCE.md order.
+      placeholder: "RF-15, RF-22; no new capability ID."
+    validations:
+      required: true
+  - type: textarea
+    id: verification
+    attributes:
+      label: Verification
+      description: The exact commands and gates. At minimum the four local gates; add the applicable ladder (κ, no_std, wasm, allocation/P-4 census, Kani/Lean, fuzz, conformance regen, claim wording).
+      value: |
+        - [ ] cargo test --workspace --no-fail-fast --offline
+        - [ ] cargo clippy --workspace --all-targets --all-features --offline -- -D warnings
+        - [ ] cargo fmt --check
+        - [ ] cargo check -p uor-r4-graph-format --no-default-features (and --features alloc)
+        - [ ] python3 scripts/check_claim_wording.py
+        - [ ] (if core/router) cargo check --target wasm32-unknown-unknown -p uor-r4-wasm-router --lib
+    validations:
+      required: true
+  - type: textarea
+    id: documentation
+    attributes:
+      label: Documentation reconciliation
+      description: Which of README, ROADMAP, RESEARCH, MODEL_LIFECYCLE, CONFIGURATION, ledger, and per-issue records this updates. Records are append-only; live summaries are reconciled.
+    validations:
+      required: true
+  - type: dropdown
+    id: claim-status
+    attributes:
+      label: Claim status (docs/formal_vocabulary.md §2)
+      description: The strongest claim this work may assert on merge.
+      options:
+        - Structural (construction / machine-checked test / fuzz / CI proof artifact)
+        - Witnessed (per-execution replayable witness)
+        - Empirical (measured, pinned, with CIs + provenance)
+        - Assumed (required by a proof/certificate, not established here)
+        - Unproven (goal only, no evidence yet)
+        - Not applicable (documentation / governance only)
+    validations:
+      required: true

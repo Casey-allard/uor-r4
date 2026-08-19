@@ -6,17 +6,25 @@ programme — what has been measured, refuted and left open — lives in
 purpose. Research direction is set by measurement and changes faster than this
 list does.
 
-_Last reviewed: 2026-08-19 (post-S1 verdict; issue states reconciled to GitHub)._
+_Last reviewed: 2026-08-19 (post-S1 verdict; issue states reconciled to GitHub;
+R4 Intelligence programme #820 opened)._
+
+> **Post-v0.1 intelligence sequencing lives in the
+> [R4 Intelligence Completion Plan](docs/r4_intelligence_completion_plan.md)** —
+> the readable mirror of GitHub programme root #820 (stages S0–S7 plus the
+> cross-cutting F0 formal lane). This file stays the **product** capability
+> checklist and defers the ordering of intelligence work to that plan.
 
 ## Next up (recommended sequencing)
 
-**The issue tracker is at zero open issues** — a first for this repository.
-The serving epic (**#655**), distribution (**#741**, release **v0.1**
-published), the ask-path abstention gate (**#811**), and the route-attention
-decision (**#804**, S1 verdict: FAIL — instrument vacuous; operator retained
-dormant with the record on #605) all closed 2026-08-19. What remains is
-maintainer-decision work, each item needing its own new issue + contract
-when picked up:
+The v0.1 engineering epics closed 2026-08-19 — the serving epic (**#655**),
+distribution (**#741**, release **v0.1** published), the ask-path abstention
+gate (**#811**), and the route-attention decision (**#804**, S1 verdict:
+FAIL — instrument vacuous; operator retained dormant with the record on
+**#605**). The open, sequenced successor work is now the **R4 Intelligence
+programme (#820)**, beginning with stage **S0** (#821); the completion plan
+holds the full hierarchy. The maintainer-decision items below remain valid
+inputs to that programme, each needing its own contract when picked up:
 
 1. **Recompile the canonical local bundles with the #755 fix and take a
    fresh quality read** (the audit's E-1 run contract; the standing next

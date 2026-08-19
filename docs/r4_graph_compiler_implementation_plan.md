@@ -1,5 +1,15 @@
 # R⁴ Holographic Graph Compiler — Implementation Plan
 
+> **Status banner (2026-08-19, #829): retained engineering plan; superseded only
+> for post-v0.1 _sequencing_.** This document remains the original graph-compiler
+> engineering plan — its phases, work items, proof obligations, and acceptance
+> gates are still valid engineering reference. For **post-v0.1 intelligence
+> sequencing** (what is worked next and in what order) the authoritative document
+> is the [R4 Intelligence Completion Plan](r4_intelligence_completion_plan.md),
+> the readable mirror of GitHub programme root #820. Its `Phase 0`–`Phase 11`
+> milestones are historical; their dispositions are recorded in the
+> completion plan's milestone-disposition table.
+
 Status: actionable engineering plan (2026-07-21); **commitment pending decisions D1–D8 (§2)**
 Source of record: `docs/r4_holographic_graph_compiler_implementation_plan.pdf` (sections §1–§33 referenced throughout as "PDF §n")
 Supersedes/extends: `docs/transformerless/TRANSFORMERLESS.md`, `docs/transformerless/PROOF.md`, `ROADMAP.md` p0

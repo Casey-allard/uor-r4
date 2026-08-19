@@ -736,8 +736,11 @@ reference material, not an LLM engine — #653) ·
 [Matrix-operation census](docs/matrix_operation_census.md) ·
 [Serving-time model discovery](docs/SERVING_MODEL_DISCOVERY.md)
 
-**Plan** — [R⁴ graph compiler implementation plan](docs/r4_graph_compiler_implementation_plan.md) ·
-[ROADMAP.md](ROADMAP.md) · [Minimal client](docs/minimal_client.md)
+**Plan** — [R4 Intelligence Completion Plan](docs/r4_intelligence_completion_plan.md)
+(authoritative for post-v0.1 intelligence sequencing; the readable mirror of programme
+root #820) · [R⁴ graph compiler implementation plan](docs/r4_graph_compiler_implementation_plan.md)
+(the original engineering plan, retained) · [ROADMAP.md](ROADMAP.md) ·
+[Minimal client](docs/minimal_client.md)
 
 ---
 
