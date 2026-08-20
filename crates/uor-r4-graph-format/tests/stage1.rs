@@ -452,3 +452,114 @@ fn newtype_smoke() {
 
     assert!(!FormatError::BadMagic.to_string().is_empty());
 }
+
+// ── PSTATE packing round-trip (#836) ──────────────────────────────────
+
+/// A segment-lane descriptor packs into a `PSTATE` section, survives a full
+/// R4G1 artifact round-trip through the canonical serializer, and is read back
+/// bit-for-bit via the borrowed `GraphView::pstate_table` view. Also pins
+/// absent-section identity: dropping the optional section leaves every other
+/// section byte-identical and `pstate_table` returns `None`.
+#[test]
+fn pstate_section_round_trips_through_artifact() {
+    use uor_r4_graph_format::{build_segment_lane, SegmentLaneDescriptor, LANE_SEGMENT};
+
+    // Absent-section identity: the canonical sample carries no PSTATE.
+    let base = build_sample();
+    let base_view = GraphView::parse(&base).expect("base validates");
+    assert!(base_view.pstate_table().expect("no error").is_none());
+
+    // Pack a segment-lane descriptor + a small residual table into PSTATE.
+    let desc = SegmentLaneDescriptor {
+        ring_capacity: 128,
+        decay_shift: 0,
+        base_w: 1 << 12,
+        boost: 1 << 20,
+        key_quant_id: 0,
+    };
+    let pstate = build_segment_lane(&desc, &[(3, vec![(3, 1 << 20)]), (7, vec![(7, 1 << 20)])])
+        .expect("valid pstate");
+
+    let mut b = ArtifactBuilder::new(3);
+    b.add_section(SectionId::NODE, 7, &sample_node());
+    b.add_section(SectionId::HEAD, 0, &sample_head());
+    b.add_section(SectionId::ROUT, 0, &[0u8; 64]);
+    b.add_section(SectionId::EMIT, 0, &storage_section(1, 0, 0, &[]));
+    b.add_section(SectionId::PSTATE, 0, &pstate);
+    let bytes = b.build().expect("artifact with PSTATE builds");
+
+    let view = GraphView::parse(&bytes).expect("PSTATE artifact validates");
+    // Raw section bytes preserved exactly.
+    assert_eq!(view.section(SectionId::PSTATE), Some(&pstate[..]));
+    // Borrowed descriptor round-trips (reference-to-packed equivalence).
+    let table = view
+        .pstate_table()
+        .expect("no error")
+        .expect("PSTATE present");
+    assert_eq!(table.lane_kind(), LANE_SEGMENT);
+    assert_eq!(table.ring_capacity(), 128);
+    assert_eq!(table.decay_shift(), 0);
+    assert_eq!(table.base_w().raw(), 1 << 12);
+    assert_eq!(table.boost().raw(), 1 << 20);
+    assert_eq!(table.row_count(), 2);
+    let row = table.find(7).expect("key 7 present");
+    let entries: Vec<(u32, i32)> = row.entries().map(|e| (e.token, e.score_q.raw())).collect();
+    assert_eq!(entries, vec![(7, 1 << 20)]);
+
+    // Absent-section identity: dropping PSTATE leaves the other sections
+    // byte-identical and the accessor returns None.
+    let mut b2 = ArtifactBuilder::new(3);
+    b2.add_section(SectionId::NODE, 7, &sample_node());
+    b2.add_section(SectionId::HEAD, 0, &sample_head());
+    b2.add_section(SectionId::ROUT, 0, &[0u8; 64]);
+    b2.add_section(SectionId::EMIT, 0, &storage_section(1, 0, 0, &[]));
+    let without = b2.build().expect("artifact without PSTATE builds");
+    let wview = GraphView::parse(&without).expect("validates");
+    assert!(wview.pstate_table().expect("no error").is_none());
+    for id in [
+        SectionId::HEAD,
+        SectionId::NODE,
+        SectionId::ROUT,
+        SectionId::EMIT,
+    ] {
+        assert_eq!(
+            view.section(id),
+            wview.section(id),
+            "section {id:?} identity"
+        );
+    }
+}
+
+/// A malformed PSTATE section fails closed with a focused typed error at
+/// `GraphView::pstate_table` time — the artifact container still parses (the
+/// section is optional and structurally opaque to the container), but the
+/// borrowed view rejects the corrupt descriptor rather than returning garbage.
+#[test]
+fn pstate_malformed_section_fails_closed() {
+    use uor_r4_graph_format::{build_segment_lane, SegmentLaneDescriptor};
+
+    let desc = SegmentLaneDescriptor {
+        ring_capacity: 64,
+        decay_shift: 1,
+        base_w: 1 << 12,
+        boost: 1 << 20,
+        key_quant_id: 0,
+    };
+    let mut pstate = build_segment_lane(&desc, &[]).expect("valid");
+    // Corrupt the ring_capacity to zero (bytes [24..28]) — a semantic teeth.
+    pstate[24..28].copy_from_slice(&0u32.to_le_bytes());
+
+    let mut b = ArtifactBuilder::new(3);
+    b.add_section(SectionId::NODE, 7, &sample_node());
+    b.add_section(SectionId::HEAD, 0, &sample_head());
+    b.add_section(SectionId::ROUT, 0, &[0u8; 64]);
+    b.add_section(SectionId::EMIT, 0, &storage_section(1, 0, 0, &[]));
+    b.add_section(SectionId::PSTATE, 0, &pstate);
+    let bytes = b.build().expect("container builds around opaque section");
+
+    let view = GraphView::parse(&bytes).expect("container parses");
+    assert!(
+        view.pstate_table().is_err(),
+        "malformed PSTATE descriptor must fail closed"
+    );
+}

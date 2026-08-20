@@ -137,7 +137,7 @@ pub use prov::{
     PROV_VERSION,
 };
 #[cfg(feature = "alloc")]
-pub use pstate::build_segment_lane;
+pub use pstate::{build_segment_lane, SegmentLaneDescriptor};
 pub use pstate::{
     PstateEntries, PstateEntry, PstateRow, PstateRows, PstateTable, LANE_SEGMENT, PSTATE_ENTRY_LEN,
     PSTATE_HEADER_LEN, PSTATE_MAGIC, PSTATE_ROW_LEN, PSTATE_VERSION,
