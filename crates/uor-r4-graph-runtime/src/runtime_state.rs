@@ -335,6 +335,106 @@ impl<const CAP: usize> SegmentRing<CAP> {
     }
 }
 
+/// The #835 segment lane as a **session** (#836): a fold-once-then-decay
+/// lifecycle over a [`SegmentRing`], matching the reference `Psi` segment lane
+/// (`docs/prompt_state_spec_835.md` §3). The initial fold Φ₀ records every
+/// prompt content token into the ring (saturating accumulation, no decay
+/// between prompt tokens); each generation transition T_ps decays the lane. A
+/// candidate present in the ring receives the descriptor `boost`.
+///
+/// An **inactive** session (no PSTATE lane in the artifact) makes every fold a
+/// no-op and every contribution zero, so a serving path that consults it is
+/// byte-identical to one that does not — absent-section identity. no_std,
+/// allocation-free, P-4 (inherited from `SegmentRing`).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SegmentSession<const CAP: usize> {
+    ring: SegmentRing<CAP>,
+    base_w: ScoreQ,
+    boost: ScoreQ,
+    active: bool,
+}
+
+impl<const CAP: usize> Default for SegmentSession<CAP> {
+    fn default() -> Self {
+        Self::inactive()
+    }
+}
+
+impl<const CAP: usize> SegmentSession<CAP> {
+    /// An inactive session: no PSTATE lane, so folds are no-ops and every
+    /// contribution is zero.
+    pub fn inactive() -> Self {
+        Self {
+            ring: SegmentRing::default(),
+            base_w: ScoreQ::ZERO,
+            boost: ScoreQ::ZERO,
+            active: false,
+        }
+    }
+
+    /// An active session configured from a PSTATE segment-lane descriptor
+    /// (`decay_shift`, `base_w`, `boost`).
+    pub fn active(decay_shift: u32, base_w: ScoreQ, boost: ScoreQ) -> Self {
+        Self {
+            ring: SegmentRing::with_decay(decay_shift),
+            base_w,
+            boost,
+            active: true,
+        }
+    }
+
+    pub fn is_active(&self) -> bool {
+        self.active
+    }
+
+    pub fn live_slots(&self) -> usize {
+        self.ring.len()
+    }
+
+    /// Initial fold Φ₀: record every prompt content token into the segment ring
+    /// (saturating accumulation, no decay between prompt tokens). No-op when
+    /// inactive.
+    pub fn fold_prompt(&mut self, prompt: &[u32]) {
+        if !self.active {
+            return;
+        }
+        for &token in prompt {
+            self.ring.upsert(token, self.base_w);
+        }
+    }
+
+    /// Fold a single content token (part of Φ₀ / streaming prime). No-op when
+    /// inactive.
+    pub fn fold_token(&mut self, token: u32) {
+        if self.active {
+            self.ring.upsert(token, self.base_w);
+        }
+    }
+
+    /// Per-generation-step transition T_ps: decay every lane slot. No-op when
+    /// inactive.
+    pub fn step(&mut self) {
+        if self.active {
+            self.ring.decay();
+        }
+    }
+
+    /// The decode-independent `ScoreQ` contribution to a candidate: zero when
+    /// inactive, else the ring's saturating `boost`-sum over matching slots.
+    pub fn contribution(&self, candidate: u32) -> ScoreQ {
+        if !self.active {
+            return ScoreQ::ZERO;
+        }
+        self.ring.contribution(candidate, self.boost)
+    }
+
+    /// Reset the folded state (session reset / new prompt) while retaining the
+    /// descriptor configuration and active flag.
+    pub fn reset(&mut self) {
+        self.ring.clear();
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RuntimeStateLevel {
     Local,
@@ -433,8 +533,8 @@ impl<
 #[cfg(test)]
 mod tests {
     use super::{
-        ReservedStateUpdate, RuntimeState, RuntimeStateLevel, SegmentRing, SemanticStateSlot,
-        TokenState,
+        ReservedStateUpdate, RuntimeState, RuntimeStateLevel, SegmentRing, SegmentSession,
+        SemanticStateSlot, TokenState,
     };
     use alloc::vec::Vec;
     use uor_r4_graph_format::ScoreQ;
@@ -636,5 +736,78 @@ mod tests {
         assert_eq!(ring.len(), 0);
         ring.decay();
         assert_eq!(ring.contribution(5, ScoreQ::from_raw(1 << 20)).raw(), 0);
+    }
+
+    /// The session lifecycle reproduces the reference `Psi` segment lane: Φ₀
+    /// folds the whole prompt (no decay), then each generation transition
+    /// decays the lane. Contributions match an oracle running the identical
+    /// lifecycle immediately after the fold and through every generation step.
+    #[test]
+    fn segment_session_matches_reference_lifecycle() {
+        const CAP: usize = 8;
+        const KEYS: u32 = 16;
+        let base_w: i32 = 1 << 12;
+        let boost: i32 = 1 << 20;
+        let prompt: [u32; 12] = [3, 7, 3, 1, 9, 3, 12, 7, 5, 1, 3, 14];
+
+        for &decay_shift in &[0u32, 1, 2] {
+            let mut sess = SegmentSession::<CAP>::active(
+                decay_shift,
+                ScoreQ::from_raw(base_w),
+                ScoreQ::from_raw(boost),
+            );
+            let mut oracle = Oracle::new(CAP, decay_shift);
+            // Φ₀: fold the whole prompt (no decay between prompt tokens).
+            sess.fold_prompt(&prompt);
+            for &t in &prompt {
+                oracle.upsert(t, base_w);
+            }
+            assert!(sess.is_active());
+            assert_eq!(sess.live_slots(), oracle.slots.len());
+            for c in 0..KEYS {
+                assert_eq!(
+                    sess.contribution(c).raw(),
+                    oracle.contribution(c, boost),
+                    "post-fold c={c} shift={decay_shift}"
+                );
+            }
+            // Generation: each transition decays the lane.
+            for step in 0..24u32 {
+                sess.step();
+                oracle.decay();
+                assert_eq!(
+                    sess.live_slots(),
+                    oracle.slots.len(),
+                    "len step={step} shift={decay_shift}"
+                );
+                for c in 0..KEYS {
+                    assert_eq!(
+                        sess.contribution(c).raw(),
+                        oracle.contribution(c, boost),
+                        "c={c} step={step} shift={decay_shift}"
+                    );
+                }
+            }
+        }
+    }
+
+    /// An inactive session (no PSTATE lane) is inert: folds are no-ops, the ring
+    /// stays empty, and every contribution is zero — absent-section identity.
+    #[test]
+    fn inactive_segment_session_is_identity() {
+        let mut sess = SegmentSession::<8>::inactive();
+        assert!(!sess.is_active());
+        sess.fold_prompt(&[3, 7, 3, 1, 9]);
+        sess.fold_token(42);
+        sess.step();
+        assert_eq!(sess.live_slots(), 0);
+        for c in 0..64u32 {
+            assert_eq!(
+                sess.contribution(c).raw(),
+                0,
+                "inactive contributes 0 for {c}"
+            );
+        }
+        assert!(!SegmentSession::<8>::default().is_active());
     }
 }
