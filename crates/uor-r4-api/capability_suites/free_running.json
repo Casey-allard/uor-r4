@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "id": "s3-free-running",
+  "stage": "s3",
+  "workload": "free-running",
+  "mode": "free-running",
+  "primary_metric": "frozen-horizon-agreement",
+  "promotion_statistic": "frozen-horizon trajectory agreement narrows the teacher-forced-to-free-running gap; shuffled-state control separates",
+  "split": {
+    "by_document": true,
+    "by_domain": true,
+    "leakage_check": true,
+    "tamper_check": true
+  },
+  "controls": [
+    "shuffled-emission",
+    "shuffled-state",
+    "suffix-only"
+  ],
+  "report_schema": 1,
+  "required_identities": [
+    "teacher",
+    "tokenizer",
+    "corpus",
+    "compiler",
+    "artifact",
+    "decoder",
+    "seed"
+  ],
+  "notes": "S3 free-running generation over a frozen horizon ladder; the seed identity is required (sampled decode)."
+}

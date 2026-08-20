@@ -1,0 +1,30 @@
+{
+  "schema": 1,
+  "id": "s0-broad-text",
+  "stage": "s0",
+  "workload": "broad-text",
+  "mode": "teacher-forced",
+  "primary_metric": "held-out-top1",
+  "promotion_statistic": "held-out top-1 exceeds the suffix-only and trivial-prior control lower bound at the powered sample",
+  "split": {
+    "by_document": true,
+    "by_domain": true,
+    "leakage_check": true,
+    "tamper_check": true
+  },
+  "controls": [
+    "exct-disabled",
+    "suffix-only",
+    "trivial-prior"
+  ],
+  "report_schema": 1,
+  "required_identities": [
+    "teacher",
+    "tokenizer",
+    "corpus",
+    "compiler",
+    "artifact",
+    "decoder"
+  ],
+  "notes": "S0 truth baseline: document/domain-disjoint held-out top-1 on the deployed serving path, above suffix/prior floors."
+}

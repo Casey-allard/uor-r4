@@ -1,0 +1,30 @@
+{
+  "schema": 1,
+  "id": "s7-assistant-canaries",
+  "stage": "s7",
+  "workload": "assistant-canaries",
+  "mode": "teacher-forced",
+  "primary_metric": "canary-exact-match",
+  "promotion_statistic": "canary exact-match rate on pinned release canaries with the prompt-swap null separated",
+  "split": {
+    "by_template": true,
+    "by_document": true,
+    "leakage_check": true,
+    "tamper_check": true
+  },
+  "controls": [
+    "exct-disabled",
+    "prompt-swap",
+    "trivial-prior"
+  ],
+  "report_schema": 1,
+  "required_identities": [
+    "teacher",
+    "tokenizer",
+    "corpus",
+    "compiler",
+    "artifact",
+    "decoder"
+  ],
+  "notes": "S7 release/serving canaries: pinned prompts with known continuations through the deployed path."
+}

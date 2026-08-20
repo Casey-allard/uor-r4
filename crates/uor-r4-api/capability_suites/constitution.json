@@ -1,0 +1,30 @@
+{
+  "schema": 1,
+  "stages": {
+    "s0": {
+      "primary_suite": "s0-broad-text"
+    },
+    "s1": {
+      "primary_suite": "s1-causal-prompt-pairs"
+    },
+    "s2": {
+      "primary_suite": "s2-answerability-ood"
+    },
+    "s3": {
+      "primary_suite": "s3-free-running"
+    },
+    "s4": {
+      "primary_suite": "s4-compositional-reasoning"
+    },
+    "s5": {
+      "primary_suite": "s5-instruction-retention"
+    },
+    "s6": {
+      "primary_suite": "s6-scale"
+    },
+    "s7": {
+      "primary_suite": "s7-assistant-canaries",
+      "note": "release/serving canaries gate S7 closure"
+    }
+  }
+}

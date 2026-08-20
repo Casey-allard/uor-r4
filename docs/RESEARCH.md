@@ -41,6 +41,13 @@ Two further rules were earned the hard way and are worth stating up front:
   measurement serialises as `null`, never as a zeroed row, and a pre-declared
   exit-rule verdict is suppressed rather than printed as NOT MET.
 
+The evaluation constitution (#832, [`docs/capability_suites_832.md`](capability_suites_832.md))
+makes these rules schema-level objects: committed capability-suite manifests bind every score to
+pinned identities, document-disjoint splits, declared negative controls, and a per-token
+resolution-path attribution tied to the normative scorer (ADR-0001), with an absent fixture
+reported `UNAVAILABLE` rather than a value. It commits measurement infrastructure and passes no
+capability gate.
+
 ## What works and is load-bearing
 
 The serving stack consults, in order: packed NGRAM context rows (trigram with

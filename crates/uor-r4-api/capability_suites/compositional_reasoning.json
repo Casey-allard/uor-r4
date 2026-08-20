@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "id": "s4-compositional-reasoning",
+  "stage": "s4",
+  "workload": "compositional-reasoning",
+  "mode": "teacher-forced",
+  "primary_metric": "held-out-composition-accuracy",
+  "promotion_statistic": "held-out composition accuracy survives relabeling/unseen-composition/topology change; shuffled-state control separates",
+  "split": {
+    "by_entity": true,
+    "by_topology": true,
+    "by_template": true,
+    "leakage_check": true,
+    "tamper_check": true
+  },
+  "controls": [
+    "shuffled-state",
+    "prompt-swap",
+    "trivial-prior"
+  ],
+  "report_schema": 1,
+  "required_identities": [
+    "teacher",
+    "tokenizer",
+    "corpus",
+    "compiler",
+    "artifact",
+    "decoder"
+  ],
+  "notes": "S4 planning/geometry: generalization across held-out entities, compositions, topologies, relabelings."
+}

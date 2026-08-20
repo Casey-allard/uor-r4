@@ -1,0 +1,30 @@
+{
+  "schema": 1,
+  "id": "s1-causal-prompt-pairs",
+  "stage": "s1",
+  "workload": "causal-prompt-pairs",
+  "mode": "teacher-forced",
+  "primary_metric": "causal-influence-delta",
+  "promotion_statistic": "paired-prompt next-token divergence exceeds the prompt-swap and suffix-only nulls (EXCT-disabled)",
+  "split": {
+    "by_document": true,
+    "by_template": true,
+    "leakage_check": true,
+    "tamper_check": true
+  },
+  "controls": [
+    "prompt-swap",
+    "suffix-only",
+    "exct-disabled"
+  ],
+  "report_schema": 1,
+  "required_identities": [
+    "teacher",
+    "tokenizer",
+    "corpus",
+    "compiler",
+    "artifact",
+    "decoder"
+  ],
+  "notes": "S1 prompt-conditioned state: prompt meaning must move prediction beyond suffix/exact-context memory."
+}

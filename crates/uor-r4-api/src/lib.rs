@@ -22,14 +22,32 @@
 //!   (ABI/contract version, pinned `uor-matmul` provenance, component
 //!   digests, tokenizer identity). Schema and structural validation only;
 //!   no discovery/loading/serving wiring yet (that is #655-C1/D).
+//! - [`capability_suite`]: the versioned evaluation constitution (#832) —
+//!   committed capability-suite manifests, a comparable report schema,
+//!   per-token resolution-path attribution bound to the normative scorer
+//!   (ADR-0001 / #831), and the leakage/tamper/CID and degenerate-control
+//!   checks that keep a report honest. Schema and structural validation
+//!   only; it runs no evaluation.
 //!
 //! Claim language follows `docs/formal_vocabulary.md`; nothing here
 //! strengthens or weakens the guarantees of the underlying crates.
 
+pub mod capability_suite;
 pub mod compile;
 pub mod engine;
 pub mod release_bundle;
 pub mod serving_eval;
+
+// `capability_suite::Stage` (programme stage S0–S7) is deliberately NOT
+// re-exported here — it would collide with `compile::Stage` (the compile
+// pipeline stage). Reach it (and `StageEntry`) via the module path.
+pub use capability_suite::{
+    builtin_constitution, builtin_manifests, compute_cid, detect_document_leakage,
+    is_degenerate_control, verify_cid, AttributionHistogram, CapabilityReport, Constitution,
+    ControlKind, ControlReport, MetricReport, MetricStatus, ResolutionPath, ScoringMode,
+    SplitRules, SuiteIdentities, SuiteManifest, TokenAttribution, Workload,
+    CAPABILITY_REPORT_SCHEMA, CAPABILITY_SUITE_SCHEMA, NORMATIVE_SCORER_ID,
+};
 
 pub use compile::{
     compile, CompileOptions, CompileOutcome, CompileProvenance, CompileRequest, CompiledModel,

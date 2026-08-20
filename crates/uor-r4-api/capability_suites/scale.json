@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "id": "s6-scale",
+  "stage": "s6",
+  "workload": "scale",
+  "mode": "teacher-forced",
+  "primary_metric": "throughput-bounded-accuracy",
+  "promotion_statistic": "held-out accuracy is retained within the declared memory/latency/artifact-size envelope at scale",
+  "split": {
+    "by_document": true,
+    "by_domain": true,
+    "leakage_check": true,
+    "tamper_check": true
+  },
+  "controls": [
+    "exct-disabled",
+    "trivial-prior",
+    "suffix-only"
+  ],
+  "report_schema": 1,
+  "required_identities": [
+    "teacher",
+    "tokenizer",
+    "corpus",
+    "compiler",
+    "artifact",
+    "decoder",
+    "hardware"
+  ],
+  "notes": "S6 scale/streaming: accuracy under the declared envelope; the hardware identity is required."
+}

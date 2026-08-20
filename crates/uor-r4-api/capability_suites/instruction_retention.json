@@ -1,0 +1,30 @@
+{
+  "schema": 1,
+  "id": "s5-instruction-retention",
+  "stage": "s5",
+  "workload": "instruction-retention",
+  "mode": "teacher-forced",
+  "primary_metric": "base-capability-retention",
+  "promotion_statistic": "instruction behavior survives unseen templates while base broad-text capability is retained (prompt-swap null)",
+  "split": {
+    "by_template": true,
+    "by_document": true,
+    "leakage_check": true,
+    "tamper_check": true
+  },
+  "controls": [
+    "prompt-swap",
+    "exct-disabled",
+    "trivial-prior"
+  ],
+  "report_schema": 1,
+  "required_identities": [
+    "teacher",
+    "tokenizer",
+    "corpus",
+    "compiler",
+    "artifact",
+    "decoder"
+  ],
+  "notes": "S5 instruction behavior: unseen templates without erasing base capability."
+}

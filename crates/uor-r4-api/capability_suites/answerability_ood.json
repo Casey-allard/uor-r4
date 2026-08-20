@@ -1,0 +1,30 @@
+{
+  "schema": 1,
+  "id": "s2-answerability-ood",
+  "stage": "s2",
+  "workload": "answerability-ood",
+  "mode": "teacher-forced",
+  "primary_metric": "risk-coverage-auc",
+  "promotion_statistic": "risk-coverage operating point beats the always-serve and always-decline reference policies",
+  "split": {
+    "by_domain": true,
+    "by_document": true,
+    "leakage_check": true,
+    "tamper_check": true
+  },
+  "controls": [
+    "always-serve",
+    "always-decline",
+    "trivial-prior"
+  ],
+  "report_schema": 1,
+  "required_identities": [
+    "teacher",
+    "tokenizer",
+    "corpus",
+    "compiler",
+    "artifact",
+    "decoder"
+  ],
+  "notes": "S2 selective prediction: served novelty vs declined unsupported, at a predeclared operating point."
+}

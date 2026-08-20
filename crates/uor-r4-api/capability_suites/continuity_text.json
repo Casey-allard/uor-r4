@@ -1,0 +1,29 @@
+{
+  "schema": 1,
+  "id": "s1-continuity-text",
+  "stage": "s1",
+  "workload": "continuity-text",
+  "mode": "teacher-forced",
+  "primary_metric": "continuity-top1",
+  "promotion_statistic": "continuity top-1 exceeds the suffix-only floor with the emission binding intact (shuffled-emission control separates)",
+  "split": {
+    "by_document": true,
+    "leakage_check": true,
+    "tamper_check": true
+  },
+  "controls": [
+    "exct-disabled",
+    "suffix-only",
+    "shuffled-emission"
+  ],
+  "report_schema": 1,
+  "required_identities": [
+    "teacher",
+    "tokenizer",
+    "corpus",
+    "compiler",
+    "artifact",
+    "decoder"
+  ],
+  "notes": "Secondary S1 continuity suite; not the stage primary."
+}
