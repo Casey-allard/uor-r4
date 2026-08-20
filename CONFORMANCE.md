@@ -173,7 +173,7 @@ The `build` level is *harness-built* (structural). It is a separate axis from an
 
 | ID | Level | Execution scope | Serving reachability | Evidence | Statement |
 | --- | --- | --- | --- | --- | --- |
-| `RF-23` | `build` | `normative-runtime` | `deployed-serving` | src/tless_uor.rs, src/chat.rs (R4G1Runtime selection/fallback on the served path) | R4G1 runtime selection and fallback policy |
+| `RF-23` | `build` | `normative-runtime` | `deployed-serving` | src/tless_uor.rs, src/chat.rs (R4G1Runtime selection/fallback on the served path); docs/adr/0001-normative-r4g1-scorer.md designates the R4G1Runtime scoring path as the one normative scorer (#831) | R4G1 runtime selection and fallback policy |
 
 ## rate_distortion_compression
 

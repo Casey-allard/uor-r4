@@ -23,7 +23,10 @@ gate (**#811**), and the route-attention decision (**#804**, S1 verdict:
 FAIL — instrument vacuous; operator retained dormant with the record on
 **#605**). The open, sequenced successor work is now the **R4 Intelligence
 programme (#820)**, beginning with stage **S0** (#821); the completion plan
-holds the full hierarchy. The maintainer-decision items below remain valid
+holds the full hierarchy. Within S0, the single normative R4G1 scorer for
+deployed inference — the R4G1Runtime scoring path — is designated by
+[ADR-0001](docs/adr/0001-normative-r4g1-scorer.md) (#831), with the
+reference/certifier scorers explicitly scoped and divergence made fail-closed. The maintainer-decision items below remain valid
 inputs to that programme, each needing its own contract when picked up:
 
 1. **Recompile the canonical local bundles with the #755 fix and take a

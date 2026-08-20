@@ -289,7 +289,12 @@ end-to-end yet; #745 is the open question that would settle it either way,
 and #755's decisive fix-and-retest (detailed above) substantially advanced
 that answer — real, grammatical English where the same corpus previously
 produced garbage or a hang — though the residual prompt-insensitivity means
-it is not fully settled.
+it is not fully settled. (As of #831, the one normative scorer for deployed
+inference — the R4G1Runtime scoring path — is designated in
+[ADR-0001](adr/0001-normative-r4g1-scorer.md), and the reference/certifier
+scorers are explicitly scoped; a certifier measurement is no longer read as a
+served-path result, and scorer divergence fails closed rather than serving a
+drifted token.)
 
 **Continuation (2026-08-19, the #655 close-out measurements).** The
 prompt-insensitivity question got sharper and partially decomposed. The F-p2

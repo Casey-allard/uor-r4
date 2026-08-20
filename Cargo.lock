@@ -1920,6 +1920,7 @@ dependencies = [
  "uor-r4-graph-cli",
  "uor-r4-graph-compiler",
  "uor-r4-graph-format",
+ "uor-r4-graph-runtime",
  "uor-r4-model-source",
 ]
 
