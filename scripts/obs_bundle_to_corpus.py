@@ -10,8 +10,13 @@ would produce an interleaved, meaningless token stream.
 
 This script sorts the records into (story ordinal, span_start) order and
 writes the pair the measurement harnesses load via `R4_CORPUS_META` /
-`R4_CORPUS_RECS`. The record bytes themselves are copied verbatim — only
-their order changes — so the token content is exactly the bundle's.
+`R4_CORPUS_RECS`. The token stream is copied verbatim — only the record
+order and the story-id boundary labels change. Story ids are densified to a
+contiguous 0..stories-1 range (a deterministic relabeling of the boundary
+metadata only) so a bundle whose source observation dropped whole stories,
+leaving gaps in the surviving ids, still yields a corpus the runtime and the
+`subsample-recorded-corpus` guard accept. For an already-dense bundle the
+remap is the identity and the output is byte-for-byte unchanged.
 
 The sort is stable and total (span_start is unique within a story), so the
 output is deterministic: the same bundle always yields byte-identical
@@ -113,6 +118,32 @@ def main(argv):
         if spans != list(range(len(spans))):
             print(f"error: story {story} positions are not contiguous from 0", file=sys.stderr)
             return 1
+
+    # Densify story ids to a contiguous 0..stories-1 labeling. Surviving ids
+    # skip values when the source observation dropped whole stories, so a
+    # record can carry a story id >= `stories`; the runtime and the
+    # `subsample-recorded-corpus` guard then reject it ("story S outside range
+    # 0..stories"). This relabels the story-boundary metadata only — token
+    # stream, per-story positions, and record order are unchanged — and is the
+    # identity (byte-for-byte unchanged output) for an already-dense bundle.
+    remap = {old: new for new, old in enumerate(sorted(runs))}
+    if any(old != new for old, new in remap.items()):
+        relabeled = 0
+        rewritten = []
+        for record in records:
+            old = struct.unpack_from("<I", record, STORY_OFF)[0]
+            new = remap[old]
+            if new != old:
+                record = bytearray(record)
+                struct.pack_into("<I", record, STORY_OFF, new)
+                record = bytes(record)
+                relabeled += 1
+            rewritten.append(record)
+        records = rewritten
+        print(
+            f"densified story ids to 0..{stories - 1} "
+            f"({relabeled} records relabeled, {max(remap) - (stories - 1)} id gaps closed)"
+        )
 
     recs_path = f"{out_prefix}_recs.bin"
     meta_path = f"{out_prefix}_meta.bin"

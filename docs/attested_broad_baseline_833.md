@@ -191,3 +191,72 @@ reduced.
 **Remaining gate for #833:** a ~2–3 h compute window (maintainer resource
 authorization) for the teacher-forced `evaluate-report` replay under the
 measurement-only Accelerate exception. Determinism and provenance are resolved.
+
+## Update 2026-08-20 (rebuild executed) — clean #755-native bundle built; baseline RATIFIED
+
+The clean rebuild ran with **no re-observe** — the raw teacher observation was reused.
+
+**Corpus derivation.** `scripts/obs_bundle_to_corpus.py` was fixed to densify story
+ids to a contiguous `0..stories-1` range. The #516 corpus dropped 6 whole stories
+(769, 771–775), leaving gapped ids that the `subsample-recorded-corpus` guard rejects;
+the densify is a deterministic, token-content-preserving relabeling (identity for an
+already-dense bundle). Applied to `.uor-models/obs-wiki-360m` (256 shards, 361,693 raw
+records → 360,924 merged), the clean corpus is 360,924 records / 2,994 stories
+(corpus.records κ `blake3:4692307368…`, corpus.meta κ `blake3:aa9d176779…`) and PASSES
+the strict `subsample-recorded-corpus` guard.
+
+**Attested bundle** — `.uor-models/compiled/smollm2-360m-broad-clean` (not the #516
+pin). compile-recorded (post-#865, byte-reproducible) → cover → score (`relative_tla`).
+The attention operator was canonicalized to the current `standard-source-attention/2`
+(numerically bit-identical to the `/1` the #516 corpus recorded, per `attention.rs`)
+via `copy-recorded-attention`, so the bundle is evaluable against the current teacher.
+`package-release-bundle` produced `release-bundle.json` (graph `blake3:bc2366f1…`,
+signature `blake3:6324aabe…`, tokenizer_adapter hf-byte-bpe/1). Deployed R4Engine
+admission + offline prediction canary PASS (~1.5 s). Two independent
+`compile-recorded` builds of the clean corpus reproduce `tless_artifacts.bin`,
+`tless_store.bin`, `hamming_calibration.json`, and `hierarchical_codes.json`
+byte-for-byte (byte reproducibility; the #865 fix makes `hierarchical_codes.json`
+deterministic).
+
+**Gate C — M.V.G. RATIFIED (RETAIN).** Held-out 72,130 positions (vs 72,864 — the ~6
+boundary stories the id densification moved into train). **Empirical Criterion**,
+status **Empirical**:
+
+| row (causal serving) | #516 pin | clean #755-native | Δ |
+|---|---|---|---|
+| Rule 1+2 precedence | 24.30% | 24.39% | +0.09 pp |
+| best live arm (`on_fwd_strict_live`) | 31.48% | 31.11% | −0.37 pp |
+| TLA-3 baseline | 28.21% | 28.12% | −0.09 pp |
+| EXCT-miss (strict) | 25.7% | 27.36% | +1.66 pp (split shift) |
+
+All three headline causal rows reproduce within the predeclared reachability bound
+(<~0.5 pp); the pin is **RETAINED**. EXCT-miss rises 1.66 pp because the 6 well-covered
+boundary stories moved from held-out to train — a coverage-structure effect of the id
+densification, not a quality regression. Witness replay 64/64; candidate recall
+Rule 1+2 62.6% / 87.3%.
+
+**Teacher floor — RETAINED at 3.6015 bits (re-measurement UNAVAILABLE at scale).**
+The `evaluate-report` binding chain was validated end-to-end on this bundle (source
+load, tokenizer.bin/adapter, scored-graph tokenizer_cid, and
+`standard-source-attention/2` operator all accepted; the teacher-forced held-out
+replay then begins). The floor is a property of (teacher weights, corpus): the weights
+are unchanged (source κ `blake3:eb23c3e8…`) and the teacher's forward pass is exact
+GEMM (numerically canonical, bit-identical to the corpus's recorded `/1`), so the floor
+is invariant to the matmul backend and to the story-id densification (which relabels
+boundaries only). A full-population re-measurement is **UNAVAILABLE at scale under the
+current teacher**: the deployed teacher path is now uor-matmul exact GEMM (the #516
+measurement used the since-removed Apple-Accelerate path), which steps at ~1 position/s,
+so replaying the 72,130 held-out positions would take ~24 h. The floor is therefore
+RETAINED at 3.6015 bits by invariance rather than re-asserted as a fresh PASS; a
+faster teacher forward path (or a persisted floor cache) is the precondition for a
+full re-measurement and is a recommended follow-up. The teacher-forced table-native
+top-1 / argmax-agreement rows (#516: 17.3% / 25.4% at 14.6954 bits, +11.09 over floor)
+are teacher-bound in the same way and are likewise RETAINED; the causal serving rows
+above (measured teacher-free against `corpus.next`) are the primary quality evidence
+and were freshly measured.
+
+**Verdict.** RATIFY (RETAIN) the #516 broad-text baseline on a source-complete,
+#755-native, byte-reproducible, admitted, attested bundle. Determinism, provenance,
+corpus integrity, and attestation are resolved; the bundle lives at
+`.uor-models/compiled/smollm2-360m-broad-clean` (regenerable from the pinned inputs via
+the fixed converter + the recorded-corpus compile chain).
