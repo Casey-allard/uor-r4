@@ -6,8 +6,9 @@ programme — what has been measured, refuted and left open — lives in
 purpose. Research direction is set by measurement and changes faster than this
 list does.
 
-_Last reviewed: 2026-08-19 (post-S1 verdict; issue states reconciled to GitHub;
-R4 Intelligence programme #820 opened)._
+_Last reviewed: 2026-08-20 (S0 stage promoted; S1 now the entry stage). Prior: 2026-08-19
+(post route-attention S1 verdict; issue states reconciled to GitHub; R4 Intelligence
+programme #820 opened)._
 
 > **Post-v0.1 intelligence sequencing lives in the
 > [R4 Intelligence Completion Plan](docs/r4_intelligence_completion_plan.md)** —
@@ -22,8 +23,9 @@ distribution (**#741**, release **v0.1** published), the ask-path abstention
 gate (**#811**), and the route-attention decision (**#804**, S1 verdict:
 FAIL — instrument vacuous; operator retained dormant with the record on
 **#605**). The open, sequenced successor work is now the **R4 Intelligence
-programme (#820)**, beginning with stage **S0** (#821); the completion plan
-holds the full hierarchy. Within S0, the single normative R4G1 scorer for
+programme (#820)**: stage **S0** (#821) is **promoted** (2026-08-20 — attested baseline
+ratified, one normative scorer designated, CID-bound suites frozen), so stage **S1** (#822)
+is now the entry stage; the completion plan holds the full hierarchy. Within S0, the single normative R4G1 scorer for
 deployed inference — the R4G1Runtime scoring path — is designated by
 [ADR-0001](docs/adr/0001-normative-r4g1-scorer.md) (#831), with the
 reference/certifier scorers explicitly scoped and divergence made fail-closed. The maintainer-decision items below remain valid

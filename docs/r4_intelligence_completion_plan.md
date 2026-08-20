@@ -83,6 +83,40 @@ merely because it lacks a direct blocker. Cross-cutting foundation work (F0) may
 parallel but does not displace the next sequential stage item unless the roadmap says it
 gates that item.
 
+### S0 stage verdict — PROMOTE (2026-08-20)
+
+All five S0 native children are closed with recorded verdicts and every promotion-gate
+condition on tracker #821 is met, so **S0 is promoted** and its downstream stages S1 (#822)
+and S2 (#823) are unlocked. This entry is the readable mirror of the tracker's closure
+verdict; **GitHub #821 remains the source of record**.
+
+- **All children have final verdicts.** #829 (PR #860, `d1d1f735`), #830 (PR #861,
+  `bc5a2a92`), #831 (PR #862, `1c377df7`), #832 (PR #863, `70586aa0`), and #833 (PR #867,
+  `1b3e46f2`; determinism/provenance chain #864 `9c1f2c10`, #866 `19465441`) all closed
+  COMPLETED.
+- **One normative scoring path, differentially tested.** The deployed R4G1 runtime scoring
+  path is designated the single normative scorer in [ADR-0001](adr/0001-normative-r4g1-scorer.md)
+  (#831); spec-vs-deployed differential checks and a planted-negative control live in
+  `crates/uor-r4-graph-certify/tests/normative_scorer_831.rs` (record:
+  `normative_scorer_831.md`).
+- **Frozen benchmark identities and attribution.** CID-bound capability suites and per-token
+  resolution attribution land in `crates/uor-r4-api/src/capability_suite.rs` with committed
+  manifests (#832; record: `capability_suites_832.md`).
+- **Attested post-#755 broad bundle admitted.** A source-complete, #755-native,
+  byte-reproducible bundle (`smollm2-360m-broad-clean`) passes deployed R4Engine admission and
+  the offline prediction canary (#833; record: `attested_broad_baseline_833.md`).
+- **M.V.G. thresholds — RETAINED with dated evidence.** Gate C RATIFY (RETAIN), 2026-08-20:
+  the headline causal serving rows reproduce within the predeclared `<~0.5 pp` reachability
+  bound (Rule 1+2 24.30% → 24.39%, best-live 31.48% → 31.11%, TLA-3 28.21% → 28.12%). The
+  teacher floor (3.6015 bits) is RETAINED by invariance; a full-population re-measurement is
+  **UNAVAILABLE** at scale under the current exact-GEMM teacher path (~24 h for the held-out
+  split) and is a recommended follow-up, not a promotion blocker.
+
+The stage kill/redesign criterion is **not** triggered: the claimed signals reproduce from
+pinned source inputs through the deployed path (byte-reproducible rebuild, admitted bundle,
+Gate C within bound). Downstream quality, geometry, and scale promotions are therefore
+authorized to proceed from this baseline.
+
 ## Dependency order
 
 ```text
