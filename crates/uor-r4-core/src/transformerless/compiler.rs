@@ -2328,7 +2328,12 @@ pub fn induce_hierarchical_codes(
         .filter(|(_, count)| *count >= 5)
         .collect();
 
-    frequent_paths.sort_by_key(|entry| std::cmp::Reverse(entry.1));
+    // Total order: count descending, then path bytes ascending. Count alone is
+    // not a total order, so tied paths would otherwise retain HashMap iteration
+    // order (`RandomState` is seeded per process) and `take(100)` would select a
+    // run-dependent subset — the #865 non-determinism. The tie-break makes the
+    // selection a pure function of the input multiset (byte reproducibility).
+    frequent_paths.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.cmp(&b.0)));
 
     let relational_prefixes = frequent_paths
         .into_iter()
@@ -2339,6 +2344,59 @@ pub fn induce_hierarchical_codes(
     HierarchicalCodes {
         token_type_prefixes,
         relational_prefixes,
+    }
+}
+
+#[cfg(test)]
+mod hierarchical_codes_determinism_865 {
+    use super::{induce_hierarchical_codes, Corpus, STAGES};
+
+    // #865: `relational_prefixes` must be a pure function of the corpus, with a
+    // total tie-break (count descending, then path bytes ascending). Before the
+    // fix, tied paths kept HashMap iteration order and `take(100)` selected a
+    // run-dependent subset, so `hierarchical_codes.json` was not byte-reproducible.
+    #[test]
+    fn relational_prefixes_are_deterministically_ordered() {
+        // One story; next = [1,2,3] repeated 6 times (n = 18).
+        let mut next = Vec::new();
+        for _ in 0..6 {
+            next.extend_from_slice(&[1u32, 2, 3]);
+        }
+        let n = next.len();
+        let corpus = Corpus {
+            n,
+            stories: 1,
+            story: vec![0u32; n],
+            input: vec![0u32; n],
+            next,
+            t_argmax: Vec::new(),
+            top_tokens: Vec::new(),
+            top_weights: Vec::new(),
+            span_start: Vec::new(),
+            span_end: Vec::new(),
+            byte_start: Vec::new(),
+            byte_end: Vec::new(),
+            hidden: None,
+        };
+        let vocab = 4usize;
+        let token_codes = vec![0u8; vocab * STAGES];
+
+        // Transition counts: [1,2]=6 [2,3]=6 [1,2,3]=6 | [3,1]=5 [2,3,1]=5
+        // [3,1,2]=5. Sorted by count descending, then path ascending
+        // (lexicographic Vec<u32> order, shorter-prefix first):
+        let expected: Vec<Vec<u32>> = vec![
+            vec![1, 2],
+            vec![1, 2, 3],
+            vec![2, 3],
+            vec![2, 3, 1],
+            vec![3, 1],
+            vec![3, 1, 2],
+        ];
+
+        let first = induce_hierarchical_codes(&token_codes, vocab, &corpus);
+        let second = induce_hierarchical_codes(&token_codes, vocab, &corpus);
+        assert_eq!(first.relational_prefixes, expected);
+        assert_eq!(first.relational_prefixes, second.relational_prefixes);
     }
 }
 

@@ -1,6 +1,9 @@
 {
   "repository": "HuggingFaceTB/SmolLM2-360M-Instruct",
-  "revision": "2366112999e525164f9f74a3fbf50ec19b48b940",
+  "revision": "a10cc1512eabd3dde888204e902eca88bddb4951",
+  "source_kappa": "blake3:eb23c3e8527110b83c091f8660aba676ec4993c9212a9e147503878d6087191f",
+  "source_bytes": 723674912,
+  "source_kappa_scope": "model.safetensors",
   "license": "Apache-2.0",
   "architecture": "LlamaForCausalLM",
   "weight_format": "safetensors",

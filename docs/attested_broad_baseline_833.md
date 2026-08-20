@@ -149,3 +149,45 @@ This record is a **preflight and a hold verdict**, not evidence of a new baselin
 of general capability. It changes no promoted claim. The canonical broad-text
 baseline remains the #516 pin (retained) until a source-complete, #755-native,
 byte-reproducible, admitted rebuild replaces it and re-ratifies the M.V.G. gates.
+
+## Update 2026-08-20 — preconditions (1) and (2) resolved; (3) reduced
+
+Two of the three HELD preconditions are now cleared, and the third is materially
+reduced.
+
+1. **Determinism — FIXED (#865).** The `hierarchical_codes.json` non-determinism was
+   a tie-break in `induce_hierarchical_codes`
+   (`crates/uor-r4-core/src/transformerless/compiler.rs`): `frequent_paths` was
+   sorted by transition count alone, so tied paths kept `HashMap` iteration order and
+   `take(100)` selected a run-dependent subset. Fixed with a total tie-break (count
+   descending, then path bytes ascending); regression test
+   `hierarchical_codes_determinism_865`. Two fresh `compile-recorded` runs now produce
+   a byte-identical `hierarchical_codes.json` (verified).
+
+2. **Source provenance — RE-PINNED.** `models/smollm2-360m-instruct.json` now records
+   the local snapshot as the content-addressed source-of-record: `source_kappa`
+   `blake3:eb23c3e8…` (loader-emitted, scope `model.safetensors`), `source_bytes`
+   `723674912`, and `revision` `a10cc1512eabd3dde888204e902eca88bddb4951` (the
+   byte-identical, previously-fetchable release the local weights match; the earlier
+   pinned `2366112999…` was rewritten upstream). Reconstruction no longer depends on
+   the dead HF revision — the pinned κ verifies against the local bytes.
+
+3. **Re-observe — largely AVOIDABLE (the ~6 h teacher pass is reusable).** The raw
+   teacher observation is already on disk: `.uor-models/obs-wiki-360m/` — 256
+   content-addressed shards, 361,693 records, `input_cid` `blake3:194db0ee…`, plus a
+   merged `merged.bin` (31,761,312 B = the #516 corpus size). A #755-clean rebuild
+   re-merges/finalizes these shards under the post-#755 corpus reconstruction (by
+   `(story, span_start)`) rather than re-running the teacher. Remaining chain — all but
+   one stage teacher-free: re-merge shards → `compile-recorded` (~2 min measured) →
+   cover → score → `evaluate-report` (the one teacher-bound stage: teacher-forced
+   replay of the 72,864 held-out positions) → package → admit, plus a second
+   deterministic build for byte reproducibility. Estimated wall clock **~2–3 h** (vs.
+   ~8–10 h with a fresh observe), dominated by `score` plus the single
+   `evaluate-report` teacher replay. One validation remains before launch: confirm the
+   post-#755 re-merge of the existing shards yields a corpus that passes the strict
+   `subsample-recorded-corpus` guard (no dangling story id); if the defect is intrinsic
+   to the raw shards, only the affected stories re-observe.
+
+**Remaining gate for #833:** a ~2–3 h compute window (maintainer resource
+authorization) for the teacher-forced `evaluate-report` replay under the
+measurement-only Accelerate exception. Determinism and provenance are resolved.
