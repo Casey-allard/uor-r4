@@ -60,6 +60,63 @@ pub fn render_conformance(model: &Model) -> String {
         "`cargo xtask audit-limits` fails if any code path returns an error the"
     );
     let _ = writeln!(w, "model does not sanction.");
+    let _ = writeln!(w);
+    let _ = writeln!(
+        w,
+        "Each row also carries an **execution scope** and an explicit **serving \
+         reachability** (#830), so a structural harness is never read as a \
+         deployed-serving result:"
+    );
+    let _ = writeln!(w);
+    let _ = writeln!(w, "| Execution scope | Meaning |");
+    let _ = writeln!(w, "| --- | --- |");
+    let _ = writeln!(
+        w,
+        "| `reference-only` | A reference/oracle model, not the deployed integer path (often f32). |"
+    );
+    let _ = writeln!(
+        w,
+        "| `offline-compiler` | Compile-time behaviour; never runs at serving time. |"
+    );
+    let _ = writeln!(
+        w,
+        "| `certifier-instrument` | A certifier, instrument, or measurement harness. |"
+    );
+    let _ = writeln!(
+        w,
+        "| `dormant-portable-runtime` | A portable-runtime mechanism retained dormant behind an activation gate. |"
+    );
+    let _ = writeln!(
+        w,
+        "| `normative-runtime` | The normative runtime contract/semantics (single-scorer designation is #831). |"
+    );
+    let _ = writeln!(
+        w,
+        "| `deployed-production` | The reachable production call graph / released binary. |"
+    );
+    let _ = writeln!(w);
+    let _ = writeln!(w, "| Serving reachability | Meaning |");
+    let _ = writeln!(w, "| --- | --- |");
+    let _ = writeln!(
+        w,
+        "| `deployed-serving` | Reached on the deployed `r4` serving/chat call graph. |"
+    );
+    let _ = writeln!(
+        w,
+        "| `off-serving-path` | Built or measured, but not reached by serving. |"
+    );
+    let _ = writeln!(
+        w,
+        "| `dormant-gated` | Retained behind an activation gate in `model/ledger.toml`. |"
+    );
+    let _ = writeln!(w);
+    let _ = writeln!(
+        w,
+        "The `build` level is *harness-built* (structural). It is a separate axis \
+         from an empirical verdict, which is exactly `PASS`, `FAIL`, or \
+         `UNAVAILABLE`: only a fixture-present, CID-bound run sets `PASS`, and an \
+         absent fixture is `UNAVAILABLE`, never `PASS`."
+    );
 
     // The classes are read off the register, not listed here. A list would be a
     // taxonomy this file asserts and the register does not have, and the first
@@ -78,15 +135,22 @@ pub fn render_conformance(model: &Model) -> String {
         let _ = writeln!(w);
         let _ = writeln!(w, "## {suite}");
         let _ = writeln!(w);
-        let _ = writeln!(w, "| ID | Level | Statement |");
-        let _ = writeln!(w, "| --- | --- | --- |");
+        let _ = writeln!(
+            w,
+            "| ID | Level | Execution scope | Serving reachability | Evidence | Statement |"
+        );
+        let _ = writeln!(w, "| --- | --- | --- | --- | --- | --- |");
         for r in rows {
             let statement = r.statement.replace('\n', " ").replace('|', "\\|");
+            let evidence = r.evidence.replace('\n', " ").replace('|', "\\|");
             let _ = writeln!(
                 w,
-                "| `{}` | `{}` | {} |",
+                "| `{}` | `{}` | `{}` | `{}` | {} | {} |",
                 r.id,
                 r.level.as_str(),
+                r.scope.as_str(),
+                r.reachability.as_str(),
+                evidence.trim(),
                 statement.trim()
             );
         }

@@ -1,6 +1,6 @@
 # Formal Vocabulary, Notation, and Claim Classes
 
-- **Version:** 0.1.0
+- **Version:** 0.1.14
 - **Status:** Normative for all new specification, plan, proof-model, and certificate text.
 - **Source:** `docs/hologram_formal_analysis_direction.pdf` §§1, 7, 13; tracker
   [#122](https://github.com/UOR-Foundation/uor-r4/issues/122); issue
@@ -137,6 +137,7 @@ by wholesale rewrite.
 
 ## Changelog
 
+- **0.1.14** (2026-08-20) — Added the issue-#830 register execution-scope, serving-reachability, and empirical-verdict vocabulary: a per-row execution `scope` (`reference-only` / `offline-compiler` / `certifier-instrument` / `dormant-portable-runtime` / `normative-runtime` / `deployed-production`) and a serving `reachability` (`deployed-serving` / `off-serving-path` / `dormant-gated`), plus a three-value empirical status (`PASS` / `FAIL` / `UNAVAILABLE`) kept as a separate axis from the harness-built `build` level — an absent fixture is `UNAVAILABLE`, never `PASS` (`crates/repo-model/src/registry.rs`, `crates/repo-model/src/empirical.rs`; rendered into `CONFORMANCE.md`).
 - **0.1.13** (2026-07-25) — Added issue-#175 compiler parallelism benchmarks and scaling certificate definitions (`Compiler Parallelism Scaling Report`, `Multicore Thread Sweep Matrix`, `Stage Scaling Classification Taxonomy`, `Byte-Equality Scaling Premise` in `docs/compiler_scaling_certificate.md` and `uor-r4-graph-certify::compiler_scaling`).
 - **0.1.12** (2026-07-25) — Added issue-#174 CPU-only compiler dependency and feature audit definitions (`Compiler Dependency Denylist Gate`, `Default Feature Unification Rule`, `Teacher-Backend Isolation Invariant`, `CPU-Only Runner Compliance` in `docs/compiler_dependency_audit.md` and `uor-r4-graph-compiler::dependency_audit`).
 - **0.1.11** (2026-07-24) — Added issue-#170 parallel observation, trace, and evaluation processing definitions (`Content-Addressed Shard Partitioning`, `Ordered Deterministic Reduction`, `Shard ID Determinism`, `Teacher-Backend Boundary` in `docs/parallel_observation_shards.md` and `uor-r4-graph-compiler::observation_shards`).

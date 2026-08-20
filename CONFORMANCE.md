@@ -18,179 +18,198 @@ The three honesty levels (R2):
 `cargo xtask audit-limits` fails if any code path returns an error the
 model does not sanction.
 
+Each row also carries an **execution scope** and an explicit **serving reachability** (#830), so a structural harness is never read as a deployed-serving result:
+
+| Execution scope | Meaning |
+| --- | --- |
+| `reference-only` | A reference/oracle model, not the deployed integer path (often f32). |
+| `offline-compiler` | Compile-time behaviour; never runs at serving time. |
+| `certifier-instrument` | A certifier, instrument, or measurement harness. |
+| `dormant-portable-runtime` | A portable-runtime mechanism retained dormant behind an activation gate. |
+| `normative-runtime` | The normative runtime contract/semantics (single-scorer designation is #831). |
+| `deployed-production` | The reachable production call graph / released binary. |
+
+| Serving reachability | Meaning |
+| --- | --- |
+| `deployed-serving` | Reached on the deployed `r4` serving/chat call graph. |
+| `off-serving-path` | Built or measured, but not reached by serving. |
+| `dormant-gated` | Retained behind an activation gate in `model/ledger.toml`. |
+
+The `build` level is *harness-built* (structural). It is a separate axis from an empirical verdict, which is exactly `PASS`, `FAIL`, or `UNAVAILABLE`: only a fixture-present, CID-bound run sets `PASS`, and an absent fixture is `UNAVAILABLE`, never `PASS`.
+
 ## behavioral_probes
 
-| ID | Level | Statement |
-| --- | --- | --- |
-| `RF-01` | `build` | Unsupervised intervention and counterfactual behavioral probes |
+| ID | Level | Execution scope | Serving reachability | Evidence | Statement |
+| --- | --- | --- | --- | --- | --- |
+| `RF-01` | `build` | `certifier-instrument` | `dormant-gated` | crates/uor-r4-graph-compiler/src/behavioral_probes.rs (behavioral-probes-dormant) | Unsupervised intervention and counterfactual behavioral probes |
 
 ## compiler_executor
 
-| ID | Level | Statement |
-| --- | --- | --- |
-| `RF-02` | `build` | Deterministic compiler executor abstraction |
+| ID | Level | Execution scope | Serving reachability | Evidence | Statement |
+| --- | --- | --- | --- | --- | --- |
+| `RF-02` | `build` | `offline-compiler` | `off-serving-path` | features/suites/compiler_executor.feature | Deterministic compiler executor abstraction |
 
 ## compiler_jobs_config
 
-| ID | Level | Statement |
-| --- | --- | --- |
-| `RF-03` | `build` | Compiler thread-pool, jobs configuration, and oversubscription policy |
+| ID | Level | Execution scope | Serving reachability | Evidence | Statement |
+| --- | --- | --- | --- | --- | --- |
+| `RF-03` | `build` | `offline-compiler` | `off-serving-path` | features/suites/compiler_jobs_config.feature | Compiler thread-pool, jobs configuration, and oversubscription policy |
 
 ## compiler_memory_budget
 
-| ID | Level | Statement |
-| --- | --- | --- |
-| `RF-04` | `build` | Compiler memory-budget and backpressure model for multicore compilation |
+| ID | Level | Execution scope | Serving reachability | Evidence | Statement |
+| --- | --- | --- | --- | --- | --- |
+| `RF-04` | `build` | `offline-compiler` | `off-serving-path` | features/suites/compiler_memory_budget.feature | Compiler memory-budget and backpressure model for multicore compilation |
 
 ## compiler_stage_dag
 
-| ID | Level | Statement |
-| --- | --- | --- |
-| `RF-05` | `build` | Compiler stage ownership and parallelization DAG |
+| ID | Level | Execution scope | Serving reachability | Evidence | Statement |
+| --- | --- | --- | --- | --- | --- |
+| `RF-05` | `build` | `offline-compiler` | `off-serving-path` | features/suites/compiler_stage_dag.feature | Compiler stage ownership and parallelization DAG |
 
 ## expand_proof_model
 
-| ID | Level | Statement |
-| --- | --- | --- |
-| `RF-06` | `build` | Expand proof model for structural graph and planner guarantees |
+| ID | Level | Execution scope | Serving reachability | Evidence | Statement |
+| --- | --- | --- | --- | --- | --- |
+| `RF-06` | `build` | `certifier-instrument` | `off-serving-path` | crates/uor-r4-proof-model/src (proof-status matrix) | Expand proof model for structural graph and planner guarantees |
 
 ## formal_monograph
 
-| ID | Level | Statement |
-| --- | --- | --- |
-| `RF-07` | `build` | Hologram/R4 Formal Monograph and Specification Completeness |
+| ID | Level | Execution scope | Serving reachability | Evidence | Statement |
+| --- | --- | --- | --- | --- | --- |
+| `RF-07` | `build` | `reference-only` | `off-serving-path` | features/suites/formal_monograph.feature | Hologram/R4 Formal Monograph and Specification Completeness |
 
 ## future_state_planner
 
-| ID | Level | Statement |
-| --- | --- | --- |
-| `RF-08` | `build` | Bounded future-state optimization and planning over graph transitions |
+| ID | Level | Execution scope | Serving reachability | Evidence | Statement |
+| --- | --- | --- | --- | --- | --- |
+| `RF-08` | `build` | `reference-only` | `off-serving-path` | features/suites/future_state_planner.feature | Bounded future-state planning over graph transitions (owned-string reference planner; off the deployed serving path) |
 
 ## graph_invariant_ownership
 
-| ID | Level | Statement |
-| --- | --- | --- |
-| `RF-09` | `build` | Make graph invariant ownership and loader validation explicit |
+| ID | Level | Execution scope | Serving reachability | Evidence | Statement |
+| --- | --- | --- | --- | --- | --- |
+| `RF-09` | `build` | `normative-runtime` | `deployed-serving` | crates/uor-r4-graph-format/src (two-stage GraphView loader validation on the served artifact) | Make graph invariant ownership and loader validation explicit |
 
 ## inference_contract
 
-| ID | Level | Statement |
-| --- | --- | --- |
-| `RF-10` | `build` | Normative CPU-only, multiplication-free, zero-allocation inference contract |
+| ID | Level | Execution scope | Serving reachability | Evidence | Statement |
+| --- | --- | --- | --- | --- | --- |
+| `RF-10` | `build` | `normative-runtime` | `deployed-serving` | docs/inference_contract.md; crates/uor-r4-graph-format inference_contract | Normative CPU-only, multiplication-free, zero-allocation inference contract |
 
 ## inference_operation_contract
 
-| ID | Level | Statement |
-| --- | --- | --- |
-| `RF-11` | `build` | Inference operation contract |
+| ID | Level | Execution scope | Serving reachability | Evidence | Statement |
+| --- | --- | --- | --- | --- | --- |
+| `RF-11` | `build` | `normative-runtime` | `deployed-serving` | docs/transformerless/INFERENCE_OPERATION_CONTRACT.md; transformerless/mod.rs P-4 scan | Inference operation contract |
 
 ## lower_semantic_regions
 
-| ID | Level | Statement |
-| --- | --- | --- |
-| `RF-12` | `build` | Lowering reference semantic regions into Boolean, mask, popcount, and fixed-point programs |
+| ID | Level | Execution scope | Serving reachability | Evidence | Statement |
+| --- | --- | --- | --- | --- | --- |
+| `RF-12` | `build` | `offline-compiler` | `off-serving-path` | features/suites/lower_semantic_regions.feature | Lowering reference semantic regions into Boolean, mask, popcount, and fixed-point programs |
 
 ## packed_kernels
 
-| ID | Level | Statement |
-| --- | --- | --- |
-| `RF-13` | `build` | Packed zero-allocation CPU inference kernels over immutable graph arrays |
+| ID | Level | Execution scope | Serving reachability | Evidence | Statement |
+| --- | --- | --- | --- | --- | --- |
+| `RF-13` | `build` | `normative-runtime` | `deployed-serving` | crates/uor-r4-graph-runtime/src/packed_kernels.rs (deployed scoring kernels; the ROUT routing evaluator stays packed-routing-dormant) | Packed zero-allocation CPU inference kernels over immutable graph arrays |
 
 ## parallel_observation_shards
 
-| ID | Level | Statement |
-| --- | --- | --- |
-| `RF-14` | `build` | Parallel observation, trace, and evaluation processing over deterministic shards |
+| ID | Level | Execution scope | Serving reachability | Evidence | Statement |
+| --- | --- | --- | --- | --- | --- |
+| `RF-14` | `build` | `offline-compiler` | `off-serving-path` | features/suites/parallel_observation_shards.feature | Parallel observation, trace, and evaluation processing over deterministic shards |
 
 ## parallel_reproducibility
 
-| ID | Level | Statement |
-| --- | --- | --- |
-| `RF-15` | `build` | Normative reproducibility and canonical artifact byte equality under compiler parallelism |
+| ID | Level | Execution scope | Serving reachability | Evidence | Statement |
+| --- | --- | --- | --- | --- | --- |
+| `RF-15` | `build` | `offline-compiler` | `off-serving-path` | features/suites/parallel_reproducibility.feature (compile-time byte-equality property) | Normative reproducibility and canonical artifact byte equality under compiler parallelism |
 
 ## pdf_traceability_matrix
 
-| ID | Level | Statement |
-| --- | --- | --- |
-| `RF-16` | `build` | Maintain a PDF-to-implementation traceability matrix for the formal direction |
+| ID | Level | Execution scope | Serving reachability | Evidence | Statement |
+| --- | --- | --- | --- | --- | --- |
+| `RF-16` | `build` | `reference-only` | `off-serving-path` | features/suites/pdf_traceability_matrix.feature | Maintain a PDF-to-implementation traceability matrix for the formal direction |
 
 ## performance_certificate
 
-| ID | Level | Statement |
-| --- | --- | --- |
-| `RF-17` | `build` | Runtime operation, allocation, and CPU portability certificates |
+| ID | Level | Execution scope | Serving reachability | Evidence | Statement |
+| --- | --- | --- | --- | --- | --- |
+| `RF-17` | `build` | `certifier-instrument` | `off-serving-path` | features/suites/performance_certificate.feature | Runtime operation, allocation, and CPU portability certificates |
 
 ## quantum_cover
 
-| ID | Level | Statement |
-| --- | --- | --- |
-| `RF-18` | `build` | Von Neumann quantum density operator and cover induction |
+| ID | Level | Execution scope | Serving reachability | Evidence | Statement |
+| --- | --- | --- | --- | --- | --- |
+| `RF-18` | `build` | `offline-compiler` | `dormant-gated` | crates/uor-r4-graph-compiler/src/quantum_cover.rs (quantum-cover-dormant) | Von Neumann quantum density operator and cover induction |
 
 ## quantum_facade_benchmarks
 
-| ID | Level | Statement |
-| --- | --- | --- |
-| `RF-19` | `build` | Quantum Geometric Transformerless Wasm Façade & Context Scaling Benchmarks |
+| ID | Level | Execution scope | Serving reachability | Evidence | Statement |
+| --- | --- | --- | --- | --- | --- |
+| `RF-19` | `build` | `certifier-instrument` | `off-serving-path` | features/suites/quantum_facade_benchmarks.feature (exploratory wasm façade, off the graph migration path) | Quantum Geometric Transformerless Wasm Façade & Context Scaling Benchmarks |
 
 ## quantum_lie_jordan
 
-| ID | Level | Statement |
-| --- | --- | --- |
-| `RF-20` | `build` | Quantum Geometric Lie-Jordan Splitting & Universal Product Kernel |
+| ID | Level | Execution scope | Serving reachability | Evidence | Statement |
+| --- | --- | --- | --- | --- | --- |
+| `RF-20` | `build` | `reference-only` | `dormant-gated` | crates/uor-r4-core/src/transformerless/lie_jordan.rs (lie-jordan-dormant) | Quantum Geometric Lie-Jordan Splitting & Universal Product Kernel |
 
 ## r4g1_compile_quality
 
-| ID | Level | Statement |
-| --- | --- | --- |
-| `RF-21` | `build` | R4G1 compilation quality gates |
+| ID | Level | Execution scope | Serving reachability | Evidence | Statement |
+| --- | --- | --- | --- | --- | --- |
+| `RF-21` | `build` | `offline-compiler` | `off-serving-path` | features/suites/r4g1_compile_quality.feature (compile-time quality gates) | R4G1 compilation quality gates |
 
 ## r4g1_quality
 
-| ID | Level | Statement |
-| --- | --- | --- |
-| `RF-22` | `build` | R4G1 generated-response quality |
+| ID | Level | Execution scope | Serving reachability | Evidence | Statement |
+| --- | --- | --- | --- | --- | --- |
+| `RF-22` | `build` | `certifier-instrument` | `off-serving-path` | features/suites/r4g1_quality.feature (synthetic pathological/readable fixtures) | R4G1 generated-response pathology filter (synthetic-input rejection guard; does not establish generation quality) |
 
 ## r4g1_runtime
 
-| ID | Level | Statement |
-| --- | --- | --- |
-| `RF-23` | `build` | R4G1 runtime selection and fallback policy |
+| ID | Level | Execution scope | Serving reachability | Evidence | Statement |
+| --- | --- | --- | --- | --- | --- |
+| `RF-23` | `build` | `normative-runtime` | `deployed-serving` | src/tless_uor.rs, src/chat.rs (R4G1Runtime selection/fallback on the served path) | R4G1 runtime selection and fallback policy |
 
 ## rate_distortion_compression
 
-| ID | Level | Statement |
-| --- | --- | --- |
-| `RF-24` | `build` | Formalize compilation as semantic compression with rate-distortion tradeoffs |
+| ID | Level | Execution scope | Serving reachability | Evidence | Statement |
+| --- | --- | --- | --- | --- | --- |
+| `RF-24` | `build` | `offline-compiler` | `dormant-gated` | crates/uor-r4-graph-compiler/src/rate_distortion_compression.rs (rate-distortion-compression-dormant) | Formalize compilation as semantic compression with rate-distortion tradeoffs |
 
 ## reference_compiler_ir
 
-| ID | Level | Statement |
-| --- | --- | --- |
-| `RF-25` | `build` | Reference floating-point semantic compiler and intermediate representation (IR) |
+| ID | Level | Execution scope | Serving reachability | Evidence | Statement |
+| --- | --- | --- | --- | --- | --- |
+| `RF-25` | `build` | `reference-only` | `dormant-gated` | crates/uor-r4-graph-compiler/src/reference_compiler_ir.rs (reference-compiler-ir-dormant) | Reference floating-point semantic compiler and intermediate representation (IR) |
 
 ## scoring_semantics
 
-| ID | Level | Statement |
-| --- | --- | --- |
-| `RF-26` | `build` | Specify fixed-point scoring semantics and deterministic tie-breaking |
+| ID | Level | Execution scope | Serving reachability | Evidence | Statement |
+| --- | --- | --- | --- | --- | --- |
+| `RF-26` | `build` | `normative-runtime` | `deployed-serving` | docs/scoring_semantics.md; crates/uor-r4-graph-format scoring_semantics (deployed scorer) | Specify fixed-point scoring semantics and deterministic tie-breaking |
 
 ## semantic_state_space
 
-| ID | Level | Statement |
-| --- | --- | --- |
-| `RF-27` | `build` | Semantic state space and typed transition dynamics |
+| ID | Level | Execution scope | Serving reachability | Evidence | Statement |
+| --- | --- | --- | --- | --- | --- |
+| `RF-27` | `build` | `reference-only` | `off-serving-path` | features/suites/semantic_state_space.feature (f32 reference vectors/transitions) | Semantic state space and typed transition dynamics (reference/f32 model, per docs/formal_vocabulary.md S/T; not the deployed integer kernel) |
 
 ## separate_semantic_emission
 
-| ID | Level | Statement |
-| --- | --- | --- |
-| `RF-28` | `build` | Separate semantic reasoning and state transitions from language emission |
+| ID | Level | Execution scope | Serving reachability | Evidence | Statement |
+| --- | --- | --- | --- | --- | --- |
+| `RF-28` | `build` | `reference-only` | `off-serving-path` | features/suites/separate_semantic_emission.feature (reference reasoning/emission model) | Separate semantic reasoning and state transitions from language emission (reference/f32 model; off the deployed serving path) |
 
 ## teacher_parity_benchmarks
 
-| ID | Level | Statement |
-| --- | --- | --- |
-| `RF-29` | `build` | Teacher parity and benchmarks for the compiled transformerless runtimes |
+| ID | Level | Execution scope | Serving reachability | Evidence | Statement |
+| --- | --- | --- | --- | --- | --- |
+| `RF-29` | `build` | `certifier-instrument` | `off-serving-path` | tests/bdd.rs, features/suites/teacher_parity_benchmarks.feature (pinned-fixture-gated; skips vacuously when fixtures absent) | Teacher parity and benchmarks for the compiled transformerless runtimes (fixture-gated empirical instrument; absent fixtures are UNAVAILABLE, never PASS) |
 
 ## Cited authorities
 
@@ -222,6 +241,6 @@ Never re-derived, vendored, or gated on.
 | `behavioral-probes-dormant` | `open` | The unsupervised intervention and counterfactual behavioral-probes layer (crates/uor-r4-graph-compiler/src/behavioral_probes.rs; PDF §§7,11,17 / #128) is retained off the serving path as a probing surface. Activation gate: a behavioral-probe result adopted as a required gate on a pre-declared reusability bar. |
 | `r4-route-attention-dormant` | `open` | The R4RouteAttentionV1 target route-attention operator (#604) — versioned reference semantics and witness replay in crates/uor-r4-graph-certify/src/route_attention.rs, packed R4G1 lowering over borrowed bytes and caller-owned bounded state in crates/uor-r4-graph-runtime/src/route_attention.rs (P-4-scanned), canonical instance substrate and bounds in crates/uor-r4-graph-format/src/route_attention.rs, registry record r4-route-attention/1 in uor-r4-model-source::attention — is retained dormant: constructible and differentially tested (reference and packed agree bit-for-bit on selections, aggregates, census, and witness; independent replay verifies witnesses without running the operator; allocation census asserts a zero-allocation steady state), referenced by no serving path; packed-routing-dormant stays unchanged and no serving default selects it. Pre-declared #604 run contract: metric to move is teacher-forced top-1/top-k agreement and bits/token while preserving the runtime operation contract; no R4-native target baseline exists and the current r4_attention source branch is not a valid one; the cheap instrument is the synthetic reference-vs-packed replay plus a short pinned teacher-forced sample, and the FIRST verdict must prove semantic/operation/witness correctness before any quality interpretation; exit rule: stop if the packed path violates any runtime bound, fails witness replay, or cannot be distinguished from a declared null under the pre-declared test; if positive, hand the operator and traces to the fitting issue (#605) and keep it dormant until the activation gate clears; if negative, retain the operator, its reference, and the negative report — never promote, never delete. Activation gate: a fitted operator instance clearing the pre-declared teacher-forced top-1/top-k and bits/token bars on a pre-declared held-out slice with witness replay intact. |
 | `msa-structured-selector-dormant` | `open` | The MsaStructuredSelectorV1 target attention operator (#643) — versioned reference semantics and witness replay in crates/uor-r4-graph-certify/src/msa_selector.rs, packed R4G1 lowering over borrowed bytes and caller-owned bounded state in crates/uor-r4-graph-runtime/src/msa_selector.rs (P-4-scanned), canonical instance substrate and bounds in crates/uor-r4-graph-format/src/msa_selector.rs, registry record msa-structured-selector/1 in uor-r4-model-source::attention — is retained dormant: constructible and differentially tested (reference and packed agree bit-for-bit on selections, aggregates, census, and witness over byte-identical instances; independent replay verifies witnesses without running the operator), referenced by no serving path; no serving default selects it. Classification (role_rank, cascade_position) is grounded in the Modular Structural Arithmetic paper's MSA7 11-Theorem and Theorem M4 11-Cascade Theorem for 3 of 11 residues mod 11, extended to the other 8 by this project's own cascade-position-mod-3 rule (Casey-confirmed 2026-08-16, explicitly not a paper theorem) and precomputed into the instance bytes at build time so the P-4-scanned packed path never recomputes a modulus. Plug-compatible with r4-route-attention/1 by construction (identical top-M selection, saturating-scoreq aggregation, and lowest-index tie-break shape) for a future shared A/B harness. Pre-declared #643 run contract (posted on the issue before any run, per the #626 convention): POSITIVE iff, on the same held-out evaluation corpus and candidate set r4-route-attention/1 is measured against, msa-structured-selector/1 achieves top-1 next-token accuracy >= r4-route-attention/1's top-1 accuracy + 0.02 absolute, does not increase bits-per-token versus r4-route-attention/1, and beats the #457 unigram floor; NEGATIVE (including no measurable difference) closes #643 with the comparison table, keeping this dormant claim as the negative-result record; the wiring into a shared held-out evaluation loop with r4-route-attention/1 is the next concrete action and is not yet done. Activation gate: a positive pre-registered A/B result on the pinned real teacher together with the #531 saturation corpus, with witness replay intact. |
-| `route-fit-dormant` | `open` | The R4RouteAttentionV1 offline fitting harness and replacement-ladder evaluator (#605) — versioned fit method route-fit/1 with canonical declared-identity record, eight-identity fit manifest, and production-boundary #603 trace-corpus reader in crates/uor-r4-graph-compiler/src/route_fit.rs; pre-registered run contract as data, progressive replacement ladder (null / one-head / one-layer / layer-range / whole-model / real-teacher / real-corpus) with PASS/FAIL/UNAVAILABLE/NOT_RUN stage records, N1/N2 nulls, anti-vacuity instrument verdict, and decision record in crates/uor-r4-graph-certify/src/route_fit_report.rs — is retained dormant: referenced by no serving path, changing no artifact bytes; r4-route-attention-dormant and packed-routing-dormant stay unchanged. Selection evidence in the ladder comes from the deployed packed kernel (build_route_attention_instance + route_attention_step) with independent witness replay; replacement semantics v1 is support-restrict-renormalize/1 (teacher attention restricted to the fitted-selected top-M support, renormalized). Measured on the synthetic cheap-instrument arm (deterministic 2-layer/2-head/d32/vocab64 fixture teacher, 1024-token mini-corpus, pre-registered margins posted to #605 before the run): instrument valid (N2 0.2353 below 0.5 x fitted 0.5718 at the reference scope); all five synthetic stages passed the pre-registered gates (fitted support overlap 0.5718-0.5872 vs nulls N1 0.2019-0.2064 / N2 0.2312-0.2537; teacher-forced top-1 agreement 0.9902-1.0; bits/token ratio at most 1.0002 of the teacher's 4.9709); the real-teacher and real-corpus stages are UNAVAILABLE (pinned SmolLM2 snapshot absent from the build env; #531 saturation corpus not yet produced, compute-bound), so the synthetic result is a cheap-instrument reading, never a model-quality claim. Activation gate: a positive pre-registered ladder result on the pinned real teacher together with the #531 saturation corpus, with witness replay intact and a valid (non-vacuous) instrument. |
-| `target-operator-certificate-dormant` | `open` | The target-operator recompilation certificate (#606) — versioned schema uor-r4-target-operator-certificate/1 in crates/uor-r4-graph-certify/src/target_operator_certificate.rs, one bounded machine-readable record COMPOSING the existing certification surfaces for R4RouteAttentionV1 recompilation: an identity block with typed absence over source snapshot / tokenizer / adapter / trace / geometry / operator id+version / corpus / compiler / fit-manifest κ / fit-report κ / fitted-params κ; per-scope rows (head, layer, layer-range, model, real-teacher, real-corpus) each carrying five separated verdict families (source-parity, target-fit, runtime-contract, witness-replay, model-quality) with states PASS / FAIL / NOT_MEASURED / BLOCKED(reason) / UNAVAILABLE(reason); runtime-bounds rows embedding the #605 RuntimeChecks with the declared candidate/selection bounds and the allocation-census ownership note; provenance rows referencing the #605 fit report, fit manifest, and fitted parameters by κ and the Gate C parity row type, teacher-parity harness, empirical/performance certificates, and proof obligations by typed identity where no κ exists — is retained dormant: referenced by no serving path, changing no artifact bytes; it embeds the existing GateCMetrics rows and references RouteFitReport/RunContract by κ rather than duplicating Gate C, the #307 parity harness, or any proof obligation, and replacement comparisons bind to outcomes under replacement, never per-step path agreement (historical program measurement recorded in #606 planning: equal task outcomes at roughly 0.1-0.2 per-step path agreement). The derived overall quality verdict is a pure function returning NOT_PASSING unless every required identity, scope row, runtime row, provenance reference, and obligation link is present and valid; the passing value carries a token constructible only by that derivation, so a missing, blocked, or unavailable prerequisite makes a passing quality claim unrepresentable and a compiled artifact never reads as a quality success. Measured on the #605 synthetic-ladder outputs: the four synthetic scope rows record source-parity / target-fit / runtime-contract / witness-replay PASS with model-quality UNAVAILABLE, the real-teacher and real-corpus rows are UNAVAILABLE with the #605 reason strings (pinned SmolLM2 snapshot absent from the build env; #531 saturation corpus not yet produced, compute-bound), and the overall quality verdict is NOT_PASSING. Activation gate: a certificate over the real-teacher + #531-corpus ladder with a valid (non-vacuous) instrument deriving a passing quality verdict. |
-| `patch-overlay-dormant` | `open` | The dormant portion of the graph-patch (PTCH) overlay mechanism — section emission (crates/uor-r4-graph-compiler/src/patch_induction.rs) and its lifecycle discipline: newest-valid precedence, fork rejection, compaction after 8 layers (crates/uor-r4-graph-certify/src/patch_lifecycle.rs) — is retained off the serving path as a distinct incremental-update surface (patch epochs over a base graph rather than full recompile). The patch-epoch chain itself (crates/uor-r4-graph-runtime/src/patch_chain.rs) is NOT dormant: it is wired into the serving runtime, held by R4G1Runtime as its patch chain. Activation gate: a patch-overlay serving path built on patch_induction/patch_lifecycle scoring at or above a full recompile on a pre-declared held-out slice. |
+| `route-fit-dormant` | `open` | The R4RouteAttentionV1 offline fitting harness and replacement-ladder evaluator (#605) — versioned fit method route-fit/1 with canonical declared-identity record, eight-identity fit manifest, and production-boundary #603 trace-corpus reader in crates/uor-r4-graph-compiler/src/route_fit.rs; pre-registered run contract as data, progressive replacement ladder (null / one-head / one-layer / layer-range / whole-model / real-teacher / real-corpus) with PASS/FAIL/UNAVAILABLE/NOT_RUN stage records, N1/N2 nulls, anti-vacuity instrument verdict, and decision record in crates/uor-r4-graph-certify/src/route_fit_report.rs — is retained dormant: referenced by no serving path, changing no artifact bytes; r4-route-attention-dormant and packed-routing-dormant stay unchanged. Selection evidence in the ladder comes from the deployed packed kernel (build_route_attention_instance + route_attention_step) with independent witness replay; replacement semantics v1 is support-restrict-renormalize/1 (teacher attention restricted to the fitted-selected top-M support, renormalized). Measured on the synthetic cheap-instrument arm (deterministic 2-layer/2-head/d32/vocab64 fixture teacher, 1024-token mini-corpus, pre-registered margins posted to #605 before the run): instrument valid (N2 0.2353 below 0.5 x fitted 0.5718 at the reference scope); all five synthetic stages passed the pre-registered gates (fitted support overlap 0.5718-0.5872 vs nulls N1 0.2019-0.2064 / N2 0.2312-0.2537; teacher-forced top-1 agreement 0.9902-1.0; bits/token ratio at most 1.0002 of the teacher's 4.9709); the synthetic result is a cheap-instrument reading, never a model-quality claim. UPDATE (2026-08-19, #804/#605 S1 verdict): the real-teacher stage is no longer UNAVAILABLE — it was run against a traced SmolLM2-360M teacher on 62,875 broad-corpus records over 6.6M eligible steps and returned FAIL (instrument vacuous): fitted support overlap 0.396 recovered structure over the permuted-code N1 null (0.192) with every deployed-kernel runtime check passing, but the pre-registered anti-vacuity N2 null (supports shifted one position) reached 0.292 because teacher attention supports are temporally smooth at this scale, so the instrument cannot attribute the fitted structure to genuine per-position routing (119/120 heads individually vacuous) and by contract the run fails and licenses nothing (record: #605 corpus issuecomment-5337863280 / verdict issuecomment-5337903765; #804 close); the real-corpus stage stays UNAVAILABLE (#531 saturation corpus not produced, compute-bound). The operator stays dormant behind its unchanged gate. Activation gate: a positive pre-registered ladder result on the pinned real teacher with a vacuity-robust instrument (excess-over-N2 as the primary metric, or restricted-forward parity), the #531 saturation corpus, and witness replay intact. |
+| `target-operator-certificate-dormant` | `open` | The target-operator recompilation certificate (#606) — versioned schema uor-r4-target-operator-certificate/1 in crates/uor-r4-graph-certify/src/target_operator_certificate.rs, one bounded machine-readable record COMPOSING the existing certification surfaces for R4RouteAttentionV1 recompilation: an identity block with typed absence over source snapshot / tokenizer / adapter / trace / geometry / operator id+version / corpus / compiler / fit-manifest κ / fit-report κ / fitted-params κ; per-scope rows (head, layer, layer-range, model, real-teacher, real-corpus) each carrying five separated verdict families (source-parity, target-fit, runtime-contract, witness-replay, model-quality) with states PASS / FAIL / NOT_MEASURED / BLOCKED(reason) / UNAVAILABLE(reason); runtime-bounds rows embedding the #605 RuntimeChecks with the declared candidate/selection bounds and the allocation-census ownership note; provenance rows referencing the #605 fit report, fit manifest, and fitted parameters by κ and the Gate C parity row type, teacher-parity harness, empirical/performance certificates, and proof obligations by typed identity where no κ exists — is retained dormant: referenced by no serving path, changing no artifact bytes; it embeds the existing GateCMetrics rows and references RouteFitReport/RunContract by κ rather than duplicating Gate C, the #307 parity harness, or any proof obligation, and replacement comparisons bind to outcomes under replacement, never per-step path agreement (historical program measurement recorded in #606 planning: equal task outcomes at roughly 0.1-0.2 per-step path agreement). The derived overall quality verdict is a pure function returning NOT_PASSING unless every required identity, scope row, runtime row, provenance reference, and obligation link is present and valid; the passing value carries a token constructible only by that derivation, so a missing, blocked, or unavailable prerequisite makes a passing quality claim unrepresentable and a compiled artifact never reads as a quality success. Measured on the #605 synthetic-ladder outputs: the four synthetic scope rows record source-parity / target-fit / runtime-contract / witness-replay PASS with model-quality UNAVAILABLE, the real-teacher scope row is no longer UNAVAILABLE — its target-fit family records FAIL under the #804/#605 S1 anti-vacuity contract (N2 null 0.292 vs fitted support overlap 0.396; instrument vacuous, 119/120 heads vacuous) with model-quality UNAVAILABLE, the real-corpus row stays UNAVAILABLE (#531 saturation corpus not produced, compute-bound), and the overall quality verdict remains NOT_PASSING. Activation gate: a certificate over the real-teacher + #531-corpus ladder with a valid (non-vacuous) instrument deriving a passing quality verdict. |
+| `patch-overlay-dormant` | `open` | The dormant portion of the graph-patch (PTCH) overlay mechanism — section emission (crates/uor-r4-graph-compiler/src/patch_induction.rs) and its lifecycle discipline: newest-valid precedence, fork rejection, compaction after 8 layers (crates/uor-r4-graph-certify/src/patch_lifecycle.rs) — is retained off the serving path as a distinct incremental-update surface (patch epochs over a base graph rather than full recompile). The patch-epoch chain type (crates/uor-r4-graph-runtime/src/patch_chain.rs) is a field of the portable R4G1Runtime and is reachable there as a runtime data structure, but that is portable-runtime reachability, not normative R4Engine (crates/uor-r4-api/src/engine.rs) deployed serving: no deployed serving path induces or emits patch epochs today — patch_induction / patch_lifecycle are the dormant overlay-update surface — so R4G1Runtime holding a patch chain is not a normative-serving patch-overlay capability, and the normative-scorer designation itself is #831 (item C of #821). Activation gate: a patch-overlay serving path built on patch_induction/patch_lifecycle scoring at or above a full recompile on a pre-declared held-out slice. |

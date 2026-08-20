@@ -12,9 +12,13 @@
 #![deny(missing_docs)]
 
 pub mod codegen;
+pub mod empirical;
 pub mod registry;
 
-pub use registry::{Authorities, AuthorityRow, Claim, IdRow, Ids, Ledger, Level};
+pub use empirical::EmpiricalStatus;
+pub use registry::{
+    Authorities, AuthorityRow, Claim, IdRow, Ids, Ledger, Level, Reachability, Scope,
+};
 
 use std::path::{Path, PathBuf};
 
@@ -103,6 +107,33 @@ impl Model {
             if row.suite.trim().is_empty() {
                 return Err(bad(format!(
                     "{}: every ID names the Gherkin suite its scenario lives in (R3)",
+                    row.id
+                )));
+            }
+            // #830: a build claim must point at the evidence that validates it,
+            // so "constructed here" is never an unbacked assertion. This is the
+            // harness-built (structural) pointer; it is not, on its own, an
+            // empirical PASS.
+            if row.level == Level::Build && row.evidence.trim().is_empty() {
+                return Err(bad(format!(
+                    "{}: a build claim must carry an evidence pointer (#830). A \
+                     constructed capability names the harness, suite, or source \
+                     that validates it.",
+                    row.id
+                )));
+            }
+            // #830: a non-production test cannot be cited as production evidence
+            // without a dedicated reachability assertion. Claiming the
+            // deployed-production scope requires stating deployed-serving
+            // reachability explicitly.
+            if row.scope == Scope::DeployedProduction
+                && row.reachability != Reachability::DeployedServing
+            {
+                return Err(bad(format!(
+                    "{}: scope `deployed-production` requires `reachability = \
+                     deployed-serving` (#830): a non-production test cannot be \
+                     cited as production evidence without a dedicated \
+                     reachability assertion.",
                     row.id
                 )));
             }
@@ -233,5 +264,83 @@ mod tests {
                 );
             }
         }
+    }
+
+    /// A one-row model helper for the #830 schema guards.
+    fn one_row_model(scope: Scope, reachability: Reachability, evidence: &str) -> Model {
+        Model {
+            ledger: Ledger {
+                spec: "test".into(),
+                claim: vec![],
+            },
+            authorities: Authorities {
+                spec: "test".into(),
+                authority: vec![],
+            },
+            ids: Ids {
+                spec: "test".into(),
+                id: vec![IdRow {
+                    id: "RF-99".into(),
+                    level: Level::Build,
+                    suite: "s".into(),
+                    statement: "a claim".into(),
+                    scope,
+                    reachability,
+                    evidence: evidence.into(),
+                }],
+            },
+        }
+    }
+
+    /// #830 planted negative: a row claiming `deployed-production` scope without
+    /// a `deployed-serving` reachability assertion must be rejected. A
+    /// production claim cannot ride in on a non-production test.
+    #[test]
+    fn deployed_production_without_serving_reachability_is_rejected() {
+        let model = one_row_model(
+            Scope::DeployedProduction,
+            Reachability::OffServingPath,
+            "features/suites/s.feature",
+        );
+        let err = model
+            .check()
+            .expect_err("deployed-production without deployed-serving must be rejected");
+        assert!(
+            format!("{err}").contains("deployed-serving"),
+            "rejection must name the missing reachability assertion, got: {err}"
+        );
+    }
+
+    /// #830 positive control: the same row with the `deployed-serving`
+    /// assertion (and a build evidence pointer) is accepted, so the guard above
+    /// is not vacuous.
+    #[test]
+    fn deployed_production_with_serving_reachability_is_accepted() {
+        let model = one_row_model(
+            Scope::DeployedProduction,
+            Reachability::DeployedServing,
+            "features/suites/s.feature",
+        );
+        model
+            .check()
+            .expect("a deployed-production row with a serving assertion and evidence is valid");
+    }
+
+    /// #830: a `build` claim with no evidence pointer is rejected — "constructed
+    /// here" must name what validates it.
+    #[test]
+    fn a_build_claim_without_an_evidence_pointer_is_rejected() {
+        let model = one_row_model(
+            Scope::CertifierInstrument,
+            Reachability::OffServingPath,
+            "  ",
+        );
+        let err = model
+            .check()
+            .expect_err("a build claim without evidence must be rejected");
+        assert!(
+            format!("{err}").contains("evidence pointer"),
+            "rejection must name the missing evidence pointer, got: {err}"
+        );
     }
 }

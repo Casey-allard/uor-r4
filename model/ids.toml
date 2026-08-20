@@ -5,6 +5,18 @@
 # tagged with it and its honesty level, and a marker test in repo-conformance
 # ends in the ID slug. CONFORMANCE.md is generated from this file (never edit
 # it by hand). Level `build`: constructed here and validated against its suite.
+#
+# #830 (item B of #821) schema migration: every row now also carries an
+# execution `scope`, a serving `reachability`, and an `evidence` pointer, so the
+# register can no longer be over-read (a reference/f32 model, an offline
+# compiler stage, a certifier instrument, a dormant portable-runtime mechanism,
+# the normative runtime contract, and the deployed production path are now
+# distinct and machine-visible). The fields have deterministic migration
+# defaults (`scope = reference-only`, `reachability = off-serving-path`, empty
+# evidence) so a row that omits them understates rather than over-reads; every
+# row below sets them explicitly. `build` is harness-built (structural) status;
+# an empirical verdict (PASS/FAIL/UNAVAILABLE) is a separate axis and a missing
+# fixture is UNAVAILABLE, never PASS.
 
 spec = "uor-r4/273"
 
@@ -13,172 +25,258 @@ id = "RF-01"
 level = "build"
 suite = "behavioral_probes"
 statement = "Unsupervised intervention and counterfactual behavioral probes"
+scope = "certifier-instrument"
+reachability = "dormant-gated"
+evidence = "crates/uor-r4-graph-compiler/src/behavioral_probes.rs (behavioral-probes-dormant)"
 
 [[id]]
 id = "RF-02"
 level = "build"
 suite = "compiler_executor"
 statement = "Deterministic compiler executor abstraction"
+scope = "offline-compiler"
+reachability = "off-serving-path"
+evidence = "features/suites/compiler_executor.feature"
 
 [[id]]
 id = "RF-03"
 level = "build"
 suite = "compiler_jobs_config"
 statement = "Compiler thread-pool, jobs configuration, and oversubscription policy"
+scope = "offline-compiler"
+reachability = "off-serving-path"
+evidence = "features/suites/compiler_jobs_config.feature"
 
 [[id]]
 id = "RF-04"
 level = "build"
 suite = "compiler_memory_budget"
 statement = "Compiler memory-budget and backpressure model for multicore compilation"
+scope = "offline-compiler"
+reachability = "off-serving-path"
+evidence = "features/suites/compiler_memory_budget.feature"
 
 [[id]]
 id = "RF-05"
 level = "build"
 suite = "compiler_stage_dag"
 statement = "Compiler stage ownership and parallelization DAG"
+scope = "offline-compiler"
+reachability = "off-serving-path"
+evidence = "features/suites/compiler_stage_dag.feature"
 
 [[id]]
 id = "RF-06"
 level = "build"
 suite = "expand_proof_model"
 statement = "Expand proof model for structural graph and planner guarantees"
+scope = "certifier-instrument"
+reachability = "off-serving-path"
+evidence = "crates/uor-r4-proof-model/src (proof-status matrix)"
 
 [[id]]
 id = "RF-07"
 level = "build"
 suite = "formal_monograph"
 statement = "Hologram/R4 Formal Monograph and Specification Completeness"
+scope = "reference-only"
+reachability = "off-serving-path"
+evidence = "features/suites/formal_monograph.feature"
 
 [[id]]
 id = "RF-08"
 level = "build"
 suite = "future_state_planner"
-statement = "Bounded future-state optimization and planning over graph transitions"
+statement = "Bounded future-state planning over graph transitions (owned-string reference planner; off the deployed serving path)"
+scope = "reference-only"
+reachability = "off-serving-path"
+evidence = "features/suites/future_state_planner.feature"
 
 [[id]]
 id = "RF-09"
 level = "build"
 suite = "graph_invariant_ownership"
 statement = "Make graph invariant ownership and loader validation explicit"
+scope = "normative-runtime"
+reachability = "deployed-serving"
+evidence = "crates/uor-r4-graph-format/src (two-stage GraphView loader validation on the served artifact)"
 
 [[id]]
 id = "RF-10"
 level = "build"
 suite = "inference_contract"
 statement = "Normative CPU-only, multiplication-free, zero-allocation inference contract"
+scope = "normative-runtime"
+reachability = "deployed-serving"
+evidence = "docs/inference_contract.md; crates/uor-r4-graph-format inference_contract"
 
 [[id]]
 id = "RF-11"
 level = "build"
 suite = "inference_operation_contract"
 statement = "Inference operation contract"
+scope = "normative-runtime"
+reachability = "deployed-serving"
+evidence = "docs/transformerless/INFERENCE_OPERATION_CONTRACT.md; transformerless/mod.rs P-4 scan"
 
 [[id]]
 id = "RF-12"
 level = "build"
 suite = "lower_semantic_regions"
 statement = "Lowering reference semantic regions into Boolean, mask, popcount, and fixed-point programs"
+scope = "offline-compiler"
+reachability = "off-serving-path"
+evidence = "features/suites/lower_semantic_regions.feature"
 
 [[id]]
 id = "RF-13"
 level = "build"
 suite = "packed_kernels"
 statement = "Packed zero-allocation CPU inference kernels over immutable graph arrays"
+scope = "normative-runtime"
+reachability = "deployed-serving"
+evidence = "crates/uor-r4-graph-runtime/src/packed_kernels.rs (deployed scoring kernels; the ROUT routing evaluator stays packed-routing-dormant)"
 
 [[id]]
 id = "RF-14"
 level = "build"
 suite = "parallel_observation_shards"
 statement = "Parallel observation, trace, and evaluation processing over deterministic shards"
+scope = "offline-compiler"
+reachability = "off-serving-path"
+evidence = "features/suites/parallel_observation_shards.feature"
 
 [[id]]
 id = "RF-15"
 level = "build"
 suite = "parallel_reproducibility"
 statement = "Normative reproducibility and canonical artifact byte equality under compiler parallelism"
+scope = "offline-compiler"
+reachability = "off-serving-path"
+evidence = "features/suites/parallel_reproducibility.feature (compile-time byte-equality property)"
 
 [[id]]
 id = "RF-16"
 level = "build"
 suite = "pdf_traceability_matrix"
 statement = "Maintain a PDF-to-implementation traceability matrix for the formal direction"
+scope = "reference-only"
+reachability = "off-serving-path"
+evidence = "features/suites/pdf_traceability_matrix.feature"
 
 [[id]]
 id = "RF-17"
 level = "build"
 suite = "performance_certificate"
 statement = "Runtime operation, allocation, and CPU portability certificates"
+scope = "certifier-instrument"
+reachability = "off-serving-path"
+evidence = "features/suites/performance_certificate.feature"
 
 [[id]]
 id = "RF-18"
 level = "build"
 suite = "quantum_cover"
 statement = "Von Neumann quantum density operator and cover induction"
+scope = "offline-compiler"
+reachability = "dormant-gated"
+evidence = "crates/uor-r4-graph-compiler/src/quantum_cover.rs (quantum-cover-dormant)"
 
 [[id]]
 id = "RF-19"
 level = "build"
 suite = "quantum_facade_benchmarks"
 statement = "Quantum Geometric Transformerless Wasm Façade & Context Scaling Benchmarks"
+scope = "certifier-instrument"
+reachability = "off-serving-path"
+evidence = "features/suites/quantum_facade_benchmarks.feature (exploratory wasm façade, off the graph migration path)"
 
 [[id]]
 id = "RF-20"
 level = "build"
 suite = "quantum_lie_jordan"
 statement = "Quantum Geometric Lie-Jordan Splitting & Universal Product Kernel"
+scope = "reference-only"
+reachability = "dormant-gated"
+evidence = "crates/uor-r4-core/src/transformerless/lie_jordan.rs (lie-jordan-dormant)"
 
 [[id]]
 id = "RF-21"
 level = "build"
 suite = "r4g1_compile_quality"
 statement = "R4G1 compilation quality gates"
+scope = "offline-compiler"
+reachability = "off-serving-path"
+evidence = "features/suites/r4g1_compile_quality.feature (compile-time quality gates)"
 
 [[id]]
 id = "RF-22"
 level = "build"
 suite = "r4g1_quality"
-statement = "R4G1 generated-response quality"
+statement = "R4G1 generated-response pathology filter (synthetic-input rejection guard; does not establish generation quality)"
+scope = "certifier-instrument"
+reachability = "off-serving-path"
+evidence = "features/suites/r4g1_quality.feature (synthetic pathological/readable fixtures)"
 
 [[id]]
 id = "RF-23"
 level = "build"
 suite = "r4g1_runtime"
 statement = "R4G1 runtime selection and fallback policy"
+scope = "normative-runtime"
+reachability = "deployed-serving"
+evidence = "src/tless_uor.rs, src/chat.rs (R4G1Runtime selection/fallback on the served path)"
 
 [[id]]
 id = "RF-24"
 level = "build"
 suite = "rate_distortion_compression"
 statement = "Formalize compilation as semantic compression with rate-distortion tradeoffs"
+scope = "offline-compiler"
+reachability = "dormant-gated"
+evidence = "crates/uor-r4-graph-compiler/src/rate_distortion_compression.rs (rate-distortion-compression-dormant)"
 
 [[id]]
 id = "RF-25"
 level = "build"
 suite = "reference_compiler_ir"
 statement = "Reference floating-point semantic compiler and intermediate representation (IR)"
+scope = "reference-only"
+reachability = "dormant-gated"
+evidence = "crates/uor-r4-graph-compiler/src/reference_compiler_ir.rs (reference-compiler-ir-dormant)"
 
 [[id]]
 id = "RF-26"
 level = "build"
 suite = "scoring_semantics"
 statement = "Specify fixed-point scoring semantics and deterministic tie-breaking"
+scope = "normative-runtime"
+reachability = "deployed-serving"
+evidence = "docs/scoring_semantics.md; crates/uor-r4-graph-format scoring_semantics (deployed scorer)"
 
 [[id]]
 id = "RF-27"
 level = "build"
 suite = "semantic_state_space"
-statement = "Semantic state space and typed transition dynamics"
+statement = "Semantic state space and typed transition dynamics (reference/f32 model, per docs/formal_vocabulary.md S/T; not the deployed integer kernel)"
+scope = "reference-only"
+reachability = "off-serving-path"
+evidence = "features/suites/semantic_state_space.feature (f32 reference vectors/transitions)"
 
 [[id]]
 id = "RF-28"
 level = "build"
 suite = "separate_semantic_emission"
-statement = "Separate semantic reasoning and state transitions from language emission"
+statement = "Separate semantic reasoning and state transitions from language emission (reference/f32 model; off the deployed serving path)"
+scope = "reference-only"
+reachability = "off-serving-path"
+evidence = "features/suites/separate_semantic_emission.feature (reference reasoning/emission model)"
 
 [[id]]
 id = "RF-29"
 level = "build"
 suite = "teacher_parity_benchmarks"
-statement = "Teacher parity and benchmarks for the compiled transformerless runtimes"
-
+statement = "Teacher parity and benchmarks for the compiled transformerless runtimes (fixture-gated empirical instrument; absent fixtures are UNAVAILABLE, never PASS)"
+scope = "certifier-instrument"
+reachability = "off-serving-path"
+evidence = "tests/bdd.rs, features/suites/teacher_parity_benchmarks.feature (pinned-fixture-gated; skips vacuously when fixtures absent)"
