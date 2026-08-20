@@ -325,6 +325,21 @@ verdict in, the **#784 family** (context-code convergence + the D4
 semantic-OOD finding) is the open quality question, awaiting its own
 maintainer-approved contract; the standing first step is the roadmap's
 recompile-with-#755 + fresh quality read.
+
+**S1 item A — the persistent prompt-state contract is frozen (#835, 2026-08-20).**
+[`docs/prompt_state_spec_835.md`](prompt_state_spec_835.md) specifies a bounded,
+integer, witness-replayable persistent prompt/session state — six lanes each justified
+by a causal intervention, a whole-prompt initial fold and a causal per-token transition
+that reads no future token, a decode-independent `ScoreQ` contribution lowering, and
+capacity/eviction/decay/saturation/tie-break semantics with typed errors — plus an
+optional versioned R4G1 `PSTATE` section whose absence preserves the baseline exactly.
+It freezes the S1 benchmark (`s1-causal-prompt-pairs`, primary metric
+`causal-influence-delta`) with its prompt-swap, suffix-only, and shuffled/constant-state
+falsifiers. This is a reference-only / off-serving-path contract (RF-27/RF-28); the
+reference model and its determinism, capacity, saturation, witness-replay, and
+planted-negative controls run in `crates/uor-r4-api/tests/prompt_state_spec_835.rs`. It
+does **not** establish that persistent state improves prompt causality — that is
+measured in #834, and the deployed lowering/certification is #836.
 The **geometric router** is a validated, real component (content-query
 retrieval MRR 0.88+, #486/#490/#502) but it is a retrieval/routing mechanism,
 not itself a generative model, and it runs on `f64` outside the P-4 kernel by
