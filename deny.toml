@@ -4,19 +4,16 @@ all-features = true
 [advisories]
 version = 2
 yanked = "deny"
-# Each ignore names the crate it excuses and why there is no upgrade, so the next
-# reader can tell whether it still applies (an ignore outlives the dependency that
-# needed it, and then it is an advisory nobody re-examines).
+# No ignores. An ignore outlives the dependency that needed it, and then it is an
+# advisory nobody will re-examine; each one added here should name the crate it
+# excuses and the reason there is no upgrade, so the next reader can tell whether
+# it still applies.
 #
-# arrayref@0.3.9: the whole arrayref 0.3.x line (0.3.5–0.3.9) was yanked upstream.
-# It is not a vulnerability — a maintainer yank, no RUSTSEC advisory — and it is
-# pulled only transitively, by blake3 1.5.x. blake3 cannot be upgraded past 1.5.x
-# in this graph: the pinned `uor-addr` rev's `uor-prism-crypto v0.4.0` requires
-# `blake3 >=1.5, <1.6`, and every blake3 1.5.x still bundles arrayref (blake3
-# drops it only at >=1.6). Removing arrayref therefore requires bumping the
-# `uor-addr` pin, a separate ecosystem decision. Remove this ignore the moment
-# `uor-addr` moves to a blake3 that no longer depends on arrayref.
-ignore = [{ crate = "arrayref@0.3.9", reason = "yanked upstream; transitive via the pinned uor-addr's blake3 1.5.x (capped <1.6); no upgrade without an uor-addr pin bump" }]
+# (The yanked `arrayref` 0.3.x that once needed an ignore here is now vendored
+# in-tree and sourced from a local path — see third_party/arrayref/README.md and
+# the [patch.crates-io] note in the root Cargo.toml — so the advisory is resolved
+# at the source, not suppressed.)
+ignore = []
 
 [licenses]
 version = 2

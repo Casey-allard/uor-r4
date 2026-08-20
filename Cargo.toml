@@ -22,7 +22,7 @@ default-members = [
     "crates/uor-r4-proof-model",
     "crates/uor-r4-graph-runtime",
 ]
-exclude = ["uor_standards", "crates/uor-r4-graph-format/fuzz", "research"]
+exclude = ["uor_standards", "crates/uor-r4-graph-format/fuzz", "research", "third_party/arrayref"]
 resolver = "2"
 
 [package]
@@ -97,3 +97,15 @@ harness = false
 [patch.crates-io]
 uor-foundation = { git = "https://github.com/UOR-Foundation/UOR-Framework.git", rev = "51c01382200b0179d6640b07e9c8119364ab69a1" }
 uor-foundation-sdk = { git = "https://github.com/UOR-Foundation/UOR-Framework.git", rev = "51c01382200b0179d6640b07e9c8119364ab69a1" }
+
+# #868: `arrayref` 0.3.x was yanked upstream (a maintainer yank, not a RUSTSEC
+# advisory) and is pulled only transitively by blake3 1.5.x, which this graph
+# cannot move off (uor-prism-crypto caps blake3 <1.6, and every 1.5.x still
+# bundles arrayref; blake3 drops it only at >=1.6). Vendor the exact 0.3.9 bytes
+# in-tree and source them from a local path: cargo-deny's yanked check is
+# registry-only, so the advisory genuinely clears — nothing suppressed — and the
+# bytes blake3 links are unchanged, so κ / CID output stays bit-identical. See
+# third_party/arrayref/README.md. Remove this patch (and the vendored dir + the
+# workspace exclude) when uor-addr/uor-prism-crypto move to a blake3 (>=1.6) that
+# no longer depends on arrayref. Tracked in #868.
+arrayref = { path = "third_party/arrayref" }

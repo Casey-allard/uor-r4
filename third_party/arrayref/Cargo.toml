@@ -1,0 +1,20 @@
+# Vendored copy of `arrayref` 0.3.9 — see README.md for why.
+#
+# The `src/lib.rs` and `LICENSE` here are byte-for-byte the crates.io 0.3.9
+# release (sha256 recorded in README.md). This manifest is trimmed to a
+# library-only build: no dev-dependencies (arrayref's own quickcheck tests are
+# not run here) and no examples. The library code — the only thing blake3
+# links — is unchanged.
+[package]
+name = "arrayref"
+version = "0.3.9"
+authors = ["David Roundy <roundyd@physics.oregonstate.edu>"]
+description = "Macros to take array references of slices"
+documentation = "https://docs.rs/arrayref"
+repository = "https://github.com/droundy/arrayref"
+license = "BSD-2-Clause"
+edition = "2015"
+publish = false
+
+[lib]
+path = "src/lib.rs"
