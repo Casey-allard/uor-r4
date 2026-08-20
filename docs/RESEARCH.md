@@ -340,6 +340,21 @@ reference model and its determinism, capacity, saturation, witness-replay, and
 planted-negative controls run in `crates/uor-r4-api/tests/prompt_state_spec_835.rs`. It
 does **not** establish that persistent state improves prompt causality — that is
 measured in #834, and the deployed lowering/certification is #836.
+
+**S1 item B — the causal-relevance bake-off instrument is frozen (#834, 2026-08-20).**
+[`docs/prompt_arms_bakeoff_834.md`](prompt_arms_bakeoff_834.md) lands the *binding cheap
+instrument* #834's run contract requires before any long run: an offline, integer,
+reference-only bake-off over the five prompt-conditioned arms (current-scoring,
+longer-local-context, persistent-state, conditional-residuals, candidate-support-expansion)
+against the frozen prompt-swap / suffix-only / shuffled-state / trivial-prior and
+equal-budget controls, with per-pair attribution that separately identifies candidate
+availability from score conditioning, reachability and power fixed before fitting, and
+CID-bound reproducibility — all in `crates/uor-r4-api/tests/prompt_arms_bakeoff_834.rs`.
+Its planted prompt-insensitive and diversity-only models **fail** the primary gate, so a
+zero reading means "no effect", not a broken harness. The S1 causal **verdict** (`SELECT` /
+`REVISE` / `NO PROMPT-CONDITIONING ARM ESTABLISHED`) is **UNAVAILABLE**: it is measured on
+the #833 canonical bundle with real teacher evaluations, a maintainer-gated long run, and
+only a predeclared positive verdict may trigger the deployed lowering of #836.
 The **geometric router** is a validated, real component (content-query
 retrieval MRR 0.88+, #486/#490/#502) but it is a retrieval/routing mechanism,
 not itself a generative model, and it runs on `f64` outside the P-4 kernel by
