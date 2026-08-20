@@ -14,14 +14,14 @@ use uor_r4_api::{EngineParts, PredictDecision, R4Engine};
 use uor_r4_core::transformerless::compiler::STAGES;
 use uor_r4_core::transformerless::{convert_r4g1, runtime};
 use uor_r4_graph_certify::StepCandidates;
-use uor_r4_graph_format::ScoreQ;
+use uor_r4_graph_format::{GraphView, ScoreQ, SectionId, SegmentLaneDescriptor, LANE_SEGMENT};
 use uor_r4_graph_runtime::runtime_state::{SegmentSession, SEGMENT_STATE_CAPACITY};
 
 /// A small self-contained R4G1 bundle the engine can load (the synthetic store
 /// recipe the scorer unit tests use). Returns `(r4g1_bytes, teacher_bytes)`.
 /// The bundle carries no PSTATE section, so it exercises absent-section
 /// identity directly.
-fn synthetic_bundle() -> (Vec<u8>, Vec<u8>) {
+fn synthetic_bundle_opt(lane: Option<&SegmentLaneDescriptor>) -> (Vec<u8>, Vec<u8>) {
     use uor_r4_core::transformerless::compiler;
     let dir = env!("CARGO_MANIFEST_DIR");
     let art_bytes = std::fs::read(format!(
@@ -43,10 +43,37 @@ fn synthetic_bundle() -> (Vec<u8>, Vec<u8>) {
         runtime::add_evidence(&mut store, code, (i + 1) as u32, 1);
     }
     let store_bytes = runtime::store_bytes(&store);
-    let r4g1 = convert_r4g1::convert(&art_bytes, &artifacts, &store, &store_bytes, None)
-        .expect("convert to R4G1")
-        .0;
+    let r4g1 = match lane {
+        Some(descriptor) => convert_r4g1::convert_with_segment_lane(
+            &art_bytes,
+            &artifacts,
+            &store,
+            &store_bytes,
+            None,
+            descriptor,
+        ),
+        None => convert_r4g1::convert(&art_bytes, &artifacts, &store, &store_bytes, None),
+    }
+    .expect("convert to R4G1")
+    .0;
     (r4g1, art_bytes)
+}
+
+/// `synthetic_bundle` without a segment lane (no PSTATE section).
+fn synthetic_bundle() -> (Vec<u8>, Vec<u8>) {
+    synthetic_bundle_opt(None)
+}
+
+/// A representative selected segment-lane descriptor (the reference arm's
+/// constants; the final values are pinned by the causal re-run / verdict).
+fn selected_descriptor() -> SegmentLaneDescriptor {
+    SegmentLaneDescriptor {
+        ring_capacity: SEGMENT_STATE_CAPACITY as u32,
+        decay_shift: 0,
+        base_w: 1 << 12,
+        boost: 1 << 20,
+        key_quant_id: 0,
+    }
 }
 
 fn load_engine(graph: &[u8], teacher: &[u8]) -> R4Engine {
@@ -144,5 +171,71 @@ fn active_session_runs_and_preserves_invariants_on_real_engine() {
                 panic!("the segment lane must not turn a served decision into an abstention")
             }
         }
+    }
+}
+
+// --- compiler emission (increment 4a): the lane becomes non-inert ----------
+
+#[test]
+fn compiler_emits_pstate_and_engine_activates_the_lane() {
+    let descriptor = selected_descriptor();
+    let (graph, teacher) = synthetic_bundle_opt(Some(&descriptor));
+
+    // The produced bundle carries a PSTATE section that round-trips the
+    // descriptor the compiler was given.
+    let view = GraphView::parse(&graph).expect("compiled bundle parses");
+    let table = view
+        .pstate_table()
+        .expect("pstate section valid")
+        .expect("compiled bundle carries a PSTATE section");
+    assert_eq!(table.lane_kind(), LANE_SEGMENT);
+    assert_eq!(table.ring_capacity(), descriptor.ring_capacity);
+    assert_eq!(table.decay_shift(), descriptor.decay_shift);
+    assert_eq!(table.base_w().raw(), descriptor.base_w);
+    assert_eq!(table.boost().raw(), descriptor.boost);
+
+    // And the deployed engine activates the segment lane from it — the lane is
+    // no longer inert on a real compiled bundle.
+    let engine = load_engine(&graph, &teacher);
+    assert!(
+        engine.segment_session().is_active(),
+        "a compiled PSTATE bundle must activate the deployed segment lane"
+    );
+}
+
+#[test]
+fn segment_lane_emission_is_deterministic_and_section_preserving() {
+    let descriptor = selected_descriptor();
+    let (with_lane, _) = synthetic_bundle_opt(Some(&descriptor));
+    let (with_lane_again, _) = synthetic_bundle_opt(Some(&descriptor));
+    let (without_lane, _) = synthetic_bundle_opt(None);
+
+    // Deterministic bytes: identical inputs → identical container.
+    assert_eq!(
+        with_lane, with_lane_again,
+        "PSTATE emission must be deterministic"
+    );
+
+    // Absent-section identity at the source: emitting PSTATE leaves every other
+    // section byte-identical, and the no-lane bundle carries no PSTATE.
+    let vw = GraphView::parse(&with_lane).expect("with-lane parses");
+    let vo = GraphView::parse(&without_lane).expect("no-lane parses");
+    assert!(
+        vo.pstate_table().expect("valid").is_none(),
+        "the no-lane bundle must carry no PSTATE section"
+    );
+    for id in [
+        SectionId::HEAD,
+        SectionId::NODE,
+        SectionId::EDGE,
+        SectionId::ROUT,
+        SectionId::EMIT,
+        SectionId::EXCT,
+    ] {
+        assert_eq!(
+            vw.section(id),
+            vo.section(id),
+            "PSTATE emission must not change section {id:?}"
+        );
     }
 }

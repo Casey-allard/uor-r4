@@ -110,7 +110,7 @@
 
 use std::collections::BTreeSet;
 
-use uor_r4_graph_format::{ArtifactBuilder, SectionId};
+use uor_r4_graph_format::{build_segment_lane, ArtifactBuilder, SectionId, SegmentLaneDescriptor};
 
 use super::compiler::{Compiled, HammingCalibrationReport, D, K, SIG_BYTES, SIG_WORDS, STAGES};
 use super::runtime::Store;
@@ -183,6 +183,48 @@ pub fn convert(
     store: &Store,
     store_container: &[u8],
     calibration: Option<&HammingCalibrationReport>,
+) -> Option<(Vec<u8>, ConversionReport)> {
+    convert_inner(
+        artifact_container,
+        artifacts,
+        store,
+        store_container,
+        calibration,
+        None,
+    )
+}
+
+/// Like [`convert`], but additionally emits the optional #835 segment-lane
+/// `PSTATE` section (#836) carrying `descriptor`. The bytes stay deterministic
+/// and every other section is unchanged, so a reader that ignores PSTATE sees
+/// exactly the [`convert`] output (absent-section identity). Emitting the
+/// descriptor is what makes the deployed segment lane non-inert on the produced
+/// bundle.
+pub fn convert_with_segment_lane(
+    artifact_container: &[u8],
+    artifacts: &Compiled,
+    store: &Store,
+    store_container: &[u8],
+    calibration: Option<&HammingCalibrationReport>,
+    descriptor: &SegmentLaneDescriptor,
+) -> Option<(Vec<u8>, ConversionReport)> {
+    convert_inner(
+        artifact_container,
+        artifacts,
+        store,
+        store_container,
+        calibration,
+        Some(descriptor),
+    )
+}
+
+fn convert_inner(
+    artifact_container: &[u8],
+    artifacts: &Compiled,
+    store: &Store,
+    store_container: &[u8],
+    calibration: Option<&HammingCalibrationReport>,
+    segment_lane: Option<&SegmentLaneDescriptor>,
 ) -> Option<(Vec<u8>, ConversionReport)> {
     // Input shape honesty: the artifact must carry the 4 × 256 × 36-byte
     // class signature books the ROUT section is built from.
@@ -396,6 +438,15 @@ pub fn convert(
     builder.add_section(SectionId::ROUT, 0, &rout);
     builder.add_section(SectionId::EMIT, 0, &emit);
     builder.add_section(SectionId::EXCT, 0, &exct);
+    // #836: optional segment-lane PSTATE section. The prompt-derived segment
+    // lane ships a config-only descriptor (empty residual table), so this adds
+    // the lane's capacity/decay/score constants without any learned table.
+    // Emitted only when a descriptor is supplied; otherwise the container is
+    // byte-identical to `convert` (absent-section identity).
+    if let Some(descriptor) = segment_lane {
+        let pstate = build_segment_lane(descriptor, &[]).ok()?;
+        builder.add_section(SectionId::PSTATE, 0, &pstate);
+    }
     let bytes = builder.build().ok()?;
 
     let report = ConversionReport {
