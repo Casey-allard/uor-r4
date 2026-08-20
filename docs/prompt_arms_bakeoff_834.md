@@ -5,18 +5,22 @@
 - **Parent tracker:** #822 (S1 — persistent prompt-conditioned predictive state).
 - **Date:** 2026-08-20.
 - **Status:** The **binding cheap instrument** and its five Verification items are
-  frozen and green (reference-only). The S1 causal-relevance **verdict**
-  (`SELECT` / `REVISE` / `NO PROMPT-CONDITIONING ARM ESTABLISHED`) is **UNAVAILABLE**:
-  it is measured on the #833 canonical broad bundle with real teacher evaluations,
-  a maintainer-gated long run whose identities are not present here (§5). This
-  record is append-only.
+  frozen and green (reference-only). A **teacher-grounded run** on the #833 canonical
+  bundle has now been executed (§6.1): for the arms fittable against the current
+  artifact (current-scoring, longer-local-context) the verdict is
+  **`NO PROMPT-CONDITIONING ARM ESTABLISHED`** — the deployed model is suffix-local.
+  The three #835 Ψ-family arms (`persistent-state`, `conditional-residuals`,
+  `candidate-support-expansion`) remain **UNAVAILABLE** (not lowered; built by #836).
+  This record is append-only.
 - **Claim language:** normative per [`docs/formal_vocabulary.md`](formal_vocabulary.md).
   Every labeled statement carries one claim class (**Definition**, **Objective**,
   **Guarantee**, **Assumption**, **Empirical Criterion**) and, for **Guarantee** /
   **Empirical Criterion**, a status (**Structural**, **Witnessed**, **Empirical**,
   **Assumed**, **Unproven**).
-- **Evidence file:** `crates/uor-r4-api/tests/prompt_arms_bakeoff_834.rs`
-  (default `cargo test -p uor-r4-api --test prompt_arms_bakeoff_834`).
+- **Evidence files:** the instrument `crates/uor-r4-api/tests/prompt_arms_bakeoff_834.rs`
+  (default `cargo test -p uor-r4-api --test prompt_arms_bakeoff_834`); the teacher-grounded
+  run harness `crates/uor-r4-api/tests/causal_prompt_run_834.rs` (ignored) and its
+  CID-bound record `docs/causal_run_834_result.json` (§6.1).
 
 ## 1. Problem and scope
 
@@ -157,6 +161,48 @@ deliverable. The harness's `verdict_vocabulary_is_complete` and
 decision function can produce all three verdicts and, on the controlled fixture, selects
 a genuinely causal arm while rejecting planted non-causal negatives — this validates the
 **instrument**, and is explicitly **not** the S1 result.
+
+## 6.1 Recorded teacher-grounded run (2026-08-20)
+
+**Empirical Criterion (S1 causal verdict, deployed / current-scoring arm).
+Status: Empirical.** A teacher-grounded run was executed on the #833 canonical bundle
+`smollm2-360m-broad-clean`, reusing the teacher argmax already recorded in the bundle's
+corpus and the deployed EXCT-disabled engine — no live teacher forward. Harness:
+`crates/uor-r4-api/tests/causal_prompt_run_834.rs` (ignored; run with
+`cargo test -p uor-r4-api --release --test causal_prompt_run_834 -- --ignored`). Record:
+`docs/causal_run_834_result.json`. Protocol: n = 24,044 held-out real Simple-Wiki
+positions (in-story windows, mean 7.8 tokens, 98% longer than the 2-token suffix), top-1
+agreement with the recorded teacher argmax, EXCT disabled.
+
+- Pinned identities: **artifact_cid** `blake3:bc2366f1…`, **corpus_meta_cid**
+  `blake3:aa9d1767…`, **result_cid** `blake3:aad1511d…`.
+- full-context 269.3‰ (95% CI [263.6, 274.9]); suffix-only 270.9‰;
+  **causal-influence-delta −1.6‰ (paired 95% CI [−2.4, −0.8])** — full context does not
+  beat a 2-token suffix, and the interval excludes a positive effect.
+- context-saturation sweep (top-1‰ vs teacher): k1 258.5, k2 270.9, k3 270.0, k4 269.8,
+  k6 269.6, full(8) 269.3 — **flat**; context beyond ~2 tokens adds no predictive signal.
+- nulls non-degenerate: prompt-swap 21.6‰, trivial-prior 49.8‰ (both far below
+  full-context); attribution context-helped 27 / 24,044.
+- **minimal pairs** (same 2-token suffix, different story, different teacher argmax):
+  1,460 pairs, the model **follows 0**; the suffix-only control is degenerate-by-
+  construction (1,460 / 1,460 identical), so a zero reading is "no effect", not a broken
+  harness.
+
+**Verdict: `NO PROMPT-CONDITIONING ARM ESTABLISHED`** for the arms fittable against the
+current artifact (current-scoring, longer-local-context): the deployed model is
+suffix-local. Per the #834 run contract's *if negative* branch, current serving semantics
+are kept and S1 returns to representation/compiler redesign rather than code-space or
+sampling tuning; this corroborates #784's continuation-convergence finding, now
+quantified and teacher-grounded.
+
+**Scope of this verdict (do not over-read). Status: Assumption.** The three arms
+`persistent-state`, `conditional-residuals`, and `candidate-support-expansion` are the
+#835 Ψ-family mechanisms that are **not lowered** into the artifact (the engine's public
+surface returns the selected token, not a candidate score vector), so they are
+**UNAVAILABLE** here and can be fitted only after #836 builds them. The measured negative
+therefore establishes that the current mechanism has no prompt-conditioning beyond a short
+suffix — making #836 the prerequisite for any positive S1 conditioning claim — and does
+**not** assert those unbuilt mechanisms would also fail.
 
 ## 7. Repository conformance
 

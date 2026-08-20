@@ -351,10 +351,24 @@ equal-budget controls, with per-pair attribution that separately identifies cand
 availability from score conditioning, reachability and power fixed before fitting, and
 CID-bound reproducibility — all in `crates/uor-r4-api/tests/prompt_arms_bakeoff_834.rs`.
 Its planted prompt-insensitive and diversity-only models **fail** the primary gate, so a
-zero reading means "no effect", not a broken harness. The S1 causal **verdict** (`SELECT` /
-`REVISE` / `NO PROMPT-CONDITIONING ARM ESTABLISHED`) is **UNAVAILABLE**: it is measured on
-the #833 canonical bundle with real teacher evaluations, a maintainer-gated long run, and
-only a predeclared positive verdict may trigger the deployed lowering of #836.
+zero reading means "no effect", not a broken harness.
+
+A **teacher-grounded run** was then executed on the #833 canonical bundle
+(`smollm2-360m-broad-clean`), reusing the teacher argmax already recorded in the bundle's
+corpus and the deployed EXCT-disabled engine — harness
+`crates/uor-r4-api/tests/causal_prompt_run_834.rs`, record `docs/causal_run_834_result.json`
+(`docs/prompt_arms_bakeoff_834.md` §6.1). Over 24,044 held-out real Simple-Wiki positions,
+full-context top-1 agreement with the teacher (26.9%) does **not** beat a 2-token suffix
+(27.1%): causal-influence-delta −1.6‰ (95% CI [−2.4, −0.8], excluding a positive effect);
+the context-saturation sweep is flat (k1..k8 all ≈27%); and across 1,460 natural minimal
+pairs (same 2-token suffix, different teacher answer) the model **follows 0**. The verdict
+for the arms fittable against the current artifact (current-scoring, longer-local-context)
+is **`NO PROMPT-CONDITIONING ARM ESTABLISHED`** — the deployed model is suffix-local
+(corroborating #784, now teacher-grounded and quantified). The three #835 Ψ-family arms
+(`persistent-state`, `conditional-residuals`, `candidate-support-expansion`) remain
+**UNAVAILABLE** (not lowered; the engine exposes the selected token, not candidate scores);
+they can be fitted only after **#836** builds them, which the negative makes the prerequisite
+for any positive S1 conditioning claim.
 The **geometric router** is a validated, real component (content-query
 retrieval MRR 0.88+, #486/#490/#502) but it is a retrieval/routing mechanism,
 not itself a generative model, and it runs on `f64` outside the P-4 kernel by
