@@ -190,6 +190,11 @@ impl SectionId {
     /// The optional bit is part of the wire ID so older readers can skip the
     /// section while preserving the R4G1 unknown-optional-section rule.
     pub const FMM: SectionId = SectionId(Self::OPTIONAL_BIT | 0x0D);
+    /// PSTATE — packed persistent-prompt-state segment lane (optional,
+    /// issue #836, lowering the #835 segment lane). Absent section, or a
+    /// reader that does not consume it, behaves exactly as before
+    /// (absent-section identity); every pre-PSTATE artifact remains valid.
+    pub const PSTATE: SectionId = SectionId(Self::OPTIONAL_BIT | 0x10);
 
     /// Ancillary bit classifying *unknown* section IDs.
     ///
@@ -214,6 +219,7 @@ impl SectionId {
             || self.0 == Self::FMM.0
             || self.0 == Self::NGRAM.0
             || self.0 == Self::FWDA.0
+            || self.0 == Self::PSTATE.0
     }
 
     /// Mandatory-ness per the RFC §3 column for known IDs.
@@ -227,6 +233,7 @@ impl SectionId {
             value if value == Self::NGRAM.0 => false,
             value if value == Self::FWDA.0 => false,
             value if value == Self::FMM.0 => false,
+            value if value == Self::PSTATE.0 => false,
             _ => self.0 & Self::OPTIONAL_BIT == 0,
         }
     }

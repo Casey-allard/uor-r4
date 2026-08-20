@@ -337,6 +337,17 @@ impl<'a> GraphView<'a> {
             .transpose()
     }
 
+    /// Parse the optional packed persistent-prompt-state segment lane
+    /// (issue #836). `None` when the artifact carries no PSTATE section, in
+    /// which case serving is identical to the pre-PSTATE baseline.
+    pub fn pstate_table(
+        &self,
+    ) -> Result<Option<crate::pstate::PstateTable<'a>>, crate::NotAProduct> {
+        self.section(SectionId::PSTATE)
+            .map(crate::pstate::PstateTable::parse)
+            .transpose()
+    }
+
     /// Parse the optional packed forward-anchor table (issue #399).
     pub fn fwda_table(&self) -> Result<Option<FwdaTable<'a>>, crate::NotAProduct> {
         self.section(SectionId::FWDA)

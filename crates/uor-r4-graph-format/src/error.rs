@@ -204,6 +204,22 @@ pub enum FormatError {
     NgramEntriesNotSorted,
     /// NGRAM row metadata is invalid.
     NgramInvalidRow,
+    /// PSTATE section is shorter than its header.
+    PstateTooShort,
+    /// PSTATE magic is not `PST1`.
+    PstateBadMagic,
+    /// PSTATE version is unsupported.
+    PstateUnsupportedVersion,
+    /// PSTATE reserved bytes are non-zero.
+    PstateNonZeroReserved,
+    /// PSTATE row or entry range is out of bounds.
+    PstateBounds,
+    /// PSTATE rows are not canonically sorted.
+    PstateRowsNotSorted,
+    /// PSTATE entries are not canonically sorted.
+    PstateEntriesNotSorted,
+    /// PSTATE row metadata is invalid.
+    PstateInvalidRow,
     /// FWDA has no complete fixed header.
     FwdaTooShort,
     /// FWDA magic is not `FWA1`.
@@ -702,6 +718,16 @@ impl fmt::Display for FormatError {
                 write!(f, "NGRAM entries are not canonically sorted")
             }
             FormatError::NgramInvalidRow => write!(f, "NGRAM row metadata is invalid"),
+            FormatError::PstateTooShort => write!(f, "PSTATE section is shorter than its header"),
+            FormatError::PstateBadMagic => write!(f, "PSTATE magic is not PST1"),
+            FormatError::PstateUnsupportedVersion => write!(f, "PSTATE version is unsupported"),
+            FormatError::PstateNonZeroReserved => write!(f, "PSTATE reserved bytes are non-zero"),
+            FormatError::PstateBounds => write!(f, "PSTATE row or entry range is out of bounds"),
+            FormatError::PstateRowsNotSorted => write!(f, "PSTATE rows are not canonically sorted"),
+            FormatError::PstateEntriesNotSorted => {
+                write!(f, "PSTATE entries are not canonically sorted")
+            }
+            FormatError::PstateInvalidRow => write!(f, "PSTATE row metadata is invalid"),
             FormatError::FwdaTooShort => write!(f, "FWDA section is shorter than its header"),
             FormatError::FwdaBadMagic => write!(f, "FWDA magic is not FWA1"),
             FormatError::FwdaUnsupportedVersion => write!(f, "FWDA version is unsupported"),

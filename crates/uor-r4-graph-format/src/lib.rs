@@ -75,6 +75,7 @@ pub mod invariant_ownership;
 mod msa_selector;
 mod ngram;
 mod prov;
+mod pstate;
 #[cfg(feature = "alloc")]
 pub mod r4g1;
 pub mod records;
@@ -134,6 +135,12 @@ pub use prov::{build as build_prov, ProvComponents};
 pub use prov::{
     parse_digest_hex, EvidenceRoots, Prov, PROV_DIGEST_LEN, PROV_HEADER_LEN, PROV_MAGIC,
     PROV_VERSION,
+};
+#[cfg(feature = "alloc")]
+pub use pstate::build_segment_lane;
+pub use pstate::{
+    PstateEntries, PstateEntry, PstateRow, PstateRows, PstateTable, LANE_SEGMENT, PSTATE_ENTRY_LEN,
+    PSTATE_HEADER_LEN, PSTATE_MAGIC, PSTATE_ROW_LEN, PSTATE_VERSION,
 };
 pub use records::{
     EdgeKind, PackedEdge, PackedNode, StorageDescriptor, EDGE_KIND_OPTIONAL_BIT, PACKED_EDGE_LEN,
