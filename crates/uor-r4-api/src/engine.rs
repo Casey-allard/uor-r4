@@ -123,9 +123,10 @@ use uor_r4_graph_certify::{
     TOP_M, WIDENED_TOP_M,
 };
 use uor_r4_graph_format::{
-    ContractVersion, FormatError, GraphView, ObservedBound, FORMAT_VERSION_MAJOR,
-    FORMAT_VERSION_MINOR, INFERENCE_OPERATION_CONTRACT_VERSION,
+    ContractVersion, FormatError, GraphView, ObservedBound, ScoreQ, FORMAT_VERSION_MAJOR,
+    FORMAT_VERSION_MINOR, INFERENCE_OPERATION_CONTRACT_VERSION, LANE_SEGMENT,
 };
+use uor_r4_graph_runtime::runtime_state::{SegmentSession, SEGMENT_STATE_CAPACITY};
 use uor_r4_model_source::SourceUnavailable;
 
 /// The resolution status of a scored prediction. Alias of the production
@@ -491,6 +492,48 @@ pub struct R4Engine {
     /// Address of the NODE section, the canonical region-object namespace
     /// until standalone region manifests land.
     node_section_kappa: Option<String>,
+    /// The optional #835 segment-lane descriptor read from the artifact's
+    /// PSTATE section at load, or `None` when the artifact carries no PSTATE
+    /// (absent-section identity). Drives [`R4Engine::segment_session`].
+    segment_lane: Option<SegmentLaneCfg>,
+}
+
+/// The compiled segment-lane descriptor the engine consumes to build a
+/// [`SegmentSession`] (#836). Read once from the PSTATE section at load.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct SegmentLaneCfg {
+    decay_shift: u32,
+    base_w: ScoreQ,
+    boost: ScoreQ,
+}
+
+/// The segment-adjusted served token: the candidate maximizing
+/// `base_score + segment_contribution` over the decided top-K list, under the
+/// canonical tie-break (score descending, then token id ascending). Returns
+/// `base_token` when the list is empty. Pure, allocation-free, and P-4
+/// (saturating integer add and comparison only).
+fn segment_adjusted_token<const CAP: usize>(
+    ranked: &[(u32, ScoreQ)],
+    session: &SegmentSession<CAP>,
+    base_token: u32,
+) -> u32 {
+    let Some(&(first_token, first_score)) = ranked.first() else {
+        return base_token;
+    };
+    let mut best_token = first_token;
+    let mut best_adjusted = first_score
+        .raw()
+        .saturating_add(session.contribution(first_token).raw());
+    for &(token, score) in &ranked[1..] {
+        let adjusted = score
+            .raw()
+            .saturating_add(session.contribution(token).raw());
+        if adjusted > best_adjusted || (adjusted == best_adjusted && token < best_token) {
+            best_adjusted = adjusted;
+            best_token = token;
+        }
+    }
+    best_token
 }
 
 impl R4Engine {
@@ -970,6 +1013,50 @@ impl R4Engine {
         ))
     }
 
+    /// Build a #835 segment-lane session for the loaded artifact: an **active**
+    /// session configured from the PSTATE descriptor, or an **inactive** one
+    /// when the artifact carries no PSTATE (every artifact today). The caller
+    /// owns the session — primes it once with the full prompt via
+    /// [`SegmentSession::fold_prompt`] and decays it per generation step via
+    /// [`SegmentSession::step`] — so whole-prompt content reaches the scorer
+    /// without changing the bounded-window prediction interface.
+    pub fn segment_session(&self) -> SegmentSession<SEGMENT_STATE_CAPACITY> {
+        match self.segment_lane {
+            Some(cfg) => SegmentSession::active(cfg.decay_shift, cfg.base_w, cfg.boost),
+            None => SegmentSession::inactive(),
+        }
+    }
+
+    /// Status-aware decision for one window, re-selecting the served token
+    /// under the #835 segment lane (#836).
+    ///
+    /// When `session` is inactive (no PSTATE), this is **byte-identical** to
+    /// [`Self::predict_decision_candidates`]: same decision, same candidate
+    /// list, same served token (absent-section identity). When active, the
+    /// served token becomes the segment-adjusted argmax over the decided
+    /// candidate list — each candidate gains the lane's decode-independent
+    /// `boost` when it is present in the primed content ring, under the same
+    /// canonical tie-break (score descending, token id ascending). An
+    /// abstention is never overridden into a served token.
+    pub fn predict_decision_candidates_with_segment(
+        &mut self,
+        window: &[u32],
+        candidates: &mut StepCandidates,
+        session: &SegmentSession<SEGMENT_STATE_CAPACITY>,
+    ) -> Result<PredictDecision, ObservedBound> {
+        let decision = self.predict_decision_candidates(window, candidates)?;
+        if !session.is_active() {
+            return Ok(decision);
+        }
+        match decision {
+            PredictDecision::Serve(mut outcome) => {
+                outcome.token = segment_adjusted_token(candidates.ranked(), session, outcome.token);
+                Ok(PredictDecision::Serve(outcome))
+            }
+            PredictDecision::Abstain(_) => Ok(decision),
+        }
+    }
+
     /// One #762-scheme draw over a served step's ranked candidates:
     /// order-preserving shift to positive weights, the soft
     /// ~1000-per-occurrence penalty over tokens already emitted this
@@ -1383,6 +1470,23 @@ impl R4Engine {
         // `None` is a genuinely absent NODE section, kept as such.
         let node_section_kappa = r4g1::section_kappa(parts.graph, SectionId::NODE);
 
+        // #836: read the optional PSTATE segment-lane descriptor at load. The
+        // section is optional, so an artifact without it (every artifact today)
+        // yields `None` and the deployed scorer is byte-identical to before
+        // (absent-section identity). The descriptor is only honored when its
+        // ring capacity fits the engine's fixed caller-owned state; a larger
+        // capacity fails safe to `None` (the lane stays inert) rather than
+        // silently truncating the reference semantics.
+        let segment_lane = view.pstate_table().ok().flatten().and_then(|table| {
+            (table.lane_kind() == LANE_SEGMENT
+                && (table.ring_capacity() as usize) <= SEGMENT_STATE_CAPACITY)
+                .then(|| SegmentLaneCfg {
+                    decay_shift: u32::from(table.decay_shift()),
+                    base_w: table.base_w(),
+                    boost: table.boost(),
+                })
+        });
+
         Ok(Self {
             artifacts,
             scorer,
@@ -1396,6 +1500,7 @@ impl R4Engine {
             novel_seen: NovelSeen::new(NOVEL_SEEN_CAPACITY),
             artifact_kappa,
             node_section_kappa,
+            segment_lane,
         })
     }
 
@@ -1541,5 +1646,46 @@ mod tests {
         let decoded: InferenceResponse =
             serde_json::from_str(&json).expect("deserialize InferenceResponse");
         assert_eq!(res, decoded);
+    }
+
+    // #836: the segment-adjusted argmax over the decided candidate list.
+    fn active_session() -> SegmentSession<SEGMENT_STATE_CAPACITY> {
+        SegmentSession::active(0, ScoreQ::from_raw(1 << 12), ScoreQ::from_raw(1 << 20))
+    }
+
+    #[test]
+    fn segment_adjust_inactive_keeps_base_winner() {
+        let session = SegmentSession::<SEGMENT_STATE_CAPACITY>::inactive();
+        let ranked = [
+            (5u32, ScoreQ::from_raw(100)),
+            (9, ScoreQ::from_raw(80)),
+            (2, ScoreQ::from_raw(60)),
+        ];
+        // Inactive → contributions zero → the base winner stands.
+        assert_eq!(segment_adjusted_token(&ranked, &session, 5), 5);
+        // Empty list → base token unchanged.
+        assert_eq!(segment_adjusted_token(&[], &session, 7), 7);
+    }
+
+    #[test]
+    fn segment_adjust_promotes_boosted_candidate() {
+        let mut session = active_session();
+        session.fold_prompt(&[9]); // only token 9 is in the content ring
+        let ranked = [
+            (5u32, ScoreQ::from_raw(100)),
+            (9, ScoreQ::from_raw(80)),
+            (2, ScoreQ::from_raw(60)),
+        ];
+        // 9's adjusted (80 + boost) overtakes 5's base 100 → 9 wins.
+        assert_eq!(segment_adjusted_token(&ranked, &session, 5), 9);
+    }
+
+    #[test]
+    fn segment_adjust_tie_breaks_by_lower_id() {
+        let mut session = active_session();
+        session.fold_prompt(&[9, 4]); // both boosted equally
+        let ranked = [(9u32, ScoreQ::from_raw(50)), (4, ScoreQ::from_raw(50))];
+        // Equal adjusted score → canonical tie-break keeps the lower id.
+        assert_eq!(segment_adjusted_token(&ranked, &session, 9), 4);
     }
 }
