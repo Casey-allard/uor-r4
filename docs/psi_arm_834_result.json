@@ -1,0 +1,17 @@
+{
+  "issue": 834,
+  "arm": "psi-segment-lane-reference",
+  "corpus_meta_cid": "blake3:aa9d176779c1d2411e872c49c95ed585ee805ded5fa1b808ddf2f517a245b0ce",
+  "train": 288794,
+  "held_out": 72130,
+  "lambda": 1,
+  "suffix_baseline_permille": 246.6,
+  "psi_permille": 264.1,
+  "psi_permille_ci": [260.9, 267.3],
+  "psi_delta_permille": 17.5,
+  "psi_delta_ci": [15.9, 19.0],
+  "lambda_sweep_permille": {"0.5":264.1,"1":264.1,"2":260.8,"4":247.6,"8":223.4},
+  "minimal_pairs": {"total": 4722, "psi_follow": 10, "psi_follow_permille": 2.1, "psi_follow_ci_lo": 0.8, "baseline_follow": 0},
+  "result_cid": "blake3:50c77978e25ba2ecc8c42ba184b8d9e4d76d0575553bc9feae3c3ac0f5488173",
+  "verdict": "SELECT: persistent-state (segment lane) — whole-prompt content beats the suffix floor; a positive that would trigger #836"
+}

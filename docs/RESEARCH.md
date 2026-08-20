@@ -366,9 +366,17 @@ for the arms fittable against the current artifact (current-scoring, longer-loca
 is **`NO PROMPT-CONDITIONING ARM ESTABLISHED`** — the deployed model is suffix-local
 (corroborating #784, now teacher-grounded and quantified). The three #835 Ψ-family arms
 (`persistent-state`, `conditional-residuals`, `candidate-support-expansion`) remain
-**UNAVAILABLE** (not lowered; the engine exposes the selected token, not candidate scores);
-they can be fitted only after **#836** builds them, which the negative makes the prerequisite
-for any positive S1 conditioning claim.
+**UNAVAILABLE** in the deployed artifact (the engine exposes the selected token, not candidate
+scores). A follow-up **Ψ segment-lane reference-arm re-test** (`docs/prompt_arms_bakeoff_834.md`
+§6.2; harness `crates/uor-r4-api/tests/psi_arm_run_834.rs`, record
+`docs/psi_arm_834_result.json`) built the #835 segment lane (whole-prompt content → candidate
+support) as an offline reference arm from 288,794 document-disjoint train positions and scored
+all 72,130 held-out positions: whole-prompt content **is** predictive beyond the 2-token suffix
+— Ψ 264.1‰ vs suffix baseline 246.6‰, **+17.5‰ (95% CI [15.9, 19.0])**, and Ψ follows **10/4,722**
+minimal pairs where the suffix baseline follows 0. So the deployed artifact is suffix-local and
+**discards** real predictive signal that a bounded segment-lane mechanism recovers — a modest but
+real positive that **warrants building #835/#836** (with calibrated expectations: +1.75pp overall,
+few hard same-suffix pairs resolved).
 The **geometric router** is a validated, real component (content-query
 retrieval MRR 0.88+, #486/#490/#502) but it is a retrieval/routing mechanism,
 not itself a generative model, and it runs on `f64` outside the P-4 kernel by

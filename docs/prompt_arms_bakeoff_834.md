@@ -9,9 +9,11 @@
   bundle has now been executed (§6.1): for the arms fittable against the current
   artifact (current-scoring, longer-local-context) the verdict is
   **`NO PROMPT-CONDITIONING ARM ESTABLISHED`** — the deployed model is suffix-local.
-  The three #835 Ψ-family arms (`persistent-state`, `conditional-residuals`,
-  `candidate-support-expansion`) remain **UNAVAILABLE** (not lowered; built by #836).
-  This record is append-only.
+  The three #835 Ψ-family arms are not lowered into the deployed artifact (built by #836).
+  A follow-up **Ψ segment-lane reference-arm re-test** (§6.2) then found that whole-prompt
+  content **is** predictive beyond the suffix (Ψ **+17.5‰**, CI [15.9, 19.0]; follows
+  **10/4,722** minimal pairs where the suffix baseline follows 0) — a modest but real
+  positive that warrants building #835/#836. This record is append-only.
 - **Claim language:** normative per [`docs/formal_vocabulary.md`](formal_vocabulary.md).
   Every labeled statement carries one claim class (**Definition**, **Objective**,
   **Guarantee**, **Assumption**, **Empirical Criterion**) and, for **Guarantee** /
@@ -203,6 +205,39 @@ surface returns the selected token, not a candidate score vector), so they are
 therefore establishes that the current mechanism has no prompt-conditioning beyond a short
 suffix — making #836 the prerequisite for any positive S1 conditioning claim — and does
 **not** assert those unbuilt mechanisms would also fail.
+
+## 6.2 Ψ segment-lane reference-arm re-test (2026-08-20)
+
+**Empirical Criterion (whole-prompt segment lane vs suffix baseline). Status: Empirical.**
+Following the §6.1 negative for the *deployed* arms, the #835 **segment lane** —
+whole-prompt content → candidate-support contributions — was built as an offline reference
+arm and tested teacher-grounded (harness `crates/uor-r4-api/tests/psi_arm_run_834.rs`;
+record `docs/psi_arm_834_result.json`). From 288,794 TRAIN positions (document-disjoint by
+story) two co-occurrence tables were built — a 2-token suffix→teacher-argmax table (the
+baseline) and a content-token→teacher-argmax table (the segment lane, bounded to top-64 per
+key) — and scored on all 72,130 held-out positions. λ was fixed at 1.0 before evaluation.
+
+- suffix baseline top-1 vs teacher **246.6‰**; Ψ (suffix + whole-prompt content)
+  **264.1‰** → **Ψ-delta +17.5‰ (paired 95% CI [+15.9, +19.0])**; the interval excludes
+  zero. Exploratory λ-sweep (not the verdict): 0.5→264, 1→264, 2→261, 4→248, 8→223 ‰ — the
+  effect is not an artifact of over-weighting content.
+- **minimal pairs** (same 2-token suffix, different story, different teacher argmax): Ψ
+  **follows 10 / 4,722** (95% lower bound 0.8‰) where the suffix baseline — a pure function
+  of the suffix key — follows **0 / 4,722** by construction.
+
+**Verdict: `SELECT` (positive signal), per the pre-registered rule.** Whole-prompt content
+carries real predictive signal for the teacher's answer beyond the 2-token suffix. Read
+together with §6.1: the deployed artifact is suffix-local and **discards** this signal, but
+the signal is present and a bounded segment-lane mechanism recovers it — so building the
+#835 persistent-state mechanism (**#836**) is warranted (the run contract's positive that
+legitimately triggers #836).
+
+**Effect size — do not over-read. Status: Empirical.** The gain is **modest**: +1.75pp
+overall, and only **10 of 4,722** hardest minimal pairs are resolved. The segment lane helps
+on average (candidate-support widening plus scoring) but rarely resolves genuine same-suffix
+context dependence. #836 should be pursued with calibrated expectations, not as a decisive
+fix. This is a reference-only result; a deployed lowering must re-clear the causal gate on
+the packed production path (#836's own acceptance).
 
 ## 7. Repository conformance
 
