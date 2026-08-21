@@ -11,9 +11,10 @@
 use std::collections::BTreeMap;
 
 use uor_r4_api::{EngineParts, PredictDecision, R4Engine};
-use uor_r4_core::transformerless::compiler::STAGES;
+use uor_r4_core::transformerless::compiler::{Corpus, STAGES};
 use uor_r4_core::transformerless::{convert_r4g1, runtime};
 use uor_r4_graph_certify::StepCandidates;
+use uor_r4_graph_compiler::segment_fit;
 use uor_r4_graph_format::{GraphView, ScoreQ, SectionId, SegmentLaneDescriptor, LANE_SEGMENT};
 use uor_r4_graph_runtime::runtime_state::{SegmentSession, SEGMENT_STATE_CAPACITY};
 
@@ -266,6 +267,214 @@ fn segment_lane_emission_is_deterministic_and_section_preserving() {
             vw.section(id),
             vo.section(id),
             "PSTATE emission must not change section {id:?}"
+        );
+    }
+}
+
+// --- learned table: fit → emit → load (increment 4c-ii) --------------------
+
+/// A small self-contained R4G1 bundle carrying the fitted learned segment
+/// `rows` in its PSTATE section (the 4c-ii path). Same synthetic store recipe
+/// as [`synthetic_bundle_opt`], but through
+/// [`convert_r4g1::convert_with_segment_table`]. Returns `(r4g1, teacher)`.
+fn synthetic_bundle_with_table(
+    descriptor: &SegmentLaneDescriptor,
+    rows: &[(u32, Vec<(u32, i32)>)],
+) -> (Vec<u8>, Vec<u8>) {
+    use uor_r4_core::transformerless::compiler;
+    let dir = env!("CARGO_MANIFEST_DIR");
+    let art_bytes = std::fs::read(format!(
+        "{dir}/../uor-r4-core/tests/fixtures/tless_artifacts.bin"
+    ))
+    .expect("fixture artifacts present");
+    let artifacts = compiler::parse_artifacts(&art_bytes).expect("artifacts parse");
+
+    let mut store: runtime::Store = (0..=STAGES).map(|_| BTreeMap::new()).collect();
+    let codes: [[u8; 4]; 6] = [
+        [3, 1, 4, 1],
+        [3, 1, 4, 2],
+        [3, 5, 9, 2],
+        [7, 5, 9, 2],
+        [7, 5, 8, 2],
+        [11, 5, 8, 7],
+    ];
+    for (i, code) in codes.iter().enumerate() {
+        runtime::add_evidence(&mut store, code, (i + 1) as u32, 1);
+    }
+    let store_bytes = runtime::store_bytes(&store);
+    let r4g1 = convert_r4g1::convert_with_segment_table(
+        &art_bytes,
+        &artifacts,
+        &store,
+        &store_bytes,
+        None,
+        descriptor,
+        rows,
+    )
+    .expect("convert to R4G1 with segment table")
+    .0;
+    (r4g1, art_bytes)
+}
+
+/// A multi-story corpus in which content token 100 is, on every TRAIN
+/// position it is live for, associated with a teacher-argmax of candidate 9 —
+/// a clean content→candidate association the fitter must recover. Four TRAIN
+/// stories plus one held-out story satisfy the 80/20 story cut.
+fn content_corpus() -> Corpus {
+    let unit_input = [100u32, 500];
+    let unit_argmax = [9u32, 9];
+    let stories = 5usize;
+    let mut story = Vec::new();
+    let mut input = Vec::new();
+    let mut next = Vec::new();
+    let mut t_argmax = Vec::new();
+    for sid in 0..stories {
+        for (j, (&tok, &tg)) in unit_input.iter().zip(&unit_argmax).enumerate() {
+            story.push(sid as u32);
+            input.push(tok);
+            next.push(if j + 1 < unit_input.len() {
+                unit_input[j + 1]
+            } else {
+                0
+            });
+            t_argmax.push(tg);
+        }
+    }
+    let n = input.len();
+    Corpus {
+        n,
+        stories: stories as u64,
+        story,
+        input,
+        next,
+        t_argmax,
+        top_tokens: vec![[0u32; 8]; n],
+        top_weights: vec![[0u32; 8]; n],
+        span_start: (0..n).map(|i| i as u32).collect(),
+        span_end: (0..n).map(|i| i as u32 + 1).collect(),
+        byte_start: vec![u32::MAX; n],
+        byte_end: vec![u32::MAX; n],
+        hidden: None,
+    }
+}
+
+#[test]
+fn fitted_table_round_trips_through_convert_and_reaches_the_engine() {
+    // Fit a real learned table from a corpus, emit it into a compiled bundle,
+    // and prove (a) the emitted PSTATE rows are byte-faithful to the fitted
+    // table and (b) the deployed engine ingests exactly those rows.
+    let corpus = content_corpus();
+    let rows = segment_fit::fit_segment_table(&corpus, segment_fit::DEFAULT_TOP_K, 64);
+    assert!(
+        !rows.is_empty(),
+        "the fit must learn at least one content key"
+    );
+    assert!(
+        rows.iter()
+            .any(|(k, entries)| *k == 100 && entries.iter().any(|(c, w)| *c == 9 && *w > 0)),
+        "the fitted table must carry the 100→9 association with positive weight"
+    );
+
+    let descriptor = selected_descriptor();
+    let (graph, teacher) = synthetic_bundle_with_table(&descriptor, &rows);
+
+    // (a) The PSTATE section round-trips the fitted rows exactly.
+    let view = GraphView::parse(&graph).expect("compiled bundle parses");
+    let table = view
+        .pstate_table()
+        .expect("pstate section valid")
+        .expect("bundle carries a PSTATE section");
+    assert_eq!(table.lane_kind(), LANE_SEGMENT);
+    let emitted: Vec<(u32, Vec<(u32, i32)>)> = table
+        .rows()
+        .map(|row| {
+            (
+                row.key(),
+                row.entries().map(|e| (e.token, e.score_q.raw())).collect(),
+            )
+        })
+        .collect();
+    // Canonicalize the fitted rows the same way `build_segment_lane` does
+    // (keys ascending, candidates ascending) before comparing.
+    let mut expected = rows.clone();
+    expected.sort_by_key(|(k, _)| *k);
+    for (_, entries) in expected.iter_mut() {
+        entries.sort_by_key(|(t, _)| *t);
+    }
+    assert_eq!(
+        emitted, expected,
+        "emitted PSTATE rows must be byte-faithful to the fitted table"
+    );
+
+    // (b) The deployed engine ingests exactly those learned rows.
+    let engine = load_engine(&graph, &teacher);
+    assert!(
+        engine.segment_session().is_active(),
+        "a learned-table bundle activates the segment lane"
+    );
+    assert_eq!(
+        engine.segment_learned_rows(),
+        Some(expected.len()),
+        "the engine consumes the learned table (one row per fitted content key)"
+    );
+}
+
+#[test]
+fn config_only_and_no_lane_bundles_carry_no_learned_table() {
+    // A config-only descriptor (empty rows) is the recurrence lane: active, but
+    // no learned rows reach the engine. A no-PSTATE bundle carries neither.
+    let descriptor = selected_descriptor();
+    let (recurrence, teacher) = synthetic_bundle_with_table(&descriptor, &[]);
+    let engine = load_engine(&recurrence, &teacher);
+    assert!(
+        engine.segment_session().is_active(),
+        "a config-only descriptor still activates the lane"
+    );
+    assert_eq!(
+        engine.segment_learned_rows(),
+        None,
+        "an empty table leaves the engine on the recurrence lane (no learned rows)"
+    );
+
+    let (no_lane, teacher2) = synthetic_bundle();
+    let plain = load_engine(&no_lane, &teacher2);
+    assert_eq!(
+        plain.segment_learned_rows(),
+        None,
+        "a no-PSTATE bundle carries no learned table"
+    );
+}
+
+#[test]
+fn learned_table_emission_is_section_preserving_and_deterministic() {
+    // Emitting the learned table changes only the PSTATE section (absent-section
+    // identity at the source) and is deterministic.
+    let corpus = content_corpus();
+    let rows = segment_fit::fit_segment_table(&corpus, segment_fit::DEFAULT_TOP_K, 64);
+    let descriptor = selected_descriptor();
+
+    let (with_table, _) = synthetic_bundle_with_table(&descriptor, &rows);
+    let (with_table_again, _) = synthetic_bundle_with_table(&descriptor, &rows);
+    assert_eq!(
+        with_table, with_table_again,
+        "learned-table emission must be deterministic"
+    );
+
+    let (without_lane, _) = synthetic_bundle();
+    let vt = GraphView::parse(&with_table).expect("with-table parses");
+    let vo = GraphView::parse(&without_lane).expect("no-lane parses");
+    for id in [
+        SectionId::HEAD,
+        SectionId::NODE,
+        SectionId::EDGE,
+        SectionId::ROUT,
+        SectionId::EMIT,
+        SectionId::EXCT,
+    ] {
+        assert_eq!(
+            vt.section(id),
+            vo.section(id),
+            "learned-table emission must not change section {id:?}"
         );
     }
 }

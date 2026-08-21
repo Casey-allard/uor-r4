@@ -214,7 +214,41 @@ pub fn convert_with_segment_lane(
         store,
         store_container,
         calibration,
-        Some(descriptor),
+        Some((descriptor, &[])),
+    )
+}
+
+/// One fitted residual row of the #836 learned segment table: a content key
+/// mapped to its `(candidate, raw ScoreQ)` entries. Produced by
+/// `uor_r4_graph_compiler::segment_fit::fit_segment_table` (the faithful
+/// compiler-side lowering of the #834 §6.2 Ψ segment arm).
+pub type SegmentTableRow = (u32, Vec<(u32, i32)>);
+
+/// Like [`convert_with_segment_lane`], but the emitted `PSTATE` section also
+/// carries the learned content→candidate residual `rows` (#836 4c-ii). The
+/// deployed engine consumes the table (its 4c-i lowering) instead of the pure
+/// recurrence lane. Passing empty `rows` is byte-identical to
+/// [`convert_with_segment_lane`] (a config-only descriptor). Every other
+/// section is unchanged, so a reader that ignores PSTATE still sees exactly the
+/// [`convert`] output (absent-section identity). The rows are canonicalized by
+/// [`build_segment_lane`] (keys and candidates sorted, duplicates rejected), so
+/// the produced bytes are deterministic and round-trip.
+pub fn convert_with_segment_table(
+    artifact_container: &[u8],
+    artifacts: &Compiled,
+    store: &Store,
+    store_container: &[u8],
+    calibration: Option<&HammingCalibrationReport>,
+    descriptor: &SegmentLaneDescriptor,
+    rows: &[SegmentTableRow],
+) -> Option<(Vec<u8>, ConversionReport)> {
+    convert_inner(
+        artifact_container,
+        artifacts,
+        store,
+        store_container,
+        calibration,
+        Some((descriptor, rows)),
     )
 }
 
@@ -224,7 +258,7 @@ fn convert_inner(
     store: &Store,
     store_container: &[u8],
     calibration: Option<&HammingCalibrationReport>,
-    segment_lane: Option<&SegmentLaneDescriptor>,
+    segment_lane: Option<(&SegmentLaneDescriptor, &[SegmentTableRow])>,
 ) -> Option<(Vec<u8>, ConversionReport)> {
     // Input shape honesty: the artifact must carry the 4 × 256 × 36-byte
     // class signature books the ROUT section is built from.
@@ -438,13 +472,14 @@ fn convert_inner(
     builder.add_section(SectionId::ROUT, 0, &rout);
     builder.add_section(SectionId::EMIT, 0, &emit);
     builder.add_section(SectionId::EXCT, 0, &exct);
-    // #836: optional segment-lane PSTATE section. The prompt-derived segment
-    // lane ships a config-only descriptor (empty residual table), so this adds
-    // the lane's capacity/decay/score constants without any learned table.
-    // Emitted only when a descriptor is supplied; otherwise the container is
-    // byte-identical to `convert` (absent-section identity).
-    if let Some(descriptor) = segment_lane {
-        let pstate = build_segment_lane(descriptor, &[]).ok()?;
+    // #836: optional segment-lane PSTATE section. A config-only descriptor
+    // (empty `rows`) adds the lane's capacity/decay/score constants without a
+    // learned table (recurrence lane); non-empty `rows` additionally pack the
+    // fitted content→candidate residual table (4c-ii), which the deployed
+    // engine consumes. Emitted only when a descriptor is supplied; otherwise
+    // the container is byte-identical to `convert` (absent-section identity).
+    if let Some((descriptor, rows)) = segment_lane {
+        let pstate = build_segment_lane(descriptor, rows).ok()?;
         builder.add_section(SectionId::PSTATE, 0, &pstate);
     }
     let bytes = builder.build().ok()?;

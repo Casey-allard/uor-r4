@@ -28,6 +28,8 @@ pub mod reproducibility;
 pub mod residual;
 pub mod route_fit;
 pub mod routing;
+#[cfg(not(target_arch = "wasm32"))]
+pub mod segment_fit;
 pub mod semantic_emission_decoupling;
 pub mod semantic_state;
 pub mod stage_dag;

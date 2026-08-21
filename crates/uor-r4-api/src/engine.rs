@@ -1163,6 +1163,16 @@ impl R4Engine {
         }
     }
 
+    /// The number of learned content→candidate rows the deployed segment lane
+    /// carries (#836 4c): `Some(n)` when the loaded PSTATE section packed a
+    /// residual table the engine consumes (`n >= 1`), `None` for a config-only
+    /// descriptor (the recurrence lane) or no PSTATE section at all. An
+    /// observability seam: it lets a caller confirm a compiled bundle's fitted
+    /// table reached the engine intact, without exposing the table itself.
+    pub fn segment_learned_rows(&self) -> Option<usize> {
+        self.segment_table.as_ref().map(Vec::len)
+    }
+
     /// Status-aware decision for one window, re-selecting the served token
     /// under the #835 segment lane (#836).
     ///
