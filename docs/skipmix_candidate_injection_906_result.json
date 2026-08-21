@@ -1,0 +1,19 @@
+{
+  "issue": 906,
+  "parent_issues": [897, 904],
+  "check": "skipmix-candidate-injection-confirmation",
+  "decision_kind": "real production code path (predict_decision_candidates_with_skipmix, patched)",
+  "bundle": "/Users/casey.allard/uor-r4/.uor-models/compiled/smollm2-360m-broad-clean",
+  "reemit_artifact_cid": "blake3:19eb04d7dbf3fccd126069982ad8cbc1de31d536fff7e77ef2dacb26e64106cc",
+  "corpus_meta_cid": "blake3:aa9d176779c1d2411e872c49c95ed585ee805ded5fa1b808ddf2f517a245b0ce",
+  "reference_favorable": 87,
+  "positions": 174,
+  "served": 174,
+  "abstained": 0,
+  "unservable": 0,
+  "deployed_follow_new": 58,
+  "deployed_follow_old_897_904": 41,
+  "fidelity_bar": 53,
+  "clears_fidelity_bar": true,
+  "result_cid": "blake3:ce198b58729f75fbf989f906933a9d6f14cbf534e3a31a23ace5836c357be7da"
+}

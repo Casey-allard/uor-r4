@@ -812,13 +812,55 @@ fn skipmix_supported_count(
         .count()
 }
 
-/// #897 skip-mix-adjusted argmax over the decided candidate list: each
-/// candidate's base `ScoreQ` gains its skip-mix contribution (design spec §5),
-/// under the canonical tie-break (score descending, token id ascending).
-/// Byte-identical to `base_token`'s own argmax when both tables are absent
-/// (every contribution is zero) or the window is empty -- absent-section
-/// identity, with no separate "is active" gate needed.
-fn skipmix_adjusted_token(
+// ---------------------------------------------------------------------
+// #906 (follow-up to #897/#904): the skip-mix lane's own tables are a
+// candidate SOURCE, not only a re-ranker. #904 diagnosed the #897
+// LOWERING-FIDELITY GAP as breadth-bound -- 35/87 favorable pairs have a
+// teacher target absent from the base engine's own decided candidate list
+// (`StepCandidates::ranked()`, capped at `STEP_TOP_CANDIDATES = 8`) before
+// any skip-mix scoring runs, and every width/selection lever available to
+// the base engine's own candidate generation was tested and found not to
+// close it (#906 issue body). Separately, #906 found that SKMX/PSIB
+// already record the correct answer for 45/45 (100%) of the currently-
+// missing pair-sides -- #897's original re-rank-only combine (replaced
+// below; see git history for its exact prior form) simply never had a
+// path to use that knowledge, since `segment_argmax` only ever considers
+// tokens already present in `ranked`. The functions below extend the
+// candidate space to include every SKMX/PSIB-known token, combined under
+// the non-additive "unit-safe" rule #904 arm 3 validated (never summing
+// the base `ScoreQ` and the skip-mix contribution across their two
+// incompatible scales).
+// ---------------------------------------------------------------------
+
+/// The unit-safe argmax over the union of `ranked` and every candidate
+/// token present in a relevant SKMX row (keyed `(content_token,
+/// last_window_token)`) or PSIB row (keyed `content_token` alone) for the
+/// window's own unique tokens -- not merely a re-rank of `ranked`. Ranking
+/// key: `(has_support, contribution_if_supported_else_base_raw)`. A
+/// candidate with positive skip-mix support always outranks one with
+/// none -- every stored SKMX/PSIB entry contributes a strictly positive
+/// residual (`segment_fit::quantize_rate`'s `clamp(1, ..)` floor), so
+/// `skipmix_token_contribution`'s saturating sum of one or more such
+/// entries is positive for any discovered candidate -- and among
+/// supported candidates the tie-break is contribution magnitude; among
+/// unsupported candidates (only `ranked`'s own entries can ever land here,
+/// since discovery only ever finds supported ones) the tie-break is the
+/// real base `ScoreQ`. Final ties broken by ascending token id, matching
+/// every other combinator in this module.
+///
+/// Absent-section identity: with both tables absent, no candidate is ever
+/// discovered and every `ranked` entry's contribution is 0, so the
+/// combine reduces to `ranked`'s own top entry (already score-descending,
+/// token-ascending) -- byte-identical to the base decision.
+///
+/// Allocation-free (P-4 discipline): no set or list is materialized for
+/// the expanded candidate space. A candidate discovered via more than one
+/// row is simply reconsidered rather than deduplicated -- its
+/// contribution is deterministic regardless of how many times it is
+/// visited, so revisits cost cycles, never correctness. Work is bounded:
+/// at most `WINDOW` unique tokens, each yielding at most one row, each row
+/// bounded by the compiled table's own `max_entries()`.
+fn skipmix_injected_argmax(
     ranked: &[(u32, ScoreQ)],
     primary: Option<&SkipmixTable<'_>>,
     fallback: Option<&PsiBagTable<'_>>,
@@ -826,22 +868,58 @@ fn skipmix_adjusted_token(
     last_token: u32,
     base_token: u32,
 ) -> u32 {
+    if ranked.is_empty() {
+        return base_token;
+    }
     let sup_ts = skipmix_supported_count(primary, unique_tokens, last_token);
-    segment_argmax(ranked, base_token, |candidate| {
-        skipmix_scale_by_lambda_and_support(
-            skipmix_token_contribution(primary, fallback, unique_tokens, last_token, candidate),
+
+    let mut best_token = base_token;
+    let mut best_key: (bool, i32) = (false, i32::MIN);
+    let mut consider = |token: u32, base_raw: Option<i32>| {
+        let contribution = skipmix_scale_by_lambda_and_support(
+            skipmix_token_contribution(primary, fallback, unique_tokens, last_token, token),
             sup_ts,
             unique_tokens.len(),
-        )
-    })
+        );
+        let key = if contribution > 0 {
+            (true, contribution)
+        } else {
+            (false, base_raw.unwrap_or(i32::MIN))
+        };
+        if key > best_key || (key == best_key && token < best_token) {
+            best_key = key;
+            best_token = token;
+        }
+    };
+
+    for &(token, score) in ranked {
+        consider(token, Some(score.raw()));
+    }
+    for &t in unique_tokens {
+        let entries = if let Some(row) = primary.and_then(|table| table.find(t, last_token)) {
+            Some(row.entries())
+        } else {
+            fallback
+                .and_then(|table| table.find(t))
+                .map(|row| row.entries())
+        };
+        if let Some(entries) = entries {
+            for entry in entries.iter() {
+                consider(entry.token, None);
+            }
+        }
+    }
+
+    best_token
 }
 
-/// The #897 skip-mix witness attribution over a decided candidate list:
-/// `Some` only when at least one table is present AND the skip-mix re-rank
-/// promotes a different token than the base winner; `None` otherwise
-/// (neither table present, or no change -> no attribution, preserving
-/// witness identity). Pure.
-fn skipmix_lane_attribution(
+/// The #906 skip-mix-lane witness attribution, built from
+/// [`skipmix_injected_argmax`]'s candidate-injection combine. `Some` only
+/// when at least one table is present AND the combine promotes a
+/// different token than the base winner; `None` otherwise (neither table
+/// present, or no change -> no attribution, preserving witness identity).
+/// Pure.
+fn skipmix_injected_lane_attribution(
     ranked: &[(u32, ScoreQ)],
     primary: Option<&SkipmixTable<'_>>,
     fallback: Option<&PsiBagTable<'_>>,
@@ -852,7 +930,7 @@ fn skipmix_lane_attribution(
     if primary.is_none() && fallback.is_none() {
         return None;
     }
-    let promoted = skipmix_adjusted_token(
+    let promoted = skipmix_injected_argmax(
         ranked,
         primary,
         fallback,
@@ -1488,16 +1566,16 @@ impl R4Engine {
     ///
     /// Byte-identical to [`Self::predict_decision_candidates`] when the
     /// artifact carries neither an SKMX nor a PSIB section (absent-section
-    /// identity). When present, the served token becomes the skip-mix-
-    /// adjusted argmax over the decided candidate list: each candidate gains
-    /// the sum, over the window's own unique tokens, of that token's learned
-    /// contribution -- joint `(token, last_window_token)` evidence where the
-    /// primary table supports it, verbatim Ψ-bag (content-token-only)
-    /// evidence otherwise -- under the same canonical tie-break (score
-    /// descending, token id ascending) `predict_decision_candidates_with_segment`
-    /// uses. Unlike the #836 segment lane, no persistent session object is
-    /// needed: the evidence is entirely the current window. An abstention is
-    /// never overridden into a served token.
+    /// identity). When present, the served token becomes
+    /// [`skipmix_injected_argmax`]'s pick over the union of the decided
+    /// candidate list and every token either table records evidence for at
+    /// the current window (#906, follow-up to #897/#904's
+    /// LOWERING-FIDELITY GAP diagnosis: the decided list alone structurally
+    /// excludes some teacher targets the tables already know about, no
+    /// matter how the decided list's own width or selection rule is
+    /// tuned -- closing that gap requires the tables to act as a candidate
+    /// source, not only a re-ranker). An abstention is never overridden
+    /// into a served token.
     pub fn predict_decision_candidates_with_skipmix(
         &mut self,
         window: &[u32],
@@ -1513,7 +1591,7 @@ impl R4Engine {
                     let primary = self.skipmix_primary_table();
                     let fallback = self.skipmix_fallback_table();
                     let (unique_buf, unique_len) = unique_window_tokens(window);
-                    outcome.token = skipmix_adjusted_token(
+                    outcome.token = skipmix_injected_argmax(
                         candidates.ranked(),
                         primary.as_ref(),
                         fallback.as_ref(),
@@ -1552,7 +1630,7 @@ impl R4Engine {
                 let primary = self.skipmix_primary_table();
                 let fallback = self.skipmix_fallback_table();
                 let (unique_buf, unique_len) = unique_window_tokens(window);
-                let attribution = skipmix_lane_attribution(
+                let attribution = skipmix_injected_lane_attribution(
                     candidates.ranked(),
                     primary.as_ref(),
                     fallback.as_ref(),
@@ -2347,31 +2425,35 @@ mod tests {
     }
 
     #[test]
-    fn skipmix_absent_tables_keep_base_winner() {
+    fn skipmix_injected_absent_tables_keep_base_winner() {
         let ranked = [(5u32, ScoreQ::from_raw(100)), (9, ScoreQ::from_raw(80))];
         let window = [1u32, 9, 3];
         let (unique, ulen) = unique_window_tokens(&window);
-        // Neither table present -> zero contribution everywhere -> base winner stands.
+        // Neither table present -> no candidate is ever discovered, and
+        // every `ranked` entry's contribution is zero -> base winner stands.
         assert_eq!(
-            skipmix_adjusted_token(&ranked, None, None, &unique[..ulen], 3, 5),
+            skipmix_injected_argmax(&ranked, None, None, &unique[..ulen], 3, 5),
             5
         );
-        assert!(skipmix_lane_attribution(&ranked, None, None, &unique[..ulen], 3, 5).is_none());
-        // Empty unique-token list -> zero contribution everywhere -> the
-        // result is the plain argmax of `ranked` (5, the higher base score),
-        // independent of `base_token`'s value (`segment_argmax` only falls
-        // back to `base_token` when `ranked` itself is empty).
-        assert_eq!(skipmix_adjusted_token(&ranked, None, None, &[], 3, 7), 5);
+        assert!(
+            skipmix_injected_lane_attribution(&ranked, None, None, &unique[..ulen], 3, 5).is_none()
+        );
+        // Empty unique-token list -> no row is ever consulted -> the result
+        // is the plain argmax of `ranked` (5, the higher base score),
+        // independent of `base_token`'s value (only a genuinely empty
+        // `ranked` falls back to `base_token`).
+        assert_eq!(skipmix_injected_argmax(&ranked, None, None, &[], 3, 7), 5);
         // A genuinely empty candidate list does fall back to `base_token`.
         assert_eq!(
-            skipmix_adjusted_token(&[], None, None, &unique[..ulen], 3, 7),
+            skipmix_injected_argmax(&[], None, None, &unique[..ulen], 3, 7),
             7
         );
     }
 
     #[test]
-    fn skipmix_promotes_via_joint_table() {
-        // Joint key (9, 3) -> candidate 9 gets a large boost.
+    fn skipmix_injected_promotes_candidate_already_in_ranked() {
+        // Joint key (9, 3) -> candidate 9 (already in `ranked`) gets strong
+        // support and wins under the unit-safe combine.
         let bytes = build_skipmix_table(&[(9, 3, vec![(9, 2_000_000)])]).expect("valid row");
         let table = SkipmixTable::parse(&bytes).expect("parse");
         let ranked = [(5u32, ScoreQ::from_raw(100)), (9, ScoreQ::from_raw(80))];
@@ -2379,19 +2461,55 @@ mod tests {
         let (unique, ulen) = unique_window_tokens(&window);
         let last_token = 3u32;
         assert_eq!(
-            skipmix_adjusted_token(&ranked, Some(&table), None, &unique[..ulen], last_token, 5),
+            skipmix_injected_argmax(&ranked, Some(&table), None, &unique[..ulen], last_token, 5),
             9
         );
-        let attr =
-            skipmix_lane_attribution(&ranked, Some(&table), None, &unique[..ulen], last_token, 5)
-                .expect("promotion attributed");
+        let attr = skipmix_injected_lane_attribution(
+            &ranked,
+            Some(&table),
+            None,
+            &unique[..ulen],
+            last_token,
+            5,
+        )
+        .expect("promotion attributed");
         assert_eq!(attr.promoted_token, 9);
         assert_eq!(attr.base_token, 5);
         assert_eq!(attr.boost, 2_000_000);
     }
 
     #[test]
-    fn skipmix_falls_back_to_psi_bag_when_joint_key_absent() {
+    fn skipmix_injects_candidate_absent_from_ranked() {
+        // #906's core fix: candidate 7 is NOT in `ranked` at all (the base
+        // engine's decided list only contains 5 and 9), but SKMX has strong
+        // evidence for it at (9, 3). Under the old re-rank-only design this
+        // was permanently invisible; it must now be discoverable and served.
+        let bytes = build_skipmix_table(&[(9, 3, vec![(7, 2_000_000)])]).expect("valid row");
+        let table = SkipmixTable::parse(&bytes).expect("parse");
+        let ranked = [(5u32, ScoreQ::from_raw(100)), (9, ScoreQ::from_raw(80))];
+        let window = [1u32, 9];
+        let (unique, ulen) = unique_window_tokens(&window);
+        let last_token = 3u32;
+        assert_eq!(
+            skipmix_injected_argmax(&ranked, Some(&table), None, &unique[..ulen], last_token, 5),
+            7
+        );
+        let attr = skipmix_injected_lane_attribution(
+            &ranked,
+            Some(&table),
+            None,
+            &unique[..ulen],
+            last_token,
+            5,
+        )
+        .expect("promotion attributed");
+        assert_eq!(attr.promoted_token, 7);
+        assert_eq!(attr.base_token, 5);
+        assert_eq!(attr.boost, 2_000_000);
+    }
+
+    #[test]
+    fn skipmix_injected_falls_back_to_psi_bag_when_joint_key_absent() {
         // No SKMX row for (9, 3) at all -> falls back to the PSIB row for
         // content token 9 alone.
         let skmx = build_skipmix_table(&[(9, 99, vec![(9, 1)])]).expect("valid row");
@@ -2404,7 +2522,7 @@ mod tests {
         let (unique, ulen) = unique_window_tokens(&window);
         let last_token = 3u32; // does NOT match the SKMX row's key (9, 99)
         assert_eq!(
-            skipmix_adjusted_token(
+            skipmix_injected_argmax(
                 &ranked,
                 Some(&skmx_table),
                 Some(&psib_table),
@@ -2417,14 +2535,18 @@ mod tests {
     }
 
     #[test]
-    fn skipmix_joint_row_presence_gates_fallback_even_without_candidate_match() {
+    fn skipmix_injected_joint_row_presence_gates_fallback_and_still_injects() {
         // SKMX HAS a row for (9, 3), but that row's entries do not include
-        // candidate 9 -- contributes 0 for candidate 9 from the joint table,
-        // and must NOT fall back to PSIB's row for content token 9 (which
-        // does have an entry for candidate 9). This is the load-bearing
-        // joint-vs-fallback asymmetry `skipmix_confirm_897.rs::skipmix_scores`
-        // validated: row PRESENCE gates the fallback, not per-candidate
-        // entry presence.
+        // candidate 9 -- contributes 0 for candidate 9 from the joint
+        // table, and must NOT fall back to PSIB's row for content token 9
+        // (which does have an entry for candidate 9). This is the
+        // load-bearing joint-vs-fallback asymmetry
+        // `skipmix_confirm_897.rs::skipmix_scores` validated: row PRESENCE
+        // gates the fallback, not per-candidate entry presence -- that
+        // property is unchanged by #906. What #906 DOES change: the same
+        // row's entry for candidate 2 (not in `ranked` at all) is now
+        // discovered and, having real support, wins over both `ranked`
+        // candidates (neither of which has any support here).
         let skmx = build_skipmix_table(&[(9, 3, vec![(2, 500)])]).expect("valid row");
         let skmx_table = SkipmixTable::parse(&skmx).expect("parse skmx");
         let psib = build_psi_bag_table(&[(9, vec![(9, 3_000_000)])]).expect("valid row");
@@ -2433,9 +2555,11 @@ mod tests {
         let ranked = [(5u32, ScoreQ::from_raw(100)), (9, ScoreQ::from_raw(80))];
         let window = [9u32];
         let (unique, ulen) = unique_window_tokens(&window);
-        // Base winner (5) stands: candidate 9 gets 80 + 0 = 80 < 100.
+        // Candidate 2 (injected, supported) outranks both 5 and 9
+        // (neither supported here -- gating held, PSIB's entry for
+        // candidate 9 never leaked through).
         assert_eq!(
-            skipmix_adjusted_token(
+            skipmix_injected_argmax(
                 &ranked,
                 Some(&skmx_table),
                 Some(&psib_table),
@@ -2443,21 +2567,22 @@ mod tests {
                 3,
                 5
             ),
-            5
+            2
         );
     }
 
     #[test]
-    fn skipmix_tie_breaks_by_lower_id() {
+    fn skipmix_injected_tie_breaks_by_lower_id() {
         let bytes =
             build_skipmix_table(&[(9, 1, vec![(9, 10)]), (4, 1, vec![(4, 10)])]).expect("valid");
         let table = SkipmixTable::parse(&bytes).expect("parse");
         let ranked = [(9u32, ScoreQ::from_raw(50)), (4, ScoreQ::from_raw(50))];
         let window = [9u32, 4];
         let (unique, ulen) = unique_window_tokens(&window);
-        // Both boosted equally (+10) -> canonical tie-break keeps the lower id.
+        // Both boosted equally (+10), neither newly discovered (both
+        // already in `ranked`) -> canonical tie-break keeps the lower id.
         assert_eq!(
-            skipmix_adjusted_token(&ranked, Some(&table), None, &unique[..ulen], 1, 9),
+            skipmix_injected_argmax(&ranked, Some(&table), None, &unique[..ulen], 1, 9),
             4
         );
     }
