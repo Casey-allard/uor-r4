@@ -396,6 +396,29 @@ arm of the #834 scope now carries an evidence-backed disposition and none cleare
 frozen causal floor — S1 meets the #822 kill/redesign criterion (two-plus independently
 motivated arms fail the causal gate); the stage verdict against the full child set is
 the maintainer's on #822.
+
+**S2 item A — the typed selective-prediction contract and the answerability benchmark
+constitution are frozen (#838, 2026-08-21).**
+[`docs/selective_prediction_spec_838.md`](selective_prediction_spec_838.md) separates
+coverage, answerability, and calibrated confidence into eight typed statuses with one
+meaning and one deterministic representation each across the CLI, native HTTP,
+OpenAI-compatible (non-streaming and streaming), and WASM surfaces — an abstention is
+never an empty success or a generic error, artifacts without calibration data stay
+coverage-only (no fabricated confidence), and corrupt calibration data fails closed as
+`hard-incompatibility` (corrupt never degrades to legacy). It freezes the
+`s2-answerability-ood` benchmark constitution: eight gold-annotated categories
+(including `novel-but-supported` — answerable novelty is explicitly separable from
+semantic unanswerability), four-axis disjoint partitions, six baselines with distinct
+planted confusion signatures (current-D4 falsely serves false-premise /
+contradictory-evidence / missing-evidence — the #811 finding made a fixture), and
+pre-registered metrics with powered n (600 per category, 4,800 total) and frozen UCB
+targets (false-answer UCB95 ≤ 10‰ release / ≤ 50‰ research) fixed before any threshold
+is fitted. The executable reference model is
+`crates/uor-r4-api/tests/selective_prediction_spec_838.rs` (15 machine-checked
+properties, including that a coverage-only report can never render a semantic PASS).
+**Current semantic abstention remains NOT ESTABLISHED**; #837 fits the calibrator
+against this constitution and #839 executes and certifies it on the production
+surfaces.
 The **geometric router** is a validated, real component (content-query
 retrieval MRR 0.88+, #486/#490/#502) but it is a retrieval/routing mechanism,
 not itself a generative model, and it runs on `f64` outside the P-4 kernel by
