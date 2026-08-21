@@ -145,6 +145,39 @@ the readable mirror of the tracker verdict; **GitHub #822 remains the source of 
   for approval before any build. #840's corrective rounds are held for the approved
   direction (decision recorded on #840, 2026-08-21).
 
+### S1 redesign execution and re-entry decision (2026-08-21, follow-up)
+
+The approved RFC's steps 1–3 are executed and recorded
+(`docs/s1_redesign_instruments_822.md`; CID-bound result JSONs; PRs #898 → `9d2dbe19`
+and #899 → `201a747a`); **GitHub #822 remains the source of record** (§6-4 decision
+comment, 2026-08-21).
+
+- **Q1 answered:** the recorded `t_argmax` labels condition on the full article prefix
+  hard-capped at 128 positions (`--sequence-length 128`; mean prefix 62.7 tokens; 85.4%
+  of stories truncated at the cap) — the measured suffix-locality is a compiled-key
+  property, not an observation artifact, and the label-side conditioning ceiling is 128
+  tokens, not the teacher's native 8,192.
+- **D1 = `SELECT (backed-off mix)`:** joint (content-token, 2-token-suffix) conditional
+  evidence with Ψ-bag backoff measured **+30.6‰ (paired 95% CI [+28.6, +32.5])** — the
+  first arm in the S1 record whose paired lower bound clears the frozen 20‰ floor AND
+  the 25‰ lowering-track opening bar, off-serving. The strict joint arm is
+  sparsity-bound (+6.8‰); the d4skip comparison arm (1-token conditioning, denser
+  support) measured +49.6‰ [46.8, 52.4]; both planted nulls collapse (prompt-swap
+  −33.2‰, key-shuffle −116.3‰).
+- **D2 = `REVISE`:** region-conditional evidence keyed by the released artifact's own
+  graded codes measured region[4] **+19.5‰ [17.0, 21.9]** — real and code-specific
+  (code-shuffle null −162.5‰) but sub-floor at the pre-registered consultation; the
+  #784 convergence null is refined rather than confirmed (only 10.3% of covered
+  region tables argmax to the corpus mode); the exploratory depth-2 sweep reads
+  +23.3‰ [21.0, 25.7] (floor-clearing, below the opening bar).
+- **§6-4 re-entry decision (recorded on #822):** the lowering track **#897 is
+  ACTIVATED** on the D1 SELECT trigger; its phase 0 is a pre-registered key-family
+  confirmation run (1-token-conditioning mix as PRIMARY; the 25‰ bar plus a
+  head-to-head requirement against the selected 2-token arm); **D3 stays deferred**
+  (revisited only if the lowered arm's end-to-end measurement hits the 128-token label
+  ceiling); the **frozen 20‰ end-to-end floor remains the promotion gate**. S2's #839
+  phase-1 typed surfaces proceed per its re-scope.
+
 ### S2 stage verdict — REVISE (2026-08-21)
 
 Items A and B are closed and item C is re-scoped, so **S2 is revised**: abstention
