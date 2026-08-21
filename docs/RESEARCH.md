@@ -395,7 +395,9 @@ under the pre-registered rule posted to #834 before the run: no lowering opens. 
 arm of the #834 scope now carries an evidence-backed disposition and none cleared the
 frozen causal floor — S1 meets the #822 kill/redesign criterion (two-plus independently
 motivated arms fail the causal gate); the stage verdict against the full child set is
-the maintainer's on #822.
+the maintainer's on #822. *(Recorded 2026-08-21: **REVISE** — S1 returns to
+representation/compiler redesign behind an RFC gate; the 20‰ floor does not move. See
+the #822 decision comment and the plan's S1 stage-verdict entry.)*
 
 **S2 item A — the typed selective-prediction contract and the answerability benchmark
 constitution are frozen (#838, 2026-08-21).**
@@ -438,7 +440,11 @@ wrong, because margin 1000‰ is dominated by total=1 suffix keys — support-co
 is what turns margin into signal); and 2,454 content-answerable novel positions (94‰ of
 novelty) are structurally discarded by every suffix-feature calibrator. The deployed D4
 policy stays **coverage-only**; the recorded next direction is evidence-acquisition
-redesign (content-side features), re-entering under the same frozen gates.
+redesign (content-side features), re-entering under the same frozen gates. *(Stage
+verdict recorded 2026-08-21: **REVISE** — one redesigned re-entry sanctioned under the
+same gates; #839 re-scoped to execute the typed contract's legacy-coverage mode on the
+production surfaces now, with calibrated mode still behind the unchanged release gate.
+See the #823 decision comment and the plan's S2 stage-verdict entry.)*
 
 **S3 item A — the free-running trajectory gap is quantified (#841, 2026-08-21): the gap
 is total.** [`docs/free_running_eval_841.md`](free_running_eval_841.md) freezes the
@@ -458,7 +464,9 @@ the #811 always-servable finding at trajectory scale. Sampled mode and judge met
 UNAVAILABLE in run-1 (no pinned identities). No coherence is claimed and no corrective
 mechanism is prescribed; #840's improvement bar is frozen (median +≥2 steps, at0 −≥100‰,
 ≤3 rounds else GENERATION-NOT-ESTABLISHED) and S3 stage closure remains gated on the
-#822/#823 stage verdicts.
+#822/#823 stage verdicts *(both recorded REVISE on 2026-08-21 — not promotions, so the
+gate holds; #840 is additionally held for the approved S1 redesign direction, per the
+decisions recorded on #824 and #840)*.
 The **geometric router** is a validated, real component (content-query
 retrieval MRR 0.88+, #486/#490/#502) but it is a retrieval/routing mechanism,
 not itself a generative model, and it runs on `f64` outside the P-4 kernel by

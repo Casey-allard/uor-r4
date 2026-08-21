@@ -117,6 +117,61 @@ pinned source inputs through the deployed path (byte-reproducible rebuild, admit
 Gate C within bound). Downstream quality, geometry, and scale promotions are therefore
 authorized to proceed from this baseline.
 
+### S1 stage verdict — REVISE (2026-08-21)
+
+All S1 child work is resolved and the pre-registered kill/redesign criterion is met, so
+**S1 is revised**: the prompt-conditioning claim is not established at the current
+representation, and the stage returns to representation/compiler redesign. This entry is
+the readable mirror of the tracker verdict; **GitHub #822 remains the source of record**
+(maintainer decision comment, 2026-08-21).
+
+- **All children have final dispositions.** #835 spec frozen (PR #872, `8785aedd`); #834
+  closed REVISE with the five-arm space fully dispositioned (PRs #873/#874/#875/#891,
+  final merge `77d09023`); #836 closed REVISE/dormant after end-to-end lowering;
+  follow-ups #886 (deployed lowering-fidelity gap) and #887 (the 20‰ bar stands; the
+  segment lane is retired from the promotion track) done; #888 closed not-planned.
+- **No arm cleared the frozen 20‰ causal floor.** `current-scoring` and
+  `longer-local-context` measured negative; `persistent-state` positive-sub-floor
+  off-serving, then retired after lowering; `conditional-residuals` unconditionally
+  sub-floor with its distinctive mechanism falsified (CR-vs-Ψ −1.3‰; the
+  residual-shuffle null lands at the real arm); `candidate-support-expansion` closed off.
+- **The kill/redesign criterion fired** — two-plus independently motivated arms fail
+  causal controls — per the tracker's pre-registration.
+- **Redesign process gate.** A redesign RFC (design only, no code) — candidate mechanisms
+  against the measured falsifiers (suffix-locality of scoring *and* generation
+  (#874/#891/#894); singleton-margin pollution and the discarded content-answerable
+  novelty (#893)), pre-registered re-entry gates (**the 20‰ causal floor and the #838
+  selective-prediction gates do not move**), and cost estimates — goes to the maintainer
+  for approval before any build. #840's corrective rounds are held for the approved
+  direction (decision recorded on #840, 2026-08-21).
+
+### S2 stage verdict — REVISE (2026-08-21)
+
+Items A and B are closed and item C is re-scoped, so **S2 is revised**: abstention
+semantics are frozen and honest, no calibrator qualified, and one redesigned re-entry is
+sanctioned under the same frozen gates. This entry mirrors the tracker verdict;
+**GitHub #823 remains the source of record** (maintainer decision comment, 2026-08-21).
+
+- **#838 (item A).** The typed eight-status selective-prediction contract and the
+  `s2-answerability-ood` benchmark constitution are frozen (PR #892, `61501c8f`);
+  current semantic abstention is recorded **NOT ESTABLISHED**.
+- **#837 (item B).** `NO CALIBRATOR ESTABLISHED` (PR #893, `d1215f55`) — no arm met the
+  release (false-answer UCB95 ≤ 10‰ at coverage ≥ 20‰) or research (≤ 50‰ at ≥ 50‰) gate
+  on the calibration partition; the untouched test partition was never consumed. The
+  diagnosis is evidence acquisition, not thresholds: the fitted support×margin bucket
+  table ranks confidence cleanly but its memorized slice is too thin; raw margin is
+  singleton-polluted; 2,454 content-answerable novel positions are structurally invisible
+  to suffix features.
+- **#839 (item C) — re-scoped (2026-08-21).** Phase 1 (executable now) lowers the frozen
+  contract's legacy-coverage mode onto the production surfaces: typed abstention causes
+  on CLI/native HTTP, the OpenAI-compatible migration from `engine_declined` to the typed
+  `uor_abstention_*` / `uor_incompatible_artifact` codes, the typed WASM boundary, and
+  fail-closed corrupt-calibration handling. Phase 2 (calibrated mode) activates only when
+  a redesigned calibrator clears the unchanged release gate.
+- **Re-entry rule.** One redesigned calibrator fit (content-side evidence features,
+  aligned with the S1 redesign direction) under the **same** frozen gates; the bars do
+  not move (the #887 discipline).
+
 ## Dependency order
 
 ```text
