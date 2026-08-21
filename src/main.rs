@@ -523,8 +523,13 @@ fn rendered_answer(answer: &ChatAnswer) -> String {
     match &answer.abstention {
         None => answer.text.clone(),
         Some(abstention) => format!(
-            "[abstained: {} context{}] no answer served — the model's D4 policy \
-             declined this prompt as outside its certified context.",
+            "[{}: cause={} coverage={} d4={}{}] no answer served — the model's \
+             D4 policy declined this prompt as outside its certified context \
+             (typed selective-prediction record, RF-30; no confidence value \
+             exists in legacy-coverage mode).",
+            abstention.outcome,
+            abstention.cause,
+            abstention.coverage,
             abstention.status,
             if abstention.widened {
                 ", widened once"
@@ -1267,6 +1272,42 @@ mod tests {
                 abstention: None,
             })
         }
+    }
+
+    /// #839 phase 1 (RF-30): the CLI abstention line carries the typed
+    /// outcome, cause, and coverage labels (spec §5 CLI row) alongside the
+    /// legacy D4 label, and mints no confidence value in legacy-coverage
+    /// mode.
+    #[test]
+    fn rendered_abstention_carries_the_typed_labels() {
+        use uor_r4_wasm_router::chat::ChatAbstention;
+        use uor_r4_wasm_router::selective;
+
+        let answer = ChatAnswer {
+            text: String::new(),
+            generated_tokens: 0,
+            repeated_token_rate: 0.0,
+            witness: Default::default(),
+            abstention: Some(ChatAbstention {
+                status: "novel".to_owned(),
+                widened: true,
+                outcome: selective::STATUS_ABSTENTION,
+                cause: selective::CAUSE_DISTRIBUTIONALLY_NOVEL,
+                coverage: selective::COVERAGE_DISTRIBUTIONALLY_NOVEL,
+            }),
+        };
+        let line = rendered_answer(&answer);
+        assert!(
+            line.contains(
+                "abstention: cause=distributionally-novel coverage=distributionally-novel \
+                 d4=novel, widened once"
+            ),
+            "the typed record renders every label: {line}"
+        );
+        assert!(
+            !line.contains("confidence="),
+            "no confidence value exists in legacy-coverage mode: {line}"
+        );
     }
 
     #[test]

@@ -28,6 +28,11 @@ pub use uor_r4_router::*;
 
 pub mod tless_uor;
 
+/// #839 phase 1 (RF-30): the shared typed selective-prediction surface
+/// vocabulary — deliberately ungated so the WASM boundary and the native
+/// server read identical labels.
+pub mod selective;
+
 #[cfg(not(target_arch = "wasm32"))]
 pub mod chat;
 #[cfg(not(target_arch = "wasm32"))]
@@ -68,6 +73,16 @@ use wasm_bindgen::prelude::*;
 #[wasm_bindgen]
 pub fn generate_r4g1_response(prompt: &str, max_tokens: usize) -> Option<String> {
     tless_uor::generate_r4g1_response(prompt, max_tokens)
+}
+
+/// #839 phase 1 (RF-30): the typed selective-prediction boundary export
+/// (spec §5, WASM row) — always a typed JSON value with the canonical
+/// labels, never a trap; see [`tless_uor::typed_r4g1_response`]. The legacy
+/// `Option<String>` export above is retained unchanged.
+#[cfg(target_arch = "wasm32")]
+#[wasm_bindgen]
+pub fn typed_r4g1_response(prompt: &str, max_tokens: usize) -> String {
+    tless_uor::typed_r4g1_response(prompt, max_tokens)
 }
 
 /// #790 item 5: install a graph and its exact tokenizer into the wasm

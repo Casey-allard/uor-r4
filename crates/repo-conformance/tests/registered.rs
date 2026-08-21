@@ -193,3 +193,8 @@ fn separate_semantic_emission_rf_28() {
 fn teacher_parity_benchmarks_rf_29() {
     check("RF-29", "teacher_parity_benchmarks");
 }
+
+#[test]
+fn selective_prediction_surfaces_rf_30() {
+    check("RF-30", "selective_prediction_surfaces");
+}

@@ -21,9 +21,11 @@ use uor_r4_graph_compiler::quantum_cover::{
 use uor_r4_graph_format::INFERENCE_OPERATION_CONTRACT_VERSION;
 use uor_r4_wasm_router::cd_space_fold;
 use uor_r4_wasm_router::r4g1::validate_quality_report;
+use uor_r4_wasm_router::selective;
 use uor_r4_wasm_router::server::{
-    default_resolved_tier, is_usable_generated_text, r4g1_unavailable_response,
-    validate_r4g1_corpus_inputs,
+    default_resolved_tier, is_usable_generated_text, openai_selective_abstention_envelope,
+    r4g1_unavailable_response, selective_abstention_block, selective_calibration_probe,
+    selective_stream_decline_frames, validate_r4g1_corpus_inputs,
 };
 
 #[derive(Debug, Default, World)]
@@ -34,6 +36,12 @@ struct R4g1World {
     selected_engine: Option<&'static str>,
     endpoint_status: Option<u16>,
     endpoint_body: Option<serde_json::Value>,
+    // RF-30 typed selective-prediction surface fields (#839 phase 1)
+    abstention_record: Option<uor_r4_wasm_router::chat::ChatAbstention>,
+    selective_block: Option<serde_json::Value>,
+    selective_block_failed: Option<serde_json::Value>,
+    selective_frames: Vec<String>,
+    selective_probe_present: Option<String>,
     compile_error: Option<String>,
     quality_report: Option<serde_json::Value>,
     quality_error: Option<String>,
@@ -288,6 +296,168 @@ fn no_fallback_response(w: &mut R4g1World) {
         .as_str()
         .unwrap_or_default()
         .contains("no fallback"));
+}
+
+// --- RF-30: typed selective-prediction surfaces (#839 phase 1) --------------
+
+#[given("a deployed D4 abstention with the novel policy label")]
+fn selective_d4_abstention(_w: &mut R4g1World) {}
+
+#[when("the CLI abstention record is built")]
+fn selective_cli_record(w: &mut R4g1World) {
+    // The exact construction `chat::d4_gate` performs on a policy
+    // abstention, with the labels the shared vocabulary supplies.
+    let label = "novel";
+    w.abstention_record = Some(uor_r4_wasm_router::chat::ChatAbstention {
+        status: label.to_owned(),
+        widened: false,
+        outcome: selective::STATUS_ABSTENTION,
+        cause: selective::CAUSE_DISTRIBUTIONALLY_NOVEL,
+        coverage: selective::coverage_for_policy_label(label)
+            .unwrap_or(selective::COVERAGE_DISTRIBUTIONALLY_NOVEL),
+    });
+}
+
+#[then(
+    "the record reads outcome abstention with cause and coverage distributionally-novel and carries no confidence field"
+)]
+fn selective_cli_record_is_typed(w: &mut R4g1World) {
+    let record = w.abstention_record.as_ref().expect("abstention record");
+    assert_eq!(record.outcome, selective::STATUS_ABSTENTION);
+    assert_eq!(record.cause, selective::CAUSE_DISTRIBUTIONALLY_NOVEL);
+    assert_eq!(record.coverage, selective::COVERAGE_DISTRIBUTIONALLY_NOVEL);
+    assert_eq!(record.status, "novel");
+    // The legacy-coverage record carries no confidence field at all — the
+    // struct has none to fabricate (spec section 6).
+}
+
+#[given("a serving cascade whose R4G1 tier abstained")]
+fn selective_abstained_cascade(_w: &mut R4g1World) {}
+
+#[when("the native selective block is built")]
+fn selective_native_block(w: &mut R4g1World) {
+    w.selective_block = Some(selective_abstention_block(true, Some("novel")));
+    w.selective_block_failed = Some(selective_abstention_block(false, None));
+}
+
+#[then(
+    "it reports status abstention with cause distributionally-novel and null confidence and evidence"
+)]
+fn selective_native_block_is_typed(w: &mut R4g1World) {
+    let block = w.selective_block.as_ref().expect("selective block");
+    assert_eq!(block["status"], selective::STATUS_ABSTENTION);
+    assert_eq!(block["cause"], selective::CAUSE_DISTRIBUTIONALLY_NOVEL);
+    assert_eq!(
+        block["coverage"],
+        selective::COVERAGE_DISTRIBUTIONALLY_NOVEL
+    );
+    assert!(block["confidence_permille"].is_null() && block["evidence"].is_null());
+}
+
+#[then("a cascade that only failed reports no selective block")]
+fn selective_native_block_null_on_failure(w: &mut R4g1World) {
+    let failed = w.selective_block_failed.as_ref().expect("failed block");
+    assert!(
+        failed.is_null(),
+        "a fault is outside the typed selective outcome space"
+    );
+}
+
+#[when("the OpenAI-compatible surface envelopes the abstention")]
+fn selective_openai_envelope(w: &mut R4g1World) {
+    let (status, body) = openai_selective_abstention_envelope(Some("novel"));
+    w.endpoint_status = Some(status);
+    w.endpoint_body = Some(body);
+}
+
+#[then(
+    "the response is HTTP 422 with the vendored selective-prediction error type and the typed abstention code"
+)]
+fn selective_openai_envelope_is_typed(w: &mut R4g1World) {
+    assert_eq!(w.endpoint_status, Some(422));
+    let body = w.endpoint_body.as_ref().expect("endpoint body");
+    assert_eq!(body["error"]["type"], selective::OPENAI_ERROR_TYPE);
+    assert_eq!(
+        body["error"]["code"],
+        selective::OPENAI_CODE_ABSTENTION_DISTRIBUTIONALLY_NOVEL
+    );
+    assert_eq!(
+        body["error"]["coverage"],
+        selective::COVERAGE_DISTRIBUTIONALLY_NOVEL
+    );
+}
+
+#[given("a typed abstention code")]
+fn selective_typed_code(_w: &mut R4g1World) {}
+
+#[when("the streaming decline frames are built")]
+fn selective_stream_frames(w: &mut R4g1World) {
+    w.selective_frames =
+        selective_stream_decline_frames(selective::OPENAI_CODE_ABSTENTION_DISTRIBUTIONALLY_NOVEL);
+}
+
+#[then("no content chunk is emitted and the frames are one typed error event then the DONE marker")]
+fn selective_stream_frames_are_terminal(w: &mut R4g1World) {
+    assert_eq!(w.selective_frames.len(), 2, "one terminal event, then DONE");
+    assert!(w.selective_frames[0].starts_with("event: error\n"));
+    assert!(w.selective_frames[0].contains(selective::OPENAI_ERROR_TYPE));
+    assert!(
+        !w.selective_frames[0].contains("delta"),
+        "no content chunk precedes the terminal error"
+    );
+    assert_eq!(w.selective_frames[1], "data: [DONE]\n\n");
+}
+
+#[given("a bundle directory carrying a selective-calibration sidecar")]
+fn selective_sidecar_dir(_w: &mut R4g1World) {}
+
+#[when("the selective-calibration probe inspects the bundle")]
+fn selective_probe(w: &mut R4g1World) {
+    let root = std::env::temp_dir().join("r4-bdd-selective-calibration-839");
+    let _ = std::fs::remove_dir_all(&root);
+    std::fs::create_dir_all(&root).expect("mkdir");
+    assert!(
+        selective_calibration_probe(&root).is_none(),
+        "absent calibration data is legacy-coverage mode"
+    );
+    std::fs::write(
+        root.join(selective::SELECTIVE_CALIBRATION_FILE),
+        b"not-a-valid-calibration-section",
+    )
+    .expect("write sidecar");
+    w.selective_probe_present = selective_calibration_probe(&root);
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+#[then("the probe reports a hard incompatibility and an empty directory reports none")]
+fn selective_probe_fails_closed(w: &mut R4g1World) {
+    let reason = w
+        .selective_probe_present
+        .as_deref()
+        .expect("present calibration data fails closed");
+    assert!(
+        reason.contains("hard-incompatibility"),
+        "the refusal names the typed outcome: {reason}"
+    );
+}
+
+#[given("the wasm graph bundle is not installed")]
+fn selective_wasm_uninstalled(_w: &mut R4g1World) {}
+
+#[when("the typed wasm response surface is invoked")]
+fn selective_wasm_invoke(w: &mut R4g1World) {
+    w.response = uor_r4_wasm_router::tless_uor::typed_r4g1_response("bdd typed probe", 4);
+}
+
+#[then("it returns a typed hard-incompatibility value instead of trapping")]
+fn selective_wasm_is_typed(w: &mut R4g1World) {
+    let value: serde_json::Value =
+        serde_json::from_str(&w.response).expect("the typed boundary is JSON");
+    assert_eq!(value["status"], selective::STATUS_HARD_INCOMPATIBILITY);
+    assert!(
+        value["reason"].as_str().is_some_and(|r| !r.is_empty()),
+        "the typed refusal names a reason"
+    );
 }
 
 #[given("the configured corpus metadata path is missing")]

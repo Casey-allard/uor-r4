@@ -4471,6 +4471,129 @@ fn cascade_trail_json(trail: &[TierOutcome]) -> serde_json::Value {
     )
 }
 
+/// #839 phase 1 (RF-30): fail-closed selective-calibration probe (spec §6).
+/// Present-but-unexecutable selective-prediction calibration data beside the
+/// active artifact is a hard incompatibility for every request that would
+/// consult the bundle — phase 1 has no executable calibrated mode, and
+/// corrupt-or-unknown calibration data must never silently degrade to the
+/// always-serve legacy surface. Absent → legacy-coverage mode. This probe is
+/// about `selective_calibration.bin` only; the compiler-side
+/// `hamming_calibration.json` conversion input is a different artifact and
+/// is untouched.
+fn selective_calibration_incompatibility(serving: &ServingModelState) -> Option<String> {
+    let bundle = serving.active_bundle.as_ref()?;
+    selective_calibration_probe(&bundle.physical_root)
+}
+
+/// The primitive form of the fail-closed probe: inspect one bundle
+/// directory. `pub` for the RF-30 behavior suite (`tests/bdd.rs`) — not a
+/// stable API surface.
+pub fn selective_calibration_probe(bundle_root: &Path) -> Option<String> {
+    let path = bundle_root.join(crate::selective::SELECTIVE_CALIBRATION_FILE);
+    if path.is_file() {
+        Some(format!(
+            "selective-prediction calibration data is present at {} but no executable \
+             calibrated mode exists (#839 phase 1); failing closed as \
+             hard-incompatibility — present calibration never degrades to legacy \
+             serving (spec section 6)",
+            path.display()
+        ))
+    } else {
+        None
+    }
+}
+
+/// #839 phase 1 (RF-30): the typed spec-§5 selective block of a declined
+/// cascade. An R4G1 abstention is the typed `abstention` outcome with the
+/// only legal legacy cause; a decline with no abstention (every tier failed)
+/// is outside the §2 outcome space and reports `null` — absence is absence,
+/// never a fabricated status.
+fn selective_decline_block(cascade: &ServingCascade) -> serde_json::Value {
+    selective_abstention_block(cascade.r4g1.abstained, cascade.r4g1.status)
+}
+
+/// The primitive form of the declined-cascade selective block. `pub` for the
+/// RF-30 behavior suite (`tests/bdd.rs`) — not a stable API surface.
+pub fn selective_abstention_block(
+    abstained: bool,
+    status_label: Option<&'static str>,
+) -> serde_json::Value {
+    if !abstained {
+        return serde_json::Value::Null;
+    }
+    let coverage = status_label.and_then(crate::selective::coverage_for_policy_label);
+    serde_json::json!({
+        "status": crate::selective::STATUS_ABSTENTION,
+        "coverage": coverage,
+        "cause": crate::selective::CAUSE_DISTRIBUTIONALLY_NOVEL,
+        "confidence_permille": serde_json::Value::Null,
+        "evidence": serde_json::Value::Null,
+    })
+}
+
+/// #839 phase 1: the typed selective-prediction `error.code` of a declined
+/// OpenAI-surface body, when (and only when) the decline is one of the
+/// spec-§5 typed outcomes. Legacy declines (engine pins, profile
+/// restrictions, all-tiers-failed without an abstention) return `None` and
+/// keep their historical envelopes.
+fn selective_error_code(body: &serde_json::Value) -> Option<String> {
+    let error = body.get("error")?;
+    if error.get("type")?.as_str()? != crate::selective::OPENAI_ERROR_TYPE {
+        return None;
+    }
+    error.get("code")?.as_str().map(str::to_owned)
+}
+
+/// #839 phase 1 (RF-30): the typed spec-§5 OpenAI envelope for an abstained
+/// cascade — HTTP 422, `error.type = "uor_selective_prediction"`,
+/// `error.code = "uor_abstention_distributionally_novel"` (the snake rewrite
+/// of the only legal legacy cause), with the coverage reading and cause
+/// carried as additive error fields. This is the migration target of the
+/// generic `engine_declined` envelope for abstentions (spec §5's "migration
+/// ancestor" note); non-abstention declines keep the historical envelope.
+fn openai_selective_abstention(cascade: &ServingCascade) -> GenerationOutcome {
+    let (status, body) = openai_selective_abstention_envelope(cascade.r4g1.status);
+    GenerationOutcome::Declined { status, body }
+}
+
+/// The primitive form of the typed OpenAI abstention envelope. `pub` for the
+/// RF-30 behavior suite (`tests/bdd.rs`) — not a stable API surface.
+pub fn openai_selective_abstention_envelope(
+    status_label: Option<&'static str>,
+) -> (u16, serde_json::Value) {
+    let coverage = status_label.and_then(crate::selective::coverage_for_policy_label);
+    let mut body = openai_error_body(
+        crate::selective::OPENAI_ERROR_TYPE,
+        "the deployed selective-prediction policy abstained: no answer is \
+         served for this prompt (typed abstention, legacy-coverage mode)",
+        None,
+        Some(crate::selective::OPENAI_CODE_ABSTENTION_DISTRIBUTIONALLY_NOVEL),
+    );
+    if let Some(map) = body.get_mut("error").and_then(|e| e.as_object_mut()) {
+        map.insert("coverage".to_owned(), serde_json::json!(coverage));
+        map.insert(
+            "cause".to_owned(),
+            serde_json::json!(crate::selective::CAUSE_DISTRIBUTIONALLY_NOVEL),
+        );
+    }
+    (422, body)
+}
+
+/// Spec §5, streaming: a typed abstention or hard incompatibility on a
+/// streaming request emits **no** content chunk — one terminal typed SSE
+/// `error` event carrying the same code as the non-streaming envelope, then
+/// the `[DONE]` marker; never a silent stream end. `pub` for the RF-30
+/// behavior suite (`tests/bdd.rs`) — not a stable API surface.
+pub fn selective_stream_decline_frames(code: &str) -> Vec<String> {
+    vec![
+        format!(
+            "event: error\ndata: {{\"error\":{{\"type\":\"{}\",\"code\":\"{code}\"}}}}\n\n",
+            crate::selective::OPENAI_ERROR_TYPE
+        ),
+        "data: [DONE]\n\n".to_owned(),
+    ]
+}
+
 /// The honest terminal for a cascade where no tier served (issue #248):
 /// `outcome: "declined_by_all"`, the pinned tier when one was named, the
 /// derived legacy fields, and the full per-tier trail. A decline that
@@ -4500,6 +4623,11 @@ fn declined_by_all_response(
         format!("Declined by all attempted tiers ({attempted}); no text was generated.");
     let mut body = serde_json::json!({
         "outcome": "declined_by_all",
+        // #839 phase 1 (RF-30): the typed spec-§5 selective block — the
+        // abstention outcome with its typed cause when the R4G1 policy
+        // abstained; `null` when every tier hard-failed (a fault is not a
+        // typed selective outcome).
+        "selective": selective_decline_block(cascade),
         "engine": pinned.unwrap_or("auto"),
         "pinned_engine": pinned,
         "text": "",
@@ -15047,6 +15175,21 @@ fn generate_serving_completion(
         };
     }
 
+    // #839 phase 1 (RF-30): fail-closed selective-calibration gate (spec §6),
+    // evaluated before any generation — present calibration data is a typed
+    // hard incompatibility, never a silent legacy serve.
+    if let Some(reason) = selective_calibration_incompatibility(&serving_guard) {
+        return GenerationOutcome::Declined {
+            status: 409,
+            body: openai_error_body(
+                crate::selective::OPENAI_ERROR_TYPE,
+                &reason,
+                None,
+                Some(crate::selective::OPENAI_CODE_INCOMPATIBLE_ARTIFACT),
+            ),
+        };
+    }
+
     let mut router_guard = router.lock().unwrap();
 
     let mut buf = [0u8; 640];
@@ -15132,6 +15275,14 @@ fn generate_serving_completion(
     );
     let generation_mode = derive_generation_mode(&cascade, pinned);
     let Some(final_response_text) = cascade.outcome.text.clone() else {
+        // #839 phase 1 (RF-30): an R4G1 abstention on the OpenAI surface is
+        // the typed spec-§5 structured error — HTTP 422 with the vendored
+        // `uor_selective_prediction` type and the snake-rewritten legacy
+        // cause code — never an empty-`choices` success and never the
+        // generic `engine_declined` envelope it migrates from.
+        if cascade.r4g1.abstained {
+            return openai_selective_abstention(&cascade);
+        }
         // Declined by all: an honest terminal instead of serving the sparse-
         // string placeholder as if it were generated. #789-G3.3: enveloped
         // for the OpenAI surface — and always 503 here, never the native
@@ -15999,6 +16150,18 @@ fn handle_connection(
             req.seed,
         ) {
             GenerationOutcome::Declined { status, body } => {
+                // #839 phase 1 (RF-30), spec §5 streaming: a typed
+                // abstention or hard incompatibility on a `stream: true`
+                // request is one terminal typed SSE error event then the
+                // `[DONE]` marker — no content chunk, never a silent end,
+                // never a bare JSON body on the streaming wire. Legacy
+                // (untyped) declines keep their historical single-JSON form.
+                if req.stream == Some(true) {
+                    if let Some(code) = selective_error_code(&body) {
+                        send_sse_stream(stream, &selective_stream_decline_frames(&code));
+                        return;
+                    }
+                }
                 send_json_response(stream, status, &body.to_string());
                 return;
             }
@@ -16147,6 +16310,22 @@ fn handle_connection(
             req.seed,
         ) {
             GenerationOutcome::Declined { status, body } => {
+                // #839 phase 1 (RF-30): the same spec-§5 streaming rule as
+                // `/v1/chat/completions` — a typed selective decline on a
+                // `stream: true` request terminates with one typed SSE error
+                // event (this surface has no `[DONE]` sentinel; the typed
+                // error event is itself terminal). Legacy declines keep the
+                // single-JSON form.
+                if req.stream == Some(true) {
+                    if let Some(code) = selective_error_code(&body) {
+                        let frames = vec![format!(
+                            "event: error\ndata: {{\"error\":{{\"type\":\"{}\",\"code\":\"{code}\"}}}}\n\n",
+                            crate::selective::OPENAI_ERROR_TYPE
+                        )];
+                        send_sse_stream(stream, &frames);
+                        return;
+                    }
+                }
                 send_json_response(stream, status, &body.to_string());
                 return;
             }
@@ -16229,6 +16408,26 @@ fn handle_connection(
         }
 
         let mut installed = serving.lock().unwrap();
+
+        // #839 phase 1 (RF-30): fail-closed selective-calibration gate
+        // (spec §6), evaluated before any routing or generation — present
+        // calibration data is the typed native `hard-incompatibility`
+        // outcome (HTTP 409), never a silent legacy serve.
+        if let Some(reason) = selective_calibration_incompatibility(&installed) {
+            let body = serde_json::json!({
+                "selective": {
+                    "status": crate::selective::STATUS_HARD_INCOMPATIBILITY,
+                    "coverage": serde_json::Value::Null,
+                    "cause": serde_json::Value::Null,
+                    "confidence_permille": serde_json::Value::Null,
+                    "evidence": serde_json::Value::Null,
+                },
+                "error": reason,
+            });
+            send_json_response(stream, 409, &body.to_string());
+            return;
+        }
+
         let mut router_guard = router.lock().unwrap();
 
         // 1. Dry run routing to get baseline parameters via UOR pipeline
@@ -16432,6 +16631,18 @@ fn handle_connection(
                 routing_data.routed.window_index, theme, routing_data.routed.scale_x, kappa, theta_d, generation_mode),
             "llm_connected": llm_connected,
             "generation_mode": generation_mode,
+            // #839 phase 1 (RF-30): the typed spec-§5 selective block of a
+            // served answer in legacy-coverage mode — coverage from the D4
+            // signal when the policy engine produced a reading, `null` on
+            // auxiliary tiers that bypass D4 (absence is absence); no
+            // confidence or evidence values exist in legacy mode, ever.
+            "selective": {
+                "status": crate::selective::STATUS_SUPPORTED_ANSWER,
+                "coverage": r4g1_status.and_then(crate::selective::coverage_for_policy_label),
+                "cause": serde_json::Value::Null,
+                "confidence_permille": serde_json::Value::Null,
+                "evidence": serde_json::Value::Null,
+            },
             "r4g1": {
                 "status": r4g1_status,
                 "widened": r4g1_widened,
@@ -27104,9 +27315,13 @@ mod tests {
     /// #789-G3.3: the OpenAI envelope wrapper never forwards the native
     /// status — in particular not the native 200-on-abstain (#223's
     /// abstention-is-a-declared-outcome contract, which belongs to
-    /// `/api/chat`): on `/v1/*` a request that produced no text is always
-    /// a 503 `engine_declined` error envelope, with the native reason
-    /// text preserved as the message.
+    /// `/api/chat`): a request that reaches this wrapper is a 503
+    /// `engine_declined` error envelope, with the native reason text
+    /// preserved as the message. (#839 phase 1: an ABSTAINED cascade no
+    /// longer reaches this wrapper at all — it takes the typed 422
+    /// `uor_selective_prediction` envelope first, covered by
+    /// `openai_abstention_is_a_typed_422_selective_envelope`; this wrapper
+    /// remains the terminal for non-abstention declines.)
     #[test]
     fn openai_decline_wrapper_never_forwards_the_native_200() {
         use uor_r4_router::fallback::{CascadeOutcome, EngineStatus, TierOutcome};
@@ -27152,6 +27367,207 @@ mod tests {
             message.contains("Declined by all attempted tiers"),
             "the native reason text is preserved: {message}"
         );
+    }
+
+    /// #839 phase 1 (RF-30): an abstained cascade on the OpenAI surface is
+    /// the typed spec-§5 structured error — HTTP 422, the vendored
+    /// `uor_selective_prediction` type, the snake-rewritten legacy cause —
+    /// with coverage and cause carried, and the typed code recoverable by
+    /// the streaming gate while legacy envelopes are not mistaken for it.
+    #[test]
+    fn openai_abstention_is_a_typed_422_selective_envelope() {
+        use uor_r4_router::fallback::{CascadeOutcome, EngineStatus, TierOutcome};
+
+        let abstained = super::ServingCascade {
+            outcome: CascadeOutcome {
+                text: None,
+                served_by: None,
+                trail: vec![TierOutcome {
+                    tier: super::TIER_R4G1,
+                    status: EngineStatus::Abstained,
+                    detail: Some("R4G1 policy abstained (status: novel)".to_owned()),
+                }],
+            },
+            r4g1: super::R4g1Signal {
+                status: Some("novel"),
+                widened: false,
+                abstained: true,
+                error: None,
+            },
+            geometric: None,
+            usage: None,
+        };
+        let super::GenerationOutcome::Declined { status, body } =
+            super::openai_selective_abstention(&abstained)
+        else {
+            panic!("an abstention envelopes to a decline");
+        };
+        assert_eq!(status, 422, "spec section 5: abstention is HTTP 422");
+        assert_eq!(body["error"]["type"], crate::selective::OPENAI_ERROR_TYPE);
+        assert_eq!(
+            body["error"]["code"],
+            crate::selective::OPENAI_CODE_ABSTENTION_DISTRIBUTIONALLY_NOVEL
+        );
+        assert_eq!(
+            body["error"]["coverage"],
+            crate::selective::COVERAGE_DISTRIBUTIONALLY_NOVEL
+        );
+        assert_eq!(
+            body["error"]["cause"],
+            crate::selective::CAUSE_DISTRIBUTIONALLY_NOVEL
+        );
+        assert_eq!(
+            super::selective_error_code(&body).as_deref(),
+            Some(crate::selective::OPENAI_CODE_ABSTENTION_DISTRIBUTIONALLY_NOVEL)
+        );
+        let legacy =
+            super::openai_error_body("engine_declined", "x", None, Some("declined_by_all"));
+        assert_eq!(
+            super::selective_error_code(&legacy),
+            None,
+            "legacy envelopes are never mistaken for typed selective declines"
+        );
+    }
+
+    /// #839 phase 1 (RF-30): the native declined body carries the typed
+    /// spec-§5 selective block on an abstention and `null` on a
+    /// pure-failure decline — a fault is not a typed selective outcome,
+    /// and absence is absence.
+    #[test]
+    fn native_selective_block_is_typed_on_abstention_and_null_on_failure() {
+        use uor_r4_router::fallback::{CascadeOutcome, EngineStatus, TierOutcome};
+
+        let abstained = super::ServingCascade {
+            outcome: CascadeOutcome {
+                text: None,
+                served_by: None,
+                trail: vec![TierOutcome {
+                    tier: super::TIER_R4G1,
+                    status: EngineStatus::Abstained,
+                    detail: Some("R4G1 policy abstained (status: novel)".to_owned()),
+                }],
+            },
+            r4g1: super::R4g1Signal {
+                status: Some("novel"),
+                widened: true,
+                abstained: true,
+                error: None,
+            },
+            geometric: None,
+            usage: None,
+        };
+        let mode = super::derive_generation_mode(&abstained, None);
+        let (status, body) = super::declined_by_all_response(&abstained, None, &mode);
+        assert_eq!(status, 200, "an abstention is a declared outcome");
+        assert_eq!(
+            body["selective"]["status"],
+            crate::selective::STATUS_ABSTENTION
+        );
+        assert_eq!(
+            body["selective"]["cause"],
+            crate::selective::CAUSE_DISTRIBUTIONALLY_NOVEL
+        );
+        assert_eq!(
+            body["selective"]["coverage"],
+            crate::selective::COVERAGE_DISTRIBUTIONALLY_NOVEL
+        );
+        assert!(
+            body["selective"]["confidence_permille"].is_null()
+                && body["selective"]["evidence"].is_null(),
+            "legacy-coverage mode never fabricates confidence or evidence"
+        );
+
+        let failed = super::ServingCascade {
+            outcome: CascadeOutcome {
+                text: None,
+                served_by: None,
+                trail: vec![TierOutcome {
+                    tier: super::TIER_R4G1,
+                    status: EngineStatus::Failed,
+                    detail: Some("runtime unavailable".to_owned()),
+                }],
+            },
+            r4g1: super::R4g1Signal {
+                status: None,
+                widened: false,
+                abstained: false,
+                error: Some("runtime unavailable".to_owned()),
+            },
+            geometric: None,
+            usage: None,
+        };
+        let mode = super::derive_generation_mode(&failed, None);
+        let (status, body) = super::declined_by_all_response(&failed, None, &mode);
+        assert_eq!(status, 503, "a pure failure is a fault, not an abstention");
+        assert!(
+            body["selective"].is_null(),
+            "a fault is outside the typed selective outcome space"
+        );
+    }
+
+    /// Spec §5 streaming: the typed decline stream is exactly one terminal
+    /// typed error event then the DONE marker — no content chunk, never a
+    /// silent stream end.
+    #[test]
+    fn selective_stream_decline_is_one_typed_error_event_then_done() {
+        let frames = super::selective_stream_decline_frames(
+            crate::selective::OPENAI_CODE_ABSTENTION_DISTRIBUTIONALLY_NOVEL,
+        );
+        assert_eq!(frames.len(), 2, "one terminal event, then DONE");
+        assert!(frames[0].starts_with("event: error\n"));
+        assert!(frames[0].contains(crate::selective::OPENAI_CODE_ABSTENTION_DISTRIBUTIONALLY_NOVEL));
+        assert!(
+            frames[0].contains(crate::selective::OPENAI_ERROR_TYPE),
+            "the terminal event carries the vendored error type"
+        );
+        assert!(
+            !frames[0].contains("delta"),
+            "no content chunk precedes the terminal error"
+        );
+        assert_eq!(frames[1], "data: [DONE]\n\n");
+    }
+
+    /// #839 phase 1 (RF-30), spec §6: present selective-calibration data
+    /// beside the active artifact fails closed as a hard incompatibility;
+    /// absent data is legacy-coverage mode. Present never silently degrades
+    /// to legacy serving.
+    #[test]
+    fn present_selective_calibration_fails_closed() {
+        use uor_r4_model_source::attention::AttentionOperatorSpec;
+
+        let root = std::env::temp_dir().join("r4-selective-calibration-839");
+        let _ = std::fs::remove_dir_all(&root);
+        let bundle_root = root.join("compiled/teacher");
+        std::fs::create_dir_all(&bundle_root).expect("mkdir");
+        let state = super::ServingModelState {
+            active_bundle: Some(super::ResolvedCompiledBundle {
+                logical_name: "teacher".to_owned(),
+                physical_root: bundle_root.clone(),
+                graph: bundle_root.join("graph/score.r4g1"),
+                teacher: bundle_root.join("tless_artifacts.bin"),
+                attention_operator: AttentionOperatorSpec::standard_v1(),
+                dense_operator: None,
+                source_manifest_kappa: None,
+                release_bundle: None,
+            }),
+            ..super::ServingModelState::default()
+        };
+        assert!(
+            super::selective_calibration_incompatibility(&state).is_none(),
+            "absent calibration data is legacy-coverage mode, not an incompatibility"
+        );
+        std::fs::write(
+            bundle_root.join(crate::selective::SELECTIVE_CALIBRATION_FILE),
+            b"not-a-valid-calibration-section",
+        )
+        .expect("write sidecar");
+        let reason = super::selective_calibration_incompatibility(&state)
+            .expect("present calibration data fails closed");
+        assert!(
+            reason.contains("hard-incompatibility"),
+            "the refusal names the typed outcome: {reason}"
+        );
+        let _ = std::fs::remove_dir_all(root);
     }
 
     #[test]

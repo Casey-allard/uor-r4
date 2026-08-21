@@ -280,3 +280,12 @@ statement = "Teacher parity and benchmarks for the compiled transformerless runt
 scope = "certifier-instrument"
 reachability = "off-serving-path"
 evidence = "tests/bdd.rs, features/suites/teacher_parity_benchmarks.feature (pinned-fixture-gated; skips vacuously when fixtures absent)"
+
+[[id]]
+id = "RF-30"
+level = "build"
+suite = "selective_prediction_surfaces"
+statement = "Typed selective-prediction serving surface (legacy-coverage mode): deterministic cross-surface status schema, typed abstention cause, and fail-closed selective-calibration detection"
+scope = "normative-runtime"
+reachability = "deployed-serving"
+evidence = "features/suites/selective_prediction_surfaces.feature; src/selective.rs, src/chat.rs, src/server.rs, src/tless_uor.rs (typed spec section-5 encodings on the served path); docs/selective_prediction_spec_838.md sections 5-6"

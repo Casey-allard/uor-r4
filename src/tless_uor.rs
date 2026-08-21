@@ -203,6 +203,41 @@ pub fn generate_r4g1_response(prompt: &str, max_tokens: usize) -> Option<String>
     generate_r4g1_response_with_session_signature(prompt, max_tokens, None)
 }
 
+/// #839 phase 1 (RF-30): the typed selective-prediction boundary response
+/// (spec §5, WASM row) in legacy-coverage mode. Always a typed JSON value
+/// with the canonical labels — never a trap, and never a bare `None` that
+/// conflates an abstention with a failure:
+///
+/// - a served answer → `status: "supported-answer"` with the text; this
+///   decode path runs without the D4 policy engine, so the coverage axis is
+///   honestly `null` — absence is absence, never fabricated (spec §6);
+/// - an unusable surface (no installed bundle, runtime/tokenizer rejection,
+///   empty generation) → `status: "hard-incompatibility"` with a reason —
+///   the request cannot be validly served by this artifact/surface,
+///   fail-closed;
+/// - the `abstention` arm of the boundary schema is declared by the shared
+///   vocabulary and becomes reachable when the deployed policy engine
+///   reaches this path (recorded limitation of the wasm graph surface; only
+///   the legacy `distributionally-novel` cause may ever appear here).
+pub fn typed_r4g1_response(prompt: &str, max_tokens: usize) -> String {
+    match generate_r4g1_response(prompt, max_tokens) {
+        Some(text) => serde_json::json!({
+            "status": crate::selective::STATUS_SUPPORTED_ANSWER,
+            "coverage": serde_json::Value::Null,
+            "cause": serde_json::Value::Null,
+            "confidence_permille": serde_json::Value::Null,
+            "text": text,
+        })
+        .to_string(),
+        None => serde_json::json!({
+            "status": crate::selective::STATUS_HARD_INCOMPATIBILITY,
+            "reason": "the wasm graph surface cannot validly serve this request \
+                       (no installed bundle, or the runtime/tokenizer rejected it)",
+        })
+        .to_string(),
+    }
+}
+
 /// Generate through the graph runtime with an optional server-side session
 /// signature. The context signature remains the ROUT input; the session lane
 /// is consumed by the existing emission-affinity bonus.

@@ -193,6 +193,12 @@ The `build` level is *harness-built* (structural). It is a separate axis from an
 | --- | --- | --- | --- | --- | --- |
 | `RF-26` | `build` | `normative-runtime` | `deployed-serving` | docs/scoring_semantics.md; crates/uor-r4-graph-format scoring_semantics (deployed scorer) | Specify fixed-point scoring semantics and deterministic tie-breaking |
 
+## selective_prediction_surfaces
+
+| ID | Level | Execution scope | Serving reachability | Evidence | Statement |
+| --- | --- | --- | --- | --- | --- |
+| `RF-30` | `build` | `normative-runtime` | `deployed-serving` | features/suites/selective_prediction_surfaces.feature; src/selective.rs, src/chat.rs, src/server.rs, src/tless_uor.rs (typed spec section-5 encodings on the served path); docs/selective_prediction_spec_838.md sections 5-6 | Typed selective-prediction serving surface (legacy-coverage mode): deterministic cross-surface status schema, typed abstention cause, and fail-closed selective-calibration detection |
+
 ## semantic_state_space
 
 | ID | Level | Execution scope | Serving reachability | Evidence | Statement |

@@ -75,6 +75,16 @@ pub struct ChatAbstention {
     pub status: String,
     /// Whether the policy widened once before abstaining.
     pub widened: bool,
+    /// #839 phase 1 (RF-30): the typed spec-§2 outcome label — always
+    /// `"abstention"` on this record (an abstention is a successful,
+    /// honest outcome; spec §5 CLI row).
+    pub outcome: &'static str,
+    /// The typed abstention cause. In legacy-coverage mode the only legal
+    /// cause is `"distributionally-novel"` (spec §6); calibrated-mode
+    /// causes are phase-2 vocabulary and are never minted here.
+    pub cause: &'static str,
+    /// The coverage-axis reading of the abstaining window (spec §2).
+    pub coverage: &'static str,
 }
 
 /// #785 C3: the depth/fallback-tier witness for one chat turn.
@@ -129,6 +139,12 @@ pub enum ChatError {
     MissingModel,
     /// The model bundle or its CID verification failed.
     Model(ModelError),
+    /// #839 phase 1 (RF-30), spec §6: the bundle carries selective-prediction
+    /// calibration data (`selective_calibration.bin`), but no executable
+    /// calibrated mode exists — the typed `hard-incompatibility` outcome,
+    /// fail-closed. Present calibration never silently degrades to the
+    /// always-serve legacy surface.
+    SelectiveCalibrationPresent { path: std::path::PathBuf },
 }
 
 impl fmt::Display for ChatError {
@@ -149,6 +165,13 @@ impl fmt::Display for ChatError {
                 formatter.write_str("no chat model selected; set TLESS_MODEL or pass --model")
             }
             Self::Model(error) => error.fmt(formatter),
+            Self::SelectiveCalibrationPresent { path } => write!(
+                formatter,
+                "hard-incompatibility: selective-prediction calibration data is present at \
+                 {} but no executable calibrated mode exists (#839 phase 1); present \
+                 calibration never degrades to legacy serving",
+                path.display()
+            ),
         }
     }
 }
@@ -162,7 +185,8 @@ impl std::error::Error for ChatError {
             | Self::EmptyGeneration
             | Self::TokenizerUnavailable { .. }
             | Self::RepetitiveGeneration
-            | Self::MissingModel => None,
+            | Self::MissingModel
+            | Self::SelectiveCalibrationPresent { .. } => None,
             Self::Model(error) => Some(error),
         }
     }
@@ -261,6 +285,14 @@ impl ChatEngineBuilder {
         // previously interpolated into a hardcoded `.uor-models` path, so
         // it could disagree with an env-relocated store or escape it.
         let model_dir = crate::model::compiled_model_dir(&manifest.name);
+        // #839 phase 1 (RF-30), spec §6: present selective-calibration data
+        // fails closed before the engine constructs — never a legacy serve.
+        let calibration_path = model_dir.join(crate::selective::SELECTIVE_CALIBRATION_FILE);
+        if calibration_path.is_file() {
+            return Err(ChatError::SelectiveCalibrationPresent {
+                path: calibration_path,
+            });
+        }
         let r4g1_bytes = read_preferred_chat_graph(&model_dir)?;
         validate_chat_r4g1_structure(r4g1_bytes.as_deref())?;
         let bundled_tokenizer = match model_store.get(&manifest.tokenizer) {
@@ -382,6 +414,14 @@ fn build_local_compiled_engine(
     max_tokens: usize,
     sample_seed: Option<u32>,
 ) -> Result<ChatEngine, ChatError> {
+    // #839 phase 1 (RF-30), spec §6: present selective-calibration data
+    // fails closed before the engine constructs — never a legacy serve.
+    let calibration_path = directory.join(crate::selective::SELECTIVE_CALIBRATION_FILE);
+    if calibration_path.is_file() {
+        return Err(ChatError::SelectiveCalibrationPresent {
+            path: calibration_path,
+        });
+    }
     let artifact_bytes = std::fs::read(directory.join("tless_artifacts.bin"))?;
     let r4g1_bytes = read_preferred_chat_graph(directory)?;
     validate_chat_r4g1_structure(r4g1_bytes.as_deref())?;
@@ -517,10 +557,17 @@ fn d4_gate(
     let engine = policy_engine.as_deref_mut()?;
     match engine.predict_decision(window) {
         Ok(PredictDecision::Serve(_)) => None,
-        Ok(PredictDecision::Abstain(outcome)) => Some(ChatAbstention {
-            status: PolicyStatus::from(outcome.status).label().to_owned(),
-            widened: outcome.widened,
-        }),
+        Ok(PredictDecision::Abstain(outcome)) => {
+            let label = PolicyStatus::from(outcome.status).label();
+            Some(ChatAbstention {
+                status: label.to_owned(),
+                widened: outcome.widened,
+                outcome: crate::selective::STATUS_ABSTENTION,
+                cause: crate::selective::CAUSE_DISTRIBUTIONALLY_NOVEL,
+                coverage: crate::selective::coverage_for_policy_label(label)
+                    .unwrap_or(crate::selective::COVERAGE_DISTRIBUTIONALLY_NOVEL),
+            })
+        }
         Err(bound) => {
             tracing::warn!(
                 %bound,
