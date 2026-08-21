@@ -399,6 +399,31 @@ the maintainer's on #822. *(Recorded 2026-08-21: **REVISE** — S1 returns to
 representation/compiler redesign behind an RFC gate; the 20‰ floor does not move. See
 the #822 decision comment and the plan's S1 stage-verdict entry.)*
 
+**S1 redesign — Q1 answered and the D1 instrument measured: first floor-clearing
+off-serving arm (#822, 2026-08-21).** Executing the approved redesign RFC
+([`s1_redesign_rfc_822.md`](s1_redesign_rfc_822.md)); both records live in
+[`s1_redesign_instruments_822.md`](s1_redesign_instruments_822.md) (harness
+`crates/uor-r4-api/tests/joint_conditional_run_822.rs`, CID-bound record
+[`joint_conditional_822_result.json`](joint_conditional_822_result.json)). **Q1:** the
+recorded `t_argmax` labels condition on the full article prefix hard-capped at 128
+positions (`--sequence-length 128`; mean prefix 62.7 tokens; 85.4% of stories truncated
+at the cap) — so the measured suffix-locality is a property of the compiled key space,
+not the observation protocol, and the label-side conditioning ceiling is 128 tokens,
+not the teacher's native 8,192. **D1:** joint conditional tables keyed by
+(content token, 2-token suffix), scored against the exactly-reproduced #875/#891
+gates: the strict joint arm is real but sparsity-bound (+6.8‰ [4.8, 8.9]; support
+exists on exactly the 46,128 known-suffix positions), while the pre-declared
+**backed-off mix** (joint where supported, Ψ-bag where not) measured **277.2‰ →
++30.6‰ (paired 95% CI [+28.6, +32.5])** — the first arm in the S1 record whose paired
+lower bound clears the frozen 20‰ floor AND the 25‰ lowering-track opening bar,
+off-serving. Two planted nulls certify conditioning specificity (prompt-swap −33.2‰;
+key-shuffle −116.3‰), and minimal-pair follows rise 10 → 78–83 of 4,722. The `d4skip`
+comparison arm ((token, last-token) keys, denser support) measured +49.6‰
+[46.8, 52.4] — key granularity is recorded design input. Verdict
+**`SELECT (backed-off mix)`** under the pre-registered rule posted to #822 before the
+run; the #836-shaped lowering track is filed as #897 (trigger-gated on the RFC §6-4
+decision after D2; the 20‰ floor stays the promotion gate end-to-end).
+
 **S2 item A — the typed selective-prediction contract and the answerability benchmark
 constitution are frozen (#838, 2026-08-21).**
 [`docs/selective_prediction_spec_838.md`](selective_prediction_spec_838.md) separates

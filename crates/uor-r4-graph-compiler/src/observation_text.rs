@@ -6,7 +6,9 @@
 //!
 //! Record semantics are the generation path's, teacher-forced:
 //!
-//! - per article, the text is tokenized BOS-prefixed and the oracle steps
+//! - per article, the text is tokenized (no BOS is prepended on this
+//!   path; the autoregressive `observe` driver is the one that starts from
+//!   `oracle.bos_token()` — see the #822 RFC-Q1 record) and the oracle steps
 //!   over the stream; at each position the v4 88-byte record for
 //!   (8-token context window → next text token) is emitted through the
 //!   shared [`compiler::encode_v4_record`] /
