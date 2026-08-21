@@ -419,6 +419,26 @@ properties, including that a coverage-only report can never render a semantic PA
 **Current semantic abstention remains NOT ESTABLISHED**; #837 fits the calibrator
 against this constitution and #839 executes and certifies it on the production
 surfaces.
+
+**S2 item B — the artifact-only confidence calibrator was fitted and did not qualify
+(#837, 2026-08-21): `NO CALIBRATOR ESTABLISHED`.**
+[`docs/selective_calibration_837.md`](selective_calibration_837.md) (record
+`docs/calibrator_837_result.json`; harness
+`crates/uor-r4-api/tests/calibrator_fit_837.rs`). Under the #838 frozen gates
+(false-answer UCB95 ≤ 10‰ release / ≤ 50‰ research at coverage floors 20‰/50‰), on
+document-disjoint fit/calibration/test partitions of the #833 held-out set with the
+suffix baseline (reproduced 246.6‰) as the reference predictor: no arm — margin,
+top1-rate, fitted support×margin bucket table, or a six-feature integer combination —
+met either gate on the calibration partition, so the untouched test partition was never
+consumed and #839 is not activated. Three findings stand: artifact signals DO rank
+confidence (the bucket table's risk–coverage curve is cleanly monotone, 11‰ error at 10‰
+coverage — a thin ~99%-precision memorized slice exists but is too thin for the frozen
+operating points); raw margin is singleton-polluted (its most-confident slice is 520‰
+wrong, because margin 1000‰ is dominated by total=1 suffix keys — support-conditioning
+is what turns margin into signal); and 2,454 content-answerable novel positions (94‰ of
+novelty) are structurally discarded by every suffix-feature calibrator. The deployed D4
+policy stays **coverage-only**; the recorded next direction is evidence-acquisition
+redesign (content-side features), re-entering under the same frozen gates.
 The **geometric router** is a validated, real component (content-query
 retrieval MRR 0.88+, #486/#490/#502) but it is a retrieval/routing mechanism,
 not itself a generative model, and it runs on `f64` outside the P-4 kernel by
