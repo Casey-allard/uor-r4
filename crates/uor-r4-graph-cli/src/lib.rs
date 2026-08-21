@@ -5511,6 +5511,11 @@ fn score_command_with_authority(
             exct_tls1: &tls1,
             exct_top_x: config.exct_top_x,
             fwd_rows: &fwd_rows,
+            // #897: skip-mix lowering is not yet wired into this compile
+            // path's fitting stage; empty means the SKMX/PSIB sections are
+            // not emitted (absent-section identity, unchanged behavior).
+            skipmix_rows: &[],
+            psi_bag_rows: &[],
         },
         tokenizer_cid,
     );

@@ -763,6 +763,11 @@ pub fn run_point(
             exct_tls1: &inputs.tls1,
             exct_top_x: score_config.exct_top_x,
             fwd_rows,
+            // #897: not yet wired into this sweep's fitting stage; empty
+            // means the SKMX/PSIB sections are not emitted (absent-section
+            // identity, unchanged behavior).
+            skipmix_rows: &[],
+            psi_bag_rows: &[],
         },
     );
     let r4g1_emission_ms = elapsed_ms(stage);
@@ -935,6 +940,11 @@ pub fn reconstruction_null(
                 exct_tls1: &inputs.tls1,
                 exct_top_x: score_config.exct_top_x,
                 fwd_rows: &fwd_rows,
+                // #897: not yet wired into this sweep's fitting stage; empty
+                // means the SKMX/PSIB sections are not emitted
+                // (absent-section identity, unchanged behavior).
+                skipmix_rows: &[],
+                psi_bag_rows: &[],
             },
         );
         // #611: reconstruction_null reads only rule1_chain + the analytic

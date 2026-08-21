@@ -1278,6 +1278,17 @@ pub struct ScoredGraphInfo {
     pub context_bytes: u32,
     pub fwda_row_count: u32,
     pub fwda_bytes: u32,
+    /// #897: number of primary joint (content_token, last_window_token)
+    /// rows emitted into the optional SKMX section; 0 when the section was
+    /// not emitted.
+    pub skipmix_row_count: u32,
+    /// #897: byte length of the emitted SKMX section body (0 when absent).
+    pub skipmix_bytes: u32,
+    /// #897: number of Ψ-bag fallback rows emitted into the optional PSIB
+    /// section; 0 when the section was not emitted.
+    pub psi_bag_row_count: u32,
+    /// #897: byte length of the emitted PSIB section body (0 when absent).
+    pub psi_bag_bytes: u32,
     pub artifact_bytes: usize,
     pub transition_quantization: QuantizationErrorStats,
     pub root_prior_quantization: QuantizationErrorStats,
@@ -1312,6 +1323,17 @@ pub struct ScoredGraphSections<'a> {
     /// empty means the section is not emitted and infill serving runs
     /// without the channel.
     pub fwd_rows: &'a [ForwardAnchorRow],
+    /// #897: pre-fitted skip-mix joint table rows -- `(content_token,
+    /// last_window_token, entries)`, from
+    /// `uor_r4_graph_compiler::skipmix_fit::fit_skipmix_tables`. Empty means
+    /// the optional SKMX section is not emitted (same absent-section
+    /// convention as `fwd_rows`); the deployed engine treats a missing SKMX
+    /// section as an inert skip-mix lane (absent-section identity).
+    pub skipmix_rows: &'a [uor_r4_graph_format::SkipmixRowInput],
+    /// #897: pre-fitted Ψ-bag (content-token-only) fallback rows -- `
+    /// (content_token, entries)`, from the same fitting pass. Empty means
+    /// the optional PSIB section is not emitted.
+    pub psi_bag_rows: &'a [(u32, Vec<(u32, i32)>)],
 }
 
 /// Encode compiled context (bigram/trigram) rows as the NGRAM section body.
@@ -1547,6 +1569,8 @@ pub fn emit_scored_r4g1_with_tokenizer_cid(
         exct_tls1,
         exct_top_x,
         fwd_rows,
+        skipmix_rows,
+        psi_bag_rows,
     } = *sections;
     assert_eq!(
         regions.len(),
@@ -1771,6 +1795,35 @@ pub fn emit_scored_r4g1_with_tokenizer_cid(
         builder.add_section(uor_r4_graph_format::SectionId::FWDA, 0, &fwda);
         fwda
     };
+    // #897: the optional SKMX (primary joint) and PSIB (Ψ-bag fallback)
+    // skip-mix sections. Each is independently optional (`fwd_rows`'s
+    // absent-section convention): empty input means the section is not
+    // emitted, and the deployed engine's absent-section identity means a
+    // graph without them scores exactly as it did before this pass. Encoded
+    // via the format crate's own canonicalizing builders (not hand-rolled
+    // here) so the wire encoding has one source of truth, shared with the
+    // format crate's own round-trip tests. A build failure here would mean
+    // the compiler-fitted rows this function was given are not canonical
+    // (duplicate keys, empty entry lists, etc.) -- a self-produced defect
+    // on compiler-produced input, so it panics rather than surfacing a
+    // `Result` (R5, #510), matching every other section builder in this
+    // function.
+    let skmx = if skipmix_rows.is_empty() {
+        Vec::new()
+    } else {
+        let skmx = uor_r4_graph_format::build_skipmix_table(skipmix_rows)
+            .unwrap_or_else(|error| panic!("SKMX section build failed: {error}"));
+        builder.add_section(uor_r4_graph_format::SectionId::SKMX, 0, &skmx);
+        skmx
+    };
+    let psib = if psi_bag_rows.is_empty() {
+        Vec::new()
+    } else {
+        let psib = uor_r4_graph_format::build_psi_bag_table(psi_bag_rows)
+            .unwrap_or_else(|error| panic!("PSIB section build failed: {error}"));
+        builder.add_section(uor_r4_graph_format::SectionId::PSIB, 0, &psib);
+        psib
+    };
     let bytes = builder
         .build()
         .unwrap_or_else(|error| panic!("R4G1 serialization failed: {error}"));
@@ -1811,6 +1864,12 @@ pub fn emit_scored_r4g1_with_tokenizer_cid(
             context_bytes: u32::try_from(ngram.len()).expect("NGRAM section exceeds u32"),
             fwda_row_count: u32::try_from(fwd_rows.len()).expect("FWDA row count exceeds u32"),
             fwda_bytes: u32::try_from(fwda.len()).expect("FWDA section exceeds u32"),
+            skipmix_row_count: u32::try_from(skipmix_rows.len())
+                .expect("SKMX row count exceeds u32"),
+            skipmix_bytes: u32::try_from(skmx.len()).expect("SKMX section exceeds u32"),
+            psi_bag_row_count: u32::try_from(psi_bag_rows.len())
+                .expect("PSIB row count exceeds u32"),
+            psi_bag_bytes: u32::try_from(psib.len()).expect("PSIB section exceeds u32"),
             artifact_bytes,
             transition_quantization,
             root_prior_quantization: emissions.root_prior_quantization,

@@ -32,6 +32,8 @@ pub mod routing;
 pub mod segment_fit;
 pub mod semantic_emission_decoupling;
 pub mod semantic_state;
+#[cfg(not(target_arch = "wasm32"))]
+pub mod skipmix_fit;
 pub mod stage_dag;
 pub mod trace_profile;
 

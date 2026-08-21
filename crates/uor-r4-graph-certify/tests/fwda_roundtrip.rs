@@ -184,6 +184,8 @@ fn tiny_artifact_emitted(
         exct_tls1: &tls1,
         exct_top_x: 3,
         fwd_rows,
+        skipmix_rows: &[],
+        psi_bag_rows: &[],
     };
     let (bytes, info) = match tokenizer_cid {
         Some(tokenizer_cid) => emit_scored_r4g1_with_tokenizer_cid(

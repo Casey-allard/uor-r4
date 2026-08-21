@@ -3940,6 +3940,8 @@ mod tests {
                     emissions: &emissions,
                     context_rows: &context_rows,
                     fwd_rows: &[],
+                    skipmix_rows: &[],
+                    psi_bag_rows: &[],
                     exct_tls1: &tls1,
                     exct_top_x: score::ScoreConfig::default().exct_top_x,
                 },

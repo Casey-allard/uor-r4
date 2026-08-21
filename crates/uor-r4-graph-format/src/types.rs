@@ -195,6 +195,15 @@ impl SectionId {
     /// reader that does not consume it, behaves exactly as before
     /// (absent-section identity); every pre-PSTATE artifact remains valid.
     pub const PSTATE: SectionId = SectionId(Self::OPTIONAL_BIT | 0x10);
+    /// SKMX — packed skip-conditioned residual joint table (optional, issue
+    /// #897, lowering the D1-selected/#897-phase-0-confirmed 1-token
+    /// skip-mix scorer). Absent section, or a reader that does not consume
+    /// it, behaves exactly as before (absent-section identity).
+    pub const SKMX: SectionId = SectionId(Self::OPTIONAL_BIT | 0x11);
+    /// PSIB — packed unconditioned Ψ-bag fallback table for the #897
+    /// skip-mix scorer (optional). Absent section, or a reader that does
+    /// not consume it, behaves exactly as before (absent-section identity).
+    pub const PSIB: SectionId = SectionId(Self::OPTIONAL_BIT | 0x12);
 
     /// Ancillary bit classifying *unknown* section IDs.
     ///
@@ -220,6 +229,8 @@ impl SectionId {
             || self.0 == Self::NGRAM.0
             || self.0 == Self::FWDA.0
             || self.0 == Self::PSTATE.0
+            || self.0 == Self::SKMX.0
+            || self.0 == Self::PSIB.0
     }
 
     /// Mandatory-ness per the RFC §3 column for known IDs.
@@ -234,6 +245,8 @@ impl SectionId {
             value if value == Self::FWDA.0 => false,
             value if value == Self::FMM.0 => false,
             value if value == Self::PSTATE.0 => false,
+            value if value == Self::SKMX.0 => false,
+            value if value == Self::PSIB.0 => false,
             _ => self.0 & Self::OPTIONAL_BIT == 0,
         }
     }

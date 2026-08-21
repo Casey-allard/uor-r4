@@ -348,6 +348,28 @@ impl<'a> GraphView<'a> {
             .transpose()
     }
 
+    /// Parse the optional packed skip-conditioned residual joint table
+    /// (issue #897). `None` when the artifact carries no `SKMX` section, in
+    /// which case serving is identical to the pre-#897 baseline.
+    pub fn skipmix_table(
+        &self,
+    ) -> Result<Option<crate::skipmix::SkipmixTable<'a>>, crate::NotAProduct> {
+        self.section(SectionId::SKMX)
+            .map(crate::skipmix::SkipmixTable::parse)
+            .transpose()
+    }
+
+    /// Parse the optional packed unconditioned Ψ-bag fallback table for the
+    /// #897 skip-mix scorer. `None` when the artifact carries no `PSIB`
+    /// section.
+    pub fn psi_bag_table(
+        &self,
+    ) -> Result<Option<crate::skipmix::PsiBagTable<'a>>, crate::NotAProduct> {
+        self.section(SectionId::PSIB)
+            .map(crate::skipmix::PsiBagTable::parse)
+            .transpose()
+    }
+
     /// Parse the optional packed forward-anchor table (issue #399).
     pub fn fwda_table(&self) -> Result<Option<FwdaTable<'a>>, crate::NotAProduct> {
         self.section(SectionId::FWDA)

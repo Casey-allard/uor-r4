@@ -31,7 +31,9 @@ use uor_r4_core::transformerless::compiler::Corpus;
 use crate::induction;
 
 /// Default per-key cap on retained teacher-argmax candidates (top-`K`),
-/// matching the #834 §6.2 reference arm's `CAP = 64`.
+/// matching the #834 §6.2 reference arm's `CAP = 64`. Also the #897
+/// skip-mix lowering's per-key cap ([`crate::skipmix_fit`]) -- the same
+/// `CAP` the phase-0 harness pre-registered.
 pub const DEFAULT_TOP_K: usize = 64;
 
 /// Fixed-point scale applied to the normalized co-occurrence rate
@@ -130,7 +132,7 @@ pub fn fit_segment_table(
 /// a pair that survived the top-`K` cut carries evidence, and rounding it to a
 /// zero weight would silently drop it from the served sum. `count <= total`, so
 /// the pre-clamp value never exceeds `2^RATE_SCALE_SHIFT` and cannot overflow.
-fn quantize_rate(count: u64, total: u64) -> i32 {
+pub(crate) fn quantize_rate(count: u64, total: u64) -> i32 {
     debug_assert!(count <= total && total > 0);
     let numer = count << RATE_SCALE_SHIFT;
     let scaled = (numer + total / 2) / total;

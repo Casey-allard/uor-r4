@@ -220,6 +220,47 @@ pub enum FormatError {
     PstateEntriesNotSorted,
     /// PSTATE row metadata is invalid.
     PstateInvalidRow,
+    /// PSIB section is shorter than its header.
+    PsiBagTooShort,
+    /// PSIB magic is not `PSIB`.
+    PsiBagBadMagic,
+    /// PSIB version is unsupported.
+    PsiBagUnsupportedVersion,
+    /// PSIB reserved bytes are non-zero.
+    PsiBagNonZeroReserved,
+    /// PSIB row or entry range is out of bounds.
+    PsiBagBounds,
+    /// PSIB rows are not canonically sorted.
+    PsiBagRowsNotSorted,
+    /// PSIB entries are not canonically sorted.
+    PsiBagEntriesNotSorted,
+    /// PSIB row metadata is invalid.
+    PsiBagInvalidRow,
+    /// SKMX section is shorter than its header.
+    SkipmixTooShort,
+    /// SKMX magic is not `SKM1`.
+    SkipmixBadMagic,
+    /// SKMX version is unsupported.
+    SkipmixUnsupportedVersion,
+    /// SKMX reserved bytes are non-zero.
+    SkipmixNonZeroReserved,
+    /// SKMX slot or entry range is out of bounds.
+    SkipmixBounds,
+    /// SKMX entries are not canonically sorted.
+    SkipmixEntriesNotSorted,
+    /// SKMX slot/row metadata is invalid (including a non-power-of-two
+    /// capacity).
+    SkipmixInvalidRow,
+    /// SKMX builder was given the same `(content_token, last_token)` key
+    /// more than once.
+    SkipmixDuplicateKey,
+    /// SKMX open-addressing placement has a gap: an empty slot sits between
+    /// an occupied slot's home bucket and its stored position, which would
+    /// make a forward-probing lookup wrongly report the key as absent.
+    SkipmixProbeGap,
+    /// SKMX open-addressing placement exceeds the header's declared
+    /// `max_probe` bound.
+    SkipmixProbeExceeded,
     /// FWDA has no complete fixed header.
     FwdaTooShort,
     /// FWDA magic is not `FWA1`.
@@ -728,6 +769,35 @@ impl fmt::Display for FormatError {
                 write!(f, "PSTATE entries are not canonically sorted")
             }
             FormatError::PstateInvalidRow => write!(f, "PSTATE row metadata is invalid"),
+            FormatError::PsiBagTooShort => write!(f, "PSIB section is shorter than its header"),
+            FormatError::PsiBagBadMagic => write!(f, "PSIB magic is not PSIB"),
+            FormatError::PsiBagUnsupportedVersion => write!(f, "PSIB version is unsupported"),
+            FormatError::PsiBagNonZeroReserved => write!(f, "PSIB reserved bytes are non-zero"),
+            FormatError::PsiBagBounds => write!(f, "PSIB row or entry range is out of bounds"),
+            FormatError::PsiBagRowsNotSorted => write!(f, "PSIB rows are not canonically sorted"),
+            FormatError::PsiBagEntriesNotSorted => {
+                write!(f, "PSIB entries are not canonically sorted")
+            }
+            FormatError::PsiBagInvalidRow => write!(f, "PSIB row metadata is invalid"),
+            FormatError::SkipmixTooShort => write!(f, "SKMX section is shorter than its header"),
+            FormatError::SkipmixBadMagic => write!(f, "SKMX magic is not SKM1"),
+            FormatError::SkipmixUnsupportedVersion => write!(f, "SKMX version is unsupported"),
+            FormatError::SkipmixNonZeroReserved => write!(f, "SKMX reserved bytes are non-zero"),
+            FormatError::SkipmixBounds => write!(f, "SKMX slot or entry range is out of bounds"),
+            FormatError::SkipmixEntriesNotSorted => {
+                write!(f, "SKMX entries are not canonically sorted")
+            }
+            FormatError::SkipmixInvalidRow => write!(f, "SKMX slot/row metadata is invalid"),
+            FormatError::SkipmixDuplicateKey => {
+                write!(f, "SKMX builder was given a duplicate (content_token, last_token) key")
+            }
+            FormatError::SkipmixProbeGap => write!(
+                f,
+                "SKMX open-addressing placement has a gap before an occupied slot"
+            ),
+            FormatError::SkipmixProbeExceeded => {
+                write!(f, "SKMX open-addressing placement exceeds max_probe")
+            }
             FormatError::FwdaTooShort => write!(f, "FWDA section is shorter than its header"),
             FormatError::FwdaBadMagic => write!(f, "FWDA magic is not FWA1"),
             FormatError::FwdaUnsupportedVersion => write!(f, "FWDA version is unsupported"),

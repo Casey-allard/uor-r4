@@ -19024,6 +19024,8 @@ mod tests {
             exct_tls1: &store_bytes,
             exct_top_x: 1,
             fwd_rows: &[],
+            skipmix_rows: &[],
+            psi_bag_rows: &[],
         };
         let vocab = u32::try_from(artifacts.token_codes.len() / compiler::STAGES)
             .expect("fixture vocabulary fits u32");

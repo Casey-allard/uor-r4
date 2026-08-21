@@ -82,6 +82,8 @@ fn tiny_artifact_bytes() -> Vec<u8> {
             exct_tls1: &tls1,
             exct_top_x: 3,
             fwd_rows: &fwd_rows,
+            skipmix_rows: &[],
+            psi_bag_rows: &[],
         },
     );
     assert_eq!(info.fwda_row_count, 1);

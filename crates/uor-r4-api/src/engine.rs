@@ -38,7 +38,7 @@ use std::fmt;
 use serde::{Deserialize, Serialize};
 use uor_r4_core::transformerless::compiler::{self, Compiled, SIG_BYTES, STAGES, WINDOW};
 use uor_r4_core::transformerless::runtime;
-use uor_r4_graph_format::{r4g1, SectionId};
+use uor_r4_graph_format::{r4g1, PsiBagTable, SectionId, SkipmixTable};
 
 /// Unified inference request payload across HTTP REST, WebSocket, and WASM interfaces.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -96,6 +96,13 @@ pub struct InferenceWitness {
     /// witness-level absent-section identity.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub segment_lane: Option<SegmentLaneWitness>,
+    /// #897 skip-mix-lane attribution: present only when the deployed 1-token
+    /// skip-conditioned residual scorer (S1 redesign, #822) changed the
+    /// served token. Absent (skipped in JSON) for every artifact without an
+    /// SKMX/PSIB section, so the witness is unchanged — the witness-level
+    /// absent-section identity.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub skipmix_lane: Option<SkipmixLaneWitness>,
 }
 
 /// #836 segment-lane witness attribution: which candidate the deployed segment
@@ -105,6 +112,21 @@ pub struct InferenceWitness {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct SegmentLaneWitness {
     /// The candidate the segment lane promoted to the served token.
+    pub promoted_token: u32,
+    /// The base-scorer token the promotion displaced (what would have served
+    /// without the lane).
+    pub base_token: u32,
+    /// The raw `ScoreQ` boost the lane added to the promoted candidate.
+    pub boost: i32,
+}
+
+/// #897 skip-mix-lane witness attribution: which candidate the deployed
+/// 1-token skip-conditioned residual scorer promoted to served, the
+/// base-scorer token it displaced, and the raw `ScoreQ` boost that promoted
+/// it — the skip-mix counterpart of [`SegmentLaneWitness`].
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct SkipmixLaneWitness {
+    /// The candidate the skip-mix lane promoted to the served token.
     pub promoted_token: u32,
     /// The base-scorer token the promotion displaced (what would have served
     /// without the lane).
@@ -524,6 +546,23 @@ pub struct R4Engine {
     /// present, the deployed re-rank sums each prompt content token's learned
     /// contributions — the faithful lowering of the #834 §6.2 segment arm.
     segment_table: Option<SegmentTable>,
+    /// #897: owned `SKMX` section bytes (the primary, fixed-capacity
+    /// open-addressed `(content_token, last_window_token)` joint table),
+    /// validated once via `SkipmixTable::parse` at load. `None` when the
+    /// artifact carries no SKMX section (absent-section identity). `R4Engine`
+    /// deliberately carries no lifetime parameter (matching the #836
+    /// precedent), so a fresh, cheap borrowed [`SkipmixTable`] view is
+    /// reconstructed from these bytes at every inference step via
+    /// `SkipmixTable::from_trusted_bytes` rather than re-running the O(capacity)
+    /// structural scan `parse` performs, or flattening genuine hash-table
+    /// lookup semantics into a plain sorted `Vec` (which Casey's #897 sign-off
+    /// specifically rejected in favor of a real hash table).
+    skmx_bytes: Option<Vec<u8>>,
+    /// #897: owned `PSIB` section bytes (the unconditioned Ψ-bag fallback
+    /// table, keyed by `content_token` alone), validated once via
+    /// `PsiBagTable::parse` at load. `None` when absent. Same
+    /// `from_trusted_bytes` reconstruction pattern as `skmx_bytes`.
+    psib_bytes: Option<Vec<u8>>,
 }
 
 /// The compiled segment-lane descriptor the engine consumes to build a
@@ -669,6 +708,174 @@ fn segment_lane_attribution_with_table<const CAP: usize>(
     })
 }
 
+// ---------------------------------------------------------------------
+// #897: the deployed 1-token skip-conditioned residual scorer (S1 redesign,
+// #822). Reuses `segment_argmax`'s exact contribution+argmax combinator
+// (§1 of the posted design spec: "no new adjustment mechanism needed") over
+// a different evidence source -- the current prediction window's own unique
+// tokens and its own last token, rather than a persistent `SegmentSession`
+// ring -- so no session/state object is needed at all.
+// ---------------------------------------------------------------------
+
+/// Sorted, deduplicated unique tokens of a prediction window, capped at
+/// `WINDOW` slots -- allocation-free (fixed-capacity stack array), matching
+/// the compiled window's own bound (`compiler::WINDOW`). A window's length
+/// never exceeds `WINDOW` by construction (checked at the
+/// `check_window` boundary); `.take(WINDOW)` guards defensively regardless.
+/// Returns the backing array and the number of valid (sorted, deduped)
+/// entries in its prefix.
+fn unique_window_tokens(window: &[u32]) -> ([u32; WINDOW], usize) {
+    let mut buf = [0u32; WINDOW];
+    let mut len = 0usize;
+    for &tok in window.iter().take(WINDOW) {
+        buf[len] = tok;
+        len += 1;
+    }
+    buf[..len].sort_unstable();
+    let mut write = 0usize;
+    for read in 0..len {
+        if write == 0 || buf[write - 1] != buf[read] {
+            buf[write] = buf[read];
+            write += 1;
+        }
+    }
+    (buf, write)
+}
+
+/// #897 λ-and-support scaling hook. At the fixed λ = 1.0 this pass ships
+/// (design spec §0.2, §5), the transform is the identity --
+/// `resid == raw_contribution` -- because the deployed baseline this residual
+/// corrects against is the engine's own real `base_score` (§2 of the spec),
+/// not the off-serving harness's separate `suffix_rate` table the mean-
+/// centering term (`sup_ts * base`) and per-window normalization (`/ ntot`)
+/// in `skipmix_confirm_897.rs::skipmix_scores` were built to correct against.
+/// The function stays a distinct, explicitly-invoked step -- rather than
+/// being inlined away -- so a future non-unit λ is a change to this one
+/// function, never a silent behavior change hidden inside the summation
+/// loop. `sup_ts` and `unique_tokens` are accepted (unused at λ = 1.0) so the
+/// signature does not need to change when that work happens.
+#[inline]
+fn skipmix_scale_by_lambda_and_support(
+    raw_contribution: i32,
+    _sup_ts: usize,
+    _unique_tokens: usize,
+) -> i32 {
+    raw_contribution
+}
+
+/// The learned #897 skip-mix `ScoreQ` contribution to `candidate`, summed
+/// over `unique_tokens` (the current window's unique tokens). For each token
+/// `t`: if the primary joint table has a row for the composite key
+/// `(t, last_token)`, that row's (possibly absent, i.e. zero) contribution to
+/// `candidate` is added; otherwise, when the Ψ-bag fallback table has a row
+/// for `t` alone, THAT row's contribution to `candidate` is added instead.
+/// This is the exact joint-vs-fallback asymmetry
+/// `skipmix_confirm_897.rs::skipmix_scores` already validated (row
+/// PRESENCE gates the fallback, independent of whether `candidate` itself
+/// appears in that row) -- load-bearing, must not be "simplified" away.
+/// Bounded: at most `unique_tokens.len()` (<= `WINDOW`) lookups, each one
+/// bounded hash-probe-or-binary-search plus one bounded entries binary
+/// search. Saturating add; no multiply/divide/float anywhere.
+fn skipmix_token_contribution(
+    primary: Option<&SkipmixTable<'_>>,
+    fallback: Option<&PsiBagTable<'_>>,
+    unique_tokens: &[u32],
+    last_token: u32,
+    candidate: u32,
+) -> i32 {
+    let mut acc: i32 = 0;
+    for &t in unique_tokens {
+        if let Some(row) = primary.and_then(|table| table.find(t, last_token)) {
+            let s = row.entries().find(candidate).map_or(0, |s| s.raw());
+            acc = acc.saturating_add(s);
+        } else if let Some(row) = fallback.and_then(|table| table.find(t)) {
+            let s = row.entries().find(candidate).map_or(0, |s| s.raw());
+            acc = acc.saturating_add(s);
+        }
+    }
+    acc
+}
+
+/// Count of `unique_tokens` whose composite `(t, last_token)` key the primary
+/// joint table actually supports (a row exists) -- the `sup_ts` the reference
+/// math tracks. Passed through to [`skipmix_scale_by_lambda_and_support`];
+/// unused at the fixed λ = 1.0 this pass ships, computed anyway so the hook's
+/// signature does not change when a future non-unit λ is implemented.
+fn skipmix_supported_count(
+    primary: Option<&SkipmixTable<'_>>,
+    unique_tokens: &[u32],
+    last_token: u32,
+) -> usize {
+    unique_tokens
+        .iter()
+        .filter(|&&t| primary.is_some_and(|table| table.find(t, last_token).is_some()))
+        .count()
+}
+
+/// #897 skip-mix-adjusted argmax over the decided candidate list: each
+/// candidate's base `ScoreQ` gains its skip-mix contribution (design spec §5),
+/// under the canonical tie-break (score descending, token id ascending).
+/// Byte-identical to `base_token`'s own argmax when both tables are absent
+/// (every contribution is zero) or the window is empty -- absent-section
+/// identity, with no separate "is active" gate needed.
+fn skipmix_adjusted_token(
+    ranked: &[(u32, ScoreQ)],
+    primary: Option<&SkipmixTable<'_>>,
+    fallback: Option<&PsiBagTable<'_>>,
+    unique_tokens: &[u32],
+    last_token: u32,
+    base_token: u32,
+) -> u32 {
+    let sup_ts = skipmix_supported_count(primary, unique_tokens, last_token);
+    segment_argmax(ranked, base_token, |candidate| {
+        skipmix_scale_by_lambda_and_support(
+            skipmix_token_contribution(primary, fallback, unique_tokens, last_token, candidate),
+            sup_ts,
+            unique_tokens.len(),
+        )
+    })
+}
+
+/// The #897 skip-mix witness attribution over a decided candidate list:
+/// `Some` only when at least one table is present AND the skip-mix re-rank
+/// promotes a different token than the base winner; `None` otherwise
+/// (neither table present, or no change -> no attribution, preserving
+/// witness identity). Pure.
+fn skipmix_lane_attribution(
+    ranked: &[(u32, ScoreQ)],
+    primary: Option<&SkipmixTable<'_>>,
+    fallback: Option<&PsiBagTable<'_>>,
+    unique_tokens: &[u32],
+    last_token: u32,
+    base_token: u32,
+) -> Option<SkipmixLaneWitness> {
+    if primary.is_none() && fallback.is_none() {
+        return None;
+    }
+    let promoted = skipmix_adjusted_token(
+        ranked,
+        primary,
+        fallback,
+        unique_tokens,
+        last_token,
+        base_token,
+    );
+    if promoted == base_token {
+        return None;
+    }
+    let sup_ts = skipmix_supported_count(primary, unique_tokens, last_token);
+    let boost = skipmix_scale_by_lambda_and_support(
+        skipmix_token_contribution(primary, fallback, unique_tokens, last_token, promoted),
+        sup_ts,
+        unique_tokens.len(),
+    );
+    Some(SkipmixLaneWitness {
+        promoted_token: promoted,
+        base_token,
+        boost,
+    })
+}
+
 impl R4Engine {
     /// The manifest policy in force (D4 defaults or the score-report
     /// override).
@@ -737,6 +944,8 @@ impl R4Engine {
             // The base reference witness carries no segment attribution; the
             // deployed segment-witness path fills it when the lane promotes.
             segment_lane: None,
+            // Same reasoning as `segment_lane` above, for the #897 skip-mix lane.
+            skipmix_lane: None,
         }
     }
 
@@ -1246,6 +1455,120 @@ impl R4Engine {
         }
     }
 
+    /// A fresh, cheap borrowed view over the loaded `SKMX` primary joint
+    /// table, reconstructed from the owned, once-validated section bytes via
+    /// `SkipmixTable::from_trusted_bytes` -- `None` when the artifact carries
+    /// no SKMX section.
+    fn skipmix_primary_table(&self) -> Option<SkipmixTable<'_>> {
+        self.skmx_bytes
+            .as_deref()
+            .and_then(SkipmixTable::from_trusted_bytes)
+    }
+
+    /// A fresh, cheap borrowed view over the loaded `PSIB` fallback table --
+    /// `None` when the artifact carries no PSIB section. See
+    /// [`Self::skipmix_primary_table`].
+    fn skipmix_fallback_table(&self) -> Option<PsiBagTable<'_>> {
+        self.psib_bytes
+            .as_deref()
+            .and_then(PsiBagTable::from_trusted_bytes)
+    }
+
+    /// Whether the loaded artifact carries an SKMX and/or PSIB section
+    /// (#897): `(has_primary, has_fallback)`. An observability seam --
+    /// lets a caller confirm a compiled bundle's skip-mix tables reached the
+    /// engine intact, without exposing the tables themselves.
+    pub fn skipmix_tables_present(&self) -> (bool, bool) {
+        (self.skmx_bytes.is_some(), self.psib_bytes.is_some())
+    }
+
+    /// Status-aware decision for one window, re-selecting the served token
+    /// under the deployed #897 1-token skip-conditioned residual scorer (S1
+    /// redesign, #822).
+    ///
+    /// Byte-identical to [`Self::predict_decision_candidates`] when the
+    /// artifact carries neither an SKMX nor a PSIB section (absent-section
+    /// identity). When present, the served token becomes the skip-mix-
+    /// adjusted argmax over the decided candidate list: each candidate gains
+    /// the sum, over the window's own unique tokens, of that token's learned
+    /// contribution -- joint `(token, last_window_token)` evidence where the
+    /// primary table supports it, verbatim Ψ-bag (content-token-only)
+    /// evidence otherwise -- under the same canonical tie-break (score
+    /// descending, token id ascending) `predict_decision_candidates_with_segment`
+    /// uses. Unlike the #836 segment lane, no persistent session object is
+    /// needed: the evidence is entirely the current window. An abstention is
+    /// never overridden into a served token.
+    pub fn predict_decision_candidates_with_skipmix(
+        &mut self,
+        window: &[u32],
+        candidates: &mut StepCandidates,
+    ) -> Result<PredictDecision, ObservedBound> {
+        let decision = self.predict_decision_candidates(window, candidates)?;
+        if self.skmx_bytes.is_none() && self.psib_bytes.is_none() {
+            return Ok(decision);
+        }
+        match decision {
+            PredictDecision::Serve(mut outcome) => {
+                if let Some(&last_token) = window.last() {
+                    let primary = self.skipmix_primary_table();
+                    let fallback = self.skipmix_fallback_table();
+                    let (unique_buf, unique_len) = unique_window_tokens(window);
+                    outcome.token = skipmix_adjusted_token(
+                        candidates.ranked(),
+                        primary.as_ref(),
+                        fallback.as_ref(),
+                        &unique_buf[..unique_len],
+                        last_token,
+                        outcome.token,
+                    );
+                }
+                Ok(PredictDecision::Serve(outcome))
+            }
+            PredictDecision::Abstain(_) => Ok(decision),
+        }
+    }
+
+    /// Like [`Self::predict_decision_candidates_with_skipmix`], but also
+    /// returns the #897 skip-mix-lane **witness attribution**: `Some` when
+    /// the lane promoted a different served token (carrying the
+    /// promoted/base tokens and the `ScoreQ` boost that promoted it), `None`
+    /// otherwise -- neither table present, abstention, empty window, or a
+    /// re-rank that left the winner unchanged. The returned decision's
+    /// served token and the attribution's `promoted_token` agree by
+    /// construction. Absent SKMX/PSIB -> `None` -> the served result is
+    /// byte-identical to the base decision, and callers attach nothing to
+    /// the witness.
+    pub fn predict_decision_candidates_with_skipmix_witness(
+        &mut self,
+        window: &[u32],
+        candidates: &mut StepCandidates,
+    ) -> Result<(PredictDecision, Option<SkipmixLaneWitness>), ObservedBound> {
+        let decision = self.predict_decision_candidates(window, candidates)?;
+        match decision {
+            PredictDecision::Serve(mut outcome) => {
+                let Some(&last_token) = window.last() else {
+                    return Ok((PredictDecision::Serve(outcome), None));
+                };
+                let primary = self.skipmix_primary_table();
+                let fallback = self.skipmix_fallback_table();
+                let (unique_buf, unique_len) = unique_window_tokens(window);
+                let attribution = skipmix_lane_attribution(
+                    candidates.ranked(),
+                    primary.as_ref(),
+                    fallback.as_ref(),
+                    &unique_buf[..unique_len],
+                    last_token,
+                    outcome.token,
+                );
+                if let Some(attr) = &attribution {
+                    outcome.token = attr.promoted_token;
+                }
+                Ok((PredictDecision::Serve(outcome), attribution))
+            }
+            PredictDecision::Abstain(_) => Ok((decision, None)),
+        }
+    }
+
     /// One #762-scheme draw over a served step's ranked candidates:
     /// order-preserving shift to positive weights, the soft
     /// ~1000-per-occurrence penalty over tokens already emitted this
@@ -1696,6 +2019,26 @@ impl R4Engine {
             }
         }
 
+        // #897: read the optional SKMX/PSIB skip-mix sections at load. Both
+        // are optional, so an artifact without them (every artifact until the
+        // extended emitter, #897 §1(c), ships) yields `None` for both and the
+        // deployed scorer is byte-identical to before (absent-section
+        // identity). Each section is validated once here via its real
+        // `parse` (structural scan, including SKMX's open-addressing
+        // placement invariant); only the already-validated raw bytes are
+        // retained, so later inference steps reconstruct a cheap borrowed
+        // view via `from_trusted_bytes` instead of re-scanning.
+        let skmx_bytes = view
+            .skipmix_table()
+            .ok()
+            .flatten()
+            .map(|table| table.bytes().to_vec());
+        let psib_bytes = view
+            .psi_bag_table()
+            .ok()
+            .flatten()
+            .map(|table| table.bytes().to_vec());
+
         Ok(Self {
             artifacts,
             scorer,
@@ -1711,6 +2054,8 @@ impl R4Engine {
             node_section_kappa,
             segment_lane,
             segment_table,
+            skmx_bytes,
+            psib_bytes,
         })
     }
 
@@ -1937,6 +2282,7 @@ mod tests {
                 base_token: 5,
                 boost: 1 << 20,
             }),
+            skipmix_lane: None,
         };
         let json = serde_json::to_string(&witness).expect("serialize");
         let back: InferenceWitness = serde_json::from_str(&json).expect("deserialize");
@@ -1984,5 +2330,161 @@ mod tests {
             5
         );
         assert!(segment_lane_attribution_with_table(&ranked, &other, &table, 5).is_none());
+    }
+
+    // #897: the deployed 1-token skip-conditioned residual scorer.
+    use uor_r4_graph_format::{build_psi_bag_table, build_skipmix_table};
+
+    #[test]
+    fn unique_window_tokens_sorts_dedups_and_caps() {
+        let (buf, len) = unique_window_tokens(&[5, 1, 5, 3, 1]);
+        assert_eq!(&buf[..len], &[1, 3, 5]);
+        // A window shorter than WINDOW behaves the same, just fewer entries.
+        let (buf, len) = unique_window_tokens(&[9]);
+        assert_eq!(&buf[..len], &[9]);
+        let (_, len) = unique_window_tokens(&[]);
+        assert_eq!(len, 0);
+    }
+
+    #[test]
+    fn skipmix_absent_tables_keep_base_winner() {
+        let ranked = [(5u32, ScoreQ::from_raw(100)), (9, ScoreQ::from_raw(80))];
+        let window = [1u32, 9, 3];
+        let (unique, ulen) = unique_window_tokens(&window);
+        // Neither table present -> zero contribution everywhere -> base winner stands.
+        assert_eq!(
+            skipmix_adjusted_token(&ranked, None, None, &unique[..ulen], 3, 5),
+            5
+        );
+        assert!(skipmix_lane_attribution(&ranked, None, None, &unique[..ulen], 3, 5).is_none());
+        // Empty unique-token list -> zero contribution everywhere -> the
+        // result is the plain argmax of `ranked` (5, the higher base score),
+        // independent of `base_token`'s value (`segment_argmax` only falls
+        // back to `base_token` when `ranked` itself is empty).
+        assert_eq!(skipmix_adjusted_token(&ranked, None, None, &[], 3, 7), 5);
+        // A genuinely empty candidate list does fall back to `base_token`.
+        assert_eq!(
+            skipmix_adjusted_token(&[], None, None, &unique[..ulen], 3, 7),
+            7
+        );
+    }
+
+    #[test]
+    fn skipmix_promotes_via_joint_table() {
+        // Joint key (9, 3) -> candidate 9 gets a large boost.
+        let bytes = build_skipmix_table(&[(9, 3, vec![(9, 2_000_000)])]).expect("valid row");
+        let table = SkipmixTable::parse(&bytes).expect("parse");
+        let ranked = [(5u32, ScoreQ::from_raw(100)), (9, ScoreQ::from_raw(80))];
+        let window = [1u32, 9];
+        let (unique, ulen) = unique_window_tokens(&window);
+        let last_token = 3u32;
+        assert_eq!(
+            skipmix_adjusted_token(&ranked, Some(&table), None, &unique[..ulen], last_token, 5),
+            9
+        );
+        let attr =
+            skipmix_lane_attribution(&ranked, Some(&table), None, &unique[..ulen], last_token, 5)
+                .expect("promotion attributed");
+        assert_eq!(attr.promoted_token, 9);
+        assert_eq!(attr.base_token, 5);
+        assert_eq!(attr.boost, 2_000_000);
+    }
+
+    #[test]
+    fn skipmix_falls_back_to_psi_bag_when_joint_key_absent() {
+        // No SKMX row for (9, 3) at all -> falls back to the PSIB row for
+        // content token 9 alone.
+        let skmx = build_skipmix_table(&[(9, 99, vec![(9, 1)])]).expect("valid row");
+        let skmx_table = SkipmixTable::parse(&skmx).expect("parse skmx");
+        let psib = build_psi_bag_table(&[(9, vec![(9, 3_000_000)])]).expect("valid row");
+        let psib_table = PsiBagTable::parse(&psib).expect("parse psib");
+
+        let ranked = [(5u32, ScoreQ::from_raw(100)), (9, ScoreQ::from_raw(80))];
+        let window = [9u32];
+        let (unique, ulen) = unique_window_tokens(&window);
+        let last_token = 3u32; // does NOT match the SKMX row's key (9, 99)
+        assert_eq!(
+            skipmix_adjusted_token(
+                &ranked,
+                Some(&skmx_table),
+                Some(&psib_table),
+                &unique[..ulen],
+                last_token,
+                5
+            ),
+            9
+        );
+    }
+
+    #[test]
+    fn skipmix_joint_row_presence_gates_fallback_even_without_candidate_match() {
+        // SKMX HAS a row for (9, 3), but that row's entries do not include
+        // candidate 9 -- contributes 0 for candidate 9 from the joint table,
+        // and must NOT fall back to PSIB's row for content token 9 (which
+        // does have an entry for candidate 9). This is the load-bearing
+        // joint-vs-fallback asymmetry `skipmix_confirm_897.rs::skipmix_scores`
+        // validated: row PRESENCE gates the fallback, not per-candidate
+        // entry presence.
+        let skmx = build_skipmix_table(&[(9, 3, vec![(2, 500)])]).expect("valid row");
+        let skmx_table = SkipmixTable::parse(&skmx).expect("parse skmx");
+        let psib = build_psi_bag_table(&[(9, vec![(9, 3_000_000)])]).expect("valid row");
+        let psib_table = PsiBagTable::parse(&psib).expect("parse psib");
+
+        let ranked = [(5u32, ScoreQ::from_raw(100)), (9, ScoreQ::from_raw(80))];
+        let window = [9u32];
+        let (unique, ulen) = unique_window_tokens(&window);
+        // Base winner (5) stands: candidate 9 gets 80 + 0 = 80 < 100.
+        assert_eq!(
+            skipmix_adjusted_token(
+                &ranked,
+                Some(&skmx_table),
+                Some(&psib_table),
+                &unique[..ulen],
+                3,
+                5
+            ),
+            5
+        );
+    }
+
+    #[test]
+    fn skipmix_tie_breaks_by_lower_id() {
+        let bytes =
+            build_skipmix_table(&[(9, 1, vec![(9, 10)]), (4, 1, vec![(4, 10)])]).expect("valid");
+        let table = SkipmixTable::parse(&bytes).expect("parse");
+        let ranked = [(9u32, ScoreQ::from_raw(50)), (4, ScoreQ::from_raw(50))];
+        let window = [9u32, 4];
+        let (unique, ulen) = unique_window_tokens(&window);
+        // Both boosted equally (+10) -> canonical tie-break keeps the lower id.
+        assert_eq!(
+            skipmix_adjusted_token(&ranked, Some(&table), None, &unique[..ulen], 1, 9),
+            4
+        );
+    }
+
+    #[test]
+    fn skipmix_lane_witness_serde_is_backward_compatible() {
+        let witness = InferenceWitness {
+            region_kappa: None,
+            region_id: None,
+            depth: 0,
+            resolution_status: "novel".to_owned(),
+            engine: "r4g1".to_owned(),
+            token: 9,
+            widened: false,
+            segment_lane: None,
+            skipmix_lane: Some(SkipmixLaneWitness {
+                promoted_token: 9,
+                base_token: 5,
+                boost: 2_000_000,
+            }),
+        };
+        let json = serde_json::to_string(&witness).expect("serialize");
+        let back: InferenceWitness = serde_json::from_str(&json).expect("deserialize");
+        assert_eq!(witness, back);
+        // A pre-#897 witness (no skipmix_lane) still deserializes -> None.
+        let legacy = r#"{"region_kappa":null,"region_id":null,"depth":0,"resolution_status":"novel","engine":"r4g1","token":7,"widened":false}"#;
+        let parsed: InferenceWitness = serde_json::from_str(legacy).expect("legacy deserialize");
+        assert!(parsed.skipmix_lane.is_none());
     }
 }

@@ -85,6 +85,7 @@ pub mod sanctioned;
 pub mod scoring_semantics;
 #[cfg(feature = "alloc")]
 mod ser;
+mod skipmix;
 mod stage2;
 mod types;
 mod view;
@@ -157,5 +158,10 @@ pub use route_attention::{
 pub use sanctioned::{KappaError, NotAProduct, ObjectKind, ObservedBound};
 #[cfg(feature = "alloc")]
 pub use ser::ArtifactBuilder;
+#[cfg(feature = "alloc")]
+pub use skipmix::{build_psi_bag_table, build_skipmix_table, SkipmixRowInput};
+pub use skipmix::{
+    hash_key, PsiBagRow, PsiBagTable, SkipEntries, SkipEntry, SkipmixRow, SkipmixTable,
+};
 pub use types::{ArtifactCid, Depth, NodeId, Radius, ScoreQ, SectionId, SectionOffset, TokenId};
 pub use view::{Edges, GraphView, Nodes, SectionRef, Sections};
