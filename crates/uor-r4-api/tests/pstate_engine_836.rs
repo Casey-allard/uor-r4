@@ -174,6 +174,36 @@ fn active_session_runs_and_preserves_invariants_on_real_engine() {
     }
 }
 
+// --- witness attribution (increment 4b) ------------------------------------
+
+#[test]
+fn segment_witness_method_is_identity_when_inactive() {
+    // The witness-bearing segment method returns the base decision and a `None`
+    // attribution whenever the lane is inactive — the witness-level absent-
+    // section identity, on the real engine.
+    let (graph, teacher) = synthetic_bundle();
+    let mut engine = load_engine(&graph, &teacher);
+    let inactive = SegmentSession::<SEGMENT_STATE_CAPACITY>::inactive();
+
+    for window in WINDOWS {
+        let mut base_c = StepCandidates::default();
+        let base = engine
+            .predict_decision_candidates_with_segment(window, &mut base_c, &inactive)
+            .expect("base decision");
+
+        let mut wit_c = StepCandidates::default();
+        let (decision, attribution) = engine
+            .predict_decision_candidates_with_segment_witness(window, &mut wit_c, &inactive)
+            .expect("witness path");
+
+        assert_eq!(base, decision, "inactive witness path decision == base");
+        assert!(
+            attribution.is_none(),
+            "an inactive lane never attributes a promotion"
+        );
+    }
+}
+
 // --- compiler emission (increment 4a): the lane becomes non-inert ----------
 
 #[test]

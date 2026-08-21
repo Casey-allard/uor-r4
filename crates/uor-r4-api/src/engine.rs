@@ -90,6 +90,27 @@ pub struct InferenceWitness {
     pub token: u32,
     /// Whether the policy had to use its widened membership pass.
     pub widened: bool,
+    /// #836 segment-lane attribution: present only when the deployed segment
+    /// lane changed the served token. Absent (skipped in JSON) for every
+    /// artifact without a PSTATE section, so the witness is unchanged — the
+    /// witness-level absent-section identity.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub segment_lane: Option<SegmentLaneWitness>,
+}
+
+/// #836 segment-lane witness attribution: which candidate the deployed segment
+/// lane promoted to served, the base-scorer token it displaced, and the raw
+/// `ScoreQ` boost that promoted it — enough for a verifier to reproduce the
+/// re-rank over the decided candidate list.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct SegmentLaneWitness {
+    /// The candidate the segment lane promoted to the served token.
+    pub promoted_token: u32,
+    /// The base-scorer token the promotion displaced (what would have served
+    /// without the lane).
+    pub base_token: u32,
+    /// The raw `ScoreQ` boost the lane added to the promoted candidate.
+    pub boost: i32,
 }
 
 /// Unified inference response payload across HTTP REST, WebSocket, and WASM interfaces.
@@ -536,6 +557,29 @@ fn segment_adjusted_token<const CAP: usize>(
     best_token
 }
 
+/// The #836 segment-lane witness attribution over a decided candidate list:
+/// `Some` only when the lane is active AND promotes a different token than the
+/// base winner; `None` otherwise (inactive lane, or no change → no attribution,
+/// preserving witness identity). Pure.
+fn segment_lane_attribution<const CAP: usize>(
+    ranked: &[(u32, ScoreQ)],
+    session: &SegmentSession<CAP>,
+    base_token: u32,
+) -> Option<SegmentLaneWitness> {
+    if !session.is_active() {
+        return None;
+    }
+    let promoted = segment_adjusted_token(ranked, session, base_token);
+    if promoted == base_token {
+        return None;
+    }
+    Some(SegmentLaneWitness {
+        promoted_token: promoted,
+        base_token,
+        boost: session.contribution(promoted).raw(),
+    })
+}
+
 impl R4Engine {
     /// The manifest policy in force (D4 defaults or the score-report
     /// override).
@@ -601,6 +645,9 @@ impl R4Engine {
             engine: "r4g1".to_owned(),
             token: witness.selected,
             widened,
+            // The base reference witness carries no segment attribution; the
+            // deployed segment-witness path fills it when the lane promotes.
+            segment_lane: None,
         }
     }
 
@@ -1054,6 +1101,34 @@ impl R4Engine {
                 Ok(PredictDecision::Serve(outcome))
             }
             PredictDecision::Abstain(_) => Ok(decision),
+        }
+    }
+
+    /// Like [`Self::predict_decision_candidates_with_segment`], but also returns
+    /// the #836 segment-lane **witness attribution**: `Some` when the lane
+    /// promoted a different served token (carrying the promoted/base tokens and
+    /// the `ScoreQ` boost that promoted it), `None` otherwise — inactive lane,
+    /// abstention, or a lane that left the winner unchanged. The returned
+    /// decision's served token and the attribution's `promoted_token` agree by
+    /// construction. Absent PSTATE → `None` → the served result is byte-identical
+    /// to the base decision, and callers attach nothing to the witness.
+    pub fn predict_decision_candidates_with_segment_witness(
+        &mut self,
+        window: &[u32],
+        candidates: &mut StepCandidates,
+        session: &SegmentSession<SEGMENT_STATE_CAPACITY>,
+    ) -> Result<(PredictDecision, Option<SegmentLaneWitness>), ObservedBound> {
+        let decision = self.predict_decision_candidates(window, candidates)?;
+        match decision {
+            PredictDecision::Serve(mut outcome) => {
+                let attribution =
+                    segment_lane_attribution(candidates.ranked(), session, outcome.token);
+                if let Some(attr) = &attribution {
+                    outcome.token = attr.promoted_token;
+                }
+                Ok((PredictDecision::Serve(outcome), attribution))
+            }
+            PredictDecision::Abstain(_) => Ok((decision, None)),
         }
     }
 
@@ -1687,5 +1762,53 @@ mod tests {
         let ranked = [(9u32, ScoreQ::from_raw(50)), (4, ScoreQ::from_raw(50))];
         // Equal adjusted score → canonical tie-break keeps the lower id.
         assert_eq!(segment_adjusted_token(&ranked, &session, 9), 4);
+    }
+
+    #[test]
+    fn segment_lane_attribution_records_only_real_promotions() {
+        let ranked = [(5u32, ScoreQ::from_raw(100)), (9, ScoreQ::from_raw(80))];
+        // Inactive lane → no attribution.
+        assert!(segment_lane_attribution(
+            &ranked,
+            &SegmentSession::<SEGMENT_STATE_CAPACITY>::inactive(),
+            5
+        )
+        .is_none());
+        // Active but the winner is unchanged (base winner folded) → no attribution.
+        let mut unchanged = active_session();
+        unchanged.fold_prompt(&[5]);
+        assert!(segment_lane_attribution(&ranked, &unchanged, 5).is_none());
+        // Active promotion → attribution records promoted/base tokens + boost.
+        let mut promo = active_session();
+        promo.fold_prompt(&[9]);
+        let attr = segment_lane_attribution(&ranked, &promo, 5).expect("promotion attributed");
+        assert_eq!(attr.promoted_token, 9);
+        assert_eq!(attr.base_token, 5);
+        assert_eq!(attr.boost, 1 << 20);
+    }
+
+    #[test]
+    fn inference_witness_segment_lane_serde_is_backward_compatible() {
+        let witness = InferenceWitness {
+            region_kappa: None,
+            region_id: None,
+            depth: 0,
+            resolution_status: "novel".to_owned(),
+            engine: "r4g1".to_owned(),
+            token: 9,
+            widened: false,
+            segment_lane: Some(SegmentLaneWitness {
+                promoted_token: 9,
+                base_token: 5,
+                boost: 1 << 20,
+            }),
+        };
+        let json = serde_json::to_string(&witness).expect("serialize");
+        let back: InferenceWitness = serde_json::from_str(&json).expect("deserialize");
+        assert_eq!(witness, back);
+        // A pre-#836 witness (no segment_lane) still deserializes → None.
+        let legacy = r#"{"region_kappa":null,"region_id":null,"depth":0,"resolution_status":"novel","engine":"r4g1","token":7,"widened":false}"#;
+        let parsed: InferenceWitness = serde_json::from_str(legacy).expect("legacy deserialize");
+        assert!(parsed.segment_lane.is_none());
     }
 }

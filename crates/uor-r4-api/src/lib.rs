@@ -57,8 +57,8 @@ pub use compile::{
 pub use engine::{
     validate_quality_report, AbiVersion, AbstainOutcome, EngineParts, GenerateStatus,
     InferenceRequest, InferenceResponse, InferenceWitness, PolicyCounters, PolicyStatus,
-    PredictDecision, PredictOutcome, PredictOutput, R4Engine, ResolutionStatus, StatusAction,
-    StatusPolicy, WitnessVerificationError,
+    PredictDecision, PredictOutcome, PredictOutput, R4Engine, ResolutionStatus, SegmentLaneWitness,
+    StatusAction, StatusPolicy, WitnessVerificationError,
 };
 pub use release_bundle::{
     BundleAbi, BundleCapability, BundleComponentDigests, ReleaseBundleManifest,
