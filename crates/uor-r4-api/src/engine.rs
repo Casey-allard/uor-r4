@@ -517,6 +517,13 @@ pub struct R4Engine {
     /// PSTATE section at load, or `None` when the artifact carries no PSTATE
     /// (absent-section identity). Drives [`R4Engine::segment_session`].
     segment_lane: Option<SegmentLaneCfg>,
+    /// The optional learned content-token→candidate residual table (#836 4c),
+    /// extracted once at load from the PSTATE rows and sorted by content key.
+    /// `None` when the PSTATE section carries no rows (a config-only descriptor
+    /// → the recurrence scorer) or when there is no PSTATE section at all. When
+    /// present, the deployed re-rank sums each prompt content token's learned
+    /// contributions — the faithful lowering of the #834 §6.2 segment arm.
+    segment_table: Option<SegmentTable>,
 }
 
 /// The compiled segment-lane descriptor the engine consumes to build a
@@ -528,33 +535,92 @@ struct SegmentLaneCfg {
     boost: ScoreQ,
 }
 
-/// The segment-adjusted served token: the candidate maximizing
-/// `base_score + segment_contribution` over the decided top-K list, under the
-/// canonical tie-break (score descending, then token id ascending). Returns
-/// `base_token` when the list is empty. Pure, allocation-free, and P-4
-/// (saturating integer add and comparison only).
-fn segment_adjusted_token<const CAP: usize>(
+/// The owned learned content-to-candidate residual table (#836 4c): content
+/// keys sorted, each mapping to its candidate->ScoreQ entries sorted by candidate.
+type SegmentTableRow = (u32, Vec<(u32, i32)>);
+type SegmentTable = Vec<SegmentTableRow>;
+
+/// The token maximizing `base_score + contribution(token)` over the decided
+/// top-K list, under the canonical tie-break (score descending, then token id
+/// ascending). Returns `base_token` when the list is empty. Pure, allocation-
+/// free, P-4 (saturating integer add and comparison only).
+fn segment_argmax(
     ranked: &[(u32, ScoreQ)],
-    session: &SegmentSession<CAP>,
     base_token: u32,
+    contribution: impl Fn(u32) -> i32,
 ) -> u32 {
     let Some(&(first_token, first_score)) = ranked.first() else {
         return base_token;
     };
     let mut best_token = first_token;
-    let mut best_adjusted = first_score
-        .raw()
-        .saturating_add(session.contribution(first_token).raw());
+    let mut best_adjusted = first_score.raw().saturating_add(contribution(first_token));
     for &(token, score) in &ranked[1..] {
-        let adjusted = score
-            .raw()
-            .saturating_add(session.contribution(token).raw());
+        let adjusted = score.raw().saturating_add(contribution(token));
         if adjusted > best_adjusted || (adjusted == best_adjusted && token < best_token) {
             best_adjusted = adjusted;
             best_token = token;
         }
     }
     best_token
+}
+
+/// Recurrence (config-only) segment re-rank: each candidate present in the
+/// prompt-content ring gains the descriptor `boost`. Used when the artifact
+/// ships a descriptor with no residual table.
+fn segment_adjusted_token<const CAP: usize>(
+    ranked: &[(u32, ScoreQ)],
+    session: &SegmentSession<CAP>,
+    base_token: u32,
+) -> u32 {
+    segment_argmax(ranked, base_token, |token| {
+        session.contribution(token).raw()
+    })
+}
+
+/// The learned `ScoreQ` a content token contributes to a candidate, or 0 when
+/// the content token or the candidate is absent from the table. Two binary
+/// searches; no arithmetic operators.
+fn table_score(table: &[SegmentTableRow], content_key: u32, candidate: u32) -> i32 {
+    let Ok(row) = table.binary_search_by_key(&content_key, |(key, _)| *key) else {
+        return 0;
+    };
+    match table[row]
+        .1
+        .binary_search_by_key(&candidate, |(token, _)| *token)
+    {
+        Ok(entry) => table[row].1[entry].1,
+        Err(_) => 0,
+    }
+}
+
+/// The summed learned contribution to `candidate` from the prompt content
+/// tokens still live in the ring. Bounded (ring capacity × per-row binary
+/// search); saturating add; P-4.
+fn table_contribution<const CAP: usize>(
+    table: &[SegmentTableRow],
+    session: &SegmentSession<CAP>,
+    candidate: u32,
+) -> i32 {
+    let mut acc: i32 = 0;
+    for key in session.content_keys() {
+        acc = acc.saturating_add(table_score(table, key, candidate));
+    }
+    acc
+}
+
+/// Learned-table (#836 4c) segment re-rank: each candidate gains the sum, over
+/// the live prompt-content tokens, of that content token's learned `ScoreQ`
+/// contribution to the candidate (the content→candidate table packed in
+/// PSTATE). Faithfully lowers the #834 §6.2 segment arm.
+fn segment_adjusted_token_with_table<const CAP: usize>(
+    ranked: &[(u32, ScoreQ)],
+    session: &SegmentSession<CAP>,
+    table: &[SegmentTableRow],
+    base_token: u32,
+) -> u32 {
+    segment_argmax(ranked, base_token, |candidate| {
+        table_contribution(table, session, candidate)
+    })
 }
 
 /// The #836 segment-lane witness attribution over a decided candidate list:
@@ -577,6 +643,29 @@ fn segment_lane_attribution<const CAP: usize>(
         promoted_token: promoted,
         base_token,
         boost: session.contribution(promoted).raw(),
+    })
+}
+
+/// Learned-table (#836 4c) counterpart of [`segment_lane_attribution`]: `Some`
+/// when the table re-rank promotes a different token, carrying the summed
+/// learned boost that promoted it.
+fn segment_lane_attribution_with_table<const CAP: usize>(
+    ranked: &[(u32, ScoreQ)],
+    session: &SegmentSession<CAP>,
+    table: &[SegmentTableRow],
+    base_token: u32,
+) -> Option<SegmentLaneWitness> {
+    if !session.is_active() {
+        return None;
+    }
+    let promoted = segment_adjusted_token_with_table(ranked, session, table, base_token);
+    if promoted == base_token {
+        return None;
+    }
+    Some(SegmentLaneWitness {
+        promoted_token: promoted,
+        base_token,
+        boost: table_contribution(table, session, promoted),
     })
 }
 
@@ -1097,7 +1186,15 @@ impl R4Engine {
         }
         match decision {
             PredictDecision::Serve(mut outcome) => {
-                outcome.token = segment_adjusted_token(candidates.ranked(), session, outcome.token);
+                outcome.token = match &self.segment_table {
+                    Some(table) => segment_adjusted_token_with_table(
+                        candidates.ranked(),
+                        session,
+                        table,
+                        outcome.token,
+                    ),
+                    None => segment_adjusted_token(candidates.ranked(), session, outcome.token),
+                };
                 Ok(PredictDecision::Serve(outcome))
             }
             PredictDecision::Abstain(_) => Ok(decision),
@@ -1121,8 +1218,15 @@ impl R4Engine {
         let decision = self.predict_decision_candidates(window, candidates)?;
         match decision {
             PredictDecision::Serve(mut outcome) => {
-                let attribution =
-                    segment_lane_attribution(candidates.ranked(), session, outcome.token);
+                let attribution = match &self.segment_table {
+                    Some(table) => segment_lane_attribution_with_table(
+                        candidates.ranked(),
+                        session,
+                        table,
+                        outcome.token,
+                    ),
+                    None => segment_lane_attribution(candidates.ranked(), session, outcome.token),
+                };
                 if let Some(attr) = &attribution {
                     outcome.token = attr.promoted_token;
                 }
@@ -1552,15 +1656,35 @@ impl R4Engine {
         // ring capacity fits the engine's fixed caller-owned state; a larger
         // capacity fails safe to `None` (the lane stays inert) rather than
         // silently truncating the reference semantics.
-        let segment_lane = view.pstate_table().ok().flatten().and_then(|table| {
-            (table.lane_kind() == LANE_SEGMENT
-                && (table.ring_capacity() as usize) <= SEGMENT_STATE_CAPACITY)
-                .then(|| SegmentLaneCfg {
+        // The learned residual table (4c) is extracted into an owned,
+        // key-sorted form when the section carries rows; a config-only
+        // descriptor (no rows) leaves `segment_table` None → the recurrence
+        // scorer.
+        let mut segment_lane = None;
+        let mut segment_table = None;
+        if let Ok(Some(table)) = view.pstate_table() {
+            if table.lane_kind() == LANE_SEGMENT
+                && (table.ring_capacity() as usize) <= SEGMENT_STATE_CAPACITY
+            {
+                segment_lane = Some(SegmentLaneCfg {
                     decay_shift: u32::from(table.decay_shift()),
                     base_w: table.base_w(),
                     boost: table.boost(),
-                })
-        });
+                });
+                let rows: SegmentTable = table
+                    .rows()
+                    .map(|row| {
+                        (
+                            row.key(),
+                            row.entries().map(|e| (e.token, e.score_q.raw())).collect(),
+                        )
+                    })
+                    .collect();
+                if !rows.is_empty() {
+                    segment_table = Some(rows);
+                }
+            }
+        }
 
         Ok(Self {
             artifacts,
@@ -1576,6 +1700,7 @@ impl R4Engine {
             artifact_kappa,
             node_section_kappa,
             segment_lane,
+            segment_table,
         })
     }
 
@@ -1810,5 +1935,44 @@ mod tests {
         let legacy = r#"{"region_kappa":null,"region_id":null,"depth":0,"resolution_status":"novel","engine":"r4g1","token":7,"widened":false}"#;
         let parsed: InferenceWitness = serde_json::from_str(legacy).expect("legacy deserialize");
         assert!(parsed.segment_lane.is_none());
+    }
+
+    #[test]
+    fn table_score_is_an_exact_two_level_lookup() {
+        let table: SegmentTable = vec![(10, vec![(1, 7), (5, 9)]), (20, vec![(3, 11)])];
+        assert_eq!(table_score(&table, 10, 5), 9);
+        assert_eq!(table_score(&table, 10, 1), 7);
+        assert_eq!(table_score(&table, 20, 3), 11);
+        assert_eq!(table_score(&table, 10, 99), 0); // candidate absent in the row
+        assert_eq!(table_score(&table, 99, 1), 0); // content key absent
+    }
+
+    #[test]
+    fn table_rerank_uses_learned_content_to_candidate_contributions() {
+        // content token 100 → candidate 9 (+2_000_000); content 200 → candidate 2 (+5).
+        let table: SegmentTable = vec![(100, vec![(9, 2_000_000)]), (200, vec![(2, 5)])];
+        let ranked = [(5u32, ScoreQ::from_raw(100)), (9, ScoreQ::from_raw(80))];
+
+        // Prompt content token 100 promotes candidate 9 (80 + 2_000_000 > 100).
+        let mut session = active_session();
+        session.fold_prompt(&[100]);
+        assert_eq!(
+            segment_adjusted_token_with_table(&ranked, &session, &table, 5),
+            9
+        );
+        let attr = segment_lane_attribution_with_table(&ranked, &session, &table, 5)
+            .expect("table promotion attributed");
+        assert_eq!(attr.promoted_token, 9);
+        assert_eq!(attr.base_token, 5);
+        assert_eq!(attr.boost, 2_000_000);
+
+        // A content token that maps to a non-listed candidate changes nothing.
+        let mut other = active_session();
+        other.fold_prompt(&[200]);
+        assert_eq!(
+            segment_adjusted_token_with_table(&ranked, &other, &table, 5),
+            5
+        );
+        assert!(segment_lane_attribution_with_table(&ranked, &other, &table, 5).is_none());
     }
 }

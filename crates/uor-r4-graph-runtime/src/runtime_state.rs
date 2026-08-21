@@ -391,6 +391,14 @@ impl<const CAP: usize> SegmentSession<CAP> {
         self.ring.len()
     }
 
+    /// The content-token keys currently live in the ring (prompt content that
+    /// survives capacity + decay). A table-backed scorer looks up each present
+    /// content token's learned candidate contributions; the config-only
+    /// recurrence scorer uses [`Self::contribution`] instead.
+    pub fn content_keys(&self) -> impl Iterator<Item = u32> + '_ {
+        self.ring.as_slice().iter().map(|slot| slot.key)
+    }
+
     /// Initial fold Φ₀: record every prompt content token into the segment ring
     /// (saturating accumulation, no decay between prompt tokens). No-op when
     /// inactive.
