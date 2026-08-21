@@ -1245,9 +1245,18 @@ impl R4Engine {
     /// signature through the D4 policy. Abstention is a typed outcome —
     /// no guessed token is emitted.
     pub fn predict_decision(&mut self, window: &[u32]) -> Result<PredictDecision, ObservedBound> {
-        self.check_window(window)?;
-        let (sig, code) = self.derive_sig_code(window);
-        Ok(self.predict_signature_status_with_recent(&sig, Some(&code), window))
+        // #910: the deployed decision routes through the promoted skip-mix
+        // lane. On a bundle without SKMX/PSIB sections this is byte-identical
+        // to the base decision (absent-section identity, proven by
+        // `predict_decision_candidates_with_skipmix` returning the base
+        // decision unchanged when neither section is present); when the
+        // sections are present the lane re-selects only the served token —
+        // never the status, and never overriding an abstention.
+        // `StepCandidates` is a fixed-capacity stack buffer, so the hot path
+        // stays allocation-free. The raw base decision (no lane) remains
+        // available as `predict_decision_candidates`.
+        let mut candidates = StepCandidates::default();
+        self.predict_decision_candidates_with_skipmix(window, &mut candidates)
     }
 
     /// Predict one window and retain the compact proof claim for the

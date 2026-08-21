@@ -198,3 +198,8 @@ fn teacher_parity_benchmarks_rf_29() {
 fn selective_prediction_surfaces_rf_30() {
     check("RF-30", "selective_prediction_surfaces");
 }
+
+#[test]
+fn skipmix_serving_lane_rf_31() {
+    check("RF-31", "skipmix_serving_lane");
+}

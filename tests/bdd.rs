@@ -42,6 +42,10 @@ struct R4g1World {
     selective_block_failed: Option<serde_json::Value>,
     selective_frames: Vec<String>,
     selective_probe_present: Option<String>,
+    // RF-31 promoted skip-mix serving lane (#910)
+    skmx_bytes: Vec<u8>,
+    psib_bytes: Vec<u8>,
+    lane_found_score: Option<i32>,
     compile_error: Option<String>,
     quality_report: Option<serde_json::Value>,
     quality_error: Option<String>,
@@ -389,6 +393,77 @@ fn selective_openai_envelope_is_typed(w: &mut R4g1World) {
 
 #[given("a typed abstention code")]
 fn selective_typed_code(_w: &mut R4g1World) {}
+
+// --- RF-31: promoted skip-mix serving lane (#910) ---------------------------
+// Exercises the deployed lane's candidate-discovery guarantee via the public
+// SKMX/PSIB table format that the serving reroute (R4Engine::predict_decision
+// -> predict_decision_candidates_with_skipmix) consults. Light and
+// deterministic (no engine or model load); the engine-level reroute and the
+// absent-section identity are covered by the uor-r4-api engine tests and the
+// #908 deployed causal harness.
+
+#[given("a skip-mix joint table binding content 10 and last token 20 to partner 99")]
+fn skipmix_bind_joint(w: &mut R4g1World) {
+    let rows = vec![(10u32, 20u32, vec![(99u32, 1i32)])];
+    w.skmx_bytes = uor_r4_graph_format::build_skipmix_table(&rows).expect("build skmx table");
+}
+
+#[when("the deployed lane looks up content 10 with last token 20")]
+fn skipmix_lookup_hit(w: &mut R4g1World) {
+    let table = uor_r4_graph_format::SkipmixTable::parse(&w.skmx_bytes).expect("parse skmx");
+    w.lane_found_score = table
+        .find(10, 20)
+        .and_then(|row| row.entries().find(99))
+        .map(|_score| 1i32);
+}
+
+#[then("partner 99 is surfaced as a supported skip-mix candidate")]
+fn skipmix_partner_surfaced(w: &mut R4g1World) {
+    assert!(
+        w.lane_found_score.is_some(),
+        "the joint table must surface the bound co-occurrence partner"
+    );
+}
+
+#[when("the deployed lane looks up content 30 with last token 40")]
+fn skipmix_lookup_miss(w: &mut R4g1World) {
+    let table = uor_r4_graph_format::SkipmixTable::parse(&w.skmx_bytes).expect("parse skmx");
+    w.lane_found_score = table
+        .find(30, 40)
+        .and_then(|row| row.entries().find(99))
+        .map(|_score| 1i32);
+}
+
+#[then("no skip-mix candidate is surfaced")]
+fn skipmix_no_candidate(w: &mut R4g1World) {
+    assert!(
+        w.lane_found_score.is_none(),
+        "an unbound joint key must surface no candidate"
+    );
+}
+
+#[given("a psi-bag fallback binding content 10 to partner 77")]
+fn skipmix_bind_psib(w: &mut R4g1World) {
+    let rows = vec![(10u32, vec![(77u32, 1i32)])];
+    w.psib_bytes = uor_r4_graph_format::build_psi_bag_table(&rows).expect("build psib table");
+}
+
+#[when("the deployed lane consults the psi-bag for content 10")]
+fn skipmix_psib_lookup(w: &mut R4g1World) {
+    let table = uor_r4_graph_format::PsiBagTable::parse(&w.psib_bytes).expect("parse psib");
+    w.lane_found_score = table
+        .find(10)
+        .and_then(|row| row.entries().find(77))
+        .map(|_score| 1i32);
+}
+
+#[then("partner 77 is surfaced as a supported fallback candidate")]
+fn skipmix_psib_partner_surfaced(w: &mut R4g1World) {
+    assert!(
+        w.lane_found_score.is_some(),
+        "the psi-bag fallback must surface the bound content partner"
+    );
+}
 
 #[when("the streaming decline frames are built")]
 fn selective_stream_frames(w: &mut R4g1World) {

@@ -289,3 +289,12 @@ statement = "Typed selective-prediction serving surface (legacy-coverage mode): 
 scope = "normative-runtime"
 reachability = "deployed-serving"
 evidence = "features/suites/selective_prediction_surfaces.feature; src/selective.rs, src/chat.rs, src/server.rs, src/tless_uor.rs (typed spec section-5 encodings on the served path); docs/selective_prediction_spec_838.md sections 5-6"
+
+[[id]]
+id = "RF-31"
+level = "build"
+suite = "skipmix_serving_lane"
+statement = "Deployed serving routes next-token selection through the promoted skip-mix lane: R4Engine::predict_decision consults the compiled SKMX joint and PSIB fallback sections to re-select the served token from window-token co-occurrence partners, and is byte-identical to the base decision when the sections are absent (absent-section identity)"
+scope = "normative-runtime"
+reachability = "deployed-serving"
+evidence = "features/suites/skipmix_serving_lane.feature; crates/uor-r4-api/src/engine.rs (predict_decision routes through predict_decision_candidates_with_skipmix); crates/uor-r4-graph-cli/src/lib.rs (score stage fits and emits SKMX/PSIB via skipmix_fit::fit_skipmix_tables); docs/skipmix_endtoend_causal_908.md (deployed end-to-end causal evidence, +28.45permille, #822/#908)"

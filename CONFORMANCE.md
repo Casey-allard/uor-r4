@@ -211,6 +211,12 @@ The `build` level is *harness-built* (structural). It is a separate axis from an
 | --- | --- | --- | --- | --- | --- |
 | `RF-28` | `build` | `reference-only` | `off-serving-path` | features/suites/separate_semantic_emission.feature (reference reasoning/emission model) | Separate semantic reasoning and state transitions from language emission (reference/f32 model; off the deployed serving path) |
 
+## skipmix_serving_lane
+
+| ID | Level | Execution scope | Serving reachability | Evidence | Statement |
+| --- | --- | --- | --- | --- | --- |
+| `RF-31` | `build` | `normative-runtime` | `deployed-serving` | features/suites/skipmix_serving_lane.feature; crates/uor-r4-api/src/engine.rs (predict_decision routes through predict_decision_candidates_with_skipmix); crates/uor-r4-graph-cli/src/lib.rs (score stage fits and emits SKMX/PSIB via skipmix_fit::fit_skipmix_tables); docs/skipmix_endtoend_causal_908.md (deployed end-to-end causal evidence, +28.45permille, #822/#908) | Deployed serving routes next-token selection through the promoted skip-mix lane: R4Engine::predict_decision consults the compiled SKMX joint and PSIB fallback sections to re-select the served token from window-token co-occurrence partners, and is byte-identical to the base decision when the sections are absent (absent-section identity) |
+
 ## teacher_parity_benchmarks
 
 | ID | Level | Execution scope | Serving reachability | Evidence | Statement |

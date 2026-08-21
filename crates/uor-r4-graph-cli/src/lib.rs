@@ -5497,6 +5497,15 @@ fn score_command_with_authority(
     let emissions =
         score::compile_emissions(&corpus, &store, &regions, &train, max_depth, vocab, &config);
     phases.mark("emission compilation");
+    // #910: fit the promoted skip-mix lane (SKMX joint table + PSIB fallback)
+    // so compiled bundles carry the optional sections and the deployed serving
+    // lane is live. Teacher-free (reads recorded `t_argmax`); it re-splits the
+    // corpus internally to the same TRAIN partition the other stages use.
+    let (skipmix_rows, psi_bag_rows) = uor_r4_graph_compiler::skipmix_fit::fit_skipmix_tables(
+        &corpus,
+        uor_r4_graph_compiler::segment_fit::DEFAULT_TOP_K,
+    );
+    phases.mark("skip-mix lane fit");
     let (artifact_bytes, info) = score::emit_scored_r4g1_with_tokenizer_cid(
         &artifact_container,
         (&meta_bytes, &recs_bytes),
@@ -5511,11 +5520,11 @@ fn score_command_with_authority(
             exct_tls1: &tls1,
             exct_top_x: config.exct_top_x,
             fwd_rows: &fwd_rows,
-            // #897: skip-mix lowering is not yet wired into this compile
-            // path's fitting stage; empty means the SKMX/PSIB sections are
-            // not emitted (absent-section identity, unchanged behavior).
-            skipmix_rows: &[],
-            psi_bag_rows: &[],
+            // #910: the promoted skip-mix lane, fitted above, is emitted so
+            // compiled bundles carry the SKMX/PSIB sections and the deployed
+            // serving lane is live (S1 PROMOTE, #822/#908).
+            skipmix_rows: &skipmix_rows,
+            psi_bag_rows: &psi_bag_rows,
         },
         tokenizer_cid,
     );

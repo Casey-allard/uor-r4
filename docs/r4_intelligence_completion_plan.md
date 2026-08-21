@@ -178,6 +178,33 @@ comment, 2026-08-21).
   ceiling); the **frozen 20‰ end-to-end floor remains the promotion gate**. S2's #839
   phase-1 typed surfaces proceed per its re-scope.
 
+### S1 stage verdict — PROMOTE (2026-08-21)
+
+The lowering track cleared the frozen 20‰ end-to-end causal floor, so **S1 is
+promoted** and S3 (#824) is unlocked. This entry is the readable mirror of the
+tracker verdict; **GitHub #822 remains the source of record** (PROMOTE decision
+comment, 2026-08-21). It does not retract the REVISE entry above — the redesign
+happened, and this is its resolution.
+
+- **The D1-selected lowering re-entered and cleared the gate.** #897 (PR #903)
+  lowered the confirmed 1-token skip-mix scorer onto the deployed `R4Engine`,
+  shipped dormant after a spot-check fidelity gap; #904 (PR #905) diagnosed the
+  gap as breadth-bound; #906 (PR #907) fixed it with candidate injection
+  (deployed fidelity 58/87, clearing the 60% bar); #908 (PR #909) measured the
+  deployed **end-to-end causal** effect at **+28.45‰ [25.57, 31.32]** — the
+  paired 95% lower bound clears the 20‰ floor — with the
+  conditioning-specificity (label-shuffle) null collapsing to −236.95‰
+  (`docs/skipmix_endtoend_causal_908.md`, result_cid `blake3:e32e4e33…`).
+- **Real against the deployed base.** As pre-registered, the off-serving +56.2‰
+  (toy suffix-rate base) overestimated the deployed delta; the lowered lane
+  still clears the floor against the real deployed base.
+- **Frozen gates held.** The 20‰ causal floor and the #838 selective-prediction
+  gates did not move (the #887 discipline); D3 stays deferred (the end-to-end
+  measurement did not hit the 128-token label ceiling).
+- **Activation.** The promoted lane is turned on — the deployed serving decision
+  routes through the lane, the compile path fits and emits the SKMX/PSIB
+  sections, and the capability is registered as **RF-31** — under #910.
+
 ### S2 stage verdict — REVISE (2026-08-21)
 
 Items A and B are closed and item C is re-scoped, so **S2 is revised**: abstention
