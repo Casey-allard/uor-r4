@@ -202,3 +202,64 @@ the 20‰ floor stays the promotion gate end-to-end; the key-granularity
 question — 2-token joint vs 1-token d4skip-style conditioning — is named
 there as the first design decision). D2 (region-conditional evidence) still
 runs per §6-3; §6-4 then consumes Q1 + D1 + D2 together.
+
+## 5. D2 — region-conditional evidence (teacher-grounded run, 2026-08-21): REVISE
+
+Contract: posted to #822 before the run (2026-08-21 comment), arms as
+pre-registered there — `region[d]` for d ∈ {1,2,3,4} with PRIMARY =
+`region[4]`; the `rxs` (code4 × suffix) product key; the planted `codeshuf`
+null; the #784 continuation-convergence result as the pre-registered null;
+consultation order region[4] → rxs; SELECT bar 25‰. Codes were derived for
+every record by the deployed quantization path (`runtime::bundle_plain` →
+`runtime::assign_code_for_bundle` — the exact #784 instrument path; Q2
+approval), cached via the κ-gated code sidecar. No recompile.
+
+The run completed 2026-08-21 (elapsed 5.0 s; the code pass was
+sidecar-cached; result_cid
+`blake3:4c70f8f1102fb7d5675169fc4ec4088ef28b2c7425add5d168125597809af502`;
+full numbers in
+[`docs/region_conditional_822_result.json`](region_conditional_822_result.json)).
+
+**Harness gates: PASS.** base 246.6‰ exact; minimal pairs 4,722 exact;
+base-follow 0; region tables non-empty at every depth (d1 256 / d2 17,129 /
+d3 69,036 / d4 107,865 keys; rxs 171,005 keys); 37,587 distinct full-depth
+codes on held-out; double-run 2,000 positions identical.
+
+| arm | top-1 | paired Δ vs base [95% CI] |
+|---|---|---|
+| region[1] | 247.5‰ | +0.8 [−1.8, +3.4] |
+| region[2] (sweep, exploratory) | 270.0‰ | +23.3 [+21.0, +25.7] |
+| region[3] | 267.6‰ | +21.0 [+18.6, +23.4] |
+| **region[4] (PRIMARY)** | 266.1‰ | **+19.5 [+17.0, +21.9]** |
+| rxs (code4 × suffix) | 257.0‰ | +10.4 [+8.5, +12.3] (covered 34,656/72,130) |
+| codeshuf null | 84.2‰ | −162.5 [−165.3, −159.6] (changed 56,988) |
+| trivial prior | 49.1‰ | — |
+
+**Empirical Criterion (not met at the pre-registered consultation,
+Empirical).** region[4]'s paired lower bound 17.0‰ sits below the frozen 20‰
+floor; rxs is sub-floor with key sparsity. **Verdict: `REVISE`** — no
+lowering track opens from D2.
+
+**The #784 null, refined rather than merely confirmed.** Only 5,392/52,398
+(10.3%) of covered held-out positions sit in region[4] tables whose argmax
+IS the corpus-marginal token — at fine granularity the artifact's own
+regions are differentiated, and they carry +19.5‰ of real conditional
+signal the deployed scorer currently discards. The signal is code-specific:
+the codeshuf null (foreign full-depth code under this window's suffix
+baseline) collapses by −162.5‰ across 56,988 changed predictions.
+
+**Granularity and λ observations (exploratory, not verdicts).** The depth
+sweep peaks at depth 2: +23.3‰ [+21.0, +25.7] — a floor-clearing lower
+bound that is still below the 25‰ opening bar — while full depth fragments
+support (d4 covers 52,398/72,130 held-out positions; d2 covers 71,020). The
+λ-sweep reads 279‰ at λ = 0.5 on region[4] (softer mixing helps). Both are
+recorded as design input for #897's key-family decision only; neither was in
+the pre-registered consultation order and neither alters the verdict.
+
+Minimal pairs: region4-follow 53 / rxs-follow 56 of 4,722 (base structurally
+0) — same-suffix disambiguation from the geometric key alone.
+
+**Contract disposition (negative branch, as pre-declared).** No track opens
+from D2; the region-key direction is recorded as REAL-but-sub-floor, with
+the granularity/λ observations attached to #897 as design input. §6-4 now
+consumes Q1 + D1 + D2; the decision request is posted on #822.

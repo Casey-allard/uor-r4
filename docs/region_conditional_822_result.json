@@ -1,0 +1,19 @@
+{
+  "issue": 822,
+  "arm": "region-conditional-d2-reference",
+  "corpus_meta_cid": "blake3:aa9d176779c1d2411e872c49c95ed585ee805ded5fa1b808ddf2f517a245b0ce",
+  "train": 288794,
+  "held_out": 72130,
+  "lambda": 1,
+  "suffix_baseline_permille": 246.6,
+  "regions": [{"depth": 1, "permille": 247.5, "delta_permille": 0.8, "delta_ci": [-1.8, 3.4], "table_entries": 256, "held_out_covered": 72130},{"depth": 2, "permille": 270.0, "delta_permille": 23.3, "delta_ci": [21.0, 25.7], "table_entries": 17129, "held_out_covered": 71020},{"depth": 3, "permille": 267.6, "delta_permille": 21.0, "delta_ci": [18.6, 23.4], "table_entries": 69036, "held_out_covered": 61783},{"depth": 4, "permille": 266.1, "delta_permille": 19.5, "delta_ci": [17.0, 21.9], "table_entries": 107865, "held_out_covered": 52398}],
+  "rxs": {"permille": 257.0, "delta_permille": 10.4, "delta_ci": [8.5, 12.3], "table_entries": 171005, "held_out_covered": 34656},
+  "codeshuf_null": {"permille": 84.2, "delta_permille": -162.5, "delta_ci": [-165.3, -159.6], "changed": 56988},
+  "trivial_prior_permille": 49.1,
+  "convergence_diagnostic": {"region4_covered": 52398, "argmax_is_corpus_mode": 5392, "distinct_code4_held_out": 37587},
+  "lambda_sweep_permille": {"0.5":278.6,"1":266.1,"2":240.6,"4":220.3,"8":205.6},
+  "minimal_pairs": {"total": 4722, "region4_follow": 53, "region4_follow_permille": 11.2, "region4_follow_ci_lo": 8.2, "rxs_follow": 56, "baseline_follow": 0},
+  "double_run": {"checked": 2000, "identical": true},
+  "result_cid": "blake3:4c70f8f1102fb7d5675169fc4ec4088ef28b2c7425add5d168125597809af502",
+  "verdict": "REVISE — real but sub-floor region-conditional signal; below the frozen 20permille floor, so no lowering track opens"
+}

@@ -422,7 +422,18 @@ comparison arm ((token, last-token) keys, denser support) measured +49.6‰
 [46.8, 52.4] — key granularity is recorded design input. Verdict
 **`SELECT (backed-off mix)`** under the pre-registered rule posted to #822 before the
 run; the #836-shaped lowering track is filed as #897 (trigger-gated on the RFC §6-4
-decision after D2; the 20‰ floor stays the promotion gate end-to-end).
+decision after D2; the 20‰ floor stays the promotion gate end-to-end). **D2
+(region-conditional):** codes read from the released artifact via the deployed
+quantization path (`bundle_plain` → `assign_code_for_bundle`) measured region[4]
+**+19.5‰ [17.0, 21.9]** — verdict **`REVISE`** (real but sub-floor; no track opens from
+D2), with the #784 convergence null refined rather than confirmed (only 10.3% of
+covered region[4] tables argmax to the corpus mode — fine-granularity regions are
+differentiated) and the code-shuffle null collapsing (−162.5‰ across 56,988 changed
+predictions). The exploratory depth sweep peaks at depth 2 (+23.3‰ [21.0, 25.7] —
+floor-clearing, below the opening bar); recorded with the λ observations as #897
+design input only. The §6-4 re-entry decision consumes Q1 + D1 + D2 on #822
+(record §5 of `s1_redesign_instruments_822.md`; CID-bound
+`region_conditional_822_result.json`).
 
 **S2 item A — the typed selective-prediction contract and the answerability benchmark
 constitution are frozen (#838, 2026-08-21).**
