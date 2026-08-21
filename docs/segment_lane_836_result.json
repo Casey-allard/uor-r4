@@ -1,0 +1,30 @@
+{
+  "issue": 836,
+  "increment": "4c-iii",
+  "decision_kind": "reachability-arithmetic (no full causal run launched)",
+  "bundle": "/Users/casey.allard/uor-r4/.uor-models/compiled/smollm2-360m-broad-clean",
+  "artifact_cid": "blake3:bc2366f18377718da744f72fe03648b09df1a9cf320ffceadf656c7e94aa9d48",
+  "corpus_meta_cid": "blake3:aa9d176779c1d2411e872c49c95ed585ee805ded5fa1b808ddf2f517a245b0ce",
+  "primary_metric": "paired causal-influence-delta (permille), causal_prompt_run_834, SUFFIX_K=2",
+  "deployed_causal_delta_permille": -1.6,
+  "deployed_causal_delta_ci": [-2.4, -0.8],
+  "causal_floor_permille": 20.0,
+  "reference_arm_ceiling_permille": 17.5,
+  "reference_arm_ceiling_ci": [15.9, 19.0],
+  "ceiling_upper_bound_permille": 19.0,
+  "ceiling_below_floor": true,
+  "deployed_lane_constraints_below_ceiling": [
+    "quantization of the learned table to integer ScoreQ at fixed RATE_SCALE_SHIFT",
+    "top-8 candidate bound (STEP_TOP_CANDIDATES) vs the reference full-vocab argmax"
+  ],
+  "mechanism_gap_closed": true,
+  "mechanism_gap_closed_by": ["4c-i (#883): engine consumes learned table", "4c-ii: fit + emit learned table"],
+  "full_run_launched": false,
+  "full_run_launched_reason": "reachable ceiling 19.0 < floor 20.0; a run is a foregone-conclusion negative (long-run discipline)",
+  "lane_status": "dormant",
+  "ids_toml_serving_row": false,
+  "conformance_changed": false,
+  "activation_gate": "re-clears the 20 permille causal floor on the packed serving path",
+  "follow_up_issues_order": ["candidate-support widening", "bounded minimal-pairs spot-check", "20-permille floor governance review"],
+  "verdict": "REVISE — segment lane fully lowered and safe (absent-section identity, top-8-only re-rank), whole-prompt content effect real but sub-floor (+17.5 permille, CI upper 19.0 < 20.0); PROMOTE not warranted, lane kept dormant"
+}
