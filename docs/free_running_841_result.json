@@ -1,0 +1,27 @@
+{
+  "issue": 841,
+  "study": "free-running-trajectory-gap-v1",
+  "mode": "greedy",
+  "sampled_mode": {"status": "UNAVAILABLE", "reason": "no seeded-sampling driver pinned in run-1; contract defines it"},
+  "judge_metrics": {"status": "UNAVAILABLE", "reason": "no judge identity pinned; deterministic primaries only"},
+  "corpus_meta_cid": "blake3:aa9d176779c1d2411e872c49c95ed585ee805ded5fa1b808ddf2f517a245b0ce",
+  "prompt_family": {"version": 1, "n": 100, "cid": "blake3:6cad1dfe76f98fabb1a4396ed1baa4f6d60dcfd644b6f13d75a1cce7a3cd39c9"},
+  "horizons": [8, 32],
+  "teacher_forced_agreement_permille": 304,
+  "suffix_locality": {"fr_equals_suffix_only_rollouts": 99, "of": 100},
+  "controls": {"shuffled_prompt_changed_rollouts": 95},
+  "aggregates": {
+    "repeated-prefix@h8": {"n": 100, "median_first_divergence": 0, "median_ci_steps": [0, 0], "diverged_at_step0_permille": 800, "survived_full_horizon_permille": 0, "abstained_permille": 0, "cycled_permille": 80, "mean_distinct1_permille": 901, "mean_prompt_overlap_permille": 101, "paths": {"exact_context": 0, "ngram": 798, "graph": 2, "widened": 0, "served": 800}, "horizon": 8},
+    "shuffled-prompt@h8": {"n": 100, "median_first_divergence": 0, "median_ci_steps": [0, 0], "diverged_at_step0_permille": 980, "survived_full_horizon_permille": 0, "abstained_permille": 0, "cycled_permille": 0, "mean_distinct1_permille": 1000, "mean_prompt_overlap_permille": 121, "paths": {"exact_context": 0, "ngram": 800, "graph": 0, "widened": 0, "served": 800}, "horizon": 8},
+    "student-prefix@h8": {"n": 100, "median_first_divergence": 0, "median_ci_steps": [0, 1], "diverged_at_step0_permille": 590, "survived_full_horizon_permille": 0, "abstained_permille": 0, "cycled_permille": 300, "mean_distinct1_permille": 760, "mean_prompt_overlap_permille": 61, "paths": {"exact_context": 0, "ngram": 797, "graph": 3, "widened": 0, "served": 800}, "horizon": 8},
+    "suffix-only@h8": {"n": 100, "median_first_divergence": 0, "median_ci_steps": [0, 1], "diverged_at_step0_permille": 590, "survived_full_horizon_permille": 0, "abstained_permille": 0, "cycled_permille": 300, "mean_distinct1_permille": 760, "mean_prompt_overlap_permille": 61, "paths": {"exact_context": 0, "ngram": 797, "graph": 3, "widened": 0, "served": 800}, "horizon": 8},
+    "teacher-prefix@h8": {"n": 100, "median_first_divergence": 0, "median_ci_steps": [0, 1], "diverged_at_step0_permille": 590, "survived_full_horizon_permille": 0, "abstained_permille": 0, "cycled_permille": 30, "mean_distinct1_permille": 793, "mean_prompt_overlap_permille": 125, "paths": {"exact_context": 3, "ngram": 789, "graph": 8, "widened": 0, "served": 800}, "horizon": 8},
+    "repeated-prefix@h32": {"n": 100, "median_first_divergence": 0, "median_ci_steps": [0, 0], "diverged_at_step0_permille": 800, "survived_full_horizon_permille": 0, "abstained_permille": 0, "cycled_permille": 640, "mean_distinct1_permille": 431, "mean_prompt_overlap_permille": 92, "paths": {"exact_context": 0, "ngram": 3198, "graph": 2, "widened": 0, "served": 3200}, "horizon": 32},
+    "shuffled-prompt@h32": {"n": 100, "median_first_divergence": 0, "median_ci_steps": [0, 0], "diverged_at_step0_permille": 980, "survived_full_horizon_permille": 0, "abstained_permille": 0, "cycled_permille": 0, "mean_distinct1_permille": 468, "mean_prompt_overlap_permille": 93, "paths": {"exact_context": 0, "ngram": 3200, "graph": 0, "widened": 0, "served": 3200}, "horizon": 32},
+    "student-prefix@h32": {"n": 100, "median_first_divergence": 0, "median_ci_steps": [0, 1], "diverged_at_step0_permille": 590, "survived_full_horizon_permille": 0, "abstained_permille": 0, "cycled_permille": 710, "mean_distinct1_permille": 391, "mean_prompt_overlap_permille": 60, "paths": {"exact_context": 0, "ngram": 3197, "graph": 3, "widened": 0, "served": 3200}, "horizon": 32},
+    "suffix-only@h32": {"n": 100, "median_first_divergence": 0, "median_ci_steps": [0, 1], "diverged_at_step0_permille": 590, "survived_full_horizon_permille": 0, "abstained_permille": 0, "cycled_permille": 710, "mean_distinct1_permille": 391, "mean_prompt_overlap_permille": 59, "paths": {"exact_context": 0, "ngram": 3197, "graph": 3, "widened": 0, "served": 3200}, "horizon": 32},
+    "teacher-prefix@h32": {"n": 100, "median_first_divergence": 0, "median_ci_steps": [0, 1], "diverged_at_step0_permille": 590, "survived_full_horizon_permille": 0, "abstained_permille": 0, "cycled_permille": 110, "mean_distinct1_permille": 643, "mean_prompt_overlap_permille": 101, "paths": {"exact_context": 24, "ngram": 3112, "graph": 64, "widened": 0, "served": 3200}, "horizon": 32}
+  },
+  "traces_cid": "blake3:7bfa5d018d3ee2b949b1a517fd885e297ffe7695c61faf321e5f5c950add031f",
+  "result_cid": "blake3:59ec2f60575e4db14c686f73d190eaa005b767dee56f2a884ca6ab369f671e59"
+}
