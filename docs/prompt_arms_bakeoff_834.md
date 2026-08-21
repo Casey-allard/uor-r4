@@ -239,6 +239,72 @@ context dependence. #836 should be pursued with calibrated expectations, not as 
 fix. This is a reference-only result; a deployed lowering must re-clear the causal gate on
 the packed production path (#836's own acceptance).
 
+## 6.3 Conditional-residuals reference-arm run (2026-08-21)
+
+**Empirical Criterion (conditional residuals vs corpus marginals). Status: Empirical.**
+Following the 2026-08-21 maintainer decision on #834, the last unmeasured arm of the §2
+five-arm scope — `conditional-residuals`, persistent state minus the corpus marginal —
+was built as an offline reference arm and run teacher-grounded on the #833 canonical
+bundle (harness `crates/uor-r4-api/tests/conditional_residuals_run_834.rs`; record
+`docs/conditional_residuals_834_result.json`; run contract posted to #834 before the
+run). Construction identical to §6.2 where shared: the same suffix and content tables
+from the 288,794 document-disjoint TRAIN positions plus the UNCAPPED corpus marginal
+(16,524 entries over 288,794 TRAIN targets; argmax token 260), scored on all 72,130
+held-out positions with λ = 1.0 fixed before evaluation and a fixed argmax decoder
+(score desc, id asc) across every arm and control. The arm scores
+`suffix_rate + λ·(content_rate − marginal_rate)` over the §6.2 Ψ-widened candidate set,
+so CR-vs-Ψ is a pure scoring-rule ablation. Before the reading was accepted, the harness
+reproduced §6.2 to the digit (suffix 246.6‰; Ψ 264.1‰, +17.5‰ CI [15.9, 19.0]; 4,722
+minimal pairs, Ψ-follow 10, baseline-follow 0) — the harness-correctness gate — and
+passed the in-harness 2,000-position double-run determinism check. Identities:
+corpus_meta_cid `blake3:aa9d1767…`, result_cid `blake3:feece1b3…`.
+
+- **CR (primary): 262.8‰ vs suffix baseline 246.6‰ → +16.2‰ (paired 95% CI
+  [+14.6, +17.9])** — the interval excludes zero AND its upper bound sits below the
+  frozen 20‰ `CAUSAL_FLOOR_PERMILLE`: the arm is real but **unconditionally sub-floor**,
+  the same reachability arithmetic that made the #836 segment lane dormant.
+- **CR vs Ψ: −1.3‰ (paired 95% CI [−2.4, −0.1])** — subtracting the corpus marginal
+  *slightly hurts* relative to §6.2's raw content evidence on identical candidates and
+  tables: the mechanism-specific increment of the conditional-residual transformation is
+  non-positive at this scale.
+- **Residual-shuffle null: +16.0‰ [14.4, 17.6]**, statistically indistinguishable from
+  the real arm (+16.2‰) while changing 14,478 individual predictions — the specific
+  marginal alignment contributes nothing; what carries the arm is the §6.2 content
+  evidence, not the subtraction. Together with CR-vs-Ψ this is the falsifier for the
+  arm's distinctive mechanism.
+- **Attribution (candidate availability vs score conditioning):** `cr-narrow` (the same
+  residual scoring over the suffix candidate set only) reaches +3.1‰ [2.3, 4.0]; the
+  widened arm reaches +16.2‰ — most of the arm's movement is candidate availability,
+  consistent with §6.2's segment-lane structure.
+- **Controls non-degenerate:** prompt-swap −7.3‰ [−8.7, −5.9] (different-story content
+  hurts; 27,758 predictions changed) — the gain is prompt-specific; trivial-prior 49.1‰;
+  λ-sweep flat (262.1 / 262.8 / 262.0 / 259.7 / 245.8‰ at λ = 0.5/1/2/4/8) — not a
+  weighting artifact.
+- **Minimal pairs:** CR follows 13 / 4,722 (2.8‰, 95% lower bound 1.3‰) vs Ψ 10 and
+  baseline 0 — a minute real hard-pair signal.
+
+**Verdict: `REVISE`, per the pre-registered rule posted to #834 before the run** (SELECT
+required the paired-delta lower bound ≥ 20‰; a minimal-pairs bound alone can no longer
+produce SELECT, per the #887 governance verdict). The signal is real and sub-floor with
+its CI upper bound below the floor, so **no lowering track opens** — by the #887
+calibration a deployed lowering re-faces integer-`ScoreQ` quantization and the top-8
+candidate ceiling and cannot exceed an off-serving ceiling that is already below the bar.
+
+**Arm-space disposition (closing the §2 scope). Status: Empirical.** With this run every
+arm of the §2 five-arm scope carries an evidence-backed disposition: `current-scoring`
+and `longer-local-context` — negative (§6.1; the deployed model is suffix-local);
+`persistent-state` (segment lane) — positive-sub-floor off-serving (§6.2), lowered
+end-to-end (#836), then retired from the promotion track with the 20‰ bar standing
+(#886 lowering-fidelity gap 1/10; #887 governance); `conditional-residuals` — REVISE,
+real-but-sub-floor with a non-positive mechanism-specific increment (this section);
+`candidate-support-expansion` — closed not-planned (#888, its own gates failing and
+superseded by #887). **No arm cleared the frozen causal floor.** Per the run contract's
+negative branch: current serving semantics are kept, no lowering opens, and S1 meets the
+#822 kill/redesign criterion (two-plus independently motivated arms fail the causal
+gate) — the S1 stage verdict against the full child set is the maintainer's call on
+#822, and further movement at S1 is representation/compiler redesign, not code-space or
+sampling tuning.
+
 ## 7. Repository conformance
 
 **Definition (RF mapping).** This instrument extends the evidence of existing capability

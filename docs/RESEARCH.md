@@ -377,6 +377,25 @@ minimal pairs where the suffix baseline follows 0. So the deployed artifact is s
 **discards** real predictive signal that a bounded segment-lane mechanism recovers — a modest but
 real positive that **warrants building #835/#836** (with calibrated expectations: +1.75pp overall,
 few hard same-suffix pairs resolved).
+
+**S1 item B — the conditional-residuals arm is measured; the five-arm space is fully
+dispositioned (#834, 2026-08-21).** After the segment lane was lowered end-to-end (#836)
+and retired from the promotion track with the 20‰ causal floor standing (#886
+lowering-fidelity spot-check; #887 governance verdict), the last unmeasured arm —
+`conditional-residuals`, persistent state minus the corpus marginal — was built as an
+offline reference arm and run teacher-grounded on the same #833 splits
+(`docs/prompt_arms_bakeoff_834.md` §6.3; harness
+`crates/uor-r4-api/tests/conditional_residuals_run_834.rs`, record
+`docs/conditional_residuals_834_result.json`): CR 262.8‰ vs suffix 246.6‰ → **+16.2‰
+(paired 95% CI [+14.6, +17.9])** — real, but the interval's upper bound sits below the
+20‰ floor, and against §6.2's Ψ on identical candidates and tables the marginal
+subtraction is non-positive (−1.3‰ [−2.4, −0.1]; the residual-shuffle null lands at the
+real arm, so the specific marginal alignment contributes nothing). Verdict **`REVISE`**
+under the pre-registered rule posted to #834 before the run: no lowering opens. Every
+arm of the #834 scope now carries an evidence-backed disposition and none cleared the
+frozen causal floor — S1 meets the #822 kill/redesign criterion (two-plus independently
+motivated arms fail the causal gate); the stage verdict against the full child set is
+the maintainer's on #822.
 The **geometric router** is a validated, real component (content-query
 retrieval MRR 0.88+, #486/#490/#502) but it is a retrieval/routing mechanism,
 not itself a generative model, and it runs on `f64` outside the P-4 kernel by
