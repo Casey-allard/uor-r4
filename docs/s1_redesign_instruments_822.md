@@ -263,3 +263,91 @@ Minimal pairs: region4-follow 53 / rxs-follow 56 of 4,722 (base structurally
 from D2; the region-key direction is recorded as REAL-but-sub-floor, with
 the granularity/λ observations attached to #897 as design input. §6-4 now
 consumes Q1 + D1 + D2; the decision request is posted on #822.
+
+## 6. D1 lowering phase-0 — `skipmix` (1-token) key-family confirmation (2026-08-21): SELECT-1-token
+
+The §6-4 maintainer decision (#822, 2026-08-21) ACTIVATED the lowering track
+#897 and pre-registered its **phase 0** on #897: a single cheap confirmation
+run, in this D1 harness mold, that decides the lowered KEY FAMILY before any
+lowering engineering. It changes nothing about deployed behaviour.
+
+**Objective.** Confirm whether the milder **1-token conditioning** key —
+which the D1 `d4skip` comparison arm (+49.6‰ [46.8, 52.4]) suggested was both
+stronger and simpler, but which sat OUTSIDE D1's pre-registered consultation
+order — should be the lowered key family instead of the D1-SELECTED 2-token
+`mix`. PRIMARY `skipmix` is the backed-off mix with the join key's suffix
+component narrowed from the 2-token suffix to the single last token: joint
+tables keyed by `(content token, last window token)` where supported, verbatim
+Ψ-bag fallback where not, normalized over all unique window tokens, residual
+against the full 2-token `suffix_rate`, cap 64 per key. Nothing else differs
+from `mix`, so the contrast is a pure key-family ablation on the shared D1
+candidate set. Planted null `skipmix_null`: this window's tokens looked up
+under the swap partner's last-token key (the conditioning-specificity null for
+the 1-token key). λ fixed at 1.0 before evaluation.
+
+**Pre-registered exit rule (posted to #897 before the run).** `SELECT-1-token`
+iff the `skipmix` paired-vs-`base` 95% lower bound ≥ 25‰ (the opening bar)
+**and** the paired `skipmix`-vs-`mix` 95% lower bound > 0. Otherwise the
+lowering proceeds with the D1-SELECTED 2-token `mix` as measured. The branches
+differ only in the lowered key family; the lowering itself proceeds either
+way. The frozen 20‰ end-to-end floor stays the promotion gate (not evaluated
+in phase 0).
+
+The run completed 2026-08-21 (elapsed 5.2 s; bundle
+`.uor-models/compiled/smollm2-360m-broad-clean`; corpus_meta_cid
+`blake3:aa9d176779c1d2411e872c49c95ed585ee805ded5fa1b808ddf2f517a245b0ce`;
+result_cid
+`blake3:4a13095bdfcf30d7117a75e52b9a11bf47c6650d112d031cccd2d74778c55677`;
+harness [`crates/uor-r4-api/tests/skipmix_confirm_897.rs`](../crates/uor-r4-api/tests/skipmix_confirm_897.rs);
+full numbers in
+[`docs/skipmix_confirm_897_result.json`](skipmix_confirm_897_result.json)).
+
+**Harness gates: PASS.** base 246.6‰, D1 mix 277.2‰ (+30.6 [28.6, 32.5]),
+D1 d4skip 296.2‰ (+49.6 [46.8, 52.4]) — all three reproduce the recorded D1
+values exactly; minimal pairs 4,722; base-follow 0; double-run 2,000 positions
+identical; corpus CID matches the attested #833 bundle. Anti-vacuity: skip
+tables 793,781 keys (mass 1,813,061); skip coverage 65,049/72,130 positions
+(mean supported 4.01 of 6.50 offered), known-last 71,531 — a denser key than
+the 2-token joint's 46,128 covered positions.
+
+| arm | top-1 | paired Δ vs base [95% CI] |
+|---|---|---|
+| base (suffix floor) | 246.6‰ | — |
+| mix (D1 2-token, repro) | 277.2‰ | +30.6 [+28.6, +32.5] |
+| d4skip (D1 pure skip residual, repro) | 296.2‰ | +49.6 [+46.8, +52.4] |
+| **skipmix (PRIMARY, 1-token mix)** | **302.8‰** | **+56.2 [+53.6, +58.7]** |
+| skipmix null (partner last-token) | 165.3‰ | −81.3 [−83.9, −78.8] (changed 47,185) |
+
+Head-to-head: **skipmix vs mix +25.6‰ (paired 95% CI [+23.1, +28.1])**.
+
+**Empirical Criterion (met, Empirical). Verdict: `SELECT-1-token`.** The
+`skipmix` paired-vs-base lower bound **53.6‰** clears the 25‰ opening bar,
+and the `skipmix`-vs-`mix` paired lower bound **23.1‰** is > 0 — both
+pre-registered conditions hold. The lowering lowers the **1-token-conditioning
+skip-mix** key family.
+
+**Null certification.** The conditioning-specificity null (this window's
+tokens scored under the swap partner's last token) collapses to 165.3‰
+(−81.3‰ vs base, 47,185 changed) — 137.5‰ below the real `skipmix` arm, so
+the SPECIFIC `(token, last-token)` pairing carries the signal, not candidate
+widening or table mass. Minimal pairs: `skipmix` follows 87 of 4,722 (18.4‰,
+95% lo 14.6) vs `mix`'s 78 — same-suffix disambiguation is marginally stronger
+than the 2-token mix.
+
+**Reading.** The 1-token key trades the 2-token suffix's conditioning
+specificity for denser support (65,049 vs 46,128 covered positions) while the
+backed-off mix keeps the Ψ-bag reach on the remainder; the net (+56.2‰) sits
+above both the 2-token mix (+30.6‰) and the pure `d4skip` residual (+49.6‰,
+base fallback) — the Ψ-bag backoff adds real reach over base-fallback on the
+same key. This confirms the maintainer's `d4skip`-motivated hypothesis: the
+milder key is both stronger and simpler.
+
+**Contract disposition (SELECT-1-token branch taken).** #897 lowers the
+1-token-conditioning skip-mix key family. The lowering engineering — bounded
+`(token, last-token)` joint tables with composite-key hash and fixed-offset
+reads, P-4 operation classes only, allocation-free steady state, deterministic
+bytes, witness replay, and the #886-style deployed-fidelity spot-check, then an
+end-to-end measurement on the #833 protocol against the frozen 20‰ floor —
+proceeds as #897's next phase; table layout and mixing weights remain the
+maintainer design call named on #897. D3 stays deferred (Q4), revisited only
+if the lowered arm's end-to-end measurement hits the 128-token label ceiling.
