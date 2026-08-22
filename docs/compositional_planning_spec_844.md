@@ -549,3 +549,93 @@ metric; this makes it the gating statistic in one cell. No frozen *value* moves:
 n = 512, H ∈ {1, 2, 4, 8}, H_max = 16, and W_max = 64 all stand, and the primary metric elsewhere is
 unchanged. The alternative considered and rejected was to report H = 1 without gating on it, which
 would have left five of the twenty cells descriptive rather than evidential.
+
+## 12. Amendment A2 — geometry-comparison cells and the budget-axis statistic (appended 2026-08-22, from #845)
+
+**Provenance.** Maintainer decision on #845, 2026-08-22 (the decision comment on #845 is the source
+of record; `docs/w33_geometry_qualification_spec_845.md` is the frozen design contract that uses
+this amendment). Same discipline as Amendment A1: this section is **appended**, the record above it
+is not rewritten, and **no frozen value moves** — δ_min = 0.05, n = 512 per cell per horizon,
+H ∈ {1, 2, 4, 8}, H_max = 16, W_max = 64, the §2.5 metrics, and the §11.6 horizon-1 reading all
+stand exactly as frozen.
+
+**The finding this amendment answers (a sixth structural ceiling).** #843 closed LIMITED with the
+lowered non-geometric baseline `bounded-breadth-first` at correct-outcome rate **1.0000 in all 20
+joint-split cells** (`docs/bounded_semantic_transitions_843.md` §3), the 12 separating cells
+included. A rate cannot exceed 1, so the reachable effect of *any* geometry arm over that baseline
+on the frozen primary statistic is exactly **0 < δ_min** on every cell of the grid. As released,
+#845's primary run could never launch under the repository run contract. This is the same shape as
+the greedy-solvability ceiling recorded in the #843 verdict: a comparison is only informative where
+a comparison is possible. The repair, as with A1, changes **where and on what the comparison is
+made**, never the frozen values.
+
+**Definition (A2(a) — the budget axis, primary on the 12 separating cells).** At the frozen
+comparison terms (frozen `PlanBudget`, H ∈ {1, 2, 4, 8}, n = 512, joint split, the 12 separating
+cells of the #843 record §3), the geometry statistic is the **paired per-instance relative
+reduction in deployed search work at exactly preserved correctness**: expansions are the gating
+counter; candidates and table reads are co-reported. An ordering arm is comparable in a cell only
+while its correct-outcome rate **equals** the baseline's rate in that cell — correctness is never
+traded for work, and any correctness regression disqualifies the arm in that cell regardless of its
+counters. The comparison bar is the **strongest non-geometric ordering control** under identical
+budget and byte terms; the statistic is the one-sided 95% lower confidence bound on the paired
+relative expansion reduction, and the frozen threshold is **ρ_min = 0.10**. The intersection-union
+conjunction over the 12 cells is the gate reading; Holm–Bonferroni is reported alongside (the #843
+§6 dual reading).
+
+**Definition (A2(b) — the correctness axis, probe-admitted cells).** A probed
+(family × horizon × budget) cell is **admissible** iff the strongest of {`bounded-breadth-first`
+under that budget, every non-oracle null} sits at or below **1 − δ_min** at n = 512 on the joint
+split — otherwise the cell would recreate the saturated-baseline trap. The binding cheap
+instrument (`geometry_probe_845.rs`, authorized by the 2026-08-22 decision; shipping with #845's
+build increments) ran the full surface on 2026-08-22 — five families × H ∈ {1, 2, 4, 8, 12, 16} at
+the frozen budget plus a frontier/expansion ladder at H = 8; 70 cells, 33.5 s, teacher-free —
+and admitted **18** cells. The two greedy-solvable families admitted **zero** cells at every probed
+setting, consistent with §11 and the #843 verdict.
+
+**Definition (the frozen A2(b) cell sets).** All A2(b) cells lie in the three separating families
+{graph-navigation, constraint-satisfaction, multi-hop-evidence}; every budget below is the frozen
+`PlanBudget` with exactly the named field tightened. Rates are `bounded-breadth-first`
+correct-outcome / strongest-null correct-outcome at n = 512, joint split (probe record, 2026-08-22;
+the strongest null is `direct-continuation` in every A2(b) cell). The **bar** a geometry arm must
+clear by δ_min is the larger of the two.
+
+*Primary (gating, 9 cells) — the frontier ladder at H = 8:*
+
+| family | budget | baseline | strongest null | bar | headroom |
+|---|---|---|---|---|---|
+| graph-navigation | frontier-16 | 0.5391 | 0.8340 | 0.8340 | 0.1660 |
+| graph-navigation | frontier-8 | 0.3047 | 0.8340 | 0.8340 | 0.1660 |
+| graph-navigation | frontier-4 | 0.1719 | 0.8340 | 0.8340 | 0.1660 |
+| constraint-satisfaction | frontier-16 | 0.5625 | 0.7422 | 0.7422 | 0.2578 |
+| constraint-satisfaction | frontier-8 | 0.3145 | 0.7422 | 0.7422 | 0.2578 |
+| constraint-satisfaction | frontier-4 | 0.1914 | 0.7422 | 0.7422 | 0.2578 |
+| multi-hop-evidence | frontier-16 | 0.5391 | 0.8340 | 0.8340 | 0.1660 |
+| multi-hop-evidence | frontier-8 | 0.3047 | 0.8340 | 0.8340 | 0.1660 |
+| multi-hop-evidence | frontier-4 | 0.1719 | 0.8340 | 0.8340 | 0.1660 |
+
+*Secondary (reported with full rigor, non-gating, 9 cells):* the expansion ladder at H = 8
+(`expansions-64` and `expansions-32` in the three families — the baseline collapses to 0.0000
+there, so the bar degenerates to the null alone and the cell attributes headroom to *any* informed
+ordering rather than to geometry specifically), and the frozen-budget H = 16 cells in the three
+families (bars 0.9258 / 0.9395 / 0.9258 — the bar is the baseline itself and the headroom is below
+2 × δ_min: **TIGHT**, the A1-d marker convention).
+
+**Definition (A2(b) gate reading).** On the nine primary cells the geometry arm's paired one-sided
+95% lower bound against the bar arm must clear δ_min in **every** cell (intersection-union), with
+Holm–Bonferroni reported alongside. Every arm, null, and control in an A2(b) cell runs under that
+cell's tightened budget with budget parity asserted by counters; the nulls that do not consume a
+`PlanBudget` (retrieval, continuation, memorization replays) are unchanged by the tightening and
+are measured as-is, which is exactly why they can be the bar.
+
+**Empirical Criterion (probe non-vacuity). Status: Empirical.** The probe's admissibility judge is
+required to be able to fire and to fail (a built test asserts both directions on synthetic cells,
+and that `direct-continuation` has real failures on a trap family), and the probe's saturated
+verdicts reproduce the #843 record where the grids overlap (frozen H = 8: baseline 1.0000 and
+identical strongest-null rates). A future re-freeze of any A2(b) cell set re-runs the probe first;
+its verdict binds.
+
+**What A2 does not change.** No cell of the frozen 20-cell grid is removed or re-gated; the frozen
+primary statistic on those cells is untouched; the #845 restriction to the 12 separating cells for
+any frozen-terms correctness comparison stands; the 8 greedy-solvable cells remain excluded
+everywhere; and no geometry claim is licensed by this amendment — it defines where one could be
+earned.

@@ -378,6 +378,42 @@ Readable mirror; **#843 and #826 remain the source of record**. Full measurement
   cannot measure lookahead, and headroom against a memorization null is not headroom against a
   search null.
 
+### S4 item C (#845) — ACTIVATED under Amendment A2 (2026-08-22)
+
+Readable mirror; **#845 remains the source of record** (maintainer decision comment, 2026-08-22).
+Frozen design contract:
+[`docs/w33_geometry_qualification_spec_845.md`](w33_geometry_qualification_spec_845.md); benchmark
+amendment: [`docs/compositional_planning_spec_844.md`](compositional_planning_spec_844.md) §12.
+
+- **The #859 edge is converted, F0 stays held.** The W(3,3) object every geometry arm uses is
+  pinned as formal-vocabulary Definitions in the #845 design contract (the symplectic quadrangle
+  over GF(3): 40 points, 40 lines; canonical representatives; collinearity distance; phase). The
+  dashboard's 96-vertex canvas is reconciled by disambiguation: it is a rendering motif with no
+  incidence structure and is non-normative for #845. A `PROMOTE FOR LOWERING` verdict does not
+  itself authorize production lowering — the lowering issue it would open must re-acquire the
+  exact #859 pin first. Formal backing gates lowering, never measurement.
+- **Zero-ceiling finding recorded.** The lowered RF-33 baseline is at correct-outcome 1.0000 in
+  all 20 frozen cells, so no geometry arm can clear δ_min over it on the frozen primary statistic
+  anywhere on the frozen grid. As released, #845's primary run could not launch under the run
+  contract.
+- **Amendment A2 (appended; no frozen value moves).** Two measurable axes replace the saturated
+  one: **A2(a)** — paired budget-reduction at exactly preserved correctness on the 12 separating
+  cells (expansions gating, ρ_min = 0.10, vs the strongest non-geometric ordering control);
+  **A2(b)** — correct-outcome rate on nine probe-admitted tightened-frontier cells at H = 8 in the
+  three separating families (bars 0.7422–0.8340, headroom 3.3–5.2× δ_min), with nine secondary
+  cells reported non-gating.
+- **The binding cheap instrument ran first and passed.** The failure-surface probe (70 cells,
+  33.5 s, teacher-free) admitted 18 cells; the two greedy-solvable families admitted zero at every
+  probed setting, consistent with the #843 verdict. The probe ships as a repository instrument in
+  #845's build increments.
+- **Restriction honored.** Any frozen-terms correctness comparison stays on the 12 separating
+  cells; the 8 greedy-solvable cells are excluded from every axis; #846 keeps the sealed
+  partitions and the S4 promotion verdict. Frozen gates unchanged (δ_min, n, the horizon grid, the
+  20‰ causal floor, the #838 selective gates, the #841 §6 bar).
+
+Next executable work: **#845 increments 2–4** (mapping and instruments → arms and harness →
+measurement and verdict).
+
 ## Dependency order
 
 ```text
