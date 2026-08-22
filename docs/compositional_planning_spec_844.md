@@ -1,0 +1,389 @@
+# Compositional planning benchmarks and artifact-backed state/action semantics — specification (#844)
+
+- **Issue:** #844 — "reasoning/#826-A: freeze compositional benchmarks and artifact-backed
+  state/action semantics" (item A of S4 tracker #826, programme #820).
+- **Parent tracker:** #826 (S4 — semantic planning and geometry qualification).
+- **Date:** 2026-08-22.
+- **Status:** Frozen experimentable **contract** (reference specification). This document
+  freezes (a) the compositional-planning benchmark constitution the S4 stage is judged on and
+  (b) the versioned typed artifact/reference model for states, actions, effects, goals,
+  constraints, evidence, confidence, transitions, and plan witnesses. It does **not** establish
+  any planning or reasoning capability — that is the measured question of #843 (induce/execute
+  bounded transitions), #845 (geometry qualification), and #846 (certification and claim
+  bounding). Records are append-only.
+- **Claim language:** normative per [`docs/formal_vocabulary.md`](formal_vocabulary.md) (v0.1.14).
+  Every labeled statement carries exactly one claim class (**Definition**, **Objective**,
+  **Guarantee**, **Assumption**, **Empirical Criterion**); every **Guarantee** and
+  **Empirical Criterion** carries a status (**Structural**, **Witnessed**, **Empirical**,
+  **Assumed**, **Unproven**).
+- **Execution scope:** **reference-only / off-serving-path** for the typed reference model and
+  its semantics, and **certifier-instrument / off-serving-path** for the benchmark harness, in
+  the sense of [`docs/conformance_execution_scope_830.md`](conformance_execution_scope_830.md).
+  Nothing here is deployed-serving evidence and nothing here strengthens or weakens the
+  guarantees of the deployed runtime. The deployed integer/table planner is the scope of #843.
+- **Planned machine-checked evidence (built after sign-off):** the reference model and its
+  determinism, totality, capacity, saturation, conflict, tie-break, decline, witness-replay,
+  metamorphic, and planted-negative controls will run in
+  `crates/uor-r4-api/tests/compositional_planning_spec_844.rs` (default `cargo test`); the
+  frozen benchmark constitution expands
+  `crates/uor-r4-api/capability_suites/compositional_reasoning.json` (CID-bound, #832 framework).
+
+---
+
+## 0. Entry boundary — the established, not promoted-generative, substrate
+
+Per the **S4 entry reconciliation (AMEND + PROCEED, 2026-08-22)** recorded on #826 and mirrored
+in `docs/r4_intelligence_completion_plan.md` (main `ddd82ff2`), S4 builds on the *established*
+upstream substrate, not a promoted-generative one. This specification is written to that boundary
+and may not silently assume capabilities the upstream stages did not establish:
+
+- **S1 PROMOTE (RF-31).** Prompt causality is established at +28.45‰ [25.57, 31.32]; the
+  persistent prompt state `Ψ` (#835) is available as a reference/deployed conditioning surface.
+- **S2 REVISE — honest abstention, no calibrator (#839 phase-2 trigger-gated).** Selective
+  prediction is *honest abstention*, **not** a calibrated confidence. **Assumption.** This
+  specification's `confidence`/`uncertainty` objects are therefore ordinal, decline-oriented
+  signals; no statement here reads a calibrated probability, and no benchmark metric rewards a
+  numeric confidence value. Selective integration is via the RF-30 typed decline surface.
+- **S3 LIMIT — no free-running generation at this scope (#824).** The deployed artifact is a
+  teacher-forced retrieval/continuation system. **Assumption.** Every benchmark in this
+  constitution is scored **teacher-forced** (`ScoringMode::TeacherForced`); no metric here reads
+  a free-running multi-token rollout as evidence of planning, and planning results are **not**
+  read as free-running coherence (the #824 boundary stands). Any future free-running re-entry
+  re-measures against the unchanged #841 §6 bar and the frozen #838 selective gates — out of
+  scope for #844.
+
+**Definition (what #844 establishes).** A *falsifiable target* (the benchmark constitution) and a
+*byte-level meaning* (the typed reference model), against which #843/#845/#846 measure. #844
+establishes **no** reasoning performance and makes **no** deployed-planning claim.
+
+---
+
+## 1. Problem and scope
+
+Multi-hop continuation, graph retrieval, memorized paths, and smooth f64 routing can all *look*
+like reasoning on non-interventional benchmarks. Undefined state/action/goal semantics also make
+witnesses, capacity bounds, and proofs impossible to pin. Two failures must be foreclosed before a
+planner or geometry is chosen:
+
+1. **Benchmark permeability.** Without document-disjoint held-out partitions, entity/topology/
+   composition splits, intervention controls, and non-degenerate baselines, a later "improvement"
+   can be leakage, ExactContext dominance, a decoder effect, a vacuous control, or benchmark drift
+   (the #832 failure taxonomy).
+2. **Semantic vagueness.** Without a reference transition, precondition/effect semantics, goal and
+   constraint predicates, evidence/provenance, capacity/decline rules, and witness fields, an
+   experiment cannot distinguish planning from suffix leakage, an oracle-like compiler, or a
+   reference-only f64 path (the #845 route-attention lesson: 119/120 heads vacuous, fit 0.396).
+
+**In scope (frozen here):** the five task families and their deterministic verifiers; the split
+axes and metamorphic controls; the baseline/null set and the promotion statistic; the frozen
+primary/secondary metrics, horizon progression, effect floor, sample sizes, and multiple-comparison
+handling; the versioned typed artifact/reference model and its total reference semantics; the
+deployed-form projection constraints; the plan-witness schema; and the leakage/tamper discipline.
+
+**Out of scope (deferred, by sibling):** inducing or executing transitions and lowering a planner
+(#843); any geometry mapping or W(3,3) qualification (#845, which stays `on-hold` until #843
+produces a non-degenerate baseline); the untouched-partition final verdict (#846); free-running
+generation re-entry (#824 boundary).
+
+**Non-goals (honored from #844):** treating nearest-neighbor retrieval, paraphrase stability, or
+path smoothness as reasoning; designing around W(3,3) before non-geometric state/action semantics
+exist; and using benchmark examples that share entities/topologies/compositions with fitting data.
+
+---
+
+## 2. The compositional-planning benchmark constitution
+
+This section freezes the content of the CID-bound suite `s4-compositional-reasoning`
+(`Stage::S4`, `Workload::CompositionalReasoning`, `ScoringMode::TeacherForced`) in the #832
+`capability_suite` framework. The existing placeholder manifest is *expanded*, not replaced; the
+manifest schema (`CAPABILITY_SUITE_SCHEMA = 1`) is preserved and any new field is additive.
+
+### 2.1 Task families (five)
+
+Each family ships a **deterministic generator** (content-addressed, seedless in the RNG sense —
+sample identity is a hash of its typed parameters, per plan §4.1) and a **deterministic verifier**
+that recomputes the objectively checkable outcome and every replayable intermediate state. All
+five are scored teacher-forced (§0, S3 boundary).
+
+| # | Family | Task | Objectively checkable outcome | Replayable intermediate state |
+|---|---|---|---|---|
+| F1 | **Graph navigation** | Reach a goal node/region under typed edges and forbidden regions | terminal node ∈ goal set; no step enters a forbidden region | per-step frontier + chosen edge |
+| F2 | **Symbolic transformation** | Apply a bounded operator sequence to reach a target term | terminal term == target (canonical form) | per-step term after each operator |
+| F3 | **Constraint satisfaction** | Assign/route to satisfy all typed constraints | all constraints satisfied; none violated | partial assignment after each action |
+| F4 | **Multi-hop evidence composition** | Compose provenance-linked evidence to a supported conclusion | conclusion holds AND every hop has cited support | evidence set + support chain per hop |
+| F5 | **Counterfactual intervention** | Re-plan after a declared edge/effect change | plan valid under the intervened dynamics, not the original | pre/post-intervention transition trace |
+
+**Definition (deterministic verifier).** For every task instance `x`, the verifier `V(x, plan)`
+recomputes the terminal outcome and each intermediate state from the frozen task dynamics and
+returns `Valid`, `Invalid(step_i, reason)`, or `Decline(reason)` — it never consults a hidden gold
+path, the teacher, or a network. **Guarantee (verifier totality). Status: Structural** (built:
+`compositional_planning_spec_844.rs::verifier_total_over_valid_inputs`).
+
+**Definition (replayable gold).** Each instance carries a replayable gold plan and its full
+intermediate-state sequence; the verifier accepts the gold and rejects any plan with an invalid
+intermediate transition **even if its terminal state matches** (the #846 rule: a right answer via
+an invalid step is not a valid plan).
+
+### 2.2 Split axes (held-out generalization)
+
+**Definition (split axes).** The suite partitions by **entity**, **surface vocabulary**,
+**topology**, **operator composition**, **prompt template**, and **reasoning horizon**. Fitting
+data and evaluation data never share a cell on any axis; the final `held-out-composition` and
+`held-out-topology` cells are reserved untouched for #846. The manifest `split` block gains
+`by_vocabulary`, `by_operator_composition`, and `by_horizon` alongside the existing `by_entity`,
+`by_topology`, `by_template`, `leakage_check`, `tamper_check`.
+
+**Guarantee (no split leakage). Status: Structural** (built:
+`compositional_planning_spec_844.rs::splits_are_disjoint_on_every_axis` +
+`::no_entity_topology_or_composition_shared_with_fitting`).
+
+### 2.3 Metamorphic controls (intervention-resistance)
+
+Applied to a solved instance, each control transforms the instance and its gold in lockstep and
+asserts the required behavior, foreclosing a specific shortcut:
+
+- **entity relabeling** — a consistent bijective renaming must not change validity (a label-memorizer breaks);
+- **irrelevant / distractor context** — added unused entities/edges must not change the valid plan;
+- **counterfactual edge/effect change** — a declared dynamics change must change the valid plan (F5);
+- **unseen composition** — an operator/topology composition absent from fitting must be generable and verifiable.
+
+**Guarantee (metamorphic consistency). Status: Structural** (built:
+`compositional_planning_spec_844.rs::metamorphic_relabel_distractor_counterfactual_unseen`).
+
+### 2.4 Baselines and nulls (the promotion falsifiers)
+
+**Definition (baseline set).** Six baselines, each an **Empirical Criterion** null a real planner
+must beat, extend the framework's `ControlKind` (additively): **retrieval-only**,
+**direct-continuation**, **memorized-trajectory**, **shuffled-state/action**, **shortest-path
+oracle** (an upper reference, *not* a beat-target), and **trivial-prior**. `shuffled-state` and
+`trivial-prior` already exist; `retrieval-only`, `direct-continuation`, `memorized-trajectory`, and
+`shortest-path-oracle` are new `ControlKind` variants.
+
+**Empirical Criterion (promotion statistic). Status: Empirical** (measured by #846, not #844). The
+promoted mechanism's one-sided 95% **lower** confidence bound of (candidate − strongest
+*non-oracle* baseline) exceeds the frozen effect floor **δ_min** on **every** required
+generalization axis and horizon, under equal artifact bytes, candidates, expansions, and
+operations. **Kill:** a gain that vanishes under relabeling/unseen-composition is memorization; a
+geometry that cannot beat Hamming/binary/VSA/spectral under equal budget stays offline (#845).
+
+**Guarantee (baseline non-degeneracy). Status: Structural** (built: `is_degenerate_control`
+applied per suite — a control that fails to separate from the primary invalidates the reading).
+
+### 2.5 Frozen metrics, horizons, effect floor, and sampling
+
+**Definition (primary metric).** `held-out valid-plan rate` = fraction of held-out instances whose
+emitted plan the verifier accepts as `Valid` (terminal outcome **and** every intermediate
+transition). This replaces the placeholder `held-out-composition-accuracy` (kept as an alias in the
+report schema for backward reads).
+
+**Definition (secondary metrics).** valid-intermediate-transition rate; constraint-satisfaction
+rate; evidence-support rate (F4); first-failure step (median, per horizon); honest-decline rate
+(no-plan / low-confidence, per §0 S2 boundary); and the resource envelope (artifact bytes,
+candidate expansions, table reads, integer operations).
+
+**Definition (horizon progression, frozen).** Reported at horizons **H ∈ {1, 2, 4, 8}** with a
+fixed maximum horizon **H_max = 16** and a fixed maximum frontier width **W_max = 64** (the #843
+planner capacities; instances exceeding them are `Decline(capacity)`, never truncated silently).
+
+**Definition (effect floor, frozen — maintainer sign-off value).** **δ_min = 0.05** (5 percentage
+points of valid-plan rate) as the practical-significance floor for the promotion statistic, in
+addition to the lower-bound-> 0 requirement.
+
+**Definition (sampling and power, frozen — maintainer sign-off value).** **n = 512** independent
+instances per held-out cell per horizon; the built power-analysis reproduces ≥ 0.80 power to detect
+δ_min at α = 0.05 (paired, two-sided) and records the achieved power per cell. **Multiple-comparison
+handling:** Holm–Bonferroni across the (axis × horizon × family) grid; the promotion gate uses the
+adjusted bounds. **Empirical Criterion. Status: Empirical** (the power reproduction is a built test;
+the achieved powers are measured).
+
+### 2.6 Leakage, tamper, and untouched partitions
+
+**Guarantee (no hidden future-answer leakage). Status: Structural** (built:
+`compositional_planning_spec_844.rs::no_future_answer_reachable_at_inference`). The task encoding
+exposes no field from which the gold terminal or gold path is recoverable at inference; a tamper
+test corrupts the manifest CID and asserts the loader fails closed. The final held-out composition
+and topology cells are sealed (CID-bound, access-logged) for #846 and are never opened by #843/#844.
+
+---
+
+## 3. The typed artifact / reference model (byte-level semantics)
+
+This section freezes the versioned typed model that #843 induces and lowers and that #846
+certifies. It refines the semantic-state binding `S`, dynamics `T : S × A → S`, goal `G ⊆ S`, and
+constraint `F ⊆ S` of `docs/formal_vocabulary.md` §3/§5. It is a **reference-only / off-serving-path**
+model (RF-27/RF-28 sense): owned, offline, f32 permitted for the reference arm; the deployed-form
+projection (§3.4) forbids owned strings, unbounded collections, and f32.
+
+### 3.1 Typed objects and stable artifact IDs
+
+**Definition (typed objects).** Ten object kinds, each with a stable artifact ID (a content-derived
+`u64`/`u128` per the R4G1 identity discipline) and reference semantics:
+
+| Object | Symbol | Reference meaning | Deployed-form projection |
+|---|---|---|---|
+| **State** | `s ∈ S` | typed valuation over a fixed schema of typed slots | packed fixed-capacity slot vector (bounded key/value ints) |
+| **Action** | `a ∈ A` | a typed operator with an ID and typed parameters | operator ID + fixed-width parameter block |
+| **Precondition** | `pre(a) ⊆ S` | predicate over states that must hold to apply `a` | packed mask/popcount predicate |
+| **Effect** | `eff(a)` | typed delta applied to a state | packed additive/mask delta |
+| **Goal** | `G ⊆ S` | desired future-state subset (a predicate) | packed goal predicate |
+| **Constraint** | `F ⊆ S` | forbidden subset (a predicate) | packed forbidden predicate |
+| **Evidence/provenance** | `ev` | typed support with a provenance ID (F4) | provenance ID + support code |
+| **Confidence/uncertainty** | `u` | *ordinal*, decline-oriented signal (§0 S2 boundary) | small fixed-range integer band |
+| **Transition** | `T : S × A → S` | total dynamics over valid `(s, a)` | packed transition/edge section |
+| **Plan witness** | `π-witness` | replayable record of a planning episode (§3.5) | validated optional witness section |
+
+### 3.2 Reference transition semantics (total, deterministic)
+
+**Definition (transition `T`).** `T(s, a) = s'` when `pre(a)` holds in `s`, applying `eff(a)`;
+otherwise `T` returns a typed non-application outcome. `T` is **total over valid inputs** and
+deterministic. **Guarantee. Status: Structural** (built: `::transition_total_and_deterministic`).
+
+**Definition (deterministic decision rules, frozen).**
+
+- **Goal satisfaction.** `s ⊨ G` iff the goal predicate holds; a plan is `Valid` iff `T^π(s₀) ⊨ G`
+  and no intermediate state enters `F` (the §5 formal-vocabulary plan definition).
+- **Transition validity.** an action is applicable iff `pre` holds; an inapplicable action in a
+  submitted plan yields `Invalid(step_i, precondition)`.
+- **Conflict / unknown.** conflicting effects or an unknown slot resolve by a frozen typed rule
+  (declared conflict → `Invalid(conflict)`; unknown → `Decline(unknown)`), never by silent default.
+- **Tie-breaking.** candidate ties break by the canonical deterministic order already normative in
+  `docs/scoring_semantics.md` (`deterministic_topk_proof`); no clock/RNG/hash-iteration order.
+- **Saturation / capacity / overflow.** exceeding `H_max`, `W_max`, or a fixed slot/action capacity
+  is `Decline(capacity)`; state/score arithmetic saturates (no wrap into a valid-looking value).
+- **Typed decline.** every non-answer is one of `Decline(no_plan | capacity | unknown | low_confidence)`
+  — an honest abstention (§0 S2 boundary), never a fabricated plan.
+
+**Guarantee (totality of the reference semantics over valid inputs; deterministic decline at
+capacity/unknown boundaries). Status: Structural** (built: property tests
+`::goal_transition_conflict_tie_saturation_decline_are_total_and_deterministic`).
+
+### 3.3 Interaction with prompt/session state and selective prediction
+
+**Definition.** Planning may read the persistent prompt state `Ψ` (#835, RF-31) as a conditioning
+surface and emits its abstentions through the RF-30 typed decline surface. **Guarantee (no
+future-answer access). Status: Structural** (built: `::planning_reads_no_future_answer`).
+**Assumption.** No calibrated-confidence claim is made: `u` is ordinal and used only for
+decline ordering (§0 S2 boundary).
+
+### 3.4 Deployed-form projection (the contract #843 must satisfy)
+
+**Definition (deployed-form constraints).** The lowered planner packs states/actions/
+transitions/goals/indices into **validated optional/versioned sections** with backward behavior,
+executing **only** the P-4 permitted operation classes (bitwise, shift/rotate, popcount, saturating
+integer add/sub, comparison, fixed-offset table reads) in the #831 normative `R4Engine` path with
+caller-owned scratch/state. It excludes **owned strings, unbounded collections, and f32** from the
+deployed form. **Guarantee (allocation-freedom, P-4 conformance, byte-determinism of the deployed
+planner). Status: Unproven here** — a requirement #843's allocation census, P-4 scan, and
+deterministic-rebuild establish, not this reference specification.
+
+### 3.5 Plan-witness schema (replayable, independently verifiable)
+
+**Definition (plan witness).** A versioned optional section recording: initial state, goal and
+constraints, considered actions, per-step transition evidence, chosen path, per-step score and
+ties, terminal verification result, and decline reason (if any). **Guarantee (independent replay).
+Status: Structural** (built: `::witness_replays_and_revalidates_without_model_outputs` — an
+independent verifier replays every transition and the terminal goal from the witness alone). This is
+the witness #843 emits and #846 replays.
+
+---
+
+## 4. Term discipline — public reasoning phrases mapped to measured tasks
+
+Per `docs/formal_vocabulary.md` §5, "reasoning" is never used bare. Each public phrase this
+programme may use is mapped to an exact measured task/horizon and a claim status:
+
+| Public phrase | Precise mechanism | Measured by | Status until measured |
+|---|---|---|---|
+| "compositional planning" | bounded planning (trajectory eval over `T`) on F1–F5, held-out composition | #843 fit / #846 verdict | **Unproven** |
+| "graph reasoning" | graph navigation (F1) at horizon H | #846 per-horizon table | **Unproven** |
+| "constraint reasoning" | constraint satisfaction (F3) | #846 | **Unproven** |
+| "evidence reasoning" | multi-hop evidence composition (F4) with cited support | #846 | **Unproven** |
+| "counterfactual reasoning" | re-planning under intervened dynamics (F5) | #846 | **Unproven** |
+
+No phrase in this table may appear unqualified in normative text; each is limited to the exact typed
+task and horizon it names.
+
+---
+
+## 5. Conformance mapping and built-capability order
+
+**Conformance mapping (existing RF ids, evidence language extended):** RF-01 (behavioral probes),
+RF-08 (bounded future-state planning; reference-only), RF-12 (lowering reference regions to
+Boolean/mask/popcount/fixed-point), RF-13 (packed zero-allocation kernels — the #843 deployed
+target), RF-27 (semantic state space + typed transition dynamics; reference/f32), RF-28 (separate
+state transitions from language emission; reference/f32). Existing reference IDs are **not**
+deployed-planning evidence.
+
+**Proposed new instrument id (maintainer sign-off):** register **RF-32**
+`compositional_planning_benchmarks` — a **certifier-instrument / off-serving-path**,
+fixture-gated **empirical** instrument (mirroring RF-29 `teacher_parity_benchmarks`: an absent
+fixture is `UNAVAILABLE`, never `PASS`). Alternative: fold the benchmark evidence under RF-29's
+language rather than adding a row. (Decision D5 below.)
+
+**Built-capability order (executed in the build pass, after sign-off):**
+`model/ids.toml` (RF-32 + evidence-language edits) → tagged Gherkin
+(`features/suites/compositional_planning_benchmarks.feature`) → failing marker/behavior test
+(`repo-conformance` `registered.rs` `check("RF-32", "compositional_planning_benchmarks")` +
+executable steps in root `tests/bdd.rs`) → implementation (reference model, generators, verifiers,
+expanded suite JSON, `ControlKind` extensions) → `xtask check-model --write` to regenerate
+`CONFORMANCE.md` (never hand-edited).
+
+---
+
+## 6. Acceptance-criteria mapping (#844)
+
+| #844 acceptance criterion | Frozen artifact that will establish it |
+|---|---|
+| Every task has a deterministic verifier and replayable gold/intermediate state | §2.1 verifier totality + replayable gold |
+| Split axes prevent entity/topology/surface/composition memorization | §2.2 disjoint splits + §2.3 metamorphic controls |
+| Reference transition/witness semantics total over valid inputs; deterministic decline at boundaries | §3.2 totality + typed decline |
+| Each public reasoning phrase mapped to an exact task/horizon and formal-vocabulary status | §4 |
+| A retrieval/memorized-path and a shuffled-state planted model fail the primary gate | §2.4 baselines + built planted-negative controls |
+
+## 7. Verification plan (built after sign-off)
+
+Generator determinism, split-leakage, relabeling/counterfactual/unseen-composition metamorphic, and
+tamper tests; reference transition/precondition/effect/goal/witness unit and property tests;
+capacity/overflow/conflict/unknown/tie/saturation negative fixtures; baseline non-degeneracy and
+power-analysis reproduction; schema examples round-trip and map to the conformance/proof matrix.
+Full repository gate ladder (fmt, clippy `-D warnings`, `cargo test --workspace`, no_std ladder,
+wasm lib build if core/router is touched, `check_claim_wording.py`, register-conformance R1–R6,
+deterministic rebuild, κ) runs before push.
+
+## 8. Compatibility and migration
+
+Only optional/versioned experimental schemas are introduced until a planner is selected
+(#843/#846). Historical artifacts remain valid and cannot be reported as planning-capable without
+the new sections and report identities. The capability-suite manifest bump is additive; the report
+schema keeps the placeholder metric name as an alias. Unsupported artifact eras fail with typed
+errors.
+
+## 9. What this issue establishes
+
+**Claim status.** Completion establishes a falsifiable target and byte-level meaning, **not**
+reasoning performance. #843 consumes §3 (typed model) and §2 (frozen benchmark) to induce/execute a
+non-geometric planner; #845 consumes §3.1's state/action/goal/evidence surface for any geometry
+mapping (and stays on-hold until #843 records its trigger); #846 consumes the sealed untouched
+partitions (§2.6) and the witness schema (§3.5) for the final `PROMOTE TYPED PLANNING` /
+`LIMITED CAPABILITY` / `REASONING NOT ESTABLISHED` verdict.
+
+---
+
+## 10. Open decisions for maintainer sign-off
+
+These are the maintainer-grade choices this document freezes. They are called out explicitly so the
+freeze is deliberate (mirroring how the S1 spec #835 was frozen as a reviewed step):
+
+- **D1 — Task families (§2.1).** Freeze exactly F1–F5 as listed? (Alternative: drop F5 counterfactual
+  to a #846-only stress axis, or add a sixth family.)
+- **D2 — Horizons/capacities (§2.5).** H ∈ {1,2,4,8}, H_max = 16, W_max = 64?
+- **D3 — Effect floor (§2.5).** δ_min = 0.05 valid-plan-rate as the practical-significance floor?
+- **D4 — Sampling/power (§2.5).** n = 512 per held-out cell per horizon; Holm–Bonferroni across the
+  (axis × horizon × family) grid?
+- **D5 — Conformance id (§5).** Register a new **RF-32** `compositional_planning_benchmarks`
+  instrument, or fold the evidence under existing RF-29/RF-27/RF-28 without a new row?
+- **D6 — Primary metric name (§2.5).** Rename the placeholder `held-out-composition-accuracy` to
+  `held-out valid-plan rate` (keeping the old name as a report alias)?
+
+On sign-off, the build pass implements §5's capability order and lands the code/config/tests +
+regenerated `CONFORMANCE.md`, verified through the full gate ladder and merged through the queue.
