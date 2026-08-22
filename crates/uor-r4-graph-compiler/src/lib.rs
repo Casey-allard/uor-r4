@@ -1,4 +1,5 @@
 pub mod behavioral_probes;
+pub mod compositional_planning;
 pub mod dependency_audit;
 pub mod executor;
 pub mod future_state_planner;
