@@ -503,6 +503,34 @@ mechanism is prescribed; #840's improvement bar is frozen (median +≥2 steps, a
 #822/#823 stage verdicts *(both recorded REVISE on 2026-08-21 — not promotions, so the
 gate holds; #840 is additionally held for the approved S1 redesign direction, per the
 decisions recorded on #824 and #840)*.
+
+**S3 item B — corrective student-prefix observation is not launched; free-running
+generation is not established under the promoted skip-mix representation (#840,
+2026-08-22).** [`docs/free_running_reachability_840.md`](free_running_reachability_840.md)
+executes the #840 run contract's binding cheap instrument before any corrective compile
+(harness `crates/uor-r4-api/tests/free_running_reachability_840.rs`; CID-bound record
+`docs/free_running_reachability_840_result.json`, `result_cid blake3:e9f48e20…`). It
+re-measures the frozen prompt-family v1 free-running gap, teacher-free, on TWO engines
+built from the same recompiled sections (the #908 machinery): a `base` engine (empty lane
+sections — it reproduces #841 exactly: 304‰ TF, 99/100 suffix-local, and its base graph
+CID `blake3:aaf98b68…` is byte-identical to #908's) and the deployed `skip` engine (the
+real fitted SKMX/PSIB — the RF-31 lane). **Empirical Criterion. Status: Empirical.** The
+activated lane raises matched teacher-forced agreement (304 → 348‰) and perturbs
+free-running (suffix-locality 99/100 → 19/100; 100/100 rollouts differ from base), but it
+moves free-running *away* from coherence, not toward it: diverged-at-step-0 rises
+590 → 620‰, ≤4-period cycle collapse rises 710 → 1000‰, and the median first-divergence
+stays 0. The correctable (graph/skip-mix) footprint of free-running is ~1‰ of served steps
+— roughly 100× below the frozen §6 bar's required 100‰ diverged-at-0 drop. By the
+repository run contract the corrective run is therefore **not launched** (the reachable
+ceiling is below the target effect, and the best available representation regresses
+free-running); the limiting factor is **representation**, not more-data or decoding. The
+disposition is **GENERATION-NOT-ESTABLISHED** for corrective student-prefix observation
+against this representation — an evidence-backed negative result that meets the programme's
+global falsifier (bounded student-prefix correction does not reduce the frozen free-running
+gap → the deployed artifact is a teacher-forced continuation/retrieval system, not a
+generative engine at this scope). No corrective mechanism is added and no serving behavior
+changes; the formal S3 generation-claim decision remains #842's, and S3 stage closure
+remains gated on that verdict.
 The **geometric router** is a validated, real component (content-query
 retrieval MRR 0.88+, #486/#490/#502) but it is a retrieval/routing mechanism,
 not itself a generative model, and it runs on `f64` outside the P-4 kernel by

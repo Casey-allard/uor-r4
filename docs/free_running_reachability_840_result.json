@@ -1,0 +1,20 @@
+{
+  "issue": 840,
+  "study": "free-running-reachability-under-skipmix-v1",
+  "execution_scope": "deployed R4Engine, teacher-free (recorded t_argmax labels)",
+  "mode": "greedy",
+  "bundle": "/Users/casey.allard/uor-r4/.uor-models/compiled/smollm2-360m-broad-clean",
+  "corpus_meta_cid": "blake3:aa9d176779c1d2411e872c49c95ed585ee805ded5fa1b808ddf2f517a245b0ce",
+  "prompt_family": {"version": 1, "n": 100, "cid": "blake3:6cad1dfe76f98fabb1a4396ed1baa4f6d60dcfd644b6f13d75a1cce7a3cd39c9"},
+  "base_graph_cid": "blake3:aaf98b68a78dd615f06dbb727a22dc4e170a152f055313fcc4fa574309f42d1e",
+  "skip_graph_cid": "blake3:19eb04d7dbf3fccd126069982ad8cbc1de31d536fff7e77ef2dacb26e64106cc",
+  "tf_agreement_permille": {"base": 304, "skip": 348},
+  "suffix_locality_of_100": {"base": 99, "skip": 19},
+  "lane_changed_fr_rollouts": 100,
+  "base_student": {"h8": {"n": 100, "median_first_divergence": 0, "diverged_at_step0_permille": 590, "survived_full_horizon_permille": 0, "abstained_permille": 0, "cycled_permille": 300, "mean_distinct1_permille": 760, "paths": {"exact_context": 0, "ngram": 797, "graph": 3, "graph_failures": 3, "served": 800}, "horizon": 8}, "h32": {"n": 100, "median_first_divergence": 0, "diverged_at_step0_permille": 590, "survived_full_horizon_permille": 0, "abstained_permille": 0, "cycled_permille": 710, "mean_distinct1_permille": 391, "paths": {"exact_context": 0, "ngram": 3197, "graph": 3, "graph_failures": 3, "served": 3200}, "horizon": 32}},
+  "skip_student": {"h8": {"n": 100, "median_first_divergence": 0, "diverged_at_step0_permille": 620, "survived_full_horizon_permille": 0, "abstained_permille": 0, "cycled_permille": 590, "mean_distinct1_permille": 563, "paths": {"exact_context": 1, "ngram": 796, "graph": 3, "graph_failures": 3, "served": 800}, "horizon": 8}, "h32": {"n": 100, "median_first_divergence": 0, "diverged_at_step0_permille": 620, "survived_full_horizon_permille": 0, "abstained_permille": 0, "cycled_permille": 1000, "mean_distinct1_permille": 174, "paths": {"exact_context": 3, "ngram": 3194, "graph": 3, "graph_failures": 3, "served": 3200}, "horizon": 32}},
+  "coherence_h32": {"median_base": 0, "median_skip": 0, "at0_base_permille": 590, "at0_skip_permille": 620, "cycled_base_permille": 710, "cycled_skip_permille": 1000},
+  "reachability": {"skip_graph_reach_permille": 0, "skip_graph_failure_permille": 0, "base_graph_reach_permille": 0, "sec6_at0_drop_bar_permille": 100, "ceiling_clears_bar": false, "lane_improves_coherence": false},
+  "verdict": "STOP-RECOMMEND-GENERATION-NOT-ESTABLISHED",
+  "result_cid": "blake3:e9f48e20814bc7d573af7f3a8c9c8d645f19fc6fd5a58dd848d71d588f89a692"
+}
