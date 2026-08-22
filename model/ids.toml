@@ -298,3 +298,12 @@ statement = "Deployed serving routes next-token selection through the promoted s
 scope = "normative-runtime"
 reachability = "deployed-serving"
 evidence = "features/suites/skipmix_serving_lane.feature; crates/uor-r4-api/src/engine.rs (predict_decision routes through predict_decision_candidates_with_skipmix); crates/uor-r4-graph-cli/src/lib.rs (score stage fits and emits SKMX/PSIB via skipmix_fit::fit_skipmix_tables); docs/skipmix_endtoend_causal_908.md (deployed end-to-end causal evidence, +28.45permille, #822/#908)"
+
+[[id]]
+id = "RF-32"
+level = "build"
+suite = "compositional_planning_benchmarks"
+statement = "Compositional-planning benchmark constitution and typed plan-witness/state/action reference semantics (fixture-gated certifier instrument; absent fixtures are UNAVAILABLE, never PASS)"
+scope = "certifier-instrument"
+reachability = "off-serving-path"
+evidence = "features/suites/compositional_planning_benchmarks.feature; crates/uor-r4-graph-compiler/src/compositional_planning.rs; docs/compositional_planning_spec_844.md"

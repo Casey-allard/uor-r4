@@ -203,3 +203,8 @@ fn selective_prediction_surfaces_rf_30() {
 fn skipmix_serving_lane_rf_31() {
     check("RF-31", "skipmix_serving_lane");
 }
+
+#[test]
+fn compositional_planning_benchmarks_rf_32() {
+    check("RF-32", "compositional_planning_benchmarks");
+}

@@ -67,6 +67,12 @@ The `build` level is *harness-built* (structural). It is a separate axis from an
 | --- | --- | --- | --- | --- | --- |
 | `RF-05` | `build` | `offline-compiler` | `off-serving-path` | features/suites/compiler_stage_dag.feature | Compiler stage ownership and parallelization DAG |
 
+## compositional_planning_benchmarks
+
+| ID | Level | Execution scope | Serving reachability | Evidence | Statement |
+| --- | --- | --- | --- | --- | --- |
+| `RF-32` | `build` | `certifier-instrument` | `off-serving-path` | features/suites/compositional_planning_benchmarks.feature; crates/uor-r4-graph-compiler/src/compositional_planning.rs; docs/compositional_planning_spec_844.md | Compositional-planning benchmark constitution and typed plan-witness/state/action reference semantics (fixture-gated certifier instrument; absent fixtures are UNAVAILABLE, never PASS) |
+
 ## expand_proof_model
 
 | ID | Level | Execution scope | Serving reachability | Evidence | Statement |

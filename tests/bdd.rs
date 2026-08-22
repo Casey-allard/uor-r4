@@ -158,6 +158,10 @@ struct R4g1World {
     belief_in: Option<f32>,
     belief_out: Option<f32>,
     trajectory_step_rejected: bool,
+    // Compositional planning fields (#844, RF-32)
+    cp_task: Option<uor_r4_graph_compiler::compositional_planning::TaskInstance>,
+    cp_relabeled: Option<uor_r4_graph_compiler::compositional_planning::TaskInstance>,
+    cp_verdict: Option<uor_r4_graph_compiler::compositional_planning::WitnessVerdict>,
     contract_doc_text: String,
     contract_doc_version: Option<String>,
     contract_module_version: Option<String>,
@@ -3940,4 +3944,99 @@ async fn main() {
         .fail_on_skipped()
         .run_and_exit(concat!(env!("CARGO_MANIFEST_DIR"), "/features/suites"))
         .await;
+}
+
+// =========================================================================
+// Compositional-planning benchmark BDD steps (#844, RF-32)
+// =========================================================================
+use uor_r4_graph_compiler::compositional_planning::{
+    self as cp, DeclineReason as CpDecline, TaskFamily as CpFamily, WitnessVerdict as CpVerdict,
+};
+
+#[given("a graph-navigation compositional-planning task with seed 0")]
+fn cp_given_graph_nav(w: &mut R4g1World) {
+    w.cp_task = Some(cp::generate(CpFamily::GraphNavigation, 0, cp::H_MAX));
+}
+
+#[given("a constraint-satisfaction compositional-planning task with seed 1")]
+fn cp_given_constraint(w: &mut R4g1World) {
+    w.cp_task = Some(cp::generate(CpFamily::ConstraintSatisfaction, 1, cp::H_MAX));
+}
+
+#[given("a multi-hop-evidence compositional-planning task with seed 2")]
+fn cp_given_multihop(w: &mut R4g1World) {
+    w.cp_task = Some(cp::generate(CpFamily::MultiHopEvidence, 2, cp::H_MAX));
+}
+
+#[when("the gold plan is verified")]
+fn cp_when_verify_gold(w: &mut R4g1World) {
+    let t = w.cp_task.as_ref().expect("a task");
+    w.cp_verdict = Some(t.gold.verify());
+}
+
+#[when("a two-step east path is submitted")]
+fn cp_when_two_easts(w: &mut R4g1World) {
+    let t = w.cp_task.as_ref().expect("a task");
+    let east = SemAction::new("east", vec![1.0, 0.0], vec![0]);
+    let path = vec![east.clone(), east];
+    w.cp_verdict = Some(cp::verify_submission(t, &path));
+}
+
+#[when("the task is relabeled")]
+fn cp_when_relabel(w: &mut R4g1World) {
+    let t = w.cp_task.as_ref().expect("a task");
+    w.cp_relabeled = Some(cp::relabel(t, 7, -3));
+}
+
+#[when("the gold plan's cited evidence is removed and verified")]
+fn cp_when_strip_evidence(w: &mut R4g1World) {
+    let t = w.cp_task.as_ref().expect("a task");
+    let mut witness = t.gold.clone();
+    witness.step_evidence = Vec::new();
+    w.cp_verdict = Some(witness.verify());
+}
+
+#[when("the gold plan is marked as a no-plan decline and verified")]
+fn cp_when_mark_decline(w: &mut R4g1World) {
+    let t = w.cp_task.as_ref().expect("a task");
+    let mut witness = t.gold.clone();
+    witness.decline = Some(CpDecline::NoPlan);
+    w.cp_verdict = Some(witness.verify());
+}
+
+#[then("the plan-witness verdict is valid")]
+fn cp_then_valid(w: &mut R4g1World) {
+    assert_eq!(w.cp_verdict.as_ref().expect("a verdict"), &CpVerdict::Valid);
+}
+
+#[then("the plan-witness verdict is invalid")]
+fn cp_then_invalid(w: &mut R4g1World) {
+    assert!(matches!(
+        w.cp_verdict.as_ref().expect("a verdict"),
+        CpVerdict::Invalid { .. }
+    ));
+}
+
+#[then("the relabeled gold plan verdict is valid")]
+fn cp_then_relabeled_valid(w: &mut R4g1World) {
+    let r = w.cp_relabeled.as_ref().expect("a relabeled task");
+    assert_eq!(r.gold.verify(), CpVerdict::Valid);
+}
+
+#[then("the relabeled action sequence equals the original")]
+fn cp_then_relabeled_sequence(w: &mut R4g1World) {
+    let t = w.cp_task.as_ref().expect("a task");
+    let r = w.cp_relabeled.as_ref().expect("a relabeled task");
+    let names = |ti: &cp::TaskInstance| -> Vec<String> {
+        ti.gold.chosen_path.iter().map(|a| a.name.clone()).collect()
+    };
+    assert_eq!(names(t), names(r));
+}
+
+#[then("the plan-witness verdict is a typed decline")]
+fn cp_then_decline(w: &mut R4g1World) {
+    assert!(matches!(
+        w.cp_verdict.as_ref().expect("a verdict"),
+        CpVerdict::Declined(_)
+    ));
 }
