@@ -187,6 +187,13 @@ pub enum CompareOp {
     AtLeast = 4,
 }
 
+impl CompareOp {
+    /// The wire code for this comparison.
+    pub fn code(self) -> u8 {
+        self as u8
+    }
+}
+
 /// A precondition over a bounded slot valuation: a read mask plus a per-slot
 /// comparison against a bound. Evaluated with mask `AND` and integer compare
 /// only, so it lowers directly to the deployed kernel.
@@ -229,6 +236,16 @@ impl PreconditionMask {
     /// and the field an observation records alongside its outcome.
     pub fn read_mask(&self) -> u8 {
         self.read_mask
+    }
+
+    /// The comparison applied to `slot`. `CompareOp::Any` beyond capacity.
+    pub fn op(&self, slot: usize) -> CompareOp {
+        self.ops.get(slot).copied().unwrap_or(CompareOp::Any)
+    }
+
+    /// The bound `slot` is compared against. Zero beyond capacity.
+    pub fn bound(&self, slot: usize) -> i16 {
+        self.bounds.get(slot).copied().unwrap_or(0)
     }
 
     /// Whether the precondition holds in `state`. Total: a slot the mask reads

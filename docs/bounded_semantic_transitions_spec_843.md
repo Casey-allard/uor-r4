@@ -354,6 +354,50 @@ added.
 historical behavior; any witness or API extension is additive or explicitly versioned; an unsupported
 artifact era fails with a typed error rather than a best-effort read.
 
+### 5.1 Increment 4 outcome (built 2026-08-22)
+
+Built as `crates/uor-r4-graph-format/src/plan_sections.rs`, with the record in
+`crates/uor-r4-graph-format/tests/plan_sections_843.rs` (16 tests) and the section ids registered in
+`types.rs`. Parsers are `core`-only and allocation-free; the builders are `alloc`-gated, because a
+section is written offline and only ever read on a hot path.
+
+**Layouts, frozen.** `PSCH` — a 48-byte header (magic, version, slot count and width, operator count,
+the eight frozen capacities as *recorded* values, the three ordinal band thresholds) followed by a
+strictly ascending operator **effect** vocabulary. `PTRN` — a 16-byte header, then 52-byte rule rows
+canonically ordered by `(operator, precondition, effect)`, then a 4-byte-per-operator index that
+tiles the row array in order. `PGOL` — a 12-byte header then 28-byte predicate rows, goals first,
+each group strictly ascending. `PWIT` — a 16-byte header, the initial state, the goal and forbidden
+predicates *inline*, then 36-byte step rows and 16-byte considered rows.
+
+**Definition (why the capacity header is checked, not honoured).** A recorded capacity larger than
+the one this build enforces is refused with a typed error. A capacity header is a promise about
+bounded work, and reading one larger than the scratch that will be provided is exactly the silent
+overflow the bound exists to prevent. A built test mutates each of the eight capacity fields
+independently and asserts every one is enforced.
+
+**Definition (the witness is self-contained, frozen).** `PWIT` carries its own initial state, its
+goal and forbidden predicates inline, and per step both the applied effect and the resulting state,
+so replay re-verifies it from those bytes alone — no model output, no planner, and no other section.
+The considered-candidate records are informational and replay does not read them, exactly as the
+#844 reference witness documents. A built test asserts the #846 rule directly: a plan whose terminal
+state satisfies the goal but whose second step walks through a forbidden region replays as
+`Invalid { step: 1, EntersForbiddenRegion }`.
+
+**Empirical Criterion (witness envelope). Status: Empirical.** The measured envelope for this
+benchmark — five operators, at most seven forbidden regions, horizon 16 — encodes to roughly 2.1 KiB
+against the frozen `PLAN_WITNESS_MAX_BYTES` = 4096, about 2x headroom. The theoretical worst case
+(64 forbidden regions, 64 candidates recorded per step, 16 steps) exceeds it, and that is handled the
+way §4.3 mandates: the encoder returns `None` and the producer must emit `Decline(capacity)`. A
+built test asserts the encoder refuses rather than truncating. **No silent cap.**
+
+**Guarantee (planted-negative detection). Status: Structural** — the §9 mutation table is asserted
+row by row: truncation, trailing bytes, bad magic, an unsupported version, non-zero reserved bytes, a
+capacity header this build does not enforce, an out-of-range operator id, a read mask disagreeing
+with its per-slot operations, an out-of-range ordinal band, non-canonical rows, an index that does
+not tile the rows, an unknown comparison code, a duplicate key, a corrupted step, and a corrupted
+terminal state. Structural mutations are refused at parse; semantic ones parse and then replay
+`Invalid`.
+
 ---
 
 ## 6. The deployed bounded planner

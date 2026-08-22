@@ -204,6 +204,20 @@ impl SectionId {
     /// skip-mix scorer (optional). Absent section, or a reader that does
     /// not consume it, behaves exactly as before (absent-section identity).
     pub const PSIB: SectionId = SectionId(Self::OPTIONAL_BIT | 0x12);
+    /// PSCH — bounded-planning schema: slot shape, operator effect
+    /// vocabulary, frozen capacities, and ordinal band thresholds
+    /// (optional, issue #843). Absent section, or a reader that does not
+    /// consume it, behaves exactly as before (absent-section identity).
+    pub const PSCH: SectionId = SectionId(Self::OPTIONAL_BIT | 0x13);
+    /// PTRN — packed transition rule table plus its operator index
+    /// (optional, issue #843). Absent-section identity as above.
+    pub const PTRN: SectionId = SectionId(Self::OPTIONAL_BIT | 0x14);
+    /// PGOL — packed goal and forbidden-region predicates for one planning
+    /// query (optional, issue #843). Absent-section identity as above.
+    pub const PGOL: SectionId = SectionId(Self::OPTIONAL_BIT | 0x15);
+    /// PWIT — versioned, self-contained plan witness (optional, issue
+    /// #843). Absent-section identity as above.
+    pub const PWIT: SectionId = SectionId(Self::OPTIONAL_BIT | 0x16);
 
     /// Ancillary bit classifying *unknown* section IDs.
     ///
@@ -231,6 +245,10 @@ impl SectionId {
             || self.0 == Self::PSTATE.0
             || self.0 == Self::SKMX.0
             || self.0 == Self::PSIB.0
+            || self.0 == Self::PSCH.0
+            || self.0 == Self::PTRN.0
+            || self.0 == Self::PGOL.0
+            || self.0 == Self::PWIT.0
     }
 
     /// Mandatory-ness per the RFC §3 column for known IDs.
@@ -247,6 +265,10 @@ impl SectionId {
             value if value == Self::PSTATE.0 => false,
             value if value == Self::SKMX.0 => false,
             value if value == Self::PSIB.0 => false,
+            value if value == Self::PSCH.0 => false,
+            value if value == Self::PTRN.0 => false,
+            value if value == Self::PGOL.0 => false,
+            value if value == Self::PWIT.0 => false,
             _ => self.0 & Self::OPTIONAL_BIT == 0,
         }
     }

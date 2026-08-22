@@ -370,6 +370,52 @@ impl<'a> GraphView<'a> {
             .transpose()
     }
 
+    /// Parse the optional bounded-planning schema (issue #843). `None` when
+    /// the artifact carries no `PSCH` section, in which case serving is
+    /// identical to the pre-#843 baseline.
+    pub fn plan_schema(
+        &self,
+    ) -> Result<Option<crate::plan_sections::PlanSchema<'a>>, crate::NotAProduct> {
+        self.section(SectionId::PSCH)
+            .map(crate::plan_sections::PlanSchema::parse)
+            .transpose()
+    }
+
+    /// Parse the optional packed transition rule table (issue #843), against
+    /// the artifact's own planning schema. `None` when either section is
+    /// absent — a rule table without its schema is not a product of these
+    /// bytes, so the pair is resolved together.
+    pub fn plan_rule_table(
+        &self,
+    ) -> Result<Option<crate::plan_sections::RuleTable<'a>>, crate::NotAProduct> {
+        let (Some(schema), Some(bytes)) = (self.plan_schema()?, self.section(SectionId::PTRN))
+        else {
+            return Ok(None);
+        };
+        crate::plan_sections::RuleTable::parse(bytes, &schema).map(Some)
+    }
+
+    /// Parse the optional packed goal/forbidden predicate set (issue #843).
+    pub fn plan_predicates(
+        &self,
+    ) -> Result<Option<crate::plan_sections::PredicateSet<'a>>, crate::NotAProduct> {
+        let (Some(schema), Some(bytes)) = (self.plan_schema()?, self.section(SectionId::PGOL))
+        else {
+            return Ok(None);
+        };
+        crate::plan_sections::PredicateSet::parse(bytes, &schema).map(Some)
+    }
+
+    /// Parse the optional packed plan witness (issue #843). Self-contained:
+    /// it replays from its own bytes without the other planning sections.
+    pub fn plan_witness(
+        &self,
+    ) -> Result<Option<crate::plan_sections::PlanWitnessBytes<'a>>, crate::NotAProduct> {
+        self.section(SectionId::PWIT)
+            .map(crate::plan_sections::PlanWitnessBytes::parse)
+            .transpose()
+    }
+
     /// Parse the optional packed forward-anchor table (issue #399).
     pub fn fwda_table(&self) -> Result<Option<FwdaTable<'a>>, crate::NotAProduct> {
         self.section(SectionId::FWDA)

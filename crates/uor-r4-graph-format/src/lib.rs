@@ -75,6 +75,7 @@ pub mod invariant_ownership;
 mod msa_selector;
 mod ngram;
 pub mod plan;
+pub mod plan_sections;
 mod prov;
 mod pstate;
 #[cfg(feature = "alloc")]

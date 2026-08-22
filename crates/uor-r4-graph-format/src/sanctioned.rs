@@ -47,6 +47,14 @@ pub enum ObjectKind {
     RouteAttentionStep,
     /// An MSA-selector operator instance (#643, `msa_selector`).
     MsaSelectorInstance,
+    /// A bounded-planning schema (#843, `PSCH`).
+    PlanSchema,
+    /// A bounded-planning transition rule table (#843, `PTRN`).
+    PlanRuleTable,
+    /// A bounded-planning goal/forbidden predicate set (#843, `PGOL`).
+    PlanPredicateSet,
+    /// A bounded-planning witness (#843, `PWIT`).
+    PlanWitness,
 }
 
 impl fmt::Display for ObjectKind {
@@ -66,6 +74,10 @@ impl fmt::Display for ObjectKind {
             ObjectKind::RouteAttentionInstance => "route-attention instance",
             ObjectKind::RouteAttentionStep => "route-attention step",
             ObjectKind::MsaSelectorInstance => "msa-selector instance",
+            ObjectKind::PlanSchema => "planning schema",
+            ObjectKind::PlanRuleTable => "planning rule table",
+            ObjectKind::PlanPredicateSet => "planning predicate set",
+            ObjectKind::PlanWitness => "plan witness",
         };
         f.write_str(s)
     }

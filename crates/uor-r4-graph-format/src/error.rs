@@ -220,6 +220,31 @@ pub enum FormatError {
     PstateEntriesNotSorted,
     /// PSTATE row metadata is invalid.
     PstateInvalidRow,
+    /// A bounded-planning section is shorter than its header (#843).
+    PlanTooShort,
+    /// A bounded-planning section's magic is not the expected tag (#843).
+    PlanBadMagic,
+    /// A bounded-planning section's version is unsupported (#843).
+    PlanUnsupportedVersion,
+    /// A bounded-planning section's reserved bytes are non-zero (#843).
+    PlanNonZeroReserved,
+    /// A bounded-planning row, index entry, or slot range is out of bounds
+    /// (#843).
+    PlanBounds,
+    /// A bounded-planning section's rows or index are not canonically ordered
+    /// (#843).
+    PlanNotCanonical,
+    /// A bounded-planning row's metadata is invalid — an unknown comparison
+    /// code, a read mask disagreeing with its per-slot operations, or a
+    /// non-zero tail beyond the declared arity (#843).
+    PlanInvalidRow,
+    /// A bounded-planning section's length does not match its declared counts
+    /// (#843).
+    PlanTrailingBytes,
+    /// A bounded-planning section records a capacity this build does not
+    /// enforce (#843). A capacity header is a promise about bounded work, so a
+    /// larger one is refused rather than honoured.
+    PlanCapacityMismatch,
     /// PSIB section is shorter than its header.
     PsiBagTooShort,
     /// PSIB magic is not `PSIB`.
@@ -769,6 +794,21 @@ impl fmt::Display for FormatError {
                 write!(f, "PSTATE entries are not canonically sorted")
             }
             FormatError::PstateInvalidRow => write!(f, "PSTATE row metadata is invalid"),
+            FormatError::PlanTooShort => {
+                write!(f, "planning section is shorter than its header")
+            }
+            FormatError::PlanBadMagic => write!(f, "planning section magic is not the expected tag"),
+            FormatError::PlanUnsupportedVersion => write!(f, "planning section version is unsupported"),
+            FormatError::PlanNonZeroReserved => write!(f, "planning section reserved bytes are non-zero"),
+            FormatError::PlanBounds => write!(f, "planning row, index entry, or slot range is out of bounds"),
+            FormatError::PlanNotCanonical => write!(f, "planning rows or index are not canonically ordered"),
+            FormatError::PlanInvalidRow => write!(f, "planning row metadata is invalid"),
+            FormatError::PlanTrailingBytes => {
+                write!(f, "planning section length does not match its declared counts")
+            }
+            FormatError::PlanCapacityMismatch => {
+                write!(f, "planning section records a capacity this build does not enforce")
+            }
             FormatError::PsiBagTooShort => write!(f, "PSIB section is shorter than its header"),
             FormatError::PsiBagBadMagic => write!(f, "PSIB magic is not PSIB"),
             FormatError::PsiBagUnsupportedVersion => write!(f, "PSIB version is unsupported"),
