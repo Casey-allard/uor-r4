@@ -299,8 +299,18 @@ the measured basis of §4.1, with the two #844 values carried through unchanged:
 | `PLAN_WITNESS_MAX_BYTES` | 4096 | `PLAN_HORIZON_MAX` steps × per-step record, ≥ 4× headroom |
 
 **Definition (caller-owned scratch).** All of the above live in a caller-provided `PlanScratch`
-whose size is a compile-time function of these constants — measured at ≤ 64 KiB. The planner
-allocates nothing.
+whose size is a compile-time function of these constants. The planner allocates nothing.
+
+**Empirical Criterion (scratch size). Status: Empirical — measured 2026-08-22, correcting this
+document's own design-time estimate.** `size_of::<PlanScratch>()` is **81 548 bytes** (≈ 79.6 KiB),
+not the "≤ 64 KiB" this section estimated before the structure existed. The breakdown: the visited
+node array dominates at `PLAN_VISITED_MAX` × 24 bytes ≈ 48 KiB, the considered-candidate buffer is
+`PLAN_HORIZON_MAX` × `PLAN_ACTIONS_MAX` × 16 bytes = 16 KiB, the open-addressing index is
+`2 × PLAN_VISITED_MAX` × 2 bytes = 8 KiB, and the frontier, score and path buffers make up the
+remainder. **No frozen capacity changes**; the estimate was wrong and is corrected here rather than
+the capacity being shrunk to fit it. A built test asserts the size against a declared envelope, so it
+cannot drift unnoticed. The scratch is large by design — it is the bounded working set of a whole
+episode — so a caller places it in a static, an arena, or a box rather than on a small stack.
 
 ### 4.3 Deterministic decline, overflow, and conflict
 
@@ -433,6 +443,45 @@ witness bytes, asserted by the deterministic-rebuild gate.
 **Assumption.** The planner may read the persistent prompt state `Ψ` (#835, RF-31) as a conditioning
 surface and emits abstentions through the RF-30 typed decline surface. It never reads the benchmark
 verifier, a gold path, the teacher, or the network — asserted by a built test.
+
+### 6.1 Increment 5 outcome (built 2026-08-22)
+
+Built as `crates/uor-r4-graph-runtime/src/plan.rs`, wired into the normative path as
+`R4Engine::plan_bounded`, with records in `crates/uor-r4-graph-runtime/tests/plan_843.rs` (11 tests)
+and `crates/uor-r4-graph-runtime/tests/plan_allocation_census_843.rs` (2 tests).
+
+**All three arms share one search core.** `BreadthFirst` and `BestFirstBeam` are the same layered
+sweep differing only in which candidates survive the frontier bound; `IterativeDeepening` trades
+repeated expansions for depth-bounded memory. They read the same sections, execute the same
+operation set, and run under the same `PlanBudget`, so a difference between them is a difference of
+*search order* and nothing else — which is what makes the §8 comparison a comparison of mechanism.
+
+**Guarantee (allocation-free steady state). Status: Structural — measured.** A counting global
+allocator reports **0 allocations, 0 bytes** for a whole planning episode and **0 allocations,
+0 bytes** for emitting its witness into caller-owned bytes. The witness encoder was lifted into
+`core` for exactly this reason: the offline and deployed producers now share one encoder, and the
+deployed one writes into a caller-provided buffer.
+
+**Guarantee (P-4 conformance). Status: Structural — machine-checked at source.** A scan of the
+planner's own source finds no float type, no `sqrt`/`pow`, and **no runtime multiply or divide**.
+Six compile-time constant expressions — array lengths and budget constants, all with
+SCREAMING_SNAKE or literal operands — are exempted and **printed by the test**, so the exemption is
+visible rather than silent: a constant expression emits no instruction and is not a deployed-kernel
+operation. The scan asserts it can still fire on a runtime multiply between two non-constant
+operands, so it is evidence rather than decoration.
+
+**Definition (the visited index, frozen).** Membership is an open-addressed probe over
+`2 × PLAN_VISITED_MAX` slots with a checked `VISITED_MAX_PROBE` = 16 bound, hashed by the
+multiply-free add/rotate/xor mixer already normative for the packed skip-mix tables — unseeded, so
+identical inputs hash identically on every platform. A membership test costs at most sixteen
+fixed-offset reads whatever the set holds, and exceeding the bound is `Decline(capacity)` rather
+than a degrade into an unbounded scan.
+
+**Guarantee (absent-section identity through the engine). Status: Structural.**
+`R4Engine::plan_bounded` returns `Ok(None)` when the artifact carries no planning section, so every
+artifact produced before #843 serves exactly as before; it returns `Err` when a planning section is
+present but is not a product of the bytes, so an episode fails closed rather than planning on a
+partially-read table.
 
 ---
 

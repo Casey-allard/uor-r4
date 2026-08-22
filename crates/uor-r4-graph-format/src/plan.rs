@@ -114,6 +114,13 @@ pub struct EffectDelta {
 }
 
 impl EffectDelta {
+    /// The empty effect, covering no slot. Useful as a `const` array filler in
+    /// caller-owned scratch, which must be constructible without allocating.
+    pub const EMPTY: Self = Self {
+        delta: [0; PLAN_SLOTS_MAX],
+        len: 0,
+    };
+
     /// The identity effect over `arity` slots.
     pub fn identity(arity: usize) -> Option<Self> {
         if arity > PLAN_SLOTS_MAX {

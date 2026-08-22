@@ -691,6 +691,20 @@ pub struct ConsideredCandidate {
     pub flags: u8,
 }
 
+impl ConsideredCandidate {
+    /// A zeroed candidate. Useful as a `const` array filler in caller-owned
+    /// scratch, which must be constructible without allocating.
+    pub const EMPTY: Self = Self {
+        operator: 0,
+        rule_row: 0,
+        score: 0,
+        tie_rank: 0,
+        support: 0,
+        band: 0,
+        flags: 0,
+    };
+}
+
 /// A borrowed, validated `PWIT` plan witness.
 ///
 /// **Self-contained by construction.** The witness carries its own initial
@@ -950,9 +964,171 @@ impl<'a> PlanWitnessBytes<'a> {
 // Builders — offline only, so they are `alloc`-gated and never on a hot path
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Witness encoding — core-only, so the `no_std` runtime can emit one into a
+// caller-provided buffer without allocating
+// ---------------------------------------------------------------------------
+
+/// Everything one `PWIT` witness records.
+pub struct WitnessDraft<'a> {
+    /// Typed slots per valuation.
+    pub slot_count: u8,
+    /// The initial packed state.
+    pub initial: SlotVec,
+    /// The goal predicate, carried inline so replay needs nothing else.
+    pub goal: PreconditionMask,
+    /// The forbidden-region predicates, carried inline.
+    pub constraints: &'a [PreconditionMask],
+    /// Per step: applied effect, resulting state, chosen operator, rule row.
+    pub steps: &'a [WitnessStep],
+    /// Considered candidates, row-major over steps.
+    pub considered: &'a [ConsideredCandidate],
+    /// Candidates recorded per step.
+    pub considered_per_step: u8,
+    /// Set when the episode is an honest decline rather than a plan.
+    pub decline: Option<PackedDecline>,
+    /// The verdict the producer recorded, and the step it names.
+    pub verdict: (u8, u16),
+}
+
+fn encode_predicate(predicate: &PreconditionMask) -> [u8; PREDICATE_LEN] {
+    let mut row = [0u8; PREDICATE_LEN];
+    row[0] = predicate.read_mask();
+    for slot in 0..PLAN_SLOTS_MAX {
+        row[2 + slot] = predicate.op(slot).code();
+        let bound = predicate.bound(slot).to_le_bytes();
+        row[10 + slot * 2] = bound[0];
+        row[11 + slot * 2] = bound[1];
+    }
+    row
+}
+
+struct Cursor<'a> {
+    buf: &'a mut [u8],
+    at: usize,
+}
+
+impl Cursor<'_> {
+    fn push(&mut self, byte: u8) -> Option<()> {
+        *self.buf.get_mut(self.at)? = byte;
+        self.at += 1;
+        Some(())
+    }
+
+    fn extend(&mut self, bytes: &[u8]) -> Option<()> {
+        let end = self.at.checked_add(bytes.len())?;
+        self.buf.get_mut(self.at..end)?.copy_from_slice(bytes);
+        self.at = end;
+        Some(())
+    }
+
+    fn u16(&mut self, value: u16) -> Option<()> {
+        self.extend(&value.to_le_bytes())
+    }
+
+    fn u32(&mut self, value: u32) -> Option<()> {
+        self.extend(&value.to_le_bytes())
+    }
+
+    fn slots(&mut self, values: &[i16]) -> Option<()> {
+        for slot in 0..PLAN_SLOTS_MAX {
+            let value = values.get(slot).copied().unwrap_or(0);
+            self.extend(&value.to_le_bytes())?;
+        }
+        Some(())
+    }
+}
+
+/// The exact encoded length of `draft`, or `None` when a bound is exceeded.
+pub fn witness_len(draft: &WitnessDraft<'_>) -> Option<usize> {
+    let steps = draft.steps.len();
+    let per_step = usize::from(draft.considered_per_step);
+    if steps > PLAN_HORIZON_MAX
+        || draft.constraints.len() > PLAN_CONSTRAINTS_MAX
+        || per_step > PLAN_ACTIONS_MAX
+        || draft.considered.len() != steps.checked_mul(per_step)?
+    {
+        return None;
+    }
+    Some(
+        PWIT_HEADER_LEN
+            + PLAN_SLOTS_MAX * 2
+            + PREDICATE_LEN
+            + draft.constraints.len() * PREDICATE_LEN
+            + steps * PWIT_STEP_LEN
+            + steps * per_step * PWIT_CONSIDERED_LEN,
+    )
+}
+
+/// Encode `draft` into `out`, returning the bytes written.
+///
+/// `None` when a bound is exceeded — including the frozen witness-byte
+/// envelope, which a producer must turn into `Decline(capacity)` rather than a
+/// truncated record — or when `out` is too small. Allocates nothing, so the
+/// deployed planner can emit a witness into caller-owned bytes.
+pub fn encode_witness_into(draft: &WitnessDraft<'_>, out: &mut [u8]) -> Option<usize> {
+    if draft.slot_count == 0 || usize::from(draft.slot_count) > PLAN_SLOTS_MAX {
+        return None;
+    }
+    let needed = witness_len(draft)?;
+    if needed > PLAN_WITNESS_MAX_BYTES || needed > out.len() {
+        return None;
+    }
+
+    // Constraints are canonical in the section, and sorting them needs no
+    // allocation: the frozen capacity bounds the buffer.
+    let mut rows = [[0u8; PREDICATE_LEN]; PLAN_CONSTRAINTS_MAX];
+    for (slot, predicate) in draft.constraints.iter().enumerate() {
+        rows[slot] = encode_predicate(predicate);
+    }
+    let used = draft.constraints.len();
+    rows[..used].sort_unstable();
+    if rows[..used].windows(2).any(|w| w[0] == w[1]) {
+        return None;
+    }
+
+    let mut cursor = Cursor { buf: out, at: 0 };
+    cursor.extend(&PWIT_MAGIC)?;
+    cursor.u16(PLAN_SECTION_VERSION)?;
+    cursor.push(draft.slot_count)?;
+    cursor.push(draft.steps.len() as u8)?;
+    cursor.push(draft.considered_per_step)?;
+    cursor.push(used as u8)?;
+    cursor.push(draft.decline.map_or(0, PackedDecline::code))?;
+    cursor.push(draft.verdict.0)?;
+    cursor.u16(draft.verdict.1)?;
+    cursor.u16(0)?;
+    cursor.slots(draft.initial.as_slice())?;
+    cursor.extend(&encode_predicate(&draft.goal))?;
+    for row in &rows[..used] {
+        cursor.extend(row)?;
+    }
+    for (effect, resulting, chosen, rule_row) in draft.steps {
+        cursor.slots(effect.as_slice())?;
+        cursor.slots(resulting.as_slice())?;
+        cursor.u16(*chosen)?;
+        cursor.u16(*rule_row)?;
+    }
+    for candidate in draft.considered {
+        if candidate.band > 3 {
+            return None;
+        }
+        cursor.u16(candidate.operator)?;
+        cursor.u16(candidate.rule_row)?;
+        cursor.extend(&candidate.score.to_le_bytes())?;
+        cursor.u16(candidate.tie_rank)?;
+        cursor.u32(candidate.support)?;
+        cursor.push(candidate.band)?;
+        cursor.push(candidate.flags)?;
+    }
+    debug_assert_eq!(cursor.at, needed);
+    Some(cursor.at)
+}
+
 #[cfg(feature = "alloc")]
 mod build {
     use super::*;
+    use alloc::vec;
     use alloc::vec::Vec;
 
     fn put_u16(out: &mut Vec<u8>, value: u16) {
@@ -1143,93 +1319,20 @@ mod build {
         Some(out)
     }
 
-    /// Everything one `PWIT` witness records.
-    pub struct WitnessDraft<'a> {
-        /// Typed slots per valuation.
-        pub slot_count: u8,
-        /// The initial packed state.
-        pub initial: SlotVec,
-        /// The goal predicate, carried inline so replay needs nothing else.
-        pub goal: PreconditionMask,
-        /// The forbidden-region predicates, carried inline.
-        pub constraints: &'a [PreconditionMask],
-        /// Per step: applied effect, resulting state, chosen candidate slot,
-        /// and the rule row it came from.
-        pub steps: &'a [WitnessStep],
-        /// Considered candidates, row-major over steps.
-        pub considered: &'a [ConsideredCandidate],
-        /// Candidates recorded per step.
-        pub considered_per_step: u8,
-        /// Set when the episode is an honest decline rather than a plan.
-        pub decline: Option<PackedDecline>,
-        /// The verdict the producer recorded, and the step it names.
-        pub verdict: (u8, u16),
-    }
-
-    /// Encode a `PWIT` witness. `None` when a bound is exceeded — including the
-    /// frozen witness-byte envelope, which a producer must turn into
-    /// `Decline(capacity)` rather than a truncated record.
+    /// Encode a `PWIT` witness into a fresh buffer. Delegates to the
+    /// `core`-only [`super::encode_witness_into`], so the offline and deployed
+    /// producers share exactly one encoder.
     pub fn build_witness(draft: &WitnessDraft<'_>) -> Option<Vec<u8>> {
-        if draft.slot_count == 0 || usize::from(draft.slot_count) > PLAN_SLOTS_MAX {
+        let needed = super::witness_len(draft)?;
+        if needed > PLAN_WITNESS_MAX_BYTES {
             return None;
         }
-        if draft.steps.len() > PLAN_HORIZON_MAX
-            || draft.constraints.len() > PLAN_CONSTRAINTS_MAX
-            || usize::from(draft.considered_per_step) > PLAN_ACTIONS_MAX
-        {
-            return None;
-        }
-        if draft.considered.len() != draft.steps.len() * usize::from(draft.considered_per_step) {
-            return None;
-        }
-        let mut constraint_rows: Vec<[u8; PREDICATE_LEN]> =
-            draft.constraints.iter().map(encode_predicate).collect();
-        constraint_rows.sort_unstable();
-        if constraint_rows.windows(2).any(|w| w[0] == w[1]) {
-            return None;
-        }
-
-        let mut out = Vec::new();
-        out.extend_from_slice(&PWIT_MAGIC);
-        put_u16(&mut out, PLAN_SECTION_VERSION);
-        out.push(draft.slot_count);
-        out.push(draft.steps.len() as u8);
-        out.push(draft.considered_per_step);
-        out.push(constraint_rows.len() as u8);
-        out.push(draft.decline.map_or(0, PackedDecline::code));
-        out.push(draft.verdict.0);
-        put_u16(&mut out, draft.verdict.1);
-        put_u16(&mut out, 0);
-        debug_assert_eq!(out.len(), PWIT_HEADER_LEN);
-        put_slots(&mut out, draft.initial.as_slice());
-        out.extend_from_slice(&encode_predicate(&draft.goal));
-        for row in &constraint_rows {
-            out.extend_from_slice(row);
-        }
-        for (effect, resulting, chosen, rule_row) in draft.steps {
-            put_slots(&mut out, effect.as_slice());
-            put_slots(&mut out, resulting.as_slice());
-            put_u16(&mut out, *chosen);
-            put_u16(&mut out, *rule_row);
-        }
-        for candidate in draft.considered {
-            if candidate.band > 3 {
-                return None;
-            }
-            put_u16(&mut out, candidate.operator);
-            put_u16(&mut out, candidate.rule_row);
-            out.extend_from_slice(&candidate.score.to_le_bytes());
-            put_u16(&mut out, candidate.tie_rank);
-            put_u32(&mut out, candidate.support);
-            out.push(candidate.band);
-            out.push(candidate.flags);
-        }
-        if out.len() > PLAN_WITNESS_MAX_BYTES {
-            return None;
-        }
+        let mut out = vec![0u8; needed];
+        let written = super::encode_witness_into(draft, &mut out)?;
+        out.truncate(written);
         Some(out)
     }
 }
 
 #[cfg(feature = "alloc")]
-pub use build::{build_predicate_set, build_rule_table, build_schema, build_witness, WitnessDraft};
+pub use build::{build_predicate_set, build_rule_table, build_schema, build_witness};

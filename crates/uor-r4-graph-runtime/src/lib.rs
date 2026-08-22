@@ -7,6 +7,7 @@ pub mod engine;
 pub mod msa_selector;
 pub mod packed_kernels;
 pub mod patch_chain;
+pub mod plan;
 pub mod route_attention;
 pub mod routing;
 pub mod runtime_state;

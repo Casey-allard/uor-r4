@@ -186,6 +186,44 @@ impl<'a> R4G1Runtime<'a> {
         self.chain.base_graph().node_count().unwrap_or(0)
     }
 
+    /// Run one bounded planning episode against this artifact's packed
+    /// planning sections (#843).
+    ///
+    /// `Ok(None)` when the artifact carries no `PSCH`, `PTRN` or `PGOL`
+    /// section — in which case serving is identical to the pre-#843 baseline,
+    /// which is what absent-section identity means. `Err` when a planning
+    /// section is present but is not a product of these bytes; the episode
+    /// fails closed rather than planning on a partially-read table.
+    ///
+    /// Deterministic and allocation-free: all state lives in the caller's
+    /// [`crate::plan::PlanScratch`].
+    pub fn plan_bounded(
+        &self,
+        request: &crate::plan::PlanRequest,
+        scratch: &mut crate::plan::PlanScratch,
+    ) -> Result<Option<crate::plan::PlanResult>, NotAProduct> {
+        let view = self.view();
+        let Some(schema) = view.plan_schema()? else {
+            return Ok(None);
+        };
+        let (Some(rules), Some(predicates)) = (view.plan_rule_table()?, view.plan_predicates()?)
+        else {
+            return Ok(None);
+        };
+        Ok(Some(crate::plan::plan(
+            &crate::plan::PlanQuery {
+                strategy: request.strategy,
+                schema: &schema,
+                rules: &rules,
+                predicates: &predicates,
+                initial: request.initial,
+                available: request.available,
+                budget: request.budget,
+            },
+            scratch,
+        )))
+    }
+
     pub fn edge_count(&self) -> u32 {
         self.chain.base_graph().edge_count().unwrap_or(0)
     }
