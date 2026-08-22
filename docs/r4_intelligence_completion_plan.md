@@ -281,6 +281,32 @@ generation claim into any downstream stage. This entry mirrors the tracker verdi
   memory, re-measured under the unchanged #841 §6 bar and the frozen #838
   selective-prediction gates (the #887 discipline).
 
+### S4 entry reconciliation — AMEND + PROCEED (2026-08-22)
+
+S3 (#824) closed `LIMIT` and S2 (#823) stands at `REVISE`, so #826's written entry
+criterion ("S2 and S3 have promoted verdicts") is superseded and its native blocked-by edge
+to #823 is converted to a sanctioned parallel-start. This entry mirrors the tracker
+decision; **GitHub #826 remains the source of record** (maintainer decision comment,
+2026-08-22).
+
+- **Amended substrate.** S4 builds on the established — not promoted-generative — substrate:
+  S1 prompt causality is promoted (RF-31, +28.45‰ [25.57, 31.32]); S2 selective prediction
+  is frozen and honest (REVISE, no calibrator, #839 phase-2 independently trigger-gated); S3
+  is `LIMIT` (teacher-forced retrieval/continuation, no free-running generation at this
+  scope).
+- **Self-contained gate.** #826's promotion gate is unchanged and never depended on
+  free-running generation: typed-state planning must beat retrieval-only,
+  memorized-trajectory, shuffled-state, and direct-continuation baselines on held-out
+  entities/compositions/topologies/relabelings/horizons, with any geometry gain shown under
+  equal bytes/candidates/operations. Planning results are not read as free-running coherence
+  (the #824 boundary stands).
+- **Parallel-start + order.** S4 may begin in parallel with S2's open re-entry; #839 stays
+  parked under its trigger. Item order: #844 (freeze benchmarks + typed state/action
+  semantics) → #843 (bounded transitions with plan witnesses) → #845 (geometry vs
+  equal-budget baselines) → #846 (certify and bound the claim). Frozen gates unchanged (20‰
+  causal floor, #838 selective gates, #841 §6 bar for any generation re-entry). Next
+  executable issue: **#844**.
+
 ## Dependency order
 
 ```text
