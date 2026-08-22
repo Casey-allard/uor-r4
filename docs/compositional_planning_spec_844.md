@@ -484,3 +484,68 @@ null-headroom instruments named above, and recorded in
 [`docs/bounded_semantic_transitions_spec_843.md`](bounded_semantic_transitions_spec_843.md) §2.
 It establishes **no** planning or reasoning capability; it restores the ability of the #844 instrument
 to separate one, which #843 then measures and #846 certifies.
+
+### 11.5 Amendment A1 outcome (measured 2026-08-22, #843 increment 2)
+
+All four A1 gate instruments pass. Measured by
+`crates/uor-r4-graph-compiler/tests/amendment_a1_843.rs` at the frozen n = 512 per cell per
+horizon; deterministic, teacher-free, fixture-free, about 40 s.
+
+**A1-a — per-cell non-vacuity. Status: Empirical, PASS.** All 20 frozen cells clear the 0.5
+threshold. H ∈ {2, 4, 8}: 512/512 = 1.0000 in all fifteen cells. H = 1: 384/512 = 0.7500 in all
+five, by design — see §11.6.
+
+**A1-b — axis cardinality. Status: Empirical, PASS.** Per family, over the frozen horizons:
+`by_entity` = 8, `by_vocabulary` = 8, `by_topology` = 8, `by_template` = 8, and
+`by_operator_composition` = 32 (64 for symbolic-transformation). Every axis clears the threshold of
+8, so a disjoint fitting/held-out partition is constructible rather than vacuous.
+
+**A1-c — content-derived identity. Status: Structural, PASS.** `TaskInstance::id()` no longer
+carries the generation seed; structurally identical instances at different seeds share an id, in
+every family at every frozen horizon.
+
+**A1-d — strongest-null headroom. Status: Empirical, PASS.** Splitting on the *semantic* topology
+axis (fitting = topology cells 0–3, held-out = 4–7, so a held-out cell never shares an operator
+effect set or a forbidden configuration with fitting data), the strongest non-oracle null scores:
+
+| H | graph-nav | symbolic | constraint-sat | multi-hop | counterfactual |
+|---|---|---|---|---|---|
+| 1 | 0.5352 | **0.9355** | 0.5625 | 0.5352 | 0.5898 |
+| 2 | 0.5859 | 0.6777 | 0.4688 | 0.5859 | 0.3652 |
+| 4 | 0.4023 | 0.5918 | 0.3906 | 0.4023 | 0.3535 |
+| 8 | 0.2773 | 0.4922 | 0.3516 | 0.2773 | 0.3398 |
+
+All are below the 1 − δ_min = 0.95 ceiling, so the promotion statistic is no longer at or below zero
+by construction. **Tightest cell, flagged: symbolic-transformation at H = 1, headroom 0.0645 —
+1.29 × δ_min.** The instrument prints a `TIGHT` marker for any cell whose headroom falls under
+2 × δ_min; that cell is the one to watch when the arms are measured, because a candidate has barely
+more than the effect floor of room there. The controls are not strawmen: they are fitted on the
+declines as well as on the plans, they transfer plans by *effect* rather than by name or slot (so
+they already see through entity, vocabulary, and template renaming), and the retrieval control
+indexes by goal displacement.
+
+For contrast, the pre-amendment numbers were 1.0000 in every non-vacuous cell (§11.1).
+
+### 11.6 The horizon-1 cell is gated on honest decline (maintainer sign-off, 2026-08-22)
+
+**Definition (why valid-plan rate cannot separate at H = 1).** A one-step task's correct answer is a
+deterministic function of the initial state, the goal, and the operator set — all observable at
+inference — and the fitting split must cover the whole operator pool or an inducer has nothing to
+learn from. A baseline that indexes goal displacement to operator effect is therefore *optimal at
+horizon 1 by construction*, and no generator repair changes that: measured, retrieval scored exactly
+1.0000 at H = 1 in four of the five families once the other three instruments had passed. This is a
+property of horizon-1 tasks, not a defect of the generator.
+
+**Definition (the frozen resolution).** The H = 1 cell is gated on the **correct-outcome rate** —
+a valid plan on a solvable instance, or a correct `Decline(no_plan)` on one with no plan inside the
+horizon — rather than on valid-plan rate. A quarter of horizon-1 instances place the goal one step
+beyond the horizon, so they are genuinely unsolvable within it. Deciding which is which requires
+evaluating reachability, which is planning; a baseline that always answers cannot. On every cell
+whose instances are all solvable — every H ≥ 2 cell — the correct-outcome rate *is* the frozen
+valid-plan rate, so this adds a per-cell reading at H = 1 and changes nothing elsewhere.
+
+**What this does and does not change.** The honest-decline rate was already a frozen §2.5 *secondary*
+metric; this makes it the gating statistic in one cell. No frozen *value* moves: δ_min = 0.05,
+n = 512, H ∈ {1, 2, 4, 8}, H_max = 16, and W_max = 64 all stand, and the primary metric elsewhere is
+unchanged. The alternative considered and rejected was to report H = 1 without gating on it, which
+would have left five of the twenty cells descriptive rather than evidential.

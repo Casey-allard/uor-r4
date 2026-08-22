@@ -134,8 +134,29 @@ repaired generator, and each is reported per (family × frozen horizon):
 δ_min = 0.05, n = 512, H ∈ {1, 2, 4, 8}, `H_MAX` = 16, and `W_MAX` = 64 hold their #844 values after
 the repair.
 
-**Empirical Criterion (A1 gate). Status: Empirical.** All four instruments pass before increment 3
-begins. A failure is reported as the recorded outcome, not routed around.
+**Empirical Criterion (A1 gate). Status: Empirical — PASSED 2026-08-22 (increment 2).** All four
+instruments pass, so increment 3 may begin. Measured values and the per-cell tables are recorded in
+[`docs/compositional_planning_spec_844.md`](compositional_planning_spec_844.md) §11.5; the
+instruments live in `crates/uor-r4-graph-compiler/tests/amendment_a1_843.rs` and run in the default
+`cargo test`. Headline: non-vacuity 1.0000 at H ∈ {2, 4, 8} and 0.7500 at H = 1; every split axis at
+8 cells or more; identity content-derived; strongest non-oracle null between 0.2773 and 0.9355,
+against a ceiling of 0.95. A failure would have been reported as the recorded outcome, not routed
+around.
+
+**Definition (the horizon-1 cell, frozen — maintainer sign-off 2026-08-22).** Valid-plan rate cannot
+separate planning from retrieval at horizon 1: a one-step answer is a deterministic function of the
+observable state, goal, and operator set, and the fitting split must cover the whole operator pool
+or induction has nothing to learn from. Measured, a retrieval baseline scored exactly 1.0000 there.
+The H = 1 cell is therefore gated on the **correct-outcome rate** — a valid plan on a solvable
+instance, or a correct `Decline(no_plan)` on one with no plan inside the horizon — and a quarter of
+horizon-1 instances are generated beyond the horizon so that decision is real. On every H ≥ 2 cell,
+where all instances are solvable, the correct-outcome rate *is* the frozen valid-plan rate. Full
+reasoning: `compositional_planning_spec_844.md` §11.6.
+
+**Watch item for increment 6.** The tightest cell is symbolic-transformation at H = 1: strongest null
+0.9355, headroom 0.0645, only 1.29 × δ_min. The A1-d instrument prints a `TIGHT` marker for any cell
+whose headroom falls under 2 × δ_min. A candidate has barely more than the effect floor of room
+there, so that cell's reading carries the least weight in the §8 selection.
 
 ---
 
