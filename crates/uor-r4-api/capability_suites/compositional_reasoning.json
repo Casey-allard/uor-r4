@@ -4,18 +4,24 @@
   "stage": "s4",
   "workload": "compositional-reasoning",
   "mode": "teacher-forced",
-  "primary_metric": "held-out-composition-accuracy",
-  "promotion_statistic": "held-out composition accuracy survives relabeling/unseen-composition/topology change; shuffled-state control separates",
+  "primary_metric": "held-out-valid-plan-rate",
+  "promotion_statistic": "held-out valid-plan rate (terminal outcome AND every intermediate transition accepted by the deterministic verifier) beats the strongest non-oracle baseline (retrieval-only / direct-continuation / memorized-trajectory / shuffled-state) by a one-sided 95% lower bound above delta_min on every held-out entity/vocabulary/topology/operator-composition/relabeling/horizon cell, under equal bytes/candidates/expansions/operations; the shortest-path oracle is an upper reference only, and gains that vanish under relabeling or unseen composition are memorization",
   "split": {
     "by_entity": true,
     "by_topology": true,
     "by_template": true,
+    "by_vocabulary": true,
+    "by_operator_composition": true,
+    "by_horizon": true,
     "leakage_check": true,
     "tamper_check": true
   },
   "controls": [
+    "retrieval-only",
+    "direct-continuation",
+    "memorized-trajectory",
     "shuffled-state",
-    "prompt-swap",
+    "shortest-path-oracle",
     "trivial-prior"
   ],
   "report_schema": 1,
@@ -25,7 +31,8 @@
     "corpus",
     "compiler",
     "artifact",
-    "decoder"
+    "decoder",
+    "seed"
   ],
-  "notes": "S4 planning/geometry: generalization across held-out entities, compositions, topologies, relabelings."
+  "notes": "S4 item A (#844) frozen constitution; see docs/compositional_planning_spec_844.md. Five task families (graph navigation, symbolic transformation, constraint satisfaction, multi-hop evidence composition, counterfactual intervention), each with a deterministic verifier and replayable gold/intermediate state. Teacher-forced only (S3 #824 LIMIT boundary); honest decline, not calibrated confidence (S2 #823 REVISE). Horizons H in {1,2,4,8}, H_max=16, W_max=64; effect floor delta_min=0.05 valid-plan rate; n=512 per held-out cell per horizon with Holm-Bonferroni over the axis x horizon x family grid. Reference-only / off-serving-path; establishes a falsifiable target and byte-level meaning, not reasoning performance. Generators, verifiers, and the typed reference model are the follow-on build increment."
 }

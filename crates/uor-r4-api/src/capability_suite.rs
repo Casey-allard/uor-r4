@@ -321,6 +321,16 @@ pub enum ControlKind {
     ShuffledState,
     /// Trivial (unigram/base) prior: the no-context floor.
     TrivialPrior,
+    /// Retrieval-only: the nearest stored instance/answer — the planning
+    /// memorization null (#844).
+    RetrievalOnly,
+    /// Direct continuation: next-token continuation with no typed state (#844).
+    DirectContinuation,
+    /// Memorized trajectory: a fitting-set plan replayed by surface match (#844).
+    MemorizedTrajectory,
+    /// Shortest-path oracle: an upper reference (not a beat-target) computed
+    /// from the gold dynamics (#844).
+    ShortestPathOracle,
     /// Always serve: the coverage ceiling of an abstaining policy.
     AlwaysServe,
     /// Always decline: the risk floor of an abstaining policy.
@@ -328,13 +338,17 @@ pub enum ControlKind {
 }
 
 impl ControlKind {
-    pub const ALL: [ControlKind; 8] = [
+    pub const ALL: [ControlKind; 12] = [
         ControlKind::ExctDisabled,
         ControlKind::PromptSwap,
         ControlKind::SuffixOnly,
         ControlKind::ShuffledEmission,
         ControlKind::ShuffledState,
         ControlKind::TrivialPrior,
+        ControlKind::RetrievalOnly,
+        ControlKind::DirectContinuation,
+        ControlKind::MemorizedTrajectory,
+        ControlKind::ShortestPathOracle,
         ControlKind::AlwaysServe,
         ControlKind::AlwaysDecline,
     ];
@@ -347,6 +361,10 @@ impl ControlKind {
             ControlKind::ShuffledEmission => "shuffled-emission",
             ControlKind::ShuffledState => "shuffled-state",
             ControlKind::TrivialPrior => "trivial-prior",
+            ControlKind::RetrievalOnly => "retrieval-only",
+            ControlKind::DirectContinuation => "direct-continuation",
+            ControlKind::MemorizedTrajectory => "memorized-trajectory",
+            ControlKind::ShortestPathOracle => "shortest-path-oracle",
             ControlKind::AlwaysServe => "always-serve",
             ControlKind::AlwaysDecline => "always-decline",
         }
@@ -581,6 +599,12 @@ pub struct SplitRules {
     pub by_entity: bool,
     #[serde(default)]
     pub by_topology: bool,
+    #[serde(default)]
+    pub by_vocabulary: bool,
+    #[serde(default)]
+    pub by_operator_composition: bool,
+    #[serde(default)]
+    pub by_horizon: bool,
     pub leakage_check: bool,
     pub tamper_check: bool,
 }
@@ -594,6 +618,9 @@ impl SplitRules {
             self.by_template,
             self.by_entity,
             self.by_topology,
+            self.by_vocabulary,
+            self.by_operator_composition,
+            self.by_horizon,
         ]
         .into_iter()
         .filter(|&b| b)
