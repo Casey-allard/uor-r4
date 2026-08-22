@@ -307,6 +307,35 @@ decision; **GitHub #826 remains the source of record** (maintainer decision comm
   causal floor, #838 selective gates, #841 §6 bar for any generation re-entry). Next
   executable issue: **#844**.
 
+### S4 item A closed; item B active; benchmark Amendment A1 (2026-08-22)
+
+Readable mirror of the GitHub state; **#826 and #844 remain the source of record**.
+
+- **Item A #844 — CLOSED.** Froze the compositional-planning benchmark constitution and the typed
+  reference model, and registered RF-32, across four pull requests (#916 design, #917 constitution,
+  #918 reference model, #919 RF-32; main `3a4801c4`). It established a falsifiable target and a
+  byte-level meaning, **not** reasoning performance.
+- **Item B #843 — ACTIVE.** Design contract frozen in
+  [`docs/bounded_semantic_transitions_spec_843.md`](bounded_semantic_transitions_spec_843.md); six
+  increments (design freeze, benchmark repair, induction, packed sections, deployed planner,
+  measurement and verdict).
+- **Amendment A1 to the #844 benchmark (appended, not a rewrite).** #843's binding cheap instrument
+  ran first and returned **DEGENERATE**: 13 of the 20 frozen horizon cells were 0/512 solvable, a
+  structure-keyed memorized-trajectory null saturated at valid-plan rate 1.0000 in every non-vacuous
+  cell (placing the #826 promotion statistic at or below 0, against δ_min = 0.05), five of six split
+  axes had a single cell, and `TaskInstance::id()` carried the generator seed so an id-keyed null
+  could not fire. The bounded repair — low-horizon non-vacuity, real split-axis cardinality, a
+  content-derived identity, and strongest-null headroom — is frozen as
+  [`docs/compositional_planning_spec_844.md`](compositional_planning_spec_844.md) §11 and lands in
+  #843's increment 2. **No frozen number changes value:** δ_min = 0.05, n = 512, H ∈ {1, 2, 4, 8},
+  H_max = 16, and W_max = 64 all stand.
+- **Corpus-observation arm — does not launch.** The v4 observation record carries none of the ten
+  typed object kinds the planner requires, so coverage is 0.000 against δ_min = 0.05. Recorded as a
+  structural source-check result at no run cost, per the long-run discipline.
+- **Unchanged.** #845 stays `on-hold` until #843 records a non-degenerate baseline; #846 keeps the
+  sealed partitions and the final verdict; the 20‰ causal floor, the #838 selective gates, and the
+  #841 §6 bar are untouched. Next executable issue: **#843**.
+
 ## Dependency order
 
 ```text

@@ -387,3 +387,100 @@ freeze is deliberate (mirroring how the S1 spec #835 was frozen as a reviewed st
 
 On sign-off, the build pass implements §5's capability order and lands the code/config/tests +
 regenerated `CONFORMANCE.md`, verified through the full gate ladder and merged through the queue.
+
+---
+
+## 11. Amendment A1 — generator non-vacuity and content-address repair (appended 2026-08-22, from #843)
+
+**Status: appended evidence, not a rewrite.** Records in `docs/` are append-only (AGENTS.md). §§0–10
+above stand as the frozen contract of #844 and are unchanged. This section records a measurement
+made *after* that freeze, by #843's binding cheap instrument, which falsifies an assumption §2 relied
+on, and freezes the bounded repair. **Issue #844 remains closed** — its deliverable (a falsifiable
+target and a byte-level meaning) shipped; this is new evidence appended to it, in the sense of
+§9 and of the "claim-changing results append evidence" rule.
+
+### 11.1 What the instrument measured
+
+Probe: deterministic, teacher-free enumeration over
+`uor_r4_graph_compiler::compositional_planning` at main `3a4801c4`; ~15 s wall-clock; no fixture, no
+network. Four independent structural results, each reproducible from the module alone:
+
+**Empirical Criterion (horizon-cell vacuity). Status: Empirical.** Solvable fraction per frozen cell,
+n = 512 seeds, over the frozen horizon progression H ∈ {1, 2, 4, 8} × five families = 20 cells:
+**13 of 20 cells are 0/512 solvable.** All ten H ∈ {1, 2} cells are identically zero. At H = 4 only
+`symbolic-transformation` (171/512 = 0.334) and `multi-hop-evidence` (342/512 = 0.668) are non-zero.
+At H = 8 all five families are 512/512. The module's own documented invariant on `generate` —
+"instances are constructed to be solvable within `horizon`" — does not hold for H ≤ 2, because the
+shortest gold plans are 3–8 steps while `bfs_plan` receives `max_steps = horizon`.
+
+**Empirical Criterion (strongest-null saturation). Status: Empirical.** A *structure-keyed*
+memorized-trajectory null — fit on seeds 0..256, evaluated on the disjoint seeds 256..512, replaying
+the stored plan whenever `(family, initial state, goal, action set, forbidden set)` matches, with the
+generator seed excluded from the key — scores **valid-plan rate 1.0000 in every non-vacuous cell**
+(H = 8: 256/256 in all five families; H = 4: 85/85 symbolic, 171/171 multi-hop). The strongest
+non-oracle baseline of §2.4 therefore already sits at the ceiling, so the §2.4 promotion statistic
+(candidate − strongest non-oracle baseline) is **≤ 0 < δ_min = 0.05 by construction**, for every
+candidate mechanism, geometric or not.
+
+**Empirical Criterion (split-axis cardinality). Status: Empirical.** Over 4096 seeds at H = 8, the
+number of distinct cells per §2.2 axis is: `by_entity` = 1, `by_vocabulary` = 1, `by_template` = 1 for
+all five families; `by_topology` = {1, 1, 2, 1, 4}; `by_operator_composition` = {3, 3, 2, 3, 7}.
+Five of the six axes have a single cell, so §2.2's Guarantee (no split leakage) currently holds
+**vacuously** — it partitions a one-element set — and held-out entity, vocabulary, and template
+generalization are not measurable.
+
+**Definition (content-address defect).** `TaskInstance::id()` mixes the raw generation seed into its
+canonical byte string, so distinct ids number 4096/4096 while only 2–7 structurally distinct problems
+exist per family. An id-keyed memorized-trajectory null consequently scores 0.000 and reads as a
+healthy, non-degenerate control while the structure-keyed null above is saturated. This is the #845
+route-attention failure mode (119 of 120 heads vacuous) recurring: a control that cannot fire is not
+evidence of difficulty. A content-derived identity must not carry the generator seed.
+
+### 11.2 What is repaired, and what stays frozen
+
+**Frozen and unchanged (maintainer sign-off, 2026-08-22 — the D2/D3/D4/D6 values stand):**
+δ_min = 0.05, n = 512 instances per held-out cell per horizon, H ∈ {1, 2, 4, 8}, H_max = 16,
+W_max = 64, Holm–Bonferroni across the (axis × horizon × family) grid, the five families F1–F5, the
+six split axes, the six baselines, the primary metric `held-out valid-plan rate`, RF-32, and every
+guarantee statement of §§2–3. No number this document froze changes value.
+
+**Repaired (A1 scope, frozen here):**
+
+- **A1-a — low-horizon non-vacuity.** Instance *difficulty scales with the requested horizon*: a
+  family generator targets a gold plan of length ≤ H, so an H = 1 instance is a genuinely
+  one-step task rather than an unreachable eight-step task truncated to a decline. Non-vacuity is
+  restored by making instances easier at low H, **not** by moving the frozen horizon grid.
+  **Empirical Criterion (per-cell non-vacuity). Status: Empirical** — every one of the 20 frozen
+  cells reports a solvable fraction ≥ 0.5, asserted by a built instrument.
+- **A1-b — real split-axis cardinality.** Each family gains genuine variation along entity naming,
+  surface vocabulary, topology (obstacle/edge configuration), prompt template, and operator
+  composition, so every §2.2 axis has ≥ 8 distinct cells and disjoint fitting/held-out partitions
+  are constructible rather than vacuous. **Empirical Criterion (axis cardinality ≥ 8 per axis per
+  family). Status: Empirical** — asserted by a built instrument.
+- **A1-c — structural content address.** `TaskInstance::id()` is derived from the typed problem
+  content only, with the generator seed excluded, so structurally identical instances share an id.
+  **Guarantee (content-derived identity; no seed, clock, RNG, or hash-iteration order).
+  Status: Structural** — asserted by a built test.
+- **A1-d — strongest-null headroom.** The structure-keyed memorized-trajectory null and the
+  retrieval-only null must each leave headroom above δ_min in every non-vacuous cell, i.e. the
+  strongest non-oracle null's valid-plan rate is ≤ 1 − δ_min. A benchmark on which the strongest
+  null saturates cannot separate a candidate and is not a valid instrument.
+  **Empirical Criterion (null headroom ≥ δ_min). Status: Empirical** — asserted by a built
+  instrument, and binding: it gates #843's packed/full fitting.
+
+### 11.3 Why the guarantees of §§2–3 passed while the instrument could not separate
+
+**Assumption (recorded, so it is not repeated).** §2.2's and §2.4's Structural guarantees are about
+*disjointness*, *totality*, and *determinism*. None of them is about **non-vacuity of a cell** or
+**headroom above the strongest null**, and a benchmark can satisfy all of the former while measuring
+nothing. Any future benchmark-freeze item in this programme adds two instruments before the word
+"frozen" is used: a per-cell non-vacuity count, and a strongest-null saturation check.
+
+### 11.4 Where the repair lands
+
+Amendment A1 is implemented in #843's increment 2 (`crates/uor-r4-graph-compiler/src/compositional_planning.rs`
+plus the RF-32 instrument surface), verified by the built non-vacuity, axis-cardinality, identity, and
+null-headroom instruments named above, and recorded in
+[`docs/bounded_semantic_transitions_spec_843.md`](bounded_semantic_transitions_spec_843.md) §2.
+It establishes **no** planning or reasoning capability; it restores the ability of the #844 instrument
+to separate one, which #843 then measures and #846 certifies.
