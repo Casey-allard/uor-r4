@@ -1,0 +1,19 @@
+{
+  "issue": 842,
+  "study": "trajectory-state-gate-v1",
+  "execution_scope": "deployed R4Engine generation path, teacher-free (recorded t_argmax labels)",
+  "mode": "greedy",
+  "bundle": "/Users/casey.allard/uor-r4/.uor-models/compiled/smollm2-360m-broad-clean",
+  "corpus_meta_cid": "blake3:aa9d176779c1d2411e872c49c95ed585ee805ded5fa1b808ddf2f517a245b0ce",
+  "prompt_family": {"version": 1, "n": 100, "cid": "blake3:6cad1dfe76f98fabb1a4396ed1baa4f6d60dcfd644b6f13d75a1cce7a3cd39c9"},
+  "graph_cid": "blake3:bc2366f18377718da744f72fe03648b09df1a9cf320ffceadf656c7e94aa9d48",
+  "tf_agreement_permille": 304,
+  "suffix_locality_of_100": 99,
+  "student": {"h8": {"n": 100, "median_first_divergence": 0, "diverged_at_step0_permille": 590, "survived_full_horizon_permille": 0, "abstained_permille": 0, "cycled_permille": 300, "mean_distinct1_permille": 760, "paths": {"exact_context": 0, "ngram": 797, "graph": 3, "served": 800}, "horizon": 8}, "h32": {"n": 100, "median_first_divergence": 0, "diverged_at_step0_permille": 590, "survived_full_horizon_permille": 0, "abstained_permille": 0, "cycled_permille": 710, "mean_distinct1_permille": 391, "paths": {"exact_context": 0, "ngram": 3197, "graph": 3, "served": 3200}, "horizon": 32}},
+  "teacher_prefix": {"h8": {"n": 100, "median_first_divergence": 0, "diverged_at_step0_permille": 590, "survived_full_horizon_permille": 0, "abstained_permille": 0, "cycled_permille": 30, "mean_distinct1_permille": 793, "paths": {"exact_context": 3, "ngram": 789, "graph": 8, "served": 800}, "horizon": 8}, "h32": {"n": 100, "median_first_divergence": 0, "diverged_at_step0_permille": 590, "survived_full_horizon_permille": 0, "abstained_permille": 0, "cycled_permille": 110, "mean_distinct1_permille": 643, "paths": {"exact_context": 24, "ngram": 3112, "graph": 64, "served": 3200}, "horizon": 32}},
+  "diagnosis_h32": {"survived": 0, "single_step_at0": 59, "candidate_gap": 16, "rank_limit": 25, "state_starvation": 0},
+  "reachability": {"state_addressable_permille": 0, "at0_reachable_drop_permille": 0, "student_median": 0, "teacher_median": 0, "student_at0_permille": 590, "teacher_at0_permille": 590, "sec6_median_rise_required": 2, "sec6_at0_drop_required_permille": 100, "ceiling_clears_bar": false},
+  "verdict": "NOT-TRIGGERED",
+  "generation_verdict": "GENERATION-NOT-ESTABLISHED",
+  "result_cid": "blake3:86376394d67a55a8814d96082bcb98d86b7e143eb3c9abe5f0311b4af5ff194d"
+}

@@ -531,6 +531,35 @@ gap → the deployed artifact is a teacher-forced continuation/retrieval system,
 generative engine at this scope). No corrective mechanism is added and no serving behavior
 changes; the formal S3 generation-claim decision remains #842's, and S3 stage closure
 remains gated on that verdict.
+
+**S3 item C — a bounded trajectory-state mechanism is NOT TRIGGERED; the S3 free-running
+generation claim is not established (#842, 2026-08-22).**
+[`docs/state_trajectory_gate_842.md`](state_trajectory_gate_842.md) is the authoritative
+S3 generation verdict (harness `crates/uor-r4-api/tests/state_trajectory_gate_842.rs`;
+CID-bound record `docs/state_trajectory_gate_842_result.json`, `result_cid
+blake3:86376394…`). It defines a predeclared, non-vacuous diagnostic that classifies every
+free-running failure of the frozen prompt-family v1 (n=100, greedy, deployed `R4Engine`,
+teacher-free) by pairing the student-prefix rollout against the teacher-prefix rollout and
+probing the deployed candidate list at the divergence step: `SingleStepAt0` (state-
+irrelevant), `CandidateGap` (recorded token not a candidate), `RankLimit` (candidate
+present but the perfect context fails at the same-or-earlier step), or `StateStarvation`
+(candidate present AND the perfect context survives longer — the only state-addressable
+cause). **Empirical Criterion. Status: Empirical.** It reproduces #841 exactly (304‰ TF,
+99/100 suffix-local, student median 0 / diverged-at-0 590‰ / paths 0/3197/3), and finds
+**0/100 state-starvation** cases (survived 0 · single-step-at-0 59 · candidate-gap 16 ·
+rank-limit 25). Two representation-independent bounds cap any trajectory-state mechanism
+against the frozen §6 bar: **step-0 invariance** (diverged-at-0 is a step-0 metric,
+unreachable by state — reachable at0-drop 0‰ vs the 100‰ bar; and the 590‰ > 500‰ step-0
+fraction pins the median at 0) and the **teacher-prefix upper bound** (the drift-free
+reference is itself at median 0 / at0 590‰, clearing neither prong). The disposition is
+therefore **`NOT TRIGGERED`** (no runtime/format/compiler change) and, for the stage,
+**`GENERATION-NOT-ESTABLISHED`** — consistent with #840 and meeting the programme global
+falsifier (no bounded correction or state reduces the frozen free-running gap → the
+deployed artifact is a teacher-forced continuation/retrieval system, not a generative
+engine at this scope). Re-entry requires a representation with cross-step free-running
+memory and must re-enter under the frozen #841 §6 bar. The S3 tracker #824 now records its
+stage verdict against its three completed children (a separate tracker action).
+
 The **geometric router** is a validated, real component (content-query
 retrieval MRR 0.88+, #486/#490/#502) but it is a retrieval/routing mechanism,
 not itself a generative model, and it runs on `f64` outside the P-4 kernel by
