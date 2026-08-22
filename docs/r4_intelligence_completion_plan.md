@@ -336,6 +336,48 @@ Readable mirror of the GitHub state; **#826 and #844 remain the source of record
   sealed partitions and the final verdict; the 20‰ causal floor, the #838 selective gates, and the
   #841 §6 bar are untouched. Next executable issue: **#843**.
 
+### S4 item B (#843) — CLOSED = LIMITED (2026-08-22)
+
+Readable mirror; **#843 and #826 remain the source of record**. Full measurement:
+[`docs/bounded_semantic_transitions_843.md`](bounded_semantic_transitions_843.md); frozen contract:
+[`docs/bounded_semantic_transitions_spec_843.md`](bounded_semantic_transitions_spec_843.md).
+
+- **Verdict: LIMITED.** A bounded, fixed-capacity, allocation-free, P-4-only semantic-transition
+  planner is **established on the deployed path** and is **lowered as the non-geometric production
+  baseline** — for the **12 of 20** joint-split cells where a baseline exists to beat. Typed
+  planning is **not established** on the other 8. Not promoted, not refuted.
+- **The planner is at correct-outcome rate 1.0000 in all 20 cells**, including held-out topologies
+  whose operator effect sets it never saw during fitting. Every failing cell is one where the
+  *null* is also at or near 1.0000, never one where the arm fell short.
+- **Why the 8 fail.** Their strongest null is `direct-continuation` — greedy one-step descent on
+  goal distance. Symbolic transformation and counterfactual intervention are monotone toward the
+  goal, so greedy is never trapped and reaches 1.0000; a bounded planner cannot show headroom over
+  greedy on a task greedy already solves. Where a family does trap greedy the arm wins by up to
+  **+0.2260**. This is a ceiling on the benchmark, not on the mechanism.
+- **Arm lowered: `bounded-breadth-first`** (exact tie with the table-guided beam — both 1.0000 in
+  all 20 cells — broken toward breadth-first because it uses no scoring heuristic and is therefore
+  the plainest bar for geometry to clear). **`bounded-iterative-deepening` rejected**: under the
+  equal budget it re-expands and exhausts its expansion ceiling, falling to 0.2695 at H = 8.
+- **Delivered across six pull requests:** #920 design freeze and Amendment A1 (main `5f4d740f`),
+  #921 the A1 generator repair (`328791ff`), #922 typed observations and deterministic induction
+  (`85f3d03a`), #923 the packed `PSCH`/`PTRN`/`PGOL`/`PWIT` sections (`f5fccc51`), #924 the deployed
+  planner, #925 the measurement and verdict. **RF-33 `bounded_semantic_transitions`** registered
+  (`normative-runtime` / `deployed-serving`), its statement carrying the LIMITED boundary in-line;
+  `CONFORMANCE.md` 32 → 33 ids.
+- **#845 released, RESTRICTED.** Geometry qualification may begin, measured **only on the 12
+  separating cells** against the lowered arm at 1.0000 under equal bytes, candidates, expansions and
+  operations. Running it on the 8 greedy-solvable cells would compare geometry against a baseline
+  already at 1.0000 and would read as a geometry failure when it is a task property.
+- **#846** inherits the witness schema, the three-way differential, the planted-mutation table, and
+  the sealed composition and topology cells, which #843 never opened.
+- **Frozen gates unchanged.** δ_min = 0.05, n = 512, H ∈ {1, 2, 4, 8}, H_max = 16, W_max = 64, the
+  20‰ causal floor, the #838 selective gates, and the #841 §6 bar all stand. The #824 and #823
+  boundaries stand: nothing here is free-running coherence or a calibrated-confidence claim.
+- **Requirement added for future benchmark freezes.** Beside Amendment A1's non-vacuity and
+  null-saturation instruments, a **greedy-solvability probe**: a task solvable without lookahead
+  cannot measure lookahead, and headroom against a memorization null is not headroom against a
+  search null.
+
 ## Dependency order
 
 ```text

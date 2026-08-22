@@ -208,3 +208,8 @@ fn skipmix_serving_lane_rf_31() {
 fn compositional_planning_benchmarks_rf_32() {
     check("RF-32", "compositional_planning_benchmarks");
 }
+
+#[test]
+fn bounded_semantic_transitions_rf_33() {
+    check("RF-33", "bounded_semantic_transitions");
+}

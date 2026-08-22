@@ -43,6 +43,12 @@ The `build` level is *harness-built* (structural). It is a separate axis from an
 | --- | --- | --- | --- | --- | --- |
 | `RF-01` | `build` | `certifier-instrument` | `dormant-gated` | crates/uor-r4-graph-compiler/src/behavioral_probes.rs (behavioral-probes-dormant) | Unsupervised intervention and counterfactual behavioral probes |
 
+## bounded_semantic_transitions
+
+| ID | Level | Execution scope | Serving reachability | Evidence | Statement |
+| --- | --- | --- | --- | --- | --- |
+| `RF-33` | `build` | `normative-runtime` | `deployed-serving` | features/suites/bounded_semantic_transitions.feature; crates/uor-r4-graph-runtime/src/plan.rs; crates/uor-r4-graph-format/src/plan_sections.rs; crates/uor-r4-graph-compiler/src/semantic_transitions.rs; docs/bounded_semantic_transitions_spec_843.md; docs/bounded_semantic_transitions_843.md (LIMITED verdict, 12/20 cells) | Bounded semantic-transition planning on packed R4G1 sections through the normative R4Engine path: fixed-capacity, allocation-free, P-4-only, with replayable self-contained plan witnesses and typed declines. LIMITED capability: the lowered arm clears the frozen effect floor over the strongest non-oracle baseline on 12 of the 20 joint-split cells and is not established on the 8 cells whose tasks are solvable by greedy continuation (#843 verdict, 2026-08-22) |
+
 ## compiler_executor
 
 | ID | Level | Execution scope | Serving reachability | Evidence | Statement |

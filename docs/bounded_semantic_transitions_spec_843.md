@@ -669,3 +669,43 @@ measured, and nothing more: it is not a general reasoning claim, not free-runnin
 and not a calibrated-confidence claim (#823). A negative outcome establishes the limiting diagnosis
 and keeps typed planning **NOT ESTABLISHED**. Either way, the S4 promotion verdict is #846's to make,
 against the sealed partitions this issue does not open.
+
+### 13.1 Outcome — LIMITED (measured 2026-08-22, increment 6)
+
+Full record with every per-cell number:
+[`docs/bounded_semantic_transitions_843.md`](bounded_semantic_transitions_843.md).
+
+**Empirical Criterion (S4 item B). Status: Empirical.** The deployed planner scores correct-outcome
+rate **1.0000 in all 20 joint-split cells** — a verifier-accepted plan on every solvable held-out
+instance and a correct decline on every unsolvable one, including on held-out topologies whose
+operator effect sets it never saw. It clears δ_min over the strongest non-oracle null on **12 of the
+20** cells. The verdict is **LIMITED**: the arm is lowered as the non-geometric production baseline
+for those 12 cells and typed planning is **not established** on the other 8.
+
+**Definition (why the 8 fail, frozen as a benchmark property).** In every failing cell the strongest
+null is `direct-continuation` — greedy one-step descent on goal distance — at or near 1.0000.
+Symbolic transformation and counterfactual intervention are monotone toward the goal, so greedy is
+never trapped; a bounded planner cannot show headroom over greedy on a task greedy already solves.
+Where a family does trap greedy the arm wins by up to **+0.2260**. This is a ceiling on the
+benchmark, not on the mechanism, and Amendment A1 could not have caught it: headroom against a
+*memorization* null is not headroom against a *search* null.
+
+**Definition (§8 selection, frozen — maintainer sign-off).** `bounded-breadth-first` is lowered. It
+ties exactly with `table-guided-beam` — both 1.0000 in all 20 cells with identical bounds — and the
+tie breaks toward breadth-first because it uses no scoring heuristic, making it the plainest baseline
+for #845 to beat. `bounded-iterative-deepening` is **rejected**: under the equal budget it re-expands
+and exhausts `max_expansions`, falling to 0.2695 at H = 8 and losing to the nulls in several cells.
+
+**Definition (the §10 statistic, corrected).** The #826 gate is a *conjunction*, so the
+intersection-union principle applies and each cell is tested at the full level; Holm–Bonferroni,
+which this contract froze, is the correct adjustment for a *disjunction* and is reported alongside
+rather than instead. Both readings give the same 12 cells.
+
+**Amendment to the §12 increment plan.** Increment 6 also registers **RF-33
+`bounded_semantic_transitions`** (`normative-runtime`, `deployed-serving`), because an arm was in
+fact lowered; its statement carries the LIMITED boundary so the registry cannot be read as claiming
+more than the 12 cells support. `CONFORMANCE.md` moves 32 → 33 ids.
+
+**Requirement added for future benchmark freezes.** Beside A1's non-vacuity and null-saturation
+instruments, a **greedy-solvability probe**: a task solvable without lookahead cannot measure
+lookahead, and no amount of split discipline will make it.

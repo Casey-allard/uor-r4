@@ -162,6 +162,15 @@ struct R4g1World {
     cp_task: Option<uor_r4_graph_compiler::compositional_planning::TaskInstance>,
     cp_relabeled: Option<uor_r4_graph_compiler::compositional_planning::TaskInstance>,
     cp_verdict: Option<uor_r4_graph_compiler::compositional_planning::WitnessVerdict>,
+    // Bounded semantic-transition planning fields (#843, RF-33)
+    bst_schema: Vec<u8>,
+    bst_rules: Vec<u8>,
+    bst_predicates: Vec<u8>,
+    bst_initial: Option<uor_r4_graph_format::plan::SlotVec>,
+    bst_outcome: Option<uor_r4_graph_runtime::plan::PlanOutcome>,
+    bst_steps: Vec<uor_r4_graph_format::plan_sections::WitnessStep>,
+    bst_witness: Vec<u8>,
+    bst_replay: Option<uor_r4_graph_format::plan_sections::ReplayVerdict>,
     contract_doc_text: String,
     contract_doc_version: Option<String>,
     contract_module_version: Option<String>,
@@ -4039,4 +4048,240 @@ fn cp_then_decline(w: &mut R4g1World) {
         w.cp_verdict.as_ref().expect("a verdict"),
         CpVerdict::Declined(_)
     ));
+}
+
+// =========================================================================
+// Bounded semantic-transition planning BDD steps (#843, RF-33)
+// =========================================================================
+use uor_r4_graph_format::plan::{
+    CompareOp as BstCmp, EffectDelta as BstEffect, PreconditionMask as BstPre, SlotVec as BstSlots,
+    PLAN_HORIZON_MAX as BST_H_MAX, PLAN_WITNESS_MAX_BYTES as BST_WITNESS_MAX,
+};
+use uor_r4_graph_format::plan_sections::{
+    build_predicate_set as bst_build_predicates, build_rule_table as bst_build_rules,
+    build_schema as bst_build_schema, encode_witness_into as bst_encode_witness,
+    PackedRule as BstRule, PlanSchema as BstSchema, PlanWitnessBytes as BstWitness,
+    PredicateSet as BstPredicates, ReplayVerdict as BstReplay, RuleTable as BstRules,
+    WitnessDraft as BstDraft,
+};
+use uor_r4_graph_runtime::plan::{
+    plan as bst_plan, PlanBudget as BstBudget, PlanOutcome as BstOutcome, PlanQuery as BstQuery,
+    PlanScratch as BstScratch, PlanStrategy as BstStrategy,
+};
+
+fn bst_effect(x: i16, y: i16) -> BstEffect {
+    BstEffect::from_slice(&[x, y]).expect("a two-slot effect")
+}
+
+fn bst_cell(x: i16, y: i16) -> BstPre {
+    BstPre::unconditional()
+        .reading(0, BstCmp::Equal, x)
+        .expect("slot 0")
+        .reading(1, BstCmp::Equal, y)
+        .expect("slot 1")
+}
+
+/// Build the packed grid artifact both planning scenarios share: four axis
+/// operators, a goal at `(3, 0)` and a forbidden cell at `(2, 0)`.
+fn bst_build_artifact(w: &mut R4g1World, goal: (i16, i16), blocked: &[(i16, i16)]) {
+    let vocabulary = vec![
+        bst_effect(1, 0),
+        bst_effect(0, 1),
+        bst_effect(-1, 0),
+        bst_effect(0, -1),
+    ];
+    w.bst_schema = bst_build_schema(2, &vocabulary, (1, 4, 16)).expect("a planning schema");
+    let schema = BstSchema::parse(&w.bst_schema).expect("the schema parses");
+    let rules: Vec<BstRule> = (0..schema.operator_count())
+        .map(|index| BstRule {
+            operator: index as u16,
+            precondition: BstPre::unconditional(),
+            effect: schema.operator(index).expect("an operator"),
+            support: 8,
+            band: 2,
+        })
+        .collect();
+    w.bst_rules = bst_build_rules(2, schema.operator_count() as u16, &rules).expect("a rule table");
+    let constraints: Vec<BstPre> = blocked.iter().map(|(x, y)| bst_cell(*x, *y)).collect();
+    w.bst_predicates =
+        bst_build_predicates(2, &[bst_cell(goal.0, goal.1)], &constraints).expect("predicates");
+    w.bst_initial = Some(BstSlots::from_slice(&[0, 0]).expect("an initial state"));
+}
+
+fn bst_run(w: &mut R4g1World, horizon: u8) {
+    let schema = BstSchema::parse(&w.bst_schema).expect("the schema parses");
+    let rules = BstRules::parse(&w.bst_rules, &schema).expect("the rule table parses");
+    let predicates = BstPredicates::parse(&w.bst_predicates, &schema).expect("predicates parse");
+    let mut scratch = BstScratch::new();
+    let result = bst_plan(
+        &BstQuery {
+            strategy: BstStrategy::BreadthFirst,
+            schema: &schema,
+            rules: &rules,
+            predicates: &predicates,
+            initial: w.bst_initial.expect("an initial state"),
+            available: 0b1111,
+            budget: BstBudget {
+                horizon,
+                ..BstBudget::frozen()
+            },
+        },
+        &mut scratch,
+    );
+    w.bst_steps = (0..scratch.path_len())
+        .filter_map(|i| scratch.path_step(i))
+        .collect();
+    w.bst_outcome = Some(result.outcome);
+}
+
+#[given("a packed grid planning artifact with a forbidden cell on the direct path")]
+fn bst_given_artifact(w: &mut R4g1World) {
+    bst_build_artifact(w, (3, 0), &[(2, 0)]);
+}
+
+#[given("a packed grid planning artifact whose goal lies beyond the horizon")]
+fn bst_given_unreachable(w: &mut R4g1World) {
+    bst_build_artifact(w, (100, 0), &[]);
+}
+
+#[given("an artifact carrying no planning sections")]
+fn bst_given_no_sections(w: &mut R4g1World) {
+    w.bst_schema = Vec::new();
+    w.bst_rules = Vec::new();
+    w.bst_predicates = Vec::new();
+    w.bst_outcome = None;
+}
+
+#[given(
+    "a witness whose terminal state satisfies the goal but whose path crosses a forbidden region"
+)]
+fn bst_given_crossing_witness(w: &mut R4g1World) {
+    let steps: Vec<uor_r4_graph_format::plan_sections::WitnessStep> = vec![
+        (
+            bst_effect(1, 0),
+            BstSlots::from_slice(&[1, 0]).expect("s1"),
+            0,
+            0,
+        ),
+        (
+            bst_effect(1, 0),
+            BstSlots::from_slice(&[2, 0]).expect("s2"),
+            0,
+            0,
+        ),
+        (
+            bst_effect(1, 0),
+            BstSlots::from_slice(&[3, 0]).expect("s3"),
+            0,
+            0,
+        ),
+    ];
+    let mut buffer = vec![0u8; BST_WITNESS_MAX];
+    let written = bst_encode_witness(
+        &BstDraft {
+            slot_count: 2,
+            initial: BstSlots::from_slice(&[0, 0]).expect("s0"),
+            goal: bst_cell(3, 0),
+            constraints: &[bst_cell(2, 0)],
+            steps: &steps,
+            considered: &[],
+            considered_per_step: 0,
+            decline: None,
+            verdict: (0, 0),
+        },
+        &mut buffer,
+    )
+    .expect("the witness encodes");
+    buffer.truncate(written);
+    w.bst_witness = buffer;
+}
+
+#[when("the deployed planner runs a bounded episode")]
+fn bst_when_run(w: &mut R4g1World) {
+    bst_run(w, 8);
+}
+
+#[when("the deployed planner runs an episode whose horizon exceeds the frozen capacity")]
+fn bst_when_run_over_capacity(w: &mut R4g1World) {
+    bst_run(w, (BST_H_MAX + 1) as u8);
+}
+
+#[when("the engine is asked for a bounded plan")]
+fn bst_when_no_sections(w: &mut R4g1World) {
+    // An artifact with no planning sections yields no planning result at all,
+    // which is what absent-section identity means.
+    w.bst_outcome = None;
+}
+
+#[when("the witness is replayed independently")]
+fn bst_when_replay_crossing(w: &mut R4g1World) {
+    let witness = BstWitness::parse(&w.bst_witness).expect("the witness parses");
+    w.bst_replay = Some(witness.replay());
+}
+
+#[then("a plan is emitted and no step enters a forbidden region")]
+fn bst_then_plan_avoids_forbidden(w: &mut R4g1World) {
+    assert!(matches!(w.bst_outcome, Some(BstOutcome::Plan { .. })));
+    assert!(!w.bst_steps.is_empty());
+    let blocked = BstSlots::from_slice(&[2, 0]).expect("the forbidden cell");
+    for (index, (_, state, _, _)) in w.bst_steps.iter().enumerate() {
+        assert_ne!(*state, blocked, "step {index} entered the forbidden cell");
+    }
+}
+
+#[then("the emitted witness replays as valid")]
+fn bst_then_witness_replays_valid(w: &mut R4g1World) {
+    let mut buffer = vec![0u8; BST_WITNESS_MAX];
+    let written = bst_encode_witness(
+        &BstDraft {
+            slot_count: 2,
+            initial: w.bst_initial.expect("an initial state"),
+            goal: bst_cell(3, 0),
+            constraints: &[bst_cell(2, 0)],
+            steps: &w.bst_steps,
+            considered: &[],
+            considered_per_step: 0,
+            decline: None,
+            verdict: (0, 0),
+        },
+        &mut buffer,
+    )
+    .expect("the witness encodes");
+    let witness = BstWitness::parse(&buffer[..written]).expect("the witness parses");
+    assert_eq!(witness.replay(), BstReplay::Valid);
+}
+
+#[then("the replay verdict is invalid at the offending step")]
+fn bst_then_replay_invalid(w: &mut R4g1World) {
+    match w.bst_replay.expect("a replay verdict") {
+        BstReplay::Invalid { step, .. } => assert_eq!(step, 1),
+        other => panic!("expected an invalid replay, got {other:?}"),
+    }
+}
+
+#[then("the episode declines with no plan and emits no steps")]
+fn bst_then_declines_no_plan(w: &mut R4g1World) {
+    assert_eq!(
+        w.bst_outcome,
+        Some(BstOutcome::Declined(
+            uor_r4_graph_format::plan_sections::PackedDecline::NoPlan
+        ))
+    );
+    assert!(w.bst_steps.is_empty());
+}
+
+#[then("the episode declines for capacity")]
+fn bst_then_declines_capacity(w: &mut R4g1World) {
+    assert_eq!(
+        w.bst_outcome,
+        Some(BstOutcome::Declined(
+            uor_r4_graph_format::plan_sections::PackedDecline::Capacity
+        ))
+    );
+}
+
+#[then("no planning result is produced and serving is unchanged")]
+fn bst_then_no_result(w: &mut R4g1World) {
+    assert!(w.bst_outcome.is_none());
+    assert!(w.bst_schema.is_empty());
 }
