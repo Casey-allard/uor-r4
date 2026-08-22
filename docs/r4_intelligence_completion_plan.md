@@ -232,6 +232,55 @@ sanctioned under the same frozen gates. This entry mirrors the tracker verdict;
   aligned with the S1 redesign direction) under the **same** frozen gates; the bars do
   not move (the #887 discipline).
 
+### S3 stage verdict — LIMIT (2026-08-22)
+
+All three native children are resolved and the pre-registered kill/redesign criterion is
+met, so **S3 is limited**: coherent free-running generation is **not established** at the
+current representation scope, and the deployed artifact is recorded as a teacher-forced
+retrieval/continuation system rather than a generative engine at this scope. This is a
+limiting (non-promotion) verdict — it narrows the claim and does **not** promote a
+generation claim into any downstream stage. This entry mirrors the tracker verdict;
+**GitHub #824 remains the source of record** (maintainer decision comment, 2026-08-22).
+
+- **#841 (item A).** The free-running gap is quantified and total (PR #894, `11d7ca8e`):
+  greedy, deployed `R4Engine`, prompt-family v1 (n = 100, H ∈ {8, 32}) — median
+  first-divergence step **0**, **99/100** free-running rollouts token-identical to
+  suffix-only rollouts (generation is memoryless beyond the 2-token suffix), **710‰**
+  cycle collapse, **0‰** typed abstentions. The corrective §6 bar is frozen on these
+  numbers (median first-divergence +≥2 steps AND diverged-at-0 −≥100‰ per round, no
+  teacher-forced-agreement regression >10‰, ≤3 rounds, else `GENERATION-NOT-ESTABLISHED`).
+  Records `docs/free_running_eval_841.md`, `docs/free_running_841_result.json` (result
+  `blake3:59ec2f60…`).
+- **#840 (item B).** `GENERATION-NOT-ESTABLISHED` (do-not-launch) (PR #912, `35f8cc87`):
+  the corrective student-prefix run is not launched because the reachable ceiling is
+  ~100× below the frozen §6 bar (correctable footprint ~1‰ vs the required 100‰
+  diverged-at-0 drop) and the promoted skip-mix representation (RF-31) *regresses*
+  free-running (suffix-locality 99→19 of 100, cycle collapse 710‰→1000‰). The limiting
+  factor is the representation, not more same-distribution data or decoding. Records
+  `docs/free_running_reachability_840.md`,
+  `docs/free_running_reachability_840_result.json` (result `blake3:e9f48e20…`).
+- **#842 (item C).** `NOT TRIGGERED` / `GENERATION-NOT-ESTABLISHED` (PR #913, `abcad4e5`):
+  a predeclared, non-vacuous diagnostic (n = 100, greedy, deployed `R4Engine`,
+  teacher-free) classifies every free-running failure — survived 0 · single-step-at-0 59 ·
+  candidate-gap 16 · rank-limit 25 · **state-starvation 0**. **0/100** failures are
+  addressable by bounded trajectory state (state-addressable 0‰; step-0 invariance and the
+  teacher-prefix upper bound both fail the frozen §6 bar; `ceiling_clears_bar = false`).
+  Records `docs/state_trajectory_gate_842.md`,
+  `docs/state_trajectory_gate_842_result.json` (result `blake3:86376394…`).
+- **The global falsifier fired.** Bounded student-prefix correction (#840) and bounded
+  trajectory state (#842) both fail to reduce the frozen free-running gap, so the programme
+  global falsifier classifies the deployed artifact as a teacher-forced
+  retrieval/continuation system, not a generative engine at this scope. No runtime, format,
+  or compiler behavior changed across the chain (RF-14/21/22/29 evaluation infrastructure;
+  `CONFORMANCE.md` unchanged).
+- **Downstream consequence.** Closing #824 clears its native-blocker edge to S4 (#826), but
+  S3 is `LIMIT`, not `PROMOTE`, and #826's entry criteria require promoted S2 and S3
+  verdicts; with S2 (#823) at REVISE (its #839 phase-2 calibrated mode trigger-gated and
+  unsatisfied) and S3 limited, **S4 remains gated** and this verdict promotes nothing
+  downstream. Generation re-entry requires a representation carrying cross-step free-running
+  memory, re-measured under the unchanged #841 §6 bar and the frozen #838
+  selective-prediction gates (the #887 discipline).
+
 ## Dependency order
 
 ```text
