@@ -414,6 +414,34 @@ amendment: [`docs/compositional_planning_spec_844.md`](compositional_planning_sp
 Next executable work: **#845 increments 2–4** (mapping and instruments → arms and harness →
 measurement and verdict).
 
+### S4 item C (#845) — CLOSED = NO GEOMETRIC ADVANTAGE (2026-08-22)
+
+Readable mirror; **#845 and #826 remain the source of record**. Full measurement:
+[`docs/w33_geometry_qualification_845.md`](w33_geometry_qualification_845.md); frozen contract:
+[`docs/w33_geometry_qualification_spec_845.md`](w33_geometry_qualification_spec_845.md).
+
+- **Verdict: NO GEOMETRIC ADVANTAGE** — the pre-registered negative branch, a successful
+  falsification. Under equal budgets and equal bytes the pinned W(3,3) mapping fails both axes:
+  A2(a) 5/12 (only the structurally degenerate H = 1 cells; it does 12–37% *more* work than the
+  goal-distance beam wherever reduction is possible) and A2(b) 0/9 primary, 0/9 secondary.
+- **The controls did the deciding.** Geometry sits at the level of its own randomized, relabelled,
+  and phase-swapped controls (0.62 vs 0.64–0.71 at frontier-16), while two informed non-geometric
+  orderings — goal-distance and Hamming/popcount — hold 1.0000 in the same cells. The gain over
+  breadth-first attributes to *any ordering*, not to quadrangle structure; the mod-9 digit
+  quantization's wrap-around severs slot distance from task-step distance.
+- **The falsifier discharged.** "If a geometry arm cannot beat Hamming/binary/VSA/spectral
+  controls under equal bytes, candidates, and operation budgets, keep it out of the production
+  runtime" — it is kept out. W(3,3) stays a visualization/reference construct; the f64 router's
+  separately measured retrieval results are untouched; re-entry requires a new mapping Definition
+  with a fresh design contract and probe under the same frozen controls.
+- **Method delivered along the way (reusable):** counter-exact parity between a seam-opened
+  reference search and the deployed planner (>1,000 episodes per retention rule); an equal-bytes
+  ordering-arm roster; the probe-admitted cell discipline (Amendment A2); and the §5-A
+  no-regression reading for structurally-floored cells.
+- **Downstream.** #846 (S4 item D) is the next executable issue: certification against the lowered
+  non-geometric baseline on the sealed partitions, with the #826 geometry-gain clause resolved
+  negatively by this record. Frozen gates unchanged; `CONFORMANCE.md` unchanged (33 ids).
+
 ## Dependency order
 
 ```text
@@ -470,7 +498,7 @@ authority:
 
 | Component | Role | Status |
 |---|---|---|
-| **W(3,3)** visualization / dashboard field | 96 rendered vertices in the browser dashboard; a research/visualization construct | **Not** a normative construction of the 40-point/40-line W(3,3) quadrangle; **not** an input or output of the Rust router; separately qualified research hypothesis |
+| **W(3,3)** visualization / dashboard field | 96 rendered vertices in the browser dashboard; a research/visualization construct | **Not** a normative construction of the 40-point/40-line W(3,3) quadrangle; **not** an input or output of the Rust router; equal-budget planning advantage **refuted for the pinned mapping** (#845, `NO GEOMETRIC ADVANTAGE`, 2026-08-22) — any re-entry needs a new mapping Definition under the recorded conditions |
 | **Geometric prime router** (`crates/uor-r4-router`) | Validated `f64` content-query retrieval/routing (MRR 0.88+, #486/#490/#502) | Real, load-bearing for retrieval; runs on `f64` **outside** the P-4 kernel by design; strengthens the product, is not itself the product |
 | **R4G1 graph scoring** (`uor-r4-core` `score.rs` / R4G1 adapter) | The compiled-artifact scoring path | On the normative production path; the S0 designation of *one* normative scorer is #831 |
 | **Route-attention reference work** (`R4RouteAttentionV1`, #604/#605/#804) | P-4-legal integer attention analog | **Dormant**; S1 verdict FAIL (instrument vacuous); wired into no serving path; ledger-gated |
