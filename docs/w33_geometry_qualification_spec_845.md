@@ -151,9 +151,49 @@ fitting half only):
 memorized-trajectory, shuffled-state), fitted and measured exactly as in the #843 harness.
 
 The exact fitted-control constants (k, hypervector width, eigen-count, seeds) are pinned in
-increment 3 as an appended section before any measurement runs; their fitting data access
+increment 3 as an appended section (§4-A) before any measurement runs; their fitting data access
 (fitting half only), determinism, byte parity, and non-degeneracy obligations are frozen here.
 A control unable to fire or unable to fail voids the cell (`NOT TRIGGERED`), never a pass.
+
+### 4-A. Pinned control constants (appended in increment 3, before any measurement)
+
+Implementation: `crates/uor-r4-graph-certify/tests/support/{ordering,arms,episode}.rs`; every
+constant below is asserted by `w33_ordering_harness_845.rs` before increment 4 runs.
+
+- **The seam, and its two modes.** The reference skeleton is the deployed layered search with one
+  seam: the ordering score. **Parity mode** applies it to frontier retention only and is
+  machine-checked per episode — outcome, plan, and every `PlanCounters` field — against the
+  deployed planner for both retention rules (FIFO ≡ breadth-first; goal-distance ≡ table-guided
+  beam) over a 3-family × 3-horizon × 4-budget × 32-seed grid. **Arm mode** (the §3 "ordering
+  functional for beam/best-first expansion") additionally expands the retained layer in descending
+  score order (stable sort; equal scores keep the canonical arrival order), which is what lets an
+  ordering reduce expansions by reaching the goal-generating expansion sooner — layers before the
+  goal layer are swept in full regardless of order, so retention quality and last-layer order are
+  exactly what an ordering can influence. Every measured arm and ordering control runs in arm mode
+  under identical budget accounting; parity mode anchors that accounting to the deployed planner.
+  Scoring work is outside `PlanCounters` (the deployed beam's goal-distance evaluations are
+  uncounted there too); each arm reports auxiliary lookups and table bytes separately.
+- **Byte budget** = the geometry arm's 3,200 bytes (two 40 × 40 tables); the audit asserts every
+  control at or under it. Seeded tables use splitmix64.
+- **w33-geometry:** retention −(4·d_W + t(φ)); 3,200 B; μ per §3.
+- **hamming-popcount:** −popcount(raw 32-bit slot pair XOR goal); 0 B.
+- **learned-table-codes:** 40 × 40 u8 mean remaining-gold-steps between mapped classes (255 =
+  unseen) + 40 row-median-threshold 16-bit codes; retention −(32·table + code-Hamming); 1,680 B;
+  fitted on fitting-half gold paths only. Deliberately the same 40-class quantization as the
+  geometry arm: it isolates whether the quadrangle *structure*, not any table over μ's classes,
+  carries the signal.
+- **vsa-binding:** two roles × nine residues × 128-bit fillers, seed `0x845a_0001`, XOR binding;
+  −Hamming of bound state/goal hypervectors; 288 B.
+- **spectral-embedding:** Laplacian of the fitting-half class-transition graph; fixed-sweep cyclic
+  Jacobi (32 sweeps, fixed pair order — deterministic by construction); kernel vector skipped;
+  8 dimensions quantized ×1024 to i16; −L1; 640 B. f64 in fitting only (compiler/certifier scope).
+- **random-embedding:** two 40 × 40 tables with values in {0, 1, 2}, seed `0x845a_0002`, scored
+  with the geometry functional; 3,200 B — matched in bytes, shape, and range; devoid of structure.
+- **isomorphic-relabel:** the true geometry tables conjugated by a pinned Fisher–Yates scramble of
+  the 40 points, seed `0x845a_0003`, asserted **not** to be a collinearity automorphism (a
+  symplectomorphism would leave d_W invariant and make the control vacuous); 3,200 B.
+- **phase-permuted:** true d_W, φ values swapped 1 ↔ 2; 3,200 B.
+- **table-guided-beam (incumbent):** −goal-distance, 0 B — the deployed beam's exact signal.
 
 ## 5. Statistics, generalization controls, and the verdict space
 
@@ -164,6 +204,27 @@ least **ρ_min = 0.10** relative reduction in expansions against the **strongest
 ordering control** that also holds 1.0000, intersection-union over the 12 cells, Holm reported
 alongside. Candidates and table reads are co-reported; a correctness regression anywhere voids the
 axis for the regressing arm.
+
+### 5-A. A2(a) per-cell reading (appended in increment 3, before any measurement)
+
+**The structural fact.** An episode that finds an L-step plan expands at least L states (the root
+and each intermediate), and a horizon-1 episode expands exactly one state whatever the retention
+rule — declines included (the root is expanded, the next layer is empty or unreached). Every arm
+therefore spends *identically* one expansion in every H = 1 cell, the relative reduction is zero by
+arithmetic identity, and a ρ_min bar can never be cleared there by any mechanism. A criterion a
+correct arm cannot pass is as broken as one a wrong arm cannot fail — the #844 §11.6 shape, on the
+budget axis.
+
+**Definition (the per-cell reading; the 12-cell conjunction and every frozen value stand).**
+Classify each A2(a) cell from *non-geometry* data alone (the bar arm's measured expansions against
+the per-instance gold-length floor, so no geometry result is consulted): a cell whose bar arm's
+mean relative headroom over the floor is at least ρ_min is a **reduction cell**, read exactly as
+frozen (paired one-sided 95% LB of relative expansion reduction ≥ ρ_min = 0.10); a cell with less
+structural headroom than ρ_min is a **no-regression cell**, read as: correctness exactly equal AND
+the paired LB of relative reduction ≥ 0 (identical work reads as the degenerate LB = 0, which
+passes; regression fails). Expected classification, to be confirmed by the run: the five H = 1
+cells are no-regression cells; the seven H ≥ 2 cells are reduction cells. The intersection-union
+conjunction still ranges over all 12 cells; Holm is still reported alongside.
 
 **Empirical Criterion (A2(b), the correctness axis — co-primary). Status: pre-registered.** On the
 nine frozen primary cells (#844 spec §12): the geometry arm's paired one-sided 95% lower bound over
