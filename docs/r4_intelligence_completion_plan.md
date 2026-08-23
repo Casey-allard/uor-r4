@@ -442,6 +442,31 @@ Readable mirror; **#845 and #826 remain the source of record**. Full measurement
   non-geometric baseline on the sealed partitions, with the #826 geometry-gain clause resolved
   negatively by this record. Frozen gates unchanged; `CONFORMANCE.md` unchanged (33 ids).
 
+### S4 item D (#846) — CLOSED = REASONING NOT ESTABLISHED; stage LIMIT (2026-08-22)
+
+Readable mirror; **#846 and #826 remain the source of record**. Final record:
+[`docs/compositional_planning_certification_846.md`](compositional_planning_certification_846.md);
+frozen execution contract:
+[`docs/compositional_planning_certification_spec_846.md`](compositional_planning_certification_spec_846.md).
+
+- **The binding access audit failed before final access.** The committed benchmark has no non-empty
+  sealed set, no final-partition CID, no access-log binding, and no materialized operator-composition
+  split coordinate. Fitting opened topology cells 0–3 and #843's joint evaluation opened 4–7, so
+  all eight topology cells were already used. The sealed-sample reachability ceiling is
+  `0 x 512 = 0`.
+- **Verdict: REASONING NOT ESTABLISHED.** The final grid is `NOT_RUN`; final-scope slice tables,
+  witnesses, prompt/selective integration, second-domain replication, multiple-comparison reading,
+  and resource envelope are `UNAVAILABLE`, never zero or pass. Creating a partition after RF-33
+  was selected would be post-selection retuning.
+- **The narrower result stands.** RF-33 remains `LIMITED` on 12/20 previously evaluated joint-split
+  cells, with its deployed witness, bounded-work, allocation, P-4, deterministic, and typed-decline
+  guarantees unchanged. #845 remains `NO GEOMETRIC ADVANTAGE`; W(3,3) is not lowered.
+- **S4 stage verdict: LIMIT.** All four native children have completed evidence-backed dispositions,
+  but the promotion gate is not met: unseen final-partition generalization was not validly measured
+  and geometry did not add value. No S4 capability promotion flows downstream. Re-entry requires a
+  new versioned benchmark whose composition cells, partition CIDs, access log, and second domain are
+  frozen before candidate fitting/selection.
+
 ## Dependency order
 
 ```text

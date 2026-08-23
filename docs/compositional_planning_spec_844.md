@@ -639,3 +639,30 @@ primary statistic on those cells is untouched; the #845 restriction to the 12 se
 any frozen-terms correctness comparison stands; the 8 greedy-solvable cells remain excluded
 everywhere; and no geometry claim is licensed by this amendment — it defines where one could be
 earned.
+
+## 13. Final-certification access correction (appended 2026-08-22, #846)
+
+This section records a correction discovered by #846's binding pre-access audit; it does not rewrite
+the constitution or either amendment above. Sections 2.2, 2.4, 8, and the #843 handoff described
+composition and topology cells as CID-bound, access-logged, sealed, and unopened. The committed
+benchmark identity and predecessor source do not implement that statement.
+
+**Definition (source-level access arithmetic).** The fitting walk uses topology cells 0–3 and the
+#843 joint evaluation uses cells 4–7, so their union is the full eight-cell topology axis. Both the
+#843 measurement harness and the shared #845 episode instantiate `sealed_topologies` as empty.
+`SplitCell` does not materialize operator composition as a coordinate, and the suite manifest binds
+neither a final-partition CID nor an access-log identity. Consequently the number of CID-bound,
+access-logged, untouched final cells is zero.
+
+**Empirical Criterion (final-partition launch gate). Status: Empirical — FAIL.** The #846 audit
+reconstructs predecessor access without generating a task, checks a synthetic valid seal and an
+overlapping negative, and reports a sealed-sample ceiling of `0 x 512 = 0`. The final grid is
+therefore `NOT_RUN`, unavailable evidence is recorded `UNAVAILABLE`, and the S4 final-certification
+verdict is `REASONING NOT ESTABLISHED`. The complete record is
+[`compositional_planning_certification_846.md`](compositional_planning_certification_846.md).
+
+This correction does not revoke #843's narrower RF-33 result: bounded typed state-transition
+planning remains `LIMITED` on 12 of the 20 previously evaluated joint-split cells. It prevents that
+development-grid result from being promoted as untouched final-partition evidence. Re-entry
+requires a new versioned benchmark with materialized composition cells, partition CIDs, and an
+access-log binding committed before candidate fitting or selection.

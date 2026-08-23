@@ -560,6 +560,27 @@ engine at this scope). Re-entry requires a representation with cross-step free-r
 memory and must re-enter under the frozen #841 §6 bar. The S3 tracker #824 now records its
 stage verdict against its three completed children (a separate tracker action).
 
+**S4 — bounded typed planning is LIMITED; geometry adds no advantage; untouched final-partition
+reasoning is not established (#843/#845/#846, 2026-08-22).**
+[`docs/bounded_semantic_transitions_843.md`](bounded_semantic_transitions_843.md) establishes
+RF-33 on the normative deployed path: the fixed-capacity, allocation-free, P-4-only
+`bounded-breadth-first` planner reaches correct-outcome rate 1.0000 in all 20 development
+joint-split cells and clears the frozen effect floor over the strongest non-oracle null in
+**12/20**. It remains `LIMITED` because direct continuation also solves the other eight cells.
+[`docs/w33_geometry_qualification_845.md`](w33_geometry_qualification_845.md) then records
+`NO GEOMETRIC ADVANTAGE`: the pinned mapping loses to informed non-geometric ordering under equal
+budgets and behaves like its randomized/relabelled/phase controls, so it stays offline/reference.
+
+The final-certification access audit
+([`docs/compositional_planning_certification_846.md`](compositional_planning_certification_846.md))
+found that the benchmark identity contains no non-empty seal, partition CID, access-log binding, or
+materialized operator-composition cell. Fitting opened topology cells 0–3 and prior evaluation
+opened 4–7, leaving `0 x 512 = 0` certifiable final samples. The binding instrument therefore
+stopped before generating a final task: the grid is `NOT_RUN`, its dependent evidence is
+`UNAVAILABLE`, and the verdict is **`REASONING NOT ESTABLISHED`** rather than a post-hoc partition.
+The S4 stage closes `LIMIT`; RF-33's narrow 12/20 result and structural runtime guarantees remain
+load-bearing, but no general-reasoning, unseen-final-partition, or free-running claim is promoted.
+
 The **geometric router** is a validated, real component (content-query
 retrieval MRR 0.88+, #486/#490/#502) but it is a retrieval/routing mechanism,
 not itself a generative model, and it runs on `f64` outside the P-4 kernel by

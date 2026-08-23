@@ -6,9 +6,9 @@ programme — what has been measured, refuted and left open — lives in
 purpose. Research direction is set by measurement and changes faster than this
 list does.
 
-_Last reviewed: 2026-08-20 (S0 stage promoted; S1 now the entry stage). Prior: 2026-08-19
-(post route-attention S1 verdict; issue states reconciled to GitHub; R4 Intelligence
-programme #820 opened)._
+_Last reviewed: 2026-08-22 (S4 closed `LIMIT`: RF-33 remains limited to 12/20 prior
+joint-split cells, geometry added no advantage, and untouched final-partition reasoning was
+not established). Prior: 2026-08-20 (S0 promoted; S1 became the entry stage)._
 
 > **Post-v0.1 intelligence sequencing lives in the
 > [R4 Intelligence Completion Plan](docs/r4_intelligence_completion_plan.md)** —
@@ -19,17 +19,16 @@ programme #820 opened)._
 ## Next up (recommended sequencing)
 
 The v0.1 engineering epics closed 2026-08-19 — the serving epic (**#655**),
-distribution (**#741**, release **v0.1** published), the ask-path abstention
-gate (**#811**), and the route-attention decision (**#804**, S1 verdict:
-FAIL — instrument vacuous; operator retained dormant with the record on
-**#605**). The open, sequenced successor work is now the **R4 Intelligence
-programme (#820)**: stage **S0** (#821) is **promoted** (2026-08-20 — attested baseline
-ratified, one normative scorer designated, CID-bound suites frozen), so stage **S1** (#822)
-is now the entry stage; the completion plan holds the full hierarchy. Within S0, the single normative R4G1 scorer for
-deployed inference — the R4G1Runtime scoring path — is designated by
-[ADR-0001](docs/adr/0001-normative-r4g1-scorer.md) (#831), with the
-reference/certifier scorers explicitly scoped and divergence made fail-closed. The maintainer-decision items below remain valid
-inputs to that programme, each needing its own contract when picked up:
+distribution (**#741**, release **v0.1** published), the ask-path abstention gate
+(**#811**), and the route-attention decision (**#804**). The sequenced successor is the
+**R4 Intelligence programme (#820)**; its authoritative completion plan holds the live
+stage hierarchy and verdicts. As of 2026-08-22, S4 (#826) is closed **`LIMIT`**:
+RF-33 establishes bounded typed state-transition planning on 12/20 previously evaluated
+joint-split cells; the pinned W(3,3) mapping adds no equal-budget advantage; and the
+untouched final-partition reasoning claim is not established because the committed
+benchmark has no valid sealed final cell. This is not a general-reasoning or free-running
+generation claim. The maintainer-decision items below remain valid inputs to the programme,
+each needing its own contract when picked up:
 
 1. **Recompile the canonical local bundles with the #755 fix and take a
    fresh quality read** (the audit's E-1 run contract; the standing next

@@ -1,0 +1,41 @@
+{
+  "schema": "uor-r4-s4-certification-access-audit/1",
+  "issue": 846,
+  "source_commit": "ddf4a14236973fe3c8e7076b8e5c9e3f1c6cb2cb",
+  "candidate": "RF-33/bounded-breadth-first",
+  "candidate_execution_scope": "normative-runtime",
+  "candidate_serving_reachability": "deployed-serving",
+  "benchmark_cid": "blake3:5ec9e6d885d8c211b3842e9a5d62a5e7a0c02ea5788ca9d079ecfc0c389debe2",
+  "candidate_cid": "blake3:5c16a08dd8684494ee7a68f081a6a215643d8e20eb6f1a9c69197245586c9f59",
+  "audit_inputs_cid": "blake3:2ede56d0204570c42392efe14afdbf4da5440cf9194e5c3514e42ef15ba288c0",
+  "frozen_values": {
+    "families": 5,
+    "horizons": [1, 2, 4, 8],
+    "n_per_cell": 512,
+    "delta_min": 0.05,
+    "h_max": 16,
+    "w_max": 64
+  },
+  "audit": {
+    "manifest_partition_cid": null,
+    "manifest_access_log_binding": null,
+    "declared_sealed_topologies": [],
+    "fitting_topologies": [0, 1, 2, 3],
+    "prior_evaluation_topologies": [4, 5, 6, 7],
+    "untouched_topologies": [],
+    "operator_composition_axis_materialized": false,
+    "sealed_sample_ceiling": 0
+  },
+  "instrument_verdict": "FAIL",
+  "final_grid": "NOT_RUN",
+  "unavailable": [
+    "sealed-family-horizon lower bounds",
+    "final-partition witness census",
+    "prompt-state and selective-decision integration on final partitions",
+    "second-domain replication",
+    "multiple-comparison table",
+    "final resource envelope"
+  ],
+  "preserved_claim": "RF-33 LIMITED on 12 of 20 previously evaluated joint-split cells",
+  "verdict": "REASONING NOT ESTABLISHED"
+}

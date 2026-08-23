@@ -1950,6 +1950,7 @@ dependencies = [
  "libm",
  "rayon",
  "serde",
+ "serde_json",
  "uor-r4-core",
  "uor-r4-graph-compiler",
  "uor-r4-graph-format",
