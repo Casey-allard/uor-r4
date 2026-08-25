@@ -4670,6 +4670,7 @@ struct CoverOptions {
     min_support: usize,
     entropy_gain_bits: f64,
     radius_quantile: u32,
+    trajectory_routing: bool,
     output: PathBuf,
     /// Explicit stable mutation authority for a managed/canonical bundle.
     /// Without this flag, `--out` is always an arbitrary standalone root,
@@ -4711,6 +4712,7 @@ fn parse_cover_options(args: &[String]) -> Result<CoverOptions, SourceUnavailabl
         min_support: cover::DEFAULT_MIN_SUPPORT,
         entropy_gain_bits: cover::DEFAULT_SPLIT_ENTROPY_GAIN_BITS,
         radius_quantile: cover::RADIUS_QUANTILE_NUMERATOR,
+        trajectory_routing: false,
         output: PathBuf::from("cover"),
         bundle_root: None,
         source_manifest_kappa: None,
@@ -4726,6 +4728,11 @@ fn parse_cover_options(args: &[String]) -> Result<CoverOptions, SourceUnavailabl
             // the `emit_r4g1_with_provenance` call below), so this flag
             // is a no-op kept only for backward CLI compatibility with
             // phase 2a callers/scripts that already pass it.
+            index += 1;
+            continue;
+        }
+        if flag == "--trajectory-routing" {
+            options.trajectory_routing = true;
             index += 1;
             continue;
         }
@@ -5030,10 +5037,27 @@ fn cover_command_with_authority(
         &held_out_positions,
         config.threads as usize,
     );
-    let induced =
-        cover::induce_cover(&train, &config, &artifact_kappa, &corpus_kappa).ok_or_else(|| {
+    let mut induced = cover::induce_cover(&train, &config, &artifact_kappa, &corpus_kappa)
+        .ok_or_else(|| {
             SourceUnavailable::new("cover induction needs at least one train observation")
         })?;
+    if options.trajectory_routing {
+        let attached = cover::attach_trajectory_routing(
+            &mut induced.cover,
+            &train,
+            config.radius_quantile_numerator,
+            config.radius_quantile_denominator,
+        );
+        if attached != induced.cover.regions.len() {
+            return Err(SourceUnavailable::new(format!(
+                "trajectory routing attached {attached} of {} regions",
+                induced.cover.regions.len()
+            )));
+        }
+        eprintln!(
+            "cover: attached calibrated full-trajectory prototypes to {attached} fixed-budget regions"
+        );
+    }
     let reference = cover::ReferenceClassifier::freeze(&induced.cover);
     eprintln!(
         "cover: {} regions across {} depth(s); evaluating held-out routing recall...",
@@ -10553,7 +10577,7 @@ fn transformerless_usage() -> &'static str {
                  markerless legacy attention copy (dense-present derivations are refused): copy-recorded-attention --corpus-meta <META> --corpus-recs <RECS> --out <attention_operator.json>\n\
                  guarded streaming corpus derivation (N <= source; complete runs may undershoot): subsample-recorded-corpus --src-meta <META> --src-recs <RECS> --out-meta <corpus.meta> --out-recs <corpus.records> --records <N>\n\
                  transformer-free refresh: runtime-corpus --artifacts <TLA> --store <TLS1> --seed-meta <META> --seed-recs <RECS> --out <DIR> --target N [--threads N]\n\
-                 graph cover: cover --corpus-meta <META> --corpus-recs <RECS> --artifacts <TLA> --out <DIR> [--bundle-root <ROOT>]\n\
+                 graph cover: cover --corpus-meta <META> --corpus-recs <RECS> --artifacts <TLA> --out <DIR> [--bundle-root <ROOT>] [--trajectory-routing]\n\
                  graph score: score --corpus-meta <META> --corpus-recs <RECS> --artifacts <TLA> --out <DIR> [--bundle-root <ROOT>] [--jobs N] [--quality-controls on|off]\n\
                    --bundle-root explicitly declares one managed/canonical bundle authority; without it, --out is an exact standalone root fixed at transaction start\n\
                  observation pipeline: observe [--source DIR [--tokenizer-family FAMILY --tokenizer-version N] | --checkpoint BIN] [--seconds N] [--target N] [--shards N] [--out DIR] [--sequence-length N]\n\

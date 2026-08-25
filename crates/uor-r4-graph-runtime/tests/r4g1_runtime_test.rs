@@ -3,9 +3,10 @@
 use std::alloc::{GlobalAlloc, Layout, System};
 use std::cell::Cell;
 use std::collections::BTreeMap;
-use uor_r4_core::transformerless::compiler::{self, STAGES};
+use uor_r4_core::transformerless::compiler::{self, D, SIG_BYTES, STAGES};
 use uor_r4_core::transformerless::convert_r4g1;
 use uor_r4_core::transformerless::runtime::{self, Store};
+use uor_r4_graph_compiler::induction::{self as cover, Cover, CoverRegion, Observation};
 use uor_r4_graph_format::{
     ArtifactBuilder, FormatError, GraphView, ScoreQ, SectionId, build_psi_bag_table,
     build_skipmix_table,
@@ -148,6 +149,59 @@ fn artifact_with_serving_sections(skmx: Option<&[u8]>, psib: Option<&[u8]>) -> V
         .expect("artifact with serving sections builds")
 }
 
+fn trajectory_route_artifact(treatment: bool) -> Vec<u8> {
+    let context_signatures = [[0xAA; SIG_BYTES], [0x55; SIG_BYTES]];
+    let trajectory_signatures = if treatment {
+        [[0x00; SIG_BYTES], [0xFF; SIG_BYTES]]
+    } else {
+        context_signatures
+    };
+    let observations: Vec<Observation> = (0..2)
+        .map(|index| Observation {
+            position: index as u32,
+            sample: [index as u8; 32],
+            vector: vec![0.0; D],
+            sig: context_signatures[index],
+            trajectory_sig: trajectory_signatures[index],
+            prev: 0,
+            next: 41 + index as u32,
+        })
+        .collect();
+    let regions: Vec<CoverRegion> = (0..2)
+        .map(|index| CoverRegion {
+            id: index as u32,
+            depth: 1,
+            parent: None,
+            children: Vec::new(),
+            prototype: vec![0.0; D],
+            sig: context_signatures[index],
+            radius: 0,
+            trajectory_sig: Some(trajectory_signatures[index]),
+            trajectory_radius: Some(0),
+            support: 1,
+            entropy_bits: 0.0,
+            split_gain_bits: 0.0,
+        })
+        .collect();
+    let graph = Cover {
+        regions,
+        max_depth: 1,
+        paths: vec![vec![0], vec![1]],
+        members: vec![vec![0], vec![1]],
+    };
+    cover::emit_r4g1(
+        b"trajectory-route-runtime-test",
+        (b"meta", b"records"),
+        1024,
+        &graph,
+        &[],
+        &cover::root_prior(&observations),
+        &observations,
+    )
+    .expect("trajectory route fixture emits")
+    .0
+}
+
 #[test]
 fn r4g1_runtime_parses_and_predicts() {
     let (art_bytes, artifacts) = fixture_artifacts();
@@ -277,6 +331,84 @@ fn session_signature_enters_rout_fallback_as_secondary_probe() {
         context_trace.selected_source,
         SignatureRoutingSource::ContextSignature
     );
+}
+
+#[test]
+fn trajectory_lane_is_isolated_composed_deterministic_and_allocation_free() {
+    let treatment_bytes = trajectory_route_artifact(true);
+    let control_bytes = trajectory_route_artifact(false);
+    assert_eq!(
+        treatment_bytes.len(),
+        control_bytes.len(),
+        "planted treatment and inert control share one byte budget"
+    );
+    let treatment = R4G1Runtime::parse(&treatment_bytes).expect("treatment parses");
+    let control = R4G1Runtime::parse(&control_bytes).expect("control parses");
+    let context_signature = [0u8; SIG_BYTES];
+    let full_trajectory = [0xFFu8; SIG_BYTES];
+    let mut treatment_scores = vec![ScoreQ::MIN; treatment.node_count() as usize];
+    let mut control_scores = vec![ScoreQ::MIN; control.node_count() as usize];
+
+    let (treatment_decision, treatment_trace) = treatment
+        .predict_distribution_with_signature_lanes_traced(
+            &[999],
+            Some(&context_signature),
+            Some(&full_trajectory),
+            &mut treatment_scores,
+        );
+    let (control_decision, control_trace) = control
+        .predict_distribution_with_signature_lanes_traced(
+            &[999],
+            Some(&context_signature),
+            Some(&full_trajectory),
+            &mut control_scores,
+        );
+    assert!(treatment_trace.context_probe_attempted);
+    assert!(treatment_trace.session_probe_attempted);
+    assert_eq!(treatment_trace.context_admitted_nodes, 0);
+    assert_eq!(treatment_trace.session_admitted_nodes, 1);
+    assert_eq!(
+        treatment_trace.selected_source,
+        SignatureRoutingSource::SessionSignature
+    );
+    assert_eq!(control_trace.session_admitted_nodes, 0, "inert control");
+    assert_ne!(
+        treatment_decision, control_decision,
+        "the planted full-prefix lane must change the normative decision"
+    );
+
+    let no_session_treatment = treatment.predict_distribution_with_signature_lanes(
+        &[999],
+        Some(&context_signature),
+        None,
+        &mut treatment_scores,
+    );
+    let no_session_control = control.predict_distribution_with_signature_lanes(
+        &[999],
+        Some(&context_signature),
+        None,
+        &mut control_scores,
+    );
+    assert_eq!(
+        no_session_treatment, no_session_control,
+        "trajectory prototypes are invisible to context-only calls"
+    );
+
+    let allocations = counted_allocations(|| {
+        for _ in 0..64 {
+            treatment_scores.fill(ScoreQ::MIN);
+            assert_eq!(
+                treatment.predict_distribution_with_signature_lanes(
+                    &[999],
+                    Some(&context_signature),
+                    Some(&full_trajectory),
+                    &mut treatment_scores,
+                ),
+                treatment_decision
+            );
+        }
+    });
+    assert_eq!(allocations, 0, "trajectory composition must not allocate");
 }
 
 #[test]

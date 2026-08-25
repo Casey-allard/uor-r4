@@ -17,7 +17,11 @@ use uor_r4_graph_compiler::induction::{
     EDGE_KIND_TRANSITION, Observation,
 };
 use uor_r4_graph_compiler::observation as observe;
-use uor_r4_graph_format::{GraphView, SectionId};
+use uor_r4_graph_format::{
+    GraphView, NODE_FLAG_TRAJECTORY_ROUTE, SectionId, trajectory_metadata_word_start,
+    trajectory_prototype_word_start,
+};
+use uor_r4_router::TokenHistorySignature;
 
 // ------------------------------------------------------- synthetic data --
 
@@ -119,6 +123,7 @@ fn synthetic_observations() -> (Vec<Observation>, Vec<usize>) {
                 sample: blake3::hash(&position.to_le_bytes()).into(),
                 vector,
                 sig,
+                trajectory_sig: sig,
                 prev: 0,
                 next,
             });
@@ -181,6 +186,8 @@ fn hand_region(id: u32, depth: u8, sig: [u8; SIG_BYTES], radius: u16) -> CoverRe
         prototype: vec![0.0; D],
         sig,
         radius,
+        trajectory_sig: None,
+        trajectory_radius: None,
         support: 0,
         entropy_bits: 0.0,
         split_gain_bits: 0.0,
@@ -940,6 +947,91 @@ fn r4g1_artifact_validates_and_reproduces() {
     assert!(view.section(SectionId::EXCT).is_none());
 }
 
+#[test]
+fn trajectory_routes_pack_deterministically_under_an_equal_control_budget() {
+    let (observations, _) = synthetic_observations();
+    let mut treatment = induce_synthetic(&observations, &synthetic_config()).cover;
+    assert_eq!(
+        cover::attach_trajectory_routing(&mut treatment, &observations, 95, 100),
+        treatment.regions.len()
+    );
+    let mut control = treatment.clone();
+    for region in &mut control.regions {
+        region.trajectory_sig = Some(region.sig);
+        region.trajectory_radius = Some(region.radius);
+    }
+    let edges = cover::build_edges(
+        &treatment,
+        &cover::ReferenceClassifier::freeze(&treatment),
+        &observations,
+        &vec![0; 10_000],
+    );
+    let prior = cover::root_prior(&observations);
+    let emit = |candidate: &Cover| {
+        cover::emit_r4g1(
+            b"trajectory-routing-test-artifact",
+            (b"synthetic-meta", b"synthetic-recs"),
+            64,
+            candidate,
+            &edges,
+            &prior,
+            &observations,
+        )
+        .expect("trajectory artifact emits")
+    };
+    let (treatment_bytes, treatment_info) = emit(&treatment);
+    let (treatment_again, _) = emit(&treatment);
+    let (control_bytes, control_info) = emit(&control);
+    assert_eq!(
+        treatment_bytes, treatment_again,
+        "double compilation identity"
+    );
+    assert_eq!(treatment_info.node_count, control_info.node_count);
+    assert_eq!(treatment_info.edge_count, control_info.edge_count);
+    assert_eq!(treatment_info.artifact_bytes, control_info.artifact_bytes);
+
+    let treatment_view = GraphView::parse(&treatment_bytes).expect("treatment validates");
+    let control_view = GraphView::parse(&control_bytes).expect("control validates");
+    assert_eq!(
+        treatment_view.section(SectionId::EMIT),
+        control_view.section(SectionId::EMIT),
+        "trajectory treatment cannot buy an effect with a larger emission budget"
+    );
+    assert_eq!(
+        treatment_view.section(SectionId::ROUT).map(<[u8]>::len),
+        control_view.section(SectionId::ROUT).map(<[u8]>::len),
+        "the treatment and control use the same ROUT ceiling"
+    );
+    let head = treatment_view.head().expect("HEAD");
+    let rout = treatment_view.section(SectionId::ROUT).expect("ROUT");
+    for region in &treatment.regions {
+        let node = treatment_view
+            .node(cover::region_node_id(region.id))
+            .expect("region node");
+        assert_eq!(
+            node.flags & NODE_FLAG_TRAJECTORY_ROUTE,
+            NODE_FLAG_TRAJECTORY_ROUTE
+        );
+        let prototype_word = trajectory_prototype_word_start(node, head.signature_words())
+            .expect("trajectory prototype pointer");
+        let prototype_start = prototype_word as usize * 8;
+        assert_eq!(
+            &rout[prototype_start..prototype_start + SIG_BYTES],
+            region
+                .trajectory_sig
+                .as_ref()
+                .expect("trajectory prototype")
+        );
+        let metadata_word = trajectory_metadata_word_start(node, head.signature_words())
+            .expect("trajectory metadata pointer");
+        let metadata_start = metadata_word as usize * 8;
+        assert_eq!(
+            u16::from_le_bytes([rout[metadata_start], rout[metadata_start + 1]]),
+            region.trajectory_radius.expect("trajectory radius")
+        );
+    }
+}
+
 /// #637 phase 2: `emit_r4g1_with_provenance` is additive-only. Its `None`
 /// sibling ([`cover::emit_r4g1_with_tokenizer_cid`]) stays byte-identical
 /// (no PROV section, no pinned κ fixture affected); a caller that opts in
@@ -1087,6 +1179,7 @@ fn entropy_reduction_matches_hand_computation() {
         sample: [0u8; 32],
         vector: vec![0.0; D],
         sig: [0u8; SIG_BYTES],
+        trajectory_sig: [0u8; SIG_BYTES],
         prev: 0,
         next,
     };
@@ -1124,6 +1217,7 @@ fn objective_decomposition_and_tie_breaking_are_deterministic() {
             sample: [position as u8; 32],
             vector,
             sig,
+            trajectory_sig: sig,
             prev: position.saturating_sub(1),
             next,
         }
@@ -1325,6 +1419,43 @@ fn context_window_respects_story_boundaries_and_width() {
     assert_eq!(
         observe::sample_id(&cover::context_window(&corpus, 9)),
         observe::sample_id(&(2..=9).collect::<Vec<u32>>())
+    );
+}
+
+#[test]
+fn trajectory_signatures_match_production_prefixes_and_reset_per_story() {
+    let corpus = Corpus {
+        n: 7,
+        stories: 2,
+        story: vec![0, 0, 0, 0, 1, 1, 1],
+        input: vec![11, 12, 13, 14, 91, 92, 93],
+        next: vec![0; 7],
+        t_argmax: vec![0; 7],
+        top_tokens: vec![[0; 8]; 7],
+        top_weights: vec![[0; 8]; 7],
+        span_start: vec![0; 7],
+        span_end: vec![0; 7],
+        byte_start: vec![0; 7],
+        byte_end: vec![0; 7],
+        hidden: None,
+    };
+    let signatures = cover::trajectory_signatures(&corpus);
+    for position in 0..4 {
+        assert_eq!(
+            signatures[position],
+            TokenHistorySignature::from_tokens(&corpus.input[..=position]).signature()
+        );
+    }
+    for position in 4..7 {
+        assert_eq!(
+            signatures[position],
+            TokenHistorySignature::from_tokens(&corpus.input[4..=position]).signature()
+        );
+    }
+    assert_eq!(
+        signatures[4],
+        TokenHistorySignature::from_tokens(&[91]).signature(),
+        "the second story must not inherit the first story's trajectory"
     );
 }
 

@@ -13,6 +13,7 @@ use common::{
 use uor_r4_graph_format::{
     ArtifactBuilder, BoundKind, Depth, EdgeKind, EdgePayloadField, FormatError, GraphView,
     KappaError, NodeId, Radius, RangeField, ScoreQ, SectionId, FEATURE_EDGE_ALGEBRA_V1, HEADER_LEN,
+    NODE_FLAG_TRAJECTORY_ROUTE,
 };
 
 /// The happy-path packed node records: two nodes whose ranges resolve
@@ -892,10 +893,87 @@ fn word_aligned_fixture() -> Fixture {
     }
 }
 
+fn trajectory_route_fixture() -> Fixture {
+    let mut fixture = word_aligned_fixture();
+    let nodes = [NodeFields {
+        prototype_word_start: 1,
+        mask_word_start: 6,
+        radius: 9,
+        depth: 1,
+        flags: NODE_FLAG_TRAJECTORY_ROUTE,
+        ..NodeFields::default()
+    }];
+    fixture.nodes = Some(node_section(&nodes));
+    let mut rout = fixture.rout.take().expect("ROUT fixture");
+    let mut trajectory = [0u8; 40];
+    trajectory[..36].fill(0xA5);
+    rout.extend_from_slice(&trajectory);
+    let mut metadata = [0u8; 8];
+    metadata[..2].copy_from_slice(&17u16.to_le_bytes());
+    rout.extend_from_slice(&metadata);
+    fixture.rout = Some(rout);
+    fixture
+}
+
 #[test]
 fn word_aligned_signature_storage_parses() {
     let bytes = word_aligned_fixture().build();
     GraphView::parse(&bytes).expect("36-byte signature in 5 words must parse");
+}
+
+#[test]
+fn trajectory_route_extension_parses() {
+    GraphView::parse(&trajectory_route_fixture().build())
+        .expect("flagged trajectory prototype and metadata must parse");
+}
+
+#[test]
+fn reject_unknown_node_lane_flag() {
+    let mut fixture = word_aligned_fixture();
+    let nodes = [NodeFields {
+        prototype_word_start: 1,
+        mask_word_start: 6,
+        depth: 1,
+        flags: 0x80,
+        ..NodeFields::default()
+    }];
+    fixture.nodes = Some(node_section(&nodes));
+    assert_eq!(
+        err_of(&fixture.build()),
+        FormatError::UnknownNodeFlags {
+            node: 0,
+            flags: 0x80,
+        }
+    );
+}
+
+#[test]
+fn reject_invalid_trajectory_route_metadata() {
+    let mut fixture = trajectory_route_fixture();
+    let mut rout = fixture.rout.take().expect("ROUT fixture");
+    let metadata_start = rout.len() - 8;
+    rout[metadata_start + 2] = 1;
+    fixture.rout = Some(rout);
+    assert_eq!(
+        err_of(&fixture.build()),
+        FormatError::InvalidTrajectoryRouteMetadata { node: 0 }
+    );
+}
+
+#[test]
+fn reject_nonzero_trajectory_prototype_padding() {
+    let mut fixture = trajectory_route_fixture();
+    let mut rout = fixture.rout.take().expect("ROUT fixture");
+    // word 11 starts the 40-byte trajectory prototype; byte 36 is padding.
+    rout[11 * 8 + 36] = 1;
+    fixture.rout = Some(rout);
+    assert_eq!(
+        err_of(&fixture.build()),
+        FormatError::NonZeroSignaturePadding {
+            node: 0,
+            field: RangeField::TrajectoryPrototype,
+        }
+    );
 }
 
 #[test]

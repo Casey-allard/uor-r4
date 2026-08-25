@@ -8,6 +8,7 @@ edition = "2024"
 uor-r4-model-source = { version = "0.1.0", path = "../uor-r4-model-source" }
 uor-r4-graph-format = { version = "0.1.0", path = "../uor-r4-graph-format" }
 uor-r4-core = { version = "0.1.0", path = "../uor-r4-core" }
+uor-r4-router = { version = "0.1.0", path = "../uor-r4-router" }
 rayon = "1.10.0"
 libm = "0.2"
 blake3 = "1.5.0"

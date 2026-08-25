@@ -446,6 +446,19 @@ token changes. Verdict: **`INERT`** for this artifact. The broader #841 rerun is
 the next re-entry must make complete-prefix information behaviorally reachable in the compiled
 representation before repeating the same canary.
 
+### S3 compiled trajectory-region re-entry — REACHABLE + INERT (#946, 2026-08-25)
+
+The compiler now records the production full-prefix token-history signature and emits explicit
+trajectory prototypes/radii in R4G1. The normative runtime validates and indexes the context and
+trajectory lanes separately, then composes a deterministic allocation-free 4+4 active set under
+the existing ceiling of eight. The binding teacher-free equal-budget preflight was positive and
+authorized one #933-bound schema-2 candidate. In the exact 512-case product canary, all 20 graph-
+fallback cases admitted trajectory nodes, but earlier-prefix changes produced 0 candidate-list
+changes and 0 served-token changes. Verdict: **`INERT`**. The implementation closes the
+representation/reachability defect but does not change the historical S3 `LIMIT`, the frozen
+#841 bar, or downstream claim status; #841 remains `NOT_RUN`. Record:
+`docs/trajectory_routing_946.md`.
+
 ### S4 entry reconciliation — AMEND + PROCEED (2026-08-22)
 
 S3 (#824) closed `LIMIT` and S2 (#823) stands at `REVISE`, so #826's written entry

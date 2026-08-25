@@ -4412,6 +4412,8 @@ pub(crate) mod tests {
                     depth: 1,
                     radius: 4,
                     sig: covered_sig,
+                    trajectory_sig: None,
+                    trajectory_radius: None,
                     parent: None,
                 },
                 RegionParams {
@@ -4419,6 +4421,8 @@ pub(crate) mod tests {
                     depth: 1,
                     radius: 4,
                     sig: [0xFF; SIG_BYTES],
+                    trajectory_sig: None,
+                    trajectory_radius: None,
                     parent: None,
                 },
             ];

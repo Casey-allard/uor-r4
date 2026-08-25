@@ -29,8 +29,9 @@ use crate::error::{BoundKind, EdgePayloadField, FormatError, RangeField};
 use crate::head::{Head, FEATURE_EDGE_ALGEBRA_V1, KNOWN_FEATURE_BITS_REQUIRED};
 use crate::header::read_u32_le;
 use crate::records::{
-    self, is_optional_edge_kind, EdgeKind, StorageDescriptor, PACKED_EDGE_LEN, PACKED_NODE_LEN,
-    REVERSE_INDEX_ENTRY_LEN, STORAGE_DESCRIPTOR_LEN,
+    self, is_optional_edge_kind, trajectory_metadata_word_start, trajectory_prototype_word_start,
+    EdgeKind, StorageDescriptor, NODE_FLAGS_KNOWN, NODE_FLAG_TRAJECTORY_ROUTE, PACKED_EDGE_LEN,
+    PACKED_NODE_LEN, REVERSE_INDEX_ENTRY_LEN, STORAGE_DESCRIPTOR_LEN,
 };
 use crate::rout;
 use crate::types::SectionId;
@@ -152,6 +153,13 @@ pub(crate) fn validate(view: &GraphView) -> Result<Option<Head>, crate::NotAProd
             // The section size was validated above, so the record is
             // in bounds.
             let node = records::decode_node(&bytes[i as usize * PACKED_NODE_LEN..]);
+            if node.flags & !NODE_FLAGS_KNOWN != 0 {
+                return Err((FormatError::UnknownNodeFlags {
+                    node: i,
+                    flags: node.flags & !NODE_FLAGS_KNOWN,
+                })
+                .into());
+            }
             let child_end = u64::from(node.child_start) + u64::from(node.child_len);
             if child_end > u64::from(head.edge_count()) {
                 return Err((FormatError::RangeOutOfBounds {
@@ -193,6 +201,52 @@ pub(crate) fn validate(view: &GraphView) -> Result<Option<Head>, crate::NotAProd
                 })
                 .into());
             }
+            if node.flags & NODE_FLAG_TRAJECTORY_ROUTE != 0 {
+                let Some(trajectory_start) =
+                    trajectory_prototype_word_start(node, head.signature_words())
+                else {
+                    return Err((FormatError::RangeOutOfBounds {
+                        node: i,
+                        field: RangeField::TrajectoryPrototype,
+                    })
+                    .into());
+                };
+                let Some(metadata_start) =
+                    trajectory_metadata_word_start(node, head.signature_words())
+                else {
+                    return Err((FormatError::RangeOutOfBounds {
+                        node: i,
+                        field: RangeField::TrajectoryMetadata,
+                    })
+                    .into());
+                };
+                if u64::from(trajectory_start) + signature_words > rout_words {
+                    return Err((FormatError::RangeOutOfBounds {
+                        node: i,
+                        field: RangeField::TrajectoryPrototype,
+                    })
+                    .into());
+                }
+                if u64::from(metadata_start) + 1 > rout_words {
+                    return Err((FormatError::RangeOutOfBounds {
+                        node: i,
+                        field: RangeField::TrajectoryMetadata,
+                    })
+                    .into());
+                }
+                let rout = rout_bytes.ok_or(FormatError::RangeOutOfBounds {
+                    node: i,
+                    field: RangeField::TrajectoryMetadata,
+                })?;
+                let metadata_begin = metadata_start as usize * 8;
+                let metadata = &rout[metadata_begin..metadata_begin + 8];
+                let trajectory_radius = u16::from_le_bytes([metadata[0], metadata[1]]);
+                if metadata[2..].iter().any(|&byte| byte != 0)
+                    || u32::from(trajectory_radius) > u32::from(head.signature_bytes()) * 8
+                {
+                    return Err((FormatError::InvalidTrajectoryRouteMetadata { node: i }).into());
+                }
+            }
             // Zero-padding rule (RFC §4.1): with word-aligned storage of
             // a byte-exact signature, the bytes between the signature
             // and the end of every validated prototype/mask window must
@@ -214,6 +268,26 @@ pub(crate) fn validate(view: &GraphView) -> Result<Option<Head>, crate::NotAProd
                             return Err(
                                 (FormatError::NonZeroSignaturePadding { node: i, field }).into()
                             );
+                        }
+                    }
+                    if let Some(word_start) =
+                        trajectory_prototype_word_start(node, head.signature_words())
+                    {
+                        let begin = word_start as usize * 8 + signature_bytes;
+                        let end = word_start as usize * 8 + storage_bytes;
+                        let Some(padding) = rout.get(begin..end) else {
+                            return Err((FormatError::RangeOutOfBounds {
+                                node: i,
+                                field: RangeField::TrajectoryPrototype,
+                            })
+                            .into());
+                        };
+                        if padding.iter().any(|&byte| byte != 0) {
+                            return Err((FormatError::NonZeroSignaturePadding {
+                                node: i,
+                                field: RangeField::TrajectoryPrototype,
+                            })
+                            .into());
                         }
                     }
                 }

@@ -141,7 +141,10 @@
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 
-use uor_r4_graph_format::{GraphView, ScoreQ, SectionId};
+use uor_r4_graph_format::{
+    trajectory_metadata_word_start, trajectory_prototype_word_start, GraphView, ScoreQ, SectionId,
+    NODE_FLAG_TRAJECTORY_ROUTE,
+};
 
 use uor_r4_core::transformerless::compiler::{self, Compiled, SIG_BYTES, STAGES};
 use uor_r4_core::transformerless::runtime::{self, OpKernel, Store};
@@ -198,6 +201,10 @@ pub struct RegionParams {
     pub radius: u16,
     /// Binarized prototype signature.
     pub sig: [u8; SIG_BYTES],
+    /// Optional full-prefix trajectory prototype carried by #946 artifacts.
+    pub trajectory_sig: Option<[u8; SIG_BYTES]>,
+    /// Calibrated radius for [`Self::trajectory_sig`].
+    pub trajectory_radius: Option<u16>,
     /// Parent region id (`None` at depth 1 — the parent is the root).
     pub parent: Option<u32>,
 }
@@ -243,6 +250,22 @@ pub fn regions_from_view(view: &GraphView) -> Option<Vec<RegionParams>> {
         let window = rout.get(start..start + signature_bytes)?;
         let mut sig = [0u8; SIG_BYTES];
         sig.copy_from_slice(window);
+        let (trajectory_sig, trajectory_radius) = if node.flags & NODE_FLAG_TRAJECTORY_ROUTE != 0 {
+            let prototype_word = trajectory_prototype_word_start(node, head.signature_words())?;
+            let prototype_start = (prototype_word as usize) << 3;
+            let prototype = rout.get(prototype_start..prototype_start + signature_bytes)?;
+            let mut signature = [0u8; SIG_BYTES];
+            signature.copy_from_slice(prototype);
+            let metadata_word = trajectory_metadata_word_start(node, head.signature_words())?;
+            let metadata_start = (metadata_word as usize) << 3;
+            let metadata = rout.get(metadata_start..metadata_start + 2)?;
+            (
+                Some(signature),
+                Some(u16::from_le_bytes([metadata[0], metadata[1]])),
+            )
+        } else {
+            (None, None)
+        };
         let parent =
             parent_of
                 .get(&node_index)
@@ -252,6 +275,8 @@ pub fn regions_from_view(view: &GraphView) -> Option<Vec<RegionParams>> {
             depth: node.depth.0,
             radius: node.radius.0,
             sig,
+            trajectory_sig,
+            trajectory_radius,
             parent,
         });
         node_index += 1;

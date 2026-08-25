@@ -668,6 +668,19 @@ by contract. See [`docs/production_prefix_memory_canary_944.md`](production_pref
 and the CID-bound result JSON. A further S3 re-entry must first make complete-prefix information
 behaviorally reachable in the compiled representation.
 
+**S3 compiler re-entry — explicit trajectory regions are production-reachable but remain
+behaviorally `INERT` (#946, 2026-08-25).** Compiler observations now use the production
+`TokenHistorySignature` over each complete in-story prefix, R4G1 flag `0x01` carries a
+validated trajectory prototype/radius, and the normative fallback composes a fixed four
+context plus four trajectory nodes. A 4,096-position teacher-free equal-budget preflight was
+positive (1,549 trajectory admissions and candidate differences), authorizing one exact
+#933-bound candidate. The schema-2 product canary then admitted trajectory routes in all 20 of
+its reachable fallback cases, but different earlier prefixes changed **0/512** candidate lists
+and **0/512** served tokens. Verdict: **`INERT`**. The frozen #841 evaluation remains
+**NOT_RUN**, and no coherence, semantic relevance, planning, or generative-engine claim is
+promoted. See [`docs/trajectory_routing_946.md`](trajectory_routing_946.md) and its bound
+result JSON.
+
 **S4 — bounded typed planning is LIMITED; geometry adds no advantage; untouched final-partition
 reasoning is not established (#843/#845/#846, 2026-08-22).**
 [`docs/bounded_semantic_transitions_843.md`](bounded_semantic_transitions_843.md) establishes

@@ -18934,6 +18934,8 @@ mod tests {
             depth: 1,
             radius: 0,
             sig: [0; compiler::SIG_BYTES],
+            trajectory_sig: None,
+            trajectory_radius: None,
             parent: None,
         }];
         let mut root_prior = BTreeMap::new();

@@ -35,6 +35,7 @@ fn observation(position: usize, corpus: &Corpus) -> Observation {
         sample: [0; 32],
         vector: Vec::new(),
         sig: [0; SIG_BYTES],
+        trajectory_sig: [0; SIG_BYTES],
         prev: corpus.input[position],
         next: corpus.next[position],
     }
@@ -150,6 +151,8 @@ fn tiny_artifact_emitted(
         depth: 1,
         radius: 0,
         sig: [0; SIG_BYTES],
+        trajectory_sig: None,
+        trajectory_radius: None,
         parent: None,
     }];
     let context_rows = vec![

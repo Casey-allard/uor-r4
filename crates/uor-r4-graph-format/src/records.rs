@@ -94,6 +94,17 @@ pub const fn is_optional_edge_kind(kind: u8) -> bool {
 
 /// Packed node record size in bytes.
 pub const PACKED_NODE_LEN: usize = 30;
+/// NODE flag: this region carries a second, full-trajectory prototype and
+/// calibrated radius immediately after its context mask in ROUT.
+///
+/// Layout for a flagged node, in u64 words, is:
+/// `context prototype[W] | context mask[W] | trajectory prototype[W] |
+/// trajectory metadata[1]`. The metadata word stores a little-endian `u16`
+/// radius followed by six zero reserved bytes. Legacy flag-zero nodes retain
+/// the original v0 layout and semantics.
+pub const NODE_FLAG_TRAJECTORY_ROUTE: u8 = 0x01;
+/// Every NODE flag bit understood by this format version.
+pub const NODE_FLAGS_KNOWN: u8 = NODE_FLAG_TRAJECTORY_ROUTE;
 /// Packed canonical edge record size in bytes.
 pub const PACKED_EDGE_LEN: usize = 16;
 /// Reverse-index entry size: one u32 edge ID per canonical edge.
@@ -148,8 +159,29 @@ pub struct PackedNode {
     pub radius: Radius,
     /// Multiresolution depth; must be < HEAD `depth_count`.
     pub depth: Depth,
-    /// Per-node flags (no bits defined in v0).
+    /// Per-node flags. [`NODE_FLAG_TRAJECTORY_ROUTE`] declares the optional
+    /// full-trajectory ROUT prototype/radius extension.
     pub flags: u8,
+}
+
+/// First u64 word of a flagged node's trajectory prototype.
+pub const fn trajectory_prototype_word_start(
+    node: PackedNode,
+    signature_words: u16,
+) -> Option<u32> {
+    if node.flags & NODE_FLAG_TRAJECTORY_ROUTE == 0 {
+        return None;
+    }
+    node.mask_word_start.checked_add(signature_words as u32)
+}
+
+/// u64 word containing a flagged node's trajectory radius metadata.
+pub const fn trajectory_metadata_word_start(node: PackedNode, signature_words: u16) -> Option<u32> {
+    let prototype = match trajectory_prototype_word_start(node, signature_words) {
+        Some(value) => value,
+        None => return None,
+    };
+    prototype.checked_add(signature_words as u32)
 }
 
 /// One packed canonical edge (16 bytes little-endian):

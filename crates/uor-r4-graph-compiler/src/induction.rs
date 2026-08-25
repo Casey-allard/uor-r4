@@ -127,6 +127,7 @@ use uor_r4_core::transformerless::compiler::{
     self, Corpus, D, SIG_BYTES, SIG_WORDS, STAGES, quantile_radius,
 };
 use uor_r4_core::transformerless::runtime;
+use uor_r4_router::TokenHistorySignature;
 
 #[inline]
 fn canonical_math_enabled() -> bool {
@@ -635,6 +636,9 @@ pub struct Observation {
     pub vector: Vec<f32>,
     /// `H(x)`: sign bits of the centered bundle (`runtime::sig_plain`).
     pub sig: [u8; SIG_BYTES],
+    /// Full in-story token trajectory through this position, encoded by the
+    /// exact fixed-size incremental signature production serving carries.
+    pub trajectory_sig: [u8; SIG_BYTES],
     /// Preceding token of this corpus position.
     pub prev: u32,
     /// Sampled next token of this corpus position.
@@ -658,7 +662,27 @@ pub fn build_observations(
     corpus: &Corpus,
     positions: &[usize],
 ) -> Vec<Observation> {
-    build_observations_serial(art, corpus, positions, None)
+    let trajectory = trajectory_signatures(corpus);
+    build_observations_serial(art, corpus, positions, &trajectory, None)
+}
+
+/// Full-prefix signatures for every corpus position in one ordered pass.
+/// State resets exactly when the recorded story id changes, matching the
+/// production seed/commit contract without rescanning any prefix.
+pub fn trajectory_signatures(corpus: &Corpus) -> Vec<[u8; SIG_BYTES]> {
+    let n = corpus.n.min(corpus.story.len()).min(corpus.input.len());
+    let mut signatures = Vec::with_capacity(n);
+    let mut current_story = None;
+    let mut state = TokenHistorySignature::new();
+    for position in 0..n {
+        if current_story != Some(corpus.story[position]) {
+            current_story = Some(corpus.story[position]);
+            state = TokenHistorySignature::new();
+        }
+        state.push(corpus.input[position]);
+        signatures.push(state.signature());
+    }
+    signatures
 }
 
 /// Build observations with bounded parallel extraction.
@@ -708,9 +732,11 @@ fn build_observations_with_threads_impl(
     if positions.is_empty() {
         return Vec::new();
     }
+    let trajectory = trajectory_signatures(corpus);
+    let trajectory = trajectory.as_slice();
     let worker_count = threads.max(1).min(positions.len());
     if worker_count == 1 {
-        return build_observations_serial(art, corpus, positions, completed);
+        return build_observations_serial(art, corpus, positions, trajectory, completed);
     }
     let chunk_size = positions.len().div_ceil(worker_count);
     let mut chunks = Vec::with_capacity(worker_count);
@@ -719,7 +745,9 @@ fn build_observations_with_threads_impl(
         for (chunk_id, shard) in positions.chunks(chunk_size).enumerate() {
             handles.push((
                 chunk_id,
-                scope.spawn(move || build_observations_serial(art, corpus, shard, completed)),
+                scope.spawn(move || {
+                    build_observations_serial(art, corpus, shard, trajectory, completed)
+                }),
             ));
         }
         for (chunk_id, handle) in handles {
@@ -744,6 +772,7 @@ fn build_observations_serial(
     art: &compiler::Compiled,
     corpus: &Corpus,
     positions: &[usize],
+    trajectory: &[[u8; SIG_BYTES]],
     completed: Option<&AtomicUsize>,
 ) -> Vec<Observation> {
     let rot = compiler::derive_rotations();
@@ -791,6 +820,7 @@ fn build_observations_serial(
             sample: sample_id(&context_window(corpus, i)),
             vector,
             sig,
+            trajectory_sig: trajectory.get(i).copied().unwrap_or([0; SIG_BYTES]),
             prev: corpus.input[i],
             next: corpus.next[i],
         });
@@ -1524,6 +1554,11 @@ pub struct CoverRegion {
     /// Calibrated acceptance radius: the configured percentile of member
     /// masked-Hamming distances (all-ones mask in v1).
     pub radius: u16,
+    /// Optional full-trajectory prototype for this same semantic region.
+    /// `None` preserves the legacy context-only wire layout exactly.
+    pub trajectory_sig: Option<[u8; SIG_BYTES]>,
+    /// Calibrated masked-Hamming radius for [`Self::trajectory_sig`].
+    pub trajectory_radius: Option<u16>,
     /// Train members assigned to this region (top-1).
     pub support: u32,
     /// Within-region next-token entropy in bits (train members).
@@ -1569,6 +1604,13 @@ impl Cover {
             }
             hasher.update(&region.sig);
             hasher.update(&region.radius.to_le_bytes());
+            if let (Some(signature), Some(radius)) =
+                (region.trajectory_sig, region.trajectory_radius)
+            {
+                hasher.update(b"trajectory-route-v1");
+                hasher.update(&signature);
+                hasher.update(&radius.to_le_bytes());
+            }
         }
         format!("blake3:{}", hasher.finalize().to_hex())
     }
@@ -1740,6 +1782,8 @@ pub fn induce_cover(
             sig: binarize_prototype(centroid),
             prototype: centroid.clone(),
             radius: 0, // calibrated below
+            trajectory_sig: None,
+            trajectory_radius: None,
             support: members.len() as u32,
             entropy_bits: entropy,
             split_gain_bits: 0.0,
@@ -1874,6 +1918,8 @@ pub fn induce_cover(
                 sig: binarize_prototype(centroid),
                 prototype: centroid.clone(),
                 radius: 0,
+                trajectory_sig: None,
+                trajectory_radius: None,
                 support: members.len() as u32,
                 entropy_bits: entropy,
                 split_gain_bits: 0.0,
@@ -1913,6 +1959,60 @@ pub fn induce_cover(
         batch_size,
         decision_trace,
     })
+}
+
+/// Attach one calibrated full-trajectory prototype to every non-empty cover
+/// region without changing region membership, node count, edges, or emission
+/// budgets. The prototype is the deterministic per-bit majority of member
+/// trajectory signatures (ties remain zero); the radius uses the identical
+/// configured quantile contract as context routing.
+pub fn attach_trajectory_routing(
+    cover: &mut Cover,
+    observations: &[Observation],
+    radius_quantile_numerator: u32,
+    radius_quantile_denominator: u32,
+) -> usize {
+    let mut attached = 0usize;
+    for (region_index, region) in cover.regions.iter_mut().enumerate() {
+        let Some(members) = cover.members.get(region_index) else {
+            continue;
+        };
+        if members.is_empty() {
+            continue;
+        }
+        let mut ones = [0u32; D];
+        let mut member_signatures = Vec::with_capacity(members.len());
+        for &member in members {
+            let Some(observation) = observations.get(member) else {
+                continue;
+            };
+            let signature = observation.trajectory_sig;
+            for bit in 0..D {
+                ones[bit] += u32::from(signature[bit / 8] & (1 << (bit % 8)) != 0);
+            }
+            member_signatures.push(signature);
+        }
+        if member_signatures.is_empty() {
+            continue;
+        }
+        let mut prototype = [0u8; SIG_BYTES];
+        let member_count = member_signatures.len() as u32;
+        for (bit, &count) in ones.iter().enumerate() {
+            if count.saturating_mul(2) > member_count {
+                prototype[bit / 8] |= 1 << (bit % 8);
+            }
+        }
+        let radius = calibrate_region_radius_with_quantile(
+            &member_signatures,
+            &prototype,
+            radius_quantile_numerator,
+            radius_quantile_denominator,
+        );
+        region.trajectory_sig = Some(prototype);
+        region.trajectory_radius = Some(radius);
+        attached += 1;
+    }
+    attached
 }
 
 /// One canonical edge of the cover graph.
@@ -2423,22 +2523,68 @@ fn emit_r4g1_inner(
         rout.push(0x00);
     }
 
-    let prototype_words_start = (rout.len() / 8) as u32;
-    let sig_words = SIG_WORDS as u32;
+    let mut prototype_word_starts = Vec::with_capacity(node_total);
+    let mut mask_word_starts = Vec::with_capacity(node_total);
+    let mut node_flags = Vec::with_capacity(node_total);
+    let has_trajectory_routes = cover
+        .regions
+        .iter()
+        .any(|region| region.trajectory_sig.is_some() || region.trajectory_radius.is_some());
 
-    rout.extend_from_slice(&[0u8; SIG_WORDS * 8]); // root prototype
-    for region in &cover.regions {
-        let mut words = [0u8; SIG_WORDS * 8];
-        words[..SIG_BYTES].copy_from_slice(&region.sig);
-        rout.extend_from_slice(&words);
-    }
+    if !has_trajectory_routes {
+        // Preserve the historical banked v0 layout byte-for-byte.
+        let prototype_words_start = (rout.len() / 8) as u32;
+        rout.extend_from_slice(&[0u8; SIG_WORDS * 8]);
+        for region in &cover.regions {
+            let mut words = [0u8; SIG_WORDS * 8];
+            words[..SIG_BYTES].copy_from_slice(&region.sig);
+            rout.extend_from_slice(&words);
+        }
+        let mask_words_start = (rout.len() / 8) as u32;
+        rout.extend_from_slice(&[0u8; SIG_WORDS * 8]);
+        for _ in &cover.regions {
+            let mut words = [0u8; SIG_WORDS * 8];
+            words[..SIG_BYTES].fill(0xFF);
+            rout.extend_from_slice(&words);
+        }
+        for index in 0..node_total {
+            prototype_word_starts.push(prototype_words_start + index as u32 * SIG_WORDS as u32);
+            mask_word_starts.push(mask_words_start + index as u32 * SIG_WORDS as u32);
+            node_flags.push(0);
+        }
+    } else {
+        // Root retains the context-only v0 fields. Region records use
+        // self-contained blocks so the trajectory prototype and metadata are
+        // derivable from the existing mask pointer without widening NODE.
+        prototype_word_starts.push((rout.len() / 8) as u32);
+        rout.extend_from_slice(&[0u8; SIG_WORDS * 8]);
+        mask_word_starts.push((rout.len() / 8) as u32);
+        rout.extend_from_slice(&[0u8; SIG_WORDS * 8]);
+        node_flags.push(0u8);
 
-    let mask_words_start = (rout.len() / 8) as u32;
-    rout.extend_from_slice(&[0u8; SIG_WORDS * 8]); // root mask
-    for _ in &cover.regions {
-        let mut words = [0u8; SIG_WORDS * 8];
-        words[..SIG_BYTES].fill(0xFF);
-        rout.extend_from_slice(&words);
+        for region in &cover.regions {
+            prototype_word_starts.push((rout.len() / 8) as u32);
+            let mut context_words = [0u8; SIG_WORDS * 8];
+            context_words[..SIG_BYTES].copy_from_slice(&region.sig);
+            rout.extend_from_slice(&context_words);
+
+            mask_word_starts.push((rout.len() / 8) as u32);
+            let mut mask_words = [0u8; SIG_WORDS * 8];
+            mask_words[..SIG_BYTES].fill(0xFF);
+            rout.extend_from_slice(&mask_words);
+
+            let (Some(signature), Some(radius)) = (region.trajectory_sig, region.trajectory_radius)
+            else {
+                panic!("trajectory-enabled covers require every region to carry both fields")
+            };
+            let mut trajectory_words = [0u8; SIG_WORDS * 8];
+            trajectory_words[..SIG_BYTES].copy_from_slice(&signature);
+            rout.extend_from_slice(&trajectory_words);
+            let mut metadata = [0u8; 8];
+            metadata[..2].copy_from_slice(&radius.to_le_bytes());
+            rout.extend_from_slice(&metadata);
+            node_flags.push(uor_r4_graph_format::NODE_FLAG_TRAJECTORY_ROUTE);
+        }
     }
 
     // EMIT: descriptor + the v0 linear-count root prior block + region token residuals.
@@ -2529,11 +2675,11 @@ fn emit_r4g1_inner(
     node_section.extend_from_slice(&0u16.to_le_bytes()); // forward_len
     node_section.extend_from_slice(&emission_starts[0].to_le_bytes());
     node_section.extend_from_slice(&emission_lens[0].to_le_bytes());
-    node_section.extend_from_slice(&0u32.to_le_bytes()); // prototype_words_start
-    node_section.extend_from_slice(&0u32.to_le_bytes()); // mask_words_start
+    node_section.extend_from_slice(&prototype_word_starts[0].to_le_bytes());
+    node_section.extend_from_slice(&mask_word_starts[0].to_le_bytes());
     node_section.extend_from_slice(&0u16.to_le_bytes()); // radius
     node_section.push(0); // depth
-    node_section.push(0); // flags
+    node_section.push(node_flags[0]);
     for (index, region) in cover.regions.iter().enumerate() {
         let i = 1 + index;
         node_section.extend_from_slice(&child_start[i].to_le_bytes());
@@ -2542,12 +2688,11 @@ fn emit_r4g1_inner(
         node_section.extend_from_slice(&forward_len[i].to_le_bytes());
         node_section.extend_from_slice(&emission_starts[i].to_le_bytes());
         node_section.extend_from_slice(&emission_lens[i].to_le_bytes());
-        node_section
-            .extend_from_slice(&(prototype_words_start + (i as u32) * sig_words).to_le_bytes());
-        node_section.extend_from_slice(&(mask_words_start + (i as u32) * sig_words).to_le_bytes());
+        node_section.extend_from_slice(&prototype_word_starts[i].to_le_bytes());
+        node_section.extend_from_slice(&mask_word_starts[i].to_le_bytes());
         node_section.extend_from_slice(&region.radius.to_le_bytes());
         node_section.push(region.depth);
-        node_section.push(0); // flags
+        node_section.push(node_flags[i]);
     }
 
     // EDGE: canonical records (score_q 0 — v1 carries no log-domain edge

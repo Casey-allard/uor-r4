@@ -1430,6 +1430,7 @@ fn disjoint_halves_observations(w: &mut R4g1World) {
             sample: [0u8; 32],
             vector: Vec::new(),
             sig: [0u8; SIG_BYTES],
+            trajectory_sig: [0u8; SIG_BYTES],
             prev: 0u32,
             next: if i < 50 { 1 } else { 2 },
         })

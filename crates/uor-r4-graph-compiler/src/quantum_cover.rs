@@ -238,6 +238,7 @@ mod tests {
                 sample: [0u8; 32],
                 vector: Vec::new(),
                 sig: [0u8; SIG_BYTES],
+                trajectory_sig: [0u8; SIG_BYTES],
                 prev: 0,
                 next: if i < 50 { 1 } else { 2 },
             })

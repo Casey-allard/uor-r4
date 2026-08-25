@@ -22,6 +22,10 @@ pub enum RangeField {
     Prototype,
     /// `mask_word_start` into the ROUT section (u64 words).
     Mask,
+    /// Flagged full-trajectory prototype in the ROUT section.
+    TrajectoryPrototype,
+    /// Flagged full-trajectory metadata word in the ROUT section.
+    TrajectoryMetadata,
 }
 
 impl fmt::Display for RangeField {
@@ -32,6 +36,8 @@ impl fmt::Display for RangeField {
             RangeField::Emission => "emission",
             RangeField::Prototype => "prototype",
             RangeField::Mask => "mask",
+            RangeField::TrajectoryPrototype => "trajectory prototype",
+            RangeField::TrajectoryMetadata => "trajectory metadata",
         };
         write!(f, "{name}")
     }
@@ -178,6 +184,11 @@ pub enum FormatError {
         /// Actual NODE section length in bytes.
         section_len: u64,
     },
+    /// A NODE record sets flag bits unknown to this format version.
+    UnknownNodeFlags { node: u32, flags: u8 },
+    /// A trajectory-route metadata word has non-zero reserved bytes or a
+    /// radius wider than the declared signature.
+    InvalidTrajectoryRouteMetadata { node: u32 },
     /// HEAD declares `edge_count > 0` but the EDGE section is absent.
     MissingEdgeSection,
     /// EDGE section byte length ≠ `edge_count × (16 + 4)` — canonical
@@ -763,6 +774,14 @@ impl fmt::Display for FormatError {
             } => write!(
                 f,
                 "NODE section holds {section_len} bytes, not node_count {declared} x 30"
+            ),
+            FormatError::UnknownNodeFlags { node, flags } => write!(
+                f,
+                "NODE record {node} sets unknown flag bits 0x{flags:02x}"
+            ),
+            FormatError::InvalidTrajectoryRouteMetadata { node } => write!(
+                f,
+                "NODE record {node} has invalid trajectory-route metadata"
             ),
             FormatError::MissingEdgeSection => {
                 write!(f, "HEAD declares edge_count > 0 but the EDGE section is absent")

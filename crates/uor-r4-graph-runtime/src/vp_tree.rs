@@ -7,7 +7,10 @@
 
 use alloc::vec::Vec;
 
-use uor_r4_graph_format::{GraphView, SectionId};
+use uor_r4_graph_format::{
+    GraphView, NODE_FLAG_TRAJECTORY_ROUTE, SectionId, trajectory_metadata_word_start,
+    trajectory_prototype_word_start,
+};
 
 const NONE: u32 = u32::MAX;
 
@@ -42,6 +45,15 @@ pub(crate) struct VpTree {
 impl VpTree {
     /// Build an index when ROUT contains a single shared mask.
     pub(crate) fn from_graph(view: &GraphView<'_>) -> Option<Self> {
+        Self::from_graph_lane(view, false)
+    }
+
+    /// Build the independent full-trajectory index for flagged regions.
+    pub(crate) fn from_trajectory_graph(view: &GraphView<'_>) -> Option<Self> {
+        Self::from_graph_lane(view, true)
+    }
+
+    fn from_graph_lane(view: &GraphView<'_>, trajectory: bool) -> Option<Self> {
         let head = view.head()?;
         let signature_bytes = usize::from(head.signature_bytes());
         if signature_bytes == 0 {
@@ -56,7 +68,15 @@ impl VpTree {
             if node_id == 0 {
                 continue;
             }
-            let proto_start = (node.prototype_word_start as usize).checked_mul(8)?; // p4-allow(load-time): overflow-checked word-to-byte conversion during VP-tree construction; the query path uses shifts
+            if trajectory && node.flags & NODE_FLAG_TRAJECTORY_ROUTE == 0 {
+                continue;
+            }
+            let prototype_word_start = if trajectory {
+                trajectory_prototype_word_start(node, head.signature_words())?
+            } else {
+                node.prototype_word_start
+            };
+            let proto_start = (prototype_word_start as usize).checked_mul(8)?; // p4-allow(load-time): overflow-checked word-to-byte conversion during VP-tree construction; the query path uses shifts
             let mask_start = (node.mask_word_start as usize).checked_mul(8)?; // p4-allow(load-time): same load-time conversion as above
             let proto_end = proto_start.checked_add(signature_bytes)?;
             let mask_end = mask_start.checked_add(signature_bytes)?;
@@ -78,7 +98,15 @@ impl VpTree {
             points.push(Point {
                 node_id,
                 prototype: masked_prototype,
-                radius: u32::from(node.radius.0).max(120),
+                radius: if trajectory {
+                    let metadata = (trajectory_metadata_word_start(node, head.signature_words())?
+                        as usize)
+                        << 3;
+                    let bytes = rout.get(metadata..metadata + 2)?;
+                    u32::from(u16::from_le_bytes([bytes[0], bytes[1]]))
+                } else {
+                    u32::from(node.radius.0).max(120)
+                },
             });
         }
 
@@ -172,13 +200,18 @@ impl VpTree {
             .sum()
     }
 
-    fn insert_active(active: &mut [u32; 8], active_len: &mut usize, node_id: u32) {
+    fn insert_active(
+        active: &mut [u32; 8],
+        distances: &mut [u32; 8],
+        active_len: &mut usize,
+        node_id: u32,
+        distance: u32,
+    ) {
         if active[..*active_len].contains(&node_id) {
             return;
         }
-        let position = active[..*active_len]
-            .iter()
-            .position(|&existing| existing > node_id)
+        let position = (0..*active_len)
+            .position(|index| (distance, node_id) < (distances[index], active[index]))
             .unwrap_or(*active_len);
         if position >= active.len() {
             return;
@@ -188,8 +221,10 @@ impl VpTree {
         }
         for index in (position + 1..*active_len).rev() {
             active[index] = active[index - 1];
+            distances[index] = distances[index - 1];
         }
         active[position] = node_id;
+        distances[position] = distance;
     }
 
     fn search_node(
@@ -199,6 +234,7 @@ impl VpTree {
         best_node: &mut u32,
         best_distance: &mut u32,
         active: &mut [u32; 8],
+        active_distances: &mut [u32; 8],
         active_len: &mut usize,
     ) {
         if tree_index == NONE {
@@ -212,7 +248,13 @@ impl VpTree {
             *best_node = point.node_id;
         }
         if distance <= point.radius {
-            Self::insert_active(active, active_len, point.node_id);
+            Self::insert_active(
+                active,
+                active_distances,
+                active_len,
+                point.node_id,
+                distance,
+            );
         }
 
         let bound = (*best_distance).max(self.max_radius);
@@ -223,6 +265,7 @@ impl VpTree {
                 best_node,
                 best_distance,
                 active,
+                active_distances,
                 active_len,
             );
             if distance.saturating_add(bound) >= tree_node.threshold {
@@ -232,6 +275,7 @@ impl VpTree {
                     best_node,
                     best_distance,
                     active,
+                    active_distances,
                     active_len,
                 );
             }
@@ -242,6 +286,7 @@ impl VpTree {
                 best_node,
                 best_distance,
                 active,
+                active_distances,
                 active_len,
             );
             if distance.saturating_sub(bound) <= tree_node.threshold {
@@ -251,6 +296,7 @@ impl VpTree {
                     best_node,
                     best_distance,
                     active,
+                    active_distances,
                     active_len,
                 );
             }
@@ -267,12 +313,14 @@ impl VpTree {
         let mut best_node = 0;
         let mut best_distance = u32::MAX;
         let mut active_len = 0;
+        let mut active_distances = [u32::MAX; 8];
         self.search_node(
             0,
             signature,
             &mut best_node,
             &mut best_distance,
             active,
+            &mut active_distances,
             &mut active_len,
         );
         (best_node, best_distance, active_len)

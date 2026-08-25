@@ -390,6 +390,8 @@ mod tests {
                 prototype: vec![0.0; D],
                 sig,
                 radius,
+                trajectory_sig: None,
+                trajectory_radius: None,
                 support: 64 + id,
                 entropy_bits: 0.0,
                 split_gain_bits: 0.0,
@@ -420,6 +422,7 @@ mod tests {
                     sample: [i as u8; 32],
                     vector: vec![0.0; D],
                     sig,
+                    trajectory_sig: sig,
                     prev: i % 7,
                     next: (i * 3) % 11,
                 }

@@ -1992,6 +1992,7 @@ dependencies = [
  "uor-r4-core",
  "uor-r4-graph-format",
  "uor-r4-model-source",
+ "uor-r4-router",
 ]
 
 [[package]]

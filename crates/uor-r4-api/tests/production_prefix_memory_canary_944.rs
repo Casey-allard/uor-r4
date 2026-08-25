@@ -24,6 +24,8 @@ use uor_r4_router::TokenHistorySignature;
 
 const MAX_CASES: usize = 512;
 const RESULT_SCHEMA: &str = "uor-r4-production-prefix-memory-canary/1";
+const DEFAULT_ISSUE: u32 = 944;
+const DEFAULT_REPORT: &str = "docs/production_prefix_memory_canary_944_result.json";
 
 fn repo_root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -123,6 +125,7 @@ fn routing_record(trace: SignatureRoutingTrace) -> RoutingRecord {
             SignatureRoutingSource::SuffixDfa => "suffix-dfa",
             SignatureRoutingSource::ContextSignature => "context-signature",
             SignatureRoutingSource::SessionSignature => "session-signature",
+            SignatureRoutingSource::ComposedSignatures => "composed-signatures",
             SignatureRoutingSource::NearestContextSignature => "nearest-context-signature",
             SignatureRoutingSource::NearestSessionSignature => "nearest-session-signature",
             SignatureRoutingSource::DefaultNode => "default-node",
@@ -149,10 +152,12 @@ struct EffectRecord {
 
 fn is_effect(record: &EffectRecord) -> bool {
     record.full_routing.context_probe_attempted
-        && record.full_routing.context_admitted_nodes == 0
         && record.full_routing.session_probe_attempted
         && record.full_routing.session_admitted_nodes > 0
-        && record.full_routing.selected_source == "session-signature"
+        && matches!(
+            record.full_routing.selected_source,
+            "session-signature" | "composed-signatures"
+        )
         && (record.candidate_list_changed || record.served_token_changed)
 }
 
@@ -219,7 +224,7 @@ fn select(
         .map_err(|error| format!("normative selection rejected canary input: {error:?}"))
 }
 
-fn run_canary(root: &Path) -> Result<CanaryReport, String> {
+fn run_canary(root: &Path, issue: u32) -> Result<CanaryReport, String> {
     let graph = read(root, "graph/score.r4g1")?;
     let sections_absent_graph = read(root, "graph/score_sections_absent.r4g1")?;
     let label_shuffled_graph = read(root, "graph/score_label_shuffled.r4g1")?;
@@ -349,7 +354,7 @@ fn run_canary(root: &Path) -> Result<CanaryReport, String> {
         .collect();
     Ok(CanaryReport {
         schema: RESULT_SCHEMA,
-        issue: 944,
+        issue,
         verdict: if first_effect.is_some() {
             "EFFECT_ESTABLISHED"
         } else {
@@ -361,8 +366,7 @@ fn run_canary(root: &Path) -> Result<CanaryReport, String> {
         release_manifest_cid: cid(&release_manifest),
         corpus_meta_cid: cid(&corpus_meta),
         corpus_records_cid: cid(&corpus_records),
-        selection_rule:
-            "first held-out corpus positions with a complete in-story prefix longer than the newest eight-token window",
+        selection_rule: "first held-out corpus positions with a complete in-story prefix longer than the newest eight-token window",
         tested_count: tested_positions.len(),
         first_tested_position: tested_positions[0],
         last_tested_position: *tested_positions.last().expect("non-empty positions"),
@@ -377,7 +381,9 @@ fn write_report(report: &CanaryReport) -> Result<PathBuf, String> {
     let mut bytes = serde_json::to_vec_pretty(report)
         .map_err(|error| format!("serialize canary report: {error}"))?;
     bytes.push(b'\n');
-    let output = repo_root().join("docs/production_prefix_memory_canary_944_result.json");
+    let output = std::env::var_os("R4_S3_CANARY_REPORT")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| repo_root().join(DEFAULT_REPORT));
     std::fs::write(&output, bytes)
         .map_err(|error| format!("write {}: {error}", output.display()))?;
     Ok(output)
@@ -436,6 +442,12 @@ fn canary_verdict_requires_behavior_and_session_admission() {
         is_effect(&record),
         "admitted session routing plus a changed token qualifies"
     );
+    record.full_routing.context_admitted_nodes = 4;
+    record.full_routing.selected_source = "composed-signatures";
+    assert!(
+        is_effect(&record),
+        "composed context and trajectory admissions qualify"
+    );
     record.full_routing.session_admitted_nodes = 0;
     assert!(
         !is_effect(&record),
@@ -447,7 +459,13 @@ fn canary_verdict_requires_behavior_and_session_admission() {
 #[ignore = "bounded local evidence run: requires the exact schema-2 #933 envelope"]
 fn production_prefix_memory_canary_944() {
     let root = bundle_root().unwrap_or_else(|reason| panic!("UNAVAILABLE: {reason}"));
-    let report = run_canary(&root).unwrap_or_else(|reason| panic!("UNAVAILABLE: {reason}"));
+    let issue = std::env::var("R4_S3_CANARY_ISSUE")
+        .ok()
+        .map(|value| value.parse::<u32>())
+        .transpose()
+        .unwrap_or_else(|error| panic!("UNAVAILABLE: invalid R4_S3_CANARY_ISSUE: {error}"))
+        .unwrap_or(DEFAULT_ISSUE);
+    let report = run_canary(&root, issue).unwrap_or_else(|reason| panic!("UNAVAILABLE: {reason}"));
     let output = write_report(&report).expect("retain deterministic canary report");
     println!("verdict                 : {}", report.verdict);
     println!("inspected               : {}", report.counts.inspected);

@@ -44,6 +44,8 @@ fn tiny_artifact(
         depth: 1,
         radius: 0,
         sig: [0; SIG_BYTES],
+        trajectory_sig: None,
+        trajectory_radius: None,
         parent: None,
     }];
     let context_rows = vec![ContextRow {

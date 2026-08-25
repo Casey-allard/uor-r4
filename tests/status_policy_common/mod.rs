@@ -229,6 +229,8 @@ pub fn signature_fixture(status_policy_override: Option<serde_json::Value>) -> P
             depth: 1,
             radius: 4,
             sig: covered_sig,
+            trajectory_sig: None,
+            trajectory_radius: None,
             parent: None,
         },
         RegionParams {
@@ -236,6 +238,8 @@ pub fn signature_fixture(status_policy_override: Option<serde_json::Value>) -> P
             depth: 1,
             radius: 4,
             sig: graph_sig,
+            trajectory_sig: None,
+            trajectory_radius: None,
             parent: None,
         },
     ];
@@ -287,6 +291,8 @@ fn window_fixture_with_rows(skipmix_rows: &[SkipmixRowInput]) -> ProbeFixture {
             depth: 1,
             radius: 4,
             sig: covered_sig,
+            trajectory_sig: None,
+            trajectory_radius: None,
             parent: None,
         },
         RegionParams {
@@ -294,6 +300,8 @@ fn window_fixture_with_rows(skipmix_rows: &[SkipmixRowInput]) -> ProbeFixture {
             depth: 1,
             radius: 4,
             sig: graph_sig,
+            trajectory_sig: None,
+            trajectory_radius: None,
             parent: None,
         },
     ];

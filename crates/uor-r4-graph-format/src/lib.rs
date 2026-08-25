@@ -146,8 +146,9 @@ pub use pstate::{
     PSTATE_HEADER_LEN, PSTATE_MAGIC, PSTATE_ROW_LEN, PSTATE_VERSION,
 };
 pub use records::{
-    EdgeKind, PackedEdge, PackedNode, StorageDescriptor, EDGE_KIND_OPTIONAL_BIT, PACKED_EDGE_LEN,
-    PACKED_NODE_LEN, STORAGE_DESCRIPTOR_LEN,
+    trajectory_metadata_word_start, trajectory_prototype_word_start, EdgeKind, PackedEdge,
+    PackedNode, StorageDescriptor, EDGE_KIND_OPTIONAL_BIT, NODE_FLAGS_KNOWN,
+    NODE_FLAG_TRAJECTORY_ROUTE, PACKED_EDGE_LEN, PACKED_NODE_LEN, STORAGE_DESCRIPTOR_LEN,
 };
 pub use rout::{OP_HALT, OP_JMP_FWD, OP_LEAF, OP_TEST_POPCOUNT_LE};
 #[cfg(feature = "alloc")]

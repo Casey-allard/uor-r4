@@ -4,7 +4,10 @@ use crate::status::ResolutionStatus;
 use crate::vp_tree::{MIN_ROUTE_INDEX_NODES, VpTree};
 use uor_r4_graph_format::{CODE_OP_HALT, OP_CLEAR_SLOT, OP_SHIFT_SLOTS, OP_UPDATE_SLOT};
 use uor_r4_graph_format::{FormatError, PsiBagTable, ScoreQ, SkipmixTable};
-use uor_r4_graph_format::{GraphView, NotAProduct, SectionId};
+use uor_r4_graph_format::{
+    GraphView, NODE_FLAG_TRAJECTORY_ROUTE, NotAProduct, SectionId, trajectory_metadata_word_start,
+    trajectory_prototype_word_start,
+};
 
 /// Fixed width of the normative served-candidate shortlist.
 pub const SERVED_CANDIDATE_CAPACITY: usize = 8;
@@ -112,9 +115,17 @@ pub enum SignatureRoutingSource {
     SuffixDfa,
     ContextSignature,
     SessionSignature,
+    /// Context and full-trajectory probes both supplied bounded active nodes.
+    ComposedSignatures,
     NearestContextSignature,
     NearestSessionSignature,
     DefaultNode,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum RouteProbeLane {
+    Context,
+    Trajectory,
 }
 
 impl ServedCandidates {
@@ -163,6 +174,8 @@ impl Default for ServedCandidates {
 pub struct R4G1Runtime<'a> {
     chain: crate::patch_chain::PatchChain<'a>,
     route_index: Option<VpTree>,
+    trajectory_route_index: Option<VpTree>,
+    has_trajectory_routes: bool,
     skipmix: Option<SkipmixTable<'a>>,
     psi_bag: Option<PsiBagTable<'a>>,
 }
@@ -265,9 +278,18 @@ impl<'a> R4G1Runtime<'a> {
         let route_index = (view.node_count().unwrap_or(0) >= MIN_ROUTE_INDEX_NODES)
             .then(|| VpTree::from_graph(&view))
             .flatten();
+        let has_trajectory_routes = view
+            .nodes()
+            .any(|node| node.flags & NODE_FLAG_TRAJECTORY_ROUTE != 0);
+        let trajectory_route_index = (has_trajectory_routes
+            && view.node_count().unwrap_or(0) >= MIN_ROUTE_INDEX_NODES)
+            .then(|| VpTree::from_trajectory_graph(&view))
+            .flatten();
         Ok(Self {
             chain: crate::patch_chain::PatchChain::new(view),
             route_index,
+            trajectory_route_index,
+            has_trajectory_routes,
             skipmix,
             psi_bag,
         })
@@ -313,9 +335,14 @@ impl<'a> R4G1Runtime<'a> {
         &self,
         base_graph: &uor_r4_graph_format::GraphView<'_>,
         sig: &[u8],
+        lane: RouteProbeLane,
         active_nodes: &mut [u32],
     ) -> (u32, usize) {
-        if let Some(index) = self.route_index.as_ref() {
+        let index = match lane {
+            RouteProbeLane::Context => self.route_index.as_ref(),
+            RouteProbeLane::Trajectory => self.trajectory_route_index.as_ref(),
+        };
+        if let Some(index) = index {
             let mut matched_nodes = [0u32; 8];
             let (best_node, _best_dist, active_count) = index.query(sig, &mut matched_nodes);
             active_nodes[..active_count].copy_from_slice(&matched_nodes[..active_count]);
@@ -325,11 +352,30 @@ impl<'a> R4G1Runtime<'a> {
             let mut best_node = 0;
             let mut best_dist = u32::MAX;
             let mut active_count = 0usize;
+            let mut active_distances = [u32::MAX; 8];
             let rout_bytes = base_graph.section(SectionId::ROUT).unwrap_or(&[]);
+            let signature_words = base_graph
+                .head()
+                .map(|head| head.signature_words())
+                .unwrap_or(0);
 
             for n in 1..num_nodes {
                 if let Some(node) = base_graph.node(n) {
-                    let proto_offset = (node.prototype_word_start as usize) << 3;
+                    if lane == RouteProbeLane::Trajectory
+                        && node.flags & NODE_FLAG_TRAJECTORY_ROUTE == 0
+                    {
+                        continue;
+                    }
+                    let prototype_word = match lane {
+                        RouteProbeLane::Context => Some(node.prototype_word_start),
+                        RouteProbeLane::Trajectory => {
+                            trajectory_prototype_word_start(node, signature_words)
+                        }
+                    };
+                    let Some(prototype_word) = prototype_word else {
+                        continue;
+                    };
+                    let proto_offset = (prototype_word as usize) << 3;
                     let mask_offset = (node.mask_word_start as usize) << 3;
 
                     if proto_offset + sig.len() <= rout_bytes.len()
@@ -348,13 +394,40 @@ impl<'a> R4G1Runtime<'a> {
                         }
 
                         // Collect Quantum MoE ensemble nodes matching distance threshold
-                        let rad = u32::from(node.radius.0).max(120);
-                        if dist <= rad
-                            && active_count < 8
-                            && !active_nodes[..active_count].contains(&n)
-                        {
-                            active_nodes[active_count] = n;
-                            active_count += 1;
+                        let rad = match lane {
+                            RouteProbeLane::Context => u32::from(node.radius.0).max(120),
+                            RouteProbeLane::Trajectory => {
+                                let Some(metadata_word) =
+                                    trajectory_metadata_word_start(node, signature_words)
+                                else {
+                                    continue;
+                                };
+                                let metadata_offset = (metadata_word as usize) << 3;
+                                let Some(bytes) =
+                                    rout_bytes.get(metadata_offset..metadata_offset + 2)
+                                else {
+                                    continue;
+                                };
+                                u32::from(u16::from_le_bytes([bytes[0], bytes[1]]))
+                            }
+                        };
+                        if dist <= rad {
+                            let limit = active_nodes.len().min(8);
+                            let position = (0..active_count)
+                                .position(|index| {
+                                    (dist, n) < (active_distances[index], active_nodes[index])
+                                })
+                                .unwrap_or(active_count);
+                            if position < limit {
+                                let next_count = (active_count + 1).min(limit);
+                                for index in (position + 1..next_count).rev() {
+                                    active_nodes[index] = active_nodes[index - 1];
+                                    active_distances[index] = active_distances[index - 1];
+                                }
+                                active_nodes[position] = n;
+                                active_distances[position] = dist;
+                                active_count = next_count;
+                            }
                         }
                     }
                 }
@@ -1005,55 +1078,122 @@ impl<'a> R4G1Runtime<'a> {
         // If the suffix DFA fell off the manifold, use the continuous 288-bit VSA signature
         // to find the top-M semantic regions N_best (N_best <= 8) to jump back onto the graph!
         //
-        // #247 admission (calibration recorded on the issue: fixture session
-        // signatures land 24/24 within ROUT radii through the shipped
-        // quantizer): the context signature keeps primacy, and the SESSION
-        // signature is consulted as the secondary probe only when the context
-        // probe admits nothing within any calibrated radius (previously such
-        // positions routed via the nearest out-of-radius prototype or fell
-        // through to Novel). Within-radius session routing beats
-        // outside-radius context routing by the radius rule's own semantics.
+        // Legacy artifacts retain #247 context primacy exactly. A #946
+        // trajectory-enabled artifact explicitly calibrates a second prototype
+        // per semantic region; only those artifacts probe both lanes and
+        // compose at most four context plus four trajectory matches.
         if active_len == 0 || (active_len == 1 && active_nodes[0] == 0) {
-            let mut best_node = 0u32;
-            let mut active_count = 0usize;
-            if let Some(sig) = context_signature {
-                routing.context_probe_attempted = true;
-                (best_node, active_count) = self.rout_probe(base_graph, sig, &mut active_nodes);
-                routing.context_admitted_nodes = active_count.min(usize::from(u8::MAX)) as u8;
-                if active_count > 0 {
-                    routing.selected_source = SignatureRoutingSource::ContextSignature;
+            active_len = 0;
+            if self.has_trajectory_routes {
+                let mut context_nodes = [0u32; 8];
+                let mut trajectory_nodes = [0u32; 8];
+                let mut context_best = 0u32;
+                let mut trajectory_best = 0u32;
+                let mut context_count = 0usize;
+                let mut trajectory_count = 0usize;
+                if let Some(sig) = context_signature {
+                    routing.context_probe_attempted = true;
+                    (context_best, context_count) = self.rout_probe(
+                        base_graph,
+                        sig,
+                        RouteProbeLane::Context,
+                        &mut context_nodes,
+                    );
+                    routing.context_admitted_nodes = context_count.min(usize::from(u8::MAX)) as u8;
                 }
-            }
-            if active_count == 0
-                && let Some(sig) = session_signature
-            {
-                routing.session_probe_attempted = true;
-                let mut session_nodes = [0u32; 64];
-                let (session_best, session_count) =
-                    self.rout_probe(base_graph, sig, &mut session_nodes);
-                routing.session_admitted_nodes = session_count.min(usize::from(u8::MAX)) as u8;
-                if session_count > 0 {
-                    active_nodes[..session_count].copy_from_slice(&session_nodes[..session_count]);
-                    best_node = session_best;
-                    active_count = session_count;
-                    routing.selected_source = SignatureRoutingSource::SessionSignature;
-                } else if best_node == 0 {
-                    best_node = session_best;
-                    if best_node != 0 {
-                        routing.selected_source = SignatureRoutingSource::NearestSessionSignature;
+                if let Some(sig) = session_signature {
+                    routing.session_probe_attempted = true;
+                    (trajectory_best, trajectory_count) = self.rout_probe(
+                        base_graph,
+                        sig,
+                        RouteProbeLane::Trajectory,
+                        &mut trajectory_nodes,
+                    );
+                    routing.session_admitted_nodes =
+                        trajectory_count.min(usize::from(u8::MAX)) as u8;
+                }
+
+                for &node in context_nodes[..context_count.min(4)].iter() {
+                    active_nodes[active_len] = node;
+                    active_len += 1;
+                }
+                for &node in trajectory_nodes[..trajectory_count.min(4)].iter() {
+                    if active_len < 8 && !active_nodes[..active_len].contains(&node) {
+                        active_nodes[active_len] = node;
+                        active_len += 1;
                     }
                 }
-            }
-
-            if active_count > 0 {
-                active_len = active_count;
-            } else if best_node != 0 {
-                active_nodes[0] = best_node;
-                active_len = 1;
-                if routing.selected_source == SignatureRoutingSource::SuffixDfa
-                    || routing.selected_source == SignatureRoutingSource::None
+                routing.selected_source = match (context_count > 0, trajectory_count > 0) {
+                    (true, true) => SignatureRoutingSource::ComposedSignatures,
+                    (true, false) => SignatureRoutingSource::ContextSignature,
+                    (false, true) => SignatureRoutingSource::SessionSignature,
+                    (false, false) if context_best != 0 => {
+                        active_nodes[0] = context_best;
+                        active_len = 1;
+                        SignatureRoutingSource::NearestContextSignature
+                    }
+                    (false, false) if trajectory_best != 0 => {
+                        active_nodes[0] = trajectory_best;
+                        active_len = 1;
+                        SignatureRoutingSource::NearestSessionSignature
+                    }
+                    _ => SignatureRoutingSource::None,
+                };
+            } else {
+                // Legacy #247 behavior: the session signature probes the
+                // context prototype bank only after the primary probe admits
+                // no node.
+                let mut best_node = 0u32;
+                let mut active_count = 0usize;
+                if let Some(sig) = context_signature {
+                    routing.context_probe_attempted = true;
+                    (best_node, active_count) = self.rout_probe(
+                        base_graph,
+                        sig,
+                        RouteProbeLane::Context,
+                        &mut active_nodes,
+                    );
+                    routing.context_admitted_nodes = active_count.min(usize::from(u8::MAX)) as u8;
+                    if active_count > 0 {
+                        routing.selected_source = SignatureRoutingSource::ContextSignature;
+                    }
+                }
+                if active_count == 0
+                    && let Some(sig) = session_signature
                 {
-                    routing.selected_source = SignatureRoutingSource::NearestContextSignature;
+                    routing.session_probe_attempted = true;
+                    let mut session_nodes = [0u32; 8];
+                    let (session_best, session_count) = self.rout_probe(
+                        base_graph,
+                        sig,
+                        RouteProbeLane::Context,
+                        &mut session_nodes,
+                    );
+                    routing.session_admitted_nodes = session_count.min(usize::from(u8::MAX)) as u8;
+                    if session_count > 0 {
+                        active_nodes[..session_count]
+                            .copy_from_slice(&session_nodes[..session_count]);
+                        best_node = session_best;
+                        active_count = session_count;
+                        routing.selected_source = SignatureRoutingSource::SessionSignature;
+                    } else if best_node == 0 {
+                        best_node = session_best;
+                        if best_node != 0 {
+                            routing.selected_source =
+                                SignatureRoutingSource::NearestSessionSignature;
+                        }
+                    }
+                }
+                if active_count > 0 {
+                    active_len = active_count;
+                } else if best_node != 0 {
+                    active_nodes[0] = best_node;
+                    active_len = 1;
+                    if routing.selected_source == SignatureRoutingSource::SuffixDfa
+                        || routing.selected_source == SignatureRoutingSource::None
+                    {
+                        routing.selected_source = SignatureRoutingSource::NearestContextSignature;
+                    }
                 }
             }
         }
@@ -1158,9 +1298,34 @@ impl<'a> R4G1Runtime<'a> {
                             ScoreQ::from_raw(1)
                         };
 
-                        let sig_bonus = if let Some(sig) = session_signature.or(context_signature) {
+                        let trajectory_lane = self.has_trajectory_routes
+                            && target_node.flags & NODE_FLAG_TRAJECTORY_ROUTE != 0
+                            && session_signature.is_some();
+                        let affinity_signature = if trajectory_lane {
+                            session_signature
+                        } else if self.has_trajectory_routes {
+                            context_signature
+                        } else {
+                            // Legacy #247 affinity order is part of old-artifact
+                            // serving identity.
+                            session_signature.or(context_signature)
+                        };
+                        let sig_bonus = if let Some(sig) = affinity_signature {
                             let rout_bytes = base_graph.section(SectionId::ROUT).unwrap_or(&[]);
-                            let proto_offset = (target_node.prototype_word_start as usize) << 3;
+                            let prototype_word = if trajectory_lane {
+                                base_graph.head().and_then(|head| {
+                                    trajectory_prototype_word_start(
+                                        target_node,
+                                        head.signature_words(),
+                                    )
+                                })
+                            } else {
+                                Some(target_node.prototype_word_start)
+                            };
+                            let Some(prototype_word) = prototype_word else {
+                                continue;
+                            };
+                            let proto_offset = (prototype_word as usize) << 3;
                             let mask_offset = (target_node.mask_word_start as usize) << 3;
                             if proto_offset + sig.len() <= rout_bytes.len()
                                 && mask_offset + sig.len() <= rout_bytes.len()

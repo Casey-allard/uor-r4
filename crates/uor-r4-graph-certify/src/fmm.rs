@@ -663,6 +663,8 @@ mod tests {
             depth: 1,
             radius: 8,
             sig,
+            trajectory_sig: None,
+            trajectory_radius: None,
             parent: None,
         }
     }

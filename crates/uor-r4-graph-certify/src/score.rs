@@ -1711,22 +1711,63 @@ pub fn emit_scored_r4g1_with_bound_partition_cids(
     let max_emission_entries = DEFAULT_MAX_EMISSION_ENTRIES
         .max(emission_len[1..].iter().copied().max().unwrap_or(0) as u32);
 
-    // ROUT: [HALT + padding][(1 + R) × W prototype words][same masks].
-    let sig_words = SIG_WORDS as u32;
+    // ROUT: legacy artifacts retain the historical banked context layout.
+    // A #946 artifact uses equal-budget self-contained region blocks:
+    // context prototype, context mask, trajectory prototype, radius metadata.
     let mut rout = Vec::with_capacity(8 + node_total * SIG_WORDS * 8 * 2);
     rout.push(0x00); // HALT
     rout.extend_from_slice(&[0u8; 7]); // program padding to 8-byte alignment
-    rout.extend_from_slice(&[0u8; SIG_WORDS * 8]); // root prototype: zeros
-    for region in regions {
-        let mut words = [0u8; SIG_WORDS * 8];
-        words[..SIG_BYTES].copy_from_slice(&region.sig);
-        rout.extend_from_slice(&words);
-    }
-    rout.extend_from_slice(&[0u8; SIG_WORDS * 8]); // root mask: zeros
-    for _ in regions {
-        let mut words = [0u8; SIG_WORDS * 8];
-        words[..SIG_BYTES].fill(0xFF); // all-ones mask (v1)
-        rout.extend_from_slice(&words);
+    let mut prototype_word_starts = Vec::with_capacity(regions.len());
+    let mut mask_word_starts = Vec::with_capacity(regions.len());
+    let mut node_flags = Vec::with_capacity(regions.len());
+    let has_trajectory_routes = regions
+        .iter()
+        .any(|region| region.trajectory_sig.is_some() || region.trajectory_radius.is_some());
+    if !has_trajectory_routes {
+        let prototype_words_start = (rout.len() / 8) as u32;
+        rout.extend_from_slice(&[0u8; SIG_WORDS * 8]); // root prototype: zeros
+        for region in regions {
+            let mut words = [0u8; SIG_WORDS * 8];
+            words[..SIG_BYTES].copy_from_slice(&region.sig);
+            rout.extend_from_slice(&words);
+        }
+        let mask_words_start = (rout.len() / 8) as u32;
+        rout.extend_from_slice(&[0u8; SIG_WORDS * 8]); // root mask: zeros
+        for _ in regions {
+            let mut words = [0u8; SIG_WORDS * 8];
+            words[..SIG_BYTES].fill(0xFF); // all-ones mask (v1)
+            rout.extend_from_slice(&words);
+        }
+        for index in 0..regions.len() {
+            prototype_word_starts
+                .push(prototype_words_start + (index as u32 + 1) * SIG_WORDS as u32);
+            mask_word_starts.push(mask_words_start + (index as u32 + 1) * SIG_WORDS as u32);
+            node_flags.push(0u8);
+        }
+    } else {
+        rout.extend_from_slice(&[0u8; SIG_WORDS * 8]); // root prototype
+        rout.extend_from_slice(&[0u8; SIG_WORDS * 8]); // root mask
+        for region in regions {
+            prototype_word_starts.push((rout.len() / 8) as u32);
+            let mut context = [0u8; SIG_WORDS * 8];
+            context[..SIG_BYTES].copy_from_slice(&region.sig);
+            rout.extend_from_slice(&context);
+            mask_word_starts.push((rout.len() / 8) as u32);
+            let mut mask = [0u8; SIG_WORDS * 8];
+            mask[..SIG_BYTES].fill(0xFF);
+            rout.extend_from_slice(&mask);
+            let (Some(signature), Some(radius)) = (region.trajectory_sig, region.trajectory_radius)
+            else {
+                panic!("trajectory-enabled scored graphs require both fields on every region")
+            };
+            let mut trajectory = [0u8; SIG_WORDS * 8];
+            trajectory[..SIG_BYTES].copy_from_slice(&signature);
+            rout.extend_from_slice(&trajectory);
+            let mut metadata = [0u8; 8];
+            metadata[..2].copy_from_slice(&radius.to_le_bytes());
+            rout.extend_from_slice(&metadata);
+            node_flags.push(uor_r4_graph_format::NODE_FLAG_TRAJECTORY_ROUTE);
+        }
     }
 
     // NODE: the root record is all zeros; regions follow ascending id.
@@ -1740,11 +1781,11 @@ pub fn emit_scored_r4g1_with_bound_partition_cids(
         node_section.extend_from_slice(&forward_len[i].to_le_bytes());
         node_section.extend_from_slice(&emission_start[i].to_le_bytes());
         node_section.extend_from_slice(&emission_len[i].to_le_bytes());
-        node_section.extend_from_slice(&(1 + (i as u32) * sig_words).to_le_bytes());
-        node_section.extend_from_slice(&(1 + (node_count + i as u32) * sig_words).to_le_bytes());
+        node_section.extend_from_slice(&prototype_word_starts[index].to_le_bytes());
+        node_section.extend_from_slice(&mask_word_starts[index].to_le_bytes());
         node_section.extend_from_slice(&region.radius.to_le_bytes());
         node_section.push(region.depth);
-        node_section.push(0); // flags
+        node_section.push(node_flags[index]);
     }
 
     // EDGE: canonical records followed by the reverse index.
@@ -1944,6 +1985,8 @@ pub fn regions_from_cover(cover: &cover::Cover) -> Vec<RegionParams> {
             depth: region.depth,
             radius: region.radius,
             sig: region.sig,
+            trajectory_sig: region.trajectory_sig,
+            trajectory_radius: region.trajectory_radius,
             parent: region.parent,
         })
         .collect()
@@ -6613,6 +6656,7 @@ mod context_rows_tests {
                 sample: [0; 32],
                 vector: Vec::new(),
                 sig: [0; SIG_BYTES],
+                trajectory_sig: [0; SIG_BYTES],
                 prev: corpus.input[position],
                 next: corpus.next[position],
             })
@@ -6640,6 +6684,7 @@ mod context_rows_tests {
                 sample: [0; 32],
                 vector: Vec::new(),
                 sig: [0; SIG_BYTES],
+                trajectory_sig: [0; SIG_BYTES],
                 prev: corpus.input[position],
                 next: corpus.next[position],
             })

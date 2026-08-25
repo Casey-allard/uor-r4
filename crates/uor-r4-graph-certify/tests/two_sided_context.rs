@@ -558,6 +558,7 @@ fn two_sided_context_keying() {
             sample: [0; 32],
             vector: Vec::new(),
             sig: [0; SIG_BYTES],
+            trajectory_sig: [0; SIG_BYTES],
             prev: c.input[i],
             next: truth,
         });
