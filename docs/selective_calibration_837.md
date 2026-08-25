@@ -121,3 +121,28 @@ answerable-novel positions and de-polluting the singleton-margin mass — after 
 fit would re-enter under the same frozen constitution (the #838 gates do not move; #887
 precedent). The S2 stage verdict against the full child set remains the maintainer's call
 on #823.
+
+## 6. Append-only content-evidence re-entry (#931, 2026-08-22)
+
+This section appends the outcome of the single redesigned re-entry sanctioned by the S2
+tracker; it does not revise the historical #837 measurement above. The follow-up harness
+is `crates/uor-r4-api/tests/selective_calibrator_reentry_931.rs`, the readable record is
+[`content_evidence_calibrator_931.md`](content_evidence_calibrator_931.md), and the
+machine-readable record is
+[`selective_calibrator_reentry_931_result.json`](selective_calibrator_reentry_931_result.json).
+
+**Empirical Criterion (content-evidence re-entry). Status: Empirical.** The follow-up
+reproduced the #833 corpus identity and the #908 base/SKMX+PSIB artifact identities, then
+refit production-equivalent packed RF-31 content evidence on the original story-disjoint
+FIT/CAL/TEST partition under the unchanged #838 gates. The FIT-only instrument qualified
+the run, but no selectable content-margin, content-support-margin, or hybrid
+content-plus-suffix arm met either the release or research gate on CAL. TEST therefore
+remained untouched. The evidence-backed verdict is **`NO CALIBRATOR ESTABLISHED`**;
+semantic abstention remains **NOT ESTABLISHED**, and #839 remains limited to its
+legacy-coverage phase unless a later maintainer decision establishes a new gate-backed
+path. The audited result CID is
+`blake3:8372e7a1171fe0e841f3d5b29541db16f386c70a04885c5b245027cf43267496`.
+The harness separately reproduces this record's original suffix-predictor curve
+(3/261, 19/549, and 170/1,350 wrong at the three reported floors) and records the
+different curve obtained when that locked score ranks the RF-31 skip-mix winner. The
+#837 result remains true as its own historical suffix-evidence finding.

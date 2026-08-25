@@ -330,6 +330,27 @@ sanctioned under the same frozen gates. This entry mirrors the tracker verdict;
   aligned with the S1 redesign direction) under the **same** frozen gates; the bars do
   not move (the #887 discipline).
 
+### S2 redesigned calibrator re-entry (2026-08-22, follow-up)
+
+The single re-entry authorized above was executed as native child #931, after RF-31's
+deployed SKMX/PSIB content-evidence path and its pinned artifacts were available. The
+FIT-only binding instrument qualified, so the CAL fit proceeded under the original #838
+release and research bars. No selectable content-margin, support-conditioned content,
+or content-plus-suffix arm qualified on CAL; all declared shuffle nulls failed both
+gates, and TEST stayed sealed. The evidence-backed result is
+**`NO CALIBRATOR ESTABLISHED`**. See
+`docs/content_evidence_calibrator_931.md` and
+`docs/selective_calibrator_reentry_931_result.json` (double-run result CID
+`blake3:8372e7a1171fe0e841f3d5b29541db16f386c70a04885c5b245027cf43267496`).
+
+**Empirical Criterion (content-evidence candidate selection). Status: Empirical.** The
+teacher-grounded corpus proxy can select a fixed candidate for possible #839 lowering;
+it does not establish semantic answerability or calibrated production abstention. The
+real powered semantic fixture is unavailable, semantic abstention remains **NOT
+ESTABLISHED**, and #839 therefore remains legacy-only. This follow-up exhausts the one
+sanctioned re-entry without changing the historical S2 `REVISE` verdict; a further S2
+promotion, limitation, retirement, or closure verdict belongs to the maintainer on #823.
+
 ### S3 stage verdict — LIMIT (2026-08-22)
 
 All three native children are resolved and the pre-registered kill/redesign criterion is

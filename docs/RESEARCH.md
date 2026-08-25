@@ -513,9 +513,9 @@ targets (false-answer UCB95 ≤ 10‰ release / ≤ 50‰ research) fixed before
 is fitted. The executable reference model is
 `crates/uor-r4-api/tests/selective_prediction_spec_838.rs` (15 machine-checked
 properties, including that a coverage-only report can never render a semantic PASS).
-**Current semantic abstention remains NOT ESTABLISHED**; #837 fits the calibrator
-against this constitution and #839 executes and certifies it on the production
-surfaces.
+**Current semantic abstention remains NOT ESTABLISHED**; #837 and the single sanctioned
+content-evidence re-entry #931 both completed without a qualifying calibrator, so #839
+remains limited to the typed contract's legacy-coverage mode on production surfaces.
 
 **S2 item B — the artifact-only confidence calibrator was fitted and did not qualify
 (#837, 2026-08-21): `NO CALIBRATOR ESTABLISHED`.**
@@ -540,6 +540,28 @@ verdict recorded 2026-08-21: **REVISE** — one redesigned re-entry sanctioned u
 same gates; #839 re-scoped to execute the typed contract's legacy-coverage mode on the
 production surfaces now, with calibrated mode still behind the unchanged release gate.
 See the #823 decision comment and the plan's S2 stage-verdict entry.)*
+
+**S2 item B2 — the sanctioned RF-31 content-evidence calibrator re-entry was completed
+(#931, 2026-08-22): `NO CALIBRATOR ESTABLISHED`.**
+[`docs/content_evidence_calibrator_931.md`](content_evidence_calibrator_931.md) (record
+`docs/selective_calibrator_reentry_931_result.json`; harness
+`crates/uor-r4-api/tests/selective_calibrator_reentry_931.rs`) reads the deployed packed
+SKMX/PSIB rows with RF-31's exact primary/fallback, saturating-add, candidate-injection,
+and tie-break semantics. The FIT-only instrument qualified: content evidence reached
+almost every position, changed the winning lane, survived a real content-key shuffle,
+and an oracle cell met a frozen gate. All 811,421 compiler SKMX rows and 19,710 compiler
+PSIB rows matched their packed forms, and complete packed/reference feature vectors
+agreed on every deployed-eligible FIT/CAL position. On CAL, however, no selectable arm
+met either gate.
+The best raw content-margin slice served 243/24,232 with 8 wrong (UCB95 46‰) at the 10‰
+coverage slice; at the required 20‰ release floor its UCB95 was 79‰ versus 10‰, and at
+the 50‰ research floor it was 180‰ versus 50‰. Label, feature, and content-key shuffles
+all failed both gates. TEST remained sealed, the real powered semantic annotation suite
+is **UNAVAILABLE** rather than PASS, and #839 remains legacy-only. This exhausts the one
+re-entry authorized by the S2 `REVISE` verdict; any further stage action is a maintainer
+decision on #823, not an automatic threshold redesign. The double-run deterministic
+result CID is
+`blake3:8372e7a1171fe0e841f3d5b29541db16f386c70a04885c5b245027cf43267496`.
 
 **S3 item A — the free-running trajectory gap is quantified (#841, 2026-08-21): the gap
 is total.** [`docs/free_running_eval_841.md`](free_running_eval_841.md) freezes the
