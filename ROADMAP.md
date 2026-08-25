@@ -16,6 +16,15 @@ not established). Prior: 2026-08-20 (S0 promoted; S1 became the entry stage)._
 > cross-cutting F0 formal lane). This file stays the **product** capability
 > checklist and defers the ordering of intelligence work to that plan.
 
+> **Quality-baseline sequencing correction (#934 audit, 2026-08-24).** The
+> legacy pinned-report tolerance rounds to 29.7%; it is not a universal 30%
+> product floor. Broad `relative_tla` admission compares graph top-1 with TLA on
+> the same report, and the current broad-clean census is 24.393% versus 28.121%,
+> so strict admission is not established. #908's 29.702% is separate
+> `R4Engine` reference/off-serving evidence whose gate was a paired +20‰ lane
+> delta. [#934's audit record](docs/canonical_quality_baseline_934.md) owns the
+> remediation order; dependent execution proceeds through #933 and then #932.
+
 ## Next up (recommended sequencing)
 
 The v0.1 engineering epics closed 2026-08-19 — the serving epic (**#655**),

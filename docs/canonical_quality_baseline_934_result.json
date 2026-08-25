@@ -1,0 +1,353 @@
+{
+  "schema": "uor-r4-canonical-quality-diagnostic/1",
+  "issue": 934,
+  "source_commit": "9aeb5427c7fd3a965b0e4a0228f137889dbafa9b",
+  "status": "EMPIRICAL",
+  "execution_scope": "teacher-free-certifier-and-reachability-audit",
+  "execution": {
+    "canonical_gate_c": {
+      "status": "NOT_RUN",
+      "reason": "canonical counts are an identity-verified read of the existing #833 schema-26 full-census score report"
+    },
+    "teacher_forward": {
+      "status": "NOT_RUN",
+      "reason": "outside #934's teacher-free run contract"
+    },
+    "observation_or_corpus_rebuild": {
+      "status": "NOT_RUN",
+      "reason": "outside #934's bounded audit scope"
+    }
+  },
+  "subject": {
+    "bundle_id": "smollm2-360m-broad-clean",
+    "bundle_role": "canonical-broad-clean",
+    "held_out_partition": "D3 story-disjoint 80/20",
+    "population": 72130,
+    "population_status": "full-census",
+    "decode_mode": "teacher-forced-position greedy argmax agreement",
+    "argmax_label_source": "corpus-recorded t_argmax",
+    "bits_label_source": "corpus.next"
+  },
+  "input_bindings": {
+    "source": {
+      "path": ".uor-models/sources/smollm2-360m-instruct/model.safetensors",
+      "cid": "blake3:eb23c3e8527110b83c091f8660aba676ec4993c9212a9e147503878d6087191f",
+      "bytes": 723674912,
+      "revision": "a10cc1512eabd3dde888204e902eca88bddb4951"
+    },
+    "corpus": {
+      "aggregate_cid": "blake3:7db27ffb488ad996f2317c99f3eb627ca964b28c3e730d050d1e51136c7a335e",
+      "metadata": {
+        "path": "corpus.meta",
+        "cid": "blake3:aa9d176779c1d2411e872c49c95ed585ee805ded5fa1b808ddf2f517a245b0ce",
+        "bytes": 25
+      },
+      "records": {
+        "path": "corpus.records",
+        "cid": "blake3:4692307368fecce481a4aac452fd8df4e63d2f1bd07ee0f2932108f8595f8f62",
+        "bytes": 31761312
+      }
+    },
+    "teacher_artifact": {
+      "path": "tless_artifacts.bin",
+      "cid": "blake3:6324aabec22fca5af371333cefc206f9b6762bfb52dccfb8efa0dc8fe5a1efaa",
+      "bytes": 1415444
+    },
+    "tokenizer": {
+      "path": "tokenizer.bin",
+      "cid": "blake3:70af0cb08bbcd3b323d3387ca1d7d33da39873820604d183711e8e99f9903fc1",
+      "bytes": 528975,
+      "raw_definition_cid": "blake3:944d1262d516abd56a8156dd3058a73a1bf3dc19419527592d854d162f288073",
+      "adapter_digest": "blake3:1a6ab67d2145f8f96989f529f787fc74b59952ea1be6739b612f041a15f00b5e"
+    },
+    "cover": {
+      "path": "graph-cover/cover.r4g1",
+      "cid": "blake3:df6902bc3ed3e5dee2f93fd8cc08b0614f298a6c059cb5806e9bda0b9f61520b",
+      "bytes": 192432,
+      "reference_classifier_cid": "blake3:2b12381343e074300aa5cfd8e5cbeccfb177f358cae0e5ac2cdbf6f697b7abed"
+    },
+    "graph": {
+      "path": "graph/score.r4g1",
+      "cid": "blake3:bc2366f18377718da744f72fe03648b09df1a9cf320ffceadf656c7e94aa9d48",
+      "bytes": 29871608,
+      "score_report_graph_kappa": "blake3:169cbeb8374d2ab4a905eb744c814b5c805b99ff678c439a6492a77c29062ddb"
+    },
+    "score_report": {
+      "path": "graph/score_report.json",
+      "cid": "blake3:a26522bffa999de36737520bdc92367922ec1b63a3d1b77ec0095a6a7154e3ea",
+      "bytes": 24593,
+      "schema": 26
+    },
+    "release_bundle": {
+      "path": "release-bundle.json",
+      "cid": "blake3:e274c7e674f7e6d3a9039632d79e427a37db5aeb9ddd06bdf96c9859b23c9f69",
+      "bytes": 1736,
+      "manifest_schema": 1
+    }
+  },
+  "threshold_semantics": {
+    "universal_absolute_30_percent_requirement_exists": false,
+    "historical_near_30_absolute_gate_exists": true,
+    "legacy_pinned_profile": {
+      "profile": "pinned",
+      "legacy_anchor_percent": 31.7,
+      "allowed_margin_percentage_points": 2.0,
+      "effective_floor_percent": 29.7,
+      "anchor_provenance": "legacy stories15M fixture era",
+      "code_applicability": "score reports whose quality profile is pinned or absent; relative_tla reports return before this fixed floor",
+      "applies_to_subject": false
+    },
+    "canonical_profile": {
+      "profile": "relative_tla",
+      "requirement": "rule12_precedence top-1 must be at least the same-report tla3_baseline top-1",
+      "fixed_absolute_floor_applied": false,
+      "observed_requirement_met": false
+    },
+    "rf31_promotion_gate": {
+      "metric": "paired sections-present minus sections-absent top-1 lower bound",
+      "floor_permille": 20.0,
+      "is_absolute_accuracy_floor": false
+    },
+    "disambiguation": "The legacy 29.7% fixed floor and the #908 skip arm's 29.702% observation are numerically close but govern different populations, selectors, execution scopes, and decisions."
+  },
+  "canonical_full_census": {
+    "population": 72130,
+    "score_rows": {
+      "rule12_precedence": {
+        "correct": 17595,
+        "rate_percent": 24.393456,
+        "bits_per_token": 12.020305897944855
+      },
+      "tla3_baseline": {
+        "correct": 20284,
+        "rate_percent": 28.121447,
+        "bits_per_token": 13.608811831269794
+      },
+      "rule12_minus_tla": {
+        "correct_delta": -2689,
+        "delta_permille": -37.2799
+      }
+    },
+    "rule12_vs_tla_crosstab": {
+      "both_correct": 17269,
+      "rule12_only": 326,
+      "tla_only": 3015,
+      "neither": 51520
+    },
+    "status_decomposition": {
+      "exact_context": {
+        "positions": 52398,
+        "correct": 16933,
+        "rate_percent": 32.316119,
+        "teacher_argmax_present": 35085,
+        "any_teacher_top3_present": 46283,
+        "teacher_argmax_present_not_selected": 18152,
+        "teacher_rank_median": 2.0,
+        "teacher_rank_buckets": [16933, 5209, 2746, 5411, 2568, 1378, 840, 0, 0]
+      },
+      "graph": {
+        "positions": 19436,
+        "correct": 660,
+        "rate_percent": 3.395760,
+        "teacher_argmax_present": 9962,
+        "any_teacher_top3_present": 16465,
+        "teacher_argmax_present_not_selected": 9302,
+        "teacher_rank_median": 9.0,
+        "teacher_rank_buckets": [660, 708, 935, 2526, 1472, 1079, 1018, 927, 637]
+      },
+      "novel": {
+        "positions": 296,
+        "correct": 2,
+        "rate_percent": 0.675676,
+        "teacher_argmax_present": 100,
+        "any_teacher_top3_present": 215,
+        "teacher_argmax_present_not_selected": 98,
+        "teacher_rank_median": 15.0,
+        "teacher_rank_buckets": [2, 16, 5, 11, 22, 16, 10, 0, 18]
+      },
+      "teacher_rank_bucket_labels": ["1", "2", "3", "4-8", "9-16", "17-32", "33-64", "65-128", "129+"]
+    },
+    "candidate_presence": {
+      "teacher_argmax": {
+        "present": 45147,
+        "absent": 26983,
+        "rate_percent": 62.591155
+      },
+      "any_teacher_top3": {
+        "present": 62963,
+        "absent": 9167,
+        "rate_percent": 87.291002
+      },
+      "teacher_argmax_present_but_not_selected": 27552,
+      "field_semantics": "teacher_argmax means corpus.t_argmax is anywhere in the Rule1+2 candidate list; any_teacher_top3 means at least one token from corpus.top_tokens is present. These are not candidate-list rank cutoffs."
+    },
+    "probe_depth_histogram": {
+      "meaning": "raw counts indexed by graded-prefix depth; 0 is root and 4 is full code",
+      "raw": [0, 1110, 9237, 9385, 52398],
+      "absent": 0,
+      "full_depth_supported": 52398
+    },
+    "headroom": {
+      "tla_only_positions": 3015,
+      "tla_only_ceiling_permille": 41.7995,
+      "rule12_only_cushion_positions": 326,
+      "net_deficit_positions": 2689,
+      "interpretation": "The same-position deficit is real and arithmetically closable, but neither the crosstab nor candidate-presence counts establish a production remediation without a normative-runtime paired replay."
+    },
+    "residual_alpha_zero_counterfactual": {
+      "scope": "Graph-status positions only",
+      "positions": 19436,
+      "shipped_alpha_one_correct": 660,
+      "alpha_zero_correct": 860,
+      "additional_correct": 200,
+      "full_population_ceiling_permille": 2.7728,
+      "closes_2689_position_deficit": false,
+      "interpretation": "Blanket removal of the graph residual cannot close the same-position deficit and is not a retained broad remediation."
+    }
+  },
+  "reference_off_serving_908": {
+    "classification": "reference/off-serving",
+    "selector": "R4Engine::predict_decision_candidates_with_skipmix",
+    "canonical_release_evidence": false,
+    "population": 72130,
+    "base_artifact_cid": "blake3:aaf98b68a78dd615f06dbb727a22dc4e170a152f055313fcc4fa574309f42d1e",
+    "skip_artifact_cid": "blake3:19eb04d7dbf3fccd126069982ad8cbc1de31d536fff7e77ef2dacb26e64106cc",
+    "arms": {
+      "base_sections_absent": {
+        "correct": 19372,
+        "rate_percent": 26.857064
+      },
+      "skip_sections_present": {
+        "correct": 21424,
+        "rate_percent": 29.701927
+      },
+      "label_shuffled_null": {
+        "correct": 2281,
+        "rate_percent": 3.162346
+      }
+    },
+    "paired_skip_minus_base": {
+      "correct_delta": 2052,
+      "delta_permille": 28.449,
+      "ci95_lower_permille": 25.574,
+      "ci95_upper_permille": 31.323,
+      "rf31_floor_cleared": true
+    },
+    "paired_null_minus_base": {
+      "delta_permille": -236.947,
+      "ci95_lower_permille": -240.331,
+      "null_collapsed": true
+    },
+    "current_run_reproduction": {
+      "status": "PASS",
+      "wall_time_seconds": 128.4,
+      "counts_and_artifact_cids_identical": true,
+      "result_cid": "blake3:e32e4e33d70f342ae3c0913ba00d9aef0cf789b539b9e1b658a9366c51402a26",
+      "execution_scope": "reference/off-serving",
+      "canonical_release_evidence": false
+    },
+    "reachability": {
+      "changed": 39360,
+      "ceiling_permille": 545.681,
+      "toward": 6651,
+      "away": 4599,
+      "neutral_changed": 28110
+    },
+    "limitation": "The experiment used re-emitted base/skip/null artifacts and the independently selecting reference engine; the canonical release graph is a different byte identity, lacks SKMX/PSIB, and was not evaluated through the normative R4G1Runtime selector."
+  },
+  "reachability": {
+    "source": {
+      "skipmix_fit_and_emit": "PRESENT",
+      "r4engine_consumer": "PRESENT",
+      "normative_r4g1runtime_consumer_on_source_commit": "ABSENT",
+      "claim": "Source presence alone is not serving evidence."
+    },
+    "artifact": {
+      "canonical_graph_skmx": "ABSENT",
+      "canonical_graph_psib": "ABSENT",
+      "active_skipmix_lane": false,
+      "claim": "The content-bound canonical release cannot reach the skip-mix lane."
+    },
+    "runtime": {
+      "normative_selector": "R4G1Runtime",
+      "canonical_skipmix_reachable": false,
+      "reference_selector": "R4Engine",
+      "reference_experiment_reachable": true,
+      "production_verdict": "NOT ESTABLISHED"
+    }
+  },
+  "bounded_remediation_order": [
+    {
+      "order": 1,
+      "action": "Complete #933's single normative R4G1Runtime selector, section consumption, cross-surface ownership, content-bound report, and strict admission work before making a quality claim.",
+      "metric": "structural reachability and binding",
+      "cheap_instrument": "absent-section identity, planted SKMX and PSIB reachability, cross-surface candidate equality, and wrong-binding rejection",
+      "proceed_if": "all structural falsifiers pass with zero mismatches",
+      "if_negative": "NOT ESTABLISHED; repair the named structural failure and do not run a census",
+      "max_wall_time_minutes": 60
+    },
+    {
+      "order": 2,
+      "action": "Re-emit two immutable canonical graphs with the production compiler at distinct worker counts and require byte-identical graph/report identities with SKMX and PSIB present.",
+      "metric": "artifact reachability and deterministic identity",
+      "cheap_instrument": "two-build byte comparison plus section census",
+      "proceed_if": "both sections are present and every content-bound output is byte-identical",
+      "if_negative": "UNAVAILABLE or NOT ESTABLISHED; stop before quality replay",
+      "max_wall_time_minutes": 60
+    },
+    {
+      "order": 3,
+      "action": "Run the first 6000 canonical held-out positions teacher-free through the normative selector, measuring paired TLA, sections-absent, shuffled-null, teacher-argmax and any-teacher-top3 candidate presence, rank, witness, and cross-surface rows.",
+      "metric": "same-position top-1 and reachable candidate headroom",
+      "cheap_instrument": "typed sample decision with exact internal absent-section census",
+      "proceed_if": "zero binding/witness/cross-surface failures, non-positive shuffled control, TLA lower bound at least zero, lane lower bound at least +20 permille, and projected full census at most 60 minutes",
+      "if_negative": "LIMIT, RETIRE, NOT ESTABLISHED, or UNAVAILABLE according to the typed failing condition; do not launch the census",
+      "max_wall_time_minutes": 60
+    },
+    {
+      "order": 4,
+      "action": "If the sample isolates retrieval loss, improve bounded candidate presence first; only after retrieval clears its predeclared gate may a separate ranking/calibration change be tested on target-present positions.",
+      "metric": "teacher-argmax presence before selected-rank movement",
+      "reachability_arithmetic": "the recorded teacher argmax is absent from the Rule1+2 candidate list on 26983/72130 positions and present-but-not-selected on 27552/72130; each child must declare which disjoint ceiling it can touch",
+      "cheap_instrument": "status-split teacher-argmax/any-teacher-top3 presence and teacher-rank replay on at most the 6000-position sample",
+      "proceed_if": "the proposed child reaches enough same-position errors to close its declared target without regressing the other lane",
+      "if_negative": "retire that intervention and retain the measured baseline; do not broaden search or weaken a gate",
+      "max_wall_time_minutes": 60
+    },
+    {
+      "order": 5,
+      "action": "Run the full 72130-position normative census only after a typed PROCEED from the sample; bind and publish every positive, negative, or unavailable terminal artifact.",
+      "metric": "full-census Rule1+2 versus same-position TLA and sections-absent paired effects",
+      "cheap_instrument": "the order-3 sample is binding",
+      "proceed_if": "projected wall time remains at most 60 minutes and the sample can still change the decision",
+      "if_negative": "retain the sample verdict; no hours-class run is authorized",
+      "max_wall_time_minutes": 60
+    }
+  ],
+  "evidence_links": [
+    {
+      "role": "canonical bundle attestation and score rows",
+      "repo_path": "docs/attested_broad_baseline_833.md"
+    },
+    {
+      "role": "reference/off-serving #908 record",
+      "repo_path": "docs/skipmix_endtoend_causal_908.md"
+    },
+    {
+      "role": "reference/off-serving #908 machine counts",
+      "repo_path": "docs/skipmix_endtoend_causal_908_result.json"
+    },
+    {
+      "role": "legacy fixture baseline scope",
+      "repo_path": "docs/transformerless/BASELINE.md"
+    },
+    {
+      "role": "quality-profile admission semantics",
+      "repo_path": "crates/uor-r4-api/src/engine.rs"
+    },
+    {
+      "role": "score-report field semantics",
+      "repo_path": "crates/uor-r4-graph-certify/src/score.rs"
+    }
+  ]
+}

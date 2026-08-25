@@ -19,6 +19,19 @@ durable references.
 > repository rule, the per-issue measurement records are appended, never rewritten;
 > only these live summaries are reconciled.
 
+The current quality-baseline reconciliation is tracked by #934 and its
+[append-only audit record](canonical_quality_baseline_934.md). It separates the
+historical **29.7%** fixed tolerance (pinned/legacy reports only) from broad
+`relative_tla` admission (graph top-1 must be at least the same-report TLA row).
+On `smollm2-360m-broad-clean`, the full 72,130-position census records Rule 1+2
+**24.393%** versus TLA **28.121%**; strict production admission is therefore not
+established. #908's **29.702%** remains valid teacher-free `R4Engine`
+reference/off-serving evidence, but its promotion criterion was the paired
+skip-mix improvement with a 95% lower bound of at least **+20‰**, not an
+absolute 30% threshold. #934 owns the causal remediation order; #933 then owns
+normative R4G1 reachability and bound admission, followed by #932's exact-parallel,
+observable BDD parity harness.
+
 ## Measurement discipline
 
 Every substantive claim in this repo arrives with a **pre-declared exit rule, a

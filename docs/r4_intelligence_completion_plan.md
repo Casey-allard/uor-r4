@@ -117,6 +117,21 @@ pinned source inputs through the deployed path (byte-reproducible rebuild, admit
 Gate C within bound). Downstream quality, geometry, and scale promotions are therefore
 authorized to proceed from this baseline.
 
+### S0 quality-evidence correction and dependency chain (2026-08-24)
+
+The historical promotion entry above is retained, while #934's
+[current audit](canonical_quality_baseline_934.md) reconciles its quality scope.
+The **29.7%** fixed tolerance applies only to pinned/legacy reports; broad
+`relative_tla` admission requires graph top-1 to meet the TLA comparator in the
+same report. The broad-clean full census is Rule 1+2 **24.393%** versus TLA
+**28.121%**, so strict production admission is not established. #908's
+**29.702%** remains `R4Engine` reference/off-serving evidence for a relative
+lane gate (paired 95% lower bound at least **+20‰**), not an absolute 30%
+requirement. #934 owns the bounded remediation order; the dependent sequence is
+#933 for normative R4G1 reachability and bound admission, then #932 for the
+exact-parallel, observable BDD parity harness. This note records the audit result
+without claiming that #934 or either follow-on has merged or completed.
+
 ### S1 stage verdict — REVISE (2026-08-21)
 
 All S1 child work is resolved and the pre-registered kill/redesign criterion is met, so

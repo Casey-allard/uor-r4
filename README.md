@@ -185,6 +185,19 @@ blocks new additions, though ~1,100 legacy files remain tracked in the tree
 Being precise here matters more than being impressive, because this repository's
 whole method is measurement.
 
+> **Current quality-baseline scope (#934 audit, 2026-08-24).** The rounded
+> **29.7%** fixed floor is a tolerance derived from the historical pinned
+> fixture and applies only to pinned/legacy reports. Broad-corpus
+> `relative_tla` reports instead require graph top-1 to meet or exceed the TLA
+> row in the same report. The attested `smollm2-360m-broad-clean` full census is
+> Rule 1+2 **24.393%** versus TLA **28.121%**, so strict production admission is
+> not established. The nearby **29.702%** result from #908 is `R4Engine`
+> reference/off-serving evidence against a paired **+20‰** lane-improvement
+> gate, not an absolute 30% floor. The audit and bounded remediation order live
+> in [the #934 record](docs/canonical_quality_baseline_934.md); follow-on order is
+> #933 (normative R4G1 reachability/admission), then #932 (observable exact BDD
+> parity infrastructure).
+
 **Solid, exercised by CI:**
 
 - The **transformerless compiler and runtime**. A pinned Hugging Face model
