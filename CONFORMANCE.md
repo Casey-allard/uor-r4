@@ -233,7 +233,7 @@ The `build` level is *harness-built* (structural). It is a separate axis from an
 
 | ID | Level | Execution scope | Serving reachability | Evidence | Statement |
 | --- | --- | --- | --- | --- | --- |
-| `RF-29` | `build` | `certifier-instrument` | `off-serving-path` | tests/bdd.rs, features/suites/teacher_parity_benchmarks.feature (pinned-fixture-gated; skips vacuously when fixtures absent) | Teacher parity and benchmarks for the compiled transformerless runtimes (fixture-gated empirical instrument; absent fixtures are UNAVAILABLE, never PASS) |
+| `RF-29` | `build` | `certifier-instrument` | `off-serving-path` | features/suites/teacher_parity_benchmarks.feature; tests/bdd.rs; tests/parity_determinism_932.rs; tests/parity_observability_932.rs; crates/uor-r4-model-source/src/exact_probe.rs (pinned-fixture-gated; adaptive exact W={4,available_parallelism} tuner with deduplication and durable UNAVAILABLE/non-PASS evidence) | Teacher parity and benchmarks for the compiled transformerless runtimes (fixture-gated empirical instrument; absent fixtures are UNAVAILABLE, never PASS) |
 
 ## Cited authorities
 

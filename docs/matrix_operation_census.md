@@ -54,14 +54,58 @@ The shared Llama teacher **weight matmuls** now call the pinned `uor-matmul`
 exact GEMM (`uor_matmul::slice::gemm_float`). The Accelerate `cblas_sgemv` /
 `cblas_sgemm` FFI and all hand-rolled SIMD dot helpers are removed. GPT-2's
 separate dense sites are covered by their own certified-exact row below.
-The migrated Llama result is correctly-rounded exact and byte-identical across
-targets (no per-machine Accelerate variance) — a determinism improvement for
-teacher outputs and the derived corpus/artifact bytes that bind those outputs.
+The migrated Llama path requires the correctly rounded exact dot-product owner
+and requires byte-identical results whenever supported exact backends or targets
+are compared; it does not opt into per-machine Accelerate accumulation order.
+The #932 structural gates establish worker-schedule equality on the local
+target. Cross-target and cross-machine live-model equality remain empirical
+criteria with status **NOT_RUN**, as recorded below; they are not inferred from
+ownership of the exact substrate.
 
 | Site | Operation | Backend | Classification |
 |---|---|---|---|
 | `uor-r4-model-source/src/lib.rs` `matmul` | matrix–vector (`W·x`) | `uor_matmul::slice::gemm_float` | uor-matmul-owned |
 | `uor-r4-model-source/src/lib.rs` `matmul_batched` | matrix–matrix (`X·Wᵀ`) | `uor_matmul::slice::gemm_float` | uor-matmul-owned |
+
+### Exact-parallel teacher-parity boundary (#932)
+
+The live SmolLM2 parity contract has two independent dimensions. `S` is the
+number of private-state trajectories advanced together through one immutable
+weight allocation; `W` is the size of the one persistent exact output-row
+worker pool. Scientific work stays fixed at eight canonical lanes in an
+`S = 8` shared-weight batch. The binding M1 tuner compares identical work at
+`W = 4` and `W = 8`, then selects the faster exact point; W=1/2/4/8 remain
+focused structural schedules rather than four expensive live-model runs. `S`
+and `W` are independent, so selecting four row workers does not delete or
+serialize the eight private trajectories.
+
+**Guarantee.** Parallel work may divide only a projection's **output-row set**.
+Each assigned row must retain the complete pinned `uor-matmul` exact dot
+product; the reduction dimension may not be split, partially reduced,
+reassociated, or merged across workers. Completion order may vary, but rows,
+streams, and metrics must return to canonical input order before becoming
+observable. Status: **Structural**. The #932 exact-bit, owner-plan,
+shuffled-completion, and deterministic-schedule integration gates pass on the
+local target; this status does not promote the unrun live-model criterion
+below.
+
+The structural gate must cover every configured position, stream, raw-logit
+word, top-k row/tie, greedy choice, persistent-state record, lane output CID,
+transcript byte, metric, and ordered reduction. Observed physical batches,
+logical forwards, matrix calls and widths, row tiles, output cells, and scalar
+terms must equal the plan derived from the owner `exact_forward_plan(S)`; a
+declared `states.len()` or planned occupancy is not observation evidence.
+Consequently this work must neither select the #804 Accelerate exception nor add
+a new teacher-arithmetic era. Any raw-logit mismatch refuses the configuration.
+
+**Empirical Criterion.** Both live tuner points must preserve the complete exact
+trace and owner-plan totals. The faster exact point is selected with a
+deterministic tie-break, and its safety-adjusted projection for the optimized
+actual work must remain below the configured wall ceiling (never more than
+eight hours). Speedup and CPU utilization are diagnostic measurements, not
+arbitrary qualification floors. Status: **Unproven**; execution verdict:
+**NOT_RUN**. Current evidence is recorded append-only in
+[`teacher_parity_parallelism_932.md`](teacher_parity_parallelism_932.md).
 
 No `cblas_*` symbol remains anywhere in the default production chain; the CI
 guard now enforces zero library-BLAS use (only the two dependency-audit files,

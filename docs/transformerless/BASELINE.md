@@ -114,7 +114,10 @@ This does not relabel #908's 29.702% `R4Engine` reference/off-serving row and
 does not establish instruction following, reasoning, factuality, semantic
 abstention, free-running coherence, live-teacher parity, or a cross-model
 floor. The BDD suite was 124 / 124, but live-teacher parity fixtures were absent
-and those scenarios vacuously skipped; #932 remains downstream.
+and those scenarios vacuously skipped. #932 subsequently landed the structural
+host instrument on an `UNAVAILABLE` / `NOT_RUN` live branch; live parity remains
+**NOT ESTABLISHED** (see
+[`teacher_parity_parallelism_932.md`](../teacher_parity_parallelism_932.md)).
 
 **Canonical bits/token (issue #76, resolved 2026-07-22):** one definition — mean cross-entropy of
 the true next token under a scorer's predicted distribution, `(1/N) Σ −log2 P_scorer(v_i|c_i)`

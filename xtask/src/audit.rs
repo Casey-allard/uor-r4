@@ -109,7 +109,7 @@ fn effective_lines(text: &str) -> Vec<(usize, &str)> {
         }
         let opens = raw.matches('{').count() as i32;
         let closes = raw.matches('}').count() as i32;
-        if line.starts_with("#[cfg(test)]") {
+        if line.starts_with("#[cfg(test)]") || line.starts_with("#[cfg(all(test,") {
             in_test = true;
             test_depth = depth;
         }
@@ -190,11 +190,17 @@ pub fn audit_limits(root: &Path) -> Result<(), Fail> {
     // could not be ingested into a valid teacher at construction. It is the
     // host-side counterpart of `NotAProduct`, not a runtime limitation, so it is
     // sanctioned here alongside the graph substrate's three.
+    // The three #932 exact-harness errors are also construction/admission
+    // boundaries, not deployed-runtime limitations: they reject an invalid
+    // caller-declared shape, bounded state, or evidence view before use.
     let sanctioned = [
         "NotAProduct",
         "ObservedBound",
         "KappaError",
         "SourceUnavailable",
+        "ExactForwardPlanError",
+        "TeacherStateCapacityError",
+        "ExactMulticoreProbeValidationError",
     ];
 
     let mut violations = Vec::new();
@@ -456,7 +462,21 @@ fn gather_all(dir: &Path, out: &mut Vec<PathBuf>) -> Result<(), Fail> {
 
 #[cfg(test)]
 mod tests {
-    use super::is_std_io_trait_result;
+    use super::{effective_lines, is_std_io_trait_result};
+
+    #[test]
+    fn cfg_all_test_modules_are_excluded_from_shipped_source_audits() {
+        let source = r#"
+#[cfg(all(test, not(target_arch = "wasm32")))]
+mod tests {
+    fn test_only() -> Result<(), String> { Ok(()) }
+}
+fn shipped() -> Result<(), SourceUnavailable> { Ok(()) }
+"#;
+        let lines = effective_lines(source);
+        assert!(!lines.iter().any(|(_, line)| line.contains("test_only")));
+        assert!(lines.iter().any(|(_, line)| line.contains("shipped")));
+    }
 
     #[test]
     fn std_io_result_carve_out_requires_adjacent_fully_qualified_trait_impl() {

@@ -6,9 +6,10 @@ programme — what has been measured, refuted and left open — lives in
 purpose. Research direction is set by measurement and changes faster than this
 list does.
 
-_Last reviewed: 2026-08-25 (#933 completed the exact normative-runtime evidence
-branch with RATIFY and strict schema-2 admission). Prior: 2026-08-24 (#933
-reopened S0 after the scorer-scope audit)._
+_Last reviewed: 2026-08-25 (#932 completed the exact-parallel host instrument
+and refused the pre-#933 135M bundle before teacher access). Prior: 2026-08-25
+(#933 completed the exact normative-runtime evidence branch with RATIFY and
+strict schema-2 admission)._
 
 > **Post-v0.1 intelligence sequencing lives in the
 > [R4 Intelligence Completion Plan](docs/r4_intelligence_completion_plan.md)** —
@@ -37,12 +38,13 @@ claiming live-teacher parity.
 
 Current order:
 
-1. **Continue through the native dependency chain #932 → #931 → #839.** #932
-   owns the exact-parallel, observable live-teacher BDD harness. #933 ran no
-   teacher forward or parity marathon; its full-census quality evidence is
-   teacher-free over already-recorded canonical labels. The repository BDD run
-   was 124 / 124, but live-teacher fixtures were absent and those scenarios
-   vacuously skipped.
+1. **Continue through the native dependency chain #931 → #839.** #932 now
+   provides the exact-parallel, observable live-teacher BDD harness, but its
+   teacher-free gate refused the selected 135M bundle because that bundle has
+   no schema-2 production envelope. The tuner and fixture-present measurement
+   were therefore `NOT_RUN`, with zero teacher work; live throughput, speedup,
+   and parity remain `NOT ESTABLISHED`. #931 must preserve that boundary rather
+   than treating the structural harness pass as live parity evidence.
 2. **Keep the claim boundary fixed.** The #933 RATIFY is exact-artifact and
    teacher-forced-position evidence, not instruction following, reasoning, or
    free-running coherence.
@@ -52,6 +54,14 @@ Current order:
    route-attention contract, and eventual `uor-r4` alias removal.
 
 ## Landed
+
+- [x] **#932 exact-parallel live-teacher parity instrument** — *negative
+  prerequisite outcome, 2026-08-25*. Deterministic scheduling, durable
+  observability, planted negatives, and fail-closed preflight are implemented.
+  The selected canonical 135M bundle predates #933's schema-2 production
+  envelope, so the preflight refused before opening teacher weights and the
+  live tuner/parity marathon did not run. See the
+  [append-only record](docs/teacher_parity_parallelism_932.md).
 
 - [x] **#933 normative R4G1 serving and deployed-quality reconciliation** —
   *RATIFY, 2026-08-25*. One `R4G1Runtime` candidate/token owner now reaches the

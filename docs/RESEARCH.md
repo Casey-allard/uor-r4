@@ -32,10 +32,13 @@ witness failures, a collapsing shuffled-label control, deterministic 4/8-worker
 rebuilds, and strict empty-store schema-2 admission, #933 records **RATIFY** for
 that exact artifact, population, selector, and greedy decode. #908's **29.702%**
 remains valid `R4Engine` reference/off-serving evidence rather than being
-relabeled. The repository BDD run was 124 / 124, but live-teacher parity
-fixtures were absent and those scenarios vacuously skipped; this is not parity
-evidence. #932's exact-parallel, observable live-teacher BDD harness remains a
-distinct downstream task.
+relabeled. #932 has since implemented the exact-parallel, observable
+live-teacher BDD harness, but its teacher-free production gate rejected the
+selected canonical 135M bundle because it has no schema-2 `release-bundle.json`
+envelope. The tuner and fixture-present measurement were `NOT_RUN` with zero
+teacher work. The structural harness gates pass; live exact-multicore
+throughput, speedup, and parity remain **NOT ESTABLISHED**. See the
+[append-only #932 record](teacher_parity_parallelism_932.md).
 
 ## Measurement discipline
 

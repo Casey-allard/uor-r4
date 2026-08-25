@@ -182,6 +182,25 @@ live-teacher fixtures were absent and those scenarios vacuously skipped; no
 instruction-following, reasoning, or free-running generation claim is promoted.
 The next native dependency is #932 → #931 → #839.
 
+### S2 verification instrument — negative prerequisite outcome (2026-08-25, #932)
+
+#932 implemented the deterministic exact-parallel scheduler, a complete
+registered trace shape,
+durable progress/final reports, resource sampling, and planted-negative gates
+for the live SmolLM2-135M parity suite. Its post-#933 teacher-free preflight
+then rejected the selected canonical 135M bundle before opening teacher weights:
+the bundle predates the required schema-2 `release-bundle.json` production
+envelope. The direct tuner and fixture-present parity measurement are therefore
+`NOT_RUN`, and every live-work counter is zero.
+
+**Verdict: close #932 on its predeclared negative branch.** The host instrument
+is established; live exact-multicore throughput, speedup, resource ceilings,
+and parity are **NOT ESTABLISHED** for this bundle. No different-CID bundle was
+substituted and no admission or quality threshold was weakened. The next native
+dependency is #931 → #839, carrying this explicit non-pass boundary. Full
+bindings and refusal evidence are in
+[`teacher_parity_parallelism_932.md`](teacher_parity_parallelism_932.md).
+
 ### S1 stage verdict — REVISE (2026-08-21)
 
 All S1 child work is resolved and the pre-registered kill/redesign criterion is met, so

@@ -212,8 +212,9 @@ whole method is measurement.
 > was **124 / 124**, but live-teacher parity fixtures were absent and those
 > scenarios vacuously skipped, so it is not parity evidence. See the
 > [#933 evidence record](docs/normative_r4g1_quality_933.md) and
-> [#934 genealogy](docs/canonical_quality_baseline_934.md); #932's observable
-> exact live-teacher BDD work remains a distinct downstream verification task.
+> [#934 genealogy](docs/canonical_quality_baseline_934.md). #932 subsequently
+> landed the observable host instrument, while live parity remains **NOT
+> ESTABLISHED**; see the [#932 evidence record](docs/teacher_parity_parallelism_932.md).
 
 **Solid, exercised by CI:**
 
@@ -670,7 +671,18 @@ for script compatibility), `R4_TLESS_TLA6`,
 size and standard error travel with every rate, so a sampled number cannot be
 read as a census), `R4_GATE_C_SKIP_ARMS=right_context` (skips the whole-corpus
 right-context code pass — about 60% of a sampled run's wall clock), plus
-per-harness caps.
+per-harness caps. Live teacher parity requests a logical private-state batch
+cohort of `S = R4_PARITY_STREAMS` lanes and one shared physical exact row-worker
+pool of `W = R4_PARITY_WORKERS` workers. `S` is not a second worker pool, and
+`W` workers are not paired or nested per lane. The pinned scientific workload
+keeps eight canonical lanes; the bounded tuner compares identical S=8 work at
+the host's all-logical-CPU width and its four-worker candidate, selecting the
+faster exact point. Those are W=8 and W=4 on the binding M1, not prescribed
+utilization targets. It does not spend live-model
+time on a ceremonial 1/2/4/8 sweep or candidate warm-ups. Progress,
+deterministic evidence, adaptive work counters, final JSON, and the eight-hour
+maximum safety ceiling are specified in [the #932 exact-parallel run
+contract](docs/teacher_parity_parallelism_932.md).
 
 **Capacity overrides** — the `R4_COVER_*` and `R4_*_SAMPLE` family share one
 contract: **unset is κ-neutral; set-but-invalid or zero panics.** A knob that
@@ -698,9 +710,37 @@ cargo check --target wasm32-unknown-unknown -p uor-r4-wasm-router --lib
 ```
 
 Other suites: `cargo test --test bdd` (or `just bdd`) runs the Cucumber
-teacher-parity suite — it **vacuously skips** without a compiled bundle, so check
-the fixture before trusting green. `cargo test --doc --workspace` runs doc tests.
-`cargo +nightly fuzz run parse_arbitrary` fuzzes the format parser.
+teacher-parity suite. Without every required conditional fixture its parity
+evidence is **UNAVAILABLE**, not PASS, even if the enclosing test process exits
+successfully. With fixtures present, the harness is required to advance a
+full-width cohort of distinct prompts/generation trajectories through shared
+weights while one persistent worker pool partitions output rows; it must not
+change the reduction order within any dot product. The live tuner keeps all
+eight lanes and compares the host's W=available/W=4 candidates over exactly the
+same work, then adopts the faster bit-exact result. Candidate widths are a
+bounded break-even tuning choice, not a quota. Speedup and utilization are
+reported, not arbitrary gates. Admission requires complete trace/accounting
+evidence and a safety-adjusted projection below the configured hard wall. The
+expensive S4 work reuses transcript prefix states and extends one causal
+continuation from 1 to at most 8 steps only when another step can still change
+the verdict. Exact model, transpose/output, and per-worker scratch buffers are
+retained: one-time preparation is reported outside timing, and measured
+forwards must add zero workspace capacity. Heartbeats expose in-flight exact
+matrix/tile/cell/scalar progress and base ETA on that monotonic work instead of
+mislabeling a long active forward as stalled.
+Before opening the teacher, run
+`R4_PARITY_PREFLIGHT_ONLY=1 cargo test --test bdd --offline`; this teacher-free
+check parses every compiled prerequisite, exercises all eight canonical legacy
+and graph seeds, and records a content-bound preflight artifact with zero
+teacher forwards. Both the explicit preflight and the ordinary BDD loader write
+the refusal artifact before returning non-PASS, including the exact reason and
+safe per-input identities. The direct tuner also requires the artifact's
+current code-contract identity, selected paths, and recomputed compiled-input
+plus complete production-admission CIDs before it can open teacher weights. A
+non-PASS preflight blocks the expensive phases rather than becoming a vacuous
+green skip.
+`cargo test --doc --workspace` runs doc tests. `cargo +nightly fuzz run
+parse_arbitrary` fuzzes the format parser.
 
 **CI** reports five required checks. On `pull_request` they are fast — claim
 wording, fmt, clippy, `cargo audit`. On `merge_group` the full ladder runs
@@ -727,7 +767,7 @@ harness inventory is in [docs/RESEARCH.md](docs/RESEARCH.md).
 
 | Symptom | Cause and fix |
 |---|---|
-| κ tests pass suspiciously fast | `/tmp/ref/out/model.bin` is missing, so they **skip silently and report vacuous green**. `/tmp` cleanup deletes it. Re-fetch (below) and confirm the file exists before trusting a pass. |
+| κ tests pass suspiciously fast | `/tmp/ref/out/model.bin` may be missing. The enclosing test can exit successfully, but Gate E evidence is **UNAVAILABLE**, not PASS. `/tmp` cleanup deletes the fixture; re-fetch it below and confirm the file exists before recording a verdict. |
 | fmt/clippy disagree with CI | A non-rustup Rust earlier in `PATH` ignores the toolchain pin. Check `which cargo`. |
 | clippy passes locally, fails in CI | You omitted `--all-features`. Use the exact invocation above. |
 | `r4 ask` refuses to run | Production mode requires a schema-2 envelope bound to the exact full deployed-quality census. Historical release or locally compiled bundles are research-only; inspect them with explicit `r4 ask --research ...`. Do not treat that warning-bearing path as production evidence. |
@@ -735,7 +775,7 @@ harness inventory is in [docs/RESEARCH.md](docs/RESEARCH.md).
 | Port 8000 already in use | Use `--port` / `UOR_R4_PORT`, or `PORT=9000 ./uor-r4-cli`. |
 | Compiled bundle behaves oddly after an upgrade | The on-disk store in `.uor-models/` may predate the u32 token migration. A full recompile refreshes it. |
 | `--revision` rejected | It must be a full 40-character commit hash; the server refuses unpinned revisions. |
-| Measurement harness prints `SKIP` | Its corpus fixtures or `R4_*` inputs are absent. Check the harness header for what it needs. |
+| Measurement harness prints `SKIP` | Its corpus fixtures or `R4_*` inputs are absent. Record the affected evidence as **UNAVAILABLE**, then check the harness header for what it needs. |
 
 Fetch the reference checkpoint:
 

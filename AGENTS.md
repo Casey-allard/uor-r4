@@ -130,14 +130,77 @@ next to Gate C's anchors (Gate C scores a held-out partition with the
 compiler-side plain baseline; S6 replays recorded positions, so its ~0.43
 figures sit above the 0.181 anchor by construction). It runs
 in the default `cargo test --test bdd` when `.uor-models/sources/
-smollm2-135m-instruct` and the compiled bundle are present, and vacuously
-skips otherwise (κ-test convention — check the fixture before trusting green).
-Budgets: `R4_PARITY_POSITIONS` (256), `R4_PARITY_GEN_TOKENS` (128),
-`R4_PARITY_RUNS` (3), `R4_PARITY_CORPUS_POSITIONS` (1000). Thresholds are
-pinned empirical floors with ~20%
+smollm2-135m-instruct` and the compiled bundle are present. If a conditional
+fixture is absent, that evidence is **UNAVAILABLE** even when the enclosing test
+process exits successfully; never report the unexercised parity scenario as
+PASS.
+Budgets: `R4_PARITY_POSITIONS` (256), `R4_PARITY_GEN_TOKENS` (8, a hard
+adaptive ceiling), `R4_PARITY_RUNS` (1), `R4_PARITY_CORPUS_POSITIONS` (1000).
+Thresholds are pinned empirical floors with ~20%
 margin; the ~1% top-1 figures are out-of-distribution honesty, not a bug —
 the suite's 8 prompts are novel text, unlike Gate C's same-corpus replay
 (see the comment above the constants in `tests/bdd.rs`).
+
+The fixture-present live-teacher work is required to be an exact-parallel,
+multi-stream host measurement, not a single-stream latency benchmark hidden
+behind an intra-forward thread pool. `S = R4_PARITY_STREAMS` is the independent
+private-state trajectory/batch width; `W = R4_PARITY_WORKERS` is the one
+persistent exact output-row worker pool. Scientific coverage stays fixed at
+eight canonical lanes in an `S = 8` shared-weight batch. `S` and `W` are
+independent: the bounded tuner compares the host's all-logical-CPU width with
+its four-worker candidate (deduplicated when equal) over the same eight-lane
+work and selects the faster exact point. On the binding M1 these candidates are
+`W = 8` and `W = 4`; neither width is a utilization quota or performance goal.
+A physical teacher
+batch must advance all `S` states through shared immutable weights while the
+`W` pool divides output rows only; no worker may split or reassociate a row's
+pinned exact dot-product reduction. Compiled candidates must receive the same
+lane seeds and logical workload, and all results must reduce in canonical
+prompt/position order. The shared teacher transcript also retains the S4 prefix
+states, eliminating duplicate teacher prefill and the independent S4 warm-up.
+
+Every live run must emit flushed JSONL progress events, deterministic evidence,
+and a final JSON report with fixture identities/status, actual tokenized work,
+configured/effective/current/peak stream and worker occupancy, complete
+physical-batch/logical-forward/matrix/tile/cell/scalar-term accounting,
+per-lane state/output identities, elapsed/rate/ETA basis, CPU/RSS readings, a
+retained-workspace capacity/growth ledger, and a typed final `PASS`, `FAIL`,
+`UNAVAILABLE`, `ABORTED`, or `NOT_RUN` verdict. Model, transpose/output, and
+per-worker exact scratch buffers are prepared outside timed work; any capacity
+growth during a measured forward fails the steady-state evidence. A heartbeat
+must continue while an individual exact forward is in flight; its liveness and
+ETA use monotonic in-flight exact scalar-term progress (worker-task progress is
+the fallback), while completed-forward throughput remains a separate rate. The
+bounded live tuner compares equal S=8 work at W=available/W=4 without full-model
+candidate warm-ups, establishes exact trace equality plus owner-plan
+reconciliation, and selects the faster exact point. W=1/2/4/8 equality remains
+a focused structural gate. Speedup and CPU utilization are recorded diagnostics
+rather than admission floors. Full work launches only when the selected exact
+point has complete evidence and a safety-adjusted projection below the
+configured hard wall ceiling, capped at eight hours. S4 starts with one causal
+decode step per lane and extends through 2, 4, then 8 only while more work can
+change its verdict. Any missing or failed evidence refuses the full run. See
+`docs/teacher_parity_parallelism_932.md` and `docs/CONFIGURATION.md`.
+
+The exact teacher, pinned `uor-matmul` crates, and both compiled S4 engine paths
+have narrow `profile.test.package` opt-level 3 overrides in the root manifest.
+Do not remove them and then interpret an opt-level-0 BDD rate as serving
+performance. The rest of the workspace retains the normal test profile.
+
+Before spending any live-teacher work, run
+`R4_PARITY_PREFLIGHT_ONLY=1 cargo test --test bdd --offline`. This teacher-free
+gate parses the tokenizer and every compiled prerequisite, exercises all eight
+canonical legacy and graph seeds through typed deployed decisions, and writes a
+content-bound `uor-r4.teacher-parity-preflight/1` success or refusal artifact
+before exiting. The ordinary BDD fixture loader publishes the same artifact
+before it can open the teacher. Refusals retain the exact reason, safe input
+paths/CIDs, `teacher_source_opened=false`, and `teacher_forwards=0`; an
+unwritable artifact path is itself a visible failure. A failed preflight blocks
+the tuner and full suite; it is not bypassed as a fixture skip. The artifact's
+`authorizing_contract_cid` binds the current executor, BDD, model, manifest,
+and toolchain sources. Direct tuner invocation validates that binding plus the
+selected paths and current compiled-input plus complete production-admission
+CIDs before loading teacher weights.
 
 ## Process conventions
 
@@ -269,7 +332,8 @@ never sit between two pieces of code work.
 ## Things that bite
 
 - `/tmp/ref/out/model.bin` disappears on reboot/periodic /tmp cleanup — κ tests
-  skip silently and report vacuous green.
+  may still exit successfully without exercising reproduction; the Gate E
+  evidence is **UNAVAILABLE**, not PASS.
 - `crates/uor-r4-graph-format/fuzz/target` must never be committed (gitignored).
 - Fuzz targets need nightly (`cargo +nightly fuzz run …`); the stable
   deterministic mutation smoke runs under plain `cargo test`.

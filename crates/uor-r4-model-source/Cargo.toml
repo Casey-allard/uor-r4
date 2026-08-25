@@ -8,7 +8,7 @@ edition = "2021"
 # #804 measurement-only exception (maintainer-approved 2026-08-18): route
 # the TEACHER weight matmuls through Apple Accelerate for observation
 # passes. Never a default; the matrix_operation_census gate pins the
-# exception file, its feature gating, and its single dispatch site. The
+# exception file, its feature gating, and its two dispatch sites. The
 # deployed serving runtime is unaffected by construction (P-4 contract).
 observation-blas-exception = []
 
@@ -19,9 +19,18 @@ serde_json = "1.0"
 blake3 = "=1.5.0"
 libm = "0.2"
 hex = "0.4.3"
-# #655-B: the pinned exact matmul substrate. Promoted from the dev-only parity
-# pin (#622, crates/uor-r4-graph-cli) to a production dependency here; #655-B
-# wires it into the teacher executor in place of the Accelerate `cblas_*` FFI.
-# no_std, forbid(unsafe), zero-heap — its numerical path is byte-identical across
-# targets, so promoting it makes teacher output cross-machine reproducible.
+# #655-B/#932: the pinned exact matmul substrate. Hosted teacher builds enable
+# only its `std` runtime CPU-feature detection; exact output-bit identity across
+# selected kernels is an enforced #932 requirement. Wasm retains the
+# feature-free portable build.
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+rayon = "1.10"
+uor-matmul = { git = "https://github.com/UOR-Foundation/uor-matmul.git", version = "0.1.0", rev = "b13c98449948174f590e337c4dc25dfc394a07d0", default-features = false, features = ["std"] }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
 uor-matmul = { git = "https://github.com/UOR-Foundation/uor-matmul.git", version = "0.1.0", rev = "b13c98449948174f590e337c4dc25dfc394a07d0", default-features = false }
+
+[dev-dependencies]
+# #932: the direct ignored tuner independently exercises the same filesystem-
+# free schema-2 admission used by production immediately before teacher access.
+uor-r4-api = { version = "0.1.0", path = "../uor-r4-api", default-features = false, features = ["runtime"] }

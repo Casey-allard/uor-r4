@@ -110,3 +110,46 @@ uor-foundation-sdk = { git = "https://github.com/UOR-Foundation/UOR-Framework.gi
 # workspace exclude) when uor-addr/uor-prism-crypto move to a blake3 (>=1.6) that
 # no longer depends on arrayref. Tracked in #868.
 arrayref = { path = "third_party/arrayref" }
+
+# #932: fixture-present host verification executes the exact certifier-side
+# teacher harness. These narrow overrides intentionally affect every test build
+# of the listed packages so that verification never becomes an opt-level-0 run.
+[profile.test.package.uor-r4-model-source]
+opt-level = 3
+
+[profile.test.package.uor-matmul]
+opt-level = 3
+
+[profile.test.package.uor-matmul-core]
+opt-level = 3
+
+[profile.test.package.uor-matmul-codec]
+opt-level = 3
+
+[profile.test.package.uor-matmul-gemm]
+opt-level = 3
+
+[profile.test.package.uor-matmul-kernels]
+opt-level = 3
+
+# S4 compares the deployed compiled engines with the teacher. Leaving those
+# engines at test-profile opt-level 0 would waste wall time and turn the
+# empirical ratio into a debug-build comparison rather than the shipped CPU
+# path. Keep only the packages on that measured path optimized.
+[profile.test.package.uor-r4-core]
+opt-level = 3
+
+[profile.test.package.uor-r4-graph-format]
+opt-level = 3
+
+[profile.test.package.uor-r4-graph-runtime]
+opt-level = 3
+
+[profile.test.package.uor-r4-graph-certify]
+opt-level = 3
+
+[profile.test.package.uor-r4-api]
+opt-level = 3
+
+[profile.test.package.uor-r4-wasm-router]
+opt-level = 3

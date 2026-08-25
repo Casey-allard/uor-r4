@@ -3,13 +3,15 @@
 //! rmsnorm/softmax/RoPE/SwiGLU op-for-op, libm via glibc on gnu targets.
 //! The Safetensors adapter also loads pinned Hugging Face SmolLM2 weights
 //! into this same source-only teacher surface. Llama/shared projections use the
-//! pinned portable exact `uor-matmul` owner. GPT-2 uses its declared
+//! pinned exact `uor-matmul` owner. GPT-2 uses its declared
 //! certified-native/exact-fallback dense and attention owners; canonical mode
 //! separately selects the remaining libm and ordered-reduction family.
 
 pub mod attention;
 pub mod conformance;
 pub mod dense;
+mod exact_executor;
+mod exact_probe;
 pub mod geometry;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod gpt2;
@@ -21,6 +23,32 @@ pub mod progress;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod teacher;
 
+#[cfg(all(test, not(target_arch = "wasm32")))]
+use exact_executor::AtomicTeacherExecutionProgress;
+use exact_executor::ExactExecutor;
+pub use exact_executor::{
+    exact_backend_report, ExactBackendReport, TeacherExecutionConfig, TeacherExecutionObserver,
+    TeacherExecutionPreparation, TeacherExecutionSnapshot, UOR_MATMUL_REVISION,
+};
+#[cfg(not(target_arch = "wasm32"))]
+pub use exact_probe::production_admission_component_cids;
+pub use exact_probe::{
+    exact_executor_contract_cid, exact_probe_host_identity, ExactMulticoreProbeEventsBinding,
+    ExactMulticoreProbeExpectation, ExactMulticoreProbeExpectationShapes, ExactMulticoreProbeHost,
+    ExactMulticoreProbePrestart, ExactMulticoreProbeReport, ExactMulticoreProbeResources,
+    ExactMulticoreProbeRun, ExactMulticoreProbeSelection, ExactMulticoreProbeSource,
+    ExactMulticoreProbeStatus, ExactMulticoreProbeTraceShape, ExactMulticoreProbeValidationError,
+    ExactMulticoreProbeVerdict, ExactMulticoreProbeWork, ExactMulticoreProbeWorkerPlan,
+    EXACT_MULTICORE_PROBE_CONTEXT_ASSUMPTION, EXACT_MULTICORE_PROBE_DEADLINE_POLICY,
+    EXACT_MULTICORE_PROBE_REGISTERED_GENERATION_LANES,
+    EXACT_MULTICORE_PROBE_REGISTERED_GENERATION_TOKENS,
+    EXACT_MULTICORE_PROBE_REGISTERED_MAX_SEQUENCE_POSITION,
+    EXACT_MULTICORE_PROBE_REGISTERED_STATE_SEQUENCE_CAPACITY,
+    EXACT_MULTICORE_PROBE_REGISTERED_TRANSCRIPT_BATCH_WIDTHS,
+    EXACT_MULTICORE_PROBE_REGISTERED_TRANSCRIPT_FORWARDS, EXACT_MULTICORE_PROBE_SCHEMA,
+    EXACT_MULTICORE_PROBE_SELECTION_POLICY, EXACT_MULTICORE_PROBE_WALL_CEILING_SECONDS,
+    PRODUCTION_ADMISSION_COMPONENTS,
+};
 #[cfg(not(target_arch = "wasm32"))]
 pub use gpt2::HuggingFaceGpt2Oracle;
 #[cfg(not(target_arch = "wasm32"))]
@@ -37,6 +65,234 @@ pub struct Config {
     pub rms_norm_eps: f32,
     pub rope_interleaved: bool,
     pub r4_attention: bool,
+}
+
+/// Exact executor work owned by one serial or batched teacher forward.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
+pub struct ExactForwardPlan {
+    /// Independent sequence states advanced together through shared weights.
+    pub batch_width: usize,
+    /// Exact matrix calls (`7 * layers + vocabulary projection`).
+    pub matrix_calls: u64,
+    /// Disjoint output-row tiles owned by the executor.
+    pub row_tiles: u64,
+    /// Scheduler tasks; one task owns each complete output-row tile.
+    pub worker_tasks: u64,
+    /// Output cells completed across every batch lane.
+    pub output_cells: u64,
+    /// Scalar product terms absorbed into complete exact accumulators.
+    pub scalar_terms: u64,
+}
+
+/// Why an exact forward counter plan cannot be represented.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ExactForwardPlanError {
+    /// A forward batch must contain at least one independent sequence.
+    EmptyBatch,
+    /// A trace-state capacity must be nonzero and within model context.
+    InvalidSequenceCapacity,
+    /// Model geometry or the requested batch exceeds the counter domain.
+    ArithmeticOverflow,
+    /// This build routes teacher projections through a non-exact exception.
+    ExactBackendUnavailable,
+}
+
+impl std::fmt::Display for ExactForwardPlanError {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(formatter, "exact forward plan unavailable: {self:?}")
+    }
+}
+
+impl std::error::Error for ExactForwardPlanError {}
+
+fn exact_forward_plan_for_geometry(
+    cfg: &Config,
+    batch_width: usize,
+    mut row_tiles_for: impl FnMut(usize) -> usize,
+) -> Result<ExactForwardPlan, ExactForwardPlanError> {
+    use ExactForwardPlanError as Error;
+
+    if batch_width == 0 {
+        return Err(Error::EmptyBatch);
+    }
+    if exact_backend_report().arithmetic_owner != "uor-matmul exact GEMM" {
+        return Err(Error::ExactBackendUnavailable);
+    }
+    let checked_mul =
+        |left: usize, right: usize| left.checked_mul(right).ok_or(Error::ArithmeticOverflow);
+    let checked_add =
+        |left: usize, right: usize| left.checked_add(right).ok_or(Error::ArithmeticOverflow);
+    let dim = cfg.dim;
+    let hidden = cfg.hidden;
+    let layers = cfg.n_layers;
+    let kv_dim = checked_mul(dim, cfg.n_kv_heads)?
+        .checked_div(cfg.n_heads)
+        .ok_or(Error::ArithmeticOverflow)?;
+    let matrix_calls = checked_add(checked_mul(layers, 7)?, 1)?;
+    let dim_tiles = row_tiles_for(dim);
+    let kv_tiles = row_tiles_for(kv_dim);
+    let hidden_tiles = row_tiles_for(hidden);
+    let layer_tiles = checked_add(
+        checked_add(checked_mul(dim_tiles, 3)?, checked_mul(kv_tiles, 2)?)?,
+        checked_mul(hidden_tiles, 2)?,
+    )?;
+    let row_tiles = checked_add(checked_mul(layer_tiles, layers)?, row_tiles_for(cfg.vocab))?;
+    let layer_output_rows = checked_add(
+        checked_add(checked_mul(dim, 3)?, checked_mul(kv_dim, 2)?)?,
+        checked_mul(hidden, 2)?,
+    )?;
+    let output_rows = checked_add(checked_mul(layer_output_rows, layers)?, cfg.vocab)?;
+    let output_cells = checked_mul(output_rows, batch_width)?;
+    let dim_squared = checked_mul(dim, dim)?;
+    let kv_terms = checked_mul(kv_dim, dim)?;
+    let hidden_terms = checked_mul(hidden, dim)?;
+    let layer_scalar_terms = checked_add(
+        checked_add(checked_mul(dim_squared, 2)?, checked_mul(kv_terms, 2)?)?,
+        checked_mul(hidden_terms, 3)?,
+    )?;
+    let vocabulary_terms = checked_mul(cfg.vocab, dim)?;
+    let scalar_terms = checked_mul(
+        checked_add(checked_mul(layer_scalar_terms, layers)?, vocabulary_terms)?,
+        batch_width,
+    )?;
+    let as_u64 = |value| u64::try_from(value).map_err(|_| Error::ArithmeticOverflow);
+    let row_tiles = as_u64(row_tiles)?;
+    Ok(ExactForwardPlan {
+        batch_width,
+        matrix_calls: as_u64(matrix_calls)?,
+        row_tiles,
+        worker_tasks: row_tiles,
+        output_cells: as_u64(output_cells)?,
+        scalar_terms: as_u64(scalar_terms)?,
+    })
+}
+
+fn exact_probe_trace_shape_for_geometry(
+    cfg: &Config,
+    sequence_capacity: usize,
+    positions: usize,
+    batch_width: usize,
+    top_k: usize,
+) -> Result<ExactMulticoreProbeTraceShape, ExactForwardPlanError> {
+    use ExactForwardPlanError as Error;
+
+    if positions == 0 || batch_width == 0 {
+        return Err(Error::EmptyBatch);
+    }
+    if sequence_capacity == 0 || sequence_capacity > cfg.seq_len {
+        return Err(Error::InvalidSequenceCapacity);
+    }
+    let checked_mul =
+        |left: usize, right: usize| left.checked_mul(right).ok_or(Error::ArithmeticOverflow);
+    let checked_add =
+        |left: usize, right: usize| left.checked_add(right).ok_or(Error::ArithmeticOverflow);
+    let kv_dim = checked_mul(cfg.dim, cfg.n_kv_heads)?
+        .checked_div(cfg.n_heads)
+        .ok_or(Error::ArithmeticOverflow)?;
+    let cache_words = checked_mul(checked_mul(cfg.n_layers, sequence_capacity)?, kv_dim)?;
+    let persistent_state_words_per_state = checked_add(
+        checked_add(cfg.dim, checked_mul(cache_words, 2)?)?,
+        cfg.vocab,
+    )?;
+    let state_records = checked_mul(positions, batch_width)?;
+    let logit_words = checked_mul(state_records, cfg.vocab)?;
+    let persistent_state_words = checked_mul(state_records, persistent_state_words_per_state)?;
+    let top_k = top_k.min(cfg.vocab);
+    let top_tokens = checked_mul(state_records, top_k)?;
+    let as_u64 = |value| u64::try_from(value).map_err(|_| Error::ArithmeticOverflow);
+    Ok(ExactMulticoreProbeTraceShape {
+        positions,
+        streams_per_position: batch_width,
+        sequence_capacity,
+        state_records: as_u64(state_records)?,
+        logits_per_state: cfg.vocab,
+        logit_words: as_u64(logit_words)?,
+        logit_bytes: as_u64(checked_mul(logit_words, std::mem::size_of::<u32>())?)?,
+        persistent_state_words_per_state,
+        persistent_state_words: as_u64(persistent_state_words)?,
+        greedy_tokens: as_u64(state_records)?,
+        top_k,
+        top_tokens: as_u64(top_tokens)?,
+    })
+}
+
+#[derive(Default)]
+struct BatchForwardWorkspace {
+    norm: Vec<f32>,
+    q: Vec<f32>,
+    ktmp: Vec<f32>,
+    vtmp: Vec<f32>,
+    attn: Vec<f32>,
+    o: Vec<f32>,
+    hb: Vec<f32>,
+    hb2: Vec<f32>,
+    ffn: Vec<f32>,
+    xstack: Vec<f32>,
+    logits_stacked: Vec<f32>,
+}
+
+impl BatchForwardWorkspace {
+    fn grow(values: &mut Vec<f32>, length: usize, executor: &ExactExecutor) {
+        if values.len() >= length {
+            return;
+        }
+        let before = values.capacity();
+        values.resize(length, 0.0);
+        executor.record_workspace_growth_bytes(
+            values
+                .capacity()
+                .saturating_sub(before)
+                .saturating_mul(std::mem::size_of::<f32>()),
+        );
+    }
+
+    fn ensure(&mut self, cfg: &Config, batch: usize, executor: &ExactExecutor) {
+        let kv_dim = cfg.dim * cfg.n_kv_heads / cfg.n_heads;
+        let dim_words = batch
+            .checked_mul(cfg.dim)
+            .expect("batched teacher dimension workspace must fit usize");
+        let kv_words = batch
+            .checked_mul(kv_dim)
+            .expect("batched teacher KV workspace must fit usize");
+        let hidden_words = batch
+            .checked_mul(cfg.hidden)
+            .expect("batched teacher hidden workspace must fit usize");
+        let logit_words = batch
+            .checked_mul(cfg.vocab)
+            .expect("batched teacher logit workspace must fit usize");
+        Self::grow(&mut self.norm, dim_words, executor);
+        Self::grow(&mut self.q, dim_words, executor);
+        Self::grow(&mut self.ktmp, kv_words, executor);
+        Self::grow(&mut self.vtmp, kv_words, executor);
+        Self::grow(&mut self.attn, dim_words, executor);
+        Self::grow(&mut self.o, dim_words, executor);
+        Self::grow(&mut self.hb, hidden_words, executor);
+        Self::grow(&mut self.hb2, hidden_words, executor);
+        Self::grow(&mut self.ffn, dim_words, executor);
+        Self::grow(&mut self.xstack, dim_words, executor);
+        Self::grow(&mut self.logits_stacked, logit_words, executor);
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    fn capacity_bytes(&self) -> usize {
+        [
+            &self.norm,
+            &self.q,
+            &self.ktmp,
+            &self.vtmp,
+            &self.attn,
+            &self.o,
+            &self.hb,
+            &self.hb2,
+            &self.ffn,
+            &self.xstack,
+            &self.logits_stacked,
+        ]
+        .into_iter()
+        .fold(0usize, |bytes, values| {
+            bytes.saturating_add(values.capacity().saturating_mul(std::mem::size_of::<f32>()))
+        })
+    }
 }
 
 pub struct Llama {
@@ -61,8 +317,17 @@ pub struct Llama {
     wcls: usize,
     /// Use the portable pure-Rust math path required by D2 canonical mode.
     canonical_math: bool,
+    /// Persistent bounded owner of exact output-row work.
+    exact_executor: ExactExecutor,
+    /// One physical teacher forward owns the shared exact pool at a time. The
+    /// scientific multi-stream dimension is the explicit batch, never nested
+    /// outer forward concurrency.
+    forward_gate: std::sync::Mutex<()>,
+    /// Retained shape-bounded scratch shared by successive batched forwards.
+    batch_workspace: std::sync::Mutex<Box<BatchForwardWorkspace>>,
 }
 
+#[derive(Clone)]
 pub struct State {
     pub x: Vec<f32>,
     xb: Vec<f32>,
@@ -74,11 +339,64 @@ pub struct State {
     key_cache: Vec<f32>,
     value_cache: Vec<f32>,
     pub logits: Vec<f32>,
+    sequence_capacity: usize,
 }
+
+/// Invalid bounded sequence-state capacity.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum TeacherStateCapacityError {
+    Zero,
+    ExceedsModel { requested: usize, maximum: usize },
+    BoundedAllocationUnavailable { requested: usize, model: usize },
+    ArithmeticOverflow,
+}
+
+impl std::fmt::Display for TeacherStateCapacityError {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(formatter, "invalid teacher state capacity: {self:?}")
+    }
+}
+
+impl std::error::Error for TeacherStateCapacityError {}
 
 impl State {
     pub fn new(c: &Config) -> Self {
-        let kv_dim = c.dim * c.n_kv_heads / c.n_heads;
+        Self::allocate(
+            c,
+            c.seq_len,
+            c.n_layers * c.seq_len * (c.dim * c.n_kv_heads / c.n_heads),
+        )
+    }
+
+    /// Allocate sequence state only for the actual prompt/generation horizon.
+    pub fn new_bounded(
+        c: &Config,
+        sequence_capacity: usize,
+    ) -> Result<Self, TeacherStateCapacityError> {
+        use TeacherStateCapacityError as Error;
+        if sequence_capacity == 0 {
+            return Err(Error::Zero);
+        }
+        if sequence_capacity > c.seq_len {
+            return Err(Error::ExceedsModel {
+                requested: sequence_capacity,
+                maximum: c.seq_len,
+            });
+        }
+        let kv_dim = c
+            .dim
+            .checked_mul(c.n_kv_heads)
+            .and_then(|value| value.checked_div(c.n_heads))
+            .ok_or(Error::ArithmeticOverflow)?;
+        let cache_words = c
+            .n_layers
+            .checked_mul(sequence_capacity)
+            .and_then(|value| value.checked_mul(kv_dim))
+            .ok_or(Error::ArithmeticOverflow)?;
+        Ok(Self::allocate(c, sequence_capacity, cache_words))
+    }
+
+    fn allocate(c: &Config, sequence_capacity: usize, cache_words: usize) -> Self {
         State {
             x: vec![0.0; c.dim],
             xb: vec![0.0; c.dim],
@@ -86,11 +404,53 @@ impl State {
             hb: vec![0.0; c.hidden],
             hb2: vec![0.0; c.hidden],
             q: vec![0.0; c.dim],
-            att: vec![0.0; c.n_heads * c.seq_len],
-            key_cache: vec![0.0; c.n_layers * c.seq_len * kv_dim],
-            value_cache: vec![0.0; c.n_layers * c.seq_len * kv_dim],
+            att: vec![0.0; c.n_heads * sequence_capacity],
+            key_cache: vec![0.0; cache_words],
+            value_cache: vec![0.0; cache_words],
             logits: vec![0.0; c.vocab],
+            sequence_capacity,
         }
+    }
+
+    /// Maximum position count owned by this private sequence state.
+    pub fn sequence_capacity(&self) -> usize {
+        self.sequence_capacity
+    }
+
+    /// Deterministic content identity of the causal state retained across
+    /// teacher forwards.
+    ///
+    /// Overwrite-only projection scratch is deliberately excluded. The
+    /// identity binds the bounded sequence capacity plus the exact bits of the
+    /// residual stream, both KV caches, and exposed logits. It is suitable for
+    /// proving that cloned transcript templates start equal and then evolve in
+    /// private storage.
+    pub fn persistent_state_cid(&self) -> String {
+        let mut hasher = blake3::Hasher::new();
+        hasher.update(b"uor-r4.teacher-persistent-state/1");
+        hasher.update(
+            &u64::try_from(self.sequence_capacity)
+                .unwrap_or(u64::MAX)
+                .to_le_bytes(),
+        );
+        for (label, values) in [
+            ("x", &self.x),
+            ("key_cache", &self.key_cache),
+            ("value_cache", &self.value_cache),
+            ("logits", &self.logits),
+        ] {
+            hasher.update(&u64::try_from(label.len()).unwrap_or(u64::MAX).to_le_bytes());
+            hasher.update(label.as_bytes());
+            hasher.update(
+                &u64::try_from(values.len())
+                    .unwrap_or(u64::MAX)
+                    .to_le_bytes(),
+            );
+            for value in values {
+                hasher.update(&value.to_bits().to_le_bytes());
+            }
+        }
+        format!("blake3:{}", hasher.finalize().to_hex())
     }
 
     /// Begin a new sequence by zeroing state buffers and the KV cache.
@@ -196,12 +556,19 @@ pub(crate) fn softmax_with_mode(x: &mut [f32], canonical: bool) {
 
 /// W (d,n) @ x (n,) -> xout (d,), computed by the pinned `uor-matmul` exact
 /// GEMM (#655-B2). `gemm_float` accumulates every product into a complete
-/// accumulator and rounds once, so the result is the correctly-rounded exact
-/// dot product — byte-identical across targets (no per-machine Accelerate
-/// variance), which is what teacher-side κ reproduction needs. The former
+/// accumulator and rounds once. The enforced output-bit contract is exercised
+/// across fixed worker counts by `exact_matmul_matches_serial_bits_for_1_2_4_8_workers`
+/// and by the fixture-present exact probe. The former
 /// `fast` (Accelerate BLAS `sgemv`) / hand-rolled canonical paths are gone;
 /// `_fast` is retained in the signature only so callers need not change.
-fn matmul(xout: &mut [f32], x: &[f32], w: &[f32], n: usize, _fast: bool) {
+fn matmul(
+    _executor: &ExactExecutor,
+    xout: &mut [f32],
+    x: &[f32],
+    w: &[f32],
+    n: usize,
+    _fast: bool,
+) {
     // #804 measurement-only exception (maintainer-approved 2026-08-18):
     // under the opt-in feature, observation builds route through Apple
     // Accelerate — see `observation_blas_exception`'s module docs. Every
@@ -212,12 +579,7 @@ fn matmul(xout: &mut [f32], x: &[f32], w: &[f32], n: usize, _fast: bool) {
     }
     #[cfg(not(all(feature = "observation-blas-exception", target_os = "macos")))]
     {
-        // xout[d] = W[d, n] · x[n]  ==>  C[d, 1] = A[d, n] · B[n, 1].
-        let d = xout.len();
-        let mut pa = vec![uor_matmul::PackedCode::default(); n];
-        let mut pb = vec![uor_matmul::PackedCode::default(); n];
-        uor_matmul::slice::gemm_float(d, n, 1, w, x, xout, &mut pa, &mut pb)
-            .expect("teacher matrix-vector product is total over finite f32 operands");
+        _executor.matmul(xout, x, w, n);
     }
 }
 
@@ -226,9 +588,17 @@ fn matmul(xout: &mut [f32], x: &[f32], w: &[f32], n: usize, _fast: bool) {
 /// sequence-major (`x` is `batch * n`, `xout` is `batch * rows`). Computes
 /// `C[batch, rows] = X[batch, n] · W[rows, n]ᵀ` with the pinned `uor-matmul`
 /// exact GEMM (#655-B2), replacing the former Accelerate BLAS `sgemm` /
-/// hand-rolled `dot_fast` reuse. Byte-identical across targets, so the batched
-/// teacher path reproduces the serial [`matmul`] exactly on every machine.
-fn matmul_batched(xout: &mut [f32], x: &[f32], w: &[f32], n: usize, batch: usize) {
+/// hand-rolled `dot_fast` reuse. Exact serial/batched output-bit identity is an
+/// enforced contract covered by `exact_batched_matmul_matches_serial_bits_for_1_2_4_8_workers`
+/// and the fixture-present probe; unavailable live evidence is not a pass.
+fn matmul_batched(
+    _executor: &ExactExecutor,
+    xout: &mut [f32],
+    x: &[f32],
+    w: &[f32],
+    n: usize,
+    batch: usize,
+) {
     debug_assert!(batch > 0);
     debug_assert_eq!(xout.len() % batch, 0);
     let rows = xout.len() / batch;
@@ -242,25 +612,16 @@ fn matmul_batched(xout: &mut [f32], x: &[f32], w: &[f32], n: usize, batch: usize
     }
     #[cfg(not(all(feature = "observation-blas-exception", target_os = "macos")))]
     {
-        // gemm_float is C = A·B (no transpose), so transpose W[rows, n] → Wt[n, rows]
-        // and compute X[batch, n] · Wt[n, rows] into the sequence-major `xout`.
-        let mut wt = vec![0f32; n * rows];
-        for r in 0..rows {
-            for j in 0..n {
-                wt[j * rows + r] = w[r * n + j];
-            }
-        }
-        let mut pa = vec![uor_matmul::PackedCode::default(); n];
-        let mut pb = vec![uor_matmul::PackedCode::default(); n * rows];
-        uor_matmul::slice::gemm_float(batch, n, rows, x, &wt, xout, &mut pa, &mut pb)
-            .expect("batched teacher product is total over finite f32 operands");
+        _executor.matmul_batched(xout, x, w, n, batch);
     }
 }
 
 /// The teacher's matrix-operation backend, for the "teacher model ready"
 /// diagnostic. Since #655-B2 every Llama/shared weight projection is the
-/// pinned portable `uor-matmul` exact GEMM — no per-machine SIMD/Accelerate
-/// path. GPT-2 owns its separate declared dense implementation.
+/// pinned `uor-matmul` exact GEMM. Hosted builds may select different exact
+/// kernels through runtime CPU-feature detection while retaining the pinned
+/// arithmetic/output-bit contract; wasm uses the portable fallback. GPT-2
+/// owns its separate declared dense implementation.
 fn fast_matmul_backend() -> &'static str {
     #[cfg(all(feature = "observation-blas-exception", target_os = "macos"))]
     {
@@ -371,6 +732,10 @@ impl Llama {
             rms_final,
             wcls,
             canonical_math: false,
+            exact_executor: ExactExecutor::new(TeacherExecutionConfig::default())
+                .expect("the one-worker exact executor must build"),
+            forward_gate: std::sync::Mutex::new(()),
+            batch_workspace: std::sync::Mutex::new(Box::new(BatchForwardWorkspace::default())),
         };
         model.rebuild_rope_cache();
         model
@@ -422,20 +787,139 @@ impl Llama {
             rms_final,
             wcls,
             canonical_math: false,
+            exact_executor: ExactExecutor::new(TeacherExecutionConfig::default())
+                .expect("the one-worker exact executor must build"),
+            forward_gate: std::sync::Mutex::new(()),
+            batch_workspace: std::sync::Mutex::new(Box::new(BatchForwardWorkspace::default())),
         };
         model.rebuild_rope_cache();
         model
     }
 
+    /// Replace the bounded exact executor while holding exclusive model access.
+    ///
+    /// Weights and numerical configuration are unchanged. Requiring `&mut`
+    /// makes replacement mutually exclusive with every forward and resets the
+    /// execution counters for the new run.
+    pub(crate) fn set_execution_config(
+        &mut self,
+        config: TeacherExecutionConfig,
+    ) -> Result<(), SourceUnavailable> {
+        self.exact_executor = ExactExecutor::new(config)?;
+        Ok(())
+    }
+
+    pub(crate) fn begin_measured_execution(&mut self, observer: TeacherExecutionObserver) {
+        self.exact_executor.begin_measured_execution(observer);
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    pub(crate) fn prestart_exact_execution(
+        &self,
+        batch_width: usize,
+    ) -> Result<TeacherExecutionPreparation, SourceUnavailable> {
+        let started = std::time::Instant::now();
+        let _forward_guard = self
+            .forward_gate
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        let batch_capacity_bytes = {
+            let mut workspace = self
+                .batch_workspace
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner);
+            workspace.ensure(&self.cfg, batch_width, &self.exact_executor);
+            workspace.capacity_bytes()
+        };
+        let maximum_k = self.cfg.dim.max(self.cfg.hidden);
+        let kv_dim = self.cfg.dim * self.cfg.n_kv_heads / self.cfg.n_heads;
+        let maximum_rows = self
+            .cfg
+            .dim
+            .max(self.cfg.hidden)
+            .max(kv_dim)
+            .max(self.cfg.vocab);
+        let mut evidence = self
+            .exact_executor
+            .prestart(batch_width, maximum_k, maximum_rows)?;
+        evidence.elapsed_seconds = started.elapsed().as_secs_f64();
+        evidence.workspace_capacity_bytes = evidence
+            .workspace_capacity_bytes
+            .saturating_add(u64::try_from(batch_capacity_bytes).unwrap_or(u64::MAX));
+        Ok(evidence)
+    }
+
+    /// Current bounded-execution counters.
+    pub fn execution_snapshot(&self) -> TeacherExecutionSnapshot {
+        self.exact_executor.snapshot()
+    }
+
+    /// Counter oracle for one forward at the current geometry and tiling.
+    ///
+    /// Output rows are the sole scheduler partition. Batch width therefore
+    /// scales output cells and exact scalar terms, but not matrix calls or row
+    /// tiles: all lanes share each weight tile in one exact GEMM.
+    pub fn exact_forward_plan(
+        &self,
+        batch_width: usize,
+    ) -> Result<ExactForwardPlan, ExactForwardPlanError> {
+        exact_forward_plan_for_geometry(&self.cfg, batch_width, |rows| {
+            self.exact_executor.row_tiles(rows)
+        })
+    }
+
+    /// Complete raw-output/state trace dimensions for a bounded probe.
+    pub fn exact_probe_trace_shape(
+        &self,
+        positions: usize,
+        batch_width: usize,
+        top_k: usize,
+    ) -> Result<ExactMulticoreProbeTraceShape, ExactForwardPlanError> {
+        exact_probe_trace_shape_for_geometry(
+            &self.cfg,
+            self.cfg.seq_len,
+            positions,
+            batch_width,
+            top_k,
+        )
+    }
+
+    /// Complete trace dimensions for explicitly bounded private states.
+    pub fn exact_probe_trace_shape_bounded(
+        &self,
+        sequence_capacity: usize,
+        positions: usize,
+        batch_width: usize,
+        top_k: usize,
+    ) -> Result<ExactMulticoreProbeTraceShape, ExactForwardPlanError> {
+        exact_probe_trace_shape_for_geometry(
+            &self.cfg,
+            sequence_capacity,
+            positions,
+            batch_width,
+            top_k,
+        )
+    }
+
     /// One forward step. After return, st.x holds the post-final-rmsnorm
     /// hidden state (the kNN-LM context vector) and st.logits the logits.
     pub fn forward(&self, st: &mut State, token: usize, pos: usize, fast_matmul: bool) {
+        let _forward_guard = self
+            .forward_gate
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        assert!(
+            pos < st.sequence_capacity,
+            "teacher state capacity exceeded"
+        );
+        self.exact_executor.begin_forward(1);
         let dim = self.cfg.dim;
         st.x.copy_from_slice(&self.w[self.emb + token * dim..self.emb + (token + 1) * dim]);
         for l in 0..self.cfg.n_layers {
             self.layer_forward(st, l, pos, fast_matmul);
         }
         self.finish_forward(st, fast_matmul);
+        self.exact_executor.complete_forward(1);
     }
 
     /// One forward step with the residual stream captured after each layer in
@@ -455,6 +939,15 @@ impl Llama {
         capture_layers: &[usize],
         sink: &mut dyn FnMut(usize, &[f32]),
     ) {
+        let _forward_guard = self
+            .forward_gate
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        assert!(
+            pos < st.sequence_capacity,
+            "teacher state capacity exceeded"
+        );
+        self.exact_executor.begin_forward(1);
         let dim = self.cfg.dim;
         st.x.copy_from_slice(&self.w[self.emb + token * dim..self.emb + (token + 1) * dim]);
         for l in 0..self.cfg.n_layers {
@@ -464,6 +957,7 @@ impl Llama {
             }
         }
         self.finish_forward(st, fast_matmul);
+        self.exact_executor.complete_forward(1);
     }
 
     /// One forward step with the #603 teacher-trace lanes captured at
@@ -496,6 +990,15 @@ impl Llama {
         request: &TraceCaptureRequest<'_>,
         sinks: &mut TraceCaptureSinks<'_, '_>,
     ) {
+        let _forward_guard = self
+            .forward_gate
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        assert!(
+            pos < st.sequence_capacity,
+            "teacher state capacity exceeded"
+        );
+        self.exact_executor.begin_forward(1);
         let dim = self.cfg.dim;
         let kv_dim = self.cfg.dim * self.cfg.n_kv_heads / self.cfg.n_heads;
         st.x.copy_from_slice(&self.w[self.emb + token * dim..self.emb + (token + 1) * dim]);
@@ -506,12 +1009,12 @@ impl Llama {
                     (sinks.attention)(
                         l,
                         h,
-                        &st.att[h * self.cfg.seq_len..h * self.cfg.seq_len + pos + 1],
+                        &st.att[h * st.sequence_capacity..h * st.sequence_capacity + pos + 1],
                     );
                 }
             }
             if request.qkv_layers.contains(&l) {
-                let loff = l * self.cfg.seq_len * kv_dim;
+                let loff = l * st.sequence_capacity * kv_dim;
                 let k = &st.key_cache[loff + pos * kv_dim..loff + (pos + 1) * kv_dim];
                 let v = &st.value_cache[loff + pos * kv_dim..loff + (pos + 1) * kv_dim];
                 (sinks.qkv)(l, &st.q, k, v);
@@ -521,6 +1024,7 @@ impl Llama {
             }
         }
         self.finish_forward(st, fast_matmul);
+        self.exact_executor.complete_forward(1);
     }
 
     /// One transformer layer of the exact forward step, factored out of
@@ -543,8 +1047,9 @@ impl Llama {
                 self.canonical_math,
             );
 
-            let loff = l * c.seq_len * kv_dim;
+            let loff = l * st.sequence_capacity * kv_dim;
             matmul(
+                &self.exact_executor,
                 &mut st.q,
                 &st.xb,
                 &w[self.wq + l * dim * dim..],
@@ -554,6 +1059,7 @@ impl Llama {
             {
                 let k = &mut st.key_cache[loff + pos * kv_dim..loff + (pos + 1) * kv_dim];
                 matmul(
+                    &self.exact_executor,
                     k,
                     &st.xb,
                     &w[self.wk + l * dim * kv_dim..],
@@ -564,6 +1070,7 @@ impl Llama {
             {
                 let v = &mut st.value_cache[loff + pos * kv_dim..loff + (pos + 1) * kv_dim];
                 matmul(
+                    &self.exact_executor,
                     v,
                     &st.xb,
                     &w[self.wv + l * dim * kv_dim..],
@@ -620,7 +1127,7 @@ impl Llama {
             // uses the historical floor-multiple-of-four domain).
             for h in 0..c.n_heads {
                 let q = &st.q[h * head_size..(h + 1) * head_size];
-                let att = &mut st.att[h * c.seq_len..h * c.seq_len + pos + 1];
+                let att = &mut st.att[h * st.sequence_capacity..h * st.sequence_capacity + pos + 1];
                 let kv_head_offset = (h / kv_mul) * head_size;
 
                 if c.r4_attention {
@@ -643,7 +1150,7 @@ impl Llama {
                     );
                 }
 
-                let att = &st.att[h * c.seq_len..h * c.seq_len + pos + 1];
+                let att = &st.att[h * st.sequence_capacity..h * st.sequence_capacity + pos + 1];
                 let xb = &mut st.xb[h * head_size..(h + 1) * head_size];
                 attention::head_attention_value_aggregate(
                     xb,
@@ -655,6 +1162,7 @@ impl Llama {
             }
 
             matmul(
+                &self.exact_executor,
                 &mut st.xb2,
                 &st.xb,
                 &w[self.wo + l * dim * dim..],
@@ -672,6 +1180,7 @@ impl Llama {
                 self.canonical_math,
             );
             matmul(
+                &self.exact_executor,
                 &mut st.hb,
                 &st.xb,
                 &w[self.w1 + l * dim * hid..],
@@ -679,6 +1188,7 @@ impl Llama {
                 fast_matmul,
             );
             matmul(
+                &self.exact_executor,
                 &mut st.hb2,
                 &st.xb,
                 &w[self.w3 + l * dim * hid..],
@@ -692,6 +1202,7 @@ impl Llama {
                 st.hb[i] = val;
             }
             matmul(
+                &self.exact_executor,
                 &mut st.xb,
                 &st.hb,
                 &w[self.w2 + l * hid * dim..],
@@ -715,7 +1226,14 @@ impl Llama {
             let (wslice, x) = (&w[rf..rf + dim], &mut st.x);
             rmsnorm_inplace_with_mode(x, wslice, self.canonical_math);
         }
-        matmul(&mut st.logits, &st.x, &w[self.wcls..], dim, fast_matmul);
+        matmul(
+            &self.exact_executor,
+            &mut st.logits,
+            &st.x,
+            &w[self.wcls..],
+            dim,
+            fast_matmul,
+        );
     }
 
     /// Batched forward: advance `states.len()` independent sequences by one
@@ -726,9 +1244,10 @@ impl Llama {
     /// amortization that lifts the teacher off the per-token memory-bandwidth
     /// wall. Every per-sequence op (rmsnorm, RoPE, attention, SwiGLU, residual)
     /// mirrors [`Llama::forward`] exactly. `matmul_batched` and the serial path
-    /// share the pinned exact `uor-matmul` owner, so their projection bits agree
-    /// on every target. `fast_matmul` is a compatibility parameter and does not
-    /// select another arithmetic owner.
+    /// share the pinned exact `uor-matmul` owner; exact bit agreement is an
+    /// enforced contract checked by focused per-target tests and the live
+    /// probe, not a universal cross-target claim. `fast_matmul` is a
+    /// compatibility parameter and does not select another arithmetic owner.
     pub fn forward_batch(
         &self,
         states: &mut [State],
@@ -736,6 +1255,24 @@ impl Llama {
         positions: &[usize],
         fast_matmul: bool,
     ) {
+        assert!(
+            !states.is_empty(),
+            "batched teacher forward requires at least one state"
+        );
+        assert_eq!(
+            tokens.len(),
+            states.len(),
+            "batched teacher token/state lengths must match"
+        );
+        assert_eq!(
+            positions.len(),
+            states.len(),
+            "batched teacher position/state lengths must match"
+        );
+        let _forward_guard = self
+            .forward_gate
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
         let _ = fast_matmul;
         let c = &self.cfg;
         let (dim, hid) = (c.dim, c.hidden);
@@ -744,20 +1281,56 @@ impl Llama {
         let head_size = dim / c.n_heads;
         let w = &self.w;
         let b = states.len();
-        debug_assert_eq!(tokens.len(), b);
-        debug_assert_eq!(positions.len(), b);
+        assert!(
+            states
+                .iter()
+                .zip(positions)
+                .all(|(state, &position)| position < state.sequence_capacity),
+            "teacher state capacity exceeded"
+        );
+        self.exact_executor.prepare_workspace(
+            dim.max(hid),
+            dim.max(hid).max(kv_dim).max(c.vocab),
+            b,
+        );
+        self.exact_executor.begin_forward(b);
 
-        // Sequence-major stacked scratch for the batched matmuls.
-        let mut norm = vec![0f32; b * dim];
-        let mut q = vec![0f32; b * dim];
-        let mut ktmp = vec![0f32; b * kv_dim];
-        let mut vtmp = vec![0f32; b * kv_dim];
-        let mut attn = vec![0f32; b * dim];
-        let mut o = vec![0f32; b * dim];
-        let mut hb = vec![0f32; b * hid];
-        let mut hb2 = vec![0f32; b * hid];
-        let mut ffn = vec![0f32; b * dim];
-        let mut xstack = vec![0f32; b * dim];
+        // Shape-bounded sequence-major buffers persist across physical
+        // forwards. Preparation grows them once; steady-state forwards reuse
+        // the same capacities without changing any arithmetic or lane order.
+        let mut workspace = self
+            .batch_workspace
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        workspace.ensure(c, b, &self.exact_executor);
+        let BatchForwardWorkspace {
+            norm,
+            q,
+            ktmp,
+            vtmp,
+            attn,
+            o,
+            hb,
+            hb2,
+            ffn,
+            xstack,
+            logits_stacked,
+        } = &mut **workspace;
+        let dim_words = b * dim;
+        let kv_words = b * kv_dim;
+        let hidden_words = b * hid;
+        let logit_words = b * c.vocab;
+        let norm = &mut norm[..dim_words];
+        let q = &mut q[..dim_words];
+        let ktmp = &mut ktmp[..kv_words];
+        let vtmp = &mut vtmp[..kv_words];
+        let attn = &mut attn[..dim_words];
+        let o = &mut o[..dim_words];
+        let hb = &mut hb[..hidden_words];
+        let hb2 = &mut hb2[..hidden_words];
+        let ffn = &mut ffn[..dim_words];
+        let xstack = &mut xstack[..dim_words];
+        let logits_stacked = &mut logits_stacked[..logit_words];
 
         for bi in 0..b {
             let token = tokens[bi];
@@ -767,7 +1340,6 @@ impl Llama {
         }
 
         for l in 0..c.n_layers {
-            let loff = l * c.seq_len * kv_dim;
             for bi in 0..b {
                 rmsnorm_with_mode(
                     &mut norm[bi * dim..(bi + 1) * dim],
@@ -776,10 +1348,32 @@ impl Llama {
                     self.canonical_math,
                 );
             }
-            matmul_batched(&mut q, &norm, &w[self.wq + l * dim * dim..], dim, b);
-            matmul_batched(&mut ktmp, &norm, &w[self.wk + l * dim * kv_dim..], dim, b);
-            matmul_batched(&mut vtmp, &norm, &w[self.wv + l * dim * kv_dim..], dim, b);
+            matmul_batched(
+                &self.exact_executor,
+                q,
+                norm,
+                &w[self.wq + l * dim * dim..],
+                dim,
+                b,
+            );
+            matmul_batched(
+                &self.exact_executor,
+                ktmp,
+                norm,
+                &w[self.wk + l * dim * kv_dim..],
+                dim,
+                b,
+            );
+            matmul_batched(
+                &self.exact_executor,
+                vtmp,
+                norm,
+                &w[self.wv + l * dim * kv_dim..],
+                dim,
+                b,
+            );
             for bi in 0..b {
+                let loff = l * states[bi].sequence_capacity * kv_dim;
                 let dst = loff + positions[bi] * kv_dim;
                 states[bi].key_cache[dst..dst + kv_dim]
                     .copy_from_slice(&ktmp[bi * kv_dim..(bi + 1) * kv_dim]);
@@ -792,6 +1386,7 @@ impl Llama {
                 let qb = &mut q[bi * dim..(bi + 1) * dim];
                 let out = &mut attn[bi * dim..(bi + 1) * dim];
                 let st = &mut states[bi];
+                let loff = l * st.sequence_capacity * kv_dim;
 
                 if c.rope_interleaved {
                     let k = &mut st.key_cache[loff + pos * kv_dim..loff + (pos + 1) * kv_dim];
@@ -834,7 +1429,8 @@ impl Llama {
                 // switch selects between the two registered operators.
                 for h in 0..c.n_heads {
                     let qh = &qb[h * head_size..(h + 1) * head_size];
-                    let att = &mut st.att[h * c.seq_len..h * c.seq_len + pos + 1];
+                    let att =
+                        &mut st.att[h * st.sequence_capacity..h * st.sequence_capacity + pos + 1];
                     let kv_head_offset = (h / kv_mul) * head_size;
                     if c.r4_attention {
                         attention::experimental_r4_head_attention_weights(
@@ -855,7 +1451,7 @@ impl Llama {
                             self.canonical_math,
                         );
                     }
-                    let att = &st.att[h * c.seq_len..h * c.seq_len + pos + 1];
+                    let att = &st.att[h * st.sequence_capacity..h * st.sequence_capacity + pos + 1];
                     let outh = &mut out[h * head_size..(h + 1) * head_size];
                     attention::head_attention_value_aggregate(
                         outh,
@@ -867,7 +1463,14 @@ impl Llama {
                 }
             }
 
-            matmul_batched(&mut o, &attn, &w[self.wo + l * dim * dim..], dim, b);
+            matmul_batched(
+                &self.exact_executor,
+                o,
+                attn,
+                &w[self.wo + l * dim * dim..],
+                dim,
+                b,
+            );
             for bi in 0..b {
                 for i in 0..dim {
                     states[bi].x[i] += o[bi * dim + i];
@@ -882,15 +1485,36 @@ impl Llama {
                     self.canonical_math,
                 );
             }
-            matmul_batched(&mut hb, &norm, &w[self.w1 + l * dim * hid..], dim, b);
-            matmul_batched(&mut hb2, &norm, &w[self.w3 + l * dim * hid..], dim, b);
+            matmul_batched(
+                &self.exact_executor,
+                hb,
+                norm,
+                &w[self.w1 + l * dim * hid..],
+                dim,
+                b,
+            );
+            matmul_batched(
+                &self.exact_executor,
+                hb2,
+                norm,
+                &w[self.w3 + l * dim * hid..],
+                dim,
+                b,
+            );
             for idx in 0..b * hid {
                 let mut val = hb[idx];
                 val *= 1.0f32 / (1.0f32 + expf(-val, self.canonical_math));
                 val *= hb2[idx];
                 hb[idx] = val;
             }
-            matmul_batched(&mut ffn, &hb, &w[self.w2 + l * hid * dim..], hid, b);
+            matmul_batched(
+                &self.exact_executor,
+                ffn,
+                hb,
+                &w[self.w2 + l * hid * dim..],
+                hid,
+                b,
+            );
             for bi in 0..b {
                 for i in 0..dim {
                     states[bi].x[i] += ffn[bi * dim + i];
@@ -904,13 +1528,20 @@ impl Llama {
             rmsnorm_inplace_with_mode(x, wslice, self.canonical_math);
             xstack[bi * dim..(bi + 1) * dim].copy_from_slice(x);
         }
-        let mut logits_stacked = vec![0f32; b * c.vocab];
-        matmul_batched(&mut logits_stacked, &xstack, &w[self.wcls..], dim, b);
+        matmul_batched(
+            &self.exact_executor,
+            logits_stacked,
+            xstack,
+            &w[self.wcls..],
+            dim,
+            b,
+        );
         for bi in 0..b {
             states[bi]
                 .logits
                 .copy_from_slice(&logits_stacked[bi * c.vocab..(bi + 1) * c.vocab]);
         }
+        self.exact_executor.complete_forward(b);
     }
 }
 
@@ -1295,6 +1926,86 @@ fn default_bos_token() -> usize {
 }
 fn default_eos_token() -> usize {
     2
+}
+
+/// Compute fail-closed probe admission geometry from `config.json` only.
+///
+/// This function never opens a Safetensors shard or allocates model weights,
+/// so a caller can validate durable probe evidence before authorizing the
+/// multi-gigabyte teacher load. The same owner functions used by a live
+/// [`Llama`] compute every counter and trace dimension.
+#[cfg(not(target_arch = "wasm32"))]
+pub fn exact_probe_expectation_shapes_from_config(
+    source: impl AsRef<std::path::Path>,
+    sequence_length: usize,
+    worker_counts: &[usize],
+    tiles_per_worker: usize,
+    streams: usize,
+    probe_positions: usize,
+    top_k: usize,
+) -> Result<ExactMulticoreProbeExpectationShapes, SourceUnavailable> {
+    if sequence_length == 0
+        || streams == 0
+        || probe_positions == 0
+        || tiles_per_worker == 0
+        || worker_counts.is_empty()
+        || worker_counts.contains(&0)
+    {
+        return Err(SourceUnavailable::new(
+            "exact probe config-only planner requires nonzero geometry and worker bounds",
+        ));
+    }
+    let mut unique_workers = std::collections::BTreeSet::new();
+    if !worker_counts
+        .iter()
+        .all(|workers| unique_workers.insert(*workers))
+    {
+        return Err(SourceUnavailable::new(
+            "exact probe config-only planner worker counts must be unique",
+        ));
+    }
+    let config_bytes = std::fs::read(source.as_ref().join("config.json"))?;
+    let raw_config: serde_json::Value = serde_json::from_slice(&config_bytes)?;
+    conformance::AdapterFeatures::huggingface_llama().validate_config(&raw_config)?;
+    let config: HuggingFaceConfig = serde_json::from_slice(&config_bytes)?;
+    let cfg = Config {
+        dim: config.hidden_size,
+        hidden: config.intermediate_size,
+        n_layers: config.num_hidden_layers,
+        n_heads: config.num_attention_heads,
+        n_kv_heads: config.num_key_value_heads,
+        vocab: config.vocab_size,
+        seq_len: sequence_length.min(config.max_position_embeddings),
+        rope_theta: config.rope_theta,
+        rms_norm_eps: config.rms_norm_eps,
+        rope_interleaved: config.rope_interleaved,
+        r4_attention: false,
+    };
+    let forward_plans = worker_counts
+        .iter()
+        .map(|&workers| {
+            exact_forward_plan_for_geometry(&cfg, streams, |rows| {
+                exact_executor::exact_row_tiles_for(rows, workers, tiles_per_worker)
+            })
+            .map(|forward_plan| ExactMulticoreProbeWorkerPlan {
+                workers,
+                forward_plan,
+            })
+        })
+        .collect::<Result<Vec<_>, ExactForwardPlanError>>()
+        .map_err(|error| SourceUnavailable::new(error.to_string()))?;
+    let trace_shape = exact_probe_trace_shape_for_geometry(
+        &cfg,
+        sequence_length,
+        probe_positions,
+        streams,
+        top_k,
+    )
+    .map_err(|error| SourceUnavailable::new(error.to_string()))?;
+    Ok(ExactMulticoreProbeExpectationShapes {
+        forward_plans,
+        trace_shape,
+    })
 }
 
 /// Offline teacher adapter for Hugging Face Llama-family Safetensors
@@ -2320,6 +3031,30 @@ pub trait BatchedTeacher {
     type State;
     /// A fresh per-sequence state for this teacher.
     fn new_state(&self) -> Self::State;
+    /// A state bounded to an actual prompt/generation position count.
+    /// Implementations that cannot allocate a smaller private state refuse
+    /// rather than silently allocating their model maximum.
+    fn new_state_bounded(
+        &self,
+        sequence_capacity: usize,
+    ) -> Result<Self::State, TeacherStateCapacityError> {
+        if sequence_capacity == 0 {
+            return Err(TeacherStateCapacityError::Zero);
+        }
+        if sequence_capacity > self.seq_len() {
+            return Err(TeacherStateCapacityError::ExceedsModel {
+                requested: sequence_capacity,
+                maximum: self.seq_len(),
+            });
+        }
+        if sequence_capacity != self.seq_len() {
+            return Err(TeacherStateCapacityError::BoundedAllocationUnavailable {
+                requested: sequence_capacity,
+                model: self.seq_len(),
+            });
+        }
+        Ok(self.new_state())
+    }
     /// Reset a state to begin a new sequence (zero its caches/buffers).
     fn reset_state(&self, state: &mut Self::State);
     /// Mutable view of the logits the last
@@ -2359,6 +3094,12 @@ impl BatchedTeacher for HuggingFaceLlamaOracle {
     fn new_state(&self) -> State {
         State::new(&self.model.cfg)
     }
+    fn new_state_bounded(
+        &self,
+        sequence_capacity: usize,
+    ) -> Result<State, TeacherStateCapacityError> {
+        State::new_bounded(&self.model.cfg, sequence_capacity)
+    }
     fn reset_state(&self, state: &mut State) {
         state.reset();
     }
@@ -2389,12 +3130,30 @@ impl BatchedTeacher for HuggingFaceLlamaOracle {
 impl HuggingFaceLlamaOracle {
     #[cfg(not(target_arch = "wasm32"))]
     pub fn load(source: impl AsRef<std::path::Path>) -> Result<Self, SourceUnavailable> {
-        Self::load_inner(source, None)
+        Self::load_inner(source, None, TeacherExecutionConfig::default())
+    }
+
+    /// Load a teacher with an explicit bounded exact-execution policy.
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn load_with_execution(
+        source: impl AsRef<std::path::Path>,
+        execution: TeacherExecutionConfig,
+    ) -> Result<Self, SourceUnavailable> {
+        Self::load_inner(source, None, execution)
     }
 
     /// This teacher's configuration (dims, heads, vocab, sequence length).
     pub fn cfg(&self) -> &Config {
         &self.model.cfg
+    }
+
+    /// Allocate one private sequence state at the actual prompt/generation
+    /// horizon rather than the model's maximum context.
+    pub fn new_state_bounded(
+        &self,
+        sequence_capacity: usize,
+    ) -> Result<State, TeacherStateCapacityError> {
+        State::new_bounded(&self.model.cfg, sequence_capacity)
     }
 
     /// Load an offline teacher with a bounded context allocation. Compilation
@@ -2411,7 +3170,100 @@ impl HuggingFaceLlamaOracle {
                 "teacher sequence length must be greater than zero",
             ));
         }
-        Self::load_inner(source, Some(sequence_length))
+        Self::load_inner(
+            source,
+            Some(sequence_length),
+            TeacherExecutionConfig::default(),
+        )
+    }
+
+    /// Load a teacher with both bounded context storage and an explicit
+    /// bounded exact-execution policy.
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn load_with_sequence_length_and_execution(
+        source: impl AsRef<std::path::Path>,
+        sequence_length: usize,
+        execution: TeacherExecutionConfig,
+    ) -> Result<Self, SourceUnavailable> {
+        if sequence_length == 0 {
+            return Err(SourceUnavailable::new(
+                "teacher sequence length must be greater than zero",
+            ));
+        }
+        Self::load_inner(source, Some(sequence_length), execution)
+    }
+
+    /// Replace only the exact execution policy, retaining the loaded weights.
+    ///
+    /// Exclusive access prevents a pool replacement from racing a forward or
+    /// [`HuggingFaceLlamaOracle::set_r4_attention`] configuration mutation.
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn set_execution_config(
+        &mut self,
+        execution: TeacherExecutionConfig,
+    ) -> Result<(), SourceUnavailable> {
+        self.model.set_execution_config(execution)
+    }
+
+    /// Reset exact counters after excluded executor prestart while retaining
+    /// the same dedicated worker pool, then install the measured-run observer.
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn begin_measured_execution(&mut self, observer: TeacherExecutionObserver) {
+        self.model.begin_measured_execution(observer);
+    }
+
+    /// Prepare all shape-bounded model/executor workspaces, wake the dedicated
+    /// pool, and exercise a tiny exact GEMM without a model forward. Call
+    /// [`Self::begin_measured_execution`] afterwards to exclude preparation
+    /// growth and wall time from measured teacher work.
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn prepare_exact_execution(
+        &self,
+        batch_width: usize,
+    ) -> Result<TeacherExecutionPreparation, SourceUnavailable> {
+        self.model.prestart_exact_execution(batch_width)
+    }
+
+    /// Current exact-execution progress and bounded-concurrency evidence.
+    pub fn execution_snapshot(&self) -> TeacherExecutionSnapshot {
+        self.model.execution_snapshot()
+    }
+
+    /// Exact counter plan for one forward at `batch_width` under the current
+    /// model geometry and executor tiling.
+    pub fn exact_forward_plan(
+        &self,
+        batch_width: usize,
+    ) -> Result<ExactForwardPlan, ExactForwardPlanError> {
+        self.model.exact_forward_plan(batch_width)
+    }
+
+    /// Complete raw-output/state trace dimensions for a bounded probe.
+    pub fn exact_probe_trace_shape(
+        &self,
+        positions: usize,
+        batch_width: usize,
+        top_k: usize,
+    ) -> Result<ExactMulticoreProbeTraceShape, ExactForwardPlanError> {
+        self.model
+            .exact_probe_trace_shape(positions, batch_width, top_k)
+    }
+
+    /// Complete trace dimensions for explicitly bounded private states.
+    pub fn exact_probe_trace_shape_bounded(
+        &self,
+        sequence_capacity: usize,
+        positions: usize,
+        batch_width: usize,
+        top_k: usize,
+    ) -> Result<ExactMulticoreProbeTraceShape, ExactForwardPlanError> {
+        self.model
+            .exact_probe_trace_shape_bounded(sequence_capacity, positions, batch_width, top_k)
+    }
+
+    /// Exact arithmetic owner and observable hosted-kernel availability.
+    pub fn exact_backend_report(&self) -> ExactBackendReport {
+        exact_backend_report()
     }
 
     /// Enable or disable the experimental attention variant
@@ -2473,6 +3325,7 @@ impl HuggingFaceLlamaOracle {
     fn load_inner(
         source: impl AsRef<std::path::Path>,
         sequence_length: Option<usize>,
+        execution: TeacherExecutionConfig,
     ) -> Result<Self, SourceUnavailable> {
         let source = source.as_ref();
         let config_bytes = std::fs::read(source.join("config.json"))?;
@@ -2573,6 +3426,9 @@ impl HuggingFaceLlamaOracle {
         let canonical_math =
             std::env::var("TLESS_CANONICAL_DETERMINISTIC").is_ok_and(|value| value != "0");
         let mut model = Llama::from_flat(cfg, weights, config.tie_word_embeddings);
+        model
+            .set_execution_config(execution)
+            .map_err(SourceUnavailable::new)?;
         model.canonical_math = canonical_math;
         // `from_flat` builds the fast native-math cache first; rebuild it if
         // D2 canonical math was requested so the cache uses the same libm
@@ -2587,7 +3443,10 @@ impl HuggingFaceLlamaOracle {
         } else {
             fast_matmul_backend()
         };
-        eprintln!("teacher model ready (κ {kappa}, matmul={backend})");
+        eprintln!(
+            "teacher model ready (κ {kappa}, matmul={backend}, exact_workers={})",
+            model.execution_snapshot().effective_workers
+        );
         Ok(Self {
             model,
             state,
@@ -2841,10 +3700,12 @@ mod tests {
         let weights: Vec<f32> = (0..ROWS * COLUMNS)
             .map(|index| ((index * 29 % 43) as f32 - 21.0) / 32.0)
             .collect();
+        let executor = ExactExecutor::new(TeacherExecutionConfig::sequential())
+            .expect("serial exact executor");
         let mut exact = [0.0f32; ROWS];
         let mut fast = [0.0f32; ROWS];
-        matmul(&mut exact, &input, &weights, COLUMNS, false);
-        matmul(&mut fast, &input, &weights, COLUMNS, true);
+        matmul(&executor, &mut exact, &input, &weights, COLUMNS, false);
+        matmul(&executor, &mut fast, &input, &weights, COLUMNS, true);
         assert_eq!(
             exact.map(f32::to_bits),
             fast.map(f32::to_bits),
@@ -2863,11 +3724,20 @@ mod tests {
         let x: Vec<f32> = (0..BATCH * N)
             .map(|index| ((index * 17 % 31) as f32 - 15.0) / 16.0)
             .collect();
+        let executor = ExactExecutor::new(TeacherExecutionConfig::sequential())
+            .expect("serial exact executor");
         let mut batched = vec![0.0f32; BATCH * ROWS];
-        matmul_batched(&mut batched, &x, &weights, N, BATCH);
+        matmul_batched(&executor, &mut batched, &x, &weights, N, BATCH);
         for bi in 0..BATCH {
             let mut serial = [0.0f32; ROWS];
-            matmul(&mut serial, &x[bi * N..(bi + 1) * N], &weights, N, true);
+            matmul(
+                &executor,
+                &mut serial,
+                &x[bi * N..(bi + 1) * N],
+                &weights,
+                N,
+                true,
+            );
             for row in 0..ROWS {
                 let want = serial[row];
                 let got = batched[bi * ROWS + row];
@@ -2880,6 +3750,682 @@ mod tests {
                 );
             }
         }
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    #[test]
+    fn teacher_execution_is_sequential_unless_parallelism_is_explicit() {
+        let sequential = ExactExecutor::new(TeacherExecutionConfig::default())
+            .expect("the one-worker exact executor must build");
+        assert_eq!(sequential.snapshot().requested_workers, 1);
+        assert_eq!(sequential.snapshot().effective_workers, 1);
+
+        let discovered = ExactExecutor::new(TeacherExecutionConfig::available_parallelism())
+            .expect("the explicitly requested host-sized executor must build");
+        assert_eq!(
+            discovered.snapshot().effective_workers,
+            std::thread::available_parallelism().map_or(1, usize::from)
+        );
+    }
+
+    #[cfg(all(
+        not(target_arch = "wasm32"),
+        not(all(feature = "observation-blas-exception", target_os = "macos"))
+    ))]
+    #[test]
+    fn hosted_uor_matmul_uses_runtime_feature_detection() {
+        let report = exact_backend_report();
+        assert_eq!(report.arithmetic_owner, "uor-matmul exact GEMM");
+        assert!(report.std_runtime_detection_enabled);
+        assert_eq!(report.target_arch, std::env::consts::ARCH);
+        assert_eq!(report.target_os, std::env::consts::OS);
+        assert!(report
+            .available_backends
+            .iter()
+            .any(|backend| backend == "portable"));
+        assert_eq!(report.uor_matmul_revision, UOR_MATMUL_REVISION);
+        assert_eq!(report.selected_backend, None);
+        assert!(report.selection_status.starts_with("UNAVAILABLE:"));
+
+        #[cfg(target_arch = "aarch64")]
+        assert_eq!(
+            uor_matmul::kernels::isa::arm::dotprod_available(),
+            std::arch::is_aarch64_feature_detected!("dotprod")
+        );
+        #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+        assert_eq!(
+            uor_matmul::kernels::isa::x86::avx2_available(),
+            std::arch::is_x86_feature_detected!("avx2")
+        );
+    }
+
+    #[cfg(all(target_os = "macos", feature = "observation-blas-exception"))]
+    #[test]
+    fn observation_blas_exception_reports_non_exact_owner() {
+        let report = exact_backend_report();
+        assert_eq!(
+            report.arithmetic_owner,
+            "Apple Accelerate observation BLAS exception"
+        );
+        assert_eq!(report.selected_backend.as_deref(), Some("Apple Accelerate"));
+        assert!(report.selection_status.starts_with("AVAILABLE:"));
+        assert_eq!(report.target_os, std::env::consts::OS);
+        assert_eq!(report.uor_matmul_revision, UOR_MATMUL_REVISION);
+    }
+
+    #[test]
+    fn declared_uor_matmul_revision_matches_both_target_dependencies() {
+        let manifest = include_str!("../Cargo.toml");
+        let pin = format!("rev = \"{UOR_MATMUL_REVISION}\"");
+        assert_eq!(
+            manifest.matches(&pin).count(),
+            2,
+            "hosted and wasm exact arithmetic dependencies must share the declared revision"
+        );
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    #[test]
+    fn exact_matmul_matches_serial_bits_for_1_2_4_8_workers() {
+        use std::num::NonZeroUsize;
+
+        const ROWS: usize = 67;
+        const COLUMNS: usize = 73;
+        let input: Vec<f32> = (0..COLUMNS)
+            .map(|index| ((index * 17 % 31) as f32 - 15.0) / 16.0)
+            .collect();
+        let weights: Vec<f32> = (0..ROWS * COLUMNS)
+            .map(|index| ((index * 29 % 43) as f32 - 21.0) / 32.0)
+            .collect();
+        let serial = ExactExecutor::new(TeacherExecutionConfig::sequential())
+            .expect("serial exact executor");
+        let mut expected = [0.0f32; ROWS];
+        serial.matmul(&mut expected, &input, &weights, COLUMNS);
+
+        for workers in [1usize, 2, 4, 8] {
+            let executor = ExactExecutor::new(TeacherExecutionConfig::fixed_workers(
+                NonZeroUsize::new(workers).expect("worker count is nonzero"),
+            ))
+            .expect("fixed exact executor");
+            let mut actual = [0.0f32; ROWS];
+            executor.matmul(&mut actual, &input, &weights, COLUMNS);
+            assert_eq!(
+                actual.map(f32::to_bits),
+                expected.map(f32::to_bits),
+                "worker count {workers} changed exact matmul bits"
+            );
+        }
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    #[test]
+    fn exact_batched_matmul_matches_serial_bits_for_1_2_4_8_workers() {
+        use std::num::NonZeroUsize;
+
+        const N: usize = 73;
+        const ROWS: usize = 67;
+        const BATCH: usize = 5;
+        let weights: Vec<f32> = (0..ROWS * N)
+            .map(|index| ((index * 29 % 43) as f32 - 21.0) / 32.0)
+            .collect();
+        let x: Vec<f32> = (0..BATCH * N)
+            .map(|index| ((index * 17 % 31) as f32 - 15.0) / 16.0)
+            .collect();
+        let serial = ExactExecutor::new(TeacherExecutionConfig::sequential())
+            .expect("serial exact executor");
+        let mut expected = vec![0.0f32; BATCH * ROWS];
+        serial.matmul_batched(&mut expected, &x, &weights, N, BATCH);
+
+        for workers in [1usize, 2, 4, 8] {
+            let executor = ExactExecutor::new(TeacherExecutionConfig::fixed_workers(
+                NonZeroUsize::new(workers).expect("worker count is nonzero"),
+            ))
+            .expect("fixed exact executor");
+            let mut actual = vec![0.0f32; BATCH * ROWS];
+            executor.matmul_batched(&mut actual, &x, &weights, N, BATCH);
+            assert_eq!(
+                actual
+                    .iter()
+                    .map(|value| value.to_bits())
+                    .collect::<Vec<_>>(),
+                expected
+                    .iter()
+                    .map(|value| value.to_bits())
+                    .collect::<Vec<_>>(),
+                "worker count {workers} changed exact batched-matmul bits"
+            );
+            if workers == 8 {
+                let snapshot = executor.snapshot();
+                assert!(
+                    snapshot.max_active_workers >= 2,
+                    "shared-weight batched GEMM did not overlap output-row tiles"
+                );
+                assert!(snapshot.max_active_workers <= snapshot.effective_workers);
+                assert!(snapshot.tiles_completed > 1);
+            }
+        }
+    }
+
+    /// Bounded synthetic decision instrument for the caller-owned Atlas
+    /// A-panel offer. The shapes are the row tiles one W=8 SmolLM2-135M
+    /// forward presents to `uor-matmul` at batch width eight. The weighted
+    /// aggregate uses their calls per layer/forward, including the single
+    /// vocabulary tile, without loading model weights.
+    #[cfg(not(target_arch = "wasm32"))]
+    #[test]
+    #[ignore = "bounded exact A-panel cache benchmark; run explicitly with --nocapture"]
+    fn bench_exact_a_panel_cache_rows_on_smollm2_tiles() {
+        use std::hint::black_box;
+        use std::time::{Duration, Instant};
+        use uor_matmul::PackedCode;
+
+        #[derive(Clone, Copy)]
+        struct Case {
+            label: &'static str,
+            m: usize,
+            k: usize,
+            calls_per_forward: u32,
+            samples: usize,
+        }
+
+        fn measure(
+            case: Case,
+            a: &[f32],
+            b: &[f32],
+            c: &mut [f32],
+            pa: &mut [PackedCode],
+            pb: &mut [PackedCode],
+        ) -> Duration {
+            let started = Instant::now();
+            uor_matmul::slice::gemm_float(case.m, case.k, 8, a, b, c, pa, pb)
+                .expect("representative exact product is conformant");
+            let elapsed = started.elapsed();
+            black_box(c);
+            elapsed
+        }
+
+        let cases = [
+            Case {
+                label: "q_o",
+                m: 18,
+                k: 576,
+                calls_per_forward: 60,
+                samples: 5,
+            },
+            Case {
+                label: "k_v",
+                m: 6,
+                k: 576,
+                calls_per_forward: 60,
+                samples: 5,
+            },
+            Case {
+                label: "w1_w3",
+                m: 48,
+                k: 576,
+                calls_per_forward: 60,
+                samples: 5,
+            },
+            Case {
+                label: "w2",
+                m: 18,
+                k: 1_536,
+                calls_per_forward: 30,
+                samples: 5,
+            },
+            Case {
+                label: "vocab",
+                m: 1_536,
+                k: 576,
+                calls_per_forward: 1,
+                samples: 3,
+            },
+        ];
+
+        let mut weighted_one_row_ns = 0u128;
+        let mut weighted_eight_row_ns = 0u128;
+        for case in cases {
+            let a: Vec<f32> = (0..case.m * case.k)
+                .map(|index| ((index * 29 % 43) as f32 - 21.0) / 32.0)
+                .collect();
+            let b: Vec<f32> = (0..case.k * 8)
+                .map(|index| ((index * 17 % 31) as f32 - 15.0) / 16.0)
+                .collect();
+            let mut one_row_output = vec![0.0f32; case.m * 8];
+            let mut eight_row_output = vec![0.0f32; case.m * 8];
+            let mut one_row_pa = vec![PackedCode::default(); case.k];
+            let mut eight_row_pa = vec![PackedCode::default(); case.k * case.m.min(8)];
+            let mut one_row_pb = vec![PackedCode::default(); case.k * 8];
+            let mut eight_row_pb = vec![PackedCode::default(); case.k * 8];
+
+            // Excluded per-offer warm-up resolves the same pinned backend and
+            // fills each retained cache before the interleaved samples.
+            measure(
+                case,
+                &a,
+                &b,
+                &mut one_row_output,
+                &mut one_row_pa,
+                &mut one_row_pb,
+            );
+            measure(
+                case,
+                &a,
+                &b,
+                &mut eight_row_output,
+                &mut eight_row_pa,
+                &mut eight_row_pb,
+            );
+            assert_eq!(
+                one_row_output
+                    .iter()
+                    .map(|value| value.to_bits())
+                    .collect::<Vec<_>>(),
+                eight_row_output
+                    .iter()
+                    .map(|value| value.to_bits())
+                    .collect::<Vec<_>>(),
+                "A-panel offer changed exact bits for {}",
+                case.label
+            );
+
+            let mut one_row = Vec::with_capacity(case.samples);
+            let mut eight_row = Vec::with_capacity(case.samples);
+            for sample in 0..case.samples {
+                if sample % 2 == 0 {
+                    one_row.push(measure(
+                        case,
+                        &a,
+                        &b,
+                        &mut one_row_output,
+                        &mut one_row_pa,
+                        &mut one_row_pb,
+                    ));
+                    eight_row.push(measure(
+                        case,
+                        &a,
+                        &b,
+                        &mut eight_row_output,
+                        &mut eight_row_pa,
+                        &mut eight_row_pb,
+                    ));
+                } else {
+                    eight_row.push(measure(
+                        case,
+                        &a,
+                        &b,
+                        &mut eight_row_output,
+                        &mut eight_row_pa,
+                        &mut eight_row_pb,
+                    ));
+                    one_row.push(measure(
+                        case,
+                        &a,
+                        &b,
+                        &mut one_row_output,
+                        &mut one_row_pa,
+                        &mut one_row_pb,
+                    ));
+                }
+                assert_eq!(
+                    one_row_output
+                        .iter()
+                        .map(|value| value.to_bits())
+                        .collect::<Vec<_>>(),
+                    eight_row_output
+                        .iter()
+                        .map(|value| value.to_bits())
+                        .collect::<Vec<_>>(),
+                    "sample {sample} changed exact bits for {}",
+                    case.label
+                );
+            }
+            one_row.sort_unstable();
+            eight_row.sort_unstable();
+            let one_row_median = one_row[case.samples / 2];
+            let eight_row_median = eight_row[case.samples / 2];
+            weighted_one_row_ns = weighted_one_row_ns.saturating_add(
+                one_row_median
+                    .as_nanos()
+                    .saturating_mul(u128::from(case.calls_per_forward)),
+            );
+            weighted_eight_row_ns = weighted_eight_row_ns.saturating_add(
+                eight_row_median
+                    .as_nanos()
+                    .saturating_mul(u128::from(case.calls_per_forward)),
+            );
+            println!(
+                "EXACT_A_PANEL_CACHE label={} m={} k={} n=8 calls={} pa1_ns={} pa8_ns={} speedup={:.4}",
+                case.label,
+                case.m,
+                case.k,
+                case.calls_per_forward,
+                one_row_median.as_nanos(),
+                eight_row_median.as_nanos(),
+                one_row_median.as_secs_f64() / eight_row_median.as_secs_f64()
+            );
+        }
+
+        println!(
+            "EXACT_A_PANEL_CACHE weighted_pa1_ns={} weighted_pa8_ns={} weighted_speedup={:.4}",
+            weighted_one_row_ns,
+            weighted_eight_row_ns,
+            weighted_one_row_ns as f64 / weighted_eight_row_ns as f64
+        );
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    #[test]
+    fn exact_executor_reports_real_bounded_concurrency_and_progress() {
+        use std::num::NonZeroUsize;
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        use std::sync::{Arc, Barrier, Mutex};
+
+        const N: usize = 257;
+        const ROWS: usize = 128;
+        let callbacks = Arc::new(Mutex::new(Vec::new()));
+        let seen = Arc::clone(&callbacks);
+        // The planted product is intentionally small, so an unconstrained
+        // scheduler can occasionally finish one row tile before another pool
+        // worker starts. Hold only the first two real task-entry callbacks at
+        // a barrier. Both tasks have already incremented `active_workers` and
+        // retain their `ActiveTask` guards, making the observed overlap real
+        // while leaving production scheduling and arithmetic untouched.
+        let entry_barrier = Arc::new(Barrier::new(2));
+        let observer_barrier = Arc::clone(&entry_barrier);
+        let entry_arrivals = Arc::new(AtomicUsize::new(0));
+        let observer_arrivals = Arc::clone(&entry_arrivals);
+        let config = TeacherExecutionConfig::fixed_workers(
+            NonZeroUsize::new(4).expect("worker count is nonzero"),
+        )
+        .with_tiles_per_worker(NonZeroUsize::new(4).expect("tile count is nonzero"))
+        .with_observer(Arc::new(move |snapshot| {
+            seen.lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner)
+                .push(snapshot.observer_epoch);
+            if snapshot.active_workers > 0 && snapshot.tiles_completed == 0 {
+                let arrival = observer_arrivals.fetch_add(1, Ordering::AcqRel);
+                if arrival < 2 {
+                    observer_barrier.wait();
+                }
+            }
+        }));
+        let executor = ExactExecutor::new(config).expect("fixed exact executor");
+        let input: Vec<f32> = (0..N)
+            .map(|index| ((index * 17 % 31) as f32 - 15.0) / 16.0)
+            .collect();
+        let weights: Vec<f32> = (0..ROWS * N)
+            .map(|index| ((index * 29 % 43) as f32 - 21.0) / 32.0)
+            .collect();
+        let mut output = [0.0f32; ROWS];
+        executor.matmul(&mut output, &input, &weights, N);
+
+        let snapshot = executor.snapshot();
+        assert_eq!(snapshot.effective_workers, 4);
+        assert!(
+            entry_arrivals.load(Ordering::Acquire) >= 2,
+            "fewer than two real exact tasks reached the planted start barrier"
+        );
+        assert!(
+            snapshot.max_active_workers >= 2,
+            "no overlapping exact work"
+        );
+        assert!(snapshot.max_active_workers <= snapshot.effective_workers);
+        assert_eq!(snapshot.active_workers, 0);
+        assert_eq!(snapshot.matrix_calls, 1);
+        assert!(snapshot.tiles_completed > 1);
+        assert_eq!(snapshot.output_cells_completed, ROWS as u64);
+        assert_eq!(snapshot.scalar_terms_completed, (ROWS * N) as u64);
+        let mut callback_epochs = callbacks
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .clone();
+        assert!(!callback_epochs.is_empty());
+        assert!(
+            callback_epochs.len() < snapshot.tiles_completed as usize,
+            "observer publication unexpectedly returned to one callback per timed tile"
+        );
+        let tile_progress_bound =
+            1usize.saturating_add((snapshot.tiles_completed as usize).div_ceil(4));
+        let task_entry_bound = snapshot.effective_workers;
+        assert!(
+            callback_epochs.len() <= tile_progress_bound.saturating_add(task_entry_bound),
+            "observer publication exceeded one callback per worker wave plus bounded task entry"
+        );
+        assert!(callback_epochs.iter().all(|&epoch| epoch > 0));
+        let callback_count = callback_epochs.len();
+        callback_epochs.sort_unstable();
+        callback_epochs.dedup();
+        assert_eq!(callback_epochs.len(), callback_count);
+        assert_eq!(
+            snapshot.observer_epoch,
+            callback_epochs.last().copied().unwrap()
+        );
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    #[test]
+    fn every_physical_forward_republishes_actual_multiworker_occupancy() {
+        use std::collections::BTreeMap;
+        use std::num::NonZeroUsize;
+        use std::sync::{Arc, Mutex};
+
+        const N: usize = 257;
+        const ROWS: usize = 128;
+        const STREAMS: usize = 8;
+        let observed_peaks = Arc::new(Mutex::new(BTreeMap::<u64, usize>::new()));
+        let observer_peaks = Arc::clone(&observed_peaks);
+        let config = TeacherExecutionConfig::fixed_workers(
+            NonZeroUsize::new(4).expect("worker count is nonzero"),
+        )
+        .with_tiles_per_worker(NonZeroUsize::new(4).expect("tile count is nonzero"))
+        .with_observer(Arc::new(move |snapshot| {
+            observer_peaks
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner)
+                .entry(snapshot.forward_calls)
+                .and_modify(|peak| *peak = (*peak).max(snapshot.active_workers))
+                .or_insert(snapshot.active_workers);
+        }));
+        let executor = ExactExecutor::new(config).expect("fixed exact executor");
+        let input: Vec<f32> = (0..STREAMS * N)
+            .map(|index| ((index * 17 % 31) as f32 - 15.0) / 16.0)
+            .collect();
+        let weights: Vec<f32> = (0..ROWS * N)
+            .map(|index| ((index * 29 % 43) as f32 - 21.0) / 32.0)
+            .collect();
+
+        for _ in 0..2 {
+            let mut output = vec![0.0f32; STREAMS * ROWS];
+            let before = executor.snapshot();
+            executor.begin_forward(STREAMS);
+            executor.matmul_batched(&mut output, &input, &weights, N, STREAMS);
+            executor.complete_forward(STREAMS);
+            let after = executor.snapshot();
+            assert_eq!(after.forward_calls - before.forward_calls, 1);
+            assert_eq!(
+                after.multiworker_forward_calls - before.multiworker_forward_calls,
+                1
+            );
+            assert!(after.forward_max_active_workers >= 2);
+            assert!(after.forward_max_active_workers <= after.effective_workers);
+        }
+
+        let observed_peaks = observed_peaks
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        for forward in [1, 2] {
+            assert!(
+                observed_peaks.get(&forward).copied().unwrap_or(0) >= 2,
+                "physical forward {forward} never republished overlapping row workers"
+            );
+        }
+    }
+
+    #[cfg(not(all(target_os = "macos", feature = "observation-blas-exception")))]
+    #[test]
+    fn repeated_batched_forwards_reuse_every_exact_workspace_capacity() {
+        use std::num::NonZeroUsize;
+
+        let mut model = tiny_llama();
+        model
+            .set_execution_config(
+                TeacherExecutionConfig::fixed_workers(
+                    NonZeroUsize::new(4).expect("worker count is nonzero"),
+                )
+                .with_tiles_per_worker(NonZeroUsize::new(4).expect("tiles per worker is nonzero")),
+            )
+            .expect("fixed exact executor");
+        let tokens = [1usize, 2, 3, 4, 5, 6, 7, 8];
+        let positions = [0usize; 8];
+
+        let mut first_states: Vec<State> = (0..8).map(|_| State::new(&model.cfg)).collect();
+        model.forward_batch(&mut first_states, &tokens, &positions, true);
+        let after_first = model.execution_snapshot();
+        assert!(after_first.workspace_growth_events > 0);
+        assert!(after_first.workspace_growth_bytes > 0);
+
+        let mut second_states: Vec<State> = (0..8).map(|_| State::new(&model.cfg)).collect();
+        model.forward_batch(&mut second_states, &tokens, &positions, true);
+        let after_second = model.execution_snapshot();
+        assert_eq!(
+            after_second.workspace_growth_events, after_first.workspace_growth_events,
+            "steady-state batched forward grew a retained workspace"
+        );
+        assert_eq!(
+            after_second.workspace_growth_bytes, after_first.workspace_growth_bytes,
+            "steady-state batched forward allocated new workspace capacity"
+        );
+        assert_eq!(
+            first_states
+                .iter()
+                .flat_map(|state| state.logits.iter().map(|value| value.to_bits()))
+                .collect::<Vec<_>>(),
+            second_states
+                .iter()
+                .flat_map(|state| state.logits.iter().map(|value| value.to_bits()))
+                .collect::<Vec<_>>(),
+            "workspace reuse changed teacher output bits"
+        );
+    }
+
+    #[cfg(all(
+        not(target_arch = "wasm32"),
+        not(all(target_os = "macos", feature = "observation-blas-exception"))
+    ))]
+    #[test]
+    fn every_adaptive_candidate_prepares_workspace_outside_measurement() {
+        use std::num::NonZeroUsize;
+        use std::sync::Arc;
+
+        let mut model = tiny_llama();
+        let tokens = [1usize, 2, 3, 4, 5, 6, 7, 8];
+        let positions = [0usize; 8];
+        let mut reference_logits = None;
+        for workers in [8usize, 4] {
+            model
+                .set_execution_config(
+                    TeacherExecutionConfig::fixed_workers(
+                        NonZeroUsize::new(workers).expect("worker count is nonzero"),
+                    )
+                    .with_tiles_per_worker(
+                        NonZeroUsize::new(4).expect("tiles per worker is nonzero"),
+                    ),
+                )
+                .expect("adaptive exact executor");
+            let preparation = model
+                .prestart_exact_execution(8)
+                .expect("excluded exact workspace preparation");
+            assert_eq!(preparation.workers_observed, workers);
+            assert!(preparation.workspace_capacity_bytes > 0);
+            assert!(preparation.workspace_growth_events > 0);
+            assert!(preparation.workspace_growth_bytes > 0);
+
+            model.begin_measured_execution(Arc::new(|_| {}));
+            let mut states: Vec<State> = (0..8).map(|_| State::new(&model.cfg)).collect();
+            model.forward_batch(&mut states, &tokens, &positions, true);
+            let measured = model.execution_snapshot();
+            assert_eq!(measured.workspace_growth_events, 0);
+            assert_eq!(measured.workspace_growth_bytes, 0);
+            let logits = states
+                .iter()
+                .flat_map(|state| state.logits.iter().map(|value| value.to_bits()))
+                .collect::<Vec<_>>();
+            if let Some(reference) = &reference_logits {
+                assert_eq!(
+                    &logits, reference,
+                    "candidate worker count changed exact bits"
+                );
+            } else {
+                reference_logits = Some(logits);
+            }
+        }
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    #[test]
+    fn atomic_progress_bridge_ignores_stale_epochs_and_publishes_exact_final_snapshot() {
+        let bridge = AtomicTeacherExecutionProgress::default();
+        let newest = TeacherExecutionSnapshot {
+            observer_epoch: 9,
+            effective_workers: 8,
+            max_active_workers: 8,
+            forward_calls: 3,
+            streams_started: 24,
+            streams_completed: 24,
+            max_active_streams: 8,
+            matrix_calls: 17,
+            batched_matrix_calls: 17,
+            max_matrix_batch_width: 8,
+            tiles_completed: 99,
+            output_cells_completed: 1234,
+            scalar_terms_completed: 5678,
+            ..TeacherExecutionSnapshot::default()
+        };
+        bridge.publish(newest);
+        bridge.publish(TeacherExecutionSnapshot {
+            observer_epoch: 8,
+            tiles_completed: 1,
+            ..TeacherExecutionSnapshot::default()
+        });
+        assert_eq!(bridge.snapshot(), newest);
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    #[test]
+    fn measured_execution_excludes_cheap_pool_backend_prestart() {
+        use std::num::NonZeroUsize;
+        use std::sync::Arc;
+
+        let mut executor = ExactExecutor::new(TeacherExecutionConfig::fixed_workers(
+            NonZeroUsize::new(4).expect("worker count is nonzero"),
+        ))
+        .expect("fixed exact executor");
+        let prestart = executor.prestart(8, 32, 64).expect("cheap exact prestart");
+        assert_eq!(prestart.workers_observed, 4);
+        assert_eq!(prestart.batch_width, 8);
+        assert!(prestart.backend_exercised);
+        assert!(prestart.workspace_capacity_bytes > 0);
+        assert!(prestart.workspace_growth_events > 0);
+        assert!(prestart.workspace_growth_bytes > 0);
+        assert_eq!(executor.snapshot().forward_calls, 0);
+        assert_eq!(executor.snapshot().matrix_calls, 1);
+
+        executor.begin_measured_execution(Arc::new(|_| {}));
+        assert_eq!(executor.snapshot().matrix_calls, 0);
+        assert_eq!(executor.snapshot().workspace_growth_events, 0);
+        assert_eq!(executor.snapshot().workspace_growth_bytes, 0);
+        let input = [0.25f32; 32];
+        let weights = [0.5f32; 64 * 32];
+        let mut output = [0.0f32; 64];
+        executor.matmul(&mut output, &input, &weights, 32);
+        let measured = executor.snapshot();
+        assert_eq!(measured.requested_workers, 4);
+        assert_eq!(measured.effective_workers, 4);
+        assert_eq!(measured.matrix_calls, 1);
+        assert_eq!(measured.workspace_growth_events, 0);
+        assert_eq!(measured.workspace_growth_bytes, 0);
+        assert!(measured.observer_epoch > 0);
     }
 
     /// A tiny synthetic Llama with deterministic weights, for exercising the
@@ -2933,9 +4479,116 @@ mod tests {
             rms_final,
             wcls: emb,
             canonical_math: false,
+            exact_executor: ExactExecutor::new(TeacherExecutionConfig::default())
+                .expect("the one-worker exact executor must build"),
+            forward_gate: std::sync::Mutex::new(()),
+            batch_workspace: std::sync::Mutex::new(Box::new(BatchForwardWorkspace::default())),
         };
         model.rebuild_rope_cache();
         model
+    }
+
+    #[cfg(not(all(target_os = "macos", feature = "observation-blas-exception")))]
+    #[test]
+    fn exact_forward_plan_matches_observed_tiny_batch_delta() {
+        use std::num::NonZeroUsize;
+
+        let mut model = tiny_llama();
+        model
+            .set_execution_config(
+                TeacherExecutionConfig::fixed_workers(
+                    NonZeroUsize::new(4).expect("worker count is nonzero"),
+                )
+                .with_tiles_per_worker(NonZeroUsize::new(4).expect("tiles per worker is nonzero")),
+            )
+            .expect("fixed exact executor");
+        let batch_width = 3usize;
+        let plan = model
+            .exact_forward_plan(batch_width)
+            .expect("tiny exact forward plan");
+        let before = model.execution_snapshot();
+        let mut states: Vec<State> = (0..batch_width).map(|_| State::new(&model.cfg)).collect();
+        model.forward_batch(&mut states, &[1, 2, 3], &[0, 0, 0], true);
+        let after = model.execution_snapshot();
+
+        assert_eq!(after.matrix_calls - before.matrix_calls, plan.matrix_calls);
+        assert_eq!(
+            after.tiles_completed - before.tiles_completed,
+            plan.row_tiles
+        );
+        assert_eq!(plan.worker_tasks, plan.row_tiles);
+        assert_eq!(
+            after.output_cells_completed - before.output_cells_completed,
+            plan.output_cells
+        );
+        assert_eq!(
+            after.scalar_terms_completed - before.scalar_terms_completed,
+            plan.scalar_terms
+        );
+    }
+
+    #[cfg(all(
+        not(target_arch = "wasm32"),
+        not(all(feature = "observation-blas-exception", target_os = "macos"))
+    ))]
+    #[test]
+    fn eight_stream_forward_keeps_private_states_and_observes_row_workers() {
+        use std::num::NonZeroUsize;
+        use std::sync::atomic::{AtomicBool, Ordering};
+        use std::sync::Arc;
+
+        let saw_streams_and_workers = Arc::new(AtomicBool::new(false));
+        let observer_flag = Arc::clone(&saw_streams_and_workers);
+        let mut model = tiny_llama();
+        model
+            .set_execution_config(
+                TeacherExecutionConfig::fixed_workers(
+                    NonZeroUsize::new(8).expect("worker count is nonzero"),
+                )
+                .with_tiles_per_worker(NonZeroUsize::new(4).expect("tiles per worker is nonzero"))
+                .with_observer(Arc::new(move |snapshot| {
+                    if snapshot.active_streams == 8 && snapshot.active_workers > 0 {
+                        observer_flag.store(true, Ordering::Release);
+                    }
+                })),
+            )
+            .expect("eight-worker exact executor");
+        let mut states: Vec<State> = (0..8).map(|_| State::new(&model.cfg)).collect();
+        model.forward_batch(
+            &mut states,
+            &[1, 2, 3, 4, 5, 6, 7, 8],
+            &[0, 0, 0, 0, 0, 0, 0, 0],
+            true,
+        );
+
+        let snapshot = model.execution_snapshot();
+        assert_eq!(snapshot.effective_workers, 8);
+        assert_eq!(snapshot.streams_started, 8);
+        assert_eq!(snapshot.streams_completed, 8);
+        assert_eq!(snapshot.active_streams, 0);
+        assert_eq!(snapshot.max_active_streams, 8);
+        assert_eq!(snapshot.batched_matrix_calls, snapshot.matrix_calls);
+        assert_eq!(snapshot.max_matrix_batch_width, 8);
+        assert!(snapshot.observer_epoch > 0);
+        assert!(snapshot.max_active_workers >= 2);
+        assert!(snapshot.max_active_workers <= 8);
+        assert!(saw_streams_and_workers.load(Ordering::Acquire));
+        let state_bits: Vec<Vec<u32>> = states.iter().map(persistent_state_bits).collect();
+        for left in 0..state_bits.len() {
+            for right in left + 1..state_bits.len() {
+                assert_ne!(
+                    state_bits[left], state_bits[right],
+                    "independent stream states {left} and {right} collapsed"
+                );
+            }
+        }
+        assert_eq!(
+            model
+                .exact_forward_plan(8)
+                .expect("eight-stream exact plan")
+                .batch_width,
+            8
+        );
     }
 
     #[test]
@@ -3033,44 +4686,1915 @@ mod tests {
         }
     }
 
-    /// forward_batch over B sequences, stepped position by position, must
-    /// produce the exact logits of B independent forward() streams. Off macOS
-    /// the batched matmul reuses the serial dot_fast, so this is bit-identical;
-    /// guards the batched teacher path added for #531.
-    #[cfg(not(target_os = "macos"))]
+    fn persistent_state_bits(state: &State) -> Vec<u32> {
+        // xb/xb2/hb/hb2/q/att are overwrite-only forward scratch and the
+        // batched executor intentionally keeps their equivalents in stacked
+        // private buffers. x, both KV caches, and logits are the persistent
+        // sequence state consumed or exposed after the call.
+        [
+            &state.x,
+            &state.key_cache,
+            &state.value_cache,
+            &state.logits,
+        ]
+        .into_iter()
+        .flat_map(|values| values.iter().map(|value| value.to_bits()))
+        .collect()
+    }
+
+    #[test]
+    fn cloned_teacher_state_preserves_bits_and_owns_private_storage() {
+        let model = tiny_llama();
+        let mut template = State::new_bounded(&model.cfg, 4).expect("bounded template state");
+        model.forward(&mut template, 1, 0, true);
+        model.forward(&mut template, 3, 1, true);
+
+        let template_cid = template.persistent_state_cid();
+        let mut clone = template.clone();
+        assert_eq!(clone.persistent_state_cid(), template_cid);
+        assert_eq!(
+            persistent_state_bits(&clone),
+            persistent_state_bits(&template)
+        );
+
+        clone.key_cache[0] = f32::from_bits(clone.key_cache[0].to_bits() ^ 1);
+        assert_eq!(template.persistent_state_cid(), template_cid);
+        assert_ne!(clone.persistent_state_cid(), template_cid);
+
+        let mut continuation = template.clone();
+        model.forward(&mut continuation, 5, 2, true);
+        assert_eq!(template.persistent_state_cid(), template_cid);
+        assert_ne!(continuation.persistent_state_cid(), template_cid);
+    }
+
+    /// Exact output-row tiling must preserve every persistent sequence-state
+    /// bit, including on macOS, at each supported fixed worker count.
     #[test]
     #[allow(clippy::needless_range_loop)]
-    fn forward_batch_matches_serial_forward() {
-        let model = tiny_llama();
+    fn forward_batch_matches_serial_forward_for_1_2_4_8_workers() {
+        use std::num::NonZeroUsize;
+
+        let serial_model = tiny_llama();
         let seqs: [[usize; 4]; 3] = [[1, 3, 5, 2], [4, 0, 7, 8], [2, 9, 1, 6]];
         let len = 4;
 
         // Serial reference: one State per sequence, stepped token by token.
-        let mut serial: Vec<Vec<f32>> = Vec::new();
-        let mut sstates: Vec<State> = (0..3).map(|_| State::new(&model.cfg)).collect();
+        let mut serial: Vec<Vec<u32>> = Vec::new();
+        let mut sstates: Vec<State> = (0..3).map(|_| State::new(&serial_model.cfg)).collect();
         sstates.iter_mut().for_each(State::reset);
         for pos in 0..len {
             for (b, st) in sstates.iter_mut().enumerate() {
-                model.forward(st, seqs[b][pos], pos, true);
-                serial.push(st.logits.clone());
+                serial_model.forward(st, seqs[b][pos], pos, true);
+                serial.push(persistent_state_bits(st));
             }
         }
 
-        // Batched: all three sequences advanced together each step.
-        let mut bstates: Vec<State> = (0..3).map(|_| State::new(&model.cfg)).collect();
-        bstates.iter_mut().for_each(State::reset);
-        for pos in 0..len {
-            let tokens: Vec<usize> = (0..3).map(|b| seqs[b][pos]).collect();
-            let positions = vec![pos; 3];
-            model.forward_batch(&mut bstates, &tokens, &positions, true);
-            for (b, st) in bstates.iter().enumerate() {
+        for workers in [1usize, 2, 4, 8] {
+            let mut model = tiny_llama();
+            model
+                .set_execution_config(TeacherExecutionConfig::fixed_workers(
+                    NonZeroUsize::new(workers).expect("worker count is nonzero"),
+                ))
+                .expect("fixed exact executor");
+            let mut bstates: Vec<State> = (0..3).map(|_| State::new(&model.cfg)).collect();
+            bstates.iter_mut().for_each(State::reset);
+            for pos in 0..len {
+                let tokens: Vec<usize> = (0..3).map(|b| seqs[b][pos]).collect();
+                let positions = vec![pos; 3];
+                model.forward_batch(&mut bstates, &tokens, &positions, true);
+                for (b, st) in bstates.iter().enumerate() {
+                    assert_eq!(
+                        persistent_state_bits(st),
+                        serial[pos * 3 + b],
+                        "state differs with {workers} workers at pos {pos} seq {b}"
+                    );
+                }
+            }
+        }
+    }
+
+    #[test]
+    #[should_panic(expected = "batched teacher forward requires at least one state")]
+    fn forward_batch_rejects_an_empty_cohort_before_executor_work() {
+        let model = tiny_llama();
+        model.forward_batch(&mut [], &[], &[], true);
+    }
+
+    #[test]
+    #[should_panic(expected = "batched teacher token/state lengths must match")]
+    fn forward_batch_rejects_mismatched_cohort_shapes_in_release_builds() {
+        let model = tiny_llama();
+        let mut states = vec![State::new(&model.cfg)];
+        model.forward_batch(&mut states, &[], &[0], true);
+    }
+
+    #[test]
+    fn bounded_state_matches_full_state_and_rejects_invalid_bounds() {
+        let model = tiny_llama();
+        assert_eq!(
+            State::new_bounded(&model.cfg, 0).err(),
+            Some(TeacherStateCapacityError::Zero)
+        );
+        assert_eq!(
+            State::new_bounded(&model.cfg, model.cfg.seq_len + 1).err(),
+            Some(TeacherStateCapacityError::ExceedsModel {
+                requested: model.cfg.seq_len + 1,
+                maximum: model.cfg.seq_len,
+            })
+        );
+
+        let horizon = 4usize;
+        let full_shape = model
+            .exact_probe_trace_shape(1, 8, 8)
+            .expect("full trace shape");
+        let bounded_shape = model
+            .exact_probe_trace_shape_bounded(horizon, 1, 8, 8)
+            .expect("bounded trace shape");
+        assert_eq!(full_shape.sequence_capacity, model.cfg.seq_len);
+        assert_eq!(bounded_shape.sequence_capacity, horizon);
+        assert!(bounded_shape.persistent_state_words < full_shape.persistent_state_words);
+        let mut full = State::new(&model.cfg);
+        let mut bounded = State::new_bounded(&model.cfg, horizon).expect("bounded state");
+        assert_eq!(bounded.sequence_capacity(), horizon);
+        assert_eq!(bounded.att.len(), model.cfg.n_heads * horizon);
+        let kv_dim = model.cfg.dim * model.cfg.n_kv_heads / model.cfg.n_heads;
+        assert_eq!(
+            bounded.key_cache.len(),
+            model.cfg.n_layers * horizon * kv_dim
+        );
+        for pos in 0..horizon {
+            model.forward(&mut full, pos + 1, pos, true);
+            model.forward(&mut bounded, pos + 1, pos, true);
+            assert_eq!(
+                full.x
+                    .iter()
+                    .map(|value| value.to_bits())
+                    .collect::<Vec<_>>(),
+                bounded
+                    .x
+                    .iter()
+                    .map(|value| value.to_bits())
+                    .collect::<Vec<_>>()
+            );
+            assert_eq!(
+                full.logits
+                    .iter()
+                    .map(|value| value.to_bits())
+                    .collect::<Vec<_>>(),
+                bounded
+                    .logits
+                    .iter()
+                    .map(|value| value.to_bits())
+                    .collect::<Vec<_>>()
+            );
+            for layer in 0..model.cfg.n_layers {
+                let full_offset = layer * model.cfg.seq_len * kv_dim;
+                let bounded_offset = layer * horizon * kv_dim;
+                let words = (pos + 1) * kv_dim;
                 assert_eq!(
-                    st.logits,
-                    serial[pos * 3 + b],
-                    "logits differ at pos {pos} seq {b}"
+                    &full.key_cache[full_offset..full_offset + words],
+                    &bounded.key_cache[bounded_offset..bounded_offset + words]
+                );
+                assert_eq!(
+                    &full.value_cache[full_offset..full_offset + words],
+                    &bounded.value_cache[bounded_offset..bounded_offset + words]
                 );
             }
         }
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    fn direct_probe_budget_contract_error(
+        generation_tokens_per_lane: usize,
+        max_wall_seconds: usize,
+    ) -> Option<String> {
+        if generation_tokens_per_lane > EXACT_MULTICORE_PROBE_REGISTERED_GENERATION_TOKENS
+            || !generation_tokens_per_lane.is_power_of_two()
+        {
+            return Some(format!(
+                "R4_PARITY_GEN_TOKENS must be a power of two in 1..={EXACT_MULTICORE_PROBE_REGISTERED_GENERATION_TOKENS}; got {generation_tokens_per_lane}"
+            ));
+        }
+        if max_wall_seconds > 28_800 {
+            return Some(format!(
+                "R4_PARITY_MAX_WALL_SECS must be in 1..=28800; got {max_wall_seconds}"
+            ));
+        }
+        None
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    #[test]
+    fn direct_probe_budget_bounds_match_the_binding_bdd_owner() {
+        for tokens in [1, 2, 4, 8] {
+            assert_eq!(direct_probe_budget_contract_error(tokens, 28_800), None);
+        }
+        for tokens in [3, 9, 128] {
+            assert!(direct_probe_budget_contract_error(tokens, 28_800)
+                .is_some_and(|reason| reason.contains("R4_PARITY_GEN_TOKENS")));
+        }
+        assert!(direct_probe_budget_contract_error(8, 28_801)
+            .is_some_and(|reason| reason.contains("R4_PARITY_MAX_WALL_SECS")));
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    #[test]
+    fn direct_probe_revalidates_production_generation_immediately_before_teacher_load() {
+        let source = include_str!("lib.rs");
+        let start = source
+            .rfind("fn live_exact_multicore_probe_emits_json_and_preserves_bits()")
+            .expect("direct probe exists");
+        let body = &source[start..];
+        let load = body
+            .find(
+                "let mut oracle = HuggingFaceLlamaOracle::load_with_sequence_length_and_execution(",
+            )
+            .expect("teacher load exists");
+        let validations = body[..load]
+            .match_indices("exact_probe::validate_teacher_free_preflight")
+            .map(|(offset, _)| offset)
+            .collect::<Vec<_>>();
+        assert_eq!(validations.len(), 2);
+        let final_validation = *validations.last().expect("final validation");
+        let final_interval = &body[final_validation..load];
+        assert!(final_interval.contains("current_preflight != preflight"));
+        assert!(final_interval.contains("production generation changed"));
+    }
+
+    /// Cheap live proof harness for #932. It loads source weights once, times
+    /// identical eight-stream work at four and all available exact workers,
+    /// selects the lowest projected wall time, compares every output and
+    /// persistent-state bit, flushes JSONL progress, and atomically publishes
+    /// typed admission evidence. Missing fixtures are a truthful unavailable
+    /// result, never a skip.
+    #[cfg(not(target_arch = "wasm32"))]
+    #[test]
+    #[ignore = "requires the pinned live SmolLM2 source fixture"]
+    fn live_exact_multicore_probe_emits_json_and_preserves_bits() {
+        use std::fs::File;
+        use std::io::Write;
+        use std::num::NonZeroUsize;
+        use std::path::PathBuf;
+        use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+        use std::sync::{Arc, Mutex};
+        use std::time::{Duration, Instant};
+
+        fn try_emit_probe_record(
+            events: &Arc<Mutex<File>>,
+            record: &serde_json::Value,
+            durable: bool,
+        ) -> std::io::Result<()> {
+            {
+                let mut file = events
+                    .lock()
+                    .unwrap_or_else(std::sync::PoisonError::into_inner);
+                serde_json::to_writer(&mut *file, record)
+                    .map_err(|error| std::io::Error::new(std::io::ErrorKind::InvalidData, error))?;
+                file.write_all(b"\n")?;
+                file.flush()?;
+                if durable {
+                    file.sync_all()?;
+                }
+            }
+            let stderr = std::io::stderr();
+            let mut output = stderr.lock();
+            serde_json::to_writer(&mut output, record)
+                .map_err(|error| std::io::Error::new(std::io::ErrorKind::InvalidData, error))?;
+            output.write_all(b"\n")?;
+            output.flush()?;
+            Ok(())
+        }
+
+        fn emit_probe_record(events: &Arc<Mutex<File>>, record: &serde_json::Value) {
+            try_emit_probe_record(events, record, false)
+                .expect("write and flush exact probe JSONL record");
+        }
+
+        fn write_probe_state_atomic(
+            path: &std::path::Path,
+            state: &serde_json::Value,
+        ) -> std::io::Result<()> {
+            let parent = exact_probe::normalized_report_parent(path);
+            let name = path
+                .file_name()
+                .and_then(std::ffi::OsStr::to_str)
+                .unwrap_or("exact-multicore-probe.json");
+            let temporary = parent.join(format!(".{name}.{}.state.tmp", std::process::id()));
+            let mut file = File::create(&temporary)?;
+            serde_json::to_writer_pretty(&mut file, state)
+                .map_err(|error| std::io::Error::new(std::io::ErrorKind::InvalidData, error))?;
+            file.write_all(b"\n")?;
+            file.flush()?;
+            file.sync_all()?;
+            std::fs::rename(&temporary, path)?;
+            File::open(parent)?.sync_all()?;
+            Ok(())
+        }
+
+        #[derive(Clone, Copy)]
+        enum ProbeTerminalKind {
+            Aborted,
+            Unavailable,
+            Refused,
+            Failed,
+        }
+
+        impl ProbeTerminalKind {
+            fn event(self) -> &'static str {
+                match self {
+                    Self::Aborted => "ABORTED",
+                    Self::Unavailable => "UNAVAILABLE",
+                    Self::Refused => "NOT_RUN",
+                    Self::Failed => "FAIL",
+                }
+            }
+
+            fn status(self) -> &'static str {
+                match self {
+                    Self::Aborted => "ABORTED",
+                    Self::Unavailable => "UNAVAILABLE",
+                    Self::Refused => "REFUSE_FULL_RUN",
+                    Self::Failed => "FAIL",
+                }
+            }
+        }
+
+        fn terminal_probe(
+            events: &Arc<Mutex<File>>,
+            report_path: &std::path::Path,
+            elapsed_seconds: f64,
+            reason: &str,
+            kind: ProbeTerminalKind,
+            overall_heartbeat: &mut ProbeOverallHeartbeat,
+        ) -> ! {
+            let heartbeat_failure = overall_heartbeat.stop_and_join().err();
+            let terminal_reason = heartbeat_failure.as_ref().map_or_else(
+                || reason.to_owned(),
+                |heartbeat_reason| {
+                    format!("{reason}; terminal heartbeat join failed: {heartbeat_reason}")
+                },
+            );
+            let state = serde_json::json!({
+                "schema": EXACT_MULTICORE_PROBE_SCHEMA,
+                "record": "EXACT_MULTICORE_PROBE_STATE",
+                "event": kind.event(),
+                "status": kind.status(),
+                "qualifies_full_run": false,
+                "probe_wall_ceiling_seconds": EXACT_MULTICORE_PROBE_WALL_CEILING_SECONDS,
+                "probe_deadline_policy": EXACT_MULTICORE_PROBE_DEADLINE_POLICY,
+                "probe_elapsed_seconds": elapsed_seconds,
+                "reason": terminal_reason,
+            });
+            let state_error = write_probe_state_atomic(report_path, &state).err();
+            emit_probe_record(events, &state);
+            if let Some(error) = state_error {
+                panic!(
+                    "NOT_RUN / {}: {terminal_reason}; durable terminal state write failed: {error}",
+                    kind.status()
+                );
+            }
+            panic!("NOT_RUN / {}: {terminal_reason}", kind.status());
+        }
+
+        fn abort_probe(
+            events: &Arc<Mutex<File>>,
+            report_path: &std::path::Path,
+            elapsed_seconds: f64,
+            reason: &str,
+            overall_heartbeat: &mut ProbeOverallHeartbeat,
+        ) -> ! {
+            terminal_probe(
+                events,
+                report_path,
+                elapsed_seconds,
+                reason,
+                ProbeTerminalKind::Aborted,
+                overall_heartbeat,
+            )
+        }
+
+        fn unavailable_probe(
+            events: &Arc<Mutex<File>>,
+            report_path: &std::path::Path,
+            elapsed_seconds: f64,
+            reason: &str,
+            overall_heartbeat: &mut ProbeOverallHeartbeat,
+        ) -> ! {
+            terminal_probe(
+                events,
+                report_path,
+                elapsed_seconds,
+                reason,
+                ProbeTerminalKind::Unavailable,
+                overall_heartbeat,
+            )
+        }
+
+        fn refuse_probe(
+            events: &Arc<Mutex<File>>,
+            report_path: &std::path::Path,
+            elapsed_seconds: f64,
+            reason: &str,
+            overall_heartbeat: &mut ProbeOverallHeartbeat,
+        ) -> ! {
+            terminal_probe(
+                events,
+                report_path,
+                elapsed_seconds,
+                reason,
+                ProbeTerminalKind::Refused,
+                overall_heartbeat,
+            )
+        }
+
+        fn fail_probe(
+            events: &Arc<Mutex<File>>,
+            report_path: &std::path::Path,
+            elapsed_seconds: f64,
+            reason: &str,
+            overall_heartbeat: &mut ProbeOverallHeartbeat,
+        ) -> ! {
+            terminal_probe(
+                events,
+                report_path,
+                elapsed_seconds,
+                reason,
+                ProbeTerminalKind::Failed,
+                overall_heartbeat,
+            )
+        }
+
+        #[derive(Clone, Copy, Debug, serde::Serialize)]
+        struct ProbeProcessSample {
+            cpu_time_seconds: f64,
+            resident_set_bytes: u64,
+        }
+
+        #[cfg(target_os = "macos")]
+        fn process_sample() -> Result<ProbeProcessSample, String> {
+            fn parse_cpu_time(raw: &str) -> Result<f64, String> {
+                let (days, clock) = match raw.split_once('-') {
+                    Some((days, clock)) => (
+                        days.parse::<u64>()
+                            .map_err(|error| format!("ps TIME days {days:?}: {error}"))?,
+                        clock,
+                    ),
+                    None => (0, raw),
+                };
+                let fields: Vec<&str> = clock.split(':').collect();
+                let (hours, minutes, seconds) = match fields.as_slice() {
+                    [minutes, seconds] => (0, *minutes, *seconds),
+                    [hours, minutes, seconds] => (
+                        hours
+                            .parse::<u64>()
+                            .map_err(|error| format!("ps TIME hours {hours:?}: {error}"))?,
+                        *minutes,
+                        *seconds,
+                    ),
+                    _ => return Err(format!("ps TIME had unexpected shape {raw:?}")),
+                };
+                let minutes = minutes
+                    .parse::<u64>()
+                    .map_err(|error| format!("ps TIME minutes {minutes:?}: {error}"))?;
+                let seconds = seconds
+                    .parse::<f64>()
+                    .map_err(|error| format!("ps TIME seconds {seconds:?}: {error}"))?;
+                let total = days as f64 * 86_400.0
+                    + hours as f64 * 3_600.0
+                    + minutes as f64 * 60.0
+                    + seconds;
+                (total.is_finite() && total >= 0.0)
+                    .then_some(total)
+                    .ok_or_else(|| format!("ps TIME was invalid: {raw:?}"))
+            }
+
+            let process_id = std::process::id().to_string();
+            let output = std::process::Command::new("/bin/ps")
+                .args(["-o", "rss=", "-o", "time=", "-p", &process_id])
+                .output()
+                .map_err(|error| format!("ps process sample: {error}"))?;
+            if !output.status.success() {
+                return Err(format!("ps process sample exited {}", output.status));
+            }
+            let text = String::from_utf8(output.stdout)
+                .map_err(|error| format!("ps returned non-UTF-8 output: {error}"))?;
+            let mut fields = text.split_whitespace();
+            let resident_kib = fields
+                .next()
+                .ok_or_else(|| "ps omitted RSS".to_owned())?
+                .parse::<u64>()
+                .map_err(|error| format!("ps RSS parse: {error}"))?;
+            let cpu_time_seconds = parse_cpu_time(
+                fields
+                    .next()
+                    .ok_or_else(|| "ps omitted process CPU time".to_owned())?,
+            )?;
+            if fields.next().is_some() {
+                return Err(format!("ps returned unexpected fields: {text:?}"));
+            }
+            let resident_set_bytes = resident_kib
+                .checked_mul(1024)
+                .ok_or_else(|| "ps RSS byte conversion overflow".to_owned())?;
+            Ok(ProbeProcessSample {
+                cpu_time_seconds,
+                resident_set_bytes,
+            })
+        }
+
+        #[cfg(not(target_os = "macos"))]
+        fn process_sample() -> Result<ProbeProcessSample, String> {
+            Err(format!(
+                "safe exact-probe process sampler is not implemented for {}",
+                std::env::consts::OS
+            ))
+        }
+
+        fn completed_resources(
+            start: &Result<ProbeProcessSample, String>,
+            end: &Result<ProbeProcessSample, String>,
+            max_sampled_rss_bytes: u64,
+            elapsed_seconds: f64,
+            measurement_scope: &str,
+            cpu_time_consumed_override: Option<f64>,
+        ) -> ExactMulticoreProbeResources {
+            match (start, end) {
+                (Ok(start), Ok(end))
+                    if end.cpu_time_seconds >= start.cpu_time_seconds
+                        && elapsed_seconds.is_finite()
+                        && elapsed_seconds > 0.0 =>
+                {
+                    let max_sampled_rss_bytes = max_sampled_rss_bytes
+                        .max(start.resident_set_bytes)
+                        .max(end.resident_set_bytes);
+                    let cpu_time_consumed_seconds = cpu_time_consumed_override
+                        .unwrap_or(end.cpu_time_seconds - start.cpu_time_seconds);
+                    let mean_cpu_core_equivalents = cpu_time_consumed_seconds / elapsed_seconds;
+                    ExactMulticoreProbeResources {
+                        status: "PARTIAL".to_owned(),
+                        measurement_scope: measurement_scope.to_owned(),
+                        cpu_time_start_seconds: Some(start.cpu_time_seconds),
+                        cpu_time_end_seconds: Some(end.cpu_time_seconds),
+                        cpu_time_consumed_seconds: Some(cpu_time_consumed_seconds),
+                        current_rss_bytes: Some(end.resident_set_bytes),
+                        max_sampled_rss_bytes: Some(max_sampled_rss_bytes),
+                        peak_rss_bytes: None,
+                        mean_cpu_core_equivalents: Some(mean_cpu_core_equivalents),
+                        mean_cpu_percent: Some(mean_cpu_core_equivalents * 100.0),
+                        reason: Some(
+                            "safe macOS ps sampling exposes current/max-sampled RSS but not an OS-maintained process peak RSS"
+                                .to_owned(),
+                        ),
+                    }
+                }
+                (Ok(_), Ok(_)) => ExactMulticoreProbeResources::unavailable(
+                    "process CPU time moved backwards between ps samples",
+                ),
+                (Err(start), Err(end)) => ExactMulticoreProbeResources::unavailable(format!(
+                    "start sample: {start}; end sample: {end}"
+                )),
+                (Err(reason), _) => {
+                    ExactMulticoreProbeResources::unavailable(format!("start sample: {reason}"))
+                }
+                (_, Err(reason)) => {
+                    ExactMulticoreProbeResources::unavailable(format!("end sample: {reason}"))
+                }
+            }
+        }
+
+        fn process_sample_value(sample: &Result<ProbeProcessSample, String>) -> serde_json::Value {
+            match sample {
+                Ok(sample) => serde_json::json!({
+                    "status": "AVAILABLE",
+                    "sample": sample,
+                }),
+                Err(reason) => serde_json::json!({
+                    "status": "UNAVAILABLE",
+                    "reason": reason,
+                }),
+            }
+        }
+
+        #[derive(Clone, Debug, PartialEq)]
+        struct ProbeTracePoint {
+            logits_bits: Vec<u32>,
+            greedy_token: u32,
+            top_tokens: Vec<u32>,
+            persistent_state_bits: Vec<u32>,
+        }
+
+        struct ProbeRunMeasurement {
+            workers: usize,
+            prestart: ExactMulticoreProbePrestart,
+            elapsed_ms: u64,
+            elapsed_seconds: f64,
+            aggregate_forwards_per_second: f64,
+            equal_to_reference: bool,
+            snapshot: TeacherExecutionSnapshot,
+            output_trace_cid: String,
+            resources: ExactMulticoreProbeResources,
+            forward_plan: ExactForwardPlan,
+            trace_shape: ExactMulticoreProbeTraceShape,
+        }
+
+        fn canonical_top_tokens(logits: &[f32], k: usize) -> Vec<u32> {
+            let mut best = Vec::with_capacity(k.min(logits.len()));
+            for token in 0..logits.len() {
+                let insertion = best.iter().position(|&incumbent| {
+                    logits[token].total_cmp(&logits[incumbent as usize]).is_gt()
+                        || (logits[token].to_bits() == logits[incumbent as usize].to_bits()
+                            && token < incumbent as usize)
+                });
+                if let Some(index) = insertion {
+                    best.insert(index, u32::try_from(token).unwrap_or(u32::MAX));
+                } else if best.len() < k {
+                    best.push(u32::try_from(token).unwrap_or(u32::MAX));
+                }
+                best.truncate(k);
+            }
+            best
+        }
+
+        fn capture_trace_point(state: &State) -> ProbeTracePoint {
+            let top_tokens = canonical_top_tokens(&state.logits, 8);
+            ProbeTracePoint {
+                logits_bits: state.logits.iter().map(|value| value.to_bits()).collect(),
+                greedy_token: top_tokens.first().copied().unwrap_or(0),
+                top_tokens,
+                persistent_state_bits: persistent_state_bits(state),
+            }
+        }
+
+        fn output_trace_cid(trace: &[Vec<ProbeTracePoint>]) -> String {
+            let mut hasher = blake3::Hasher::new();
+            for (position, streams) in trace.iter().enumerate() {
+                hasher.update(&u64::try_from(position).unwrap_or(u64::MAX).to_le_bytes());
+                hasher.update(
+                    &u64::try_from(streams.len())
+                        .unwrap_or(u64::MAX)
+                        .to_le_bytes(),
+                );
+                for state in streams {
+                    hasher.update(
+                        &u64::try_from(state.logits_bits.len())
+                            .unwrap_or(u64::MAX)
+                            .to_le_bytes(),
+                    );
+                    for bits in &state.logits_bits {
+                        hasher.update(&bits.to_le_bytes());
+                    }
+                    hasher.update(&state.greedy_token.to_le_bytes());
+                    hasher.update(
+                        &u64::try_from(state.top_tokens.len())
+                            .unwrap_or(u64::MAX)
+                            .to_le_bytes(),
+                    );
+                    for token in &state.top_tokens {
+                        hasher.update(&token.to_le_bytes());
+                    }
+                    hasher.update(
+                        &u64::try_from(state.persistent_state_bits.len())
+                            .unwrap_or(u64::MAX)
+                            .to_le_bytes(),
+                    );
+                    for bits in &state.persistent_state_bits {
+                        hasher.update(&bits.to_le_bytes());
+                    }
+                }
+            }
+            format!("blake3:{}", hasher.finalize().to_hex())
+        }
+
+        #[derive(Default)]
+        struct ProbeOverallPhase(Mutex<(String, Option<usize>)>);
+
+        impl ProbeOverallPhase {
+            fn set(&self, phase: &str, workers: Option<usize>) {
+                *self
+                    .0
+                    .lock()
+                    .unwrap_or_else(std::sync::PoisonError::into_inner) =
+                    (phase.to_owned(), workers);
+            }
+
+            fn get(&self) -> (String, Option<usize>) {
+                self.0
+                    .lock()
+                    .unwrap_or_else(std::sync::PoisonError::into_inner)
+                    .clone()
+            }
+        }
+
+        struct ProbeOverallHeartbeat {
+            stop: Arc<AtomicBool>,
+            handle: Option<std::thread::JoinHandle<()>>,
+        }
+
+        impl ProbeOverallHeartbeat {
+            fn idle() -> Self {
+                Self {
+                    stop: Arc::new(AtomicBool::new(false)),
+                    handle: None,
+                }
+            }
+
+            fn stop_and_join(&mut self) -> Result<(), String> {
+                self.stop.store(true, Ordering::Release);
+                let Some(handle) = self.handle.take() else {
+                    return Ok(());
+                };
+                handle.thread().unpark();
+                handle
+                    .join()
+                    .map_err(|_| "overall exact-probe heartbeat thread panicked".to_owned())
+            }
+        }
+
+        impl Drop for ProbeOverallHeartbeat {
+            fn drop(&mut self) {
+                self.stop.store(true, Ordering::Release);
+                if let Some(handle) = self.handle.take() {
+                    handle.thread().unpark();
+                    let _ = handle.join();
+                }
+            }
+        }
+
+        let report_path = exact_probe::resolve_direct_probe_path(
+            std::env::var_os("R4_EXACT_PROBE_REPORT")
+                .map(PathBuf::from)
+                .unwrap_or_else(|| {
+                    PathBuf::from("target/teacher-parity/exact-multicore-probe.json")
+                }),
+        );
+        if report_path.as_os_str().is_empty() {
+            let state = serde_json::json!({
+                "schema": EXACT_MULTICORE_PROBE_SCHEMA,
+                "record": "EXACT_MULTICORE_PROBE_STATE",
+                "event": "NOT_RUN",
+                "status": "REFUSE_FULL_RUN",
+                "qualifies_full_run": false,
+                "reason": "R4_EXACT_PROBE_REPORT must be a nonempty path",
+            });
+            eprintln!("{state}");
+            panic!("NOT_RUN / REFUSE_FULL_RUN: R4_EXACT_PROBE_REPORT must be a nonempty path");
+        }
+        let report_parent = exact_probe::normalized_report_parent(&report_path);
+        std::fs::create_dir_all(report_parent).unwrap_or_else(|error| {
+            let state = serde_json::json!({
+                "schema": EXACT_MULTICORE_PROBE_SCHEMA,
+                "record": "EXACT_MULTICORE_PROBE_STATE",
+                "event": "UNAVAILABLE",
+                "status": "UNAVAILABLE",
+                "qualifies_full_run": false,
+                "reason": format!("create probe report directory {}: {error}", report_parent.display()),
+            });
+            eprintln!("{state}");
+            panic!("UNAVAILABLE: cannot create exact probe report directory: {error}");
+        });
+        let report_stem = report_path
+            .file_stem()
+            .and_then(std::ffi::OsStr::to_str)
+            .unwrap_or("exact-multicore-probe");
+        let events_path = report_parent.join(format!("{report_stem}.events.jsonl"));
+        let events_file = File::create(&events_path).unwrap_or_else(|error| {
+            let state = serde_json::json!({
+                "schema": EXACT_MULTICORE_PROBE_SCHEMA,
+                "record": "EXACT_MULTICORE_PROBE_STATE",
+                "event": "UNAVAILABLE",
+                "status": "UNAVAILABLE",
+                "qualifies_full_run": false,
+                "reason": format!("create durable probe JSONL {}: {error}", events_path.display()),
+            });
+            let _ = write_probe_state_atomic(&report_path, &state);
+            eprintln!("{state}");
+            panic!("UNAVAILABLE: cannot create exact probe JSONL: {error}");
+        });
+        let events = Arc::new(Mutex::new(events_file));
+        let mut overall_heartbeat = ProbeOverallHeartbeat::idle();
+        let probe_started = Instant::now();
+        let overall_process_start = process_sample();
+        if let Err(error) = write_probe_state_atomic(
+            &report_path,
+            &serde_json::json!({
+                "schema": EXACT_MULTICORE_PROBE_SCHEMA,
+                "record": "EXACT_MULTICORE_PROBE_STATE",
+                "event": "RUNNING",
+                "status": "NOT_QUALIFIED",
+                "qualifies_full_run": false,
+                "probe_wall_ceiling_seconds": EXACT_MULTICORE_PROBE_WALL_CEILING_SECONDS,
+                "probe_deadline_policy": EXACT_MULTICORE_PROBE_DEADLINE_POLICY,
+            }),
+        ) {
+            let reason = format!("publish initial RUNNING probe state: {error}");
+            unavailable_probe(
+                &events,
+                &report_path,
+                probe_started.elapsed().as_secs_f64(),
+                &reason,
+                &mut overall_heartbeat,
+            );
+        }
+        let progress_every_seconds = match std::env::var("R4_PARITY_PROGRESS_EVERY_SECS") {
+            Ok(raw) => raw
+                .parse::<u64>()
+                .ok()
+                .filter(|value| *value > 0)
+                .unwrap_or_else(|| {
+                    let reason =
+                        format!("R4_PARITY_PROGRESS_EVERY_SECS={raw:?} must be a positive integer");
+                    refuse_probe(
+                        &events,
+                        &report_path,
+                        probe_started.elapsed().as_secs_f64(),
+                        &reason,
+                        &mut overall_heartbeat,
+                    )
+                }),
+            Err(std::env::VarError::NotPresent) => 10,
+            Err(std::env::VarError::NotUnicode(_)) => refuse_probe(
+                &events,
+                &report_path,
+                probe_started.elapsed().as_secs_f64(),
+                "R4_PARITY_PROGRESS_EVERY_SECS is not valid Unicode",
+                &mut overall_heartbeat,
+            ),
+        };
+        let progress_every = Duration::from_secs(progress_every_seconds);
+        let overall_phase = Arc::new(ProbeOverallPhase::default());
+        overall_phase.set("TEACHER_FREE_PREFLIGHT", None);
+        let overall_max_sampled_rss = Arc::new(AtomicU64::new(
+            overall_process_start
+                .as_ref()
+                .map_or(0, |sample| sample.resident_set_bytes),
+        ));
+        let overall_heartbeat_stop = Arc::new(AtomicBool::new(false));
+        overall_heartbeat.stop = Arc::clone(&overall_heartbeat_stop);
+        {
+            let worker_stop = Arc::clone(&overall_heartbeat_stop);
+            let phase = Arc::clone(&overall_phase);
+            let heartbeat_events = Arc::clone(&events);
+            let max_rss = Arc::clone(&overall_max_sampled_rss);
+            let handle = match std::thread::Builder::new()
+                .name("r4-exact-probe-overall-heartbeat".to_owned())
+                .spawn(move || loop {
+                    std::thread::park_timeout(progress_every);
+                    if worker_stop.load(Ordering::Acquire) {
+                        break;
+                    }
+                    let elapsed_seconds = probe_started.elapsed().as_secs_f64();
+                    let process = process_sample();
+                    if let Ok(sample) = &process {
+                        max_rss.fetch_max(sample.resident_set_bytes, Ordering::AcqRel);
+                    }
+                    let (phase, current_workers) = phase.get();
+                    emit_probe_record(
+                        &heartbeat_events,
+                        &serde_json::json!({
+                            "schema": EXACT_MULTICORE_PROBE_SCHEMA,
+                            "record": "EXACT_MULTICORE_PROBE",
+                            "event": "OVERALL_PROGRESS",
+                            "phase": phase,
+                            "current_workers": current_workers,
+                            "elapsed_seconds": elapsed_seconds,
+                            "deadline_seconds": EXACT_MULTICORE_PROBE_WALL_CEILING_SECONDS,
+                            "deadline_policy": EXACT_MULTICORE_PROBE_DEADLINE_POLICY,
+                            "deadline_remaining_seconds": (EXACT_MULTICORE_PROBE_WALL_CEILING_SECONDS as f64 - elapsed_seconds).max(0.0),
+                            "process": process_sample_value(&process),
+                        }),
+                    );
+                })
+            {
+                Ok(handle) => handle,
+                Err(error) => {
+                    let reason = format!("spawn overall exact probe heartbeat: {error}");
+                    unavailable_probe(
+                        &events,
+                        &report_path,
+                        probe_started.elapsed().as_secs_f64(),
+                        &reason,
+                        &mut overall_heartbeat,
+                    )
+                }
+            };
+            overall_heartbeat.handle = Some(handle);
+        }
+
+        let source = exact_probe::resolve_direct_probe_path(
+            std::env::var_os("R4_PARITY_SOURCE")
+                .map(PathBuf::from)
+                .unwrap_or_else(|| PathBuf::from(".uor-models/sources/smollm2-135m-instruct")),
+        );
+        let bundle = exact_probe::resolve_direct_probe_path(
+            std::env::var_os("R4_PARITY_BUNDLE")
+                .map(PathBuf::from)
+                .unwrap_or_else(|| PathBuf::from(".uor-models/compiled/smollm2-135m-instruct")),
+        );
+        let preflight_path = exact_probe::resolve_direct_probe_path(
+            std::env::var_os("R4_PARITY_PREFLIGHT_REPORT")
+                .map(PathBuf::from)
+                .unwrap_or_else(|| {
+                    PathBuf::from("target/teacher-parity/teacher-free-preflight.json")
+                }),
+        );
+        let preflight =
+            match exact_probe::validate_teacher_free_preflight(&preflight_path, &source, &bundle) {
+                Ok(preflight) => preflight,
+                Err(exact_probe::TeacherFreePreflightAdmissionError::Unavailable(reason)) => {
+                    unavailable_probe(
+                        &events,
+                        &report_path,
+                        probe_started.elapsed().as_secs_f64(),
+                        &reason,
+                        &mut overall_heartbeat,
+                    )
+                }
+                Err(exact_probe::TeacherFreePreflightAdmissionError::Refused(reason)) => {
+                    refuse_probe(
+                        &events,
+                        &report_path,
+                        probe_started.elapsed().as_secs_f64(),
+                        &reason,
+                        &mut overall_heartbeat,
+                    )
+                }
+                Err(exact_probe::TeacherFreePreflightAdmissionError::Failed(reason)) => fail_probe(
+                    &events,
+                    &report_path,
+                    probe_started.elapsed().as_secs_f64(),
+                    &reason,
+                    &mut overall_heartbeat,
+                ),
+            };
+        emit_probe_record(
+            &events,
+            &serde_json::json!({
+                "schema": EXACT_MULTICORE_PROBE_SCHEMA,
+                "record": "EXACT_MULTICORE_PROBE",
+                "event": "TEACHER_FREE_PREFLIGHT_VALIDATED",
+                "preflight_report_path": &preflight_path,
+                "preflight": &preflight,
+                "teacher_source_opened": false,
+                "teacher_forwards": 0,
+            }),
+        );
+        overall_phase.set("LOAD", None);
+        emit_probe_record(
+            &events,
+            &serde_json::json!({
+                "schema": EXACT_MULTICORE_PROBE_SCHEMA,
+                "record": "EXACT_MULTICORE_PROBE",
+                "event": "LOAD_START",
+                "source": &source,
+                "report_path": &report_path,
+                "events_path": &events_path,
+                "probe_wall_ceiling_seconds": EXACT_MULTICORE_PROBE_WALL_CEILING_SECONDS,
+                "probe_deadline_policy": EXACT_MULTICORE_PROBE_DEADLINE_POLICY,
+                "process_start": process_sample_value(&overall_process_start),
+            }),
+        );
+        let backend = exact_backend_report();
+        if backend.arithmetic_owner != "uor-matmul exact GEMM" {
+            refuse_probe(
+                &events,
+                &report_path,
+                probe_started.elapsed().as_secs_f64(),
+                "the observation BLAS exception does not execute the exact uor-matmul owner",
+                &mut overall_heartbeat,
+            );
+        }
+        if !source.join("config.json").is_file() {
+            let reason = format!(
+                "live teacher source fixture does not exist at {}",
+                source.display()
+            );
+            unavailable_probe(
+                &events,
+                &report_path,
+                probe_started.elapsed().as_secs_f64(),
+                &reason,
+                &mut overall_heartbeat,
+            );
+        }
+        let positions = match std::env::var("R4_EXACT_PROBE_POSITIONS") {
+            Ok(raw) => raw.parse::<usize>().unwrap_or_else(|error| {
+                let reason = format!("R4_EXACT_PROBE_POSITIONS={raw:?} is invalid: {error}");
+                refuse_probe(
+                    &events,
+                    &report_path,
+                    probe_started.elapsed().as_secs_f64(),
+                    &reason,
+                    &mut overall_heartbeat,
+                )
+            }),
+            Err(std::env::VarError::NotPresent) => 1,
+            Err(std::env::VarError::NotUnicode(_)) => refuse_probe(
+                &events,
+                &report_path,
+                probe_started.elapsed().as_secs_f64(),
+                "R4_EXACT_PROBE_POSITIONS is not valid Unicode",
+                &mut overall_heartbeat,
+            ),
+        };
+        if !(1..=8).contains(&positions) {
+            refuse_probe(
+                &events,
+                &report_path,
+                probe_started.elapsed().as_secs_f64(),
+                "R4_EXACT_PROBE_POSITIONS must be in 1..=8",
+                &mut overall_heartbeat,
+            );
+        }
+        let available = std::thread::available_parallelism()
+            .unwrap_or(NonZeroUsize::MIN)
+            .get();
+        if available < 4 {
+            let reason = format!(
+                "the adaptive exact probe requires at least 4 available workers; host reports {available}"
+            );
+            unavailable_probe(
+                &events,
+                &report_path,
+                probe_started.elapsed().as_secs_f64(),
+                &reason,
+                &mut overall_heartbeat,
+            );
+        }
+        let mut suite_budget = |name: &str, default: usize| {
+            let value = match std::env::var(name) {
+                Ok(raw) => raw.parse::<usize>().unwrap_or_else(|error| {
+                    let reason = format!("{name}={raw:?} is invalid: {error}");
+                    refuse_probe(
+                        &events,
+                        &report_path,
+                        probe_started.elapsed().as_secs_f64(),
+                        &reason,
+                        &mut overall_heartbeat,
+                    )
+                }),
+                Err(std::env::VarError::NotPresent) => default,
+                Err(std::env::VarError::NotUnicode(_)) => {
+                    let reason = format!("{name} is not valid Unicode");
+                    refuse_probe(
+                        &events,
+                        &report_path,
+                        probe_started.elapsed().as_secs_f64(),
+                        &reason,
+                        &mut overall_heartbeat,
+                    )
+                }
+            };
+            if value == 0 {
+                let reason = format!("{name} must be greater than zero");
+                refuse_probe(
+                    &events,
+                    &report_path,
+                    probe_started.elapsed().as_secs_f64(),
+                    &reason,
+                    &mut overall_heartbeat,
+                );
+            }
+            value
+        };
+        let tiles_per_worker = suite_budget("R4_PARITY_BATCH_PER_WORKER", 4);
+        let transcript_logical_forwards = suite_budget("R4_PARITY_POSITIONS", 256)
+            .min(EXACT_MULTICORE_PROBE_REGISTERED_TRANSCRIPT_FORWARDS);
+        let generation_tokens_per_lane = suite_budget(
+            "R4_PARITY_GEN_TOKENS",
+            EXACT_MULTICORE_PROBE_REGISTERED_GENERATION_TOKENS,
+        );
+        let generation_lanes = suite_budget("R4_PARITY_STREAMS", 8);
+        if generation_lanes != 8 {
+            let reason = format!(
+                "the adaptive probe and optimized suite require exactly 8 independent lanes; R4_PARITY_STREAMS={generation_lanes}"
+            );
+            refuse_probe(
+                &events,
+                &report_path,
+                probe_started.elapsed().as_secs_f64(),
+                &reason,
+                &mut overall_heartbeat,
+            );
+        }
+        let configured_max_wall = suite_budget("R4_PARITY_MAX_WALL_SECS", 28_800);
+        if let Some(reason) =
+            direct_probe_budget_contract_error(generation_tokens_per_lane, configured_max_wall)
+        {
+            refuse_probe(
+                &events,
+                &report_path,
+                probe_started.elapsed().as_secs_f64(),
+                &reason,
+                &mut overall_heartbeat,
+            );
+        }
+        let configured_max_wall = u64::try_from(configured_max_wall)
+            .expect("validated maximum wall seconds fit into u64");
+        let mut configured_suite_work = ExactMulticoreProbeWork {
+            transcript_logical_forwards,
+            generation_tokens_per_lane,
+            generation_lanes,
+            logical_forwards: 0,
+            transcript_physical_batches: 0,
+            generation_physical_batches: 0,
+            physical_batches: 0,
+            max_sequence_position: EXACT_MULTICORE_PROBE_REGISTERED_MAX_SEQUENCE_POSITION,
+            state_sequence_capacity: EXACT_MULTICORE_PROBE_REGISTERED_STATE_SEQUENCE_CAPACITY,
+        };
+        configured_suite_work.logical_forwards = configured_suite_work.derived_logical_forwards();
+        configured_suite_work.transcript_physical_batches =
+            configured_suite_work.derived_transcript_physical_batches();
+        configured_suite_work.generation_physical_batches = generation_tokens_per_lane;
+        configured_suite_work.physical_batches = configured_suite_work.derived_physical_batches();
+        let probe_context_ceiling_tokens =
+            configured_suite_work.derived_probe_context_ceiling_tokens();
+        let probe_position_indices = vec![probe_context_ceiling_tokens - 1; positions];
+        let streams = 8usize;
+        // Close the interval between initial teacher-free admission and the
+        // first teacher-weight read. Rehash the preflight, compiled inputs,
+        // and complete production generation immediately before load, and
+        // require byte-for-byte admission identity equality with the token we
+        // validated above.
+        let current_preflight =
+            match exact_probe::validate_teacher_free_preflight(&preflight_path, &source, &bundle) {
+                Ok(current) => current,
+                Err(exact_probe::TeacherFreePreflightAdmissionError::Unavailable(reason)) => {
+                    unavailable_probe(
+                        &events,
+                        &report_path,
+                        probe_started.elapsed().as_secs_f64(),
+                        &reason,
+                        &mut overall_heartbeat,
+                    )
+                }
+                Err(exact_probe::TeacherFreePreflightAdmissionError::Refused(reason)) => {
+                    refuse_probe(
+                        &events,
+                        &report_path,
+                        probe_started.elapsed().as_secs_f64(),
+                        &reason,
+                        &mut overall_heartbeat,
+                    )
+                }
+                Err(exact_probe::TeacherFreePreflightAdmissionError::Failed(reason)) => fail_probe(
+                    &events,
+                    &report_path,
+                    probe_started.elapsed().as_secs_f64(),
+                    &reason,
+                    &mut overall_heartbeat,
+                ),
+            };
+        if current_preflight != preflight {
+            refuse_probe(
+                &events,
+                &report_path,
+                probe_started.elapsed().as_secs_f64(),
+                "teacher-free preflight or production generation changed between admission and teacher load",
+                &mut overall_heartbeat,
+            );
+        }
+        let mut oracle = HuggingFaceLlamaOracle::load_with_sequence_length_and_execution(
+            &source,
+            probe_context_ceiling_tokens,
+            TeacherExecutionConfig::sequential(),
+        )
+        .unwrap_or_else(|error| {
+            let reason = format!("live teacher source fixture could not load: {error}");
+            unavailable_probe(
+                &events,
+                &report_path,
+                probe_started.elapsed().as_secs_f64(),
+                &reason,
+                &mut overall_heartbeat,
+            )
+        });
+        let config_bytes = std::fs::read(source.join("config.json")).unwrap_or_else(|error| {
+            let reason = format!("live teacher config identity is unavailable: {error}");
+            unavailable_probe(
+                &events,
+                &report_path,
+                probe_started.elapsed().as_secs_f64(),
+                &reason,
+                &mut overall_heartbeat,
+            )
+        });
+        let source_identity = ExactMulticoreProbeSource {
+            model_kappa: oracle.kappa(),
+            config_cid: format!("blake3:{}", blake3::hash(&config_bytes).to_hex()),
+            source_bytes: u64::try_from(oracle.source_bytes()).unwrap_or(u64::MAX),
+        };
+        let host_identity = exact_probe_host_identity();
+        if host_identity.available_parallelism != available
+            || host_identity.cpu_model.is_none()
+            || host_identity.physical_core_count.is_none()
+        {
+            let reason = format!(
+                "exact probe host model/capacity identity is incomplete or changed: {:?}",
+                host_identity.topology_unavailable_reason
+            );
+            unavailable_probe(
+                &events,
+                &report_path,
+                probe_started.elapsed().as_secs_f64(),
+                &reason,
+                &mut overall_heartbeat,
+            );
+        }
+        emit_probe_record(
+            &events,
+            &serde_json::json!({
+                "schema": EXACT_MULTICORE_PROBE_SCHEMA,
+                "record": "EXACT_MULTICORE_PROBE",
+                "event": "LOAD_COMPLETE",
+                "source_identity": &source_identity,
+                "host": &host_identity,
+            }),
+        );
+        overall_phase.set("BETWEEN_CONFIGS", None);
+        let vocab = oracle.cfg().vocab;
+        let reference_workers = available;
+        let mut reference_trace: Option<Vec<Vec<ProbeTracePoint>>> = None;
+        let mut runs = Vec::new();
+        let mut exact_equality = true;
+
+        // Measure the likely fastest point first. Four workers remains the
+        // bounded comparison because the M1 performance-core cluster can beat
+        // mixed performance/efficiency scheduling. Both candidates execute
+        // identical eight-stream work; a four-core host deduplicates them.
+        let mut worker_counts = Vec::new();
+        for workers in [available, 4usize] {
+            if !worker_counts.contains(&workers) {
+                worker_counts.push(workers);
+            }
+        }
+        for workers in worker_counts {
+            if probe_started.elapsed()
+                >= Duration::from_secs(EXACT_MULTICORE_PROBE_WALL_CEILING_SECONDS)
+            {
+                abort_probe(
+                    &events,
+                    &report_path,
+                    probe_started.elapsed().as_secs_f64(),
+                    "the cheap exact multicore probe reached its 60-minute wall ceiling before starting the next configuration",
+                    &mut overall_heartbeat,
+                );
+            }
+            overall_phase.set("PRESTART", Some(workers));
+            emit_probe_record(
+                &events,
+                &serde_json::json!({
+                    "schema": EXACT_MULTICORE_PROBE_SCHEMA,
+                    "record": "EXACT_MULTICORE_PROBE",
+                    "event": "PRESTART_BEGIN",
+                    "workers": workers,
+                    "tiles_per_worker": tiles_per_worker,
+                    "streams": streams,
+                    "batch_width": streams,
+                    "model_forward": false,
+                    "excluded_from_measurement": true,
+                    "backend": &backend,
+                }),
+            );
+            oracle
+                .set_execution_config(
+                    TeacherExecutionConfig::fixed_workers(
+                        NonZeroUsize::new(workers).expect("worker count is nonzero"),
+                    )
+                    .with_tiles_per_worker(
+                        NonZeroUsize::new(tiles_per_worker).expect("tiles per worker is nonzero"),
+                    ),
+                )
+                .unwrap_or_else(|error| {
+                    let reason = format!(
+                        "construct fixed {workers}-worker exact executor for adaptive candidate: {error}"
+                    );
+                    unavailable_probe(
+                        &events,
+                        &report_path,
+                        probe_started.elapsed().as_secs_f64(),
+                        &reason,
+                        &mut overall_heartbeat,
+                    )
+                });
+            let prestart = oracle
+                .prepare_exact_execution(streams)
+                .map(|evidence| ExactMulticoreProbePrestart {
+                    elapsed_seconds: evidence.elapsed_seconds,
+                    workers_observed: evidence.workers_observed,
+                    batch_width: evidence.batch_width,
+                    backend_exercised: evidence.backend_exercised,
+                    workspace_capacity_bytes: evidence.workspace_capacity_bytes,
+                    workspace_growth_events: evidence.workspace_growth_events,
+                    workspace_growth_bytes: evidence.workspace_growth_bytes,
+                    excluded_from_measurement: true,
+                })
+                .unwrap_or_else(|error| {
+                    let reason = format!(
+                        "prestart fixed {workers}-worker pool and exact backend without a model forward: {error}"
+                    );
+                    unavailable_probe(
+                        &events,
+                        &report_path,
+                        probe_started.elapsed().as_secs_f64(),
+                        &reason,
+                        &mut overall_heartbeat,
+                    )
+                });
+            emit_probe_record(
+                &events,
+                &serde_json::json!({
+                    "schema": EXACT_MULTICORE_PROBE_SCHEMA,
+                    "record": "EXACT_MULTICORE_PROBE",
+                    "event": "PRESTART_COMPLETE",
+                    "workers": workers,
+                    "streams": streams,
+                    "prestart": &prestart,
+                    "model_forward": false,
+                    "excluded_from_measurement": true,
+                }),
+            );
+            if probe_started.elapsed()
+                >= Duration::from_secs(EXACT_MULTICORE_PROBE_WALL_CEILING_SECONDS)
+            {
+                abort_probe(
+                    &events,
+                    &report_path,
+                    probe_started.elapsed().as_secs_f64(),
+                    "the cheap exact multicore probe reached its 60-minute wall ceiling after excluded pool/backend prestart",
+                    &mut overall_heartbeat,
+                );
+            }
+            let live = Arc::new(AtomicTeacherExecutionProgress::default());
+            let live_observer = Arc::clone(&live);
+            oracle.begin_measured_execution(Arc::new(move |snapshot| {
+                live_observer.publish(snapshot);
+            }));
+            overall_phase.set("MEASURED_FORWARD_AND_TRACE", Some(workers));
+            let forward_plan = oracle.exact_forward_plan(streams).unwrap_or_else(|error| {
+                let reason = format!("owner exact shared-weight forward plan: {error}");
+                unavailable_probe(
+                    &events,
+                    &report_path,
+                    probe_started.elapsed().as_secs_f64(),
+                    &reason,
+                    &mut overall_heartbeat,
+                )
+            });
+            let trace_shape = oracle
+                .exact_probe_trace_shape_bounded(
+                    probe_context_ceiling_tokens,
+                    positions,
+                    streams,
+                    8,
+                )
+                .unwrap_or_else(|error| {
+                    let reason = format!("owner complete exact probe trace shape: {error}");
+                    unavailable_probe(
+                        &events,
+                        &report_path,
+                        probe_started.elapsed().as_secs_f64(),
+                        &reason,
+                        &mut overall_heartbeat,
+                    )
+                });
+            let mut states: Vec<State> = (0..streams)
+                .map(|_| oracle.new_state_bounded(probe_context_ceiling_tokens))
+                .collect::<Result<_, _>>()
+                .unwrap_or_else(|error| {
+                    let reason = format!("allocate bounded private probe states: {error}");
+                    unavailable_probe(
+                        &events,
+                        &report_path,
+                        probe_started.elapsed().as_secs_f64(),
+                        &reason,
+                        &mut overall_heartbeat,
+                    )
+                });
+            let process_start = process_sample();
+            emit_probe_record(
+                &events,
+                &serde_json::json!({
+                    "schema": EXACT_MULTICORE_PROBE_SCHEMA,
+                    "record": "EXACT_MULTICORE_PROBE",
+                    "event": "START",
+                    "measurement_scope": "EXACT_FORWARD_INTERVALS_ONLY",
+                    "workers": workers,
+                    "tiles_per_worker": tiles_per_worker,
+                    "streams": streams,
+                    "batch_width": streams,
+                    "positions": positions,
+                    "position_indices": &probe_position_indices,
+                    "backend": &backend,
+                    "process_start": process_sample_value(&process_start),
+                }),
+            );
+            let heartbeat_live = Arc::clone(&live);
+            let heartbeat_events = Arc::clone(&events);
+            let heartbeat_stop = Arc::new(AtomicBool::new(false));
+            let heartbeat_stop_worker = Arc::clone(&heartbeat_stop);
+            let max_sampled_rss = Arc::new(AtomicU64::new(
+                process_start
+                    .as_ref()
+                    .map_or(0, |sample| sample.resident_set_bytes),
+            ));
+            let heartbeat_max_rss = Arc::clone(&max_sampled_rss);
+            let heartbeat_started = Instant::now();
+            let heartbeat = std::thread::Builder::new()
+                .name(format!("r4-exact-probe-heartbeat-{workers}"))
+                .spawn(move || loop {
+                    std::thread::park_timeout(progress_every);
+                    if heartbeat_stop_worker.load(Ordering::Acquire) {
+                        break;
+                    }
+                    let snapshot = heartbeat_live.snapshot();
+                    let process = process_sample();
+                    if let Ok(sample) = &process {
+                        heartbeat_max_rss
+                            .fetch_max(sample.resident_set_bytes, Ordering::AcqRel);
+                    }
+                    emit_probe_record(
+                        &heartbeat_events,
+                        &serde_json::json!({
+                            "schema": EXACT_MULTICORE_PROBE_SCHEMA,
+                            "record": "EXACT_MULTICORE_PROBE",
+                            "event": "PROGRESS",
+                            "elapsed_ms": u64::try_from(heartbeat_started.elapsed().as_millis()).unwrap_or(u64::MAX),
+                            "workers": workers,
+                            "tiles_per_worker": tiles_per_worker,
+                            "streams": streams,
+                            "observer_epoch": snapshot.observer_epoch,
+                            "forward_calls": snapshot.forward_calls,
+                            "streams_started": snapshot.streams_started,
+                            "streams_completed": snapshot.streams_completed,
+                            "active_streams": snapshot.active_streams,
+                            "peak_streams": snapshot.max_active_streams,
+                            "matrix_calls": snapshot.matrix_calls,
+                            "batched_matrix_calls": snapshot.batched_matrix_calls,
+                            "max_matrix_batch_width": snapshot.max_matrix_batch_width,
+                            "tiles": snapshot.tiles_completed,
+                            "output_cells": snapshot.output_cells_completed,
+                            "scalar_terms": snapshot.scalar_terms_completed,
+                            "active_workers": snapshot.active_workers,
+                            "peak_workers": snapshot.max_active_workers,
+                            "forward_peak_workers": snapshot.forward_max_active_workers,
+                            "multiworker_forward_calls": snapshot.multiworker_forward_calls,
+                            "workspace_growth_events": snapshot.workspace_growth_events,
+                            "workspace_growth_bytes": snapshot.workspace_growth_bytes,
+                            "process": process_sample_value(&process),
+                        }),
+                    );
+                })
+                .unwrap_or_else(|error| {
+                    let reason = format!("spawn exact probe heartbeat for {workers} workers: {error}");
+                    unavailable_probe(
+                        &events,
+                        &report_path,
+                        probe_started.elapsed().as_secs_f64(),
+                        &reason,
+                        &mut overall_heartbeat,
+                    )
+                });
+            let config_started = Instant::now();
+            let mut forward_elapsed = Duration::ZERO;
+            let mut forward_cpu_seconds = 0.0f64;
+            let mut forward_sample_error: Option<String> = None;
+            let mut first_forward_sample: Option<Result<ProbeProcessSample, String>> = None;
+            let mut last_forward_sample: Option<Result<ProbeProcessSample, String>> = None;
+            let mut output_trace: Vec<Vec<ProbeTracePoint>> = Vec::with_capacity(positions);
+            let mut wall_ceiling_reached = false;
+            for (step, &pos) in probe_position_indices.iter().enumerate() {
+                if probe_started.elapsed()
+                    >= Duration::from_secs(EXACT_MULTICORE_PROBE_WALL_CEILING_SECONDS)
+                {
+                    wall_ceiling_reached = true;
+                    break;
+                }
+                let tokens: Vec<usize> = (0..streams)
+                    .map(|stream| ((stream + step + 1) % vocab).max(1))
+                    .collect();
+                let position_batch = vec![pos; streams];
+                let interval_start = process_sample();
+                if let Ok(sample) = &interval_start {
+                    max_sampled_rss.fetch_max(sample.resident_set_bytes, Ordering::AcqRel);
+                }
+                if first_forward_sample.is_none() {
+                    first_forward_sample = Some(interval_start.clone());
+                }
+                let forward_started = Instant::now();
+                oracle.forward_batch_into(&mut states, &tokens, &position_batch);
+                forward_elapsed = forward_elapsed.saturating_add(forward_started.elapsed());
+                let interval_end = process_sample();
+                if let Ok(sample) = &interval_end {
+                    max_sampled_rss.fetch_max(sample.resident_set_bytes, Ordering::AcqRel);
+                }
+                match (&interval_start, &interval_end) {
+                    (Ok(start), Ok(end)) if end.cpu_time_seconds >= start.cpu_time_seconds => {
+                        forward_cpu_seconds += end.cpu_time_seconds - start.cpu_time_seconds;
+                    }
+                    (Ok(_), Ok(_)) => {
+                        forward_sample_error =
+                            Some("process CPU time moved backwards within a forward".to_owned());
+                    }
+                    (Err(reason), _) | (_, Err(reason)) => {
+                        forward_sample_error = Some(reason.clone());
+                    }
+                }
+                last_forward_sample = Some(interval_end);
+                output_trace.push(states.iter().map(capture_trace_point).collect());
+                if probe_started.elapsed()
+                    >= Duration::from_secs(EXACT_MULTICORE_PROBE_WALL_CEILING_SECONDS)
+                {
+                    wall_ceiling_reached = true;
+                    break;
+                }
+            }
+            let inclusive_config_elapsed = config_started.elapsed();
+            heartbeat_stop.store(true, Ordering::Release);
+            heartbeat.thread().unpark();
+            if heartbeat.join().is_err() {
+                let reason = format!(
+                    "exact probe heartbeat for {workers} workers panicked during measurement"
+                );
+                unavailable_probe(
+                    &events,
+                    &report_path,
+                    probe_started.elapsed().as_secs_f64(),
+                    &reason,
+                    &mut overall_heartbeat,
+                );
+            }
+            if wall_ceiling_reached {
+                abort_probe(
+                    &events,
+                    &report_path,
+                    probe_started.elapsed().as_secs_f64(),
+                    "the cheap exact multicore probe reached its 60-minute wall ceiling; the in-flight forward completed and no additional work was admitted",
+                    &mut overall_heartbeat,
+                );
+            }
+            let elapsed_ms = u64::try_from(forward_elapsed.as_millis()).unwrap_or(u64::MAX);
+            let aggregate_forwards = streams.saturating_mul(positions);
+            let forwards_per_second =
+                aggregate_forwards as f64 / forward_elapsed.as_secs_f64().max(f64::MIN_POSITIVE);
+            if output_trace.len() != trace_shape.positions {
+                fail_probe(
+                    &events,
+                    &report_path,
+                    probe_started.elapsed().as_secs_f64(),
+                    "exact probe trace omitted one or more measured positions",
+                    &mut overall_heartbeat,
+                );
+            }
+            for position_trace in &output_trace {
+                if position_trace.len() != trace_shape.streams_per_position {
+                    fail_probe(
+                        &events,
+                        &report_path,
+                        probe_started.elapsed().as_secs_f64(),
+                        "exact probe trace omitted one or more independent streams",
+                        &mut overall_heartbeat,
+                    );
+                }
+                for point in position_trace {
+                    if point.logits_bits.len() != trace_shape.logits_per_state
+                        || point.persistent_state_bits.len()
+                            != trace_shape.persistent_state_words_per_state
+                        || point.top_tokens.len() != trace_shape.top_k
+                        || point.top_tokens.first().copied() != Some(point.greedy_token)
+                    {
+                        fail_probe(
+                            &events,
+                            &report_path,
+                            probe_started.elapsed().as_secs_f64(),
+                            "exact probe trace shape or canonical token evidence is incomplete",
+                            &mut overall_heartbeat,
+                        );
+                    }
+                }
+            }
+            let equal_to_reference = if let Some(reference) = &reference_trace {
+                &output_trace == reference
+            } else {
+                reference_trace = Some(output_trace.clone());
+                true
+            };
+            let output_trace_cid = output_trace_cid(&output_trace);
+            exact_equality &= equal_to_reference;
+            let snapshot = oracle.execution_snapshot();
+            let mut resource_start = first_forward_sample.unwrap_or_else(|| process_start.clone());
+            let resource_end = last_forward_sample.unwrap_or_else(|| process_start.clone());
+            if let Some(reason) = forward_sample_error {
+                resource_start = Err(reason);
+            }
+            let resources = completed_resources(
+                &resource_start,
+                &resource_end,
+                max_sampled_rss.load(Ordering::Acquire),
+                forward_elapsed.as_secs_f64(),
+                "EXACT_FORWARD_INTERVALS_ONLY",
+                Some(forward_cpu_seconds),
+            );
+            emit_probe_record(
+                &events,
+                &serde_json::json!({
+                    "schema": EXACT_MULTICORE_PROBE_SCHEMA,
+                    "record": "EXACT_MULTICORE_PROBE",
+                    "event": "CONFIG_COMPLETE",
+                    "elapsed_ms": elapsed_ms,
+                    "elapsed_seconds": forward_elapsed.as_secs_f64(),
+                    "inclusive_config_elapsed_seconds": inclusive_config_elapsed.as_secs_f64(),
+                    "measurement_scope": "EXACT_FORWARD_INTERVALS_ONLY",
+                    "workers": workers,
+                    "tiles_per_worker": tiles_per_worker,
+                    "streams": streams,
+                    "aggregate_forwards_per_second": forwards_per_second,
+                    "equal_to_reference": equal_to_reference,
+                    "reference_workers": reference_workers,
+                    "output_trace_cid": &output_trace_cid,
+                    "trace_shape": trace_shape,
+                    "forward_plan": forward_plan,
+                    "all_workers_active": snapshot.max_active_workers == snapshot.effective_workers,
+                    "all_streams_active": snapshot.active_streams == 0 && snapshot.max_active_streams == streams,
+                    "snapshot": snapshot,
+                    "resources": &resources,
+                }),
+            );
+            runs.push(ProbeRunMeasurement {
+                workers,
+                prestart,
+                elapsed_ms,
+                elapsed_seconds: forward_elapsed.as_secs_f64(),
+                aggregate_forwards_per_second: forwards_per_second,
+                equal_to_reference,
+                snapshot,
+                output_trace_cid,
+                resources,
+                forward_plan,
+                trace_shape,
+            });
+            overall_phase.set("BETWEEN_CONFIGS", None);
+        }
+
+        let reference_trace_cid = runs
+            .first()
+            .map(|run| run.output_trace_cid.as_str())
+            .unwrap_or_else(|| {
+                fail_probe(
+                    &events,
+                    &report_path,
+                    probe_started.elapsed().as_secs_f64(),
+                    "the adaptive exact probe produced no reference trace",
+                    &mut overall_heartbeat,
+                )
+            });
+        let worker4_rate = runs
+            .iter()
+            .find(|run| run.workers == 4)
+            .map(|run| run.aggregate_forwards_per_second)
+            .unwrap_or_else(|| {
+                fail_probe(
+                    &events,
+                    &report_path,
+                    probe_started.elapsed().as_secs_f64(),
+                    "the adaptive exact probe omitted its required four-worker candidate",
+                    &mut overall_heartbeat,
+                )
+            });
+        exact_equality &= runs
+            .iter()
+            .all(|run| run.equal_to_reference && run.output_trace_cid == reference_trace_cid);
+        let qualification_wall_seconds = configured_max_wall.min(28_800);
+        let projection_safety_factor = 1.25f64;
+        let run_records: Vec<ExactMulticoreProbeRun> = runs
+            .iter()
+            .map(|run| {
+                let raw_projection = configured_suite_work.physical_batches as f64
+                    * run.elapsed_seconds
+                    / positions as f64;
+                ExactMulticoreProbeRun {
+                    workers: run.workers,
+                    batch_width: streams,
+                    prestart: run.prestart.clone(),
+                    elapsed_ms: run.elapsed_ms,
+                    elapsed_seconds: run.elapsed_seconds,
+                    aggregate_forwards_per_second: run.aggregate_forwards_per_second,
+                    relative_throughput_vs_worker4: run.aggregate_forwards_per_second
+                        / worker4_rate,
+                    equal_to_reference: run.output_trace_cid == reference_trace_cid,
+                    all_workers_active: run.snapshot.requested_workers == run.workers
+                        && run.snapshot.effective_workers == run.workers
+                        && run.snapshot.active_workers == 0
+                        && run.snapshot.max_active_workers == run.workers,
+                    all_streams_active: run.snapshot.active_streams == 0
+                        && run.snapshot.max_active_streams == streams
+                        && run.snapshot.streams_started
+                            == u64::try_from(streams.saturating_mul(positions)).unwrap_or(u64::MAX)
+                        && run.snapshot.streams_completed
+                            == u64::try_from(streams.saturating_mul(positions)).unwrap_or(u64::MAX),
+                    output_trace_cid: run.output_trace_cid.clone(),
+                    trace_shape: run.trace_shape,
+                    forward_plan: run.forward_plan,
+                    raw_projected_suite_seconds: raw_projection,
+                    safety_adjusted_projected_suite_seconds: raw_projection
+                        * projection_safety_factor,
+                    snapshot: run.snapshot,
+                    resources: run.resources.clone(),
+                }
+            })
+            .collect();
+        let best = run_records
+            .iter()
+            .min_by(|left, right| {
+                left.safety_adjusted_projected_suite_seconds
+                    .total_cmp(&right.safety_adjusted_projected_suite_seconds)
+                    .then_with(|| left.workers.cmp(&right.workers))
+            })
+            .unwrap_or_else(|| {
+                fail_probe(
+                    &events,
+                    &report_path,
+                    probe_started.elapsed().as_secs_f64(),
+                    "the exact probe produced no fixed-worker measurements",
+                    &mut overall_heartbeat,
+                )
+            });
+        let selected_best_config = ExactMulticoreProbeSelection {
+            workers: best.workers,
+            tiles_per_worker,
+            aggregate_forwards_per_second: best.aggregate_forwards_per_second,
+            raw_projected_suite_seconds: best.raw_projected_suite_seconds,
+            safety_adjusted_projected_suite_seconds: best.safety_adjusted_projected_suite_seconds,
+        };
+        let configured_execution = selected_best_config.clone();
+        let raw_projected_suite_seconds = best.raw_projected_suite_seconds;
+        let safety_adjusted_projected_suite_seconds = best.safety_adjusted_projected_suite_seconds;
+        let all_workers_active = run_records.iter().all(|run| run.all_workers_active);
+        let all_streams_active = run_records.iter().all(|run| run.all_streams_active);
+        let registered_binding_work = configured_suite_work.is_registered_binding_work();
+        emit_probe_record(
+            &events,
+            &serde_json::json!({
+                "schema": EXACT_MULTICORE_PROBE_SCHEMA,
+                "record": "EXACT_MULTICORE_PROBE",
+                "event": "SELECTION",
+                "selection_policy": EXACT_MULTICORE_PROBE_SELECTION_POLICY,
+                "selected": &selected_best_config,
+                "candidate_count": run_records.len(),
+                "physical_batches": configured_suite_work.physical_batches,
+                "logical_forwards": configured_suite_work.logical_forwards,
+                "registered_binding_work": registered_binding_work,
+            }),
+        );
+        overall_phase.set("PUBLISH", None);
+        let overall_process_end = process_sample();
+        let probe_elapsed_seconds = probe_started.elapsed().as_secs_f64();
+        if probe_elapsed_seconds >= EXACT_MULTICORE_PROBE_WALL_CEILING_SECONDS as f64 {
+            abort_probe(
+                &events,
+                &report_path,
+                probe_elapsed_seconds,
+                "the cheap exact multicore probe exceeded its 60-minute wall ceiling before publication",
+                &mut overall_heartbeat,
+            );
+        }
+        let overall_max_rss_bytes = run_records
+            .iter()
+            .filter_map(|run| run.resources.max_sampled_rss_bytes)
+            .chain(
+                overall_process_start
+                    .as_ref()
+                    .ok()
+                    .map(|sample| sample.resident_set_bytes),
+            )
+            .chain(
+                overall_process_end
+                    .as_ref()
+                    .ok()
+                    .map(|sample| sample.resident_set_bytes),
+            )
+            .chain(Some(overall_max_sampled_rss.load(Ordering::Acquire)))
+            .max()
+            .unwrap_or(0);
+        let overall_resources = completed_resources(
+            &overall_process_start,
+            &overall_process_end,
+            overall_max_rss_bytes,
+            probe_elapsed_seconds,
+            "FULL_PROBE_WALL",
+            None,
+        );
+        let qualifies_full_run = registered_binding_work
+            && exact_equality
+            && all_streams_active
+            && safety_adjusted_projected_suite_seconds < qualification_wall_seconds as f64;
+        let mut report = ExactMulticoreProbeReport {
+            schema: EXACT_MULTICORE_PROBE_SCHEMA.to_owned(),
+            executor_contract_cid: exact_executor_contract_cid(),
+            source: source_identity,
+            host: host_identity,
+            backend,
+            probe_positions: positions,
+            probe_context_ceiling_tokens,
+            probe_position_indices,
+            probe_streams: streams,
+            probe_wall_ceiling_seconds: EXACT_MULTICORE_PROBE_WALL_CEILING_SECONDS,
+            probe_deadline_policy: EXACT_MULTICORE_PROBE_DEADLINE_POLICY.to_owned(),
+            events: ExactMulticoreProbeEventsBinding {
+                file_name: events_path
+                    .file_name()
+                    .and_then(std::ffi::OsStr::to_str)
+                    .unwrap_or("exact-multicore-probe.events.jsonl")
+                    .to_owned(),
+                content_cid: "PENDING".to_owned(),
+                byte_len: 0,
+                record_count: 0,
+                final_record_number: 0,
+                final_event: "PENDING".to_owned(),
+                final_status: if qualifies_full_run {
+                    ExactMulticoreProbeStatus::Qualified
+                } else {
+                    ExactMulticoreProbeStatus::RefuseFullRun
+                },
+                final_qualifies_full_run: false,
+                report_body_cid: "PENDING".to_owned(),
+            },
+            probe_elapsed_seconds,
+            runs: run_records,
+            reference_workers,
+            selected_best_config,
+            configured_execution,
+            exact_equality,
+            all_workers_active,
+            all_streams_active,
+            configured_suite_work,
+            raw_projected_suite_seconds,
+            projection_safety_factor,
+            projection_context_assumption: EXACT_MULTICORE_PROBE_CONTEXT_ASSUMPTION.to_owned(),
+            safety_adjusted_projected_suite_seconds,
+            binding_verdict: ExactMulticoreProbeVerdict {
+                status: if qualifies_full_run {
+                    ExactMulticoreProbeStatus::Qualified
+                } else {
+                    ExactMulticoreProbeStatus::RefuseFullRun
+                },
+                selection_policy: EXACT_MULTICORE_PROBE_SELECTION_POLICY.to_owned(),
+                configured_max_wall_seconds: configured_max_wall,
+                qualification_wall_seconds,
+                qualifies_full_run,
+            },
+            resources: overall_resources,
+        };
+        if let Err(reason) = overall_heartbeat.stop_and_join() {
+            unavailable_probe(
+                &events,
+                &report_path,
+                probe_started.elapsed().as_secs_f64(),
+                &reason,
+                &mut overall_heartbeat,
+            );
+        }
+        let final_status = report.binding_verdict.status;
+        let final_qualifies_full_run = report.binding_verdict.qualifies_full_run;
+        let finalization = report.write_after_durable_final(
+            &report_path,
+            &events_path,
+            |report_body_cid, final_record_number| {
+                try_emit_probe_record(
+                    &events,
+                    &serde_json::json!({
+                        "schema": EXACT_MULTICORE_PROBE_SCHEMA,
+                        "record": "EXACT_MULTICORE_PROBE",
+                        "event": "FINAL",
+                        "sequence": final_record_number,
+                        "source_path": &source,
+                        "report_path": &report_path,
+                        "events_path": &events_path,
+                        "report_body_cid": report_body_cid,
+                        "status": final_status,
+                        "qualifies_full_run": final_qualifies_full_run,
+                    }),
+                    true,
+                )
+            },
+        );
+        if let Err(error) = finalization {
+            // Every progress producer has already been joined. A failure after
+            // FINAL therefore may append only this terminal non-PASS record;
+            // no PROGRESS record can appear after either terminal event.
+            let reason = format!(
+                "durably append FINAL before publishing exact multicore probe report: {error}"
+            );
+            unavailable_probe(
+                &events,
+                &report_path,
+                probe_started.elapsed().as_secs_f64(),
+                &reason,
+                &mut overall_heartbeat,
+            );
+        }
+        assert!(
+            exact_equality,
+            "live exact outputs or persistent state changed across worker counts"
+        );
     }
 
     /// Raw teacher throughput: serial `step` vs batched `forward_batch_into` on
@@ -3273,7 +6797,8 @@ mod tests {
     #[cfg(not(target_arch = "wasm32"))]
     mod shard_ingestion {
         use crate::{
-            HuggingFaceLlamaOracle, SafetensorsSnapshot, SourceIngestKind, TensorRequirement,
+            exact_probe_expectation_shapes_from_config, HuggingFaceLlamaOracle,
+            SafetensorsSnapshot, SourceIngestKind, TensorRequirement,
         };
         use std::path::{Path, PathBuf};
         use std::sync::atomic::{AtomicUsize, Ordering};
@@ -3744,6 +7269,28 @@ mod tests {
             "max_position_embeddings": 8,
             "tie_word_embeddings": true
         }"#;
+
+        #[test]
+        fn config_only_probe_planner_never_requires_weight_files() {
+            let dir = temp_snapshot_dir("probe-plan-config-only");
+            write(&dir, "config.json", TINY_CONFIG.as_bytes());
+            assert!(!dir.join("model.safetensors").exists());
+            let shapes = exact_probe_expectation_shapes_from_config(&dir, 8, &[4, 8], 4, 8, 1, 8)
+                .expect("config-only exact probe plan");
+            assert_eq!(shapes.forward_plans.len(), 2);
+            assert!(shapes
+                .forward_plans
+                .iter()
+                .all(|plan| plan.forward_plan.batch_width == 8));
+            assert!(shapes
+                .forward_plans
+                .iter()
+                .all(|plan| plan.forward_plan.matrix_calls == 8));
+            assert_eq!(shapes.trace_shape.positions, 1);
+            assert_eq!(shapes.trace_shape.streams_per_position, 8);
+            assert_eq!(shapes.trace_shape.logits_per_state, 10);
+            assert_eq!(shapes.trace_shape.state_records, 8);
+        }
 
         fn as_entries<'a>(
             tensors: &'a [(String, &'static str, Vec<usize>, Vec<u8>)],
