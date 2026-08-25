@@ -654,8 +654,12 @@ therefore **`NOT TRIGGERED`** (no runtime/format/compiler change) and, for the s
 falsifier (no bounded correction or state reduces the frozen free-running gap → the
 deployed artifact is a teacher-forced continuation/retrieval system, not a generative
 engine at this scope). Re-entry requires a representation with cross-step free-running
-memory and must re-enter under the frozen #841 §6 bar. The S3 tracker #824 now records its
-stage verdict against its three completed children (a separate tracker action).
+memory and must re-enter under the frozen #841 §6 bar. The S3 tracker #824 records its
+historical `LIMIT` verdict against its three completed children. **#942 (2026-08-25)
+reopens S3 for a bounded implementation-first slice:** strict production decoding carries a
+fixed-size incremental signature of the complete admitted prompt plus committed generated prefix
+alongside the existing short scoring window. This is deployed memory reachability, not a
+coherence result; the frozen #841 bar is unchanged.
 
 **S4 — bounded typed planning is LIMITED; geometry adds no advantage; untouched final-partition
 reasoning is not established (#843/#845/#846, 2026-08-22).**

@@ -7,6 +7,64 @@
 pub const SESSION_SIGNATURE_BITS: usize = 288;
 pub const SESSION_SIGNATURE_BYTES: usize = SESSION_SIGNATURE_BITS / 8;
 
+/// Fixed-size incremental form of [`from_tokens`].
+///
+/// The state can be seeded once from an admitted prompt and extended after
+/// each committed generated token. [`Self::signature`] is byte-identical to
+/// calling [`from_tokens`] over the complete prefix, without retaining or
+/// rescanning that prefix. This construction lives on the serving side; the
+/// graph runtime still consumes only the resulting 288-bit value.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TokenHistorySignature {
+    lanes: [u64; 5],
+    next_position: usize,
+}
+
+impl Default for TokenHistorySignature {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl TokenHistorySignature {
+    pub const fn new() -> Self {
+        Self {
+            lanes: [0; 5],
+            next_position: 0,
+        }
+    }
+
+    pub fn from_tokens(tokens: &[u32]) -> Self {
+        let mut state = Self::new();
+        for &token in tokens {
+            state.push(token);
+        }
+        state
+    }
+
+    /// Commit one token to the trajectory.
+    pub fn push(&mut self, token: u32) {
+        let position = self.next_position;
+        let mut value =
+            u64::from(token).wrapping_add((position as u64).wrapping_mul(0x9e37_79b9_7f4a_7c15));
+        for (lane, slot) in self.lanes.iter_mut().enumerate() {
+            value = splitmix64(value.wrapping_add(lane as u64));
+            *slot = slot.rotate_left((lane * 11 + position % 17) as u32) ^ value;
+        }
+        self.next_position = self.next_position.saturating_add(1);
+    }
+
+    pub fn signature(&self) -> [u8; SESSION_SIGNATURE_BYTES] {
+        let mut signature = [0u8; SESSION_SIGNATURE_BYTES];
+        for (index, byte) in signature.iter_mut().enumerate() {
+            let lane = index % self.lanes.len();
+            let shift = (index / self.lanes.len()) * 8;
+            *byte = (self.lanes[lane] >> shift) as u8;
+        }
+        signature
+    }
+}
+
 /// Quantize a centered session-manifold state into the graph's 288-bit
 /// signature space.
 ///
@@ -37,23 +95,7 @@ pub fn from_state(state: &[f64]) -> [u8; SESSION_SIGNATURE_BYTES] {
 /// the direct chat client session-sensitive; the HTTP server uses [`from_state`]
 /// from its persistent manifold instead.
 pub fn from_tokens(tokens: &[u32]) -> [u8; SESSION_SIGNATURE_BYTES] {
-    let mut lanes = [0u64; 5];
-    for (position, &token) in tokens.iter().enumerate() {
-        let mut value =
-            u64::from(token).wrapping_add((position as u64).wrapping_mul(0x9e37_79b9_7f4a_7c15));
-        for (lane, slot) in lanes.iter_mut().enumerate() {
-            value = splitmix64(value.wrapping_add(lane as u64));
-            *slot = slot.rotate_left((lane * 11 + position % 17) as u32) ^ value;
-        }
-    }
-
-    let mut signature = [0u8; SESSION_SIGNATURE_BYTES];
-    for (index, byte) in signature.iter_mut().enumerate() {
-        let lane = index % lanes.len();
-        let shift = (index / lanes.len()) * 8;
-        *byte = (lanes[lane] >> shift) as u8;
-    }
-    signature
+    TokenHistorySignature::from_tokens(tokens).signature()
 }
 
 fn splitmix64(mut value: u64) -> u64 {
@@ -81,6 +123,34 @@ mod tests {
     fn token_history_projection_is_order_sensitive() {
         assert_ne!(from_tokens(&[1, 2, 3]), from_tokens(&[3, 2, 1]));
         assert_eq!(from_tokens(&[]), [0; SESSION_SIGNATURE_BYTES]);
+    }
+
+    #[test]
+    fn incremental_token_history_matches_every_batch_prefix() {
+        let tokens = [1, 89, 21, 34, 55, 8, 13, 144, 233, 3, 5, 377];
+        let mut incremental = TokenHistorySignature::new();
+        assert_eq!(incremental.signature(), from_tokens(&[]));
+        for (index, &token) in tokens.iter().enumerate() {
+            incremental.push(token);
+            assert_eq!(
+                incremental.signature(),
+                from_tokens(&tokens[..=index]),
+                "incremental signature diverged at prefix {}",
+                index + 1
+            );
+        }
+    }
+
+    #[test]
+    fn token_history_retains_information_beyond_shared_window() {
+        let shared_window = [10, 11, 12, 13, 14, 15, 16, 17];
+        let mut first = TokenHistorySignature::from_tokens(&[1, 2, 3, 4]);
+        let mut second = TokenHistorySignature::from_tokens(&[91, 92, 93, 94]);
+        for &token in &shared_window {
+            first.push(token);
+            second.push(token);
+        }
+        assert_ne!(first.signature(), second.signature());
     }
 }
 

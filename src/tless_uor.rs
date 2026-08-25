@@ -28,7 +28,7 @@ use uor_foundation::pipeline::{
 use uor_r4_core::transformerless::compiler::{self, Compiled, WINDOW};
 use uor_r4_core::transformerless::runtime::{self, Store};
 
-use uor_r4_router::{R4HostBounds, R4_FP_MAX, R4_INLINE_BYTES};
+use uor_r4_router::{R4HostBounds, TokenHistorySignature, R4_FP_MAX, R4_INLINE_BYTES};
 
 // =====================================================================
 // State: compiled artifact + graded store, per-thread
@@ -495,15 +495,14 @@ fn generate_production_r4g1_response(
             }
         };
 
-    let mut window = [0u32; WINDOW];
-    let tail = &seed[seed.len().saturating_sub(WINDOW)..];
-    let mut window_len = tail.len();
-    window[..window_len].copy_from_slice(tail);
-    let mut generated = Vec::with_capacity(max_tokens.min(128));
+    let steps = max_tokens.min(128);
+    let mut trajectory = ProductionTrajectory::from_seed(&seed);
+    let mut generated = Vec::with_capacity(steps);
     let mut last_coverage = None;
 
-    for _ in 0..max_tokens.min(128) {
-        match engine.predict(&window[..window_len]) {
+    for _ in 0..steps {
+        let session_signature = trajectory.session_signature();
+        match engine.predict_with_session_signature(trajectory.window(), Some(&session_signature)) {
             Ok(uor_r4_api::NormativeServingDecision::Serve(served)) => {
                 last_coverage = Some(match served.status {
                     uor_r4_api::ScoreStatus::Novel => {
@@ -517,13 +516,7 @@ fn generate_production_r4g1_response(
                     break;
                 }
                 generated.push(served.token);
-                if window_len < WINDOW {
-                    window[window_len] = served.token;
-                    window_len += 1;
-                } else {
-                    window.copy_within(1.., 0);
-                    window[WINDOW - 1] = served.token;
-                }
+                trajectory.commit(served.token);
             }
             Ok(uor_r4_api::NormativeServingDecision::Abstain(_)) => {
                 return R4g1Generation::Abstained;
@@ -550,6 +543,49 @@ fn generate_production_r4g1_response(
         None => R4g1Generation::HardIncompatibility(
             "production tokenizer cannot decode the runtime continuation".into(),
         ),
+    }
+}
+
+/// Fixed-size production decode state. The scorer retains its existing
+/// bounded window while the secondary signature lane carries the complete
+/// admitted prompt plus committed generated prefix. EOS, abstention, and
+/// decline never call [`Self::commit`], so speculative output cannot enter
+/// trajectory memory.
+struct ProductionTrajectory {
+    window: [u32; WINDOW],
+    window_len: usize,
+    history_signature: TokenHistorySignature,
+}
+
+impl ProductionTrajectory {
+    fn from_seed(seed: &[u32]) -> Self {
+        let mut window = [0u32; WINDOW];
+        let tail = &seed[seed.len().saturating_sub(WINDOW)..];
+        window[..tail.len()].copy_from_slice(tail);
+        Self {
+            window,
+            window_len: tail.len(),
+            history_signature: TokenHistorySignature::from_tokens(seed),
+        }
+    }
+
+    fn window(&self) -> &[u32] {
+        &self.window[..self.window_len]
+    }
+
+    fn session_signature(&self) -> [u8; uor_r4_router::session_signature::SESSION_SIGNATURE_BYTES] {
+        self.history_signature.signature()
+    }
+
+    fn commit(&mut self, token: u32) {
+        self.history_signature.push(token);
+        if self.window_len < WINDOW {
+            self.window[self.window_len] = token;
+            self.window_len += 1;
+        } else {
+            self.window.copy_within(1.., 0);
+            self.window[WINDOW - 1] = token;
+        }
     }
 }
 
@@ -1397,6 +1433,25 @@ mod tests {
     };
 
     static R4G1_TEST_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+    #[test]
+    fn production_trajectory_keeps_prefix_memory_beyond_runtime_window() {
+        let shared_window: Vec<u32> = (100..100 + WINDOW as u32).collect();
+        let mut first_seed = vec![1, 2, 3, 4];
+        first_seed.extend_from_slice(&shared_window);
+        let mut second_seed = vec![91, 92, 93, 94];
+        second_seed.extend_from_slice(&shared_window);
+
+        let mut first = ProductionTrajectory::from_seed(&first_seed);
+        let mut second = ProductionTrajectory::from_seed(&second_seed);
+        assert_eq!(first.window(), second.window());
+        assert_ne!(first.session_signature(), second.session_signature());
+
+        first.commit(777);
+        second.commit(777);
+        assert_eq!(first.window(), second.window());
+        assert_ne!(first.session_signature(), second.session_signature());
+    }
 
     fn fixture_state() {
         let dir = concat!(

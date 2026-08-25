@@ -431,6 +431,15 @@ generation claim into any downstream stage. This entry mirrors the tracker verdi
   memory, re-measured under the unchanged #841 §6 bar and the frozen #838
   selective-prediction gates (the #887 discipline).
 
+### S3 bounded representation re-entry — ACTIVE (#942, 2026-08-25)
+
+The tracker is reopened for one implementation-first slice without revising the historical
+`LIMIT` verdict. The strict production generator now carries a fixed-size incremental
+signature of the complete admitted prompt plus committed generated prefix alongside its
+bounded scoring window. This establishes cross-step memory reachability through the existing
+normative session-signature lane; it does **not** establish coherent generation or change the
+frozen #841 §6 bar. Broader measurement remains gated on the focused product-path canary.
+
 ### S4 entry reconciliation — AMEND + PROCEED (2026-08-22)
 
 S3 (#824) closed `LIMIT` and S2 (#823) stands at `REVISE`, so #826's written entry

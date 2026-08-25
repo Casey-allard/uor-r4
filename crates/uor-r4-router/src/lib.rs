@@ -17,7 +17,7 @@ pub mod session_signature;
 
 pub use session_signature::{
     fixture_session_signatures, from_state as session_signature_from_state,
-    from_tokens as session_signature_from_tokens, MULTI_TURN_FIXTURE,
+    from_tokens as session_signature_from_tokens, TokenHistorySignature, MULTI_TURN_FIXTURE,
 };
 
 // #790 item 4: only the live cascade surface is exported — the dead
