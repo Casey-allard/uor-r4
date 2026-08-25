@@ -351,6 +351,36 @@ ESTABLISHED**, and #839 therefore remains legacy-only. This follow-up exhausts t
 sanctioned re-entry without changing the historical S2 `REVISE` verdict; a further S2
 promotion, limitation, retirement, or closure verdict belongs to the maintainer on #823.
 
+### S2 final stage verdict — LIMIT (2026-08-25)
+
+All four native children now have terminal dispositions, so **S2 is limited**. The frozen
+typed selective-prediction contract is deployed and certified in legacy-coverage mode,
+but calibrated semantic abstention is **NOT ESTABLISHED**. This is a limiting
+(non-promotion) verdict: coverage novelty remains a representation signal and cannot be
+reported as answerability, factual confidence, or a semantic safety guarantee. This entry
+is the readable mirror of the tracker closure verdict; **GitHub #823 remains the source of
+record**.
+
+- **#838 (item A): CLOSED.** The typed status contract and powered benchmark
+  constitution remain frozen (PR #892, `61501c8f`).
+- **#837 and #931 (items B/B2): `NO CALIBRATOR ESTABLISHED`.** Neither the original
+  suffix-feature fit nor the single sanctioned deployed-content re-entry met the frozen
+  release or research gate on CAL. #931 kept TEST sealed and recorded result CID
+  `blake3:8372e7a1171fe0e841f3d5b29541db16f386c70a04885c5b245027cf43267496`
+  (PR #938, `9fe85b6e`).
+- **#839 (item C): CLOSED.** Phase 1 delivered RF-30 typed legacy-coverage outcomes on
+  the CLI, native HTTP, OpenAI-compatible streaming/non-streaming, and WASM surfaces,
+  with fail-closed calibration handling (PR #900, `c205eb7b`). Phase 2 is
+  **`NOT TRIGGERED`** because no calibrator qualified.
+- **Boundary and re-entry.** RF-30 legacy-coverage mode is the only deployed
+  selective-prediction mode. It mints no calibrated confidence or semantic-answerability
+  claim. The frozen #838 gates do not move; another fit requires a new explicit maintainer
+  decision and new qualifying evidence.
+
+The historical `REVISE` and S4 parallel-start entries below remain the decision trail at
+their recorded dates; this `LIMIT` entry is the current S2 disposition and promotes no
+downstream claim.
+
 ### S3 stage verdict — LIMIT (2026-08-22)
 
 All three native children are resolved and the pre-registered kill/redesign criterion is

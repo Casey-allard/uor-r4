@@ -514,8 +514,9 @@ is fitted. The executable reference model is
 `crates/uor-r4-api/tests/selective_prediction_spec_838.rs` (15 machine-checked
 properties, including that a coverage-only report can never render a semantic PASS).
 **Current semantic abstention remains NOT ESTABLISHED**; #837 and the single sanctioned
-content-evidence re-entry #931 both completed without a qualifying calibrator, so #839
-remains limited to the typed contract's legacy-coverage mode on production surfaces.
+content-evidence re-entry #931 both completed without a qualifying calibrator. #839 is
+closed with the typed contract's legacy-coverage mode on production surfaces delivered
+and its calibrated phase `NOT TRIGGERED`.
 
 **S2 item B — the artifact-only confidence calibrator was fitted and did not qualify
 (#837, 2026-08-21): `NO CALIBRATOR ESTABLISHED`.**
@@ -562,6 +563,20 @@ re-entry authorized by the S2 `REVISE` verdict; any further stage action is a ma
 decision on #823, not an automatic threshold redesign. The double-run deterministic
 result CID is
 `blake3:8372e7a1171fe0e841f3d5b29541db16f386c70a04885c5b245027cf43267496`.
+
+**S2 final stage verdict — `LIMIT` (#823, 2026-08-25).** All native children have
+terminal dispositions: #838 froze the honest typed contract and benchmark constitution;
+#837 and #931 established that no calibrator met the unchanged release or research gate;
+and #839 delivered RF-30 legacy-coverage behavior across the production surfaces before
+closing its calibrated phase `NOT TRIGGERED` (PR #900, merge `c205eb7b`). The resulting
+claim is deliberately narrow: the deployed system can return deterministic typed
+coverage/decline/incompatibility outcomes, with corrupt or present-but-unsupported
+calibration failing closed, but it cannot report calibrated confidence or semantic
+answerability. TEST in #931 remained sealed, the powered semantic fixture remains
+**UNAVAILABLE**, and semantic abstention remains **NOT ESTABLISHED**. This is a stage
+limitation, not a promotion or another redesign authorization; re-entry requires a new
+explicit maintainer decision under the frozen #838 gates. The historical `REVISE` entry
+records the completed redesign attempt; `LIMIT` is the current S2 disposition.
 
 **S3 item A — the free-running trajectory gap is quantified (#841, 2026-08-21): the gap
 is total.** [`docs/free_running_eval_841.md`](free_running_eval_841.md) freezes the
