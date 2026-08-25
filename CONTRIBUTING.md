@@ -11,7 +11,7 @@ first change. This file is the short version.
    unassigned so anyone can pick it up. Never start an unassigned issue without
    assigning it first.
 2. Branch `issue-<n>-<slug>` off `main`. **No direct pushes to `main`.**
-3. Work, then run the gates below.
+3. Work, then run the focused checks below.
 4. Open a PR. It merges through the queue; a queued PR's head branch is locked,
    so follow-up work goes on a fresh branch off `main` after it lands.
 5. **Close the issue with the evidence** — the numbers, the verdict against the
@@ -19,28 +19,31 @@ first change. This file is the short version.
 6. Follow-up work discovered mid-stream gets **filed as an issue immediately**,
    not left in a PR body.
 
-## Gates
+## Focused checks
 
-All clean before every commit:
+Use the smallest check that exercises what changed:
 
 ```bash
-cargo test --workspace --offline
-cargo clippy --workspace --all-targets --all-features --offline -- -D warnings
 cargo fmt --check
-cargo check -p uor-r4-graph-format --no-default-features
-cargo check -p uor-r4-graph-format --no-default-features --features alloc
-python3 scripts/check_claim_wording.py
+cargo check -p <touched-package> --all-targets --offline
+cargo test -p <touched-package> --lib --offline
+python3 scripts/check_claim_wording.py  # claims/docs only
 ```
 
-Changes under `uor-r4-core` or `uor-r4-router` also need the wasm target —
-clippy does not build it and the merge queue does:
+Run cross-target or certification checks only when their contract is touched.
+For example, a WASM-boundary change needs:
 
 ```bash
 cargo check --target wasm32-unknown-unknown -p uor-r4-wasm-router --lib
 ```
 
-Scope your local checks to what you touched; CI is the real gate. Running the
-full ladder on every push wastes more time than it saves.
+The substantive CI gate compiles the workspace and runs library/product-path
+unit tests for Rust/build changes. Docs-only changes run claim wording only.
+Temporary zero-work compatibility contexts mirror that result under the
+repository ruleset's five legacy required names.
+BDD, doctests, no_std, deterministic rebuild, κ, Gate C, all-features, WASM,
+fuzz, Kani, conformance, and audit are nightly/manual certification—not routine
+merge blockers.
 
 **Check the check.** Some ways these have silently lied before:
 
@@ -48,7 +51,6 @@ full ladder on every push wastes more time than it saves.
   `${PIPESTATUS[0]}` or run bare.
 - After changing a public signature, `cargo clean -p <crate>` before the
   verifying run — stale test targets have "passed" pre-edit code four times.
-- Lint the way CI lints. Local defaults mask `dead_code` and exit 0 on warnings.
 - A κ test that finishes suspiciously fast has skipped. Confirm
   `/tmp/ref/out/model.bin` exists before trusting green.
 

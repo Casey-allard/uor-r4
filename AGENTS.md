@@ -59,16 +59,20 @@ baseline audit).
 ## Commands (daily drivers)
 
 ```bash
-cargo test --workspace --offline           # all suites
-cargo clippy --workspace --all-targets --all-features --offline -- -D warnings
 cargo fmt --check
-cargo check -p uor-r4-graph-format --no-default-features            # no_std ladder
-cargo check -p uor-r4-graph-format --no-default-features --features alloc
+cargo check -p <touched-package> --all-targets --offline
+cargo test -p <touched-package> --lib --offline
+python3 scripts/check_claim_wording.py      # when claims/docs change
 ```
 
-All four must be clean before every commit. CI (`.github/workflows/ci.yml`)
-runs the same plus `cargo nextest`, doc tests, deterministic-rebuild, cargo
-audit, and nightly fuzz smoke — keep it green.
+There is no universal pre-commit test gauntlet. Run the smallest focused test
+that exercises the behavior you changed, plus a compile check for the touched
+package. The required CI context performs workspace compilation and library
+tests for Rust/build changes; docs-only changes run claim wording only. The
+exhaustive workspace, BDD, doctest, no_std, deterministic-rebuild, κ, Gate C,
+all-features, WASM, fuzz, Kani, conformance, and audit suites are nightly/manual
+certification. Invoke one locally only when the change directly targets that
+contract or before a release decision.
 
 The toolchain is pinned in `rust-toolchain.toml`: rustup-managed `cargo`
 resolves the pin automatically, so the gates above run the same toolchain
@@ -206,40 +210,30 @@ CIDs before loading teacher weights.
 
 - **Merge workflow (since 2026-07-22): NO direct pushes to `main`.** A ruleset
   ("main: required checks + merge queue", id 19597522) protects `main`: all
-  changes land via PR, and the five CI checks (`fmt / clippy / tests / no_std / κ`,
-  `cargo audit`, `fuzz smoke`, `wasm-pack build`, `Gate C trend alarm`) must
-  pass with the branch up to date (strict policy). **The merge queue is
+  changes land via PR. `fast build + product smoke` is the single substantive
+  gate; five zero-work compatibility contexts mirror its result until a
+  repository administrator updates the required-context list. **The merge queue is
   ENABLED (since 2026-07-31)**: PRs merge through the queue, and a queued
   PR's head branch is LOCKED — pushes are rejected ("branches that are
   queued for merging cannot be updated") until the PR merges or is
   dequeued. Follow-up work for a queued PR goes on a fresh branch off
   `main` after it lands (the #323 lesson), not as extra commits on the
   queued branch.
-- **CI split: expensive verification runs ONCE, in the queue (2026-08-07).**
-  `.github/workflows/ci.yml` reports the same five required check names in
-  both contexts, but the work differs. On `pull_request`: claim wording, fmt,
-  clippy (job `gates-pr`) + `cargo audit`; the other three required names are
-  reported by trivial stub jobs. On `merge_group` (and pushes to `main`):
-  the full ladder — tests, no_std, deterministic rebuild, κ-reproduction,
-  Gate C trend, wasm, fuzz — on the speculative merge, which is the verdict
-  that binds. **Do not add a slow step to the PR-side job.** If a check takes
-  minutes, it belongs in `gates` (queue-side); the PR trigger exists for fast
-  author feedback, not for the binding verdict. Any new required check name
-  must be reported in BOTH contexts (real job in one, same-`name:` stub in
-  the other) or PRs hang forever waiting on a check that never runs.
-- **Docs-only PRs take a fast path.** If a PR's whole diff is `*.md` or
-  `docs/**/*.pdf` — excluding `docs/hologram_r4_formal_monograph.md` and
-  `docs/transformerless/INFERENCE_OPERATION_CONTRACT.md`, which are
-  `include_str!`d into Rust — `gates-pr` runs only the claim-wording gate.
-  The guard fails closed (any other path, an empty diff, or an
-  uncomputable diff runs everything) and applies only to `pull_request`;
-  the queue always re-verifies the merged content in full.
+- **CI critical-path budget (issue #940, 2026-08-25).** Pull requests and
+  speculative merges have one substantive gate: `fast build + product smoke`.
+  Docs/non-build changes run claim wording only. Rust/build changes additionally
+  run fmt, `cargo check --workspace --all-targets`, and
+  `cargo test --workspace --lib`. Do not add certification, research, proof,
+  fuzz, cross-target, or corpus-scale work to this context. Those suites run on
+  the nightly schedule or by manual dispatch. Target budgets are under two
+  minutes for docs and under eight minutes for ordinary warm-cache Rust changes.
 - **Per issue**: assign yourself (WIP signal) → branch `issue-<n>-<slug>` →
-  work + verify the four gates locally → open PR → merge when checks are
+  work + run focused checks for the changed behavior → open PR → merge when checks are
   green → close the issue with the DoD evidence and the merge commit
   reference. Milestones mirror plan phases.
 - **PR review** (incl. Copilot-generated): never merge unverified. Run the
-  four gates + κ-reproduction on a merge preview first; resolve conflicts
+  focused checks appropriate to the changed behavior; run κ or another
+  certification suite only when its contract is affected. Resolve conflicts
   hunk-by-hunk — whole-file `checkout --theirs/--ours` has silently dropped
   upstream features before (the TLA5 incident).
 - **Committing while subagents work in-tree**: add files **by name**, never
@@ -295,10 +289,10 @@ outcome against it afterwards:
     if negative:         <the next action, and it must differ>
     cost estimate:       <wall-clock, and what else it blocks>
 
-**Two gates the local checks do not cover.** `cargo clippy --workspace
---all-targets` does NOT build other targets: the merge queue builds wasm, so
-any change under `uor-r4-core` needs `cargo check --target
-wasm32-unknown-unknown -p uor-r4-wasm-router --lib` before shipping. A
+**Cross-target checks are scoped certification.** A native workspace check does
+not build WASM. Run `cargo check --target wasm32-unknown-unknown -p
+uor-r4-wasm-router --lib` when the change touches the WASM boundary or before a
+release; it is not required for every core edit. A
 filesystem-touching helper gated `#[cfg(not(target_arch = "wasm32"))]` needs a
 wasm counterpart, or every caller has to become cfg-aware; prefer the
 counterpart. This was found the expensive way on PR #470, where PR checks were
@@ -320,11 +314,10 @@ unfinished half loses its home.
 
 Small, low-risk issues (docs, help text, certifier-side rows, test
 harnesses, telemetry) are worked on ONE integration branch (`batch-N`)
-with one commit per issue (message refs `#N`), and the four local gates +
+with one commit per issue (message refs `#N`), and focused checks + the
 merge queue run ONCE per batch of 3-6 issues — not per issue. Authoring
 feedback during a batch is `cargo check` on a warm shared target
-(`CARGO_TARGET_DIR`); the full workspace suite still gates every merge in
-CI, so rigor is unchanged — it just stops running serially per issue.
+(`CARGO_TARGET_DIR`); exhaustive certification is nightly/manual.
 Runtime-kernel and serving-semantics changes still get individual PRs.
 Measurement runs are background science with scheduled harvests; they
 never sit between two pieces of code work.

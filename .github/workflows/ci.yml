@@ -1,70 +1,21 @@
 name: ci
 
-# Quality gates per docs/r4_graph_compiler_implementation_plan.md §13 (issue #58).
-# Covers: fmt, clippy (-D warnings), tests (nextest + doc), allocation-freedom,
-# no_std ladder, deterministic rebuild, κ-reproduction, dependency audit, fuzz smoke.
-#
-# Dependencies on the UOR standards (uor-addr, UOR-Framework) are pinned git
-# dependencies in Cargo.toml (rev-locked), so a plain checkout of this repo
-# builds; no extra repository checkouts are needed.
-# NOTE: legacy accelerated teacher builds remain platform-sensitive. Gate E now
-# runs the canonical deterministic compiler mode, so the κ reproduction is a
-# cross-platform gate when the cached checkpoint is available.
-#
-# GATE C REGRESSION: The Gate C trend is tracked per commit on a small corpus
-# slice. It fails if top-1 drops > 2 points or bits/token worsens > 0.1 vs the
-# pinned record in `scripts/check_gate_c_regression.py`. The trend JSON is
-# uploaded as a `gate-c-trend` artifact.
-
-#
-# CONTEXT SPLIT (issue #240, extended 2026-08-07): heavy jobs (wasm, Gate C
-# trend, fuzz smoke) run for real only where their verdict is binding — the
-# merge queue's speculative merge (merge_group) and pushes to main — and
-# report a stub success in pull_request context so the required-check names
-# still gate queue entry. cargo audit is the inverse: advisory-DB lookup on
-# the lockfile is merge-content-independent, so it runs in pull_request (and
-# main-push) context and stubs in the queue.
-#
-# The core gates job used to run everywhere, which meant every change paid
-# for it twice: ~15 min on the PR, then ~15 min again on the queue's
-# speculative merge. It is now split the same way:
-#
-#   `gates-pr`  (pull_request only)  — fmt, clippy, claim wording. Fast
-#                                      author feedback; nothing here is the
-#                                      binding verdict.
-#   `gates`     (everything else)    — the full ladder: claim wording,
-#                                      inference-contract audit, fmt,
-#                                      clippy, nextest + BDD + doctests,
-#                                      no_std ladder, deterministic rebuild,
-#                                      κ-reproduction, Gate C trend.
-#
-# Both jobs carry the SAME `name:` (`fmt / clippy / tests / no_std / κ`), so
-# the required check reports in both contexts and the queue is never left
-# waiting on a check that cannot run. The expensive verification happens
-# exactly once per change, on the merged content, where its verdict binds.
-#
-# DOCS-ONLY FAST PATH (2026-08-07): a pull_request whose whole diff is
-# documentation skips the compile work in `gates-pr` and runs only the
-# claim-wording gate — seconds instead of ~15 min for a README edit. The
-# guard FAILS CLOSED: any path outside the documentation set, an empty diff,
-# or a diff that cannot be computed all fall back to running everything. It
-# applies ONLY to the pull_request trigger; merge_group, main pushes and
-# workflow_dispatch always run the full ladder unconditionally, so the
-# queue's own verification can never be skipped by a path guard.
+# Issue #940 restores a development gate instead of a certification gauntlet.
+# Pull requests and speculative merges have one substantive gate:
+# `fast build + product smoke`. The five legacy ruleset names mirror that
+# result until a repository administrator replaces them with the single gate.
+# Documentation changes run claim wording only;
+# Rust/build changes add formatting, workspace compilation, and library tests
+# (which include the product chat/server path). The exhaustive research,
+# portability, proof, fuzz, and release suites remain available on the nightly
+# schedule and through workflow_dispatch, but they do not block feature work.
 on:
-  push:
-    branches: [main]
   pull_request:
   merge_group:
   workflow_dispatch:
   schedule:
-    # Nightly D2 canonical-differential acceptance (07:00 UTC). The D2 jobs
-    # below run on push-to-main + this schedule + workflow_dispatch, NOT in
-    # the merge queue (merge_group) — they are not required checks and their
-    # ~hour-long corpus compile does not belong on the merge critical path
-    # (issue #713). The nightly run recompiles unconditionally (cache bypass)
-    # so it re-verifies determinism against runner/toolchain drift, not only
-    # source changes.
+    # Slow certification and cross-platform evidence run away from the merge
+    # critical path. Manual dispatch remains available before a release.
     - cron: '0 7 * * *'
 
 concurrency:
@@ -75,13 +26,126 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  # The full ladder. Runs on merge_group (the binding verdict, on the
-  # speculative merge), on pushes to main, and on workflow_dispatch. It does
-  # NOT run on pull_request — `gates-pr` below reports the same check name
-  # there with the fast subset. See CONTEXT SPLIT in the header.
-  gates:
+  fast-gate:
+    name: fast build + product smoke
+    if: github.event_name == 'pull_request' || github.event_name == 'merge_group'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Classify the change
+        id: scope
+        run: |
+          git fetch --no-tags origin main
+          BASE_SHA="$(git merge-base origin/main HEAD || true)"
+          if [ -z "$BASE_SHA" ]; then
+            echo "code=true" >> "$GITHUB_OUTPUT"
+            echo "No merge base was available; compiling fail-closed."
+            exit 0
+          fi
+          CHANGED="$(git diff --name-only "$BASE_SHA"...HEAD || true)"
+          printf '%s\n' "$CHANGED"
+          if [ -z "$CHANGED" ]; then
+            echo "code=true" >> "$GITHUB_OUTPUT"
+            echo "No diff was available; compiling fail-closed."
+            exit 0
+          fi
+          CODE="$(printf '%s\n' "$CHANGED" | grep -E '(\.rs$|(^|/)Cargo\.(toml|lock)$|(^|/)build\.rs$|^rust-toolchain\.toml$|^docs/hologram_r4_formal_monograph\.md$|^docs/transformerless/INFERENCE_OPERATION_CONTRACT\.md$)' || true)"
+          if [ -n "$CODE" ]; then
+            echo "code=true" >> "$GITHUB_OUTPUT"
+            echo "Rust/build-relevant paths changed; running the fast compile and product smoke."
+          else
+            echo "code=false" >> "$GITHUB_OUTPUT"
+            echo "No Rust/build-relevant path changed; skipping compilation."
+          fi
+
+      - name: Claim-wording gate
+        run: python3 scripts/check_claim_wording.py
+
+      - name: Install Rust (stable)
+        if: steps.scope.outputs.code == 'true'
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+
+      - name: Cache cargo
+        if: steps.scope.outputs.code == 'true'
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: cargo-fast-${{ runner.os }}-${{ hashFiles('Cargo.lock') }}
+          restore-keys: cargo-fast-${{ runner.os }}-
+
+      - name: cargo fmt --check
+        if: steps.scope.outputs.code == 'true'
+        run: cargo fmt --check
+
+      - name: cargo check --workspace --all-targets
+        if: steps.scope.outputs.code == 'true'
+        run: cargo check --workspace --all-targets
+
+      - name: cargo test --workspace --lib
+        if: steps.scope.outputs.code == 'true'
+        run: cargo test --workspace --lib
+
+  # Temporary ruleset compatibility. These jobs perform no duplicate work;
+  # they propagate the one fast gate's result under the five names currently
+  # configured in repository ruleset 19597522. Delete them after an admin
+  # changes the ruleset to require only `fast build + product smoke`.
+  required-core-compat:
     name: fmt / clippy / tests / no_std / κ
-    if: github.event_name != 'pull_request'
+    if: ${{ always() && (github.event_name == 'pull_request' || github.event_name == 'merge_group') }}
+    needs: fast-gate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Mirror fast gate result
+        run: test "${{ needs.fast-gate.result }}" = success
+
+  required-audit-compat:
+    name: cargo audit
+    if: ${{ always() && (github.event_name == 'pull_request' || github.event_name == 'merge_group') }}
+    needs: fast-gate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Mirror fast gate result
+        run: test "${{ needs.fast-gate.result }}" = success
+
+  required-fuzz-compat:
+    name: fuzz smoke (nightly libfuzzer)
+    if: ${{ always() && (github.event_name == 'pull_request' || github.event_name == 'merge_group') }}
+    needs: fast-gate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Mirror fast gate result
+        run: test "${{ needs.fast-gate.result }}" = success
+
+  required-wasm-compat:
+    name: wasm-pack build (dashboard facade, deploy.yml parity)
+    if: ${{ always() && (github.event_name == 'pull_request' || github.event_name == 'merge_group') }}
+    needs: fast-gate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Mirror fast gate result
+        run: test "${{ needs.fast-gate.result }}" = success
+
+  required-gate-c-compat:
+    name: Gate C trend alarm
+    if: ${{ always() && (github.event_name == 'pull_request' || github.event_name == 'merge_group') }}
+    needs: fast-gate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Mirror fast gate result
+        run: test "${{ needs.fast-gate.result }}" = success
+
+  # Full certification is retained, but it is no longer a merge requirement.
+  gates:
+    name: "nightly certification: core ladder"
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -154,118 +218,9 @@ jobs:
       - name: κ-reproduction (canonical D2 baseline)
         run: TLESS_CANONICAL_DETERMINISTIC=1 TLESS_CHECKPOINT=/tmp/ref/out/model.bin cargo test -p uor-r4-core --release --test kappa_reproduction -- --ignored
 
-      # The `trend_paths` path guard (wait diet, 2026-07-30) lived here to keep
-      # the ~5 min trend harness off pull_request runs that could not move the
-      # scored-graph row. It always evaluated to run=true off pull_request, and
-      # this job no longer runs on pull_request at all, so the guard is gone:
-      # the merged result is the record, so the harness runs unconditionally.
-
-      - name: Gate C trend tracking (Issue #77)
-        run: |
-          cargo run --release --bin r4 -- transformerless score \
-            --corpus-meta crates/uor-r4-core/tests/fixtures/c_meta.bin \
-            --corpus-recs crates/uor-r4-core/tests/fixtures/c_recs.bin \
-            --artifacts crates/uor-r4-core/tests/fixtures/tless_artifacts.bin \
-            --out trend_output
-          ./scripts/check_gate_c_regression.py trend_output/score_report.json
-
-      - name: Upload Gate C trend JSON
-        uses: actions/upload-artifact@v4
-        with:
-          name: gate-c-trend
-          path: trend_output/score_report.json
-
-  # PR-context companion to `gates` (wait diet, 2026-08-07). Same `name:`, so
-  # the required check `fmt / clippy / tests / no_std / κ` reports here on
-  # pull_request while the real ladder runs once, in the queue. What stays
-  # here is only what is fast enough to be worth an author's wait: the
-  # claim-wording gate (pure python, seconds) and fmt + clippy (one workspace
-  # build, and clippy is where most PR-time defects actually surface). The
-  # test suite, no_std ladder, deterministic rebuild, κ-reproduction and the
-  # Gate C trend are NOT here on purpose — they run on the merged content in
-  # merge_group, which is the verdict that binds. Do not re-add them here;
-  # that is how the 30-minute double-run came back last time.
-  gates-pr:
-    name: fmt / clippy / tests / no_std / κ
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Decide whether the docs-only fast path applies (wait diet, 2026-08-07)
-        id: docs_only
-        run: |
-          # DOCUMENTATION SET: a changed path counts as documentation iff it
-          # ends in `.md`, or it is a rendered document under `docs/`
-          # (`docs/**/*.pdf`). Deliberately NOT `docs/**`: that directory also
-          # holds `docs/transformerless/gate_c_pinned.json`, a load-bearing
-          # pinned record. Two markdown files are excluded because they are
-          # compiled into Rust with include_str! and asserted on by the BDD
-          # suite — editing them can genuinely break the build:
-          #   docs/hologram_r4_formal_monograph.md
-          #   docs/transformerless/INFERENCE_OPERATION_CONTRACT.md
-          #
-          # FAILS CLOSED. Anything we are not certain about — a path outside
-          # the set, an empty diff, or a diff we could not compute at all —
-          # yields fast=false and the full PR subset runs. And this guard only
-          # ever narrows the pull_request run; merge_group re-verifies the
-          # merged content unconditionally, so a wrong "fast" verdict here can
-          # delay a failure but can never let one merge.
-          git fetch --depth=1 origin main
-          CHANGED="$(git diff --name-only FETCH_HEAD...HEAD || true)"
-          if [ -z "$CHANGED" ]; then
-            echo "fast=false" >> "$GITHUB_OUTPUT"
-            echo "no computable diff vs main -> running everything (fail closed)"
-            exit 0
-          fi
-          echo "changed paths:"
-          printf '%s\n' "$CHANGED"
-          NON_DOC="$(printf '%s\n' "$CHANGED" | grep -vE '(\.md$|^docs/.+\.pdf$)' || true)"
-          EMBEDDED="$(printf '%s\n' "$CHANGED" | grep -xE 'docs/hologram_r4_formal_monograph\.md|docs/transformerless/INFERENCE_OPERATION_CONTRACT\.md' || true)"
-          if [ -n "$NON_DOC" ] || [ -n "$EMBEDDED" ]; then
-            echo "fast=false" >> "$GITHUB_OUTPUT"
-            echo "non-documentation paths in the diff -> running the full PR subset:"
-            printf '%s\n' "$NON_DOC" "$EMBEDDED" | grep -v '^$' || true
-          else
-            echo "fast=true" >> "$GITHUB_OUTPUT"
-            echo "docs-only diff -> claim-wording gate only; the queue still runs the full ladder"
-          fi
-
-      # Always runs: it is the doc-relevant gate, and it costs seconds.
-      - name: Claim-wording gate (docs/formal_vocabulary.md §2.1, issue #123)
-        run: python3 scripts/check_claim_wording.py
-
-      - name: Install Rust (stable)
-        if: steps.docs_only.outputs.fast != 'true'
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          components: rustfmt, clippy
-
-      - name: Cache cargo
-        if: steps.docs_only.outputs.fast != 'true'
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: cargo-${{ runner.os }}-${{ hashFiles('Cargo.lock') }}
-          restore-keys: cargo-${{ runner.os }}-
-
-      - name: cargo fmt --check
-        if: steps.docs_only.outputs.fast != 'true'
-        run: cargo fmt --check
-
-      - name: cargo clippy (-D warnings)
-        if: steps.docs_only.outputs.fast != 'true'
-        run: cargo clippy --workspace --all-targets --all-features -- -D warnings
-
-      - name: Note what was deferred
-        run: "echo 'Tests, no_std ladder, deterministic rebuild, κ-reproduction and the Gate C trend run once on the speculative merge (merge_group).'"
-
   wasm:
-    name: wasm-pack build (dashboard facade, deploy.yml parity)
-    if: github.event_name != 'pull_request'
+    name: "nightly certification: wasm-pack build"
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -279,8 +234,8 @@ jobs:
         run: wasm-pack build --target web
 
   gate-c-trend:
-    name: Gate C trend alarm
-    if: github.event_name != 'pull_request'
+    name: "nightly certification: Gate C trend alarm"
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -306,8 +261,8 @@ jobs:
           retention-days: 90
 
   audit:
-    name: cargo audit
-    if: github.event_name != 'merge_group'
+    name: "nightly certification: cargo audit"
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -316,8 +271,8 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
   fuzz-smoke:
-    name: fuzz smoke (nightly libfuzzer)
-    if: github.event_name != 'pull_request'
+    name: "nightly certification: fuzz smoke"
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -350,11 +305,9 @@ jobs:
   # macOS-pinned kappa reproduction and does not repin a shipped fixture.
   d2-differential:
     name: D2 canonical differential (${{ matrix.os }})
-    # Off the merge queue (issue #713): runs on push-to-main (post-merge),
-    # the nightly schedule, and manual dispatch — NOT on merge_group or
-    # pull_request. D2 is not a required check, so it never gated a merge;
-    # keeping its ~hour corpus compile off every speculative merge is the fix.
-    if: github.event_name == 'push' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    # Nightly/manual only. Its ~hour corpus compile is certification evidence,
+    # not author feedback and not a merge requirement.
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     strategy:
       fail-fast: false
       matrix:
@@ -416,7 +369,7 @@ jobs:
 
   d2-differential-compare:
     name: D2 differential equality
-    if: github.event_name == 'push' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     needs: d2-differential
     runs-on: ubuntu-24.04
     steps:
@@ -456,48 +409,17 @@ jobs:
           )
           PY
 
-  # ---- context stubs (issue #240) -----------------------------------------
-  # Required-check names must report in every gating context or the merge
-  # queue cannot accept/merge the PR. Where the real job is deferred to the
-  # other context, these stubs report success immediately.
-  wasm-pr-stub:
-    name: wasm-pack build (dashboard facade, deploy.yml parity)
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
-    steps:
-      - run: "echo 'Deferred to the merge queue (issue #240) - the real wasm-pack build runs on the speculative merge.'"
-
-  gate-c-trend-pr-stub:
-    name: Gate C trend alarm
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
-    steps:
-      - run: "echo 'Deferred to the merge queue (issue #240) - the real Gate C trend check runs on the speculative merge.'"
-
-  fuzz-smoke-pr-stub:
-    name: fuzz smoke (nightly libfuzzer)
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
-    steps:
-      - run: "echo 'Deferred to the merge queue (issue #240) - the real fuzz smoke runs on the speculative merge.'"
-
-  audit-mq-stub:
-    name: cargo audit
-    if: github.event_name == 'merge_group'
-    runs-on: ubuntu-latest
-    steps:
-      - run: "echo 'cargo audit already ran in pull_request context (issue #240) - the advisory-DB lookup is merge-content-independent.'"
-
   # #273 template adoption: the register conformance gate. R1/R2/R3 landed in
   # Phase 1; #510 adds R4 (deferral, with the open-claim carve-out), R5
   # (audit-limits) and R6 (cargo-deny over the real graph). R5's incremental
   # migration is COMPLETE (graph-cli hit 0 in #587): every shipped crate's
   # Result error surface now names only the four sanctioned types, and
   # audit-limits is enforced here. Promoting this job to a required status
-  # check is a repo-admin branch-protection toggle. Runs in every context; it
-  # is cheap.
+  # check is a repo-admin branch-protection toggle. It is retained in nightly
+  # certification and can be dispatched manually.
   register-conformance:
     name: register conformance (R1/R2/R3/R4/R5/R6, #273 + #510)
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -532,14 +454,11 @@ jobs:
   # This job turns every feature ON and (a) does a real codegen+link build so the
   # gated code cannot silently stop compiling, and (b) EXECUTES the gated tests
   # (the default nextest run in `gates` uses default features, so those tests
-  # never otherwise run). It runs only in merge_group / push — NOT pull_request —
-  # so it stays off the PR author's wait path and runs in parallel with `gates`
-  # in the queue (which is bounded by the heavier κ-reproduction / trend ladder,
-  # so this adds no wall-clock to the binding verdict). Promoting it to a
-  # required status check is a repo-admin branch-protection toggle.
+  # never otherwise run). This is nightly/manual compatibility evidence, not a
+  # merge requirement while the product path is under active construction.
   all-features:
     name: all-features build + gated dormant tests (#515)
-    if: github.event_name != 'pull_request'
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -562,13 +481,3 @@ jobs:
 
       - name: cargo test --workspace --all-features (runs the dormant-mechanism gated tests)
         run: cargo test --workspace --all-features
-
-  # PR-context companion to `all-features` (same name), so the check resolves on
-  # pull_request while the real all-features build + gated tests run once, in the
-  # queue. Mirrors wasm-pr-stub / fuzz-smoke-pr-stub (issue #240).
-  all-features-pr-stub:
-    name: all-features build + gated dormant tests (#515)
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
-    steps:
-      - run: "echo 'Deferred to the merge queue - the real --all-features build + gated dormant tests run on the speculative merge.'"

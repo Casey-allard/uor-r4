@@ -87,14 +87,12 @@ body:
     id: verification
     attributes:
       label: Verification
-      description: The exact commands and gates. At minimum the four local gates; add the applicable ladder (κ, no_std, wasm, allocation/P-4 census, Kani/Lean, fuzz, conformance regen, claim wording).
+      description: Name the smallest focused checks that exercise the changed behavior. Add κ, no_std, WASM, allocation/P-4, Kani/Lean, fuzz, conformance, or claim checks only when that contract is directly affected.
       value: |
-        - [ ] cargo test --workspace --no-fail-fast --offline
-        - [ ] cargo clippy --workspace --all-targets --all-features --offline -- -D warnings
         - [ ] cargo fmt --check
-        - [ ] cargo check -p uor-r4-graph-format --no-default-features (and --features alloc)
-        - [ ] python3 scripts/check_claim_wording.py
-        - [ ] (if core/router) cargo check --target wasm32-unknown-unknown -p uor-r4-wasm-router --lib
+        - [ ] cargo check -p <touched-package> --all-targets --offline
+        - [ ] cargo test -p <touched-package> --lib --offline
+        - [ ] applicable contract-specific check, if any
     validations:
       required: true
   - type: textarea
