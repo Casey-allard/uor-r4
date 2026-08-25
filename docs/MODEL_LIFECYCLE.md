@@ -1184,49 +1184,137 @@ regions, refinement/neighbor/forward edges, ScoreQ emission tables, and the
 EXCT evidence section. `graph/score_report.json` records artifact and corpus
 kappas plus held-out Gate C top-1 agreement, bits/token, and witness replay.
 
+For a production-quality re-emission, add `--quality-controls on`. The same
+deterministic scoring transaction then emits two non-serving falsifier
+artifacts beside the main graph: `score_sections_absent.r4g1` (SKMX/PSIB
+removed) and `score_label_shuffled.r4g1` (SKMX/PSIB fitted from a fixed
+construction-label rotation, then evaluated on pristine held-out labels).
+Missing controls make the deployed-quality verdict `UNAVAILABLE`; they are
+never treated as favorable zero rows.
+
+When reconciling a previously pinned sections-absent generation, preserve its
+exact pre-transaction `graph/score.r4g1` bytes outside `graph/` before scoring,
+then install those unchanged bytes as
+`graph/score_canonical_base.r4g1` after the successful transaction. This
+optional fourth arm diagnoses compiler/artifact/selector drift only. It is
+bound into the evaluation generation but excluded from quality measurements,
+RF-31/TLA gates, packaging, and production admission. Copying the newly emitted
+graph into that filename would not be a valid pre-re-emission control.
+
+Canonical re-emission uses the same resource wrapper as evaluation so every
+parallel fit retains peak RSS, elapsed time, storage growth, and worker count.
+Its create-once live JSONL samples child-process-tree CPU, RSS, process count,
+host-memory headroom, and filesystem headroom every five seconds. The command
+streams exact counters where the phase API exposes them; opaque sorts and cache
+calls print `UNAVAILABLE` instead of inventing percent complete, while retaining
+a five-second heartbeat and terminal state. On the canonical macOS host,
+`/usr/bin/script -e -F` also preserves that terminal stream durably and
+propagates the wrapped exit status. The resource wrapper accepts
+`--bundle-root` for this command and refuses a mismatched root or an existing
+sidecar:
+
+```bash
+test ! -e .uor-models/compiled/<model>-staging/graph_emission.log
+/usr/bin/script -q -e -F .uor-models/compiled/<model>-staging/graph_emission.log \
+  python3 scripts/run_deployed_quality.py \
+  --bundle .uor-models/compiled/<model>-staging \
+  --output .uor-models/compiled/<model>-staging/graph_emission_resources.json \
+  -- target/release/r4 transformerless score \
+  --corpus-meta .uor-models/compiled/<model>-staging/corpus.meta \
+  --corpus-recs .uor-models/compiled/<model>-staging/corpus.records \
+  --artifacts .uor-models/compiled/<model>-staging/tless_artifacts.bin \
+  --cover .uor-models/compiled/<model>-staging/graph-cover/cover.r4g1 \
+  --out .uor-models/compiled/<model>-staging/graph \
+  --bundle-root .uor-models/compiled/<model>-staging \
+  --quality-controls on --jobs 8
+```
+
+`r4 deployed-quality` also creates and independently reproduces the canonical
+raw cross-surface artifact and the bounded witness replay from the exact graph,
+teacher artifact, tokenizer, score report, corpus, and evaluated positions.
+Both artifacts bind the tokenizer rather than replaying a nonzero-tokenizer-CID
+graph with an empty adapter. Full mode always executes the deterministic first
+6,000 positions of the canonical label-free, story-distributed order first. A
+typed `STOP:` decision prevents the census;
+`PROCEED:` launches it. An underpowered but still reachable result is typed
+`INCONCLUSIVE:` and extends the same immutable, label-free order to 18,000
+positions. At 18,000, an overlapping interval can launch only the full census,
+and only when the reachable ceiling can still clear RF-31 and the measured
+projection is at most 60 minutes. A sample never authorizes production.
+
+Worker-invariance evidence uses independent fresh staging copies: run
+`--mode sample --positions 6000` at each worker count and require identical
+semantic report bytes/CIDs. A later `--mode full` uses another fresh copy and
+executes the binding 6,000 → optional 18,000 → census funnel in one create-once
+invocation. Use `scripts/run_deployed_quality.py` for every canonical invocation
+so resource and storage evidence survives negative and unavailable outcomes as
+a non-semantic sidecar.
+
+Against a valid real bundle directory, the command itself creates and syncs
+`evidence/deployed_quality_invocation_terminal.jsonl` before compiler-revision,
+bundle-discovery, parity, witness, or evaluator preflight. Its second row is
+`completed`, `failed`, or best-effort `interrupted`; a durable `started` row
+without a terminal row is an unresolved external interruption. The journal is
+create-once, so a retry uses a fresh staging bundle rather than overwriting the
+failed generation. This journal, the resource summary and live-sample sidecars,
+and the outer terminal transcript are local non-semantic evidence and are not
+release-archive entries.
+
 Passing `--cover` reuses the measured cover. It may be omitted to re-induce
 the default cover deterministically during scoring. For experiments, `cover`
 also accepts `--depths`, `--k0`, `--regions-budget`, and `--memory-budget`.
 
-The public `ask` and `chat` library paths still load the TLA/TLS1 files from
-step 2. The native HTTP server auto-loads `graph/score.r4g1` beside
-`tless_artifacts.bin` when present (or accepts `--r4g1-artifact`), validates it,
-and uses it for the `transformerless` engine before falling back to TLA/TLS1.
-When the dashboard is served by that native process, its **Compile / Refresh
-R4G1 Graph** button runs the same cover → score pipeline against the bundle's
-`corpus.meta` and `corpus.records`, validates the new graph, and hot-swaps it
-into the running server. Static WASM deployments cannot run this compiler.
-Static deployments still use the geometric WASM fallback because they have no
-native filesystem-backed graph loader yet.
+The public `ask`, `chat`, HTTP, library, and WASM production facades use
+`R4G1Runtime` as their sole ranked-candidate and token authority. D4 remains a
+token-free permit/widen/abstain policy. A production bundle must carry a
+schema-2 `release-bundle.json` and a content-bound, full-census
+`graph/deployed_quality_report.json`; legacy, missing, sampled, mismatched, or
+off-serving evidence is available only to explicitly named research loaders.
+There is no silent TLA/TLS1 fallback under the production profile.
+
+The native HTTP server resolves `graph/score.r4g1` beside
+`tless_artifacts.bin` (or an explicit `--r4g1-artifact`) and captures all
+admission bytes as one generation before validation. The historical dashboard
+**Compile / Refresh R4G1 Graph** action is not a production build path: its
+legacy bundle/cover/score orchestration cannot emit the required control
+graphs, deployed-quality census, replay evidence, or schema-2 release manifest.
+The native route therefore refuses before launching that expensive work. Use
+the instrumented score → `deployed-quality --mode full` → package workflow
+above; production activation never substitutes a dashboard-built graph for a
+complete envelope.
+Static WASM deployments cannot run the compiler. They may install an already
+emitted production envelope; an incomplete static bundle leaves the explicit
+geometric fallback active instead of granting the graph production status.
 
 The native dashboard also exposes **Download Hugging Face Weights**. Its input
 defaults to the pinned `owner/repository@commit` from
 `models/smollm2-135m-instruct.json`, but accepts any repository paired with a
 full 40-character commit. Downloads go into `.uor-models/sources/`; nothing is
-downloaded until the button is pressed. Afterward, run the bundle compiler and
-then the R4G1 graph compiler. If the downloaded source is present and the
-compiled bundle is not, the native **Compile / Refresh R4G1 Graph** action now
-runs the bundle compiler first, then cover and score compilation, as one server
-job.
+downloaded until the button is pressed. Downloading a pinned source does not
+authorize or activate a model. Build and certify it with the CLI workflow
+above; the legacy dashboard compiler is deliberately outside production
+admission.
 
 ### 4. Ask locally
 
-Compilation produces a directly loadable local bundle. On first use, R⁴
-content-addresses the artifact, store, and tokenizer in `.uor-models/objects`:
+Compilation produces a locally inspectable research bundle. Until that exact
+generation receives a passing schema-2 envelope, it is available only through
+the explicit compatibility path:
 
 ```bash
-cargo run --release -- ask "why is the sky blue?"
+cargo run --release -- ask --research "why is the sky blue?"
 ```
 
-This direct path verifies container integrity but does not claim that the
-compiled approximation has passed an instruction-quality evaluation. The CLI
-logs that distinction. Compilation success and answer quality are separate
+This path verifies container integrity, prints a typed research warning, and
+does not claim that the compiled approximation has passed deployed-quality
+admission. Compilation success and production answer quality are separate
 properties.
 
-### 5. Evaluate instruction quality
+### 5. Legacy research evaluation
 
-Run held-out instruction and grounding evaluation against the compiled bundle
-and retain a machine-readable report:
+The pre-schema-2 evaluator remains useful as a research diagnostic. Its report
+cannot authorize production serving; the production decision is the
+content-bound `deployed-quality` sample/full contract above:
 
 ```bash
 cargo run --release -- evaluate-report \
@@ -1244,7 +1332,7 @@ is persisted for Llama/historical evidence; arithmetic-dependent evaluation
 does not rely on rereading a mutable bundle directory. Do not mark an artifact
 as passing merely to bypass the chat quality gate.
 
-### 6. Import the evaluated bundle
+### 6. Legacy research import
 
 ```bash
 cargo run -- import \
@@ -1258,7 +1346,10 @@ cargo run -- import \
   --r4g1 .uor-models/compiled/smollm2-135m-instruct/compiled.r4g1  # optional, see #750 below
 ```
 
-`instruction_eval_passed`, `grounded_answer_rate`, and `repetition_rate` are
+This import format is retained for research compatibility and still requires
+explicit `ask --research` / `chat --research`; it is not a schema-2 production
+envelope. `instruction_eval_passed`, `grounded_answer_rate`, and
+`repetition_rate` are
 **not** CLI flags and cannot be supplied by the operator. For
 `--capability instruction-chat`, `import` derives them itself by loading the
 exact `--artifacts`/`--store`/`--tokenizer` bytes being imported and running
@@ -1303,12 +1394,13 @@ CID.
 Continuation-only bundles may be imported for certification and benchmarking,
 but `ask` refuses to load them.
 
-### 7. Ask or chat with an imported manifest
+### 7. Inspect a legacy imported manifest
 
 One-shot `ask` calls the R⁴ library directly without a server or network hop:
 
 ```bash
 cargo run --release -- ask \
+  --research \
   --model my-chat-model \
   "why is the sky blue?"
 ```
@@ -1316,20 +1408,24 @@ cargo run --release -- ask \
 Interactive chat retains turn history:
 
 ```bash
-cargo run --release -- chat --model my-chat-model
+cargo run --release -- chat --research --model my-chat-model
 ```
 
-`--model` is optional. Selection order is `TLESS_MODEL`, the newest JSON
-descriptor in `models/`, then `smollm2-135m-instruct`. A descriptor selects a
-name; R⁴ first uses an imported manifest and otherwise falls back to a complete
-local bundle under `.uor-models/compiled/<name>`.
+`--model` is optional on this explicit research path. Selection order is
+`TLESS_MODEL`, the newest JSON descriptor in `models/`, then
+`smollm2-135m-instruct`. A descriptor selects a name; research compatibility
+may use an imported manifest or a complete local bundle under
+`.uor-models/compiled/<name>`. Production performs no such fallback.
 
 Library consumers can use the chat example directly:
 
 ```rust,no_run
 use uor_r4_wasm_router::chat::ChatEngine;
 
-let mut chat = ChatEngine::builder().model("my-chat-model").build()?;
+let (mut chat, warning) = ChatEngine::builder()
+    .model("my-chat-model")
+    .build_for_research()?;
+eprintln!("warning: {warning}");
 let answer = chat.ask("why is the sky blue?")?;
 println!("{}", answer.text);
 # Ok::<(), Box<dyn std::error::Error>>(())

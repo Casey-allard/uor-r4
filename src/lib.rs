@@ -36,6 +36,8 @@ pub mod selective;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod chat;
 #[cfg(not(target_arch = "wasm32"))]
+pub mod cross_surface_parity;
+#[cfg(not(target_arch = "wasm32"))]
 pub mod model;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod r4g1;
@@ -69,34 +71,74 @@ pub mod server;
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::*;
 
-#[cfg(target_arch = "wasm32")]
-#[wasm_bindgen]
+/// Production-only graph generation facade. The same function body is
+/// native-testable and exported through `wasm-bindgen` on wasm32, so the WASM
+/// surface cannot drift behind an unexercised wrapper.
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
 pub fn generate_r4g1_response(prompt: &str, max_tokens: usize) -> Option<String> {
     tless_uor::generate_r4g1_response(prompt, max_tokens)
 }
 
 /// #839 phase 1 (RF-30): the typed selective-prediction boundary export
 /// (spec §5, WASM row) — always a typed JSON value with the canonical
-/// labels, never a trap; see [`tless_uor::typed_r4g1_response`]. The legacy
-/// `Option<String>` export above is retained unchanged.
-#[cfg(target_arch = "wasm32")]
-#[wasm_bindgen]
+/// labels, never a trap; see [`tless_uor::typed_r4g1_response`]. Both exports
+/// fail closed when only a legacy research bundle is installed; compatibility
+/// replay is deliberately not exposed as a production-like WASM answer.
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
 pub fn typed_r4g1_response(prompt: &str, max_tokens: usize) -> String {
     tless_uor::typed_r4g1_response(prompt, max_tokens)
 }
 
-/// #790 item 5: install a graph and its exact tokenizer into the wasm
-/// runtime so the dashboard's r4g1/transformerless selections can
-/// actually serve through [`generate_r4g1_response`] in static mode.
-/// Previously that export was unreachable — no installer was exported
-/// and neither frontend assigned the `wasm_module` global it is gated
-/// on, so those selections silently took the geometric fallback. Throws
-/// the installer's typed refusal (CID mismatch, malformed bytes) without
-/// replacing a previously active bundle.
+/// Legacy compatibility installer. It accepts only graphs with both SKMX and
+/// PSIB absent. Lane-bearing artifacts must use the schema-2 production
+/// envelope below and can never activate through this weaker surface.
 #[cfg(target_arch = "wasm32")]
 #[wasm_bindgen]
 pub fn set_r4g1_bundle(graph: Vec<u8>, tokenizer: Vec<u8>) -> Result<(), JsValue> {
     tless_uor::set_r4g1_bundle(graph, tokenizer).map_err(|error| JsValue::from_str(&error))
+}
+
+/// Verify and atomically install every required component of one schema-2
+/// production generation. Any missing, malformed, stale, or CID-mismatched
+/// component throws and leaves the previous generation untouched.
+#[cfg(target_arch = "wasm32")]
+#[wasm_bindgen]
+#[allow(clippy::too_many_arguments)]
+pub fn set_r4g1_production_bundle(
+    graph: Vec<u8>,
+    sections_absent_graph: Vec<u8>,
+    label_shuffled_graph: Vec<u8>,
+    signature_artifact: Vec<u8>,
+    tla_comparator_store: Vec<u8>,
+    tokenizer: Vec<u8>,
+    score_report: Vec<u8>,
+    compile_report: Vec<u8>,
+    deployed_quality_report: Vec<u8>,
+    cross_surface_parity: Vec<u8>,
+    witness_replay: Vec<u8>,
+    corpus_meta: Vec<u8>,
+    corpus_records: Vec<u8>,
+    tokenizer_adapter: Vec<u8>,
+    release_manifest: Vec<u8>,
+) -> Result<(), JsValue> {
+    tless_uor::set_r4g1_production_bundle(
+        graph,
+        sections_absent_graph,
+        label_shuffled_graph,
+        signature_artifact,
+        tla_comparator_store,
+        tokenizer,
+        score_report,
+        compile_report,
+        deployed_quality_report,
+        cross_surface_parity,
+        witness_replay,
+        corpus_meta,
+        corpus_records,
+        tokenizer_adapter,
+        release_manifest,
+    )
+    .map_err(|error| JsValue::from_str(&error))
 }
 
 /// The one-import surface for library users.
@@ -172,6 +214,53 @@ mod facade_smoke_tests {
             assert!(
                 !runtime_sources.contains(forbidden),
                 "external inference path is forbidden: {forbidden}"
+            );
+        }
+    }
+
+    #[test]
+    fn static_wasm_r4g1_is_complete_envelope_only_and_fail_closed() {
+        let frontends = [
+            ("worker", include_str!("../r4_worker.js")),
+            ("dashboard", include_str!("../index.html")),
+        ];
+        for (label, source) in frontends {
+            assert!(
+                source.contains("set_r4g1_production_bundle"),
+                "{label} must call the strict production installer"
+            );
+            for component in [
+                "./graph/score.r4g1",
+                "./graph/score_sections_absent.r4g1",
+                "./graph/score_label_shuffled.r4g1",
+                "./tless_artifacts.bin",
+                "./tless_store.bin",
+                "./tokenizer.bin",
+                "./graph/score_report.json",
+                "./graph-cover/cover_report.json",
+                "./graph/deployed_quality_report.json",
+                "./graph/cross_surface_parity.json",
+                "./graph/witness_replay.json",
+                "./corpus.meta",
+                "./corpus.records",
+                "./tokenizer_adapter.json",
+                "./release-bundle.json",
+            ] {
+                assert!(
+                    source.contains(component),
+                    "{label} omitted required production component {component}"
+                );
+            }
+            assert!(
+                source.contains(
+                    "bytes.signatureArtifact,\n        bytes.tlaComparatorStore,\n        bytes.tokenizer,"
+                ),
+                "{label} must pass the exact TLA store between the signature artifact and tokenizer"
+            );
+            assert!(
+                !source.contains("geometric-fallback-wasm")
+                    && !source.contains("falling back to geometric"),
+                "{label} must not disguise a refused R4G1 request as geometric serving"
             );
         }
     }

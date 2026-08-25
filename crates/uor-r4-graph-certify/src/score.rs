@@ -165,6 +165,8 @@
 use rayon::prelude::*;
 use serde::Serialize;
 use std::collections::BTreeMap;
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::Mutex;
 
 use super::score_runtime::{
     binary_memberships, binary_top1_covered, regions_from_view, structural_edges_from_view,
@@ -1559,6 +1561,33 @@ pub fn emit_scored_r4g1_with_tokenizer_cid(
     sections: &ScoredGraphSections,
     tokenizer_cid: [u8; 32],
 ) -> (Vec<u8>, ScoredGraphInfo) {
+    let (meta, records) = corpus_cid_material;
+    let mut legacy_construction = blake3::Hasher::new();
+    legacy_construction.update(meta);
+    legacy_construction.update(records);
+    emit_scored_r4g1_with_bound_partition_cids(
+        artifact_container,
+        vocab_size,
+        sections,
+        tokenizer_cid,
+        *legacy_construction.finalize().as_bytes(),
+        [0; 32],
+    )
+}
+
+/// Emit a scored graph with exact tokenizer and D3 partition identities.
+///
+/// Production compilers use this entry point. The compatibility wrapper
+/// above deliberately retains the historical whole-stream/zero-certification
+/// HEAD bytes for fixtures and explicitly research-scoped callers.
+pub fn emit_scored_r4g1_with_bound_partition_cids(
+    artifact_container: &[u8],
+    vocab_size: u32,
+    sections: &ScoredGraphSections,
+    tokenizer_cid: [u8; 32],
+    corpus_construction_cid: [u8; 32],
+    corpus_certification_cid: [u8; 32],
+) -> (Vec<u8>, ScoredGraphInfo) {
     let ScoredGraphSections {
         regions,
         structural,
@@ -1751,15 +1780,11 @@ pub fn emit_scored_r4g1_with_tokenizer_cid(
     let ngram = encode_context_rows(context_rows);
 
     // HEAD: the fixed 224-byte v0 prefix (convert_r4g1 conventions).
-    let (meta, recs) = corpus_cid_material;
-    let mut corpus_hasher = blake3::Hasher::new();
-    corpus_hasher.update(meta);
-    corpus_hasher.update(recs);
     let mut head = Vec::with_capacity(224);
     head.extend_from_slice(blake3::hash(artifact_container).as_bytes()); // teacher_cid
     head.extend_from_slice(&tokenizer_cid); // exact tokenizer.bin CID, or legacy zero
-    head.extend_from_slice(corpus_hasher.finalize().as_bytes()); // corpus_construction_cid
-    head.extend_from_slice(&[0u8; 32]); // corpus_certification_cid: zeroed
+    head.extend_from_slice(&corpus_construction_cid);
+    head.extend_from_slice(&corpus_certification_cid);
     head.extend_from_slice(&[0u8; 20]); // hf_revision: zeroed
     head.extend_from_slice(blake3::hash(COMPILER_VERSION_LABEL).as_bytes());
     head.extend_from_slice(&max_frontier_width.to_le_bytes()); // A
@@ -2143,6 +2168,147 @@ pub fn parse_skip_arms(value: Option<&str>) -> SkippedArms {
 
 fn gate_c_skip_arms() -> SkippedArms {
     parse_skip_arms(std::env::var(GATE_C_SKIP_ARMS_ENV).ok().as_deref())
+}
+
+/// One exact, non-semantic progress snapshot from [`evaluate_gate_c_with_progress`].
+///
+/// Progress is deliberately kept out of [`GateCOutcome`] and the serialized
+/// score report: it depends on wall-clock scheduling and therefore cannot be
+/// part of deterministic evidence bytes. `processed` is monotone within one
+/// `phase`, `total` is fixed when that phase starts, and `done` distinguishes
+/// the exact terminal snapshot from an in-flight update. The callback receives
+/// a start snapshot (`processed == 0`, `done == false`) even for an empty or
+/// skipped phase, followed by one terminal snapshot (`done == true`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct GateCProgress {
+    /// Stable machine-readable phase identifier.
+    pub phase: &'static str,
+    /// Exact work units completed when this snapshot was emitted.
+    pub processed: usize,
+    /// Exact number of work units in this phase.
+    pub total: usize,
+    /// Stable unit label for `processed` and `total`.
+    pub unit: &'static str,
+    /// `true` only for the phase's terminal snapshot.
+    pub done: bool,
+}
+
+/// Throttled exact counter shared by the serial and Rayon Gate C passes.
+///
+/// Calling an arbitrary callback for every corpus row would turn observability
+/// into a material part of the run cost. Each row still advances the atomic
+/// counter exactly, but callbacks are emitted only after at least one percent
+/// of the phase (and never fewer than 256 units) has elapsed. A mutex covers
+/// both the monotonicity check and the callback itself, so Rayon workers cannot
+/// deliver an older snapshot after a newer one. The terminal callback is
+/// always emitted after the pass has joined and carries the exact total.
+struct GateCProgressPhase<'a, F: Fn(GateCProgress) + Sync + ?Sized> {
+    callback: &'a F,
+    phase: &'static str,
+    total: usize,
+    unit: &'static str,
+    processed: AtomicUsize,
+    next_emit: AtomicUsize,
+    last_emitted: Mutex<usize>,
+    quantum: usize,
+}
+
+impl<'a, F: Fn(GateCProgress) + Sync + ?Sized> GateCProgressPhase<'a, F> {
+    fn new(callback: &'a F, phase: &'static str, total: usize, unit: &'static str) -> Self {
+        callback(GateCProgress {
+            phase,
+            processed: 0,
+            total,
+            unit,
+            done: false,
+        });
+        let quantum = (total / 100).max(256);
+        GateCProgressPhase {
+            callback,
+            phase,
+            total,
+            unit,
+            processed: AtomicUsize::new(0),
+            next_emit: AtomicUsize::new(if total == 0 {
+                usize::MAX
+            } else {
+                quantum.min(total)
+            }),
+            last_emitted: Mutex::new(0),
+            quantum,
+        }
+    }
+
+    fn advance(&self, count: usize) {
+        if count == 0 {
+            return;
+        }
+        let completed = self.processed.fetch_add(count, Ordering::Relaxed) + count;
+        assert!(
+            completed <= self.total,
+            "Gate C progress phase {} advanced past its declared total {}",
+            self.phase,
+            self.total
+        );
+        // Hot workers return without touching the mutex until one of them
+        // claims the next reporting threshold. A worker that loses the CAS
+        // retries against the newer threshold; no threshold is emitted twice.
+        loop {
+            let threshold = self.next_emit.load(Ordering::Relaxed);
+            if completed < threshold {
+                return;
+            }
+            let next = if threshold >= self.total {
+                usize::MAX
+            } else {
+                threshold.saturating_add(self.quantum).min(self.total)
+            };
+            if self
+                .next_emit
+                .compare_exchange_weak(threshold, next, Ordering::Relaxed, Ordering::Relaxed)
+                .is_err()
+            {
+                continue;
+            }
+            let mut last = self
+                .last_emitted
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner);
+            let current = self.processed.load(Ordering::Relaxed).min(self.total);
+            if current > *last {
+                *last = current;
+                (self.callback)(GateCProgress {
+                    phase: self.phase,
+                    processed: current,
+                    total: self.total,
+                    unit: self.unit,
+                    done: false,
+                });
+            }
+            return;
+        }
+    }
+
+    fn finish(&self) {
+        let completed = self.processed.load(Ordering::Relaxed);
+        assert_eq!(
+            completed, self.total,
+            "Gate C progress phase {} finished before its declared total",
+            self.phase
+        );
+        let mut last = self
+            .last_emitted
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        *last = completed;
+        (self.callback)(GateCProgress {
+            phase: self.phase,
+            processed: completed,
+            total: self.total,
+            unit: self.unit,
+            done: true,
+        });
+    }
 }
 
 /// Wall-clock accounting for the passes of a scoring stage, printed to stderr
@@ -3062,6 +3228,7 @@ impl TwoSidedTable {
         is_held_out: &[bool],
         left_codes: &[[u8; STAGES]],
         right_codes: &[([u8; STAGES], bool)],
+        on_depth_complete: &dyn Fn(),
     ) -> Self {
         let mut levels = Vec::with_capacity(STAGES + 1);
         levels.push(TwoSidedLevel::default());
@@ -3078,6 +3245,7 @@ impl TwoSidedTable {
                 pairs.push((key, corpus.next[position]));
             }
             levels.push(TwoSidedLevel::from_pairs(pairs));
+            on_depth_complete();
         }
         TwoSidedTable { levels }
     }
@@ -3149,6 +3317,7 @@ fn derive_right_codes(
     artifacts: &compiler::Compiled,
     rotations: &[usize; compiler::WINDOW + 1],
     corpus: &Corpus,
+    on_position_complete: &(dyn Fn() + Sync),
 ) -> Vec<([u8; STAGES], bool)> {
     // #469 lever B: decode the dot tables ONCE and share them across the
     // workers. Per-call decoding would cost more than the scan it replaces
@@ -3168,13 +3337,16 @@ fn derive_right_codes(
                 }
             }
             if window.is_empty() {
+                on_position_complete();
                 return ([0u8; STAGES], false);
             }
             let bundle = runtime::bundle_window_plain(artifacts, rotations, &window);
-            (
+            let code = (
                 runtime::assign_code_for_bundle_with(&tables, artifacts, &bundle),
                 true,
-            )
+            );
+            on_position_complete();
+            code
         })
         .collect()
 }
@@ -3279,6 +3451,7 @@ impl LatentRightTable {
         left_codes: &[[u8; STAGES]],
         right_codes: &[([u8; STAGES], bool)],
         class_depth: usize,
+        on_depth_complete: &dyn Fn(),
     ) -> Self {
         let mut emission = Vec::with_capacity(STAGES + 1);
         let mut posterior = Vec::with_capacity(STAGES + 1);
@@ -3298,6 +3471,7 @@ impl LatentRightTable {
             }
             emission.push(TwoSidedLevel::from_pairs(emission_pairs));
             posterior.push(TwoSidedLevel::from_pairs(posterior_pairs));
+            on_depth_complete();
         }
         LatentRightTable {
             class_depth,
@@ -3659,6 +3833,22 @@ pub fn evaluate_gate_c_sweep(
     })
 }
 
+/// Immutable inputs shared by the silent and progress-reporting Gate C paths.
+///
+/// Keeping the evaluation inputs together prevents observability-only
+/// parameters from changing the scoring contract and gives the progress API a
+/// focused signature without suppressing Clippy's argument-count guard.
+#[derive(Clone, Copy)]
+pub struct GateCEvaluationInputs<'a> {
+    pub r4g1: &'a [u8],
+    pub artifact_container: &'a [u8],
+    pub artifacts: &'a compiler::Compiled,
+    pub store: &'a Store,
+    pub corpus: &'a Corpus,
+    pub held_out: &'a [Observation],
+    pub config: &'a ScoreConfig,
+}
+
 pub fn evaluate_gate_c(
     r4g1: &[u8],
     artifact_container: &[u8],
@@ -3668,6 +3858,48 @@ pub fn evaluate_gate_c(
     held_out: &[Observation],
     config: &ScoreConfig,
 ) -> Option<GateCOutcome> {
+    let no_progress = |_: GateCProgress| {};
+    evaluate_gate_c_inner(
+        GateCEvaluationInputs {
+            r4g1,
+            artifact_container,
+            artifacts,
+            store,
+            corpus,
+            held_out,
+            config,
+        },
+        &no_progress,
+    )
+}
+
+/// Evaluate Gate C while publishing exact, throttled, non-semantic counters.
+///
+/// This is behavior-identical to [`evaluate_gate_c`]: the callback observes
+/// work already performed but cannot alter row ordering, floating-point
+/// reduction order, or report bytes. Events from Rayon passes are serialized
+/// before delivery, so `processed` is monotone within each phase. The callback
+/// must be [`Sync`] because the work itself remains parallel.
+pub fn evaluate_gate_c_with_progress(
+    inputs: GateCEvaluationInputs<'_>,
+    progress: &(dyn Fn(GateCProgress) + Sync),
+) -> Option<GateCOutcome> {
+    evaluate_gate_c_inner(inputs, progress)
+}
+
+fn evaluate_gate_c_inner<F: Fn(GateCProgress) + Sync + ?Sized>(
+    inputs: GateCEvaluationInputs<'_>,
+    progress: &F,
+) -> Option<GateCOutcome> {
+    let GateCEvaluationInputs {
+        r4g1,
+        artifact_container,
+        artifacts,
+        store,
+        corpus,
+        held_out,
+        config,
+    } = inputs;
     // #471: every whole-corpus pass below announces its own cost, and the
     // arm groups this run was told not to build are resolved up front so the
     // skip is one decision read in one place.
@@ -3680,12 +3912,14 @@ pub fn evaluate_gate_c(
             skipped_arms.names().join(",")
         );
     }
+    let scorer_progress = GateCProgressPhase::new(progress, "scorer-construction", 6, "scorers");
     let mut scorer_no_exct =
         GraphScorer::from_artifact(r4g1, None, config.root_top_b, config.exct_top_x)
             .expect("gate C: scorer rebuild from self-emitted artifact");
     scorer_no_exct.set_f_emissions(true);
     scorer_no_exct.set_scoring_variant(config.scoring_variant);
     scorer_no_exct.set_repetition_penalty_raw(config.repetition_penalty_raw);
+    scorer_progress.advance(1);
     let mut scorer_with_exct = GraphScorer::from_artifact(
         r4g1,
         Some(artifact_container),
@@ -3696,6 +3930,7 @@ pub fn evaluate_gate_c(
     scorer_with_exct.set_f_emissions(true);
     scorer_with_exct.set_scoring_variant(config.scoring_variant);
     scorer_with_exct.set_repetition_penalty_raw(config.repetition_penalty_raw);
+    scorer_progress.advance(1);
     // Ablation scorers (issue #66): identical configs with ΔT emissions off
     // (the deployed default since the ablation decision).
     let mut scorer_no_exct_no_f =
@@ -3703,6 +3938,7 @@ pub fn evaluate_gate_c(
             .expect("gate C: scorer rebuild from self-emitted artifact");
     scorer_no_exct_no_f.set_scoring_variant(config.scoring_variant);
     scorer_no_exct_no_f.set_repetition_penalty_raw(config.repetition_penalty_raw);
+    scorer_progress.advance(1);
     let mut scorer_with_exct_no_f = GraphScorer::from_artifact(
         r4g1,
         Some(artifact_container),
@@ -3712,6 +3948,7 @@ pub fn evaluate_gate_c(
     .expect("gate C: scorer rebuild from self-emitted artifact");
     scorer_with_exct_no_f.set_scoring_variant(config.scoring_variant);
     scorer_with_exct_no_f.set_repetition_penalty_raw(config.repetition_penalty_raw);
+    scorer_progress.advance(1);
     let mut scorer_normalized = GraphScorer::from_artifact(
         r4g1,
         Some(artifact_container),
@@ -3721,6 +3958,7 @@ pub fn evaluate_gate_c(
     .expect("gate C: scorer rebuild from self-emitted artifact");
     scorer_normalized.set_scoring_variant(ScoringVariant::CloudSizeNormalized);
     scorer_normalized.set_repetition_penalty_raw(config.repetition_penalty_raw);
+    scorer_progress.advance(1);
     let mut scorer_margin = GraphScorer::from_artifact(
         r4g1,
         Some(artifact_container),
@@ -3730,6 +3968,8 @@ pub fn evaluate_gate_c(
     .expect("gate C: scorer rebuild from self-emitted artifact");
     scorer_margin.set_scoring_variant(ScoringVariant::MarginWeighted);
     scorer_margin.set_repetition_penalty_raw(config.repetition_penalty_raw);
+    scorer_progress.advance(1);
+    scorer_progress.finish();
 
     phases.mark("scorer construction");
 
@@ -3893,13 +4133,17 @@ pub fn evaluate_gate_c(
     let gate_rotations = compiler::derive_rotations();
     // Held-out mask: shared by the #399 M2 forward-table build below and
     // the #390 analytic null further down.
+    let held_out_mask_progress =
+        GateCProgressPhase::new(progress, "held-out-mask", held_out.len(), "observations");
     let mut is_held_out = vec![false; corpus.n];
     for observation in held_out {
         let position = observation.position as usize;
         if position < corpus.n {
             is_held_out[position] = true;
         }
+        held_out_mask_progress.advance(1);
     }
+    held_out_mask_progress.finish();
 
     // #399 M2: story-relative positions, and the forward-anchor channel
     // table built from the construction split (positions outside the
@@ -3907,6 +4151,8 @@ pub fn evaluate_gate_c(
     // position whose EMITTED token lands on a story position that is a
     // multiple of the stride; each anchor contributes its train-split
     // predecessors at every lookahead distance.
+    let story_position_progress =
+        GateCProgressPhase::new(progress, "story-position-index", corpus.n, "positions");
     let mut story_pos = Vec::with_capacity(corpus.n);
     {
         let (mut current_story, mut position_in_story) = (u32::MAX, 0u32);
@@ -3918,11 +4164,16 @@ pub fn evaluate_gate_c(
                 position_in_story += 1;
             }
             story_pos.push(position_in_story);
+            story_position_progress.advance(1);
         }
     }
+    story_position_progress.finish();
+    let forward_table_progress =
+        GateCProgressPhase::new(progress, "forward-anchor-table", corpus.n, "positions");
     let mut fwd_table: BTreeMap<(usize, u32), BTreeMap<u32, u32>> = BTreeMap::new();
     for j in 0..corpus.n {
         if is_held_out[j] || !(story_pos[j] as usize + 1).is_multiple_of(M2_STRIDE) {
+            forward_table_progress.advance(1);
             continue;
         }
         for distance in 1..M2_STRIDE {
@@ -3937,7 +4188,9 @@ pub fn evaluate_gate_c(
                     .or_default() += 1;
             }
         }
+        forward_table_progress.advance(1);
     }
+    forward_table_progress.finish();
 
     phases.mark("forward-anchor table (#399 M2)");
 
@@ -3954,6 +4207,13 @@ pub fn evaluate_gate_c(
     // while a sampled evaluation's scored population does not — so its share
     // of a decision run's wall clock grows with the corpus. Measured at 60%
     // of a 10,000-position run on the 500k fixture.
+    let right_code_total = if skipped_arms.right_context {
+        0
+    } else {
+        corpus.n
+    };
+    let right_code_progress =
+        GateCProgressPhase::new(progress, "right-context-codes", right_code_total, "codes");
     let right_codes = if skipped_arms.right_context {
         // The sentinel the two arms already treat as inert: no in-story
         // right window anywhere. `resolve` and `resolve_left` short-circuit
@@ -3961,14 +4221,20 @@ pub fn evaluate_gate_c(
         // the same code path they take at a story end today.
         vec![([0u8; STAGES], false); corpus.n]
     } else {
-        derive_right_codes(artifacts, &gate_rotations, corpus)
+        derive_right_codes(artifacts, &gate_rotations, corpus, &|| {
+            right_code_progress.advance(1);
+        })
     };
+    right_code_progress.finish();
     phases.mark("right-context code pass (#446)");
     // #469 lever A: the left (causal) code of every record is the same
     // `code_plain` pass every other consumer runs. Serve it from the
     // κ-keyed sidecar when one verifies against BOTH the artifact κ and the
     // corpus κ; otherwise run exactly the derivation below and write it
     // back. Cache only — the codes are unchanged either way.
+    let left_code_progress =
+        GateCProgressPhase::new(progress, "left-context-codes", corpus.n, "codes");
+    let left_codes_derived = AtomicUsize::new(0);
     let left_codes: Vec<[u8; STAGES]> =
         code_sidecar::corpus_codes_cached(artifacts, corpus, || {
             // #469 lever B: same pass, prepared tables. This runs only on a
@@ -3977,16 +4243,45 @@ pub fn evaluate_gate_c(
             (0..corpus.n)
                 .into_par_iter()
                 .map(|position| {
-                    runtime::code_plain_with(&tables, artifacts, &gate_rotations, corpus, position)
+                    let code = runtime::code_plain_with(
+                        &tables,
+                        artifacts,
+                        &gate_rotations,
+                        corpus,
+                        position,
+                    );
+                    left_codes_derived.fetch_add(1, Ordering::Relaxed);
+                    left_code_progress.advance(1);
+                    code
                 })
                 .collect()
         });
+    // A verified sidecar hit does not enter the derivation closure; all
+    // corpus codes become available atomically when the cache returns.
+    if left_codes_derived.load(Ordering::Relaxed) == 0 {
+        left_code_progress.advance(corpus.n);
+    }
+    left_code_progress.finish();
     phases.mark("left code pass (sidecar or derive, #469 lever A)");
+    let two_sided_total = if skipped_arms.right_context {
+        0
+    } else {
+        STAGES
+    };
+    let two_sided_progress = GateCProgressPhase::new(
+        progress,
+        "two-sided-table-depths",
+        two_sided_total,
+        "depths",
+    );
     let two_sided = if skipped_arms.right_context {
         TwoSidedTable::empty()
     } else {
-        TwoSidedTable::build(corpus, &is_held_out, &left_codes, &right_codes)
+        TwoSidedTable::build(corpus, &is_held_out, &left_codes, &right_codes, &|| {
+            two_sided_progress.advance(1)
+        })
     };
+    two_sided_progress.finish();
     phases.mark("two-sided table build (#446 M1)");
     // #446 M2: the latent right-context mixture tables, built from the
     // same construction split. CAUSALLY LEGITIMATE at serving: the right
@@ -3997,6 +4292,17 @@ pub fn evaluate_gate_c(
         .and_then(|value| value.trim().parse::<usize>().ok())
         .filter(|depth| (1..=STAGES).contains(depth))
         .unwrap_or(LATENT_CLASS_DEPTH_DEFAULT);
+    let latent_total = if skipped_arms.right_context {
+        0
+    } else {
+        STAGES
+    };
+    let latent_progress = GateCProgressPhase::new(
+        progress,
+        "latent-right-table-depths",
+        latent_total,
+        "depths",
+    );
     let latent = if skipped_arms.right_context {
         LatentRightTable::empty(latent_class_depth)
     } else {
@@ -4006,8 +4312,10 @@ pub fn evaluate_gate_c(
             &left_codes,
             &right_codes,
             latent_class_depth,
+            &|| latent_progress.advance(1),
         )
     };
+    latent_progress.finish();
     phases.mark("latent right-context tables (#446 M2)");
     // #467: the positions actually SCORED. Full pass unless
     // `R4_GATE_C_SAMPLE` is set; the held-out mask above (and every table
@@ -4046,6 +4354,7 @@ pub fn evaluate_gate_c(
     // #390 analytic unigram null: the TRAIN next-token distribution
     // (all corpus positions outside the held-out set), add-one smoothed
     // over the compiled vocabulary.
+    let unigram_progress = GateCProgressPhase::new(progress, "unigram-null", corpus.n, "positions");
     let vocab = (artifacts.token_codes.len() / compiler::STAGES) as u64;
     let mut unigram_counts: BTreeMap<u32, u64> = BTreeMap::new();
     let mut train_positions = 0usize;
@@ -4054,7 +4363,9 @@ pub fn evaluate_gate_c(
             *unigram_counts.entry(corpus.next[position]).or_insert(0) += 1;
             train_positions += 1;
         }
+        unigram_progress.advance(1);
     }
+    unigram_progress.finish();
     let unigram_total: u64 = unigram_counts.values().sum();
     let unigram_train_argmax = unigram_counts
         .iter()
@@ -4077,12 +4388,20 @@ pub fn evaluate_gate_c(
     // Each held-out position is independent. Collect compact rows in Rayon;
     // reduce them in input order below so floating-point totals and all
     // report bytes retain the serial implementation's determinism.
+    let scoring_progress =
+        GateCProgressPhase::new(progress, "held-out-scoring", scored.len(), "positions");
     let rows: Vec<GateCRow> = scored
         .par_iter()
         .enumerate()
-        .map(|(index, observation)| evaluate_gate_c_row(index, observation, &context))
+        .map(|(index, observation)| {
+            let row = evaluate_gate_c_row(index, observation, &context);
+            scoring_progress.advance(1);
+            row
+        })
         .collect::<Vec<_>>();
+    scoring_progress.finish();
     phases.mark(&format!("scoring {} positions", scored.len()));
+    let reduction_progress = GateCProgressPhase::new(progress, "row-reduction", rows.len(), "rows");
     for row in rows {
         hits_legacy += u64::from(row.hits[0]);
         hits_rule1 += u64::from(row.hits[1]);
@@ -4331,7 +4650,9 @@ pub fn evaluate_gate_c(
         }
         outcome.witness_replays += usize::from(row.witness_replayed);
         outcome.witness_replay_failures += usize::from(row.witness_replay_failed);
+        reduction_progress.advance(1);
     }
+    reduction_progress.finish();
     let n = scored.len();
     if n == 0 {
         // Nothing to measure: a total "cannot evaluate" answer, not an error.
@@ -4706,6 +5027,23 @@ pub fn evaluate_gate_c(
     let mut graph_rep_sum = 0.0;
     let mut baseline_rep_sum = 0.0;
     let mut probe_count = 0;
+    let replay_probe_count = scored
+        .iter()
+        .filter(|observation| {
+            let position = observation.position as usize;
+            position >= 32 && corpus.story[position] == corpus.story[position - 32]
+        })
+        .take(5)
+        .count();
+    // Each eligible probe performs one graph and one baseline generation.
+    // The cheap eligibility scan above makes the total exact before either
+    // expensive generation begins.
+    let replay_progress = GateCProgressPhase::new(
+        progress,
+        "replay-probes",
+        replay_probe_count * 2,
+        "generations",
+    );
 
     for obs in scored.iter() {
         let pos = obs.position as usize;
@@ -4713,14 +5051,17 @@ pub fn evaluate_gate_c(
             let seed = &corpus.input[pos - 32..pos];
             graph_rep_sum +=
                 generate_greedy_repetition_rate(&scorer_with_exct, artifacts, &rotations, seed, 64);
+            replay_progress.advance(1);
             baseline_rep_sum +=
                 baseline_greedy_repetition_rate(store, artifacts, &rotations, seed, 64);
+            replay_progress.advance(1);
             probe_count += 1;
             if probe_count == 5 {
                 break;
             }
         }
     }
+    replay_progress.finish();
 
     if probe_count > 0 {
         outcome.repetition_rate_rule12 = graph_rep_sum / probe_count as f64;
@@ -6154,6 +6495,88 @@ fn smoothing_description(smoothing: Smoothing) -> String {
              δ·T_n / total_n spread over the max(V − T_n, 1) unseen types \
              (T_n = seen types); {evidence}"
         ),
+    }
+}
+
+#[cfg(test)]
+mod gate_c_progress_tests {
+    use super::{GateCProgress, GateCProgressPhase};
+    use std::sync::Mutex;
+
+    #[test]
+    fn concurrent_progress_is_throttled_monotone_and_exact_at_terminal() {
+        let events = Mutex::new(Vec::<GateCProgress>::new());
+        let callback = |event| {
+            events
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner)
+                .push(event);
+        };
+        let phase = GateCProgressPhase::new(&callback, "test-phase", 4_096, "rows");
+
+        std::thread::scope(|scope| {
+            for _ in 0..8 {
+                scope.spawn(|| {
+                    for _ in 0..512 {
+                        phase.advance(1);
+                    }
+                });
+            }
+        });
+        phase.finish();
+
+        let events = events
+            .into_inner()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        assert_eq!(
+            events.first(),
+            Some(&GateCProgress {
+                phase: "test-phase",
+                processed: 0,
+                total: 4_096,
+                unit: "rows",
+                done: false,
+            })
+        );
+        assert_eq!(
+            events.last(),
+            Some(&GateCProgress {
+                phase: "test-phase",
+                processed: 4_096,
+                total: 4_096,
+                unit: "rows",
+                done: true,
+            })
+        );
+        assert!(events
+            .windows(2)
+            .all(|pair| pair[0].processed <= pair[1].processed));
+        assert!(events[..events.len() - 1].iter().all(|event| !event.done));
+        // The exact counter still traversed every row, but the callback did
+        // not: at most one update per 256 rows, plus start and terminal.
+        assert!(events.len() <= 4_096 / 256 + 3);
+    }
+
+    #[test]
+    fn empty_phase_has_distinct_exact_start_and_terminal_events() {
+        let events = Mutex::new(Vec::<GateCProgress>::new());
+        let callback = |event| {
+            events
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner)
+                .push(event);
+        };
+        let phase = GateCProgressPhase::new(&callback, "skipped", 0, "codes");
+        phase.finish();
+
+        let events = events
+            .into_inner()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        assert_eq!(events.len(), 2);
+        assert_eq!(events[0].processed, 0);
+        assert!(!events[0].done);
+        assert_eq!(events[1].processed, 0);
+        assert!(events[1].done);
     }
 }
 

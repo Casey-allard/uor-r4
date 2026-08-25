@@ -57,14 +57,36 @@ enum OwnedR4g1Tokenizer {
     Exact(uor_r4_core::transformerless::scenarios::Tokenizer),
 }
 
-struct OwnedR4g1Bundle {
+struct OwnedLegacyR4g1Bundle {
     graph: Vec<u8>,
     tokenizer: OwnedR4g1Tokenizer,
 }
 
+struct OwnedProductionR4g1Bundle {
+    graph: Vec<u8>,
+    signature_artifact: Vec<u8>,
+    tokenizer_bytes: Vec<u8>,
+    tokenizer: uor_r4_core::transformerless::scenarios::Tokenizer,
+    score_report: Vec<u8>,
+    deployed_quality_report: Vec<u8>,
+    verified_envelope: uor_r4_api::VerifiedProductionEnvelope,
+}
+
+enum OwnedR4g1Bundle {
+    Legacy(OwnedLegacyR4g1Bundle),
+    Production(Box<OwnedProductionR4g1Bundle>),
+}
+
 static OWNED_R4G1: std::sync::RwLock<Option<OwnedR4g1Bundle>> = std::sync::RwLock::new(None);
 
-fn validated_graph_tokenizer_cid(bytes: &[u8]) -> Result<[u8; 32], String> {
+#[derive(Debug, Clone, Copy)]
+struct ValidatedR4g1Graph {
+    tokenizer_cid: [u8; 32],
+    skipmix_present: bool,
+    psi_bag_present: bool,
+}
+
+fn validate_r4g1_graph(bytes: &[u8]) -> Result<ValidatedR4g1Graph, String> {
     let view = uor_r4_graph_format::GraphView::parse(bytes)
         .map_err(|error| format!("invalid R4G1 graph: {}", error.reason))?;
     view.verify_cids()
@@ -72,29 +94,45 @@ fn validated_graph_tokenizer_cid(bytes: &[u8]) -> Result<[u8; 32], String> {
     let head = view
         .head()
         .ok_or_else(|| "invalid R4G1 graph: missing HEAD section".to_owned())?;
-    uor_r4_graph_runtime::R4G1Runtime::parse(bytes)
+    let runtime = uor_r4_graph_runtime::R4G1Runtime::parse(bytes)
         .map_err(|error| format!("invalid R4G1 runtime graph: {}", error.reason))?;
-    Ok(head.tokenizer_cid().0)
+    let (skipmix_present, psi_bag_present) = runtime.skipmix_tables_present();
+    Ok(ValidatedR4g1Graph {
+        tokenizer_cid: head.tokenizer_cid().0,
+        skipmix_present,
+        psi_bag_present,
+    })
+}
+
+fn require_legacy_graph(graph: ValidatedR4g1Graph) -> Result<(), String> {
+    if graph.skipmix_present || graph.psi_bag_present {
+        return Err(
+            "lane-bearing R4G1 graphs require the schema-2 production-envelope installer; legacy graph/tokenizer installation is refused"
+                .to_owned(),
+        );
+    }
+    Ok(())
 }
 
 /// Try to install graph-only bytes. This compatibility surface accepts only
 /// legacy graphs whose HEAD tokenizer CID is zero; a bound graph must use
 /// [`set_r4g1_bundle`] so graph and tokenizer enter the process atomically.
 pub fn try_set_r4g1_bytes(bytes: Vec<u8>) -> Result<(), String> {
-    let tokenizer_cid = validated_graph_tokenizer_cid(&bytes)?;
-    if tokenizer_cid != [0; 32] {
+    let graph = validate_r4g1_graph(&bytes)?;
+    require_legacy_graph(graph)?;
+    if graph.tokenizer_cid != [0; 32] {
         return Err(format!(
             "R4G1 graph requires tokenizer.bin blake3:{}; graph-only installation is refused",
-            blake3::Hash::from(tokenizer_cid).to_hex()
+            blake3::Hash::from(graph.tokenizer_cid).to_hex()
         ));
     }
     let mut guard = OWNED_R4G1
         .write()
         .map_err(|_| "R4G1 bundle lock poisoned".to_owned())?;
-    *guard = Some(OwnedR4g1Bundle {
+    *guard = Some(OwnedR4g1Bundle::Legacy(OwnedLegacyR4g1Bundle {
         graph: bytes,
         tokenizer: OwnedR4g1Tokenizer::LegacyGlobal,
-    });
+    }));
     Ok(())
 }
 
@@ -109,7 +147,9 @@ pub fn set_r4g1_bytes(bytes: Vec<u8>) {
 /// HEAD CID must equal BLAKE3 of `tokenizer_bytes`; malformed or swapped input
 /// returns an error without replacing the previously active bundle.
 pub fn set_r4g1_bundle(graph: Vec<u8>, tokenizer_bytes: Vec<u8>) -> Result<(), String> {
-    let expected = validated_graph_tokenizer_cid(&graph)?;
+    let validated = validate_r4g1_graph(&graph)?;
+    require_legacy_graph(validated)?;
+    let expected = validated.tokenizer_cid;
     let actual = blake3::hash(&tokenizer_bytes);
     if expected != [0; 32] && expected != *actual.as_bytes() {
         return Err(format!(
@@ -130,10 +170,84 @@ pub fn set_r4g1_bundle(graph: Vec<u8>, tokenizer_bytes: Vec<u8>) -> Result<(), S
     let mut guard = OWNED_R4G1
         .write()
         .map_err(|_| "R4G1 bundle lock poisoned".to_owned())?;
-    *guard = Some(OwnedR4g1Bundle {
+    *guard = Some(OwnedR4g1Bundle::Legacy(OwnedLegacyR4g1Bundle {
         graph,
         tokenizer: OwnedR4g1Tokenizer::Exact(tokenizer),
-    });
+    }));
+    Ok(())
+}
+
+/// Atomically verify and install one complete schema-2 production generation.
+/// Every slice is required and content-bound; an error leaves the previously
+/// active generation untouched.
+#[allow(clippy::too_many_arguments)]
+pub fn set_r4g1_production_bundle(
+    graph: Vec<u8>,
+    sections_absent_graph: Vec<u8>,
+    label_shuffled_graph: Vec<u8>,
+    signature_artifact: Vec<u8>,
+    tla_comparator_store: Vec<u8>,
+    tokenizer_bytes: Vec<u8>,
+    score_report: Vec<u8>,
+    compile_report: Vec<u8>,
+    deployed_quality_report: Vec<u8>,
+    cross_surface_parity: Vec<u8>,
+    witness_replay: Vec<u8>,
+    corpus_meta: Vec<u8>,
+    corpus_records: Vec<u8>,
+    tokenizer_adapter: Vec<u8>,
+    release_manifest: Vec<u8>,
+) -> Result<(), String> {
+    let validated = validate_r4g1_graph(&graph)?;
+    if !validated.skipmix_present || !validated.psi_bag_present {
+        return Err(
+            "schema-2 production R4G1 admission requires both SKMX and PSIB runtime lanes"
+                .to_owned(),
+        );
+    }
+    let actual_tokenizer = blake3::hash(&tokenizer_bytes);
+    if validated.tokenizer_cid == [0; 32] || validated.tokenizer_cid != *actual_tokenizer.as_bytes()
+    {
+        return Err(format!(
+            "production R4G1 tokenizer CID mismatch: header expected blake3:{}, loaded blake3:{actual_tokenizer}",
+            blake3::Hash::from(validated.tokenizer_cid).to_hex()
+        ));
+    }
+    let tokenizer =
+        uor_r4_core::transformerless::scenarios::Tokenizer::from_bytes(&tokenizer_bytes)
+            .ok_or_else(|| "invalid production tokenizer.bin bytes".to_owned())?;
+    let verified = uor_r4_api::verify_production_envelope(uor_r4_api::ProductionEnvelopeParts {
+        graph: &graph,
+        sections_absent_graph: &sections_absent_graph,
+        label_shuffled_graph: &label_shuffled_graph,
+        signature_artifact: &signature_artifact,
+        tla_comparator_store: &tla_comparator_store,
+        tokenizer: &tokenizer_bytes,
+        score_report: &score_report,
+        compile_report: &compile_report,
+        deployed_quality_report: &deployed_quality_report,
+        cross_surface_parity: &cross_surface_parity,
+        witness_replay: &witness_replay,
+        corpus_meta: &corpus_meta,
+        corpus_records: &corpus_records,
+        tokenizer_adapter: &tokenizer_adapter,
+        release_manifest: &release_manifest,
+    })
+    .map_err(|error| error.to_string())?;
+    let mut guard = OWNED_R4G1
+        .write()
+        .map_err(|_| "R4G1 bundle lock poisoned".to_owned())?;
+    *guard = Some(OwnedR4g1Bundle::Production(Box::new(
+        OwnedProductionR4g1Bundle {
+            graph,
+            signature_artifact,
+            tokenizer_bytes,
+            tokenizer,
+            score_report,
+            deployed_quality_report,
+            verified_envelope: verified,
+        },
+    )));
     Ok(())
 }
 
@@ -203,36 +317,95 @@ pub fn generate_r4g1_response(prompt: &str, max_tokens: usize) -> Option<String>
     generate_r4g1_response_with_session_signature(prompt, max_tokens, None)
 }
 
+/// Typed result from the explicitly non-production legacy compatibility path.
+///
+/// A lane-absent graph can still be replayed for historical and migration
+/// studies, but its text is not a deployed-serving result: it has no schema-2
+/// production envelope, deployed-quality report, or replay-bound admission
+/// evidence. Callers must opt in to this separate surface and retain the
+/// warning with any observation they record.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct R4g1ResearchResponse {
+    pub text: String,
+    pub warning: &'static str,
+}
+
+pub const LEGACY_R4G1_RESEARCH_WARNING: &str =
+    "RESEARCH ONLY: legacy lane-absent R4G1 generation is not production-admitted evidence";
+
+/// Replay an installed lane-absent legacy graph for compatibility research.
+///
+/// This is intentionally distinct from [`generate_r4g1_response`], whose
+/// public/WASM contract is production-only. Lane-bearing artifacts are also
+/// refused here because they must enter through the schema-2 production
+/// envelope instead of a weaker research path.
+pub fn generate_legacy_r4g1_research_response(
+    prompt: &str,
+    max_tokens: usize,
+) -> Result<R4g1ResearchResponse, String> {
+    let guard = OWNED_R4G1
+        .read()
+        .map_err(|_| "R4G1 bundle lock poisoned".to_owned())?;
+    let bundle = guard
+        .as_ref()
+        .ok_or_else(|| "no R4G1 bundle is installed".to_owned())?;
+    let OwnedR4g1Bundle::Legacy(bundle) = bundle else {
+        return Err(
+            "the installed schema-2 bundle is production-only; legacy research replay was refused"
+                .to_owned(),
+        );
+    };
+    let text =
+        generate_legacy_r4g1_response(bundle, prompt, max_tokens, None).ok_or_else(|| {
+            "the legacy lane-absent graph/tokenizer cannot replay this request".to_owned()
+        })?;
+    Ok(R4g1ResearchResponse {
+        text,
+        warning: LEGACY_R4G1_RESEARCH_WARNING,
+    })
+}
+
+enum R4g1Generation {
+    Supported {
+        text: String,
+        coverage: Option<&'static str>,
+    },
+    Abstained,
+    HardIncompatibility(String),
+}
+
 /// #839 phase 1 (RF-30): the typed selective-prediction boundary response
 /// (spec §5, WASM row) in legacy-coverage mode. Always a typed JSON value
 /// with the canonical labels — never a trap, and never a bare `None` that
 /// conflates an abstention with a failure:
 ///
-/// - a served answer → `status: "supported-answer"` with the text; this
-///   decode path runs without the D4 policy engine, so the coverage axis is
-///   honestly `null` — absence is absence, never fabricated (spec §6);
+/// - a production served answer → `status: "supported-answer"` with the D4
+///   coverage reading;
+/// - a D4 abstention → the canonical distributionally-novel abstention;
 /// - an unusable surface (no installed bundle, runtime/tokenizer rejection,
 ///   empty generation) → `status: "hard-incompatibility"` with a reason —
 ///   the request cannot be validly served by this artifact/surface,
-///   fail-closed;
-/// - the `abstention` arm of the boundary schema is declared by the shared
-///   vocabulary and becomes reachable when the deployed policy engine
-///   reaches this path (recorded limitation of the wasm graph surface; only
-///   the legacy `distributionally-novel` cause may ever appear here).
+///   fail-closed.
 pub fn typed_r4g1_response(prompt: &str, max_tokens: usize) -> String {
-    match generate_r4g1_response(prompt, max_tokens) {
-        Some(text) => serde_json::json!({
+    match r4g1_generation(prompt, max_tokens, None) {
+        R4g1Generation::Supported { text, coverage } => serde_json::json!({
             "status": crate::selective::STATUS_SUPPORTED_ANSWER,
-            "coverage": serde_json::Value::Null,
+            "coverage": coverage,
             "cause": serde_json::Value::Null,
             "confidence_permille": serde_json::Value::Null,
             "text": text,
         })
         .to_string(),
-        None => serde_json::json!({
+        R4g1Generation::Abstained => serde_json::json!({
+            "status": crate::selective::STATUS_ABSTENTION,
+            "coverage": crate::selective::COVERAGE_DISTRIBUTIONALLY_NOVEL,
+            "cause": crate::selective::CAUSE_DISTRIBUTIONALLY_NOVEL,
+            "confidence_permille": serde_json::Value::Null,
+        })
+        .to_string(),
+        R4g1Generation::HardIncompatibility(reason) => serde_json::json!({
             "status": crate::selective::STATUS_HARD_INCOMPATIBILITY,
-            "reason": "the wasm graph surface cannot validly serve this request \
-                       (no installed bundle, or the runtime/tokenizer rejected it)",
+            "reason": reason,
         })
         .to_string(),
     }
@@ -246,20 +419,146 @@ pub fn generate_r4g1_response_with_session_signature(
     max_tokens: usize,
     session_signature: Option<&[u8]>,
 ) -> Option<String> {
+    match r4g1_generation(prompt, max_tokens, session_signature) {
+        R4g1Generation::Supported { text, .. } => Some(text),
+        R4g1Generation::Abstained => {
+            println!("[-] generate_r4g1_response: D4 abstained");
+            None
+        }
+        R4g1Generation::HardIncompatibility(reason) => {
+            println!("[-] generate_r4g1_response: {reason}");
+            None
+        }
+    }
+}
+
+fn r4g1_generation(
+    prompt: &str,
+    max_tokens: usize,
+    session_signature: Option<&[u8]>,
+) -> R4g1Generation {
     let guard = match OWNED_R4G1.read() {
         Ok(g) => g,
-        Err(_) => {
-            println!("[-] generate_r4g1_response: lock poisoned");
-            return None;
-        }
+        Err(_) => return R4g1Generation::HardIncompatibility("R4G1 bundle lock poisoned".into()),
     };
     let bundle = match guard.as_ref() {
         Some(bundle) => bundle,
-        None => {
-            println!("[-] generate_r4g1_response: OWNED_R4G1 is None");
-            return None;
-        }
+        None => return R4g1Generation::HardIncompatibility("no R4G1 bundle is installed".into()),
     };
+
+    match bundle {
+        OwnedR4g1Bundle::Legacy(_) => R4g1Generation::HardIncompatibility(
+            "the installed legacy lane-absent bundle is research-only; production serving requires a schema-2 envelope with replay-bound quality evidence"
+                .into(),
+        ),
+        OwnedR4g1Bundle::Production(bundle) => {
+            if session_signature.is_some() {
+                return R4g1Generation::HardIncompatibility(
+                    "the strict production facade does not accept an out-of-envelope session signature"
+                        .into(),
+                );
+            }
+            generate_production_r4g1_response(bundle, prompt, max_tokens)
+        }
+    }
+}
+
+fn generate_production_r4g1_response(
+    bundle: &OwnedProductionR4g1Bundle,
+    prompt: &str,
+    max_tokens: usize,
+) -> R4g1Generation {
+    let mut seed = vec![0u32; prompt.len().saturating_add(2)];
+    let Some(seed_count) = bundle.tokenizer.encode_into(prompt, &mut seed) else {
+        return R4g1Generation::HardIncompatibility(
+            "production tokenizer cannot encode the request".into(),
+        );
+    };
+    seed.truncate(seed_count);
+
+    let mut engine =
+        match uor_r4_api::NormativeServingEngine::load(uor_r4_api::ProductionServingParts {
+            engine: uor_r4_api::EngineParts {
+                graph: &bundle.graph,
+                signature_artifact: &bundle.signature_artifact,
+                tokenizer: Some(&bundle.tokenizer_bytes),
+                score_report: Some(&bundle.score_report),
+            },
+            deployed_quality_report: &bundle.deployed_quality_report,
+            verified_envelope: &bundle.verified_envelope,
+        }) {
+            Ok(engine) => engine,
+            Err(error) => {
+                return R4g1Generation::HardIncompatibility(format!(
+                    "installed production envelope no longer admits serving: {error}"
+                ))
+            }
+        };
+
+    let mut window = [0u32; WINDOW];
+    let tail = &seed[seed.len().saturating_sub(WINDOW)..];
+    let mut window_len = tail.len();
+    window[..window_len].copy_from_slice(tail);
+    let mut generated = Vec::with_capacity(max_tokens.min(128));
+    let mut last_coverage = None;
+
+    for _ in 0..max_tokens.min(128) {
+        match engine.predict(&window[..window_len]) {
+            Ok(uor_r4_api::NormativeServingDecision::Serve(served)) => {
+                last_coverage = Some(match served.status {
+                    uor_r4_api::ScoreStatus::Novel => {
+                        crate::selective::COVERAGE_DISTRIBUTIONALLY_NOVEL
+                    }
+                    uor_r4_api::ScoreStatus::ExactContext | uor_r4_api::ScoreStatus::Graph => {
+                        crate::selective::COVERAGE_COVERED
+                    }
+                });
+                if served.token == 1 || served.token == 2 {
+                    break;
+                }
+                generated.push(served.token);
+                if window_len < WINDOW {
+                    window[window_len] = served.token;
+                    window_len += 1;
+                } else {
+                    window.copy_within(1.., 0);
+                    window[WINDOW - 1] = served.token;
+                }
+            }
+            Ok(uor_r4_api::NormativeServingDecision::Abstain(_)) => {
+                return R4g1Generation::Abstained;
+            }
+            Ok(uor_r4_api::NormativeServingDecision::Decline(reason)) => {
+                return R4g1Generation::HardIncompatibility(format!(
+                    "normative production runtime declined: {reason:?}"
+                ));
+            }
+            Err(error) => {
+                return R4g1Generation::HardIncompatibility(format!(
+                    "normative production prediction rejected the request: {error}"
+                ));
+            }
+        }
+    }
+
+    let mut bytes = vec![0u8; 16 * 1024];
+    match bundle.tokenizer.decode_into(&generated, &mut bytes) {
+        Some(count) => R4g1Generation::Supported {
+            text: String::from_utf8_lossy(&bytes[..count]).into_owned(),
+            coverage: last_coverage,
+        },
+        None => R4g1Generation::HardIncompatibility(
+            "production tokenizer cannot decode the runtime continuation".into(),
+        ),
+    }
+}
+
+fn generate_legacy_r4g1_response(
+    bundle: &OwnedLegacyR4g1Bundle,
+    prompt: &str,
+    max_tokens: usize,
+    session_signature: Option<&[u8]>,
+) -> Option<String> {
     let runtime = match uor_r4_graph_runtime::R4G1Runtime::parse(&bundle.graph) {
         Ok(r) => r,
         Err(e) => {
@@ -342,16 +641,16 @@ pub fn generate_r4g1_response_with_session_signature(
                 }
             });
 
-            let mut cands = [(0u32, uor_r4_core::transformerless::score_q::ScoreQ::ZERO); 8];
-            let num_cands = runtime.predict_candidates_with_signature_lanes(
+            let candidates = runtime.predict_served_candidates_with_signature_lanes(
                 &beam_tokens,
                 sig.as_ref().map(|s| &s[..]),
                 session_signature,
                 &mut node_scores,
-                &mut cands,
             );
 
-            for &(cand_tok, cand_score) in &cands[..num_cands] {
+            for candidate in candidates.ranked() {
+                let cand_tok = candidate.token;
+                let cand_score = candidate.score;
                 let is_eos = cand_tok == 0 || cand_tok == 2;
                 let mut new_tokens = beam.tokens.clone();
 
@@ -1152,6 +1451,27 @@ mod tests {
         builder.build().expect("minimal graph")
     }
 
+    fn minimal_graph_with_lanes(tokenizer_cid: [u8; 32]) -> Vec<u8> {
+        use uor_r4_graph_format::{
+            build_psi_bag_table, build_skipmix_table, ArtifactBuilder, GraphView, SectionId,
+            SkipmixRowInput,
+        };
+
+        let base = minimal_graph(tokenizer_cid);
+        let view = GraphView::parse(&base).expect("minimal graph parses");
+        let skip_rows: Vec<SkipmixRowInput> = Vec::new();
+        let psi_rows: Vec<(u32, Vec<(u32, i32)>)> = Vec::new();
+        let skmx = build_skipmix_table(&skip_rows).expect("empty SKMX is valid");
+        let psib = build_psi_bag_table(&psi_rows).expect("empty PSIB is valid");
+        let mut builder = ArtifactBuilder::new(view.header().alignment_log2);
+        for section in view.sections() {
+            builder.add_section(section.id, section.flags, section.payload);
+        }
+        builder.add_section(SectionId::SKMX, 0, &skmx);
+        builder.add_section(SectionId::PSIB, 0, &psib);
+        builder.build().expect("lane-bearing graph")
+    }
+
     #[test]
     fn owned_r4g1_installation_is_atomic_and_cid_bound() {
         let _test_guard = R4G1_TEST_LOCK.lock().expect("R4G1 test lock");
@@ -1171,14 +1491,20 @@ mod tests {
         set_r4g1_bundle(graph.clone(), tokenizer_a).expect("exact bundle installs");
         let installed_hash = {
             let guard = OWNED_R4G1.read().expect("bundle lock");
-            blake3::hash(&guard.as_ref().expect("installed bundle").graph)
+            match guard.as_ref().expect("installed bundle") {
+                OwnedR4g1Bundle::Legacy(bundle) => blake3::hash(&bundle.graph),
+                OwnedR4g1Bundle::Production(_) => panic!("legacy installer changed bundle kind"),
+            }
         };
         let error = set_r4g1_bundle(graph, tokenizer_b)
             .expect_err("swapped tokenizer must not replace the active bundle");
         assert!(error.contains("tokenizer CID mismatch"), "{error}");
         let retained_hash = {
             let guard = OWNED_R4G1.read().expect("bundle lock");
-            blake3::hash(&guard.as_ref().expect("retained bundle").graph)
+            match guard.as_ref().expect("retained bundle") {
+                OwnedR4g1Bundle::Legacy(bundle) => blake3::hash(&bundle.graph),
+                OwnedR4g1Bundle::Production(_) => panic!("failed install changed bundle kind"),
+            }
         };
         assert_eq!(retained_hash, installed_hash);
 
@@ -1186,9 +1512,219 @@ mod tests {
             .expect("legacy zero-CID graph-only install remains supported");
         let guard = OWNED_R4G1.read().expect("bundle lock");
         assert!(matches!(
-            guard.as_ref().map(|bundle| &bundle.tokenizer),
-            Some(OwnedR4g1Tokenizer::LegacyGlobal)
+            guard.as_ref(),
+            Some(OwnedR4g1Bundle::Legacy(OwnedLegacyR4g1Bundle {
+                tokenizer: OwnedR4g1Tokenizer::LegacyGlobal,
+                ..
+            }))
         ));
+    }
+
+    #[test]
+    fn absent_lane_legacy_generation_is_explicitly_research_only() {
+        let _test_guard = R4G1_TEST_LOCK.lock().expect("R4G1 test lock");
+        *OWNED_R4G1.write().expect("bundle lock") = None;
+        let tokenizer =
+            uor_r4_core::transformerless::scenarios::Tokenizer::from_bytes(&tokenizer_bytes(&[
+                b" ", b"a",
+            ]))
+            .expect("legacy tokenizer parses");
+        set_tless_tokenizer(tokenizer);
+        try_set_r4g1_bytes(minimal_graph([0; 32])).expect("absent-lane graph installs");
+        assert_eq!(generate_r4g1_response("a", 1), None);
+        let typed: serde_json::Value = serde_json::from_str(&typed_r4g1_response("a", 1))
+            .expect("typed production refusal is JSON");
+        assert_eq!(
+            typed["status"],
+            crate::selective::STATUS_HARD_INCOMPATIBILITY
+        );
+        assert!(typed["reason"]
+            .as_str()
+            .is_some_and(|reason| reason.contains("research-only")));
+        assert_eq!(
+            crate::generate_r4g1_response("a", 1),
+            None,
+            "the exact public/WASM facade body is production-only"
+        );
+        let root_typed: serde_json::Value =
+            serde_json::from_str(&crate::typed_r4g1_response("a", 1))
+                .expect("root public/WASM facade returns typed JSON");
+        assert_eq!(root_typed, typed);
+
+        let replay = generate_legacy_r4g1_research_response("a", 1)
+            .expect("explicit research replay retains legacy compatibility");
+        assert_eq!(
+            replay.text, "R4G1 zero-multiply prediction complete.",
+            "absent-section legacy output bytes remain a research compatibility contract"
+        );
+        assert_eq!(replay.warning, LEGACY_R4G1_RESEARCH_WARNING);
+    }
+
+    #[test]
+    fn lane_bearing_graphs_require_a_complete_production_envelope() {
+        let _test_guard = R4G1_TEST_LOCK.lock().expect("R4G1 test lock");
+        *OWNED_R4G1.write().expect("bundle lock") = None;
+        let legacy_graph = minimal_graph([0; 32]);
+        try_set_r4g1_bytes(legacy_graph.clone()).expect("legacy baseline installs");
+        let baseline_hash = blake3::hash(&legacy_graph);
+
+        let tokenizer = tokenizer_bytes(&[b" ", b"a"]);
+        let lane_graph = minimal_graph_with_lanes(*blake3::hash(&tokenizer).as_bytes());
+        let graph_only_error = try_set_r4g1_bytes(lane_graph.clone())
+            .expect_err("lane-bearing graph-only install must fail closed");
+        assert!(graph_only_error.contains("production-envelope"));
+        let legacy_bundle_error = set_r4g1_bundle(lane_graph.clone(), tokenizer.clone())
+            .expect_err("lane-bearing graph/tokenizer install must fail closed");
+        assert!(legacy_bundle_error.contains("production-envelope"));
+
+        let strict_error = set_r4g1_production_bundle(
+            lane_graph,
+            Vec::new(),
+            Vec::new(),
+            Vec::new(),
+            Vec::new(),
+            tokenizer,
+            Vec::new(),
+            Vec::new(),
+            Vec::new(),
+            Vec::new(),
+            Vec::new(),
+            Vec::new(),
+            Vec::new(),
+            Vec::new(),
+            Vec::new(),
+        )
+        .expect_err("incomplete production envelope must fail closed");
+        assert!(
+            strict_error.contains("release-bundle.json"),
+            "{strict_error}"
+        );
+
+        let guard = OWNED_R4G1.read().expect("bundle lock");
+        let retained_hash = match guard.as_ref().expect("legacy bundle retained") {
+            OwnedR4g1Bundle::Legacy(bundle) => blake3::hash(&bundle.graph),
+            OwnedR4g1Bundle::Production(_) => panic!("invalid envelope became active"),
+        };
+        assert_eq!(retained_hash, baseline_hash);
+    }
+
+    #[test]
+    fn complete_production_envelope_installs_and_corpus_tamper_is_atomic() {
+        use crate::release_bundle_packager::{
+            package_release_bundle, tests::write_production_bundle, PackageInputs,
+            UOR_MATMUL_REVISION,
+        };
+        use uor_r4_api::{BundleCapability, UorMatmulProvenance};
+
+        let _test_guard = R4G1_TEST_LOCK.lock().expect("R4G1 test lock");
+        *OWNED_R4G1.write().expect("bundle lock") = None;
+        let dir = std::env::temp_dir().join(format!(
+            "uor-r4-wasm-production-envelope-{}",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).expect("production fixture directory");
+        let admission = write_production_bundle(&dir);
+        let manifest = package_release_bundle(
+            &dir,
+            PackageInputs {
+                model_id: "r4".to_owned(),
+                capability: BundleCapability::InstructionChat,
+                uor_matmul: UorMatmulProvenance {
+                    rev: UOR_MATMUL_REVISION.to_owned(),
+                    operation_profile: "exact-gemm-float".to_owned(),
+                    license: "MIT".to_owned(),
+                    source_digest: None,
+                },
+                tokenizer_adapter: admission.tokenizer_adapter,
+                selector: admission.bindings.selector.clone(),
+                compiler: admission.bindings.compiler.clone(),
+                provenance_note: Some("strict wasm installer fixture".to_owned()),
+            },
+        )
+        .expect("fixture manifest");
+
+        let read = |path: &str| std::fs::read(dir.join(path)).expect("fixture component");
+        let graph = read("graph/score.r4g1");
+        let sections_absent_graph = read("graph/score_sections_absent.r4g1");
+        let label_shuffled_graph = read("graph/score_label_shuffled.r4g1");
+        let teacher = read("tless_artifacts.bin");
+        let tla_comparator_store = read("tless_store.bin");
+        let tokenizer = read("tokenizer.bin");
+        let score_report = read("graph/score_report.json");
+        let compile_report = read("graph-cover/cover_report.json");
+        let quality_report = read("graph/deployed_quality_report.json");
+        let cross_surface_parity = read("graph/cross_surface_parity.json");
+        let witness_replay = read("graph/witness_replay.json");
+        let corpus_meta = read("corpus.meta");
+        let corpus_records = read("corpus.records");
+        let tokenizer_adapter = read("tokenizer_adapter.json");
+        let manifest_bytes = serde_json::to_vec_pretty(&manifest).expect("manifest bytes");
+
+        set_r4g1_production_bundle(
+            graph.clone(),
+            sections_absent_graph.clone(),
+            label_shuffled_graph.clone(),
+            teacher.clone(),
+            tla_comparator_store.clone(),
+            tokenizer.clone(),
+            score_report.clone(),
+            compile_report.clone(),
+            quality_report.clone(),
+            cross_surface_parity.clone(),
+            witness_replay.clone(),
+            corpus_meta.clone(),
+            corpus_records.clone(),
+            tokenizer_adapter.clone(),
+            manifest_bytes.clone(),
+        )
+        .expect("complete production envelope installs");
+        let installed_graph_hash = blake3::hash(&graph);
+        assert!(matches!(
+            OWNED_R4G1.read().expect("bundle lock").as_ref(),
+            Some(OwnedR4g1Bundle::Production(_))
+        ));
+        let served: serde_json::Value = serde_json::from_str(&crate::typed_r4g1_response("a", 1))
+            .expect("native-testable public/WASM production facade returns JSON");
+        assert_eq!(
+            served["status"],
+            crate::selective::STATUS_SUPPORTED_ANSWER,
+            "a complete schema-2 envelope must execute the normative production selector"
+        );
+
+        let mut tampered_records = corpus_records;
+        tampered_records[4] ^= 1;
+        let error = set_r4g1_production_bundle(
+            graph,
+            sections_absent_graph,
+            label_shuffled_graph,
+            teacher,
+            tla_comparator_store,
+            tokenizer,
+            score_report,
+            compile_report,
+            quality_report,
+            cross_surface_parity,
+            witness_replay,
+            corpus_meta,
+            tampered_records,
+            tokenizer_adapter,
+            manifest_bytes,
+        )
+        .expect_err("tampered corpus cannot replace active production generation");
+        assert!(
+            error.contains(
+                "graph.HEAD.corpus_construction_cid: does not bind the exact corpus construction positions"
+            ),
+            "{error}"
+        );
+        let guard = OWNED_R4G1.read().expect("bundle lock");
+        let retained_hash = match guard.as_ref().expect("production bundle retained") {
+            OwnedR4g1Bundle::Production(bundle) => blake3::hash(&bundle.graph),
+            OwnedR4g1Bundle::Legacy(_) => panic!("production bundle was downgraded"),
+        };
+        assert_eq!(retained_hash, installed_graph_hash);
+        let _ = std::fs::remove_dir_all(dir);
     }
 
     #[test]

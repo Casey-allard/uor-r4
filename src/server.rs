@@ -364,6 +364,7 @@ struct HuggingFaceDownloadStatus {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[allow(dead_code)] // Retained with the retired dashboard compiler for historical recovery tests.
 struct CompletedDownloadSource {
     path: PathBuf,
     identity: SourceDownload,
@@ -378,6 +379,7 @@ struct CompileSourceSelection {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum SourceCacheOperationKind {
     Download,
+    #[allow(dead_code)] // The retired dashboard compiler was the sole compile reservation caller.
     Compile,
     Reload,
 }
@@ -3795,7 +3797,7 @@ fn r4g1_unavailable_response_with_reason(reason: Option<&str>) -> (u16, serde_js
         serde_json::json!({
             "error": error,
             "engine": "r4g1",
-            "action": "Compile / Refresh the R4G1 graph, or explicitly select another engine"
+            "action": "Install a schema-2 R4G1 production envelope, or explicitly select another engine"
         }),
     )
 }
@@ -6730,6 +6732,26 @@ fn capture_completed_explicit_graph_under_guard(
     graph_path: &Path,
     teacher_path: &Path,
 ) -> Result<r4g1::CapturedR4g1Bundle, String> {
+    capture_completed_explicit_graph_under_guard_inner(guard, root, graph_path, teacher_path, true)
+}
+
+#[cfg(test)]
+fn capture_completed_explicit_graph_under_guard_for_research(
+    guard: &uor_r4_graph_compiler::recorded_corpus::RecordedCorpusProducerGuard,
+    root: &Path,
+    graph_path: &Path,
+    teacher_path: &Path,
+) -> Result<r4g1::CapturedR4g1Bundle, String> {
+    capture_completed_explicit_graph_under_guard_inner(guard, root, graph_path, teacher_path, false)
+}
+
+fn capture_completed_explicit_graph_under_guard_inner(
+    guard: &uor_r4_graph_compiler::recorded_corpus::RecordedCorpusProducerGuard,
+    root: &Path,
+    graph_path: &Path,
+    teacher_path: &Path,
+    require_production_admission: bool,
+) -> Result<r4g1::CapturedR4g1Bundle, String> {
     if !guard
         .protects_directory(root)
         .map_err(|error| error.to_string())?
@@ -6784,7 +6806,11 @@ fn capture_completed_explicit_graph_under_guard(
     if published_marker.is_some() {
         cleanup_published_compiled_bundle_stage_marker(guard, root)?;
     }
-    let captured = capture_standalone_explicit_graph(graph_path, teacher_path)?;
+    let captured = capture_standalone_explicit_graph_inner(
+        graph_path,
+        teacher_path,
+        require_production_admission,
+    )?;
     let after = validate_compiled_bundle_completion(root)?.ok_or_else(|| {
         format!(
             "explicit canonical graph root {} lost its stable completion during capture",
@@ -6807,6 +6833,31 @@ fn capture_standalone_explicit_graph(
     graph_path: &Path,
     teacher_path: &Path,
 ) -> Result<r4g1::CapturedR4g1Bundle, String> {
+    capture_standalone_explicit_graph_inner(graph_path, teacher_path, true)
+}
+
+#[cfg(test)]
+fn capture_standalone_explicit_graph_for_research(
+    graph_path: &Path,
+    teacher_path: &Path,
+) -> Result<r4g1::CapturedR4g1Bundle, String> {
+    capture_standalone_explicit_graph_inner(graph_path, teacher_path, false)
+}
+
+fn capture_standalone_explicit_graph_inner(
+    graph_path: &Path,
+    teacher_path: &Path,
+    require_production_admission: bool,
+) -> Result<r4g1::CapturedR4g1Bundle, String> {
+    let production_admission = if require_production_admission {
+        let production_root =
+            crate::release_bundle_loader::production_bundle_root(graph_path, teacher_path)?;
+        Some(crate::release_bundle_loader::capture_production_admission(
+            production_root,
+        )?)
+    } else {
+        None
+    };
     let graph = open_regular_file_nofollow(graph_path, "explicit R4G1 artifact")?
         .ok_or_else(|| format!("explicit R4G1 artifact {} is absent", graph_path.display()))
         .and_then(|file| {
@@ -6841,32 +6892,19 @@ fn capture_standalone_explicit_graph(
         })
         .transpose()?
         .flatten();
-    let score_report_path = graph_path
-        .parent()
-        .map(|parent| parent.join("score_report.json"));
-    let score_report = score_report_path
-        .as_deref()
-        .map(|path| {
-            read_regular_file_nofollow_capped(
-                path,
-                "explicit R4G1 score report",
-                SCORE_REPORT_CONTROL_MAX_BYTES,
-            )
-        })
-        .transpose()?
-        .flatten();
-    let score_report = match score_report {
-        Some(bytes) => match serde_json::from_slice::<serde_json::Value>(&bytes) {
-            Ok(_) => Some(bytes),
-            Err(_) => None,
-        },
-        None => None,
+    let score_report = match production_admission.as_ref() {
+        Some(admission) => Some(admission.score_report.clone()),
+        None => graph_path
+            .parent()
+            .and_then(|parent| std::fs::read(parent.join("score_report.json")).ok())
+            .filter(|bytes| serde_json::from_slice::<serde_json::Value>(bytes).is_ok()),
     };
     Ok(r4g1::CapturedR4g1Bundle {
         graph,
         signature_artifact,
         tokenizer,
         score_report,
+        production_admission,
     })
 }
 
@@ -10579,7 +10617,7 @@ fn validate_legacy_graph_generation_for_serving(graph_path: &Path) -> Result<(),
     let Some(completion) = read_optional_legacy_graph_completion(&paths.completion)? else {
         if let Some(attempt) = attempt {
             return Err(format!(
-                "legacy graph generation for {} is incomplete under attempt schema {}; retry Compile / Refresh before serving",
+                "legacy graph generation for {} is incomplete under attempt schema {}; the dashboard compiler is retired, so resume only with explicit offline research tooling",
                 graph_path.display(),
                 attempt.schema
             ));
@@ -12986,7 +13024,7 @@ fn compile_bundle_from_source(
         .ok_or_else(|| format!("corpus records path is not UTF-8: {}", records.display()))?;
     if uor_r4_core::transformerless::compiler::load_corpus_from(meta_str, records_str).is_none() {
         return Err(format!(
-            "teacher corpus is incomplete at {}; click Compile / Refresh again to resume generation toward {} samples",
+            "teacher corpus is incomplete at {}; resume the explicit offline research compile toward {} samples; the dashboard compiler is retired",
             working_output.display(), R4G1_CORPUS_TARGET
         ));
     }
@@ -13374,10 +13412,14 @@ fn compile_r4g1_bundle(
                     &score_args,
                     |args| uor_r4_graph_cli::score_command(args).map_err(|error| error.to_string()),
                 )?;
-                R4g1State::load_with_source(&score_stage.path.join("score.r4g1"), &artifacts, None)
-                    .map_err(|error| {
-                        format!("staged resumed legacy graph failed validation: {error}")
-                    })?;
+                R4g1State::load_for_research_with_source(
+                    &score_stage.path.join("score.r4g1"),
+                    &artifacts,
+                    None,
+                )
+                .map_err(|error| {
+                    format!("staged resumed legacy graph failed validation: {error}")
+                })?;
                 let after =
                     capture_legacy_graph_generation_identity(LegacyGraphGenerationInputs {
                         artifacts: &artifacts,
@@ -13424,10 +13466,14 @@ fn compile_r4g1_bundle(
                     &staged_score_args,
                     |args| uor_r4_graph_cli::score_command(args).map_err(|error| error.to_string()),
                 )?;
-                R4g1State::load_with_source(&score_stage.path.join("score.r4g1"), &artifacts, None)
-                    .map_err(|error| {
-                        format!("staged replacement legacy graph failed validation: {error}")
-                    })?;
+                R4g1State::load_for_research_with_source(
+                    &score_stage.path.join("score.r4g1"),
+                    &artifacts,
+                    None,
+                )
+                .map_err(|error| {
+                    format!("staged replacement legacy graph failed validation: {error}")
+                })?;
                 let after =
                     capture_legacy_graph_generation_identity(LegacyGraphGenerationInputs {
                         artifacts: &artifacts,
@@ -13695,6 +13741,10 @@ fn compile_r4g1_bundle(
     }))
 }
 
+// Historical non-production machinery retained for forensic compatibility.
+// No HTTP or serving-activation path calls this function: schema-2 production
+// admission requires the instrumented CLI workflow instead.
+#[allow(dead_code)]
 fn spawn_r4g1_compile(
     cli: Arc<ServerConfig>,
     serving: SharedServingModel,
@@ -13892,6 +13942,7 @@ fn huggingface_source(model: Option<&str>) -> Result<SourceDownload, String> {
     }
 }
 
+#[allow(dead_code)] // Retained with the retired dashboard compiler's source-selection machinery.
 fn explicitly_requested_huggingface_source(
     model: Option<&str>,
 ) -> Result<Option<SourceDownload>, String> {
@@ -14165,6 +14216,7 @@ fn validate_source_snapshot_integrity(
     Ok(manifest)
 }
 
+#[allow(dead_code)] // Retained with the retired dashboard compiler's source-selection machinery.
 fn validate_requested_source_manifest(
     source_dir: &Path,
     requested: &SourceDownload,
@@ -14441,6 +14493,7 @@ fn require_unchanged_managed_source_snapshot(
     ))
 }
 
+#[allow(dead_code)] // Retained with the retired dashboard compiler's source-selection machinery.
 fn select_compile_source_path_in(
     models_root: &Path,
     requested: Option<&SourceDownload>,
@@ -14484,6 +14537,7 @@ fn select_compile_source_path_in(
     Ok(Some(path))
 }
 
+#[allow(dead_code)] // Retained with the retired dashboard compiler's source-selection machinery.
 fn completed_download_source(
     status: &HuggingFaceDownloadStatus,
 ) -> Result<Option<CompletedDownloadSource>, String> {
@@ -14516,6 +14570,7 @@ fn completed_download_source(
     Ok(Some(CompletedDownloadSource { path, identity }))
 }
 
+#[allow(dead_code)] // Retained with the retired dashboard compiler's source-selection machinery.
 fn reserve_compile_source_selection(
     operations: &SharedSourceCacheOperations,
     status: &Arc<Mutex<HuggingFaceDownloadStatus>>,
@@ -17525,140 +17580,20 @@ fn handle_connection(
     }
 
     if clean_path == "/api/r4g1/compile" && method == "POST" {
-        let payload = match parse_huggingface_control_payload(&body) {
-            Ok(payload) => payload,
-            Err(error) => {
-                send_json_response(
-                    stream,
-                    400,
-                    &serde_json::json!({ "error": error }).to_string(),
-                );
-                return;
-            }
-        };
-        let tokenizer_selection = match payload.tokenizer_selection() {
-            Ok(selection) => selection,
-            Err(error) => {
-                send_json_response(
-                    stream,
-                    400,
-                    &serde_json::json!({ "error": error }).to_string(),
-                );
-                return;
-            }
-        };
-        let requested_source =
-            match explicitly_requested_huggingface_source(payload.model.as_deref()) {
-                Ok(source) => source,
-                Err(error) => {
-                    send_json_response(
-                        stream,
-                        400,
-                        &serde_json::json!({ "error": error }).to_string(),
-                    );
-                    return;
-                }
-            };
-        let compile_subject = requested_source
-            .as_ref()
-            .map(|source| {
-                downloaded_source_path_in(source, Path::new(".uor-models"))
-                    .display()
-                    .to_string()
-            })
-            .unwrap_or_else(|| "completed download status or pinned fallback".to_owned());
-        let (source_cache_reservation, cached_source) = match reserve_compile_source_selection(
-            &source_cache_operations,
-            &hf_download,
-            compile_subject,
-        ) {
-            Ok(selection) => selection,
-            Err(error) => {
-                send_json_response(
-                    stream,
-                    409,
-                    &serde_json::json!({ "error": error }).to_string(),
-                );
-                return;
-            }
-        };
-        let fallback_source = if requested_source.is_none() && cached_source.is_none() {
-            match optional_pinned_huggingface_source() {
-                Ok(source) => source,
-                Err(error) => {
-                    send_json_response(
-                        stream,
-                        409,
-                        &serde_json::json!({ "error": error }).to_string(),
-                    );
-                    return;
-                }
-            }
-        } else {
-            None
-        };
-        let require_source_manifest = requested_source.is_some() || cached_source.is_some();
-        let expected_source = requested_source
-            .clone()
-            .or_else(|| cached_source.as_ref().map(|source| source.identity.clone()))
-            .or_else(|| fallback_source.clone());
-        let downloaded_source = match select_compile_source_path_in(
-            Path::new(".uor-models"),
-            requested_source.as_ref(),
-            cached_source.as_ref(),
-            fallback_source.as_ref(),
-        ) {
-            Ok(source) => source.map(|path| path.display().to_string()),
-            Err(error) => {
-                send_json_response(
-                    stream,
-                    409,
-                    &serde_json::json!({ "error": error }).to_string(),
-                );
-                return;
-            }
-        };
-        let installed = serving.lock().unwrap();
-        let mut status = r4g1_compile.lock().unwrap();
-        if status.running {
-            send_json_response(
-                stream,
-                409,
-                &serde_json::json!({
-                    "running": true,
-                    "ready": status.ready,
-                    "message": "R4G1 compilation is already running"
-                })
-                .to_string(),
-            );
-            return;
-        }
-        status.running = true;
-        status.ready = graph_text_ready(&installed);
-        status.progress = 1;
-        status.message = "Compiling R4G1 cover and scored graph...".to_owned();
-        status.report = None;
-        drop(status);
-        drop(installed);
-
-        spawn_r4g1_compile(
-            Arc::clone(&cli),
-            Arc::clone(&serving),
-            Arc::clone(&r4g1_compile),
-            CompileSourceSelection {
-                path: downloaded_source,
-                expected: expected_source,
-                require_manifest: require_source_manifest,
-            },
-            tokenizer_selection,
-            source_cache_reservation,
-        );
         send_json_response(
             stream,
-            202,
+            410,
             &serde_json::json!({
-                "running": true,
-                "message": "R4G1 compilation started"
+                "error": {
+                    "type": "legacy_r4g1_compile_retired",
+                    "code": "production_envelope_required",
+                    "message": "The dashboard R4G1 compiler is retired because it cannot produce the schema-2 production envelope required for serving admission.",
+                    "required_workflow": [
+                        "r4 transformerless score",
+                        "r4 deployed-quality --mode full",
+                        "r4 package-release-bundle"
+                    ]
+                }
             })
             .to_string(),
         );
@@ -18500,6 +18435,7 @@ fn send_json_response_ext(
         400 => "BAD REQUEST",
         404 => "NOT FOUND",
         409 => "CONFLICT",
+        410 => "GONE",
         500 => "INTERNAL SERVER ERROR",
         502 => "BAD GATEWAY",
         503 => "SERVICE UNAVAILABLE",
@@ -19040,7 +18976,7 @@ mod tests {
         let teacher_path = bundle.join("tless_artifacts.bin");
         std::fs::write(&graph_path, graph).expect("write graph fixture");
         std::fs::write(&teacher_path, artifact_bytes).expect("write teacher fixture");
-        super::R4g1State::load_with_source(&graph_path, &teacher_path, Some(&source))
+        super::R4g1State::load_for_research_with_source(&graph_path, &teacher_path, Some(&source))
             .expect("load graph with exact host encoder")
     }
 
@@ -24353,7 +24289,7 @@ mod tests {
                 .expect("shallow explicit classification"),
             None
         );
-        let captured = super::capture_standalone_explicit_graph(&shallow, &teacher)
+        let captured = super::capture_standalone_explicit_graph_for_research(&shallow, &teacher)
             .expect("shallow explicit graph is captured from exact handles");
         assert_eq!(captured.graph, b"shallow standalone graph");
         assert_eq!(captured.signature_artifact, b"standalone teacher");
@@ -24365,7 +24301,7 @@ mod tests {
                 .expect("custom explicit classification"),
             None
         );
-        let captured = super::capture_standalone_explicit_graph(&custom, &teacher)
+        let captured = super::capture_standalone_explicit_graph_for_research(&custom, &teacher)
             .expect("custom explicit graph is captured from exact handles");
         assert_eq!(captured.graph, b"custom standalone graph");
         assert!(
@@ -24414,7 +24350,7 @@ mod tests {
                 &canonical_root,
             )
             .expect("completed explicit bundle authority");
-        let captured = super::capture_completed_explicit_graph_under_guard(
+        let captured = super::capture_completed_explicit_graph_under_guard_for_research(
             &guard,
             &canonical_root,
             &canonical,
@@ -24618,7 +24554,7 @@ mod tests {
                 &canonical_root,
             )
             .expect("restart bundle authority");
-        let captured = super::capture_completed_explicit_graph_under_guard(
+        let captured = super::capture_completed_explicit_graph_under_guard_for_research(
             &guard,
             &canonical_root,
             &graph,
@@ -27756,9 +27692,21 @@ mod tests {
             components: uor_r4_api::BundleComponentDigests {
                 graph: "blake3:0000000000000000000000000000000000000000000000000000000000000001"
                     .to_owned(),
+                sections_absent_graph: Some(
+                    "blake3:0000000000000000000000000000000000000000000000000000000000000008"
+                        .to_owned(),
+                ),
+                label_shuffled_graph: Some(
+                    "blake3:0000000000000000000000000000000000000000000000000000000000000009"
+                        .to_owned(),
+                ),
                 signature_artifact:
                     "blake3:0000000000000000000000000000000000000000000000000000000000000002"
                         .to_owned(),
+                tla_comparator_store: Some(
+                    "blake3:0000000000000000000000000000000000000000000000000000000000000010"
+                        .to_owned(),
+                ),
                 tokenizer: None,
                 score_report:
                     "blake3:0000000000000000000000000000000000000000000000000000000000000003"
@@ -27766,7 +27714,32 @@ mod tests {
                 compile_report:
                     "blake3:0000000000000000000000000000000000000000000000000000000000000004"
                         .to_owned(),
+                deployed_quality_report: Some(
+                    "blake3:0000000000000000000000000000000000000000000000000000000000000005"
+                        .to_owned(),
+                ),
+                cross_surface_parity: Some(
+                    "blake3:000000000000000000000000000000000000000000000000000000000000000a"
+                        .to_owned(),
+                ),
+                witness_replay: Some(
+                    "blake3:000000000000000000000000000000000000000000000000000000000000000b"
+                        .to_owned(),
+                ),
             },
+            selector: Some(uor_r4_api::SelectorIdentity {
+                id: uor_r4_api::NORMATIVE_SELECTOR_ID.to_owned(),
+                semantics_version: "1".to_owned(),
+                semantics_cid:
+                    "blake3:0000000000000000000000000000000000000000000000000000000000000006"
+                        .to_owned(),
+            }),
+            compiler: Some(uor_r4_api::CompilerIdentity {
+                revision: "0123456789abcdef0123456789abcdef01234567".to_owned(),
+                configuration_cid:
+                    "blake3:0000000000000000000000000000000000000000000000000000000000000007"
+                        .to_owned(),
+            }),
             tokenizer_adapter: uor_r4_api::TokenizerAdapter::default(),
             provenance_note: None,
         }
@@ -27985,15 +27958,29 @@ mod tests {
             std::env::temp_dir().join(format!("uor-r4-models-c1d-verified-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
         let bundle = dir.join("verified-model");
-        write_loadable_graph_bundle(&bundle, None);
-
-        let graph_bytes = std::fs::read(bundle.join("graph/score.r4g1")).expect("read graph");
-        let teacher_bytes =
-            std::fs::read(bundle.join("tless_artifacts.bin")).expect("read teacher");
-        let mut manifest = sample_release_bundle_manifest();
-        manifest.components.graph = format!("blake3:{}", blake3::hash(&graph_bytes).to_hex());
-        manifest.components.signature_artifact =
-            format!("blake3:{}", blake3::hash(&teacher_bytes).to_hex());
+        let admission = crate::release_bundle_packager::tests::write_production_bundle(&bundle);
+        write_attention_binding(
+            &bundle,
+            &uor_r4_model_source::attention::AttentionOperatorSpec::standard_v1(),
+        );
+        let manifest = crate::release_bundle_packager::package_release_bundle(
+            &bundle,
+            crate::release_bundle_packager::PackageInputs {
+                model_id: "verified-model".to_owned(),
+                capability: uor_r4_api::BundleCapability::InstructionChat,
+                uor_matmul: uor_r4_api::UorMatmulProvenance {
+                    rev: "b13c98449948174f590e337c4dc25dfc394a07d0".to_owned(),
+                    operation_profile: "exact-gemm-float".to_owned(),
+                    license: "MIT".to_owned(),
+                    source_digest: None,
+                },
+                tokenizer_adapter: admission.tokenizer_adapter,
+                selector: admission.bindings.selector,
+                compiler: admission.bindings.compiler,
+                provenance_note: None,
+            },
+        )
+        .expect("package complete production fixture");
         std::fs::write(
             bundle.join(crate::release_bundle_loader::RELEASE_BUNDLE_SIDECAR_FILE_NAME),
             serde_json::to_vec_pretty(&manifest).expect("serialize manifest"),
@@ -28725,6 +28712,138 @@ mod tests {
                 body.len()
             ),
         )
+    }
+
+    #[test]
+    fn dashboard_r4g1_compile_retires_before_payload_or_source_processing() {
+        // The malformed body would have failed JSON parsing, while the second
+        // body names a mutable/unpinned source that the old path would have
+        // validated and potentially reserved. Both must reach the same
+        // terminal response before either operation can begin.
+        for body in [
+            r#"this is deliberately not JSON"#,
+            r#"{"model":"mutable-owner/mutable-model"}"#,
+        ] {
+            let (status, response) = g4_post("/api/r4g1/compile", body);
+            assert!(
+                status.contains("410 GONE"),
+                "retired compile endpoint must fail terminally, got {status}: {response}"
+            );
+            assert!(response.contains(r#""type":"legacy_r4g1_compile_retired""#));
+            assert!(response.contains(r#""code":"production_envelope_required""#));
+            assert!(response.contains("deployed-quality --mode full"));
+            assert!(response.contains("schema-2 production envelope"));
+            assert!(!response.contains("compilation started"));
+            assert!(!response.contains(r#""running":true"#));
+        }
+    }
+
+    /// #933 routing regression. These are wrapper-behavior checks, not
+    /// canonical cross-surface evidence rows: a small research fixture is
+    /// injected only after construction so each real HTTP handler can be
+    /// driven over a socket. Production loading/admission has separate
+    /// schema-2 envelope tests; once admitted, all five handlers below share
+    /// this exact `R4g1State` adapter.
+    #[test]
+    fn every_native_http_generation_surface_reaches_the_normative_adapter() {
+        use uor_r4_model_source::attention::AttentionOperatorSpec;
+
+        let cases = [
+            ("r4g1-predict", "/api/r4g1/predict", false),
+            ("r4g1-generate", "/api/r4g1/generate", false),
+            ("native-chat-greedy", "/api/chat", false),
+            ("native-chat-sampled", "/api/chat", true),
+            ("openai-chat-greedy", "/v1/chat/completions", false),
+            ("openai-chat-sampled", "/v1/chat/completions", true),
+            ("openai-responses-greedy", "/v1/responses", false),
+            ("openai-responses-sampled", "/v1/responses", true),
+        ];
+
+        for (tag, path, sampled) in cases {
+            let (graph, teacher, covered_question, _) =
+                crate::chat::tests::d4_gate_tests::fixture();
+            let state = crate::chat::tests::d4_gate_tests::r4g1_state(&graph, &teacher);
+            let mut encoded = [0u32; 32];
+            let encoded_len = state
+                .encode_into(&covered_question, &mut encoded)
+                .expect("covered HTTP prompt encodes with the bound tokenizer");
+            let context = &encoded[..encoded_len];
+            let physical_root = std::path::PathBuf::from(format!("/routing-test/{tag}"));
+            let serving: super::SharedServingModel =
+                std::sync::Arc::new(std::sync::Mutex::new(super::ServingModelState {
+                    r4g1: Some(state),
+                    active_bundle: Some(super::ResolvedCompiledBundle {
+                        logical_name: "teacher".to_owned(),
+                        physical_root: physical_root.clone(),
+                        graph: physical_root.join("graph/score.r4g1"),
+                        teacher: physical_root.join("tless_artifacts.bin"),
+                        attention_operator: AttentionOperatorSpec::standard_v1(),
+                        dense_operator: None,
+                        source_manifest_kappa: None,
+                        release_bundle: None,
+                    }),
+                    ..super::ServingModelState::default()
+                }));
+            let body = match path {
+                "/api/r4g1/predict" => serde_json::json!({ "window": context }).to_string(),
+                "/api/r4g1/generate" => {
+                    serde_json::json!({ "window": context, "max_tokens": 1 }).to_string()
+                }
+                "/api/chat" => serde_json::json!({
+                    "text": covered_question,
+                    "engine": "r4g1",
+                    "temperature": if sampled { serde_json::Value::Null } else { serde_json::json!(0.0) },
+                    "seed": if sampled { Some(42u32) } else { None }
+                })
+                .to_string(),
+                "/v1/chat/completions" => serde_json::json!({
+                    "model": "uor-r4",
+                    "messages": [{ "role": "user", "content": covered_question }],
+                    "max_tokens": 1,
+                    "temperature": if sampled { serde_json::Value::Null } else { serde_json::json!(0.0) },
+                    "seed": if sampled { Some(42u32) } else { None }
+                })
+                .to_string(),
+                "/v1/responses" => serde_json::json!({
+                    "model": "uor-r4",
+                    "input": covered_question,
+                    "max_output_tokens": 1,
+                    "temperature": if sampled { serde_json::Value::Null } else { serde_json::json!(0.0) },
+                    "seed": if sampled { Some(42u32) } else { None }
+                })
+                .to_string(),
+                _ => unreachable!(),
+            };
+
+            let before = serving
+                .lock()
+                .unwrap()
+                .r4g1
+                .as_ref()
+                .expect("fixture state")
+                .policy_counters();
+            let (status, response) = g4_post_with(serving.clone(), path, &body);
+            let after = serving
+                .lock()
+                .unwrap()
+                .r4g1
+                .as_ref()
+                .expect("fixture state retained")
+                .policy_counters();
+            assert!(
+                after.predicts > before.predicts,
+                "{path} did not execute the shared D4 + R4G1Runtime adapter; status={status}, response={response}"
+            );
+            assert!(
+                after.serves > before.serves,
+                "{path} never reached a D4-permitted runtime candidate query; status={status}, response={response}"
+            );
+            assert!(
+                !response.contains("model_not_ready")
+                    && !response.contains("unavailable under the production engine profile"),
+                "{path} exited before the R4G1 tier: {response}"
+            );
+        }
     }
 
     const G4_PROFILE_DECLINE_MARK: &str = "unavailable under the production engine profile";

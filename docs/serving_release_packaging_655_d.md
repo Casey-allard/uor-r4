@@ -169,3 +169,14 @@ sketched is the `#[ignore]`d, env-gated test `packages_the_real_local_bundle`
 convention). C1c's sidecar verifier is called on the server's bundle-resolution
 path and surfaces as `verified` on `/v1/models` + `/uor/v1/status` (C1d);
 it is advisory — never consulted by a load/serve decision.
+
+## Schema-2 production-envelope update (2026-08-25, #933)
+
+The four-component mapping above records the original D0/D1 design and is not
+the current production inventory. Schema 2 now also requires the two planted
+control graphs, the deployed-quality report, raw cross-surface and witness
+evidence, and `components.tla_comparator_store` mapped to `tless_store.bin`.
+Production admission hashes those exact store bytes together with the pinned
+plain-TLA comparator version to reproduce the report's comparator-definition
+CID. The release archive and browser/native startup envelopes therefore carry
+`tless_store.bin`; omission, mutation, or substitution fails closed.

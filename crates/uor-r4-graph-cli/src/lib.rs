@@ -46,7 +46,8 @@ use serde::Serialize;
 use std::collections::BTreeMap;
 use std::io::{Read, Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::Arc;
+use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
 use uor_r4_core::transformerless::hf_bpe::{
     TokenizerAdapter, TokenizerAdapterKey, TokenizerKind, adapter_constructor,
     resolve_source_tokenizer,
@@ -79,6 +80,206 @@ static TOKENIZER_ADAPTER_TEMP_SEQUENCE: AtomicU64 = AtomicU64::new(0);
 static ATTENTION_OPERATOR_TEMP_SEQUENCE: AtomicU64 = AtomicU64::new(0);
 static DENSE_OPERATOR_TEMP_SEQUENCE: AtomicU64 = AtomicU64::new(0);
 static PLANNED_OUTPUT_TEMP_SEQUENCE: AtomicU64 = AtomicU64::new(0);
+
+/// Periodic, non-semantic progress for the expensive teacher-free score
+/// pipeline. These diagnostics deliberately stay on stderr: elapsed time,
+/// throughput, and worker utilization depend on the host and must never enter
+/// deterministic graph or report bytes.
+const SCORE_PROGRESS_HEARTBEAT: std::time::Duration = std::time::Duration::from_secs(5);
+
+struct ScoreProgress {
+    phase: &'static str,
+    unit: &'static str,
+    total: Option<usize>,
+    workers: usize,
+    exact_counter: Option<Arc<AtomicUsize>>,
+    started: std::time::Instant,
+    stop: Option<std::sync::mpsc::Sender<()>>,
+    heartbeat: Option<std::thread::JoinHandle<()>>,
+    finished: bool,
+}
+
+impl ScoreProgress {
+    fn exact(
+        phase: &'static str,
+        unit: &'static str,
+        total: usize,
+        workers: usize,
+    ) -> (Self, Arc<AtomicUsize>) {
+        let counter = Arc::new(AtomicUsize::new(0));
+        let progress = Self::start(
+            phase,
+            unit,
+            Some(total),
+            workers,
+            Some(Arc::clone(&counter)),
+        );
+        (progress, counter)
+    }
+
+    fn opaque(
+        phase: &'static str,
+        unit: &'static str,
+        total: Option<usize>,
+        workers: usize,
+    ) -> Self {
+        Self::start(phase, unit, total, workers, None)
+    }
+
+    fn start(
+        phase: &'static str,
+        unit: &'static str,
+        total: Option<usize>,
+        workers: usize,
+        exact_counter: Option<Arc<AtomicUsize>>,
+    ) -> Self {
+        let started = std::time::Instant::now();
+        Self::emit(
+            phase,
+            "started",
+            unit,
+            total,
+            workers,
+            exact_counter.as_deref(),
+            None,
+            started.elapsed(),
+        );
+        let (stop, receiver) = std::sync::mpsc::channel();
+        let heartbeat_counter = exact_counter.clone();
+        let heartbeat = std::thread::spawn(move || {
+            loop {
+                match receiver.recv_timeout(SCORE_PROGRESS_HEARTBEAT) {
+                    Ok(()) | Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => break,
+                    Err(std::sync::mpsc::RecvTimeoutError::Timeout) => Self::emit(
+                        phase,
+                        "heartbeat",
+                        unit,
+                        total,
+                        workers,
+                        heartbeat_counter.as_deref(),
+                        None,
+                        started.elapsed(),
+                    ),
+                }
+            }
+        });
+        Self {
+            phase,
+            unit,
+            total,
+            workers,
+            exact_counter,
+            started,
+            stop: Some(stop),
+            heartbeat: Some(heartbeat),
+            finished: false,
+        }
+    }
+
+    fn finish(mut self, completed_units: Option<usize>) {
+        self.stop_heartbeat();
+        if let (Some(counter), Some(expected)) = (&self.exact_counter, completed_units) {
+            let observed = counter.load(Ordering::Relaxed);
+            if observed != expected {
+                Self::emit(
+                    self.phase,
+                    "counter-mismatch",
+                    self.unit,
+                    self.total,
+                    self.workers,
+                    self.exact_counter.as_deref(),
+                    None,
+                    self.started.elapsed(),
+                );
+                self.finished = true;
+                panic!(
+                    "score progress counter mismatch in {}: observed {observed}, expected {expected}",
+                    self.phase
+                );
+            }
+        }
+        Self::emit(
+            self.phase,
+            "completed",
+            self.unit,
+            self.total,
+            self.workers,
+            self.exact_counter.as_deref(),
+            completed_units,
+            self.started.elapsed(),
+        );
+        self.finished = true;
+    }
+
+    fn stop_heartbeat(&mut self) {
+        if let Some(stop) = self.stop.take() {
+            let _ = stop.send(());
+        }
+        if let Some(heartbeat) = self.heartbeat.take() {
+            let _ = heartbeat.join();
+        }
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn emit(
+        phase: &str,
+        state: &str,
+        unit: &str,
+        total: Option<usize>,
+        workers: usize,
+        exact_counter: Option<&AtomicUsize>,
+        completed_units: Option<usize>,
+        elapsed: std::time::Duration,
+    ) {
+        let processed = exact_counter
+            .map(|counter| counter.load(Ordering::Relaxed))
+            .or(completed_units);
+        let elapsed_ms = elapsed.as_millis();
+        let rate_milli = processed.and_then(|processed| {
+            (elapsed_ms > 0).then(|| {
+                (processed as u128)
+                    .saturating_mul(1_000_000)
+                    .checked_div(elapsed_ms)
+                    .unwrap_or(0)
+            })
+        });
+        let eta_ms = match (processed, total, elapsed_ms) {
+            (Some(processed), Some(total), elapsed_ms) if processed > 0 => Some(
+                ((total.saturating_sub(processed)) as u128)
+                    .saturating_mul(elapsed_ms)
+                    .checked_div(processed as u128)
+                    .unwrap_or(0),
+            ),
+            _ => None,
+        };
+        eprintln!(
+            "score progress: phase={phase} state={state} processed={} total={} unit={unit} workers={workers} elapsed_ms={elapsed_ms} rate_milli_items_per_second={} eta_ms={}",
+            processed.map_or_else(|| "UNAVAILABLE".to_owned(), |value| value.to_string()),
+            total.map_or_else(|| "UNAVAILABLE".to_owned(), |value| value.to_string()),
+            rate_milli.map_or_else(|| "UNAVAILABLE".to_owned(), |value| value.to_string()),
+            eta_ms.map_or_else(|| "UNAVAILABLE".to_owned(), |value| value.to_string()),
+        );
+    }
+}
+
+impl Drop for ScoreProgress {
+    fn drop(&mut self) {
+        if self.finished {
+            return;
+        }
+        self.stop_heartbeat();
+        Self::emit(
+            self.phase,
+            "interrupted",
+            self.unit,
+            self.total,
+            self.workers,
+            self.exact_counter.as_deref(),
+            None,
+            self.started.elapsed(),
+        );
+    }
+}
 
 fn is_blake3_cid(value: &str) -> bool {
     value.len() == "blake3:".len() + 64
@@ -5031,6 +5232,12 @@ struct ScoreOptions {
     smoothing: score::Smoothing,
     scoring_variant: score_runtime::ScoringVariant,
     quality_profile: String,
+    /// Dedicated compiler worker count. Resolution follows the repository
+    /// contract: CLI > `R4_COMPILER_THREADS` > laptop-safe default.
+    jobs: Option<usize>,
+    /// Emit the sections-absent and label-shuffled SKMX/PSIB control graphs
+    /// used by the CID-bound normative-serving quality gate (#933).
+    emit_quality_controls: bool,
     output: PathBuf,
     /// Explicit stable mutation authority for a managed/canonical bundle.
     /// Without this flag, `--out` is always an arbitrary standalone root,
@@ -5061,6 +5268,8 @@ fn parse_score_options(args: &[String]) -> Result<ScoreOptions, SourceUnavailabl
         smoothing: score::Smoothing::AddOne,
         scoring_variant: score_runtime::ScoringVariant::ChainTelescoped,
         quality_profile: "pinned".to_owned(),
+        jobs: None,
+        emit_quality_controls: false,
         output: PathBuf::from("score"),
         bundle_root: None,
     };
@@ -5218,6 +5427,26 @@ fn parse_score_options(args: &[String]) -> Result<ScoreOptions, SourceUnavailabl
                 }
                 options.quality_profile = value.clone();
             }
+            "--jobs" => {
+                let jobs = value.parse::<usize>().map_err(|_| {
+                    SourceUnavailable::new(format!("invalid --jobs value: {value}"))
+                })?;
+                if jobs == 0 {
+                    return Err(SourceUnavailable::new("--jobs must be at least 1"));
+                }
+                options.jobs = Some(jobs);
+            }
+            "--quality-controls" => {
+                options.emit_quality_controls = match value.as_str() {
+                    "on" | "true" => true,
+                    "off" | "false" => false,
+                    other => {
+                        return Err(SourceUnavailable::new(format!(
+                            "invalid --quality-controls value: {other} (expected on|off)"
+                        )));
+                    }
+                };
+            }
             "--out" => options.output = PathBuf::from(value),
             "--bundle-root" => options.bundle_root = Some(PathBuf::from(value)),
             _ => {
@@ -5242,6 +5471,16 @@ pub fn score_command(args: &[String]) -> Result<(), SourceUnavailable> {
     score_command_with_authority(args, GraphCommandCallerAuthority::Public)
 }
 
+/// Stable score-report provenance for an externally supplied cover.
+///
+/// The report is a deterministic semantic artifact, so it must not retain the
+/// host-specific path from which identical cover bytes happened to be read.
+/// The human-facing terminal log still prints that path; the report binds the
+/// cover container itself.
+fn supplied_cover_report_source(bytes: &[u8]) -> String {
+    format!("provided cover artifact {}", repro::container_kappa(bytes))
+}
+
 /// Score a managed bundle while its server-owned common producer transaction
 /// remains live from Stage A through completion publication.
 pub fn score_command_under_producer_guard(
@@ -5260,12 +5499,28 @@ fn score_command_with_authority(
         "warning: debug builds make scoring much slower; use `cargo run --release -- transformerless score ...`"
     );
     let mut options = parse_score_options(args)?;
+    let env_jobs = std::env::var("R4_COMPILER_THREADS").ok();
+    let jobs_config = uor_r4_graph_compiler::jobs_config::CompilerJobsConfig::resolve(
+        options.jobs,
+        env_jobs.as_deref(),
+    )
+    .ok_or_else(|| {
+        SourceUnavailable::new(
+            "invalid worker thread count (--jobs / R4_COMPILER_THREADS must be a positive integer)",
+        )
+    })?;
+    let pool = jobs_config.build_dedicated_thread_pool();
+    eprintln!(
+        "score: dedicated compiler pool has {} workers (source: {:?})",
+        jobs_config.jobs, jobs_config.source
+    );
     // #488: account for where a real corpus's hours go across the WHOLE score
     // pipeline, not just Gate C. Same instrument, same conventions as #471
     // (stderr only — a duration in `score_report.json` would break the
     // deterministic-rebuild gate); the "score phase:" lines bracket the
     // "gate c phase:" lines so the two read as one log.
     let mut phases = score::PhaseLog::new("score phase");
+    let input_progress = ScoreProgress::opaque("input-capture", "input-files", None, 1);
     let corpus_meta_path = if !options.corpus_meta.exists() {
         if let Some(parent) = options.corpus_meta.parent() {
             if parent.join("corpus.meta").exists() {
@@ -5404,13 +5659,56 @@ fn score_command_with_authority(
         }
         None => cover::split_positions(&corpus),
     };
-    let threads = std::thread::available_parallelism()
-        .map(|count| count.get().min(8))
-        .unwrap_or(1);
-    let train =
-        cover::build_observations_with_threads(&artifacts, &corpus, &train_positions, threads);
-    let held_out =
-        cover::build_observations_with_threads(&artifacts, &corpus, &held_out_positions, threads);
+    let construction_positions_u64: Vec<u64> = train_positions
+        .iter()
+        .map(|&position| {
+            u64::try_from(position).map_err(|_| {
+                SourceUnavailable::new("construction position exceeds the R4G1 CID format")
+            })
+        })
+        .collect::<Result<Vec<_>, SourceUnavailable>>()?;
+    let certification_positions_u64: Vec<u64> = held_out_positions
+        .iter()
+        .map(|&position| {
+            u64::try_from(position).map_err(|_| {
+                SourceUnavailable::new("certification position exceeds the R4G1 CID format")
+            })
+        })
+        .collect::<Result<Vec<_>, SourceUnavailable>>()?;
+    let corpus_construction_cid = uor_r4_graph_format::corpus_partition_cid(
+        &meta_bytes,
+        &recs_bytes,
+        uor_r4_graph_format::CorpusPartitionRole::Construction,
+        &construction_positions_u64,
+    );
+    let corpus_certification_cid = uor_r4_graph_format::corpus_partition_cid(
+        &meta_bytes,
+        &recs_bytes,
+        uor_r4_graph_format::CorpusPartitionRole::Certification,
+        &certification_positions_u64,
+    );
+    input_progress.finish(None);
+    let threads = jobs_config.jobs;
+    let observation_total = train_positions
+        .len()
+        .saturating_add(held_out_positions.len());
+    let (observation_progress, observation_counter) =
+        ScoreProgress::exact("observations", "positions", observation_total, threads);
+    let train = cover::build_observations_with_threads_instrumented(
+        &artifacts,
+        &corpus,
+        &train_positions,
+        threads,
+        observation_counter.as_ref(),
+    );
+    let held_out = cover::build_observations_with_threads_instrumented(
+        &artifacts,
+        &corpus,
+        &held_out_positions,
+        threads,
+        observation_counter.as_ref(),
+    );
+    observation_progress.finish(Some(observation_total));
     phases.mark("inputs + observations (load, split, observe)");
 
     // Region parameters + structural edges: recovered from a previously
@@ -5436,29 +5734,34 @@ fn score_command_with_authority(
                 regions.len(),
                 path.display()
             );
-            (
-                regions,
-                structural,
-                format!("cover artifact {}", path.display()),
-            )
+            (regions, structural, supplied_cover_report_source(bytes))
         }
         None => {
-            eprintln!("score: inducing cover [========================] 0%");
-            let induced = cover::induce_cover(
-                &train,
-                &cover::CoverConfig::default(),
-                &artifact_kappa,
-                &corpus_kappa,
-            )
-            .ok_or_else(|| {
-                SourceUnavailable::new("cover induction needs at least one train observation")
-            })?;
-            let reference = cover::ReferenceClassifier::freeze(&induced.cover);
-            let edges = cover::build_edges(&induced.cover, &reference, &train, &corpus.story);
-            let n_reg = induced.cover.regions.len();
-            eprintln!(
-                "score: inducing cover [========================] {n_reg}/{n_reg} regions 100%"
+            let cover_progress = ScoreProgress::opaque(
+                "cover-induction",
+                "observations",
+                Some(train.len()),
+                threads,
             );
+            let (induced, edges) = pool
+                .install(|| {
+                    let induced = cover::induce_cover(
+                        &train,
+                        &cover::CoverConfig::default(),
+                        &artifact_kappa,
+                        &corpus_kappa,
+                    )?;
+                    let reference = cover::ReferenceClassifier::freeze(&induced.cover);
+                    let edges =
+                        cover::build_edges(&induced.cover, &reference, &train, &corpus.story);
+                    Some((induced, edges))
+                })
+                .ok_or_else(|| {
+                    SourceUnavailable::new("cover induction needs at least one train observation")
+                })?;
+            let n_reg = induced.cover.regions.len();
+            cover_progress.finish(Some(train.len()));
+            eprintln!("score: cover induction emitted {n_reg} regions");
             (
                 score::regions_from_cover(&induced.cover),
                 score::structural_from_cover(&edges),
@@ -5469,7 +5772,8 @@ fn score_command_with_authority(
     let max_depth = regions.iter().map(|r| r.depth as usize).max().unwrap_or(1);
     phases.mark("cover induction");
 
-    eprintln!("score: building graded store [========================] 100%");
+    let store_progress =
+        ScoreProgress::opaque("graded-store", "corpus-records", Some(corpus.n), threads);
     // #469 lever A: per-record codes come from the κ-keyed sidecar when one
     // verifies against this artifact κ and corpus κ, and are written back
     // when it does not. Store bytes are identical on both branches.
@@ -5478,75 +5782,243 @@ fn score_command_with_authority(
     // The "code sidecar: HIT/MISS/WROTE/LOADED" line above is inside this
     // phase: a cold miss recomputes every record code (#469 lever A), which is
     // the difference between this phase costing seconds and costing minutes.
+    store_progress.finish(Some(corpus.n));
     phases.mark("graded store build (+ code sidecar)");
 
-    eprintln!("score: compiling forward transitions [========================] 100%");
-    let (transitions, transition_quantization) = score::compile_transitions_with_quantization(
-        &corpus,
-        &regions,
-        &train,
-        max_depth,
-        config.transition_out_degree,
+    let transition_progress = ScoreProgress::opaque(
+        "forward-transitions",
+        "construction-observations",
+        Some(train.len()),
+        threads,
     );
+    let (transitions, transition_quantization) = pool.install(|| {
+        score::compile_transitions_with_quantization(
+            &corpus,
+            &regions,
+            &train,
+            max_depth,
+            config.transition_out_degree,
+        )
+    });
+    transition_progress.finish(Some(train.len()));
     phases.mark("forward transitions");
     let vocab = u32::try_from(artifacts.token_codes.len() / compiler::STAGES)
         .expect("vocabulary exceeds u32 token ids");
-    let context_rows = score::compile_context_rows(&corpus, &train, vocab, &config);
-    let fwd_rows = score::compile_forward_anchor_rows(&corpus, &train);
+    let context_progress = ScoreProgress::opaque(
+        "context-rows",
+        "construction-observations",
+        Some(train.len()),
+        threads,
+    );
+    let context_rows =
+        pool.install(|| score::compile_context_rows(&corpus, &train, vocab, &config));
+    context_progress.finish(Some(train.len()));
+    let forward_anchor_progress = ScoreProgress::opaque(
+        "forward-anchor-rows",
+        "corpus-records",
+        Some(corpus.n),
+        threads,
+    );
+    let fwd_rows = pool.install(|| score::compile_forward_anchor_rows(&corpus, &train));
+    forward_anchor_progress.finish(Some(corpus.n));
     phases.mark("context + forward-anchor rows");
-    let emissions =
-        score::compile_emissions(&corpus, &store, &regions, &train, max_depth, vocab, &config);
+    let emission_progress = ScoreProgress::opaque(
+        "emissions",
+        "construction-observations",
+        Some(train.len()),
+        threads,
+    );
+    let emissions = pool.install(|| {
+        score::compile_emissions(&corpus, &store, &regions, &train, max_depth, vocab, &config)
+    });
+    emission_progress.finish(Some(train.len()));
     phases.mark("emission compilation");
     // #910: fit the promoted skip-mix lane (SKMX joint table + PSIB fallback)
     // so compiled bundles carry the optional sections and the deployed serving
-    // lane is live. Teacher-free (reads recorded `t_argmax`); it re-splits the
-    // corpus internally to the same TRAIN partition the other stages use.
-    let (skipmix_rows, psi_bag_rows) = uor_r4_graph_compiler::skipmix_fit::fit_skipmix_tables(
-        &corpus,
-        uor_r4_graph_compiler::segment_fit::DEFAULT_TOP_K,
+    // lane is live. Teacher-free (reads recorded `t_argmax`); the exact D3
+    // construction positions selected above are passed through unchanged.
+    let canonical_skipmix_progress = ScoreProgress::opaque(
+        "canonical-skipmix-fit",
+        "construction-positions",
+        Some(train_positions.len()),
+        threads,
+    );
+    let (skipmix_rows, psi_bag_rows, skipmix_stats) = pool.install(|| {
+        uor_r4_graph_compiler::skipmix_fit::fit_skipmix_tables_at_positions_instrumented_named(
+            &corpus,
+            &train_positions,
+            uor_r4_graph_compiler::segment_fit::DEFAULT_TOP_K,
+            "canonical",
+        )
+    });
+    canonical_skipmix_progress.finish(Some(train_positions.len()));
+    println!(
+        "skip-mix fit: train={} distinct-occurrences={} workers={} joint-rows={} psi-rows={} fold={:.3}s joint-sort={:.3}s content-sort={:.3}s reduce={:.3}s total={:.3}s throughput={:.1} positions/s",
+        skipmix_stats.train_positions,
+        skipmix_stats.distinct_occurrences,
+        skipmix_stats.workers,
+        skipmix_stats.joint_rows,
+        skipmix_stats.psi_bag_rows,
+        skipmix_stats.fold_elapsed.as_secs_f64(),
+        skipmix_stats.joint_sort_elapsed.as_secs_f64(),
+        skipmix_stats.content_sort_elapsed.as_secs_f64(),
+        skipmix_stats.reduction_elapsed.as_secs_f64(),
+        skipmix_stats.elapsed().as_secs_f64(),
+        skipmix_stats.positions_per_second(),
     );
     phases.mark("skip-mix lane fit");
-    let (artifact_bytes, info) = score::emit_scored_r4g1_with_tokenizer_cid(
-        &artifact_container,
-        (&meta_bytes, &recs_bytes),
-        vocab,
-        &score::ScoredGraphSections {
-            regions: &regions,
-            structural: &structural,
-            transitions: &transitions,
-            transition_quantization,
-            emissions: &emissions,
-            context_rows: &context_rows,
-            exct_tls1: &tls1,
-            exct_top_x: config.exct_top_x,
-            fwd_rows: &fwd_rows,
-            // #910: the promoted skip-mix lane, fitted above, is emitted so
-            // compiled bundles carry the SKMX/PSIB sections and the deployed
-            // serving lane is live (S1 PROMOTE, #822/#908).
-            skipmix_rows: &skipmix_rows,
-            psi_bag_rows: &psi_bag_rows,
-        },
-        tokenizer_cid,
-    );
+    let emit_graph = |skipmix_rows: &[uor_r4_graph_format::SkipmixRowInput],
+                      psi_bag_rows: &[(u32, Vec<(u32, i32)>)]| {
+        score::emit_scored_r4g1_with_bound_partition_cids(
+            &artifact_container,
+            vocab,
+            &score::ScoredGraphSections {
+                regions: &regions,
+                structural: &structural,
+                transitions: &transitions,
+                transition_quantization,
+                emissions: &emissions,
+                context_rows: &context_rows,
+                exct_tls1: &tls1,
+                exct_top_x: config.exct_top_x,
+                fwd_rows: &fwd_rows,
+                // #910: the promoted skip-mix lane, fitted above, is emitted so
+                // compiled bundles carry the SKMX/PSIB sections and the deployed
+                // serving lane is live (S1 PROMOTE, #822/#908).
+                skipmix_rows,
+                psi_bag_rows,
+            },
+            tokenizer_cid,
+            corpus_construction_cid.0,
+            corpus_certification_cid.0,
+        )
+    };
+    let primary_emission_progress =
+        ScoreProgress::opaque("primary-graph-emission", "sections", None, 1);
+    let (artifact_bytes, info) = emit_graph(&skipmix_rows, &psi_bag_rows);
+    primary_emission_progress.finish(None);
+
+    // #933: the production-quality decision needs two exact, same-generation
+    // falsifiers. The first removes SKMX/PSIB and therefore proves the
+    // absent-section causal baseline. The second fits those sections after a
+    // deterministic TRAIN-target rotation (the #908 null definition), while
+    // held-out evaluation keeps the pristine labels. They are opt-in because
+    // ordinary score consumers neither need nor package the extra artifacts.
+    // Drop the real fitted rows before fitting the null rows so the control
+    // does not double peak memory on corpus-scale runs.
+    let (sections_absent_bytes, label_shuffled_bytes) = if options.emit_quality_controls {
+        let absent_emission_progress =
+            ScoreProgress::opaque("sections-absent-graph-emission", "sections", None, 1);
+        let (base_bytes, _) = emit_graph(&[], &[]);
+        absent_emission_progress.finish(None);
+        drop(skipmix_rows);
+        drop(psi_bag_rows);
+
+        let control_preparation_progress = ScoreProgress::opaque(
+            "label-shuffled-control-preparation",
+            "construction-positions",
+            Some(train_positions.len()),
+            1,
+        );
+        let shuffled_corpus =
+            uor_r4_graph_compiler::skipmix_fit::rotate_targets_control_at_positions(
+                &corpus,
+                &train_positions,
+            );
+        control_preparation_progress.finish(Some(train_positions.len()));
+        let null_skipmix_progress = ScoreProgress::opaque(
+            "label-shuffled-skipmix-fit",
+            "construction-positions",
+            Some(train_positions.len()),
+            threads,
+        );
+        let (null_skipmix, null_psi_bag, null_stats) = pool.install(|| {
+            uor_r4_graph_compiler::skipmix_fit::fit_skipmix_tables_at_positions_instrumented_named(
+                &shuffled_corpus,
+                &train_positions,
+                uor_r4_graph_compiler::segment_fit::DEFAULT_TOP_K,
+                "label-shuffled-control",
+            )
+        });
+        null_skipmix_progress.finish(Some(train_positions.len()));
+        println!(
+            "skip-mix label-shuffled control fit: train={} distinct-occurrences={} workers={} joint-rows={} psi-rows={} total={:.3}s throughput={:.1} positions/s",
+            null_stats.train_positions,
+            null_stats.distinct_occurrences,
+            null_stats.workers,
+            null_stats.joint_rows,
+            null_stats.psi_bag_rows,
+            null_stats.elapsed().as_secs_f64(),
+            null_stats.positions_per_second(),
+        );
+        let shuffled_emission_progress =
+            ScoreProgress::opaque("label-shuffled-graph-emission", "sections", None, 1);
+        let (null_bytes, _) = emit_graph(&null_skipmix, &null_psi_bag);
+        shuffled_emission_progress.finish(None);
+        phases.mark("deployed-quality control graphs");
+        (Some(base_bytes), Some(null_bytes))
+    } else {
+        (None, None)
+    };
     let graph_kappa = uor_r4_graph_format::r4g1::artifact_kappa(&artifact_bytes)
         .expect("cannot address emitted R4G1 artifact");
     phases.mark("R4G1 artifact emission");
 
-    eprintln!("score: running Gate C evaluation [========================] 100%");
-    let gate_c = score::evaluate_gate_c(
-        &artifact_bytes,
-        &artifact_container,
-        &artifacts,
-        &store,
-        &corpus,
-        &held_out,
-        &config,
-    )
-    .ok_or_else(|| SourceUnavailable::new("gate C could not evaluate an empty held-out split"))?;
+    let gate_c_progress =
+        ScoreProgress::opaque("gate-c-evaluation", "held-out-observations", None, threads);
+    let gate_c_phase_starts = std::sync::Mutex::new(BTreeMap::new());
+    let report_gate_c_progress = |event: score::GateCProgress| {
+        let mut starts = gate_c_phase_starts
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        let started = starts
+            .entry(event.phase)
+            .or_insert_with(std::time::Instant::now);
+        let elapsed_ms = started.elapsed().as_millis();
+        let rate_milli = (event.processed > 0 && elapsed_ms > 0)
+            .then(|| (event.processed as u128).saturating_mul(1_000_000) / elapsed_ms);
+        let eta_ms = (event.processed > 0).then(|| {
+            (event.total.saturating_sub(event.processed) as u128).saturating_mul(elapsed_ms)
+                / event.processed as u128
+        });
+        eprintln!(
+            "gate c progress: phase={} state={} processed={}/{} unit={} workers={} elapsed_ms={} rate_milli_items_per_second={} eta_ms={}",
+            event.phase,
+            if event.done { "completed" } else { "progress" },
+            event.processed,
+            event.total,
+            event.unit,
+            threads,
+            elapsed_ms,
+            rate_milli.map_or_else(|| "UNAVAILABLE".to_owned(), |value| value.to_string()),
+            eta_ms.map_or_else(|| "UNAVAILABLE".to_owned(), |value| value.to_string()),
+        );
+    };
+    let gate_c = pool
+        .install(|| {
+            score::evaluate_gate_c_with_progress(
+                score::GateCEvaluationInputs {
+                    r4g1: &artifact_bytes,
+                    artifact_container: &artifact_container,
+                    artifacts: &artifacts,
+                    store: &store,
+                    corpus: &corpus,
+                    held_out: &held_out,
+                    config: &config,
+                },
+                &report_gate_c_progress,
+            )
+        })
+        .ok_or_else(|| {
+            SourceUnavailable::new("gate C could not evaluate an empty held-out split")
+        })?;
+    gate_c_progress.finish(None);
     // The "gate c phase:" lines above break this phase down further (#471);
     // here it is one line so the score-level total stays complete.
     phases.mark("gate c evaluation");
 
+    let report_write_progress =
+        ScoreProgress::opaque("report-build-and-write", "output-files", None, 1);
     let report = score::build_score_report_with_quality_profile(
         &config,
         score::ScoreReportInputs {
@@ -5595,6 +6067,20 @@ fn score_command_with_authority(
     transaction.prepare_output_directory(&options.output)?;
     let artifact_path = options.output.join("score.r4g1");
     write_regular_file_synced(&artifact_path, &artifact_bytes, "scored R4G1 artifact")?;
+    if let Some(bytes) = sections_absent_bytes.as_deref() {
+        write_regular_file_synced(
+            &options.output.join("score_sections_absent.r4g1"),
+            bytes,
+            "sections-absent deployed-quality control graph",
+        )?;
+    }
+    if let Some(bytes) = label_shuffled_bytes.as_deref() {
+        write_regular_file_synced(
+            &options.output.join("score_label_shuffled.r4g1"),
+            bytes,
+            "label-shuffled deployed-quality control graph",
+        )?;
+    }
     let report_json = serde_json::to_string_pretty(&report).map_err(SourceUnavailable::new)?;
     let report_path = options.output.join("score_report.json");
     write_regular_file_synced(&report_path, report_json.as_bytes(), "graph score report")?;
@@ -5603,6 +6089,7 @@ fn score_command_with_authority(
     // #488: report build (from the gate-c mark) + both artifact writes. The
     // trailing stdout summary below is negligible and shows up as the total's
     // remainder — which is the check that no stage went unnamed.
+    report_write_progress.finish(None);
     phases.mark("report build + artifact write");
 
     println!(
@@ -5618,6 +6105,18 @@ fn score_command_with_authority(
         info.context_entry_count,
         info.context_bytes
     );
+    if let (Some(base), Some(null)) = (
+        sections_absent_bytes.as_deref(),
+        label_shuffled_bytes.as_deref(),
+    ) {
+        println!(
+            "deployed-quality controls: sections-absent {} bytes CID blake3:{} | label-shuffled {} bytes CID blake3:{}",
+            base.len(),
+            blake3::hash(base).to_hex(),
+            null.len(),
+            blake3::hash(null).to_hex(),
+        );
+    }
     println!(
         "gate C — held-out D3 metrics ({} positions):",
         gate_c.rule12_precedence.positions
@@ -10055,7 +10554,7 @@ fn transformerless_usage() -> &'static str {
                  guarded streaming corpus derivation (N <= source; complete runs may undershoot): subsample-recorded-corpus --src-meta <META> --src-recs <RECS> --out-meta <corpus.meta> --out-recs <corpus.records> --records <N>\n\
                  transformer-free refresh: runtime-corpus --artifacts <TLA> --store <TLS1> --seed-meta <META> --seed-recs <RECS> --out <DIR> --target N [--threads N]\n\
                  graph cover: cover --corpus-meta <META> --corpus-recs <RECS> --artifacts <TLA> --out <DIR> [--bundle-root <ROOT>]\n\
-                 graph score: score --corpus-meta <META> --corpus-recs <RECS> --artifacts <TLA> --out <DIR> [--bundle-root <ROOT>]\n\
+                 graph score: score --corpus-meta <META> --corpus-recs <RECS> --artifacts <TLA> --out <DIR> [--bundle-root <ROOT>] [--jobs N] [--quality-controls on|off]\n\
                    --bundle-root explicitly declares one managed/canonical bundle authority; without it, --out is an exact standalone root fixed at transaction start\n\
                  observation pipeline: observe [--source DIR [--tokenizer-family FAMILY --tokenizer-version N] | --checkpoint BIN] [--seconds N] [--target N] [--shards N] [--out DIR] [--sequence-length N]\n\
                  text observations (D3): observe-text [--input PATH] [--out DIR] [--shards N] [--seconds N] [--source DIR [--tokenizer-family FAMILY --tokenizer-version N] | --checkpoint BIN --tokenizer PATH] [--sequence-length N] [--trace-profile ID/V --trace-layers I,J,... [--trace-support S]]\n\
@@ -15470,6 +15969,8 @@ mod tests {
         assert_eq!(options.exct_top_x, score::DEFAULT_EXCT_TOP_X);
         assert_eq!(options.witness_sample, score::DEFAULT_WITNESS_SAMPLE);
         assert_eq!(options.smoothing, score::Smoothing::AddOne);
+        assert_eq!(options.jobs, None);
+        assert!(!options.emit_quality_controls);
         assert_eq!(options.output, PathBuf::from("score"));
 
         let args = [
@@ -15499,6 +16000,10 @@ mod tests {
             "32",
             "--smoothing",
             "abs-disc:0.5",
+            "--quality-controls",
+            "on",
+            "--jobs",
+            "4",
             "--out",
             "/tmp/scored",
         ]
@@ -15523,10 +16028,29 @@ mod tests {
         assert_eq!(options.exct_top_x, 128);
         assert_eq!(options.witness_sample, 32);
         assert_eq!(options.smoothing, score::Smoothing::AbsoluteDiscount(0.5));
+        assert!(options.emit_quality_controls);
+        assert_eq!(options.jobs, Some(4));
         assert_eq!(options.output, PathBuf::from("/tmp/scored"));
 
         let bad = ["--regions-budget", "4"].map(str::to_owned);
         assert!(parse_score_options(&bad).is_err());
+    }
+
+    #[test]
+    fn supplied_cover_report_provenance_is_content_bound() {
+        let bytes = b"same semantic cover bytes";
+        let source = supplied_cover_report_source(bytes);
+        assert_eq!(source, supplied_cover_report_source(bytes));
+        assert_eq!(
+            source,
+            format!("provided cover artifact {}", repro::container_kappa(bytes))
+        );
+        assert_ne!(
+            source,
+            supplied_cover_report_source(b"different semantic cover bytes")
+        );
+        assert!(!source.contains("/tmp/first-stage"));
+        assert!(!source.contains("/tmp/second-stage"));
     }
 
     #[test]

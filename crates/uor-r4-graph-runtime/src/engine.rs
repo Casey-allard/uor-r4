@@ -2,23 +2,123 @@ use crate::runtime_state::RuntimeState;
 use crate::runtime_state::SemanticStateSlot;
 use crate::status::ResolutionStatus;
 use crate::vp_tree::{MIN_ROUTE_INDEX_NODES, VpTree};
-use uor_r4_graph_format::ScoreQ;
 use uor_r4_graph_format::{CODE_OP_HALT, OP_CLEAR_SLOT, OP_SHIFT_SLOTS, OP_UPDATE_SLOT};
+use uor_r4_graph_format::{FormatError, PsiBagTable, ScoreQ, SkipmixTable};
 use uor_r4_graph_format::{GraphView, NotAProduct, SectionId};
+
+/// Fixed width of the normative served-candidate shortlist.
+pub const SERVED_CANDIDATE_CAPACITY: usize = 8;
+
+/// Compiler-pinned context window consumed by the learned serving lane.
+/// Kept distinct from shortlist capacity even though both are eight today.
+const SERVED_CONTEXT_WINDOW: usize = 8;
+
+/// Compiler-pinned maximum entries consumed from one SKMX or PSIB row.
+const SERVED_SKIPMIX_MAX_ENTRIES: u16 = 64;
+
+/// Compiler-pinned maximum open-addressing probes consumed by one SKMX lookup.
+const SERVED_SKIPMIX_MAX_PROBE: u16 = 32;
+
+/// Score domain responsible for a served candidate's rank.
+///
+/// `Skipmix` sorts ahead of `Base`; scores are compared only within the same
+/// source. This keeps learned skip-count residuals separate from graph scores.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ServedCandidateSource {
+    Base,
+    Skipmix,
+}
+
+/// One entry in the fixed-capacity normative serving shortlist.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ServedCandidate {
+    pub token: u32,
+    pub score: ScoreQ,
+    pub source: ServedCandidateSource,
+    /// A nonzero SKMX primary-row entry contributed to this candidate score.
+    pub skmx_contributed: bool,
+    /// A nonzero PSIB fallback-row entry contributed to this candidate score.
+    pub psib_contributed: bool,
+}
+
+impl ServedCandidate {
+    const EMPTY: Self = Self {
+        token: 0,
+        score: ScoreQ::MIN,
+        source: ServedCandidateSource::Base,
+        skmx_contributed: false,
+        psib_contributed: false,
+    };
+}
+
+/// Evidence that the skip-mix lane changed the base scorer's winner.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct SkipmixAttribution {
+    pub base_token: u32,
+    pub promoted_token: u32,
+    pub contribution: ScoreQ,
+    /// At least one nonzero SKMX primary-row entry contributed.
+    pub skmx_contributed: bool,
+    /// At least one nonzero PSIB fallback-row entry contributed.
+    pub psib_contributed: bool,
+}
+
+/// Allocation-free fixed-capacity result of normative served selection.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ServedCandidates {
+    ranked: [ServedCandidate; SERVED_CANDIDATE_CAPACITY],
+    len: u8,
+    attribution: Option<SkipmixAttribution>,
+}
+
+impl ServedCandidates {
+    /// Canonically ranked candidates: source, descending score, ascending token.
+    pub fn ranked(&self) -> &[ServedCandidate] {
+        &self.ranked[..usize::from(self.len)]
+    }
+
+    /// The normative served token candidate, when any candidate exists.
+    pub fn winner(&self) -> Option<ServedCandidate> {
+        self.ranked().first().copied()
+    }
+
+    /// Skip-mix promotion evidence; absent when the base winner was retained.
+    pub fn attribution(&self) -> Option<SkipmixAttribution> {
+        self.attribution
+    }
+
+    pub fn len(&self) -> usize {
+        usize::from(self.len)
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len == 0
+    }
+}
+
+impl Default for ServedCandidates {
+    fn default() -> Self {
+        Self {
+            ranked: [ServedCandidate::EMPTY; SERVED_CANDIDATE_CAPACITY],
+            len: 0,
+            attribution: None,
+        }
+    }
+}
 
 /// Multiplication-free zero-allocation prediction runtime wrapping an R4G1 borrowed `PatchChain`.
 ///
-/// **Accuracy status (issue #280):** on `convert_r4g1`-produced
-/// artifacts this runtime has no readable per-node emission structure
-/// to walk (the converter is a container-format demo), and its readout
-/// measured 0.0% held-out top1/agreement. It is not part of the
-/// serving path (`uor-r4-api::engine::R4Engine` is) and is excluded
-/// from the certify measurement matrix; treat outputs on such
-/// artifacts as exercising format traversal, not prediction.
+/// This is the sole normative production candidate/token selector (ADR-0001).
+/// `uor-r4-api::engine::R4Engine` supplies token-free D4 policy resolution; it
+/// may permit, widen, or abstain but cannot replace the candidate selected
+/// here. Historical `convert_r4g1` container-demo artifacts remain research
+/// evidence: their 0.0% held-out result does not authorize production.
 #[derive(Debug, Clone)]
 pub struct R4G1Runtime<'a> {
     chain: crate::patch_chain::PatchChain<'a>,
     route_index: Option<VpTree>,
+    skipmix: Option<SkipmixTable<'a>>,
+    psi_bag: Option<PsiBagTable<'a>>,
 }
 
 fn signature_affinity_bonus(prototype: &[u8], mask: &[u8], signature: &[u8]) -> i32 {
@@ -93,16 +193,37 @@ fn with_context_row_entries<F: FnMut(uor_r4_graph_format::NgramEntry)>(
     false
 }
 
+fn validate_serving_table_bounds(
+    skipmix: Option<&SkipmixTable<'_>>,
+    psi_bag: Option<&PsiBagTable<'_>>,
+) -> Result<(), NotAProduct> {
+    if skipmix.is_some_and(|table| table.max_entries() > SERVED_SKIPMIX_MAX_ENTRIES) {
+        return Err(FormatError::SkipmixInvalidRow.into());
+    }
+    if skipmix.is_some_and(|table| table.max_probe() > SERVED_SKIPMIX_MAX_PROBE) {
+        return Err(FormatError::SkipmixProbeExceeded.into());
+    }
+    if psi_bag.is_some_and(|table| table.max_entries() > SERVED_SKIPMIX_MAX_ENTRIES) {
+        return Err(FormatError::PsiBagInvalidRow.into());
+    }
+    Ok(())
+}
+
 impl<'a> R4G1Runtime<'a> {
     /// Create a new R4G1 runtime by running two-stage validation over `bytes`.
     pub fn parse(bytes: &'a [u8]) -> Result<Self, NotAProduct> {
         let view = GraphView::parse(bytes)?;
+        let skipmix = view.skipmix_table()?;
+        let psi_bag = view.psi_bag_table()?;
+        validate_serving_table_bounds(skipmix.as_ref(), psi_bag.as_ref())?;
         let route_index = (view.node_count().unwrap_or(0) >= MIN_ROUTE_INDEX_NODES)
             .then(|| VpTree::from_graph(&view))
             .flatten();
         Ok(Self {
             chain: crate::patch_chain::PatchChain::new(view),
             route_index,
+            skipmix,
+            psi_bag,
         })
     }
 
@@ -116,7 +237,25 @@ impl<'a> R4G1Runtime<'a> {
         let Ok(view) = GraphView::parse(patch_bytes) else {
             return Some("patch bytes are not a valid R4G1 artifact");
         };
-        self.chain.try_push_patch(view)
+        let Ok(skipmix) = view.skipmix_table() else {
+            return Some("patch SKMX section is not a product of these bytes");
+        };
+        let Ok(psi_bag) = view.psi_bag_table() else {
+            return Some("patch PSIB section is not a product of these bytes");
+        };
+        if validate_serving_table_bounds(skipmix.as_ref(), psi_bag.as_ref()).is_err() {
+            return Some("patch skip-mix table exceeds the serving work bound");
+        }
+        let verdict = self.chain.try_push_patch(view);
+        if verdict.is_none() {
+            if skipmix.is_some() {
+                self.skipmix = skipmix;
+            }
+            if psi_bag.is_some() {
+                self.psi_bag = psi_bag;
+            }
+        }
+        verdict
     }
 
     /// One ROUT probe: query `sig` against the per-node prototypes/masks
@@ -180,6 +319,11 @@ impl<'a> R4G1Runtime<'a> {
 
     pub fn view(&self) -> &GraphView<'a> {
         self.chain.base_graph()
+    }
+
+    /// Whether the effective patch chain supplies `(SKMX, PSIB)` tables.
+    pub fn skipmix_tables_present(&self) -> (bool, bool) {
+        (self.skipmix.is_some(), self.psi_bag.is_some())
     }
 
     pub fn node_count(&self) -> u32 {
@@ -498,6 +642,148 @@ fn collect_target_leaf_nodes<'a>(
                 }
             }
         }
+    }
+}
+
+fn unique_tokens_in_newest_compiler_window(
+    context_tokens: &[u32],
+) -> ([u32; SERVED_CONTEXT_WINDOW], usize) {
+    let mut unique = [0u32; SERVED_CONTEXT_WINDOW];
+    let mut len = 0usize;
+    let start = context_tokens.len().saturating_sub(SERVED_CONTEXT_WINDOW);
+    for &token in &context_tokens[start..] {
+        let mut at = 0usize;
+        while at < len && unique[at] < token {
+            at += 1;
+        }
+        if at < len && unique[at] == token {
+            continue;
+        }
+        let mut shift = len;
+        while shift > at {
+            unique[shift] = unique[shift - 1];
+            shift -= 1;
+        }
+        unique[at] = token;
+        len += 1;
+    }
+    (unique, len)
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+struct SkipmixContribution {
+    raw: i32,
+    skmx_contributed: bool,
+    psib_contributed: bool,
+}
+
+fn skipmix_contribution(
+    skipmix: Option<&SkipmixTable<'_>>,
+    psi_bag: Option<&PsiBagTable<'_>>,
+    unique_tokens: &[u32],
+    last_token: u32,
+    candidate: u32,
+) -> SkipmixContribution {
+    let mut contribution = SkipmixContribution::default();
+    for &content_token in unique_tokens {
+        let (score, from_skmx) =
+            if let Some(row) = skipmix.and_then(|table| table.find(content_token, last_token)) {
+                (row.entries().find(candidate), true)
+            } else {
+                (
+                    psi_bag
+                        .and_then(|table| table.find(content_token))
+                        .and_then(|row| row.entries().find(candidate)),
+                    false,
+                )
+            };
+        if let Some(score) = score {
+            let raw = score.raw();
+            contribution.raw = contribution.raw.saturating_add(raw);
+            if raw != 0 {
+                if from_skmx {
+                    contribution.skmx_contributed = true;
+                } else {
+                    contribution.psib_contributed = true;
+                }
+            }
+        }
+    }
+    contribution
+}
+
+fn base_candidate_score(
+    base: &[(u32, ScoreQ); SERVED_CANDIDATE_CAPACITY],
+    base_len: usize,
+    token: u32,
+) -> Option<ScoreQ> {
+    base[..base_len]
+        .iter()
+        .find_map(|&(base_token, score)| (base_token == token).then_some(score))
+}
+
+fn served_candidate_precedes(left: ServedCandidate, right: ServedCandidate) -> bool {
+    match (left.source, right.source) {
+        (ServedCandidateSource::Skipmix, ServedCandidateSource::Base) => true,
+        (ServedCandidateSource::Base, ServedCandidateSource::Skipmix) => false,
+        _ => {
+            left.score.raw() > right.score.raw()
+                || (left.score.raw() == right.score.raw() && left.token < right.token)
+        }
+    }
+}
+
+fn insert_served_candidate(result: &mut ServedCandidates, candidate: ServedCandidate) {
+    let len = result.len();
+    if result.ranked[..len]
+        .iter()
+        .any(|entry| entry.token == candidate.token)
+    {
+        return;
+    }
+
+    let mut at = if len < SERVED_CANDIDATE_CAPACITY {
+        result.len = result.len.saturating_add(1);
+        len
+    } else {
+        let last = SERVED_CANDIDATE_CAPACITY - 1;
+        if !served_candidate_precedes(candidate, result.ranked[last]) {
+            return;
+        }
+        last
+    };
+    result.ranked[at] = candidate;
+    while at > 0 && served_candidate_precedes(result.ranked[at], result.ranked[at - 1]) {
+        result.ranked.swap(at, at - 1);
+        at -= 1;
+    }
+}
+
+fn make_served_candidate(
+    token: u32,
+    base_score: Option<ScoreQ>,
+    skipmix: Option<&SkipmixTable<'_>>,
+    psi_bag: Option<&PsiBagTable<'_>>,
+    unique_tokens: &[u32],
+    last_token: u32,
+) -> Option<ServedCandidate> {
+    let contribution = skipmix_contribution(skipmix, psi_bag, unique_tokens, last_token, token);
+    if contribution.raw > 0 {
+        Some(ServedCandidate {
+            token,
+            score: ScoreQ::from_raw(contribution.raw),
+            source: ServedCandidateSource::Skipmix,
+            skmx_contributed: contribution.skmx_contributed,
+            psib_contributed: contribution.psib_contributed,
+        })
+    } else {
+        base_score.map(|score| ServedCandidate {
+            token,
+            score,
+            source: ServedCandidateSource::Base,
+            skmx_contributed: false,
+            psib_contributed: false,
+        })
     }
 }
 
@@ -986,8 +1272,158 @@ impl<'a> R4G1Runtime<'a> {
                 }
             }
         }
-        out_candidates[..count].sort_by_key(|b| core::cmp::Reverse(b.1.raw()));
+        out_candidates[..count].sort_by(|left, right| {
+            right
+                .1
+                .raw()
+                .cmp(&left.1.raw())
+                .then_with(|| left.0.cmp(&right.0))
+        });
         count
+    }
+
+    /// Normative fixed-capacity served candidates with optional skip-mix
+    /// candidate injection and attribution.
+    pub fn predict_served_candidates(
+        &self,
+        context_tokens: &[u32],
+        signature: Option<&[u8]>,
+        node_scores: &mut [ScoreQ],
+    ) -> ServedCandidates {
+        self.predict_served_candidates_with_signature_lanes(
+            context_tokens,
+            signature,
+            None,
+            node_scores,
+        )
+    }
+
+    /// Signature-lane counterpart of [`Self::predict_served_candidates`].
+    ///
+    /// The base graph shortlist is retained exactly when both learned tables
+    /// are absent. When either is present, candidates learned from the
+    /// distinct tokens in the newest eight-token compiler window join the
+    /// same fixed shortlist. A present joint `(content, last)` row always
+    /// gates the PSIB fallback for that content, even when the joint row lacks
+    /// a particular candidate.
+    pub fn predict_served_candidates_with_signature_lanes(
+        &self,
+        context_tokens: &[u32],
+        context_signature: Option<&[u8]>,
+        session_signature: Option<&[u8]>,
+        node_scores: &mut [ScoreQ],
+    ) -> ServedCandidates {
+        let mut base = [(0u32, ScoreQ::MIN); SERVED_CANDIDATE_CAPACITY];
+        let base_len = self.predict_candidates_with_signature_lanes(
+            context_tokens,
+            context_signature,
+            session_signature,
+            node_scores,
+            &mut base,
+        );
+
+        let mut result = ServedCandidates::default();
+        if base_len == 0 {
+            return result;
+        }
+        if self.skipmix.is_none() && self.psi_bag.is_none() {
+            for &(token, score) in &base[..base_len] {
+                insert_served_candidate(
+                    &mut result,
+                    ServedCandidate {
+                        token,
+                        score,
+                        source: ServedCandidateSource::Base,
+                        skmx_contributed: false,
+                        psib_contributed: false,
+                    },
+                );
+            }
+            return result;
+        }
+
+        let Some(&last_token) = context_tokens.last() else {
+            return result;
+        };
+        let (unique, unique_len) = unique_tokens_in_newest_compiler_window(context_tokens);
+        let unique = &unique[..unique_len];
+
+        for &(token, score) in &base[..base_len] {
+            if let Some(candidate) = make_served_candidate(
+                token,
+                Some(score),
+                self.skipmix.as_ref(),
+                self.psi_bag.as_ref(),
+                unique,
+                last_token,
+            ) {
+                insert_served_candidate(&mut result, candidate);
+            }
+        }
+
+        let vocab_size = self.view().head().map_or(49152, |head| head.vocab_size());
+        for &content_token in unique {
+            let entries = if let Some(row) = self
+                .skipmix
+                .as_ref()
+                .and_then(|table| table.find(content_token, last_token))
+            {
+                Some(row.entries())
+            } else {
+                self.psi_bag
+                    .as_ref()
+                    .and_then(|table| table.find(content_token))
+                    .map(|row| row.entries())
+            };
+            let Some(entries) = entries else {
+                continue;
+            };
+            for entry in entries.iter() {
+                // Teacher argmax rows may legitimately select BOS/EOS or
+                // another reserved token. They remain candidates here; the
+                // decode policy decides whether a selected special token
+                // terminates generation. Only an out-of-vocabulary id is
+                // structurally invalid for this graph.
+                if entry.token >= vocab_size {
+                    continue;
+                }
+                let base_score = base_candidate_score(&base, base_len, entry.token);
+                if let Some(candidate) = make_served_candidate(
+                    entry.token,
+                    base_score,
+                    self.skipmix.as_ref(),
+                    self.psi_bag.as_ref(),
+                    unique,
+                    last_token,
+                ) {
+                    insert_served_candidate(&mut result, candidate);
+                }
+            }
+        }
+
+        let base_token = base[0].0;
+        if let Some(winner) = result.winner()
+            && winner.source == ServedCandidateSource::Skipmix
+            && winner.token != base_token
+        {
+            let contribution = skipmix_contribution(
+                self.skipmix.as_ref(),
+                self.psi_bag.as_ref(),
+                unique,
+                last_token,
+                winner.token,
+            );
+            debug_assert_eq!(contribution.raw, winner.score.raw());
+            debug_assert!(contribution.skmx_contributed || contribution.psib_contributed);
+            result.attribution = Some(SkipmixAttribution {
+                base_token,
+                promoted_token: winner.token,
+                contribution: winner.score,
+                skmx_contributed: contribution.skmx_contributed,
+                psib_contributed: contribution.psib_contributed,
+            });
+        }
+        result
     }
 }
 

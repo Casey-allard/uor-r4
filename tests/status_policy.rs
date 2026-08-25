@@ -22,7 +22,10 @@ mod status_policy_common;
 
 use status_policy_common as fixture;
 
-use uor_r4_api::engine::{EngineParts, R4Engine, WitnessVerificationError};
+use uor_r4_api::engine::{
+    EngineParts, R4Engine, SegmentLaneWitness, ServedCandidateWitnessSource,
+    WitnessVerificationError,
+};
 use uor_r4_graph_certify::{
     ScoreStatus, StepCandidates, STEP_TOP_CANDIDATES, TOP_M, WIDENED_TOP_M,
 };
@@ -38,7 +41,7 @@ fn ood_probe_widens_once_then_abstains_with_status_recorded() {
     let fixture = fixture::signature_fixture(None);
     let state = fixture.load();
     let decision = state
-        .predict_signature_status(&fixture.ood_sig)
+        .predict_signature_status_for_research(&fixture.ood_sig)
         .expect("decision");
     assert_eq!(
         decision,
@@ -68,7 +71,7 @@ fn covered_probes_serve_with_exact_context_and_graph_status() {
     // with support ≥ EXCT_SUPPORT_MIN (Rule 2); token 10 is the only
     // admitted entry.
     let exact = state
-        .predict_signature_status(&fixture.covered_sig)
+        .predict_signature_status_for_research(&fixture.covered_sig)
         .expect("decision");
     assert_eq!(
         exact,
@@ -83,7 +86,7 @@ fn covered_probes_serve_with_exact_context_and_graph_status() {
     // Graph: the all-ones signature is covered by region 1 (Rule 1):
     // S(20) = B(20) + ΔE(2,20) = 200 + 2000 = 2200 is the argmax.
     let graph = state
-        .predict_signature_status(&fixture.graph_sig)
+        .predict_signature_status_for_research(&fixture.graph_sig)
         .expect("decision");
     assert_eq!(
         graph,
@@ -113,9 +116,15 @@ fn proof_witness_roundtrips_and_rejects_tampering() {
         .expect("witness generation");
     assert_eq!(status.count, 1);
     assert_eq!(witnesses.len(), 1);
+    let counters_before_replay = state.policy_counters();
     state
         .verify_witnesses(&seed, &generated[..status.count], &witnesses)
         .expect("valid witness replays");
+    assert_eq!(
+        state.policy_counters(),
+        counters_before_replay,
+        "witness replay must not alter D4 policy counters"
+    );
 
     let mut wrong_depth = witnesses.clone();
     wrong_depth[0].depth = wrong_depth[0].depth.saturating_add(1);
@@ -129,6 +138,131 @@ fn proof_witness_roundtrips_and_rejects_tampering() {
     assert_eq!(
         state.verify_witnesses(&seed, &generated[..status.count], &wrong_region),
         Err(WitnessVerificationError::RegionMismatch)
+    );
+}
+
+#[test]
+fn absent_lane_witness_json_remains_byte_identical_to_legacy_reference_shape() {
+    let fixture = fixture::window_fixture();
+    let state = fixture.load();
+    let seed = [5u32];
+    let mut generated = [0u32; 1];
+    let mut witnesses = Vec::new();
+    let status = state
+        .generate_into_status_with_witness(&seed, &mut generated, &mut witnesses)
+        .expect("normative witness generation");
+
+    let mut legacy = R4Engine::load_accepting_quality(EngineParts {
+        graph: &fixture.bytes,
+        signature_artifact: &fixture.teacher,
+        tokenizer: None,
+        score_report: None,
+    })
+    .expect("legacy reference engine");
+    let mut legacy_generated = [0u32; 1];
+    let mut legacy_witnesses = Vec::new();
+    let legacy_status = legacy
+        .generate_into_with_witness(&seed, &mut legacy_generated, &mut legacy_witnesses)
+        .expect("legacy witness generation");
+
+    assert_eq!(status, legacy_status);
+    assert_eq!(generated, legacy_generated);
+    assert!(witnesses[0].served_candidate.is_none());
+    assert_eq!(
+        serde_json::to_vec(&witnesses).expect("serialize normative absent-lane witness"),
+        serde_json::to_vec(&legacy_witnesses).expect("serialize legacy witness"),
+        "both learned sections absent must preserve exact historical witness JSON"
+    );
+    state
+        .verify_witnesses(&seed, &generated[..status.count], &witnesses)
+        .expect("absent-lane research witness replays without production credit");
+}
+
+#[test]
+fn planted_skipmix_witness_binds_runtime_candidate_and_rejects_tampering() {
+    let fixture = fixture::window_fixture_with_skipmix();
+    let state = fixture.load();
+    let seed = [5u32];
+    let mut generated = [0u32; 1];
+    let mut witnesses = Vec::new();
+    let status = state
+        .generate_into_status_with_witness(&seed, &mut generated, &mut witnesses)
+        .expect("normative skip-mix witness generation");
+    assert_eq!(status.count, 1);
+    assert_eq!(
+        generated[0], 42,
+        "planted runtime-only candidate must serve"
+    );
+    let witness = &witnesses[0];
+    assert_eq!(witness.token, 42);
+    assert_eq!(witness.region_kappa, None);
+    assert_eq!(witness.region_id, None);
+    assert_eq!(witness.depth, 0);
+    let candidate = witness
+        .served_candidate
+        .as_ref()
+        .expect("lane-bearing witness binds the runtime winner");
+    assert_eq!(candidate.token, 42);
+    assert_eq!(candidate.score_q, 1_000);
+    assert_eq!(candidate.source, ServedCandidateWitnessSource::Skipmix);
+    assert!(candidate.skmx_contributed);
+    assert!(!candidate.psib_contributed);
+    let attribution = witness
+        .skipmix_lane
+        .as_ref()
+        .expect("planted promotion is attributed");
+    assert_eq!(attribution.promoted_token, 42);
+    assert_eq!(attribution.base_token, 10);
+    assert_eq!(attribution.boost, 1_000);
+    assert!(attribution.skmx_contributed);
+    assert!(!attribution.psib_contributed);
+    state
+        .verify_witnesses(&seed, &generated, &witnesses)
+        .expect("runtime-authored witness replays");
+
+    let mut wrong_candidate = witnesses.clone();
+    wrong_candidate[0]
+        .served_candidate
+        .as_mut()
+        .expect("candidate")
+        .score_q += 1;
+    assert_eq!(
+        state.verify_witnesses(&seed, &generated, &wrong_candidate),
+        Err(WitnessVerificationError::CandidateMismatch)
+    );
+
+    let mut wrong_candidate_provenance = witnesses.clone();
+    let candidate = wrong_candidate_provenance[0]
+        .served_candidate
+        .as_mut()
+        .expect("candidate");
+    candidate.skmx_contributed = false;
+    candidate.psib_contributed = true;
+    assert_eq!(
+        state.verify_witnesses(&seed, &generated, &wrong_candidate_provenance),
+        Err(WitnessVerificationError::CandidateMismatch)
+    );
+
+    let mut wrong_skipmix = witnesses.clone();
+    wrong_skipmix[0]
+        .skipmix_lane
+        .as_mut()
+        .expect("skip-mix attribution")
+        .boost += 1;
+    assert_eq!(
+        state.verify_witnesses(&seed, &generated, &wrong_skipmix),
+        Err(WitnessVerificationError::SkipmixLaneMismatch)
+    );
+
+    let mut planted_segment_claim = witnesses;
+    planted_segment_claim[0].segment_lane = Some(SegmentLaneWitness {
+        promoted_token: 42,
+        base_token: 10,
+        boost: 1,
+    });
+    assert_eq!(
+        state.verify_witnesses(&seed, &generated, &planted_segment_claim),
+        Err(WitnessVerificationError::SegmentLaneMismatch)
     );
 }
 
@@ -184,7 +318,7 @@ fn widen_once_bound_holds_for_repeated_novel_probes() {
     let fixture = fixture::signature_fixture(None);
     let state = fixture.load();
     let first = state
-        .predict_signature_status(&fixture.ood_sig)
+        .predict_signature_status_for_research(&fixture.ood_sig)
         .expect("first");
     assert_eq!(
         first,
@@ -197,7 +331,7 @@ fn widen_once_bound_holds_for_repeated_novel_probes() {
     // A second identical Novel input does NOT widen again: the bounded
     // widen-once memory answers and the probe abstains immediately.
     let second = state
-        .predict_signature_status(&fixture.ood_sig)
+        .predict_signature_status_for_research(&fixture.ood_sig)
         .expect("second");
     assert_eq!(
         second,
@@ -227,7 +361,7 @@ fn adversarial_repetition_is_deterministic() {
     for _ in 0..16 {
         outcomes.push(
             state
-                .predict_signature_status(&fixture.ood_sig)
+                .predict_signature_status_for_research(&fixture.ood_sig)
                 .expect("decision"),
         );
     }
@@ -257,7 +391,7 @@ fn adversarial_repetition_is_deterministic() {
     // Interleaved served probes are unaffected and identical too.
     for _ in 0..4 {
         let served = state
-            .predict_signature_status(&fixture.covered_sig)
+            .predict_signature_status_for_research(&fixture.covered_sig)
             .expect("served");
         assert_eq!(
             served,
@@ -533,7 +667,7 @@ fn override_abstain_on_novel_skips_widening() {
         "load() wires the score-report override"
     );
     let decision = state
-        .predict_signature_status(&fixture.ood_sig)
+        .predict_signature_status_for_research(&fixture.ood_sig)
         .expect("decision");
     assert_eq!(
         decision,
@@ -546,7 +680,7 @@ fn override_abstain_on_novel_skips_widening() {
     assert_eq!(state.policy_counters().widen_attempts, 0);
     // The served path is unaffected by the override.
     let served = state
-        .predict_signature_status(&fixture.covered_sig)
+        .predict_signature_status_for_research(&fixture.covered_sig)
         .expect("served");
     assert!(matches!(served, PredictDecision::Serve(_)));
 }

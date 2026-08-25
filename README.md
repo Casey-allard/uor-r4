@@ -64,12 +64,22 @@ exact-arithmetic library, not platform BLAS. The deployed answer path is
 enforced multiplication-free by a machine-checked source scan and an
 operation census, not by convention.
 
-> **Status: research project.** [Release v0.1](https://github.com/UOR-Foundation/uor-r4/releases/tag/v0.1)
-> ships working binaries and a compiled model bundle you can install and
-> query in one verified command. The compiler, runtime, artifact format and
-> measurement harnesses are exercised by CI. Generation quality is *not*
-> competitive with the teacher models it compiles — answers are valid
-> English with weak prompt-conditioning and research-grade factuality; see
+> **Status: research project.** Historical
+> [release v0.1](https://github.com/UOR-Foundation/uor-r4/releases/tag/v0.1)
+> ships working binaries and a digest-verified, pre-schema-2 research bundle.
+> Current `main` serves that historical bundle only through the explicit
+> `--research` compatibility path. Production admission requires a schema-2
+> envelope bound to a full deployed-quality census; a missing, sampled,
+> mismatched, or off-serving result is not production evidence. #933 has now
+> produced a distinct schema-2 canonical broad bundle whose evaluation required
+> no live teacher forward and that passes those exact admission gates, including
+> strict admission from an empty model store. That result is bound to its
+> artifact, population, selector, and decode configuration; it does not upgrade
+> v0.1 or establish live-teacher parity. The compiler, runtime, artifact format
+> and measurement harnesses are exercised by CI. Generation quality is *not*
+> competitive with the teacher
+> models it compiles — answers are valid English with weak prompt-conditioning
+> and research-grade factuality; see
 > [What actually works](#what-actually-works) for honest numbers. This
 > repository is run as a measured research programme;
 > [docs/RESEARCH.md](docs/RESEARCH.md) records what has been established
@@ -103,7 +113,7 @@ phase-field canvas and the semantic map all work with no model, no download and
 no compile. This is the fastest way to confirm the repository builds and runs on
 your machine.
 
-### 2 minutes — install the released model and ask it something
+### 2 minutes — inspect the historical released model in research mode
 
 Skip the multi-hour compile entirely: [release v0.1](https://github.com/UOR-Foundation/uor-r4/releases/tag/v0.1)
 ships a compiled bundle as an attested asset.
@@ -111,13 +121,15 @@ ships a compiled bundle as an attested asset.
 ```bash
 cargo build --release
 ./target/release/r4 install-release --tag v0.1   # explicit, digest-verified fetch (~16 MB)
-./target/release/r4 ask --model r4 "Tell me a fact about the ocean."
+./target/release/r4 ask --research --model r4 "Tell me a fact about the ocean."
 ```
 
 `install-release` verifies every component's blake3 digest against the
 release's attested manifest before anything lands on disk, and refuses
-archives containing anything unattested. The answer will be valid English
-of research-grade quality — read the honest release notes and
+archives containing anything unattested. `--research` is required because
+v0.1 predates the schema-2 production envelope; the CLI prints that boundary
+as a typed warning rather than silently promoting the bundle. The answer will
+be valid English of research-grade quality — read the honest release notes and
 [What actually works](#what-actually-works) before judging it as a
 chatbot. Decode defaults to seeded sampling with a pinned seed, so the
 same question reproduces the same answer; `--greedy` opts into the
@@ -185,18 +197,23 @@ blocks new additions, though ~1,100 legacy files remain tracked in the tree
 Being precise here matters more than being impressive, because this repository's
 whole method is measurement.
 
-> **Current quality-baseline scope (#934 audit, 2026-08-24).** The rounded
-> **29.7%** fixed floor is a tolerance derived from the historical pinned
-> fixture and applies only to pinned/legacy reports. Broad-corpus
-> `relative_tla` reports instead require graph top-1 to meet or exceed the TLA
-> row in the same report. The attested `smollm2-360m-broad-clean` full census is
-> Rule 1+2 **24.393%** versus TLA **28.121%**, so strict production admission is
-> not established. The nearby **29.702%** result from #908 is `R4Engine`
-> reference/off-serving evidence against a paired **+20‰** lane-improvement
-> gate, not an absolute 30% floor. The audit and bounded remediation order live
-> in [the #934 record](docs/canonical_quality_baseline_934.md); follow-on order is
-> #933 (normative R4G1 reachability/admission), then #932 (observable exact BDD
-> parity infrastructure).
+> **Current quality-baseline scope (#933/#934, 2026-08-25).** There is no
+> universal absolute 30% floor. The rounded **29.7%** tolerance belongs only to
+> historical pinned/legacy reports. On the exact 72,130-position canonical
+> broad population, the CID-bound `R4G1Runtime` census records **21,293 / 72,130
+> = 29.5203%**, versus same-position TLA **20,284 / 72,130 = 28.1214%**: paired
+> **+13.988‰**, 95% CI **[11.057, 16.919]**. Against the same-generation
+> sections-absent runtime it records **18,806 / 72,130 = 26.0723%**: paired
+> **+34.479‰ [31.681, 37.277]**, clearing the frozen +20‰ RF-31 floor. #933
+> therefore records **RATIFY** for that exact graph, report, population,
+> selector, and greedy decode, with zero binding/surface/witness failures and
+> strict empty-store admission. The historical **29.702%** #908 result remains
+> separate `R4Engine` reference/off-serving evidence. The repository BDD run
+> was **124 / 124**, but live-teacher parity fixtures were absent and those
+> scenarios vacuously skipped, so it is not parity evidence. See the
+> [#933 evidence record](docs/normative_r4g1_quality_933.md) and
+> [#934 genealogy](docs/canonical_quality_baseline_934.md); #932's observable
+> exact live-teacher BDD work remains a distinct downstream verification task.
 
 **Solid, exercised by CI:**
 
@@ -243,19 +260,22 @@ whole method is measurement.
   in-domain canary from **0/15 valid completions to 15/15** — but
   **prompt-conditioning is still weak**: distinct prompts converge onto
   similar completions (5/15 distinct, tracked as #784), factual content
-  wanders, and the canonical local bundles still predate the #755 recompile.
+  wanders, and the historical shipped/chat bundles still predate the #755
+  recompile. The #933 canonical broad evidence bundle is #755-native, but its
+  teacher-free per-position RATIFY is not an instruction-following or
+  free-running coherence result.
   Semantically unanswerable prompts ("what did I eat for breakfast?") are
   served rather than abstained, because they do not present as
   signature-space novelty to the D4 policy — a measured substrate property
   (#811), same family as #784. See
   [Which track can actually produce coherent text](docs/RESEARCH.md#which-track-can-actually-produce-coherent-text--the-honest-current-answer)
   for the full picture. This is a research engine, not a chat model.
-- **Instruction following is gated, not solved.** An *imported* manifest is
-  accepted by `r4 ask` only with a CID-addressed passing evaluation report,
-  precisely so a fast continuation artifact cannot be presented as a
-  question-answering model; a locally compiled (or release-installed) bundle
-  is served directly but logs a loud
-  "without an instruction-quality attestation" warning every time.
+- **Instruction following is gated, not solved.** Production `r4 ask` accepts
+  only a schema-2 bundle whose exact graph, corpus partitions, tokenizer,
+  compiler configuration, controls, cross-surface replay, and full-census
+  deployed-quality report reproduce one admission envelope. Historical
+  release and locally compiled bundles require explicit `--research`, print a
+  typed warning, and cannot be represented as production admission.
 - **Standalone two-pass generation is refuted**, twice, and is not coming back.
 - **The geometric router's retrieval was measured broken, and is now fixed and
   shipping.** #486 found `retrieve_geometric_resonance` compared a *routing*
@@ -362,20 +382,23 @@ back silently and nothing is guessed:
 ```mermaid
 flowchart TD
     Req["Request<br/>(model: r4 · optional engine, temperature, seed)"] --> Profile{"Engine profile<br/>(.uor-models/engine_profile.txt)"}
-    Profile -->|"production (default):<br/>r4g1 only"| Tier["r4g1 tier<br/>validated scored graph"]
+    Profile -->|"production (default):<br/>r4g1 only"| Tier["r4g1 tier<br/>schema-2 release envelope<br/>+ full-census deployed-quality report"]
     Profile -->|"explicit non-r4g1 engine<br/>under production"| Decline["Typed decline<br/>(echoes the requested engine)"]
     Profile -->|"experimental:<br/>full cascade, r4g1 first"| Tier
-    Tier --> D4{"D4 policy, per step<br/>(resolution status)"}
-    D4 -->|"exact-context / graph"| Decode["Decode<br/>default: seeded sampling, pinned seed<br/>(temperature: 0 → greedy)"]
+    Tier --> D4{"D4 policy, per step<br/>(permit / widen / abstain only)"}
+    D4 -->|"permitted"| Select["R4G1Runtime<br/>sole ranked-candidate<br/>and token authority"]
+    Select --> Decode["Decode policy<br/>seeded sampling, greedy, or beam<br/>over the same ranked candidates"]
     D4 -->|"novel → widen once<br/>→ still novel"| Abstain["Typed abstention<br/>no tokens served,<br/>partial output dropped"]
     Decode --> Resp["Response as model 'r4'<br/>+ decode witness"]
     Tier -->|"nothing can serve"| DBA["Typed declined_by_all"]
 ```
 
-The same D4 policy runs on the HTTP server and the CLI `ask`/`chat` paths —
-one implementation, not two approximations of each other. The `uor-r4`
-request alias from before the identity flip is still accepted for a
-deprecation window; responses always report `r4`.
+The same D4 policy and `R4G1Runtime` candidate adapter run on the HTTP server,
+CLI `ask`/`chat`, public library, and WASM paths. D4 can decline a candidate;
+it cannot replace the runtime's token with a reference-scorer token. Greedy,
+pinned-seed sampled, and beam decoding are policies over the same bounded
+ranked-candidate list. The `uor-r4` request alias from before the identity flip
+is still accepted for a deprecation window; responses always report `r4`.
 
 ---
 
@@ -416,8 +439,8 @@ no subcommand is `r4 serve`.
 
 ```bash
 r4 serve                                    # HTTP server + dashboard
-r4 ask [--model NAME|CID] [--greedy | --sample SEED] <question...>
-r4 chat [--model NAME|CID] [--remote URL] [--greedy | --sample SEED]
+r4 ask [--model NAME|CID] [--research] [--greedy | --sample SEED] <question...>
+r4 chat [--model NAME|CID] [--remote URL | --research] [--greedy | --sample SEED]
 r4 client [--remote http://127.0.0.1:8000/v1]   # --model defaults to r4
 r4 audit [--log-file .uor-models/audit_log.json]
 ```
@@ -432,7 +455,8 @@ deterministic beam. A typed D4 abstention prints as an explicit
 ```bash
 r4 install-release --tag vX.Y [--repo OWNER/REPO] [--name NAME]   # verified fetch of a released bundle
 r4 package-release-bundle --compiled DIR --model-id r4 --capability instruction-chat \
-                          --source DIR --tokenizer-family FAMILY --tokenizer-version N
+                          --source DIR --tokenizer-family FAMILY --tokenizer-version N \
+                          --compiler-revision <40-char SHA>
 r4 download --repository OWNER/REPO --revision <40-char SHA> --name NAME
 r4 compile --source DIR [--tokenizer-family FAMILY --tokenizer-version N] \
            [--output DIR] [--seconds N] [--target N] [--sequence-length N]
@@ -485,7 +509,7 @@ r4 transformerless observe-text \
   [--out obs-text]
 r4 transformerless cover        [--corpus-meta M] [--corpus-recs R] [--artifacts A] [--tokenizer PATH] [--out cover] [--bundle-root ROOT]
 r4 transformerless cover-sweep  [...]
-r4 transformerless score        [--corpus-meta M] [--corpus-recs R] [--artifacts A] [--tokenizer PATH] [--out DIR] [--bundle-root ROOT] [--quality-profile pinned|relative_tla]
+r4 transformerless score        [--corpus-meta M] [--corpus-recs R] [--artifacts A] [--tokenizer PATH] [--out DIR] [--bundle-root ROOT] [--quality-profile pinned|relative_tla] [--quality-controls on|off]
 r4 transformerless convert-r4g1 --artifacts TLA --store TLS1 --out R4G1
 r4 transformerless copy-recorded-attention --corpus-meta M --corpus-recs R --out attention_operator.json
 r4 transformerless subsample-recorded-corpus --src-meta M --src-recs R --out-meta M2 --out-recs R2 --records N
@@ -508,6 +532,13 @@ whose basename is `graph` or `graph-cover`. Physically present completion,
 owner, or Stage-A-seal evidence is refused at transaction start; later parent
 state never changes an already selected standalone transaction into bundle
 participation.
+
+`--quality-controls on` additionally emits `score_sections_absent.r4g1` and
+`score_label_shuffled.r4g1` beside `score.r4g1`. They are required falsifiers
+for the normative deployed-quality profile: the first removes SKMX/PSIB, and
+the second fits those sections from deterministically shuffled construction
+labels while evaluation remains on the pristine held-out partition. Neither
+control is a second production scorer.
 
 **Certification and comparison** (need the llama2.c checkpoint — see
 [Troubleshooting](#troubleshooting))
@@ -699,7 +730,7 @@ harness inventory is in [docs/RESEARCH.md](docs/RESEARCH.md).
 | κ tests pass suspiciously fast | `/tmp/ref/out/model.bin` is missing, so they **skip silently and report vacuous green**. `/tmp` cleanup deletes it. Re-fetch (below) and confirm the file exists before trusting a pass. |
 | fmt/clippy disagree with CI | A non-rustup Rust earlier in `PATH` ignores the toolchain pin. Check `which cargo`. |
 | clippy passes locally, fails in CI | You omitted `--all-features`. Use the exact invocation above. |
-| `r4 ask` refuses to run | An *imported* manifest needs a CID-addressed passing evaluation report — run `r4 evaluate-report`, then `r4 import`. Locally compiled or release-installed bundles serve directly (with an attestation warning). |
+| `r4 ask` refuses to run | Production mode requires a schema-2 envelope bound to the exact full deployed-quality census. Historical release or locally compiled bundles are research-only; inspect them with explicit `r4 ask --research ...`. Do not treat that warning-bearing path as production evidence. |
 | `install-release` refuses | That's it working: a digest mismatch, an unattested archive entry, or an existing install at the target name all refuse with nothing written. The error names the exact cause. |
 | Port 8000 already in use | Use `--port` / `UOR_R4_PORT`, or `PORT=9000 ./uor-r4-cli`. |
 | Compiled bundle behaves oddly after an upgrade | The on-disk store in `.uor-models/` may predate the u32 token migration. A full recompile refreshes it. |

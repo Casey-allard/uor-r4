@@ -20,14 +20,14 @@
 //! effect, a vacuous control, or benchmark drift. The types here make
 //! each of those failure modes a schema-level, testable object.
 //!
-//! Execution scope. Offline evaluation/certification plus measured
-//! reachability to the normative deployed [`crate::engine::R4Engine`]
-//! path. A production token is attributed to a [`ResolutionPath`] and the
-//! normative scorer identity ([`NORMATIVE_SCORER_ID`], designated by
-//! ADR-0001 / #831); evidence outside this scope is not credited as a
-//! deployed-serving result. Claim language follows
-//! `docs/formal_vocabulary.md`; nothing here strengthens or weakens the
-//! guarantees of the underlying crates.
+//! Execution scope. Schema and offline evaluation/certification infrastructure.
+//! The original #832 replay used [`crate::engine::R4Engine`] and is therefore
+//! reference/off-serving evidence after the #933 ADR-0001 call-graph audit.
+//! A report can declare a [`ResolutionPath`] and [`NORMATIVE_SCORER_ID`], but
+//! these pure validators do not establish that `R4G1Runtime` or a deployed
+//! transport produced the token; a production producer must bind that
+//! reachability separately. Claim language follows `docs/formal_vocabulary.md`;
+//! nothing here strengthens or weakens the guarantees of the underlying crates.
 
 use std::collections::BTreeMap;
 
@@ -46,15 +46,13 @@ pub const CAPABILITY_SUITE_SCHEMA: u32 = 1;
 /// attribution field (the #832 compatibility contract).
 pub const CAPABILITY_REPORT_SCHEMA: u32 = 1;
 
-/// The normative scorer identity every reported *production* token binds
-/// to. Designated by ADR-0001 (`docs/adr/0001-normative-r4g1-scorer.md`,
-/// #831): the deployed R4G1 serving path scored under
-/// `uor-r4-graph-format::scoring_semantics` v1.0.0. A production
-/// [`TokenAttribution`] whose `scorer_id` is not this string does not
-/// validate — an evaluation may not credit a served token to an
-/// unnamed or alternate scorer. The version tail is pinned against
-/// `ScoringSemanticsVersion::V1_0_0` by the crate's tests, so it cannot
-/// silently drift from the specification it names.
+/// Scorer-semantics identity required when a report independently establishes
+/// that a *production* token came from ADR-0001's `R4G1Runtime` path. A
+/// [`TokenAttribution`] naming another or unnamed scorer does not validate, but
+/// this string alone is not reachability evidence and cannot turn an
+/// `R4Engine` reference row into a deployed-serving result. The version tail is
+/// pinned against `ScoringSemanticsVersion::V1_0_0` by the crate's tests, so it
+/// cannot silently drift from the specification it names.
 pub const NORMATIVE_SCORER_ID: &str = "uor-r4-graph-format::scoring_semantics@1.0.0";
 
 // --- programme axes: stage, workload, scoring mode ---------------------------
@@ -169,15 +167,16 @@ impl ScoringMode {
 
 // --- per-token resolution-path attribution -----------------------------------
 
-/// Which normative mechanism produced one token on the deployed serving
-/// path. This is the *path* (mechanism), a separate axis from the D4
-/// *status* (`ExactContext`/`Graph`/`Novel`/`Contradictory`): a token has
-/// exactly one path.
+/// Mechanism vocabulary for one attributed token. This is a separate axis from
+/// the D4 *status* (`ExactContext`/`Graph`/`Novel`/`Contradictory`): a token has
+/// exactly one path. A populated enum does not by itself establish production
+/// reachability.
 ///
-/// The deployed [`crate::engine::R4Engine`] surfaces the served subset
-/// directly — [`from_served`] maps its `(PolicyStatus, ngram_hit)` and a
-/// decline maps to [`ResolutionPath::Decline`]. The remaining categories
-/// carry their own explicit signals a report producer supplies:
+/// [`from_served`] maps the D4 `(PolicyStatus, ngram_hit)` metadata available in
+/// the historical `R4Engine` certifier rows; a decline maps to
+/// [`ResolutionPath::Decline`]. A production report must obtain the token from
+/// `R4G1Runtime` independently. The remaining categories carry their own
+/// explicit signals a report producer supplies:
 /// [`ResolutionPath::RootPrior`] (root base-prior fallback),
 /// [`ResolutionPath::PatchDelta`] (a token supplied by an active patch/
 /// delta chain), and [`ResolutionPath::SampledSelection`] (the decode
@@ -460,10 +459,12 @@ pub struct TokenAttribution {
 }
 
 impl TokenAttribution {
-    /// Attribute a real deployed [`PredictDecision`] at `position`, bound
-    /// to the normative scorer identity. A served decision maps its
-    /// `(status, ngram_hit)` to a path via [`ResolutionPath::from_served`];
-    /// an abstention is a [`ResolutionPath::Decline`] and carries token 0.
+    /// Historical #832 certifier helper for an `R4Engine` [`PredictDecision`].
+    /// It maps `(status, ngram_hit)` to a path via
+    /// [`ResolutionPath::from_served`] and populates the schema's expected
+    /// scorer-semantics string, but does not establish production token
+    /// authority or serving reachability. An abstention is a
+    /// [`ResolutionPath::Decline`] and carries token 0.
     pub fn from_decision(position: u32, decision: &crate::engine::PredictDecision) -> Self {
         match decision {
             crate::engine::PredictDecision::Serve(outcome) => TokenAttribution {

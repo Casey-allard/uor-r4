@@ -162,3 +162,22 @@ stage gate. Next: #840 compiles student-prefix corrections under the §6 stoppin
 (native-blocked on this issue; stage-gated on #822/#823 for closure); a sampled-mode run
 and any judge-bearing run must pin their decoder/seed/judge identities and re-enter under
 this same contract.
+
+## 10. Append-only execution-scope correction (2026-08-24, #933)
+
+The frozen protocol, trace bytes, and run-1 measurements above remain the historical #841
+record. A later ADR-0001 call-graph audit established that the harness called
+`R4Engine::predict_decision`, so its trajectory evidence is a **certifier instrument at
+reference/off-serving scope**, not evidence that the normative `R4G1Runtime` production
+selector or any deployed transport emitted those tokens. In particular, the descriptions in
+the opening metadata and §1 that call this the normative deployed `R4Engine` path are
+superseded by this correction; they are retained only to preserve what the record said when
+the run was executed.
+
+**Empirical Criterion.** The reported run-1 gap continues to quantify the exact recorded
+`R4Engine` trajectories on the pinned #833 fixture. Status: **Empirical** at
+reference/off-serving execution scope.
+It does not establish production reachability, free-running coherence, or a result for
+`R4G1Runtime`. A future production-scope rerun must bind the exact normative selector,
+release envelope, decode identity, and transport reachability rather than inheriting #841's
+scope.

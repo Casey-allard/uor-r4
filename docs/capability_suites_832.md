@@ -179,3 +179,22 @@ fixtures are `UNAVAILABLE`, never PASS).
 Final phase thresholds are not chosen before the relevant power/baseline study; a model judge is
 not used as a primary metric; teacher-forced and free-running scores are never merged; and no
 new RF built-capability row is asserted.
+
+## Append-only execution-scope correction (2026-08-24, #933)
+
+The schema, manifests, deterministic serialization, identity validation, leakage checks, and
+fixture-absence contract above remain the historical #832 infrastructure result. A later
+ADR-0001 call-graph audit found that the synthetic replay and the then-current `serving_eval`
+row called `R4Engine`; they did not establish that `R4G1Runtime`, the sole normative
+candidate/token selector, was mechanically reached by a deployed surface. Accordingly, the
+opening references to a normative deployed `R4Engine`, the production-path description in
+the attribution section, and the Gate C/replay descriptions are superseded as execution-scope
+claims: those rows are **certifier/reference evidence at off-serving scope** unless a producer
+separately binds the exact normative production adapter.
+
+`NORMATIVE_SCORER_ID` remains a schema identity for reports; its presence alone is not
+production evidence. A report may credit a served production token only when its producer
+records `R4G1Runtime` candidate/token authority and the loaded release/report identities, and
+when the relevant deployed surface is mechanically exercised. Historical `R4Engine` rows stay
+readable and comparable within their pinned slice, but cannot be reinterpreted as
+deployed-serving results.

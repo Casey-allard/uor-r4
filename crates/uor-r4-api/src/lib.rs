@@ -32,15 +32,23 @@
 //! Claim language follows `docs/formal_vocabulary.md`; nothing here
 //! strengthens or weakens the guarantees of the underlying crates.
 
+#[cfg(feature = "full")]
 pub mod capability_suite;
+#[cfg(feature = "full")]
 pub mod compile;
+pub mod deployed_quality;
 pub mod engine;
+pub mod production_envelope;
 pub mod release_bundle;
+pub mod serving;
+#[cfg(feature = "full")]
 pub mod serving_eval;
+pub mod witness_replay;
 
 // `capability_suite::Stage` (programme stage S0–S7) is deliberately NOT
 // re-exported here — it would collide with `compile::Stage` (the compile
 // pipeline stage). Reach it (and `StageEntry`) via the module path.
+#[cfg(feature = "full")]
 pub use capability_suite::{
     builtin_constitution, builtin_manifests, compute_cid, detect_document_leakage,
     is_degenerate_control, verify_cid, AttributionHistogram, CapabilityReport, Constitution,
@@ -49,26 +57,66 @@ pub use capability_suite::{
     CAPABILITY_REPORT_SCHEMA, CAPABILITY_SUITE_SCHEMA, NORMATIVE_SCORER_ID,
 };
 
+#[cfg(feature = "full")]
 pub use compile::{
     compile, CompileOptions, CompileOutcome, CompileProvenance, CompileRequest, CompiledModel,
     ComponentDigests, ProgressEvent, QualityProfile, ResumeHint, ScoringOptions,
-    SourceExecutionIdentity, Stage, TokenizerAdapter, TokenizerAdapterKey,
+    SourceExecutionIdentity, Stage,
+};
+pub use deployed_quality::{
+    deployed_quality_positions_cid, derive_deployed_quality_bindings, is_blake3_cid,
+    parse_deployed_quality_for_research, ActiveSectionIdentity, ActiveSectionSetIdentity,
+    ArtifactIdentity, ComparatorIdentity, CompilerIdentity, CorpusIdentity, DecodeIdentity,
+    DecodeMode, DeployedQualityBindingMaterial, DeployedQualityBindings, DeployedQualityReport,
+    DeployedQualityValidationError, EvaluationEvidence, EvaluationMode, ExactRate, ExactSignedRate,
+    NegativeControlEvidence, NegativeControlVerdict, PairedComparison, PairedCounts,
+    PairedInterval, PartitionIdentity, PositionSelectionMode, QualityMeasurements,
+    QualityProfileIdentity, QualityTokenizerIdentity, QualityVerdict,
+    ResearchDeployedQualityReport, SampleDecisionKind, SeedIdentity, SelectorIdentity,
+    WitnessReplayEvidence, DEPLOYED_QUALITY_PROFILE_ID, DEPLOYED_QUALITY_PROFILE_VERSION,
+    DEPLOYED_QUALITY_REPORT_SCHEMA, LABEL_SHUFFLED_CONTROL_ID, NORMATIVE_EXECUTION_SCOPE,
+    NORMATIVE_SELECTOR_ID, NORMATIVE_SELECTOR_SEMANTICS_VERSION, PAIRED_INTERVAL_CONFIDENCE_PPM,
+    PAIRED_INTERVAL_METHOD, RF31_MIN_LANE_DELTA_PPM, SECTIONS_ABSENT_COMPARATOR_ID,
+    SECTIONS_ABSENT_COMPARATOR_VERSION, TLA_COMPARATOR_ID, TLA_COMPARATOR_VERSION,
 };
 pub use engine::{
     validate_quality_report, AbiVersion, AbstainOutcome, EngineParts, GenerateStatus,
-    InferenceRequest, InferenceResponse, InferenceWitness, PolicyCounters, PolicyStatus,
-    PredictDecision, PredictOutcome, PredictOutput, R4Engine, ResolutionStatus, SegmentLaneWitness,
-    StatusAction, StatusPolicy, WitnessVerificationError,
+    InferenceRequest, InferenceResponse, InferenceWitness, PolicyCounters, PolicyDecision,
+    PolicyPermit, PolicyStatus, PredictDecision, PredictOutcome, PredictOutput, R4Engine,
+    ResolutionStatus, SegmentLaneWitness, StatusAction, StatusPolicy, WitnessVerificationError,
+};
+pub use production_envelope::{
+    validate_production_evidence_links, verify_production_envelope, ProductionEnvelopeParts,
+    ProductionEvidenceParts, VerifiedProductionEnvelope,
 };
 pub use release_bundle::{
-    BundleAbi, BundleCapability, BundleComponentDigests, ReleaseBundleManifest,
-    UorMatmulProvenance, RELEASE_BUNDLE_MANIFEST_SCHEMA,
+    BundleAbi, BundleCapability, BundleComponentDigests, ReleaseAdmissionIdentity,
+    ReleaseBundleManifest, UorMatmulProvenance, LEGACY_RELEASE_BUNDLE_MANIFEST_SCHEMA,
+    RELEASE_BUNDLE_MANIFEST_SCHEMA,
+};
+pub use serving::{
+    load_production_policy_engine, select_sampled_runtime_candidate,
+    validate_production_serving_parts, CrossSurfaceDecodeMode, CrossSurfaceDisposition,
+    CrossSurfaceParityEvidence, CrossSurfaceParityEvidenceBuilder, CrossSurfaceParityObservation,
+    CrossSurfaceParityRecord, NormativeDecline, NormativeServe, NormativeServingDecision,
+    NormativeServingEngine, NormativeStepAdapter, ProductionPolicyEngine, ProductionServingParts,
+    CROSS_SURFACE_CONTEXT_CAPACITY, CROSS_SURFACE_PARITY_BUNDLE_PATH,
+    CROSS_SURFACE_PARITY_EVIDENCE_SCHEMA, CROSS_SURFACE_SESSION_SIGNATURE_CAPACITY,
+};
+pub use witness_replay::{
+    parse_and_validate_normative_witness_replay, produce_normative_witness_replay,
+    select_normative_witness_positions, NormativeWitnessCandidate, NormativeWitnessCandidateSource,
+    NormativeWitnessDisposition, NormativeWitnessLaneAttribution, NormativeWitnessPolicyStatus,
+    NormativeWitnessReplayArtifact, NormativeWitnessReplayMaterial, NormativeWitnessReplayRecord,
+    NormativeWitnessReplaySpec, NormativeWitnessReplayVerdict, DEFAULT_NORMATIVE_WITNESS_SAMPLE,
+    NORMATIVE_WITNESS_REPLAY_BUNDLE_PATH, NORMATIVE_WITNESS_REPLAY_SCHEMA,
 };
 
 // The bytes-based tokenizer the engine's text helpers use
 // (`Tokenizer::from_bytes`) and the full identity carried by tagged runtime
 // tokenizers; re-exported so downstream consumers bind the same vocabulary
 // and registered host adapter the bundle was compiled with.
+pub use uor_r4_core::transformerless::hf_bpe::{TokenizerAdapter, TokenizerAdapterKey};
 pub use uor_r4_core::transformerless::scenarios::{RuntimeTokenizerIdentity, Tokenizer};
 pub use uor_r4_graph_certify::ScoreStatus;
 // The sanctioned host-source failure type `compile` and `R4Engine::load`

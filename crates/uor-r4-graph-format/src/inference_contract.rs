@@ -55,7 +55,7 @@ impl ContractVersion {
 /// Current contract version shared by docs, scans, and proof obligations.
 pub const INFERENCE_OPERATION_CONTRACT_VERSION: ContractVersion = ContractVersion {
     major: 0,
-    minor: 1,
+    minor: 2,
     patch: 0,
 };
 

@@ -5,14 +5,22 @@ version = "0.1.0"
 edition = "2021"
 description = "Typed compile and engine APIs over the uor-r4 transformerless graph stack, for library consumers"
 
+[features]
+default = ["full"]
+# Filesystem-free production loading and serving. This is the only API surface
+# pulled into the browser build; compiler orchestration and evaluation stay
+# native-only.
+runtime = []
+full = ["runtime", "dep:uor-r4-graph-compiler", "dep:uor-r4-graph-cli"]
+
 [dependencies]
 uor-r4-core = { version = "0.1.0", path = "../uor-r4-core" }
 uor-r4-graph-format = { version = "0.1.0", path = "../uor-r4-graph-format" }
-uor-r4-graph-compiler = { version = "0.1.0", path = "../uor-r4-graph-compiler" }
+uor-r4-graph-compiler = { version = "0.1.0", path = "../uor-r4-graph-compiler", optional = true }
 uor-r4-graph-certify = { version = "0.1.0", path = "../uor-r4-graph-certify" }
 # #836: the deployed engine consumes the segment-lane SegmentSession primitive.
 uor-r4-graph-runtime = { version = "0.1.0", path = "../uor-r4-graph-runtime" }
-uor-r4-graph-cli = { version = "0.1.0", path = "../uor-r4-graph-cli" }
+uor-r4-graph-cli = { version = "0.1.0", path = "../uor-r4-graph-cli", optional = true }
 uor-r4-model-source = { version = "0.1.0", path = "../uor-r4-model-source" }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"

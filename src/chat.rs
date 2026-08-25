@@ -6,9 +6,12 @@ use std::fmt;
 use std::io::{BufRead, Read, Write};
 
 use crate::model::{default_model_reference, ModelError, ModelObject, ModelStore};
+use uor_r4_api::{NormativeServingDecision, NormativeStepAdapter};
 use uor_r4_core::transformerless::compiler::{self, Compiled};
 use uor_r4_core::transformerless::runtime::{self, Runtime, SampleRng, Store};
 use uor_r4_core::transformerless::scenarios::Tokenizer;
+use uor_r4_graph_format::ScoreQ;
+use uor_r4_graph_runtime::R4G1Runtime;
 
 const MAX_CHAT_TOKENS: usize = 256;
 const MAX_CHAT_HISTORY: usize = 4096;
@@ -145,6 +148,9 @@ pub enum ChatError {
     /// fail-closed. Present calibration never silently degrades to the
     /// always-serve legacy surface.
     SelectiveCalibrationPresent { path: std::path::PathBuf },
+    /// A bundle presented a release envelope but could not reproduce strict
+    /// schema-2 production admission from the exact chat bytes.
+    ProductionAdmission(String),
 }
 
 impl fmt::Display for ChatError {
@@ -172,6 +178,9 @@ impl fmt::Display for ChatError {
                  calibration never degrades to legacy serving",
                 path.display()
             ),
+            Self::ProductionAdmission(reason) => {
+                write!(formatter, "production chat admission unavailable: {reason}")
+            }
         }
     }
 }
@@ -186,7 +195,8 @@ impl std::error::Error for ChatError {
             | Self::TokenizerUnavailable { .. }
             | Self::RepetitiveGeneration
             | Self::MissingModel
-            | Self::SelectiveCalibrationPresent { .. } => None,
+            | Self::SelectiveCalibrationPresent { .. }
+            | Self::ProductionAdmission(_) => None,
             Self::Model(error) => Some(error),
         }
     }
@@ -254,8 +264,21 @@ impl ChatEngineBuilder {
         self
     }
 
-    /// Load all local data and construct the engine.
+    /// Load all local data and construct a production-admitted engine. A
+    /// pre-schema-2 bundle is rejected rather than silently downgraded.
     pub fn build(self) -> Result<ChatEngine, ChatError> {
+        self.build_with_admission(false)
+    }
+
+    /// Explicitly permit a pre-schema-2 research bundle. The typed warning is
+    /// returned with the engine so callers cannot mistake this compatibility
+    /// path for production admission.
+    pub fn build_for_research(self) -> Result<(ChatEngine, ResearchServingWarning), ChatError> {
+        let engine = self.build_with_admission(true)?;
+        Ok((engine, ResearchServingWarning::PreSchema2Compatibility))
+    }
+
+    fn build_with_admission(self, allow_research: bool) -> Result<ChatEngine, ChatError> {
         let reference = self.model.as_deref().ok_or(ChatError::MissingModel)?;
         let model_store = ModelStore::from_env();
         let manifest = match model_store.read_manifest(reference) {
@@ -267,6 +290,7 @@ impl ChatEngineBuilder {
                     reference,
                     self.max_tokens,
                     self.sample_seed,
+                    allow_research,
                 );
             }
             Err(error) => return Err(error.into()),
@@ -316,11 +340,13 @@ impl ChatEngineBuilder {
             "transformerless chat engine loaded"
         );
         let policy_engine = load_chat_policy_engine(
+            &model_dir,
             r4g1_bytes.as_deref(),
             &artifact_bytes,
             &tokenizer_bytes,
             read_chat_score_report(&model_dir).as_deref(),
-        );
+            allow_research,
+        )?;
         Ok(ChatEngine {
             artifacts,
             store,
@@ -330,8 +356,25 @@ impl ChatEngineBuilder {
             history_len: 0,
             max_tokens: self.max_tokens,
             sample_rng: self.sample_seed.map(SampleRng::new),
-            policy_engine,
+            policy_engine: policy_engine.engine,
         })
+    }
+}
+
+/// Typed evidence that a caller explicitly selected the non-production
+/// compatibility path. This is a warning, not an admission token.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ResearchServingWarning {
+    PreSchema2Compatibility,
+}
+
+impl std::fmt::Display for ResearchServingWarning {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::PreSchema2Compatibility => formatter.write_str(
+                "RESEARCH ONLY: pre-schema-2 bundle loading was explicitly enabled; this engine is not production-admitted",
+            ),
+        }
     }
 }
 
@@ -345,20 +388,171 @@ fn read_chat_score_report(model_dir: &std::path::Path) -> Option<Vec<u8>> {
     Some(bytes)
 }
 
-/// #811: build the deployed D4 policy engine over the same bundle bytes
-/// the CLI graph walk decodes from, so `ask`/`chat` share the server
-/// tier's exact abstention policy — one implementation (`R4Engine`'s
-/// serve / widen-once / abstain path, novel-seen FIFO included), never
-/// a re-derivation. `None` (with a loud warn) when the engine cannot
-/// load these bytes: the walk then runs ungated, exactly the pre-#811
-/// behavior — and since the serving tier would refuse the same bundle,
-/// the warn names a real bundle divergence rather than silencing one.
+struct LoadedChatPolicyEngine {
+    engine: Option<ChatPolicyEngine>,
+    production_admitted: bool,
+}
+
+enum ChatPolicyEngine {
+    Production(uor_r4_api::ProductionPolicyEngine),
+    Research(uor_r4_api::engine::R4Engine),
+}
+
+impl ChatPolicyEngine {
+    #[cfg(test)]
+    fn policy_counters(&self) -> uor_r4_api::PolicyCounters {
+        match self {
+            Self::Production(policy) => policy.policy_counters(),
+            Self::Research(policy) => policy.policy_counters(),
+        }
+    }
+}
+
+/// Load the D4 half of the shared serving adapter. Any present release
+/// envelope is authoritative: all schema-2 bytes and the deployed-quality
+/// report must reproduce before chat can construct. Pre-schema-2 bundles use
+/// the explicitly named, loudly warned research compatibility path.
 fn load_chat_policy_engine(
+    model_dir: &std::path::Path,
     r4g1_bytes: Option<&[u8]>,
     artifact_bytes: &[u8],
     tokenizer_bytes: &[u8],
     score_report: Option<&[u8]>,
-) -> Option<uor_r4_api::engine::R4Engine> {
+    allow_research: bool,
+) -> Result<LoadedChatPolicyEngine, ChatError> {
+    let release_manifest =
+        model_dir.join(crate::release_bundle_loader::RELEASE_BUNDLE_SIDECAR_FILE_NAME);
+    let has_release_envelope = match std::fs::symlink_metadata(&release_manifest) {
+        Ok(_) => true,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => false,
+        Err(error) => return Err(ChatError::Io(error)),
+    };
+    if !has_release_envelope {
+        if !allow_research {
+            return Err(ChatError::ProductionAdmission(format!(
+                "{} has no release-bundle.json schema-2 production envelope; rerun with the explicit research compatibility option only for non-production investigation",
+                model_dir.display()
+            )));
+        }
+        tracing::warn!(
+            directory = %model_dir.display(),
+            "release-bundle.json is absent; chat is using the explicit pre-schema-2 research compatibility loader and is not production-admitted"
+        );
+        return Ok(LoadedChatPolicyEngine {
+            engine: load_research_chat_policy_engine(
+                r4g1_bytes,
+                artifact_bytes,
+                tokenizer_bytes,
+                score_report,
+            ),
+            production_admitted: false,
+        });
+    }
+
+    let graph = r4g1_bytes.ok_or_else(|| {
+        ChatError::ProductionAdmission(
+            "release-bundle.json is present but graph/score.r4g1 is unavailable".to_owned(),
+        )
+    })?;
+    let graph_path = model_dir.join("graph/score.r4g1");
+    let signature_artifact_path = model_dir.join("tless_artifacts.bin");
+    crate::release_bundle_loader::production_bundle_root(&graph_path, &signature_artifact_path)
+        .map_err(ChatError::ProductionAdmission)?;
+    require_exact_production_chat_file(&graph_path, graph)?;
+    require_exact_production_chat_file(&signature_artifact_path, artifact_bytes)?;
+    require_exact_production_chat_file(&model_dir.join("tokenizer.bin"), tokenizer_bytes)?;
+    let captured = crate::release_bundle_loader::capture_production_admission(model_dir)
+        .map_err(ChatError::ProductionAdmission)?;
+    let verified = crate::release_bundle_loader::verify_production_admission(
+        graph,
+        artifact_bytes,
+        Some(tokenizer_bytes),
+        &captured,
+    )
+    .map_err(ChatError::ProductionAdmission)?;
+    if uor_r4_graph_certify::GraphScorer::from_artifact(
+        graph,
+        Some(artifact_bytes),
+        uor_r4_graph_certify::DEFAULT_ROOT_TOP_B,
+        uor_r4_graph_certify::DEFAULT_EXCT_TOP_X,
+    )
+    .is_none()
+    {
+        return Err(ChatError::ProductionAdmission(
+            "the deployed scorer does not rebuild from the schema-2 graph".to_owned(),
+        ));
+    }
+    let report_cid = verified
+        .manifest()
+        .components
+        .deployed_quality_report
+        .as_deref()
+        .ok_or_else(|| {
+            ChatError::ProductionAdmission(
+                "schema-2 release manifest omitted deployed-quality report CID".to_owned(),
+            )
+        })?;
+    let engine = uor_r4_api::load_production_policy_engine(uor_r4_api::ProductionServingParts {
+        engine: uor_r4_api::engine::EngineParts {
+            graph,
+            signature_artifact: artifact_bytes,
+            tokenizer: Some(tokenizer_bytes),
+            score_report: Some(&captured.score_report),
+        },
+        deployed_quality_report: &verified.deployed_quality_report,
+        verified_envelope: &verified.envelope,
+    })
+    .map_err(|error| ChatError::ProductionAdmission(error.to_string()))?;
+    tracing::info!(
+        directory = %model_dir.display(),
+        report_cid,
+        "chat admitted the exact schema-2 production envelope"
+    );
+    Ok(LoadedChatPolicyEngine {
+        engine: Some(ChatPolicyEngine::Production(engine)),
+        production_admitted: true,
+    })
+}
+
+fn require_exact_production_chat_file(
+    path: &std::path::Path,
+    selected_bytes: &[u8],
+) -> Result<(), ChatError> {
+    let metadata = std::fs::symlink_metadata(path).map_err(|error| {
+        ChatError::ProductionAdmission(format!(
+            "required production component {}: {error}",
+            path.display()
+        ))
+    })?;
+    if !metadata.file_type().is_file() {
+        return Err(ChatError::ProductionAdmission(format!(
+            "required production component {} is not a regular non-symlink file",
+            path.display()
+        )));
+    }
+    let bytes = std::fs::read(path).map_err(|error| {
+        ChatError::ProductionAdmission(format!(
+            "required production component {}: {error}",
+            path.display()
+        ))
+    })?;
+    if bytes != selected_bytes {
+        return Err(ChatError::ProductionAdmission(format!(
+            "selected chat bytes do not equal required production component {}",
+            path.display()
+        )));
+    }
+    Ok(())
+}
+
+/// Explicit compatibility loader for legacy/synthetic research inputs. It
+/// never claims schema-2 production admission and may return no gate.
+fn load_research_chat_policy_engine(
+    r4g1_bytes: Option<&[u8]>,
+    artifact_bytes: &[u8],
+    tokenizer_bytes: &[u8],
+    score_report: Option<&[u8]>,
+) -> Option<ChatPolicyEngine> {
     let graph = r4g1_bytes?;
     // The deployed scorer itself must accept these bytes first: the
     // engine's own load treats a scorer-rebuild refusal on CID-verified
@@ -382,19 +576,15 @@ fn load_chat_policy_engine(
         );
         return None;
     }
-    // `load_accepting_quality`, not `load`: the bundle's recorded
-    // quality verdict is a SERVING-admission concern — this chat path
-    // has already decided (with its own recorded warning) to decode the
-    // bundle, and the D4 policy is well-defined regardless of that
-    // verdict. The report still supplies the status-policy override and
-    // scorer widths exactly as it does for serving.
+    // This bypass is confined to the loudly named research path above. A
+    // present schema-2 envelope never reaches it.
     match uor_r4_api::engine::R4Engine::load_accepting_quality(uor_r4_api::engine::EngineParts {
         graph,
         signature_artifact: artifact_bytes,
         tokenizer: Some(tokenizer_bytes),
         score_report,
     }) {
-        Ok(engine) => Some(engine),
+        Ok(engine) => Some(ChatPolicyEngine::Research(engine)),
         Err(error) => {
             tracing::warn!(
                 %error,
@@ -413,6 +603,7 @@ fn build_local_compiled_engine(
     reference: &str,
     max_tokens: usize,
     sample_seed: Option<u32>,
+    allow_research: bool,
 ) -> Result<ChatEngine, ChatError> {
     // #839 phase 1 (RF-30), spec §6: present selective-calibration data
     // fails closed before the engine constructs — never a legacy serve.
@@ -465,20 +656,33 @@ fn build_local_compiled_engine(
     };
     let tokenizer_object = model_store.put(&tokenizer_bytes)?;
     let tokenizer = parse_chat_tokenizer(&tokenizer_bytes)?;
-    tracing::warn!(
-        model = reference,
-        directory = %directory.display(),
-        artifact_cid = %artifact_object.cid,
-        store_cid = %store_cid,
-        tokenizer_cid = %tokenizer_object.cid,
-        "using a locally compiled bundle without an instruction-quality attestation"
-    );
     let policy_engine = load_chat_policy_engine(
+        directory,
         r4g1_bytes.as_deref(),
         &artifact_bytes,
         &tokenizer_bytes,
         read_chat_score_report(directory).as_deref(),
-    );
+        allow_research,
+    )?;
+    if policy_engine.production_admitted {
+        tracing::info!(
+            model = reference,
+            directory = %directory.display(),
+            artifact_cid = %artifact_object.cid,
+            store_cid = %store_cid,
+            tokenizer_cid = %tokenizer_object.cid,
+            "using a production-admitted locally compiled bundle"
+        );
+    } else {
+        tracing::warn!(
+            model = reference,
+            directory = %directory.display(),
+            artifact_cid = %artifact_object.cid,
+            store_cid = %store_cid,
+            tokenizer_cid = %tokenizer_object.cid,
+            "using a pre-schema-2 local research bundle without production admission"
+        );
+    }
     Ok(ChatEngine {
         artifacts,
         store,
@@ -488,7 +692,7 @@ fn build_local_compiled_engine(
         history_len: 0,
         max_tokens,
         sample_rng: sample_seed.map(SampleRng::new),
-        policy_engine,
+        policy_engine: policy_engine.engine,
     })
 }
 
@@ -513,7 +717,7 @@ pub struct ChatEngine {
     /// bookkeeping, novel-seen FIFO), like the server tier's own engine.
     /// `None` only when the bundle has no graph or the engine refused
     /// the bytes (loudly warned at build).
-    policy_engine: Option<uor_r4_api::engine::R4Engine>,
+    policy_engine: Option<ChatPolicyEngine>,
 }
 
 impl ChatEngine {
@@ -542,39 +746,189 @@ impl ChatEngine {
     }
 }
 
-/// #811: one D4 gate decision for the window about to be decoded. The
-/// deployed policy engine decides serve / widen-once / abstain exactly
-/// as the server tier does; the walk's own candidate selection is
-/// untouched on Serve, so served output stays byte-identical to the
-/// ungated walk. An out-of-vocabulary window (a bounds edge the walk
-/// itself tolerates) serves ungated with a warn rather than turning a
-/// previously-answerable prompt into an error.
-fn d4_gate(
-    policy_engine: &mut Option<&mut uor_r4_api::engine::R4Engine>,
-    window: &[u32],
-) -> Option<ChatAbstention> {
-    use uor_r4_api::engine::{PolicyStatus, PredictDecision};
-    let engine = policy_engine.as_deref_mut()?;
-    match engine.predict_decision(window) {
-        Ok(PredictDecision::Serve(_)) => None,
-        Ok(PredictDecision::Abstain(outcome)) => {
-            let label = PolicyStatus::from(outcome.status).label();
-            Some(ChatAbstention {
-                status: label.to_owned(),
-                widened: outcome.widened,
-                outcome: crate::selective::STATUS_ABSTENTION,
-                cause: crate::selective::CAUSE_DISTRIBUTIONALLY_NOVEL,
-                coverage: crate::selective::coverage_for_policy_label(label)
-                    .unwrap_or(crate::selective::COVERAGE_DISTRIBUTIONALLY_NOVEL),
-            })
+/// One CLI-chat call into the shared token-authoritative adapter. A missing
+/// policy object remains an explicit research-era fallback; a present policy
+/// must compose successfully and may never be bypassed on an error.
+fn normative_chat_step(
+    policy_engine: &mut Option<&mut ChatPolicyEngine>,
+    runtime: &R4G1Runtime<'_>,
+    node_scores: &mut [ScoreQ],
+    context_tokens: &[u32],
+    session_signature: Option<&[u8]>,
+) -> Result<Option<NormativeServingDecision>, ChatError> {
+    let Some(policy) = policy_engine.as_deref_mut() else {
+        return Ok(None);
+    };
+    let mut adapter = match policy {
+        ChatPolicyEngine::Production(policy) => {
+            NormativeStepAdapter::new(policy, runtime, node_scores)
         }
-        Err(bound) => {
-            tracing::warn!(
-                %bound,
-                "D4 gate skipped an out-of-vocabulary window (#811); this step serves ungated"
-            );
-            None
+        ChatPolicyEngine::Research(policy) => {
+            NormativeStepAdapter::new_with_reference_policy(policy, runtime, node_scores)
         }
+    };
+    adapter
+        .select(context_tokens, session_signature)
+        .map(Some)
+        .map_err(|error| {
+            ChatError::Io(std::io::Error::other(format!(
+                "normative CLI-chat step rejected the context: {error}"
+            )))
+        })
+}
+
+/// Speculatively execute the same composed D4 + `R4G1Runtime` step without
+/// retaining D4 counters or widen-once memory. Beam hypotheses use this seam;
+/// the winning path is subsequently committed through [`normative_chat_step`]
+/// before any token is exposed to the caller.
+fn replay_normative_chat_step(
+    policy_engine: &mut Option<&mut ChatPolicyEngine>,
+    runtime: &R4G1Runtime<'_>,
+    node_scores: &mut [ScoreQ],
+    context_tokens: &[u32],
+    session_signature: Option<&[u8]>,
+) -> Result<Option<NormativeServingDecision>, ChatError> {
+    let Some(policy) = policy_engine.as_deref_mut() else {
+        return Ok(None);
+    };
+    let mut adapter = match policy {
+        ChatPolicyEngine::Production(policy) => {
+            NormativeStepAdapter::new(policy, runtime, node_scores)
+        }
+        ChatPolicyEngine::Research(policy) => {
+            NormativeStepAdapter::new_with_reference_policy(policy, runtime, node_scores)
+        }
+    };
+    adapter
+        .replay_select(context_tokens, session_signature)
+        .map(Some)
+        .map_err(|error| {
+            ChatError::Io(std::io::Error::other(format!(
+                "normative CLI-chat beam replay rejected the context: {error}"
+            )))
+        })
+}
+
+/// Commit one deterministic beam prefix through the stateful production
+/// adapter. Each selected token must still belong to that step's
+/// runtime-owned shortlist. This runs only for the winning prefix (including
+/// the best prefix at a terminal abstention), never for losing hypotheses.
+fn commit_normative_chat_beam_prefix(
+    policy_engine: &mut Option<&mut ChatPolicyEngine>,
+    runtime: &R4G1Runtime<'_>,
+    node_scores: &mut [ScoreQ],
+    committed_context: &mut Vec<u32>,
+    selected_tokens: &[u32],
+    session_signature: Option<&[u8]>,
+) -> Result<(), ChatError> {
+    for &selected_token in selected_tokens {
+        match normative_chat_step(
+            policy_engine,
+            runtime,
+            node_scores,
+            committed_context,
+            session_signature,
+        )? {
+            Some(NormativeServingDecision::Serve(serve))
+                if serve
+                    .candidates
+                    .ranked()
+                    .iter()
+                    .any(|candidate| candidate.token == selected_token) => {}
+            Some(NormativeServingDecision::Serve(_)) => {
+                return Err(ChatError::Io(std::io::Error::other(
+                    "CLI beam selected a token outside the normative R4G1Runtime shortlist",
+                )));
+            }
+            Some(NormativeServingDecision::Abstain(_)) => {
+                return Err(ChatError::Io(std::io::Error::other(
+                    "CLI beam replay/commit diverged before the selected prefix ended",
+                )));
+            }
+            Some(NormativeServingDecision::Decline(_)) => {
+                return Err(ChatError::Io(std::io::Error::other(
+                    "D4 permitted CLI beam but R4G1Runtime produced no candidate",
+                )));
+            }
+            None => {
+                return Err(ChatError::Io(std::io::Error::other(
+                    "CLI beam lost its production policy adapter before commit",
+                )));
+            }
+        }
+        committed_context.push(selected_token);
+    }
+    Ok(())
+}
+
+/// Evidence-only replay of the exact shared production step used by CLI
+/// chat. This is not a serving entry point: it accepts already-tokenized,
+/// bounded context solely so the canonical cross-surface producer can
+/// mechanically execute the same `normative_chat_step` for beam-first and
+/// sampled policies without claiming that it exercised prompt tokenization,
+/// terminal I/O, HTTP routing, or a browser wrapper. Tokenizer bytes are still
+/// required to authenticate a nonzero `HEAD.tokenizer_cid`; this helper does
+/// not use them to encode the already-tokenized context.
+pub(crate) fn replayable_normative_chat_step_for_evidence(
+    graph: &[u8],
+    signature_artifact: &[u8],
+    tokenizer: Option<&[u8]>,
+    score_report: Option<&[u8]>,
+    context_tokens: &[u32],
+    session_signature: &[u8],
+    sample_seed: Option<u32>,
+) -> Result<(u32, uor_r4_graph_runtime::ServedCandidates), String> {
+    let runtime = R4G1Runtime::parse(graph)
+        .map_err(|error| format!("cross-surface CLI-chat graph: {error:?}"))?;
+    let mut node_scores = vec![ScoreQ::MIN; runtime.node_count() as usize];
+    let policy =
+        uor_r4_api::engine::R4Engine::load_accepting_quality(uor_r4_api::engine::EngineParts {
+            graph,
+            signature_artifact,
+            tokenizer,
+            score_report,
+        })
+        .map_err(|error| error.to_string())?;
+    let mut policy = ChatPolicyEngine::Research(policy);
+    let mut policy_ref = Some(&mut policy);
+    let decision = normative_chat_step(
+        &mut policy_ref,
+        &runtime,
+        &mut node_scores,
+        context_tokens,
+        Some(session_signature),
+    )
+    .map_err(|error| error.to_string())?
+    .ok_or_else(|| "cross-surface CLI-chat policy adapter is absent".to_owned())?;
+    match decision {
+        NormativeServingDecision::Serve(serve) => {
+            let token = match sample_seed {
+                Some(seed) => {
+                    let mut rng = SampleRng::new(seed);
+                    serve.select_sampled_token(&[], &mut rng)
+                }
+                None => serve.token,
+            };
+            Ok((token, serve.candidates))
+        }
+        NormativeServingDecision::Abstain(_) => {
+            Err("cross-surface CLI-chat position abstained".to_owned())
+        }
+        NormativeServingDecision::Decline(_) => {
+            Err("cross-surface CLI-chat position declined".to_owned())
+        }
+    }
+}
+
+fn chat_abstention(outcome: uor_r4_api::engine::AbstainOutcome) -> ChatAbstention {
+    let label = uor_r4_api::engine::PolicyStatus::from(outcome.status).label();
+    ChatAbstention {
+        status: label.to_owned(),
+        widened: outcome.widened,
+        outcome: crate::selective::STATUS_ABSTENTION,
+        cause: crate::selective::CAUSE_DISTRIBUTIONALLY_NOVEL,
+        coverage: crate::selective::coverage_for_policy_label(label)
+            .unwrap_or(crate::selective::COVERAGE_DISTRIBUTIONALLY_NOVEL),
     }
 }
 
@@ -619,7 +973,7 @@ fn hologram_answer(
     question: &str,
     max_tokens: usize,
     mut sample_rng: Option<&mut SampleRng>,
-    mut policy_engine: Option<&mut uor_r4_api::engine::R4Engine>,
+    mut policy_engine: Option<&mut ChatPolicyEngine>,
 ) -> Result<ChatAnswer, ChatError> {
     ensure_chat_prompt_encoder(tokenizer)?;
     let mut question_tokens = [0u32; MAX_CHAT_HISTORY];
@@ -669,68 +1023,64 @@ fn hologram_answer(
                     let mut node_path_queries = 0usize;
                     let steps = max_tokens.min(MAX_CHAT_TOKENS);
                     for _ in 0..steps {
-                        for slot in node_scores.iter_mut() {
-                            *slot = ScoreQ::MIN;
-                        }
                         let mut context = history[..*history_len].to_vec();
                         context.extend_from_slice(&generated);
                         let len = core::cmp::min(context.len(), compiler::WINDOW);
                         let window = &context[context.len() - len..];
-                        // #811: the same per-step D4 decision the server
-                        // tier makes, BEFORE this step's candidate query.
-                        // On an abstention the tokens generated so far are
-                        // dropped, never served (the server contract).
-                        if let Some(abstention) = d4_gate(&mut policy_engine, window) {
-                            return Ok(abstention_answer(
-                                "r4g1-sampled",
-                                non_node_queries,
-                                node_path_queries,
-                                abstention,
-                            ));
-                        }
-                        let bundle = runtime::bundle_window_plain(artifacts, &rot, window);
-                        let sig = runtime::sig_plain(artifacts, &bundle);
-                        let mut cands = [(0u32, ScoreQ::ZERO); 8];
-                        let count = r4g1.predict_candidates_with_signature_lanes(
-                            &context,
-                            Some(&sig),
-                            Some(&session_signature),
+                        let (candidates, fallback_token) = match normative_chat_step(
+                            &mut policy_engine,
+                            &r4g1,
                             &mut node_scores,
-                            &mut cands,
-                        );
+                            &context,
+                            Some(&session_signature),
+                        )? {
+                            Some(NormativeServingDecision::Serve(serve)) => {
+                                (serve.candidates, serve.token)
+                            }
+                            Some(NormativeServingDecision::Abstain(outcome)) => {
+                                return Ok(abstention_answer(
+                                    "r4g1-sampled",
+                                    non_node_queries,
+                                    node_path_queries,
+                                    chat_abstention(outcome),
+                                ));
+                            }
+                            Some(NormativeServingDecision::Decline(_)) => {
+                                return Err(ChatError::Io(std::io::Error::other(
+                                    "D4 permitted CLI chat but R4G1Runtime produced no candidate",
+                                )));
+                            }
+                            None => {
+                                // Explicit research-era fallback: there is no
+                                // D4 object to compose, but candidates still
+                                // come only from the normative runtime.
+                                node_scores.fill(ScoreQ::MIN);
+                                let bundle = runtime::bundle_window_plain(artifacts, &rot, window);
+                                let sig = runtime::sig_plain(artifacts, &bundle);
+                                let candidates = r4g1
+                                    .predict_served_candidates_with_signature_lanes(
+                                        &context,
+                                        Some(&sig),
+                                        Some(&session_signature),
+                                        &mut node_scores,
+                                    );
+                                let Some(winner) = candidates.winner() else {
+                                    break;
+                                };
+                                (candidates, winner.token)
+                            }
+                        };
                         if node_scores.iter().all(|s| s.raw() == ScoreQ::MIN.raw()) {
                             non_node_queries += 1;
                         } else {
                             node_path_queries += 1;
                         }
-                        if count == 0 {
-                            break;
-                        }
-                        let min_raw = cands[..count]
-                            .iter()
-                            .map(|&(_, score)| score.raw() as i64)
-                            .min()
-                            .unwrap_or(0);
-                        let mut weights = [0u32; 8];
-                        let mut total = 0u32;
-                        for (i, &(token, score)) in cands[..count].iter().enumerate() {
-                            let occurrences =
-                                generated.iter().filter(|&&t| t == token).count() as i64;
-                            let mut weight = score.raw() as i64 - min_raw + 1;
-                            weight -= (occurrences << 10) - (occurrences << 4) - (occurrences << 3);
-                            weights[i] = weight.clamp(1, i64::from(u32::MAX)) as u32;
-                            total = total.saturating_add(weights[i]);
-                        }
-                        let draw = rng.draw(total);
-                        let mut accumulated = 0u32;
-                        let mut chosen = cands[0].0;
-                        for (i, &(token, _)) in cands[..count].iter().enumerate() {
-                            accumulated = accumulated.saturating_add(weights[i]);
-                            if draw < accumulated {
-                                chosen = token;
-                                break;
-                            }
-                        }
+                        let chosen = uor_r4_api::select_sampled_runtime_candidate(
+                            &candidates,
+                            &generated,
+                            fallback_token,
+                            rng,
+                        );
                         if chosen == 0 || chosen == 2 {
                             // End-of-sequence: stop without emitting the
                             // terminal token into the visible answer.
@@ -776,19 +1126,6 @@ fn hologram_answer(
                     });
                 }
 
-                // #811: the greedy beam gets the D4 gate at the question
-                // boundary — its per-hypothesis windows are speculative
-                // and would pollute the policy's widen-once bookkeeping,
-                // so per-step gating belongs to the single-trajectory
-                // default (sampled) path above. An abstaining question
-                // context never reaches the beam. Recorded limitation:
-                // mid-generation windows of the opt-in beam are ungated.
-                let question_len = core::cmp::min(*history_len, compiler::WINDOW);
-                let question_window = history[*history_len - question_len..*history_len].to_vec();
-                if let Some(abstention) = d4_gate(&mut policy_engine, &question_window) {
-                    return Ok(abstention_answer("r4g1-beam", 0, 0, abstention));
-                }
-
                 struct BeamHypothesis {
                     tokens: Vec<u32>,
                     score: i32,
@@ -813,6 +1150,7 @@ fn hologram_answer(
                 for _ in 0..steps {
                     let mut all_candidates = Vec::new();
                     let mut any_active = false;
+                    let mut replayed_abstention = None;
 
                     for beam in &beams {
                         if beam.terminated {
@@ -828,37 +1166,57 @@ fn hologram_answer(
                         let mut beam_history = history[..*history_len].to_vec();
                         beam_history.extend_from_slice(&beam.tokens);
 
-                        let len = core::cmp::min(beam_history.len(), compiler::WINDOW);
-                        let window = &beam_history[beam_history.len() - len..];
-                        let bundle = runtime::bundle_window_plain(artifacts, &rot, window);
-                        let sig = runtime::sig_plain(artifacts, &bundle);
-
-                        // #785 C1: reset the per-step node-score buffer so one
-                        // beam's active-node evidence never leaks into another
-                        // beam or a later step (the engine only ever raises
-                        // entries within a single call).
-                        for slot in node_scores.iter_mut() {
-                            *slot = uor_r4_core::transformerless::score_q::ScoreQ::MIN;
-                        }
-                        let mut cands =
-                            [(0u32, uor_r4_core::transformerless::score_q::ScoreQ::ZERO); 8];
-                        let num_cands = r4g1.predict_candidates_with_signature_lanes(
-                            &beam_history,
-                            Some(&sig),
-                            Some(&session_signature),
+                        let candidates = match replay_normative_chat_step(
+                            &mut policy_engine,
+                            &r4g1,
                             &mut node_scores,
-                            &mut cands,
-                        );
+                            &beam_history,
+                            Some(&session_signature),
+                        )? {
+                            Some(NormativeServingDecision::Serve(serve)) => serve.candidates,
+                            Some(NormativeServingDecision::Abstain(outcome)) => {
+                                replayed_abstention
+                                    .get_or_insert_with(|| (outcome, beam.tokens.clone()));
+                                continue;
+                            }
+                            Some(NormativeServingDecision::Decline(_)) => {
+                                return Err(ChatError::Io(std::io::Error::other(
+                                    "D4 permitted CLI beam but R4G1Runtime produced no candidate",
+                                )));
+                            }
+                            None => {
+                                // Explicit research-era fallback: candidate
+                                // authority remains the normative runtime,
+                                // but no D4 object exists to replay or commit.
+                                let len = core::cmp::min(beam_history.len(), compiler::WINDOW);
+                                let window = &beam_history[beam_history.len() - len..];
+                                let bundle = runtime::bundle_window_plain(artifacts, &rot, window);
+                                let sig = runtime::sig_plain(artifacts, &bundle);
 
-                        if node_scores.iter().all(|s| {
-                            s.raw() == uor_r4_core::transformerless::score_q::ScoreQ::MIN.raw()
-                        }) {
+                                // #785 C1: reset per-query scratch so one
+                                // beam's evidence never leaks into another.
+                                node_scores.fill(ScoreQ::MIN);
+                                r4g1.predict_served_candidates_with_signature_lanes(
+                                    &beam_history,
+                                    Some(&sig),
+                                    Some(&session_signature),
+                                    &mut node_scores,
+                                )
+                            }
+                        };
+
+                        if node_scores
+                            .iter()
+                            .all(|score| score.raw() == ScoreQ::MIN.raw())
+                        {
                             non_node_queries += 1;
                         } else {
                             node_path_queries += 1;
                         }
 
-                        for &(cand_tok, cand_score) in &cands[..num_cands] {
+                        for candidate in candidates.ranked() {
+                            let cand_tok = candidate.token;
+                            let cand_score = candidate.score;
                             let is_eos = cand_tok == 0 || cand_tok == 2;
                             let mut new_tokens = beam.tokens.clone();
 
@@ -890,7 +1248,53 @@ fn hologram_answer(
                         }
                     }
 
-                    if !any_active || all_candidates.is_empty() {
+                    if !any_active {
+                        break;
+                    }
+                    if all_candidates.is_empty() {
+                        if let Some((mut outcome, blocked_prefix)) = replayed_abstention {
+                            if policy_engine.is_some() {
+                                let mut committed_context = history[..*history_len].to_vec();
+                                commit_normative_chat_beam_prefix(
+                                    &mut policy_engine,
+                                    &r4g1,
+                                    &mut node_scores,
+                                    &mut committed_context,
+                                    &blocked_prefix,
+                                    Some(&session_signature),
+                                )?;
+                                outcome = match normative_chat_step(
+                                    &mut policy_engine,
+                                    &r4g1,
+                                    &mut node_scores,
+                                    &committed_context,
+                                    Some(&session_signature),
+                                )? {
+                                    Some(NormativeServingDecision::Abstain(committed)) => committed,
+                                    Some(NormativeServingDecision::Serve(_)) => {
+                                        return Err(ChatError::Io(std::io::Error::other(
+                                            "CLI beam replay/commit diverged at its terminal abstention",
+                                        )));
+                                    }
+                                    Some(NormativeServingDecision::Decline(_)) => {
+                                        return Err(ChatError::Io(std::io::Error::other(
+                                            "D4 permitted CLI beam but R4G1Runtime produced no candidate",
+                                        )));
+                                    }
+                                    None => {
+                                        return Err(ChatError::Io(std::io::Error::other(
+                                            "CLI beam lost its production policy adapter before abstention commit",
+                                        )));
+                                    }
+                                };
+                            }
+                            return Ok(abstention_answer(
+                                "r4g1-beam",
+                                non_node_queries,
+                                node_path_queries,
+                                chat_abstention(outcome),
+                            ));
+                        }
                         break;
                     }
 
@@ -910,6 +1314,22 @@ fn hologram_answer(
 
                 let generated_tokens_buf = best_beam.tokens;
                 let generated = generated_tokens_buf.as_slice();
+
+                // Speculation above retained no D4 semantic state. Commit the
+                // exact winning path now, and prove each beam-selected token
+                // belonged to that step's runtime-owned shortlist before any
+                // output reaches history or the caller.
+                if policy_engine.is_some() {
+                    let mut committed_context = history[..*history_len].to_vec();
+                    commit_normative_chat_beam_prefix(
+                        &mut policy_engine,
+                        &r4g1,
+                        &mut node_scores,
+                        &mut committed_context,
+                        generated,
+                        Some(&session_signature),
+                    )?;
+                }
                 append_history(history, history_len, generated);
                 if generated.is_empty() {
                     return Err(ChatError::EmptyGeneration);
@@ -2355,10 +2775,22 @@ pub fn remote_interactive_chat(
                         }
                     } else {
                         let corpus_options = [
-                            ("1. List Indexed Files", "View reading corpus datasets indexed on server"),
-                            ("2. Import Local File", "Browse and select local text file to index into manifold"),
-                            ("3. Paste Plain Text", "Paste raw text content to index into geometric manifold hashes"),
-                            ("4. Export Manifold", "Export manifold state to .uor-models/exported/exported_manifold.json"),
+                            (
+                                "1. List Indexed Files",
+                                "View reading corpus datasets indexed on server",
+                            ),
+                            (
+                                "2. Import Local File",
+                                "Browse and select local text file to index into manifold",
+                            ),
+                            (
+                                "3. Paste Plain Text",
+                                "Paste raw text content to index into geometric manifold hashes",
+                            ),
+                            (
+                                "4. Export Manifold",
+                                "Export manifold state to .uor-models/exported/exported_manifold.json",
+                            ),
                         ];
                         if let Ok(Some(opt_idx)) = select_menu_interactive(
                             "R⁴ Corpus & Geometric Manifold Management:",
@@ -2670,15 +3102,49 @@ pub fn remote_interactive_chat(
                                 "\n\x1b[1mR⁴ Sub-Millisecond R4G1 Compilation Pipeline Status ({})\x1b[0m",
                                 model_name
                             )?;
-                            writeln!(output, "┌───────┬───────────────────────────────────┬────────┬──────────────────────────────────────────────┐")?;
-                            writeln!(output, "│ Stage │ Description                       │ Status │ Target Artifact / Location                   │")?;
-                            writeln!(output, "├───────┼───────────────────────────────────┼────────┼──────────────────────────────────────────────┤")?;
-                            writeln!(output, "│   1   │ Pinned Teacher Source Download    │  {:^5} │ .uor-models/sources/{:<25} │", mark(s1), model_name)?;
-                            writeln!(output, "│   2   │ Transformerless Bundle Compile    │  {:^5} │ .uor-models/compiled/{:<24} │", mark(s2), model_name)?;
-                            writeln!(output, "│   3   │ Scored R4G1 Graph Cover & Score   │  {:^5} │ .../{:<35} │", mark(s3), format!("{}/graph/score.r4g1", model_name))?;
-                            writeln!(output, "│   4   │ Sub-ms Zero-Multiply Engine       │  {:^5} │ Active (R4G1 Scored Graph Runtime)           │", mark(s4))?;
-                            writeln!(output, "└───────┴───────────────────────────────────┴────────┴──────────────────────────────────────────────┘")?;
-                            writeln!(output, "Target Performance Goal: < 1.0 ms / token (Zero-Multiply Table-Native Kernel)\n")?;
+                            writeln!(
+                                output,
+                                "┌───────┬───────────────────────────────────┬────────┬──────────────────────────────────────────────┐"
+                            )?;
+                            writeln!(
+                                output,
+                                "│ Stage │ Description                       │ Status │ Target Artifact / Location                   │"
+                            )?;
+                            writeln!(
+                                output,
+                                "├───────┼───────────────────────────────────┼────────┼──────────────────────────────────────────────┤"
+                            )?;
+                            writeln!(
+                                output,
+                                "│   1   │ Pinned Teacher Source Download    │  {:^5} │ .uor-models/sources/{:<25} │",
+                                mark(s1),
+                                model_name
+                            )?;
+                            writeln!(
+                                output,
+                                "│   2   │ Transformerless Bundle Compile    │  {:^5} │ .uor-models/compiled/{:<24} │",
+                                mark(s2),
+                                model_name
+                            )?;
+                            writeln!(
+                                output,
+                                "│   3   │ Scored R4G1 Graph Cover & Score   │  {:^5} │ .../{:<35} │",
+                                mark(s3),
+                                format!("{}/graph/score.r4g1", model_name)
+                            )?;
+                            writeln!(
+                                output,
+                                "│   4   │ Sub-ms Zero-Multiply Engine       │  {:^5} │ Active (R4G1 Scored Graph Runtime)           │",
+                                mark(s4)
+                            )?;
+                            writeln!(
+                                output,
+                                "└───────┴───────────────────────────────────┴────────┴──────────────────────────────────────────────┘"
+                            )?;
+                            writeln!(
+                                output,
+                                "Target Performance Goal: < 1.0 ms / token (Zero-Multiply Table-Native Kernel)\n"
+                            )?;
                         }
                         Err(e) => {
                             writeln!(output, "[!] Error fetching pipeline status: {}\n", e)?;
@@ -3228,7 +3694,7 @@ fn render_audit_trace_record(
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::{
         bind_chat_r4g1, engine_from_bytes_with_r4g1, ensure_chat_prompt_encoder, parse_remote_url,
         recent_window_repetition_rate, repeated_suffix, select_chat_tokenizer_bytes, ChatError,
@@ -3396,8 +3862,23 @@ mod tests {
         std::fs::write(dir.join("graph").join("score.r4g1"), &graph).unwrap();
 
         let model_store = crate::model::ModelStore::new(root.join("store-root"));
-        let engine = super::build_local_compiled_engine(&model_store, &dir, "c1e-modern", 8, None)
-            .expect("an R4G1-era bundle builds without tless_store.bin");
+        let strict_error = match super::build_local_compiled_engine(
+            &model_store,
+            &dir,
+            "c1e-modern",
+            8,
+            None,
+            false,
+        ) {
+            Err(error) => error,
+            Ok(_) => panic!("a pre-schema-2 bundle must not load without explicit research mode"),
+        };
+        assert!(matches!(strict_error, ChatError::ProductionAdmission(_)));
+        let engine =
+            super::build_local_compiled_engine(&model_store, &dir, "c1e-modern", 8, None, true)
+                .expect(
+                    "an explicitly research-only R4G1-era bundle builds without tless_store.bin",
+                );
         assert_eq!(
             engine.r4g1_bytes.as_deref(),
             Some(graph.as_slice()),
@@ -3408,11 +3889,29 @@ mod tests {
             "the plain fallback store is empty, never fabricated"
         );
 
+        // A presented production envelope is authoritative. It cannot fall
+        // back to the permissive legacy/research loader when incomplete.
+        std::fs::write(dir.join("release-bundle.json"), b"{}\n").unwrap();
+        let error = match super::build_local_compiled_engine(
+            &model_store,
+            &dir,
+            "c1e-modern",
+            8,
+            None,
+            true,
+        ) {
+            Err(error) => error,
+            Ok(_) => panic!("an incomplete schema-2 envelope must fail closed"),
+        };
+        assert!(matches!(error, ChatError::ProductionAdmission(_)));
+        std::fs::remove_file(dir.join("release-bundle.json")).unwrap();
+
         // Falsifier: no store AND no graph — the directory serves nothing
         // and the legacy required-file error returns.
         std::fs::remove_file(dir.join("graph").join("score.r4g1")).unwrap();
         assert!(
-            super::build_local_compiled_engine(&model_store, &dir, "c1e-modern", 8, None).is_err(),
+            super::build_local_compiled_engine(&model_store, &dir, "c1e-modern", 8, None, true,)
+                .is_err(),
             "a store-less, graph-less directory must not build"
         );
 
@@ -3760,8 +4259,11 @@ mod tests {
     /// abstains with a typed outcome on both decode paths, a covered
     /// question serves byte-identically to the ungated engine, and an
     /// engine without a policy engine keeps the pre-#811 behavior.
-    mod d4_gate_tests {
-        use crate::chat::{ChatEngine, SampleRng, MAX_CHAT_HISTORY};
+    pub(crate) mod d4_gate_tests {
+        use crate::chat::{
+            replayable_normative_chat_step_for_evidence, ChatEngine, ChatPolicyEngine, SampleRng,
+            DEFAULT_SAMPLE_SEED, MAX_CHAT_HISTORY,
+        };
         use uor_r4_core::transformerless::compiler::{self, D, K, SIG_BYTES, STAGES};
         use uor_r4_core::transformerless::runtime;
         use uor_r4_core::transformerless::scenarios::Tokenizer;
@@ -3832,7 +4334,7 @@ mod tests {
 
         /// Encode a question exactly as the chat path will (BOS + space
         /// prepended by the encoder itself).
-        fn encode_question(tokenizer: &Tokenizer, question: &str) -> Vec<u32> {
+        pub(crate) fn encode_question(tokenizer: &Tokenizer, question: &str) -> Vec<u32> {
             let mut buffer = [0u32; 16];
             let count = tokenizer
                 .encode_into(question, &mut buffer)
@@ -3857,7 +4359,24 @@ mod tests {
         /// NOVEL question whose encoded window the deployed policy
         /// abstains on. Returns
         /// `(graph, teacher, covered question, novel question)`.
-        fn fixture() -> (Vec<u8>, Vec<u8>, String, String) {
+        pub(crate) fn fixture() -> (Vec<u8>, Vec<u8>, String, String) {
+            fixture_with_lane_shape(false, false)
+        }
+
+        fn fixture_with_extra_lower_ranked_candidate(
+            extra_lower_ranked_candidate: bool,
+        ) -> (Vec<u8>, Vec<u8>, String, String) {
+            fixture_with_lane_shape(extra_lower_ranked_candidate, false)
+        }
+
+        fn fixture_with_psib_partner() -> (Vec<u8>, Vec<u8>, String, String) {
+            fixture_with_lane_shape(false, true)
+        }
+
+        fn fixture_with_lane_shape(
+            extra_lower_ranked_candidate: bool,
+            psib_partner: bool,
+        ) -> (Vec<u8>, Vec<u8>, String, String) {
             let artifacts = synthetic_compiled();
             let teacher = compiler::artifact_bytes(&artifacts);
             let tokenizer =
@@ -3907,12 +4426,31 @@ mod tests {
             // context rows (the canary's own witness: non-node queries);
             // one bigram row keyed on the covered question's last token
             // gives the walk something real to emit.
+            let mut context_entries =
+                vec![(10, ScoreQ::from_raw(900)), (20, ScoreQ::from_raw(400))];
+            if extra_lower_ranked_candidate {
+                context_entries.push((30, ScoreQ::from_raw(100)));
+            }
             let context_rows = [ContextRow {
                 context_len: 1,
                 key0: covered_last,
                 key1: 0,
-                entries: vec![(10, ScoreQ::from_raw(900)), (20, ScoreQ::from_raw(400))],
+                entries: context_entries,
             }];
+            // A runtime-only partner for #933's default-sampled base-bypass
+            // falsifier. Token 50 is absent from every base emission list;
+            // only the normative SKMX/PSIB lane can place it in the shortlist.
+            let (skipmix_rows, psi_bag_rows) = if psib_partner {
+                (
+                    Vec::new(),
+                    vec![(covered_last, vec![(50u32, 1_500_000_000i32)])],
+                )
+            } else {
+                (
+                    vec![(covered_last, covered_last, vec![(50u32, 1_500_000_000i32)])],
+                    Vec::new(),
+                )
+            };
             let store: runtime::Store = (0..=STAGES).map(|_| Default::default()).collect();
             let tls1 = runtime::store_bytes(&store);
             let (graph, _) = score::emit_scored_r4g1(
@@ -3940,8 +4478,8 @@ mod tests {
                     emissions: &emissions,
                     context_rows: &context_rows,
                     fwd_rows: &[],
-                    skipmix_rows: &[],
-                    psi_bag_rows: &[],
+                    skipmix_rows: &skipmix_rows,
+                    psi_bag_rows: &psi_bag_rows,
                     exct_tls1: &tls1,
                     exct_top_x: score::ScoreConfig::default().exct_top_x,
                 },
@@ -3996,7 +4534,56 @@ mod tests {
                 history_len: 0,
                 max_tokens,
                 sample_rng: seed.map(SampleRng::new),
-                policy_engine: gated.then(|| policy_engine(graph, teacher)),
+                policy_engine: gated
+                    .then(|| ChatPolicyEngine::Research(policy_engine(graph, teacher))),
+            }
+        }
+
+        pub(crate) fn r4g1_state(graph: &[u8], teacher: &[u8]) -> crate::r4g1::R4g1State {
+            let captured = crate::r4g1::CapturedR4g1Bundle {
+                graph: graph.to_vec(),
+                signature_artifact: teacher.to_vec(),
+                tokenizer: Some(fixture_tokenizer_bytes()),
+                score_report: None,
+                production_admission: None,
+            };
+            crate::r4g1::R4g1State::load_captured_for_research_with_source(
+                std::path::Path::new("cross-surface/graph/score.r4g1"),
+                std::path::Path::new("cross-surface/tless_artifacts.bin"),
+                &captured,
+                None,
+            )
+            .expect("R4g1State loads the exact cross-surface bytes")
+        }
+
+        fn authoritative_step(
+            graph: &[u8],
+            teacher: &[u8],
+            context: &[u32],
+            session_signature: Option<&[u8]>,
+        ) -> uor_r4_api::NormativeServingDecision {
+            let mut engine =
+                uor_r4_api::NormativeServingEngine::load_for_research(uor_r4_api::EngineParts {
+                    graph,
+                    signature_artifact: teacher,
+                    tokenizer: None,
+                    score_report: None,
+                })
+                .expect("direct API loads the exact cross-surface bytes");
+            engine
+                .predict_with_session_signature(context, session_signature)
+                .expect("covered context is in bounds")
+        }
+
+        fn served(decision: uor_r4_api::NormativeServingDecision) -> uor_r4_api::NormativeServe {
+            match decision {
+                uor_r4_api::NormativeServingDecision::Serve(serve) => serve,
+                uor_r4_api::NormativeServingDecision::Abstain(_) => {
+                    panic!("covered cross-surface context abstained")
+                }
+                uor_r4_api::NormativeServingDecision::Decline(_) => {
+                    panic!("covered cross-surface context declined")
+                }
             }
         }
 
@@ -4055,6 +4642,646 @@ mod tests {
             );
             assert_eq!(gated_answer.witness, ungated_answer.witness);
             assert!(!gated_answer.text.is_empty(), "a real token was served");
+        }
+
+        /// #933 regression: beam width must not turn speculative hypotheses
+        /// into a D4 bypass. The planted covered first context has real
+        /// runtime candidates, while every one-token continuation is Novel
+        /// under the bound policy. A first-step-only gate would return a
+        /// partial multi-token answer; the composed beam must instead prune
+        /// every blocked hypothesis and expose a typed abstention with no
+        /// generated token.
+        #[test]
+        fn beam_replays_d4_at_later_steps_and_never_serves_a_blocked_partial() {
+            let (graph, teacher, covered_question, _) = fixture();
+            let tokenizer =
+                Tokenizer::from_bytes(&fixture_tokenizer_bytes()).expect("fixture tokenizer");
+            let context = encode_question(&tokenizer, &covered_question);
+            let session_signature = uor_r4_router::session_signature_from_tokens(&context);
+            let first = served(authoritative_step(
+                &graph,
+                &teacher,
+                &context,
+                Some(&session_signature),
+            ));
+            assert!(!first.candidates.ranked().is_empty());
+            for candidate in first.candidates.ranked() {
+                let mut extended = context.clone();
+                extended.push(candidate.token);
+                assert!(
+                    matches!(
+                        authoritative_step(&graph, &teacher, &extended, Some(&session_signature),),
+                        uor_r4_api::NormativeServingDecision::Abstain(_)
+                    ),
+                    "fixture candidate {} must exercise the later-step D4 block",
+                    candidate.token
+                );
+            }
+
+            let mut beam = chat_engine(&graph, &teacher, true, None, 8);
+            let answer = beam
+                .ask(&covered_question)
+                .expect("later-step policy block is a typed answer");
+            assert!(answer.abstention.is_some());
+            assert!(answer.text.is_empty());
+            assert_eq!(answer.generated_tokens, 0);
+            assert_eq!(answer.witness.engine, "r4g1-beam");
+            assert_eq!(
+                beam.history_len,
+                context.len(),
+                "no speculative or partially generated token enters chat history"
+            );
+            let beam_counters = beam
+                .policy_engine
+                .as_ref()
+                .expect("beam policy")
+                .policy_counters();
+            assert_eq!((beam_counters.predicts, beam_counters.serves), (2, 1));
+            assert_eq!(beam_counters.abstains, 1);
+            assert_eq!(
+                beam_counters.widen_attempts, 1,
+                "only the best blocked prefix is committed; speculative beam replays retain no counters or widen-once state"
+            );
+
+            let mut sampled = chat_engine(&graph, &teacher, true, Some(42), 8);
+            let answer = sampled
+                .ask(&covered_question)
+                .expect("sampled later-step policy block is typed");
+            assert!(answer.abstention.is_some());
+            assert!(answer.text.is_empty());
+            assert_eq!(answer.generated_tokens, 0);
+            assert_eq!(answer.witness.engine, "r4g1-sampled");
+            assert_eq!(
+                sampled.history_len,
+                context.len(),
+                "sampled decode also drops a blocked partial trajectory"
+            );
+            let sampled_counters = sampled
+                .policy_engine
+                .as_ref()
+                .expect("sampled policy")
+                .policy_counters();
+            assert_eq!((sampled_counters.predicts, sampled_counters.serves), (2, 1));
+            assert_eq!(sampled_counters.abstains, 1);
+        }
+
+        /// #933: execute the same real graph/teacher bytes through the direct
+        /// API, the server's `R4g1State` greedy/default-sampled methods, and
+        /// both CLI-chat policies. The emitted JSON bytes are directly usable
+        /// as `ServingReportEvidence.cross_surface_evidence`; counts come from
+        /// the artifact itself, never a parallel handwritten claim.
+        #[test]
+        fn cross_surface_parity_evidence_uses_real_bytes_and_catches_base_bypass() {
+            use uor_r4_api::{
+                CrossSurfaceDisposition, CrossSurfaceParityEvidence,
+                CrossSurfaceParityEvidenceBuilder, CrossSurfaceParityObservation,
+                NormativeServingDecision,
+            };
+            use uor_r4_graph_runtime::ServedCandidateSource;
+
+            let (graph, teacher, covered_question, _) = fixture();
+            let tokenizer =
+                Tokenizer::from_bytes(&fixture_tokenizer_bytes()).expect("fixture tokenizer");
+            let context = encode_question(&tokenizer, &covered_question);
+            let session_signature = uor_r4_router::session_signature_from_tokens(&context);
+            let mut builder = CrossSurfaceParityEvidenceBuilder::new(&graph, &teacher);
+
+            let direct = authoritative_step(&graph, &teacher, &context, None);
+            let direct_token = served(direct).token;
+            builder
+                .record(CrossSurfaceParityObservation {
+                    surface: "direct-api",
+                    decode_policy: "greedy",
+                    context_tokens: &context,
+                    session_signature: None,
+                    authoritative: direct,
+                    authoritative_token: Some(direct_token),
+                    observed_disposition: CrossSurfaceDisposition::Serve,
+                    observed_token: Some(direct_token),
+                    observed_candidates: Some(served(direct).candidates),
+                })
+                .expect("record direct API parity");
+
+            let state = r4g1_state(&graph, &teacher);
+            let mut greedy_out = [0u32; 1];
+            let (greedy_status, greedy_observed) = state
+                .generate_into_status_with_first_step(&context, &mut greedy_out)
+                .expect("R4g1State greedy serves");
+            assert_eq!(greedy_status.count, 1);
+            let state_authoritative = authoritative_step(&graph, &teacher, &context, None);
+            let state_expected = served(state_authoritative).token;
+            builder
+                .record(CrossSurfaceParityObservation {
+                    surface: "r4g1-state",
+                    decode_policy: "greedy",
+                    context_tokens: &context,
+                    session_signature: None,
+                    authoritative: state_authoritative,
+                    authoritative_token: Some(state_expected),
+                    observed_disposition: CrossSurfaceDisposition::Serve,
+                    observed_token: Some(greedy_out[0]),
+                    observed_candidates: Some(
+                        served(greedy_observed.expect("state captured first step")).candidates,
+                    ),
+                })
+                .expect("record state greedy parity");
+
+            let sampled_authoritative = authoritative_step(&graph, &teacher, &context, None);
+            let sampled_serve = served(sampled_authoritative);
+            let mut expected_rng = SampleRng::new(DEFAULT_SAMPLE_SEED);
+            let sampled_expected = sampled_serve.select_sampled_token(&[], &mut expected_rng);
+            let sampled_candidate = sampled_serve
+                .candidates
+                .ranked()
+                .iter()
+                .find(|candidate| candidate.token == sampled_expected)
+                .expect("sampled token belongs to runtime shortlist");
+            assert_eq!(
+                sampled_candidate.source,
+                ServedCandidateSource::Skipmix,
+                "the pinned default seed must select the runtime-only planted partner"
+            );
+            assert!(sampled_candidate.skmx_contributed);
+            assert!(!sampled_candidate.psib_contributed);
+            assert_ne!(
+                sampled_expected, sampled_serve.base_token,
+                "a base/reference-candidate bypass would erase this falsifier"
+            );
+            let sampled_state = r4g1_state(&graph, &teacher);
+            let mut sampled_out = [0u32; 1];
+            let mut sampled_rng = SampleRng::new(DEFAULT_SAMPLE_SEED);
+            let (sampled_status, sampled_observed) = sampled_state
+                .generate_sampled_into_status_with_first_step(
+                    &context,
+                    &mut sampled_out,
+                    &mut sampled_rng,
+                )
+                .expect("server-default state sampling serves");
+            assert_eq!(sampled_status.count, 1);
+            builder
+                .record(CrossSurfaceParityObservation {
+                    surface: "server-r4g1-state",
+                    decode_policy: "default-sampled-seed-42",
+                    context_tokens: &context,
+                    session_signature: None,
+                    authoritative: sampled_authoritative,
+                    authoritative_token: Some(sampled_expected),
+                    observed_disposition: CrossSurfaceDisposition::Serve,
+                    observed_token: Some(sampled_out[0]),
+                    observed_candidates: Some(
+                        served(sampled_observed.expect("state captured sampled first step"))
+                            .candidates,
+                    ),
+                })
+                .expect("record server default-sampled parity");
+
+            let chat_sample_authoritative =
+                authoritative_step(&graph, &teacher, &context, Some(&session_signature));
+            let mut chat_expected_rng = SampleRng::new(DEFAULT_SAMPLE_SEED);
+            let chat_sample_expected =
+                served(chat_sample_authoritative).select_sampled_token(&[], &mut chat_expected_rng);
+            let mut sampled_chat =
+                chat_engine(&graph, &teacher, true, Some(DEFAULT_SAMPLE_SEED), 1);
+            let sampled_answer = sampled_chat
+                .ask(&covered_question)
+                .expect("CLI sampled chat serves");
+            assert_eq!(sampled_answer.generated_tokens, 1);
+            let sampled_chat_token = sampled_chat.history[sampled_chat.history_len - 1];
+            let (_, sampled_chat_candidates) = replayable_normative_chat_step_for_evidence(
+                &graph,
+                &teacher,
+                None,
+                None,
+                &context,
+                &session_signature,
+                Some(DEFAULT_SAMPLE_SEED),
+            )
+            .expect("capture sampled CLI shortlist");
+            builder
+                .record(CrossSurfaceParityObservation {
+                    surface: "cli-chat",
+                    decode_policy: "default-sampled-seed-42",
+                    context_tokens: &context,
+                    session_signature: Some(&session_signature),
+                    authoritative: chat_sample_authoritative,
+                    authoritative_token: Some(chat_sample_expected),
+                    observed_disposition: CrossSurfaceDisposition::Serve,
+                    observed_token: Some(sampled_chat_token),
+                    observed_candidates: Some(sampled_chat_candidates),
+                })
+                .expect("record CLI sampled parity");
+
+            let chat_beam_authoritative =
+                authoritative_step(&graph, &teacher, &context, Some(&session_signature));
+            let chat_beam_expected = served(chat_beam_authoritative).token;
+            let mut beam_chat = chat_engine(&graph, &teacher, true, None, 1);
+            let beam_answer = beam_chat
+                .ask(&covered_question)
+                .expect("CLI beam first step serves");
+            assert_eq!(beam_answer.generated_tokens, 1);
+            let beam_chat_token = beam_chat.history[beam_chat.history_len - 1];
+            let (_, beam_chat_candidates) = replayable_normative_chat_step_for_evidence(
+                &graph,
+                &teacher,
+                None,
+                None,
+                &context,
+                &session_signature,
+                None,
+            )
+            .expect("capture beam CLI shortlist");
+            builder
+                .record(CrossSurfaceParityObservation {
+                    surface: "cli-chat",
+                    decode_policy: "beam-first-step",
+                    context_tokens: &context,
+                    session_signature: Some(&session_signature),
+                    authoritative: chat_beam_authoritative,
+                    authoritative_token: Some(chat_beam_expected),
+                    observed_disposition: CrossSurfaceDisposition::Serve,
+                    observed_token: Some(beam_chat_token),
+                    observed_candidates: Some(beam_chat_candidates),
+                })
+                .expect("record CLI beam parity");
+
+            let evidence = builder.finish().expect("finish parity evidence");
+            assert_eq!(evidence.checks, 5);
+            assert_eq!(evidence.mismatches, 0);
+            let bytes = evidence
+                .deterministic_json_bytes()
+                .expect("deterministic parity JSON");
+            assert_eq!(
+                bytes,
+                evidence
+                    .clone()
+                    .deterministic_json_bytes()
+                    .expect("repeat deterministic parity JSON")
+            );
+            let reparsed = CrossSurfaceParityEvidence::parse_and_validate_for_artifacts(
+                &bytes, &graph, &teacher,
+            )
+            .expect("parity artifact parses, reproduces, and binds real bytes");
+            assert_eq!((reparsed.checks, reparsed.mismatches), (5, 0));
+            assert!(
+                CrossSurfaceParityEvidence::parse_and_validate_for_artifacts(
+                    &bytes,
+                    b"a different graph cannot inherit this evidence",
+                    &teacher,
+                )
+                .is_err()
+            );
+
+            let mut old_schema: serde_json::Value =
+                serde_json::from_slice(&bytes).expect("parse evidence for schema control");
+            old_schema["schema"] = serde_json::json!("uor-r4-normative-selector-cross-surface/3");
+            let mut old_schema_bytes =
+                serde_json::to_vec_pretty(&old_schema).expect("serialize old-schema control");
+            old_schema_bytes.push(b'\n');
+            assert!(
+                CrossSurfaceParityEvidence::parse_and_validate_for_artifacts(
+                    &old_schema_bytes,
+                    &graph,
+                    &teacher,
+                )
+                .is_err(),
+                "version-3 parity evidence cannot inherit version-4 provenance credit"
+            );
+
+            let mut tampered_counts: serde_json::Value =
+                serde_json::from_slice(&bytes).expect("parse evidence for planted tamper");
+            tampered_counts["checks"] = serde_json::json!(6);
+            let mut tampered_count_bytes =
+                serde_json::to_vec_pretty(&tampered_counts).expect("serialize planted tamper");
+            tampered_count_bytes.push(b'\n');
+            assert!(
+                CrossSurfaceParityEvidence::parse_and_validate_for_artifacts(
+                    &tampered_count_bytes,
+                    &graph,
+                    &teacher,
+                )
+                .is_err()
+            );
+
+            let mut tampered_verdict: serde_json::Value =
+                serde_json::from_slice(&bytes).expect("parse evidence for planted row tamper");
+            tampered_verdict["records"][0]["matched"] = serde_json::json!(false);
+            tampered_verdict["mismatches"] = serde_json::json!(1);
+            let mut tampered_verdict_bytes =
+                serde_json::to_vec_pretty(&tampered_verdict).expect("serialize planted row tamper");
+            tampered_verdict_bytes.push(b'\n');
+            assert!(
+                CrossSurfaceParityEvidence::parse_and_validate_for_artifacts(
+                    &tampered_verdict_bytes,
+                    &graph,
+                    &teacher,
+                )
+                .is_err()
+            );
+
+            if let Some(path) = std::env::var_os("R4_CROSS_SURFACE_EVIDENCE_OUT") {
+                let path = std::path::PathBuf::from(path);
+                if let Some(parent) = path.parent() {
+                    std::fs::create_dir_all(parent).expect("create evidence output directory");
+                }
+                std::fs::write(&path, &bytes).expect("write cross-surface evidence bytes");
+                eprintln!(
+                    "cross-surface evidence: {} checks, {} mismatches, blake3:{}, {}",
+                    evidence.checks,
+                    evidence.mismatches,
+                    blake3::hash(&bytes).to_hex(),
+                    path.display()
+                );
+            }
+
+            // Planted divergence: substituting the internal base token must
+            // turn the same real-byte observation into an exact mismatch.
+            let divergence_authoritative = authoritative_step(&graph, &teacher, &context, None);
+            let divergence_serve = served(divergence_authoritative);
+            let mut divergence = CrossSurfaceParityEvidenceBuilder::new(&graph, &teacher);
+            divergence
+                .record(CrossSurfaceParityObservation {
+                    surface: "planted-divergence",
+                    decode_policy: "default-sampled-seed-42",
+                    context_tokens: &context,
+                    session_signature: None,
+                    authoritative: divergence_authoritative,
+                    authoritative_token: Some(sampled_expected),
+                    observed_disposition: CrossSurfaceDisposition::Serve,
+                    observed_token: Some(divergence_serve.base_token),
+                    observed_candidates: Some(divergence_serve.candidates),
+                })
+                .expect("record planted divergence");
+            let divergence = divergence.finish().expect("finish planted divergence");
+            assert_eq!((divergence.checks, divergence.mismatches), (1, 1));
+            assert!(!divergence.records[0].matched);
+
+            // Candidate-only negative control: an alternate real runtime has
+            // one extra lower-ranked context candidate, while retaining the
+            // same greedy winner. Token-only parity would incorrectly pass;
+            // the independently captured shortlist CID must fail it.
+            let (alternate_graph, alternate_teacher, alternate_question, _) =
+                fixture_with_extra_lower_ranked_candidate(true);
+            assert_eq!(alternate_teacher, teacher);
+            assert_eq!(alternate_question, covered_question);
+            let authoritative = authoritative_step(&graph, &teacher, &context, None);
+            let authoritative_serve = served(authoritative);
+            let alternate = authoritative_step(&alternate_graph, &teacher, &context, None);
+            let alternate_serve = served(alternate);
+            assert_eq!(alternate_serve.token, authoritative_serve.token);
+            assert_ne!(
+                alternate_serve.candidates, authoritative_serve.candidates,
+                "planted control must change only the bounded shortlist"
+            );
+            let mut candidate_divergence = CrossSurfaceParityEvidenceBuilder::new(&graph, &teacher);
+            candidate_divergence
+                .record(CrossSurfaceParityObservation {
+                    surface: "planted-candidate-only-divergence",
+                    decode_policy: "greedy",
+                    context_tokens: &context,
+                    session_signature: None,
+                    authoritative,
+                    authoritative_token: Some(authoritative_serve.token),
+                    observed_disposition: CrossSurfaceDisposition::Serve,
+                    observed_token: Some(alternate_serve.token),
+                    observed_candidates: Some(alternate_serve.candidates),
+                })
+                .expect("record candidate-only divergence");
+            let candidate_divergence = candidate_divergence
+                .finish()
+                .expect("finish candidate-only divergence");
+            assert_eq!(
+                (candidate_divergence.checks, candidate_divergence.mismatches),
+                (1, 1)
+            );
+            assert!(!candidate_divergence.records[0].matched);
+            assert!(candidate_divergence
+                .validate_canonical_production_inventory()
+                .is_err());
+            let mismatch_root = std::env::temp_dir().join(format!(
+                "uor-r4-candidate-divergence-{}",
+                std::process::id()
+            ));
+            let _ = std::fs::remove_dir_all(&mismatch_root);
+            let mismatch_path = crate::cross_surface_parity::write_canonical_cross_surface_parity(
+                &mismatch_root,
+                &candidate_divergence,
+            )
+            .expect("persist deterministic candidate mismatch rows before STOP");
+            let mismatch_bytes =
+                std::fs::read(&mismatch_path).expect("read persisted candidate mismatch");
+            let replayed = CrossSurfaceParityEvidence::parse_and_validate_for_artifacts(
+                &mismatch_bytes,
+                &graph,
+                &teacher,
+            )
+            .expect("persisted mismatch remains replayable evidence");
+            assert_eq!((replayed.checks, replayed.mismatches), (1, 1));
+            let _ = std::fs::remove_dir_all(&mismatch_root);
+
+            // Provenance-only negative control: SKMX and PSIB produce the
+            // same token/score/source shortlist and winner, but their exact
+            // contribution flags differ. Version-4 candidate CIDs must retain
+            // that distinction.
+            let (psib_graph, psib_teacher, psib_question, _) = fixture_with_psib_partner();
+            assert_eq!(psib_teacher, teacher);
+            assert_eq!(psib_question, covered_question);
+            let skmx_authoritative = authoritative_step(&graph, &teacher, &context, None);
+            let skmx_serve = served(skmx_authoritative);
+            let psib_observed = authoritative_step(&psib_graph, &teacher, &context, None);
+            let psib_serve = served(psib_observed);
+            let projection = |serve: uor_r4_api::NormativeServe| {
+                serve
+                    .candidates
+                    .ranked()
+                    .iter()
+                    .map(|candidate| (candidate.token, candidate.score, candidate.source))
+                    .collect::<Vec<_>>()
+            };
+            assert_eq!(skmx_serve.token, psib_serve.token);
+            assert_eq!(projection(skmx_serve), projection(psib_serve));
+            let skmx_partner = skmx_serve
+                .candidates
+                .ranked()
+                .iter()
+                .find(|candidate| candidate.token == 50)
+                .expect("SKMX partner");
+            let psib_partner = psib_serve
+                .candidates
+                .ranked()
+                .iter()
+                .find(|candidate| candidate.token == 50)
+                .expect("PSIB partner");
+            assert_eq!(
+                (skmx_partner.skmx_contributed, skmx_partner.psib_contributed),
+                (true, false)
+            );
+            assert_eq!(
+                (psib_partner.skmx_contributed, psib_partner.psib_contributed),
+                (false, true)
+            );
+            let mut provenance_divergence =
+                CrossSurfaceParityEvidenceBuilder::new(&graph, &teacher);
+            provenance_divergence
+                .record(CrossSurfaceParityObservation {
+                    surface: "planted-provenance-only-divergence",
+                    decode_policy: "greedy",
+                    context_tokens: &context,
+                    session_signature: None,
+                    authoritative: skmx_authoritative,
+                    authoritative_token: Some(skmx_serve.token),
+                    observed_disposition: CrossSurfaceDisposition::Serve,
+                    observed_token: Some(psib_serve.token),
+                    observed_candidates: Some(psib_serve.candidates),
+                })
+                .expect("record provenance-only divergence");
+            let provenance_divergence = provenance_divergence
+                .finish()
+                .expect("finish provenance-only divergence");
+            assert_eq!(
+                (
+                    provenance_divergence.checks,
+                    provenance_divergence.mismatches
+                ),
+                (1, 1)
+            );
+            assert!(!provenance_divergence.records[0].matched);
+
+            assert!(matches!(direct, NormativeServingDecision::Serve(_)));
+        }
+
+        #[test]
+        fn canonical_bundle_producer_executes_eight_same_input_candidate_rows() {
+            use crate::cross_surface_parity::{
+                produce_canonical_cross_surface_parity, CanonicalCrossSurfaceMaterial,
+                CanonicalCrossSurfaceSpec,
+            };
+
+            let (unbound_graph, teacher, covered_question, _) = fixture();
+            let tokenizer_bytes = fixture_tokenizer_bytes();
+            let view = uor_r4_graph_format::GraphView::parse(&unbound_graph)
+                .expect("cross-surface fixture graph parses");
+            let mut builder =
+                uor_r4_graph_format::ArtifactBuilder::new(view.header().alignment_log2)
+                    .with_flags(view.header().flags);
+            for section in view.sections() {
+                if section.id == uor_r4_graph_format::SectionId::HEAD {
+                    let mut head = section.payload.to_vec();
+                    head[32..64].copy_from_slice(blake3::hash(&tokenizer_bytes).as_bytes());
+                    builder.add_section(section.id, section.flags, &head);
+                } else {
+                    builder.add_section(section.id, section.flags, section.payload);
+                }
+            }
+            let graph = builder
+                .build()
+                .expect("tokenizer-bound cross-surface fixture graph");
+            let bound_view = uor_r4_graph_format::GraphView::parse(&graph)
+                .expect("tokenizer-bound fixture parses");
+            assert_eq!(
+                bound_view
+                    .head()
+                    .expect("tokenizer-bound fixture HEAD")
+                    .tokenizer_cid()
+                    .0,
+                *blake3::hash(&tokenizer_bytes).as_bytes()
+            );
+            let tokenizer = Tokenizer::from_bytes(&tokenizer_bytes).expect("fixture tokenizer");
+            let context = encode_question(&tokenizer, &covered_question);
+            assert_eq!(context.len(), 3, "fixture corpus encoding contract");
+
+            let n = context.len();
+            let mut corpus_meta = Vec::with_capacity(25);
+            corpus_meta.extend_from_slice(&(n as u64).to_le_bytes());
+            corpus_meta.extend_from_slice(&1u64.to_le_bytes());
+            corpus_meta.extend_from_slice(&42u64.to_le_bytes());
+            corpus_meta.push(1);
+            let next = [context[1], context[2], 10];
+            let mut corpus_records = Vec::with_capacity(n * 12);
+            for token in next {
+                corpus_records.extend_from_slice(&0u32.to_le_bytes());
+                corpus_records.extend_from_slice(&(token as u16).to_le_bytes());
+                corpus_records.extend_from_slice(&(token as u16).to_le_bytes());
+                corpus_records.extend_from_slice(&(-0.1f32).to_le_bytes());
+            }
+
+            let positions = [2u64];
+            let score_report = br#"{}"#;
+            let spec = CanonicalCrossSurfaceSpec {
+                material: CanonicalCrossSurfaceMaterial {
+                    graph: &graph,
+                    signature_artifact: &teacher,
+                    tokenizer: Some(&tokenizer_bytes),
+                    score_report: Some(score_report),
+                    corpus_meta: &corpus_meta,
+                    corpus_records: &corpus_records,
+                },
+                evaluated_positions: &positions,
+                sample_seed: DEFAULT_SAMPLE_SEED,
+            };
+            let first = produce_canonical_cross_surface_parity(spec)
+                .expect("canonical producer executes every shared adapter");
+            let second = produce_canonical_cross_surface_parity(spec)
+                .expect("canonical producer is deterministic");
+            assert_eq!(first, second);
+            assert_eq!(first.selected_position, 2);
+            assert_eq!((first.evidence.checks, first.evidence.mismatches), (8, 0));
+            assert!(first.evidence.records.iter().all(|record| {
+                record.context_tokens == context
+                    && record.authoritative_ranked_candidates_cid.is_some()
+                    && record.authoritative_ranked_candidates_cid
+                        == record.observed_ranked_candidates_cid
+            }));
+            assert!(first.evidence.records.iter().any(|record| {
+                record.surface == "cli-chat-shared-production-step"
+                    && record.decode_policy == "beam-first-step"
+            }));
+            assert!(first.evidence.records.iter().any(|record| {
+                record.surface == "r4g1-state-native-host-adapter"
+                    && record.decode_policy == "default-sampled-seed-42"
+            }));
+            first
+                .evidence
+                .validate_canonical_production_inventory()
+                .expect("all four same-input cohorts reproduce candidates and tokens");
+
+            let bytes = first
+                .evidence
+                .deterministic_json_bytes()
+                .expect("canonical evidence bytes");
+            let mut tampered: serde_json::Value =
+                serde_json::from_slice(&bytes).expect("parse evidence for context tamper");
+            tampered["records"][0]["context_tokens"][0] = serde_json::json!(63);
+            let mut tampered_bytes =
+                serde_json::to_vec_pretty(&tampered).expect("serialize context tamper");
+            tampered_bytes.push(b'\n');
+            assert!(
+                uor_r4_api::CrossSurfaceParityEvidence::parse_and_validate_for_bundle(
+                    &tampered_bytes,
+                    &graph,
+                    &teacher,
+                    Some(&tokenizer_bytes),
+                    None,
+                )
+                .is_err()
+            );
+            assert!(
+                uor_r4_api::CrossSurfaceParityEvidence::parse_and_validate_for_bundle(
+                    &bytes, &graph, &teacher, None, None,
+                )
+                .is_err(),
+                "a tokenizer-bound artifact must reject a missing tokenizer"
+            );
+            assert!(
+                uor_r4_api::CrossSurfaceParityEvidence::parse_and_validate_for_bundle(
+                    &bytes,
+                    &graph,
+                    &teacher,
+                    Some(b"wrong tokenizer generation"),
+                    None,
+                )
+                .is_err(),
+                "a tokenizer-bound artifact must reject different tokenizer bytes"
+            );
         }
     }
 }

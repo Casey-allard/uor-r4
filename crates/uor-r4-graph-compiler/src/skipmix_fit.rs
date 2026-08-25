@@ -16,9 +16,11 @@
 //! lane already uses -- so the deployed table and the confirmed reference
 //! numbers describe the same construction, not a re-derivation of it.
 
-use std::collections::HashMap;
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::time::{Duration, Instant};
 
-use uor_r4_core::transformerless::compiler::Corpus;
+use rayon::prelude::*;
+use uor_r4_core::transformerless::compiler::{Corpus, WINDOW};
 
 use crate::induction;
 use crate::segment_fit::quantize_rate;
@@ -50,113 +52,398 @@ use crate::segment_fit::quantize_rate;
 /// [`uor_r4_graph_format::build_skipmix_table`] /
 /// [`uor_r4_graph_format::build_psi_bag_table`]; deterministic given the
 /// same corpus and `top_k`.
-#[allow(clippy::type_complexity)]
-pub fn fit_skipmix_tables(
+pub type SkipmixJointRows = Vec<(u32, u32, Vec<(u32, i32)>)>;
+pub type PsiBagRows = Vec<(u32, Vec<(u32, i32)>)>;
+
+/// Observable, non-semantic facts from one table fit. Durations and worker
+/// count are printed/run-record evidence only; none participates in emitted
+/// rows or artifact bytes.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct SkipmixFitStats {
+    pub train_positions: usize,
+    pub distinct_occurrences: usize,
+    pub workers: usize,
+    pub fold_elapsed: Duration,
+    pub joint_sort_elapsed: Duration,
+    pub content_sort_elapsed: Duration,
+    pub reduction_elapsed: Duration,
+    pub joint_rows: usize,
+    pub psi_bag_rows: usize,
+}
+
+impl SkipmixFitStats {
+    pub fn elapsed(&self) -> Duration {
+        self.fold_elapsed
+            + self.joint_sort_elapsed
+            + self.content_sort_elapsed
+            + self.reduction_elapsed
+    }
+
+    pub fn positions_per_second(&self) -> f64 {
+        let seconds = self.elapsed().as_secs_f64();
+        if seconds == 0.0 {
+            self.train_positions as f64
+        } else {
+            self.train_positions as f64 / seconds
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
+struct JointOccurrence {
+    content_token: u32,
+    last_token: u32,
+    target: u32,
+}
+
+#[derive(Clone, Copy)]
+struct PositionOccurrences {
+    entries: [JointOccurrence; WINDOW],
+    len: usize,
+}
+
+/// Compatibility wrapper for callers that need only canonical rows.
+pub fn fit_skipmix_tables(corpus: &Corpus, top_k: usize) -> (SkipmixJointRows, PsiBagRows) {
+    let (joint, psi, _) = fit_skipmix_tables_instrumented(corpus, top_k);
+    (joint, psi)
+}
+
+/// Build the deterministic conditioning-specificity control used by the
+/// deployed-quality gate. Only TRAIN labels are rotated, so the TRAIN target
+/// multiset is preserved exactly and held-out labels remain pristine.
+///
+/// The offset is `train_len / 2 + 1`, matching the predeclared #908/#933 null
+/// while making its stated TRAIN-only boundary explicit in the bytes.
+pub fn rotate_training_targets_control(corpus: &Corpus) -> Corpus {
+    let (train, _) = induction::split_positions(corpus);
+    rotate_targets_control_at_positions(corpus, &train)
+}
+
+/// Build the label-rotation control on the caller's exact construction split.
+///
+/// This is required for D3 story-index partitions: re-deriving the ordinal
+/// split here would leak declared held-out stories into the fitted control.
+pub fn rotate_targets_control_at_positions(corpus: &Corpus, train: &[usize]) -> Corpus {
+    // Hidden teacher states are irrelevant to this teacher-free fitter and can
+    // dominate the otherwise small control copy on observation-rich corpora.
+    // Construct the control explicitly instead of cloning and then discarding
+    // that tensor: the latter briefly doubles its peak memory for no semantic
+    // reason on exactly the corpus-scale runs this control is meant to bound.
+    let mut control = Corpus {
+        n: corpus.n,
+        stories: corpus.stories,
+        story: corpus.story.clone(),
+        input: corpus.input.clone(),
+        next: corpus.next.clone(),
+        t_argmax: corpus.t_argmax.clone(),
+        top_tokens: corpus.top_tokens.clone(),
+        top_weights: corpus.top_weights.clone(),
+        span_start: corpus.span_start.clone(),
+        span_end: corpus.span_end.clone(),
+        byte_start: corpus.byte_start.clone(),
+        byte_end: corpus.byte_end.clone(),
+        hidden: None,
+    };
+    if train.is_empty() {
+        return control;
+    }
+    let offset = train.len() / 2 + 1;
+    for (ordinal, &position) in train.iter().enumerate() {
+        control.t_argmax[position] = corpus.t_argmax[train[(ordinal + offset) % train.len()]];
+    }
+    control
+}
+
+/// Fit SKMX/PSIB with deterministic data-parallel folding and sorting.
+///
+/// Each TRAIN position is converted independently into at most [`WINDOW`]
+/// distinct content occurrences. Rayon preserves the position order of the
+/// collected blocks; both derived occurrence streams are then sorted by their
+/// complete integer keys and reduced in that canonical order. Worker count can
+/// therefore change wall time but cannot change counts, row order, quantized
+/// weights, or artifact bytes.
+pub fn fit_skipmix_tables_instrumented(
     corpus: &Corpus,
     top_k: usize,
-) -> (
-    Vec<(u32, u32, Vec<(u32, i32)>)>,
-    Vec<(u32, Vec<(u32, i32)>)>,
-) {
-    if top_k == 0 {
-        return (Vec::new(), Vec::new());
-    }
+) -> (SkipmixJointRows, PsiBagRows, SkipmixFitStats) {
     let (train, _held_out) = induction::split_positions(corpus);
+    fit_skipmix_tables_at_positions_instrumented(corpus, &train, top_k)
+}
 
-    // (content_token, last_window_token) -> (teacher-argmax candidate -> count)
-    let mut joint_next: HashMap<(u32, u32), HashMap<u32, u32>> = HashMap::new();
-    // content_token -> (teacher-argmax candidate -> count), unconditioned.
-    let mut content_next: HashMap<u32, HashMap<u32, u32>> = HashMap::new();
+/// Fit SKMX/PSIB from the caller's exact construction positions.
+///
+/// The score command owns partition selection (including D3 story-index
+/// splits), so it must pass that selection through rather than letting this
+/// fitter silently derive a different ordinal split.
+pub fn fit_skipmix_tables_at_positions_instrumented(
+    corpus: &Corpus,
+    train: &[usize],
+    top_k: usize,
+) -> (SkipmixJointRows, PsiBagRows, SkipmixFitStats) {
+    fit_skipmix_tables_at_positions_impl(corpus, train, top_k, None)
+}
 
-    for &i in &train {
-        let target = corpus.t_argmax[i];
-        let window = induction::context_window(corpus, i);
-        // The window is in temporal order ending at the current position
-        // (`induction::context_window`'s `(start..=i)` build), so its last
-        // element -- taken BEFORE any sort/dedup below -- is the actual
-        // last window token, the #897 conditioning key. Sorting first (as
-        // `fit_segment_table` does for its "distinct tokens" set) would
-        // silently swap this for the largest token id instead.
-        let last_token = match window.last().copied() {
-            Some(t) => t,
-            None => continue, // an empty window has no conditioning key
+/// Fit from an exact partition with non-semantic live progress telemetry.
+///
+/// The label and timing never enter reductions or artifact bytes. Progress is
+/// claimed by atomic thresholds, so worker scheduling may change log timing
+/// but cannot change the canonically sorted result.
+pub fn fit_skipmix_tables_at_positions_instrumented_named(
+    corpus: &Corpus,
+    train: &[usize],
+    top_k: usize,
+    label: &str,
+) -> (SkipmixJointRows, PsiBagRows, SkipmixFitStats) {
+    fit_skipmix_tables_at_positions_impl(corpus, train, top_k, Some(label))
+}
+
+fn fit_skipmix_tables_at_positions_impl(
+    corpus: &Corpus,
+    train: &[usize],
+    top_k: usize,
+    progress_label: Option<&str>,
+) -> (SkipmixJointRows, PsiBagRows, SkipmixFitStats) {
+    let workers = rayon::current_num_threads().max(1);
+    let empty_stats = || SkipmixFitStats {
+        train_positions: 0,
+        distinct_occurrences: 0,
+        workers,
+        fold_elapsed: Duration::ZERO,
+        joint_sort_elapsed: Duration::ZERO,
+        content_sort_elapsed: Duration::ZERO,
+        reduction_elapsed: Duration::ZERO,
+        joint_rows: 0,
+        psi_bag_rows: 0,
+    };
+    if top_k == 0 {
+        return (Vec::new(), Vec::new(), empty_stats());
+    }
+    if train.is_empty() {
+        return (Vec::new(), Vec::new(), empty_stats());
+    }
+
+    let fold_start = Instant::now();
+    let processed = AtomicUsize::new(0);
+    let progress_interval = (train.len() / 100).clamp(1_024, 8_192);
+    let next_progress = AtomicUsize::new(progress_interval.min(train.len()));
+    if let Some(label) = progress_label {
+        eprintln!(
+            "skip-mix progress: label={label} phase=fold processed=0/{} workers={workers} interval={progress_interval}",
+            train.len()
+        );
+    }
+    let blocks: Vec<PositionOccurrences> = train
+        .par_iter()
+        .map(|&position| {
+            let block = position_occurrences(corpus, position);
+            if let Some(label) = progress_label {
+                let done = processed.fetch_add(1, Ordering::Relaxed) + 1;
+                let threshold = next_progress.load(Ordering::Relaxed);
+                if done >= threshold {
+                    let next = if threshold >= train.len() {
+                        usize::MAX
+                    } else {
+                        threshold.saturating_add(progress_interval).min(train.len())
+                    };
+                    if next_progress
+                        .compare_exchange(threshold, next, Ordering::Relaxed, Ordering::Relaxed)
+                        .is_ok()
+                    {
+                        let elapsed_millis = fold_start.elapsed().as_millis().max(1);
+                        let observed = processed.load(Ordering::Relaxed).min(train.len());
+                        let rate_milli_positions_per_second =
+                            (observed as u128).saturating_mul(1_000_000) / elapsed_millis;
+                        let eta_millis = (train.len().saturating_sub(observed) as u128)
+                            .saturating_mul(elapsed_millis)
+                            / (observed as u128).max(1);
+                        eprintln!(
+                            "skip-mix progress: label={label} phase=fold processed={observed}/{} elapsed_ms={elapsed_millis} rate_milli_positions_per_second={rate_milli_positions_per_second} eta_ms={eta_millis}",
+                            train.len()
+                        );
+                    }
+                }
+            }
+            block
+        })
+        .collect();
+    let distinct_occurrences = blocks.iter().map(|block| block.len).sum();
+    let mut joint: Vec<JointOccurrence> = Vec::with_capacity(distinct_occurrences);
+    for block in blocks {
+        joint.extend_from_slice(&block.entries[..block.len]);
+    }
+    let fold_elapsed = fold_start.elapsed();
+
+    let mut content: Vec<(u32, u32)> = joint
+        .par_iter()
+        .map(|occurrence| (occurrence.content_token, occurrence.target))
+        .collect();
+
+    let joint_sort_start = Instant::now();
+    if let Some(label) = progress_label {
+        eprintln!(
+            "skip-mix progress: label={label} phase=joint-sort items={} status=start",
+            joint.len()
+        );
+    }
+    joint.par_sort_unstable();
+    let joint_sort_elapsed = joint_sort_start.elapsed();
+
+    let content_sort_start = Instant::now();
+    if let Some(label) = progress_label {
+        eprintln!(
+            "skip-mix progress: label={label} phase=content-sort items={} status=start joint_sort_ms={}",
+            content.len(),
+            joint_sort_elapsed.as_millis()
+        );
+    }
+    content.par_sort_unstable();
+    let content_sort_elapsed = content_sort_start.elapsed();
+
+    let reduction_start = Instant::now();
+    if let Some(label) = progress_label {
+        eprintln!(
+            "skip-mix progress: label={label} phase=reduce items={} status=start content_sort_ms={}",
+            joint.len().saturating_add(content.len()),
+            content_sort_elapsed.as_millis()
+        );
+    }
+    let joint_rows = quantize_sorted_joint(&joint, top_k);
+    let psi_bag_rows = quantize_sorted_content(&content, top_k);
+    let reduction_elapsed = reduction_start.elapsed();
+    if let Some(label) = progress_label {
+        eprintln!(
+            "skip-mix progress: label={label} phase=complete processed={} joint_rows={} psi_rows={} elapsed_ms={}",
+            train.len(),
+            joint_rows.len(),
+            psi_bag_rows.len(),
+            fold_start.elapsed().as_millis()
+        );
+    }
+    let stats = SkipmixFitStats {
+        train_positions: train.len(),
+        distinct_occurrences,
+        workers,
+        fold_elapsed,
+        joint_sort_elapsed,
+        content_sort_elapsed,
+        reduction_elapsed,
+        joint_rows: joint_rows.len(),
+        psi_bag_rows: psi_bag_rows.len(),
+    };
+    (joint_rows, psi_bag_rows, stats)
+}
+
+fn position_occurrences(corpus: &Corpus, position: usize) -> PositionOccurrences {
+    let mut start = position;
+    while start > 0
+        && corpus.story[start - 1] == corpus.story[position]
+        && position + 1 - start < WINDOW
+    {
+        start -= 1;
+    }
+    let last_token = corpus.input[position];
+    let target = corpus.t_argmax[position];
+    let mut entries = [JointOccurrence::default(); WINDOW];
+    let mut len = 0usize;
+    for &content_token in &corpus.input[start..=position] {
+        if entries[..len]
+            .iter()
+            .any(|occurrence| occurrence.content_token == content_token)
+        {
+            continue;
+        }
+        entries[len] = JointOccurrence {
+            content_token,
+            last_token,
+            target,
         };
-        let mut seen = window;
-        seen.sort_unstable();
-        seen.dedup();
-        for t in seen {
-            *joint_next
-                .entry((t, last_token))
-                .or_default()
-                .entry(target)
-                .or_insert(0) += 1;
-            *content_next
-                .entry(t)
-                .or_default()
-                .entry(target)
-                .or_insert(0) += 1;
-        }
+        len += 1;
     }
-
-    let joint_rows = quantize_joint_rows(joint_next, top_k);
-    let psi_bag_rows = quantize_content_rows(content_next, top_k);
-    (joint_rows, psi_bag_rows)
+    PositionOccurrences { entries, len }
 }
 
-#[allow(clippy::type_complexity)]
-fn quantize_joint_rows(
-    map: HashMap<(u32, u32), HashMap<u32, u32>>,
-    top_k: usize,
-) -> Vec<(u32, u32, Vec<(u32, i32)>)> {
-    let mut rows = Vec::with_capacity(map.len());
-    for ((content_token, last_token), counts) in map {
-        if let Some(entries) = cap_and_quantize(counts, top_k) {
-            rows.push((content_token, last_token, entries));
+fn quantize_sorted_joint(sorted: &[JointOccurrence], top_k: usize) -> SkipmixJointRows {
+    let mut rows = Vec::new();
+    let mut start = 0usize;
+    while start < sorted.len() {
+        let key = (sorted[start].content_token, sorted[start].last_token);
+        let mut end = start + 1;
+        while end < sorted.len() && (sorted[end].content_token, sorted[end].last_token) == key {
+            end += 1;
         }
+        rows.push((
+            key.0,
+            key.1,
+            quantize_joint_group(&sorted[start..end], top_k),
+        ));
+        start = end;
     }
     rows
 }
 
-fn quantize_content_rows(
-    map: HashMap<u32, HashMap<u32, u32>>,
-    top_k: usize,
-) -> Vec<(u32, Vec<(u32, i32)>)> {
-    let mut rows = Vec::with_capacity(map.len());
-    for (content_token, counts) in map {
-        if let Some(entries) = cap_and_quantize(counts, top_k) {
-            rows.push((content_token, entries));
+fn quantize_sorted_content(sorted: &[(u32, u32)], top_k: usize) -> PsiBagRows {
+    let mut rows = Vec::new();
+    let mut start = 0usize;
+    while start < sorted.len() {
+        let content_token = sorted[start].0;
+        let mut end = start + 1;
+        while end < sorted.len() && sorted[end].0 == content_token {
+            end += 1;
         }
+        rows.push((
+            content_token,
+            quantize_content_group(&sorted[start..end], top_k),
+        ));
+        start = end;
     }
     rows
 }
 
-/// Shared top-`top_k` cap + [`quantize_rate`] step for one key's raw
-/// `(candidate -> count)` tally. `None` when the key carries no evidence
-/// (defensive; TRAIN folding never inserts a key without incrementing it).
-fn cap_and_quantize(counts: HashMap<u32, u32>, top_k: usize) -> Option<Vec<(u32, i32)>> {
-    let total: u64 = counts.values().map(|&c| u64::from(c)).sum();
-    if total == 0 {
-        return None;
+fn quantize_joint_group(group: &[JointOccurrence], top_k: usize) -> Vec<(u32, i32)> {
+    let mut counts = Vec::new();
+    let mut start = 0usize;
+    while start < group.len() {
+        let target = group[start].target;
+        let mut end = start + 1;
+        while end < group.len() && group[end].target == target {
+            end += 1;
+        }
+        counts.push((target, (end - start) as u64));
+        start = end;
     }
-    let mut cand: Vec<(u32, u32)> = counts.into_iter().collect();
-    cand.sort_unstable_by(|a, b| b.1.cmp(&a.1).then(a.0.cmp(&b.0)));
-    cand.truncate(top_k);
+    cap_and_quantize(&mut counts, group.len() as u64, top_k)
+}
 
-    let mut entries = Vec::with_capacity(cand.len());
-    for (candidate, count) in cand {
-        entries.push((candidate, quantize_rate(u64::from(count), total)));
+fn quantize_content_group(group: &[(u32, u32)], top_k: usize) -> Vec<(u32, i32)> {
+    let mut counts = Vec::new();
+    let mut start = 0usize;
+    while start < group.len() {
+        let target = group[start].1;
+        let mut end = start + 1;
+        while end < group.len() && group[end].1 == target {
+            end += 1;
+        }
+        counts.push((target, (end - start) as u64));
+        start = end;
     }
-    if entries.is_empty() {
-        None
-    } else {
-        Some(entries)
+    cap_and_quantize(&mut counts, group.len() as u64, top_k)
+}
+
+fn cap_and_quantize(counts: &mut Vec<(u32, u64)>, total: u64, top_k: usize) -> Vec<(u32, i32)> {
+    counts.sort_unstable_by(|a, b| b.1.cmp(&a.1).then(a.0.cmp(&b.0)));
+    counts.truncate(top_k);
+    let mut entries = Vec::with_capacity(counts.len());
+    for &(candidate, count) in counts.iter() {
+        entries.push((candidate, quantize_rate(count, total)));
     }
+    entries
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::segment_fit::DEFAULT_TOP_K;
+    use std::collections::BTreeMap;
 
     /// Build a multi-story `Corpus` from per-story `(input, t_argmax)` token
     /// runs, mirroring `segment_fit`'s test helper so both modules exercise
@@ -307,5 +594,175 @@ mod tests {
                 );
             }
         }
+    }
+
+    fn sequential_reference(corpus: &Corpus, top_k: usize) -> (SkipmixJointRows, PsiBagRows) {
+        let (train, _) = induction::split_positions(corpus);
+        let mut joint: BTreeMap<(u32, u32), BTreeMap<u32, u64>> = BTreeMap::new();
+        let mut content: BTreeMap<u32, BTreeMap<u32, u64>> = BTreeMap::new();
+        for position in train {
+            let target = corpus.t_argmax[position];
+            let mut window = induction::context_window(corpus, position);
+            let last_token = *window.last().expect("a corpus position has a window");
+            window.sort_unstable();
+            window.dedup();
+            for content_token in window {
+                *joint
+                    .entry((content_token, last_token))
+                    .or_default()
+                    .entry(target)
+                    .or_default() += 1;
+                *content
+                    .entry(content_token)
+                    .or_default()
+                    .entry(target)
+                    .or_default() += 1;
+            }
+        }
+        let joint = joint
+            .into_iter()
+            .map(|((content_token, last_token), candidates)| {
+                let total = candidates.values().sum();
+                let mut candidates: Vec<_> = candidates.into_iter().collect();
+                (
+                    content_token,
+                    last_token,
+                    cap_and_quantize(&mut candidates, total, top_k),
+                )
+            })
+            .collect();
+        let content = content
+            .into_iter()
+            .map(|(content_token, candidates)| {
+                let total = candidates.values().sum();
+                let mut candidates: Vec<_> = candidates.into_iter().collect();
+                (
+                    content_token,
+                    cap_and_quantize(&mut candidates, total, top_k),
+                )
+            })
+            .collect();
+        (joint, content)
+    }
+
+    #[test]
+    fn parallel_fit_is_worker_invariant_and_matches_sequential_counts() {
+        let stories: Vec<_> = (0..25)
+            .map(|story| {
+                let tokens: Vec<u32> = (0..31)
+                    .map(|position| ((story * 13 + position * 7) % 19) as u32)
+                    .collect();
+                let targets: Vec<u32> = (0..31)
+                    .map(|position| ((story * 5 + position * 11) % 23) as u32)
+                    .collect();
+                (tokens, targets)
+            })
+            .collect();
+        let corpus = corpus_from_stories(&stories);
+        let expected = sequential_reference(&corpus, 7);
+        let run = |workers| {
+            rayon::ThreadPoolBuilder::new()
+                .num_threads(workers)
+                .build()
+                .unwrap()
+                .install(|| fit_skipmix_tables_instrumented(&corpus, 7))
+        };
+        let (one_joint, one_psi, one_stats) = run(1);
+        let (four_joint, four_psi, four_stats) = run(4);
+        let (eight_joint, eight_psi, eight_stats) = run(8);
+        assert_eq!((one_joint, one_psi), expected);
+        assert_eq!((four_joint.clone(), four_psi.clone()), expected);
+        assert_eq!((eight_joint.clone(), eight_psi.clone()), expected);
+        assert_eq!(
+            uor_r4_graph_format::build_skipmix_table(&four_joint).unwrap(),
+            uor_r4_graph_format::build_skipmix_table(&eight_joint).unwrap()
+        );
+        assert_eq!(
+            uor_r4_graph_format::build_psi_bag_table(&four_psi).unwrap(),
+            uor_r4_graph_format::build_psi_bag_table(&eight_psi).unwrap()
+        );
+        assert_eq!(one_stats.workers, 1);
+        assert_eq!(four_stats.workers, 4);
+        assert_eq!(eight_stats.workers, 8);
+        assert_eq!(
+            one_stats.distinct_occurrences,
+            four_stats.distinct_occurrences
+        );
+        assert_eq!(
+            one_stats.distinct_occurrences,
+            eight_stats.distinct_occurrences
+        );
+    }
+
+    #[test]
+    fn label_control_rotates_only_train_and_preserves_its_target_multiset() {
+        let stories: Vec<_> = (0..10)
+            .map(|story| {
+                let tokens: Vec<u32> = (0..13)
+                    .map(|position| (story * 100 + position) as u32)
+                    .collect();
+                let targets: Vec<u32> = (0..13)
+                    .map(|position| (story * 1000 + position) as u32)
+                    .collect();
+                (tokens, targets)
+            })
+            .collect();
+        let mut corpus = corpus_from_stories(&stories);
+        corpus.hidden = Some(vec![vec![1.0; 4]; corpus.n]);
+        let (train, held_out) = induction::split_positions(&corpus);
+        let control = rotate_training_targets_control(&corpus);
+
+        assert!(control.hidden.is_none());
+        assert_eq!(control.n, corpus.n);
+        assert_eq!(control.story, corpus.story);
+        assert_eq!(control.input, corpus.input);
+        assert_eq!(control.next, corpus.next);
+        assert_eq!(control.top_tokens, corpus.top_tokens);
+        assert_eq!(control.top_weights, corpus.top_weights);
+
+        for &position in &held_out {
+            assert_eq!(control.t_argmax[position], corpus.t_argmax[position]);
+        }
+        let mut original_train: Vec<_> = train
+            .iter()
+            .map(|&position| corpus.t_argmax[position])
+            .collect();
+        let mut control_train: Vec<_> = train
+            .iter()
+            .map(|&position| control.t_argmax[position])
+            .collect();
+        original_train.sort_unstable();
+        control_train.sort_unstable();
+        assert_eq!(control_train, original_train);
+        assert!(
+            train
+                .iter()
+                .any(|&position| control.t_argmax[position] != corpus.t_argmax[position])
+        );
+    }
+
+    #[test]
+    fn explicit_story_partition_never_reintroduces_ordinal_training_positions() {
+        let stories: Vec<_> = (0..10)
+            .map(|story| {
+                (
+                    vec![10 + story as u32, 20 + story as u32],
+                    vec![100 + story as u32, 200 + story as u32],
+                )
+            })
+            .collect();
+        let corpus = corpus_from_stories(&stories);
+        // Deliberately choose the tail stories as construction. The ordinal
+        // 80/20 split would make the opposite choice for several positions.
+        let train: Vec<usize> = (16..20).collect();
+        let control = rotate_targets_control_at_positions(&corpus, &train);
+
+        for position in 0..16 {
+            assert_eq!(control.t_argmax[position], corpus.t_argmax[position]);
+        }
+        let (joint, _psi, stats) =
+            fit_skipmix_tables_at_positions_instrumented(&control, &train, DEFAULT_TOP_K);
+        assert_eq!(stats.train_positions, train.len());
+        assert!(joint.iter().all(|(content, _, _)| *content >= 18));
     }
 }

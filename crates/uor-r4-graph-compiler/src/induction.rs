@@ -121,9 +121,10 @@ use rayon::prelude::*;
 use serde::Serialize;
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Write as _;
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 use uor_r4_core::transformerless::compiler::{
-    self, Corpus, D, SIG_BYTES, SIG_WORDS, STAGES, WINDOW, quantile_radius,
+    self, Corpus, D, SIG_BYTES, SIG_WORDS, STAGES, quantile_radius,
 };
 use uor_r4_core::transformerless::runtime;
 
@@ -641,14 +642,11 @@ pub struct Observation {
 }
 
 /// The context window of one corpus position, oldest first: the fed
-/// tokens `input[start..=i]` within one story, capped at [`WINDOW`] —
+/// tokens `input[start..=i]` within one story, capped at
+/// [`compiler::WINDOW`] —
 /// the same window `observe::observe_sharded` hashes for sample ids.
 pub fn context_window(corpus: &Corpus, i: usize) -> Vec<u32> {
-    let mut start = i;
-    while start > 0 && corpus.story[start - 1] == corpus.story[i] && i + 1 - start < WINDOW {
-        start -= 1;
-    }
-    (start..=i).map(|j| corpus.input[j]).collect()
+    compiler::context_window(corpus, i)
 }
 
 /// Build the cover input vectors of the given corpus positions from the
@@ -660,7 +658,7 @@ pub fn build_observations(
     corpus: &Corpus,
     positions: &[usize],
 ) -> Vec<Observation> {
-    build_observations_serial(art, corpus, positions)
+    build_observations_serial(art, corpus, positions, None)
 }
 
 /// Build observations with bounded parallel extraction.
@@ -676,12 +674,43 @@ pub fn build_observations_with_threads(
     positions: &[usize],
     threads: usize,
 ) -> Vec<Observation> {
+    build_observations_with_threads_impl(art, corpus, positions, threads, None)
+}
+
+/// Build observations with bounded parallel extraction and an exact progress
+/// counter.
+///
+/// `processed` is observer-owned, additive telemetry: this function increments
+/// it exactly once after each observation has been fully constructed. The
+/// counter is never read by the compiler, included in an artifact, or used to
+/// order a reduction, so observing progress cannot affect result bytes. Atomic
+/// updates use relaxed ordering because the counter communicates no data and
+/// carries no synchronization semantics beyond its own monotonic value.
+/// Intermediate values may reflect worker scheduling, but the terminal delta is
+/// exactly `positions.len()` for a successful call.
+pub fn build_observations_with_threads_instrumented(
+    art: &compiler::Compiled,
+    corpus: &Corpus,
+    positions: &[usize],
+    threads: usize,
+    processed: &AtomicUsize,
+) -> Vec<Observation> {
+    build_observations_with_threads_impl(art, corpus, positions, threads, Some(processed))
+}
+
+fn build_observations_with_threads_impl(
+    art: &compiler::Compiled,
+    corpus: &Corpus,
+    positions: &[usize],
+    threads: usize,
+    completed: Option<&AtomicUsize>,
+) -> Vec<Observation> {
     if positions.is_empty() {
         return Vec::new();
     }
     let worker_count = threads.max(1).min(positions.len());
     if worker_count == 1 {
-        return build_observations_serial(art, corpus, positions);
+        return build_observations_serial(art, corpus, positions, completed);
     }
     let chunk_size = positions.len().div_ceil(worker_count);
     let mut chunks = Vec::with_capacity(worker_count);
@@ -690,7 +719,7 @@ pub fn build_observations_with_threads(
         for (chunk_id, shard) in positions.chunks(chunk_size).enumerate() {
             handles.push((
                 chunk_id,
-                scope.spawn(move || build_observations_serial(art, corpus, shard)),
+                scope.spawn(move || build_observations_serial(art, corpus, shard, completed)),
             ));
         }
         for (chunk_id, handle) in handles {
@@ -715,6 +744,7 @@ fn build_observations_serial(
     art: &compiler::Compiled,
     corpus: &Corpus,
     positions: &[usize],
+    completed: Option<&AtomicUsize>,
 ) -> Vec<Observation> {
     let rot = compiler::derive_rotations();
     let mut observations = Vec::with_capacity(positions.len());
@@ -764,6 +794,9 @@ fn build_observations_serial(
             prev: corpus.input[i],
             next: corpus.next[i],
         });
+        if let Some(completed) = completed {
+            completed.fetch_add(1, Ordering::Relaxed);
+        }
     }
     observations
 }
@@ -772,17 +805,7 @@ fn build_observations_serial(
 /// 80/20 story cut, each partition in ascending corpus-position order
 /// (the canonical observation order).
 pub fn split_positions(corpus: &Corpus) -> (Vec<usize>, Vec<usize>) {
-    let cut = compiler::train_cut(corpus);
-    let mut train = Vec::new();
-    let mut held_out = Vec::new();
-    for i in 0..corpus.n {
-        if corpus.story[i] < cut {
-            train.push(i);
-        } else {
-            held_out.push(i);
-        }
-    }
-    (train, held_out)
+    compiler::split_positions(corpus)
 }
 
 /// Memory-budget-derived mini-batch size (plan §4.1 formula shape):
@@ -2987,6 +3010,105 @@ pub fn build_report(config: &CoverConfig, induced: &InducedCover, data: ReportDa
             node_count: info.node_count,
             edge_count: info.edge_count,
         }),
+    }
+}
+
+#[cfg(test)]
+mod observation_progress_tests {
+    use std::mem::size_of;
+
+    use super::*;
+
+    fn compiled_fixture() -> compiler::Compiled {
+        let vocab = 32usize;
+        compiler::Compiled {
+            token_codes: (0..vocab * STAGES)
+                .map(|index| (index % compiler::K) as u8)
+                .collect(),
+            stage_books: (0..STAGES)
+                .map(|stage| {
+                    (0..compiler::K * D)
+                        .map(|index| ((index + stage) % 5) as i8 - 2)
+                        .collect()
+                })
+                .collect(),
+            stage_shifts: vec![0; STAGES],
+            thresholds: vec![0; D],
+            class_sigs: (0..STAGES)
+                .map(|_| vec![0; compiler::K * SIG_BYTES])
+                .collect(),
+            ctx_cb: Vec::new(),
+            token_stage_kappas: Vec::new(),
+            dot_cb: Vec::new(),
+            resid_cb: Vec::new(),
+            resid_scale_shifts: Vec::new(),
+            norm_fold_const: 0,
+        }
+    }
+
+    fn corpus_fixture() -> Corpus {
+        let n = 17usize;
+        Corpus {
+            n,
+            stories: 2,
+            story: (0..n).map(|index| u32::from(index >= 9)).collect(),
+            input: (0..n).map(|index| (index % 32) as u32).collect(),
+            next: (0..n).map(|index| ((index + 1) % 32) as u32).collect(),
+            t_argmax: vec![0; n],
+            top_tokens: vec![[0; 8]; n],
+            top_weights: vec![[0; 8]; n],
+            span_start: vec![0; n],
+            span_end: vec![0; n],
+            byte_start: vec![0; n],
+            byte_end: vec![0; n],
+            hidden: None,
+        }
+    }
+
+    fn exact_observation_bytes(observations: &[Observation]) -> Vec<u8> {
+        let bytes_per_observation = size_of::<u32>() * 3 + 32 + SIG_BYTES + D * size_of::<f32>();
+        let mut bytes = Vec::with_capacity(observations.len() * bytes_per_observation);
+        for observation in observations {
+            bytes.extend_from_slice(&observation.position.to_le_bytes());
+            bytes.extend_from_slice(&observation.sample);
+            for value in &observation.vector {
+                bytes.extend_from_slice(&value.to_bits().to_le_bytes());
+            }
+            bytes.extend_from_slice(&observation.sig);
+            bytes.extend_from_slice(&observation.prev.to_le_bytes());
+            bytes.extend_from_slice(&observation.next.to_le_bytes());
+        }
+        bytes
+    }
+
+    #[test]
+    fn instrumented_observations_count_exactly_and_preserve_bytes() {
+        let compiled = compiled_fixture();
+        let corpus = corpus_fixture();
+        let positions: Vec<usize> = (0..corpus.n).collect();
+        let baseline = build_observations(&compiled, &corpus, &positions);
+        let baseline_bytes = exact_observation_bytes(&baseline);
+
+        // Four workers over seventeen positions exercises ragged shards. The
+        // one-worker case exercises the same serial implementation used by the
+        // compatibility API.
+        for workers in [1usize, 4] {
+            let processed = AtomicUsize::new(0);
+            let observed = build_observations_with_threads_instrumented(
+                &compiled, &corpus, &positions, workers, &processed,
+            );
+
+            assert_eq!(
+                processed.load(Ordering::Relaxed),
+                positions.len(),
+                "T={workers} increments exactly once per completed position"
+            );
+            assert_eq!(
+                exact_observation_bytes(&observed),
+                baseline_bytes,
+                "T={workers} instrumentation does not alter observation bytes"
+            );
+        }
     }
 }
 

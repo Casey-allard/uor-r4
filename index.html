@@ -1024,8 +1024,8 @@
                 Hugging Face source download is idle
             </div>
 
-            <button class="identity-input" id="compileR4g1Btn" style="margin-bottom: 0.35rem; background: rgba(0, 242, 254, 0.12); color: var(--cyan); border-color: var(--cyan); cursor: pointer; font-weight: 600; font-family: 'Outfit', sans-serif;">
-                Compile / Refresh R4G1 Graph
+            <button class="identity-input" id="compileR4g1Btn" disabled aria-disabled="true" title="Production R4G1 bundles require the instrumented CLI workflow" style="margin-bottom: 0.35rem; background: rgba(255, 255, 255, 0.04); color: var(--text2); border-color: var(--border2); cursor: not-allowed; font-weight: 600; font-family: 'Outfit', sans-serif;">
+                Dashboard R4G1 Compilation Retired
             </button>
             <div id="r4g1CompileProgress" class="compile-progress" hidden aria-label="R4G1 compilation progress">
                 <div id="r4g1CompileProgressFill" class="compile-progress-fill"></div>
@@ -1034,10 +1034,10 @@
                 <span>Compiler progress</span><span id="r4g1CompileProgressValue">0%</span>
             </div>
             <div class="compile-progress-hint">
-                Builds the local teacher bundle, graph cover, and scored runtime. This may take several minutes.
+                This legacy compiler cannot produce the schema-2 production envelope. Use the instrumented CLI workflow: score → deployed-quality full → package.
             </div>
             <div id="r4g1CompileStatus" style="font-size: 0.68rem; margin-bottom: 0.75rem; color: var(--text2);">
-                Server compilation is idle
+                Dashboard compilation is unavailable for production bundles
             </div>
 
             <div class="section-label">Manifold State (Weights)</div>
@@ -1486,6 +1486,8 @@ let router = null;
 let wasmInitialized = false;
 let localWasmMode = false;
 let serverR4g1Ready = false;
+let r4g1ProductionInstalled = false;
+let r4g1InstallError = "schema-2 production bundle has not been installed";
 
 let r4Worker = null;
 let workerPendingCallbacks = new Map();
@@ -1528,27 +1530,58 @@ function runWorkerGeneration(payload) {
     });
 }
 
-// #790 item 5: same static-mode bundle install as r4_worker.js — scored
-// graph preferred, converter carryover fallback; missing files keep the
-// honest geometric fallback, and a typed installer refusal is logged.
+const R4G1_PRODUCTION_COMPONENTS = [
+    ['./graph/score.r4g1', 'graph'],
+    ['./graph/score_sections_absent.r4g1', 'sectionsAbsentGraph'],
+    ['./graph/score_label_shuffled.r4g1', 'labelShuffledGraph'],
+    ['./tless_artifacts.bin', 'signatureArtifact'],
+    ['./tless_store.bin', 'tlaComparatorStore'],
+    ['./tokenizer.bin', 'tokenizer'],
+    ['./graph/score_report.json', 'scoreReport'],
+    ['./graph-cover/cover_report.json', 'compileReport'],
+    ['./graph/deployed_quality_report.json', 'deployedQualityReport'],
+    ['./graph/cross_surface_parity.json', 'crossSurfaceParity'],
+    ['./graph/witness_replay.json', 'witnessReplay'],
+    ['./corpus.meta', 'corpusMeta'],
+    ['./corpus.records', 'corpusRecords'],
+    ['./tokenizer_adapter.json', 'tokenizerAdapter'],
+    ['./release-bundle.json', 'releaseManifest'],
+];
+
+// Fetch every byte of one schema-2 generation. The Rust installer binds all
+// component CIDs and refuses mixed, partial, stale, or research-only input.
 async function tryInstallStaticR4g1Bundle(scope, wasmModule) {
-    if (typeof wasmModule.set_r4g1_bundle !== 'function') return;
-    try {
-        for (const graphPath of ['./graph/score.r4g1', './compiled.r4g1']) {
-            const graphRes = await fetch(graphPath);
-            if (!graphRes.ok) continue;
-            const tokRes = await fetch('./tokenizer.bin');
-            if (!tokRes.ok) break;
-            const graph = new Uint8Array(await graphRes.arrayBuffer());
-            const tokenizer = new Uint8Array(await tokRes.arrayBuffer());
-            wasmModule.set_r4g1_bundle(graph, tokenizer);
-            console.log(`[${scope}] R4G1 bundle installed from ${graphPath}`);
-            return;
-        }
-        console.log(`[${scope}] no static R4G1 bundle found; geometric fallback stays active`);
-    } catch (err) {
-        console.warn(`[${scope}] R4G1 bundle install refused:`, err);
+    if (typeof wasmModule.set_r4g1_production_bundle !== 'function') {
+        throw new Error('WASM module has no schema-2 production-envelope installer');
     }
+    const loaded = await Promise.all(R4G1_PRODUCTION_COMPONENTS.map(async ([path, name]) => {
+        const response = await fetch(path, { cache: 'no-store' });
+        if (!response.ok) {
+            throw new Error(`required R4G1 component ${path} returned HTTP ${response.status}`);
+        }
+        return [name, new Uint8Array(await response.arrayBuffer())];
+    }));
+    const bytes = Object.fromEntries(loaded);
+    wasmModule.set_r4g1_production_bundle(
+        bytes.graph,
+        bytes.sectionsAbsentGraph,
+        bytes.labelShuffledGraph,
+        bytes.signatureArtifact,
+        bytes.tlaComparatorStore,
+        bytes.tokenizer,
+        bytes.scoreReport,
+        bytes.compileReport,
+        bytes.deployedQualityReport,
+        bytes.crossSurfaceParity,
+        bytes.witnessReplay,
+        bytes.corpusMeta,
+        bytes.corpusRecords,
+        bytes.tokenizerAdapter,
+        bytes.releaseManifest,
+    );
+    r4g1ProductionInstalled = true;
+    r4g1InstallError = "";
+    console.log(`[${scope}] schema-2 R4G1 production bundle installed`);
 }
 
 async function tryInitLocalWasm() {
@@ -1561,7 +1594,13 @@ async function tryInitLocalWasm() {
         // #790 item 5: previously never assigned, so the main-thread
         // r4g1/transformerless generation branch could never run.
         window.wasm_module = wasmModule;
-        await tryInstallStaticR4g1Bundle('dashboard', wasmModule);
+        try {
+            await tryInstallStaticR4g1Bundle('dashboard', wasmModule);
+        } catch (err) {
+            r4g1ProductionInstalled = false;
+            r4g1InstallError = String(err);
+            console.error('[dashboard] strict R4G1 installation refused:', err);
+        }
         router = new UorR4Router(1.2);
         wasmInitialized = true;
         console.log("Local WebAssembly Router Initialized Successfully!");
@@ -2825,21 +2864,23 @@ async function runLocalChat(text, identity) {
     let responseText = "";
     let generation_mode = "geometric-local";
     let llm_connected = false;
+    let geomResult = null;
 
-    if ((selectedEngine === "transformerless" || selectedEngine === "r4g1") && window.wasm_module?.generate_r4g1_response) {
-        try {
-            const r4g1Res = window.wasm_module.generate_r4g1_response(text, max_tokens);
-            if (r4g1Res) {
-                responseText = r4g1Res;
-                generation_mode = selectedEngine === "r4g1" ? "r4g1-zero-multiply-wasm" : "transformerless-r4g1-wasm";
-            }
-        } catch (err) {
-            console.warn("R4G1 WASM evaluation failed, falling back to geometric:", err);
+    if (selectedEngine === "transformerless" || selectedEngine === "r4g1") {
+        if (!r4g1ProductionInstalled) {
+            throw new Error(`strict R4G1 production bundle unavailable: ${r4g1InstallError}`);
         }
-    }
-
-    if (!responseText) {
-        const geomResult = router.generate_geometric_response(
+        if (typeof window.wasm_module?.typed_r4g1_response !== 'function') {
+            throw new Error('WASM module has no typed R4G1 production response export');
+        }
+        const typed = JSON.parse(window.wasm_module.typed_r4g1_response(text, max_tokens));
+        if (typed.status !== 'supported-answer') {
+            throw new Error(`R4G1 ${typed.status}: ${typed.reason || typed.cause || 'request not served'}`);
+        }
+        responseText = typed.text;
+        generation_mode = selectedEngine === "r4g1" ? "r4g1-zero-multiply-wasm" : "transformerless-r4g1-wasm";
+    } else {
+        geomResult = router.generate_geometric_response(
             text,
             identity,
             max_tokens,
@@ -2849,7 +2890,7 @@ async function runLocalChat(text, identity) {
             gamma
         );
         responseText = geomResult.text || "Manifold resonance too sparse for synthesis.";
-        generation_mode = (selectedEngine === "transformerless" || selectedEngine === "r4g1") ? "geometric-fallback-wasm" : "geometric-local";
+        generation_mode = "geometric-local";
     }
     
     router.index_sentence(responseText, identity);
@@ -3109,7 +3150,7 @@ function renderR4g1CompileStatus(data) {
     if (!data) return;
     serverR4g1Ready = Boolean(data.ready);
     updateConnectionStatusUI();
-    if (compileR4g1Btn) compileR4g1Btn.disabled = Boolean(data.running);
+    if (compileR4g1Btn) compileR4g1Btn.disabled = true;
     const progress = Math.max(0, Math.min(100, Number.isFinite(Number(data.progress))
         ? Number(data.progress)
         : data.running ? 1 : data.ready ? 100 : 0));
@@ -3160,57 +3201,6 @@ async function fetchR4g1CompileStatus() {
     const data = await response.json();
     renderR4g1CompileStatus(data);
     return data;
-}
-
-if (compileR4g1Btn) {
-    compileR4g1Btn.addEventListener("click", async () => {
-        if (localWasmMode) {
-            renderR4g1CompileStatus({
-                running: false,
-                ready: false,
-                message: "R4G1 compilation requires the native server"
-            });
-            return;
-        }
-
-        compileR4g1Btn.disabled = true;
-        renderR4g1CompileStatus({
-            running: true,
-            ready: serverR4g1Ready,
-            progress: 1,
-            message: "Starting R4G1 cover and scoring compilation..."
-        });
-        try {
-            const response = await fetch("/api/r4g1/compile", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ model: hfModelInput?.value.trim() || "" })
-            });
-            const started = await response.json();
-            if (!response.ok) throw new Error(started.message || started.error || `HTTP error: ${response.status}`);
-
-            const deadline = Date.now() + 30 * 60 * 1000;
-            while (Date.now() < deadline) {
-                await new Promise(resolve => setTimeout(resolve, 1000));
-                const status = await fetchR4g1CompileStatus();
-                if (status && !status.running) {
-                    if (!status.ready) throw new Error(status.message || "R4G1 compilation failed");
-                    await loadSemanticMap();
-                    break;
-                }
-            }
-            if (Date.now() >= deadline) throw new Error("R4G1 compilation timed out");
-        } catch (err) {
-            renderR4g1CompileStatus({
-                running: false,
-                ready: serverR4g1Ready,
-                message: `R4G1 compilation error: ${err.message}`
-            });
-        } finally {
-            compileR4g1Btn.disabled = false;
-            fetchR4g1CompileStatus().catch(() => {});
-        }
-    });
 }
 
 function selectedEngineLabel(engine) {

@@ -1389,6 +1389,35 @@ impl From<SourceIngestKind> for SourceUnavailable {
     }
 }
 
+/// Filesystem-free counterpart of the sanctioned source-unavailable error.
+/// Browser serving never performs host ingestion, but portable production
+/// admission still needs the same typed failure boundary for malformed or
+/// mismatched in-memory components.
+#[cfg(target_arch = "wasm32")]
+#[derive(Debug, Clone)]
+pub struct SourceUnavailable {
+    pub reason: String,
+}
+
+#[cfg(target_arch = "wasm32")]
+impl SourceUnavailable {
+    pub fn new(reason: impl std::fmt::Display) -> Self {
+        Self {
+            reason: reason.to_string(),
+        }
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
+impl std::fmt::Display for SourceUnavailable {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "source unavailable: {}", self.reason)
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
+impl std::error::Error for SourceUnavailable {}
+
 /// Exact-widening source codecs (#598): BF16, F16, and F32 → `f32`.
 ///
 /// Every BF16 and F16 value — normals, subnormals, ±0, ±infinity, and NaN —

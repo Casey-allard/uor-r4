@@ -77,7 +77,7 @@ impl<'a> SkipEntries<'a> {
     }
 
     pub fn len(&self) -> usize {
-        self.bytes.len() / ENTRY_LEN
+        self.bytes.len() >> 3
     }
 
     pub fn is_empty(&self) -> bool {
@@ -95,8 +95,8 @@ impl<'a> SkipEntries<'a> {
         let mut low = 0usize;
         let mut high = count;
         while low < high {
-            let mid = low + (high - low) / 2;
-            let start = mid * ENTRY_LEN;
+            let mid = low + ((high - low) >> 1);
+            let start = mid << 3;
             let entry = read_entry(&self.bytes[start..])?;
             if entry.token < token {
                 low = mid + 1;
@@ -104,7 +104,7 @@ impl<'a> SkipEntries<'a> {
                 high = mid;
             }
         }
-        let start = low * ENTRY_LEN;
+        let start = low << 3;
         let entry = read_entry(self.bytes.get(start..)?)?;
         (entry.token == token).then_some(entry.score_q)
     }
@@ -299,12 +299,14 @@ impl<'a> PsiBagTable<'a> {
         if index >= self.row_count as usize {
             return None;
         }
-        let start = PSIB_HEADER_LEN + index * PSIB_ROW_LEN;
-        let bytes = self.bytes.get(start..start + PSIB_ROW_LEN)?;
+        let row_offset = (index << 3).saturating_add(index << 2);
+        let start = PSIB_HEADER_LEN.saturating_add(row_offset);
+        let end = start.checked_add(PSIB_ROW_LEN)?;
+        let bytes = self.bytes.get(start..end)?;
         let key = read_u32(&bytes[0..4]);
         let entry_count = read_u16(&bytes[4..6]) as usize;
         let entry_start = read_u32(&bytes[8..12]) as usize;
-        let entry_end = entry_start.checked_add(entry_count.checked_mul(ENTRY_LEN)?)?;
+        let entry_end = entry_start.checked_add(entry_count.checked_shl(3)?)?;
         Some(PsiBagRow {
             key,
             entries: self.bytes.get(entry_start..entry_end)?,
@@ -316,7 +318,7 @@ impl<'a> PsiBagTable<'a> {
         let mut low = 0usize;
         let mut high = self.row_count as usize;
         while low < high {
-            let mid = low + (high - low) / 2;
+            let mid = low + ((high - low) >> 1);
             let row = self.row(mid)?;
             if row.key() < key {
                 low = mid + 1;
@@ -586,12 +588,13 @@ impl<'a> SkipmixTable<'a> {
     }
 
     fn slot_row(&self, index: u32) -> Option<SkipmixRow<'a>> {
-        let start = SKMX_HEADER_LEN + (index as usize) * SKMX_SLOT_LEN;
-        let s = self.bytes.get(start..start + SKMX_SLOT_LEN)?;
+        let start = SKMX_HEADER_LEN.saturating_add((index as usize) << 4);
+        let end = start.checked_add(SKMX_SLOT_LEN)?;
+        let s = self.bytes.get(start..end)?;
         let key = u64::from_le_bytes(s[0..8].try_into().ok()?);
         let entry_count = read_u16(&s[8..10]) as usize;
         let entry_start = read_u32(&s[12..16]) as usize;
-        let entry_end = entry_start.checked_add(entry_count.checked_mul(ENTRY_LEN)?)?;
+        let entry_end = entry_start.checked_add(entry_count.checked_shl(3)?)?;
         Some(SkipmixRow {
             content_token: (key >> 32) as u32,
             last_token: key as u32,
@@ -608,8 +611,9 @@ impl<'a> SkipmixTable<'a> {
         let home = hash_key(content_token, last_token) & mask;
         let mut cursor = home;
         for _ in 0..=self.max_probe {
-            let start = SKMX_HEADER_LEN + (cursor as usize) * SKMX_SLOT_LEN;
-            let s = self.bytes.get(start..start + SKMX_SLOT_LEN)?;
+            let start = SKMX_HEADER_LEN.saturating_add((cursor as usize) << 4);
+            let end = start.checked_add(SKMX_SLOT_LEN)?;
+            let s = self.bytes.get(start..end)?;
             let entry_count = read_u16(&s[8..10]);
             if entry_count == 0 {
                 return None;

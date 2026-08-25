@@ -50,6 +50,44 @@ pub const FEATURE_EDGE_ALGEBRA_V1: u16 = 0x0001;
 /// Mandatory HEAD feature bits known by this format version.
 pub const KNOWN_FEATURE_BITS_REQUIRED: u16 = FEATURE_EDGE_ALGEBRA_V1;
 
+/// Domain of one content-bound corpus partition identity in HEAD.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CorpusPartitionRole {
+    /// Positions used to construct compiler tables.
+    Construction,
+    /// Positions reserved for certification/evaluation.
+    Certification,
+}
+
+/// Bind one ordered partition to the exact corpus stream.
+///
+/// Positions are serialized as fixed-width little-endian `u64` values. The
+/// corpus byte lengths and partition role are domain-separated, so neither a
+/// different split over the same stream nor the same indices over another
+/// stream can reproduce this CID.
+pub fn corpus_partition_cid(
+    corpus_meta: &[u8],
+    corpus_records: &[u8],
+    role: CorpusPartitionRole,
+    positions: &[u64],
+) -> ArtifactCid {
+    let mut hasher = blake3::Hasher::new();
+    hasher.update(b"r4g1-corpus-partition/1");
+    hasher.update(&[match role {
+        CorpusPartitionRole::Construction => 0,
+        CorpusPartitionRole::Certification => 1,
+    }]);
+    hasher.update(&(corpus_meta.len() as u64).to_le_bytes());
+    hasher.update(corpus_meta);
+    hasher.update(&(corpus_records.len() as u64).to_le_bytes());
+    hasher.update(corpus_records);
+    hasher.update(&(positions.len() as u64).to_le_bytes());
+    for position in positions {
+        hasher.update(&position.to_le_bytes());
+    }
+    ArtifactCid(*hasher.finalize().as_bytes())
+}
+
 /// Number of fallback policy codes: one per `ResolutionStatus` in
 /// declaration order — Supported, Boundary, BackedOff, Novel,
 /// Contradictory (RFC §4, decision D4).
@@ -246,5 +284,57 @@ impl Head {
     /// Compiled vocabulary size.
     pub fn vocab_size(&self) -> u32 {
         self.vocab_size
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{corpus_partition_cid, CorpusPartitionRole};
+
+    #[test]
+    fn partition_cid_binds_stream_role_order_and_positions() {
+        let positions = [2, 5, 8];
+        let construction = corpus_partition_cid(
+            b"meta",
+            b"records",
+            CorpusPartitionRole::Construction,
+            &positions,
+        );
+        assert_eq!(
+            construction,
+            corpus_partition_cid(
+                b"meta",
+                b"records",
+                CorpusPartitionRole::Construction,
+                &positions,
+            )
+        );
+        assert_ne!(
+            construction,
+            corpus_partition_cid(
+                b"meta",
+                b"records",
+                CorpusPartitionRole::Certification,
+                &positions,
+            )
+        );
+        assert_ne!(
+            construction,
+            corpus_partition_cid(
+                b"meta",
+                b"records!",
+                CorpusPartitionRole::Construction,
+                &positions,
+            )
+        );
+        assert_ne!(
+            construction,
+            corpus_partition_cid(
+                b"meta",
+                b"records",
+                CorpusPartitionRole::Construction,
+                &[2, 8, 5],
+            )
+        );
     }
 }

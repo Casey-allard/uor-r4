@@ -1,15 +1,22 @@
-# ADR-0001: One normative R4G1 scorer for serving, certification, patches, and proofs
+# ADR-0001: R4G1Runtime owns normative serving selection
 
 - **Status:** Accepted
 - **Date:** 2026-08-20
 - **Issue:** #831 (item C of S0 tracker #821, programme #820)
-- **Scope of this decision:** Normative **deployed R4Engine/R4G1 serving path**; alternate
-  scorers only as explicitly named reference / certifier scopes. Evidence outside this scope
-  is not credited as a deployed-serving result.
+- **Scope of this decision:** Normative `R4G1Runtime` candidate and token
+  selection. `R4Engine` / `GraphScorer` is token-free D4 policy plus an
+  explicitly named reference / certifier scope; evidence from it is not
+  credited as a deployed-serving result.
+- **Implementation evidence status:** **Current and empirically bound at the
+  #933 scope.** #831 accepted the semantic owner; #933 subsequently established
+  SKMX/PSIB consumption, common production-adapter ownership, zero-mismatch
+  cross-surface evidence, and a strict schema-2 full-census admission envelope.
+  RF-31 is RATIFIED only for that exact measured artifact/population/decode.
 - **Relation to prior records:** Extends `docs/inference_contract.md` (RF-10) and
   `docs/scoring_semantics.md`; does not retract them. Claim language follows
-  `docs/formal_vocabulary.md` (normative). This is a **Definition/Guarantee-scope** design
-  record, not an empirical claim.
+  `docs/formal_vocabulary.md` (normative). **Definition.** This record designates
+  the semantic owner and scopes the other scorers. Structural properties are
+  labeled separately below; this decision is not model-quality evidence.
 
 ## Context
 
@@ -36,7 +43,7 @@ semantics** (the #831 problem statement):
 - `uor-r4-router` — the exploratory `f64` geometric retrieval router, off the P-4 kernel and
   off the serving-selection path by design.
 
-**The concrete drift this ADR removes.** On the deployed path the served token is chosen by
+**The concrete drift this ADR was intended to remove.** On the deployed path the served token is chosen by
 `R4G1Runtime`, while whether to serve or abstain is chosen by `R4Engine`/`GraphScorer`
 resolving the *same* position. These are two implementations, and they are **not exactly
 equivalent**: for example the Cayley–Dickson `syntactic_morphism_score` term runs only in the
@@ -44,30 +51,36 @@ equivalent**: for example the Cayley–Dickson `syntactic_morphism_score` term r
 Quality measured on one surface (Gate C over `GraphScorer`) was therefore discussed as though
 it applied to what the other surface serves. Without a single named owner, such divergence is
 silent and would invalidate every downstream S1–S7 gate that cites "the scorer".
+The #933 audit later established that #831's implementation evidence was
+partial: some production adapters and the SKMX/PSIB lane did not reach the
+designated owner. The accepted ownership decision remains in force; the
+historical reachability conclusion does not.
 
 ## Decision
 
-**1. The one normative scorer for deployed inference is the deployed R4G1 runtime scoring
-path** — `uor-r4-graph-runtime` (`R4G1Runtime::step` / `predict_distribution*` /
-`predict_candidates*` and its `scoring` module). Its step, state, tie-break, saturation,
-and no-double-counting rules are **specified normatively** by
+**Definition.** The one normative candidate and token selector for deployed
+inference is `uor-r4-graph-runtime`'s
+`R4G1Runtime::predict_served_candidates*` path. Its base
+`step` / `predict_distribution*` / `predict_candidates*` machinery and
+`scoring` module feed that selector; its state, tie-break, saturation, and
+no-double-counting rules are specified normatively by
 `uor-r4-graph-format::scoring_semantics` (v1.0.0) and constrained by the operation contract in
 `docs/inference_contract.md`. The served token is, by definition, the token this path selects.
 
 The normative semantics are fixed as follows (all already realized in code; this ADR names
 them as the single owner):
 
-- **Score domain (Definition):** `ScoreQ` = signed Q16.16 integer. `ScoreQ::MIN`/`MAX` are the
+- **Definition.** **Score domain:** `ScoreQ` = signed Q16.16 integer. `ScoreQ::MIN`/`MAX` are the
   saturated-low/high sentinels.
-- **Accumulation (Definition):** pre-quantized, already-signed residuals combined with
+- **Definition.** **Accumulation:** pre-quantized, already-signed residuals combined with
   **saturating** integer add (`i32::saturating_add`); positive/negative overflow clamps to
   `MAX`/`MIN`. No float, no multiply, no divide, no runtime rescaling on the hot path.
-- **No-double-counting (Guarantee, Structural):** each canonical evidence id contributes at
+- **Guarantee. Status: Structural.** **No-double-counting:** each canonical evidence id contributes at
   most once per candidate evaluation.
-- **Deterministic tie-break (Guarantee, Structural):** primary key `ScoreQ` descending,
+- **Guarantee. Status: Structural.** **Deterministic tie-break:** primary key `ScoreQ` descending,
   secondary key candidate id (token/node) ascending — a total order across x86_64, aarch64,
   and portable scalar targets.
-- **Resolution status / decline (Definition):** the single **scorer resolution-status**
+- **Definition.** **Resolution status / decline:** the single **scorer resolution-status**
   space is `ScoreStatus` (`uor-r4-api::ResolutionStatus` is a type alias of it — there is no
   second definition of the *scorer* status space). This is distinct from, and must not be
   conflated with, `uor-r4-graph-runtime::status::ResolutionStatus`, which classifies ROUT
@@ -116,22 +129,30 @@ edges, contribution ids). This ADR names that surface as the attribution owner. 
 **CID-bound per-token attribution capability suites** on top of it is the explicitly scoped
 deliverable of sibling item **#832** (documented exception, not omitted).
 
-## Reachability (production entry points → normative semantics)
+## Intended reachability and #831 evidence boundary
 
-Every production entry point that selects a served token reaches the normative deployed
-scorer; the reference scorer is reachable only in its scoped roles.
+**Definition.** Every production entry point that selects a token is required
+to reach the normative `R4G1Runtime` selector; the reference scorer is permitted
+only in its named token-free policy and reference/certifier roles. The table
+below records that accepted architecture. #831 did not mechanically execute
+every row; its reachability evidence remains historical/partial. #933 supplies
+the missing behavior tests and content-bound cross-surface artifact, with zero
+mismatches on the exact admitted evidence generation.
 
 | Entry point | Path | Reaches |
 |---|---|---|
-| Local chat / generation | `src/chat.rs` → `R4G1Runtime::predict_candidates_with_signature_lanes` | Normative deployed scorer |
-| Transformerless serve | `src/tless_uor.rs` → `R4G1Runtime::parse` + `predict_candidates_with_signature_lanes` | Normative deployed scorer |
-| HTTP / WS / WASM server | `src/server.rs` → the chat surface above | Normative deployed scorer |
-| Library façade | `uor-r4-api::R4Engine` | Reference `GraphScorer` **as D4 policy resolver only**; token selection stays with `R4G1Runtime` |
+| Local chat / generation | `src/chat.rs` → `NormativeStepAdapter` → `R4G1Runtime::predict_served_candidates_with_signature_lanes` | Normative deployed selector |
+| Transformerless serve | `src/tless_uor.rs` → `NormativeServingEngine` → `R4G1Runtime::predict_served_candidates_with_signature_lanes` | Normative deployed selector |
+| HTTP / WS / WASM server | `src/server.rs` → the shared production composition above | Normative deployed selector |
+| Library façade | `uor-r4-api::NormativeServingEngine` / `NormativeStepAdapter` | `R4G1Runtime` selects candidates/token; `R4Engine` resolves token-free D4 policy only |
 | Certification (Gate C, replay) | `uor-r4-graph-certify` `score` / `score_runtime` / `verify_witness_replay` | Reference / certifier scope |
 | Proof obligations | `uor-r4-proof-model` (`ExecutableSpec`, Kani surface) | Structural obligations over the runtime + format |
 
-Machine-checked reachability and the fail-closed boundary are asserted by
-`crates/uor-r4-graph-certify/tests/normative_scorer_831.rs`.
+The historical #831 harness,
+`crates/uor-r4-graph-certify/tests/normative_scorer_831.rs`, checks scorer
+semantics and a limited fail-closed/reachability surface. It does not establish
+all local, HTTP, library, beam, sampled, and WASM adapters and must not be cited
+as complete deployed-serving reachability evidence.
 
 ## Consequences
 
@@ -176,7 +197,63 @@ Reuses/extends existing capability rows (no new RF id required):
 
 ## Claim status
 
-This record establishes **semantic ownership and reachability**, not model quality. It makes
-divergence between the deployed scorer and the reference scorer fail closed rather than
-silent. It does not claim the two scorers are exactly equivalent, and it does not establish
-any generation-quality result.
+**Definition.** This record establishes semantic ownership, not complete
+production reachability and not model quality. #831's reachability evidence is
+historical/partial; #933 owns the missing mechanical and content-bound evidence.
+The record does not claim behavioral equivalence between the two scorers, and it does not
+establish any generation-quality result.
+
+## Implementation-audit addendum — 2026-08-24 (#933)
+
+This decision is reaffirmed, not superseded: `R4G1Runtime` remains the sole
+normative production candidate and token selector, and `R4Engine` / `GraphScorer`
+remains tokenless D4 policy plus reference/certifier scope on production paths.
+
+The #933 audit found a post-ADR implementation divergence. #908 measured
+SKMX/PSIB through `R4Engine::predict_decision_candidates_with_skipmix`; #910
+activated that `R4Engine` reroute and compiler emission but did not add SKMX/PSIB
+consumption to `R4G1Runtime`. Local chat still selected the served token through
+`R4G1Runtime`, while other greedy/sampled/API surfaces did not share one candidate
+owner. The existing quality report likewise measured the certifier Rule 1+2 row,
+not the exact normative selector with a bound production population.
+
+**Empirical Criterion. Status: Empirical. Execution scope:
+reference/off-serving.** #908's 29.702% top-1 and +28.45‰ paired delta remain
+valid for that exact harness. They are not credited as normative
+deployed-serving evidence. RF-31 is **NOT ESTABLISHED** at that scope until #933
+proves exact absent-section identity, planted SKMX/PSIB reachability in
+`R4G1Runtime`, common greedy/sampled/beam candidates across every production
+surface, and production admission of a versioned full-census report bound to the
+exact graph, artifact, corpus, tokenizer, partition, selector, and release
+manifest. A missing or mismatched binding is a typed decline, never a PASS.
+
+## Implementation and evidence resolution — 2026-08-25 (#933)
+
+This append resolves the condition above without superseding the ADR.
+`R4G1Runtime::predict_served_candidates*` remains the one candidate/token
+authority; D4 remains token-free policy. Local ask/chat, greedy, pinned-seed
+sampled, beam, HTTP response surfaces, the public library, and WASM all compose
+through the shared normative adapter. The raw eight-row cross-surface artifact
+and the full evaluator together record 72,138 checks with zero mismatches.
+
+**Empirical Criterion. Status: Empirical. Execution scope: normative-runtime /
+deployed-serving.** Graph/evaluator revision
+`74ced4d12a84a176d73665106f88d0aab9407453` records 21,293 / 72,130 =
+29.5203% through the normative selector, versus same-position TLA 20,284 /
+72,130 = 28.1214% (+13.988‰, 95% CI [11.057, 16.919]) and same-generation
+sections absent 18,806 / 72,130 = 26.0723% (+34.479‰ [31.681, 37.277]).
+Internal absent identity is exact on 72,130 positions, the label-shuffled
+control is negative, and witness replay is 64/64 with zero failures.
+
+Hardened verifier revision
+`f901cd97577da3117fd52c9b1c6dcf075cc4d3a2` strictly admits the exact
+schema-2 envelope from an empty model store. The release manifest's hardened raw
+BLAKE3 is
+`c2025e9e507e8367993d78bd83ef099ce5851c838d3cc5cf01eda5560986ad33`
+(SHA-256
+`7572e07a1e3722f3ffc0ea749a67b4ac162221de79b5b4b8a315f4e4e6570fde`)
+and it binds TLA comparator store CID
+`c1749e62077758c4a098e2a02150b5455e1ca3c02c60b87e6d45fcbb9e2b4404`.
+**Verdict: RF-31 RATIFY for this exact graph/report/population/decode.** This is
+not scorer-wide equivalence, a universal quality floor, live-teacher
+parity, instruction following, reasoning, or free-running coherence.

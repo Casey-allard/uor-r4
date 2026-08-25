@@ -14,17 +14,22 @@
 //! download").
 //!
 //! Fail-closed inventory: the archive must contain EXACTLY the
-//! attested component files (the five `docs/serving_release_packaging_655_d.md`
-//! relative paths, tokenizer present iff the manifest declares it) — an
+//! attested component files (the schema-2 manifest components plus the
+//! corpus and tokenizer-adapter evidence needed to reproduce production
+//! bindings, tokenizer present iff the manifest declares it) — an
 //! archive smuggling any other file is refused outright, so nothing
 //! unattested ever lands on disk.
 
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-use uor_r4_api::ReleaseBundleManifest;
+use uor_r4_api::{
+    validate_production_serving_parts, EngineParts, ProductionServingParts, ReleaseBundleManifest,
+};
 
-use crate::release_bundle_loader::RELEASE_BUNDLE_SIDECAR_FILE_NAME;
+use crate::release_bundle_loader::{
+    capture_production_admission, verify_production_admission, RELEASE_BUNDLE_SIDECAR_FILE_NAME,
+};
 
 /// Release asset name of the packaged bundle archive.
 pub const RELEASE_BUNDLE_ARCHIVE_ASSET: &str = "release-bundle.tar.gz";
@@ -33,10 +38,19 @@ pub const RELEASE_BUNDLE_ARCHIVE_ASSET: &str = "release-bundle.tar.gz";
 /// `docs/serving_release_packaging_655_d.md`'s field-to-file mapping,
 /// mirrored from `release_bundle_packager`.
 const GRAPH_RELATIVE_PATH: &str = "graph/score.r4g1";
+const SECTIONS_ABSENT_GRAPH_RELATIVE_PATH: &str = "graph/score_sections_absent.r4g1";
+const LABEL_SHUFFLED_GRAPH_RELATIVE_PATH: &str = "graph/score_label_shuffled.r4g1";
 const SIGNATURE_ARTIFACT_RELATIVE_PATH: &str = "tless_artifacts.bin";
+const TLA_COMPARATOR_STORE_RELATIVE_PATH: &str = "tless_store.bin";
 const TOKENIZER_RELATIVE_PATH: &str = "tokenizer.bin";
 const SCORE_REPORT_RELATIVE_PATH: &str = "graph/score_report.json";
+const DEPLOYED_QUALITY_REPORT_RELATIVE_PATH: &str = "graph/deployed_quality_report.json";
+const CROSS_SURFACE_PARITY_RELATIVE_PATH: &str = "graph/cross_surface_parity.json";
+const WITNESS_REPLAY_RELATIVE_PATH: &str = "graph/witness_replay.json";
 const COMPILE_REPORT_RELATIVE_PATH: &str = "graph-cover/cover_report.json";
+const CORPUS_META_RELATIVE_PATH: &str = "corpus.meta";
+const CORPUS_RECORDS_RELATIVE_PATH: &str = "corpus.records";
+const TOKENIZER_ADAPTER_RELATIVE_PATH: &str = "tokenizer_adapter.json";
 
 /// One verified-install request.
 pub struct InstallReleaseRequest {
@@ -271,9 +285,18 @@ fn install_into_staging(
     // 3. Fail-closed inventory: exactly the attested files, nothing else.
     let mut expected: Vec<String> = vec![
         GRAPH_RELATIVE_PATH.to_owned(),
+        SECTIONS_ABSENT_GRAPH_RELATIVE_PATH.to_owned(),
+        LABEL_SHUFFLED_GRAPH_RELATIVE_PATH.to_owned(),
         SIGNATURE_ARTIFACT_RELATIVE_PATH.to_owned(),
+        TLA_COMPARATOR_STORE_RELATIVE_PATH.to_owned(),
         SCORE_REPORT_RELATIVE_PATH.to_owned(),
+        DEPLOYED_QUALITY_REPORT_RELATIVE_PATH.to_owned(),
+        CROSS_SURFACE_PARITY_RELATIVE_PATH.to_owned(),
+        WITNESS_REPLAY_RELATIVE_PATH.to_owned(),
         COMPILE_REPORT_RELATIVE_PATH.to_owned(),
+        CORPUS_META_RELATIVE_PATH.to_owned(),
+        CORPUS_RECORDS_RELATIVE_PATH.to_owned(),
+        TOKENIZER_ADAPTER_RELATIVE_PATH.to_owned(),
     ];
     if manifest.components.tokenizer.is_some() {
         expected.push(TOKENIZER_RELATIVE_PATH.to_owned());
@@ -293,9 +316,42 @@ fn install_into_staging(
         "components.graph",
     )?;
     digest_matches(
+        &bundle_dir.join(SECTIONS_ABSENT_GRAPH_RELATIVE_PATH),
+        manifest
+            .components
+            .sections_absent_graph
+            .as_deref()
+            .ok_or_else(|| {
+                "schema-2 release manifest omitted components.sections_absent_graph".to_owned()
+            })?,
+        "components.sections_absent_graph",
+    )?;
+    digest_matches(
+        &bundle_dir.join(LABEL_SHUFFLED_GRAPH_RELATIVE_PATH),
+        manifest
+            .components
+            .label_shuffled_graph
+            .as_deref()
+            .ok_or_else(|| {
+                "schema-2 release manifest omitted components.label_shuffled_graph".to_owned()
+            })?,
+        "components.label_shuffled_graph",
+    )?;
+    digest_matches(
         &bundle_dir.join(SIGNATURE_ARTIFACT_RELATIVE_PATH),
         &manifest.components.signature_artifact,
         "components.signature_artifact",
+    )?;
+    digest_matches(
+        &bundle_dir.join(TLA_COMPARATOR_STORE_RELATIVE_PATH),
+        manifest
+            .components
+            .tla_comparator_store
+            .as_deref()
+            .ok_or_else(|| {
+                "schema-2 release manifest omitted components.tla_comparator_store".to_owned()
+            })?,
+        "components.tla_comparator_store",
     )?;
     digest_matches(
         &bundle_dir.join(SCORE_REPORT_RELATIVE_PATH),
@@ -306,6 +362,40 @@ fn install_into_staging(
         &bundle_dir.join(COMPILE_REPORT_RELATIVE_PATH),
         &manifest.components.compile_report,
         "components.compile_report",
+    )?;
+    let deployed_quality_report = manifest
+        .components
+        .deployed_quality_report
+        .as_deref()
+        .ok_or_else(|| {
+            "schema-2 release manifest omitted components.deployed_quality_report".to_owned()
+        })?;
+    digest_matches(
+        &bundle_dir.join(DEPLOYED_QUALITY_REPORT_RELATIVE_PATH),
+        deployed_quality_report,
+        "components.deployed_quality_report",
+    )?;
+    digest_matches(
+        &bundle_dir.join(CROSS_SURFACE_PARITY_RELATIVE_PATH),
+        manifest
+            .components
+            .cross_surface_parity
+            .as_deref()
+            .ok_or_else(|| {
+                "schema-2 release manifest omitted components.cross_surface_parity".to_owned()
+            })?,
+        "components.cross_surface_parity",
+    )?;
+    digest_matches(
+        &bundle_dir.join(WITNESS_REPLAY_RELATIVE_PATH),
+        manifest
+            .components
+            .witness_replay
+            .as_deref()
+            .ok_or_else(|| {
+                "schema-2 release manifest omitted components.witness_replay".to_owned()
+            })?,
+        "components.witness_replay",
     )?;
     if let Some(declared) = manifest.components.tokenizer.as_deref() {
         digest_matches(
@@ -322,6 +412,35 @@ fn install_into_staging(
         &sidecar_bytes,
     )
     .map_err(|error| format!("could not write bundle sidecar: {error}"))?;
+
+    // Presence is not evidence. Reproduce every report identity from the
+    // extracted graph/artifact/corpus/tokenizer/config bytes and require the
+    // full production verdict before anything enters the model store.
+    let captured = capture_production_admission(&bundle_dir)?;
+    let graph = std::fs::read(bundle_dir.join(GRAPH_RELATIVE_PATH))
+        .map_err(|error| format!("read extracted graph for admission: {error}"))?;
+    let signature_artifact = std::fs::read(bundle_dir.join(SIGNATURE_ARTIFACT_RELATIVE_PATH))
+        .map_err(|error| format!("read extracted signature artifact for admission: {error}"))?;
+    let tokenizer = manifest
+        .components
+        .tokenizer
+        .as_ref()
+        .map(|_| std::fs::read(bundle_dir.join(TOKENIZER_RELATIVE_PATH)))
+        .transpose()
+        .map_err(|error| format!("read extracted tokenizer for admission: {error}"))?;
+    let verified =
+        verify_production_admission(&graph, &signature_artifact, tokenizer.as_deref(), &captured)?;
+    validate_production_serving_parts(&ProductionServingParts {
+        engine: EngineParts {
+            graph: &graph,
+            signature_artifact: &signature_artifact,
+            tokenizer: tokenizer.as_deref(),
+            score_report: Some(&captured.score_report),
+        },
+        deployed_quality_report: &verified.deployed_quality_report,
+        verified_envelope: &verified.envelope,
+    })
+    .map_err(|error| format!("release archive is not production-admissible: {error}"))?;
 
     // 6. Atomic move into the store; never overwrite an existing install.
     let install_name = request
@@ -355,9 +474,10 @@ fn install_into_staging(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::release_bundle_packager::{package_release_bundle, PackageInputs};
+    use crate::release_bundle_packager::{
+        package_release_bundle, tests::write_production_bundle, PackageInputs,
+    };
     use uor_r4_api::{BundleCapability, UorMatmulProvenance};
-    use uor_r4_core::transformerless::hf_bpe::TokenizerAdapter;
 
     /// Serves the two release assets from local fixture files, recording
     /// requested URLs — the network never runs in tests.
@@ -403,15 +523,7 @@ mod tests {
     /// manifest, mirroring the packager's own layout.
     fn packaged_fixture(root: &Path) -> (PathBuf, ReleaseBundleManifest) {
         let bundle = root.join("packaged");
-        write(&bundle, "graph/score.r4g1", b"graph bytes");
-        write(&bundle, "tless_artifacts.bin", b"signature bytes");
-        write(&bundle, "tokenizer.bin", b"tokenizer bytes");
-        write(&bundle, "graph/score_report.json", b"{\"score\":true}");
-        write(
-            &bundle,
-            "graph-cover/cover_report.json",
-            b"{\"cover\":true}",
-        );
+        let admission = write_production_bundle(&bundle);
         let manifest = package_release_bundle(
             &bundle,
             PackageInputs {
@@ -423,10 +535,9 @@ mod tests {
                     license: "MIT".to_owned(),
                     source_digest: None,
                 },
-                tokenizer_adapter: TokenizerAdapter {
-                    family: "hf-byte-bpe".to_owned(),
-                    ..Default::default()
-                },
+                tokenizer_adapter: admission.tokenizer_adapter,
+                selector: admission.bindings.selector,
+                compiler: admission.bindings.compiler,
                 provenance_note: None,
             },
         )
@@ -481,10 +592,19 @@ mod tests {
         // serving loader's advisory verification would now find them.
         for file in [
             "graph/score.r4g1",
+            "graph/score_sections_absent.r4g1",
+            "graph/score_label_shuffled.r4g1",
             "tless_artifacts.bin",
+            "tless_store.bin",
             "tokenizer.bin",
             "graph/score_report.json",
+            "graph/deployed_quality_report.json",
+            "graph/cross_surface_parity.json",
+            "graph/witness_replay.json",
             "graph-cover/cover_report.json",
+            "corpus.meta",
+            "corpus.records",
+            "tokenizer_adapter.json",
             RELEASE_BUNDLE_SIDECAR_FILE_NAME,
         ] {
             assert!(
@@ -531,6 +651,114 @@ mod tests {
             !store.join("compiled").join("r4").exists(),
             "nothing installed"
         );
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn tampered_raw_evidence_refuses_to_install_by_manifest_digest() {
+        for (relative, component) in [
+            (
+                SECTIONS_ABSENT_GRAPH_RELATIVE_PATH,
+                "components.sections_absent_graph",
+            ),
+            (
+                LABEL_SHUFFLED_GRAPH_RELATIVE_PATH,
+                "components.label_shuffled_graph",
+            ),
+            (
+                CROSS_SURFACE_PARITY_RELATIVE_PATH,
+                "components.cross_surface_parity",
+            ),
+            (WITNESS_REPLAY_RELATIVE_PATH, "components.witness_replay"),
+        ] {
+            let root = scratch_dir(&format!("tampered-{}", relative.replace('/', "-")));
+            let store = root.join("store");
+            let (bundle, manifest) = packaged_fixture(&root);
+            write(&bundle, relative, b"TAMPERED raw evidence bytes");
+            let archive = tar_gz(&bundle, &root.join("release-bundle.tar.gz"));
+            let mut fetcher = FixtureFetcher {
+                sidecar: serde_json::to_vec(&manifest).expect("serialize manifest"),
+                archive,
+                urls: Vec::new(),
+            };
+            let error = install_release(&store, &request(), &mut fetcher)
+                .expect_err("tampered evidence must refuse");
+            assert!(error.contains(component), "{relative}: {error}");
+            assert!(error.contains("digest mismatch"), "{relative}: {error}");
+            assert!(!store.join("compiled").join("r4").exists());
+            let _ = std::fs::remove_dir_all(&root);
+        }
+    }
+
+    #[test]
+    fn tampered_corpus_bytes_refuse_even_without_a_manifest_component_digest() {
+        let root = scratch_dir("tampered-corpus");
+        let store = root.join("store");
+        let (bundle, manifest) = packaged_fixture(&root);
+        let path = bundle.join(CORPUS_RECORDS_RELATIVE_PATH);
+        let mut records = std::fs::read(&path).expect("corpus records");
+        records[4] ^= 1;
+        std::fs::write(&path, records).expect("tamper corpus records");
+        let archive = tar_gz(&bundle, &root.join("release-bundle.tar.gz"));
+        let mut fetcher = FixtureFetcher {
+            sidecar: serde_json::to_vec(&manifest).expect("serialize manifest"),
+            archive,
+            urls: Vec::new(),
+        };
+        let error = install_release(&store, &request(), &mut fetcher)
+            .expect_err("report-bound corpus mutation must refuse");
+        assert!(
+            error.contains("corpus construction positions"),
+            "the exact graph/corpus binding must diagnose the mutation: {error}"
+        );
+        assert!(!store.join("compiled").join("r4").exists());
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn missing_tokenizer_adapter_is_an_inventory_failure() {
+        let root = scratch_dir("missing-adapter");
+        let store = root.join("store");
+        let (bundle, manifest) = packaged_fixture(&root);
+        std::fs::remove_file(bundle.join(TOKENIZER_ADAPTER_RELATIVE_PATH)).expect("remove adapter");
+        let archive = tar_gz(&bundle, &root.join("release-bundle.tar.gz"));
+        let mut fetcher = FixtureFetcher {
+            sidecar: serde_json::to_vec(&manifest).expect("serialize manifest"),
+            archive,
+            urls: Vec::new(),
+        };
+        let error = install_release(&store, &request(), &mut fetcher)
+            .expect_err("missing adapter evidence must refuse");
+        assert!(error.contains("attested component set"), "{error}");
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn semantically_tampered_tokenizer_adapter_refuses_install() {
+        let root = scratch_dir("tampered-adapter");
+        let store = root.join("store");
+        let (bundle, manifest) = packaged_fixture(&root);
+        let adapter_path = bundle.join(TOKENIZER_ADAPTER_RELATIVE_PATH);
+        let mut adapter: uor_r4_core::transformerless::hf_bpe::TokenizerAdapter =
+            serde_json::from_slice(&std::fs::read(&adapter_path).expect("adapter bytes"))
+                .expect("adapter JSON");
+        adapter.family = "tampered-tokenizer-family".to_owned();
+        adapter.adapter_digest = adapter.declared_digest();
+        std::fs::write(
+            &adapter_path,
+            serde_json::to_vec_pretty(&adapter).expect("tampered adapter JSON"),
+        )
+        .expect("tamper adapter");
+        let archive = tar_gz(&bundle, &root.join("release-bundle.tar.gz"));
+        let mut fetcher = FixtureFetcher {
+            sidecar: serde_json::to_vec(&manifest).expect("serialize manifest"),
+            archive,
+            urls: Vec::new(),
+        };
+        let error = install_release(&store, &request(), &mut fetcher)
+            .expect_err("semantically changed adapter must refuse");
+        assert!(error.contains("tokenizer_adapter.json"), "{error}");
+        assert!(!store.join("compiled").join("r4").exists());
         let _ = std::fs::remove_dir_all(&root);
     }
 

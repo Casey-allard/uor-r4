@@ -76,6 +76,8 @@ children, its milestone, its promotion gate, and its final verdict.
 3. #831 — Designate the normative R4G1 scorer
 4. #832 — Commit CID-bound suites and per-token attribution
 5. #833 — Rebuild the attested broad bundle and re-ratify the baseline
+6. #933 — Restore normative R4G1 serving reachability, bind deployed quality,
+   and re-ratify RF-31 *(foundational truth correction; added 2026-08-24)*
 
 Stage order, then the parent tracker's listed child order, governs what is worked next.
 A later stage's preparatory child does **not** displace the next sequential stage item
@@ -117,20 +119,68 @@ pinned source inputs through the deployed path (byte-reproducible rebuild, admit
 Gate C within bound). Downstream quality, geometry, and scale promotions are therefore
 authorized to proceed from this baseline.
 
-### S0 quality-evidence correction and dependency chain (2026-08-24)
+### S0 evidence-boundary and quality correction — REOPENED (2026-08-24, #933/#934)
 
-The historical promotion entry above is retained, while #934's
-[current audit](canonical_quality_baseline_934.md) reconciles its quality scope.
-The **29.7%** fixed tolerance applies only to pinned/legacy reports; broad
-`relative_tla` admission requires graph top-1 to meet the TLA comparator in the
-same report. The broad-clean full census is Rule 1+2 **24.393%** versus TLA
-**28.121%**, so strict production admission is not established. #908's
-**29.702%** remains `R4Engine` reference/off-serving evidence for a relative
-lane gate (paired 95% lower bound at least **+20‰**), not an absolute 30%
-requirement. #934 owns the bounded remediation order; the dependent sequence is
-#933 for normative R4G1 reachability and bound admission, then #932 for the
-exact-parallel, observable BDD parity harness. This note records the audit result
-without claiming that #934 or either follow-on has merged or completed.
+The PROMOTE entry above is retained as the decision recorded on 2026-08-20, but
+it is not the current completion verdict. The merged
+[#934 audit](canonical_quality_baseline_934.md) found no universal absolute 30%
+requirement: **29.7%** is scoped to pinned/legacy reports, while broad
+`relative_tla` admission requires the deployed scorer to meet the TLA comparator
+on the same positions. The broad-clean full census is reference Rule 1+2
+**24.393%** versus TLA **28.121%**, so strict production admission is not
+established.
+
+A source-and-call-graph audit also found that the earlier production-quality
+premise crossed ADR-0001's scorer boundary. #833's source, corpus, attestation,
+and byte-determinism evidence remains established, while its Gate C and local
+`R4Engine` canaries do not establish strict production admission or token
+selection by the sole normative scorer. Likewise, #908's **29.702%** top-1 and
+**+28.45‰** paired effect remain valid teacher-free evidence for the `R4Engine`
+reference/off-serving harness; its promotion gate was a paired 95% lower bound
+of at least **+20‰**, not an absolute top-1 floor. #910 routed `R4Engine` and
+compiler emission through SKMX/PSIB but did not make `R4G1Runtime` consume those
+sections, so RF-31 remains **NOT ESTABLISHED** at `normative-runtime` /
+`deployed-serving` scope.
+
+#821 therefore remains reopened with foundational child #933, which owns exact
+absent/present reachability, unified production decode, CID-bound report
+admission, the bounded diagnostic, and the conditional full-census verdict.
+#933 is the prerequisite for #932 → #931 → #839; no later-stage result may
+silently substitute for this missing S0 evidence.
+
+### S0 evidence-boundary correction — RATIFY (2026-08-25, #933)
+
+The reopened evidence branch is resolved. **Empirical Criterion. Status:
+Empirical. Execution scope: normative-runtime / deployed-serving.** Revision
+`74ced4d12a84a176d73665106f88d0aab9407453` re-emitted the canonical broad
+graph and controls, unified every production candidate/token adapter on
+`R4G1Runtime`, and ran the predeclared teacher-free funnel. The 6,000-position
+sample was correctly `INCONCLUSIVE`; the nested 18,000-position extension
+returned `PROCEED`; the full 72,130-position census returned PASS.
+
+The normative row is 21,293 / 72,130 = **29.5203%**, versus same-position TLA
+20,284 / 72,130 = **28.1214%**: +13.988‰, 95% CI [11.057, 16.919]. The
+same-generation sections-absent row is 18,806 / 72,130 = **26.0723%**:
++34.479‰ [31.681, 37.277], clearing the unchanged +20‰ floor. The
+label-shuffled control is −229.003‰; absent identity, cross-surface, and witness
+failures are all zero. Independent 4- and 8-worker runs reproduce the exact
+report and raw parity/witness bytes. Hardened verifier revision
+`f901cd97577da3117fd52c9b1c6dcf075cc4d3a2` strictly admits the schema-2 bundle
+from an empty model store. The manifest's hardened raw BLAKE3 is
+`c2025e9e507e8367993d78bd83ef099ce5851c838d3cc5cf01eda5560986ad33`
+(SHA-256
+`7572e07a1e3722f3ffc0ea749a67b4ac162221de79b5b4b8a315f4e4e6570fde`)
+and it binds comparator store CID
+`c1749e62077758c4a098e2a02150b5455e1ca3c02c60b87e6d45fcbb9e2b4404`.
+
+**Verdict: RATIFY RF-31 and restore the corrected S0 promotion for the exact
+measured artifact/population/decode.** The 2026-08-20 PROMOTE and 2026-08-24
+REOPENED entries above remain the historical decision trail; this entry is the
+current resolution. #908 remains reference/off-serving evidence. No teacher
+forward or live parity run occurred. The BDD suite was 124 / 124, but its
+live-teacher fixtures were absent and those scenarios vacuously skipped; no
+instruction-following, reasoning, or free-running generation claim is promoted.
+The next native dependency is #932 → #931 → #839.
 
 ### S1 stage verdict — REVISE (2026-08-21)
 
@@ -220,6 +270,20 @@ happened, and this is its resolution.
   routes through the lane, the compile path fits and emits the SKMX/PSIB
   sections, and the capability is registered as **RF-31** — under #910.
 
+**Evidence-scope correction (2026-08-24, #933).** The S1 decision and frozen
+20‰ floor remain historical inputs, but “deployed” in the #908/#910 chain meant
+the `R4Engine` harness, not ADR-0001's normative `R4G1Runtime` served-token path.
+The +28.45‰ result is retained at reference/off-serving scope. RF-31 serving
+activation and the S1 production attribution are NOT ESTABLISHED pending #933's
+normative re-emission and teacher-free evidence branch.
+
+**Evidence-scope resolution (2026-08-25, #933).** The branch named above
+completed with RF-31 RATIFY for its exact canonical bundle, held-out population,
+`R4G1Runtime` greedy decode, and schema-2 envelope: 29.5203% versus TLA 28.1214%
+and +34.479 permille [31.681, 37.277] over the sections-absent control. This
+resolves the production attribution at that bound scope; it does not relabel
+#908 or change S1's historical decisions into free-running evidence.
+
 ### S2 stage verdict — REVISE (2026-08-21)
 
 Items A and B are closed and item C is re-scoped, so **S2 is revised**: abstention
@@ -269,7 +333,8 @@ generation claim into any downstream stage. This entry mirrors the tracker verdi
 - **#840 (item B).** `GENERATION-NOT-ESTABLISHED` (do-not-launch) (PR #912, `35f8cc87`):
   the corrective student-prefix run is not launched because the reachable ceiling is
   ~100× below the frozen §6 bar (correctable footprint ~1‰ vs the required 100‰
-  diverged-at-0 drop) and the promoted skip-mix representation (RF-31) *regresses*
+  diverged-at-0 drop) and the then-measured `R4Engine` skip-mix representation
+  (retained as reference/off-serving evidence under #933) *regresses*
   free-running (suffix-locality 99→19 of 100, cycle collapse 710‰→1000‰). The limiting
   factor is the representation, not more same-distribution data or decoding. Records
   `docs/free_running_reachability_840.md`,
@@ -304,8 +369,10 @@ to #823 is converted to a sanctioned parallel-start. This entry mirrors the trac
 decision; **GitHub #826 remains the source of record** (maintainer decision comment,
 2026-08-22).
 
-- **Amended substrate.** S4 builds on the established — not promoted-generative — substrate:
-  S1 prompt causality is promoted (RF-31, +28.45‰ [25.57, 31.32]); S2 selective prediction
+- **Amended substrate.** S4 built on the then-established — not promoted-generative — substrate:
+  S1 had reference/off-serving `R4Engine` prompt-conditioning evidence
+  (+28.45‰ [25.57, 31.32]), while RF-31 normative deployed-serving attribution is now
+  NOT ESTABLISHED pending #933; S2 selective prediction
   is frozen and honest (REVISE, no calibrator, #839 phase-2 independently trigger-gated); S3
   is `LIMIT` (teacher-forced retrieval/continuation, no free-running generation at this
   scope).
@@ -321,6 +388,12 @@ decision; **GitHub #826 remains the source of record** (maintainer decision comm
   equal-budget baselines) → #846 (certify and bound the claim). Frozen gates unchanged (20‰
   causal floor, #838 selective gates, #841 §6 bar for any generation re-entry). Next
   executable issue: **#844**.
+
+**Substrate resolution (2026-08-25, #933).** RF-31's normative
+deployed-serving attribution is now RATIFIED for the exact #933 canonical
+bundle/population/greedy-decode/schema-2 scope. That later S0 correction does not
+promote S2 or S3, revise any S4 result, or establish free-running coherence; the
+rest of this S4 entry remains unchanged.
 
 ### S4 item A closed; item B active; benchmark Amendment A1 (2026-08-22)
 

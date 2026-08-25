@@ -260,3 +260,56 @@ and were freshly measured.
 corpus integrity, and attestation are resolved; the bundle lives at
 `.uor-models/compiled/smollm2-360m-broad-clean` (regenerable from the pinned inputs via
 the fixed converter + the recorded-corpus compile chain).
+
+## Append-only scope correction — 2026-08-24 (#933)
+
+The source snapshot, clean-corpus identities, #755 ordering, deterministic
+compiler outputs, package attestation, and teacher-floor invariance recorded
+above remain valid. The production-quality attribution does not.
+
+The cited `r4 ask` canary loaded with `R4Engine::load_accepting_quality`, an
+explicit research/quality-bypass loader, rather than proving strict production
+admission. Gate C's Rule 1+2, best-live, and TLA rows are certifier/offline
+measurements; they do not demonstrate the token selected by ADR-0001's sole
+normative `R4G1Runtime` serving path. The attested graph also predates #910 and
+carries no active SKMX/PSIB serving sections. Consequently the 24.39% Rule 1+2
+and 28.12% TLA rows remain valid historical comparator evidence, while normative
+served-token quality and RF-31 activation on this bundle are **NOT ESTABLISHED**.
+
+#933 retains this bundle's pinned inputs, re-emits its graph through the
+production path, binds the exact deployed-quality report and release manifest,
+and performs only teacher-free reachability/sample/conditional-census evidence.
+Until that outcome is recorded, this record establishes provenance and
+reproducibility, not strict production admission or normative serving quality.
+
+## Append-only #933 outcome — 2026-08-25
+
+The source, tokenizer, corpus, and #755-native ordering attested here supplied
+the pinned inputs to #933. The new sections-present graph and release package
+are distinct derived artifacts; they do not retroactively add SKMX/PSIB to the
+historical #833 graph or convert its bypass-loader canary into strict admission.
+
+For the new canonical schema-2 bundle, the `R4G1Runtime` greedy-decode census is
+**21,293 / 72,130 (29.5203%)**, compared with same-position TLA **20,284 /
+72,130 (28.1214%)**, paired **+13.988 permille [11.057, 16.919]**. The
+same-generation sections-absent control is **18,806 / 72,130 (26.0723%)**, so
+the lane effect is **+34.479 permille [31.681, 37.277]**. The exact graph CID is
+`ff82dfd5f04eac7e944443b1ea4cc9fe93a007b3b8f07286876d52709a98bc49`
+and the full deployed-quality report CID is
+`88ee8210e1f4c48dc26999f5685350b2d2343676cdbd6f9b1aee7c7f1c66146f`.
+
+The hardened release manifest has raw BLAKE3
+`c2025e9e507e8367993d78bd83ef099ce5851c838d3cc5cf01eda5560986ad33`
+and SHA-256
+`7572e07a1e3722f3ffc0ea749a67b4ac162221de79b5b4b8a315f4e4e6570fde`;
+it binds comparator-store CID
+`c1749e62077758c4a098e2a02150b5455e1ca3c02c60b87e6d45fcbb9e2b4404`.
+Strict production admission passed from an empty model store after hardening at
+`f901cd97577da3117fd52c9b1c6dcf075cc4d3a2`.
+
+The resulting **RATIFY** verdict is limited to that exact bundle, population,
+selector, greedy decode, and schema-2 envelope. It establishes neither a
+universal 30% floor nor instruction following, reasoning, factuality, semantic
+abstention, free-running coherence, or live-teacher parity. The repository BDD
+suite passed 124 / 124, but its live-teacher parity fixtures were absent and the
+fixture-gated scenarios vacuously skipped.

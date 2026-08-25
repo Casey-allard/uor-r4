@@ -6,8 +6,11 @@ use std::collections::BTreeMap;
 use uor_r4_core::transformerless::compiler::{self, STAGES};
 use uor_r4_core::transformerless::convert_r4g1;
 use uor_r4_core::transformerless::runtime::{self, Store};
-use uor_r4_graph_format::{ArtifactBuilder, GraphView, ScoreQ, SectionId};
-use uor_r4_graph_runtime::R4G1Runtime;
+use uor_r4_graph_format::{
+    ArtifactBuilder, FormatError, GraphView, ScoreQ, SectionId, build_psi_bag_table,
+    build_skipmix_table,
+};
+use uor_r4_graph_runtime::{R4G1Runtime, ServedCandidate, ServedCandidateSource};
 
 struct CountingAllocator;
 
@@ -123,6 +126,24 @@ fn artifact_with_ngram(include_trigram: bool) -> Vec<u8> {
     }
     builder.add_section(SectionId::NGRAM, 0, &ngram_payload(include_trigram));
     builder.build().expect("artifact with NGRAM builds")
+}
+
+fn artifact_with_serving_sections(skmx: Option<&[u8]>, psib: Option<&[u8]>) -> Vec<u8> {
+    let base = artifact_with_ngram(true);
+    let view = GraphView::parse(&base).expect("NGRAM artifact parses");
+    let mut builder = ArtifactBuilder::new(view.header().alignment_log2);
+    for section in view.sections() {
+        builder.add_section(section.id, section.flags, section.payload);
+    }
+    if let Some(payload) = skmx {
+        builder.add_section(SectionId::SKMX, 0, payload);
+    }
+    if let Some(payload) = psib {
+        builder.add_section(SectionId::PSIB, 0, payload);
+    }
+    builder
+        .build()
+        .expect("artifact with serving sections builds")
 }
 
 #[test]
@@ -368,6 +389,364 @@ fn ngram_hit_surfaces_row_alternatives_as_candidates() {
     );
     // The buffer contract is unchanged: a row hit still consults no nodes.
     assert!(scores.iter().all(|s| s.raw() == ScoreQ::MIN.raw()));
+}
+
+#[test]
+fn absent_skipmix_sections_preserve_base_candidate_identity() {
+    let bytes = artifact_with_ngram(true);
+    let runtime = R4G1Runtime::parse(&bytes).expect("base artifact parses");
+    assert_eq!(runtime.skipmix_tables_present(), (false, false));
+
+    let mut base_scores = vec![ScoreQ::MIN; runtime.node_count() as usize];
+    let mut base = [(0u32, ScoreQ::MIN); 8];
+    let base_len = runtime.predict_candidates(&[1, 10, 20], None, &mut base_scores, &mut base);
+
+    let mut served_scores = vec![ScoreQ::MIN; runtime.node_count() as usize];
+    let served = runtime.predict_served_candidates(&[1, 10, 20], None, &mut served_scores);
+    assert_eq!(served.len(), base_len);
+    assert_eq!(served.attribution(), None);
+    for (served, &(token, score)) in served.ranked().iter().zip(&base[..base_len]) {
+        assert_eq!((served.token, served.score), (token, score));
+        assert_eq!(served.source, ServedCandidateSource::Base);
+        assert!(!served.skmx_contributed);
+        assert!(!served.psib_contributed);
+    }
+}
+
+#[test]
+fn skmx_candidate_injection_reaches_the_normative_winner_without_allocations() {
+    let skmx = build_skipmix_table(&[(10, 20, vec![(42, 1_000)])]).expect("SKMX builds");
+    let bytes = artifact_with_serving_sections(Some(&skmx), None);
+    let runtime = R4G1Runtime::parse(&bytes).expect("SKMX artifact parses");
+    assert_eq!(runtime.skipmix_tables_present(), (true, false));
+    let mut scores = vec![ScoreQ::MIN; runtime.node_count() as usize];
+
+    let served = runtime.predict_served_candidates(&[1, 10, 20], None, &mut scores);
+    let winner = served.winner().expect("candidate exists");
+    assert_eq!(winner.token, 42);
+    assert_eq!(winner.score, ScoreQ::from_raw(1_000));
+    assert_eq!(winner.source, ServedCandidateSource::Skipmix);
+    assert!(winner.skmx_contributed);
+    assert!(!winner.psib_contributed);
+    let attribution = served.attribution().expect("promotion is attributed");
+    assert_eq!(attribution.base_token, 8);
+    assert_eq!(attribution.promoted_token, 42);
+    assert_eq!(attribution.contribution, ScoreQ::from_raw(1_000));
+    assert!(attribution.skmx_contributed);
+    assert!(!attribution.psib_contributed);
+
+    let allocations = counted_allocations(|| {
+        scores.fill(ScoreQ::MIN);
+        let repeated = runtime.predict_served_candidates(&[1, 10, 20], None, &mut scores);
+        assert_eq!(repeated, served);
+    });
+    assert_eq!(allocations, 0, "served selection must not allocate");
+}
+
+#[test]
+fn joint_row_presence_gates_psib_and_absent_joint_row_uses_it() {
+    let joint = build_skipmix_table(&[(10, 20, vec![(42, 5)])]).expect("SKMX builds");
+    let psib = build_psi_bag_table(&[(10, vec![(43, 5_000)])]).expect("PSIB builds");
+    let joint_bytes = artifact_with_serving_sections(Some(&joint), Some(&psib));
+    let joint_runtime = R4G1Runtime::parse(&joint_bytes).expect("joint artifact parses");
+    let mut scores = vec![ScoreQ::MIN; joint_runtime.node_count() as usize];
+    let served = joint_runtime.predict_served_candidates(&[1, 10, 20], None, &mut scores);
+    assert_eq!(served.winner().map(|candidate| candidate.token), Some(42));
+    assert!(
+        served
+            .ranked()
+            .iter()
+            .all(|candidate| candidate.token != 43),
+        "a present joint row must suppress PSIB even for a candidate absent from that row"
+    );
+
+    let empty_joint = build_skipmix_table(&[]).expect("empty SKMX builds");
+    let fallback_bytes = artifact_with_serving_sections(Some(&empty_joint), Some(&psib));
+    let fallback_runtime = R4G1Runtime::parse(&fallback_bytes).expect("fallback artifact parses");
+    let mut scores = vec![ScoreQ::MIN; fallback_runtime.node_count() as usize];
+    let fallback = fallback_runtime.predict_served_candidates(&[1, 10, 20], None, &mut scores);
+    let fallback_winner = fallback.winner().expect("PSIB supplies a candidate");
+    assert_eq!(fallback_winner.token, 43);
+    assert_eq!(fallback_winner.source, ServedCandidateSource::Skipmix);
+    assert!(!fallback_winner.skmx_contributed);
+    assert!(fallback_winner.psib_contributed);
+    let attribution = fallback.attribution().expect("PSIB promotion attribution");
+    assert!(!attribution.skmx_contributed);
+    assert!(attribution.psib_contributed);
+}
+
+#[test]
+fn skipmix_uses_distinct_tokens_in_the_newest_eight_token_compiler_window() {
+    let skmx = build_skipmix_table(&[(99, 20, vec![(42, 1_000)])]).expect("SKMX builds");
+    let bytes = artifact_with_serving_sections(Some(&skmx), None);
+    let runtime = R4G1Runtime::parse(&bytes).expect("SKMX artifact parses");
+
+    let mut excluded_scores = vec![ScoreQ::MIN; runtime.node_count() as usize];
+    let excluded = runtime.predict_served_candidates(
+        &[99, 30, 31, 32, 33, 34, 35, 10, 20],
+        None,
+        &mut excluded_scores,
+    );
+    assert_eq!(excluded.winner().map(|candidate| candidate.token), Some(8));
+    assert_eq!(excluded.attribution(), None);
+
+    let mut included_scores = vec![ScoreQ::MIN; runtime.node_count() as usize];
+    let included = runtime.predict_served_candidates(
+        &[99, 30, 31, 32, 33, 34, 10, 20],
+        None,
+        &mut included_scores,
+    );
+    assert_eq!(included.winner().map(|candidate| candidate.token), Some(42));
+}
+
+#[test]
+fn runtime_skipmix_winner_and_attribution_match_an_independent_window_combinator() {
+    type JointRow = (u32, u32, Vec<(u32, i32)>);
+    type PsiRow = (u32, Vec<(u32, i32)>);
+
+    fn independent_winner(
+        base: &[ServedCandidate],
+        context: &[u32],
+        joint: &[JointRow],
+        psi: &[PsiRow],
+    ) -> (u32, i32) {
+        let window = &context[context.len().saturating_sub(compiler::WINDOW)..];
+        let mut unique = window.to_vec();
+        unique.sort_unstable();
+        unique.dedup();
+        let last = *context.last().expect("representative context is nonempty");
+        let mut candidates: Vec<u32> = base.iter().map(|candidate| candidate.token).collect();
+        for &content in &unique {
+            if let Some((_, _, entries)) = joint
+                .iter()
+                .find(|&&(row_content, row_last, _)| row_content == content && row_last == last)
+            {
+                candidates.extend(entries.iter().map(|&(token, _)| token));
+            } else if let Some((_, entries)) =
+                psi.iter().find(|&&(row_content, _)| row_content == content)
+            {
+                candidates.extend(entries.iter().map(|&(token, _)| token));
+            }
+        }
+        candidates.sort_unstable();
+        candidates.dedup();
+
+        let contribution = |candidate: u32| {
+            unique.iter().fold(0i32, |sum, &content| {
+                let score = if let Some((_, _, entries)) = joint
+                    .iter()
+                    .find(|&&(row_content, row_last, _)| row_content == content && row_last == last)
+                {
+                    entries
+                        .iter()
+                        .find_map(|&(token, score)| (token == candidate).then_some(score))
+                } else {
+                    psi.iter()
+                        .find(|&&(row_content, _)| row_content == content)
+                        .and_then(|(_, entries)| {
+                            entries
+                                .iter()
+                                .find_map(|&(token, score)| (token == candidate).then_some(score))
+                        })
+                };
+                sum.saturating_add(score.unwrap_or(0))
+            })
+        };
+
+        candidates
+            .into_iter()
+            .filter_map(|token| {
+                let score = contribution(token);
+                (score > 0).then_some((token, score))
+            })
+            .max_by(|left, right| left.1.cmp(&right.1).then_with(|| right.0.cmp(&left.0)))
+            .unwrap_or_else(|| (base[0].token, base[0].score.raw()))
+    }
+
+    let joint: Vec<JointRow> = vec![
+        (10, 20, vec![(42, 300), (43, 100)]),
+        (11, 20, vec![(42, 200)]),
+        (12, 20, vec![(44, 50)]),
+        (99, 20, vec![(45, 9_999)]),
+    ];
+    let psi: Vec<PsiRow> = vec![(10, vec![(43, 900)]), (13, vec![(43, 700)])];
+    let context = [99, 10, 10, 11, 12, 13, 14, 10, 20];
+
+    let base_bytes = artifact_with_ngram(true);
+    let base_runtime = R4G1Runtime::parse(&base_bytes).expect("base artifact parses");
+    let mut base_scores = vec![ScoreQ::MIN; base_runtime.node_count() as usize];
+    let base = base_runtime.predict_served_candidates(&context, None, &mut base_scores);
+    let expected = independent_winner(base.ranked(), &context, &joint, &psi);
+
+    let skmx = build_skipmix_table(&joint).expect("representative SKMX builds");
+    let psib = build_psi_bag_table(&psi).expect("representative PSIB builds");
+    let bytes = artifact_with_serving_sections(Some(&skmx), Some(&psib));
+    let runtime = R4G1Runtime::parse(&bytes).expect("representative artifact parses");
+    let mut scores = vec![ScoreQ::MIN; runtime.node_count() as usize];
+    let served = runtime.predict_served_candidates(&context, None, &mut scores);
+    let winner = served.winner().expect("runtime winner");
+    assert_eq!((winner.token, winner.score.raw()), expected);
+    assert_eq!(winner.source, ServedCandidateSource::Skipmix);
+    assert!(winner.skmx_contributed);
+    assert!(winner.psib_contributed);
+    let attribution = served.attribution().expect("promotion attribution");
+    assert_eq!(
+        attribution.base_token,
+        base.winner().expect("base winner").token
+    );
+    assert_eq!(attribution.promoted_token, expected.0);
+    assert_eq!(attribution.contribution.raw(), expected.1);
+    assert!(attribution.skmx_contributed);
+    assert!(attribution.psib_contributed);
+    assert!(
+        served
+            .ranked()
+            .iter()
+            .all(|candidate| candidate.token != 45),
+        "content outside the newest compiler window must not inject a candidate"
+    );
+}
+
+#[test]
+fn served_candidate_ties_break_by_ascending_token() {
+    let skmx = build_skipmix_table(&[(10, 20, vec![(42, 500)]), (20, 20, vec![(41, 500)])])
+        .expect("SKMX builds");
+    let bytes = artifact_with_serving_sections(Some(&skmx), None);
+    let runtime = R4G1Runtime::parse(&bytes).expect("SKMX artifact parses");
+    let mut scores = vec![ScoreQ::MIN; runtime.node_count() as usize];
+    let served = runtime.predict_served_candidates(&[1, 10, 20], None, &mut scores);
+    assert_eq!(served.ranked()[0].token, 41);
+    assert_eq!(served.ranked()[1].token, 42);
+    assert_eq!(served.ranked()[0].score, served.ranked()[1].score);
+}
+
+#[test]
+fn learned_special_token_is_a_normative_candidate_not_silently_dropped() {
+    let skmx = build_skipmix_table(&[(10, 20, vec![(2, 500)])]).expect("SKMX builds");
+    let bytes = artifact_with_serving_sections(Some(&skmx), None);
+    let runtime = R4G1Runtime::parse(&bytes).expect("SKMX artifact parses");
+    let mut scores = vec![ScoreQ::MIN; runtime.node_count() as usize];
+    let served = runtime.predict_served_candidates(&[1, 10, 20], None, &mut scores);
+    let winner = served.winner().expect("a learned winner");
+    assert_eq!(
+        winner.token, 2,
+        "EOS remains a valid teacher-argmax outcome"
+    );
+    assert_eq!(winner.source, ServedCandidateSource::Skipmix);
+}
+
+#[test]
+fn runtime_parse_rejects_malformed_or_overwide_serving_tables() {
+    let malformed_skmx = artifact_with_serving_sections(Some(&[0u8; 20]), None);
+    let error = R4G1Runtime::parse(&malformed_skmx).expect_err("malformed SKMX must fail closed");
+    assert_eq!(error.reason, FormatError::SkipmixBadMagic);
+
+    let malformed_psib = artifact_with_serving_sections(None, Some(&[0u8; 16]));
+    let error = R4G1Runtime::parse(&malformed_psib).expect_err("malformed PSIB must fail closed");
+    assert_eq!(error.reason, FormatError::PsiBagBadMagic);
+
+    let entries: Vec<(u32, i32)> = (3..68).map(|token| (token, 1)).collect();
+    let overwide = build_psi_bag_table(&[(10, entries)]).expect("wide PSIB is format-valid");
+    let overwide_bytes = artifact_with_serving_sections(None, Some(&overwide));
+    let error = R4G1Runtime::parse(&overwide_bytes)
+        .expect_err("serving row above the fixed work bound must fail closed");
+    assert_eq!(error.reason, FormatError::PsiBagInvalidRow);
+
+    let mut overprobe =
+        build_skipmix_table(&[(10, 20, vec![(42, 1)])]).expect("bounded SKMX is format-valid");
+    overprobe[12..14].copy_from_slice(&33u16.to_le_bytes());
+    let overprobe_bytes = artifact_with_serving_sections(Some(&overprobe), None);
+    let error = R4G1Runtime::parse(&overprobe_bytes)
+        .expect_err("serving probe above the fixed work bound must fail closed");
+    assert_eq!(error.reason, FormatError::SkipmixProbeExceeded);
+}
+
+#[test]
+fn transitive_skipmix_lookup_kernel_is_integer_only_by_source_scan() {
+    let source = include_str!("../../uor-r4-graph-format/src/skipmix.rs");
+    let entry_start = source
+        .find("impl<'a> SkipEntries<'a>")
+        .expect("entry lookup implementation exists");
+    let entry_end = source[entry_start..]
+        .find("pub struct SkipEntriesIter")
+        .map(|offset| entry_start + offset)
+        .expect("entry iterator follows lookup implementation");
+
+    let psi_start = source
+        .find("    fn row(&self, index: usize)")
+        .expect("PSIB lookup implementation exists");
+    let psi_end = source[psi_start..]
+        .find("// SKMX")
+        .map(|offset| psi_start + offset)
+        .expect("SKMX follows PSIB lookup implementation");
+
+    let joint_start = source
+        .find("    fn slot_row(&self, index: u32)")
+        .expect("SKMX lookup implementation exists");
+    let joint_end = source[joint_start..]
+        .find("// Compiler-side builders")
+        .map(|offset| joint_start + offset)
+        .expect("builders follow SKMX lookup implementation");
+
+    for (name, region) in [
+        ("entries", &source[entry_start..entry_end]),
+        ("PSIB", &source[psi_start..psi_end]),
+        ("SKMX", &source[joint_start..joint_end]),
+    ] {
+        let outcome =
+            uor_r4_core::transformerless::source_scan::scan_for_forbidden_arith_and_floats(region);
+        assert!(
+            outcome.offenders.is_empty(),
+            "{name} lookup contains forbidden operations or types:\n{}",
+            outcome.offenders.join("\n")
+        );
+        assert!(
+            outcome.allowed.is_empty(),
+            "{name} lookup sanctions no source-scan allowances"
+        );
+    }
+
+    // The lookup tables are only the leaves of the normative hot path. Scan
+    // the complete new fixed-capacity contribution/ranking layer as well, so
+    // a multiply, divide, or float cannot hide between a clean lookup and the
+    // served token.
+    let runtime_source = include_str!("../src/engine.rs");
+    let combinator_start = runtime_source
+        .find("fn unique_tokens_in_newest_compiler_window")
+        .expect("served-candidate combinator exists");
+    let combinator_end = runtime_source[combinator_start..]
+        .find("impl<'a> R4G1Runtime<'a>")
+        .map(|offset| combinator_start + offset)
+        .expect("runtime impl follows served-candidate helpers");
+    let selector_start = runtime_source
+        .find("    pub fn predict_served_candidates(")
+        .expect("normative served-candidate selector exists");
+    let selector_end = runtime_source[selector_start..]
+        .find("\n}\n\n#[cfg(test)]")
+        .map(|offset| selector_start + offset)
+        .expect("tests follow normative served-candidate selector");
+    for (name, region) in [
+        (
+            "served-candidate contribution and ranking",
+            &runtime_source[combinator_start..combinator_end],
+        ),
+        (
+            "normative served-candidate selector",
+            &runtime_source[selector_start..selector_end],
+        ),
+    ] {
+        let outcome =
+            uor_r4_core::transformerless::source_scan::scan_for_forbidden_arith_and_floats(region);
+        assert!(
+            outcome.offenders.is_empty(),
+            "{name} contains forbidden operations or types:\n{}",
+            outcome.offenders.join("\n")
+        );
+        assert!(
+            outcome.allowed.is_empty(),
+            "{name} sanctions no source-scan allowances"
+        );
+    }
 }
 
 /// Rebuild the base converter artifact with selected section payloads

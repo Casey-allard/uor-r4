@@ -33,12 +33,26 @@
 use std::cell::RefCell;
 use std::path::{Path, PathBuf};
 
-use uor_r4_api::engine::{EngineParts, InferenceWitness, R4Engine, WitnessVerificationError};
-use uor_r4_core::transformerless::compiler::SIG_BYTES;
+use uor_r4_api::engine::{
+    EngineParts, InferenceWitness, R4Engine, ServedCandidateWitness, SkipmixLaneWitness,
+    WitnessVerificationError,
+};
+use uor_r4_api::{
+    validate_production_serving_parts, NormativeServingDecision, NormativeStepAdapter,
+    ProductionServingParts,
+};
+use uor_r4_core::transformerless::compiler::{SIG_BYTES, WINDOW};
 use uor_r4_core::transformerless::hf_bpe::{
     resolve_source_tokenizer, TokenizerAdapterKey, TokenizerKind,
 };
 use uor_r4_core::transformerless::scenarios::{RuntimeTokenizerIdentity, Tokenizer};
+use uor_r4_core::transformerless::score_q::ScoreQ;
+use uor_r4_graph_runtime::{R4G1Runtime, ServedCandidates};
+
+use crate::release_bundle_loader::{
+    capture_production_admission, production_bundle_root, verify_production_admission,
+    CapturedProductionAdmission,
+};
 
 fn read_optional_tokenizer(path: &Path) -> Result<Option<Vec<u8>>, String> {
     let metadata = match std::fs::symlink_metadata(path) {
@@ -88,8 +102,8 @@ fn read_required_bundle_file(path: &Path) -> Result<Vec<u8>, String> {
 // status-policy suite source-scans lives in
 // `crates/uor-r4-api/src/engine.rs`).
 pub use uor_r4_api::engine::{
-    validate_quality_report, AbstainOutcome, GenerateStatus, PolicyCounters, PolicyStatus,
-    PredictDecision, PredictOutcome, StatusAction, StatusPolicy,
+    validate_quality_report, AbstainOutcome, GenerateStatus, PolicyCounters, PolicyDecision,
+    PolicyPermit, PolicyStatus, PredictDecision, PredictOutcome, StatusAction, StatusPolicy,
 };
 
 /// A loaded, CID-verified scored graph and the teacher artifact needed to
@@ -97,6 +111,12 @@ pub use uor_r4_api::engine::{
 /// [`R4Engine`] for the server's shared-state access pattern.
 pub struct R4g1State {
     engine: RefCell<R4Engine>,
+    /// Exact graph bytes retained so every served candidate can be selected by
+    /// the normative `R4G1Runtime`, never by the D4 reference scorer.
+    graph: Vec<u8>,
+    /// Caller-owned runtime scratch. It is allocated once at load and reset
+    /// in place for every candidate query.
+    node_scores: RefCell<Vec<ScoreQ>>,
     /// Exact `tokenizer.bin` bytes beside the teacher artifact. Tagged
     /// tokenizers are decode-only; historical untagged bytes retain their
     /// existing encode/decode behavior.
@@ -104,6 +124,93 @@ pub struct R4g1State {
     /// Exact registered host encoder for a tagged decode-only tokenizer.
     /// It is installed only after all four identity fields match.
     host_tokenizer: Option<TokenizerKind>,
+}
+
+fn normative_step(
+    engine: &mut R4Engine,
+    runtime: &R4G1Runtime<'_>,
+    node_scores: &mut [ScoreQ],
+    window: &[u32],
+) -> Result<NormativeServingDecision, String> {
+    NormativeStepAdapter::new_with_reference_policy(engine, runtime, node_scores)
+        .select(window, None)
+        .map_err(|error| error.to_string())
+}
+
+fn runtime_skipmix_witness(candidates: &ServedCandidates) -> Option<SkipmixLaneWitness> {
+    candidates
+        .attribution()
+        .map(|attribution| SkipmixLaneWitness {
+            promoted_token: attribution.promoted_token,
+            base_token: attribution.base_token,
+            boost: attribution.contribution.raw(),
+            skmx_contributed: attribution.skmx_contributed,
+            psib_contributed: attribution.psib_contributed,
+        })
+}
+
+fn normative_inference_witness(
+    engine: &mut R4Engine,
+    runtime: &R4G1Runtime<'_>,
+    window: &[u32],
+    outcome: PredictOutcome,
+    candidates: &ServedCandidates,
+) -> Result<InferenceWitness, String> {
+    let winner = candidates
+        .winner()
+        .ok_or_else(|| "normative witness has no runtime candidate".to_owned())?;
+    if winner.token != outcome.token {
+        return Err("normative witness winner differs from the served token".to_owned());
+    }
+    let status = PolicyStatus::from(outcome.status).label().to_owned();
+    let lane_present = runtime.skipmix_tables_present() != (false, false);
+    if lane_present {
+        return Ok(InferenceWitness {
+            // The served-candidate surface does not claim a reference-scorer
+            // traversal. Runtime candidate/score/source/SKMX/PSIB provenance
+            // and lane attribution are the complete production claim replayed
+            // below.
+            region_kappa: None,
+            region_id: None,
+            depth: 0,
+            resolution_status: status,
+            engine: "r4g1".to_owned(),
+            token: winner.token,
+            served_candidate: Some(ServedCandidateWitness::from_runtime(winner)),
+            widened: outcome.widened,
+            segment_lane: None,
+            skipmix_lane: runtime_skipmix_witness(candidates),
+        });
+    }
+
+    // Research-era artifacts with both learned sections absent retain their
+    // historical JSON bytes. The reference scorer contributes token-free
+    // region/depth metadata only after agreeing with the independently
+    // selected runtime token; divergence fails closed.
+    let metadata = engine
+        .legacy_witness_metadata_for_runtime_token(window, outcome.widened, winner.token)
+        .map_err(|error| error.to_string())?
+        .ok_or_else(|| {
+            "absent-lane legacy witness metadata disagrees with the normative runtime token"
+                .to_owned()
+        })?;
+    if metadata.resolution_status != status {
+        return Err(
+            "absent-lane legacy witness status disagrees with the D4 policy status".to_owned(),
+        );
+    }
+    Ok(InferenceWitness {
+        region_kappa: metadata.region_kappa,
+        region_id: metadata.region_id,
+        depth: metadata.depth,
+        resolution_status: metadata.resolution_status,
+        engine: "r4g1".to_owned(),
+        token: winner.token,
+        served_candidate: None,
+        widened: outcome.widened,
+        segment_lane: None,
+        skipmix_lane: None,
+    })
 }
 
 /// One exact, already-captured standalone artifact generation. The server
@@ -114,6 +221,10 @@ pub(crate) struct CapturedR4g1Bundle {
     pub(crate) signature_artifact: Vec<u8>,
     pub(crate) tokenizer: Option<Vec<u8>>,
     pub(crate) score_report: Option<Vec<u8>>,
+    /// Schema-2 release/report/corpus/config bytes captured from the same
+    /// immutable bundle generation. `None` is legal only through the
+    /// explicitly named research loader.
+    pub(crate) production_admission: Option<CapturedProductionAdmission>,
 }
 
 impl R4g1State {
@@ -128,8 +239,11 @@ impl R4g1State {
         self.engine.borrow().policy_counters()
     }
 
-    /// The D4 policy decision for one input signature.
-    pub fn predict_signature_status(
+    /// Explicit reference/research D4 decision for one already-derived input
+    /// signature. This signature-only seam cannot call `R4G1Runtime` and is
+    /// therefore not a production-serving method; production callers supply
+    /// token windows to [`Self::predict_window_status`] or generation.
+    pub fn predict_signature_status_for_research(
         &self,
         sig: &[u8; SIG_BYTES],
     ) -> Result<PredictDecision, String> {
@@ -138,10 +252,28 @@ impl R4g1State {
 
     /// Score one token window through the D4 policy.
     pub fn predict_window_status(&self, window: &[u32]) -> Result<PredictDecision, String> {
-        self.engine
-            .borrow_mut()
-            .predict_decision(window)
-            .map_err(|error| error.to_string())
+        let runtime = R4G1Runtime::parse(&self.graph).map_err(|error| {
+            format!("normative R4G1 runtime rejected the loaded graph: {error:?}")
+        })?;
+        let mut engine = self.engine.borrow_mut();
+        let mut node_scores = self.node_scores.borrow_mut();
+        match normative_step(&mut engine, &runtime, &mut node_scores, window)? {
+            NormativeServingDecision::Serve(serve) => {
+                Ok(PredictDecision::Serve(PredictOutcome {
+                    token: serve.token,
+                    status: serve.status,
+                    widened: serve.widened,
+                    ngram_hit: serve.ngram_hit,
+                }))
+            }
+            NormativeServingDecision::Abstain(outcome) => {
+                Ok(PredictDecision::Abstain(outcome))
+            }
+            NormativeServingDecision::Decline(_) => Err(
+                "D4 permitted a position for which the normative R4G1 runtime produced no candidate"
+                    .to_owned(),
+            ),
+        }
     }
 
     /// Derive the artifact-backed sign signature for a token window. This is
@@ -163,10 +295,7 @@ impl R4g1State {
         seed: &[u32],
         out: &mut [u32],
     ) -> Result<GenerateStatus, String> {
-        self.engine
-            .borrow_mut()
-            .generate_into(seed, out)
-            .map_err(|error| error.to_string())
+        self.generate_normative_into(seed, out, None, None)
     }
 
     /// #655 decode-default decision (2026-08-19): seeded weighted
@@ -183,10 +312,114 @@ impl R4g1State {
         out: &mut [u32],
         rng: &mut uor_r4_core::transformerless::runtime::SampleRng,
     ) -> Result<GenerateStatus, String> {
-        self.engine
-            .borrow_mut()
-            .generate_sampled_into(seed, out, rng)
-            .map_err(|error| error.to_string())
+        self.generate_normative_into(seed, out, Some(rng), None)
+    }
+
+    /// Evidence-only greedy seam which captures the exact first decision
+    /// returned inside the ordinary generation loop. It does not recompute a
+    /// shortlist after the public surface has emitted.
+    pub(crate) fn generate_into_status_with_first_step(
+        &self,
+        seed: &[u32],
+        out: &mut [u32],
+    ) -> Result<(GenerateStatus, Option<NormativeServingDecision>), String> {
+        let mut first_step = None;
+        let status = self.generate_normative_into(seed, out, None, Some(&mut first_step))?;
+        Ok((status, first_step))
+    }
+
+    /// Sampled counterpart of [`Self::generate_into_status_with_first_step`].
+    pub(crate) fn generate_sampled_into_status_with_first_step(
+        &self,
+        seed: &[u32],
+        out: &mut [u32],
+        rng: &mut uor_r4_core::transformerless::runtime::SampleRng,
+    ) -> Result<(GenerateStatus, Option<NormativeServingDecision>), String> {
+        let mut first_step = None;
+        let status = self.generate_normative_into(seed, out, Some(rng), Some(&mut first_step))?;
+        Ok((status, first_step))
+    }
+
+    fn generate_normative_into(
+        &self,
+        seed: &[u32],
+        out: &mut [u32],
+        mut rng: Option<&mut uor_r4_core::transformerless::runtime::SampleRng>,
+        mut first_step: Option<&mut Option<NormativeServingDecision>>,
+    ) -> Result<GenerateStatus, String> {
+        let runtime = R4G1Runtime::parse(&self.graph).map_err(|error| {
+            format!("normative R4G1 runtime rejected the loaded graph: {error:?}")
+        })?;
+        let mut engine = self.engine.borrow_mut();
+        let mut node_scores = self.node_scores.borrow_mut();
+        let mut window = [0u32; WINDOW];
+        let seed = &seed[seed.len().saturating_sub(WINDOW)..];
+        let mut window_len = seed.len();
+        window[..window_len].copy_from_slice(seed);
+
+        let mut last_status = None;
+        let mut widened = false;
+        for generated in 0..out.len() {
+            let decision = normative_step(
+                &mut engine,
+                &runtime,
+                &mut node_scores,
+                &window[..window_len],
+            )?;
+            if generated == 0 {
+                if let Some(slot) = first_step.as_deref_mut() {
+                    *slot = Some(decision);
+                }
+            }
+            match decision {
+                NormativeServingDecision::Serve(serve) => {
+                    last_status = Some(serve.status);
+                    widened = widened || serve.widened;
+                    let next = match rng.as_deref_mut() {
+                        Some(sample_rng) => {
+                            serve.select_sampled_token(&out[..generated], sample_rng)
+                        }
+                        None => serve.token,
+                    };
+                    if next == 1 || next == 2 {
+                        return Ok(GenerateStatus {
+                            count: generated,
+                            status: last_status,
+                            widened,
+                            abstained: false,
+                        });
+                    }
+                    out[generated] = next;
+                    if window_len < WINDOW {
+                        window[window_len] = next;
+                        window_len += 1;
+                    } else {
+                        window.copy_within(1.., 0);
+                        window[WINDOW - 1] = next;
+                    }
+                }
+                NormativeServingDecision::Abstain(outcome) => {
+                    return Ok(GenerateStatus {
+                        count: generated,
+                        status: Some(outcome.status),
+                        widened: widened || outcome.widened,
+                        abstained: true,
+                    });
+                }
+                NormativeServingDecision::Decline(_) => {
+                    return Err(
+                        "D4 permitted a position for which the normative R4G1 runtime produced no candidate"
+                            .to_owned(),
+                    );
+                }
+            }
+        }
+        Ok(GenerateStatus {
+            count: out.len(),
+            status: last_status,
+            widened,
+            abstained: false,
+        })
     }
 
     /// Witness-enabled generation for the opt-in proof-carrying response
@@ -197,10 +430,88 @@ impl R4g1State {
         out: &mut [u32],
         witnesses: &mut Vec<InferenceWitness>,
     ) -> Result<GenerateStatus, String> {
-        self.engine
-            .borrow_mut()
-            .generate_into_with_witness(seed, out, witnesses)
-            .map_err(|error| error.to_string())
+        let runtime = R4G1Runtime::parse(&self.graph).map_err(|error| {
+            format!("normative R4G1 runtime rejected the loaded graph: {error:?}")
+        })?;
+        let mut engine = self.engine.borrow_mut();
+        // Preserve the old boundary behavior even for a zero-length output:
+        // every supplied seed token must belong to the loaded artifact.
+        engine
+            .signature_for_window(seed)
+            .map_err(|error| error.to_string())?;
+        let mut node_scores = self.node_scores.borrow_mut();
+        witnesses.clear();
+        let mut window = [0u32; WINDOW];
+        let seed = &seed[seed.len().saturating_sub(WINDOW)..];
+        let mut window_len = seed.len();
+        window[..window_len].copy_from_slice(seed);
+
+        let mut last_status = None;
+        let mut widened = false;
+        for (generated, token) in out.iter_mut().enumerate() {
+            match normative_step(
+                &mut engine,
+                &runtime,
+                &mut node_scores,
+                &window[..window_len],
+            )? {
+                NormativeServingDecision::Serve(serve) => {
+                    let outcome = PredictOutcome {
+                        token: serve.token,
+                        status: serve.status,
+                        widened: serve.widened,
+                        ngram_hit: serve.ngram_hit,
+                    };
+                    let candidates = serve.candidates;
+                    last_status = Some(outcome.status);
+                    widened = widened || outcome.widened;
+                    if outcome.token == 1 || outcome.token == 2 {
+                        return Ok(GenerateStatus {
+                            count: generated,
+                            status: last_status,
+                            widened,
+                            abstained: false,
+                        });
+                    }
+                    let witness = normative_inference_witness(
+                        &mut engine,
+                        &runtime,
+                        &window[..window_len],
+                        outcome,
+                        &candidates,
+                    )?;
+                    *token = outcome.token;
+                    witnesses.push(witness);
+                    if window_len < WINDOW {
+                        window[window_len] = outcome.token;
+                        window_len += 1;
+                    } else {
+                        window.copy_within(1.., 0);
+                        window[WINDOW - 1] = outcome.token;
+                    }
+                }
+                NormativeServingDecision::Abstain(outcome) => {
+                    return Ok(GenerateStatus {
+                        count: generated,
+                        status: Some(outcome.status),
+                        widened: widened || outcome.widened,
+                        abstained: true,
+                    });
+                }
+                NormativeServingDecision::Decline(_) => {
+                    return Err(
+                        "D4 permitted a position for which the normative R4G1 runtime produced no candidate"
+                            .to_owned(),
+                    );
+                }
+            }
+        }
+        Ok(GenerateStatus {
+            count: out.len(),
+            status: last_status,
+            widened,
+            abstained: false,
+        })
     }
 
     /// Replay a compact response witness against the loaded artifact.
@@ -210,14 +521,109 @@ impl R4g1State {
         generated: &[u32],
         witnesses: &[InferenceWitness],
     ) -> Result<(), WitnessVerificationError> {
-        match self
-            .engine
-            .borrow_mut()
-            .verify_witnesses(seed, generated, witnesses)
-        {
-            Some(error) => Err(error),
-            None => Ok(()),
+        if generated.len() != witnesses.len() {
+            return Err(WitnessVerificationError::LengthMismatch);
         }
+        let runtime = R4G1Runtime::parse(&self.graph)
+            .map_err(|_| WitnessVerificationError::CandidateMismatch)?;
+        let lane_present = runtime.skipmix_tables_present() != (false, false);
+        let mut engine = self.engine.borrow_mut();
+        engine
+            .signature_for_window(seed)
+            .map_err(|_| WitnessVerificationError::LengthMismatch)?;
+        let mut node_scores = self.node_scores.borrow_mut();
+        let mut window = [0u32; WINDOW];
+        let seed = &seed[seed.len().saturating_sub(WINDOW)..];
+        let mut window_len = seed.len();
+        window[..window_len].copy_from_slice(seed);
+
+        for (&token, claimed) in generated.iter().zip(witnesses) {
+            if claimed.engine != "r4g1" {
+                return Err(WitnessVerificationError::EngineMismatch);
+            }
+            let permit = match engine
+                .replay_admission(&window[..window_len])
+                .map_err(|_| WitnessVerificationError::LengthMismatch)?
+            {
+                PolicyDecision::Permit(permit) => permit,
+                PolicyDecision::Abstain(_) => return Err(WitnessVerificationError::StatusMismatch),
+            };
+            if claimed.resolution_status != PolicyStatus::from(permit.status).label() {
+                return Err(WitnessVerificationError::StatusMismatch);
+            }
+            if claimed.widened != permit.widened {
+                return Err(WitnessVerificationError::WidenedMismatch);
+            }
+
+            let signature = engine
+                .signature_for_window(&window[..window_len])
+                .map_err(|_| WitnessVerificationError::LengthMismatch)?;
+            node_scores.fill(ScoreQ::MIN);
+            let candidates = runtime.predict_served_candidates(
+                &window[..window_len],
+                Some(&signature),
+                &mut node_scores,
+            );
+            let winner = candidates
+                .winner()
+                .ok_or(WitnessVerificationError::CandidateMismatch)?;
+            if token != winner.token || claimed.token != token {
+                return Err(WitnessVerificationError::TokenMismatch);
+            }
+
+            let expected_candidate =
+                lane_present.then(|| ServedCandidateWitness::from_runtime(winner));
+            if claimed.served_candidate != expected_candidate {
+                return Err(WitnessVerificationError::CandidateMismatch);
+            }
+            if claimed.segment_lane.is_some() {
+                return Err(WitnessVerificationError::SegmentLaneMismatch);
+            }
+            let expected_skipmix = lane_present
+                .then(|| runtime_skipmix_witness(&candidates))
+                .flatten();
+            if claimed.skipmix_lane != expected_skipmix {
+                return Err(WitnessVerificationError::SkipmixLaneMismatch);
+            }
+
+            if lane_present {
+                if claimed.region_kappa.is_some() || claimed.region_id.is_some() {
+                    return Err(WitnessVerificationError::RegionMismatch);
+                }
+                if claimed.depth != 0 {
+                    return Err(WitnessVerificationError::DepthMismatch);
+                }
+            } else {
+                let metadata = engine
+                    .legacy_witness_metadata_for_runtime_token(
+                        &window[..window_len],
+                        permit.widened,
+                        winner.token,
+                    )
+                    .map_err(|_| WitnessVerificationError::LengthMismatch)?
+                    .ok_or(WitnessVerificationError::TokenMismatch)?;
+                if claimed.region_kappa != metadata.region_kappa
+                    || claimed.region_id != metadata.region_id
+                {
+                    return Err(WitnessVerificationError::RegionMismatch);
+                }
+                if claimed.depth != metadata.depth {
+                    return Err(WitnessVerificationError::DepthMismatch);
+                }
+                if claimed.resolution_status != metadata.resolution_status {
+                    return Err(WitnessVerificationError::StatusMismatch);
+                }
+            }
+
+            if window_len < WINDOW {
+                window[window_len] = token;
+                window_len += 1;
+            } else {
+                window.copy_within(1.., 0);
+                window[WINDOW - 1] = token;
+            }
+        }
+        Ok(())
     }
 
     /// Load and validate a scored graph. The teacher artifact supplies the
@@ -238,6 +644,8 @@ impl R4g1State {
         teacher_path: &Path,
         source_dir: Option<&Path>,
     ) -> Result<Self, String> {
+        let root = production_bundle_root(graph_path, teacher_path)?;
+        let production_admission = capture_production_admission(root)?;
         let graph_bytes = read_required_bundle_file(graph_path)?;
         let teacher_bytes = read_required_bundle_file(teacher_path)?;
         let tokenizer_path = teacher_path
@@ -248,13 +656,7 @@ impl R4g1State {
             .map(read_optional_tokenizer)
             .transpose()?
             .flatten();
-        // Historical behavior: a score report that does not parse is
-        // ignored (D4 defaults), not an error — pre-validate before
-        // handing the bytes to the typed loader.
-        let score_report = graph_path
-            .parent()
-            .and_then(|parent| std::fs::read(parent.join("score_report.json")).ok())
-            .filter(|bytes| serde_json::from_slice::<serde_json::Value>(bytes).is_ok());
+        let score_report = Some(production_admission.score_report.clone());
         Self::load_captured_with_source(
             graph_path,
             teacher_path,
@@ -263,6 +665,49 @@ impl R4g1State {
                 signature_artifact: teacher_bytes,
                 tokenizer: tokenizer_bytes,
                 score_report,
+                production_admission: Some(production_admission),
+            },
+            source_dir,
+        )
+    }
+
+    /// Explicit research-only path loader. It validates graph, artifact, and
+    /// tokenizer structure but deliberately does not claim schema-2 release
+    /// admission or deployed-quality PASS.
+    pub fn load_for_research(graph_path: &Path, teacher_path: &Path) -> Result<Self, String> {
+        Self::load_for_research_with_source(graph_path, teacher_path, None)
+    }
+
+    /// Explicit research-only source-aware loader. Production callers must
+    /// use [`Self::load_with_source`].
+    pub fn load_for_research_with_source(
+        graph_path: &Path,
+        teacher_path: &Path,
+        source_dir: Option<&Path>,
+    ) -> Result<Self, String> {
+        let graph_bytes = read_required_bundle_file(graph_path)?;
+        let teacher_bytes = read_required_bundle_file(teacher_path)?;
+        let tokenizer_path = teacher_path
+            .parent()
+            .map(|parent| parent.join("tokenizer.bin"));
+        let tokenizer_bytes = tokenizer_path
+            .as_deref()
+            .map(read_optional_tokenizer)
+            .transpose()?
+            .flatten();
+        let score_report = graph_path
+            .parent()
+            .and_then(|parent| std::fs::read(parent.join("score_report.json")).ok())
+            .filter(|bytes| serde_json::from_slice::<serde_json::Value>(bytes).is_ok());
+        Self::load_captured_for_research_with_source(
+            graph_path,
+            teacher_path,
+            &CapturedR4g1Bundle {
+                graph: graph_bytes,
+                signature_artifact: teacher_bytes,
+                tokenizer: tokenizer_bytes,
+                score_report,
+                production_admission: None,
             },
             source_dir,
         )
@@ -273,6 +718,28 @@ impl R4g1State {
         teacher_path: &Path,
         captured: &CapturedR4g1Bundle,
         source_dir: Option<&Path>,
+    ) -> Result<Self, String> {
+        Self::load_captured_inner(graph_path, teacher_path, captured, source_dir, true)
+    }
+
+    /// Explicit research-only captured-generation loader. The loud name is
+    /// intentional: synthetic fixtures and pre-report build stages may use
+    /// it, but no serving installation may silently downgrade to it.
+    pub(crate) fn load_captured_for_research_with_source(
+        graph_path: &Path,
+        teacher_path: &Path,
+        captured: &CapturedR4g1Bundle,
+        source_dir: Option<&Path>,
+    ) -> Result<Self, String> {
+        Self::load_captured_inner(graph_path, teacher_path, captured, source_dir, false)
+    }
+
+    fn load_captured_inner(
+        graph_path: &Path,
+        teacher_path: &Path,
+        captured: &CapturedR4g1Bundle,
+        source_dir: Option<&Path>,
+        require_production_admission: bool,
     ) -> Result<Self, String> {
         let tokenizer_path = teacher_path
             .parent()
@@ -292,15 +759,47 @@ impl R4g1State {
                 })
             })
             .transpose()?;
-        let engine = R4Engine::load(EngineParts {
+        // Production admission is contingent on the normative runtime being
+        // able to parse every section it will consume. This catches malformed
+        // SKMX/PSIB bytes here instead of allowing the policy-only reference
+        // scorer to flatten them into an apparently usable bundle.
+        let runtime = R4G1Runtime::parse(&captured.graph).map_err(|error| {
+            format!(
+                "{}: normative R4G1 runtime rejected the graph: {error:?}",
+                graph_path.display()
+            )
+        })?;
+        let node_scores = vec![ScoreQ::MIN; runtime.node_count() as usize];
+        drop(runtime);
+        let engine_parts = EngineParts {
             graph: &captured.graph,
             signature_artifact: &captured.signature_artifact,
             // Supplying the exact bytes makes the graph header's independent
             // tokenizer.bin CID binding authoritative at this boundary.
             tokenizer: captured.tokenizer.as_deref(),
             score_report: captured.score_report.as_deref(),
-        })
-        .map_err(|error| {
+        };
+        if require_production_admission {
+            let admission = captured.production_admission.as_ref().ok_or_else(|| {
+                "production R4G1 load has no captured schema-2 release/deployed-quality admission envelope; use the explicitly named research loader only for non-serving work"
+                    .to_owned()
+            })?;
+            let verified = verify_production_admission(
+                &captured.graph,
+                &captured.signature_artifact,
+                captured.tokenizer.as_deref(),
+                admission,
+            )?;
+            validate_production_serving_parts(&ProductionServingParts {
+                engine: engine_parts,
+                deployed_quality_report: &verified.deployed_quality_report,
+                verified_envelope: &verified.envelope,
+            })
+            .map_err(|error| error.to_string())?;
+        }
+        // The content-bound deployed-quality report is the production gate;
+        // the older Gate C row remains policy/configuration input only.
+        let engine = R4Engine::load_accepting_quality(engine_parts).map_err(|error| {
             // The engine loader now returns a single sanctioned
             // SourceUnavailable whose reason names the failing part; attribute
             // teacher-artifact and tokenizer-binding reasons to their exact
@@ -358,6 +857,8 @@ impl R4g1State {
 
         Ok(Self {
             engine: RefCell::new(engine),
+            graph: captured.graph.clone(),
+            node_scores: RefCell::new(node_scores),
             tokenizer,
             host_tokenizer,
         })

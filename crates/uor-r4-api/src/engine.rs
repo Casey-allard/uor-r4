@@ -74,8 +74,9 @@ pub struct InferenceRequest {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct InferenceWitness {
     /// Content address of the region identity that supplied the answer.
-    /// `None` means exact-context evidence or a novel/abstaining probe did
-    /// not select a covered graph region.
+    /// `None` means no covered runtime-region claim is made: exact-context
+    /// evidence, a novel/abstaining probe, or a normative served-candidate
+    /// surface that does not expose a region chain.
     pub region_kappa: Option<String>,
     /// Zero-based region id within the NODE section, when a graph region
     /// answered the probe.
@@ -88,6 +89,12 @@ pub struct InferenceWitness {
     pub engine: String,
     /// Token bound to this witness claim.
     pub token: u32,
+    /// Exact selected entry from the normative runtime's ranked candidate
+    /// list. Production replay requires this field; older reference/research
+    /// witnesses deserialize with `None` but are not credited as normative
+    /// serving evidence.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub served_candidate: Option<ServedCandidateWitness>,
     /// Whether the policy had to use its widened membership pass.
     pub widened: bool,
     /// #836 segment-lane attribution: present only when the deployed segment
@@ -103,6 +110,64 @@ pub struct InferenceWitness {
     /// absent-section identity.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub skipmix_lane: Option<SkipmixLaneWitness>,
+}
+
+/// Serializable source domain for a selected normative runtime candidate.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum ServedCandidateWitnessSource {
+    Base,
+    Skipmix,
+}
+
+/// Exact selected member of `R4G1Runtime::predict_served_candidates`.
+///
+/// The token is deliberately repeated beside [`InferenceWitness::token`]:
+/// replay checks both fields and the score/source/SKMX/PSIB provenance tuple,
+/// so a response cannot splice a token claim onto a different ranked-candidate
+/// claim.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ServedCandidateWitness {
+    pub token: u32,
+    pub score_q: i32,
+    pub source: ServedCandidateWitnessSource,
+    #[serde(default)]
+    pub skmx_contributed: bool,
+    #[serde(default)]
+    pub psib_contributed: bool,
+}
+
+/// Token-free reference attribution retained only to preserve the historical
+/// witness JSON of research artifacts that have neither SKMX nor PSIB.
+///
+/// This is not a served-candidate authority. The accessor that creates it
+/// first requires the caller's independently selected `R4G1Runtime` token to
+/// equal the historical reference token and returns no token of its own.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LegacyWitnessMetadata {
+    pub region_kappa: Option<String>,
+    pub region_id: Option<u32>,
+    pub depth: u8,
+    pub resolution_status: String,
+}
+
+impl ServedCandidateWitness {
+    pub fn from_runtime(candidate: uor_r4_graph_runtime::ServedCandidate) -> Self {
+        Self {
+            token: candidate.token,
+            score_q: candidate.score.raw(),
+            source: match candidate.source {
+                uor_r4_graph_runtime::ServedCandidateSource::Base => {
+                    ServedCandidateWitnessSource::Base
+                }
+                uor_r4_graph_runtime::ServedCandidateSource::Skipmix => {
+                    ServedCandidateWitnessSource::Skipmix
+                }
+            },
+            skmx_contributed: candidate.skmx_contributed,
+            psib_contributed: candidate.psib_contributed,
+        }
+    }
 }
 
 /// #836 segment-lane witness attribution: which candidate the deployed segment
@@ -133,6 +198,12 @@ pub struct SkipmixLaneWitness {
     pub base_token: u32,
     /// The raw `ScoreQ` boost the lane added to the promoted candidate.
     pub boost: i32,
+    /// A nonzero SKMX primary-row entry contributed to this promotion.
+    #[serde(default)]
+    pub skmx_contributed: bool,
+    /// A nonzero PSIB fallback-row entry contributed to this promotion.
+    #[serde(default)]
+    pub psib_contributed: bool,
 }
 
 /// Unified inference response payload across HTTP REST, WebSocket, and WASM interfaces.
@@ -223,6 +294,8 @@ pub enum WitnessVerificationError {
     LengthMismatch,
     /// The claimed token differs from the artifact replay.
     TokenMismatch,
+    /// The selected normative candidate's token, score, or source differs.
+    CandidateMismatch,
     /// The claimed region identity differs from the artifact replay.
     RegionMismatch,
     /// The claimed traversal depth differs from the artifact replay.
@@ -233,6 +306,10 @@ pub enum WitnessVerificationError {
     EngineMismatch,
     /// The claimed widening flag differs from the replay.
     WidenedMismatch,
+    /// A segment-lane attribution was added, removed, or changed.
+    SegmentLaneMismatch,
+    /// A skip-mix-lane attribution was added, removed, or changed.
+    SkipmixLaneMismatch,
 }
 
 impl fmt::Display for WitnessVerificationError {
@@ -240,11 +317,14 @@ impl fmt::Display for WitnessVerificationError {
         let reason = match self {
             Self::LengthMismatch => "witness_length_mismatch",
             Self::TokenMismatch => "witness_token_mismatch",
+            Self::CandidateMismatch => "witness_candidate_mismatch",
             Self::RegionMismatch => "witness_region_mismatch",
             Self::DepthMismatch => "witness_depth_mismatch",
             Self::StatusMismatch => "witness_status_mismatch",
             Self::EngineMismatch => "witness_engine_mismatch",
             Self::WidenedMismatch => "witness_widened_mismatch",
+            Self::SegmentLaneMismatch => "witness_segment_lane_mismatch",
+            Self::SkipmixLaneMismatch => "witness_skipmix_lane_mismatch",
         };
         f.write_str(reason)
     }
@@ -428,6 +508,30 @@ pub struct AbstainOutcome {
     pub ngram_hit: bool,
 }
 
+/// A D4 policy permit. This value deliberately carries no token: the
+/// reference [`GraphScorer`] may classify whether a position is safe to
+/// serve, but ADR-0001 assigns candidate and token selection exclusively to
+/// `uor_r4_graph_runtime::R4G1Runtime`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct PolicyPermit {
+    pub status: ScoreStatus,
+    pub widened: bool,
+    /// The policy classification came from an explicit NGRAM context row.
+    pub ngram_hit: bool,
+}
+
+/// Token-free D4 decision used by production adapters.
+///
+/// `Permit` authorizes the normative graph runtime to select a token;
+/// `Abstain` authorizes none. In particular, this type makes it impossible
+/// for the reference/certifier scorer to substitute its independently
+/// selected token on a production path.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PolicyDecision {
+    Permit(PolicyPermit),
+    Abstain(AbstainOutcome),
+}
+
 /// The status-aware prediction result of the deployed adapter: either
 /// the policy serves a token or it abstains with the status recorded.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -468,6 +572,7 @@ const NOVEL_SEEN_CAPACITY: usize = 1024;
 /// Fixed-capacity FIFO of confirmed-Novel signatures (threat model:
 /// repeated adversarial out-of-distribution probes abstain after one
 /// membership scan instead of forcing constant widening).
+#[derive(Clone)]
 struct NovelSeen {
     sigs: Vec<[u8; SIG_BYTES]>,
     next: usize,
@@ -509,8 +614,13 @@ struct ScoredProbe {
     ngram_hit: bool,
 }
 
-/// A loaded, CID-verified scored graph and the teacher artifact needed to
-/// derive input signatures from token ids.
+/// Reference/certification scorer over a CID-verified graph and teacher
+/// artifact.
+///
+/// This type exposes independently token-selecting reference methods and is
+/// therefore not a production-serving capability. Production callers must
+/// enter through `VerifiedProductionEnvelope` plus `NormativeServingEngine`
+/// (or the opaque token-free `ProductionPolicyEngine`).
 pub struct R4Engine {
     artifacts: Compiled,
     scorer: GraphScorer,
@@ -796,6 +906,34 @@ fn skipmix_token_contribution(
     acc
 }
 
+/// Exact section-level attribution for one skip-mix candidate contribution.
+/// A present SKMX row gates PSIB for that content token even when the SKMX row
+/// does not contain the candidate, matching [`skipmix_token_contribution`].
+fn skipmix_contribution_sources(
+    primary: Option<&SkipmixTable<'_>>,
+    fallback: Option<&PsiBagTable<'_>>,
+    unique_tokens: &[u32],
+    last_token: u32,
+    candidate: u32,
+) -> (bool, bool) {
+    let mut skmx_contributed = false;
+    let mut psib_contributed = false;
+    for &token in unique_tokens {
+        if let Some(row) = primary.and_then(|table| table.find(token, last_token)) {
+            skmx_contributed |= row
+                .entries()
+                .find(candidate)
+                .is_some_and(|score| score.raw() != 0);
+        } else if let Some(row) = fallback.and_then(|table| table.find(token)) {
+            psib_contributed |= row
+                .entries()
+                .find(candidate)
+                .is_some_and(|score| score.raw() != 0);
+        }
+    }
+    (skmx_contributed, psib_contributed)
+}
+
 /// Count of `unique_tokens` whose composite `(t, last_token)` key the primary
 /// joint table actually supports (a row exists) -- the `sup_ts` the reference
 /// math tracks. Passed through to [`skipmix_scale_by_lambda_and_support`];
@@ -947,14 +1085,29 @@ fn skipmix_injected_lane_attribution(
         sup_ts,
         unique_tokens.len(),
     );
+    let (skmx_contributed, psib_contributed) =
+        skipmix_contribution_sources(primary, fallback, unique_tokens, last_token, promoted);
     Some(SkipmixLaneWitness {
         promoted_token: promoted,
         base_token,
         boost,
+        skmx_contributed,
+        psib_contributed,
     })
 }
 
 impl R4Engine {
+    fn tokenless_policy_decision(decision: PredictDecision) -> PolicyDecision {
+        match decision {
+            PredictDecision::Serve(outcome) => PolicyDecision::Permit(PolicyPermit {
+                status: outcome.status,
+                widened: outcome.widened,
+                ngram_hit: outcome.ngram_hit,
+            }),
+            PredictDecision::Abstain(outcome) => PolicyDecision::Abstain(outcome),
+        }
+    }
+
     /// The manifest policy in force (D4 defaults or the score-report
     /// override).
     pub fn policy(&self) -> StatusPolicy {
@@ -1018,6 +1171,10 @@ impl R4Engine {
             resolution_status: PolicyStatus::from(witness.status).label().to_owned(),
             engine: "r4g1".to_owned(),
             token: witness.selected,
+            // Reference/certifier scoring is not the normative served
+            // candidate authority. Only the root production adapter fills
+            // this field from `R4G1Runtime`.
+            served_candidate: None,
             widened,
             // The base reference witness carries no segment attribution; the
             // deployed segment-witness path fills it when the lane promotes.
@@ -1134,6 +1291,36 @@ impl R4Engine {
             .expect("serving: scorer produced no candidates for a validated sig")
     }
 
+    /// Recover token-free historical witness attribution for an artifact with
+    /// no normative serving-lane sections.
+    ///
+    /// `None` is a fail-closed divergence: the independently supplied
+    /// normative runtime token did not equal the old reference scorer's
+    /// selected token. Callers must not emit a legacy-shaped witness in that
+    /// case. This method is compatibility support only and is never evidence
+    /// for schema-2 production admission.
+    pub fn legacy_witness_metadata_for_runtime_token(
+        &mut self,
+        window: &[u32],
+        widened: bool,
+        runtime_token: u32,
+    ) -> Result<Option<LegacyWitnessMetadata>, ObservedBound> {
+        self.check_window(window)?;
+        let (sig, code) = self.derive_sig_code(window);
+        let top_m = if widened { WIDENED_TOP_M } else { TOP_M };
+        let outcome = self.score_sig_witness(&sig, Some(&code), top_m, window);
+        if outcome.selected != runtime_token {
+            return Ok(None);
+        }
+        let witness = self.compact_witness(&outcome.witness, widened);
+        Ok(Some(LegacyWitnessMetadata {
+            region_kappa: witness.region_kappa,
+            region_id: witness.region_id,
+            depth: witness.depth,
+            resolution_status: witness.resolution_status,
+        }))
+    }
+
     /// The D4 policy decision for one input signature: score at the
     /// manifest membership width, then Serve / WidenOnce / Abstain per
     /// the declared policy. WidenOnce re-probes once at
@@ -1141,6 +1328,17 @@ impl R4Engine {
     /// remembered so identical probes abstain without widening again.
     pub fn predict_signature_status(&mut self, sig: &[u8; SIG_BYTES]) -> PredictDecision {
         self.predict_signature_status_with_recent(sig, None, &[])
+    }
+
+    /// Resolve only the D4 policy for an already-derived signature.
+    ///
+    /// This is the token-free reference form of
+    /// [`Self::predict_signature_status`]: a permit carries status
+    /// attribution but no reference-scorer token. Production admission still
+    /// requires the opaque verified-envelope facade.
+    pub fn admit_signature(&mut self, sig: &[u8; SIG_BYTES]) -> PolicyDecision {
+        let decision = self.predict_signature_status_with_recent(sig, None, &[]);
+        Self::tokenless_policy_decision(decision)
     }
 
     fn predict_signature_status_with_recent(
@@ -1257,6 +1455,35 @@ impl R4Engine {
         // available as `predict_decision_candidates`.
         let mut candidates = StepCandidates::default();
         self.predict_decision_candidates_with_skipmix(window, &mut candidates)
+    }
+
+    /// Resolve only the D4 policy for one token window.
+    ///
+    /// This is the production adapter boundary mandated by ADR-0001. The
+    /// reference scorer may permit, widen, or abstain, but it cannot return a
+    /// token through this type. A permitted caller must obtain candidates and
+    /// the served token from `R4G1Runtime`.
+    pub fn admit_window(&mut self, window: &[u32]) -> Result<PolicyDecision, ObservedBound> {
+        self.check_window(window)?;
+        let (sig, code) = self.derive_sig_code(window);
+        let decision = self.predict_signature_status_with_recent(&sig, Some(&code), window);
+        Ok(Self::tokenless_policy_decision(decision))
+    }
+
+    /// Replay the exact token-free D4 admission path without changing its
+    /// counters or bounded widen-once memory.
+    ///
+    /// The fixed scoring buffers are scratch: their epoch advances during the
+    /// replay, but no semantic state is retained and the next ordinary step
+    /// overwrites them normally. Candidate/token replay remains the caller's
+    /// `R4G1Runtime` responsibility.
+    pub fn replay_admission(&mut self, window: &[u32]) -> Result<PolicyDecision, ObservedBound> {
+        let counters = self.counters;
+        let novel_seen = self.novel_seen.clone();
+        let decision = self.admit_window(window);
+        self.counters = counters;
+        self.novel_seen = novel_seen;
+        decision
     }
 
     /// Predict one window and retain the compact proof claim for the
@@ -1873,6 +2100,9 @@ impl R4Engine {
             if claimed.token != token || claimed.token != expected.token {
                 return Some(WitnessVerificationError::TokenMismatch);
             }
+            if claimed.served_candidate != expected.served_candidate {
+                return Some(WitnessVerificationError::CandidateMismatch);
+            }
             if claimed.region_kappa != expected.region_kappa
                 || claimed.region_id != expected.region_id
             {
@@ -1886,6 +2116,12 @@ impl R4Engine {
             }
             if claimed.widened != expected.widened {
                 return Some(WitnessVerificationError::WidenedMismatch);
+            }
+            if claimed.segment_lane != expected.segment_lane {
+                return Some(WitnessVerificationError::SegmentLaneMismatch);
+            }
+            if claimed.skipmix_lane != expected.skipmix_lane {
+                return Some(WitnessVerificationError::SkipmixLaneMismatch);
             }
             if window_len < WINDOW {
                 window[window_len] = token;
@@ -1902,7 +2138,8 @@ impl R4Engine {
 // END DEPLOYED STATUS POLICY (INTEGER-ONLY) ---------------------------
 
 impl R4Engine {
-    /// Load and validate an engine from byte-slice parts. The graph is
+    /// Load and validate the reference/certification engine from byte-slice
+    /// parts. The graph is
     /// structurally validated (format crate two-stage parse) and its CIDs
     /// verified before any scorer state is built. The teacher artifact
     /// supplies the compressed token rows used to derive input
@@ -1912,7 +2149,8 @@ impl R4Engine {
         Self::load_with_quality_gate(parts, true)
     }
 
-    /// [`Self::load`] minus the serving-admission quality gate: the
+    /// [`Self::load`] minus the legacy recorded-quality gate. This is an
+    /// explicitly non-production compatibility/research seam: the
     /// bundle's recorded quality verdict (`validate_quality_report`)
     /// does not change what the D4 policy resolves, and a caller that
     /// has already decided — with its own recorded warning — to decode
@@ -1921,7 +2159,9 @@ impl R4Engine {
     /// abstention gate (#811). Everything else — CID verification,
     /// tokenizer binding, teacher pairing, scorer rebuild, the
     /// status-policy/report parsing — is identical to [`Self::load`].
-    /// Serving admission continues to use [`Self::load`] unchanged.
+    /// Production admission is owned by `VerifiedProductionEnvelope` and the
+    /// token-authoritative normative serving facade, never by this return
+    /// type.
     pub fn load_accepting_quality(parts: EngineParts<'_>) -> Result<Self, SourceUnavailable> {
         Self::load_with_quality_gate(parts, false)
     }
@@ -2290,6 +2530,49 @@ mod tests {
         assert_eq!(res, decoded);
     }
 
+    #[test]
+    fn normative_served_candidate_witness_binds_runtime_tuple() {
+        let runtime = uor_r4_graph_runtime::ServedCandidate {
+            token: 42,
+            score: ScoreQ::from_raw(1_234),
+            source: uor_r4_graph_runtime::ServedCandidateSource::Skipmix,
+            skmx_contributed: true,
+            psib_contributed: false,
+        };
+        let witness = ServedCandidateWitness::from_runtime(runtime);
+        assert_eq!(witness.token, 42);
+        assert_eq!(witness.score_q, 1_234);
+        assert_eq!(witness.source, ServedCandidateWitnessSource::Skipmix);
+        assert!(witness.skmx_contributed);
+        assert!(!witness.psib_contributed);
+        let json = serde_json::to_string(&witness).expect("serialize candidate witness");
+        assert_eq!(
+            serde_json::from_str::<ServedCandidateWitness>(&json)
+                .expect("deserialize candidate witness"),
+            witness
+        );
+    }
+
+    #[test]
+    fn absent_normative_candidate_field_preserves_legacy_witness_json_bytes() {
+        let witness = InferenceWitness {
+            region_kappa: None,
+            region_id: None,
+            depth: 0,
+            resolution_status: "novel".to_owned(),
+            engine: "r4g1".to_owned(),
+            token: 7,
+            served_candidate: None,
+            widened: false,
+            segment_lane: None,
+            skipmix_lane: None,
+        };
+        assert_eq!(
+            serde_json::to_string(&witness).expect("serialize absent-lane witness"),
+            r#"{"region_kappa":null,"region_id":null,"depth":0,"resolution_status":"novel","engine":"r4g1","token":7,"widened":false}"#
+        );
+    }
+
     // #836: the segment-adjusted argmax over the decided candidate list.
     fn active_session() -> SegmentSession<SEGMENT_STATE_CAPACITY> {
         SegmentSession::active(0, ScoreQ::from_raw(1 << 12), ScoreQ::from_raw(1 << 20))
@@ -2363,6 +2646,7 @@ mod tests {
             resolution_status: "novel".to_owned(),
             engine: "r4g1".to_owned(),
             token: 9,
+            served_candidate: None,
             widened: false,
             segment_lane: Some(SegmentLaneWitness {
                 promoted_token: 9,
@@ -2378,6 +2662,7 @@ mod tests {
         let legacy = r#"{"region_kappa":null,"region_id":null,"depth":0,"resolution_status":"novel","engine":"r4g1","token":7,"widened":false}"#;
         let parsed: InferenceWitness = serde_json::from_str(legacy).expect("legacy deserialize");
         assert!(parsed.segment_lane.is_none());
+        assert!(parsed.served_candidate.is_none());
     }
 
     #[test]
@@ -2518,6 +2803,19 @@ mod tests {
     }
 
     #[test]
+    fn reference_skipmix_keeps_learned_special_token_outcomes() {
+        let ranked = [(5, ScoreQ::from_raw(100))];
+        let bytes = build_skipmix_table(&[(9, 3, vec![(2, 2_000_000)])]).expect("valid row");
+        let table = SkipmixTable::parse(&bytes).expect("table parses");
+        let (unique, unique_len) = unique_window_tokens(&[9, 3]);
+        assert_eq!(
+            skipmix_injected_argmax(&ranked, Some(&table), None, &unique[..unique_len], 3, 5,),
+            2,
+            "the promoted reference mechanism treats EOS as a valid target"
+        );
+    }
+
+    #[test]
     fn skipmix_injected_falls_back_to_psi_bag_when_joint_key_absent() {
         // No SKMX row for (9, 3) at all -> falls back to the PSIB row for
         // content token 9 alone.
@@ -2605,12 +2903,15 @@ mod tests {
             resolution_status: "novel".to_owned(),
             engine: "r4g1".to_owned(),
             token: 9,
+            served_candidate: None,
             widened: false,
             segment_lane: None,
             skipmix_lane: Some(SkipmixLaneWitness {
                 promoted_token: 9,
                 base_token: 5,
                 boost: 2_000_000,
+                skmx_contributed: true,
+                psib_contributed: false,
             }),
         };
         let json = serde_json::to_string(&witness).expect("serialize");
@@ -2620,5 +2921,6 @@ mod tests {
         let legacy = r#"{"region_kappa":null,"region_id":null,"depth":0,"resolution_status":"novel","engine":"r4g1","token":7,"widened":false}"#;
         let parsed: InferenceWitness = serde_json::from_str(legacy).expect("legacy deserialize");
         assert!(parsed.skipmix_lane.is_none());
+        assert!(parsed.served_candidate.is_none());
     }
 }

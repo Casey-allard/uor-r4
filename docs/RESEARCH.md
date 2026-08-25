@@ -19,18 +19,23 @@ durable references.
 > repository rule, the per-issue measurement records are appended, never rewritten;
 > only these live summaries are reconciled.
 
-The current quality-baseline reconciliation is tracked by #934 and its
-[append-only audit record](canonical_quality_baseline_934.md). It separates the
-historical **29.7%** fixed tolerance (pinned/legacy reports only) from broad
-`relative_tla` admission (graph top-1 must be at least the same-report TLA row).
-On `smollm2-360m-broad-clean`, the full 72,130-position census records Rule 1+2
-**24.393%** versus TLA **28.121%**; strict production admission is therefore not
-established. #908's **29.702%** remains valid teacher-free `R4Engine`
-reference/off-serving evidence, but its promotion criterion was the paired
-skip-mix improvement with a 95% lower bound of at least **+20‰**, not an
-absolute 30% threshold. #934 owns the causal remediation order; #933 then owns
-normative R4G1 reachability and bound admission, followed by #932's exact-parallel,
-observable BDD parity harness.
+The current quality-baseline reconciliation is recorded by #933 and the
+[append-only #934 genealogy](canonical_quality_baseline_934.md). The historical
+**29.7%** fixed tolerance applies only to pinned/legacy reports; it is not a
+universal 30% requirement. On `smollm2-360m-broad-clean`, the new CID-bound
+`R4G1Runtime` full census records **21,293 / 72,130 = 29.5203%** versus
+same-position TLA **20,284 / 72,130 = 28.1214%**, a paired **+13.988‰** with
+95% CI **[11.057, 16.919]**. The same-generation sections-absent runtime records
+**18,806 / 72,130 = 26.0723%**, so RF-31 contributes **+34.479‰ [31.681,
+37.277]**, clearing the frozen +20‰ floor. With zero binding, cross-surface, and
+witness failures, a collapsing shuffled-label control, deterministic 4/8-worker
+rebuilds, and strict empty-store schema-2 admission, #933 records **RATIFY** for
+that exact artifact, population, selector, and greedy decode. #908's **29.702%**
+remains valid `R4Engine` reference/off-serving evidence rather than being
+relabeled. The repository BDD run was 124 / 124, but live-teacher parity
+fixtures were absent and those scenarios vacuously skipped; this is not parity
+evidence. #932's exact-parallel, observable live-teacher BDD harness remains a
+distinct downstream task.
 
 ## Measurement discipline
 
@@ -316,6 +321,44 @@ scorers are explicitly scoped; a certifier measurement is no longer read as a
 served-path result, and scorer divergence fails closed rather than serving a
 drifted token.)
 
+**Scope correction (2026-08-24, #933).** **Empirical Criterion. Status:
+Empirical. Execution scope: reference/off-serving.** #908's 29.702% skip-mix
+result and +28.45‰ paired improvement exercised
+`R4Engine::predict_decision_candidates_with_skipmix`, explicitly outside the
+ADR-0001 normative served-token selector. #910 changed that reference lane and
+compiler emission, but `R4G1Runtime` did not consume SKMX/PSIB, default sampled
+generation could bypass the lane, and the strict quality report scored a
+certifier row rather than the exact normative production selector. Those exact
+measurements remain valid only for that declared harness and execution scope;
+they do not establish RF-31 deployed serving. #933 reopens S0 to restore one
+selector, bind the exact report identities, re-emit the broad graph, and record
+a teacher-free normative RATIFY/LIMIT/RETIRE/UNAVAILABLE verdict. Until then,
+RF-31 is **NOT ESTABLISHED** at normative deployed-serving scope.
+
+**Outcome append (2026-08-25, #933). Empirical Criterion. Status: Empirical.
+Execution scope: normative-runtime / deployed-serving.** The dated correction
+above remains the reason a new measurement was required; its pending verdict is
+now resolved. Graph/evaluator revision
+`74ced4d12a84a176d73665106f88d0aab9407453` produced graph CID
+`blake3:ff82dfd5…` and deployed-quality report CID `blake3:88ee8210…`.
+The 72,130-position full census records 21,293 normative hits, 20,284 TLA hits,
+and 18,806 sections-absent hits. Its paired intervals are +13.988‰ [11.057,
+16.919] versus TLA and +34.479‰ [31.681, 37.277] versus sections absent; the
+label-shuffled arm is −229.003‰, internal absent identity is 72,130/0, external
+cross-surface checks are 72,138/0, and witness replay is 64/64 with zero
+failures. The report and raw parity/witness evidence are byte-identical across
+4- and 8-worker full runs. Hardened verifier revision
+`f901cd97577da3117fd52c9b1c6dcf075cc4d3a2` admits the exact schema-2 envelope
+from an empty model store. The release manifest's hardened raw BLAKE3 is
+`c2025e9e507e8367993d78bd83ef099ce5851c838d3cc5cf01eda5560986ad33`
+(SHA-256
+`7572e07a1e3722f3ffc0ea749a67b4ac162221de79b5b4b8a315f4e4e6570fde`)
+and it binds TLA comparator store CID
+`c1749e62077758c4a098e2a02150b5455e1ca3c02c60b87e6d45fcbb9e2b4404`.
+**Verdict: RATIFY RF-31 for this exact bundle/population/decode.** This does not
+establish live-teacher parity, instruction following, reasoning, or
+free-running coherence.
+
 **Continuation (2026-08-19, the #655 close-out measurements).** The
 prompt-insensitivity question got sharper and partially decomposed. The F-p2
 canary (#655, 20 declared prompts × 2 passes on `smollm2-360m-broad`)
@@ -500,7 +543,7 @@ is total.** [`docs/free_running_eval_841.md`](free_running_eval_841.md) freezes 
 sequence-level evaluation (prompt-family v1, horizon ladder, trace schema v1 with
 per-step path attribution, deterministic primary metrics, planted early-drift and
 repetition-only negatives, the corrective-round stopping rule for #840) and run-1
-executes it against the normative deployed `R4Engine` on the #833 bundle (harness
+executes it against the `R4Engine` reference/off-serving path on the #833 bundle (harness
 `crates/uor-r4-api/tests/free_running_eval_841.rs`; record
 `docs/free_running_841_result.json`). Under greedy decoding on 100 held-out story
 prompts at H=32: the **median first-divergence step is 0** (590‰ of student rollouts
@@ -524,10 +567,11 @@ executes the #840 run contract's binding cheap instrument before any corrective 
 (harness `crates/uor-r4-api/tests/free_running_reachability_840.rs`; CID-bound record
 `docs/free_running_reachability_840_result.json`, `result_cid blake3:e9f48e20…`). It
 re-measures the frozen prompt-family v1 free-running gap, teacher-free, on TWO engines
-built from the same recompiled sections (the #908 machinery): a `base` engine (empty lane
+built from the same recompiled sections (the #908 machinery): a `base` `R4Engine` (empty lane
 sections — it reproduces #841 exactly: 304‰ TF, 99/100 suffix-local, and its base graph
-CID `blake3:aaf98b68…` is byte-identical to #908's) and the deployed `skip` engine (the
-real fitted SKMX/PSIB — the RF-31 lane). **Empirical Criterion. Status: Empirical.** The
+CID `blake3:aaf98b68…` is byte-identical to #908's) and a `skip` `R4Engine` (the
+real fitted SKMX/PSIB — now scoped as the RF-31 reference lane). **Empirical Criterion.
+Status: Empirical. Execution scope: reference/off-serving.** The
 activated lane raises matched teacher-forced agreement (304 → 348‰) and perturbs
 free-running (suffix-locality 99/100 → 19/100; 100/100 rollouts differ from base), but it
 moves free-running *away* from coherence, not toward it: diverged-at-step-0 rises
@@ -576,10 +620,12 @@ stage verdict against its three completed children (a separate tracker action).
 **S4 — bounded typed planning is LIMITED; geometry adds no advantage; untouched final-partition
 reasoning is not established (#843/#845/#846, 2026-08-22).**
 [`docs/bounded_semantic_transitions_843.md`](bounded_semantic_transitions_843.md) establishes
-RF-33 on the normative deployed path: the fixed-capacity, allocation-free, P-4-only
-`bounded-breadth-first` planner reaches correct-outcome rate 1.0000 in all 20 development
-joint-split cells and clears the frozen effect floor over the strongest non-oracle null in
-**12/20**. It remains `LIMITED` because direct continuation also solves the other eight cells.
+RF-33 only for the portable `R4G1Runtime::plan_bounded` API and its certifier harness: the
+fixed-capacity, allocation-free, P-4-only `bounded-breadth-first` planner reaches
+correct-outcome rate 1.0000 in all 20 development joint-split cells and clears the frozen
+effect floor over the strongest non-oracle null in **12/20**. It remains `LIMITED` because
+direct continuation also solves the other eight cells. No deployed serving surface calls the
+planner, so this evidence is off-serving and does not establish deployed planning reachability.
 [`docs/w33_geometry_qualification_845.md`](w33_geometry_qualification_845.md) then records
 `NO GEOMETRIC ADVANTAGE`: the pinned mapping loses to informed non-geometric ordering under equal
 budgets and behaves like its randomized/relabelled/phase controls, so it stays offline/reference.

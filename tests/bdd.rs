@@ -18,7 +18,11 @@ use uor_r4_graph_compiler::induction::{
 use uor_r4_graph_compiler::quantum_cover::{
     quantum_entropy_gain, DensityOperator, QuantumCoverConfig,
 };
-use uor_r4_graph_format::INFERENCE_OPERATION_CONTRACT_VERSION;
+use uor_r4_graph_format::{
+    ArtifactBuilder, GraphView, ScoreQ as GraphScoreQ, SectionId,
+    INFERENCE_OPERATION_CONTRACT_VERSION,
+};
+use uor_r4_graph_runtime::{R4G1Runtime, ServedCandidateSource, SERVED_CANDIDATE_CAPACITY};
 use uor_r4_wasm_router::cd_space_fold;
 use uor_r4_wasm_router::r4g1::validate_quality_report;
 use uor_r4_wasm_router::selective;
@@ -27,6 +31,13 @@ use uor_r4_wasm_router::server::{
     r4g1_unavailable_response, selective_abstention_block, selective_calibration_probe,
     selective_stream_decline_frames, validate_r4g1_corpus_inputs,
 };
+
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
+struct Rf31CandidateSnapshot {
+    ranked: Vec<(u32, i32, ServedCandidateSource, bool, bool)>,
+    winner: Option<(u32, i32, ServedCandidateSource, bool, bool)>,
+    attribution: Option<(u32, u32, i32, bool, bool)>,
+}
 
 #[derive(Debug, Default, World)]
 struct R4g1World {
@@ -42,10 +53,21 @@ struct R4g1World {
     selective_block_failed: Option<serde_json::Value>,
     selective_frames: Vec<String>,
     selective_probe_present: Option<String>,
-    // RF-31 promoted skip-mix serving lane (#910)
-    skmx_bytes: Vec<u8>,
-    psib_bytes: Vec<u8>,
-    lane_found_score: Option<i32>,
+    // RF-31 normative R4G1 serving reconciliation (#933)
+    rf31_graph: Vec<u8>,
+    rf31_teacher: Vec<u8>,
+    rf31_window: Vec<u32>,
+    rf31_legacy_candidates: Vec<(u32, i32)>,
+    rf31_base_snapshot: Option<Rf31CandidateSnapshot>,
+    rf31_served_snapshot: Option<Rf31CandidateSnapshot>,
+    rf31_planted_token: Option<u32>,
+    rf31_excluded_token: Option<u32>,
+    rf31_expected_base_token: Option<u32>,
+    rf31_sample_source_verified: Option<bool>,
+    rf31_policy_permit_verified: Option<bool>,
+    rf31_quality_report: Option<uor_r4_api::deployed_quality::DeployedQualityReport>,
+    rf31_loaded_bindings: Option<uor_r4_api::deployed_quality::DeployedQualityBindings>,
+    rf31_quality_binding_errors: Vec<uor_r4_api::deployed_quality::DeployedQualityValidationError>,
     compile_error: Option<String>,
     quality_report: Option<serde_json::Value>,
     quality_error: Option<String>,
@@ -322,8 +344,8 @@ fn selective_d4_abstention(_w: &mut R4g1World) {}
 
 #[when("the CLI abstention record is built")]
 fn selective_cli_record(w: &mut R4g1World) {
-    // The exact construction `chat::d4_gate` performs on a policy
-    // abstention, with the labels the shared vocabulary supplies.
+    // The exact construction the shared normative chat adapter performs on a
+    // policy abstention, with the labels the shared vocabulary supplies.
     let label = "novel";
     w.abstention_record = Some(uor_r4_wasm_router::chat::ChatAbstention {
         status: label.to_owned(),
@@ -407,74 +429,714 @@ fn selective_openai_envelope_is_typed(w: &mut R4g1World) {
 #[given("a typed abstention code")]
 fn selective_typed_code(_w: &mut R4g1World) {}
 
-// --- RF-31: promoted skip-mix serving lane (#910) ---------------------------
-// Exercises the deployed lane's candidate-discovery guarantee via the public
-// SKMX/PSIB table format that the serving reroute (R4Engine::predict_decision
-// -> predict_decision_candidates_with_skipmix) consults. Light and
-// deterministic (no engine or model load); the engine-level reroute and the
-// absent-section identity are covered by the uor-r4-api engine tests and the
-// #908 deployed causal harness.
+// --- RF-31: normative R4G1 serving reconciliation (#933) -------------------
+// These are real runtime probes over a self-contained R4G1 artifact. They do
+// not credit #908's R4Engine reference harness as serving evidence: every
+// candidate/winner assertion below is made against R4G1Runtime itself.
 
-#[given("a skip-mix joint table binding content 10 and last token 20 to partner 99")]
-fn skipmix_bind_joint(w: &mut R4g1World) {
-    let rows = vec![(10u32, 20u32, vec![(99u32, 1i32)])];
-    w.skmx_bytes = uor_r4_graph_format::build_skipmix_table(&rows).expect("build skmx table");
+fn rf31_synthetic_bundle() -> (Vec<u8>, Vec<u8>) {
+    use std::collections::BTreeMap;
+    use uor_r4_core::transformerless::compiler::{self, STAGES};
+    use uor_r4_core::transformerless::{convert_r4g1, runtime};
+
+    let artifact_bytes = std::fs::read(
+        Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("crates/uor-r4-core/tests/fixtures/tless_artifacts.bin"),
+    )
+    .expect("RF-31 synthetic teacher artifact fixture is present");
+    let artifacts = compiler::parse_artifacts(&artifact_bytes).expect("teacher artifact parses");
+    let mut store: runtime::Store = (0..=STAGES).map(|_| BTreeMap::new()).collect();
+    let codes: [[u8; 4]; 6] = [
+        [3, 1, 4, 1],
+        [3, 1, 4, 2],
+        [3, 5, 9, 2],
+        [7, 5, 9, 2],
+        [7, 5, 8, 2],
+        [11, 5, 8, 7],
+    ];
+    for (index, code) in codes.iter().enumerate() {
+        runtime::add_evidence(&mut store, code, (index + 1) as u32, 1);
+    }
+    let store_bytes = runtime::store_bytes(&store);
+    let graph = convert_r4g1::convert(&artifact_bytes, &artifacts, &store, &store_bytes, None)
+        .expect("convert RF-31 synthetic R4G1")
+        .0;
+    (graph, artifact_bytes)
 }
 
-#[when("the deployed lane looks up content 10 with last token 20")]
-fn skipmix_lookup_hit(w: &mut R4g1World) {
-    let table = uor_r4_graph_format::SkipmixTable::parse(&w.skmx_bytes).expect("parse skmx");
-    w.lane_found_score = table
-        .find(10, 20)
-        .and_then(|row| row.entries().find(99))
-        .map(|_score| 1i32);
+fn rf31_with_sections(base: &[u8], skmx: Option<&[u8]>, psib: Option<&[u8]>) -> Vec<u8> {
+    let view = GraphView::parse(base).expect("RF-31 base graph parses");
+    let mut builder = ArtifactBuilder::new(view.header().alignment_log2);
+    for section in view.sections() {
+        assert!(
+            section.id != SectionId::SKMX && section.id != SectionId::PSIB,
+            "the RF-31 base fixture must not already carry lane sections"
+        );
+        builder.add_section(section.id, section.flags, section.payload);
+    }
+    if let Some(bytes) = skmx {
+        builder.add_section(SectionId::SKMX, 0, bytes);
+    }
+    if let Some(bytes) = psib {
+        builder.add_section(SectionId::PSIB, 0, bytes);
+    }
+    builder
+        .build()
+        .expect("RF-31 graph with lane sections builds")
 }
 
-#[then("partner 99 is surfaced as a supported skip-mix candidate")]
-fn skipmix_partner_surfaced(w: &mut R4g1World) {
+fn rf31_snapshot(graph: &[u8], window: &[u32]) -> Rf31CandidateSnapshot {
+    let runtime = R4G1Runtime::parse(graph).expect("RF-31 graph parses in normative runtime");
+    let mut node_scores = vec![GraphScoreQ::MIN; runtime.node_count() as usize];
+    let candidates = runtime.predict_served_candidates(window, None, &mut node_scores);
+    Rf31CandidateSnapshot {
+        ranked: candidates
+            .ranked()
+            .iter()
+            .map(|candidate| {
+                (
+                    candidate.token,
+                    candidate.score.raw(),
+                    candidate.source,
+                    candidate.skmx_contributed,
+                    candidate.psib_contributed,
+                )
+            })
+            .collect(),
+        winner: candidates.winner().map(|candidate| {
+            (
+                candidate.token,
+                candidate.score.raw(),
+                candidate.source,
+                candidate.skmx_contributed,
+                candidate.psib_contributed,
+            )
+        }),
+        attribution: candidates.attribution().map(|attribution| {
+            (
+                attribution.base_token,
+                attribution.promoted_token,
+                attribution.contribution.raw(),
+                attribution.skmx_contributed,
+                attribution.psib_contributed,
+            )
+        }),
+    }
+}
+
+fn rf31_partner_not_in(
+    graph: &[u8],
+    snapshot: &Rf31CandidateSnapshot,
+    also_exclude: Option<u32>,
+) -> u32 {
+    let vocab_size = GraphView::parse(graph)
+        .expect("RF-31 graph parses for vocabulary lookup")
+        .head()
+        .map_or(49_152, |head| head.vocab_size());
+    (42u32..vocab_size)
+        .find(|token| {
+            Some(*token) != also_exclude
+                && snapshot
+                    .ranked
+                    .iter()
+                    .all(|(candidate, _, _, _, _)| candidate != token)
+        })
+        .expect("the synthetic vocabulary has an unused planted partner")
+}
+
+#[given("a synthetic R4G1 artifact without SKMX or PSIB")]
+fn rf31_without_sections(w: &mut R4g1World) {
+    let (graph, teacher) = rf31_synthetic_bundle();
+    w.rf31_graph = graph;
+    w.rf31_teacher = teacher;
+    w.rf31_window = vec![3, 1, 4];
+}
+
+#[when("the normative runtime predicts legacy and served candidates for the same window")]
+fn rf31_predict_legacy_and_served(w: &mut R4g1World) {
+    let runtime = R4G1Runtime::parse(&w.rf31_graph).expect("RF-31 graph parses");
+    let mut node_scores = vec![GraphScoreQ::MIN; runtime.node_count() as usize];
+    let mut legacy = [(0u32, GraphScoreQ::MIN); SERVED_CANDIDATE_CAPACITY];
+    let count = runtime.predict_candidates(&w.rf31_window, None, &mut node_scores, &mut legacy);
+    w.rf31_legacy_candidates = legacy[..count]
+        .iter()
+        .map(|(token, score)| (*token, score.raw()))
+        .collect();
+    w.rf31_served_snapshot = Some(rf31_snapshot(&w.rf31_graph, &w.rf31_window));
+}
+
+#[then("the served-candidate projection is identical and has no lane attribution")]
+fn rf31_absent_identity(w: &mut R4g1World) {
+    let served = w.rf31_served_snapshot.as_ref().expect("served snapshot");
+    let projection: Vec<_> = served
+        .ranked
+        .iter()
+        .map(|(token, score, _, _, _)| (*token, *score))
+        .collect();
+    assert_eq!(projection, w.rf31_legacy_candidates);
     assert!(
-        w.lane_found_score.is_some(),
-        "the joint table must surface the bound co-occurrence partner"
+        served.ranked.iter().all(|(_, _, source, skmx, psib)| {
+            *source == ServedCandidateSource::Base && !*skmx && !*psib
+        }),
+        "an artifact without SKMX/PSIB must expose only base candidates"
+    );
+    assert!(
+        served.attribution.is_none(),
+        "an absent lane must attach no attribution"
     );
 }
 
-#[when("the deployed lane looks up content 30 with last token 40")]
-fn skipmix_lookup_miss(w: &mut R4g1World) {
-    let table = uor_r4_graph_format::SkipmixTable::parse(&w.skmx_bytes).expect("parse skmx");
-    w.lane_found_score = table
-        .find(30, 40)
-        .and_then(|row| row.entries().find(99))
-        .map(|_score| 1i32);
+#[given("a synthetic R4G1 artifact with a planted SKMX partner outside the base shortlist")]
+fn rf31_with_planted_skmx(w: &mut R4g1World) {
+    let (base, teacher) = rf31_synthetic_bundle();
+    let window = vec![3, 1, 4];
+    let base_snapshot = rf31_snapshot(&base, &window);
+    let base_token = base_snapshot.winner.expect("base winner").0;
+    let partner = rf31_partner_not_in(&base, &base_snapshot, None);
+    let skmx = uor_r4_graph_format::build_skipmix_table(&[(3, 4, vec![(partner, 2_000_000)])])
+        .expect("build planted SKMX");
+    w.rf31_graph = rf31_with_sections(&base, Some(&skmx), None);
+    w.rf31_teacher = teacher;
+    w.rf31_window = window;
+    w.rf31_base_snapshot = Some(base_snapshot);
+    w.rf31_planted_token = Some(partner);
+    w.rf31_expected_base_token = Some(base_token);
 }
 
-#[then("no skip-mix candidate is surfaced")]
-fn skipmix_no_candidate(w: &mut R4g1World) {
+#[when("the normative runtime predicts served candidates for the planted window")]
+fn rf31_predict_planted(w: &mut R4g1World) {
+    w.rf31_served_snapshot = Some(rf31_snapshot(&w.rf31_graph, &w.rf31_window));
+}
+
+#[then("the planted partner is the winner and skip-mix attribution names the base winner")]
+fn rf31_planted_partner_wins(w: &mut R4g1World) {
+    let served = w.rf31_served_snapshot.as_ref().expect("served snapshot");
+    let planted = w.rf31_planted_token.expect("planted token");
+    let base = w.rf31_expected_base_token.expect("base token");
+    assert_eq!(
+        served.winner.map(|winner| winner.0),
+        Some(planted),
+        "a planted SKMX-only partner must reach the normative winner"
+    );
+    assert_eq!(
+        served.winner.map(|winner| winner.2),
+        Some(ServedCandidateSource::Skipmix)
+    );
+    assert_eq!(
+        served.winner.map(|winner| (winner.3, winner.4)),
+        Some((true, false)),
+        "the SKMX-only winner must bind its exact contribution source"
+    );
+    let attribution = served.attribution.expect("skip-mix attribution");
+    assert_eq!((attribution.0, attribution.1), (base, planted));
+    assert!(attribution.2 > 0, "planted contribution must be positive");
+    assert!(attribution.3, "the SKMX primary row must be attributed");
+    assert!(!attribution.4, "the absent PSIB table cannot be attributed");
+}
+
+#[given("a synthetic R4G1 artifact with a planted PSIB fallback partner")]
+fn rf31_with_planted_psib(w: &mut R4g1World) {
+    let (base, teacher) = rf31_synthetic_bundle();
+    let window = vec![3, 1, 4];
+    let base_snapshot = rf31_snapshot(&base, &window);
+    let base_token = base_snapshot.winner.expect("base winner").0;
+    let partner = rf31_partner_not_in(&base, &base_snapshot, None);
+    let skmx = uor_r4_graph_format::build_skipmix_table(&[(3, 999, vec![(base_token, 1)])])
+        .expect("build non-matching SKMX row");
+    let psib = uor_r4_graph_format::build_psi_bag_table(&[(3, vec![(partner, 2_000_000)])])
+        .expect("build planted PSIB");
+    w.rf31_graph = rf31_with_sections(&base, Some(&skmx), Some(&psib));
+    w.rf31_teacher = teacher;
+    w.rf31_window = window;
+    w.rf31_base_snapshot = Some(base_snapshot);
+    w.rf31_planted_token = Some(partner);
+    w.rf31_expected_base_token = Some(base_token);
+}
+
+#[when("the normative runtime predicts served candidates for a window without a matching SKMX row")]
+fn rf31_predict_psib_fallback(w: &mut R4g1World) {
+    w.rf31_served_snapshot = Some(rf31_snapshot(&w.rf31_graph, &w.rf31_window));
+}
+
+#[then("the fallback partner is the winner with skip-mix attribution")]
+fn rf31_psib_partner_wins(w: &mut R4g1World) {
+    let served = w.rf31_served_snapshot.as_ref().expect("served snapshot");
+    let planted = w.rf31_planted_token.expect("planted token");
+    let base = w.rf31_expected_base_token.expect("base token");
+    assert_eq!(served.winner.map(|winner| winner.0), Some(planted));
+    assert_eq!(
+        served.winner.map(|winner| (winner.2, winner.3, winner.4)),
+        Some((ServedCandidateSource::Skipmix, false, true)),
+        "the PSIB fallback winner must bind its exact contribution source"
+    );
+    let attribution = served.attribution.expect("PSIB attribution");
+    assert_eq!((attribution.0, attribution.1), (base, planted));
+    assert!(attribution.2 > 0, "planted contribution must be positive");
+    assert!(!attribution.3, "the nonmatching SKMX row cannot contribute");
+    assert!(attribution.4, "the PSIB fallback row must be attributed");
+}
+
+#[given("a synthetic R4G1 artifact with planted partners outside and inside the compiler window")]
+fn rf31_with_compiler_window_control(w: &mut R4g1World) {
+    let (base, teacher) = rf31_synthetic_bundle();
+    let window: Vec<u32> = (10..20).collect();
+    let base_snapshot = rf31_snapshot(&base, &window);
+    let outside_partner = rf31_partner_not_in(&base, &base_snapshot, None);
+    let in_window_partner = rf31_partner_not_in(&base, &base_snapshot, Some(outside_partner));
+    let skmx = uor_r4_graph_format::build_skipmix_table(&[
+        (10, 19, vec![(outside_partner, 3_000_000)]),
+        (19, 19, vec![(in_window_partner, 2_000_000)]),
+    ])
+    .expect("build compiler-window SKMX control");
+    w.rf31_graph = rf31_with_sections(&base, Some(&skmx), None);
+    w.rf31_teacher = teacher;
+    w.rf31_window = window;
+    w.rf31_base_snapshot = Some(base_snapshot);
+    w.rf31_planted_token = Some(in_window_partner);
+    w.rf31_excluded_token = Some(outside_partner);
+}
+
+#[when("the normative runtime predicts served candidates for a window with more than eight distinct tokens")]
+fn rf31_predict_compiler_window(w: &mut R4g1World) {
+    w.rf31_served_snapshot = Some(rf31_snapshot(&w.rf31_graph, &w.rf31_window));
+}
+
+#[then("only the in-window planted partner can affect the winner")]
+fn rf31_compiler_window_is_bounded(w: &mut R4g1World) {
+    let served = w.rf31_served_snapshot.as_ref().expect("served snapshot");
+    let in_window = w.rf31_planted_token.expect("in-window partner");
+    let outside = w.rf31_excluded_token.expect("outside partner");
+    assert_eq!(served.winner.map(|winner| winner.0), Some(in_window));
     assert!(
-        w.lane_found_score.is_none(),
-        "an unbound joint key must surface no candidate"
+        served
+            .ranked
+            .iter()
+            .all(|(token, _, _, _, _)| *token != outside),
+        "a partner reachable only outside the newest compiler window must be excluded"
     );
 }
 
-#[given("a psi-bag fallback binding content 10 to partner 77")]
-fn skipmix_bind_psib(w: &mut R4g1World) {
-    let rows = vec![(10u32, vec![(77u32, 1i32)])];
-    w.psib_bytes = uor_r4_graph_format::build_psi_bag_table(&rows).expect("build psib table");
+#[given("a planted partner reachable only through R4G1Runtime skip-mix candidates")]
+fn rf31_runtime_only_sample_partner(w: &mut R4g1World) {
+    rf31_with_planted_skmx(w);
+    w.rf31_served_snapshot = Some(rf31_snapshot(&w.rf31_graph, &w.rf31_window));
+    assert_eq!(
+        w.rf31_served_snapshot
+            .as_ref()
+            .and_then(|snapshot| snapshot.winner)
+            .map(|winner| winner.0),
+        w.rf31_planted_token,
+        "sampling control requires a runtime-only planted winner"
+    );
 }
 
-#[when("the deployed lane consults the psi-bag for content 10")]
-fn skipmix_psib_lookup(w: &mut R4g1World) {
-    let table = uor_r4_graph_format::PsiBagTable::parse(&w.psib_bytes).expect("parse psib");
-    w.lane_found_score = table
-        .find(10)
-        .and_then(|row| row.entries().find(77))
-        .map(|_score| 1i32);
+#[when("the default sampled production adapter decodes with a pinned seed")]
+fn rf31_sampled_adapter_source_contract(w: &mut R4g1World) {
+    use uor_r4_api::engine::EngineParts;
+    use uor_r4_api::{NormativeServingDecision, NormativeServingEngine};
+    use uor_r4_core::transformerless::runtime::SampleRng;
+
+    let mut engine = NormativeServingEngine::load_for_research(EngineParts {
+        graph: &w.rf31_graph,
+        signature_artifact: &w.rf31_teacher,
+        tokenizer: None,
+        score_report: None,
+    })
+    .expect("synthetic shared production adapter loads for behavior replay");
+    let decision = engine
+        .predict(&w.rf31_window)
+        .expect("shared production adapter executes the planted window");
+    let NormativeServingDecision::Serve(serve) = decision else {
+        panic!("the planted covered window must be served by the shared adapter");
+    };
+    let planted = w.rf31_planted_token.expect("runtime-only planted token");
+    let source_is_normative_skipmix = serve.candidates.ranked().iter().any(|candidate| {
+        candidate.token == planted && candidate.source == ServedCandidateSource::Skipmix
+    });
+    let seed = (0u32..10_000)
+        .find(|seed| {
+            let mut rng = SampleRng::new(*seed);
+            serve.select_sampled_token(&[], &mut rng) == planted
+        })
+        .expect("a bounded pinned seed selects the runtime-only planted candidate");
+    let mut first_rng = SampleRng::new(seed);
+    let mut replay_rng = SampleRng::new(seed);
+    let first = serve.select_sampled_token(&[], &mut first_rng);
+    let replay = serve.select_sampled_token(&[], &mut replay_rng);
+    w.rf31_sample_source_verified = Some(
+        serve.lane_reachable
+            && source_is_normative_skipmix
+            && first == planted
+            && replay == planted,
+    );
 }
 
-#[then("partner 77 is surfaced as a supported fallback candidate")]
-fn skipmix_psib_partner_surfaced(w: &mut R4g1World) {
+#[then("the sampled candidate source is the normative served-candidate list")]
+fn rf31_sampled_uses_normative_candidates(w: &mut R4g1World) {
+    assert_eq!(
+        w.rf31_sample_source_verified,
+        Some(true),
+        "sampled production adapters must draw from R4G1Runtime::predict_served_candidates"
+    );
+}
+
+fn rf31_test_cid(hex_digit: char) -> String {
+    assert!(hex_digit.is_ascii_hexdigit());
+    format!(
+        "blake3:{}",
+        hex_digit.to_ascii_lowercase().to_string().repeat(64)
+    )
+}
+
+fn rf31_paired_comparison(
+    comparator_id: &str,
+    comparator_version: &str,
+    positions_cid: &str,
+    counts: uor_r4_api::deployed_quality::PairedCounts,
+) -> uor_r4_api::deployed_quality::PairedComparison {
+    use uor_r4_api::deployed_quality::{
+        ComparatorIdentity, ExactRate, ExactSignedRate, PairedComparison, PairedInterval,
+    };
+
+    let denominator = counts.both_correct
+        + counts.selector_only_correct
+        + counts.comparator_only_correct
+        + counts.neither_correct;
+    let selector_hits = counts.both_correct + counts.selector_only_correct;
+    let comparator_hits = counts.both_correct + counts.comparator_only_correct;
+    let delta_numerator =
+        counts.selector_only_correct as i64 - counts.comparator_only_correct as i64;
+    let delta_ppm = delta_numerator * 1_000_000 / denominator as i64;
+    PairedComparison {
+        comparator: ComparatorIdentity {
+            id: comparator_id.to_owned(),
+            version: comparator_version.to_owned(),
+            definition_cid: rf31_test_cid('d'),
+            positions_cid: positions_cid.to_owned(),
+        },
+        counts,
+        selector_rate: ExactRate {
+            numerator: selector_hits,
+            denominator,
+            ppm: (selector_hits * 1_000_000 / denominator) as u32,
+        },
+        comparator_rate: ExactRate {
+            numerator: comparator_hits,
+            denominator,
+            ppm: (comparator_hits * 1_000_000 / denominator) as u32,
+        },
+        delta: ExactSignedRate {
+            numerator: delta_numerator,
+            denominator,
+            ppm: delta_ppm,
+        },
+        interval: PairedInterval::from_counts(counts)
+            .expect("fixture counts produce the canonical exact interval"),
+    }
+}
+
+fn rf31_valid_quality_report() -> uor_r4_api::deployed_quality::DeployedQualityReport {
+    use uor_r4_api::deployed_quality::*;
+
+    let positions_cid = rf31_test_cid('7');
+    let selector_counts = PairedCounts {
+        both_correct: 60,
+        selector_only_correct: 10,
+        comparator_only_correct: 0,
+        neither_correct: 30,
+    };
+    let lane_counts = PairedCounts {
+        both_correct: 60,
+        selector_only_correct: 10,
+        comparator_only_correct: 0,
+        neither_correct: 30,
+    };
+    let shuffled_counts = PairedCounts {
+        both_correct: 10,
+        selector_only_correct: 0,
+        comparator_only_correct: 50,
+        neither_correct: 40,
+    };
+    DeployedQualityReport {
+        schema: DEPLOYED_QUALITY_REPORT_SCHEMA,
+        profile: QualityProfileIdentity {
+            id: DEPLOYED_QUALITY_PROFILE_ID.to_owned(),
+            version: DEPLOYED_QUALITY_PROFILE_VERSION,
+            execution_scope: NORMATIVE_EXECUTION_SCOPE.to_owned(),
+        },
+        bindings: DeployedQualityBindings {
+            selector: SelectorIdentity {
+                id: NORMATIVE_SELECTOR_ID.to_owned(),
+                semantics_version: "1.0.0".to_owned(),
+                semantics_cid: rf31_test_cid('1'),
+            },
+            graph: ArtifactIdentity {
+                bytes_cid: rf31_test_cid('2'),
+                artifact_kappa: rf31_test_cid('3'),
+            },
+            teacher_artifact: ArtifactIdentity {
+                bytes_cid: rf31_test_cid('4'),
+                artifact_kappa: rf31_test_cid('5'),
+            },
+            corpus: CorpusIdentity {
+                meta_cid: rf31_test_cid('6'),
+                records_cid: rf31_test_cid('8'),
+                stream_cid: rf31_test_cid('9'),
+            },
+            partition: PartitionIdentity {
+                manifest_cid: rf31_test_cid('a'),
+                construction_cid: rf31_test_cid('b'),
+                certification_cid: rf31_test_cid('c'),
+                evaluated_positions_cid: positions_cid.clone(),
+                split_version: "document-disjoint/1".to_owned(),
+            },
+            tokenizer: QualityTokenizerIdentity {
+                bytes_cid: rf31_test_cid('e'),
+                adapter_id: "hf-byte-bpe".to_owned(),
+                adapter_version: "1".to_owned(),
+                adapter_config_cid: rf31_test_cid('f'),
+            },
+            compiler: CompilerIdentity {
+                revision: "0123456789abcdef0123456789abcdef01234567".to_owned(),
+                configuration_cid: rf31_test_cid('0'),
+            },
+            serving_configuration_cid: rf31_test_cid('1'),
+            active_sections: ActiveSectionSetIdentity {
+                set_cid: rf31_test_cid('2'),
+                sections: vec![
+                    ActiveSectionIdentity {
+                        id: "HEAD".to_owned(),
+                        cid: rf31_test_cid('3'),
+                    },
+                    ActiveSectionIdentity {
+                        id: "PSIB".to_owned(),
+                        cid: rf31_test_cid('4'),
+                    },
+                    ActiveSectionIdentity {
+                        id: "SKMX".to_owned(),
+                        cid: rf31_test_cid('5'),
+                    },
+                ],
+            },
+            decode: DecodeIdentity {
+                mode: DecodeMode::GreedyTop1,
+                implementation: "normative-served-candidates/1".to_owned(),
+                configuration_cid: rf31_test_cid('6'),
+            },
+            seed: SeedIdentity {
+                mode: PositionSelectionMode::FullPopulation,
+                algorithm: "partition-manifest-order".to_owned(),
+                seed: 0,
+                selection_cid: rf31_test_cid('7'),
+            },
+        },
+        evaluation: EvaluationEvidence {
+            mode: EvaluationMode::FullCensus,
+            population_size: 100,
+            evaluated_positions: 100,
+            verdict: QualityVerdict::Pass,
+            measurements: Some(QualityMeasurements {
+                versus_tla: rf31_paired_comparison(
+                    TLA_COMPARATOR_ID,
+                    TLA_COMPARATOR_VERSION,
+                    &positions_cid,
+                    selector_counts,
+                ),
+                versus_sections_absent: rf31_paired_comparison(
+                    SECTIONS_ABSENT_COMPARATOR_ID,
+                    SECTIONS_ABSENT_COMPARATOR_VERSION,
+                    &positions_cid,
+                    lane_counts,
+                ),
+                internal_base_control_checks: 100,
+                internal_base_control_mismatches: 0,
+                cross_surface_checks: 112,
+                cross_surface_mismatches: 0,
+                cross_surface_evidence_cid: rf31_test_cid('a'),
+            }),
+        },
+        witness_replay: WitnessReplayEvidence {
+            sample_cid: rf31_test_cid('8'),
+            requested: 10,
+            replayed: 10,
+            failures: 0,
+        },
+        negative_controls: vec![NegativeControlEvidence {
+            id: LABEL_SHUFFLED_CONTROL_ID.to_owned(),
+            identity_cid: rf31_test_cid('9'),
+            verdict: NegativeControlVerdict::Passed,
+            comparison: Some(rf31_paired_comparison(
+                SECTIONS_ABSENT_COMPARATOR_ID,
+                SECTIONS_ABSENT_COMPARATOR_VERSION,
+                &positions_cid,
+                shuffled_counts,
+            )),
+        }],
+    }
+}
+
+#[given("a full-census deployed-quality report bound to R4G1Runtime and its exact inputs")]
+fn rf31_bound_quality_report(w: &mut R4g1World) {
+    let report = rf31_valid_quality_report();
+    let loaded = report.bindings.clone();
     assert!(
-        w.lane_found_score.is_some(),
-        "the psi-bag fallback must surface the bound content partner"
+        report.validate_for_production(&loaded).is_none(),
+        "the binding-negative fixture must begin production-valid"
+    );
+    w.rf31_quality_report = Some(report);
+    w.rf31_loaded_bindings = Some(loaded);
+}
+
+#[when(
+    "one graph, artifact, corpus, tokenizer, partition, selector, census, or internal absent-section identity binding is changed"
+)]
+fn rf31_mutate_each_quality_binding(w: &mut R4g1World) {
+    use uor_r4_api::deployed_quality::{EvaluationMode, PositionSelectionMode};
+
+    let report = w.rf31_quality_report.as_ref().expect("quality report");
+    let loaded = w.rf31_loaded_bindings.as_ref().expect("loaded bindings");
+    let mut errors = Vec::new();
+    let mut capture = |mutated: uor_r4_api::deployed_quality::DeployedQualityBindings| {
+        errors.push(
+            report
+                .validate_for_production(&mutated)
+                .expect("each planted binding mismatch must fail closed"),
+        );
+    };
+
+    let mut graph = loaded.clone();
+    graph.graph.bytes_cid = rf31_test_cid('f');
+    capture(graph);
+
+    let mut artifact = loaded.clone();
+    artifact.teacher_artifact.bytes_cid = rf31_test_cid('e');
+    capture(artifact);
+
+    let mut corpus = loaded.clone();
+    corpus.corpus.meta_cid = rf31_test_cid('d');
+    capture(corpus);
+
+    let mut tokenizer = loaded.clone();
+    tokenizer.tokenizer.bytes_cid = rf31_test_cid('c');
+    capture(tokenizer);
+
+    let mut partition = loaded.clone();
+    partition.partition.manifest_cid = rf31_test_cid('b');
+    capture(partition);
+
+    let mut selector = loaded.clone();
+    selector.selector.id = "GraphScorer".to_owned();
+    capture(selector);
+
+    let mut selection = loaded.clone();
+    selection.seed.mode = PositionSelectionMode::DeterministicSample;
+    capture(selection);
+
+    let mut sampled_report = report.clone();
+    sampled_report.evaluation.mode = EvaluationMode::Sample;
+    errors.push(
+        sampled_report
+            .validate_for_production(loaded)
+            .expect("sampled evidence cannot authorize production"),
+    );
+
+    let mut missing_internal = report.clone();
+    let missing_measurements = missing_internal
+        .evaluation
+        .measurements
+        .as_mut()
+        .expect("quality measurements");
+    missing_measurements.internal_base_control_checks = 0;
+    missing_measurements.cross_surface_checks = 12;
+    errors.push(
+        missing_internal
+            .validate_for_production(loaded)
+            .expect("external parity cannot replace the internal absent census"),
+    );
+
+    let mut divergent_internal = report.clone();
+    let divergent_measurements = divergent_internal
+        .evaluation
+        .measurements
+        .as_mut()
+        .expect("quality measurements");
+    divergent_measurements.internal_base_control_mismatches = 1;
+    divergent_measurements.cross_surface_mismatches = 1;
+    errors.push(
+        divergent_internal
+            .validate_for_production(loaded)
+            .expect("an internal absent-identity mismatch must fail closed"),
+    );
+    w.rf31_quality_binding_errors = errors;
+}
+
+#[then("production validation rejects the report with a typed mismatch")]
+fn rf31_quality_bindings_fail_closed(w: &mut R4g1World) {
+    use uor_r4_api::deployed_quality::DeployedQualityValidationError;
+
+    assert_eq!(
+        w.rf31_quality_binding_errors.len(),
+        10,
+        "every planted identity and census mismatch must be exercised"
+    );
+    assert!(w.rf31_quality_binding_errors.iter().all(|error| matches!(
+        error,
+        DeployedQualityValidationError::IdentityMismatch { .. }
+            | DeployedQualityValidationError::NotProductionAdmissible { .. }
+            | DeployedQualityValidationError::Structural { .. }
+    )));
+    assert!(
+        w.rf31_quality_binding_errors.iter().any(|error| matches!(
+            error,
+            DeployedQualityValidationError::IdentityMismatch { .. }
+        )),
+        "the fixture must prove the typed identity-mismatch branch has teeth"
+    );
+}
+
+#[given("a production window permitted by token-free D4 policy")]
+fn rf31_tokenless_policy_permit(w: &mut R4g1World) {
+    use uor_r4_api::engine::{EngineParts, PolicyDecision, R4Engine};
+
+    let (graph, teacher) = rf31_synthetic_bundle();
+    for window in [vec![3], vec![3, 1], vec![3, 1, 4], vec![7, 5, 8]] {
+        let mut policy = R4Engine::load_accepting_quality(EngineParts {
+            graph: &graph,
+            signature_artifact: &teacher,
+            tokenizer: None,
+            score_report: None,
+        })
+        .expect("load synthetic policy resolver");
+        if matches!(
+            policy
+                .admit_window(&window)
+                .expect("resolve token-free D4 policy"),
+            PolicyDecision::Permit(_)
+        ) {
+            w.rf31_graph = graph;
+            w.rf31_teacher = teacher;
+            w.rf31_window = window;
+            w.rf31_policy_permit_verified = Some(true);
+            return;
+        }
+    }
+    panic!("synthetic fixture must contain at least one D4-permitted window");
+}
+
+#[when("R4G1Runtime selects the normative served candidates")]
+fn rf31_runtime_selects_after_policy(w: &mut R4g1World) {
+    w.rf31_served_snapshot = Some(rf31_snapshot(&w.rf31_graph, &w.rf31_window));
+}
+
+#[then("the production token is the normative winner and no policy token exists")]
+fn rf31_policy_cannot_substitute_token(w: &mut R4g1World) {
+    assert_eq!(w.rf31_policy_permit_verified, Some(true));
+    assert!(
+        w.rf31_served_snapshot
+            .as_ref()
+            .and_then(|snapshot| snapshot.winner)
+            .is_some(),
+        "a permitted production step obtains its token only from the normative candidate owner"
     );
 }
 
@@ -4196,12 +4858,12 @@ fn bst_given_crossing_witness(w: &mut R4g1World) {
     w.bst_witness = buffer;
 }
 
-#[when("the deployed planner runs a bounded episode")]
+#[when("the portable planner runs a bounded episode")]
 fn bst_when_run(w: &mut R4g1World) {
     bst_run(w, 8);
 }
 
-#[when("the deployed planner runs an episode whose horizon exceeds the frozen capacity")]
+#[when("the portable planner runs an episode whose horizon exceeds the frozen capacity")]
 fn bst_when_run_over_capacity(w: &mut R4g1World) {
     bst_run(w, (BST_H_MAX + 1) as u8);
 }

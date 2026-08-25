@@ -1291,6 +1291,44 @@ pub fn train_cut(c: &Corpus) -> u32 {
     ((c.stories as f64 * 0.8) as u32).max(1)
 }
 
+/// Canonical train/certification position split for one recorded corpus.
+///
+/// This is the shared, byte-source-independent admission rule used by the
+/// compiler, native production loader, and filesystem-free WASM loader. Both
+/// partitions retain ascending corpus-position order. Keeping the rule in the
+/// core corpus module prevents a host adapter from silently inventing a
+/// different held-out population when it cannot depend on the graph compiler.
+pub fn split_positions(corpus: &Corpus) -> (Vec<usize>, Vec<usize>) {
+    let cut = train_cut(corpus);
+    let mut train = Vec::new();
+    let mut held_out = Vec::new();
+    for position in 0..corpus.n {
+        if corpus.story[position] < cut {
+            train.push(position);
+        } else {
+            held_out.push(position);
+        }
+    }
+    (train, held_out)
+}
+
+/// Canonical token window for one corpus position, oldest first and bounded
+/// to its story and [`WINDOW`]. This lives with the portable corpus contract so
+/// offline compilation, native evaluation, witness replay, and WASM admission
+/// cannot drift into different serving inputs.
+pub fn context_window(corpus: &Corpus, position: usize) -> Vec<u32> {
+    let mut start = position;
+    while start > 0
+        && corpus.story[start - 1] == corpus.story[position]
+        && position + 1 - start < WINDOW
+    {
+        start -= 1;
+    }
+    (start..=position)
+        .map(|index| corpus.input[index])
+        .collect()
+}
+
 pub const ART_PATH: &str = "/tmp/tless_artifacts.bin";
 
 #[derive(Clone)]

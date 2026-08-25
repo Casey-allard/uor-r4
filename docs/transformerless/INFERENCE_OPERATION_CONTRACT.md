@@ -1,6 +1,6 @@
 # Inference Operation Contract (Normative)
 
-- **Version:** 0.1.0
+- **Version:** 0.2.0
 - **Status:** Normative for deployed inference hot paths
 - **Role:** **Definition** (per `docs/formal_vocabulary.md` §1)
 - **Machine-readable binding:** `uor-r4-graph-format::inference_contract`
@@ -18,7 +18,8 @@ The contract governs these production runtime activities:
 4. Active-frontier updates (bounded-width push/evict).
 5. Transition scoring (`E_f` forward transition residuals).
 6. Goal and constraint scoring (lowered planner scoring subset).
-7. Token candidate scoring and shortlist accumulation (EMIT/EXCT residual reads, top-K selection).
+7. Token candidate scoring and shortlist accumulation (EMIT/EXCT residual
+   reads plus bounded SKMX/PSIB candidate contribution, top-K selection).
 8. Fixed-width planning (bounded plan-frontier propagation within HEAD limits).
 9. Runtime ScoreQ decode support used by inference (`StorageDescriptor` shift+add decode semantics per `R4G1.md` §9.3).
 
@@ -138,4 +139,9 @@ For audited kernels in the boundary:
 
 ## Changelog
 
+- **0.2.0** (2026-08-24, #933) — Added bounded SKMX/PSIB table reads and
+  fixed-capacity contribution to the normative token-candidate activity. The
+  allowed/forbidden operation classes are unchanged. Artifacts with those
+  sections require schema-2 deployed-quality and release-manifest admission;
+  pre-0.2.0 artifacts do not silently acquire the new serving semantics.
 - **0.1.0** (2026-07-24) — Initial normative contract definition and machine-readable binding.

@@ -429,3 +429,50 @@ graph has neither section and audited-main `R4G1Runtime` cannot consume them.
 #933 therefore remains the first structural implementation, followed only by
 the bounded artifacts, sample, isolated retrieval/ranking child, and conditional
 census above. #932 remains downstream.
+
+### 2026-08-25 — #933 normative-runtime outcome
+
+**Outcome: RATIFY at an exact CID-bound scope.** This append supersedes the
+earlier document-local uses of “current,” “pending,” and “NOT ESTABLISHED”
+without changing their historical audit meaning. #933 completed the structural
+implementation, deterministic controls, staged sample funnel, full census,
+packaging, and hardened strict admission described above.
+
+The canonical schema-2 bundle records `R4G1Runtime` greedy-decode top-1 of
+**21,293 / 72,130 (29.5203%)**, same-position TLA of **20,284 / 72,130
+(28.1214%)**, and a paired difference of **+13.988 permille, 95% CI [11.057,
+16.919]**. The same-generation sections-absent control records **18,806 / 72,130
+(26.0723%)**, so the RF-31 lane contributes **+34.479 permille, 95% CI [31.681,
+37.277]**. The rotated-label control records 2,288 / 72,130 and a negative
+**-229.003 permille [−232.359, −225.647]** effect. Thus both predeclared paired
+gates clear; no universal 30% rule is introduced.
+
+The canonical graph CID is
+`ff82dfd5f04eac7e944443b1ea4cc9fe93a007b3b8f07286876d52709a98bc49`
+and the deployed-quality report CID is
+`88ee8210e1f4c48dc26999f5685350b2d2343676cdbd6f9b1aee7c7f1c66146f`.
+The hardened release manifest has raw BLAKE3
+`c2025e9e507e8367993d78bd83ef099ce5851c838d3cc5cf01eda5560986ad33`
+and SHA-256
+`7572e07a1e3722f3ffc0ea749a67b4ac162221de79b5b4b8a315f4e4e6570fde`;
+it binds TLA comparator store CID
+`c1749e62077758c4a098e2a02150b5455e1ca3c02c60b87e6d45fcbb9e2b4404`.
+The graph/evaluator revision is
+`74ced4d12a84a176d73665106f88d0aab9407453`, and the hardened admission
+verifier is `f901cd97577da3117fd52c9b1c6dcf075cc4d3a2`. Strict production admission
+passed from an empty model store after that hardening.
+
+Absent-section identity recorded 72,130 / 72,130 agreements; the report's
+72,138 cross-surface checks recorded zero mismatch; witness replay passed
+64 / 64. Independent 4-worker and 8-worker emissions and evaluations produced
+byte-identical semantic artifacts. The repository BDD suite passed 124 / 124,
+but its live-teacher parity fixtures were absent and those scenarios vacuously
+skipped, so that result is not teacher-parity evidence.
+
+The RATIFY claim covers only this bundle, held-out population,
+`R4G1Runtime`, greedy decode, and schema-2 envelope. It does not establish an
+absolute cross-model floor, instruction following, reasoning, factuality,
+semantic abstention, free-running coherence, or live-teacher parity. The 135M
+BDD bundle remains a distinct population and artifact. #908's 29.702%
+`R4Engine` result remains historical reference/off-serving evidence; #932
+remains downstream for live-teacher parity and performance evidence.

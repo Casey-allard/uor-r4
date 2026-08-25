@@ -9,17 +9,18 @@
 //! ## What this measures
 //!
 //! Teacher-forced and recorded-corpus-replay signals do not measure how
-//! errors compound under the system's OWN prefixes. This harness drives the
-//! normative deployed `R4Engine` (the released #833 `graph/score.r4g1`, the
-//! ADR-0001 scorer, the D4 policy) over MATCHED trajectory pairs from frozen
-//! prompt-family v1:
+//! errors compound under the harness's OWN prefixes. This historical harness
+//! drives `R4Engine` over the released #833 `graph/score.r4g1`; after the #933
+//! ADR-0001 call-graph correction, that is a reference/off-serving certifier
+//! path, not the normative `R4G1Runtime` production selector. It evaluates
+//! MATCHED trajectory pairs from frozen prompt-family v1:
 //!
 //!   * **teacher-prefix (TF)** — at each of `H` matched steps the engine
 //!     predicts from the RECORDED in-story window (the classic teacher-forced
 //!     read, scored against the recorded teacher argmax);
 //!   * **student-prefix (FR)** — from the same prompt the engine consumes its
-//!     OWN served tokens (greedy, deterministic; an abstention terminates the
-//!     trajectory — the honest deployed behavior);
+//!     OWN harness-selected tokens (greedy, deterministic; an abstention
+//!     terminates the trajectory and is recorded explicitly);
 //!   * controls — **shuffled-prompt** (rotate-by-one derangement of the
 //!     prompt window), **repeated-prefix** (last token repeated to fill the
 //!     window; the pure-repetition reference), **suffix-only** (the last

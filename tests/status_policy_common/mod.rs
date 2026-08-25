@@ -19,7 +19,7 @@ use uor_r4_graph_certify::{
     self as score, EmissionTables, GraphScorer, RegionParams, ScoreStatus, Smoothing,
     StructuralEdge, EXCT_SUPPORT_MIN,
 };
-use uor_r4_graph_format::ScoreQ;
+use uor_r4_graph_format::{ScoreQ, SkipmixRowInput};
 use uor_r4_wasm_router::r4g1::R4g1State;
 use uor_r4_wasm_router::transformerless::compiler::{self, D, K, SIG_BYTES, STAGES};
 use uor_r4_wasm_router::transformerless::runtime::{self, Store};
@@ -76,7 +76,7 @@ pub struct ProbeFixture {
 impl ProbeFixture {
     /// Load the deployed adapter on this bundle.
     pub fn load(&self) -> R4g1State {
-        R4g1State::load(
+        R4g1State::load_for_research(
             &self.dir.join("score.r4g1"),
             &self.dir.join("tless_artifacts.bin"),
         )
@@ -102,11 +102,26 @@ fn emit_and_persist(
     regions: &[RegionParams],
     emissions: &EmissionTables,
     store: &Store,
+    skipmix_rows: &[SkipmixRowInput],
     status_policy_override: Option<serde_json::Value>,
 ) -> (PathBuf, Vec<u8>, Vec<u8>) {
     let artifacts = synthetic_compiled();
     let teacher = compiler::artifact_bytes(&artifacts);
     let tls1 = runtime::store_bytes(store);
+    let context_rows: Vec<score::ContextRow> = [5u32, 10, 20, 30, 40]
+        .into_iter()
+        .map(|key| score::ContextRow {
+            context_len: 1,
+            key0: key,
+            key1: 0,
+            entries: vec![
+                (10, ScoreQ::from_raw(1_100)),
+                (20, ScoreQ::from_raw(200)),
+                (30, ScoreQ::from_raw(300)),
+                (40, ScoreQ::from_raw(50)),
+            ],
+        })
+        .collect();
     let (bytes, _) = score::emit_scored_r4g1(
         &teacher,
         (b"status-meta", b"status-recs"),
@@ -130,9 +145,9 @@ fn emit_and_persist(
             transitions: &[],
             transition_quantization: score::QuantizationErrorStats::default(),
             emissions,
-            context_rows: &[],
+            context_rows: &context_rows,
             fwd_rows: &[],
-            skipmix_rows: &[],
+            skipmix_rows,
             psi_bag_rows: &[],
             exct_tls1: &tls1,
             exct_top_x: score::ScoreConfig::default().exct_top_x,
@@ -224,8 +239,13 @@ pub fn signature_fixture(status_policy_override: Option<serde_json::Value>) -> P
             parent: None,
         },
     ];
-    let (dir, bytes, teacher) =
-        emit_and_persist(&regions, &hand_emissions(), &store, status_policy_override);
+    let (dir, bytes, teacher) = emit_and_persist(
+        &regions,
+        &hand_emissions(),
+        &store,
+        &[],
+        status_policy_override,
+    );
     ProbeFixture {
         dir,
         bytes,
@@ -240,9 +260,10 @@ pub fn signature_fixture(status_policy_override: Option<serde_json::Value>) -> P
 /// The window-level fixture: region 0 is anchored at the derived signature
 /// of the single-token window `[5]` (radius 4, emission token 10) so the
 /// token-level path has a deterministic served probe; region 1 sits at the
-/// all-ones extreme. No exact-context evidence (every store level empty),
-/// so served probes resolve Graph.
-pub fn window_fixture() -> ProbeFixture {
+/// all-ones extreme. The TLS store stays empty, while the emitter's explicit
+/// one-token context row makes `[5]` reachable by both the normative runtime
+/// and the reference D4 status resolver.
+fn window_fixture_with_rows(skipmix_rows: &[SkipmixRowInput]) -> ProbeFixture {
     let artifacts = synthetic_compiled();
     let rotations = compiler::derive_rotations();
     let covered_window = vec![5u32];
@@ -276,7 +297,8 @@ pub fn window_fixture() -> ProbeFixture {
             parent: None,
         },
     ];
-    let (dir, bytes, teacher) = emit_and_persist(&regions, &hand_emissions(), &store, None);
+    let (dir, bytes, teacher) =
+        emit_and_persist(&regions, &hand_emissions(), &store, skipmix_rows, None);
     ProbeFixture {
         dir,
         bytes,
@@ -286,6 +308,16 @@ pub fn window_fixture() -> ProbeFixture {
         ood_sig,
         covered_window,
     }
+}
+
+pub fn window_fixture() -> ProbeFixture {
+    window_fixture_with_rows(&[])
+}
+
+/// Window fixture whose learned joint row promotes token 42 over the base
+/// runtime winner for `[5]`.
+pub fn window_fixture_with_skipmix() -> ProbeFixture {
+    window_fixture_with_rows(&[(5, 5, vec![(42, 1_000)])])
 }
 
 /// The derived signature of a token window under this fixture's teacher.

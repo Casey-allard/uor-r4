@@ -68,19 +68,53 @@ formally committed. Full text: plan §2.
 | **Gate C: broad-corpus 360M (PINNED, #516)** | **24.30% / 11.94 bits** (best live arm 31.48% / 10.43) | fresh, 2026-08-09 | **broad** D3 (Simple-Wiki), SmolLM2-360M-Instruct teacher, 360,924 records / 2,994 stories, 72,864 held-out, EXCT-miss 25.7%, teacher floor 3.6015 bits, 64/0 witness replays; `docs/smollm2_teacher_baseline_320.md` #516. Distinct distribution from the stories15M home rows above — this is the canonical baseline for **broad-text** claims; stories15M is retained for the home distribution. |
 | **Gate C re-run at `aea30bae` (baseline audit)** | rule12 **36.55% / 8.3222**; TLA3 baseline 39.17% / 8.4985; EXCT-miss-slice generalization **1.81% / 16.89** (n=14,943) | fresh, 2026-08-18 | committed 500k/TLA7 fixtures, full census n=100,306, `positions_sampled: 0`, witness replay 64/64, EXCT resolves 85.1%; trend alarm PASS vs the 2026-07-30 pin (31.63%/9.1181). Same-machine live probes the same day: all three loadable local bundles (pre-#755 bytes) produce deterministic, prompt-invariant degenerate output through the R4G1 ask path — `docs/project_baseline_audit_2026_08_18.md` §13. |
 
-**Current scope correction (#934 audit, 2026-08-24; historical rows above are
+**Current scope correction (#933/#934, 2026-08-24; historical rows above are
 unchanged).** The fixed top-1 tolerance of **29.7%** (`31.7% - 2pp`) belongs to
 the pinned/legacy quality profile; it is not a universal 30% requirement.
-Broad-corpus `relative_tla` reports use the graph-versus-TLA comparison on the
-same positions. The attested `smollm2-360m-broad-clean` report is a full census
-of 72,130 held-out positions: Rule 1+2 **24.393%** versus TLA **28.121%**.
-Consequently strict production admission is not established by that report or
-by the bypassed local-load canary. #908's **29.702%** is separately scoped
-teacher-free `R4Engine` reference/off-serving evidence; its gate was a paired
+Broad-corpus `relative_tla` reports compare the deployed scorer with TLA on the
+same positions. The attested `smollm2-360m-broad-clean` reference report is a
+full census of 72,130 held-out positions: Rule 1+2 **24.393%** versus TLA
+**28.121%**. Consequently strict production admission is not established by
+that report or by the bypassed local-load canary.
+
+Gate C Rule 1+2 and #908's **29.702%** skip-mix row are compiler-side
+`GraphScorer` / `R4Engine` reference measurements, not evidence that the sole
+normative deployed selector, `R4G1Runtime`, served those tokens. #908 remains
+valid teacher-free reference/off-serving evidence; its gate was a paired
 skip-mix delta whose 95% lower bound had to clear **+20‰**, not an absolute
 top-1 floor. See [the #934 audit](../canonical_quality_baseline_934.md), which
-owns remediation ordering; #933 then owns normative-runtime lowering and bound
-admission, followed by #932's BDD parity harness work.
+owns remediation ordering. RF-31 remains **NOT ESTABLISHED** at deployed-serving
+scope until the content-bound normative-runtime report in
+[`normative_r4g1_quality_933.md`](../normative_r4g1_quality_933.md) receives an
+evidence-backed verdict; #932's BDD parity harness remains downstream.
+
+**Current normative outcome (#933, 2026-08-25; appended correction).** The
+content-bound schema-2 production bundle is **RATIFIED at its exact scope**:
+`R4G1Runtime` greedy decode records **21,293 / 72,130 (29.5203%)**, compared
+with same-position TLA **20,284 / 72,130 (28.1214%)**, for a paired **+13.988
+permille, 95% CI [11.057, 16.919]**. Its same-generation sections-absent
+control records **18,806 / 72,130 (26.0723%)**, giving the RF-31 lane **+34.479
+permille [31.681, 37.277]**. These paired gates, not an absolute 30% threshold,
+are the decision rule.
+
+The binding graph/report CIDs are
+`ff82dfd5f04eac7e944443b1ea4cc9fe93a007b3b8f07286876d52709a98bc49`
+and `88ee8210e1f4c48dc26999f5685350b2d2343676cdbd6f9b1aee7c7f1c66146f`.
+The hardened release manifest's raw BLAKE3 is
+`c2025e9e507e8367993d78bd83ef099ce5851c838d3cc5cf01eda5560986ad33`
+(SHA-256
+`7572e07a1e3722f3ffc0ea749a67b4ac162221de79b5b4b8a315f4e4e6570fde`)
+and it binds comparator-store CID
+`c1749e62077758c4a098e2a02150b5455e1ca3c02c60b87e6d45fcbb9e2b4404`.
+Strict admission passed from an empty model store after verifier hardening at
+`f901cd97577da3117fd52c9b1c6dcf075cc4d3a2` (graph/evaluator revision
+`74ced4d12a84a176d73665106f88d0aab9407453`).
+
+This does not relabel #908's 29.702% `R4Engine` reference/off-serving row and
+does not establish instruction following, reasoning, factuality, semantic
+abstention, free-running coherence, live-teacher parity, or a cross-model
+floor. The BDD suite was 124 / 124, but live-teacher parity fixtures were absent
+and those scenarios vacuously skipped; #932 remains downstream.
 
 **Canonical bits/token (issue #76, resolved 2026-07-22):** one definition — mean cross-entropy of
 the true next token under a scorer's predicted distribution, `(1/N) Σ −log2 P_scorer(v_i|c_i)`

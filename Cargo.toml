@@ -55,6 +55,7 @@ uor-r4-core = { version = "0.1.0", path = "crates/uor-r4-core" }
 uor-r4-graph-format = { version = "0.1.0", path = "crates/uor-r4-graph-format" }
 uor-r4-proof-model = { version = "0.1.0", path = "crates/uor-r4-proof-model" }
 uor-r4-graph-runtime = { version = "0.1.0", path = "crates/uor-r4-graph-runtime" }
+uor-r4-api = { version = "0.1.0", path = "crates/uor-r4-api", default-features = false, features = ["runtime"] }
 uor-r4-router = { version = "0.1.0", path = "crates/uor-r4-router" }
 uor-addr = { version = "0.2.0", git = "https://github.com/UOR-Foundation/uor-addr.git", rev = "165b51e3e2113ee5d032730cde709335d4fe9b60", default-features = false, features = ["alloc"] }
 uor-foundation-sdk = { version = "0.5.2", git = "https://github.com/UOR-Foundation/UOR-Framework.git", rev = "51c01382200b0179d6640b07e9c8119364ab69a1" }
@@ -72,7 +73,7 @@ uor-r4-model-source = { version = "0.1.0", path = "crates/uor-r4-model-source" }
 uor-r4-graph-compiler = { version = "0.1.0", path = "crates/uor-r4-graph-compiler" }
 uor-r4-graph-certify = { version = "0.1.0", path = "crates/uor-r4-graph-certify" }
 uor-r4-graph-cli = { version = "0.1.0", path = "crates/uor-r4-graph-cli" }
-uor-r4-api = { version = "0.1.0", path = "crates/uor-r4-api" }
+uor-r4-api = { version = "0.1.0", path = "crates/uor-r4-api", default-features = false, features = ["full"] }
 libc = "0.2"
 rustyline = "14.0"
 

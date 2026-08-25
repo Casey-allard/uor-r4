@@ -6,9 +6,9 @@ programme — what has been measured, refuted and left open — lives in
 purpose. Research direction is set by measurement and changes faster than this
 list does.
 
-_Last reviewed: 2026-08-22 (S4 closed `LIMIT`: RF-33 remains limited to 12/20 prior
-joint-split cells, geometry added no advantage, and untouched final-partition reasoning was
-not established). Prior: 2026-08-20 (S0 promoted; S1 became the entry stage)._
+_Last reviewed: 2026-08-25 (#933 completed the exact normative-runtime evidence
+branch with RATIFY and strict schema-2 admission). Prior: 2026-08-24 (#933
+reopened S0 after the scorer-scope audit)._
 
 > **Post-v0.1 intelligence sequencing lives in the
 > [R4 Intelligence Completion Plan](docs/r4_intelligence_completion_plan.md)** —
@@ -16,52 +16,49 @@ not established). Prior: 2026-08-20 (S0 promoted; S1 became the entry stage)._
 > cross-cutting F0 formal lane). This file stays the **product** capability
 > checklist and defers the ordering of intelligence work to that plan.
 
-> **Quality-baseline sequencing correction (#934 audit, 2026-08-24).** The
-> legacy pinned-report tolerance rounds to 29.7%; it is not a universal 30%
-> product floor. Broad `relative_tla` admission compares graph top-1 with TLA on
-> the same report, and the current broad-clean census is 24.393% versus 28.121%,
-> so strict admission is not established. #908's 29.702% is separate
-> `R4Engine` reference/off-serving evidence whose gate was a paired +20‰ lane
-> delta. [#934's audit record](docs/canonical_quality_baseline_934.md) owns the
-> remediation order; dependent execution proceeds through #933 and then #932.
+> **Quality-baseline reconciliation (#933/#934, 2026-08-25).** The legacy
+> pinned-report tolerance rounds to 29.7%; it is not a universal 30% product
+> floor. The exact canonical broad `R4G1Runtime` census is now 29.5203% versus
+> same-position TLA 28.1214% (+13.988‰, 95% CI [11.057, 16.919]) and 26.0723%
+> with SKMX/PSIB absent (+34.479‰ [31.681, 37.277]). #933 records RATIFY for
+> that CID-bound bundle/population/decode and strict schema-2 admission. #908's
+> 29.702% remains separate `R4Engine` reference/off-serving evidence. See the
+> [#933 record](docs/normative_r4g1_quality_933.md) and
+> [#934 genealogy](docs/canonical_quality_baseline_934.md).
 
 ## Next up (recommended sequencing)
 
-The v0.1 engineering epics closed 2026-08-19 — the serving epic (**#655**),
-distribution (**#741**, release **v0.1** published), the ask-path abstention gate
-(**#811**), and the route-attention decision (**#804**). The sequenced successor is the
-**R4 Intelligence programme (#820)**; its authoritative completion plan holds the live
-stage hierarchy and verdicts. As of 2026-08-22, S4 (#826) is closed **`LIMIT`**:
-RF-33 establishes bounded typed state-transition planning on 12/20 previously evaluated
-joint-split cells; the pinned W(3,3) mapping adds no equal-budget advantage; and the
-untouched final-partition reasoning claim is not established because the committed
-benchmark has no valid sealed final cell. This is not a general-reasoning or free-running
-generation claim. The maintainer-decision items below remain valid inputs to the programme,
-each needing its own contract when picked up:
+The foundational #933 truth-boundary correction has completed its empirical
+branch with RATIFY: ADR-0001's sole selector now consumes SKMX/PSIB across the
+shared production adapters, and the exact canonical full census is bound into a
+hardened schema-2 envelope that admits from an empty model store. This restores
+the corrected S0 evidence boundary without relabeling #908's reference result or
+claiming live-teacher parity.
 
-1. **Recompile the canonical local bundles with the #755 fix and take a
-   fresh quality read** (the audit's E-1 run contract; the standing next
-   action). The decode-default change made baseline output *valid* (15/15
-   on the declared canary) but distinctness and factual quality remain
-   research-grade, and the v0.1 bundle's own score report keeps it below
-   the serving-admission quality bar (CLI-served today, refused by the
-   server's r4g1 tier). A post-#755 recompile that clears its own bar is
-   the path to a **server-admissible release bundle**, and it decides
-   whether the #460-lineage codebook-collision work needs its own issue.
-2. **The #784 family** — output distinctness (context-code convergence)
-   plus the D4 semantic-OOD finding (#811): the sharpest open quality
-   question now that route-attention is measured and closed. Needs a
-   maintainer-approved pre-registered contract; the S1 verdict's
-   temporal-smoothness finding (#605) is directly relevant input.
-3. **Untracked remnants worth new issues when picked up:** the #653
-   phase-2 "defer-open" items (GNAF cost/witness seam, xtask
-   proof-integrity ports, Lean CI policy), the #759→#460
-   codebook-collision root cause, a future vacuity-robust route-attention
-   contract (excess-over-N2 primary, or restricted-forward parity — #605
-   verdict), and the eventual `uor-r4` alias-removal cleanup (#655-F
-   deprecation window).
+Current order:
+
+1. **Continue through the native dependency chain #932 → #931 → #839.** #932
+   owns the exact-parallel, observable live-teacher BDD harness. #933 ran no
+   teacher forward or parity marathon; its full-census quality evidence is
+   teacher-free over already-recorded canonical labels. The repository BDD run
+   was 124 / 124, but live-teacher fixtures were absent and those scenarios
+   vacuously skipped.
+2. **Keep the claim boundary fixed.** The #933 RATIFY is exact-artifact and
+   teacher-forced-position evidence, not instruction following, reasoning, or
+   free-running coherence.
+3. **Deferred research and product backlog remains unchanged:** the #784
+   context-code-convergence family, the #653 phase-2 formal remnants, the
+   #759→#460 codebook-collision root cause, a future vacuity-robust
+   route-attention contract, and eventual `uor-r4` alias removal.
 
 ## Landed
+
+- [x] **#933 normative R4G1 serving and deployed-quality reconciliation** —
+  *RATIFY, 2026-08-25*. One `R4G1Runtime` candidate/token owner now reaches the
+  production adapters; the canonical schema-2 bundle clears same-position TLA
+  and the frozen +20‰ sections-absent gate with zero surface/binding/witness
+  failures and strict empty-store admission. The result is scoped to its exact
+  measured envelope.
 
 - [x] **Wrap transformerless into r4** — *done 2026-07-18*. The full
   transformerless program is integrated into

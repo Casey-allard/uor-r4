@@ -248,8 +248,8 @@ impl CompiledModel {
         let projection: CompileReportExecutionProjection =
             serde_json::from_slice(&self.compile_report).map_err(|error| {
                 SourceUnavailable::new(format!(
-                    "compile_report.json does not contain readable source execution provenance: {error}"
-                ))
+                "compile_report.json does not contain readable source execution provenance: {error}"
+            ))
             })?;
         if let Some(operator) = projection.attention_operator.as_ref() {
             let registered =
