@@ -659,7 +659,14 @@ historical `LIMIT` verdict against its three completed children. **#942 (2026-08
 reopens S3 for a bounded implementation-first slice:** strict production decoding carries a
 fixed-size incremental signature of the complete admitted prompt plus committed generated prefix
 alongside the existing short scoring window. This is deployed memory reachability, not a
-coherence result; the frozen #841 bar is unchanged.
+coherence result; the frozen #841 bar is unchanged. **#944 then tested whether that state was
+behaviorally non-vacuous on the exact #933 production envelope and returned `INERT`:** 492/512
+cases resolved through an explicit context row and all remaining 20 primary context-signature
+probes admitted a node, so the secondary session probe was attempted 0 times; candidate lists
+changed 0 times and served tokens changed 0 times. The larger #841 rerun is therefore `NOT_RUN`
+by contract. See [`docs/production_prefix_memory_canary_944.md`](production_prefix_memory_canary_944.md)
+and the CID-bound result JSON. A further S3 re-entry must first make complete-prefix information
+behaviorally reachable in the compiled representation.
 
 **S4 — bounded typed planning is LIMITED; geometry adds no advantage; untouched final-partition
 reasoning is not established (#843/#845/#846, 2026-08-22).**

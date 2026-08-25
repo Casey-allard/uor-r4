@@ -431,14 +431,20 @@ generation claim into any downstream stage. This entry mirrors the tracker verdi
   memory, re-measured under the unchanged #841 §6 bar and the frozen #838
   selective-prediction gates (the #887 discipline).
 
-### S3 bounded representation re-entry — ACTIVE (#942, 2026-08-25)
+### S3 bounded representation re-entry — INERT (#942/#944, 2026-08-25)
 
 The tracker is reopened for one implementation-first slice without revising the historical
 `LIMIT` verdict. The strict production generator now carries a fixed-size incremental
 signature of the complete admitted prompt plus committed generated prefix alongside its
 bounded scoring window. This establishes cross-step memory reachability through the existing
 normative session-signature lane; it does **not** establish coherent generation or change the
-frozen #841 §6 bar. Broader measurement remains gated on the focused product-path canary.
+frozen #841 §6 bar. The focused product-path canary #944 then admitted the exact #933 schema-2
+envelope and inspected 512 deterministic one-step cases: 492 resolved through an explicit
+context row; the remaining 20 primary context-signature probes all admitted a node; therefore
+the secondary session probe was attempted 0 times, with 0 candidate-list changes and 0 served-
+token changes. Verdict: **`INERT`** for this artifact. The broader #841 rerun is `NOT_RUN`;
+the next re-entry must make complete-prefix information behaviorally reachable in the compiled
+representation before repeating the same canary.
 
 ### S4 entry reconciliation — AMEND + PROCEED (2026-08-22)
 

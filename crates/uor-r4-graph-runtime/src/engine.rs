@@ -71,6 +71,52 @@ pub struct ServedCandidates {
     attribution: Option<SkipmixAttribution>,
 }
 
+/// Bounded attribution for the signature-routing stage of one normative
+/// runtime selection.
+///
+/// The trace carries no candidate authority. It reports which mutually
+/// exclusive route source supplied the active graph nodes, plus whether the
+/// primary context probe missed and the secondary session probe admitted a
+/// calibrated node. This is sufficient for a product canary to distinguish a
+/// genuinely exercised session lane from mere signature-byte inequality.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct SignatureRoutingTrace {
+    pub context_row_hit: bool,
+    pub suffix_dfa_nodes: u8,
+    pub context_probe_attempted: bool,
+    pub context_admitted_nodes: u8,
+    pub session_probe_attempted: bool,
+    pub session_admitted_nodes: u8,
+    pub selected_source: SignatureRoutingSource,
+}
+
+impl Default for SignatureRoutingTrace {
+    fn default() -> Self {
+        Self {
+            context_row_hit: false,
+            suffix_dfa_nodes: 0,
+            context_probe_attempted: false,
+            context_admitted_nodes: 0,
+            session_probe_attempted: false,
+            session_admitted_nodes: 0,
+            selected_source: SignatureRoutingSource::None,
+        }
+    }
+}
+
+/// Active-node source selected before emission scoring.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SignatureRoutingSource {
+    None,
+    ContextRow,
+    SuffixDfa,
+    ContextSignature,
+    SessionSignature,
+    NearestContextSignature,
+    NearestSessionSignature,
+    DefaultNode,
+}
+
 impl ServedCandidates {
     /// Canonically ranked candidates: source, descending score, ascending token.
     pub fn ranked(&self) -> &[ServedCandidate] {
@@ -835,13 +881,36 @@ impl<'a> R4G1Runtime<'a> {
         session_signature: Option<&[u8]>,
         node_scores: &mut [ScoreQ],
     ) -> (u32, ScoreQ) {
+        self.predict_distribution_with_signature_lanes_traced(
+            context_tokens,
+            context_signature,
+            session_signature,
+            node_scores,
+        )
+        .0
+    }
+
+    /// Diagnostic counterpart of
+    /// [`Self::predict_distribution_with_signature_lanes`]. The prediction
+    /// is identical; the additional fixed-size trace only reports which
+    /// routing source supplied active nodes.
+    pub fn predict_distribution_with_signature_lanes_traced(
+        &self,
+        context_tokens: &[u32],
+        context_signature: Option<&[u8]>,
+        session_signature: Option<&[u8]>,
+        node_scores: &mut [ScoreQ],
+    ) -> ((u32, ScoreQ), SignatureRoutingTrace) {
+        let mut routing = SignatureRoutingTrace::default();
         let num_nodes = self.node_count();
         if num_nodes == 0 || context_tokens.is_empty() {
-            return (0, ScoreQ::ZERO);
+            return ((0, ScoreQ::ZERO), routing);
         }
 
         if let Some(prediction) = context_backoff(self.chain.base_graph(), context_tokens) {
-            return prediction;
+            routing.context_row_hit = true;
+            routing.selected_source = SignatureRoutingSource::ContextRow;
+            return (prediction, routing);
         }
 
         let base_graph = self.chain.base_graph();
@@ -865,7 +934,7 @@ impl<'a> R4G1Runtime<'a> {
             context_tokens
         };
         if tokens_slice.is_empty() {
-            return (0, ScoreQ::ZERO);
+            return ((0, ScoreQ::ZERO), routing);
         }
 
         let max_suffix = core::cmp::min(10, tokens_slice.len());
@@ -926,6 +995,8 @@ impl<'a> R4G1Runtime<'a> {
             if !failed && current_len > 0 {
                 active_nodes[..current_len].copy_from_slice(&current[..current_len]);
                 active_len = current_len;
+                routing.suffix_dfa_nodes = current_len.min(usize::from(u8::MAX)) as u8;
+                routing.selected_source = SignatureRoutingSource::SuffixDfa;
                 break;
             }
         }
@@ -946,20 +1017,31 @@ impl<'a> R4G1Runtime<'a> {
             let mut best_node = 0u32;
             let mut active_count = 0usize;
             if let Some(sig) = context_signature {
+                routing.context_probe_attempted = true;
                 (best_node, active_count) = self.rout_probe(base_graph, sig, &mut active_nodes);
+                routing.context_admitted_nodes = active_count.min(usize::from(u8::MAX)) as u8;
+                if active_count > 0 {
+                    routing.selected_source = SignatureRoutingSource::ContextSignature;
+                }
             }
             if active_count == 0
                 && let Some(sig) = session_signature
             {
+                routing.session_probe_attempted = true;
                 let mut session_nodes = [0u32; 64];
                 let (session_best, session_count) =
                     self.rout_probe(base_graph, sig, &mut session_nodes);
+                routing.session_admitted_nodes = session_count.min(usize::from(u8::MAX)) as u8;
                 if session_count > 0 {
                     active_nodes[..session_count].copy_from_slice(&session_nodes[..session_count]);
                     best_node = session_best;
                     active_count = session_count;
+                    routing.selected_source = SignatureRoutingSource::SessionSignature;
                 } else if best_node == 0 {
                     best_node = session_best;
+                    if best_node != 0 {
+                        routing.selected_source = SignatureRoutingSource::NearestSessionSignature;
+                    }
                 }
             }
 
@@ -968,6 +1050,11 @@ impl<'a> R4G1Runtime<'a> {
             } else if best_node != 0 {
                 active_nodes[0] = best_node;
                 active_len = 1;
+                if routing.selected_source == SignatureRoutingSource::SuffixDfa
+                    || routing.selected_source == SignatureRoutingSource::None
+                {
+                    routing.selected_source = SignatureRoutingSource::NearestContextSignature;
+                }
             }
         }
 
@@ -1005,6 +1092,7 @@ impl<'a> R4G1Runtime<'a> {
         if active_len == 0 {
             active_nodes[0] = 0;
             active_len = 1;
+            routing.selected_source = SignatureRoutingSource::DefaultNode;
         }
 
         let mut best_token = 0;
@@ -1163,7 +1251,7 @@ impl<'a> R4G1Runtime<'a> {
             }
         }
 
-        (best_token, best_score)
+        ((best_token, best_score), routing)
     }
 
     /// Predict top-k candidate tokens with their scores for Beam Search decoding.

@@ -18,6 +18,6 @@ mod vp_tree;
 
 pub use engine::{
     R4G1Runtime, SERVED_CANDIDATE_CAPACITY, ServedCandidate, ServedCandidateSource,
-    ServedCandidates, SkipmixAttribution,
+    ServedCandidates, SignatureRoutingSource, SignatureRoutingTrace, SkipmixAttribution,
 };
 pub use status::ResolutionStatus;

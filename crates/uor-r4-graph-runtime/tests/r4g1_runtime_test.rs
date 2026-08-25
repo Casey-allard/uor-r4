@@ -10,7 +10,9 @@ use uor_r4_graph_format::{
     ArtifactBuilder, FormatError, GraphView, ScoreQ, SectionId, build_psi_bag_table,
     build_skipmix_table,
 };
-use uor_r4_graph_runtime::{R4G1Runtime, ServedCandidate, ServedCandidateSource};
+use uor_r4_graph_runtime::{
+    R4G1Runtime, ServedCandidate, ServedCandidateSource, SignatureRoutingSource,
+};
 
 struct CountingAllocator;
 
@@ -229,6 +231,18 @@ fn session_signature_enters_rout_fallback_as_secondary_probe() {
     );
     assert!(zero_once.1 >= ScoreQ::MIN);
     assert!(full.1 >= ScoreQ::MIN);
+    let (_, session_trace) = runtime.predict_distribution_with_signature_lanes_traced(
+        &[3, 1, 4],
+        None,
+        Some(&zero_session),
+        &mut scores_a,
+    );
+    assert!(session_trace.session_probe_attempted);
+    assert!(session_trace.session_admitted_nodes > 0);
+    assert_eq!(
+        session_trace.selected_source,
+        SignatureRoutingSource::SessionSignature
+    );
 
     // (1) context primacy: a context probe that lands within-radius actives
     // (the all-zero signature matches the synthetic store's zero prototype)
@@ -249,6 +263,19 @@ fn session_signature_enters_rout_fallback_as_secondary_probe() {
     assert_eq!(
         with_zero.0, with_full.0,
         "context primacy: within-radius context routing is not changed by the session lane"
+    );
+    let (_, context_trace) = runtime.predict_distribution_with_signature_lanes_traced(
+        &[3, 1, 4],
+        Some(&context_signature),
+        Some(&full_session),
+        &mut scores_a,
+    );
+    assert!(context_trace.context_probe_attempted);
+    assert!(context_trace.context_admitted_nodes > 0);
+    assert!(!context_trace.session_probe_attempted);
+    assert_eq!(
+        context_trace.selected_source,
+        SignatureRoutingSource::ContextSignature
     );
 }
 

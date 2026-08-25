@@ -10,7 +10,8 @@
 use serde::{Deserialize, Serialize};
 use uor_r4_graph_format::{ObservedBound, ScoreQ};
 use uor_r4_graph_runtime::{
-    R4G1Runtime, ServedCandidateSource, ServedCandidates, SERVED_CANDIDATE_CAPACITY,
+    R4G1Runtime, ServedCandidateSource, ServedCandidates, SignatureRoutingTrace,
+    SERVED_CANDIDATE_CAPACITY,
 };
 use uor_r4_model_source::SourceUnavailable;
 
@@ -1345,6 +1346,32 @@ impl<'a> NormativeServingEngine<'a> {
     ) -> Result<NormativeServingDecision, ObservedBound> {
         NormativeStepAdapter::new(&mut self.policy, &self.runtime, &mut self.node_scores)
             .select(context_tokens, session_signature)
+    }
+
+    /// Inspect the fixed-size routing attribution for the exact signature
+    /// inputs used by this production-admitted engine.
+    ///
+    /// This does not mutate policy counters and carries no candidate
+    /// authority. It recomputes the same runtime selection with the same D4
+    /// context signature so bounded product canaries can prove that the
+    /// secondary session probe was actually exercised.
+    pub fn inspect_signature_routing(
+        &mut self,
+        context_tokens: &[u32],
+        session_signature: Option<&[u8]>,
+    ) -> Result<SignatureRoutingTrace, ObservedBound> {
+        let policy_window = &context_tokens[context_tokens.len().saturating_sub(WINDOW)..];
+        let context_signature = self.policy.policy.signature_for_window(policy_window)?;
+        self.node_scores.fill(ScoreQ::MIN);
+        let (_, routing) = self
+            .runtime
+            .predict_distribution_with_signature_lanes_traced(
+                context_tokens,
+                Some(&context_signature),
+                session_signature,
+                &mut self.node_scores,
+            );
+        Ok(routing)
     }
 
     /// Reset bounded policy state between independent evidence positions.

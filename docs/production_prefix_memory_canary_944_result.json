@@ -1,0 +1,29 @@
+{
+  "schema": "uor-r4-production-prefix-memory-canary/1",
+  "issue": 944,
+  "verdict": "INERT",
+  "claim_scope": "one-step normative R4G1 production selection on the exact admitted artifact; no coherence claim",
+  "max_cases": 512,
+  "graph_cid": "blake3:ff82dfd5f04eac7e944443b1ea4cc9fe93a007b3b8f07286876d52709a98bc49",
+  "release_manifest_cid": "blake3:c2025e9e507e8367993d78bd83ef099ce5851c838d3cc5cf01eda5560986ad33",
+  "corpus_meta_cid": "blake3:aa9d176779c1d2411e872c49c95ed585ee805ded5fa1b808ddf2f517a245b0ce",
+  "corpus_records_cid": "blake3:4692307368fecce481a4aac452fd8df4e63d2f1bd07ee0f2932108f8595f8f62",
+  "selection_rule": "first held-out corpus positions with a complete in-story prefix longer than the newest eight-token window",
+  "tested_count": 512,
+  "first_tested_position": 288802,
+  "last_tested_position": 289345,
+  "tested_positions_cid": "blake3:f108e9caab5edc0b7b4d312cf5ae187608d9653ea3d4e24bfa00ef68a07507b7",
+  "observations_cid": "blake3:c6876af09d4c416f10f7098b18eda94cf8e6e4217e9cf28bb66a73f8f86748fe",
+  "counts": {
+    "inspected": 512,
+    "context_row_hits": 492,
+    "suffix_dfa_routes": 0,
+    "context_probe_attempts": 20,
+    "context_probe_misses": 0,
+    "session_probe_attempts": 0,
+    "session_probe_admissions": 0,
+    "candidate_list_changes": 0,
+    "served_token_changes": 0
+  },
+  "first_effect": null
+}
