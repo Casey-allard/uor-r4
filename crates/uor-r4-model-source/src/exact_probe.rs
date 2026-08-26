@@ -662,6 +662,7 @@ fn exact_executor_contract_components() -> Vec<(&'static str, &'static [u8])> {
         workspace_component!("crates/uor-r4-model-source/src/exact_executor.rs"),
         workspace_component!("crates/uor-r4-model-source/src/exact_probe.rs"),
         workspace_component!("crates/uor-r4-model-source/src/geometric_decoder.rs"),
+        workspace_component!("crates/uor-r4-model-source/src/geometric_training.rs"),
         workspace_component!("crates/uor-r4-model-source/src/geometry.rs"),
         workspace_component!("crates/uor-r4-model-source/src/gpt2.rs"),
         workspace_component!("crates/uor-r4-model-source/src/lib.rs"),

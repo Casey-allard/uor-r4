@@ -13,6 +13,7 @@ pub mod dense;
 mod exact_executor;
 mod exact_probe;
 pub mod geometric_decoder;
+pub mod geometric_training;
 pub mod geometry;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod gpt2;
@@ -948,12 +949,48 @@ impl Llama {
             if layer == runtime.target_layer()
                 && runtime.intervention() != geometric_decoder::GeometryIntervention::Disabled
             {
-                self.layer_forward_with_geometry(st, layer, pos, fast_matmul, Some(runtime));
+                self.layer_forward_with_geometry(st, layer, pos, fast_matmul, Some(runtime), None);
             } else {
                 self.layer_forward(st, layer, pos, fast_matmul);
             }
         }
         self.finish_forward(st, fast_matmul);
+        self.exact_executor.complete_forward(1);
+    }
+
+    /// One ordinary source step with the focused G1 layer seam copied through
+    /// the existing residual/Q/K/V/attention/logit executor. The callback is a
+    /// read-only trace tap: source weights and recurrent state follow the same
+    /// branch as [`Llama::forward`].
+    fn forward_capturing_geometric_source(
+        &self,
+        st: &mut State,
+        token: usize,
+        pos: usize,
+        fast_matmul: bool,
+        target_layer: usize,
+        capture: &mut geometric_training::SourceLayerCapture,
+    ) {
+        let _forward_guard = self
+            .forward_gate
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        debug_assert!(pos < st.sequence_capacity);
+        debug_assert!(token < self.cfg.vocab);
+        debug_assert!(target_layer < self.cfg.n_layers);
+        self.exact_executor.begin_forward(1);
+        let dim = self.cfg.dim;
+        st.x.copy_from_slice(&self.w[self.emb + token * dim..self.emb + (token + 1) * dim]);
+        for layer in 0..self.cfg.n_layers {
+            if layer == target_layer {
+                self.layer_forward_with_geometry(st, layer, pos, fast_matmul, None, Some(capture));
+            } else {
+                self.layer_forward(st, layer, pos, fast_matmul);
+            }
+        }
+        self.finish_forward(st, fast_matmul);
+        capture.logits.clear();
+        capture.logits.extend_from_slice(&st.logits);
         self.exact_executor.complete_forward(1);
     }
 
@@ -1068,7 +1105,7 @@ impl Llama {
     /// executor path. Operation order and arithmetic are unchanged from the
     /// original in-line loop body.
     fn layer_forward(&self, st: &mut State, l: usize, pos: usize, fast_matmul: bool) {
-        self.layer_forward_with_geometry(st, l, pos, fast_matmul, None);
+        self.layer_forward_with_geometry(st, l, pos, fast_matmul, None, None);
     }
 
     /// Shared transformer-layer body.  `geometry = Some` replaces only this
@@ -1080,6 +1117,7 @@ impl Llama {
         pos: usize,
         fast_matmul: bool,
         geometry: Option<&mut geometric_decoder::GeometricRuntime>,
+        mut source_capture: Option<&mut geometric_training::SourceLayerCapture>,
     ) {
         let c = &self.cfg;
         let (dim, hid) = (c.dim, c.hidden);
@@ -1088,12 +1126,20 @@ impl Llama {
         let head_size = dim / c.n_heads;
         let w = &self.w;
         {
+            if let Some(capture) = source_capture.as_deref_mut() {
+                capture.base_residual.clear();
+                capture.base_residual.extend_from_slice(&st.x);
+            }
             rmsnorm_with_mode(
                 &mut st.xb,
                 &st.x,
                 &w[self.rms_att + l * dim..self.rms_att + (l + 1) * dim],
                 self.canonical_math,
             );
+            if let Some(capture) = source_capture.as_deref_mut() {
+                capture.normalized_residual.clear();
+                capture.normalized_residual.extend_from_slice(&st.xb);
+            }
 
             if let Some(runtime) = geometry {
                 runtime.mix(
@@ -1221,6 +1267,32 @@ impl Llama {
                     dim,
                     fast_matmul,
                 );
+                if let Some(capture) = source_capture {
+                    capture.attention_output.clear();
+                    capture.attention_output.extend_from_slice(&st.xb2);
+                    capture.q.clear();
+                    capture.q.extend_from_slice(&st.q);
+                    let loff = l * st.sequence_capacity * kv_dim;
+                    capture.k.clear();
+                    capture.k.extend_from_slice(
+                        &st.key_cache[loff + pos * kv_dim..loff + (pos + 1) * kv_dim],
+                    );
+                    capture.v.clear();
+                    capture.v.extend_from_slice(
+                        &st.value_cache[loff + pos * kv_dim..loff + (pos + 1) * kv_dim],
+                    );
+                    capture.mean_attention_support.clear();
+                    capture.mean_attention_support.resize(pos + 1, 0.0);
+                    for head in 0..c.n_heads {
+                        let attention = &st.att
+                            [head * st.sequence_capacity..head * st.sequence_capacity + pos + 1];
+                        for (mean, weight) in
+                            capture.mean_attention_support.iter_mut().zip(attention)
+                        {
+                            *mean += *weight / c.n_heads as f32;
+                        }
+                    }
+                }
             }
             for i in 0..dim {
                 st.x[i] += st.xb2[i];

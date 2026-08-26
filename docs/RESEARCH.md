@@ -327,8 +327,15 @@ only multiplication-free track with replicated pointwise signal, but the S3
 results establish that it is not currently a coherent generative engine. The
 active candidate is now a different composition of existing assets: the
 coherent source-model/`uor-matmul` control plus learned causal R⁴ mixing and
-persistent router memory. #950 begins with one replaced layer; #951 requires a
-permuted-geometry null and student-prefix evidence before any all-layer work.
+persistent router memory. #950 established the coherent layer-29 seam. The
+bounded #951 fit then returned `REDESIGN_REPRESENTATION`: real geometry improved
+the frozen held-out loss by 4.4416% versus coordinate permutation, below the
+predeclared 5% gate. Support and persistent-memory probability became
+load-bearing, but the operator-alignment and sampled-token terms remained
+effectively flat. #958 now owns the one-layer representation redesign and
+natively blocks #952; closing #951 is not all-layer promotion. The retained
+negative checkpoint and exact population are recorded in
+[`geometric_mixer_qualification_951.md`](geometric_mixer_qualification_951.md).
 The older pointwise signal remains useful as a comparator, not the product
 sequencing authority. (As of #831, the one normative scorer for the historical
 deployed

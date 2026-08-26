@@ -119,6 +119,8 @@ enum Command {
     EvaluateReport(EvaluateReportArgs),
     /// Run the bounded #950 local source-control and one-layer R4 spike.
     GeometricDecoderSpike(GeometricDecoderSpikeArgs),
+    /// Fit and qualify the bounded #951 one-layer mixer and memory adapter.
+    GeometricMixerQualification(GeometricMixerQualificationArgs),
     /// Print legacy proof-workflow prerequisites.
     Setup,
     /// Generate the legacy resumable teacher corpus.
@@ -542,6 +544,62 @@ struct GeometricDecoderSpikeArgs {
     /// report; all source/decode bindings are revalidated before repair.
     #[arg(long)]
     control_report: Option<PathBuf>,
+}
+
+#[derive(Args, Debug)]
+struct GeometricMixerQualificationArgs {
+    /// Exact local Hugging Face source snapshot. Required for fitting; ignored
+    /// by source-free preflight and review finalization modes.
+    #[arg(long)]
+    source: Option<PathBuf>,
+    /// Full Hugging Face source commit bound by the snapshot cache tree.
+    #[arg(
+        long,
+        default_value = uor_r4_wasm_router::geometric_decoder::PINNED_SOURCE_REVISION
+    )]
+    source_revision: String,
+    /// Execute only the three source-free hard preflight gates.
+    #[arg(long, conflicts_with = "finalize_review")]
+    preflight_only: bool,
+    /// Apply a human review file to an existing machine qualification report.
+    #[arg(long, value_name = "REVIEW_JSON", conflicts_with = "preflight_only")]
+    finalize_review: Option<PathBuf>,
+    /// Passing source-free preflight report consumed before source access.
+    #[arg(long, default_value = "/tmp/uor-r4-issue-951-preflight.json")]
+    preflight_report: PathBuf,
+    /// Source-free checkpoint used only by the checkpoint preflight.
+    #[arg(
+        long,
+        default_value = "/tmp/uor-r4-issue-951-preflight-checkpoint.json"
+    )]
+    preflight_checkpoint: PathBuf,
+    /// Authoritative retained G0 report and student-prefix transcript.
+    #[arg(long, default_value = "docs/geometric_decoder_spike_950_raw.json")]
+    g0_report: PathBuf,
+    /// Compact G1 metrics, controls, and rollout report.
+    #[arg(
+        long,
+        default_value = "docs/geometric_mixer_qualification_951_raw.json"
+    )]
+    output: PathBuf,
+    /// Accepted or retained-negative deterministic mixer checkpoint.
+    #[arg(long, default_value = "docs/geometric_mixer_checkpoint_951.json")]
+    checkpoint: PathBuf,
+    /// Identity scope used for each matched persistent-memory rollout.
+    #[arg(long, default_value = "issue-951-qualification")]
+    identity: String,
+    /// Fixed exact output-row workers for source and mixer projections.
+    #[arg(long, default_value_t = 4)]
+    workers: usize,
+    /// Fixed dataset, initialization, negative-sampling, and fitting seed.
+    #[arg(long, default_value_t = uor_r4_wasm_router::geometric_mixer_qualification::DEFAULT_SEED)]
+    seed: u64,
+    /// Mixer-specific full-batch steps in each of at most three rounds.
+    #[arg(
+        long,
+        default_value_t = uor_r4_wasm_router::geometric_mixer_qualification::MAX_STEPS_PER_ROUND
+    )]
+    steps_per_round: usize,
 }
 
 impl Cli {
@@ -1137,6 +1195,86 @@ fn run(cli: &Cli) -> Result<(), RunError> {
                 report.control.len(),
                 report.treatment.len(),
                 report.reachability.changed_logits,
+                args.output.display()
+            );
+            Ok(())
+        }
+        Some(Command::GeometricMixerQualification(args)) => {
+            if let Some(review) = &args.finalize_review {
+                let report =
+                    uor_r4_wasm_router::geometric_mixer_qualification::finalize_operator_review(
+                        &args.output,
+                        review,
+                    )
+                    .map_err(|error| RunError::Command(error.to_string()))?;
+                println!(
+                    "#951 geometric mixer qualification: {} (reviewed={}, report={})",
+                    report.final_verdict.as_deref().unwrap_or("UNAVAILABLE"),
+                    report
+                        .operator_review
+                        .as_ref()
+                        .map_or(0, |review| review.reviews.len()),
+                    args.output.display()
+                );
+                return Ok(());
+            }
+            if args.preflight_only {
+                let report = uor_r4_wasm_router::geometric_mixer_qualification::run_preflight_only(
+                    args.seed,
+                    &args.preflight_report,
+                    &args.preflight_checkpoint,
+                )
+                .map_err(|error| RunError::Command(error.to_string()))?;
+                println!(
+                    "#951 mixer preflight: {} (overfit_reduction={:.6}, gradient_error={:.8}, report={})",
+                    report.verdict,
+                    report.tiny_overfit.reduction_fraction,
+                    report.gradient_check.absolute_error,
+                    args.preflight_report.display()
+                );
+                return Ok(());
+            }
+            let source = args.source.clone().ok_or_else(|| {
+                RunError::Command(
+                    "--source is required for fitting (or use --preflight-only / --finalize-review)"
+                        .to_owned(),
+                )
+            })?;
+            if args.steps_per_round == 0
+                || args.steps_per_round
+                    > uor_r4_wasm_router::geometric_mixer_qualification::MAX_STEPS_PER_ROUND
+            {
+                return Err(RunError::Command(format!(
+                    "--steps-per-round must be in 1..={}",
+                    uor_r4_wasm_router::geometric_mixer_qualification::MAX_STEPS_PER_ROUND
+                )));
+            }
+            let workers = std::num::NonZeroUsize::new(args.workers).ok_or_else(|| {
+                RunError::Command("--workers must be greater than zero".to_owned())
+            })?;
+            let report = uor_r4_wasm_router::geometric_mixer_qualification::run_qualification(
+                &uor_r4_wasm_router::geometric_mixer_qualification::QualificationConfig {
+                    source,
+                    source_revision: args.source_revision.clone(),
+                    g0_report: args.g0_report.clone(),
+                    preflight_report: args.preflight_report.clone(),
+                    output: args.output.clone(),
+                    checkpoint: args.checkpoint.clone(),
+                    identity: args.identity.clone(),
+                    workers,
+                    seed: args.seed,
+                    steps_per_round: args.steps_per_round,
+                },
+            )
+            .map_err(|error| RunError::Command(error.to_string()))?;
+            println!(
+                "#951 geometric mixer qualification: {} (held_out_advantage={:.6}, rounds={}, report={})",
+                report
+                    .final_verdict
+                    .as_deref()
+                    .unwrap_or("PENDING_OPERATOR_REVIEW"),
+                report.held_out.relative_real_advantage,
+                report.training_rounds.len(),
                 args.output.display()
             );
             Ok(())
@@ -2554,6 +2692,7 @@ mod tests {
             "import",
             "evaluate-report",
             "geometric-decoder-spike",
+            "geometric-mixer-qualification",
             "compare",
         ] {
             assert!(help.contains(command));
@@ -2659,6 +2798,25 @@ mod tests {
             Some(PathBuf::from("/tmp/control.json"))
         );
         assert_eq!(args.workers, 3);
+    }
+
+    #[test]
+    fn parses_geometric_mixer_qualification_preflight() {
+        let cli = Cli::try_parse_from([
+            "r4",
+            "geometric-mixer-qualification",
+            "--preflight-only",
+            "--seed",
+            "951",
+        ])
+        .unwrap();
+        let Some(Command::GeometricMixerQualification(args)) = cli.command else {
+            panic!("expected geometric-mixer-qualification")
+        };
+        assert!(args.preflight_only);
+        assert!(args.source.is_none());
+        assert_eq!(args.seed, 951);
+        assert_eq!(args.steps_per_round, 80);
     }
 
     #[test]

@@ -811,7 +811,7 @@ fn treatment_rollout(
     ))
 }
 
-fn geometry_context_from_router(
+pub(crate) fn geometry_context_from_router(
     router: &UorR4Router,
     identity: &str,
     tokenizer_cid: &str,
@@ -1040,7 +1040,7 @@ fn reachability_evidence(
     }
 }
 
-fn transcript(
+pub(crate) fn transcript(
     tokenizer: &HfBpeTokenizer,
     prompt_id: &str,
     prompt: &str,
@@ -1081,7 +1081,7 @@ pub fn short_cycle_period(tokens: &[u32]) -> Option<usize> {
     None
 }
 
-fn greedy_token(logits: &[f32]) -> Result<u32, GeometricSpikeError> {
+pub(crate) fn greedy_token(logits: &[f32]) -> Result<u32, GeometricSpikeError> {
     let Some((&first, rest)) = logits.split_first() else {
         return Err(GeometricSpikeError::Source("empty logits".to_owned()));
     };
@@ -1111,13 +1111,13 @@ fn same_f32_bits(left: &[f32], right: &[f32]) -> bool {
             .all(|(left, right)| left.to_bits() == right.to_bits())
 }
 
-fn render_chat_prompt(prompt: &str) -> String {
+pub(crate) fn render_chat_prompt(prompt: &str) -> String {
     format!(
         "<|im_start|>system\nYou are a helpful AI assistant named SmolLM, trained by Hugging Face<|im_end|>\n<|im_start|>user\n{prompt}<|im_end|>\n<|im_start|>assistant\n"
     )
 }
 
-fn validate_source(source: &Path, revision: &str) -> Result<(), GeometricSpikeError> {
+pub(crate) fn validate_source(source: &Path, revision: &str) -> Result<(), GeometricSpikeError> {
     if revision != PINNED_SOURCE_REVISION {
         return Err(GeometricSpikeError::InvalidSource(format!(
             "source revision {revision} != pinned {PINNED_SOURCE_REVISION}"

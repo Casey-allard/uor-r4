@@ -173,15 +173,16 @@ Native parent/sub-issue and `blockedBy` relationships are the source of truth.
 | Now | [#948](https://github.com/UOR-Foundation/uor-r4/issues/948) | Publish this reset across GitHub and repository entry points | None; active |
 | G0 | [#950](https://github.com/UOR-Foundation/uor-r4/issues/950) | Establish a five-prompt coherent control, tokenizer-bound memory adapter, and one trainable R⁴ mixer seam | #948 merged |
 | G1 | [#951](https://github.com/UOR-Foundation/uor-r4/issues/951) | Train and qualify that mixer/adapter on teacher and student prefixes against disabled/permuted geometry and memory | #950 promotes |
-| G2 | [#952](https://github.com/UOR-Foundation/uor-r4/issues/952) | Progressively replace every standard causal self-attention block | #951 promotes |
+| G1R | [#958](https://github.com/UOR-Foundation/uor-r4/issues/958) | Redesign the layer-29 representation after #951 learned support/memory but missed the held-out operator gate | #951 records `REDESIGN_REPRESENTATION` |
+| G2 | [#952](https://github.com/UOR-Foundation/uor-r4/issues/952) | Progressively replace every standard causal self-attention block | #958 records `PROMOTE_TO_ALL_LAYERS` |
 | G3 | [#953](https://github.com/UOR-Foundation/uor-r4/issues/953) | Integrate the all-layer decoder and persistent manifold memory into CLI/HTTP product paths | #952 accepted |
 | G4 | [#954](https://github.com/UOR-Foundation/uor-r4/issues/954) | Profile and optimize only the dominant measured CPU/RSS bottleneck | #953 promoted |
 | G5 | [#955](https://github.com/UOR-Foundation/uor-r4/issues/955) | Freeze the bounded capability and decide retain-`uor-matmul` versus optional lowering | #954 complete |
 
 ```text
-#948 -> #950 -> #951 -> #952 -> #953 -> #954 -> #955
-          \________________________________________/
-                         tracker #949
+#948 -> #950 -> #951 -> #958 -> #952 -> #953 -> #954 -> #955
+          \________________________________________________/
+                             tracker #949
 ```
 
 Only the earliest unblocked leaf is assigned and worked. Downstream issues stay
@@ -222,6 +223,26 @@ real/permuted persistent-memory examples, and cap each of at most three fitting
 rounds at one hour. Real geometry must improve the frozen primary held-out loss
 by at least 5% relative to its permutation without worsening the bounded
 rollout into short cycles. Otherwise redesign before adding layers.
+
+**Outcome append (2026-08-26, #951).** The three-round frozen run improved the
+primary held-out loss by 4.4416% versus coordinate permutation, below the 5%
+gate. Teacher and student advantages were 4.4031% and 4.5190%, respectively.
+The support term improved and memory-only permutation worsened the declared
+memory metric, but operator-alignment and sampled-token terms remained
+effectively flat. The exact terminal verdict is `REDESIGN_REPRESENTATION`;
+[#958](https://github.com/UOR-Foundation/uor-r4/issues/958) owns the one-layer
+representation redesign and blocks G2. See
+[`geometric_mixer_qualification_951.md`](geometric_mixer_qualification_951.md).
+
+### G1R — representation redesign
+
+Diagnose the reachable operator subspace and per-loss gradient scale on the
+frozen #951 positions before changing the layer-29 representation or
+memory-value transport. Preserve source-weight freezing, bounded causal
+support, tokenizer binding, student prefixes, matched nulls, and
+`uor-matmul` ownership. A renewed bounded qualification must explicitly return
+`PROMOTE_TO_ALL_LAYERS`; otherwise abandon layerwise replacement. No G2 layer
+work begins inside G1R.
 
 ### G2 — progressive replacement
 

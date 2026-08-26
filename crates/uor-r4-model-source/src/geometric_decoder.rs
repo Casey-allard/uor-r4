@@ -31,6 +31,10 @@ pub enum GeometryIntervention {
     Real,
     /// Permute candidate coordinates while leaving the query unchanged.
     PermutedCoordinates,
+    /// Permute only persistent-memory coordinates. Prefix geometry and every
+    /// trainable value remain unchanged, making this the matched G1 memory
+    /// ablation rather than a second model.
+    PermutedMemory,
     /// Bypass the mixer and execute ordinary source attention exactly.
     Disabled,
 }
@@ -40,6 +44,7 @@ impl GeometryIntervention {
         match self {
             Self::Real => "real",
             Self::PermutedCoordinates => "permuted_coordinates",
+            Self::PermutedMemory => "permuted_memory",
             Self::Disabled => "disabled",
         }
     }
@@ -554,7 +559,7 @@ impl GeometricRuntime {
             let Some(entry) = &self.prefix[prefix_position] else {
                 continue;
             };
-            let candidate_key = intervene_key(entry.key, self.intervention);
+            let candidate_key = intervene_key(entry.key, self.intervention, false);
             candidates.push(Candidate {
                 source: "prefix",
                 index: prefix_position,
@@ -563,7 +568,7 @@ impl GeometricRuntime {
             });
         }
         for memory in &self.prepared_memory {
-            let candidate_key = intervene_key(memory.key, self.intervention);
+            let candidate_key = intervene_key(memory.key, self.intervention, true);
             candidates.push(Candidate {
                 source: "memory",
                 index: memory.span_index,
@@ -730,10 +735,12 @@ fn compatibility(query: [f32; 4], key: [f32; 4]) -> f32 {
     angular - 0.25 * geodesic
 }
 
-fn intervene_key(key: [f32; 4], intervention: GeometryIntervention) -> [f32; 4] {
+fn intervene_key(key: [f32; 4], intervention: GeometryIntervention, memory: bool) -> [f32; 4] {
     match intervention {
         GeometryIntervention::Real | GeometryIntervention::Disabled => key,
         GeometryIntervention::PermutedCoordinates => [key[1], -key[3], key[0], -key[2]],
+        GeometryIntervention::PermutedMemory if memory => [key[1], -key[3], key[0], -key[2]],
+        GeometryIntervention::PermutedMemory => key,
     }
 }
 
