@@ -117,6 +117,8 @@ enum Command {
     InstallRelease(InstallReleaseArgs),
     /// Evaluate an HF-compiled bundle and emit an instruction-quality report.
     EvaluateReport(EvaluateReportArgs),
+    /// Run the bounded #950 local source-control and one-layer R4 spike.
+    GeometricDecoderSpike(GeometricDecoderSpikeArgs),
     /// Print legacy proof-workflow prerequisites.
     Setup,
     /// Generate the legacy resumable teacher corpus.
@@ -511,6 +513,35 @@ struct EvaluateReportArgs {
     /// atomically with `--tokenizer-family`.
     #[arg(long, requires = "tokenizer_family")]
     tokenizer_version: Option<u32>,
+}
+
+#[derive(Args, Debug)]
+struct GeometricDecoderSpikeArgs {
+    /// Exact local Hugging Face source snapshot; no provider/network fallback.
+    #[arg(long)]
+    source: PathBuf,
+    /// Full Hugging Face source commit bound by the snapshot cache tree.
+    #[arg(
+        long,
+        default_value = uor_r4_wasm_router::geometric_decoder::PINNED_SOURCE_REVISION
+    )]
+    source_revision: String,
+    /// Retained control/treatment transcript and operator report.
+    #[arg(long, default_value = "docs/geometric_decoder_spike_950_raw.json")]
+    output: PathBuf,
+    /// Reloadable router state used for the persistence/restart probe.
+    #[arg(long, default_value = "/tmp/uor-r4-issue-950-router-state.json")]
+    router_state_output: PathBuf,
+    /// Identity scope used for the retained user/assistant turns.
+    #[arg(long, default_value = "issue-950-smoke")]
+    identity: String,
+    /// Fixed exact output-row workers for local `uor-matmul` projections.
+    #[arg(long, default_value_t = 4)]
+    workers: usize,
+    /// Reuse only the five controls from an exact retained negative-treatment
+    /// report; all source/decode bindings are revalidated before repair.
+    #[arg(long)]
+    control_report: Option<PathBuf>,
 }
 
 impl Cli {
@@ -1084,6 +1115,32 @@ fn run(cli: &Cli) -> Result<(), RunError> {
         Some(Command::PackageReleaseBundle(args)) => package_release_bundle_command(args),
         Some(Command::InstallRelease(args)) => install_release_command(args),
         Some(Command::EvaluateReport(args)) => evaluate_report(args),
+        Some(Command::GeometricDecoderSpike(args)) => {
+            let workers = std::num::NonZeroUsize::new(args.workers).ok_or_else(|| {
+                RunError::Command("--workers must be greater than zero".to_owned())
+            })?;
+            let report = uor_r4_wasm_router::geometric_decoder::run_geometric_spike(
+                &uor_r4_wasm_router::geometric_decoder::GeometricSpikeConfig {
+                    source: args.source.clone(),
+                    source_revision: args.source_revision.clone(),
+                    output: args.output.clone(),
+                    router_state_output: args.router_state_output.clone(),
+                    identity: args.identity.clone(),
+                    workers,
+                    control_report: args.control_report.clone(),
+                },
+            )
+            .map_err(|error| RunError::Command(error.to_string()))?;
+            println!(
+                "#950 geometric decoder spike: {} (controls={}, treatments={}, changed_logits={}, report={})",
+                report.gates.verdict,
+                report.control.len(),
+                report.treatment.len(),
+                report.reachability.changed_logits,
+                args.output.display()
+            );
+            Ok(())
+        }
         Some(Command::Setup) => run_core("setup", &[]),
         Some(Command::Gen { seconds, target }) => {
             run_core("gen", &[seconds.to_string(), target.to_string()])
@@ -2496,6 +2553,7 @@ mod tests {
             "download",
             "import",
             "evaluate-report",
+            "geometric-decoder-spike",
             "compare",
         ] {
             assert!(help.contains(command));
@@ -2573,6 +2631,34 @@ mod tests {
             Some("sentencepiece-unigram")
         );
         assert_eq!(args.tokenizer_version, Some(7));
+    }
+
+    #[test]
+    fn parses_geometric_decoder_spike_command() {
+        let cli = Cli::try_parse_from([
+            "r4",
+            "geometric-decoder-spike",
+            "--source",
+            "/models/source",
+            "--control-report",
+            "/tmp/control.json",
+            "--workers",
+            "3",
+        ])
+        .unwrap();
+        let Some(Command::GeometricDecoderSpike(args)) = cli.command else {
+            panic!("expected geometric-decoder-spike")
+        };
+        assert_eq!(args.source, PathBuf::from("/models/source"));
+        assert_eq!(
+            args.source_revision,
+            uor_r4_wasm_router::geometric_decoder::PINNED_SOURCE_REVISION
+        );
+        assert_eq!(
+            args.control_report,
+            Some(PathBuf::from("/tmp/control.json"))
+        );
+        assert_eq!(args.workers, 3);
     }
 
     #[test]

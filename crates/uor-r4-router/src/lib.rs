@@ -11,6 +11,7 @@ use uor_r4_core::*;
 use wasm_bindgen::prelude::*;
 
 pub mod benchmark;
+pub mod decoder_memory;
 pub mod fallback;
 pub mod geometry;
 pub mod session_signature;
@@ -450,6 +451,11 @@ pub struct UorR4Router {
     corpus_index_by_identity: HashMap<String, HashMap<u64, Vec<CorpusItem>>>,
     #[serde(default)]
     session_brain_states: HashMap<String, Vec<f64>>,
+    /// Exact source-tokenizer/adapter-bound user and assistant turns for the
+    /// active geometric decoder.  The historical word-indexed corpus remains
+    /// intact beside this typed stream.
+    #[serde(default)]
+    decoder_memories_by_identity: HashMap<String, Vec<decoder_memory::TokenizerBoundMemorySpan>>,
     #[serde(default)]
     angle_x: f64,
     #[serde(default)]
@@ -676,6 +682,7 @@ impl UorR4Router {
             corpus_index: HashMap::new(),
             corpus_index_by_identity: HashMap::new(),
             session_brain_states: HashMap::new(),
+            decoder_memories_by_identity: HashMap::new(),
             angle_x: 0.5,
             angle_y: 0.5,
             last_routing_data: None,
@@ -901,6 +908,7 @@ impl UorR4Router {
     pub fn clear_corpus(&mut self) {
         self.corpus_index.clear();
         self.corpus_index_by_identity.clear();
+        self.decoder_memories_by_identity.clear();
         self.facet_store = MultiFacetStore::default();
         // #496: item ids restart at 0 after a clear, so the VSA index and stored
         // vectors must be cleared too or reused ids would collide with stale rows.
@@ -925,6 +933,7 @@ impl UorR4Router {
         self.vsa_vectors.clear();
         self.vsa_dim_index.clear();
         self.session_brain_states.clear();
+        self.decoder_memories_by_identity.clear();
         self.angle_x = 0.5;
         self.angle_y = 0.5;
         self.last_routing_data = None;

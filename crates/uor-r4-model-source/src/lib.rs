@@ -12,6 +12,7 @@ pub mod conformance;
 pub mod dense;
 mod exact_executor;
 mod exact_probe;
+pub mod geometric_decoder;
 pub mod geometry;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod gpt2;
@@ -922,6 +923,40 @@ impl Llama {
         self.exact_executor.complete_forward(1);
     }
 
+    /// Advance one independent experimental geometric-decoder session.
+    /// Exactly one declared layer bypasses source Q/K/V, source attention,
+    /// and source output projection in favor of the bounded R4 mixer.  All
+    /// other layers and the final LM head remain the ordinary source path.
+    fn forward_geometric(
+        &self,
+        st: &mut State,
+        token: usize,
+        pos: usize,
+        fast_matmul: bool,
+        runtime: &mut geometric_decoder::GeometricRuntime,
+    ) {
+        let _forward_guard = self
+            .forward_gate
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        debug_assert!(pos < st.sequence_capacity);
+        debug_assert!(token < self.cfg.vocab);
+        self.exact_executor.begin_forward(1);
+        let dim = self.cfg.dim;
+        st.x.copy_from_slice(&self.w[self.emb + token * dim..self.emb + (token + 1) * dim]);
+        for layer in 0..self.cfg.n_layers {
+            if layer == runtime.target_layer()
+                && runtime.intervention() != geometric_decoder::GeometryIntervention::Disabled
+            {
+                self.layer_forward_with_geometry(st, layer, pos, fast_matmul, Some(runtime));
+            } else {
+                self.layer_forward(st, layer, pos, fast_matmul);
+            }
+        }
+        self.finish_forward(st, fast_matmul);
+        self.exact_executor.complete_forward(1);
+    }
+
     /// One forward step with the residual stream captured after each layer in
     /// `capture_layers` (#599 conformance trace). This IS the exact executor:
     /// embedding, per-layer body, and final norm/logits are the same
@@ -1033,6 +1068,19 @@ impl Llama {
     /// executor path. Operation order and arithmetic are unchanged from the
     /// original in-line loop body.
     fn layer_forward(&self, st: &mut State, l: usize, pos: usize, fast_matmul: bool) {
+        self.layer_forward_with_geometry(st, l, pos, fast_matmul, None);
+    }
+
+    /// Shared transformer-layer body.  `geometry = Some` replaces only this
+    /// layer's source-attention seam; the residual/MLP stack stays identical.
+    fn layer_forward_with_geometry(
+        &self,
+        st: &mut State,
+        l: usize,
+        pos: usize,
+        fast_matmul: bool,
+        geometry: Option<&mut geometric_decoder::GeometricRuntime>,
+    ) {
         let c = &self.cfg;
         let (dim, hid) = (c.dim, c.hidden);
         let kv_dim = c.dim * c.n_kv_heads / c.n_heads;
@@ -1047,128 +1095,133 @@ impl Llama {
                 self.canonical_math,
             );
 
-            let loff = l * st.sequence_capacity * kv_dim;
-            matmul(
-                &self.exact_executor,
-                &mut st.q,
-                &st.xb,
-                &w[self.wq + l * dim * dim..],
-                dim,
-                fast_matmul,
-            );
-            {
-                let k = &mut st.key_cache[loff + pos * kv_dim..loff + (pos + 1) * kv_dim];
-                matmul(
+            if let Some(runtime) = geometry {
+                runtime.mix(
                     &self.exact_executor,
-                    k,
                     &st.xb,
-                    &w[self.wk + l * dim * kv_dim..],
-                    dim,
-                    fast_matmul,
+                    pos,
+                    &mut st.xb2,
+                    self.canonical_math,
                 );
-            }
-            {
-                let v = &mut st.value_cache[loff + pos * kv_dim..loff + (pos + 1) * kv_dim];
-                matmul(
-                    &self.exact_executor,
-                    v,
-                    &st.xb,
-                    &w[self.wv + l * dim * kv_dim..],
-                    dim,
-                    fast_matmul,
-                );
-            }
-
-            // RoPE: converted llama2.c checkpoints interleave pairs; native
-            // Hugging Face Safetensors rotate the two head halves.
-            if c.rope_interleaved {
-                let k = &mut st.key_cache[loff + pos * kv_dim..loff + (pos + 1) * kv_dim];
-                let rope_offset = pos * (head_size / 2);
-                let mut i = 0usize;
-                while i < dim {
-                    let angle_index = rope_offset + (i % head_size) / 2;
-                    let fcr = self.rope_cos[angle_index];
-                    let fci = self.rope_sin[angle_index];
-                    let rotn = if i < kv_dim { 2 } else { 1 };
-                    for v in 0..rotn {
-                        let vec: &mut [f32] = if v == 0 { &mut st.q } else { &mut *k };
-                        let v0 = vec[i];
-                        let v1 = vec[i + 1];
-                        vec[i] = v0 * fcr - v1 * fci;
-                        vec[i + 1] = v0 * fci + v1 * fcr;
-                    }
-                    i += 2;
-                }
             } else {
-                let k = &mut st.key_cache[loff + pos * kv_dim..loff + (pos + 1) * kv_dim];
-                for vector in [&mut st.q[..], &mut k[..]] {
-                    for head in vector.chunks_exact_mut(head_size) {
-                        let half = head_size / 2;
-                        for i in 0..half {
-                            let angle_index = pos * half + i;
-                            let cos = self.rope_cos[angle_index];
-                            let sin = self.rope_sin[angle_index];
-                            let first = head[i];
-                            let second = head[i + half];
-                            head[i] = first * cos - second * sin;
-                            head[i + half] = second * cos + first * sin;
+                let loff = l * st.sequence_capacity * kv_dim;
+                matmul(
+                    &self.exact_executor,
+                    &mut st.q,
+                    &st.xb,
+                    &w[self.wq + l * dim * dim..],
+                    dim,
+                    fast_matmul,
+                );
+                {
+                    let k = &mut st.key_cache[loff + pos * kv_dim..loff + (pos + 1) * kv_dim];
+                    matmul(
+                        &self.exact_executor,
+                        k,
+                        &st.xb,
+                        &w[self.wk + l * dim * kv_dim..],
+                        dim,
+                        fast_matmul,
+                    );
+                }
+                {
+                    let v = &mut st.value_cache[loff + pos * kv_dim..loff + (pos + 1) * kv_dim];
+                    matmul(
+                        &self.exact_executor,
+                        v,
+                        &st.xb,
+                        &w[self.wv + l * dim * kv_dim..],
+                        dim,
+                        fast_matmul,
+                    );
+                }
+
+                // RoPE: converted llama2.c checkpoints interleave pairs; native
+                // Hugging Face Safetensors rotate the two head halves.
+                if c.rope_interleaved {
+                    let k = &mut st.key_cache[loff + pos * kv_dim..loff + (pos + 1) * kv_dim];
+                    let rope_offset = pos * (head_size / 2);
+                    let mut i = 0usize;
+                    while i < dim {
+                        let angle_index = rope_offset + (i % head_size) / 2;
+                        let fcr = self.rope_cos[angle_index];
+                        let fci = self.rope_sin[angle_index];
+                        let rotn = if i < kv_dim { 2 } else { 1 };
+                        for v in 0..rotn {
+                            let vec: &mut [f32] = if v == 0 { &mut st.q } else { &mut *k };
+                            let v0 = vec[i];
+                            let v1 = vec[i + 1];
+                            vec[i] = v0 * fcr - v1 * fci;
+                            vec[i + 1] = v0 * fci + v1 * fcr;
+                        }
+                        i += 2;
+                    }
+                } else {
+                    let k = &mut st.key_cache[loff + pos * kv_dim..loff + (pos + 1) * kv_dim];
+                    for vector in [&mut st.q[..], &mut k[..]] {
+                        for head in vector.chunks_exact_mut(head_size) {
+                            let half = head_size / 2;
+                            for i in 0..half {
+                                let angle_index = pos * half + i;
+                                let cos = self.rope_cos[angle_index];
+                                let sin = self.rope_sin[angle_index];
+                                let first = head[i];
+                                let second = head[i + half];
+                                head[i] = first * cos - second * sin;
+                                head[i + half] = second * cos + first * sin;
+                            }
                         }
                     }
                 }
-            }
 
-            // multihead attention (serial over heads; per-head work is
-            // independent of order). The per-head weight computation and
-            // value aggregation are the current #602/#704 functions in
-            // [`attention`]; the
-            // `r4_attention` switch selects between exactly the two
-            // registered operators (`standard-source-attention/2` and
-            // `experimental-r4-source-attention/2`, whose exact-real dot
-            // uses the historical floor-multiple-of-four domain).
-            for h in 0..c.n_heads {
-                let q = &st.q[h * head_size..(h + 1) * head_size];
-                let att = &mut st.att[h * st.sequence_capacity..h * st.sequence_capacity + pos + 1];
-                let kv_head_offset = (h / kv_mul) * head_size;
+                // Source multihead attention.  This branch is never entered
+                // at the treatment layer.
+                for h in 0..c.n_heads {
+                    let q = &st.q[h * head_size..(h + 1) * head_size];
+                    let att =
+                        &mut st.att[h * st.sequence_capacity..h * st.sequence_capacity + pos + 1];
+                    let kv_head_offset = (h / kv_mul) * head_size;
 
-                if c.r4_attention {
-                    attention::experimental_r4_head_attention_weights(
+                    if c.r4_attention {
+                        attention::experimental_r4_head_attention_weights(
+                            att,
+                            q,
+                            &st.key_cache[loff..],
+                            kv_head_offset,
+                            kv_dim,
+                            self.canonical_math,
+                        );
+                    } else {
+                        attention::standard_head_attention_weights(
+                            att,
+                            q,
+                            &st.key_cache[loff..],
+                            kv_head_offset,
+                            kv_dim,
+                            self.canonical_math,
+                        );
+                    }
+
+                    let att = &st.att[h * st.sequence_capacity..h * st.sequence_capacity + pos + 1];
+                    let xb = &mut st.xb[h * head_size..(h + 1) * head_size];
+                    attention::head_attention_value_aggregate(
+                        xb,
                         att,
-                        q,
-                        &st.key_cache[loff..],
+                        &st.value_cache[loff..],
                         kv_head_offset,
                         kv_dim,
-                        self.canonical_math,
-                    );
-                } else {
-                    attention::standard_head_attention_weights(
-                        att,
-                        q,
-                        &st.key_cache[loff..],
-                        kv_head_offset,
-                        kv_dim,
-                        self.canonical_math,
                     );
                 }
 
-                let att = &st.att[h * st.sequence_capacity..h * st.sequence_capacity + pos + 1];
-                let xb = &mut st.xb[h * head_size..(h + 1) * head_size];
-                attention::head_attention_value_aggregate(
-                    xb,
-                    att,
-                    &st.value_cache[loff..],
-                    kv_head_offset,
-                    kv_dim,
+                matmul(
+                    &self.exact_executor,
+                    &mut st.xb2,
+                    &st.xb,
+                    &w[self.wo + l * dim * dim..],
+                    dim,
+                    fast_matmul,
                 );
             }
-
-            matmul(
-                &self.exact_executor,
-                &mut st.xb2,
-                &st.xb,
-                &w[self.wo + l * dim * dim..],
-                dim,
-                fast_matmul,
-            );
             for i in 0..dim {
                 st.x[i] += st.xb2[i];
             }
@@ -3147,6 +3200,11 @@ impl HuggingFaceLlamaOracle {
         &self.model.cfg
     }
 
+    /// Content identity of the exact source weights backing this oracle.
+    pub fn source_cid(&self) -> &str {
+        &self.kappa
+    }
+
     /// Allocate one private sequence state at the actual prompt/generation
     /// horizon rather than the model's maximum context.
     pub fn new_state_bounded(
@@ -3154,6 +3212,118 @@ impl HuggingFaceLlamaOracle {
         sequence_capacity: usize,
     ) -> Result<State, TeacherStateCapacityError> {
         State::new_bounded(&self.model.cfg, sequence_capacity)
+    }
+
+    /// Construct one independent experimental decoder arm.  Persistent
+    /// memory must already carry the exact tokenizer and deterministic
+    /// adapter identity; both are revalidated here against the checkpoint.
+    pub fn new_geometric_session(
+        &self,
+        mixer: geometric_decoder::GeometricMixer,
+        context: geometric_decoder::GeometryContext,
+        intervention: geometric_decoder::GeometryIntervention,
+        sequence_capacity: usize,
+    ) -> Result<geometric_decoder::GeometricDecoderSession, geometric_decoder::GeometricDecoderError>
+    {
+        use geometric_decoder::GeometricDecoderError as Error;
+
+        if mixer.source_width != self.model.cfg.dim {
+            return Err(Error::InvalidSourceWidth(mixer.source_width));
+        }
+        if mixer.layer >= self.model.cfg.n_layers {
+            return Err(Error::TargetLayerOutOfRange {
+                requested: mixer.layer,
+                layers: self.model.cfg.n_layers,
+            });
+        }
+        if context.provenance.source_cid != self.kappa {
+            return Err(Error::SourceBindingMismatch);
+        }
+        let expected_adapter = mixer.memory_adapter_identity(&self.kappa, &context.tokenizer_cid);
+        if context.adapter_identity != expected_adapter {
+            return Err(Error::AdapterBindingMismatch);
+        }
+        let state = State::new_bounded(&self.model.cfg, sequence_capacity)
+            .map_err(|error| Error::SequenceCapacity(error.to_string()))?;
+        let dim = self.model.cfg.dim;
+        let vocabulary = self.model.cfg.vocab;
+        let embeddings =
+            &self.model.w[self.model.emb..self.model.emb + vocabulary.saturating_mul(dim)];
+        let runtime = geometric_decoder::GeometricRuntime::prepare(
+            mixer,
+            context,
+            intervention,
+            sequence_capacity,
+            &self.model.exact_executor,
+            embeddings,
+            vocabulary,
+        )?;
+        Ok(geometric_decoder::GeometricDecoderSession { state, runtime })
+    }
+
+    /// Advance a caller-owned ordinary source state through the exact local
+    /// control path.  Unlike the historical trait method, this focused G0
+    /// surface validates token/position/output bounds instead of panicking.
+    pub fn step_state(
+        &self,
+        state: &mut State,
+        token: usize,
+        position: usize,
+        logits: &mut [f32],
+    ) -> Result<(), geometric_decoder::GeometricDecoderError> {
+        self.validate_session_step(state.sequence_capacity(), token, position, logits.len())?;
+        self.model.forward(state, token, position, self.fast_matmul);
+        logits.copy_from_slice(&state.logits);
+        Ok(())
+    }
+
+    /// Advance a caller-owned treatment arm through the one-layer seam.
+    pub fn step_geometric(
+        &self,
+        session: &mut geometric_decoder::GeometricDecoderSession,
+        token: usize,
+        position: usize,
+        logits: &mut [f32],
+    ) -> Result<(), geometric_decoder::GeometricDecoderError> {
+        self.validate_session_step(
+            session.state.sequence_capacity(),
+            token,
+            position,
+            logits.len(),
+        )?;
+        self.model.forward_geometric(
+            &mut session.state,
+            token,
+            position,
+            self.fast_matmul,
+            &mut session.runtime,
+        );
+        logits.copy_from_slice(&session.state.logits);
+        Ok(())
+    }
+
+    fn validate_session_step(
+        &self,
+        capacity: usize,
+        token: usize,
+        position: usize,
+        logits: usize,
+    ) -> Result<(), geometric_decoder::GeometricDecoderError> {
+        use geometric_decoder::GeometricDecoderError as Error;
+
+        if token >= self.model.cfg.vocab {
+            return Err(Error::TokenOutOfRange(token));
+        }
+        if position >= capacity {
+            return Err(Error::PositionOutOfRange { position, capacity });
+        }
+        if logits != self.model.cfg.vocab {
+            return Err(Error::LogitShape {
+                requested: logits,
+                expected: self.model.cfg.vocab,
+            });
+        }
+        Ok(())
     }
 
     /// Load an offline teacher with a bounded context allocation. Compilation
@@ -4486,6 +4656,133 @@ mod tests {
         };
         model.rebuild_rope_cache();
         model
+    }
+
+    fn tiny_geometric_oracle() -> HuggingFaceLlamaOracle {
+        let model = tiny_llama();
+        let state = State::new(&model.cfg);
+        HuggingFaceLlamaOracle {
+            model,
+            state,
+            kappa: "blake3:synthetic-source".to_owned(),
+            source_bytes: 0,
+            bos_token: 1,
+            eos_token: 2,
+            fast_matmul: true,
+        }
+    }
+
+    fn tiny_geometry_context(
+        mixer: &geometric_decoder::GeometricMixer,
+    ) -> geometric_decoder::GeometryContext {
+        let tokenizer_cid = "blake3:synthetic-tokenizer";
+        let adapter_identity =
+            mixer.memory_adapter_identity("blake3:synthetic-source", tokenizer_cid);
+        geometric_decoder::GeometryContext::new(
+            "alice",
+            tokenizer_cid,
+            adapter_identity.clone(),
+            [0.2, -0.3, 0.4, 0.5],
+            vec![geometric_decoder::GeometryMemorySpan {
+                sequence: 0,
+                role: "user".to_owned(),
+                text: "remember token".to_owned(),
+                token_ids: vec![1, 2],
+                tokenizer_cid: tokenizer_cid.to_owned(),
+                adapter_identity,
+                r4_coordinates: [0.1, 0.7, -0.2, 0.3],
+                provenance: "blake3:memory".to_owned(),
+            }],
+            geometric_decoder::GeometryProvenance {
+                source_cid: "blake3:synthetic-source".to_owned(),
+                router_state_cid: "blake3:router".to_owned(),
+                memory_source: "focused-test".to_owned(),
+            },
+        )
+        .expect("valid geometry context")
+    }
+
+    #[test]
+    fn one_layer_geometry_is_disabled_exact_causal_bounded_and_reachable() {
+        use geometric_decoder::{GeometricMixer, GeometryIntervention, DEFAULT_SUPPORT_BUDGET};
+
+        let oracle = tiny_geometric_oracle();
+        let mixer = GeometricMixer::deterministic(0, oracle.cfg().dim, b"issue-950-test")
+            .expect("deterministic mixer");
+        let context = tiny_geometry_context(&mixer);
+
+        // Disabled mode is exactly the ordinary source control for the same
+        // token/state sequence.
+        let mut plain = oracle.new_state_bounded(6).expect("bounded source state");
+        let mut disabled = oracle
+            .new_geometric_session(
+                mixer.clone(),
+                context.clone(),
+                GeometryIntervention::Disabled,
+                6,
+            )
+            .expect("disabled session");
+        let mut plain_logits = vec![0.0; oracle.cfg().vocab];
+        let mut disabled_logits = vec![0.0; oracle.cfg().vocab];
+        for (position, token) in [1usize, 3].into_iter().enumerate() {
+            oracle
+                .step_state(&mut plain, token, position, &mut plain_logits)
+                .expect("plain step");
+            oracle
+                .step_geometric(&mut disabled, token, position, &mut disabled_logits)
+                .expect("disabled step");
+            assert_eq!(
+                plain_logits
+                    .iter()
+                    .map(|value| value.to_bits())
+                    .collect::<Vec<_>>(),
+                disabled_logits
+                    .iter()
+                    .map(|value| value.to_bits())
+                    .collect::<Vec<_>>()
+            );
+        }
+        assert!(disabled.traces().is_empty());
+
+        // Clone after an identical real prefix, then change only the
+        // candidate-coordinate intervention for the next causal step.
+        let mut real = oracle
+            .new_geometric_session(mixer, context, GeometryIntervention::Real, 6)
+            .expect("real session");
+        let mut logits = vec![0.0; oracle.cfg().vocab];
+        for (position, token) in [1usize, 3].into_iter().enumerate() {
+            oracle
+                .step_geometric(&mut real, token, position, &mut logits)
+                .expect("real prefix step");
+        }
+        let mut permuted = real.clone();
+        real.clear_traces();
+        permuted.clear_traces();
+        permuted.set_intervention(GeometryIntervention::PermutedCoordinates);
+        let mut real_logits = vec![0.0; oracle.cfg().vocab];
+        let mut permuted_logits = vec![0.0; oracle.cfg().vocab];
+        oracle
+            .step_geometric(&mut real, 5, 2, &mut real_logits)
+            .expect("real treatment step");
+        oracle
+            .step_geometric(&mut permuted, 5, 2, &mut permuted_logits)
+            .expect("permuted treatment step");
+
+        let real_trace = real.traces().last().expect("real trace");
+        let permuted_trace = permuted.traces().last().expect("permuted trace");
+        assert_eq!(real_trace.layer, 0);
+        assert_eq!(real_trace.position, 2);
+        assert_eq!(real_trace.prefix_candidates, 3);
+        assert_eq!(real_trace.memory_candidates, 1);
+        assert!(real_trace.selected_support.len() <= DEFAULT_SUPPORT_BUDGET);
+        assert_eq!(real_trace.source_attention_calls, 0);
+        assert!(!real_trace.dense_full_prefix_qk);
+        assert_ne!(real_trace.support_cid, permuted_trace.support_cid);
+        assert!(real_logits
+            .iter()
+            .zip(permuted_logits.iter())
+            .any(|(left, right)| left.to_bits() != right.to_bits()));
+        assert_eq!(real.context().position_states.last().unwrap().position, 2);
     }
 
     #[cfg(not(all(target_os = "macos", feature = "observation-blas-exception")))]

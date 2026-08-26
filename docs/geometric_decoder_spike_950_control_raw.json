@@ -1,0 +1,1634 @@
+{
+  "schema": "uor-r4.geometric-decoder-spike/1",
+  "attempt_status": "CONTROL_PASS_TREATMENT_PERIOD_2_CYCLE_REPAIR_REQUIRED",
+  "issue": 950,
+  "claim_scope": "experimental off-serving one-layer control viability and structural reachability; no training, geometric quality advantage, all-layer transformerless, production, performance, or multiplication-free claim",
+  "source": {
+    "repository": "HuggingFaceTB/SmolLM2-135M-Instruct",
+    "revision": "7e27bd9f95328f0f3b08261d1252705110c806f8",
+    "weights_cid": "blake3:12d2cd8a877ef2cdcf785b3d4d1f373e0419074cc884aeaff06fc059686a5ba5",
+    "tokenizer": {
+      "family": "hf-byte-bpe",
+      "version": 1,
+      "tokenizer_cid": "blake3:944d1262d516abd56a8156dd3058a73a1bf3dc19419527592d854d162f288073",
+      "policy": {
+        "normalizer": "none",
+        "pre_tokenizers": [
+          "digits(individual_digits=true)",
+          "byte-level(add_prefix_space=false)"
+        ],
+        "byte_fallback": "byte-level-alphabet",
+        "added_tokens_count": 17,
+        "added_tokens_digest": "blake3:a70b9ca46cf5361989931a623c188fba70c5e189cfe8be55cf62f9faca81643e",
+        "bos": "none",
+        "eos": "none",
+        "chat_template_policy": "not-interpreted"
+      },
+      "adapter_digest": "blake3:1a6ab67d2145f8f96989f529f787fc74b59952ea1be6739b612f041a15f00b5e"
+    },
+    "chat_template": "{% for message in messages %}{% if loop.first and messages[0]['role'] != 'system' %}{{ '<|im_start|>system\nYou are a helpful AI assistant named SmolLM, trained by Hugging Face<|im_end|>\n' }}{% endif %}{{'<|im_start|>' + message['role'] + '\n' + message['content'] + '<|im_end|>' + '\n'}}{% endfor %}{% if add_generation_prompt %}{{ '<|im_start|>assistant\n' }}{% endif %}",
+    "chat_template_cid": "blake3:2ff3b438de276e44f744a575e323cd7c32a47e72d91baf30d965df0c307af35b",
+    "backend": {
+      "arithmetic_owner": "uor-matmul exact GEMM",
+      "std_runtime_detection_enabled": true,
+      "target_arch": "aarch64",
+      "target_os": "macos",
+      "uor_matmul_revision": "b13c98449948174f590e337c4dc25dfc394a07d0",
+      "available_backends": [
+        "portable",
+        "neon",
+        "neondotprod"
+      ],
+      "selected_backend": null,
+      "selection_status": "UNAVAILABLE: uor-matmul does not expose the private float auto-selection cache"
+    }
+  },
+  "decode": {
+    "selection": "deterministic greedy argmax; lower token id wins an exact tie",
+    "generated_tokens": 32,
+    "eos_policy": "retain exactly 32 local token decisions; render response through the first EOS while retaining the complete token transcript",
+    "cycle_periods_rejected": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "target_layer": 0,
+    "mixer_scope": "one experimental layer; all other source-attention layers retained"
+  },
+  "rubric": {
+    "grammatical": "PASS when the rendered response contains an intelligible English clause or structured list item without corruption or a repetition loop; a cap-truncated final clause is reviewed separately",
+    "prompt_responsive": "PASS when the response directly performs the requested explanation, tips, description, or welcome rather than changing topic or emitting only boilerplate",
+    "truncation": "The 32-token cap may truncate the last clause; earlier complete responsive material remains reviewable, but an otherwise fragmentary response fails",
+    "required_passing_prompts": 4,
+    "review_status": "PENDING_OPERATOR_REVIEW_IN_ISSUE_RECORD"
+  },
+  "identity": "issue-950-smoke",
+  "memory_adapter_identity": "blake3:bf79b145706f85efc05957d6934765cb0825844355532da9abb9e1e437b8f05e",
+  "control": [
+    {
+      "prompt_id": "G0-P1",
+      "prompt": "Explain in three short sentences why plants need sunlight.",
+      "input_tokens": 40,
+      "generated_token_ids": [
+        34246,
+        737,
+        8118,
+        288,
+        11205,
+        19173,
+        28,
+        253,
+        980,
+        338,
+        18065,
+        1420,
+        1439,
+        618,
+        2819,
+        1439,
+        6314,
+        281,
+        8102,
+        28,
+        527,
+        502,
+        722,
+        327,
+        2063,
+        284,
+        1421,
+        30,
+        2,
+        198,
+        2,
+        1
+      ],
+      "raw_decoded": "Plants need sunlight to undergo photosynthesis, a process that converts light energy into chemical energy stored in glucose, which they use for growth and development.<|im_end|>\n<|im_end|><|im_start|>",
+      "response_text": "Plants need sunlight to undergo photosynthesis, a process that converts light energy into chemical energy stored in glucose, which they use for growth and development.",
+      "first_eos_offset": 28,
+      "utf8_decodable": true,
+      "short_cycle_period": null
+    },
+    {
+      "prompt_id": "G0-P2",
+      "prompt": "Give three practical tips for staying organized at work, with one brief explanation for each.",
+      "input_tokens": 47,
+      "generated_token_ids": [
+        4590,
+        359,
+        1296,
+        4786,
+        5608,
+        327,
+        9286,
+        6554,
+        418,
+        746,
+        42,
+        1116,
+        33,
+        30,
+        1903,
+        11870,
+        253,
+        1626,
+        29,
+        6248,
+        5516,
+        3967,
+        7734,
+        411,
+        4054,
+        9792,
+        253,
+        1443,
+        3487,
+        971,
+        1194,
+        288
+      ],
+      "raw_decoded": "Here are three practical tips for staying organized at work:\n\n1. **Create a To-Do List:** Start by setting aside a few minutes each day to",
+      "response_text": "Here are three practical tips for staying organized at work:\n\n1. **Create a To-Do List:** Start by setting aside a few minutes each day to",
+      "first_eos_offset": null,
+      "utf8_decodable": true,
+      "short_cycle_period": null
+    },
+    {
+      "prompt_id": "G0-P3",
+      "prompt": "Describe a rainy city morning in three vivid sentences.",
+      "input_tokens": 40,
+      "generated_token_ids": [
+        1653,
+        260,
+        2388,
+        2585,
+        288,
+        932,
+        28,
+        17462,
+        253,
+        3091,
+        10245,
+        14654,
+        690,
+        260,
+        14055,
+        9018,
+        282,
+        260,
+        2240,
+        28,
+        253,
+        9154,
+        5249,
+        21620,
+        1187,
+        281,
+        253,
+        29092,
+        5390,
+        28,
+        11789,
+        2025
+      ],
+      "raw_decoded": "As the sun began to set, casting a warm orange glow over the bustling streets of the city, a gentle rain poured down in a relentless stream, washing away",
+      "response_text": "As the sun began to set, casting a warm orange glow over the bustling streets of the city, a gentle rain poured down in a relentless stream, washing away",
+      "first_eos_offset": null,
+      "utf8_decodable": true,
+      "short_cycle_period": null
+    },
+    {
+      "prompt_id": "G0-P4",
+      "prompt": "Explain in simple terms how a bicycle stays balanced while moving.",
+      "input_tokens": 42,
+      "generated_token_ids": [
+        2427,
+        346,
+        11031,
+        253,
+        19018,
+        28,
+        346,
+        2316,
+        8009,
+        1015,
+        253,
+        817,
+        282,
+        25602,
+        284,
+        47726,
+        288,
+        1485,
+        469,
+        1248,
+        30,
+        378,
+        19018,
+        506,
+        3630,
+        314,
+        6551,
+        738,
+        253,
+        4925,
+        282,
+        260
+      ],
+      "raw_decoded": "When you ride a bicycle, you're essentially using a system of gears and levers to move your body. The bicycle's balance is achieved through a combination of the",
+      "response_text": "When you ride a bicycle, you're essentially using a system of gears and levers to move your body. The bicycle's balance is achieved through a combination of the",
+      "first_eos_offset": null,
+      "utf8_decodable": true,
+      "short_cycle_period": null
+    },
+    {
+      "prompt_id": "G0-P5",
+      "prompt": "Write a friendly three-sentence welcome message for a new teammate and mention collaboration.",
+      "input_tokens": 47,
+      "generated_token_ids": [
+        18,
+        26843,
+        933,
+        33039,
+        5820,
+        1750,
+        10668,
+        288,
+        653,
+        2299,
+        30,
+        1046,
+        2316,
+        8916,
+        288,
+        457,
+        346,
+        335,
+        4411,
+        284,
+        1492,
+        3703,
+        288,
+        1891,
+        1592,
+        288,
+        3025,
+        653,
+        3949,
+        30,
+        1046,
+        1685
+      ],
+      "raw_decoded": "\"Hi [TeamName], welcome to our team. We're excited to have you on board and look forward to working together to achieve our goals. We value",
+      "response_text": "\"Hi [TeamName], welcome to our team. We're excited to have you on board and look forward to working together to achieve our goals. We value",
+      "first_eos_offset": null,
+      "utf8_decodable": true,
+      "short_cycle_period": null
+    }
+  ],
+  "treatment": [
+    {
+      "rollout": {
+        "prompt_id": "G0-P1",
+        "prompt": "Explain in three short sentences why plants need sunlight.",
+        "input_tokens": 40,
+        "generated_token_ids": [
+          2,
+          198,
+          2,
+          198,
+          2,
+          198,
+          2,
+          198,
+          2,
+          198,
+          2,
+          198,
+          2,
+          198,
+          2,
+          198,
+          2,
+          198,
+          2,
+          198,
+          2,
+          198,
+          2,
+          198,
+          2,
+          198,
+          2,
+          198,
+          2,
+          198,
+          2,
+          198
+        ],
+        "raw_decoded": "<|im_end|>\n<|im_end|>\n<|im_end|>\n<|im_end|>\n<|im_end|>\n<|im_end|>\n<|im_end|>\n<|im_end|>\n<|im_end|>\n<|im_end|>\n<|im_end|>\n<|im_end|>\n<|im_end|>\n<|im_end|>\n<|im_end|>\n<|im_end|>\n",
+        "response_text": "",
+        "first_eos_offset": 0,
+        "utf8_decodable": true,
+        "short_cycle_period": 2
+      },
+      "memory_spans": 1,
+      "memory_tokens": 10,
+      "router_state_cid": "blake3:92805adc60ae351f232f67e683b0351f7d0ae670e6d3fefb5401be4c0c6c7a3f",
+      "geometry_position_states": 71,
+      "mixer_checkpoint_identity": "blake3:20036fb05524698cb041ea1803186aeca5edf23a01ddfc28fb375d627f743106",
+      "decision_trace": [
+        {
+          "layer": 0,
+          "position": 39,
+          "intervention": "real",
+          "projection_owner": "uor-matmul exact GEMM@b13c98449948174f590e337c4dc25dfc394a07d0",
+          "source_attention_calls": 0,
+          "dense_full_prefix_qk": false,
+          "prefix_candidates": 40,
+          "memory_candidates": 1,
+          "support_budget": 4,
+          "selected_support": [
+            {
+              "source": "prefix",
+              "index": 19,
+              "score": 0.96801907,
+              "weight": 0.25295052
+            },
+            {
+              "source": "prefix",
+              "index": 18,
+              "score": 0.9579166,
+              "weight": 0.25040796
+            },
+            {
+              "source": "prefix",
+              "index": 21,
+              "score": 0.95483136,
+              "weight": 0.24963659
+            },
+            {
+              "source": "prefix",
+              "index": 17,
+              "score": 0.94423383,
+              "weight": 0.24700502
+            }
+          ],
+          "support_cid": "blake3:abbca48fa811e3273db01f3c6711c85b54ae4cc31f82e90c4e7e6d348cb1cd5b",
+          "output_l2": 0.00023724273
+        },
+        {
+          "layer": 0,
+          "position": 40,
+          "intervention": "real",
+          "projection_owner": "uor-matmul exact GEMM@b13c98449948174f590e337c4dc25dfc394a07d0",
+          "source_attention_calls": 0,
+          "dense_full_prefix_qk": false,
+          "prefix_candidates": 41,
+          "memory_candidates": 1,
+          "support_budget": 4,
+          "selected_support": [
+            {
+              "source": "prefix",
+              "index": 21,
+              "score": 0.9761262,
+              "weight": 0.25252384
+            },
+            {
+              "source": "prefix",
+              "index": 22,
+              "score": 0.96723807,
+              "weight": 0.25028935
+            },
+            {
+              "source": "prefix",
+              "index": 19,
+              "score": 0.96308756,
+              "weight": 0.24925266
+            },
+            {
+              "source": "prefix",
+              "index": 24,
+              "score": 0.9577837,
+              "weight": 0.24793415
+            }
+          ],
+          "support_cid": "blake3:15aed5a1f3f352afec258a3500eb004b98ed30505b45d36a2a1997c274ced15c",
+          "output_l2": 0.00020368754
+        },
+        {
+          "layer": 0,
+          "position": 41,
+          "intervention": "real",
+          "projection_owner": "uor-matmul exact GEMM@b13c98449948174f590e337c4dc25dfc394a07d0",
+          "source_attention_calls": 0,
+          "dense_full_prefix_qk": false,
+          "prefix_candidates": 42,
+          "memory_candidates": 1,
+          "support_budget": 4,
+          "selected_support": [
+            {
+              "source": "prefix",
+              "index": 19,
+              "score": 0.96801907,
+              "weight": 0.25295052
+            },
+            {
+              "source": "prefix",
+              "index": 18,
+              "score": 0.9579166,
+              "weight": 0.25040796
+            },
+            {
+              "source": "prefix",
+              "index": 21,
+              "score": 0.95483136,
+              "weight": 0.24963659
+            },
+            {
+              "source": "prefix",
+              "index": 17,
+              "score": 0.94423383,
+              "weight": 0.24700502
+            }
+          ],
+          "support_cid": "blake3:abbca48fa811e3273db01f3c6711c85b54ae4cc31f82e90c4e7e6d348cb1cd5b",
+          "output_l2": 0.00023724273
+        },
+        {
+          "layer": 0,
+          "position": 42,
+          "intervention": "real",
+          "projection_owner": "uor-matmul exact GEMM@b13c98449948174f590e337c4dc25dfc394a07d0",
+          "source_attention_calls": 0,
+          "dense_full_prefix_qk": false,
+          "prefix_candidates": 43,
+          "memory_candidates": 1,
+          "support_budget": 4,
+          "selected_support": [
+            {
+              "source": "prefix",
+              "index": 21,
+              "score": 0.9761262,
+              "weight": 0.25252384
+            },
+            {
+              "source": "prefix",
+              "index": 22,
+              "score": 0.96723807,
+              "weight": 0.25028935
+            },
+            {
+              "source": "prefix",
+              "index": 19,
+              "score": 0.96308756,
+              "weight": 0.24925266
+            },
+            {
+              "source": "prefix",
+              "index": 24,
+              "score": 0.9577837,
+              "weight": 0.24793415
+            }
+          ],
+          "support_cid": "blake3:15aed5a1f3f352afec258a3500eb004b98ed30505b45d36a2a1997c274ced15c",
+          "output_l2": 0.00020368754
+        },
+        {
+          "layer": 0,
+          "position": 43,
+          "intervention": "real",
+          "projection_owner": "uor-matmul exact GEMM@b13c98449948174f590e337c4dc25dfc394a07d0",
+          "source_attention_calls": 0,
+          "dense_full_prefix_qk": false,
+          "prefix_candidates": 44,
+          "memory_candidates": 1,
+          "support_budget": 4,
+          "selected_support": [
+            {
+              "source": "prefix",
+              "index": 19,
+              "score": 0.96801907,
+              "weight": 0.25295052
+            },
+            {
+              "source": "prefix",
+              "index": 18,
+              "score": 0.9579166,
+              "weight": 0.25040796
+            },
+            {
+              "source": "prefix",
+              "index": 21,
+              "score": 0.95483136,
+              "weight": 0.24963659
+            },
+            {
+              "source": "prefix",
+              "index": 17,
+              "score": 0.94423383,
+              "weight": 0.24700502
+            }
+          ],
+          "support_cid": "blake3:abbca48fa811e3273db01f3c6711c85b54ae4cc31f82e90c4e7e6d348cb1cd5b",
+          "output_l2": 0.00023724273
+        },
+        {
+          "layer": 0,
+          "position": 44,
+          "intervention": "real",
+          "projection_owner": "uor-matmul exact GEMM@b13c98449948174f590e337c4dc25dfc394a07d0",
+          "source_attention_calls": 0,
+          "dense_full_prefix_qk": false,
+          "prefix_candidates": 45,
+          "memory_candidates": 1,
+          "support_budget": 4,
+          "selected_support": [
+            {
+              "source": "prefix",
+              "index": 21,
+              "score": 0.9761262,
+              "weight": 0.25252384
+            },
+            {
+              "source": "prefix",
+              "index": 22,
+              "score": 0.96723807,
+              "weight": 0.25028935
+            },
+            {
+              "source": "prefix",
+              "index": 19,
+              "score": 0.96308756,
+              "weight": 0.24925266
+            },
+            {
+              "source": "prefix",
+              "index": 24,
+              "score": 0.9577837,
+              "weight": 0.24793415
+            }
+          ],
+          "support_cid": "blake3:15aed5a1f3f352afec258a3500eb004b98ed30505b45d36a2a1997c274ced15c",
+          "output_l2": 0.00020368754
+        },
+        {
+          "layer": 0,
+          "position": 45,
+          "intervention": "real",
+          "projection_owner": "uor-matmul exact GEMM@b13c98449948174f590e337c4dc25dfc394a07d0",
+          "source_attention_calls": 0,
+          "dense_full_prefix_qk": false,
+          "prefix_candidates": 46,
+          "memory_candidates": 1,
+          "support_budget": 4,
+          "selected_support": [
+            {
+              "source": "prefix",
+              "index": 19,
+              "score": 0.96801907,
+              "weight": 0.25295052
+            },
+            {
+              "source": "prefix",
+              "index": 18,
+              "score": 0.9579166,
+              "weight": 0.25040796
+            },
+            {
+              "source": "prefix",
+              "index": 21,
+              "score": 0.95483136,
+              "weight": 0.24963659
+            },
+            {
+              "source": "prefix",
+              "index": 17,
+              "score": 0.94423383,
+              "weight": 0.24700502
+            }
+          ],
+          "support_cid": "blake3:abbca48fa811e3273db01f3c6711c85b54ae4cc31f82e90c4e7e6d348cb1cd5b",
+          "output_l2": 0.00023724273
+        },
+        {
+          "layer": 0,
+          "position": 46,
+          "intervention": "real",
+          "projection_owner": "uor-matmul exact GEMM@b13c98449948174f590e337c4dc25dfc394a07d0",
+          "source_attention_calls": 0,
+          "dense_full_prefix_qk": false,
+          "prefix_candidates": 47,
+          "memory_candidates": 1,
+          "support_budget": 4,
+          "selected_support": [
+            {
+              "source": "prefix",
+              "index": 21,
+              "score": 0.9761262,
+              "weight": 0.25252384
+            },
+            {
+              "source": "prefix",
+              "index": 22,
+              "score": 0.96723807,
+              "weight": 0.25028935
+            },
+            {
+              "source": "prefix",
+              "index": 19,
+              "score": 0.96308756,
+              "weight": 0.24925266
+            },
+            {
+              "source": "prefix",
+              "index": 24,
+              "score": 0.9577837,
+              "weight": 0.24793415
+            }
+          ],
+          "support_cid": "blake3:15aed5a1f3f352afec258a3500eb004b98ed30505b45d36a2a1997c274ced15c",
+          "output_l2": 0.00020368754
+        },
+        {
+          "layer": 0,
+          "position": 47,
+          "intervention": "real",
+          "projection_owner": "uor-matmul exact GEMM@b13c98449948174f590e337c4dc25dfc394a07d0",
+          "source_attention_calls": 0,
+          "dense_full_prefix_qk": false,
+          "prefix_candidates": 48,
+          "memory_candidates": 1,
+          "support_budget": 4,
+          "selected_support": [
+            {
+              "source": "prefix",
+              "index": 19,
+              "score": 0.96801907,
+              "weight": 0.25295052
+            },
+            {
+              "source": "prefix",
+              "index": 18,
+              "score": 0.9579166,
+              "weight": 0.25040796
+            },
+            {
+              "source": "prefix",
+              "index": 21,
+              "score": 0.95483136,
+              "weight": 0.24963659
+            },
+            {
+              "source": "prefix",
+              "index": 17,
+              "score": 0.94423383,
+              "weight": 0.24700502
+            }
+          ],
+          "support_cid": "blake3:abbca48fa811e3273db01f3c6711c85b54ae4cc31f82e90c4e7e6d348cb1cd5b",
+          "output_l2": 0.00023724273
+        },
+        {
+          "layer": 0,
+          "position": 48,
+          "intervention": "real",
+          "projection_owner": "uor-matmul exact GEMM@b13c98449948174f590e337c4dc25dfc394a07d0",
+          "source_attention_calls": 0,
+          "dense_full_prefix_qk": false,
+          "prefix_candidates": 49,
+          "memory_candidates": 1,
+          "support_budget": 4,
+          "selected_support": [
+            {
+              "source": "prefix",
+              "index": 21,
+              "score": 0.9761262,
+              "weight": 0.25252384
+            },
+            {
+              "source": "prefix",
+              "index": 22,
+              "score": 0.96723807,
+              "weight": 0.25028935
+            },
+            {
+              "source": "prefix",
+              "index": 19,
+              "score": 0.96308756,
+              "weight": 0.24925266
+            },
+            {
+              "source": "prefix",
+              "index": 24,
+              "score": 0.9577837,
+              "weight": 0.24793415
+            }
+          ],
+          "support_cid": "blake3:15aed5a1f3f352afec258a3500eb004b98ed30505b45d36a2a1997c274ced15c",
+          "output_l2": 0.00020368754
+        },
+        {
+          "layer": 0,
+          "position": 49,
+          "intervention": "real",
+          "projection_owner": "uor-matmul exact GEMM@b13c98449948174f590e337c4dc25dfc394a07d0",
+          "source_attention_calls": 0,
+          "dense_full_prefix_qk": false,
+          "prefix_candidates": 50,
+          "memory_candidates": 1,
+          "support_budget": 4,
+          "selected_support": [
+            {
+              "source": "prefix",
+              "index": 19,
+              "score": 0.96801907,
+              "weight": 0.25295052
+            },
+            {
+              "source": "prefix",
+              "index": 18,
+              "score": 0.9579166,
+              "weight": 0.25040796
+            },
+            {
+              "source": "prefix",
+              "index": 21,
+              "score": 0.95483136,
+              "weight": 0.24963659
+            },
+            {
+              "source": "prefix",
+              "index": 17,
+              "score": 0.94423383,
+              "weight": 0.24700502
+            }
+          ],
+          "support_cid": "blake3:abbca48fa811e3273db01f3c6711c85b54ae4cc31f82e90c4e7e6d348cb1cd5b",
+          "output_l2": 0.00023724273
+        },
+        {
+          "layer": 0,
+          "position": 50,
+          "intervention": "real",
+          "projection_owner": "uor-matmul exact GEMM@b13c98449948174f590e337c4dc25dfc394a07d0",
+          "source_attention_calls": 0,
+          "dense_full_prefix_qk": false,
+          "prefix_candidates": 51,
+          "memory_candidates": 1,
+          "support_budget": 4,
+          "selected_support": [
+            {
+              "source": "prefix",
+              "index": 21,
+              "score": 0.9761262,
+              "weight": 0.25252384
+            },
+            {
+              "source": "prefix",
+              "index": 22,
+              "score": 0.96723807,
+              "weight": 0.25028935
+            },
+            {
+              "source": "prefix",
+              "index": 19,
+              "score": 0.96308756,
+              "weight": 0.24925266
+            },
+            {
+              "source": "prefix",
+              "index": 24,
+              "score": 0.9577837,
+              "weight": 0.24793415
+            }
+          ],
+          "support_cid": "blake3:15aed5a1f3f352afec258a3500eb004b98ed30505b45d36a2a1997c274ced15c",
+          "output_l2": 0.00020368754
+        },
+        {
+          "layer": 0,
+          "position": 51,
+          "intervention": "real",
+          "projection_owner": "uor-matmul exact GEMM@b13c98449948174f590e337c4dc25dfc394a07d0",
+          "source_attention_calls": 0,
+          "dense_full_prefix_qk": false,
+          "prefix_candidates": 52,
+          "memory_candidates": 1,
+          "support_budget": 4,
+          "selected_support": [
+            {
+              "source": "prefix",
+              "index": 19,
+              "score": 0.96801907,
+              "weight": 0.25295052
+            },
+            {
+              "source": "prefix",
+              "index": 18,
+              "score": 0.9579166,
+              "weight": 0.25040796
+            },
+            {
+              "source": "prefix",
+              "index": 21,
+              "score": 0.95483136,
+              "weight": 0.24963659
+            },
+            {
+              "source": "prefix",
+              "index": 17,
+              "score": 0.94423383,
+              "weight": 0.24700502
+            }
+          ],
+          "support_cid": "blake3:abbca48fa811e3273db01f3c6711c85b54ae4cc31f82e90c4e7e6d348cb1cd5b",
+          "output_l2": 0.00023724273
+        },
+        {
+          "layer": 0,
+          "position": 52,
+          "intervention": "real",
+          "projection_owner": "uor-matmul exact GEMM@b13c98449948174f590e337c4dc25dfc394a07d0",
+          "source_attention_calls": 0,
+          "dense_full_prefix_qk": false,
+          "prefix_candidates": 53,
+          "memory_candidates": 1,
+          "support_budget": 4,
+          "selected_support": [
+            {
+              "source": "prefix",
+              "index": 21,
+              "score": 0.9761262,
+              "weight": 0.25252384
+            },
+            {
+              "source": "prefix",
+              "index": 22,
+              "score": 0.96723807,
+              "weight": 0.25028935
+            },
+            {
+              "source": "prefix",
+              "index": 19,
+              "score": 0.96308756,
+              "weight": 0.24925266
+            },
+            {
+              "source": "prefix",
+              "index": 24,
+              "score": 0.9577837,
+              "weight": 0.24793415
+            }
+          ],
+          "support_cid": "blake3:15aed5a1f3f352afec258a3500eb004b98ed30505b45d36a2a1997c274ced15c",
+          "output_l2": 0.00020368754
+        },
+        {
+          "layer": 0,
+          "position": 53,
+          "intervention": "real",
+          "projection_owner": "uor-matmul exact GEMM@b13c98449948174f590e337c4dc25dfc394a07d0",
+          "source_attention_calls": 0,
+          "dense_full_prefix_qk": false,
+          "prefix_candidates": 54,
+          "memory_candidates": 1,
+          "support_budget": 4,
+          "selected_support": [
+            {
+              "source": "prefix",
+              "index": 19,
+              "score": 0.96801907,
+              "weight": 0.25295052
+            },
+            {
+              "source": "prefix",
+              "index": 18,
+              "score": 0.9579166,
+              "weight": 0.25040796
+            },
+            {
+              "source": "prefix",
+              "index": 21,
+              "score": 0.95483136,
+              "weight": 0.24963659
+            },
+            {
+              "source": "prefix",
+              "index": 17,
+              "score": 0.94423383,
+              "weight": 0.24700502
+            }
+          ],
+          "support_cid": "blake3:abbca48fa811e3273db01f3c6711c85b54ae4cc31f82e90c4e7e6d348cb1cd5b",
+          "output_l2": 0.00023724273
+        },
+        {
+          "layer": 0,
+          "position": 54,
+          "intervention": "real",
+          "projection_owner": "uor-matmul exact GEMM@b13c98449948174f590e337c4dc25dfc394a07d0",
+          "source_attention_calls": 0,
+          "dense_full_prefix_qk": false,
+          "prefix_candidates": 55,
+          "memory_candidates": 1,
+          "support_budget": 4,
+          "selected_support": [
+            {
+              "source": "prefix",
+              "index": 21,
+              "score": 0.9761262,
+              "weight": 0.25252384
+            },
+            {
+              "source": "prefix",
+              "index": 22,
+              "score": 0.96723807,
+              "weight": 0.25028935
+            },
+            {
+              "source": "prefix",
+              "index": 19,
+              "score": 0.96308756,
+              "weight": 0.24925266
+            },
+            {
+              "source": "prefix",
+              "index": 24,
+              "score": 0.9577837,
+              "weight": 0.24793415
+            }
+          ],
+          "support_cid": "blake3:15aed5a1f3f352afec258a3500eb004b98ed30505b45d36a2a1997c274ced15c",
+          "output_l2": 0.00020368754
+        },
+        {
+          "layer": 0,
+          "position": 55,
+          "intervention": "real",
+          "projection_owner": "uor-matmul exact GEMM@b13c98449948174f590e337c4dc25dfc394a07d0",
+          "source_attention_calls": 0,
+          "dense_full_prefix_qk": false,
+          "prefix_candidates": 56,
+          "memory_candidates": 1,
+          "support_budget": 4,
+          "selected_support": [
+            {
+              "source": "prefix",
+              "index": 19,
+              "score": 0.96801907,
+              "weight": 0.25295052
+            },
+            {
+              "source": "prefix",
+              "index": 18,
+              "score": 0.9579166,
+              "weight": 0.25040796
+            },
+            {
+              "source": "prefix",
+              "index": 21,
+              "score": 0.95483136,
+              "weight": 0.24963659
+            },
+            {
+              "source": "prefix",
+              "index": 17,
+              "score": 0.94423383,
+              "weight": 0.24700502
+            }
+          ],
+          "support_cid": "blake3:abbca48fa811e3273db01f3c6711c85b54ae4cc31f82e90c4e7e6d348cb1cd5b",
+          "output_l2": 0.00023724273
+        },
+        {
+          "layer": 0,
+          "position": 56,
+          "intervention": "real",
+          "projection_owner": "uor-matmul exact GEMM@b13c98449948174f590e337c4dc25dfc394a07d0",
+          "source_attention_calls": 0,
+          "dense_full_prefix_qk": false,
+          "prefix_candidates": 57,
+          "memory_candidates": 1,
+          "support_budget": 4,
+          "selected_support": [
+            {
+              "source": "prefix",
+              "index": 21,
+              "score": 0.9761262,
+              "weight": 0.25252384
+            },
+            {
+              "source": "prefix",
+              "index": 22,
+              "score": 0.96723807,
+              "weight": 0.25028935
+            },
+            {
+              "source": "prefix",
+              "index": 19,
+              "score": 0.96308756,
+              "weight": 0.24925266
+            },
+            {
+              "source": "prefix",
+              "index": 24,
+              "score": 0.9577837,
+              "weight": 0.24793415
+            }
+          ],
+          "support_cid": "blake3:15aed5a1f3f352afec258a3500eb004b98ed30505b45d36a2a1997c274ced15c",
+          "output_l2": 0.00020368754
+        },
+        {
+          "layer": 0,
+          "position": 57,
+          "intervention": "real",
+          "projection_owner": "uor-matmul exact GEMM@b13c98449948174f590e337c4dc25dfc394a07d0",
+          "source_attention_calls": 0,
+          "dense_full_prefix_qk": false,
+          "prefix_candidates": 58,
+          "memory_candidates": 1,
+          "support_budget": 4,
+          "selected_support": [
+            {
+              "source": "prefix",
+              "index": 19,
+              "score": 0.96801907,
+              "weight": 0.25295052
+            },
+            {
+              "source": "prefix",
+              "index": 18,
+              "score": 0.9579166,
+              "weight": 0.25040796
+            },
+            {
+              "source": "prefix",
+              "index": 21,
+              "score": 0.95483136,
+              "weight": 0.24963659
+            },
+            {
+              "source": "prefix",
+              "index": 17,
+              "score": 0.94423383,
+              "weight": 0.24700502
+            }
+          ],
+          "support_cid": "blake3:abbca48fa811e3273db01f3c6711c85b54ae4cc31f82e90c4e7e6d348cb1cd5b",
+          "output_l2": 0.00023724273
+        },
+        {
+          "layer": 0,
+          "position": 58,
+          "intervention": "real",
+          "projection_owner": "uor-matmul exact GEMM@b13c98449948174f590e337c4dc25dfc394a07d0",
+          "source_attention_calls": 0,
+          "dense_full_prefix_qk": false,
+          "prefix_candidates": 59,
+          "memory_candidates": 1,
+          "support_budget": 4,
+          "selected_support": [
+            {
+              "source": "prefix",
+              "index": 21,
+              "score": 0.9761262,
+              "weight": 0.25252384
+            },
+            {
+              "source": "prefix",
+              "index": 22,
+              "score": 0.96723807,
+              "weight": 0.25028935
+            },
+            {
+              "source": "prefix",
+              "index": 19,
+              "score": 0.96308756,
+              "weight": 0.24925266
+            },
+            {
+              "source": "prefix",
+              "index": 24,
+              "score": 0.9577837,
+              "weight": 0.24793415
+            }
+          ],
+          "support_cid": "blake3:15aed5a1f3f352afec258a3500eb004b98ed30505b45d36a2a1997c274ced15c",
+          "output_l2": 0.00020368754
+        },
+        {
+          "layer": 0,
+          "position": 59,
+          "intervention": "real",
+          "projection_owner": "uor-matmul exact GEMM@b13c98449948174f590e337c4dc25dfc394a07d0",
+          "source_attention_calls": 0,
+          "dense_full_prefix_qk": false,
+          "prefix_candidates": 60,
+          "memory_candidates": 1,
+          "support_budget": 4,
+          "selected_support": [
+            {
+              "source": "prefix",
+              "index": 19,
+              "score": 0.96801907,
+              "weight": 0.25295052
+            },
+            {
+              "source": "prefix",
+              "index": 18,
+              "score": 0.9579166,
+              "weight": 0.25040796
+            },
+            {
+              "source": "prefix",
+              "index": 21,
+              "score": 0.95483136,
+              "weight": 0.24963659
+            },
+            {
+              "source": "prefix",
+              "index": 17,
+              "score": 0.94423383,
+              "weight": 0.24700502
+            }
+          ],
+          "support_cid": "blake3:abbca48fa811e3273db01f3c6711c85b54ae4cc31f82e90c4e7e6d348cb1cd5b",
+          "output_l2": 0.00023724273
+        },
+        {
+          "layer": 0,
+          "position": 60,
+          "intervention": "real",
+          "projection_owner": "uor-matmul exact GEMM@b13c98449948174f590e337c4dc25dfc394a07d0",
+          "source_attention_calls": 0,
+          "dense_full_prefix_qk": false,
+          "prefix_candidates": 61,
+          "memory_candidates": 1,
+          "support_budget": 4,
+          "selected_support": [
+            {
+              "source": "prefix",
+              "index": 21,
+              "score": 0.9761262,
+              "weight": 0.25252384
+            },
+            {
+              "source": "prefix",
+              "index": 22,
+              "score": 0.96723807,
+              "weight": 0.25028935
+            },
+            {
+              "source": "prefix",
+              "index": 19,
+              "score": 0.96308756,
+              "weight": 0.24925266
+            },
+            {
+              "source": "prefix",
+              "index": 24,
+              "score": 0.9577837,
+              "weight": 0.24793415
+            }
+          ],
+          "support_cid": "blake3:15aed5a1f3f352afec258a3500eb004b98ed30505b45d36a2a1997c274ced15c",
+          "output_l2": 0.00020368754
+        },
+        {
+          "layer": 0,
+          "position": 61,
+          "intervention": "real",
+          "projection_owner": "uor-matmul exact GEMM@b13c98449948174f590e337c4dc25dfc394a07d0",
+          "source_attention_calls": 0,
+          "dense_full_prefix_qk": false,
+          "prefix_candidates": 62,
+          "memory_candidates": 1,
+          "support_budget": 4,
+          "selected_support": [
+            {
+              "source": "prefix",
+              "index": 19,
+              "score": 0.96801907,
+              "weight": 0.25295052
+            },
+            {
+              "source": "prefix",
+              "index": 18,
+              "score": 0.9579166,
+              "weight": 0.25040796
+            },
+            {
+              "source": "prefix",
+              "index": 21,
+              "score": 0.95483136,
+              "weight": 0.24963659
+            },
+            {
+              "source": "prefix",
+              "index": 17,
+              "score": 0.94423383,
+              "weight": 0.24700502
+            }
+          ],
+          "support_cid": "blake3:abbca48fa811e3273db01f3c6711c85b54ae4cc31f82e90c4e7e6d348cb1cd5b",
+          "output_l2": 0.00023724273
+        },
+        {
+          "layer": 0,
+          "position": 62,
+          "intervention": "real",
+          "projection_owner": "uor-matmul exact GEMM@b13c98449948174f590e337c4dc25dfc394a07d0",
+          "source_attention_calls": 0,
+          "dense_full_prefix_qk": false,
+          "prefix_candidates": 63,
+          "memory_candidates": 1,
+          "support_budget": 4,
+          "selected_support": [
+            {
+              "source": "prefix",
+              "index": 21,
+              "score": 0.9761262,
+              "weight": 0.25252384
+            },
+            {
+              "source": "prefix",
+              "index": 22,
+              "score": 0.96723807,
+              "weight": 0.25028935
+            },
+            {
+              "source": "prefix",
+              "index": 19,
+              "score": 0.96308756,
+              "weight": 0.24925266
+            },
+            {
+              "source": "prefix",
+              "index": 24,
+              "score": 0.9577837,
+              "weight": 0.24793415
+            }
+          ],
+          "support_cid": "blake3:15aed5a1f3f352afec258a3500eb004b98ed30505b45d36a2a1997c274ced15c",
+          "output_l2": 0.00020368754
+        },
+        {
+          "layer": 0,
+          "position": 63,
+          "intervention": "real",
+          "projection_owner": "uor-matmul exact GEMM@b13c98449948174f590e337c4dc25dfc394a07d0",
+          "source_attention_calls": 0,
+          "dense_full_prefix_qk": false,
+          "prefix_candidates": 64,
+          "memory_candidates": 1,
+          "support_budget": 4,
+          "selected_support": [
+            {
+              "source": "prefix",
+              "index": 19,
+              "score": 0.96801907,
+              "weight": 0.25295052
+            },
+            {
+              "source": "prefix",
+              "index": 18,
+              "score": 0.9579166,
+              "weight": 0.25040796
+            },
+            {
+              "source": "prefix",
+              "index": 21,
+              "score": 0.95483136,
+              "weight": 0.24963659
+            },
+            {
+              "source": "prefix",
+              "index": 17,
+              "score": 0.94423383,
+              "weight": 0.24700502
+            }
+          ],
+          "support_cid": "blake3:abbca48fa811e3273db01f3c6711c85b54ae4cc31f82e90c4e7e6d348cb1cd5b",
+          "output_l2": 0.00023724273
+        },
+        {
+          "layer": 0,
+          "position": 64,
+          "intervention": "real",
+          "projection_owner": "uor-matmul exact GEMM@b13c98449948174f590e337c4dc25dfc394a07d0",
+          "source_attention_calls": 0,
+          "dense_full_prefix_qk": false,
+          "prefix_candidates": 65,
+          "memory_candidates": 1,
+          "support_budget": 4,
+          "selected_support": [
+            {
+              "source": "prefix",
+              "index": 21,
+              "score": 0.9761262,
+              "weight": 0.25252384
+            },
+            {
+              "source": "prefix",
+              "index": 22,
+              "score": 0.96723807,
+              "weight": 0.25028935
+            },
+            {
+              "source": "prefix",
+              "index": 19,
+              "score": 0.96308756,
+              "weight": 0.24925266
+            },
+            {
+              "source": "prefix",
+              "index": 24,
+              "score": 0.9577837,
+              "weight": 0.24793415
+            }
+          ],
+          "support_cid": "blake3:15aed5a1f3f352afec258a3500eb004b98ed30505b45d36a2a1997c274ced15c",
+          "output_l2": 0.00020368754
+        },
+        {
+          "layer": 0,
+          "position": 65,
+          "intervention": "real",
+          "projection_owner": "uor-matmul exact GEMM@b13c98449948174f590e337c4dc25dfc394a07d0",
+          "source_attention_calls": 0,
+          "dense_full_prefix_qk": false,
+          "prefix_candidates": 66,
+          "memory_candidates": 1,
+          "support_budget": 4,
+          "selected_support": [
+            {
+              "source": "prefix",
+              "index": 19,
+              "score": 0.96801907,
+              "weight": 0.25295052
+            },
+            {
+              "source": "prefix",
+              "index": 18,
+              "score": 0.9579166,
+              "weight": 0.25040796
+            },
+            {
+              "source": "prefix",
+              "index": 21,
+              "score": 0.95483136,
+              "weight": 0.24963659
+            },
+            {
+              "source": "prefix",
+              "index": 17,
+              "score": 0.94423383,
+              "weight": 0.24700502
+            }
+          ],
+          "support_cid": "blake3:abbca48fa811e3273db01f3c6711c85b54ae4cc31f82e90c4e7e6d348cb1cd5b",
+          "output_l2": 0.00023724273
+        },
+        {
+          "layer": 0,
+          "position": 66,
+          "intervention": "real",
+          "projection_owner": "uor-matmul exact GEMM@b13c98449948174f590e337c4dc25dfc394a07d0",
+          "source_attention_calls": 0,
+          "dense_full_prefix_qk": false,
+          "prefix_candidates": 67,
+          "memory_candidates": 1,
+          "support_budget": 4,
+          "selected_support": [
+            {
+              "source": "prefix",
+              "index": 21,
+              "score": 0.9761262,
+              "weight": 0.25252384
+            },
+            {
+              "source": "prefix",
+              "index": 22,
+              "score": 0.96723807,
+              "weight": 0.25028935
+            },
+            {
+              "source": "prefix",
+              "index": 19,
+              "score": 0.96308756,
+              "weight": 0.24925266
+            },
+            {
+              "source": "prefix",
+              "index": 24,
+              "score": 0.9577837,
+              "weight": 0.24793415
+            }
+          ],
+          "support_cid": "blake3:15aed5a1f3f352afec258a3500eb004b98ed30505b45d36a2a1997c274ced15c",
+          "output_l2": 0.00020368754
+        },
+        {
+          "layer": 0,
+          "position": 67,
+          "intervention": "real",
+          "projection_owner": "uor-matmul exact GEMM@b13c98449948174f590e337c4dc25dfc394a07d0",
+          "source_attention_calls": 0,
+          "dense_full_prefix_qk": false,
+          "prefix_candidates": 68,
+          "memory_candidates": 1,
+          "support_budget": 4,
+          "selected_support": [
+            {
+              "source": "prefix",
+              "index": 19,
+              "score": 0.96801907,
+              "weight": 0.25295052
+            },
+            {
+              "source": "prefix",
+              "index": 18,
+              "score": 0.9579166,
+              "weight": 0.25040796
+            },
+            {
+              "source": "prefix",
+              "index": 21,
+              "score": 0.95483136,
+              "weight": 0.24963659
+            },
+            {
+              "source": "prefix",
+              "index": 17,
+              "score": 0.94423383,
+              "weight": 0.24700502
+            }
+          ],
+          "support_cid": "blake3:abbca48fa811e3273db01f3c6711c85b54ae4cc31f82e90c4e7e6d348cb1cd5b",
+          "output_l2": 0.00023724273
+        },
+        {
+          "layer": 0,
+          "position": 68,
+          "intervention": "real",
+          "projection_owner": "uor-matmul exact GEMM@b13c98449948174f590e337c4dc25dfc394a07d0",
+          "source_attention_calls": 0,
+          "dense_full_prefix_qk": false,
+          "prefix_candidates": 69,
+          "memory_candidates": 1,
+          "support_budget": 4,
+          "selected_support": [
+            {
+              "source": "prefix",
+              "index": 21,
+              "score": 0.9761262,
+              "weight": 0.25252384
+            },
+            {
+              "source": "prefix",
+              "index": 22,
+              "score": 0.96723807,
+              "weight": 0.25028935
+            },
+            {
+              "source": "prefix",
+              "index": 19,
+              "score": 0.96308756,
+              "weight": 0.24925266
+            },
+            {
+              "source": "prefix",
+              "index": 24,
+              "score": 0.9577837,
+              "weight": 0.24793415
+            }
+          ],
+          "support_cid": "blake3:15aed5a1f3f352afec258a3500eb004b98ed30505b45d36a2a1997c274ced15c",
+          "output_l2": 0.00020368754
+        },
+        {
+          "layer": 0,
+          "position": 69,
+          "intervention": "real",
+          "projection_owner": "uor-matmul exact GEMM@b13c98449948174f590e337c4dc25dfc394a07d0",
+          "source_attention_calls": 0,
+          "dense_full_prefix_qk": false,
+          "prefix_candidates": 70,
+          "memory_candidates": 1,
+          "support_budget": 4,
+          "selected_support": [
+            {
+              "source": "prefix",
+              "index": 19,
+              "score": 0.96801907,
+              "weight": 0.25295052
+            },
+            {
+              "source": "prefix",
+              "index": 18,
+              "score": 0.9579166,
+              "weight": 0.25040796
+            },
+            {
+              "source": "prefix",
+              "index": 21,
+              "score": 0.95483136,
+              "weight": 0.24963659
+            },
+            {
+              "source": "prefix",
+              "index": 17,
+              "score": 0.94423383,
+              "weight": 0.24700502
+            }
+          ],
+          "support_cid": "blake3:abbca48fa811e3273db01f3c6711c85b54ae4cc31f82e90c4e7e6d348cb1cd5b",
+          "output_l2": 0.00023724273
+        },
+        {
+          "layer": 0,
+          "position": 70,
+          "intervention": "real",
+          "projection_owner": "uor-matmul exact GEMM@b13c98449948174f590e337c4dc25dfc394a07d0",
+          "source_attention_calls": 0,
+          "dense_full_prefix_qk": false,
+          "prefix_candidates": 71,
+          "memory_candidates": 1,
+          "support_budget": 4,
+          "selected_support": [
+            {
+              "source": "prefix",
+              "index": 21,
+              "score": 0.9761262,
+              "weight": 0.25252384
+            },
+            {
+              "source": "prefix",
+              "index": 22,
+              "score": 0.96723807,
+              "weight": 0.25028935
+            },
+            {
+              "source": "prefix",
+              "index": 19,
+              "score": 0.96308756,
+              "weight": 0.24925266
+            },
+            {
+              "source": "prefix",
+              "index": 24,
+              "score": 0.9577837,
+              "weight": 0.24793415
+            }
+          ],
+          "support_cid": "blake3:15aed5a1f3f352afec258a3500eb004b98ed30505b45d36a2a1997c274ced15c",
+          "output_l2": 0.00020368754
+        }
+      ]
+    }
+  ],
+  "disabled_control": {
+    "positions_compared": 71,
+    "logits_bit_exact": true,
+    "generated_tokens_equal": true,
+    "disabled_trace_entries": 0
+  },
+  "reachability": {
+    "prompt_id": "G0-P1",
+    "compared_position": 39,
+    "real_support_cid": "blake3:abbca48fa811e3273db01f3c6711c85b54ae4cc31f82e90c4e7e6d348cb1cd5b",
+    "permuted_support_cid": "blake3:3b752b1281514259c4a87d30f1075dc814d72a33092bbd73ff9eacc353c381a4",
+    "support_changed": true,
+    "changed_logits": 48392,
+    "logit_linf_delta": 0.00019645691,
+    "verdict": "PASS"
+  },
+  "persistence": {
+    "committed_turns": 2,
+    "exported_state_cid": "blake3:b822783c2977e4d16e7ddcc942a471d19505f62597f856cf209165cd023eb442",
+    "restored_state_cid": "blake3:391b8d429e1a1ea5465b26963d8c81f221ddd7a4f78fa814e13feb87df4ac2dc",
+    "same_identity_turns": 2,
+    "same_identity_exact": true,
+    "other_identity_turns": 0,
+    "tokenizer_cid_preserved": true,
+    "adapter_identity_preserved": true,
+    "ordered_tokens_preserved": true,
+    "verdict": "PASS"
+  },
+  "gates": {
+    "five_control_rollouts": true,
+    "all_control_rollouts_exactly_32_tokens": true,
+    "no_short_cycles": false,
+    "distinct_control_sequences": 5,
+    "one_treatment_rollout": true,
+    "every_treatment_decision_executed_mixer": true,
+    "all_treatments_decodable": true,
+    "disabled_reproduces_control": true,
+    "structural_reachability": true,
+    "persistence_round_trip": true,
+    "verdict": "FAIL"
+  }
+}

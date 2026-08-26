@@ -38,6 +38,8 @@ pub mod chat;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod cross_surface_parity;
 #[cfg(not(target_arch = "wasm32"))]
+pub mod geometric_decoder;
+#[cfg(not(target_arch = "wasm32"))]
 pub mod model;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod r4g1;
