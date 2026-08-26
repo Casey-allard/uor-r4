@@ -1,8 +1,36 @@
 # Model lifecycle
 
-The full chain from a pinned Hugging Face model to a locally served, evaluated,
-CID-addressed bundle. **This is a multi-hour CPU pipeline** — the compile and
-score stages dominate, and corpus-scale runs take longer still.
+This document contains two lifecycles:
+
+1. the **active geometric-decoder lane**, which starts from a pinned local
+   source bundle, adds learned R⁴ mixer checkpoints, and promotes through
+   bounded product transcripts; and
+2. the **historical TLA/R4G1 lane**, a multi-hour CPU compile/score pipeline
+   retained for its existing artifacts, measurements, and explicit research
+   selectors.
+
+Current sequencing lives in the
+[Geometric Causal Decoder Roadmap](geometric_causal_decoder_plan.md).
+
+**Current status:** no geometric-decoder artifact or command exists yet. #950
+owns the first source-control transcript, tokenizer-bound memory adapter, and
+one-layer experimental checkpoint. The diagram below is the gated target
+lifecycle, not a runnable command sequence on current `main`.
+
+The geometric-decoder lifecycle is:
+
+```text
+pinned source + tokenizer
+        -> coherent local uor-matmul control
+        -> one-layer R⁴ mixer checkpoint
+        -> bounded teacher/student-prefix qualification
+        -> progressive all-layer checkpoint
+        -> CLI/HTTP product + persistent manifold memory
+        -> measured optimization and release decision
+```
+
+Until #953 promotes that lane, the production claims and commands later in
+this document continue to describe the existing R4G1 product only.
 
 For a zero-setup path that needs none of this, see the
 [Quick start](../README.md#quick-start) in the README: the router and dashboard
@@ -33,7 +61,7 @@ TLA3/TLA4/TLA5 remain readable through the era-generic parser. `R4_TLESS_TLA7=0`
 and `R4_TLESS_TLA6=0` opt a compile back out. Paths below say "TLA" where the era
 does not matter.
 
-The local lifecycle has two artifact lanes:
+The historical compiled lifecycle has two artifact lanes:
 
 ```text
 pinned source -> resumable teacher observation -> TLA + TLS1 bundle
@@ -1264,7 +1292,8 @@ Passing `--cover` reuses the measured cover. It may be omitted to re-induce
 the default cover deterministically during scoring. For experiments, `cover`
 also accepts `--depths`, `--k0`, `--regions-budget`, and `--memory-budget`.
 
-The public `ask`, `chat`, HTTP, library, and WASM production facades use
+**Current production boundary pending #953.** The public `ask`, `chat`, HTTP,
+library, and WASM production facades use
 `R4G1Runtime` as their sole ranked-candidate and token authority. D4 remains a
 token-free permit/widen/abstain policy. A production bundle must carry a
 schema-2 `release-bundle.json` and a content-bound, full-census

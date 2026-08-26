@@ -1,21 +1,24 @@
 # uor-r4-router
 
-The R⁴ geometric text router and manifold web dashboard backend.
+The R⁴ geometric memory/router and manifold dashboard backend.
 
 `UorR4Router` embeds words as 512-dimensional zeta-zero vectors, routes a
 rolling "brain state" to one of 16 scale windows by norm, indexes sentences
 into per-identity corpus manifolds, retrieves by prime-overlap + cosine
-resonance, and generates with geometric Markov chains (bigram/trigram
-transitions). It ships thought-stream physics for the browser dashboard
+resonance, and retains a historical geometric Markov baseline (bigram/trigram
+transitions). It ships thought-stream visualization for the browser dashboard
 (`index.html`, `geometric_prime_router_webapp.html` at the repo root).
+
+The active [geometric causal-decoder roadmap](../../docs/geometric_causal_decoder_plan.md)
+reuses the identity state, content-bearing memory, retrieval, R⁴/Hopf math,
+persistence, and turn writeback. It replaces the Markov generator and removes
+hash-derived thought streams from intelligence-critical token selection.
 
 ## ⚠ Retrieval ranking: read this before touching `retrieve_geometric_resonance`
 
-**As deployed, retrieval on this path ranks by word overlap, not geometry.**
-Relevance is `shared_count * DEFAULT_LEXICAL_WEIGHT + sim * slice_norm +
-scope_boost`, and the geometric term's measured dynamic range is ~0.37 — so any
-lexical weight above ~0.4 already yields strict lexicographic order with the
-cosine as a within-bucket tie-break (#484).
+The deployed content-query path defaults to geometric cosine ranking with
+lexical weight zero. The older routing-query path retains its historical
+lexical weighting for comparison.
 
 The cosine contributed nothing at all until #486, which found the cause: the
 query vector was built from the **routing** path while `index_sentence_internal`
@@ -26,13 +29,14 @@ querying with the *exact stored sentence*).
 `set_content_query_vector(true)` builds the query with the same
 `content_state_vector` construction the stored side uses, which takes retrieval
 from 0.7179 to **0.8542** MRR with the weight unchanged (0.8763 at weight zero),
-recall 0.9720 → 0.9900. **It ships default OFF**: changing it changes retrieval
-ordering, which moves the pinned #421 anchor-accuracy rows, so adoption is gated
-(issue #490).
+recall 0.9720 → 0.9900. It is the current content-query default (#490/#502).
 
-Measurement knobs, all default-off and non-serialized:
-`set_lexical_weight`, `set_unscaled_geometric_term`, `set_content_query_vector`,
-`set_full_width_query`, `set_banded_storage`.
+Measurement overrides are non-serialized. `content_query_vector` defaults on;
+the pre-#490 routing-query path is selected explicitly with
+`set_content_query_vector(false)`. The other experimental projection/storage
+overrides default off:
+`set_lexical_weight`, `set_unscaled_geometric_term`, `set_full_width_query`,
+and `set_banded_storage`.
 
 Records: [`docs/geometry_selfmatch_486.md`](../../docs/geometry_selfmatch_486.md),
 [`docs/lexical_weight_484.md`](../../docs/lexical_weight_484.md),
@@ -47,16 +51,15 @@ weight alone does *not* give a cosine ranking.
 
 ## Status and relationship to the graph compiler
 
-This crate is **f64, floating-point, and allocates freely by design** — it is
-the exploratory geometric system, not the proof-carrying one. The R⁴
-holographic graph compiler plan (`docs/r4_graph_compiler_implementation_plan.md`
-§3.3) deliberately leaves it untouched: the transformerless engine
-(`uor-r4-core::transformerless`) and the R4G1 graph artifacts are the path to
-the mul-free, allocation-free runtime contract, and this router's word-Markov
-generator survives only as a documented fallback for `r4 chat` when no
-compiled store is bound.
+This crate is **f64, floating-point, and allocates freely by design**. That is
+allowed in the active decoder lane. Its memory/router state is now an active
+product input; its word-Markov generator remains a baseline being replaced.
+The historical TLA/R4G1 crates retain their separate multiplication-free and
+allocation-free runtime contracts.
 
-- **FallbackRouter Pipeline**: `FallbackRouter` (`src/fallback.rs`) manages dynamic engine cascades from primary `r4g1-graph` to secondary `transformerless-tla5` fallback upon encountering `EngineStatus::UnmappedRegion` or `EngineStatus::Pathological` statuses, returning valid response streams without dropping HTTP/WS payloads.
+- **Historical `FallbackRouter`:** `src/fallback.rs` retains cascade
+  machinery for explicit research use, but current production has no silent
+  TLA fallback and the geometric decoder does not route through this cascade.
 
 ## API surface
 
@@ -74,7 +77,8 @@ compiled store is bound.
   `UorR4RouterModel` (`PrismModel` → `Grounded` certificates with derivation
   replay), thread-local `ACTIVE_ROUTER`, `R4HostBounds`.
 - **State**: serde-serializable `UorR4Router` (streams, vocabulary,
-  word_primes, transitions, corpus_index_by_identity, session_brain_states);
+  word primes, corpus entries, session brain states, and persistence fields).
+  Transition maps are rebuilt from stored corpus sentences on import;
   `manifold_cache_rust.json` at the repo root is a state dump.
 
 ## Key types

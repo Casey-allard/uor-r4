@@ -1,11 +1,39 @@
-# How transformerless + r4 work, explained like you're five
+# How R⁴ is becoming a geometric language model, explained like you're five
 
 > The friendly version. When you want the grown-up version, read
 > [UNDERGRADUATE.md](UNDERGRADUATE.md); when you want the full rigor, read
-> [../transformerless/TRANSFORMERLESS.md](../transformerless/TRANSFORMERLESS.md)
-> and [../transformerless/PROOF.md](../transformerless/PROOF.md).
+> the [Geometric Causal Decoder Roadmap](../geometric_causal_decoder_plan.md).
+> The transformerless table/graph design and proof documents describe the
+> historical filing-cabinet system retained later in this explainer.
 
-Once upon a time, there were two robot helpers. One is a **filing cabinet
+The project learned something important: the filing cabinet can remember which
+words often follow other words, and the map can remember useful context, but
+neither one knows enough grammar to talk coherently by itself.
+
+The new plan joins the working pieces:
+
+```text
+your words + remembered map points
+              |
+              v
+     geometric next-word thinker
+              |
+              v
+      language layers on a CPU
+        powered by uor-matmul
+              |
+              v
+          the next word
+              |
+              +--> remember the conversation
+```
+
+We first let the existing local language brain show that the plumbing can talk.
+Then we replace one “who should this word listen to?” layer with geometry. If
+real geometry behaves no better than scrambled geometry, we stop and redesign
+it. Only after one layer works do we replace the rest.
+
+The historical system below had two robot helpers. One is a **filing cabinet
 robot**, one is a **librarian with a magic map**. Here's how they work.
 
 ## The big picture

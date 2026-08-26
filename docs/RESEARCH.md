@@ -7,17 +7,27 @@ closed, which are load-bearing, and which are still open. Every claim here trace
 to a merged measurement with a pre-declared exit rule; the issue numbers are the
 durable references.
 
-> **Forward sequencing** for the post-v0.1 intelligence programme lives in the
-> [R4 Intelligence Completion Plan](r4_intelligence_completion_plan.md) — the
-> readable mirror of GitHub programme root #820 (stages S0–S7 plus the
-> cross-cutting F0 formal lane). Two current-summary corrections it pins, restated
-> here so this document stays true: **#784** found **continuation-distribution
+> **Forward sequencing** now lives in the
+> [Geometric Causal Decoder Roadmap](geometric_causal_decoder_plan.md) — the
+> readable mirror of GitHub programme root #820 and execution tracker #949.
+> The S0–S7 completion plan is retained as historical evidence. Two
+> current-summary corrections remain important: **#784** found
+> **continuation-distribution
 > convergence**, not a full-depth context-code collision (0.0% full-depth
 > collisions at k = 2/4/6/8; distinct codes still favor a shared continuation);
 > and **#811** wired the deployed D4 abstention policy but did **not** establish
 > semantic abstention (all five semantic-OOD probes stayed `SERVABLE`). Per the
 > repository rule, the per-issue measurement records are appended, never rewritten;
 > only these live summaries are reconciled.
+
+> **Architecture decision, 2026-08-25 (#948).** The active question is no
+> longer how far the existing table/graph representation can be scaled. It is
+> whether a learned R⁴ causal mixer can replace source self-attention while
+> preserving coherent student-prefix generation, with persistent router memory
+> entering the same causal support. The source weights, tokenizer, causal path,
+> trace taps, and `uor-matmul` backend are the components of the proposed
+> control; #950 must establish their coherent local free-running composition.
+> R4G1/TLA and prior geometry mechanisms are comparators.
 
 The current quality-baseline reconciliation is recorded by #933 and the
 [append-only #934 genealogy](canonical_quality_baseline_934.md). The historical
@@ -206,8 +216,9 @@ percentile of all candidates — chance. Saturated stored vectors and
 band-projection loss were both ruled out by measurement. Building the query with
 the same `content_state_vector` construction the stored side uses takes retrieval
 from 0.7179 to **0.8542** MRR with the weight unchanged, and **0.8763** with the
-lexical term dropped; recall rises 0.9720 → 0.9900. Ships default OFF; adoption
-is gated as #490. [geometry_selfmatch_486.md](geometry_selfmatch_486.md)
+lexical term dropped; recall rises 0.9720 → 0.9900. The content-query path was
+adopted as the router default by #490, and #502 subsequently made its lexical
+weight zero. [geometry_selfmatch_486.md](geometry_selfmatch_486.md)
 
 **Cayley–Dickson syntactic morphism (#400), FMM far-field (#290), granularity
 (#393), E8 group-keying (#395).** Each measured dead with a scoped record; the CD
@@ -240,9 +251,12 @@ up to the point where a structure predicts at all, and not past it.**
 
 ## Which track can actually produce coherent text — the honest current answer
 
-This project's goal is a serving-time LLM with zero multiply/divide/float in
-the deployed kernel (P-4) — not merely a research artifact that scores well on
-per-position offline metrics. The #655 coherence sweep (2026-08-16, diagnostic
+This project's immediate goal is a coherent local geometric causal decoder.
+It may use `uor-matmul`, floating point, allocation, and the source
+residual/MLP/LM-head stack while standard causal self-attention is progressively
+replaced. A multiplication-free deployed kernel is now a separate,
+post-viability decision—not a prerequisite that forces language into static
+tables before language works. The #655 coherence sweep (2026-08-16, diagnostic
 only, no code changed; findings tracked as #743/#744/#745) is the most direct
 evidence yet on whether that goal is reachable, and it needs both halves
 stated together, because reading either alone is misleading.
@@ -308,16 +322,16 @@ loader panicked instead of failing closed on a stale/mismatched bundle — a
 robustness gap, not itself an explanation for the word-salad output on the
 bundle that *does* load.
 
-**So: which track could work?** Of the tracks that are actually goal-aligned
-(no transformer, no matmul, no float in the deployed kernel), the
-transformerless TLA runtime and the R4G1 graph scorer — the same underlying
-compiled representation viewed through two runtimes — are the only ones with
-any positive, replicated empirical signal at all. Neither is proven to work
-end-to-end yet; #745 is the open question that would settle it either way,
-and #755's decisive fix-and-retest (detailed above) substantially advanced
-that answer — real, grammatical English where the same corpus previously
-produced garbage or a hang — though the residual prompt-insensitivity means
-it is not fully settled. (As of #831, the one normative scorer for deployed
+**So: which track could work?** The table-native TLA/R4G1 representation is the
+only multiplication-free track with replicated pointwise signal, but the S3
+results establish that it is not currently a coherent generative engine. The
+active candidate is now a different composition of existing assets: the
+coherent source-model/`uor-matmul` control plus learned causal R⁴ mixing and
+persistent router memory. #950 begins with one replaced layer; #951 requires a
+permuted-geometry null and student-prefix evidence before any all-layer work.
+The older pointwise signal remains useful as a comparator, not the product
+sequencing authority. (As of #831, the one normative scorer for the historical
+deployed
 inference — the R4G1Runtime scoring path — is designated in
 [ADR-0001](adr/0001-normative-r4g1-scorer.md), and the reference/certifier
 scorers are explicitly scoped; a certifier measurement is no longer read as a
@@ -705,10 +719,11 @@ The S4 stage closes `LIMIT`; RF-33's narrow 12/20 result and structural runtime 
 load-bearing, but no general-reasoning, unseen-final-partition, or free-running claim is promoted.
 
 The **geometric router** is a validated, real component (content-query
-retrieval MRR 0.88+, #486/#490/#502) but it is a retrieval/routing mechanism,
-not itself a generative model, and it runs on `f64` outside the P-4 kernel by
-design (see the project-layout table in [README.md](../README.md)) — it
-strengthens the product, it is not a candidate to *be* the product. The
+retrieval MRR 0.88+, #486/#490/#502). Its current word-Markov generator is not
+a language model, and the router runs on `f64` outside the historical P-4
+kernel by design. The reset keeps its identity state, R⁴/Hopf geometry,
+content-bearing memory, retrieval, and persistence, while replacing its
+generator with the causal decoder tracked by #949. The
 **dormant #604 route-attention kernel**
 (`R4RouteAttentionV1`, `crates/uor-r4-graph-runtime/src/route_attention.rs`)
 is worth calling out separately: a fully implemented, differentially-tested,
@@ -741,6 +756,10 @@ whose only legitimate integration point is an honesty/claim-vocabulary bridge
 (`uor-r4-naf::claims`, #623), not a generation mechanism.
 
 ## Open, with defined work
+
+The active research/engineering work is #950–#955 under #949. The table below
+is retained as the historical mechanism ledger; rows that still use “open” in
+their original prose are not the live backlog. GitHub native issue state wins.
 
 *Recently landed and closed (GitHub is the source of truth; this table tracks what is still open): **#743** — `R4Engine::load` failed closed with a typed `SourceUnavailable` decline on a teacher_cid pairing mismatch instead of panicking (PR #746); the root cause was data-pairing drift between two independently-sourced bundle files, not format/era drift as first hypothesized. **#502** — dropped the lexical weight (W=0) on the deployed content-query path (+0.022 MRR / +0.032 top-1, a simplification); the #421 rows are invariant under the weight, so the gate was moot the same way #490's was (below). **#488** — phase-timing instrument (DoD met); the at-scale run is now **#503**. **#457** — IPF Arm B landed NEGATIVE, consistency operator reaches only the unigram floor (below). **#486/#490** — the serving path compared a routing vector to a content vector; the content-vector query is now the deployed default (+0.1363 MRR), with the serde-default and blast-radius findings recorded on #490. **#487** — corrected #434's Spectral record (lexical, not geometry). **#493** — the VSA switch made honest; its `0.0000` is a scoring category error, not a wiring gap (below). **#458/#459** — interaction information and the estimation ladder, both landed NEGATIVE/count-limited. **#456** — reconstructability certificate + null arm (below).*
 

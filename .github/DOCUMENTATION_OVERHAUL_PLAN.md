@@ -1,8 +1,8 @@
 # Master Documentation Overhaul & Architectural Alignment Plan
 
-> **Status:** SUPERSEDED (2026-08-19, #829) — retained as history  
-> **Relates to:** Epic #201, PRs #206–#215  
-> **Author:** Antigravity / AI Agent Pair  
+> **Status:** SUPERSEDED (reconfirmed 2026-08-25, #948) — retained as history
+> **Relates to:** Epic #201, PRs #206–#215
+> **Author:** Antigravity / AI Agent Pair
 
 ---
 
@@ -10,8 +10,8 @@
 > documentation-alignment plan tied to Epic #201 / PRs #206–#215. It is retained as history
 > and is **no longer authoritative**. For current architecture and direction see
 > [`README.md`](../README.md), [`AGENTS.md`](../AGENTS.md),
-> [`docs/RESEARCH.md`](../docs/RESEARCH.md), and
-> [`docs/r4_intelligence_completion_plan.md`](../docs/r4_intelligence_completion_plan.md).
+> [`docs/RESEARCH.md`](../docs/RESEARCH.md), and the
+> [`Geometric Causal Decoder Roadmap`](../docs/geometric_causal_decoder_plan.md).
 >
 > **Live-assertion corrections** (the "Ground-Truth Architectural Findings" in §2 are
 > point-in-time; some have since drifted — the history below is not rewritten):

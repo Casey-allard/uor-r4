@@ -3,6 +3,16 @@
 
 ---
 
+> **Status (2026-08-25, #948): historical/dormant research plan.** This file
+> does not determine current implementation order. The active architecture is
+> the [Geometric Causal Decoder Roadmap](geometric_causal_decoder_plan.md).
+> Reuse a mechanism here only when an active #949 child names it, makes it
+> reachable in the token path, and supplies a non-degenerate control.
+> Statements below that say “outperforms,” “O(1),” “guaranteeing,” or describe
+> a future engine are historical hypotheses/proposals, not established current
+> product claims. Their dated negative and dormant results remain authoritative
+> at the scopes recorded in the implementation-status table.
+
 ## Implementation Status (dated deferral record — issue #249)
 
 *Added 2026-07-28. This plan reads as committed architecture; this section

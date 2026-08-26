@@ -5,16 +5,35 @@ body:
   - type: markdown
     attributes:
       value: |
-        Evidence-first research intake. This form encodes the repository run contract
-        (`AGENTS.md` → Long-run discipline) and claim discipline
-        (`docs/formal_vocabulary.md`). Fill every field before any run measured in hours.
+        Product-decision research intake. Current sequencing lives in
+        `docs/geometric_causal_decoder_plan.md`. Start with the smallest
+        falsifier, prove product-path reachability, compare a non-degenerate
+        geometry null, and include student-prefix output when generation is in
+        scope. Required fields define the smallest decision-bearing falsifier.
+        The reachability arithmetic, cost, and durable record fields below are
+        mandatory only for a run measured in hours; small operator probes may
+        leave them blank and keep their evidence in the owning issue/PR.
         Unavailable fixtures are `UNAVAILABLE`, never a vacuous PASS.
   - type: input
     id: parent
     attributes:
       label: Parent tracker / stage
-      description: Native parent issue and stage lane (e.g. "#822 — S1"). See docs/r4_intelligence_completion_plan.md.
-      placeholder: "#822 — S1"
+      description: Native #949 child whose next decision this experiment can change.
+      placeholder: "#951 — G1"
+    validations:
+      required: true
+  - type: textarea
+    id: decision
+    attributes:
+      label: Product decision changed by this result
+      description: Name the exact positive, negative, or stop decision. Research with no reachable consumer is archived rather than activated.
+    validations:
+      required: true
+  - type: textarea
+    id: product-reachability
+    attributes:
+      label: Real token-path reachability
+      description: Identify the CLI/HTTP/operator call path and the cheap observation proving this mechanism executes before token selection and can change support or logits.
     validations:
       required: true
   - type: textarea
@@ -28,7 +47,7 @@ body:
     id: pinned-identities
     attributes:
       label: Pinned identities
-      description: Content-bound identities — corpus, teacher (HF revision), tokenizer, compiler, benchmark, decoder, report. Give CIDs/κ where they exist.
+      description: Pin the smallest relevant source, tokenizer, checkpoint, prompt/split, geometry, decode, and report identities. Give CIDs/κ where they already exist; do not build an identity framework for a smoke test.
       placeholder: |
         corpus: <name / CID>
         teacher: <HF repo @ pinned revision>
@@ -41,21 +60,21 @@ body:
     attributes:
       label: Reachability arithmetic
       description: From numbers already in hand, compute the ceiling on the metric this run can move. If the ceiling is below the effect you need, do not launch.
-      placeholder: "e.g. 97.9% of held-out positions resolve ExactContext, so ≤2.1% touch the graph path → any cover-side change caps at ~2.1pp headline movement."
+      placeholder: "e.g. the operator runs at one of 30 layers, so a final-logit effect must first be observable at that layer; if it is zero, a full rollout cannot rescue reachability."
     validations:
-      required: true
+      required: false
   - type: textarea
     id: null-and-controls
     attributes:
       label: Null baseline and negative controls
-      description: The non-degenerate null and any negative controls (shuffled class, permuted codes, deranged tables, identity probe). Document-disjoint data where causal.
+      description: The non-degenerate disabled/shuffled/permuted-geometry control under equal data, parameters, candidate budget, and decode settings.
     validations:
       required: true
   - type: textarea
     id: cheap-instrument
     attributes:
       label: Binding cheap instrument and required verdict
-      description: The cheap test that runs FIRST and gates the expensive run, plus exactly what it must report to proceed (e.g. capacity_scaling must not report SATURATED on the target structure).
+      description: The cheap test that runs FIRST—such as source-control smoke, operator reachability, tiny overfit, or short student rollout—and exactly what it must report to proceed.
     validations:
       required: true
   - type: textarea
@@ -74,7 +93,14 @@ body:
     attributes:
       label: Cost estimate
       description: Wall-clock, resources, and what else the run blocks.
-      placeholder: "~4h on the Mac; blocks the S1 measurement lane while running"
+      placeholder: "~30 min on the named Mac; blocks the G1 fitting lane while running"
+    validations:
+      required: false
+  - type: textarea
+    id: free-running
+    attributes:
+      label: Student-prefix / free-running evidence
+      description: If generation is in scope, give the bounded prompt count, horizon, cycle check, and decision metric. Otherwise explain why generation is not claimed.
     validations:
       required: true
   - type: input
@@ -84,7 +110,7 @@ body:
       description: The per-issue record this will append to (docs/<topic>_<issue>.md). Records are append-only; live summaries are reconciled separately.
       placeholder: "docs/<topic>_<issue>.md"
     validations:
-      required: true
+      required: false
   - type: dropdown
     id: claim-status
     attributes:
@@ -102,6 +128,6 @@ body:
     id: execution-scope
     attributes:
       label: Execution scope
-      description: Which surface the evidence speaks to — reference, offline/compiler, certifier, dormant portable-runtime, normative runtime, or deployed-serving. These are never conflated.
+      description: Which surface the evidence speaks to — experimental decoder, reference, offline/compiler, certifier, frozen runtime, product path, or deployed-serving. These are never conflated.
     validations:
       required: true

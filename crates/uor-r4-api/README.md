@@ -109,8 +109,15 @@ away when the stages grow typed entry points. No stage stdout is parsed.
 
 ## Testing
 
-Unit tests run with the workspace (`cargo test --workspace --offline`).
-An ignored end-to-end compile + load test exists for local use:
+For API changes, run the focused library test and package check:
+
+```sh
+cargo check -p uor-r4-api --all-targets --offline
+cargo test -p uor-r4-api --lib --offline
+```
+
+Protected CI carries the workspace library gate. An ignored end-to-end compile
++ load test remains available when the change directly targets that lifecycle:
 
 ```sh
 UOR_R4_API_E2E_SOURCE=/path/to/local/hf-source \

@@ -2,7 +2,9 @@
 
 [AGENTS.md](AGENTS.md) is the full operating manual — gates, normative
 invariants, the κ re-pin procedure, long-run discipline. Read it before your
-first change. This file is the short version.
+first change. The current architecture and issue order live in the
+[Geometric Causal Decoder Roadmap](docs/geometric_causal_decoder_plan.md).
+This file is the short version.
 
 ## The loop
 
@@ -45,6 +47,10 @@ BDD, doctests, no_std, deterministic rebuild, κ, Gate C, all-features, WASM,
 fuzz, Kani, conformance, and audit are nightly/manual certification—not routine
 merge blockers.
 
+Active decoder work also produces one bounded transcript or operator report
+that exercises the changed behavior. Do not create a new test framework for
+that smoke.
+
 **Check the check.** Some ways these have silently lied before:
 
 - `cargo … | grep …; echo $?` reports *grep's* exit status. Read
@@ -54,16 +60,19 @@ merge blockers.
 - A κ test that finishes suspiciously fast has skipped. Confirm
   `/tmp/ref/out/model.bin` exists before trusting green.
 
-## Normative invariants — do not weaken
+## Execution-lane invariants
 
-- **Runtime kernel**: XOR/AND/OR/shift/rotate/popcount/integer add-sub/compare
-  and table reads only. No multiply, divide or float in the deployed kernel,
-  enforced by a machine-checked source scan. Compiler and certifier code may use
-  floats and allocation; runtime code may not.
-- **Allocation**: the prediction hot path is allocation-free in steady state,
-  asserted by a test.
-- **Determinism**: identical pinned inputs produce identical artifact bytes. No
-  HashMap-iteration-order, clock or RNG dependence in compiler outputs.
+- **Active geometric decoder:** learned floating-point projections,
+  `uor-matmul`, and allocation are allowed. Bind source, tokenizer, checkpoint,
+  geometry, and decode identities; fixed inputs remain deterministic.
+- **Frozen TLA/R4G1 runtime:** its multiplication-free, allocation-free,
+  `no_std`, packed-format, and witness contracts remain in force. Do not weaken
+  them when touching that lane.
+- **Transformerless is not multiplication-free.** The active decoder earns the
+  first term only with zero source-attention calls, no dense full-prefix Q·K
+  matrix/softmax kernel, and bounded geometric support shown load-bearing by
+  disabled/permuted interventions. Integer/table lowering is a separate
+  post-viability decision.
 - **Errors**: library boundaries return `Result` with focused error enums. No
   `unwrap`/`expect`/panic on recoverable paths.
 - **No `unsafe`** in the portable runtime or the format crate.
@@ -71,18 +80,29 @@ merge blockers.
   `scripts/check_claim_wording.py` is CI-enforced. Exact-equivalence wording
   needs a linked proof artifact.
 
-## If your change is a measurement
+## If your change is product research
 
-Most substantive work here is. The expectations:
+The experiment must be able to change the next decoder decision:
 
+- **Name the active #949 child and the product decision.** Research without a
+  reachable consumer is archived rather than activated.
+- **Exercise the real token path first.** Geometry must run before token
+  selection and emit its support/logit effect before a quality run.
+- **Use the smallest falsifier.** Start with a tiny overfit, one layer, or a
+  short student-prefix rollout before adding data or layers.
+- **Use a non-degenerate null.** Active geometry is compared with disabled and
+  shuffled/permuted geometry under equal budgets.
+- **Include free-running output** whenever generation is in scope.
 - **Pre-declare the exit rule, the null baseline and the falsifier** before you
   run anything. Write them in the issue.
 - **Compute the reachability ceiling first.** If the ceiling is below the effect
   you are hoping for, do not launch. This is a five-minute calculation that has
   invalidated four-hour runs.
-- **Run the cheap instrument first and treat its verdict as binding.**
-  `cargo test -p uor-r4-graph-certify --test capacity_scaling -- --ignored` takes
-  ~12 minutes and prints a saturation verdict per structure.
+- **Run the issue-specific cheap instrument first and treat its verdict as
+  binding.** For decoder work this is normally the source-control smoke,
+  operator reachability probe, tiny-overfit gate, or short student-prefix
+  rollout. The historical graph `capacity_scaling` instrument applies only to
+  graph-capacity experiments.
 - **Pre-declare what each outcome causes.** If the positive and negative branches
   lead to the same next action, the run has no decision value — drop it or
   redesign it.
@@ -91,8 +111,12 @@ Most substantive work here is. The expectations:
 - **Make sure your instrument can fail.** Assert the control arm is
   non-degenerate before comparing. An all-zero result across every arm is a
   harness bug until proven otherwise — seven have been found here.
+- **Do not turn a negative into infrastructure by default.** A failed operator
+  stops or returns to representation design; it does not automatically justify
+  a larger corpus, graph format, proof lane, or benchmark suite.
 
-Paste the run contract into the issue before launching:
+For any run measured in hours, paste the run contract into the issue before
+launching:
 
 ```
 metric to move:       <name, current value>

@@ -5,6 +5,14 @@
 > `uor_r4_core::transformerless` (`crates/uor-r4-core/src/transformerless`). The "parent platform" referenced
 > in §5–§6 is this repository's UOR substrate (uor-addr, uor-foundation).
 
+> **Current scope (2026-08-25, #948).** This document specifies the retained
+> TLA table-cross-compiler and its historical multiplication-free runtime. It
+> does not specify the active
+> [geometric causal decoder](../geometric_causal_decoder_plan.md). The
+> two-surface teacher boundary below remains valid for TLA compilation only;
+> the active decoder deliberately studies residual/Q/K/V/attention behavior as
+> a reference while replacing causal self-attention.
+
 This document is the extrapolation companion to the implementation in this
 crate and the proof/certificate in PROOF.md. It assumes the graded
 κ-coordinate research program (the report and plan ship with the parent
@@ -28,8 +36,8 @@ everywhere — so the artifact ships with a *measured residual*: the
 certificate states agreement and bits/token against the source on a held-out
 stream, with the source's own floor and ceiling bracketing it. Equivalence
 class membership is a measured, bounded claim, never an asserted one.
-Second, the compiler's interface to the source must be architectural
-invariants, not architecture. Two surfaces suffice: an **embedding table**
+Second, the TLA compiler's interface to the source must be architectural
+invariants, not architecture. Two surfaces suffice for that compiler: an **embedding table**
 (the source's representation of tokens) and a **next-token oracle** (the
 source's behavior). Llama, qwen, phi, and every transformer LM of practical
 interest expose both. Everything between the surfaces — attention variants,

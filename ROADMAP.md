@@ -1,21 +1,17 @@
 # Roadmap
 
-Capability checklist. This is the **product** roadmap; the **research**
-programme — what has been measured, refuted and left open — lives in
-[docs/RESEARCH.md](docs/RESEARCH.md), and the two are tracked separately on
-purpose. Research direction is set by measurement and changes faster than this
-list does.
+This is the product view of the authoritative
+[Geometric Causal Decoder Roadmap](docs/geometric_causal_decoder_plan.md).
+Measured, refuted, and frozen research remains in
+[docs/RESEARCH.md](docs/RESEARCH.md).
 
-_Last reviewed: 2026-08-25 (#932 completed the exact-parallel host instrument
-and refused the pre-#933 135M bundle before teacher access). Prior: 2026-08-25
-(#933 completed the exact normative-runtime evidence branch with RATIFY and
-strict schema-2 admission)._
+_Last reviewed: 2026-08-25 (#948 architecture reset; GitHub programme root
+#820, execution tracker #949)._
 
-> **Post-v0.1 intelligence sequencing lives in the
-> [R4 Intelligence Completion Plan](docs/r4_intelligence_completion_plan.md)** —
-> the readable mirror of GitHub programme root #820 (stages S0–S7 plus the
-> cross-cutting F0 formal lane). This file stays the **product** capability
-> checklist and defers the ordering of intelligence work to that plan.
+> **Project priority:** make the local geometric AI produce coherent
+> free-running text. Reuse the working router memory, source causal runtime,
+> tokenizer, trace taps, and `uor-matmul`. Replace standard self-attention
+> progressively. Do not scale, prove, or lower the old graph product first.
 
 > **Quality-baseline reconciliation (#933/#934, 2026-08-25).** The legacy
 > pinned-report tolerance rounds to 29.7%; it is not a universal 30% product
@@ -29,29 +25,28 @@ strict schema-2 admission)._
 
 ## Next up (recommended sequencing)
 
-The foundational #933 truth-boundary correction has completed its empirical
-branch with RATIFY: ADR-0001's sole selector now consumes SKMX/PSIB across the
-shared production adapters, and the exact canonical full census is bound into a
-hardened schema-2 envelope that admits from an empty model store. This restores
-the corrected S0 evidence boundary without relabeling #908's reference result or
-claiming live-teacher parity.
+Native GitHub relationships are the source of truth:
 
-Current order:
+1. **Now — #948:** land the repository-wide architecture reset.
+2. **G0 — #950:** establish the coherent local `uor-matmul` control, bind the
+   tokenizer-to-manifold memory adapter, and execute one trainable R⁴ mixer
+   layer on every generated token.
+3. **G1 — #951:** fit and qualify that layer and the bound memory adapter on
+   teacher and student prefixes against disabled and permuted geometry/memory.
+4. **G2 — #952:** progressively replace every source causal self-attention
+   block while bounded free-running behavior survives.
+5. **G3 — #953:** make the all-layer decoder the shared CLI/HTTP product path
+   and feed persistent identity-scoped memory directly into geometric support.
+6. **G4 — #954:** profile and optimize only the dominant measured bottleneck.
+7. **G5 — #955:** freeze the bounded capability and decide whether to retain
+   `uor-matmul` or open a separately justified lowering successor.
 
-1. **Continue through the native dependency chain #931 → #839.** #932 now
-   provides the exact-parallel, observable live-teacher BDD harness, but its
-   teacher-free gate refused the selected 135M bundle because that bundle has
-   no schema-2 production envelope. The tuner and fixture-present measurement
-   were therefore `NOT_RUN`, with zero teacher work; live throughput, speedup,
-   and parity remain `NOT ESTABLISHED`. #931 must preserve that boundary rather
-   than treating the structural harness pass as live parity evidence.
-2. **Keep the claim boundary fixed.** The #933 RATIFY is exact-artifact and
-   teacher-forced-position evidence, not instruction following, reasoning, or
-   free-running coherence.
-3. **Deferred research and product backlog remains unchanged:** the #784
-   context-code-convergence family, the #653 phase-2 formal remnants, the
-   #759→#460 codebook-collision root cause, a future vacuity-robust
-   route-attention contract, and eventual `uor-r4` alias removal.
+#950 is the sole immediate engineering issue after #948. Downstream work stays
+unassigned until its blocker closes.
+
+The old S5–S7 and F0 issues are closed not planned/not triggered. R4G1/TLA,
+XOR/popcount, W(3,3), proof, conformance, and release work remains preserved as
+historical evidence and comparators.
 
 ## Landed
 
@@ -93,7 +88,7 @@ Current order:
   is cost-optimal, unrelated to text generation; source and provenance only
   — not wired into any pipeline, not in the deployed dependency graph. Phase
   2 (integration matrix, PR #765) landed and #653 closed 2026-08-17; its
-  "defer-open" items are currently untracked (see Next up item 3).
+  "defer-open" items are not part of the active geometric-decoder programme.
 - [x] **Ready-by-default serving epic (#655, closed 2026-08-19)** — A–F
   complete: uor-matmul-owned compile arithmetic; shared bundle loader +
   sidecar manifest/verifier; Production/Experimental engine profiles
@@ -113,14 +108,12 @@ Current order:
 
 ## Capabilities
 
-- [~] Text-based AI — compiles, serves, and ships as a verified release;
-  **output quality remains the central research problem**. The #755 corpus-
-  ordering fix plus the seeded-sampling decode default moved baseline answers
-  from word-salad/digit-attractors to valid English sentences (15/15 on the
-  declared canary, 2026-08-19), but distinctness is weak (#784: distinct
-  prompts converge onto similar completions) and factual quality is
-  research-grade; the canonical local bundles still predate the #755
-  recompile. See
+- [~] Text-based AI — the repository has the local source-model components
+  needed to restore a coherent control, working geometric memory/retrieval, and
+  historical compiled runtimes, but no native geometric decoder has established
+  coherent free-running product behavior. #950–#953 own that gap. Historical
+  canaries and pointwise results remain scoped evidence, not a claim that the
+  current product works. See
   [Which track can actually produce coherent text](docs/RESEARCH.md#which-track-can-actually-produce-coherent-text--the-honest-current-answer).
 - [ ] Image
 - [ ] Audio

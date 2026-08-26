@@ -1,33 +1,39 @@
-# How transformerless + r4 work, explained at undergraduate level
+# How R⁴ is becoming a geometric language model, at undergraduate level
 
 > The seminar version — real machinery, one-line definitions, honest
 > caveats. Too dense? Start with [ELI5.md](ELI5.md). Want the full rigor?
-> [../transformerless/TRANSFORMERLESS.md](../transformerless/TRANSFORMERLESS.md)
-> and [../transformerless/PROOF.md](../transformerless/PROOF.md). Code map:
+> the [Geometric Causal Decoder Roadmap](../geometric_causal_decoder_plan.md).
+> The retained table/graph compiler is specified separately in
+> [TRANSFORMERLESS.md](../transformerless/TRANSFORMERLESS.md) and
+> [PROOF.md](../transformerless/PROOF.md). Code map:
 > `crates/uor-r4-core` (including its `transformerless` module),
 > `crates/uor-r4-router`, and the root `tless_uor` witness module.
 
 ## The frame
 
-Both projects are answers to the question *"what should a language model
-be?"*, from opposite directions:
+The active project asks whether learned Riemannian geometry can replace causal
+self-attention without losing free-running language:
 
 ```
-transformerless:  behavior is the object; encodings are interchangeable
-                  → compile the transformer into a different member of
-                    its own behavioral equivalence class (tables, not weights)
-
-r4:               routing is the object; geometry replaces learned gating
-                  → map queries to coordinates, steer from structure,
-                    and certify every step with a formal witness pipeline
+prompt + prior tokens + persistent geometric memory
+                  → bounded learned R⁴ neighborhood at each replaced layer
+                  → residual / norm / MLP / LM head via uor-matmul
+                  → next-token logits → write the completed turn back to memory
 ```
 
-The merger puts transformerless's *measured* discipline inside r4's
-*witness* substrate.
+The first checkpoint is hybrid and experimental. “Transformerless” is earned
+only after the product path makes zero source-attention calls and contains no
+dense full-prefix Q·K matrix/softmax kernel; the replacement must use bounded,
+intervention-qualified geometric support. That geometry may deliberately learn
+to reproduce useful teacher-attention behavior. Multiplication-free is a later,
+separate decision.
+
+The sections below explain the historical table/graph system retained as a
+comparator. Its measurements are not the current implementation order.
 
 ## transformerless: cross-compiling a behavior
 
-**Compilation (offline, multiplies allowed here and only here).** The
+**Compilation (historical TLA lane; multiplies allowed offline).** The
 teacher is accessed through exactly two surfaces — the embedding table
 `E ∈ ℝ^{V×D}` and a next-token logits oracle — so nothing about the
 architecture (attention, norms, gating) can leak into the artifact.
@@ -78,7 +84,8 @@ size:       2.17 MB artifact (0.13 codes + 0.29 books + 0.04 sigs + 1.70 store)
             vs 25–94 MB weights
 ```
 
-**The certificate is the honest part.** Claims are priced, not asserted:
+**Historical fixture snapshot.** These original rows are scoped to their named
+artifact and population; they are not current product-quality numbers:
 
 | design | mul-free? | agree w/ teacher argmax | WB bits/token |
 |---|---|---|---|
@@ -86,11 +93,11 @@ size:       2.17 MB artifact (0.13 codes + 0.29 books + 0.04 sigs + 1.70 store)
 | **A-binary (shipped)** | **yes** | **31.7%** | **6.54** |
 | B bit-prefix (no classes) | yes | 28.6% | 7.70 |
 
-Teacher floor is 1.60 bits/token, so this is a real capability gap — but
-the measured scaling law says it closes with *store entries* (the
-resolution knee migrates outward as log_K of entry count), at constant
-per-token compute. That's the thesis: multiply once at compile time, then
-buy capability with storage instead of FLOPs.
+Teacher floor was 1.60 bits/token on that snapshot, so the table reported a
+large capability gap. A historical fit suggested that additional store entries
+moved the resolution knee at constant per-token compute. Later student-prefix
+and product runs did not establish that this pointwise trend composes into
+coherent generation; that negative result motivates the active decoder reset.
 
 ## r4: geometric routing + a formal witness substrate
 
@@ -177,10 +184,10 @@ Three concrete joins:
 
 ## Critical assessment (the part seminars are for)
 
-- transformerless is **strong where it's measured and silent where it
-  isn't**: the mul-free and reproducibility claims are proven; the
-  capability claim is explicitly store-bounded (31.7% agreement at 10⁵
-  entries — a real gap, stated as such).
+- the historical TLA runtime is **strong where it is measured and silent where
+  it is not**: its operation-set and reproducibility claims are scoped to exact
+  artifacts and checks; the 31.7% row above is an older fixture result, not a
+  coherence or current-production claim.
 - r4's app layer is **heuristic** — hardcoded eigenvalues,
   `sha256 mod 500` QIMC primes, a 3/8 law stated mostly in demo HTML. Its
   framework layer is the genuine math; the witness machinery doesn't

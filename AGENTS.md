@@ -1,35 +1,37 @@
 # AGENTS.md — uor-r4
 
 Guidance for agents (human or otherwise) working in this repository.
-**Post-v0.1 intelligence sequencing is authoritative in
-[`docs/r4_intelligence_completion_plan.md`](docs/r4_intelligence_completion_plan.md)**
-— the readable mirror of the GitHub programme root #820 (stages S0–S7 plus the
-cross-cutting F0 formal lane). The original graph-compiler engineering plan,
-`docs/r4_graph_compiler_implementation_plan.md`, is **retained** and still
-describes the compiler/runtime engineering direction; it is superseded only for
-post-v0.1 *sequencing*. Terminology lives in `docs/transformerless/GLOSSARY.md`.
-Keep this file current when conventions change.
+**Current intelligence sequencing is authoritative in the
+[`docs/geometric_causal_decoder_plan.md`](docs/geometric_causal_decoder_plan.md)**
+— the readable mirror of GitHub programme root #820 and execution tracker #949.
+The prior S0–S7 completion plan and the graph-compiler implementation plan are
+retained as historical engineering/evidence records; neither decides what is
+built next. Terminology lives in `docs/transformerless/GLOSSARY.md`. Keep this
+file current when conventions change.
 
 ## What this repo is
 
-A local, CPU-first AI system: (1) a **transformerless engine** that
-cross-compiles a pinned Hugging Face teacher into a multiplication-free
-table-native artifact with a witnessed integer runtime, and (2) the **R⁴
-holographic graph compiler** program that generalizes it into a
-multiresolution, overlapping semantic graph with an allocation-free runtime
-(the plan linked above). The f64 geometric router (`crates/uor-r4-router`) and
-the wasm dashboard are exploratory and stay out of the graph migration path.
+A local, CPU-first **geometric language-model programme**. The active product
+lane reuses the source-model tokenizer/residual/MLP/LM-head stack and pinned
+`uor-matmul` projections while progressively replacing causal self-attention
+with a learned R⁴ geometric mixer. The existing f64 router supplies
+identity-scoped geometric memory, retrieval, and turn persistence.
+
+The multiplication-free TLA/R4G1 compiler, packed graph runtime, certifier,
+proof assets, and dashboard remain in the repository as working historical
+components and research comparators. They are not the active intelligence
+sequencing path.
 
 ## Workspace layout
 
 - `crates/uor-r4-core` — R⁴ math + transformerless compiler/runtime (see its README)
-- `crates/uor-r4-router` — geometric router + dashboard backend (f64; untouched by the graph plan)
+- `crates/uor-r4-router` — active geometric memory/router + historical word-Markov decoder and dashboard backend
 - `crates/uor-r4-graph-format` — R4G1 packed artifact format, two-stage validation, borrowed `GraphView`
 - `crates/uor-r4-graph-compiler` — offline graph-compiler stages (observation, cover induction, packing)
 - `crates/uor-r4-graph-certify` — offline certification/measurement (Gate C `score` harness, `score_runtime` reference scorer, certificates)
 - `crates/uor-r4-graph-runtime` — `no_std` allocation-free R4G1 graph runtime (engine, routing, patch chains)
 - `crates/uor-r4-graph-cli` — `r4 transformerless …` CLI stage dispatch (convert-r4g1, scenarios, corpus tools)
-- `crates/uor-r4-model-source` — teacher forward-pass port + pinned Safetensors adapter
+- `crates/uor-r4-model-source` — source forward/KV/trace runtime and the active geometric-decoder seam
 - `crates/uor-r4-proof-model` — executable proof obligations + proof-status matrix
 - `crates/uor-r4-api` — typed compile + engine library façade for downstream consumers (wraps the CLI-shaped stages; see its README)
 - root package `uor-r4-wasm-router` — façade + `r4` CLI + local server/chat
@@ -38,9 +40,10 @@ the wasm dashboard are exploratory and stay out of the graph migration path.
 
 Documentation entry points, in the order a newcomer should read them:
 `README.md` (what it is, quickstart, CLI/HTTP/config reference) →
-`CONTRIBUTING.md` (the short form of this file) → this file (the full operating
-manual) → `docs/RESEARCH.md` (what is measured, closed and open) →
-`docs/MODEL_LIFECYCLE.md` (the multi-hour compile chain) →
+`docs/geometric_causal_decoder_plan.md` (current architecture and exact issue
+order) → `CONTRIBUTING.md` (the short form of this file) → this file (the full
+operating manual) → `docs/RESEARCH.md` (what is measured, closed and open) →
+`docs/MODEL_LIFECYCLE.md` (active decoder and historical compile lanes) →
 `docs/CONFIGURATION.md` (every environment knob).
 
 **Keep them true.** When a measurement revises a claim, correct it where it is
@@ -81,18 +84,24 @@ ignores the pin — verify `which cargo` resolves to `~/.cargo/bin/cargo`,
 or run gates as `rustup run stable cargo …`. Bump the pin in a dedicated
 PR (a bump can shift libm-sensitive teacher logprobs — see Gate E below).
 
-## Normative invariants (do not weaken)
+## Execution-lane invariants (do not conflate)
 
-- **Runtime kernel**: XOR/AND/OR/shift/rotate/popcount/int add-sub/compare/
-  table reads only. No multiply, divide, or float in the deployed kernel —
-  enforced by a machine-checked source scan (`transformerless/mod.rs` P-4).
-  Compiler/certifier code may use floats and allocation; runtime code may not.
-- **Allocation**: the prediction hot path is allocation-free in steady state
-  (asserted by `crates/uor-r4-core/tests/allocation_census.rs`).
-- **Determinism**: identical pinned inputs ⇒ identical artifact bytes. No
-  HashMap-iteration-order, clock, or RNG dependence in compiler outputs;
-  parallelism partitions by content-addressed sample ID with ordered
-  reductions (plan §4.1).
+- **Active geometric decoder:** learned floating-point projections,
+  `uor-matmul`, allocation, and ordinary source-model residual/MLP/LM-head
+  components are allowed. Fixed inputs/checkpoints/decode settings must remain
+  deterministic, and library boundaries retain typed errors.
+- **Frozen TLA/R4G1 runtime:** XOR/AND/OR/shift/rotate/popcount/int
+  add-sub/compare/table reads only. No multiply, divide, or float in its
+  normative kernel; its steady-state prediction path remains allocation-free.
+  Do not weaken those scoped guarantees while changing decoder code.
+- **Transformerless is not multiplication-free.** A decoder may be called
+  transformerless only when it invokes no source-attention operator, contains
+  no dense full-prefix Q·K matrix/softmax kernel, and uses bounded geometric
+  support shown load-bearing by disabled/permuted interventions.
+  P-4/table lowering is a later, separately triggered decision.
+- **Artifact determinism:** identical pinned compiler inputs still produce
+  identical historical artifact bytes. New learned decoder checkpoints must
+  bind their source, tokenizer, training configuration, and parameters.
 - **Errors**: library boundaries return `Result` with focused error enums;
   no `unwrap`/`expect`/panic on recoverable paths. No unsafe in the portable
   runtime or the format crate (`#![forbid(unsafe_code)]` there).
@@ -101,6 +110,33 @@ PR (a bump can shift libm-sensitive teacher logprobs — see Gate E below).
   Criterion, guarantees carry a proof-matrix status, and
   `python3 scripts/check_claim_wording.py` (CI-enforced) blocks
   "machine-verified"/exact-equivalence wording without a linked proof artifact.
+
+## Active product and research rules
+
+- Work only the earliest unblocked child of #949. #950 is the first engineering
+  issue after the roadmap PR; downstream issues stay unassigned.
+- Every active decoder engineering leaf ends in a runnable product result, not
+  only a format, harness, proof, or metric. Governance and administration work
+  may instead close with their explicit repository/GitHub outcome.
+- Establish the coherent local `uor-matmul` control before debugging geometry.
+- Bind persistent memories to the exact source tokenizer and qualify their
+  deterministic layer projection before progressive replacement.
+- Geometry must execute before token choice, change real support/logits, and
+  beat a disabled or permuted-geometry null before it is scaled.
+- Student-prefix free-running output is required whenever generation is
+  claimed. Teacher-forced top-1 alone cannot promote a decoder stage.
+- Before closing a stage with `REDESIGN` or another negative verdict, reblock
+  its successor on the replacement design or close the downstream work as not
+  triggered. A closed blocker is not itself a promotion.
+- Start with the smallest batch/prompt set that can falsify the mechanism. A
+  negative result stops or redesigns it; it does not automatically authorize a
+  larger harness.
+- Do not add a graph section, proof lane, benchmark framework, BDD suite, or
+  corpus-scale run before the active vertical slice demonstrates decision
+  value.
+- Routine verification is one focused behavior test, touched-package compile,
+  and bounded product transcript. Add certification only when its exact
+  contract is changed or a release decision requires it.
 
 ## κ-reproduction (Gate E) — how to run and re-pin
 
@@ -120,7 +156,11 @@ PR (a bump can shift libm-sensitive teacher logprobs — see Gate E below).
   legitimately change κs; drift from nondeterminism never does — investigate
   first (double-compile determinism check), then re-pin.
 
-## Teacher parity BDD suite
+## Historical TLA/R4G1 teacher-parity certification
+
+The suite below remains valid for the frozen compiled-runtime evidence lane. It
+is not an entry gate for geometric-decoder development and must not be added to
+routine decoder PRs.
 
 `features/suites/teacher_parity_benchmarks.feature` (steps in `tests/bdd.rs`)
 runs the live SmolLM2-135M teacher against both compiled runtimes (legacy TLS
@@ -243,10 +283,11 @@ CIDs before loading teacher weights.
   `indexing_and_generation_update_store` asserts resolution depths that depend
   on the fixture artifact's class signatures — update the expected depths with
   an era note whenever the fixture is regenerated.
-- **ScoreQ**: there are intentionally two compatible definitions in flight
+- **ScoreQ**: there are intentionally two compatible definitions in the frozen
+  graph lane
   (`uor-r4-graph-format::ScoreQ` wire newtype; `uor-r4-core::score_q::ScoreQ`
-  with compiler-side f32 conversions). Consolidation onto the format crate is
-  a scheduled pre-Phase-5 cleanup — don't add a third.
+  with compiler-side f32 conversions). Do not add a third or prioritize their
+  consolidation ahead of #949.
 
 ## Long-run discipline (process amendment, 2026-08-06)
 
@@ -264,10 +305,13 @@ run. If the ceiling is below the effect you are hoping for, do not launch.
 
 **Two — the cheap instrument is a hard gate.** Where an instrument exists
 that reports the structural precondition, it runs FIRST and its verdict is
-binding. `cargo test -p uor-r4-graph-certify --test capacity_scaling --
---ignored` takes about twelve minutes and prints a SATURATION verdict per
-structure. If it reports SATURATED on the structure the experiment intends to
-move, the long run does not launch. On 2026-08-06 that instrument reported
+binding. For graph experiments,
+`cargo test -p uor-r4-graph-certify --test capacity_scaling -- --ignored`
+takes about twelve minutes and prints a SATURATION verdict per structure. For
+decoder experiments, use the issue's tiny-overfit, reachability, or short-rollout
+preflight instead; do not run a graph instrument that cannot decide the decoder
+question. If the relevant instrument fails, the long run does not launch. On
+2026-08-06 the graph instrument reported
 `records_per_full_key: 36.02 SATURATED` and `exct.supported_record_fraction:
 0.9882 SATURATED` before a multi-hour Gate C run that then confirmed exactly
 what those two lines already implied.

@@ -1,4 +1,4 @@
-# R⁴ — Local Transformerless AI
+# R⁴ — Local Geometric Transformerless AI
 
 [![CI](https://github.com/UOR-Foundation/uor-r4/actions/workflows/ci.yml/badge.svg)](https://github.com/UOR-Foundation/uor-r4/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/UOR-Foundation/uor-r4)](https://github.com/UOR-Foundation/uor-r4/releases/latest)
@@ -7,24 +7,31 @@
 
 ## What is this?
 
-Modern AI models answer questions by doing billions of floating-point
-multiplications per word, which is why they want GPUs, datacenters, and a
-power budget. **R⁴ asks whether the expensive math can be paid once, ahead
-of time, instead of on every single question.**
+R⁴ asks whether language can be routed through learned Riemannian geometry on
+ordinary CPUs instead of depending on conventional transformer
+self-attention and GPU-oriented matrix stacks.
 
-It takes an ordinary open language model (the *teacher*), watches how it
-behaves on a corpus, and **compiles** that behavior into integer lookup
-structures — packed tables and a scored graph. Answering then needs only
-bit operations, integer adds, compares, and table reads: **no
-multiplication, no floating point, no GPU, no allocation in the hot path**,
-on an ordinary CPU. Every answer carries a content-addressed witness — a
-verifiable receipt of exactly which evidence produced it — and when the
-engine doesn't have grounded evidence for a prompt, it says so with a typed
-abstention instead of guessing confidently.
+The active programme builds a **geometric causal decoder**. It starts from the
+repository's existing local source-model runtime, tokenizer, and language
+weights; routes every learned dense projection through the pinned
+`uor-matmul` backend; admits prior token states and persistent geometric
+memories into a learned R⁴ causal neighborhood; and progressively replaces
+every standard self-attention block while coherent free-running text survives.
 
-Everything runs locally. No Ollama, llama.cpp, OpenAI, or Anthropic at
-runtime; nothing leaves the machine, and nothing downloads unless you
-explicitly ask it to.
+Everything runs locally. The target product uses no Ollama, hosted OpenAI, or
+Anthropic inference, and nothing downloads unless explicitly requested.
+
+The repository also retains its earlier multiplication-free TLA/R4G1 compiler,
+packed graph runtime, certifier, witnesses, and proof assets. Those components
+carry useful scoped teacher-forced signal and remain valid research
+comparators, but they have not produced coherent free-running language and are
+no longer the active intelligence architecture.
+
+This returns to the original
+[prime-router](https://github.com/Casey-allard/prime-router) division of labor:
+geometry owns context, identity, and conversational memory; the missing work is
+to make that geometry participate inside a local causal syntax mechanism rather
+than injecting context into an external Ollama model.
 
 **Who this is for.** Researchers and engineers curious whether serving-time
 AI can shed the GPU/energy footprint — and anyone who wants to watch a
@@ -41,30 +48,34 @@ work, aligned with the
 [Prism](https://github.com/UOR-Foundation/prism) and
 [uor-addr](https://github.com/UOR-Foundation/uor-addr).
 
-## The idea in one picture
+## The active architecture in one picture
 
 ```mermaid
 flowchart LR
-    subgraph offline["OFFLINE — paid once, hours on a CPU"]
-        direction LR
-        Teacher["Open teacher model<br/>(e.g. SmolLM2)"] -->|"teacher-forced<br/>observation"| Corpus["Deterministic<br/>corpus"]
-        Corpus -->|"compile +<br/>score"| Bundle["Integer bundle<br/>tables + scored graph<br/>(content-addressed)"]
-    end
-    subgraph online["ONLINE — every question, milliseconds on a CPU"]
-        direction LR
-        Q["Your question"] --> Kernel["Integer kernel<br/>XOR · popcount · add ·<br/>compare · table reads"]
-        Kernel --> A["Answer + verifiable witness<br/>(or an honest typed abstention)"]
-    end
-    Bundle ==>|"ships as a verified<br/>release asset"| Kernel
+    Q["Prompt + prior tokens"] --> D["Learned R⁴ causal mixer"]
+    M["Identity-scoped<br/>geometric memory"] --> D
+    D --> S["Residual · norm · MLP · LM head<br/>dense projections via uor-matmul"]
+    S --> T["Next-token logits"]
+    T --> D
+    T --> C["Commit completed turn<br/>to the manifold"]
+    C --> M
 ```
 
-The heavy math (the teacher's matrix multiplications) happens only in the
-offline compile — and even there it runs through the project's own pinned
-exact-arithmetic library, not platform BLAS. The deployed answer path is
-enforced multiplication-free by a machine-checked source scan and an
-operation census, not by convention.
+The first working checkpoint may use floating point, allocation, and
+`uor-matmul` at inference. **Transformerless** means that the promoted decoder
+invokes no source-attention operator or dense full-prefix Q·K matrix/softmax
+kernel; bounded geometric support must be load-bearing under intervention.
+**Multiplication-free** is a separate, optional post-viability optimization; it
+is not allowed to block coherent generation.
 
-> **Status: research project.** Historical
+> **Status: architecture reset in progress.** No native geometric decoder has
+> yet established coherent product output. The immediate issue is
+> [#950](https://github.com/UOR-Foundation/uor-r4/issues/950): restore the
+> coherent local `uor-matmul` control and execute one learned R⁴ mixer layer
+> end to end. The exact sequence and stop rules are in the
+> [Geometric Causal Decoder Roadmap](docs/geometric_causal_decoder_plan.md).
+>
+> Historical
 > [release v0.1](https://github.com/UOR-Foundation/uor-r4/releases/tag/v0.1)
 > ships working binaries and a digest-verified, pre-schema-2 research bundle.
 > Current `main` serves that historical bundle only through the explicit
@@ -75,15 +86,16 @@ operation census, not by convention.
 > no live teacher forward and that passes those exact admission gates, including
 > strict admission from an empty model store. That result is bound to its
 > artifact, population, selector, and decode configuration; it does not upgrade
-> v0.1 or establish live-teacher parity. The compiler, runtime, artifact format
-> and measurement harnesses are exercised by CI. Generation quality is *not*
-> competitive with the teacher
-> models it compiles — answers are valid English with weak prompt-conditioning
-> and research-grade factuality; see
+> v0.1 or establish live-teacher parity. The compiler, runtime, artifact format,
+> and focused measurement code are exercised by the protected build/library
+> gate. Generation quality is *not* competitive with the source models. Some
+> historical in-domain canaries produced grammatical samples, but the deployed
+> graph system has not established prompt-responsive coherent conversation; see
 > [What actually works](#what-actually-works) for honest numbers. This
 > repository is run as a measured research programme;
 > [docs/RESEARCH.md](docs/RESEARCH.md) records what has been established
-> and what has been refuted.
+> and what has been refuted. None of those historical results is relabeled by
+> the reset.
 
 ---
 
@@ -129,11 +141,11 @@ release's attested manifest before anything lands on disk, and refuses
 archives containing anything unattested. `--research` is required because
 v0.1 predates the schema-2 production envelope; the CLI prints that boundary
 as a typed warning rather than silently promoting the bundle. The answer will
-be valid English of research-grade quality — read the honest release notes and
-[What actually works](#what-actually-works) before judging it as a
-chatbot. Decode defaults to seeded sampling with a pinned seed, so the
-same question reproduces the same answer; `--greedy` opts into the
-deterministic beam.
+often be repetitive, weakly conditioned, or incoherent; this command reproduces
+the historical research artifact, not a working chatbot. Read the release notes
+and [What actually works](#what-actually-works) for the measured boundary.
+Decode defaults to seeded sampling with a pinned seed, so the same question
+reproduces the same answer; `--greedy` opts into the deterministic beam.
 
 ### 5 minutes — run the measurement pipeline on the committed fixtures
 
@@ -149,8 +161,8 @@ cargo run --release --bin r4 -- transformerless score \
 ```
 
 It writes `/tmp/score-demo/score_report.json` (schema 26) and prints a per-phase
-wall clock. This is the same command CI runs as its Gate C trend alarm, so a
-clean run here means your build agrees with ours.
+wall clock. This is a manual historical-compiler measurement; it is not part of
+the pull-request or merge-queue critical path.
 
 ### Hours — compile your own model
 
@@ -197,6 +209,15 @@ blocks new additions, though ~1,100 legacy files remain tracked in the tree
 Being precise here matters more than being impressive, because this repository's
 whole method is measurement.
 
+> **Current product truth.** Geometric memory/retrieval works, and the local
+> source-model implementation contains the causal weights, tokenizer, trace
+> taps, and `uor-matmul` forward path needed to test a coherent control. That
+> control has not yet been restored through the product surface. The native
+> geometric and R4G1/TLA generators have not established coherent free-running
+> text. The active roadmap connects those assets and replaces causal
+> self-attention one layer at a time; it does not reinterpret the pointwise
+> numbers below as product success.
+
 > **Current quality-baseline scope (#933/#934, 2026-08-25).** There is no
 > universal absolute 30% floor. The rounded **29.7%** tolerance belongs only to
 > historical pinned/legacy reports. On the exact 72,130-position canonical
@@ -216,15 +237,16 @@ whole method is measurement.
 > landed the observable host instrument, while live parity remains **NOT
 > ESTABLISHED**; see the [#932 evidence record](docs/teacher_parity_parallelism_932.md).
 
-**Solid, exercised by CI:**
+**Existing components, retained with scoped evidence:**
 
 - The **transformerless compiler and runtime**. A pinned Hugging Face model
   cross-compiles to a TLA artifact plus a graded store, and the prediction kernel
   uses only XOR/AND/OR/shift/rotate/popcount/integer add-sub/compare and table
   reads — no multiply, no divide, no float, enforced by a machine-checked source
   scan. The hot path is allocation-free in steady state, asserted by a test.
-- **Determinism.** Identical pinned inputs produce identical artifact bytes, and
-  a κ-reproduction gate (Gate E) checks that against a committed fixture.
+- **Determinism.** Identical pinned inputs produce identical artifact bytes.
+  The manual κ-reproduction certification (Gate E) checks that claim against a
+  committed fixture when its external checkpoint is present.
 - The **R4G1 packed graph format** with two-stage validation, a `no_std`
   allocation-free graph runtime, and a TLA/TLS1 → R4G1 migration converter.
 - **A-mode infill serving** — filling gaps between supplied anchors — is
@@ -244,13 +266,13 @@ whole method is measurement.
   code SHA + inference-contract version; the model bundle ships as an
   attested asset, and `r4 install-release` refuses anything whose digests
   don't match the manifest ([docs/RELEASE_PIPELINE.md](docs/RELEASE_PIPELINE.md)).
-- A **measurement apparatus**: 34 harnesses with pre-declared exit rules, null
-  baselines and falsifiers, plus a Gate C trend alarm that fails CI on
-  regression.
+- A large historical **measurement apparatus** with pre-declared exit rules,
+  null baselines and falsifiers. It remains available for scoped certification;
+  it is not the routine decoder-development gate.
 
 **Real limitations, stated plainly:**
 
-- **Generation quality is the central open research question.** The offline
+- **No native geometric decoder is coherent yet.** The offline
   per-position signal is real: on in-distribution corpus replay Gate C
   measures ~36% top-1 on the 500k fixture, and a broader teacher (P3, #509)
   lifts broad-text held-out top-1 to 10.2–29.0% causal — replicated,
@@ -270,7 +292,10 @@ whole method is measurement.
   signature-space novelty to the D4 policy — a measured substrate property
   (#811), same family as #784. See
   [Which track can actually produce coherent text](docs/RESEARCH.md#which-track-can-actually-produce-coherent-text--the-honest-current-answer)
-  for the full picture. This is a research engine, not a chat model.
+  for the full picture. The active issue #950 starts from the local source
+  components needed to establish a coherent control, then makes one R⁴ layer
+  causally load-bearing. Until that succeeds, this is a research engine, not a
+  chat model.
 - **Instruction following is gated, not solved.** Production `r4 ask` accepts
   only a schema-2 bundle whose exact graph, corpus partitions, tokenizer,
   compiler configuration, controls, cross-surface replay, and full-census
@@ -298,13 +323,13 @@ Every claim above traces to a merged measurement — see
 ```
 crates/
   uor-r4-core            R⁴ math + transformerless compiler/runtime/tokenizer/certifier
-  uor-r4-router          geometric router, dashboard backend (f64; outside the graph plan)
+  uor-r4-router          active geometric memory/router; historical Markov decoder; dashboard
   uor-r4-graph-format    R4G1 packed artifact format, two-stage validation, no_std
   uor-r4-graph-compiler  offline graph-compiler stages (observation, cover induction, packing)
   uor-r4-graph-certify   offline certification and measurement (Gate C `score` harness)
   uor-r4-graph-runtime   no_std, allocation-free R4G1 runtime (engine, routing, patch chains)
   uor-r4-graph-cli       `r4 transformerless …` stage dispatch
-  uor-r4-model-source    teacher forward-pass port + pinned Safetensors adapter
+  uor-r4-model-source    source forward/KV/trace runtime + source-attention seam for #950
   uor-r4-proof-model     executable proof obligations + proof-status matrix
   uor-r4-api             typed compile + engine library facade for downstream consumers
   uor-r4-naf             UOR-NAF v1 interchange slice + GNAF claim/status vocabulary (#623)
@@ -330,6 +355,11 @@ uor-r4-cli, r4-app.sh    single-command orchestrator
 
 ## Architecture
 
+The diagram below is the **current historical R4G1 production path**, preserved
+until #953 promotes the geometric decoder. It is not the active architecture
+development sequence; see the
+[decoder roadmap](docs/geometric_causal_decoder_plan.md) and the overview above.
+
 ```mermaid
 flowchart LR
     Source["Pinned local model source"] --> Compiler["R⁴ transformerless compiler"]
@@ -342,25 +372,28 @@ flowchart LR
     Cover --> Score["Transitions + ScoreQ residuals"]
     Store --> Score
     Score --> Graph["Validated R4G1 graph"]
-    Graph --> GraphRuntime["Integer graph scorer (evaluation path)"]
-    Artifact --> Runtime["Allocation-free CPU prediction kernel"]
-    Store --> Runtime
+    Graph --> Runtime["R4G1Runtime<br/>sole candidate/token selector"]
+    Artifact --> Runtime
     Tokenizer --> Runtime
-    Prompt["Prompt"] --> Router["R⁴ geometric router"]
-    Router --> Runtime
-    Runtime --> Witness["UOR CID + grounded witness"]
-    Runtime --> Apps["r4 ask / r4 chat / HTTP API"]
+    Prompt["Prompt"] --> D4["R4Engine D4 policy<br/>permit / widen / abstain only"]
+    Store --> D4
+    D4 --> Runtime
+    Runtime --> Decode["Seeded / greedy / beam decode"]
+    Decode --> Witness["UOR CID + grounded witness"]
+    Decode --> Apps["r4 ask / r4 chat / HTTP API"]
 ```
 
-**Serving order.** Within the R4G1 scorer, prediction consults packed NGRAM
-context rows (trigram with bigram backoff), then the graph chain with D4
-exact-context precedence, then the root prior. Across engines, the HTTP server
+**Serving order.** `R4Engine` owns only the D4 permit/widen/abstain policy;
+`R4G1Runtime` is the sole ranked-candidate and token selector. Within that
+runtime, prediction checks a packed NGRAM context row, then the longest matching
+suffix-DFA path, then geometric signature routing and node emissions. EXCT is
+deliberately not read by the deployed engine. Across engines, the HTTP server
 runs the #248 tier cascade (`r4g1 → transformerless → teacher-oracle →
-geometric`), filtered by the persisted **engine profile** (#655-E2): under the
-default `production` profile only the `r4g1` tier is admitted, and a request no
-admitted tier can serve returns a typed `declined_by_all` response rather than
-a silent fallback. (`uor-r4-router::fallback::FallbackRouter` is a legacy type
-with no serving callers — corrected 2026-08-18, baseline audit.)
+geometric`) only under the explicit experimental profile. The default
+production profile admits `r4g1` alone, and an unservable request returns typed
+`declined_by_all` rather than falling back silently.
+(`uor-r4-router::fallback::FallbackRouter` is a legacy type with no serving
+callers — corrected 2026-08-18, baseline audit.)
 
 **Artifact format eras.** Deployed compiles emit **TLA7** by default (per-stage
 i8 centroid copies, a norm-fold constant, per-stage decode shifts). TLA6 (packed
@@ -375,6 +408,11 @@ legacy u16 stores are readable but want a recompile.
 ---
 
 ## How a request is served
+
+This section documents current production behavior before #953. The geometric
+decoder initially enters as an explicit experimental engine; it becomes the
+default only after the all-layer, memory-causality, identity-isolation, restart,
+and product-transcript gates pass.
 
 Serving is built so that every outcome is a *typed, honest* one — served
 text with a witness, a typed decline, or a typed abstention. Nothing falls
@@ -692,74 +730,34 @@ silently did nothing would be indistinguishable from a knob that does not work.
 
 ## Testing and quality gates
 
-Local gates, all clean before every commit:
+Use the smallest checks that exercise the change:
 
 ```bash
-cargo test --workspace --offline
-cargo clippy --workspace --all-targets --all-features --offline -- -D warnings
 cargo fmt --check
-cargo check -p uor-r4-graph-format --no-default-features
-cargo check -p uor-r4-graph-format --no-default-features --features alloc
+cargo check -p <touched-package> --all-targets --offline
+cargo test -p <touched-package> --lib <focused-test> --offline
+python3 scripts/check_claim_wording.py  # claims/docs only
 ```
 
-Any change under `uor-r4-core` or `uor-r4-router` additionally needs the wasm
-target, because clippy does not build it and the merge queue does:
+Active decoder work also emits one bounded operator report or readable
+transcript that exercises the changed behavior. That product smoke is evidence,
+not a new test framework.
 
-```bash
-cargo check --target wasm32-unknown-unknown -p uor-r4-wasm-router --lib
-```
+The substantive protected context is `fast build + product smoke`.
+Docs/non-build changes run claim wording. Rust/build changes additionally run
+formatting, workspace compilation, and workspace library tests. Five temporary
+zero-work contexts mirror that result until a repository administrator updates
+the required-context list (#940).
 
-Other suites: `cargo test --test bdd` (or `just bdd`) runs the Cucumber
-teacher-parity suite. Without every required conditional fixture its parity
-evidence is **UNAVAILABLE**, not PASS, even if the enclosing test process exits
-successfully. With fixtures present, the harness is required to advance a
-full-width cohort of distinct prompts/generation trajectories through shared
-weights while one persistent worker pool partitions output rows; it must not
-change the reduction order within any dot product. The live tuner keeps all
-eight lanes and compares the host's W=available/W=4 candidates over exactly the
-same work, then adopts the faster bit-exact result. Candidate widths are a
-bounded break-even tuning choice, not a quota. Speedup and utilization are
-reported, not arbitrary gates. Admission requires complete trace/accounting
-evidence and a safety-adjusted projection below the configured hard wall. The
-expensive S4 work reuses transcript prefix states and extends one causal
-continuation from 1 to at most 8 steps only when another step can still change
-the verdict. Exact model, transpose/output, and per-worker scratch buffers are
-retained: one-time preparation is reported outside timing, and measured
-forwards must add zero workspace capacity. Heartbeats expose in-flight exact
-matrix/tile/cell/scalar progress and base ETA on that monotonic work instead of
-mislabeling a long active forward as stalled.
-Before opening the teacher, run
-`R4_PARITY_PREFLIGHT_ONLY=1 cargo test --test bdd --offline`; this teacher-free
-check parses every compiled prerequisite, exercises all eight canonical legacy
-and graph seeds, and records a content-bound preflight artifact with zero
-teacher forwards. Both the explicit preflight and the ordinary BDD loader write
-the refusal artifact before returning non-PASS, including the exact reason and
-safe per-input identities. The direct tuner also requires the artifact's
-current code-contract identity, selected paths, and recomputed compiled-input
-plus complete production-admission CIDs before it can open teacher weights. A
-non-PASS preflight blocks the expensive phases rather than becoming a vacuous
-green skip.
-`cargo test --doc --workspace` runs doc tests. `cargo +nightly fuzz run
-parse_arbitrary` fuzzes the format parser.
+Workspace, BDD, doctest, `no_std`, deterministic-rebuild, κ, Gate C,
+all-features, WASM, fuzz, Kani, audit, conformance, and corpus-scale suites are
+nightly/manual certification. Run one locally only when the change directly
+targets its contract or a release decision requires it. Conditional fixture
+evidence remains **UNAVAILABLE**, never PASS, when the fixture is absent.
 
-**CI** reports five required checks. On `pull_request` they are fast — claim
-wording, fmt, clippy, `cargo audit`. On `merge_group` the full ladder runs
-against the speculative merge: tests, no_std, deterministic rebuild,
-κ-reproduction, Gate C trend, wasm, fuzz smoke. A **docs-only fast path**
-short-circuits Markdown-only PRs. Any new required check name must be reported in
-*both* contexts, or PRs hang forever waiting on a check that never runs.
-Separate workflows cover Kani formal verification and GitHub Pages deployment.
-
-**Measurement harnesses** are `#[ignore]`d and run explicitly. The cheap gate
-that must precede any long run:
-
-```bash
-cargo test -p uor-r4-graph-certify --test capacity_scaling -- --ignored   # ~12 min
-```
-
-It prints a saturation verdict per structure. If it reports SATURATED on the
-structure your experiment intends to move, the long run does not launch. The full
-harness inventory is in [docs/RESEARCH.md](docs/RESEARCH.md).
+Long experiments follow the run contract in [AGENTS.md](AGENTS.md): establish
+reachability, run the issue-specific cheap preflight first, predeclare distinct
+outcome actions, and cap wall-clock/resource cost.
 
 ---
 
@@ -769,7 +767,6 @@ harness inventory is in [docs/RESEARCH.md](docs/RESEARCH.md).
 |---|---|
 | κ tests pass suspiciously fast | `/tmp/ref/out/model.bin` may be missing. The enclosing test can exit successfully, but Gate E evidence is **UNAVAILABLE**, not PASS. `/tmp` cleanup deletes the fixture; re-fetch it below and confirm the file exists before recording a verdict. |
 | fmt/clippy disagree with CI | A non-rustup Rust earlier in `PATH` ignores the toolchain pin. Check `which cargo`. |
-| clippy passes locally, fails in CI | You omitted `--all-features`. Use the exact invocation above. |
 | `r4 ask` refuses to run | Production mode requires a schema-2 envelope bound to the exact full deployed-quality census. Historical release or locally compiled bundles are research-only; inspect them with explicit `r4 ask --research ...`. Do not treat that warning-bearing path as production evidence. |
 | `install-release` refuses | That's it working: a digest mismatch, an unattested archive entry, or an existing install at the target name all refuse with nothing written. The error names the exact cause. |
 | Port 8000 already in use | Use `--port` / `UOR_R4_PORT`, or `PORT=9000 ./uor-r4-cli`. |
@@ -794,7 +791,7 @@ cd /tmp && unzip -o run.com out/model.bin tokenizer.bin -d ref
 - [docs/explainers/ELI5.md](docs/explainers/ELI5.md) · [docs/explainers/UNDERGRADUATE.md](docs/explainers/UNDERGRADUATE.md) — if you're new, start with these.
 - [docs/RESEARCH.md](docs/RESEARCH.md) — what is measured, what is closed, what is open, and
   [which track can actually produce coherent text](docs/RESEARCH.md#which-track-can-actually-produce-coherent-text--the-honest-current-answer).
-- [docs/MODEL_LIFECYCLE.md](docs/MODEL_LIFECYCLE.md) — install a released bundle, or download → compile → cover → score → evaluate → import → serve.
+- [docs/MODEL_LIFECYCLE.md](docs/MODEL_LIFECYCLE.md) — the not-yet-implemented geometric-decoder checkpoint lane plus the historical install/compile/score/serve lane.
 - [docs/RELEASE_PIPELINE.md](docs/RELEASE_PIPELINE.md) — the vX.Y convention, cutting a release, and the verified install.
 - [AGENTS.md](AGENTS.md) — contributor manual: gates, normative invariants, κ re-pin, long-run discipline.
 - [CONTRIBUTING.md](CONTRIBUTING.md) — how to open a PR here.
@@ -820,10 +817,13 @@ reference material, not an LLM engine — #653) ·
 [Matrix-operation census](docs/matrix_operation_census.md) ·
 [Serving-time model discovery](docs/SERVING_MODEL_DISCOVERY.md)
 
-**Plan** — [R4 Intelligence Completion Plan](docs/r4_intelligence_completion_plan.md)
-(authoritative for post-v0.1 intelligence sequencing; the readable mirror of programme
-root #820) · [R⁴ graph compiler implementation plan](docs/r4_graph_compiler_implementation_plan.md)
-(the original engineering plan, retained) · [ROADMAP.md](ROADMAP.md) ·
+**Plan** — [Geometric Causal Decoder Roadmap](docs/geometric_causal_decoder_plan.md)
+(authoritative; mirrors programme root #820 and tracker #949) ·
+[ADR-0002](docs/adr/0002-geometric-causal-decoder.md) ·
+[R4 Intelligence Completion Plan](docs/r4_intelligence_completion_plan.md)
+(historical S0–S7 evidence) ·
+[R⁴ graph compiler implementation plan](docs/r4_graph_compiler_implementation_plan.md)
+(historical engineering reference) · [ROADMAP.md](ROADMAP.md) ·
 [Minimal client](docs/minimal_client.md)
 
 ---
@@ -839,10 +839,10 @@ Read [AGENTS.md](AGENTS.md) first — it is the operating manual, not a formalit
    baseline and a falsifier.** Negative results are recorded and kept — several
    of the most valuable entries in [docs/RESEARCH.md](docs/RESEARCH.md) are
    refutations that redirected the programme.
-3. **Do not weaken the normative invariants**: no multiply/divide/float in the
-   deployed kernel, allocation-free hot path, deterministic artifacts, no
-   `unwrap`/`expect` on recoverable paths, no `unsafe` in the portable runtime or
-   the format crate.
+3. **Keep execution scopes separate.** The active decoder may use
+   `uor-matmul`, floating point, and allocation. The frozen TLA/R4G1 runtime
+   retains its multiplication-free, allocation-free, `no_std`, witness, and
+   packed-format guarantees.
 4. **Claim language is machine-checked.** `python3 scripts/check_claim_wording.py`
    blocks exact-equivalence wording that has no linked proof artifact.
 5. **Before any run measured in hours**, compute the reachability ceiling, run

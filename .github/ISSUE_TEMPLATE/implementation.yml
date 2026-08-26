@@ -1,20 +1,22 @@
 name: Implementation
-description: Propose a concrete, scoped code/docs work item with acceptance criteria, conformance mapping, and verification.
+description: Propose one runnable product change with acceptance criteria and focused verification.
 title: "[impl] <concrete work item>"
 body:
   - type: markdown
     attributes:
       value: |
-        Scoped implementation intake. A new **built** capability lands in this order:
-        `model/ids.toml` row → tagged Gherkin → failing marker/behavior test → implementation →
-        regenerated `CONFORMANCE.md`. `CONFORMANCE.md` is generated and never edited directly.
-        Preserve the normative invariants (`AGENTS.md`). See `docs/r4_intelligence_completion_plan.md`.
+        Scoped implementation intake. Current sequencing lives in
+        `docs/geometric_causal_decoder_plan.md`. Experimental decoder work ends
+        in a runnable vertical result and uses focused verification. Add the
+        `model/ids.toml` → Gherkin → test → implementation → generated
+        `CONFORMANCE.md` sequence only when an issue actually promotes a
+        conformance/release capability. `CONFORMANCE.md` is never hand-edited.
   - type: input
     id: parent
     attributes:
       label: Parent tracker / stage
-      description: Native parent issue and stage lane (e.g. "#821 — S0").
-      placeholder: "#821 — S0"
+      description: Native parent. Active decoder work names its #949 child; documentation, administration, and frozen-lane maintenance name their actual owner.
+      placeholder: "#949 / #950 — G0, or #940 — CI administration"
     validations:
       required: true
   - type: textarea
@@ -31,6 +33,7 @@ body:
       description: The surface this work changes. Evidence outside this scope is not credited as a deployed-serving result.
       options:
         - Documentation / governance
+        - Experimental geometric decoder (active, off-serving)
         - Reference / exploratory (out of the migration path)
         - Offline / compiler
         - Certifier / measurement (never participates in inference)
@@ -78,20 +81,22 @@ body:
   - type: textarea
     id: conformance
     attributes:
-      label: Conformance mapping
-      description: Existing RF capability IDs (RF-01…RF-29) this maps to, or the justification for a new capability ID. If a new built capability, confirm the model/ids.toml → Gherkin → failing test → impl → regenerated CONFORMANCE.md order.
-      placeholder: "RF-15, RF-22; no new capability ID."
+      label: Conformance mapping, if applicable
+      description: Experimental decoder work normally says "not promoted; no RF change." For an actual production/release capability, map existing RF IDs or justify a new one and follow the generated-register order.
+      placeholder: "Not promoted; no RF change."
     validations:
-      required: true
+      required: false
   - type: textarea
     id: verification
     attributes:
       label: Verification
       description: Name the smallest focused checks that exercise the changed behavior. Add κ, no_std, WASM, allocation/P-4, Kani/Lean, fuzz, conformance, or claim checks only when that contract is directly affected.
       value: |
-        - [ ] cargo fmt --check
-        - [ ] cargo check -p <touched-package> --all-targets --offline
-        - [ ] cargo test -p <touched-package> --lib --offline
+        - [ ] python3 scripts/check_claim_wording.py (claims/docs only)
+        - [ ] cargo fmt --check (Rust/build only)
+        - [ ] cargo check -p <touched-package> --all-targets --offline (Rust/build only)
+        - [ ] cargo test -p <touched-package> --lib <focused-test> --offline (behavior change only)
+        - [ ] bounded operator report or product transcript (decoder behavior only)
         - [ ] applicable contract-specific check, if any
     validations:
       required: true
@@ -99,7 +104,7 @@ body:
     id: documentation
     attributes:
       label: Documentation reconciliation
-      description: Which of README, ROADMAP, RESEARCH, MODEL_LIFECYCLE, CONFIGURATION, ledger, and per-issue records this updates. Records are append-only; live summaries are reconciled.
+      description: Which of the geometric decoder plan, README, ROADMAP, RESEARCH, MODEL_LIFECYCLE, CONFIGURATION, ledger, and per-issue records this updates. Records are append-only; live summaries are reconciled.
     validations:
       required: true
   - type: dropdown

@@ -253,7 +253,7 @@ test ! -e .uor-models/compiled/<model>-staging/graph/deployed_quality_full.log
 | `R4_HOPF_FISHER_PAIRS` / `R4_HOPF_REDESIGN` | 10,000 / off | `hopf_retrieval_quality` |
 | `HOPF_OCCUPANCY_REPORT_PATH` | `target/hopf_sector_occupancy/report.json` | `hopf_sector_occupancy` |
 | `R4_SELFMATCH_PROBES` | 100 | `geometry_selfmatch` |
-| `R4_LEXW_CONTENT_QUERY` | off (`1` enables content-query mode) | `lexical_weight` |
+| `R4_LEXW_CONTENT_QUERY` | Off in this historical harness; `1` selects the deployed content-query arm. The router itself defaults content-query mode on (#490/#502). | `lexical_weight` |
 | `R4_ZETA_ARM` | must be `1` or the harness no-ops | `zeta_state_retrieval` |
 | `R4_MEMLIFT_CONSTR_STORIES` / `R4_MEMLIFT_PROBES` | 2,000 / 500 | `memory_lift_corpus` |
 | `R4_ARM_SKIP_SAMPLE` / `R4_ARM_SKIP_FIXTURE_DIR` | 10,000 / the committed fixtures | `gate_c_arm_skip` |

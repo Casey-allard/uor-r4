@@ -1,11 +1,15 @@
 # R4 Intelligence Completion Plan
 
-- **Status:** Authoritative for post-v0.1 intelligence sequencing (adopted 2026-08-19, issue #829).
-- **Source of record:** GitHub tracker root #820 and its native sub-issues. Where this
-  document and the live GitHub hierarchy disagree, **the native parent/sub-issue tree on
-  GitHub wins**; this file is the readable, linkable mirror maintained alongside it.
-- **Relationship to earlier plans:** This document supersedes, for *post-v0.1 sequencing
-  only*, the phase ordering in `docs/r4_graph_compiler_implementation_plan.md` and the
+- **Status:** Historical S0–S7 programme and evidence record. Superseded for
+  current sequencing on 2026-08-25 by the
+  [Geometric Causal Decoder Roadmap](geometric_causal_decoder_plan.md), issue
+  #948, and tracker #949.
+- **Historical source of record:** The closed S0–S7 issues beneath #820. Where
+  this document and the current GitHub hierarchy disagree, the current
+  hierarchy and geometric decoder plan win.
+- **Historical relationship to earlier plans:** This document superseded, for
+  its 2026-08-19 through 2026-08-25 sequencing window, the phase ordering in
+  `docs/r4_graph_compiler_implementation_plan.md` and the
   `.github/DOCUMENTATION_OVERHAUL_PLAN.md`. It does **not** retract or rewrite any prior
   engineering plan or measurement record — those remain valid history and, where noted,
   valid engineering references. Claim language in this document follows
@@ -44,18 +48,19 @@ reconciled, the records are not rewritten):
 - Seeded sampling restored valid surface output, but has **not** established prompt causality
   or coherent free-running generation.
 
-## Goal
+## Historical goal
 
 Produce a CPU-first, deterministic, bounded, multiplication-free deployed system whose prompt
 conditioning, selective prediction, free-running behavior, typed-state planning, instruction
 behavior, scale, composition, and release claims are each backed by replayable evidence **at
 the exact execution scope claimed**.
 
-## Programme hierarchy
+## Historical programme hierarchy
 
-Native sub-issues are the source of truth. The root tracker (#820) has eight stage trackers
-plus one cross-cutting formal foundation. Each stage tracker owns its bounded native
-children, its milestone, its promotion gate, and its final verdict.
+This table records the native S0–S7/F0 hierarchy used by the superseded
+programme. Current native state under #820 and #949 is the source of truth for
+new work. The historical root had eight stage trackers plus one cross-cutting
+formal foundation; their closed issues retain their exact verdicts.
 
 | Lane | Tracker | Title | Milestone |
 |---|---|---|---|
@@ -740,8 +745,9 @@ authority:
 
 ## Promotion gates and kill/redesign criteria
 
-Each stage tracker records its own promotion gate and kill/redesign criterion; the
-authoritative text lives on the tracker issue. The global falsifiers that bind every stage:
+Each historical stage tracker recorded its own promotion gate and
+kill/redesign criterion; its issue retains the authoritative evidence for that
+closed execution scope. The global falsifiers that bound those stages were:
 
 - If two independently motivated conditioning mechanisms fail on document-disjoint,
   EXCT-disabled causal tests, revisit the representation/compiler model rather than continuing
@@ -820,21 +826,24 @@ rewritten. As of 2026-08-19 every historical milestone has **0 open issues**.
 These milestones are **retained** (not deleted, not renamed) so their closed-issue history stays
 addressable. Their live descriptions carry a one-line disposition banner pointing here.
 
-## Public entry points (all link here)
+## Historical public entry-point record (superseded)
 
-This document is the single canonical plan; the following entry points link to it rather than
-duplicating a drifting phase table:
+Before #948 this document was the single canonical plan and the following entry
+points linked here. They now point to
+`docs/geometric_causal_decoder_plan.md`; this list is retained to document the
+former navigation contract.
 
-- `AGENTS.md` — operating manual (post-v0.1 sequencing points here; the graph-compiler plan
-  remains the engineering plan).
-- `ROADMAP.md` — product capability checklist (intelligence sequencing points here).
+- `AGENTS.md` — operating manual (now points to the geometric decoder plan).
+- `ROADMAP.md` — product capability checklist (now mirrors #949 sequencing).
 - `README.md` — the roadmap/plan link section.
-- `docs/RESEARCH.md` — measured/refuted/open research (forward sequencing points here).
-- `docs/r4_graph_compiler_implementation_plan.md` — carries a status banner: retained as the
-  original graph-compiler engineering plan, superseded only for post-v0.1 sequencing.
+- `docs/RESEARCH.md` — measured/refuted/open research (forward sequencing now
+  points to the geometric decoder plan).
+- `docs/r4_graph_compiler_implementation_plan.md` — retained as a historical
+  graph-compiler engineering reference.
 - `.github/DOCUMENTATION_OVERHAUL_PLAN.md` — marked superseded.
 - Issue forms: `.github/ISSUE_TEMPLATE/research-experiment.yml` and
-  `.github/ISSUE_TEMPLATE/implementation.yml` encode the run/conformance contracts below.
+  `.github/ISSUE_TEMPLATE/implementation.yml` now encode the geometric-decoder
+  product/research contract.
 
 ## Evidence-first issue intake
 
@@ -849,10 +858,11 @@ its evidence discipline from the start:
   compatibility/migration; conformance mapping (RF IDs; the build order above); verification
   (the four local gates + applicable ladder); documentation reconciliation; and claim status.
 
-## Closure rule
+## Historical closure rule (superseded)
 
-A stage closes only when every native child has a recorded **completed, negative,
-not-triggered, or explicitly descoped** verdict and the stage promotion decision is posted with
-exact evidence links (`PROMOTE`, `REVISE`, `LIMIT`, or `RETIRE`). The root #820 closes only
-after #859 has a completed or explicitly narrowed formal-foundation verdict, all eight stage
-verdicts are recorded, and the final capability/open-limit record is published.
+Under this former programme, a stage closed only when every native child had a
+recorded **completed, negative, not-triggered, or explicitly descoped** verdict
+and the stage decision carried exact evidence links. #948 retired the untriggered
+S5–S7/F0 work instead of requiring all eight stages and #859 before #820 could
+move. The current #820 completion rule is defined in
+`docs/geometric_causal_decoder_plan.md` and tracker #949.

@@ -1,9 +1,19 @@
 # Research archive
 
-Consolidated research supporting the UOR / uor-r4 program, brought into this
-repository as the single source of truth. This tree is **not** part of the Rust
-workspace (see `exclude` in the root `Cargo.toml`) and is excluded from the
-crate build, lint, and claim-wording gates.
+Consolidated research supporting the UOR / uor-r4 programme. This tree is
+**not** part of the Rust workspace (see `exclude` in the root `Cargo.toml`)
+and is excluded from crate build, lint, and claim-wording gates.
+
+For geometric-decoder work, `research/ai-research/ai-router/router-research/`
+is the canonical research snapshot. The `ai-router` copies nested under
+`research/prime-analysis/` are historical source snapshots with overlapping
+and sometimes divergent results; do not treat three copies as independent
+replication or edit them in parallel.
+
+Research becomes active product work only through the
+[Geometric Causal Decoder Roadmap](../docs/geometric_causal_decoder_plan.md):
+an owning #949 issue must name the product-path consumer, smallest falsifier,
+and disabled/shuffled/permuted control. Otherwise it remains archival input.
 
 ## Contents
 

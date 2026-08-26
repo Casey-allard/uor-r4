@@ -1,16 +1,59 @@
-# Glossary — R⁴ Holographic Graph Compiler
+# Glossary — R⁴ Geometric Decoder and Historical Graph Runtime
 
-Phase 0 deliverable of `docs/r4_graph_compiler_implementation_plan.md` (§5).
-This document freezes shared terminology. Where the graph-compiler plan (PDF §5, §9) and the
-existing transformerless docs use different words for the same thing, both are listed and the
-graph term is normative for new work. See the terminology bridge in the plan (§14).
+Originally the Phase 0 graph-compiler glossary; expanded by #948 for the active
+[geometric causal decoder](../geometric_causal_decoder_plan.md). Decoder terms
+and graph terms name different execution lanes and must not be substituted for
+one another.
+
+## Active geometric-decoder terms
+
+- **Source control** — the pinned local source-model tokenizer and causal
+  forward path, including embeddings, KV state, residuals, normalization,
+  MLP/SwiGLU, and LM head. Its learned dense projections use `uor-matmul`.
+  These components are present; #950 must establish their coherent
+  free-running composition through the product-facing path. It is not the final
+  transformerless topology.
+- **GeometryContext** — bounded, identity-scoped decoder input containing
+  session/route state, ordered memory spans as real tokenizer IDs, provenance,
+  and per-position geometric keys or affinities. It binds the exact source
+  tokenizer CID and deterministic memory-to-layer adapter/checkpoint identity.
+- **Token/node** — one causal prefix position represented by its tokenizer ID,
+  hidden state, position, and learned geometric coordinates. It is not an
+  R4G1 semantic region or graph node.
+- **R⁴ causal mixer** — learned operator that maps the current hidden state to
+  geometric query coordinates, maps prior token/memory states to geometric
+  keys and values, selects a bounded causal neighborhood by declared
+  angular/geodesic compatibility, and aggregates its values into the residual
+  before token selection.
+- **Geometric query/key/value** — learned R⁴/quaternion coordinates and value
+  contributions used by the causal mixer. They are not the historical
+  288-bit semantic code, a UOR CID, a word-prime address, or the dormant
+  XOR/popcount route-attention code.
+- **Phase transport** — the declared update relating compatible geometric
+  frames or fiber phase across token/memory states. The specific equation and
+  chart assumptions belong to the operator issue; the name alone establishes
+  no semantic or language property.
+- **Student prefix** — a causal prefix containing tokens emitted by the
+  candidate decoder. Student-prefix evaluation exposes rollout states that
+  teacher-forced rows do not.
+- **Transformerless decoder** — a promoted decoder with zero calls to the
+  source-attention operator and no dense full-prefix Q·K matrix/softmax kernel.
+  Its mixer selects bounded geometric support and is load-bearing under
+  disabled/permuted interventions. The geometry may approximate teacher
+  attention during distillation. It may retain
+  embeddings, residuals, normalization, MLP/SwiGLU, LM head, and
+  `uor-matmul` projections.
+- **Multiplication-free runtime** — a separate operation-set claim belonging
+  to an exact execution path. It is not implied by “transformerless.”
 
 ## Core roles
 
-- **Teacher (T)** — the pinned source model used only during offline compilation: a deterministic
-  evaluation procedure `T: C → Δ(V)` for a pinned Hugging Face revision and deterministic execution
-  mode. Accessed exclusively through the two-surface `TeacherOracle` (embedding table + next-token
-  oracle), plus an optional compiler-only trace surface (hidden states, top-k logits).
+- **Teacher / source model (T)** — a deterministic evaluation procedure
+  `T: C → Δ(V)` for a pinned Hugging Face revision and execution mode. The
+  historical TLA compiler accesses it through `TeacherOracle`'s embedding and
+  next-token surfaces. The active decoder may additionally use versioned
+  hidden-state/Q/K/V/attention/logit traces for bounded mixer supervision; that
+  trace use is offline and never makes the teacher a serving dependency.
 - **Observation (o)** — the primary compilation sample: a bounded token context `c`, one or more
   teacher-derived representation vectors `h(c)`, the teacher distribution `T(c)`, and optional
   perturbation traces. Never an isolated token.
@@ -178,19 +221,21 @@ graph term is normative for new work. See the terminology bridge in the plan (§
   wired into the real producer path as an additive, opt-in `cover --emit-provenance` flag (phase
   2a, #733) — no existing artifact's bytes or κ moved. Not yet the default; the default-flip and
   consumer/era adoption are phases 2b/3, open pending format-governance review.
-- **Release-bundle manifest** (#655-C0, `crates/uor-r4-api/src/release_bundle.rs`) — the versioned
+- **Release-bundle manifest** (#655-C0+, `crates/uor-r4-api/src/release_bundle.rs`) — the versioned
   `ReleaseBundleManifest` schema a packaged serving bundle declares: schema version, public model
   id, instruction-chat capability, ABI/contract version, pinned `uor-matmul` provenance,
-  component digests, tokenizer identity. Schema and structural validation only as of #655-C0; no
-  discovery/loading/serving code reads it yet (that is #655-C1).
+  component digests, and tokenizer identity. Current production discovery and
+  admission read and content-bind the schema-2 envelope; historical v0.1 remains
+  explicit research-only input.
 
 ## Recent Architecture & Engine Additions (Epic #201)
 
 - **`tokenizer_cid`** — BLAKE3 hash of the loaded `tokenizer.bin` checked against `R4G1Header::tokenizer_cid` in `uor-r4-graph-format` (`verify_tokenizer_cid`), guaranteeing that loaded tokenizers match compiled graph artifacts and preventing silent index shifts.
 - **`parse_store_strict_u32`** — The normative 32-bit integer token ID store parser in `uor-r4-core::runtime`. Replaces deprecated `u16` legacy store loading.
-- **`FallbackRouter`** — The dynamic engine fallback router in `uor-r4-router` that wraps primary (`r4g1-graph`) and secondary (`transformerless-tla5`) engines, cleanly cascading on `UnmappedRegion` or `Pathological` statuses without dropping HTTP/WS payloads.
+- **`FallbackRouter`** — a retained legacy cascade type in `uor-r4-router`.
+  Current production serving has no callers and no silent TLA fallback; the
+  active geometric decoder does not route through it.
 - **`EngineStatus`** — Typed status enum (`Success`, `UnmappedRegion`, `Pathological`, `Failed`) classifying engine inference outcomes.
 - **`UorAttestationResult`** — Envelope wrapper for synthesis outputs containing verified BLAKE3 content-addressed CIDs (`uor_address`, `artifact_cid`, `store_cid`, `attestation_cid`), validated by `POST /api/uor/verify`.
 - **`W(3,3) Phase Field`** — The 96-vertex $S^3$ graph canvas visualization in `index.html` rendering real-time Markov trajectories from WebSocket telemetry streams.
 - **`ChatML Prompt Wrapper`** — Canonical ChatML format (`<|im_start|>system...\n<|im_start|>user...\n<|im_start|>assistant\n`) implemented in `scenarios.rs` (`encode_chat_prompt`) to format instruction-tuned teacher observations (`SmolLM2-135M-Instruct`).
-
