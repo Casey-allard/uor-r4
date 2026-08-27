@@ -346,3 +346,38 @@ Gate C, kappa reproduction, audit, fuzz, formal proof, conformance, product QA,
 and release qualification were `NOT_RUN`. Repository-required checks remain
 transport acknowledgements while product QA is dormant; they are not test or
 release evidence.
+
+## Programme direction addendum — 2026-08-27
+
+This addendum records the accepted next design boundary; it adds no measurement
+and does not change the hard-stop evidence above.
+
+#953 will separate candidate admission from harmonic influence. Its primary
+tier is I1/I2/ordered-sentence plus divisor. When that tier is non-empty, the
+physically present adjacent-spin row remains visible as consulted/present in the
+trace but contributes zero admitted entries. When the primary tier is empty,
+the same bounded row may activate under an explicit fallback policy. The frozen
+support preflight reruns before any H4 selection or generator arm.
+
+The adjacent-spin rows are retained rather than discarded, but only as traced
+retrieval fallback and diagnostic data. They map a coarse current sector to
+historically observed next candidates; they are not operator coefficients or
+exact-class relations. #973 must build any neighbor operator independently over
+exact classes and routes already admitted by #953.
+
+That later operator prototype may reuse the existing full
+signed-S3/Hopf/fiber/torsion `shared_class_kappa`, not a Hopf octant. A
+direction-sensitive relation requires either a new exact `SpinTorsionState`
+relative relation or an explicitly bound spin-to-H4 map; the existing relative
+H4 witness is prime-derived route state. Similar non-identical states require a
+separately frozen finite relative-angular kernel. Neither operator path may
+inject candidates, rewrite immutable addresses, or broadcast across the
+corpus.
+
+This direction is intended to address the observed support contamination and
+to create a causal location for a higher-scope exact-spin operator prototype.
+Calling that operator harmonic additionally requires a bound basis, mode order,
+coefficients, quantization, and transition law. It does not
+establish grammar, coherence, semantic spin placement, correctness, or
+reasoning. #953 remains open at `REVISE_I1_GENERATOR_IN_PLACE`, and #973 remains
+blocked.

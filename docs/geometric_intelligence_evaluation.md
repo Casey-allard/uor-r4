@@ -31,7 +31,8 @@ decoded-loop path, but its first smoke was an exact rank-preserving lexical
 relabel of #969 and terminated `REVISE_I1_GENERATOR_IN_PLACE`. Its frozen
 natural agreement follow-up stopped at support admission before H4 selection
 because adjacent-spin fallback expanded exact direct-plus-divisor support to
-five candidates. #953 remains active and #973 remains blocked; paragraph,
+five candidates. Protected PR #978 preserved that hard stop. #953 remains
+active for a tiered-admission repair, and #973 remains blocked; paragraph,
 conversation, global, correctness, and reasoning qualification remain
 downstream.
 
@@ -433,6 +434,16 @@ nondeterminism, a short cycle, or exceeding the eight-unit state bound. Do not
 respond with a comparator expansion, metric/weight sweep, larger fixture, or a
 new issue. Repair the exact seam directly within #953.
 
+The current repair has one frozen admission policy. I1/last-one, I2/last-two,
+ordered-sentence, and divisor rows form the primary tier. With non-empty primary
+support, adjacent-spin rows may be consulted and their physical entries counted
+but admit zero candidates. Only an empty primary tier activates bounded
+adjacent-spin fallback. The trace MUST bind the policy identity and distinguish
+row slot/key, consulted, physical-row-present, entries examined, fallback
+activated, and entries admitted. Preserve PR #978's frozen construction,
+surfaces, ordering, route placement, identities, expected support, and work;
+rerun only its selection-blind support preflight before exposing H4 selection.
+
 The frozen terminals are:
 
 - `PROCEED_TO_A1Q_H_WITH_BOUNDED_SOURCE_FREE_GEOMETRIC_GENERATION` — the full
@@ -485,6 +496,65 @@ H4 path costs, selector outputs, and all four generator arms are
 direct-plus-divisor admission tier with adjacent-spin rows used only when that
 primary tier is empty.
 
+### A1Q-H/#973 exact-spin global operator prototype
+
+#973 owns paragraph, conversation, and bounded-global influence after #953
+qualifies the decoded loop. Operator influence consumes #953-admitted support;
+it does not participate in admission. The existing adjacent-spin retrieval rows
+remain fallback/diagnostic data, not operator coefficients; any neighbor
+operator is compiled independently over exact classes and admitted candidates.
+
+The first global decision reuses one existing exact `shared_class_kappa` over
+full signed S3 orientation, checked Hopf observation, fiber, and torsion.
+Hopf/S2 is not class identity by itself, and `q`/`-q` remain distinct. The
+fixture contains enough ordered global state to produce a witnessed
+non-identity transition, at least two immutable address references in the same
+exact class, and one different `shared_class_kappa` intentionally occupying the
+same current `SpinSector`. The operator
+result is bound by global root/epoch kappa, operator kappa, chart/table
+identities, and exact class and is reused without changing route, payload, or
+kappa identity.
+The final candidate score remains query-specific. If angular direction enters
+the dynamic relation, #973 binds either a new exact `SpinTorsionState` relative
+relation or an explicit spin-to-H4 map. The existing prime-derived relative H4
+quaternion remains a separate route witness.
+
+Compare exactly matched real, identity-disabled, and deterministic
+class/operator-permuted arms. Row reads, admitted candidate addresses, payloads,
+lower-scope state, candidate/operator ceilings, and observed work MUST be
+byte-identical. The report separately records base local cost, exact class,
+operator input/result, operator contribution, transformed candidate-relative
+cost, reuse count, selection or abstention, and exact decoded output. The real
+arm must change the predeclared candidate and decoded output, while the
+identity-disabled and class/operator-permuted arms do not reproduce that effect
+under identical support and work. Distinct stored state, a reuse hit, or a
+non-zero trace alone is insufficient.
+
+Before freezing a scalar readout, enumerate the transformed candidate-state
+classes and stop if any retained class requires incompatible outcomes. One
+fan-out witness MUST show one class-operator evaluation reused by multiple
+references with byte-identical overlay state. Share or precompute only that
+class result; do not share the query-specific candidate score. The current H4 leaf is assigned
+from the prime rather than `SpinTorsionState`, so the report must bind the
+spin/operator-to-candidate relation. The existing prime-derived H4 relative
+witness does not establish stored-spin direction without an explicit
+spin-to-H4 map.
+
+Only after that exact-class decision may #973 freeze a finite,
+orientation-aware relative-angular neighbor kernel. It may influence already
+admitted candidates but cannot inject candidates, collapse antipodal states via
+Hopf projection, or enumerate the corpus. Current procedural spin placement
+remains a threat to semantic interpretation and is exercised by the
+class/operator permutation control. H4 group action is not by itself evidence
+of a spherical-harmonic field. The operator kappa must bind basis, mode order,
+coefficients, quantization, and transition law before the prototype is called
+harmonic. #973 will freeze its own terminal literal before running this
+contract.
+
+A positive global subprobe cannot close #973. Paragraph and conversation still
+require their own matched load-bearing qualification through the accepted loop,
+or an explicit native revision of #973's scope and dependencies.
+
 ## 4. Matched controls
 
 An attention, inference, or reasoning comparison MUST use controls with the
@@ -509,6 +579,13 @@ For #953, run exactly the full-path and state-disabled arms with identical
 natural support and work. Do not carry #969's last-only arm or the obsolete
 six-comparator I1 matrix forward. A single grammar-disabled diagnostic is
 allowed only to localize an already observed output defect.
+
+For #973's global exact-spin operator decision, run real, identity-disabled, and
+deterministic class/operator-permuted arms with identical admission and work.
+At least two references share one exact class so reuse is exercised; a different
+exact class in the same current `SpinSector` checks that the operator is not
+aliasing the coarse Hopf-octant/torsion bucket. A one-unit registration-only
+global snapshot or an identity transition cannot qualify the operator.
 
 A working decoded intervention records
 `PROCEED_TO_I1_WITH_CAUSAL_R4_PATH_ATTENTION`. This establishes only a
@@ -556,6 +633,11 @@ recover locality. Report unqualified terms as storage fields, diagnostics, or
 controls rather than folding them into a winning aggregate score. A candidate
 found only through digest equality is recall and does not satisfy this
 requirement.
+
+A harmonic-neighbor channel may change the state or cost of a candidate already
+admitted by an independent lawful row. That is an influence hypothesis, not
+candidate admission and not proof of anti-recall selection until the matched
+operator controls change the selected route and decoded output.
 
 ## 6. Correctness and abstention
 

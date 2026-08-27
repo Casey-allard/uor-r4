@@ -1,11 +1,15 @@
 # ADR-0004: Define a bounded geometric-intelligence route hierarchy
 
 - **Status:** Accepted as an architectural definition and evaluation boundary;
-  #967 A1R repaired ordered state but terminated `RETAIN_STATE_ONLY`; #970 A1P
-  candidate-relative readout/placement blocks #969 A1Q; and attention, inference,
-  correctness, and reasoning capability remain unproven and off the product
-  path. #969 blocks #953.
+  amended 2026-08-27 after #969 qualified one local causal-path mechanism and
+  #953's natural-agreement revision stopped at support admission. #953 remains
+  open for a tiered-admission repair; #973 remains blocked and later owns
+  paragraph, conversation, and global exact-spin operator qualification.
+  Harmonic qualification additionally requires a bound basis/mode contract.
+  Inference,
+  correctness, and reasoning capability remain unproven.
 - **Date:** 2026-08-26
+- **Last amended:** 2026-08-27
 - **Builds on:** [ADR-0003](0003-fixed-zeta-prime-route-attention.md)
 - **Evaluation:**
   [Geometric Intelligence Evaluation](../geometric_intelligence_evaluation.md)
@@ -54,8 +58,16 @@ number of rows at each enabled level; it never enumerates all descendant tokens
 or corpus records.
 
 Those fields are required structural/storage representation until evidence says
-otherwise. A1Q/#969 alone qualifies a subset as semantic scoring terms; #953
-may consume only that qualified subset.
+otherwise. #969 qualified one load-bearing identity-derived local path cost;
+#953 may consume only that qualified mechanism.
+
+Candidate admission and harmonic/neighbor influence are separate contracts.
+Exact causal/index evidence determines which routes are lawful candidates. An
+operator may then transform the state used to rank those already-admitted
+routes. Operator influence never admits a candidate; the existing coarse
+adjacent-spin retrieval row may do so only under the explicit empty-primary
+fallback policy. This separation is required by #953's observed support
+contamination and is the input boundary for #973.
 
 This ADR defines identities, boundaries, and evaluation. It does not promote a
 serving implementation.
@@ -88,6 +100,36 @@ envelope. The digest supplies equality and integrity, not geometric distance.
 Factor, phase, spin/Hopf, torsion, and radial fields supply declared structural
 coordinates and candidate locality hypotheses. They do not supply semantic
 ranking until qualified by A1Q/#969.
+
+**Definition:** an exact spin state class reuses the canonical
+`shared_class_kappa` already bound to the full signed S3 spin, checked Hopf
+observation, fiber, and torsion. The Hopf observation remains a witness, not a
+standalone class identity: `q` and `-q` stay distinct, and a shared Hopf octant
+or adjacent torsion bin is not an exact-state match. Lexical atom and payload
+identity remain outside this angular class so multiple immutable address
+references can share one operator evaluation. Radial shell, provenance, and
+other address-specific terms remain separately bound where required. If an
+operator depends on angular direction, #973 must bind either a new exact
+`SpinTorsionState` relative relation or an explicit spin-to-H4 map. The existing
+full relative H4 quaternion is prime-derived and remains a separate route
+witness; it is not automatically the relative orientation of two stored spin
+states.
+
+**Definition:** a versioned exact-spin global operator prototype is an
+immutable overlay bound by
+`(global_root_or_epoch_kappa, operator_kappa, chart/table identities,
+shared_class_kappa)`.
+It computes one deterministic class result and makes every reference in that
+exact class observe the result without rewriting canonical address, route, or
+payload bytes. The final candidate score remains query-specific because causal
+path and candidate-relative direction remain query-specific; only the class
+operator result is shared.
+Similar but non-identical states may interact only through an artifact-declared,
+bounded relative-angular neighbor kernel. Such a kernel is influence over
+lawful candidates, not an all-to-all broadcast or candidate-discovery rule.
+The prototype is described as a harmonic operator only after its kappa also
+binds the harmonic basis, mode order, coefficients, quantization, and transition
+law.
 
 The bridge mode is exact identity data. The project seam is
 `exp(i*pi)+pi^0 =_bridge 0^0`. In `ContinuousNull`, the typed transition
@@ -160,7 +202,7 @@ lexical codec.
 | **Sentence** | Ordered local route identities within one detected sentence | Increment while open; close at a codec-bound sentence boundary | Sentence continuation plus transported sentence trajectory/harmonic overlap | A sentence-key hit is recall; grammatical output is not correctness. |
 | **Paragraph** | Ordered closed sentence-route identities | Close at a codec-bound paragraph boundary | Cross-sentence support using shared factors, projection energy, resonance, winding, and Hopf phase | No paragraph capability exists until held-out cross-sentence effects are measured. |
 | **Conversation** | Ordered turns and paragraph-route identities for one session | Update only after an observed turn/paragraph; session identity isolates state | Session hypersphere trajectory, prior commitments, and bounded conversational memory | Conversation state must not leak across identity scopes; continuity is not reasoning. |
-| **Global** | Versioned project/knowledge snapshot entries selected and compiled offline | Immutable during one inference session; changed only by a new content-addressed epoch | Bounded shared background candidates through harmonic/trajectory locality and provenance | “Global” never means an unbounded corpus scan, implicit internet access, or universal knowledge. |
+| **Global** | Versioned project/knowledge snapshot entries selected and compiled offline | Immutable during one inference session; changed only by a new content-addressed epoch | A bound exact-spin operator overlay over already-admitted candidates, plus separately qualified bounded neighbor influence | “Global” never means candidate injection, an unbounded corpus scan, implicit internet access, or universal knowledge. |
 
 Each enabled scope declares maximum open children, rows per query, candidates
 per row, retained candidates after admission, and patch/epoch depth. Exceeding a
@@ -202,40 +244,50 @@ operator-table kappa.
 
 The paired coordinate is required in canonical hierarchy storage, address
 reconstruction, and the inverse witness. That architectural requirement does
-not make it a semantic scoring term. A1Q/#969 may qualify it only through an
-equal-budget intervention against factor-only and basis/shell-permuted controls
-on candidate-relative anti-recall inputs. If it does not qualify, the field
-remains valid structural/storage state, a diagnostic, or a control and may not
-influence #953 ranking.
+not make it a semantic scoring term. #969 closed without qualifying it. The
+field remains valid structural/storage state, a diagnostic, or a control and
+may not influence #953 ranking unless a later separately scoped, equal-budget
+intervention qualifies it.
 
 ## 5. Retrieval, admission, and attention
 
-Each query forms a bounded union from declared rows such as:
+Each query distinguishes bounded admission rows from later influence channels.
+The current local primary-admission rows are:
 
 ```text
 local:last-one
 local:last-two
 sentence:ordered-route
-paragraph:ordered-sentence-route
-conversation:ordered-turn-route
-global:versioned-summary-route
 divisor-overlap
+```
+
+Later or fallback channels include:
+
+```text
 adjacent-spin/torsion sectors
 transported-trajectory/harmonic overlap
 paired-H4/E8 sectors
+paragraph:ordered-sentence-route
+conversation:ordered-turn-route
+global:versioned-summary-route
 ```
 
-An implementation may apply a common geometry-independent support-admission
-rule, for example source breadth followed by total observed count and canonical
-address, when the union exceeds the artifact ceiling. That rule and the number
-excluded are part of the coverage witness.
+For #953, I1/last-one, I2/last-two, ordered-sentence, and divisor rows form the
+primary tier. When that tier is non-empty, adjacent-spin rows may be consulted
+and traced but cannot widen admitted support. Only an empty primary tier may
+activate bounded adjacent-spin fallback. The policy identity, each row slot and
+key, whether the row existed, entries examined, and entries admitted are part
+of the coverage witness. A later issue may qualify another admission source,
+but cannot silently change this precedence.
 
-When exact hierarchy kappas miss, bounded fallback uses overlapping
+When primary rows are empty, a bounded fallback may use overlapping
 trajectory/harmonic locality rather than digest distance. Candidate terms
 include shared-prime factors, projection energy, cosine resonance,
 winding/window compatibility, accumulated Hopf phase, trigonometric
-chart/quarter-turn transport, and paired-H4/E8 coordinates; only the
-A1Q-qualified subset may affect semantic candidate support or ranking.
+chart/quarter-turn transport, and paired-H4/E8 coordinates. Only a term
+qualified for admission may create fallback support. A term qualified only for
+influence may affect ranking of support admitted elsewhere but cannot create a
+route.
 
 **Definition:** geometric recall returns a continuation because an exact or
 declared backoff identity was stored. **Definition:** geometric attention ranks
@@ -244,6 +296,15 @@ and its qualified semantic terms are load-bearing against matched controls.
 Consequently,
 “least energy” means least energy among admitted candidates unless an artifact
 explicitly scores the entire bounded union before admission.
+
+#969 qualified only its retained local S3 path cost. #953 continues to use that
+cost while repairing admission and keeps paragraph, conversation, global, and
+shared higher-scope operator action inert. After an accepted #953 loop, #973
+may qualify a global exact-spin overlay only under identical admitted support and work across
+real, identity-disabled, and deterministic class/operator-permuted arms. The
+real overlay must change the intended candidate and exact decoded output, while
+the disabled and permuted arms do not reproduce that predeclared effect. A
+changed shared-result trace or stored state alone is not attention.
 
 No learned dense full-prefix Q/K projection, future-route input, all-prefix
 scan, or corpus scan belongs to this route hierarchy. A different transitional
@@ -257,8 +318,10 @@ coverage witness containing:
 
 - lexical codec, manifest, hierarchy, operator, and control identities;
 - observed route membership result and identity scope;
-- each row key read, scope/source, hit/miss, and entries examined;
-- union size, pre-geometric admission policy, admitted and excluded support;
+- each row slot/key, scope/source, whether it was consulted and physically
+  present, entries examined, fallback state, and entries admitted;
+- primary and fallback union sizes, admission-policy identity, and admitted and
+  excluded support;
 - per-candidate source counts, qualified semantic energy components, and
   separately labeled unqualified structural/diagnostic fields;
 - transported-trajectory fields: session hypersphere vector, winding/window,
@@ -266,6 +329,10 @@ coverage witness containing:
   and paired-H4/E8 coordinate;
 - active trigonometric chart, activation/chirality/polarity, any signed
   quarter-turn phase/torsion shift, and cross-domain cost-profile identity;
+- where exact-spin global action is active, global root/epoch kappa,
+  operator/chart/table
+  identities, exact `shared_class_kappa`, full signed candidate-relative
+  direction, class result and reuse count, and before/after candidate state;
 - deterministic tie-break stages and geometry source under controls;
 - selected route or typed abstention; and
 - fixed work ceilings and observed work.
@@ -305,18 +372,17 @@ rebuild witnesses are prerequisite plumbing. They are not inference.
 
 Delivery proceeds without skipping stages:
 
-1. retain the associative noncommutative ordered state delivered by A1R/#967
-   without claiming full attention;
-2. falsify and replace the shortest-Cayley scalar readout in A1P/#970, within
-   its broader candidate-relative readout/placement scope and with that state,
-   anchors, and support fixed;
-3. qualify full recursive attention in A1Q/#969 through local, sentence,
-   paragraph, conversation, and global scopes, including exact-key misses served by
-   transported harmonic/trajectory locality and matched controls;
-4. implement provider-free inference and coherent generation in #953 over only
-   the qualified hierarchy terms;
-5. measure correctness and typed abstention against independent oracles; and
-6. measure bounded reasoning through novel multi-step state transitions.
+1. retain the ordered state from #967 and paired-H4 structural state from #970
+   at their measured claim boundaries;
+2. retain the local causal R4/S3 path mechanism qualified by #969;
+3. in #953, repair tiered admission, rerun the frozen support gate, and only
+   then rerun the bounded decoded natural-generation contract;
+4. in #973, qualify paragraph, conversation, and global influence through the
+   accepted #953 loop, including the shared exact-spin operator overlay and
+   its matched disabled/permuted controls;
+5. measure correctness and typed abstention in #954; and
+6. measure bounded reasoning through novel multi-step state transitions in
+   #955.
 
 No generation score can substitute for incomplete attention scopes, and no
 reasoning claim can precede correctness evidence.
@@ -329,6 +395,11 @@ reasoning claim can precede correctness evidence.
   recomputed at every node.
 - Exact recall remains useful and measurable without being mislabeled
   attention.
+- Exact-state sharing can apply one bound harmonic operation to every matching
+  address reference without mutating the immutable artifact or enumerating the
+  corpus.
+- Causal admission cannot be contaminated merely because an unrelated
+  continuation occupies a coarse neighboring spin bucket.
 - Unknown addresses fail closed; unseen ordered combinations may still be
   evaluated through bounded geometric backoff.
 - The target realizes the conceptual `E8 = H4 × H4` identity through the

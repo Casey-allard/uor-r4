@@ -29,16 +29,24 @@ The central invariant is:
 
 > **The geometry is the route, and the route is the data location.**
 
+Two typed stages preserve that invariant: **admission determines which
+continuations are lawful; operator/harmonic influence determines how the state
+of lawful candidates is transformed.** The existing adjacent-spin retrieval
+row remains a separate empty-primary fallback.
+
 Text is not made intelligent by its cryptographic digest or by putting token
 IDs in a table. A canonical lexical payload is assigned a factorable location;
 the ordered route through those locations carries causal context; local
 spin/torsion changes move the state; and a bounded least-cost lookup chooses the
 next route. The route must remain reconstructable and causally falsifiable.
 
-The programme is sequenced by capability: lexically reversible geometry first,
-then recursive attention, then source-free inference/generation, then measured
-correctness, and only then multi-step reasoning. Attention must exist before an
-output can be credited to geometric inference.
+The programme is sequenced by capability: lexically reversible geometry first;
+one load-bearing local route-attention mechanism (#969); one bounded decoded
+loop with repaired admission (#953); paragraph, conversation, and global
+qualification through that loop (#973); then measured correctness and only then
+multi-step reasoning. A qualified local attention mechanism must exist before
+an output can be credited to geometric inference; later higher scopes remain
+separate claims.
 
 Optimization, broad QA, formalization, and release certification follow a
 working decision-bearing product slice. They do not replace it.
@@ -104,9 +112,13 @@ exact rank-preserving lexical relabel of #969 and terminated
 `REVISE_I1_GENERATOR_IN_PLACE`. Its frozen natural agreement follow-up stopped
 at support admission before H4 selection because adjacent-spin fallback
 expanded exact direct-plus-divisor support to five candidates. #953 remains
-active; #973 remains blocked and later owns paragraph, conversation, and global
-qualification through an accepted #953 loop. #962 separately owns product chat
-integration and persisted, identity-scoped hive memory.
+active after protected PR #978 for the smallest tiered-admission repair: direct
+I1/I2/ordered-sentence plus divisor form the primary tier, and adjacent-spin is
+an admitted fallback only when that tier is empty. #973 remains blocked and
+later owns paragraph, conversation, and global exact-spin operator
+qualification through an accepted #953 loop. Calling that operator harmonic
+additionally requires an artifact-bound basis/mode contract. #962 separately
+owns product chat integration and persisted, identity-scoped hive memory.
 
 ## Architecture invariants
 
@@ -153,6 +165,17 @@ not recompute the absolute geometry of the entire history.
 Spherical-harmonic or fixed-zeta coefficients may provide the multichannel
 spectral field. A four-coordinate state is a selected local chart of that
 field, not a claim that the full harmonic population is only four numbers.
+
+For shared exact-spin operator action, exact state reuses the existing
+`shared_class_kappa` over full signed S3 spin, checked Hopf observation, fiber,
+and torsion. Hopf/S2 cannot define the class by itself: antipodal `q` and `-q`
+states remain distinct, and the current Hopf-octant/torsion-bin lookup is only
+a coarse neighborhood index. When angular direction matters, #973 must bind
+either a new exact `SpinTorsionState` relative relation or an explicit
+spin-to-H4 map. The existing relative H4 quaternion is prime-derived route
+state, not automatically the relative orientation of two stored spin states. A
+bounded neighbor relation must use an artifact-declared exact relative state
+and orientation.
 
 ### 3. Prime experts and ordered Hamiltonian context
 
@@ -399,8 +422,12 @@ trajectory summary, session hypersphere vector, winding/window state, window
 projection energy, accumulated Hopf phase, route topology, payload identity,
 lexical provenance, and reconstruction evidence needed to recover the same
 object. Like spin states may share a canonical operator/chart entry, so a
-single bound state transition can update all references to that state without
-duplicating the calculation.
+single result bound by global root/epoch kappa, operator kappa, chart/table
+identities, and the existing exact `shared_class_kappa` can be reused by all references to
+that state without duplicating the calculation.
+This is an immutable overlay: it does not rewrite address, payload, route, or
+kappa identity. Address-specific radial and provenance terms remain separately
+bound where required.
 
 An offline source model may later label examples, propose candidate rankings,
 or act as a quality comparator. Those observations must be converted into
@@ -445,9 +472,12 @@ trajectory/harmonic structural summaries. #969 consumes only the local retained
 ordered-S3 path. Paragraph, conversation, and global state remain serialized
 and incrementally updated but inert for selection until #973.
 
-The prototype candidate set is the unchanged bounded schema-2 natural row union.
-Admission bounds are explicit; exact path-cost ranking runs only over the
-admitted set.
+The next #953 revision uses typed admission precedence rather than one flat row
+union. I1/last-one, I2/last-two, ordered-sentence, and divisor rows form the
+primary tier. If that tier is non-empty, adjacent-spin rows may be consulted
+and reported but admit nothing. Only an empty primary tier activates bounded
+adjacent-spin fallback. Admission bounds and policy identity are explicit;
+exact path-cost ranking runs only over the admitted set.
 
 An exact kappa miss is not permission to treat a digest as semantic distance.
 The first mechanism does not combine an omnibus list of stored channels. Its
@@ -459,6 +489,22 @@ Required structural/storage representation and qualified semantic scoring are
 separate contracts. Unqualified Hopf, H4, zeta, icosian, SpiralCore,
 trajectory, or harmonic fields remain storage fields, diagnostics, or controls
 even when present in every canonical envelope.
+
+Prospective harmonic action is likewise separate from admission. After #953,
+#973 may bind one deterministic operator result to
+`(global_root_or_epoch_kappa, operator_kappa, chart/table identities,
+shared_class_kappa)` and apply it to the candidate-relative state of
+already-admitted routes. Every reference in the same exact class observes that
+result. Similar but non-identical states may interact only through a separately
+frozen, finite angular-neighbor kernel; the
+kernel cannot inject candidates or trigger an unbounded corpus broadcast.
+The final candidate score is not shared because the causal path, route, and
+relative direction remain query-specific.
+
+The existing adjacent-spin rows remain retrieval fallback and diagnostics.
+They are compiled from coarse current-sector to historically observed-next
+support and are not operator coefficients. Any #973 neighbor operator is built
+independently over exact classes and already-admitted candidates.
 
 No learned dense Q/K projection, softmax over a full prefix, all-corpus scan,
 MoE gate, or sparse learned router is permitted in the promoted serving path.
@@ -778,8 +824,14 @@ motivated agreement contrast was frozen before selection. Its support preflight
 found the intended direct candidates but an adjacent-spin fallback row expanded
 both steps to five candidates, so H4 selection and all four generator arms were
 `NOT_RUN_SUPPORT_PREFLIGHT_HARD_STOP`. #953 remains open for the smallest
-tiered admission repair: direct plus divisor primary, adjacent-spin only when
-that tier is empty. #973 remains blocked.
+tiered admission repair: I1/I2/ordered-sentence plus divisor primary,
+adjacent-spin only when that tier is empty. The repaired trace must distinguish
+row consulted, physical row present, entries examined, fallback activation, and
+entries admitted. It must preserve the frozen corpus, surfaces, route placement,
+artifact identity,
+expected support, and work budget, then rerun the support-only preflight before
+any H4 selection. Harmonic ranking remains dormant in #953. #973 remains
+blocked.
 
 ### GI-2 A1Q-H / #973 — paragraph, conversation, and global attention
 
@@ -787,6 +839,48 @@ After accepted #969 and accepted #953, qualify paragraph, conversation, and
 bounded global state through the real decoded autoregressive loop. Before #973,
 those scopes may remain serialized and incrementally updated but cannot
 influence selection. #973 blocks #954.
+
+Global qualification begins with one exact-spin global operator prototype, not
+a larger channel census. Freeze a construction-independent global snapshot with
+enough ordered state to produce a witnessed non-identity transition, at least
+two immutable references in one exact spin class, and one different
+`shared_class_kappa` intentionally occupying the same current `SpinSector`.
+Bind the result to global root/epoch kappa,
+operator kappa, chart/table identities, and the existing `shared_class_kappa`;
+reuse it across exact-class references without changing their address or
+payload identity; and apply it only to candidates admitted by the accepted
+#953 policy.
+
+Compare real, identity-disabled, and deterministic class/operator-permuted arms
+with byte-identical row reads, admitted support, payloads, lower-scope state,
+ceilings, and work. The trace separates the base local cost, exact class,
+operator contribution, transformed cost, selection or abstention, and reuse
+count. The real operator must change the predeclared candidate and exact decoded
+output, while the identity-disabled and class/operator-permuted arms do not
+reproduce that effect under the same support and work. A changed shared-result
+trace or serialized field alone is not attention. Only after that exact-class
+decision may a finite, orientation-aware angular-neighbor kernel be frozen as a
+separate subprobe.
+
+Before choosing a scalar readout, enumerate the transformed
+candidate-relative classes and stop if one retained class requires incompatible
+outcomes. The causal path, route, and final candidate score remain
+query-specific; share or precompute only the exact-class result. The current H4
+route leaf is assigned from the prime rather
+than from `SpinTorsionState`; the existing relative H4 quaternion remains a
+route witness unless #973 binds an explicit spin-to-H4 map. Otherwise direction
+requires a new exact `SpinTorsionState` relative relation.
+
+This direction is intended to remove #953's observed support contamination and
+to give #973 a causal locus for global influence. It does not establish that
+the current procedural spin placement is semantic, nor does it establish broad
+grammar, coherence, correctness, or reasoning. H4 group action alone is not a
+qualified spherical-harmonic field; fixed channels/modes and their transition
+law must be artifact-bound before that stronger description is earned.
+
+A positive global subprobe cannot close #973. Paragraph and conversation still
+require their own matched load-bearing qualification through the accepted loop,
+or an explicit native revision of #973's scope and dependencies.
 
 ### GI-4 / #954 — correctness and abstention
 

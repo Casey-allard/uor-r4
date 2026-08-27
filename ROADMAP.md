@@ -29,6 +29,16 @@ active and #973 remains blocked)._
 > final serving path contains no transformer, dense matrix intelligence kernel,
 > MoE, or sparse learned router.
 
+> **Admission/influence split:** exact causal/index rows decide which routes are
+> lawful candidates. Harmonic/neighbor influence may transform the state used
+> to rank those candidates but never admits one; the existing adjacent-spin
+> retrieval row may admit only under the explicit empty-primary fallback. Exact
+> state sharing reuses the signed-S3/Hopf/fiber/torsion
+> `shared_class_kappa`—not the current coarse Hopf-octant/torsion bucket—and
+> remains an immutable operator overlay. A direction-sensitive query requires
+> a new exact spin-relative relation or an explicit spin-to-H4 map; the existing
+> relative H4 witness is prime-derived route state.
+
 > The goal is frontier-like useful capability on ordinary local hardware, but
 > that remains an unproven research target. Spherical harmonics are the working
 > picture for overlapping spin-state storage and transport; R4/S3 compute and
@@ -144,12 +154,27 @@ Native GitHub relationships are the source of truth:
    selection, but its support-only preflight admitted five candidates through
    adjacent-spin fallback instead of exact `{still}` then `{run,runs}`. H4 and
    all four generator arms were `NOT_RUN`. #953 remains active for the smallest
-   tiered admission repair: direct plus divisor primary, adjacent-spin only when
-   that tier is empty. See the
+   tiered admission repair: I1/I2/ordered-sentence plus divisor primary;
+   adjacent-spin traced but non-admitting when that tier is non-empty, and used
+   only as a bounded fallback when it is empty. Preserve PR #978's frozen
+   support witness and rerun that preflight before H4 selection. Harmonic
+   influence remains dormant in #953. See the
    [#953 record](docs/local_geometric_generation_953.md).
 7. **GI-2 A1Q-H / #973 — higher-scope attention:** after accepted #969 and
    #953, test paragraph, conversation, and bounded global state through the
-   real decoded loop. Those scopes remain serialized but inert before #973.
+   real decoded loop. The first global mechanism is a deterministic exact-spin
+   operator prototype
+   overlay bound by global root/epoch kappa, operator and chart/table
+   identities, and the existing exact spin class. It acts
+   only on already-admitted candidate-relative state and is compared with
+   identity-disabled and deterministic class/operator-permuted controls under
+   identical support and work. Exact-class sharing comes first; a finite
+   orientation-aware angular-neighbor kernel is a later #973 subprobe. Those
+   scopes remain serialized but inert before #973. A global positive alone
+   cannot close #973; paragraph and conversation still require matched
+   qualification or an explicit native scope revision. The operator is called
+   harmonic only after its identity binds basis, mode order, coefficients,
+   quantization, and transition law.
 8. **GI-4 / #954 — correctness and abstention:** test held-out answer
    correctness, relevance, abstention, and causal use of required context only
    through the accepted #969/#953/#973 path. Teacher weights may label or
@@ -196,8 +221,12 @@ historical evidence and comparators.
   frozen agreement contrast found the direct `{still}` then `{run,runs}` rows,
   but unconditional adjacent-spin fallback expanded both unions to five
   candidates. Its four H4 arms were `NOT_RUN`; the next #953 action is the
-  smallest tiered admission repair—direct plus divisor primary, adjacent-spin
-  only when that tier is empty. See the
+  smallest tiered admission repair—I1/I2/ordered-sentence plus divisor primary,
+  adjacent-spin visible in the trace but non-admitting while that tier is
+  non-empty, and adjacent-spin fallback only when it is empty. The frozen
+  PR #978 support gate reruns before H4 selection. This repair addresses the
+  observed support contamination; it does not yet exercise harmonic influence
+  or qualify grammar. See the
   [#953 record](docs/local_geometric_generation_953.md).
 
 ## Landed

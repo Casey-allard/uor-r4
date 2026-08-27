@@ -20,8 +20,12 @@ exact rank-preserving lexical relabel of #969 and terminated
 or qualify grammar. A separately frozen natural agreement revision then stopped
 before H4 selection because adjacent-spin fallback expanded the exact direct
 plus divisor support to five candidates. #953 remains active for the smallest
-tiered admission repair: direct plus divisor primary, adjacent-spin only when
-that tier is empty. #973 remains blocked, followed by #954–#955 → #962–#965.
+tiered admission repair: I1/I2/ordered-sentence plus divisor primary,
+adjacent-spin only when that tier is empty. Candidate admission and harmonic
+influence are separate contracts: spin similarity never widens non-empty
+primary support. #973 remains blocked and later owns a shared exact-spin global
+operator over already-admitted
+candidates, followed by #954–#955 → #962–#965.
 Terminology lives in
 `docs/transformerless/GLOSSARY.md`. Keep this file current when conventions
 change.
@@ -47,7 +51,15 @@ transformers, MoE/sparse learned routing, or dense matrix intelligence. That is
 an aspirational research target, not a current capability claim. Spherical
 harmonics are the project-level model for overlapping spin-state storage and
 transport; R4/S3 and Hopf/S2 are the bounded compute/observation charts used to
-operate on that field.
+operate on that field. Exact operator sharing reuses the existing signed
+S3/Hopf/fiber/torsion `shared_class_kappa`; the current Hopf-octant/torsion
+`SpinSector` is only a coarse lookup bucket. Direction-sensitive relations use
+either a new exact `SpinTorsionState` relative relation or an explicitly bound
+spin-to-H4 map; the existing H4 relative witness is prime-derived route state.
+A versioned exact-spin global result is an immutable overlay over lawful
+candidates, not candidate injection or a corpus broadcast. Call it harmonic
+only after its identity binds basis, mode order, coefficients, quantization,
+and transition law.
 
 Source weights are offline teachers/comparators only. The final serving path
 loads no source weights and contains no transformer/self-attention, dense
@@ -228,6 +240,16 @@ PR (a bump can shift libm-sensitive teacher logprobs — see Gate E below).
   plumbing only; its relabelled smoke does not establish a natural grammar or
   sentence loop. Only a later accepted #953 result can expose #973, and only
   #973 may qualify paragraph, conversation, or global state.
+- Keep **candidate admission** separate from **harmonic influence**. In #953,
+  I1/I2/ordered-sentence plus divisor are the primary admission tier;
+  adjacent-spin rows remain visible in the trace but admit candidates only when
+  that tier is empty. Do not delete or disguise a physical adjacent-spin hit.
+  #973 may later apply one global-epoch/operator-bound result to every immutable
+  reference in the same exact signed-S3/Hopf/fiber/torsion class. Similar but
+  non-identical states require a separately frozen finite relative-angular
+  kernel built independently over exact classes. The existing adjacent-spin
+  rows remain retrieval fallback/diagnostics, not operator coefficients.
+  Neither operator mechanism may widen #953 support.
 - An exact kappa miss must not collapse unseen global history to a suffix-only
   default, but global ordered-state behavior is tested on an independently
   frozen global-snapshot permutation rather than by mutating session history.

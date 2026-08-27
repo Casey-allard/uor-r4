@@ -51,6 +51,14 @@ one another.
   Hopf map from `S3`. It is a many-to-one observable or heatmap coordinate.
   The observation cannot reconstruct the full `S3` state without retained
   fiber information.
+- **Exact spin class** — the existing `shared_class_kappa` exact-class
+  lookup/grouping key that may key future operator sharing. It binds the full
+  signed canonical S3 spin, checked Hopf observation, fiber, and torsion.
+  Hopf/S2 is not a standalone class identity and the current
+  Hopf-octant/torsion-bin `SpinSector` is only a coarse lookup bucket. Antipodal
+  `q` and `-q` states remain distinct. A direction-sensitive operator requires
+  a new exact `SpinTorsionState` relative relation or an explicitly bound
+  spin-to-H4 map; the existing relative H4 witness is prime-derived route state.
 - **Torsion** — the retained, quantized fiber/transport phase associated with
   a route state and its transition. It distinguishes states that share a Hopf
   observation. Here “torsion” is architectural transport metadata, not a claim
@@ -110,10 +118,34 @@ one another.
   winding/window and accumulated Hopf phase retain path/phase context. These
   summaries must be bounded and kappa-bound, but kappa equality itself is not
   the locality metric.
+- **Causal admission versus harmonic influence** — two typed stages of a
+  query. Admission uses declared causal/index rows to decide which routes are
+  lawful candidates. Harmonic/neighbor influence transforms or ranks the state
+  of those candidates and never admits one. In the current #953 repair,
+  I1/I2/ordered-sentence/divisor are the primary tier; the existing coarse
+  adjacent-spin retrieval row may admit only when that tier is empty.
+- **Exact-spin global operator overlay** — a prospective harmonic mechanism:
+  one deterministic result bound by global
+  root/epoch kappa, operator kappa, chart/table identities, and exact spin
+  class, reused by every immutable address reference in that class. The overlay
+  may influence candidate-relative state only after admission; it does not
+  mutate route/payload bytes or scan the corpus. The final candidate score
+  remains query-specific. The operator is called harmonic only after its
+  identity binds basis, mode order, coefficients, quantization, and transition
+  law.
+- **Bounded angular neighbor** — a finite, artifact-declared relation between
+  non-identical exact spin classes using their exact relative orientation and
+  transport state. It is not equivalence by Hopf octant, an all-to-all
+  broadcast, or authority to inject candidates. It is built independently from
+  the existing coarse adjacent-spin retrieval rows and remains unqualified
+  until a matched real/disabled/permuted intervention changes selection and
+  output.
 - **Coverage witness** — a bounded replay record showing which lexical units
-  had registered addresses, which hierarchy rows were read, which rows hit or
-  missed, candidate support before/after admission, the selected route or
-  abstention, and all artifact/control identities. Coverage proves only that a
+  had registered addresses; which hierarchy rows were consulted and physically
+  present; which entries were examined, admitted, or used only as influence;
+  fallback activation; candidate support before/after admission; exact spin
+  class and operator/epoch identities where active; the selected route or
+  abstention; and all artifact/control identities. Coverage proves only that a
   mechanism was reached; it does not prove attention, correctness, or
   reasoning.
 - **Geometric recall** — exact or backed-off retrieval of a stored continuation
@@ -131,10 +163,11 @@ one another.
   inference; it is not coherent generation by itself.
 - **Geometric-intelligence sequence** — lexical ingestion, canonical
   serialization, and address membership are prerequisite plumbing. Delivery
-  then proceeds in this order: complete recursive attention across local,
-  sentence, paragraph, conversation, and global scopes; inference/generation;
-  correctness with abstention; then bounded reasoning. Evidence may not skip a
-  stage or count prerequisite plumbing as inference.
+  then proceeds in this order: one qualified local causal-path mechanism
+  (#969); one bounded decoded generation loop with repaired admission (#953);
+  paragraph/conversation/global exact-spin operator qualification through that loop
+  (#973); correctness with abstention (#954); then bounded reasoning (#955).
+  Evidence may not skip a stage or count prerequisite plumbing as inference.
 - **Correctness** — agreement with an independent task oracle, executable
   constraint, cited source, or other predeclared ground truth, reported with
   coverage and abstention. Teacher agreement, grammatical output, and exact
