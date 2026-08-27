@@ -2,36 +2,48 @@
 
 > The seminar version — real machinery, one-line definitions, honest
 > caveats. Too dense? Start with [ELI5.md](ELI5.md). Want the full rigor?
-> the [Geometric Causal Decoder Roadmap](../geometric_causal_decoder_plan.md).
+> Read the [Geometric Intelligence Programme](../geometric_intelligence_programme.md).
 > The retained table/graph compiler is specified separately in
 > [TRANSFORMERLESS.md](../transformerless/TRANSFORMERLESS.md) and
 > [PROOF.md](../transformerless/PROOF.md). Code map:
 > `crates/uor-r4-core` (including its `transformerless` module),
 > `crates/uor-r4-router`, and the root `tless_uor` witness module.
 
-## The frame
+## The current frame
 
-The active project asks whether learned Riemannian geometry can replace causal
-self-attention without losing free-running language:
+The active project asks whether a route-native geometric system can supply
+attention, inference, correctness, and reasoning without serving a transformer,
+MoE, sparse learned router, or dense matrix intelligence kernel:
 
 ```
-prompt + prior tokens + persistent geometric memory
-                  → bounded learned R⁴ neighborhood at each replaced layer
-                  → residual / norm / MLP / LM head via uor-matmul
-                  → next-token logits → write the completed turn back to memory
+bytes -> pinned reversible lexical codec
+      -> registered prime atoms + payload CIDs
+      -> fixed-zeta spherical-harmonic phase field
+      -> R4/S3 spin + S2/R3 Hopf observation + retained torsion
+      -> Z[phi] radial shell + witnessed paired-H4/E8 coordinate
+      -> local/sentence/paragraph/conversation/global route state
+      -> bounded least-cost geometric attention
+      -> source-free next-route inference and lexical decoding
 ```
 
-The first checkpoint is hybrid and experimental. “Transformerless” is earned
-only after the product path makes zero source-attention calls and contains no
-dense full-prefix Q·K matrix/softmax kernel; the replacement must use bounded,
-intervention-qualified geometric support. That geometry may deliberately learn
-to reproduce useful teacher-attention behavior. Multiplication-free is a later,
-separate decision.
+Kappa binds exact canonical identity; it is not a similarity metric. Prime
+factor overlap, ordered n-lets, fixed-zeta phase, spin/Hopf/torsion transport,
+golden radial state, the paired-H4/E8 construction, and transported trajectory
+summaries supply the declared locality. Higher route scopes update
+incrementally rather than scanning the full prefix or corpus at every token.
+
+The sequence is capability-ordered: #961 supplies reversible lexical geometry
+and complete hierarchy state; #952 must establish recursive geometric
+attention at every scope under anti-recall matched controls; #953 then builds
+provider-free grammatical generation; #954 measures correctness and typed
+abstention; #955 begins reasoning. #958 is retained storage/recall foundation,
+not proof of attention. There is no working source-free chat path yet.
 
 The sections below explain the historical table/graph system retained as a
-comparator. Its measurements are not the current implementation order.
+comparator and runtime reference. Its measurements are not the current
+implementation order.
 
-## transformerless: cross-compiling a behavior
+## Preserved transformerless lane: cross-compiling a behavior
 
 **Compilation (historical TLA lane; multiplies allowed offline).** The
 teacher is accessed through exactly two surfaces — the embedding table
@@ -99,7 +111,7 @@ moved the resolution knee at constant per-token compute. Later student-prefix
 and product runs did not establish that this pointwise trend composes into
 coherent generation; that negative result motivates the active decoder reset.
 
-## r4: geometric routing + a formal witness substrate
+## Preserved R4 lane: geometric routing + a formal witness substrate
 
 Two layers with very different levels of rigor — worth keeping apart.
 
@@ -153,7 +165,7 @@ goes through the axis/PrismModel machinery,
 so a route is not a float, it's a *proof object* with a re-verifiable
 derivation.
 
-## The integration: one R4 library, internally layered
+## Historical integration: one R4 library, internally layered
 
 ```
                     uor-r4-wasm-router (facade + server)
@@ -195,4 +207,5 @@ Three concrete joins:
 - The intellectual fit is real though: both systems insist that **a claim
   without a witness isn't a claim** — transformerless prices encodings by
   measured residual, r4 prices executions by replayable derivation. That's
-  the coherent thesis of the merged repo.
+  preserved infrastructure for the current programme, not a substitute for
+  route-native attention or a source-free answer.

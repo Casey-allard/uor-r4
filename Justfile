@@ -1,6 +1,17 @@
 default:
     @just --list
 
+# Launch the bounded native geometric router dashboard. This does not download
+# weights, compile a corpus, score a graph, or start a qualification run.
+demo:
+    cargo run --bin r4 -- demo
+
+# Build and serve the browser-only geometric router demo. The dashboard uses
+# the local WASM router when no native `/api/sysinfo` endpoint is present.
+wasm-dashboard:
+    wasm-pack build --target web
+    python3 -m http.server 8000
+
 # Run the Cucumber/Gherkin behavior suite.
 bdd:
     cargo test --test bdd

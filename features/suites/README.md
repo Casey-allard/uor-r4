@@ -1,5 +1,13 @@
 # Suites
 
+**Dormant historical conformance inventory.** These suites preserve the
+earlier R4G1 programme’s contracts and evidence. They are not an automatic
+development gate for the active geometric-intelligence research programme.
+Run a suite only when a live issue names it as the smallest decision-relevant
+check; the full conformance and release ladder returns when the product enters
+release QA. `CONFORMANCE.md` remains generated history and is not edited by
+hand.
+
 One Gherkin file per suite, one scenario per conformance ID (R3).
 
 A scenario is tagged with its ID and its honesty level:

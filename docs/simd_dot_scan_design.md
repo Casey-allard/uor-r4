@@ -1,5 +1,10 @@
 # Design: SIMD Shift-Add Dot Scan (Contract-Legal Serving Speedup)
 
+> **Historical optimization proposal.** This design belongs to the preserved
+> dot-scan runtime and is not the current #963 optimization target. Profile the
+> accepted route-native product path before reviving it. See the
+> [Geometric Intelligence Programme](geometric_intelligence_programme.md).
+
 *Issue #330. Status: DESIGN FOR REVIEW — no code authorized by this
 document. Decision points marked ⚑ are open.
 Claim language: Definitions, Objectives, and Empirical Criteria only.*

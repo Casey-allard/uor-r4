@@ -1,12 +1,14 @@
 # R4 Intelligence Completion Plan
 
 - **Status:** Historical S0–S7 programme and evidence record. Superseded for
-  current sequencing on 2026-08-25 by the
-  [Geometric Causal Decoder Roadmap](geometric_causal_decoder_plan.md), issue
-  #948, and tracker #949.
+  current sequencing by the
+  [Geometric Intelligence Programme](geometric_intelligence_programme.md).
+  The intermediate
+  [Geometric Causal Decoder Roadmap](geometric_causal_decoder_plan.md) records
+  the superseded #948-#958 sequence.
 - **Historical source of record:** The closed S0–S7 issues beneath #820. Where
   this document and the current GitHub hierarchy disagree, the current
-  hierarchy and geometric decoder plan win.
+  hierarchy and Geometric Intelligence Programme win.
 - **Historical relationship to earlier plans:** This document superseded, for
   its 2026-08-19 through 2026-08-25 sequencing window, the phase ordering in
   `docs/r4_graph_compiler_implementation_plan.md` and the
@@ -14,7 +16,8 @@
   engineering plan or measurement record — those remain valid history and, where noted,
   valid engineering references. Claim language in this document follows
   `docs/formal_vocabulary.md` (normative), and `python3 scripts/check_claim_wording.py`
-  gates it in CI.
+  was its automated wording gate during that programme; automatic CI is now
+  dormant unless a product/release decision explicitly activates it.
 
 ## Why this plan exists
 

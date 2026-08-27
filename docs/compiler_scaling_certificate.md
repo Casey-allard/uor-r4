@@ -1,5 +1,10 @@
 # Compiler Parallelism Benchmarks and Scaling Certificate Specification
 
+> **Preserved graph-compiler certificate design.** It does not prove that the
+> active route-native path uses four workers or justify running a large compile.
+> That path must measure its own bottleneck and useful parallel work under #963.
+> See the [documentation map](README.md).
+
 **Version:** 0.1.0  
 **Status:** Normative Specification  
 **Issue:** #175 (Extends #27, #77, #161; measures #165–#174)

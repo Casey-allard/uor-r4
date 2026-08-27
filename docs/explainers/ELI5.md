@@ -2,39 +2,42 @@
 
 > The friendly version. When you want the grown-up version, read
 > [UNDERGRADUATE.md](UNDERGRADUATE.md); when you want the full rigor, read
-> the [Geometric Causal Decoder Roadmap](../geometric_causal_decoder_plan.md).
+> the [Geometric Intelligence Programme](../geometric_intelligence_programme.md).
 > The transformerless table/graph design and proof documents describe the
 > historical filing-cabinet system retained later in this explainer.
 
-The project learned something important: the filing cabinet can remember which
-words often follow other words, and the map can remember useful context, but
-neither one knows enough grammar to talk coherently by itself.
+Right now, R⁴ has built a careful geometric address book. It can turn known
+pieces of text into prime-number locations, attach a spinning state and a
+checkable receipt, and look up stored routes with bounded work. It cannot yet
+use that machinery alone to hold a real conversation. The old fluent path used
+another language model; the new programme must replace that missing part.
 
-The new plan joins the working pieces:
+The current plan treats a sentence like a path through a field of waves on a
+sphere:
 
 ```text
-your words + remembered map points
-              |
-              v
-     geometric next-word thinker
-              |
-              v
-      language layers on a CPU
-        powered by uor-matmul
-              |
-              v
-          the next word
-              |
-              +--> remember the conversation
+your text
+   -> reversible word pieces
+   -> prime locations + spinning/harmonic state
+   -> local route
+   -> sentence route
+   -> paragraph route
+   -> conversation route
+   -> bounded global route
+   -> choose the next route
+   -> turn that route back into text
 ```
 
-We first let the existing local language brain show that the plumbing can talk.
-Then we replace one “who should this word listen to?” layer with geometry. If
-real geometry behaves no better than scrambled geometry, we stop and redesign
-it. Only after one layer works do we replace the rest.
+The work is deliberately ordered. #961 makes arbitrary text reversible and
+keeps all five route levels up to date. #952 must then prove that the geometry,
+not a memorized answer, actually changes what the system attends to. Only then
+does #953 build the source-free next-word and chat loop. Correct answers (#954)
+and multi-step reasoning (#955) come later. A pretty route or a readable stored
+sentence does not skip those steps.
 
-The historical system below had two robot helpers. One is a **filing cabinet
-robot**, one is a **librarian with a magic map**. Here's how they work.
+The preserved earlier system below had two robot helpers. One is a **filing
+cabinet robot**, one is a **librarian with a magic map**. Their receipts and
+measurements remain useful, but they are not the current talking engine.
 
 ## The big picture
 
@@ -76,7 +79,7 @@ multiplies). So we took a photocopier and shrunk it into a little card file:
 │ tiny card file     │
 │ 2 MB, fits in      │
 │ your pocket        │
-│ (almost as smart!) │
+│ (much less capable)│
 └────────────────────┘
 ```
 
@@ -177,7 +180,7 @@ Both robots, every single time, staple a receipt to their answer:
 If anyone secretly changes a card or a map, the receipt stops matching, and
 everyone can see it. Nobody can cheat.
 
-## How they play together now
+## How the earlier systems were paired
 
 ```
  you ask a question
@@ -208,6 +211,9 @@ proves exactly which one was removed.
 The filing cabinet robot is **honest but humble** — it's not the smartest
 robot, but everything it says fits in your pocket and comes with proof. The
 librarian is a **dreamer** — its maps are beautiful and some of its magic
-rulers are just for show, but its receipts are real and it knows where
-everything lives. Together: one tells you *where you are*, the other tells
-you *what comes next*, and both always, always show their work. The end.
+rulers are just for show, but its receipts are real. Those older robots taught
+the project how to store, locate, and witness data. The unfinished job is the
+new one: make the complete geometric route decide what matters, produce the
+next piece of language without an outside model, check whether the answer is
+right, and only then reason. That is what the current programme means by
+geometric intelligence.

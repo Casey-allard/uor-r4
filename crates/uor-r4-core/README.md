@@ -1,21 +1,39 @@
 # uor-r4-core
 
-R⁴ mathematics and the transformerless compiler/runtime engine for the R⁴
-holographic graph compiler.
+The shared mathematics and route-native substrate for UOR-R4’s research toward
+a transformerless local AI engine.
 
-This crate hosts two things:
+**Current status.** The active path is the fixed-zeta prime-route foundation:
+`prime_route_attention`, `prime_route_geometric_attention`, and
+`spiralcore_operator`. It provides canonical prime/semiprime routes, spin and
+torsion state, Hopf projection with a retained fiber, golden-radial structure,
+and the initial recursive geometric-attention operators. It is foundation—not
+yet a source-free language model, coherent chat engine, correctness system, or
+reasoning engine. The authoritative sequence is the
+[Geometric Intelligence Programme](../../docs/geometric_intelligence_programme.md).
+
+This crate also preserves the earlier teacher-compiled TLA/R4G1 engine as a
+research lane. That engine established useful artifact, deterministic-runtime,
+and multiplication-free kernel work, but it is not the current route-native
+intelligence architecture and is not evidence of transformerless chat.
+
+The crate therefore hosts three related bodies of work:
 
 1. **The R⁴ math layer** (`src/lib.rs`, `src/zeta_zeros.rs`): zeta-zero
    embeddings, Hopf coordinates, prime/QIMC identity, and state metrics used by
    the geometric router (`uor-r4-router`).
-2. **The transformerless engine** (`src/transformerless/`): cross-compiles a
+2. **The prime-route substrate** (`src/prime_route_attention.rs`,
+   `src/prime_route_geometric_attention.rs`, `src/spiralcore_operator.rs`):
+   canonical route identities and recursive geometric state operators used by
+   the active programme.
+3. **The historical transformerless engine** (`src/transformerless/`): cross-compiles a
    pinned Hugging Face teacher into a multiplication-free, table-native
    inference artifact (TLA3-TLA7 containers; TLA7 is the default emission), plus the integer-only
    runtime that serves it. This is the system the graph compiler
    (`uor-r4-graph-format` and friends) generalizes — see
    `docs/r4_graph_compiler_implementation_plan.md`.
 
-## Transformerless module map (selected)
+## Historical TLA/R4G1 module map (selected)
 
 | Module | Role |
 |---|---|
@@ -40,7 +58,7 @@ Modules that started here and moved out in the crate split:
 | `score` (Phase-4 compiler + Gate C harness), `score_runtime` (integer-only reference scorer), `certify` / `compare`, `certificate` / `performance_certificate`, `anti_degeneracy`, `predictive_sufficiency`, `fairness_provenance`, `shortlist_evaluator` | `uor-r4-graph-certify` |
 | `command` (`r4 transformerless …` CLI dispatch) | `uor-r4-graph-cli` |
 
-## Runtime contract (normative)
+## Historical TLA/R4G1 runtime contract
 
 Per-token inference uses only XOR/AND/OR/shift/popcount/integer add/compare/
 table reads. No multiplication or division exists in the runtime kernel
@@ -52,7 +70,12 @@ floats, matmul, and allocation; the runtime may not.
 The boundary and allowed/forbidden operation classes are normatively versioned
 in `docs/transformerless/INFERENCE_OPERATION_CONTRACT.md`.
 
-## Testing
+## Dormant verification inventory
+
+These suites document the earlier engine’s contracts. Repository-wide QA is
+dormant during mechanism development and is run only when an active issue names
+the smallest check required to make its next decision; release QA returns at the
+release stage.
 
 - `tests/window_paths.rs` — container round-trips, window/corpus path equality,
   prediction witnesses (byte-identity gates)

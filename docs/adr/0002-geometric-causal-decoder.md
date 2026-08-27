@@ -1,6 +1,8 @@
 # ADR-0002: Make the geometric causal decoder the active intelligence path
 
-- **Status:** Accepted
+- **Status:** Superseded for post-G1 sequencing by
+  [ADR-0003](0003-fixed-zeta-prime-route-attention.md); retained as the G0/G1
+  historical decision
 - **Date:** 2026-08-25
 - **Decision owner:** programme root
   [#820](https://github.com/UOR-Foundation/uor-r4/issues/820)

@@ -1,5 +1,10 @@
 # Corpus-scale law — sizing an observe run for any teacher (#514)
 
+> **Historical empirical model.** This sizing law applies only to its named
+> teacher-observation substrate and evidence. It is not a reason to launch a
+> corpus-scale route-native run. Current long-run decisions follow the
+> [Geometric Intelligence Evaluation Policy](geometric_intelligence_evaluation.md).
+
 How much corpus does a teacher of a given weight class need before the substrate
 can cash its ceiling? This turns that question from a guess into a calculator:
 `r4 transformerless recommend-scale`. The closed form below is a first estimate

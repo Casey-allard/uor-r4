@@ -11,9 +11,19 @@ and sometimes divergent results; do not treat three copies as independent
 replication or edit them in parallel.
 
 Research becomes active product work only through the
-[Geometric Causal Decoder Roadmap](../docs/geometric_causal_decoder_plan.md):
-an owning #949 issue must name the product-path consumer, smallest falsifier,
-and disabled/shuffled/permuted control. Otherwise it remains archival input.
+[Geometric Intelligence Programme](../docs/geometric_intelligence_programme.md)
+and its live GitHub root, [#820](https://github.com/UOR-Foundation/uor-r4/issues/820).
+That programme turns selected results into explicit route, serialization,
+attention, inference, correctness, or reasoning contracts. Everything else in
+this tree remains preserved research input: useful evidence and mechanism
+proposals, but not a claim about what the current engine can do.
+
+The archive is intentionally broader than the active implementation. It keeps
+the project’s prime, semiprime, zeta-grid, torsion, Hopf, spherical-harmonic,
+golden-radial, Riemannian, networking, graph-compiler, and formal work available
+for synthesis. Inclusion here does not promote a formula to a product guarantee;
+promotion requires a named consumer and an explicit, witnessed contract in the
+active programme.
 
 ## Contents
 

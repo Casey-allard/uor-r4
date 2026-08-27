@@ -1,5 +1,11 @@
 # Proof and Certificate
 
+> **Preserved evidence scope:** the propositions and measurements below apply
+> to the named transformerless TLA runtime, artifacts, and fixtures. They do
+> not prove the current route-native attention hierarchy, source-free
+> generation, correctness, reasoning, or chat. See the
+> [documentation map](../README.md) before carrying a claim forward.
+
 > **Migrated (2026-07-18):** this document moved from the `transformerless`
 > repository into uor-r4, where it is integrated as
 > `uor_r4_core::transformerless`. Command invocations use the

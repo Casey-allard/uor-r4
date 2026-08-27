@@ -1,0 +1,1379 @@
+{
+  "schema": 1,
+  "domain": "uor-r4.prime-route-worker-canary-terminal/1",
+  "verdict": "PASS",
+  "reason": "PASS",
+  "hard_wall_millis": 90000,
+  "watchdog_kill_millis": 85000,
+  "wall_elapsed_millis": 7478,
+  "progress_events_emitted": 23,
+  "host": {
+    "release_build": true,
+    "target_arch": "aarch64",
+    "available_parallelism": 8,
+    "binary_cid": "blake3:0043c1005d0e230d58a33f4a44c903ae445a1b939744f8024ab824de204113cb"
+  },
+  "certifier": {
+    "schema": 2,
+    "domain": "uor-r4.prime-route-worker-canary/2",
+    "build_profile": "release",
+    "target_arch": "aarch64",
+    "available_parallelism": 8,
+    "total_elapsed_ns": 7451222042,
+    "workload": {
+      "domain": "uor-r4.prime-route-worker-canary-workload/1",
+      "manifest_provenance_domain": "uor-r4.prime-route-worker-canary/1",
+      "compiler_cid": "blake3:c87780ec215b5fefb045762f6b09d5f673708c3a99ac74bc0f031cc261e71bf7",
+      "cost_profile_cid": "blake3:5528c467209d4fba5ccd91bd34e74af28c3b916863f37130d0942c3f94de7c5a",
+      "workload_cid": "blake3:ce3d96826ffd7134495536d439795ad0e4b035122b41329afd2a6ec4a96cacc6",
+      "semantic_atoms": 32,
+      "address_pool": 128,
+      "sentences": 16,
+      "total_routes": 1954,
+      "maximum_routes_per_sentence": 128,
+      "causal_transitions": 1938,
+      "index_occurrences": 5798,
+      "maximum_candidates": 8
+    },
+    "contract": {
+      "worker_counts": [
+        1,
+        4
+      ],
+      "warmups_per_worker_count": 1,
+      "repetitions_per_worker_count": 3,
+      "compilations_per_execution": 4,
+      "reference_canonical_bytes_cid": "blake3:d700b84d0b1ac83fab81ec81fa080365a98c44a8209cf1f3442825f2cfaa6841",
+      "reference_manifest_kappa": "blake3:21e7c4da52b09a192d0fef62ee9d46a137514e802b6c0cc99abee2974d594d75",
+      "speedup_milli_floor": 1200,
+      "minimum_one_worker_median_ns": 500000000,
+      "maximum_sample_deviation_milli": 150,
+      "maximum_manifest_bytes": 33554432,
+      "hard_wall_millis": 90000,
+      "watchdog_kill_millis": 85000
+    },
+    "runs": [
+      {
+        "execution_index": 0,
+        "phase": "WARMUP",
+        "repetition": 0,
+        "requested_workers": 1,
+        "compilations_per_execution": 4,
+        "elapsed_ns": 659159458,
+        "compilations": [
+          {
+            "compilation_index": 0,
+            "elapsed_ns": 165961333,
+            "canonical_bytes_len": 2048165,
+            "canonical_bytes_cid": "blake3:d700b84d0b1ac83fab81ec81fa080365a98c44a8209cf1f3442825f2cfaa6841",
+            "manifest_kappa": "blake3:21e7c4da52b09a192d0fef62ee9d46a137514e802b6c0cc99abee2974d594d75",
+            "canonical_bytes_equal_to_baseline": true,
+            "manifest_kappa_equal_to_baseline": true,
+            "canonical_evidence": "STRICT_ROUNDTRIP_VERIFIED",
+            "compile": {
+              "requested_workers": 1,
+              "used_workers": 1,
+              "sentences": 16,
+              "route_steps": 1954,
+              "causal_transitions": 1938,
+              "index_occurrences": 5798,
+              "peak_active_workers": 1,
+              "worker_reports": [
+                {
+                  "partition_id": 0,
+                  "sentence_count": 16,
+                  "assigned_transitions": 1938,
+                  "completed_transitions": 1938,
+                  "elapsed_ns": 78126666
+                }
+              ]
+            }
+          },
+          {
+            "compilation_index": 1,
+            "elapsed_ns": 163367375,
+            "canonical_bytes_len": 2048165,
+            "canonical_bytes_cid": "blake3:d700b84d0b1ac83fab81ec81fa080365a98c44a8209cf1f3442825f2cfaa6841",
+            "manifest_kappa": "blake3:21e7c4da52b09a192d0fef62ee9d46a137514e802b6c0cc99abee2974d594d75",
+            "canonical_bytes_equal_to_baseline": true,
+            "manifest_kappa_equal_to_baseline": true,
+            "canonical_evidence": "EXACT_STRICT_BASELINE_MATCH",
+            "compile": {
+              "requested_workers": 1,
+              "used_workers": 1,
+              "sentences": 16,
+              "route_steps": 1954,
+              "causal_transitions": 1938,
+              "index_occurrences": 5798,
+              "peak_active_workers": 1,
+              "worker_reports": [
+                {
+                  "partition_id": 0,
+                  "sentence_count": 16,
+                  "assigned_transitions": 1938,
+                  "completed_transitions": 1938,
+                  "elapsed_ns": 76110250
+                }
+              ]
+            }
+          },
+          {
+            "compilation_index": 2,
+            "elapsed_ns": 164803625,
+            "canonical_bytes_len": 2048165,
+            "canonical_bytes_cid": "blake3:d700b84d0b1ac83fab81ec81fa080365a98c44a8209cf1f3442825f2cfaa6841",
+            "manifest_kappa": "blake3:21e7c4da52b09a192d0fef62ee9d46a137514e802b6c0cc99abee2974d594d75",
+            "canonical_bytes_equal_to_baseline": true,
+            "manifest_kappa_equal_to_baseline": true,
+            "canonical_evidence": "EXACT_STRICT_BASELINE_MATCH",
+            "compile": {
+              "requested_workers": 1,
+              "used_workers": 1,
+              "sentences": 16,
+              "route_steps": 1954,
+              "causal_transitions": 1938,
+              "index_occurrences": 5798,
+              "peak_active_workers": 1,
+              "worker_reports": [
+                {
+                  "partition_id": 0,
+                  "sentence_count": 16,
+                  "assigned_transitions": 1938,
+                  "completed_transitions": 1938,
+                  "elapsed_ns": 76977083
+                }
+              ]
+            }
+          },
+          {
+            "compilation_index": 3,
+            "elapsed_ns": 165027125,
+            "canonical_bytes_len": 2048165,
+            "canonical_bytes_cid": "blake3:d700b84d0b1ac83fab81ec81fa080365a98c44a8209cf1f3442825f2cfaa6841",
+            "manifest_kappa": "blake3:21e7c4da52b09a192d0fef62ee9d46a137514e802b6c0cc99abee2974d594d75",
+            "canonical_bytes_equal_to_baseline": true,
+            "manifest_kappa_equal_to_baseline": true,
+            "canonical_evidence": "EXACT_STRICT_BASELINE_MATCH",
+            "compile": {
+              "requested_workers": 1,
+              "used_workers": 1,
+              "sentences": 16,
+              "route_steps": 1954,
+              "causal_transitions": 1938,
+              "index_occurrences": 5798,
+              "peak_active_workers": 1,
+              "worker_reports": [
+                {
+                  "partition_id": 0,
+                  "sentence_count": 16,
+                  "assigned_transitions": 1938,
+                  "completed_transitions": 1938,
+                  "elapsed_ns": 77870416
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "execution_index": 1,
+        "phase": "WARMUP",
+        "repetition": 0,
+        "requested_workers": 4,
+        "compilations_per_execution": 4,
+        "elapsed_ns": 450099000,
+        "compilations": [
+          {
+            "compilation_index": 0,
+            "elapsed_ns": 114750458,
+            "canonical_bytes_len": 2048165,
+            "canonical_bytes_cid": "blake3:d700b84d0b1ac83fab81ec81fa080365a98c44a8209cf1f3442825f2cfaa6841",
+            "manifest_kappa": "blake3:21e7c4da52b09a192d0fef62ee9d46a137514e802b6c0cc99abee2974d594d75",
+            "canonical_bytes_equal_to_baseline": true,
+            "manifest_kappa_equal_to_baseline": true,
+            "canonical_evidence": "EXACT_STRICT_BASELINE_MATCH",
+            "compile": {
+              "requested_workers": 4,
+              "used_workers": 4,
+              "sentences": 16,
+              "route_steps": 1954,
+              "causal_transitions": 1938,
+              "index_occurrences": 5798,
+              "peak_active_workers": 4,
+              "worker_reports": [
+                {
+                  "partition_id": 0,
+                  "sentence_count": 4,
+                  "assigned_transitions": 508,
+                  "completed_transitions": 508,
+                  "elapsed_ns": 24584250
+                },
+                {
+                  "partition_id": 1,
+                  "sentence_count": 4,
+                  "assigned_transitions": 508,
+                  "completed_transitions": 508,
+                  "elapsed_ns": 23970458
+                },
+                {
+                  "partition_id": 2,
+                  "sentence_count": 4,
+                  "assigned_transitions": 508,
+                  "completed_transitions": 508,
+                  "elapsed_ns": 27603875
+                },
+                {
+                  "partition_id": 3,
+                  "sentence_count": 4,
+                  "assigned_transitions": 414,
+                  "completed_transitions": 414,
+                  "elapsed_ns": 21590167
+                }
+              ]
+            }
+          },
+          {
+            "compilation_index": 1,
+            "elapsed_ns": 112823333,
+            "canonical_bytes_len": 2048165,
+            "canonical_bytes_cid": "blake3:d700b84d0b1ac83fab81ec81fa080365a98c44a8209cf1f3442825f2cfaa6841",
+            "manifest_kappa": "blake3:21e7c4da52b09a192d0fef62ee9d46a137514e802b6c0cc99abee2974d594d75",
+            "canonical_bytes_equal_to_baseline": true,
+            "manifest_kappa_equal_to_baseline": true,
+            "canonical_evidence": "EXACT_STRICT_BASELINE_MATCH",
+            "compile": {
+              "requested_workers": 4,
+              "used_workers": 4,
+              "sentences": 16,
+              "route_steps": 1954,
+              "causal_transitions": 1938,
+              "index_occurrences": 5798,
+              "peak_active_workers": 4,
+              "worker_reports": [
+                {
+                  "partition_id": 0,
+                  "sentence_count": 4,
+                  "assigned_transitions": 508,
+                  "completed_transitions": 508,
+                  "elapsed_ns": 24250459
+                },
+                {
+                  "partition_id": 1,
+                  "sentence_count": 4,
+                  "assigned_transitions": 508,
+                  "completed_transitions": 508,
+                  "elapsed_ns": 25452125
+                },
+                {
+                  "partition_id": 2,
+                  "sentence_count": 4,
+                  "assigned_transitions": 508,
+                  "completed_transitions": 508,
+                  "elapsed_ns": 25600667
+                },
+                {
+                  "partition_id": 3,
+                  "sentence_count": 4,
+                  "assigned_transitions": 414,
+                  "completed_transitions": 414,
+                  "elapsed_ns": 20112916
+                }
+              ]
+            }
+          },
+          {
+            "compilation_index": 2,
+            "elapsed_ns": 111249834,
+            "canonical_bytes_len": 2048165,
+            "canonical_bytes_cid": "blake3:d700b84d0b1ac83fab81ec81fa080365a98c44a8209cf1f3442825f2cfaa6841",
+            "manifest_kappa": "blake3:21e7c4da52b09a192d0fef62ee9d46a137514e802b6c0cc99abee2974d594d75",
+            "canonical_bytes_equal_to_baseline": true,
+            "manifest_kappa_equal_to_baseline": true,
+            "canonical_evidence": "EXACT_STRICT_BASELINE_MATCH",
+            "compile": {
+              "requested_workers": 4,
+              "used_workers": 4,
+              "sentences": 16,
+              "route_steps": 1954,
+              "causal_transitions": 1938,
+              "index_occurrences": 5798,
+              "peak_active_workers": 4,
+              "worker_reports": [
+                {
+                  "partition_id": 0,
+                  "sentence_count": 4,
+                  "assigned_transitions": 508,
+                  "completed_transitions": 508,
+                  "elapsed_ns": 24265834
+                },
+                {
+                  "partition_id": 1,
+                  "sentence_count": 4,
+                  "assigned_transitions": 508,
+                  "completed_transitions": 508,
+                  "elapsed_ns": 24369792
+                },
+                {
+                  "partition_id": 2,
+                  "sentence_count": 4,
+                  "assigned_transitions": 508,
+                  "completed_transitions": 508,
+                  "elapsed_ns": 23584958
+                },
+                {
+                  "partition_id": 3,
+                  "sentence_count": 4,
+                  "assigned_transitions": 414,
+                  "completed_transitions": 414,
+                  "elapsed_ns": 19597667
+                }
+              ]
+            }
+          },
+          {
+            "compilation_index": 3,
+            "elapsed_ns": 111275375,
+            "canonical_bytes_len": 2048165,
+            "canonical_bytes_cid": "blake3:d700b84d0b1ac83fab81ec81fa080365a98c44a8209cf1f3442825f2cfaa6841",
+            "manifest_kappa": "blake3:21e7c4da52b09a192d0fef62ee9d46a137514e802b6c0cc99abee2974d594d75",
+            "canonical_bytes_equal_to_baseline": true,
+            "manifest_kappa_equal_to_baseline": true,
+            "canonical_evidence": "EXACT_STRICT_BASELINE_MATCH",
+            "compile": {
+              "requested_workers": 4,
+              "used_workers": 4,
+              "sentences": 16,
+              "route_steps": 1954,
+              "causal_transitions": 1938,
+              "index_occurrences": 5798,
+              "peak_active_workers": 4,
+              "worker_reports": [
+                {
+                  "partition_id": 0,
+                  "sentence_count": 4,
+                  "assigned_transitions": 508,
+                  "completed_transitions": 508,
+                  "elapsed_ns": 24672000
+                },
+                {
+                  "partition_id": 1,
+                  "sentence_count": 4,
+                  "assigned_transitions": 508,
+                  "completed_transitions": 508,
+                  "elapsed_ns": 24363709
+                },
+                {
+                  "partition_id": 2,
+                  "sentence_count": 4,
+                  "assigned_transitions": 508,
+                  "completed_transitions": 508,
+                  "elapsed_ns": 23549250
+                },
+                {
+                  "partition_id": 3,
+                  "sentence_count": 4,
+                  "assigned_transitions": 414,
+                  "completed_transitions": 414,
+                  "elapsed_ns": 19220042
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "execution_index": 2,
+        "phase": "MEASURED",
+        "repetition": 0,
+        "requested_workers": 1,
+        "compilations_per_execution": 4,
+        "elapsed_ns": 646749083,
+        "compilations": [
+          {
+            "compilation_index": 0,
+            "elapsed_ns": 161532750,
+            "canonical_bytes_len": 2048165,
+            "canonical_bytes_cid": "blake3:d700b84d0b1ac83fab81ec81fa080365a98c44a8209cf1f3442825f2cfaa6841",
+            "manifest_kappa": "blake3:21e7c4da52b09a192d0fef62ee9d46a137514e802b6c0cc99abee2974d594d75",
+            "canonical_bytes_equal_to_baseline": true,
+            "manifest_kappa_equal_to_baseline": true,
+            "canonical_evidence": "EXACT_STRICT_BASELINE_MATCH",
+            "compile": {
+              "requested_workers": 1,
+              "used_workers": 1,
+              "sentences": 16,
+              "route_steps": 1954,
+              "causal_transitions": 1938,
+              "index_occurrences": 5798,
+              "peak_active_workers": 1,
+              "worker_reports": [
+                {
+                  "partition_id": 0,
+                  "sentence_count": 16,
+                  "assigned_transitions": 1938,
+                  "completed_transitions": 1938,
+                  "elapsed_ns": 75428417
+                }
+              ]
+            }
+          },
+          {
+            "compilation_index": 1,
+            "elapsed_ns": 161241625,
+            "canonical_bytes_len": 2048165,
+            "canonical_bytes_cid": "blake3:d700b84d0b1ac83fab81ec81fa080365a98c44a8209cf1f3442825f2cfaa6841",
+            "manifest_kappa": "blake3:21e7c4da52b09a192d0fef62ee9d46a137514e802b6c0cc99abee2974d594d75",
+            "canonical_bytes_equal_to_baseline": true,
+            "manifest_kappa_equal_to_baseline": true,
+            "canonical_evidence": "EXACT_STRICT_BASELINE_MATCH",
+            "compile": {
+              "requested_workers": 1,
+              "used_workers": 1,
+              "sentences": 16,
+              "route_steps": 1954,
+              "causal_transitions": 1938,
+              "index_occurrences": 5798,
+              "peak_active_workers": 1,
+              "worker_reports": [
+                {
+                  "partition_id": 0,
+                  "sentence_count": 16,
+                  "assigned_transitions": 1938,
+                  "completed_transitions": 1938,
+                  "elapsed_ns": 75654625
+                }
+              ]
+            }
+          },
+          {
+            "compilation_index": 2,
+            "elapsed_ns": 162062708,
+            "canonical_bytes_len": 2048165,
+            "canonical_bytes_cid": "blake3:d700b84d0b1ac83fab81ec81fa080365a98c44a8209cf1f3442825f2cfaa6841",
+            "manifest_kappa": "blake3:21e7c4da52b09a192d0fef62ee9d46a137514e802b6c0cc99abee2974d594d75",
+            "canonical_bytes_equal_to_baseline": true,
+            "manifest_kappa_equal_to_baseline": true,
+            "canonical_evidence": "EXACT_STRICT_BASELINE_MATCH",
+            "compile": {
+              "requested_workers": 1,
+              "used_workers": 1,
+              "sentences": 16,
+              "route_steps": 1954,
+              "causal_transitions": 1938,
+              "index_occurrences": 5798,
+              "peak_active_workers": 1,
+              "worker_reports": [
+                {
+                  "partition_id": 0,
+                  "sentence_count": 16,
+                  "assigned_transitions": 1938,
+                  "completed_transitions": 1938,
+                  "elapsed_ns": 75669042
+                }
+              ]
+            }
+          },
+          {
+            "compilation_index": 3,
+            "elapsed_ns": 161912000,
+            "canonical_bytes_len": 2048165,
+            "canonical_bytes_cid": "blake3:d700b84d0b1ac83fab81ec81fa080365a98c44a8209cf1f3442825f2cfaa6841",
+            "manifest_kappa": "blake3:21e7c4da52b09a192d0fef62ee9d46a137514e802b6c0cc99abee2974d594d75",
+            "canonical_bytes_equal_to_baseline": true,
+            "manifest_kappa_equal_to_baseline": true,
+            "canonical_evidence": "EXACT_STRICT_BASELINE_MATCH",
+            "compile": {
+              "requested_workers": 1,
+              "used_workers": 1,
+              "sentences": 16,
+              "route_steps": 1954,
+              "causal_transitions": 1938,
+              "index_occurrences": 5798,
+              "peak_active_workers": 1,
+              "worker_reports": [
+                {
+                  "partition_id": 0,
+                  "sentence_count": 16,
+                  "assigned_transitions": 1938,
+                  "completed_transitions": 1938,
+                  "elapsed_ns": 75642084
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "execution_index": 3,
+        "phase": "MEASURED",
+        "repetition": 0,
+        "requested_workers": 4,
+        "compilations_per_execution": 4,
+        "elapsed_ns": 441452708,
+        "compilations": [
+          {
+            "compilation_index": 0,
+            "elapsed_ns": 111319000,
+            "canonical_bytes_len": 2048165,
+            "canonical_bytes_cid": "blake3:d700b84d0b1ac83fab81ec81fa080365a98c44a8209cf1f3442825f2cfaa6841",
+            "manifest_kappa": "blake3:21e7c4da52b09a192d0fef62ee9d46a137514e802b6c0cc99abee2974d594d75",
+            "canonical_bytes_equal_to_baseline": true,
+            "manifest_kappa_equal_to_baseline": true,
+            "canonical_evidence": "EXACT_STRICT_BASELINE_MATCH",
+            "compile": {
+              "requested_workers": 4,
+              "used_workers": 4,
+              "sentences": 16,
+              "route_steps": 1954,
+              "causal_transitions": 1938,
+              "index_occurrences": 5798,
+              "peak_active_workers": 4,
+              "worker_reports": [
+                {
+                  "partition_id": 0,
+                  "sentence_count": 4,
+                  "assigned_transitions": 508,
+                  "completed_transitions": 508,
+                  "elapsed_ns": 25357334
+                },
+                {
+                  "partition_id": 1,
+                  "sentence_count": 4,
+                  "assigned_transitions": 508,
+                  "completed_transitions": 508,
+                  "elapsed_ns": 23255250
+                },
+                {
+                  "partition_id": 2,
+                  "sentence_count": 4,
+                  "assigned_transitions": 508,
+                  "completed_transitions": 508,
+                  "elapsed_ns": 23337250
+                },
+                {
+                  "partition_id": 3,
+                  "sentence_count": 4,
+                  "assigned_transitions": 414,
+                  "completed_transitions": 414,
+                  "elapsed_ns": 18420291
+                }
+              ]
+            }
+          },
+          {
+            "compilation_index": 1,
+            "elapsed_ns": 110404792,
+            "canonical_bytes_len": 2048165,
+            "canonical_bytes_cid": "blake3:d700b84d0b1ac83fab81ec81fa080365a98c44a8209cf1f3442825f2cfaa6841",
+            "manifest_kappa": "blake3:21e7c4da52b09a192d0fef62ee9d46a137514e802b6c0cc99abee2974d594d75",
+            "canonical_bytes_equal_to_baseline": true,
+            "manifest_kappa_equal_to_baseline": true,
+            "canonical_evidence": "EXACT_STRICT_BASELINE_MATCH",
+            "compile": {
+              "requested_workers": 4,
+              "used_workers": 4,
+              "sentences": 16,
+              "route_steps": 1954,
+              "causal_transitions": 1938,
+              "index_occurrences": 5798,
+              "peak_active_workers": 4,
+              "worker_reports": [
+                {
+                  "partition_id": 0,
+                  "sentence_count": 4,
+                  "assigned_transitions": 508,
+                  "completed_transitions": 508,
+                  "elapsed_ns": 23540417
+                },
+                {
+                  "partition_id": 1,
+                  "sentence_count": 4,
+                  "assigned_transitions": 508,
+                  "completed_transitions": 508,
+                  "elapsed_ns": 23146583
+                },
+                {
+                  "partition_id": 2,
+                  "sentence_count": 4,
+                  "assigned_transitions": 508,
+                  "completed_transitions": 508,
+                  "elapsed_ns": 24128541
+                },
+                {
+                  "partition_id": 3,
+                  "sentence_count": 4,
+                  "assigned_transitions": 414,
+                  "completed_transitions": 414,
+                  "elapsed_ns": 18558250
+                }
+              ]
+            }
+          },
+          {
+            "compilation_index": 2,
+            "elapsed_ns": 109917416,
+            "canonical_bytes_len": 2048165,
+            "canonical_bytes_cid": "blake3:d700b84d0b1ac83fab81ec81fa080365a98c44a8209cf1f3442825f2cfaa6841",
+            "manifest_kappa": "blake3:21e7c4da52b09a192d0fef62ee9d46a137514e802b6c0cc99abee2974d594d75",
+            "canonical_bytes_equal_to_baseline": true,
+            "manifest_kappa_equal_to_baseline": true,
+            "canonical_evidence": "EXACT_STRICT_BASELINE_MATCH",
+            "compile": {
+              "requested_workers": 4,
+              "used_workers": 4,
+              "sentences": 16,
+              "route_steps": 1954,
+              "causal_transitions": 1938,
+              "index_occurrences": 5798,
+              "peak_active_workers": 4,
+              "worker_reports": [
+                {
+                  "partition_id": 0,
+                  "sentence_count": 4,
+                  "assigned_transitions": 508,
+                  "completed_transitions": 508,
+                  "elapsed_ns": 22893667
+                },
+                {
+                  "partition_id": 1,
+                  "sentence_count": 4,
+                  "assigned_transitions": 508,
+                  "completed_transitions": 508,
+                  "elapsed_ns": 23495166
+                },
+                {
+                  "partition_id": 2,
+                  "sentence_count": 4,
+                  "assigned_transitions": 508,
+                  "completed_transitions": 508,
+                  "elapsed_ns": 22935916
+                },
+                {
+                  "partition_id": 3,
+                  "sentence_count": 4,
+                  "assigned_transitions": 414,
+                  "completed_transitions": 414,
+                  "elapsed_ns": 19061375
+                }
+              ]
+            }
+          },
+          {
+            "compilation_index": 3,
+            "elapsed_ns": 109811500,
+            "canonical_bytes_len": 2048165,
+            "canonical_bytes_cid": "blake3:d700b84d0b1ac83fab81ec81fa080365a98c44a8209cf1f3442825f2cfaa6841",
+            "manifest_kappa": "blake3:21e7c4da52b09a192d0fef62ee9d46a137514e802b6c0cc99abee2974d594d75",
+            "canonical_bytes_equal_to_baseline": true,
+            "manifest_kappa_equal_to_baseline": true,
+            "canonical_evidence": "EXACT_STRICT_BASELINE_MATCH",
+            "compile": {
+              "requested_workers": 4,
+              "used_workers": 4,
+              "sentences": 16,
+              "route_steps": 1954,
+              "causal_transitions": 1938,
+              "index_occurrences": 5798,
+              "peak_active_workers": 4,
+              "worker_reports": [
+                {
+                  "partition_id": 0,
+                  "sentence_count": 4,
+                  "assigned_transitions": 508,
+                  "completed_transitions": 508,
+                  "elapsed_ns": 22991042
+                },
+                {
+                  "partition_id": 1,
+                  "sentence_count": 4,
+                  "assigned_transitions": 508,
+                  "completed_transitions": 508,
+                  "elapsed_ns": 22906750
+                },
+                {
+                  "partition_id": 2,
+                  "sentence_count": 4,
+                  "assigned_transitions": 508,
+                  "completed_transitions": 508,
+                  "elapsed_ns": 23929500
+                },
+                {
+                  "partition_id": 3,
+                  "sentence_count": 4,
+                  "assigned_transitions": 414,
+                  "completed_transitions": 414,
+                  "elapsed_ns": 18741084
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "execution_index": 4,
+        "phase": "MEASURED",
+        "repetition": 1,
+        "requested_workers": 4,
+        "compilations_per_execution": 4,
+        "elapsed_ns": 446351709,
+        "compilations": [
+          {
+            "compilation_index": 0,
+            "elapsed_ns": 111628375,
+            "canonical_bytes_len": 2048165,
+            "canonical_bytes_cid": "blake3:d700b84d0b1ac83fab81ec81fa080365a98c44a8209cf1f3442825f2cfaa6841",
+            "manifest_kappa": "blake3:21e7c4da52b09a192d0fef62ee9d46a137514e802b6c0cc99abee2974d594d75",
+            "canonical_bytes_equal_to_baseline": true,
+            "manifest_kappa_equal_to_baseline": true,
+            "canonical_evidence": "EXACT_STRICT_BASELINE_MATCH",
+            "compile": {
+              "requested_workers": 4,
+              "used_workers": 4,
+              "sentences": 16,
+              "route_steps": 1954,
+              "causal_transitions": 1938,
+              "index_occurrences": 5798,
+              "peak_active_workers": 4,
+              "worker_reports": [
+                {
+                  "partition_id": 0,
+                  "sentence_count": 4,
+                  "assigned_transitions": 508,
+                  "completed_transitions": 508,
+                  "elapsed_ns": 24574375
+                },
+                {
+                  "partition_id": 1,
+                  "sentence_count": 4,
+                  "assigned_transitions": 508,
+                  "completed_transitions": 508,
+                  "elapsed_ns": 24210667
+                },
+                {
+                  "partition_id": 2,
+                  "sentence_count": 4,
+                  "assigned_transitions": 508,
+                  "completed_transitions": 508,
+                  "elapsed_ns": 23517083
+                },
+                {
+                  "partition_id": 3,
+                  "sentence_count": 4,
+                  "assigned_transitions": 414,
+                  "completed_transitions": 414,
+                  "elapsed_ns": 19450542
+                }
+              ]
+            }
+          },
+          {
+            "compilation_index": 1,
+            "elapsed_ns": 112174750,
+            "canonical_bytes_len": 2048165,
+            "canonical_bytes_cid": "blake3:d700b84d0b1ac83fab81ec81fa080365a98c44a8209cf1f3442825f2cfaa6841",
+            "manifest_kappa": "blake3:21e7c4da52b09a192d0fef62ee9d46a137514e802b6c0cc99abee2974d594d75",
+            "canonical_bytes_equal_to_baseline": true,
+            "manifest_kappa_equal_to_baseline": true,
+            "canonical_evidence": "EXACT_STRICT_BASELINE_MATCH",
+            "compile": {
+              "requested_workers": 4,
+              "used_workers": 4,
+              "sentences": 16,
+              "route_steps": 1954,
+              "causal_transitions": 1938,
+              "index_occurrences": 5798,
+              "peak_active_workers": 4,
+              "worker_reports": [
+                {
+                  "partition_id": 0,
+                  "sentence_count": 4,
+                  "assigned_transitions": 508,
+                  "completed_transitions": 508,
+                  "elapsed_ns": 22995667
+                },
+                {
+                  "partition_id": 1,
+                  "sentence_count": 4,
+                  "assigned_transitions": 508,
+                  "completed_transitions": 508,
+                  "elapsed_ns": 24747333
+                },
+                {
+                  "partition_id": 2,
+                  "sentence_count": 4,
+                  "assigned_transitions": 508,
+                  "completed_transitions": 508,
+                  "elapsed_ns": 23919542
+                },
+                {
+                  "partition_id": 3,
+                  "sentence_count": 4,
+                  "assigned_transitions": 414,
+                  "completed_transitions": 414,
+                  "elapsed_ns": 19181417
+                }
+              ]
+            }
+          },
+          {
+            "compilation_index": 2,
+            "elapsed_ns": 110321459,
+            "canonical_bytes_len": 2048165,
+            "canonical_bytes_cid": "blake3:d700b84d0b1ac83fab81ec81fa080365a98c44a8209cf1f3442825f2cfaa6841",
+            "manifest_kappa": "blake3:21e7c4da52b09a192d0fef62ee9d46a137514e802b6c0cc99abee2974d594d75",
+            "canonical_bytes_equal_to_baseline": true,
+            "manifest_kappa_equal_to_baseline": true,
+            "canonical_evidence": "EXACT_STRICT_BASELINE_MATCH",
+            "compile": {
+              "requested_workers": 4,
+              "used_workers": 4,
+              "sentences": 16,
+              "route_steps": 1954,
+              "causal_transitions": 1938,
+              "index_occurrences": 5798,
+              "peak_active_workers": 4,
+              "worker_reports": [
+                {
+                  "partition_id": 0,
+                  "sentence_count": 4,
+                  "assigned_transitions": 508,
+                  "completed_transitions": 508,
+                  "elapsed_ns": 23195125
+                },
+                {
+                  "partition_id": 1,
+                  "sentence_count": 4,
+                  "assigned_transitions": 508,
+                  "completed_transitions": 508,
+                  "elapsed_ns": 23599375
+                },
+                {
+                  "partition_id": 2,
+                  "sentence_count": 4,
+                  "assigned_transitions": 508,
+                  "completed_transitions": 508,
+                  "elapsed_ns": 22898500
+                },
+                {
+                  "partition_id": 3,
+                  "sentence_count": 4,
+                  "assigned_transitions": 414,
+                  "completed_transitions": 414,
+                  "elapsed_ns": 20315458
+                }
+              ]
+            }
+          },
+          {
+            "compilation_index": 3,
+            "elapsed_ns": 112227125,
+            "canonical_bytes_len": 2048165,
+            "canonical_bytes_cid": "blake3:d700b84d0b1ac83fab81ec81fa080365a98c44a8209cf1f3442825f2cfaa6841",
+            "manifest_kappa": "blake3:21e7c4da52b09a192d0fef62ee9d46a137514e802b6c0cc99abee2974d594d75",
+            "canonical_bytes_equal_to_baseline": true,
+            "manifest_kappa_equal_to_baseline": true,
+            "canonical_evidence": "EXACT_STRICT_BASELINE_MATCH",
+            "compile": {
+              "requested_workers": 4,
+              "used_workers": 4,
+              "sentences": 16,
+              "route_steps": 1954,
+              "causal_transitions": 1938,
+              "index_occurrences": 5798,
+              "peak_active_workers": 4,
+              "worker_reports": [
+                {
+                  "partition_id": 0,
+                  "sentence_count": 4,
+                  "assigned_transitions": 508,
+                  "completed_transitions": 508,
+                  "elapsed_ns": 25514583
+                },
+                {
+                  "partition_id": 1,
+                  "sentence_count": 4,
+                  "assigned_transitions": 508,
+                  "completed_transitions": 508,
+                  "elapsed_ns": 24028500
+                },
+                {
+                  "partition_id": 2,
+                  "sentence_count": 4,
+                  "assigned_transitions": 508,
+                  "completed_transitions": 508,
+                  "elapsed_ns": 23253416
+                },
+                {
+                  "partition_id": 3,
+                  "sentence_count": 4,
+                  "assigned_transitions": 414,
+                  "completed_transitions": 414,
+                  "elapsed_ns": 18783375
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "execution_index": 5,
+        "phase": "MEASURED",
+        "repetition": 1,
+        "requested_workers": 1,
+        "compilations_per_execution": 4,
+        "elapsed_ns": 656760293,
+        "compilations": [
+          {
+            "compilation_index": 0,
+            "elapsed_ns": 164417625,
+            "canonical_bytes_len": 2048165,
+            "canonical_bytes_cid": "blake3:d700b84d0b1ac83fab81ec81fa080365a98c44a8209cf1f3442825f2cfaa6841",
+            "manifest_kappa": "blake3:21e7c4da52b09a192d0fef62ee9d46a137514e802b6c0cc99abee2974d594d75",
+            "canonical_bytes_equal_to_baseline": true,
+            "manifest_kappa_equal_to_baseline": true,
+            "canonical_evidence": "EXACT_STRICT_BASELINE_MATCH",
+            "compile": {
+              "requested_workers": 1,
+              "used_workers": 1,
+              "sentences": 16,
+              "route_steps": 1954,
+              "causal_transitions": 1938,
+              "index_occurrences": 5798,
+              "peak_active_workers": 1,
+              "worker_reports": [
+                {
+                  "partition_id": 0,
+                  "sentence_count": 16,
+                  "assigned_transitions": 1938,
+                  "completed_transitions": 1938,
+                  "elapsed_ns": 76854833
+                }
+              ]
+            }
+          },
+          {
+            "compilation_index": 1,
+            "elapsed_ns": 165247667,
+            "canonical_bytes_len": 2048165,
+            "canonical_bytes_cid": "blake3:d700b84d0b1ac83fab81ec81fa080365a98c44a8209cf1f3442825f2cfaa6841",
+            "manifest_kappa": "blake3:21e7c4da52b09a192d0fef62ee9d46a137514e802b6c0cc99abee2974d594d75",
+            "canonical_bytes_equal_to_baseline": true,
+            "manifest_kappa_equal_to_baseline": true,
+            "canonical_evidence": "EXACT_STRICT_BASELINE_MATCH",
+            "compile": {
+              "requested_workers": 1,
+              "used_workers": 1,
+              "sentences": 16,
+              "route_steps": 1954,
+              "causal_transitions": 1938,
+              "index_occurrences": 5798,
+              "peak_active_workers": 1,
+              "worker_reports": [
+                {
+                  "partition_id": 0,
+                  "sentence_count": 16,
+                  "assigned_transitions": 1938,
+                  "completed_transitions": 1938,
+                  "elapsed_ns": 76532000
+                }
+              ]
+            }
+          },
+          {
+            "compilation_index": 2,
+            "elapsed_ns": 163086584,
+            "canonical_bytes_len": 2048165,
+            "canonical_bytes_cid": "blake3:d700b84d0b1ac83fab81ec81fa080365a98c44a8209cf1f3442825f2cfaa6841",
+            "manifest_kappa": "blake3:21e7c4da52b09a192d0fef62ee9d46a137514e802b6c0cc99abee2974d594d75",
+            "canonical_bytes_equal_to_baseline": true,
+            "manifest_kappa_equal_to_baseline": true,
+            "canonical_evidence": "EXACT_STRICT_BASELINE_MATCH",
+            "compile": {
+              "requested_workers": 1,
+              "used_workers": 1,
+              "sentences": 16,
+              "route_steps": 1954,
+              "causal_transitions": 1938,
+              "index_occurrences": 5798,
+              "peak_active_workers": 1,
+              "worker_reports": [
+                {
+                  "partition_id": 0,
+                  "sentence_count": 16,
+                  "assigned_transitions": 1938,
+                  "completed_transitions": 1938,
+                  "elapsed_ns": 76244667
+                }
+              ]
+            }
+          },
+          {
+            "compilation_index": 3,
+            "elapsed_ns": 164008417,
+            "canonical_bytes_len": 2048165,
+            "canonical_bytes_cid": "blake3:d700b84d0b1ac83fab81ec81fa080365a98c44a8209cf1f3442825f2cfaa6841",
+            "manifest_kappa": "blake3:21e7c4da52b09a192d0fef62ee9d46a137514e802b6c0cc99abee2974d594d75",
+            "canonical_bytes_equal_to_baseline": true,
+            "manifest_kappa_equal_to_baseline": true,
+            "canonical_evidence": "EXACT_STRICT_BASELINE_MATCH",
+            "compile": {
+              "requested_workers": 1,
+              "used_workers": 1,
+              "sentences": 16,
+              "route_steps": 1954,
+              "causal_transitions": 1938,
+              "index_occurrences": 5798,
+              "peak_active_workers": 1,
+              "worker_reports": [
+                {
+                  "partition_id": 0,
+                  "sentence_count": 16,
+                  "assigned_transitions": 1938,
+                  "completed_transitions": 1938,
+                  "elapsed_ns": 76635958
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "execution_index": 6,
+        "phase": "MEASURED",
+        "repetition": 2,
+        "requested_workers": 1,
+        "compilations_per_execution": 4,
+        "elapsed_ns": 647490918,
+        "compilations": [
+          {
+            "compilation_index": 0,
+            "elapsed_ns": 162520917,
+            "canonical_bytes_len": 2048165,
+            "canonical_bytes_cid": "blake3:d700b84d0b1ac83fab81ec81fa080365a98c44a8209cf1f3442825f2cfaa6841",
+            "manifest_kappa": "blake3:21e7c4da52b09a192d0fef62ee9d46a137514e802b6c0cc99abee2974d594d75",
+            "canonical_bytes_equal_to_baseline": true,
+            "manifest_kappa_equal_to_baseline": true,
+            "canonical_evidence": "EXACT_STRICT_BASELINE_MATCH",
+            "compile": {
+              "requested_workers": 1,
+              "used_workers": 1,
+              "sentences": 16,
+              "route_steps": 1954,
+              "causal_transitions": 1938,
+              "index_occurrences": 5798,
+              "peak_active_workers": 1,
+              "worker_reports": [
+                {
+                  "partition_id": 0,
+                  "sentence_count": 16,
+                  "assigned_transitions": 1938,
+                  "completed_transitions": 1938,
+                  "elapsed_ns": 76051250
+                }
+              ]
+            }
+          },
+          {
+            "compilation_index": 1,
+            "elapsed_ns": 161676084,
+            "canonical_bytes_len": 2048165,
+            "canonical_bytes_cid": "blake3:d700b84d0b1ac83fab81ec81fa080365a98c44a8209cf1f3442825f2cfaa6841",
+            "manifest_kappa": "blake3:21e7c4da52b09a192d0fef62ee9d46a137514e802b6c0cc99abee2974d594d75",
+            "canonical_bytes_equal_to_baseline": true,
+            "manifest_kappa_equal_to_baseline": true,
+            "canonical_evidence": "EXACT_STRICT_BASELINE_MATCH",
+            "compile": {
+              "requested_workers": 1,
+              "used_workers": 1,
+              "sentences": 16,
+              "route_steps": 1954,
+              "causal_transitions": 1938,
+              "index_occurrences": 5798,
+              "peak_active_workers": 1,
+              "worker_reports": [
+                {
+                  "partition_id": 0,
+                  "sentence_count": 16,
+                  "assigned_transitions": 1938,
+                  "completed_transitions": 1938,
+                  "elapsed_ns": 75618584
+                }
+              ]
+            }
+          },
+          {
+            "compilation_index": 2,
+            "elapsed_ns": 161106625,
+            "canonical_bytes_len": 2048165,
+            "canonical_bytes_cid": "blake3:d700b84d0b1ac83fab81ec81fa080365a98c44a8209cf1f3442825f2cfaa6841",
+            "manifest_kappa": "blake3:21e7c4da52b09a192d0fef62ee9d46a137514e802b6c0cc99abee2974d594d75",
+            "canonical_bytes_equal_to_baseline": true,
+            "manifest_kappa_equal_to_baseline": true,
+            "canonical_evidence": "EXACT_STRICT_BASELINE_MATCH",
+            "compile": {
+              "requested_workers": 1,
+              "used_workers": 1,
+              "sentences": 16,
+              "route_steps": 1954,
+              "causal_transitions": 1938,
+              "index_occurrences": 5798,
+              "peak_active_workers": 1,
+              "worker_reports": [
+                {
+                  "partition_id": 0,
+                  "sentence_count": 16,
+                  "assigned_transitions": 1938,
+                  "completed_transitions": 1938,
+                  "elapsed_ns": 75291042
+                }
+              ]
+            }
+          },
+          {
+            "compilation_index": 3,
+            "elapsed_ns": 162187292,
+            "canonical_bytes_len": 2048165,
+            "canonical_bytes_cid": "blake3:d700b84d0b1ac83fab81ec81fa080365a98c44a8209cf1f3442825f2cfaa6841",
+            "manifest_kappa": "blake3:21e7c4da52b09a192d0fef62ee9d46a137514e802b6c0cc99abee2974d594d75",
+            "canonical_bytes_equal_to_baseline": true,
+            "manifest_kappa_equal_to_baseline": true,
+            "canonical_evidence": "EXACT_STRICT_BASELINE_MATCH",
+            "compile": {
+              "requested_workers": 1,
+              "used_workers": 1,
+              "sentences": 16,
+              "route_steps": 1954,
+              "causal_transitions": 1938,
+              "index_occurrences": 5798,
+              "peak_active_workers": 1,
+              "worker_reports": [
+                {
+                  "partition_id": 0,
+                  "sentence_count": 16,
+                  "assigned_transitions": 1938,
+                  "completed_transitions": 1938,
+                  "elapsed_ns": 75943750
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "execution_index": 7,
+        "phase": "MEASURED",
+        "repetition": 2,
+        "requested_workers": 4,
+        "compilations_per_execution": 4,
+        "elapsed_ns": 449882208,
+        "compilations": [
+          {
+            "compilation_index": 0,
+            "elapsed_ns": 111176542,
+            "canonical_bytes_len": 2048165,
+            "canonical_bytes_cid": "blake3:d700b84d0b1ac83fab81ec81fa080365a98c44a8209cf1f3442825f2cfaa6841",
+            "manifest_kappa": "blake3:21e7c4da52b09a192d0fef62ee9d46a137514e802b6c0cc99abee2974d594d75",
+            "canonical_bytes_equal_to_baseline": true,
+            "manifest_kappa_equal_to_baseline": true,
+            "canonical_evidence": "EXACT_STRICT_BASELINE_MATCH",
+            "compile": {
+              "requested_workers": 4,
+              "used_workers": 4,
+              "sentences": 16,
+              "route_steps": 1954,
+              "causal_transitions": 1938,
+              "index_occurrences": 5798,
+              "peak_active_workers": 4,
+              "worker_reports": [
+                {
+                  "partition_id": 0,
+                  "sentence_count": 4,
+                  "assigned_transitions": 508,
+                  "completed_transitions": 508,
+                  "elapsed_ns": 23986333
+                },
+                {
+                  "partition_id": 1,
+                  "sentence_count": 4,
+                  "assigned_transitions": 508,
+                  "completed_transitions": 508,
+                  "elapsed_ns": 24529917
+                },
+                {
+                  "partition_id": 2,
+                  "sentence_count": 4,
+                  "assigned_transitions": 508,
+                  "completed_transitions": 508,
+                  "elapsed_ns": 23259625
+                },
+                {
+                  "partition_id": 3,
+                  "sentence_count": 4,
+                  "assigned_transitions": 414,
+                  "completed_transitions": 414,
+                  "elapsed_ns": 20781458
+                }
+              ]
+            }
+          },
+          {
+            "compilation_index": 1,
+            "elapsed_ns": 111020166,
+            "canonical_bytes_len": 2048165,
+            "canonical_bytes_cid": "blake3:d700b84d0b1ac83fab81ec81fa080365a98c44a8209cf1f3442825f2cfaa6841",
+            "manifest_kappa": "blake3:21e7c4da52b09a192d0fef62ee9d46a137514e802b6c0cc99abee2974d594d75",
+            "canonical_bytes_equal_to_baseline": true,
+            "manifest_kappa_equal_to_baseline": true,
+            "canonical_evidence": "EXACT_STRICT_BASELINE_MATCH",
+            "compile": {
+              "requested_workers": 4,
+              "used_workers": 4,
+              "sentences": 16,
+              "route_steps": 1954,
+              "causal_transitions": 1938,
+              "index_occurrences": 5798,
+              "peak_active_workers": 4,
+              "worker_reports": [
+                {
+                  "partition_id": 0,
+                  "sentence_count": 4,
+                  "assigned_transitions": 508,
+                  "completed_transitions": 508,
+                  "elapsed_ns": 23753625
+                },
+                {
+                  "partition_id": 1,
+                  "sentence_count": 4,
+                  "assigned_transitions": 508,
+                  "completed_transitions": 508,
+                  "elapsed_ns": 22856375
+                },
+                {
+                  "partition_id": 2,
+                  "sentence_count": 4,
+                  "assigned_transitions": 508,
+                  "completed_transitions": 508,
+                  "elapsed_ns": 24890917
+                },
+                {
+                  "partition_id": 3,
+                  "sentence_count": 4,
+                  "assigned_transitions": 414,
+                  "completed_transitions": 414,
+                  "elapsed_ns": 18832583
+                }
+              ]
+            }
+          },
+          {
+            "compilation_index": 2,
+            "elapsed_ns": 110859041,
+            "canonical_bytes_len": 2048165,
+            "canonical_bytes_cid": "blake3:d700b84d0b1ac83fab81ec81fa080365a98c44a8209cf1f3442825f2cfaa6841",
+            "manifest_kappa": "blake3:21e7c4da52b09a192d0fef62ee9d46a137514e802b6c0cc99abee2974d594d75",
+            "canonical_bytes_equal_to_baseline": true,
+            "manifest_kappa_equal_to_baseline": true,
+            "canonical_evidence": "EXACT_STRICT_BASELINE_MATCH",
+            "compile": {
+              "requested_workers": 4,
+              "used_workers": 4,
+              "sentences": 16,
+              "route_steps": 1954,
+              "causal_transitions": 1938,
+              "index_occurrences": 5798,
+              "peak_active_workers": 4,
+              "worker_reports": [
+                {
+                  "partition_id": 0,
+                  "sentence_count": 4,
+                  "assigned_transitions": 508,
+                  "completed_transitions": 508,
+                  "elapsed_ns": 23166166
+                },
+                {
+                  "partition_id": 1,
+                  "sentence_count": 4,
+                  "assigned_transitions": 508,
+                  "completed_transitions": 508,
+                  "elapsed_ns": 23841500
+                },
+                {
+                  "partition_id": 2,
+                  "sentence_count": 4,
+                  "assigned_transitions": 508,
+                  "completed_transitions": 508,
+                  "elapsed_ns": 24234458
+                },
+                {
+                  "partition_id": 3,
+                  "sentence_count": 4,
+                  "assigned_transitions": 414,
+                  "completed_transitions": 414,
+                  "elapsed_ns": 19392417
+                }
+              ]
+            }
+          },
+          {
+            "compilation_index": 3,
+            "elapsed_ns": 116826459,
+            "canonical_bytes_len": 2048165,
+            "canonical_bytes_cid": "blake3:d700b84d0b1ac83fab81ec81fa080365a98c44a8209cf1f3442825f2cfaa6841",
+            "manifest_kappa": "blake3:21e7c4da52b09a192d0fef62ee9d46a137514e802b6c0cc99abee2974d594d75",
+            "canonical_bytes_equal_to_baseline": true,
+            "manifest_kappa_equal_to_baseline": true,
+            "canonical_evidence": "EXACT_STRICT_BASELINE_MATCH",
+            "compile": {
+              "requested_workers": 4,
+              "used_workers": 4,
+              "sentences": 16,
+              "route_steps": 1954,
+              "causal_transitions": 1938,
+              "index_occurrences": 5798,
+              "peak_active_workers": 4,
+              "worker_reports": [
+                {
+                  "partition_id": 0,
+                  "sentence_count": 4,
+                  "assigned_transitions": 508,
+                  "completed_transitions": 508,
+                  "elapsed_ns": 30350791
+                },
+                {
+                  "partition_id": 1,
+                  "sentence_count": 4,
+                  "assigned_transitions": 508,
+                  "completed_transitions": 508,
+                  "elapsed_ns": 25958625
+                },
+                {
+                  "partition_id": 2,
+                  "sentence_count": 4,
+                  "assigned_transitions": 508,
+                  "completed_transitions": 508,
+                  "elapsed_ns": 27173375
+                },
+                {
+                  "partition_id": 3,
+                  "sentence_count": 4,
+                  "assigned_transitions": 414,
+                  "completed_transitions": 414,
+                  "elapsed_ns": 21776000
+                }
+              ]
+            }
+          }
+        ]
+      }
+    ],
+    "decision": {
+      "verdict": "PASS",
+      "failures": [],
+      "one_worker_median_ns": 647490918,
+      "four_worker_median_ns": 446351709,
+      "one_worker_max_deviation_milli": 14,
+      "four_worker_max_deviation_milli": 10,
+      "speedup_milli": 1450
+    }
+  }
+}

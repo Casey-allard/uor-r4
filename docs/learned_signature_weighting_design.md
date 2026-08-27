@@ -1,5 +1,10 @@
 # Design: Learned Per-Dimension Weighting for Signature Assignment
 
+> **Historical design input.** This learned weighting proposal belongs to a
+> preserved compiler lane and is not part of the final route-native serving
+> architecture. See the
+> [Geometric Intelligence Programme](geometric_intelligence_programme.md).
+
 *Issue #310. Status: DESIGN FOR REVIEW — exploratory sketch; no code
 authorized by this document. Decision points marked ⚑ are open.
 Claim language: Definitions, Objectives, and Empirical Criteria only.*

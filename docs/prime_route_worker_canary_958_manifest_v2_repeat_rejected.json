@@ -1,0 +1,19 @@
+{
+  "schema": 2,
+  "domain": "uor-r4.prime-route-worker-canary-terminal/2",
+  "verdict": "OPTIMIZE_BEFORE_LONG_RUN",
+  "reason": "CERTIFIER_ERROR: prime-route canary compile failed: invalid prime-route product: adjacent route primes must be distinct for square-free semiprime experts",
+  "hard_wall_millis": 90000,
+  "watchdog_kill_millis": 85000,
+  "wall_elapsed_millis": 116,
+  "progress_events_emitted": 1,
+  "host": {
+    "release_build": true,
+    "build_profile": "release",
+    "opt_level": "3",
+    "target_arch": "aarch64",
+    "available_parallelism": 8,
+    "binary_cid": "blake3:a08e3e2d0211fafc7de9345e556bfa40d15e38cc683485faa6745c1e0ab2c654"
+  },
+  "certifier": null
+}

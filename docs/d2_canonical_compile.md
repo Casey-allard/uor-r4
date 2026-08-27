@@ -1,5 +1,10 @@
 # D2 canonical deterministic compile mode
 
+> **Preserved compiler reference.** This command and claim apply to the
+> historical source-to-TLA/R4G1 compilation lane. They do not describe #961’s
+> route-manifest compiler or establish current product capability. See the
+> [documentation map](README.md).
+
 Issue #265 adds a target-independent compiler mode for certificate-bearing
 artifacts. Enable it with:
 

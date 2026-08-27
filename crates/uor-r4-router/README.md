@@ -2,6 +2,16 @@
 
 The R⁴ geometric memory/router and manifold dashboard backend.
 
+**Research component, not a complete chat engine.** Its stored trajectories,
+identity-scoped memory, prime-overlap retrieval, resonance, Hopf state, and
+session geometry are inputs to the active route-native architecture. Its
+historical Markov generator and dashboard demonstrations do not establish
+source-free coherent generation. The active goal is recursive geometric
+attention over current, candidate, previous, last-two, sentence, paragraph,
+conversation, and global routes, followed by inference, correctness, and
+reasoning. See the
+[Geometric Intelligence Programme](../../docs/geometric_intelligence_programme.md).
+
 `UorR4Router` embeds words as 512-dimensional zeta-zero vectors, routes a
 rolling "brain state" to one of 16 scale windows by norm, indexes sentences
 into per-identity corpus manifolds, retrieves by prime-overlap + cosine
@@ -9,7 +19,7 @@ resonance, and retains a historical geometric Markov baseline (bigram/trigram
 transitions). It ships thought-stream visualization for the browser dashboard
 (`index.html`, `geometric_prime_router_webapp.html` at the repo root).
 
-The active [geometric causal-decoder roadmap](../../docs/geometric_causal_decoder_plan.md)
+The active [geometric intelligence programme](../../docs/geometric_intelligence_programme.md)
 reuses the identity state, content-bearing memory, retrieval, R⁴/Hopf math,
 persistence, and turn writeback. It replaces the Markov generator and removes
 hash-derived thought streams from intelligence-critical token selection.

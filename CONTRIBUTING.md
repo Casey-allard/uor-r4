@@ -3,7 +3,7 @@
 [AGENTS.md](AGENTS.md) is the full operating manual — gates, normative
 invariants, the κ re-pin procedure, long-run discipline. Read it before your
 first change. The current architecture and issue order live in the
-[Geometric Causal Decoder Roadmap](docs/geometric_causal_decoder_plan.md).
+[Geometric Intelligence Programme](docs/geometric_intelligence_programme.md).
 This file is the short version.
 
 ## The loop
@@ -13,17 +13,21 @@ This file is the short version.
    unassigned so anyone can pick it up. Never start an unassigned issue without
    assigning it first.
 2. Branch `issue-<n>-<slug>` off `main`. **No direct pushes to `main`.**
-3. Work, then run the focused checks below.
-4. Open a PR. It merges through the queue; a queued PR's head branch is locked,
-   so follow-up work goes on a fresh branch off `main` after it lands.
+3. Work and produce the declared product/release evidence. Run a check only if
+   the issue explicitly activates it.
+4. Open a PR. Automatic QA remains dormant. The immutable repository ruleset
+   forces a merge queue, so five instantaneous no-QA acknowledgements carry the
+   reviewed commit through it; they are transport metadata, not test results.
 5. **Close the issue with the evidence** — the numbers, the verdict against the
    pre-declared exit rule, and the merge commit. Then unassign yourself.
 6. Follow-up work discovered mid-stream gets **filed as an issue immediately**,
    not left in a PR body.
 
-## Focused checks
+## Decision-bearing checks (dormant by default)
 
-Use the smallest check that exercises what changed:
+Testing and QA do not run automatically. A product or release contract must
+name the check, the decision it can change, fixture identity, outcome actions,
+and resource budget. These are reference commands, not a pre-commit list:
 
 ```bash
 cargo fmt --check
@@ -32,24 +36,26 @@ cargo test -p <touched-package> --lib --offline
 python3 scripts/check_claim_wording.py  # claims/docs only
 ```
 
-Run cross-target or certification checks only when their contract is touched.
-For example, a WASM-boundary change needs:
+Activate cross-target or certification work only when the product/release
+decision requires it. For example, a release decision that names the WASM
+boundary may activate:
 
 ```bash
 cargo check --target wasm32-unknown-unknown -p uor-r4-wasm-router --lib
 ```
 
-The substantive CI gate compiles the workspace and runs library/product-path
-unit tests for Rust/build changes. Docs-only changes run claim wording only.
-Temporary zero-work compatibility contexts mirror that result under the
-repository ruleset's five legacy required names.
-BDD, doctests, no_std, deterministic rebuild, κ, Gate C, all-features, WASM,
-fuzz, Kani, conformance, and audit are nightly/manual certification—not routine
-merge blockers.
-
-Active decoder work also produces one bounded transcript or operator report
-that exercises the changed behavior. Do not create a new test framework for
-that smoke.
+Automatic QA is disabled. Legacy ruleset `19597522` still requires five status
+names and a merge queue, so pull-request and merge-group events emit transparent
+no-QA acknowledgements with those names. They perform no checkout, build, test,
+audit, fuzz, WASM, or model work and must never be cited as PASS evidence. A
+future product-ready release issue may activate only the QA required for that
+frozen release decision. #940 tracks eventual administrator cleanup.
+BDD, doctests, no_std, deterministic rebuild, kappa, Gate C, all-features,
+WASM, fuzz, Kani, conformance, audit, and corpus-scale work remain dormant
+unless the active product/release decision activates them. Source-free
+attention probes, anti-recall controls, product transcripts, and serving
+censuses are product evidence only when their programme stage calls for them.
+Do not create a new test framework for routine confidence.
 
 **Check the check.** Some ways these have silently lied before:
 
@@ -62,47 +68,57 @@ that smoke.
 
 ## Execution-lane invariants
 
-- **Active geometric decoder:** learned floating-point projections,
-  `uor-matmul`, and allocation are allowed. Bind source, tokenizer, checkpoint,
+- **Active geometric intelligence path:** compiler-side floating point and
+  allocation are allowed for witnessed chart construction. Source weights,
+  `uor-matmul` intelligence projections, transformers, dense matrix
+  intelligence, MoE, and sparse learned routing are not serving dependencies.
+  Bind lexical codec, prime registry, recursive hierarchy, charts, payload,
   geometry, and decode identities; fixed inputs remain deterministic.
 - **Frozen TLA/R4G1 runtime:** its multiplication-free, allocation-free,
   `no_std`, packed-format, and witness contracts remain in force. Do not weaken
   them when touching that lane.
-- **Transformerless is not multiplication-free.** The active decoder earns the
-  first term only with zero source-attention calls, no dense full-prefix Q·K
-  matrix/softmax kernel, and bounded geometric support shown load-bearing by
-  disabled/permuted interventions. Integer/table lowering is a separate
-  post-viability decision.
+- **Geometry is the route.** Kappa is canonical identity, not a tokenizer or
+  semantic distance. Preserve the project shorthand `E8 = H4 x H4`; its exact
+  code/serialization contract is the golden/Galois-coupled icosian pair
+  `H4 ⊕ phi H4` with fixed basis, glue, and inverse witness.
 - **Errors**: library boundaries return `Result` with focused error enums. No
   `unwrap`/`expect`/panic on recoverable paths.
 - **No `unsafe`** in the portable runtime or the format crate.
 - **Claim language**: `docs/formal_vocabulary.md` is normative, and
-  `scripts/check_claim_wording.py` is CI-enforced. Exact-equivalence wording
+  `scripts/check_claim_wording.py` is the dormant automated wording check.
+  Exact-equivalence wording
   needs a linked proof artifact.
 
 ## If your change is product research
 
-The experiment must be able to change the next decoder decision:
+The experiment must be able to change the next programme decision:
 
-- **Name the active #949 child and the product decision.** Research without a
-  reachable consumer is archived rather than activated.
-- **Exercise the real token path first.** Geometry must run before token
-  selection and emit its support/logit effect before a quality run.
-- **Use the smallest falsifier.** Start with a tiny overfit, one layer, or a
-  short student-prefix rollout before adding data or layers.
-- **Use a non-degenerate null.** Active geometry is compared with disabled and
-  shuffled/permuted geometry under equal budgets.
-- **Include free-running output** whenever generation is in scope.
+- **Follow the GI sequence.** GI-1 makes lexical/address state reversible;
+  GI-2/#952 establishes recursive attention; GI-3/#953 adds source-free
+  grammatical inference/generation; GI-4/#954 tests correctness/abstention;
+  GI-5/#955 adds reasoning. Do not generate before attention passes.
+- **Exercise the real route path.** Geometry must run before token choice and
+  emit its admitted support, energy trace, and global-context coverage witness.
+- **Use the smallest falsifier.** Start with a bounded source-free route
+  fixture, hierarchy intervention, or held-out continuation before adding data.
+- **Use non-degenerate anti-recall controls.** Compare exact recall, factor-only,
+  count-only, real geometry, permuted geometry, and permuted paired-H4 state
+  under equal budgets.
+- **Preserve unseen global context.** Exact route identity is combined with the
+  transported trajectory, hypersphere/window summaries, shared-factor
+  retrieval, resonance, and accumulated Hopf phase; exact kappa miss cannot
+  collapse to a suffix-only default.
+- **Keep teachers offline.** Teacher labels/comparisons begin only after a
+  source-free report freezes and are never substituted for product output.
+- **Include free-running output only when GI-3 or later is in scope.** Attention
+  evidence at GI-2 is anti-recall candidate selection, not readable text.
 - **Pre-declare the exit rule, the null baseline and the falsifier** before you
   run anything. Write them in the issue.
 - **Compute the reachability ceiling first.** If the ceiling is below the effect
   you are hoping for, do not launch. This is a five-minute calculation that has
   invalidated four-hour runs.
-- **Run the issue-specific cheap instrument first and treat its verdict as
-  binding.** For decoder work this is normally the source-control smoke,
-  operator reachability probe, tiny-overfit gate, or short student-prefix
-  rollout. The historical graph `capacity_scaling` instrument applies only to
-  graph-capacity experiments.
+- **Activate only a decision-bearing instrument.** Testing/QA stays dormant
+  until a product or release contract names the instrument and its action.
 - **Pre-declare what each outcome causes.** If the positive and negative branches
   lead to the same next action, the run has no decision value — drop it or
   redesign it.

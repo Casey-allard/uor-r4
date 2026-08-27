@@ -1,5 +1,11 @@
 # Hologram / R⁴ Formal Monograph & Implementation Specification
 
+> **Historical formal specification.** This monograph remains the scoped
+> specification for the preserved R4G1 graph programme. It is not a proof or
+> design of the current route-native attention, inference, correctness, or
+> reasoning path. See the
+> [Geometric Intelligence Programme](geometric_intelligence_programme.md).
+
 **Version:** 1.0.0  
 **Date:** 2026-07-24  
 **Source Baseline:** Hologram Formal Analysis Direction PDF §§1–17; `docs/formal_vocabulary.md`; GitHub Issues #123–#137.

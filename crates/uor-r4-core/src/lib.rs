@@ -8,7 +8,10 @@ use std::collections::{BTreeMap, HashMap};
 use std::f64::consts::PI;
 
 pub mod cayley_dickson;
+pub mod prime_route_attention;
+pub mod prime_route_geometric_attention;
 pub mod semantic;
+pub mod spiralcore_operator;
 pub mod transformerless;
 pub mod zeta_projection;
 pub mod zeta_zeros;

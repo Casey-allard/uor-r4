@@ -1,5 +1,9 @@
 # Design: f32 Residual-VQ Store + Mul-Free Graded-Signature Query Assignment
 
+> **Historical design input.** This proposal is retained for comparison and
+> does not define the current prime-route/harmonic address or work order. See
+> the [Geometric Intelligence Programme](geometric_intelligence_programme.md).
+
 *Issue #243. Status: DESIGN FOR REVIEW — decision points marked ⚑ are open
 until Casey / Ari / Alex sign off on this document (review on the PR).
 Claim language: Definitions, Objectives, and Empirical Criteria only.*

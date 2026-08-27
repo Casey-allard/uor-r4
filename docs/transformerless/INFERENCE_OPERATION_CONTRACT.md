@@ -1,5 +1,10 @@
 # Inference Operation Contract (Normative)
 
+> **Preserved runtime boundary.** “Normative” below is scoped to the named
+> TLA/R4G1 deployed hot paths. This is not yet the operation contract for the
+> route-native geometric-intelligence engine; that contract is scheduled only
+> after working behavior. See the [documentation map](../README.md).
+
 - **Version:** 0.2.0
 - **Status:** Normative for deployed inference hot paths
 - **Role:** **Definition** (per `docs/formal_vocabulary.md` §1)

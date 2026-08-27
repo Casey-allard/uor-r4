@@ -1,5 +1,9 @@
 # Design: Integer Residual Wiring for the Shift-Add Dot Path (Phase B)
 
+> **Historical design input.** This proposal belongs to the preserved R4G1
+> runtime lane and is not authorized current route-native work. The active
+> sequence is [#961 through #955](geometric_intelligence_programme.md).
+
 *Issue #318. Status: DESIGN FOR REVIEW — authorized for review only; no
 kernel work until the reproduction requirement below is met. Decision
 points marked ⚑ are open.

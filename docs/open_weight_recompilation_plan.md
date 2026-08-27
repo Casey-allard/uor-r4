@@ -1,6 +1,12 @@
 # Open-weight behavioral recompilation into R⁴
 
-Status: implementation plan, drafted 2026-08-10
+> **Status:** historical source-model/recompilation plan, drafted 2026-08-10.
+> It remains a reference for teacher ingestion, provenance, and transitional
+> compiler surfaces, but it is not the current product architecture or work
+> order. See the
+> [Geometric Intelligence Programme](geometric_intelligence_programme.md).
+> The source-free route-native path does not load these weights at serving and
+> does not yet provide working chat.
 
 This plan covers the staged path from
 

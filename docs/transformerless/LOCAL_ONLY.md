@@ -1,10 +1,17 @@
 # Local-only inference contract
 
-Production inference in this repository is local and transformerless.
+> **Preserved runtime reference:** this contract scopes the existing
+> CID-verified TLA/TLS serving lane. It does not establish the unfinished
+> route-native geometric decoder or working source-free chat. The current
+> architecture and promotion order live in the
+> [Geometric Intelligence Programme](../geometric_intelligence_programme.md).
+
+Inference attributed to this preserved transformerless lane is local under the
+artifact and execution boundaries below.
 
 ## Execution and memory contract
 
-Production transformerless inference is CPU-only. There are no `metal`,
+The preserved transformerless inference path is CPU-only. There are no `metal`,
 `cuda`, or generic GPU Cargo features and no `--device` option. The portable
 invocation is:
 

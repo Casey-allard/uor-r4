@@ -1,5 +1,11 @@
 # Normative Specification: Compiler Memory-Budget & Backpressure Model for Multicore Compilation
 
+> **Preserved graph-compiler contract.** These limits describe the historical
+> TLA/R4G1 compiler. They are reusable research input, not authorization for a
+> long route-native run and not the resource contract for #961 or #952. Current
+> run discipline is in the
+> [Geometric Intelligence Evaluation Policy](geometric_intelligence_evaluation.md).
+
 **Version:** 0.1.0  
 **Status:** Normative Specification  
 **Issue:** #169  

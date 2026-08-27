@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>R4 Prime Router — UOR World Model | Holographic Dashboard</title>
-    <meta name="description" content="R4 Prime Router geometric world model featuring real-time UOR prime routing, Hopf S³ manifold visualization, C² quantum phase tracking, and semantic point-cloud corpus map.">
+    <title>R4 Prime Router — Geometric Routing Research Demo</title>
+    <meta name="description" content="Interactive UOR-R4 geometric routing research demo with route, Hopf, manifold, and indexed-retrieval telemetry.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@300;400;600;800&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
@@ -955,7 +955,10 @@
 <aside class="sidebar">
     <div class="brand">
         <div class="brand-title">R4 Prime Router</div>
-        <div class="brand-sub">UOR World Model · Holographic Terminal</div>
+        <div class="brand-sub">Geometric Routing Research Demo</div>
+        <div style="margin-top:0.55rem;padding:0.55rem;border:1px solid rgba(245,166,35,0.35);border-radius:6px;background:rgba(245,166,35,0.08);color:var(--text2);font-size:0.68rem;line-height:1.35;">
+            This is an interactive router and telemetry surface. Route assignment and indexed retrieval are live; coherent intelligence, correctness, and reasoning are not yet established.
+        </div>
         <a href="geometric_prime_router_webapp.html" class="demo-btn" style="display: inline-block; margin-top: 0.5rem; padding: 0.2rem 0.5rem; font-size: 0.65rem; font-family: 'JetBrains Mono', monospace; font-weight: bold; background: rgba(0,242,254,0.1); border: 1px solid var(--cyan); border-radius: 4px; color: var(--cyan); text-decoration: none; text-transform: uppercase; letter-spacing: 0.05em; transition: all 0.2s;" onmouseover="this.style.background='var(--cyan)'; this.style.color='var(--bg)';" onmouseout="this.style.background='rgba(0,242,254,0.1)'; this.style.color='var(--cyan)';">Telemetry Demo</a>
     </div>
 
@@ -993,7 +996,7 @@
                 <span class="config-val" id="engineVal" style="color: var(--cyan); font-weight: bold;">Geometric</span>
             </div>
             <div class="config-row" style="margin-bottom: 0.75rem; font-size: 0.75rem; color: #888;">
-                <span>↳ R4G1 graph runtime with legacy fallback</span>
+                <span>↳ Exploratory route-conditioned continuation</span>
             </div>
 
             <div class="identity-label">Routing Identity (UOR, address, or text)</div>
@@ -1001,10 +1004,14 @@
 
             <div class="section-label">Synthesis Engine Selection</div>
             <select class="identity-input" id="engineSelect" style="margin-bottom:0.75rem; background: var(--bg); color: var(--cyan); border-color: var(--border2); font-family: 'Outfit', sans-serif;">
-                <option value="r4g1" selected>R⁴G1 Zero-Multiply Engine (Mul-Free Graph)</option>
-                <option value="transformerless">Transformerless (Local TLA5/TLS1)</option>
-                <option value="attention">Full Attention Llama Teacher (CPU)</option>
-                <option value="geometric">Pure Geometric Router (WASM Vector)</option>
+                <optgroup label="Current interactive surface">
+                    <option value="geometric" selected>Geometric Router Research Demo</option>
+                </optgroup>
+                <optgroup label="Preserved artifact experiments (setup required)">
+                    <option value="r4g1">Historical R4G1 Runtime — requires admitted bundle</option>
+                    <option value="transformerless">Historical TLA5/TLS1 Runtime — requires artifacts</option>
+                    <option value="attention">Teacher Reference — requires local source weights</option>
+                </optgroup>
             </select>
 
             <div class="section-label">Manifold Database & Indexing</div>
@@ -1015,6 +1022,8 @@
             </button>
             <div id="indexStatus" style="font-size: 0.68rem; margin-top: -0.5rem; margin-bottom: 0.75rem; display: none;"></div>
 
+            <details style="margin-bottom:0.75rem;color:var(--text2);font-size:0.68rem;">
+            <summary style="cursor:pointer;color:var(--muted);margin-bottom:0.5rem;">Preserved artifact experiments (not needed for this demo)</summary>
             <input type="text" class="identity-input" id="hfModelInput" value="HuggingFaceTB/SmolLM2-135M-Instruct@7e27bd9f95328f0f3b08261d1252705110c806f8" placeholder="owner/repository@40-character-commit" style="margin-bottom: 0.35rem; font-size: 0.68rem; background: var(--bg); color: var(--text); border: 1px solid var(--border2); padding: 0.4rem; border-radius: 4px; width: 100%;">
             <div style="font-size: 0.64rem; margin-bottom: 0.35rem; color: var(--text2);">Use an immutable commit: owner/repository@40-character-commit</div>
             <button class="identity-input" id="downloadHfBtn" style="margin-bottom: 0.35rem; background: rgba(245, 166, 35, 0.12); color: var(--amber); border-color: var(--amber); cursor: pointer; font-weight: 600; font-family: 'Outfit', sans-serif;">
@@ -1039,8 +1048,9 @@
             <div id="r4g1CompileStatus" style="font-size: 0.68rem; margin-bottom: 0.75rem; color: var(--text2);">
                 Dashboard compilation is unavailable for production bundles
             </div>
+            </details>
 
-            <div class="section-label">Manifold State (Weights)</div>
+            <div class="section-label">Serialized Router State</div>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 0.75rem;">
                 <button class="identity-input" id="exportManifoldBtn" style="margin-bottom: 0; font-size: 0.72rem; cursor: pointer; border-color: var(--border2); color: var(--text); background: rgba(255,255,255,0.02); font-family: 'Outfit', sans-serif;">
                     Export State
@@ -1055,7 +1065,7 @@
                 Save State to Browser (IndexedDB)
             </button>
             <button class="identity-input" id="resetBrainBtn" style="margin-bottom: 0.75rem; background: rgba(255, 82, 82, 0.1); color: var(--red); border-color: var(--red); cursor: pointer; font-size: 0.72rem; font-family: 'Outfit', sans-serif;">
-                Reset Brain to Neutral
+                Reset Route State
             </button>
         </div>
 
@@ -1112,7 +1122,7 @@
 
         <!-- System Metrics Strip -->
         <div class="sys-strip" id="sysStrip">
-            <div class="section-label" style="margin-bottom:0.5rem;">System Metrics</div>
+            <div class="section-label" style="margin-bottom:0.5rem;">Session Status</div>
             <div class="sys-row">
                 <div class="sys-item">
                     <div class="sys-label">CPU</div>
@@ -1149,9 +1159,9 @@
 <main class="main">
     <header class="chat-header">
         <div class="chat-header-dot"></div>
-        <div class="chat-header-title">R4 Prime Router — World Model</div>
-        <div class="chat-header-sub">GCD Prime Steering · Hopf S³ Geometry</div>
-        <div class="chat-header-route" id="chatHeaderRoute" style="font-weight:bold;">🟢 Connected (Transformerless CPU)</div>
+        <div class="chat-header-title">R4 Prime Router — Research Demo</div>
+        <div class="chat-header-sub">Prime Routing · Hopf S³/R4 Telemetry · Indexed Recall</div>
+        <div class="chat-header-route" id="chatHeaderRoute" style="font-weight:bold;">Connecting to geometric router…</div>
         <div class="chat-header-scale" id="chatHeaderScale" style="font-family:'JetBrains Mono',monospace; font-size:0.68rem; color:var(--muted); margin-left:0.5rem;">—</div>
         <button id="clearSessionBtn" onclick="localStorage.removeItem('r4_prime_router_session_v4'); location.reload();" style="margin-left:auto; background:rgba(255,82,82,0.15); border:1px solid var(--red); color:var(--red); padding:0.2rem 0.5rem; font-size:0.65rem; font-family:'JetBrains Mono',monospace; border-radius:4px; cursor:pointer;">Clear Session</button>
     </header>
@@ -1163,7 +1173,7 @@
                 <div class="message-content">
                     <div class="message-sender">R4 Prime Router</div>
                     <div class="message-bubble">
-                        <p>Manifold initialized. The R4 routing geometry is active — prime product invariants loaded from cache. All 16 scale windows are pre-computed and ready for geometric query routing. Load the Semantic Map to see the full corpus point-cloud, then send a query to begin UOR tracing.</p>
+                        <p>The geometric router is ready. Send text to inspect its route, Hopf/R4 projection, nearest indexed material, and exploratory continuation. This is a research interaction—not a claim that source-free attention, correct answers, or reasoning are complete.</p>
                     </div>
                 </div>
             </div>
@@ -1485,6 +1495,7 @@ if (mapLegend) {
 let router = null;
 let wasmInitialized = false;
 let localWasmMode = false;
+let serverResearchDemo = false;
 let serverR4g1Ready = false;
 let r4g1ProductionInstalled = false;
 let r4g1InstallError = "schema-2 production bundle has not been installed";
@@ -2504,7 +2515,7 @@ function updateTelemetry(data, isSysinfo = false) {
                 engineVal.textContent = "Legacy TLA/TLS";
                 engineVal.style.color = "var(--emerald)";
             } else {
-                engineVal.textContent = "Pure Geometric";
+                engineVal.textContent = "Geometric Research Demo";
                 engineVal.style.color = "var(--cyan)";
             }
         }
@@ -2859,10 +2870,11 @@ async function runLocalChat(text, identity) {
     const theme = WINDOW_THEMES[routed.window_index] || "Unknown";
     
     const max_tokens = router.get_suggested_token_limit(text, identity);
-    const selectedEngine = engineSelect?.value || "transformerless";
+    const selectedEngine = engineSelect?.value || "geometric";
+    const top_resonances_5 = unwrapResult(router.get_top_resonances(text, identity, 5)) || [];
 
     let responseText = "";
-    let generation_mode = "geometric-local";
+    let generation_mode = "geometric-route-inspection-only";
     let llm_connected = false;
     let geomResult = null;
 
@@ -2880,25 +2892,20 @@ async function runLocalChat(text, identity) {
         responseText = typed.text;
         generation_mode = selectedEngine === "r4g1" ? "r4g1-zero-multiply-wasm" : "transformerless-r4g1-wasm";
     } else {
-        geomResult = router.generate_geometric_response(
-            text,
-            identity,
-            max_tokens,
-            temperature,
-            10.0,
-            4.0,
-            gamma
-        );
-        responseText = geomResult.text || "Manifold resonance too sparse for synthesis.";
-        generation_mode = "geometric-local";
+        const nearest = top_resonances_5[0]?.sentence || "No indexed route was close enough to report.";
+        responseText = `No coherent answer was generated. Route inspection: W${routed.window_index} at scale ${routed.scale_x.toFixed(0)}, kappa ${kappa.toFixed(4)}, deficit angle ${theta_d.toFixed(4)}. Nearest indexed material: ${nearest}`;
     }
-    
-    router.index_sentence(responseText, identity);
+
+    if (selectedEngine === "transformerless" || selectedEngine === "r4g1") {
+        router.index_sentence(responseText, identity);
+    }
     debouncedSaveRouterState();
     
     // Inject thought streams
     router.inject_thought_stream(text);
-    router.inject_thought_stream(responseText);
+    if (selectedEngine === "transformerless" || selectedEngine === "r4g1") {
+        router.inject_thought_stream(responseText);
+    }
     
     // 3. Evolve brain state to project for trajectory
     const active_state = router.get_brain_state_wasm(identity);
@@ -2908,10 +2915,11 @@ async function runLocalChat(text, identity) {
     const archetype = (theta_d > -1.0) ? "Symmetric Orbit (Resonant)" :
                       (theta_d < -1.4) ? "Hyperbolic Flare (Divergent)" : "Orthogonal Drift (Steady)";
     
-    const top_resonances_5 = unwrapResult(router.get_top_resonances(text, identity, 5)) || [];
-
     const payload = {
         "text": text,
+        "status": selectedEngine === "geometric" ? "route-only-research-demo" : "generated",
+        "research_demo": selectedEngine === "geometric",
+        "not_an_answer": selectedEngine === "geometric",
         "archetype": archetype,
         "description": responseText,
         "summary": `W${routed.window_index} (${theme}) | Scale ${routed.scale_x.toFixed(0)} | kappa=${kappa.toFixed(4)} theta_d=${theta_d.toFixed(4)} | ${generation_mode}`,
@@ -2974,34 +2982,33 @@ async function sendQuery(text) {
     scrollToBottom();
 
     const identity = document.getElementById("identityInput")?.value.trim() || "null_dev_00";
-    const selectedEngineMode = engineSelect?.value || "r4g1";
-    const isWebpageLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
-
+    const selectedEngineMode = engineSelect?.value || "geometric";
     try {
-        let backendEngineMode = selectedEngineMode;
-
-        const payload = {
-            text: text,
-            identity: identity,
-            engine: backendEngineMode
-        };
-
         let data;
-        const response = await fetch("/api/chat", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload)
-        });
+        if (localWasmMode) {
+            data = await runLocalChat(text, identity);
+        } else {
+            const payload = {
+                text: text,
+                identity: identity,
+                engine: selectedEngineMode
+            };
+            const response = await fetch("/api/chat", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            });
 
             if (!response.ok) {
                 const raw = await response.text();
                 let detail = null;
                 try { detail = JSON.parse(raw); } catch (_) { /* plain-text error */ }
-                const message = detail?.error || raw || `HTTP error: ${response.status}`;
+                const message = detail?.error?.message || detail?.error || raw || `HTTP error: ${response.status}`;
                 const action = detail?.action ? ` ${detail.action}.` : "";
                 throw new Error(`${message}${action}`);
             }
             data = await response.json();
+        }
 
         chatLogInner.removeChild(loadMsg);
 
@@ -3209,13 +3216,13 @@ function selectedEngineLabel(engine) {
         "transformerless-legacy": "Legacy TLA/TLS",
         "attention": "Full Attention Llama",
         "r4-attention": "Experimental R4 Attention",
-        "geometric": "Pure Geometric"
+        "geometric": "Geometric Research Demo"
     }[engine] || "R4G1 Graph";
 }
 
 function updateSelectedEngineValue() {
     if (!engineVal) return;
-    engineVal.textContent = selectedEngineLabel(engineSelect?.value || "r4g1");
+    engineVal.textContent = selectedEngineLabel(engineSelect?.value || "geometric");
     engineVal.style.color = engineSelect?.value === "r4g1"
         ? (serverR4g1Ready ? "var(--emerald)" : "var(--amber)")
         : "var(--cyan)";
@@ -3346,7 +3353,7 @@ if (resetBrainBtn) {
             safeSetTextContent("qCommutator",    "—");
             safeSetTextContent("monoLabel",      "r^0");
             
-            if (engineSelect) engineSelect.value = "r4g1";
+            if (engineSelect) engineSelect.value = "geometric";
             
             // Reset metric cards
             safeSetTextContent("metricDeficit", "0.0000");
@@ -3367,11 +3374,11 @@ if (resetBrainBtn) {
             
             chatHistory = [];
             chatLogInner.innerHTML = "";
-            addMessage("model", `Hypersphere brain state successfully restored to defaults.`, false);
+            addMessage("model", `Geometric route state restored to defaults.`, false);
             saveSessionToLocalStorage();
             if (localWasmMode) saveRouterStateToIndexedDB();
         } catch(err) {
-            addMessage("model", "Error resetting brain state: " + err.message);
+            addMessage("model", "Error resetting route state: " + err.message);
         } finally {
             resetBrainBtn.disabled = false;
         }
@@ -3566,18 +3573,15 @@ function pollSysinfo() {
     const setEl = (id, val) => { const e = document.getElementById(id); if (e) e.textContent = val; };
     setEl("uptimeVal",  h > 0 ? `${h}h${mi}m` : `${mi}m${s}s`);
     
-    const cpu = Math.floor(10 + Math.random() * 25);
-    const ram = Math.floor(180 + Math.random() * 45);
-    
     const cpuBar = document.getElementById("cpuBar");
     const cpuVal = document.getElementById("cpuVal");
-    if (cpuBar) { cpuBar.style.width = cpu + "%"; }
-    if (cpuVal) cpuVal.textContent = cpu + "%";
+    if (cpuBar) { cpuBar.style.width = "0%"; }
+    if (cpuVal) cpuVal.textContent = "not sampled";
 
     const ramBar = document.getElementById("ramBar");
     const ramVal = document.getElementById("ramVal");
-    if (ramBar) { ramBar.style.width = Math.min((ram / 512) * 100, 100) + "%"; }
-    if (ramVal) ramVal.textContent = ram + "MB";
+    if (ramBar) { ramBar.style.width = "0%"; }
+    if (ramVal) ramVal.textContent = "not sampled";
     
     if (localWasmMode && router) {
         setEl("corpusCount", router.get_total_indexed_sentences().toLocaleString());
@@ -3592,6 +3596,8 @@ function pollSysinfo() {
             })
             .then(info => {
                 localWasmMode = false;
+                serverResearchDemo = Boolean(info && info.research_demo);
+                if (serverResearchDemo && engineSelect) engineSelect.value = "geometric";
                 updateConnectionStatusUI();
                 if (info && info.sentences_indexed !== undefined) {
                     setEl("corpusCount", info.sentences_indexed.toLocaleString());
@@ -3610,6 +3616,8 @@ function pollSysinfo() {
             .catch(err => {
                 console.warn("Sysinfo poll failed, switching to local WASM fallback mode:", err);
                 localWasmMode = true;
+                serverResearchDemo = true;
+                if (engineSelect) engineSelect.value = "geometric";
                 updateConnectionStatusUI();
                 if (window.wasm_module && typeof router !== 'undefined') {
                     setEl("corpusCount", router.get_total_indexed_sentences().toLocaleString());
@@ -3773,7 +3781,7 @@ function saveSessionToLocalStorage() {
             currentTrajectory: window.currentTrajectory,
             activeWindowIndex: activeWindowIndex,
             routerState: null, // Always null in localStorage to avoid QuotaExceededError
-            engineSelect: engineSelect?.value || "r4g1",
+            engineSelect: engineSelect?.value || "geometric",
             chatHistory: chatHistory
         };
         const serialized = JSON.stringify(session);
@@ -3799,8 +3807,10 @@ async function restoreSessionFromLocalStorage() {
             window.currentTrajectory = session.currentTrajectory || [];
             activeWindowIndex = session.activeWindowIndex !== undefined ? session.activeWindowIndex : activeWindowIndex;
             
-            if (engineSelect && session.engineSelect) {
-                engineSelect.value = session.engineSelect;
+            if (engineSelect) {
+                engineSelect.value = (localWasmMode || serverResearchDemo)
+                    ? "geometric"
+                    : (session.engineSelect || "geometric");
             }
             
             if (localWasmMode && router) {
@@ -3851,11 +3861,11 @@ function updateConnectionStatusUI() {
             dot.style.boxShadow = "0 0 8px #ffb300";
         }
         if (route) {
-            route.textContent = "⚠️ WASM GEOMETRIC FALLBACK (Server Offline)";
+            route.textContent = "🟠 Local WASM geometric research demo";
             route.style.color = "var(--amber)";
         }
     } else {
-        const selected = engineSelect?.value || "r4g1";
+        const selected = engineSelect?.value || "geometric";
         const isR4g1Unavailable = selected === "r4g1" && !serverR4g1Ready;
         if (dot) {
             dot.style.background = isR4g1Unavailable ? "var(--amber)" : "var(--emerald)";
@@ -3885,7 +3895,10 @@ async function startApp() {
         try {
             const probe = await fetch("/api/sysinfo");
             if (probe.ok) {
+                const info = await probe.json();
                 localWasmMode = false;
+                serverResearchDemo = Boolean(info && info.research_demo);
+                if (serverResearchDemo && engineSelect) engineSelect.value = "geometric";
                 updateConnectionStatusUI();
                 console.log("[+] Server detected, using backend routing.");
             } else {
@@ -3894,6 +3907,8 @@ async function startApp() {
         } catch (e) {
             console.warn("[!] Server offline or static deployment detected. Initializing local WASM fallback:", e);
             localWasmMode = true;
+            serverResearchDemo = true;
+            if (engineSelect) engineSelect.value = "geometric";
             updateConnectionStatusUI();
             await tryInitLocalWasm();
         }

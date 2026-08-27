@@ -1,5 +1,10 @@
 # Normative Specification: Parallel Observation, Trace, and Evaluation Processing Over Deterministic Shards
 
+> **Preserved teacher-observation contract.** This specification belongs to
+> the historical source-model/R4G1 compiler lane. It is not a required stage of
+> route-native serving and does not authorize corpus-scale work for the current
+> programme. See the [documentation map](README.md).
+
 **Version:** 0.1.0  
 **Status:** Normative Specification  
 **Issue:** #170  

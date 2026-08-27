@@ -1,5 +1,12 @@
 # Release pipeline (#741)
 
+> **Preserved runtime reference:** this pipeline packages the existing
+> TLA/R4G1 frontends and bundle contracts. It is not the release pipeline for a
+> route-native geometric-intelligence product, and a successful legacy release
+> does not establish source-free attention, generation, correctness, or chat.
+> Current product sequencing is defined by the
+> [Geometric Intelligence Programme](geometric_intelligence_programme.md).
+
 Adopted by maintainer decision on 2026-08-19 (recorded on #741/#655):
 the "package + build release pipeline now" option — both frontends, a
 GitHub Release as the distribution artifact, an explicit verified fetch

@@ -1,5 +1,14 @@
 # Configuration reference
 
+> **Status:** living workspace option inventory across multiple architectural
+> eras. Use the [Geometric Intelligence Programme](geometric_intelligence_programme.md)
+> for current direction and the [documentation map](README.md) for scope. Most
+> `TLESS_*`, `R4G1_*`, Gate C, teacher, and release variables below configure
+> preserved compiler/runtime or measurement lanes; they do not configure a
+> working route-native source-free chat path, because that path does not yet
+> exist. New route-native options belong to #961 and later only when their
+> owning product decision makes them reachable.
+
 Every environment variable the workspace reads, with its default and the module
 that owns it. Most have a CLI flag equivalent; where both exist, the flag wins.
 

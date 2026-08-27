@@ -1,5 +1,12 @@
 # Serving-time model discovery (#655)
 
+> **Status:** historical point-in-time audit of the legacy loader and fallback
+> surfaces. It is preserved to prevent regressions while those surfaces remain,
+> but it is not current architecture authority. In particular, the listed
+> cascade must not be read as a route-native, provider-free chat implementation.
+> See the [Geometric Intelligence Programme](geometric_intelligence_programme.md)
+> for the required source-free serving sequence.
+
 This document maps how a running process decides *which* model/engine to
 load and serve, as of `origin/main` at `146a976e` (2026-08-16). It exists
 because this area had no documentation at all before now — `docs/MODEL_LIFECYCLE.md`

@@ -66,6 +66,9 @@ pub struct ServerConfig {
     pub r4g1_artifact: Option<String>,
     pub tless_corpus_meta: Option<String>,
     pub tless_corpus_recs: Option<String>,
+    /// Bounded newcomer surface: geometric routing/retrieval only. This skips
+    /// teacher and compiled-bundle discovery and never starts a compile.
+    pub geometric_demo: bool,
 }
 
 pub use uor_r4_api::{InferenceRequest, InferenceResponse, InferenceWitness};
@@ -666,7 +669,11 @@ pub fn run_server(cli: Arc<ServerConfig>) {
         .unwrap_or_default();
     let last_model_name = last_model.trim();
 
-    let candidates = startup_source_candidates(last_model_name);
+    let candidates = if cli.geometric_demo {
+        Vec::new()
+    } else {
+        startup_source_candidates(last_model_name)
+    };
     let mut source_dir = None;
     let mut startup_source_snapshot = None;
     for candidate in &candidates {
@@ -773,16 +780,26 @@ pub fn run_server(cli: Arc<ServerConfig>) {
     }));
     let source_cache_operations: SharedSourceCacheOperations =
         Arc::new(Mutex::new(SourceCacheOperationState::default()));
-    let configured_graph = r4g1::discover_path(
-        cli.r4g1_artifact.as_deref(),
-        Path::new(&cli.tless_artifacts),
-    );
-    let startup_session_subjects = startup_read_session_subjects(
-        configured_graph.as_deref(),
-        Path::new(&cli.tless_artifacts),
-        cli.r4g1_artifact.is_none(),
-    );
-    let startup_sessions = if cli.r4g1_artifact.is_none() {
+    let configured_graph = if cli.geometric_demo {
+        None
+    } else {
+        r4g1::discover_path(
+            cli.r4g1_artifact.as_deref(),
+            Path::new(&cli.tless_artifacts),
+        )
+    };
+    let startup_session_subjects = if cli.geometric_demo {
+        Vec::new()
+    } else {
+        startup_read_session_subjects(
+            configured_graph.as_deref(),
+            Path::new(&cli.tless_artifacts),
+            cli.r4g1_artifact.is_none(),
+        )
+    };
+    let startup_sessions = if cli.geometric_demo {
+        Ok(SourceCompileSessionLocks { _locks: Vec::new() })
+    } else if cli.r4g1_artifact.is_none() {
         try_lock_managed_inventory_write_sessions(
             Path::new(".uor-models/compiled"),
             startup_session_subjects,
@@ -868,7 +885,7 @@ pub fn run_server(cli: Arc<ServerConfig>) {
     } else {
         Vec::new()
     };
-    if cli.r4g1_artifact.is_none() && r4g1_discovery_allowed {
+    if !cli.geometric_demo && cli.r4g1_artifact.is_none() && r4g1_discovery_allowed {
         let mut discovery_valid = true;
         let mut configured_external = false;
         let mut configured_managed_logical = None;
@@ -1369,9 +1386,13 @@ pub fn run_server(cli: Arc<ServerConfig>) {
             tracing::info!(path = %cli.manifold_cache, "no manifold cache found; initializing a new manifold");
         }
 
-        // Always ingest wiki corpus and extra reading files into manifold cache
-        index_wiki_corpus(&mut r);
-        index_extra_reading_files(&mut r);
+        if !cli.geometric_demo {
+            // The full server retains the historical local reading ingestion.
+            // The bounded demo starts from the small built-in corpus and only
+            // indexes text the visitor explicitly supplies in the dashboard.
+            index_wiki_corpus(&mut r);
+            index_extra_reading_files(&mut r);
+        }
 
         // Save cache
         let state_json = r.export_state();
@@ -15518,7 +15539,11 @@ fn handle_connection(
         // nothing for a teacher-only install, agreeing with what its
         // cascade can actually serve. Disk inventory is not request-time
         // model selection.
-        let profile = EngineProfile::from_persisted(engine_profile_preference().as_deref());
+        let profile = if cli.geometric_demo {
+            EngineProfile::Experimental
+        } else {
+            EngineProfile::from_persisted(engine_profile_preference().as_deref())
+        };
         let models = active_models(&serving.lock().unwrap(), profile);
         send_json_response(stream, 200, &models_list_body(&models).to_string());
         return;
@@ -16441,7 +16466,11 @@ fn handle_connection(
         // vocabulary is likewise a typed decline, on every profile —
         // never a silent full-cascade run. #789-G3.2: both declines echo
         // the requested string, not the collapsed tier constant.
-        let profile = EngineProfile::from_persisted(engine_profile_preference().as_deref());
+        let profile = if cli.geometric_demo {
+            EngineProfile::Experimental
+        } else {
+            EngineProfile::from_persisted(engine_profile_preference().as_deref())
+        };
         let explicit_engine = payload
             .engine
             .as_deref()
@@ -16556,6 +16585,78 @@ fn handle_connection(
             .clone()
             .expect("No final routing data generated");
         let route_ms = t_route.elapsed().as_secs_f64() * 1000.0;
+
+        // The newcomer demo is a route inspector, not a disguised language
+        // model. Return the live route and nearest indexed material without
+        // invoking any historical decoder or serving cascade.
+        if cli.geometric_demo {
+            let active_state = router_guard.get_brain_state_native(&identity);
+            let (u, v) = router_guard.get_sentence_projection_native(
+                &active_state,
+                routing_data.routed.window_index as usize,
+            );
+            let v_4d = router_guard.get_state_4d_projection_native(&active_state);
+            let top_resonances =
+                router_guard.get_top_resonances_native(&payload.text, &identity, 5);
+            let nearest = top_resonances
+                .first()
+                .map(|result| result.sentence.as_str())
+                .unwrap_or("No indexed route was close enough to report.");
+            let description = format!(
+                "No coherent answer was generated. Route inspection: W{} at scale {:.0}, kappa {:.4}, deficit angle {:.4}. Nearest indexed material: {}",
+                routing_data.routed.window_index,
+                routing_data.routed.scale_x,
+                kappa,
+                theta_d,
+                nearest
+            );
+            let response = serde_json::json!({
+                "status": "route-only-research-demo",
+                "research_demo": true,
+                "not_an_answer": true,
+                "text": description,
+                "description": description,
+                "prompt": payload.text,
+                "generation_mode": "geometric-route-inspection-only",
+                "llm_connected": false,
+                "active_projection": {
+                    "u": u,
+                    "v": v,
+                    "v_4d": v_4d,
+                },
+                "metrics": {
+                    "window_index": routing_data.routed.window_index,
+                    "scale_x": routing_data.routed.scale_x,
+                    "kappa": kappa,
+                    "deficit_angle": theta_d,
+                    "lambda_entropy": routing_data.routed.metrics.lambda_entropy,
+                    "sigma_kl": routing_data.routed.metrics.sigma_kl,
+                    "qimc": routing_data.routed.qimc,
+                    "hopf": routing_data.routed.hopf,
+                    "uor_address": routing_data.routed.uor_address,
+                    "auto_tuned": {
+                        "gamma": gamma,
+                        "temperature": temperature,
+                        "max_tokens": max_tokens,
+                        "engine": "geometric-route-inspection-only",
+                        "uor_entropy_bias": uor_bias,
+                    },
+                },
+                "eigenvalues": routing_data.routed.eigenvalues,
+                "active_range": routing_data.routed.active_range,
+                "state_vector": routing_data.routed.state_vector,
+                "all_routes": routing_data.all_routes,
+                "top_resonance": top_resonances,
+                "trajectory": [],
+                "active_streams": router_guard.get_active_streams_native(),
+                "expert_counts": router_guard.get_expert_counts(),
+                "routing_latency_ms": route_ms.round(),
+                "gen_latency_ms": 0,
+                "tokens_generated": 0,
+            });
+            send_json_response(stream, 200, &response.to_string());
+            return;
+        }
 
         // 5. Decode response through the single serving cascade (issue
         // #248). A D4 abstention no longer refuses fallback outright: it is
@@ -17733,7 +17834,14 @@ fn handle_connection(
             "glove_loaded": false,
             "otel_available": false,
             "r4g1_ready": r4g1_ready,
-            "model_format": if r4g1_ready { "R4G1" } else { "TLA5/TLS1 or geometric fallback" },
+            "research_demo": cli.geometric_demo,
+            "model_format": if cli.geometric_demo {
+                "geometric router research demo"
+            } else if r4g1_ready {
+                "R4G1"
+            } else {
+                "TLA5/TLS1 or geometric fallback"
+            },
             "active_streams": active_streams,
             "expert_counts": expert_counts,
             "active_projection": {
@@ -17757,7 +17865,13 @@ fn handle_connection(
                     "gamma": gamma,
                     "temperature": temperature,
                     "max_tokens": max_tokens,
-                    "engine": if r4g1_ready { "r4g1" } else { "geometric" },
+                    "engine": if cli.geometric_demo {
+                        "geometric-research-demo"
+                    } else if r4g1_ready {
+                        "r4g1"
+                    } else {
+                        "geometric"
+                    },
                     "uor_entropy_bias": uor_bias
                 }
             },
@@ -28671,6 +28785,7 @@ mod tests {
             r4g1_artifact: Some("/nonexistent/g4-score.r4g1".to_owned()),
             tless_corpus_meta: None,
             tless_corpus_recs: None,
+            geometric_demo: false,
         });
 
         client.write_all(request.as_bytes()).expect("send request");

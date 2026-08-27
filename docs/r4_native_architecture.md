@@ -1,9 +1,14 @@
 # R4-Native Architecture: Restoring Geometry as the Load-Bearing Substrate
 
-- **Status:** DRAFT (issue #393; program issues #394, #395)
+- **Status:** Historical research/design record (issue #393; programme issues
+  #394 and #395); not current architecture or sequencing authority.
 - **Date:** 2026-08-04
 - **Claim language:** per `docs/formal_vocabulary.md`. Measured statements
   cite their issue records; everything else is design intent, not evidence.
+- **Current authority:** [Geometric Intelligence Programme](geometric_intelligence_programme.md).
+  Its route-native spherical-harmonic/spin hierarchy carries forward relevant
+  evidence without adopting this document's anchor-infill or hybrid serving
+  sequence. No source-free chat capability follows from this record.
 
 ## 1. Purpose
 

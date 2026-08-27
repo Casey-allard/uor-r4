@@ -7,6 +7,149 @@ one another.
 
 ## Active geometric-decoder terms
 
+### Canonical geometric-intelligence vocabulary
+
+- **Typed zero/identity bridge** — an explicit domain tag selecting either
+  `continuous-null` (`0^0 -> 0`) or `discrete-empty-product` (`0^0 -> 1`). The
+  project seam is written `exp(i*pi) + pi^0 =_bridge 0^0`. In
+  `continuous-null`, the bridge preserves the complex cancellation as `0`; in
+  `discrete-empty-product`, it phase-shifts/retypes that boundary into the
+  discrete identity `1`. Here `=_bridge` is a domain-transition operator, not
+  ordinary numerical equality. The tag is part of canonical identity and
+  supplies a deliberate choice among the `-1 / 0 / +1` landmarks without
+  claiming that untyped arithmetic assigns both values simultaneously.
+- **Lexical codec** — the deterministic, tokenizer-bound conversion between
+  input bytes, token or lexical-unit IDs, registered route atoms, and output
+  bytes. Its tokenizer/version identity, normalization rules, unknown-unit
+  behavior, and prime registry are kappa-bound. A codec supplies spelling and
+  route identity; it does not by itself supply meaning, grammar, attention, or
+  factual knowledge.
+- **Prime atom (`p`)** — one registered prime assigned canonically to one
+  lexical or route identity. The prime participates in factorable locality;
+  the bound payload CID supplies exact payload identity. A raw prime, MAC
+  address, hexadecimal spelling, or IPv6 presentation is not an authorization
+  identity and does not establish semantic similarity.
+- **Semiprime expert (`e`)** — the canonical unordered two-factor multiset for
+  one adjacent ordered transition. For different factors it is the square-free
+  semiprime `p*q`; an adjacent repeated atom is retained as the prime square
+  `p^2`. The expert records factor overlap, not direction. Ordered route state,
+  spin/torsion, and span identity retain direction.
+- **Ordered n-let (`N`)** — a bounded ordered sequence of prime atoms together
+  with its multiplicity-preserving sorted factor multiset and ordered kappa.
+  The sequence is normative; a potentially overflowing numeric product is
+  only a diagnostic convenience and never replaces it.
+- **Fixed zeta grid** — a finite, ordered, revisioned set of non-trivial
+  zeta-zero ordinates used as immutable log-polar phase channels. The grid CID,
+  channel order, quantization, and table compiler are artifact-bound. Using the
+  critical-line form is a coordinate-design assumption and is not a proof of
+  the Riemann hypothesis or evidence of language capability.
+- **R4/S3 spin state** — a non-zero local vector in `R4` normalized to the unit
+  three-sphere `S3`, used as the full local spin/compute state. `R4` is the
+  ambient coordinate space and `S3` its unit manifold; neither name denotes a
+  text embedding, E8, or a correctness result without a declared mapping.
+- **S2/R3 Hopf observation** — the `S2` point embedded in `R3` produced by the
+  Hopf map from `S3`. It is a many-to-one observable or heatmap coordinate.
+  The observation cannot reconstruct the full `S3` state without retained
+  fiber information.
+- **Torsion** — the retained, quantized fiber/transport phase associated with
+  a route state and its transition. It distinguishes states that share a Hopf
+  observation. Here “torsion” is architectural transport metadata, not a claim
+  of quantum entanglement, spacetime torsion, or physical energy.
+- **S3/R3 trigonometric transition** — the typed angular adapter with
+  `theta = atan2(sin(theta),cos(theta))`, activation `sin(theta)^2`, chirality
+  `sign(sin(theta))`, and retained cosine polarity when antipodes must remain
+  distinct. `(sin=+/-1,cos=0)` is active `1`; `(sin=0,cos=+1)` is continuous
+  null `0`. Tangent is only a local chart. At a tangent pole or declared null
+  boundary, routing switches to the angle/cotangent chart and records an
+  explicit signed quarter-turn phase plus torsion shift; it never divides by
+  zero or terminates the route. This is a Definition/architectural assumption,
+  not evidence of semantic value.
+- **Least-cost cross-domain chart anchors** — typed adapter markers, not
+  equations between mathematical domains: `sqrt(2)` is the Euclidean chord of
+  orthogonal unit directions; `2i` is the complex/discrete antipodal
+  displacement marker; `[0,2]` is the declared normalized Riemannian/chord
+  score interval. A versioned cost profile may choose the cheapest faithful
+  chart while binding units, orientation, quantization, error bounds, and
+  conversion witness.
+- **Golden radial shell (`Z[phi]`)** — the exact coefficient pair `(a,b)` for
+  `a + b*phi`. Multiplication by `phi` maps `(a,b)` to `(b,a+b)` and the inverse
+  maps `(a,b)` to `(b-a,a)`. Fibonacci growth follows algebraically from
+  repeated shell steps; semantic value does not.
+- **Paired-H4/E8 bridge** — the declared load-bearing icosian coordinate
+  bridge for the target hierarchy. **Project shorthand:** `E8 = H4 × H4`.
+  The concrete serialized construction realizes that conceptual identity by
+  representing the chosen icosian/E8 lattice presentation, as a `Z`-module,
+  with a golden/Galois-coupled pair of R4 points and the declared 600-cell
+  folding `H4 ⊕ φH4`. This is more specific than storing a bare direct-product
+  assertion: basis, glue/parity rule, conjugation, scale, orientation, root
+  ordering, and inverse witness are kappa-bound. Load-bearing is an
+  architectural requirement; held-out advantage remains an empirical question.
+- **Kappa (`kappa`) identity** — the canonical content address of a declared
+  byte envelope, including its schema and provenance. Equal kappas identify
+  equal canonical envelopes under the named hash contract; nearby kappas have
+  no geometric meaning. Kappa identifies a route artifact but does not replace
+  its factorable route coordinates.
+- **Route hierarchy** — five identity-scoped causal accumulators, defined in
+  [ADR-0004](../adr/0004-geometric-intelligence-route-hierarchy.md):
+  **local** (current/previous bounded route), **sentence** (ordered lexical
+  routes in one sentence), **paragraph** (ordered sentence-route identities),
+  **conversation** (ordered turns/paragraphs for one session), and **global**
+  (a versioned, bounded project or knowledge snapshot). Higher scopes commit to
+  ordered child identities and incrementally transport overlapping trajectory/
+  harmonic summaries; they do not authorize a full-prefix or corpus scan.
+- **Transported route trajectory** — the ordered, incrementally updated path of
+  route states across a scope, not merely its first or final coordinate. Its
+  bounded summary retains the session hypersphere vector, winding/window state,
+  projection energy, shared-prime factors, cosine resonance, and accumulated
+  Hopf phase. Ancestor evidence indicates that masking or replacing the full
+  trajectory with the last state destroys much of the routed signal; current
+  held-out reproduction is still required.
+- **Harmonic/trajectory locality** — overlap available when an exact hierarchy
+  kappa misses: shared-prime multiplicity supplies discrete locality; projection
+  energy and cosine resonance compare transported hypersphere summaries;
+  winding/window and accumulated Hopf phase retain path/phase context. These
+  summaries must be bounded and kappa-bound, but kappa equality itself is not
+  the locality metric.
+- **Coverage witness** — a bounded replay record showing which lexical units
+  had registered addresses, which hierarchy rows were read, which rows hit or
+  missed, candidate support before/after admission, the selected route or
+  abstention, and all artifact/control identities. Coverage proves only that a
+  mechanism was reached; it does not prove attention, correctness, or
+  reasoning.
+- **Geometric recall** — exact or backed-off retrieval of a stored continuation
+  from a known route key. Recall can be useful storage behavior but does not
+  establish that geometry chooses among novel continuations.
+- **Geometric attention** — bounded, causal support selection or ordering in
+  which declared factor, phase, spin/Hopf, torsion, radial, or hierarchy terms
+  — including the paired-H4/E8 coordinate and transported trajectory summaries
+  — are load-bearing against matched disabled, count-only, or permuted controls.
+  Least-energy language applies only to the explicitly admitted support. An
+  exact-row hit alone is recall, not attention.
+- **Inference** — one or more causal steps that convert an observed prefix and
+  bounded state into token probabilities or a selected next token, update
+  state, and eventually decode bytes. Reachable attention is one input to
+  inference; it is not coherent generation by itself.
+- **Geometric-intelligence sequence** — lexical ingestion, canonical
+  serialization, and address membership are prerequisite plumbing. Delivery
+  then proceeds in this order: complete recursive attention across local,
+  sentence, paragraph, conversation, and global scopes; inference/generation;
+  correctness with abstention; then bounded reasoning. Evidence may not skip a
+  stage or count prerequisite plumbing as inference.
+- **Correctness** — agreement with an independent task oracle, executable
+  constraint, cited source, or other predeclared ground truth, reported with
+  coverage and abstention. Teacher agreement, grammatical output, and exact
+  recall are not general correctness.
+- **Geometric reasoning** — a measured capability in which typed intermediate
+  route states compose across multiple causal steps, preserve declared
+  constraints, distinguish alternatives or counterfactuals, and reach a
+  checkable conclusion on anti-recall inputs. Fluent continuation, chain-like
+  prose, or a non-zero geometry trace is insufficient evidence.
+- **Provider-free serving** — the evaluated serving process makes no runtime
+  call to Ollama, a cloud model, a teacher endpoint, or another generative
+  provider; required tokenizer, artifacts, state, and decoding are local and
+  pinned. Provider-free does not imply transformerless, geometry-only,
+  multiplication-free, correct, private, or production-ready.
+
 - **Source control** — the pinned local source-model tokenizer and causal
   forward path, including embeddings, KV state, residuals, normalization,
   MLP/SwiGLU, and LM head. Its learned dense projections use `uor-matmul`.

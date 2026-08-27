@@ -17,8 +17,8 @@ clear 2>/dev/null || true
 # Restore standard terminal settings
 stty sane 2>/dev/null || true
 
-# UOR-R4 Single-Command Launcher & Model Compilation Orchestrator
-# Supports model selection, live progress bars, 4-stage graph compilation, and background server teardown.
+# UOR-R4 newcomer launcher. The default is the bounded geometric router demo;
+# the historical model compilation orchestrator remains explicitly available.
 
 PORT=${PORT:-8000}
 REMOTE_URL="http://127.0.0.1:${PORT}/v1"
@@ -30,11 +30,42 @@ FRAMES=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
 
 mkdir -p .uor-models
 
-# Binary resolution
+# Lightweight front door. Nothing in this path downloads weights, compiles a
+# corpus, scores a graph, or starts a quality run. Unknown commands are passed
+# to the Rust CLI so preserved research commands remain reachable.
+ENTRYPOINT="${1:-demo}"
+case "$ENTRYPOINT" in
+    demo)
+        if [ "$#" -gt 0 ]; then shift; fi
+        exec cargo run --bin r4 -- demo "$@"
+        ;;
+    route|serve|research-tools)
+        exec cargo run --bin r4 -- "$@"
+        ;;
+    --help|-h)
+        cargo run --bin r4 -- --help
+        echo
+        echo "Launcher-only preserved workflow:"
+        echo "  ./uor-r4-cli --legacy-model-orchestrator"
+        exit 0
+        ;;
+    --legacy-model-orchestrator)
+        shift
+        ;;
+    --menu|-m)
+        # Historical explicit alias retained for existing users.
+        ;;
+    *)
+        exec cargo run --bin r4 -- "$@"
+        ;;
+esac
+
+# Release-mode binary resolution belongs only to the explicitly requested
+# historical multi-stage model orchestrator below.
 if [ -f "./target/release/r4" ]; then
     R4_BIN="./target/release/r4"
 else
-    echo "[*] Building r4 executable in release mode..."
+    echo "[*] Building the preserved model orchestrator in release mode..."
     cargo build --release
     R4_BIN="./target/release/r4"
 fi

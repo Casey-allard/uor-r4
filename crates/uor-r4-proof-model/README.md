@@ -1,5 +1,11 @@
 # uor-r4-proof-model
 
+**Preserved formal lane.** These executable obligations describe the earlier
+R4G1 graph compiler. They remain useful research evidence, but they do not prove
+the active route-native engine’s attention, inference, correctness, reasoning,
+or frontier-like capability. New claims must be tied to the contracts in the
+[Geometric Intelligence Programme](../../docs/geometric_intelligence_programme.md).
+
 Executable proof specification and formal-verification harness for the R⁴
 holographic graph compiler.
 

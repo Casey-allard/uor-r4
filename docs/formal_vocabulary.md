@@ -1,6 +1,6 @@
 # Formal Vocabulary, Notation, and Claim Classes
 
-- **Version:** 0.1.14
+- **Version:** 0.1.15
 - **Status:** Normative for all new specification, plan, proof-model, and certificate text.
 - **Source:** `docs/hologram_formal_analysis_direction.pdf` §§1, 7, 13; tracker
   [#122](https://github.com/UOR-Foundation/uor-r4/issues/122); issue
@@ -8,7 +8,10 @@
 - **Related:** terminology for existing graph-compiler concepts lives in
   `docs/transformerless/GLOSSARY.md`; this document governs *claim language* and
   mathematical notation. Where the two overlap, this document wins for claim
-  classification and the glossary wins for structural terms.
+  classification and the glossary wins for structural terms. The route-scope
+  decision is [ADR-0004](adr/0004-geometric-intelligence-route-hierarchy.md),
+  and experiment policy is
+  [Geometric Intelligence Evaluation](geometric_intelligence_evaluation.md).
 
 This spec separates the statement classes that the research notes previously mixed —
 architectural definitions, compiler optimization objectives, empirical certification
@@ -42,22 +45,22 @@ matrix (`crates/uor-r4-proof-model/src/proof_matrix.rs`); the mapping is normati
 
 | Status | Meaning | `ProofStatus` mapping |
 |---|---|---|
-| **Structural** | Established by construction, a machine-checked test, a fuzz target, or a formal proof artifact that runs in CI. | `Verified` |
+| **Structural** | Established by construction or by a named machine-checked test, fuzz target, or formal proof artifact that has actually run for the declared evidence. | `Verified` |
 | **Witnessed** | Established per execution by a bounded, replayable witness an independent verifier replays without the teacher. | `Verified` (witness path) |
 | **Empirical** | Measured on a pinned corpus with protocol, confidence intervals, and provenance identifiers, per `docs/transformerless/EQUIVALENCE_AND_EMPIRICAL_PROTOCOL.md`. | `DifferentialPass` |
 | **Assumed** | Required by a proof or certificate but not established by the implementation. | recorded as an assumption entry |
 | **Unproven** | Asserted as a goal but currently without evidence. | `Unverified` (blocks `verify_all`) |
 
 `ExecutableSpec` in the proof matrix means the obligation has a runnable
-specification but no CI-enforced check yet; documents must label such claims
+specification but no activated binding check yet; documents must label such claims
 **Unproven** (or **Assumed** where applicable), never **Structural**.
 
-### 2.1 Wording rule (CI-enforced)
+### 2.1 Wording rule (automated check, dormant by default)
 
 The prohibited phrases are **"machine-verified"**, **"machine verified"**, **"exact equivalence"**, **"exact teacher equivalence"**, and **"provably equivalent"**. They are prohibited in
 normative documents (`docs/**`, crate READMEs) unless the same line links a proof
 artifact or certificate, or the phrase is explicitly disavowed on that line.
-`scripts/check_claim_wording.py` enforces this in CI (see §6). The project does not
+`scripts/check_claim_wording.py` enforces this when explicitly activated (see §6). The project does not
 claim exact teacher equivalence (disallowed per this rule), does not claim
 human-level reasoning, and does not treat plausible language output as evidence of
 coherent internal state transitions.
@@ -71,11 +74,30 @@ runtime path for them lands in the issues noted.
 | Symbol | Role | Meaning | Rust / artifact binding |
 |---|---|---|---|
 | `x_t^ℓ` | **Definition** | Hidden/residual state at token position `t` and decoder layer `ℓ`. | Active geometric-decoder/source-control state; exact binding lands under #950/#952. |
-| `q_t^ℓ, k_i^ℓ, v_i^ℓ` | **Definition** | Learned geometric query, causal prefix/memory key, and value contribution used by one R⁴ mixer layer. These are not R4G1 route codes or CIDs. | Experimental decoder reference/operator state under #950/#951; representation redesign under #958. |
-| `M_R4^ℓ` | **Definition** | Declared bounded causal geometric mixing operator at layer `ℓ`; its metric, chart, support rule, transport, and aggregation must be frozen by the owning issue. | Experimental decoder; one-layer then all-layer bindings under #950–#952. |
-| `d_R4^ℓ(q,k)` | **Definition** | Declared Riemannian/angular/geodesic compatibility used by `M_R4^ℓ`. It may approximate teacher attention; its geometric coordinates/support must remain intervention-testable. | Frozen by #950; the first #951 qualification was negative and #958 owns redesign. |
-| `N_t^ℓ` | **Definition** | Bounded causal neighborhood of prior token and memory positions selected by `d_R4^ℓ` before value aggregation. Future positions are excluded. | Operator trace/census under #950/#952. |
-| `P_mem^ℓ` | **Definition** | Deterministic, tokenizer-CID-bound projection from an identity-scoped memory span into layer-`ℓ` geometric key/value state. | Defined by #950; #951 established bounded memory contribution but not operator qualification; redesign under #958. |
+| `q_t^ℓ, k_i^ℓ, v_i^ℓ` | **Definition** | Historical learned geometric query, causal prefix/memory key, and value contribution used by the G0/G1 R⁴ mixer. These are not R4G1 route codes or CIDs. | Retained negative comparator under #950/#951; superseded for G1R by ADR-0003. |
+| `p_t, e_t, N_t` | **Definition** | Registered prime route atom; canonical unordered semiprime transition expert `e_t = p_(t-1)*p_t`; and bounded ordered n-let. If adjacent atoms repeat, `e_t = p_t^2` is retained. The square-free case is the subset `p_(t-1) != p_t`. `N_t` retains order and a multiplicity-preserving sorted factor multiset rather than relying on an overflowing numeric product. | Schema-2 source-free manifest records under #958. This binding establishes representation and deterministic recall substrate only. |
+| `Gamma = (gamma_0,...,gamma_(m-1))`, `theta_j(p)`, `delta_theta_j` | **Definition** | `Gamma` is a finite ordered, revisioned zeta-ordinate grid. `theta_j(p) = wrap(gamma_j*log(p))`; `delta_theta_j` is the declared local phase difference. | Compiler/reference math and bounded compiled signatures under #958. Critical-line use is an **Assumption**, not a proof of RH; no serving or capability claim follows. |
+| `s_t in S3 subset R4`, `h(s_t) in S2 subset R3`, `tau_t in S1` | **Definition** | `s_t` is the full normalized local spin state, `h` is its many-to-one Hopf observation, and `tau_t` is retained quantized fiber/transport phase (“torsion”). `h(s_t)` alone is not a rebuild identity. | Quantized source-free route records and experimental bounded lookup under #958; no physical or quantum interpretation is claimed. |
+| `theta=atan2(sin(theta),cos(theta))`, `a(theta)=sin(theta)^2`, `chi(theta)=sign(sin(theta))`, `pol(theta)=sign(cos(theta))` | **Definition** | S3/R3 trigonometric transition contract. `(sin=+/-1,cos=0)` has activation `1`; `(sin=0,cos=+1)` is continuous-null activation `0`. Chirality and, where needed, cosine polarity preserve orientation/antipodes. `tan(theta)` is a local chart only. | At a tangent pole or declared null boundary, the architecture switches angle/cotangent chart and records a signed quarter-turn phase plus torsion shift instead of dividing by zero or terminating. Semantic value is **Unproven**. |
+| `m_E=sqrt(2)`, `m_C=2i`, `m_R in [0,2]` | **Definition** | Typed least-cost adapter markers: Euclidean orthogonal-unit chord, complex/discrete antipodal displacement, and declared normalized Riemannian/chord score interval. They are not literal equalities of Euclidean, complex, discrete, and Riemannian domains. | A target-specific cost profile binds chart, units, orientation, quantization, error bounds, canonical tie-break, and conversion witness before choosing the cheapest faithful operation. |
+| `r_t = a_t + b_t*phi in Z[phi]` | **Definition** | Direction-preserving golden radial shell. `phi:(a,b)->(b,a+b)` and `phi^-1:(a,b)->(b-a,a)`. Repeated steps have Fibonacci recurrence, which does not establish semantic value. | Exact coefficient updates and manifest chart profile under #958; product use remains separately qualified. |
+| `I1, I2, IS` | **Definition** | Bounded causal indexes keyed by last route, ordered previous-plus-last route, and ordered sentence-route identity. | Incremental identity, exact rows, and an off-serving geometric-attention experiment exist under #958. Exact hits are recall; attention and product claims require the evaluation policy. |
+| `e^(i*pi)+pi^0 =_bridge 0^0`, `b_0` | **Definition** | Typed zero/identity transition. `ContinuousNull` preserves the complex cancellation as `0`; `DiscreteEmptyProduct` phase-shifts/retypes the seam into the discrete identity `1`. `=_bridge` is a domain-transition operator, not ordinary numerical equality. The selected tag is part of route identity and deliberately exposes the `-1 / 0 / +1` landmarks without assigning two simultaneous values in one untyped calculation. | `ZeroPowerBridge` and schema-2 manifest binding under #958 select the boundary value; the full phase-shift transition remains an architectural contract for the route hierarchy. |
+| `C_lex` | **Definition** | Deterministic lexical codec from pinned input bytes/tokenization to registered route atoms and back to output bytes where decoding is defined. Normalization, unknown-unit behavior, tokenizer CID, registry, and codec version are part of its identity. | Product binding remains **Unproven** until a provider-free serving path exercises the same codec end to end. |
+| `B_ico : Lambda_E8 ~=_Z I -> (x,x') in R4 ⊕ R4`, `Phi_E8 = H4 ⊕ φH4` | **Assumption** | **Project shorthand:** `E8 = H4 × H4`. The load-bearing implementation contract realizes that conceptual identity through the chosen icosian presentation: the E8 lattice and icosian ring are identified as `Z`-modules, one state is represented by golden/Galois-coupled R4 points, and the declared 600-cell folding is `H4 ⊕ φH4`. This is a typed construction, not a claim that `R4 = E8`. | Basis, glue/parity rule, conjugation, scale, orientation, root order, and inverse witness must be kappa-bound. Architectural load-bearing is assumed; held-out advantage remains unproven. |
+| `kappa(X)` | **Definition** | Canonical content identity of the schema/provenance-bound byte envelope `X`. Equality identifies equal canonical envelopes under the named digest contract; digest distance has no routing meaning. | Manifest/artifact CIDs. Kappa is integrity and provenance, not a semantic code. |
+| `R_t^q`, `q in {local,sentence,paragraph,conversation,global}` | **Definition** | Identity-scoped, causal route accumulator at hierarchy scope `q`. A parent scope commits to ordered child identities and bounded geometric summaries; it does not rescan all descendant tokens at query time. | ADR-0004 contract; scopes beyond the current local/sentence substrate are **Unproven**. |
+| `T_t^q = (v_session, w_window, E_proj, F_shared, c_res, alpha_Hopf, B_ico)` | **Definition** | Bounded transported trajectory/harmonic summary for scope `q`: session hypersphere vector, winding/window state, projection energy, shared-prime factors, cosine resonance, accumulated Hopf phase, and paired-H4/E8 coordinate. It is updated incrementally from the full transported path, not reconstructed from only the last route. | Ancestor routing evidence motivates these fields; current held-out locality when exact hierarchy keys miss is an **Empirical Criterion**, status **Unproven** until reproduced. |
+| `W_cov` | **Definition** | Bounded coverage witness recording codec/address coverage, hierarchy rows read and hit/miss, candidates before/after admission, controls, selection or abstention, and artifact identities. | Coverage establishes reachability only; capability status comes from a separate empirical record. |
+| `A_recall`, `A_geo` | **Definition** | `A_recall` retrieves a stored continuation by exact/backoff route identity. `A_geo` selects or orders admitted causal support using declared geometric terms and must be load-bearing against matched controls on anti-recall inputs. | Exact-row recall is implemented substrate. Geometric-attention advantage is an **Empirical Criterion**, currently not implied by implementation presence. |
+| `I_geo` | **Definition** | Causal inference step mapping observed prefix plus bounded hierarchy state to next-token scores/selection and updated state, followed by lexical decoding. | A support trace alone is not inference or coherent generation. |
+| `Corr(D)`, `Abst(D)` | **Empirical Criterion** | Correctness and abstention on declared distribution `D`: correctness uses an independent oracle/constraint/source and is reported both conditional on answered cases and over all cases; abstention is a typed outcome, never silently scored correct. | Protocol and denominators are required by `geometric_intelligence_evaluation.md`. |
+| `Reason(D)` | **Empirical Criterion** | On anti-recall tasks from `D`, typed intermediate route transitions preserve constraints, compare alternatives or counterfactuals, and reach an independently checkable conclusion. | Fluent text, recalled answers, teacher agreement, or non-zero geometric activity is insufficient evidence. |
+| `Serve_pf` | **Definition** | Provider-free serving: the evaluated process performs no runtime call to Ollama, a cloud model, teacher endpoint, or other generative provider; all required artifacts and decoding are local and pinned. | Does not imply transformerless, geometry-only, multiplication-free, correct, or production-ready. |
+| `M_R4^ℓ` | **Definition** | Declared bounded causal geometric mixing operator at layer `ℓ`; its metric, chart, support rule, transport, and aggregation must be frozen by the owning issue. | G0/G1 learned comparator is historical. ADR-0003 is the normative G1R target; its layer-29 realization is `NOT_YET_IMPLEMENTED`. |
+| `d_R4^ℓ` | **Definition** | Declared compatibility or least-energy score over factor overlap, prime-gap phase delta, R4/S3 transport, Hopf observation, and torsion. | Normative G1R objective under #958; the score and its selected-support trace are `NOT_YET_IMPLEMENTED`. The learned `d_R4^ℓ(q,k)` from #950/#951 remains a negative comparator. |
+| `N_t^ℓ` | **Definition** | Bounded causal neighborhood of prior route and memory states selected before value aggregation. Future positions are excluded. | Exact-row reachability exists in the source-free substrate; the intervention-qualified geometric neighborhood and deployed trace/census are `NOT_YET_IMPLEMENTED`. |
+| `P_mem^ℓ` | **Definition** | Deterministic, tokenizer-CID-bound projection from an identity-scoped memory span into ordered prime-route and spin/torsion state. | G0/G1 key/value adapter is historical; the factorable memory projection and product integration are `NOT_YET_IMPLEMENTED` under #958/#953. |
 | `Δ_geo-null` | **Empirical Criterion** | Difference on the predeclared held-out metric between real geometry/memory and its equal-budget disabled or permuted control. A nonzero support trace alone is reachability, not advantage. | Bounded one-layer report under #951. |
 | `S` | **Definition** | Semantic state space; every observation projects into a state `s ∈ S`. Regions are subsets `R_i ⊆ S`; beliefs are predicates over `S`; goals are desired subsets of `S`. | *Compiler/reference-only abstraction* (issue #124). The deployed runtime carries a fixed-capacity approximation: the runtime state (frontier, rolling context code, token shortlist) in `crates/uor-r4-core`. |
 | `G = (V, E)` | **Definition** | Compiled semantic graph: `V` packed semantic states, `E` typed transitions. | `crates/uor-r4-graph-format` `GraphView` over the R4G1 NODE/EDGE sections (`docs/transformerless/R4G1.md`). |
@@ -118,7 +140,7 @@ citing one MUST cite the same status:
 | Score arithmetic safety (no overflow/panic) | **Structural** | Kani-1 harness (`kani_proofs.rs`) |
 | Fixed-capacity container invariants | **Structural** | Kani-2 harness (`kani_proofs.rs`) |
 | Inference operation-set conformance | **Witnessed** (Structural after machine-code audit) | `INFERENCE_OPERATION_CONTRACT.md` + P-4 source scans (`transformerless/mod.rs`) |
-| Termination, bounded frontier width, valid references, canonical serialization, provenance completeness | per proof matrix | R4G1 two-stage validation + proof-model entries; anything lacking a CI artifact is **Unproven** |
+| Termination, bounded frontier width, valid references, canonical serialization, provenance completeness | per proof matrix | R4G1 two-stage validation + proof-model entries; anything lacking an executed evidence artifact is **Unproven** |
 
 ## 5. Term discipline (overloaded words)
 
@@ -140,12 +162,20 @@ by wholesale rewrite.
 
 - `scripts/check_claim_wording.py` scans `docs/**/*.md` and crate `README.md` files
   and fails on §2.1 violations. Run locally: `python3 scripts/check_claim_wording.py`.
-- CI runs the same script as a step of the `gates` job (`.github/workflows/ci.yml`).
+- Automatic CI is dormant. A named product/release decision may activate the
+  same script locally or through the manual workflow in `.github/workflows/ci.yml`.
 - The proof-status matrix (`proof_matrix.rs`) is the machine-readable registry for
   §2 statuses; `verify_all` fails on any `Unverified` entry.
 
 ## Changelog
 
+- **0.1.15** (2026-08-26) — Defined the geometric-intelligence route hierarchy
+  and its claim boundaries: typed zero/identity and trigonometric chart bridges,
+  lexical/prime/semiprime/n-let identities, zeta/Hopf/torsion/golden state,
+  conceptual `E8 = H4 × H4` realized by the witnessed icosian
+  `H4 ⊕ φH4` construction, hierarchical kappa and trajectory summaries,
+  attention versus recall, inference, correctness, reasoning, and provider-free
+  serving.
 - **0.1.14** (2026-08-20) — Added the issue-#830 register execution-scope, serving-reachability, and empirical-verdict vocabulary: a per-row execution `scope` (`reference-only` / `offline-compiler` / `certifier-instrument` / `dormant-portable-runtime` / `normative-runtime` / `deployed-production`) and a serving `reachability` (`deployed-serving` / `off-serving-path` / `dormant-gated`), plus a three-value empirical status (`PASS` / `FAIL` / `UNAVAILABLE`) kept as a separate axis from the harness-built `build` level — an absent fixture is `UNAVAILABLE`, never `PASS` (`crates/repo-model/src/registry.rs`, `crates/repo-model/src/empirical.rs`; rendered into `CONFORMANCE.md`).
 - **0.1.13** (2026-07-25) — Added issue-#175 compiler parallelism benchmarks and scaling certificate definitions (`Compiler Parallelism Scaling Report`, `Multicore Thread Sweep Matrix`, `Stage Scaling Classification Taxonomy`, `Byte-Equality Scaling Premise` in `docs/compiler_scaling_certificate.md` and `uor-r4-graph-certify::compiler_scaling`).
 - **0.1.12** (2026-07-25) — Added issue-#174 CPU-only compiler dependency and feature audit definitions (`Compiler Dependency Denylist Gate`, `Default Feature Unification Rule`, `Teacher-Backend Isolation Invariant`, `CPU-Only Runner Compliance` in `docs/compiler_dependency_audit.md` and `uor-r4-graph-compiler::dependency_audit`).

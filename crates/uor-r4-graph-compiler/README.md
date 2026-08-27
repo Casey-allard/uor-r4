@@ -1,5 +1,12 @@
 # uor-r4-graph-compiler
 
+**Preserved research lane.** This is the earlier offline R4G1 graph-compiler
+pipeline, retained for its observations, artifacts, measurements, and reusable
+mechanisms. It is not the compiler for the active route-native geometric
+intelligence architecture and does not by itself provide coherent chat. The
+current direction and sequencing live in the
+[Geometric Intelligence Programme](../../docs/geometric_intelligence_programme.md).
+
 The offline R⁴ Holographic Graph Compiler pipeline.
 
 ## Overview

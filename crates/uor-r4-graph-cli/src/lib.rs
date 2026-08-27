@@ -39,6 +39,8 @@ use uor_r4_graph_compiler::recorded_corpus::{
 use uor_r4_graph_compiler::reproducibility as repro;
 mod convert_r4g1;
 pub mod cover_sweep;
+#[cfg(not(target_arch = "wasm32"))]
+mod prime_route_canary;
 pub mod recommend_scale;
 mod runtime_corpus;
 mod scenarios;
@@ -10540,6 +10542,8 @@ pub fn run(args: &[String]) -> Result<(), SourceUnavailable> {
             Err(_) => println!("source checkpoint not found; see `setup`"),
         },
         Some("convert-r4g1") => convert_r4g1::run(&args[1..])?,
+        #[cfg(not(target_arch = "wasm32"))]
+        Some("prime-route-canary") => prime_route_canary::run(&args[1..])?,
         Some("route-fit-real") => route_fit_real_command(&args[1..])?,
         Some("runtime-corpus") => runtime_corpus::run(&args[1..])?,
         Some("cover") => cover_command(&args[1..])?,
@@ -10570,8 +10574,13 @@ pub fn run(args: &[String]) -> Result<(), SourceUnavailable> {
 /// Usage banner for the `transformerless` command family. Lists exactly
 /// the subcommands `run` dispatches (#790: it previously advertised
 /// `compare`/`compare-report`, which live on the top-level `r4` CLI).
-fn transformerless_usage() -> &'static str {
-    "R4 transformerless — compile a mul-free table artifact\n\
+fn transformerless_usage() -> String {
+    transformerless_usage_for_target(!cfg!(target_arch = "wasm32"))
+}
+
+fn transformerless_usage_for_target(include_native_canary: bool) -> String {
+    let mut usage = String::from(
+        "R4 transformerless — compile a mul-free table artifact\n\
                  commands: setup | gen [secs] [target] | compile [--model REPO --revision SHA | --source DIR] [--tokenizer-family FAMILY --tokenizer-version N] [--output DIR] [--seconds N] [--target N] [--sequence-length N] | store | scenarios | teacher-kappa | convert-r4g1 --artifacts <TLA> --store <TLS1> [--calibration <hamming_calibration.json>] --out <R4G1>\n\
                  recorded compile (no transformer): compile-recorded --corpus-meta <META> --corpus-recs <RECS> --vocab-size <N> --out <DIR>\n\
                  markerless legacy attention copy (dense-present derivations are refused): copy-recorded-attention --corpus-meta <META> --corpus-recs <RECS> --out <attention_operator.json>\n\
@@ -10582,12 +10591,22 @@ fn transformerless_usage() -> &'static str {
                    --bundle-root explicitly declares one managed/canonical bundle authority; without it, --out is an exact standalone root fixed at transaction start\n\
                  observation pipeline: observe [--source DIR [--tokenizer-family FAMILY --tokenizer-version N] | --checkpoint BIN] [--seconds N] [--target N] [--shards N] [--out DIR] [--sequence-length N]\n\
                  text observations (D3): observe-text [--input PATH] [--out DIR] [--shards N] [--seconds N] [--source DIR [--tokenizer-family FAMILY --tokenizer-version N] | --checkpoint BIN --tokenizer PATH] [--sequence-length N] [--trace-profile ID/V --trace-layers I,J,... [--trace-support S]]\n\
-                 route-attention real arm (#605 S1-1): route-fit-real --corpus DIR --source DIR [--stories N] [--positions N] [--out PATH]\n\
+                 route-attention real arm (#605 S1-1): route-fit-real --corpus DIR --source DIR [--stories N] [--positions N] [--out PATH]\n",
+    );
+    if include_native_canary {
+        usage.push_str(
+            "                 bounded worker proof (#958): prime-route-canary --report <fresh-path.json> (optimized release build only; 90-second hard wall)\n",
+        );
+    }
+    usage.push_str(
+        "\
                  A-mode infill serving: graph infill --artifact <scored R4G1> --skeleton <token ids, _ for free> [--teacher <TLA container>]\n\
                  quantum operations: cd-compile | quantum-eval\n\
                  hf evaluation: evaluate-report [--source DIR] [--tokenizer-family FAMILY --tokenizer-version N] [--compiled DIR] [--report PATH] [--sequence-length N] [--bos] [--max-held-out-stories N]\n\
                  scale sizing (#514): recommend-scale (--config <hf dir> | --d-model N --n-layers N --vocab N) [--corpus wiki|stories] [--beta B]\n\
-                 docs: docs/transformerless/TRANSFORMERLESS.md (extrapolation), docs/transformerless/PROOF.md (proof + certificate)"
+                 docs: docs/transformerless/TRANSFORMERLESS.md (extrapolation), docs/transformerless/PROOF.md (proof + certificate)",
+    );
+    usage
 }
 
 pub fn cd_compile_command(args: &[String]) {
@@ -16155,5 +16174,23 @@ mod transformerless_dispatch_790 {
                 "banner must keep `{advertised}`"
             );
         }
+        #[cfg(not(target_arch = "wasm32"))]
+        assert!(
+            usage.contains("prime-route-canary"),
+            "native banner must advertise the native canary"
+        );
+        #[cfg(target_arch = "wasm32")]
+        assert!(
+            !usage.contains("prime-route-canary"),
+            "wasm banner must not advertise a native-only canary"
+        );
+        assert!(
+            super::transformerless_usage_for_target(true).contains("prime-route-canary"),
+            "native usage variant must include the native canary"
+        );
+        assert!(
+            !super::transformerless_usage_for_target(false).contains("prime-route-canary"),
+            "wasm usage variant must exclude the native canary"
+        );
     }
 }

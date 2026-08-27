@@ -2,8 +2,9 @@ name: Formal Verification (Kani)
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: '30 7 * * *'
+
+# Formal verification is retained for an explicit decision-bearing dispatch.
+# It is intentionally not scheduled while product mechanisms are being built.
 
 jobs:
   kani:

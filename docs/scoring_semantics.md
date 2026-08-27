@@ -1,5 +1,10 @@
 # Normative Fixed-Point Scoring Semantics Specification
 
+> **Preserved R4G1 runtime contract.** These scoring semantics remain scoped to
+> the historical graph runtime. They are not the energy function for the active
+> recursive route hierarchy and do not establish source-free intelligence. See
+> the [documentation map](README.md).
+
 **Version:** 1.0.0  
 **Date:** 2026-07-24  
 **Source Baseline:** `docs/hologram_formal_analysis_direction.md` §§7, 12, 13; `docs/formal_vocabulary.md`; `docs/inference_contract.md`; GitHub Issue #158.

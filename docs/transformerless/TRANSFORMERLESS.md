@@ -5,13 +5,14 @@
 > `uor_r4_core::transformerless` (`crates/uor-r4-core/src/transformerless`). The "parent platform" referenced
 > in §5–§6 is this repository's UOR substrate (uor-addr, uor-foundation).
 
-> **Current scope (2026-08-25, #948).** This document specifies the retained
+> **Current scope (updated 2026-08-26).** This document specifies the retained
 > TLA table-cross-compiler and its historical multiplication-free runtime. It
 > does not specify the active
-> [geometric causal decoder](../geometric_causal_decoder_plan.md). The
+> [Geometric Intelligence Programme](../geometric_intelligence_programme.md).
+> It does not establish route-native attention, inference, or chat. The
 > two-surface teacher boundary below remains valid for TLA compilation only;
-> the active decoder deliberately studies residual/Q/K/V/attention behavior as
-> a reference while replacing causal self-attention.
+> source-model behavior may remain an offline comparator but is not the target
+> serving architecture.
 
 This document is the extrapolation companion to the implementation in this
 crate and the proof/certificate in PROOF.md. It assumes the graded

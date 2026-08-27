@@ -1,5 +1,11 @@
 # Baseline and Working Assumptions — R⁴ Graph Compiler
 
+> **Historical measurement/design baseline:** “living” below refers to the
+> 2026-07 graph-compiler programme that owned these assumptions. This record is
+> retained at its measured scope and does not define current route-native
+> architecture or sequencing. See the
+> [Geometric Intelligence Programme](../geometric_intelligence_programme.md).
+
 Phase 0 deliverable of `docs/r4_graph_compiler_implementation_plan.md` (§5 Phase 0).
 Date: 2026-07-21. Status: living document; numbers are marked **fresh** (measured this phase),
 **cited** (from prior certificates), or **pending** (harness in flight / tool missing).

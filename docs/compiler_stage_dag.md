@@ -1,5 +1,10 @@
 # Compiler Stage Ownership and Parallelization DAG (v0.1.0)
 
+> **Preserved graph-compiler DAG.** This remains the stage map for the
+> historical TLA/R4G1 compiler only. It is not the build sequence for current
+> geometric intelligence; use the
+> [Geometric Intelligence Programme](geometric_intelligence_programme.md).
+
 **Normative Specification — Issue #166**  
 *Source: `docs/r4_graph_compiler_implementation_plan.md` §§4.1, 5; `docs/transformerless/R4G1.md` §7*
 

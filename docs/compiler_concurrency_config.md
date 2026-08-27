@@ -1,5 +1,11 @@
 # Normative Specification: Compiler Thread-Pool, Jobs Configuration & Oversubscription Policy
 
+> **Preserved graph-compiler contract.** This specification governs the
+> historical TLA/R4G1 compiler lane. It remains available for reuse and
+> reproduction, but it is not the worker contract for the active route-native
+> intelligence programme; measured optimization for that path is deferred to
+> #963. See the [documentation map](README.md).
+
 **Version:** 0.1.0  
 **Status:** Normative Specification  
 **Issue:** #168  

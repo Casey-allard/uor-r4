@@ -1,21 +1,41 @@
 # AGENTS.md — uor-r4
 
 Guidance for agents (human or otherwise) working in this repository.
-**Current intelligence sequencing is authoritative in the
-[`docs/geometric_causal_decoder_plan.md`](docs/geometric_causal_decoder_plan.md)**
-— the readable mirror of GitHub programme root #820 and execution tracker #949.
-The prior S0–S7 completion plan and the graph-compiler implementation plan are
-retained as historical engineering/evidence records; neither decides what is
-built next. Terminology lives in `docs/transformerless/GLOSSARY.md`. Keep this
-file current when conventions change.
+**Post-#958 intelligence architecture and sequencing are authoritative in
+[`docs/geometric_intelligence_programme.md`](docs/geometric_intelligence_programme.md).**
+The geometric causal decoder plan, prior S0–S7 completion plan, and
+graph-compiler implementation plan are retained as historical
+engineering/evidence records; none decides what is built next. Native GitHub
+relationships now mirror the programme: #961 is the sole active successor,
+followed by #952–#955 and #962–#965. Terminology lives in
+`docs/transformerless/GLOSSARY.md`. Keep this file current when conventions
+change.
 
 ## What this repo is
 
-A local, CPU-first **geometric language-model programme**. The active product
-lane reuses the source-model tokenizer/residual/MLP/LM-head stack and pinned
-`uor-matmul` projections while progressively replacing causal self-attention
-with a learned R⁴ geometric mixer. The existing f64 router supplies
-identity-scoped geometric memory, retrieval, and turn persistence.
+A local, CPU-first **geometric intelligence programme**. Geometry is the route
+and the route is the data location. The active lane uses a pinned lexical codec,
+registered prime atoms, semiprime transitions including `p^2` self-loops,
+ordered n-lets, fixed-zeta R4/S3 state, Hopf observation, torsion, exact
+`Z[phi]` radial shells, and the load-bearing project bridge
+`E8 = H4 x H4`, realized in code and serialization by the golden/Galois-coupled
+icosian pair `H4 ⊕ phi H4`. Recursive attention combines exact route identity
+with trajectory/harmonic summaries across sentence, paragraph, conversation,
+and global state.
+
+The intended destination is frontier-like useful local intelligence without
+transformers, MoE/sparse learned routing, or dense matrix intelligence. That is
+an aspirational research target, not a current capability claim. Spherical
+harmonics are the project-level model for overlapping spin-state storage and
+transport; R4/S3 and Hopf/S2 are the bounded compute/observation charts used to
+operate on that field.
+
+Source weights are offline teachers/comparators only. The final serving path
+loads no source weights and contains no transformer/self-attention, dense
+matrix intelligence kernel, MoE, or sparse learned router. The learned
+four-coordinate mixer remains only the negative G0/G1 comparator recorded by
+#950/#951; #958 is retained positive foundation evidence at
+`RETAIN_STORAGE_RECALL_ONLY` scope.
 
 The multiplication-free TLA/R4G1 compiler, packed graph runtime, certifier,
 proof assets, and dashboard remain in the repository as working historical
@@ -24,14 +44,14 @@ sequencing path.
 
 ## Workspace layout
 
-- `crates/uor-r4-core` — R⁴ math + transformerless compiler/runtime (see its README)
+- `crates/uor-r4-core` — active prime-route math/manifest/attention foundation + historical transformerless runtime
 - `crates/uor-r4-router` — active geometric memory/router + historical word-Markov decoder and dashboard backend
 - `crates/uor-r4-graph-format` — R4G1 packed artifact format, two-stage validation, borrowed `GraphView`
 - `crates/uor-r4-graph-compiler` — offline graph-compiler stages (observation, cover induction, packing)
 - `crates/uor-r4-graph-certify` — offline certification/measurement (Gate C `score` harness, `score_runtime` reference scorer, certificates)
 - `crates/uor-r4-graph-runtime` — `no_std` allocation-free R4G1 graph runtime (engine, routing, patch chains)
 - `crates/uor-r4-graph-cli` — `r4 transformerless …` CLI stage dispatch (convert-r4g1, scenarios, corpus tools)
-- `crates/uor-r4-model-source` — source forward/KV/trace runtime and the active geometric-decoder seam
+- `crates/uor-r4-model-source` — offline source teacher/comparator and historical forward/KV/trace runtime
 - `crates/uor-r4-proof-model` — executable proof obligations + proof-status matrix
 - `crates/uor-r4-api` — typed compile + engine library façade for downstream consumers (wraps the CLI-shaped stages; see its README)
 - root package `uor-r4-wasm-router` — façade + `r4` CLI + local server/chat
@@ -40,9 +60,10 @@ sequencing path.
 
 Documentation entry points, in the order a newcomer should read them:
 `README.md` (what it is, quickstart, CLI/HTTP/config reference) →
-`docs/geometric_causal_decoder_plan.md` (current architecture and exact issue
-order) → `CONTRIBUTING.md` (the short form of this file) → this file (the full
-operating manual) → `docs/RESEARCH.md` (what is measured, closed and open) →
+`docs/geometric_intelligence_programme.md` (current architecture, sequencing,
+and claim boundaries) → `CONTRIBUTING.md` (the short form of this file) → this
+file (the full operating manual) → `docs/RESEARCH.md` (what is measured, closed
+and open) →
 `docs/MODEL_LIFECYCLE.md` (active decoder and historical compile lanes) →
 `docs/CONFIGURATION.md` (every environment knob).
 
@@ -59,7 +80,7 @@ build (`Cargo.toml` `exclude`); its `.gitignore` entry blocks new additions,
 but ~1,100 legacy files remain tracked in the tree (recorded 2026-08-18,
 baseline audit).
 
-## Commands (daily drivers)
+## Decision checks (dormant by default)
 
 ```bash
 cargo fmt --check
@@ -68,28 +89,40 @@ cargo test -p <touched-package> --lib --offline
 python3 scripts/check_claim_wording.py      # when claims/docs change
 ```
 
-There is no universal pre-commit test gauntlet. Run the smallest focused test
-that exercises the behavior you changed, plus a compile check for the touched
-package. The required CI context performs workspace compilation and library
-tests for Rust/build changes; docs-only changes run claim wording only. The
-exhaustive workspace, BDD, doctest, no_std, deterministic-rebuild, κ, Gate C,
-all-features, WASM, fuzz, Kani, conformance, and audit suites are nightly/manual
-certification. Invoke one locally only when the change directly targets that
-contract or before a release decision.
+These commands are references, not automatic pre-commit work. Testing and QA
+remain dormant until a product or release issue names the exact check, decision,
+fixture identity, outcome actions, and resource budget. Do not run a focused
+test merely because code changed. Do not run broad suites to create confidence
+without a decision they can change.
+
+Source-free attention probes, anti-recall controls, bounded product
+transcripts, and serving censuses are activated by their programme stage.
+Workspace, BDD, doctest, no_std, deterministic-rebuild, kappa, Gate C,
+all-features, WASM, fuzz, Kani, conformance, audit, and corpus-scale suites stay
+dormant unless the active product/release decision explicitly requires them.
+Automatic QA is disabled. Pull-request and merge-group events emit only five
+instantaneous ruleset-transport acknowledgements with no checkout or
+verification work. They exist because immutable ruleset `19597522` requires
+the historical names and queue; they are explicitly **not PASS evidence**.
 
 The toolchain is pinned in `rust-toolchain.toml`: rustup-managed `cargo`
-resolves the pin automatically, so the gates above run the same toolchain
-CI does. Caveat: a non-rustup Rust earlier in `PATH` (e.g. Homebrew)
+resolves the pin automatically, so an activated local check and the manually
+dispatched workflow use the same toolchain. Caveat: a non-rustup Rust earlier
+in `PATH` (e.g. Homebrew)
 ignores the pin — verify `which cargo` resolves to `~/.cargo/bin/cargo`,
 or run gates as `rustup run stable cargo …`. Bump the pin in a dedicated
 PR (a bump can shift libm-sensitive teacher logprobs — see Gate E below).
 
 ## Execution-lane invariants (do not conflate)
 
-- **Active geometric decoder:** learned floating-point projections,
-  `uor-matmul`, allocation, and ordinary source-model residual/MLP/LM-head
-  components are allowed. Fixed inputs/checkpoints/decode settings must remain
-  deterministic, and library boundaries retain typed errors.
+- **Active geometric intelligence path:** compiler-side floating point and
+  allocation are allowed while constructing witnessed charts, but source
+  weights, source residual/MLP/LM-head execution, `uor-matmul` intelligence
+  projections, transformers, dense matrix intelligence, MoE, and sparse learned
+  routers are not serving dependencies. The pinned lexical codec may load
+  vocabulary/normalization data without weights. Route manifests, hierarchy
+  state, chart selection, and decode settings remain deterministic, and library
+  boundaries retain typed errors.
 - **Frozen TLA/R4G1 runtime:** XOR/AND/OR/shift/rotate/popcount/int
   add-sub/compare/table reads only. No multiply, divide, or float in its
   normative kernel; its steady-state prediction path remains allocation-free.
@@ -100,45 +133,58 @@ PR (a bump can shift libm-sensitive teacher logprobs — see Gate E below).
   support shown load-bearing by disabled/permuted interventions.
   P-4/table lowering is a later, separately triggered decision.
 - **Artifact determinism:** identical pinned compiler inputs still produce
-  identical historical artifact bytes. New learned decoder checkpoints must
-  bind their source, tokenizer, training configuration, and parameters.
+  identical historical artifact bytes. New route manifests and transitional
+  decoder checkpoints must bind their source, tokenizer, compiler or training
+  configuration, and semantic parameters.
 - **Errors**: library boundaries return `Result` with focused error enums;
   no `unwrap`/`expect`/panic on recoverable paths. No unsafe in the portable
   runtime or the format crate (`#![forbid(unsafe_code)]` there).
 - **Claim language**: `docs/formal_vocabulary.md` (v0.1.0+) is normative —
   equations are labeled Definition/Objective/Guarantee/Assumption/Empirical
   Criterion, guarantees carry a proof-matrix status, and
-  `python3 scripts/check_claim_wording.py` (CI-enforced) blocks
+  `python3 scripts/check_claim_wording.py` (available but dormant unless a
+  product/release decision activates it) blocks
   "machine-verified"/exact-equivalence wording without a linked proof artifact.
 
 ## Active product and research rules
 
-- Work only the earliest unblocked child of #949. #950 is the first engineering
-  issue after the roadmap PR; downstream issues stay unassigned.
-- Every active decoder engineering leaf ends in a runnable product result, not
-  only a format, harness, proof, or metric. Governance and administration work
-  may instead close with their explicit repository/GitHub outcome.
-- Establish the coherent local `uor-matmul` control before debugging geometry.
-- Bind persistent memories to the exact source tokenizer and qualify their
-  deterministic layer projection before progressive replacement.
-- Geometry must execute before token choice, change real support/logits, and
-  beat a disabled or permuted-geometry null before it is scaled.
-- Student-prefix free-running output is required whenever generation is
-  claimed. Teacher-forced top-1 alone cannot promote a decoder stage.
-- Before closing a stage with `REDESIGN` or another negative verdict, reblock
-  its successor on the replacement design or close the downstream work as not
-  triggered. A closed blocker is not itself a promotion.
-- Start with the smallest batch/prompt set that can falsify the mechanism. A
-  negative result stops or redesigns it; it does not automatically authorize a
-  larger harness.
+- Follow the reconciled #820 dependency chain. #961 owns active GI-1/S0 lexical
+  geometry; #952 begins only after #961 and owns recursive attention, not
+  layerwise source replacement. #953–#955 then own inference, correctness, and
+  reasoning; #962–#965 own product integration, optimization, formal closure,
+  and release.
+- Sequence strictly: lexical/address plumbing → recursive attention →
+  source-free grammatical inference/generation → correctness/abstention →
+  reasoning → optimization/purity/release.
+- Kappa is canonical identity/serialization, never the tokenizer or semantic
+  distance. The pinned lexical codec is provenance-bound but opens no weights.
+- Preserve the project shorthand `E8 = H4 x H4`. Its concrete implementation
+  and serialization is the golden/Galois-coupled icosian pair
+  `H4 ⊕ phi H4` with fixed basis, glue, forward map, and inverse witness.
+- Exact route keys must be combined with the transported trajectory, session
+  hypersphere vector, winding/window state, window projection energy,
+  shared-prime-factor retrieval, bounded resonance, and accumulated Hopf phase.
+  An exact kappa miss must not collapse unseen global history to a suffix-only
+  default.
+- Geometry must execute before token choice and change admitted support or
+  ordering against equal-budget factor-only, count-only, exact-recall,
+  permuted-geometry, and permuted-pair controls before generation is credited.
+- Teacher output may label or compare only after a source-free report freezes.
+  It is never substituted for the product response.
+- Every hierarchy selection emits a global-context coverage witness. Exact
+  recall, grammatical generation, correctness, and reasoning are separate
+  gates.
+- Start with the smallest product artifact that can falsify the stage. A
+  negative stops or redesigns it; it does not authorize a larger harness.
 - Do not add a graph section, proof lane, benchmark framework, BDD suite, or
-  corpus-scale run before the active vertical slice demonstrates decision
-  value.
-- Routine verification is one focused behavior test, touched-package compile,
-  and bounded product transcript. Add certification only when its exact
-  contract is changed or a release decision requires it.
+  corpus-scale run before the active product decision requires it.
+- Testing/QA is dormant by default. Activate only named product/release checks;
+  missing or unrun evidence remains `NOT_RUN` or `UNAVAILABLE`.
 
-## κ-reproduction (Gate E) — how to run and re-pin
+## Historical release-only κ reproduction reference (dormant)
+
+Do not run this during ordinary development. It is retained only for a future
+release issue that explicitly activates the cross-platform κ decision.
 
 - Setup (once per machine): `curl -sL -o /tmp/run.com
   https://github.com/trholding/llama2.c/releases/download/experimental/run.com
@@ -156,7 +202,10 @@ PR (a bump can shift libm-sensitive teacher logprobs — see Gate E below).
   legitimately change κs; drift from nondeterminism never does — investigate
   first (double-compile determinism check), then re-pin.
 
-## Historical TLA/R4G1 teacher-parity certification
+## Historical TLA/R4G1 teacher-parity certification (dormant)
+
+The commands below are records of the historical lane. They require an
+explicit product/release decision before execution.
 
 The suite below remains valid for the frozen compiled-runtime evidence lane. It
 is not an entry gate for geometric-decoder development and must not be added to
@@ -248,32 +297,27 @@ CIDs before loading teacher weights.
 
 ## Process conventions
 
-- **Merge workflow (since 2026-07-22): NO direct pushes to `main`.** A ruleset
-  ("main: required checks + merge queue", id 19597522) protects `main`: all
-  changes land via PR. `fast build + product smoke` is the single substantive
-  gate; five zero-work compatibility contexts mirror its result until a
-  repository administrator updates the required-context list. **The merge queue is
-  ENABLED (since 2026-07-31)**: PRs merge through the queue, and a queued
-  PR's head branch is LOCKED — pushes are rejected ("branches that are
-  queued for merging cannot be updated") until the PR merges or is
-  dequeued. Follow-up work for a queued PR goes on a fresh branch off
-  `main` after it lands (the #323 lesson), not as extra commits on the
-  queued branch.
-- **CI critical-path budget (issue #940, 2026-08-25).** Pull requests and
-  speculative merges have one substantive gate: `fast build + product smoke`.
-  Docs/non-build changes run claim wording only. Rust/build changes additionally
-  run fmt, `cargo check --workspace --all-targets`, and
-  `cargo test --workspace --lib`. Do not add certification, research, proof,
-  fuzz, cross-target, or corpus-scale work to this context. Those suites run on
-  the nightly schedule or by manual dispatch. Target budgets are under two
-  minutes for docs and under eight minutes for ordinary warm-cache Rust changes.
+- **PR workflow; queue as transport only.** Do not push directly to `main`;
+  use a named branch and PR. Ruleset `19597522` cannot currently be edited, so
+  the repository emits its five required names as explicit no-QA
+  acknowledgements and uses the forced merge queue only to transport the
+  reviewed commit. Never report those acknowledgements as tests or PASS.
+- **Dormant governance cleanup (#940).** A future administrator may remove the
+  obsolete ruleset and its queue. Until then, contributors with write-only
+  permission use the transparent transport shim; they must not fabricate
+  external statuses, use `--admin`, or reactivate development QA.
+- **Release activation only.** A future product-ready release issue may
+  manually dispatch a bounded product/release QA scope and may propose a new
+  minimal release ruleset. The old always-on research queue is not restored by
+  default.
 - **Per issue**: assign yourself (WIP signal) → branch `issue-<n>-<slug>` →
-  work + run focused checks for the changed behavior → open PR → merge when checks are
-  green → close the issue with the DoD evidence and the merge commit
-  reference. Milestones mirror plan phases.
-- **PR review** (incl. Copilot-generated): never merge unverified. Run the
-  focused checks appropriate to the changed behavior; run κ or another
-  certification suite only when its contract is affected. Resolve conflicts
+  work + produce the declared product/release evidence → run only checks the
+  issue explicitly activated → open PR → merge through the protected path →
+  close the issue with its evidence and merge commit. Milestones mirror plan
+  phases.
+- **PR review** (incl. Copilot-generated): review the changed path and its
+  declared evidence before merge. Run no QA by habit; use only the activated
+  product/release checks. Resolve conflicts
   hunk-by-hunk — whole-file `checkout --theirs/--ours` has silently dropped
   upstream features before (the TLA5 incident).
 - **Committing while subagents work in-tree**: add files **by name**, never
@@ -287,7 +331,7 @@ CIDs before loading teacher weights.
   graph lane
   (`uor-r4-graph-format::ScoreQ` wire newtype; `uor-r4-core::score_q::ScoreQ`
   with compiler-side f32 conversions). Do not add a third or prioritize their
-  consolidation ahead of #949.
+  consolidation ahead of the active #961 → #952 product sequence.
 
 ## Long-run discipline (process amendment, 2026-08-06)
 
@@ -333,19 +377,35 @@ outcome against it afterwards:
     if negative:         <the next action, and it must differ>
     cost estimate:       <wall-clock, and what else it blocks>
 
+**A long run must be observable before it starts.** Anything expected to exceed
+15 minutes needs a finite work denominator, completed/remaining units,
+throughput, an ETA derived from that denominator, durable checkpoints, and a
+typed terminal report. A missing denominator, absent ETA, non-resumable
+checkpoint, or worker setting that has not passed a one-worker/four-worker
+semantic-equivalence, useful-worker utilization, and measured wall-time
+improvement canary prevents launch. #958's final schema-2 complete-manifest
+canary passed on 2026-08-26; its exact binding may be reused only while semantic
+inputs and workload shape remain unchanged. A change must re-establish the
+binding before the dependent product decision. Performance
+evidence comes from release builds; a debug run cannot authorize larger work.
+Eight hours is a hard kill ceiling, not an estimate. Reaching it stops the run
+and records `ABORTED`, `NOT_RUN`, or the last completed bounded result; never
+continue because the process may be nearly finished.
+
 **Cross-target checks are scoped certification.** A native workspace check does
-not build WASM. Run `cargo check --target wasm32-unknown-unknown -p
-uor-r4-wasm-router --lib` when the change touches the WASM boundary or before a
-release; it is not required for every core edit. A
+not build WASM. Activate `cargo check --target wasm32-unknown-unknown -p
+uor-r4-wasm-router --lib` only when a product/release decision explicitly names
+the WASM boundary; it is not routine implementation work. A
 filesystem-touching helper gated `#[cfg(not(target_arch = "wasm32"))]` needs a
 wasm counterpart, or every caller has to become cfg-aware; prefer the
 counterpart. This was found the expensive way on PR #470, where PR checks were
 green and the queue build failed.
 
-**`gh pr merge` returning nothing usually means queued, not failed.** Verify
-with `git ls-remote origin 'refs/heads/gh-readonly-queue/*'` or by re-reading
-the PR state before concluding anything is wrong, and never reach for
-`--admin` on a shared repo.
+**The forced queue is transport, not QA.** The five compatibility jobs perform
+no checkout or verification and carry no product evidence. A silent or blocked
+merge command is not authorization to use `--admin`, run dormant QA, or
+manufacture external contexts; inspect the queue/check state and keep the
+status language exact.
 
 **Issue hygiene that goes with it.** Every issue filed mid-run gets an owner
 and a named next action, or it gets closed with its record. Assignment means
@@ -358,10 +418,10 @@ unfinished half loses its home.
 
 Small, low-risk issues (docs, help text, certifier-side rows, test
 harnesses, telemetry) are worked on ONE integration branch (`batch-N`)
-with one commit per issue (message refs `#N`), and focused checks + the
-merge queue run ONCE per batch of 3-6 issues — not per issue. Authoring
-feedback during a batch is `cargo check` on a warm shared target
-(`CARGO_TARGET_DIR`); exhaustive certification is nightly/manual.
+with one commit per issue (message refs `#N`). Run only product/release checks
+explicitly activated by the batch contract, once per batch of 3-6 issues—not
+per issue. Do not turn authoring feedback into an implicit compile/test gate;
+all other certification remains dormant.
 Runtime-kernel and serving-semantics changes still get individual PRs.
 Measurement runs are background science with scheduled harvests; they
 never sit between two pieces of code work.

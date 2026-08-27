@@ -1,5 +1,12 @@
 # uor-r4-api
 
+**Preserved research API, not the current intelligence façade.** This crate
+wraps the earlier teacher-compiled R4G1 graph stack. It remains useful for
+reproduction and downstream experiments, but the active transformerless local
+AI programme is building a route-native lexical/serialization contract and
+recursive geometric attention before it defines the replacement serving API.
+See the [Geometric Intelligence Programme](../../docs/geometric_intelligence_programme.md).
+
 Typed library façade over the uor-r4 transformerless graph stack, for
 downstream consumers (e.g. hologram-ai) that embed uor-r4 as a **library**
 rather than driving its CLI.

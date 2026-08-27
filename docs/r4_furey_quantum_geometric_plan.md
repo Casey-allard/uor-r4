@@ -3,11 +3,11 @@
 
 ---
 
-> **Status (2026-08-25, #948): historical/dormant research plan.** This file
+> **Status (updated 2026-08-26): historical/dormant research plan.** This file
 > does not determine current implementation order. The active architecture is
-> the [Geometric Causal Decoder Roadmap](geometric_causal_decoder_plan.md).
-> Reuse a mechanism here only when an active #949 child names it, makes it
-> reachable in the token path, and supplies a non-degenerate control.
+> the [Geometric Intelligence Programme](geometric_intelligence_programme.md).
+> Reuse a mechanism here only when a live #820 programme stage names it, makes
+> it reachable in the token path, and supplies a non-degenerate control.
 > Statements below that say “outperforms,” “O(1),” “guaranteeing,” or describe
 > a future engine are historical hypotheses/proposals, not established current
 > product claims. Their dated negative and dormant results remain authoritative

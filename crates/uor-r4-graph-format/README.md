@@ -1,5 +1,12 @@
 # uor-r4-graph-format
 
+**Preserved research format.** R4G1 remains available for reproducibility and
+for mechanisms the active programme may deliberately reuse. It is not the
+canonical spin-state/route manifest being designed for route-native geometric
+intelligence. See the
+[Geometric Intelligence Programme](../../docs/geometric_intelligence_programme.md)
+for the current authority and capability boundary.
+
 Packed R4G1 artifact format: types, canonical serializer, two-stage
 validation, and borrowed `GraphView` access — the wire foundation of the R⁴
 holographic graph compiler.

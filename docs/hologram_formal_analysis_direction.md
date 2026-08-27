@@ -1,5 +1,10 @@
 # Hologram / R4 Formal Analysis Direction
 
+> **Historical formal direction.** This document preserves the original
+> teacher-to-semantic-graph programme and its proof questions. It no longer
+> controls implementation order. Current authority is the
+> [Geometric Intelligence Programme](geometric_intelligence_programme.md).
+
 Source document: [`hologram_formal_analysis_direction.pdf`](hologram_formal_analysis_direction.pdf)
 
 This document is the repository index for the July 2026 formal-analysis direction. The

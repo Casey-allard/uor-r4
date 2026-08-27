@@ -1,6 +1,8 @@
 # Geometric Causal Decoder Roadmap
 
-- **Status:** Authoritative for current intelligence sequencing.
+- **Status:** Historical #948–#958 sequencing record. Superseded for forward
+  work by the
+  [Geometric Intelligence Programme](geometric_intelligence_programme.md).
 - **Adopted:** 2026-08-25 through GitHub programme root
   [#820](https://github.com/UOR-Foundation/uor-r4/issues/820) and roadmap reset
   [#948](https://github.com/UOR-Foundation/uor-r4/issues/948).
@@ -14,10 +16,12 @@ They no longer decide what is built next.
 ## Objective
 
 Build a local, CPU-first geometric language model that produces coherent
-free-running text inside UOR-R4, uses the pinned `uor-matmul` backend for
-learned dense projections, makes persistent R⁴ geometry causally load-bearing
-in next-token selection, and progressively replaces every standard causal
-self-attention block with a learned geometric mixer.
+free-running text inside UOR-R4, makes persistent factorable R⁴ geometry
+causally load-bearing in next-route and next-token selection, and progressively
+replaces standard causal self-attention with bounded fixed-zeta prime-route
+lookup and local spin/torsion transport. The pinned source model and
+`uor-matmul` path remain a teacher and transitional behavioral control, not the
+definition of the serving geometry.
 
 The project is successful when the local product—not only a certifier or
 teacher-forced harness—can hold a prompt-responsive conversation through this
@@ -37,9 +41,9 @@ The S0–S4 programme produced decisive evidence:
 - The original prime-router contribution survives and works as geometric
   context, identity state, retrieval, and persistent memory.
 - The pinned source weights, tokenizer, causal KV path, trace taps, and dense
-  `uor-matmul` projections are already present in this repository. G0 must
-  establish that their local free-running composition is a coherent control;
-  it is not assumed from the existence of teacher-forced forwards.
+  `uor-matmul` projections are already present in this repository. G0
+  established that their local free-running composition is a coherent control;
+  that result was measured rather than assumed from teacher-forced forwards.
 
 The strict measurements are not being weakened. They showed that the current
 representation is a teacher-forced retrieval/continuation system. The response
@@ -47,54 +51,62 @@ is to change the architecture and shorten the development loop.
 
 ### Architectural origin
 
-The reset returns to the working division of responsibility demonstrated by
+The reset returns to the division of responsibility demonstrated by
 the original [prime-router](https://github.com/Casey-allard/prime-router):
 geometry maintained context and persisted both sides of a conversation, while
 an external causal model supplied syntax. Its every-fourth-token injection was
 context augmentation, not a standalone decoder, but it proved the value of a
-durable geometric context layer.
+durable geometric context layer. It did not establish standalone attention or
+reasoning: its local fallback used word bigram/trigram transitions, and its
+fluent path used an external Ollama model.
 
-UOR-R4 now removes that external dependency without asking static graph tables
-or the word-Markov baseline to invent syntax. The pinned local source runtime
-is first established as the behavioral control, then its causal
-self-attention is replaced progressively by learned R⁴ mixing. The router's
-identity-scoped manifold remains the memory and writeback substrate.
+UOR-R4 now removes that external dependency by compiling causal route indexes
+for the previous route, previous two routes, and ordered sentence route. The
+pinned local source runtime remains the behavioral control and offline teacher
+while its causal self-attention is replaced progressively by direct geometric
+lookup. The router's identity-scoped manifold remains the memory and writeback
+substrate.
 
 ## Architecture decision
 
 ### Decision
 
 Use the existing source-model forward path as a coherent behavioral control.
-Introduce a learned, causal R⁴ mixer at its attention seam, qualify one layer
-under real and permuted geometry, and replace the remaining self-attention
-layers only while student-prefix coherence survives.
+G0 and G1 tested a learned R⁴ mixer and retained their evidence, but #951's
+negative operator/token result triggered the representation redesign. G1R now
+implements [ADR-0003](adr/0003-fixed-zeta-prime-route-attention.md): immutable
+zeta-grid phases, prime atoms, semiprime/n-let experts, ordered route context,
+and local R4 spin/torsion transport. Replace remaining self-attention layers
+only after that direct-lookup mechanism is causally established under real and
+permuted route controls.
 
 Persistent router memories enter the same causal geometric support as prior
 token states. They do not remain only prompt decoration.
 
 ```text
-token history + identity-scoped geometric memory
-                         |
-                         v
-       learned causal R⁴ query/key/value geometry
-       + bounded sparse prefix/memory neighborhood
-                         |
-                         v
-      residual + norm + nonlinear layers + LM head
-                 through uor-matmul
-                         |
-                         v
-                  next-token logits
-                         |
-                         +--> commit the completed turn to the manifold
+ordered prime-route history + identity-scoped geometric memory
+                              |
+                              v
+          last-one + last-two + sentence-route indexes
+          + divisor overlap + local S³/torsion transport
+                              |
+                              v
+                 bounded least-energy candidate routes
+                              |
+                              v
+              compiled payload/token continuation surface
+                              |
+                              +--> commit the completed turn to the manifold
 ```
 
 ### Why this option
 
-It preserves the language machinery that demonstrably produces syntax while
-isolating the exact component the project intends to replace. It also reuses
-the working geometric memory system instead of rebuilding it and puts geometry
-on the actual pre-token causal path where its effect can be falsified.
+It restores the original data-as-location invariant while isolating the exact
+component the project intends to replace. It reuses the working geometric
+memory system, makes route updates local rather than whole-prefix
+recalculations, and puts geometry on the actual pre-token causal path where its
+effect can be falsified. Source syntax remains a bounded control during
+replacement; it is not counted as geometric attention or reasoning.
 
 ### Options not selected
 
@@ -106,13 +118,18 @@ on the actual pre-token causal path where its effect can be falsified.
 - **Promote XOR/popcount route-attention.** Frozen as a comparator because its
   first teacher-fit attribution instrument was vacuous and it has no serving
   caller.
+- **Continue tuning the learned four-coordinate mixer.** Rejected after #951:
+  support and memory were reachable, but operator and sampled-token terms were
+  effectively flat, and the representation omitted factorable prime-route
+  location.
 - **Formalize or optimize before coherent generation.** Deferred because it
   would stabilize the wrong mechanism.
 
 ### Consequences
 
-- Floating point, allocation, learned projections, and `uor-matmul` are
-  allowed in the active decoder lane.
+- Compiler-side floating point and `uor-matmul` are allowed for the source
+  teacher, table construction, and bounded qualification. They are not required
+  properties of the final route-lookup runtime.
 - Existing P-4, `no_std`, allocation-free, witness, and packed-format
   guarantees remain valid only for the frozen runtime components that already
   own them.
@@ -122,23 +139,25 @@ on the actual pre-token causal path where its effect can be falsified.
 
 ## Definitions
 
-**Geometric decoder:** A causal token decoder in which a learned R⁴,
-quaternion, angular, or geodesic state participates before token selection at
-every replaced layer.
+**Geometric decoder:** A causal token decoder in which a factorable prime route,
+R4/S3 spin state, fixed-zeta phase, and declared torsion transport participate
+before token selection at every replaced layer.
 
 **GeometryContext:** A bounded, token-aligned decoder input containing identity,
-session/route state, ordered memory spans as real tokenizer IDs, provenance, and
-per-position geometric keys or affinities.
+ordered prime-route state, last-one/last-two/sentence-route keys, spin/torsion,
+tokenizer-bound memory spans, and provenance.
 
 **Transformerless decoder:** A promoted decoder with zero calls to the source
 self-attention operator and no dense full-prefix Q·K matrix/softmax kernel. Its
-learned mixer must form declared geometric coordinates, select a bounded causal
-neighborhood before value aggregation, and demonstrate through disabled and
-permuted interventions that this geometry affects support or logits. The
-geometric relation may deliberately approximate teacher attention during
-distillation; rank-order non-equivalence is not assumed. The decoder may retain
-the tokenizer, embeddings, residual stream, normalization, MLP/SwiGLU, LM
-head, and `uor-matmul` projections.
+compiled route indexes must select a bounded causal neighborhood before value
+aggregation and demonstrate through disabled and permuted interventions that
+the declared geometry affects support or logits. The geometric relation may
+deliberately approximate teacher attention during distillation; rank-order
+non-equivalence is not assumed. The decoder may retain the tokenizer,
+embeddings, residual stream, normalization, MLP/SwiGLU, LM head, and
+`uor-matmul` projections during transition. The promoted attention path itself
+uses compiled route indexes and bounded local transport rather than learned
+dense Q/K projections.
 
 **Multiplication-free runtime:** A separate deployment property. It is not a
 synonym for transformerless and is not a prerequisite for coherent generation.
@@ -151,7 +170,7 @@ Teacher-forced pointwise accuracy alone is not product viability.
 
 | Disposition | Mechanisms |
 |---|---|
-| Reuse | `uor-r4-router` identity/session state, content-bearing memory, retrieval, Hopf/R⁴ math, persistence, turn writeback |
+| Reuse | `uor-r4-router` identity/session state, fixed zeta grid, prime mapping, content-bearing memory, Hopf/R⁴ math, persistence, turn writeback |
 | Reuse | `uor-r4-model-source` tokenizer, source weights, causal KV/residual/MLP/LM-head runtime, trace taps |
 | Reuse | `uor-matmul` as owner of learned dense projections |
 | Reuse | Source bundles, corpus/model lifecycle, bounded reporting utilities |
@@ -159,7 +178,8 @@ Teacher-forced pointwise accuracy alone is not product viability.
 | Freeze as comparator | XOR/popcount route-attention, W(3,3) planning, static trajectory regions, proof/conformance assets |
 | Replace on promoted path | Word-level Markov generation and arrival-ordered word/token semantics |
 | Remove from intelligence path | Hash-derived thought streams and visualization-only trajectories |
-| Progressively replace | Standard causal self-attention |
+| Retain as negative comparator | Learned four-coordinate R⁴ query/key mixer from #950/#951 |
+| Progressively replace | Standard causal self-attention with compiled prime-route lookup and local spin/torsion transport |
 
 Frozen work is preserved. Its historical evidence remains true at its declared
 artifact, population, selector, and execution scope.
@@ -170,11 +190,11 @@ Native parent/sub-issue and `blockedBy` relationships are the source of truth.
 
 | Order | Issue | Exact objective | Entry condition |
 |---:|---|---|---|
-| Now | [#948](https://github.com/UOR-Foundation/uor-r4/issues/948) | Publish this reset across GitHub and repository entry points | None; active |
+| Reset | [#948](https://github.com/UOR-Foundation/uor-r4/issues/948) | Publish this reset across GitHub and repository entry points | Completed predecessor |
 | G0 | [#950](https://github.com/UOR-Foundation/uor-r4/issues/950) | Establish a five-prompt coherent control, tokenizer-bound memory adapter, and one trainable R⁴ mixer seam | #948 merged |
 | G1 | [#951](https://github.com/UOR-Foundation/uor-r4/issues/951) | Train and qualify that mixer/adapter on teacher and student prefixes against disabled/permuted geometry and memory | #950 promotes |
-| G1R | [#958](https://github.com/UOR-Foundation/uor-r4/issues/958) | Redesign the layer-29 representation after #951 learned support/memory but missed the held-out operator gate | #951 records `REDESIGN_REPRESENTATION` |
-| G2 | [#952](https://github.com/UOR-Foundation/uor-r4/issues/952) | Progressively replace every standard causal self-attention block | #958 records `PROMOTE_TO_ALL_LAYERS` |
+| **Now — G1R** | [#958](https://github.com/UOR-Foundation/uor-r4/issues/958) | Compile and causally qualify fixed-zeta prime-route attention with local R⁴ spin/torsion transport | #951 records `REDESIGN_REPRESENTATION`; active |
+| G2 | [#952](https://github.com/UOR-Foundation/uor-r4/issues/952) | Progressively replace every standard causal self-attention block | #958 records `PROMOTE_TO_G2` |
 | G3 | [#953](https://github.com/UOR-Foundation/uor-r4/issues/953) | Integrate the all-layer decoder and persistent manifold memory into CLI/HTTP product paths | #952 accepted |
 | G4 | [#954](https://github.com/UOR-Foundation/uor-r4/issues/954) | Profile and optimize only the dominant measured CPU/RSS bottleneck | #953 promoted |
 | G5 | [#955](https://github.com/UOR-Foundation/uor-r4/issues/955) | Freeze the bounded capability and decide retain-`uor-matmul` versus optional lowering | #954 complete |
@@ -234,15 +254,77 @@ effectively flat. The exact terminal verdict is `REDESIGN_REPRESENTATION`;
 representation redesign and blocks G2. See
 [`geometric_mixer_qualification_951.md`](geometric_mixer_qualification_951.md).
 
+The 4.4416% combined-loss advantage is not evidence that the operator or token
+path almost qualified: its observed advantage came from the support term,
+while the real operator and sampled-token terms were slightly worse than their
+coordinate-permuted counterparts. The historical 5% gate and negative verdict
+remain unchanged. G1R therefore separates mechanism, reachability,
+trainability, and product decisions instead of lowering or reusing that
+aggregate threshold.
+
 ### G1R — representation redesign
 
-Diagnose the reachable operator subspace and per-loss gradient scale on the
-frozen #951 positions before changing the layer-29 representation or
-memory-value transport. Preserve source-weight freezing, bounded causal
-support, tokenizer binding, student prefixes, matched nulls, and
-`uor-matmul` ownership. A renewed bounded qualification must explicitly return
-`PROMOTE_TO_ALL_LAYERS`; otherwise abandon layerwise replacement. No G2 layer
-work begins inside G1R.
+The initial learned semantic-value diagnosis was stopped without a terminal
+report and is `NOT_RUN`: after the hot-path audit, both of its possible outcomes
+led to the same factorable-route redesign, so continuing it had no decision
+value. G1R follows
+[ADR-0003](adr/0003-fixed-zeta-prime-route-attention.md) in this order:
+
+1. **Algebraic mechanism.** Source-free tests bind the typed zero/identity
+   bridge, prime and square-free semiprime gates, n-let factor overlap, ordered
+   route identity, local zeta phase delta, S3 spin state, Hopf S2 projection,
+   retained fiber phase, and torsion update. A projection may not silently
+   discard information required to rebuild the route.
+2. **Compiled address, determinism, and worker gate.** A tiny corpus builds
+   last-one, last-two, and ordered sentence-route indexes plus the complete
+   canonical spin manifest and rebuild witness. One-worker and four-worker
+   builds must emit identical semantic bytes and kappa. Basis, factor order,
+   bridge mode, spin/torsion, payload, or provenance changes must change kappa;
+   worker count must not. Every one of four workers must process a non-empty
+   partition, and release-mode telemetry must report elapsed time and throughput
+   and show a measured four-worker wall-time improvement. Failure stops G1R for
+   profiling before attention, product, teacher, or larger work.
+
+   **Current scoped result (2026-08-26):** the frozen source-free substrate
+   passed its release canary with 32/32 exact artifact/kappa matches, positive
+   work on all four workers, and a 1.498x median compile-stage speedup. The complete
+   manifest/rebuild portion of this stage remains open, and any semantic-input
+   or workload-shape change must re-establish the canary. See
+   [`prime_route_worker_canary_958.md`](prime_route_worker_canary_958.md).
+3. **Bounded operator compatibility.** After the worker gate, independently
+   reproduce SpiralCore v63's six-generator/fifteen-bivector convention in
+   source-free Rust and bind it to a canonically selected six-prime chart. GCD
+   overlap must realize `J(6,2)` without conflating the separate E8 action plane
+   with R4/H4, treating Bell as semantic evidence, or treating the RFC 3849
+   IPv6 mirror as route identity. The attachment's embedded fixtures are
+   `NOT_RUN` in this audit; exact matrices, ordering, and transition tables must
+   be reproduced and kappa-bound locally before use. If the operator layer is
+   not load-bearing against factor-only and permuted-slot controls, retain the
+   factor-only route and continue its bounded attention test rather than making
+   the optional E8 action plane a new blocker.
+4. **Attention reachability.** The promoted layer-29 seam must read only bounded
+   index rows, divisor overlaps, and adjacent spin states. Perturbing each real
+   route context must change declared candidate support or ordering; equal-budget
+   permuted and count-only controls must not receive future-route information.
+   No learned dense Q/K projection and no scan of all prefix or corpus positions
+   is permitted.
+5. **Product behavior.** Five real no-Ollama 32-token outputs must be distinct,
+   UTF-8-decodable, non-cycling, and pass at least four of five frozen prompt
+   reviews. Real last-one/last-two/sentence geometry must outperform or change
+   the declared equal-budget controls; readability inherited from source layers
+   alone is not a geometric pass.
+6. **Bounded teacher comparison.** Only after levels 1-5 pass may one
+   time-bounded source-teacher comparison run. It reuses frozen traces, reports
+   progress/ETA and checkpoints, reuses the already-passed worker binding, and
+   has distinct positive and negative actions. No corpus-scale or hours-long run
+   is an entry gate.
+
+`PROMOTE_TO_G2` requires every applicable level and makes #952 eligible only
+for progressive replacement. `ITERATE_G1R` is valid only when direct geometric
+attention is causally established but product behavior remains below its gate;
+it preserves exactly one localized successor while keeping #952 blocked.
+`RETAIN_STORAGE_RECALL_ONLY` records a useful address/memory substrate without
+claiming attention or reasoning. No G2 layer work begins inside G1R.
 
 ### G2 — progressive replacement
 
@@ -256,11 +338,12 @@ neighborhood selection at every replaced layer and decoded token.
 ### G3 — product integration
 
 The CLI and HTTP surfaces share one decoder implementation. This stage wires
-the tokenizer-bound, trained memory adapter already qualified in G0/G1; it does
-not introduce a new memory representation or input distribution after
-all-layer training. A two-turn exact-recall probe, disabled and permuted-memory
-nulls, identity isolation, persistence across restart, and a five-turn
-transcript decide promotion.
+the tokenizer-bound prime-route/spin memory representation qualified by G1R and
+G2. It may reuse G0's tokenizer and historical memory evidence, but it does not
+reuse the superseded learned key/value adapter as the serving geometry or
+introduce a new representation after all-layer qualification. A two-turn
+exact-recall probe, disabled and permuted-memory nulls, identity isolation,
+persistence across restart, and a five-turn transcript decide promotion.
 
 ### G4 — measured optimization
 
@@ -337,7 +420,7 @@ require their own bounded evaluations after coherent generation exists.
   not triggered. They scale, instruct, prove, or distribute the superseded
   graph product before coherent generation.
 - #859 is closed not planned under the current architecture. Formalization
-  resumes only after the learned causal geometry stabilizes.
+  resumes only after the fixed-zeta causal geometry stabilizes.
 - #940 remains a separate administrator-blocked CI cleanup, not an intelligence
   dependency.
 
@@ -352,3 +435,38 @@ nulls, and publishes the post-viability lowering decision.
 The root #820 then records the exact promoted capability and remaining open
 limits. No general intelligence, general reasoning, teacher-equivalence, or
 multiplication-free claim follows automatically.
+
+## Post-#958 status appendix — 2026-08-26
+
+Apart from the supersession banner at the top, this roadmap remains unchanged
+above as the record of the programme contract that produced #950, #951, and
+#958. It no longer controls forward sequencing.
+
+#958 closed its bounded qualification as `RETAIN_STORAGE_RECALL_ONLY`. It
+established source-free algebra, the complete schema-2 manifest/rebuild
+witness, deterministic bounded candidate mechanics and controls, and the final
+worker canary. Its product probe and gated teacher comparison were `NOT_RUN`.
+That is retained foundation evidence, not abandonment of geometric
+intelligence and not promotion of product attention.
+
+The authoritative successor architecture is
+[`geometric_intelligence_programme.md`](geometric_intelligence_programme.md):
+
+1. GI-1/S0 builds pinned lexical ingestion, address/payload inversion,
+   canonical hierarchy serialization, independent attention-artifact identity,
+   the fixed load-bearing project bridge `E8 = H4 x H4`, concretely serialized
+   as the golden/Galois-coupled icosian pair `H4 ⊕ phi H4`, and API-neutral
+   incremental state without generating text.
+2. GI-2/#952 establishes recursive causal attention across local, sentence,
+   paragraph, conversation, and global routes. Exact identities combine with
+   transported trajectory, hypersphere/window, shared-factor, resonance, and
+   accumulated-Hopf summaries so unseen histories survive exact-kappa misses.
+3. GI-3/#953 adds source-free grammatical inference/generation and the product
+   callers only after attention passes.
+4. GI-4/#954 tests correctness and abstention; GI-5/#955 tests reasoning.
+5. A later GI-6 successor owns measured optimization, serving purity, and
+   bounded release.
+
+The #952–#955 issue bodies must be reconciled to those definitions before work.
+Testing and QA remain dormant unless a decision-bearing product/release
+contract explicitly activates them.

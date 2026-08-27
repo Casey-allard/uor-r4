@@ -1,5 +1,11 @@
 # Normative Specification: Canonical Artifact Byte Equality Under Compiler Parallelism
 
+> **Preserved graph-artifact contract.** The byte-equality rules below remain
+> normative for their named TLA/R4G1 artifacts. New route manifests have their
+> own identity contract under #961; this document does not establish geometric
+> attention or chat. See the
+> [Geometric Intelligence Programme](geometric_intelligence_programme.md).
+
 **Version:** 0.1.0  
 **Status:** Normative Specification  
 **Issue:** #167  

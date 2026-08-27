@@ -17,9 +17,14 @@ use uor_r4_wasm_router::release_bundle_packager::{self, PackageInputs};
 use uor_r4_wasm_router::server::{self, ServerConfig};
 use uor_r4_wasm_router::tless_uor;
 
-/// R⁴ local AI: compile, manage, ask, chat, benchmark, or serve.
+/// UOR-R4 geometric intelligence research tools.
 #[derive(Parser, Debug)]
-#[command(name = "r4", version, about, long_about = None)]
+#[command(
+    name = "r4",
+    version,
+    about,
+    long_about = "Inspect the current geometric router or launch its local research dashboard.\n\nThe demo surfaces routing, retrieval, Hopf/R4 telemetry, and exploratory geometric continuation. It is not yet the source-free attention, inference, correctness, or reasoning engine described by the active research programme. Preserved compiler and certification commands remain available through `r4 research-tools`."
+)]
 struct Cli {
     /// Increase log verbosity (-v info, -vv debug, -vvv trace).
     #[arg(short, long, action = clap::ArgAction::Count, global = true)]
@@ -88,25 +93,39 @@ struct Cli {
 
 #[derive(Subcommand, Debug)]
 enum Command {
-    /// Run the HTTP server (the default).
+    /// Launch the recommended geometric router research dashboard.
+    Demo,
+    /// Inspect one prompt's geometric route without compiling or loading a model.
+    Route(RouteArgs),
+    /// List preserved compiler, serving, and certification commands.
+    ResearchTools,
+    /// Run the full artifact-discovering historical HTTP server.
     Serve,
     /// Ask one question using the local transformerless library directly.
+    #[command(hide = true)]
     Ask(AskArgs),
     /// Start an interactive, stateful local chat.
+    #[command(hide = true)]
     Chat(ChatArgs),
     /// Connect to a local r4 server endpoint as a remote interactive client.
+    #[command(hide = true)]
     Client(ClientArgs),
     /// View or export UOR Q&A audit traces and geometry metrics.
+    #[command(hide = true)]
     Audit(AuditArgs),
     /// Compile a recorded corpus or a local/pinned Hugging Face model into an R⁴ bundle.
+    #[command(hide = true)]
     Compile(CompileArgs),
     /// Download pinned open weights for offline compilation.
+    #[command(hide = true)]
     Download(DownloadArgs),
     /// Import an evaluated compiled bundle into the UOR CID store.
+    #[command(hide = true)]
     Import(ImportArgs),
     /// #655-D2: package a compiled R4G1 bundle's release-bundle.json
     /// sidecar, giving `release_bundle_loader::verify_release_bundle_sidecar`
     /// (#655-C1c) a real manifest to verify.
+    #[command(hide = true)]
     PackageReleaseBundle(PackageReleaseBundleArgs),
     /// #741: explicitly fetch a published release's packaged bundle from
     /// its GitHub Release and install it — only after every component
@@ -114,16 +133,22 @@ enum Command {
     /// manifest. Never runs implicitly; a digest mismatch, an unattested
     /// archive entry, or an existing install refuses with nothing
     /// written.
+    #[command(hide = true)]
     InstallRelease(InstallReleaseArgs),
     /// Evaluate an HF-compiled bundle and emit an instruction-quality report.
+    #[command(hide = true)]
     EvaluateReport(EvaluateReportArgs),
     /// Run the bounded #950 local source-control and one-layer R4 spike.
+    #[command(hide = true)]
     GeometricDecoderSpike(GeometricDecoderSpikeArgs),
     /// Fit and qualify the bounded #951 one-layer mixer and memory adapter.
+    #[command(hide = true)]
     GeometricMixerQualification(GeometricMixerQualificationArgs),
     /// Print legacy proof-workflow prerequisites.
+    #[command(hide = true)]
     Setup,
     /// Generate the legacy resumable teacher corpus.
+    #[command(hide = true)]
     Gen {
         #[arg(default_value_t = 300)]
         seconds: u64,
@@ -131,24 +156,32 @@ enum Command {
         target: usize,
     },
     /// Build the legacy graded store.
+    #[command(hide = true)]
     Store,
     /// Run the transformerless certificate workflow.
+    #[command(hide = true)]
     Certify,
     /// Run the teacher-free, CID-bound normative deployed-quality evaluator.
     /// Sample mode is the mandatory cheap instrument; full mode is explicit
     /// and is used only after the sample's predeclared gates can still pass.
+    #[command(hide = true)]
     DeployedQuality(DeployedQualityArgs),
     /// Run the measured local comparison.
+    #[command(hide = true)]
     Compare,
     /// Print the recorded comparison certificate.
+    #[command(hide = true)]
     CompareReport,
     /// Run the transformerless scenario suite.
+    #[command(hide = true)]
     Scenarios,
     /// Print the legacy teacher checkpoint κ.
+    #[command(hide = true)]
     TeacherKappa,
     /// Forward a command to the legacy transformerless toolset, e.g.
     /// `r4 transformerless convert-r4g1 --artifacts <TLA> --store <TLS1>
     /// [--calibration <hamming_calibration.json>] --out <R4G1>`.
+    #[command(hide = true)]
     Transformerless {
         /// Subcommand and arguments forwarded verbatim.
         #[arg(required = true, num_args = 1.., trailing_var_arg = true, allow_hyphen_values = true)]
@@ -156,23 +189,42 @@ enum Command {
     },
     /// A-mode graph serving commands, e.g. `r4 graph infill --artifact
     /// graph/score.r4g1 --skeleton 12,_,_,_,99,_,_,_,7`.
+    #[command(hide = true)]
     Graph {
         /// Subcommand and arguments forwarded verbatim.
         #[arg(required = true, num_args = 1.., trailing_var_arg = true, allow_hyphen_values = true)]
         args: Vec<String>,
     },
     /// Run the new R4G1 multiresolution graph compiler pipeline.
+    #[command(hide = true)]
     GraphCompile {
         /// Subcommand and arguments forwarded verbatim.
         #[arg(required = false, num_args = 0.., trailing_var_arg = true, allow_hyphen_values = true)]
         args: Vec<String>,
     },
     /// Sample observation records using a teacher oracle.
+    #[command(hide = true)]
     GraphObserve {
         /// Subcommand and arguments forwarded verbatim.
         #[arg(required = false, num_args = 0.., trailing_var_arg = true, allow_hyphen_values = true)]
         args: Vec<String>,
     },
+}
+
+#[derive(Args, Debug)]
+struct RouteArgs {
+    /// Stable identity scope for the route.
+    #[arg(long, default_value = "research-demo")]
+    identity: String,
+    /// Optional UTF-8 text file to add to the small built-in demonstration corpus.
+    #[arg(long, value_name = "FILE")]
+    corpus: Option<PathBuf>,
+    /// Emit the complete route summary as JSON.
+    #[arg(long)]
+    json: bool,
+    /// Prompt to route. Multiple unquoted words are accepted.
+    #[arg(required = true, num_args = 1..)]
+    prompt: Vec<String>,
 }
 
 #[derive(Args, Debug)]
@@ -614,6 +666,7 @@ impl Cli {
             r4g1_artifact: self.r4g1_artifact.clone(),
             tless_corpus_meta: self.tless_corpus_meta.clone(),
             tless_corpus_recs: self.tless_corpus_recs.clone(),
+            geometric_demo: false,
         }
     }
 
@@ -1105,6 +1158,104 @@ fn run_core(name: &str, arguments: &[String]) -> Result<(), RunError> {
     transformerless_command::run(&values).map_err(|error| RunError::Command(error.to_string()))
 }
 
+fn route_demo(args: &RouteArgs) -> Result<(), RunError> {
+    let prompt = args.prompt.join(" ");
+    let mut router = uor_r4_wasm_router::UorR4Router::new(0.85);
+    let indexed_from_file = if let Some(path) = &args.corpus {
+        let corpus = std::fs::read_to_string(path).map_err(|error| {
+            RunError::Command(format!(
+                "read demonstration corpus {}: {error}",
+                path.display()
+            ))
+        })?;
+        router.index_corpus(&corpus, &args.identity)
+    } else {
+        0
+    };
+
+    let routing = router.route_query_to_manifold_native(&prompt, &args.identity);
+    let resonances = router.get_top_resonances_native(&prompt, &args.identity, 3);
+    let routed = &routing.routed;
+    let summary = serde_json::json!({
+        "surface": "uor-r4-geometric-router-research-demo/1",
+        "status": "route-only-research-demo",
+        "capability": "geometric routing, indexed retrieval, and route telemetry",
+        "not_established": [
+            "source-free attention",
+            "coherent inference",
+            "answer correctness",
+            "reasoning"
+        ],
+        "prompt": prompt,
+        "identity": args.identity,
+        "indexed_sentences_from_file": indexed_from_file,
+        "route": {
+            "window_index": routed.window_index,
+            "scale_x": routed.scale_x,
+            "uor_address": routed.uor_address,
+            "kappa": routed.metrics.kappa,
+            "deficit_angle": routed.metrics.deficit_angle,
+            "entropy": routed.metrics.lambda_entropy,
+            "hopf_sector": routed.hopf.sector_id,
+            "hopf_chi": routed.hopf.chi,
+            "transported_alpha": routed.hopf.transported_alpha,
+        },
+        "candidate_routes": routing.all_routes.iter().map(|candidate| serde_json::json!({
+            "window_index": candidate.window_index,
+            "scale_x": candidate.scale_x,
+            "routing_score": candidate.routing_score,
+            "kappa": candidate.kappa,
+            "deficit_angle": candidate.deficit_angle,
+        })).collect::<Vec<_>>(),
+        "nearest_indexed_routes": resonances,
+    });
+
+    if args.json {
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&summary)
+                .map_err(|error| RunError::Command(error.to_string()))?
+        );
+    } else {
+        println!("UOR-R4 geometric router research demo");
+        println!("  prompt: {prompt}");
+        println!(
+            "  route: W{} · scale {:.0} · κ {:.4} · θd {:.4}",
+            routed.window_index, routed.scale_x, routed.metrics.kappa, routed.metrics.deficit_angle
+        );
+        println!(
+            "  Hopf: sector {} · χ {:.4} · transported α {:.4}",
+            routed.hopf.sector_id, routed.hopf.chi, routed.hopf.transported_alpha
+        );
+        println!("  UOR address: {}", routed.uor_address);
+        if let Some(nearest) = resonances.first() {
+            println!("  nearest indexed route: {}", nearest.sentence);
+        }
+        if indexed_from_file > 0 {
+            if let Some(path) = &args.corpus {
+                println!("  indexed from {}: {indexed_from_file}", path.display());
+            }
+        }
+        println!(
+            "  status: routing/retrieval demonstration only; coherent inference, correctness, and reasoning are not established"
+        );
+        println!("  use --json for the full candidate-route summary");
+    }
+    Ok(())
+}
+
+fn print_research_tools() {
+    println!("Preserved research commands (not required for the geometric demo):");
+    println!("  ask, chat, client, audit");
+    println!("  compile, download, import, install-release, package-release-bundle");
+    println!("  transformerless, graph, graph-compile, graph-observe");
+    println!("  geometric-decoder-spike, geometric-mixer-qualification");
+    println!("  deployed-quality, certify, compare, compare-report, scenarios");
+    println!();
+    println!("Run `r4 <command> --help` for an individual preserved command.");
+    println!("These paths are retained research infrastructure, not the active route-native intelligence sequence.");
+}
+
 /// Default location of the reference teacher checkpoint used by `certify`/`compare`.
 const DEFAULT_REFERENCE_CHECKPOINT: &str = "/tmp/ref/out/model.bin";
 
@@ -1125,6 +1276,20 @@ fn reference_checkpoint_path() -> Result<String, RunError> {
 fn run(cli: &Cli) -> Result<(), RunError> {
     cli.configure_tless();
     match cli.command.as_ref() {
+        Some(Command::Demo) | None => {
+            let mut config = cli.server_config();
+            config.geometric_demo = true;
+            println!("UOR-R4 geometric router research demo");
+            println!("Open http://{}:{} in a browser.", config.host, config.port);
+            println!("This demonstrates routing, retrieval, and geometry telemetry; it is not yet the source-free intelligence engine.");
+            server::run_server(Arc::new(config));
+            Ok(())
+        }
+        Some(Command::Route(args)) => route_demo(args),
+        Some(Command::ResearchTools) => {
+            print_research_tools();
+            Ok(())
+        }
         Some(Command::Ask(args)) => {
             let mut chat = build_chat_engine(
                 args.model.as_deref(),
@@ -1331,7 +1496,7 @@ fn run(cli: &Cli) -> Result<(), RunError> {
         Some(Command::GraphObserve { args }) => uor_r4_graph_compiler::observe(args)
             .map_err(|error| RunError::Command(error.to_string())),
         Some(Command::Audit(args)) => audit_command(&args.log_file),
-        Some(Command::Serve) | None => {
+        Some(Command::Serve) => {
             server::run_server(Arc::new(cli.server_config()));
             Ok(())
         }

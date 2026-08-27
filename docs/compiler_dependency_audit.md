@@ -1,5 +1,10 @@
 # CPU-Only Compiler Dependency and Feature Audit Specification
 
+> **Preserved graph-compiler contract.** This audit applies to the named
+> historical compiler toolchain. It does not establish the dependencies or
+> serving purity of the unfinished route-native engine. See the
+> [Geometric Intelligence Programme](geometric_intelligence_programme.md).
+
 **Version:** 0.1.0  
 **Status:** Normative Specification  
 **Issue:** #174 (Feeds #175; related to #160, #157 §6)

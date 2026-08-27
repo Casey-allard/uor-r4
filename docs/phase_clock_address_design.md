@@ -1,5 +1,10 @@
 # Design P: Complex Discrete Phase-Clock Addressing (Cyclic Graded Codes on the Zeta Torus)
 
+> **Historical design input.** Relevant phase ideas may be reused only through
+> an explicit current route contract; this document itself does not authorize
+> work or establish attention. See the
+> [Geometric Intelligence Programme](geometric_intelligence_programme.md).
+
 *Issue #276. Status: DESIGN FOR REVIEW — decision points marked ⚑ are open
 until Casey / Ari / Alex sign off on this document (review on the PR).
 Claim language: Definitions, Objectives, and Empirical Criteria only.*

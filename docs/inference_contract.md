@@ -1,5 +1,11 @@
 # Normative CPU-Only, Multiplication-Free, Zero-Allocation Inference Contract
 
+> **Preserved runtime reference:** this contract governs the existing TLA/R4G1
+> transformerless graph hot path named below. It is not the execution contract
+> for the unfinished route-native geometric-intelligence decoder and does not
+> establish source-free chat. Current architecture and sequencing are in the
+> [Geometric Intelligence Programme](geometric_intelligence_programme.md).
+
 **Version:** 1.0.0  
 **Date:** 2026-07-24  
 **Source Baseline:** `docs/hologram_formal_analysis_direction.md` §§1, 9, 13; `docs/formal_vocabulary.md`; GitHub Issue #157.

@@ -1,17 +1,29 @@
 # Roadmap
 
 This is the product view of the authoritative
-[Geometric Causal Decoder Roadmap](docs/geometric_causal_decoder_plan.md).
-Measured, refuted, and frozen research remains in
-[docs/RESEARCH.md](docs/RESEARCH.md).
+[Geometric Intelligence Programme](docs/geometric_intelligence_programme.md).
+The earlier
+[Geometric Causal Decoder Roadmap](docs/geometric_causal_decoder_plan.md) is a
+preserved #948–#958 sequencing record. Measured, refuted, and frozen research
+remains in [docs/RESEARCH.md](docs/RESEARCH.md).
 
-_Last reviewed: 2026-08-25 (#948 architecture reset; GitHub programme root
-#820, execution tracker #949)._
+_Last reviewed: 2026-08-26 (post-#958 architecture authority; GitHub programme
+root #820 and the #961 → #952–#955 → #962–#965 dependency chain are
+reconciled)._
 
-> **Project priority:** make the local geometric AI produce coherent
-> free-running text. Reuse the working router memory, source causal runtime,
-> tokenizer, trace taps, and `uor-matmul`. Replace standard self-attention
-> progressively. Do not scale, prove, or lower the old graph product first.
+> **Project priority:** build source-free geometric intelligence in which the
+> route is the data location. A pinned lexical codec supplies text boundaries;
+> prime/n-let routes, fixed-zeta state, R4/S3 transport, the load-bearing
+> project bridge `E8 = H4 x H4` serialized as the golden/Galois-coupled
+> `H4 ⊕ phi H4` icosian pair, and recursive sentence/paragraph/conversation/
+> global context choose output. Source weights are offline teachers only. The
+> final serving path contains no transformer, dense matrix intelligence kernel,
+> MoE, or sparse learned router.
+
+> The goal is frontier-like useful capability on ordinary local hardware, but
+> that remains an unproven research target. Spherical harmonics are the working
+> picture for overlapping spin-state storage and transport; R4/S3 compute and
+> Hopf/S2 observation are bounded charts of that larger routed field.
 
 > **Quality-baseline reconciliation (#933/#934, 2026-08-25).** The legacy
 > pinned-report tolerance rounds to 29.7%; it is not a universal 30% product
@@ -27,28 +39,52 @@ _Last reviewed: 2026-08-25 (#948 architecture reset; GitHub programme root
 
 Native GitHub relationships are the source of truth:
 
-1. **Now — #948:** land the repository-wide architecture reset.
-2. **G0 — #950:** establish the coherent local `uor-matmul` control, bind the
-   tokenizer-to-manifold memory adapter, and execute one trainable R⁴ mixer
-   layer on every generated token.
-3. **G1 — #951:** fit and qualify that layer and the bound memory adapter on
-   teacher and student prefixes against disabled and permuted geometry/memory.
-4. **G2 — #952:** progressively replace every source causal self-attention
-   block while bounded free-running behavior survives.
-5. **G3 — #953:** make the all-layer decoder the shared CLI/HTTP product path
-   and feed persistent identity-scoped memory directly into geometric support.
-6. **G4 — #954:** profile and optimize only the dominant measured bottleneck.
-7. **G5 — #955:** freeze the bounded capability and decide whether to retain
-   `uor-matmul` or open a separately justified lowering successor.
+1. **GI-0 — retain #958 foundation:** keep the schema-2 manifest, bounded route
+   lookup, worker evidence, controls, and optional operator fixtures at their
+   exact claim scope.
+2. **GI-1 / #961 S0 — lexical geometry:** pin the lexical codec without weights;
+   add prompt-to-route and route-to-payload inversion, canonical hierarchy
+   serialization, independent attention-artifact identity, incremental
+   API-neutral state, and the fixed concrete `H4 ⊕ phi H4` realization of the
+   project shorthand `E8 = H4 x H4`. Do not generate.
+3. **GI-2 / #952 — recursive attention:** combine exact route identity with the
+   full transported trajectory, hypersphere/window summaries, shared-factor
+   retrieval, resonance, and Hopf accumulation across sentence, paragraph,
+   conversation, and global route levels. Emit a coverage witness and establish
+   anti-recall causal value before producing text.
+4. **GI-3 / #953 — source-free grammatical inference/generation:** compile
+   grammar and syntax into the attention-qualified route engine, then connect
+   the library, CLI, HTTP, and chat surfaces without weights or dense models.
+5. **GI-4 / #954 — correctness and abstention:** test held-out answer
+   correctness, relevance, abstention, and causal use of required context.
+   Teacher weights may label or compare offline only after the source-free
+   report freezes.
+6. **GI-5 / #955 — reasoning:** add bounded goal-directed route composition, branch
+   comparison, intermediate constraints, and closure/contradiction controls.
+7. **GI-6 / #962–#965 — product, cost, formal closure, and release:** integrate
+   hive-memory chat (#962), optimize only the measured route-native bottleneck
+   (#963), freeze the serving contract (#964), then explicitly activate only
+   the release QA needed to qualify the product (#965).
 
-#950 is the sole immediate engineering issue after #948. Downstream work stays
-unassigned until its blocker closes.
+The live issue bodies and native dependencies now mirror this sequence. #961
+is the sole active newly assigned implementation stage; every later stage is
+unassigned and blocked in order. Legacy tracker #949 is closed as superseded;
+#958 is retained directly under programme root #820 as GI-0 foundation.
 
 The old S5–S7 and F0 issues are closed not planned/not triggered. R4G1/TLA,
 XOR/popcount, W(3,3), proof, conformance, and release work remains preserved as
 historical evidence and comparators.
 
 ## Landed
+
+- [x] **#958 fixed-zeta prime-route foundation** —
+  *`RETAIN_STORAGE_RECALL_ONLY`, 2026-08-26*. Source-free algebra, the complete
+  schema-2 manifest/rebuild witness, bounded candidate mechanics, matched
+  controls, and worker compilation landed. The product probe and teacher
+  comparison were correctly `NOT_RUN`; no lexical generation loop or API/chat
+  caller existed. This is the retained foundation for GI-1/#961, not evidence
+  against geometric intelligence. See the
+  [qualification](docs/prime_route_attention_qualification_958.md).
 
 - [x] **#932 exact-parallel live-teacher parity instrument** — *negative
   prerequisite outcome, 2026-08-25*. Deterministic scheduling, durable
@@ -108,10 +144,10 @@ historical evidence and comparators.
 
 ## Capabilities
 
-- [~] Text-based AI — the repository has the local source-model components
-  needed to restore a coherent control, working geometric memory/retrieval, and
-  historical compiled runtimes, but no native geometric decoder has established
-  coherent free-running product behavior. #950–#953 own that gap. Historical
+- [~] Text-based AI — the repository has the retained #958 route/storage
+  foundation, working geometric memory/retrieval, and historical compiled
+  runtimes, but no source-free geometric decoder has established coherent
+  product behavior. GI-1/#961 owns the missing lexical route loop. Historical
   canaries and pointwise results remain scoped evidence, not a claim that the
   current product works. See
   [Which track can actually produce coherent text](docs/RESEARCH.md#which-track-can-actually-produce-coherent-text--the-honest-current-answer).

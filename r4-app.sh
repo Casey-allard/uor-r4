@@ -1,2 +1,5 @@
 #!/usr/bin/env bash
-exec ./uor-r4-cli "$@"
+set -e
+
+LAUNCHER_DIR="$(cd -P "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+exec "$LAUNCHER_DIR/uor-r4-cli" "$@"

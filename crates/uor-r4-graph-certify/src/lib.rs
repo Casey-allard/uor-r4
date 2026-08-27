@@ -25,6 +25,8 @@ pub mod patch_lifecycle;
 pub mod performance_certificate;
 #[cfg(feature = "predictive-sufficiency")]
 pub mod predictive_sufficiency;
+#[cfg(not(target_arch = "wasm32"))]
+pub mod prime_route_worker_canary;
 pub mod route_attention;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod route_cost;

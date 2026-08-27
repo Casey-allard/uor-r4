@@ -705,14 +705,14 @@ impl UorR4Router {
     // --- Helper to index default corpus sentences ---
     pub fn index_default_corpus(&mut self) {
         let default_sentences = &[
-            "Welcome to the R4 Prime Router. This is a local geometric world model.",
+            "Welcome to the R4 Prime Router geometric routing research demo.",
             "I can help you coordinate water borehole data for the Gambia project.",
             "The dry season in the Gambia requires deep aquifer coordination.",
             "We can map borehole locations directly onto the prime number coordinates.",
-            "No training is required because the Riemann zeta zeroes form a stable coordinate system.",
-            "This engine replaces the transformer MoE gating using sparse orthogonal projections.",
-            "A traditional transformer routes tokens using learned parameters, but we route using prime factor frequency manifolds.",
-            "Each scale window acts as an expert containing specific geometric resonances.",
+            "The research programme treats Riemann zeta zeros as a fixed coordinate grid and records torsion and route state against it.",
+            "The project is investigating whether route-native geometry can eventually replace transformer attention and learned expert gating.",
+            "This exploratory router maps words and prompts through prime-factor and frequency-derived manifold coordinates.",
+            "Each scale window is currently treated as an inspectable geometric routing region.",
             "The deficit angle measures the deflection of your query relative to the hypersphere curvature.",
             "If the deficit angle is positive, the wave is trapped in a stable periodic orbit.",
             "Negative deficit angles indicate hyperbolic divergence and scattering.",
@@ -720,13 +720,13 @@ impl UorR4Router {
             "Coherence kappa indicates how well the prompt wave aligns with the local zero frequencies.",
             "To talk to this engine, you must populate its manifold coordinates with a starting text.",
             "You can paste any text corpus to dynamically index new knowledge into the manifold.",
-            "Once indexed, the router retrieves and synthesizes responses based on state vector similarity.",
+            "Once indexed, this demo retrieves and produces exploratory continuations from route and state-vector similarity.",
             "The 512 dimensions correspond to the first 512 non-trivial Riemann zeta zeroes.",
             "Water flow rates in the Gambia depend on the aquifer's soil coherence.",
             "The prime router helps you find the most efficient path for borehole water flow coordinates.",
             "We can run this engine entirely locally without internet access or third-party APIs.",
-            "You are talking directly to the mathematical voice of the prime spectrum.",
-            "Ask me about the Gambia borehole locations, or how the R4 routing replaces transformer layers."
+            "This demo does not yet establish coherent inference, answer correctness, or reasoning.",
+            "Ask about the Gambia borehole examples or inspect how the current geometric router assigns a route."
         ];
 
         // Seed with baseline vocabulary first

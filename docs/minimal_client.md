@@ -1,8 +1,18 @@
 # Minimalist R⁴ Terminal Client & Local Vendor API
 
-R⁴ includes a minimalist interactive terminal client (`r4 client`) with a rich CLI interface, interactive slash command autocomplete, and vendor-compatible HTTP API endpoints (`POST /v1/chat/completions`, `GET /v1/models`, `GET /uor/v1/status`) served 100% locally by the multiplication-free R⁴ engine.
+> **Preserved interface reference:** this page documents the existing terminal
+> client, launcher, and HTTP surfaces from the TLA/R4G1 serving era. It does not
+> show that the route-native geometric-intelligence programme can answer a
+> prompt. There is no working source-free geometric chat path yet; #961 -> #952
+> -> #953 must establish lexical state, recursive attention, and generation
+> before this interface can carry that claim. See the
+> [current programme](geometric_intelligence_programme.md).
 
-No external LLM providers, remote APIs, or cloud services are used.
+The interface exposes `r4 client` plus vendor-shaped endpoints such as
+`POST /v1/chat/completions`, `GET /v1/models`, and `GET /uor/v1/status`.
+Provider, engine, and multiplication-free claims apply only to the exact
+legacy execution tier and artifact selected for a request; the existence of
+the endpoint is not evidence about which mechanism produced its response.
 
 ---
 

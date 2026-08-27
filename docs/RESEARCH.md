@@ -1,16 +1,26 @@
 # Research: what is measured, what is closed, what is open
 
-R⁴ is a research programme as much as an engine, and the engine's direction is
-set by measurements rather than by intent. This document records where that
-programme actually stands, so anyone picking up work can see which paths are
-closed, which are load-bearing, and which are still open. Every claim here traces
-to a merged measurement with a pre-declared exit rule; the issue numbers are the
-durable references.
+R⁴ is a research programme as much as an engine. Its aspirational goal is
+frontier-like useful local intelligence built from routed geometry rather than
+transformers, MoE/sparse learned routing, or dense matrix intelligence. That
+goal is not a current capability claim. Spherical harmonics are the project's
+working description of overlapping spin-state storage and transport, with
+R4/S3 and Hopf/S2 serving as bounded compute and observation charts.
+
+The engine's direction is set by evidence rather than intent. This document
+records where the programme actually stands, so anyone picking up work can see
+which paths are closed, which are load-bearing, and which are still open.
+Measurements retain their pre-declared exit rule and durable issue/record
+reference; design targets remain explicitly labeled as definitions,
+assumptions, or objectives rather than measured results.
 
 > **Forward sequencing** now lives in the
-> [Geometric Causal Decoder Roadmap](geometric_causal_decoder_plan.md) — the
-> readable mirror of GitHub programme root #820 and execution tracker #949.
-> The S0–S7 completion plan is retained as historical evidence. Two
+> [Geometric Intelligence Programme](geometric_intelligence_programme.md).
+> The geometric causal decoder roadmap and S0–S7 completion plan are retained
+> as historical evidence. GitHub programme root #820 and the native
+> #961 → #952–#955 → #962–#965 chain now mirror the new GI stages; legacy
+> tracker #949 is closed as superseded, and #958 is retained directly beneath
+> #820 as GI-0 foundation. Two
 > current-summary corrections remain important: **#784** found
 > **continuation-distribution
 > convergence**, not a full-depth context-code collision (0.0% full-depth
@@ -20,14 +30,21 @@ durable references.
 > repository rule, the per-issue measurement records are appended, never rewritten;
 > only these live summaries are reconciled.
 
-> **Architecture decision, 2026-08-25 (#948).** The active question is no
-> longer how far the existing table/graph representation can be scaled. It is
-> whether a learned R⁴ causal mixer can replace source self-attention while
-> preserving coherent student-prefix generation, with persistent router memory
-> entering the same causal support. The source weights, tokenizer, causal path,
-> trace taps, and `uor-matmul` backend are the components of the proposed
-> control; #950 must establish their coherent local free-running composition.
-> R4G1/TLA and prior geometry mechanisms are comparators.
+> **Architecture decision, revised after #958 on 2026-08-26.** #958 closed its
+> bounded question as `RETAIN_STORAGE_RECALL_ONLY`. It established the
+> source-free algebra, complete schema-2 manifest/rebuild witness, bounded
+> candidate mechanics, controls, and final worker canary; it did not establish
+> product attention, generation, inference, reasoning, or teacher parity. This
+> is retained foundation evidence, not abandonment. Forward work makes lexical
+> geometry reversible (GI-1/#961), establishes recursive causal attention across
+> local/sentence/paragraph/conversation/global state with anti-recall evidence
+> (GI-2/#952), then adds source-free grammatical inference/generation
+> (GI-3/#953), correctness/abstention (GI-4/#954), and reasoning (GI-5/#955).
+> Exact route identity must overlap with transported trajectory, hypersphere and
+> winding/window state, window energy, shared factors, resonance, and Hopf
+> accumulation so unseen global histories survive an exact-kappa miss. Source
+> weights are offline teachers only. See the
+> [#958 qualification](prime_route_attention_qualification_958.md).
 
 The current quality-baseline reconciliation is recorded by #933 and the
 [append-only #934 genealogy](canonical_quality_baseline_934.md). The historical
@@ -251,12 +268,14 @@ up to the point where a structure predicts at all, and not past it.**
 
 ## Which track can actually produce coherent text — the honest current answer
 
-This project's immediate goal is a coherent local geometric causal decoder.
-It may use `uor-matmul`, floating point, allocation, and the source
-residual/MLP/LM-head stack while standard causal self-attention is progressively
-replaced. A multiplication-free deployed kernel is now a separate,
-post-viability decision—not a prerequisite that forces language into static
-tables before language works. The #655 coherence sweep (2026-08-16, diagnostic
+This project's immediate goal is source-free recursive geometric attention.
+GI-1/#961 first makes lexical payloads and the full route hierarchy reversible;
+GI-2/#952 then qualifies attention before GI-3/#953 is allowed to generate.
+The final serving path has no source weights, transformer/self-attention, dense
+matrix intelligence, MoE, or sparse learned router. Compiler-side floating
+point remains allowed for witnessed chart construction; serving arithmetic is
+selected through the least-cost certified chart contract. The #655 coherence
+sweep (2026-08-16, diagnostic
 only, no code changed; findings tracked as #743/#744/#745) is the most direct
 evidence yet on whether that goal is reachable, and it needs both halves
 stated together, because reading either alone is misleading.
@@ -324,18 +343,25 @@ bundle that *does* load.
 
 **So: which track could work?** The table-native TLA/R4G1 representation is the
 only multiplication-free track with replicated pointwise signal, but the S3
-results establish that it is not currently a coherent generative engine. The
-active candidate is now a different composition of existing assets: the
-coherent source-model/`uor-matmul` control plus learned causal R⁴ mixing and
-persistent router memory. #950 established the coherent layer-29 seam. The
-bounded #951 fit then returned `REDESIGN_REPRESENTATION`: real geometry improved
-the frozen held-out loss by 4.4416% versus coordinate permutation, below the
-predeclared 5% gate. Support and persistent-memory probability became
-load-bearing, but the operator-alignment and sampled-token terms remained
-effectively flat. #958 now owns the one-layer representation redesign and
-natively blocks #952; closing #951 is not all-layer promotion. The retained
-negative checkpoint and exact population are recorded in
-[`geometric_mixer_qualification_951.md`](geometric_mixer_qualification_951.md).
+results establish that it is not currently a coherent generative engine. #950
+and #951 preserved useful support/memory evidence while rejecting the learned
+four-coordinate semantic path. #958 then retained the source-free factorable
+route, canonical manifest, bounded lookup, and worker foundation while honestly
+leaving product attention and generation `NOT_RUN`.
+
+The active candidate is now the route-native composition specified by the
+[Geometric Intelligence Programme](geometric_intelligence_programme.md): fixed
+zeta state, prime/semiprime/n-let routing, R4/S3 and Hopf transport, exact
+`Z[phi]` shells, the load-bearing project bridge `E8 = H4 x H4` concretely
+serialized as the golden/Galois-coupled icosian pair `H4 ⊕ phi H4`, and
+recursive attention combining exact identity with overlapping
+trajectory/harmonic summaries. GI-2/#952 must establish anti-recall attention
+before GI-3/#953 adds source-free grammatical inference/generation. The
+retained #951 negative
+checkpoint and exact population remain in
+[`geometric_mixer_qualification_951.md`](geometric_mixer_qualification_951.md),
+and the #958 boundary remains in
+[`prime_route_attention_qualification_958.md`](prime_route_attention_qualification_958.md).
 The older pointwise signal remains useful as a comparator, not the product
 sequencing authority. (As of #831, the one normative scorer for the historical
 deployed
@@ -764,8 +790,10 @@ whose only legitimate integration point is an honesty/claim-vocabulary bridge
 
 ## Open, with defined work
 
-The active research/engineering work is #950–#955 under #949. The table below
-is retained as the historical mechanism ledger; rows that still use “open” in
+The active sequence is GI-1/#961, rewritten #952–#955 scopes for GI-2 through
+GI-5, then #962–#965 for product chat, optimization, formal closure, and
+release. The native #820 graph is reconciled and only #961 is assigned. The table below is
+retained as the historical mechanism ledger; rows that still use “open” in
 their original prose are not the live backlog. GitHub native issue state wins.
 
 *Recently landed and closed (GitHub is the source of truth; this table tracks what is still open): **#743** — `R4Engine::load` failed closed with a typed `SourceUnavailable` decline on a teacher_cid pairing mismatch instead of panicking (PR #746); the root cause was data-pairing drift between two independently-sourced bundle files, not format/era drift as first hypothesized. **#502** — dropped the lexical weight (W=0) on the deployed content-query path (+0.022 MRR / +0.032 top-1, a simplification); the #421 rows are invariant under the weight, so the gate was moot the same way #490's was (below). **#488** — phase-timing instrument (DoD met); the at-scale run is now **#503**. **#457** — IPF Arm B landed NEGATIVE, consistency operator reaches only the unigram floor (below). **#486/#490** — the serving path compared a routing vector to a content vector; the content-vector query is now the deployed default (+0.1363 MRR), with the serde-default and blast-radius findings recorded on #490. **#487** — corrected #434's Spectral record (lexical, not geometry). **#493** — the VSA switch made honest; its `0.0000` is a scoring category error, not a wiring gap (below). **#458/#459** — interaction information and the estimation ladder, both landed NEGATIVE/count-limited. **#456** — reconstructability certificate + null arm (below).*
@@ -853,9 +881,12 @@ also fails it is the signal, if identity succeeds it is the probe.
 
 ## Running the harnesses
 
-All are `#[ignore]`d and run explicitly with `-- --ignored`. Add `--release` for
-anything corpus-scale. The default corpus is the committed fixture unless
-`R4_CORPUS_META` / `R4_CORPUS_RECS` say otherwise.
+These historical harnesses are dormant by default. Run one only when an active
+product/release contract explicitly names the decision, fixture identity,
+outcome actions, and resource budget it can change. When activated, ignored
+harnesses use `-- --ignored`; anything corpus-scale uses `--release`. The
+default corpus is the committed fixture unless `R4_CORPUS_META` /
+`R4_CORPUS_RECS` say otherwise.
 
 **The cheap gate — run this before any long run:**
 
