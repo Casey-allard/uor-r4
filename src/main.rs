@@ -5,6 +5,9 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::Duration;
 use uor_r4_api::{BundleCapability, UorMatmulProvenance};
+use uor_r4_core::local_geometric_generation::{
+    LocalGenerationControl, LocalGenerationStopReason, LocalGeometricGenerator,
+};
 use uor_r4_core::transformerless::hf_bpe::{resolve_source_tokenizer, TokenizerAdapterKey};
 use uor_r4_graph_cli as transformerless_command;
 use uor_r4_wasm_router::chat::{ChatAnswer, ChatEngine, ChatError, DEFAULT_SAMPLE_SEED};
@@ -23,7 +26,7 @@ use uor_r4_wasm_router::tless_uor;
     name = "r4",
     version,
     about,
-    long_about = "Inspect the current geometric router or launch its local research dashboard.\n\nThe demo surfaces routing, retrieval, Hopf/R4 telemetry, and exploratory geometric continuation. It is not yet the source-free attention, inference, correctness, or reasoning engine described by the active research programme. Preserved compiler and certification commands remain available through `r4 research-tools`."
+    long_about = "Inspect the current geometric router or launch its local research dashboard.\n\nThe demo remains route-only. `bounded-geometric-generate` exercises the accepted #969 local selector through the bounded #953 decoded loop; it does not establish correctness, reasoning, higher-scope attention, product chat, or release readiness. Preserved compiler and certification commands remain available through `r4 research-tools`."
 )]
 struct Cli {
     /// Increase log verbosity (-v info, -vv debug, -vvv trace).
@@ -97,6 +100,8 @@ enum Command {
     Demo,
     /// Inspect one prompt's geometric route without compiling or loading a model.
     Route(RouteArgs),
+    /// Run the bounded #953 provider-free decoded geometric generation witness.
+    BoundedGeometricGenerate(BoundedGeometricGenerateArgs),
     /// Run the fixed S0 lexical/route-state round-trip witness without loading a model.
     LexicalIngestionWitness,
     /// Run the frozen A1.0 ordered-state/value-reachability gate without a scorer.
@@ -233,6 +238,44 @@ struct RouteArgs {
     /// Prompt to route. Multiple unquoted words are accepted.
     #[arg(required = true, num_args = 1..)]
     prompt: Vec<String>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
+enum BoundedGeometricControl {
+    FullPath,
+    StateDisabled,
+}
+
+impl BoundedGeometricControl {
+    const fn generation_control(self) -> LocalGenerationControl {
+        match self {
+            Self::FullPath => LocalGenerationControl::FullPath,
+            Self::StateDisabled => LocalGenerationControl::StateDisabled,
+        }
+    }
+}
+
+#[derive(Args, Debug)]
+struct BoundedGeometricGenerateArgs {
+    /// Canonical S0 artifact whose embedded input reconstructs its full codec registry.
+    #[arg(long, value_name = "FILE")]
+    artifact: PathBuf,
+
+    /// Exact UTF-8 prompt bytes. Trailing whitespace is rejected fail closed.
+    #[arg(long, value_name = "PROMPT")]
+    prompt: String,
+
+    /// Hard maximum number of emitted continuation lexical units.
+    #[arg(long, value_name = "UNITS")]
+    continuation_cap: usize,
+
+    /// #969 path arm; #953 exposes exactly these two matched arms.
+    #[arg(long, value_enum, default_value = "full-path")]
+    control: BoundedGeometricControl,
+
+    /// Emit the generator's deterministic canonical JSON report.
+    #[arg(long)]
+    json: bool,
 }
 
 #[derive(Args, Debug)]
@@ -1252,7 +1295,60 @@ fn route_demo(args: &RouteArgs) -> Result<(), RunError> {
     Ok(())
 }
 
+fn bounded_geometric_generate(args: &BoundedGeometricGenerateArgs) -> Result<(), RunError> {
+    let artifact_bytes = std::fs::read(&args.artifact).map_err(|error| {
+        RunError::Command(format!(
+            "read canonical route artifact {}: {error}",
+            args.artifact.display()
+        ))
+    })?;
+    let generator =
+        LocalGeometricGenerator::from_canonical_bytes(&artifact_bytes).map_err(|error| {
+            RunError::Command(format!(
+                "load canonical route artifact {}: {error}",
+                args.artifact.display()
+            ))
+        })?;
+    let report = generator
+        .generate(
+            args.prompt.as_bytes(),
+            args.control.generation_control(),
+            args.continuation_cap,
+        )
+        .map_err(|error| RunError::Command(format!("bounded geometric generation: {error}")))?;
+
+    let mut stdout = io::stdout().lock();
+    if args.json {
+        let bytes = report
+            .canonical_bytes()
+            .map_err(|error| RunError::Command(format!("serialize #953 report: {error}")))?;
+        stdout.write_all(&bytes)?;
+        stdout.write_all(b"\n")?;
+    } else {
+        stdout.write_all(b"continuation:")?;
+        stdout.write_all(&report.continuation_bytes)?;
+        stdout.write_all(b"\nstop: ")?;
+        stdout.write_all(local_generation_stop_label(report.stop_reason).as_bytes())?;
+        stdout.write_all(b"\n")?;
+    }
+    Ok(())
+}
+
+fn local_generation_stop_label(reason: LocalGenerationStopReason) -> String {
+    match reason {
+        LocalGenerationStopReason::Abstained { tie } => format!("abstained(tie={tie})"),
+        LocalGenerationStopReason::TerminalPunctuation => "terminal_punctuation".to_owned(),
+        LocalGenerationStopReason::ShortCycle { period } => {
+            format!("short_cycle(period={period})")
+        }
+        LocalGenerationStopReason::ContinuationCap => "continuation_cap".to_owned(),
+    }
+}
+
 fn print_research_tools() {
+    println!("Active route-native mechanism command:");
+    println!("  bounded-geometric-generate");
+    println!();
     println!("Preserved research commands (not required for the geometric demo):");
     println!("  ask, chat, client, audit");
     println!("  compile, download, import, install-release, package-release-bundle");
@@ -1294,6 +1390,7 @@ fn run(cli: &Cli) -> Result<(), RunError> {
             Ok(())
         }
         Some(Command::Route(args)) => route_demo(args),
+        Some(Command::BoundedGeometricGenerate(args)) => bounded_geometric_generate(args),
         Some(Command::LexicalIngestionWitness) => {
             let witness = uor_r4_core::canonical_lexical_ingestion::run_authorized_probe()
                 .map_err(|error| RunError::Command(error.to_string()))?;
@@ -2899,16 +2996,12 @@ mod tests {
         Cli::command().debug_assert();
         let help = Cli::command().render_long_help().to_string();
         for command in [
+            "demo",
+            "route",
             "serve",
-            "ask",
-            "chat",
-            "compile",
-            "download",
-            "import",
-            "evaluate-report",
-            "geometric-decoder-spike",
-            "geometric-mixer-qualification",
-            "compare",
+            "bounded-geometric-generate",
+            "lexical-ingestion-witness",
+            "research-tools",
         ] {
             assert!(help.contains(command));
         }
@@ -2929,6 +3022,56 @@ mod tests {
             panic!("expected ask")
         };
         assert_eq!(args.question.join(" "), "hello world");
+    }
+
+    #[test]
+    fn parses_bounded_geometric_generate_command_without_rewriting_prompt_bytes() {
+        let cli = Cli::try_parse_from([
+            "r4",
+            "bounded-geometric-generate",
+            "--artifact",
+            "/tmp/canonical-route.json",
+            "--prompt",
+            "active  agile athletes run",
+            "--continuation-cap",
+            "2",
+            "--control",
+            "state-disabled",
+            "--json",
+        ])
+        .unwrap();
+        let Some(Command::BoundedGeometricGenerate(args)) = cli.command else {
+            panic!("expected bounded-geometric-generate")
+        };
+        assert_eq!(args.artifact, PathBuf::from("/tmp/canonical-route.json"));
+        assert_eq!(args.prompt, "active  agile athletes run");
+        assert_eq!(args.continuation_cap, 2);
+        assert_eq!(args.control, BoundedGeometricControl::StateDisabled);
+        assert!(args.json);
+    }
+
+    #[test]
+    fn bounded_geometric_generate_labels_every_typed_stop() {
+        assert_eq!(
+            local_generation_stop_label(LocalGenerationStopReason::Abstained { tie: false }),
+            "abstained(tie=false)"
+        );
+        assert_eq!(
+            local_generation_stop_label(LocalGenerationStopReason::Abstained { tie: true }),
+            "abstained(tie=true)"
+        );
+        assert_eq!(
+            local_generation_stop_label(LocalGenerationStopReason::TerminalPunctuation),
+            "terminal_punctuation"
+        );
+        assert_eq!(
+            local_generation_stop_label(LocalGenerationStopReason::ShortCycle { period: 3 }),
+            "short_cycle(period=3)"
+        );
+        assert_eq!(
+            local_generation_stop_label(LocalGenerationStopReason::ContinuationCap),
+            "continuation_cap"
+        );
     }
 
     #[test]

@@ -26,10 +26,11 @@ eight retained heatmap classes aliased outcomes and construction transfer was
 heatmap remain structural/control state. #970 closed through protected PR #972.
 #969's mechanism-first pivot delivered one causal R4/S3 least-cost
 route-attention mechanism and one matched two-unit decoded smoke at
-`PROCEED_TO_I1_WITH_CAUSAL_R4_PATH_ATTENTION`. #953 follows that local
-mechanism; #973 later owns paragraph, conversation, and
-global qualification through the decoded loop; correctness and reasoning follow.
-#969's protected closure exposes #953; #973 remains blocked by #953.
+`PROCEED_TO_I1_WITH_CAUSAL_R4_PATH_ATTENTION`. #953 implemented a bounded
+decoded-loop path, but its first smoke was an exact rank-preserving lexical
+relabel of #969 and terminated `REVISE_I1_GENERATOR_IN_PLACE`. #953 remains
+active and #973 remains blocked; paragraph, conversation, global,
+correctness, and reasoning qualification remain downstream.
 
 A negative result remains evidence about its declared mechanism and
 distribution. It does not erase a separately established storage, identity,
@@ -44,9 +45,9 @@ The stages are ordered because each later claim depends on the earlier one:
    causal ordered R4/S3 path state, retained prefix memory, and deterministic
    exact path closure change one decoded choice under matched natural support
    and group-comparison budgets.
-2. **Inference/generation (#953)** — the real decoder tries the accepted local
-   mechanism in bounded provider-free autoregressive language through the
-   evaluated library/CLI path.
+2. **Inference/generation (#953)** — the real decoder drives the accepted local
+   mechanism through one bounded provider-free autoregressive lexical loop on
+   the evaluated library/CLI path.
 3. **Higher-scope attention (#973)** — paragraph, conversation, and bounded
    global state change selection through the accepted #953 decoded loop.
 4. **Correctness/abstention (#954)** — the accepted #969/#953/#973 path satisfies
@@ -385,6 +386,92 @@ miss keeps #969 open for direct mechanism revision; it does not create another
 gate issue. Paragraph, conversation, and global work belongs to #973 after
 #953.
 
+### I1/#953 bounded decoded generation contract
+
+#953 begins with a production vertical slice, not a qualification matrix. The
+implementation must execute this source-free loop through the reusable core and
+an explicitly research-scoped CLI entrypoint:
+
+```text
+prompt bytes -> canonical lexical routes -> natural schema-2 admission
+             -> full causal-path select-or-abstain -> exact payload inversion
+             -> deterministic boundary rendering -> append selected route
+             -> punctuation, abstention, or bounded-cap termination
+```
+
+Only after that loop exists, freeze one tiny deterministic construction corpus,
+one matched natural prompt pair, one artifact identity, at most eight observed
+lexical units including prompt and continuation, two to four emitted units, and
+one deterministic stop rule. Construction may supply bounded predecessor/
+successor or second-order admission support, but it must not store or select an
+exact full-history continuation for either prompt.
+
+The matched prompts require incompatible natural lexical choices while holding
+the decisive candidate union and comparison budget equal. Compare exactly two
+arms: full #969 causal-path selection and state-disabled selection with
+identical natural support and work shape. At most one grammar-disabled
+diagnostic is permitted, only after a concrete output defect is observed and
+only to localize that seam.
+
+The positive gate requires all of the following:
+
+- the full path changes the selected route;
+- distinct, short output that is exactly decodable and grammatical only at the
+  bounded level claimed;
+- exact route-to-payload inversion for every admitted and selected route;
+- deterministic punctuation, abstention, or cap termination;
+- byte-identical trace and report bytes across two executions;
+- no period-1 through period-4 cycle; and
+- no provider, source weights, target row, future event, or exact full-history
+  continuation.
+
+Stop on support drift, unequal work, an inert path intervention, decode failure,
+nondeterminism, a short cycle, or exceeding the eight-unit state bound. Do not
+respond with a comparator expansion, metric/weight sweep, larger fixture, or a
+new issue. Repair the exact seam directly within #953.
+
+The frozen terminals are:
+
+- `PROCEED_TO_A1Q_H_WITH_BOUNDED_SOURCE_FREE_GEOMETRIC_GENERATION` — the full
+  causal path drives one bounded natural decoded loop under the complete frozen
+  contract; and
+- `REVISE_I1_GENERATOR_IN_PLACE` — a valid run localizes a generator seam that
+  must be repaired before #953 can close.
+
+Invalid or unavailable work leaves #953 open. A positive result qualifies only
+the #969 local path plus #953 decoded grammar/sentence loop. Paragraph,
+conversation, and global influence remain inert until #973; correctness,
+reasoning, product chat, optimization, formal closure, and release remain
+downstream.
+
+#### Observed #953 outcome
+
+The frozen lexical pair `active agile athletes run` / `agile active athletes
+run` produced full-path continuations `slowly carefully` / `carefully slowly`.
+State-disabled produced `slowly slowly` for both. At the decisive position all
+four arms admitted exactly `{carefully, slowly}`, read seven rows and two
+entries, used four prefix keys per candidate, and performed eight H4
+comparisons. Step two preserved the same support with five keys and ten
+comparisons. No direct I1, I2, or ordered-sentence row hit.
+
+All admitted and selected addresses inverted exactly; each selected route was
+appended, both full outputs terminated at the frozen two-unit cap with six
+total observed units, and no period-1 through period-4 three-repeat cycle was
+present. Complete reports reproduced byte-for-byte. Construction artifact
+`blake3:411f091f9455dd401711861db6db534482780f4b07645454c6bc1579072cc0ad`
+and canonical smoke record
+`blake3:f8738ae16585b5817108ad6c8bc1ec7aee93f9d5a6cacffaa3aa084bb643cf72`
+bind the result.
+
+Independent audit found that the fixture preserves #969's vocabulary ranks,
+construction topology, prompt ranks, outputs, and costs exactly. Every
+contextual row misses, and neither prompt linguistically requires one admitted
+adverb over the other. The smoke therefore cannot satisfy the incompatible
+natural-choice or bounded-grammar clauses. The terminal is
+`REVISE_I1_GENERATOR_IN_PLACE`; #953 remains open and #973 remains blocked. The
+complete evidence and next in-place action are in the
+[#953 record](local_geometric_generation_953.md).
+
 ## 4. Matched controls
 
 An attention, inference, or reasoning comparison MUST use controls with the
@@ -404,6 +491,11 @@ state-disabled. No construction/validation split, channel census, weight sweep,
 permutation matrix, or higher-scope fixture is part of this prototype decision.
 A control that sees future tokens, additional retrieval, or a larger candidate
 set is invalid.
+
+For #953, run exactly the full-path and state-disabled arms with identical
+natural support and work. Do not carry #969's last-only arm or the obsolete
+six-comparator I1 matrix forward. A single grammar-disabled diagnostic is
+allowed only to localize an already observed output defect.
 
 A working decoded intervention records
 `PROCEED_TO_I1_WITH_CAUSAL_R4_PATH_ATTENTION`. This establishes only a
@@ -564,6 +656,14 @@ Use these outcomes literally:
   state-disabled are weaker under the same natural support and group-comparison
   budget. It exposes #953 but establishes neither semantic intelligence nor
   coherent generation.
+- `PROCEED_TO_A1Q_H_WITH_BOUNDED_SOURCE_FREE_GEOMETRIC_GENERATION` — #953's
+  full causal path drives one bounded natural decoded loop under equal support
+  and work, exact inversion, deterministic termination/replay, and the declared
+  source-free boundary. It exposes #973 but establishes none of its higher-scope
+  attention, correctness, or reasoning claims.
+- `REVISE_I1_GENERATOR_IN_PLACE` — a valid #953 smoke localizes a generator
+  defect; keep #953 open and repair that seam without expanding the benchmark
+  or creating a replacement issue.
 
 Never convert a missing fixture, empty denominator, skipped test, or unrelated
 green suite into `PASS`. Every report preserves artifact kappas, partition CIDs,

@@ -104,20 +104,22 @@ The experiment must be able to change the next programme decision:
   `NOT_RUN_IDENTIFIABILITY_HARD_STOP`, not PASS.
   That negative is bounded to the heatmap readout; fixed-zeta phases, ordered
   n-lets, exact `phi` radial transport, and typed geometry adapters remain
-  structural. Only after #970 merges through the protected path does A1Q/#969
-  become the next multi-channel recursive-attention qualification. GI-3/#953
-  may then add source-free grammatical
-  inference/generation using only A1Q-qualified semantic terms; GI-4/#954 tests
-  correctness/abstention; GI-5/#955 adds reasoning. Do not generate before
-  attention passes.
+  structural. A1Q-L/#969 subsequently qualified one local causal R4/S3 path
+  selector. GI-3/#953 implemented bounded provider-free library/CLI loop
+  plumbing, but its rank-preserving relabel smoke terminated
+  `REVISE_I1_GENERATOR_IN_PLACE`. #953 remains active and A1Q-H/#973 remains
+  blocked; GI-4/#954 and GI-5/#955 remain downstream. Do not promote the #953
+  plumbing into their claims.
 - **Exercise the real route path.** Geometry must run before token choice and
-  emit its admitted support, energy trace, and global-context coverage witness.
+  emit its admitted support and energy trace. Add a global-context coverage
+  witness when the active issue, beginning with #973, activates higher scopes.
 - **Use the smallest falsifier.** Start with a bounded source-free route
   fixture, hierarchy intervention, or held-out continuation before adding data.
-- **Use non-degenerate anti-recall controls.** Compare the full-geometry
-  treatment against current-only, the existing additive summary,
-  factor/count-only ordering, deterministic ordered-state permutation,
-  hierarchy-disabled, and exact-recall-only controls under equal budgets.
+- **Use non-degenerate anti-recall controls.** Run the active issue's
+  predeclared matched controls under equal information and work budgets. The
+  historical current-only, additive-summary, factor/count-only,
+  ordered-state-permutation, hierarchy-disabled, and exact-recall-only arms
+  remain examples only when that issue explicitly activates them.
 - **Preserve unseen global context.** Exact route identity remains separate
   from transported trajectory, hypersphere/window summaries, shared-factor
   retrieval, resonance, and accumulated Hopf phase. Those fields are storage,

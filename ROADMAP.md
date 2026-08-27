@@ -13,7 +13,10 @@ _Last reviewed: 2026-08-27 (#961 reversible S0 landed; #952 A1.0 stopped at
 `RETAIN_H4_STATE_ONLY_ADVANCE_MULTICHANNEL_A1Q` and closed through protected
 PR #972; #969 delivered one causal R4/S3 least-cost route-attention mechanism
 and matched two-unit decoded smoke at
-`PROCEED_TO_I1_WITH_CAUSAL_R4_PATH_ATTENTION`; #953 is next)._
+`PROCEED_TO_I1_WITH_CAUSAL_R4_PATH_ATTENTION`; #953 implemented the first
+bounded provider-free loop, but its exact rank-preserving relabel smoke
+terminated `REVISE_I1_GENERATOR_IN_PLACE`; #953 remains active and #973 remains
+blocked)._
 
 > **Project priority:** build source-free geometric intelligence in which the
 > route is the data location. A pinned lexical codec supplies text boundaries;
@@ -127,11 +130,17 @@ Native GitHub relationships are the source of truth:
    retained prefixes. Last-only abstains on both first choices and
    state-disabled emits the same `rr` choice on both. The canonical record kappa
    is `blake3:60360a9e22a56ea4af363e43f7103bb8104d015d58feb582d921fc17afaf207f`.
-6. **GI-3 / #953 — source-free grammatical inference/generation:** after #969,
-   try the accepted local path mechanism in bounded source-free generation
-   through the library and CLI. Reuse existing table-native candidate/grammar
-   material only as an offline substrate or explicit comparator. Durable chat,
-   persistence, and HTTP session behavior remain outside this stage.
+6. **GI-3 / #953 — bounded source-free geometric generation loop:** the
+   accepted #969 path now drives reusable library/CLI plumbing from canonical
+   prompt bytes through admission, exact inversion, rendering, append, and
+   bounded termination. The first smoke decoded `slowly carefully` /
+   `carefully slowly`, with state-disabled at `slowly slowly`, but independent
+   review proved the fixture is an exact rank-preserving lexical relabel of
+   #969. Because neither prompt requires one adverb over the other, the record
+   terminates `REVISE_I1_GENERATOR_IN_PLACE` at
+   `blake3:f8738ae16585b5817108ad6c8bc1ec7aee93f9d5a6cacffaa3aa084bb643cf72`.
+   #953 remains active for one independently motivated natural contrast frozen
+   before selection. See the [#953 record](docs/local_geometric_generation_953.md).
 7. **GI-2 A1Q-H / #973 — higher-scope attention:** after accepted #969 and
    #953, test paragraph, conversation, and bounded global state through the
    real decoded loop. Those scopes remain serialized but inert before #973.
@@ -155,9 +164,12 @@ is closed. #952's terminal negative evidence is preserved in
 [`docs/recursive_geometric_attention_a1_952.md`](docs/recursive_geometric_attention_a1_952.md).
 #967 is at terminal A1R delivery with `RETAIN_STATE_ONLY`. #970 closed through
 protected PR #972 with its bounded heatmap-readout negative. #969's
-mechanism-first prototype reached its positive bounded terminal; #953 is next
-and #973 remains blocked by #953. The live chain is closed #970 → closed #969 →
-#953 → #973 → #954 → #955 → #962–#965. Legacy tracker #949 is closed as
+mechanism-first prototype reached its positive bounded terminal. #953's loop
+plumbing is implemented, but its first smoke terminated
+`REVISE_I1_GENERATOR_IN_PLACE`; #953 remains open and #973 remains blocked. The
+live chain is closed #970 → closed #969 → open #953 → blocked #973 → blocked
+#954 → #955 → #962–#965.
+Legacy tracker #949 is closed as
 superseded; #958 is retained directly under programme root #820 as GI-0
 foundation.
 
@@ -165,7 +177,27 @@ The old S5–S7 and F0 issues are closed not planned/not triggered. R4G1/TLA,
 XOR/popcount, W(3,3), proof, conformance, and release work remains preserved as
 historical evidence and comparators.
 
+## Active
+
+- [~] **#953 bounded source-free geometric generation loop** —
+  *`REVISE_I1_GENERATOR_IN_PLACE`, 2026-08-27*. The reusable core and visible
+  research CLI execute the provider-free decode/render/append loop, and the
+  rejected smoke preserved support/work, exact inversion, cap termination, no
+  short cycle, and deterministic replay. Its natural surfaces are nonetheless
+  an exact rank-preserving relabel of #969, so it supplies no incompatible
+  linguistic requirement and cannot qualify grammar or expose #973. The next
+  #953 action is one independently motivated grammatical contrast frozen
+  without inspecting H4 outcomes. See the
+  [#953 record](docs/local_geometric_generation_953.md).
+
 ## Landed
+
+- [x] **#969 causal R4/S3 path attention** —
+  *`PROCEED_TO_I1_WITH_CAUSAL_R4_PATH_ATTENTION`, 2026-08-27*. One exact
+  identity-derived local path selector changed a matched two-unit decoded
+  continuation under equal natural support and work. It established a
+  load-bearing local mechanism only. See the
+  [#969 record](docs/local_geometric_attention_969.md).
 
 - [x] **#952 A1.0 ordered-state/value gate** —
   *`REDESIGN_ORDERED_ROUTE_SUMMARY`, 2026-08-27*. Three of three frozen
@@ -271,8 +303,10 @@ historical evidence and comparators.
   that its reusable non-digest hierarchy summaries erase earlier order. #967
   repaired that representation but retained it as state only; #970 then found
   the bounded paired-H4-derived exact R4-heatmap readout non-identifiable on its
-  frozen union. #970 is closed; #969's mechanism-first prototype now advances
-  to #953 without claiming coherent generation.
+  frozen union. #969 then qualified one local causal selector, and #953 has
+  implemented its decoded-loop plumbing. The first #953 natural smoke was an
+  exact lexical relabel and remains at direct revision; #973 is still blocked.
+  Coherent product behavior, correctness, and reasoning remain unestablished.
   Historical canaries and pointwise results remain scoped evidence, not a
   claim that the current product works. See
   [Which track can actually produce coherent text](docs/RESEARCH.md#which-track-can-actually-produce-coherent-text--the-honest-current-answer).

@@ -43,7 +43,7 @@ output can be credited to geometric inference.
 Optimization, broad QA, formalization, and release certification follow a
 working decision-bearing product slice. They do not replace it.
 
-## Current truth after #970 and the #969 pivot
+## Current truth through #953
 
 #958 is foundation evidence, not abandonment of geometric intelligence. It
 retained the following source-free mechanisms:
@@ -98,11 +98,13 @@ See the [#967 A1R record](associative_ordered_route_summaries_a1r_967.md).
 R4-heatmap result `RETAIN_H4_STATE_ONLY_ADVANCE_MULTICHANNEL_A1Q`. #969's
 mechanism-first pivot delivered one causal R4/S3 least-cost route-attention
 mechanism and a matched two-unit decoded smoke at
-`PROCEED_TO_I1_WITH_CAUSAL_R4_PATH_ATTENTION`. #953 owns the first source-free
-generation attempt using that local mechanism; #973 later owns paragraph,
-conversation, and global qualification through the real decoded loop. #962
-separately owns product chat integration and persisted, identity-scoped hive
-memory.
+`PROCEED_TO_I1_WITH_CAUSAL_R4_PATH_ATTENTION`. #953 implemented the first
+bounded provider-free decode/render/append loop, but its initial smoke was an
+exact rank-preserving lexical relabel of #969 and terminated
+`REVISE_I1_GENERATOR_IN_PLACE`. #953 remains active; #973 remains blocked and
+later owns paragraph, conversation, and global qualification through an
+accepted #953 loop. #962 separately owns product chat integration and
+persisted, identity-scoped hive memory.
 
 ## Architecture invariants
 
@@ -528,7 +530,9 @@ rebuildable paired-H4 state.
 Status: **#952 A1.0 terminal negative; #967 A1R `RETAIN_STATE_ONLY`; #970 A1P
 `RETAIN_H4_STATE_ONLY_ADVANCE_MULTICHANNEL_A1Q` closed through protected PR
 #972; #969 positive bounded mechanism result
-`PROCEED_TO_I1_WITH_CAUSAL_R4_PATH_ATTENTION`; #953 next; #973 after #953**.
+`PROCEED_TO_I1_WITH_CAUSAL_R4_PATH_ATTENTION`; #953 loop plumbing implemented
+but natural smoke at `REVISE_I1_GENERATOR_IN_PLACE`; #953 remains active and
+#973 remains blocked**.
 
 The frozen A1.0 probe stopped before scorer implementation with
 `REDESIGN_ORDERED_ROUTE_SUMMARY`. Across three matched contrasts, all 21
@@ -694,39 +698,82 @@ The canonical smoke record kappa is
 `blake3:60360a9e22a56ea4af363e43f7103bb8104d015d58feb582d921fc17afaf207f`;
 see the [#969 record](local_geometric_attention_969.md).
 
-### GI-3 / #953 — source-free grammatical inference and generation
+### GI-3 / #953 — bounded source-free geometric generation loop
 
-After #969 accepts the local path prototype, compile explicit lexical class,
-agreement, punctuation,
-clause/sentence closure, and ordered continuation geometry. Expose one bounded
-route-native generation interface through the library and CLI, from input bytes
-and hierarchy state to decoded lexical output. Emit bounded autoregressive text
-using no Ollama, source weights, dense matrix model, transformer, MoE, or sparse
-learned router.
+#969 qualified only an identity-derived local causal path selector. It did not
+qualify semantics, sentence attention, grammar, or coherent language. #953 now
+owns the first decoded autoregressive vertical slice:
 
-The generator begins with the accepted #969 local path mechanism. Mandatory
-storage fields and unqualified higher-scope, Hopf, paired-H4/E8, zeta, icosian,
-or SpiralCore state cannot influence ranking merely because it is serialized.
+```text
+prompt bytes -> canonical lexical routes -> natural schema-2 admission
+             -> full causal-path select-or-abstain -> exact payload inversion
+             -> deterministic boundary rendering -> append selected route
+             -> punctuation, abstention, or bounded-cap termination
+```
 
-The existing source-free table-native R4G1/TLA continuation and candidate
-evidence may be reused as an offline substrate or comparator where appropriate;
-its replicated pointwise signal is not itself free-running generation. #953
-must determine whether the accepted local path mechanism can support useful
-source-free autoregressive language rather than adding another pre-mechanism
-qualification programme.
+Implement one reusable core generator and one explicitly research-scoped CLI
+entrypoint before adding its focused smoke. Reuse the canonical lexical codec,
+schema-2 admission, #969 causal-path state and selector, exact H4 table, exact
+route-to-payload inversion, and the typed append/abstain/EOS/cap loop shape.
+Add only artifact-bound prompt encoding, bounded natural lexical/grammar
+support, rendering, append, termination, and a compact causal trace. The
+construction corpus may provide bounded predecessor/successor or second-order
+support, but it may not store or select the requested exact full-history
+continuation.
 
-#953 owns inference and language formation. Product CLI/HTTP chat integration,
-restart-persistent conversation state, and identity-scoped hive-memory lifecycle
-belong to #962 and are not part of the #953 qualification.
+Freeze one tiny construction corpus, one matched natural prompt pair, one
+artifact identity, at most eight total observed lexical units including prompt
+and continuation, two to four emitted units, and one deterministic stop rule.
+The prompts require incompatible natural choices while preserving the same
+candidate union and comparison budget at the decisive position. Compare only
+the full #969 causal path with state-disabled selection under identical natural
+support and work. A grammar-disabled arm is permitted only once, to localize an
+observed concrete defect.
 
-The smallest gate uses a frozen matched prompt pair or triad that requires
-incompatible prompt-conditioned lexical choices while exact continuation rows
-remain absent. It emits at most 32 lexical units per prompt and compares real,
-grammar-disabled, hierarchy-disabled, factor/count-only,
-permuted-geometry, and exact-recall arms. Passing requires distinct,
-decodable, non-cycling, prompt-responsive output—not merely one grammatical
-clause shared by different prompts. This is source-free grammatical
-inference/generation, not yet a claim that answers are correct.
+A positive requires distinct short bounded-grammatical outputs, exact inversion
+of every admitted and selected route, deterministic punctuation/abstention/cap
+termination, byte-identical double execution, no period-1 through period-4
+cycle, and no provider, source weight, target row, future event, or exact
+full-history continuation. Support drift, unequal work, inert path influence,
+decode failure, nondeterminism, a short cycle, or an eight-unit bound violation
+stops the smoke and requires direct revision in #953 rather than another
+benchmark or issue.
+
+The frozen positive terminal is
+`PROCEED_TO_A1Q_H_WITH_BOUNDED_SOURCE_FREE_GEOMETRIC_GENERATION`; direct repair
+is `REVISE_I1_GENERATOR_IN_PLACE`. Invalid or unavailable work leaves #953
+open. Paragraph, conversation, and global selection remain inert until #973.
+Product CLI/HTTP chat integration, restart-persistent conversation state, and
+identity-scoped hive-memory lifecycle remain #962 scope.
+
+A positive at this stage could establish only that the #969-qualified local
+path drives one #953-qualified decoded grammar/sentence loop. It could not
+establish factual correctness, broad coherence, knowledge, reasoning,
+higher-scope attention, performance advantage, chat quality, formal closure,
+or release readiness.
+
+#### Observed #953 outcome
+
+The implemented `LocalGeometricGenerator` and visible
+`bounded-geometric-generate` research command execute the declared plumbing.
+The frozen lexical prompts `active agile athletes run` and
+`agile active athletes run` decode `slowly carefully` and
+`carefully slowly` under the full path; state-disabled decodes
+`slowly slowly` for both. All arms retain the same `{carefully, slowly}`
+support and 8 then 10 H4 comparisons; I1, I2, and ordered-sentence rows miss.
+All candidate and selected routes invert exactly, both full reports stop at the
+two-unit cap with six total observed units and no short cycle, and complete
+double executions are byte-identical. The revision record is
+`blake3:f8738ae16585b5817108ad6c8bc1ec7aee93f9d5a6cacffaa3aa084bb643cf72`.
+
+Independent audit found that every vocabulary rank, construction edge, prompt
+rank, output rank, and cost reproduces #969 under a lexical relabel. Because no
+contextual row hits and neither prompt naturally requires one adverb over the
+other, the smoke cannot qualify grammar. #953 therefore records
+`REVISE_I1_GENERATOR_IN_PLACE`; see the
+[#953 record](local_geometric_generation_953.md). #953 remains open for one
+independently motivated grammatical contrast frozen before selection. #973
+remains blocked.
 
 ### GI-2 A1Q-H / #973 — paragraph, conversation, and global attention
 
@@ -834,8 +881,10 @@ hours remains a hard kill ceiling, never an estimate.
   serialization contract is the golden/Galois-coupled icosian pair
   `H4 ⊕ phi H4` with fixed basis, glue, and inverse witness.
 - Required structural/storage representation is not a semantic scoring term.
-  #969 may establish only its local path mechanism as load-bearing for #953;
-  only #973 may qualify paragraph, conversation, or global state.
+  #969 establishes only its local path mechanism as load-bearing. #953 has
+  implemented decoded-loop plumbing but has not qualified a natural grammar
+  loop. Only an accepted #953 result can expose #973, and only #973 may qualify
+  paragraph, conversation, or global state.
 - S3/R4 compute, Hopf S2/R3 observation, and an E8 action plane are distinct
   objects.
 - Exact recall, grammatical text, correct inference, and reasoning are separate

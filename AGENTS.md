@@ -13,8 +13,12 @@ gate produced the bounded paired-H4-derived exact R4-heatmap result
 `RETAIN_H4_STATE_ONLY_ADVANCE_MULTICHANNEL_A1Q` and closed through protected
 PR #972. #969's mechanism-first pivot delivered one causal R4/S3 least-cost
 route-attention mechanism and one matched two-unit decoded smoke at
-`PROCEED_TO_I1_WITH_CAUSAL_R4_PATH_ATTENTION`. #953 is next; #973 remains after
-#953, followed by #954–#955 → #962–#965.
+`PROCEED_TO_I1_WITH_CAUSAL_R4_PATH_ATTENTION`. #953 implemented the first
+bounded provider-free decode/render/append loop, but its initial smoke was an
+exact rank-preserving lexical relabel of #969 and terminated
+`REVISE_I1_GENERATOR_IN_PLACE`: it did not supply incompatible natural choices
+or qualify grammar. #953 remains active and #973 remains blocked, followed by
+#954–#955 → #962–#965.
 Terminology lives in
 `docs/transformerless/GLOSSARY.md`. Keep this file current when conventions
 change.
@@ -27,11 +31,13 @@ registered prime atoms, semiprime transitions including `p^2` self-loops,
 ordered n-lets, fixed-zeta R4/S3 state, Hopf observation, torsion, exact
 `Z[phi]` radial shells, and the required structural/storage project bridge
 `E8 = H4 x H4`, realized in code and serialization by the golden/Galois-coupled
-icosian pair `H4 ⊕ phi H4`. The active attention prototype is narrower: natural
-schema-2 adjacency supplies candidates, an ordered unit-quaternion path on S3
-supplies causal prefix memory, and exact path closure plus lease age selects or
-abstains. H4 is an exact finite S3 codebook here; `H4 ⊕ phi H4` / E8 remains
-structural storage and control rather than the attention score.
+icosian pair `H4 ⊕ phi H4`. The qualified local attention mechanism is
+narrower: natural schema-2 adjacency supplies candidates, an ordered
+unit-quaternion path on S3 supplies causal prefix memory, and exact path closure
+plus lease age selects or abstains. #953 wraps that selector in one bounded
+canonical decode/render/append loop. H4 is an exact finite S3 codebook here;
+`H4 ⊕ phi H4` / E8 remains structural storage and control rather than the
+attention score.
 
 The intended destination is frontier-like useful local intelligence without
 transformers, MoE/sparse learned routing, or dense matrix intelligence. That is
@@ -188,9 +194,12 @@ PR (a bump can shift libm-sensitive teacher logprobs — see Gate E below).
   adapters remain structural, diagnostic, or control state. It does not
   promote attention or generation. #970 closed through protected PR #972.
   #969 then delivered one causal R4/S3 least-cost route-attention mechanism and
-  one matched decoded smoke. #953 now owns bounded source-free library/CLI
-  generation; #973 later owns paragraph/conversation/global qualification
-  through that real decoded loop; #954 and #955 own correctness and reasoning.
+  one matched decoded smoke. #953 has implemented a bounded source-free
+  library/CLI decode/render/append loop, but its rank-preserving relabel smoke
+  terminated `REVISE_I1_GENERATOR_IN_PLACE`. #953 still owns a genuinely
+  predeclared natural grammar contrast; #973 remains blocked and later owns
+  paragraph/conversation/global qualification. #954 and #955 own correctness
+  and reasoning.
   #962 owns durable multi-turn CLI/HTTP chat, persistence, isolation, and
   hive-memory; #963–#965 then own optimization, formal closure, and release.
 - Sequence strictly: lexical/address plumbing → local route attention →
@@ -207,17 +216,20 @@ PR (a bump can shift libm-sensitive teacher logprobs — see Gate E below).
   witnesses without being valid ranking features. Hopf, H4, zeta, icosian,
   SpiralCore, trajectory, hypersphere, winding/window, projection-energy,
   shared-factor, and resonance terms remain storage fields, diagnostics, or
-  future hypotheses. #969 may establish only its local ordered-S3 path
-  mechanism as load-bearing for #953. Only #973 may later qualify paragraph,
-  conversation, or global state through the accepted decoded loop.
+  future hypotheses. #969 establishes only its local ordered-S3 path mechanism
+  as load-bearing. #953's current code establishes reusable decoded-loop
+  plumbing only; its relabelled smoke does not establish a natural grammar or
+  sentence loop. Only a later accepted #953 result can expose #973, and only
+  #973 may qualify paragraph, conversation, or global state.
 - An exact kappa miss must not collapse unseen global history to a suffix-only
   default, but global ordered-state behavior is tested on an independently
   frozen global-snapshot permutation rather than by mutating session history.
-- During #969, compare exactly three arms with identical natural support and
-  group-comparison budgets: full retained causal path, last-only path, and
-  state-disabled. Do not add a construction/validation
-  split, channel census, weight sweep, control matrix, or higher-scope fixture
-  to this prototype decision.
+- The completed #969 evidence compares exactly full retained path, last-only,
+  and state-disabled. #953's revision smoke carried forward full path and
+  state-disabled under identical support/work, but its exact rank-preserving
+  lexical relabel cannot qualify incompatible natural choices. Do not add a
+  construction/validation split, channel census, weight sweep, control matrix,
+  or higher-scope fixture to either bounded decision.
 - Teacher output may label or compare only after a source-free report freezes.
   It is never substituted for the product response.
 - Once #973 activates higher scopes, every hierarchy selection emits a

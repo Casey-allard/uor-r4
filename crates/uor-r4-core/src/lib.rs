@@ -9,6 +9,7 @@ use std::f64::consts::PI;
 
 pub mod canonical_lexical_ingestion;
 pub mod cayley_dickson;
+pub mod local_geometric_generation;
 pub mod prime_route_attention;
 pub mod prime_route_geometric_attention;
 pub mod recursive_geometric_attention;

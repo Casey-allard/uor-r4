@@ -24,8 +24,11 @@ assumptions, or objectives rather than measured results.
 > `RETAIN_H4_STATE_ONLY_ADVANCE_MULTICHANNEL_A1Q`, closed through protected PR
 > #972. #969 then delivered one causal R4/S3 least-cost route-attention
 > mechanism and one matched two-unit decoded smoke at
-> `PROCEED_TO_I1_WITH_CAUSAL_R4_PATH_ATTENTION`. The live continuation is #953 →
-> #973 → #954–#955 → #962–#965. Legacy
+> `PROCEED_TO_I1_WITH_CAUSAL_R4_PATH_ATTENTION`. #953 then implemented the first
+> bounded provider-free decode/render/append loop, but its exact
+> rank-preserving lexical-relabel smoke terminated
+> `REVISE_I1_GENERATOR_IN_PLACE`. #953 remains active; #973 and #954 remain
+> blocked. Legacy
 > tracker #949 is closed as superseded, and #958 is retained directly beneath
 > #820 as GI-0 foundation. Two
 > current-summary corrections remain important: **#784** found
@@ -46,8 +49,8 @@ assumptions, or objectives rather than measured results.
 > geometry reversible (GI-1/#961), repairs ordered state (GI-2 A1R/#967),
 > tests candidate-relative identifiability and one construction-derived readout
 > without assuming a replacement or placement defect (GI-2 A1P/#970), then
-> builds the first causal ordered-S3 path mechanism (#969), tries source-free
-> grammatical inference/generation (#953), qualifies higher scopes through that
+> builds the first causal ordered-S3 path mechanism (#969), drives it through
+> the first bounded decoded loop (#953), qualifies higher scopes through that
 > loop (#973), and only then tests correctness (#954) and reasoning (#955).
 > Other trajectory, hypersphere, winding/window, factor, resonance, and Hopf
 > channels remain future hypotheses rather than mandatory preflight. Source
@@ -67,10 +70,10 @@ assumptions, or objectives rather than measured results.
 > In its frozen fixture, current, previous, last-two, and the immutable global
 > snapshot intentionally remain equal; sentence, paragraph, and conversation
 > are the scopes expected to differ after repair. Global order requires a
-> separate matched global-snapshot permutation. #970 is closed; #969's accepted
-> local mechanism prototype exposed #953, while #973 remains blocked by #953.
-> #953 owns
-> source-free inference/generation, while #962 owns product chat and persisted
+> separate matched global-snapshot permutation. #970 and #969 are closed.
+> #953's decoded-loop plumbing exists, but its relabel smoke remains at direct
+> revision and does not expose #973. Paragraph, conversation, and global
+> influence remain unqualified, while #962 owns product chat and persisted
 > identity-scoped hive memory. See the
 > [#952 A1.0 record](recursive_geometric_attention_a1_952.md).
 >
@@ -141,6 +144,25 @@ assumptions, or objectives rather than measured results.
 > `blake3:60360a9e22a56ea4af363e43f7103bb8104d015d58feb582d921fc17afaf207f`.
 > It is not another multichannel qualification programme and does not establish
 > coherent generation.
+>
+> **#953 bounded decoded-loop decision, 2026-08-27.** The reusable generator
+> executes canonical prompt bytes → registered routes → unchanged schema-2
+> admission → #969 full-path select/abstain → exact payload inversion →
+> deterministic boundary rendering → causal append → bounded termination. The
+> lexical prompts `active agile athletes run` and `agile active athletes run`
+> decode `slowly carefully` and `carefully slowly`; state-disabled decodes
+> `slowly slowly` for both under the same support and work. No I1/I2/IS exact
+> continuation row hits, all admitted/selected routes invert exactly, the
+> two-unit cap leaves six observed units, no short cycle occurs, and complete
+> reports reproduce byte-for-byte. Revision record kappa:
+> `blake3:f8738ae16585b5817108ad6c8bc1ec7aee93f9d5a6cacffaa3aa084bb643cf72`.
+> Independent audit found an exact rank-for-rank reproduction of #969's
+> registry, construction topology, outputs, and costs. With every contextual
+> row missing, neither prompt supplies evidence that one adverb is the required
+> natural choice. The terminal is `REVISE_I1_GENERATOR_IN_PLACE`. The core loop
+> is real partial implementation, but #953 remains open and #973 remains
+> blocked. See the
+> [#953 record](local_geometric_generation_953.md).
 
 The current quality-baseline reconciliation is recorded by #933 and the
 [append-only #934 genealogy](canonical_quality_baseline_934.md). The historical
@@ -377,7 +399,9 @@ decisions, 14 exercised classes covered 10/12 validation decisions with a
 classes, so the gate stopped before scalar design. The old six labels remained
 diagnostic/falsification-only. #970 closed through PR #972. #969 then delivered
 one causal ordered-S3 least-cost path mechanism with a matched two-unit decoded
-intervention. #953 now attempts real source-free generation.
+intervention. #953 now drives that selector through decoded-loop plumbing, but
+its relabel smoke did not qualify a natural grammar result. #953 remains active
+and #973 remains blocked. Dependable coherent text remains unestablished.
 The final serving path has no source weights, transformer/self-attention, dense
 matrix intelligence, MoE, or sparse learned router. Compiler-side floating
 point remains allowed for witnessed chart construction; serving arithmetic is
@@ -470,9 +494,10 @@ on 6/6 queries. #970 then found that the paired-H4-derived exact R4-heatmap
 classes alias outcomes and that the construction-derived rule has a 0/6 strict
 transfer ceiling on the separate sealed validation fixture. It stopped without
 scalar search and closed through PR #972. #969 then built and smoke-tested the
-single local path mechanism; #953 now tries it in the source-free
-inference/generation engine. Structural presence does not qualify the other
-stored fields for ranking. Product chat and
+single local path mechanism; #953 now executes it in bounded source-free
+decode/render/append plumbing, while its natural grammar witness remains at
+direct revision. Structural presence does not qualify the other stored fields
+for ranking. Product chat and
 persisted hive memory remain GI-6/#962 responsibilities. The
 retained #951 negative
 checkpoint and exact population remain in
@@ -915,9 +940,11 @@ R4-heatmap readout-identifiability result without compiling a readout and closed
 through protected PR #972. #969's mechanism-first result decoded `rr ll` versus
 `ll rr` under matched natural support and group-comparison budgets, with both
 first choices using non-identity retained prefixes. It records
-`PROCEED_TO_I1_WITH_CAUSAL_R4_PATH_ATTENTION`. #953 now owns the real
-source-free generation attempt. #973 then owns paragraph/conversation/global
-qualification and blocks #954. #955 invokes the accepted
+`PROCEED_TO_I1_WITH_CAUSAL_R4_PATH_ATTENTION`. #953 has implemented its core
+loop but records `REVISE_I1_GENERATOR_IN_PLACE` because the initial smoke is an
+exact lexical relabel of #969 rather than an incompatible natural contrast.
+#953 remains open; #973 remains blocked by #953 and continues to block #954.
+#955 invokes the eventual accepted
 #969/#953/#973/#954 path; #962 integrates that path into product chat with
 persisted identity-scoped hive memory. #963 retains measured cost; #964 binds
 the #970 → #969 → #953 → #973 path; #965 qualifies only that release path. The table

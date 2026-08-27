@@ -14,9 +14,11 @@ local hardware. The project is testing whether language context, inference,
 and reasoning can emerge from routes through a canonical geometric memory. The
 target serving engine uses no Ollama, hosted model, or source-model weights.
 
-> **Honest status:** the geometric storage, identity, route, and bounded-lookup
-> foundation exists. Source-free geometric attention, dependable text
-> generation, correct answers, and reasoning do not exist yet. The current
+> **Honest status:** the geometric storage/identity foundation, one bounded
+> causal R4/S3 path selector, and reusable provider-free decode/render/append
+> plumbing exist. The first #953 smoke was an exact lexical relabel of #969, so
+> it did not qualify a natural grammar loop and terminated for direct revision.
+> Higher-scope attention, correct answers, and reasoning do not exist yet. The
 > dashboard is an interactive window into the research substrate, not a
 > frontier model or a ChatGPT replacement.
 
@@ -62,6 +64,25 @@ identifiability decision:
 cargo run --bin r4 -- candidate-relative-identifiability-a1p-probe
 ```
 
+To run the #953 decoded loop against a canonical route artifact:
+
+```bash
+cargo run --bin r4 -- bounded-geometric-generate \
+  --artifact /path/to/canonical-route.json \
+  --prompt "active agile athletes run" \
+  --continuation-cap 2 --json
+```
+
+This research command loads no provider or source weights. It currently accepts
+only a canonical artifact whose embedded construction/global input can fully
+reconstruct the parent codec registry; subset-observation artifacts fail closed.
+Plain output labels both the appendable continuation and typed stop reason;
+`--json` emits the full deterministic witness. Trailing prompt whitespace is
+also rejected fail closed so the lexical-boundary contract cannot silently
+rewrite the prompt. The command is bounded to that reconstructed vocabulary and
+the local #969 path; it is not `ask`, `chat`, or a correctness-qualified answer
+surface.
+
 The A1R command uses only the frozen construction/evaluation fixture and exact
 finite tables. Its frozen report kappa is
 `blake3:f0db7a5d5c81d51ebf3b4bf8a2715c4960ec16b14161e8bf7598d7b98c48c881`.
@@ -99,7 +120,10 @@ phases, ordered n-lets, exact `phi` radial transport, and the typed
 `sqrt(2) <-> 2i <-> [0,2]` adapters remain structural under
 `STRUCTURAL_BINDING_ONLY_NO_ZETA_NLET_TO_PHI_EXPONENT_RULE`; they are not
 scorer inputs. It does not establish attention or generation, and #969 becomes
-the next stage only after protected #970 merge.
+the next stage only after protected #970 merge. #969 has since delivered one
+bounded causal path selector. #953 has driven it through real decoded-loop
+plumbing, but its first smoke was a rank-preserving relabel of #969 and did not
+qualify a natural grammar result.
 
 The ingestion witness maps two turns of text through the pinned lexical codec,
 prime/spin route state, canonical hierarchy manifest, strict reload, and exact
@@ -131,12 +155,13 @@ numeric geometry only: every candidate row ceiling is zero and marked
 but found its reusable summaries order-erasing. #967 landed the exact ordered
 state repair but retained it as state only after the candidate tie. #970's
 corrected paired-H4-derived exact R4-heatmap gate stopped at bounded readout
-identifiability without searching another scalar. Until #970 lands through the
-protected merge path, #969 remains blocked; after that merge it becomes the
-next multichannel full recursive-attention qualification and continues to
-block #953 generation. Stored H4/Hopf/zeta/icosian and related route fields remain
-structural state, diagnostics, or controls until A1Q qualifies a term for
-semantic scoring; #953 may use only the qualified terms.
+identifiability without searching another scalar. #969 then qualified one local
+causal path selector, and #953 implemented the first bounded decoded
+library/CLI plumbing. Its relabelled smoke terminated
+`REVISE_I1_GENERATOR_IN_PLACE`; #953 remains open and #973 remains blocked.
+Stored H4/Hopf/zeta/icosian and related route fields remain
+structural state, diagnostics, or controls unless the owning stage qualifies a
+specific term.
 
 These commands exercise the no-model research substrate. `demo` does not start
 the historical artifact-discovery server, and `route` does not claim to answer
@@ -193,7 +218,7 @@ It has **not** yet demonstrated:
 
 - prompt-to-answer source-free chat;
 - recursive geometric attention that generalizes beyond recall;
-- grammatical generation from geometry alone;
+- a qualified natural grammatical generation loop;
 - correctness and calibrated abstention;
 - multi-step reasoning; or
 - frontier-class capability or an energy advantage.
@@ -225,7 +250,8 @@ complete.
 The active dependency chain is tracked in
 [#820](https://github.com/UOR-Foundation/uor-r4/issues/820). The immediate
 implementation stage is
-[#961](https://github.com/UOR-Foundation/uor-r4/issues/961).
+[#953](https://github.com/UOR-Foundation/uor-r4/issues/953); #973 remains
+blocked until #953 qualifies a genuinely natural decoded grammar loop.
 
 ## Find your way around
 
