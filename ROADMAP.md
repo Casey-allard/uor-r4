@@ -7,9 +7,9 @@ The earlier
 preserved #948–#958 sequencing record. Measured, refuted, and frozen research
 remains in [docs/RESEARCH.md](docs/RESEARCH.md).
 
-_Last reviewed: 2026-08-26 (post-#958 architecture authority; GitHub programme
-root #820 and the #961 → #952–#955 → #962–#965 dependency chain are
-reconciled)._
+_Last reviewed: 2026-08-27 (#961 reversible S0 landed; #952 A1.0 stopped at
+`REDESIGN_ORDERED_ROUTE_SUMMARY`; #967 is the native repair blocker before
+#953–#955 → #962–#965)._
 
 > **Project priority:** build source-free geometric intelligence in which the
 > route is the data location. A pinned lexical codec supplies text boundaries;
@@ -42,19 +42,25 @@ Native GitHub relationships are the source of truth:
 1. **GI-0 — retain #958 foundation:** keep the schema-2 manifest, bounded route
    lookup, worker evidence, controls, and optional operator fixtures at their
    exact claim scope.
-2. **GI-1 / #961 S0 — lexical geometry:** pin the lexical codec without weights;
-   add prompt-to-route and route-to-payload inversion, canonical hierarchy
-   serialization, independent attention-artifact identity, incremental
-   API-neutral state, and the fixed concrete `H4 ⊕ phi H4` realization of the
-   project shorthand `E8 = H4 x H4`. Do not generate.
-3. **GI-2 / #952 — recursive attention:** combine exact route identity with the
+2. **GI-1 / #961 S0 — lexical geometry (landed):** pin the lexical codec
+   without weights; add prompt-to-route and route-to-payload inversion,
+   canonical hierarchy serialization, independent attention-artifact identity,
+   incremental API-neutral state, and the fixed concrete `H4 ⊕ phi H4`
+   realization of the project shorthand `E8 = H4 x H4`. Do not generate.
+3. **GI-2 / #952 → #967 — recursive attention repair:** #952 established that
+   the natural bounded candidate/value path works but every current non-digest
+   hierarchy summary collides when only earlier order changes. #967 must first
+   replace that additive/last-child summary with an associative,
+   noncommutative ordered fold and rerun the frozen anti-recall gate. Only then
+   may GI-2 continue to combine exact route identity with the
    full transported trajectory, hypersphere/window summaries, shared-factor
    retrieval, resonance, and Hopf accumulation across sentence, paragraph,
    conversation, and global route levels. Emit a coverage witness and establish
    anti-recall causal value before producing text.
 4. **GI-3 / #953 — source-free grammatical inference/generation:** compile
-   grammar and syntax into the attention-qualified route engine, then connect
-   the library, CLI, HTTP, and chat surfaces without weights or dense models.
+   grammar and syntax into the attention-qualified route engine and establish
+   bounded source-free generation through the library and CLI. Durable chat,
+   persistence, and HTTP session behavior remain outside this stage.
 5. **GI-4 / #954 — correctness and abstention:** test held-out answer
    correctness, relevance, abstention, and causal use of required context.
    Teacher weights may label or compare offline only after the source-free
@@ -62,20 +68,39 @@ Native GitHub relationships are the source of truth:
 6. **GI-5 / #955 — reasoning:** add bounded goal-directed route composition, branch
    comparison, intermediate constraints, and closure/contradiction controls.
 7. **GI-6 / #962–#965 — product, cost, formal closure, and release:** integrate
-   hive-memory chat (#962), optimize only the measured route-native bottleneck
-   (#963), freeze the serving contract (#964), then explicitly activate only
-   the release QA needed to qualify the product (#965).
+   durable multi-turn CLI/HTTP chat, persistence, isolation, and hive-memory
+   (#962); optimize only the measured route-native bottleneck (#963); freeze
+   the serving contract (#964); then explicitly activate only the release QA
+   needed to qualify the product (#965).
 
 The live issue bodies and native dependencies now mirror this sequence. #961
-is the sole active newly assigned implementation stage; every later stage is
-unassigned and blocked in order. Legacy tracker #949 is closed as superseded;
-#958 is retained directly under programme root #820 as GI-0 foundation.
+is closed. #952's terminal negative evidence is preserved in
+[`docs/recursive_geometric_attention_a1_952.md`](docs/recursive_geometric_attention_a1_952.md).
+#967 is unassigned and blocked only until #952 closes; it remains the native
+blocker of #953 afterward. Every later stage stays unassigned and blocked in
+order. Legacy tracker #949 is closed as superseded; #958 is retained directly
+under programme root #820 as GI-0 foundation.
 
 The old S5–S7 and F0 issues are closed not planned/not triggered. R4G1/TLA,
 XOR/popcount, W(3,3), proof, conformance, and release work remains preserved as
 historical evidence and comparators.
 
 ## Landed
+
+- [x] **#952 A1.0 ordered-state/value gate** —
+  *`REDESIGN_ORDERED_ROUTE_SUMMARY`, 2026-08-27*. Three of three frozen
+  matched contrasts collided across all seven hierarchy levels and all 46
+  non-digest fields, so no scorer was built. The real schema-2 path naturally
+  admitted both continuations under ceiling eight, inverted both exact values,
+  and reproduced incremental next state. Exact H4 and SpiralCore finite tables
+  closed as controls only. Repair is #967; #953 remains blocked. See the
+  [qualification](docs/recursive_geometric_attention_a1_952.md).
+
+- [x] **#961 reversible lexical geometry/state plumbing** —
+  *`PASS_REVERSIBLE_STATE_PLUMBING_ONLY`, 2026-08-27*. The pinned codec,
+  address-to-payload inversion, canonical hierarchy, incremental consumer
+  trace, and concrete paired-H4 witness landed without claiming attention or
+  generation.
 
 - [x] **#958 fixed-zeta prime-route foundation** —
   *`RETAIN_STORAGE_RECALL_ONLY`, 2026-08-26*. Source-free algebra, the complete
@@ -147,9 +172,11 @@ historical evidence and comparators.
 - [~] Text-based AI — the repository has the retained #958 route/storage
   foundation, working geometric memory/retrieval, and historical compiled
   runtimes, but no source-free geometric decoder has established coherent
-  product behavior. GI-1/#961 owns the missing lexical route loop. Historical
-  canaries and pointwise results remain scoped evidence, not a claim that the
-  current product works. See
+  product behavior. GI-1/#961 closed the lexical route loop, while #952 showed
+  that its reusable non-digest hierarchy summaries erase earlier order. #967
+  owns that repair before any attention scorer or #953 generation work.
+  Historical canaries and pointwise results remain scoped evidence, not a
+  claim that the current product works. See
   [Which track can actually produce coherent text](docs/RESEARCH.md#which-track-can-actually-produce-coherent-text--the-honest-current-answer).
 - [ ] Image
 - [ ] Audio

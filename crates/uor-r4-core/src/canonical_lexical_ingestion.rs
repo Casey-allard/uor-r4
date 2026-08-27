@@ -34,6 +34,9 @@ pub const CHART_PROFILE_SCHEMA: u32 = 1;
 pub const CHART_PROFILE_DOMAIN: &str = "uor-r4.typed-chart-adapter-profile/1";
 pub const ICOSIAN_PROFILE_SCHEMA: u32 = 1;
 pub const ICOSIAN_PROFILE_DOMAIN: &str = "uor-r4.icosian-h4-phi-h4-profile/1";
+pub const H4_BINARY_ICOSAHEDRAL_TABLE_SCHEMA: u32 = 1;
+pub const H4_BINARY_ICOSAHEDRAL_TABLE_DOMAIN: &str =
+    "uor-r4.scaled-h4-binary-icosahedral-multiplication/1";
 pub const TRAJECTORY_PROFILE_SCHEMA: u32 = 1;
 pub const TRAJECTORY_PROFILE_DOMAIN: &str = "uor-r4.route-trajectory-summary/1";
 pub const PROBE_WITNESS_SCHEMA: u32 = 1;
@@ -1256,6 +1259,67 @@ pub struct CanonicalRouteArtifact {
     body: ArtifactBody,
 }
 
+/// Exact lexical value recovered from one registered geometric address.
+///
+/// The payload bytes are the codec unit itself; occurrence boundary bytes
+/// remain owned by route records. This is the narrow selected-address value
+/// interface required by A1 and the later source-free inference stage.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct LexicalRouteValueView {
+    pub lexical_unit_id: u32,
+    /// Index in the complete parent codec registry. This is not the index of
+    /// the same address in the embedded schema-2 manifest's observed subset.
+    pub registry_address_index: u16,
+    pub prime: u32,
+    pub address_kappa: String,
+    pub payload_cid: String,
+    pub payload_bytes: Vec<u8>,
+}
+
+/// Exact multiplication table derived from the concrete scaled 120-root H4
+/// table embedded in S0. Products and inverses are indexes into that fixed
+/// root order; no floating point or approximate nearest-root lookup is used.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct H4BinaryIcosahedralClosure {
+    pub schema: u32,
+    pub domain: String,
+    pub h4_root_table_kappa: String,
+    pub root_count: usize,
+    pub product_count: usize,
+    pub identity_index: u16,
+    pub inverse_indices: Vec<u16>,
+    /// Row-major products: `left * root_count + right` names the index of the
+    /// exact quaternion product in the fixed canonical root order.
+    pub multiplication_indices: Vec<u16>,
+    pub multiplication_table_kappa: String,
+    pub unique_closure_exact: bool,
+    pub identity_exact: bool,
+    pub inverses_exact: bool,
+    pub associativity_exact: bool,
+    pub integer_only_no_rounding: bool,
+}
+
+impl H4BinaryIcosahedralClosure {
+    /// Read one exact row-major product without constructing a quaternion at
+    /// runtime. Out-of-range indexes return `None`.
+    pub fn product_index(&self, left: u16, right: u16) -> Option<u16> {
+        let left = usize::from(left);
+        let right = usize::from(right);
+        if left >= self.root_count || right >= self.root_count {
+            return None;
+        }
+        left.checked_mul(self.root_count)
+            .and_then(|base| base.checked_add(right))
+            .and_then(|offset| self.multiplication_indices.get(offset))
+            .copied()
+    }
+
+    /// Reproduce the table identity using the canonical self-cleared seed.
+    pub fn reproduce_multiplication_table_kappa(&self) -> Result<String, CanonicalLexicalError> {
+        h4_multiplication_table_kappa(self)
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct AttentionHierarchyView {
     pub current: String,
@@ -1909,6 +1973,205 @@ fn fixed_h4_root_table() -> Result<H4RootTable, CanonicalLexicalError> {
     seed.table_kappa.clear();
     table.table_kappa = canonical_kappa(&canonical_json(&seed)?)?;
     Ok(table)
+}
+
+fn zphi_checked_neg(value: ZPhi) -> Result<ZPhi, CanonicalLexicalError> {
+    Ok(ZPhi::new(
+        value
+            .a
+            .checked_neg()
+            .ok_or(CanonicalLexicalError::ArithmeticOverflow)?,
+        value
+            .b
+            .checked_neg()
+            .ok_or(CanonicalLexicalError::ArithmeticOverflow)?,
+    ))
+}
+
+fn h4_product_coordinate(
+    left: &[ZPhi; 4],
+    right: &[ZPhi; 4],
+    terms: [(usize, usize, i8); 4],
+) -> Result<ZPhi, CanonicalLexicalError> {
+    terms
+        .into_iter()
+        .try_fold(ZPhi::new(0, 0), |total, (left_index, right_index, sign)| {
+            let product = left[left_index].checked_mul(right[right_index])?;
+            let signed = match sign {
+                1 => product,
+                -1 => zphi_checked_neg(product)?,
+                _ => {
+                    return Err(CanonicalLexicalError::Invalid(
+                        "H4 multiplication contains a non-unit sign".to_owned(),
+                    ));
+                }
+            };
+            Ok(total.checked_add(signed)?)
+        })
+}
+
+/// Multiply two H4 roots whose stored coordinates are scaled by two.
+///
+/// If `q` and `r` are the stored quaternions, their represented unit elements
+/// are `q/2` and `r/2`; the stored product is therefore `(q*r)/2`. Exact
+/// coefficient divisibility is required in both `1` and `phi` components.
+fn multiply_scaled_h4_roots(
+    left: [ZPhiWire; 4],
+    right: [ZPhiWire; 4],
+) -> Result<[ZPhiWire; 4], CanonicalLexicalError> {
+    let left = left.map(ZPhi::from);
+    let right = right.map(ZPhi::from);
+    let raw = [
+        h4_product_coordinate(
+            &left,
+            &right,
+            [(0, 0, 1), (1, 1, -1), (2, 2, -1), (3, 3, -1)],
+        )?,
+        h4_product_coordinate(&left, &right, [(0, 1, 1), (1, 0, 1), (2, 3, 1), (3, 2, -1)])?,
+        h4_product_coordinate(&left, &right, [(0, 2, 1), (1, 3, -1), (2, 0, 1), (3, 1, 1)])?,
+        h4_product_coordinate(&left, &right, [(0, 3, 1), (1, 2, 1), (2, 1, -1), (3, 0, 1)])?,
+    ];
+    let mut scaled = [ZPhiWire { a: 0, b: 0 }; 4];
+    for (target, coordinate) in scaled.iter_mut().zip(raw) {
+        if coordinate.a % 2 != 0 || coordinate.b % 2 != 0 {
+            return Err(CanonicalLexicalError::Invalid(
+                "scaled H4 product is not exactly divisible by two in Z[phi]".to_owned(),
+            ));
+        }
+        *target = ZPhiWire {
+            a: coordinate.a / 2,
+            b: coordinate.b / 2,
+        };
+    }
+    Ok(scaled)
+}
+
+/// Exhaustively derive and validate the exact binary-icosahedral group table
+/// for S0's concrete scaled H4 root order.
+pub fn validate_h4_binary_icosahedral_closure(
+) -> Result<H4BinaryIcosahedralClosure, CanonicalLexicalError> {
+    let roots = fixed_h4_root_table()?;
+    let root_count = roots.roots.len();
+    if root_count != 120 || roots.roots.windows(2).any(|pair| pair[0] >= pair[1]) {
+        return Err(CanonicalLexicalError::Invalid(
+            "fixed H4 roots are not 120 unique canonical elements".to_owned(),
+        ));
+    }
+
+    let identity = [
+        ZPhiWire { a: 2, b: 0 },
+        ZPhiWire { a: 0, b: 0 },
+        ZPhiWire { a: 0, b: 0 },
+        ZPhiWire { a: 0, b: 0 },
+    ];
+    let identity_index = roots.roots.binary_search(&identity).map_err(|_| {
+        CanonicalLexicalError::Invalid("fixed H4 table has no exact identity root".to_owned())
+    })?;
+    let product_count = root_count
+        .checked_mul(root_count)
+        .ok_or(CanonicalLexicalError::ArithmeticOverflow)?;
+    let mut multiplication_indices = Vec::with_capacity(product_count);
+    for left in &roots.roots {
+        for right in &roots.roots {
+            let product = multiply_scaled_h4_roots(*left, *right)?;
+            let index = roots.roots.binary_search(&product).map_err(|_| {
+                CanonicalLexicalError::Invalid(
+                    "concrete scaled H4 table is not closed under exact quaternion multiplication"
+                        .to_owned(),
+                )
+            })?;
+            multiplication_indices
+                .push(u16::try_from(index).map_err(|_| CanonicalLexicalError::ArithmeticOverflow)?);
+        }
+    }
+    let product_index = |left: usize, right: usize| -> Result<usize, CanonicalLexicalError> {
+        let offset = left
+            .checked_mul(root_count)
+            .and_then(|base| base.checked_add(right))
+            .ok_or(CanonicalLexicalError::ArithmeticOverflow)?;
+        multiplication_indices
+            .get(offset)
+            .copied()
+            .map(usize::from)
+            .ok_or_else(|| {
+                CanonicalLexicalError::Invalid(
+                    "H4 multiplication-table index is out of range".to_owned(),
+                )
+            })
+    };
+
+    for index in 0..root_count {
+        if product_index(identity_index, index)? != index
+            || product_index(index, identity_index)? != index
+        {
+            return Err(CanonicalLexicalError::Invalid(
+                "concrete scaled H4 identity law failed".to_owned(),
+            ));
+        }
+    }
+
+    let mut inverse_indices = Vec::with_capacity(root_count);
+    for index in 0..root_count {
+        let mut inverses = Vec::new();
+        for candidate in 0..root_count {
+            if product_index(index, candidate)? == identity_index
+                && product_index(candidate, index)? == identity_index
+            {
+                inverses.push(candidate);
+            }
+        }
+        if inverses.len() != 1 {
+            return Err(CanonicalLexicalError::Invalid(format!(
+                "concrete scaled H4 root {index} has {} exact two-sided inverses",
+                inverses.len()
+            )));
+        }
+        inverse_indices.push(
+            u16::try_from(inverses[0]).map_err(|_| CanonicalLexicalError::ArithmeticOverflow)?,
+        );
+    }
+
+    for left in 0..root_count {
+        for middle in 0..root_count {
+            for right in 0..root_count {
+                let left_associated = product_index(product_index(left, middle)?, right)?;
+                let right_associated = product_index(left, product_index(middle, right)?)?;
+                if left_associated != right_associated {
+                    return Err(CanonicalLexicalError::Invalid(format!(
+                        "concrete scaled H4 associativity failed at ({left},{middle},{right})"
+                    )));
+                }
+            }
+        }
+    }
+
+    let mut report = H4BinaryIcosahedralClosure {
+        schema: H4_BINARY_ICOSAHEDRAL_TABLE_SCHEMA,
+        domain: H4_BINARY_ICOSAHEDRAL_TABLE_DOMAIN.to_owned(),
+        h4_root_table_kappa: roots.table_kappa,
+        root_count,
+        product_count,
+        identity_index: u16::try_from(identity_index)
+            .map_err(|_| CanonicalLexicalError::ArithmeticOverflow)?,
+        inverse_indices,
+        multiplication_indices,
+        multiplication_table_kappa: String::new(),
+        unique_closure_exact: true,
+        identity_exact: true,
+        inverses_exact: true,
+        associativity_exact: true,
+        integer_only_no_rounding: true,
+    };
+    report.multiplication_table_kappa = h4_multiplication_table_kappa(&report)?;
+    Ok(report)
+}
+
+fn h4_multiplication_table_kappa(
+    report: &H4BinaryIcosahedralClosure,
+) -> Result<String, CanonicalLexicalError> {
+    let mut seed = report.clone();
+    seed.multiplication_table_kappa.clear();
+    canonical_kappa(&canonical_json(&seed)?)
 }
 
 fn fixed_icosian_operator_table() -> Result<IcosianOperatorTable, CanonicalLexicalError> {
@@ -3406,6 +3669,151 @@ impl CanonicalRouteArtifact {
 
     pub fn scope_ceilings(&self) -> &[ScopeCeiling] {
         &self.body.scope_ceilings
+    }
+
+    fn lexical_route_address_unvalidated(
+        &self,
+        lexical_unit_id: u32,
+    ) -> Result<Option<GeometricAddress>, CanonicalLexicalError> {
+        let index = usize::try_from(lexical_unit_id)
+            .map_err(|_| CanonicalLexicalError::ArithmeticOverflow)?;
+        let Some(stored) = self.body.lexical_route_addresses.get(index) else {
+            return Ok(None);
+        };
+        let vocabulary = self.body.vocabulary.get(index).ok_or_else(|| {
+            CanonicalLexicalError::Invalid(
+                "lexical address registry has no matching vocabulary row".to_owned(),
+            )
+        })?;
+        if stored.lexical_unit_id != lexical_unit_id
+            || vocabulary.unit_id != lexical_unit_id
+            || stored.payload_cid != vocabulary.payload_cid
+        {
+            return Err(CanonicalLexicalError::Invalid(
+                "lexical address registry is not aligned with vocabulary order".to_owned(),
+            ));
+        }
+        let atom = PrimeAtom::new(stored.prime)?;
+        let address = GeometricAddress {
+            atom,
+            spin: spin_for_binding(lexical_unit_id, atom)?,
+            radial: ZPhi::from(stored.radial_zphi),
+            payload_cid: stored.payload_cid.clone(),
+        };
+        if lexical_route_address_binding(lexical_unit_id, &address)? != *stored {
+            return Err(CanonicalLexicalError::Invalid(
+                "lexical address does not reproduce from its exact registry row".to_owned(),
+            ));
+        }
+        Ok(Some(address))
+    }
+
+    /// Resolve one stable codec unit to its exact registered geometric
+    /// address. The parent registry is complete even when the frozen S0 child
+    /// observed only a subset of vocabulary addresses.
+    pub fn lexical_route_address(
+        &self,
+        lexical_unit_id: u32,
+    ) -> Result<Option<GeometricAddress>, CanonicalLexicalError> {
+        self.validate_transitive()?;
+        self.lexical_route_address_unvalidated(lexical_unit_id)
+    }
+
+    /// Decode the exact schema-2 child used by the real bounded I1/I2/IS,
+    /// divisor, and adjacent-spin candidate path.
+    pub fn embedded_spin_manifest(&self) -> Result<CompiledSpinManifest, CanonicalLexicalError> {
+        self.validate_transitive()?;
+        let blob = self
+            .body
+            .content_blobs
+            .iter()
+            .find(|blob| blob.cid == self.body.spin_manifest.blob_cid)
+            .ok_or_else(|| {
+                CanonicalLexicalError::Invalid(
+                    "embedded spin-manifest blob reference is absent".to_owned(),
+                )
+            })?;
+        if blob.kind != "prime-route-spin-manifest" {
+            return Err(CanonicalLexicalError::Invalid(
+                "embedded spin-manifest blob has the wrong kind".to_owned(),
+            ));
+        }
+        let manifest = CompiledSpinManifest::decode_canonical(&decode_hex(
+            &blob.bytes_hex,
+            "spin manifest blob",
+        )?)?;
+        if manifest.manifest_kappa != self.body.spin_manifest.manifest_kappa {
+            return Err(CanonicalLexicalError::Invalid(
+                "embedded spin-manifest kappa does not match its parent binding".to_owned(),
+            ));
+        }
+        Ok(manifest)
+    }
+
+    /// Invert one exact selected address to its codec payload bytes without a
+    /// corpus-text lookup or a source-model dependency.
+    pub fn lexical_route_value_for_address(
+        &self,
+        address: &GeometricAddress,
+    ) -> Result<Option<LexicalRouteValueView>, CanonicalLexicalError> {
+        self.validate_transitive()?;
+        let address_kappa = address.canonical_kappa()?;
+        let Some(stored) = self
+            .body
+            .lexical_route_addresses
+            .iter()
+            .find(|stored| stored.address_kappa == address_kappa)
+        else {
+            return Ok(None);
+        };
+        let expected = self
+            .lexical_route_address_unvalidated(stored.lexical_unit_id)?
+            .ok_or_else(|| {
+                CanonicalLexicalError::Invalid(
+                    "selected lexical address is absent from the complete registry".to_owned(),
+                )
+            })?;
+        if &expected != address {
+            return Err(CanonicalLexicalError::Invalid(
+                "selected lexical address kappa resolves to different exact fields".to_owned(),
+            ));
+        }
+        let vocabulary = self
+            .body
+            .vocabulary
+            .get(
+                usize::try_from(stored.lexical_unit_id)
+                    .map_err(|_| CanonicalLexicalError::ArithmeticOverflow)?,
+            )
+            .ok_or_else(|| {
+                CanonicalLexicalError::Invalid(
+                    "selected lexical value has no vocabulary binding".to_owned(),
+                )
+            })?;
+        let blob = self
+            .body
+            .content_blobs
+            .iter()
+            .find(|blob| blob.cid == vocabulary.payload_cid)
+            .ok_or_else(|| {
+                CanonicalLexicalError::Invalid(
+                    "selected lexical value has no payload blob".to_owned(),
+                )
+            })?;
+        if blob.kind != "lexical-payload" || blob.bytes_hex != vocabulary.surface_hex {
+            return Err(CanonicalLexicalError::Invalid(
+                "selected lexical payload blob does not match its vocabulary binding".to_owned(),
+            ));
+        }
+        Ok(Some(LexicalRouteValueView {
+            lexical_unit_id: stored.lexical_unit_id,
+            registry_address_index: u16::try_from(stored.lexical_unit_id)
+                .map_err(|_| CanonicalLexicalError::ArithmeticOverflow)?,
+            prime: stored.prime,
+            address_kappa,
+            payload_cid: stored.payload_cid.clone(),
+            payload_bytes: decode_hex(&blob.bytes_hex, "selected lexical payload")?,
+        }))
     }
 
     pub fn canonical_bytes(&self) -> Result<Vec<u8>, CanonicalLexicalError> {

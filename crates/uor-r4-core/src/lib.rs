@@ -11,6 +11,7 @@ pub mod canonical_lexical_ingestion;
 pub mod cayley_dickson;
 pub mod prime_route_attention;
 pub mod prime_route_geometric_attention;
+pub mod recursive_geometric_attention;
 pub mod semantic;
 pub mod spiralcore_operator;
 pub mod transformerless;

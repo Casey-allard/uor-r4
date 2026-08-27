@@ -289,10 +289,7 @@ impl CausalAttentionState {
         })
     }
 
-    fn observe(
-        &mut self,
-        observed_route: GeometricAddress,
-    ) -> Result<(), GeometricAttentionError> {
+    fn observe(&mut self, observed_route: GeometricAddress) -> Result<(), GeometricAttentionError> {
         self.sentence.append(&observed_route)?;
         self.previous = Some(std::mem::replace(&mut self.last, observed_route));
         Ok(())

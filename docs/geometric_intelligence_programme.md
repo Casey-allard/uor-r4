@@ -43,7 +43,7 @@ output can be credited to geometric inference.
 Optimization, broad QA, formalization, and release certification follow a
 working decision-bearing product slice. They do not replace it.
 
-## Current truth after #958
+## Current truth after #958 and #952 A1.0
 
 #958 is foundation evidence, not abandonment of geometric intelligence. It
 retained the following source-free mechanisms:
@@ -74,9 +74,20 @@ Incremental state maintenance is not yet certified as an integer-only,
 allocation-free serving path. Nothing in that result refutes prime-route
 geometry; it identifies the missing product boundary.
 
-The old #952 all-layer replacement step is retired. The live GitHub graph now
-assigns #961 to lexical geometry/state plumbing and blocks the rewritten #952
-recursive-attention stage behind it.
+The old #952 all-layer replacement step is retired. #961 is now closed with the
+reversible lexical/address substrate and hierarchy identities required by
+attention. The frozen #952 A1.0 probe then reached the predeclared terminal
+verdict `REDESIGN_ORDERED_ROUTE_SUMMARY` before any scorer was implemented:
+all matched earlier-order contrasts collided in every exposed non-digest field
+at all seven hierarchy levels. Exact identities still differed, and the natural
+two-candidate admission, address-to-payload inverse, and incremental next-state
+path remained reachable. See the
+[#952 A1.0 record](recursive_geometric_attention_a1_952.md).
+
+#967 now owns the narrow associative, noncommutative ordered-summary repair and
+blocks #953. #953 continues to own source-free inference and language
+generation; #962 separately owns product chat integration and persisted,
+identity-scoped hive memory.
 
 ## Architecture invariants
 
@@ -472,7 +483,8 @@ for the next product decision.
 
 ### GI-1 / #961 S0 — lexical geometry and state plumbing
 
-Build the reversible, API-neutral substrate required by attention:
+Status: **closed**. #961 established the reversible, API-neutral substrate
+required by attention:
 
 1. pin the lexical codec without opening weights;
 2. compile arbitrary prompt tokens into manifest-bound prime/spin addresses;
@@ -489,6 +501,17 @@ rebuildable paired-H4 state.
 
 ### GI-2 / #952 — recursive geometric attention
 
+Status: **A1.0 terminal negative qualification; repair continues in #967**.
+
+The frozen A1.0 probe stopped before scorer implementation with
+`REDESIGN_ORDERED_ROUTE_SUMMARY`. Across three matched contrasts, all 21
+pair-level hierarchy cells and all 966 non-digest field comparisons were equal;
+the additive/last-child summaries had erased the only differing signal, earlier
+causal order. Exact chained identities retained provenance, but digest spelling
+is not semantic geometry. Candidate admission and value reachability remained
+intact, so #967 holds those interfaces fixed while replacing only the reusable
+ordered summary with an associative, noncommutative fold.
+
 Implement attention across current/next candidate, previous, last-two,
 sentence, paragraph, conversation, identity-scoped memory, and global
 accumulated route state. Every selection carries the global context coverage
@@ -503,16 +526,24 @@ permuted-geometry, and permuted-pair controls. Unseen paragraph, conversation,
 and global histories must remain distinguishable through their overlapping
 trajectory/harmonic summaries even when exact route kappas miss.
 
-GI-2 closes only when full recursive attention is causally load-bearing. It
-does not emit or score grammatical product text.
+GI-2 closes only when full recursive attention is causally load-bearing. A
+successful #967 representation repair makes the later attention scorer
+reachable; it does not itself promote #953. GI-2 does not emit or score
+grammatical product text.
 
 ### GI-3 / #953 — source-free grammatical inference and generation
 
-After GI-2 attention passes, compile explicit lexical class, agreement,
-punctuation, clause/sentence closure, and ordered continuation geometry. Connect
-one route-native implementation to the library API, CLI, HTTP, and chat
-surfaces. Emit bounded autoregressive text using no Ollama, source weights,
-dense matrix model, transformer, MoE, or sparse learned router.
+After #967 repairs ordered state and GI-2 attention passes its later matched
+controls, compile explicit lexical class, agreement, punctuation,
+clause/sentence closure, and ordered continuation geometry. Expose one bounded
+route-native generation interface through the library and CLI, from input bytes
+and hierarchy state to decoded lexical output. Emit bounded autoregressive text
+using no Ollama, source weights, dense matrix model, transformer, MoE, or sparse
+learned router.
+
+#953 owns inference and language formation. Product CLI/HTTP chat integration,
+restart-persistent conversation state, and identity-scoped hive-memory lifecycle
+belong to #962 and are not part of the #953 qualification.
 
 The gate asks whether the attention-qualified geometry produces distinct,
 decodable, non-cycling, prompt-responsive text beyond exact recall. It records
@@ -549,6 +580,10 @@ intermediate constraints must change under the matched causal control.
 
 ### GI-6 / #962–#965 — product integration, serving purity, measured cost, and bounded release
 
+#962 integrates the accepted #953 generator into durable multi-turn CLI/HTTP
+chat, persistent conversation state, session and identity isolation, and
+load-bearing identity-scoped hive memory across turns and restarts. Later issues
+retain optimization, serving-kernel/formal closure, and release ownership.
 Freeze one accepted path and remove any remaining transitional serving
 dependency. The final serving census must show:
 

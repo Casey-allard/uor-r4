@@ -18,7 +18,8 @@ assumptions, or objectives rather than measured results.
 > [Geometric Intelligence Programme](geometric_intelligence_programme.md).
 > The geometric causal decoder roadmap and S0–S7 completion plan are retained
 > as historical evidence. GitHub programme root #820 and the native
-> #961 → #952–#955 → #962–#965 chain now mirror the new GI stages; legacy
+> GI sequence now records #961 closed, #952 A1.0 redirected through the narrow
+> #967 ordered-summary repair before #953–#955, and #962–#965 afterward; legacy
 > tracker #949 is closed as superseded, and #958 is retained directly beneath
 > #820 as GI-0 foundation. Two
 > current-summary corrections remain important: **#784** found
@@ -45,6 +46,21 @@ assumptions, or objectives rather than measured results.
 > accumulation so unseen global histories survive an exact-kappa miss. Source
 > weights are offline teachers only. See the
 > [#958 qualification](prime_route_attention_qualification_958.md).
+
+> **A1.0 decision, 2026-08-27.** #961 is closed. The frozen #952 probe reached
+> its predeclared terminal verdict `REDESIGN_ORDERED_ROUTE_SUMMARY` before a
+> scorer or semantic control arm was implemented. All three matched
+> earlier-order contrasts collided across all seven hierarchy levels: 21/21
+> pair-level cells and 966/966 non-digest comparisons were equal. Exact chained
+> identities differed, but digest distance is provenance, not semantic
+> geometry. The deployed schema-2 path still naturally admitted the same two
+> candidates on every query, inverted 12/12 admitted-candidate addresses to
+> exact payload bytes, and reproduced 6/6 incremental next states. #967 holds the
+> candidate/value path fixed and repairs only the reusable ordered summary.
+> #953 remains blocked pending a later full attention qualification; it owns
+> source-free inference/generation, while #962 owns product chat and persisted
+> identity-scoped hive memory. See the
+> [#952 A1.0 record](recursive_geometric_attention_a1_952.md).
 
 The current quality-baseline reconciliation is recorded by #933 and the
 [append-only #934 genealogy](canonical_quality_baseline_934.md). The historical
@@ -269,8 +285,12 @@ up to the point where a structure predicts at all, and not past it.**
 ## Which track can actually produce coherent text — the honest current answer
 
 This project's immediate goal is source-free recursive geometric attention.
-GI-1/#961 first makes lexical payloads and the full route hierarchy reversible;
-GI-2/#952 then qualifies attention before GI-3/#953 is allowed to generate.
+GI-1/#961 has made lexical payloads and the hierarchy identities reversible.
+GI-2/#952 A1.0 then established candidate/value reachability but found that the
+reusable summaries erased earlier causal order, terminating as
+`REDESIGN_ORDERED_ROUTE_SUMMARY` before scorer implementation. #967 now repairs
+that representation; recursive attention must still pass matched controls
+before GI-3/#953 is allowed to generate.
 The final serving path has no source weights, transformer/self-attention, dense
 matrix intelligence, MoE, or sparse learned router. Compiler-side floating
 point remains allowed for witnessed chart construction; serving arithmetic is
@@ -355,8 +375,12 @@ zeta state, prime/semiprime/n-let routing, R4/S3 and Hopf transport, exact
 `Z[phi]` shells, the load-bearing project bridge `E8 = H4 x H4` concretely
 serialized as the golden/Galois-coupled icosian pair `H4 ⊕ phi H4`, and
 recursive attention combining exact identity with overlapping
-trajectory/harmonic summaries. GI-2/#952 must establish anti-recall attention
-before GI-3/#953 adds source-free grammatical inference/generation. The
+trajectory/harmonic summaries. The #952 A1.0 result showed that the current
+additive/last-child summaries do not preserve earlier order even though the
+candidate and value path is reachable. #967 must repair ordered summaries, and
+GI-2 must then establish anti-recall attention before GI-3/#953 adds the
+source-free inference/generation engine. Product chat and persisted hive memory
+remain GI-6/#962 responsibilities. The
 retained #951 negative
 checkpoint and exact population remain in
 [`geometric_mixer_qualification_951.md`](geometric_mixer_qualification_951.md),
@@ -790,11 +814,14 @@ whose only legitimate integration point is an honesty/claim-vocabulary bridge
 
 ## Open, with defined work
 
-The active sequence is GI-1/#961, rewritten #952–#955 scopes for GI-2 through
-GI-5, then #962–#965 for product chat, optimization, formal closure, and
-release. The native #820 graph is reconciled and only #961 is assigned. The table below is
-retained as the historical mechanism ledger; rows that still use “open” in
-their original prose are not the live backlog. GitHub native issue state wins.
+#961 is closed. #952 A1.0 has the terminal representation verdict
+`REDESIGN_ORDERED_ROUTE_SUMMARY`; #967 is the narrow ordered-summary repair and
+blocks #953. After full GI-2 attention qualification, #953 owns source-free
+inference/generation, #954 correctness/abstention, #955 reasoning, and #962
+product chat with persisted identity-scoped hive memory; #963–#965 retain cost,
+formal/serving closure, and release ownership. The table below is retained as
+the historical mechanism ledger; rows that still use “open” in their original
+prose are not the live backlog. GitHub native issue state wins.
 
 *Recently landed and closed (GitHub is the source of truth; this table tracks what is still open): **#743** — `R4Engine::load` failed closed with a typed `SourceUnavailable` decline on a teacher_cid pairing mismatch instead of panicking (PR #746); the root cause was data-pairing drift between two independently-sourced bundle files, not format/era drift as first hypothesized. **#502** — dropped the lexical weight (W=0) on the deployed content-query path (+0.022 MRR / +0.032 top-1, a simplification); the #421 rows are invariant under the weight, so the gate was moot the same way #490's was (below). **#488** — phase-timing instrument (DoD met); the at-scale run is now **#503**. **#457** — IPF Arm B landed NEGATIVE, consistency operator reaches only the unigram floor (below). **#486/#490** — the serving path compared a routing vector to a content vector; the content-vector query is now the deployed default (+0.1363 MRR), with the serde-default and blast-radius findings recorded on #490. **#487** — corrected #434's Spectral record (lexical, not geometry). **#493** — the VSA switch made honest; its `0.0000` is a scoring category error, not a wiring gap (below). **#458/#459** — interaction information and the estimation ladder, both landed NEGATIVE/count-limited. **#456** — reconstructability certificate + null arm (below).*
 

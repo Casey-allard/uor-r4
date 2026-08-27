@@ -99,6 +99,8 @@ enum Command {
     Route(RouteArgs),
     /// Run the fixed S0 lexical/route-state round-trip witness without loading a model.
     LexicalIngestionWitness,
+    /// Run the frozen A1.0 ordered-state/value-reachability gate without a scorer.
+    RecursiveAttentionA1Probe,
     /// List preserved compiler, serving, and certification commands.
     ResearchTools,
     /// Run the full artifact-discovering historical HTTP server.
@@ -1293,6 +1295,17 @@ fn run(cli: &Cli) -> Result<(), RunError> {
                 .map_err(|error| RunError::Command(error.to_string()))?;
             let rendered = serde_json::to_string_pretty(&witness).map_err(|error| {
                 RunError::Command(format!("serialize lexical-ingestion witness: {error}"))
+            })?;
+            println!("{rendered}");
+            Ok(())
+        }
+        Some(Command::RecursiveAttentionA1Probe) => {
+            let report = uor_r4_core::recursive_geometric_attention::run_a1_0_ordered_state_probe()
+                .map_err(|error| RunError::Command(error.to_string()))?;
+            let rendered = serde_json::to_string_pretty(&report).map_err(|error| {
+                RunError::Command(format!(
+                    "serialize recursive-attention A1.0 report: {error}"
+                ))
             })?;
             println!("{rendered}");
             Ok(())

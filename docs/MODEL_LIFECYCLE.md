@@ -8,9 +8,16 @@
 **Current truth:** #958 retained canonical prime-route/spin manifests,
 bounded indexes, controls, and deterministic worker evidence as a
 storage/recall foundation. It did not establish full geometric attention,
-source-free inference, or working source-free chat. #961 now owns reversible
-lexical geometry and the complete incremental state hierarchy; the rewritten
-#952 attention stage is blocked behind it.
+source-free inference, or working source-free chat. #961 is closed and now
+supplies reversible lexical geometry, payload inversion, and the canonical
+incremental hierarchy identities. The frozen #952 A1.0 probe terminated as
+`REDESIGN_ORDERED_ROUTE_SUMMARY` before scorer implementation: the natural
+candidate/value path was reachable, but the additive/last-child hierarchy
+summaries erased earlier causal order. #967 owns the narrow associative,
+noncommutative ordered-summary repair and blocks #953. #953 owns
+bounded library/CLI inference and generation; #962 separately owns durable
+multi-turn CLI/HTTP chat, persisted conversation state, session/identity
+isolation, and identity-scoped hive memory.
 
 ## Current route-native target lifecycle
 
@@ -18,17 +25,19 @@ This is the gated target, not a runnable product command sequence:
 
 ```text
 canonical text/corpus
-    -> pinned reversible lexical codec (#961)
+    -> closed reversible lexical codec and hierarchy identity (#961)
     -> registered prime atoms + payload identities
     -> semiprime/n-let routes + fixed-zeta harmonic state
     -> R4/S3 spin, S2/R3 Hopf observation, torsion, Z[phi] shells
     -> witnessed paired-H4/E8 state
     -> incremental local/sentence/paragraph/conversation/global state
-    -> complete recursive geometric attention (#952)
-    -> source-free grammatical inference/generation (#953)
+    -> associative noncommutative ordered-summary repair (#967)
+    -> complete recursive geometric-attention qualification (GI-2/#952)
+    -> bounded source-free library/CLI inference and generation (#953)
     -> correctness + typed abstention (#954)
     -> bounded reasoning (#955)
-    -> product purity, measured cost, and release (#962-#965)
+    -> durable isolated CLI/HTTP chat + persisted hive memory (#962)
+    -> measured cost, formal/serving closure, and release (#963-#965)
 ```
 
 The manifest stores or references canonical lexical payloads, factorable route
@@ -36,6 +45,13 @@ addresses, spin/harmonic state, transported trajectory summaries, recursive
 scope identities, and rebuild witnesses. Corpus observations populate routes;
 they do not become serving weights. Kappa binds canonical identity and
 provenance, while factor/spin/harmonic coordinates provide locality.
+
+The #952 A1.0 record is a representation-level negative result, not a failure
+of lexical inversion, candidate admission, H4 closure, Hopf state, or the value
+interface. Exact hierarchy identities preserved order as provenance, but their
+digest distance is not geometry; #967 must make that order observable in the
+bounded reusable summaries before semantic scoring resumes. See the
+[#952 A1.0 record](recursive_geometric_attention_a1_952.md).
 
 Long compilation or evaluation is not a lifecycle default. It begins only
 after the smallest decision-bearing probe, reachability arithmetic, finite
@@ -1312,8 +1328,11 @@ Passing `--cover` reuses the measured cover. It may be omitted to re-induce
 the default cover deterministically during scoring. For experiments, `cover`
 also accepts `--depths`, `--k0`, `--regions-budget`, and `--memory-budget`.
 
-**Current production boundary pending #953.** The public `ask`, `chat`, HTTP,
-library, and WASM production facades use
+**Current production boundary pending #962 after #953–#955.** #953 owns the
+bounded source-free library/CLI inference and generation engine; #962 owns its
+integration into durable multi-turn CLI/HTTP chat, persisted conversation
+state, session/identity isolation, and identity-scoped hive memory. Until that
+product stage, the public `ask`, `chat`, HTTP, library, and WASM production facades use
 `R4G1Runtime` as their sole ranked-candidate and token authority. D4 remains a
 token-free permit/widen/abstain policy. A production bundle must carry a
 schema-2 `release-bundle.json` and a content-bound, full-census

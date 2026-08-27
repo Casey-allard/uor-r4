@@ -5,6 +5,11 @@
   (`RETAIN_STORAGE_RECALL_ONLY`; see the
   [qualification record](../prime_route_attention_qualification_958.md))
 - **Date:** 2026-08-26
+- **Current attention-stage result:**
+  [#952](https://github.com/UOR-Foundation/uor-r4/issues/952) reached
+  `REDESIGN_ORDERED_ROUTE_SUMMARY`; the recursive scorer remains
+  `NOT_IMPLEMENTED`. Ordered-summary repair is isolated in
+  [#967](https://github.com/UOR-Foundation/uor-r4/issues/967).
 - **Decision owner:** representation redesign
   [#958](https://github.com/UOR-Foundation/uor-r4/issues/958)
 - **Programme tracker:**
@@ -325,6 +330,12 @@ defined before corpus use, and a causal intervention must beat factor-only and
 permuted-slot controls. This bounded port follows the passed current-substrate
 worker canary; it does not widen or authorize a corpus-scale run.
 
+As of #952, the exact 64-state finite composition and inverse table is
+implemented and deterministically bound in Rust. Its status is
+`IMPLEMENTED_CONTROL_ONLY`: it establishes exact noncommutative table mechanics,
+not semantic value. The 64 states still cannot replace route identity, and no
+causal attention claim follows from the table alone.
+
 ### 7. Geometric attention
 
 The promoted compiled artifact must provide three causal indexes:
@@ -359,17 +370,54 @@ ADR-0003 remains the normative target. The current #958 code is deliberately a
 source-free substrate and does not establish geometric attention or product
 behavior.
 
+### #952 A1.0 qualification update (2026-08-27)
+
+The A1.0 gate preserved that target while separating mechanics that now work
+from the blocking representation defect:
+
+- The concrete scaled 120-root H4 table closes uniquely under exact
+  binary-icosahedral multiplication. Its exact identity, inverses,
+  associativity, deterministic table identity, and integer-only construction
+  are an algebra control, not semantic-attention evidence.
+- The exact 64-state SpiralCore composition/inverse table is implemented as an
+  order-sensitive control. Its semantic status remains
+  `OPTIONAL_CONTROL_PENDING`; no semantic claim is attached to its table kappa.
+- The GI-1 envelope exposes its frozen schema-2 child manifest and a complete
+  codec-registry value view. A child candidate address resolves exactly to its
+  separate child-manifest index, stable codec-registry index, payload CID, and
+  payload bytes, and the reachable incremental next state reproduces exactly.
+- The fixed construction-only manifest supplies both independently declared
+  continuations through the real bounded candidate path. On all three matched
+  evaluation contrasts, exact last-one, last-two, and ordered-sentence rows
+  miss; the adjacent-spin fallback naturally supplies the same two-candidate
+  union without injection or truncation, below the declared ceiling of eight.
+- Despite that reachability, every reusable non-digest field in all seven
+  attention levels—current, previous, last-two, sentence, paragraph,
+  conversation, and global—collides for the fixed same-length, same-multiset,
+  same-suffix histories whose earlier order differs. Exact kappas differ, but
+  digest inequality is identity evidence and is excluded from semantic
+  geometry.
+
+The predeclared terminal verdict is therefore
+`REDESIGN_ORDERED_ROUTE_SUMMARY`. The recursive attention scorer and its
+equal-budget semantic controls were not implemented. Issue #967 owns the
+narrow ordered-summary repair; this result does not revoke the storage,
+candidate-reachability, value-inversion, H4, or SpiralCore mechanics established
+above.
+
 | Component | Status | Current evidence boundary |
 |---|---|---|
 | Typed bridge; prime, square-free semiprime, n-let/GCD, zeta-delta, S3/Hopf/fiber/torsion, and exact `Z[phi]` algebra | `IMPLEMENTED_SUBSTRATE` | Source-free types and focused tests only. |
-| Incremental ordered sentence-route identity and exact bounded I1/I2/IS construction/lookup | `IMPLEMENTED_SUBSTRATE` | Direct exact-key count rows; no divisor/spin expansion or least-energy selection. |
+| Incremental ordered sentence-route identity and exact bounded I1/I2/IS construction/lookup | `IMPLEMENTED_SUBSTRATE` | Exact-key rows remain available; #952 requires them to miss on the anti-recall contrasts. |
 | Hard tiny-canary limits and deterministic whole-sentence partitioning | `IMPLEMENTED_SUBSTRATE` | Compiler refuses corpus-shaped inputs through its public compile API. |
 | Per-worker partition/completion/elapsed and peak-active instrumentation | `IMPLEMENTED_SUBSTRATE` | Operational metadata only; excluded from semantic bytes and kappa. |
-| ADR-defined six-prime `J(6,2)` indexing over SpiralCore v63's `Cl(0,6)` structure | `NOT_YET_IMPLEMENTED` | Static compatibility audit only; v63 contains no prime/GCD route, embedded page fixtures are `NOT_RUN`, and no manifest-bound Rust operator table exists. |
-| Complete semiprime/n-let manifest tables, chart/quantization binding, and canonical conversion/rebuild witnesses | `NOT_YET_IMPLEMENTED` | The current manifest binds only the preliminary exact-index substrate. |
-| Divisor-overlap and adjacent-spin fallback, phase/torsion energy, tie-break trace, and selected support | `NOT_YET_IMPLEMENTED` | Exact I1/I2/IS count union is not geometric-attention qualification. |
+| Exact scaled-H4 binary-icosahedral multiplication/inverse table | `IMPLEMENTED_ALGEBRA_CONTROL` | All 120 roots, 14,400 products, identity, inverses, and associativity close exactly with integer `Z[phi]` arithmetic. This establishes no semantic value. |
+| Exact 64-state SpiralCore v63 `Cl(0,6)` composition/inverse table | `IMPLEMENTED_CONTROL_ONLY` | Deterministic noncommutative table mechanics are bound and reproduced; `OPTIONAL_CONTROL_PENDING`, no semantic claim. The proposed six-prime `J(6,2)` semantic adapter remains unqualified. |
+| Complete semiprime/n-let manifest tables, chart/quantization binding, and canonical conversion/rebuild witnesses | `PASS_COMPLETE_MANIFEST_V2` | #958 schema 2 binds the prime registry, semiprime experts, ordered n-lets, address order, chart/spin/radial fields, indexes, provenance, and strict rebuild witnesses. This is storage/candidate substrate, not semantic-attention evidence. |
+| Frozen schema-2 child, bounded direct/divisor/adjacent-spin candidate union, and exact address-to-payload value view | `IMPLEMENTED_SUBSTRATE` | The fixed #952 contrasts naturally expose both targets below the ceiling of eight, with exact direct rows absent and no target injection or truncation. Candidate reachability is not attention selection. |
+| Reusable order-sensitive route summary and recursive attention scorer | `NOT_IMPLEMENTED` | All non-digest fields across all seven reusable levels collide on the three required earlier-order contrasts. Verdict: `REDESIGN_ORDERED_ROUTE_SUMMARY`; repair is #967. |
 | Layer-29 caller, equal-budget controls, no-Ollama product probe, and teacher comparison | `NOT_YET_IMPLEMENTED` | No deployed or product capability follows from the substrate. |
-| Binding one-worker/four-worker release canary with positive work on every worker and measured four-worker compile-stage improvement | `PASS_SUBSTRATE_SCOPE` | The frozen current-substrate report records 32/32 exact artifact/kappa matches, all four workers active, and 1.498x median compile-stage speedup. The complete manifest is still open and must re-establish this evidence after semantic-input or workload-shape changes. |
+| Binding one-worker/four-worker release canary with positive work on every worker and measured four-worker compile-stage improvement | `PASS_SUBSTRATE_SCOPE` | The frozen schema-2 report records 32/32 exact artifact/kappa matches, all four workers active, and 1.498x median compile-stage speedup. Any later semantic-input or workload-shape change must re-establish this bounded evidence. |
 
 ## Options considered
 

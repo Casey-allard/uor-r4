@@ -15,7 +15,7 @@
 //! define transport between different six-prime charts. The optional operator
 //! chart is metadata until a causal control establishes semantic value.
 
-use std::collections::{BTreeSet, VecDeque};
+use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
 use serde::Serialize;
 
@@ -31,6 +31,10 @@ pub const SIX_PRIME_CHART_SCHEMA: u32 = 1;
 pub const SIX_PRIME_CHART_DOMAIN: &str = "uor-r4.spiralcore-v63-six-prime-chart/1";
 pub const CHART_TRANSPORT_STATUS: &str = "NOT_ESTABLISHED";
 pub const OPERATOR_SEMANTIC_STATUS: &str = "OPTIONAL_CONTROL_PENDING";
+pub const CL06_FINITE_COMPOSITION_SCHEMA: u32 = 1;
+pub const CL06_FINITE_COMPOSITION_DOMAIN: &str = "uor-r4.spiralcore-v63-cl06-finite-composition/1";
+pub const CL06_FINITE_COMPOSITION_KAPPA_REFERENCE: &str =
+    "blake3:f2986c8e68dcb30a9cb511a42547179a87b66ef212a87b728765d03e70e640b0";
 pub const CANONICAL_SIX_PRIME_VALUES: [u32; 6] = [5, 7, 11, 13, 17, 19];
 pub const OCTONION_FANO_CYCLES: [[u8; 3]; 7] = [
     [1, 2, 4],
@@ -46,6 +50,7 @@ const BASIS_DIMENSION: usize = 8;
 const CL06_GENERATOR_COUNT: usize = 6;
 const CL06_BIVECTOR_COUNT: usize = 15;
 const FINITE_GROUP_LIMIT: usize = 512;
+pub const CL06_FINITE_GROUP_ORDER: usize = 64;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SpiralCoreOperatorError {
@@ -364,6 +369,303 @@ pub fn cl06_finite_group() -> Result<Vec<SignedMatrix8>, SpiralCoreOperatorError
         }
     }
     Ok(discovery_order)
+}
+
+/// A complete finite composition table over the exact discovery order returned
+/// by [`cl06_finite_group`]. An entry at `[left][right]` is the index of the
+/// matrix product `states[left] * states[right]`; the operand order is part of
+/// the control contract because this group is noncommutative.
+///
+/// Matrix multiplication is used only while compiling and validating this
+/// table. Once compiled, composition and inversion are bounded integer-indexed
+/// table reads. The table is an optional order-sensitive control and carries no
+/// semantic claim.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Cl06FiniteCompositionTable {
+    states: [SignedMatrix8; CL06_FINITE_GROUP_ORDER],
+    composition_indexes: [[u8; CL06_FINITE_GROUP_ORDER]; CL06_FINITE_GROUP_ORDER],
+    identity_index: u8,
+    inverse_indexes: [u8; CL06_FINITE_GROUP_ORDER],
+    composition_kappa: String,
+}
+
+impl Cl06FiniteCompositionTable {
+    pub fn states(&self) -> &[SignedMatrix8; CL06_FINITE_GROUP_ORDER] {
+        &self.states
+    }
+
+    pub fn composition_indexes(&self) -> &[[u8; CL06_FINITE_GROUP_ORDER]; CL06_FINITE_GROUP_ORDER] {
+        &self.composition_indexes
+    }
+
+    pub const fn identity_index(&self) -> u8 {
+        self.identity_index
+    }
+
+    pub fn inverse_indexes(&self) -> &[u8; CL06_FINITE_GROUP_ORDER] {
+        &self.inverse_indexes
+    }
+
+    pub fn composition_kappa(&self) -> &str {
+        &self.composition_kappa
+    }
+
+    /// Return the exact index of `states[left] * states[right]`.
+    pub fn compose_index(&self, left: u8, right: u8) -> Option<u8> {
+        self.composition_indexes
+            .get(usize::from(left))
+            .and_then(|row| row.get(usize::from(right)))
+            .copied()
+    }
+
+    pub fn inverse_index(&self, state: u8) -> Option<u8> {
+        self.inverse_indexes.get(usize::from(state)).copied()
+    }
+
+    pub fn state(&self, index: u8) -> Option<&SignedMatrix8> {
+        self.states.get(usize::from(index))
+    }
+
+    /// Reproduce the canonical identity of the ordered finite table. The
+    /// identity transitively binds the pre-existing exact operator convention,
+    /// including both left and right action matrices, without changing that
+    /// convention's pinned kappa.
+    pub fn reproduce_kappa(&self) -> Result<String, SpiralCoreOperatorError> {
+        let operator_kappa = spiralcore_operator_kappa()?;
+        let composition_indexes = self
+            .composition_indexes
+            .iter()
+            .map(|row| row.as_slice())
+            .collect();
+        canonical_kappa(&Cl06FiniteCompositionWire {
+            schema: CL06_FINITE_COMPOSITION_SCHEMA,
+            domain: CL06_FINITE_COMPOSITION_DOMAIN,
+            operator_kappa: &operator_kappa,
+            semantic_status: OPERATOR_SEMANTIC_STATUS,
+            group_order: CL06_FINITE_GROUP_ORDER,
+            states: self.states.as_slice(),
+            composition_indexes,
+            identity_index: self.identity_index,
+            inverse_indexes: self.inverse_indexes.as_slice(),
+        })
+    }
+
+    /// Recheck every compiled entry and all finite-group laws without relying
+    /// on floating-point arithmetic or approximate equality.
+    pub fn validate(&self) -> Result<Cl06FiniteCompositionValidation, SpiralCoreOperatorError> {
+        let unique_states = self.states.iter().copied().collect::<BTreeSet<_>>();
+        if unique_states.len() != CL06_FINITE_GROUP_ORDER {
+            return Err(SpiralCoreOperatorError::Invariant(format!(
+                "composition table has {} unique states, expected {CL06_FINITE_GROUP_ORDER}",
+                unique_states.len()
+            )));
+        }
+        if self.state(self.identity_index) != Some(&SignedMatrix8::identity()) {
+            return Err(SpiralCoreOperatorError::Invariant(format!(
+                "composition identity index {} does not name I",
+                self.identity_index
+            )));
+        }
+
+        let mut noncommuting_ordered_pairs = 0usize;
+        for left in 0..CL06_FINITE_GROUP_ORDER {
+            for right in 0..CL06_FINITE_GROUP_ORDER {
+                let product_index = usize::from(self.composition_indexes[left][right]);
+                let Some(product_state) = self.states.get(product_index) else {
+                    return Err(SpiralCoreOperatorError::Invariant(format!(
+                        "composition entry ({left},{right}) names out-of-range state {product_index}"
+                    )));
+                };
+                if self.states[left].checked_mul(self.states[right])? != *product_state {
+                    return Err(SpiralCoreOperatorError::Invariant(format!(
+                        "composition entry ({left},{right}) does not reproduce the exact matrix product"
+                    )));
+                }
+                if self.composition_indexes[left][right] != self.composition_indexes[right][left] {
+                    noncommuting_ordered_pairs += 1;
+                }
+            }
+        }
+        if noncommuting_ordered_pairs == 0 {
+            return Err(SpiralCoreOperatorError::Invariant(
+                "finite composition table unexpectedly commutes".to_owned(),
+            ));
+        }
+
+        let operator_kappa = spiralcore_operator_kappa()?;
+        let reproduced_kappa = self.reproduce_kappa()?;
+        if self.composition_kappa != reproduced_kappa {
+            return Err(SpiralCoreOperatorError::Invariant(format!(
+                "finite composition kappa is {}, expected {reproduced_kappa}",
+                self.composition_kappa
+            )));
+        }
+        if self.composition_kappa != CL06_FINITE_COMPOSITION_KAPPA_REFERENCE {
+            return Err(SpiralCoreOperatorError::Invariant(format!(
+                "finite composition kappa is {}, expected {CL06_FINITE_COMPOSITION_KAPPA_REFERENCE}",
+                self.composition_kappa
+            )));
+        }
+
+        let identity = usize::from(self.identity_index);
+        for state in 0..CL06_FINITE_GROUP_ORDER {
+            if usize::from(self.composition_indexes[identity][state]) != state
+                || usize::from(self.composition_indexes[state][identity]) != state
+            {
+                return Err(SpiralCoreOperatorError::Invariant(format!(
+                    "state {state} does not preserve the two-sided identity"
+                )));
+            }
+
+            let inverse = usize::from(self.inverse_indexes[state]);
+            if inverse >= CL06_FINITE_GROUP_ORDER
+                || usize::from(self.composition_indexes[state][inverse]) != identity
+                || usize::from(self.composition_indexes[inverse][state]) != identity
+            {
+                return Err(SpiralCoreOperatorError::Invariant(format!(
+                    "state {state} has invalid two-sided inverse index {inverse}"
+                )));
+            }
+            let inverse_count = (0..CL06_FINITE_GROUP_ORDER)
+                .filter(|candidate| {
+                    usize::from(self.composition_indexes[state][*candidate]) == identity
+                        && usize::from(self.composition_indexes[*candidate][state]) == identity
+                })
+                .count();
+            if inverse_count != 1 {
+                return Err(SpiralCoreOperatorError::Invariant(format!(
+                    "state {state} has {inverse_count} two-sided inverses, expected exactly one"
+                )));
+            }
+        }
+
+        for first in 0..CL06_FINITE_GROUP_ORDER {
+            for second in 0..CL06_FINITE_GROUP_ORDER {
+                for third in 0..CL06_FINITE_GROUP_ORDER {
+                    let first_second = usize::from(self.composition_indexes[first][second]);
+                    let second_third = usize::from(self.composition_indexes[second][third]);
+                    let left_associated = self.composition_indexes[first_second][third];
+                    let right_associated = self.composition_indexes[first][second_third];
+                    if left_associated != right_associated {
+                        return Err(SpiralCoreOperatorError::Invariant(format!(
+                            "composition is not associative at ({first},{second},{third})"
+                        )));
+                    }
+                }
+            }
+        }
+
+        Ok(Cl06FiniteCompositionValidation {
+            unique_states: unique_states.len(),
+            composition_entries: CL06_FINITE_GROUP_ORDER * CL06_FINITE_GROUP_ORDER,
+            associativity_checks: CL06_FINITE_GROUP_ORDER
+                * CL06_FINITE_GROUP_ORDER
+                * CL06_FINITE_GROUP_ORDER,
+            two_sided_inverses: CL06_FINITE_GROUP_ORDER,
+            noncommuting_ordered_pairs,
+            identity_index: self.identity_index,
+            operator_kappa,
+            composition_kappa: self.composition_kappa.clone(),
+        })
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Cl06FiniteCompositionValidation {
+    pub unique_states: usize,
+    pub composition_entries: usize,
+    pub associativity_checks: usize,
+    pub two_sided_inverses: usize,
+    pub noncommuting_ordered_pairs: usize,
+    pub identity_index: u8,
+    pub operator_kappa: String,
+    pub composition_kappa: String,
+}
+
+#[derive(Serialize)]
+struct Cl06FiniteCompositionWire<'a> {
+    schema: u32,
+    domain: &'static str,
+    operator_kappa: &'a str,
+    semantic_status: &'static str,
+    group_order: usize,
+    states: &'a [SignedMatrix8],
+    composition_indexes: Vec<&'a [u8]>,
+    identity_index: u8,
+    inverse_indexes: &'a [u8],
+}
+
+/// Compile the exact 64-state SpiralCore control into an integer-indexed
+/// composition table. State ordering is deterministic breadth-first discovery
+/// from `I` through the existing lexicographically ordered left bivectors.
+pub fn cl06_finite_composition_table() -> Result<Cl06FiniteCompositionTable, SpiralCoreOperatorError>
+{
+    let states: [SignedMatrix8; CL06_FINITE_GROUP_ORDER] =
+        cl06_finite_group()?.try_into().map_err(|states: Vec<_>| {
+            SpiralCoreOperatorError::Invariant(format!(
+                "finite bivector group has {} states, expected {CL06_FINITE_GROUP_ORDER}",
+                states.len()
+            ))
+        })?;
+    let mut state_indexes = BTreeMap::new();
+    for (index, state) in states.iter().enumerate() {
+        if state_indexes.insert(*state, index as u8).is_some() {
+            return Err(SpiralCoreOperatorError::Invariant(format!(
+                "finite bivector group repeats state {index}"
+            )));
+        }
+    }
+    let identity_index = *state_indexes
+        .get(&SignedMatrix8::identity())
+        .ok_or_else(|| {
+            SpiralCoreOperatorError::Invariant(
+                "finite bivector group omits the identity".to_owned(),
+            )
+        })?;
+
+    let mut composition_indexes = [[0u8; CL06_FINITE_GROUP_ORDER]; CL06_FINITE_GROUP_ORDER];
+    for (left_index, left) in states.iter().enumerate() {
+        for (right_index, right) in states.iter().enumerate() {
+            let product = left.checked_mul(*right)?;
+            composition_indexes[left_index][right_index] =
+                *state_indexes.get(&product).ok_or_else(|| {
+                    SpiralCoreOperatorError::Invariant(format!(
+                        "finite bivector group is not closed at ({left_index},{right_index})"
+                    ))
+                })?;
+        }
+    }
+
+    let identity = usize::from(identity_index);
+    let mut inverse_indexes = [0u8; CL06_FINITE_GROUP_ORDER];
+    for (state, inverse_index) in inverse_indexes.iter_mut().enumerate() {
+        let mut inverse = None;
+        for candidate in 0..CL06_FINITE_GROUP_ORDER {
+            if usize::from(composition_indexes[state][candidate]) == identity
+                && usize::from(composition_indexes[candidate][state]) == identity
+            {
+                if inverse.replace(candidate as u8).is_some() {
+                    return Err(SpiralCoreOperatorError::Invariant(format!(
+                        "state {state} has multiple two-sided inverses"
+                    )));
+                }
+            }
+        }
+        *inverse_index = inverse.ok_or_else(|| {
+            SpiralCoreOperatorError::Invariant(format!("state {state} has no two-sided inverse"))
+        })?;
+    }
+
+    let mut table = Cl06FiniteCompositionTable {
+        states,
+        composition_indexes,
+        identity_index,
+        inverse_indexes,
+        composition_kappa: String::new(),
+    };
+    table.composition_kappa = table.reproduce_kappa()?;
+    table.validate()?;
+    Ok(table)
 }
 
 type WideMatrix8 = [[i16; BASIS_DIMENSION]; BASIS_DIMENSION];
@@ -878,4 +1180,85 @@ pub fn validate_spiralcore_v63_operator(
         killing_diagonal: -32,
         operator_kappa,
     })
+}
+
+#[cfg(test)]
+mod finite_composition_table_tests {
+    use super::*;
+
+    #[test]
+    fn exact_finite_composition_table_is_complete_associative_and_ordered() {
+        let table = cl06_finite_composition_table().expect("exact finite composition table");
+        let report = table.validate().expect("complete group-law validation");
+
+        assert_eq!(report.unique_states, CL06_FINITE_GROUP_ORDER);
+        assert_eq!(report.composition_entries, 64 * 64);
+        assert_eq!(report.associativity_checks, 64 * 64 * 64);
+        assert_eq!(report.two_sided_inverses, CL06_FINITE_GROUP_ORDER);
+        assert!(report.noncommuting_ordered_pairs > 0);
+        assert_eq!(report.identity_index, 0);
+        assert_eq!(report.operator_kappa, spiralcore_operator_kappa().unwrap());
+        assert_eq!(report.composition_kappa, table.composition_kappa());
+        assert_eq!(table.composition_kappa(), table.reproduce_kappa().unwrap());
+        assert_eq!(
+            table.composition_kappa(),
+            CL06_FINITE_COMPOSITION_KAPPA_REFERENCE
+        );
+        assert_eq!(
+            table.state(report.identity_index),
+            Some(&SignedMatrix8::identity())
+        );
+        assert_eq!(
+            table.states().as_slice(),
+            cl06_finite_group()
+                .expect("existing finite group")
+                .as_slice()
+        );
+
+        for state in 0..CL06_FINITE_GROUP_ORDER as u8 {
+            let inverse = table.inverse_index(state).expect("bounded state index");
+            assert_eq!(
+                table.compose_index(state, inverse),
+                Some(table.identity_index())
+            );
+            assert_eq!(
+                table.compose_index(inverse, state),
+                Some(table.identity_index())
+            );
+        }
+
+        let (left, right) = (0..CL06_FINITE_GROUP_ORDER as u8)
+            .find_map(|left| {
+                (0..CL06_FINITE_GROUP_ORDER as u8).find_map(|right| {
+                    (table.compose_index(left, right) != table.compose_index(right, left))
+                        .then_some((left, right))
+                })
+            })
+            .expect("the exact finite group is noncommutative");
+        let left_then_right = table
+            .compose_index(left, right)
+            .expect("bounded composition indexes");
+        let right_then_left = table
+            .compose_index(right, left)
+            .expect("bounded composition indexes");
+        assert_ne!(left_then_right, right_then_left);
+        assert_eq!(
+            table.state(left_then_right),
+            Some(
+                &table
+                    .state(left)
+                    .expect("left state")
+                    .checked_mul(*table.state(right).expect("right state"))
+                    .expect("exact signed matrix product")
+            )
+        );
+        assert_eq!(table.compose_index(CL06_FINITE_GROUP_ORDER as u8, 0), None);
+        assert_eq!(table.inverse_index(CL06_FINITE_GROUP_ORDER as u8), None);
+        assert_eq!(table.state(CL06_FINITE_GROUP_ORDER as u8), None);
+        assert_eq!(
+            table,
+            cl06_finite_composition_table().expect("deterministic recompile")
+        );
+        assert_eq!(OPERATOR_SEMANTIC_STATUS, "OPTIONAL_CONTROL_PENDING");
+    }
 }

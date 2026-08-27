@@ -6,8 +6,9 @@ Guidance for agents (human or otherwise) working in this repository.
 The geometric causal decoder plan, prior S0–S7 completion plan, and
 graph-compiler implementation plan are retained as historical
 engineering/evidence records; none decides what is built next. Native GitHub
-relationships now mirror the programme: #961 is the sole active successor,
-followed by #952–#955 and #962–#965. Terminology lives in
+relationships now mirror the programme: #961 closed with reversible S0 state,
+#952 stopped at `REDESIGN_ORDERED_ROUTE_SUMMARY`, and narrow repair #967 now
+precedes #953–#955 and #962–#965. Terminology lives in
 `docs/transformerless/GLOSSARY.md`. Keep this file current when conventions
 change.
 
@@ -148,11 +149,15 @@ PR (a bump can shift libm-sensitive teacher logprobs — see Gate E below).
 
 ## Active product and research rules
 
-- Follow the reconciled #820 dependency chain. #961 owns active GI-1/S0 lexical
-  geometry; #952 begins only after #961 and owns recursive attention, not
-  layerwise source replacement. #953–#955 then own inference, correctness, and
-  reasoning; #962–#965 own product integration, optimization, formal closure,
-  and release.
+- Follow the reconciled #820 dependency chain. #961 closed GI-1/S0 lexical
+  geometry at reversible-state scope. #952's A1.0 gate preserved candidate and
+  value reachability but stopped before a scorer because the reusable
+  non-digest summaries erase earlier order. #967 owns only the associative
+  ordered-summary repair and candidate-relative re-probe. #953–#955 remain
+  blocked behind it: #953 owns bounded source-free library/CLI generation,
+  followed by correctness and reasoning. #962 owns durable multi-turn CLI/HTTP
+  chat, persistence, isolation, and hive-memory; #963–#965 then own
+  optimization, formal closure, and release.
 - Sequence strictly: lexical/address plumbing → recursive attention →
   source-free grammatical inference/generation → correctness/abstention →
   reasoning → optimization/purity/release.
@@ -331,7 +336,7 @@ CIDs before loading teacher weights.
   graph lane
   (`uor-r4-graph-format::ScoreQ` wire newtype; `uor-r4-core::score_q::ScoreQ`
   with compiler-side f32 conversions). Do not add a third or prioritize their
-  consolidation ahead of the active #961 → #952 product sequence.
+  consolidation ahead of the active #967 ordered-summary repair.
 
 ## Long-run discipline (process amendment, 2026-08-06)
 

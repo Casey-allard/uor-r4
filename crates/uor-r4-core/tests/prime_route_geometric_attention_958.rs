@@ -3,14 +3,13 @@ use std::num::{NonZeroU16, NonZeroUsize};
 
 use uor_r4_core::prime_route_attention::{
     compile_spin_manifest, GeometricAddress, ManifestProvenance, PhaseQ29, PrimeAtom,
-    PrimeRegistry, RouteSentence, SemanticAtom, SpinTorsionState, UnitS3Q30, ZPhi,
-    ZeroPowerBridge,
+    PrimeRegistry, RouteSentence, SemanticAtom, SpinTorsionState, UnitS3Q30, ZPhi, ZeroPowerBridge,
 };
 use uor_r4_core::prime_route_geometric_attention::{
     AttentionCandidateTrace, AttentionControl, AttentionGeometryIntervention, AttentionRowKey,
-    AttentionRowSource, AttentionSupportAdmission, CausalAttentionState, GeometricAttentionArtifact,
-    ATTENTION_ADJACENT_SPIN_ROWS, ATTENTION_MAX_CANDIDATE_ENTRIES_PER_QUERY,
-    ATTENTION_ROWS_PER_QUERY, ATTENTION_ZETA_CHANNELS,
+    AttentionRowSource, AttentionSupportAdmission, CausalAttentionState,
+    GeometricAttentionArtifact, ATTENTION_ADJACENT_SPIN_ROWS,
+    ATTENTION_MAX_CANDIDATE_ENTRIES_PER_QUERY, ATTENTION_ROWS_PER_QUERY, ATTENTION_ZETA_CHANNELS,
 };
 
 fn label(seed: &str) -> String {
@@ -162,10 +161,10 @@ fn state(
 ) -> CausalAttentionState {
     attention
         .causal_state_from_history(
-        &history
-            .iter()
-            .map(|address| (*address).clone())
-            .collect::<Vec<_>>(),
+            &history
+                .iter()
+                .map(|address| (*address).clone())
+                .collect::<Vec<_>>(),
         )
         .unwrap()
 }
@@ -307,10 +306,16 @@ fn last_one_last_two_and_ordered_sentence_interventions_are_observable() {
     let (attention, routes) = fixture(8);
 
     let from_p = attention
-        .query(&state(&attention, &[&routes.p]), AttentionControl::CountOnly)
+        .query(
+            &state(&attention, &[&routes.p]),
+            AttentionControl::CountOnly,
+        )
         .unwrap();
     let from_q = attention
-        .query(&state(&attention, &[&routes.q]), AttentionControl::CountOnly)
+        .query(
+            &state(&attention, &[&routes.q]),
+            AttentionControl::CountOnly,
+        )
         .unwrap();
     assert!(candidate(&from_p, &routes.x).source_counts.last_one > 0);
     assert_eq!(candidate(&from_p, &routes.y).source_counts.last_one, 0);
