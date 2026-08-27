@@ -27,8 +27,10 @@ assumptions, or objectives rather than measured results.
 > `PROCEED_TO_I1_WITH_CAUSAL_R4_PATH_ATTENTION`. #953 then implemented the first
 > bounded provider-free decode/render/append loop, but its exact
 > rank-preserving lexical-relabel smoke terminated
-> `REVISE_I1_GENERATOR_IN_PLACE`. #953 remains active; #973 and #954 remain
-> blocked. Legacy
+> `REVISE_I1_GENERATOR_IN_PLACE`. Its frozen natural agreement follow-up then
+> stopped at support admission before H4 selection because adjacent-spin
+> fallback expanded the exact direct-plus-divisor unions to five candidates.
+> #953 remains active; #973 and #954 remain blocked. Legacy
 > tracker #949 is closed as superseded, and #958 is retained directly beneath
 > #820 as GI-0 foundation. Two
 > current-summary corrections remain important: **#784** found
@@ -163,6 +165,20 @@ assumptions, or objectives rather than measured results.
 > is real partial implementation, but #953 remains open and #973 remains
 > blocked. See the
 > [#953 record](local_geometric_generation_953.md).
+>
+> **#953 natural agreement support preflight, 2026-08-27.** One exact shared
+> construction input froze `one athlete near athletes generally -> still runs`
+> against `athletes near one athlete generally -> still run`. The support-only
+> preflight found identical left/right work but not the frozen union: one
+> adjacent-spin row expanded `{still}` to
+> `{athlete,generally,run,runs,still}` (8 entries, 25 prospective comparisons)
+> and likewise expanded the decisive `{run,runs}` step to the same five-unit
+> union (11 entries, 30 prospective comparisons). Record kappa:
+> `blake3:70375921e267b5ceff2198f879356cfb42dd6907accc0c2b720fc8b89b59b271`.
+> H4 costs and all four generator arms are `NOT_RUN_SUPPORT_PREFLIGHT_HARD_STOP`.
+> The terminal remains `REVISE_I1_GENERATOR_IN_PLACE`; the localized next
+> hypothesis is a primary tier of direct plus divisor support, with
+> adjacent-spin rows only when that primary tier is empty.
 
 The current quality-baseline reconciliation is recorded by #933 and the
 [append-only #934 genealogy](canonical_quality_baseline_934.md). The historical
@@ -942,8 +958,11 @@ through protected PR #972. #969's mechanism-first result decoded `rr ll` versus
 first choices using non-identity retained prefixes. It records
 `PROCEED_TO_I1_WITH_CAUSAL_R4_PATH_ATTENTION`. #953 has implemented its core
 loop but records `REVISE_I1_GENERATOR_IN_PLACE` because the initial smoke is an
-exact lexical relabel of #969 rather than an incompatible natural contrast.
-#953 remains open; #973 remains blocked by #953 and continues to block #954.
+exact lexical relabel of #969 rather than an incompatible natural contrast. Its
+next frozen agreement contrast stopped at admission before H4 selection when
+adjacent-spin fallback expanded exact direct-plus-divisor support to five
+candidates. #953 remains open; #973 remains blocked by #953 and continues to
+block #954.
 #955 invokes the eventual accepted
 #969/#953/#973/#954 path; #962 integrates that path into product chat with
 persisted identity-scoped hive memory. #963 retains measured cost; #964 binds

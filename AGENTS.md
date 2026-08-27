@@ -17,8 +17,11 @@ route-attention mechanism and one matched two-unit decoded smoke at
 bounded provider-free decode/render/append loop, but its initial smoke was an
 exact rank-preserving lexical relabel of #969 and terminated
 `REVISE_I1_GENERATOR_IN_PLACE`: it did not supply incompatible natural choices
-or qualify grammar. #953 remains active and #973 remains blocked, followed by
-#954–#955 → #962–#965.
+or qualify grammar. A separately frozen natural agreement revision then stopped
+before H4 selection because adjacent-spin fallback expanded the exact direct
+plus divisor support to five candidates. #953 remains active for the smallest
+tiered admission repair: direct plus divisor primary, adjacent-spin only when
+that tier is empty. #973 remains blocked, followed by #954–#955 → #962–#965.
 Terminology lives in
 `docs/transformerless/GLOSSARY.md`. Keep this file current when conventions
 change.
@@ -196,10 +199,14 @@ PR (a bump can shift libm-sensitive teacher logprobs — see Gate E below).
   #969 then delivered one causal R4/S3 least-cost route-attention mechanism and
   one matched decoded smoke. #953 has implemented a bounded source-free
   library/CLI decode/render/append loop, but its rank-preserving relabel smoke
-  terminated `REVISE_I1_GENERATOR_IN_PLACE`. #953 still owns a genuinely
-  predeclared natural grammar contrast; #973 remains blocked and later owns
-  paragraph/conversation/global qualification. #954 and #955 own correctness
-  and reasoning.
+  terminated `REVISE_I1_GENERATOR_IN_PLACE`. Its next frozen natural agreement
+  contrast stopped at support preflight when broad adjacent-spin fallback
+  contaminated non-empty direct-plus-divisor support; H4 selection was
+  `NOT_RUN`. #953 owns
+  the smallest tiered admission repair—direct plus divisor primary,
+  adjacent-spin only on an empty primary tier; #973 remains blocked and later
+  owns paragraph/conversation/global qualification. #954 and #955 own
+  correctness and reasoning.
   #962 owns durable multi-turn CLI/HTTP chat, persistence, isolation, and
   hive-memory; #963–#965 then own optimization, formal closure, and release.
 - Sequence strictly: lexical/address plumbing → local route attention →

@@ -101,10 +101,12 @@ mechanism and a matched two-unit decoded smoke at
 `PROCEED_TO_I1_WITH_CAUSAL_R4_PATH_ATTENTION`. #953 implemented the first
 bounded provider-free decode/render/append loop, but its initial smoke was an
 exact rank-preserving lexical relabel of #969 and terminated
-`REVISE_I1_GENERATOR_IN_PLACE`. #953 remains active; #973 remains blocked and
-later owns paragraph, conversation, and global qualification through an
-accepted #953 loop. #962 separately owns product chat integration and
-persisted, identity-scoped hive memory.
+`REVISE_I1_GENERATOR_IN_PLACE`. Its frozen natural agreement follow-up stopped
+at support admission before H4 selection because adjacent-spin fallback
+expanded exact direct-plus-divisor support to five candidates. #953 remains
+active; #973 remains blocked and later owns paragraph, conversation, and global
+qualification through an accepted #953 loop. #962 separately owns product chat
+integration and persisted, identity-scoped hive memory.
 
 ## Architecture invariants
 
@@ -771,9 +773,13 @@ rank, output rank, and cost reproduces #969 under a lexical relabel. Because no
 contextual row hits and neither prompt naturally requires one adverb over the
 other, the smoke cannot qualify grammar. #953 therefore records
 `REVISE_I1_GENERATOR_IN_PLACE`; see the
-[#953 record](local_geometric_generation_953.md). #953 remains open for one
-independently motivated grammatical contrast frozen before selection. #973
-remains blocked.
+[#953 record](local_geometric_generation_953.md). A subsequent independently
+motivated agreement contrast was frozen before selection. Its support preflight
+found the intended direct candidates but an adjacent-spin fallback row expanded
+both steps to five candidates, so H4 selection and all four generator arms were
+`NOT_RUN_SUPPORT_PREFLIGHT_HARD_STOP`. #953 remains open for the smallest
+tiered admission repair: direct plus divisor primary, adjacent-spin only when
+that tier is empty. #973 remains blocked.
 
 ### GI-2 A1Q-H / #973 — paragraph, conversation, and global attention
 

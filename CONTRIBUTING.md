@@ -107,9 +107,12 @@ The experiment must be able to change the next programme decision:
   structural. A1Q-L/#969 subsequently qualified one local causal R4/S3 path
   selector. GI-3/#953 implemented bounded provider-free library/CLI loop
   plumbing, but its rank-preserving relabel smoke terminated
-  `REVISE_I1_GENERATOR_IN_PLACE`. #953 remains active and A1Q-H/#973 remains
-  blocked; GI-4/#954 and GI-5/#955 remain downstream. Do not promote the #953
-  plumbing into their claims.
+  `REVISE_I1_GENERATOR_IN_PLACE`. A frozen natural agreement follow-up stopped
+  before H4 selection because adjacent-spin fallback contaminated non-empty
+  direct-plus-divisor support. #953 remains active for a tiered admission repair
+  that uses adjacent-spin only when the primary tier is empty, and A1Q-H/#973
+  remains blocked; GI-4/#954 and GI-5/#955 remain
+  downstream. Do not promote the #953 plumbing into their claims.
 - **Exercise the real route path.** Geometry must run before token choice and
   emit its admitted support and energy trace. Add a global-context coverage
   witness when the active issue, beginning with #973, activates higher scopes.

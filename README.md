@@ -17,7 +17,9 @@ target serving engine uses no Ollama, hosted model, or source-model weights.
 > **Honest status:** the geometric storage/identity foundation, one bounded
 > causal R4/S3 path selector, and reusable provider-free decode/render/append
 > plumbing exist. The first #953 smoke was an exact lexical relabel of #969, so
-> it did not qualify a natural grammar loop and terminated for direct revision.
+> it did not qualify a natural grammar loop. A frozen agreement follow-up then
+> stopped before H4 selection because broad fallback rows contaminated its exact
+> direct-plus-divisor support; #953 remains at direct revision.
 > Higher-scope attention, correct answers, and reasoning do not exist yet. The
 > dashboard is an interactive window into the research substrate, not a
 > frontier model or a ChatGPT replacement.
@@ -158,7 +160,9 @@ corrected paired-H4-derived exact R4-heatmap gate stopped at bounded readout
 identifiability without searching another scalar. #969 then qualified one local
 causal path selector, and #953 implemented the first bounded decoded
 library/CLI plumbing. Its relabelled smoke terminated
-`REVISE_I1_GENERATOR_IN_PLACE`; #953 remains open and #973 remains blocked.
+`REVISE_I1_GENERATOR_IN_PLACE`; its frozen agreement follow-up stopped at
+support admission before H4 selection. #953 remains open and #973 remains
+blocked.
 Stored H4/Hopf/zeta/icosian and related route fields remain
 structural state, diagnostics, or controls unless the owning stage qualifies a
 specific term.

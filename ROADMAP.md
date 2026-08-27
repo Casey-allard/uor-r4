@@ -15,8 +15,9 @@ PR #972; #969 delivered one causal R4/S3 least-cost route-attention mechanism
 and matched two-unit decoded smoke at
 `PROCEED_TO_I1_WITH_CAUSAL_R4_PATH_ATTENTION`; #953 implemented the first
 bounded provider-free loop, but its exact rank-preserving relabel smoke
-terminated `REVISE_I1_GENERATOR_IN_PLACE`; #953 remains active and #973 remains
-blocked)._
+terminated `REVISE_I1_GENERATOR_IN_PLACE`. Its frozen natural agreement
+follow-up then stopped at support admission before H4 selection; #953 remains
+active and #973 remains blocked)._
 
 > **Project priority:** build source-free geometric intelligence in which the
 > route is the data location. A pinned lexical codec supplies text boundaries;
@@ -139,8 +140,13 @@ Native GitHub relationships are the source of truth:
    #969. Because neither prompt requires one adverb over the other, the record
    terminates `REVISE_I1_GENERATOR_IN_PLACE` at
    `blake3:f8738ae16585b5817108ad6c8bc1ec7aee93f9d5a6cacffaa3aa084bb643cf72`.
-   #953 remains active for one independently motivated natural contrast frozen
-   before selection. See the [#953 record](docs/local_geometric_generation_953.md).
+   The next independently motivated agreement contrast was frozen before
+   selection, but its support-only preflight admitted five candidates through
+   adjacent-spin fallback instead of exact `{still}` then `{run,runs}`. H4 and
+   all four generator arms were `NOT_RUN`. #953 remains active for the smallest
+   tiered admission repair: direct plus divisor primary, adjacent-spin only when
+   that tier is empty. See the
+   [#953 record](docs/local_geometric_generation_953.md).
 7. **GI-2 A1Q-H / #973 — higher-scope attention:** after accepted #969 and
    #953, test paragraph, conversation, and bounded global state through the
    real decoded loop. Those scopes remain serialized but inert before #973.
@@ -166,9 +172,10 @@ is closed. #952's terminal negative evidence is preserved in
 protected PR #972 with its bounded heatmap-readout negative. #969's
 mechanism-first prototype reached its positive bounded terminal. #953's loop
 plumbing is implemented, but its first smoke terminated
-`REVISE_I1_GENERATOR_IN_PLACE`; #953 remains open and #973 remains blocked. The
-live chain is closed #970 → closed #969 → open #953 → blocked #973 → blocked
-#954 → #955 → #962–#965.
+`REVISE_I1_GENERATOR_IN_PLACE` and its frozen agreement follow-up stopped at
+support admission before H4 selection; #953 remains open and #973 remains
+blocked. The live chain is closed #970 → closed #969 → open #953 → blocked #973
+→ blocked #954 → #955 → #962–#965.
 Legacy tracker #949 is closed as
 superseded; #958 is retained directly under programme root #820 as GI-0
 foundation.
@@ -186,8 +193,11 @@ historical evidence and comparators.
   short cycle, and deterministic replay. Its natural surfaces are nonetheless
   an exact rank-preserving relabel of #969, so it supplies no incompatible
   linguistic requirement and cannot qualify grammar or expose #973. The next
-  #953 action is one independently motivated grammatical contrast frozen
-  without inspecting H4 outcomes. See the
+  frozen agreement contrast found the direct `{still}` then `{run,runs}` rows,
+  but unconditional adjacent-spin fallback expanded both unions to five
+  candidates. Its four H4 arms were `NOT_RUN`; the next #953 action is the
+  smallest tiered admission repair—direct plus divisor primary, adjacent-spin
+  only when that tier is empty. See the
   [#953 record](docs/local_geometric_generation_953.md).
 
 ## Landed
@@ -305,7 +315,8 @@ historical evidence and comparators.
   the bounded paired-H4-derived exact R4-heatmap readout non-identifiable on its
   frozen union. #969 then qualified one local causal selector, and #953 has
   implemented its decoded-loop plumbing. The first #953 natural smoke was an
-  exact lexical relabel and remains at direct revision; #973 is still blocked.
+  exact lexical relabel; its frozen agreement follow-up stopped at admission
+  before H4 selection and remains at direct revision. #973 is still blocked.
   Coherent product behavior, correctness, and reasoning remain unestablished.
   Historical canaries and pointwise results remain scoped evidence, not a
   claim that the current product works. See

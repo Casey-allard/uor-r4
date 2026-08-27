@@ -202,3 +202,147 @@ kappa reproduction, Gate C, audit, fuzz, formal proof, conformance, product QA,
 and release qualification were `NOT_RUN`. Protected queue checks are transport
 acknowledgements at this research stage and are not local or release-QA PASS
 evidence.
+
+## Natural agreement revision — pre-selection freeze
+
+This append-only revision freezes one independently motivated
+agreement-attractor contrast before any H4 path cost or selection is opened.
+At this checkpoint the selection-blind support preflight and all four selector
+arms are `NOT_RUN`; the identities below were produced only by canonical codec,
+artifact, and schema-2 manifest compilation.
+
+One exact `ConversationInput` is shared by codec compilation and artifact
+ingestion. Its identity scope is `issue-953/natural-agreement-v1`, its sole turn
+is `turn-0001`, its global snapshot is the registration-only unit `near`, and
+its ordered construction sentences are:
+
+```text
+athletes generally still run
+one athlete generally still runs
+```
+
+The exact matched prompts, frozen expected continuations, and cap are:
+
+```text
+left:      one athlete near athletes generally
+expected:  still runs
+
+right:     athletes near one athlete generally
+expected:  still run
+
+continuation cap: 2
+controls: full_path | state_disabled
+failure terminal: REVISE_I1_GENERATOR_IN_PLACE
+```
+
+The two prompts contain the same five-unit multiset. Both must first admit and
+emit only `still`; after that append, the decisive query has the identical
+suffix `generally still` and candidate union `{run, runs}`. No lexical surface,
+registration set, observation order, scope ID, global snapshot, prompt,
+expected output, cap, rank, prime, spin sector, H4 coordinate, label, or support
+budget may change after selection is observed.
+
+The exact fixture contains eight distinct registered surfaces: seven
+construction lexemes plus global-only `near`. Each completed arm contains seven
+observed route occurrences: five prompt routes plus two emitted routes. This
+preserves the complete requested construction while making the registry/trace
+count distinction explicit.
+
+| Frozen object | Kappa |
+|---|---|
+| Natural agreement fixture | `blake3:0e018c9bcd43a29ed6f043665b2646c9579dd31d881d331f198fb89543184259` |
+| Canonical lexical codec | `blake3:6db64540ef344562903e01adac102f7bcc96c65908d162b1deca9b83550b35ed` |
+| Canonical vocabulary | `blake3:3b74f7ace425c039b4eab751b400f2603d92baf4ccfc9f4b8ac9409446291b58` |
+| Natural construction artifact | `blake3:b222510ccc01ed3257c8b38b743ca771f5e60c87ebf12c565f92fadbbd00332d` |
+| Embedded/compiled attention manifest | `blake3:1c3baf432b9fdcf2f3d90014797a5cae5850c0acba2fda63e0d6b659d49562de` |
+
+The frozen selection-blind preflight contract is:
+
+| Step | Rows | Entries | Candidate union | Per-candidate source counts `(I1,I2,IS,D,AS)` | Keys/candidate | Declared H4 comparisons |
+|---:|---:|---:|---|---|---:|---:|
+| prompt to `still` | 7 | 3 | `{still}` | `still=(2,1,0,2,0)` | 5 | 5 |
+| after frozen append `still` | 7 | 6 | `{run,runs}` | each `(1,1,0,1,0)` | 6 | 12 |
+
+Both prompts must have the same candidate counts, source counts, and work shape;
+no truncation or adjacent-spin contribution is allowed. The preflight uses a
+support-only API but projects only row source/hit/count/admission data and never
+inspects or logs row keys. The trace carries no measured candidate energy, H4
+state, path cost, or selected candidate. The declared H4 comparisons are count
+arithmetic only (`admitted candidates * observed routes`). Any mismatch
+stops this revision at `REVISE_I1_GENERATOR_IN_PLACE` before path selection.
+
+If and only if that preflight passes unchanged, the generator may run once in
+the four frozen arms, followed only by a complete replay for byte identity. A
+positive terminal requires both full-path expected continuations, prompt-inert
+disabled decisive behavior, matched support/work, exact inversion and append,
+cap termination, no short cycle, source/provider closure, and deterministic
+report bytes. Even a positive result would establish only this bounded
+source-free geometric agreement witness, not broad grammar, coherent language,
+semantics, correctness, attention in general, or reasoning.
+
+## Natural agreement revision — support hard stop
+
+The frozen support-only preflight was executed after the checkpoint above. Its
+support/work steps reproduced identically across the two matched prompts, but
+they failed the declared shape before any H4 path selection:
+
+- support preflight record:
+  `blake3:70375921e267b5ceff2198f879356cfb42dd6907accc0c2b720fc8b89b59b271`;
+- left/right support and work: identical;
+- truncation: none (`5` candidates below the ceiling of `8`);
+- H4 path costs, selector outputs, and all four generator arms: `NOT_RUN`; and
+- terminal: `REVISE_I1_GENERATOR_IN_PLACE`.
+
+The observed count-only support was:
+
+| Step | Rows | Entries | Candidate union | Per-candidate source counts `(I1,I2,IS,D,AS)` | Adjacent-spin rows hit | Keys/candidate | Declared H4 comparisons |
+|---:|---:|---:|---|---|---:|---:|---:|
+| prompt | 7 | 8 | `{athlete,generally,run,runs,still}` | `athlete=(0,0,0,0,1)`; `generally=(0,0,0,0,2)`; `run=(0,0,0,0,1)`; `runs=(0,0,0,0,1)`; `still=(2,1,0,2,2)` | 1 | 5 | 25 |
+| after frozen `still` append | 7 | 11 | `{athlete,generally,run,runs,still}` | `athlete=(0,0,0,0,1)`; `generally=(0,0,0,0,2)`; `run=(1,1,0,1,1)`; `runs=(1,1,0,1,1)`; `still=(0,0,0,0,2)` | 1 | 6 | 30 |
+
+This is an admission/indexing failure, not a geometric-ranking result. One
+adjacent-spin row admitted four extra lexical surfaces at the first step and
+retained three extra surfaces at the decisive step. Although the direct and
+divisor rows gave the frozen candidates their expected counts, the current
+union merges those rows with broad adjacent-spin fallback support before the
+candidate ceiling. Consequently the generator never reached its shared-prefix
+bridge or decisive agreement choice, and no statement can be made about the
+H4 path metric on this fixture.
+
+The single recommended next hypothesis is the smallest contract-preserving
+direct-row-first admission seam: make I1/I2/ordered-sentence rows plus divisor
+the primary tier, preserving the frozen direct and divisor counts, and consult
+adjacent-spin rows only when that primary tier is empty. That hypothesis must
+preserve this exact frozen fixture, give the tier policy a visible trace/policy
+identity, and rerun its support gate before any later H4 selection. It is
+recorded for the next #953 revision only; implementing or tuning it after this
+result was not authorized in this session. The original trigram/Markov
+generator remains dormant and is not the proposed mechanism.
+
+A future tiered trace must distinguish a row slot/key, whether it was
+consulted, whether a physical row existed, and how many entries were admitted.
+It cannot relabel the physically present adjacent-spin row as a miss or silently
+reinterpret the old seven-row/entry fields. Any revised work contract and query
+policy identity must be frozen before that repair is exercised.
+
+### Natural agreement revision verification
+
+Focused local checks exercised only the changed seam and directly implicated
+regressions:
+
+- the natural-agreement integration target passed its identity and negative
+  support-record tests; its four-arm witness was ignored with
+  `NOT_RUN_SUPPORT_PREFLIGHT_HARD_STOP`;
+- the existing #953 relabel regression, the #969 two-unit causal-path
+  regression, and all eight #958 attention regressions passed;
+- focused core compilation, the root WASM library check, formatting,
+  diff-whitespace, and claim wording passed; and
+- a focused strict-clippy attempt reached existing main-line lint debt outside
+  the changed paths. Repeating the same target while allowing only those five
+  pre-existing lint categories passed; no unrelated lint cleanup was included.
+
+Workspace-wide tests, corpus/model/teacher work, generation canaries, BDD,
+Gate C, kappa reproduction, audit, fuzz, formal proof, conformance, product QA,
+and release qualification were `NOT_RUN`. Repository-required checks remain
+transport acknowledgements while product QA is dormant; they are not test or
+release evidence.

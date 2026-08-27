@@ -214,6 +214,28 @@ pub struct AttentionCandidateTrace {
     pub geometry_source_next: GeometricAddress,
 }
 
+/// One naturally admitted continuation before any geometric field is read.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AttentionSupportCandidateTrace {
+    pub next: GeometricAddress,
+    pub source_counts: AttentionSourceCounts,
+}
+
+/// Pre-selection result of the bounded seven-row candidate lookup. This trace
+/// ends after count/source-breadth admission and canonical ordering: it carries
+/// no measured candidate energy, H4 state, path cost, or selected candidate.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AttentionSupportTrace {
+    pub manifest_kappa: String,
+    pub rows_read: Vec<AttentionRowRead>,
+    pub candidate_entries_examined: usize,
+    pub candidate_entry_ceiling: usize,
+    pub unique_candidates_before_ceiling: usize,
+    pub candidate_ceiling: usize,
+    pub support_admission: AttentionSupportAdmission,
+    pub candidates: Vec<AttentionSupportCandidateTrace>,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct GeometricAttentionTrace {
     pub manifest_kappa: String,
@@ -283,8 +305,8 @@ pub struct PathLeaseCandidateTrace {
 }
 
 /// API-neutral select-or-abstain trace for the first causal R4/S3 attention
-/// mechanism. `support` is the unchanged schema-2 bounded row union. Its
-/// count-only selection is diagnostic and does not participate in `selected`.
+/// mechanism. `support` is the unchanged pre-selection schema-2 bounded row
+/// union and carries no candidate energy or selection of its own.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PathLeaseAttentionTrace {
     pub manifest_kappa: String,
@@ -292,7 +314,7 @@ pub struct PathLeaseAttentionTrace {
     pub observed_routes: u8,
     pub memory_keys_per_candidate: usize,
     pub path_geometry_evaluations: usize,
-    pub support: GeometricAttentionTrace,
+    pub support: AttentionSupportTrace,
     pub candidates: Vec<PathLeaseCandidateTrace>,
     pub minimum_cost: Option<PathLeaseCost>,
     pub tie: bool,
@@ -826,22 +848,15 @@ impl GeometricAttentionArtifact {
     }
 
     // BEGIN GEOMETRIC_ATTENTION_BOUNDED_LOOKUP
-    pub fn query(
+    /// Read and admit the bounded natural candidate support without evaluating
+    /// candidate energy or H4 path geometry. The frozen row keys, including
+    /// adjacent-spin admission rows, are still queried but only row/count data
+    /// is returned. This is the common support seam for geometric queries,
+    /// path-lease selection, and support-only preflight inspection.
+    pub fn query_support_only(
         &self,
         state: &CausalAttentionState,
-        control: AttentionControl,
-    ) -> Result<GeometricAttentionTrace, GeometricAttentionError> {
-        self.query_with_intervention(state, control, AttentionGeometryIntervention::None)
-    }
-
-    /// Diagnostic counterpart to [`Self::query`]. The intervention changes
-    /// only an accumulated phase/torsion delta; lookup support remains fixed.
-    pub fn query_with_intervention(
-        &self,
-        state: &CausalAttentionState,
-        control: AttentionControl,
-        intervention: AttentionGeometryIntervention,
-    ) -> Result<GeometricAttentionTrace, GeometricAttentionError> {
+    ) -> Result<AttentionSupportTrace, GeometricAttentionError> {
         // Binding and exact address membership are checked before allocating a
         // trace or consulting any direct/fallback row.
         self.validate_state_binding(state)?;
@@ -921,11 +936,11 @@ impl GeometricAttentionArtifact {
         }
 
         let unique_candidates_before_ceiling = merged.len();
-        let mut support = merged.into_iter().collect::<Vec<_>>();
+        let mut candidates = merged.into_iter().collect::<Vec<_>>();
         // This is explicit pre-geometric support admission. Consequently,
-        // least-energy ranking below is only over the admitted support, never
-        // a claim about the full untruncated row union.
-        support.sort_by(|(left_next, left_counts), (right_next, right_counts)| {
+        // every downstream ranking is only over the admitted support, never a
+        // claim about the full untruncated row union.
+        candidates.sort_by(|(left_next, left_counts), (right_next, right_counts)| {
             (
                 Reverse(left_counts.source_breadth()),
                 Reverse(left_counts.total()),
@@ -937,27 +952,82 @@ impl GeometricAttentionArtifact {
                     right_next,
                 ))
         });
-        support.truncate(bounds.unique_candidates_after_ceiling);
-        // Canonical order makes the geometry permutation independent of map
+        candidates.truncate(bounds.unique_candidates_after_ceiling);
+        // Canonical order makes later geometry permutation independent of map
         // insertion order and count ordering.
-        support.sort_by(|left, right| left.0.cmp(&right.0));
+        candidates.sort_by(|left, right| left.0.cmp(&right.0));
 
-        let mut measured = Vec::with_capacity(support.len());
-        for (next, counts) in &support {
-            measured.push(self.measure_energy(state, next, *counts, intervention)?);
+        Ok(AttentionSupportTrace {
+            manifest_kappa: self.manifest_kappa.clone(),
+            rows_read,
+            candidate_entries_examined,
+            candidate_entry_ceiling: bounds.candidate_entries_per_query,
+            unique_candidates_before_ceiling,
+            candidate_ceiling: bounds.unique_candidates_after_ceiling,
+            support_admission:
+                AttentionSupportAdmission::SourceBreadthThenTotalCountThenCanonicalAddress,
+            candidates: candidates
+                .into_iter()
+                .map(|(next, source_counts)| AttentionSupportCandidateTrace {
+                    next,
+                    source_counts,
+                })
+                .collect(),
+        })
+    }
+
+    pub fn query(
+        &self,
+        state: &CausalAttentionState,
+        control: AttentionControl,
+    ) -> Result<GeometricAttentionTrace, GeometricAttentionError> {
+        self.query_with_intervention(state, control, AttentionGeometryIntervention::None)
+    }
+
+    /// Diagnostic counterpart to [`Self::query`]. The intervention changes
+    /// only an accumulated phase/torsion delta; lookup support remains fixed.
+    pub fn query_with_intervention(
+        &self,
+        state: &CausalAttentionState,
+        control: AttentionControl,
+        intervention: AttentionGeometryIntervention,
+    ) -> Result<GeometricAttentionTrace, GeometricAttentionError> {
+        let AttentionSupportTrace {
+            manifest_kappa,
+            rows_read,
+            candidate_entries_examined,
+            candidate_entry_ceiling,
+            unique_candidates_before_ceiling,
+            candidate_ceiling,
+            support_admission,
+            candidates: support_candidates,
+        } = self.query_support_only(state)?;
+
+        let mut measured = Vec::with_capacity(support_candidates.len());
+        for candidate in &support_candidates {
+            measured.push(self.measure_energy(
+                state,
+                &candidate.next,
+                candidate.source_counts,
+                intervention,
+            )?);
         }
         let permutation_offset =
             deterministic_permutation_offset(&self.manifest_kappa, measured.len());
-        let canonical_next = support
+        let canonical_next = support_candidates
             .iter()
-            .map(|(next, _)| next.clone())
+            .map(|candidate| candidate.next.clone())
             .collect::<Vec<_>>();
-        let mut candidates = Vec::with_capacity(support.len());
-        for (index, ((next, counts), measured_energy)) in support
+        let mut candidates = Vec::with_capacity(support_candidates.len());
+        for (index, (candidate, measured_energy)) in support_candidates
             .into_iter()
             .zip(measured.iter().copied())
             .enumerate()
         {
+            let AttentionSupportCandidateTrace {
+                next,
+                source_counts,
+            } = candidate;
             let (ranking_energy, geometry_source_next) = match control {
                 AttentionControl::RealGeometry => (measured_energy, next.clone()),
                 AttentionControl::PermutedGeometry => {
@@ -968,7 +1038,7 @@ impl GeometricAttentionArtifact {
             };
             candidates.push(AttentionCandidateTrace {
                 next,
-                source_counts: counts,
+                source_counts,
                 measured_energy,
                 ranking_energy,
                 geometry_source_next,
@@ -978,16 +1048,15 @@ impl GeometricAttentionArtifact {
         candidates.sort_by(|left, right| compare_candidates(left, right, control));
         let selected = candidates.first().cloned();
         Ok(GeometricAttentionTrace {
-            manifest_kappa: self.manifest_kappa.clone(),
+            manifest_kappa,
             control,
             geometry_intervention: intervention,
             rows_read,
             candidate_entries_examined,
-            candidate_entry_ceiling: bounds.candidate_entries_per_query,
+            candidate_entry_ceiling,
             unique_candidates_before_ceiling,
-            candidate_ceiling: bounds.unique_candidates_after_ceiling,
-            support_admission:
-                AttentionSupportAdmission::SourceBreadthThenTotalCountThenCanonicalAddress,
+            candidate_ceiling,
+            support_admission,
             geometry_evaluations: candidates.len(),
             tie_break_stages,
             candidates,
@@ -1019,9 +1088,9 @@ impl GeometricAttentionArtifact {
             )));
         }
 
-        // CountOnly freezes the existing natural support/admission without
-        // allowing its canonical-address selection to influence this result.
-        let support = self.query(&state.causal, AttentionControl::CountOnly)?;
+        // Freeze the natural support/admission before any H4 path operation.
+        // This pre-selection trace has no candidate energy or selection of its own.
+        let support = self.query_support_only(&state.causal)?;
         let memory_keys_per_candidate = observed_routes;
         let path_geometry_evaluations = support
             .candidates

@@ -28,9 +28,12 @@ heatmap remain structural/control state. #970 closed through protected PR #972.
 route-attention mechanism and one matched two-unit decoded smoke at
 `PROCEED_TO_I1_WITH_CAUSAL_R4_PATH_ATTENTION`. #953 implemented a bounded
 decoded-loop path, but its first smoke was an exact rank-preserving lexical
-relabel of #969 and terminated `REVISE_I1_GENERATOR_IN_PLACE`. #953 remains
-active and #973 remains blocked; paragraph, conversation, global,
-correctness, and reasoning qualification remain downstream.
+relabel of #969 and terminated `REVISE_I1_GENERATOR_IN_PLACE`. Its frozen
+natural agreement follow-up stopped at support admission before H4 selection
+because adjacent-spin fallback expanded exact direct-plus-divisor support to
+five candidates. #953 remains active and #973 remains blocked; paragraph,
+conversation, global, correctness, and reasoning qualification remain
+downstream.
 
 A negative result remains evidence about its declared mechanism and
 distribution. It does not erase a separately established storage, identity,
@@ -471,6 +474,16 @@ natural-choice or bounded-grammar clauses. The terminal is
 `REVISE_I1_GENERATOR_IN_PLACE`; #953 remains open and #973 remains blocked. The
 complete evidence and next in-place action are in the
 [#953 record](local_geometric_generation_953.md).
+
+The next frozen natural agreement contrast failed earlier, at the support-only
+preflight. Both prompts had identical count/work shape, but one adjacent-spin
+row expanded the expected `{still}` and `{run,runs}` direct-plus-divisor unions
+to the same five candidates. The preflight record is
+`blake3:70375921e267b5ceff2198f879356cfb42dd6907accc0c2b720fc8b89b59b271`.
+H4 path costs, selector outputs, and all four generator arms are
+`NOT_RUN_SUPPORT_PREFLIGHT_HARD_STOP`; the localized repair is a primary
+direct-plus-divisor admission tier with adjacent-spin rows used only when that
+primary tier is empty.
 
 ## 4. Matched controls
 
