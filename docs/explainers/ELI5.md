@@ -28,12 +28,22 @@ your text
    -> turn that route back into text
 ```
 
-The work is deliberately ordered. #961 makes arbitrary text reversible and
-keeps all five route levels up to date. #952 must then prove that the geometry,
-not a memorized answer, actually changes what the system attends to. Only then
-does #953 build the source-free next-word and chat loop. Correct answers (#954)
-and multi-step reasoning (#955) come later. A pretty route or a readable stored
-sentence does not skip those steps.
+The work is deliberately ordered. #961 made arbitrary text reversible and
+kept all five route levels up to date. #952 found that its reusable summaries
+forgot earlier order. #967 repaired that memory and produced different shapes
+for the two possible next pieces, but its one-number ruler assigned both the
+same distance in all six trials. It therefore kept the state without claiming
+attention. #967 established only that the one-number ruler failed; it did not
+establish a placement defect. #970 owns the broader readout/placement check and
+repair. #969 must then prove that the full geometry, not a memorized answer, actually changes what the system
+attends to. Only after that does #953 build the bounded source-free next-word
+loop; durable chat belongs to #962. Correct answers (#954) and multi-step
+reasoning (#955) come later. A pretty route or a readable stored sentence does
+not skip those steps.
+
+The system is allowed to keep a shape because it stores or reconstructs the
+route without letting that shape vote on the next word. A1Q/#969 must earn that
+semantic vote with matched evidence first.
 
 The preserved earlier system below had two robot helpers. One is a **filing
 cabinet robot**, one is a **librarian with a magic map**. Their receipts and

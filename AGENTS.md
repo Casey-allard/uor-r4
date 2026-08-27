@@ -6,9 +6,11 @@ Guidance for agents (human or otherwise) working in this repository.
 The geometric causal decoder plan, prior S0–S7 completion plan, and
 graph-compiler implementation plan are retained as historical
 engineering/evidence records; none decides what is built next. Native GitHub
-relationships now mirror the programme: #961 closed with reversible S0 state,
-#952 stopped at `REDESIGN_ORDERED_ROUTE_SUMMARY`, and narrow repair #967 now
-precedes #953–#955 and #962–#965. Terminology lives in
+relationships now mirror the programme: #961 closed with reversible S0 state;
+#952 stopped at `REDESIGN_ORDERED_ROUTE_SUMMARY`; #967 repaired the ordered
+state but terminated `RETAIN_STATE_ONLY`; unassigned #970 owns the A1P
+candidate-relative readout/placement redesign and blocks #969 A1Q; #969 blocks
+#953. #953–#955 and #962–#965 follow. Terminology lives in
 `docs/transformerless/GLOSSARY.md`. Keep this file current when conventions
 change.
 
@@ -18,11 +20,11 @@ A local, CPU-first **geometric intelligence programme**. Geometry is the route
 and the route is the data location. The active lane uses a pinned lexical codec,
 registered prime atoms, semiprime transitions including `p^2` self-loops,
 ordered n-lets, fixed-zeta R4/S3 state, Hopf observation, torsion, exact
-`Z[phi]` radial shells, and the load-bearing project bridge
+`Z[phi]` radial shells, and the required structural/storage project bridge
 `E8 = H4 x H4`, realized in code and serialization by the golden/Galois-coupled
-icosian pair `H4 ⊕ phi H4`. Recursive attention combines exact route identity
-with trajectory/harmonic summaries across sentence, paragraph, conversation,
-and global state.
+icosian pair `H4 ⊕ phi H4`. Full recursive attention is a target, not an
+established property: #969 must qualify any trajectory, harmonic, Hopf, H4,
+zeta, icosian, or SpiralCore term before it may influence semantic scoring.
 
 The intended destination is frontier-like useful local intelligence without
 transformers, MoE/sparse learned routing, or dense matrix intelligence. That is
@@ -152,12 +154,21 @@ PR (a bump can shift libm-sensitive teacher logprobs — see Gate E below).
 - Follow the reconciled #820 dependency chain. #961 closed GI-1/S0 lexical
   geometry at reversible-state scope. #952's A1.0 gate preserved candidate and
   value reachability but stopped before a scorer because the reusable
-  non-digest summaries erase earlier order. #967 owns only the associative
-  ordered-summary repair and candidate-relative re-probe. #953–#955 remain
-  blocked behind it: #953 owns bounded source-free library/CLI generation,
-  followed by correctness and reasoning. #962 owns durable multi-turn CLI/HTTP
-  chat, persistence, isolation, and hive-memory; #963–#965 then own
-  optimization, formal closure, and release.
+  non-digest summaries erase earlier order. #967's A1R delivery added the exact
+  associative ordered fold and passed the frozen scope, global, fold,
+  incremental, and support contracts. Its full arm produced distinct `ll`/`rr`
+  relative states on 6/6 queries and changed the same-candidate state in 5/6
+  paired comparisons, but the scalar shortest-Cayley-distance readout collapsed
+  both candidates to energy 2 and tied on 6/6. Its terminal verdict is
+  `RETAIN_STATE_ONLY`
+  (report `blake3:f0db7a5d5c81d51ebf3b4bf8a2715c4960ec16b14161e8bf7598d7b98c48c881`).
+  Unassigned #970 follows protected #967 delivery, owns only the A1P
+  candidate-relative readout/placement redesign, and natively blocks #969 A1Q.
+  #969 blocks #953, so neither the repaired state nor closure of #967 promotes
+  attention or generation. #953 then owns bounded source-free library/CLI
+  generation, followed by #954 correctness and #955 reasoning. #962 owns
+  durable multi-turn CLI/HTTP chat, persistence, isolation, and hive-memory;
+  #963–#965 then own optimization, formal closure, and release.
 - Sequence strictly: lexical/address plumbing → recursive attention →
   source-free grammatical inference/generation → correctness/abstention →
   reasoning → optimization/purity/release.
@@ -166,14 +177,22 @@ PR (a bump can shift libm-sensitive teacher logprobs — see Gate E below).
 - Preserve the project shorthand `E8 = H4 x H4`. Its concrete implementation
   and serialization is the golden/Galois-coupled icosian pair
   `H4 ⊕ phi H4` with fixed basis, glue, forward map, and inverse witness.
-- Exact route keys must be combined with the transported trajectory, session
-  hypersphere vector, winding/window state, window projection energy,
-  shared-prime-factor retrieval, bounded resonance, and accumulated Hopf phase.
-  An exact kappa miss must not collapse unseen global history to a suffix-only
-  default.
-- Geometry must execute before token choice and change admitted support or
-  ordering against equal-budget factor-only, count-only, exact-recall,
-  permuted-geometry, and permuted-pair controls before generation is credited.
+- Keep **required structural/storage representation** distinct from a
+  **qualified semantic scoring term**. Paired-H4/icosian coordinates may remain
+  mandatory for canonical storage, address reconstruction, and inverse
+  witnesses without being valid ranking features. Hopf, H4, zeta, icosian,
+  SpiralCore, trajectory, hypersphere, winding/window, projection-energy,
+  shared-factor, and resonance terms remain storage fields, diagnostics, or
+  controls until A1Q/#969 qualifies them with scope-isolated matched evidence.
+  #953 may consume only the semantic terms that A1Q qualifies.
+- An exact kappa miss must not collapse unseen global history to a suffix-only
+  default, but global ordered-state behavior is tested on an independently
+  frozen global-snapshot permutation rather than by mutating session history.
+- Full geometry must execute before token choice and change admitted support or
+  ordering against the equal-budget current-only, existing-additive-summary,
+  factor/count-only, deterministic-ordered-state-permutation,
+  hierarchy-disabled, and exact-recall-only controls before generation is
+  credited.
 - Teacher output may label or compare only after a source-free report freezes.
   It is never substituted for the product response.
 - Every hierarchy selection emits a global-context coverage witness. Exact
@@ -336,7 +355,7 @@ CIDs before loading teacher weights.
   graph lane
   (`uor-r4-graph-format::ScoreQ` wire newtype; `uor-r4-core::score_q::ScoreQ`
   with compiler-side f32 conversions). Do not add a third or prioritize their
-  consolidation ahead of the active #967 ordered-summary repair.
+  consolidation ahead of the #970 candidate-relative readout/placement redesign.
 
 ## Long-run discipline (process amendment, 2026-08-06)
 

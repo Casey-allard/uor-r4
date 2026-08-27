@@ -13,9 +13,14 @@ supplies reversible lexical geometry, payload inversion, and the canonical
 incremental hierarchy identities. The frozen #952 A1.0 probe terminated as
 `REDESIGN_ORDERED_ROUTE_SUMMARY` before scorer implementation: the natural
 candidate/value path was reachable, but the additive/last-child hierarchy
-summaries erased earlier causal order. #967 owns the narrow associative,
-noncommutative ordered-summary repair and blocks #953. #953 owns
-bounded library/CLI inference and generation; #962 separately owns durable
+summaries erased earlier causal order. #967's narrow A1R delivery repaired the
+ordered state but terminated `RETAIN_STATE_ONLY` when shortest Cayley distance
+collapsed distinct candidate-relative states to the same energy on 6/6
+queries. Unassigned #970 follows protected #967 delivery, owns A1P
+candidate-relative readout/placement, and blocks #969. #969 owns A1Q full
+recursive-attention qualification; #953 is
+blocked by #969 and owns bounded library/CLI inference and generation using
+only A1Q-qualified semantic scoring terms. #962 separately owns durable
 multi-turn CLI/HTTP chat, persisted conversation state, session/identity
 isolation, and identity-scoped hive memory.
 
@@ -31,8 +36,9 @@ canonical text/corpus
     -> R4/S3 spin, S2/R3 Hopf observation, torsion, Z[phi] shells
     -> witnessed paired-H4/E8 state
     -> incremental local/sentence/paragraph/conversation/global state
-    -> associative noncommutative ordered-summary repair (#967)
-    -> complete recursive geometric-attention qualification (GI-2/#952)
+    -> associative noncommutative ordered-summary repair (#967, state only)
+    -> candidate-relative readout/placement redesign (#970)
+    -> complete recursive geometric-attention qualification (GI-2/#969)
     -> bounded source-free library/CLI inference and generation (#953)
     -> correctness + typed abstention (#954)
     -> bounded reasoning (#955)
@@ -44,14 +50,29 @@ The manifest stores or references canonical lexical payloads, factorable route
 addresses, spin/harmonic state, transported trajectory summaries, recursive
 scope identities, and rebuild witnesses. Corpus observations populate routes;
 they do not become serving weights. Kappa binds canonical identity and
-provenance, while factor/spin/harmonic coordinates provide locality.
+provenance. Factor/spin/harmonic coordinates provide structural/storage state
+and locality hypotheses; only terms qualified by A1Q/#969 may affect #953
+semantic ranking.
 
 The #952 A1.0 record is a representation-level negative result, not a failure
 of lexical inversion, candidate admission, H4 closure, Hopf state, or the value
 interface. Exact hierarchy identities preserved order as provenance, but their
-digest distance is not geometry; #967 must make that order observable in the
-bounded reusable summaries before semantic scoring resumes. See the
+digest distance is not geometry; #967 made that order observable in bounded
+reusable summaries, while #970 now owns candidate-relative readout/placement before
+semantic scoring resumes. See the
 [#952 A1.0 record](recursive_geometric_attention_a1_952.md).
+
+In the frozen #952/A1R fixture, current, previous, last-two, and the immutable
+global snapshot intentionally remain equal; sentence, paragraph, and
+conversation differ under the repaired fold. The separate
+construction-independent global-snapshot permutation changed only global state;
+its content-derived global epochs differed as expected while lower inputs,
+candidate rows/support, budgets, and denominator remained fixed. Group/fold,
+incremental, and support invariants also held. The #967 report kappa is
+`blake3:f0db7a5d5c81d51ebf3b4bf8a2715c4960ec16b14161e8bf7598d7b98c48c881`.
+The candidate-relative states were distinct for `ll` and `rr` on 6/6 queries,
+but their shortest-Cayley-distance energies were both 2. These results establish
+ordered state only, not attention or generation.
 
 Long compilation or evaluation is not a lifecycle default. It begins only
 after the smallest decision-bearing probe, reachability arithmetic, finite
@@ -1328,7 +1349,9 @@ Passing `--cover` reuses the measured cover. It may be omitted to re-induce
 the default cover deterministically during scoring. For experiments, `cover`
 also accepts `--depths`, `--k0`, `--regions-budget`, and `--memory-budget`.
 
-**Current production boundary pending #962 after #953–#955.** #953 owns the
+**Current production boundary pending #962 after #970, #969, and #953–#955.**
+#970 owns candidate-relative readout/placement and #969 owns full
+recursive-attention qualification. #953 owns the
 bounded source-free library/CLI inference and generation engine; #962 owns its
 integration into durable multi-turn CLI/HTTP chat, persisted conversation
 state, session/identity isolation, and identity-scoped hive memory. Until that

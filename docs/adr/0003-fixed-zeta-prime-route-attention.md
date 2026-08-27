@@ -7,13 +7,18 @@
 - **Date:** 2026-08-26
 - **Current attention-stage result:**
   [#952](https://github.com/UOR-Foundation/uor-r4/issues/952) reached
-  `REDESIGN_ORDERED_ROUTE_SUMMARY`; the recursive scorer remains
-  `NOT_IMPLEMENTED`. Ordered-summary repair is isolated in
-  [#967](https://github.com/UOR-Foundation/uor-r4/issues/967).
+  `REDESIGN_ORDERED_ROUTE_SUMMARY`. [#967](https://github.com/UOR-Foundation/uor-r4/issues/967)
+  repaired A1R ordered state and exercised its bounded candidate-relative
+  scalar scorer but terminated `RETAIN_STATE_ONLY`; the full A1Q recursive
+  attention scorer remains unimplemented and unqualified. Unassigned
+  [#970](https://github.com/UOR-Foundation/uor-r4/issues/970) owns A1P
+  candidate-relative readout/placement and blocks
+  [#969](https://github.com/UOR-Foundation/uor-r4/issues/969), which owns A1Q
+  full recursive-attention qualification and blocks #953.
 - **Decision owner:** representation redesign
   [#958](https://github.com/UOR-Foundation/uor-r4/issues/958)
 - **Programme tracker:**
-  [#949](https://github.com/UOR-Foundation/uor-r4/issues/949)
+  [#820](https://github.com/UOR-Foundation/uor-r4/issues/820)
 - **Supersedes:** the learned query/key/value replacement selected by
   [ADR-0002](0002-geometric-causal-decoder.md), after the negative #951
   qualification. ADR-0002 remains the historical record for G0 and G1.
@@ -400,10 +405,26 @@ from the blocking representation defect:
 
 The predeclared terminal verdict is therefore
 `REDESIGN_ORDERED_ROUTE_SUMMARY`. The recursive attention scorer and its
-equal-budget semantic controls were not implemented. Issue #967 owns the
-narrow ordered-summary repair; this result does not revoke the storage,
+equal-budget semantic controls were not implemented. Issue #967 subsequently
+delivered the narrow ordered-summary repair; this result does not revoke the storage,
 candidate-reachability, value-inversion, H4, or SpiralCore mechanics established
 above.
+
+The frozen histories were deliberately matched at current, previous, last-two,
+length/multiset/boundary shape, and the immutable `gg` global project snapshot.
+For A1R/#967, those current, previous, last-two, and global scopes were required
+to remain equal; repaired sentence, paragraph, and conversation ordered state
+were required to differ.
+Any global-order claim requires a separate construction-independent global
+snapshot permutation with all lower scopes and candidate support held fixed.
+#967's repaired fold satisfied this scope contract, the independent-global
+intervention, exact group/fold laws, incremental reproduction, and support
+invariants. The report kappa is
+`blake3:f0db7a5d5c81d51ebf3b4bf8a2715c4960ec16b14161e8bf7598d7b98c48c881`.
+Its full arm produced distinct candidate-relative states on 6/6 queries, but
+shortest Cayley distance collapsed both candidates to energy 2 and tied on 6/6,
+so the terminal verdict is `RETAIN_STATE_ONLY`. #970 owns the readout/placement redesign and
+blocks A1Q/#969. Only A1Q-qualified semantic terms may reach #953.
 
 | Component | Status | Current evidence boundary |
 |---|---|---|
@@ -415,7 +436,7 @@ above.
 | Exact 64-state SpiralCore v63 `Cl(0,6)` composition/inverse table | `IMPLEMENTED_CONTROL_ONLY` | Deterministic noncommutative table mechanics are bound and reproduced; `OPTIONAL_CONTROL_PENDING`, no semantic claim. The proposed six-prime `J(6,2)` semantic adapter remains unqualified. |
 | Complete semiprime/n-let manifest tables, chart/quantization binding, and canonical conversion/rebuild witnesses | `PASS_COMPLETE_MANIFEST_V2` | #958 schema 2 binds the prime registry, semiprime experts, ordered n-lets, address order, chart/spin/radial fields, indexes, provenance, and strict rebuild witnesses. This is storage/candidate substrate, not semantic-attention evidence. |
 | Frozen schema-2 child, bounded direct/divisor/adjacent-spin candidate union, and exact address-to-payload value view | `IMPLEMENTED_SUBSTRATE` | The fixed #952 contrasts naturally expose both targets below the ceiling of eight, with exact direct rows absent and no target injection or truncation. Candidate reachability is not attention selection. |
-| Reusable order-sensitive route summary and recursive attention scorer | `NOT_IMPLEMENTED` | All non-digest fields across all seven reusable levels collide on the three required earlier-order contrasts. Verdict: `REDESIGN_ORDERED_ROUTE_SUMMARY`; repair is #967. |
+| Reusable order-sensitive route summary and recursive attention scorer | `A1R_RETAIN_STATE_ONLY_A1P_BLOCKS_A1Q` | #967 repaired ordered state and passed its structural contracts, but shortest Cayley distance mapped distinct candidate-relative states to equal energy on 6/6 queries. #970 owns candidate-relative readout/placement and blocks #969; no full attention or generation claim follows. |
 | Layer-29 caller, equal-budget controls, no-Ollama product probe, and teacher comparison | `NOT_YET_IMPLEMENTED` | No deployed or product capability follows from the substrate. |
 | Binding one-worker/four-worker release canary with positive work on every worker and measured four-worker compile-stage improvement | `PASS_SUBSTRATE_SCOPE` | The frozen schema-2 report records 32/32 exact artifact/kappa matches, all four workers active, and 1.498x median compile-stage speedup. Any later semantic-input or workload-shape change must re-establish this bounded evidence. |
 
@@ -456,6 +477,11 @@ teacher or product run.
 - H4 unit quaternions may provide a discrete spin alphabet in R4. This does not
   identify H4 with E8 or claim that a four-dimensional H4 construction is a
   faithful eight-dimensional E8 representation.
+- Paired-H4/icosian state remains required for canonical storage, address
+  reconstruction, and inverse witnesses. That structural requirement does not
+  qualify H4, Hopf, zeta, icosian, SpiralCore, or other geometric fields for
+  semantic ranking; A1Q/#969 must qualify each scoring term before #953 can use
+  it.
 - Every lossy projection declares what is discarded and what the manifest
   retains for reconstruction.
 - No hours-long run launches until direct-lookup reachability, deterministic

@@ -37,6 +37,15 @@ pub const ICOSIAN_PROFILE_DOMAIN: &str = "uor-r4.icosian-h4-phi-h4-profile/1";
 pub const H4_BINARY_ICOSAHEDRAL_TABLE_SCHEMA: u32 = 1;
 pub const H4_BINARY_ICOSAHEDRAL_TABLE_DOMAIN: &str =
     "uor-r4.scaled-h4-binary-icosahedral-multiplication/1";
+pub const H4_BINARY_ICOSAHEDRAL_ROOT_TABLE_KAPPA_REFERENCE: &str =
+    "blake3:8d33d62a239fb8001fea2bd14a9a5ec7321d0f07d81c74a5715eaeb3df53aa76";
+pub const H4_BINARY_ICOSAHEDRAL_MULTIPLICATION_TABLE_KAPPA_REFERENCE: &str =
+    "blake3:90ee73a27ee2e8ba5bccd1507d7fb37ed1f044b1640772c86752bc0bb2111759";
+pub const ORDERED_H4_FOLD_SCHEMA: u32 = 1;
+pub const ORDERED_H4_FOLD_DOMAIN: &str = "uor-r4.associative-ordered-h4-fold/1";
+pub const ATTENTION_ORDERED_H4_FOLD_TRACE_SCHEMA: u32 = 1;
+pub const ATTENTION_ORDERED_H4_FOLD_TRACE_DOMAIN: &str =
+    "uor-r4.attention-associative-ordered-h4-fold/1";
 pub const TRAJECTORY_PROFILE_SCHEMA: u32 = 1;
 pub const TRAJECTORY_PROFILE_DOMAIN: &str = "uor-r4.route-trajectory-summary/1";
 pub const PROBE_WITNESS_SCHEMA: u32 = 1;
@@ -1279,6 +1288,114 @@ pub struct LexicalRouteValueView {
 /// Exact multiplication table derived from the concrete scaled 120-root H4
 /// table embedded in S0. Products and inverses are indexes into that fixed
 /// root order; no floating point or approximate nearest-root lookup is used.
+///
+/// This key is only an opaque address into the exact finite table. Its numeric
+/// value and numeric differences between keys have no geometric meaning.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize)]
+#[serde(transparent)]
+pub struct OpaqueH4TableIndex(u16);
+
+impl OpaqueH4TableIndex {
+    /// Construct one checked lookup key. The offset is an addressing detail,
+    /// not a scalar coordinate or a distance.
+    pub fn from_table_offset(offset: u16, table: &H4BinaryIcosahedralClosure) -> Option<Self> {
+        (usize::from(offset) < table.root_count).then_some(Self(offset))
+    }
+
+    /// Return the row/column offset needed for bounded table lookup only.
+    /// Arithmetic on this value is not an admissible geometric operation.
+    pub const fn table_offset(self) -> u16 {
+        self.0
+    }
+}
+
+/// One exact scaled quaternion in the fixed H4 root order. Each pair is the
+/// `(1, phi)` coefficient and the quaternion basis order is `(1, i, j, k)`;
+/// all coordinates are multiplied by two as bound by the root-table kappa.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize)]
+pub struct H4RootCoordinate {
+    pub scaled_zphi_quaternion: [[i64; 2]; 4],
+}
+
+/// Smallest exact group element used by the associative ordered fold. Route
+/// counts belong to hierarchy/cursor diagnostics, not to this algebraic value,
+/// so inverse and commutator construction cannot manufacture false counts.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize)]
+pub struct OrderedH4FoldState {
+    opaque_table_index: OpaqueH4TableIndex,
+}
+
+impl OrderedH4FoldState {
+    pub(crate) fn from_table_index(
+        index: OpaqueH4TableIndex,
+        table: &H4BinaryIcosahedralClosure,
+    ) -> Result<Self, CanonicalLexicalError> {
+        validate_ordered_h4_table_shape(table)?;
+        if usize::from(index.table_offset()) >= table.root_count {
+            return Err(CanonicalLexicalError::Invalid(
+                "ordered H4 state index is outside the bound table".to_owned(),
+            ));
+        }
+        Ok(Self {
+            opaque_table_index: index,
+        })
+    }
+
+    pub(crate) fn identity(
+        table: &H4BinaryIcosahedralClosure,
+    ) -> Result<Self, CanonicalLexicalError> {
+        let index = OpaqueH4TableIndex::from_table_offset(table.identity_index, table).ok_or_else(
+            || {
+                CanonicalLexicalError::Invalid(
+                    "ordered H4 identity is outside the bound table".to_owned(),
+                )
+            },
+        )?;
+        Self::from_table_index(index, table)
+    }
+
+    /// Exact `self * right` in the declared left-to-right operand order.
+    pub(crate) fn compose(
+        self,
+        right: Self,
+        table: &H4BinaryIcosahedralClosure,
+    ) -> Result<Self, CanonicalLexicalError> {
+        let product = table
+            .product_state_index(self.opaque_table_index, right.opaque_table_index)
+            .ok_or_else(|| {
+                CanonicalLexicalError::Invalid(
+                    "ordered H4 composition addressed outside the bound table".to_owned(),
+                )
+            })?;
+        Self::from_table_index(product, table)
+    }
+
+    pub(crate) fn inverse(
+        self,
+        table: &H4BinaryIcosahedralClosure,
+    ) -> Result<Self, CanonicalLexicalError> {
+        let inverse = table
+            .inverse_state_index(self.opaque_table_index)
+            .ok_or_else(|| {
+                CanonicalLexicalError::Invalid(
+                    "ordered H4 inverse addressed outside the bound table".to_owned(),
+                )
+            })?;
+        Self::from_table_index(inverse, table)
+    }
+
+    pub(crate) const fn table_index(self) -> OpaqueH4TableIndex {
+        self.opaque_table_index
+    }
+
+    pub(crate) fn root_coordinate(
+        self,
+        table: &H4BinaryIcosahedralClosure,
+    ) -> Result<H4RootCoordinate, CanonicalLexicalError> {
+        h4_root_coordinate(self.opaque_table_index, table)
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct H4BinaryIcosahedralClosure {
     pub schema: u32,
@@ -1314,10 +1431,79 @@ impl H4BinaryIcosahedralClosure {
             .copied()
     }
 
+    /// Typed counterpart to [`Self::product_index`]. Keys remain opaque table
+    /// addresses and are never interpreted as distances.
+    pub fn product_state_index(
+        &self,
+        left: OpaqueH4TableIndex,
+        right: OpaqueH4TableIndex,
+    ) -> Option<OpaqueH4TableIndex> {
+        self.product_index(left.table_offset(), right.table_offset())
+            .and_then(|offset| OpaqueH4TableIndex::from_table_offset(offset, self))
+    }
+
+    pub fn inverse_state_index(&self, state: OpaqueH4TableIndex) -> Option<OpaqueH4TableIndex> {
+        self.inverse_indices
+            .get(usize::from(state.table_offset()))
+            .copied()
+            .and_then(|offset| OpaqueH4TableIndex::from_table_offset(offset, self))
+    }
+
     /// Reproduce the table identity using the canonical self-cleared seed.
     pub fn reproduce_multiplication_table_kappa(&self) -> Result<String, CanonicalLexicalError> {
         h4_multiplication_table_kappa(self)
     }
+}
+
+/// Map one already-registered lexical address through S0's frozen
+/// `prime mod 120` H4-root assignment. No payload, digest, or table-key
+/// distance participates.
+pub(crate) fn h4_leaf_state_for_address(
+    address: &GeometricAddress,
+    table: &H4BinaryIcosahedralClosure,
+) -> Result<OrderedH4FoldState, CanonicalLexicalError> {
+    h4_leaf_state_for_prime(address.atom.value(), table)
+}
+
+/// One ordered fold state attached to a fixed attention hierarchy level.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct AttentionOrderedFoldLevel {
+    pub level: String,
+    pub observed_routes: u32,
+    pub state: OrderedH4FoldState,
+    pub root_coordinate: H4RootCoordinate,
+    /// The complete consumer level with the same ordered algebraic state
+    /// attached directly. This avoids a caller-side join between identity /
+    /// additive fields and the A1R ordered-state overlay.
+    pub consumer_level: AttentionLevelTrace,
+}
+
+/// Versioned non-digest state attached to one [`AttentionLevelTrace`] only by
+/// the A1R overlay. Legacy S0/#952 traces leave this absent, preserving their
+/// canonical bytes and identities.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct AttentionOrderedH4StateTrace {
+    pub schema: u32,
+    pub domain: String,
+    pub observed_routes: u32,
+    pub state: OrderedH4FoldState,
+    pub root_coordinate: H4RootCoordinate,
+}
+
+/// Versioned overlay over a frozen S0 artifact. This is intentionally not a
+/// field on [`CanonicalRouteArtifact`] or [`AttentionConsumerTrace`], so their
+/// canonical bytes and identities remain unchanged.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct AttentionOrderedFoldTrace {
+    pub schema: u32,
+    pub domain: String,
+    pub overlay_kappa: String,
+    pub source_artifact_manifest_kappa: String,
+    pub h4_root_table_kappa: String,
+    pub multiplication_table_kappa: String,
+    pub leaf_assignment: String,
+    pub composition_order: String,
+    pub ordered_levels: Vec<AttentionOrderedFoldLevel>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -1356,6 +1542,8 @@ pub struct AttentionConsumerTrace {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct AttentionLevelTrace {
     pub level: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ordered_h4: Option<AttentionOrderedH4StateTrace>,
     pub identity_kind: String,
     pub identity_kappa: String,
     pub occurrence: Option<u32>,
@@ -1973,6 +2161,88 @@ fn fixed_h4_root_table() -> Result<H4RootTable, CanonicalLexicalError> {
     seed.table_kappa.clear();
     table.table_kappa = canonical_kappa(&canonical_json(&seed)?)?;
     Ok(table)
+}
+
+fn validate_ordered_h4_table_shape(
+    table: &H4BinaryIcosahedralClosure,
+) -> Result<(), CanonicalLexicalError> {
+    if table.schema != H4_BINARY_ICOSAHEDRAL_TABLE_SCHEMA
+        || table.domain != H4_BINARY_ICOSAHEDRAL_TABLE_DOMAIN
+        || table.root_count != 120
+        || table.product_count != table.root_count * table.root_count
+        || table.multiplication_indices.len() != table.product_count
+        || table.inverse_indices.len() != table.root_count
+        || usize::from(table.identity_index) >= table.root_count
+        || table.h4_root_table_kappa != H4_BINARY_ICOSAHEDRAL_ROOT_TABLE_KAPPA_REFERENCE
+        || table.multiplication_table_kappa
+            != H4_BINARY_ICOSAHEDRAL_MULTIPLICATION_TABLE_KAPPA_REFERENCE
+        || !table.unique_closure_exact
+        || !table.identity_exact
+        || !table.inverses_exact
+        || !table.associativity_exact
+        || !table.integer_only_no_rounding
+    {
+        return Err(CanonicalLexicalError::Invalid(
+            "ordered H4 fold requires the validated exact 120-root table".to_owned(),
+        ));
+    }
+    Ok(())
+}
+
+pub(crate) fn validate_ordered_h4_table_exact(
+    table: &H4BinaryIcosahedralClosure,
+) -> Result<(), CanonicalLexicalError> {
+    validate_ordered_h4_table_shape(table)?;
+    if h4_multiplication_table_kappa(table)?
+        != H4_BINARY_ICOSAHEDRAL_MULTIPLICATION_TABLE_KAPPA_REFERENCE
+    {
+        return Err(CanonicalLexicalError::Invalid(
+            "ordered H4 fold table bytes do not reproduce the frozen exact table identity"
+                .to_owned(),
+        ));
+    }
+    Ok(())
+}
+
+fn h4_root_coordinate(
+    index: OpaqueH4TableIndex,
+    table: &H4BinaryIcosahedralClosure,
+) -> Result<H4RootCoordinate, CanonicalLexicalError> {
+    validate_ordered_h4_table_shape(table)?;
+    let roots = fixed_h4_root_table()?;
+    if roots.table_kappa != table.h4_root_table_kappa {
+        return Err(CanonicalLexicalError::Invalid(
+            "ordered H4 fold table does not bind the canonical root order".to_owned(),
+        ));
+    }
+    let root = roots
+        .roots
+        .get(usize::from(index.table_offset()))
+        .ok_or_else(|| {
+            CanonicalLexicalError::Invalid(
+                "ordered H4 root coordinate index is out of range".to_owned(),
+            )
+        })?;
+    Ok(H4RootCoordinate {
+        scaled_zphi_quaternion: root.map(|coordinate| [coordinate.a, coordinate.b]),
+    })
+}
+
+fn h4_leaf_state_for_prime(
+    prime: u32,
+    table: &H4BinaryIcosahedralClosure,
+) -> Result<OrderedH4FoldState, CanonicalLexicalError> {
+    validate_ordered_h4_table_shape(table)?;
+    let root_count =
+        u32::try_from(table.root_count).map_err(|_| CanonicalLexicalError::ArithmeticOverflow)?;
+    let offset =
+        u16::try_from(prime % root_count).map_err(|_| CanonicalLexicalError::ArithmeticOverflow)?;
+    let index = OpaqueH4TableIndex::from_table_offset(offset, table).ok_or_else(|| {
+        CanonicalLexicalError::Invalid(
+            "ordered H4 leaf assignment addressed outside the bound table".to_owned(),
+        )
+    })?;
+    OrderedH4FoldState::from_table_index(index, table)
 }
 
 fn zphi_checked_neg(value: ZPhi) -> Result<ZPhi, CanonicalLexicalError> {
@@ -2661,6 +2931,7 @@ fn attention_level_from_summary(
 ) -> AttentionLevelTrace {
     AttentionLevelTrace {
         level: level.to_owned(),
+        ordered_h4: None,
         identity_kind: identity_kind.to_owned(),
         identity_kappa: identity_kappa.to_owned(),
         occurrence: route.map(|record| record.body.occurrence),
@@ -3088,6 +3359,208 @@ fn build_global_snapshot(
         ordered_units,
         summary,
         summary_kappa,
+    })
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct OrderedH4FoldAggregate {
+    state: OrderedH4FoldState,
+    observed_routes: u32,
+}
+
+impl OrderedH4FoldAggregate {
+    fn identity(table: &H4BinaryIcosahedralClosure) -> Result<Self, CanonicalLexicalError> {
+        Ok(Self {
+            state: OrderedH4FoldState::identity(table)?,
+            observed_routes: 0,
+        })
+    }
+
+    fn compose(
+        self,
+        right: Self,
+        table: &H4BinaryIcosahedralClosure,
+    ) -> Result<Self, CanonicalLexicalError> {
+        Ok(Self {
+            state: self.state.compose(right.state, table)?,
+            observed_routes: self
+                .observed_routes
+                .checked_add(right.observed_routes)
+                .ok_or(CanonicalLexicalError::ArithmeticOverflow)?,
+        })
+    }
+}
+
+fn ordered_h4_route_aggregate(
+    record: &RouteRecord,
+    table: &H4BinaryIcosahedralClosure,
+) -> Result<OrderedH4FoldAggregate, CanonicalLexicalError> {
+    let state = h4_leaf_state_for_prime(record.body.prime, table)?;
+    if state.table_index().table_offset() != record.body.icosian.selected_h4_root_index {
+        return Err(CanonicalLexicalError::Invalid(
+            "ordered H4 leaf does not reproduce the S0 icosian root assignment".to_owned(),
+        ));
+    }
+    Ok(OrderedH4FoldAggregate {
+        state,
+        observed_routes: 1,
+    })
+}
+
+fn ordered_h4_global_aggregate(
+    global: &GlobalSnapshotBinding,
+    lexical_addresses: &[LexicalRouteAddressBinding],
+    table: &H4BinaryIcosahedralClosure,
+) -> Result<OrderedH4FoldAggregate, CanonicalLexicalError> {
+    let mut aggregate = OrderedH4FoldAggregate::identity(table)?;
+    for unit in &global.ordered_units {
+        let address = lexical_addresses
+            .get(usize::from(unit.address_index))
+            .ok_or_else(|| {
+                CanonicalLexicalError::Invalid(
+                    "ordered H4 global unit address index is out of range".to_owned(),
+                )
+            })?;
+        if address.lexical_unit_id != unit.lexical_unit_id
+            || address.address_kappa != unit.address_kappa
+        {
+            return Err(CanonicalLexicalError::Invalid(
+                "ordered H4 global unit does not reproduce its lexical address".to_owned(),
+            ));
+        }
+        aggregate = aggregate.compose(
+            OrderedH4FoldAggregate {
+                state: h4_leaf_state_for_prime(address.prime, table)?,
+                observed_routes: 1,
+            },
+            table,
+        )?;
+    }
+    if aggregate.observed_routes != global.summary.observed_children {
+        return Err(CanonicalLexicalError::Invalid(
+            "ordered H4 global route count disagrees with the S0 summary".to_owned(),
+        ));
+    }
+    Ok(aggregate)
+}
+
+#[allow(clippy::too_many_arguments)]
+fn ordered_h4_node_aggregate(
+    node_kappa: &str,
+    table: &H4BinaryIcosahedralClosure,
+    node_by_kappa: &BTreeMap<&str, &HierarchyNode>,
+    route_by_kappa: &BTreeMap<&str, &RouteRecord>,
+    global: &GlobalSnapshotBinding,
+    lexical_addresses: &[LexicalRouteAddressBinding],
+    memo: &mut BTreeMap<String, OrderedH4FoldAggregate>,
+    visiting: &mut BTreeSet<String>,
+) -> Result<OrderedH4FoldAggregate, CanonicalLexicalError> {
+    if let Some(aggregate) = memo.get(node_kappa) {
+        return Ok(*aggregate);
+    }
+    if !visiting.insert(node_kappa.to_owned()) {
+        return Err(CanonicalLexicalError::Invalid(
+            "ordered H4 hierarchy links contain a cycle".to_owned(),
+        ));
+    }
+    let node = node_by_kappa.get(node_kappa).copied().ok_or_else(|| {
+        CanonicalLexicalError::Invalid(
+            "ordered H4 hierarchy link references an absent node".to_owned(),
+        )
+    })?;
+    let previous = node
+        .body
+        .previous_chain_kappa
+        .as_deref()
+        .map(|previous| {
+            ordered_h4_node_aggregate(
+                previous,
+                table,
+                node_by_kappa,
+                route_by_kappa,
+                global,
+                lexical_addresses,
+                memo,
+                visiting,
+            )
+        })
+        .transpose()?
+        .unwrap_or(OrderedH4FoldAggregate::identity(table)?);
+    let child = match node.body.ordered_child_kind.as_str() {
+        "route" => {
+            let route = route_by_kappa
+                .get(node.body.ordered_child_kappa.as_str())
+                .copied()
+                .ok_or_else(|| {
+                    CanonicalLexicalError::Invalid(
+                        "ordered H4 hierarchy route child is absent".to_owned(),
+                    )
+                })?;
+            ordered_h4_route_aggregate(route, table)?
+        }
+        "sentence-node" | "paragraph-node" => ordered_h4_node_aggregate(
+            &node.body.ordered_child_kappa,
+            table,
+            node_by_kappa,
+            route_by_kappa,
+            global,
+            lexical_addresses,
+            memo,
+            visiting,
+        )?,
+        "global-snapshot" => {
+            if node.body.ordered_child_kappa != global.snapshot_kappa {
+                return Err(CanonicalLexicalError::Invalid(
+                    "ordered H4 global hierarchy link names a different snapshot".to_owned(),
+                ));
+            }
+            ordered_h4_global_aggregate(global, lexical_addresses, table)?
+        }
+        other => {
+            return Err(CanonicalLexicalError::Invalid(format!(
+                "ordered H4 hierarchy has unsupported child kind {other}"
+            )));
+        }
+    };
+    let aggregate = previous.compose(child, table)?;
+    if aggregate.observed_routes != node.body.summary.observed_children {
+        return Err(CanonicalLexicalError::Invalid(
+            "ordered H4 hierarchy route count disagrees with the S0 summary".to_owned(),
+        ));
+    }
+    visiting.remove(node_kappa);
+    memo.insert(node_kappa.to_owned(), aggregate);
+    Ok(aggregate)
+}
+
+fn ordered_h4_trace_level(
+    level: &str,
+    aggregate: OrderedH4FoldAggregate,
+    mut consumer_level: AttentionLevelTrace,
+    table: &H4BinaryIcosahedralClosure,
+) -> Result<AttentionOrderedFoldLevel, CanonicalLexicalError> {
+    if consumer_level.level != level
+        || consumer_level.observed_descendant_routes != aggregate.observed_routes
+        || consumer_level.ordered_h4.is_some()
+    {
+        return Err(CanonicalLexicalError::Invalid(format!(
+            "ordered H4 {level} state does not align with its attention consumer level"
+        )));
+    }
+    let root_coordinate = aggregate.state.root_coordinate(table)?;
+    consumer_level.ordered_h4 = Some(AttentionOrderedH4StateTrace {
+        schema: ORDERED_H4_FOLD_SCHEMA,
+        domain: ORDERED_H4_FOLD_DOMAIN.to_owned(),
+        observed_routes: aggregate.observed_routes,
+        state: aggregate.state,
+        root_coordinate,
+    });
+    Ok(AttentionOrderedFoldLevel {
+        level: level.to_owned(),
+        observed_routes: aggregate.observed_routes,
+        state: aggregate.state,
+        root_coordinate,
+        consumer_level,
     })
 }
 
@@ -3719,6 +4192,16 @@ impl CanonicalRouteArtifact {
         self.lexical_route_address_unvalidated(lexical_unit_id)
     }
 
+    /// Internal fixed-probe lookup after the immutable artifact has already
+    /// crossed `validate_transitive`. This prevents one bounded candidate
+    /// query from revalidating the complete artifact for every registry row.
+    pub(crate) fn lexical_route_address_from_validated_artifact(
+        &self,
+        lexical_unit_id: u32,
+    ) -> Result<Option<GeometricAddress>, CanonicalLexicalError> {
+        self.lexical_route_address_unvalidated(lexical_unit_id)
+    }
+
     /// Decode the exact schema-2 child used by the real bounded I1/I2/IS,
     /// divisor, and adjacent-spin candidate path.
     pub fn embedded_spin_manifest(&self) -> Result<CompiledSpinManifest, CanonicalLexicalError> {
@@ -3757,6 +4240,16 @@ impl CanonicalRouteArtifact {
         address: &GeometricAddress,
     ) -> Result<Option<LexicalRouteValueView>, CanonicalLexicalError> {
         self.validate_transitive()?;
+        self.lexical_route_value_for_address_from_validated_artifact(address)
+    }
+
+    /// Internal fixed-probe inverse after the immutable artifact has already
+    /// crossed `validate_transitive`. Public callers retain the fail-closed
+    /// validating entrypoint above.
+    pub(crate) fn lexical_route_value_for_address_from_validated_artifact(
+        &self,
+        address: &GeometricAddress,
+    ) -> Result<Option<LexicalRouteValueView>, CanonicalLexicalError> {
         let address_kappa = address.canonical_kappa()?;
         let Some(stored) = self
             .body
@@ -4022,6 +4515,156 @@ impl CanonicalRouteArtifact {
             conversation: self.body.hierarchy_roots.conversation.clone(),
             global: self.body.hierarchy_roots.global.clone(),
         }
+    }
+
+    /// Derive a versioned associative, noncommutative H4 fold overlay from
+    /// the frozen route and hierarchy links. The S0 artifact and the legacy
+    /// attention trace are not reserialized or assigned a new identity.
+    pub fn attention_consumer_trace_with_ordered_h4(
+        &self,
+        table: &H4BinaryIcosahedralClosure,
+    ) -> Result<AttentionOrderedFoldTrace, CanonicalLexicalError> {
+        validate_ordered_h4_table_exact(table)?;
+        if self.body.icosian_profile.h4_root_table.table_kappa != table.h4_root_table_kappa {
+            return Err(CanonicalLexicalError::Invalid(
+                "ordered H4 overlay table is not the source artifact's root table".to_owned(),
+            ));
+        }
+        let base_trace = self.attention_consumer_trace()?;
+
+        let views = self.attention_hierarchy_view();
+        let route_by_kappa = self
+            .body
+            .route_records
+            .iter()
+            .map(|record| (record.route_kappa.as_str(), record))
+            .collect::<BTreeMap<_, _>>();
+        let node_by_kappa = self
+            .body
+            .hierarchy_nodes
+            .iter()
+            .map(|node| (node.node_kappa.as_str(), node))
+            .collect::<BTreeMap<_, _>>();
+        let current = route_by_kappa
+            .get(views.current.as_str())
+            .copied()
+            .ok_or_else(|| {
+                CanonicalLexicalError::Invalid("ordered H4 current-route root is absent".to_owned())
+            })?;
+        let previous = route_by_kappa
+            .get(views.previous.as_str())
+            .copied()
+            .ok_or_else(|| {
+                CanonicalLexicalError::Invalid(
+                    "ordered H4 previous-route root is absent".to_owned(),
+                )
+            })?;
+        let expected_levels = [
+            "current",
+            "previous",
+            "last-two",
+            "sentence",
+            "paragraph",
+            "conversation",
+            "global",
+        ];
+        if base_trace.ordered_levels.len() != expected_levels.len()
+            || base_trace
+                .ordered_levels
+                .iter()
+                .zip(expected_levels)
+                .any(|(level, expected)| level.level != expected)
+        {
+            return Err(CanonicalLexicalError::Invalid(
+                "ordered H4 overlay requires the fixed seven-level attention order".to_owned(),
+            ));
+        }
+        let mut base_levels = base_trace.ordered_levels.into_iter();
+        let mut memo = BTreeMap::new();
+        let mut visiting = BTreeSet::new();
+        let mut ordered_levels = vec![
+            ordered_h4_trace_level(
+                "current",
+                ordered_h4_route_aggregate(current, table)?,
+                base_levels.next().ok_or_else(|| {
+                    CanonicalLexicalError::Invalid(
+                        "ordered H4 current consumer level is absent".to_owned(),
+                    )
+                })?,
+                table,
+            )?,
+            ordered_h4_trace_level(
+                "previous",
+                ordered_h4_route_aggregate(previous, table)?,
+                base_levels.next().ok_or_else(|| {
+                    CanonicalLexicalError::Invalid(
+                        "ordered H4 previous consumer level is absent".to_owned(),
+                    )
+                })?,
+                table,
+            )?,
+        ];
+        for (level, expected_scope, kappa) in [
+            ("last-two", "local", views.last_two.as_str()),
+            ("sentence", "sentence", views.sentence.as_str()),
+            ("paragraph", "paragraph", views.paragraph.as_str()),
+            ("conversation", "conversation", views.conversation.as_str()),
+            ("global", "global", views.global.as_str()),
+        ] {
+            let node = node_by_kappa.get(kappa).copied().ok_or_else(|| {
+                CanonicalLexicalError::Invalid(format!(
+                    "ordered H4 {level} hierarchy root is absent"
+                ))
+            })?;
+            if node.body.scope != expected_scope {
+                return Err(CanonicalLexicalError::Invalid(format!(
+                    "ordered H4 {level} hierarchy root has scope {}",
+                    node.body.scope
+                )));
+            }
+            let aggregate = ordered_h4_node_aggregate(
+                kappa,
+                table,
+                &node_by_kappa,
+                &route_by_kappa,
+                &self.body.global_snapshot,
+                &self.body.lexical_route_addresses,
+                &mut memo,
+                &mut visiting,
+            )?;
+            let consumer_level = base_levels.next().ok_or_else(|| {
+                CanonicalLexicalError::Invalid(format!(
+                    "ordered H4 {level} consumer level is absent"
+                ))
+            })?;
+            ordered_levels.push(ordered_h4_trace_level(
+                level,
+                aggregate,
+                consumer_level,
+                table,
+            )?);
+        }
+        if base_levels.next().is_some() {
+            return Err(CanonicalLexicalError::Invalid(
+                "ordered H4 overlay found an unexpected attention consumer level".to_owned(),
+            ));
+        }
+
+        let mut trace = AttentionOrderedFoldTrace {
+            schema: ATTENTION_ORDERED_H4_FOLD_TRACE_SCHEMA,
+            domain: ATTENTION_ORDERED_H4_FOLD_TRACE_DOMAIN.to_owned(),
+            overlay_kappa: String::new(),
+            source_artifact_manifest_kappa: self.manifest_kappa.clone(),
+            h4_root_table_kappa: table.h4_root_table_kappa.clone(),
+            multiplication_table_kappa: table.multiplication_table_kappa.clone(),
+            leaf_assignment: "S(route) = H4[prime mod 120] in the canonical root order".to_owned(),
+            composition_order: "left-to-right S(A || B) = S(A) * S(B)".to_owned(),
+            ordered_levels,
+        };
+        let mut seed = trace.clone();
+        seed.overlay_kappa.clear();
+        trace.overlay_kappa = canonical_kappa(&canonical_json(&seed)?)?;
+        Ok(trace)
     }
 
     /// Return the fixed current -> global consumer order and every geometric

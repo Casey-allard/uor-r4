@@ -18,8 +18,10 @@ assumptions, or objectives rather than measured results.
 > [Geometric Intelligence Programme](geometric_intelligence_programme.md).
 > The geometric causal decoder roadmap and S0–S7 completion plan are retained
 > as historical evidence. GitHub programme root #820 and the native
-> GI sequence now records #961 closed, #952 A1.0 redirected through the narrow
-> #967 ordered-summary repair before #953–#955, and #962–#965 afterward; legacy
+> GI sequence now records #961 closed, #952 A1.0 redirected through #967 A1R,
+> #967 terminal `RETAIN_STATE_ONLY`, unassigned #970 A1P candidate-relative
+> readout/placement, #969 A1Q full recursive-attention qualification, then
+> #953–#955 and #962–#965 afterward; legacy
 > tracker #949 is closed as superseded, and #958 is retained directly beneath
 > #820 as GI-0 foundation. Two
 > current-summary corrections remain important: **#784** found
@@ -37,9 +39,12 @@ assumptions, or objectives rather than measured results.
 > candidate mechanics, controls, and final worker canary; it did not establish
 > product attention, generation, inference, reasoning, or teacher parity. This
 > is retained foundation evidence, not abandonment. Forward work makes lexical
-> geometry reversible (GI-1/#961), establishes recursive causal attention across
+> geometry reversible (GI-1/#961), repairs ordered state (GI-2 A1R/#967),
+> falsifies and replaces the shortest-Cayley scalar readout within the broader
+> candidate-relative readout/placement scope (GI-2 A1P/#970),
+> establishes recursive causal attention across
 > local/sentence/paragraph/conversation/global state with anti-recall evidence
-> (GI-2/#952), then adds source-free grammatical inference/generation
+> (GI-2 A1Q/#969), then adds source-free grammatical inference/generation
 > (GI-3/#953), correctness/abstention (GI-4/#954), and reasoning (GI-5/#955).
 > Exact route identity must overlap with transported trajectory, hypersphere and
 > winding/window state, window energy, shared factors, resonance, and Hopf
@@ -55,12 +60,31 @@ assumptions, or objectives rather than measured results.
 > identities differed, but digest distance is provenance, not semantic
 > geometry. The deployed schema-2 path still naturally admitted the same two
 > candidates on every query, inverted 12/12 admitted-candidate addresses to
-> exact payload bytes, and reproduced 6/6 incremental next states. #967 holds the
-> candidate/value path fixed and repairs only the reusable ordered summary.
-> #953 remains blocked pending a later full attention qualification; it owns
+> exact payload bytes, and reproduced 6/6 incremental next states. #967 held the
+> candidate/value path fixed and repaired only the reusable ordered summary.
+> In its frozen fixture, current, previous, last-two, and the immutable global
+> snapshot intentionally remain equal; sentence, paragraph, and conversation
+> are the scopes expected to differ after repair. Global order requires a
+> separate matched global-snapshot permutation. #969 owns the later full
+> attention qualification and natively blocks #953. #953 owns
 > source-free inference/generation, while #962 owns product chat and persisted
 > identity-scoped hive memory. See the
 > [#952 A1.0 record](recursive_geometric_attention_a1_952.md).
+>
+> **A1R decision, 2026-08-27.** #967's exact ordered fold satisfied the frozen
+> scope mask, independent-global intervention, fold/group laws, incremental
+> reproduction, and candidate-support invariants. The complete report is bound
+> by
+> `blake3:f0db7a5d5c81d51ebf3b4bf8a2715c4960ec16b14161e8bf7598d7b98c48c881`.
+> The full arm produced distinct `ll`/`rr` relative states on 6/6 queries and
+> changed the same-candidate state in 5/6 paired comparisons, but shortest
+> Cayley distance collapsed the distinct states to energy 2 and tied on 6/6.
+> The terminal verdict is `RETAIN_STATE_ONLY`, with no attention or generation
+> claim. `any_exercised_control_not_weaker = true` confirms that the verdict
+> follows from exercised full/control evidence, not the unavailable additive
+> scorer. Unassigned #970 follows protected #967 delivery and blocks #969; #969
+> continues to block #953. See the
+> [#967 A1R record](associative_ordered_route_summaries_a1r_967.md).
 
 The current quality-baseline reconciliation is recorded by #933 and the
 [append-only #934 genealogy](canonical_quality_baseline_934.md). The historical
@@ -288,9 +312,13 @@ This project's immediate goal is source-free recursive geometric attention.
 GI-1/#961 has made lexical payloads and the hierarchy identities reversible.
 GI-2/#952 A1.0 then established candidate/value reachability but found that the
 reusable summaries erased earlier causal order, terminating as
-`REDESIGN_ORDERED_ROUTE_SUMMARY` before scorer implementation. #967 now repairs
-that representation; recursive attention must still pass matched controls
-before GI-3/#953 is allowed to generate.
+`REDESIGN_ORDERED_ROUTE_SUMMARY` before scorer implementation. #967 repaired
+that representation, but its scalar readout mapped distinct candidate-relative
+states to equal energy on 6/6 queries and terminated `RETAIN_STATE_ONLY`. #970
+must now falsify and replace that shortest-Cayley scalar readout within its
+broader candidate-relative readout/placement scope; #969
+must still qualify full recursive attention under matched, scope-isolated
+controls before GI-3/#953 is allowed to generate.
 The final serving path has no source weights, transformer/self-attention, dense
 matrix intelligence, MoE, or sparse learned router. Compiler-side floating
 point remains allowed for witnessed chart construction; serving arithmetic is
@@ -372,14 +400,21 @@ leaving product attention and generation `NOT_RUN`.
 The active candidate is now the route-native composition specified by the
 [Geometric Intelligence Programme](geometric_intelligence_programme.md): fixed
 zeta state, prime/semiprime/n-let routing, R4/S3 and Hopf transport, exact
-`Z[phi]` shells, the load-bearing project bridge `E8 = H4 x H4` concretely
-serialized as the golden/Galois-coupled icosian pair `H4 ⊕ phi H4`, and
+`Z[phi]` shells, the required structural/storage project bridge
+`E8 = H4 x H4` concretely serialized as the golden/Galois-coupled icosian pair
+`H4 ⊕ phi H4`, and
 recursive attention combining exact identity with overlapping
 trajectory/harmonic summaries. The #952 A1.0 result showed that the current
 additive/last-child summaries do not preserve earlier order even though the
-candidate and value path is reachable. #967 must repair ordered summaries, and
-GI-2 must then establish anti-recall attention before GI-3/#953 adds the
-source-free inference/generation engine. Product chat and persisted hive memory
+candidate and value path is reachable. #967 repaired ordered summaries but
+retained them as state only after shortest Cayley distance tied distinct states
+on 6/6 queries. #970 must falsify and replace that scalar readout within its
+broader candidate-relative readout/placement scope, and #969 must then establish anti-recall
+attention before GI-3/#953 adds the
+source-free inference/generation engine. Structural presence does not qualify a
+field for ranking: unqualified Hopf, H4, zeta, icosian, SpiralCore, trajectory,
+and harmonic terms remain storage, diagnostics, or controls, and #953 may
+consume only terms qualified by A1Q. Product chat and persisted hive memory
 remain GI-6/#962 responsibilities. The
 retained #951 negative
 checkpoint and exact population remain in
@@ -815,9 +850,15 @@ whose only legitimate integration point is an honesty/claim-vocabulary bridge
 ## Open, with defined work
 
 #961 is closed. #952 A1.0 has the terminal representation verdict
-`REDESIGN_ORDERED_ROUTE_SUMMARY`; #967 is the narrow ordered-summary repair and
-blocks #953. After full GI-2 attention qualification, #953 owns source-free
-inference/generation, #954 correctness/abstention, #955 reasoning, and #962
+`REDESIGN_ORDERED_ROUTE_SUMMARY`; #967 repaired the fold and terminated
+`RETAIN_STATE_ONLY`. Unassigned #970 follows protected #967 delivery, owns the
+candidate-relative readout/placement redesign, and is the native blocker of
+#969. #969 is the
+separate full recursive-attention qualification and natively blocks #953, so
+closing #967 cannot make A1Q or generation eligible.
+After #969 qualifies GI-2 attention, #953 owns source-free inference/generation
+using only the qualified semantic terms, #954 correctness/abstention, #955
+reasoning, and #962
 product chat with persisted identity-scoped hive memory; #963–#965 retain cost,
 formal/serving closure, and release ownership. The table below is retained as
 the historical mechanism ledger; rows that still use “open” in their original

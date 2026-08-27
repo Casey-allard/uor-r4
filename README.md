@@ -49,7 +49,22 @@ To run the one fixed canonical-ingestion witness:
 cargo run --bin r4 -- lexical-ingestion-witness
 ```
 
-That bounded witness maps two turns of text through the pinned lexical codec,
+To reproduce the bounded A1R associative ordered-summary decision:
+
+```bash
+cargo run --bin r4 -- associative-ordered-summary-a1r-probe
+```
+
+The A1R command uses only the frozen construction/evaluation fixture and exact
+finite tables. Its frozen report kappa is
+`blake3:f0db7a5d5c81d51ebf3b4bf8a2715c4960ec16b14161e8bf7598d7b98c48c881`.
+The associative state passed the declared scope, independent-global, fold,
+incremental, and support invariants. The full arm produced distinct `ll`/`rr`
+relative states on all 6 queries, but shortest Cayley distance mapped both to
+energy 2 and tied every query. The terminal verdict is `RETAIN_STATE_ONLY`: it
+does not generate text or establish full attention.
+
+The ingestion witness maps two turns of text through the pinned lexical codec,
 prime/spin route state, canonical hierarchy manifest, strict reload, and exact
 lexical reconstruction. It also exercises the declared fail-closed unknown-unit
 path. It loads no model and establishes reversible state plumbing only—not
@@ -68,16 +83,23 @@ input ceiling is 8 turns, 32 paragraphs, 31 sentences, 128 units per sentence,
 
 Downstream code consumes `CanonicalRouteArtifact::decode_canonical`,
 `attention_consumer_trace`, `attention_consumer_trace_for_cursor`,
+`attention_consumer_trace_with_ordered_h4`,
 `incremental_update_trace`, `incremental_cursor`,
 `lookup_shared_class_trace`, `scope_ceilings`, and `reconstruct_input`. The
 attention handoff is ordered current, previous, last-two, sentence, paragraph,
 conversation, then bounded global; the cursor resolver returns those same seven
 slots and marks not-yet-established boundaries absent. S0 serializes state and
 numeric geometry only: every candidate row ceiling is zero and marked
-`NOT_IMPLEMENTED_S0_STATE_ONLY` until #952 supplies and measures the
-recursive-attention operator.
+`NOT_IMPLEMENTED_S0_STATE_ONLY`. #952 established candidate/value reachability
+but found its reusable summaries order-erasing. #967 landed the exact ordered
+state repair but retained it as state only after the candidate tie. Unassigned
+#970 owns the candidate-relative readout/placement redesign and blocks #969;
+#969 separately owns full recursive-attention qualification and blocks #953
+generation. Stored H4/Hopf/zeta/icosian and related route fields remain
+structural state, diagnostics, or controls until A1Q qualifies a term for
+semantic scoring; #953 may use only the qualified terms.
 
-Both commands exercise the no-model research substrate. `demo` does not start
+These commands exercise the no-model research substrate. `demo` does not start
 the historical artifact-discovery server, and `route` does not claim to answer
 the prompt; it exposes how the current geometry represents it.
 

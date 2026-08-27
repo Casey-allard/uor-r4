@@ -9,6 +9,10 @@ use std::cmp::Reverse;
 use std::collections::{BTreeMap, BTreeSet};
 use std::num::NonZeroU16;
 
+use crate::canonical_lexical_ingestion::{
+    h4_leaf_state_for_address, validate_ordered_h4_table_exact, CanonicalLexicalError,
+    H4BinaryIcosahedralClosure, H4RootCoordinate, OrderedH4FoldState,
+};
 use crate::prime_route_attention::{
     zeta_phase_delta, CandidateRow, CompiledSpinManifest, GeometricAddress, OrderedRouteKappa,
     OrderedSentenceRouteState, PhaseQ29, PrimeAtom, PrimeRouteError, RouteIndexes,
@@ -274,6 +278,99 @@ pub struct CausalAttentionState {
     sentence: OrderedSentenceRouteState,
 }
 
+/// API-neutral ordered history accumulator. It carries no candidate rows and
+/// is deliberately separate from [`CausalAttentionState`], so introducing the
+/// associative fold cannot alter the existing query or admission path.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CausalOrderedH4State {
+    manifest_kappa: String,
+    h4_root_table_kappa: String,
+    multiplication_table_kappa: String,
+    fold_state: OrderedH4FoldState,
+    observed_routes: u32,
+}
+
+impl CausalOrderedH4State {
+    fn from_first(
+        manifest_kappa: String,
+        first_observation: &GeometricAddress,
+        table: &H4BinaryIcosahedralClosure,
+    ) -> Result<Self, GeometricAttentionError> {
+        Ok(Self {
+            manifest_kappa,
+            h4_root_table_kappa: table.h4_root_table_kappa.clone(),
+            multiplication_table_kappa: table.multiplication_table_kappa.clone(),
+            fold_state: h4_leaf_state_for_address(first_observation, table)
+                .map_err(ordered_h4_error)?,
+            observed_routes: 1,
+        })
+    }
+
+    /// Append one already-observed route in causal left-to-right order.
+    fn observe(
+        &mut self,
+        observed_route: &GeometricAddress,
+        table: &H4BinaryIcosahedralClosure,
+    ) -> Result<(), GeometricAttentionError> {
+        let leaf = h4_leaf_state_for_address(observed_route, table).map_err(ordered_h4_error)?;
+        let next_fold_state = self
+            .fold_state
+            .compose(leaf, table)
+            .map_err(ordered_h4_error)?;
+        let next_observed_routes = self
+            .observed_routes
+            .checked_add(1)
+            .ok_or(GeometricAttentionError::ArithmeticOverflow)?;
+        self.fold_state = next_fold_state;
+        self.observed_routes = next_observed_routes;
+        Ok(())
+    }
+
+    pub const fn fold_state(&self) -> OrderedH4FoldState {
+        self.fold_state
+    }
+
+    pub const fn observed_routes(&self) -> u32 {
+        self.observed_routes
+    }
+
+    pub fn manifest_kappa(&self) -> &str {
+        &self.manifest_kappa
+    }
+
+    pub fn h4_root_table_kappa(&self) -> &str {
+        &self.h4_root_table_kappa
+    }
+
+    pub fn multiplication_table_kappa(&self) -> &str {
+        &self.multiplication_table_kappa
+    }
+
+    /// Resolve the opaque fold state to its exact scaled `Z[phi]` quaternion.
+    /// The numeric table key remains an addressing detail and is never exposed
+    /// as a scalar coordinate or distance.
+    pub fn root_coordinate(
+        &self,
+        table: &H4BinaryIcosahedralClosure,
+    ) -> Result<H4RootCoordinate, GeometricAttentionError> {
+        validate_ordered_h4_table_exact(table).map_err(ordered_h4_error)?;
+        if self.h4_root_table_kappa != table.h4_root_table_kappa
+            || self.multiplication_table_kappa != table.multiplication_table_kappa
+        {
+            return Err(GeometricAttentionError::Invalid(
+                "causal ordered H4 state is bound to a different exact table".to_owned(),
+            ));
+        }
+        self.fold_state
+            .root_coordinate(table)
+            .map_err(ordered_h4_error)
+    }
+}
+
+fn ordered_h4_error(error: CanonicalLexicalError) -> GeometricAttentionError {
+    GeometricAttentionError::Invalid(format!("ordered H4 state: {error}"))
+}
+
 impl CausalAttentionState {
     fn new(
         manifest_kappa: String,
@@ -478,6 +575,54 @@ impl GeometricAttentionArtifact {
             self.observe(&mut state, observation.clone())?;
         }
         Ok(state)
+    }
+
+    /// Fold the same already-observed address history into the independent H4
+    /// ordered-state overlay. Candidate support, admission, and ranking are not
+    /// consulted by this helper.
+    pub fn causal_ordered_state_from_history(
+        &self,
+        history: &[GeometricAddress],
+        table: &H4BinaryIcosahedralClosure,
+    ) -> Result<CausalOrderedH4State, GeometricAttentionError> {
+        validate_ordered_h4_table_exact(table).map_err(ordered_h4_error)?;
+        let first = history.first().ok_or_else(|| {
+            GeometricAttentionError::Invalid(
+                "causal ordered H4 state requires at least one observed route".to_owned(),
+            )
+        })?;
+        self.validate_observed_address(first)?;
+        let mut state =
+            CausalOrderedH4State::from_first(self.manifest_kappa.clone(), first, table)?;
+        for observation in &history[1..] {
+            self.validate_observed_address(observation)?;
+            state.observe(observation, table)?;
+        }
+        Ok(state)
+    }
+
+    /// Append one observed route to the independent ordered-state overlay.
+    pub fn observe_ordered(
+        &self,
+        state: &mut CausalOrderedH4State,
+        observed_route: &GeometricAddress,
+        table: &H4BinaryIcosahedralClosure,
+    ) -> Result<(), GeometricAttentionError> {
+        validate_ordered_h4_table_exact(table).map_err(ordered_h4_error)?;
+        if state.manifest_kappa != self.manifest_kappa {
+            return Err(GeometricAttentionError::Invalid(
+                "causal ordered H4 state is bound to a different manifest".to_owned(),
+            ));
+        }
+        if state.h4_root_table_kappa != table.h4_root_table_kappa
+            || state.multiplication_table_kappa != table.multiplication_table_kappa
+        {
+            return Err(GeometricAttentionError::Invalid(
+                "causal ordered H4 state is bound to a different exact table".to_owned(),
+            ));
+        }
+        self.validate_observed_address(observed_route)?;
+        state.observe(observed_route, table)
     }
 
     pub fn observe(

@@ -43,7 +43,7 @@ output can be credited to geometric inference.
 Optimization, broad QA, formalization, and release certification follow a
 working decision-bearing product slice. They do not replace it.
 
-## Current truth after #958 and #952 A1.0
+## Current truth after #967 A1R
 
 #958 is foundation evidence, not abandonment of geometric intelligence. It
 retained the following source-free mechanisms:
@@ -64,8 +64,9 @@ context signal lived in the transported trajectory, session hypersphere state,
 winding/window classification, window projection energy, shared-prime-factor
 retrieval, cosine resonance, and accumulated Hopf phase—not only in an exact
 route key or final coordinate. That ancestor used Ollama for language and is not
-generation evidence, but its overlapping context mechanism is a required input
-to the new source-free design.
+generation evidence. Its overlapping context fields are retained as structural
+state and as candidate controls; no field becomes a semantic scoring term until
+A1Q/#969 qualifies it with matched causal evidence.
 
 Its terminal outcome was `RETAIN_STORAGE_RECALL_ONLY`. That wording is a claim
 boundary: the core experiment is not connected to a lexical generation loop,
@@ -84,10 +85,22 @@ two-candidate admission, address-to-payload inverse, and incremental next-state
 path remained reachable. See the
 [#952 A1.0 record](recursive_geometric_attention_a1_952.md).
 
-#967 now owns the narrow associative, noncommutative ordered-summary repair and
-blocks #953. #953 continues to own source-free inference and language
-generation; #962 separately owns product chat integration and persisted,
-identity-scoped hive memory.
+#967 added the narrow A1R associative, noncommutative ordered-summary repair.
+Its exact scope, independent-global, fold/group, incremental, and support
+invariants passed. The full arm produced distinct `ll`/`rr` relative states on
+6/6 queries and changed the same-candidate state in 5/6 paired comparisons, but
+shortest Cayley distance collapsed the distinct states to energy 2 and tied on
+6/6. The terminal verdict is `RETAIN_STATE_ONLY`, bound by report kappa
+`blake3:f0db7a5d5c81d51ebf3b4bf8a2715c4960ec16b14161e8bf7598d7b98c48c881`.
+This establishes ordered state only, not full attention or generation.
+See the [#967 A1R record](associative_ordered_route_summaries_a1r_967.md).
+
+New unassigned #970 owns A1P candidate-relative readout/placement. It follows
+protected #967 delivery and natively blocks #969. #969 owns A1Q full
+recursive-attention qualification and natively blocks #953. #953 continues to
+own source-free inference and language generation, but may consume only the
+semantic scoring terms qualified by A1Q. #962 separately owns product chat
+integration and persisted, identity-scoped hive memory.
 
 ## Architecture invariants
 
@@ -254,7 +267,7 @@ recurrence across shells. Direction remains unchanged while radial scale moves.
 Shell exponent, coefficient pair, orientation, quantization, and round-trip
 witness are manifest-bound.
 
-### 8. Paired H4 to E8 implementation bridge
+### 8. Required paired H4 to E8 structural/storage bridge
 
 The broader UOR action plane keeps the conceptual identity
 
@@ -273,9 +286,10 @@ written mathematically as `H4 ⊕ phi H4`: an E8 lattice point is represented,
 as a `Z`-module construction, by a golden-coupled pair of R4 points under one
 fixed basis and glue convention.
 
-This is a load-bearing **Architecture Assumption**. `E8 = H4 x H4` is the
-project's conceptual name; `H4 ⊕ phi H4` is the exact construction that code
-and canonical serialization must bind. The distinction specifies the
+This is a required **structural/storage Architecture Assumption**. The project
+conceptual name is `E8 = H4 x H4`; `H4 ⊕ phi H4` is the exact construction
+that code and canonical serialization must bind for canonical state, address
+reconstruction, and inverse witnesses. The distinction specifies the
 representation—it does not reject the project identity. It also avoids
 silently treating R4, an S3/Hopf state, or an unbound abstract product as the
 serialized eight-dimensional state. The bridge must declare:
@@ -287,12 +301,13 @@ serialized eight-dimensional state. The bridge must declare:
 - collision and quantization behavior; and
 - a kappa-bound witness for every preserved invariant.
 
-The paired construction participates in route transport and candidate energy.
-A matched factor-only and permuted-pair intervention must show its causal
-contribution before source-free generation is promoted. The factor-only route
-remains the required diagnostic control, not a substitute final architecture.
-The optional six-prime SpiralCore chart retained by #958 is a separate operator
-fixture; it does not satisfy this paired-H4/E8 requirement by itself.
+Structural presence does not authorize the paired coordinate as a semantic
+ranking feature. A1Q/#969 may qualify it only through candidate-relative,
+equal-budget factor-only and permuted-pair interventions on anti-recall inputs.
+Until then it remains storage, reconstruction evidence, a diagnostic, or a
+control. The optional six-prime SpiralCore chart retained by #958 is likewise a
+separate operator fixture and control; it neither satisfies the paired-H4/E8
+storage requirement nor carries a semantic claim by itself.
 
 ### 9. Least-cost certified chart selection
 
@@ -400,11 +415,12 @@ The state hierarchy is:
 | `RG` | global accumulated route over the admitted knowledge/memory scope |
 
 Each level carries both an exact ordered route identity and overlapping
-trajectory/harmonic summaries. The summaries include the transported path,
-session hypersphere vector, accumulated Hopf phase, winding/window state, and
-window projection energy. Each is updated incrementally from its prior state
-and the newly observed route. Higher levels summarize and constrain lower-level
-candidates without rescanning every token or corpus position.
+trajectory/harmonic structural summaries. The summaries include the transported
+path, session hypersphere vector, accumulated Hopf phase, winding/window state,
+and window projection energy. Each is updated incrementally from its prior state
+and the newly observed route. These fields preserve storage and diagnostic
+state; only the subset qualified by A1Q/#969 may constrain or rank lower-level
+candidates as semantic scoring terms.
 
 The candidate set is admitted from bounded exact rows plus shared prime factors,
 n-let overlap, adjacent spin sectors, window/trajectory overlap, and bounded
@@ -419,7 +435,8 @@ overlapping summaries must still distinguish histories whose transported
 trajectory, hypersphere state, winding window, projection energy, factor
 overlap, resonance, or Hopf phase differs.
 
-The energy is an ordered, witnessed comparison over applicable terms such as:
+The energy is an ordered, witnessed comparison over the A1Q-qualified subset of
+candidate terms such as:
 
 - exact context and source breadth;
 - divisor and n-let overlap;
@@ -431,6 +448,11 @@ The energy is an ordered, witnessed comparison over applicable terms such as:
   shared-factor, cosine-resonance, and accumulated-Hopf compatibility;
 - paragraph, conversation, and global constraint agreement; and
 - compiled lexical/grammar continuation evidence.
+
+Required structural/storage representation and qualified semantic scoring are
+separate contracts. Unqualified Hopf, H4, zeta, icosian, SpiralCore,
+trajectory, or harmonic fields remain storage fields, diagnostics, or controls
+even when present in every canonical envelope.
 
 No learned dense Q/K projection, softmax over a full prefix, all-corpus scan,
 MoE gate, or sparse learned router is permitted in the promoted serving path.
@@ -499,9 +521,10 @@ GI-1 does not generate text, add a CLI/chat caller, or claim attention. Its exit
 is deterministic lexical/address round-trip, complete hierarchy identity, and
 rebuildable paired-H4 state.
 
-### GI-2 / #952 — recursive geometric attention
+### GI-2 / #952 → #967 A1R → #970 A1P → #969 A1Q — recursive geometric attention
 
-Status: **A1.0 terminal negative qualification; repair continues in #967**.
+Status: **#952 A1.0 terminal negative; #967 A1R `RETAIN_STATE_ONLY`; #970 A1P
+follows #967 and blocks #969; #969 A1Q blocked by #970**.
 
 The frozen A1.0 probe stopped before scorer implementation with
 `REDESIGN_ORDERED_ROUTE_SUMMARY`. Across three matched contrasts, all 21
@@ -509,47 +532,74 @@ pair-level hierarchy cells and all 966 non-digest field comparisons were equal;
 the additive/last-child summaries had erased the only differing signal, earlier
 causal order. Exact chained identities retained provenance, but digest spelling
 is not semantic geometry. Candidate admission and value reachability remained
-intact, so #967 holds those interfaces fixed while replacing only the reusable
+intact, so #967 held those interfaces fixed while replacing only the reusable
 ordered summary with an associative, noncommutative fold.
 
-Implement attention across current/next candidate, previous, last-two,
-sentence, paragraph, conversation, identity-scoped memory, and global
-accumulated route state. Every selection carries the global context coverage
-witness. Interventions must show that each hierarchy level and the paired-H4
-state changes admitted support or ordering on a fixture designed for that
-level, without future-route leakage or a population scan.
+The frozen #952 histories intentionally match the current route, previous
+route, last-two suffix, length/multiset/boundary shape, and immutable `gg`
+global project snapshot. A1R/#967 preserved equality at current, previous,
+last-two, and global while making sentence, paragraph, and conversation ordered
+state distinct. Its separate construction-independent global-snapshot
+permutation changed only global state and its content-derived epochs differed
+as expected, while all lower inputs, candidate rows/support, budgets, and
+denominator remained matched. Exact group/fold laws, incremental reproduction,
+and support invariants also held.
+
+The smallest joint history/candidate interaction produced distinct candidate
+relative states, including 5/6 same-candidate changes across paired histories,
+but shortest Cayley distance mapped both targets to energy 2 on all 6/6 queries.
+That readout degeneracy yielded `RETAIN_STATE_ONLY`. #970 now owns the A1P
+candidate-relative readout/placement redesign with the repaired fold, anchors,
+and support held fixed; it does not implement full recursive attention or
+promote #953.
+#969 owns the later full A1Q scorer and candidate-relative
+anti-recall qualification across sentence, paragraph, conversation, and global
+scope-isolating fixtures. Every selection carries the global-context coverage
+witness, with no future-route leakage, target injection, or external/unbounded
+corpus population scan.
 
 Anti-recall evidence is mandatory: exact-row hits are labeled separately;
 held-out histories cannot be exact stored continuations; real geometry shares
-payload and budgets with exact-recall, factor-only, count-only,
-permuted-geometry, and permuted-pair controls. Unseen paragraph, conversation,
-and global histories must remain distinguishable through their overlapping
-trajectory/harmonic summaries even when exact route kappas miss.
+payload and work budgets with current-only, additive, factor/count-only,
+deterministic ordered-state permutation, hierarchy-disabled, and
+exact-recall-only controls. A1Q must separately isolate sentence, paragraph,
+conversation, and global causal evidence and exercise both selection and exact
+payload decoding. Only terms that beat their matched controls become
+GI-2-qualified semantic scoring terms.
 
-GI-2 closes only when full recursive attention is causally load-bearing. A
-successful #967 representation repair makes the later attention scorer
-reachable; it does not itself promote #953. GI-2 does not emit or score
-grammatical product text.
+GI-2 closes only when #969 shows full recursive attention is causally
+load-bearing and records `PROMOTE_TO_I1`. The #967 representation repair did
+not make A1Q reachable because its scalar readout tied; #970 must first falsify
+and replace that shortest-Cayley readout within its broader candidate-relative
+readout/placement scope. Neither stage promotes #953. GI-2 does not emit or
+score grammatical product text.
 
 ### GI-3 / #953 — source-free grammatical inference and generation
 
-After #967 repairs ordered state and GI-2 attention passes its later matched
-controls, compile explicit lexical class, agreement, punctuation,
+After #969 qualifies full GI-2 attention, compile explicit lexical class,
+agreement, punctuation,
 clause/sentence closure, and ordered continuation geometry. Expose one bounded
 route-native generation interface through the library and CLI, from input bytes
 and hierarchy state to decoded lexical output. Emit bounded autoregressive text
 using no Ollama, source weights, dense matrix model, transformer, MoE, or sparse
 learned router.
 
+The generator consumes only GI-2-qualified semantic scoring terms; mandatory
+storage fields and unqualified Hopf, H4, zeta, icosian, or SpiralCore controls
+cannot influence ranking merely because they are serialized.
+
 #953 owns inference and language formation. Product CLI/HTTP chat integration,
 restart-persistent conversation state, and identity-scoped hive-memory lifecycle
 belong to #962 and are not part of the #953 qualification.
 
-The gate asks whether the attention-qualified geometry produces distinct,
-decodable, non-cycling, prompt-responsive text beyond exact recall. It records
-real, factor-only, permuted-pair/permuted-geometry, count-only, and exact-recall
-arms separately. This is source-free grammatical inference/generation, not yet
-a claim that answers are correct.
+The smallest gate uses a frozen matched prompt pair or triad that requires
+incompatible prompt-conditioned lexical choices while exact continuation rows
+remain absent. It emits at most 32 lexical units per prompt and compares real,
+grammar-disabled, hierarchy-disabled, factor/count-only,
+permuted-geometry, and exact-recall arms. Passing requires distinct,
+decodable, non-cycling, prompt-responsive output—not merely one grammatical
+clause shared by different prompts. This is source-free grammatical
+inference/generation, not yet a claim that answers are correct.
 
 ### GI-4 / #954 — correctness and abstention
 
@@ -642,6 +692,8 @@ hours remains a hard kill ceiling, never an estimate.
 - Project shorthand is `E8 = H4 x H4`; its concrete implementation and
   serialization contract is the golden/Galois-coupled icosian pair
   `H4 ⊕ phi H4` with fixed basis, glue, and inverse witness.
+- Required structural/storage representation is not a qualified semantic
+  scoring term. Only A1Q/#969 may qualify a stored geometric field for #953.
 - S3/R4 compute, Hopf S2/R3 observation, and an E8 action plane are distinct
   objects.
 - Exact recall, grammatical text, correct inference, and reasoning are separate

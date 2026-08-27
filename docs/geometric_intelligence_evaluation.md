@@ -18,9 +18,13 @@ probe whose possible outcomes cause different next actions.
 
 Lexical ingestion, canonical serialization, registered-address membership,
 and rebuild witnesses are prerequisite plumbing, not inference. The delivery
-sequence is fixed: complete recursive attention across local, sentence,
-paragraph, conversation, and global scopes first; inference/generation second;
-correctness with abstention third; bounded reasoning fourth.
+sequence is fixed: A1R/#967 repaired ordered state but retained it as state only;
+A1P/#970 now falsifies and replaces the shortest-Cayley scalar readout within
+its broader candidate-relative readout/placement scope; A1Q/#969 then
+qualifies complete recursive attention across local, sentence, paragraph,
+conversation, and global scopes; inference/generation follows only after #969;
+correctness with abstention is third; bounded reasoning is fourth. #970 blocks
+#969, and #969 natively blocks #953.
 
 A negative result remains evidence about its declared mechanism and
 distribution. It does not erase a separately established storage, identity,
@@ -35,13 +39,17 @@ The stages are ordered because each later claim depends on the earlier one:
    paragraph, conversation, and global scope, the real path emits a coverage
    witness; exact keys establish recall; and, when exact keys miss, transported
    trajectory/harmonic locality changes admitted support or final ordering
-   relative to matched controls. The load-bearing terms include shared-prime
-   factors, session hypersphere vector, winding/window state, projection energy,
-   cosine resonance, accumulated Hopf phase, and the paired icosian coordinate
-   that realizes the project shorthand `E8 = H4 × H4` as `H4 ⊕ φH4`.
-2. **Inference/generation** — the real decoder uses the completed hierarchy to
-   produce decodable next tokens, update state without future-route input, and
-   run provider-free through the evaluated CLI/HTTP/chat path.
+   relative to matched controls. Candidate terms include shared-prime factors,
+   session hypersphere vector, winding/window state, projection energy, cosine
+   resonance, accumulated Hopf phase, and the paired icosian coordinate that
+   realizes the project shorthand `E8 = H4 × H4` as `H4 ⊕ φH4`. Their presence
+   in the structural/storage representation does not qualify them for scoring;
+   A1Q/#969 must establish the causal value of each term it promotes.
+2. **Inference/generation** — the real decoder uses only A1Q-qualified semantic
+   scoring terms from the completed hierarchy to produce decodable next tokens,
+   update state without future-route input, and run provider-free through the
+   evaluated CLI/HTTP/chat path. Required storage fields that remain
+   unqualified cannot influence ranking.
 3. **Correctness/abstention** — answers satisfy an independent oracle or
    constraint, and typed abstentions are reported explicitly.
 4. **Reasoning** — novel multi-step tasks expose typed intermediate transitions,
@@ -111,6 +119,42 @@ experiment contract; do not reinterpret a miss as a pass, and do not let an
 irrelevant metric erase a load-bearing result established by a more direct
 intervention.
 
+### A1R/#967 frozen scope result
+
+The frozen #952 histories intentionally match current route, previous route,
+last-two suffix, length/multiset/boundary shape, and the immutable `gg` global
+project snapshot. A1R therefore expects current, previous, last-two, and global
+state to be equal, while sentence, paragraph, and conversation ordered state
+must differ. Equality at the control scopes is a fixture requirement, not a
+failure of the repair.
+
+Global behavior is a separate intervention. A claim about global ordered state
+requires a construction-independent global-snapshot permutation fixture in
+which only global order differs while current-through-conversation scopes,
+candidate support, payloads, and work budgets remain matched. Evaluation may
+not mutate global state from the conversation merely to manufacture a
+difference. The #967 report satisfied this scope mask, the independent-global
+intervention—including distinct content-derived global epochs with matched
+lower inputs, rows, support, budgets, and denominator—exact group/fold laws,
+incremental reproduction, and candidate support invariants. Its report kappa is
+`blake3:f0db7a5d5c81d51ebf3b4bf8a2715c4960ec16b14161e8bf7598d7b98c48c881`.
+
+The full arm produced distinct `ll`/`rr` relative states on all 6 queries and
+changed the same-candidate relative state in 5/6 paired comparisons. The scalar
+shortest-Cayley-distance readout nevertheless mapped both candidates to energy
+2 and tied on all 6/6 queries. The terminal verdict is `RETAIN_STATE_ONLY`:
+ordered state is retained, but attention, generation, correctness, and reasoning
+remain unestablished. A1P/#970 owns the readout/placement redesign and blocks
+A1Q/#969.
+
+The legacy additive state was bound and remained equal, but its ranking arm is
+`NOT_EXERCISED`: no additive candidate scorer was predeclared. The exact-recall
+arm exercised six `NO_EXACT_HIT` abstentions rather than six ties. Canonical
+address order reported `rr` as a diagnostic tie-break token for the full arm;
+it never converted a tie into a selection. The verdict does not depend on the
+unavailable additive arm: the report binds the 6/6 full tie and
+`any_exercised_control_not_weaker = true` separately.
+
 ## 4. Matched controls
 
 An attention, inference, or reasoning comparison MUST use controls with the
@@ -124,14 +168,19 @@ same causal information and declared budget. At minimum report:
 - candidate support before and after any common pre-geometric admission; and
 - work performed, not merely requested worker count.
 
-Recommended controls are real geometry, deterministic permuted geometry,
-count/source-only ordering, exact-recall-only, and a disabled geometry arm.
+For A1Q/#969, the required equal-budget arms are the full-geometry treatment
+plus current-only, the existing additive summary, factor/count-only ordering,
+deterministic ordered-state permutation, hierarchy-disabled, and
+exact-recall-only controls.
 Permutation must reassign geometry within the same admitted support; it must
 not introduce a different candidate budget. Count-only must retain the same
 rows and candidates. A control that sees future tokens, additional retrieval,
 or a larger candidate set is invalid.
 
-For the recursive hierarchy, choose the smallest term-specific control that
+For the recursive hierarchy, #969 must use independent fixtures that isolate
+sentence, paragraph, conversation, and global causal effects, exercise both
+selection and exact payload decoding, and forbid future-route leakage or target
+injection. Within each scope, choose the smallest term-specific control that
 can change the active decision: full transported trajectory versus last-only;
 shuffled trajectory; session-vector permutation; winding/window permutation;
 projection-energy removal; shared-prime-only versus resonance sub-ranking;
@@ -140,8 +189,13 @@ The active trigonometric chart can be compared with an equal-budget chart
 permutation, and a quarter-turn intervention must retain the same admitted
 support and cost profile. Cross-domain chart comparisons keep units,
 orientation, quantization, error bounds, and tie-breaks fixed.
-These are available controls, not an instruction to run an omnibus ablation.
-Only the control owned by the current decision is activated.
+These term controls supplement the required A1Q arms; they are not an
+instruction to run unrelated omnibus ablations. Only the control owned by the
+current decision is activated.
+
+A1Q records `PROMOTE_TO_I1` only when full recursive attention beats these
+matched controls across its frozen required scopes. A distinct A1R state, a
+single-scoped win, or an exact-hit-only effect cannot promote #953.
 
 If count and source breadth admit support before geometric scoring, reports
 MUST say so. “Least energy” then means least declared energy among admitted
@@ -172,8 +226,10 @@ On this slice, exact hierarchy kappas must miss by construction while bounded
 overlapping summaries remain available. Report whether shared-prime factors,
 cosine resonance, projection energy, winding/window compatibility, accumulated
 Hopf phase, transported hypersphere trajectory, and paired-H4/E8 coordinates
-recover locality. A candidate found only through digest equality is recall and
-does not satisfy this requirement.
+recover locality. Report unqualified terms as storage fields, diagnostics, or
+controls rather than folding them into a winning aggregate score. A candidate
+found only through digest equality is recall and does not satisfy this
+requirement.
 
 ## 6. Correctness and abstention
 

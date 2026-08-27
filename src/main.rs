@@ -101,6 +101,8 @@ enum Command {
     LexicalIngestionWitness,
     /// Run the frozen A1.0 ordered-state/value-reachability gate without a scorer.
     RecursiveAttentionA1Probe,
+    /// Run the frozen A1R associative ordered-summary and candidate-relative probe.
+    AssociativeOrderedSummaryA1rProbe,
     /// List preserved compiler, serving, and certification commands.
     ResearchTools,
     /// Run the full artifact-discovering historical HTTP server.
@@ -1305,6 +1307,17 @@ fn run(cli: &Cli) -> Result<(), RunError> {
             let rendered = serde_json::to_string_pretty(&report).map_err(|error| {
                 RunError::Command(format!(
                     "serialize recursive-attention A1.0 report: {error}"
+                ))
+            })?;
+            println!("{rendered}");
+            Ok(())
+        }
+        Some(Command::AssociativeOrderedSummaryA1rProbe) => {
+            let report = uor_r4_core::recursive_geometric_attention::run_a1r_associative_ordered_summary_probe()
+                .map_err(|error| RunError::Command(error.to_string()))?;
+            let rendered = serde_json::to_string_pretty(&report).map_err(|error| {
+                RunError::Command(format!(
+                    "serialize associative ordered-summary A1R report: {error}"
                 ))
             })?;
             println!("{rendered}");

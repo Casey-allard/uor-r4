@@ -1,8 +1,10 @@
 # ADR-0004: Define a bounded geometric-intelligence route hierarchy
 
 - **Status:** Accepted as an architectural definition and evaluation boundary;
-  paragraph, conversation, global, inference, and reasoning capability remain
-  unproven and off the product path.
+  #967 A1R repaired ordered state but terminated `RETAIN_STATE_ONLY`; #970 A1P
+  candidate-relative readout/placement blocks #969 A1Q; and attention, inference,
+  correctness, and reasoning capability remain unproven and off the product
+  path. #969 blocks #953.
 - **Date:** 2026-08-26
 - **Builds on:** [ADR-0003](0003-fixed-zeta-prime-route-attention.md)
 - **Evaluation:**
@@ -44,12 +46,16 @@ Adopt five ordered, identity-scoped route levels: local, sentence, paragraph,
 conversation, and global. Each level is an incremental accumulator over bounded
 child records. A parent commits to ordered child kappas, span boundaries,
 provenance, and a declared factorable geometric summary. That summary preserves
-the signals needed for overlap when an exact kappa misses: the transported
-trajectory commitment, session hypersphere vector, winding/window state,
+structural state that may be tested for overlap when an exact kappa misses: the
+transported trajectory commitment, session hypersphere vector, winding/window state,
 projection energy, shared-prime factors, cosine resonance, accumulated Hopf
 phase, and paired-H4/E8 coordinate. Query reads a fixed artifact-declared
 number of rows at each enabled level; it never enumerates all descendant tokens
 or corpus records.
+
+Those fields are required structural/storage representation until evidence says
+otherwise. A1Q/#969 alone qualifies a subset as semantic scoring terms; #953
+may consume only that qualified subset.
 
 This ADR defines identities, boundaries, and evaluation. It does not promote a
 serving implementation.
@@ -79,7 +85,9 @@ R_t^q = (
 
 **Definition:** `kappa(R_t^q)` is the canonical content identity of this exact
 envelope. The digest supplies equality and integrity, not geometric distance.
-Factor, phase, spin/Hopf, torsion, and radial fields supply declared locality.
+Factor, phase, spin/Hopf, torsion, and radial fields supply declared structural
+coordinates and candidate locality hypotheses. They do not supply semantic
+ranking until qualified by A1Q/#969.
 
 The bridge mode is exact identity data. The project seam is
 `exp(i*pi)+pi^0 =_bridge 0^0`. In `ContinuousNull`, the typed transition
@@ -159,7 +167,20 @@ per row, retained candidates after admission, and patch/epoch depth. Exceeding a
 scope ceiling closes, summarizes, backs off, or abstains according to a typed
 policy; it never silently expands work.
 
-## 4. Load-bearing paired-H4/E8 bridge
+The frozen #952/A1R fixture isolates earlier conversation order while matching
+current, previous, last-two, length/multiset/boundary shape, and the immutable
+`gg` global snapshot. #967's repaired behavior was equality at current,
+previous, last-two, and global, with differences at sentence, paragraph, and
+conversation. Its separate construction-independent global-snapshot
+permutation held lower inputs, candidate rows/support, budgets, and denominator
+fixed while changing only global state; its content-derived epochs differed as
+expected. Exact fold/group, incremental, and support invariants held. The
+full arm produced distinct `ll`/`rr` relative states on 6/6 queries, but shortest
+Cayley distance collapsed them to energy 2 and tied on 6/6. Report kappa:
+`blake3:f0db7a5d5c81d51ebf3b4bf8a2715c4960ec16b14161e8bf7598d7b98c48c881`.
+The `RETAIN_STATE_ONLY` verdict establishes no full attention claim.
+
+## 4. Required structural/storage paired-H4/E8 bridge
 
 **Assumption:** the project's conceptual identity is
 `E8 = H4 × H4`. The target hierarchy realizes that shorthand through the
@@ -179,14 +200,13 @@ bind the icosian basis, glue/parity rule, Galois/golden conjugation, scale, shel
 membership, root ordering, orientation, inverse/rebuild witness, and
 operator-table kappa.
 
-The paired coordinate is load-bearing in the target route hierarchy: it is part
-of each transported geometric summary and therefore must participate in
-candidate support or ordering. This architectural requirement does not by
-itself establish held-out advantage. Promotion still requires an equal-budget
-intervention against factor-only and basis/shell-permuted controls on anti-
-recall inputs. If it is not load-bearing, the geometric-intelligence target
-fails or requires a superseding architecture decision; the prime/Hopf store may
-remain useful only as a separately named storage/recall substrate.
+The paired coordinate is required in canonical hierarchy storage, address
+reconstruction, and the inverse witness. That architectural requirement does
+not make it a semantic scoring term. A1Q/#969 may qualify it only through an
+equal-budget intervention against factor-only and basis/shell-permuted controls
+on candidate-relative anti-recall inputs. If it does not qualify, the field
+remains valid structural/storage state, a diagnostic, or a control and may not
+influence #953 ranking.
 
 ## 5. Retrieval, admission, and attention
 
@@ -211,15 +231,16 @@ address, when the union exceeds the artifact ceiling. That rule and the number
 excluded are part of the coverage witness.
 
 When exact hierarchy kappas miss, bounded fallback uses overlapping
-trajectory/harmonic locality rather than digest distance: shared-prime factors,
-projection energy, cosine resonance, winding/window compatibility, accumulated
-Hopf phase, trigonometric chart/quarter-turn transport, and paired-H4/E8
-coordinates.
+trajectory/harmonic locality rather than digest distance. Candidate terms
+include shared-prime factors, projection energy, cosine resonance,
+winding/window compatibility, accumulated Hopf phase, trigonometric
+chart/quarter-turn transport, and paired-H4/E8 coordinates; only the
+A1Q-qualified subset may affect semantic candidate support or ranking.
 
 **Definition:** geometric recall returns a continuation because an exact or
 declared backoff identity was stored. **Definition:** geometric attention ranks
 the admitted causal support using declared geometric energy or compatibility,
-and the complete hierarchy geometry is load-bearing against matched controls.
+and its qualified semantic terms are load-bearing against matched controls.
 Consequently,
 “least energy” means least energy among admitted candidates unless an artifact
 explicitly scores the entire bounded union before admission.
@@ -238,7 +259,8 @@ coverage witness containing:
 - observed route membership result and identity scope;
 - each row key read, scope/source, hit/miss, and entries examined;
 - union size, pre-geometric admission policy, admitted and excluded support;
-- per-candidate source counts and declared energy components;
+- per-candidate source counts, qualified semantic energy components, and
+  separately labeled unqualified structural/diagnostic fields;
 - transported-trajectory fields: session hypersphere vector, winding/window,
   projection energy, shared factors, cosine resonance, accumulated Hopf phase,
   and paired-H4/E8 coordinate;
@@ -253,10 +275,12 @@ itself establish generalization, correctness, reasoning, or product readiness.
 
 ## 7. Inference, correctness, and reasoning boundaries
 
-**Definition:** inference consumes observed hierarchy state, selects next-token
-scores or a token, updates state, and decodes output through the pinned lexical
-codec. Attention supplies bounded context; it is not the complete inference
-mechanism.
+**Definition:** inference consumes observed hierarchy state and only the
+A1Q-qualified semantic scoring terms, selects next-token scores or a token,
+updates state, and decodes output through the pinned lexical codec. Required
+storage fields remain available for reconstruction but cannot influence ranking
+while unqualified. Attention supplies bounded context; it is not the complete
+inference mechanism.
 
 **Empirical Criterion:** correctness is measured against a predeclared
 independent oracle or constraint, with answered, incorrect, and abstained
@@ -281,13 +305,18 @@ rebuild witnesses are prerequisite plumbing. They are not inference.
 
 Delivery proceeds without skipping stages:
 
-1. complete recursive attention through local, sentence, paragraph,
-   conversation, and global scopes, including exact-key misses served by
+1. retain the associative noncommutative ordered state delivered by A1R/#967
+   without claiming full attention;
+2. falsify and replace the shortest-Cayley scalar readout in A1P/#970, within
+   its broader candidate-relative readout/placement scope and with that state,
+   anchors, and support fixed;
+3. qualify full recursive attention in A1Q/#969 through local, sentence,
+   paragraph, conversation, and global scopes, including exact-key misses served by
    transported harmonic/trajectory locality and matched controls;
-2. implement provider-free inference and coherent generation over that complete
-   hierarchy;
-3. measure correctness and typed abstention against independent oracles; and
-4. measure bounded reasoning through novel multi-step state transitions.
+4. implement provider-free inference and coherent generation in #953 over only
+   the qualified hierarchy terms;
+5. measure correctness and typed abstention against independent oracles; and
+6. measure bounded reasoning through novel multi-step state transitions.
 
 No generation score can substitute for incomplete attention scopes, and no
 reasoning claim can precede correctness evidence.
@@ -303,8 +332,9 @@ reasoning claim can precede correctness evidence.
 - Unknown addresses fail closed; unseen ordered combinations may still be
   evaluated through bounded geometric backoff.
 - The target realizes the conceptual `E8 = H4 × H4` identity through the
-  required, basis/glue-bound icosian `H4 ⊕ φH4` serialization and inverse
-  witness.
+  required structural/storage, basis/glue-bound icosian `H4 ⊕ φH4`
+  serialization and inverse witness; semantic use requires separate A1Q
+  qualification.
 - Product, correctness, and reasoning claims require separate anti-recall
   evaluations and real serving evidence.
 
@@ -332,7 +362,8 @@ selection on novel combinations.
 ### Serialize only the words `E8 = H4 × H4`
 
 Rejected as an implementation contract, while retaining it as the project
-shorthand. The load-bearing serialized bridge is the basis/glue-bound icosian
+shorthand. The required structural/storage serialized bridge is the
+basis/glue-bound icosian
 `Z`-module construction with golden-coupled R4 points and the declared
 `H4 ⊕ φH4` folding. Omitting that data would leave the conceptual identity
 without canonical bytes, a rebuild path, or an inverse witness.

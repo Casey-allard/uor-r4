@@ -8,13 +8,14 @@ preserved #948–#958 sequencing record. Measured, refuted, and frozen research
 remains in [docs/RESEARCH.md](docs/RESEARCH.md).
 
 _Last reviewed: 2026-08-27 (#961 reversible S0 landed; #952 A1.0 stopped at
-`REDESIGN_ORDERED_ROUTE_SUMMARY`; #967 is the native repair blocker before
-#953–#955 → #962–#965)._
+`REDESIGN_ORDERED_ROUTE_SUMMARY`; #967 A1R terminated `RETAIN_STATE_ONLY`;
+#970 A1P now precedes #969 A1Q, which blocks #953–#955 → #962–#965)._
 
 > **Project priority:** build source-free geometric intelligence in which the
 > route is the data location. A pinned lexical codec supplies text boundaries;
-> prime/n-let routes, fixed-zeta state, R4/S3 transport, the load-bearing
-> project bridge `E8 = H4 x H4` serialized as the golden/Galois-coupled
+> prime/n-let routes, fixed-zeta state, R4/S3 transport, the required
+> structural/storage project bridge `E8 = H4 x H4` serialized as the
+> golden/Galois-coupled
 > `H4 ⊕ phi H4` icosian pair, and recursive sentence/paragraph/conversation/
 > global context choose output. Source weights are offline teachers only. The
 > final serving path contains no transformer, dense matrix intelligence kernel,
@@ -47,27 +48,48 @@ Native GitHub relationships are the source of truth:
    canonical hierarchy serialization, independent attention-artifact identity,
    incremental API-neutral state, and the fixed concrete `H4 ⊕ phi H4`
    realization of the project shorthand `E8 = H4 x H4`. Do not generate.
-3. **GI-2 / #952 → #967 — recursive attention repair:** #952 established that
+3. **GI-2 A1R / #952 → #967 — ordered-state repair (terminal):** #952 established that
    the natural bounded candidate/value path works but every current non-digest
-   hierarchy summary collides when only earlier order changes. #967 must first
-   replace that additive/last-child summary with an associative,
-   noncommutative ordered fold and rerun the frozen anti-recall gate. Only then
-   may GI-2 continue to combine exact route identity with the
-   full transported trajectory, hypersphere/window summaries, shared-factor
-   retrieval, resonance, and Hopf accumulation across sentence, paragraph,
-   conversation, and global route levels. Emit a coverage witness and establish
-   anti-recall causal value before producing text.
-4. **GI-3 / #953 — source-free grammatical inference/generation:** compile
-   grammar and syntax into the attention-qualified route engine and establish
-   bounded source-free generation through the library and CLI. Durable chat,
-   persistence, and HTTP session behavior remain outside this stage.
-5. **GI-4 / #954 — correctness and abstention:** test held-out answer
+   hierarchy summary collides when only earlier order changes. #967 replaced
+   that additive/last-child summary with an associative, noncommutative ordered
+   fold and reran the frozen candidate-relative gate.
+   The frozen histories intentionally keep current, previous, last-two, and the
+   immutable global snapshot equal; sentence, paragraph, and conversation state
+   must differ. Any global-order claim uses a separate construction-independent
+   global-snapshot permutation with lower scopes and support held fixed. A1R
+   repaired representation passed its scope, global, fold, incremental, and
+   support invariants. Its full arm produced distinct `ll`/`rr` relative states
+   on 6/6 queries and changed the same-candidate state in 5/6 paired
+   comparisons, but shortest Cayley distance collapsed the distinct states to
+   energy 2 and tied on 6/6. The report therefore terminated
+   `RETAIN_STATE_ONLY` with kappa
+   `blake3:f0db7a5d5c81d51ebf3b4bf8a2715c4960ec16b14161e8bf7598d7b98c48c881`.
+   This is state evidence only, not attention.
+4. **GI-2 A1P / #970 — candidate-relative readout/placement redesign:** keep the
+   #967 fold, anchors, relative states, and support fixed while replacing the
+   shortest-Cayley scalar readout that tied both admitted targets. #970 is
+   unassigned, owns the broader readout/placement falsifier, follows protected
+   #967 delivery, and natively blocks #969. Do not implement full A1Q or
+   generation here.
+5. **GI-2 A1Q / #969 — full recursive attention qualification:** after #970,
+   independently qualify sentence, paragraph, conversation, and global causal
+   effects with candidate-relative anti-recall fixtures and equal-budget
+   current-only, additive, factor/count-only, deterministic-permutation,
+   hierarchy-disabled, and exact-recall controls. Only terms that pass this
+   qualification become semantic scoring terms; required storage fields remain
+   storage, diagnostics, or controls otherwise.
+6. **GI-3 / #953 — source-free grammatical inference/generation:** after #969,
+   compile grammar and syntax into the attention-qualified route engine using
+   only GI-2-qualified semantic terms, and establish bounded source-free
+   generation through the library and CLI. Durable chat, persistence, and HTTP
+   session behavior remain outside this stage.
+7. **GI-4 / #954 — correctness and abstention:** test held-out answer
    correctness, relevance, abstention, and causal use of required context.
    Teacher weights may label or compare offline only after the source-free
    report freezes.
-6. **GI-5 / #955 — reasoning:** add bounded goal-directed route composition, branch
+8. **GI-5 / #955 — reasoning:** add bounded goal-directed route composition, branch
    comparison, intermediate constraints, and closure/contradiction controls.
-7. **GI-6 / #962–#965 — product, cost, formal closure, and release:** integrate
+9. **GI-6 / #962–#965 — product, cost, formal closure, and release:** integrate
    durable multi-turn CLI/HTTP chat, persistence, isolation, and hive-memory
    (#962); optimize only the measured route-native bottleneck (#963); freeze
    the serving contract (#964); then explicitly activate only the release QA
@@ -76,9 +98,12 @@ Native GitHub relationships are the source of truth:
 The live issue bodies and native dependencies now mirror this sequence. #961
 is closed. #952's terminal negative evidence is preserved in
 [`docs/recursive_geometric_attention_a1_952.md`](docs/recursive_geometric_attention_a1_952.md).
-#967 is unassigned and blocked only until #952 closes; it remains the native
-blocker of #953 afterward. Every later stage stays unassigned and blocked in
-order. Legacy tracker #949 is closed as superseded; #958 is retained directly
+#967 is at terminal A1R delivery with `RETAIN_STATE_ONLY`. New unassigned #970
+follows protected #967 delivery and is the native blocker of #969; #969 remains
+the native blocker of #953. The immediate chain is therefore #952 closed →
+#967 terminal delivery → #970 A1P → #969 A1Q → #953. Closing #967 cannot
+make A1Q or generation eligible. Every later stage stays unassigned and blocked
+in order. Legacy tracker #949 is closed as superseded; #958 is retained directly
 under programme root #820 as GI-0 foundation.
 
 The old S5–S7 and F0 issues are closed not planned/not triggered. R4G1/TLA,
@@ -93,8 +118,19 @@ historical evidence and comparators.
   non-digest fields, so no scorer was built. The real schema-2 path naturally
   admitted both continuations under ceiling eight, inverted both exact values,
   and reproduced incremental next state. Exact H4 and SpiralCore finite tables
-  closed as controls only. Repair is #967; #953 remains blocked. See the
+  closed as controls only. Repair is #967; full attention qualification is
+  #969; #953 remains blocked by #969. See the
   [qualification](docs/recursive_geometric_attention_a1_952.md).
+
+- [x] **#967 A1R associative ordered-state repair** —
+  *`RETAIN_STATE_ONLY`, 2026-08-27*. The exact H4 fold passed the frozen scope,
+  independent-global, group/fold, incremental, and support invariants. The full
+  arm produced distinct candidate-relative states, but shortest Cayley distance
+  mapped both to energy 2 and tied on 6/6, so no attention or generation claim
+  follows. Report kappa:
+  `blake3:f0db7a5d5c81d51ebf3b4bf8a2715c4960ec16b14161e8bf7598d7b98c48c881`.
+  #970 owns the candidate-relative readout/placement redesign and blocks #969. See the
+  [A1R record](docs/associative_ordered_route_summaries_a1r_967.md).
 
 - [x] **#961 reversible lexical geometry/state plumbing** —
   *`PASS_REVERSIBLE_STATE_PLUMBING_ONLY`, 2026-08-27*. The pinned codec,

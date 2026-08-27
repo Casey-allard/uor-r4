@@ -32,12 +32,17 @@ golden radial state, the paired-H4/E8 construction, and transported trajectory
 summaries supply the declared locality. Higher route scopes update
 incrementally rather than scanning the full prefix or corpus at every token.
 
-The sequence is capability-ordered: #961 supplies reversible lexical geometry
-and complete hierarchy state; #952 must establish recursive geometric
-attention at every scope under anti-recall matched controls; #953 then builds
-provider-free grammatical generation; #954 measures correctness and typed
-abstention; #955 begins reasoning. #958 is retained storage/recall foundation,
-not proof of attention. There is no working source-free chat path yet.
+The sequence is capability-ordered: #961 supplied reversible lexical geometry
+and complete hierarchy state; #952 exposed an order-erasing reusable summary;
+A1R/#967 repaired that representation but terminated `RETAIN_STATE_ONLY` when
+shortest Cayley distance mapped distinct candidate-relative states to equal
+energy on 6/6 queries; A1P/#970 now owns candidate-relative readout/placement;
+and A1Q/#969 must then establish recursive
+geometric attention at every scope under anti-recall matched controls. #953 can
+then build provider-free grammatical generation from only A1Q-qualified
+semantic terms; #954 measures correctness and typed abstention; #955 begins
+reasoning. #958 is retained storage/recall foundation, not proof of attention.
+There is no working source-free chat path yet.
 
 The sections below explain the historical table/graph system retained as a
 comparator and runtime reference. Its measurements are not the current

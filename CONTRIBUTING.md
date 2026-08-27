@@ -94,20 +94,27 @@ Do not create a new test framework for routine confidence.
 The experiment must be able to change the next programme decision:
 
 - **Follow the GI sequence.** GI-1 makes lexical/address state reversible;
-  GI-2/#952 establishes recursive attention; GI-3/#953 adds source-free
-  grammatical inference/generation; GI-4/#954 tests correctness/abstention;
-  GI-5/#955 adds reasoning. Do not generate before attention passes.
+  #952 found the reusable ordered-state defect; A1R/#967 repaired the fold but
+  terminated `RETAIN_STATE_ONLY` after its scalar readout tied distinct
+  candidate-relative states on 6/6 queries; A1P/#970 now owns the
+  candidate-relative readout/placement; and A1Q/#969 separately qualifies full
+  recursive attention. GI-3/#953 may then add source-free grammatical
+  inference/generation using only A1Q-qualified semantic terms; GI-4/#954 tests
+  correctness/abstention; GI-5/#955 adds reasoning. Do not generate before
+  attention passes.
 - **Exercise the real route path.** Geometry must run before token choice and
   emit its admitted support, energy trace, and global-context coverage witness.
 - **Use the smallest falsifier.** Start with a bounded source-free route
   fixture, hierarchy intervention, or held-out continuation before adding data.
-- **Use non-degenerate anti-recall controls.** Compare exact recall, factor-only,
-  count-only, real geometry, permuted geometry, and permuted paired-H4 state
-  under equal budgets.
-- **Preserve unseen global context.** Exact route identity is combined with the
-  transported trajectory, hypersphere/window summaries, shared-factor
-  retrieval, resonance, and accumulated Hopf phase; exact kappa miss cannot
-  collapse to a suffix-only default.
+- **Use non-degenerate anti-recall controls.** Compare the full-geometry
+  treatment against current-only, the existing additive summary,
+  factor/count-only ordering, deterministic ordered-state permutation,
+  hierarchy-disabled, and exact-recall-only controls under equal budgets.
+- **Preserve unseen global context.** Exact route identity remains separate
+  from transported trajectory, hypersphere/window summaries, shared-factor
+  retrieval, resonance, and accumulated Hopf phase. Those fields are storage,
+  diagnostics, or controls until A1Q qualifies them for semantic scoring; an
+  exact kappa miss still cannot collapse to a suffix-only default.
 - **Keep teachers offline.** Teacher labels/comparisons begin only after a
   source-free report freezes and are never substituted for product output.
 - **Include free-running output only when GI-3 or later is in scope.** Attention
