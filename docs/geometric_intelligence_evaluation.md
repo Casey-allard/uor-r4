@@ -19,16 +19,17 @@ probe whose possible outcomes cause different next actions.
 Lexical ingestion, canonical serialization, registered-address membership,
 and rebuild witnesses are prerequisite plumbing, not inference. The delivery
 sequence is fixed: A1R/#967 repaired ordered state but retained it as state only;
-A1P/#970 has a corrected local paired-H4/R4-heatmap identifiability result of
+A1P/#970 produced the local paired-H4/R4-heatmap identifiability result
 `RETAIN_H4_STATE_ONLY_ADVANCE_MULTICHANNEL_A1Q` before scalar design because
 eight retained heatmap classes aliased outcomes and construction transfer was
 0/6. This is a readout-identifiability negative only; paired H4 and its exact R4
-heatmap remain structural/control state. #970 remains active until protected
-merge, and A1Q/#969 remains blocked until then. After delivery, #969 may test
-complete recursive attention across local,
-sentence, paragraph, conversation, and global scopes; inference/generation
-follows only after #969; correctness with abstention is third; bounded reasoning
-is fourth. #969 natively blocks #953.
+heatmap remain structural/control state. #970 closed through protected PR #972.
+#969's mechanism-first pivot delivered one causal R4/S3 least-cost
+route-attention mechanism and one matched two-unit decoded smoke at
+`PROCEED_TO_I1_WITH_CAUSAL_R4_PATH_ATTENTION`. #953 follows that local
+mechanism; #973 later owns paragraph, conversation, and
+global qualification through the decoded loop; correctness and reasoning follow.
+#969's protected closure exposes #953; #973 remains blocked by #953.
 
 A negative result remains evidence about its declared mechanism and
 distribution. It does not erase a separately established storage, identity,
@@ -39,33 +40,24 @@ attention, inference, correctness, reasoning, or product readiness.
 
 The stages are ordered because each later claim depends on the earlier one:
 
-1. **Complete recursive geometric attention** — at every local, sentence,
-   paragraph, conversation, and global scope, the real path emits a coverage
-   witness; exact keys establish recall; and, when exact keys miss, transported
-   trajectory/harmonic locality changes admitted support or final ordering
-   relative to matched controls. Candidate terms include shared-prime factors,
-   session hypersphere vector, winding/window state, projection energy, cosine
-   resonance, accumulated Hopf phase, and the paired icosian coordinate that
-   realizes the project shorthand `E8 = H4 × H4` as `H4 ⊕ φH4`. Their presence
-   in the structural/storage representation does not qualify them for scoring;
-   A1Q/#969 must establish the causal value of each term it promotes.
-2. **Inference/generation (#953)** — the real decoder uses only A1Q-qualified
-   semantic scoring terms from the completed hierarchy to produce decodable next
-   tokens, update state without future-route input, and run provider-free through
-   the evaluated library/CLI path. Required storage fields that remain
-   unqualified cannot influence ranking. Durable HTTP/chat integration belongs
-   to #962.
-3. **Correctness/abstention (#954)** — the accepted #969-qualified terms through
-   the accepted #953 generator satisfy an independent oracle or constraint, and
-   typed abstentions are reported explicitly. #954 does not consume #952 as
-   qualified attention.
-4. **Reasoning (#955)** — every step invokes the accepted #969/#953/#954
+1. **Local route-attention mechanism (#969)** — natural schema-2 adjacency,
+   causal ordered R4/S3 path state, retained prefix memory, and deterministic
+   exact path closure change one decoded choice under matched natural support
+   and group-comparison budgets.
+2. **Inference/generation (#953)** — the real decoder tries the accepted local
+   mechanism in bounded provider-free autoregressive language through the
+   evaluated library/CLI path.
+3. **Higher-scope attention (#973)** — paragraph, conversation, and bounded
+   global state change selection through the accepted #953 decoded loop.
+4. **Correctness/abstention (#954)** — the accepted #969/#953/#973 path satisfies
+   an independent oracle or constraint, and typed abstentions are explicit.
+5. **Reasoning (#955)** — every step invokes the accepted #969/#953/#973/#954
    consumer; novel multi-step tasks expose typed intermediate transitions,
    constraint preservation, alternative/counterfactual comparison, and a
    checkable result. #952 is not the reasoning consumer.
 
-#962 later integrates #969-qualified attention and the accepted #953 generator
-into product chat/memory. #964 binds the inserted #970 → #969 stages in the
+#962 later integrates the accepted #969/#953/#973 path into product chat/memory.
+#964 binds the #970 → #969 → #953 → #973 stages in the
 serving contract, and #965 qualifies only that exact release path.
 
 Passing an earlier stage never promotes a later claim. Codec coverage is not
@@ -86,10 +78,10 @@ same ancestor route used a session hypersphere vector, winding/window state,
 projection energy, shared-prime factors, cosine resonance, and accumulated Hopf
 phase.
 
-Therefore a new hierarchy probe cannot replace the transported path with only
-the last coordinate and still claim continuity with the original mechanism.
-It must retain these bounded summaries at every applicable scope and measure
-their held-out locality when exact kappas miss. The ancestor used Ollama for
+Therefore the local prototype cannot replace the transported path with only the
+last coordinate and still claim continuity with the original mechanism. The
+full ordered path must remain available. The other historical channels are
+hypotheses, not mandatory preflight work. The ancestor used Ollama for
 language generation and did not report held-out next-token quality, so it does
 not establish current inference, correctness, or reasoning.
 
@@ -159,8 +151,8 @@ ordered state is retained, but attention, generation, correctness, and reasoning
 remain unestablished. The corrected local A1P/#970 probe subsequently found
 eight incompatible exact paired-H4-derived R4-heatmap classes and stopped before
 readout or placement. This narrows only the frozen heatmap readout; it does not
-reject paired H4 or the other declared channels. #970 remains active and #969
-blocked pending protected merge.
+reject paired H4 or the other declared channels. #970 is closed through
+protected PR #972; #969's later mechanism-first result is recorded below.
 
 The legacy additive state was bound and remained equal, but its ranking arm is
 `NOT_EXERCISED`: no additive candidate scorer was predeclared. The exact-recall
@@ -322,15 +314,15 @@ The terminal decisions are exact:
   miss/tie/abstention, an inert
   readout, or failure to beat an exercised comparator. Both H4 operands and the
   derived heatmap remain structural, provenance, diagnostic, or control state;
-  after protected delivery, #969 may advance to its other predeclared
-  candidate-relative trajectory/harmonic channels. Do not create another
-  paired-heatmap scalar-readout chain.
-- `UNAVAILABLE_NO_INDEPENDENT_HOLDOUT` or `INVALID_CONTRACT` leaves #970 open
-  and #969 blocked with the exact blocker published.
+  protected delivery exposed #969 without approving another paired-heatmap
+  scalar-readout chain. #969 was later pivoted to the single causal path
+  mechanism above.
+- `UNAVAILABLE_NO_INDEPENDENT_HOLDOUT` or `INVALID_CONTRACT` would have left
+  #970 open and #969 blocked with the exact blocker published.
 
-Both valid outcomes expose only #969 after protected delivery. Until the
-corrected result merges, #970 remains active and #969 remains blocked. #953
-remains blocked until #969 itself qualifies full attention.
+Both historical valid outcomes exposed only #969 after protected delivery.
+The observed negative closed through PR #972; it did not itself expose #953,
+which at that checkpoint remained blocked by #969.
 
 ### Observed #970 outcome
 
@@ -361,24 +353,37 @@ census, and byte-identical double-run report kappas are respectively
 `blake3:dca725c0ec6060166bcd0023df956e1ff029661b5fa7800ccb9f20808712b796`,
 and
 `blake3:5f9239150dea8c0c27c4dfa6ad2e4d0068bc3d18afc127b315c0ec358ceddb3f`.
-This is only a bounded readout-identifiability negative. #970 remains active
-until protected merge, and #969 remains blocked until that delivery.
+This is only a bounded readout-identifiability negative. #970 is closed through
+protected PR #972 and the measurement remains append-only history.
 See the [append-only A1P record](candidate_relative_identifiability_a1p_970.md).
 
-### A1Q/#969 Gate 0 composition instrument
+### A1Q-L/#969 causal path mechanism and decoded smoke
 
-After the corrected #970 result is delivered through protected merge, #969 may
-begin with one bounded 2–8 lexical-unit end-to-end instrument:
+#969 freezes exactly one mechanism before the smoke:
+
+```text
+A(i,j)  = natural schema-2 candidate adjacency
+P(0)    = identity
+P(k+1)  = P(k) composed with route(x_k)
+M(t)    = retained causal prefix states before P(t)
+Q_t(c)  = P(t) composed with route(c)
+cost(c) = minimum exact (round-S3 closure shell, causal lease age) over M(t)
+```
+
+Exact candidate-cost ties abstain. H4 is the exact finite S3 codebook; the
+paired-H4/E8 store is not the selector. Then run one bounded 2–8-unit decoded
+smoke:
 
 ```text
 bytes -> lexical routes -> admitted candidates -> frozen select/abstain
       -> payload decode -> incremental state update
 ```
 
-It stops before sentence/paragraph/conversation/global expansion if matched
-prompts emit identical continuations, the qualified-state intervention is inert,
-decoding fails, a period-1–4 cycle appears, termination is nondeterministic, or
-support changes. Those later fixtures remain sealed and disjoint from #970.
+The smoke has identical natural support and group-comparison budgets, exact
+payload decode, incremental state reproduction, and deterministic replay. A
+miss keeps #969 open for direct mechanism revision; it does not create another
+gate issue. Paragraph, conversation, and global work belongs to #973 after
+#953.
 
 ## 4. Matched controls
 
@@ -393,34 +398,24 @@ same causal information and declared budget. At minimum report:
 - candidate support before and after any common pre-geometric admission; and
 - work performed, not merely requested worker count.
 
-For A1Q/#969, the required equal-budget arms are the full-geometry treatment
-plus current-only, the existing additive summary, factor/count-only ordering,
-deterministic ordered-state permutation, hierarchy-disabled, and
-exact-recall-only controls.
-Permutation must reassign geometry within the same admitted support; it must
-not introduce a different candidate budget. Count-only must retain the same
-rows and candidates. A control that sees future tokens, additional retrieval,
-or a larger candidate set is invalid.
+For #969, run exactly three arms with identical natural support and
+group-comparison budgets: full retained causal path, last-only path, and
+state-disabled. No construction/validation split, channel census, weight sweep,
+permutation matrix, or higher-scope fixture is part of this prototype decision.
+A control that sees future tokens, additional retrieval, or a larger candidate
+set is invalid.
 
-For the recursive hierarchy, #969 must use independent fixtures that isolate
-sentence, paragraph, conversation, and global causal effects, exercise both
-selection and exact payload decoding, and forbid future-route leakage or target
-injection. Within each scope, choose the smallest term-specific control that
-can change the active decision: full transported trajectory versus last-only;
-shuffled trajectory; session-vector permutation; winding/window permutation;
-projection-energy removal; shared-prime-only versus resonance sub-ranking;
-accumulated-Hopf-phase permutation; and paired-H4/E8 basis/shell permutation.
-The active trigonometric chart can be compared with an equal-budget chart
-permutation, and a quarter-turn intervention must retain the same admitted
-support and cost profile. Cross-domain chart comparisons keep units,
-orientation, quantization, error bounds, and tie-breaks fixed.
-These term controls supplement the required A1Q arms; they are not an
-instruction to run unrelated omnibus ablations. Only the control owned by the
-current decision is activated.
+A working decoded intervention records
+`PROCEED_TO_I1_WITH_CAUSAL_R4_PATH_ATTENTION`. This establishes only a
+load-bearing identity-derived mechanism and exposes #953 to try generation.
 
-A1Q records `PROMOTE_TO_I1` only when full recursive attention beats these
-matched controls across its frozen required scopes. A distinct A1R state, a
-single-scoped win, or an exact-hit-only effect cannot promote #953.
+The observed smoke uses `aa bb dd qq` versus `bb aa dd qq` with natural
+`{ll, rr}` support. Full retained path decodes `rr ll` versus `ll rr`; both first
+winners use retained non-identity prefix 1. Last-only abstains on both first
+choices and state-disabled chooses `rr` on both. The canonical byte-identical
+record kappa is
+`blake3:60360a9e22a56ea4af363e43f7103bb8104d015d58feb582d921fc17afaf207f`.
+See the [#969 record](local_geometric_attention_969.md).
 
 If count and source breadth admit support before geometric scoring, reports
 MUST say so. “Least energy” then means least declared energy among admitted
@@ -428,8 +423,9 @@ candidates, never among the full untruncated union.
 
 ## 5. Anti-recall protocol
 
-Geometric attention and reasoning require evidence beyond stored continuation
-lookup. The evaluation partition MUST be separated before route rows,
+This section does not apply to #969's mechanism-only smoke; that result is not a
+semantic generalization claim. Later geometric attention and reasoning claims
+require evidence beyond stored continuation lookup. Their evaluation partition MUST be separated before route rows,
 continuation counts, or hierarchy summaries are compiled. Partition by source,
 conversation, or task family when adjacent records could leak the answer.
 
@@ -551,18 +547,23 @@ Use these outcomes literally:
 - `UNAVAILABLE` — a required fixture, provider, oracle, or platform was absent.
 - `NOT_EXERCISED` — the run completed but the named branch received zero valid
   opportunities.
-- `PROMOTE_H4_READOUT_CANDIDATE_TO_A1Q` — #970's independent construction and
+- `PROMOTE_H4_READOUT_CANDIDATE_TO_A1Q` — historical #970 positive terminal:
+  its independent construction and
   sealed validation contract passed; only the paired-H4-derived exact R4
   heatmap term advances to #969 after protected delivery.
-- `RETAIN_H4_STATE_ONLY_ADVANCE_MULTICHANNEL_A1Q` — the corrected local #970
+- `RETAIN_H4_STATE_ONLY_ADVANCE_MULTICHANNEL_A1Q` — observed historical #970
   probe produced a valid readout-identifiability negative; both H4 operands and
   the derived heatmap
-  remain structural/control state, and #969 may advance to its other
-  predeclared channels only after protected delivery.
-- `UNAVAILABLE_NO_INDEPENDENT_HOLDOUT` — #970 cannot form the required
-  independent evidence; it remains open and #969 remains blocked.
-- `INVALID_CONTRACT` — the frozen #970 contract was violated; it remains open
-  and #969 remains blocked.
+  remain structural/control state; protected PR #972 delivered this terminal.
+- `UNAVAILABLE_NO_INDEPENDENT_HOLDOUT` — under the historical #970 contract,
+  lack of independent evidence would have left #970 open and #969 blocked.
+- `INVALID_CONTRACT` — under the historical #970 contract, a violation would
+  have left #970 open and #969 blocked.
+- `PROCEED_TO_I1_WITH_CAUSAL_R4_PATH_ATTENTION` — #969's full causal path
+  changes a matched naturally admitted decoded continuation while last-only and
+  state-disabled are weaker under the same natural support and group-comparison
+  budget. It exposes #953 but establishes neither semantic intelligence nor
+  coherent generation.
 
 Never convert a missing fixture, empty denominator, skipped test, or unrelated
 green suite into `PASS`. Every report preserves artifact kappas, partition CIDs,

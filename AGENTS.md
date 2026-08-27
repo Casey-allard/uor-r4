@@ -10,9 +10,12 @@ relationships now mirror the programme: #961 closed with reversible S0 state;
 #952 stopped at `REDESIGN_ORDERED_ROUTE_SUMMARY`; #967 repaired the ordered
 state but terminated `RETAIN_STATE_ONLY`; #970's corrected, target-free A1P
 gate produced the bounded paired-H4-derived exact R4-heatmap result
-`RETAIN_H4_STATE_ONLY_ADVANCE_MULTICHANNEL_A1Q`. #970 must merge through the
-protected path before #969 becomes the next multichannel A1Q stage and blocks
-#953. #953–#955 and #962–#965 follow. Terminology lives in
+`RETAIN_H4_STATE_ONLY_ADVANCE_MULTICHANNEL_A1Q` and closed through protected
+PR #972. #969's mechanism-first pivot delivered one causal R4/S3 least-cost
+route-attention mechanism and one matched two-unit decoded smoke at
+`PROCEED_TO_I1_WITH_CAUSAL_R4_PATH_ATTENTION`. #953 is next; #973 remains after
+#953, followed by #954–#955 → #962–#965.
+Terminology lives in
 `docs/transformerless/GLOSSARY.md`. Keep this file current when conventions
 change.
 
@@ -24,9 +27,11 @@ registered prime atoms, semiprime transitions including `p^2` self-loops,
 ordered n-lets, fixed-zeta R4/S3 state, Hopf observation, torsion, exact
 `Z[phi]` radial shells, and the required structural/storage project bridge
 `E8 = H4 x H4`, realized in code and serialization by the golden/Galois-coupled
-icosian pair `H4 ⊕ phi H4`. Full recursive attention is a target, not an
-established property: #969 must qualify any trajectory, harmonic, Hopf, H4,
-zeta, icosian, or SpiralCore term before it may influence semantic scoring.
+icosian pair `H4 ⊕ phi H4`. The active attention prototype is narrower: natural
+schema-2 adjacency supplies candidates, an ordered unit-quaternion path on S3
+supplies causal prefix memory, and exact path closure plus lease age selects or
+abstains. H4 is an exact finite S3 codebook here; `H4 ⊕ phi H4` / E8 remains
+structural storage and control rather than the attention score.
 
 The intended destination is frontier-like useful local intelligence without
 transformers, MoE/sparse learned routing, or dense matrix intelligence. That is
@@ -181,15 +186,16 @@ PR (a bump can shift libm-sensitive teacher logprobs — see Gate E below).
   This is only a bounded heatmap-readout identifiability negative: fixed-zeta
   phases, ordered n-lets, exact `phi` radial transport, and typed geometry
   adapters remain structural, diagnostic, or control state. It does not
-  promote attention or generation. Only after protected #970 merge does #969
-  become the next multichannel A1Q stage and block #953. #953 then owns bounded
-  source-free library/CLI generation, followed by #954 correctness and #955
-  reasoning. #962 owns durable multi-turn CLI/HTTP chat, persistence,
-  isolation, and hive-memory; #963–#965 then own optimization, formal closure,
-  and release.
-- Sequence strictly: lexical/address plumbing → recursive attention →
-  source-free grammatical inference/generation → correctness/abstention →
-  reasoning → optimization/purity/release.
+  promote attention or generation. #970 closed through protected PR #972.
+  #969 then delivered one causal R4/S3 least-cost route-attention mechanism and
+  one matched decoded smoke. #953 now owns bounded source-free library/CLI
+  generation; #973 later owns paragraph/conversation/global qualification
+  through that real decoded loop; #954 and #955 own correctness and reasoning.
+  #962 owns durable multi-turn CLI/HTTP chat, persistence, isolation, and
+  hive-memory; #963–#965 then own optimization, formal closure, and release.
+- Sequence strictly: lexical/address plumbing → local route attention →
+  source-free grammatical inference/generation → higher-scope attention →
+  correctness/abstention → reasoning → optimization/purity/release.
 - Kappa is canonical identity/serialization, never the tokenizer or semantic
   distance. The pinned lexical codec is provenance-bound but opens no weights.
 - Preserve the project shorthand `E8 = H4 x H4`. Its concrete implementation
@@ -201,21 +207,22 @@ PR (a bump can shift libm-sensitive teacher logprobs — see Gate E below).
   witnesses without being valid ranking features. Hopf, H4, zeta, icosian,
   SpiralCore, trajectory, hypersphere, winding/window, projection-energy,
   shared-factor, and resonance terms remain storage fields, diagnostics, or
-  controls until A1Q/#969 qualifies them with scope-isolated matched evidence.
-  #953 may consume only the semantic terms that A1Q qualifies.
+  future hypotheses. #969 may establish only its local ordered-S3 path
+  mechanism as load-bearing for #953. Only #973 may later qualify paragraph,
+  conversation, or global state through the accepted decoded loop.
 - An exact kappa miss must not collapse unseen global history to a suffix-only
   default, but global ordered-state behavior is tested on an independently
   frozen global-snapshot permutation rather than by mutating session history.
-- Full geometry must execute before token choice and change admitted support or
-  ordering against the equal-budget current-only, existing-additive-summary,
-  factor/count-only, deterministic-ordered-state-permutation,
-  hierarchy-disabled, and exact-recall-only controls before generation is
-  credited.
+- During #969, compare exactly three arms with identical natural support and
+  group-comparison budgets: full retained causal path, last-only path, and
+  state-disabled. Do not add a construction/validation
+  split, channel census, weight sweep, control matrix, or higher-scope fixture
+  to this prototype decision.
 - Teacher output may label or compare only after a source-free report freezes.
   It is never substituted for the product response.
-- Every hierarchy selection emits a global-context coverage witness. Exact
-  recall, grammatical generation, correctness, and reasoning are separate
-  gates.
+- Once #973 activates higher scopes, every hierarchy selection emits a
+  global-context coverage witness. Exact recall, grammatical generation,
+  correctness, and reasoning remain separate gates.
 - Start with the smallest product artifact that can falsify the stage. A
   negative stops or redesigns it; it does not authorize a larger harness.
 - Do not add a graph section, proof lane, benchmark framework, BDD suite, or

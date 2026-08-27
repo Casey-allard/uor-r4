@@ -10,8 +10,10 @@ remains in [docs/RESEARCH.md](docs/RESEARCH.md).
 _Last reviewed: 2026-08-27 (#961 reversible S0 landed; #952 A1.0 stopped at
 `REDESIGN_ORDERED_ROUTE_SUMMARY`; #967 A1R terminated `RETAIN_STATE_ONLY`;
 #970 A1P produced the bounded paired-H4-derived exact R4-heatmap result
-`RETAIN_H4_STATE_ONLY_ADVANCE_MULTICHANNEL_A1Q`; #969 A1Q becomes next only
-after protected #970 merge and then blocks #953–#955 → #962–#965)._
+`RETAIN_H4_STATE_ONLY_ADVANCE_MULTICHANNEL_A1Q` and closed through protected
+PR #972; #969 delivered one causal R4/S3 least-cost route-attention mechanism
+and matched two-unit decoded smoke at
+`PROCEED_TO_I1_WITH_CAUSAL_R4_PATH_ATTENTION`; #953 is next)._
 
 > **Project priority:** build source-free geometric intelligence in which the
 > route is the data location. A pinned lexical codec supplies text boundaries;
@@ -104,60 +106,60 @@ Native GitHub relationships are the source of truth:
    phases, ordered n-lets, exact `phi` radial transport, and typed
    `sqrt(2) <-> 2i <-> [0,2]` adapters remain structural under
    `STRUCTURAL_BINDING_ONLY_NO_ZETA_NLET_TO_PHI_EXPONENT_RULE` and are excluded
-   from the scorer. #969 becomes next only after protected #970 merge. See the
+   from the scorer. #970 closed through protected PR #972; this result rules
+   out only that heatmap readout. See the
    [A1P record](docs/candidate_relative_identifiability_a1p_970.md).
-5. **GI-2 A1Q / #969 — full recursive attention qualification:** protected
-   merge of #970 is the transition into this stage; the bounded negative does
-   not expose #953 directly. The paired heatmap and its fixed-zeta, ordered
-   n-let, exact-radial, and typed-adapter bindings remain structural,
-   diagnostic, or control state while #969 tests its other predeclared
-   candidate-relative trajectory and harmonic channels. Gate 0 is a bounded
-   2–8 lexical-unit end-to-end composition instrument:
+5. **GI-2 A1Q-L / #969 — one causal R4/S3 least-cost route-attention
+   mechanism:** reuse natural schema-2 admission, compose observed routes into
+   an ordered unit-quaternion path with retained causal prefix memory, form
+   `Q(c) = P(t) composed with route(c)`, and select by exact S3 path closure
+   plus lease age. Exact candidate-cost ties abstain. H4 is the exact finite S3
+   codebook; paired-H4/E8 remains structural. Freeze this mechanism first,
+   then run one matched 2–8-unit decoded smoke:
    `bytes → lexical routes → admitted candidates → frozen select/abstain →
-   payload decode → incremental state update`. It stops before scope expansion
-   on identical matched continuations, an inert qualified-state intervention,
-   decode failure, a period-1–4 cycle, nondeterministic termination, or changed
-   support. Later sentence, paragraph, conversation, and global fixtures remain
-   sealed, disjoint from #970, and use equal-budget current-only, additive,
-   factor/count-only, deterministic-permutation, hierarchy-disabled, and
-   exact-recall controls. Only terms that pass A1Q become semantic scoring
-   terms; required storage fields remain storage, diagnostics, or controls.
+   payload decode → incremental state update`. Compare only equal-budget full
+   path, last-only, and state-disabled arms. Success establishes a load-bearing
+   identity-derived mechanism only, not semantics or coherence.
+
+   The fixed smoke uses `aa bb dd qq` versus `bb aa dd qq`, the same natural
+   `{ll, rr}` support, and equal group-comparison budgets. Full retained path
+   decodes `rr ll` versus `ll rr`; both first choices close against non-identity
+   retained prefixes. Last-only abstains on both first choices and
+   state-disabled emits the same `rr` choice on both. The canonical record kappa
+   is `blake3:60360a9e22a56ea4af363e43f7103bb8104d015d58feb582d921fc17afaf207f`.
 6. **GI-3 / #953 — source-free grammatical inference/generation:** after #969,
-   compile grammar and syntax into the attention-qualified route engine using
-   only GI-2-qualified semantic terms, and establish bounded source-free
-   generation through the library and CLI. Reuse the existing source-free
-   table-native continuation/candidate evidence as an offline substrate or
-   comparator where appropriate. The decisive intervention must show that a
-   #969-qualified geometric term changes candidate choice relative to
-   count-only, hierarchy-disabled, permuted, and exact-recall controls. Durable
-   chat, persistence, and HTTP session behavior remain outside this stage.
-7. **GI-4 / #954 — correctness and abstention:** test held-out answer
+   try the accepted local path mechanism in bounded source-free generation
+   through the library and CLI. Reuse existing table-native candidate/grammar
+   material only as an offline substrate or explicit comparator. Durable chat,
+   persistence, and HTTP session behavior remain outside this stage.
+7. **GI-2 A1Q-H / #973 — higher-scope attention:** after accepted #969 and
+   #953, test paragraph, conversation, and bounded global state through the
+   real decoded loop. Those scopes remain serialized but inert before #973.
+8. **GI-4 / #954 — correctness and abstention:** test held-out answer
    correctness, relevance, abstention, and causal use of required context only
-   through the accepted #969-qualified terms and #953 generator. Teacher weights
-   may label or compare offline only after the source-free report freezes.
-8. **GI-5 / #955 — reasoning:** invoke the accepted #969/#953/#954 consumer at
+   through the accepted #969/#953/#973 path. Teacher weights may label or
+   compare offline only after the source-free report freezes.
+9. **GI-5 / #955 — reasoning:** invoke the accepted #969/#953/#973/#954 consumer at
    every bounded goal-directed route-composition step, with branch comparison,
    intermediate constraints, and closure/contradiction controls. #952 is not a
    qualified-attention consumer.
-9. **GI-6 / #962–#965 — product, cost, formal closure, and release:** integrate
-   #969-qualified attention and the accepted #953 generator into durable
+10. **GI-6 / #962–#965 — product, cost, formal closure, and release:** integrate
+   the accepted #969/#953/#973 path into durable
    multi-turn CLI/HTTP chat, persistence, isolation, and hive-memory (#962);
    optimize only the measured route-native bottleneck (#963); freeze a serving
-   contract that binds the inserted #970 → #969 qualification stages (#964);
+   contract that binds the #970 → #969 → #953 → #973 path (#964);
    then activate only the release QA needed to qualify that exact path (#965).
 
 The live issue bodies and native dependencies now mirror this sequence. #961
 is closed. #952's terminal negative evidence is preserved in
 [`docs/recursive_geometric_attention_a1_952.md`](docs/recursive_geometric_attention_a1_952.md).
-#967 is at terminal A1R delivery with `RETAIN_STATE_ONLY`. #970 reached its valid
-bounded paired-H4-derived heatmap-readout decision, but protected merge is still
-the eligibility boundary: #969 remains blocked until #970 merges, then becomes
-the next native stage and remains the native blocker of #953. The immediate
-chain is therefore #952 closed → #967 terminal delivery → #970 protected merge
-→ #969 A1Q → #953. #970 did not make generation eligible. Every later stage
-stays unassigned and blocked
-in order. Legacy tracker #949 is closed as superseded; #958 is retained directly
-under programme root #820 as GI-0 foundation.
+#967 is at terminal A1R delivery with `RETAIN_STATE_ONLY`. #970 closed through
+protected PR #972 with its bounded heatmap-readout negative. #969's
+mechanism-first prototype reached its positive bounded terminal; #953 is next
+and #973 remains blocked by #953. The live chain is closed #970 → closed #969 →
+#953 → #973 → #954 → #955 → #962–#965. Legacy tracker #949 is closed as
+superseded; #958 is retained directly under programme root #820 as GI-0
+foundation.
 
 The old S5–S7 and F0 issues are closed not planned/not triggered. R4G1/TLA,
 XOR/popcount, W(3,3), proof, conformance, and release work remains preserved as
@@ -171,8 +173,8 @@ historical evidence and comparators.
   non-digest fields, so no scorer was built. The real schema-2 path naturally
   admitted both continuations under ceiling eight, inverted both exact values,
   and reproduced incremental next state. Exact H4 and SpiralCore finite tables
-  closed as controls only. Repair is #967; full attention qualification is
-  #969; #953 remains blocked by #969. See the
+  closed as controls only. At that checkpoint, repair was #967 and #969 still
+  blocked #953. See the
   [A1.0 record](docs/recursive_geometric_attention_a1_952.md).
 
 - [x] **#967 A1R associative ordered-state repair** —
@@ -185,8 +187,8 @@ historical evidence and comparators.
   #970 subsequently found eight incompatible exact paired-H4-derived R4-heatmap
   classes and a 0/6 strict transfer ceiling, retaining the heatmap and auxiliary
   channels as structural/control state while stopping before readout or
-  placement. #969 becomes the next multi-channel qualification only after
-  protected #970 merge. See the
+  placement. #970 closed through protected PR #972; #969 then delivered the one
+  causal path mechanism directly. See the
   [A1R record](docs/associative_ordered_route_summaries_a1r_967.md).
 
 - [x] **#961 reversible lexical geometry/state plumbing** —
@@ -269,8 +271,8 @@ historical evidence and comparators.
   that its reusable non-digest hierarchy summaries erase earlier order. #967
   repaired that representation but retained it as state only; #970 then found
   the bounded paired-H4-derived exact R4-heatmap readout non-identifiable on its
-  frozen union. Its protected merge is required before #969 becomes next, and
-  it does not expose #953.
+  frozen union. #970 is closed; #969's mechanism-first prototype now advances
+  to #953 without claiming coherent generation.
   Historical canaries and pointwise results remain scoped evidence, not a
   claim that the current product works. See
   [Which track can actually produce coherent text](docs/RESEARCH.md#which-track-can-actually-produce-coherent-text--the-honest-current-answer).

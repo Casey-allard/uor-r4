@@ -9,6 +9,8 @@ use std::cmp::Reverse;
 use std::collections::{BTreeMap, BTreeSet};
 use std::num::NonZeroU16;
 
+use serde::Serialize;
+
 use crate::canonical_lexical_ingestion::{
     h4_leaf_state_for_address, validate_ordered_h4_table_exact, CanonicalLexicalError,
     H4BinaryIcosahedralClosure, H4RootCoordinate, OrderedH4FoldState,
@@ -33,6 +35,11 @@ pub const ATTENTION_MAX_SPIN_ROWS: usize = 8 * ATTENTION_TORSION_BINS as usize;
 pub const ATTENTION_MAX_PHASE_ATOMS: usize = MANIFEST_MAX_ADDRESSES;
 pub const ATTENTION_MAX_CANDIDATE_ENTRIES_PER_QUERY: usize =
     ATTENTION_ROWS_PER_QUERY * MANIFEST_MAX_CANDIDATES_PER_ROW as usize;
+/// #969's first local attention mechanism is deliberately bounded to the
+/// 2--8 lexical-unit loop named by the issue. The state keeps exact prefix
+/// products rather than a digest so every earlier route can participate in
+/// candidate-relative path closure.
+pub const LOCAL_PATH_ATTENTION_MAX_UNITS: usize = 8;
 
 // round(pi * 2^29) and round(2*pi * 2^29), fixed by the manifest's Q29 chart.
 const PHASE_HALF_Q29: i64 = 1_686_629_713;
@@ -227,6 +234,72 @@ pub struct GeometricAttentionTrace {
     pub selected: Option<AttentionCandidateTrace>,
 }
 
+/// Which causal state is allowed to influence the #969 path-lease score.
+/// Every arm performs the same number of candidate/key comparisons; controls
+/// repeat their one active key to keep the bounded work denominator equal.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PathLeaseControl {
+    /// Candidate-appended full ordered state against every earlier prefix.
+    FullPath,
+    /// Only the last observed route and the candidate remain active.
+    LastOnly,
+    /// Candidate geometry only; all observed history is disabled.
+    StateDisabled,
+}
+
+/// Exact finite proxy for round-S3 great-circle lease cost. `angular_shell` is
+/// the signed real-coordinate shell of `key^-1 * query` in the canonical H4
+/// root set. `lease_age` prefers the most recent equally close causal prefix.
+/// No opaque table offset, digest, or payload identity is interpreted as a
+/// scalar.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize)]
+pub enum H4S3AngularShell {
+    Coincident,
+    Degrees36,
+    Degrees60,
+    Degrees72,
+    Orthogonal,
+    Degrees108,
+    Degrees120,
+    Degrees144,
+    Antipodal,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize)]
+pub struct PathLeaseCost {
+    pub angular_shell: H4S3AngularShell,
+    pub lease_age: u8,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PathLeaseCandidateTrace {
+    pub next: GeometricAddress,
+    pub source_counts: AttentionSourceCounts,
+    pub query_state: H4RootCoordinate,
+    pub best_prefix_index: u8,
+    pub best_prefix_state: H4RootCoordinate,
+    pub best_relative_state: H4RootCoordinate,
+    pub cost: PathLeaseCost,
+}
+
+/// API-neutral select-or-abstain trace for the first causal R4/S3 attention
+/// mechanism. `support` is the unchanged schema-2 bounded row union. Its
+/// count-only selection is diagnostic and does not participate in `selected`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PathLeaseAttentionTrace {
+    pub manifest_kappa: String,
+    pub control: PathLeaseControl,
+    pub observed_routes: u8,
+    pub memory_keys_per_candidate: usize,
+    pub path_geometry_evaluations: usize,
+    pub support: GeometricAttentionTrace,
+    pub candidates: Vec<PathLeaseCandidateTrace>,
+    pub minimum_cost: Option<PathLeaseCost>,
+    pub tie: bool,
+    pub abstained: bool,
+    pub selected: Option<PathLeaseCandidateTrace>,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct GeometricAttentionCompileStats {
     pub witnessed_transitions: usize,
@@ -288,6 +361,50 @@ pub struct CausalOrderedH4State {
     multiplication_table_kappa: String,
     fold_state: OrderedH4FoldState,
     observed_routes: u32,
+}
+
+/// Bounded causal state for the local path-lease selector. `prefix_states`
+/// contains `P_0 = 1` followed by the exact ordered product after each
+/// observation. Unlike [`OrderedSentenceRouteState`], these are usable
+/// non-digest geometric states; unlike a stored continuation row, they contain
+/// no future candidate or payload.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CausalPathAttentionState {
+    causal: CausalAttentionState,
+    manifest_kappa: String,
+    h4_root_table_kappa: String,
+    multiplication_table_kappa: String,
+    prefix_states: Vec<OrderedH4FoldState>,
+}
+
+impl CausalPathAttentionState {
+    pub fn observed_routes(&self) -> usize {
+        self.prefix_states.len().saturating_sub(1)
+    }
+
+    pub fn manifest_kappa(&self) -> &str {
+        &self.manifest_kappa
+    }
+
+    pub fn h4_root_table_kappa(&self) -> &str {
+        &self.h4_root_table_kappa
+    }
+
+    pub fn multiplication_table_kappa(&self) -> &str {
+        &self.multiplication_table_kappa
+    }
+
+    /// Current exact ordered route product `P_t`.
+    pub fn fold_state(&self) -> OrderedH4FoldState {
+        // Construction and observation always retain P_0 plus at least one
+        // observed prefix.
+        self.prefix_states[self.prefix_states.len() - 1]
+    }
+
+    /// Exact prefix products, including the identity `P_0` and current `P_t`.
+    pub fn prefix_states(&self) -> &[OrderedH4FoldState] {
+        &self.prefix_states
+    }
 }
 
 impl CausalOrderedH4State {
@@ -625,6 +742,66 @@ impl GeometricAttentionArtifact {
         state.observe(observed_route, table)
     }
 
+    /// Build the bounded, exact prefix memory used by the #969 local
+    /// path-lease selector. The history is observed-only and may contain at
+    /// most [`LOCAL_PATH_ATTENTION_MAX_UNITS`] routes.
+    pub fn causal_path_state_from_history(
+        &self,
+        history: &[GeometricAddress],
+        table: &H4BinaryIcosahedralClosure,
+    ) -> Result<CausalPathAttentionState, GeometricAttentionError> {
+        validate_ordered_h4_table_exact(table).map_err(ordered_h4_error)?;
+        if history.is_empty() || history.len() > LOCAL_PATH_ATTENTION_MAX_UNITS {
+            return Err(GeometricAttentionError::Invalid(format!(
+                "causal path attention requires 1--{LOCAL_PATH_ATTENTION_MAX_UNITS} observed routes"
+            )));
+        }
+        let causal = self.causal_state_from_history(history)?;
+        let mut prefix_states =
+            Vec::with_capacity(LOCAL_PATH_ATTENTION_MAX_UNITS.saturating_add(1));
+        let mut fold = OrderedH4FoldState::identity(table).map_err(ordered_h4_error)?;
+        prefix_states.push(fold);
+        for observed in history {
+            self.validate_observed_address(observed)?;
+            let leaf = h4_leaf_state_for_address(observed, table).map_err(ordered_h4_error)?;
+            fold = fold.compose(leaf, table).map_err(ordered_h4_error)?;
+            prefix_states.push(fold);
+        }
+        Ok(CausalPathAttentionState {
+            causal,
+            manifest_kappa: self.manifest_kappa.clone(),
+            h4_root_table_kappa: table.h4_root_table_kappa.clone(),
+            multiplication_table_kappa: table.multiplication_table_kappa.clone(),
+            prefix_states,
+        })
+    }
+
+    /// Append one already-observed route to both the existing bounded lookup
+    /// state and the exact prefix-product memory. The update fails before
+    /// mutation when the 8-unit local bound would be exceeded.
+    pub fn observe_path(
+        &self,
+        state: &mut CausalPathAttentionState,
+        observed_route: GeometricAddress,
+        table: &H4BinaryIcosahedralClosure,
+    ) -> Result<(), GeometricAttentionError> {
+        self.validate_path_state_binding(state, table)?;
+        if state.observed_routes() >= LOCAL_PATH_ATTENTION_MAX_UNITS {
+            return Err(GeometricAttentionError::Invalid(format!(
+                "causal path attention exceeded its {LOCAL_PATH_ATTENTION_MAX_UNITS}-route bound"
+            )));
+        }
+        self.validate_observed_address(&observed_route)?;
+        let leaf = h4_leaf_state_for_address(&observed_route, table).map_err(ordered_h4_error)?;
+        let next_fold = state
+            .fold_state()
+            .compose(leaf, table)
+            .map_err(ordered_h4_error)?;
+        self.observe(&mut state.causal, observed_route)?;
+        state.prefix_states.push(next_fold);
+        Ok(())
+    }
+
     pub fn observe(
         &self,
         state: &mut CausalAttentionState,
@@ -818,6 +995,174 @@ impl GeometricAttentionArtifact {
         })
     }
 
+    /// Select one naturally admitted route by exact causal path closure, or
+    /// abstain when the minimum lease cost is shared. Admission is delegated
+    /// unchanged to the schema-2 bounded lookup. Candidate ranking uses only
+    /// exact H4 multiplication/inverse tables plus the signed S3 distance
+    /// class of each relative state.
+    pub fn select_path_or_abstain(
+        &self,
+        state: &CausalPathAttentionState,
+        table: &H4BinaryIcosahedralClosure,
+        control: PathLeaseControl,
+    ) -> Result<PathLeaseAttentionTrace, GeometricAttentionError> {
+        self.validate_path_state_binding(state, table)?;
+        let observed_routes = state.observed_routes();
+        if observed_routes < 2 {
+            return Err(GeometricAttentionError::Invalid(
+                "path-lease selection requires at least two observed routes".to_owned(),
+            ));
+        }
+        if observed_routes >= LOCAL_PATH_ATTENTION_MAX_UNITS {
+            return Err(GeometricAttentionError::Invalid(format!(
+                "path-lease selection has no output slot inside its {LOCAL_PATH_ATTENTION_MAX_UNITS}-route bound"
+            )));
+        }
+
+        // CountOnly freezes the existing natural support/admission without
+        // allowing its canonical-address selection to influence this result.
+        let support = self.query(&state.causal, AttentionControl::CountOnly)?;
+        let memory_keys_per_candidate = observed_routes;
+        let path_geometry_evaluations = support
+            .candidates
+            .len()
+            .checked_mul(memory_keys_per_candidate)
+            .ok_or(GeometricAttentionError::ArithmeticOverflow)?;
+        let identity = OrderedH4FoldState::identity(table).map_err(ordered_h4_error)?;
+        let current = state.fold_state();
+        let last_prefix_index = observed_routes.checked_sub(1).ok_or_else(|| {
+            GeometricAttentionError::Invalid(
+                "path-lease state has no previous prefix for last-only control".to_owned(),
+            )
+        })?;
+
+        let mut candidates = Vec::with_capacity(support.candidates.len());
+        for admitted in &support.candidates {
+            let candidate =
+                h4_leaf_state_for_address(&admitted.next, table).map_err(ordered_h4_error)?;
+            let query = match control {
+                PathLeaseControl::FullPath | PathLeaseControl::LastOnly => current
+                    .compose(candidate, table)
+                    .map_err(ordered_h4_error)?,
+                // Preserve the candidate-append table lookup performed by
+                // the active arms while replacing only the causal state.
+                PathLeaseControl::StateDisabled => identity
+                    .compose(candidate, table)
+                    .map_err(ordered_h4_error)?,
+            };
+            let mut best: Option<(PathLeaseCost, usize, OrderedH4FoldState, OrderedH4FoldState)> =
+                None;
+            for comparison_index in 0..memory_keys_per_candidate {
+                let (prefix_index, key, lease_age) = match control {
+                    PathLeaseControl::FullPath => {
+                        let prefix_index = comparison_index;
+                        let key = state.prefix_states[prefix_index];
+                        let age = observed_routes
+                            .checked_add(1)
+                            .and_then(|value| value.checked_sub(prefix_index))
+                            .ok_or(GeometricAttentionError::ArithmeticOverflow)?;
+                        (
+                            prefix_index,
+                            key,
+                            u8::try_from(age)
+                                .map_err(|_| GeometricAttentionError::ArithmeticOverflow)?,
+                        )
+                    }
+                    PathLeaseControl::LastOnly => {
+                        (last_prefix_index, state.prefix_states[last_prefix_index], 2)
+                    }
+                    PathLeaseControl::StateDisabled => (0, identity, 1),
+                };
+                let relative = key
+                    .inverse(table)
+                    .and_then(|inverse| inverse.compose(query, table))
+                    .map_err(ordered_h4_error)?;
+                let cost = PathLeaseCost {
+                    angular_shell: h4_s3_angular_shell(relative, table)?,
+                    lease_age,
+                };
+                if best
+                    .as_ref()
+                    .is_none_or(|(best_cost, _, _, _)| cost < *best_cost)
+                {
+                    best = Some((cost, prefix_index, key, relative));
+                }
+            }
+            let (cost, best_prefix_index, best_prefix, best_relative) = best.ok_or_else(|| {
+                GeometricAttentionError::Invalid(
+                    "path-lease candidate had no causal memory comparison".to_owned(),
+                )
+            })?;
+            candidates.push(PathLeaseCandidateTrace {
+                next: admitted.next.clone(),
+                source_counts: admitted.source_counts,
+                query_state: query.root_coordinate(table).map_err(ordered_h4_error)?,
+                best_prefix_index: u8::try_from(best_prefix_index)
+                    .map_err(|_| GeometricAttentionError::ArithmeticOverflow)?,
+                best_prefix_state: best_prefix
+                    .root_coordinate(table)
+                    .map_err(ordered_h4_error)?,
+                best_relative_state: best_relative
+                    .root_coordinate(table)
+                    .map_err(ordered_h4_error)?,
+                cost,
+            });
+        }
+
+        let minimum_cost = candidates.iter().map(|candidate| candidate.cost).min();
+        let minimum_count = minimum_cost.map_or(0, |minimum| {
+            candidates
+                .iter()
+                .filter(|candidate| candidate.cost == minimum)
+                .count()
+        });
+        // Canonical address orders the trace only. Equal exact cost always
+        // abstains; identity order never resolves a semantic tie.
+        candidates.sort_by(|left, right| (&left.cost, &left.next).cmp(&(&right.cost, &right.next)));
+        let selected = (minimum_count == 1).then(|| candidates[0].clone());
+        let tie = minimum_count > 1;
+        let abstained = selected.is_none();
+        Ok(PathLeaseAttentionTrace {
+            manifest_kappa: self.manifest_kappa.clone(),
+            control,
+            observed_routes: u8::try_from(observed_routes)
+                .map_err(|_| GeometricAttentionError::ArithmeticOverflow)?,
+            memory_keys_per_candidate,
+            path_geometry_evaluations,
+            support,
+            candidates,
+            minimum_cost,
+            tie,
+            abstained,
+            selected,
+        })
+    }
+
+    fn validate_path_state_binding(
+        &self,
+        state: &CausalPathAttentionState,
+        table: &H4BinaryIcosahedralClosure,
+    ) -> Result<(), GeometricAttentionError> {
+        validate_ordered_h4_table_exact(table).map_err(ordered_h4_error)?;
+        self.validate_state_binding(&state.causal)?;
+        if state.manifest_kappa != self.manifest_kappa
+            || state.h4_root_table_kappa != table.h4_root_table_kappa
+            || state.multiplication_table_kappa != table.multiplication_table_kappa
+        {
+            return Err(GeometricAttentionError::Invalid(
+                "causal path-attention state is bound to different manifest/table bytes".to_owned(),
+            ));
+        }
+        if state.prefix_states.len() < 2
+            || state.prefix_states.len() > LOCAL_PATH_ATTENTION_MAX_UNITS.saturating_add(1)
+        {
+            return Err(GeometricAttentionError::Invalid(
+                "causal path-attention prefix memory violates its local bound".to_owned(),
+            ));
+        }
+        Ok(())
+    }
+
     fn validate_observed_address(
         &self,
         address: &GeometricAddress,
@@ -1005,6 +1350,36 @@ impl GeometricAttentionArtifact {
                 atom.value()
             ))
         })
+    }
+}
+
+/// Exact monotone class of the S3 great-circle distance from the identity.
+/// Canonical H4 roots are stored at coordinate scale two in `Z[phi]`; their
+/// signed real coordinate has exactly these nine values. For unit
+/// quaternions, `Re(key^-1 * query) = <key, query>`, so descending real
+/// coordinate is the same ordering as ascending `acos` distance. Equal shells
+/// remain ties, with the full signed relative quaternion retained in the trace.
+fn h4_s3_angular_shell(
+    relative: OrderedH4FoldState,
+    table: &H4BinaryIcosahedralClosure,
+) -> Result<H4S3AngularShell, GeometricAttentionError> {
+    let real = relative
+        .root_coordinate(table)
+        .map_err(ordered_h4_error)?
+        .scaled_zphi_quaternion[0];
+    match real {
+        [2, 0] => Ok(H4S3AngularShell::Coincident),
+        [0, 1] => Ok(H4S3AngularShell::Degrees36),
+        [1, 0] => Ok(H4S3AngularShell::Degrees60),
+        [-1, 1] => Ok(H4S3AngularShell::Degrees72),
+        [0, 0] => Ok(H4S3AngularShell::Orthogonal),
+        [1, -1] => Ok(H4S3AngularShell::Degrees108),
+        [-1, 0] => Ok(H4S3AngularShell::Degrees120),
+        [0, -1] => Ok(H4S3AngularShell::Degrees144),
+        [-2, 0] => Ok(H4S3AngularShell::Antipodal),
+        other => Err(GeometricAttentionError::Invalid(format!(
+            "H4 relative state has noncanonical signed S3 real coordinate {other:?}"
+        ))),
     }
 }
 
