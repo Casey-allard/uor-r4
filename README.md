@@ -43,6 +43,40 @@ To inspect one route from the command line instead:
 cargo run --bin r4 -- route "geometry is the route"
 ```
 
+To run the one fixed canonical-ingestion witness:
+
+```bash
+cargo run --bin r4 -- lexical-ingestion-witness
+```
+
+That bounded witness maps two turns of text through the pinned lexical codec,
+prime/spin route state, canonical hierarchy manifest, strict reload, and exact
+lexical reconstruction. It also exercises the declared fail-closed unknown-unit
+path. It loads no model and establishes reversible state plumbing only—not
+attention, inference, correctness, or reasoning.
+
+The additive serving envelope is
+`uor-r4.canonical-lexical-route-manifest/1`; it transitively embeds the frozen
+`uor-r4.prime-route-spin-manifest/2` bytes. Its codec identity is
+`uor-r4.unicode-lexical-runs/1`: UTF-8 identity normalization, caller-declared
+sentence/paragraph/turn boundaries, canonical surface-byte vocabulary order,
+and rejection of unknown units before mutation. The parent keeps the complete
+codec route-address registry in stable lexical-unit order; the unchanged child
+manifest contains only addresses witnessed by its causal sentences. The fixed
+input ceiling is 8 turns, 32 paragraphs, 31 sentences, 128 units per sentence,
+512 total units, and a 64-unit content-addressed global snapshot.
+
+Downstream code consumes `CanonicalRouteArtifact::decode_canonical`,
+`attention_consumer_trace`, `attention_consumer_trace_for_cursor`,
+`incremental_update_trace`, `incremental_cursor`,
+`lookup_shared_class_trace`, `scope_ceilings`, and `reconstruct_input`. The
+attention handoff is ordered current, previous, last-two, sentence, paragraph,
+conversation, then bounded global; the cursor resolver returns those same seven
+slots and marks not-yet-established boundaries absent. S0 serializes state and
+numeric geometry only: every candidate row ceiling is zero and marked
+`NOT_IMPLEMENTED_S0_STATE_ONLY` until #952 supplies and measures the
+recursive-attention operator.
+
 Both commands exercise the no-model research substrate. `demo` does not start
 the historical artifact-discovery server, and `route` does not claim to answer
 the prompt; it exposes how the current geometry represents it.

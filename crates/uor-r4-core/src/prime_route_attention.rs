@@ -388,6 +388,63 @@ impl ZPhi {
         Self { a, b }
     }
 
+    /// Exact checked addition in `Z[phi]`.
+    pub fn checked_add(self, other: Self) -> Result<Self, PrimeRouteError> {
+        Ok(Self {
+            a: self
+                .a
+                .checked_add(other.a)
+                .ok_or(PrimeRouteError::ArithmeticOverflow)?,
+            b: self
+                .b
+                .checked_add(other.b)
+                .ok_or(PrimeRouteError::ArithmeticOverflow)?,
+        })
+    }
+
+    /// Exact checked multiplication using `phi^2 = phi + 1`.
+    pub fn checked_mul(self, other: Self) -> Result<Self, PrimeRouteError> {
+        let left_a = i128::from(self.a);
+        let left_b = i128::from(self.b);
+        let right_a = i128::from(other.a);
+        let right_b = i128::from(other.b);
+        let bb = left_b
+            .checked_mul(right_b)
+            .ok_or(PrimeRouteError::ArithmeticOverflow)?;
+        let a = left_a
+            .checked_mul(right_a)
+            .and_then(|value| value.checked_add(bb))
+            .ok_or(PrimeRouteError::ArithmeticOverflow)?;
+        let b = left_a
+            .checked_mul(right_b)
+            .and_then(|value| {
+                left_b
+                    .checked_mul(right_a)
+                    .and_then(|middle| value.checked_add(middle))
+            })
+            .and_then(|value| value.checked_add(bb))
+            .ok_or(PrimeRouteError::ArithmeticOverflow)?;
+        Ok(Self {
+            a: i64::try_from(a).map_err(|_| PrimeRouteError::ArithmeticOverflow)?,
+            b: i64::try_from(b).map_err(|_| PrimeRouteError::ArithmeticOverflow)?,
+        })
+    }
+
+    /// Golden/Galois conjugation, `phi -> 1 - phi`, retained exactly in the
+    /// coefficient basis.
+    pub fn golden_conjugate(self) -> Result<Self, PrimeRouteError> {
+        Ok(Self {
+            a: self
+                .a
+                .checked_add(self.b)
+                .ok_or(PrimeRouteError::ArithmeticOverflow)?,
+            b: self
+                .b
+                .checked_neg()
+                .ok_or(PrimeRouteError::ArithmeticOverflow)?,
+        })
+    }
+
     pub fn times_phi(self) -> Result<Self, PrimeRouteError> {
         Ok(Self {
             a: self.b,
@@ -614,6 +671,17 @@ pub struct GeometricAddress {
 }
 
 impl GeometricAddress {
+    /// Canonical content identity of the exact schema-2 address wire.
+    pub fn canonical_kappa(&self) -> Result<String, PrimeRouteError> {
+        validate_blake3_label(&self.payload_cid, "geometric-address payload CID")?;
+        if self.spin.s3.hopf()? != self.spin.hopf {
+            return Err(PrimeRouteError::Invalid(
+                "geometric address carries an inconsistent Hopf observation".to_owned(),
+            ));
+        }
+        json_kappa(&canonical_json(&AddressWire::from(self))?)
+    }
+
     pub fn shift_torsion(&self, delta: PhaseQ29) -> Result<Self, PrimeRouteError> {
         Ok(Self {
             spin: self.spin.shift_torsion(delta)?,

@@ -97,6 +97,8 @@ enum Command {
     Demo,
     /// Inspect one prompt's geometric route without compiling or loading a model.
     Route(RouteArgs),
+    /// Run the fixed S0 lexical/route-state round-trip witness without loading a model.
+    LexicalIngestionWitness,
     /// List preserved compiler, serving, and certification commands.
     ResearchTools,
     /// Run the full artifact-discovering historical HTTP server.
@@ -1286,6 +1288,15 @@ fn run(cli: &Cli) -> Result<(), RunError> {
             Ok(())
         }
         Some(Command::Route(args)) => route_demo(args),
+        Some(Command::LexicalIngestionWitness) => {
+            let witness = uor_r4_core::canonical_lexical_ingestion::run_authorized_probe()
+                .map_err(|error| RunError::Command(error.to_string()))?;
+            let rendered = serde_json::to_string_pretty(&witness).map_err(|error| {
+                RunError::Command(format!("serialize lexical-ingestion witness: {error}"))
+            })?;
+            println!("{rendered}");
+            Ok(())
+        }
         Some(Command::ResearchTools) => {
             print_research_tools();
             Ok(())
