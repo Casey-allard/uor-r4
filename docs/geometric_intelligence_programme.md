@@ -95,9 +95,12 @@ shortest Cayley distance collapsed the distinct states to energy 2 and tied on
 This establishes ordered state only, not full attention or generation.
 See the [#967 A1R record](associative_ordered_route_summaries_a1r_967.md).
 
-New unassigned #970 owns A1P candidate-relative readout/placement. It follows
-protected #967 delivery and natively blocks #969. #969 owns A1Q full
-recursive-attention qualification and natively blocks #953. #953 continues to
+#970 now has a corrected local paired-H4-derived R4-heatmap identifiability
+result of `RETAIN_H4_STATE_ONLY_ADVANCE_MULTICHANNEL_A1Q`, pending protected
+delivery. It follows protected #967 delivery but does not yet expose #969: #970
+remains active and #969 remains blocked until the corrected result merges. #969
+continues to own A1Q multichannel full recursive-attention qualification and
+natively blocks #953. #953 continues to
 own source-free inference and language generation, but may consume only the
 semantic scoring terms qualified by A1Q. #962 separately owns product chat
 integration and persisted, identity-scoped hive memory.
@@ -300,6 +303,12 @@ serialized eight-dimensional state. The bridge must declare:
 - the fixed forward map and inverse/reconstruction witness;
 - collision and quantization behavior; and
 - a kappa-bound witness for every preserved invariant.
+
+#970 uses a distinct, explicitly bound ordered pair witness for its readout
+preflight: `X=C(H,c)`, `Y=C(P_c,c)`, followed by the relative projection
+`D=X*Y^-1` and exact signed R4 heatmap. This does not relabel the separately
+retained golden-coupled `H4 ⊕ phi H4` per-leaf serialization as another
+Cartesian root system. Both constructions remain typed and versioned.
 
 Structural presence does not authorize the paired coordinate as a semantic
 ranking feature. A1Q/#969 may qualify it only through candidate-relative,
@@ -523,8 +532,10 @@ rebuildable paired-H4 state.
 
 ### GI-2 / #952 → #967 A1R → #970 A1P → #969 A1Q — recursive geometric attention
 
-Status: **#952 A1.0 terminal negative; #967 A1R `RETAIN_STATE_ONLY`; #970 A1P
-follows #967 and blocks #969; #969 A1Q blocked by #970**.
+Status: **#952 A1.0 terminal negative; #967 A1R `RETAIN_STATE_ONLY`; corrected
+local #970 A1P `RETAIN_H4_STATE_ONLY_ADVANCE_MULTICHANNEL_A1Q` pending protected
+merge; #970 remains active and #969 remains blocked until then; #969 remains
+the next A1Q stage and blocker of #953**.
 
 The frozen A1.0 probe stopped before scorer implementation with
 `REDESIGN_ORDERED_ROUTE_SUMMARY`. Across three matched contrasts, all 21
@@ -548,15 +559,134 @@ and support invariants also held.
 The smallest joint history/candidate interaction produced distinct candidate
 relative states, including 5/6 same-candidate changes across paired histories,
 but shortest Cayley distance mapped both targets to energy 2 on all 6/6 queries.
-That readout degeneracy yielded `RETAIN_STATE_ONLY`. #970 now owns the A1P
-candidate-relative readout/placement redesign with the repaired fold, anchors,
-and support held fixed; it does not implement full recursive attention or
-promote #953.
-#969 owns the later full A1Q scorer and candidate-relative
-anti-recall qualification across sentence, paragraph, conversation, and global
-scope-isolating fixtures. Every selection carries the global-context coverage
-witness, with no future-route leakage, target injection, or external/unbounded
-corpus population scan.
+That readout degeneracy yielded `RETAIN_STATE_ONLY`.
+
+The corrected A1P/#970 contract does not assume that another scalar exists or
+that placement is defective. The inherited six A1R queries remain byte-identical
+regression/root-cause evidence, retain their 0/6 selections, 6/6 ties, and 6/6
+abstentions, and can never qualify semantic value. New evidence is separated as:
+
+- construction fixture `A1P-CONSTRUCTION-1`, kappa
+  `blake3:fb5f27fc1107f527d616f32affa8eba1746a2f60cfdb95ddbb21a0e493299652`;
+  and
+- disjoint sealed anti-recall fixture `A1P-VALIDATION-1`, kappa
+  `blake3:ecbe8b404e7542d801ff4b4e66c91a41f90158d84efa484dc4edb53aff38b602`.
+
+Both contain six fixed five-unit histories over the same natural `{ll, rr}`
+support. Construction ends in `dd qq`, validation ends in `bb qq`, and the old
+regression ends in `cc qq`; all exact histories are distinct. The candidate rule
+is not an arbitrary label assignment. Construction observations select the sign
+homomorphism from permutation parity on ordered roles `[aa, bb, cc, dd]`, with
+the first observation fixing orientation and the remaining five confirming
+`even -> ll` and `odd -> rr`. Parity is derived by inversion count from each
+exact history and frozen role order rather than trusted from the fixture
+literal. Construction and validation geometry/support are prepared without an
+observed-next field; both populations are complete before their label ledgers
+are joined for purity and ceilings. Validation labels are public for the
+ceiling, but validation scorer outputs remain sealed until a
+construction-to-readout compiler is frozen. No #969 sentence, paragraph,
+conversation, or global fixture may be consumed, inspected, or exposed by
+#970.
+
+Identifiability is a hard gate before metric design. The corrected contract
+retains both exact operands `X(H,c)=C(H,c)` and `Y(P_c,c)=C(P_c,c)`, with
+`D=X*Y^-1`. For `D=(q0+q1 i+q2 j+q3 k)/2`, it keys equality by the exact signed
+R4 heatmap `(q0/2, q1/2, q0^2/4, chirality, cosine polarity, chart status)` in
+`Z[phi]`; `q2/q3` remain in the full witness. The endpoint map is
+`sin=+/-1,cos=0 -> 1` and `sin=0,cos=+/-1 -> 0`, retaining signed orientation.
+Non-landmarks remain exact, and `q0=q1=0` is a typed-null abstention.
+
+The structural preflight independently enumerates all 120×120 ordered operand
+pairs and their 120-root relative image. For the union of inherited,
+construction, and validation candidate decisions, it enumerates complete exact
+heatmap classes and the existing additive-summary classes. It reports
+construction coverage and per-class binary outcome purity, validation class
+coverage, the no-class-splitting oracle ceiling, and the construction-transfer
+selection ceiling. Inherited and new denominators remain separate. If a
+retained class requires incompatible outcomes, construction is impure, or its
+class rule does not transfer, stop as
+`RETAIN_H4_STATE_ONLY_ADVANCE_MULTICHANNEL_A1Q`; do not search another metric,
+add fields, enlarge H4, or expand the corpus.
+
+The exact heatmap contract also binds the immutable fixed-zeta grid, ordered
+multiplicity-preserving prime n-lets, golden radial maps
+`(a,b)*phi=(b,a+b)` and `(a,b)*phi^-1=(b-a,a)`, and the typed
+`Euclidean sqrt(2) <-> complex 2i <-> Riemannian [0,2]` adapter. These channels
+are carried side-by-side as structural transport, not label-bearing scorer
+inputs. No zeta/n-let-to-`phi` shell-exponent rule has been supplied or
+established; the status remains
+`STRUCTURAL_BINDING_ONLY_NO_ZETA_NLET_TO_PHI_EXPONENT_RULE`.
+
+The corrected contract, exhaustive pair-universe census, and local double-run
+report are bound respectively by
+`blake3:2daacf538c022fab9580d1e124af6c18d0b06da04604fbc962a01bda57f08a98`,
+`blake3:dca725c0ec6060166bcd0023df956e1ff029661b5fa7800ccb9f20808712b796`,
+and
+`blake3:5f9239150dea8c0c27c4dfa6ad2e4d0068bc3d18afc127b315c0ec358ceddb3f`.
+
+Only an identifiable union authorizes exactly one deterministic integer/
+finite-table readout compiled from construction observations. The same exact
+class-to-outcome compiler must exercise the additive comparator. Candidate rows,
+support, admission, payload inversion, source partition, ceilings, causality,
+and work remain unchanged. Candidate relabeling, prime-assignment permutation,
+and deterministic geometry permutation transform construction and validation,
+recompile from the transformed construction evidence, and require outputs to
+follow that evidence rather than literal spelling, token IDs, sequential primes,
+address order, diagnostic tie order, or a manually selected sign. A placement
+intervention is permitted only if the preflight isolates placement as the sole
+defect; readout and placement may not both be tuned. The old-six regression,
+construction result, and sealed validation result are reported separately, and
+the final authorized probe runs twice with byte-identical inputs, report, and
+kappa.
+
+The only valid #970 outcomes are:
+
+- `PROMOTE_H4_READOUT_CANDIDATE_TO_A1Q`, which admits only the
+  paired-H4-derived exact R4-heatmap term for #969 and establishes neither
+  attention nor generation; or
+- `RETAIN_H4_STATE_ONLY_ADVANCE_MULTICHANNEL_A1Q`, which closes this exact
+  heatmap readout search, retains both H4 operands and the derived heatmap as
+  structural/provenance/diagnostic/control state, and lets #969 test its other
+  already-declared candidate-relative trajectory/harmonic channels after
+  protected delivery.
+
+`UNAVAILABLE_NO_INDEPENDENT_HOLDOUT` or `INVALID_CONTRACT` leaves #970 open and
+#969 blocked. Both valid outcomes expose only #969 after protected delivery;
+neither exposes #953. Until this corrected result merges, #970 remains active
+and #969 remains blocked.
+
+The corrected local exact preflight selected the valid negative. Its independent
+structural census covered 14,400/14,400 ordered pairs, all 120 relative roots,
+45 exact signed heatmap classes, uniform pair multiplicity 120, and 480
+typed-null pairs. The 36 exercised decisions formed 14 heatmap classes.
+Construction was pure on 12/12 candidate decisions, validation coverage was
+10/12, the no-class-splitting ceiling was 10/12, strict construction transfer
+was 0/6, and eight heatmap classes carried incompatible outcomes. The additive
+comparator had two impure construction classes and 0/6 transfer. No scalar was
+searched, no readout was compiled, and every downstream control was
+`NOT_RUN_IDENTIFIABILITY_HARD_STOP`. This is a readout-identifiability negative
+only. The byte-identical local report kappa is
+`blake3:5f9239150dea8c0c27c4dfa6ad2e4d0068bc3d18afc127b315c0ec358ceddb3f`;
+see the [#970 A1P record](candidate_relative_identifiability_a1p_970.md). #970
+remains active and #969 blocked until protected merge.
+
+After the corrected #970 result is delivered through protected merge, #969 may
+begin with Gate 0, a bounded 2–8 lexical-unit end-to-end composition instrument:
+
+```text
+bytes -> lexical routes -> admitted candidates -> frozen select/abstain
+      -> payload decode -> incremental state update
+```
+
+Gate 0 stops before expensive scope expansion if matched prompts emit identical
+continuations, the qualified-state intervention is inert, decoding fails, a
+period-1–4 cycle appears, termination is nondeterministic, or support changes.
+Its later sentence, paragraph, conversation, and global fixtures remain sealed
+and disjoint from #970. #969 then owns the full A1Q scorer and
+candidate-relative anti-recall qualification across those scope-isolating
+fixtures. Every selection carries the global-context coverage witness, with no
+future-route leakage, target injection, or external/unbounded corpus population
+scan.
 
 Anti-recall evidence is mandatory: exact-row hits are labeled separately;
 held-out histories cannot be exact stored continuations; real geometry shares
@@ -569,10 +699,10 @@ GI-2-qualified semantic scoring terms.
 
 GI-2 closes only when #969 shows full recursive attention is causally
 load-bearing and records `PROMOTE_TO_I1`. The #967 representation repair did
-not make A1Q reachable because its scalar readout tied; #970 must first falsify
-and replace that shortest-Cayley readout within its broader candidate-relative
-readout/placement scope. Neither stage promotes #953. GI-2 does not emit or
-score grammatical product text.
+not make A1Q reachable because its scalar readout tied. The corrected local
+#970 result is a valid paired-heatmap readout-identifiability negative, but it
+does not expose #969 until protected merge. That eventual delivery exposes
+#969, not #953. GI-2 does not emit or score grammatical product text.
 
 ### GI-3 / #953 — source-free grammatical inference and generation
 
@@ -587,6 +717,13 @@ learned router.
 The generator consumes only GI-2-qualified semantic scoring terms; mandatory
 storage fields and unqualified Hopf, H4, zeta, icosian, or SpiralCore controls
 cannot influence ranking merely because they are serialized.
+
+The existing source-free table-native R4G1/TLA continuation and candidate
+evidence may be reused as an offline substrate or comparator where appropriate;
+its replicated pointwise signal is not itself free-running generation. The
+#953 decision must show that a #969-qualified geometric intervention changes
+candidate choice relative to count-only, hierarchy-disabled, permuted, and
+exact-recall controls under equal support and work.
 
 #953 owns inference and language formation. Product CLI/HTTP chat integration,
 restart-persistent conversation state, and identity-scoped hive-memory lifecycle
@@ -603,11 +740,13 @@ inference/generation, not yet a claim that answers are correct.
 
 ### GI-4 / #954 — correctness and abstention
 
-After source-free generation exists, test whether the engine understands the
-input well enough to choose a correct answer. Use held-out questions with
-answerable, unanswerable, contradictory, and context-dependent cases. Score
-correctness, relevance, calibration/abstention, constraint coverage, and causal
-dependence on the required route levels.
+After source-free generation exists, test whether the accepted #969-qualified
+terms through the accepted #953 generator understand the input well enough to
+choose a correct answer. #954 does not consume #952 as qualified attention. Use
+held-out questions with answerable, unanswerable, contradictory, and
+context-dependent cases. Score correctness, relevance,
+calibration/abstention, constraint coverage, and causal dependence on the
+required route levels.
 
 An offline teacher may provide labels or a comparator only after the
 source-free arm has a frozen report. Teacher output is never substituted for
@@ -615,8 +754,9 @@ the product response.
 
 ### GI-5 / #955 — reasoning
 
-Reasoning begins only after correct one-step inference. Add bounded multi-step
-route composition with:
+Reasoning begins only after correct one-step inference. Every step invokes the
+accepted #969/#953/#954 consumer, not #952. Add bounded multi-step route
+composition with:
 
 - explicit goal and intermediate constraints;
 - branch creation and comparison;
@@ -630,9 +770,13 @@ intermediate constraints must change under the matched causal control.
 
 ### GI-6 / #962–#965 — product integration, serving purity, measured cost, and bounded release
 
-#962 integrates the accepted #953 generator into durable multi-turn CLI/HTTP
-chat, persistent conversation state, session and identity isolation, and
-load-bearing identity-scoped hive memory across turns and restarts. Later issues
+#962 integrates #969-qualified attention and the accepted #953 generator into
+durable multi-turn CLI/HTTP chat, persistent conversation state, session and
+identity isolation, and load-bearing identity-scoped hive memory across turns
+and restarts. #963 retains measured optimization. #964 freezes a serving
+contract that binds the inserted #970 → #969 qualification stages and the
+accepted #953 generator; #965 activates release evidence only for that exact
+path. These issues do not inherit an attention claim from #952. Later issues
 retain optimization, serving-kernel/formal closure, and release ownership.
 Freeze one accepted path and remove any remaining transitional serving
 dependency. The final serving census must show:

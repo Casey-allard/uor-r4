@@ -96,9 +96,17 @@ The experiment must be able to change the next programme decision:
 - **Follow the GI sequence.** GI-1 makes lexical/address state reversible;
   #952 found the reusable ordered-state defect; A1R/#967 repaired the fold but
   terminated `RETAIN_STATE_ONLY` after its scalar readout tied distinct
-  candidate-relative states on 6/6 queries; A1P/#970 now owns the
-  candidate-relative readout/placement; and A1Q/#969 separately qualifies full
-  recursive attention. GI-3/#953 may then add source-free grammatical
+  candidate-relative states on 6/6 queries; A1P/#970's target-free paired-H4
+  exact R4-heatmap gate exercised 14 classes across 36 decisions, had pure
+  12/12 construction coverage, covered 10/12 validation decisions with a 10/12
+  oracle ceiling, transferred 0/6 queries, and found eight incompatible heatmap
+  classes. Downstream readout, selection-control, and placement work is
+  `NOT_RUN_IDENTIFIABILITY_HARD_STOP`, not PASS.
+  That negative is bounded to the heatmap readout; fixed-zeta phases, ordered
+  n-lets, exact `phi` radial transport, and typed geometry adapters remain
+  structural. Only after #970 merges through the protected path does A1Q/#969
+  become the next multi-channel recursive-attention qualification. GI-3/#953
+  may then add source-free grammatical
   inference/generation using only A1Q-qualified semantic terms; GI-4/#954 tests
   correctness/abstention; GI-5/#955 adds reasoning. Do not generate before
   attention passes.

@@ -19,9 +19,12 @@ assumptions, or objectives rather than measured results.
 > The geometric causal decoder roadmap and S0–S7 completion plan are retained
 > as historical evidence. GitHub programme root #820 and the native
 > GI sequence now records #961 closed, #952 A1.0 redirected through #967 A1R,
-> #967 terminal `RETAIN_STATE_ONLY`, unassigned #970 A1P candidate-relative
-> readout/placement, #969 A1Q full recursive-attention qualification, then
-> #953–#955 and #962–#965 afterward; legacy
+> #967 terminal `RETAIN_STATE_ONLY`, and #970 A1P's bounded paired-H4-derived
+> exact R4-heatmap result
+> `RETAIN_H4_STATE_ONLY_ADVANCE_MULTICHANNEL_A1Q`. Protected #970 merge is the
+> eligibility boundary; only afterward does #969 become the A1Q multichannel
+> full recursive-attention qualification, followed by
+> #953–#955 and #962–#965; legacy
 > tracker #949 is closed as superseded, and #958 is retained directly beneath
 > #820 as GI-0 foundation. Two
 > current-summary corrections remain important: **#784** found
@@ -40,8 +43,8 @@ assumptions, or objectives rather than measured results.
 > product attention, generation, inference, reasoning, or teacher parity. This
 > is retained foundation evidence, not abandonment. Forward work makes lexical
 > geometry reversible (GI-1/#961), repairs ordered state (GI-2 A1R/#967),
-> falsifies and replaces the shortest-Cayley scalar readout within the broader
-> candidate-relative readout/placement scope (GI-2 A1P/#970),
+> tests candidate-relative identifiability and one construction-derived readout
+> without assuming a replacement or placement defect (GI-2 A1P/#970),
 > establishes recursive causal attention across
 > local/sentence/paragraph/conversation/global state with anti-recall evidence
 > (GI-2 A1Q/#969), then adds source-free grammatical inference/generation
@@ -65,8 +68,9 @@ assumptions, or objectives rather than measured results.
 > In its frozen fixture, current, previous, last-two, and the immutable global
 > snapshot intentionally remain equal; sentence, paragraph, and conversation
 > are the scopes expected to differ after repair. Global order requires a
-> separate matched global-snapshot permutation. #969 owns the later full
-> attention qualification and natively blocks #953. #953 owns
+> separate matched global-snapshot permutation. After protected #970 merge,
+> #969 owns the later full attention qualification and natively blocks #953.
+> #953 owns
 > source-free inference/generation, while #962 owns product chat and persisted
 > identity-scoped hive memory. See the
 > [#952 A1.0 record](recursive_geometric_attention_a1_952.md).
@@ -82,9 +86,49 @@ assumptions, or objectives rather than measured results.
 > The terminal verdict is `RETAIN_STATE_ONLY`, with no attention or generation
 > claim. `any_exercised_control_not_weaker = true` confirms that the verdict
 > follows from exercised full/control evidence, not the unavailable additive
-> scorer. Unassigned #970 follows protected #967 delivery and blocks #969; #969
-> continues to block #953. See the
+> scorer. #970's exact preflight follows below; #969 continues to block #953.
+> See the
 > [#967 A1R record](associative_ordered_route_summaries_a1r_967.md).
+>
+> **A1P decision, 2026-08-27.** The six visible A1R labels remain unchanged
+> regression/root-cause evidence and cannot qualify a new readout. Construction
+> fixture `A1P-CONSTRUCTION-1`, kappa
+> `blake3:fb5f27fc1107f527d616f32affa8eba1746a2f60cfdb95ddbb21a0e493299652`,
+> derives its candidate rule from permutation parity. The
+> disjoint sealed anti-recall fixture `A1P-VALIDATION-1`, kappa
+> `blake3:ecbe8b404e7542d801ff4b4e66c91a41f90158d84efa484dc4edb53aff38b602`,
+> tests transfer on different histories. Geometry/support is prepared with no
+> observed-next labels, label ledgers join only after preparation, and S4 parity
+> is mechanically derived by inversion count from each exact history and the
+> frozen role order.
+>
+> The corrected paired contract computes `X=C(H,c)`, `Y=C(P_c,c)`, and
+> `D=X*Y^-1` in the exact signed `(1,i)` R4 chart. Its endpoint rule is
+> `sin=±1, cos=0 -> 1` with chirality retained and
+> `sin=0, cos=±1 -> 0` with cosine polarity retained; `q0=q1=0` is typed-null
+> abstention. `q2` and `q3` remain in the full `D` witness but are not
+> scorer-key fields. Before labels, the target-free universe enumerated 120×120 =
+> 14,400 ordered pairs, 120 relative rows, 45 exact heatmap classes, and 480
+> typed-null pairs. Across 36 fixture decisions it exercised 14 classes;
+> construction coverage was 12/12 and pure, construction classes covered 10/12
+> validation decisions, the
+> no-class-splitting oracle ceiling was 10/12, strict construction transfer was
+> 0/6, and eight exact heatmap classes were incompatible. The additive
+> comparator retained two impure classes and 0/6 transfer. No scalar/readout or
+> selection control ran; every downstream row is
+> `NOT_RUN_IDENTIFIABILITY_HARD_STOP`, not PASS. The terminal literal is
+> `RETAIN_H4_STATE_ONLY_ADVANCE_MULTICHANNEL_A1Q`. Contract, universe, and
+> report kappas are
+> `blake3:2daacf538c022fab9580d1e124af6c18d0b06da04604fbc962a01bda57f08a98`,
+> `blake3:dca725c0ec6060166bcd0023df956e1ff029661b5fa7800ccb9f20808712b796`,
+> and `blake3:5f9239150dea8c0c27c4dfa6ad2e4d0068bc3d18afc127b315c0ec358ceddb3f`.
+> This is only a bounded heatmap-readout identifiability negative. Fixed-zeta
+> phases, ordered n-lets, exact `phi` radial transport, and typed
+> `sqrt(2) <-> 2i <-> [0,2]` adapters remain structural under
+> `STRUCTURAL_BINDING_ONLY_NO_ZETA_NLET_TO_PHI_EXPONENT_RULE` and are excluded
+> from the scorer. #969 remains blocked until protected #970 merge and #953
+> remains blocked by #969. See the
+> [#970 A1P record](candidate_relative_identifiability_a1p_970.md).
 
 The current quality-baseline reconciliation is recorded by #933 and the
 [append-only #934 genealogy](canonical_quality_baseline_934.md). The historical
@@ -315,10 +359,13 @@ reusable summaries erased earlier causal order, terminating as
 `REDESIGN_ORDERED_ROUTE_SUMMARY` before scorer implementation. #967 repaired
 that representation, but its scalar readout mapped distinct candidate-relative
 states to equal energy on 6/6 queries and terminated `RETAIN_STATE_ONLY`. #970
-must now falsify and replace that shortest-Cayley scalar readout within its
-broader candidate-relative readout/placement scope; #969
-must still qualify full recursive attention under matched, scope-isolated
-controls before GI-3/#953 is allowed to generate.
+then applied its target-free paired-H4-derived exact R4-heatmap gate. Across 36
+decisions, 14 exercised classes covered 10/12 validation decisions with a
+10/12 oracle ceiling, transferred 0/6 queries, and contained eight incompatible
+classes, so the gate stopped before scalar design. The old six labels remained
+diagnostic/falsification-only. After protected #970 merge, #969 must still
+qualify full recursive attention under matched, scope-isolated controls before
+GI-3/#953 is allowed to generate.
 The final serving path has no source weights, transformer/self-attention, dense
 matrix intelligence, MoE, or sparse learned router. Compiler-side floating
 point remains allowed for witnessed chart construction; serving arithmetic is
@@ -408,22 +455,28 @@ trajectory/harmonic summaries. The #952 A1.0 result showed that the current
 additive/last-child summaries do not preserve earlier order even though the
 candidate and value path is reachable. #967 repaired ordered summaries but
 retained them as state only after shortest Cayley distance tied distinct states
-on 6/6 queries. #970 must falsify and replace that scalar readout within its
-broader candidate-relative readout/placement scope, and #969 must then establish anti-recall
-attention before GI-3/#953 adds the
+on 6/6 queries. #970 then found that the paired-H4-derived exact R4-heatmap
+classes alias outcomes and that the construction-derived rule has a 0/6 strict
+transfer ceiling on the separate sealed validation fixture. It stopped without
+scalar search; protected #970 merge must land before #969 becomes next and
+establishes anti-recall attention before GI-3/#953 adds the
 source-free inference/generation engine. Structural presence does not qualify a
-field for ranking: unqualified Hopf, H4, zeta, icosian, SpiralCore, trajectory,
-and harmonic terms remain storage, diagnostics, or controls, and #953 may
-consume only terms qualified by A1Q. Product chat and persisted hive memory
-remain GI-6/#962 responsibilities. The
+field for ranking: the paired heatmap, fixed-zeta phases, ordered n-lets, exact
+`phi` radial transport, typed adapters, and unqualified Hopf, H4, icosian,
+SpiralCore, trajectory, and harmonic terms remain storage, diagnostics, or
+controls, and #953 may consume only terms qualified by A1Q. Product chat and
+persisted hive memory remain GI-6/#962 responsibilities. The
 retained #951 negative
 checkpoint and exact population remain in
 [`geometric_mixer_qualification_951.md`](geometric_mixer_qualification_951.md),
 and the #958 boundary remains in
 [`prime_route_attention_qualification_958.md`](prime_route_attention_qualification_958.md).
-The older pointwise signal remains useful as a comparator, not the product
-sequencing authority. (As of #831, the one normative scorer for the historical
-deployed
+The older source-free table-native continuation/candidate and pointwise evidence
+remains useful to #953 as an offline substrate or comparator, not the product
+sequencing authority. #953 must still show that a #969-qualified intervention
+changes candidate choice relative to count-only, hierarchy-disabled, permuted,
+and exact-recall controls. (As of #831, the one normative scorer for the
+historical deployed
 inference — the R4G1Runtime scoring path — is designated in
 [ADR-0001](adr/0001-normative-r4g1-scorer.md), and the reference/certifier
 scorers are explicitly scoped; a certifier measurement is no longer read as a
@@ -851,18 +904,24 @@ whose only legitimate integration point is an honesty/claim-vocabulary bridge
 
 #961 is closed. #952 A1.0 has the terminal representation verdict
 `REDESIGN_ORDERED_ROUTE_SUMMARY`; #967 repaired the fold and terminated
-`RETAIN_STATE_ONLY`. Unassigned #970 follows protected #967 delivery, owns the
-candidate-relative readout/placement redesign, and is the native blocker of
-#969. #969 is the
-separate full recursive-attention qualification and natively blocks #953, so
-closing #967 cannot make A1Q or generation eligible.
-After #969 qualifies GI-2 attention, #953 owns source-free inference/generation
-using only the qualified semantic terms, #954 correctness/abstention, #955
-reasoning, and #962
-product chat with persisted identity-scoped hive memory; #963–#965 retain cost,
-formal/serving closure, and release ownership. The table below is retained as
-the historical mechanism ledger; rows that still use “open” in their original
-prose are not the live backlog. GitHub native issue state wins.
+`RETAIN_STATE_ONLY`. #970 produced the bounded paired-H4-derived exact
+R4-heatmap readout-identifiability result without compiling a readout and now
+awaits protected merge. #969 remains blocked until that merge; afterward it
+becomes the separate full recursive-attention qualification and natively blocks
+#953, so the #970 negative cannot make generation eligible. #969 starts
+with a bounded 2–8 lexical-unit composition instrument and stops on identical
+matched continuations, an inert qualified-state intervention, decode failure, a
+period-1–4 cycle, nondeterministic termination, or changed support before opening
+its sealed scope fixtures. After #969 qualifies GI-2 attention, #953 owns
+source-free inference/generation using only qualified semantic terms and must
+exercise the qualified-geometry candidate-choice intervention against its
+declared controls. #954 consumes only that #969/#953 path; #955 invokes the
+accepted #969/#953/#954 consumer; #962 integrates #969-qualified attention and
+the accepted #953 generator into product chat with persisted identity-scoped
+hive memory. #963 retains measured cost; #964 binds the inserted #970 → #969
+stages in the serving contract; #965 qualifies only that release path. The table
+below is retained as the historical mechanism ledger; rows that still use “open”
+in their original prose are not the live backlog. GitHub native issue state wins.
 
 *Recently landed and closed (GitHub is the source of truth; this table tracks what is still open): **#743** — `R4Engine::load` failed closed with a typed `SourceUnavailable` decline on a teacher_cid pairing mismatch instead of panicking (PR #746); the root cause was data-pairing drift between two independently-sourced bundle files, not format/era drift as first hypothesized. **#502** — dropped the lexical weight (W=0) on the deployed content-query path (+0.022 MRR / +0.032 top-1, a simplification); the #421 rows are invariant under the weight, so the gate was moot the same way #490's was (below). **#488** — phase-timing instrument (DoD met); the at-scale run is now **#503**. **#457** — IPF Arm B landed NEGATIVE, consistency operator reaches only the unigram floor (below). **#486/#490** — the serving path compared a routing vector to a content vector; the content-vector query is now the deployed default (+0.1363 MRR), with the serde-default and blast-radius findings recorded on #490. **#487** — corrected #434's Spectral record (lexical, not geometry). **#493** — the VSA switch made honest; its `0.0000` is a scoring category error, not a wiring gap (below). **#458/#459** — interaction information and the estimation ladder, both landed NEGATIVE/count-limited. **#456** — reconstructability certificate + null arm (below).*
 

@@ -36,9 +36,32 @@ The sequence is capability-ordered: #961 supplied reversible lexical geometry
 and complete hierarchy state; #952 exposed an order-erasing reusable summary;
 A1R/#967 repaired that representation but terminated `RETAIN_STATE_ONLY` when
 shortest Cayley distance mapped distinct candidate-relative states to equal
-energy on 6/6 queries; A1P/#970 now owns candidate-relative readout/placement;
-and A1Q/#969 must then establish recursive
-geometric attention at every scope under anti-recall matched controls. #953 can
+energy on 6/6 queries. The corrected A1P/#970 probe retains the ordered pair
+`X=C(H,c)`, `Y=C(P_c,c)` and forms `D=X*Y^-1`. For
+`D=(q0+q1 i+q2 j+q3 k)/2`, it keys equality by the exact signed R4 heatmap
+`(q0/2, q1/2, q0^2/4, chirality, cosine polarity, chart status)` in `Z[phi]`,
+not by one H4 operand or an opaque table offset. The endpoint translation is
+`sin=+/-1, cos=0 -> 1` and `sin=0, cos=+/-1 -> 0`, with orientation retained;
+non-landmarks remain exact and `q0=q1=0` is a typed-null abstention.
+
+The exhaustive target-free structural census covered 14,400/14,400 ordered
+pairs, all 120 relative roots, 45 heatmap classes, and 480 typed-null pairs. The
+36 fixture decisions produced 14 classes: construction covered 12/12, validation
+coverage was 10/12, the no-class-splitting ceiling was 10/12, strict transfer
+was 0/6, and eight classes carried incompatible outcomes. S4 parity was derived
+from each history before labels were joined. Contract, universe, and report
+kappas are respectively
+`blake3:2daacf538c022fab9580d1e124af6c18d0b06da04604fbc962a01bda57f08a98`,
+`blake3:dca725c0ec6060166bcd0023df956e1ff029661b5fa7800ccb9f20808712b796`,
+and
+`blake3:5f9239150dea8c0c27c4dfa6ad2e4d0068bc3d18afc127b315c0ec358ceddb3f`.
+
+This is a readout-identifiability negative only. Fixed-zeta phases, ordered
+n-lets, golden `phi` radial maps, and the typed Euclidean/complex/Riemannian
+adapter remain structurally bound, but no zeta/n-let-to-`phi` shell-exponent
+rule is established. #970 remains active until protected merge and #969 remains
+blocked until then. After delivery, A1Q/#969 must establish recursive geometric
+attention at every scope under anti-recall matched controls. #953 can
 then build provider-free grammatical generation from only A1Q-qualified
 semantic terms; #954 measures correctness and typed abstention; #955 begins
 reasoning. #958 is retained storage/recall foundation, not proof of attention.

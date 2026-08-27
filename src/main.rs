@@ -103,6 +103,8 @@ enum Command {
     RecursiveAttentionA1Probe,
     /// Run the frozen A1R associative ordered-summary and candidate-relative probe.
     AssociativeOrderedSummaryA1rProbe,
+    /// Run the frozen A1P candidate-relative identifiability hard gate.
+    CandidateRelativeIdentifiabilityA1pProbe,
     /// List preserved compiler, serving, and certification commands.
     ResearchTools,
     /// Run the full artifact-discovering historical HTTP server.
@@ -1318,6 +1320,17 @@ fn run(cli: &Cli) -> Result<(), RunError> {
             let rendered = serde_json::to_string_pretty(&report).map_err(|error| {
                 RunError::Command(format!(
                     "serialize associative ordered-summary A1R report: {error}"
+                ))
+            })?;
+            println!("{rendered}");
+            Ok(())
+        }
+        Some(Command::CandidateRelativeIdentifiabilityA1pProbe) => {
+            let report = uor_r4_core::recursive_geometric_attention::run_a1p_candidate_relative_identifiability_probe()
+                .map_err(|error| RunError::Command(error.to_string()))?;
+            let rendered = serde_json::to_string_pretty(&report).map_err(|error| {
+                RunError::Command(format!(
+                    "serialize candidate-relative A1P identifiability report: {error}"
                 ))
             })?;
             println!("{rendered}");

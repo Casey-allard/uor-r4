@@ -8,8 +8,10 @@ graph-compiler implementation plan are retained as historical
 engineering/evidence records; none decides what is built next. Native GitHub
 relationships now mirror the programme: #961 closed with reversible S0 state;
 #952 stopped at `REDESIGN_ORDERED_ROUTE_SUMMARY`; #967 repaired the ordered
-state but terminated `RETAIN_STATE_ONLY`; unassigned #970 owns the A1P
-candidate-relative readout/placement redesign and blocks #969 A1Q; #969 blocks
+state but terminated `RETAIN_STATE_ONLY`; #970's corrected, target-free A1P
+gate produced the bounded paired-H4-derived exact R4-heatmap result
+`RETAIN_H4_STATE_ONLY_ADVANCE_MULTICHANNEL_A1Q`. #970 must merge through the
+protected path before #969 becomes the next multichannel A1Q stage and blocks
 #953. #953–#955 and #962–#965 follow. Terminology lives in
 `docs/transformerless/GLOSSARY.md`. Keep this file current when conventions
 change.
@@ -162,13 +164,29 @@ PR (a bump can shift libm-sensitive teacher logprobs — see Gate E below).
   both candidates to energy 2 and tied on 6/6. Its terminal verdict is
   `RETAIN_STATE_ONLY`
   (report `blake3:f0db7a5d5c81d51ebf3b4bf8a2715c4960ec16b14161e8bf7598d7b98c48c881`).
-  Unassigned #970 follows protected #967 delivery, owns only the A1P
-  candidate-relative readout/placement redesign, and natively blocks #969 A1Q.
-  #969 blocks #953, so neither the repaired state nor closure of #967 promotes
-  attention or generation. #953 then owns bounded source-free library/CLI
-  generation, followed by #954 correctness and #955 reasoning. #962 owns
-  durable multi-turn CLI/HTTP chat, persistence, isolation, and hive-memory;
-  #963–#965 then own optimization, formal closure, and release.
+  #970's corrected target-free preflight then enumerated the complete paired-H4
+  domain: 120×120 = 14,400 ordered pairs, 120 relative `D=X*Y^-1` rows, 45
+  exact signed `(1,i)` R4-heatmap classes, and 480 typed-null pairs. Across 36
+  fixture decisions it exercised 14 classes; construction coverage was 12/12
+  and pure, construction classes covered 10/12 validation decisions, the
+  no-class-splitting oracle ceiling was 10/12, strict construction transfer was
+  0/6, and eight exact heatmap classes were incompatible. The hard gate stopped
+  before scalar search; every downstream selection, control, and placement row
+  is `NOT_RUN_IDENTIFIABILITY_HARD_STOP`, not PASS. The terminal literal is
+  `RETAIN_H4_STATE_ONLY_ADVANCE_MULTICHANNEL_A1Q`. Its contract, universe, and
+  report identities are respectively
+  `blake3:2daacf538c022fab9580d1e124af6c18d0b06da04604fbc962a01bda57f08a98`,
+  `blake3:dca725c0ec6060166bcd0023df956e1ff029661b5fa7800ccb9f20808712b796`,
+  and `blake3:5f9239150dea8c0c27c4dfa6ad2e4d0068bc3d18afc127b315c0ec358ceddb3f`.
+  This is only a bounded heatmap-readout identifiability negative: fixed-zeta
+  phases, ordered n-lets, exact `phi` radial transport, and typed geometry
+  adapters remain structural, diagnostic, or control state. It does not
+  promote attention or generation. Only after protected #970 merge does #969
+  become the next multichannel A1Q stage and block #953. #953 then owns bounded
+  source-free library/CLI generation, followed by #954 correctness and #955
+  reasoning. #962 owns durable multi-turn CLI/HTTP chat, persistence,
+  isolation, and hive-memory; #963–#965 then own optimization, formal closure,
+  and release.
 - Sequence strictly: lexical/address plumbing → recursive attention →
   source-free grammatical inference/generation → correctness/abstention →
   reasoning → optimization/purity/release.
@@ -355,7 +373,7 @@ CIDs before loading teacher weights.
   graph lane
   (`uor-r4-graph-format::ScoreQ` wire newtype; `uor-r4-core::score_q::ScoreQ`
   with compiler-side f32 conversions). Do not add a third or prioritize their
-  consolidation ahead of the #970 candidate-relative readout/placement redesign.
+  consolidation ahead of the active route-native intelligence sequence.
 
 ## Long-run discipline (process amendment, 2026-08-06)
 

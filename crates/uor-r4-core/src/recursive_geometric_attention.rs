@@ -17,7 +17,7 @@ use crate::canonical_lexical_ingestion::{
     CanonicalRouteArtifact, ConversationInput, H4BinaryIcosahedralClosure, H4RootCoordinate,
     OrderedH4FoldState, ParagraphInput, TurnInput,
 };
-use crate::prime_route_attention::{GeometricAddress, PrimeRouteError};
+use crate::prime_route_attention::{GeometricAddress, PrimeRouteError, ZPhi, ZetaGridBinding};
 use crate::prime_route_geometric_attention::{
     AttentionControl, AttentionRowKey, AttentionRowSource, AttentionSourceCounts,
     CausalAttentionState, GeometricAttentionArtifact, GeometricAttentionError,
@@ -32,11 +32,17 @@ pub const REDESIGN_ORDERED_ROUTE_SUMMARY: &str = "REDESIGN_ORDERED_ROUTE_SUMMARY
 pub const A1R_ASSOCIATIVE_ORDERED_SUMMARY_PROBE_SCHEMA: u32 = 1;
 pub const A1R_ASSOCIATIVE_ORDERED_SUMMARY_PROBE_DOMAIN: &str =
     "uor-r4.a1r-associative-ordered-summary-probe/1";
+pub const A1P_IDENTIFIABILITY_PROBE_SCHEMA: u32 = 2;
+pub const A1P_IDENTIFIABILITY_PROBE_DOMAIN: &str =
+    "uor-r4.a1p-candidate-relative-identifiability-probe/2";
 
 pub const REDESIGN_ROUTE_PLACEMENT: &str = "REDESIGN_ROUTE_PLACEMENT";
 pub const RETAIN_STATE_ONLY: &str = "RETAIN_STATE_ONLY";
 pub const REVISE_A1R: &str = "REVISE_A1R";
 pub const PROMOTE_TO_A1Q: &str = "PROMOTE_TO_A1Q";
+pub const RETAIN_H4_STATE_ONLY_ADVANCE_MULTICHANNEL_A1Q: &str =
+    "RETAIN_H4_STATE_ONLY_ADVANCE_MULTICHANNEL_A1Q";
+pub const NOT_RUN_IDENTIFIABILITY_HARD_STOP: &str = "NOT_RUN_IDENTIFIABILITY_HARD_STOP";
 
 const ISSUE_URL: &str = "https://github.com/UOR-Foundation/uor-r4/issues/952";
 const S0_CONSUMER_CONTRACT_URL: &str =
@@ -51,6 +57,7 @@ const A1R_ISSUE_URL: &str = "https://github.com/UOR-Foundation/uor-r4/issues/967
 const A1R_SUCCESSOR_URL: &str = "https://github.com/UOR-Foundation/uor-r4/issues/969";
 const A1R_DECISION_CONTRACT_URL: &str =
     "https://github.com/UOR-Foundation/uor-r4/issues/967#issuecomment-5434971151";
+const A1P_ISSUE_URL: &str = "https://github.com/UOR-Foundation/uor-r4/issues/970";
 const FROZEN_A1_PARTITION_KAPPA: &str =
     "blake3:d008b82eda9b16b102cf4c7ffa4a47a40ad514b30f0763ed3f46c0ebae3e277b";
 const FROZEN_A1_CONSTRUCTION_ARTIFACT_KAPPA: &str =
@@ -59,6 +66,19 @@ const FROZEN_A1_ATTENTION_MANIFEST_KAPPA: &str =
     "blake3:1c77c4103732964af6776f1dfcabc8b2a9191eea875a8ba205c36ebbf5618a99";
 const FROZEN_A1_REPORT_KAPPA: &str =
     "blake3:23e07a17e897abb701c09354d35a3113a1b075ba1d60ee634067fa3ed3fd1904";
+const FROZEN_A1R_REPORT_KAPPA: &str =
+    "blake3:f0db7a5d5c81d51ebf3b4bf8a2715c4960ec16b14161e8bf7598d7b98c48c881";
+const A1P_CONSTRUCTION_FIXTURE_KAPPA: &str =
+    "blake3:fb5f27fc1107f527d616f32affa8eba1746a2f60cfdb95ddbb21a0e493299652";
+const A1P_VALIDATION_FIXTURE_KAPPA: &str =
+    "blake3:ecbe8b404e7542d801ff4b4e66c91a41f90158d84efa484dc4edb53aff38b602";
+const A1P_PAIRED_H4_R4_HEATMAP_CONTRACT_KAPPA: &str =
+    "blake3:2daacf538c022fab9580d1e124af6c18d0b06da04604fbc962a01bda57f08a98";
+const A1P_PAIRED_H4_R4_HEATMAP_CONTRACT_DOMAIN: &str = "uor-r4.a1p-paired-h4-r4-heatmap-contract/1";
+const A1P_PAIRED_H4_PAIR_UNIVERSE_CENSUS_DOMAIN: &str =
+    "uor-r4.a1p-paired-h4-pair-universe-census/1";
+const A1P_SUPPORT_DENOMINATOR_KAPPA: &str =
+    "blake3:7b17bdc7f3686fd734c1770a4d6c5cc1a0590accbe8ceaa4e143ec1cd3369777";
 
 const CANDIDATE_CEILING: usize = 8;
 const ROWS_PER_QUERY_CEILING: usize = 7;
@@ -72,6 +92,18 @@ const A1R_REQUIRED_CONTROLS: [&str; 8] = [
     "hierarchy-disabled",
     "exact-recall-only",
     "inverse-h4-intervention",
+];
+const A1P_DOWNSTREAM_CONTROL_CONTRACT: [(&str, bool); 10] = [
+    ("full-paired-h4-r4-heatmap", true),
+    ("current-only", true),
+    ("additive-summary-compiled-scorer", true),
+    ("factor-count-only", true),
+    ("deterministic-geometry-permutation", true),
+    ("candidate-relabeling", true),
+    ("prime-assignment-permutation", true),
+    ("hierarchy-disabled", true),
+    ("exact-recall-only", true),
+    ("placement-intervention", false),
 ];
 const GLOBAL_TOKEN: &str = "gg";
 const REQUIRED_LEVELS: [&str; 7] = [
@@ -1201,6 +1233,491 @@ pub struct A1RClaimBoundary {
     pub reasoning_established: bool,
     pub digest_distance_used_as_geometry: bool,
     pub all_identity_and_provenance_bits_excluded_from_geometry: bool,
+    pub candidate_support_or_admission_modified: bool,
+}
+
+/// Canonical #970 identifiability envelope. This report is deliberately a
+/// pre-scorer artifact: exact state-class membership and public-label ceilings
+/// are observable, while scalar fitting and validation selection are not.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct A1PIdentifiabilityProbeReport {
+    pub schema: u32,
+    pub domain: String,
+    pub report_kappa: String,
+    pub body: A1PIdentifiabilityProbeBody,
+}
+
+impl A1PIdentifiabilityProbeReport {
+    pub fn canonical_bytes(&self) -> Result<Vec<u8>, RecursiveGeometricAttentionError> {
+        if self.schema != A1P_IDENTIFIABILITY_PROBE_SCHEMA
+            || self.domain != A1P_IDENTIFIABILITY_PROBE_DOMAIN
+        {
+            return Err(RecursiveGeometricAttentionError::InvalidProbe(
+                "A1P report schema/domain is unsupported".to_owned(),
+            ));
+        }
+        if a1p_report_identity_kappa(&self.body)? != self.report_kappa {
+            return Err(RecursiveGeometricAttentionError::InvalidProbe(
+                "A1P report kappa does not reproduce".to_owned(),
+            ));
+        }
+        canonical_json(self)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct A1PIdentifiabilityProbeBody {
+    pub probe_status: String,
+    pub contract_status: String,
+    pub terminal_verdict: String,
+    pub successor_effect: String,
+    pub provenance: A1PProvenance,
+    pub fixture_contract: A1PFixtureContract,
+    pub paired_h4_r4_heatmap_contract: A1PPairedH4R4HeatmapContractEvidence,
+    pub paired_h4_structural_universe: A1PPairedH4StructuralUniverse,
+    pub inherited_regression: A1PInheritedRegression,
+    pub support_and_work: Vec<A1PSupportAndWork>,
+    pub paired_h4_r4_heatmap: A1PPairedH4Identifiability,
+    /// Superseded single-relative-H4 diagnostic retained only so the #967
+    /// report surface remains inspectable. It is not a #970 scorer key.
+    pub full_h4: A1PH4Identifiability,
+    pub additive: A1PAdditiveIdentifiability,
+    pub hard_stop_reasons: Vec<String>,
+    pub scalar_functions_searched: usize,
+    pub readout_artifacts_compiled: usize,
+    pub validation_selection_outputs_opened: bool,
+    pub downstream_controls: Vec<A1PDownstreamControl>,
+    pub serving_boundary: A10ServingBoundary,
+    pub claim_boundary: A1PClaimBoundary,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct A1PProvenance {
+    pub issue_url: String,
+    pub frozen_partition_kappa: String,
+    pub frozen_partition_kappa_reproduces: bool,
+    pub frozen_construction_artifact_kappa: String,
+    pub construction_artifact_kappa_reproduces: bool,
+    pub frozen_attention_manifest_kappa: String,
+    pub attention_manifest_kappa_reproduces: bool,
+    pub inherited_a1r_report_kappa: String,
+    pub inherited_a1r_report_kappa_reproduces: bool,
+    pub frozen_inputs_modified: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct A1PFixtureContract {
+    pub construction: A1PFixtureEvidence,
+    pub validation: A1PFixtureEvidence,
+    pub construction_parity_audit: Vec<A1PParityAudit>,
+    pub validation_parity_audit: Vec<A1PParityAudit>,
+    pub parity_derived_from_history: bool,
+    pub new_split_preparation_target_free: bool,
+    pub labels_attached_after_preparation: bool,
+    pub histories_disjoint_across_all_splits: bool,
+    pub construction_rule_family: String,
+    pub construction_rule_selected: String,
+    pub trivial_map_rejected: bool,
+    pub construction_rule_confirmed: bool,
+    pub regression_labels_falsification_only: bool,
+    pub no_a1q_fixture_consumed: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct A1PParityAudit {
+    pub observation_id: String,
+    pub declared_parity: String,
+    pub derived_parity: String,
+    pub exact_match: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct A1PFixtureEvidence {
+    pub fixture_id: String,
+    pub split: String,
+    pub expected_kappa: String,
+    pub observed_kappa: String,
+    pub kappa_reproduces: bool,
+    pub role_order: Vec<String>,
+    pub current_token: String,
+    pub natural_candidates: Vec<String>,
+    pub construction_predecessors: Vec<A1PPredecessor>,
+    pub observations: Vec<A1PFixtureObservation>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize)]
+pub struct A1PPredecessor {
+    pub candidate: String,
+    pub predecessor: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct A1PFixtureObservation {
+    pub id: String,
+    pub history: Vec<String>,
+    pub observed_next: String,
+    pub permutation_parity: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct A1PInheritedRegression {
+    pub fixture_id: String,
+    pub labels_status: String,
+    pub partition_kappa: String,
+    pub report_kappa: String,
+    pub query_denominator: usize,
+    pub candidate_decision_denominator: usize,
+    pub shortest_cayley_strict_selections: usize,
+    pub shortest_cayley_ties: usize,
+    pub shortest_cayley_abstentions: usize,
+    pub queries_with_distinct_candidate_relative_states: usize,
+    pub paired_same_candidate_comparisons: usize,
+    pub paired_same_candidate_relative_state_differences: usize,
+    pub aggregate_reproduces: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct A1PSupportAndWork {
+    pub split: String,
+    pub histories: usize,
+    pub candidate_decisions: usize,
+    pub natural_candidates: Vec<String>,
+    pub natural_candidate_union_exact: bool,
+    pub support_denominator_kappas: Vec<String>,
+    pub support_denominator_exact: bool,
+    pub rows_per_query: usize,
+    pub row_reads: usize,
+    pub candidate_entries_examined: usize,
+    pub candidate_entry_ceiling_per_query: usize,
+    pub candidate_ceiling: usize,
+    pub maximum_admitted_candidates: usize,
+    pub exact_direct_rows_miss: bool,
+    pub divisor_rows_miss: bool,
+    pub adjacent_spin_only_support: bool,
+    pub exact_payload_inversions: usize,
+    pub target_injected: bool,
+    pub future_events_visible: bool,
+    pub admission_truncation_observed: bool,
+    pub contract_exact: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct A1PClassMember {
+    pub split: String,
+    pub observation_id: String,
+    pub candidate: String,
+    pub outcome: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct A1PClassCounts {
+    pub inherited_select: usize,
+    pub inherited_reject: usize,
+    pub construction_select: usize,
+    pub construction_reject: usize,
+    pub validation_select: usize,
+    pub validation_reject: usize,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct A1PH4Class {
+    pub class_id: String,
+    pub state: A1RStateWitness,
+    pub members: Vec<A1PClassMember>,
+    pub counts: A1PClassCounts,
+    pub construction_outcome_if_pure: Option<String>,
+    pub incompatible_outcomes: bool,
+}
+
+/// The exact public #970 contract wire. Field order is intentionally the
+/// canonical JSON order frozen in the issue; changing declaration order changes
+/// the contract identity and must fail reproduction.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct A1PPairedH4R4HeatmapContract {
+    pub schema: u32,
+    pub domain: String,
+    pub construction_artifact_kappa: String,
+    pub manifest_kappa: String,
+    pub frozen_partition_kappa: String,
+    pub construction_fixture_kappa: String,
+    pub validation_fixture_kappa: String,
+    pub h4_root_table_kappa: String,
+    pub h4_multiplication_table_kappa: String,
+    pub zeta_grid_revision: String,
+    pub zeta_grid_kappa: String,
+    pub paired_h4_operands: Vec<String>,
+    pub pair_space_rule: String,
+    pub relative_product: String,
+    pub relative_image_rule: String,
+    pub r4_basis: Vec<String>,
+    pub oriented_heatmap_plane: String,
+    pub coordinate_scale_denominator: u32,
+    pub exact_ring: String,
+    pub sin_coordinate_rule: String,
+    pub cos_coordinate_rule: String,
+    pub activation_rule: String,
+    pub activation_denominator: u32,
+    pub chirality_rule: String,
+    pub cosine_polarity_rule: String,
+    pub typed_null_rule: String,
+    pub heatmap_class_key: Vec<String>,
+    pub binary_landmarks: Vec<A1PBinaryLandmark>,
+    pub intermediate_rule: String,
+    pub q30_rule: String,
+    pub zeta_phase_rule: String,
+    pub ordered_nlet_rule: String,
+    pub golden_radial_forward: String,
+    pub golden_radial_inverse: String,
+    pub normalized_direction_rule: String,
+    pub radial_ratio_rule: String,
+    pub radial_coupling_status: String,
+    pub typed_geometry_equivalence: Vec<String>,
+    pub typed_geometry_adapter_rule: String,
+    pub semantic_exclusions: Vec<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct A1PBinaryLandmark {
+    pub sin_zphi_numerator: [i64; 2],
+    pub cos_zphi_numerator: [i64; 2],
+    pub activation_zphi_numerator: [i64; 2],
+    pub chirality: String,
+    pub cosine_polarity: String,
+    pub output: u8,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct A1PPairedH4R4HeatmapContractEvidence {
+    pub expected_kappa: String,
+    pub observed_kappa: String,
+    pub kappa_reproduces: bool,
+    pub contract: A1PPairedH4R4HeatmapContract,
+}
+
+/// The complete exact signed `(1,i)` heatmap class. The remaining `q2/q3`
+/// coordinates are retained in the relative H4 witness, not added to equality.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize)]
+pub struct A1PExactR4HeatmapClassKey {
+    pub sin_zphi_numerator: [i64; 2],
+    pub cos_zphi_numerator: [i64; 2],
+    pub activation_zphi_numerator: [i64; 2],
+    pub chirality: String,
+    pub cosine_polarity: String,
+    pub chart_status: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct A1PPairedH4OperandWitness {
+    pub x_interaction: A1RStateWitness,
+    pub y_predecessor_interaction: A1RStateWitness,
+    pub relative_projection: A1RStateWitness,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct A1PPairedH4ClassMember {
+    pub decision: A1PClassMember,
+    pub operands: A1PPairedH4OperandWitness,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct A1PPairedH4HeatmapClass {
+    pub class_id: String,
+    pub heatmap_key: A1PExactR4HeatmapClassKey,
+    pub binary_landmark_output: Option<u8>,
+    pub members: Vec<A1PPairedH4ClassMember>,
+    pub counts: A1PClassCounts,
+    pub construction_outcome_if_pure: Option<String>,
+    pub typed_null_abstain: bool,
+    pub incompatible_outcomes: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct A1PPairedH4Identifiability {
+    pub operand_definition: String,
+    pub class_definition: String,
+    pub coordinate_scale_denominator: u32,
+    pub activation_denominator: u32,
+    pub integer_only_no_rounding: bool,
+    pub classes: Vec<A1PPairedH4HeatmapClass>,
+    pub metrics: A1PIdentifiabilityMetrics,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct A1PPairedH4RelativeImageRow {
+    pub relative_state: A1RStateWitness,
+    pub ordered_pair_multiplicity: usize,
+    pub heatmap_key: A1PExactR4HeatmapClassKey,
+    pub binary_landmark_output: Option<u8>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct A1PPairedH4StructuralUniverse {
+    pub root_table_kappa: String,
+    pub multiplication_table_kappa: String,
+    pub pair_universe_census_schema: u32,
+    pub pair_universe_census_domain: String,
+    pub pair_universe_row_encoding: String,
+    pub pair_universe_row_width_bytes: usize,
+    pub pair_universe_kappa: String,
+    pub operand_count: usize,
+    pub expected_ordered_pair_count: usize,
+    pub enumerated_ordered_pair_count: usize,
+    pub relative_image_count: usize,
+    pub exact_relative_image_complete: bool,
+    pub pair_multiplicity_per_relative_image_row: usize,
+    pub uniform_pair_multiplicity_exact: bool,
+    pub heatmap_class_count: usize,
+    pub typed_null_pair_count: usize,
+    pub target_free: bool,
+    pub integer_only_no_rounding: bool,
+    pub relative_image_rows: Vec<A1PPairedH4RelativeImageRow>,
+}
+
+/// Exact projection of the existing additive non-digest summary. Positional,
+/// lexical, prime/address, boundary/chain, digest, kappa, and provenance fields
+/// are absent by construction rather than masked after class comparison.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize)]
+pub struct A1PAdditiveState {
+    pub direct_child_count: u32,
+    pub observed_descendant_routes: u32,
+    pub session_hypersphere_q30: [i64; 4],
+    pub winding_turns: i64,
+    pub projection_energy_q30: u64,
+    pub shared_factor_multiplicities: Vec<u32>,
+    pub cosine_resonance_q30: [i64; 8],
+    pub accumulated_hopf_phase_q29: i32,
+    pub zeta_phase_signature_q29: [i32; 8],
+    pub s3_spin_q30: [i32; 4],
+    pub s2_hopf_observation_q30: [i32; 3],
+    pub fiber_q29: i32,
+    pub torsion_q29: i32,
+    pub radial_zphi: [i64; 2],
+    pub bridge_mode: String,
+    pub active_chart: String,
+    pub selected_adapter: String,
+    pub chart_sin_q30: i32,
+    pub chart_cos_q30: i32,
+    pub chart_activation_q30: u32,
+    pub chart_chirality: i8,
+    pub chart_cosine_polarity: i8,
+    pub quarter_turn_orientation: i8,
+    pub phase_shift_q29: i32,
+    pub torsion_shift_q29: i32,
+    pub transported_fiber_q29: i32,
+    pub transported_torsion_q29: i32,
+    pub inverse_fiber_q29: i32,
+    pub inverse_torsion_q29: i32,
+    pub chart_inverse_exact: bool,
+    pub paired_h4_e8_coordinate_sum: [i64; 8],
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize)]
+pub struct A1PAdditiveClassState {
+    pub history: A1PAdditiveState,
+    pub candidate: A1PAdditiveState,
+    pub predecessor: A1PAdditiveState,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct A1PAdditiveClass {
+    pub class_id: String,
+    pub state: A1PAdditiveClassState,
+    pub members: Vec<A1PClassMember>,
+    pub counts: A1PClassCounts,
+    pub construction_outcome_if_pure: Option<String>,
+    pub incompatible_outcomes: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct A1PRationalCeiling {
+    pub numerator: usize,
+    pub denominator: usize,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct A1PIdentifiabilityMetrics {
+    pub exact_class_count: usize,
+    pub inherited_class_count: usize,
+    pub construction_class_count: usize,
+    pub validation_class_count: usize,
+    pub construction_decisions_covered: A1PRationalCeiling,
+    pub construction_impure_class_count: usize,
+    pub construction_classes_pure: bool,
+    pub validation_decisions_covered_by_construction: A1PRationalCeiling,
+    pub validation_no_class_splitting_oracle_ceiling: A1PRationalCeiling,
+    pub validation_construction_transfer_selection_ceiling: A1PRationalCeiling,
+    pub incompatible_class_count_across_all_splits: usize,
+    pub exact_class_aliasing_observed: bool,
+    pub transferable_construction_rule_exists: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct A1PH4Identifiability {
+    pub class_definition: String,
+    pub classes: Vec<A1PH4Class>,
+    pub metrics: A1PIdentifiabilityMetrics,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct A1PAdditiveIdentifiability {
+    pub class_definition: String,
+    pub excluded_fields: Vec<String>,
+    pub leaf_evaluator_seam: A1PAdditiveLeafEvaluatorSeam,
+    pub classes: Vec<A1PAdditiveClass>,
+    pub metrics: A1PIdentifiabilityMetrics,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct A1PAdditiveLeafEvaluatorSeam {
+    pub status: String,
+    pub fixed_prefix_token: String,
+    pub evaluator_history_shape: String,
+    pub extracted_level: String,
+    pub construction_only: bool,
+    pub current_projection_has_prefix_occurrence_or_identity_fields: bool,
+    pub fixture_histories_modified: bool,
+    pub candidate_path_queries_affected: usize,
+    pub candidate_support_or_work_modified: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct A1PControlWork {
+    pub validation_queries: usize,
+    pub candidate_decisions: usize,
+    pub row_reads: usize,
+    pub candidate_entry_ceiling_per_query: usize,
+    pub candidate_ceiling: usize,
+    pub maximum_admitted_candidates: usize,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct A1PDownstreamControl {
+    pub control: String,
+    pub required: bool,
+    pub status: String,
+    pub selections: usize,
+    pub ties: usize,
+    pub abstentions: usize,
+    pub exact_hits: usize,
+    pub support_equal: Option<bool>,
+    pub work: A1PControlWork,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct A1PClaimBoundary {
+    pub identifiability_falsifier_only: bool,
+    pub h4_state_retained_as_structural_only: bool,
+    pub paired_h4_r4_heatmap_retained_as_structural_only: bool,
+    pub superseded_single_h4_diagnostic_is_terminal_evidence: bool,
+    pub attention_established: bool,
+    pub inference_established: bool,
+    pub generation_established: bool,
+    pub correctness_established: bool,
+    pub reasoning_established: bool,
+    pub semantic_value_established: bool,
+    pub validation_selection_performed: bool,
+    pub digest_or_kappa_used_as_geometry: bool,
+    pub opaque_table_offset_used_as_scalar: bool,
     pub candidate_support_or_admission_modified: bool,
 }
 
@@ -3840,4 +4357,2048 @@ fn canonical_kappa(bytes: &[u8]) -> Result<String, RecursiveGeometricAttentionEr
     uor_addr::json::address_blake3(&identity)
         .map(|outcome| outcome.address.to_string())
         .map_err(|error| RecursiveGeometricAttentionError::Addressing(format!("{error:?}")))
+}
+
+#[derive(Serialize)]
+struct A1PFixtureIdentityWire<'a> {
+    schema: u32,
+    domain: &'a str,
+    fixture_id: &'a str,
+    split: &'a str,
+    construction_artifact_kappa: &'a str,
+    manifest_kappa: &'a str,
+    frozen_partition_kappa: &'a str,
+    role_order: &'a [String],
+    current_token: &'a str,
+    natural_candidates: &'a [String],
+    construction_predecessors: &'a [A1PPredecessor],
+    observations: &'a [A1PFixtureObservation],
+}
+
+#[derive(Serialize)]
+struct A1PReportIdentityWire<'a> {
+    schema: u32,
+    domain: &'static str,
+    report_kappa: &'static str,
+    body: &'a A1PIdentifiabilityProbeBody,
+}
+
+#[derive(Debug, Clone)]
+struct A1PClassEvent {
+    split: String,
+    observation_id: String,
+    candidate: String,
+    outcome: String,
+    x_interaction: OrderedH4FoldState,
+    y_predecessor_interaction: OrderedH4FoldState,
+    h4_state: OrderedH4FoldState,
+    heatmap_key: A1PExactR4HeatmapClassKey,
+    binary_landmark_output: Option<u8>,
+    additive_state: A1PAdditiveClassState,
+}
+
+#[derive(Debug, Clone)]
+struct A1PPreparedClassEvent {
+    split: String,
+    observation_id: String,
+    candidate: String,
+    x_interaction: OrderedH4FoldState,
+    y_predecessor_interaction: OrderedH4FoldState,
+    h4_state: OrderedH4FoldState,
+    heatmap_key: A1PExactR4HeatmapClassKey,
+    binary_landmark_output: Option<u8>,
+    additive_state: A1PAdditiveClassState,
+}
+
+#[derive(Debug, Clone)]
+struct A1PUnlabeledHistory {
+    observation_id: String,
+    history: Vec<String>,
+}
+
+#[derive(Debug)]
+struct A1PPreparedSplit {
+    queries: Vec<A1RCandidateQuery>,
+    events: Vec<A1PPreparedClassEvent>,
+}
+
+fn a1p_paired_h4_r4_heatmap_contract(
+    table: &H4BinaryIcosahedralClosure,
+    zeta_grid: &ZetaGridBinding,
+) -> A1PPairedH4R4HeatmapContract {
+    A1PPairedH4R4HeatmapContract {
+        schema: 1,
+        domain: A1P_PAIRED_H4_R4_HEATMAP_CONTRACT_DOMAIN.to_owned(),
+        construction_artifact_kappa: FROZEN_A1_CONSTRUCTION_ARTIFACT_KAPPA.to_owned(),
+        manifest_kappa: FROZEN_A1_ATTENTION_MANIFEST_KAPPA.to_owned(),
+        frozen_partition_kappa: FROZEN_A1_PARTITION_KAPPA.to_owned(),
+        construction_fixture_kappa: A1P_CONSTRUCTION_FIXTURE_KAPPA.to_owned(),
+        validation_fixture_kappa: A1P_VALIDATION_FIXTURE_KAPPA.to_owned(),
+        h4_root_table_kappa: table.h4_root_table_kappa.clone(),
+        h4_multiplication_table_kappa: table.multiplication_table_kappa.clone(),
+        zeta_grid_revision: zeta_grid.revision.clone(),
+        zeta_grid_kappa: zeta_grid.grid_kappa.clone(),
+        paired_h4_operands: ["X(H,c)=C(H,c)", "Y(P_c,c)=C(P_c,c)"]
+            .into_iter()
+            .map(str::to_owned)
+            .collect(),
+        pair_space_rule: "ordered H4xH4 witness; neither operand may be discarded".to_owned(),
+        relative_product: "D(H,c)=X(H,c)*Y(P_c,c)^-1".to_owned(),
+        relative_image_rule:
+            "exact closure through the frozen 120-state H4 multiplication table".to_owned(),
+        r4_basis: ["1", "i", "j", "k"]
+            .into_iter()
+            .map(str::to_owned)
+            .collect(),
+        oriented_heatmap_plane:
+            "ordered (1,i) coordinates with signs fixed by the canonical root-table orientation"
+                .to_owned(),
+        coordinate_scale_denominator: 2,
+        exact_ring: "Z[phi]".to_owned(),
+        sin_coordinate_rule: "sin=q0/2".to_owned(),
+        cos_coordinate_rule: "cos=q1/2".to_owned(),
+        activation_rule: "activation=sin^2=q0^2/4".to_owned(),
+        activation_denominator: 4,
+        chirality_rule: "sign(q0/2)".to_owned(),
+        cosine_polarity_rule: "sign(q1/2)".to_owned(),
+        typed_null_rule: "q0=0 AND q1=0 => TYPED_NULL_ABSTAIN".to_owned(),
+        heatmap_class_key: [
+            "sin_zphi_numerator",
+            "cos_zphi_numerator",
+            "activation_zphi_numerator",
+            "chirality",
+            "cosine_polarity",
+            "chart_status",
+        ]
+        .into_iter()
+        .map(str::to_owned)
+        .collect(),
+        binary_landmarks: vec![
+            A1PBinaryLandmark {
+                sin_zphi_numerator: [2, 0],
+                cos_zphi_numerator: [0, 0],
+                activation_zphi_numerator: [4, 0],
+                chirality: "POSITIVE".to_owned(),
+                cosine_polarity: "ZERO".to_owned(),
+                output: 1,
+            },
+            A1PBinaryLandmark {
+                sin_zphi_numerator: [-2, 0],
+                cos_zphi_numerator: [0, 0],
+                activation_zphi_numerator: [4, 0],
+                chirality: "NEGATIVE".to_owned(),
+                cosine_polarity: "ZERO".to_owned(),
+                output: 1,
+            },
+            A1PBinaryLandmark {
+                sin_zphi_numerator: [0, 0],
+                cos_zphi_numerator: [2, 0],
+                activation_zphi_numerator: [0, 0],
+                chirality: "ZERO".to_owned(),
+                cosine_polarity: "POSITIVE".to_owned(),
+                output: 0,
+            },
+            A1PBinaryLandmark {
+                sin_zphi_numerator: [0, 0],
+                cos_zphi_numerator: [-2, 0],
+                activation_zphi_numerator: [0, 0],
+                chirality: "ZERO".to_owned(),
+                cosine_polarity: "NEGATIVE".to_owned(),
+                output: 0,
+            },
+        ],
+        intermediate_rule: "retain the complete exact heatmap class; compile only a pure construction outcome; unseen or impure classes abstain; no threshold".to_owned(),
+        q30_rule: "exact rational landmarks only; no general Q1.30 projection without a separately bound quantizer and error contract".to_owned(),
+        zeta_phase_rule: "theta_j(p)=wrap(gamma_j*log(p)) on the immutable fixed-zeta grid; phase identity is structural and not a target feature".to_owned(),
+        ordered_nlet_rule: "ordered multiplicity-preserving combinatorial prime n-lets carry route growth; ordered primes and factor multiset are both retained".to_owned(),
+        golden_radial_forward: "R_phi(z)=phi*E(z); (a,b)*phi=(b,a+b)".to_owned(),
+        golden_radial_inverse: "(a,b)*phi^-1=(b-a,a)".to_owned(),
+        normalized_direction_rule: "normalize(R_phi(z))=normalize(E(z)) for nonzero z".to_owned(),
+        radial_ratio_rule: "norm(R_phi(z))/norm(E(z))=phi for nonzero z".to_owned(),
+        radial_coupling_status:
+            "STRUCTURAL_BINDING_ONLY_NO_ZETA_NLET_TO_PHI_EXPONENT_RULE".to_owned(),
+        typed_geometry_equivalence: [
+            "EUCLIDEAN_ROOT_2",
+            "COMPLEX_2I",
+            "RIEMANNIAN_0_2",
+        ]
+        .into_iter()
+        .map(str::to_owned)
+        .collect(),
+        typed_geometry_adapter_rule: "Euclidean sqrt(2) <-> complex 2i <-> Riemannian [0,2] is a declared typed cross-chart equivalence; compare only through versioned unit, orientation, normalization, and error adapters, never as raw untyped scalars".to_owned(),
+        semantic_exclusions: [
+            "validation labels",
+            "target token spelling",
+            "lexical/token IDs",
+            "prime/address identity",
+            "kappa/digest as geometry",
+            "raw zeta channel identity as scorer input",
+            "raw n-let identity as scorer input",
+            "raw radial magnitude as scorer input",
+        ]
+        .into_iter()
+        .map(str::to_owned)
+        .collect(),
+    }
+}
+
+fn a1p_zphi_sign(value: [i64; 2]) -> Result<&'static str, RecursiveGeometricAttentionError> {
+    let a = i128::from(value[0]);
+    let b = i128::from(value[1]);
+    if a == 0 && b == 0 {
+        return Ok("ZERO");
+    }
+    // 2(a+b*phi)=(2a+b)+b*sqrt(5). Comparing squared integer
+    // magnitudes gives the exact sign without a floating-point approximation.
+    let rational = a
+        .checked_mul(2)
+        .and_then(|twice_a| twice_a.checked_add(b))
+        .ok_or_else(|| {
+            RecursiveGeometricAttentionError::InvalidProbe(
+                "Z[phi] sign comparison overflowed".to_owned(),
+            )
+        })?;
+    if rational == 0 {
+        return Ok(if b > 0 { "POSITIVE" } else { "NEGATIVE" });
+    }
+    if b == 0 || rational.signum() == b.signum() {
+        return Ok(if rational > 0 { "POSITIVE" } else { "NEGATIVE" });
+    }
+    let rational_square = rational.checked_mul(rational).ok_or_else(|| {
+        RecursiveGeometricAttentionError::InvalidProbe(
+            "Z[phi] rational magnitude overflowed".to_owned(),
+        )
+    })?;
+    let irrational_square = b
+        .checked_mul(b)
+        .and_then(|square| square.checked_mul(5))
+        .ok_or_else(|| {
+            RecursiveGeometricAttentionError::InvalidProbe(
+                "Z[phi] irrational magnitude overflowed".to_owned(),
+            )
+        })?;
+    if rational_square == irrational_square {
+        return Err(RecursiveGeometricAttentionError::InvalidProbe(
+            "nonzero Z[phi] sign comparison was unexpectedly indeterminate".to_owned(),
+        ));
+    }
+    let sign = if rational_square > irrational_square {
+        rational.signum()
+    } else {
+        b.signum()
+    };
+    Ok(if sign > 0 { "POSITIVE" } else { "NEGATIVE" })
+}
+
+fn a1p_exact_r4_heatmap(
+    relative: OrderedH4FoldState,
+    table: &H4BinaryIcosahedralClosure,
+) -> Result<(A1PExactR4HeatmapClassKey, Option<u8>), RecursiveGeometricAttentionError> {
+    let root = relative.root_coordinate(table)?;
+    let sin = root.scaled_zphi_quaternion[0];
+    let cos = root.scaled_zphi_quaternion[1];
+    let activation = ZPhi::new(sin[0], sin[1]).checked_mul(ZPhi::new(sin[0], sin[1]))?;
+    let activation = [activation.a, activation.b];
+    let chirality = a1p_zphi_sign(sin)?.to_owned();
+    let cosine_polarity = a1p_zphi_sign(cos)?.to_owned();
+    let binary_landmark_output = match (sin, cos) {
+        ([2, 0], [0, 0]) | ([-2, 0], [0, 0]) => Some(1),
+        ([0, 0], [2, 0]) | ([0, 0], [-2, 0]) => Some(0),
+        _ => None,
+    };
+    let chart_status = if sin == [0, 0] && cos == [0, 0] {
+        "TYPED_NULL_ABSTAIN"
+    } else if binary_landmark_output.is_some() {
+        "BINARY_LANDMARK"
+    } else {
+        "NON_LANDMARK_EXACT_ZPHI"
+    };
+    Ok((
+        A1PExactR4HeatmapClassKey {
+            sin_zphi_numerator: sin,
+            cos_zphi_numerator: cos,
+            activation_zphi_numerator: activation,
+            chirality,
+            cosine_polarity,
+            chart_status: chart_status.to_owned(),
+        },
+        binary_landmark_output,
+    ))
+}
+
+fn a1p_paired_h4_structural_universe(
+    table: &H4BinaryIcosahedralClosure,
+) -> Result<A1PPairedH4StructuralUniverse, RecursiveGeometricAttentionError> {
+    let operand_count = table.root_count;
+    let expected_ordered_pair_count =
+        operand_count.checked_mul(operand_count).ok_or_else(|| {
+            RecursiveGeometricAttentionError::InvalidProbe(
+                "paired-H4 universe cardinality overflowed".to_owned(),
+            )
+        })?;
+    // The fixed-width census is the complete ordered pair universe in canonical
+    // nested `(x,y)` order. Its header binds both exact table identities; every
+    // row is the big-endian `(x_offset,y_offset,D_offset)` triple. Only its κ is
+    // serialized into the report, avoiding 14,400 repeated JSON objects.
+    let mut pair_census = Vec::with_capacity(
+        expected_ordered_pair_count
+            .saturating_mul(6)
+            .saturating_add(256),
+    );
+    for component in [
+        A1P_PAIRED_H4_PAIR_UNIVERSE_CENSUS_DOMAIN.as_bytes(),
+        table.h4_root_table_kappa.as_bytes(),
+        table.multiplication_table_kappa.as_bytes(),
+    ] {
+        let length = u32::try_from(component.len()).map_err(|_| {
+            RecursiveGeometricAttentionError::InvalidProbe(
+                "paired-H4 census header component exceeds u32".to_owned(),
+            )
+        })?;
+        pair_census.extend_from_slice(&length.to_be_bytes());
+        pair_census.extend_from_slice(component);
+    }
+    pair_census.extend_from_slice(
+        &u32::try_from(operand_count)
+            .map_err(|_| {
+                RecursiveGeometricAttentionError::InvalidProbe(
+                    "paired-H4 census operand count exceeds u32".to_owned(),
+                )
+            })?
+            .to_be_bytes(),
+    );
+    pair_census.extend_from_slice(
+        &u32::try_from(expected_ordered_pair_count)
+            .map_err(|_| {
+                RecursiveGeometricAttentionError::InvalidProbe(
+                    "paired-H4 census pair count exceeds u32".to_owned(),
+                )
+            })?
+            .to_be_bytes(),
+    );
+    pair_census.extend_from_slice(&6u16.to_be_bytes());
+
+    // Root-coordinate recovery rebuilds and verifies the frozen exact root
+    // table. Do that once per possible relative state, then keep the complete
+    // 120x120 pair enumeration as cheap exact-table indexing. The census bytes
+    // and report rows are unchanged; only redundant reconstruction is removed.
+    let heatmap_by_relative = (0..operand_count)
+        .map(|offset| {
+            let offset = u16::try_from(offset).map_err(|_| {
+                RecursiveGeometricAttentionError::InvalidProbe(
+                    "H4 relative offset exceeds u16".to_owned(),
+                )
+            })?;
+            a1p_exact_r4_heatmap(a1r_state_from_offset(offset, table)?, table)
+        })
+        .collect::<Result<Vec<_>, RecursiveGeometricAttentionError>>()?;
+
+    let mut enumerated_ordered_pair_count = 0usize;
+    let mut relative_image = BTreeMap::<u16, (usize, A1PExactR4HeatmapClassKey, Option<u8>)>::new();
+    let mut heatmap_classes = BTreeSet::new();
+    let mut typed_null_pair_count = 0usize;
+    for x_offset in 0..operand_count {
+        let x_offset = u16::try_from(x_offset).map_err(|_| {
+            RecursiveGeometricAttentionError::InvalidProbe(
+                "H4 operand offset exceeds u16".to_owned(),
+            )
+        })?;
+        let x = a1r_state_from_offset(x_offset, table)?;
+        for y_offset in 0..operand_count {
+            let y_offset = u16::try_from(y_offset).map_err(|_| {
+                RecursiveGeometricAttentionError::InvalidProbe(
+                    "H4 operand offset exceeds u16".to_owned(),
+                )
+            })?;
+            let y = a1r_state_from_offset(y_offset, table)?;
+            let relative = x.compose(y.inverse(table)?, table)?;
+            let relative_offset = relative.table_index().table_offset();
+            let (heatmap_key, binary_landmark_output) = heatmap_by_relative
+                .get(usize::from(relative_offset))
+                .cloned()
+                .ok_or_else(|| {
+                    RecursiveGeometricAttentionError::InvalidProbe(
+                        "relative H4 state is outside the precomputed heatmap".to_owned(),
+                    )
+                })?;
+            pair_census.extend_from_slice(&x_offset.to_be_bytes());
+            pair_census.extend_from_slice(&y_offset.to_be_bytes());
+            pair_census.extend_from_slice(&relative_offset.to_be_bytes());
+            enumerated_ordered_pair_count = enumerated_ordered_pair_count.saturating_add(1);
+            if heatmap_key.chart_status == "TYPED_NULL_ABSTAIN" {
+                typed_null_pair_count = typed_null_pair_count.saturating_add(1);
+            }
+            heatmap_classes.insert(heatmap_key.clone());
+            let row = relative_image
+                .entry(relative_offset)
+                .or_insert_with(|| (0, heatmap_key.clone(), binary_landmark_output));
+            if row.1 != heatmap_key || row.2 != binary_landmark_output {
+                return Err(RecursiveGeometricAttentionError::InvalidProbe(
+                    "one relative H4 image state produced inconsistent heatmap rows".to_owned(),
+                ));
+            }
+            row.0 = row.0.saturating_add(1);
+        }
+    }
+    let pair_universe_kappa = canonical_kappa(&pair_census)?;
+    let relative_image_rows = relative_image
+        .iter()
+        .map(
+            |(relative_offset, (multiplicity, heatmap_key, binary_landmark_output))| {
+                Ok(A1PPairedH4RelativeImageRow {
+                    relative_state: a1r_state_witness(
+                        a1r_state_from_offset(*relative_offset, table)?,
+                        table,
+                    )?,
+                    ordered_pair_multiplicity: *multiplicity,
+                    heatmap_key: heatmap_key.clone(),
+                    binary_landmark_output: *binary_landmark_output,
+                })
+            },
+        )
+        .collect::<Result<Vec<_>, RecursiveGeometricAttentionError>>()?;
+    let uniform_pair_multiplicity_exact = relative_image_rows
+        .iter()
+        .all(|row| row.ordered_pair_multiplicity == operand_count);
+    Ok(A1PPairedH4StructuralUniverse {
+        root_table_kappa: table.h4_root_table_kappa.clone(),
+        multiplication_table_kappa: table.multiplication_table_kappa.clone(),
+        pair_universe_census_schema: 1,
+        pair_universe_census_domain: A1P_PAIRED_H4_PAIR_UNIVERSE_CENSUS_DOMAIN.to_owned(),
+        pair_universe_row_encoding:
+            "HEADER=len32be(domain)||domain||len32be(root_kappa)||root_kappa||len32be(multiplication_kappa)||multiplication_kappa||operand_count_u32be||pair_count_u32be||row_width_u16be; ROW=x_u16be||y_u16be||D_u16be; ORDER=x_then_y_ascending"
+                .to_owned(),
+        pair_universe_row_width_bytes: 6,
+        pair_universe_kappa,
+        operand_count,
+        expected_ordered_pair_count,
+        enumerated_ordered_pair_count,
+        relative_image_count: relative_image.len(),
+        exact_relative_image_complete: relative_image.len() == operand_count,
+        pair_multiplicity_per_relative_image_row: operand_count,
+        uniform_pair_multiplicity_exact,
+        heatmap_class_count: heatmap_classes.len(),
+        typed_null_pair_count,
+        target_free: true,
+        integer_only_no_rounding: table.integer_only_no_rounding,
+        relative_image_rows,
+    })
+}
+
+/// Execute the frozen #970 exact-class identifiability gate.
+///
+/// Validation labels are used only to count exact public equivalence classes
+/// and mathematical ceilings. This function does not fit a scalar, compile a
+/// selector, or execute any validation-selection/control arm after the hard
+/// stop. The inherited #967 selector is reproduced only as historical
+/// regression evidence.
+pub fn run_a1p_candidate_relative_identifiability_probe(
+) -> Result<A1PIdentifiabilityProbeReport, RecursiveGeometricAttentionError> {
+    let inherited = run_a1r_associative_ordered_summary_probe()?;
+    let fixed_partition = frozen_partition();
+    validate_frozen_partition(&fixed_partition)?;
+    let partition_kappa = frozen_partition_kappa(&fixed_partition)?;
+    let registry_input = registration_input(&fixed_partition)?;
+    let codec = CanonicalLexicalCodec::compile(&registry_input)?;
+    let construction_input = construction_input(&fixed_partition)?;
+    let construction_artifact = CanonicalRouteArtifact::ingest(&codec, &construction_input)?;
+    let embedded_manifest = construction_artifact.embedded_spin_manifest()?;
+    let attention =
+        GeometricAttentionArtifact::compile_from_manifest_witnesses(&embedded_manifest)?;
+    let table = validate_h4_binary_icosahedral_closure()?;
+    let zeta_grid = ZetaGridBinding::fixed()?;
+    let paired_h4_r4_heatmap_contract = a1p_paired_h4_r4_heatmap_contract(&table, &zeta_grid);
+    let paired_h4_r4_heatmap_contract_kappa =
+        canonical_kappa(&canonical_json(&paired_h4_r4_heatmap_contract)?)?;
+    let paired_h4_r4_heatmap_contract_reproduces =
+        paired_h4_r4_heatmap_contract_kappa == A1P_PAIRED_H4_R4_HEATMAP_CONTRACT_KAPPA;
+    let paired_h4_structural_universe = a1p_paired_h4_structural_universe(&table)?;
+    let paired_h4_structural_universe_exact = paired_h4_structural_universe.operand_count == 120
+        && paired_h4_structural_universe.expected_ordered_pair_count == 14_400
+        && paired_h4_structural_universe.enumerated_ordered_pair_count == 14_400
+        && paired_h4_structural_universe.relative_image_count == 120
+        && paired_h4_structural_universe.relative_image_rows.len() == 120
+        && paired_h4_structural_universe.exact_relative_image_complete
+        && paired_h4_structural_universe.pair_multiplicity_per_relative_image_row == 120
+        && paired_h4_structural_universe.uniform_pair_multiplicity_exact
+        && !paired_h4_structural_universe.pair_universe_kappa.is_empty()
+        && paired_h4_structural_universe.target_free
+        && paired_h4_structural_universe.integer_only_no_rounding;
+    let predecessors = a1r_candidate_predecessors(&fixed_partition)?;
+    let metric = a1r_cayley_metric(
+        &codec,
+        &construction_artifact,
+        &embedded_manifest.addresses,
+        &table,
+    )?;
+
+    let construction_observations = a1p_construction_observations();
+    let validation_observations = a1p_validation_observations();
+    let inherited_observations = a1p_inherited_observations();
+    let role_order = ["aa", "bb", "cc", "dd"]
+        .into_iter()
+        .map(str::to_owned)
+        .collect::<Vec<_>>();
+    let natural_candidates = ["ll", "rr"]
+        .into_iter()
+        .map(str::to_owned)
+        .collect::<Vec<_>>();
+    let construction_predecessors = vec![
+        A1PPredecessor {
+            candidate: "ll".to_owned(),
+            predecessor: "uu".to_owned(),
+        },
+        A1PPredecessor {
+            candidate: "rr".to_owned(),
+            predecessor: "vv".to_owned(),
+        },
+    ];
+    let construction_fixture_kappa = a1p_fixture_kappa(
+        "uor-r4.a1p-independent-candidate-construction/1",
+        "A1P-CONSTRUCTION-1",
+        "CONSTRUCTION",
+        &role_order,
+        &natural_candidates,
+        &construction_predecessors,
+        &construction_observations,
+    )?;
+    let validation_fixture_kappa = a1p_fixture_kappa(
+        "uor-r4.a1p-independent-candidate-validation/1",
+        "A1P-VALIDATION-1",
+        "SEALED_VALIDATION",
+        &role_order,
+        &natural_candidates,
+        &construction_predecessors,
+        &validation_observations,
+    )?;
+    let construction_kappa_reproduces =
+        construction_fixture_kappa == A1P_CONSTRUCTION_FIXTURE_KAPPA;
+    let validation_kappa_reproduces = validation_fixture_kappa == A1P_VALIDATION_FIXTURE_KAPPA;
+    let artifact_identities_reproduce = partition_kappa == FROZEN_A1_PARTITION_KAPPA
+        && construction_artifact.manifest_kappa() == FROZEN_A1_CONSTRUCTION_ARTIFACT_KAPPA
+        && attention.manifest_kappa() == FROZEN_A1_ATTENTION_MANIFEST_KAPPA;
+    let inherited_report_reproduces = inherited.report_kappa == FROZEN_A1R_REPORT_KAPPA;
+    let histories_disjoint = a1p_histories_disjoint(
+        &inherited_observations,
+        &construction_observations,
+        &validation_observations,
+    );
+    let construction_parity_audit =
+        a1p_parity_audit(&construction_observations, &role_order, "qq")?;
+    let validation_parity_audit = a1p_parity_audit(&validation_observations, &role_order, "qq")?;
+    let parity_reproduces = construction_parity_audit
+        .iter()
+        .chain(&validation_parity_audit)
+        .all(|audit| audit.exact_match);
+    let construction_rule_confirmed =
+        a1p_construction_rule_confirmed(&construction_observations, &role_order, "qq")?;
+    if !construction_kappa_reproduces
+        || !validation_kappa_reproduces
+        || !paired_h4_r4_heatmap_contract_reproduces
+        || !paired_h4_structural_universe_exact
+        || !artifact_identities_reproduce
+        || !inherited_report_reproduces
+        || !histories_disjoint
+        || !parity_reproduces
+        || !construction_rule_confirmed
+    {
+        return Err(RecursiveGeometricAttentionError::InvalidProbe(format!(
+            "INVALID_CONTRACT: fixture_kappas=({construction_fixture_kappa},{validation_fixture_kappa}), paired_heatmap_contract_kappa={paired_h4_r4_heatmap_contract_kappa}, paired_structural_universe_exact={paired_h4_structural_universe_exact}, artifact_identities_reproduce={artifact_identities_reproduce}, inherited_report_reproduces={inherited_report_reproduces}, histories_disjoint={histories_disjoint}, parity_reproduces={parity_reproduces}, construction_rule_confirmed={construction_rule_confirmed}"
+        )));
+    }
+
+    let additive_leaves = a1p_additive_leaf_states(&codec)?;
+    let inherited_events = a1p_inherited_events(
+        &inherited,
+        &inherited_observations,
+        &additive_leaves,
+        &table,
+    )?;
+    let construction_histories = a1p_unlabeled_histories(&construction_observations);
+    let validation_histories = a1p_unlabeled_histories(&validation_observations);
+    let construction_split = a1p_prepare_split(
+        "CONSTRUCTION",
+        &construction_histories,
+        &codec,
+        &construction_artifact,
+        &attention,
+        &embedded_manifest.addresses,
+        &predecessors,
+        &metric,
+        &additive_leaves,
+        &table,
+    )?;
+    let validation_split = a1p_prepare_split(
+        "SEALED_VALIDATION",
+        &validation_histories,
+        &codec,
+        &construction_artifact,
+        &attention,
+        &embedded_manifest.addresses,
+        &predecessors,
+        &metric,
+        &additive_leaves,
+        &table,
+    )?;
+
+    let inherited_support =
+        a1p_support_and_work("A1R_REGRESSION", &inherited.body.candidate_queries, None);
+    let construction_support =
+        a1p_support_and_work("CONSTRUCTION", &construction_split.queries, None);
+    let validation_support =
+        a1p_support_and_work("SEALED_VALIDATION", &validation_split.queries, None);
+    if !inherited_support.contract_exact
+        || !construction_support.contract_exact
+        || !validation_support.contract_exact
+    {
+        return Err(RecursiveGeometricAttentionError::InvalidProbe(
+            "INVALID_CONTRACT: natural candidate support, fixed work, payload, or causal mechanics drifted"
+                .to_owned(),
+        ));
+    }
+
+    // Both new-split geometry/support preparations are complete before either
+    // label ledger is joined to candidate decisions.
+    let construction_events =
+        a1p_attach_outcomes(construction_split.events, &construction_observations)?;
+    let validation_events = a1p_attach_outcomes(validation_split.events, &validation_observations)?;
+    let mut all_events = inherited_events;
+    all_events.extend(construction_events);
+    all_events.extend(validation_events);
+    if all_events.len() != 36 {
+        return Err(RecursiveGeometricAttentionError::InvalidProbe(format!(
+            "INVALID_CONTRACT: expected 36 candidate decisions, observed {}",
+            all_events.len()
+        )));
+    }
+    let paired_h4_r4_heatmap = a1p_paired_h4_identifiability(&all_events, &table)?;
+    let full_h4 = a1p_h4_identifiability(&all_events, &table)?;
+    let additive = a1p_additive_identifiability(&all_events);
+
+    let mut hard_stop_reasons = paired_h4_r4_heatmap
+        .classes
+        .iter()
+        .filter(|class| class.incompatible_outcomes)
+        .map(|class| format!("INCOMPATIBLE_EXACT_R4_HEATMAP_CLASS:{}", class.class_id))
+        .collect::<Vec<_>>();
+    hard_stop_reasons.extend(
+        paired_h4_r4_heatmap
+            .classes
+            .iter()
+            .filter(|class| class.typed_null_abstain && !class.members.is_empty())
+            .map(|class| {
+                format!(
+                    "TYPED_NULL_EXACT_R4_HEATMAP_SELECTION_REQUIRED:{}",
+                    class.class_id
+                )
+            }),
+    );
+    if !paired_h4_r4_heatmap.metrics.construction_classes_pure {
+        hard_stop_reasons.push("IMPURE_EXACT_R4_HEATMAP_CONSTRUCTION_CLASS".to_owned());
+    }
+    if !paired_h4_r4_heatmap
+        .metrics
+        .transferable_construction_rule_exists
+    {
+        hard_stop_reasons.push("NO_COMPLETE_EXACT_R4_HEATMAP_CONSTRUCTION_TRANSFER".to_owned());
+    }
+    hard_stop_reasons.sort();
+    hard_stop_reasons.dedup();
+    if hard_stop_reasons.is_empty() {
+        return Err(RecursiveGeometricAttentionError::InvalidProbe(
+            "INVALID_CONTRACT: #970 exact classes unexpectedly cleared the hard gate, but this hard-stop probe contains no authorized post-gate selector"
+                .to_owned(),
+        ));
+    }
+
+    let transition = &inherited.body.transition_readout_summary;
+    let scoring = &inherited.body.scoring_summary;
+    let inherited_aggregate_reproduces = inherited.body.terminal_verdict == RETAIN_STATE_ONLY
+        && scoring.required_queries == 6
+        && scoring.exercised_queries == 6
+        && scoring.full_strict_correct == 0
+        && scoring.full_ties == 6
+        && transition.queries_with_distinct_candidate_relative_states == 6
+        && transition.paired_same_candidate_comparisons == 6
+        && transition.paired_same_candidate_relative_state_differences == 5;
+    if !inherited_aggregate_reproduces {
+        return Err(RecursiveGeometricAttentionError::InvalidProbe(
+            "INVALID_CONTRACT: inherited #967 aggregate did not reproduce".to_owned(),
+        ));
+    }
+
+    let body = A1PIdentifiabilityProbeBody {
+        probe_status: "EXERCISED_FIXED_PAIRED_H4_R4_HEATMAP_IDENTIFIABILITY_HARD_STOP".to_owned(),
+        contract_status: "VALID_PUBLIC_CONTRACT".to_owned(),
+        terminal_verdict: RETAIN_H4_STATE_ONLY_ADVANCE_MULTICHANNEL_A1Q.to_owned(),
+        successor_effect:
+            "PAIRED_H4_R4_HEATMAP_RETAINED_STRUCTURAL_ONLY_A1Q_969_MAY_TEST_PREDECLARED_MULTICHANNEL_TERMS_953_REMAINS_BLOCKED"
+                .to_owned(),
+        provenance: A1PProvenance {
+            issue_url: A1P_ISSUE_URL.to_owned(),
+            frozen_partition_kappa: partition_kappa,
+            frozen_partition_kappa_reproduces: true,
+            frozen_construction_artifact_kappa: construction_artifact.manifest_kappa().to_owned(),
+            construction_artifact_kappa_reproduces: true,
+            frozen_attention_manifest_kappa: attention.manifest_kappa().to_owned(),
+            attention_manifest_kappa_reproduces: true,
+            inherited_a1r_report_kappa: inherited.report_kappa.clone(),
+            inherited_a1r_report_kappa_reproduces: true,
+            frozen_inputs_modified: false,
+        },
+        fixture_contract: A1PFixtureContract {
+            construction: A1PFixtureEvidence {
+                fixture_id: "A1P-CONSTRUCTION-1".to_owned(),
+                split: "CONSTRUCTION".to_owned(),
+                expected_kappa: A1P_CONSTRUCTION_FIXTURE_KAPPA.to_owned(),
+                observed_kappa: construction_fixture_kappa,
+                kappa_reproduces: true,
+                role_order: role_order.clone(),
+                current_token: "qq".to_owned(),
+                natural_candidates: natural_candidates.clone(),
+                construction_predecessors: construction_predecessors.clone(),
+                observations: construction_observations,
+            },
+            validation: A1PFixtureEvidence {
+                fixture_id: "A1P-VALIDATION-1".to_owned(),
+                split: "SEALED_VALIDATION".to_owned(),
+                expected_kappa: A1P_VALIDATION_FIXTURE_KAPPA.to_owned(),
+                observed_kappa: validation_fixture_kappa,
+                kappa_reproduces: true,
+                role_order,
+                current_token: "qq".to_owned(),
+                natural_candidates,
+                construction_predecessors,
+                observations: validation_observations,
+            },
+            construction_parity_audit,
+            validation_parity_audit,
+            parity_derived_from_history: true,
+            new_split_preparation_target_free: true,
+            labels_attached_after_preparation: true,
+            histories_disjoint_across_all_splits: true,
+            construction_rule_family: "S4_ABELIANIZATION_TO_C2_TRIVIAL_OR_SIGN".to_owned(),
+            construction_rule_selected: "SIGN_WITH_C01_ORIENTATION_EVEN_LL_ODD_RR".to_owned(),
+            trivial_map_rejected: true,
+            construction_rule_confirmed: true,
+            regression_labels_falsification_only: true,
+            no_a1q_fixture_consumed: true,
+        },
+        paired_h4_r4_heatmap_contract: A1PPairedH4R4HeatmapContractEvidence {
+            expected_kappa: A1P_PAIRED_H4_R4_HEATMAP_CONTRACT_KAPPA.to_owned(),
+            observed_kappa: paired_h4_r4_heatmap_contract_kappa,
+            kappa_reproduces: true,
+            contract: paired_h4_r4_heatmap_contract,
+        },
+        paired_h4_structural_universe,
+        inherited_regression: A1PInheritedRegression {
+            fixture_id: "A1R-REGRESSION-UNCHANGED".to_owned(),
+            labels_status: "FALSIFICATION_ONLY_NON_PROMOTIONAL".to_owned(),
+            partition_kappa: FROZEN_A1_PARTITION_KAPPA.to_owned(),
+            report_kappa: inherited.report_kappa,
+            query_denominator: scoring.required_queries,
+            candidate_decision_denominator: scoring.required_queries.saturating_mul(2),
+            shortest_cayley_strict_selections: scoring.full_strict_correct,
+            shortest_cayley_ties: scoring.full_ties,
+            shortest_cayley_abstentions: inherited
+                .body
+                .candidate_queries
+                .iter()
+                .filter_map(|query| {
+                    query
+                        .controls
+                        .iter()
+                        .find(|control| control.control == "full-ordered-hierarchy")
+                })
+                .filter(|control| control.abstained)
+                .count(),
+            queries_with_distinct_candidate_relative_states: transition
+                .queries_with_distinct_candidate_relative_states,
+            paired_same_candidate_comparisons: transition.paired_same_candidate_comparisons,
+            paired_same_candidate_relative_state_differences: transition
+                .paired_same_candidate_relative_state_differences,
+            aggregate_reproduces: true,
+        },
+        support_and_work: vec![
+            inherited_support,
+            construction_support,
+            validation_support,
+        ],
+        paired_h4_r4_heatmap,
+        full_h4,
+        additive,
+        hard_stop_reasons,
+        scalar_functions_searched: 0,
+        readout_artifacts_compiled: 0,
+        validation_selection_outputs_opened: false,
+        downstream_controls: a1p_not_run_controls(),
+        serving_boundary: A10ServingBoundary {
+            source_model_weights_opened: false,
+            teacher_forwards: 0,
+            transformer_calls: 0,
+            moe_calls: 0,
+            learned_router_calls: 0,
+            dense_intelligence_matrix_calls: 0,
+            ollama_calls: 0,
+            hosted_provider_calls: 0,
+        },
+        claim_boundary: A1PClaimBoundary {
+            identifiability_falsifier_only: true,
+            h4_state_retained_as_structural_only: true,
+            paired_h4_r4_heatmap_retained_as_structural_only: true,
+            superseded_single_h4_diagnostic_is_terminal_evidence: false,
+            attention_established: false,
+            inference_established: false,
+            generation_established: false,
+            correctness_established: false,
+            reasoning_established: false,
+            semantic_value_established: false,
+            validation_selection_performed: false,
+            digest_or_kappa_used_as_geometry: false,
+            opaque_table_offset_used_as_scalar: false,
+            candidate_support_or_admission_modified: false,
+        },
+    };
+    let report_kappa = a1p_report_identity_kappa(&body)?;
+    let report = A1PIdentifiabilityProbeReport {
+        schema: A1P_IDENTIFIABILITY_PROBE_SCHEMA,
+        domain: A1P_IDENTIFIABILITY_PROBE_DOMAIN.to_owned(),
+        report_kappa,
+        body,
+    };
+    report.canonical_bytes()?;
+    Ok(report)
+}
+
+fn a1p_observation(
+    id: &str,
+    history: &[&str],
+    observed_next: &str,
+    permutation_parity: &str,
+) -> A1PFixtureObservation {
+    A1PFixtureObservation {
+        id: id.to_owned(),
+        history: history.iter().map(|token| (*token).to_owned()).collect(),
+        observed_next: observed_next.to_owned(),
+        permutation_parity: permutation_parity.to_owned(),
+    }
+}
+
+fn a1p_inherited_observations() -> Vec<A1PFixtureObservation> {
+    vec![
+        a1p_observation("A1R-R01", &["aa", "bb", "dd", "cc", "qq"], "ll", ""),
+        a1p_observation("A1R-R02", &["bb", "aa", "dd", "cc", "qq"], "rr", ""),
+        a1p_observation("A1R-R03", &["aa", "dd", "bb", "cc", "qq"], "ll", ""),
+        a1p_observation("A1R-R04", &["dd", "aa", "bb", "cc", "qq"], "rr", ""),
+        a1p_observation("A1R-R05", &["bb", "dd", "aa", "cc", "qq"], "ll", ""),
+        a1p_observation("A1R-R06", &["dd", "bb", "aa", "cc", "qq"], "rr", ""),
+    ]
+}
+
+fn a1p_construction_observations() -> Vec<A1PFixtureObservation> {
+    vec![
+        a1p_observation("A1P-C01", &["aa", "bb", "cc", "dd", "qq"], "ll", "EVEN"),
+        a1p_observation("A1P-C02", &["aa", "cc", "bb", "dd", "qq"], "rr", "ODD"),
+        a1p_observation("A1P-C03", &["bb", "aa", "cc", "dd", "qq"], "rr", "ODD"),
+        a1p_observation("A1P-C04", &["bb", "cc", "aa", "dd", "qq"], "ll", "EVEN"),
+        a1p_observation("A1P-C05", &["cc", "aa", "bb", "dd", "qq"], "ll", "EVEN"),
+        a1p_observation("A1P-C06", &["cc", "bb", "aa", "dd", "qq"], "rr", "ODD"),
+    ]
+}
+
+fn a1p_validation_observations() -> Vec<A1PFixtureObservation> {
+    vec![
+        a1p_observation("A1P-V01", &["aa", "cc", "dd", "bb", "qq"], "ll", "EVEN"),
+        a1p_observation("A1P-V02", &["aa", "dd", "cc", "bb", "qq"], "rr", "ODD"),
+        a1p_observation("A1P-V03", &["cc", "aa", "dd", "bb", "qq"], "rr", "ODD"),
+        a1p_observation("A1P-V04", &["cc", "dd", "aa", "bb", "qq"], "ll", "EVEN"),
+        a1p_observation("A1P-V05", &["dd", "aa", "cc", "bb", "qq"], "ll", "EVEN"),
+        a1p_observation("A1P-V06", &["dd", "cc", "aa", "bb", "qq"], "rr", "ODD"),
+    ]
+}
+
+#[allow(clippy::too_many_arguments)]
+fn a1p_fixture_kappa(
+    domain: &str,
+    fixture_id: &str,
+    split: &str,
+    role_order: &[String],
+    natural_candidates: &[String],
+    construction_predecessors: &[A1PPredecessor],
+    observations: &[A1PFixtureObservation],
+) -> Result<String, RecursiveGeometricAttentionError> {
+    canonical_kappa(&canonical_json(&A1PFixtureIdentityWire {
+        schema: 1,
+        domain,
+        fixture_id,
+        split,
+        construction_artifact_kappa: FROZEN_A1_CONSTRUCTION_ARTIFACT_KAPPA,
+        manifest_kappa: FROZEN_A1_ATTENTION_MANIFEST_KAPPA,
+        frozen_partition_kappa: FROZEN_A1_PARTITION_KAPPA,
+        role_order,
+        current_token: "qq",
+        natural_candidates,
+        construction_predecessors,
+        observations,
+    })?)
+}
+
+fn a1p_histories_disjoint(
+    inherited: &[A1PFixtureObservation],
+    construction: &[A1PFixtureObservation],
+    validation: &[A1PFixtureObservation],
+) -> bool {
+    let histories = inherited
+        .iter()
+        .chain(construction)
+        .chain(validation)
+        .map(|observation| observation.history.clone())
+        .collect::<BTreeSet<_>>();
+    histories.len() == inherited.len() + construction.len() + validation.len()
+        && inherited
+            .iter()
+            .all(|observation| observation.history.last().map(String::as_str) == Some("qq"))
+        && construction.iter().all(|observation| {
+            observation.history.as_slice().get(3).map(String::as_str) == Some("dd")
+                && observation.history.last().map(String::as_str) == Some("qq")
+        })
+        && validation.iter().all(|observation| {
+            observation.history.as_slice().get(3).map(String::as_str) == Some("bb")
+                && observation.history.last().map(String::as_str) == Some("qq")
+        })
+}
+
+fn a1p_derive_s4_parity(
+    history: &[String],
+    role_order: &[String],
+    current_token: &str,
+) -> Result<String, RecursiveGeometricAttentionError> {
+    if history.len() != role_order.len().saturating_add(1)
+        || history.last().map(String::as_str) != Some(current_token)
+    {
+        return Err(RecursiveGeometricAttentionError::InvalidProbe(
+            "A1P S4 history does not have the frozen role/current shape".to_owned(),
+        ));
+    }
+    let mut permutation = Vec::with_capacity(role_order.len());
+    for token in &history[..role_order.len()] {
+        let position = role_order
+            .iter()
+            .position(|role| role == token)
+            .ok_or_else(|| {
+                RecursiveGeometricAttentionError::InvalidProbe(format!(
+                    "A1P S4 history contains non-role token {token:?}"
+                ))
+            })?;
+        permutation.push(position);
+    }
+    if permutation.iter().copied().collect::<BTreeSet<_>>().len() != role_order.len() {
+        return Err(RecursiveGeometricAttentionError::InvalidProbe(
+            "A1P S4 history is not a permutation of the frozen roles".to_owned(),
+        ));
+    }
+    let inversions = permutation
+        .iter()
+        .enumerate()
+        .map(|(left_index, left)| {
+            permutation[left_index.saturating_add(1)..]
+                .iter()
+                .filter(|right| left > *right)
+                .count()
+        })
+        .sum::<usize>();
+    Ok(if inversions % 2 == 0 { "EVEN" } else { "ODD" }.to_owned())
+}
+
+fn a1p_parity_audit(
+    observations: &[A1PFixtureObservation],
+    role_order: &[String],
+    current_token: &str,
+) -> Result<Vec<A1PParityAudit>, RecursiveGeometricAttentionError> {
+    observations
+        .iter()
+        .map(|observation| {
+            let derived_parity =
+                a1p_derive_s4_parity(&observation.history, role_order, current_token)?;
+            Ok(A1PParityAudit {
+                observation_id: observation.id.clone(),
+                declared_parity: observation.permutation_parity.clone(),
+                exact_match: derived_parity == observation.permutation_parity,
+                derived_parity,
+            })
+        })
+        .collect()
+}
+
+fn a1p_construction_rule_confirmed(
+    observations: &[A1PFixtureObservation],
+    role_order: &[String],
+    current_token: &str,
+) -> Result<bool, RecursiveGeometricAttentionError> {
+    if observations.len() != 6 {
+        return Ok(false);
+    }
+    let mut derived = Vec::with_capacity(observations.len());
+    for observation in observations {
+        derived.push((
+            a1p_derive_s4_parity(&observation.history, role_order, current_token)?,
+            observation.observed_next.as_str(),
+        ));
+    }
+    Ok(derived.iter().all(|(parity, observed_next)| {
+        matches!(parity.as_str(), "EVEN" | "ODD")
+            && match parity.as_str() {
+                "EVEN" => *observed_next == "ll",
+                "ODD" => *observed_next == "rr",
+                _ => false,
+            }
+    }) && derived
+        .iter()
+        .map(|(_, observed_next)| *observed_next)
+        .collect::<BTreeSet<_>>()
+        == BTreeSet::from(["ll", "rr"]))
+}
+
+fn a1p_unlabeled_histories(observations: &[A1PFixtureObservation]) -> Vec<A1PUnlabeledHistory> {
+    observations
+        .iter()
+        .map(|observation| A1PUnlabeledHistory {
+            observation_id: observation.id.clone(),
+            history: observation.history.clone(),
+        })
+        .collect()
+}
+
+fn a1p_additive_leaf_states(
+    codec: &CanonicalLexicalCodec,
+) -> Result<BTreeMap<String, A1PAdditiveState>, RecursiveGeometricAttentionError> {
+    let mut states = BTreeMap::new();
+    for token in ["ll", "rr", "uu", "vv"] {
+        // Canonical route artifacts require one causal transition. The
+        // additive class takes only the existing `current` projection, and A*
+        // removes every prefix/occurrence/identity field, so this fixed prefix
+        // cannot enter class equality.
+        let history = vec![GLOBAL_TOKEN.to_owned(), token.to_owned()];
+        let artifact = CanonicalRouteArtifact::ingest(
+            codec,
+            &evaluation_input(&format!("a1p-additive-leaf-{token}"), &history)?,
+        )?;
+        let trace = artifact.attention_consumer_trace()?;
+        let current = trace
+            .ordered_levels
+            .iter()
+            .find(|level| level.level == "current")
+            .ok_or_else(|| {
+                RecursiveGeometricAttentionError::InvalidProbe(format!(
+                    "A1P additive leaf trace is missing current for {token}"
+                ))
+            })?;
+        states.insert(
+            token.to_owned(),
+            a1p_additive_projection(&non_digest_level(current)),
+        );
+    }
+    Ok(states)
+}
+
+fn a1p_additive_projection(level: &A10AttentionLevelNonDigest) -> A1PAdditiveState {
+    let mut shared_factor_multiplicities = level
+        .shared_prime_factors
+        .iter()
+        .map(|factor| factor.count)
+        .collect::<Vec<_>>();
+    shared_factor_multiplicities.sort_unstable();
+    A1PAdditiveState {
+        direct_child_count: level.direct_child_count,
+        observed_descendant_routes: level.observed_descendant_routes,
+        session_hypersphere_q30: level.session_hypersphere_q30,
+        winding_turns: level.winding_turns,
+        projection_energy_q30: level.projection_energy_q30,
+        shared_factor_multiplicities,
+        cosine_resonance_q30: level.cosine_resonance_q30,
+        accumulated_hopf_phase_q29: level.accumulated_hopf_phase_q29,
+        zeta_phase_signature_q29: level.zeta_phase_signature_q29,
+        s3_spin_q30: level.s3_spin_q30,
+        s2_hopf_observation_q30: level.s2_hopf_observation_q30,
+        fiber_q29: level.fiber_q29,
+        torsion_q29: level.torsion_q29,
+        radial_zphi: level.radial_zphi,
+        bridge_mode: level.bridge_mode.clone(),
+        active_chart: level.active_chart.clone(),
+        selected_adapter: level.selected_adapter.clone(),
+        chart_sin_q30: level.chart_sin_q30,
+        chart_cos_q30: level.chart_cos_q30,
+        chart_activation_q30: level.chart_activation_q30,
+        chart_chirality: level.chart_chirality,
+        chart_cosine_polarity: level.chart_cosine_polarity,
+        quarter_turn_orientation: level.quarter_turn_orientation,
+        phase_shift_q29: level.phase_shift_q29,
+        torsion_shift_q29: level.torsion_shift_q29,
+        transported_fiber_q29: level.transported_fiber_q29,
+        transported_torsion_q29: level.transported_torsion_q29,
+        inverse_fiber_q29: level.inverse_fiber_q29,
+        inverse_torsion_q29: level.inverse_torsion_q29,
+        chart_inverse_exact: level.chart_inverse_exact,
+        paired_h4_e8_coordinate_sum: level.paired_h4_e8_coordinate_sum,
+    }
+}
+
+fn a1p_inherited_events(
+    report: &A1RAssociativeOrderedSummaryProbeReport,
+    observations: &[A1PFixtureObservation],
+    additive_leaves: &BTreeMap<String, A1PAdditiveState>,
+    table: &H4BinaryIcosahedralClosure,
+) -> Result<Vec<A1PClassEvent>, RecursiveGeometricAttentionError> {
+    let mut events = Vec::with_capacity(observations.len().saturating_mul(2));
+    for observation in observations {
+        let query = report
+            .body
+            .candidate_queries
+            .iter()
+            .find(|query| {
+                query.history == observation.history
+                    && query.intended_target == observation.observed_next
+            })
+            .ok_or_else(|| {
+                RecursiveGeometricAttentionError::InvalidProbe(format!(
+                    "inherited A1R report is missing {}",
+                    observation.id
+                ))
+            })?;
+        let full = query
+            .controls
+            .iter()
+            .find(|control| control.control == "full-ordered-hierarchy")
+            .ok_or_else(|| {
+                RecursiveGeometricAttentionError::InvalidProbe(format!(
+                    "inherited A1R query {} is missing the full arm",
+                    observation.id
+                ))
+            })?;
+        let additive_history = query
+            .controls
+            .iter()
+            .find(|control| control.control == "existing-additive-summary")
+            .and_then(|control| control.legacy_additive_state.as_ref())
+            .map(a1p_additive_projection)
+            .ok_or_else(|| {
+                RecursiveGeometricAttentionError::InvalidProbe(format!(
+                    "inherited A1R query {} is missing the additive state",
+                    observation.id
+                ))
+            })?;
+        if full.candidates.len() != 2 {
+            return Err(RecursiveGeometricAttentionError::InvalidProbe(format!(
+                "inherited A1R query {} has {} rather than two candidates",
+                observation.id,
+                full.candidates.len()
+            )));
+        }
+        for candidate in &full.candidates {
+            let interaction = candidate.interaction_state.as_ref().ok_or_else(|| {
+                RecursiveGeometricAttentionError::InvalidProbe(format!(
+                    "inherited A1R candidate {}/{} is missing X(H,c)",
+                    observation.id, candidate.token
+                ))
+            })?;
+            let predecessor_interaction = candidate
+                .predecessor_interaction_state
+                .as_ref()
+                .ok_or_else(|| {
+                    RecursiveGeometricAttentionError::InvalidProbe(format!(
+                        "inherited A1R candidate {}/{} is missing Y(P_c,c)",
+                        observation.id, candidate.token
+                    ))
+                })?;
+            let relative = candidate.relative_state.as_ref().ok_or_else(|| {
+                RecursiveGeometricAttentionError::InvalidProbe(format!(
+                    "inherited A1R candidate {}/{} is missing D(H,c)",
+                    observation.id, candidate.token
+                ))
+            })?;
+            let candidate_additive = additive_leaves.get(&candidate.token).ok_or_else(|| {
+                RecursiveGeometricAttentionError::InvalidProbe(format!(
+                    "missing additive candidate leaf {}",
+                    candidate.token
+                ))
+            })?;
+            let predecessor_additive = additive_leaves
+                .get(&candidate.predecessor_token)
+                .ok_or_else(|| {
+                    RecursiveGeometricAttentionError::InvalidProbe(format!(
+                        "missing additive predecessor leaf {}",
+                        candidate.predecessor_token
+                    ))
+                })?;
+            let x_interaction = a1r_state_from_offset(interaction.opaque_table_offset, table)?;
+            let y_predecessor_interaction =
+                a1r_state_from_offset(predecessor_interaction.opaque_table_offset, table)?;
+            let h4_state = a1r_state_from_offset(relative.opaque_table_offset, table)?;
+            if x_interaction.compose(y_predecessor_interaction.inverse(table)?, table)? != h4_state
+            {
+                return Err(RecursiveGeometricAttentionError::InvalidProbe(format!(
+                    "inherited A1R candidate {}/{} does not reproduce D=X*Y^-1",
+                    observation.id, candidate.token
+                )));
+            }
+            let (heatmap_key, binary_landmark_output) = a1p_exact_r4_heatmap(h4_state, table)?;
+            events.push(A1PClassEvent {
+                split: "A1R_REGRESSION".to_owned(),
+                observation_id: observation.id.clone(),
+                candidate: candidate.token.clone(),
+                outcome: a1p_binary_outcome(&candidate.token, &observation.observed_next),
+                x_interaction,
+                y_predecessor_interaction,
+                h4_state,
+                heatmap_key,
+                binary_landmark_output,
+                additive_state: A1PAdditiveClassState {
+                    history: additive_history.clone(),
+                    candidate: candidate_additive.clone(),
+                    predecessor: predecessor_additive.clone(),
+                },
+            });
+        }
+    }
+    Ok(events)
+}
+
+fn a1p_target_free_candidate_path(
+    codec: &CanonicalLexicalCodec,
+    construction_artifact: &CanonicalRouteArtifact,
+    attention: &GeometricAttentionArtifact,
+    child_manifest_addresses: &[GeometricAddress],
+    history_tokens: &[String],
+) -> Result<A10CandidatePath, RecursiveGeometricAttentionError> {
+    let history = history_tokens
+        .iter()
+        .map(|token| lexical_address(codec, construction_artifact, token))
+        .collect::<Result<Vec<_>, RecursiveGeometricAttentionError>>()?;
+    let state = attention.causal_state_from_history(&history)?;
+    let trace = attention.query(&state, AttentionControl::CountOnly)?;
+    let rows = trace
+        .rows_read
+        .iter()
+        .map(row_origin)
+        .collect::<Result<Vec<_>, RecursiveGeometricAttentionError>>()?;
+    let exact_direct_rows_miss = trace.rows_read.iter().all(|row| {
+        !matches!(
+            row.source,
+            AttentionRowSource::LastOne
+                | AttentionRowSource::LastTwo
+                | AttentionRowSource::OrderedSentence
+        ) || !row.hit
+    });
+    let exclusions = leakage_exclusions(&trace);
+    let candidates = trace
+        .candidates
+        .iter()
+        .map(|candidate| {
+            let counts = source_counts(candidate.source_counts);
+            Ok(A10CandidateOrigin {
+                address_value: address_value(
+                    construction_artifact,
+                    child_manifest_addresses,
+                    &candidate.next,
+                )?,
+                contributing_sources: contributing_sources(counts),
+                source_counts: counts,
+            })
+        })
+        .collect::<Result<Vec<_>, RecursiveGeometricAttentionError>>()?;
+    let admission_truncated_union = trace.unique_candidates_before_ceiling > trace.candidates.len();
+    Ok(A10CandidatePath {
+        intended_target_token: String::new(),
+        intended_target_address_kappa: String::new(),
+        rows,
+        exclusions,
+        candidate_entries_examined: trace.candidate_entries_examined,
+        candidate_entry_ceiling: trace.candidate_entry_ceiling,
+        unique_candidates_before_admission: trace.unique_candidates_before_ceiling,
+        unique_candidates_after_admission: trace.candidates.len(),
+        retained_candidate_ceiling: trace.candidate_ceiling,
+        admission_truncated_union,
+        full_pre_admission_union_observed: !admission_truncated_union,
+        candidates,
+        intended_target_pre_admission_reachable: None,
+        intended_target_post_admission_reachable: false,
+        intended_target_truncated_before_geometry: None,
+        exact_direct_rows_miss,
+        target_injected: false,
+        future_events_visible: false,
+        incremental_next_state: None,
+    })
+}
+
+#[allow(clippy::too_many_arguments)]
+fn a1p_prepare_split(
+    split: &str,
+    histories: &[A1PUnlabeledHistory],
+    codec: &CanonicalLexicalCodec,
+    construction_artifact: &CanonicalRouteArtifact,
+    attention: &GeometricAttentionArtifact,
+    child_manifest_addresses: &[GeometricAddress],
+    predecessors: &BTreeMap<String, String>,
+    metric: &A1RCayleyMetric,
+    additive_leaves: &BTreeMap<String, A1PAdditiveState>,
+    table: &H4BinaryIcosahedralClosure,
+) -> Result<A1PPreparedSplit, RecursiveGeometricAttentionError> {
+    let mut queries = Vec::with_capacity(histories.len());
+    let mut events = Vec::with_capacity(histories.len().saturating_mul(2));
+    for unlabeled in histories {
+        let artifact = CanonicalRouteArtifact::ingest(
+            codec,
+            &evaluation_input(&unlabeled.observation_id, &unlabeled.history)?,
+        )?;
+        let trace = artifact.attention_consumer_trace_with_ordered_h4(table)?;
+        let path = a1p_target_free_candidate_path(
+            codec,
+            construction_artifact,
+            attention,
+            child_manifest_addresses,
+            &unlabeled.history,
+        )?;
+        // Empty targets are a typed sentinel local to this structural query.
+        // `score_controls=false`, so no target comparison or selection occurs.
+        let contract = A10EvaluationContract {
+            contrast_id: unlabeled.observation_id.clone(),
+            left_history: unlabeled.history.clone(),
+            right_history: unlabeled.history.clone(),
+            left_target: String::new(),
+            right_target: String::new(),
+        };
+        let query = a1r_candidate_query(
+            &contract,
+            "left",
+            &unlabeled.history,
+            &path,
+            &trace,
+            codec,
+            construction_artifact,
+            predecessors,
+            metric,
+            table,
+            false,
+        )?;
+        let history_h4 = a1r_ordered_level_state(&trace, "sentence")?;
+        let history_additive = trace
+            .ordered_levels
+            .iter()
+            .find(|level| level.level == "sentence")
+            .map(|level| a1p_additive_projection(&non_digest_level(&level.consumer_level)))
+            .ok_or_else(|| {
+                RecursiveGeometricAttentionError::InvalidProbe(format!(
+                    "A1P query {} is missing the additive sentence state",
+                    unlabeled.observation_id
+                ))
+            })?;
+        if query.candidate_support.len() != 2 {
+            return Err(RecursiveGeometricAttentionError::InvalidProbe(format!(
+                "A1P query {} has {} rather than two candidates",
+                unlabeled.observation_id,
+                query.candidate_support.len()
+            )));
+        }
+        for candidate in &query.candidate_support {
+            let predecessor_token = predecessors.get(&candidate.token).ok_or_else(|| {
+                RecursiveGeometricAttentionError::InvalidProbe(format!(
+                    "A1P candidate {} has no fixed predecessor",
+                    candidate.token
+                ))
+            })?;
+            let candidate_address =
+                lexical_address(codec, construction_artifact, &candidate.token)?;
+            let predecessor_address =
+                lexical_address(codec, construction_artifact, predecessor_token)?;
+            let candidate_h4 = h4_leaf_state_for_address(&candidate_address, table)?;
+            let predecessor_h4 = h4_leaf_state_for_address(&predecessor_address, table)?;
+            let interaction = a1r_commutator(history_h4, candidate_h4, table)?;
+            let predecessor_interaction = a1r_commutator(predecessor_h4, candidate_h4, table)?;
+            let relative = interaction.compose(predecessor_interaction.inverse(table)?, table)?;
+            let candidate_additive = additive_leaves.get(&candidate.token).ok_or_else(|| {
+                RecursiveGeometricAttentionError::InvalidProbe(format!(
+                    "missing additive candidate leaf {}",
+                    candidate.token
+                ))
+            })?;
+            let predecessor_additive = additive_leaves.get(predecessor_token).ok_or_else(|| {
+                RecursiveGeometricAttentionError::InvalidProbe(format!(
+                    "missing additive predecessor leaf {predecessor_token}"
+                ))
+            })?;
+            let (heatmap_key, binary_landmark_output) = a1p_exact_r4_heatmap(relative, table)?;
+            events.push(A1PPreparedClassEvent {
+                split: split.to_owned(),
+                observation_id: unlabeled.observation_id.clone(),
+                candidate: candidate.token.clone(),
+                x_interaction: interaction,
+                y_predecessor_interaction: predecessor_interaction,
+                h4_state: relative,
+                heatmap_key,
+                binary_landmark_output,
+                additive_state: A1PAdditiveClassState {
+                    history: history_additive.clone(),
+                    candidate: candidate_additive.clone(),
+                    predecessor: predecessor_additive.clone(),
+                },
+            });
+        }
+        queries.push(query);
+    }
+    Ok(A1PPreparedSplit { queries, events })
+}
+
+fn a1p_attach_outcomes(
+    events: Vec<A1PPreparedClassEvent>,
+    observations: &[A1PFixtureObservation],
+) -> Result<Vec<A1PClassEvent>, RecursiveGeometricAttentionError> {
+    let labels = observations
+        .iter()
+        .map(|observation| (observation.id.as_str(), observation.observed_next.as_str()))
+        .collect::<BTreeMap<_, _>>();
+    events
+        .into_iter()
+        .map(|event| {
+            let observed_next = labels.get(event.observation_id.as_str()).ok_or_else(|| {
+                RecursiveGeometricAttentionError::InvalidProbe(format!(
+                    "A1P label ledger is missing {}",
+                    event.observation_id
+                ))
+            })?;
+            Ok(A1PClassEvent {
+                split: event.split,
+                observation_id: event.observation_id,
+                outcome: a1p_binary_outcome(&event.candidate, observed_next),
+                candidate: event.candidate,
+                x_interaction: event.x_interaction,
+                y_predecessor_interaction: event.y_predecessor_interaction,
+                h4_state: event.h4_state,
+                heatmap_key: event.heatmap_key,
+                binary_landmark_output: event.binary_landmark_output,
+                additive_state: event.additive_state,
+            })
+        })
+        .collect()
+}
+
+fn a1p_binary_outcome(candidate: &str, observed_next: &str) -> String {
+    if candidate == observed_next {
+        "SELECT"
+    } else {
+        "REJECT"
+    }
+    .to_owned()
+}
+
+fn a1p_support_and_work(
+    split: &str,
+    queries: &[A1RCandidateQuery],
+    paths: Option<&[A10CandidatePath]>,
+) -> A1PSupportAndWork {
+    let natural_candidate_set = queries
+        .iter()
+        .flat_map(|query| query.candidate_support.iter())
+        .map(|candidate| candidate.token.as_str())
+        .collect::<BTreeSet<_>>();
+    let natural_candidate_union_exact = queries.len() == 6
+        && queries.iter().all(|query| {
+            query
+                .candidate_support
+                .iter()
+                .map(|candidate| candidate.token.as_str())
+                .collect::<BTreeSet<_>>()
+                == BTreeSet::from(["ll", "rr"])
+        });
+    let support_denominator_kappas = queries
+        .iter()
+        .map(|query| query.support_denominator_kappa.clone())
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .collect::<Vec<_>>();
+    let support_denominator_exact =
+        support_denominator_kappas.as_slice() == [A1P_SUPPORT_DENOMINATOR_KAPPA];
+    let exact_direct_rows_miss = queries.iter().all(|query| query.exact_direct_rows_miss);
+    let divisor_rows_miss = queries.iter().all(|query| query.divisor_rows_miss);
+    let adjacent_spin_only_support = queries.iter().all(|query| query.adjacent_spin_only_support);
+    let exact_payload_inversions = queries
+        .iter()
+        .map(|query| query.exact_candidate_payload_inversions)
+        .sum();
+    let target_injected = queries.iter().any(|query| query.target_injected);
+    let future_events_visible = queries.iter().any(|query| query.future_events_visible);
+    let admission_truncation_observed = queries.iter().any(|query| query.admission_truncated_union);
+    let row_reads = queries.iter().map(|query| query.rows.len()).sum();
+    let candidate_entries_examined = queries
+        .iter()
+        .map(|query| query.candidate_entries_examined)
+        .sum();
+    let maximum_admitted_candidates = queries
+        .iter()
+        .map(|query| query.unique_candidates_after_admission)
+        .max()
+        .unwrap_or(0);
+    let path_contract_exact = paths.is_none_or(|paths| {
+        paths.len() == queries.len() && paths.iter().all(a1r_candidate_path_contract_exact)
+    });
+    let query_contract_exact = queries.iter().all(|query| {
+        query.rows.len() == ROWS_PER_QUERY_CEILING
+            && query.candidate_entries_examined == 2
+            && query.candidate_entry_ceiling
+                == ROWS_PER_QUERY_CEILING.saturating_mul(CANDIDATE_CEILING)
+            && query.unique_candidates_before_admission == 2
+            && query.unique_candidates_after_admission == 2
+            && query.retained_candidate_ceiling == CANDIDATE_CEILING
+            && query.full_pre_admission_union_observed
+            && query.anchored_candidates_after_admission == 2
+            && query.required_anchored_candidates == 2
+            && query.exact_candidate_payload_inversions == 2
+            && !query.admission_truncated_union
+            && query.exact_direct_rows_miss
+            && query.divisor_rows_miss
+            && query.adjacent_spin_only_support
+            && !query.target_injected
+            && !query.future_events_visible
+    });
+    let contract_exact = queries.len() == 6
+        && natural_candidate_union_exact
+        && support_denominator_exact
+        && row_reads == 42
+        && candidate_entries_examined == 12
+        && exact_payload_inversions == 12
+        && !target_injected
+        && !future_events_visible
+        && !admission_truncation_observed
+        && query_contract_exact
+        && path_contract_exact;
+    A1PSupportAndWork {
+        split: split.to_owned(),
+        histories: queries.len(),
+        candidate_decisions: queries
+            .iter()
+            .map(|query| query.candidate_support.len())
+            .sum(),
+        natural_candidates: natural_candidate_set
+            .into_iter()
+            .map(str::to_owned)
+            .collect(),
+        natural_candidate_union_exact,
+        support_denominator_kappas,
+        support_denominator_exact,
+        rows_per_query: ROWS_PER_QUERY_CEILING,
+        row_reads,
+        candidate_entries_examined,
+        candidate_entry_ceiling_per_query: ROWS_PER_QUERY_CEILING.saturating_mul(CANDIDATE_CEILING),
+        candidate_ceiling: CANDIDATE_CEILING,
+        maximum_admitted_candidates,
+        exact_direct_rows_miss,
+        divisor_rows_miss,
+        adjacent_spin_only_support,
+        exact_payload_inversions,
+        target_injected,
+        future_events_visible,
+        admission_truncation_observed,
+        contract_exact,
+    }
+}
+
+fn a1p_class_member(event: &A1PClassEvent) -> A1PClassMember {
+    A1PClassMember {
+        split: event.split.clone(),
+        observation_id: event.observation_id.clone(),
+        candidate: event.candidate.clone(),
+        outcome: event.outcome.clone(),
+    }
+}
+
+fn a1p_class_counts(events: &[&A1PClassEvent]) -> A1PClassCounts {
+    let count = |split: &str, outcome: &str| {
+        events
+            .iter()
+            .filter(|event| event.split == split && event.outcome == outcome)
+            .count()
+    };
+    A1PClassCounts {
+        inherited_select: count("A1R_REGRESSION", "SELECT"),
+        inherited_reject: count("A1R_REGRESSION", "REJECT"),
+        construction_select: count("CONSTRUCTION", "SELECT"),
+        construction_reject: count("CONSTRUCTION", "REJECT"),
+        validation_select: count("SEALED_VALIDATION", "SELECT"),
+        validation_reject: count("SEALED_VALIDATION", "REJECT"),
+    }
+}
+
+fn a1p_pure_construction_outcome(counts: &A1PClassCounts) -> Option<String> {
+    match (counts.construction_select, counts.construction_reject) {
+        (select, 0) if select > 0 => Some("SELECT".to_owned()),
+        (0, reject) if reject > 0 => Some("REJECT".to_owned()),
+        _ => None,
+    }
+}
+
+fn a1p_incompatible(counts: &A1PClassCounts) -> bool {
+    let selects = counts
+        .inherited_select
+        .saturating_add(counts.construction_select)
+        .saturating_add(counts.validation_select);
+    let rejects = counts
+        .inherited_reject
+        .saturating_add(counts.construction_reject)
+        .saturating_add(counts.validation_reject);
+    selects > 0 && rejects > 0
+}
+
+fn a1p_paired_h4_identifiability(
+    events: &[A1PClassEvent],
+    table: &H4BinaryIcosahedralClosure,
+) -> Result<A1PPairedH4Identifiability, RecursiveGeometricAttentionError> {
+    let mut grouped = BTreeMap::<A1PExactR4HeatmapClassKey, Vec<&A1PClassEvent>>::new();
+    for event in events {
+        grouped
+            .entry(event.heatmap_key.clone())
+            .or_default()
+            .push(event);
+    }
+    let metrics = a1p_identifiability_metrics(
+        &grouped,
+        events,
+        |event| event.heatmap_key.clone(),
+        |key| key.chart_status != "TYPED_NULL_ABSTAIN",
+    );
+    let mut classes = Vec::with_capacity(grouped.len());
+    for (position, (heatmap_key, grouped_events)) in grouped.iter().enumerate() {
+        let counts = a1p_class_counts(grouped_events);
+        let binary_landmark_output = grouped_events
+            .first()
+            .and_then(|event| event.binary_landmark_output);
+        if grouped_events
+            .iter()
+            .any(|event| event.binary_landmark_output != binary_landmark_output)
+        {
+            return Err(RecursiveGeometricAttentionError::InvalidProbe(
+                "one exact R4 heatmap class produced inconsistent landmark outputs".to_owned(),
+            ));
+        }
+        let mut members = grouped_events
+            .iter()
+            .map(|event| {
+                Ok(A1PPairedH4ClassMember {
+                    decision: a1p_class_member(event),
+                    operands: A1PPairedH4OperandWitness {
+                        x_interaction: a1r_state_witness(event.x_interaction, table)?,
+                        y_predecessor_interaction: a1r_state_witness(
+                            event.y_predecessor_interaction,
+                            table,
+                        )?,
+                        relative_projection: a1r_state_witness(event.h4_state, table)?,
+                    },
+                })
+            })
+            .collect::<Result<Vec<_>, RecursiveGeometricAttentionError>>()?;
+        members.sort_by(|left, right| {
+            (
+                left.decision.split.as_str(),
+                left.decision.observation_id.as_str(),
+                left.decision.candidate.as_str(),
+            )
+                .cmp(&(
+                    right.decision.split.as_str(),
+                    right.decision.observation_id.as_str(),
+                    right.decision.candidate.as_str(),
+                ))
+        });
+        classes.push(A1PPairedH4HeatmapClass {
+            class_id: format!("R4-HEATMAP-{:03}", position.saturating_add(1)),
+            heatmap_key: heatmap_key.clone(),
+            binary_landmark_output,
+            members,
+            construction_outcome_if_pure: a1p_pure_construction_outcome(&counts),
+            typed_null_abstain: heatmap_key.chart_status == "TYPED_NULL_ABSTAIN",
+            incompatible_outcomes: a1p_incompatible(&counts),
+            counts,
+        });
+    }
+    Ok(A1PPairedH4Identifiability {
+        operand_definition:
+            "ORDERED_PAIR_X(H,c)=C(H,c)_Y(P_c,c)=C(P_c,c)_WITH_D=X*Y^-1".to_owned(),
+        class_definition: "EXACT_SIGNED_R4_HEATMAP_(sin_Zphi/2,cos_Zphi/2,sin2_Zphi/4,chirality,cosine_polarity,chart_status);_X_Y_AND_q2_q3_WITNESS_ONLY"
+            .to_owned(),
+        coordinate_scale_denominator: 2,
+        activation_denominator: 4,
+        integer_only_no_rounding: true,
+        classes,
+        metrics,
+    })
+}
+
+fn a1p_h4_identifiability(
+    events: &[A1PClassEvent],
+    table: &H4BinaryIcosahedralClosure,
+) -> Result<A1PH4Identifiability, RecursiveGeometricAttentionError> {
+    let mut grouped = BTreeMap::<u16, Vec<&A1PClassEvent>>::new();
+    for event in events {
+        grouped
+            .entry(event.h4_state.table_index().table_offset())
+            .or_default()
+            .push(event);
+    }
+    let metrics = a1p_identifiability_metrics(
+        &grouped,
+        events,
+        |event| event.h4_state.table_index().table_offset(),
+        |_| true,
+    );
+    let mut classes = Vec::with_capacity(grouped.len());
+    for (position, (offset, grouped_events)) in grouped.iter().enumerate() {
+        let counts = a1p_class_counts(grouped_events);
+        let mut members = grouped_events
+            .iter()
+            .map(|event| a1p_class_member(event))
+            .collect::<Vec<_>>();
+        a1p_sort_members(&mut members);
+        classes.push(A1PH4Class {
+            class_id: format!("H4-D-{:03}", position.saturating_add(1)),
+            state: a1r_state_witness(a1r_state_from_offset(*offset, table)?, table)?,
+            members,
+            construction_outcome_if_pure: a1p_pure_construction_outcome(&counts),
+            incompatible_outcomes: a1p_incompatible(&counts),
+            counts,
+        });
+    }
+    Ok(A1PH4Identifiability {
+        class_definition: "SUPERSEDED_SCOPE_DIAGNOSTIC_ONLY_NOT_A1P_SCORER_KEY:D(H,c)=C(H,c)*C(P_c,c)^-1_EXACT_ORDERED_H4_STATE".to_owned(),
+        classes,
+        metrics,
+    })
+}
+
+fn a1p_additive_identifiability(events: &[A1PClassEvent]) -> A1PAdditiveIdentifiability {
+    let mut grouped = BTreeMap::<A1PAdditiveClassState, Vec<&A1PClassEvent>>::new();
+    for event in events {
+        grouped
+            .entry(event.additive_state.clone())
+            .or_default()
+            .push(event);
+    }
+    let metrics = a1p_identifiability_metrics(
+        &grouped,
+        events,
+        |event| event.additive_state.clone(),
+        |_| true,
+    );
+    let mut classes = Vec::with_capacity(grouped.len());
+    for (position, (state, grouped_events)) in grouped.iter().enumerate() {
+        let counts = a1p_class_counts(grouped_events);
+        let mut members = grouped_events
+            .iter()
+            .map(|event| a1p_class_member(event))
+            .collect::<Vec<_>>();
+        a1p_sort_members(&mut members);
+        classes.push(A1PAdditiveClass {
+            class_id: format!("ADDITIVE-{:03}", position.saturating_add(1)),
+            state: state.clone(),
+            members,
+            construction_outcome_if_pure: a1p_pure_construction_outcome(&counts),
+            incompatible_outcomes: a1p_incompatible(&counts),
+            counts,
+        });
+    }
+    A1PAdditiveIdentifiability {
+        class_definition: "(A*(H),A*(c),A*(P_c))_EXACT_EXISTING_ADDITIVE_NON_DIGEST_STATE"
+            .to_owned(),
+        excluded_fields: vec![
+            "token-spelling",
+            "level",
+            "identity-kind",
+            "occurrence",
+            "turn",
+            "paragraph",
+            "sentence",
+            "ordinal-in-sentence",
+            "window-start",
+            "window-end",
+            "lexical-unit-id",
+            "prime",
+            "shared-prime-factor-values",
+            "address-index",
+            "boundary-kind",
+            "boundary-identity",
+            "chain-identity",
+            "kappas",
+            "digests",
+            "provenance",
+        ]
+        .into_iter()
+        .map(str::to_owned)
+        .collect(),
+        leaf_evaluator_seam: A1PAdditiveLeafEvaluatorSeam {
+            status: "FIXED_GG_PREFIX_CURRENT_LEVEL_PROJECTION_ONLY".to_owned(),
+            fixed_prefix_token: GLOBAL_TOKEN.to_owned(),
+            evaluator_history_shape: "[gg, token]".to_owned(),
+            extracted_level: "current".to_owned(),
+            construction_only: true,
+            current_projection_has_prefix_occurrence_or_identity_fields: false,
+            fixture_histories_modified: false,
+            candidate_path_queries_affected: 0,
+            candidate_support_or_work_modified: false,
+        },
+        classes,
+        metrics,
+    }
+}
+
+fn a1p_sort_members(members: &mut [A1PClassMember]) {
+    members.sort_by(|left, right| {
+        (
+            left.split.as_str(),
+            left.observation_id.as_str(),
+            left.candidate.as_str(),
+        )
+            .cmp(&(
+                right.split.as_str(),
+                right.observation_id.as_str(),
+                right.candidate.as_str(),
+            ))
+    });
+}
+
+fn a1p_identifiability_metrics<K, F, P>(
+    grouped: &BTreeMap<K, Vec<&A1PClassEvent>>,
+    events: &[A1PClassEvent],
+    key_for: F,
+    key_admissible: P,
+) -> A1PIdentifiabilityMetrics
+where
+    K: Clone + Ord,
+    F: Fn(&A1PClassEvent) -> K,
+    P: Fn(&K) -> bool,
+{
+    let has_split = |class_events: &[&A1PClassEvent], split: &str| {
+        class_events.iter().any(|event| event.split == split)
+    };
+    let inherited_class_count = grouped
+        .values()
+        .filter(|class_events| has_split(class_events, "A1R_REGRESSION"))
+        .count();
+    let construction_class_count = grouped
+        .values()
+        .filter(|class_events| has_split(class_events, "CONSTRUCTION"))
+        .count();
+    let validation_class_count = grouped
+        .values()
+        .filter(|class_events| has_split(class_events, "SEALED_VALIDATION"))
+        .count();
+    let construction_decisions = events
+        .iter()
+        .filter(|event| event.split == "CONSTRUCTION")
+        .count();
+    let construction_impure_class_count = grouped
+        .values()
+        .filter(|class_events| {
+            let counts = a1p_class_counts(class_events);
+            counts.construction_select > 0 && counts.construction_reject > 0
+        })
+        .count();
+    let construction_classes_pure = construction_class_count > 0
+        && construction_impure_class_count == 0
+        && construction_decisions == 12;
+    let validation_decisions = events
+        .iter()
+        .filter(|event| event.split == "SEALED_VALIDATION")
+        .count();
+    let validation_decisions_covered = events
+        .iter()
+        .filter(|event| event.split == "SEALED_VALIDATION")
+        .filter(|event| {
+            grouped
+                .get(&key_for(event))
+                .is_some_and(|class_events| has_split(class_events, "CONSTRUCTION"))
+        })
+        .count();
+    let validation_oracle_numerator = grouped
+        .values()
+        .map(|class_events| a1p_class_counts(class_events))
+        .map(|counts| counts.validation_select.max(counts.validation_reject))
+        .sum();
+    let incompatible_class_count = grouped
+        .values()
+        .map(|class_events| a1p_class_counts(class_events))
+        .filter(a1p_incompatible)
+        .count();
+
+    let construction_map = grouped
+        .iter()
+        .filter(|(key, _)| key_admissible(key))
+        .filter_map(|(key, class_events)| {
+            let counts = a1p_class_counts(class_events);
+            a1p_pure_construction_outcome(&counts).map(|outcome| (key.clone(), outcome))
+        })
+        .collect::<BTreeMap<_, _>>();
+    let mut validation_by_observation = BTreeMap::<String, Vec<&A1PClassEvent>>::new();
+    for event in events
+        .iter()
+        .filter(|event| event.split == "SEALED_VALIDATION")
+    {
+        validation_by_observation
+            .entry(event.observation_id.clone())
+            .or_default()
+            .push(event);
+    }
+    let validation_transfer_numerator = validation_by_observation
+        .values()
+        .filter(|query_events| {
+            query_events.len() == 2
+                && query_events.iter().all(|event| {
+                    construction_map
+                        .get(&key_for(event))
+                        .is_some_and(|outcome| outcome == &event.outcome)
+                })
+                && query_events
+                    .iter()
+                    .filter(|event| event.outcome == "SELECT")
+                    .count()
+                    == 1
+                && query_events
+                    .iter()
+                    .filter(|event| event.outcome == "REJECT")
+                    .count()
+                    == 1
+        })
+        .count();
+    let validation_query_denominator = validation_by_observation.len();
+    A1PIdentifiabilityMetrics {
+        exact_class_count: grouped.len(),
+        inherited_class_count,
+        construction_class_count,
+        validation_class_count,
+        construction_decisions_covered: A1PRationalCeiling {
+            numerator: construction_decisions,
+            denominator: 12,
+        },
+        construction_impure_class_count,
+        construction_classes_pure,
+        validation_decisions_covered_by_construction: A1PRationalCeiling {
+            numerator: validation_decisions_covered,
+            denominator: validation_decisions,
+        },
+        validation_no_class_splitting_oracle_ceiling: A1PRationalCeiling {
+            numerator: validation_oracle_numerator,
+            denominator: validation_decisions,
+        },
+        validation_construction_transfer_selection_ceiling: A1PRationalCeiling {
+            numerator: validation_transfer_numerator,
+            denominator: validation_query_denominator,
+        },
+        incompatible_class_count_across_all_splits: incompatible_class_count,
+        exact_class_aliasing_observed: grouped.values().any(|class_events| class_events.len() > 1),
+        transferable_construction_rule_exists: validation_query_denominator == 6
+            && validation_transfer_numerator == validation_query_denominator,
+    }
+}
+
+fn a1p_not_run_controls() -> Vec<A1PDownstreamControl> {
+    A1P_DOWNSTREAM_CONTROL_CONTRACT
+        .into_iter()
+        .map(|(control, required)| A1PDownstreamControl {
+            control: control.to_owned(),
+            required,
+            status: NOT_RUN_IDENTIFIABILITY_HARD_STOP.to_owned(),
+            selections: 0,
+            ties: 0,
+            abstentions: 0,
+            exact_hits: 0,
+            support_equal: None,
+            work: A1PControlWork {
+                validation_queries: 0,
+                candidate_decisions: 0,
+                row_reads: 0,
+                candidate_entry_ceiling_per_query: 56,
+                candidate_ceiling: 8,
+                maximum_admitted_candidates: 0,
+            },
+        })
+        .collect()
+}
+
+fn a1p_report_identity_kappa(
+    body: &A1PIdentifiabilityProbeBody,
+) -> Result<String, RecursiveGeometricAttentionError> {
+    canonical_kappa(&canonical_json(&A1PReportIdentityWire {
+        schema: A1P_IDENTIFIABILITY_PROBE_SCHEMA,
+        domain: A1P_IDENTIFIABILITY_PROBE_DOMAIN,
+        report_kappa: "",
+        body,
+    })?)
+}
+
+#[cfg(test)]
+mod a1p_contract_tests {
+    use super::*;
+
+    fn role_order() -> Vec<String> {
+        ["aa", "bb", "cc", "dd"]
+            .into_iter()
+            .map(str::to_owned)
+            .collect()
+    }
+
+    #[test]
+    fn s4_parity_is_derived_and_malformed_histories_fail_closed() {
+        let roles = role_order();
+        assert_eq!(
+            a1p_derive_s4_parity(
+                &["aa", "bb", "cc", "dd", "qq"]
+                    .into_iter()
+                    .map(str::to_owned)
+                    .collect::<Vec<_>>(),
+                &roles,
+                "qq",
+            )
+            .expect("identity permutation parity"),
+            "EVEN"
+        );
+        assert_eq!(
+            a1p_derive_s4_parity(
+                &["bb", "aa", "cc", "dd", "qq"]
+                    .into_iter()
+                    .map(str::to_owned)
+                    .collect::<Vec<_>>(),
+                &roles,
+                "qq",
+            )
+            .expect("single transposition parity"),
+            "ODD"
+        );
+        for malformed in [
+            ["aa", "aa", "cc", "dd", "qq"],
+            ["aa", "bb", "cc", "xx", "qq"],
+            ["aa", "bb", "cc", "dd", "rr"],
+        ] {
+            assert!(a1p_derive_s4_parity(
+                &malformed.into_iter().map(str::to_owned).collect::<Vec<_>>(),
+                &roles,
+                "qq",
+            )
+            .is_err());
+        }
+    }
+
+    #[test]
+    fn validation_label_permutation_cannot_change_preparation_inputs() {
+        let original = a1p_validation_observations();
+        let mut relabeled = original.clone();
+        for observation in &mut relabeled {
+            observation.observed_next = if observation.observed_next == "ll" {
+                "rr".to_owned()
+            } else {
+                "ll".to_owned()
+            };
+        }
+        let original_unlabeled = a1p_unlabeled_histories(&original);
+        let relabeled_unlabeled = a1p_unlabeled_histories(&relabeled);
+        assert_eq!(original_unlabeled.len(), relabeled_unlabeled.len());
+        for (left, right) in original_unlabeled.iter().zip(&relabeled_unlabeled) {
+            assert_eq!(left.observation_id, right.observation_id);
+            assert_eq!(left.history, right.history);
+        }
+    }
 }

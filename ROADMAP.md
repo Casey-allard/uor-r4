@@ -9,7 +9,9 @@ remains in [docs/RESEARCH.md](docs/RESEARCH.md).
 
 _Last reviewed: 2026-08-27 (#961 reversible S0 landed; #952 A1.0 stopped at
 `REDESIGN_ORDERED_ROUTE_SUMMARY`; #967 A1R terminated `RETAIN_STATE_ONLY`;
-#970 A1P now precedes #969 A1Q, which blocks #953–#955 → #962–#965)._
+#970 A1P produced the bounded paired-H4-derived exact R4-heatmap result
+`RETAIN_H4_STATE_ONLY_ADVANCE_MULTICHANNEL_A1Q`; #969 A1Q becomes next only
+after protected #970 merge and then blocks #953–#955 → #962–#965)._
 
 > **Project priority:** build source-free geometric intelligence in which the
 > route is the data location. A pinned lexical codec supplies text boundaries;
@@ -65,44 +67,95 @@ Native GitHub relationships are the source of truth:
    `RETAIN_STATE_ONLY` with kappa
    `blake3:f0db7a5d5c81d51ebf3b4bf8a2715c4960ec16b14161e8bf7598d7b98c48c881`.
    This is state evidence only, not attention.
-4. **GI-2 A1P / #970 — candidate-relative readout/placement redesign:** keep the
-   #967 fold, anchors, relative states, and support fixed while replacing the
-   shortest-Cayley scalar readout that tied both admitted targets. #970 is
-   unassigned, owns the broader readout/placement falsifier, follows protected
-   #967 delivery, and natively blocks #969. Do not implement full A1Q or
-   generation here.
-5. **GI-2 A1Q / #969 — full recursive attention qualification:** after #970,
-   independently qualify sentence, paragraph, conversation, and global causal
-   effects with candidate-relative anti-recall fixtures and equal-budget
-   current-only, additive, factor/count-only, deterministic-permutation,
-   hierarchy-disabled, and exact-recall controls. Only terms that pass this
-   qualification become semantic scoring terms; required storage fields remain
-   storage, diagnostics, or controls otherwise.
+4. **GI-2 A1P / #970 — candidate-relative identifiability and
+   construction-derived readout:** keep
+   the #967 fold, anchors, relative states, support, payloads, and work fixed.
+   The visible six-query A1R fixture remains an unchanged regression/root-cause
+   fixture and can never qualify semantic value. The separate construction
+   fixture `A1P-CONSTRUCTION-1`
+   (`blake3:fb5f27fc1107f527d616f32affa8eba1746a2f60cfdb95ddbb21a0e493299652`)
+   derives an even/odd permutation-parity candidate rule from six observations;
+   the disjoint sealed anti-recall fixture `A1P-VALIDATION-1`
+   (`blake3:ecbe8b404e7542d801ff4b4e66c91a41f90158d84efa484dc4edb53aff38b602`)
+   tests transfer on six different histories. Geometry/support is prepared
+   target-free, label ledgers join only afterward, and S4 parity is mechanically
+   derived from each exact history and frozen role order. The immutable paired
+   contract computes `X=C(H,c)`, `Y=C(P_c,c)`, `D=X*Y^-1`, then uses the exact
+   signed `(1,i)` chart. Its endpoint rule is `sin=±1, cos=0 -> 1` with
+   chirality retained and `sin=0, cos=±1 -> 0` with cosine polarity retained;
+   `q0=q1=0` is typed-null abstention. `q2` and `q3` remain in the full `D`
+   witness but are not scorer-key fields.
+
+   Before fixture labels, the census enumerated 120×120 = 14,400 ordered pairs,
+   120 relative rows, 45 exact R4-heatmap classes, and 480 typed-null pairs.
+   Across 36 fixture decisions it exercised 14 classes; construction coverage
+   was 12/12 and pure, construction classes covered 10/12 validation decisions,
+   the no-class-splitting oracle ceiling was 10/12, strict construction transfer
+   was 0/6, and eight exact heatmap classes were incompatible. The hard gate
+   stopped before scalar search; all downstream selection, control, and
+   placement rows are `NOT_RUN_IDENTIFIABILITY_HARD_STOP`, not PASS. The
+   terminal literal is
+   `RETAIN_H4_STATE_ONLY_ADVANCE_MULTICHANNEL_A1Q`. Contract, universe, and
+   report kappas are
+   `blake3:2daacf538c022fab9580d1e124af6c18d0b06da04604fbc962a01bda57f08a98`,
+   `blake3:dca725c0ec6060166bcd0023df956e1ff029661b5fa7800ccb9f20808712b796`,
+   and `blake3:5f9239150dea8c0c27c4dfa6ad2e4d0068bc3d18afc127b315c0ec358ceddb3f`.
+   This negative is bounded to that paired-H4-derived heatmap readout. Fixed-zeta
+   phases, ordered n-lets, exact `phi` radial transport, and typed
+   `sqrt(2) <-> 2i <-> [0,2]` adapters remain structural under
+   `STRUCTURAL_BINDING_ONLY_NO_ZETA_NLET_TO_PHI_EXPONENT_RULE` and are excluded
+   from the scorer. #969 becomes next only after protected #970 merge. See the
+   [A1P record](docs/candidate_relative_identifiability_a1p_970.md).
+5. **GI-2 A1Q / #969 — full recursive attention qualification:** protected
+   merge of #970 is the transition into this stage; the bounded negative does
+   not expose #953 directly. The paired heatmap and its fixed-zeta, ordered
+   n-let, exact-radial, and typed-adapter bindings remain structural,
+   diagnostic, or control state while #969 tests its other predeclared
+   candidate-relative trajectory and harmonic channels. Gate 0 is a bounded
+   2–8 lexical-unit end-to-end composition instrument:
+   `bytes → lexical routes → admitted candidates → frozen select/abstain →
+   payload decode → incremental state update`. It stops before scope expansion
+   on identical matched continuations, an inert qualified-state intervention,
+   decode failure, a period-1–4 cycle, nondeterministic termination, or changed
+   support. Later sentence, paragraph, conversation, and global fixtures remain
+   sealed, disjoint from #970, and use equal-budget current-only, additive,
+   factor/count-only, deterministic-permutation, hierarchy-disabled, and
+   exact-recall controls. Only terms that pass A1Q become semantic scoring
+   terms; required storage fields remain storage, diagnostics, or controls.
 6. **GI-3 / #953 — source-free grammatical inference/generation:** after #969,
    compile grammar and syntax into the attention-qualified route engine using
    only GI-2-qualified semantic terms, and establish bounded source-free
-   generation through the library and CLI. Durable chat, persistence, and HTTP
-   session behavior remain outside this stage.
+   generation through the library and CLI. Reuse the existing source-free
+   table-native continuation/candidate evidence as an offline substrate or
+   comparator where appropriate. The decisive intervention must show that a
+   #969-qualified geometric term changes candidate choice relative to
+   count-only, hierarchy-disabled, permuted, and exact-recall controls. Durable
+   chat, persistence, and HTTP session behavior remain outside this stage.
 7. **GI-4 / #954 — correctness and abstention:** test held-out answer
-   correctness, relevance, abstention, and causal use of required context.
-   Teacher weights may label or compare offline only after the source-free
-   report freezes.
-8. **GI-5 / #955 — reasoning:** add bounded goal-directed route composition, branch
-   comparison, intermediate constraints, and closure/contradiction controls.
+   correctness, relevance, abstention, and causal use of required context only
+   through the accepted #969-qualified terms and #953 generator. Teacher weights
+   may label or compare offline only after the source-free report freezes.
+8. **GI-5 / #955 — reasoning:** invoke the accepted #969/#953/#954 consumer at
+   every bounded goal-directed route-composition step, with branch comparison,
+   intermediate constraints, and closure/contradiction controls. #952 is not a
+   qualified-attention consumer.
 9. **GI-6 / #962–#965 — product, cost, formal closure, and release:** integrate
-   durable multi-turn CLI/HTTP chat, persistence, isolation, and hive-memory
-   (#962); optimize only the measured route-native bottleneck (#963); freeze
-   the serving contract (#964); then explicitly activate only the release QA
-   needed to qualify the product (#965).
+   #969-qualified attention and the accepted #953 generator into durable
+   multi-turn CLI/HTTP chat, persistence, isolation, and hive-memory (#962);
+   optimize only the measured route-native bottleneck (#963); freeze a serving
+   contract that binds the inserted #970 → #969 qualification stages (#964);
+   then activate only the release QA needed to qualify that exact path (#965).
 
 The live issue bodies and native dependencies now mirror this sequence. #961
 is closed. #952's terminal negative evidence is preserved in
 [`docs/recursive_geometric_attention_a1_952.md`](docs/recursive_geometric_attention_a1_952.md).
-#967 is at terminal A1R delivery with `RETAIN_STATE_ONLY`. New unassigned #970
-follows protected #967 delivery and is the native blocker of #969; #969 remains
-the native blocker of #953. The immediate chain is therefore #952 closed →
-#967 terminal delivery → #970 A1P → #969 A1Q → #953. Closing #967 cannot
-make A1Q or generation eligible. Every later stage stays unassigned and blocked
+#967 is at terminal A1R delivery with `RETAIN_STATE_ONLY`. #970 reached its valid
+bounded paired-H4-derived heatmap-readout decision, but protected merge is still
+the eligibility boundary: #969 remains blocked until #970 merges, then becomes
+the next native stage and remains the native blocker of #953. The immediate
+chain is therefore #952 closed → #967 terminal delivery → #970 protected merge
+→ #969 A1Q → #953. #970 did not make generation eligible. Every later stage
+stays unassigned and blocked
 in order. Legacy tracker #949 is closed as superseded; #958 is retained directly
 under programme root #820 as GI-0 foundation.
 
@@ -120,7 +173,7 @@ historical evidence and comparators.
   and reproduced incremental next state. Exact H4 and SpiralCore finite tables
   closed as controls only. Repair is #967; full attention qualification is
   #969; #953 remains blocked by #969. See the
-  [qualification](docs/recursive_geometric_attention_a1_952.md).
+  [A1.0 record](docs/recursive_geometric_attention_a1_952.md).
 
 - [x] **#967 A1R associative ordered-state repair** —
   *`RETAIN_STATE_ONLY`, 2026-08-27*. The exact H4 fold passed the frozen scope,
@@ -129,7 +182,11 @@ historical evidence and comparators.
   mapped both to energy 2 and tied on 6/6, so no attention or generation claim
   follows. Report kappa:
   `blake3:f0db7a5d5c81d51ebf3b4bf8a2715c4960ec16b14161e8bf7598d7b98c48c881`.
-  #970 owns the candidate-relative readout/placement redesign and blocks #969. See the
+  #970 subsequently found eight incompatible exact paired-H4-derived R4-heatmap
+  classes and a 0/6 strict transfer ceiling, retaining the heatmap and auxiliary
+  channels as structural/control state while stopping before readout or
+  placement. #969 becomes the next multi-channel qualification only after
+  protected #970 merge. See the
   [A1R record](docs/associative_ordered_route_summaries_a1r_967.md).
 
 - [x] **#961 reversible lexical geometry/state plumbing** —
@@ -210,7 +267,10 @@ historical evidence and comparators.
   runtimes, but no source-free geometric decoder has established coherent
   product behavior. GI-1/#961 closed the lexical route loop, while #952 showed
   that its reusable non-digest hierarchy summaries erase earlier order. #967
-  owns that repair before any attention scorer or #953 generation work.
+  repaired that representation but retained it as state only; #970 then found
+  the bounded paired-H4-derived exact R4-heatmap readout non-identifiable on its
+  frozen union. Its protected merge is required before #969 becomes next, and
+  it does not expose #953.
   Historical canaries and pointwise results remain scoped evidence, not a
   claim that the current product works. See
   [Which track can actually produce coherent text](docs/RESEARCH.md#which-track-can-actually-produce-coherent-text--the-honest-current-answer).

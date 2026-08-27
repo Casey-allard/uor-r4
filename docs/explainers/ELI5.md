@@ -34,8 +34,29 @@ forgot earlier order. #967 repaired that memory and produced different shapes
 for the two possible next pieces, but its one-number ruler assigned both the
 same distance in all six trials. It therefore kept the state without claiming
 attention. #967 established only that the one-number ruler failed; it did not
-establish a placement defect. #970 owns the broader readout/placement check and
-repair. #969 must then prove that the full geometry, not a memorized answer, actually changes what the system
+establish a placement defect. #970 then kept a paired-H4 witness—both H4 shapes
+for each candidate—combined them in their fixed order, and read an exact R4
+heatmap instead of inventing another ruler. Its complete check covered all
+14,400 ordered shape
+pairs: 120 relative shapes became 45 heatmap kinds, including 480 typed-null
+pairs that must abstain. On the 36 fixed candidate decisions, eight of 14
+heatmap classes still meant conflicting answers and no construction rule made a
+strict choice on any of the six validation histories. The result therefore
+retains the paired shape and stops before readout or placement. This says only
+that this exact heatmap cannot identify the frozen answer rule; it does not say
+the geometry is useless.
+
+The heatmap keeps exact golden-number arithmetic: `sin=+1` or `-1` with
+`cos=0` maps to bit 1, while `sin=0` with `cos=+1` or `-1` maps to bit 0, and
+the sign remains attached. Histories and candidate support are prepared before
+answers are attached, and even/odd order is recomputed from each history. Zeta
+phases, ordered prime groups, golden-radius moves, and typed chart conversion
+remain structural ingredients; the project has not supplied a rule turning a
+zeta/prime group into a golden-shell exponent.
+
+#970 remains active until this corrected result lands through the protected
+merge path, so #969 is still blocked. After that delivery, #969 must prove that
+multiple channels, not a memorized answer, actually change what the system
 attends to. Only after that does #953 build the bounded source-free next-word
 loop; durable chat belongs to #962. Correct answers (#954) and multi-step
 reasoning (#955) come later. A pretty route or a readable stored sentence does

@@ -10,11 +10,14 @@
   `REDESIGN_ORDERED_ROUTE_SUMMARY`. [#967](https://github.com/UOR-Foundation/uor-r4/issues/967)
   repaired A1R ordered state and exercised its bounded candidate-relative
   scalar scorer but terminated `RETAIN_STATE_ONLY`; the full A1Q recursive
-  attention scorer remains unimplemented and unqualified. Unassigned
-  [#970](https://github.com/UOR-Foundation/uor-r4/issues/970) owns A1P
-  candidate-relative readout/placement and blocks
-  [#969](https://github.com/UOR-Foundation/uor-r4/issues/969), which owns A1Q
-  full recursive-attention qualification and blocks #953.
+  attention scorer remains unimplemented and unqualified.
+  [#970](https://github.com/UOR-Foundation/uor-r4/issues/970) has a corrected
+  local paired-H4-derived exact R4-heatmap result pending protected delivery.
+  Eight of its 14 exercised heatmap classes alias incompatible outcomes and
+  construction transfer is 0/6, so it retains the paired state as structural
+  evidence and stops before readout or placement. #970 remains active until
+  that result merges; [#969](https://github.com/UOR-Foundation/uor-r4/issues/969)
+  remains blocked and continues to own A1Q multi-channel qualification.
 - **Decision owner:** representation redesign
   [#958](https://github.com/UOR-Foundation/uor-r4/issues/958)
 - **Programme tracker:**
@@ -423,8 +426,31 @@ invariants. The report kappa is
 `blake3:f0db7a5d5c81d51ebf3b4bf8a2715c4960ec16b14161e8bf7598d7b98c48c881`.
 Its full arm produced distinct candidate-relative states on 6/6 queries, but
 shortest Cayley distance collapsed both candidates to energy 2 and tied on 6/6,
-so the terminal verdict is `RETAIN_STATE_ONLY`. #970 owns the readout/placement redesign and
-blocks A1Q/#969. Only A1Q-qualified semantic terms may reach #953.
+so the terminal verdict is `RETAIN_STATE_ONLY`. #970's corrected independent
+preflight retains both exact operands `X=C(H,c)` and `Y=C(P_c,c)`, derives
+`D=X*Y^-1`, and keys equality only by the exact signed R4 heatmap
+`(sin=q0/2, cos=q1/2, sin^2=q0^2/4, chirality, cosine polarity, chart status)`
+in `Z[phi]`. Its frozen endpoints map `sin=+/-1, cos=0` to bit 1 and
+`sin=0, cos=+/-1` to bit 0 while retaining chirality/polarity. Across 36
+decisions it found 14 heatmap classes, 10/12 validation
+coverage, a 10/12 no-splitting ceiling, 0/6 strict construction transfer, and
+eight incompatible classes. It therefore stopped before readout or placement
+with `RETAIN_H4_STATE_ONLY_ADVANCE_MULTICHANNEL_A1Q`.
+
+The contract, complete 14,400-pair/120-relative-state universe, and corrected
+report are bound respectively by
+`blake3:2daacf538c022fab9580d1e124af6c18d0b06da04604fbc962a01bda57f08a98`,
+`blake3:dca725c0ec6060166bcd0023df956e1ff029661b5fa7800ccb9f20808712b796`,
+and
+`blake3:5f9239150dea8c0c27c4dfa6ad2e4d0068bc3d18afc127b315c0ec358ceddb3f`.
+The 120 relative rows form 45 heatmap classes; 480 ordered pairs are typed-null.
+Preparation is target-free and S4 parity is derived from each history. The
+fixed-zeta grid, ordered n-lets, golden `phi` maps, and typed cross-chart adapter
+are bound only as structural transport: no zeta/n-let-to-`phi` shell-exponent
+rule is established. This negative is only a bounded readout-identifiability
+result; it does not negate those structures or establish attention. #970 stays
+active and #969 stays blocked until protected merge. Only later A1Q-qualified
+semantic terms may reach #953.
 
 | Component | Status | Current evidence boundary |
 |---|---|---|
@@ -436,7 +462,7 @@ blocks A1Q/#969. Only A1Q-qualified semantic terms may reach #953.
 | Exact 64-state SpiralCore v63 `Cl(0,6)` composition/inverse table | `IMPLEMENTED_CONTROL_ONLY` | Deterministic noncommutative table mechanics are bound and reproduced; `OPTIONAL_CONTROL_PENDING`, no semantic claim. The proposed six-prime `J(6,2)` semantic adapter remains unqualified. |
 | Complete semiprime/n-let manifest tables, chart/quantization binding, and canonical conversion/rebuild witnesses | `PASS_COMPLETE_MANIFEST_V2` | #958 schema 2 binds the prime registry, semiprime experts, ordered n-lets, address order, chart/spin/radial fields, indexes, provenance, and strict rebuild witnesses. This is storage/candidate substrate, not semantic-attention evidence. |
 | Frozen schema-2 child, bounded direct/divisor/adjacent-spin candidate union, and exact address-to-payload value view | `IMPLEMENTED_SUBSTRATE` | The fixed #952 contrasts naturally expose both targets below the ceiling of eight, with exact direct rows absent and no target injection or truncation. Candidate reachability is not attention selection. |
-| Reusable order-sensitive route summary and recursive attention scorer | `A1R_RETAIN_STATE_ONLY_A1P_BLOCKS_A1Q` | #967 repaired ordered state and passed its structural contracts, but shortest Cayley distance mapped distinct candidate-relative states to equal energy on 6/6 queries. #970 owns candidate-relative readout/placement and blocks #969; no full attention or generation claim follows. |
+| Reusable order-sensitive route summary and recursive attention scorer | `A1P_RETAIN_H4_STATE_ONLY_ADVANCE_MULTICHANNEL_A1Q_PENDING_PROTECTED_MERGE` | #967 repaired ordered state but shortest Cayley distance mapped distinct states to equal energy on 6/6 queries. The corrected local #970 probe exhaustively bound 14,400 paired-H4 witnesses to 120 relative roots and 45 exact R4 heatmaps; its 36 exercised decisions formed 14 classes with 10/12 validation coverage, 10/12 oracle ceiling, 0/6 transfer, and eight incompatible classes. This is a readout-identifiability negative only. #970 remains active and #969 blocked until protected merge; no full-attention or generation claim follows. |
 | Layer-29 caller, equal-budget controls, no-Ollama product probe, and teacher comparison | `NOT_YET_IMPLEMENTED` | No deployed or product capability follows from the substrate. |
 | Binding one-worker/four-worker release canary with positive work on every worker and measured four-worker compile-stage improvement | `PASS_SUBSTRATE_SCOPE` | The frozen schema-2 report records 32/32 exact artifact/kappa matches, all four workers active, and 1.498x median compile-stage speedup. Any later semantic-input or workload-shape change must re-establish this bounded evidence. |
 

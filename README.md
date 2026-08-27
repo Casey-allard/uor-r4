@@ -55,6 +55,13 @@ To reproduce the bounded A1R associative ordered-summary decision:
 cargo run --bin r4 -- associative-ordered-summary-a1r-probe
 ```
 
+To reproduce the corrected A1P paired-H4-derived exact R4-heatmap
+identifiability decision:
+
+```bash
+cargo run --bin r4 -- candidate-relative-identifiability-a1p-probe
+```
+
 The A1R command uses only the frozen construction/evaluation fixture and exact
 finite tables. Its frozen report kappa is
 `blake3:f0db7a5d5c81d51ebf3b4bf8a2715c4960ec16b14161e8bf7598d7b98c48c881`.
@@ -63,6 +70,36 @@ incremental, and support invariants. The full arm produced distinct `ll`/`rr`
 relative states on all 6 queries, but shortest Cayley distance mapped both to
 energy 2 and tied every query. The terminal verdict is `RETAIN_STATE_ONLY`: it
 does not generate text or establish full attention.
+
+The A1P command preserves those six queries as regression-only evidence,
+prepares construction and sealed-validation geometry/support without labels,
+and derives S4 parity from each exact history and the frozen role order before
+joining the separate label ledgers. Its paired contract computes
+`X=C(H,c)`, `Y=C(P_c,c)`, and `D=X*Y^-1` in the signed `(1,i)` R4 chart. The
+exact endpoint rule is `sin=±1, cos=0 -> 1` with chirality retained and
+`sin=0, cos=±1 -> 0` with cosine polarity retained; `q0=q1=0` is typed-null
+abstention, not a threshold shortcut. `q2` and `q3` remain in the full `D`
+witness but are not scorer-key fields.
+
+The target-free structural census covers 120×120 = 14,400 ordered pairs, 120
+relative rows, 45 exact heatmap classes, and 480 typed-null pairs. Across 36
+fixture decisions, 14 classes were exercised; construction coverage was 12/12
+and pure, construction classes covered 10/12 validation decisions, the
+no-class-splitting oracle ceiling was 10/12, strict construction transfer was
+0/6, and eight heatmap classes were incompatible. The hard gate therefore
+stops before scalar search; every downstream selection, control, and placement
+row is `NOT_RUN_IDENTIFIABILITY_HARD_STOP`, not PASS. Its terminal literal is
+`RETAIN_H4_STATE_ONLY_ADVANCE_MULTICHANNEL_A1Q`. Contract, universe, and report
+kappas are
+`blake3:2daacf538c022fab9580d1e124af6c18d0b06da04604fbc962a01bda57f08a98`,
+`blake3:dca725c0ec6060166bcd0023df956e1ff029661b5fa7800ccb9f20808712b796`,
+and `blake3:5f9239150dea8c0c27c4dfa6ad2e4d0068bc3d18afc127b315c0ec358ceddb3f`.
+This negative is bounded to the paired-H4-derived heatmap readout. Fixed-zeta
+phases, ordered n-lets, exact `phi` radial transport, and the typed
+`sqrt(2) <-> 2i <-> [0,2]` adapters remain structural under
+`STRUCTURAL_BINDING_ONLY_NO_ZETA_NLET_TO_PHI_EXPONENT_RULE`; they are not
+scorer inputs. It does not establish attention or generation, and #969 becomes
+the next stage only after protected #970 merge.
 
 The ingestion witness maps two turns of text through the pinned lexical codec,
 prime/spin route state, canonical hierarchy manifest, strict reload, and exact
@@ -92,10 +129,12 @@ slots and marks not-yet-established boundaries absent. S0 serializes state and
 numeric geometry only: every candidate row ceiling is zero and marked
 `NOT_IMPLEMENTED_S0_STATE_ONLY`. #952 established candidate/value reachability
 but found its reusable summaries order-erasing. #967 landed the exact ordered
-state repair but retained it as state only after the candidate tie. Unassigned
-#970 owns the candidate-relative readout/placement redesign and blocks #969;
-#969 separately owns full recursive-attention qualification and blocks #953
-generation. Stored H4/Hopf/zeta/icosian and related route fields remain
+state repair but retained it as state only after the candidate tie. #970's
+corrected paired-H4-derived exact R4-heatmap gate stopped at bounded readout
+identifiability without searching another scalar. Until #970 lands through the
+protected merge path, #969 remains blocked; after that merge it becomes the
+next multichannel full recursive-attention qualification and continues to
+block #953 generation. Stored H4/Hopf/zeta/icosian and related route fields remain
 structural state, diagnostics, or controls until A1Q qualifies a term for
 semantic scoring; #953 may use only the qualified terms.
 

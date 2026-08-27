@@ -16,11 +16,22 @@ candidate/value path was reachable, but the additive/last-child hierarchy
 summaries erased earlier causal order. #967's narrow A1R delivery repaired the
 ordered state but terminated `RETAIN_STATE_ONLY` when shortest Cayley distance
 collapsed distinct candidate-relative states to the same energy on 6/6
-queries. Unassigned #970 follows protected #967 delivery, owns A1P
-candidate-relative readout/placement, and blocks #969. #969 owns A1Q full
-recursive-attention qualification; #953 is
-blocked by #969 and owns bounded library/CLI inference and generation using
-only A1Q-qualified semantic scoring terms. #962 separately owns durable
+queries. #970's corrected target-free construction/validation preflight then
+enumerated 120×120 = 14,400 paired-H4 operands as 120 relative rows, 45 exact
+signed `(1,i)` R4-heatmap classes, and 480 typed-null pairs. Across 36 decisions
+it exercised 14 classes, had pure 12/12 construction coverage, covered 10/12
+validation decisions with a 10/12 no-class-splitting oracle ceiling,
+transferred 0/6 queries, and found eight incompatible classes. It terminated
+the bounded heatmap-readout question as
+`RETAIN_H4_STATE_ONLY_ADVANCE_MULTICHANNEL_A1Q` before scalar search. Contract,
+universe, and report kappas are
+`blake3:2daacf538c022fab9580d1e124af6c18d0b06da04604fbc962a01bda57f08a98`,
+`blake3:dca725c0ec6060166bcd0023df956e1ff029661b5fa7800ccb9f20808712b796`,
+and `blake3:5f9239150dea8c0c27c4dfa6ad2e4d0068bc3d18afc127b315c0ec358ceddb3f`.
+#969 becomes the next A1Q multichannel full recursive-attention qualification
+only after protected #970 merge; #953 remains blocked by #969 and owns bounded
+library/CLI inference and generation using only A1Q-qualified semantic scoring
+terms. #962 separately owns durable
 multi-turn CLI/HTTP chat, persisted conversation state, session/identity
 isolation, and identity-scoped hive memory.
 
@@ -37,7 +48,7 @@ canonical text/corpus
     -> witnessed paired-H4/E8 state
     -> incremental local/sentence/paragraph/conversation/global state
     -> associative noncommutative ordered-summary repair (#967, state only)
-    -> candidate-relative readout/placement redesign (#970)
+    -> paired-H4-derived exact R4-heatmap readout hard stop (#970, bounded negative)
     -> complete recursive geometric-attention qualification (GI-2/#969)
     -> bounded source-free library/CLI inference and generation (#953)
     -> correctness + typed abstention (#954)
@@ -58,8 +69,19 @@ The #952 A1.0 record is a representation-level negative result, not a failure
 of lexical inversion, candidate admission, H4 closure, Hopf state, or the value
 interface. Exact hierarchy identities preserved order as provenance, but their
 digest distance is not geometry; #967 made that order observable in bounded
-reusable summaries, while #970 now owns candidate-relative readout/placement before
-semantic scoring resumes. See the
+reusable summaries. #970's paired contract computes `D=X*Y^-1`; its exact
+endpoint rule is `sin=±1, cos=0 -> 1` with chirality retained and
+`sin=0, cos=±1 -> 0` with cosine polarity retained, while `q0=q1=0` is a
+typed-null abstention. Geometry/support was prepared without labels and S4
+parity was derived from each history before label-ledger join. The resulting
+negative is scoped only to the bounded heatmap readout; `q2` and `q3` remain in
+the full `D` witness but are not scorer-key fields. Fixed-zeta phases,
+ordered n-lets, exact `phi` radial transport, and typed
+`sqrt(2) <-> 2i <-> [0,2]` adapters remain structural under
+`STRUCTURAL_BINDING_ONLY_NO_ZETA_NLET_TO_PHI_EXPONENT_RULE`, not semantic scorer
+inputs. #969 becomes the next multichannel qualification only after protected
+#970 merge.
+See the
 [#952 A1.0 record](recursive_geometric_attention_a1_952.md).
 
 In the frozen #952/A1R fixture, current, previous, last-two, and the immutable
@@ -1349,9 +1371,10 @@ Passing `--cover` reuses the measured cover. It may be omitted to re-induce
 the default cover deterministically during scoring. For experiments, `cover`
 also accepts `--depths`, `--k0`, `--regions-budget`, and `--memory-budget`.
 
-**Current production boundary pending #962 after #970, #969, and #953–#955.**
-#970 owns candidate-relative readout/placement and #969 owns full
-recursive-attention qualification. #953 owns the
+**Current production boundary pending #962 after #969 and #953–#955.**
+#970 has bounded paired-H4-derived exact R4-heatmap readout evidence awaiting
+protected merge; #969 becomes the next multichannel full recursive-attention
+qualification only after that merge. #953 owns the
 bounded source-free library/CLI inference and generation engine; #962 owns its
 integration into durable multi-turn CLI/HTTP chat, persisted conversation
 state, session/identity isolation, and identity-scoped hive memory. Until that

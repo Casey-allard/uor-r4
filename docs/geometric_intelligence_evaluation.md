@@ -19,12 +19,16 @@ probe whose possible outcomes cause different next actions.
 Lexical ingestion, canonical serialization, registered-address membership,
 and rebuild witnesses are prerequisite plumbing, not inference. The delivery
 sequence is fixed: A1R/#967 repaired ordered state but retained it as state only;
-A1P/#970 now falsifies and replaces the shortest-Cayley scalar readout within
-its broader candidate-relative readout/placement scope; A1Q/#969 then
-qualifies complete recursive attention across local, sentence, paragraph,
-conversation, and global scopes; inference/generation follows only after #969;
-correctness with abstention is third; bounded reasoning is fourth. #970 blocks
-#969, and #969 natively blocks #953.
+A1P/#970 has a corrected local paired-H4/R4-heatmap identifiability result of
+`RETAIN_H4_STATE_ONLY_ADVANCE_MULTICHANNEL_A1Q` before scalar design because
+eight retained heatmap classes aliased outcomes and construction transfer was
+0/6. This is a readout-identifiability negative only; paired H4 and its exact R4
+heatmap remain structural/control state. #970 remains active until protected
+merge, and A1Q/#969 remains blocked until then. After delivery, #969 may test
+complete recursive attention across local,
+sentence, paragraph, conversation, and global scopes; inference/generation
+follows only after #969; correctness with abstention is third; bounded reasoning
+is fourth. #969 natively blocks #953.
 
 A negative result remains evidence about its declared mechanism and
 distribution. It does not erase a separately established storage, identity,
@@ -45,16 +49,24 @@ The stages are ordered because each later claim depends on the earlier one:
    realizes the project shorthand `E8 = H4 × H4` as `H4 ⊕ φH4`. Their presence
    in the structural/storage representation does not qualify them for scoring;
    A1Q/#969 must establish the causal value of each term it promotes.
-2. **Inference/generation** — the real decoder uses only A1Q-qualified semantic
-   scoring terms from the completed hierarchy to produce decodable next tokens,
-   update state without future-route input, and run provider-free through the
-   evaluated CLI/HTTP/chat path. Required storage fields that remain
-   unqualified cannot influence ranking.
-3. **Correctness/abstention** — answers satisfy an independent oracle or
-   constraint, and typed abstentions are reported explicitly.
-4. **Reasoning** — novel multi-step tasks expose typed intermediate transitions,
+2. **Inference/generation (#953)** — the real decoder uses only A1Q-qualified
+   semantic scoring terms from the completed hierarchy to produce decodable next
+   tokens, update state without future-route input, and run provider-free through
+   the evaluated library/CLI path. Required storage fields that remain
+   unqualified cannot influence ranking. Durable HTTP/chat integration belongs
+   to #962.
+3. **Correctness/abstention (#954)** — the accepted #969-qualified terms through
+   the accepted #953 generator satisfy an independent oracle or constraint, and
+   typed abstentions are reported explicitly. #954 does not consume #952 as
+   qualified attention.
+4. **Reasoning (#955)** — every step invokes the accepted #969/#953/#954
+   consumer; novel multi-step tasks expose typed intermediate transitions,
    constraint preservation, alternative/counterfactual comparison, and a
-   checkable result.
+   checkable result. #952 is not the reasoning consumer.
+
+#962 later integrates #969-qualified attention and the accepted #953 generator
+into product chat/memory. #964 binds the inserted #970 → #969 stages in the
+serving contract, and #965 qualifies only that exact release path.
 
 Passing an earlier stage never promotes a later claim. Codec coverage is not
 attention; exact recall is not geometric attention; partial local/sentence
@@ -144,8 +156,11 @@ changed the same-candidate relative state in 5/6 paired comparisons. The scalar
 shortest-Cayley-distance readout nevertheless mapped both candidates to energy
 2 and tied on all 6/6 queries. The terminal verdict is `RETAIN_STATE_ONLY`:
 ordered state is retained, but attention, generation, correctness, and reasoning
-remain unestablished. A1P/#970 owns the readout/placement redesign and blocks
-A1Q/#969.
+remain unestablished. The corrected local A1P/#970 probe subsequently found
+eight incompatible exact paired-H4-derived R4-heatmap classes and stopped before
+readout or placement. This narrows only the frozen heatmap readout; it does not
+reject paired H4 or the other declared channels. #970 remains active and #969
+blocked pending protected merge.
 
 The legacy additive state was bound and remained equal, but its ranking arm is
 `NOT_EXERCISED`: no additive candidate scorer was predeclared. The exact-recall
@@ -154,6 +169,216 @@ address order reported `rr` as a diagnostic tie-break token for the full arm;
 it never converted a tie into a selection. The verdict does not depend on the
 unavailable additive arm: the report binds the 6/6 full tie and
 `any_exercised_control_not_weaker = true` separately.
+
+### A1P/#970 corrected construction/validation contract
+
+#970 is an identifiability decision before it is a metric decision. The six
+visible A1R labels remain an unchanged regression/root-cause fixture. Passing
+those six labels with a replacement scalar can never establish semantic value,
+and they cannot train, orient, or select the new readout. Their #952 partition
+kappa remains
+`blake3:d008b82eda9b16b102cf4c7ffa4a47a40ad514b30f0763ed3f46c0ebae3e277b`;
+their historical result remains bound by #967 report kappa
+`blake3:f0db7a5d5c81d51ebf3b4bf8a2715c4960ec16b14161e8bf7598d7b98c48c881`.
+The old denominator remains three contrasts/six queries, and the frozen
+shortest-Cayley outcome remains 0/6 selections, 6/6 ties, and 6/6 abstentions.
+
+The independent pre-evidence fixtures are:
+
+| Fixture | ID | Kappa | Histories / intended observations |
+|---|---|---|---|
+| Construction | `A1P-CONSTRUCTION-1` | `blake3:fb5f27fc1107f527d616f32affa8eba1746a2f60cfdb95ddbb21a0e493299652` | `aa bb cc dd qq -> ll`; `aa cc bb dd qq -> rr`; `bb aa cc dd qq -> rr`; `bb cc aa dd qq -> ll`; `cc aa bb dd qq -> ll`; `cc bb aa dd qq -> rr` |
+| Sealed validation | `A1P-VALIDATION-1` | `blake3:ecbe8b404e7542d801ff4b4e66c91a41f90158d84efa484dc4edb53aff38b602` | `aa cc dd bb qq -> ll`; `aa dd cc bb qq -> rr`; `cc aa dd bb qq -> rr`; `cc dd aa bb qq -> ll`; `dd aa cc bb qq -> ll`; `dd cc aa bb qq -> rr` |
+
+Construction, validation, and regression end in `dd qq`, `bb qq`, and `cc qq`,
+respectively; all exact five-unit histories differ. The natural candidate set is
+always `{ll, rr}`, with construction predecessors `P_ll = uu` and `P_rr = vv`.
+Observation continuations are a separate kappa-bound ledger and are not compiled
+into the schema-2 candidate manifest. Direct/exact or divisor continuation hits,
+target injection, future events, or a candidate union other than natural
+`{ll, rr}` invalidates the contract.
+
+Construction observations determine the rule rather than attaching targets to
+unrelated histories. The predeclared family is the two-element abelianization of
+permutations on ordered roles `[aa, bb, cc, dd]`: construction may select only
+the trivial map or the sign homomorphism `S4 -> C2`. The first construction
+observation rejects the trivial map and fixes candidate orientation; the
+remaining five must confirm `even -> ll` and `odd -> rr`. At validation time the
+scorer receives only exact construction-derived state classes, never role
+names, parity, token spelling or IDs, prime/address order, or labels. Validation
+labels are public for the
+identifiability ceiling; validation scorer outputs remain sealed until the
+construction-to-readout compiler is frozen. No #969 sentence, paragraph,
+conversation, or global fixture may be consumed, inspected, or exposed.
+
+Parity is not trusted from the fixture literal: it is derived by inversion count
+from each exact history and frozen role order `[aa,bb,cc,dd]`, then checked
+against the serialized literal. Construction and validation geometry and
+natural support are prepared through a target-free input with no observed-next
+field; both populations are complete before their separate label ledgers are
+joined for purity and ceiling calculations.
+
+The corrected public contract retains the complete ordered witness
+
+```text
+X(H,c) = C(H,c)
+Y(P_c,c) = C(P_c,c)
+D(H,c) = X(H,c) * Y(P_c,c)^-1.
+```
+
+Writing `D=(q0+q1 i+q2 j+q3 k)/2`, with every coordinate in exact `Z[phi]`,
+the scorer key is the signed `(1,i)` R4 heatmap
+`(sin=q0/2, cos=q1/2, activation=q0^2/4, chirality, cosine polarity, chart
+status)`. The full `D` witness retains `q2/q3`; neither operand is discarded or
+made label-bearing. The exact endpoint mapping is `sin=+1,cos=0 -> 1`,
+`sin=-1,cos=0 -> 1`, `sin=0,cos=+1 -> 0`, and `sin=0,cos=-1 -> 0`, with signed
+orientation retained. Non-landmarks remain exact classes, while `q0=q1=0` is a
+typed-null abstention. There is no float, fitted threshold, or Q1.30 shortcut.
+
+The same contract carries the immutable fixed-zeta identity, ordered
+multiplicity-preserving prime n-lets, golden radial maps
+`(a,b)*phi=(b,a+b)` and `(a,b)*phi^-1=(b-a,a)`, and the typed
+`Euclidean sqrt(2) <-> complex 2i <-> Riemannian [0,2]` adapter. These are
+structural bindings, not scorer shortcuts. No zeta/n-let-to-`phi` shell-exponent
+rule has been supplied or established.
+
+Before choosing a scalar or opening validation scorer output, enumerate all
+120×120 ordered `(X,Y)` pairs and the exact heatmap classes for every
+inherited-regression, construction, and validation candidate decision. Keep all
+three fixture denominators separate and keep the structural universe independent
+of the 36 exercised decisions. Report:
+
+1. construction class coverage and per-class binary candidate-outcome purity;
+2. validation candidate-class coverage;
+3. the no-class-splitting oracle ceiling,
+   `sum_E max_y count_validation(E,y) / 12`;
+4. the construction-transfer selection ceiling: validation queries on which the
+   construction class map makes the intended candidate uniquely positive and
+   the alternative uniquely negative, divided by six, with unseen classes
+   abstaining; and
+5. the same coverage, purity, aliasing, and ceilings for the additive comparator
+   class `(A*(H), A*(c), A*(P_c))`, using the existing additive non-digest
+   summary and excluding spelling, occurrence/position identifiers, lexical-unit
+   ID, prime, address index, boundary/chain identity, kappa/digests, and
+   provenance.
+
+If any retained exact class requires incompatible outcomes, construction is
+impure, or construction observations define no rule that transfers to
+validation, stop immediately as
+`RETAIN_H4_STATE_ONLY_ADVANCE_MULTICHANNEL_A1Q`. Do not search another metric,
+add fields, enlarge H4, expand the corpus, or execute downstream selection arms.
+The inherited/new union gate is binding even if another scalar could fit the six
+visible regression labels.
+
+Only an identifiable union authorizes exactly one deterministic bounded readout
+compiled from construction observations using exact integer and finite-table
+operations. Freeze its algorithm and serialized artifact before opening
+validation outputs. Apply the same class-to-outcome compiler to the additive
+comparator. Preserve candidate rows, support, admission, payload inversion,
+source partition, row/candidate ceilings, causality, and work. Expose only an
+API-neutral serializable `select_or_abstain` result and minimal trace. Report the
+old-six regression, construction, and validation separately, and execute the
+final authorized probe twice with byte-identical inputs, report, and kappa.
+
+The required #970 arms are the full paired-H4-derived exact R4 heatmap,
+current-only, additive with its compiled scorer, factor/count-only,
+deterministic geometry permutation,
+candidate relabeling, prime-assignment permutation, hierarchy-disabled, and
+exact-recall-only. A placement arm exists only if identifiability proves
+placement is the isolated defect; readout and placement may not both be tuned.
+Candidate relabeling applies `rho = (ll rr)(uu vv)` to construction evidence,
+predecessors, and validation labels before recompilation. Prime-assignment
+permutation is `pi_p = (aa bb cc dd gg qq)(ll rr uu vv)` with
+`leaf_pi(t) = leaf(pi_p(t))`; it changes only H4 leaf binding after the unchanged
+natural candidate/support path. Geometry permutation conjugates construction and
+validation by the existing A1R first-noncentral conjugator under root-table kappa
+`blake3:8d33d62a239fb8001fea2bd14a9a5ec7321d0f07d81c74a5715eaeb3df53aa76`.
+These are equivariance audits: the compiled result must follow transformed
+construction evidence exactly.
+
+Each fixture has six histories, twelve candidate decisions, seven row reads per
+query / 42 total, candidate-entry ceiling 56/query, candidate ceiling eight, and
+maximum two admitted candidates. The complete preflight is bounded to 18 fixed
+histories and 36 candidate decisions plus one target-free exhaustive structural
+census of 14,400 ordered pairs, its complete 120-root relative image, 45 exact
+heatmap classes, and 480 typed-null pairs. Every authorized arm reports
+selections, ties, abstentions, exact hits, support
+equality, work, and explicit status. `NOT_EXERCISED`, `NOT_RUN`, `UNAVAILABLE`,
+and `INVALID` are not passes. A hard-gate stop records downstream arms as
+`NOT_RUN_IDENTIFIABILITY_HARD_STOP`; that is a valid bounded
+readout-identifiability negative, not unavailable evidence or a claim that the
+underlying structures have no value.
+
+The terminal decisions are exact:
+
+- `PROMOTE_H4_READOUT_CANDIDATE_TO_A1Q` admits only the paired-H4-derived exact
+  R4-heatmap candidate term to #969 after strict 6/6 sealed validation, all
+  required controls, strict
+  superiority to every matched baseline, candidate/prime/geometry equivariance,
+  equal support/admission/payload/causality/work, and deterministic selector and
+  trace bytes. It establishes neither attention nor generation.
+- `RETAIN_H4_STATE_ONLY_ADVANCE_MULTICHANNEL_A1Q` closes this exact heatmap
+  readout search after aliasing, no transferable rule, a held-out
+  miss/tie/abstention, an inert
+  readout, or failure to beat an exercised comparator. Both H4 operands and the
+  derived heatmap remain structural, provenance, diagnostic, or control state;
+  after protected delivery, #969 may advance to its other predeclared
+  candidate-relative trajectory/harmonic channels. Do not create another
+  paired-heatmap scalar-readout chain.
+- `UNAVAILABLE_NO_INDEPENDENT_HOLDOUT` or `INVALID_CONTRACT` leaves #970 open
+  and #969 blocked with the exact blocker published.
+
+Both valid outcomes expose only #969 after protected delivery. Until the
+corrected result merges, #970 remains active and #969 remains blocked. #953
+remains blocked until #969 itself qualifies full attention.
+
+### Observed #970 outcome
+
+The corrected local preflight reached the valid negative without a scalar
+search. Its structural universe is independent of the fixture decisions:
+
+| Structural measure | Result |
+|---|---:|
+| Ordered paired-H4 witnesses | 14,400 / 14,400 |
+| Exact relative `D=X*Y^-1` image | 120 / 120 |
+| Pair multiplicity per relative row | 120 |
+| Exact signed R4 heatmap classes | 45 |
+| Typed-null ordered pairs | 480 |
+
+| Measure | Paired-H4-derived exact R4 heatmap | Existing additive comparator |
+|---|---:|---:|
+| Exact classes across 36 decisions | 14 | 2 |
+| Construction decisions | 12 / 12 pure | 12 / 12 across 2 impure classes |
+| Validation coverage by construction | 10 / 12 | 12 / 12 |
+| No-class-splitting ceiling | 10 / 12 | 6 / 12 |
+| Strict construction-transfer ceiling | 0 / 6 | 0 / 6 |
+| Incompatible retained classes | 8 | 2 |
+
+No readout was compiled and every downstream arm is
+`NOT_RUN_IDENTIFIABILITY_HARD_STOP`. The exact contract, complete pair-universe
+census, and byte-identical double-run report kappas are respectively
+`blake3:2daacf538c022fab9580d1e124af6c18d0b06da04604fbc962a01bda57f08a98`,
+`blake3:dca725c0ec6060166bcd0023df956e1ff029661b5fa7800ccb9f20808712b796`,
+and
+`blake3:5f9239150dea8c0c27c4dfa6ad2e4d0068bc3d18afc127b315c0ec358ceddb3f`.
+This is only a bounded readout-identifiability negative. #970 remains active
+until protected merge, and #969 remains blocked until that delivery.
+See the [append-only A1P record](candidate_relative_identifiability_a1p_970.md).
+
+### A1Q/#969 Gate 0 composition instrument
+
+After the corrected #970 result is delivered through protected merge, #969 may
+begin with one bounded 2–8 lexical-unit end-to-end instrument:
+
+```text
+bytes -> lexical routes -> admitted candidates -> frozen select/abstain
+      -> payload decode -> incremental state update
+```
+
+It stops before sentence/paragraph/conversation/global expansion if matched
+prompts emit identical continuations, the qualified-state intervention is inert,
+decoding fails, a period-1–4 cycle appears, termination is nondeterministic, or
+support changes. Those later fixtures remain sealed and disjoint from #970.
 
 ## 4. Matched controls
 
@@ -326,6 +551,18 @@ Use these outcomes literally:
 - `UNAVAILABLE` — a required fixture, provider, oracle, or platform was absent.
 - `NOT_EXERCISED` — the run completed but the named branch received zero valid
   opportunities.
+- `PROMOTE_H4_READOUT_CANDIDATE_TO_A1Q` — #970's independent construction and
+  sealed validation contract passed; only the paired-H4-derived exact R4
+  heatmap term advances to #969 after protected delivery.
+- `RETAIN_H4_STATE_ONLY_ADVANCE_MULTICHANNEL_A1Q` — the corrected local #970
+  probe produced a valid readout-identifiability negative; both H4 operands and
+  the derived heatmap
+  remain structural/control state, and #969 may advance to its other
+  predeclared channels only after protected delivery.
+- `UNAVAILABLE_NO_INDEPENDENT_HOLDOUT` — #970 cannot form the required
+  independent evidence; it remains open and #969 remains blocked.
+- `INVALID_CONTRACT` — the frozen #970 contract was violated; it remains open
+  and #969 remains blocked.
 
 Never convert a missing fixture, empty denominator, skipped test, or unrelated
 green suite into `PASS`. Every report preserves artifact kappas, partition CIDs,
